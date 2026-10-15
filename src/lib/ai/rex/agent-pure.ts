@@ -7,6 +7,8 @@ import { z } from "zod";
 import { providerSchema } from "../peggy/pure.ts";
 import { FIELD_TYPES, TEMPLATE_IDS } from "../../cms/fields.ts";
 import { PRINT_KINDS, QR_TARGETS } from "../../../../shared/print-labels.ts";
+import { PACK_FORMATS, PACK_STYLES, PRODUCT_TYPES } from "../../../../shared/packaging.ts";
+import { CREATIVE_CONCEPTS, CREATIVE_PLACEMENTS } from "../../../../shared/creatives.ts";
 import { LOGO_SIZES, LOGO_STYLES } from "../../../../shared/store-logo.ts";
 import { MUSIC_MOODS, REEL_TEMPLATE_IDS, VOICE_GENDERS } from "../../../../shared/video-style.ts";
 
@@ -368,6 +370,38 @@ export const REX_TOOL_SPECS = {
         note: z.string().trim().max(160).nullable().describe("Small print: ingredients, care, weight, a thank-you line; null for none"),
         qr: z.enum(QR_TARGETS).nullable().describe("Where the QR code goes: product page, store, WhatsApp chat, reviews page or custom; null for product"),
         copies: z.number().int().min(1).max(100).nullable().describe("Copies of each; null for 1"),
+      })
+      .strict(),
+  },
+  design_packaging: {
+    kind: "write",
+    description:
+      "Design print-ready packaging for a product in the Packaging designer and save it to Labels and print: stand-up pouch, tuck-end box, jar wrap label, bottle labels, round sticker, sachet, tube, wrap sleeve or shopping bag, in one of 12 templates. Peggy writes the words (name, tagline, badges, description and the back of the pack for the product type: ingredients, how to use, storage, caution, care). It carries the store's logo, a barcode and a QR code; the seller downloads a print-ready PDF (bleed, cut lines, spec sheet) for their printer. Works for food, drinks, beauty, hair, supplements, fashion, home, baby, pet, cleaning and electronics.",
+    schema: z
+      .object({
+        product: optionalProduct("The product the pack is for (null when it isn't in the store yet; then give name)"),
+        name: z.string().trim().max(80).nullable().describe("Product name for the pack when it isn't a store product; null to use the product's name"),
+        productType: z.enum(PRODUCT_TYPES).nullable().describe("What kind of product; null to guess from the product"),
+        format: z.enum(PACK_FORMATS).nullable().describe("The pack; null to pick the usual one for the product type"),
+        style: z.enum(PACK_STYLES).nullable().describe("midnight (dark premium snack), range (one bold colour per flavour), pop (loud duotone), split (two-tone wave with badges), kraft (natural, stamp), minimal (calm white), botanical (deep colour, arch photo), ankara (African pattern bands), badge (retro emblem), clinical (supplements, skincare), playful (kids, pets), luxe (black and gold); null to pick for the product type"),
+        brief: z.string().trim().max(400).nullable().describe("What the seller wants on it or how it should feel; null for none"),
+      })
+      .strict(),
+  },
+  make_creative: {
+    kind: "image",
+    description:
+      "Make an eye-catching marketing image (with the headline lettered on it) for social media, a story, a Facebook/Instagram ad, the store banner, an email header, a website popup or a campaign poster. Concepts: bold_headline (giant chunky words, products held up around), product_lineup (the range in a row on two-tone colour), witty_metaphor (a clever visual twist with a teasing line), model_with_products (a Nigerian model reacting, products held up), floating_hero, dark_premium, ingredient_splash, flat_lay, minimal_studio. Uses the products' photos as references and the brand colours (and logo when asked).",
+    schema: z
+      .object({
+        placement: z.enum(CREATIVE_PLACEMENTS).describe("Where it will be used"),
+        concept: z.enum(CREATIVE_CONCEPTS).describe("The creative idea"),
+        products: z.array(product("A product")).max(4).nullable().describe("Products to feature; null for none"),
+        headline: z.string().trim().max(60).nullable().describe("The big words, short and punchy (e.g. 'Tough choice.'); null for no text"),
+        subline: z.string().trim().max(90).nullable().describe("A smaller line; null for none"),
+        cta: z.string().trim().max(24).nullable().describe("Call to action like 'Shop now'; null for none"),
+        brand: z.enum(["logo", "colours", "none"]).nullable().describe("logo = their logo on it plus brand colours; colours = brand colours only; none. null = colours"),
+        extra: z.string().trim().max(400).nullable().describe("Anything else about the picture; null for none"),
       })
       .strict(),
   },

@@ -51,6 +51,7 @@ import automations from "./messages/automations/index.ts";
 import inbox from "./messages/inbox/index.ts";
 import social from "./messages/social/index.ts";
 import ads from "./messages/ads/index.ts";
+import packaging from "./messages/packaging/index.ts";
 import video from "./messages/video/index.ts";
 import affiliates from "./messages/affiliates/index.ts";
 import analytics from "./messages/analytics/index.ts";
@@ -129,6 +130,7 @@ export const CATALOGS = {
   inbox,
   social,
   ads,
+  packaging,
   video,
   affiliates,
   analytics,

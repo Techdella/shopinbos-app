@@ -80,6 +80,30 @@ function escapeXml(text: string) {
  * An SVG barcode (black bars on white, quiet zones included) with the human-readable value underneath.
  * `height` is the bar height in modules; the SVG scales to whatever box it is placed in.
  */
+/** The bars as [x, width] in modules (quiet zone of 10 included in `total`), for drawing as vectors. */
+export function barcodeBars(value: string): { bars: Array<[number, number]>; total: number; label: string; kind: BarcodeKind } {
+  const kind = barcodeKindFor(value);
+  const quiet = 10;
+  const bars: Array<[number, number]> = [];
+  let x = quiet;
+  if (kind === "ean13") {
+    for (const bit of ean13Modules(value)) {
+      if (bit === "1") {
+        const last = bars[bars.length - 1];
+        if (last && last[0] + last[1] === x) last[1] += 1;
+        else bars.push([x, 1]);
+      }
+      x += 1;
+    }
+  } else {
+    code128Widths(value).forEach((width, index) => {
+      if (index % 2 === 0) bars.push([x, width]);
+      x += width;
+    });
+  }
+  return { bars, total: x + quiet, label: kind === "ean13" ? normaliseEan13(value)! : value.trim(), kind };
+}
+
 export function barcodeSvg(value: string, { height = 50, showText = true }: { height?: number; showText?: boolean } = {}): string {
   const kind = barcodeKindFor(value);
   const quiet = 10;

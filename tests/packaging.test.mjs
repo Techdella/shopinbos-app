@@ -1,0 +1,152 @@
+// Packaging designer: dielines, words, text fitting, colours and the print-ready PDF.
+import test from "node:test";
+import assert from "node:assert/strict";
+
+const pack = await import("../shared/packaging.ts");
+const { buildPrintPdf, pdfText } = await import("../shared/print-pdf.ts");
+const { barcodeBars, ean13Modules } = await import("../shared/barcodes.ts");
+
+test("every format lays out flat with panels inside the sheet and a front panel", () => {
+  for (const format of pack.PACK_FORMATS) {
+    for (const size of pack.PACK_FORMAT_INFO[format].sizes) {
+      const layout = pack.packLayout(format, size);
+      assert.ok(layout.panels.some((panel) => panel.role === "front"), `${format} has a front`);
+      for (const panel of layout.panels) {
+        assert.ok(panel.x >= 0 && panel.y >= 0 && panel.x + panel.w <= layout.width + 1e-9 && panel.y + panel.h <= layout.height + 1e-9, `${format} ${panel.id} inside`);
+      }
+      for (const outline of layout.cuts) for (const [x, y] of outline) assert.ok(x >= 0 && y >= 0 && x <= layout.width && y <= layout.height, `${format} cut inside`);
+      assert.ok(layout.cuts.length + layout.circles.length > 0, `${format} has a cut`);
+    }
+  }
+});
+
+test("a tuck-end box is two faces and two sides wide plus the glue flap, with lids top and bottom", () => {
+  const layout = pack.packLayout("box", { w: 80, h: 120, d: 50 });
+  assert.equal(layout.width, 80 * 2 + 50 * 2 + 12);
+  assert.equal(layout.height, 120 + 2 * (50 + 15));
+  assert.deepEqual(layout.panels.map((panel) => panel.id), ["front", "side-left", "back", "side-right", "top", "bottom"]);
+  assert.equal(layout.folds.length, 12);
+});
+
+test("sizes are clamped, round stickers stay round and flat formats ignore depth", () => {
+  assert.deepEqual(pack.clampSize("round_sticker", { w: 60, h: 10 }), { w: 60, h: 60, d: 0 });
+  assert.deepEqual(pack.clampSize("jar_label", { w: 5000, h: -3, d: 40 }), { w: 600, h: 80, d: 0 });
+  assert.equal(pack.clampSize("pouch", { w: 150, h: 220, d: "x" }).d, 80);
+});
+
+test("designs from the browser or Rex are cleaned: bad colours, urls and fields fall back", () => {
+  const design = pack.cleanDesign({
+    format: "box",
+    style: "nope",
+    productType: "beauty",
+    colours: { ground: "red", ink: "#abcdef" },
+    content: { name: " Shea Glow ", claims: ["a", "b", "c", "d", "e"], qrUrl: "javascript:alert(1)", nutrition: [{ label: "Energy", value: "540 kcal" }, { value: "x" }] },
+    image: { url: "http://insecure/x.png" },
+    logoUrl: "https://cdn.example/logo.png",
+  });
+  assert.equal(design.style, "midnight");
+  assert.equal(design.colours.ground, pack.PACK_STYLE_INFO.midnight.colours.ground);
+  assert.equal(design.colours.ink, "#ABCDEF");
+  assert.equal(design.content.name, "Shea Glow");
+  assert.equal(design.content.claims.length, 4);
+  assert.equal(design.content.qrUrl, "");
+  assert.deepEqual(design.content.nutrition, [{ label: "Energy", value: "540 kcal" }]);
+  assert.equal(design.image, null);
+  assert.equal(design.logoUrl, "https://cdn.example/logo.png");
+});
+
+test("new designs start from the product type's formats, styles, claims and net content", () => {
+  const design = pack.newDesign({ productType: "beauty", brand: "Ada", name: "Shea butter" });
+  assert.equal(design.format, "jar_label");
+  assert.ok(pack.PACK_STYLE_INFO[design.style].best.includes("beauty"));
+  assert.equal(design.content.netContent, "250 g");
+  assert.equal(design.content.claims.length, 3);
+  assert.equal(pack.guessProductType("Roasted cashew nuts 500g"), "food");
+  assert.equal(pack.guessProductType("Zobo drink 50cl"), "drinks");
+  assert.equal(pack.guessProductType("Whipped shea body butter"), "beauty");
+  assert.equal(pack.guessProductType("Ankara tote bag"), "fashion");
+  assert.equal(pack.stylesFor("fashion")[0], "ankara");
+});
+
+test("text fitting: font sizes shrink to the width and back-of-pack words fit the box", () => {
+  assert.equal(pack.fitFontSize("MIXED", 100, 30, "condensed"), 30);
+  assert.ok(pack.fitFontSize("A VERY LONG PRODUCT NAME INDEED", 40, 30, "heavy") < 3);
+  assert.deepEqual(pack.wrapText("one two three four", 9), ["one two", "three", "four"]);
+  assert.deepEqual(pack.wrapText("abcdefghij", 4), ["abcd", "efgh", "ij"]);
+  const blocks = pack.infoBlocks({ ...pack.EMPTY_CONTENT, ingredients: "Cashew, almond, walnut, salt.", allergens: "Contains nuts.", storage: "Keep cool and dry." }, "food");
+  assert.deepEqual(blocks.map((block) => block.heading), ["Ingredients", "Allergens", "Storage"]);
+  const fitted = pack.layoutInfo(blocks, 50, 60);
+  assert.equal(fitted.overflow, false);
+  assert.ok(fitted.lines[fitted.lines.length - 1].y <= 60);
+  const crammed = pack.layoutInfo([{ text: "word ".repeat(2000) }], 20, 10);
+  assert.equal(crammed.overflow, true);
+  assert.ok(crammed.lines.every((line) => line.y <= 10));
+});
+
+test("colours: CMYK for the spec sheet and readable text on any ground", () => {
+  assert.deepEqual(pack.hexToCmyk("#000000"), [0, 0, 0, 100]);
+  assert.deepEqual(pack.hexToCmyk("#FF0000"), [0, 100, 100, 0]);
+  assert.equal(pack.readableOn("#FFFFFF"), "#111111");
+  assert.equal(pack.readableOn("#1E1E1E"), "#FFFFFF");
+  const sheet = pack.specSheet(pack.newDesign({ brand: "Ada", name: "Nuts" }), "Ada Nuts");
+  assert.ok(sheet.some((line) => line.includes("bleed")));
+  assert.ok(sheet.some((line) => /C\d+ M\d+ Y\d+ K\d+/.test(line)));
+});
+
+test("barcode bars match the EAN modules", () => {
+  const { bars, total, label, kind } = barcodeBars("5901234123457");
+  assert.equal(kind, "ean13");
+  assert.equal(label, "5901234123457");
+  const modules = ean13Modules("5901234123457");
+  assert.equal(total, modules.length + 20);
+  assert.equal(bars.reduce((sum, [, w]) => sum + w, 0), [...modules].filter((bit) => bit === "1").length);
+});
+
+test("the print PDF has trim and bleed boxes, spot-colour dieline, crop marks, vector barcode and a valid xref", () => {
+  const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xd9]);
+  const layout = pack.packLayout("box", { w: 80, h: 120, d: 50 });
+  const bytes = buildPrintPdf({
+    title: "Ada — Mixed nuts ₦",
+    width: layout.width,
+    height: layout.height,
+    bleed: 3,
+    artwork: { jpeg, pxWidth: 10, pxHeight: 10 },
+    dieline: layout,
+    barcodes: [{ x: 10, y: 10, w: 30, h: 15, value: "5901234123457" }],
+    spec: ["Spec", "Line two"],
+  });
+  const text = new TextDecoder("latin1").decode(bytes);
+  assert.ok(text.startsWith("%PDF-1.6"));
+  assert.match(text, /\/TrimBox \[/);
+  assert.match(text, /\/BleedBox \[/);
+  assert.match(text, /\/Separation \/CutContour/);
+  assert.match(text, /\/Separation \/Crease/);
+  assert.match(text, /\/Count 2/);
+  assert.match(text, /\(Ada - Mixed nuts NGN \)/);
+  const startxref = Number(text.match(/startxref\n(\d+)/)[1]);
+  assert.ok(text.slice(startxref).startsWith("xref"));
+  const offsets = [...text.slice(startxref).matchAll(/^(\d{10}) 00000 n $/gm)].map((m) => Number(m[1]));
+  offsets.forEach((offset, index) => assert.ok(text.slice(offset).startsWith(`${index + 1} 0 obj`), `object ${index + 1} offset`));
+  assert.equal(pdfText("a(b)\\"), "a\\(b\\)\\\\");
+});
+
+test("creative prompts carry the concept, placement, exact words and products", async () => {
+  const creatives = await import("../shared/creatives.ts");
+  const prompt = creatives.creativePrompt({ placement: "story", concept: "bold_headline", headline: 'Tough "choice".', cta: "Shop now", products: ["Medjool dates", "Omani dates"], brandName: "Superfarms" });
+  assert.match(prompt, /9:16/);
+  assert.match(prompt, /giant chunky/);
+  assert.match(prompt, /"Tough 'choice'\."/);
+  assert.match(prompt, /Medjool dates, Omani dates/);
+  assert.match(creatives.creativePrompt({ placement: "store_banner", concept: "minimal_studio" }), /No text at all/);
+  for (const placement of creatives.CREATIVE_PLACEMENTS) assert.ok(["square", "portrait", "landscape"].includes(creatives.CREATIVE_PLACEMENT_INFO[placement].shape));
+});
+
+test("sample designs exist for every product type and style, and Rex can design packaging and creatives", async () => {
+  const { sampleDesign } = await import("../shared/packaging-samples.ts");
+  for (const type of pack.PRODUCT_TYPES) for (const style of pack.PACK_STYLES) assert.ok(sampleDesign(type, style).content.name);
+  const { readFileSync } = await import("node:fs");
+  const tools = readFileSync(new URL("../src/lib/ai/rex/tools.ts", import.meta.url), "utf8");
+  assert.match(tools, /design_packaging: designPackaging/);
+  assert.match(tools, /make_creative: makeCreative/);
+  assert.match(tools, /saveLabelDesign\(/, "Rex's print labels are saved to Labels and print");
+});

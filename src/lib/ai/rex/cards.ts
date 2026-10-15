@@ -32,7 +32,7 @@ export type RexCard =
     }
   | {
       type: "brand";
-      kind: "book" | "icon" | "favicon" | "print" | "display";
+      kind: "book" | "icon" | "favicon" | "print" | "display" | "packaging";
       title: string;
       summary: string;
       href: string;
@@ -77,7 +77,7 @@ export function cardNote(card: RexCard): string {
     case "video":
       return `[Prepared a reel for ${card.product.name}]`;
     case "brand":
-      return `[${card.kind === "print" ? "Set up labels" : card.kind === "book" ? "Wrote the style book" : `Made a ${card.kind}`}: ${card.title}${card.image ? ` ${card.image}` : ""}]`;
+      return `[${card.kind === "packaging" ? "Designed packaging" : card.kind === "print" ? "Set up labels" : card.kind === "book" ? "Wrote the style book" : `Made a ${card.kind}`}: ${card.title}${card.image ? ` ${card.image}` : ""}]`;
     case "marketing":
       return `[Created ${card.kind} "${card.title}"]`;
     case "health":

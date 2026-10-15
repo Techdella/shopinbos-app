@@ -379,6 +379,14 @@ globalThis.__aiMocks = {
     draftBrandBook: record("draftBrandBook", { paletteName: "Lagos Sunset", tagline: "Good things, well made", colours: { primary: "#E2541B", secondary: "#0E2A38", accent: "#F2A93B", background: "#FAF7F1", surface: "#FFFFFF", text: "#16141F" }, typography: { headings: "Fraunces", body: "Inter", style: "serif", note: "x" }, voice: { traits: ["warm"] } }),
     saveBrandBook: record("saveBrandBook", (storeId, book) => ({ ...book, updatedAt: "2026-10-15" })),
   },
+  "@/lib/packaging/designs.server": {
+    saveLabelDesign: record("saveLabelDesign", { id: "design-1" }),
+    savePackagingDesign: record("savePackagingDesign", (input) => ({ id: "pack-1", title: input.title })),
+  },
+  "@/lib/packaging/copy.server": {
+    writePackCopy: record("writePackCopy", { name: "Ankara Tote", tagline: "Carry the culture", claims: ["Handmade"] }),
+    fallbackPackCopy: (input) => ({ name: input.name, claims: [] }),
+  },
   "@/lib/ai/reel-shots.server": { makeReelShot: record("makeReelShot", "https://proj.supabase.co/storage/v1/object/public/brand/shot.webp") },
   "@/lib/ai/brand-image.server": {
     makeBrandImage: record("makeBrandImage", { url: "https://proj.supabase.co/storage/v1/object/public/brand/new.webp", usedLogo: false, usedReferences: 0, logoProblem: null }),
@@ -534,6 +542,8 @@ const REX_VALID = {
   make_brand_icon: { kind: "favicon" },
   set_logo_display: { style: "logo", size: "large" },
   make_print_labels: { kind: "tag", products: ["pa1"], headline: "Handmade in Lagos", note: null, qr: "product", copies: 2 },
+  design_packaging: { product: "pa1", name: null, productType: null, format: "bag", style: "ankara", brief: null },
+  make_creative: { placement: "story", concept: "bold_headline", products: ["pa1"], headline: "Tough choice.", subline: null, cta: "Shop now", brand: null, extra: null },
 };
 
 test("every Peggy and Rex tool has a runner, a valid example, and refuses smuggled ids", () => {
@@ -1033,6 +1043,22 @@ test("Rex brand tools: style book, icon from the logo, labels in the print studi
   assert.match(labels.card.href, /^\/home\/labels\/studio\?kind=tag&products=pa1/);
   await assert.rejects(runRex("make_print_labels", { ...REX_VALID.make_print_labels, products: ["pb1"] }), RexToolError, "shop B's product");
   await assert.rejects(runRex("make_print_labels", { ...REX_VALID.make_print_labels, products: null }), /for products/);
+  assert.equal(called("saveLabelDesign").at(-1).args[0].storeId, "store-A", "Rex's labels are saved to the seller's own Labels and print");
+
+  const pack = await runRex("design_packaging", REX_VALID.design_packaging);
+  assert.equal(pack.card.kind, "packaging");
+  assert.match(pack.card.href, /^\/home\/labels\/packaging\?design=pack-1/);
+  const saved = called("savePackagingDesign").at(-1).args[0];
+  assert.equal(saved.storeId, "store-A");
+  assert.equal(saved.source, "rex");
+  assert.equal(saved.design.format, "bag");
+  assert.equal(saved.design.content.tagline, "Carry the culture", "Peggy's words are on the pack");
+  await assert.rejects(runRex("design_packaging", { ...REX_VALID.design_packaging, product: "pb1" }), RexToolError, "shop B's product");
+
+  const creative = await runRex("make_creative", REX_VALID.make_creative);
+  assert.equal(creative.card.type, "image");
+  assert.match(called("makeBrandImage").at(-1).args[0].prompt, /Tough choice\./);
+  assert.equal(called("makeBrandImage").at(-1).args[0].size, "1024x1536", "stories are portrait");
   assert.equal(rexPure.parseRexAction({ action: "set_brand_asset", kind: "favicon", url: "https://proj.supabase.co/storage/v1/object/public/brand/f.webp" }).ok, true);
   assert.equal(rexPure.parseRexAction({ action: "set_brand_asset", kind: "logo", url: "https://proj.supabase.co/x.webp" }).ok, false, "the logo is changed with set_logo");
 });

@@ -2190,6 +2190,54 @@ model AdServiceRequest {
   @@index([status, createdAt])
 }
 
+// Labels and print (/home/labels): designs the seller (or Rex) made and saved. kind packaging = the packaging
+// designer (data is a PackDesign, shared/packaging.ts); label = a Print studio setup (data.href reopens it).
+model PrintDesign {
+  id         String   @id @default(cuid())
+  storeId    String
+  userId     String
+  kind       String // packaging | label
+  format     String? // pouch | box | … for packaging; tag | price | qr | package | thanks for labels
+  title      String
+  productId  String?
+  data       Json
+  previewUrl String?
+  source     String   @default("studio") // studio | rex
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([storeId, updatedAt])
+}
+
+// "Make my packaging for me": a seller's request for custom packaging or branding, worked by the Shopinbos team
+// (and later branding partners) at /admin/packaging-requests.
+model PackagingRequest {
+  id            String    @id @default(cuid())
+  storeId       String
+  userId        String
+  designId      String? // a PrintDesign to start from
+  productName   String
+  productType   String
+  packType      String // a PackFormat, or "other"
+  quantity      Int
+  size          String?
+  budget        Int? // naira
+  deadline      DateTime?
+  services      String[]  @default([]) // design | print | brand_identity | photography | barcode_registration
+  details       String
+  referenceUrls String[]  @default([])
+  contactName   String
+  contactPhone  String
+  contactEmail  String?
+  status        String    @default("new") // new | quoted | in_progress | done | cancelled
+  adminNotes    String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([storeId, createdAt])
+  @@index([status, createdAt])
+}
+
 // ─── AI usage (daily limits for Rex and Peggy; aiCredits stays the plan tier) ─
 
 model AiUsage {

@@ -49,7 +49,7 @@ export function PrintStudio({
   const [showPrice, setShowPrice] = useState(true);
   const [search, setSearch] = useState("");
   const [qrs, setQrs] = useState<Record<string, string>>({});
-  const [busy, setBusy] = useState<null | "png" | "send">(null);
+  const [busy, setBusy] = useState<null | "png" | "send" | "save">(null);
   const [sendOpen, setSendOpen] = useState(false);
   const [to, setTo] = useState("");
   const [message, setMessage] = useState("");
@@ -103,6 +103,26 @@ export function PrintStudio({
     if (!areaRef.current) throw new Error(t("ps.err.png"));
     const { toPng } = await import("html-to-image");
     return toPng(areaRef.current, { pixelRatio: DPI_RATIO, backgroundColor: "#FFFFFF", cacheBust: true });
+  }
+
+  /** Saves this setup to Labels and print (it reopens from the link). */
+  async function saveSetup() {
+    setBusy("save");
+    setStatus(null);
+    try {
+      const params = new URLSearchParams({ kind, qr: target, copies: String(copies) });
+      if (selected.length) params.set("products", selected.join(","));
+      if (headline.trim()) params.set("headline", headline.trim());
+      if (note.trim()) params.set("note", note.trim());
+      const title = `${t(`ps.kind.${kind}`)}${chosen.length ? ` · ${chosen.slice(0, 2).map((product) => product.name).join(", ")}` : ""}`;
+      const response = await fetch("/api/app/print-designs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind: "label", printKind: kind, title, href: `/home/labels/studio?${params.toString()}`, productId: selected[0] ?? null }) });
+      if (!response.ok) throw new Error(t("ps.saveFailed"));
+      setStatus({ ok: true, text: t("ps.savedSetup") });
+    } catch (error) {
+      setStatus({ ok: false, text: error instanceof Error ? error.message : t("ps.saveFailed") });
+    } finally {
+      setBusy(null);
+    }
   }
 
   const fileName = `${(store?.name ?? "labels").replace(/[^\w-]+/g, "-").toLowerCase().slice(0, 40)}-${kind}.png`;
@@ -270,6 +290,9 @@ export function PrintStudio({
           </PillButton>
           <PillButton size="sm" tone="white" disabled={!items.length || busy !== null} onClick={() => void download()}>
             {busy === "png" ? <Spinner className="h-4 w-4" /> : <Icon name="download" size={14} />} {t("ps.download")}
+          </PillButton>
+          <PillButton size="sm" tone="white" disabled={!items.length || busy !== null} onClick={() => void saveSetup()}>
+            {busy === "save" ? <Spinner className="h-4 w-4" /> : <Icon name="check" size={14} />} {t("ps.saveSetup")}
           </PillButton>
           <PillButton size="sm" tone="white" disabled={!items.length} onClick={() => setSendOpen((open) => !open)}>
             <Icon name="send" size={14} /> {t("ps.send")}

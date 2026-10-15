@@ -6,6 +6,7 @@ import { loadSellerBrandContext } from "@/lib/ai/brand-context.server";
 import { makeBrandImage } from "@/lib/ai/brand-image.server";
 import { aiAllowanceToday, meterAi } from "@/lib/ai/usage";
 import { db } from "@/lib/db/client";
+import { CREATIVE_PLACEMENT_INFO, creativePrompt, isCreativeConcept, isCreativePlacement } from "@shared/creatives";
 
 export const runtime = "nodejs";
 export const maxDuration = 180;
@@ -19,10 +20,18 @@ const LOOKS: Record<string, string> = {
 // reference so it is reproduced, not invented; useBrand keeps to their colours; referenceUrls are photos (or
 // video stills) they uploaded for Rex to work from.
 export const POST = withSeller(async (req: NextRequest, { user }) => {
-  const body = (await req.json().catch(() => ({}))) as { prompt?: string; size?: string; style?: string; useLogo?: boolean; useBrand?: boolean; referenceUrls?: unknown };
-  const prompt = body.prompt?.trim();
+  const body = (await req.json().catch(() => ({}))) as { prompt?: string; size?: string; style?: string; useLogo?: boolean; useBrand?: boolean; referenceUrls?: unknown; creative?: { concept?: unknown; placement?: unknown; headline?: unknown; subline?: unknown; cta?: unknown } | null };
+  // Creative templates (giant headline, product line-up, witty idea…): the concept and placement shape the prompt,
+  // and what the seller typed is extra direction.
+  const creative = body.creative && isCreativeConcept(body.creative.concept) && isCreativePlacement(body.creative.placement) ? body.creative : null;
+  const text = (value: unknown) => (typeof value === "string" ? value : null);
+  const typed = body.prompt?.trim() ?? "";
+  const prompt = creative
+    ? creativePrompt({ concept: creative.concept as Parameters<typeof creativePrompt>[0]["concept"], placement: creative.placement as Parameters<typeof creativePrompt>[0]["placement"], headline: text(creative.headline), subline: text(creative.subline), cta: text(creative.cta), extra: typed || null })
+    : typed;
+  if (creative) body.size = { square: "1024x1024", portrait: "1024x1536", landscape: "1536x1024" }[CREATIVE_PLACEMENT_INFO[creative.placement as keyof typeof CREATIVE_PLACEMENT_INFO].shape];
   if (!prompt) return NextResponse.json({ error: { code: "missing_prompt", message: "Describe the image you want." } }, { status: 400 });
-  if (prompt.length > 2000) return NextResponse.json({ error: { code: "too_long", message: "Keep the description under 2,000 characters." } }, { status: 400 });
+  if (typed.length > 2000) return NextResponse.json({ error: { code: "too_long", message: "Keep the description under 2,000 characters." } }, { status: 400 });
   const references = Array.isArray(body.referenceUrls) ? body.referenceUrls.filter((url): url is string => typeof url === "string" && isOwnImageUrl(url)).slice(0, MAX_REFERENCES) : [];
 
   const limited = await meterAi(user.id, "image");
