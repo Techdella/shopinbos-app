@@ -52,6 +52,8 @@ export type ThemeLibraryProps = {
   onSwitched?: (result: ThemeSwitchedResult) => void;
   /** Optional: the seller's store, for "Show with my products" (needs 4 or more products with photos). */
   ownStore?: PreviewOwnStore | null;
+  /** Optional: a theme to open in preview straight away (e.g. "Use this template" on shopinbos.com). */
+  initialPreviewId?: string | null;
 };
 
 export const THEME_SWITCHED_EVENT = "shopinbos:theme-switched";
@@ -63,7 +65,7 @@ function nameFont(theme: ThemeLibraryEntry): React.CSSProperties {
   return { fontFamily: family, fontWeight: Math.max(500, theme.preview.nameWeight), fontStyle: theme.preview.nameItalic ? "italic" : undefined, letterSpacing: theme.preview.nameFont === "sans" ? "-0.02em" : "-0.01em" };
 }
 
-export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, initialCategory, nextPath, onSwitched, ownStore }: ThemeLibraryProps) {
+export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, initialCategory, nextPath, onSwitched, ownStore, initialPreviewId }: ThemeLibraryProps) {
   const router = useRouter();
   const t = useT("builder");
   const meaningLine = (theme: ThemeLibraryEntry) => themeMeaningLine({ name: theme.name, meaning: t.dynamic(`theme.${theme.id}.meaning`, theme.meaning) });
@@ -73,7 +75,7 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
     return chips.some((chip) => chip.id === wanted) ? wanted : "all";
   });
   const [query, setQuery] = useState("");
-  const [previewId, setPreviewId] = useState<string | null>(null);
+  const [previewId, setPreviewId] = useState<string | null>(initialPreviewId ?? null);
   // "Show with my products": only when the store has enough products with photos to fill a page.
   const own = useMemo<PreviewOwnStore | null>(() => {
     const products = ownStore ? ownPreviewProducts(ownStore.storeProducts) : null;

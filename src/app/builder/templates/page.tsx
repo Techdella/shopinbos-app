@@ -5,6 +5,7 @@ import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { loadShopperInfo } from "@/lib/storefront/shopper-info.server";
 import { resolveDraftSnapshot } from "@/lib/store-templates";
+import { isLibraryTheme } from "@/lib/store-templates/theme-library";
 import { getSellerWorkspace } from "@/lib/workspace";
 import { getT } from "@/lib/i18n/server";
 
@@ -20,10 +21,12 @@ function safeNext(value: string | undefined) {
   return value && value.startsWith("/") && !value.startsWith("//") ? value : null;
 }
 
-export default async function BuilderTemplatesPage({ searchParams }: { searchParams?: Promise<{ next?: string; onboarding?: string }> }) {
+export default async function BuilderTemplatesPage({ searchParams }: { searchParams?: Promise<{ next?: string; onboarding?: string; template?: string }> }) {
   const user = await requireRole(["seller"], "/login");
   const t = await getT("builder");
   const params = await searchParams;
+  // "Use this template" on shopinbos.com sends ?template=breeze through sign-up.
+  const requestedTheme = params?.template;
 
   const workspace = await getSellerWorkspace(user.id);
 
@@ -77,6 +80,7 @@ export default async function BuilderTemplatesPage({ searchParams }: { searchPar
         ownStore={ownStore}
         // Open on the seller's category only while they're choosing their first theme; after that show all.
         initialCategory={currentThemeId ? null : workspace.settings.onboardingMemory?.category}
+        initialPreviewId={isLibraryTheme(requestedTheme) ? requestedTheme : null}
       />
     </SellerPage>
   );
