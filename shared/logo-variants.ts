@@ -334,3 +334,45 @@ export function knockOutForDark(pixels: ArrayLike<number>, background: string, i
   }
   return result;
 }
+
+/** How much of a pixel's colour is colour rather than grey (0–255). */
+const chroma = (p: Pick<Rgba, "r" | "g" | "b">) => Math.max(p.r, p.g, p.b) - Math.min(p.r, p.g, p.b);
+
+/** A near-black, near-grey pixel: the wordmark ink of most generated logos, as opposed to a coloured accent. */
+function darkNeutral(p: Pick<Rgba, "r" | "g" | "b">) {
+  return chroma(p) < 48 && relativeLuminance(p) < DARK_LUMINANCE;
+}
+
+/**
+ * Whether a see-through logo has enough dark neutral ink (black or grey lettering) to be worth re-inking for dark
+ * backgrounds, e.g. a black wordmark with a red accent. Counts solid pixels only.
+ */
+export function hasDarkNeutralInk(pixels: ArrayLike<number>): boolean {
+  let solid = 0;
+  let dark = 0;
+  for (let i = 0; i < pixels.length; i += 4) {
+    if (pixels[i + 3]! < 191) continue;
+    solid++;
+    if (darkNeutral({ r: pixels[i]!, g: pixels[i + 1]!, b: pixels[i + 2]! })) dark++;
+  }
+  return solid > 0 && dark / solid >= 0.2;
+}
+
+/**
+ * The dark-background version of a see-through logo with dark lettering and coloured accents: the dark neutral
+ * ink (soft edges included, by their own transparency) becomes the light ink and every coloured part stays as it
+ * is. Returns new RGBA pixels of the same size.
+ */
+export function relightDarkInk(pixels: ArrayLike<number>, light = LIGHT_INK): Uint8ClampedArray {
+  const out = parseColour(light) ?? { r: 255, g: 255, b: 255, a: 1 };
+  const result = new Uint8ClampedArray(pixels.length);
+  for (let i = 0; i < pixels.length; i += 4) {
+    const p = { r: pixels[i]!, g: pixels[i + 1]!, b: pixels[i + 2]! };
+    const swap = pixels[i + 3]! > 0 && darkNeutral(p);
+    result[i] = swap ? out.r : p.r;
+    result[i + 1] = swap ? out.g : p.g;
+    result[i + 2] = swap ? out.b : p.b;
+    result[i + 3] = pixels[i + 3]!;
+  }
+  return result;
+}

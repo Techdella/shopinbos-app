@@ -3242,3 +3242,18 @@ test("logo variants: measuring logo pixels, knocking out the background and re-i
   assert.equal(lv.isSvgLogo("https://x/logo.png", "image/svg+xml"), true);
   assert.equal(lv.isSvgLogo("https://x/logo.webp"), false);
 });
+
+test("see-through logos with dark lettering and coloured accents get a light-lettered version for dark backgrounds", async () => {
+  const l = await import("../shared/logo-variants.ts");
+  // black letter, red accent, see-through background, a soft black edge
+  const px = [0, 0, 0, 255, 230, 20, 40, 255, 0, 0, 0, 0, 10, 10, 10, 120];
+  assert.equal(l.hasDarkNeutralInk(px), true);
+  const out = Array.from(l.relightDarkInk(px));
+  assert.deepEqual(out.slice(0, 4), [255, 255, 255, 255], "lettering turns white");
+  assert.deepEqual(out.slice(4, 8), [230, 20, 40, 255], "the accent keeps its colour");
+  assert.deepEqual(out.slice(8, 12), [0, 0, 0, 0], "see-through stays see-through");
+  assert.deepEqual(out.slice(12, 16), [255, 255, 255, 120], "soft edges keep their transparency");
+  assert.equal(l.hasDarkNeutralInk([230, 20, 40, 255, 20, 200, 90, 255]), false, "an all-colour logo is left alone");
+  const script = readFileSync(new URL("../scripts/backfill-logo-variants.mjs", import.meta.url), "utf8");
+  assert.match(script, /relightDarkInk/, "the one-off backfill uses the same rule as saving a logo");
+});
