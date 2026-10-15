@@ -303,7 +303,7 @@ export const FEATURE_INTROS: FeatureIntro[] = [
     term: "channels",
     title: "WhatsApp and selling everywhere",
     roles: ["seller"],
-    paths: ["/channels", "/home/social/whatsapp", "/home/inbox/whatsapp-catalog"],
+    paths: ["/channels", "/home/social/whatsapp", "/home/inbox/whatsapp-catalog", "/home/payment-links", "/home/social/link-in-bio"],
     helpTopic: "whatsapp",
     cta: { label: "Connect WhatsApp", href: "/channels" },
     scenes: [

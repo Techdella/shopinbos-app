@@ -9,6 +9,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   products: "Àwọn ọjà",
   "orders-all": "Gbogbo order",
   "orders-new": "Kọ ọjà tí o tà sílẹ̀",
+  "payment-links": "Àwọn payment link",
+  "link-in-bio": "Link in bio",
   "inbox-messages": "Gbogbo ìfọ̀rọ̀wérọ̀",
   "inbox-partners": "Àwọn supplier àti delivery",
   "inbox-forms": "Ìfiránṣẹ́ láti fọ́ọ̀mù",

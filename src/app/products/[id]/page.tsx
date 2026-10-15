@@ -6,6 +6,9 @@ import { AppPage, PillLink } from "@/components/app-kit";
 import { sellerFrame } from "@/components/seller-core";
 import { buildStorefrontOrigin } from "@/lib/domains/storefront";
 import { getT } from "@/lib/i18n/server";
+import { PaymentLinkButton } from "@/components/payment-links/PaymentLinkButton";
+import { linkProductView } from "@/lib/payment-links/pure";
+import { paymentReadiness } from "@/lib/payment-links/service.server";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +38,7 @@ export default async function ProductEditPage({
     notFound();
   }
 
-  const [categories, others] = await Promise.all([
+  const [categories, others, readiness] = await Promise.all([
     db.category.findMany({
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
       select: { id: true, name: true, slug: true },
@@ -47,6 +50,7 @@ export default async function ProductEditPage({
       take: 300,
       select: { id: true, name: true, images: true, retailPrice: true },
     }),
+    paymentReadiness(store.id),
   ]);
 
   return (
@@ -54,7 +58,13 @@ export default async function ProductEditPage({
       frame={sellerFrame(user, store)}
       title={product.name}
       sub={t("edit.sub")}
-      actions={<PillLink href="/products" icon="arrowLeft">{t("allProducts")}</PillLink>}
+      actions={
+        <>
+          <PillLink href="/products" icon="arrowLeft">{t("allProducts")}</PillLink>
+          {/* Only published products can be paid for (the pay page shows public products only). */}
+          {product.status === "published" ? <PaymentLinkButton product={linkProductView(product)} storeName={store.name} ready={readiness.ready} /> : null}
+        </>
+      }
     >
       <ProductForm
         product={product as any}

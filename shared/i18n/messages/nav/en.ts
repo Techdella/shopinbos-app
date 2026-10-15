@@ -10,6 +10,8 @@ const en = {
   products: "Products",
   "orders-all": "All orders",
   "orders-new": "Record a sale",
+  "payment-links": "Payment links",
+  "link-in-bio": "Link in bio",
   "inbox-messages": "All conversations",
   "inbox-partners": "Suppliers and delivery",
   "inbox-forms": "Form messages",

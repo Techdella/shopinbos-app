@@ -23,6 +23,7 @@ import { EMAIL_TOOL_RUNNERS } from "./email-tools";
 import { LEGAL_TOOL_RUNNERS } from "./legal-tools";
 import { PRODUCTS_TOOL_RUNNERS } from "./products-tools";
 import { CATALOG_TOOL_RUNNERS } from "./catalog-tools";
+import { PAYLINKS_TOOL_RUNNERS } from "./paylinks-tools";
 import { saveMarkdownPost } from "@/lib/cms/server";
 import {
   aggregateCustomers,
@@ -490,6 +491,7 @@ export const PEGGY_TOOL_RUNNERS: { [N in PeggyToolName]: Runner<N> } = {
   ...LEGAL_TOOL_RUNNERS,
   ...PRODUCTS_TOOL_RUNNERS,
   ...CATALOG_TOOL_RUNNERS,
+  ...PAYLINKS_TOOL_RUNNERS,
 };
 
 export const isWriteTool = (name: string) => name in PEGGY_TOOL_SPECS && PEGGY_TOOL_SPECS[name as PeggyToolName].write;
