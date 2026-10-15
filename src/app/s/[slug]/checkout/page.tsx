@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { CheckoutClient } from "./CheckoutClient";
 import { renderShopperPage } from "@/components/storefront/shopper/shopper-page.server";
+import { checkoutDesignFor } from "@/lib/storefront/checkout-design.server";
 import { shopperPageMetadata } from "@/lib/commerce/storefront.server";
 import { getStorefrontBasePathForHost } from "@/lib/domains/storefront";
 
@@ -25,6 +26,6 @@ export default async function CheckoutPage({ params }: Props) {
     slug,
     basePath,
     signInPath: `/s/${slug}/checkout`,
-    render: (store, commerce, preview) => <CheckoutClient store={store} storeBasePath={basePath} commerce={commerce} preview={preview} />,
+    render: (store, commerce, preview) => <CheckoutClient store={store} storeBasePath={basePath} commerce={commerce} preview={preview} design={checkoutDesignFor(store.brandSettings, basePath)} />,
   });
 }

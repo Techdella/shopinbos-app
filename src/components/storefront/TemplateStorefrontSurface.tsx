@@ -25,6 +25,9 @@ import { ClassicPdp } from "@/components/storefront/boutique/pdp/ClassicPdp";
 import { classicLook } from "@/components/storefront/boutique/pdp/classic-look";
 import { readClassicPdpSettings } from "@/components/storefront/boutique/pdp/classic-pdp";
 import { samplePdpProduct } from "@/components/storefront/boutique/pdp/sample-product";
+import { CheckoutPreview } from "@/components/storefront/checkout/CheckoutPreview";
+import { checkoutNavLinks, readClassicCheckoutSettings } from "@/components/storefront/checkout/checkout-layout";
+import { checkoutThemeFromLook } from "@/components/storefront/checkout/checkout-theme";
 import { relatedProducts } from "@/components/storefront/shopper/catalog";
 import { listingSoldOut, type ShopperStock } from "@shared/product-stock";
 import { StoreLogo } from "@/components/storefront/StoreLogo";
@@ -845,7 +848,10 @@ function ClassicTemplateSurface({
   const currentPage = selectedPage ?? internalPage;
   const policyLinks = mode === "live" ? legalLinks(store.brandSettings).map((link) => ({ key: link.key, label: link.title, href: getPublicStorefrontPath(storeBasePath ?? "", legalPagePath(link.key)) })) : [];
   const page = findStorefrontPage(snapshot.pages, currentPage) ?? snapshot.pages[0];
-  const sections = page?.sections.filter((entry) => entry.visible !== false) ?? [];
+  // Builder: the checkout page is previewed as the real checkout, which has its own slim header (CheckoutPreview), so
+  // the store's announcement bar, header and footer aren't drawn around it (the live checkout doesn't show them).
+  const checkoutPreview = mode === "editor" && page?.pageType === "checkout";
+  const sections = page?.sections.filter((entry) => entry.visible !== false && !(checkoutPreview && ["announcement-bar", "header", "footer"].includes(entry.kind))) ?? [];
 
   const announcement = sections.find((entry) => entry.kind === "announcement-bar");
   const header = sections.find((entry) => entry.kind === "header");
@@ -2501,6 +2507,20 @@ function ClassicTemplateSurface({
             ))}
           </div>
         </section>
+      );
+    }
+
+    if (kindSection.kind === "checkout-form" && isEditor) {
+      // The real checkout (same layouts and builder settings as the 2026 themes) in this template's look.
+      return (
+        <CheckoutPreview
+          key={kindSection.id}
+          theme={checkoutThemeFromLook(pdpLook)}
+          settings={readClassicCheckoutSettings(kindSection)}
+          store={store}
+          nav={checkoutNavLinks(snapshot)}
+          device={device}
+        />
       );
     }
 

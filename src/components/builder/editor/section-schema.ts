@@ -7,6 +7,7 @@
 import type { TemplateSectionNode } from "@/lib/store-templates";
 import type { RendererKind } from "./editor-logic";
 import { classicPdpSchemaGroups, pdpSchemaGroups } from "./pdp-schema.ts";
+import { checkoutSchemaGroups, classicCheckoutSchemaGroups } from "./checkout-schema.ts";
 import { storeBlockMeta } from "../../storefront/boutique/blocks/block-catalog.ts";
 import { LAYOUT_ELEMENTS, LAYOUT_ROW_KIND } from "../../storefront/boutique/blocks/layout-logic.ts";
 
@@ -465,7 +466,7 @@ function boutiqueSchema(kind: string, themeId: string): SectionSchema {
     case "cart-summary":
       return plain([{ fields: [text("title", "Heading")] }]);
     case "checkout-form":
-      return plain([{ fields: [{ id: "note", type: "note", label: "Shoppers pay on the secure checkout page. Payment choices are in Checkout settings." }] }]);
+      return plain(checkoutSchemaGroups(themeId));
     case "product-detail":
       return plain(pdpSchemaGroups(themeId));
     default:
@@ -1002,6 +1003,9 @@ function classicSchema(kind: string): SectionSchema {
   // Classic product pages render the shared product page (ClassicPdp), so they get its settings. The old layout
   // cards are gone: a saved classic layout now only sets the starting layout (classic-pdp.ts).
   if (kind === "product-detail") return { settings: classicPdpSchemaGroups(), style, addable: [] };
+  // Classic checkout pages render the shared checkout layouts (checkout-layout.ts); a saved classic layout only sets
+  // the starting layout.
+  if (kind === "checkout-form") return { settings: classicCheckoutSchemaGroups(), style, addable: [] };
 
   const variations = kind === "hero-split" ? [...SECTION_VARIATIONS[kind]!, CLASSIC_SLIDESHOW] : SECTION_VARIATIONS[kind];
   const fallback = variations?.[0]?.value ?? "";
