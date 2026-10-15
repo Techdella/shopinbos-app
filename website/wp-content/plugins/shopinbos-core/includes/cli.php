@@ -395,7 +395,11 @@ class Sib_CLI {
 		foreach ( $pages as $slug => [ $name, $h1, $lead, $excerpt, $points, $steps, $faq ] ) {
 			$post = get_page_by_path( $slug, OBJECT, 'sib_integration' );
 			if ( ! $post ) {
-				continue;
+				$this->cpt( 'sib_integration', $slug, $name, $this->text_page( $lead ), $excerpt, [ 'sib_integration_status' => 'tiktok-shop' === $slug ? 'apply' : 'live' ] );
+				$post = get_page_by_path( $slug, OBJECT, 'sib_integration' );
+				if ( ! $post ) {
+					continue;
+				}
 			}
 			$content = sib_block_group_open( 'land-hero', 'section' ) . sib_block_group_open( 'wrap col-22 mw-760', 'div', [ 'top' => '56px', 'bottom' => '40px' ] )
 				. sib_block_p( 'Integration', 'eyebrow' ) . sib_block_h( 1, esc_html( $h1 ), 'disp h1 h1-58' ) . sib_block_p( esc_html( $lead ), 'lead' )
