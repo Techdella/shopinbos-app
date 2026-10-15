@@ -39,8 +39,12 @@ function sib_gist_defaults(): array {
 
 /** The seed file's story groups (setup copies them into Gist stories in the admin). */
 function sib_gist_seed(): array {
-	$file = SIB_CORE_DIR . '/includes/seed/gist.json';
-	return file_exists( $file ) ? (array) json_decode( (string) file_get_contents( $file ), true ) : [];
+	$out = [];
+	foreach ( [ 'gist.json', 'gist-scheduled.json' ] as $name ) {
+		$file = SIB_CORE_DIR . '/includes/seed/' . $name;
+		$out  = array_merge( $out, file_exists( $file ) ? (array) json_decode( (string) file_get_contents( $file ), true ) : [] );
+	}
+	return $out;
 }
 
 /** Story groups with their links and circle images: the published Gist stories, else the seed file. */
@@ -63,7 +67,11 @@ function sib_gist_groups(): array {
 		$groups[]   = $g;
 	}
 	if ( ! $groups ) {
-		$groups = sib_gist_seed();
+		$groups = array_values( array_filter( sib_gist_seed(), fn( $g ) => empty( $g['date'] ) || strtotime( $g['date'] ) <= time() ) );
+	}
+	// The "opens November 1" film has done its job once we're live.
+	if ( function_exists( 'sib_app_live' ) && sib_app_live() ) {
+		$groups = array_values( array_filter( $groups, fn( $g ) => ! in_array( $g['slug'], [ 'launch', 'launch-ready' ], true ) ) );
 	}
 	$extra = sib_gist_defaults();
 	foreach ( $groups as &$g ) {
@@ -71,7 +79,7 @@ function sib_gist_groups(): array {
 		$g          += [ 'bg' => '#FF6A2B', 'fg' => '#16141F', 'accent' => '#FFFFFF' ];
 		$g['link']   = ! empty( $g['link'] ) ? ( str_starts_with( $g['link'], 'http' ) ? $g['link'] : home_url( $g['link'] ) ) : home_url( $link );
 		$g['cta']    = ( $g['cta'] ?? '' ) ?: $label;
-		$g['img']    = ! empty( $g['thumb'] ) ? $g['thumb'] : sib_img( $img );
+		$g['img']    = ! empty( $g['thumb'] ) ? $g['thumb'] : sib_img( ! empty( $g['img'] ) && ! str_contains( (string) $g['img'], '//' ) ? $g['img'] : $img );
 		$g['share']  = home_url( '/gist/#' . $g['slug'] );
 		// Video slides: theme-relative paths (video/…) become full URLs.
 		foreach ( $g['slides'] as &$sl ) {
@@ -194,9 +202,18 @@ function sib_gist_import(): int {
 		if ( get_page_by_path( $g['slug'], OBJECT, 'sib_gist' ) ) {
 			continue;
 		}
-		$id = wp_insert_post( [ 'post_type' => 'sib_gist', 'post_status' => 'publish', 'post_title' => $g['title'], 'post_name' => $g['slug'], 'menu_order' => (int) ( $g['order'] ?? $i ) ] );
+		$post = [ 'post_type' => 'sib_gist', 'post_status' => 'publish', 'post_title' => $g['title'], 'post_name' => $g['slug'], 'menu_order' => (int) ( $g['order'] ?? $i ) ];
+		if ( ! empty( $g['date'] ) ) {
+			// Scheduled stories: WordPress publishes them on the day (7am Lagos). Newest show first.
+			$when                  = new DateTimeImmutable( $g['date'], new DateTimeZone( 'Africa/Lagos' ) );
+			$post['post_date_gmt'] = $when->setTimezone( new DateTimeZone( 'UTC' ) )->format( 'Y-m-d H:i:s' );
+			$post['post_date']     = get_date_from_gmt( $post['post_date_gmt'] );
+			$post['post_status']   = $when->getTimestamp() > time() ? 'future' : 'publish';
+			$post['menu_order']    = -1 * (int) $when->format( 'ymd' );
+		}
+		$id = wp_insert_post( $post );
 		if ( $id && ! is_wp_error( $id ) ) {
-			update_post_meta( $id, 'sib_gist', array_intersect_key( $g, array_flip( [ 'label', 'bg', 'fg', 'accent', 'slides' ] ) ) );
+			update_post_meta( $id, 'sib_gist', array_intersect_key( $g, array_flip( [ 'label', 'bg', 'fg', 'accent', 'slides', 'link', 'cta', 'img' ] ) ) );
 			$made++;
 		}
 	}
@@ -245,3 +262,20 @@ function sib_gist_text(): string {
 	return $out . '</div></section>';
 }
 add_shortcode( 'sib_gist_text', 'sib_gist_text' );
+
+/* Scheduled stories: publish any that are due (WordPress's scheduler can miss when pages are served from cache),
+   checked at most every 10 minutes, and clear the page cache so the new circle shows straight away. */
+add_action( 'init', function () {
+	if ( get_transient( 'sib_gist_due_check' ) ) {
+		return;
+	}
+	set_transient( 'sib_gist_due_check', 1, 10 * MINUTE_IN_SECONDS );
+	foreach ( get_posts( [ 'post_type' => 'sib_gist', 'post_status' => 'future', 'numberposts' => 10, 'date_query' => [ [ 'column' => 'post_date_gmt', 'before' => gmdate( 'Y-m-d H:i:s' ), 'inclusive' => true ] ], 'fields' => 'ids' ] ) as $id ) {
+		wp_publish_post( $id );
+	}
+}, 20 );
+add_action( 'transition_post_status', function ( $new, $old, $post ) {
+	if ( 'sib_gist' === $post->post_type && 'publish' === $new && 'publish' !== $old ) {
+		do_action( 'litespeed_purge_all' );
+	}
+}, 10, 3 );
