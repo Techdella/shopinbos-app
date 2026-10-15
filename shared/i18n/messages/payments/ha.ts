@@ -245,9 +245,9 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "cr.buySub": "Biya sau ɗaya da kati, canja wuri ko USSD ta Paystack. Kiredit ba sa ƙarewa.",
   "cr.badge.medium": "Mafi shahara",
   "cr.badge.large": "Mafi daraja",
-  "cr.pack.small": "Small chops",
-  "cr.pack.medium": "Ranar kasuwa",
-  "cr.pack.large": "Girman biki",
+  "cr.pack.small": "Ƙari cikin sauri",
+  "cr.pack.medium": "Fakitin kasuwanci",
+  "cr.pack.large": "Fakitin ƙarfi",
   "cr.credits": "kiredit",
   "cr.each": "{price} kan kowace kiredit",
   "cr.buyPack": "Saya a {price}",
@@ -281,6 +281,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "cr.settingsLine": "{count, plural, other {Kiredit # sun rage}}. Sayi ƙari don Rex da Peggy su ci gaba.",
   "cr.topUp": "Ƙara",
   "cr.fromPlan": "Daga tsarinka",
+  "cr.outLine": "Kiredit ɗinka sun ƙare. Kason kyauta na yau da kullum yana aiki; sayi fakiti don ci gaba bayansa.",
 };
 
 export default ha;

@@ -14,9 +14,9 @@ export interface CreditPack {
 }
 
 export const CREDIT_PACKS: CreditPack[] = [
-  { id: "small", credits: 60, naira: 2_000, label: "Small chops" },
-  { id: "medium", credits: 200, naira: 5_500, label: "Market day", badge: "Most popular" },
-  { id: "large", credits: 600, naira: 14_500, label: "Owambe size", badge: "Best value" },
+  { id: "small", credits: 60, naira: 2_000, label: "Quick top-up" },
+  { id: "medium", credits: 200, naira: 5_500, label: "Business pack", badge: "Most popular" },
+  { id: "large", credits: 600, naira: 14_500, label: "Power pack", badge: "Best value" },
 ];
 
 export const DEFAULT_AUTO_PACK = "medium";
