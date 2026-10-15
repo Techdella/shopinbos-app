@@ -16,6 +16,7 @@ import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
 import { getPublicStorefrontPath } from "@/lib/domains/storefront";
 import { needsOptions, unitsLeft } from "@/components/storefront/shopper/catalog";
+import { SHOP_QUERY_KEYS } from "@/components/storefront/shopper/shop-browse";
 import { listingSoldOut, type ShopperStock } from "@shared/product-stock";
 import { readCartSettings } from "@shared/cart-checkout";
 import { normalizeStorefrontPageKey, storefrontPageHref, storefrontPageKeyFromLocation } from "@shared/storefront-pages";
@@ -26,6 +27,7 @@ import {
   STORE_TEMPLATE_MANIFESTS,
   type StoreEditorSnapshot,
 } from "@/lib/store-templates";
+import { applyCampaignToSnapshot, type CampaignLook } from "@/lib/store-campaigns/merge";
 
 interface StoreProduct {
   id: string;
@@ -95,6 +97,11 @@ interface Store {
   pages?: StorePageRecord[];
   /** StorefrontShopperInfo from the public store API. */
   shopper?: unknown;
+  /**
+   * A live seasonal campaign's section changes, for stores published without a builder snapshot (stores with one get
+   * it merged on the server already). See src/lib/store-campaigns/merge.ts.
+   */
+  campaignLook?: CampaignLook;
 }
 
 interface Props {
@@ -598,8 +605,8 @@ export function StorefrontClient({
       const params = new URLSearchParams(window.location.search);
       params.delete("page");
       if (page !== "products") {
-        params.delete("category");
-        params.delete("sort");
+        // The shop's filters (category, price, sort…) belong to the shop page only.
+        for (const key of SHOP_QUERY_KEYS) params.delete(key);
         params.delete("q");
       }
       const next = storefrontPageHref(storeBasePath, page, params);
@@ -618,7 +625,7 @@ export function StorefrontClient({
     if (store.brandSettings?.editor?.published) return store.brandSettings.editor.published;
     if (!previewMode) {
       const published = buildPublishedPagesSnapshot(store);
-      if (published) return published;
+      if (published) return store.campaignLook ? applyCampaignToSnapshot(published, store.campaignLook).snapshot : published;
       // The owner previewing a store with nothing published yet sees its draft or template, not a blank page.
       if (!ownerPreview) return buildEmptyPublishedSnapshot(store);
     }

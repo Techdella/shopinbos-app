@@ -65,6 +65,7 @@ const LAYOUT_TEXT: Record<PopupConfig["layout"], MessageKey<"marketing">> = { mo
 const KIND_ICON: Record<PopupKind, "sparkle" | "star" | "download" | "megaphone" | "clock" | "truck"> = { signup: "sparkle", game: "star", lead_magnet: "download", announcement: "megaphone", countdown: "clock", free_delivery: "truck" };
 
 const DEFAULT_CONFIG: PopupConfig = {
+  campaignId: null,
   layout: "modal",
   trigger: "delay",
   delaySeconds: 8,
@@ -449,11 +450,15 @@ function FormEditor({ editing, startAsPopup, theme, discounts, extras, onClose, 
   );
 }
 
-export function FormsManager({ forms, storeSlug, theme, discounts, extras }: { forms: ManagedForm[]; storeSlug: string; theme: EditorTheme; discounts: DiscountOption[]; extras: EditorExtras }) {
+export function FormsManager({ forms, storeSlug, theme, discounts, extras, openId = null }: { forms: ManagedForm[]; storeSlug: string; theme: EditorTheme; discounts: DiscountOption[]; extras: EditorExtras; openId?: string | null }) {
   const router = useRouter();
   const t = useT("marketing", "common");
   const locale = useLocale();
-  const [editor, setEditor] = useState<{ editing: ManagedForm | null; popup: boolean } | null>(null);
+  // ?edit=<id> (from a seasonal campaign's pop-up block) opens that pop-up's editor straight away.
+  const [editor, setEditor] = useState<{ editing: ManagedForm | null; popup: boolean } | null>(() => {
+    const form = openId ? forms.find((entry) => entry.id === openId) : null;
+    return form ? { editing: form, popup: form.isPopup } : null;
+  });
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
 

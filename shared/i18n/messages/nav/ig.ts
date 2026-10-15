@@ -59,6 +59,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "sell-everywhere": "Ree ebe niile",
   "marketing-overview": "Nchịkọta",
   campaigns: "Campaigns",
+  "seasonal-campaigns": "Campaigns oge ememe",
   automations: "Automations",
   "email-templates": "Email templates",
   "mkt-forms": "Forms na pop-ups",

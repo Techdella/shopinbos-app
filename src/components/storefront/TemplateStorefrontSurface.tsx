@@ -31,8 +31,12 @@ import { CheckoutPreview } from "@/components/storefront/checkout/CheckoutPrevie
 import { checkoutNavLinks, readClassicCheckoutSettings } from "@/components/storefront/checkout/checkout-layout";
 import { checkoutThemeFromLook } from "@/components/storefront/checkout/checkout-theme";
 import { relatedProducts } from "@/components/storefront/shopper/catalog";
+import { ShopBrowser } from "@/components/storefront/shopper/ShopBrowser";
+import { readShopLayoutOptions, type ShopLayoutOptions } from "@/components/storefront/shopper/shop-browse";
+import { useShopQuery } from "@/components/storefront/shopper/useShopQuery";
 import { listingSoldOut, type ShopperStock } from "@shared/product-stock";
 import { StoreLogo } from "@/components/storefront/StoreLogo";
+import { CampaignBadges } from "@/components/storefront/campaign/CampaignBadges";
 import { brandTagline, footerSummaryForShoppers, isPlaceholderCopy } from "@shared/placeholder-copy";
 import { englishText, type EditorText } from "./editor-text";
 
@@ -645,6 +649,56 @@ function CommerceButton({
   );
 }
 
+/**
+ * The shop page as one of the shop page styles (filters column, category tiles, category rows, category bar) picked
+ * on its product section. Every store product, filtered in the browser; the filters live in the address on a live store.
+ */
+function ClassicShopBrowser({
+  section,
+  store,
+  theme,
+  options,
+  mode,
+  initialCategory,
+  collections,
+  renderCard,
+}: {
+  section: TemplateSectionNode;
+  store: SurfaceStore;
+  theme: ReturnType<typeof themeFor>;
+  options: ShopLayoutOptions;
+  mode: "live" | "editor";
+  initialCategory: string;
+  collections: Array<{ id: string; name: string; imageUrl: string | null; productIds: string[] }>;
+  renderCard: (product: RenderProduct) => React.ReactNode;
+}) {
+  const { query, update } = useShopQuery({ live: mode === "live", onShopPage: true, initial: { category: initialCategory } });
+  const cards = useMemo(() => {
+    const list = resolveProductItems(store.storeProducts.map((product) => ({ mappedStoreProductId: product.id })), store);
+    return new Map(list.map((product) => [product.id, product]));
+  }, [store]);
+  const copy = (section.blocks.find((entry) => entry.type === "copy")?.content ?? {}) as Record<string, unknown>;
+  const title = typeof copy.title === "string" && copy.title.trim() ? copy.title.trim() : "All products";
+  return (
+    <ShopBrowser
+      products={store.storeProducts}
+      collections={collections}
+      options={options}
+      query={query}
+      onQuery={update}
+      title={title}
+      renderTile={(product) => {
+        const card = cards.get(product.id);
+        return card ? renderCard(card) : null;
+      }}
+      palette={{ ink: theme.ink, muted: theme.muted, border: theme.border, paper: theme.paperBg, raised: theme.cardBg, accent: theme.accent, ctaBg: theme.ctaBg, ctaText: theme.ctaText, headingFont: theme.headingFont, buttonRadius: 999, cardRadius: Math.min(theme.radius, 18) }}
+      formatPrice={(amount) => formatMoney(store.currency, amount)}
+      editor={mode !== "live"}
+      wrapClassName="mx-auto max-w-[1240px] px-4 sm:px-8"
+    />
+  );
+}
+
 function ProductCard({
   product,
   theme,
@@ -687,6 +741,8 @@ function ProductCard({
         {product.soldOut ? (
           <span className="absolute left-3 top-3 rounded-full px-2.5 py-1 text-[11px] font-bold" style={{ background: theme.ink, color: "#fff" }}>Sold out</span>
         ) : null}
+        <CampaignBadges productId={product.id} offsetLeft={product.soldOut ? 32 : 0} offsetRight={mode === "live" && product.purchasable && onToggleWishlist ? 44 : 0} />
+
         {mode === "live" && product.purchasable && onToggleWishlist ? (
           <button
             type="button"
@@ -2044,6 +2100,25 @@ function ClassicTemplateSurface({
     }
 
     if (kindSection.kind === "featured-products") {
+      // The shop page's "Shop page style" (ShopBrowser). Unset is the classic look below, unchanged.
+      const browse = currentPage === "products" ? readShopLayoutOptions(kindSection.settings) : null;
+      if (browse && browse.layout !== "classic") {
+        return (
+          <ClassicShopBrowser
+            key={kindSection.id}
+            section={kindSection}
+            store={store}
+            theme={theme}
+            options={browse}
+            mode={mode}
+            initialCategory={productFilter.category === "all" ? "" : productFilter.category}
+            collections={shopperInfo.collections}
+            renderCard={(product) => (
+              <ProductCard product={product} theme={theme} onOpenProduct={() => openProduct(product)} onAddToCart={onAddToCart} onToggleWishlist={onToggleWishlist} wishlistProductIds={wishlistProductIds} mode={mode} />
+            )}
+          />
+        );
+      }
       // "How many products" always applies once the seller sets it; unset, the shop page shows every product.
       const products = filteredProducts(resolveProductItems(kindSection.items, store)).slice(0, readOptionalProductLimit(kindSection.settings) ?? (currentPage === "products" ? undefined : readProductLimit(kindSection.settings, 8)));
       const isPremiumProducts = kindSection.settings?.layout === "premium-product-cards";

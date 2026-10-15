@@ -21,6 +21,7 @@ export const GLOSSARY: GlossaryEntry[] = [
   // ── Customers and marketing ──
   { key: "segments", term: "Segments", short: "Groups of customers you pick by what they bought, where they live or what they did.", example: "Everyone in Lagos who bought shoes twice this year.", aliases: ["segment", "customer groups", "groups of customers"], introKey: "segments" },
   { key: "campaigns", term: "Campaigns", short: "One message you send to many customers at once, by email, WhatsApp or SMS.", example: "A Friday WhatsApp message to your VIPs: “New ankara just landed, 10% off till Sunday.”", aliases: ["campaign", "broadcast", "broadcasts", "messages to customers"], introKey: "campaigns" },
+  { key: "seasonal-campaigns", term: "Seasonal campaigns", short: "A sale you plan once that dresses up your shop for a season, then switches back by itself.", example: "Black Friday: gold colours, a countdown and a “BF Deal” badge from Friday to Sunday night.", aliases: ["seasonal campaign", "black friday", "sale campaign", "countdown", "countdowns", "announcement bar"], introKey: "seasonal-campaigns" },
   { key: "automations", term: "Automations", short: "Messages and tasks that run by themselves when something happens in your shop.", example: "When someone buys, send “Thank you, Ada!” and ask for a review 5 days later.", aliases: ["automation", "automated", "flows", "workflows"], introKey: "automations" },
   { key: "subscribers", term: "Subscribers", short: "People who said yes to getting your messages, so you can market to them.", example: "The 240 people who joined your list from the pop-up on your shop.", aliases: ["subscriber", "mailing list", "contact list", "opt-in"], introKey: "subscribers" },
   { key: "audiences", term: "Audiences", short: "The people an advert or message is shown to, chosen by place, age or interest.", example: "Women 22–40 in Abuja and Port Harcourt who like fashion.", aliases: ["audience", "targeting"], introKey: "ads" },
@@ -178,7 +179,7 @@ export const NAV_TERMS: Record<GlossaryRole, Record<string, string>> = {
     subscribers: "subscribers", segments: "segments",
     "your-store": "store-builder", editor: "store-builder", pages: "pages", navigation: "menus", blog: "content", checkout: "checkout", cart: "abandoned-carts", seo: "seo", legal: "legal-pages",
     "rex-studio": "studio", "studio-home": "studio", "studio-images": "studio", "studio-logo": "brand-kit", "brand-kit": "brand-kit", media: "media", templates: "themes", domain: "domain",
-    marketing: "campaigns", "marketing-overview": "campaigns", campaigns: "campaigns", automations: "automations", "email-templates": "templates", "mkt-forms": "forms", "mkt-rewards": "rewards", "marketing-analytics": "analytics",
+    marketing: "campaigns", "marketing-overview": "campaigns", campaigns: "campaigns", "seasonal-campaigns": "seasonal-campaigns", automations: "automations", "email-templates": "templates", "mkt-forms": "forms", "mkt-rewards": "rewards", "marketing-analytics": "analytics",
     ads: "ads", video: "video-studio", discounts: "discounts", affiliates: "affiliates", "sell-everywhere": "channels",
     money: "payments", payments: "payments", invoices: "invoices", taxes: "taxes",
     delivery: "logistics", "delivery-partners": "logistics", shipping: "shipping-rates", labels: "labels",

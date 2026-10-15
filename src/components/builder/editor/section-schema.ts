@@ -39,6 +39,8 @@ interface FieldBase {
   help?: string;
   /** One condition, or several that must all hold. */
   when?: When | When[];
+  /** Only shown for a section on one of these pages (the shop page's own settings). */
+  pages?: string[];
 }
 
 /** One field inside each entry of a list (slides, questions, reviews, tiles…). Values live on section.items[i]. */
@@ -56,8 +58,8 @@ export type ItemField =
 export type SchemaField =
   | (FieldBase & { type: "text" | "textarea"; target: FieldTarget; placeholder?: string })
   | (FieldBase & { type: "number"; target: FieldTarget; min: number; max: number; fallback: number })
-  /** `thumbs`: the cards picker draws a small picture of each option (FAQ styles). */
-  | (FieldBase & { type: "segmented" | "select" | "cards"; target: FieldTarget; options: ChoiceOption[]; fallback: string; thumbs?: "faq" })
+  /** `thumbs`: the cards picker draws a small picture of each option (FAQ styles, shop page styles). */
+  | (FieldBase & { type: "segmented" | "select" | "cards"; target: FieldTarget; options: ChoiceOption[]; fallback: string; thumbs?: "faq" | "shop" })
   | (FieldBase & { type: "toggle"; target: FieldTarget; fallback: boolean })
   | (FieldBase & { type: "color"; target: FieldTarget; placeholder?: string })
   | (FieldBase & { type: "datetime"; target: FieldTarget })
@@ -204,6 +206,60 @@ export const SLIDER_LAYOUTS = ["plain-slides", "slideshow"];
 
 const layoutIs = (values: string[], fallback: string): When => ({ scope: "settings", key: "layout", in: values, fallback });
 const layoutNot = (values: string[], fallback: string): When => ({ scope: "settings", key: "layout", notIn: values, fallback });
+
+/** Shop page styles: SHOP_LAYOUTS in src/components/storefront/shopper/shop-browse.ts (tests check they match). */
+export const SHOP_LAYOUT_OPTIONS: ChoiceOption[] = [
+  { value: "classic", label: "Classic grid", hint: "Your shop as it is: search, sort and category buttons." },
+  { value: "filters", label: "Filters column", hint: "Category, price and stock filters beside the products." },
+  { value: "tiles", label: "Category tiles", hint: "A picture for each category above the products." },
+  { value: "carousels", label: "Category rows", hint: "A row of products for each category." },
+  { value: "chips", label: "Category bar", hint: "Category buttons in a bar above the products." },
+];
+
+/** Sorts a shopper can pick: SHOP_SORTS in shop-browse.ts. */
+export const SHOP_SORT_OPTIONS: ChoiceOption[] = [
+  { value: "featured", label: "Featured" },
+  { value: "newest", label: "Newest" },
+  { value: "price-low", label: "Price: low to high" },
+  { value: "price-high", label: "Price: high to low" },
+  { value: "rating", label: "Best rated" },
+];
+
+const SHOP_FILTER_OPTIONS: ChoiceOption[] = [
+  { value: "category", label: "Categories" },
+  { value: "price", label: "Price" },
+  { value: "instock", label: "In stock" },
+  { value: "sale", label: "On sale" },
+  { value: "tags", label: "Tags" },
+];
+
+const PER_ROW: ChoiceOption[] = [{ value: "2", label: "2" }, { value: "3", label: "3" }, { value: "4", label: "4" }];
+
+/**
+ * The shop page style and its settings (ShopBrowser). `gate` is when the section is the shop grid; `pages` limits
+ * the fields to the shop page where a renderer has no shop-grid layout of its own. Without a style picked the
+ * section is the "Classic grid" it always was.
+ */
+function shopBrowseFields(gate: When[], pages?: string[]): SchemaField[] {
+  const style = (values: string[]): When[] => [...gate, { scope: "settings", key: "shopLayout", in: values, fallback: "classic" }];
+  const browse = ["filters", "tiles", "carousels", "chips"];
+  const on = pages ? { pages } : {};
+  return [
+    { id: "shopLayout", type: "cards", label: "Shop page style", target: setting("shopLayout"), fallback: "classic", thumbs: "shop", options: SHOP_LAYOUT_OPTIONS, when: gate, ...on },
+    { id: "columns-filters", type: "segmented", label: "Products per row on computers", target: setting("columns"), fallback: "3", options: PER_ROW, when: style(["filters"]), help: "Phones always show two a row.", ...on },
+    { id: "columns-browse", type: "segmented", label: "Products per row on computers", target: setting("columns"), fallback: "4", options: PER_ROW, when: style(["tiles", "carousels", "chips"]), help: "Phones always show two a row.", ...on },
+    { id: "shopFilters", type: "pages", label: "Filters to show", target: setting("shopFilters"), fallback: ["category", "price", "instock", "sale"], options: SHOP_FILTER_OPTIONS, when: style(["filters"]), help: "On phones, filters open from a Filters button.", ...on },
+    { id: "defaultSort", type: "select", label: "Sort products by", target: setting("defaultSort"), fallback: "featured", options: SHOP_SORT_OPTIONS, when: style(browse), help: "Shoppers can pick another order.", ...on },
+    { id: "showCounts", type: "toggle", label: "Show how many products each category has", target: setting("showCounts"), fallback: true, when: style(browse), ...on },
+    { id: "carouselRows", type: "number", label: "Categories with a row", target: setting("carouselRows"), min: 1, max: 12, fallback: 6, when: style(["carousels"]), help: "Categories with the most products come first.", ...on },
+    { id: "carouselProducts", type: "number", label: "Products in each row", target: setting("carouselProducts"), min: 4, max: 16, fallback: 8, when: style(["carousels"]), ...on },
+    { id: "pageSize-browse", type: "select", label: "Products shown at first", target: setting("pageSize"), fallback: "24", when: style(browse), options: [
+      ...[12, 24, 36, 48].map((size) => ({ value: String(size), label: `${size}, then a Show more button` })),
+      { value: "all", label: "All of them" },
+    ], ...on },
+    ...(pages ? [{ id: "shop-style-note", type: "note", label: "Your page's own filter bar and category sections still show above. Hide them if this style already has what you need.", when: style(browse), pages } satisfies SchemaField] : []),
+  ];
+}
 
 const TEXT_TONES: ChoiceOption[] = [{ value: "light", label: "Light" }, { value: "dark", label: "Dark" }];
 const TEXT_POSITIONS: ChoiceOption[] = [{ value: "left", label: "Left" }, { value: "center", label: "Centre" }, { value: "right", label: "Right" }];
@@ -365,7 +421,9 @@ function boutiqueSchema(kind: string, themeId: string): SectionSchema {
       const layoutFallback = themeId === "ounje" ? "menu" : "carousel";
       // The full shop grid shows every product, so the product choices only apply to the other layouts.
       const source = (values: string[]): When[] => [layoutNot(["grid"], layoutFallback), { scope: "settings", key: "source", in: values, fallback: "best-sellers" }];
-      const shopView = (values: string[]): When[] => [layoutIs(["grid"], layoutFallback), { scope: "settings", key: "shopView", in: values, fallback: "grid" }];
+      // The classic shop grid's own settings; the other shop page styles have theirs (shopBrowseFields).
+      const classicShop: When[] = [layoutIs(["grid"], layoutFallback), { scope: "settings", key: "shopLayout", in: ["classic"], fallback: "classic" }];
+      const shopView = (values: string[]): When[] => [...classicShop, { scope: "settings", key: "shopView", in: values, fallback: "grid" }];
       return plain([
         { fields: [
           { id: "layout", type: "select", label: "Layout", target: setting("layout"), fallback: layoutFallback, options: [
@@ -380,7 +438,8 @@ function boutiqueSchema(kind: string, themeId: string): SectionSchema {
           { id: "grid-note", type: "note", label: "The full shop grid shows every product with search, sorting and filters.", when: layoutIs(["grid"], layoutFallback) },
         ] },
         { title: "Shop layout", fields: [
-          { id: "shopView", type: "cards", label: "Products as", target: setting("shopView"), fallback: "grid", when: layoutIs(["grid"], layoutFallback), options: [
+          ...shopBrowseFields([layoutIs(["grid"], layoutFallback)]),
+          { id: "shopView", type: "cards", label: "Products as", target: setting("shopView"), fallback: "grid", when: classicShop, options: [
             { value: "grid", label: "Grid", hint: "Product cards in rows." },
             { value: "list", label: "List", hint: "Photo, name, description and price in a row." },
             { value: "large", label: "Large cards", hint: "Two big cards a row, editorial." },
@@ -388,10 +447,10 @@ function boutiqueSchema(kind: string, themeId: string): SectionSchema {
           { id: "columns", type: "segmented", label: "Products per row on computers", target: setting("columns"), fallback: "auto", when: shopView(["grid"]), options: [
             { value: "auto", label: "Theme" }, { value: "2", label: "2" }, { value: "3", label: "3" }, { value: "4", label: "4" }, { value: "5", label: "5" },
           ], help: "Phones always show two a row." },
-          { id: "filterPlacement", type: "segmented", label: "Search and filters", target: setting("filterPlacement"), fallback: "top", when: layoutIs(["grid"], layoutFallback), options: [
+          { id: "filterPlacement", type: "segmented", label: "Search and filters", target: setting("filterPlacement"), fallback: "top", when: classicShop, options: [
             { value: "top", label: "Above" }, { value: "sidebar", label: "Side column" }, { value: "none", label: "Hidden" },
           ], help: "On phones the side column sits above the products." },
-          { id: "pageSize", type: "select", label: "Products shown at first", target: setting("pageSize"), fallback: "all", when: layoutIs(["grid"], layoutFallback), options: [
+          { id: "pageSize", type: "select", label: "Products shown at first", target: setting("pageSize"), fallback: "all", when: classicShop, options: [
             { value: "all", label: "All of them" },
             ...[8, 12, 16, 24, 36, 48].map((size) => ({ value: String(size), label: `${size}, then a Show more button` })),
           ] },
@@ -875,8 +934,10 @@ function classicContent(kind: string, fallback: string): FieldGroup[] {
         { title: "Products", fields: [
           { id: "products", type: "products", label: "Products to show", help: "Pick products in the order you want. With none picked, your newest products show." },
           { id: "limit", type: "number", label: "How many products", target: setting("limit"), min: 1, max: 24, fallback: 8 },
-          { id: "columns", type: "segmented", label: "Products per row on computers", target: setting("columns"), fallback: "3", options: [{ value: "2", label: "2" }, { value: "3", label: "3" }, { value: "4", label: "4" }], when: on(["grid", "premium-product-cards", "beauty-rounded"]) },
+          { id: "columns", type: "segmented", label: "Products per row on computers", target: setting("columns"), fallback: "3", options: [{ value: "2", label: "2" }, { value: "3", label: "3" }, { value: "4", label: "4" }], when: [on(["grid", "premium-product-cards", "beauty-rounded"]), { scope: "settings", key: "shopLayout", in: ["classic"], fallback: "classic" }] },
         ] },
+        // On the shop page the section can be one of the shop page styles instead (ShopBrowser).
+        { title: "Shop layout", fields: shopBrowseFields([], ["products"]) },
       ];
     case "story-split":
       return [
@@ -1058,12 +1119,14 @@ export function whenHolds(section: TemplateSectionNode, when: When | When[] | un
   return (Array.isArray(when) ? when : [when]).every((condition) => conditionHolds(section, condition));
 }
 
-export function fieldVisible(section: TemplateSectionNode, field: SchemaField | ItemField) {
+/** `pageType`: the page the section is on; fields for other pages are hidden (left out, every page's fields show). */
+export function fieldVisible(section: TemplateSectionNode, field: SchemaField | ItemField, pageType?: string) {
+  if (pageType && "pages" in field && field.pages && !field.pages.includes(pageType)) return false;
   return whenHolds(section, field.when);
 }
 
 /** The fields shown for a section as it is now: what the panel draws. */
-export function visibleFields(section: TemplateSectionNode, renderer: RendererKind, themeId = "", tab: "settings" | "style" = "settings") {
+export function visibleFields(section: TemplateSectionNode, renderer: RendererKind, themeId = "", tab: "settings" | "style" = "settings", pageType?: string) {
   const schema = sectionSchema(section.kind, renderer, themeId);
-  return (tab === "settings" ? schema.settings : schema.style).flatMap((group) => group.fields).filter((field) => fieldVisible(section, field));
+  return (tab === "settings" ? schema.settings : schema.style).flatMap((group) => group.fields).filter((field) => fieldVisible(section, field, pageType));
 }

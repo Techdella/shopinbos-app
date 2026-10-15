@@ -53,6 +53,7 @@ import affiliates from "./messages/affiliates/index.ts";
 import analytics from "./messages/analytics/index.ts";
 import reviews from "./messages/reviews/index.ts";
 import discounts from "./messages/discounts/index.ts";
+import campaigns from "./messages/campaigns/index.ts";
 import peggy from "./messages/peggy/index.ts";
 import rex from "./messages/rex/index.ts";
 import auth from "./messages/auth/index.ts";
@@ -126,6 +127,7 @@ export const CATALOGS = {
   analytics,
   reviews,
   discounts,
+  campaigns,
   peggy,
   rex,
   auth,

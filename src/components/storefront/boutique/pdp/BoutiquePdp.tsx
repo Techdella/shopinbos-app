@@ -458,7 +458,7 @@ export function BoutiquePdp(props: Props) {
 
       <div className="bq-pdp2-main">
         <div className="bq-pdp2-media">
-          <PdpGallery images={images} video={video} name={product.name} look={look} zoom={settings.zoom} interactive={interactive} resetKey={picker.image ?? undefined} stack={settings.layout === "gallery-stack"} />
+          <PdpGallery images={images} video={video} name={product.name} look={look} zoom={settings.zoom} interactive={interactive} resetKey={picker.image ?? undefined} stack={settings.layout === "gallery-stack"} productId={product.id} />
         </div>
         <div className="bq-pdp2-info">{buyBox}</div>
       </div>

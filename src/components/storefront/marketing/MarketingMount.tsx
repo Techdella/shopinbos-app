@@ -7,6 +7,7 @@ import type { SignupColors, SignupResult } from "./SignupForm";
 import type { PopupPrizes } from "./PopupGame";
 import { popupMemory } from "@/components/storefront/gamification/client";
 import { PopupView } from "./PopupView";
+import { campaignPreviewQuery, trackCampaignEvent } from "@/components/storefront/campaign/tracking";
 
 // Storefront mount point for the seller's marketing pop-ups (Marketing > Forms and pop-ups).
 // Loads the live pop-ups, waits for each one's trigger (delay, exit intent, scroll depth), respects the
@@ -72,13 +73,22 @@ export function MarketingMount({ storeSlug, colors, currency = "NGN", storeBaseP
   const [bagTotal, setBagTotal] = useState(0);
   const [open, setOpen] = useState(false);
   const [result, setResult] = useState<SignupResult | null>(null);
-  const close = useCallback(() => setOpen(false), []);
+  const campaignId = popup?.config.campaignId ?? null;
+  const close = useCallback(() => {
+    setOpen(false);
+    if (campaignId) trackCampaignEvent(storeSlug, { campaignId, event: "popup_closed" });
+  }, [campaignId, storeSlug]);
+  const converted = useCallback(() => {
+    if (campaignId) trackCampaignEvent(storeSlug, { campaignId, event: "popup_converted" });
+  }, [campaignId, storeSlug]);
 
   useEffect(() => {
     if (!storeSlug) return;
     let cancelled = false;
     const cleanups: Array<() => void> = [];
-    void fetch(`/api/public/store/${encodeURIComponent(storeSlug)}/marketing`)
+    // A seasonal campaign preview link also previews that campaign's pop-up.
+    const preview = campaignPreviewQuery();
+    void fetch(`/api/public/store/${encodeURIComponent(storeSlug)}/marketing${preview ? `?${preview}` : ""}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((json) => {
         if (cancelled) return;
@@ -101,6 +111,7 @@ export function MarketingMount({ storeSlug, colors, currency = "NGN", storeBaseP
           markShown(candidate.id);
           setBagTotal(readBag(storeSlug).subtotal);
           setOpen(true);
+          if (candidate.config.campaignId) trackCampaignEvent(storeSlug, { campaignId: candidate.config.campaignId, event: "popup_shown" });
           void fetch(`/api/public/store/${encodeURIComponent(storeSlug)}/marketing`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -163,9 +174,13 @@ export function MarketingMount({ storeSlug, colors, currency = "NGN", storeBaseP
       basePath={storeBasePath}
       cartSubtotal={bagTotal}
       result={result}
-      onResult={setResult}
+      onResult={(next) => {
+        setResult(next);
+        if (next) converted();
+      }}
       onClose={close}
       onCta={() => {
+        converted();
         void fetch(`/api/public/store/${encodeURIComponent(storeSlug)}/marketing`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },

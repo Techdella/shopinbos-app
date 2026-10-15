@@ -59,6 +59,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "sell-everywhere": "Sayar a ko'ina",
   "marketing-overview": "Taƙaitawa",
   campaigns: "Campaigns",
+  "seasonal-campaigns": "Campaigns na lokacin biki",
   automations: "Automations",
   "email-templates": "Email templates",
   "mkt-forms": "Forms da pop-ups",

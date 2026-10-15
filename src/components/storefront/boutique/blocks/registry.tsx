@@ -26,6 +26,11 @@ import { TickerBar } from "./TickerBar";
 import { TrustBadges } from "./TrustBadges";
 import { UgcGrid } from "./UgcGrid";
 import { VideoHero } from "./VideoHero";
+import { CampaignCountdownHero } from "./CampaignCountdownHero";
+import { CampaignPromoStrip } from "./CampaignPromoStrip";
+import { CampaignDealGrid } from "./CampaignDealGrid";
+import { CampaignFeaturedDeal } from "./CampaignFeaturedDeal";
+import { CampaignGiftGuide } from "./CampaignGiftGuide";
 import type { BlockContext, BlockRenderer } from "./shared";
 
 export { isStoreBlock } from "./block-catalog";
@@ -54,6 +59,11 @@ export const BLOCK_RENDERERS: Record<string, BlockRenderer> = {
   "shipping-progress": ShippingProgress,
   "promo-popup": PromoPopup,
   "size-finder": SizeFinder,
+  "campaign-countdown-hero": CampaignCountdownHero,
+  "campaign-promo-strip": CampaignPromoStrip,
+  "campaign-deal-grid": CampaignDealGrid,
+  "campaign-featured-deal": CampaignFeaturedDeal,
+  "campaign-gift-guide": CampaignGiftGuide,
 };
 
 export type StoreBlockDefinition = StoreBlockMeta & { render: BlockRenderer };

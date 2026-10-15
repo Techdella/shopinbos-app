@@ -6,6 +6,7 @@ import { Icon } from "@/components/ui/Icon";
 import { formatStoreMoney } from "@/lib/storefront/shopper-info";
 import { lowStockLabel, productColours, soldOutLabel, type ShopperProduct } from "../shopper/catalog";
 import type { BoutiqueLook } from "./look";
+import { CampaignBadges } from "../campaign/CampaignBadges";
 
 interface Props {
   product: ShopperProduct;
@@ -60,6 +61,7 @@ export function ProductTile({ product, look, href, onOpen, wished, onToggleWishl
           {low}
         </span>
       ) : null}
+      <CampaignBadges productId={product.id} offsetLeft={low ? 32 : 0} offsetRight={onToggleWishlist ? 44 : 0} />
     </span>
   );
 

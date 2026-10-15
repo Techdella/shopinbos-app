@@ -7,6 +7,7 @@ import type { PublishState } from "./editor-logic";
 import { DEVICE_LABELS, DEVICE_WIDTHS, type Device } from "./Canvas";
 import { IconButton, Menu, MenuItem } from "./ui";
 import { useEditorT } from "./i18n";
+import { LiveCampaignChip } from "@/components/campaigns/LiveCampaignChip";
 
 const DEVICE_ICONS: Record<Device, IconName> = { desktop: "monitor", tablet: "cards", mobile: "phone" };
 
@@ -70,6 +71,7 @@ export function TopBar(props: TopBarProps) {
       <div className="flex min-w-0 items-center gap-2">
         <span className="hidden max-w-[160px] truncate text-[15px] font-bold text-app-ink xl:inline">{props.themeName}</span>
         <StatusPill status={props.status} />
+        <LiveCampaignChip />
       </div>
       {!props.phone ? (
         <div role="tablist" aria-label={tx("Builder view")} className="ml-1 flex shrink-0 rounded-[12px] bg-app-canvas p-1">

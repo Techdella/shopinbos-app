@@ -36,6 +36,8 @@ export interface PopupConfig {
   endsAt: string | null;
   /** Free-delivery pop-ups: the order amount that gets free delivery (0: not set). */
   freeDeliveryOver: number;
+  /** A seasonal campaign's pop-up: shows only while that campaign runs (src/lib/store-campaigns). Null for the rest. */
+  campaignId: string | null;
 }
 
 export type RewardKind = "percentage" | "fixed_amount" | "free_shipping" | "bogo";
@@ -505,6 +507,7 @@ export function readPopupConfig(raw: unknown): PopupConfig {
     leadMagnet: readLeadMagnet(c.leadMagnet),
     endsAt: readEndsAt(c.endsAt),
     freeDeliveryOver: num(c.freeDeliveryOver, 0, 100_000_000, 0),
+    campaignId: typeof c.campaignId === "string" && /^[\w-]{1,64}$/.test(c.campaignId) ? c.campaignId : null,
   };
 }
 

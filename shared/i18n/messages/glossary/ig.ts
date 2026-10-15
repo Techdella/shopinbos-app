@@ -172,6 +172,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "api-key.example": "Mado ya na dispatch software gị, ma zoo ya dịka password.",
   "media.short": "Foto na vidiyo niile nke ụlọ ahịa gị, n'otu ebe ka ị kpọọ ha aha, kọwaa ha ma jiri ha ọzọ.",
   "media.example": "Họrọ foto Ankara nke ọnwa gara aga maka banner ọhụrụ kama ibugo ya ọzọ.",
+  "seasonal-campaigns.short": "Sale ị na-ahazi otu ugboro nke na-achọ ụlọ ahịa gị mma maka oge ememe, wee laghachi n'onwe ya.",
+  "seasonal-campaigns.example": "Black Friday: agba gold, countdown na badge “BF Deal” site na Fraịdee ruo abalị Sọnde.",
 };
 
 export default ig;
