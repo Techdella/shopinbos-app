@@ -333,7 +333,7 @@ function MarketingCard({ card }: { card: Extract<RexCard, { type: "marketing" }>
 function BrandCard({ card }: { card: Extract<RexCard, { type: "brand" }> } & RexCardHandlers) {
   const t = useT("builder", "common");
   const confirm = useConfirm();
-  const icon = card.kind === "print" ? "tag" : card.kind === "book" ? "book" : "image";
+  const icon = card.kind === "print" ? "tag" : card.kind === "packaging" ? "package" : card.kind === "book" ? "book" : "image";
   return (
     <section className={shell} aria-label={card.title}>
       <div className="flex items-start gap-3">
@@ -360,10 +360,10 @@ function BrandCard({ card }: { card: Extract<RexCard, { type: "brand" }> } & Rex
             {confirm.busy ? <Spinner className="h-4 w-4" /> : <Icon name="check" size={15} />} {card.kind === "icon" ? t("rex.br.useIcon") : t("rex.br.useFavicon")}
           </button>
         ) : null}
-        <Link href={card.href} className={card.kind === "print" || card.kind === "book" ? primary : secondary}>
-          {card.kind === "print" ? t("rex.br.openPrint") : card.kind === "book" ? t("rex.br.openBook") : t("rex.br.openKit")}
+        <Link href={card.href} className={card.kind === "print" || card.kind === "book" || card.kind === "packaging" ? primary : secondary}>
+          {card.kind === "packaging" ? t("rex.br.openPackaging") : card.kind === "print" ? t("rex.br.openPrint") : card.kind === "book" ? t("rex.br.openBook") : t("rex.br.openKit")}
         </Link>
-        {card.image && card.kind !== "display" ? (
+        {card.image && card.kind !== "display" && card.kind !== "packaging" ? (
           <a href={card.image} target="_blank" rel="noopener noreferrer" download className={secondary}><Icon name="download" size={15} /> {t("rex.cd.download")}</a>
         ) : null}
       </div>

@@ -188,7 +188,15 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
             { id: "shipping", label: "Shipping rates", href: "/home/shipping" },
           ],
         },
-        { id: "labels", label: "Labels and print", icon: "tag", href: "/home/labels" },
+        {
+          id: "labels", label: "Labels and print", icon: "tag", href: "/home/labels",
+          children: [
+            { id: "labels-designs", label: "Designs and shipping", href: "/home/labels" },
+            { id: "labels-packaging", label: "Packaging designer", href: "/home/labels/packaging" },
+            { id: "labels-studio", label: "Labels and tags", href: "/home/labels/studio" },
+            { id: "labels-request", label: "Custom packaging", href: "/home/labels/request" },
+          ],
+        },
         {
           id: "reports", label: "Analytics", icon: "chart", href: "/home/analytics",
           children: [
@@ -349,6 +357,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
         { id: "product-news", label: "Product news", icon: "megaphone", href: "/admin/product-news", core: true },
         { id: "help-videos", label: "Help videos", icon: "play", href: "/admin/help-videos", core: true },
         { id: "ad-requests", label: "Ad requests", icon: "megaphone", href: "/admin/ad-requests", core: true },
+        { id: "packaging-requests", label: "Packaging requests", icon: "package", href: "/admin/packaging-requests", core: true },
       ],
     },
     {

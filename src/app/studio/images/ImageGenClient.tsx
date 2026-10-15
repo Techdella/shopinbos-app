@@ -14,6 +14,7 @@ import { RexImageActions } from "@/components/builder/rex/RexImageActions";
 import { uploadStudioPhoto } from "@/components/builder/rex/api";
 import { isVideoFile, videoFrames } from "@/components/builder/rex/video-frames";
 import { wantsLogo } from "@shared/brand-context";
+import { CREATIVE_CONCEPTS, CREATIVE_CONCEPT_INFO, CREATIVE_CONCEPT_PHOTO, CREATIVE_PLACEMENTS, CREATIVE_PLACEMENT_INFO, type CreativeConcept, type CreativePlacement } from "@shared/creatives";
 
 const SIZES = [
   { id: "1024x1024", label: "img.square" },
@@ -49,6 +50,11 @@ export function ImageGenClient({ storeName: _storeName, brand, ideas }: { storeN
   const t = useT("rex");
   const media = useMediaLibrary();
   const [prompt, setPrompt] = useState("");
+  const [concept, setConcept] = useState<CreativeConcept | null>(null);
+  const [placement, setPlacement] = useState<CreativePlacement>("social_post");
+  const [headline, setHeadline] = useState("");
+  const [subline, setSubline] = useState("");
+  const [cta, setCta] = useState("");
   const [size, setSize] = useState<"1024x1024" | "1792x1024" | "1024x1792">("1024x1024");
   const [style, setStyle] = useState<"vivid" | "natural">("vivid");
   const [useLogo, setUseLogo] = useState(false);
@@ -72,7 +78,7 @@ export function ImageGenClient({ storeName: _storeName, brand, ideas }: { storeN
 
   const generateImage = async () => {
     const p = prompt.trim();
-    if (!p) return;
+    if (!p && !concept) return;
     setLoading(true);
     setError("");
     setNeedCredits(false);
@@ -82,7 +88,7 @@ export function ImageGenClient({ storeName: _storeName, brand, ideas }: { storeN
       const res = await fetch("/api/ai/generate-image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: p, size, style, useLogo, useBrand, referenceUrls: refs.map((ref) => ref.url) }),
+        body: JSON.stringify({ prompt: p, size, style, useLogo, useBrand, referenceUrls: refs.map((ref) => ref.url), creative: concept ? { concept, placement, headline, subline, cta } : null }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -214,7 +220,41 @@ export function ImageGenClient({ storeName: _storeName, brand, ideas }: { storeN
         ) : null}
 
         <section className="rounded-[22px] border border-app-line bg-white p-5">
-          <h2 className="m-0 text-[17px] font-extrabold">{t("img.describe")}</h2>
+          <h2 className="m-0 text-[17px] font-extrabold">{t("img.cr.title")}</h2>
+          <p className="m-0 mt-0.5 text-[13px] text-app-ink-soft">{t("img.cr.sub")}</p>
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            {CREATIVE_CONCEPTS.map((id) => (
+              <button key={id} type="button" aria-pressed={concept === id} onClick={() => setConcept(concept === id ? null : id)} title={CREATIVE_CONCEPT_INFO[id].hint} className={cx("grid gap-1.5 rounded-[14px] border p-1.5 text-left text-[12px] font-bold leading-tight", concept === id ? "border-app-ink ring-2 ring-app-ink/15" : "border-app-line hover:border-app-line-strong")}>
+                <ConceptThumb concept={id} />
+                <span className="px-0.5">{t.dynamic(`img.cr.c.${id}`, CREATIVE_CONCEPT_INFO[id].name)}</span>
+              </button>
+            ))}
+          </div>
+          {concept ? (
+            <div className="mt-4 grid gap-3">
+              <p className="m-0 text-[13px] text-app-ink-soft">{t.dynamic(`img.cr.h.${concept}`, CREATIVE_CONCEPT_INFO[concept].hint)}</p>
+              <div>
+                <p className="m-0 mb-2 text-[14px] font-bold">{t("img.cr.where")}</p>
+                <div className="flex flex-wrap gap-2">
+                  {CREATIVE_PLACEMENTS.map((id) => (
+                    <button key={id} type="button" aria-pressed={placement === id} onClick={() => { setPlacement(id); const shape = CREATIVE_PLACEMENT_INFO[id].shape; setSize(shape === "square" ? "1024x1024" : shape === "landscape" ? "1792x1024" : "1024x1792"); }} className={chip(placement === id)}>
+                      {t.dynamic(`img.cr.p.${id}`, CREATIVE_PLACEMENT_INFO[id].name)} <span className="ml-1 opacity-60">{CREATIVE_PLACEMENT_INFO[id].ratio}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-[2fr_2fr_1fr]">
+                <label className="grid gap-1 text-[13px] font-bold">{t("img.cr.headline")}<input value={headline} maxLength={60} onChange={(e) => setHeadline(e.target.value)} placeholder={t("img.cr.headlinePh")} className="h-11 rounded-[12px] border border-app-line px-3 text-[14px] outline-none focus:border-app-ink" /></label>
+                <label className="grid gap-1 text-[13px] font-bold">{t("img.cr.subline")}<input value={subline} maxLength={90} onChange={(e) => setSubline(e.target.value)} placeholder={t("img.cr.sublinePh")} className="h-11 rounded-[12px] border border-app-line px-3 text-[14px] outline-none focus:border-app-ink" /></label>
+                <label className="grid gap-1 text-[13px] font-bold">{t("img.cr.cta")}<input value={cta} maxLength={24} onChange={(e) => setCta(e.target.value)} placeholder={t("img.cr.ctaPh")} className="h-11 rounded-[12px] border border-app-line px-3 text-[14px] outline-none focus:border-app-ink" /></label>
+              </div>
+              <p className="m-0 text-[12.5px] text-app-ink-soft">{t("img.cr.tip")}</p>
+            </div>
+          ) : null}
+        </section>
+
+        <section className="rounded-[22px] border border-app-line bg-white p-5">
+          <h2 className="m-0 text-[17px] font-extrabold">{concept ? t("img.cr.more") : t("img.describe")}</h2>
           <div className="mt-4">
             <FieldLabel htmlFor="img-prompt">{t("img.what")}</FieldLabel>
             <textarea
@@ -311,7 +351,7 @@ export function ImageGenClient({ storeName: _storeName, brand, ideas }: { storeN
               </div>
             </fieldset>
           </div>
-          <PillButton tone="accent" size="md" className="mt-5 w-full" onClick={() => void generateImage()} disabled={loading || uploading || !prompt.trim()}>
+          <PillButton tone="accent" size="md" className="mt-5 w-full" onClick={() => void generateImage()} disabled={loading || uploading || (!prompt.trim() && !concept)}>
             {loading ? <><Spinner /> {t("img.making")}</> : <><Icon name="sparkle" size={16} /> {t("img.make")}</>}
           </PillButton>
           {credits !== null && (
@@ -404,4 +444,11 @@ function Toggle({ id, checked, onChange, label, hint }: { id: string; checked: b
       </span>
     </label>
   );
+}
+
+/** A real photo showing the concept's look (Unsplash, credited on hover). */
+function ConceptThumb({ concept }: { concept: CreativeConcept }) {
+  const photo = CREATIVE_CONCEPT_PHOTO[concept];
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={photo.url} alt="" title={`Photo: ${photo.credit} / Unsplash`} loading="lazy" className="block aspect-square w-full rounded-[10px] bg-app-canvas object-cover" />;
 }
