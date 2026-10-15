@@ -100,6 +100,28 @@ export function chooseFile(accept: string): Promise<File | null> {
   });
 }
 
+/** Opens the device's file chooser for several files (an empty list when cancelled). */
+export function chooseFiles(accept: string): Promise<File[]> {
+  return new Promise((resolve) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = accept;
+    input.multiple = true;
+    input.style.display = "none";
+    let settled = false;
+    const done = (files: File[]) => {
+      if (settled) return;
+      settled = true;
+      input.remove();
+      resolve(files);
+    };
+    input.addEventListener("change", () => done(Array.from(input.files ?? [])));
+    input.addEventListener("cancel", () => done([]));
+    document.body.appendChild(input);
+    input.click();
+  });
+}
+
 export function isVideoUrl(url: string) {
   return /\.(mp4|webm|ogv|mov)(\?|#|$)/i.test(url);
 }

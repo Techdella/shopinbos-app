@@ -257,6 +257,21 @@ globalThis.__aiMocks = {
     checkConfirmationCode: (given, parts) => Boolean(given) && given.trim().toUpperCase() === code(parts),
   },
   "@/lib/ads": { sellerWhatsapp: async () => "2348031111111" },
+  "@/lib/ad-campaigns/campaigns.server": {
+    CampaignError: class CampaignError extends Error {},
+    writeAdCopy: record("writeAdCopy", (store, ids) => ids.map((productId) => ({ productId, headline: "Soft tote", primaryText: "Order now." }))),
+    saveCampaignDraft: record("saveCampaignDraft", (storeId, input) => ({ id: "camp-1", name: input.name, storeId })),
+    launchCampaign: record("launchCampaign", { id: "camp-1" }),
+  },
+  "@/lib/ad-campaigns/meta.server": {
+    MetaAdsError: class MetaAdsError extends Error {},
+    metaAdsStatus: async () => ({ configured: true, status: "connected", accountId: "act_1", accountName: "Ada Ads", pageName: "Ada Fabrics", currency: "NGN" }),
+    setMetaCampaignActive: record("setMetaCampaignActive", undefined),
+    syncMetaCampaign: record("syncMetaCampaign", null),
+  },
+  "@/lib/ad-campaigns/requests.server": {
+    createAdRequest: record("createAdRequest", { id: "req-1", authorizationUrl: "https://checkout.paystack.com/abc" }),
+  },
   "@/lib/orders/update-status": {
     updateOrderStatus: async (store, current, input) => {
       calls.push({ name: "updateOrderStatus", args: [store, current, input] });
@@ -431,6 +446,11 @@ const PEGGY_VALID = {
   draft_blog_post: { title: "Caring for Ankara", topic: "Washing and ironing tips" },
   draft_broadcast: { channel: "email", audience: "subscribers", subject: "New in", message: "Fresh Ankara totes are in the shop this week." },
   draft_ad: { productName: "Ankara tote", platform: "instagram", destination: null, dailyBudget: null, days: null },
+  ads_overview: {},
+  ads_create_campaign: { products: ["Ankara tote"], mode: "meta", platform: null, objective: null, dailyBudget: null, days: null, startDate: null, states: ["Lagos"], ageMin: null, ageMax: null, gender: null, interests: ["fashion"], video: null, name: null },
+  ads_launch_campaign: { campaign: "Ankara", confirmCode: null },
+  ads_manage_campaign: { campaign: "Ankara", action: "pause", confirmCode: null },
+  ads_request_help: { platform: "tiktok", campaign: null, handle: "@adafabrics", pageUrl: null, dailyBudget: null, days: null, goals: null, notes: null },
   write_copy: { kind: "instagram_caption", about: "Our Ankara tote" },
   setup_status: {},
   setup_payment_methods: { transfer: null, card: true, cod: null, wa: null },
@@ -993,6 +1013,30 @@ test("Rex brand tools: style book, icon from the logo, labels in the print studi
   await assert.rejects(runRex("make_print_labels", { ...REX_VALID.make_print_labels, products: null }), /for products/);
   assert.equal(rexPure.parseRexAction({ action: "set_brand_asset", kind: "favicon", url: "https://proj.supabase.co/storage/v1/object/public/brand/f.webp" }).ok, true);
   assert.equal(rexPure.parseRexAction({ action: "set_brand_asset", kind: "logo", url: "https://proj.supabase.co/x.webp" }).ok, false, "the logo is changed with set_logo");
+});
+
+test("Peggy runs ads: drafts spend nothing, launching needs the seller's yes, help goes to a paid request", async () => {
+  const d = useDb();
+  calls.length = 0;
+  const draft = await runPeggy("ads_create_campaign", PEGGY_VALID.ads_create_campaign);
+  assert.match(draft.content, /draft campaign/i);
+  const saved = called("saveCampaignDraft")[0].args[1];
+  assert.equal(saved.mode, "meta");
+  assert.deepEqual(saved.audience.states, ["Lagos"]);
+  assert.equal(saved.creatives[0].headline, "Soft tote", "Peggy's words go in the ad");
+
+  d.adCampaign.rows.push({ id: "camp-1", storeId: "store-A", mode: "meta", name: "Ankara tote campaign", headline: "x", status: "draft", dailyBudget: 5000, days: 7, currency: "NGN", platform: "meta", external: null, createdAt: new Date() });
+  const preview = await runPeggy("ads_launch_campaign", PEGGY_VALID.ads_launch_campaign);
+  assert.match(preview.content, /NOT LAUNCHED YET.*Confirmation code: ([A-Z0-9]+)/s);
+  assert.equal(called("launchCampaign").length, 0, "nothing launches without the code");
+  const code = preview.content.match(/Confirmation code: ([A-Z0-9]+)/)[1];
+  const launched = await runPeggy("ads_launch_campaign", { campaign: "camp-1", confirmCode: code });
+  assert.match(launched.content, /Launched/);
+  assert.equal(called("launchCampaign").length, 1);
+
+  const help = await runPeggy("ads_request_help", PEGGY_VALID.ads_request_help);
+  assert.equal(help.action.href, "https://checkout.paystack.com/abc", "the seller pays the setup fee from the card");
+  assert.equal(called("createAdRequest")[0].args[0].request.platform, "tiktok");
 });
 
 // ─── Peggy: product details, written content and reviews ───────────────────────

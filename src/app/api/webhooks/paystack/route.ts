@@ -1,6 +1,8 @@
 import { sendOrderConfirmationEmail } from "@/lib/email/notices.server";
 import { completeCreditPurchase, grantPlanCredits } from "@/lib/ai/credits.server";
 import { CREDIT_REFERENCE_PREFIX } from "@shared/ai-credits";
+import { AD_SETUP_REFERENCE_PREFIX } from "@shared/ad-campaigns";
+import { completeAdSetupPayment } from "@/lib/ad-campaigns/requests.server";
 import { SENDER_STORE_SELECT } from "@/lib/email/compliance.server";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db/client";
@@ -139,6 +141,12 @@ export async function POST(req: NextRequest) {
   if (eventType === "charge.success") {
     const ref = event.data?.reference as string | undefined;
     if (ref) {
+      if (ref.startsWith(AD_SETUP_REFERENCE_PREFIX)) {
+        await completeAdSetupPayment(ref).catch((error) => {
+          console.error("Ad setup payment completion failed:", error);
+        });
+        return NextResponse.json({ received: true });
+      }
       if (ref.startsWith(CREDIT_REFERENCE_PREFIX)) {
         await completeCreditPurchase(ref).catch((error) => {
           console.error("AI credit purchase completion failed:", error);

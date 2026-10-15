@@ -1,5 +1,6 @@
 "use client";
 
+import { useMediaLibrary } from "@/components/media/useMediaLibrary";
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState, type ReactNode } from "react";
 import { Mascot, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
@@ -48,6 +49,7 @@ export const ProductPeggy = forwardRef<ProductPeggyHandle, Props>(function Produ
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const media = useMediaLibrary();
   const endRef = useRef<HTMLDivElement>(null);
 
   // Opens once per session for this page kind; never again after the seller has seen it.
@@ -265,10 +267,11 @@ export const ProductPeggy = forwardRef<ProductPeggyHandle, Props>(function Produ
           </div>
         ) : null}
         <div className="flex items-end gap-1.5">
-          <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading || busy} aria-label={t("peggy.sendPhoto")} className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-app-line hover:border-app-line-strong disabled:opacity-50">
+          <button type="button" onClick={() => void media.open({ accept: "image" }).then(([asset]) => asset && setPhoto(asset.url))} disabled={uploading || busy} aria-label={t("peggy.sendPhoto")} className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-app-line hover:border-app-line-strong disabled:opacity-50">
             <Icon name={uploading ? "clock" : "image"} size={16} />
           </button>
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => void uploadPhoto(e.target.files)} aria-label={t("peggy.sendPhoto")} />
+          {media.dialog}
           <label htmlFor="product-peggy-input" className="sr-only">{t("peggy.placeholder")}</label>
           <textarea
             id="product-peggy-input"

@@ -1,5 +1,6 @@
 "use client";
 
+import { mediaFile, useMediaLibrary } from "@/components/media/useMediaLibrary";
 import { BuyCreditsButton } from "@/components/credits/CreditsBadge";
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { Mascot, Spinner, cx } from "@/components/app-ui";
@@ -59,6 +60,7 @@ export function RexChat({
   attachRequest?: { url: string; n: number } | null;
 }) {
   const t = useT("builder", "common");
+  const media = useMediaLibrary();
   const [text, setText] = useState(initialText ?? "");
   const [photos, setPhotos] = useState<string[]>([]);
   const [stills, setStills] = useState<string[]>([]);
@@ -114,7 +116,28 @@ export function RexChat({
     }
   }
 
-  async function addPhotos(files: FileList | null) {
+  /** The paperclip opens the media library first (it uploads too); a library video becomes a few stills. */
+  async function attachFromMedia() {
+    const picked = await media.open({ multiple: true, accept: "any" });
+    if (!picked.length) return;
+    const room = MAX_PHOTOS - photos.length;
+    const pictures = picked.filter((asset) => asset.kind !== "video").map((asset) => asset.url).filter((url) => !photos.includes(url)).slice(0, Math.max(0, room));
+    if (pictures.length) {
+      setPhotos((prev) => [...prev, ...pictures].slice(0, MAX_PHOTOS));
+      if (!text.trim()) setText(t("rex.ch.photoPrompt"));
+      inputRef.current?.focus();
+    }
+    const videos = picked.filter((asset) => asset.kind === "video");
+    if (videos.length) {
+      try {
+        await addPhotos(await Promise.all(videos.map(mediaFile)));
+      } catch {
+        setNote(t("rex.ch.uploadFailed"));
+      }
+    }
+  }
+
+  async function addPhotos(files: FileList | File[] | null) {
     if (!files?.length) return;
     let room = MAX_PHOTOS - photos.length;
     if (room <= 0) {
@@ -367,9 +390,10 @@ export function RexChat({
               ) : null}
               <div className="flex items-center gap-1.5 px-1">
                 <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,video/mp4,video/webm,video/quicktime" multiple className="sr-only" tabIndex={-1} onChange={(event) => void addPhotos(event.target.files)} />
+                {media.dialog}
                 <button
                   type="button"
-                  onClick={() => fileRef.current?.click()}
+                  onClick={() => void attachFromMedia()}
                   disabled={uploading || blocked}
                   aria-label={t("rex.ch.attach")}
                   title={t("rex.ch.attach")}

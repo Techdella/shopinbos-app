@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FieldLabel, Notice, PillButton, Segmented, Spinner, TextInput } from "@/components/app-ui";
 import { cx } from "@/components/app-ui/cx";
@@ -22,9 +24,10 @@ import {
   type VoiceSource,
 } from "@shared/video-style";
 import { CREDIT_COST } from "@shared/ai-credits";
+import { PURPOSE_DEFAULTS, type VideoConfig, type VideoPurpose } from "@shared/video-projects";
 import { loadReelImage, previewMusic, reelSupported, renderReel, type ReelResult } from "@/lib/video/render-reel";
 import { uploadFile } from "@/lib/supabase/storage";
-import { uploadStudioPhoto } from "@/components/builder/rex/api";
+import { useMediaLibrary } from "@/components/media/useMediaLibrary";
 import { REX_REEL_HANDOFF_KEY } from "@/lib/ai/rex/cards";
 import { BuyCreditsButton, creditsChanged, isCreditsError } from "@/components/credits/CreditsBadge";
 import { useT } from "@/components/i18n/I18nProvider";
@@ -83,6 +86,8 @@ export function VideoStudio({
   initialProductId,
   brand,
   elevenLabs,
+  project = null,
+  purpose: startPurpose = "social",
 }: {
   products: StudioProduct[];
   storeName: string;
@@ -90,27 +95,40 @@ export function VideoStudio({
   initialProductId: string | null;
   brand: ReelBrand;
   elevenLabs: boolean;
+  /** A saved project to carry on with (its settings come back as they were). */
+  project?: { id: string; title: string; purpose: VideoPurpose; status: string; videoUrl: string | null; config: VideoConfig } | null;
+  /** What a new video is for: an ad, a product or social media. */
+  purpose?: VideoPurpose;
 }) {
   const t = useT("video");
+  const router = useRouter();
+  const saved = project?.config ?? null;
+  const purpose: VideoPurpose = project?.purpose ?? startPurpose;
+  const defaults = PURPOSE_DEFAULTS[purpose];
   const initial = products.find((product) => product.id === initialProductId) ?? null;
   const [productId, setProductId] = useState<string | null>(initial?.id ?? null);
-  const [photos, setPhotos] = useState<Photo[]>(() => (initial ? initial.images.map((src) => ({ key: src, src })) : []));
+  const [photos, setPhotos] = useState<Photo[]>(() => (saved?.photos?.length ? saved.photos.map((src) => ({ key: src, src })) : initial ? initial.images.map((src) => ({ key: src, src })) : []));
   const [originals, setOriginals] = useState<Photo[] | null>(null);
-  const [name, setName] = useState(initial?.name ?? "");
-  const [price, setPrice] = useState(initial ? naira(initial.price) : "");
-  const [language, setLanguage] = useState<VideoLanguage>("pidgin");
-  const [script, setScript] = useState<VideoScript | null>(null);
-  const [template, setTemplate] = useState<ReelTemplateId>("float");
-  const [look, setLook] = useState<ReelShotLook>("cutout");
-  const [voiceSource, setVoiceSource] = useState<VoiceSource>("rex");
-  const [gender, setGender] = useState<VoiceGender>("female");
+  const [name, setName] = useState(saved?.name ?? initial?.name ?? "");
+  const [price, setPrice] = useState(saved?.price ?? (initial ? naira(initial.price) : ""));
+  const [language, setLanguage] = useState<VideoLanguage>(() => (VIDEO_LANGUAGES.some((option) => option.key === saved?.language) ? (saved!.language as VideoLanguage) : "pidgin"));
+  const [script, setScript] = useState<VideoScript | null>(saved?.script ?? null);
+  const [template, setTemplate] = useState<ReelTemplateId>(saved?.template ?? defaults.template);
+  const [look, setLook] = useState<ReelShotLook>(() => ((REEL_SHOT_LOOKS as readonly string[]).includes(saved?.look ?? "") ? (saved!.look as ReelShotLook) : "cutout"));
+  const [voiceSource, setVoiceSource] = useState<VoiceSource>(() => (saved?.voiceSource === "rex" || saved?.voiceSource === "elevenlabs" || saved?.voiceSource === "none" ? saved.voiceSource : "rex"));
+  const [gender, setGender] = useState<VoiceGender>(saved?.gender === "male" ? "male" : "female");
+  const [projectId, setProjectId] = useState<string | null>(project?.id ?? null);
+  const [title, setTitle] = useState(project?.title ?? "");
+  const [savedUrl, setSavedUrl] = useState<string | null>(project?.videoUrl ?? null);
+  const [status, setStatus] = useState(project?.status ?? "draft");
+  const [autosave, setAutosave] = useState<"idle" | "saving" | "saved">("idle");
   const [recorded, setRecorded] = useState<Blob | null>(null);
   const [voiceFile, setVoiceFile] = useState<File | null>(null);
   const [voiceSeconds, setVoiceSeconds] = useState<number | null>(null);
-  const [music, setMusic] = useState<MusicMood | "upload" | "none">("chill");
-  const [musicTouched, setMusicTouched] = useState(false);
+  const [music, setMusic] = useState<MusicMood | "upload" | "none">(() => (saved?.music === "none" || isMusicMood(saved?.music) ? (saved!.music as MusicMood | "none") : defaults.music));
+  const [musicTouched, setMusicTouched] = useState(Boolean(saved?.music));
   const [musicFile, setMusicFile] = useState<File | null>(null);
-  const [musicVolume, setMusicVolume] = useState(0.7);
+  const [musicVolume, setMusicVolume] = useState(saved?.musicVolume ?? 0.7);
   const [playing, setPlaying] = useState<string | null>(null);
   const [step, setStep] = useState<"idle" | "writing" | "shots" | "uploading" | "voicing" | "rendering" | "saving" | "saving-media">("idle");
   const [savedMedia, setSavedMedia] = useState<string | null>(null);
@@ -118,7 +136,7 @@ export function VideoStudio({
   const [result, setResult] = useState<(ReelResult & { url: string }) | null>(null);
   const [notice, setNotice] = useState<NoticeState | null>(null);
   const [supported, setSupported] = useState(true);
-  const fileInput = useRef<HTMLInputElement>(null);
+  const media = useMediaLibrary();
   const voiceCache = useRef(new Map<string, ArrayBuffer>());
   const stopSound = useRef<(() => void) | null>(null);
   const product = products.find((item) => item.id === productId) ?? null;
@@ -151,16 +169,16 @@ export function VideoStudio({
   }, [initialProductId]);
   useEffect(() => () => { if (result) URL.revokeObjectURL(result.url); }, [result]);
 
-  // The music follows the template until the seller picks one.
+  // The music follows the template until the seller picks one (a new video starts with its purpose's music).
   useEffect(() => {
-    if (!musicTouched) setMusic(defaultMood(template));
-  }, [template, musicTouched]);
+    if (!musicTouched) setMusic(template === defaults.template ? defaults.music : defaultMood(template));
+  }, [template, musicTouched, defaults]);
 
   const captions = useMemo(() => {
     const base = script ?? fallbackScript(name || "this", price, language, photos.length);
     return Array.from({ length: Math.max(1, photos.length) }, (_, i) => base.captions[i] ?? base.captions[i % base.captions.length] ?? "");
   }, [script, name, price, language, photos.length]);
-  const current = script ?? fallbackScript(name || storeName, price, language, photos.length);
+  const current = script ?? { ...fallbackScript(name || storeName, price, language, photos.length), ...(purpose === "product" ? {} : { cta: defaults.cta }) };
   const voiceKey = `${voiceSource}|${gender}|${language}|${current.voiceover}`;
 
   // The preview follows the voice's length once it is known, so captions change where the voice does.
@@ -177,6 +195,70 @@ export function VideoStudio({
     };
   }, [voiceSource, recorded, voiceFile, voiceKey]);
 
+  // Drafts save themselves: the project is created the first time there is something to keep, then updated.
+  const config: VideoConfig = useMemo(
+    () => ({ template, photos: photos.map((photo) => photo.src).filter((src) => !src.startsWith("blob:")), name, price, language, script, voiceSource, gender, music: music === "upload" ? "none" : music, musicVolume, look }),
+    [template, photos, name, price, language, script, voiceSource, gender, music, musicVolume, look],
+  );
+  const configKey = JSON.stringify(config);
+  const lastSaved = useRef(saved ? JSON.stringify({ ...config }) : "");
+  const creating = useRef<Promise<string | null> | null>(null);
+
+  async function ensureProject(): Promise<string | null> {
+    if (projectId) return projectId;
+    if (!creating.current) {
+      creating.current = (async () => {
+        const response = await postJson("/api/app/videos", { purpose, productId, config, ...(title.trim() ? { title: title.trim() } : {}) });
+        if (!response.ok) return null;
+        const body = (await response.json()) as { data: { id: string; title: string } };
+        setProjectId(body.data.id);
+        setTitle((now) => now || body.data.title);
+        window.history.replaceState(null, "", `/home/video/studio?id=${body.data.id}`);
+        return body.data.id;
+      })().finally(() => {
+        creating.current = null;
+      });
+    }
+    return creating.current;
+  }
+
+  async function patchProject(body: Record<string, unknown>) {
+    const id = await ensureProject();
+    if (!id) throw new Error(t("err.save"));
+    const response = await fetch(`/api/app/videos/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    if (!response.ok) throw await errorFrom(response, t("err.save"));
+    const json = (await response.json()) as { data: { status: string } };
+    setStatus(json.data.status);
+    return id;
+  }
+
+  useEffect(() => {
+    if (configKey === lastSaved.current) return;
+    if (!projectId && !photos.length && !name.trim()) return;
+    const timer = window.setTimeout(async () => {
+      setAutosave("saving");
+      try {
+        if (projectId) await patchProject({ config });
+        else await ensureProject();
+        lastSaved.current = configKey;
+        setAutosave("saved");
+      } catch {
+        setAutosave("idle");
+      }
+    }, 1500);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [configKey, projectId]);
+
+  async function saveTitle() {
+    if (!title.trim()) return;
+    try {
+      await patchProject({ title: title.trim() });
+    } catch {
+      // The title saves with the next change.
+    }
+  }
+
   function chooseProduct(id: string) {
     const next = products.find((item) => item.id === id);
     if (!next) return;
@@ -189,23 +271,14 @@ export function VideoStudio({
     setResult(null);
   }
 
-  /** Photos are uploaded straight away, so Rex can work on them and the reel can be remade later. */
-  async function addFiles(files: FileList | null) {
-    if (!files?.length) return;
-    setStep("uploading");
-    setNotice(null);
-    try {
-      const room = MAX_PHOTOS - photos.length;
-      for (const file of Array.from(files).filter((item) => item.type.startsWith("image/")).slice(0, room)) {
-        const url = await uploadStudioPhoto(file);
-        setPhotos((list) => [...list, { key: url, src: url }].slice(0, MAX_PHOTOS));
-      }
-      setResult(null);
-    } catch (error) {
-      setNotice({ tone: "error", text: error instanceof Error ? error.message : t("err.upload") });
-    } finally {
-      setStep("idle");
-    }
+  /** Photos come from the media library (which also uploads new ones), so the reel can be remade later. */
+  async function addFromMedia() {
+    const room = MAX_PHOTOS - photos.length;
+    if (room <= 0) return;
+    const picked = await media.open({ multiple: true, accept: "image", title: t("pickPhotos") });
+    if (!picked.length) return;
+    setPhotos((list) => [...list, ...picked.filter((asset) => !list.some((photo) => photo.src === asset.url)).map((asset) => ({ key: asset.url, src: asset.url }))].slice(0, MAX_PHOTOS));
+    setResult(null);
   }
 
   async function writeScript() {
@@ -357,23 +430,37 @@ export function VideoStudio({
     }
   }
 
-  /** Uploads the reel (straight from the browser to storage) and keeps it in the seller's media library. */
+  /**
+   * Saves the recorded video: uploads it (and its cover) straight from the browser to storage, keeps it in the
+   * media library and marks the project "saved". Returns the video's link.
+   */
+  async function saveVideo(): Promise<string | null> {
+    if (!result) return savedUrl;
+    if (savedMedia === result.url && savedUrl) return savedUrl;
+    const base = (title || name || product?.name || "reel").replace(/[^\w-]+/g, "-").toLowerCase().slice(0, 40) || "reel";
+    const file = new File([result.blob], `${base}-reel.${result.extension}`, { type: result.mimeType.split(";")[0] });
+    const [uploaded, poster] = await Promise.all([
+      uploadFile("products", file),
+      result.poster ? uploadFile("products", new File([result.poster], `${base}-cover.jpg`, { type: "image/jpeg" })).catch(() => null) : Promise.resolve(null),
+    ]);
+    await fetch("/api/ai/rex/actions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "save_to_media", url: uploaded.publicUrl, kind: "video", name: title || name || product?.name || "Reel" }),
+    }).catch(() => null);
+    await patchProject({ videoUrl: uploaded.publicUrl, ...(poster ? { posterUrl: poster.publicUrl } : {}), seconds: Math.round(result.seconds * 10) / 10, config });
+    setSavedMedia(result.url);
+    setSavedUrl(uploaded.publicUrl);
+    return uploaded.publicUrl;
+  }
+
   async function saveToMedia() {
     if (!result) return;
     setStep("saving-media");
     setNotice(null);
     try {
-      const base = (name || product?.name || "reel").replace(/[^\w-]+/g, "-").toLowerCase().slice(0, 40) || "reel";
-      const file = new File([result.blob], `${base}-reel.${result.extension}`, { type: result.mimeType.split(";")[0] });
-      const uploaded = await uploadFile("products", file);
-      const response = await fetch("/api/ai/rex/actions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "save_to_media", url: uploaded.publicUrl, kind: "video", name: `${name || product?.name || "Reel"}` }),
-      });
-      if (!response.ok) throw new Error(t("err.save"));
-      setSavedMedia(result.url);
-      setNotice({ tone: "success", text: t("savedMedia") });
+      await saveVideo();
+      setNotice({ tone: "success", text: t("savedVideo") });
     } catch (saveError) {
       setNotice({ tone: "error", text: saveError instanceof Error ? saveError.message : t("err.save") });
     } finally {
@@ -382,15 +469,44 @@ export function VideoStudio({
   }
 
   async function saveToProduct() {
-    if (!result || !product) return;
+    if (!product) return;
     setStep("saving");
     setNotice(null);
     try {
-      const file = new File([result.blob], `${product.id}-reel.${result.extension}`, { type: result.mimeType.split(";")[0] });
-      const uploaded = await uploadFile("products", file);
-      const response = await fetch(`/api/store/products/${product.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ videoUrl: uploaded.publicUrl }) });
+      const url = await saveVideo();
+      if (!url) throw new Error(t("err.save"));
+      const response = await fetch(`/api/store/products/${product.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ videoUrl: url }) });
       if (!response.ok) throw new Error(t("err.attach"));
+      await patchProject({ published: { kind: "product", id: product.id } });
       setNotice({ tone: "success", text: t("added", { name: product.name }) });
+    } catch (saveError) {
+      setNotice({ tone: "error", text: saveError instanceof Error ? saveError.message : t("err.save") });
+    } finally {
+      setStep("idle");
+    }
+  }
+
+  async function useInAd() {
+    setStep("saving");
+    setNotice(null);
+    try {
+      const url = await saveVideo();
+      const id = await ensureProject();
+      if (!url || !id) throw new Error(t("err.save"));
+      router.push(`/home/ads/new?video=${id}`);
+    } catch (saveError) {
+      setNotice({ tone: "error", text: saveError instanceof Error ? saveError.message : t("err.save") });
+      setStep("idle");
+    }
+  }
+
+  async function markPosted() {
+    setStep("saving");
+    setNotice(null);
+    try {
+      await saveVideo();
+      await patchProject({ published: { kind: "social" } });
+      setNotice({ tone: "success", text: t("markedPosted") });
     } catch (saveError) {
       setNotice({ tone: "error", text: saveError instanceof Error ? saveError.message : t("err.save") });
     } finally {
@@ -413,6 +529,27 @@ export function VideoStudio({
   ];
 
   return (
+    <div className="grid gap-4">
+    <div className="flex flex-wrap items-center gap-3 rounded-[22px] border border-app-line bg-white px-4 py-3">
+      <Link href="/home/video" className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full border border-app-line px-3.5 text-[13.5px] font-bold text-app-ink no-underline">
+        <Icon name="arrowLeft" size={14} /> {t("hub.all")}
+      </Link>
+      <span className="rounded-full bg-app-peach px-2.5 py-1 text-[12px] font-bold">{t(`hub.purpose.${purpose}`)}</span>
+      <label htmlFor="video-title" className="sr-only">{t("hub.titleLabel")}</label>
+      <input
+        id="video-title"
+        value={title}
+        placeholder={t("hub.titlePh")}
+        maxLength={120}
+        onChange={(event) => setTitle(event.target.value)}
+        onBlur={() => void saveTitle()}
+        className="h-10 min-w-0 flex-1 basis-[200px] rounded-full border border-app-line bg-app-canvas px-4 text-[14px] font-bold outline-none focus:border-app-ink"
+      />
+      <span className="text-[12.5px] font-bold text-app-ink-soft" role="status">
+        {t(`hub.status.${status === "saved" || status === "published" ? status : "draft"}`)}
+        {autosave === "saving" ? ` · ${t("hub.autosaving")}` : autosave === "saved" ? ` · ${t("hub.autosaved")}` : ""}
+      </span>
+    </div>
     <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
       <div className="grid content-start gap-4">
         <section className={card}>
@@ -440,12 +577,12 @@ export function VideoStudio({
               </div>
             ))}
             {photos.length < MAX_PHOTOS && (
-              <button type="button" disabled={step === "uploading"} onClick={() => fileInput.current?.click()} className="grid aspect-[9/16] place-items-center rounded-[12px] border-2 border-dashed border-app-line-strong text-[13px] font-bold text-app-ink-soft">
+              <button type="button" disabled={step === "uploading"} onClick={() => void addFromMedia()} className="grid aspect-[9/16] place-items-center rounded-[12px] border-2 border-dashed border-app-line-strong text-[13px] font-bold text-app-ink-soft">
                 {step === "uploading" ? <Spinner className="h-5 w-5" /> : t("addPhoto")}
               </button>
             )}
           </div>
-          <input ref={fileInput} type="file" accept="image/*" multiple hidden onChange={(event) => { void addFiles(event.target.files); event.target.value = ""; }} />
+          {media.dialog}
           <p className="mb-0 mt-2 text-[12.5px] text-app-ink-soft">{t("photosTip", { max: MAX_PHOTOS })}</p>
 
           <div className="mt-4 rounded-[16px] bg-app-canvas p-4">
@@ -647,6 +784,17 @@ export function VideoStudio({
             {result ? t("makeAgain") : t("make")}
           </PillButton>
           <p className="m-0 text-center text-[12px] text-app-ink-soft">{t("cost", { credits: CREDIT_COST.video })}</p>
+          {!result && savedUrl ? (
+            <div className="grid gap-2 rounded-[16px] bg-app-canvas p-3">
+              <p className="m-0 text-[13px] font-bold">{t("savedVersion")}</p>
+              <video src={savedUrl} controls playsInline className="mx-auto aspect-[9/16] w-full max-w-[160px] rounded-[12px] bg-app-ink object-cover" />
+              <PillButton type="button" size="sm" busy={step === "saving"} disabled={busy} onClick={() => void useInAd()}>{t("useInAd")}</PillButton>
+              {product ? (
+                <PillButton type="button" size="sm" tone="white" disabled={busy} onClick={() => void saveToProduct()}>{t("addTo", { name: product.name })}</PillButton>
+              ) : null}
+              <a href={savedUrl} download target="_blank" rel="noopener noreferrer" className="text-center text-[13px] font-bold text-app-ink underline underline-offset-2">{t("downloadSaved")}</a>
+            </div>
+          ) : null}
           {step === "rendering" && <p className="m-0 text-center text-[12.5px] text-app-ink-soft">{t("keepOpen", { seconds: Math.round(result?.seconds ?? 14) })}</p>}
           {result && (
             <>
@@ -654,8 +802,16 @@ export function VideoStudio({
                 {t("download", { ext: result.extension.toUpperCase() })}
               </a>
               <PillButton type="button" tone="white" busy={step === "saving-media"} disabled={busy || savedMedia === result.url} onClick={() => void saveToMedia()}>
-                {savedMedia === result.url ? t("savedMediaShort") : t("saveMedia")}
+                {savedMedia === result.url ? t("savedVideoShort") : t("saveVideo")}
               </PillButton>
+              <PillButton type="button" busy={step === "saving" && purpose === "ad"} disabled={busy} onClick={() => void useInAd()}>
+                {t("useInAd")}
+              </PillButton>
+              {purpose === "social" ? (
+                <PillButton type="button" tone="white" disabled={busy} onClick={() => void markPosted()}>
+                  {t("markPosted")}
+                </PillButton>
+              ) : null}
               {product && (
                 <PillButton type="button" tone="white" busy={step === "saving"} disabled={busy} onClick={() => void saveToProduct()}>
                   {t("addTo", { name: product.name })}
@@ -675,6 +831,7 @@ export function VideoStudio({
           </div>
         )}
       </aside>
+    </div>
     </div>
   );
 }

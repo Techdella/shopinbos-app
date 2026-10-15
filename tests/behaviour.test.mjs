@@ -3292,3 +3292,59 @@ test("Reel styles: timing follows the voice, voices are Nigerian, brand colours 
   assert.match(v.reelShotPrompt("studio", { product: null, colours: { paper: "#FAF7F1", accent: "#E86A4F" } }), /#FAF7F1/);
   assert.match(v.REEL_TEMPLATE_CREDIT, /Pinterest/);
 });
+
+test("Ad campaigns: validation, Meta payloads, insights and statuses", async () => {
+  const a = await import("../shared/ad-campaigns.ts");
+  const creative = { productId: "p1", kind: "image", mediaUrl: "https://x.supabase.co/storage/v1/object/public/p.jpg", headline: "Soft tote", primaryText: "Order now.", cta: "SHOP_NOW" };
+  const base = { name: "Totes", mode: "meta", objective: "traffic", productIds: ["p1"], audience: { countries: ["NG"], states: ["Lagos"], ageMin: 18, ageMax: 40, gender: "women", interests: ["fashion"] }, creatives: [creative], dailyBudget: 5000, currency: "NGN", startAt: "2026-11-01", days: 7 };
+  assert.equal(a.CampaignInputSchema.safeParse(base).success, true);
+  assert.match(a.CampaignInputSchema.safeParse({ ...base, dailyBudget: 300 }).error.issues[0].message, /smallest daily budget/);
+  assert.match(a.CampaignInputSchema.safeParse({ ...base, audience: { ...base.audience, ageMin: 50, ageMax: 30 } }).error.issues[0].message, /oldest age/);
+  assert.equal(a.CampaignInputSchema.safeParse({ ...base, productIds: [] }).success, false);
+
+  const targeting = a.metaTargeting(base.audience, { regions: [{ key: "2570" }], interests: [{ id: "6003", name: "Fashion" }] });
+  assert.deepEqual(targeting.geo_locations, { regions: [{ key: "2570" }] }, "states narrow Nigeria");
+  assert.deepEqual(targeting.genders, [2]);
+  assert.equal(targeting.flexible_spec[0].interests[0].id, "6003");
+  assert.deepEqual(a.metaTargeting({ ...base.audience, states: [], countries: ["NG", "GH"], gender: "all" }, { regions: [], interests: [] }).geo_locations, { countries: ["NG", "GH"] });
+
+  const { start, end } = a.campaignWindow("2026-11-01", 7, new Date("2026-10-01T00:00:00Z"));
+  assert.equal(Math.round((end - start) / 86400000), 7);
+  assert.ok(a.campaignWindow("2020-01-01", 3, new Date("2026-10-01T00:00:00Z")).start >= new Date("2026-10-01T00:00:00Z"), "a past start begins now");
+  const adset = a.metaAdSetBody({ name: "x", campaignId: "c1", objective: "traffic", dailyBudget: 5000, start, end, targeting });
+  assert.equal(adset.daily_budget, 500000, "budgets go to Meta in kobo");
+  assert.equal(adset.optimization_goal, "LINK_CLICKS");
+  assert.equal(a.metaObjective("awareness").objective, "OUTCOME_AWARENESS");
+  assert.equal(a.metaCampaignBody({ name: "x", objective: "whatsapp" }).status, "PAUSED", "created paused, switched on at the end");
+
+  const link = a.metaCreativeBody({ name: "x", pageId: "pg", link: "https://app/r/ad/AB?p=p1", creative, imageHash: "h1" });
+  assert.equal(link.object_story_spec.link_data.image_hash, "h1");
+  assert.equal(link.object_story_spec.link_data.call_to_action.value.link, "https://app/r/ad/AB?p=p1");
+  const video = a.metaCreativeBody({ name: "x", pageId: "pg", instagramId: "ig", link: "https://l", creative: { ...creative, kind: "video", thumbUrl: "https://t.jpg" }, videoId: "v1" });
+  assert.equal(video.object_story_spec.video_data.video_id, "v1");
+  assert.equal(video.object_story_spec.instagram_user_id, "ig");
+
+  assert.deepEqual(a.readInsights([{ spend: "1234.5", impressions: "900", reach: "700", inline_link_clicks: "33" }]), { spend: 1234.5, impressions: 900, reach: 700, clicks: 33 });
+  assert.deepEqual(a.readInsights([]), { spend: 0, impressions: 0, reach: 0, clicks: 0 });
+  assert.equal(a.statusFromMeta("ACTIVE"), "running");
+  assert.equal(a.statusFromMeta("CAMPAIGN_PAUSED"), "paused");
+  assert.equal(a.statusFromMeta("ARCHIVED"), "ended");
+  assert.equal(a.campaignTotal(5000, 7), 35000);
+  assert.ok(a.AD_SETUP_FEES.tiktok > 0 && a.AD_SETUP_FEES.meta > 0);
+  assert.equal(a.AdRequestSchema.safeParse({ platform: "tiktok", contactName: "Ada", contactPhone: "0803", businessName: "Ada Fabrics" }).success, false, "a real phone number is needed");
+  assert.equal(a.AdRequestSchema.safeParse({ platform: "tiktok", contactName: "Ada", contactPhone: "08031234567", businessName: "Ada Fabrics" }).success, true);
+});
+
+test("Video projects: purposes start right, settings come back, publishing is remembered once", async () => {
+  const v = await import("../shared/video-projects.ts");
+  assert.equal(v.PURPOSE_DEFAULTS.ad.template, "words");
+  assert.equal(v.PURPOSE_DEFAULTS.product.music, "chill");
+  assert.deepEqual(v.readVideoConfig({ template: "pop", photos: ["https://a"], hacker: true }), { template: "pop", photos: ["https://a"] });
+  assert.deepEqual(v.readVideoConfig({ template: "nope" }), {}, "a bad config reads as empty");
+  assert.equal(v.videoTitle("ad", "Ankara tote"), "Ankara tote ad");
+  assert.match(v.videoTitle("social", null, new Date("2026-10-15T10:00:00Z")), /^Social video, 15 Oct$/);
+  const once = v.addPublished([], { kind: "product", id: "p1" }, new Date("2026-10-15T10:00:00Z"));
+  assert.equal(v.addPublished(once, { kind: "product", id: "p1" }).length, 1);
+  assert.equal(v.addPublished(once, { kind: "ad", id: "c1" }).length, 2);
+  assert.deepEqual(v.readPublished([{ kind: "x", at: "y" }, ...once]), once);
+});
