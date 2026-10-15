@@ -19,7 +19,7 @@ export async function saveStoreDetails(userId: string, input: { name?: string; s
   const store = await db.store.findUnique({ where: { userId } });
   if (!store) return false;
   const name = input.name?.trim() || store.name;
-  const renamedSettings = name !== store.name ? clearStaleShopNames(store.brandSettings, store.name) : null;
+  const renamedSettings = name !== store.name ? clearStaleShopNames(store.brandSettings, store.name, name) : null;
   await db.store.update({
     where: { id: store.id },
     data: {
@@ -29,7 +29,7 @@ export async function saveStoreDetails(userId: string, input: { name?: string; s
       brandSettings: mergeBrandSettings(renamedSettings ?? store.brandSettings, {}),
     },
   });
-  if (name !== store.name) await clearStaleShopNamesInStorePages(store.id, store.name);
+  if (name !== store.name) await clearStaleShopNamesInStorePages(store.id, store.name, name);
   if (input.slug?.trim() && input.slug.trim() !== store.slug) {
     const moved = await changeStoreSlug(store.id, input.slug);
     if (!moved.ok) return { error: moved.message };

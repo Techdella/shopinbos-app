@@ -28,6 +28,7 @@ import { samplePdpProduct } from "@/components/storefront/boutique/pdp/sample-pr
 import { relatedProducts } from "@/components/storefront/shopper/catalog";
 import { listingSoldOut, type ShopperStock } from "@shared/product-stock";
 import { StoreLogo } from "@/components/storefront/StoreLogo";
+import { brandTagline, footerSummaryForShoppers, isPlaceholderCopy } from "@shared/placeholder-copy";
 
 export interface SurfaceProduct {
   id: string;
@@ -249,7 +250,7 @@ function PlaceholderImage({
         fontWeight: 600,
         textAlign: "center",
         padding: 12,
-      }}>
+      }} className="tsf-editor-only">
         {label ?? "Click to replace image"}
       </div>
     </div>
@@ -282,7 +283,10 @@ function renderImage(
             fallback.style.alignItems = "center";
             fallback.style.justifyContent = "center";
             fallback.style.minHeight = "180px";
-            fallback.textContent = label ?? "Click to replace image";
+            const hint = document.createElement("span");
+            hint.className = "tsf-editor-only";
+            hint.textContent = label ?? "Click to replace image";
+            fallback.appendChild(hint);
             fallback.style.color = "rgba(255,255,255,0.7)";
             fallback.style.fontSize = "12px";
             fallback.style.fontWeight = "600";
@@ -416,6 +420,7 @@ function cleanCustomerCopy(value: unknown, fallback: string) {
   if (!text) return fallback;
   const lower = text.toLowerCase();
   const isBuilderCopy =
+    isPlaceholderCopy(text) ||
     lower.includes("shopinbos") ||
     lower.includes("modern commerce") ||
     lower.includes("store experience") ||
@@ -1063,16 +1068,22 @@ function ClassicTemplateSurface({
     style?: React.CSSProperties,
     tag: "span" | "div" = "span",
   ) {
-    const text = String(value ?? fallback);
+    const raw = String(value ?? fallback);
+    // Seller guidance saved by older templates never shows on the live store; the builder marks it "edit me".
+    const guidance = isPlaceholderCopy(raw, store.name);
+    const text = !isEditor && guidance ? "" : raw;
     if (!isEditor || !onUpdateSectionCopy) {
       const Tag = tag;
       return <Tag className={className} style={style}>{text}</Tag>;
     }
     const Tag = tag;
+    const hint = !text.trim() || guidance;
     return (
       <Tag
         className={className}
-        style={{ ...style, outline: selectedSectionId === sectionId ? `1px dashed ${rgba(theme.accent, 0.65)}` : undefined, outlineOffset: 3 }}
+        data-editor-hint={hint ? "Shoppers won't see this until you write your own text" : undefined}
+        title={hint ? "Shoppers won't see this until you write your own text" : undefined}
+        style={{ ...style, outline: selectedSectionId === sectionId || hint ? `1px dashed ${rgba(theme.accent, 0.65)}` : undefined, outlineOffset: 3, minWidth: hint ? 40 : undefined, opacity: guidance ? 0.6 : style?.opacity }}
         contentEditable
         suppressContentEditableWarning
         onClick={(event) => {
@@ -3303,7 +3314,7 @@ function ClassicTemplateSurface({
   const seededAnnouncement = String(
     getTemplateManifest(snapshot.templateId)?.seedPages.find((entry) => entry.pageType === "home")?.sections.find((entry) => entry.kind === "announcement-bar")?.blocks.find((entry) => entry.type === "copy")?.content.text ?? "",
   );
-  const announcementText = mode === "live" && writtenAnnouncement && writtenAnnouncement === seededAnnouncement
+  const announcementText = mode === "live" && writtenAnnouncement && (writtenAnnouncement === seededAnnouncement || isPlaceholderCopy(writtenAnnouncement, store.name))
     ? readShopperInfo(store.shopper).announcement ?? ""
     : writtenAnnouncement;
   const footerCopy = footer?.blocks.find((entry) => entry.type === "copy")?.content ?? {};
@@ -3340,7 +3351,10 @@ function ClassicTemplateSurface({
         minHeight: mode === "editor" && device === "desktop" ? "100%" : device === "mobile" ? 720 : 760,
       }}
       onClick={isEditor ? () => onSelectSection?.(null) : undefined}
+      data-surface-mode={mode}
     >
+      {/* Builder-only guidance (image placeholders, empty text) never shows on the live store. */}
+      <style>{`[data-surface-mode="live"] .tsf-editor-only{display:none}[data-editor-hint]:empty::before{content:attr(data-editor-hint);opacity:.5;font-size:.8em}`}</style>
 
       {announcementText ? sectionWrap(
         announcement!.id,
@@ -3510,7 +3524,11 @@ function ClassicTemplateSurface({
                 <div className="text-[20px] font-semibold tracking-[-0.03em]" style={{ fontFamily: theme.headingFont, color: theme.heroText }}>{store.name}</div>
               )}
               <p className="mt-3 max-w-[400px] text-[13px] leading-7" style={{ color: rgba(theme.heroText, 0.7) }}>
-                {cleanCustomerCopy(footerCopy.summary, "Discover curated products, delivered with care.")}
+                {mode === "live"
+                  ? footerSummaryForShoppers(cleanCustomerCopy(footerCopy.summary, ""), { name: store.name, description: store.description, tagline: brandTagline(store.brandSettings) })
+                  : typeof footerCopy.summary === "string" && footerCopy.summary.trim() && !isPlaceholderCopy(footerCopy.summary, store.name)
+                    ? footerCopy.summary
+                    : <span className="tsf-footer-hint" style={{ border: `1px dashed ${rgba(theme.heroText, 0.35)}`, borderRadius: 8, padding: "4px 8px", opacity: 0.75 }}>Add a line about your store in the footer settings. Until then shoppers see your store description.</span>}
               </p>
             </div>
             <div>

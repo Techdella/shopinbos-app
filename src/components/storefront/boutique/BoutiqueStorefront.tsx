@@ -40,6 +40,7 @@ import { isStoreBlock, StoreBlock, type BlockContext } from "./blocks/registry";
 import { filterFaq } from "./blocks/block-logic";
 import { LAYOUT_ROW_KIND } from "./blocks/layout-logic";
 import { LayoutRow, type LayoutRowEditing } from "./blocks/LayoutRow";
+import { shopperCopy } from "@shared/placeholder-copy";
 
 export interface BoutiqueStore {
   id?: string;
@@ -1618,7 +1619,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     .filter((key) => pageTypes.has(key))
     .map((key) => ({ key, label: key === "faq" ? "Delivery and FAQ" : PAGE_LABELS[key]!, onSelect: () => go(key), href: pageHref(key) }));
   const policyLinks: ChromeHref[] = live ? legalLinks(store.brandSettings).map((link) => ({ key: link.key, label: link.title, href: getPublicStorefrontPath(basePath, legalPagePath(link.key)) })) : [];
-  const announcementText = text(copyOf(announcementSection).text) || shopper.announcement;
+  // Seller guidance saved by older templates ("Add your shipping or payment message here.") counts as empty.
+  const announcementText = shopperCopy(copyOf(announcementSection).text, store.name) || shopper.announcement;
   const logoText = text(headerCopy.logoText) && text(headerCopy.logoText) !== "Store" ? text(headerCopy.logoText) : store.name;
   const showNav = live || props.device === "mobile";
   const editorStyle: React.CSSProperties = live ? {} : { minHeight: "100%" };
@@ -1656,7 +1658,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         {!live && !props.demo && content.length === 0 ? <div aria-hidden style={{ minHeight: 280 }} /> : null}
       </main>
       {footerSection ? wrap(footerSection, (
-        <BoutiqueFooter store={store} look={look} shopper={shopper} links={footerLinks} showLogo={footerSection.settings?.showLogo !== false} summary={text(copyOf(footerSection).summary)} onTrackOrder={live ? () => setSheet("account") : undefined} legalLinks={policyLinks} />
+        <BoutiqueFooter store={store} look={look} shopper={shopper} links={footerLinks} showLogo={footerSection.settings?.showLogo !== false} summary={text(copyOf(footerSection).summary)} onTrackOrder={live ? () => setSheet("account") : undefined} legalLinks={policyLinks} editor={!live && !props.demo} />
       )) : null}
       {showNav ? (
         <ShopperBottomNav

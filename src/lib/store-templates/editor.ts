@@ -102,10 +102,12 @@ function blankHeader(storeName: string) {
   ]);
 }
 
-function blankFooter(storeName: string) {
+// Fields meant for the seller to fill start empty: the builder shows the guidance as a hint (section-schema.ts),
+// and the live store shows nothing (or the store description) until the seller writes something.
+function blankFooter() {
   return section("blank-footer", "footer", "Footer", [
     block("blank-footer-copy", "copy", {
-      summary: `${storeName} is getting ready. Add your logo, products, contact details, and policies before publishing.`,
+      summary: "",
       columns: ["Browse", "Support", "Store"],
     }),
   ]);
@@ -113,12 +115,12 @@ function blankFooter(storeName: string) {
 
 function blankAnnouncement() {
   return section("blank-announcement", "announcement-bar", "Announcement Bar", [
-    block("blank-announcement-copy", "copy", { text: "Add your shipping or payment message here." }),
+    block("blank-announcement-copy", "copy", { text: "" }),
   ]);
 }
 
 function blankShell(storeName: string, sections: TemplateSectionNode[]) {
-  return [blankAnnouncement(), blankHeader(storeName), ...sections, blankFooter(storeName)];
+  return [blankAnnouncement(), blankHeader(storeName), ...sections, blankFooter()];
 }
 
 export function createBlankEditorSnapshot(storeName = "Your Store"): StoreEditorSnapshot {
@@ -140,29 +142,26 @@ export function createBlankEditorSnapshot(storeName = "Your Store"): StoreEditor
           section("blank-hero", "hero-split", "Hero", [
             block("blank-hero-copy", "copy", {
               eyebrow: storeName,
-              title: "Start with a blank store",
-              body: "Add content here. Introduce what you sell, who it is for, and why shoppers should buy from you.",
+              title: `Welcome to ${storeName}`,
+              body: "",
               primaryCta: "Shop now",
               secondaryCta: "Learn more",
             }),
           ], {
             items: [
-              { title: "Click to replace image", subtitle: "Hero image", color: "#16302B" },
-              { title: "Add content here", subtitle: "Supporting image", color: "#0FA493" },
+              { title: "", subtitle: "", color: "#16302B" },
+              { title: "", subtitle: "", color: "#0FA493" },
             ],
           }),
           section("blank-products", "featured-products", "Product Grid", [
             block("blank-products-copy", "copy", {
-              title: "Connect products to display them here",
-              body: "Your latest products will appear here once added. You can also map specific products from the settings panel.",
+              title: "Our products",
+              body: "",
               cta: "View all products",
             }),
           ], {
-            items: [
-              { title: "Product placeholder", subtitle: "Connect a real product", priceLabel: "NGN 0", color: "#0FA493", mappedStoreProductId: null },
-              { title: "Product placeholder", subtitle: "Connect a real product", priceLabel: "NGN 0", color: "#E08C00", mappedStoreProductId: null },
-              { title: "Product placeholder", subtitle: "Connect a real product", priceLabel: "NGN 0", color: "#7C5CFF", mappedStoreProductId: null },
-            ],
+            // No fake items: the grid shows the store's latest products.
+            items: [],
             settings: { productSource: "latest", allowMapping: true },
           }),
         ]),
@@ -180,11 +179,11 @@ export function createBlankEditorSnapshot(storeName = "Your Store"): StoreEditor
           section("blank-products-intro", "text-columns", "Products Intro", [
             block("blank-products-intro-copy", "copy", {
               title: "All products",
-              body: "Your products will appear here once added.",
+              body: "",
             }),
           ]),
           section("blank-products-filters", "filters-toolbar", "Filters & Sort", [
-            block("blank-products-filters-copy", "copy", { title: "Browse products", body: "Category, price, and sort controls are ready for shoppers." }),
+            block("blank-products-filters-copy", "copy", { title: "Browse products", body: "" }),
           ], {
             items: [
               { label: "Category", value: "All categories" },
@@ -195,7 +194,7 @@ export function createBlankEditorSnapshot(storeName = "Your Store"): StoreEditor
           section("blank-products-grid", "featured-products", "Product Grid", [
             block("blank-products-grid-copy", "copy", {
               title: "Products",
-              body: "Connect products to display them here.",
+              body: "",
             }),
           ], {
             items: [],
@@ -213,7 +212,7 @@ export function createBlankEditorSnapshot(storeName = "Your Store"): StoreEditor
           section("blank-product-detail", "product-detail", "Product Detail", [
             block("blank-product-detail-copy", "copy", {
               title: "Product detail",
-              body: "When a shopper selects a product, real product information, images, price, variants, reviews, and add-to-cart actions appear here.",
+              body: "",
             }),
           ]),
         ]),
@@ -226,7 +225,7 @@ export function createBlankEditorSnapshot(storeName = "Your Store"): StoreEditor
         slug: "cart",
         sections: blankShell(storeName, [
           section("blank-cart-summary", "cart-summary", "Cart Summary", [
-            block("blank-cart-summary-copy", "copy", { title: "Your cart", body: "Cart items, totals, delivery estimates, and checkout actions appear here." }),
+            block("blank-cart-summary-copy", "copy", { title: "Your cart", body: "" }),
           ]),
         ]),
         seo: { metaTitle: `${storeName} Cart`, metaDescription: `Review your cart at ${storeName}.` },
@@ -251,15 +250,11 @@ export function createBlankEditorSnapshot(storeName = "Your Store"): StoreEditor
         sections: blankShell(storeName, [
           section("blank-about-story", "story-split", "About", [
             block("blank-about-story-copy", "copy", {
-              title: "Tell your story",
-              body: "Add content here. Share your values, sourcing, process, or customer promise.",
+              title: `About ${storeName}`,
+              body: "",
             }),
           ], {
-            items: [
-              { title: "Add content here", body: "Use this space for a brand value." },
-              { title: "Add content here", body: "Use this space for a service promise." },
-              { title: "Add content here", body: "Use this space for customer support details." },
-            ],
+            items: [],
           }),
         ]),
         seo: { metaTitle: `About ${storeName}`, metaDescription: `Learn about ${storeName}.` },
@@ -273,7 +268,7 @@ export function createBlankEditorSnapshot(storeName = "Your Store"): StoreEditor
           section("blank-contact-form", "contact-form", "Contact", [
             block("blank-contact-form-copy", "copy", {
               title: "Contact us",
-              body: "Add your phone, email, address, and response details here.",
+              body: "",
               buttonLabel: "Send message",
             }),
           ]),

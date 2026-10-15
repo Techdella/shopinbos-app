@@ -57,7 +57,7 @@ export function createSectionFromLibrary(kind: string): TemplateSectionNode {
           type: "copy",
           content: {
             title: "About this store",
-            body: "Share your story — sourcing, standards, process, values, or what makes you different.",
+            body: "",
             cta: "Learn more",
           },
         },
@@ -151,8 +151,8 @@ export function createSectionFromLibrary(kind: string): TemplateSectionNode {
           type: "copy",
           content: {
             eyebrow: "New collection",
-            title: "Build a beautiful storefront.",
-            body: "Introduce your brand with a strong headline, supporting copy, and a clear call to action.",
+            title: "New arrivals are here",
+            body: "",
             primaryCta: "Shop now",
             secondaryCta: "Learn more",
           },
@@ -189,8 +189,8 @@ export function createSectionFromLibrary(kind: string): TemplateSectionNode {
           type: "copy",
           content: {
             eyebrow: "Our story",
-            title: "Tell shoppers what makes this store different.",
-            body: "Share your sourcing, process, values, or customer promise in clear language.",
+            title: "What makes us different",
+            body: "",
             cta: "Learn more",
           },
         },
@@ -224,8 +224,8 @@ export function createSectionFromLibrary(kind: string): TemplateSectionNode {
           id: `${id}-copy`,
           type: "copy",
           content: {
-            title: "Feature a fresh promotion.",
-            body: "Use this section for launch drops, bundles, discounts, or a time-sensitive callout.",
+            title: "This week's offer",
+            body: "",
             cta: "Shop the offer",
           },
         },
@@ -259,15 +259,15 @@ export function createSectionFromLibrary(kind: string): TemplateSectionNode {
           id: `${id}-copy`,
           type: "copy",
           content: {
-            title: "Add more context here.",
-            body: "Use this section for sourcing notes, policy details, brand story, or category guidance.",
+            title: "Good to know",
+            body: "",
           },
         },
       ],
       items: [
-        { title: "Column one", body: "Use this for a supporting point." },
-        { title: "Column two", body: "Use this for a supporting point." },
-        { title: "Column three", body: "Use this for a supporting point." },
+        { title: "Column one", body: "" },
+        { title: "Column two", body: "" },
+        { title: "Column three", body: "" },
       ],
     };
   }
@@ -283,8 +283,8 @@ export function createSectionFromLibrary(kind: string): TemplateSectionNode {
           id: `${id}-copy`,
           type: "copy",
           content: {
-            title: "Invite visitors back.",
-            body: "Use this for email updates, launch alerts, or a WhatsApp join prompt.",
+            title: "Stay in the loop",
+            body: "",
             buttonLabel: "Stay in the loop",
           },
         },
@@ -320,7 +320,7 @@ export function createSectionFromLibrary(kind: string): TemplateSectionNode {
           type: "copy",
           content: {
             title: "Featured products",
-            body: "Showcase your best products and make it easy for shoppers to buy.",
+            body: "",
             cta: "View all",
           },
         },
@@ -345,7 +345,7 @@ export function createSectionFromLibrary(kind: string): TemplateSectionNode {
           type: "copy",
           content: {
             title: "Filter products",
-            body: "Help shoppers browse by category, price, availability, and newest arrivals.",
+            body: "",
           },
         },
       ],
@@ -363,7 +363,7 @@ export function createSectionFromLibrary(kind: string): TemplateSectionNode {
       kind,
       name: "Category List",
       visible: true,
-      blocks: [{ id: `${id}-copy`, type: "copy", content: { title: "Shop by category", body: "Guide customers into the right collection." } }],
+      blocks: [{ id: `${id}-copy`, type: "copy", content: { title: "Shop by category", body: "" } }],
       items: [
         { title: "New arrivals", subtitle: "Freshly added", color: "#0FA493" },
         { title: "Best sellers", subtitle: "Customer favorites", color: "#E08C00" },
@@ -384,7 +384,7 @@ export function createSectionFromLibrary(kind: string): TemplateSectionNode {
         content: {
           eyebrow: "Product detail",
           title: "Featured product",
-          body: "A conversion-ready product detail page with gallery, price, variations, quantity, trust notes, and add-to-cart actions.",
+          body: "",
           priceLabel: "NGN 0",
         },
       }],
@@ -415,7 +415,7 @@ export function createSectionFromLibrary(kind: string): TemplateSectionNode {
       kind,
       name: "Checkout",
       visible: true,
-      blocks: [{ id: `${id}-copy`, type: "copy", content: { title: "Secure checkout", body: "Customer details, delivery address, payment summary, and order confirmation are ready." } }],
+      blocks: [{ id: `${id}-copy`, type: "copy", content: { title: "Secure checkout", body: "" } }],
       items: [
         { label: "Contact", value: "Email and phone" },
         { label: "Delivery", value: "Address and shipping method" },
@@ -430,7 +430,7 @@ export function createSectionFromLibrary(kind: string): TemplateSectionNode {
       kind,
       name: "Wishlist",
       visible: true,
-      blocks: [{ id: `${id}-copy`, type: "copy", content: { title: "Saved for later", body: "Let shoppers return to products they love." } }],
+      blocks: [{ id: `${id}-copy`, type: "copy", content: { title: "Saved for later", body: "" } }],
       items: [
         { title: "Saved product", subtitle: "Back in stock alerts", priceLabel: "NGN 0", color: "#0FA493" },
         { title: "Gift idea", subtitle: "Shareable wishlist", priceLabel: "NGN 0", color: "#7C5CFF" },
@@ -444,11 +444,11 @@ export function createSectionFromLibrary(kind: string): TemplateSectionNode {
       kind,
       name: "Blog Posts",
       visible: true,
-      blocks: [{ id: `${id}-copy`, type: "copy", content: { title: "Latest stories", body: "Publish guides, announcements, and product education that help shoppers buy with confidence." } }],
+      blocks: [{ id: `${id}-copy`, type: "copy", content: { title: "Latest stories", body: "" } }],
       items: [
         { title: "How to choose the right product", excerpt: "A practical buying guide for new customers.", category: "Guide", readTime: "4 min read", color: "#0FA493" },
         { title: "Behind the brand", excerpt: "Share your process, standards, and what makes the store different.", category: "Story", readTime: "3 min read", color: "#7C5CFF" },
-        { title: "Care tips and product ideas", excerpt: "Useful post ideas that support SEO and repeat visits.", category: "Tips", readTime: "5 min read", color: "#E08C00" },
+        { title: "Care tips and product ideas", excerpt: "Ideas to get more from what you buy.", category: "Tips", readTime: "5 min read", color: "#E08C00" },
       ],
     };
   }
@@ -488,8 +488,8 @@ export function createSectionFromLibrary(kind: string): TemplateSectionNode {
         id: `${id}-copy`,
         type: "copy",
         content: {
-          title: "Add a new section.",
-          body: "Rex or the visual editor can reshape this into a richer content block.",
+          title: "",
+          body: "",
         },
       },
     ],

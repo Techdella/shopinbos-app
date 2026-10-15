@@ -4,6 +4,7 @@ import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { clearStaleLogoText } from "@/lib/store-templates/chrome";
 import { RESERVED_SUBDOMAINS } from "@/lib/storefront/host-routing";
+import { renameInContent, renameInText } from "@shared/store-rename";
 import { nextPreviousSlugs, normalizeStoreSlug, slugCooldownDaysLeft, storeSlugShapeProblem } from "@shared/store-address";
 
 // A store's web address (slug). Renaming the store never touches it; changing it is a separate, confirmed step,
@@ -55,31 +56,43 @@ export async function currentSlugForOldSlug(slug: string) {
 }
 
 /**
- * The builder copies the store name into header "Shop name" fields in some flows. After a rename, any that
- * still say the old name are emptied so they follow the store name again. Returns null when nothing changed.
+ * After a rename, the store's editor snapshots follow the new name: header "Shop name" fields that still say the
+ * old name are emptied (empty = follows the store name), and the old name is replaced by the new one in page text
+ * (SEO titles and descriptions, footer line, hero eyebrows, about copy; rules in shared/store-rename.ts).
+ * Returns the new brand settings, or null when nothing changed.
  */
-export function clearStaleShopNames(brandSettings: unknown, oldName: string) {
+export function clearStaleShopNames(brandSettings: unknown, oldName: string, newName = "") {
   if (!oldName.trim() || !brandSettings || typeof brandSettings !== "object" || Array.isArray(brandSettings)) return null;
   const settings = brandSettings as Record<string, unknown>;
   if (!settings.editor || typeof settings.editor !== "object") return null;
-  const editor = clearStaleLogoText(settings.editor, oldName);
+  const editor = renameStoreInContent(settings.editor, oldName, newName);
   return editor ? { ...settings, editor } : null;
+}
+
+/** clearStaleLogoText then renameInContent on any snapshot or page content; null when nothing changed. */
+export function renameStoreInContent<T>(content: T, oldName: string, newName: string): T | null {
+  const cleared = clearStaleLogoText(content, oldName);
+  const renamed = newName.trim() ? renameInContent(cleared ?? content, oldName, newName) : null;
+  return renamed ?? cleared;
 }
 
 /**
  * The same clean-up for the store's StorePage rows (their content, draft and published copies hold the page's
- * sections, header included), so pages read from those rows follow the new name too. Call after a rename.
+ * sections, header and SEO included, and the row's title), so pages read from those rows follow the new name too.
+ * Call after a rename.
  */
-export async function clearStaleShopNamesInStorePages(storeId: string, oldName: string) {
+export async function clearStaleShopNamesInStorePages(storeId: string, oldName: string, newName = "") {
   if (!oldName.trim()) return 0;
-  const pages = await db.storePage.findMany({ where: { storeId }, select: { id: true, content: true, draftContent: true, publishedContent: true } });
+  const pages = await db.storePage.findMany({ where: { storeId }, select: { id: true, title: true, content: true, draftContent: true, publishedContent: true } });
   let updated = 0;
   for (const page of pages) {
     const data: Record<string, Prisma.InputJsonValue> = {};
     for (const key of ["content", "draftContent", "publishedContent"] as const) {
-      const cleared = page[key] ? clearStaleLogoText(page[key], oldName) : null;
+      const cleared = page[key] ? renameStoreInContent(page[key], oldName, newName) : null;
       if (cleared) data[key] = cleared as Prisma.InputJsonValue;
     }
+    const title = newName.trim() ? renameInText(page.title, oldName, newName) : page.title;
+    if (title !== page.title) data.title = title;
     if (!Object.keys(data).length) continue;
     await db.storePage.update({ where: { id: page.id }, data });
     updated += 1;
