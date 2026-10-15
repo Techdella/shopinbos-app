@@ -223,7 +223,7 @@ test("checkout: stock per version is held, taken and given back", () => {
 
   const stock = read("src/lib/commerce/stock.server.ts");
   assert.match(stock, /FOR UPDATE/, "the product row is locked while its versions change");
-  assert.match(stock, /changeVariantStock\(tx, holds, -1\)/);
+  assert.match(stock, /changeVariantStock\(tx, holds, -1, oversell\)/);
   assert.match(stock, /changeVariantStock\(tx, holds, 1\)/);
 });
 
@@ -291,7 +291,7 @@ test("product page: picking options greys out what can't be bought and moves to 
   assert.match(read("src/components/storefront/boutique/BoutiqueProductView.tsx"), /<BoutiquePdp /);
   assert.match(read("src/app/s/[slug]/product/[productId]/ProductDetailClient.tsx"), /<ClassicPdp/, "classic stores use the same product page");
   assert.match(read("src/components/storefront/shopper/useVariantPicker.ts"), /variantCompareAt/);
-  assert.match(read("src/lib/storefront/product-page.server.ts"), /relatedProducts\(publicProduct, catalog\)/);
+  assert.match(read("src/lib/storefront/product-page.server.ts"), /relatedProducts\(publicProduct, shopperCatalog\)/);
 });
 
 test("related products: the seller's picks first, else the same type, category or tags", () => {

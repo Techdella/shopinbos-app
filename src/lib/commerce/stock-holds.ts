@@ -12,14 +12,28 @@ export interface VariantHold {
   name: string;
 }
 
+/**
+ * How a store product's own count is treated (the seller's "Track stock" switch, shared/product-stock.ts):
+ *   strict   - tracked: refuse more than currentStock - reservedStock, take it at checkout (the default, and what
+ *              every hold saved before the switch existed means)
+ *   oversell - tracked, "keep selling when out of stock": take it, the count may go below 0
+ *   off      - not tracked: nothing is taken or checked, only the sale is counted (soldStock)
+ */
+export type StoreStockMode = "strict" | "oversell" | "off";
+
 export type StockHold =
-  | { source: "store"; productId: string; quantity: number; name: string; variants?: VariantHold[] }
+  | { source: "store"; productId: string; quantity: number; name: string; variants?: VariantHold[]; mode?: Exclude<StoreStockMode, "strict"> }
   | { source: "supplier"; productId: string; supplierProductId: string; quantity: number; name: string };
 
 export interface StockProduct {
   id: string;
   name: string;
   currentStock: number | null;
+  /** Set aside by the seller; shoppers can buy currentStock - reservedStock. */
+  reservedStock?: number | null;
+  /** false: not tracked. Left out (callers that don't read it): tracked, as before the switch existed. */
+  trackStock?: boolean | null;
+  continueSellingWhenOut?: boolean | null;
   fulfillmentType?: string | null;
   supplierProductId?: string | null;
   supplierProduct?: { id: string; stockQuantity: number; status: string } | null;
@@ -30,9 +44,20 @@ export function isDropshipProduct(product: Pick<StockProduct, "fulfillmentType" 
   return product.fulfillmentType === "dropship" && Boolean(product.supplierProductId) && Boolean(product.supplierProduct);
 }
 
+export function storeStockMode(product: Pick<StockProduct, "trackStock" | "continueSellingWhenOut">): StoreStockMode {
+  if (product.trackStock === false) return "off";
+  return product.continueSellingWhenOut ? "oversell" : "strict";
+}
+
+/** Units shoppers can buy of a store product's own stock (in stock minus set aside); can be below 0. */
+export function storeAvailable(product: Pick<StockProduct, "currentStock" | "reservedStock">) {
+  return Math.trunc(product.currentStock ?? 0) - Math.max(0, Math.trunc(product.reservedStock ?? 0));
+}
+
 /**
  * One hold per store product, from the quantities in the bag. `variantQuantities` (product id → versions) names the
- * versions whose stock is counted per version; the store's own stock then also takes from those versions.
+ * versions whose stock is counted per version; the store's own stock then also takes from those versions. Untracked
+ * products carry no versions (their counts don't apply).
  */
 export function buildStockHolds(products: StockProduct[], quantities: Map<string, number>, variantQuantities?: Map<string, VariantHold[]>): StockHold[] {
   return products.flatMap((product): StockHold[] => {
@@ -41,8 +66,9 @@ export function buildStockHolds(products: StockProduct[], quantities: Map<string
     if (isDropshipProduct(product)) {
       return [{ source: "supplier", productId: product.id, supplierProductId: product.supplierProduct!.id, quantity, name: product.name }];
     }
-    const variants = variantQuantities?.get(product.id)?.filter((hold) => hold.quantity > 0);
-    return [{ source: "store", productId: product.id, quantity, name: product.name, ...(variants?.length ? { variants } : {}) }];
+    const mode = storeStockMode(product);
+    const variants = mode === "off" ? undefined : variantQuantities?.get(product.id)?.filter((hold) => hold.quantity > 0);
+    return [{ source: "store", productId: product.id, quantity, name: product.name, ...(variants?.length ? { variants } : {}), ...(mode !== "strict" ? { mode } : {}) }];
   });
 }
 
@@ -62,36 +88,72 @@ export function variantHoldTotals(holds: StockHold[]) {
   return out;
 }
 
-/** Units each stock pool must give: store products by id, supplier products by id (two lines can share one). */
+/**
+ * Units each stock pool must give: store products by id (with how their count is treated), supplier products by id
+ * (two lines can share one).
+ */
 export function holdTotals(holds: StockHold[]) {
-  const store = new Map<string, { quantity: number; names: string[] }>();
+  const store = new Map<string, { quantity: number; names: string[]; mode: StoreStockMode }>();
   const supplier = new Map<string, { quantity: number; names: string[] }>();
   for (const hold of holds) {
-    const map = hold.source === "supplier" ? supplier : store;
-    const key = hold.source === "supplier" ? hold.supplierProductId : hold.productId;
-    const entry = map.get(key) ?? { quantity: 0, names: [] };
+    if (hold.source === "supplier") {
+      const entry = supplier.get(hold.supplierProductId) ?? { quantity: 0, names: [] };
+      entry.quantity += hold.quantity;
+      if (!entry.names.includes(hold.name)) entry.names.push(hold.name);
+      supplier.set(hold.supplierProductId, entry);
+      continue;
+    }
+    const entry = store.get(hold.productId) ?? { quantity: 0, names: [], mode: hold.mode ?? "strict" };
     entry.quantity += hold.quantity;
     if (!entry.names.includes(hold.name)) entry.names.push(hold.name);
-    map.set(key, entry);
+    store.set(hold.productId, entry);
   }
   return { store, supplier };
 }
 
-/** Names of the products there isn't enough stock for (an unpublished supplier product has none to sell). */
-export function stockShortfalls(products: StockProduct[], quantities: Map<string, number>): string[] {
+export interface StockShortfall {
+  name: string;
+  /** Units that can still be bought (0 when sold out). */
+  available: number;
+}
+
+/**
+ * The products there isn't enough stock for, with how many are left: tracked store products (in stock minus set
+ * aside) and dropship products (the supplier's stock; an unpublished supplier product has none). Untracked products
+ * and those that keep selling at 0 are never short.
+ */
+export function stockShortfallDetails(products: StockProduct[], quantities: Map<string, number>): StockShortfall[] {
   const holds = buildStockHolds(products, quantities);
   const totals = holdTotals(holds);
   const byId = new Map(products.map((product) => [product.id, product]));
-  const short: string[] = [];
-  for (const [productId, { quantity, names }] of totals.store) {
-    if ((byId.get(productId)?.currentStock ?? 0) < quantity) short.push(...names);
+  const short: StockShortfall[] = [];
+  for (const [productId, { quantity, names, mode }] of totals.store) {
+    if (mode !== "strict") continue;
+    const product = byId.get(productId);
+    const available = product ? storeAvailable(product) : 0;
+    if (available < quantity) short.push(...names.map((name) => ({ name, available: Math.max(0, available) })));
   }
   for (const [supplierProductId, { quantity, names }] of totals.supplier) {
     const supplierProduct = products.find((product) => product.supplierProduct?.id === supplierProductId)?.supplierProduct;
     const available = supplierProduct && supplierProduct.status === "published" ? supplierProduct.stockQuantity : 0;
-    if (available < quantity) short.push(...names);
+    if (available < quantity) short.push(...names.map((name) => ({ name, available: Math.max(0, available) })));
   }
-  return [...new Set(short)];
+  const seen = new Set<string>();
+  return short.filter((entry) => !seen.has(entry.name) && Boolean(seen.add(entry.name)));
+}
+
+/** Names of the products there isn't enough stock for. */
+export function stockShortfalls(products: StockProduct[], quantities: Map<string, number>): string[] {
+  return stockShortfallDetails(products, quantities).map((entry) => entry.name);
+}
+
+/** What checkout tells the shopper when there isn't enough: how many are left of each, or that it's sold out. */
+export function stockShortfallMessage(short: StockShortfall[]): string {
+  if (!short.length) return "";
+  const parts = short.map((entry) => (entry.available > 0 ? `only ${entry.available} of ${entry.name} ${entry.available === 1 ? "is" : "are"} left` : `${entry.name} is sold out`));
+  const text = parts.join("; ");
+  const soldOutOnly = short.every((entry) => entry.available <= 0);
+  return `Sorry, ${text}. ${soldOutOnly ? "Remove it from your bag" : "Lower the quantity in your bag"} and try again.`;
 }
 
 /** RetailOrder.stockHold as saved, ignoring anything malformed. */
@@ -117,7 +179,8 @@ export function parseStockHold(value: unknown): StockHold[] {
             return [{ id: entry.id, quantity: count, name: typeof entry.name === "string" ? entry.name : "Option" }];
           })
         : [];
-      return [{ source: "store", productId, quantity, name, ...(variants.length ? { variants } : {}) }];
+      const mode = hold.mode === "off" || hold.mode === "oversell" ? hold.mode : undefined;
+      return [{ source: "store", productId, quantity, name, ...(variants.length ? { variants } : {}), ...(mode ? { mode } : {}) }];
     }
     return [];
   });

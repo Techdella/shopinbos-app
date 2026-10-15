@@ -38,6 +38,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "stock.soldOut": "E don finish",
   "stock.left": "{count} remain",
   "stock.inStock": "{count} dey stock",
+  "stock.notTracked": "We no dey count am",
   "list.featured": "Featured",
   "list.hiddenFromStore": "E hide from store",
   "list.sold": "{count} sold",

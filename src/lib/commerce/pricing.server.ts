@@ -5,7 +5,7 @@ import { bestAutomaticDiscount, discountAmount, describeDiscount, parseDiscountC
 import { contactsInSegment, segmentRules } from "@/lib/marketing/contacts";
 import { readGameConfig } from "@/lib/gamification/logic";
 import { quotePoints, type PointsRedemption } from "@/lib/gamification/loyalty.server";
-import { buildStockHolds, isDropshipProduct, stockShortfalls, type StockHold, type VariantHold } from "@/lib/commerce/stock-holds";
+import { buildStockHolds, isDropshipProduct, stockShortfallDetails, stockShortfallMessage, storeStockMode, type StockHold, type VariantHold } from "@/lib/commerce/stock-holds";
 import { normalizeVariants, resolveLineVariant } from "@shared/product-variants";
 import { maybeExpireUnpaidOrders } from "@/lib/commerce/order-expiry.server";
 import {
@@ -112,6 +112,8 @@ export async function priceOrder(input: PricingInput): Promise<PricedOrder | { o
     where: { storeId: input.store.id, id: { in: [...quantities.keys()] }, status: "published" },
     select: {
       id: true, name: true, images: true, retailPrice: true, currentStock: true, variants: true,
+      // The seller's "Track stock" switch: untracked products are never short and give no stock.
+      trackStock: true, continueSellingWhenOut: true, reservedStock: true,
       // Dropship products sell from the supplier's stock (the seller holds none).
       fulfillmentType: true, supplierProductId: true, supplierProduct: { select: { id: true, stockQuantity: true, status: true } },
     },
@@ -134,8 +136,9 @@ export async function priceOrder(input: PricingInput): Promise<PricedOrder | { o
       };
     }
     const variant = choice.variant;
-    // Dropship products sell from the supplier's stock, so only the seller's own versions are counted here.
-    if (variant && variant.stock !== null && !isDropshipProduct(product)) {
+    // Dropship products sell from the supplier's stock, so only the seller's own versions are counted here, and
+    // only when the seller tracks this product's stock.
+    if (variant && variant.stock !== null && !isDropshipProduct(product) && storeStockMode(product) !== "off") {
       const list = variantHolds.get(product.id) ?? [];
       const held = list.find((entry) => entry.id === variant.id);
       if (held) held.quantity += line.quantity;
@@ -159,17 +162,19 @@ export async function priceOrder(input: PricingInput): Promise<PricedOrder | { o
     });
   }
 
-  const short = stockShortfalls(products, quantities);
-  // A size or colour counted on its own needs enough of that version too.
+  // Tracked products can't sell more than is left (in stock minus set aside); dropship ones more than the supplier has.
+  const short = stockShortfallDetails(products, quantities);
+  // A size or colour counted on its own needs enough of that version too (unless the product keeps selling at 0).
   for (const [productId, holds] of variantHolds) {
     const product = byId.get(productId)!;
+    if (storeStockMode(product) !== "strict") continue;
     const variants = resolveStock(product.variants);
     for (const hold of holds) {
       const left = variants.get(hold.id);
-      if (left !== undefined && left !== null && left < hold.quantity) short.push(hold.name);
+      if (left !== undefined && left !== null && left < hold.quantity && !short.some((entry) => entry.name === hold.name)) short.push({ name: hold.name, available: Math.max(0, left) });
     }
   }
-  if (short.length) return { ok: false, message: `Not enough stock for: ${[...new Set(short)].join(", ")}. Lower the quantity and try again.` };
+  if (short.length) return { ok: false, message: stockShortfallMessage(short) };
   const stockHolds = buildStockHolds(products, quantities, variantHolds);
 
   const items = [...merged.values()];

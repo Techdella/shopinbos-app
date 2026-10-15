@@ -19,6 +19,7 @@ import {
   pushRecentlyViewed,
   recentlyViewedKey,
   savingsPercent,
+  pdpAvailability,
   stockStatus,
   trustBadges,
   type PdpBuyBlock,
@@ -75,16 +76,13 @@ export function BoutiquePdp(props: Props) {
   const [showSticky, setShowSticky] = useState(false);
   const buttonsRef = useRef<HTMLDivElement>(null);
 
-  const { selected, soldOut, price, compareAt } = picker;
+  const { selected, price, compareAt } = picker;
   const variantStock = picker.stock;
-  // A version without its own count uses the product's stock (or the supplier's for dropship).
-  const status = stockStatus({
-    soldOut,
-    variantStock,
-    supplierStock: product.supplierProduct?.stockQuantity ?? null,
-    currentStock: product.currentStock ?? null,
-    lowStockThreshold: product.lowStockThreshold ?? null,
-  });
+  // A version without its own count uses the product's tracked stock (or the supplier's for dropship).
+  const stockInput = { soldOut: picker.soldOut, variantStock, supplierStock: product.supplierProduct?.stockQuantity ?? null, stock: product.stock ?? null };
+  const availability = pdpAvailability(stockInput);
+  const status = stockStatus(stockInput);
+  const soldOut = !availability.canBuy;
   const savings = savingsPercent(price, compareAt);
   const variantImages = [picker.image, ...(selected?.images ?? [])].filter((src): src is string => Boolean(src));
   const images = [...new Set([...variantImages, ...product.images])];
@@ -92,7 +90,8 @@ export function BoutiquePdp(props: Props) {
   const delivery = deliveryLines(shopper, props.currency);
   const badges = trustBadges(settings.trust, shopper, product, props.currency);
   const wished = props.wishlistIds.includes(product.id);
-  const maxQuantity = variantStock !== null ? Math.max(1, variantStock) : 99;
+  // The stepper stops at what is left (tracked stock or a version's own count).
+  const maxQuantity = availability.maxQuantity !== null ? Math.max(1, availability.maxQuantity) : 99;
   const related = props.related;
   const reviewsId = `${uid}-reviews`;
   const detailsId = `${uid}-details`;
@@ -131,7 +130,7 @@ export function BoutiquePdp(props: Props) {
       image: variantImages[0] ?? product.images[0],
       ...picker.line,
       quantity,
-      maxQuantity: variantStock ?? undefined,
+      maxQuantity: availability.maxQuantity ?? undefined,
     };
   }
 

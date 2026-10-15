@@ -21,7 +21,7 @@ import {
   whatsappLink,
   type StorefrontShopperInfo,
 } from "@/lib/storefront/shopper-info";
-import { bestSellers, productCategories, relatedProducts, searchProducts, type ShopperProduct } from "../shopper/catalog";
+import { bestSellers, productCategories, relatedProducts, searchProducts, soldOutLabel, type ShopperProduct } from "../shopper/catalog";
 import { ShopperBottomNav, type ShopperSheet } from "../shopper/ShopperBottomNav";
 import { AnnouncementBar, BoutiqueFooter, BoutiqueHeader, SectionTitle, type ChromeHref, type ChromeLink } from "./BoutiqueChrome";
 import { BoutiqueProductView, type BoutiqueProductDetail } from "./BoutiqueProductView";
@@ -1036,8 +1036,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             <button type="button" className="bq-shop-row" onClick={live ? undefined : () => openProduct(product.id)}>{inner}</button>
           )}
           {card.onQuickAdd ? (
-            <button type="button" className="bq-btn justify-self-start" style={{ ...look.primaryButton, minHeight: 40, fontSize: 13.5 }} onClick={() => card.onQuickAdd?.(product.id)} aria-label={`Add ${product.name} to bag`}>
-              <Icon name="bag" size={15} aria-hidden /> Add to bag
+            <button type="button" className="bq-btn justify-self-start" style={{ ...look.primaryButton, minHeight: 40, fontSize: 13.5 }} onClick={() => card.onQuickAdd?.(product.id)} disabled={Boolean(soldOutLabel(product))} aria-label={soldOutLabel(product) ? `${product.name} is sold out` : `Add ${product.name} to bag`}>
+              {soldOutLabel(product) ?? <><Icon name="bag" size={15} aria-hidden /> Add to bag</>}
             </button>
           ) : null}
         </div>

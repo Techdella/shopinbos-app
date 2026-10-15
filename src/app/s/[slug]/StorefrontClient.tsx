@@ -15,7 +15,8 @@ import { freeDeliveryEverywhereOver, readShopperInfo } from "@/lib/storefront/sh
 import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
 import { getPublicStorefrontPath } from "@/lib/domains/storefront";
-import { needsOptions } from "@/components/storefront/shopper/catalog";
+import { needsOptions, unitsLeft } from "@/components/storefront/shopper/catalog";
+import { listingSoldOut, type ShopperStock } from "@shared/product-stock";
 import { readCartSettings } from "@shared/cart-checkout";
 import { normalizeStorefrontPageKey, storefrontPageHref, storefrontPageKeyFromLocation } from "@shared/storefront-pages";
 import {
@@ -35,6 +36,8 @@ interface StoreProduct {
   compareAtPrice?: number | null;
   variants?: unknown;
   supplierProduct?: { stockQuantity?: number | null } | null;
+  /** Tracked stock (shared/product-stock.ts); null when not tracked. */
+  stock?: ShopperStock | null;
   currency: string;
   category?: { id: string; name: string; slug: string } | null;
   avgRating?: number;
@@ -643,11 +646,15 @@ export function StorefrontClient({
       window.location.assign(getPublicStorefrontPath(storeBasePath, `/product/${product.id}`));
       return;
     }
+    // Tracked stock at 0 can't go in the bag; otherwise the bag never holds more than is left.
+    if (listingSoldOut(product)) return;
+    const left = unitsLeft(product);
     cart.add({
       productId: product.id,
       name: product.name,
       price: product.retailPrice,
       image: product.images[0],
+      ...(left !== null ? { maxQuantity: left } : {}),
     });
     // The seller's "after adding to bag" setting (Cart settings).
     if (cartSettings.afterAdd === "drawer") setCartOpen(true);

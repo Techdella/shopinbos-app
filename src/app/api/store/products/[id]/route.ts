@@ -6,6 +6,7 @@ import { StoreProductUpdateSchema } from "@/lib/schemas";
 import type { AuthUser } from "@/lib/auth/types";
 import { markCatalogDirty } from "@/lib/whatsapp-catalog/dirty";
 import { productFieldsData } from "@/lib/products/save-fields.server";
+import { stockTrackingFor } from "@shared/product-stock";
 
 async function getOwnedProduct(productId: string, userId: string) {
   const store = await db.store.findUnique({ where: { userId } });
@@ -60,11 +61,16 @@ export const PATCH = withSeller(async (
       ? parseFloat((((effectivePrice - effectiveCost) / effectivePrice) * 100).toFixed(2))
       : undefined;
 
+  // "Track stock": the seller's choice, else switched on when a count above 0 arrives (the phone, older clients).
+  const versionTotal = typeof fields.data.currentStock === "number" ? fields.data.currentStock : undefined;
+  const trackStock = stockTrackingFor({ trackStock: rest.trackStock, currentStock: versionTotal ?? rest.currentStock }, { trackStock: product.trackStock });
+
   const updated = await db.storeProduct.update({
     where: { id: params.id },
     data: {
       ...rest,
       ...fields.data,
+      ...(trackStock !== undefined ? { trackStock } : {}),
       ...(costPrice !== undefined ? { costPrice } : {}),
       ...(retailPrice !== undefined ? { retailPrice } : {}),
       ...(margin !== undefined ? { margin } : {}),

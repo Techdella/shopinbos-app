@@ -38,6 +38,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "stock.soldOut": "Ya ƙare",
   "stock.left": "{count} sun rage",
   "stock.inStock": "{count} akwai",
+  "stock.notTracked": "Ba a ƙidaya ba",
   "list.featured": "Na musamman",
   "list.hiddenFromStore": "An ɓoye daga store",
   "list.sold": "An sayar {count}",
