@@ -26,6 +26,7 @@ import { readClassicPdpSettings } from "@/components/storefront/boutique/pdp/cla
 import { samplePdpProduct } from "@/components/storefront/boutique/pdp/sample-product";
 import { relatedProducts } from "@/components/storefront/shopper/catalog";
 import { listingSoldOut, type ShopperStock } from "@shared/product-stock";
+import { StoreLogo } from "@/components/storefront/StoreLogo";
 
 export interface SurfaceProduct {
   id: string;
@@ -3372,9 +3373,12 @@ function ClassicTemplateSurface({
             className="flex min-w-0 items-center gap-3 text-left"
             title={isEditor ? "Click to replace logo" : undefined}
           >
-            {store.logoUrl
-              ? <img src={store.logoUrl} alt="" className="h-10 w-10 rounded-[12px] object-cover" onError={(event) => { event.currentTarget.style.display = "none"; }} />
-              : <div className="flex h-10 w-10 items-center justify-center rounded-[6px] text-[13px] font-bold" style={{ background: theme.accent, color: theme.ctaText }}>{logoMark}</div>}
+            <StoreLogo
+              store={store}
+              background={theme.paperBg}
+              className="h-10 w-10 rounded-[12px]"
+              fallback={<div className="flex h-10 w-10 items-center justify-center rounded-[6px] text-[13px] font-bold" style={{ background: theme.accent, color: theme.ctaText }}>{logoMark}</div>}
+            />
             <div>
               <div className="text-[21px] font-medium tracking-[0.08em]" style={{ color: theme.ink, fontFamily: theme.headingFont }}>
                 {String(headerCopy.logoText ?? "").trim() || store.name}
@@ -3485,7 +3489,11 @@ function ClassicTemplateSurface({
       {footer ? sectionWrap(footer.id, <footer style={{ background: theme.heroBg, borderTop: `1px solid ${rgba(theme.border, 0.15)}` }}>
         {footer.settings?.layout === "minimal-footer" ? (
           <div className="mx-auto flex max-w-[1240px] flex-wrap items-center justify-between gap-5 px-5 py-8 sm:px-8">
-            <div className="text-[18px] font-semibold" style={{ fontFamily: theme.headingFont, color: theme.heroText }}>{store.name}</div>
+            {footer.settings?.showLogo !== false ? (
+              <StoreLogo store={store} background={theme.heroBg} alt={store.name} className="block h-11 w-auto max-w-[180px] rounded-[8px]" fallback={<div className="text-[18px] font-semibold" style={{ fontFamily: theme.headingFont, color: theme.heroText }}>{store.name}</div>} />
+            ) : (
+              <div className="text-[18px] font-semibold" style={{ fontFamily: theme.headingFont, color: theme.heroText }}>{store.name}</div>
+            )}
             <div className="flex flex-wrap gap-4 text-[12px]" style={{ color: rgba(theme.heroText, 0.72) }}>
               {navLinks.slice(0, 5).map((pageType) => <button key={`footer-min-${pageType}`} type="button" onClick={() => navigate(pageType)}>{pageLabel(pageType)}</button>)}
             </div>
@@ -3493,7 +3501,11 @@ function ClassicTemplateSurface({
         ) : (
           <div className={`mx-auto grid max-w-[1240px] gap-8 px-5 py-12 sm:px-8 ${footer.settings?.layout === "mega-footer" ? "lg:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr]" : "lg:grid-cols-[1.3fr_0.8fr_0.8fr]"}`}>
             <div>
-              <div className="text-[20px] font-semibold tracking-[-0.03em]" style={{ fontFamily: theme.headingFont, color: theme.heroText }}>{store.name}</div>
+              {footer.settings?.showLogo !== false ? (
+                <StoreLogo store={store} background={theme.heroBg} alt={store.name} className="block h-14 w-auto max-w-[220px] rounded-[8px]" fallback={<div className="text-[20px] font-semibold tracking-[-0.03em]" style={{ fontFamily: theme.headingFont, color: theme.heroText }}>{store.name}</div>} />
+              ) : (
+                <div className="text-[20px] font-semibold tracking-[-0.03em]" style={{ fontFamily: theme.headingFont, color: theme.heroText }}>{store.name}</div>
+              )}
               <p className="mt-3 max-w-[400px] text-[13px] leading-7" style={{ color: rgba(theme.heroText, 0.7) }}>
                 {cleanCustomerCopy(footerCopy.summary, "Discover curated products, delivered with care.")}
               </p>

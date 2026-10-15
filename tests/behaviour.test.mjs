@@ -3089,3 +3089,133 @@ test("Style book colours become readable store colours; brand marks fall back to
   assert.equal(a.readBrandAssets({ logoUrl: logo, brandSettings: { logoIcon: icon } }).shown.favicon, icon, "favicon falls back to the icon first");
   assert.equal(a.readBrandAssets({ logoUrl: logo, brandSettings: { logoIcon: "javascript:x" } }).icon, null);
 });
+
+test("builder status: publishing's own SEO defaults aren't unpublished changes; a closed store shows offline", async () => {
+  const logic = await import("../src/components/builder/editor/editor-logic.ts");
+  const { fillMissingPageSeo } = await import("../src/lib/store-templates/seo-defaults.ts");
+  const draft = { templateId: "breeze", templateName: "Breeze", layoutFamily: "minimal-showcase", themeTokens: {}, updatedAt: "1", pages: [
+    { id: "h", pageType: "home", title: "Home", slug: "", sections: [] },
+    { id: "a", pageType: "about", title: "About", slug: "about", sections: [], seo: { metaTitle: "Our story" } },
+  ] };
+  // What the publish route saves: the same draft with blank search titles and descriptions filled in.
+  const published = { ...fillMissingPageSeo(draft, "Rexi"), updatedAt: "2" };
+  assert.equal(logic.publishState(draft, published), "changes", "compared as is, the filled-in SEO looked like an edit (the old bug)");
+  assert.equal(logic.publishState(draft, published, { storeName: "Rexi" }), "live", "right after Publish the pill says Live");
+  assert.equal(logic.publishState(published, published, { storeName: "Rexi" }), "live");
+  const edited = { ...draft, pages: [{ ...draft.pages[0], title: "Welcome" }, draft.pages[1]] };
+  assert.equal(logic.publishState(edited, published, { storeName: "Rexi" }), "changes", "a real edit still shows");
+  assert.equal(logic.publishState(draft, published, { storeName: "Rexi", storeLive: false }), "offline", "published but the store is closed");
+  assert.equal(logic.publishState(edited, published, { storeName: "Rexi", storeLive: false }), "changes");
+  assert.equal(logic.publishState(draft, null, { storeName: "Rexi", storeLive: true }), "draft");
+
+  const history = logic.pushHistory(logic.createHistory(draft), edited);
+  const swapped = logic.replacePresent(history, published);
+  assert.equal(swapped.present, published);
+  assert.deepEqual(swapped.past, history.past, "no undo step is added");
+});
+
+test("logo variants: luminance, dark backgrounds and which logo shows", async () => {
+  const lv = await import("../shared/logo-variants.ts");
+  assert.deepEqual(lv.parseColour("#0E2A38"), { r: 14, g: 42, b: 56, a: 1 });
+  assert.deepEqual(lv.parseColour("#fff"), { r: 255, g: 255, b: 255, a: 1 });
+  assert.equal(lv.parseColour("rgba(10,10,10,.94)").a, 0.94);
+  assert.deepEqual(lv.parseColour("rgb(1 2 3 / 50%)"), { r: 1, g: 2, b: 3, a: 0.5 });
+  assert.equal(lv.parseColour("var(--x)"), null);
+  assert.equal(lv.parseColour("linear-gradient(red, blue)"), null);
+  assert.ok(Math.abs(lv.relativeLuminance({ r: 255, g: 255, b: 255 }) - 1) < 1e-9);
+  assert.equal(lv.relativeLuminance({ r: 0, g: 0, b: 0 }), 0);
+
+  assert.equal(lv.isDarkBackground("#0E2A38"), true, "navy");
+  assert.equal(lv.isDarkBackground("#0A0A0A"), true);
+  assert.equal(lv.isDarkBackground("rgba(10,10,10,.94)"), true, "boutique dark header (94% over white) is still dark");
+  assert.equal(lv.isDarkBackground("rgba(255,255,255,.96)"), false);
+  assert.equal(lv.isDarkBackground("#73D8C8"), false, "mint is light");
+  assert.equal(lv.isDarkBackground("#F4F1EA"), false, "cream");
+  assert.equal(lv.isDarkBackground("rgba(0,0,0,.1)"), false, "a faint tint over white is light");
+  assert.equal(lv.isDarkBackground("rgba(0,0,0,.1)", { under: "#000" }), true, "but dark over a dark page");
+  assert.equal(lv.isDarkBackground("var(--bg)", { fallback: true }), true, "unreadable colours use the fallback");
+
+  const logo = "https://x.supabase.co/storage/v1/object/public/brand/logos/u1/logo.webp";
+  const dark = "https://x.supabase.co/storage/v1/object/public/brand/logos/u1/on-dark.png";
+  const analysis = (extra) => ({ background: "transparent", backgroundColour: null, mono: false, ink: "dark", inkColour: null, ...extra });
+  const storeWith = (variants) => ({ logoUrl: logo, brandSettings: variants ? { logoVariants: variants } : {} });
+
+  // Never measured: legible on dark thanks to a light tile; untouched on light.
+  assert.deepEqual(lv.chooseLogo(lv.readStoreLogo(storeWith(null)), true), { src: logo, treatment: "light-chip" });
+  assert.deepEqual(lv.chooseLogo(lv.readStoreLogo(storeWith(null)), false), { src: logo, treatment: "none" });
+  // A saved dark version wins on dark backgrounds only.
+  const withDark = lv.readStoreLogo(storeWith({ for: logo, onDark: dark, source: "auto", analysis: analysis({ background: "plain", backgroundColour: "#FFFFFF", mono: true }) }));
+  assert.deepEqual(lv.chooseLogo(withDark, true), { src: dark, treatment: "none" });
+  assert.deepEqual(lv.chooseLogo(withDark, false), { src: logo, treatment: "none" });
+  // A one-colour dark mark on nothing is re-inked white (flag saved when the logo was saved, not guessed now).
+  assert.deepEqual(lv.chooseLogo(lv.readStoreLogo(storeWith({ for: logo, onDark: null, source: "auto", analysis: analysis({ mono: true }) })), true), { src: logo, treatment: "to-light" });
+  assert.deepEqual(lv.chooseLogo(lv.readStoreLogo(storeWith({ for: logo, onDark: null, source: "auto", analysis: analysis({ mono: false }) })), true), { src: logo, treatment: "light-chip" }, "several colours get a tile, not a filter");
+  assert.deepEqual(lv.chooseLogo(lv.readStoreLogo(storeWith({ for: logo, onDark: null, source: "auto", analysis: analysis({ ink: "light", mono: true }) })), false), { src: logo, treatment: "to-dark" }, "a white mark on a light header turns dark");
+  assert.deepEqual(lv.chooseLogo(lv.readStoreLogo(storeWith({ for: logo, onDark: null, source: "auto", analysis: analysis({ background: "plain", backgroundColour: "#FFFFFF" }) })), true), { src: logo, treatment: "none" }, "a logo with its own background reads anywhere");
+  // Facts about an older logo are ignored.
+  const stale = lv.readStoreLogo({ logoUrl: logo, brandSettings: { logoVariants: { for: "https://x.supabase.co/old.png", onDark: dark, source: "seller", analysis: null } } });
+  assert.equal(stale.dark, null);
+  assert.equal(lv.readStoreLogo(storeWith({ for: logo, onDark: "javascript:alert(1)", source: "seller" })).dark, null, "only https pictures");
+  assert.equal(lv.chooseLogo(lv.readStoreLogo({ logoUrl: null, brandSettings: {} }), true), null, "no logo: the name shows");
+  assert.deepEqual(lv.logoTreatmentStyle("to-light"), { filter: "brightness(0) invert(1)" });
+  assert.deepEqual(lv.logoTreatmentStyle("none"), {});
+
+  const a = await import("../shared/brand-assets.ts");
+  const assets = a.readBrandAssets(storeWith({ for: logo, onDark: dark, source: "seller", analysis: null }));
+  assert.equal(assets.logoDark, dark, "the seller's own dark logo");
+  assert.deepEqual(assets.onDark, { src: dark, treatment: "none" });
+  assert.equal(a.readBrandAssets(storeWith({ for: logo, onDark: dark, source: "auto", analysis: null })).logoDark, null, "an automatic one isn't listed as the seller's");
+  assert.ok(a.BRAND_ASSET_KINDS.includes("logoDark"));
+});
+
+test("logo variants: measuring logo pixels, knocking out the background and re-inking SVGs", async () => {
+  const lv = await import("../shared/logo-variants.ts");
+  const W = 20;
+  const H = 20;
+  const image = (bg, ink, inside = (x, y) => x >= 6 && x < 14 && y >= 6 && y < 14) => {
+    const pixels = new Uint8ClampedArray(W * H * 4);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) pixels.set(inside(x, y) ? ink(x, y) : bg, (y * W + x) * 4);
+    return pixels;
+  };
+  const navy = () => [14, 42, 56, 255];
+  const transparentDark = lv.analyseLogoPixels(image([0, 0, 0, 0], navy), W, H);
+  assert.equal(transparentDark.background, "transparent");
+  assert.equal(transparentDark.mono, true);
+  assert.equal(transparentDark.ink, "dark");
+  assert.equal(transparentDark.inkColour, "#0E2A38");
+
+  const onWhite = lv.analyseLogoPixels(image([255, 255, 255, 255], navy), W, H);
+  assert.equal(onWhite.background, "plain");
+  assert.equal(onWhite.backgroundColour, "#FFFFFF");
+  assert.equal(onWhite.mono, true);
+  assert.equal(onWhite.ink, "dark");
+
+  const twoColours = lv.analyseLogoPixels(image([0, 0, 0, 0], (x) => (x < 10 ? [14, 42, 56, 255] : [242, 169, 59, 255])), W, H);
+  assert.equal(twoColours.mono, false, "navy and amber is not one colour");
+
+  const whiteMark = lv.analyseLogoPixels(image([0, 0, 0, 0], () => [255, 255, 255, 255]), W, H);
+  assert.equal(whiteMark.ink, "light");
+
+  const noisy = image([0, 0, 0, 255], navy, () => false).map((v, i) => (i % 4 === 3 ? 255 : (i * 37) % 256));
+  const photo = lv.analyseLogoPixels(noisy, W, H);
+  assert.equal(photo.background, "complex");
+  assert.equal(photo.mono, false);
+
+  const knocked = lv.knockOutForDark(image([255, 255, 255, 255], navy), "#FFFFFF", "#0E2A38");
+  const px = (x, y) => Array.from(knocked.slice((y * W + x) * 4, (y * W + x) * 4 + 4));
+  assert.deepEqual(px(0, 0), [255, 255, 255, 0], "the white background becomes see-through");
+  assert.deepEqual(px(10, 10), [255, 255, 255, 255], "the navy ink becomes solid white");
+
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><style>.a{fill:#0E2A38}</style><path class="a" d="M0 0h5v5z"/><circle fill="#73D8C8" r="2"/><rect stroke="black" fill="none" style="fill:#111;stroke:rgb(20,20,20)" width="3" height="3"/><stop stop-color="#000"/><script>alert(1)</script><g onclick="x()"></g></svg>';
+  const out = lv.recolourSvgForDark(svg);
+  assert.match(out, /\.a\{fill:#FFFFFF\}/, "dark ink in <style> turns light");
+  assert.match(out, /<circle fill="#73D8C8"/, "the light accent stays");
+  assert.match(out, /stroke="#FFFFFF" fill="none"/, "named black turns light; none stays");
+  assert.match(out, /style="fill:#FFFFFF;stroke:#FFFFFF"/);
+  assert.match(out, /stop-color="#FFFFFF"/);
+  assert.match(out, /^<svg xmlns="http:\/\/www.w3.org\/2000\/svg" viewBox="0 0 10 10" fill="#FFFFFF" color="#FFFFFF">/, "unpainted shapes inherit the light ink");
+  assert.doesNotMatch(out, /<script|onclick/);
+  assert.equal(lv.isSvgLogo("https://x/logo.svg?v=1"), true);
+  assert.equal(lv.isSvgLogo("https://x/logo.png", "image/svg+xml"), true);
+  assert.equal(lv.isSvgLogo("https://x/logo.webp"), false);
+});

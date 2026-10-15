@@ -4,6 +4,7 @@
 import type { StoreEditorSnapshot, TemplatePageSeed, TemplateSectionNode } from "@/lib/store-templates";
 import { STORE_BLOCKS, newStoreBlockSection, type BlockCategory, type BlockIcon } from "../../storefront/boutique/blocks/block-catalog.ts";
 import { LAYOUT_ROW_KIND, layoutElementLabel, newLayoutRowSection, normaliseLayoutRow } from "../../storefront/boutique/blocks/layout-logic.ts";
+import { fillMissingPageSeo } from "../../../lib/store-templates/seo-defaults.ts";
 
 // ─── Undo history ────────────────────────────────────────────────────────────
 
@@ -287,11 +288,32 @@ export function sameSnapshot(a: StoreEditorSnapshot | null | undefined, b: Store
   return snapshotKey(a) === snapshotKey(b);
 }
 
-export type PublishState = "draft" | "live" | "changes";
+/**
+ * The builder's status pill. draft: never published. live: shoppers see exactly this draft. changes: the draft
+ * differs from what was published. offline: published, but the store itself is closed (Store.status not active).
+ */
+export type PublishState = "draft" | "live" | "changes" | "offline";
 
-export function publishState(draft: StoreEditorSnapshot | null, published: StoreEditorSnapshot | null): PublishState {
+/**
+ * Publishing fills in blank page search titles and descriptions from the store name (seo-defaults.ts), so the
+ * published copy can hold SEO text the seller's draft leaves blank. That alone isn't an unpublished change: with
+ * the store name, the draft is compared as publishing would have saved it.
+ */
+export function publishState(
+  draft: StoreEditorSnapshot | null,
+  published: StoreEditorSnapshot | null,
+  options: { storeName?: string; storeLive?: boolean } = {},
+): PublishState {
   if (!published) return "draft";
-  return sameSnapshot(draft, published) ? "live" : "changes";
+  const same = sameSnapshot(draft, published)
+    || (Boolean(draft) && options.storeName !== undefined && sameSnapshot(fillMissingPageSeo(draft!, options.storeName), published));
+  if (!same) return "changes";
+  return options.storeLive === false ? "offline" : "live";
+}
+
+/** Swaps the current snapshot without adding an undo step (the server's copy of the same edits). */
+export function replacePresent<T>(history: History<T>, present: T): History<T> {
+  return { ...history, present };
 }
 
 // ─── Section copy and blocks ─────────────────────────────────────────────────

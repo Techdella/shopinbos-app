@@ -7,6 +7,7 @@ import { BOUTIQUE_FONT_CLASS } from "@/components/storefront/boutique/fonts";
 import { getPublicStorefrontPath } from "@/lib/domains/storefront";
 import { formatStoreMoney } from "@/lib/storefront/shopper-info";
 import { StoreFootnote } from "./StoreFooterBadges";
+import { StoreLogo } from "@/components/storefront/StoreLogo";
 import type { ShopperTheme } from "./theme";
 
 // Frame for the bag, wishlist, checkout and order pages: the store's name and colours, a way back to
@@ -16,6 +17,7 @@ export function ShopperShell({
   theme,
   storeName,
   logoUrl,
+  brandSettings,
   basePath,
   title,
   bagCount,
@@ -27,6 +29,8 @@ export function ShopperShell({
   theme: ShopperTheme;
   storeName: string;
   logoUrl?: string | null;
+  /** For the logo's dark-background version (brandSettings.logoVariants). */
+  brandSettings?: unknown;
   basePath: string;
   title?: string;
   bagCount?: number;
@@ -47,7 +51,7 @@ export function ShopperShell({
       <header className="sticky top-[var(--sb-preview-h,0px)] z-30 border-b backdrop-blur" style={{ background: `${theme.headerBg}F2`, borderColor: theme.border }}>
         <div className="flex h-16 items-center gap-3 px-4 sm:px-6 lg:px-10">
           <Link href={getPublicStorefrontPath(basePath, "/")} className="flex min-w-0 items-center gap-2.5 rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4">
-            {logoUrl ? <img src={logoUrl} alt="" width={32} height={32} className="h-8 w-8 shrink-0 rounded-[10px] object-cover" /> : null}
+            <StoreLogo store={{ logoUrl, brandSettings }} background={theme.headerBg} className="h-8 w-8 shrink-0 rounded-[10px]" />
             <span className="truncate text-[17px] font-semibold" style={{ fontFamily: theme.heading, color: theme.headerText }}>{storeName}</span>
           </Link>
           {title ? <span className="hidden truncate text-[14px] sm:inline" style={{ color: theme.muted }}>/ {title}</span> : null}

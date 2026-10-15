@@ -1495,6 +1495,21 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "rex.br.openPrint": "Buɗe ka buga",
   "rex.br.openBook": "Buɗe littafin salo",
   "rex.br.openKit": "Kayan alama",
+  "ed.Changes not published": "Ba a wallafa canje-canje ba",
+  "ed.Offline": "A kashe",
+  "ed.Your design is published, but your store is closed to shoppers. Publish to open it again.": "An wallafa zanenka, amma shagonka a rufe yake ga masu saya. Wallafa don sake buɗe shi.",
+  "ed.On a dark header or footer, your logo for dark backgrounds shows instead.": "A kan kai ko ƙasa mai duhu, tambarinka na bango mai duhu ne zai bayyana.",
+  "ed.Show logo": "Nuna tambari",
+  "ed.Your logo in the footer. Without a logo, your store name shows.": "Tambarinka a ƙasan shafi. Idan babu tambari, sunan shagonka zai bayyana.",
+  "ed.The logo couldn't be saved. Try again.": "Ba a iya ajiye tambarin ba. Sake gwadawa.",
+  "ed.No logo yet. Add one in Brand kit, or click the logo spot in the header.": "Babu tambari tukuna. Ƙara ɗaya a Brand kit, ko danna wurin tambari a kai.",
+  "ed.Brand kit": "Brand kit",
+  "ed.Light backgrounds": "Bango mai haske",
+  "ed.Dark backgrounds (yours)": "Bango mai duhu (naka)",
+  "ed.Dark backgrounds (automatic)": "Bango mai duhu (atomatik)",
+  "ed.Replace dark logo": "Canza tambarin duhu",
+  "ed.Upload logo for dark backgrounds": "Ɗora tambari don bango mai duhu",
+  "ed.Use automatic": "Yi amfani da na atomatik",
 };
 
 export default ha;
