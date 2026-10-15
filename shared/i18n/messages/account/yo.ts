@@ -184,6 +184,12 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "img.addLogo": "Fi logo kún un",
   "img.uploading": "À ń gbé e sókè…",
   "img.removing": "À ń yọ ọ́ kúrò…",
+  "details.nameHelp": "Yíyí orúkọ store rẹ padà kò ní yí àdírẹ́sì wẹ́ẹ̀bù rẹ padà.",
+  "details.slugLocked": "O ṣẹ̀ṣẹ̀ yí àdírẹ́sì wẹ́ẹ̀bù rẹ padà. O lè tún yí i padà ní {days, plural, one {ọjọ́ #} other {ọjọ́ #}}.",
+  "details.slugWarnTitle": "O fẹ́ yí àdírẹ́sì wẹ́ẹ̀bù store rẹ padà",
+  "details.slugWarnLive": "Store rẹ yóò kúrò ní {old} lọ sí {new}. Àwọn oníbàárà tó bá ṣí àdírẹ́sì àtijọ́ yóò lọ sí tuntun, ṣùgbọ́n ṣàtúnṣe àwọn link tí o ti pín (bio Instagram, status WhatsApp, ìwé ìpolówó, ìpolówó) kí o sì sọ fún àwọn oníbàárà rẹ déédé. Ẹ̀ẹ̀kan péré ní ọjọ́ {days} ni o lè yí àdírẹ́sì rẹ padà.",
+  "details.slugWarnDraft": "Store rẹ yóò kúrò ní {old} lọ sí {new}. Ẹnikẹ́ni tó bá ṣí àdírẹ́sì àtijọ́ yóò lọ sí tuntun. Nígbà tí store rẹ bá wà láàyè, ẹ̀ẹ̀kan péré ní ọjọ́ {days} ni o lè yí àdírẹ́sì rẹ padà.",
+  "details.slugConfirm": "Ó yé mi. Gbé store mi lọ sí {new}",
 };
 
 export default yo;
