@@ -5,6 +5,7 @@ import { db } from "@/lib/db/client";
 import {
   BOUTIQUE_TEMPLATE_MANIFESTS,
   createSnapshotFromTemplate,
+  getTemplateManifest,
   isBoutiqueTheme,
   type BoutiqueThemeId,
   type StoreEditorSnapshot,
@@ -36,6 +37,23 @@ export function boutiqueSnapshotFor(themeId: BoutiqueThemeId, brandSettings: unk
   const published = record(record(settings.editor).published) as unknown as StoreEditorSnapshot;
   if (published && published.templateId === themeId && Array.isArray(published.pages)) return published;
   const manifest = BOUTIQUE_TEMPLATE_MANIFESTS.find((entry) => entry.id === themeId)!;
+  const snapshot = createSnapshotFromTemplate(manifest);
+  const tokens = record(settings.themeTokens);
+  if (Object.keys(tokens).length) snapshot.themeTokens = { ...snapshot.themeTokens, ...(tokens as Partial<ThemeTokenSet>) };
+  return snapshot;
+}
+
+/**
+ * The snapshot a classic (pre-2026) store's product page reads its product page settings and theme colours from: the
+ * published editor snapshot, else the chosen template with the store's saved colours. Null when neither exists.
+ */
+export function classicSnapshotFor(brandSettings: unknown): StoreEditorSnapshot | null {
+  const settings = record(brandSettings);
+  const published = record(record(settings.editor).published) as unknown as StoreEditorSnapshot;
+  if (published && typeof published.templateId === "string" && !isBoutiqueTheme(published.templateId) && Array.isArray(published.pages) && published.themeTokens) return published;
+  const templateId = resolveStoreTemplateId(brandSettings);
+  const manifest = templateId && !isBoutiqueTheme(templateId) ? getTemplateManifest(templateId) : null;
+  if (!manifest) return null;
   const snapshot = createSnapshotFromTemplate(manifest);
   const tokens = record(settings.themeTokens);
   if (Object.keys(tokens).length) snapshot.themeTokens = { ...snapshot.themeTokens, ...(tokens as Partial<ThemeTokenSet>) };

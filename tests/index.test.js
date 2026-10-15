@@ -771,8 +771,9 @@ test("seller goals and product variants keep scoped production behavior", () => 
   assert.match(productForm, /uploadVariantImages/);
   assert.match(productForm, /Create category/);
   assert.match(productForm, /<Mascot who="peggy"/);
-  assert.match(productDetail, /Variant details/);
-  assert.match(productDetail, /selectedVariantFields/);
+  // Classic stores render the shared product page, which shows the chosen version's own details.
+  assert.match(productDetail, /<ClassicPdp/);
+  assert.match(read("src/components/storefront/boutique/pdp/BoutiquePdp.tsx"), /selected\?\.customFields/);
   assert.match(homeApps, /redirect\("\/home\/marketing"\)/);
 });
 

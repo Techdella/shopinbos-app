@@ -19,6 +19,12 @@ import { isGameSectionKind } from "@/lib/gamification/logic";
 import { HeroSlider, slideAlign } from "@/components/storefront/HeroSlider";
 import { itemMediaUrl, readCountdownEnd, readHeroSlides, readOptionalProductLimit, readProductLimit, readSlideTiming, youTubeEmbedUrl, youTubeId, type HeroSlide } from "@/lib/store-templates/section-content";
 import { findStorefrontPage } from "@shared/storefront-pages";
+import type { BoutiqueProductDetail } from "@/components/storefront/boutique/BoutiqueProductView";
+import { ClassicPdp } from "@/components/storefront/boutique/pdp/ClassicPdp";
+import { classicLook } from "@/components/storefront/boutique/pdp/classic-look";
+import { readClassicPdpSettings } from "@/components/storefront/boutique/pdp/classic-pdp";
+import { samplePdpProduct } from "@/components/storefront/boutique/pdp/sample-product";
+import { relatedProducts } from "@/components/storefront/shopper/catalog";
 
 export interface SurfaceProduct {
   id: string;
@@ -129,13 +135,6 @@ function blockPanelStyle(variant: unknown, theme: ReturnType<typeof themeFor>) {
     return { background: theme.cardBg, borderColor: theme.border, borderRadius: 14 };
   }
   return { background: theme.cardBg, borderColor: theme.border, borderRadius: theme.radius };
-}
-
-function optionButtonClass(variant: unknown) {
-  const value = String(variant ?? "pill");
-  if (value === "list") return "w-full rounded-[10px] border px-4 py-3 text-left text-[13px] font-semibold";
-  if (value === "swatch") return "grid min-h-10 min-w-10 place-items-center rounded-full border px-3 py-2 text-[12px] font-semibold";
-  return "rounded-full border px-4 py-2 text-[13px] font-semibold";
 }
 
 function formatMoney(currency: string, amount: number) {
@@ -805,6 +804,9 @@ function ClassicTemplateSurface({
   onToggleWishlist,
 }: TemplateStorefrontSurfaceProps) {
   const theme = useMemo(() => themeFor(snapshot), [snapshot]);
+  // The product page is the shared one (BoutiquePdp) in this template's colours, fonts and shape.
+  const pdpLook = useMemo(() => classicLook(snapshot.templateId, snapshot.themeTokens), [snapshot.templateId, snapshot.themeTokens]);
+  const shopperInfo = useMemo(() => readShopperInfo(store.shopper), [store.shopper]);
   const [internalPage, setInternalPage] = useState(selectedPage ?? "home");
   const [openFaq, setOpenFaq] = useState(0);
   const [hoveredSectionId, setHoveredSectionId] = useState<string | null>(null);
@@ -2220,58 +2222,46 @@ function ClassicTemplateSurface({
     }
 
     if (kindSection.kind === "product-detail") {
+      // The shared product page (same layouts and builder settings as the 2026 themes) in this template's look. The
+      // builder shows a sample product until the store has one, so the product page can still be designed.
       const mapped = (selectedProductId ? store.storeProducts.find((product) => product.id === selectedProductId) : null) ?? store.storeProducts[0];
-      const title = mapped?.name ?? String(copy.title ?? "Featured product");
-      const body = mapped?.description ?? String(copy.body ?? "Product details and buying options.");
-      const price = mapped ? formatMoney(mapped.currency, mapped.retailPrice) : String(copy.priceLabel ?? "NGN 0");
-      const image = mapped?.images[0];
+      const product: BoutiqueProductDetail | undefined = mapped ?? (isEditor ? samplePdpProduct(snapshot.templateId, store.currency) : undefined);
+      if (!product) return null;
+      const live = mode === "live" && Boolean(mapped);
+      const pageSections = page?.sections ?? [];
+      const relatedSection = pageSections.find((entry) => entry.kind === "featured-products" && entry.settings?.source === "related");
+      const relatedTitle = String(relatedSection?.blocks.find((entry) => entry.type === "copy")?.content?.title ?? "").trim();
+      const settings = readClassicPdpSettings(kindSection, { relatedFallback: relatedTitle });
+      const addLine = () => onAddToCart?.(product.id);
       return (
-        <section key={kindSection.id} className="mx-auto max-w-[1240px] px-5 py-12 sm:px-8">
-          <div className="grid gap-8 rounded-[34px] border bg-white p-5 lg:grid-cols-[1.05fr_0.95fr] lg:p-7" style={{ borderColor: theme.border }}>
-            <div className="grid gap-4 md:grid-cols-[0.22fr_1fr]">
-              <div className="hidden gap-3 md:grid">
-                {[0, 1, 2].map((index) => (
-                  <div key={index} className="h-24 overflow-hidden rounded-[18px] border" style={{ borderColor: theme.border }}>
-                    {renderImage(image, title, theme.accent, "h-full w-full object-cover")}
-                  </div>
-                ))}
-              </div>
-              <div className="overflow-hidden rounded-[28px]">
-                {renderImage(image, title, theme.accent, "h-[480px] w-full object-cover")}
-              </div>
-            </div>
-            <div className="flex flex-col justify-center">
-              <div className="font-mono text-[11px] uppercase tracking-[0.16em]" style={{ color: theme.accent }}>{String(copy.eyebrow ?? "Product detail")}</div>
-              <h1 className="mt-3 text-[clamp(32px,5vw,58px)] font-semibold leading-none tracking-[-0.05em]" style={{ color: theme.ink, fontFamily: theme.headingFont }}>{title}</h1>
-              <div className="mt-4 text-[24px] font-semibold" style={{ color: theme.ink }}>{price}</div>
-              <p className="mt-5 text-[15px] leading-8" style={{ color: theme.muted }}>{body}</p>
-              <div className="mt-6 grid gap-4">
-                {(kindSection.items ?? []).map((item, index) => {
-                  const values = Array.isArray(item.values) ? item.values : [];
-                  return (
-                    <div key={`${kindSection.id}-variant-${index}`}>
-                      <div className="mb-2 text-[12px] font-semibold uppercase tracking-[0.12em]" style={{ color: theme.muted }}>{String(item.label ?? "Option")}</div>
-                      <div className={String(item.variant ?? "pill") === "list" ? "grid gap-2" : "flex flex-wrap gap-2"}>
-                        {values.map((value) => (
-                          <button key={String(value)} type="button" className={optionButtonClass(item.variant)} style={{ borderColor: theme.border, color: theme.ink, background: String(item.variant ?? "") === "swatch" ? rgba(theme.accent, 0.1) : theme.paperBg }}>{String(value)}</button>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="mt-7 flex flex-wrap gap-3">
-                <button type="button" onClick={mapped && mode === "live" ? () => onAddToCart?.(mapped.id) : undefined} className="rounded-full px-7 py-3.5 text-[14px] font-semibold" style={{ background: theme.ctaBg, color: theme.ctaText }}>Add to cart</button>
-                <button type="button" onClick={() => mapped && mode === "live" ? onToggleWishlist?.(mapped.id) : navigate("wishlist")} className="rounded-full border px-7 py-3.5 text-[14px] font-semibold" style={{ borderColor: theme.border, color: theme.ink }}>Save to wishlist</button>
-              </div>
-              <div className="mt-6 grid gap-2 text-[13px]" style={{ color: theme.muted }}>
-                <span>Secure payment at checkout</span>
-                <span>Delivery options calculated by location</span>
-                <span>Returns and support policies ready</span>
-              </div>
-            </div>
-          </div>
-        </section>
+        <ClassicPdp
+          key={kindSection.id}
+          product={product}
+          look={pdpLook}
+          settings={settings}
+          shopper={shopperInfo}
+          storeName={store.name}
+          currency={store.currency}
+          reviews={[]}
+          avgRating={product.avgRating ?? 0}
+          reviewCount={product.reviewCount ?? 0}
+          related={relatedProducts(product, store.storeProducts)}
+          onOpenRelated={openProductPage}
+          catalog={store.storeProducts}
+          wishlistIds={wishlistProductIds}
+          onToggleWishlist={live ? onToggleWishlist : undefined}
+          onAddToBag={live ? addLine : undefined}
+          onBuyNow={live ? () => { addLine(); navigate("checkout"); } : undefined}
+          reviewSlug={live ? store.slug : undefined}
+          interactive={live}
+          crumbs={[
+            { label: "Home", onSelect: () => navigate("home") },
+            { label: "Shop", onSelect: () => navigate("products") },
+            ...(product.category ? [{ label: product.category.name, onSelect: () => navigateCategory({ slug: product.category!.slug }) }] : []),
+            { label: product.name },
+          ]}
+          notice={mapped ? undefined : "Sample product. Your own products show here once you add them."}
+        />
       );
     }
 

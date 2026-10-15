@@ -6,7 +6,7 @@
 
 import type { TemplateSectionNode } from "@/lib/store-templates";
 import type { RendererKind } from "./editor-logic";
-import { pdpSchemaGroups } from "./pdp-schema.ts";
+import { classicPdpSchemaGroups, pdpSchemaGroups } from "./pdp-schema.ts";
 
 export type FieldTarget =
   | { scope: "copy"; key: string }
@@ -954,14 +954,6 @@ function classicContent(kind: string, fallback: string): FieldGroup[] {
 }
 
 function classicSchema(kind: string): SectionSchema {
-  const variations = kind === "hero-split" ? [...SECTION_VARIATIONS[kind]!, CLASSIC_SLIDESHOW] : SECTION_VARIATIONS[kind];
-  const fallback = variations?.[0]?.value ?? "";
-  const groups: FieldGroup[] = [];
-  if (variations?.length) {
-    groups.push({ title: "Layout", fields: [{ id: "layout", type: "cards", label: "Style", target: setting("layout"), fallback, options: variations }] });
-  }
-  groups.push(...classicContent(kind, fallback));
-
   const style: FieldGroup[] = [
     { title: "Background", fields: [
       { id: "bgColor", type: "color", label: "Colour", target: { scope: "background", key: "color" }, placeholder: "#ffffff" },
@@ -973,6 +965,17 @@ function classicSchema(kind: string): SectionSchema {
       { id: "maxWidth", type: "text", label: "Max width", target: { scope: "styles", key: "maxWidth" }, placeholder: "e.g. 1240px" },
     ] },
   ];
+  // Classic product pages render the shared product page (ClassicPdp), so they get its settings. The old layout
+  // cards are gone: a saved classic layout now only sets the starting layout (classic-pdp.ts).
+  if (kind === "product-detail") return { settings: classicPdpSchemaGroups(), style, addable: [] };
+
+  const variations = kind === "hero-split" ? [...SECTION_VARIATIONS[kind]!, CLASSIC_SLIDESHOW] : SECTION_VARIATIONS[kind];
+  const fallback = variations?.[0]?.value ?? "";
+  const groups: FieldGroup[] = [];
+  if (variations?.length) {
+    groups.push({ title: "Layout", fields: [{ id: "layout", type: "cards", label: "Style", target: setting("layout"), fallback, options: variations }] });
+  }
+  groups.push(...classicContent(kind, fallback));
   return { settings: groups, style, addable: CLASSIC_ADDABLE[kind] ?? [] };
 }
 
