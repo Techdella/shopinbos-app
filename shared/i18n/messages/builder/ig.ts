@@ -786,7 +786,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "ed.Percent of the page": "Pasent peeji",
   "ed.Content": "Ọdịnaya",
   "ed.Leave empty to use the headline from Marketing › Rewards.": "Hapụ ya efu iji jiri isiokwu si Marketing › Rewards.",
-  "ed.Optional. The bar shows free delivery and your reward tiers for the shopper's bag.": "Ọ bụghị iwu. Mmanya ahụ na-egosi nnyefe n'efu na ọkwa ụgwọ ọrụ maka akpa onye na-azụ.",
+  "ed.Optional. The bar shows free delivery and your reward tiers for the shopper's bag.": "Ọ bụghị iwu. Ahịrị ahụ na-egosi nnyefe n'efu na ọkwa ụgwọ ọrụ maka akpa onye na-azụ.",
   "ed.Leave empty to explain your points rate automatically.": "Hapụ ya efu iji kọwaa ọnụego points gị na-akpaghị aka.",
   "ed.Wide banner": "Banner sara mbara",
   "ed.Photo with the heading at the bottom.": "Foto nwere isiokwu n'okpuru.",
