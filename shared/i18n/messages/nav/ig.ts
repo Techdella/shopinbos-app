@@ -119,6 +119,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "admin.product-news": "Product news",
   "admin.help-videos": "Vidiyo enyemaka",
   "admin.support-queue": "Tickets",
+  "admin.ad-requests": "Arịrịọ mgbasa ozi",
   "admin.support-macros": "Azịza echekwara",
   "admin.suppliers": "Suppliers",
   "admin.logistics-partners": "Logistics",

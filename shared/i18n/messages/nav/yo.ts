@@ -119,6 +119,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "admin.product-news": "Product news",
   "admin.help-videos": "Fídíò ìrànlọ́wọ́",
   "admin.support-queue": "Tickets",
+  "admin.ad-requests": "Àwọn ìbéèrè ìpolówó",
   "admin.support-macros": "Èsì tí a fi pamọ́",
   "admin.suppliers": "Àwọn supplier",
   "admin.logistics-partners": "Logistics",

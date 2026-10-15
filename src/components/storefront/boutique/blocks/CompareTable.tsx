@@ -21,7 +21,7 @@ export function CompareTable({ ctx }: { ctx: BlockContext }) {
   const border = { borderTop: `1px solid ${t.border}` };
   return (
     <section aria-labelledby={headingId} className="bq-wrap py-12">
-      {sample ? <SampleLabel look={look}>Sample with your first products. Pick the ones to compare.</SampleLabel> : null}
+      {sample ? <SampleLabel look={look}>{ctx.say("Sample with your first products. Pick the ones to compare.")}</SampleLabel> : null}
       <h2 id={headingId} className="bq-h text-[26px] @3xl:text-[30px]" style={look.headingStyle}>{str(copy.title) || "Compare"}</h2>
       {str(copy.body) ? <p className="m-0 mt-2 max-w-[620px] text-[15px] leading-7" style={{ color: t.muted }}>{str(copy.body)}</p> : null}
       <div className="mt-6 overflow-x-auto" tabIndex={0} aria-label="Comparison table, scroll sideways on small screens">
@@ -86,7 +86,7 @@ export function CompareTable({ ctx }: { ctx: BlockContext }) {
           </tbody>
         </table>
       </div>
-      {ctx.editor && !rows.length ? <p className="m-0 mt-3 text-[12.5px]" style={{ color: t.muted }}>Add details (material, size, origin…) to these products in Products to compare them row by row.</p> : null}
+      {ctx.editor && !rows.length ? <p className="m-0 mt-3 text-[12.5px]" style={{ color: t.muted }}>{ctx.say("Add details (material, size, origin…) to these products in Products to compare them row by row.")}</p> : null}
     </section>
   );
 }

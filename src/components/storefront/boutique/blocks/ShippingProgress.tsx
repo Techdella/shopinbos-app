@@ -35,7 +35,7 @@ export function ShippingProgress({ ctx }: { ctx: BlockContext }) {
         </div>
         {ctx.editor ? (
           <p className="m-0 mt-2 text-[12px]" style={{ color: t.muted }}>
-            Preview with a sample bag. {threshold.source === "store" ? "The amount comes from your delivery settings." : "Add the same free-delivery amount to your delivery settings so checkout charges match."}
+            {ctx.say("Preview with a sample bag.")} {threshold.source === "store" ? ctx.say("The amount comes from your delivery settings.") : ctx.say("Add the same free-delivery amount to your delivery settings so checkout charges match.")}
           </p>
         ) : null}
       </div>
