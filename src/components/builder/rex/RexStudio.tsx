@@ -14,6 +14,8 @@ import { cardNote } from "@/lib/ai/rex/cards";
 import { isPreviewRequest } from "@/lib/ai/rex/starters";
 import { askRex, buildWholeStore, publishDraft, restoreVersion } from "./api";
 import { RexChat } from "./RexChat";
+import { guessRexJob, type RexJob } from "@shared/rex-progress";
+import { ChatHistoryMenu, useChatAutosave } from "@/components/ai/ChatHistory";
 import { RexPreview } from "./RexPreview";
 import { RexSidePanel } from "./RexSidePanel";
 import type { ChatMessage, RexStudioProps } from "./types";
@@ -63,6 +65,7 @@ export function RexStudio(props: RexStudioProps) {
   const [versions, setVersions] = useState<RexVersionSummary[]>(props.versions);
   const [messages, setMessages] = useState<ChatMessage[]>([greeting(t, props.firstName, props.fromOnboarding, props.draftSaved)]);
   const [busy, setBusy] = useState<null | "chat" | "build">(null);
+  const [busyJob, setBusyJob] = useState<RexJob | null>(null);
   const [undoingId, setUndoingId] = useState<string | null>(null);
   const [restoringId, setRestoringId] = useState<string | null>(null);
   const [tab, setTab] = useState<StorePageKey>("home");
@@ -136,6 +139,24 @@ export function RexStudio(props: RexStudioProps) {
   const chips = useMemo(() => rexSuggestionChips(facts, { hasDraft: draftSaved, exclude: lastSeller ? [lastSeller] : [] }), [facts, draftSaved, lastSeller]);
   const themeName = themeLibraryEntry(draft.templateId)?.name ?? (draft.templateId === props.initialDraft.templateId ? props.themeName : draft.templateName);
   const busyLabel = busy === "build" ? t("rex.st.building") : t("rex.st.working");
+  const { chatId, adopt } = useChatAutosave("rex", messages, busy === null, messages.some((message) => message.role === "seller"));
+
+  /** Reopens a saved chat (Rex carries on from it; undo buttons of old versions still work). */
+  function openChat(chat: { id: string; messages: unknown[] }) {
+    const stamp = Date.now();
+    const loaded = chat.messages
+      .filter((entry): entry is ChatMessage => Boolean(entry) && typeof entry === "object" && ((entry as ChatMessage).role === "seller" || (entry as ChatMessage).role === "rex") && typeof (entry as ChatMessage).text === "string")
+      .map((entry, index) => ({ ...entry, id: entry.id === "hello" ? "hello" : `h${stamp}-${index}` }));
+    if (!loaded.length) return;
+    setMessages(loaded);
+    adopt(chat.id, loaded.length);
+  }
+
+  function newChat() {
+    const fresh = [greeting(t, props.firstName, false, draftSaved)];
+    setMessages(fresh);
+    adopt(null, fresh.length);
+  }
 
   /** The conversation for Rex: his words plus a note of what each card made, and the seller's photo links. */
   function history() {
@@ -167,7 +188,7 @@ export function RexStudio(props: RexStudioProps) {
     if (nextVersions) setVersions(nextVersions);
   }
 
-  async function send(text: string, imageUrls: string[] = []) {
+  async function send(text: string, imageUrls: string[] = [], videoStills: string[] = []) {
     const request = text.trim();
     if (!request || busy) return;
     const past = history();
@@ -180,6 +201,7 @@ export function RexStudio(props: RexStudioProps) {
     }
 
     if (BUILD_REQUEST.test(request)) {
+      setBusyJob("build");
       setBusy("build");
       try {
         const result = await buildWholeStore({
@@ -211,12 +233,15 @@ export function RexStudio(props: RexStudioProps) {
       return;
     }
 
+    setBusyJob(guessRexJob(request, imageUrls.length > 0));
     setBusy("chat");
     try {
-      const messagesForRex = [
-        ...past,
-        { role: "user" as const, content: imageUrls.length ? `${request}\n[Photos attached: ${imageUrls.join(" ")}]` : request },
-      ];
+      const photos = imageUrls.filter((url) => !videoStills.includes(url));
+      const attachedNote = [
+        photos.length ? `[Photos attached: ${photos.join(" ")}]` : "",
+        videoStills.length ? `[Stills from a video the seller attached: ${videoStills.join(" ")}]` : "",
+      ].filter(Boolean);
+      const messagesForRex = [...past, { role: "user" as const, content: [request, ...attachedNote].join("\n") }];
       const result = await askRex({ messages: messagesForRex, imageUrls });
       if (result.draft) takeDraft(result.draft, result.versions);
       rexSays({ text: result.text, cards: result.cards });
@@ -373,6 +398,7 @@ export function RexStudio(props: RexStudioProps) {
           </div>
 
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+            <ChatHistoryMenu assistant="rex" currentId={chatId} onOpen={openChat} onNew={newChat} />
             <div ref={toolsRef} className="relative hidden sm:block">
               <button
                 type="button"
@@ -434,6 +460,7 @@ export function RexStudio(props: RexStudioProps) {
             messages={messages}
             busy={busy !== null}
             busyLabel={busyLabel}
+            busyJob={busy ? busyJob : null}
             chips={chips}
             wide={!previewOpen}
             initialText={props.initialPrompt}

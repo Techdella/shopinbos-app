@@ -329,6 +329,10 @@ globalThis.__aiMocks = {
     editImage: record("editImage", "https://proj.supabase.co/storage/v1/object/public/brand/edited.webp"),
     generateImage: record("generateImage", "https://proj.supabase.co/storage/v1/object/public/brand/new.webp"),
   },
+  "@/lib/ai/brand-context.server": { loadBrandContext: async () => null },
+  "@/lib/ai/brand-image.server": {
+    makeBrandImage: record("makeBrandImage", { url: "https://proj.supabase.co/storage/v1/object/public/brand/new.webp", usedLogo: false, usedReferences: 0, logoProblem: null }),
+  },
   "@/lib/ai/rex/logo": { LOGO_STYLES: ["minimal", "bold", "illustrative"], drawLogoOptions: record("drawLogoOptions", { logos: [{ url: "https://proj.supabase.co/l.webp", label: "Minimal", palette: {} }], failures: [] }) },
   "@/lib/store-health": { computeStoreHealth: () => ({ score: 62, missing: [{ label: "Add an About page", rexPrompt: "Write my About page", href: null }] }) },
   "@/lib/store-templates": { getTemplateManifest: (id) => (id === "missing" ? null : { id }) },
@@ -438,7 +442,7 @@ const REX_VALID = {
   edit_product_photo: { product: "Ankara tote", imageIndex: null, imageUrl: null, style: "enhance", instructions: null },
   remove_background: { product: "Ankara tote", imageIndex: null, imageUrl: null },
   lifestyle_photo: { product: "Ankara tote", imageIndex: null, imageUrl: null, scene: null },
-  generate_product_image: { prompt: "A bright banner of Ankara fabric rolls", product: null, shape: "landscape" },
+  generate_product_image: { prompt: "A bright banner of Ankara fabric rolls", product: null, shape: "landscape", brand: null, referenceImages: null },
   generate_logo: { businessName: null, about: null, paletteHint: null },
   make_product_video: { product: "Ankara tote", language: null },
   edit_store_section: { instruction: "Rewrite the banner in Pidgin", page: "home" },
@@ -840,7 +844,15 @@ test("Rex picture tools edit only the store's own photos and never save by thems
   assert.equal(rexPure.parseRexToolInput("edit_product_photo", { ...REX_VALID.edit_product_photo, imageUrl: "http://evil.example/x.png" }).ok, false, "https only");
 
   assert.equal((await runRex("generate_product_image", REX_VALID.generate_product_image)).card.after, "https://proj.supabase.co/storage/v1/object/public/brand/new.webp");
-  assert.equal(called("generateImage")[0].args[0].size, "1536x1024");
+  assert.equal(called("makeBrandImage")[0].args[0].size, "1536x1024");
+  assert.equal(called("makeBrandImage")[0].args[0].logo, false, "no logo unless asked");
+  await runRex("generate_product_image", { ...REX_VALID.generate_product_image, brand: "logo" });
+  assert.equal(called("makeBrandImage")[1].args[0].logo, true);
+  await assert.rejects(
+    runRex("generate_product_image", { ...REX_VALID.generate_product_image, referenceImages: ["https://proj.supabase.co/storage/v1/object/public/p/other-shop.webp"] }),
+    /aren't in this conversation or this shop/,
+    "references stay within the shop",
+  );
   await assert.rejects(runRex("generate_logo", REX_VALID.generate_logo), /OpenAI key/, "logos say plainly when there's no image key");
   globalThis.__fakeOpenAI = {};
   assert.equal((await runRex("generate_logo", REX_VALID.generate_logo)).card.type, "logos");

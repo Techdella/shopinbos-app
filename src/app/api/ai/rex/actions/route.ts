@@ -6,9 +6,23 @@ import { db } from "@/lib/db/client";
 import { isOwnImageUrl } from "@/lib/ai/images";
 import { parseRexAction, productImagesAfterSave } from "@/lib/ai/rex/agent-pure";
 import { rexActivateAutomation } from "@/lib/ai/rex/marketing.server";
+import { recordMedia } from "@/lib/media/library.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+// GET: the seller's products, for "Add to a product" on a picture Rex made without one.
+export const GET = withSeller(async (_req: NextRequest, { user }) => {
+  const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true } });
+  if (!store) return ok({ products: [] });
+  const products = await db.storeProduct.findMany({
+    where: { storeId: store.id, status: { not: "archived" } },
+    orderBy: [{ soldStock: "desc" }, { createdAt: "desc" }],
+    take: 200,
+    select: { id: true, name: true, images: true },
+  });
+  return ok({ products: products.map((product) => ({ id: product.id, name: product.name, image: product.images[0] ?? null })) });
+});
 
 // The seller's taps on Rex's cards: save a picture to a product, use a logo, apply a product description,
 // switch on an automation. Rex never does these himself; they are the seller's confirmation.
@@ -28,6 +42,7 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
   if (action.action === "save_product_image" || action.action === "set_logo") {
     if (!isOwnImageUrl(action.imageUrl)) return apiError("BAD_REQUEST", "Only pictures saved in your shop can be used.");
   }
+  if (action.action === "save_to_media" && !isOwnImageUrl(action.url)) return apiError("BAD_REQUEST", "Only files saved in your shop can go in your media.");
 
   switch (action.action) {
     case "save_product_image": {
@@ -50,6 +65,11 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
       await db.storeProduct.update({ where: { id: product.id }, data: { description: action.description } });
       await activity("product", `Updated the description of ${product.name} with Rex`, `/products/${product.id}`, { productId: product.id });
       return ok({ message: `Updated the description of ${product.name}.`, href: `/products/${product.id}` });
+    }
+    case "save_to_media": {
+      const asset = await recordMedia({ userId: user.id, storeId: store.id, url: action.url, kind: action.kind, name: action.name ?? undefined, source: "ai" });
+      if (!asset) return apiError("UNAVAILABLE", "Couldn't save that to your media. Try again.", 503);
+      return ok({ message: action.kind === "video" ? "Saved to your media. Pick it any time from “Choose from my media”." : "Saved to your media library. Pick it any time from “Choose from my media”.", asset });
     }
     case "activate_automation": {
       const rule = await rexActivateAutomation(store.id, action.id);

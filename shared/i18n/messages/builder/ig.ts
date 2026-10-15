@@ -1284,7 +1284,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "rex.ch.placeholder": "Rịọ Rex ka o dezie foto, mepụta akara, gbanwee ụlọ ahịa gị, wuo mkpọsa…",
   "rex.ch.link": "Link",
   "rex.ch.add": "Tinye",
-  "rex.ch.attach": "Tinye foto",
+  "rex.ch.attach": "Tinye foto ma ọ bụ vidiyo",
   "rex.ch.pasteLink": "Mado link",
   "rex.ch.sendToRex": "Ziga Rex",
   "rex.starter.edit-photo.title": "Dezie foto ngwaahịa",
@@ -1475,6 +1475,17 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "ed.Free plans show this badge. Upgrade to turn it off.": "Atụmatụ efu na-egosi baajị a. Kwalite iji gbanyụọ ya.",
   "ed.Upgrade": "Kwalite",
   "ed.The badge setting couldn't be saved. Try again.": "Enweghị ike ịchekwa ntọala baajị. Nwaa ọzọ.",
+  "rex.ch.videoPrompt": "Jiri vidiyo a mee foto ngwaahịa dị ọcha nwere logo m",
+  "rex.ch.fromVideo": "Foto si na vidiyo gị",
+  "rex.cd.saveMedia": "Chekwaa na media",
+  "rex.cd.savedMedia": "Echekwala na media",
+  "rex.cd.toProduct": "Tinye na ngwaahịa",
+  "rex.cd.pickProduct": "Họrọ ngwaahịa",
+  "rex.cd.post": "Mepụta post",
+  "rex.cd.ad": "Mepụta mgbasa ozi",
+  "rex.cd.addPick": "Tinye",
+  "rex.cd.noProducts": "Ị nweghị ngwaahịa ọ bụla. Buru ụzọ tinye otu.",
+  "rex.ch.buyCredits": "Zụta kredit AI",
 };
 
 export default ig;

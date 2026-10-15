@@ -49,6 +49,9 @@ const en = {
   "lang.pidgin": "Pidgin",
   "lang.yoruba": "Yorùbá",
   "lang.hausa": "Hausa",
+  "saveMedia": "Save to my media",
+  "savedMediaShort": "Saved to media",
+  "savedMedia": "Saved to your media. Pick it any time from “Choose from my media”.",
 } satisfies Record<string, string>;
 
 export default en;

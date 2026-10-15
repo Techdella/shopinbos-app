@@ -1,4 +1,6 @@
 import { sendOrderConfirmationEmail } from "@/lib/email/notices.server";
+import { completeCreditPurchase } from "@/lib/ai/credits.server";
+import { CREDIT_REFERENCE_PREFIX } from "@shared/ai-credits";
 import { SENDER_STORE_SELECT } from "@/lib/email/compliance.server";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db/client";
@@ -133,6 +135,12 @@ export async function POST(req: NextRequest) {
   if (eventType === "charge.success") {
     const ref = event.data?.reference as string | undefined;
     if (ref) {
+      if (ref.startsWith(CREDIT_REFERENCE_PREFIX)) {
+        await completeCreditPurchase(ref).catch((error) => {
+          console.error("AI credit purchase completion failed:", error);
+        });
+        return NextResponse.json({ received: true });
+      }
       if (ref.startsWith("store-launch-")) {
         await completeStoreLaunchPayment(ref).catch((error) => {
           console.error("Store launch payment completion failed:", error);

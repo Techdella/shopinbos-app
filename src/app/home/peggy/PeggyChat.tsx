@@ -7,6 +7,7 @@ import { Mascot } from "@/components/app-ui";
 import { cx } from "@/components/app-ui/cx";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
+import { ChatHistoryMenu, useChatAutosave } from "@/components/ai/ChatHistory";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import { formatNumber } from "@shared/i18n";
 import type { MessageKey } from "@shared/i18n/catalog";
@@ -65,6 +66,20 @@ export function PeggyChat({ greeting, initialAsk, suggestions, stats }: { greeti
   const [draft, setDraft] = useState(initialAsk);
   const [busy, setBusy] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
+  const { chatId, adopt } = useChatAutosave("peggy", turns, !busy, turns.some((turn) => turn.role === "user"));
+
+  function openChat(chat: { id: string; messages: unknown[] }) {
+    const loaded = chat.messages.filter(
+      (entry): entry is Turn => Boolean(entry) && typeof entry === "object" && ((entry as Turn).role === "user" || (entry as Turn).role === "assistant") && typeof (entry as Turn).content === "string",
+    );
+    setTurns(loaded);
+    adopt(chat.id, loaded.length);
+  }
+
+  function newChat() {
+    setTurns([]);
+    adopt(null, 0);
+  }
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -123,10 +138,11 @@ export function PeggyChat({ greeting, initialAsk, suggestions, stats }: { greeti
             <h1 className="m-0 text-[17px] font-extrabold">Peggy</h1>
             <div className="truncate text-[13px] text-app-ink-soft">{t("sub")}</div>
           </div>
+          <ChatHistoryMenu assistant="peggy" currentId={chatId} onOpen={openChat} onNew={newChat} tone="plain" />
           {turns.length > 0 && (
             <button
               type="button"
-              onClick={() => setTurns([])}
+              onClick={newChat}
               disabled={busy}
               className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full border border-app-line bg-white px-3.5 text-[13px] font-extrabold text-app-ink hover:border-app-line-strong disabled:opacity-50"
             >
@@ -252,8 +268,39 @@ function Bubble({ role, content, failed }: { role: "user" | "assistant"; content
         failed && "bg-app-danger-tint text-app-danger",
       )}
     >
-      {content}
+      {role === "assistant" ? <LinkedText text={content} /> : content}
     </div>
+  );
+}
+
+// In-app paths Peggy mentions become links; a /studio?prompt=… link (a request she wrote for Rex) becomes a button.
+const APP_PATH = /(\/(?:studio|home|products|marketplace|channels|settings)(?:[/?][^\s)\]]*)?)/g;
+
+function LinkedText({ text }: { text: string }) {
+  const t = useT("peggy");
+  const parts = text.split(APP_PATH);
+  return (
+    <>
+      {parts.map((part, index) => {
+        if (index % 2 === 0) return part;
+        const trail = part.match(/[.,;:!?]+$/)?.[0] ?? "";
+        const path = trail ? part.slice(0, -trail.length) : part;
+        const ask = path.startsWith("/studio?") ? new URLSearchParams(path.slice(path.indexOf("?") + 1)).get("prompt") : null;
+        return (
+          <span key={index}>
+            {ask ? (
+              <Link href={path} className="my-1 inline-flex max-w-full items-center gap-1.5 rounded-full bg-app-ink px-3.5 py-1.5 text-[13px] font-bold text-white no-underline hover:opacity-90">
+                <Icon name="sparkle" size={14} className="shrink-0" />
+                <span className="truncate">{t("askRex", { request: ask.length > 60 ? `${ask.slice(0, 57)}…` : ask })}</span>
+              </Link>
+            ) : (
+              <Link href={path} className="font-bold text-app-ink underline underline-offset-2">{path}</Link>
+            )}
+            {trail}
+          </span>
+        );
+      })}
+    </>
   );
 }
 

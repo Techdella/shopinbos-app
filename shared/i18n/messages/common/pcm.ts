@@ -63,6 +63,12 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "time.daysAgo": "{count, plural, one {# day don pass} other {# days don pass}}",
   "count.orders": "{count, plural, =0 {No order} one {# order} other {# orders}}",
   "count.products": "{count, plural, =0 {No product} one {# product} other {# products}}",
+  "chats.history": "History",
+  "chats.new": "New chat",
+  "chats.empty": "No saved chat yet. E dey save by itself as you dey go.",
+  "chats.loading": "E dey open…",
+  "chats.failed": "Chats no load. Try again.",
+  "chats.delete": "Delete “{title}”",
 };
 
 export default pcm;

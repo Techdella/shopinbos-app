@@ -41,7 +41,8 @@ export function VideoStudio({ products, storeName, storeHost, initialProductId }
   const [language, setLanguage] = useState<VideoLanguage>("pidgin");
   const [script, setScript] = useState<VideoScript | null>(null);
   const [withVoice, setWithVoice] = useState(true);
-  const [step, setStep] = useState<"idle" | "writing" | "voicing" | "rendering" | "saving">("idle");
+  const [step, setStep] = useState<"idle" | "writing" | "voicing" | "rendering" | "saving" | "saving-media">("idle");
+  const [savedMedia, setSavedMedia] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<(ReelResult & { url: string }) | null>(null);
   const [notice, setNotice] = useState<{ tone: "error" | "info" | "success"; text: string } | null>(null);
@@ -137,6 +138,30 @@ export function VideoStudio({ products, storeName, storeHost, initialProductId }
       setResult({ ...reel, url: URL.createObjectURL(reel.blob) });
     } catch (renderError) {
       setNotice({ tone: "error", text: renderError instanceof Error ? renderError.message : t("err.make") });
+    } finally {
+      setStep("idle");
+    }
+  }
+
+  /** Uploads the reel (straight from the browser to storage) and keeps it in the seller's media library. */
+  async function saveToMedia() {
+    if (!result) return;
+    setStep("saving-media");
+    setNotice(null);
+    try {
+      const base = (name || product?.name || "reel").replace(/[^\w-]+/g, "-").toLowerCase().slice(0, 40) || "reel";
+      const file = new File([result.blob], `${base}-reel.${result.extension}`, { type: result.mimeType.split(";")[0] });
+      const uploaded = await uploadFile("products", file);
+      const response = await fetch("/api/ai/rex/actions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "save_to_media", url: uploaded.publicUrl, kind: "video", name: `${name || product?.name || "Reel"}` }),
+      });
+      if (!response.ok) throw new Error(t("err.save"));
+      setSavedMedia(result.url);
+      setNotice({ tone: "success", text: t("savedMedia") });
+    } catch (saveError) {
+      setNotice({ tone: "error", text: saveError instanceof Error ? saveError.message : t("err.save") });
     } finally {
       setStep("idle");
     }
@@ -285,6 +310,9 @@ export function VideoStudio({ products, storeName, storeHost, initialProductId }
               <a href={result.url} download={`${(name || "reel").replace(/[^\w-]+/g, "-").toLowerCase()}.${result.extension}`} className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-app-line bg-white text-[15px] font-extrabold text-app-ink no-underline">
                 {t("download", { ext: result.extension.toUpperCase() })}
               </a>
+              <PillButton type="button" tone="white" busy={step === "saving-media"} disabled={busy || savedMedia === result.url} onClick={() => void saveToMedia()}>
+                {savedMedia === result.url ? t("savedMediaShort") : t("saveMedia")}
+              </PillButton>
               {product && (
                 <PillButton type="button" tone="white" busy={step === "saving"} disabled={busy} onClick={() => void saveToProduct()}>
                   {t("addTo", { name: product.name })}

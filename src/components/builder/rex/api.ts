@@ -106,7 +106,15 @@ export type RexCardAction =
   | { action: "save_product_image"; productId: string; imageUrl: string; mode: "add" | "main" | "replace"; replaceIndex: number | null }
   | { action: "set_logo"; imageUrl: string }
   | { action: "apply_product_copy"; productId: string; description: string }
-  | { action: "activate_automation"; id: string };
+  | { action: "activate_automation"; id: string }
+  | { action: "save_to_media"; url: string; kind: "image" | "video"; name: string | null };
+
+/** The seller's products, for "Add to a product" on a picture made without one. */
+export async function rexProductChoices(): Promise<Array<{ id: string; name: string; image: string | null }>> {
+  const response = await fetch("/api/ai/rex/actions");
+  if (!response.ok) throw new Error(await readError(response, "Couldn't load your products."));
+  return ((await response.json()) as { data: { products: Array<{ id: string; name: string; image: string | null }> } }).data.products;
+}
 
 /** A tap on one of Rex's cards: the seller's confirmation. */
 export async function rexCardAction(payload: RexCardAction): Promise<{ message: string; href?: string }> {

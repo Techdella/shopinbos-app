@@ -54,9 +54,10 @@ const PLATFORM_HELP: Record<string, string> = {
 };
 const DESTINATION_KEYS = { whatsapp: "dest.whatsapp", store: "dest.store" } as const;
 
-function NewAd({ products, hasWhatsapp, onCreated }: { products: Product[]; hasWhatsapp: boolean; onCreated: () => void }) {
+function NewAd({ products, hasWhatsapp, onCreated, image, initialProductId }: { products: Product[]; hasWhatsapp: boolean; onCreated: () => void; image: string | null; initialProductId?: string }) {
   const t = useT("ads");
-  const [productId, setProductId] = useState(products[0]?.id ?? "");
+  const [productId, setProductId] = useState(products.find((product) => product.id === initialProductId)?.id ?? products[0]?.id ?? "");
+  const [useImage, setUseImage] = useState(Boolean(image));
   const [platform, setPlatform] = useState<AdPlatform>("instagram");
   const [destination, setDestination] = useState<AdDestination>(hasWhatsapp ? "whatsapp" : "store");
   const [budget, setBudget] = useState<number>(AD_BUDGETS[0]);
@@ -69,7 +70,7 @@ function NewAd({ products, hasWhatsapp, onCreated }: { products: Product[]; hasW
     setBusy(true);
     setError(null);
     try {
-      await send("/api/app/ads", "POST", { productId, platform, destination, dailyBudget: free ? 500 : budget, days });
+      await send("/api/app/ads", "POST", { productId, platform, destination, dailyBudget: free ? 500 : budget, days, ...(image && useImage ? { imageUrl: image } : {}) });
       onCreated();
     } catch (createError) {
       setError(createError instanceof Error ? createError.message : t("err.write"));
@@ -86,6 +87,14 @@ function NewAd({ products, hasWhatsapp, onCreated }: { products: Product[]; hasW
     <section className={card}>
       <h2 className="m-0 text-[17px] font-extrabold">{t("make")}</h2>
       <div className="mt-3 grid gap-4">
+        {image ? (
+          <label className="flex cursor-pointer items-center gap-3 rounded-[16px] bg-app-canvas p-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={image} alt="" className="h-16 w-16 shrink-0 rounded-[12px] object-cover" />
+            <span className="min-w-0 flex-1 text-[14px] font-bold">{t("useRexPicture")}</span>
+            <input type="checkbox" checked={useImage} onChange={(event) => setUseImage(event.target.checked)} className="h-5 w-5 accent-[#16141F]" />
+          </label>
+        ) : null}
         <div>
           <FieldLabel htmlFor="ad-product">{t("product")}</FieldLabel>
           <select id="ad-product" value={productId} onChange={(event) => setProductId(event.target.value)} className="h-[52px] w-full rounded-[16px] border border-app-line bg-white px-4 text-[15px]">
@@ -284,7 +293,8 @@ function AdCard({ ad, onChange }: { ad: Ad; onChange: () => void }) {
   );
 }
 
-export function AdsManager({ ads, products, hasWhatsapp }: { ads: Ad[]; products: Product[]; hasWhatsapp: boolean; storeName: string }) {
+/** `image`: a picture from Rex or the media library to use as the ad's picture instead of the product photo. */
+export function AdsManager({ ads, products, hasWhatsapp, image = null, initialProductId }: { ads: Ad[]; products: Product[]; hasWhatsapp: boolean; storeName: string; image?: string | null; initialProductId?: string }) {
   const router = useRouter();
   const t = useT("ads");
   const refresh = () => router.refresh();
@@ -293,7 +303,7 @@ export function AdsManager({ ads, products, hasWhatsapp }: { ads: Ad[]; products
       <Notice tone="info">
         {t("payNote", { days: STOP_RULE_DAYS })}
       </Notice>
-      <NewAd products={products} hasWhatsapp={hasWhatsapp} onCreated={refresh} />
+      <NewAd products={products} hasWhatsapp={hasWhatsapp} onCreated={refresh} image={image} initialProductId={initialProductId} />
       {ads.map((ad) => <AdCard key={ad.id} ad={ad} onChange={refresh} />)}
     </div>
   );

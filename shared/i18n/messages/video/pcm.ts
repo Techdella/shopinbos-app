@@ -49,6 +49,9 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "lang.pidgin": "Pidgin",
   "lang.yoruba": "Yorùbá",
   "lang.hausa": "Hausa",
+  "saveMedia": "Save for my media",
+  "savedMediaShort": "E don save",
+  "savedMedia": "E don save for your media. You fit pick am anytime from “Choose from my media”.",
 };
 
 export default pcm;

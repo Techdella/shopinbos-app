@@ -4,6 +4,7 @@ import { db } from "@/lib/db/client";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { getSellerAds, sellerWhatsapp } from "@/lib/ads";
 import { AdsManager } from "./AdsManager";
+import { isOwnImageUrl } from "@/lib/ai/images";
 import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +13,8 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("title") };
 }
 
-export default async function AdsPage() {
+export default async function AdsPage({ searchParams }: { searchParams: Promise<{ image?: string; product?: string }> }) {
+  const query = await searchParams;
   const user = await requireRole(["seller"], "/login");
   const t = await getT("ads");
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true } });
@@ -37,6 +39,8 @@ export default async function AdsPage() {
       sub={t("sub")}
     >
       <AdsManager
+        image={query.image && isOwnImageUrl(query.image) ? query.image : null}
+        initialProductId={query.product}
         storeName={store?.name ?? ""}
         hasWhatsapp={Boolean(whatsapp)}
         products={products.map((product) => ({ id: product.id, name: product.name, price: product.retailPrice, image: product.images[0] ?? null }))}

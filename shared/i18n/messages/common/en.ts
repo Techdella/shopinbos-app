@@ -62,6 +62,12 @@ const en = {
   "time.daysAgo": "{count, plural, one {# day ago} other {# days ago}}",
   "count.orders": "{count, plural, =0 {No orders} one {# order} other {# orders}}",
   "count.products": "{count, plural, =0 {No products} one {# product} other {# products}}",
+  "chats.history": "History",
+  "chats.new": "New chat",
+  "chats.empty": "No saved chats yet. They save themselves as you go.",
+  "chats.loading": "Opening…",
+  "chats.failed": "Couldn't load your chats. Try again.",
+  "chats.delete": "Delete “{title}”",
 } satisfies Record<string, string>;
 
 export default en;

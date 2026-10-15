@@ -5,6 +5,8 @@ import type OpenAI from "openai";
 import { db } from "@/lib/db/client";
 import { getAnthropicClient, getOpenAIClient, PEGGY_CLAUDE_MODEL, PEGGY_OPENAI_MODEL, providerOrder } from "@/lib/ai/client";
 import { buildSellerSnapshot } from "./context";
+import { loadBrandContext } from "@/lib/ai/brand-context.server";
+import { brandContextForAi } from "@shared/brand-context";
 import { PEGGY_INSTRUCTIONS, peggyContextBlock } from "./prompt";
 import {
   issuedConfirmationCodes,
@@ -194,7 +196,8 @@ export async function runPeggy(user: { id: string; phone?: string | null }, turn
     buildSellerSnapshot(user.id),
     db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, currency: true } }),
   ]);
-  const context = peggyContextBlock(snapshot);
+  const brand = store ? await loadBrandContext(store.id).catch(() => null) : null;
+  const context = peggyContextBlock(snapshot, new Date(), brand ? brandContextForAi(brand) : null);
   const state: RunState = {
     ctx: store ? { userId: user.id, userPhone: user.phone ?? null, store } : null,
     actions: [],

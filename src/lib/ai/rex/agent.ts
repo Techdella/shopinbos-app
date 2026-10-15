@@ -6,6 +6,9 @@ import { db } from "@/lib/db/client";
 import { CHIP_MODEL, getAnthropicClient, getOpenAIClient, providerOrder, REX_OPENAI_MODEL } from "@/lib/ai/client";
 import { isOwnImageUrl } from "@/lib/ai/images";
 import { computeStoreHealth } from "@/lib/store-health";
+import { loadBrandContext } from "@/lib/ai/brand-context.server";
+import { buildSellerSnapshot } from "@/lib/ai/peggy/context";
+import { brandContextForAi } from "@shared/brand-context";
 import { naira } from "@shared/onboarding";
 import { rexPreferencesBlock } from "@shared/rex-preferences";
 import { isRexWriteTool, parseRexToolInput, providerSchema, REX_TOOL_NAMES, REX_TOOL_SPECS, type RexToolName, type RexTurn } from "./agent-pure";
@@ -27,7 +30,7 @@ const MIN_CALL_MS = 10_000;
 export const REX_AGENT_INSTRUCTIONS = `You are Rex, the creative studio assistant inside Shopinbos, an AI commerce platform for small businesses in Nigeria and across Africa. You work for one seller and their one online store. You design their store, make pictures, logos and product videos, write their product words and set up their marketing, using your tools.
 
 Your tools:
-- Pictures: edit_product_photo (sharper and brighter, white studio background, or a custom edit), remove_background, lifestyle_photo, generate_product_image, generate_logo. Results appear for the seller with buttons (Save to product, Use as logo); you never save them yourself.
+- Pictures: edit_product_photo (sharper and brighter, white studio background, or a custom edit), remove_background, lifestyle_photo, generate_product_image (in the seller's brand, can copy their real logo onto the product), generate_logo. Results appear for the seller with buttons (Save to product, Use as logo); you never save them yourself.
 - Video: make_product_video prepares a reel from a product's photos with captions and a voiceover; the seller opens it in the video studio to record and save it.
 - Store design (DRAFT only, saved as a version with undo): edit_store_section for changes to words, sections, pages, colours and fonts; rebuild_section to redo a section or page from scratch; switch_theme; list_themes to show the themes; open_preview to show the seller their store.
 - Words: write_product_copy shows a new product description with an Apply button; nothing changes until the seller applies it.
@@ -38,7 +41,10 @@ Your tools:
 
 How to work:
 - Do what the seller asked with the right tool. If something essential is missing (which product, which photo), ask one short question instead of guessing. Use list_products to find a product before working on its photos or words.
-- Photos the seller attached are listed in the context; edit those or the product's own photos only.
+- Photos the seller attached are listed in the context; edit those or the product's own photos only. When the seller attached a video, you see a few still frames from it as photos: use them as references (to match the product, setting or style). You can't cut or edit the video itself; for a reel use make_product_video.
+- You know the seller's brand and business (the context's "brand" and "business"): logo, colours, what they sell, categories, best sellers, customers, recent sales. Use it without asking. "My logo", "branded" or "with my logo" means generate_product_image with brand "logo" (their real logo is copied onto the label or packaging); if they have no logo yet, say so and offer generate_logo or uploading one in Brand kit (/home/brand-kit). If a request names something they sell (e.g. "plantain chips"), find the matching product and use its photo as the reference.
+- Write image prompts like a good product photographer: the product, the surface and backdrop, the light, the angle, the props, the mood. Keep Nigerian people and settings when people or places appear.
+- When the seller asks for ideas or isn't sure what to make, suggest three short, specific ideas from their real products, categories and best sellers, tied to Nigerian moments (Detty December, Sallah, Easter, Valentine's, back-to-school, owambe weekends, rainy season, payday at month end). One line each; offer to make the one they like.
 - After you change the store, say what changed in one or two sentences and that it is in the preview; shoppers see nothing until they press Publish. Never say you published anything.
 - Never say you did something a tool did not confirm. If a tool returns an error, explain it simply and say what the seller can do next.
 - Don't invent prices, discounts, reviews, delivery times, materials or awards.
@@ -220,7 +226,7 @@ export async function runRex(userId: string, turns: RexTurn[], imageUrls: string
   const attachments = Array.from(new Set([...newPhotos, ...earlier]));
 
   const { draft, saved } = studioDraft(store);
-  const [facts, products] = await Promise.all([
+  const [facts, products, brand, snapshot] = await Promise.all([
     loadHealthFacts(store, draft),
     db.storeProduct.findMany({
       where: { storeId: store.id, status: { not: "archived" } },
@@ -228,11 +234,25 @@ export async function runRex(userId: string, turns: RexTurn[], imageUrls: string
       take: 15,
       select: { id: true, name: true, retailPrice: true, images: true, status: true },
     }),
+    loadBrandContext(store.id).catch(() => null),
+    buildSellerSnapshot(userId).catch(() => null),
   ]);
   const health = computeStoreHealth(facts);
   const baseContext = rexContextBlock({
     store: { name: store.name, location: [store.city, store.country].filter(Boolean).join(", "), description: store.description?.slice(0, 400) ?? null, hasLogo: Boolean(store.logoUrl) },
     design: { theme: themeNameFor(draft.templateId, draft.templateName), designed: saved, pages: draft.pages.map((page) => page.title) },
+    brand: brand ? brandContextForAi(brand) : null,
+    business: snapshot
+      ? {
+          sales: snapshot.sales,
+          bestSellers: snapshot.products.bestSellers.map((p) => ({ name: p.name, sold: p.sold, price: p.price })),
+          lowStock: snapshot.products.lowStockItems.map((p) => p.name),
+          ordersToSend: snapshot.orders.toSend,
+          buyersLast12Months: snapshot.customers.buyersLast12Months,
+          reviews: { last30Days: snapshot.reviews.last30Days, averageRating: snapshot.reviews.averageRating },
+          activeDiscounts: snapshot.discounts.active.map((d) => d.code),
+        }
+      : null,
     health: { score: health.score, topGaps: health.missing.slice(0, 4).map((item) => item.label) },
     products: { published: facts.products, newest: products.map((p) => ({ id: p.id, name: p.name, price: naira(p.retailPrice), status: p.status, photos: p.images.filter(Boolean).length })) },
     attachedPhotosThisMessage: newPhotos,

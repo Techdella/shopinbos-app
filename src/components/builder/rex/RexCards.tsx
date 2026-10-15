@@ -8,6 +8,7 @@ import { Icon } from "@/components/ui/Icon";
 import { useT } from "@/components/i18n/I18nProvider";
 import { REX_REEL_HANDOFF_KEY, type RexCard } from "@/lib/ai/rex/cards";
 import { rexCardAction, type RexCardAction } from "./api";
+import { RexImageActions } from "./RexImageActions";
 
 // The cards under Rex's replies: what his tools made, with the buttons that confirm it (save a picture to a
 // product, use a logo, apply a description, turn on an automation, undo a store change).
@@ -99,10 +100,8 @@ function ImageCard({ card, onAsk, busy }: { card: Extract<RexCard, { type: "imag
             {t("rex.cd.useBanner")}
           </button>
         ) : null}
-        <a href={card.after} target="_blank" rel="noopener noreferrer" download className={secondary}>
-          <Icon name="download" size={15} /> {t("rex.cd.download")}
-        </a>
       </div>
+      <RexImageActions url={card.after} name={card.title} withProductPicker={!card.product} className="mt-2" />
       <Outcome {...confirm} />
     </section>
   );

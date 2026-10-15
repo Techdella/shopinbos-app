@@ -61,6 +61,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "deleteAd": "Hichapụ ad",
   "payNote": "Ị na-akwụ Instagram, Facebook ma ọ bụ TikTok ozugbo site n'account gị. Shopinbos anaghị emefu ego maka gị ugbu a. Peggy ga-egosi ad ọ bụla na-enweghị order ruo ụbọchị {days} ka ị kwụsịtụ ya.",
   "days": "{count, plural, other {ụbọchị #}}",
+  "useRexPicture": "Jiri foto a na mgbasa ozi ahụ",
 };
 
 export default ig;

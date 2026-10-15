@@ -13,7 +13,7 @@ export { providerSchema };
 
 export const REX_MAX_TURNS = 20;
 export const REX_MAX_CHARS = 4000;
-export const REX_MAX_PHOTOS = 4;
+export const REX_MAX_PHOTOS = 6;
 
 const HTTPS_URL = /^https:\/\/\S+$/;
 
@@ -137,12 +137,22 @@ export const REX_TOOL_SPECS = {
   },
   generate_product_image: {
     kind: "image",
-    description: "Generate a new image from a description: a product shot, a banner or a social post picture. Optionally for a product (then it can be saved to that product).",
+    description:
+      "Generate a new image from a description: a product shot, a banner or a social post picture, in the seller's brand. Optionally for a product (then it can be saved to that product, and its main photo is used as a reference). Set brand to \"logo\" when the seller wants their logo on it (\"with my logo\", \"branded\"): their real logo from the brand kit is copied onto the label or packaging.",
     schema: z
       .object({
         prompt: z.string().trim().min(8).max(1500).describe("A full visual description of the image"),
         product: optionalProduct("The product it is for, or null"),
         shape: z.enum(["square", "landscape", "portrait"]).nullable().describe("square for products, landscape for banners, portrait for stories; null for square"),
+        brand: z
+          .enum(["logo", "colours", "none"])
+          .nullable()
+          .describe("logo = their logo on it plus brand colours; colours = brand colours and feel only; none = no branding. null = colours"),
+        referenceImages: z
+          .array(z.string().trim().max(2000))
+          .max(4)
+          .nullable()
+          .describe("Photo URLs to work from: photos or video stills the seller attached, or product photos from list_products. null to use the product's main photo (if any)"),
       })
       .strict(),
   },
@@ -480,6 +490,7 @@ export const RexActionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("set_logo"), imageUrl: ownPhoto }).strict(),
   z.object({ action: z.literal("apply_product_copy"), productId: id, description: z.string().trim().min(10, "The description is too short").max(3000, "Keep the description under 3,000 characters") }).strict(),
   z.object({ action: z.literal("activate_automation"), id }).strict(),
+  z.object({ action: z.literal("save_to_media"), url: ownPhoto, kind: z.enum(["image", "video"]).default("image"), name: z.string().trim().max(120).nullable().default(null) }).strict(),
 ]);
 
 export type RexAction = z.infer<typeof RexActionSchema>;

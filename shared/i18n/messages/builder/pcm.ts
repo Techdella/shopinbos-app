@@ -1284,7 +1284,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "rex.ch.placeholder": "Ask Rex make e edit photo, make logo, change your store, build campaign…",
   "rex.ch.link": "Link",
   "rex.ch.add": "Add",
-  "rex.ch.attach": "Attach photos",
+  "rex.ch.attach": "Attach photos or video",
   "rex.ch.pasteLink": "Paste link",
   "rex.ch.sendToRex": "Send to Rex",
   "rex.starter.edit-photo.title": "Edit product photo",
@@ -1475,6 +1475,17 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "ed.Free plans show this badge. Upgrade to turn it off.": "Free plans dey show this badge. Upgrade to off am.",
   "ed.Upgrade": "Upgrade",
   "ed.The badge setting couldn't be saved. Try again.": "We no fit save the badge setting. Try again.",
+  "rex.ch.videoPrompt": "Use this video make clean product photo with my logo",
+  "rex.ch.fromVideo": "Picture from your video",
+  "rex.cd.saveMedia": "Save for media",
+  "rex.cd.savedMedia": "E don save for media",
+  "rex.cd.toProduct": "Add am to product",
+  "rex.cd.pickProduct": "Choose product",
+  "rex.cd.post": "Make post",
+  "rex.cd.ad": "Make ad",
+  "rex.cd.addPick": "Add",
+  "rex.cd.noProducts": "You never get product. Add one first, then come back.",
+  "rex.ch.buyCredits": "Buy AI credits",
 };
 
 export default pcm;

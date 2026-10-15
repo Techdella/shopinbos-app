@@ -1284,7 +1284,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "rex.ch.placeholder": "Ní kí Rex ṣàtúnṣe fọ́tò, ṣe àmì, yí ṣọ́ọ̀bù rẹ padà, ṣe ìpolongo…",
   "rex.ch.link": "Link",
   "rex.ch.add": "Fi kún un",
-  "rex.ch.attach": "So fọ́tò mọ́ ọn",
+  "rex.ch.attach": "So fọ́tò tàbí fídíò mọ́ ọn",
   "rex.ch.pasteLink": "Lẹ link kan",
   "rex.ch.sendToRex": "Fi ránṣẹ́ sí Rex",
   "rex.starter.edit-photo.title": "Ṣàtúnṣe fọ́tò ọjà kan",
@@ -1475,6 +1475,17 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "ed.Free plans show this badge. Upgrade to turn it off.": "Àwọn ètò ọ̀fẹ́ máa ń fi àmì yìí hàn. Ṣe àfikún ètò láti pa á.",
   "ed.Upgrade": "Ṣe àfikún ètò",
   "ed.The badge setting couldn't be saved. Try again.": "A kò lè fi ètò àmì náà pamọ́. Gbìyànjú lẹ́ẹ̀kan sí i.",
+  "rex.ch.videoPrompt": "Lo fídíò yìí láti ṣe fọ́tò ọjà tó mọ́ pẹ̀lú lógò mi",
+  "rex.ch.fromVideo": "Àwòrán láti inú fídíò rẹ",
+  "rex.cd.saveMedia": "Fi pamọ́ sí mídíà",
+  "rex.cd.savedMedia": "A ti fi pamọ́ sí mídíà",
+  "rex.cd.toProduct": "Fi kún ọjà kan",
+  "rex.cd.pickProduct": "Yan ọjà kan",
+  "rex.cd.post": "Ṣe àtẹ̀jáde",
+  "rex.cd.ad": "Ṣe ìpolówó",
+  "rex.cd.addPick": "Fi kún un",
+  "rex.cd.noProducts": "O kò tíì ní ọjà kankan. Fi ọ̀kan kún un kọ́kọ́.",
+  "rex.ch.buyCredits": "Ra kírẹ́dítì AI",
 };
 
 export default yo;

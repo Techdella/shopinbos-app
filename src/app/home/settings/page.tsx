@@ -19,6 +19,7 @@ import { AssistantNote, Card, CardHead, FilterChips, Pill, PillLink } from "@/co
 import { Icon } from "@/components/ui/Icon";
 import { FIELD_HELP, FIELD_INPUT, FIELD_LABEL, FIELD_TEXTAREA, SUBMIT_INK, SUBMIT_WHITE } from "@/components/seller-settings/fields";
 import { db } from "@/lib/db/client";
+import { creditBalance } from "@/lib/ai/credits.server";
 import { aiAllowanceToday } from "@/lib/ai/usage";
 import { SupplierSwitchCard } from "@/components/settings/SupplierSwitchCard";
 import { switchSettings } from "@shared/order-parts";
@@ -46,6 +47,7 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
   const activeTab = params?.tab ? TAB_ALIASES[params.tab] ?? params.tab : "Store";
   const user = await requireRole(["seller"], "/login");
   const t = await getT("account", "common");
+  const tPay = await getT("payments");
   const workspace = await getSellerWorkspace(user.id);
 
   if (!workspace) return null;
@@ -278,6 +280,13 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
             {activeTab === "Billing" && (
               <>
                 <StoreLaunchBalanceCard balanceDue={Number(launchBilling?.balanceDue ?? 0)} dueAt={launchBilling?.dueAt} />
+                <Card className="p-5">
+                  <CardHead
+                    title={tPay("cr.title")}
+                    sub={tPay("cr.settingsLine", { count: await creditBalance(user.id) })}
+                    action={<PillLink href="/home/credits" size="sm" tone="ink" icon="sparkle">{tPay("cr.buy")}</PillLink>}
+                  />
+                </Card>
                 <SellerBillingSection
                   userEmail={billingEmail(user)}
                   userName={user.name}

@@ -63,6 +63,12 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "time.daysAgo": "{count, plural, other {ọjọ́ # sẹ́yìn}}",
   "count.orders": "{count, plural, =0 {Kò sí order} other {order #}}",
   "count.products": "{count, plural, =0 {Kò sí ọjà} other {ọjà #}}",
+  "chats.history": "Ìtàn",
+  "chats.new": "Ìjíròrò tuntun",
+  "chats.empty": "Kò sí ìjíròrò tí a fi pamọ́ síbẹ̀. Wọ́n ń fi ara wọn pamọ́ bí o ṣe ń lọ.",
+  "chats.loading": "Ó ń ṣí…",
+  "chats.failed": "A kò lè gbé ìjíròrò rẹ wá. Gbìyànjú lẹ́ẹ̀kan sí i.",
+  "chats.delete": "Pa “{title}” rẹ́",
 };
 
 export default yo;

@@ -1470,7 +1470,7 @@ test("Rex's chat body keeps the newest seller message last and only uploaded pho
   assert.equal(ok.imageUrls.length, 1);
   assert.equal(rex.parseRexBody({ messages: [{ role: "user", content: "hi" }, { role: "assistant", content: "yes?" }] }).ok, false, "must end with the seller");
   assert.equal(rex.parseRexBody({ messages: [{ role: "user", content: "hi" }], imageUrls: ["http://evil.example/x.png"] }).ok, false, "photos must be https uploads");
-  assert.equal(rex.parseRexBody({ messages: [{ role: "user", content: "hi" }], imageUrls: Array(5).fill("https://a.supabase.co/x.png") }).ok, false);
+  assert.equal(rex.parseRexBody({ messages: [{ role: "user", content: "hi" }], imageUrls: Array(rex.REX_MAX_PHOTOS + 1).fill("https://a.supabase.co/x.png") }).ok, false);
   assert.equal(rex.parseRexBody({ messages: [{ role: "user", content: "x".repeat(rex.REX_MAX_CHARS + 1) }] }).ok, false);
 });
 
@@ -2615,4 +2615,86 @@ test("every store preview bar has an Exit preview button back to the dashboard",
   for (const file of ["../src/app/preview/store/[slug]/[pageId]/PreviewPageClient.tsx", "../src/app/s/[slug]/preview/PreviewFallbackClient.tsx"]) {
     assert.match(readFileSync(new URL(file, import.meta.url), "utf8"), /<a href="\/home"[^>]*>\s*Exit preview/, file);
   }
+});
+
+test("Rex's pictures use the seller's brand kit: logo only when asked, colours, real products for ideas", async () => {
+  const b = await import("../shared/brand-context.ts");
+  assert.equal(b.wantsLogo("Professional product photo of plantain chips branded in a jar on white background, studio lighting with my logo"), true);
+  assert.equal(b.wantsLogo("Put our logo on the pack"), true);
+  assert.equal(b.wantsLogo("A banner for my shoe sale"), false);
+  assert.equal(b.wantsLogo("Design me a new logo"), false, "asking for a new logo is not 'put my logo on it'");
+  const brand = {
+    storeName: "Mama Put Snacks", business: "Crunchy plantain chips and chin chin from Ibadan", category: "Food", location: "Ibadan, Nigeria",
+    logoUrl: "https://x.supabase.co/storage/v1/object/public/brand/logo.png",
+    colours: { accent: "#F2A93B", ink: "#16141F", paper: "#FAF7F1", button: "#2E7E78", hero: "#0E2A38" },
+    paletteName: null, headingStyle: "grotesk", audience: "Office workers", vibe: "warm and homely",
+    categories: [{ name: "Chips", products: 3 }, { name: "Chin chin", products: 2 }],
+    products: [{ id: "p1", name: "Plantain Chips - 500g jar", price: "₦3,500", category: "Chips", photo: null, sold: 40 }, { id: "p2", name: "Chin Chin", price: "₦2,000", category: "Chin chin", photo: null, sold: 10 }],
+    productCount: 5,
+  };
+  const withLogo = b.brandImageBrief(brand, { logo: true, colours: true, otherReferences: 1 });
+  assert.match(withLogo, /first reference image is the logo of "Mama Put Snacks"/);
+  assert.match(withLogo, /#F2A93B/);
+  assert.match(withLogo, /other reference images are the seller's own photos/);
+  assert.match(withLogo, /Nigerian/);
+  const noKit = b.brandImageBrief({ ...brand, logoUrl: null }, { logo: true, colours: false });
+  assert.match(noKit, /brand name "Mama Put Snacks"/, "no logo file: the name is lettered instead");
+  assert.doesNotMatch(noKit, /#F2A93B/, "colours off");
+  const ideas = b.brandImageIdeas(brand, new Date("2026-12-01T12:00:00Z"));
+  assert.ok(ideas[0].includes("Plantain Chips") && ideas[0].includes("with my logo"), ideas[0]);
+  assert.ok(ideas.some((idea) => idea.includes("Detty December")));
+  assert.deepEqual(b.brandImageIdeas({ ...brand, products: [] }), [], "no products, no made-up ideas");
+  assert.equal(b.brandContextForAi(brand).products.length, 2);
+});
+
+test("Rex's progress names the job and never finishes before the answer", async () => {
+  const p = await import("../shared/rex-progress.ts");
+  assert.equal(p.guessRexJob("Professional product photo of plantain chips branded in a jar with my logo"), "image");
+  assert.equal(p.guessRexJob("Design me a new logo"), "logo");
+  assert.equal(p.guessRexJob("Make a reel for my bag"), "video");
+  assert.equal(p.guessRexJob("Make this brighter on a white background", true), "photo_edit");
+  assert.equal(p.guessRexJob("Build my store"), "build");
+  assert.equal(p.guessRexJob("Change my homepage colours to green"), "store_edit");
+  assert.equal(p.guessRexJob("Give me ideas for Sallah"), "ideas");
+  assert.equal(p.guessRexJob("hello"), "chat");
+  assert.equal(p.rexProgressAt(0, 50), 0);
+  assert.ok(p.rexProgressAt(10_000_000, 50) <= 94);
+  assert.ok(p.rexProgressAt(25_000, 50) < p.rexProgressAt(40_000, 50));
+  const plan = p.REX_JOB_PLAN.image;
+  assert.equal(p.rexStepAt(0, plan), 0);
+  assert.equal(p.rexStepAt(10_000_000, plan), plan.steps - 1, "the last step holds");
+  assert.equal(p.rexIsSlow(30_000, 50), false);
+  assert.equal(p.rexIsSlow(80_000, 50), true);
+});
+
+test("AI credits: packs, costs and an auto top-up that can't run away", async () => {
+  const c = await import("../shared/ai-credits.ts");
+  assert.equal(c.creditPack("medium").credits, 200);
+  assert.equal(c.creditPack("nope"), null);
+  assert.equal(c.packKobo(c.creditPack("small")), 200_000);
+  assert.equal(c.creditCost("image"), 5);
+  assert.equal(c.creditCost("text", 3), 3);
+  assert.ok(c.creditCost("build") > c.creditCost("image"), "a store build costs more than a picture");
+  const base = { autoTopUp: true, hasCard: true, packId: "medium", need: 5, balance: 2, autoChargesToday: 0 };
+  assert.equal(c.shouldAutoTopUp(base), true);
+  assert.equal(c.shouldAutoTopUp({ ...base, balance: 10 }), false, "enough credits already");
+  assert.equal(c.shouldAutoTopUp({ ...base, autoTopUp: false }), false);
+  assert.equal(c.shouldAutoTopUp({ ...base, hasCard: false }), false);
+  assert.equal(c.shouldAutoTopUp({ ...base, autoChargesToday: c.AUTO_TOP_UP_PER_DAY }), false, "capped per day");
+  assert.equal(c.shouldAutoTopUp({ ...base, packId: "small", need: 500 }), false, "a pack that can't cover it isn't bought");
+  assert.match(c.outOfCreditsMessage("8 images", 5, 0), /\/home\/credits/);
+});
+
+test("Rex and Peggy chats save with a title from the seller's first words, within limits", async () => {
+  const h = await import("../shared/ai-chats.ts");
+  assert.equal(h.aiChatTitle([{ role: "rex", text: "Hi" }, { role: "seller", text: "Make a banner for my Sallah sale\n[Photos attached: https://x]" }]), "Make a banner for my Sallah sale");
+  assert.equal(h.aiChatTitle([{ role: "user", content: "x".repeat(100) }]).length, 68);
+  assert.equal(h.aiChatTitle([]), "New chat");
+  assert.equal(h.parseAiChatSave({ assistant: "rex", messages: [{ role: "seller", text: "hi" }] }).ok, true);
+  assert.equal(h.parseAiChatSave({ assistant: "chip", messages: [{}] }).ok, false);
+  assert.equal(h.parseAiChatSave({ assistant: "peggy", messages: [] }).ok, false);
+  assert.equal(h.parseAiChatSave({ assistant: "peggy", messages: Array(h.AI_CHAT_MAX_MESSAGES + 1).fill({}) }).ok, false);
+  assert.equal(h.parseAiChatSave({ assistant: "peggy", messages: [{ content: "x".repeat(h.AI_CHAT_MAX_BYTES) }] }).ok, false);
+  const weird = h.parseAiChatSave({ id: "../../etc", assistant: "rex", messages: [{}] });
+  assert.equal(weird.ok && weird.save.id, null, "odd ids start a new chat");
 });

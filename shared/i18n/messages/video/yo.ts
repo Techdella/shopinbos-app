@@ -49,6 +49,9 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "lang.pidgin": "Pidgin",
   "lang.yoruba": "Yorùbá",
   "lang.hausa": "Hausa",
+  "saveMedia": "Fi pamọ́ sí mídíà mi",
+  "savedMediaShort": "A ti fi pamọ́",
+  "savedMedia": "A ti fi pamọ́ sí mídíà rẹ. Yan án nígbàkúùgbà láti “Choose from my media”.",
 };
 
 export default yo;

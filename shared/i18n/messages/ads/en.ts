@@ -61,6 +61,7 @@ const en = {
   "confirmDelete": "Delete this ad? Its link stops counting.",
   "deleteAd": "Delete ad",
   "payNote": "You pay Instagram, Facebook or TikTok directly with your own account. Shopinbos doesn't spend money for you yet. Peggy flags any ad with no orders by day {days} so you can pause it.",
+  "useRexPicture": "Use this picture in the ad",
 } satisfies Record<string, string>;
 
 export default en;

@@ -1284,7 +1284,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "rex.ch.placeholder": "Nemi Rex ya gyara hoto, yi tambari, canza shagonka, gina kamfen…",
   "rex.ch.link": "Link",
   "rex.ch.add": "Ƙara",
-  "rex.ch.attach": "Haɗa hotuna",
+  "rex.ch.attach": "Haɗa hotuna ko bidiyo",
   "rex.ch.pasteLink": "Liƙa link",
   "rex.ch.sendToRex": "Aika wa Rex",
   "rex.starter.edit-photo.title": "Gyara hoton kaya",
@@ -1475,6 +1475,17 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "ed.Free plans show this badge. Upgrade to turn it off.": "Tsare-tsare na kyauta suna nuna wannan bajo. Haɓaka don kashe shi.",
   "ed.Upgrade": "Haɓaka",
   "ed.The badge setting couldn't be saved. Try again.": "Ba a iya ajiye saitin bajon ba. Sake gwadawa.",
+  "rex.ch.videoPrompt": "Yi amfani da wannan bidiyon don yin hoton kaya mai tsabta da tambarina",
+  "rex.ch.fromVideo": "Hoto daga bidiyonka",
+  "rex.cd.saveMedia": "Ajiye a kafofin",
+  "rex.cd.savedMedia": "An ajiye a kafofin",
+  "rex.cd.toProduct": "Ƙara wa kaya",
+  "rex.cd.pickProduct": "Zaɓi kaya",
+  "rex.cd.post": "Ƙirƙiri post",
+  "rex.cd.ad": "Ƙirƙiri talla",
+  "rex.cd.addPick": "Ƙara",
+  "rex.cd.noProducts": "Ba ka da kaya tukuna. Ƙara ɗaya tukuna.",
+  "rex.ch.buyCredits": "Sayi kiredit na AI",
 };
 
 export default ha;
