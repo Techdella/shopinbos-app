@@ -126,6 +126,7 @@ export function BoutiqueProductPage({ themeId, snapshot, store, product, reviews
         wishlistCount={wishlist.productIds.length}
         cartLabel={cartLabel}
         centred={headerLayout === "centered" || (headerLayout !== "split" && headerLayout !== "bold" && look.centredHeader)}
+        bold={headerLayout === "bold"}
       />
       <main id="bq-main" className="bq-page" tabIndex={-1}>
         <BoutiqueProductView

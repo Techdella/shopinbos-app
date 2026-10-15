@@ -7,3 +7,4 @@ export * from "./html-converter";
 export * from "./images";
 export * from "./boutique-themes";
 export * from "./theme-library";
+export * from "./chrome";

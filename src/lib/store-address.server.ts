@@ -1,6 +1,8 @@
 import "server-only";
 
+import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
+import { clearStaleLogoText } from "@/lib/store-templates/chrome";
 import { RESERVED_SUBDOMAINS } from "@/lib/storefront/host-routing";
 import { nextPreviousSlugs, normalizeStoreSlug, slugCooldownDaysLeft, storeSlugShapeProblem } from "@shared/store-address";
 
@@ -58,24 +60,29 @@ export async function currentSlugForOldSlug(slug: string) {
  */
 export function clearStaleShopNames(brandSettings: unknown, oldName: string) {
   if (!oldName.trim() || !brandSettings || typeof brandSettings !== "object" || Array.isArray(brandSettings)) return null;
-  const old = oldName.trim();
-  let changed = false;
-  const walk = (value: unknown): unknown => {
-    if (Array.isArray(value)) return value.map(walk);
-    if (!value || typeof value !== "object") return value;
-    const out: Record<string, unknown> = {};
-    for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
-      if (key === "logoText" && typeof entry === "string" && entry.trim() === old) {
-        out[key] = "";
-        changed = true;
-      } else {
-        out[key] = walk(entry);
-      }
-    }
-    return out;
-  };
   const settings = brandSettings as Record<string, unknown>;
   if (!settings.editor || typeof settings.editor !== "object") return null;
-  const editor = walk(settings.editor);
-  return changed ? { ...settings, editor } : null;
+  const editor = clearStaleLogoText(settings.editor, oldName);
+  return editor ? { ...settings, editor } : null;
+}
+
+/**
+ * The same clean-up for the store's StorePage rows (their content, draft and published copies hold the page's
+ * sections, header included), so pages read from those rows follow the new name too. Call after a rename.
+ */
+export async function clearStaleShopNamesInStorePages(storeId: string, oldName: string) {
+  if (!oldName.trim()) return 0;
+  const pages = await db.storePage.findMany({ where: { storeId }, select: { id: true, content: true, draftContent: true, publishedContent: true } });
+  let updated = 0;
+  for (const page of pages) {
+    const data: Record<string, Prisma.InputJsonValue> = {};
+    for (const key of ["content", "draftContent", "publishedContent"] as const) {
+      const cleared = page[key] ? clearStaleLogoText(page[key], oldName) : null;
+      if (cleared) data[key] = cleared as Prisma.InputJsonValue;
+    }
+    if (!Object.keys(data).length) continue;
+    await db.storePage.update({ where: { id: page.id }, data });
+    updated += 1;
+  }
+  return updated;
 }

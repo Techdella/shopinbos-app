@@ -8,6 +8,7 @@ import {
   createSnapshotFromTemplate,
   getCurrentTemplateMeta,
   getTemplateManifest,
+  normalizeChrome,
   publishDraftState,
   resolveDraftSnapshot,
   snapshotToPublishedPages,
@@ -76,7 +77,8 @@ export async function publishStoreDraft(where: { userId?: string; storeId?: stri
   const fallback = manifest ? createSnapshotFromTemplate(manifest) : createBlankEditorSnapshot(store.name);
   const resolved = resolveDraftSnapshot(brandSettings, fallback);
   if (!resolved) throw new StorePublishError("No draft snapshot to publish.", "BAD_REQUEST", 400);
-  const draft = fillMissingPageSeo(resolved, store.name);
+  // One header, announcement bar and footer on every page (older drafts could differ per page; home's wins).
+  const draft = normalizeChrome(fillMissingPageSeo(resolved, store.name));
 
   const blockers = publishBlockers(draft);
   if (blockers.length) throw new StorePublishError(blockers[0], "PUBLISH_BLOCKED", 400, blockers);

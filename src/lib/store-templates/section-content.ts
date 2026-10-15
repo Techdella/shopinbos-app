@@ -165,8 +165,78 @@ export function readSlideTiming(settings: Record<string, unknown> | undefined): 
 
 /** How many products a product section shows (featured products, rails, grids). */
 export function readProductLimit(settings: Record<string, unknown> | undefined, fallback: number) {
-  const raw = Number(settings?.limit);
-  return Number.isFinite(raw) && raw > 0 ? Math.min(24, Math.max(1, Math.round(raw))) : fallback;
+  return readOptionalProductLimit(settings) ?? fallback;
+}
+
+/**
+ * The product count the seller set ("How many products"), or null when they haven't set one. Renderers use it to
+ * tell an explicit choice (always honoured, even on the shop page) from the layout's own default.
+ */
+export function readOptionalProductLimit(settings: Record<string, unknown> | undefined): number | null {
+  const raw = settings?.limit;
+  if (raw === undefined || raw === null || raw === "") return null;
+  const value = Number(raw);
+  return Number.isFinite(value) && value > 0 ? Math.min(24, Math.max(1, Math.round(value))) : null;
+}
+
+/** Product section layouts (2026 themes) that are the full shop: every product, search, sort and filters. */
+export const SHOP_GRID_LAYOUT = "grid";
+
+/**
+ * True when a product section shows the full shop grid. Sections saved before layouts were offered on the shop
+ * page have no layout there and keep showing the full shop.
+ */
+export function isShopGridSection(section: Pick<TemplateSectionNode, "settings">, pageType: string) {
+  const layout = str(section.settings?.layout);
+  return layout === SHOP_GRID_LAYOUT || (!layout && pageType === "products");
+}
+
+export type ShopView = "grid" | "list" | "large";
+export type ShopFilters = "top" | "sidebar" | "none";
+export type ShopColumns = "auto" | "2" | "3" | "4" | "5";
+
+export interface ShopGridOptions {
+  /** Cards in a grid, rows with a description, or two big cards a row. */
+  view: ShopView;
+  /** Cards a row on computers; "auto" keeps the theme's own grid. Phones show two (one for large cards). */
+  columns: ShopColumns;
+  /** Search, sort and category filters above the products, in a side column, or hidden. */
+  filters: ShopFilters;
+  /** Products shown before a "Show more" button; null shows them all. */
+  pageSize: number | null;
+}
+
+export const SHOP_PAGE_SIZES = [8, 12, 16, 24, 36, 48];
+
+export function readShopGridOptions(settings: Record<string, unknown> | undefined): ShopGridOptions {
+  const view = str(settings?.shopView);
+  const columns = str(settings?.columns);
+  const placement = str(settings?.filterPlacement);
+  const size = Number(settings?.pageSize);
+  return {
+    view: view === "list" || view === "large" ? view : "grid",
+    columns: columns === "2" || columns === "3" || columns === "4" || columns === "5" ? columns : "auto",
+    // Older shop grids saved `filters: false` to hide the filters.
+    filters: placement === "sidebar" || placement === "none" || placement === "top" ? placement : settings?.filters === false ? "none" : "top",
+    pageSize: Number.isFinite(size) && size > 0 ? Math.min(96, Math.max(4, Math.round(size))) : null,
+  };
+}
+
+export interface ProductCardOptions {
+  /** Stars and review count under the price (only products with real reviews show them). */
+  showRating: boolean;
+  /** An "Add to bag" button on the card. */
+  quickAdd: boolean;
+  /** The product's second photo when a shopper points at the card. */
+  hoverImage: boolean;
+}
+
+export function readProductCardOptions(settings: Record<string, unknown> | undefined): ProductCardOptions {
+  return {
+    showRating: settings?.showRating === true,
+    quickAdd: settings?.quickAdd === true,
+    hoverImage: settings?.hoverImage === true,
+  };
 }
 
 /** End time for a promo countdown: a valid future-or-past date, or null when the seller hasn't set one. */
@@ -184,6 +254,8 @@ export interface MigrateOptions {
 
 const LEGACY_LAYOUTS: Record<string, Record<string, string>> = {
   "hero-split": { "full-bleed-split": "full-bleed" },
+  // Dúdú and Turare were seeded with their own name for the side-by-side story.
+  "story-split": { "noir-split": "boutique" },
 };
 
 /**
@@ -251,7 +323,12 @@ export function migrateSnapshot<T extends StoreEditorSnapshot | null>(snapshot: 
     if (!Array.isArray(page.sections)) return page;
     let pageChanged = false;
     const sections = page.sections.map((section) => {
-      const next = migrateSection(section, options);
+      let next = migrateSection(section, options);
+      // The shop page's product section always showed the full shop grid, whatever its layout said; one saved
+      // without a layout gets "grid" written, so the panel shows (and keeps) what shoppers see.
+      if (page.pageType === "products" && next.kind === "featured-products" && !str(next.settings?.layout)) {
+        next = { ...next, settings: { ...(next.settings ?? {}), layout: SHOP_GRID_LAYOUT } };
+      }
       if (next !== section) pageChanged = true;
       return next;
     });

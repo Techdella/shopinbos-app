@@ -8,6 +8,7 @@ import { rememberStoreVisitor } from "@/hooks/useStoreVisitor";
 import type { StoreEditorSnapshot, TemplateBlockNode, TemplateSectionNode } from "@/lib/store-templates";
 import { getTemplateManifest, isBoutiqueTheme } from "@/lib/store-templates";
 import { normalizeImage } from "@/lib/store-templates/images";
+import { normalizeChrome } from "@/lib/store-templates/chrome";
 import { getThemeOverrides } from "@/lib/store-templates/themes";
 import { readShopperInfo } from "@/lib/storefront/shopper-info";
 import { getPublicStorefrontPath } from "@/lib/domains/storefront";
@@ -16,7 +17,7 @@ import { BoutiqueStorefront } from "@/components/storefront/boutique/BoutiqueSto
 import { GameSection } from "@/components/storefront/gamification/GameSection";
 import { isGameSectionKind } from "@/lib/gamification/logic";
 import { HeroSlider, slideAlign } from "@/components/storefront/HeroSlider";
-import { itemMediaUrl, readCountdownEnd, readHeroSlides, readProductLimit, readSlideTiming, youTubeEmbedUrl, youTubeId, type HeroSlide } from "@/lib/store-templates/section-content";
+import { itemMediaUrl, readCountdownEnd, readHeroSlides, readOptionalProductLimit, readProductLimit, readSlideTiming, youTubeEmbedUrl, youTubeId, type HeroSlide } from "@/lib/store-templates/section-content";
 import { findStorefrontPage } from "@shared/storefront-pages";
 
 export interface SurfaceProduct {
@@ -746,13 +747,16 @@ function ProductCard({
  */
 export function TemplateStorefrontSurface(props: TemplateStorefrontSurfaceProps) {
   const [ownPage, setOwnPage] = useState(props.selectedPage ?? "home");
-  const themeId = props.snapshot.templateId;
-  if (!isBoutiqueTheme(themeId)) return <ClassicTemplateSurface {...props} />;
+  // Every page shows the same announcement bar, header and footer (the home page's, for older saves that kept a
+  // different copy per page). Same object back when the snapshot is already consistent.
+  const snapshot = useMemo(() => normalizeChrome(props.snapshot), [props.snapshot]);
+  const themeId = snapshot.templateId;
+  if (!isBoutiqueTheme(themeId)) return <ClassicTemplateSurface {...props} snapshot={snapshot} />;
   return (
     <BoutiqueStorefront
       themeId={themeId}
       store={props.store}
-      snapshot={props.snapshot}
+      snapshot={snapshot}
       storeBasePath={props.storeBasePath}
       mode={props.mode ?? "live"}
       device={props.device ?? "desktop"}
@@ -1584,6 +1588,21 @@ function ClassicTemplateSurface({
                 </div>
               </div>
             </div>
+            {heroLayout === "carousel-cards" ? (
+              // Collection cards in a row that scrolls sideways.
+              <div className="flex min-h-[420px] snap-x snap-mandatory items-end gap-4 overflow-x-auto px-5 py-8 sm:px-8 lg:min-h-[560px]" style={{ background: theme.cardBg }} role="region" aria-label="Collections. Scroll sideways for more." tabIndex={0}>
+                {(support.length ? support : [lead]).map((item, index) => (
+                  <div key={`${kindSection.id}-card-${index}`} role="button" tabIndex={0} onClick={() => navigate("products")} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") navigate("products"); }} className="group relative h-[78%] min-h-[320px] w-[min(280px,75%)] shrink-0 snap-start overflow-hidden rounded-[22px] bg-white text-left shadow-[0_18px_48px_rgba(0,0,0,.12)]">
+                    {editableItemImage(kindSection.id, item, index + 1, String(item?.title ?? "Collection"), String(item?.color ?? theme.accent), "absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105")}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
+                    <div className="absolute inset-x-4 bottom-4 text-white">
+                      <div className="text-[18px] font-semibold" style={{ fontFamily: theme.headingFont }}>{String(item?.title ?? "Collection")}</div>
+                      {item?.subtitle ? <div className="mt-1 text-[12.5px] text-white/80">{String(item.subtitle)}</div> : null}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
             <div className="grid min-h-[560px] grid-rows-2">
               <div role="button" tabIndex={0} onClick={() => navigate("products")} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") navigate("products"); }} className="group relative overflow-hidden text-left">
                 {editableItemImage(
@@ -1618,10 +1637,39 @@ function ClassicTemplateSurface({
                 ))}
               </div>
             </div>
+            )}
           </section>
         );
       }
       const heroImageBlock = findImageBlock(kindSection);
+      if (heroLayout === "text-overlay") {
+        // The words sit over the main picture, full width.
+        return (
+          <section key={kindSection.id} className="relative min-h-[560px] overflow-hidden lg:min-h-[640px]" style={{ background: theme.heroBg }}>
+            <div className="absolute inset-0">
+              {heroImageBlock
+                ? renderImageBlock(heroImageBlock, "h-full w-full object-cover", String(lead?.title ?? store.name), String(lead?.color ?? theme.heroBg))
+                : editableItemImage(kindSection.id, lead, 0, String(lead?.title ?? store.name), String(lead?.color ?? theme.heroBg), "h-full w-full object-cover")}
+            </div>
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/70 via-black/35 to-transparent" />
+            <div className="relative mx-auto flex min-h-[560px] max-w-[1320px] flex-col justify-end px-5 py-14 sm:px-8 lg:min-h-[640px] lg:py-20">
+              <div className="font-mono text-[11px] uppercase tracking-[0.16em] text-white/75">
+                {editableCopy(kindSection.id, "eyebrow", copy.eyebrow, store.name)}
+              </div>
+              <h1 className="mt-4 max-w-[820px] text-[clamp(44px,7vw,96px)] font-semibold leading-[0.95] tracking-[-0.05em] text-white" style={{ fontFamily: theme.headingFont }}>
+                {editableCopy(kindSection.id, "title", copy.title, `Welcome to ${store.name}`)}
+              </h1>
+              <p className="mt-5 max-w-[56ch] text-[15px] leading-8 text-white/80 sm:text-[17px]">
+                {editableCopy(kindSection.id, "body", copy.body, store.description ?? "Discover the store.")}
+              </p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <CommerceButton label={editableCopy(kindSection.id, "primaryCta", copy.primaryCta, "Shop now")} theme={theme} variant={primaryButtonVariant} size={primaryButtonSize} shape={primaryButtonShape} icon="cart" onClick={() => runCommerceAction(primaryButtonAction, kindSection.settings?.primaryButtonUrl)} />
+                <CommerceButton label={editableCopy(kindSection.id, "secondaryCta", copy.secondaryCta, "View story")} theme={theme} variant={secondaryButtonVariant} size={primaryButtonSize} shape={primaryButtonShape} onDark onClick={() => runCommerceAction(secondaryButtonAction, kindSection.settings?.secondaryButtonUrl)} />
+              </div>
+            </div>
+          </section>
+        );
+      }
       return (
         <section
           key={kindSection.id}
@@ -1860,13 +1908,16 @@ function ClassicTemplateSurface({
           </section>
         );
       }
-      if (kindSection.settings?.layout === "masonry") {
+      // The lookbook's "Editorial mosaic" uses the same mixed-height tiles; its pictures open the shop.
+      const lookbookMosaic = kindSection.kind === "lookbook-grid" && kindSection.settings?.layout === "editorial-mosaic";
+      if (kindSection.settings?.layout === "masonry" || lookbookMosaic) {
+        const openTile = (item: Record<string, unknown>) => (lookbookMosaic ? navigate("products") : navigateCategory(item));
         return (
           <section key={kindSection.id} className="mx-auto max-w-[1320px] px-5 py-12 sm:px-8">
-            <SectionHeading eyebrow="Browse" title={String(copy.title ?? "Shop categories")} body={typeof copy.body === "string" ? copy.body : undefined} headingFont={theme.headingFont} accent={theme.accent} ink={theme.ink} muted={theme.muted} />
+            <SectionHeading eyebrow={lookbookMosaic ? "Lookbook" : "Browse"} title={String(copy.title ?? (lookbookMosaic ? "The lookbook" : "Shop categories"))} body={typeof copy.body === "string" ? copy.body : undefined} headingFont={theme.headingFont} accent={theme.accent} ink={theme.ink} muted={theme.muted} />
             <div className="mt-8 grid gap-4 md:grid-cols-3">
               {categoryItems.map((item, index) => (
-                <div key={`${kindSection.id}-masonry-${index}`} role="button" tabIndex={0} onClick={() => navigateCategory(item)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") navigateCategory(item); }} className="group overflow-hidden rounded-[24px] border bg-white" style={{ borderColor: theme.border }}>
+                <div key={`${kindSection.id}-masonry-${index}`} role="button" tabIndex={0} onClick={() => openTile(item)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") openTile(item); }} className="group overflow-hidden rounded-[24px] border bg-white" style={{ borderColor: theme.border }}>
                   <div className={index % 3 === 0 ? "h-[360px]" : "h-[230px]"}>
                     {editableItemImage(kindSection.id, item, index, String(item.title ?? "Category"), String(item.color ?? theme.accent), "h-full w-full object-cover transition-transform duration-500 group-hover:scale-105")}
                   </div>
@@ -1953,7 +2004,8 @@ function ClassicTemplateSurface({
     }
 
     if (kindSection.kind === "featured-products") {
-      const products = filteredProducts(resolveProductItems(kindSection.items, store)).slice(0, currentPage === "products" ? undefined : readProductLimit(kindSection.settings, 8));
+      // "How many products" always applies once the seller sets it; unset, the shop page shows every product.
+      const products = filteredProducts(resolveProductItems(kindSection.items, store)).slice(0, readOptionalProductLimit(kindSection.settings) ?? (currentPage === "products" ? undefined : readProductLimit(kindSection.settings, 8)));
       const isPremiumProducts = kindSection.settings?.layout === "premium-product-cards";
       // "Products per row on computers" (2, 3 or 4); without a choice the template's own grid is kept.
       const columnClass = ({ "2": "xl:grid-cols-2", "3": "xl:grid-cols-3", "4": "xl:grid-cols-4" } as Record<string, string>)[String(kindSection.settings?.columns ?? "")];
@@ -1962,7 +2014,7 @@ function ClassicTemplateSurface({
           <section key={kindSection.id} className="mx-auto max-w-[1240px] px-5 py-12 sm:px-8">
             <SectionHeading eyebrow="Featured" title={String(copy.title ?? "Featured collection")} body={typeof copy.body === "string" ? copy.body : undefined} headingFont={theme.headingFont} accent={theme.accent} ink={theme.ink} muted={theme.muted} />
             <div className="mt-8 grid gap-5">
-              {products.slice(0, 5).map((product, index) => (
+              {products.slice(0, readOptionalProductLimit(kindSection.settings) ?? 5).map((product, index) => (
                 <article key={product.id} className="grid overflow-hidden border bg-white md:grid-cols-[220px_1fr_auto]" style={{ borderColor: theme.border, borderRadius: theme.templateStyle === "marketplace" ? 6 : theme.radius }}>
                   <div role="button" tabIndex={0} onClick={() => openProduct(product)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") openProduct(product); }} className="h-[220px] cursor-pointer md:h-full">
                     {renderImage(product.imageUrl, product.title, product.color, "h-full w-full object-cover")}
@@ -2284,7 +2336,8 @@ function ClassicTemplateSurface({
       return (
         <section key={kindSection.id} className="mx-auto max-w-[1240px] px-5 py-12 sm:px-8">
           <SectionHeading eyebrow={isCart ? "Cart" : "Wishlist"} title={String(copy.title ?? (isCart ? "Your cart" : "Saved for later"))} body={String(copy.body ?? "")} headingFont={theme.headingFont} accent={theme.accent} ink={theme.ink} muted={theme.muted} />
-          <div className="mt-6 grid gap-5 lg:grid-cols-[1fr_360px]">
+          {/* "Minimal": one slim column, the summary under the items. */}
+          <div className={layout === "minimal" ? "mx-auto mt-6 grid max-w-[720px] gap-5" : "mt-6 grid gap-5 lg:grid-cols-[1fr_360px]"}>
             <div className="grid gap-3">
               {items.map((product) => (
                 <div key={product.id} className="grid grid-cols-[96px_1fr_auto] gap-4 rounded-[24px] border bg-white p-3" style={{ borderColor: theme.border }}>
@@ -2415,10 +2468,10 @@ function ClassicTemplateSurface({
             ink={theme.ink}
             muted={theme.muted}
           />
-          <div className={`mt-6 grid gap-5 ${layout === "magazine" ? "md:grid-cols-[1.4fr_0.8fr_0.8fr]" : layout === "minimal" ? "md:grid-cols-2" : layout === "lookbook-journal" ? "md:grid-cols-2 lg:grid-cols-4" : "md:grid-cols-3"}`}>
+          <div className={`mt-6 grid gap-5 ${layout === "magazine" ? "md:grid-cols-[1.4fr_0.8fr_0.8fr]" : layout === "minimal" ? "md:grid-cols-2" : layout === "lookbook-journal" ? "md:grid-cols-2 lg:grid-cols-4" : layout === "story-stack" ? "mx-auto max-w-[980px]" : "md:grid-cols-3"}`}>
             {(kindSection.items ?? []).map((item, index) => (
-              <article key={`${kindSection.id}-${index}`} className="overflow-hidden border bg-white" style={{ borderColor: theme.border, borderRadius: layout === "lookbook-journal" ? 6 : theme.radius }}>
-                <div className={layout === "lookbook-journal" ? "h-72" : "h-44"}>{editableItemImage(kindSection.id, item, index, String(item.title ?? "Post"), String(item.color ?? theme.accent), "h-full w-full object-cover")}</div>
+              <article key={`${kindSection.id}-${index}`} className={`overflow-hidden border bg-white ${layout === "story-stack" ? "md:grid md:grid-cols-[320px_1fr]" : ""}`} style={{ borderColor: theme.border, borderRadius: layout === "lookbook-journal" ? 6 : theme.radius }}>
+                <div className={layout === "lookbook-journal" ? "h-72" : layout === "story-stack" ? "h-56 md:h-full md:min-h-[220px]" : "h-44"}>{editableItemImage(kindSection.id, item, index, String(item.title ?? "Post"), String(item.color ?? theme.accent), "h-full w-full object-cover")}</div>
                 <div className="px-5 py-5">
                   <div className="font-mono text-[11px] uppercase tracking-[0.14em]" style={{ color: theme.accent }}>
                     {String(item.category ?? "Story")} - {String(item.readTime ?? "3 min read")}
@@ -2644,6 +2697,36 @@ function ClassicTemplateSurface({
           ? "A thoughtful storefront for quality products, clear delivery details, helpful support, and a checkout flow customers can trust."
           : "Highlight the services, guarantees, and details customers need before they buy.",
       );
+      if (isStory && storyLayout === "text-first") {
+        // Copy-led: the words take most of the width, one picture beside them, points underneath.
+        return (
+          <section key={kindSection.id} className="px-5 py-20 sm:px-8" style={{ background: theme.paperBg }}>
+            <div className="mx-auto grid max-w-[1240px] gap-10 lg:grid-cols-[1.4fr_0.6fr] lg:items-start">
+              <div className={imageSide === "left" ? "lg:order-last" : ""}>
+                <div className="font-mono text-[12px] uppercase tracking-[0.28em]" style={{ color: theme.accent }}>{cleanCustomerCopy(copy.eyebrow, "Brand story")}</div>
+                <h2 className="mt-4 max-w-[820px] text-[40px] font-semibold leading-[1.02] sm:text-[58px]" style={{ color: theme.ink, fontFamily: theme.headingFont }}>{title}</h2>
+                <p className="mt-6 max-w-[720px] whitespace-pre-line text-[18px] leading-9" style={{ color: theme.muted }}>{body}</p>
+                {(kindSection.items ?? []).length > 0 ? (
+                  <div className="mt-10 grid gap-4 sm:grid-cols-3">
+                    {(kindSection.items ?? []).slice(0, 3).map((item, index) => {
+                      const clean = cleanStoryItem(item, index);
+                      return (
+                        <div key={`${kindSection.id}-${index}`} className={String(item.variant ?? "") === "soft" ? "border px-4 py-4 text-[13px] leading-6" : "border-t pt-5 text-[13px] leading-6"} style={String(item.variant ?? "") === "soft" ? blockPanelStyle(item.variant, theme) : { borderColor: theme.border }}>
+                          <div className="text-[13px] font-bold uppercase tracking-[0.1em]" style={{ color: theme.ink }}>{clean.title}</div>
+                          <div className="mt-3" style={{ color: theme.muted }}>{clean.body}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : null}
+              </div>
+              <div className="h-[420px] overflow-hidden rounded-[6px] lg:h-[520px]">
+                {renderImage(storyImage, title, theme.accent, "h-full w-full object-cover")}
+              </div>
+            </div>
+          </section>
+        );
+      }
       return (
         <section key={kindSection.id} className="px-5 py-20 sm:px-8" style={{ background: isStory ? theme.heroBg : theme.paperBg }}>
           <div className="mx-auto grid max-w-[1320px] gap-12 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">

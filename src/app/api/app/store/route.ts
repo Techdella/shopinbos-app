@@ -4,7 +4,7 @@ import { db } from "@/lib/db/client";
 import { ok, apiError } from "@/lib/api/response";
 import { mergeBrandSettings, slugify } from "@/lib/workspace";
 import type { AuthUser } from "@/lib/auth/types";
-import { clearStaleShopNames, isStoreSlugTaken } from "@/lib/store-address.server";
+import { clearStaleShopNames, clearStaleShopNamesInStorePages, isStoreSlugTaken } from "@/lib/store-address.server";
 
 async function uniqueStoreSlug(baseName: string, userId: string, currentStoreId?: string) {
   const base = slugify(baseName) || "store";
@@ -167,6 +167,7 @@ export const PATCH = withSeller(async (req: NextRequest, { user }: { user: AuthU
     where: { id: store.id },
     data: updateData as any,
   });
+  if (updateData.name) await clearStaleShopNamesInStorePages(store.id, store.name);
 
   return ok(updated);
 });
