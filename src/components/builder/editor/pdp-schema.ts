@@ -6,6 +6,8 @@ import {
   DEFAULT_BUY_BLOCKS,
   DEFAULT_PAGE_BLOCKS,
   PDP_BUY_BLOCKS,
+  PDP_FAQ_PLACEMENTS,
+  PDP_FAQ_STYLE_OPTIONS,
   PDP_GALLERY_OPTIONS,
   PDP_LAYOUT_OPTIONS,
   PDP_PAGE_BLOCKS,
@@ -35,6 +37,14 @@ export function pdpSchemaGroups(themeId: string, defaults?: { layout: string; ga
     ] },
     { title: "Below the product", fields: [
       { id: "pageBlocks", type: "order", label: "Shows, in this order", target: setting("pageBlocks"), options: PDP_PAGE_BLOCKS, fallback: DEFAULT_PAGE_BLOCKS },
+    ] },
+    { title: "Questions (FAQs)", fields: [
+      { id: "faqStyle", type: "cards", label: "FAQ style", target: setting("faqStyle"), fallback: "auto", options: PDP_FAQ_STYLE_OPTIONS, thumbs: "faq" },
+      { id: "faqTitle", type: "text", label: "FAQ heading", target: copy("faqTitle"), placeholder: "FAQs" },
+      { id: "faqPlacement", type: "segmented", label: "Show questions", target: setting("faqPlacement"), fallback: "tab", options: PDP_FAQ_PLACEMENTS },
+      { id: "faqOpen", type: "segmented", label: "When the page opens", target: setting("faqOpen"), fallback: "closed", options: [{ value: "closed", label: "All closed" }, { value: "first", label: "First one open" }], help: "Cards and Question beside answer always show every answer." },
+      { id: "faqStoreQuestions", type: "toggle", label: "Add my store's questions", target: setting("faqStoreQuestions"), fallback: false, help: "Questions from your FAQ section show after the product's own. Blank delivery and payment answers are filled from your settings." },
+      { id: "faqNote", type: "note", label: "Each product's own questions are written on its product form. One product can also pick its own FAQ style there." },
     ] },
     { title: "Buttons and headings", fields: [
       { id: "addToBagLabel", type: "text", label: "Add to bag button", target: copy("addToBagLabel"), placeholder: "Add to bag" },

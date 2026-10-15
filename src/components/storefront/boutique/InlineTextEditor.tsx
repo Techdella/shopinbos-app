@@ -7,10 +7,14 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 // never edited by the browser (React keeps drawing it); Enter or clicking away saves, Esc cancels.
 
 /** The section's words a click can edit, in the order they're matched against what was clicked. */
-export const INLINE_COPY_KEYS = ["title", "body", "eyebrow", "summary", "primaryCta", "cta", "buttonLabel", "discountLabel"] as const;
+export const INLINE_COPY_KEYS = ["title", "body", "eyebrow", "summary", "primaryCta", "cta", "buttonLabel", "discountLabel", "faqTitle"] as const;
 export type InlineCopyKey = (typeof INLINE_COPY_KEYS)[number];
 
-const MAX_LENGTH: Record<InlineCopyKey, number> = { title: 140, body: 600, eyebrow: 60, summary: 300, primaryCta: 40, cta: 40, buttonLabel: 40, discountLabel: 40 };
+const MAX_LENGTH: Record<InlineCopyKey, number> = { title: 140, body: 600, eyebrow: 60, summary: 300, primaryCta: 40, cta: 40, buttonLabel: 40, discountLabel: 40, faqTitle: 60 };
+
+function isInlineKey(value: string | undefined): value is InlineCopyKey {
+  return Boolean(value) && (INLINE_COPY_KEYS as readonly string[]).includes(value!);
+}
 
 const clean = (value: string) => value.replace(/\s+/g, " ").trim();
 
@@ -22,6 +26,8 @@ export function inlineTargetFor(target: Element, section: Element, copy: Record<
   for (let node: Element | null = target; node && node !== section; node = node.parentElement) {
     if (!(node instanceof HTMLElement)) continue;
     if (node.closest("input, textarea, select, [data-inline-editor]")) return null;
+    // Words that say which copy they show (data-inline-key), even while they show the default wording.
+    if (isInlineKey(node.dataset.inlineKey)) return { element: node, key: node.dataset.inlineKey };
     // Only elements that hold just text (a heading, a paragraph, a button label), not whole cards.
     if (node.children.length > 2 || node.querySelector("img, svg, video, input")) continue;
     const shown = clean(node.textContent ?? "");

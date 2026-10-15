@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { Fragment, useEffect, useId, useRef, useState } from "react";
 import type React from "react";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { deliveryLines, formatStoreMoney, whatsappLink } from "@/lib/storefront/shopper-info";
@@ -10,6 +10,8 @@ import { SectionTitle } from "../BoutiqueChrome";
 import type { AddToBagInput, BoutiqueProductViewProps } from "../BoutiqueProductView";
 import type { BoutiqueLook } from "../look";
 import { ProductTile } from "../ProductTile";
+import { FaqList } from "../faq/FaqList";
+import { productFaqItems } from "../faq/faq-logic";
 import { PdpDetails } from "./PdpDetails";
 import { PdpGallery } from "./PdpGallery";
 import { PdpReviews, Stars } from "./PdpReviews";
@@ -17,6 +19,7 @@ import { PDP_CSS } from "./pdp-css";
 import {
   productVideo,
   pushRecentlyViewed,
+  readFaqs,
   recentlyViewedKey,
   savingsPercent,
   pdpAvailability,
@@ -89,6 +92,10 @@ export function BoutiquePdp(props: Props) {
   const video = productVideo(product.videoUrl);
   const delivery = deliveryLines(shopper, props.currency);
   const badges = trustBadges(settings.trust, shopper, product, props.currency);
+  // The product's own questions, then the store's FAQ section questions when the seller switched that on.
+  const faqItems = productFaqItems(readFaqs(product.faqs), settings.faq.storeQuestions ? settings.faq.storeItems : [], shopper, props.currency);
+  // Cards use the page's full width; the other styles keep the details' reading width.
+  const faqWide = settings.faq.style === "cards";
   const wished = props.wishlistIds.includes(product.id);
   // The stepper stops at what is left (tracked stock or a version's own count).
   const maxQuantity = availability.maxQuantity !== null ? Math.max(1, availability.maxQuantity) : 99;
@@ -361,12 +368,28 @@ export function BoutiquePdp(props: Props) {
           storeName={props.storeName}
           hasWhatsapp={Boolean(shopper.whatsappNumber)}
           editor={editor}
+          faq={{ items: faqItems, settings: settings.faq }}
         />
       );
-      return (
+      const details = (
         <section key="details" id={detailsId} aria-label="Product details" className="bq-pdp2-details scroll-mt-24">
           {node}
         </section>
+      );
+      if (settings.faq.placement !== "section") return details;
+      // Questions in their own section under the details, in the style picked in the builder.
+      const faqHeadingId = `${uid}-faq`;
+      const faqSection = faqItems.length ? (
+        <section key="faqs" aria-labelledby={faqHeadingId} className={faqWide ? "scroll-mt-24" : "bq-pdp2-details scroll-mt-24"}>
+          <SectionTitle look={look} id={faqHeadingId}><span data-inline-key="faqTitle">{settings.faq.title}</span></SectionTitle>
+          <FaqList items={faqItems.map((item, i) => ({ id: `faq-${i}`, question: item.question, answer: item.answer }))} style={settings.faq.style} look={look} firstOpen={settings.faq.firstOpen} />
+        </section>
+      ) : editor ? hint("faqs", `${settings.faq.title}: this product's questions show here once you add some on its product form.`) : null;
+      return (
+        <Fragment key="details">
+          {details}
+          {faqSection}
+        </Fragment>
       );
     },
     reviews: () => (

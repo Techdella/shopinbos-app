@@ -15,6 +15,7 @@ import {
   type PdpLayout,
   type PdpSettings,
 } from "./pdp-logic.ts";
+import { storeFaqSection } from "../faq/faq-logic.ts";
 
 export type ClassicProductLayout = "gallery-left" | "split" | "minimal" | "sticky-summary";
 
@@ -99,6 +100,8 @@ export interface ClassicPdpOptions {
   relatedFallback?: string;
   /** Add-to-bag wording when the seller set none on the product page (the store's cart setting). */
   addToBagFallback?: string;
+  /** The store's FAQ section: the product page's questions follow its style and can add its questions. */
+  faqSection?: { settings?: Record<string, unknown>; items?: Array<Record<string, unknown>> } | null;
 }
 
 /**
@@ -106,7 +109,7 @@ export interface ClassicPdpOptions {
  * section's classic `layout` as the starting layout, photos and details style.
  */
 export function readClassicPdpSettings(section: SectionLike | null | undefined, options: ClassicPdpOptions = {}): PdpSettings {
-  const base = readPdpSettings(section, "", options.relatedFallback ?? "");
+  const base = readPdpSettings(section, "", options.relatedFallback ?? "", { section: options.faqSection ?? null, renderer: "classic" });
   const settings = record(section?.settings);
   const copy = record(section?.blocks?.find((block) => block.type === "copy")?.content);
   const defaults = classicPdpDefaults(settings.layout);
@@ -124,5 +127,5 @@ export function classicPdpSettingsForSnapshot(snapshot: SnapshotLike | null | un
   const page = snapshot?.pages?.find((entry) => entry.pageType === "product");
   const related = page?.sections?.find((entry) => entry.kind === "featured-products" && entry.settings?.source === "related");
   const relatedTitle = str(record(related?.blocks?.find((block) => block.type === "copy")?.content).title);
-  return readClassicPdpSettings(pdpSectionOf(snapshot), { ...options, relatedFallback: relatedTitle || options.relatedFallback });
+  return readClassicPdpSettings(pdpSectionOf(snapshot), { faqSection: storeFaqSection(snapshot), ...options, relatedFallback: relatedTitle || options.relatedFallback });
 }

@@ -16,6 +16,7 @@ import {
   type PdpPageBlock,
 } from "@/components/storefront/boutique/pdp/pdp-logic";
 import { readProductPageOverride, writeProductPageOverride } from "@/components/storefront/boutique/pdp/product-override";
+import { FAQ_STYLES, readFaqStyle, type FaqStyle } from "@/components/storefront/boutique/faq/faq-logic";
 import { Icon } from "@/components/ui/Icon";
 import { field } from "@/components/seller-core";
 import { SeoTab } from "@/components/seo/SeoTab";
@@ -229,6 +230,7 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
   const [pageLayoutChoice, setPageLayoutChoice] = useState<PdpLayout | null>(pageOverride.layout);
   const [buyBoxChoice, setBuyBoxChoice] = useState<PdpBuyBlock[] | null>(pageOverride.buyBox);
   const [sectionsChoice, setSectionsChoice] = useState<PdpPageBlock[] | null>(pageOverride.sections);
+  const [faqStyleChoice, setFaqStyleChoice] = useState<FaqStyle | null>(pageOverride.faqStyle ?? null);
   const customParts = buyBoxChoice !== null || sectionsChoice !== null;
 
   /** A new main price: versions that simply followed it follow it again. */
@@ -397,7 +399,7 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
       trackStock: tracking,
       continueSellingWhenOut: tracking && continueSelling,
       // Only what the seller chose here overrides the store's product page settings.
-      pageLayout: writeProductPageOverride({ layout: pageLayoutChoice, buyBox: buyBoxChoice, sections: sectionsChoice }),
+      pageLayout: writeProductPageOverride({ layout: pageLayoutChoice, buyBox: buyBoxChoice, sections: sectionsChoice, ...(faqStyleChoice ? { faqStyle: faqStyleChoice } : {}) }),
       seoTitle: seo.metaTitle.slice(0, 70) || undefined,
       seoDescription: seo.metaDescription.slice(0, 160) || undefined,
       // Type, details, versions and related products (the API checks and normalizes them).
@@ -913,6 +915,16 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
                     />
                   </div>
                 ) : null}
+              </Section>
+
+              <Section title={t("faqStyle.title")} sub={t("faqStyle.sub")}>
+                <label className="block min-w-0 sm:max-w-[420px]">
+                  <span className={field.label}>{t("faqStyle.label")}</span>
+                  <select value={faqStyleChoice ?? ""} onChange={(e) => setFaqStyleChoice(readFaqStyle(e.target.value))} className={field.select}>
+                    <option value="">{t("faqStyle.store")}</option>
+                    {FAQ_STYLES.map((style) => <option key={style} value={style}>{t(`faqStyle.${style}`)}</option>)}
+                  </select>
+                </label>
               </Section>
             </>
           )}

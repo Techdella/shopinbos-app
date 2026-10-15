@@ -409,6 +409,8 @@ export interface RowMove {
   column: number;
   index: number;
   reason?: RowMoveRefusal;
+  /** With reason "unknown": what wasn't there (a row, or the element in its row). Absent for a bad column or index. */
+  missing?: "row" | "element";
 }
 
 /**
@@ -427,14 +429,15 @@ export function moveElementAcrossRows(
   toColumn: number,
   toIndex: number,
 ): RowMove {
-  const none = (reason: RowMoveRefusal): RowMove => ({ sections, elementId: null, column: -1, index: -1, reason });
-  if (!Array.isArray(sections)) return none("unknown");
+  const none = (reason: RowMoveRefusal, missing?: RowMove["missing"]): RowMove => ({ sections, elementId: null, column: -1, index: -1, reason, ...(missing ? { missing } : {}) });
+  if (!Array.isArray(sections)) return none("unknown", "row");
   const fromAt = sections.findIndex((section) => section?.id === fromSectionId && section.kind === LAYOUT_ROW_KIND);
   const toAt = sections.findIndex((section) => section?.id === toSectionId && section.kind === LAYOUT_ROW_KIND);
-  if (fromAt === -1 || toAt === -1 || typeof toColumn !== "number" || typeof toIndex !== "number" || !Number.isFinite(toColumn) || !Number.isFinite(toIndex)) return none("unknown");
+  if (fromAt === -1 || toAt === -1) return none("unknown", "row");
   const from = sections[fromAt]!;
   const found = findLayoutElement(from, elementId);
-  if (!found) return none("unknown");
+  if (!found) return none("unknown", "element");
+  if (typeof toColumn !== "number" || typeof toIndex !== "number" || !Number.isFinite(toColumn) || !Number.isFinite(toIndex)) return none("unknown");
 
   if (fromAt === toAt) {
     const next = moveLayoutElement(from, elementId, toColumn, toIndex);
@@ -473,6 +476,17 @@ export function moveElementAcrossRows(
     column,
     index,
   };
+}
+
+/** What a move between rows came to, for the builder's announcement: never "moved" unless it changed the page. */
+export type RowMoveOutcome = "moved" | "full" | "row-gone" | "element-gone" | "unchanged";
+
+export function rowMoveOutcome(move: RowMove): RowMoveOutcome {
+  if (move.elementId && !move.reason) return "moved";
+  if (move.reason === "full") return "full";
+  if (move.missing === "row") return "row-gone";
+  if (move.missing === "element") return "element-gone";
+  return "unchanged";
 }
 
 /** Can `elementId` (in `fromSectionId`) go to that column of `toSectionId`? False when either is unknown or the column is full. */
@@ -523,4 +537,63 @@ export function dragPreviewPosition(x: number, y: number, size: { width: number;
   left = Math.max(margin, Math.min(left, viewport.width - margin - size.width));
   top = Math.max(margin, Math.min(top, viewport.height - margin - size.height));
   return { left: Math.round(left), top: Math.round(top) };
+}
+
+// ─── Drop targets in other rows (the builder) ────────────────────────────────
+
+export interface RowDropColumn {
+  index: number;
+  /** Elements in it now. */
+  count: number;
+  /** No room for an element from another row. */
+  full: boolean;
+}
+
+export interface RowDropTarget {
+  id: string;
+  /** Its number among the page's rows / columns sections, from the top (hidden ones count, like "Move to"). */
+  n: number;
+  name: string;
+  hidden: boolean;
+  presetId: ColumnPresetId;
+  columns: RowDropColumn[];
+}
+
+/** One rows / columns section as a drop target: its columns and which of them are full. */
+export function rowDropTarget(section: TemplateSectionNode, n: number): RowDropTarget {
+  const view = normaliseLayoutRow(section);
+  return {
+    id: section.id,
+    n,
+    name: text(section.name, 120).trim() || "Columns",
+    hidden: section.visible === false,
+    presetId: view.preset.id,
+    columns: view.cells.map((cell, index) => ({ index, count: cell.elements.length, full: cell.elements.length >= MAX_ELEMENTS_PER_COLUMN })),
+  };
+}
+
+/**
+ * The page's rows / columns sections other than `fromSectionId`, top to bottom, hidden ones included (marked): where
+ * an element of that row can be dragged or moved to from the builder's panel.
+ */
+export function otherRowDropTargets(sections: TemplateSectionNode[], fromSectionId: string): RowDropTarget[] {
+  if (!Array.isArray(sections)) return [];
+  return sections
+    .filter((section) => section?.kind === LAYOUT_ROW_KIND)
+    .map((section, at) => ({ section, n: at + 1 }))
+    .filter(({ section }) => section.id !== fromSectionId)
+    .map(({ section, n }) => rowDropTarget(section, n));
+}
+
+/** A hidden rows / columns section: never drawn for shoppers, only as a drop strip in the builder while dragging. */
+export function isHiddenLayoutRow(section: Pick<TemplateSectionNode, "kind" | "visible"> | null | undefined): boolean {
+  return section?.kind === LAYOUT_ROW_KIND && section.visible === false;
+}
+
+/**
+ * The sections a page draws: the visible ones, and with `withHiddenRows` (the builder's canvas while editing) also its
+ * hidden rows / columns sections in their place, so they can take drops. The live store never passes it.
+ */
+export function drawnSections<T extends Pick<TemplateSectionNode, "kind" | "visible">>(sections: T[], withHiddenRows = false): T[] {
+  return sections.filter((section) => section.visible !== false || (withHiddenRows && isHiddenLayoutRow(section)));
 }

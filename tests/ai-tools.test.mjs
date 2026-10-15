@@ -298,7 +298,18 @@ globalThis.__aiMocks = {
   "@/lib/analytics/load": { loadAnalytics: record("loadAnalytics", { report: { kpis: { sales: 0, orders: 0, aov: 0, visits: 0, conversionRate: null, returningRate: null, refundsCount: 0, refundsValue: 0 }, change: {}, previous: { sales: 0, orders: 0, visits: 0 }, topProducts: [], channels: [], sources: [], attribution: {}, funnel: [], customers: {} } }) },
   "@/lib/analytics/range": { resolveRange: ({ range }) => ({ label: range }) },
   "@/lib/social/server": { productLink: (store, id) => `https://${store.slug}.shop/p/${id}`, feedUrl: (slug, file) => `https://x/${slug}/${file}` },
-  "@/lib/reviews/server": { loadReviews: record("loadReviews", []), productNames: async () => new Map() },
+  "@/lib/reviews/server": { loadReviews: record("loadReviews", []), productNames: async () => new Map(), moderateReview: record("moderateReview", true) },
+  "@/lib/reviews/reply": { saveSellerReply: record("saveSellerReply", { ok: true, message: "Reply saved." }) },
+  "@/lib/whatsapp-catalog/dirty": { markCatalogDirty: record("markCatalogDirty", undefined) },
+  "@/lib/products/categories.server": {
+    categoryNamesFor: async () => ["Bags"],
+    findCategoryByName: async (name) => (name.toLowerCase() === "bags" ? { id: "cat-bags", name: "Bags" } : null),
+    findOrCreateCategory: record("findOrCreateCategory", (name) => ({ id: "cat-new", name, created: true })),
+  },
+  "@/lib/products/content-ai.server": {
+    contentCallCount: () => 1,
+    suggestProductContent: record("suggestProductContent", (items) => ({ suggestions: items.map((item) => ({ description: `About ${item.name}.`, specifications: [{ name: "Material", value: "Cotton" }], seoTitle: item.name })), source: "ai", aiCalls: 1 })),
+  },
   "@/lib/reviews/ai": { draftReviewReply: async () => "Thank you!", summarizeReviewThemes: async () => ({ summary: { bySource: {} }, themes: null }) },
   "@/lib/reviews/requests": {
     storeChannelReadiness: async () => ({ email: true, sms: false, whatsapp: false }),
@@ -411,6 +422,15 @@ async function runRex(name, input, ctx = rexCtx()) {
   return REX_TOOL_RUNNERS[name](ctx, parsed.input);
 }
 
+/** An edit_products change that keeps every field except the ones given. */
+function NO_CHANGE(fields = {}) {
+  return {
+    description: null, longDescription: null, careInstructions: null, shippingInfo: null, returnPolicy: null, warranty: null, supportInfo: null,
+    seoTitle: null, seoDescription: null, specifications: null, faqs: null, productType: null, productDetails: null, category: null, tags: null,
+    weight: null, weightUnit: null, dimensions: null, relatedProducts: null, compareAtPrice: null, ...fields,
+  };
+}
+
 // One valid input per tool. Each test below runs it, and every tool also refuses the same input with a
 // storeId, userId or other field the model might try to slip in.
 const PEGGY_VALID = {
@@ -440,8 +460,11 @@ const PEGGY_VALID = {
   inbox_send_reply: { conversation: "conv-A", message: "Yes, it is available.", confirmCode: null },
   analytics_report: { period: "30d" },
   social_write_post: { productName: "Ankara tote", channel: "whatsapp", angle: null },
-  reviews_summary: { themes: false },
-  reviews_draft_replies: { limit: null, lowRatingsFirst: null },
+  reviews_summary: { themes: false, product: null },
+  reviews_draft_replies: { limit: null, lowRatingsFirst: null, product: null },
+  reviews_list: { product: null, filter: "needs_reply", limit: null },
+  reviews_reply: { review: "store:r1", reply: "Thank you, Tolu!", confirmCode: null },
+  reviews_moderate: { reviews: ["store:r1"], action: "feature", confirmCode: null },
   reviews_request: { orderNumbers: ["SIB-1001"], channel: "email", confirmCode: null },
   marketing_overview: {},
   marketing_create_segment: { name: "Big spenders", match: "all", conditions: [{ field: "spent", op: "gte", value: "50000" }] },
@@ -457,6 +480,9 @@ const PEGGY_VALID = {
   draft_email_template: { brief: "A Sallah sale email with 10% off", name: null, kind: null },
   improve_email_copy: { template: "Welcome", instruction: "Make it shorter" },
   legal_draft_page: { page: "refund-policy", brief: null, confirmCode: null },
+  get_product: { product: "Ankara tote" },
+  edit_products: { target: { products: null, name: "tote", category: null, tag: null, productType: null, batch: null }, changes: NO_CHANGE({ warranty: "12 months" }), perProduct: null, confirmCode: null },
+  draft_product_content: { target: { products: ["Ankara tote"], name: null, category: null, tag: null, productType: null, batch: null }, fields: ["description", "specifications", "seo"], instruction: null, usePhotos: true },
   set_product_variants: { product: "Ankara tote", options: [{ name: "Size", values: ["S", "M", "L"] }], basePrice: null, priceAdjustments: [{ option: "Size", value: "L", amount: 2000 }], exactPrices: null, confirmCode: null },
 };
 
@@ -509,7 +535,7 @@ test("every Peggy and Rex tool has a runner, a valid example, and refuses smuggl
 });
 
 test("Peggy and Rex tools that send or replace things are marked as writes", () => {
-  for (const name of ["create_discount", "update_product", "mark_order", "inbox_send_reply", "reviews_request", "marketing_send_campaign", "marketing_create_automation", "legal_draft_page", "commerce_update_settings", "setup_payment_methods", "set_product_variants"]) {
+  for (const name of ["create_discount", "update_product", "mark_order", "inbox_send_reply", "reviews_request", "marketing_send_campaign", "marketing_create_automation", "legal_draft_page", "commerce_update_settings", "setup_payment_methods", "set_product_variants", "edit_products", "reviews_reply", "reviews_moderate"]) {
     assert.equal(isWriteTool(name), true, name);
   }
   for (const name of ["edit_store_section", "rebuild_section", "switch_theme", "create_campaign", "create_automation"]) assert.equal(rexPure.isRexWriteTool(name), true, name);
@@ -1011,4 +1037,112 @@ test("Peggy runs ads: drafts spend nothing, launching needs the seller's yes, he
   const help = await runPeggy("ads_request_help", PEGGY_VALID.ads_request_help);
   assert.equal(help.action.href, "https://checkout.paystack.com/abc", "the seller pays the setup fee from the card");
   assert.equal(called("createAdRequest")[0].args[0].request.platform, "tiktok");
+});
+
+// ─── Peggy: product details, written content and reviews ───────────────────────
+
+test("edit_products previews before → after, saves only the seller's products, and only with the code", async () => {
+  const d = useDb();
+  calls.length = 0;
+  const preview = await runPeggy("edit_products", PEGGY_VALID.edit_products);
+  assert.match(preview.content, /NOT SAVED YET[\s\S]*Ankara tote:\n  - Warranty: \(empty\) → 12 months/);
+  assert.equal(preview.action, undefined);
+  assert.equal(d.storeProduct.rows.find((p) => p.id === "pa1").warranty, undefined, "nothing saved by the preview");
+  const [issued] = peggyPure.issuedConfirmationCodes(preview.content);
+  await runPeggy("edit_products", { ...PEGGY_VALID.edit_products, confirmCode: "WRONG1" });
+  assert.equal(d.storeProduct.rows.find((p) => p.id === "pa1").warranty, undefined, "a wrong code saves nothing");
+  const other = await runPeggy("edit_products", { ...PEGGY_VALID.edit_products, changes: NO_CHANGE({ warranty: "24 months" }), confirmCode: issued });
+  assert.match(other.content, /NOT SAVED YET/, "a code for one change doesn't save another");
+  const saved = await runPeggy("edit_products", { ...PEGGY_VALID.edit_products, confirmCode: issued });
+  assert.match(saved.action.summary, /Updated Ankara tote: warranty/);
+  assert.equal(d.storeProduct.rows.find((p) => p.id === "pa1").warranty, "12 months");
+  assert.equal(called("markCatalogDirty")[0].args[0], "store-A");
+
+  // Shop B's products are never matched, by name or id.
+  await assert.rejects(runPeggy("edit_products", { ...PEGGY_VALID.edit_products, target: { ...PEGGY_VALID.edit_products.target, name: "bag" } }), /No products match/);
+  await assert.rejects(runPeggy("edit_products", { target: null, changes: null, perProduct: [{ product: "pb1", changes: NO_CHANGE({ description: "x" }) }], confirmCode: null }), /No product matches/);
+
+  // A new category is only made once the seller confirms; a was-price below the price is left out.
+  const change = { target: null, changes: null, perProduct: [{ product: "Adire scarf", changes: NO_CHANGE({ category: "Scarves", compareAtPrice: 1000, specifications: { mode: "merge", items: [{ name: "Material", value: "Silk" }] } }) }], confirmCode: null };
+  const scarf = await runPeggy("edit_products", change);
+  assert.match(scarf.content, /Category: \(none\) → Scarves \(new category\)/);
+  assert.match(scarf.content, /was-price ₦1,000 must be above the price/);
+  assert.equal(called("findOrCreateCategory").length, 0);
+  const [scarfCode] = peggyPure.issuedConfirmationCodes(scarf.content);
+  await runPeggy("edit_products", { ...change, confirmCode: scarfCode });
+  const row = d.storeProduct.rows.find((p) => p.id === "pa2");
+  assert.equal(row.categoryId, "cat-new");
+  assert.deepEqual(row.specifications, [{ name: "Material", value: "Silk" }]);
+  assert.equal(row.compareAtPrice, undefined);
+  assert.equal(d.storeProduct.rows.find((p) => p.id === "pb1").categoryId, undefined, "shop B untouched");
+  assertOnlyStoreA(d);
+});
+
+test("get_product and draft_product_content read only the seller's products; drafts save nothing", async () => {
+  const d = useDb();
+  calls.length = 0;
+  const info = JSON.parse((await runPeggy("get_product", PEGGY_VALID.get_product)).content);
+  assert.equal(info.name, "Ankara tote");
+  assert.equal(info.link, "/products/pa1");
+  await assert.rejects(runPeggy("get_product", { product: "Secret bag" }), /No product matches/);
+
+  const draft = await runPeggy("draft_product_content", PEGGY_VALID.draft_product_content);
+  assert.match(draft.content, /NOTHING IS SAVED/);
+  assert.equal(d.storeProduct.rows.find((p) => p.id === "pa1").description, "Hand-stitched.");
+  const perProduct = JSON.parse(draft.content.match(/perProduct exactly: (\[.*\])/)[1]);
+  const next = await runPeggy("edit_products", { target: null, changes: null, perProduct, confirmCode: null });
+  assert.match(next.content, /Description: Hand-stitched\. → About Ankara tote\./, "what Peggy wrote goes through the same preview");
+  aiLimited = true;
+  await assert.rejects(runPeggy("draft_product_content", PEGGY_VALID.draft_product_content), /allowance/);
+  aiLimited = false;
+});
+
+test("reviews_list, reviews_reply and reviews_moderate act on the seller's own reviews, with a code", async () => {
+  useDb();
+  calls.length = 0;
+  const reviews = globalThis.__aiMocks["@/lib/reviews/server"];
+  const item = (storeId, id) => ({ key: `store:${id}`, kind: "store", id, source: "store", importMethod: "form", authorName: "Tolu", authorEmail: null, authorPhotoUrl: null, rating: 2, title: "", body: "The strap broke", images: [], status: "pending", featured: false, verifiedBuyer: true, productId: storeId === "store-A" ? "pa1" : "pb1", orderId: null, reply: null, repliedAt: null, sourceUrl: null, createdAt: "2026-10-01T10:00:00.000Z" });
+  const original = reviews.loadReviews;
+  reviews.loadReviews = async (storeId) => (storeId === "store-A" ? [item("store-A", "r1")] : [item("store-B", "rb")]);
+  try {
+    const list = JSON.parse((await runPeggy("reviews_list", { product: "Ankara tote", filter: "low_rating", limit: null })).content);
+    assert.equal(list.reviews[0].key, "store:r1");
+    await assert.rejects(runPeggy("reviews_reply", { ...PEGGY_VALID.reviews_reply, review: "store:rb" }), /No review store:rb/, "shop B's review is invisible");
+
+    const preview = await runPeggy("reviews_reply", PEGGY_VALID.reviews_reply);
+    assert.match(preview.content, /NOT POSTED YET[\s\S]*"Thank you, Tolu!"/);
+    assert.equal(called("saveSellerReply").length, 0);
+    const [code] = peggyPure.issuedConfirmationCodes(preview.content);
+    const changed = await runPeggy("reviews_reply", { ...PEGGY_VALID.reviews_reply, reply: "Sorry, we will refund you", confirmCode: code });
+    assert.match(changed.content, /NOT POSTED YET/, "a code for other words posts nothing");
+    const posted = await runPeggy("reviews_reply", { ...PEGGY_VALID.reviews_reply, confirmCode: code });
+    assert.match(posted.action.summary, /Replied to Tolu's review/);
+    assert.deepEqual(called("saveSellerReply")[0].args, ["store-A", { kind: "store", id: "r1" }, "Thank you, Tolu!"]);
+
+    await assert.rejects(runPeggy("reviews_moderate", { reviews: ["store:rb"], action: "hide", confirmCode: null }), /Not in this shop/);
+    const moderate = await runPeggy("reviews_moderate", PEGGY_VALID.reviews_moderate);
+    assert.match(moderate.content, /NOT CHANGED YET. Would feature/);
+    const [modCode] = peggyPure.issuedConfirmationCodes(moderate.content);
+    const featured = await runPeggy("reviews_moderate", { ...PEGGY_VALID.reviews_moderate, confirmCode: modCode });
+    assert.match(featured.action.summary, /Featured 1 review/);
+    assert.deepEqual(called("moderateReview")[0].args, ["store-A", { kind: "store", id: "r1" }, { featured: true }]);
+
+    const summary = JSON.parse((await runPeggy("reviews_summary", { themes: false, product: "Ankara tote" })).content);
+    assert.equal(summary.product, "Ankara tote");
+    assert.equal(summary.average, 2);
+  } finally {
+    reviews.loadReviews = original;
+  }
+});
+
+test("new Peggy tool schemas turn into strict provider schemas", () => {
+  for (const name of ["edit_products", "draft_product_content", "get_product", "reviews_list", "reviews_reply", "reviews_moderate"]) {
+    const schema = peggyPure.providerSchema(peggyPure.PEGGY_TOOL_SPECS[name].schema);
+    assert.equal(schema.type, "object", name);
+    assert.equal(schema.additionalProperties, false, name);
+  }
+  assert.equal(peggyPure.parseToolInput("edit_products", { ...PEGGY_VALID.edit_products, perProduct: [{ product: "x", changes: NO_CHANGE() }] }).ok, false, "not both forms at once");
+  assert.equal(peggyPure.parseToolInput("edit_products", { ...PEGGY_VALID.edit_products, target: { products: null, name: null, category: null, tag: null, productType: null, batch: null } }).ok, false, "a target says which products");
+  assert.equal(peggyPure.parseToolInput("reviews_reply", { ...PEGGY_VALID.reviews_reply, review: "r1" }).ok, false, "review keys only");
+  assert.deepEqual(peggyPure.reviewModerationConfirmationParts("s", "hide", ["b", "a", "a"]), ["s", "review-moderate", "hide", "a,b"]);
 });

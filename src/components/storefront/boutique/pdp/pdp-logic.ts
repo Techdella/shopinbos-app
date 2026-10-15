@@ -5,6 +5,7 @@
 
 import { formatStoreMoney, freeDeliveryEverywhereOver, freeDeliveryPromise, type StorefrontShopperInfo } from "../../../../lib/storefront/shopper-info.ts";
 import { stockAvailability, type Availability, type ShopperStock } from "../../../../../shared/product-stock.ts";
+import { faqSectionStyle, readFaqStyle, readStoreFaqItems, storeFaqSection, FAQ_STYLE_OPTIONS, type FaqRenderer, type FaqStyle, type StoreFaqItem } from "../faq/faq-logic.ts";
 
 export type PdpLayout = "classic" | "gallery-stack" | "editorial" | "compact";
 export type PdpGalleryStyle = "thumbs-left" | "thumbs-bottom" | "slider";
@@ -45,6 +46,21 @@ export const PDP_PAGE_BLOCKS: Array<{ value: PdpPageBlock; label: string }> = [
   { value: "recent", label: "Recently viewed" },
 ];
 
+/** The product page's question style: "auto" follows the store's FAQ section. */
+export type PdpFaqStyleChoice = "auto" | FaqStyle;
+/** Questions inside the product details (a tab or accordion panel), or as their own section below them. */
+export type PdpFaqPlacement = "tab" | "section";
+
+export const PDP_FAQ_STYLE_OPTIONS: Array<{ value: PdpFaqStyleChoice; label: string; hint: string }> = [
+  { value: "auto", label: "Same as my FAQ section", hint: "Looks like the FAQ section on your pages." },
+  ...FAQ_STYLE_OPTIONS,
+];
+
+export const PDP_FAQ_PLACEMENTS: Array<{ value: PdpFaqPlacement; label: string }> = [
+  { value: "tab", label: "With product details" },
+  { value: "section", label: "Own section" },
+];
+
 export const DEFAULT_BUY_BLOCKS: PdpBuyBlock[] = ["price", "rating", "summary", "variants", "stock", "quantity", "buttons", "actions", "trust", "delivery"];
 export const DEFAULT_PAGE_BLOCKS: PdpPageBlock[] = ["details", "reviews", "related", "recent"];
 
@@ -76,6 +92,47 @@ export interface PdpSettings {
     related: string;
     recent: string;
     reviews: string;
+  };
+  /** The product's questions (FAQs). */
+  faq: PdpFaqSettings;
+}
+
+export interface PdpFaqSettings {
+  /** The style the questions show in (the choice, or the FAQ section's style for "auto"). */
+  style: FaqStyle;
+  /** What the seller picked on the product page settings. */
+  choice: PdpFaqStyleChoice;
+  /** The store's FAQ section style, which "auto" follows. */
+  sectionStyle: FaqStyle;
+  title: string;
+  placement: PdpFaqPlacement;
+  /** The first question starts open (all closed otherwise). */
+  firstOpen: boolean;
+  /** Add the store's FAQ section questions after the product's own. */
+  storeQuestions: boolean;
+  /** The store's FAQ section questions (answers left blank are filled from settings when shown). */
+  storeItems: StoreFaqItem[];
+}
+
+/** Where the store's FAQ section is, for "Same as my FAQ section" and the store's questions. */
+export interface PdpFaqSource {
+  section: { settings?: Record<string, unknown>; items?: Array<Record<string, unknown>> } | null;
+  renderer?: FaqRenderer;
+}
+
+/** Product page question settings (settings.faq*, copy.faqTitle), following the store's FAQ section by default. */
+export function readPdpFaqSettings(settings: Record<string, unknown>, copy: Record<string, unknown>, source: PdpFaqSource | null = null): PdpFaqSettings {
+  const sectionStyle = faqSectionStyle(source?.section ?? null, source?.renderer ?? "boutique");
+  const picked = readFaqStyle(settings.faqStyle);
+  return {
+    style: picked ?? sectionStyle,
+    choice: picked ?? "auto",
+    sectionStyle,
+    title: str(copy.faqTitle) || "FAQs",
+    placement: settings.faqPlacement === "section" ? "section" : "tab",
+    firstOpen: settings.faqOpen === "first",
+    storeQuestions: settings.faqStoreQuestions === true,
+    storeItems: readStoreFaqItems(source?.section ?? null),
   };
 }
 
@@ -157,7 +214,9 @@ export function readOrder<T extends string>(value: unknown, allowed: readonly T[
 
 interface SectionLike {
   kind?: string;
+  visible?: boolean;
   settings?: Record<string, unknown>;
+  items?: Array<Record<string, unknown>>;
   blocks?: Array<{ type?: string; content?: unknown }>;
 }
 
@@ -191,7 +250,7 @@ const PAGE_IDS = PDP_PAGE_BLOCKS.map((option) => option.value);
  * PDP settings from the product-detail section, with the theme's defaults for anything not set. Older snapshots
  * only have the seeded `layout` (boutique-gallery, spec-sheet…), which maps onto the new layouts.
  */
-export function readPdpSettings(section: SectionLike | null | undefined, themeId: string, relatedFallback = ""): PdpSettings {
+export function readPdpSettings(section: SectionLike | null | undefined, themeId: string, relatedFallback = "", faqSource: PdpFaqSource | null = null): PdpSettings {
   const theme = pdpThemeDefaults(themeId);
   const settings = record(section?.settings);
   const copy = copyOf(section);
@@ -221,12 +280,13 @@ export function readPdpSettings(section: SectionLike | null | undefined, themeId
       recent: str(copy.recentTitle) || "Recently viewed",
       reviews: str(copy.reviewsTitle) || "Customer reviews",
     },
+    faq: readPdpFaqSettings(settings, copy, faqSource),
   };
 }
 
 /** PDP settings for a store snapshot (draft in the builder, published on the live store). */
 export function pdpSettingsForSnapshot(snapshot: SnapshotLike | null | undefined, themeId: string): PdpSettings {
-  return readPdpSettings(pdpSectionOf(snapshot), themeId, relatedSectionTitle(snapshot));
+  return readPdpSettings(pdpSectionOf(snapshot), themeId, relatedSectionTitle(snapshot), { section: storeFaqSection(snapshot), renderer: "boutique" });
 }
 
 // ─── Inspector list helpers (the "order" field) ───────────────────────────────
@@ -327,14 +387,20 @@ export type PdpPanelId = "description" | "specs" | "care" | "shipping" | "warran
  * Detail panels that have something to say, in display order. Empty ones are left out. `specRowCount` is the
  * number of product-type and custom detail rows (productDetailRows); without it the specifications list counts.
  */
-export function detailPanels(product: PdpProductContent, deliveryLineCount = 0, specRowCount?: number): Array<{ id: PdpPanelId; title: string }> {
+export function detailPanels(
+  product: PdpProductContent,
+  deliveryLineCount = 0,
+  specRowCount?: number,
+  faq: { count?: number; title?: string; inDetails?: boolean } = {},
+): Array<{ id: PdpPanelId; title: string }> {
   const panels: Array<{ id: PdpPanelId; title: string }> = [];
   if (str(product.longDescription) || str(product.description)) panels.push({ id: "description", title: "Description" });
   if ((specRowCount ?? readSpecs(product.specifications).length) > 0) panels.push({ id: "specs", title: "Specifications" });
   if (str(product.careInstructions)) panels.push({ id: "care", title: "Care" });
   if (str(product.shippingInfo) || str(product.returnPolicy) || deliveryLineCount > 0) panels.push({ id: "shipping", title: "Shipping and returns" });
   if (str(product.warranty) || str(product.supportInfo)) panels.push({ id: "warranty", title: "Warranty and support" });
-  if (readFaqs(product.faqs).length) panels.push({ id: "faqs", title: "FAQs" });
+  // Questions: the product's own plus any store questions (`count`); left out when they have their own section.
+  if (faq.inDetails !== false && (faq.count ?? readFaqs(product.faqs).length) > 0) panels.push({ id: "faqs", title: faq.title?.trim() || "FAQs" });
   return panels;
 }
 
