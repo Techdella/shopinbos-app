@@ -1,5 +1,6 @@
 "use client";
 
+import { confirmDialog } from "@/components/ui/dialogs";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardHead } from "@/components/app-kit";
@@ -196,7 +197,7 @@ export function FlowEditor({
     });
 
   async function save(active = flow.active) {
-    if (active && !flow.active && !window.confirm(t("fe.confirmOn", { name: flow.name || t("fe.thisAutomation") }))) return;
+    if (active && !flow.active && !(await confirmDialog(t("fe.confirmOn", { name: flow.name || t("fe.thisAutomation") })))) return;
     setBusy("save");
     setError(null);
     setNotice(null);
@@ -215,7 +216,7 @@ export function FlowEditor({
   }
 
   async function remove() {
-    if (!flow.id || !window.confirm(t("fe.confirmDelete"))) return;
+    if (!flow.id || !(await confirmDialog(t("fe.confirmDelete")))) return;
     setBusy("delete");
     try {
       await api(`/api/app/marketing/automations/${flow.id}`, "DELETE");

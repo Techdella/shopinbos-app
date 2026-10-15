@@ -1,5 +1,6 @@
 "use client";
 
+import { confirmDialog } from "@/components/ui/dialogs";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardHead, EmptyState, ListCard, ListRow, Pill, type Tone } from "@/components/app-kit";
@@ -316,7 +317,7 @@ export function DiscountsManager({
   }
 
   async function remove(discount: DiscountRow) {
-    if (!window.confirm(t("confirmDelete", { name: discount.name }))) return;
+    if (!(await confirmDialog(t("confirmDelete", { name: discount.name })))) return;
     try {
       await api(`/api/app/marketing/discounts/${discount.id}`, "DELETE");
       router.refresh();

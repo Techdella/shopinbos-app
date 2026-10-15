@@ -1,5 +1,6 @@
 "use client";
 
+import { confirmDialog } from "@/components/ui/dialogs";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/app-kit";
@@ -77,7 +78,7 @@ export function TemplateEditor({ initial, brand, shop }: { initial: Draft; brand
   }
 
   async function remove() {
-    if (!draft.id || !window.confirm(t("tpl.confirmDelete", { name: draft.name }))) return;
+    if (!draft.id || !(await confirmDialog(t("tpl.confirmDelete", { name: draft.name })))) return;
     setBusy("delete");
     try {
       await api(`/api/app/marketing/templates/${draft.id}`, "DELETE");

@@ -1,5 +1,6 @@
 "use client";
 
+import { confirmDialog, alertDialog } from "@/components/ui/dialogs";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Toggle } from "@/components/app-ui";
@@ -17,14 +18,14 @@ export function FlowToggle({ id, name, active, messages }: { id: string; name: s
       on={on}
       label={t("toggle.label", { name })}
       onChange={async (next) => {
-        if (next && !window.confirm(t("toggle.confirm", { name, what: messages ? t("toggle.upTo", { count: messages }) : t("toggle.messages") }))) return;
+        if (next && !(await confirmDialog(t("toggle.confirm", { name, what: messages ? t("toggle.upTo", { count: messages }) : t("toggle.messages") })))) return;
         setOn(next);
         try {
           await api(`/api/app/marketing/automations/${id}`, "PATCH", { active: next });
           router.refresh();
         } catch (error) {
           setOn(!next);
-          window.alert(errorText(error));
+          await alertDialog(errorText(error));
         }
       }}
     />
@@ -46,7 +47,7 @@ export function AddPresetButton({ presetKey, added }: { presetKey: string; added
           const flow = await api<{ id: string }>("/api/app/marketing/automations", "POST", { presetKey, active: false });
           router.push(`/home/automations/${flow.id}`);
         } catch (error) {
-          window.alert(errorText(error));
+          await alertDialog(errorText(error));
           setBusy(false);
         }
       }}

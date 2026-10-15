@@ -1,5 +1,6 @@
 "use client";
 
+import { confirmDialog } from "@/components/ui/dialogs";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { FieldLabel, Notice, PillButton, TextInput } from "@/components/app-ui";
@@ -283,7 +284,7 @@ function AdCard({ ad, onChange }: { ad: Ad; onChange: () => void }) {
         )}
 
         <div className="flex justify-end">
-          <button type="button" className="text-[13px] font-bold text-app-danger" onClick={() => { if (window.confirm(t("confirmDelete"))) { setBusy("delete"); send(`/api/app/ads/${ad.id}`, "DELETE").then(onChange, (deleteError) => { setError(deleteError.message); setBusy(null); }); } }}>
+          <button type="button" className="text-[13px] font-bold text-app-danger" onClick={async () => { if ((await confirmDialog(t("confirmDelete")))) { setBusy("delete"); send(`/api/app/ads/${ad.id}`, "DELETE").then(onChange, (deleteError) => { setError(deleteError.message); setBusy(null); }); } }}>
             {t("deleteAd")}
           </button>
         </div>

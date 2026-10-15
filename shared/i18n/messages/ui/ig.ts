@@ -33,6 +33,11 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "portalNote.supplier": "Ị nwere account onye na-enye ngwaahịa, ya mere anyị mepere portal gị.",
   "portalNote.logistics_partner": "Ị nwere account onye mmekọ nnyefe, ya mere anyị mepere portal nnyefe gị.",
   "portalNote.admin": "Ị nwere account admin, ya mere anyị mepere admin panel.",
+  "dialog.ok": "Ọ dị mma",
+  "dialog.continue": "Gaa n'ihu",
+  "dialog.done": "Emechaala",
+  "dialog.copy": "Detuo",
+  "dialog.copied": "Edetuola",
 };
 
 export default ig;

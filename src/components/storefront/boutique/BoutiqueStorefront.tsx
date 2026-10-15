@@ -18,6 +18,7 @@ import {
   readPaydaySettings,
   readShopperInfo,
   whatsappLink,
+  type PaydaySettings,
 } from "@/lib/storefront/shopper-info";
 import { bestSellers, productCategories, relatedProducts, searchProducts, soldOutLabel, type ShopperProduct } from "../shopper/catalog";
 import { ShopperBottomNav, type ShopperSheet } from "../shopper/ShopperBottomNav";
@@ -119,7 +120,30 @@ function normalizePage(page: string) {
 /** Faq answers left blank by the seller come from their own delivery and payment settings (faq/faq-logic.ts). */
 export { faqAnswer };
 
-function Countdown({ settings, look, copy, onShop, editor }: { settings: unknown; look: BoutiqueLook; copy: Record<string, unknown>; onShop: () => void; editor: boolean }) {
+/** Builder only: when payday falls and how long the sale runs, as one whole sentence per case so it translates. */
+function paydayNote(config: PaydaySettings, say: EditorText) {
+  const vars = { day: config.day, days: config.days };
+  if (config.rule === "last-friday") {
+    return config.ends === "sunday"
+      ? say("Payday: last Friday of the month; runs until Sunday.")
+      : say("Payday: last Friday of the month; runs {days, plural, one {# day} other {# days}}.", vars);
+  }
+  if (config.rule === "last-weekday") {
+    return config.ends === "sunday"
+      ? say("Payday: last weekday of the month; runs until Sunday.")
+      : say("Payday: last weekday of the month; runs {days, plural, one {# day} other {# days}}.", vars);
+  }
+  if (config.weekendToFriday) {
+    return config.ends === "sunday"
+      ? say("Payday: the {day} (Friday before if it's a weekend); runs until Sunday.", vars)
+      : say("Payday: the {day} (Friday before if it's a weekend); runs {days, plural, one {# day} other {# days}}.", vars);
+  }
+  return config.ends === "sunday"
+    ? say("Payday: the {day}; runs until Sunday.", vars)
+    : say("Payday: the {day}; runs {days, plural, one {# day} other {# days}}.", vars);
+}
+
+function Countdown({ settings, look, copy, onShop, editor, say }: { settings: unknown; look: BoutiqueLook; copy: Record<string, unknown>; onShop: () => void; editor: boolean; say: EditorText }) {
   const [now, setNow] = useState<Date | null>(null);
   useEffect(() => {
     setNow(new Date());
@@ -154,7 +178,7 @@ function Countdown({ settings, look, copy, onShop, editor }: { settings: unknown
           <h2 className="bq-h mt-1 text-[22px] @3xl:text-[26px]" style={look.headingStyle}>{heading}</h2>
           {custom ? <p className="mt-1 text-[13px] opacity-80">{status}</p> : null}
           {text(copy.body) ? <p className="mt-1 text-[13px] opacity-80">{text(copy.body)}</p> : null}
-          {editor ? <p className="mt-1 text-[12px] opacity-60">Payday: {config.rule === "day-of-month" ? `the ${config.day}${config.weekendToFriday ? " (Friday before if it's a weekend)" : ""}` : config.rule === "last-friday" ? "last Friday of the month" : "last weekday of the month"}; runs {config.ends === "sunday" ? "until Sunday" : `${config.days} days`}.</p> : null}
+          {editor ? <p className="mt-1 text-[12px] opacity-60">{paydayNote(config, say)}</p> : null}
         </div>
         <div className="flex gap-2.5" role="timer" aria-label={spoken || "Countdown"}>
           {units.map(([label, value]) => (
@@ -1551,7 +1575,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       case "testimonials":
         return reviewsSection(section);
       case "payday-countdown":
-        return <Countdown settings={section.settings} look={look} copy={copyOf(section)} onShop={() => go("products")} editor={!live && !props.demo} />;
+        return <Countdown settings={section.settings} look={look} copy={copyOf(section)} onShop={() => go("products")} editor={!live && !props.demo} say={say} />;
       case "story-split":
       case "about-section":
         return story(section);

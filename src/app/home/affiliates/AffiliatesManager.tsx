@@ -1,5 +1,6 @@
 "use client";
 
+import { confirmDialog } from "@/components/ui/dialogs";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { FieldLabel, Notice, PillButton, TextInput, Toggle } from "@/components/app-ui";
@@ -178,8 +179,8 @@ function CreatorCard({ affiliate, storeName, payday, onChange }: { affiliate: Af
         <button
           type="button"
           className="text-[13px] font-bold text-app-danger"
-          onClick={() => {
-            if (window.confirm(t("confirmRemove", { name: affiliate.name }))) void act("delete", undefined, "DELETE");
+          onClick={async () => {
+            if ((await confirmDialog(t("confirmRemove", { name: affiliate.name })))) void act("delete", undefined, "DELETE");
           }}
         >
           {t("removeCreator")}
