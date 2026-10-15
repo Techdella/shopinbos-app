@@ -5,6 +5,7 @@ import type React from "react";
 import { Icon } from "@/components/ui/Icon";
 import type { StorefrontShopperInfo } from "@/lib/storefront/shopper-info";
 import { StoreFooterBadges, useStoreFooterBadges } from "@/components/storefront/shopper/StoreFooterBadges";
+import { StoreLogo } from "@/components/storefront/StoreLogo";
 import type { BoutiqueLook } from "./look";
 
 export interface ChromeStore {
@@ -12,6 +13,8 @@ export interface ChromeStore {
   logoUrl?: string | null;
   city?: string | null;
   country?: string | null;
+  /** For the logo's dark-background version (brandSettings.logoVariants). */
+  brandSettings?: unknown;
 }
 
 /** A store page (lives at its own address: /about, /shop). `href` makes it a real link on the live store: new tab, sharing, crawlers. */
@@ -37,10 +40,15 @@ export function AnnouncementBar({ text, look }: { text: string | null; look: Bou
   );
 }
 
+/** The colour behind the header: the ink bar for "Bold", else the theme's header colour. */
+export function headerBackground(look: BoutiqueLook, bold: boolean) {
+  return bold ? look.tokens.ink : look.headerBg;
+}
+
 function Logo({ store, logoText, look, onHome, centred, bold }: { store: ChromeStore; logoText: string; look: BoutiqueLook; onHome: () => void; centred?: boolean; bold?: boolean }) {
   return (
     <button type="button" onClick={onHome} className={`flex min-w-0 items-center gap-2.5 border-0 bg-transparent p-0 ${centred ? "justify-center" : ""}`} style={{ color: "inherit", cursor: "pointer" }} aria-label={`${store.name} home`}>
-      {store.logoUrl ? <img src={store.logoUrl} alt="" width={36} height={36} className="h-9 w-9 shrink-0 rounded-[8px] object-cover" onError={(event) => { event.currentTarget.style.display = "none"; }} /> : null}
+      <StoreLogo store={store} background={headerBackground(look, Boolean(bold))} under={look.tokens.paperBg} dark={bold || look.dark} className="h-9 w-9 shrink-0 rounded-[8px]" />
       <span className={bold ? "truncate text-[24px] leading-none @3xl:text-[28px]" : "truncate text-[22px] leading-none @3xl:text-[24px]"} style={{ fontFamily: look.logoFont, ...look.logoStyle, ...(bold ? { fontWeight: 800, textTransform: "uppercase", letterSpacing: "-0.02em", fontStyle: "normal" } : null) }}>
         {logoText}
       </span>
@@ -219,6 +227,7 @@ export function BoutiqueFooter({
   summary,
   onTrackOrder,
   legalLinks = [],
+  showLogo = true,
 }: {
   store: ChromeStore;
   look: BoutiqueLook;
@@ -228,6 +237,8 @@ export function BoutiqueFooter({
   onTrackOrder?: () => void;
   /** The store's published legal pages, shown in the bottom row. */
   legalLinks?: ChromeHref[];
+  /** The footer's "Show logo" setting: the logo (its dark-background version on a dark footer) in place of the name. */
+  showLogo?: boolean;
 }) {
   const t = look.tokens;
   const place = [store.city, store.country].filter(Boolean).join(", ");
@@ -239,7 +250,11 @@ export function BoutiqueFooter({
       <div className="bq-wrap grid gap-6 py-10">
         <div className="flex flex-wrap items-start justify-between gap-6">
           <div className="max-w-[420px]">
-            <div className="text-[22px]" style={{ fontFamily: look.logoFont, ...look.logoStyle }}>{store.name}</div>
+            {showLogo ? (
+              <StoreLogo store={store} background={look.footerBg} under={t.paperBg} dark={look.dark} alt={store.name} className="block h-14 w-auto max-w-[220px] rounded-[8px]" fallback={<div className="text-[22px]" style={{ fontFamily: look.logoFont, ...look.logoStyle }}>{store.name}</div>} />
+            ) : (
+              <div className="text-[22px]" style={{ fontFamily: look.logoFont, ...look.logoStyle }}>{store.name}</div>
+            )}
             {line ? <p className="mt-2 text-[13.5px]" style={{ color: t.muted }}>{shopper.whatsappNumber ? <a href={`https://wa.me/${shopper.whatsappNumber}`} target="_blank" rel="noopener noreferrer" className="underline-offset-4 hover:underline">{line}</a> : line}</p> : null}
             {summary ? <p className="mt-2 text-[13.5px] leading-6" style={{ color: t.muted }}>{summary}</p> : null}
           </div>

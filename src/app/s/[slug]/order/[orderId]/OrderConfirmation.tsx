@@ -105,7 +105,7 @@ export function OrderConfirmation({ order, store, storeBasePath, transfer = null
   const productDiscount = Math.max(0, Number(order.discountAmount ?? 0) - pointsOff);
 
   return (
-    <ShopperShell theme={theme} storeName={store.name} logoUrl={store.logoUrl} basePath={storeBasePath} title="Order">
+    <ShopperShell theme={theme} storeName={store.name} logoUrl={store.logoUrl} brandSettings={store.brandSettings} basePath={storeBasePath} title="Order">
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)] xl:gap-12">
         <div className="grid min-w-0 gap-5">
           <div>

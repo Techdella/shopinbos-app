@@ -9,6 +9,7 @@ import { useT } from "@/components/i18n/I18nProvider";
 import { uploadStudioPhoto } from "@/components/builder/rex/api";
 import { creditsChanged, openTopUp } from "@/components/credits/CreditsBadge";
 import type { BrandAssetKind, BrandAssets } from "@shared/brand-assets";
+import { logoTreatmentStyle } from "@shared/logo-variants";
 
 const btn = "inline-flex min-h-[36px] items-center gap-1.5 rounded-full border border-app-line bg-white px-3.5 text-[13px] font-bold text-app-ink no-underline hover:border-app-line-strong disabled:opacity-50";
 
@@ -78,7 +79,7 @@ export function BrandAssetsPanel({ initial, storeName, accent, fileBase }: { ini
     }
   }
 
-  function tile(kind: BrandAssetKind) {
+  function tile(kind: Exclude<BrandAssetKind, "logoDark">) {
     const own = kind === "logo" ? assets.logo : kind === "icon" ? assets.icon : assets.favicon;
     const shown = kind === "logo" ? assets.logo : kind === "icon" ? assets.shown.icon : assets.shown.favicon;
     const pending = proposal?.kind === kind ? proposal.url : null;
@@ -155,6 +156,37 @@ export function BrandAssetsPanel({ initial, storeName, accent, fileBase }: { ini
           </div>
         )}
         <input ref={(el) => { files.current[kind] = el; }} type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" tabIndex={-1} onChange={(e) => void upload(kind, e.target.files?.[0])} />
+        {kind === "logo" && assets.logo ? darkLogo() : null}
+      </div>
+    );
+  }
+
+  /** The logo on dark headers and footers: made automatically, or the seller's own upload. */
+  function darkLogo() {
+    const onDark = assets.onDark;
+    return (
+      <div className="mt-4 border-t border-app-line pt-3">
+        <div className="flex items-baseline justify-between gap-2">
+          <h4 className="m-0 text-[13.5px] font-extrabold">{t("ba.onDark")}</h4>
+          <span className="text-[11.5px] font-bold text-app-ink-soft">
+            {assets.logoDark ? t("ba.onDarkYours") : onDark && onDark.treatment !== "light-chip" ? t("ba.onDarkAuto") : t("ba.onDarkTile")}
+          </span>
+        </div>
+        <div className="mt-2 grid h-[84px] place-items-center rounded-[14px] bg-[#16141F]">
+          {onDark ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={onDark.src} alt={t("ba.onDark")} className="max-h-[64px] max-w-[90%] object-contain" style={logoTreatmentStyle(onDark.treatment)} />
+          ) : null}
+        </div>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <button type="button" className={btn} disabled={busy !== null} onClick={() => files.current.logoDark?.click()}>
+            {busy === "up-logoDark" ? <Spinner className="h-4 w-4" /> : <Icon name="upload" size={14} />} {t("ba.uploadDark")}
+          </button>
+          {assets.logoDark ? (
+            <button type="button" className={btn} disabled={busy !== null} onClick={() => void save("logoDark", null)}>{t("ba.useAuto")}</button>
+          ) : null}
+        </div>
+        <input ref={(el) => { files.current.logoDark = el; }} type="file" accept="image/png,image/webp,image/svg+xml" className="sr-only" tabIndex={-1} onChange={(e) => void upload("logoDark", e.target.files?.[0])} />
       </div>
     );
   }

@@ -40,7 +40,7 @@ export function WishlistPage({ store, basePath, commerce, preview = false }: { s
 
   if (!commerce.cart.wishlist) {
     return (
-      <ShopperShell theme={theme} storeName={store.name} logoUrl={store.logoUrl} basePath={basePath} title="Wishlist" bagCount={cart.count} showWishlist={false}>
+      <ShopperShell theme={theme} storeName={store.name} logoUrl={store.logoUrl} brandSettings={store.brandSettings} basePath={basePath} title="Wishlist" bagCount={cart.count} showWishlist={false}>
         <Panel theme={theme} className="grid justify-items-center gap-3 px-6 py-14 text-center">
           <h1 className="text-[22px] font-semibold" style={{ fontFamily: theme.heading }}>Wishlists aren't available here</h1>
           <p className="text-[15px]" style={{ color: theme.muted }}>{store.name} doesn't use wishlists. You can still add things to your bag.</p>
@@ -88,7 +88,7 @@ export function WishlistPage({ store, basePath, commerce, preview = false }: { s
   const loading = !shared && !wishlist.loaded && !!wishlist.visitorKey;
 
   return (
-    <ShopperShell theme={theme} storeName={store.name} logoUrl={store.logoUrl} basePath={basePath} title="Wishlist" bagCount={cart.count} wishlistCount={wishlist.productIds.length}>
+    <ShopperShell theme={theme} storeName={store.name} logoUrl={store.logoUrl} brandSettings={store.brandSettings} basePath={basePath} title="Wishlist" bagCount={cart.count} wishlistCount={wishlist.productIds.length}>
       <p className="sr-only" role="status" aria-live="polite">{notice}</p>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <PageTitle theme={theme} sub={shared ? "Someone shared these favourites with you." : products.length ? `${products.length} saved ${products.length === 1 ? "item" : "items"}` : undefined}>
