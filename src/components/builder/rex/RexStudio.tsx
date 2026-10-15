@@ -413,7 +413,7 @@ export function RexStudio(props: RexStudioProps) {
                 <Icon name="chevDown" size={14} />
               </button>
               {toolsOpen ? (
-                <div role="menu" className="absolute right-0 top-full z-30 mt-2 w-[240px] rounded-[18px] border border-app-line bg-white p-1.5 shadow-[0_18px_50px_rgba(22,20,31,0.14)]">
+                <div role="menu" className="absolute right-0 top-full z-30 mt-2 max-h-[calc(100dvh-140px)] w-[240px] max-w-[calc(100vw-24px)] overflow-y-auto rounded-[18px] border border-app-line bg-white p-1.5 shadow-[0_18px_50px_rgba(22,20,31,0.14)]">
                   <Link role="menuitem" href="/studio/images" className="flex min-h-[44px] items-center gap-2.5 rounded-[12px] px-3 text-[14px] font-bold hover:bg-app-canvas">
                     <Icon name="image" size={16} /> {t("rex.makeImages")}
                   </Link>

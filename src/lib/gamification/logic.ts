@@ -352,8 +352,9 @@ export function prizeDiscount(prize: { kind: SliceKind | TierRewardKind; value: 
 
 /** Unambiguous code characters: no 0/O, 1/I/L. */
 const CODE_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
-export const GAME_CODE_PREFIXES = { wheel: "SPIN", scratch: "SCRATCH", post_purchase: "NEXT", tier: "TIER" } as const;
-export type GameKind = "wheel" | "scratch" | "post_purchase";
+export const GAME_CODE_PREFIXES = { wheel: "SPIN", scratch: "SCRATCH", post_purchase: "NEXT", box: "BOX", tier: "TIER" } as const;
+/** "box" (pick a gift box) only runs from a marketing pop-up (Marketing > Forms and pop-ups), with the same prizes. */
+export type GameKind = "wheel" | "scratch" | "post_purchase" | "box";
 
 /** "SPIN-7KQ2MX" from random bytes (the server passes crypto bytes; 8 characters ≈ 31^8 ≈ 850 billion codes). */
 export function gameCode(prefix: string, bytes: ArrayLike<number>, length = 8) {
@@ -363,7 +364,37 @@ export function gameCode(prefix: string, bytes: ArrayLike<number>, length = 8) {
 }
 
 export function isGameCode(code: string | null | undefined) {
-  return /^(SPIN|SCRATCH|NEXT)-[A-Z0-9]{4,}$/.test(String(code ?? "").toUpperCase());
+  return /^(SPIN|SCRATCH|NEXT|BOX)-[A-Z0-9]{4,}$/.test(String(code ?? "").toUpperCase());
+}
+
+// ─── Pick a gift box ──────────────────────────────────────────────────────────
+
+export const GIFT_BOXES = 3;
+
+/**
+ * What each gift box held, for the reveal after the shopper opens one: the chosen box holds the prize the server
+ * drew (`prizeIndex`); the others show different prizes (no repeats while there are enough), so it is clear what
+ * else was in play. Purely for show: the server draws before any box opens. `seed` only shuffles the others.
+ */
+export function boxReveal(prizeIndex: number, chosen: number, boxes: number, sliceCount: number, seed = 0): number[] {
+  const count = Math.max(1, Math.floor(boxes));
+  const pick = Math.min(count - 1, Math.max(0, Math.floor(chosen)));
+  const others = Array.from({ length: Math.max(0, sliceCount) }, (_, index) => index).filter((index) => index !== prizeIndex);
+  // Small deterministic shuffle (Park–Miller), so the same seed always gives the same reveal.
+  let state = (Math.abs(Math.floor(seed)) % 2_147_483_646) + 1;
+  for (let i = others.length - 1; i > 0; i--) {
+    state = (state * 48_271) % 2_147_483_647;
+    const j = state % (i + 1);
+    [others[i], others[j]] = [others[j]!, others[i]!];
+  }
+  const result: number[] = [];
+  let cursor = 0;
+  for (let box = 0; box < count; box++) {
+    if (box === pick) result.push(prizeIndex);
+    else if (others.length) result.push(others[cursor++ % others.length]!);
+    else result.push(prizeIndex);
+  }
+  return result;
 }
 
 /** Who is playing, as one key: the email (lowercase) or the phone's digits. */

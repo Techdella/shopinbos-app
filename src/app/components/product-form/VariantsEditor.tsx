@@ -306,7 +306,7 @@ export function VariantsEditor({ productType, options, variants, basePrice, imag
                         )}
                       </button>
                       {photoFor === variant.id ? (
-                        <div className="absolute left-0 top-14 z-20 grid w-[232px] grid-cols-4 gap-1.5 rounded-[14px] border border-app-line bg-white p-2 shadow-lg">
+                        <div className="absolute left-0 top-14 z-20 grid w-[232px] max-w-[calc(100vw-48px)] grid-cols-4 gap-1.5 rounded-[14px] border border-app-line bg-white p-2 shadow-lg">
                           {images.length ? (
                             images.map((url, i) => (
                               <button key={url} type="button" onClick={() => { editRow(variant.id, { imageUrl: url }); setPhotoFor(null); }} aria-label={t("v.usePhoto", { number: i + 1 })} className={cx("aspect-square overflow-hidden rounded-[8px] border-2", variant.imageUrl === url ? "border-app-ink" : "border-transparent")}>

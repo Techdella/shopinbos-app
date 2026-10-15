@@ -125,3 +125,22 @@ export function inboxReplyEmail(input: { appUrl: string; store: StoreSender; bod
     serviceNote: `This is a reply to your conversation with ${input.store.name}.`,
   });
 }
+
+/** The free download someone asked for in a pop-up (size guide, e-book…): sent once, right after they sign up. */
+export function leadMagnetEmail(input: { appUrl: string; store: StoreSender; name: string; url: string; buyerName?: string | null }) {
+  return {
+    subject: `Your download: ${input.name}`.slice(0, 160),
+    html: storeEmail({
+      appUrl: input.appUrl,
+      store: input.store,
+      kind: "transactional",
+      preheader: `Here's ${input.name} from ${input.store.name}, as promised.`,
+      eyebrow: "Your free download",
+      heading: input.name,
+      bodyHtml: `${html.p(`Hi ${first(input.buyerName)}, thanks for joining ${input.store.name}. Here's the download you asked for. The button below opens it.`)}${html.small("Keep this email to download it again any time.")}`,
+      cta: { label: "Download now", url: input.url },
+      reason: `you asked for this download on ${input.store.name}`,
+      serviceNote: `This is a one-off email with the download you asked for.`,
+    }),
+  };
+}

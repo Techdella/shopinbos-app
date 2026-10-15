@@ -672,7 +672,7 @@ export function StorefrontClient({
         />
       ) : null}
 
-      {!previewMode ? <MarketingMount storeSlug={store.slug} currency={store.currency} colors={{ ink: snapshot.themeTokens.ink, paper: snapshot.themeTokens.paperBg, accent: snapshot.themeTokens.ctaBg, accentText: snapshot.themeTokens.ctaText, heading: themeHeadingFont(snapshot.themeTokens.headingStyle) }} /> : null}
+      {!previewMode ? <MarketingMount storeSlug={store.slug} storeBasePath={storeBasePath} currency={store.currency} colors={{ ink: snapshot.themeTokens.ink, paper: snapshot.themeTokens.paperBg, accent: snapshot.themeTokens.ctaBg, accentText: snapshot.themeTokens.ctaText, heading: themeHeadingFont(snapshot.themeTokens.headingStyle) }} /> : null}
 
       {!previewMode ? (
         <CartDrawer

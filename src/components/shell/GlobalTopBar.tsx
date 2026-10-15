@@ -139,7 +139,7 @@ export function GlobalTopBar({
             )}
           </button>
           {menuOpen && (
-            <div className="absolute right-0 top-full z-50 mt-2 min-w-[220px] rounded-[18px] border border-app-line bg-white p-1.5 shadow-[0_20px_40px_-20px_rgba(22,20,31,0.35)]">
+            <div className="absolute right-0 top-full z-50 mt-2 max-h-[calc(100dvh-88px)] min-w-[220px] max-w-[calc(100vw-24px)] overflow-y-auto rounded-[18px] border border-app-line bg-white p-1.5 shadow-[0_20px_40px_-20px_rgba(22,20,31,0.35)]">
               <div className="px-3 py-2">
                 <div className="truncate text-[14px] font-extrabold">{displayName}</div>
                 {email && <div className="truncate text-[12px] text-app-ink-soft">{email}</div>}

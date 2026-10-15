@@ -99,5 +99,6 @@ export function uniqueDiscountInput(reward: FormReward, formName: string, code: 
 /** A shared code for a "make a new one here" reward: the seller's code, else WELCOME10 / WELCOME2000. */
 export function sharedCodeFor(reward: FormReward): string {
   if (reward.code) return reward.code;
+  if (reward.type === "free_shipping") return `${reward.prefix || "WELCOME"}FREEDEL`.slice(0, 40);
   return `${reward.prefix || "WELCOME"}${Math.round(reward.value)}`.slice(0, 40);
 }

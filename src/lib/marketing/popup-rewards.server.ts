@@ -4,7 +4,7 @@ import { randomBytes } from "node:crypto";
 import type { DiscountType } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { describeDiscount, redemptionError } from "@/lib/discounts";
-import { readPopupConfig, readReward, type FormReward, type RewardKind } from "./forms";
+import { mysterySummary, readPopupConfig, readReward, type FormReward, type PopupRewardSummary, type RewardKind } from "./forms";
 import { saveDiscount } from "./discounts";
 import { MarketingError } from "./segments";
 import { decideIssue, formRewardCode, readFormMarker, rewardExpiry, sharedCodeFor, uniqueCodeMarker, uniqueDiscountInput } from "./popup-rewards";
@@ -140,12 +140,15 @@ export async function formCodesUsed(storeId: string, formIds: string[]): Promise
 }
 
 /** Public reward line for the storefront (no code: that is only given out on sign-up). */
-export async function publicRewardSummary(storeId: string, reward: FormReward | null): Promise<{ label: string; type: RewardKind; value: number; minOrder: number } | null> {
+export async function publicRewardSummary(storeId: string, reward: FormReward | null): Promise<PopupRewardSummary | null> {
   if (!reward) return null;
   if (reward.source === "existing" || !reward.unique) {
     const discount = reward.discountId ? await db.discount.findFirst({ where: { id: reward.discountId, storeId }, select: { type: true, value: true, minOrder: true, status: true, startsAt: true, expiresAt: true, maxUses: true, usedCount: true, config: true } }) : null;
     if (!discount || redemptionError(discount, SAFE_SUBTOTAL)) return null;
+    // A mystery gift stays a mystery until they sign up.
+    if (reward.mystery) return mysterySummary(discount.minOrder ?? 0);
     return { label: describeDiscount(discount), type: discount.type as RewardKind, value: discount.value, minOrder: discount.minOrder ?? 0 };
   }
+  if (reward.mystery) return mysterySummary(reward.minOrder);
   return { label: describeDiscount(reward), type: reward.type, value: reward.value, minOrder: reward.minOrder };
 }

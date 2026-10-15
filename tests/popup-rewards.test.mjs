@@ -42,10 +42,11 @@ test("styles: a template fills the gaps, bad values fall back, colours must be #
   assert.equal(forms.readPopupConfig({ layout: "fullscreen" }).layout, "fullscreen");
 });
 
-test("templates: 8 distinct looks, each with a layout the storefront knows", () => {
+test("templates: distinct looks (the original 8 first), each with a layout the storefront knows", () => {
   const ids = forms.POPUP_TEMPLATES.map((t) => t.id);
-  assert.equal(ids.length, 8);
-  assert.equal(new Set(ids).size, 8);
+  assert.ok(ids.length >= 20, "more templates; tests/popup-kinds.test.mjs checks them all");
+  assert.equal(new Set(ids).size, ids.length);
+  assert.deepEqual(ids.slice(0, 8), ["classic", "split", "takeover", "corner", "badge", "minimal", "luxe", "festive"]);
   for (const t of forms.POPUP_TEMPLATES) {
     assert.ok(["modal", "flyout", "bar", "fullscreen"].includes(t.layout));
     assert.equal(t.style.template, t.id);
