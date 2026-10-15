@@ -2762,3 +2762,163 @@ test("store web address: normalized, reserved names refused, 30-day limit, old a
   assert.equal(a.renamedStoreTarget({ host: "app.shopinbos.com", path: "/s/joanna?page=about", oldSlug: "joanna", newSlug: "rexi", storeHost: false }), "/s/rexi?page=about");
   assert.equal(a.renamedStoreTarget({ host: "other.mybos.store", path: "/", oldSlug: "joanna", newSlug: "rexi", storeHost: true }), null);
 });
+
+// ─── Store builder: shared chrome, product counts and layouts ─────────────────
+
+function chromeFixture() {
+  const sec = (id, kind, copy = {}, settings = {}) => ({ id, kind, name: kind, visible: true, blocks: [{ id: `${id}-copy`, type: "copy", content: copy }], settings });
+  const page = (pageType, sections) => ({ id: pageType, pageType, title: pageType, slug: pageType, sections });
+  return {
+    sec,
+    snapshot: {
+      templateId: "breeze", templateName: "Breeze", layoutFamily: "minimal-showcase", themeTokens: {}, updatedAt: "",
+      pages: [
+        page("home", [sec("announcement", "announcement-bar", { text: "Free delivery" }), sec("header", "header", { navLinks: ["home", "products", "about"] }), sec("hero", "hero-split"), sec("footer", "footer", { summary: "Home footer" })]),
+        page("products", [sec("announcement", "announcement-bar", { text: "Old text" }), sec("header", "header", { navLinks: ["home", "contact"] }), sec("grid", "featured-products", {}, { layout: "grid" }), sec("footer", "footer", { summary: "Shop footer" })]),
+        page("about", [sec("header", "header", { navLinks: ["home"] }), sec("story", "story-split"), sec("popup", "spin-wheel")]),
+      ],
+    },
+  };
+}
+
+test("store chrome: older per-page headers and footers become the home page's, in place, on every page", async () => {
+  const chrome = await import("../src/lib/store-templates/chrome.ts");
+  const { snapshot } = chromeFixture();
+  const normal = chrome.normalizeChrome(snapshot);
+  for (const page of normal.pages) {
+    assert.deepEqual(chrome.pageChrome(page), chrome.pageChrome(normal.pages[0]), `${page.pageType} carries the home page's chrome`);
+  }
+  assert.deepEqual(normal.pages[1].sections.map((s) => s.id), ["announcement", "header", "grid", "footer"]);
+  assert.deepEqual(normal.pages[2].sections.map((s) => s.id), ["announcement", "header", "story", "popup", "footer"], "a page without a footer gets it at the end; one without an announcement bar gets it on top");
+  assert.equal(normal.pages[1].sections[1].blocks[0].content.navLinks.join(), "home,products,about", "the menu no longer changes from page to page");
+  assert.equal(normal.pages[0], snapshot.pages[0], "the home page itself is untouched");
+  assert.equal(chrome.normalizeChrome(normal), normal, "normalising twice changes nothing (same object)");
+  assert.equal(chrome.normalizeChrome(null), null);
+
+  // Home without a footer (older save): the footer another page has is kept for every page.
+  const noFooter = { ...snapshot, pages: [{ ...snapshot.pages[0], sections: snapshot.pages[0].sections.filter((s) => s.kind !== "footer") }, ...snapshot.pages.slice(1)] };
+  const adopted = chrome.normalizeChrome(noFooter);
+  for (const page of adopted.pages) assert.equal(page.sections.find((s) => s.kind === "footer")?.blocks[0].content.summary, "Shop footer", page.pageType);
+});
+
+test("store chrome: editing the header or footer on any page edits every page; removing it removes it everywhere", async () => {
+  const chrome = await import("../src/lib/store-templates/chrome.ts");
+  const { snapshot } = chromeFixture();
+  const prev = chrome.normalizeChrome(snapshot);
+  const setNav = (page, nav) => ({ ...page, sections: page.sections.map((s) => (s.kind === "header" ? { ...s, blocks: [{ ...s.blocks[0], content: { ...s.blocks[0].content, navLinks: nav } }] } : s)) });
+  const edited = { ...prev, pages: prev.pages.map((page) => (page.pageType === "about" ? setNav(page, ["home", "faq"]) : page)) };
+  const next = chrome.propagateChrome(prev, edited);
+  for (const page of next.pages) assert.deepEqual(page.sections.find((s) => s.kind === "header").blocks[0].content.navLinks, ["home", "faq"], page.pageType);
+  assert.deepEqual(next.pages[1].sections.map((s) => s.id), ["announcement", "header", "grid", "footer"], "body sections keep their place");
+
+  const removed = { ...prev, pages: prev.pages.map((page) => (page.pageType === "products" ? { ...page, sections: page.sections.filter((s) => s.kind !== "announcement-bar") } : page)) };
+  assert.ok(chrome.propagateChrome(prev, removed).pages.every((page) => !page.sections.some((s) => s.kind === "announcement-bar")));
+
+  const hidden = { ...prev, pages: prev.pages.map((page) => (page.pageType === "products" ? { ...page, sections: page.sections.map((s) => (s.kind === "footer" ? { ...s, visible: false } : s)) } : page)) };
+  assert.ok(chrome.propagateChrome(prev, hidden).pages.every((page) => page.sections.find((s) => s.kind === "footer").visible === false));
+
+  const bodyOnly = { ...prev, pages: prev.pages.map((page) => (page.pageType === "about" ? { ...page, sections: page.sections.filter((s) => s.kind !== "story-split") } : page)) };
+  assert.equal(chrome.propagateChrome(prev, bodyOnly), bodyOnly, "edits that don't touch chrome pass through unchanged");
+});
+
+test("store chrome is shared wherever snapshots change or render: builder edits, Rex ops, publish, live pages", () => {
+  // editor.ts imports ./chrome without a file extension (bundler resolution), so its wiring is checked in source.
+  const source = readFileSync(new URL("../src/lib/store-templates/editor.ts", import.meta.url), "utf8");
+  assert.match(source, /return propagateChrome\(snapshot, next\);/);
+  const builder = readFileSync(new URL("../src/components/builder/editor/useBuilder.ts", import.meta.url), "utf8");
+  assert.match(builder, /propagateChrome\(current\.present, updater\(current\.present\)\)/, "every builder edit shares chrome changes");
+  assert.match(builder, /normalizeChrome\(migrateSnapshot\(/, "drafts open with one shared header and footer");
+  assert.match(readFileSync(new URL("../src/lib/store-publishing.ts", import.meta.url), "utf8"), /normalizeChrome\(fillMissingPageSeo\(/, "publishing publishes the same chrome everywhere");
+  assert.match(readFileSync(new URL("../src/components/storefront/TemplateStorefrontSurface.tsx", import.meta.url), "utf8"), /normalizeChrome\(props\.snapshot\)/, "live stores render one header before they republish");
+});
+
+test("store rename clears a stale header shop name anywhere in a snapshot or page content", async () => {
+  const chrome = await import("../src/lib/store-templates/chrome.ts");
+  const content = { schemaVersion: 2, sections: [{ kind: "header", blocks: [{ type: "copy", content: { logoText: " Joanna ", cartLabel: "Bag" } }] }, { kind: "hero-split", blocks: [{ type: "copy", content: { logoText: "Other" } }] }] };
+  const cleared = chrome.clearStaleLogoText(content, "Joanna");
+  assert.equal(cleared.sections[0].blocks[0].content.logoText, "");
+  assert.equal(cleared.sections[0].blocks[0].content.cartLabel, "Bag");
+  assert.equal(cleared.sections[1].blocks[0].content.logoText, "Other");
+  assert.equal(chrome.clearStaleLogoText(content, "Rexi"), null, "nothing to clear");
+  assert.equal(chrome.clearStaleLogoText(content, "  "), null);
+  const server = readFileSync(new URL("../src/lib/store-address.server.ts", import.meta.url), "utf8");
+  assert.match(server, /for \(const key of \["content", "draftContent", "publishedContent"\] as const\)/, "StorePage rows are cleaned too");
+});
+
+test("product counts: an explicit 'How many products' always applies; unset keeps each layout's default", async () => {
+  const c = await import("../src/lib/store-templates/section-content.ts");
+  assert.equal(c.readOptionalProductLimit({}), null);
+  assert.equal(c.readOptionalProductLimit({ limit: "" }), null);
+  assert.equal(c.readOptionalProductLimit({ limit: 5 }), 5);
+  assert.equal(c.readOptionalProductLimit({ limit: "12" }), 12);
+  assert.equal(c.readOptionalProductLimit({ limit: 99 }), 24);
+  assert.equal(c.readOptionalProductLimit({ limit: -3 }), null);
+  assert.equal(c.readProductLimit({}, 8), 8);
+  assert.equal(c.readProductLimit({ limit: 3 }, 8), 3);
+
+  // The shop page's section is the full grid only when it says so (or saved no layout at all).
+  assert.equal(c.isShopGridSection({ settings: { layout: "grid" } }, "home"), true);
+  assert.equal(c.isShopGridSection({ settings: {} }, "products"), true);
+  assert.equal(c.isShopGridSection({ settings: { layout: "menu" } }, "products"), false, "a chosen layout shows on the shop page too");
+
+  const boutique = readFileSync(new URL("../src/components/storefront/boutique/BoutiqueStorefront.tsx", import.meta.url), "utf8");
+  assert.doesNotMatch(boutique, /current === "products"\) return shopGrid/, "the shop page no longer ignores the layout");
+  assert.match(boutique, /data-limit=\{explicitLimit \?\? undefined\}/);
+  const look = readFileSync(new URL("../src/components/storefront/boutique/look.ts", import.meta.url), "utf8");
+  assert.doesNotMatch(look, /\.bq-(rail|tiles|dense) > \*:nth-child\(n\+\d+\)\{display:none\}/, "CSS caps never hide products the seller asked for");
+  const classic = readFileSync(new URL("../src/components/storefront/TemplateStorefrontSurface.tsx", import.meta.url), "utf8");
+  assert.match(classic, /readOptionalProductLimit\(kindSection\.settings\) \?\? \(currentPage === "products"/);
+});
+
+test("shop page layouts: columns, list, large cards, filters and Show more read with safe defaults", async () => {
+  const c = await import("../src/lib/store-templates/section-content.ts");
+  assert.deepEqual(c.readShopGridOptions({ layout: "grid", filters: true }), { view: "grid", columns: "auto", filters: "top", pageSize: null });
+  assert.deepEqual(c.readShopGridOptions({ shopView: "list", columns: "5", filterPlacement: "sidebar", pageSize: "12" }), { view: "list", columns: "5", filters: "sidebar", pageSize: 12 });
+  assert.equal(c.readShopGridOptions({ filters: false }).filters, "none", "older grids that hid filters keep them hidden");
+  assert.equal(c.readShopGridOptions({ pageSize: "all" }).pageSize, null);
+  assert.equal(c.readShopGridOptions({ columns: "7", shopView: "x" }).columns, "auto");
+  assert.deepEqual(c.readProductCardOptions({}), { showRating: false, quickAdd: false, hoverImage: false });
+  assert.deepEqual(c.readProductCardOptions({ showRating: true, quickAdd: true, hoverImage: true }), { showRating: true, quickAdd: true, hoverImage: true });
+
+  // Older shop pages saved without a layout get "grid" written; Dúdú's story name maps to its option.
+  const snap = { pages: [
+    { pageType: "products", sections: [{ id: "g", kind: "featured-products", name: "All", visible: true, blocks: [], settings: { source: "all" } }] },
+    { pageType: "home", sections: [{ id: "f", kind: "featured-products", name: "Best", visible: true, blocks: [], settings: {} }, { id: "s", kind: "story-split", name: "Story", visible: true, blocks: [], settings: { layout: "noir-split" } }] },
+  ] };
+  const migrated = c.migrateSnapshot(snap);
+  assert.equal(migrated.pages[0].sections[0].settings.layout, "grid");
+  assert.equal(migrated.pages[1].sections[0].settings.layout, undefined, "home rails keep their theme default");
+  assert.equal(migrated.pages[1].sections[1].settings.layout, "boutique");
+});
+
+test("builder: product section fields follow the layout, and every layout offered is drawn by the theme renderer", async () => {
+  const schema = await import("../src/components/builder/editor/section-schema.ts");
+  const fp = (settings) => ({ id: "p", kind: "featured-products", name: "Products", visible: true, blocks: [], settings });
+  const ids = (settings, theme = "breeze") => schema.visibleFields(fp(settings), "boutique", theme).map((field) => field.id);
+  assert.ok(ids({ layout: "menu" }).includes("limit"), "menu lists have a product count");
+  assert.ok(!ids({ layout: "menu" }).includes("shopView"));
+  assert.ok(ids({ layout: "dense" }).includes("limit-dense") && !ids({ layout: "dense" }).includes("limit"), "the compact grid's count starts at its own default");
+  const dense = schema.allFields(schema.sectionSchema("featured-products", "boutique", "oja")).find((field) => field.id === "limit-dense");
+  assert.equal(dense.fallback, 12);
+  const grid = ids({ layout: "grid" });
+  for (const id of ["shopView", "columns", "filterPlacement", "pageSize", "showRating", "quickAdd", "hoverImage"]) assert.ok(grid.includes(id), id);
+  assert.ok(!grid.includes("limit") && !grid.includes("source"));
+  assert.ok(!ids({ layout: "grid", shopView: "list" }).includes("columns"), "lists have no column count");
+
+  // Each layout value offered for a 2026 theme section is handled by BoutiqueStorefront (defaults fall through).
+  const boutique = readFileSync(new URL("../src/components/storefront/boutique/BoutiqueStorefront.tsx", import.meta.url), "utf8");
+  const defaults = new Set(["carousel", "boutique-tiles", "boutique", "accordion", "centered", "split"]);
+  for (const kind of ["featured-products", "category-grid", "story-split", "faq", "contact-form", "testimonials", "header"]) {
+    const layout = schema.allFields(schema.sectionSchema(kind, "boutique", "breeze")).find((field) => field.id === "layout");
+    assert.ok(layout, `${kind} offers layouts`);
+    for (const option of layout.options) {
+      if (defaults.has(option.value) && option.value === layout.fallback) continue;
+      assert.ok(boutique.includes(`"${option.value}"`), `${kind} layout "${option.value}" is drawn`);
+    }
+  }
+  for (const value of ["shopView", "filterPlacement", "pageSize"]) assert.ok(readFileSync(new URL("../src/lib/store-templates/section-content.ts", import.meta.url), "utf8").includes(`settings?.${value}`), value);
+  assert.match(readFileSync(new URL("../src/components/storefront/boutique/BoutiqueChrome.tsx", import.meta.url), "utf8"), /bold\?: boolean/, "the Bold header has its own look");
+
+  const chromeNote = schema.visibleFields({ id: "h", kind: "header", name: "Header", visible: true, blocks: [], settings: {} }, "boutique", "breeze")[0];
+  assert.match(chromeNote.label, /same on every page/);
+});

@@ -37,11 +37,11 @@ export function AnnouncementBar({ text, look }: { text: string | null; look: Bou
   );
 }
 
-function Logo({ store, logoText, look, onHome, centred }: { store: ChromeStore; logoText: string; look: BoutiqueLook; onHome: () => void; centred?: boolean }) {
+function Logo({ store, logoText, look, onHome, centred, bold }: { store: ChromeStore; logoText: string; look: BoutiqueLook; onHome: () => void; centred?: boolean; bold?: boolean }) {
   return (
-    <button type="button" onClick={onHome} className={`flex min-w-0 items-center gap-2.5 border-0 bg-transparent p-0 ${centred ? "justify-center" : ""}`} style={{ color: look.tokens.ink, cursor: "pointer" }} aria-label={`${store.name} home`}>
+    <button type="button" onClick={onHome} className={`flex min-w-0 items-center gap-2.5 border-0 bg-transparent p-0 ${centred ? "justify-center" : ""}`} style={{ color: "inherit", cursor: "pointer" }} aria-label={`${store.name} home`}>
       {store.logoUrl ? <img src={store.logoUrl} alt="" width={36} height={36} className="h-9 w-9 shrink-0 rounded-[8px] object-cover" onError={(event) => { event.currentTarget.style.display = "none"; }} /> : null}
-      <span className="truncate text-[22px] leading-none @3xl:text-[24px]" style={{ fontFamily: look.logoFont, ...look.logoStyle }}>
+      <span className={bold ? "truncate text-[24px] leading-none @3xl:text-[28px]" : "truncate text-[22px] leading-none @3xl:text-[24px]"} style={{ fontFamily: look.logoFont, ...look.logoStyle, ...(bold ? { fontWeight: 800, textTransform: "uppercase", letterSpacing: "-0.02em", fontStyle: "normal" } : null) }}>
         {logoText}
       </span>
     </button>
@@ -119,6 +119,7 @@ export function BoutiqueHeader({
   wishlistCount,
   cartLabel,
   centred,
+  bold = false,
 }: {
   store: ChromeStore;
   logoText: string;
@@ -135,6 +136,8 @@ export function BoutiqueHeader({
   wishlistCount: number;
   cartLabel: string;
   centred: boolean;
+  /** "Bold" header: an inverted bar (ink background) with a heavy uppercase shop name. */
+  bold?: boolean;
 }) {
   const t = look.tokens;
   const nav = (
@@ -176,7 +179,7 @@ export function BoutiqueHeader({
           type="button"
           onClick={onBag}
           className="ml-1 inline-flex h-10 items-center gap-2 rounded-full border px-3.5 text-[13.5px] font-semibold"
-          style={{ borderColor: t.border, color: t.ink, background: look.dark ? "transparent" : "#fff", cursor: "pointer" }}
+          style={bold ? { borderColor: t.paperBg, color: t.ink, background: t.paperBg, cursor: "pointer" } : { borderColor: t.border, color: t.ink, background: look.dark ? "transparent" : "#fff", cursor: "pointer" }}
           aria-label={`${cartLabel}, ${cartCount} ${cartCount === 1 ? "item" : "items"}`}
         >
           <span className="bq-only-wide" aria-hidden>{cartLabel}</span>
@@ -190,16 +193,16 @@ export function BoutiqueHeader({
   );
 
   return (
-    <header className="sticky top-0 z-30 border-b" style={{ background: look.headerBg, borderColor: t.border, backdropFilter: "blur(10px)", color: t.ink }}>
+    <header className="sticky top-0 z-30 border-b" style={bold ? { background: t.ink, borderColor: t.ink, color: t.paperBg } : { background: look.headerBg, borderColor: t.border, backdropFilter: "blur(10px)", color: t.ink }}>
       {centred ? (
         <div className="bq-wrap grid h-[68px] grid-cols-[1fr_auto_1fr] items-center gap-3">
           <div className="min-w-0">{nav}</div>
-          <Logo store={store} logoText={logoText} look={look} onHome={onHome} centred />
+          <Logo store={store} logoText={logoText} look={look} onHome={onHome} centred bold={bold} />
           {tools}
         </div>
       ) : (
         <div className="bq-wrap flex h-[68px] items-center justify-between gap-4">
-          <Logo store={store} logoText={logoText} look={look} onHome={onHome} />
+          <Logo store={store} logoText={logoText} look={look} onHome={onHome} bold={bold} />
           {nav}
           {tools}
         </div>

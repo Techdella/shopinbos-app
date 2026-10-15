@@ -129,6 +129,9 @@ const PAYDAY_COPY: SchemaField[] = [
 
 const SHOPINBOS_BADGE: SchemaField = { id: "shopinbosBadge", type: "badge", label: "Built with Shopinbos badge", help: "A small badge at the bottom of every page of your store." };
 
+/** Announcement bar, header and footer are shared by every page (src/lib/store-templates/chrome.ts). */
+const sharedNote = (what: string): SchemaField => ({ id: "shared-note", type: "note", label: `The ${what} is the same on every page: changes here apply to your whole store.` });
+
 const THEME_STYLE_NOTE: FieldGroup = {
   fields: [{ id: "theme-colours", type: "note", label: "Colours, fonts and buttons are set for the whole theme, so every section stays consistent. Open Theme settings to change them." }],
 };
@@ -283,10 +286,11 @@ function boutiqueSchema(kind: string, themeId: string): SectionSchema {
   const plain = (settings: FieldGroup[], addable: SectionSchema["addable"] = []): SectionSchema => ({ settings, style: [THEME_STYLE_NOTE], addable });
   switch (kind) {
     case "announcement-bar":
-      return plain([{ fields: [area("text", "Message", { help: "Leave empty to show your free-delivery and pay-on-delivery settings automatically." })] }]);
+      return plain([{ fields: [area("text", "Message", { help: "Leave empty to show your free-delivery and pay-on-delivery settings automatically." }), sharedNote("announcement bar")] }]);
     case "header":
       return plain([
         { fields: [
+          sharedNote("header"),
           text("logoText", "Shop name", { help: "Leave empty to use your store name." }),
           text("cartLabel", "Bag label", { placeholder: "My bag" }),
           { id: "layout", type: "segmented", label: "Logo position", target: setting("layout"), fallback: themeId === "plain" ? "centered" : "split", options: [{ value: "split", label: "Left" }, { value: "centered", label: "Centre" }, { value: "bold", label: "Bold" }] },
@@ -295,7 +299,7 @@ function boutiqueSchema(kind: string, themeId: string): SectionSchema {
       ]);
     case "footer":
       return plain([
-        { fields: [area("summary", "About text", { help: "A line about your store. Contact, delivery and payment details come from your settings." })] },
+        { fields: [sharedNote("footer"), area("summary", "About text", { help: "A line about your store. Contact, delivery and payment details come from your settings." })] },
         { fields: [SHOPINBOS_BADGE] },
       ]);
     case "hero-split": {
@@ -324,6 +328,7 @@ function boutiqueSchema(kind: string, themeId: string): SectionSchema {
       const layoutFallback = themeId === "ounje" ? "menu" : "carousel";
       // The full shop grid shows every product, so the product choices only apply to the other layouts.
       const source = (values: string[]): When[] => [layoutNot(["grid"], layoutFallback), { scope: "settings", key: "source", in: values, fallback: "best-sellers" }];
+      const shopView = (values: string[]): When[] => [layoutIs(["grid"], layoutFallback), { scope: "settings", key: "shopView", in: values, fallback: "grid" }];
       return plain([
         { fields: [
           { id: "layout", type: "select", label: "Layout", target: setting("layout"), fallback: layoutFallback, options: [
@@ -335,7 +340,24 @@ function boutiqueSchema(kind: string, themeId: string): SectionSchema {
           ] },
           text("title", "Heading"),
           text("cta", "Link label", { placeholder: "Shop all", when: layoutNot(["grid"], layoutFallback) }),
-          { id: "grid-note", type: "note", label: "The full shop grid shows every product with search and filters.", when: layoutIs(["grid"], layoutFallback) },
+          { id: "grid-note", type: "note", label: "The full shop grid shows every product with search, sorting and filters.", when: layoutIs(["grid"], layoutFallback) },
+        ] },
+        { title: "Shop layout", fields: [
+          { id: "shopView", type: "cards", label: "Products as", target: setting("shopView"), fallback: "grid", when: layoutIs(["grid"], layoutFallback), options: [
+            { value: "grid", label: "Grid", hint: "Product cards in rows." },
+            { value: "list", label: "List", hint: "Photo, name, description and price in a row." },
+            { value: "large", label: "Large cards", hint: "Two big cards a row, editorial." },
+          ] },
+          { id: "columns", type: "segmented", label: "Products per row on computers", target: setting("columns"), fallback: "auto", when: shopView(["grid"]), options: [
+            { value: "auto", label: "Theme" }, { value: "2", label: "2" }, { value: "3", label: "3" }, { value: "4", label: "4" }, { value: "5", label: "5" },
+          ], help: "Phones always show two a row." },
+          { id: "filterPlacement", type: "segmented", label: "Search and filters", target: setting("filterPlacement"), fallback: "top", when: layoutIs(["grid"], layoutFallback), options: [
+            { value: "top", label: "Above" }, { value: "sidebar", label: "Side column" }, { value: "none", label: "Hidden" },
+          ], help: "On phones the side column sits above the products." },
+          { id: "pageSize", type: "select", label: "Products shown at first", target: setting("pageSize"), fallback: "all", when: layoutIs(["grid"], layoutFallback), options: [
+            { value: "all", label: "All of them" },
+            ...[8, 12, 16, 24, 36, 48].map((size) => ({ value: String(size), label: `${size}, then a Show more button` })),
+          ] },
         ] },
         { title: "Products", fields: [
           { id: "source", type: "select", label: "Show", target: setting("source"), fallback: "best-sellers", when: layoutNot(["grid"], layoutFallback), options: [
@@ -346,7 +368,14 @@ function boutiqueSchema(kind: string, themeId: string): SectionSchema {
           { id: "collectionId", type: "collection", label: "Collection", target: setting("collectionId"), when: source(["collection"]) },
           { id: "products", type: "products", label: "Show these first", help: "Products you pick show first, then your best sellers.", when: source(["best-sellers"]) },
           { id: "products-picked", type: "products", label: "Products to show", help: "Only these show, in this order.", when: source(["picked"]) },
-          { id: "limit", type: "number", label: "How many products", target: setting("limit"), min: 2, max: 16, fallback: 8, when: layoutNot(["grid"], layoutFallback) },
+          // Same setting; the compact grid starts at 12, the other layouts at 8 (what the renderer shows unset).
+          { id: "limit", type: "number", label: "How many products", target: setting("limit"), min: 2, max: 16, fallback: 8, when: layoutNot(["grid", "dense"], layoutFallback), help: "Only as many as your store has are shown." },
+          { id: "limit-dense", type: "number", label: "How many products", target: setting("limit"), min: 2, max: 24, fallback: 12, when: layoutIs(["dense"], layoutFallback), help: "Only as many as your store has are shown." },
+        ] },
+        { title: "Product cards", fields: [
+          { id: "showRating", type: "toggle", label: "Star rating", target: setting("showRating"), fallback: false, when: layoutNot(["menu"], layoutFallback), help: "Only products with real reviews show stars." },
+          { id: "quickAdd", type: "toggle", label: "Add to bag button", target: setting("quickAdd"), fallback: false, when: layoutNot(["menu"], layoutFallback), help: "Products with sizes or colours open their page to choose one." },
+          { id: "hoverImage", type: "toggle", label: "Second photo on hover", target: setting("hoverImage"), fallback: false, when: [layoutNot(["menu"], layoutFallback), { scope: "settings", key: "shopView", notIn: ["list"], fallback: "grid" }], help: "On computers, pointing at a product shows its next photo." },
         ] },
       ], [{ id: "product", label: "Product" }]);
     }
@@ -354,7 +383,7 @@ function boutiqueSchema(kind: string, themeId: string): SectionSchema {
     case "category-list":
       return plain([{ fields: [
         text("title", "Heading"),
-        { id: "layout", type: "segmented", label: "Layout", target: setting("layout"), fallback: themeId === "plug" ? "chips" : "boutique-tiles", options: [{ value: "boutique-tiles", label: "Tiles" }, { value: "chips", label: "Chips" }] },
+        { id: "layout", type: "segmented", label: "Layout", target: setting("layout"), fallback: themeId === "plug" ? "chips" : "boutique-tiles", options: [{ value: "boutique-tiles", label: "Tiles" }, { value: "boutique-circles", label: "Circles" }, { value: "chips", label: "Chips" }] },
         { id: "note", type: "note", label: "Tiles come from your collections, or your product categories when you have no collections." },
       ] }]);
     case "testimonials":
@@ -369,19 +398,32 @@ function boutiqueSchema(kind: string, themeId: string): SectionSchema {
       const storyFallback = themeId === "adire" || themeId === "ile" ? "editorial" : "boutique";
       return plain([
         { fields: [
-          { id: "layout", type: "segmented", label: "Layout", target: setting("layout"), fallback: storyFallback, options: [{ value: "boutique", label: "Side by side" }, { value: "editorial", label: "Editorial" }] },
-          { id: "imagePosition", type: "segmented", label: "Picture side", target: setting("imagePosition"), fallback: "left", options: IMAGE_SIDE, help: "On phones the picture is always on top." },
-          { id: "media", type: "media", label: "Image", max: 1, help: "No image yet? A product photo is used." },
+          { id: "layout", type: "cards", label: "Layout", target: setting("layout"), fallback: storyFallback, options: [
+            { value: "boutique", label: "Side by side", hint: "Picture and words share the width." },
+            { value: "editorial", label: "Editorial", hint: "Tall picture, large heading." },
+            { value: "banner", label: "Wide picture", hint: "Picture across the page, words below." },
+            { value: "centered", label: "Words only", hint: "A centred statement, no picture." },
+          ] },
+          { id: "imagePosition", type: "segmented", label: "Picture side", target: setting("imagePosition"), fallback: "left", options: IMAGE_SIDE, help: "On phones the picture is always on top.", when: layoutIs(["boutique", "editorial"], storyFallback) },
+          { id: "media", type: "media", label: "Image", max: 1, help: "No image yet? A product photo is used.", when: layoutNot(["centered"], storyFallback) },
         ] },
         { title: "Content", fields: [text("eyebrow", "Eyebrow"), area("title", "Heading"), area("body", "Text", { help: "Leave empty to use your store description." }), text("primaryCta", "Button label")] },
       ]);
     }
     case "faq":
-      return plain([{ fields: [text("title", "Heading"), { id: "faq", type: "faq", label: "Questions", help: "Blank delivery and payment answers are filled from your settings." }] }], [{ id: "question", label: "Question" }]);
+      return plain([{ fields: [
+        { id: "layout", type: "segmented", label: "Layout", target: setting("layout"), fallback: "accordion", options: [{ value: "accordion", label: "Accordion" }, { value: "two-column", label: "Two columns" }, { value: "cards", label: "Open cards" }] },
+        text("title", "Heading"),
+        { id: "faq", type: "faq", label: "Questions", help: "Blank delivery and payment answers are filled from your settings." },
+      ] }], [{ id: "question", label: "Question" }]);
     case "newsletter":
       return plain([{ fields: [text("title", "Heading"), area("body", "Text"), text("placeholder", "Field hint"), text("buttonLabel", "Button label")] }]);
     case "contact-form":
-      return plain([{ fields: [text("title", "Heading"), area("body", "Text"), text("buttonLabel", "Button label"), { id: "note", type: "note", label: "A WhatsApp button shows when you add a WhatsApp number in Chat settings." }] }]);
+      return plain([{ fields: [
+        { id: "layout", type: "segmented", label: "Layout", target: setting("layout"), fallback: "centered", options: [{ value: "centered", label: "Simple" }, { value: "split", label: "Side by side" }, { value: "card", label: "Card" }] },
+        text("title", "Heading"), area("body", "Text"), text("buttonLabel", "Button label"),
+        { id: "note", type: "note", label: "A WhatsApp button shows when you add a WhatsApp number in Chat settings." },
+      ] }]);
     case "wishlist-grid":
     case "cart-summary":
       return plain([{ fields: [text("title", "Heading")] }]);
@@ -682,9 +724,10 @@ function classicContent(kind: string, fallback: string): FieldGroup[] {
   const heading = (extra: Partial<FieldBase> = {}) => area("title", "Heading", extra);
   switch (kind) {
     case "announcement-bar":
-      return [{ fields: [area("text", "Message")] }];
+      return [{ fields: [area("text", "Message"), sharedNote("announcement bar")] }];
     case "header":
       return [{ title: "Header", fields: [
+        sharedNote("header"),
         text("logoText", "Logo text"),
         text("cartLabel", "Cart label"),
         { id: "categoryNavLayout", type: "select", label: "Category menu", target: setting("categoryNavLayout"), fallback: "simple", options: [
@@ -698,6 +741,7 @@ function classicContent(kind: string, fallback: string): FieldGroup[] {
       ] }];
     case "footer":
       return [{ title: "Footer", fields: [
+        sharedNote("footer"),
         area("summary", "Footer summary"),
         { id: "showPayments", type: "toggle", label: "Show payment methods", target: setting("showPayments"), fallback: true },
         { id: "showDelivery", type: "toggle", label: "Show delivery note", target: setting("showDelivery"), fallback: true },
@@ -729,13 +773,14 @@ function classicContent(kind: string, fallback: string): FieldGroup[] {
             fields: [{ key: "media", type: "media", label: "Picture", accept: "media" }, { key: "title", type: "text", label: "Label" }],
           },
           {
-            id: "cards", type: "repeater", label: "Picture cards", itemName: "Card", addLabel: "Add card", max: 2, when: on(split),
+            // The text-over-picture banner shows one picture (the main one, else the first card's).
+            id: "cards", type: "repeater", label: "Picture cards", itemName: "Card", addLabel: "Add card", max: 2, when: on(["split-editorial", "full-bleed"]),
             help: "The first card's picture is also the big picture when no main picture is set.",
             template: { title: "New card", subtitle: "", imageUrl: "" }, titleKeys: ["title"],
             fields: [{ key: "media", type: "media", label: "Picture", accept: "media" }, { key: "title", type: "text", label: "Title" }, { key: "subtitle", type: "text", label: "Text" }],
           },
           {
-            id: "feature", type: "repeater", label: "Picture", itemName: "Picture", addLabel: "Add picture", max: 1, when: on(["beauty-split"]),
+            id: "feature", type: "repeater", label: "Picture", itemName: "Picture", addLabel: "Add picture", max: 1, when: on(["beauty-split", "text-overlay"]),
             template: { title: "", imageUrl: "" }, titleKeys: ["title"],
             fields: [{ key: "media", type: "media", label: "Picture", accept: "media" }, { key: "title", type: "text", label: "Card label" }],
           },

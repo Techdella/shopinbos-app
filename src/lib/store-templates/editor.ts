@@ -9,6 +9,7 @@ import type {
   TemplateSectionNode,
   ThemeTokenSet,
 } from "./types";
+import { propagateChrome } from "./chrome";
 
 export interface StoreConfigLike {
   name: string;
@@ -543,7 +544,8 @@ export function applyEditorPatchOps(snapshot: StoreEditorSnapshot, ops: StoreEdi
   }
 
   next.updatedAt = new Date().toISOString();
-  return next;
+  // The header, announcement bar and footer are shared by every page: an op on one page's copy applies to all.
+  return propagateChrome(snapshot, next);
 }
 
 export function syncSnapshotFromStoreConfig(snapshot: StoreEditorSnapshot, store: StoreConfigLike) {

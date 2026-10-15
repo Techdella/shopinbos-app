@@ -6,7 +6,7 @@ import { getCurrentAppUser } from "@/lib/server-auth";
 import { mergeBrandSettings, parseBrandSettings, slugify } from "@/lib/workspace";
 import { gaMeasurementId } from "@/lib/security/html";
 import { saveSellerBusinessAddress, saveStoreDetails } from "@/lib/seller-settings.server";
-import { changeStoreSlug, clearStaleShopNames } from "@/lib/store-address.server";
+import { changeStoreSlug, clearStaleShopNames, clearStaleShopNamesInStorePages } from "@/lib/store-address.server";
 
 async function getSellerUserOrThrow() {
   const user = await getCurrentAppUser({ redirectTo: "/login" });
@@ -414,6 +414,7 @@ export async function saveStoreBrandKitSettings(formData: FormData) {
       }),
     },
   });
+  if (name !== store.name) await clearStaleShopNamesInStorePages(store.id, store.name);
 
   redirect("/home/brand-kit?saved=true");
 }

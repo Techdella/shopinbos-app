@@ -1,6 +1,6 @@
 import "server-only";
 
-import { changeStoreSlug, clearStaleShopNames } from "@/lib/store-address.server";
+import { changeStoreSlug, clearStaleShopNames, clearStaleShopNamesInStorePages } from "@/lib/store-address.server";
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { readBusinessAddress } from "@/lib/email/shell";
@@ -29,6 +29,7 @@ export async function saveStoreDetails(userId: string, input: { name?: string; s
       brandSettings: mergeBrandSettings(renamedSettings ?? store.brandSettings, {}),
     },
   });
+  if (name !== store.name) await clearStaleShopNamesInStorePages(store.id, store.name);
   if (input.slug?.trim() && input.slug.trim() !== store.slug) {
     const moved = await changeStoreSlug(store.id, input.slug);
     if (!moved.ok) return { error: moved.message };
