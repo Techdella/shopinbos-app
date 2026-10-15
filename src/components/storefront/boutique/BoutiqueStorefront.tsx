@@ -23,7 +23,9 @@ import {
 import { bestSellers, productCategories, relatedProducts, searchProducts, type ShopperProduct } from "../shopper/catalog";
 import { ShopperBottomNav, type ShopperSheet } from "../shopper/ShopperBottomNav";
 import { AnnouncementBar, BoutiqueFooter, BoutiqueHeader, SectionTitle, type ChromeHref, type ChromeLink } from "./BoutiqueChrome";
-import { BoutiqueProductView } from "./BoutiqueProductView";
+import { BoutiqueProductView, type BoutiqueProductDetail } from "./BoutiqueProductView";
+import { pdpSettingsForSnapshot } from "./pdp/pdp-logic";
+import { samplePdpProduct } from "./pdp/sample-product";
 import { BOUTIQUE_FONT_CLASS } from "./fonts";
 import { BOUTIQUE_CSS, boutiqueLook, lookVars, navColors, pdpLayout, type BoutiqueLook } from "./look";
 import { ProductTile } from "./ProductTile";
@@ -1197,7 +1199,9 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
   }
 
   function productDetail() {
-    const product = (selectedProductId ? products.find((entry) => entry.id === selectedProductId) : null) ?? products[0];
+    const own: BoutiqueProductDetail | undefined = (selectedProductId ? products.find((entry) => entry.id === selectedProductId) : null) ?? products[0];
+    // The builder shows a sample product until the store has one, so the product page can still be designed.
+    const product = own ?? (live || props.demo ? undefined : samplePdpProduct(themeId, store.currency));
     if (!product) return editorHint("Add a product to preview the product page.");
     const related = relatedProducts(product, products);
     return (
@@ -1215,6 +1219,9 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         wishlistIds={wished}
         crumbs={[{ label: "Home", onSelect: () => go("home") }, { label: "Shop", onSelect: () => go("products") }, ...(product.category ? [{ label: product.category.name, onSelect: () => shopCategory(product.category!.slug) }] : []), { label: product.name }]}
         interactive={false}
+        settings={pdpSettingsForSnapshot(snapshot, themeId)}
+        catalog={products}
+        notice={own || props.demo ? undefined : "Sample product. Your own products show here once you add them."}
       />
     );
   }

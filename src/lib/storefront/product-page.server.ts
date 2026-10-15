@@ -111,6 +111,11 @@ export const loadProductPage = cache(async (slug: string, productId: string, pre
         returnPolicy: true,
         productDetails: true,
         relatedProductIds: true,
+        supportInfo: true,
+        faqs: true,
+        videoUrl: true,
+        currentStock: true,
+        lowStockThreshold: true,
       },
     }),
   ]);

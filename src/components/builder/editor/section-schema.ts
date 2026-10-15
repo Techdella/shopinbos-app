@@ -6,6 +6,7 @@
 
 import type { TemplateSectionNode } from "@/lib/store-templates";
 import type { RendererKind } from "./editor-logic";
+import { pdpSchemaGroups } from "./pdp-schema.ts";
 
 export type FieldTarget =
   | { scope: "copy"; key: string }
@@ -61,6 +62,8 @@ export type SchemaField =
   | (FieldBase & { type: "media"; max: number; accept?: "image" | "media" })
   /** Store products picked onto section.items (mappedStoreProductId). */
   | (FieldBase & { type: "products"; max?: number })
+  /** Ordered on/off list: the value is the shown ids, in order. */
+  | (FieldBase & { type: "order"; target: FieldTarget; options: ChoiceOption[]; fallback: string[] })
   | (FieldBase & { type: "faq" })
   | (FieldBase & { type: "imageBlocks" })
   | (FieldBase & { type: "items" })
@@ -388,7 +391,7 @@ function boutiqueSchema(kind: string, themeId: string): SectionSchema {
     case "checkout-form":
       return plain([{ fields: [{ id: "note", type: "note", label: "Shoppers pay on the secure checkout page. Payment choices are in Checkout settings." }] }]);
     case "product-detail":
-      return plain([{ fields: [{ id: "note", type: "note", label: "Shows the product a shopper opens: photos, price, sizes, delivery and reviews come from the product itself." }] }]);
+      return plain(pdpSchemaGroups(themeId));
     default:
       return plain([{ fields: [text("title", "Heading"), area("body", "Text")] }]);
   }
