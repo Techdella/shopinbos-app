@@ -43,7 +43,28 @@ const FRESH_DIRECTIONS = [
   "Try a premium luxury direction: elegant serif lettering and a refined small mark.",
 ];
 
-type LogoInput = { businessName: string; business: string; paletteHint?: string; userId: string; round?: number };
+type LogoInput = {
+  businessName: string;
+  business: string;
+  paletteHint?: string;
+  userId: string;
+  round?: number;
+  /** What the seller added: likes, dislikes, the story behind the name, where the logo will be used. */
+  notes?: string;
+  /** How many inspiration pictures (photos or video stills) go with the request as references. */
+  inspiration?: number;
+};
+
+/** The seller's own context, added to every logo prompt. */
+export function logoContext(input: Pick<LogoInput, "notes" | "inspiration">, afterReference = 0) {
+  const parts: string[] = [];
+  if (input.notes?.trim()) parts.push(`What the owner told us: ${input.notes.trim().slice(0, 600)}`);
+  if (input.inspiration) {
+    const which = afterReference ? `The reference images after the first are` : input.inspiration === 1 ? "The reference image is" : "The reference images are";
+    parts.push(`${which} the owner's inspiration (their shop, packaging, an old sign or logos they like): take the mood, colours and shapes from them, but make an original logo; never copy another brand's logo or name.`);
+  }
+  return parts.length ? ` ${parts.join(" ")}` : "";
+}
 
 async function settle(jobs: Array<Promise<LogoOption>>) {
   const results = await Promise.allSettled(jobs);
@@ -62,7 +83,7 @@ export async function drawLogoOptions(
   const fresh = round > 1 ? ` ${FRESH_DIRECTIONS[(round - 2) % FRESH_DIRECTIONS.length]}` : "";
   return settle(
     LOGO_STYLES.map(async ({ style, label, prompt, palette }) => {
-      const url = await draw(`${prompt(input.businessName.trim().slice(0, 80), (input.business || "retail business").slice(0, 300), input.paletteHint?.slice(0, 200))}${fresh}`, `logos/${input.userId}/${style}-${Date.now()}`);
+      const url = await draw(`${prompt(input.businessName.trim().slice(0, 80), (input.business || "retail business").slice(0, 300), input.paletteHint?.slice(0, 200))}${fresh}${logoContext(input)}`, `logos/${input.userId}/${style}-${Date.now()}`);
       return { style, label, url, palette };
     }),
   );
@@ -83,7 +104,7 @@ export async function drawLogoVariations(
   return settle(
     VARIATIONS.map(async ({ style, label, ask }, index) => {
       const url = await draw(
-        `${ask} The business name on the logo is "${name}"; spell it exactly. White or transparent background.${input.paletteHint ? ` ${input.paletteHint.slice(0, 200)}` : ""}`,
+        `${ask} The first reference image is the logo to work from. The business name on the logo is "${name}"; spell it exactly. White or transparent background.${input.paletteHint ? ` ${input.paletteHint.slice(0, 200)}` : ""}${logoContext(input, 1)}`,
         `logos/${input.userId}/${style}-${Date.now()}`,
       );
       return { style, label, url, palette: LOGO_STYLES[index % LOGO_STYLES.length].palette };
