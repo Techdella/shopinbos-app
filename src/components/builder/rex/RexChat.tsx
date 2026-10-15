@@ -1,7 +1,6 @@
 "use client";
 
-import { openTopUp } from "@/components/credits/CreditsBadge";
-import Link from "next/link";
+import { BuyCreditsButton } from "@/components/credits/CreditsBadge";
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { Mascot, Spinner, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
@@ -211,11 +210,7 @@ export function RexChat({
                           </button>
                         </div>
                       ) : null}
-                      {message.text.includes("/home/credits") ? (
-                        <Link href="/home/credits" onClick={(event) => { if (openTopUp()) event.preventDefault(); }} className="mt-3 inline-flex min-h-[36px] items-center gap-1.5 rounded-full bg-app-ink px-4 text-[13px] font-bold text-white no-underline">
-                          <Icon name="sparkle" size={14} /> {t("rex.ch.buyCredits")}
-                        </Link>
-                      ) : null}
+                      {message.buyCredits || message.text.includes("Buy AI credits") ? <BuyCreditsButton className="mt-3 min-h-[36px] text-[13px]" label={t("rex.ch.buyCredits")} /> : null}
                       {message.offer ? (
                         <button
                           type="button"

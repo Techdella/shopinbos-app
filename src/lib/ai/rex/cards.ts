@@ -47,6 +47,8 @@ export interface RexReply {
   /** The newest draft when Rex changed the store this turn (for the live preview). */
   draft: StoreEditorSnapshot | null;
   versions: RexVersionSummary[] | null;
+  /** A tool stopped because the AI allowance and credits are used up (the chat offers "Buy credits"). */
+  creditsNeeded?: boolean;
 }
 
 /** Session storage key the video card uses to hand a prepared reel to /home/video. */

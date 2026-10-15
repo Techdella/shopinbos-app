@@ -59,14 +59,16 @@ export interface RexToolOutput {
 
 /** A problem the model should hear about (and can usually fix or explain), sent back as an error result. */
 export class RexToolError extends Error {}
+/** The allowance and credits are used up; the chat shows a "Buy credits" button with Rex's reply. */
+export class RexCreditsError extends RexToolError {}
 
 const money = (amount: number) => naira(Number(amount) || 0);
 
 async function meter(ctx: RexToolContext, kind: AiKind, units = 1) {
   const limited = await meterAi(ctx.userId, kind, units);
   if (!limited) return;
-  const body = (await limited.json().catch(() => null)) as { error?: { message?: string } } | null;
-  throw new RexToolError(`${body?.error?.message ?? "The AI allowance for today is used up."} Tell the seller plainly; nothing was made.`);
+  const body = (await limited.json().catch(() => null)) as { error?: { code?: string; message?: string } } | null;
+  throw new (body?.error?.code === "AI_CREDITS_NEEDED" ? RexCreditsError : RexToolError)(`${body?.error?.message ?? "The AI allowance for today is used up."} Tell the seller plainly; nothing was made.`);
 }
 
 async function logActivity(ctx: RexToolContext, event: { type: string; title: string; description?: string; tool: RexToolName; link?: string; data?: Record<string, unknown> }) {

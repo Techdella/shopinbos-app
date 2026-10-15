@@ -15,7 +15,7 @@ import { isRexWriteTool, parseRexToolInput, providerSchema, REX_TOOL_NAMES, REX_
 import type { RexCard, RexReply } from "./cards";
 import { loadStudioStore } from "./studio-edit.server";
 import { loadHealthFacts, studioDraft, themeNameFor } from "./studio.server";
-import { MarketingError, REX_TOOL_RUNNERS, RexToolError, type RexToolContext } from "./tools";
+import { MarketingError, REX_TOOL_RUNNERS, RexCreditsError, RexToolError, type RexToolContext } from "./tools";
 
 // Rex's agent loop over Claude (Messages API, manual tool loop) and OpenAI (Responses API, function tools),
 // shaped like Peggy's (src/lib/ai/peggy/agent.ts). The preferred provider runs first; if it fails or refuses
@@ -66,6 +66,7 @@ interface RunState {
   cards: RexCard[];
   wrote: boolean;
   deadline: number;
+  creditsNeeded?: boolean;
 }
 
 class ProviderRefused extends Error {}
@@ -91,6 +92,7 @@ async function runTool(state: RunState, name: string, rawInput: unknown): Promis
     if (isRexWriteTool(tool) || REX_TOOL_SPECS[tool].kind === "image") state.wrote = true;
     return { content: output.content, isError: false };
   } catch (error) {
+    if (error instanceof RexCreditsError) state.creditsNeeded = true;
     if (error instanceof RexToolError || error instanceof MarketingError) return { content: error.message, isError: true };
     console.error(`[rex] tool ${tool} failed`, error);
     return { content: "That didn't work because of a problem on our side. Nothing was changed by this step. Tell the seller to try again shortly.", isError: true };
@@ -267,7 +269,7 @@ export async function runRex(userId: string, turns: RexTurn[], imageUrls: string
   const history = turns.slice(0, -1).map((turn) => ({ role: turn.role, content: turn.content.slice(0, 4000) }));
   const ctx: RexToolContext = { userId, storeId: store.id, storeName: store.name, attachments, newPhotos, history, draft: null, versions: null };
   const state: RunState = { ctx, cards: [], wrote: false, deadline: Date.now() + RUN_BUDGET_MS };
-  const reply = (text: string): RexReply => ({ text, cards: state.cards, draft: ctx.draft, versions: ctx.versions });
+  const reply = (text: string): RexReply => ({ text, cards: state.cards, draft: ctx.draft, versions: ctx.versions, ...(state.creditsNeeded ? { creditsNeeded: true } : {}) });
 
   for (const provider of providerOrder()) {
     // Seeing the photos helps; if the provider can't fetch them, try once more with their links only.

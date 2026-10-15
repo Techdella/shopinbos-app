@@ -195,6 +195,18 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "credits.topUp": "Fi kún un",
   "credits.autoOnBuy": "Fi kún un fún mi láìfọwọ́kàn nígbà tí kírẹ́dítì bá tán (ẹ̀mẹ́ta lójúmọ́ jù lọ)",
   "credits.manage": "Ṣàkóso kírẹ́dítì àti ìtàn",
+  "credits.buyTitle": "Ra kírẹ́dítì AI",
+  "credits.youHave": "{count, plural, other {O ní kírẹ́dítì #}}",
+  "credits.close": "Pa á dé",
+  "credits.packCredits": "{count, plural, other {kírẹ́dítì #}}",
+  "credits.loading": "Àwọn àpò ń bọ̀…",
+  "credits.paystack": "Ìsanwó tó ní ààbò pẹ̀lú Paystack",
+  "credits.buyButton": "Ra kírẹ́dítì",
+  "credits.pack.small": "Àfikún kékeré",
+  "credits.pack.medium": "Àpò iṣẹ́ òwò",
+  "credits.pack.large": "Àpò alágbára",
+  "credits.badge.medium": "Èyí tí wọ́n fẹ́ jù",
+  "credits.badge.large": "Iye tó dára jù",
 };
 
 export default yo;

@@ -2682,7 +2682,8 @@ test("AI credits: packs, costs and an auto top-up that can't run away", async ()
   assert.equal(c.shouldAutoTopUp({ ...base, hasCard: false }), false);
   assert.equal(c.shouldAutoTopUp({ ...base, autoChargesToday: c.AUTO_TOP_UP_PER_DAY }), false, "capped per day");
   assert.equal(c.shouldAutoTopUp({ ...base, packId: "small", need: 500 }), false, "a pack that can't cover it isn't bought");
-  assert.match(c.outOfCreditsMessage("8 images", 5, 0), /\/home\/credits/);
+  assert.match(c.outOfCreditsMessage("8 images", 5, 0), /Buy AI credits to carry on/);
+  assert.doesNotMatch(c.outOfCreditsMessage("8 images", 5, 0), /\/home\/credits/);
 });
 
 test("Rex and Peggy chats save with a title from the seller's first words, within limits", async () => {
@@ -2713,7 +2714,6 @@ test("Suppliers buy and are pointed to AI credits in their own portal", async ()
   const c = await import("../shared/ai-credits.ts");
   assert.equal(c.creditsUrlFor("supplier"), "/supplier/credits");
   assert.equal(c.creditsUrlFor("seller"), "/home/credits");
-  assert.match(c.outOfCreditsMessage("8 images", 5, 0, "/supplier/credits"), /\/supplier\/credits/);
   assert.equal(c.planCreditGrant("PLN_q78304vgj7p35o6").credits, 100, "Supplier Max monthly");
 });
 

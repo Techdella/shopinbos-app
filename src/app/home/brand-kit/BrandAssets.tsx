@@ -7,15 +7,17 @@ import { Spinner, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { useT } from "@/components/i18n/I18nProvider";
 import { uploadStudioPhoto } from "@/components/builder/rex/api";
-import { creditsChanged, openTopUp } from "@/components/credits/CreditsBadge";
+import { BuyCreditsButton, creditsChanged, isCreditsError } from "@/components/credits/CreditsBadge";
 import type { BrandAssetKind, BrandAssets } from "@shared/brand-assets";
 
 const btn = "inline-flex min-h-[36px] items-center gap-1.5 rounded-full border border-app-line bg-white px-3.5 text-[13px] font-bold text-app-ink no-underline hover:border-app-line-strong disabled:opacity-50";
 
 async function readError(response: Response, fallback: string) {
-  const json = (await response.json().catch(() => null)) as { error?: { message?: string } } | null;
-  return json?.error?.message ?? fallback;
+  const json = (await response.json().catch(() => null)) as { error?: { code?: string; message?: string } } | null;
+  return Object.assign(new Error(json?.error?.message ?? fallback), { code: json?.error?.code });
 }
+
+const needsCredits = (error: unknown) => isCreditsError((error as { code?: string } | null)?.code);
 
 /**
  * Brand kit: the logo, the logo icon (square mark for app icons and profile pictures) and the favicon (browser
@@ -29,14 +31,16 @@ export function BrandAssetsPanel({ initial, storeName, accent, fileBase }: { ini
   const [busy, setBusy] = useState<string | null>(null);
   const [proposal, setProposal] = useState<{ kind: BrandAssetKind; url: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [needCredits, setNeedCredits] = useState(false);
   const files = useRef<Partial<Record<BrandAssetKind, HTMLInputElement | null>>>({});
 
   async function save(kind: BrandAssetKind, url: string | null) {
     setBusy(`save-${kind}`);
     setError(null);
+    setNeedCredits(false);
     try {
       const response = await fetch("/api/app/brand-assets", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind, url }) });
-      if (!response.ok) throw new Error(await readError(response, t("ba.failed")));
+      if (!response.ok) throw await readError(response, t("ba.failed"));
       setAssets(((await response.json()) as { data: BrandAssets }).data);
       setProposal(null);
       router.refresh();
@@ -51,6 +55,7 @@ export function BrandAssetsPanel({ initial, storeName, accent, fileBase }: { ini
     if (!file) return;
     setBusy(`up-${kind}`);
     setError(null);
+    setNeedCredits(false);
     try {
       const url = await uploadStudioPhoto(file);
       await save(kind, url);
@@ -66,12 +71,14 @@ export function BrandAssetsPanel({ initial, storeName, accent, fileBase }: { ini
   async function make(kind: "icon" | "favicon") {
     setBusy(`make-${kind}`);
     setError(null);
+    setNeedCredits(false);
     try {
       const response = await fetch("/api/ai/brand-icon", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind }) });
-      if (!response.ok) throw new Error(await readError(response, t("ba.failed")));
+      if (!response.ok) throw await readError(response, t("ba.failed"));
       setProposal({ kind, url: ((await response.json()) as { data: { url: string } }).data.url });
     } catch (err) {
       setError(err instanceof Error ? err.message : t("ba.failed"));
+      setNeedCredits(needsCredits(err));
     } finally {
       setBusy(null);
       creditsChanged();
@@ -167,12 +174,10 @@ export function BrandAssetsPanel({ initial, storeName, accent, fileBase }: { ini
       </div>
       <div className="grid gap-3 md:grid-cols-3">{(["logo", "icon", "favicon"] as const).map(tile)}</div>
       {error ? (
-        <p role="alert" className="m-0 text-[13px] font-bold text-app-danger">
-          {error}{" "}
-          {error.includes("/home/credits") ? (
-            <Link href="/home/credits" onClick={(event) => { if (openTopUp()) event.preventDefault(); }} className="underline">{t("ba.topUp")}</Link>
-          ) : null}
-        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <p role="alert" className="m-0 text-[13px] font-bold text-app-danger">{error}</p>
+          {needCredits ? <BuyCreditsButton /> : null}
+        </div>
       ) : null}
     </section>
   );
