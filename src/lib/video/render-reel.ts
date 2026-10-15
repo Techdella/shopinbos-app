@@ -53,6 +53,8 @@ export interface ReelResult {
   mimeType: string;
   extension: "mp4" | "webm";
   seconds: number;
+  /** A cover picture (JPEG) from the middle of the first shot, for lists and ad thumbnails. */
+  poster: Blob | null;
 }
 
 const MIME_TYPES = [
@@ -745,8 +747,10 @@ export async function renderReel(input: ReelInput): Promise<ReelResult> {
   await audioContext.close();
   input.onProgress?.(1);
 
+  drawReelFrame(ctx, scene, scene.timeline.intro + scene.timeline.perShot * 0.6);
+  const poster = await new Promise<Blob | null>((resolve) => canvas.toBlob((blob) => resolve(blob), "image/jpeg", 0.86));
   const type = recorder.mimeType || mimeType || "video/webm";
-  return { blob: new Blob(chunks, { type }), mimeType: type, extension: type.includes("mp4") ? "mp4" : "webm", seconds: total };
+  return { blob: new Blob(chunks, { type }), mimeType: type, extension: type.includes("mp4") ? "mp4" : "webm", seconds: total, poster };
 }
 
 /** Plays a mood's music for a few seconds so the seller can hear it before making the reel. */

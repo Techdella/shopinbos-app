@@ -268,7 +268,7 @@ function VideoCard({ card }: { card: Extract<RexCard, { type: "video" }> } & Rex
     } catch {
       // Without storage the studio still opens on the product; the seller presses "Write it" there.
     }
-    router.push(`/home/video?product=${encodeURIComponent(card.product.id)}`);
+    router.push(`/home/video/studio?purpose=social&product=${encodeURIComponent(card.product.id)}`);
   }
   return (
     <section className={shell} aria-label={t("rex.cd.reelFor", { name: card.product.name })}>
