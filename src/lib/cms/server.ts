@@ -408,10 +408,3 @@ export async function saveMarkdownPost(
     { itemId: existing?.id ?? null, createdBy },
   );
 }
-
-/** A published store page with this slug (/about), so /s/[slug]/about can send shoppers to it. */
-export async function publishedPageSlug(storeSlug: string, pageSlug: string) {
-  if (!/^[a-z-]{2,20}$/.test(pageSlug)) return null;
-  const page = await db.storePage.findFirst({ where: { slug: pageSlug, isPublished: true, store: { slug: storeSlug, status: "active" } }, select: { slug: true } }).catch(() => null);
-  return page?.slug ?? null;
-}

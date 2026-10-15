@@ -2762,3 +2762,62 @@ test("store web address: normalized, reserved names refused, 30-day limit, old a
   assert.equal(a.renamedStoreTarget({ host: "app.shopinbos.com", path: "/s/joanna?page=about", oldSlug: "joanna", newSlug: "rexi", storeHost: false }), "/s/rexi?page=about");
   assert.equal(a.renamedStoreTarget({ host: "other.mybos.store", path: "/", oldSlug: "joanna", newSlug: "rexi", storeHost: true }), null);
 });
+
+test("store pages have clean addresses: /shop, /about, custom pages; old ?page= links redirect there", async () => {
+  const p = await import("../shared/storefront-pages.ts");
+  // Key → path.
+  assert.equal(p.storefrontPagePath("home"), "/");
+  assert.equal(p.storefrontPagePath("products"), "/shop");
+  assert.equal(p.storefrontPagePath("shop"), "/shop");
+  assert.equal(p.storefrontPagePath("about"), "/about");
+  assert.equal(p.storefrontPagePath("contact"), "/contact");
+  assert.equal(p.storefrontPagePath("faq"), "/faq");
+  assert.equal(p.storefrontPagePath("wishlist"), "/wishlist", "the wishlist keeps its own route");
+  assert.equal(p.storefrontPagePath("lookbook"), "/lookbook", "custom pages live at their slug");
+  for (const taken of ["product", "cart", "collections", "policies", "reviews", "order", "preview"]) assert.equal(p.storefrontPagePath(taken), null, `${taken} is a route, not a page`);
+  assert.equal(p.storefrontPagePath("../admin"), null);
+  assert.equal(p.storefrontPagePath("Bad Slug"), null);
+
+  // Path → key.
+  assert.equal(p.storefrontPageKeyFromPath("/"), "home");
+  assert.equal(p.storefrontPageKeyFromPath("/shop"), "products");
+  assert.equal(p.storefrontPageKeyFromPath("/products/"), "products");
+  assert.equal(p.storefrontPageKeyFromPath("/about"), "about");
+  assert.equal(p.storefrontPageKeyFromPath("/cart"), null);
+  assert.equal(p.storefrontPageKeyFromPath("/product/abc"), null);
+  assert.equal(p.storefrontPageKeyFromLocation("/s/adas/about", "/s/adas"), "about");
+  assert.equal(p.storefrontPageKeyFromLocation("/s/adas", "/s/adas"), "home");
+  assert.equal(p.storefrontPageKeyFromLocation("/s/other/about", "/s/adas"), null);
+  assert.equal(p.storefrontPageKeyFromLocation("/faq", ""), "faq");
+  assert.equal(p.isStorefrontPageAlias("products", "products"), true, "/products redirects to /shop");
+  assert.equal(p.isStorefrontPageAlias("shop", "products"), false);
+  assert.equal(p.isStorefrontPageAlias("about", "about"), false);
+
+  // Hrefs under the store's base: "" on its own domain, /s/<slug> on the app host.
+  assert.equal(p.storefrontPageHref("", "about"), "/about");
+  assert.equal(p.storefrontPageHref("/s/adas", "home"), "/s/adas");
+  assert.equal(p.storefrontPageHref("/s/adas", "products", new URLSearchParams({ category: "bags" })), "/s/adas/shop?category=bags");
+  assert.equal(p.storefrontPageHref("", "product"), null);
+
+  // Old links keep working, with the rest of their query.
+  const legacy = (base, query) => p.legacyPageRedirectTarget(base, new URLSearchParams(query));
+  assert.equal(legacy("", "page=about"), "/about");
+  assert.equal(legacy("/s/adas", "page=products&category=bags&q=red&sort=price"), "/s/adas/shop?category=bags&q=red&sort=price");
+  assert.equal(legacy("", "page=home&sib_c=x"), "/?sib_c=x");
+  assert.equal(legacy("/s/adas", "page=product"), "/s/adas", "pages without an address go home");
+  assert.equal(legacy("", "q=red"), null, "no ?page=, no redirect");
+  assert.deepEqual([...p.searchParamsFromRecord({ page: "about", tag: ["a", "b"], none: undefined }).entries()], [["page", "about"], ["tag", "a"], ["tag", "b"]]);
+
+  // Which pages a store has: its published builder snapshot or its published page rows.
+  const pages = [{ pageType: "home", slug: "" }, { pageType: "about", slug: "about" }, { pageType: "custom", slug: "lookbook" }];
+  assert.equal(p.findStorefrontPage(pages, "lookbook")?.pageType, "custom");
+  assert.equal(p.findStorefrontPage(pages, "home")?.pageType, "home");
+  assert.equal(p.findStorefrontPage(pages, "faq"), undefined);
+  const store = { brandSettings: { editor: { published: { pages } } }, pages: [{ type: "faq", slug: "faq", content: {} }] };
+  assert.equal(p.storeHasStorefrontPage(store, "about"), true);
+  assert.equal(p.storeHasStorefrontPage(store, "lookbook"), true);
+  assert.equal(p.storeHasStorefrontPage(store, "faq"), true, "page rows count too");
+  assert.equal(p.storeHasStorefrontPage(store, "contact"), false);
+  assert.equal(p.storeHasStorefrontPage(store, "shop"), true, "every store has a shop");
+  assert.equal(p.storeHasStorefrontPage(store, "cart"), false);
+});

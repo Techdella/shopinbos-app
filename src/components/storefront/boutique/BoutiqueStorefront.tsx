@@ -5,6 +5,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type React from "react";
 import { Icon } from "@/components/ui/Icon";
 import { getPublicStorefrontPath } from "@/lib/domains/storefront";
+import { findStorefrontPage, storefrontPageHref } from "@shared/storefront-pages";
 import { legalLinks, legalPagePath } from "@/lib/legal/pages";
 import type { BoutiqueThemeId, StoreEditorSnapshot, TemplateSectionNode } from "@/lib/store-templates";
 import {
@@ -177,6 +178,12 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
   const [sheet, setSheet] = useState<ShopperSheet>(live && props.initialQuery ? "search" : null);
   const [filter, setFilter] = useState<{ category: string; collection: string; q: string; sort: string }>({ category: "all", collection: "", q: "", sort: "featured" });
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+  // /shop?category=bags (old category links, the product page's category menu) opens the shop filtered.
+  useEffect(() => {
+    if (!live) return;
+    const category = new URLSearchParams(window.location.search).get("category")?.trim();
+    if (category) setFilter((prev) => ({ ...prev, category: category.slice(0, 80) }));
+  }, [live]);
   const [openFaq, setOpenFaq] = useState<string | null>(null);
   const [form, setForm] = useState<{ newsletter: string; name: string; email: string; phone: string; message: string }>({ newsletter: "", name: "", email: "", phone: "", message: "" });
   const [formStatus, setFormStatus] = useState<Record<string, "idle" | "sending" | "sent" | "error">>({});
@@ -184,7 +191,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
   const uid = useId();
 
   const current = normalizePage(props.currentPage);
-  const page = snapshot.pages.find((entry) => entry.pageType === current) ?? snapshot.pages.find((entry) => entry.pageType === "home") ?? snapshot.pages[0];
+  const page = findStorefrontPage(snapshot.pages, current) ?? snapshot.pages.find((entry) => entry.pageType === "home") ?? snapshot.pages[0];
   const sections = (page?.sections ?? []).filter((entry) => entry.visible !== false);
   const announcementSection = sections.find((entry) => entry.kind === "announcement-bar");
   const headerSection = sections.find((entry) => entry.kind === "header");
@@ -1304,7 +1311,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
   const navKeys = (Array.isArray(headerCopy.navLinks) ? (headerCopy.navLinks as unknown[]) : ["home", "products", "about", "contact"])
     .map((entry) => normalizePage(String(entry)))
     .filter((entry, index, all) => PAGE_LABELS[entry] && (entry === "home" || pageTypes.has(entry)) && all.indexOf(entry) === index);
-  const pageHref = (key: string) => (live ? getPublicStorefrontPath(basePath, key === "home" ? "/" : `/?page=${key}`) : undefined);
+  const pageHref = (key: string) => (live ? storefrontPageHref(basePath, key) ?? undefined : undefined);
   const links: ChromeLink[] = navKeys.map((key) => ({ key, label: PAGE_LABELS[key]!, onSelect: () => go(key), current: current === key, href: pageHref(key) }));
   const footerLinks: ChromeLink[] = ["products", "faq", "about", "contact"]
     .filter((key) => pageTypes.has(key))

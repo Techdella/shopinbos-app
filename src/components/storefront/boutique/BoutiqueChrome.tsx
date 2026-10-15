@@ -14,7 +14,7 @@ export interface ChromeStore {
   country?: string | null;
 }
 
-/** A store page (lives on /?page=<key>). `href` makes it a real link on the live store: new tab, sharing, crawlers. */
+/** A store page (lives at its own address: /about, /shop). `href` makes it a real link on the live store: new tab, sharing, crawlers. */
 export type ChromeLink = { key: string; label: string; onSelect: () => void; current?: boolean; href?: string };
 
 /** Ordinary clicks switch page in place; Ctrl/⌘/Shift/middle clicks keep the browser's own link behaviour. */
@@ -25,7 +25,7 @@ function pageLinkClick(link: ChromeLink) {
     link.onSelect();
   };
 }
-/** A plain link (legal pages live on their own URLs, not ?page=). */
+/** A plain link to another route (legal pages, policies). */
 export type ChromeHref = { key: string; label: string; href: string };
 
 export function AnnouncementBar({ text, look }: { text: string | null; look: BoutiqueLook }) {
