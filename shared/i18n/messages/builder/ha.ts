@@ -1486,6 +1486,15 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "rex.cd.addPick": "Ƙara",
   "rex.cd.noProducts": "Ba ka da kaya tukuna. Ƙara ɗaya tukuna.",
   "rex.ch.buyCredits": "Sayi kiredit na AI",
+  "rex.br.book": "Littafin salo",
+  "rex.br.icon": "Alamar tambari",
+  "rex.br.favicon": "Favicon",
+  "rex.br.print": "Situdiyon bugawa",
+  "rex.br.useIcon": "Yi amfani a matsayin alamar tambari",
+  "rex.br.useFavicon": "Yi amfani a matsayin favicon",
+  "rex.br.openPrint": "Buɗe ka buga",
+  "rex.br.openBook": "Buɗe littafin salo",
+  "rex.br.openKit": "Kayan alama",
 };
 
 export default ha;

@@ -7,6 +7,7 @@ import { isOwnImageUrl } from "@/lib/ai/images";
 import { parseRexAction, productImagesAfterSave } from "@/lib/ai/rex/agent-pure";
 import { rexActivateAutomation } from "@/lib/ai/rex/marketing.server";
 import { recordMedia } from "@/lib/media/library.server";
+import { setBrandAsset } from "@/lib/brand-assets.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -42,6 +43,7 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
   if (action.action === "save_product_image" || action.action === "set_logo") {
     if (!isOwnImageUrl(action.imageUrl)) return apiError("BAD_REQUEST", "Only pictures saved in your shop can be used.");
   }
+  if (action.action === "set_brand_asset" && !isOwnImageUrl(action.url)) return apiError("BAD_REQUEST", "Only pictures saved in your shop can be used.");
   if (action.action === "save_to_media" && !isOwnImageUrl(action.url)) return apiError("BAD_REQUEST", "Only files saved in your shop can go in your media.");
 
   switch (action.action) {
@@ -65,6 +67,12 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
       await db.storeProduct.update({ where: { id: product.id }, data: { description: action.description } });
       await activity("product", `Updated the description of ${product.name} with Rex`, `/products/${product.id}`, { productId: product.id });
       return ok({ message: `Updated the description of ${product.name}.`, href: `/products/${product.id}` });
+    }
+    case "set_brand_asset": {
+      const assets = await setBrandAsset(user.id, action.kind, action.url);
+      if (!assets) return apiError("NOT_FOUND", "Set up your store first.");
+      await activity("brand", action.kind === "icon" ? "Changed the logo icon with Rex" : "Changed the favicon with Rex", "/home/brand-kit", {});
+      return ok({ message: action.kind === "icon" ? "That's your logo icon now." : "That's your favicon now. It shows in browser tabs on your store.", href: "/home/brand-kit" });
     }
     case "save_to_media": {
       const asset = await recordMedia({ userId: user.id, storeId: store.id, url: action.url, kind: action.kind, name: action.name ?? undefined, source: "ai" });

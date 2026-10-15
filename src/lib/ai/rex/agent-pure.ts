@@ -6,6 +6,7 @@
 import { z } from "zod";
 import { providerSchema } from "../peggy/pure.ts";
 import { FIELD_TYPES, TEMPLATE_IDS } from "../../cms/fields.ts";
+import { PRINT_KINDS, QR_TARGETS } from "../../../../shared/print-labels.ts";
 
 export { providerSchema };
 
@@ -320,6 +321,37 @@ export const REX_TOOL_SPECS = {
       })
       .strict(),
   },
+  create_brand_book: {
+    kind: "write",
+    description:
+      "Write the store's brand style book: brand colours (taken from the logo when there is one), fonts, voice, words to use and avoid, logo rules, photo style, do's and don'ts. Saved in Brand kit > Style book, printable. With applyColours true it also puts the colours on the store DRAFT (a version with undo).",
+    schema: z
+      .object({
+        direction: z.string().trim().max(400).nullable().describe("What the seller wants, e.g. 'more premium, earthy colours'; null for Rex's call"),
+        applyColours: z.boolean().nullable().describe("true only when the seller asked to change the store's colours too; null/false to just write the book"),
+      })
+      .strict(),
+  },
+  make_brand_icon: {
+    kind: "image",
+    description: "Make the store's logo icon (square mark for app icons and profile pictures) or favicon (browser tab icon) from its logo. Shown with buttons to use it; nothing changes until the seller taps.",
+    schema: z.object({ kind: z.enum(["icon", "favicon"]).describe("icon for the square logo icon, favicon for the browser tab icon") }).strict(),
+  },
+  make_print_labels: {
+    kind: "read",
+    description:
+      "Set up printable labels in the Print studio, in the store's brand: hang tags, price/barcode labels, QR code stickers, package (box) labels or thank-you cards. Real barcodes and QR codes; the seller prints on A4 or a label printer, downloads, or emails them to a print shop. For order shipping labels, point to /home/labels.",
+    schema: z
+      .object({
+        kind: z.enum(PRINT_KINDS).describe("tag = hang tag, price = price and barcode label, qr = QR sticker, package = box/package label, thanks = thank-you card"),
+        products: z.array(product("A product")).max(30).nullable().describe("The products to make labels for; null for none (store-wide QR stickers or thank-you cards)"),
+        headline: z.string().trim().max(60).nullable().describe("Short top line, e.g. 'Handmade in Lagos'; null for the default"),
+        note: z.string().trim().max(160).nullable().describe("Small print: ingredients, care, weight, a thank-you line; null for none"),
+        qr: z.enum(QR_TARGETS).nullable().describe("Where the QR code goes: product page, store, WhatsApp chat, reviews page or custom; null for product"),
+        copies: z.number().int().min(1).max(100).nullable().describe("Copies of each; null for 1"),
+      })
+      .strict(),
+  },
 } as const;
 
 export type RexToolName = keyof typeof REX_TOOL_SPECS;
@@ -490,6 +522,7 @@ export const RexActionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("set_logo"), imageUrl: ownPhoto }).strict(),
   z.object({ action: z.literal("apply_product_copy"), productId: id, description: z.string().trim().min(10, "The description is too short").max(3000, "Keep the description under 3,000 characters") }).strict(),
   z.object({ action: z.literal("activate_automation"), id }).strict(),
+  z.object({ action: z.literal("set_brand_asset"), kind: z.enum(["icon", "favicon"]), url: ownPhoto }).strict(),
   z.object({ action: z.literal("save_to_media"), url: ownPhoto, kind: z.enum(["image", "video"]).default("image"), name: z.string().trim().max(120).nullable().default(null) }).strict(),
 ]);
 
