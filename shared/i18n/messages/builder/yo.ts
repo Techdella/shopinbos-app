@@ -2119,6 +2119,12 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "ed.Under the item above": "Lábẹ́ ohun tó wà lókè",
   "ed.Underline": "Ìlà abẹ́",
   "ed.Your menu is empty. Add pages above.": "Menu rẹ ṣófo. Fi àwọn ojú-ìwé kún un lókè.",
+  "ed.Phone menu": "Mẹ́nù fóònù",
+  "ed.Phone menu items": "Àwọn ohun mẹ́nù fóònù",
+  "ed.Use the main menu": "Lo mẹ́nù àkọ́kọ́",
+  "ed.Own phone menu": "Mẹ́nù fóònù tirẹ̀",
+  "ed.Footer links": "Àwọn ìjápọ̀ ìsàlẹ̀",
+  "ed.Until you change them, the footer shows its usual links.": "Títí tí o fi máa yí wọn padà, footer á máa fi àwọn ìjápọ̀ rẹ̀ tó wọ́pọ̀ hàn.",
 };
 
 export default yo;

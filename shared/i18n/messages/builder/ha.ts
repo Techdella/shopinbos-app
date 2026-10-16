@@ -2119,6 +2119,12 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "ed.Under the item above": "Ƙarƙashin abin da ke sama",
   "ed.Underline": "Ja layi ƙasa",
   "ed.Your menu is empty. Add pages above.": "Menu ɗinka babu komai. Ƙara shafuka a sama.",
+  "ed.Phone menu": "Menu na waya",
+  "ed.Phone menu items": "Abubuwan menu na waya",
+  "ed.Use the main menu": "Yi amfani da babban menu",
+  "ed.Own phone menu": "Menu na waya na daban",
+  "ed.Footer links": "Hanyoyin ƙasan shafi",
+  "ed.Until you change them, the footer shows its usual links.": "Har sai kun canza su, footer zai nuna hanyoyinsa na yau da kullum.",
 };
 
 export default ha;
