@@ -6,10 +6,8 @@ import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { Card, CardHead, EmptyState, FilterChips, ListCard, ListRow, Pill, PillLink, SplitLayout, StatGrid, StatTile, type Tone } from "@/components/app-kit";
 import { Field, buttonClass, formatDate, humanize, inputClass, selectClass } from "@/components/growth/kit";
 import { revalidatePath } from "next/cache";
-import { formatFromAddress, sendEmail } from "@/lib/notifications/resend";
-import { appBase, SENDER_STORE_SELECT, storeSender } from "@/lib/email/compliance.server";
-import { invoiceEmail } from "@/lib/email/store-emails";
-import type { Prisma } from "@prisma/client";
+import { createManualInvoice } from "@/lib/seller-money.server";
+import { ManualInvoiceSchema, readManualInvoices } from "@/lib/seller-invoices";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { formatMoney } from "@shared/i18n";
 
@@ -19,63 +17,21 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("inv.title") };
 }
 
-function fmt(n: number) { return "₦" + Math.round(n).toLocaleString("en-US"); }
-
-type ManualInvoice = {
-  id: string;
-  direction: "sent" | "received";
-  partyType: "customer" | "supplier" | "logistics";
-  partyName: string;
-  partyEmail: string;
-  description: string;
-  amount: number;
-  status: "sent" | "received" | "paid";
-  createdAt: string;
-};
-
-function readManualInvoices(settings: unknown): ManualInvoice[] {
-  if (!settings || typeof settings !== "object" || Array.isArray(settings)) return [];
-  const value = (settings as Record<string, unknown>).manualInvoices;
-  return Array.isArray(value) ? (value as ManualInvoice[]) : [];
-}
-
-async function createManualInvoice(formData: FormData) {
+async function createManualInvoiceAction(formData: FormData) {
   "use server";
   const user = await requireRole(["seller"], "/login");
-  const store = await db.store.findUnique({ where: { userId: user.id }, select: SENDER_STORE_SELECT });
-  if (!store) redirect("/builder?firstRun=1");
-
-  const direction = String(formData.get("direction") || "sent") === "received" ? "received" : "sent";
-  const invoice: ManualInvoice = {
-    id: `INV-${Date.now().toString(36).toUpperCase()}`,
-    direction,
-    partyType: (String(formData.get("partyType") || "supplier") as ManualInvoice["partyType"]),
-    partyName: String(formData.get("partyName") || "").trim(),
-    partyEmail: String(formData.get("partyEmail") || "").trim(),
-    description: String(formData.get("description") || "").trim(),
-    amount: Number(formData.get("amount") || 0),
-    status: direction,
-    createdAt: new Date().toISOString(),
-  };
-
-  const settings = typeof store.brandSettings === "object" && store.brandSettings ? (store.brandSettings as Record<string, unknown>) : {};
-  const manualInvoices = [invoice, ...readManualInvoices(settings)].slice(0, 100);
-  await db.store.update({
-    where: { id: store.id },
-    data: { brandSettings: { ...settings, manualInvoices } as Prisma.InputJsonValue },
+  // Same rules and saving as POST /api/app/invoices (the phone app); the form's required fields catch most mistakes first.
+  const parsed = ManualInvoiceSchema.safeParse({
+    direction: formData.get("direction") || "sent",
+    partyType: formData.get("partyType") || "supplier",
+    partyName: formData.get("partyName") ?? "",
+    partyEmail: formData.get("partyEmail") ?? "",
+    amount: formData.get("amount") || 0,
+    description: formData.get("description") ?? "",
   });
-
-  if (invoice.direction === "sent" && invoice.partyEmail) {
-    const email = invoiceEmail({ appUrl: appBase(), store: storeSender(store), invoiceId: invoice.id, description: invoice.description, amount: fmt(invoice.amount) });
-    await sendEmail({
-      to: [invoice.partyEmail],
-      subject: `${store.name} invoice ${invoice.id}`,
-      html: email,
-      from: formatFromAddress(store.name),
-      replyTo: user.email ?? undefined,
-    });
-  }
-
+  if (!parsed.success) return;
+  const result = await createManualInvoice({ id: user.id, email: user.email }, parsed.data);
+  if (!result) redirect("/builder?firstRun=1");
   revalidatePath("/home/invoices");
 }
 
@@ -186,7 +142,7 @@ export default async function SellerInvoicesPage({ searchParams }: { searchParam
         side={
           <Card className="p-5">
             <CardHead title={t("inv.new")} sub={t("inv.newSub")} />
-            <form id="new-invoice" action={createManualInvoice} className="mt-4 grid gap-4">
+            <form id="new-invoice" action={createManualInvoiceAction} className="mt-4 grid gap-4">
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
                 <Field label={t("inv.type")} htmlFor="inv-direction">
                   <select id="inv-direction" name="direction" className={selectClass}>

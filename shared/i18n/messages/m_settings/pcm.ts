@@ -35,9 +35,9 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "money.latestEmpty": "Paid orders go show here.",
   "money.customer": "Customer",
   "money.payouts": "All payouts",
-  "money.payoutsHint": "Every paid order and where the money go. E go open for your browser",
+  "money.payoutsHint": "Every paid order and where the money go",
   "money.invoices": "Invoices",
-  "money.invoicesHint": "Send bill give customer. E go open for your browser",
+  "money.invoicesHint": "Order invoices, and bills wey you send or collect",
 
   "bank.pickTitle": "Choose your bank",
   "bank.numberTitle": "Your account number",
@@ -156,6 +156,16 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "money.badBadges": "Choose from the payment logos wey dey the list.",
   "money.badge.transfer": "Bank transfer",
   "money.badge.cod": "Pay on delivery",
+  "set.logoHint": "Na the logo for your shop, the same one wey dey Brand kit for the web.",
+  "set.photo": "Your photo",
+  "set.photoHint": "E go show near your name for the app and the web.",
+  "set.addPhoto": "Add photo",
+  "set.changePhoto": "Change photo",
+  "set.removePhoto": "Remove photo",
+  "set.photoSaved": "Photo don save.",
+  "set.photoRemoved": "Photo don comot.",
+  "set.photoFailed": "We no fit upload that picture. Try again.",
+  "set.photoRemoveFailed": "We no fit remove am. Try again.",
 };
 
 export default pcm;

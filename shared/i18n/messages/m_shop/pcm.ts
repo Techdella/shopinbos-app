@@ -38,6 +38,10 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "link.marketing.hint": "Campaigns, discount codes and ads",
   "link.customers.label": "Customers",
   "link.customers.hint": "Everybody wey don buy from you, and message to each person",
+  "link.ads.label": "Ads",
+  "link.ads.hint": "Facebook, Instagram and TikTok ads, and wetin dem bring come",
+  "link.automations.label": "Automations",
+  "link.automations.hint": "Messages wey dey send by demself: welcome, cart reminder, thank-you",
   "link.campaigns.label": "Seasonal campaigns",
   "link.campaigns.hint": "Black Friday, Christmas and more, with countdown",
   "link.reviews.label": "Reviews",
@@ -48,6 +52,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "link.linkInBio.hint": "One page for your Instagram and TikTok bio",
   "webOnly.bio.title": "Change how your page look for bigger screen",
   "webOnly.bio.body": "To change colours, photo, WhatsApp, social and sign-up blocks for your link in bio page dey easy for computer or tablet. You fit still open am for this phone.",
+  "link.video.label": "Video studio",
+  "link.video.hint": "Short videos for ads, products and social media",
   "link.rex.label": "Rex Studio",
   "link.rex.hint": "Pictures, logo and words for your shop",
   "link.domain.label": "Domain",
@@ -72,6 +78,10 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   see: "See my shop",
   finish: "Finish to set up",
   shareMessage: "Buy from {name}: {url}",
+  "link.payouts.label": "Payouts",
+  "link.payouts.hint": "Every paid order and where the money go",
+  "link.invoices.label": "Invoices",
+  "link.invoices.hint": "Order invoices, and bills wey you send or collect",
 };
 
 export default pcm;

@@ -38,6 +38,10 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "link.marketing.hint": "Campaigns, koodu mbelata na ads",
   "link.customers.label": "Ndị ahịa",
   "link.customers.hint": "Onye ọ bụla zụrụ ihe n'aka gị, na ozi nye onye ọ bụla",
+  "link.ads.label": "Ads",
+  "link.ads.hint": "Mgbasa ozi na Facebook, Instagram na TikTok, na ihe ha wetara",
+  "link.automations.label": "Automations",
+  "link.automations.hint": "Ozi na-eziga onwe ha: nnọọ, ncheta cart, daalụ",
   "link.campaigns.label": "Campaigns oge ememe",
   "link.campaigns.hint": "Black Friday, Krismas na ndị ọzọ, nwere elekere ngụda",
   "link.reviews.label": "Reviews",
@@ -48,6 +52,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "link.linkInBio.hint": "Otu peeji maka bio Instagram na TikTok gị",
   "webOnly.bio.title": "Gbanwee otú peeji gị dị na ihuenyo buru ibu",
   "webOnly.bio.body": "Agba, foto, WhatsApp, social na blocks ndebanye aha nke peeji link in bio gị dị mfe ịgbanwe na kọmputa ma ọ bụ tablet. Ị nwekwara ike imepe ya na ekwentị a.",
+  "link.video.label": "Video studio",
+  "link.video.hint": "Vidiyo dị mkpụmkpụ maka mgbasa ozi, ngwaahịa na social media",
   "link.rex.label": "Rex Studio",
   "link.rex.hint": "Foto, logo na okwu maka ụlọ ahịa gị",
   "link.domain.label": "Domain",
@@ -72,6 +78,10 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   see: "Hụ ụlọ ahịa m",
   finish: "Mechaa ịhazi",
   shareMessage: "Zụta ahịa n'aka {name}: {url}",
+  "link.payouts.label": "Payouts",
+  "link.payouts.hint": "Order ọ bụla a kwụrụ ụgwọ ya na ebe ego ahụ gara",
+  "link.invoices.label": "Invoices",
+  "link.invoices.hint": "Invoices order, na akwụkwọ ụgwọ ị zitere ma ọ bụ nwetara",
 };
 
 export default ig;

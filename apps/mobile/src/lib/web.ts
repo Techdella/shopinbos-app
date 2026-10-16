@@ -2,6 +2,7 @@ import * as WebBrowser from "expo-web-browser";
 import { router } from "expo-router";
 import { API_URL } from "./api";
 import { supabase } from "./supabase";
+import { videoScreenFor } from "./video-pure";
 
 // Fresh enough that the web session (which borrows this token, see src/app/auth/handoff) lasts a while.
 const MIN_TOKEN_LIFE_SECONDS = 15 * 60;
@@ -54,6 +55,15 @@ const APP_SCREENS: Record<string, string> = {
   "/home/payment-links": "/payment-links",
   "/home/social/link-in-bio": "/link-in-bio",
   "/home/campaigns": "/campaigns",
+  "/home/video": "/video",
+  "/home/video/studio": "/video/studio",
+  "/home/payouts": "/payouts",
+  "/home/invoices": "/invoices",
+  "/home/invoicing": "/invoices",
+  "/home/ads": "/ads",
+  "/home/ads/new": "/ads/new",
+  "/home/automations": "/marketing/automations",
+  "/home/automations/new": "/marketing/automations",
 };
 
 /** Opens a web-app path, but in the app when the app has that screen (orders, inbox, find products, reviews…). */
@@ -67,7 +77,14 @@ export function openPath(path: string) {
   if (legal) return router.push({ pathname: "/legal/[key]", params: { key: legal[1] } });
   const campaign = pathname.match(/^\/home\/campaigns\/([\w-]+)$/);
   if (campaign) return router.push({ pathname: "/campaigns/[id]", params: { id: campaign[1] } });
+  const automation = pathname.match(/^\/home\/automations\/([\w-]+)$/);
+  if (automation && automation[1] !== "new") return router.push({ pathname: "/marketing/automation/[id]", params: { id: automation[1] } });
+  const template = pathname.match(/^\/home\/marketing\/templates\/([\w-]+)$/);
+  if (template && template[1] !== "new") return router.push({ pathname: "/marketing/template/[id]", params: { id: template[1] } });
   if (pathname === "/home/reviews/request") return router.push("/reviews/ask" as never);
+  // Video studio links carry the draft (?id=), or what a new video is for (?purpose=, ?product=).
+  const video = videoScreenFor(path);
+  if (video) return router.push({ pathname: video.pathname, params: video.params });
   const conversation = path.match(/^\/home\/messages\?(?:.*&)?c=([\w-]+)/);
   if (conversation) return router.push({ pathname: "/inbox/[id]", params: { id: conversation[1] } });
   const screen = APP_SCREENS[pathname.replace(/\/$/, "")];

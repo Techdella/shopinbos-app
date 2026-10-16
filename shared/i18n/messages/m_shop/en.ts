@@ -39,6 +39,10 @@ const en = {
   "link.marketing.hint": "Campaigns, discount codes and ads",
   "link.customers.label": "Customers",
   "link.customers.hint": "Everyone who bought from you, and a message to each",
+  "link.ads.label": "Ads",
+  "link.ads.hint": "Facebook, Instagram and TikTok ads, and what they bring in",
+  "link.automations.label": "Automations",
+  "link.automations.hint": "Messages that send themselves: welcome, cart reminder, thank-you",
   "link.campaigns.label": "Seasonal campaigns",
   "link.campaigns.hint": "Black Friday, Christmas and more, with a countdown",
   "link.reviews.label": "Reviews",
@@ -49,6 +53,8 @@ const en = {
   "link.linkInBio.hint": "One page for your Instagram and TikTok bio",
   "webOnly.bio.title": "Change your page's look on a bigger screen",
   "webOnly.bio.body": "Colours, photo, WhatsApp, social and sign-up blocks of your link in bio page are easier to change on a computer or tablet. You can open it on this phone too.",
+  "link.video.label": "Video studio",
+  "link.video.hint": "Reels for ads, products and social media",
   "link.rex.label": "Rex Studio",
   "link.rex.hint": "Pictures, logo and words for your shop",
   "link.domain.label": "Domain",
@@ -73,6 +79,10 @@ const en = {
   see: "See my shop",
   finish: "Finish setting up",
   shareMessage: "Shop with {name}: {url}",
+  "link.payouts.label": "Payouts",
+  "link.payouts.hint": "Every paid order and where the money went",
+  "link.invoices.label": "Invoices",
+  "link.invoices.hint": "Order invoices, and bills you send or get",
 } satisfies Record<string, string>;
 
 export default en;

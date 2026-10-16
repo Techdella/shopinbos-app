@@ -38,6 +38,10 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "link.marketing.hint": "Campaigns, lambobin rangwame da ads",
   "link.customers.label": "Kwastomomi",
   "link.customers.hint": "Duk wanda ya saya daga gare ka, da saƙo ga kowanne",
+  "link.ads.label": "Ads",
+  "link.ads.hint": "Tallace-tallace a Facebook, Instagram da TikTok, da abin da suka kawo",
+  "link.automations.label": "Automations",
+  "link.automations.hint": "Saƙonnin da ke tafiya da kansu: maraba, tunatarwar cart, godiya",
   "link.campaigns.label": "Campaigns na lokacin biki",
   "link.campaigns.hint": "Black Friday, Kirsimeti da sauransu, tare da agogon ƙirgawa",
   "link.reviews.label": "Reviews",
@@ -48,6 +52,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "link.linkInBio.hint": "Shafi ɗaya don bio na Instagram da TikTok",
   "webOnly.bio.title": "Canza kamannin shafinka a babban allo",
   "webOnly.bio.body": "Launuka, hoto, WhatsApp, social da blocks na rajista na shafin link in bio ɗinka sun fi sauƙin canzawa a kwamfuta ko tablet. Kana iya buɗe shi a wannan waya ma.",
+  "link.video.label": "Video studio",
+  "link.video.hint": "Gajerun bidiyo don talla, kayayyaki da social media",
   "link.rex.label": "Rex Studio",
   "link.rex.hint": "Hotuna, logo da kalmomi don shagonka",
   "link.domain.label": "Domain",
@@ -72,6 +78,10 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   see: "Duba shagona",
   finish: "Gama saitawa",
   shareMessage: "Yi siyayya a {name}: {url}",
+  "link.payouts.label": "Payouts",
+  "link.payouts.hint": "Kowace oda da aka biya da inda kuɗin ya je",
+  "link.invoices.label": "Invoices",
+  "link.invoices.hint": "Invoices na orders, da takardun kuɗi da ka aika ko ka karɓa",
 };
 
 export default ha;

@@ -67,6 +67,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "peggy.chats": "{chats, plural, one {Peggy ta sa ido kan chat # yau.} other {Peggy ta sa ido kan chats # yau.}}",
   "peggy.orders": "{orders, plural, one {Peggy ta sa ido kan order # yau.} other {Peggy ta sa ido kan orders # yau.}}",
   "peggy.chatsAndOrders": "Peggy ta sa ido kan {chats, plural, one {chat #} other {chats #}} da {orders, plural, one {order #} other {orders #}} yau.",
+  "me.open": "Hotonka da saituna",
+  "logo.label": "Logo na {name}",
 };
 
 export default ha;

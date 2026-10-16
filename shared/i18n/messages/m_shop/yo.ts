@@ -38,6 +38,10 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "link.marketing.hint": "Campaign, kóòdù ẹ̀dínwó àti ads",
   "link.customers.label": "Àwọn oníbàárà",
   "link.customers.hint": "Gbogbo ẹni tó ti rà lọ́wọ́ rẹ, àti ọ̀rọ̀ sí ẹnìkọ̀ọ̀kan",
+  "link.ads.label": "Ads",
+  "link.ads.hint": "Ìpolówó lórí Facebook, Instagram àti TikTok, àti ohun tí wọ́n mú wá",
+  "link.automations.label": "Automations",
+  "link.automations.hint": "Àwọn ìfiránṣẹ́ tó ń lọ fúnra wọn: káàbọ̀, ìrántí cart, ẹ ṣé",
   "link.campaigns.label": "Campaigns ìgbà ọdún",
   "link.campaigns.hint": "Black Friday, Kérésìmesì àti bẹ́ẹ̀ bẹ́ẹ̀ lọ, pẹ̀lú aago ìkàsẹ̀yìn",
   "link.reviews.label": "Àwọn review",
@@ -48,6 +52,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "link.linkInBio.hint": "Ojú-ìwé kan fún bio Instagram àti TikTok rẹ",
   "webOnly.bio.title": "Yí ìrísí ojú-ìwé rẹ padà lórí ojú-iboju tó tóbi",
   "webOnly.bio.body": "Àwọ̀, fọ́tò, WhatsApp, social àti block ìforúkọsílẹ̀ ojú-ìwé link in bio rẹ rọrùn láti yí padà lórí kọ̀ǹpútà tàbí tablet. O ṣì lè ṣí i lórí fóònù yìí.",
+  "link.video.label": "Video studio",
+  "link.video.hint": "Fídíò kúkúrú fún ìpolówó, ọjà àti social media",
   "link.rex.label": "Rex Studio",
   "link.rex.hint": "Àwòrán, logo àti ọ̀rọ̀ fún ṣọ́ọ̀bù rẹ",
   "link.domain.label": "Domain",
@@ -72,6 +78,10 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   see: "Wo ṣọ́ọ̀bù mi",
   finish: "Parí ìṣètò",
   shareMessage: "Ra ọjà lọ́dọ̀ {name}: {url}",
+  "link.payouts.label": "Payouts",
+  "link.payouts.hint": "Gbogbo order tí wọ́n sanwó àti ibi tí owó lọ",
+  "link.invoices.label": "Àwọn invoice",
+  "link.invoices.hint": "Invoice order, àti ìwé owó tí o fi ránṣẹ́ tàbí gbà",
 };
 
 export default yo;

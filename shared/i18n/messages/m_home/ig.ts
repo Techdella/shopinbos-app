@@ -67,6 +67,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "peggy.chats": "{chats, plural, other {Peggy lekọtara chat # taa.}}",
   "peggy.orders": "{orders, plural, other {Peggy lekọtara order # taa.}}",
   "peggy.chatsAndOrders": "Peggy lekọtara {chats, plural, other {chat #}} na {orders, plural, other {order #}} taa.",
+  "me.open": "Foto gị na ntọala",
+  "logo.label": "Logo {name}",
 };
 
 export default ig;

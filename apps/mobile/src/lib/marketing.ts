@@ -1,4 +1,5 @@
 import { api, apiBody } from "./api";
+import type { FlowRow, FlowStep } from "./marketing-pure";
 
 // Marketing quick view: GET /api/mobile/marketing (campaigns, totals, discount codes), new codes through
 // POST /api/app/marketing/discounts, and the email templates gallery from GET /api/app/marketing/templates.
@@ -58,6 +59,8 @@ export interface TemplateRow {
   subject: string;
   category: string | null;
   preheader: string | null;
+  bodyHtml?: string;
+  updatedAt?: string;
 }
 
 export const fetchTemplates = () => api<{ saved: TemplateRow[]; library: TemplateRow[] }>("/api/app/marketing/templates");
@@ -136,3 +139,43 @@ export function subscriberBody(form: NewSubscriber) {
 }
 
 export const addSubscriber = (form: NewSubscriber) => api<{ id: string; created: boolean }>("/api/app/marketing/subscribers", { method: "POST", json: subscriberBody(form) });
+
+// ─── Email templates (web /home/marketing/templates/:id): POST /api/app/marketing/templates saves one (with its
+// id) or copies a ready-made one ({ copy }), POST …/templates/test sends the seller a test, DELETE …/templates/:id. ───
+
+export interface TemplateSave {
+  id: string;
+  name: string;
+  subject: string;
+  preheader: string | null;
+  bodyHtml: string;
+  category: string;
+}
+
+export const saveTemplate = (input: TemplateSave) => api<{ id: string }>("/api/app/marketing/templates", { method: "POST", json: input });
+export const copyTemplate = (key: string) => api<{ id: string }>("/api/app/marketing/templates", { method: "POST", json: { copy: key } });
+export const sendTestTemplate = (input: { subject: string; preheader: string | null; bodyHtml: string }) => api<{ to: string }>("/api/app/marketing/templates/test", { method: "POST", json: input });
+export const deleteTemplate = (id: string) => api<{ deleted: boolean }>(`/api/app/marketing/templates/${encodeURIComponent(id)}`, { method: "DELETE" });
+
+// ─── Automations (web /home/automations): GET /api/mobile/marketing/automations, PATCH/DELETE
+// /api/app/marketing/automations/:id, POST /api/app/marketing/automations { presetKey } to add a ready-made one. ───
+
+export interface FlowPreset {
+  key: string;
+  name: string;
+  description: string;
+  trigger: string;
+}
+
+export interface AutomationsOverview {
+  flows: FlowRow[];
+  presets: FlowPreset[];
+  totals: { started30: number; sent30: number; inFlow: number };
+  channels: { email: boolean; sms: boolean; whatsapp: boolean; whatsappTemplates: boolean };
+}
+
+export const fetchAutomations = () => api<AutomationsOverview>("/api/mobile/marketing/automations");
+export const updateAutomation = (id: string, body: { name?: string; steps?: FlowStep[]; settings?: { days?: number }; active?: boolean }) =>
+  api<{ id: string; active: boolean }>(`/api/app/marketing/automations/${encodeURIComponent(id)}`, { method: "PATCH", json: body });
+export const addAutomation = (presetKey: string) => api<{ id: string }>("/api/app/marketing/automations", { method: "POST", json: { presetKey, active: false } });
+export const removeAutomation = (id: string) => api<{ deleted: boolean }>(`/api/app/marketing/automations/${encodeURIComponent(id)}`, { method: "DELETE" });

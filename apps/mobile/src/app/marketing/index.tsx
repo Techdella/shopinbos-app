@@ -10,12 +10,12 @@ import { friendlyDay } from "@/lib/friendly";
 import { shareShop } from "@/lib/share";
 import { createDiscount, discountLabel, fetchMarketing, suggestCode, type CampaignRow, type QuickDiscount } from "@/lib/marketing";
 import { useLoad } from "@/lib/useLoad";
-import { openWeb } from "@/lib/web";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 
 // Marketing (web /home/marketing and /home/discounts): share the shop, an ad, a discount code, ask for reviews;
-// then the campaigns already sent and the codes. Writing campaigns and automations stays on the web.
+// then the campaigns already sent and the codes; links to ads, automations, templates and subscribers in the app.
+// Writing email campaigns stays on the web.
 
 // Labels are m_marketing keys.
 const STATUS_TONE: Record<string, { bg: string; fg: string; label: "campaign.draft" | "campaign.scheduled" | "campaign.sending" | "campaign.sent" | "campaign.cancelled" }> = {
@@ -107,7 +107,7 @@ export default function Marketing() {
     <Screen title={t("title")} sub={t("sub")} refreshing={data.refreshing} onRefresh={() => void data.refresh()}>
       {note ? <Notice tone={note.tone}>{note.text}</Notice> : null}
       <ChoiceRow icon="share" tint={colors.lilac} title={t("action.share")} sub={t("action.shareSub")} onPress={() => void share()} />
-      <ChoiceRow icon="megaphone" tint={colors.mintTint} iconColor={colors.forest} title={t("action.ad")} sub={t("action.adSub")} onPress={() => void openWeb("/home/ads")} />
+      <ChoiceRow icon="megaphone" tint={colors.mintTint} iconColor={colors.forest} title={t("action.ad")} sub={t("action.adSub")} onPress={() => router.push("/ads")} />
       <ChoiceRow icon="tag" tint={colors.peach} iconColor={colors.accentInk} title={t("action.discount")} sub={t("action.discountSub")} onPress={() => setCreating(true)} />
       <ChoiceRow icon="star" tint={colors.successTint} iconColor={colors.success} title={t("action.reviews")} sub={t("action.reviewsSub")} onPress={() => router.push("/reviews/ask")} />
 
@@ -176,7 +176,7 @@ export default function Marketing() {
             <LinkRow first icon="clock" label={t("link.seasonal")} hint={t("link.seasonalHint")} onPress={() => router.push("/campaigns")} />
             <LinkRow icon="mail" label={t("link.templates")} hint={t("link.templatesHint")} onPress={() => router.push("/marketing/templates")} />
             <LinkRow icon="users" label={t("link.subscribers")} hint={t("link.subscribersHint")} onPress={() => router.push("/marketing/subscribers")} />
-            <LinkRow icon="sparkle" label={t("link.automations")} hint={t("link.automationsHint")} onPress={() => void openWeb("/home/marketing")} />
+            <LinkRow icon="sparkle" label={t("link.automations")} hint={t("link.automationsHint")} onPress={() => router.push("/marketing/automations")} />
           </Card>
         </>
       ) : null}

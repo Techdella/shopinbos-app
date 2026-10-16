@@ -1,5 +1,7 @@
 import type { EditableVariantRow, ProductKind } from "@shared/product-edit";
 import type { ProductTypeKey } from "@shared/product-types";
+import type { ProductVariant, VariantOption } from "@shared/product-variants";
+import type { MoreSource } from "./product-more-pure";
 import { api } from "./api";
 import type { CategoryLite, StoreCategory } from "./categories-pure";
 
@@ -9,7 +11,7 @@ import type { CategoryLite, StoreCategory } from "./categories-pure";
 //   DELETE /api/store/products/[id]       archive: it leaves the shop (the web's "Archived")
 //   POST   /api/upload                    a new photo (folder "products"), as the web form uploads them
 
-export interface EditProduct {
+export interface EditProduct extends MoreSource {
   id: string;
   name: string;
   description: string | null;
@@ -37,6 +39,10 @@ export interface EditProduct {
     supplierStock: number;
     sale: { shopperPays: number; supplierGets: number; fee: number; keep: number; keepPct: number };
   } | null;
+  /** The versions in full and their options, so sizes and colours can be added or removed (older servers leave
+   *  these out; then only price, stock and on/off of the versions above can change). */
+  variantOptions?: VariantOption[];
+  variantRows?: ProductVariant[];
   /** Its category (older servers leave these out). Saved as categoryId; the server can't clear it. */
   categoryId?: string | null;
   category?: { id: string; name: string } | null;
