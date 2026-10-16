@@ -117,6 +117,18 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "bio.starter": "Bá mi kún un",
   "bio.starterHint": "Á fi àwọn ọjà tó ń tà jù, bọ́tìnnì Buy now àti WhatsApp kún un. O lè yí gbogbo rẹ̀ padà.",
   "bio.unsaved": "O ní àyípadà tí o kò tíì fi pamọ́.",
+  "bio.starterLive": "Ojú-ìwé rẹ ti wà lórí afẹ́fẹ́ pẹ̀lú àwọn ọjà rẹ tó ga jù àti WhatsApp. Yí ohunkóhun padà kí o sì fi pamọ́ láti sọ ọ́ di tìrẹ.",
+  "bio.storeNotLive": "Ṣọ́ọ̀bù rẹ kò tíì wà lórí afẹ́fẹ́. Ojú-ìwé yìí á ṣí nígbà tí o bá tẹ ṣọ́ọ̀bù rẹ jáde.",
+  "bio.offHint": "O ti pa ojú-ìwé rẹ, nítorí náà àwọn oníbàárà kò lè ṣí i. Tan Ojú-ìwé wà lórí afẹ́fẹ́ kí o sì fi pamọ́.",
+  "fix.alert": "Fi àwọn àlàyé tó kù kún un kí o tó fi pamọ́: {count, plural, other {àyè # nílò àkíyèsí}}.",
+  "fix.showFirst": "Fi hàn mí",
+  "fix.label": "Kọ ọ̀rọ̀ fún bọ́tìnnì náà.",
+  "fix.url": "Kọ àdírẹ́sì wẹ́ẹ̀bù kíkún, bíi https://example.com.",
+  "fix.phone": "Kọ nọ́mbà WhatsApp pẹ̀lú kóòdù orílẹ̀-èdè, bíi +2348012345678.",
+  "fix.text": "Kọ ọ̀rọ̀ náà, tàbí yọ búlọ́ọ̀kù yìí kúrò.",
+  "fix.productId": "Yan ọjà tí o ti tẹ̀ jáde, tàbí yọ búlọ́ọ̀kù yìí kúrò.",
+  "fix.collectionId": "Yan àkójọpọ̀ kan, tàbí yọ búlọ́ọ̀kù yìí kúrò.",
+  "fix.other": "Ohun kan kò tọ̀nà nínú búlọ́ọ̀kù yìí. Ṣàyẹ̀wò rẹ̀, tàbí yọ ọ́ kúrò.",
   "block.product": "Ọjà",
   "block.collection": "Collection",
   "block.link": "Link tìrẹ",
@@ -140,6 +152,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "block.socialHint": "Handle rẹ (bíi @adafabrics) tàbí link kíkún",
   "block.noProducts": "Tẹ ọjà kan jáde ná kí o tó fi kún un níbí.",
   "block.noCollections": "Ṣe collection kan ná nínú Products, lẹ́yìn náà Collections.",
+  "list.pages": "Àwọn ojú-ewé payment link",
+  "list.noneHere": "Kò sí payment link kankan pẹ̀lú ipò yìí.",
 };
 
 export default yo;

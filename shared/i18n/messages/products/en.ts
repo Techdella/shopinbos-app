@@ -256,6 +256,8 @@ const en = {
   "importAi.importWithout": "Import without Peggy's changes",
   "importAi.enhanced": "{count, plural, one {# product has Peggy's changes} other {# products have Peggy's changes}}",
   "importAi.showMore": "Show more",
+  "list.pages": "Product pages",
+  "inv.pages": "Stock pages",
 } satisfies Record<string, string>;
 
 export default en;

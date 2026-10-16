@@ -12,6 +12,8 @@ import { formatDate } from "@shared/i18n";
 import { naira } from "@shared/onboarding";
 import { PaymentLinkDialog, type LinkProduct } from "@/components/payment-links/PaymentLinkDialog";
 import type { LinkListRow } from "@/lib/payment-links/service.server";
+import type { PageWindow } from "@/lib/pagination";
+import { Pagination } from "@/components/seller/Pagination";
 
 // The seller's payment links: status, who made them (you, Peggy, a customer chat with Peggy, link in bio), the order
 // that paid each one, copy and cancel; and "New payment link" with a product picker.
@@ -26,16 +28,31 @@ const STATUS_TONE: Record<LinkListRow["status"], string> = {
   cancelled: "bg-app-canvas text-app-ink-soft",
 };
 
-export function PaymentLinksManager({ links, ready, storeName, catalog }: { links: LinkListRow[]; ready: boolean; storeName: string; catalog: LinkProduct[] }) {
+export function PaymentLinksManager({
+  links,
+  filter,
+  paging,
+  storeHasLinks,
+  ready,
+  storeName,
+  catalog,
+}: {
+  /** One page of links, already filtered on the server (?status=, ?page=). */
+  links: LinkListRow[];
+  filter: Filter;
+  paging: PageWindow;
+  storeHasLinks: boolean;
+  ready: boolean;
+  storeName: string;
+  catalog: LinkProduct[];
+}) {
   const t = useT("paylinks");
   const locale = useLocale();
   const router = useRouter();
-  const [filter, setFilter] = useState<Filter>("all");
   const [creating, setCreating] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const shown = filter === "all" ? links : links.filter((link) => link.status === filter);
 
   async function copy(link: LinkListRow) {
     try {
@@ -72,15 +89,14 @@ export function PaymentLinksManager({ links, ready, storeName, catalog }: { link
       <div className="flex flex-wrap items-center justify-between gap-3">
         <nav className="flex flex-wrap gap-1.5" aria-label={t("list.title")}>
           {FILTERS.map((key) => (
-            <button
+            <Link
               key={key}
-              type="button"
-              onClick={() => setFilter(key)}
-              aria-pressed={filter === key}
-              className={cx("min-h-[40px] rounded-full px-4 text-[13.5px] font-bold", filter === key ? "bg-app-ink text-white" : "border border-app-line bg-white text-app-ink")}
+              href={key === "all" ? "/home/payment-links" : `/home/payment-links?status=${key}`}
+              aria-current={filter === key ? "page" : undefined}
+              className={cx("inline-flex min-h-[40px] items-center rounded-full px-4 text-[13.5px] font-bold no-underline", filter === key ? "bg-app-ink text-white" : "border border-app-line bg-white text-app-ink")}
             >
               {t(`filter.${key}`)}
-            </button>
+            </Link>
           ))}
         </nav>
         <PillButton size="md" tone="ink" onClick={() => setCreating(true)} disabled={!catalog.length}>
@@ -90,15 +106,18 @@ export function PaymentLinksManager({ links, ready, storeName, catalog }: { link
       </div>
       {error ? <Notice>{error}</Notice> : null}
 
-      {links.length === 0 ? (
+      {!storeHasLinks ? (
         <section className="flex flex-col items-center rounded-[22px] border border-app-line bg-white px-6 py-12 text-center">
           <span className="grid h-12 w-12 place-items-center rounded-full bg-app-peach text-app-accent-ink"><Icon name="link" size={22} /></span>
           <h2 className="mb-0 mt-4 text-[18px] font-extrabold">{t("list.empty")}</h2>
           <p className="mb-0 mt-1.5 max-w-[460px] text-[14.5px] leading-[1.55] text-app-ink-soft">{t("list.emptySub")}</p>
         </section>
+      ) : links.length === 0 ? (
+        <p className="m-0 rounded-[20px] border border-app-line bg-white px-5 py-8 text-center text-[14.5px] text-app-ink-soft">{t("list.noneHere")}</p>
       ) : (
+        <div>
         <ul className="m-0 grid list-none gap-3 p-0">
-          {shown.map((link) => (
+          {links.map((link) => (
             <li key={link.id} className="rounded-[20px] border border-app-line bg-white p-4 sm:p-5">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
@@ -139,6 +158,8 @@ export function PaymentLinksManager({ links, ready, storeName, catalog }: { link
             </li>
           ))}
         </ul>
+        <Pagination {...paging} base="/home/payment-links" params={{ status: filter === "all" ? undefined : filter }} label={t("list.pages")} />
+        </div>
       )}
 
       {creating ? <PaymentLinkDialog catalog={catalog} storeName={storeName} ready={ready} onClose={() => setCreating(false)} onCreated={() => router.refresh()} /> : null}

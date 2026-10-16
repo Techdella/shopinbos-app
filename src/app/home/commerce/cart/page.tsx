@@ -8,8 +8,12 @@ import { readCartSettings, sanitizeLines, CHECKOUT_STEP_LABELS, type CheckoutSte
 import { CartSettings } from "./CartSettings";
 import { formatMoney, formatNumber, formatRelative, type Locale } from "@shared/i18n";
 import { getLocale, getT } from "@/lib/i18n/server";
+import { pageWindow } from "@/lib/pagination";
+import { Pagination } from "@/components/seller/Pagination";
 
 export const dynamic = "force-dynamic";
+
+const PAGE_SIZE = 20;
 
 export async function generateMetadata() {
   const t = await getT("store");
@@ -28,7 +32,8 @@ function ago(date: Date, locale: Locale) {
   return `${Math.round(hours / 24)} days ago`;
 }
 
-export default async function CommerceCartPage() {
+export default async function CommerceCartPage({ searchParams }: { searchParams?: Promise<{ page?: string }> }) {
+  const { page: rawPage } = (await searchParams) ?? {};
   const user = await requireRole(["seller"], "/login");
   const t = await getT("store");
   const locale = await getLocale();
@@ -36,20 +41,26 @@ export default async function CommerceCartPage() {
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true, brandSettings: true } });
   const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-  const [open, recovered, recent, wishlistTop, wishlistShoppers] = store
+  const openWhere = { storeId: store?.id ?? "__none__", recoveredAt: null, createdAt: { gte: since } };
+  const [open, recovered, wishlistTop, wishlistShoppers] = store
     ? await Promise.all([
-        db.abandonedCartEvent.aggregate({ where: { storeId: store.id, recoveredAt: null, createdAt: { gte: since } }, _count: true, _sum: { subtotal: true } }),
+        db.abandonedCartEvent.aggregate({ where: openWhere, _count: true, _sum: { subtotal: true } }),
         db.abandonedCartEvent.aggregate({ where: { storeId: store.id, recoveredAt: { gte: since } }, _count: true, _sum: { subtotal: true } }),
-        db.abandonedCartEvent.findMany({
-          where: { storeId: store.id, recoveredAt: null, createdAt: { gte: since } },
-          orderBy: { updatedAt: "desc" },
-          take: 8,
-          select: { id: true, email: true, phone: true, name: true, items: true, subtotal: true, checkoutStep: true, remindersSent: true, updatedAt: true },
-        }),
         db.storeWishlistItem.groupBy({ by: ["productId"], where: { storeId: store.id }, _count: { productId: true }, orderBy: { _count: { productId: "desc" } }, take: 5 }),
         db.storeWishlistItem.groupBy({ by: ["visitorId"], where: { storeId: store.id } }),
       ])
-    : [null, null, [], [], []];
+    : [null, null, [], []];
+  // Every cart left in the last 30 days, a page at a time.
+  const paging = pageWindow(rawPage, open?._count ?? 0, PAGE_SIZE);
+  const recent = store && paging.total
+    ? await db.abandonedCartEvent.findMany({
+        where: openWhere,
+        orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+        skip: paging.skip,
+        take: paging.take,
+        select: { id: true, email: true, phone: true, name: true, items: true, subtotal: true, checkoutStep: true, remindersSent: true, updatedAt: true },
+      })
+    : [];
 
   const topIds = wishlistTop.map((row) => row.productId);
   const topProducts = topIds.length ? await db.storeProduct.findMany({ where: { id: { in: topIds } }, select: { id: true, name: true } }) : [];
@@ -83,6 +94,7 @@ export default async function CommerceCartPage() {
             {recent.length === 0 ? (
               <EmptyState icon="cart" title={t("cart.none")}>{t("cart.noneSub")}</EmptyState>
             ) : (
+              <div>
               <ListCard>
                 {recent.map((cart) => {
                   const lines = sanitizeLines(cart.items);
@@ -106,6 +118,8 @@ export default async function CommerceCartPage() {
                   );
                 })}
               </ListCard>
+              <Pagination {...paging} base="/home/commerce/cart" label={t("cart.pages")} />
+              </div>
             )}
           </section>
         </div>

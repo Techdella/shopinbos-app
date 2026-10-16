@@ -53,7 +53,6 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "po.noBank": "You never add payout bank. Add one make money from online orders get where to go.",
   "po.paidOnline": "Paid online",
   "po.paidOrders": "Paid orders",
-  "po.latest100": "Latest 100",
   "po.added": "Don add",
   "po.notAdded": "Never add",
   "po.all": "All",
@@ -284,6 +283,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "cr.fromPlan": "From your plan",
   "cr.outLine": "Your credits don finish. Your free daily allowance still dey work; buy pack to continue after am.",
   "sm.credits": "100 AI credits every month",
+  "po.allTime": "From beginning",
+  "po.pages": "Payout pages",
 };
 
 export default pcm;

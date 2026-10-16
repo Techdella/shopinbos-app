@@ -404,6 +404,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "blog.readyBody": "Nye {name} ntụziaka, ndị na-agụ, mkpụrụokwu na ọnụọgụ okwu. Mepụta edemede SEO zuru oke ma bipụta ha na blog gị.",
   "blog.saveDraft": "Chekwaa draft",
   "blog.publish": "Bipụta",
+  "col.pages": "Peeji ihe ndị e dere",
 };
 
 export default ig;

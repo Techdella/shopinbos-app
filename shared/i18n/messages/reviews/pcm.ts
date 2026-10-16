@@ -60,8 +60,6 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "list.hide": "Hide",
   "list.reply": "Reply",
   "list.pages": "Pages",
-  "list.pageOf": "Page {page} of {pages} · {count} reviews",
-  "list.previous": "Previous",
   "filter.rating": "Filter by rating",
   "filter.anyRating": "Any rating",
   "filter.stars": "{count, plural, one {# star} other {# stars}}",

@@ -35,7 +35,6 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "list.showAll": "Show all orders",
   "list.nothingMatches": "Nothing match “{query}” for this view.",
   "list.noneInView": "No order dey this view now.",
-  "list.showing": "We dey show the latest {shown} of {total} orders.",
   "new.metaTitle": "Record sale",
   "new.sub": "You sell something for WhatsApp, Instagram or face to face? Add am here make your sales, stock and customers dey correct.",
   allOrders: "All orders",
@@ -185,7 +184,6 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "inv.sub": "Invoices for your orders, and the ones wey you send or collect from suppliers, delivery partners and customers.",
   "inv.money": "Money",
   "inv.orderInvoices": "Order invoices",
-  "inv.latest100": "Latest 100 orders",
   "inv.waiting": "Dey wait for payment",
   "inv.paid": "Don pay",
   "inv.ordersHint": "orders",
@@ -295,6 +293,9 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "ps.scanMe": "Scan me",
   "ps.thanksDefault": "Thank you!",
   "ps.thanksNote": "We pack am with love. Tell us how you like am and come back soon to {store}.",
+  "list.pages": "Order pages",
+  "inv.pages": "Invoice pages",
+  "inv.allOrders": "All your orders",
 };
 
 export default pcm;

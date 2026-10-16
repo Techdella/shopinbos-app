@@ -165,6 +165,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "markedPosted": "Akara na e bipụtala ya. Ọ dị na Ebipụtara.",
   "savedVersion": "Vidiyo gị echekwara",
   "downloadSaved": "Budata vidiyo echekwara",
+  "hub.pages": "Peeji vidiyo",
 };
 
 export default ig;

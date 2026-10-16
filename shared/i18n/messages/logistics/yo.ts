@@ -494,6 +494,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "jobErrors.quoteAnswered": "O ti dáhùn quote request yìí tẹ́lẹ̀.",
   "jobErrors.checkQuote": "Ṣàyẹ̀wò àlàyé quote náà.",
   "kit.to": " sí ",
+  "jobs.pages": "Àwọn ojú-ewé iṣẹ́",
 };
 
 export default yo;

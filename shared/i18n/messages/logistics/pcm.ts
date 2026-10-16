@@ -494,6 +494,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "jobErrors.quoteAnswered": "You don already answer this quote request.",
   "jobErrors.checkQuote": "Check the quote details.",
   "kit.to": " to ",
+  "jobs.pages": "Job pages",
 };
 
 export default pcm;

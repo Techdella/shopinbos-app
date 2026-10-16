@@ -400,13 +400,17 @@ function Field({ field, section, sectionKey, ...props }: InspectorProps & { fiel
     }
     case "menu": {
       const copyNow = (section.blocks?.find((block) => block.type === "copy")?.content ?? {}) as Record<string, unknown>;
+      // The header's main menu (copy `menu`), the header's phone menu (`mobileMenuItems`) or the footer links (`menu`).
+      const key = field.target.key;
+      const mainMenu = key === "menu" && section.kind === "header";
       return (
         <MenuField
-          value={readMenu(copyNow, field.fallback)}
+          value={readMenu(mainMenu ? copyNow : { menu: Array.isArray(copyNow[key]) ? copyNow[key] : undefined }, field.fallback)}
           pageTypes={props.pageTypes ?? []}
           products={props.products}
-          // The menu, plus its pages as navLinks for anything that still reads the older list (checkout header).
-          onChange={(menu) => props.onChange((current) => setSectionCopy(setSectionCopy(current, "menu", menu), "navLinks", menuPageKeys(menu)), sectionKey(field.id))}
+          flat={section.kind === "footer"}
+          // The main menu, plus its pages as navLinks for anything that still reads the older list (checkout header).
+          onChange={(menu) => props.onChange((current) => (mainMenu ? setSectionCopy(setSectionCopy(current, "menu", menu), "navLinks", menuPageKeys(menu)) : setSectionCopy(current, key, menu)), sectionKey(field.id))}
         />
       );
     }
@@ -572,7 +576,7 @@ function BadgeField({ label, help }: { label: string; help?: string }) {
         {canHide ? (
           <Toggle on={on} onChange={(next) => void save(next)} label={tx(label)} />
         ) : (
-          // Locked on for free plans: same look as the switch, but disabled.
+          // Locked on below the Pro plan: same look as the switch, but disabled.
           <button type="button" role="switch" aria-checked="true" aria-label={tx(label)} disabled className="relative h-[30px] w-[52px] shrink-0 cursor-not-allowed rounded-full bg-app-ink opacity-50">
             <span className="absolute left-[25px] top-[3px] h-[24px] w-[24px] rounded-full bg-white shadow" />
           </button>
@@ -581,7 +585,7 @@ function BadgeField({ label, help }: { label: string; help?: string }) {
       {help ? <p className="mt-1.5 text-[12px] leading-[18px] text-app-ink-soft">{tx(help)}</p> : null}
       {!canHide ? (
         <p className="mt-1.5 flex flex-wrap items-center gap-x-2 text-[12.5px] leading-5 text-app-ink-soft">
-          <span>{tx("Free plans show this badge. Upgrade to turn it off.")}</span>
+          <span>{tx("Only the Pro plan can turn this badge off. Upgrade to Pro to hide it.")}</span>
           <a href="/home/settings?tab=Billing" className="font-semibold text-app-ink underline">{tx("Upgrade")}</a>
         </p>
       ) : null}

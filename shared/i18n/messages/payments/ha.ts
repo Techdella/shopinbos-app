@@ -53,7 +53,6 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "po.noBank": "Ba ka saka bankin payout ba tukuna. Saka ɗaya domin kuɗin orders na intanet su sami inda za su je.",
   "po.paidOnline": "An biya ta intanet",
   "po.paidOrders": "Orders da aka biya",
-  "po.latest100": "Sabbi 100",
   "po.added": "An saka",
   "po.notAdded": "Ba a saka ba",
   "po.all": "Duka",
@@ -284,6 +283,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "cr.fromPlan": "Daga tsarinka",
   "cr.outLine": "Kiredit ɗinka sun ƙare. Kason kyauta na yau da kullum yana aiki; sayi fakiti don ci gaba bayansa.",
   "sm.credits": "Kiredit na AI 100 kowane wata",
+  "po.allTime": "Tun daga farko",
+  "po.pages": "Shafukan payouts",
 };
 
 export default ha;

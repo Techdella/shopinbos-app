@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import type { Prisma } from "@prisma/client";
+import { pageWindow } from "@/lib/pagination";
+import { Pagination } from "@/components/seller/Pagination";
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { ensureLogisticsAccess, getLogisticsPartnerForUser } from "@/lib/role-queries";
@@ -32,6 +34,7 @@ import {
 import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
+const PAGE_SIZE = 50;
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getT("logistics"))("jobs.title") };
 }
@@ -52,11 +55,11 @@ function filterHref(key: string, q?: string) {
   return `/logistics/bookings${query ? `?${query}` : ""}`;
 }
 
-export default async function LogisticsBookingsPage({ searchParams }: { searchParams: Promise<{ status?: string; q?: string; saved?: string; error?: string }> }) {
+export default async function LogisticsBookingsPage({ searchParams }: { searchParams: Promise<{ status?: string; q?: string; saved?: string; error?: string; page?: string }> }) {
   const user = await requireRole(["logistics_partner"], "/logistics/login");
   const partner = await getLogisticsPartnerForUser(user);
   ensureLogisticsAccess(partner);
-  const { status, q: rawQ, saved, error } = await searchParams;
+  const { status, q: rawQ, saved, error, page } = await searchParams;
   const q = rawQ?.trim() || undefined;
   const filter = FILTERS.find((item) => item.key === status) ?? FILTERS[0];
   const t = await getT("logistics", "common");
@@ -75,11 +78,14 @@ export default async function LogisticsBookingsPage({ searchParams }: { searchPa
       }
     : {};
 
+  const where: Prisma.DeliveryBookingWhereInput = { ...base, ...search, ...(filter.statuses ? { status: { in: filter.statuses } } : {}) };
+  const paging = pageWindow(page, await db.deliveryBooking.count({ where }), PAGE_SIZE);
   const [bookings, counts, ridersBase] = await Promise.all([
     db.deliveryBooking.findMany({
-      where: { ...base, ...search, ...(filter.statuses ? { status: { in: filter.statuses } } : {}) },
-      orderBy: { createdAt: "desc" },
-      take: 50,
+      where,
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      skip: paging.skip,
+      take: paging.take,
       select: {
         id: true, pickupLocation: true, destination: true, deliveryFee: true, status: true, trackingCode: true,
         pickupWindowStart: true, pickupWindowEnd: true,
@@ -185,6 +191,7 @@ export default async function LogisticsBookingsPage({ searchParams }: { searchPa
           ))}
         </ListCard>
       )}
+      <Pagination {...paging} base="/logistics/bookings" params={{ status: filter.key === "all" ? undefined : filter.key, q }} label={t("jobs.pages")} />
     </PartnerPage>
   );
 }

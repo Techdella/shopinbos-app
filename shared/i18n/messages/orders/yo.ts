@@ -35,7 +35,6 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "list.showAll": "Fi gbogbo order hàn",
   "list.nothingMatches": "Kò sí ohun tó bá “{query}” mu nínú ìwò yìí.",
   "list.noneInView": "Kò sí order kankan nínú ìwò yìí báyìí.",
-  "list.showing": "À ń fi {shown} tuntun jù hàn nínú order {total}.",
   "new.metaTitle": "Kọ títà sílẹ̀",
   "new.sub": "Ṣé o ta nǹkan lórí WhatsApp, Instagram tàbí lójúkojú? Fi kún un níbí kí títà, ọjà àti oníbàárà rẹ lè péye.",
   allOrders: "Gbogbo order",
@@ -185,7 +184,6 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "inv.sub": "Invoice fún àwọn order rẹ, àti èyí tí o fi ránṣẹ́ sí tàbí gbà láti ọ̀dọ̀ supplier, alábàáṣiṣẹ́ delivery àti oníbàárà.",
   "inv.money": "Owó",
   "inv.orderInvoices": "Invoice order",
-  "inv.latest100": "Order 100 tuntun jù",
   "inv.waiting": "Ń dúró de ìsanwó",
   "inv.paid": "Ti san",
   "inv.ordersHint": "order",
@@ -295,6 +293,9 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "ps.scanMe": "Ṣàyẹ̀wò mi",
   "ps.thanksDefault": "A dúpẹ́!",
   "ps.thanksNote": "A fi ìfẹ́ di èyí. Sọ fún wa bí o ṣe fẹ́ràn rẹ̀ kí o sì padà wá sí {store} láìpẹ́.",
+  "list.pages": "Àwọn ojú-ewé order",
+  "inv.pages": "Àwọn ojú-ewé invoice",
+  "inv.allOrders": "Gbogbo order yín",
 };
 
 export default yo;

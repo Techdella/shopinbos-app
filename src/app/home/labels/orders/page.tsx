@@ -9,6 +9,10 @@ import { Icon } from "@/components/ui/Icon";
 import { getT } from "@/lib/i18n/server";
 import { isMissingTable } from "@/lib/rate-limit-core";
 import { PRINT_ORDER_STATUS_LABEL, type PrintOrderStatus } from "@shared/print-orders";
+import { pageWindow } from "@/lib/pagination";
+import { Pagination } from "@/components/seller/Pagination";
+
+const PAGE_SIZE = 30;
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -26,16 +30,18 @@ const STATUS_TONE: Record<string, string> = {
 };
 
 // The seller's print orders: what they ordered, what it cost, where it is. ?paid= comes back from Paystack.
-export default async function PrintOrdersPage({ searchParams }: { searchParams: Promise<{ paid?: string }> }) {
+export default async function PrintOrdersPage({ searchParams }: { searchParams: Promise<{ paid?: string; page?: string }> }) {
   const user = await requireRole(["seller"], "/login");
   const t = await getT("packaging");
-  const { paid } = await searchParams;
+  const { paid, page } = await searchParams;
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true } });
   let orders: Array<{ id: string; title: string; previewUrl: string | null; quantity: number; material: string; finish: string; total: number; days: number; status: string; tracking: string | null; designId: string | null; createdAt: Date; paidAt: Date | null }> = [];
   let migrationNeeded = false;
+  let paging = pageWindow(page, 0, PAGE_SIZE);
   if (store) {
     try {
-      orders = await db.printOrder.findMany({ where: { storeId: store.id }, orderBy: { createdAt: "desc" }, take: 50, select: { id: true, title: true, previewUrl: true, quantity: true, material: true, finish: true, total: true, days: true, status: true, tracking: true, designId: true, createdAt: true, paidAt: true } });
+      paging = pageWindow(page, await db.printOrder.count({ where: { storeId: store.id } }), PAGE_SIZE);
+      if (paging.total) orders = await db.printOrder.findMany({ where: { storeId: store.id }, orderBy: [{ createdAt: "desc" }, { id: "desc" }], skip: paging.skip, take: paging.take, select: { id: true, title: true, previewUrl: true, quantity: true, material: true, finish: true, total: true, days: true, status: true, tracking: true, designId: true, createdAt: true, paidAt: true } });
     } catch (error) {
       if (!isMissingTable(error)) throw error;
       migrationNeeded = true;
@@ -47,7 +53,8 @@ export default async function PrintOrdersPage({ searchParams }: { searchParams: 
         {paid === "paid" ? <Notice tone="success">{t("orders.paid")}</Notice> : paid === "pending" ? <Notice tone="info">{t("orders.pending")}</Notice> : paid === "failed" ? <Notice tone="error">{t("orders.failed")}</Notice> : null}
         {migrationNeeded ? <Notice tone="info">{t("hub.migration")}</Notice> : null}
         {orders.length ? (
-          orders.map((order) => (
+          <>
+          {orders.map((order) => (
             <article key={order.id} className="flex flex-wrap items-center gap-4 rounded-[20px] border border-app-line bg-white p-4">
               <span className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-[12px] bg-app-canvas">
                 {order.previewUrl ? <img src={order.previewUrl} alt="" className="max-h-full max-w-full object-contain" /> : <Icon name="package" size={20} />}
@@ -67,7 +74,9 @@ export default async function PrintOrdersPage({ searchParams }: { searchParams: 
                 {order.designId ? <Link href={`/home/labels/order?design=${order.designId}`} className="text-[13px] font-bold text-app-accent">{t("orders.again")}</Link> : null}
               </div>
             </article>
-          ))
+          ))}
+          <Pagination {...paging} base="/home/labels/orders" label={t("orders.pages")} className="" />
+          </>
         ) : (
           <div className="rounded-[18px] border border-dashed border-app-line bg-white p-6 text-center text-[14px] text-app-ink-soft">{t("orders.empty")}</div>
         )}

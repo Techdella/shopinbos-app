@@ -22,9 +22,10 @@ import {
 } from "@/lib/storefront/shopper-info";
 import { bestSellers, productCategories, relatedProducts, searchProducts, soldOutLabel, type ShopperProduct } from "../shopper/catalog";
 import { ShopperBottomNav, type ShopperSheet } from "../shopper/ShopperBottomNav";
-import { resolveMenu } from "../StoreMenu";
+import { resolveMenu, type MenuContext } from "../StoreMenu";
 import { menuStyleOf, mobileMenuStyleOf, readMenu } from "@/lib/storefront/menu";
-import { AnnouncementBar, BoutiqueFooter, BoutiqueHeader, SectionTitle, type ChromeHref, type ChromeLink } from "./BoutiqueChrome";
+import { readFooterMenu, readMobileMenu } from "@/lib/storefront/store-navigation";
+import { AnnouncementBar, BoutiqueFooter, chromeLinksFromMenu, BoutiqueHeader, SectionTitle, type ChromeHref, type ChromeLink } from "./BoutiqueChrome";
 import { BoutiqueProductView, type BoutiqueProductDetail } from "./BoutiqueProductView";
 import { pdpSettingsForSnapshot } from "./pdp/pdp-logic";
 import { samplePdpProduct } from "./pdp/sample-product";
@@ -1642,7 +1643,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
   // ─── Chrome ────────────────────────────────────────────────────────────────
 
   const pageHref = (key: string) => (live ? storefrontPageHref(basePath, key) ?? undefined : undefined);
-  const menu = resolveMenu(readMenu(headerCopy), {
+  const menuCtx: MenuContext = {
     hasPage: (key) => Boolean(PAGE_LABELS[key]) && pageTypes.has(key),
     pageLabel: (key) => PAGE_LABELS[key],
     pageHref,
@@ -1654,10 +1655,17 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     productHref: (id) => (live ? getPublicStorefrontPath(basePath, `/product/${id}`) : undefined),
     goProduct: openProduct,
     current,
-  });
-  const footerLinks: ChromeLink[] = ["products", "faq", "about", "contact"]
+  };
+  const menu = resolveMenu(readMenu(headerCopy), menuCtx);
+  // The phone menu: its own items when the seller chose them (Navigation page or builder), else the main menu.
+  const ownMobileMenu = readMobileMenu(headerCopy, headerSection?.settings);
+  const mobileMenuItems = ownMobileMenu ? resolveMenu(ownMobileMenu, menuCtx) : undefined;
+  // The footer links the seller picked, else the theme's usual ones.
+  const savedFooterMenu = readFooterMenu(copyOf(footerSection));
+  const defaultFooterLinks: ChromeLink[] = ["products", "faq", "about", "contact"]
     .filter((key) => pageTypes.has(key))
     .map((key) => ({ key, label: key === "faq" ? "Delivery and FAQ" : PAGE_LABELS[key]!, onSelect: () => go(key), href: pageHref(key) }));
+  const footerLinks: ChromeLink[] = savedFooterMenu ? chromeLinksFromMenu(resolveMenu(savedFooterMenu, { ...menuCtx, categoriesUnderShop: false })) : defaultFooterLinks;
   const policyLinks: ChromeHref[] = live ? legalLinks(store.brandSettings).map((link) => ({ key: link.key, label: link.title, href: getPublicStorefrontPath(basePath, legalPagePath(link.key)) })) : [];
   // Seller guidance saved by older templates ("Add your shipping or payment message here.") counts as empty.
   const announcementText = shopperCopy(copyOf(announcementSection).text, store.name) || shopper.announcement;
@@ -1680,6 +1688,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           menu={menu}
           menuStyle={menuStyleOf(headerSection.settings?.menuStyle)}
           mobileMenu={mobileMenuStyleOf(headerSection.settings?.mobileMenu)}
+          mobileItems={mobileMenuItems}
           mobileExtra={live ? [{ id: "track", label: "Track an order", onSelect: () => setSheet("account"), children: [] }] : undefined}
           interactive={live}
           onHome={() => go("home")}

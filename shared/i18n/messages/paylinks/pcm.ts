@@ -117,6 +117,18 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "bio.starter": "Fill am for me",
   "bio.starterHint": "E go add your best sellers, Buy now button and WhatsApp. You fit change everything.",
   "bio.unsaved": "You get changes wey you never save.",
+  "bio.starterLive": "Your page don already dey live with your top products and WhatsApp. Change anything wey you want, then save am make e be your own.",
+  "bio.storeNotLive": "Your shop never dey live. This page go open once you publish your shop.",
+  "bio.offHint": "You don off your page, so customers no fit open am. On Page dey live, then save.",
+  "fix.alert": "Add the details wey remain before you save: {count, plural, one {# field need attention} other {# fields need attention}}.",
+  "fix.showFirst": "Show me",
+  "fix.label": "Put the words for the button.",
+  "fix.url": "Put the full web address, like https://example.com.",
+  "fix.phone": "Put WhatsApp number with country code, like +2348012345678.",
+  "fix.text": "Write the text, or comot this block.",
+  "fix.productId": "Choose product wey you don publish, or comot this block.",
+  "fix.collectionId": "Choose collection, or comot this block.",
+  "fix.other": "Something no correct for this block. Check am, or comot the block.",
   "block.product": "Product",
   "block.collection": "Collection",
   "block.link": "Your own link",
@@ -140,6 +152,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "block.socialHint": "Your handle (like @adafabrics) or the full link",
   "block.noProducts": "Publish one product first before you add am here.",
   "block.noCollections": "Make collection first for Products, then Collections.",
+  "list.pages": "Payment link pages",
+  "list.noneHere": "No payment link dey for this status.",
 };
 
 export default pcm;

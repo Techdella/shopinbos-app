@@ -1487,6 +1487,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "ed.Web address": "Adireshin yanar gizo",
   "ed.Built with Shopinbos badge": "Bajon “Built with Shopinbos”",
   "ed.A small badge at the bottom of every page of your store.": "Ƙaramin bajo a ƙasan kowane shafi na shagonka.",
+  "ed.Only the Pro plan can turn this badge off. Upgrade to Pro to hide it.": "Tsarin Pro kaɗai ne zai iya kashe wannan bajo. Haɓaka zuwa Pro don ɓoye shi.",
   "ed.Free plans show this badge. Upgrade to turn it off.": "Tsare-tsare na kyauta suna nuna wannan bajo. Haɓaka don kashe shi.",
   "ed.Upgrade": "Haɓaka",
   "ed.The badge setting couldn't be saved. Try again.": "Ba a iya ajiye saitin bajon ba. Sake gwadawa.",
@@ -2119,6 +2120,12 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "ed.Under the item above": "Ƙarƙashin abin da ke sama",
   "ed.Underline": "Ja layi ƙasa",
   "ed.Your menu is empty. Add pages above.": "Menu ɗinka babu komai. Ƙara shafuka a sama.",
+  "ed.Phone menu": "Menu na waya",
+  "ed.Phone menu items": "Abubuwan menu na waya",
+  "ed.Use the main menu": "Yi amfani da babban menu",
+  "ed.Own phone menu": "Menu na waya na daban",
+  "ed.Footer links": "Hanyoyin ƙasan shafi",
+  "ed.Until you change them, the footer shows its usual links.": "Har sai kun canza su, footer zai nuna hanyoyinsa na yau da kullum.",
 };
 
 export default ha;

@@ -333,8 +333,6 @@ const en = {
   "subs.noEmail": "No email",
   "subs.noConsent": "Consent not recorded",
   "subs.pages": "Pages",
-  "subs.previous": "Previous",
-  "subs.page": "Page {page} of {pages}",
   "subs.emptyTitle": "Nobody here yet",
   "subs.emptyAction": "Import a CSV",
   "subs.emptyBody": "Turn on a sign-up pop-up, import a list you already have, or add people one by one. Past buyers can already get campaigns through segments.",
@@ -985,6 +983,7 @@ const en = {
   "forms.playsWord": "plays",
   "forms.preview.beforePlay": "Before playing",
   "forms.preview.afterPlay": "After playing",
+  "campaigns.pages": "Campaign pages",
 } satisfies Record<string, string>;
 
 export default en;

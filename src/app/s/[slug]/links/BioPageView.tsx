@@ -4,6 +4,7 @@ import { useState } from "react";
 import type React from "react";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { StoreFootnote } from "@/components/storefront/shopper/StoreFooterBadges";
+import { StoreLogo } from "@/components/storefront/StoreLogo";
 import { formatStoreMoney } from "@/lib/storefront/shopper-info";
 import type { PublicBioBlock, PublicBioPage } from "@/lib/bio/service.server";
 import type { SocialKey } from "@/lib/bio/pure";
@@ -40,14 +41,26 @@ export function BioPageView({ slug, page, colours, preview = false, showFooter =
   };
   const muted = `${colours.text}B3`;
   const line = `${colours.text}26`;
+  // The store's logo (no photo of the page's own, or the same picture) is drawn for the page's background, so a
+  // dark theme gets the logo's dark-background version.
+  const logoUrl = page.storeLogo?.logoUrl || null;
+  const usesStoreLogo = Boolean(logoUrl && (!page.avatarUrl || page.avatarUrl === logoUrl));
+  const initial = <span className="grid h-[88px] w-[88px] place-items-center rounded-full text-[32px] font-bold" style={{ background: colours.button, color: colours.buttonText }}>{page.title.slice(0, 1).toUpperCase()}</span>;
 
   return (
     <div className="min-h-full w-full" style={{ background: colours.background, color: colours.text }}>
       <main className="mx-auto flex w-full max-w-[480px] flex-col items-center px-4 pb-10 pt-10">
-        {page.avatarUrl ? (
+        {usesStoreLogo ? (
+          <StoreLogo
+            store={{ logoUrl: page.storeLogo!.logoUrl, brandSettings: { logoVariants: page.storeLogo!.logoVariants } }}
+            background={colours.background}
+            className="h-[88px] w-auto max-w-[220px]"
+            fallback={initial}
+          />
+        ) : page.avatarUrl ? (
           <img src={page.avatarUrl} alt="" width={88} height={88} className="h-[88px] w-[88px] rounded-full object-cover" style={{ boxShadow: `0 0 0 3px ${colours.background}, 0 0 0 5px ${line}` }} />
         ) : (
-          <span className="grid h-[88px] w-[88px] place-items-center rounded-full text-[32px] font-bold" style={{ background: colours.button, color: colours.buttonText }}>{page.title.slice(0, 1).toUpperCase()}</span>
+          initial
         )}
         <h1 className="mt-4 text-center text-[22px] font-bold leading-tight">{page.title}</h1>
         {page.bio ? <p className="mt-1.5 whitespace-pre-line text-center text-[15px] leading-[1.5]" style={{ color: muted }}>{page.bio}</p> : null}
@@ -101,7 +114,7 @@ export function BioPageView({ slug, page, colours, preview = false, showFooter =
             return <p key={block.id} className="whitespace-pre-line px-2 text-center text-[15px] leading-[1.5]" style={{ color: muted }}>{block.text}</p>;
           })}
         </div>
-        {showFooter ? <StoreFootnote muted={muted} border={line} ink={colours.text} showPayments={false} className="mt-10 w-full" /> : null}
+        {showFooter ? <StoreFootnote muted={muted} border={line} ink={colours.text} showPayments={false} badgeRef="bio_badge" className="mt-10 w-full" /> : null}
       </main>
     </div>
   );

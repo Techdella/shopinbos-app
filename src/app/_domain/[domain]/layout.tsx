@@ -26,7 +26,7 @@ export default async function CustomDomainLayout({ children, params }: { childre
   // Seasonal campaigns: one small query; stores with no live campaign render exactly as before.
   const campaigns = store && brand?.active ? await loadStorefrontCampaigns(brand.id) : null;
   const value = store && brand
-    ? { name: brand.name, logoUrl: campaigns?.logoUrl ?? brand.logoUrl, basePath, theme: resolveShopperTheme(brand.brandSettings), slug: brand.slug, showBadge: brand.showBadge, paymentBadges: brand.paymentBadges }
+    ? { name: brand.name, logoUrl: campaigns?.logoUrl ?? brand.logoUrl, logoVariants: (brand.brandSettings as Record<string, unknown> | null)?.logoVariants, basePath, theme: resolveShopperTheme(brand.brandSettings), slug: brand.slug, showBadge: brand.showBadge, paymentBadges: brand.paymentBadges }
     : null;
   return (
     <StoreBrandProvider value={value}>

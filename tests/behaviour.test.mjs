@@ -2866,6 +2866,45 @@ test("store pages have clean addresses: /shop, /about, custom pages; old ?page= 
   assert.equal(p.storeHasStorefrontPage(store, "cart"), false);
 });
 
+test("store routes (/links, /pay, /cart…) are reserved: a seller's page never takes their address", async () => {
+  const p = await import("../shared/storefront-pages.ts");
+  const { readdirSync } = await import("node:fs");
+  // Every static route under the store (both the app host and custom domains) is in the reserved set.
+  for (const dir of ["src/app/s/[slug]", "src/app/_domain/[domain]"]) {
+    const entries = readdirSync(new URL(`../${dir}`, import.meta.url), { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.name.startsWith("[")) continue; // the dynamic page / collection segment itself
+      if (!entry.isDirectory() && !/\.(txt|xml)$/.test(entry.name)) continue; // page.tsx, layout.tsx…
+      assert.ok(p.STOREFRONT_ROUTE_SEGMENTS.has(entry.name), `${dir}/${entry.name} must be in STOREFRONT_ROUTE_SEGMENTS`);
+    }
+  }
+  assert.equal(p.storefrontPagePath("links"), null, "/links is the link in bio page, never a page");
+  assert.equal(p.storefrontPageKeyFromPath("/links"), null);
+  assert.equal(p.storefrontPagePath("pay"), null);
+  assert.equal(p.isReservedPageSlug("links"), true);
+  assert.equal(p.isReservedPageSlug("Shop"), true, "another name for the shop page");
+  assert.equal(p.isReservedPageSlug("lookbook"), false);
+  // New pages get a free address: "links" → "links-page", taken ones get -2.
+  assert.equal(p.customPageSlug("links"), "links-page");
+  assert.equal(p.customPageSlug("cart"), "cart-page");
+  assert.equal(p.customPageSlug("links", ["links-page"]), "links-page-2");
+  assert.equal(p.customPageSlug("lookbook", ["lookbook"]), "lookbook-2");
+  assert.equal(p.customPageSlug("lookbook"), "lookbook");
+  assert.equal(p.storefrontPagePath(p.customPageSlug("links")), "/links-page");
+  // Renaming refuses a route's address; template pages keep their own type's slug.
+  assert.match(p.pageSlugProblem("links", "custom") ?? "", /link in bio/);
+  assert.match(p.pageSlugProblem("pay", "custom") ?? "", /pay-page/);
+  assert.equal(p.pageSlugProblem("product", "product"), null, "the product template keeps /product as its key");
+  assert.equal(p.pageSlugProblem("our-story", "about"), null);
+  assert.ok(p.pageSlugProblem("Bad Slug", "custom"));
+  assert.equal(p.normalizePageSlug(" Our Story! "), "our-story");
+  // Every place that makes or renames a page uses these.
+  const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
+  assert.match(read("src/components/builder/editor/Builder.tsx"), /customPageSlug\(/);
+  assert.match(read("src/app/api/store/pages/route.ts"), /customPageSlug\(/);
+  assert.match(read("src/app/api/store/pages/[id]/route.ts"), /pageSlugProblem\(/);
+});
+
 // ─── Store builder: shared chrome, product counts and layouts ─────────────────
 
 function chromeFixture() {

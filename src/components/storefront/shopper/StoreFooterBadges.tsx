@@ -1,7 +1,7 @@
 "use client";
 
 import { useStoreBrand } from "@/components/errors/StoreBrandContext";
-import { shopinbosBadgeHref } from "@/lib/store-badges";
+import { shopinbosBadgeHref, type ShopinbosBadgeRef } from "@/lib/store-badges";
 import { COOKIE_SETTINGS_EVENT, bannerText } from "@/lib/storefront/consent";
 import { PaymentBadgeRow } from "./PaymentBadges";
 
@@ -37,11 +37,11 @@ function ShopinbosMark({ size = 13 }: { size?: number }) {
 }
 
 /** "Built with Shopinbos": a quiet pill in the footer's own muted colour and border. */
-export function ShopinbosBadge({ slug, color, borderColor, hoverColor }: { slug: string; color: string; borderColor: string; hoverColor?: string }) {
+export function ShopinbosBadge({ slug, color, borderColor, hoverColor, badgeRef }: { slug: string; color: string; borderColor: string; hoverColor?: string; badgeRef?: ShopinbosBadgeRef }) {
   // A call to action for shoppers who'd like a store too: opens Shopinbos sign-up, tagged with this store.
   return (
     <a
-      href={shopinbosBadgeHref(slug, process.env.NEXT_PUBLIC_APP_URL || undefined)}
+      href={shopinbosBadgeHref(slug, process.env.NEXT_PUBLIC_APP_URL || undefined, badgeRef)}
       target="_blank"
       rel="noopener"
       aria-label="Built with Shopinbos. Start your own store"
@@ -90,12 +90,15 @@ export function StoreFooterBadges({
   ink,
   showPayments = true,
   className = "",
+  badgeRef,
 }: {
   muted: string;
   border: string;
   ink?: string;
   showPayments?: boolean;
   className?: string;
+  /** Where the badge sits, for the sign-up's ref (the store footer unless said). */
+  badgeRef?: ShopinbosBadgeRef;
 }) {
   const badges = useStoreFooterBadges();
   if (!badges) return null;
@@ -105,18 +108,18 @@ export function StoreFooterBadges({
     <div className={`flex flex-wrap items-center gap-x-4 gap-y-2.5 ${className}`}>
       {badges.cookieSettings ? <CookieSettingsButton color={muted} /> : null}
       <PaymentBadgeRow badges={payments} />
-      {badges.showBadge ? <ShopinbosBadge slug={badges.slug} color={muted} borderColor={border} hoverColor={ink} /> : null}
+      {badges.showBadge ? <ShopinbosBadge slug={badges.slug} color={muted} borderColor={border} hoverColor={ink} badgeRef={badgeRef} /> : null}
     </div>
   );
 }
 
 /** The same badges as a slim footer of their own, for shopper pages without a store footer (bag, checkout…). */
-export function StoreFootnote({ muted, border, ink, showPayments = true, className = "" }: { muted: string; border: string; ink?: string; showPayments?: boolean; className?: string }) {
+export function StoreFootnote({ muted, border, ink, showPayments = true, className = "", badgeRef }: { muted: string; border: string; ink?: string; showPayments?: boolean; className?: string; badgeRef?: ShopinbosBadgeRef }) {
   const badges = useStoreFooterBadges();
   if (!badges || (!(showPayments && badges.paymentBadges.length) && !badges.showBadge && !badges.cookieSettings)) return null;
   return (
     <footer className={`border-t ${className}`} style={{ borderColor: border }}>
-      <StoreFooterBadges muted={muted} border={border} ink={ink} showPayments={showPayments} className="justify-between py-5" />
+      <StoreFooterBadges muted={muted} border={border} ink={ink} showPayments={showPayments} badgeRef={badgeRef} className="justify-between py-5" />
     </footer>
   );
 }

@@ -514,6 +514,7 @@ const en = {
   "jobErrors.quoteNotFound": "We couldn't find that quote request. Refresh the page.",
   "jobErrors.quoteAnswered": "You've already answered this quote request.",
   "jobErrors.checkQuote": "Check the quote details.",
+  "jobs.pages": "Job pages",
 } satisfies Record<string, string>;
 
 export default en;

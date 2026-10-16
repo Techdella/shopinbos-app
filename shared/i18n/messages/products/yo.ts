@@ -258,6 +258,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "importAi.importWithout": "Gbé wọlé láìsí àyípadà Peggy",
   "importAi.enhanced": "{count, plural, one {Ọjà # ní àyípadà Peggy} other {Ọjà # ní àyípadà Peggy}}",
   "importAi.showMore": "Fi púpọ̀ sí i hàn",
+  "list.pages": "Àwọn ojú-ewé ọjà",
+  "inv.pages": "Àwọn ojú-ewé stock",
 };
 
 export default yo;

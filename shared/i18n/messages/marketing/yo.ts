@@ -326,8 +326,6 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "subs.noEmail": "Kò sí email",
   "subs.noConsent": "A kò kọ ìfọwọ́sí sílẹ̀",
   "subs.pages": "Àwọn ojú ewé",
-  "subs.previous": "Ti tẹ́lẹ̀",
-  "subs.page": "Ojú ewé {page} nínú {pages}",
   "subs.emptyTitle": "Kò sí ẹnikẹ́ni níbí síbẹ̀",
   "subs.emptyAction": "Mú CSV wọlé",
   "subs.emptyBody": "Tan sign-up pop-up, mú àkójọ tí o ti ní wọlé, tàbí fi àwọn ènìyàn kún un lọ́kọ̀ọ̀kan. Àwọn tó ti rà tẹ́lẹ̀ ti lè gba campaigns nípasẹ̀ segments.",
@@ -969,6 +967,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "forms.playsWord": "eré",
   "forms.preview.beforePlay": "Kí wọ́n tó ṣeré",
   "forms.preview.afterPlay": "Lẹ́yìn eré",
+  "campaigns.pages": "Àwọn ojú-ewé campaign",
 };
 
 export default yo;

@@ -1487,6 +1487,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "ed.Web address": "Àdírẹ́sì wẹ́ẹ̀bù",
   "ed.Built with Shopinbos badge": "Àmì “Built with Shopinbos”",
   "ed.A small badge at the bottom of every page of your store.": "Àmì kékeré ní ìsàlẹ̀ gbogbo ojú-ìwé store rẹ.",
+  "ed.Only the Pro plan can turn this badge off. Upgrade to Pro to hide it.": "Ètò Pro nìkan ló lè pa àmì yìí. Gbé e sókè sí Pro láti fi pamọ́.",
   "ed.Free plans show this badge. Upgrade to turn it off.": "Àwọn ètò ọ̀fẹ́ máa ń fi àmì yìí hàn. Ṣe àfikún ètò láti pa á.",
   "ed.Upgrade": "Ṣe àfikún ètò",
   "ed.The badge setting couldn't be saved. Try again.": "A kò lè fi ètò àmì náà pamọ́. Gbìyànjú lẹ́ẹ̀kan sí i.",
@@ -2119,6 +2120,12 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "ed.Under the item above": "Lábẹ́ ohun tó wà lókè",
   "ed.Underline": "Ìlà abẹ́",
   "ed.Your menu is empty. Add pages above.": "Menu rẹ ṣófo. Fi àwọn ojú-ìwé kún un lókè.",
+  "ed.Phone menu": "Mẹ́nù fóònù",
+  "ed.Phone menu items": "Àwọn ohun mẹ́nù fóònù",
+  "ed.Use the main menu": "Lo mẹ́nù àkọ́kọ́",
+  "ed.Own phone menu": "Mẹ́nù fóònù tirẹ̀",
+  "ed.Footer links": "Àwọn ìjápọ̀ ìsàlẹ̀",
+  "ed.Until you change them, the footer shows its usual links.": "Títí tí o fi máa yí wọn padà, footer á máa fi àwọn ìjápọ̀ rẹ̀ tó wọ́pọ̀ hàn.",
 };
 
 export default yo;

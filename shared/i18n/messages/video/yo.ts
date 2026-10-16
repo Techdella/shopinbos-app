@@ -165,6 +165,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "markedPosted": "A ti sàmì sí i. Ó wà nínú Tí a tẹ̀jáde.",
   "savedVersion": "Fídíò rẹ tí a fi pamọ́",
   "downloadSaved": "Gbà fídíò tí a fi pamọ́ sílẹ̀",
+  "hub.pages": "Àwọn ojú-ewé fídíò",
 };
 
 export default yo;

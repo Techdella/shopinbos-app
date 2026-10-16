@@ -11,6 +11,10 @@ import { hasPostalAddress, readBusinessAddress } from "@/lib/email/shell";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { formatNumber } from "@shared/i18n";
 import type { MessageKey } from "@shared/i18n/catalog";
+import { pageWindow } from "@/lib/pagination";
+import { Pagination } from "@/components/seller/Pagination";
+
+const PAGE_SIZE = 50;
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -38,7 +42,7 @@ function pct(part: number, whole: number) {
   return whole > 0 ? `${Math.round((part / whole) * 100)}%` : "0%";
 }
 
-export default async function CampaignsPage({ searchParams }: { searchParams?: Promise<{ status?: string }> }) {
+export default async function CampaignsPage({ searchParams }: { searchParams?: Promise<{ status?: string; page?: string }> }) {
   const params = await searchParams;
   const user = await requireRole(["seller"], "/login");
   const t = await getT("marketing", "common");
@@ -48,26 +52,30 @@ export default async function CampaignsPage({ searchParams }: { searchParams?: P
   const needsAddress = Boolean(store) && !hasPostalAddress(readBusinessAddress(store?.brandSettings));
   const active = FILTERS.find((filter) => filter.status === params?.status) ?? FILTERS[0];
 
-  const [campaigns, totals, byStatus] = store
+  const [totals, byStatus] = store
     ? await Promise.all([
-        db.broadcastCampaign.findMany({
-          where: { storeId: store.id, ...(active.status ? { status: active.status } : {}) },
-          orderBy: { createdAt: "desc" },
-          take: 100,
-          select: { id: true, name: true, subject: true, channel: true, campaignType: true, status: true, sentCount: true, deliveredCount: true, openCount: true, clickCount: true, revenueGenerated: true, scheduledAt: true, sentAt: true, createdAt: true },
-        }),
         db.broadcastCampaign.aggregate({
           where: { storeId: store.id, status: "sent" },
           _sum: { sentCount: true, openCount: true, clickCount: true, revenueGenerated: true },
         }),
         db.broadcastCampaign.groupBy({ by: ["status"], where: { storeId: store.id }, _count: true }),
       ])
-    : [[], null, []];
+    : [null, []];
 
   const sent = totals?._sum.sentCount ?? 0;
   const opens = totals?._sum.openCount ?? 0;
   const clicks = totals?._sum.clickCount ?? 0;
   const countFor = (status?: CampaignStatus) => byStatus.filter((row) => !status || row.status === status).reduce((sum, row) => sum + row._count, 0);
+  const paging = pageWindow(params?.page, countFor(active.status), PAGE_SIZE);
+  const campaigns = store && paging.total
+    ? await db.broadcastCampaign.findMany({
+        where: { storeId: store.id, ...(active.status ? { status: active.status } : {}) },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        skip: paging.skip,
+        take: paging.take,
+        select: { id: true, name: true, subject: true, channel: true, campaignType: true, status: true, sentCount: true, deliveredCount: true, openCount: true, clickCount: true, revenueGenerated: true, scheduledAt: true, sentAt: true, createdAt: true },
+      })
+    : [];
 
   return (
     <SellerPage
@@ -107,6 +115,7 @@ export default async function CampaignsPage({ searchParams }: { searchParams?: P
         />
 
         {campaigns.length ? (
+          <div>
           <ListCard>
             {campaigns.map((campaign) => {
               const status = STATUS[campaign.status];
@@ -129,6 +138,8 @@ export default async function CampaignsPage({ searchParams }: { searchParams?: P
               );
             })}
           </ListCard>
+          <Pagination {...paging} base="/home/marketing/campaigns" params={{ status: active.status }} label={t("campaigns.pages")} />
+          </div>
         ) : (
           <EmptyState
             icon="send"

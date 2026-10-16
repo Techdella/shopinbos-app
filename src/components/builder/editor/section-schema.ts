@@ -116,7 +116,18 @@ const MENU_FIELDS = (fallback: string[], styleFallback: string): FieldGroup[] =>
     { id: "menuStyle", type: "cards", label: "On computers", target: setting("menuStyle"), fallback: styleFallback, thumbs: "menu", options: MENU_STYLES.map((entry) => ({ value: entry.value, label: entry.label, hint: entry.hint })) },
     { id: "mobileMenu", type: "cards", label: "On phones (the ☰ button)", target: setting("mobileMenu"), fallback: "drawer", thumbs: "menu", options: MOBILE_MENU_STYLES.map((entry) => ({ value: entry.value, label: entry.label, hint: entry.hint })) },
   ] },
+  // The phone menu's items: the main menu (default) or its own list (also on Home > Navigation).
+  { title: "Phone menu", fields: [
+    { id: "mobileMenuSource", type: "segmented", label: "Phone menu items", target: setting("mobileMenuSource"), fallback: "main", options: [{ value: "main", label: "Use the main menu" }, { value: "custom", label: "Own phone menu" }] },
+    { id: "mobileMenuItems", type: "menu", label: "Phone menu", target: copy("mobileMenuItems"), fallback: [], when: { scope: "settings", key: "mobileMenuSource", in: ["custom"], fallback: "main" } },
+  ] },
 ];
+
+/** The footer's links (copy `menu`, one level). Until the seller picks some, the footer shows the theme's usual links. */
+const FOOTER_LINKS = (fallback: string[]): FieldGroup => ({
+  title: "Footer links",
+  fields: [{ id: "footerMenu", type: "menu", label: "Footer links", target: copy("menu"), fallback, help: "Until you change them, the footer shows its usual links." }],
+});
 
 export const BOUTIQUE_PAGE_LINKS: ChoiceOption[] = [
   { value: "home", label: "Home" },
@@ -404,6 +415,7 @@ function boutiqueSchema(kind: string, themeId: string): SectionSchema {
     case "footer":
       return plain([
         { fields: [sharedNote("footer"), area("summary", "About text", { placeholder: FOOTER_SUMMARY_PLACEHOLDER, help: "A line about your store. Contact, delivery and payment details come from your settings." })] },
+        FOOTER_LINKS(["products", "faq", "about", "contact"]),
         { fields: [FOOTER_SHOW_LOGO, STORE_LOGO] },
         { fields: [SHOPINBOS_BADGE] },
       ]);
@@ -862,7 +874,7 @@ function classicContent(kind: string, fallback: string): FieldGroup[] {
         text("email", "Contact email"),
         text("phone", "Contact phone"),
         text("whatsappLabel", "WhatsApp button label"),
-      ] }, { fields: [FOOTER_SHOW_LOGO, STORE_LOGO] }, { fields: [SHOPINBOS_BADGE] }];
+      ] }, FOOTER_LINKS(["home", "products", "about", "blog", "faq", "contact"]), { fields: [FOOTER_SHOW_LOGO, STORE_LOGO] }, { fields: [SHOPINBOS_BADGE] }];
     case "hero-split": {
       const mosaic = ["editorial-mosaic", "carousel-cards"];
       const split = ["split-editorial", "full-bleed", "text-overlay"];

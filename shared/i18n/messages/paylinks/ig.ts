@@ -117,6 +117,18 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "bio.starter": "Jupụta ya maka m",
   "bio.starterHint": "Ọ ga-etinye ngwaahịa kacha ere, bọtịnụ Buy now na WhatsApp. Ị nwere ike ịgbanwe ihe niile.",
   "bio.unsaved": "Ị nwere mgbanwe ị chekwabeghị.",
+  "bio.starterLive": "Peeji gị adịlarị ndụ na ngwaahịa gị kacha mma na WhatsApp. Gbanwee ihe ọ bụla ma chekwaa ka ọ bụrụ nke gị.",
+  "bio.storeNotLive": "Ụlọ ahịa gị adịbeghị ndụ. Peeji a ga-emeghe ozugbo ị bipụtara ụlọ ahịa gị.",
+  "bio.offHint": "Ị gbanyụrụ peeji gị, ya mere ndị na-azụ ahịa enweghị ike imeghe ya. Gbanye Peeji dị ndụ ma chekwaa.",
+  "fix.alert": "Tinye nkọwa fọdụrụ tupu ị chekwaa: {count, plural, other {ebe # chọrọ nlebara anya}}.",
+  "fix.showFirst": "Gosi m",
+  "fix.label": "Dee okwu maka bọtịnụ ahụ.",
+  "fix.url": "Dee adreesị weebụ zuru ezu, dịka https://example.com.",
+  "fix.phone": "Dee nọmba WhatsApp ya na koodu mba, dịka +2348012345678.",
+  "fix.text": "Dee ederede ahụ, ma ọ bụ wepu ngọngọ a.",
+  "fix.productId": "Họrọ ngwaahịa ị bipụtara, ma ọ bụ wepu ngọngọ a.",
+  "fix.collectionId": "Họrọ otu nchịkọta, ma ọ bụ wepu ngọngọ a.",
+  "fix.other": "Ihe adịghị mma na ngọngọ a. Lelee ya, ma ọ bụ wepu ngọngọ ahụ.",
   "block.product": "Ngwaahịa",
   "block.collection": "Collection",
   "block.link": "Link nke gị",
@@ -140,6 +152,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "block.socialHint": "Handle gị (dịka @adafabrics) ma ọ bụ link zuru ezu",
   "block.noProducts": "Bipụta otu ngwaahịa mbụ tupu ị tinye ya ebe a.",
   "block.noCollections": "Mee collection mbụ na Products, wee Collections.",
+  "list.pages": "Peeji payment links",
+  "list.noneHere": "Enweghị payment link nwere ọnọdụ a.",
 };
 
 export default ig;

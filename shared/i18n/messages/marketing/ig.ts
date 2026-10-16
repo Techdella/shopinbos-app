@@ -326,8 +326,6 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "subs.noEmail": "Enweghị email",
   "subs.noConsent": "E dekọghị nkwenye",
   "subs.pages": "Peeji",
-  "subs.previous": "Nke gara aga",
-  "subs.page": "Peeji {page} n'ime {pages}",
   "subs.emptyTitle": "Ọ dịbeghị onye nọ ebe a",
   "subs.emptyAction": "Bubata CSV",
   "subs.emptyBody": "Gbanye sign-up pop-up, bubata ndepụta i nwere, ma ọ bụ tinye ndị mmadụ otu otu. Ndị zụrụla na mbụ nwere ike ịnweta campaigns site na segments.",
@@ -969,6 +967,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "forms.playsWord": "egwuregwu",
   "forms.preview.beforePlay": "Tupu ha egwuo",
   "forms.preview.afterPlay": "Mgbe ha gwuchara",
+  "campaigns.pages": "Peeji campaigns",
 };
 
 export default ig;

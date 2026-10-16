@@ -165,6 +165,7 @@ const en = {
   "markedPosted": "Marked as posted. It's under Published.",
   "savedVersion": "Your saved video",
   "downloadSaved": "Download the saved video",
+  "hub.pages": "Video pages",
 } satisfies Record<string, string>;
 
 export default en;

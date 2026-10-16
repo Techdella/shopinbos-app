@@ -16,9 +16,10 @@ import type { BoutiqueThemeId, StoreEditorSnapshot, TemplateSectionNode } from "
 import { freeDeliveryEverywhereOver, type StorefrontShopperInfo } from "@/lib/storefront/shopper-info";
 import { relatedProducts, type ShopperProduct } from "../shopper/catalog";
 import { ShopperBottomNav, type ShopperSheet } from "../shopper/ShopperBottomNav";
-import { resolveMenu } from "../StoreMenu";
+import { resolveMenu, type MenuContext } from "../StoreMenu";
 import { menuStyleOf, mobileMenuStyleOf, readMenu } from "@/lib/storefront/menu";
-import { AnnouncementBar, BoutiqueFooter, BoutiqueHeader, type ChromeLink } from "./BoutiqueChrome";
+import { readFooterMenu, readMobileMenu } from "@/lib/storefront/store-navigation";
+import { AnnouncementBar, BoutiqueFooter, chromeLinksFromMenu, BoutiqueHeader, type ChromeLink } from "./BoutiqueChrome";
 import { legalLinks, legalPagePath } from "@/lib/legal/pages";
 import { BoutiqueProductView, type AddToBagInput, type BoutiqueProductDetail, type ProductReviewEntry } from "./BoutiqueProductView";
 import { BOUTIQUE_FONT_CLASS } from "./fonts";
@@ -80,7 +81,7 @@ export function BoutiqueProductPage({ themeId, snapshot, store, product, reviews
 
   const pageHref = (page: string, params?: URLSearchParams) => storefrontPageHref(storeBasePath, page, params) ?? getPublicStorefrontPath(storeBasePath, "/");
   const go = (page: string) => router.push(pageHref(page));
-  const footerLinks: ChromeLink[] = ["products", "faq", "about", "contact"]
+  const defaultFooterLinks: ChromeLink[] = ["products", "faq", "about", "contact"]
     .filter((key) => pageTypes.has(key))
     .map((key) => ({ key, label: key === "faq" ? "Delivery and FAQ" : LABELS[key]!, onSelect: () => go(key), href: pageHref(key) }));
   const categories = useMemo(() => {
@@ -88,7 +89,7 @@ export function BoutiqueProductPage({ themeId, snapshot, store, product, reviews
     for (const entry of catalog) if (entry.category?.slug) map.set(entry.category.slug, { slug: entry.category.slug, name: entry.category.name });
     return [...map.values()];
   }, [catalog]);
-  const menu = resolveMenu(readMenu(headerCopy), {
+  const menuCtx: MenuContext = {
     hasPage: (key) => Boolean(LABELS[key]) && pageTypes.has(key),
     pageLabel: (key) => LABELS[key],
     pageHref: (key) => pageHref(key),
@@ -99,7 +100,14 @@ export function BoutiqueProductPage({ themeId, snapshot, store, product, reviews
     products: catalog,
     productHref: (id) => getPublicStorefrontPath(storeBasePath, `/product/${id}`),
     goProduct: (id) => router.push(getPublicStorefrontPath(storeBasePath, `/product/${id}`)),
-  });
+  };
+  const menu = resolveMenu(readMenu(headerCopy), menuCtx);
+  // The phone menu: its own items when the seller chose them (Navigation page or builder), else the main menu.
+  const ownMobileMenu = readMobileMenu(headerCopy, headerSection?.settings);
+  const mobileMenuItems = ownMobileMenu ? resolveMenu(ownMobileMenu, menuCtx) : undefined;
+  // The footer links the seller picked, else the theme's usual ones.
+  const savedFooterMenu = readFooterMenu(copyOf(footerSection));
+  const footerLinks: ChromeLink[] = savedFooterMenu ? chromeLinksFromMenu(resolveMenu(savedFooterMenu, { ...menuCtx, categoriesUnderShop: false })) : defaultFooterLinks;
   // "Customers also like": the seller's picks, else same type, category or tags.
   const related = useMemo(() => relatedProducts(product, catalog), [catalog, product]);
 
@@ -130,6 +138,7 @@ export function BoutiqueProductPage({ themeId, snapshot, store, product, reviews
         menu={menu}
         menuStyle={menuStyleOf(headerSection?.settings?.menuStyle)}
         mobileMenu={mobileMenuStyleOf(headerSection?.settings?.mobileMenu)}
+        mobileItems={mobileMenuItems}
         mobileExtra={[{ id: "track", label: "Track an order", onSelect: () => setSheet("account"), children: [] }]}
         onHome={() => go("home")}
         onSearch={() => setSheet("search")}

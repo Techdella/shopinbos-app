@@ -592,6 +592,7 @@ const en = {
   "reviewsUi.wholesaleOrders": "Wholesale orders",
   "reviewsUi.finishedDeliveries": "Finished deliveries",
   "reviewsUi.deliveryFee": "{amount} delivery fee",
+  "quotes.pages": "Quote request pages",
 } satisfies Record<string, string>;
 
 export default en;

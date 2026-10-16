@@ -2,12 +2,14 @@
 
 import { confirmDialog } from "@/components/ui/dialogs";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Spinner, cx } from "@/components/app-ui";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import type { VideoPurpose, VideoStatus } from "@shared/video-projects";
+import type { PageWindow } from "@/lib/pagination";
+import { Pagination } from "@/components/seller/Pagination";
 
 export interface HubVideo {
   id: string;
@@ -25,15 +27,14 @@ const PURPOSE_ICON: Record<VideoPurpose, IconName> = { ad: "megaphone", product:
 const card = "rounded-[22px] border border-app-line bg-white";
 
 /** Start a video for an ad, a product or social media; then the seller's drafts, saved and published videos. */
-export function VideoHub({ videos }: { videos: HubVideo[] }) {
+export function VideoHub({ videos, tab, counts, paging }: { videos: HubVideo[]; tab: VideoStatus; counts: Record<VideoStatus, number>; paging: PageWindow }) {
   const t = useT("video");
   const locale = useLocale();
   const router = useRouter();
-  const [tab, setTab] = useState<VideoStatus>(videos.some((video) => video.status === "draft") || !videos.length ? "draft" : "saved");
   const [busy, setBusy] = useState<string | null>(null);
-  const [list, setList] = useState(videos);
-  const counts = useMemo(() => ({ draft: list.filter((v) => v.status === "draft").length, saved: list.filter((v) => v.status === "saved").length, published: list.filter((v) => v.status === "published").length }), [list]);
-  const shown = list.filter((video) => video.status === tab);
+  // Deleted videos disappear at once; the refresh brings the counts and the page up to date.
+  const [removed, setRemoved] = useState<string[]>([]);
+  const shown = videos.filter((video) => !removed.includes(video.id));
   const when = (iso: string) => new Date(iso).toLocaleDateString(locale === "en" ? "en-NG" : undefined, { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
 
   async function start(purpose: VideoPurpose) {
@@ -46,7 +47,10 @@ export function VideoHub({ videos }: { videos: HubVideo[] }) {
     setBusy(video.id);
     try {
       const response = await fetch(`/api/app/videos/${video.id}`, { method: "DELETE" });
-      if (response.ok) setList((current) => current.filter((item) => item.id !== video.id));
+      if (response.ok) {
+        setRemoved((current) => [...current, video.id]);
+        router.refresh();
+      }
     } finally {
       setBusy(null);
     }
@@ -75,20 +79,18 @@ export function VideoHub({ videos }: { videos: HubVideo[] }) {
       </section>
 
       <section className={cx(card, "p-5")}>
-        <div role="tablist" aria-label={t("hub.yourVideos")} className="flex flex-wrap gap-2">
+        <nav aria-label={t("hub.yourVideos")} className="flex flex-wrap gap-2">
           {(["draft", "saved", "published"] as const).map((key) => (
-            <button
+            <Link
               key={key}
-              type="button"
-              role="tab"
-              aria-selected={tab === key}
-              onClick={() => setTab(key)}
-              className={cx("inline-flex min-h-[40px] items-center gap-2 rounded-full border px-4 text-[14px] font-bold", tab === key ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white")}
+              href={`/home/video?tab=${key}`}
+              aria-current={tab === key ? "page" : undefined}
+              className={cx("inline-flex min-h-[40px] items-center gap-2 rounded-full border px-4 text-[14px] font-bold no-underline", tab === key ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white text-app-ink")}
             >
               {t(`hub.tab.${key}`)} <span className={cx("rounded-full px-1.5 text-[12px]", tab === key ? "bg-white/20" : "bg-app-canvas")}>{counts[key]}</span>
-            </button>
+            </Link>
           ))}
-        </div>
+        </nav>
 
         {shown.length === 0 ? (
           <p className="m-0 mt-5 rounded-[16px] bg-app-canvas px-4 py-6 text-center text-[14px] text-app-ink-soft">{t(`hub.empty.${tab}`)}</p>
@@ -122,6 +124,7 @@ export function VideoHub({ videos }: { videos: HubVideo[] }) {
             ))}
           </ul>
         )}
+        <Pagination {...paging} base="/home/video" params={{ tab }} label={t("hub.pages")} />
       </section>
     </div>
   );

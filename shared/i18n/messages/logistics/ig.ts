@@ -494,6 +494,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "jobErrors.quoteAnswered": "Ị zalarịrị arịrịọ quote a.",
   "jobErrors.checkQuote": "Lelee nkọwa quote ahụ.",
   "kit.to": " gaa ",
+  "jobs.pages": "Peeji ọrụ",
 };
 
 export default ig;

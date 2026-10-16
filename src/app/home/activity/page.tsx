@@ -6,6 +6,8 @@ import { Card, EmptyState, FilterChips } from "@/components/app-kit";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { formatDate, type Locale } from "@shared/i18n";
+import { pageWindow } from "@/lib/pagination";
+import { Pagination } from "@/components/seller/Pagination";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -26,6 +28,7 @@ const ICONS: Record<string, IconName> = {
 };
 
 const DAY = 86_400_000;
+const PAGE_SIZE = 100;
 
 function lagosDay(date: Date) {
   return new Date(date.getTime() + 60 * 60 * 1000).toISOString().slice(0, 10);
@@ -54,18 +57,21 @@ function linkOf(metadata: unknown) {
   return typeof link === "string" && link.startsWith("/") ? link : null;
 }
 
-export default async function ActivityFeedPage({ searchParams }: { searchParams?: Promise<{ type?: string }> }) {
+export default async function ActivityFeedPage({ searchParams }: { searchParams?: Promise<{ type?: string; page?: string }> }) {
   const params = await searchParams;
   const filter = (TYPES as readonly string[]).includes(params?.type ?? "") ? params!.type! : "";
   const user = await requireRole(["seller"], "/login");
   const t = await getT("home", "common");
   const locale = await getLocale();
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true } });
-  const events = store
+  const where = { storeId: store?.id ?? "__none__", ...(filter ? { type: { startsWith: filter } } : {}) };
+  const paging = pageWindow(params?.page, store ? await db.activityEvent.count({ where }) : 0, PAGE_SIZE);
+  const events = paging.total
     ? await db.activityEvent.findMany({
-        where: { storeId: store.id, ...(filter ? { type: { startsWith: filter } } : {}) },
-        orderBy: { createdAt: "desc" },
-        take: 100,
+        where,
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        skip: paging.skip,
+        take: paging.take,
         select: { id: true, type: true, title: true, description: true, metadata: true, createdAt: true },
       })
     : [];
@@ -124,6 +130,7 @@ export default async function ActivityFeedPage({ searchParams }: { searchParams?
             </section>
           ))
         )}
+        <Pagination {...paging} base="/home/activity" params={{ type: filter || undefined }} label={t("activity.pages")} className="" />
       </div>
     </SellerPage>
   );

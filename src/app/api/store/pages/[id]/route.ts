@@ -4,6 +4,7 @@ import { db } from "@/lib/db/client";
 import { withSeller } from "@/lib/auth/middleware";
 import { ok, apiError } from "@/lib/api/response";
 import { z } from "zod";
+import { normalizePageSlug, pageSlugProblem } from "@shared/storefront-pages";
 
 const UpdatePageSchema = z.object({
   title: z.string().min(1).optional(),
@@ -60,7 +61,17 @@ export const PATCH = withSeller(async (req, { user, params }) => {
   const updateData: Record<string, unknown> = {};
 
   if (parsed.data.title) updateData.title = parsed.data.title;
-  if (parsed.data.slug) updateData.slug = parsed.data.slug;
+  if (parsed.data.slug) {
+    // A clean address that no store route (/links, /cart, /pay…) or other page already has.
+    const slug = page.type === "home" && parsed.data.slug === "home" ? "home" : normalizePageSlug(parsed.data.slug);
+    if (slug !== page.slug) {
+      const problem = pageSlugProblem(slug, page.type);
+      if (problem) return apiError("BAD_REQUEST", problem);
+      const clash = await db.storePage.findUnique({ where: { storeId_slug: { storeId: store.id, slug } }, select: { id: true } });
+      if (clash && clash.id !== page.id) return apiError("CONFLICT", `Another page already uses /${slug}. Pick another address.`);
+      updateData.slug = slug;
+    }
+  }
 
   if (parsed.data.seo || parsed.data.navigation || parsed.data.content) {
     const updatedDraft = {

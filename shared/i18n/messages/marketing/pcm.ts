@@ -326,8 +326,6 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "subs.noEmail": "No email",
   "subs.noConsent": "We no record consent",
   "subs.pages": "Pages",
-  "subs.previous": "Previous",
-  "subs.page": "Page {page} of {pages}",
   "subs.emptyTitle": "Nobody dey here yet",
   "subs.emptyAction": "Import CSV",
   "subs.emptyBody": "On sign-up pop-up, import list wey you don get, or add people one by one. People wey don buy before fit already get campaigns through segments.",
@@ -969,6 +967,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "forms.playsWord": "plays",
   "forms.preview.beforePlay": "Before dem play",
   "forms.preview.afterPlay": "After dem play",
+  "campaigns.pages": "Campaign pages",
 };
 
 export default pcm;

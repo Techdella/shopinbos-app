@@ -43,7 +43,7 @@ export function StorefrontNotFound() {
         actions={actions}
         illustration={<TumblingParcelScene />}
         backdrop="404"
-        brand={brand ? <StoreMark name={brand.name} logoUrl={brand.logoUrl} href={shopHref} theme={theme} /> : null}
+        brand={brand ? <StoreMark name={brand.name} logoUrl={brand.logoUrl} brandSettings={{ logoVariants: brand.logoVariants }} href={shopHref} theme={theme} /> : null}
       />
     </div>
   );
@@ -82,7 +82,7 @@ export function StorefrontError({ error, retry }: { error: Error & { digest?: st
         ]}
         digest={error.digest}
         illustration={<RepairBotScene />}
-        brand={brand ? <StoreMark name={brand.name} logoUrl={brand.logoUrl} href={shopHref} theme={theme} /> : null}
+        brand={brand ? <StoreMark name={brand.name} logoUrl={brand.logoUrl} brandSettings={{ logoVariants: brand.logoVariants }} href={shopHref} theme={theme} /> : null}
       />
     </div>
   );

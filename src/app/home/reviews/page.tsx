@@ -8,6 +8,8 @@ import { loadReviews, productNames } from "@/lib/reviews/server";
 import { ReviewFilters } from "./ReviewFilters";
 import { ReviewTabs, SourcePill, Stars, STATUS_TONE, reviewSourceLabel, reviewsContext } from "./_components/shared";
 import { getLocale, getT } from "@/lib/i18n/server";
+import { pageSlice } from "@/lib/pagination";
+import { Pagination } from "@/components/seller/Pagination";
 
 export const dynamic = "force-dynamic";
 
@@ -21,13 +23,12 @@ export default async function SellerReviewsPage({ searchParams }: { searchParams
   const t = await getT("reviews", "common");
   const locale = await getLocale();
   const filters = parseReviewFilters(sp);
-  const page = Math.max(1, Number(Array.isArray(sp.page) ? sp.page[0] : sp.page) || 1);
 
-  const [all, products] = await Promise.all([loadReviews(store.id), productNames(store.id)]);
+  // Reviews come from two places (your store and imported sites), so the filters and pages run over both here.
+  const [all, products] = await Promise.all([loadReviews(store.id, { take: 5000 }), productNames(store.id)]);
   const summary = summarizeReviews(all);
   const filtered = filterReviews(all, filters);
-  const shown = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const { rows: shown, window: paging } = pageSlice(filtered, sp.page, PAGE_SIZE);
   const percents = distributionPercents(summary.distribution);
 
   const base = new URLSearchParams();
@@ -36,12 +37,6 @@ export default async function SellerReviewsPage({ searchParams }: { searchParams
     const next = new URLSearchParams(base);
     for (const [key, value] of Object.entries(changes)) (value ? next.set(key, value) : next.delete(key));
     next.delete("page");
-    const qs = next.toString();
-    return `/home/reviews${qs ? `?${qs}` : ""}`;
-  };
-  const pageHref = (n: number) => {
-    const next = new URLSearchParams(base);
-    if (n > 1) next.set("page", String(n));
     const qs = next.toString();
     return `/home/reviews${qs ? `?${qs}` : ""}`;
   };
@@ -219,15 +214,7 @@ export default async function SellerReviewsPage({ searchParams }: { searchParams
         </Card>
       )}
 
-      {pages > 1 ? (
-        <nav aria-label={t("list.pages")} className="mt-4 flex flex-wrap items-center justify-between gap-3 text-[14px]">
-          <span className="text-app-ink-soft">{t("list.pageOf", { page, pages, count: filtered.length })}</span>
-          <div className="flex gap-2">
-            {page > 1 ? <PillLink href={pageHref(page - 1)} size="sm">{t("list.previous")}</PillLink> : null}
-            {page < pages ? <PillLink href={pageHref(page + 1)} size="sm">{t("next")}</PillLink> : null}
-          </div>
-        </nav>
-      ) : null}
+      <Pagination {...paging} base="/home/reviews" params={Object.fromEntries(base.entries())} label={t("list.pages")} />
     </AppPage>
   );
 }

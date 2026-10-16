@@ -5,7 +5,7 @@
 
 import { z } from "zod";
 import { PAYMENT_BADGE_KEYS, cleanPaymentBadges } from "../../shared/payment-badges.ts";
-import type { SellerPlanState } from "./seller-plan.ts";
+import { TOP_SELLER_PLANS, type SellerPlanState } from "./seller-plan.ts";
 
 /**
  * Whether the owner has paid time left on any plan (recorded by the Paystack webhook, src/lib/seller-plan.server.ts).
@@ -17,9 +17,12 @@ export function hasPaidPlanTime(user: Pick<SellerPlanState, "planStatus" | "plan
   return Number.isFinite(paidUntil) && paidUntil > now.getTime();
 }
 
-/** A paid seller may turn the "Built with Shopinbos" badge off in the store editor; free stores always show it. */
-export function canHideShopinbosBadge(user: Pick<SellerPlanState, "planStatus" | "planPaidUntil"> | null | undefined, now: Date): boolean {
-  return hasPaidPlanTime(user, now);
+/**
+ * Only a seller on the highest plan (Seller Pro, monthly or annual) with paid time left may turn the "Built with
+ * Shopinbos" badge off, on the storefront and the link in bio page; every other store always shows it.
+ */
+export function canHideShopinbosBadge(user: Pick<SellerPlanState, "planCode" | "planStatus" | "planPaidUntil"> | null | undefined, now: Date): boolean {
+  return Boolean(user?.planCode && TOP_SELLER_PLANS.includes(user.planCode)) && hasPaidPlanTime(user, now);
 }
 
 /** The seller's choice, saved as brandSettings.hideShopinbosBadge (true = they turned it off). */
@@ -32,16 +35,22 @@ export function readHideShopinbosBadge(brandSettings: unknown): boolean {
  * seller with paid time left turned it off; if their plan ends, it comes back.
  */
 export function showsShopinbosBadge(
-  user: Pick<SellerPlanState, "planStatus" | "planPaidUntil"> | null | undefined,
+  user: Pick<SellerPlanState, "planCode" | "planStatus" | "planPaidUntil"> | null | undefined,
   now: Date,
   brandSettings?: unknown,
 ): boolean {
   return !(canHideShopinbosBadge(user, now) && readHideShopinbosBadge(brandSettings));
 }
 
-/** Where the badge links: sign-up on the app, tagged with the store it came from (a "start your own store" call to action). */
-export function shopinbosBadgeHref(slug: string, appUrl = "https://app.shopinbos.com") {
-  return `${appUrl.replace(/\/$/, "")}/signup?ref=store_badge&s=${encodeURIComponent(slug)}`;
+/** Where the badges a store can show link from: its footer (store_badge) or its link in bio page (bio_badge). */
+export type ShopinbosBadgeRef = "store_badge" | "bio_badge";
+
+/**
+ * Where the badge links: sign-up on the app, tagged with the store it came from and where on it (a "start your own
+ * store" call to action).
+ */
+export function shopinbosBadgeHref(slug: string, appUrl = "https://app.shopinbos.com", ref: ShopinbosBadgeRef = "store_badge") {
+  return `${appUrl.replace(/\/$/, "")}/signup?ref=${ref}&s=${encodeURIComponent(slug)}`;
 }
 
 /** The logos a seller may save: known keys only, at most one of each. */

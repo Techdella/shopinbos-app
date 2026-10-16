@@ -35,7 +35,6 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "list.showAll": "Gosi orders niile",
   "list.nothingMatches": "Ọ dịghị ihe dabara “{query}” n'ele a.",
   "list.noneInView": "Enweghị orders n'ele a ugbu a.",
-  "list.showing": "Anyị na-egosi {shown} kacha ọhụrụ n'ime orders {total}.",
   "new.metaTitle": "Dekọọ ahịa",
   "new.sub": "Ị rere ihe na WhatsApp, Instagram ma ọ bụ ihu na ihu? Tinye ya ebe a ka ahịa gị, ngwaahịa na ndị ahịa dị nke ọma.",
   allOrders: "Orders niile",
@@ -185,7 +184,6 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "inv.sub": "Invoices maka orders gị, na ndị ị na-ezigara ma ọ bụ na-enweta n'aka suppliers, ndị mmekọ delivery na ndị ahịa.",
   "inv.money": "Ego",
   "inv.orderInvoices": "Invoices order",
-  "inv.latest100": "Orders 100 kacha ọhụrụ",
   "inv.waiting": "Na-eche ịkwụ ụgwọ",
   "inv.paid": "Akwụọla",
   "inv.ordersHint": "orders",
@@ -295,6 +293,9 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "ps.scanMe": "Nyochaa m",
   "ps.thanksDefault": "Daalụ!",
   "ps.thanksNote": "Anyị ji ịhụnanya kwakọba nke a. Gwa anyị otú ọ dị gị mma ma laghachi na {store} n'oge na-adịghị anya.",
+  "list.pages": "Peeji orders",
+  "inv.pages": "Peeji invoices",
+  "inv.allOrders": "Orders gị niile",
 };
 
 export default ig;
