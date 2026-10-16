@@ -165,6 +165,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "markedPosted": "E don mark as posted. E dey Published.",
   "savedVersion": "Your saved video",
   "downloadSaved": "Download the saved video",
+  "hub.pages": "Video pages",
 };
 
 export default pcm;

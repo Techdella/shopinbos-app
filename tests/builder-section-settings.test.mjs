@@ -253,12 +253,12 @@ test("the storefronts draw the slides: one accessible slider for both renderers"
   assert.match(builder, /migrateSnapshot\(/, "saved drafts are upgraded when the builder opens");
 });
 
-test("footer settings carry the Built with Shopinbos badge switch, locked on for free plans", () => {
+test("footer settings carry the Built with Shopinbos badge switch, locked on below the Pro plan", () => {
   for (const renderer of ["boutique", "classic"]) assert.ok(ids(section("footer"), renderer, "breeze").includes("shopinbosBadge"), renderer);
   const inspector = read("../src/components/builder/editor/Inspector.tsx");
   assert.match(inspector, /fetch\("\/api\/app\/store\/badge", \{ method: "PATCH"/);
   assert.match(inspector, /if \(json\?\.data\) setState\(json\.data\)/, "the switch follows the saved answer");
-  assert.match(inspector, /Free plans show this badge\. Upgrade to turn it off\./);
+  assert.match(inspector, /Only the Pro plan can turn this badge off\. Upgrade to Pro to hide it\./);
   assert.match(inspector, /href="\/home\/settings\?tab=Billing"/);
   assert.match(inspector, /aria-checked="true" aria-label=\{tx\(label\)\} disabled/, "free sellers get a disabled switch that stays on");
 });

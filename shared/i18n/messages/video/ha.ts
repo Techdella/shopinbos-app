@@ -165,6 +165,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "markedPosted": "An nuna an wallafa. Yana cikin An wallafa.",
   "savedVersion": "Bidiyonka da aka ajiye",
   "downloadSaved": "Sauke bidiyon da aka ajiye",
+  "hub.pages": "Shafukan bidiyo",
 };
 
 export default ha;

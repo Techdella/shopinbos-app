@@ -6,6 +6,10 @@ import { AppPage, EmptyState, ListCard, ListRow, Pill, PillLink, StatGrid, StatT
 import { sellerFrame } from "@/components/seller-core";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { formatNumber } from "@shared/i18n";
+import { pageSlice } from "@/lib/pagination";
+import { Pagination } from "@/components/seller/Pagination";
+
+const PAGE_SIZE = 50;
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +24,8 @@ function stockStatus(current: number, threshold: number): { label: "inv.out" | "
   return { label: "inv.in", tone: "success" };
 }
 
-export default async function InventoryPage() {
+export default async function InventoryPage({ searchParams }: { searchParams?: Promise<{ page?: string }> }) {
+  const { page: rawPage } = (await searchParams) ?? {};
   const user = await requireRole(["seller"], "/login");
   const t = await getT("products", "common");
   const locale = await getLocale();
@@ -65,6 +70,8 @@ export default async function InventoryPage() {
   const lowStock = counted.filter((p) => p.currentStock > 0 && p.currentStock <= p.lowStockThreshold).length;
   const merchantFulfilled = counted.filter((p) => p.fulfillmentType === "merchant_fulfilled");
   const totalUnits = merchantFulfilled.reduce((sum, p) => sum + p.currentStock, 0);
+  // The numbers cover every product; the list shows a page at a time (lowest stock first).
+  const paged = pageSlice(products, rawPage, PAGE_SIZE);
 
   return (
     <AppPage
@@ -99,8 +106,9 @@ export default async function InventoryPage() {
           {t("inv.emptySub")}
         </EmptyState>
       ) : (
+        <>
         <ListCard>
-          {products.map((p) => {
+          {paged.rows.map((p) => {
             const status = stockStatus(p.currentStock, p.lowStockThreshold);
             const isDropship = p.fulfillmentType === "dropship";
             const supplierStock = p.supplierProduct?.stockQuantity;
@@ -135,6 +143,8 @@ export default async function InventoryPage() {
             );
           })}
         </ListCard>
+        <Pagination {...paged.window} base="/home/inventory" label={t("inv.pages")} />
+        </>
       )}
     </AppPage>
   );

@@ -14,8 +14,9 @@ import { readShopperInfo } from "@/lib/storefront/shopper-info";
 import { getPublicStorefrontPath } from "@/lib/domains/storefront";
 import { legalLinks, legalPagePath } from "@/lib/legal/pages";
 import { BoutiqueStorefront } from "@/components/storefront/boutique/BoutiqueStorefront";
-import { StoreMenuBar, StoreMenuButton, resolveMenu } from "./StoreMenu";
+import { StoreMenuBar, StoreMenuButton, resolveMenu, type MenuContext, type ShownMenuItem } from "./StoreMenu";
 import { menuPageKeys, menuStyleOf, mobileMenuStyleOf, readMenu } from "@/lib/storefront/menu";
+import { readFooterMenu, readMobileMenu } from "@/lib/storefront/store-navigation";
 import { StoreBrandMark } from "@/components/storefront/StoreBrandMark";
 import { GameSection } from "@/components/storefront/gamification/GameSection";
 import { isGameSectionKind } from "@/lib/gamification/logic";
@@ -214,6 +215,27 @@ function themeFor(snapshot: StoreEditorSnapshot) {
           ? 8
           : 18,
   };
+}
+
+/** One of the seller's footer links: a real link; plain clicks on store pages switch page in place. */
+function FooterMenuLink({ item, className, style }: { item: ShownMenuItem; className?: string; style?: React.CSSProperties }) {
+  return (
+    <a
+      href={item.href ?? "#"}
+      target={item.newTab ? "_blank" : undefined}
+      rel={item.newTab ? "noopener noreferrer" : undefined}
+      onClick={(event) => {
+        if (!item.onSelect || item.newTab) return;
+        if (item.href && (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0)) return;
+        event.preventDefault();
+        item.onSelect();
+      }}
+      className={className}
+      style={{ color: "inherit", textDecoration: "none", ...style }}
+    >
+      {item.label}
+    </a>
+  );
 }
 
 function normalizePageType(pageType: string) {
@@ -984,7 +1006,7 @@ function ClassicTemplateSurface({
   // On a live store every menu item is a real link (/about, /shop?category=…, /product/<id>): shoppers can open it
   // in a new tab and search engines can follow it. Plain clicks still switch page in place.
   const liveHref = mode === "live" && storeBasePath !== undefined;
-  const shownMenu = resolveMenu(savedMenu, {
+  const menuCtx: MenuContext = {
     hasPage: (page) => visibleNavLink(page),
     pageLabel: (page) => pageLabel(page),
     pageHref: liveHref ? (page) => storefrontPageHref(storeBasePath ?? "", normalizePageType(page)) ?? undefined : undefined,
@@ -997,7 +1019,14 @@ function ClassicTemplateSurface({
     goProduct: (id) => openProductPage(id),
     current: currentPage,
     categoriesUnderShop: categoryNavLayout === "simple",
-  });
+  };
+  const shownMenu = resolveMenu(savedMenu, menuCtx);
+  // The phone menu's own items when the seller chose them (Navigation page or builder), else the main menu.
+  const ownMobileMenu = readMobileMenu(headerCopy, header?.settings);
+  const shownMobileMenu = ownMobileMenu ? resolveMenu(ownMobileMenu, menuCtx) : shownMenu;
+  // The footer links the seller picked; without them the footer lists the main menu's pages (navLinks).
+  const savedFooterMenu = readFooterMenu(footer?.blocks.find((entry) => entry.type === "copy")?.content);
+  const shownFooterMenu = savedFooterMenu ? resolveMenu(savedFooterMenu, { ...menuCtx, categoriesUnderShop: false }) : null;
   const menuColors = { ink: theme.ink, muted: theme.muted, accent: theme.accent, accentText: theme.ctaText, panel: theme.paperBg, panelInk: theme.ink, border: theme.border };
   const headerFeatures = {
     search: header?.settings?.search !== false,
@@ -3542,7 +3571,8 @@ function ClassicTemplateSurface({
           <div className={`mx-auto flex max-w-[1320px] flex-wrap items-center justify-between gap-3 px-5 py-3.5 sm:px-8 ${headerLayout === "centered" ? "md:grid md:grid-cols-[1fr_auto_1fr]" : ""}`}>
             <div className="flex min-w-0 items-center gap-1">
             <StoreMenuButton
-              items={shownMenu}
+              items={shownMobileMenu}
+              brand={{ store, name: String(headerCopy.logoText ?? "").trim() || store.name }}
               style={mobileMenuStyleOf(header.settings?.mobileMenu)}
               colors={{ ...menuColors, ink: theme.ink }}
               storeName={store.name}
@@ -3688,7 +3718,9 @@ function ClassicTemplateSurface({
                 <div className="text-[18px] font-semibold" style={{ fontFamily: theme.headingFont, color: theme.heroText }}>{store.name}</div>
               )}
               <div className="flex flex-wrap gap-4 text-[12px]" style={{ color: rgba(theme.heroText, 0.72) }}>
-                {navLinks.slice(0, 5).map((pageType) => <button key={`footer-min-${pageType}`} type="button" onClick={() => navigate(pageType)}>{pageLabel(pageType)}</button>)}
+                {shownFooterMenu
+                  ? shownFooterMenu.map((item) => <FooterMenuLink key={`footer-min-${item.id}`} item={item} />)
+                  : navLinks.slice(0, 5).map((pageType) => <button key={`footer-min-${pageType}`} type="button" onClick={() => navigate(pageType)}>{pageLabel(pageType)}</button>)}
               </div>
             </div>
           ) : (
@@ -3710,7 +3742,9 @@ function ClassicTemplateSurface({
               <div>
                 <div className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: rgba(theme.heroText, 0.6) }}>Browse</div>
                 <div className="mt-4 flex flex-col gap-2.5">
-                  {navLinks.map((pageType) => (
+                  {shownFooterMenu ? shownFooterMenu.map((item) => (
+                    <FooterMenuLink key={`footer-${item.id}`} item={item} className="text-left text-[13px] transition-colors hover:opacity-80" style={{ color: rgba(theme.heroText, 0.8) }} />
+                  )) : navLinks.map((pageType) => (
                     <button key={`footer-${pageType}`} type="button" onClick={() => navigate(pageType)} className="text-left text-[13px] transition-colors hover:opacity-80" style={{ color: rgba(theme.heroText, 0.8) }}>
                       {pageLabel(pageType)}
                     </button>

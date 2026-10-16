@@ -18,6 +18,9 @@ export const PLAN_INTERVALS: Readonly<Record<string, PlanInterval>> = {
   PLN_0a6z6ns429ohli1: "annual", // Supplier Max Annual
 };
 
+/** The highest seller plan (Seller Pro, monthly and annual): the only one that can hide "Built with Shopinbos". */
+export const TOP_SELLER_PLANS: readonly string[] = ["PLN_2gph11w3yd0250y", "PLN_9gma70ofldhbj4r"];
+
 /** The seller plans that come with a free domain. */
 export const SELLER_ANNUAL_PLANS: readonly string[] = ["PLN_q1k3ssxpx7rxxuz", "PLN_9gma70ofldhbj4r"];
 

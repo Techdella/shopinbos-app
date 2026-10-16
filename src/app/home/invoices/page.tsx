@@ -10,6 +10,9 @@ import { createManualInvoice } from "@/lib/seller-money.server";
 import { ManualInvoiceSchema, readManualInvoices } from "@/lib/seller-invoices";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { formatMoney } from "@shared/i18n";
+import type { RetailOrderStatus } from "@prisma/client";
+import { pageSlice, pageWindow } from "@/lib/pagination";
+import { Pagination } from "@/components/seller/Pagination";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -35,16 +38,18 @@ async function createManualInvoiceAction(formData: FormData) {
   revalidatePath("/home/invoices");
 }
 
-const PAID = ["paid", "processing", "packed", "shipped", "delivered"];
+const PAID: RetailOrderStatus[] = ["paid", "processing", "packed", "shipped", "delivered"];
+const WAITING: RetailOrderStatus[] = ["pending", "awaiting_payment"];
+const PAGE_SIZE = 50;
 
 function orderTone(status: string): Tone {
   if (status === "delivered") return "success";
-  if (PAID.includes(status)) return "info";
+  if ((PAID as string[]).includes(status)) return "info";
   if (status === "pending" || status === "awaiting_payment") return "warning";
   return "muted";
 }
 
-export default async function SellerInvoicesPage({ searchParams }: { searchParams?: Promise<{ show?: string }> }) {
+export default async function SellerInvoicesPage({ searchParams }: { searchParams?: Promise<{ show?: string; page?: string }> }) {
   const params = await searchParams;
   const user = await requireRole(["seller"], "/login");
   const t = await getT("orders", "common");
@@ -53,23 +58,32 @@ export default async function SellerInvoicesPage({ searchParams }: { searchParam
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true, brandSettings: true } });
   if (!store) redirect("/builder?firstRun=1");
 
-  const orders = await db.retailOrder.findMany({
-    where: { storeId: store.id },
-    orderBy: { createdAt: "desc" },
-    take: 100,
-    select: {
-      id: true, orderNumber: true, buyerName: true, buyerEmail: true,
-      subtotal: true, shippingFee: true, total: true, currency: true,
-      status: true, paystackStatus: true, createdAt: true,
-    },
-  });
-
-  const paidOrders = orders.filter((o) => PAID.includes(o.status));
-  const pendingOrders = orders.filter((o) => o.status === "pending" || o.status === "awaiting_payment");
-  const pendingValue = pendingOrders.reduce((s, o) => s + Number(o.total), 0);
-  const grossValue = orders.reduce((s, o) => s + Number(o.total), 0);
-  const manualInvoices = readManualInvoices(store.brandSettings);
+  // The numbers cover every order; the list shows one page of them.
   const show = params?.show === "manual" ? "manual" : "orders";
+  const [orderCount, waiting, paidCount, gross] = await Promise.all([
+    db.retailOrder.count({ where: { storeId: store.id } }),
+    db.retailOrder.aggregate({ where: { storeId: store.id, status: { in: WAITING } }, _sum: { total: true }, _count: { _all: true } }),
+    db.retailOrder.count({ where: { storeId: store.id, status: { in: PAID } } }),
+    db.retailOrder.aggregate({ where: { storeId: store.id }, _sum: { total: true } }),
+  ]);
+  const pendingValue = Number(waiting._sum.total ?? 0);
+  const grossValue = Number(gross._sum.total ?? 0);
+  const manualInvoices = readManualInvoices(store.brandSettings);
+  const manualPage = pageSlice(manualInvoices, params?.page, PAGE_SIZE);
+  const ordersPage = pageWindow(params?.page, orderCount, PAGE_SIZE);
+  const orders = show === "orders" && orderCount
+    ? await db.retailOrder.findMany({
+        where: { storeId: store.id },
+        orderBy: { createdAt: "desc" },
+        skip: ordersPage.skip,
+        take: ordersPage.take,
+        select: {
+          id: true, orderNumber: true, buyerName: true, buyerEmail: true,
+          subtotal: true, shippingFee: true, total: true, currency: true,
+          status: true, paystackStatus: true, createdAt: true,
+        },
+      })
+    : [];
 
   return (
     <SellerPage
@@ -83,23 +97,24 @@ export default async function SellerInvoicesPage({ searchParams }: { searchParam
         main={
           <>
             <StatGrid>
-              <StatTile tone="card" label={t("inv.orderInvoices")} value={orders.length} hint={t("inv.latest100")} />
-              <StatTile tone="card" label={t("inv.waiting")} value={money(pendingValue)} hint={t("count.orders", { count: pendingOrders.length })} />
-              <StatTile tone="card" label={t("inv.paid")} value={paidOrders.length} hint={t("inv.ordersHint")} />
+              <StatTile tone="card" label={t("inv.orderInvoices")} value={orderCount} hint={t("inv.allOrders")} />
+              <StatTile tone="card" label={t("inv.waiting")} value={money(pendingValue)} hint={t("count.orders", { count: waiting._count._all })} />
+              <StatTile tone="card" label={t("inv.paid")} value={paidCount} hint={t("inv.ordersHint")} />
               <StatTile tone="card" label={t("inv.totalOrdered")} value={money(grossValue)} />
             </StatGrid>
 
             <FilterChips
               items={[
-                { label: t("inv.orderInvoices"), href: "/home/invoices", count: orders.length, active: show === "orders" },
+                { label: t("inv.orderInvoices"), href: "/home/invoices", count: orderCount, active: show === "orders" },
                 { label: t("inv.youMade"), href: "/home/invoices?show=manual", count: manualInvoices.length, active: show === "manual" },
               ]}
             />
 
             {show === "manual" ? (
               manualInvoices.length ? (
+                <div>
                 <ListCard>
-                  {manualInvoices.map((invoice) => (
+                  {manualPage.rows.map((invoice) => (
                     <ListRow key={invoice.id}>
                       <span className="min-w-0 flex-1 basis-full sm:basis-auto">
                         <span className="block truncate text-[14.5px] font-extrabold">{invoice.partyName}</span>
@@ -114,12 +129,15 @@ export default async function SellerInvoicesPage({ searchParams }: { searchParam
                     </ListRow>
                   ))}
                 </ListCard>
+                <Pagination {...manualPage.window} base="/home/invoices" params={{ show: "manual" }} label={t("inv.pages")} />
+                </div>
               ) : (
                 <EmptyState icon="document" title={t("inv.noneMade")}>{t("inv.noneMadeSub")}</EmptyState>
               )
             ) : orders.length ? (
+              <div>
               <ListCard>
-                {orders.slice(0, 50).map((o) => (
+                {orders.map((o) => (
                   <ListRow key={o.id} href={`/home/orders/${o.id}`}>
                     <span className="min-w-0 flex-1 basis-full sm:basis-auto">
                       <span className="block truncate text-[14.5px] font-extrabold">{o.buyerName || t("inv.customer")}</span>
@@ -134,6 +152,8 @@ export default async function SellerInvoicesPage({ searchParams }: { searchParam
                   </ListRow>
                 ))}
               </ListCard>
+              <Pagination {...ordersPage} base="/home/invoices" label={t("inv.pages")} />
+              </div>
             ) : (
               <EmptyState icon="document" title={t("inv.noOrders")}>{t("inv.noOrdersSub")}</EmptyState>
             )}

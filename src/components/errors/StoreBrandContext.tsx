@@ -14,6 +14,8 @@ import type { PaymentBadgeKey } from "@shared/payment-badges";
 export interface StoreBrandValue {
   name: string;
   logoUrl: string | null;
+  /** The store's brandSettings.logoVariants, so the logo picks its dark-background version on dark themes. */
+  logoVariants?: unknown;
   basePath: string;
   theme: ShopperTheme;
   slug?: string;

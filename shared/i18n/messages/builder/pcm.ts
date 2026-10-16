@@ -1487,6 +1487,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "ed.Web address": "Web address",
   "ed.Built with Shopinbos badge": "Built with Shopinbos badge",
   "ed.A small badge at the bottom of every page of your store.": "Small badge for the bottom of every page for your store.",
+  "ed.Only the Pro plan can turn this badge off. Upgrade to Pro to hide it.": "Na only Pro plan fit off this badge. Upgrade to Pro to hide am.",
   "ed.Free plans show this badge. Upgrade to turn it off.": "Free plans dey show this badge. Upgrade to off am.",
   "ed.Upgrade": "Upgrade",
   "ed.The badge setting couldn't be saved. Try again.": "We no fit save the badge setting. Try again.",
@@ -2119,6 +2120,12 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "ed.Under the item above": "Under the item wey dey on top",
   "ed.Underline": "Underline",
   "ed.Your menu is empty. Add pages above.": "Your menu empty. Add pages for up.",
+  "ed.Phone menu": "Phone menu",
+  "ed.Phone menu items": "Wetin dey phone menu",
+  "ed.Use the main menu": "Use the main menu",
+  "ed.Own phone menu": "Phone get im own menu",
+  "ed.Footer links": "Footer links",
+  "ed.Until you change them, the footer shows its usual links.": "Until you change dem, the footer go show im normal links.",
 };
 
 export default pcm;

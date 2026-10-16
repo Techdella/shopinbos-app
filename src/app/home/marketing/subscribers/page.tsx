@@ -9,6 +9,7 @@ import { SOURCE_LABEL } from "@/lib/marketing/segment-rules";
 import { SubscribersManager } from "./SubscribersManager";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { formatNumber } from "@shared/i18n";
+import { parsePage } from "@/lib/pagination";
 import type { MessageKey } from "@shared/i18n/catalog";
 
 export const dynamic = "force-dynamic";
@@ -36,7 +37,7 @@ export default async function SubscribersPage({ searchParams }: { searchParams?:
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true } });
   const status = STATUSES.find((s) => s.key === params.status)?.key;
   const source = params.source && params.source in SOURCE_LABEL ? (params.source as SubscriberSource) : undefined;
-  const list = store ? await listSubscribers(store.id, { q: params.q, status, source, tag: params.tag, page: Math.max(1, Number(params.page) || 1), limit: PAGE }) : null;
+  const list = store ? await listSubscribers(store.id, { q: params.q, status, source, tag: params.tag, page: parsePage(params.page), limit: PAGE }) : null;
   const rows = list?.rows ?? [];
   const filtered = list?.filtered ?? 0;
   const newThisMonth = list?.newThisMonth ?? 0;
@@ -105,7 +106,7 @@ export default async function SubscribersPage({ searchParams }: { searchParams?:
           total={filtered}
           exportHref={exportHref}
           tags={tags}
-          pagination={{ page, pages, prev: page > 1 ? href({ ...params, page: String(page - 1) }) : null, next: page < pages ? href({ ...params, page: String(page + 1) }) : null }}
+          pagination={{ page, pages, total: filtered, from: list?.from ?? 0, to: list?.to ?? 0, base: "/home/marketing/subscribers", params: { q, status, source, tag: params.tag } }}
         />
       </div>
     </SellerPage>

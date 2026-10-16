@@ -574,6 +574,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "reviewsUi.wholesaleOrders": "Wholesale order",
   "reviewsUi.finishedDeliveries": "Delivery tó ti parí",
   "reviewsUi.deliveryFee": "Owó delivery {amount}",
+  "quotes.pages": "Àwọn ojú-ewé quote requests",
 };
 
 export default yo;

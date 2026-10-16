@@ -404,6 +404,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "blog.readyBody": "Give {name} prompt, target audience, keywords, and word count. Produce full SEO articles and publish them for your blog.",
   "blog.saveDraft": "Save draft",
   "blog.publish": "Publish",
+  "col.pages": "Item pages",
 };
 
 export default pcm;

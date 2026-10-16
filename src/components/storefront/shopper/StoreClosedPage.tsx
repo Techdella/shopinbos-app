@@ -32,7 +32,7 @@ export function StoreClosedPage({
         body={`${store.name} is still setting up shop. Save this link and check back soon.`}
         actions={[]}
         illustration={<OpeningSoonScene />}
-        brand={<StoreMark name={store.name} logoUrl={store.logoUrl} href={shopHref} theme={theme} />}
+        brand={<StoreMark name={store.name} logoUrl={store.logoUrl} brandSettings={store.brandSettings} href={shopHref} theme={theme} />}
         footer={
           path ? (
           <>

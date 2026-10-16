@@ -7,6 +7,7 @@ import { aiConfigured } from "@/lib/ai/client";
 import { aiText, firstJsonObject } from "@/lib/ai/text";
 import { meterAi } from "@/lib/ai/usage";
 import { parseBody } from "@/lib/api/validate";
+import { customPageSlug, TEMPLATE_PAGE_TYPES } from "@shared/storefront-pages";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -32,7 +33,10 @@ type PageContent = Record<string, unknown>;
 
 /** Home is stored as slug "home" everywhere (templates, Rex drafts, the storefront maps it to "/"). */
 function slugForPage(type: string) {
-  return type === "home" ? "home" : type.toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-|-$/g, "") || "page";
+  const slug = type === "home" ? "home" : type.toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-|-$/g, "") || "page";
+  // Template page types keep their slug (found by type); any other page can't take a store route's address
+  // (/links is the link in bio page): "links" → "links-page".
+  return TEMPLATE_PAGE_TYPES.has(slug) ? slug : customPageSlug(slug);
 }
 
 async function generatePageContent(page: PageInput): Promise<{ content: PageContent; provider: string } | null> {

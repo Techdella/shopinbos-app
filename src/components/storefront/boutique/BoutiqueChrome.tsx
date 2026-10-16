@@ -24,11 +24,18 @@ export interface ChromeStore {
 }
 
 /** A store page (lives at its own address: /about, /shop). `href` makes it a real link on the live store: new tab, sharing, crawlers. */
-export type ChromeLink = { key: string; label: string; onSelect: () => void; current?: boolean; href?: string };
+export type ChromeLink = { key: string; label: string; onSelect?: () => void; current?: boolean; href?: string; newTab?: boolean };
+
+/** Menu items (the seller's footer links) as footer links. Sub-items are not shown in the footer. */
+export function chromeLinksFromMenu(items: ShownMenuItem[]): ChromeLink[] {
+  return items.map((item) => ({ key: item.id, label: item.label, onSelect: item.onSelect, current: item.current, href: item.href, newTab: item.newTab }));
+}
 
 /** Ordinary clicks switch page in place; Ctrl/⌘/Shift/middle clicks keep the browser's own link behaviour. */
 function pageLinkClick(link: ChromeLink) {
   return (event: React.MouseEvent<HTMLElement>) => {
+    // Own links (no page to switch to) and new-tab links keep the browser's behaviour.
+    if (!link.onSelect || link.newTab) return;
     if (link.href && (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0)) return;
     event.preventDefault();
     link.onSelect();
@@ -76,6 +83,7 @@ export function BoutiqueHeader({
   menu,
   menuStyle = "classic",
   mobileMenu = "drawer",
+  mobileItems,
   mobileExtra,
   interactive = true,
   onHome,
@@ -95,6 +103,8 @@ export function BoutiqueHeader({
   menu: ShownMenuItem[];
   menuStyle?: MenuStyle;
   mobileMenu?: MobileMenuStyle;
+  /** The phone menu's own items, resolved; absent: the phone shows the main menu. */
+  mobileItems?: ShownMenuItem[];
   /** Links under the phone menu (track an order). */
   mobileExtra?: ShownMenuItem[];
   /** Builder previews: the ☰ button shows but doesn't open. */
@@ -115,11 +125,12 @@ export function BoutiqueHeader({
   const nav = <StoreMenuBar items={menu} style={menuStyle} colors={menuColors} className="bq-nav-desktop" font={look.navStyle} />;
   const burger = (
     <StoreMenuButton
-      items={menu}
+      items={mobileItems ?? menu}
       extra={mobileExtra}
       style={mobileMenu}
       colors={{ ...menuColors, ink: t.ink }}
       storeName={store.name}
+      brand={{ store, name: logoText }}
       className="bq-only-narrow bq-burger"
       font={{ fontFamily: "inherit" }}
       headingFont={look.logoFont}
@@ -235,7 +246,7 @@ export function BoutiqueFooter({
             <ul className="flex flex-wrap gap-x-6 gap-y-2 text-[14px]">
               {links.map((link) => (
                 <li key={link.key}>
-                  <a href={link.href ?? "#"} onClick={pageLinkClick(link)} className="border-0 bg-transparent p-0 underline-offset-4 hover:underline" style={{ color: t.ink, cursor: "pointer" }}>
+                  <a href={link.href ?? "#"} onClick={pageLinkClick(link)} target={link.newTab ? "_blank" : undefined} rel={link.newTab ? "noopener noreferrer" : undefined} className="border-0 bg-transparent p-0 underline-offset-4 hover:underline" style={{ color: t.ink, cursor: "pointer" }}>
                     {link.label}
                   </a>
                 </li>

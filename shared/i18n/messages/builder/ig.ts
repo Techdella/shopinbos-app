@@ -1487,6 +1487,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "ed.Web address": "Adreesị weebụ",
   "ed.Built with Shopinbos badge": "Baajị “Built with Shopinbos”",
   "ed.A small badge at the bottom of every page of your store.": "Obere baajị n'okpuru ibe ọ bụla nke ụlọ ahịa gị.",
+  "ed.Only the Pro plan can turn this badge off. Upgrade to Pro to hide it.": "Naanị atụmatụ Pro nwere ike gbanyụọ baajị a. Kwalite gaa Pro iji zoo ya.",
   "ed.Free plans show this badge. Upgrade to turn it off.": "Atụmatụ efu na-egosi baajị a. Kwalite iji gbanyụọ ya.",
   "ed.Upgrade": "Kwalite",
   "ed.The badge setting couldn't be saved. Try again.": "Enweghị ike ịchekwa ntọala baajị. Nwaa ọzọ.",
@@ -2119,6 +2120,12 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "ed.Under the item above": "N'okpuru ihe dị n'elu",
   "ed.Underline": "Ahịrị n'okpuru",
   "ed.Your menu is empty. Add pages above.": "Menu gị tọgbọrọ chakoo. Tinye peeji n'elu.",
+  "ed.Phone menu": "Menu ekwentị",
+  "ed.Phone menu items": "Ihe ndị dị na menu ekwentị",
+  "ed.Use the main menu": "Jiri menu isi",
+  "ed.Own phone menu": "Menu ekwentị nke ya",
+  "ed.Footer links": "Njikọ ala ibe",
+  "ed.Until you change them, the footer shows its usual links.": "Ruo mgbe ị gbanwere ha, footer ga-egosi njikọ ya ndị a na-ahụkarị.",
 };
 
 export default ig;

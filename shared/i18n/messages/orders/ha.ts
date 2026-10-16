@@ -35,7 +35,6 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "list.showAll": "Nuna duk orders",
   "list.nothingMatches": "Babu abin da ya dace da “{query}” a wannan duba.",
   "list.noneInView": "Babu orders a wannan duba yanzu.",
-  "list.showing": "Ana nuna sabbi {shown} cikin orders {total}.",
   "new.metaTitle": "Rubuta ciniki",
   "new.sub": "Ka sayar da wani abu a WhatsApp, Instagram ko ido da ido? Saka shi a nan domin cinikinka, kaya da kwastomomi su kasance daidai.",
   allOrders: "Duk orders",
@@ -185,7 +184,6 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "inv.sub": "Invoices na orders ɗinka, da waɗanda kake tura ko karɓa daga suppliers, abokan delivery da kwastomomi.",
   "inv.money": "Kuɗi",
   "inv.orderInvoices": "Invoices na orders",
-  "inv.latest100": "Sabbin orders 100",
   "inv.waiting": "Ana jiran biya",
   "inv.paid": "An biya",
   "inv.ordersHint": "orders",
@@ -295,6 +293,9 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "ps.scanMe": "Duba ni",
   "ps.thanksDefault": "Mun gode!",
   "ps.thanksNote": "Mun shirya wannan da ƙauna. Faɗa mana yadda kake so shi kuma ka dawo {store} nan ba da jimawa ba.",
+  "list.pages": "Shafukan orders",
+  "inv.pages": "Shafukan invoices",
+  "inv.allOrders": "Duk orders ɗinka",
 };
 
 export default ha;

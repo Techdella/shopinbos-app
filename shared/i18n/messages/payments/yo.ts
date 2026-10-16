@@ -53,7 +53,6 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "po.noBank": "O kò tíì fi báńkì payout kún un. Fi ọ̀kan kún un kí owó láti order orí ayélujára lè ní ibi tí yóò lọ.",
   "po.paidOnline": "A san lórí ayélujára",
   "po.paidOrders": "Order tí wọ́n ti san",
-  "po.latest100": "100 tuntun jù",
   "po.added": "Ó ti wà",
   "po.notAdded": "Kò tíì sí",
   "po.all": "Gbogbo",
@@ -284,6 +283,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "cr.fromPlan": "Láti inú ètò rẹ",
   "cr.outLine": "Kírẹ́dítì rẹ ti tán. Ìpín ọ̀fẹ́ ojoojúmọ́ rẹ ṣì ń ṣiṣẹ́; ra àpò kan láti máa bá a lọ lẹ́yìn rẹ̀.",
   "sm.credits": "Kírẹ́dítì AI 100 lóṣooṣù",
+  "po.allTime": "Láti ìbẹ̀rẹ̀",
+  "po.pages": "Àwọn ojú-ewé payout",
 };
 
 export default yo;

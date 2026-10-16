@@ -13,8 +13,12 @@ import { ProductCampaignBadge } from "@/components/campaigns/ProductCampaignBadg
 import { PaymentLinkButton } from "@/components/payment-links/PaymentLinkButton";
 import { linkProductView } from "@/lib/payment-links/pure";
 import { paymentReadiness } from "@/lib/payment-links/service.server";
+import { pageSlice } from "@/lib/pagination";
+import { Pagination } from "@/components/seller/Pagination";
 
 export const dynamic = "force-dynamic";
+
+const PAGE_SIZE = 50;
 
 type ProductRow = {
   status: string;
@@ -60,9 +64,9 @@ function variantCount(variants: unknown) {
 export default async function ProductsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; filter?: string; visibility?: string; q?: string }>
+  searchParams: Promise<{ status?: string; filter?: string; visibility?: string; q?: string; page?: string }>
 }) {
-  const { status, filter: rawFilter, visibility, q } = await searchParams;
+  const { status, filter: rawFilter, visibility, q, page: rawPage } = await searchParams;
   const user = await requireRole(["seller"], "/login");
   const t = await getT("products", "common");
   const locale = await getLocale();
@@ -114,6 +118,9 @@ export default async function ProductsPage({
       (visibilityKey === "all" || p.visibility === visibilityKey) &&
       (!needle || p.name.toLowerCase().includes(needle) || (p.sku ?? "").toLowerCase().includes(needle)),
   );
+
+  // The filters run over every product, then one page of the matches is shown.
+  const paged = pageSlice(products, rawPage, PAGE_SIZE);
 
   const href = (next: { filter?: string; visibility?: string }) => {
     const params = new URLSearchParams();
@@ -200,8 +207,9 @@ export default async function ProductsPage({
           {query ? t("list.nothingMatches", { query }) : t("list.tryFilter")}
         </EmptyState>
       ) : (
+        <>
         <ListCard>
-          {products.map((p) => {
+          {paged.rows.map((p) => {
             const dropship = isDropship(p);
             const stock = !p.trackStock
               ? { low: false, label: t("stock.notTracked") }
@@ -259,6 +267,13 @@ export default async function ProductsPage({
             );
           })}
         </ListCard>
+        <Pagination
+          {...paged.window}
+          base="/products"
+          params={{ filter: filter.key === "all" ? undefined : filter.key, visibility: visibilityKey === "all" ? undefined : visibilityKey, q: query || undefined }}
+          label={t("list.pages")}
+        />
+        </>
       )}
     </AppPage>
   );

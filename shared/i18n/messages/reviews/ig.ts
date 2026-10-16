@@ -60,8 +60,6 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "list.hide": "Zoo",
   "list.reply": "Zaghachi",
   "list.pages": "Peeji",
-  "list.pageOf": "Peeji {page} n'ime {pages} · reviews {count}",
-  "list.previous": "Nke gara aga",
   "filter.rating": "Họrọ site na rating",
   "filter.anyRating": "Rating ọ bụla",
   "filter.stars": "{count, plural, other {kpakpando #}}",

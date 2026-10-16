@@ -118,6 +118,18 @@ const en = {
   "bio.starter": "Fill it for me",
   "bio.starterHint": "Adds your best sellers, a Buy now button and WhatsApp. You can change everything.",
   "bio.unsaved": "You have changes that aren't saved.",
+  "bio.starterLive": "Your page is already live with your top products and WhatsApp. Change anything and save to make it your own.",
+  "bio.storeNotLive": "Your shop isn't live yet. This page opens once you publish your shop.",
+  "bio.offHint": "Your page is turned off, so shoppers can't open it. Turn on Page is live and save.",
+  "fix.alert": "Add the missing details before saving: {count, plural, one {# field needs attention} other {# fields need attention}}.",
+  "fix.showFirst": "Show me",
+  "fix.label": "Add the words for the button.",
+  "fix.url": "Add the full web address, like https://example.com.",
+  "fix.phone": "Add a WhatsApp number with the country code, like +2348012345678.",
+  "fix.text": "Write the text, or remove this block.",
+  "fix.productId": "Choose a published product, or remove this block.",
+  "fix.collectionId": "Choose a collection, or remove this block.",
+  "fix.other": "Something in this block isn't right. Check it, or remove the block.",
   "block.product": "Product",
   "block.collection": "Collection",
   "block.link": "Custom link",
@@ -141,6 +153,8 @@ const en = {
   "block.socialHint": "Your handle (like @adafabrics) or the full link",
   "block.noProducts": "Publish a product first to add it here.",
   "block.noCollections": "Make a collection first in Products, then Collections.",
+  "list.pages": "Payment link pages",
+  "list.noneHere": "No payment links with this status.",
 } satisfies Record<string, string>;
 
 export default en;

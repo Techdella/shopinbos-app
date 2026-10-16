@@ -53,7 +53,6 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "po.noBank": "Ị tinyebeghị bank payout. Tinye otu ka ego site na orders online nwee ebe ọ ga-aga.",
   "po.paidOnline": "Akwụrụ online",
   "po.paidOrders": "Orders akwụrụ ụgwọ",
-  "po.latest100": "100 kacha ọhụrụ",
   "po.added": "Etinyela",
   "po.notAdded": "Etinyebeghị",
   "po.all": "Niile",
@@ -284,6 +283,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "cr.fromPlan": "Site na atụmatụ gị",
   "cr.outLine": "Kredit gị agwụla. Oke n'efu kwa ụbọchị gị ka na-arụ ọrụ; zụta ngwugwu ka ị gaa n'ihu mgbe ọ gwụchara.",
   "sm.credits": "Kredit AI 100 kwa ọnwa",
+  "po.allTime": "Site na mbido",
+  "po.pages": "Peeji payouts",
 };
 
 export default ig;

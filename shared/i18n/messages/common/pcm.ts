@@ -84,6 +84,12 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "chats.brandKit": "Brand kit",
   "chats.madeEmpty": "Nothing don make yet. Logos and pictures wey Rex make go show here.",
   "chats.allMedia": "See everything for Media",
+  "page.nav": "Pages",
+  "page.prev": "Back",
+  "page.next": "Next",
+  "page.of": "Page {page} of {pages}",
+  "page.number": "Page {page}",
+  "page.showing": "We dey show {from}–{to} of {total}",
 };
 
 export default pcm;

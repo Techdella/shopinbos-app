@@ -258,6 +258,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "importAi.importWithout": "Bubata na-enweghị mgbanwe Peggy",
   "importAi.enhanced": "{count, plural, one {Ngwaahịa # nwere mgbanwe Peggy} other {Ngwaahịa # nwere mgbanwe Peggy}}",
   "importAi.showMore": "Gosi ọzọ",
+  "list.pages": "Peeji ngwaahịa",
+  "inv.pages": "Peeji stock",
 };
 
 export default ig;

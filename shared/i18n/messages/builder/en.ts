@@ -1489,6 +1489,7 @@ const en = {
   "ed.Web address": "Web address",
   "ed.Built with Shopinbos badge": "Built with Shopinbos badge",
   "ed.A small badge at the bottom of every page of your store.": "A small badge at the bottom of every page of your store.",
+  "ed.Only the Pro plan can turn this badge off. Upgrade to Pro to hide it.": "Only the Pro plan can turn this badge off. Upgrade to Pro to hide it.",
   "ed.Free plans show this badge. Upgrade to turn it off.": "Free plans show this badge. Upgrade to turn it off.",
   "ed.Upgrade": "Upgrade",
   "ed.The badge setting couldn't be saved. Try again.": "The badge setting couldn't be saved. Try again.",
@@ -2120,6 +2121,12 @@ const en = {
   "ed.Under the item above": "Under the item above",
   "ed.Underline": "Underline",
   "ed.Your menu is empty. Add pages above.": "Your menu is empty. Add pages above.",
+  "ed.Phone menu": "Phone menu",
+  "ed.Phone menu items": "Phone menu items",
+  "ed.Use the main menu": "Use the main menu",
+  "ed.Own phone menu": "Own phone menu",
+  "ed.Footer links": "Footer links",
+  "ed.Until you change them, the footer shows its usual links.": "Until you change them, the footer shows its usual links.",
 } satisfies Record<string, string>;
 
 export default en;

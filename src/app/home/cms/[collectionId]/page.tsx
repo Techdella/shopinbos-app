@@ -16,10 +16,14 @@ import { ItemActions } from "./ItemActions";
 import { statusLook, studioHref } from "../shared";
 import { formatDate } from "@shared/i18n";
 import { getLocale, getT } from "@/lib/i18n/server";
+import { pageWindow } from "@/lib/pagination";
+import { Pagination } from "@/components/seller/Pagination";
 
 export const dynamic = "force-dynamic";
 
-type Search = { tab?: string; q?: string; status?: string; view?: string };
+type Search = { tab?: string; q?: string; status?: string; view?: string; page?: string };
+
+const PAGE_SIZE = 48;
 
 export default async function CollectionPage({ params, searchParams }: { params: Promise<{ collectionId: string }>; searchParams: Promise<Search> }) {
   const { collectionId } = await params;
@@ -44,18 +48,23 @@ export default async function CollectionPage({ params, searchParams }: { params:
   const label = collection.itemLabel.toLowerCase();
   const origin = buildStorefrontOrigin({ slug: store.slug, customDomain: store.customDomain ?? null });
 
-  const [items, counts, others] = await Promise.all([
-    tab === "items"
-      ? db.cmsItem.findMany({
-          where: { collectionId: collection.id, ...(q ? { title: { contains: q, mode: "insensitive" as const } } : {}), ...(status ? { status } : {}) },
-          orderBy: itemOrderBy(settings.sort),
-          take: 300,
-          select: { id: true, title: true, slug: true, status: true, publishAt: true, publishedAt: true, featuredImage: true, excerpt: true, author: true, createdBy: true, updatedAt: true },
-        })
-      : Promise.resolve([]),
+  const itemWhere = { collectionId: collection.id, ...(q ? { title: { contains: q, mode: "insensitive" as const } } : {}), ...(status ? { status } : {}) };
+  const [matching, counts, others] = await Promise.all([
+    tab === "items" ? db.cmsItem.count({ where: itemWhere }) : Promise.resolve(0),
     db.cmsItem.groupBy({ by: ["status"], where: { collectionId: collection.id }, _count: { _all: true } }),
     tab === "fields" ? db.cmsCollection.findMany({ where: { storeId: store.id, id: { not: collection.id } }, select: { id: true, name: true } }) : Promise.resolve([]),
   ]);
+  // One page of the items that match the search and status (a page past the end shows the last one).
+  const paging = pageWindow(sp.page, matching, PAGE_SIZE);
+  const items = paging.total
+    ? await db.cmsItem.findMany({
+        where: itemWhere,
+        orderBy: [...itemOrderBy(settings.sort), { id: "asc" }],
+        skip: paging.skip,
+        take: paging.take,
+        select: { id: true, title: true, slug: true, status: true, publishAt: true, publishedAt: true, featuredImage: true, excerpt: true, author: true, createdBy: true, updatedAt: true },
+      })
+    : [];
   const count = (s: string) => counts.find((row) => row.status === s)?._count._all ?? 0;
   const total = counts.reduce((sum, row) => sum + row._count._all, 0);
   const keep = { tab: undefined, status: status ?? undefined, view: sp.view };
@@ -189,6 +198,7 @@ export default async function CollectionPage({ params, searchParams }: { params:
               })}
             </ListCard>
           )}
+          {items.length ? <Pagination {...paging} base={base} params={{ q: q || undefined, status: status ?? undefined, view: sp.view }} label={t("col.pages")} className="" /> : null}
 
           <AssistantNote who="rex" action={<PillLink href={studioHref(`Write a ${label} for my "${collection.name}" collection about `)} size="sm" tone="ink">{t("askRex")}</PillLink>}>
             <strong>{t("col.shortLead")}</strong> {t("col.shortBody", { label })}

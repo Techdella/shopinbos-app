@@ -54,7 +54,7 @@ export default async function StorefrontLayout({ children, params }: { children:
   // The cookie banner, when the store has third-party tags and the seller kept it on (Settings › Connections).
   const consent = integrations && brand ? storeConsentConfig(brand.slug, integrations, brand.brandSettings) : null;
   const value = brand
-    ? { name: brand.name, logoUrl: campaigns?.logoUrl ?? brand.logoUrl, basePath, theme: resolveShopperTheme(brand.brandSettings), slug: brand.slug, showBadge: brand.showBadge, paymentBadges: brand.paymentBadges, cookieSettings: Boolean(consent) }
+    ? { name: brand.name, logoUrl: campaigns?.logoUrl ?? brand.logoUrl, logoVariants: (brand.brandSettings as Record<string, unknown> | null)?.logoVariants, basePath, theme: resolveShopperTheme(brand.brandSettings), slug: brand.slug, showBadge: brand.showBadge, paymentBadges: brand.paymentBadges, cookieSettings: Boolean(consent) }
     : null;
   return (
     <StoreBrandProvider value={value}>
