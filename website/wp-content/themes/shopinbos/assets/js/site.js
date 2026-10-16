@@ -590,3 +590,20 @@
 		track('lead_return', { kind: kind, ok: st === 'ok' });
 	})();
 })();
+
+/* Trend reports: play a TikTok in place when its card has a video. */
+(function () {
+	document.addEventListener('click', function (e) {
+		var b = e.target.closest('.tr-play');
+		if (!b) return;
+		var box = b.closest('[data-tiktok]');
+		var id = box && box.getAttribute('data-tiktok');
+		if (!/^\d+$/.test(id || '')) return;
+		var f = document.createElement('iframe');
+		f.src = 'https://www.tiktok.com/player/v1/' + id + '?autoplay=1&rel=0&description=1';
+		f.allow = 'autoplay; encrypted-media; fullscreen';
+		f.title = 'TikTok video';
+		f.loading = 'lazy';
+		box.appendChild(f);
+	});
+})();

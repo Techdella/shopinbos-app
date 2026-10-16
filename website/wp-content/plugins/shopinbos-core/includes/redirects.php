@@ -56,7 +56,7 @@ add_action( 'template_redirect', function () {
 /** URL bases that belong to the site's own sections (archives and canvas pages). WordPress must never guess these
  *  away to another page: an old page once called "templates", or a 404 guess, used to send /templates/ elsewhere. */
 function sib_reserved_paths(): array {
-	$paths = [ '/templates/', '/tools/', '/resources/', '/compare/', '/features/', '/solutions/', '/help/', '/academy/', '/gist/', '/blog/', '/investors/' ];
+	$paths = [ '/templates/', '/tools/', '/resources/', '/compare/', '/features/', '/solutions/', '/help/', '/academy/', '/gist/', '/blog/', '/investors/', '/trending/' ];
 	return (array) apply_filters( 'sib_reserved_paths', $paths );
 }
 

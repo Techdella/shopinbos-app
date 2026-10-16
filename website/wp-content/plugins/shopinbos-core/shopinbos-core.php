@@ -42,6 +42,7 @@ foreach ( [
 	'seo-map',
 	'media',
 	'showcase',
+	'trends',
 	'admin-menu',
 	'schema',
 	'seo',

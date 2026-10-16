@@ -27,7 +27,7 @@ function sib_seo_map(): array {
 		'/for-suppliers/'  => [ 'Sell wholesale to online shops in Nigeria | Shopinbos', 'Suppliers and wholesalers: list your products once and let Nigerian online shops resell them. Orders come with delivery booked, and you get paid fast.', 'wholesale suppliers Nigeria' ],
 		'/delivery/'       => [ 'Delivery jobs for logistics companies | Shopinbos', 'Delivery companies and riders: get daily jobs from Shopinbos shops, with pickup details, live tracking and pay on delivery codes. Weekly settlements.', 'delivery jobs Lagos' ],
 		'/marketplace/'    => [ 'Find stock: products to dropship in Nigeria | Shopinbos', 'Find products to sell from checked Nigerian suppliers. Dropship with no stock or buy wholesale, with delivery and pay on delivery built in.', 'dropshipping suppliers Nigeria' ],
-		'/trending/'       => [ 'Trending products to sell in Nigeria this week', 'The products Nigerian online shops are adding and selling most this week, with prices, what you keep per sale and where to get stock.', 'trending products Nigeria' ],
+		'/trending/'       => [ 'Trending TikTok products to sell in Nigeria today', 'Products trending on TikTok that Nigerian sellers can stock, updated every morning: naira prices, where to get stock, video ideas and suppliers.', 'trending tiktok products Nigeria' ],
 		'/gist/'           => [ 'Gist: selling tips in 60 seconds | Shopinbos', 'Quick, animated selling tips for Nigerian online sellers: pricing, WhatsApp Status, delivery, product photos, trust and getting your first orders.', 'online selling tips' ],
 		'/waitlist/'       => [ 'Join the Shopinbos waitlist: opens November 1', 'Get in first when Shopinbos opens on November 1. For sellers, suppliers and delivery partners in Nigeria. Free to join, with free setup help.', 'Shopinbos waitlist' ],
 		'/investors/'      => [ 'Investor relations | Shopinbos', 'Shopinbos is building the commerce operating system for African businesses. Company facts, business model and how to reach the founders.', 'Shopinbos investors' ],
@@ -134,6 +134,8 @@ function sib_seo_auto( WP_Post $post ): array {
 			return [ sib_seo_title_fit( $t, [ ': free for Nigerian sellers', ' (free) | Shopinbos', ' | Shopinbos' ] ), sib_seo_desc_fit( $summary, 'Free, in naira, no sign-up. Email yourself the result.' ), strtolower( $t ) ];
 		case 'sib_comparison':
 			return [ sib_seo_title_fit( $t, [ ' (2026): honest comparison', ' (2026) | Shopinbos', ' | Shopinbos' ] ), sib_seo_desc_fit( $summary, 'An honest comparison for Nigerian sellers: prices, payments, delivery and support.' ), strtolower( $t ) ];
+		case 'sib_trend':
+			return [ sib_seo_title_fit( $t, [ ' | Shopinbos' ] ), sib_seo_desc_fit( $summary, 'Products trending on TikTok that Nigerian sellers can stock, with naira prices and suppliers.' ), 'trending tiktok products' ];
 		case 'sib_city':
 			return [ sib_seo_title_fit( 'Sell online in ' . $t, [ ' | Shopinbos' ] ), sib_seo_desc_fit( $summary, 'Online store, pay on delivery and same-day riders for sellers in ' . $t . '.' ), 'sell online in ' . strtolower( $t ) ];
 		default:
