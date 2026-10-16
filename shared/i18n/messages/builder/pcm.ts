@@ -1487,6 +1487,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "ed.Web address": "Web address",
   "ed.Built with Shopinbos badge": "Built with Shopinbos badge",
   "ed.A small badge at the bottom of every page of your store.": "Small badge for the bottom of every page for your store.",
+  "ed.Only the Pro plan can turn this badge off. Upgrade to Pro to hide it.": "Na only Pro plan fit off this badge. Upgrade to Pro to hide am.",
   "ed.Free plans show this badge. Upgrade to turn it off.": "Free plans dey show this badge. Upgrade to off am.",
   "ed.Upgrade": "Upgrade",
   "ed.The badge setting couldn't be saved. Try again.": "We no fit save the badge setting. Try again.",

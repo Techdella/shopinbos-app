@@ -5,7 +5,7 @@
 
 import { z } from "zod";
 import { PAYMENT_BADGE_KEYS, cleanPaymentBadges } from "../../shared/payment-badges.ts";
-import type { SellerPlanState } from "./seller-plan.ts";
+import { TOP_SELLER_PLANS, type SellerPlanState } from "./seller-plan.ts";
 
 /**
  * Whether the owner has paid time left on any plan (recorded by the Paystack webhook, src/lib/seller-plan.server.ts).
@@ -17,9 +17,12 @@ export function hasPaidPlanTime(user: Pick<SellerPlanState, "planStatus" | "plan
   return Number.isFinite(paidUntil) && paidUntil > now.getTime();
 }
 
-/** A paid seller may turn the "Built with Shopinbos" badge off in the store editor; free stores always show it. */
-export function canHideShopinbosBadge(user: Pick<SellerPlanState, "planStatus" | "planPaidUntil"> | null | undefined, now: Date): boolean {
-  return hasPaidPlanTime(user, now);
+/**
+ * Only a seller on the highest plan (Seller Pro, monthly or annual) with paid time left may turn the "Built with
+ * Shopinbos" badge off, on the storefront and the link in bio page; every other store always shows it.
+ */
+export function canHideShopinbosBadge(user: Pick<SellerPlanState, "planCode" | "planStatus" | "planPaidUntil"> | null | undefined, now: Date): boolean {
+  return Boolean(user?.planCode && TOP_SELLER_PLANS.includes(user.planCode)) && hasPaidPlanTime(user, now);
 }
 
 /** The seller's choice, saved as brandSettings.hideShopinbosBadge (true = they turned it off). */
@@ -32,7 +35,7 @@ export function readHideShopinbosBadge(brandSettings: unknown): boolean {
  * seller with paid time left turned it off; if their plan ends, it comes back.
  */
 export function showsShopinbosBadge(
-  user: Pick<SellerPlanState, "planStatus" | "planPaidUntil"> | null | undefined,
+  user: Pick<SellerPlanState, "planCode" | "planStatus" | "planPaidUntil"> | null | undefined,
   now: Date,
   brandSettings?: unknown,
 ): boolean {

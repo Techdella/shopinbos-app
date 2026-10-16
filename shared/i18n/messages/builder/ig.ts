@@ -1487,6 +1487,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "ed.Web address": "Adreesị weebụ",
   "ed.Built with Shopinbos badge": "Baajị “Built with Shopinbos”",
   "ed.A small badge at the bottom of every page of your store.": "Obere baajị n'okpuru ibe ọ bụla nke ụlọ ahịa gị.",
+  "ed.Only the Pro plan can turn this badge off. Upgrade to Pro to hide it.": "Naanị atụmatụ Pro nwere ike gbanyụọ baajị a. Kwalite gaa Pro iji zoo ya.",
   "ed.Free plans show this badge. Upgrade to turn it off.": "Atụmatụ efu na-egosi baajị a. Kwalite iji gbanyụọ ya.",
   "ed.Upgrade": "Kwalite",
   "ed.The badge setting couldn't be saved. Try again.": "Enweghị ike ịchekwa ntọala baajị. Nwaa ọzọ.",

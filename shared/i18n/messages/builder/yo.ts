@@ -1487,6 +1487,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "ed.Web address": "Àdírẹ́sì wẹ́ẹ̀bù",
   "ed.Built with Shopinbos badge": "Àmì “Built with Shopinbos”",
   "ed.A small badge at the bottom of every page of your store.": "Àmì kékeré ní ìsàlẹ̀ gbogbo ojú-ìwé store rẹ.",
+  "ed.Only the Pro plan can turn this badge off. Upgrade to Pro to hide it.": "Ètò Pro nìkan ló lè pa àmì yìí. Gbé e sókè sí Pro láti fi pamọ́.",
   "ed.Free plans show this badge. Upgrade to turn it off.": "Àwọn ètò ọ̀fẹ́ máa ń fi àmì yìí hàn. Ṣe àfikún ètò láti pa á.",
   "ed.Upgrade": "Ṣe àfikún ètò",
   "ed.The badge setting couldn't be saved. Try again.": "A kò lè fi ètò àmì náà pamọ́. Gbìyànjú lẹ́ẹ̀kan sí i.",

@@ -34,13 +34,21 @@ test("paid time: any plan with time left, cancelled ones until they run out", ()
   assert.equal(rules.hasPaidPlanTime({ planStatus: "cancelled", planPaidUntil: inDays(-1) }, NOW), false, "cancelled and run out");
 });
 
-test("badge: on for every store by default; only a seller with paid time can turn it off", () => {
-  const paid = { planStatus: "active", planPaidUntil: inDays(30) };
+test("badge: on for every store by default; only a seller on the Pro plan with paid time can turn it off", () => {
+  const paid = { planCode: "PLN_2gph11w3yd0250y", planStatus: "active", planPaidUntil: inDays(30) };
+  const proAnnual = { planCode: "PLN_9gma70ofldhbj4r", planStatus: "active", planPaidUntil: inDays(300) };
+  const growth = { planCode: "PLN_8ou289e71czicvm", planStatus: "active", planPaidUntil: inDays(30) };
+  const growthAnnual = { planCode: "PLN_q1k3ssxpx7rxxuz", planStatus: "active", planPaidUntil: inDays(300) };
+  assert.equal(rules.canHideShopinbosBadge(proAnnual, NOW), true, "Pro annual");
+  assert.equal(rules.canHideShopinbosBadge(growth, NOW), false, "Growth can't");
+  assert.equal(rules.canHideShopinbosBadge(growthAnnual, NOW), false, "Growth annual can't");
+  assert.equal(rules.showsShopinbosBadge(growth, NOW, { hideShopinbosBadge: true }), true, "Growth keeps the badge even if turned off");
+  assert.equal(rules.canHideShopinbosBadge({ planStatus: "active", planPaidUntil: inDays(30) }, NOW), false, "no plan code");
   const free = { planStatus: null, planPaidUntil: null };
   assert.equal(rules.showsShopinbosBadge(paid, NOW, {}), true, "paid, default on");
   assert.equal(rules.showsShopinbosBadge(paid, NOW, { hideShopinbosBadge: true }), false, "paid, turned off");
   assert.equal(rules.showsShopinbosBadge(free, NOW, { hideShopinbosBadge: true }), true, "free can't turn it off");
-  assert.equal(rules.showsShopinbosBadge({ planStatus: "active", planPaidUntil: inDays(-1) }, NOW, { hideShopinbosBadge: true }), true, "comes back when the plan ends");
+  assert.equal(rules.showsShopinbosBadge({ planCode: "PLN_2gph11w3yd0250y", planStatus: "active", planPaidUntil: inDays(-1) }, NOW, { hideShopinbosBadge: true }), true, "comes back when the plan ends");
   assert.equal(rules.canHideShopinbosBadge(paid, NOW), true);
   assert.equal(rules.canHideShopinbosBadge(free, NOW), false);
 });

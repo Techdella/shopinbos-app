@@ -30,7 +30,7 @@ function storeSelect(productStatuses: readonly string[]) {
     customDomain: true,
     status: true,
     // Only to decide the "Built with Shopinbos" badge; the plan itself never reaches shoppers.
-    user: { select: { planStatus: true, planPaidUntil: true } },
+    user: { select: { planCode: true, planStatus: true, planPaidUntil: true } },
     storeProducts: {
       where: { status: { in: [...productStatuses] } },
       select: {
@@ -101,7 +101,7 @@ export interface StoreBadges {
   paymentBadges: PaymentBadgeKey[];
 }
 
-function storeBadges(owner: { planStatus: string | null; planPaidUntil: Date | null } | null | undefined, brandSettings: unknown): StoreBadges {
+function storeBadges(owner: { planCode: string | null; planStatus: string | null; planPaidUntil: Date | null } | null | undefined, brandSettings: unknown): StoreBadges {
   return { showBadge: showsShopinbosBadge(owner, new Date(), brandSettings), paymentBadges: readPaymentBadges(brandSettings) };
 }
 
@@ -159,7 +159,7 @@ export interface StoreBrand extends StoreBadges {
 /** Also what the storefront layouts hand every page's footer: the "Built with Shopinbos" badge and payment logos. */
 export const loadStoreBrand = cache(async (slug: string): Promise<StoreBrand | null> => {
   const store = await db.store
-    .findUnique({ where: { slug }, select: { id: true, status: true, name: true, slug: true, logoUrl: true, customDomain: true, currency: true, brandSettings: true, user: { select: { planStatus: true, planPaidUntil: true } } } })
+    .findUnique({ where: { slug }, select: { id: true, status: true, name: true, slug: true, logoUrl: true, customDomain: true, currency: true, brandSettings: true, user: { select: { planCode: true, planStatus: true, planPaidUntil: true } } } })
     .catch(() => null);
   if (!store) return null;
   return {

@@ -1489,6 +1489,7 @@ const en = {
   "ed.Web address": "Web address",
   "ed.Built with Shopinbos badge": "Built with Shopinbos badge",
   "ed.A small badge at the bottom of every page of your store.": "A small badge at the bottom of every page of your store.",
+  "ed.Only the Pro plan can turn this badge off. Upgrade to Pro to hide it.": "Only the Pro plan can turn this badge off. Upgrade to Pro to hide it.",
   "ed.Free plans show this badge. Upgrade to turn it off.": "Free plans show this badge. Upgrade to turn it off.",
   "ed.Upgrade": "Upgrade",
   "ed.The badge setting couldn't be saved. Try again.": "The badge setting couldn't be saved. Try again.",

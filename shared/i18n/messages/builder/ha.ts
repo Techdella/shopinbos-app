@@ -1487,6 +1487,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "ed.Web address": "Adireshin yanar gizo",
   "ed.Built with Shopinbos badge": "Bajon “Built with Shopinbos”",
   "ed.A small badge at the bottom of every page of your store.": "Ƙaramin bajo a ƙasan kowane shafi na shagonka.",
+  "ed.Only the Pro plan can turn this badge off. Upgrade to Pro to hide it.": "Tsarin Pro kaɗai ne zai iya kashe wannan bajo. Haɓaka zuwa Pro don ɓoye shi.",
   "ed.Free plans show this badge. Upgrade to turn it off.": "Tsare-tsare na kyauta suna nuna wannan bajo. Haɓaka don kashe shi.",
   "ed.Upgrade": "Haɓaka",
   "ed.The badge setting couldn't be saved. Try again.": "Ba a iya ajiye saitin bajon ba. Sake gwadawa.",
