@@ -11,6 +11,7 @@ import { readDesign, readFields as readFormFields } from "@/lib/marketing/forms"
 import { mainRichField, videoValue, type CalloutValue, type CmsField, type FileValue, type FormValue, type LinkValue, type MediaValue, type PriceValue, type RichValue, type StatValue, type TableValue } from "@/lib/cms/fields";
 import { escapeHtml, renderDoc, safeImageUrl, safeLinkUrl, sanitizeDoc, wordCount, type ProductCardData } from "@/lib/cms/richtext";
 import { itemJsonLd, jsonLdString, listJsonLd } from "@/lib/cms/jsonld";
+import { breadcrumbLd } from "@/lib/seo/structured-data";
 import { cmsTheme, storeLink } from "@/lib/cms/storefront";
 import { legalLinks, legalPagePath } from "@/lib/legal/pages";
 import { loadStoreForm, type PublicStore } from "@/lib/cms/server";
@@ -192,6 +193,7 @@ export function CmsCollectionView({
   return (
     <CmsShell store={store} basePath={basePath} chrome={chrome}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(breadcrumbLd([{ name: store.name, url: canonical.replace(/\/[^/]+$/, "") || canonical }, { name: collection.name, url: canonical }])) }} />
       <nav className="cms-crumbs" aria-label="Breadcrumb"><Link href={storeLink(basePath, "/")}>{store.name}</Link><span aria-hidden>/</span><span aria-current="page">{collection.name}</span></nav>
       <h1 className="cms-h1">{collection.name}</h1>
       {collection.description && <p className="cms-lede">{collection.description}</p>}
@@ -468,6 +470,18 @@ export async function CmsItemView({
   return (
     <CmsShell store={store} basePath={basePath} collection={collection} chrome={chrome}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(jsonLd) }} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: jsonLdString(
+            breadcrumbLd([
+              { name: store.name, url: canonical.split(`/${collection.slug}/`)[0] },
+              { name: collection.name, url: `${canonical.split(`/${collection.slug}/`)[0]}/${collection.slug}` },
+              { name: item.title, url: canonical },
+            ]),
+          ),
+        }}
+      />
       <article className="cms-article">
         <nav className="cms-crumbs" aria-label="Breadcrumb">
           <Link href={storeLink(basePath, "/")}>{store.name}</Link><span aria-hidden>/</span>

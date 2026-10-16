@@ -18,10 +18,10 @@ type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const { slug, collection } = await params;
   const pageKey = await liveStorefrontPageKey(slug, collection);
-  if (pageKey) return storefrontMetadata(slug, pageKey);
+  if (pageKey) return storefrontMetadata(slug, pageKey, null, await searchParams);
   return collectionMetadata(slug, collection);
 }
 
