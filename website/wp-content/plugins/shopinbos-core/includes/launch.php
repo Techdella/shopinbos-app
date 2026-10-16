@@ -149,10 +149,11 @@ function sib_waitlist_form( string $as = 'seller', string $intent = '', bool $po
 	}
 	$out .= '</fieldset>'
 		. '<input class="input" name="name" placeholder="' . esc_attr__( 'Your first name', 'shopinbos' ) . '" aria-label="' . esc_attr__( 'Your first name', 'shopinbos' ) . '" autocomplete="given-name">'
-		. '<input class="input" name="contact" required placeholder="' . esc_attr__( 'WhatsApp number or email', 'shopinbos' ) . '" aria-label="' . esc_attr__( 'WhatsApp number or email', 'shopinbos' ) . '" autocomplete="email tel">'
+		. '<div class="wl-two"><input class="input" name="phone" type="tel" inputmode="tel" required autocomplete="tel" placeholder="' . esc_attr__( 'WhatsApp number', 'shopinbos' ) . '" aria-label="' . esc_attr__( 'WhatsApp number', 'shopinbos' ) . '">'
+		. '<input class="input" name="email" type="email" inputmode="email" autocomplete="email" placeholder="' . esc_attr__( 'Email (optional)', 'shopinbos' ) . '" aria-label="' . esc_attr__( 'Email (optional)', 'shopinbos' ) . '"></div>'
 		. '<input class="input" name="sells" data-wl-field placeholder="' . esc_attr( $aud[ $as ][1] ) . '" aria-label="' . esc_attr__( 'About your business', 'shopinbos' ) . '">'
 		. '<button class="btn btn-acc" type="submit">' . esc_html__( 'Join the waitlist', 'shopinbos' ) . sib_icon( 'arrow', 16 ) . '</button>'
-		. '<span class="meta">' . esc_html__( 'Free. We’ll message you once, when your spot opens on November 1. No spam.', 'shopinbos' ) . '</span>'
+		. '<span class="meta">' . esc_html__( 'Free. We’ll message you on WhatsApp (and email, if you add it) when your spot opens on November 1. No spam.', 'shopinbos' ) . '</span>'
 		. '<input type="hidden" name="action" value="sib_lead"><input type="hidden" name="kind" value="waitlist"><input type="hidden" name="intent" value="' . esc_attr( $intent ) . '"><input type="hidden" name="back" value=""><input type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px"></form>';
 	return str_replace( 'wl-form"', 'wl-form" id="' . $uid . '-form"', $out );
 }

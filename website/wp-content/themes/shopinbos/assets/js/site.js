@@ -483,7 +483,7 @@
 			e.preventDefault();
 			setAs(form, b.getAttribute('data-wl-join'));
 			form.scrollIntoView({ behavior: 'smooth', block: 'center' });
-			setTimeout(function () { var c = $('[name=contact]', form); if (c) c.focus({ preventScroll: true }); }, 450);
+			setTimeout(function () { var c = $('[name=phone]', form) || $('[name=contact]', form); if (c) c.focus({ preventScroll: true }); }, 450);
 		});
 		// Countdown, kept current on cached pages; after launch the waitlist page sends people to sign up.
 		if (L.at) {

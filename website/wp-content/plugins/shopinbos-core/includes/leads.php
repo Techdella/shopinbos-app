@@ -425,10 +425,16 @@ function sib_process_lead_form( string $kind, array $in ): array {
 
 		case 'waitlist':
 		case 'app_notify':
+			if ( ! empty( $in['phone'] ) && ! ( $phone = sib_lead_phone( (string) $in['phone'] ) ) ) {
+				return $fail( __( 'Type a WhatsApp number like 0803 412 7790.', 'shopinbos' ) );
+			}
 			if ( ! $email && strlen( $phone ) < 10 ) {
 				return $fail( __( 'Add your WhatsApp number or email.', 'shopinbos' ) );
 			}
-			sib_log_consent( $email ?: $phone, $kind, 'waitlist' === $kind ? 'waitlist' : 'app_notify_' . sanitize_key( (string) ( $in['platform'] ?? '' ) ), __( 'Tell me when Shopinbos is live. One message, no spam.', 'shopinbos' ) );
+			if ( $email && $phone ) {
+				sib_log_consent( $email, $kind, 'waitlist' === $kind ? 'waitlist' : 'app_notify_' . sanitize_key( (string) ( $in['platform'] ?? '' ) ), __( 'Tell me when Shopinbos is live. One message, no spam.', 'shopinbos' ) );
+			}
+			sib_log_consent( $phone ?: $email, $kind, 'waitlist' === $kind ? 'waitlist' : 'app_notify_' . sanitize_key( (string) ( $in['platform'] ?? '' ) ), __( 'Tell me when Shopinbos is live. One message, no spam.', 'shopinbos' ) );
 			return [ 'ok' => true, 'message' => 'waitlist' === $kind ? __( 'You’re on the waitlist! We’ll message you the moment Shopinbos opens on November 1.', 'shopinbos' ) : __( 'Done. We’ll tell you the day the app is live.', 'shopinbos' ) ];
 
 		case 'investor':
