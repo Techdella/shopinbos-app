@@ -15,7 +15,13 @@ import { AudiencePicker, EMPTY_AUDIENCE, MessageEditor, MessagePreview, TestSend
 
 export type AutomationDraftInput = { id: string | null; name: string; audience: LeadAudienceType; steps: LeadStepType[]; includeExisting: boolean; active: boolean };
 
-type StepDraft = MessageDraft & { delayHours: number };
+/** `at` / `skipAfter` are datetime-local values in Lagos time ("2026-10-22T09:00"), "" when unset. */
+type StepDraft = MessageDraft & { delayHours: number; at: string; skipAfter: string };
+
+// Lagos is UTC+1 all year (no daylight saving).
+const toLagosInput = (iso: string | null | undefined) => (iso ? new Date(Date.parse(iso) + 3_600_000).toISOString().slice(0, 16) : "");
+const fromLagosInput = (value: string) => (value ? `${value}:00+01:00` : null);
+const lagosLabel = (value: string) => new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Africa/Lagos" }).format(new Date(`${value}:00+01:00`));
 
 const DELAYS = [
   { hours: 0, label: "Straight away" },
@@ -40,13 +46,14 @@ const DEFAULT_STEPS: StepDraft[] = [
     ctaUrl: "",
     waTemplate: "",
     waLanguage: "en",
+    at: "",
+    skipAfter: "",
   },
-  { delayHours: 48, channel: "whatsapp", subject: "", body: "Hi {{first_name}} 👋 it's the Shopinbos team. Need a hand setting up your online store? Start here and Chip will do most of the work: {{signup_link}}", ctaLabel: "", ctaUrl: "", waTemplate: "", waLanguage: "en" },
-  { delayHours: 120, channel: "sms", subject: "", body: "{{first_name}}, sell online this week: free Shopinbos store, built by AI in 5 mins. {{signup_link}}", ctaLabel: "", ctaUrl: "", waTemplate: "", waLanguage: "en" },
+  { delayHours: 48, at: "", skipAfter: "", channel: "email", subject: "Need a hand, {{first_name}}?", body: "Hi {{first_name}},\n\nJust checking in. If you'd like help setting up your store, reply to this email and someone from the team will walk you through it.", ctaLabel: "Build my store", ctaUrl: "", waTemplate: "", waLanguage: "en" },
 ];
 
 function toDraft(step: LeadStepType): StepDraft {
-  return { delayHours: step.delayHours, channel: step.channel, subject: step.subject ?? "", body: step.body, ctaLabel: step.ctaLabel ?? "", ctaUrl: step.ctaUrl ?? "", waTemplate: step.waTemplate ?? "", waLanguage: step.waLanguage ?? "en" };
+  return { delayHours: step.delayHours, at: toLagosInput(step.at), skipAfter: toLagosInput(step.skipAfter), channel: step.channel, subject: step.subject ?? "", body: step.body, ctaLabel: step.ctaLabel ?? "", ctaUrl: step.ctaUrl ?? "", waTemplate: step.waTemplate ?? "", waLanguage: step.waLanguage ?? "en" };
 }
 
 export function LeadAutomationEditor({ initial, readiness, kinds, legal, appUrl }: { initial: AutomationDraftInput | null; readiness: Readiness; kinds: Array<{ key: string; label: string }>; legal: PlatformLegal; appUrl: string }) {
@@ -75,7 +82,7 @@ export function LeadAutomationEditor({ initial, readiness, kinds, legal, appUrl 
   const save = () =>
     start(async () => {
       setError(null);
-      const result = await saveLeadAutomation({ id: initial?.id, name, audience, includeExisting, steps: steps.map((step) => ({ ...draftToContent(step), delayHours: step.delayHours })) });
+      const result = await saveLeadAutomation({ id: initial?.id, name, audience, includeExisting, steps: steps.map((step) => ({ ...draftToContent(step), delayHours: step.at ? 0 : step.delayHours, at: fromLagosInput(step.at), skipAfter: fromLagosInput(step.skipAfter) })) });
       if (!result.ok) return setError(result.error);
       setSaved(true);
       if (!initial?.id && result.id) router.push(`/admin/lead-campaigns/automations/${result.id}`);
@@ -103,8 +110,17 @@ export function LeadAutomationEditor({ initial, readiness, kinds, legal, appUrl 
 
       <ol className="m-0 flex list-none flex-col gap-3 p-0">
         {steps.map((step, index) => {
-          elapsed += step.delayHours;
-          const when = elapsed === 0 ? "when the lead comes in" : elapsed < 48 ? `${elapsed} h after they come in` : `day ${Math.round(elapsed / 24)}`;
+          if (step.at) elapsed = -1;
+          else if (elapsed >= 0) elapsed += step.delayHours;
+          const when = step.at
+            ? `on ${lagosLabel(step.at)}`
+            : elapsed < 0
+              ? `${step.delayHours} h after the previous step`
+              : elapsed === 0
+                ? "when the lead comes in"
+                : elapsed < 48
+                  ? `${elapsed} h after they come in`
+                  : `day ${Math.round(elapsed / 24)}`;
           return (
             <li key={index}>
               <Card className="p-5">
@@ -124,15 +140,35 @@ export function LeadAutomationEditor({ initial, readiness, kinds, legal, appUrl 
                 {open === index && (
                   <div className="mt-4 grid gap-5 xl:grid-cols-[minmax(0,1fr)_400px]">
                     <div className="flex min-w-0 flex-col gap-4">
-                      <Field label={index === 0 ? "Send" : "After the previous step, wait"} htmlFor={`delay-${index}`}>
-                        <select id={`delay-${index}`} className={selectClass} value={step.delayHours} onChange={(e) => setStep(index, { ...step, delayHours: Number(e.target.value) })}>
-                          {DELAYS.some((d) => d.hours === step.delayHours) ? null : <option value={step.delayHours}>{step.delayHours} hours</option>}
-                          {DELAYS.map((delay) => (
-                            <option key={delay.hours} value={delay.hours}>{index === 0 && delay.hours === 0 ? "Straight away" : delay.label.replace(" later", index === 0 ? " after they come in" : "")}</option>
-                          ))}
-                        </select>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <Field label="Timing" htmlFor={`timing-${index}`}>
+                          <select id={`timing-${index}`} className={selectClass} value={step.at ? "date" : "wait"} onChange={(e) => setStep(index, { ...step, at: e.target.value === "date" ? toLagosInput(new Date(Date.now() + 86_400_000).toISOString()).slice(0, 11) + "09:00" : "" })}>
+                            <option value="wait">{index === 0 ? "When the lead comes in (or after a wait)" : "After a wait"}</option>
+                            <option value="date">On a date (countdowns, launch day)</option>
+                          </select>
+                        </Field>
+                        {step.at ? (
+                          <Field label="Send on (Lagos time)" htmlFor={`at-${index}`} hint="Leads who reach it later than 36 hours after this skip it, unless you set your own cut-off below.">
+                            <input id={`at-${index}`} type="datetime-local" className={selectClass} value={step.at} onChange={(e) => setStep(index, { ...step, at: e.target.value })} />
+                          </Field>
+                        ) : (
+                          <Field label={index === 0 ? "Send" : "After the previous step, wait"} htmlFor={`delay-${index}`}>
+                            <select id={`delay-${index}`} className={selectClass} value={step.delayHours} onChange={(e) => setStep(index, { ...step, delayHours: Number(e.target.value) })}>
+                              {DELAYS.some((d) => d.hours === step.delayHours) ? null : <option value={step.delayHours}>{step.delayHours} hours</option>}
+                              {DELAYS.map((delay) => (
+                                <option key={delay.hours} value={delay.hours}>{index === 0 && delay.hours === 0 ? "Straight away" : delay.label.replace(" later", index === 0 ? " after they come in" : "")}</option>
+                              ))}
+                            </select>
+                          </Field>
+                        )}
+                      </div>
+                      <Field label="Don't send after (optional, Lagos time)" htmlFor={`skip-${index}`} hint="Past this, people who haven't had it yet skip it. Use it for messages that stop being true, like “registration opens on the 22nd”.">
+                        <div className="flex gap-2">
+                          <input id={`skip-${index}`} type="datetime-local" className={selectClass} value={step.skipAfter} onChange={(e) => setStep(index, { ...step, skipAfter: e.target.value })} />
+                          {step.skipAfter && <PillButton type="button" tone="white" size="sm" onClick={() => setStep(index, { ...step, skipAfter: "" })}>Clear</PillButton>}
+                        </div>
                       </Field>
-                      <MessageEditor idPrefix={`step-${index}`} value={step} onChange={(next) => setStep(index, { ...next, delayHours: step.delayHours })} readiness={readiness} />
+                      <MessageEditor idPrefix={`step-${index}`} value={step} onChange={(next) => setStep(index, { ...next, delayHours: step.delayHours, at: step.at, skipAfter: step.skipAfter })} readiness={readiness} />
                     </div>
                     <div className="flex min-w-0 flex-col gap-4">
                       <MessagePreview value={step} legal={legal} appUrl={appUrl} />
@@ -152,7 +188,7 @@ export function LeadAutomationEditor({ initial, readiness, kinds, legal, appUrl 
           size="sm"
           disabled={steps.length >= 10}
           onClick={() => {
-            setSteps((all) => [...all, { ...DEFAULT_STEPS[2], delayHours: 72 }]);
+            setSteps((all) => [...all, { ...DEFAULT_STEPS[1], delayHours: 72 }]);
             setOpen(steps.length);
           }}
         >

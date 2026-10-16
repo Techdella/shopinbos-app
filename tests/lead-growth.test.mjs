@@ -83,3 +83,78 @@ test("analytics: product trackers never run on storefronts or other hosts", () =
   assert.equal(status.reporting, false);
   assert.deepEqual(status.missing, ["POSTHOG_PROJECT_ID", "POSTHOG_PERSONAL_API_KEY"]);
 });
+
+test("lead growth: dated steps go out on their date and are skipped once stale", () => {
+  const dated = growth.LeadStep.parse({ channel: "email", subject: "Hi", body: "x", at: "2026-10-22T09:00:00+01:00" });
+  assert.equal(dated.delayHours, 0);
+  const from = new Date("2026-10-30T10:00:00Z");
+  assert.equal(growth.stepDueAt(dated, from).toISOString(), "2026-10-22T08:00:00.000Z");
+  assert.equal(growth.stepIsStale(dated, new Date("2026-10-23T08:00:00Z")), false);
+  assert.equal(growth.stepIsStale(dated, new Date("2026-10-23T21:00:00Z")), true);
+  const catchUp = growth.LeadStep.parse({ ...dated, skipAfter: "2026-11-30T00:00:00Z" });
+  assert.equal(growth.stepIsStale(catchUp, new Date("2026-10-30T10:00:00Z")), false);
+  const wait = growth.LeadStep.parse({ channel: "email", subject: "Hi", body: "x", delayHours: 48 });
+  assert.equal(growth.stepDueAt(wait, from).toISOString(), "2026-11-01T10:00:00.000Z");
+  assert.equal(growth.stepIsStale(wait, new Date("2030-01-01")), false);
+  const welcome = growth.LeadStep.parse({ channel: "email", subject: "Hi", body: "x", skipAfter: "2026-10-22T09:00:00+01:00" });
+  assert.equal(growth.stepIsStale(welcome, new Date("2026-10-22T09:00:00Z")), true);
+  assert.equal(growth.LeadStep.safeParse({ channel: "email", subject: "Hi", body: "x", at: "next tuesday" }).success, false);
+});
+
+test("lead growth: roles come from the waitlist's 'as', everything else is a seller", () => {
+  assert.equal(growth.leadRoleFrom("supplier"), "supplier");
+  assert.equal(growth.leadRoleFrom("delivery"), "delivery");
+  assert.equal(growth.leadRoleFrom(undefined), "seller");
+  assert.equal(growth.leadRoleFrom("admin"), "seller");
+  assert.deepEqual(growth.readAudience({ roles: ["supplier"] }).roles, ["supplier"]);
+  assert.deepEqual(growth.readAudience({}).roles, []);
+});
+
+// Walks a sequence the way runDueSteps does (cron every 10 minutes) and returns what a lead would get.
+function walk(steps, joinedAt, until = new Date("2027-01-31T00:00:00Z")) {
+  const got = [];
+  let index = 0;
+  let nextAt = growth.stepDueAt(steps[0], joinedAt);
+  for (let t = joinedAt.getTime(); t < until.getTime() && index < steps.length; t += 10 * 60_000) {
+    const now = new Date(t);
+    if (nextAt > now) continue;
+    const step = steps[index];
+    index += 1;
+    if (steps[index]) nextAt = growth.stepDueAt(steps[index], now);
+    if (!growth.stepIsStale(step, now)) got.push({ subject: step.subject, at: now.toISOString().slice(0, 16) });
+  }
+  return got;
+}
+
+test("launch sequences: every step is valid and late joiners only get what's still true", async () => {
+  const { LAUNCH_AUTOMATIONS, WIN_CAMPAIGNS } = await import("../src/lib/lead-growth/launch-sequences.ts");
+  for (const automation of LAUNCH_AUTOMATIONS) {
+    assert.equal(automation.audience.roles.length, 1, automation.name);
+    for (const step of automation.steps) assert.equal(growth.LeadStep.safeParse(step).success, true, `${automation.name}: ${step.subject}`);
+  }
+  for (const campaign of WIN_CAMPAIGNS) assert.equal(growth.LeadMessageContent.safeParse(campaign.content).success, true, campaign.name);
+
+  const [sellers, suppliers, delivery] = LAUNCH_AUTOMATIONS.map((a) => a.steps);
+  // A seller who joins today gets the whole countdown, then launch day, then one nudge.
+  const early = walk(sellers, new Date("2026-10-16T15:00:00Z"));
+  assert.equal(early.length, 7);
+  assert.equal(early[5].at, "2026-11-01T08:00");
+  // A seller who joins on 30 October skips the old updates; one who joins after launch gets "we're live" first.
+  assert.deepEqual(walk(sellers, new Date("2026-10-30T10:00:00Z")).map((m) => m.subject.slice(0, 20)), ["You're in, {{first_n", "Tomorrow we open the", "Shopinbos is live. C", "{{first_name}}, your"]);
+  const late = walk(sellers, new Date("2026-11-10T10:00:00Z"));
+  assert.equal(late[0].subject, "Shopinbos is live. Create your store now");
+  assert.equal(late.length, 2);
+  // Suppliers and delivery partners get the sign-up link on 22 October, or straight away if they join later.
+  for (const steps of [suppliers, delivery]) {
+    const open = steps.find((s) => s.at === "2026-10-22T09:00:00+01:00");
+    assert.match(open.ctaUrl, /\/(supplier|logistics)\/signup$/);
+    const before = walk(steps, new Date("2026-10-16T15:00:00Z"));
+    assert.ok(before.some((m) => m.subject === open.subject && m.at === "2026-10-22T08:00"));
+    const after = walk(steps, new Date("2026-10-27T15:00:00Z"));
+    assert.equal(after[0].subject, open.subject);
+    assert.ok(!after.some((m) => /opens on 22 October/.test(m.subject)));
+  }
+  // Nothing tells sellers to sign up before launch.
+  for (const step of sellers) if (step.at && Date.parse(step.at) < Date.parse("2026-11-01T08:00:00Z")) assert.ok(!/signup/.test(step.ctaUrl), step.subject);
+  assert.ok(!/signup/.test(sellers[0].ctaUrl));
+});

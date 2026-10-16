@@ -8,6 +8,7 @@ import { requireRole } from "@/lib/server-auth";
 import { LeadAudience, LeadMessageContent, LeadStep } from "@/lib/lead-growth/pure";
 import {
   LeadGrowthNotReady,
+  addLaunchContent,
   cancelCampaign,
   countAudience,
   createAutomation,
@@ -163,4 +164,11 @@ export async function deleteLeadAutomation(formData: FormData) {
   if (id) await deleteAutomation(id);
   revalidatePath(PATH);
   redirect(PATH);
+}
+
+/** Admin: load the launch sequences and win campaign drafts that aren't there yet. */
+export async function addLaunchSequences() {
+  const admin = await requireRole(["admin"], "/admin/login");
+  await addLaunchContent(admin.id);
+  revalidatePath(PATH);
 }

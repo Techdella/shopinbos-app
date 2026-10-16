@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { AppPage, Card, CardHead, EmptyState, Pill, PillLink, StatTile, type Tone } from "@/components/app-kit";
 import { adminFrame, buttonClass } from "@/components/admin/AdminKit";
-import { cancelLeadCampaign, deleteLeadCampaign, sendLeadCampaignNow, toggleLeadAutomation } from "@/app/actions/admin-lead-growth";
-import { CAMPAIGN_STATUS_LABELS, CHANNEL_LABELS, percent, type CampaignStatus, type LeadChannel } from "@/lib/lead-growth/pure";
+import { addLaunchSequences, cancelLeadCampaign, deleteLeadCampaign, sendLeadCampaignNow, toggleLeadAutomation } from "@/app/actions/admin-lead-growth";
+import { CAMPAIGN_STATUS_LABELS, CHANNEL_LABELS, ROLE_LABELS, percent, type CampaignStatus, type LeadChannel } from "@/lib/lead-growth/pure";
 import { LeadGrowthNotReady, channelReadiness, listAutomations, listCampaigns } from "@/lib/lead-growth/service.server";
 import { requireRole } from "@/lib/server-auth";
 import { GrowthNotReady, lagosTime } from "./_shared";
@@ -56,7 +56,15 @@ export default async function LeadCampaignsPage() {
       </section>
 
       <Card className="mb-5 p-5">
-        <CardHead title="Automations" sub="Each new lead that matches walks through the steps. They leave as soon as they sign up or opt out." />
+        <CardHead
+          title="Automations"
+          sub="Each new lead that matches walks through the steps. They leave as soon as they sign up or opt out."
+          action={
+            <form action={addLaunchSequences}>
+              <button type="submit" className={buttonClass("white", "sm")}>Add launch sequences</button>
+            </form>
+          }
+        />
         {automations.length === 0 ? (
           <EmptyState icon="automation" title="No automations yet" action={<PillLink href="/admin/lead-campaigns/automations/new" tone="ink" icon="plus">Set up a welcome series</PillLink>}>
             A welcome email straight away, a WhatsApp two days later and an SMS on day five converts far better than one message.
@@ -71,7 +79,8 @@ export default async function LeadCampaignsPage() {
                     <Pill tone={automation.active ? "success" : "muted"} dot>{automation.active ? "On" : "Off"}</Pill>
                   </div>
                   <p className="mb-0 mt-1 text-[13px] text-app-ink-soft">
-                    {automation.steps.map((step) => CHANNEL_LABELS[step.channel]).join(" → ")} · {automation.enrolled} entered · {automation.inProgress} in progress · {automation.sent} sent · <b className="text-app-ink">{automation.converted} signed up</b> ({percent(automation.converted, automation.enrolled)})
+                    {automation.audience.roles.length ? `${automation.audience.roles.map((r) => ROLE_LABELS[r]).join(", ")} · ` : ""}
+                    {automation.steps.length} {automation.steps.length === 1 ? "message" : "messages"} ({[...new Set(automation.steps.map((step) => CHANNEL_LABELS[step.channel]))].join(", ")}) · {automation.enrolled} entered · {automation.inProgress} in progress · {automation.sent} sent · <b className="text-app-ink">{automation.converted} signed up</b> ({percent(automation.converted, automation.enrolled)})
                   </p>
                 </div>
                 <form action={toggleLeadAutomation}>

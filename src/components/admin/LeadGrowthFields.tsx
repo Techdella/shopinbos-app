@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition, type ReactNode } from "react";
 import { EmailPreviewIframe } from "@/app/home/marketing/_kit/EmailFrame";
 import { previewLeadAudience, sendLeadTest } from "@/app/actions/admin-lead-growth";
 import { Notice, PillButton, Segmented, TextInput, cx } from "@/components/app-ui";
 import { Field, checkClass, selectClass, textareaClass } from "@/components/growth/kit";
 import { html, platformEmail, type PlatformLegal } from "@/lib/email/shell";
-import { CHANNEL_LABELS, LEAD_CHANNELS, personalise, smsParts, type LeadAudienceType, type LeadChannel } from "@/lib/lead-growth/pure";
+import { CHANNEL_LABELS, LEAD_CHANNELS, LEAD_ROLES, ROLE_LABELS, personalise, smsParts, type LeadAudienceType, type LeadChannel, type LeadRole } from "@/lib/lead-growth/pure";
 
 // Pieces shared by the lead campaign and lead automation editors (/admin/lead-campaigns): who it reaches (with a
 // live count per channel), the message for one channel, its preview and a test send.
@@ -23,7 +23,7 @@ export type MessageDraft = {
 
 export type Readiness = Record<LeadChannel, boolean>;
 
-export const EMPTY_AUDIENCE: LeadAudienceType = { kinds: [], statuses: ["new", "contacted"], consentOnly: true, sinceDays: 0, source: "" };
+export const EMPTY_AUDIENCE: LeadAudienceType = { roles: [], kinds: [], statuses: ["new", "contacted"], consentOnly: true, sinceDays: 0, source: "" };
 
 export function draftToContent(draft: MessageDraft) {
   return {
@@ -42,6 +42,19 @@ const SETUP: Record<LeadChannel, string> = {
   sms: "SMS isn't set up: add Termii, Africa's Talking or Sendchamp keys (SMS_PROVIDER) in Vercel.",
   whatsapp: "WhatsApp isn't set up: add Africa's Talking or Sendchamp keys in Vercel.",
 };
+
+function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={on}
+      onClick={onClick}
+      className={cx("min-h-[36px] rounded-full border px-3.5 text-[13px] font-bold transition", on ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white text-app-ink hover:border-app-line-strong")}
+    >
+      {children}
+    </button>
+  );
+}
 
 export function AudiencePicker({ value, onChange, kinds }: { value: LeadAudienceType; onChange: (next: LeadAudienceType) => void; kinds: Array<{ key: string; label: string }> }) {
   const [counts, setCounts] = useState<{ all: number; email: number; sms: number; whatsapp: number } | null>(null);
@@ -64,6 +77,7 @@ export function AudiencePicker({ value, onChange, kinds }: { value: LeadAudience
     };
   }, [key]);
 
+  const toggleRole = (role: LeadRole) => onChange({ ...value, roles: value.roles.includes(role) ? value.roles.filter((r) => r !== role) : [...value.roles, role] });
   const toggleKind = (kind: string) => onChange({ ...value, kinds: value.kinds.includes(kind) ? value.kinds.filter((k) => k !== kind) : [...value.kinds, kind] });
   const toggleStatus = (status: "new" | "contacted") => {
     const next = value.statuses.includes(status) ? value.statuses.filter((s) => s !== status) : [...value.statuses, status];
@@ -72,18 +86,17 @@ export function AudiencePicker({ value, onChange, kinds }: { value: LeadAudience
 
   return (
     <div className="flex flex-col gap-4">
+      <Field label="Who" hint="From the waitlist's “I want to…” question. Leads from other forms count as sellers. Leave all off for everyone.">
+        <div className="flex flex-wrap gap-2">
+          {LEAD_ROLES.map((role) => (
+            <Chip key={role} on={value.roles.includes(role)} onClick={() => toggleRole(role)}>{ROLE_LABELS[role]}</Chip>
+          ))}
+        </div>
+      </Field>
       <Field label="Which forms" hint="Leave all off for every form.">
         <div className="flex flex-wrap gap-2">
           {kinds.map((kind) => (
-            <button
-              key={kind.key}
-              type="button"
-              aria-pressed={value.kinds.includes(kind.key)}
-              onClick={() => toggleKind(kind.key)}
-              className={cx("min-h-[36px] rounded-full border px-3.5 text-[13px] font-bold transition", value.kinds.includes(kind.key) ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white text-app-ink hover:border-app-line-strong")}
-            >
-              {kind.label}
-            </button>
+            <Chip key={kind.key} on={value.kinds.includes(kind.key)} onClick={() => toggleKind(kind.key)}>{kind.label}</Chip>
           ))}
         </div>
       </Field>

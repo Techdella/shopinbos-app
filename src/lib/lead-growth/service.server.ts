@@ -15,6 +15,8 @@ import {
   leadAddress,
   readAudience,
   readSteps,
+  stepDueAt,
+  stepIsStale,
   type LeadAudienceType,
   type LeadChannel,
   type LeadForMessage,
@@ -57,6 +59,7 @@ export function audienceWhere(audience: LeadAudienceType, channel?: LeadChannel)
   return {
     status: { in: statuses },
     convertedAt: null,
+    ...(audience.roles.length ? { role: { in: audience.roles } } : {}),
     ...(audience.kinds.length ? { kind: { in: audience.kinds } } : {}),
     ...(audience.consentOnly ? { consent: true } : {}),
     ...(audience.sinceDays ? { createdAt: { gte: new Date(Date.now() - audience.sinceDays * 86_400_000) } } : {}),
@@ -324,9 +327,8 @@ export async function enrolLeads(options: { leadId?: string } = {}) {
         take: 500,
       });
       if (!leads.length) continue;
-      const first = steps[0].delayHours * 3_600_000;
       const result = await db.leadEnrollment.createMany({
-        data: leads.map((lead) => ({ automationId: automation.id, leadId: lead.id, step: 0, nextAt: new Date(lead.createdAt.getTime() + first) })),
+        data: leads.map((lead) => ({ automationId: automation.id, leadId: lead.id, step: 0, nextAt: stepDueAt(steps[0], lead.createdAt) })),
         skipDuplicates: true,
       });
       enrolled += result.count;
@@ -341,6 +343,7 @@ export async function runDueSteps(deadline: number) {
     let sent = 0;
     let failed = 0;
     let finished = 0;
+    let skipped = 0;
     while (Date.now() < deadline) {
       const due = await db.leadEnrollment.findMany({
         where: { status: "active", nextAt: { lte: new Date() }, automation: { active: true } },
@@ -362,12 +365,19 @@ export async function runDueSteps(deadline: number) {
           continue;
         }
         // Advance first (only the run that moves it from this step sends it), then claim the message row.
+        const now = new Date();
         const next = steps[enrollment.step + 1];
         const advanced = await db.leadEnrollment.updateMany({
           where: { id: enrollment.id, step: enrollment.step, status: "active" },
-          data: next ? { step: enrollment.step + 1, nextAt: new Date(Date.now() + next.delayHours * 3_600_000) } : { step: enrollment.step + 1, status: "done" },
+          data: next ? { step: enrollment.step + 1, nextAt: stepDueAt(next, now) } : { step: enrollment.step + 1, status: "done" },
         });
         if (!advanced.count) continue;
+        // A dated update whose day has passed (the lead joined late, or the run was late) is skipped, not sent.
+        if (stepIsStale(step, now)) {
+          skipped += 1;
+          if (!next) finished += 1;
+          continue;
+        }
         const messageId = randomUUID();
         const claim = await db.leadMessage.createMany({
           data: [{ id: messageId, leadId: lead.id, automationId: automation.id, step: enrollment.step, channel: step.channel, to: leadAddress(lead, step.channel) ?? "", status: "sending" }],
@@ -381,7 +391,32 @@ export async function runDueSteps(deadline: number) {
         if (!next) finished += 1;
       }
     }
-    return { sent, failed, finished };
+    return { sent, failed, finished, skipped };
+  });
+}
+
+/**
+ * Adds the launch sequences and the seller win campaigns (src/lib/lead-growth/launch-sequences.ts) that aren't here
+ * yet, matched by name. Automations come in switched off and campaigns as drafts, so an admin reads them first.
+ */
+export async function addLaunchContent(createdById: string) {
+  const { LAUNCH_AUTOMATIONS, WIN_CAMPAIGNS } = await import("./launch-sequences");
+  return guardGrowth(async () => {
+    const [automations, campaigns] = await Promise.all([db.leadAutomation.findMany({ select: { name: true } }), db.leadCampaign.findMany({ select: { name: true } })]);
+    const haveAutomation = new Set(automations.map((a) => a.name));
+    const haveCampaign = new Set(campaigns.map((c) => c.name));
+    let added = 0;
+    for (const automation of LAUNCH_AUTOMATIONS) {
+      if (haveAutomation.has(automation.name)) continue;
+      await createAutomation(automation);
+      added += 1;
+    }
+    for (const campaign of WIN_CAMPAIGNS) {
+      if (haveCampaign.has(campaign.name)) continue;
+      await createCampaign({ ...campaign.content, name: campaign.name, audience: campaign.audience }, createdById);
+      added += 1;
+    }
+    return { added };
   });
 }
 
@@ -473,6 +508,6 @@ export async function runLeadGrowth(deadline: number) {
     campaigns.push({ id: campaign.id, ...(await runCampaign(campaign.id, deadline)) });
   }
   const enrolment = await enrolLeads();
-  const steps = Date.now() < deadline ? await runDueSteps(deadline) : { sent: 0, failed: 0, finished: 0 };
+  const steps = Date.now() < deadline ? await runDueSteps(deadline) : { sent: 0, failed: 0, finished: 0, skipped: 0 };
   return { signups, existing, campaigns, enrolment, steps };
 }
