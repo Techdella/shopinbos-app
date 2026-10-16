@@ -56,6 +56,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "partner-inbox.title": "Inbox",
   "partner-performance.title": "Performance and reviews",
   "company-profile.title": "Company profile and settings",
+  "connections.title": "Connections",
   "media.title": "Media",
   "seasonal-campaigns.title": "Seasonal campaigns",
 };

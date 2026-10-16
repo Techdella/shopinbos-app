@@ -535,6 +535,21 @@ export const FEATURE_INTROS: FeatureIntro[] = [
     ],
   },
   {
+    key: "connections",
+    term: "integrations",
+    title: "Connections",
+    roles: ["seller"],
+    paths: ["/home/connections"],
+    cta: { label: "Open connections", href: "/home/connections" },
+    scenes: [
+      { art: "flow-nodes", caption: "Connect the tools you already use.", sub: "Google Analytics, Search Console, Meta and TikTok pixels, all in one page.", durationMs: S, chips: ["Google", "Meta", "TikTok"] },
+      { art: "search-rank", caption: "Show Google your shop is yours.", sub: "Paste the Search Console code once, then see which searches bring buyers.", durationMs: S, value: "ankara dress lagos" },
+      { art: "chart-grow", caption: "See every visit, not just the first.", sub: "Pixels count each page a shopper opens, then add to cart and every order.", durationMs: S },
+      { art: "ad-funnel", caption: "Better ads from real sales.", sub: "Meta and TikTok learn who buys from you, so your ad money reaches more buyers.", durationMs: S },
+      { art: "badge-verify", caption: "Shoppers choose cookies.", sub: "A short banner asks first. Pixels only run after a shopper says yes.", durationMs: S, chips: ["Accept", "Reject"] },
+    ],
+  },
+  {
     key: "rex-studio",
     term: "studio",
     title: "Rex Studio",

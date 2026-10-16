@@ -185,7 +185,7 @@ export const NAV_TERMS: Record<GlossaryRole, Record<string, string>> = {
     ads: "ads", video: "video-studio", discounts: "discounts", affiliates: "affiliates", "sell-everywhere": "channels",
     money: "payments", payments: "payments", invoices: "invoices", taxes: "taxes",
     delivery: "logistics", "delivery-partners": "logistics", shipping: "shipping-rates", labels: "labels",
-    reports: "analytics", "reports-sales": "analytics", health: "store-health", activity: "activity",
+    reports: "analytics", "reports-sales": "analytics", "reports-traffic": "analytics", connections: "integrations", health: "store-health", activity: "activity",
   },
   supplier: {
     ...SHARED_NAV,
