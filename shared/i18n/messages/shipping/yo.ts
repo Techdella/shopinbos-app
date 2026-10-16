@@ -115,6 +115,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "qf.pickup": "Gbé e láti",
   "qf.pickupPlaceholder": "àp. Yaba, Èkó",
   "qf.dest": "Kó o lọ sí",
+  "qf.findPickup": "Wá àdírẹ́sì ibi pickup",
+  "qf.findDest": "Wá àdírẹ́sì ibi ìfijíṣẹ́",
   "qf.destPlaceholder": "àp. Wuse 2, Àbújá",
   "qf.weight": "Ìwúwo ní kg (àṣàyàn)",
   "qf.date": "Ọjọ́ gbígbé (àṣàyàn)",

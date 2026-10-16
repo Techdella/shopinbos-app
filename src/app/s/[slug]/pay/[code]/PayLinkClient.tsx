@@ -9,8 +9,11 @@ import { getPublicStorefrontPath } from "@/lib/domains/storefront";
 import { formatStoreMoney } from "@/lib/storefront/shopper-info";
 import { channelFromRef } from "@shared/channels";
 import { checkoutPaymentOptions, type CheckoutPaymentMethod } from "@shared/checkout-payments";
-import { chooseDelivery, deliveryOptionsFor, isEmail, isPhone, orderTotals, type OrderTotals } from "@shared/cart-checkout";
-import { countryName, readSavedDetails, regionsFor, saveDetails } from "@/components/storefront/shopper/checkout-storage";
+import { chooseDelivery, deliveryOptionsFor, isEmail, isNigeria, isPhone, orderTotals, type CheckoutDetails, type OrderTotals } from "@shared/cart-checkout";
+import { normalizeNgPostcode } from "@shared/ng-postcode";
+import { countryName, readSavedDetails, regionsFor, saveDetails, withGeoAddress } from "@/components/storefront/shopper/checkout-storage";
+import { PinPreview, PostcodeField, StreetAddressField } from "@/components/storefront/checkout/CheckoutParts";
+import type { GeoAddress } from "@/lib/geo/types";
 import { ItemThumb, Panel, PrimaryButton, QuantityStepper, ShopperShell, fieldClass } from "@/components/storefront/shopper/ShopperShell";
 import { WeAccept } from "@/components/storefront/shopper/StoreFooterBadges";
 import { resolveShopperTheme, type ShopperTheme } from "@/components/storefront/shopper/theme";
@@ -31,16 +34,8 @@ interface Props {
   link: PublicPayLink;
 }
 
-interface Details {
-  name: string;
-  phone: string;
-  email: string;
-  street: string;
-  city: string;
-  state: string;
-  country: string;
-  landmark: string;
-}
+// The same details as checkout (street suggestions, postcode and pin included), so a saved address works in both.
+type Details = CheckoutDetails;
 
 type Errors = Partial<Record<keyof Details | "option", string>>;
 
@@ -115,7 +110,7 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
   const needsOption = Boolean(single && single.options.length > 0);
   const [optionId, setOptionId] = useState<string | null>(single && single.options.length === 1 ? single.options[0].id : null);
   const [quantity, setQuantity] = useState(single ? single.quantity : 1);
-  const [details, setDetails] = useState<Details>({ name: link.prefill.name, phone: link.prefill.phone, email: link.prefill.email, street: "", city: "", state: "", country: countryName(store.country), landmark: "" });
+  const [details, setDetails] = useState<Details>({ name: link.prefill.name, phone: link.prefill.phone, email: link.prefill.email, street: "", city: "", state: "", country: countryName(store.country), landmark: "", postcode: "", lat: null, lng: null });
   const [errors, setErrors] = useState<Errors>({});
   const [deliveryOptionId, setDeliveryOptionId] = useState<string | null>(null);
   const [chosenMethod, setChosenMethod] = useState<CheckoutPaymentMethod | null>(null);
@@ -141,6 +136,9 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
       state: saved.state || "",
       country: saved.country || prev.country,
       landmark: saved.landmark || "",
+      postcode: saved.postcode || "",
+      lat: saved.lat ?? null,
+      lng: saved.lng ?? null,
     }));
     try {
       const params = new URLSearchParams(window.location.search);
@@ -189,9 +187,15 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quoteKey]);
 
-  function set<K extends keyof Details>(field: K, value: string) {
+  function set<K extends keyof Details>(field: K, value: Details[K]) {
     setDetails((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
+  }
+
+  /** A picked suggestion, "use my location" or a looked-up postcode. */
+  function applyAddress(address: GeoAddress) {
+    setDetails((prev) => withGeoAddress(prev, address));
+    setErrors((prev) => ({ ...prev, street: undefined, city: undefined, state: undefined, postcode: undefined }));
   }
 
   function validate(): Errors {
@@ -203,6 +207,7 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
     if (!details.street.trim()) found.street = "Enter your street address.";
     if (!details.city.trim()) found.city = "Enter your area or city.";
     if (regions.length > 0 && !details.state.trim()) found.state = "Choose your state.";
+    if (isNigeria(details.country) && normalizeNgPostcode(details.postcode) === null) found.postcode = "Check the postcode. It looks like LA-11-W06-TC-10, or leave it empty.";
     return found;
   }
 
@@ -216,7 +221,7 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
       window.requestAnimationFrame(() => document.getElementById(`pay-${first}`)?.focus());
       return;
     }
-    saveDetails(store.slug, { name: details.name.trim(), phone: details.phone.trim(), email: details.email.trim(), street: details.street.trim(), city: details.city.trim(), state: details.state.trim(), country: details.country.trim(), landmark: details.landmark.trim() });
+    saveDetails(store.slug, { name: details.name.trim(), phone: details.phone.trim(), email: details.email.trim(), street: details.street.trim(), city: details.city.trim(), state: details.state.trim(), country: details.country.trim(), landmark: details.landmark.trim(), postcode: details.postcode?.trim() ?? "", lat: details.lat ?? null, lng: details.lng ?? null });
     setSubmitting(true);
     try {
       const res = await fetch(`/api/public/store/${encodeURIComponent(store.slug)}/checkout`, {
@@ -230,7 +235,16 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
           buyerName: details.name.trim(),
           buyerEmail: details.email.trim(),
           buyerPhone: details.phone.trim(),
-          deliveryAddress: { street: details.street.trim(), city: details.city.trim(), state: details.state.trim() || undefined, country: details.country.trim() || undefined, landmark: details.landmark.trim() || undefined },
+          deliveryAddress: {
+            street: details.street.trim(),
+            city: details.city.trim(),
+            state: details.state.trim() || undefined,
+            country: details.country.trim() || undefined,
+            landmark: details.landmark.trim() || undefined,
+            postalCode: details.postcode?.trim() || undefined,
+            lat: typeof details.lat === "number" ? details.lat : undefined,
+            lng: typeof details.lng === "number" ? details.lng : undefined,
+          },
           deliveryOptionId: delivery.option?.id,
           paymentMethod,
           channel: ref ?? undefined,
@@ -275,7 +289,7 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
   }
 
   const photo = chosenOption?.imageUrl ?? link.items[0]?.images[0] ?? null;
-  const field = (key: keyof Details, label: string, props: React.InputHTMLAttributes<HTMLInputElement> = {}) => (
+  const field = (key: "name" | "phone" | "email" | "street" | "city" | "landmark", label: string, props: React.InputHTMLAttributes<HTMLInputElement> = {}) => (
     <label className="block text-[14px] font-medium">
       {label}
       <input id={`pay-${key}`} value={details[key]} onChange={(event) => set(key, event.target.value)} aria-invalid={Boolean(errors[key])} className={fieldClass} style={{ borderColor: errors[key] ? "#C2412D" : theme.border }} {...props} />
@@ -357,7 +371,8 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
 
           <Panel theme={theme} className="grid gap-3 p-5">
             <h2 className="text-[18px] font-semibold" style={{ fontFamily: theme.heading }}>Delivery</h2>
-            {field("street", "Street address", { autoComplete: "street-address" })}
+            {preview ? field("street", "Street address", { autoComplete: "street-address" }) : <StreetAddressField theme={theme} details={details} error={errors.street} set={set} onAddress={applyAddress} idPrefix="pay" />}
+            {typeof details.lat === "number" && typeof details.lng === "number" ? <PinPreview theme={theme} point={{ lat: details.lat, lng: details.lng }} /> : null}
             {field("city", "Area or city", { autoComplete: "address-level2" })}
             {regions.length > 0 ? (
               <label className="block text-[14px] font-medium">
@@ -370,6 +385,7 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
               </label>
             ) : null}
             {field("landmark", "Landmark (optional)")}
+            {isNigeria(details.country) ? <PostcodeField theme={theme} details={details} error={errors.postcode} set={set} onAddress={preview ? undefined : applyAddress} idPrefix="pay" /> : null}
             {deliveryChoice.options.length > 1 ? (
               <div className="grid gap-2" role="radiogroup" aria-label="Delivery option">
                 {deliveryChoice.options.map((option) => (

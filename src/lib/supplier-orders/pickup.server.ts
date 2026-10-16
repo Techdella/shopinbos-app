@@ -58,7 +58,7 @@ function labelText(value: unknown, max = 120) {
 }
 
 async function loadOrder(supplierId: string, kind: SupplierOrderKind, orderId: string): Promise<PickupOrder | null> {
-  const supplier = await db.supplier.findUnique({ where: { id: supplierId }, select: { id: true, userId: true, city: true, country: true, address: true } });
+  const supplier = await db.supplier.findUnique({ where: { id: supplierId }, select: { id: true, userId: true, city: true, country: true, address: true, addressLat: true, addressLng: true, postcode: true } });
   if (!supplier) return null;
   if (kind === "dropship") {
     const row = await db.supplierOrder.findFirst({
@@ -123,6 +123,13 @@ async function loadOrder(supplierId: string, kind: SupplierOrderKind, orderId: s
 }
 
 /** The supplier's saved address for pickups: "12 Balogun St, Lagos". */
+/** The supplier's saved pin and postcode, only when the pickup is from their saved address. */
+function savedPickupGeo(supplier: { address: string | null; city: string; addressLat?: number | null; addressLng?: number | null; postcode?: string | null }, address: string) {
+  if (address !== savedPickupAddress(supplier).replace(/\s+/g, " ").slice(0, 300)) return { pickupPoint: null, pickupPostcode: null };
+  const point = supplier.addressLat != null && supplier.addressLng != null ? { lat: supplier.addressLat, lng: supplier.addressLng } : null;
+  return { pickupPoint: point, pickupPostcode: supplier.postcode ?? null };
+}
+
 export function savedPickupAddress(supplier: { address: string | null; city: string }) {
   const address = supplier.address?.trim() ?? "";
   if (!address) return "";
@@ -269,7 +276,7 @@ export async function bookPickup(input: BookPickupInput, now = new Date()): Prom
   if (pickup && pickup.status !== "cancelled") {
     // Moving the time: only while no rider has the job.
     if (!pickupChangeable(pickup, job)) return { ok: false, code: "CONFLICT", message: "A rider already has this pickup, so the time can't change here. Message the shop to change it." };
-    if (job && !(await moveDeliveryJobWindow(job.id, { ...window, pickupLocation: address }))) {
+    if (job && !(await moveDeliveryJobWindow(job.id, { ...window, pickupLocation: address, ...savedPickupGeo(order.supplier, address) }))) {
       return { ok: false, code: "CONFLICT", message: "A rider just took this pickup, so the time can't change here. Message the shop to change it." };
     }
     await db.supplierPickup.update({ where: { id: pickup.id }, data: { windowStart: window.start, windowEnd: window.end, slotKey: slot.slot.key, pickupAddress: address } });
@@ -317,7 +324,7 @@ export async function bookPickup(input: BookPickupInput, now = new Date()): Prom
     retailOrderId: order.retailOrderId,
   });
   try {
-    const booking = await createDeliveryJob({ sellerId: order.sellerId, logisticsPartnerId: partner.id, currency: order.currency, ...payload });
+    const booking = await createDeliveryJob({ sellerId: order.sellerId, logisticsPartnerId: partner.id, currency: order.currency, ...payload, ...savedPickupGeo(order.supplier, payload.pickupLocation) });
     await db.supplierPickup.update({ where: { id: pickupId }, data: { deliveryBookingId: booking.id, logisticsPartnerId: partner.id } });
   } catch (error) {
     await db.supplierPickup.update({ where: { id: pickupId }, data: { status: "cancelled" } }).catch(() => null);
@@ -461,7 +468,7 @@ export async function assignPickupPartner(pickupId: string, partnerId: string): 
     retailOrderId: order.retailOrderId,
   });
   try {
-    const booking = await createDeliveryJob({ sellerId: order.sellerId, logisticsPartnerId: partner.id, currency: order.currency, ...payload });
+    const booking = await createDeliveryJob({ sellerId: order.sellerId, logisticsPartnerId: partner.id, currency: order.currency, ...payload, ...savedPickupGeo(order.supplier, payload.pickupLocation) });
     await db.supplierPickup.update({ where: { id: pickup.id }, data: { deliveryBookingId: booking.id, adminNote: `Booked with ${partner.displayName} by the team.` } });
   } catch (error) {
     await db.supplierPickup.update({ where: { id: pickup.id }, data: { status: "finding_rider", needsAdmin: true, logisticsPartnerId: null } }).catch(() => null);

@@ -10,6 +10,7 @@ import { Icon } from "@/components/ui/Icon";
 import { PlanUpgradeSection } from "@/components/payments/PlanUpgradeSection";
 import { SupplierCoverUpload, SupplierPhotoUpload } from "@/components/supplier/SupplierProfileUploads";
 import { IdentityImageUploader } from "@/components/profile/IdentityImageUploader";
+import { PortalAddressFields } from "@/components/geo/PortalAddressFields";
 import { verificationLabel, buttonClass, fieldClass, hintClass, labelClass, supplierFrame, textareaClass } from "@/components/supplier/supplier-kit";
 import { db } from "@/lib/db/client";
 import { isProPlan } from "@/lib/role-queries";
@@ -148,6 +149,22 @@ export default async function SupplierProfilePage({ searchParams }: PageProps) {
                         <VoiceInputButton targetId="description" context="a description of a supplier business" className="mt-2" />
                         <div className={hintClass}>{t("profile.aboutHint")}</div>
                       </div>
+                    </div>
+                  </Card>
+
+                  <Card className="p-5 sm:p-6">
+                    <CardHead title={t("profile.pickupAddress")} sub={t("profile.pickupAddressSub")} />
+                    <div className="mt-4">
+                      <PortalAddressFields
+                        address={supplier.address}
+                        postcode={supplier.postcode}
+                        lat={supplier.addressLat}
+                        lng={supplier.addressLng}
+                        labels={{ street: t("profile.street"), postcode: t("profile.postcode"), postcodeHelp: t("profile.postcodeHelp") }}
+                        inputClass={fieldClass}
+                        labelClass={labelClass}
+                        hintClass={hintClass}
+                      />
                     </div>
                   </Card>
 

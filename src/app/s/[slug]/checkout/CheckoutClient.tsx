@@ -40,6 +40,7 @@ import {
   readPrefill,
   readSavedDetails,
   regionsFor,
+  withGeoAddress,
   rememberBagDiscount,
   saveDetails,
   type AppliedCode,
@@ -91,7 +92,6 @@ import { readGameConfig } from "@/lib/gamification/logic";
 import { RewardProgress } from "@/components/storefront/gamification/RewardProgress";
 import { PointsAtCheckout, WonCodeBanner } from "@/components/storefront/gamification/Rewards";
 import type { GeoAddress } from "@/lib/geo/types";
-import { matchRegion } from "@shared/ng-postcode";
 
 // The checkout in the layout the seller chose in the store builder (checkout page settings, read from the published
 // snapshot): Two columns, One page, Steps (contact → delivery → payment) or Minimal. Guest checkout (no account),
@@ -308,20 +308,7 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
 
   /** A picked suggestion, "use my location" or a looked-up postcode: fills what it knows, keeps the rest. */
   function applyAddress(address: GeoAddress) {
-    setDetails((prev) => {
-      const country = address.country ? countryName(address.country) : prev.country;
-      const state = matchRegion(address.state, regionsFor(country)) || (regionsFor(country).length ? prev.state : address.state || prev.state);
-      return {
-        ...prev,
-        street: address.street || prev.street,
-        city: address.city || prev.city,
-        state,
-        country,
-        postcode: address.postcode?.postcode ?? prev.postcode,
-        lat: address.lat ?? prev.lat ?? null,
-        lng: address.lng ?? prev.lng ?? null,
-      };
-    });
+    setDetails((prev) => withGeoAddress(prev, address));
     setErrors((prev) => ({ ...prev, street: undefined, city: undefined, state: undefined, postcode: undefined }));
   }
 

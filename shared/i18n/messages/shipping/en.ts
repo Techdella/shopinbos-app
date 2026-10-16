@@ -113,6 +113,8 @@ const en = {
   "qf.pickup": "Pick up from",
   "qf.pickupPlaceholder": "e.g. Yaba, Lagos",
   "qf.dest": "Deliver to",
+  "qf.findPickup": "Find the pickup address",
+  "qf.findDest": "Find the delivery address",
   "qf.destPlaceholder": "e.g. Wuse 2, Abuja",
   "qf.weight": "Weight in kg (optional)",
   "qf.date": "Pick-up day (optional)",

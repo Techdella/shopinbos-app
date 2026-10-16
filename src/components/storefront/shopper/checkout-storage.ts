@@ -3,6 +3,8 @@
 
 import { sanitizeSavedDetails, type CheckoutDetails } from "@shared/cart-checkout";
 import { westAfricaCountries } from "@/lib/data/west-africa";
+import type { GeoAddress } from "@/lib/geo/types";
+import { matchRegion } from "@shared/ng-postcode";
 
 const detailsKey = (slug: string) => `checkout-details:${slug}`;
 const discountKey = (slug: string) => `checkout-discount:${slug}`;
@@ -95,4 +97,24 @@ export function readPrefill(slug: string): Partial<CheckoutDetails> {
   } catch {
     return {};
   }
+}
+
+/**
+ * The buyer's details with a looked-up address applied (a picked suggestion, "use my location" or a postcode):
+ * fills what it knows, keeps the rest, and picks the state from the country's list.
+ */
+export function withGeoAddress(prev: CheckoutDetails, address: GeoAddress): CheckoutDetails {
+  const country = address.country ? countryName(address.country) : prev.country;
+  const regions = regionsFor(country);
+  const state = matchRegion(address.state, regions) || (regions.length ? prev.state : address.state || prev.state);
+  return {
+    ...prev,
+    street: address.street || prev.street,
+    city: address.city || prev.city,
+    state,
+    country,
+    postcode: address.postcode?.postcode ?? prev.postcode,
+    lat: address.lat ?? prev.lat ?? null,
+    lng: address.lng ?? prev.lng ?? null,
+  };
 }

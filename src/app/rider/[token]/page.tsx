@@ -6,6 +6,7 @@ import { cashToPayIn } from "@/lib/logistics/job-rules";
 import { riderFromToken } from "@/lib/logistics/rider-session";
 import { toE164 } from "@shared/phone";
 import { addressPoint, directionsUrl } from "@shared/delivery-geo";
+import { bookingDropoffPoint } from "@/lib/logistics/booking-geo.server";
 import { RiderApp, type RiderRun } from "./RiderApp";
 import { pickupWindowText } from "@shared/supplier-pickup";
 import { getT } from "@/lib/i18n/server";
@@ -69,7 +70,7 @@ export default async function RiderPage({ params }: { params: Promise<{ token: s
       select: {
         id: true, status: true, sellerId: true, orderId: true, pickupLocation: true, destination: true, packageDetails: true,
         deliveryFee: true, platformFee: true, netAmount: true, codAmount: true, pickupWindowStart: true, pickupWindowEnd: true,
-        pickupLat: true, pickupLng: true,
+        pickupLat: true, pickupLng: true, dropoffLat: true, dropoffLng: true,
         seller: { select: { name: true, store: { select: { name: true } } } },
       },
     }),
@@ -111,7 +112,7 @@ export default async function RiderPage({ params }: { params: Promise<{ token: s
       status: job.status,
       address: lines.length ? lines.join(", ") : job.destination,
       area: job.destination,
-      mapUrl: directionsUrl({ point: order ? addressPoint(order.deliveryAddress) : null, address: lines.length ? lines.join(", ") : job.destination }),
+      mapUrl: directionsUrl({ point: (order ? addressPoint(order.deliveryAddress) : null) ?? bookingDropoffPoint(job), address: lines.length ? lines.join(", ") : job.destination }),
       buyerName: order?.buyerName ?? null,
       buyerPhone: phone,
       collect: job.codAmount && job.codAmount > 0 ? job.codAmount : 0,

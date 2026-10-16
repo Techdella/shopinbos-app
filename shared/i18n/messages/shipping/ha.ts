@@ -115,6 +115,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "qf.pickup": "Ɗauka daga",
   "qf.pickupPlaceholder": "misali Yaba, Lagos",
   "qf.dest": "Kai zuwa",
+  "qf.findPickup": "Nemo adireshin ɗauka",
+  "qf.findDest": "Nemo adireshin kai kaya",
   "qf.destPlaceholder": "misali Wuse 2, Abuja",
   "qf.weight": "Nauyi a kg (na zaɓi)",
   "qf.date": "Ranar ɗauka (na zaɓi)",

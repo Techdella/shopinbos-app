@@ -7,6 +7,7 @@ import { toE164 } from "@shared/phone";
 import { pickupWindowText } from "@shared/supplier-pickup";
 import { addressPoint, directionsUrl, riderGroup, riderWhereWords, type LatLng } from "@shared/delivery-geo";
 import { ensurePickupCoords } from "@/lib/logistics/geocode";
+import { bookingDropoffPoint } from "@/lib/logistics/booking-geo.server";
 
 // Shared by the mobile delivery partner routes (/api/mobile/logistics/**): the job shape the app reads, and
 // the buyer details a rider needs at the door. Same numbers as the web dispatch console (net fee, cash to collect).
@@ -17,6 +18,7 @@ export const JOB_SELECT = {
   trackingCode: true, estimatedDelivery: true, pickedUpAt: true, deliveredAt: true, failedReason: true, proofUrl: true,
   notes: true, createdAt: true, riderId: true, pickupWindowStart: true, pickupWindowEnd: true,
   pickupLat: true, pickupLng: true, pickupGeoSource: true, pickupGeocodedAt: true,
+  pickupPostcode: true, dropoffLat: true, dropoffLng: true, dropoffPostcode: true,
   rider: { select: { id: true, name: true } },
   seller: { select: { id: true, name: true, store: { select: { name: true } } } },
 } satisfies Prisma.DeliveryBookingSelect;
@@ -81,7 +83,7 @@ export function jobView(job: JobRow, order?: OrderRow, pickupGeo?: LatLng | null
           phone: order.buyerPhone ? toE164(order.buyerPhone) : null,
           address: lines.length ? lines.join(", ") : job.destination,
           // The buyer's exact pin from checkout, when they picked one.
-          mapUrl: directionsUrl({ point: addressPoint(order.deliveryAddress), address: lines.length ? lines.join(", ") : job.destination }),
+          mapUrl: directionsUrl({ point: addressPoint(order.deliveryAddress) ?? bookingDropoffPoint(job), address: lines.length ? lines.join(", ") : job.destination }),
         }
       : null,
   };

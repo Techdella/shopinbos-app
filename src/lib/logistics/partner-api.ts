@@ -11,6 +11,7 @@ const JOB_SELECT = {
   id: true, status: true, pickupLocation: true, destination: true, packageDetails: true, deliveryFee: true, currency: true,
   codAmount: true, codCollected: true, codMethod: true, trackingCode: true, estimatedDelivery: true, pickedUpAt: true,
   deliveredAt: true, failedReason: true, proofUrl: true, createdAt: true, orderId: true,
+  pickupLat: true, pickupLng: true, pickupPostcode: true, dropoffLat: true, dropoffLng: true, dropoffPostcode: true,
   rider: { select: { id: true, name: true, phone: true } },
 } as const;
 

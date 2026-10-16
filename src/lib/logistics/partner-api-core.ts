@@ -110,7 +110,17 @@ export interface PartnerJobSource {
   /** Supplier pickups: when the rider should collect it. */
   pickupWindowStart?: Date | null;
   pickupWindowEnd?: Date | null;
+  /** Points and NIPOST postcodes (src/lib/logistics/booking-geo.server.ts). */
+  pickupLat?: number | null;
+  pickupLng?: number | null;
+  pickupPostcode?: string | null;
+  dropoffLat?: number | null;
+  dropoffLng?: number | null;
+  dropoffPostcode?: string | null;
 }
+
+const point = (lat: number | null | undefined, lng: number | null | undefined) =>
+  typeof lat === "number" && typeof lng === "number" && Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
 
 /**
  * The job as the API returns it and webhooks carry it. Never the buyer's email; the buyer's name and phone only
@@ -123,6 +133,12 @@ export function partnerJob(job: PartnerJobSource, buyer?: { name: string | null;
     status: job.status,
     pickup: job.pickupLocation,
     destination: job.destination,
+    // Where to go: exact points when known (the buyer's checkout pin, a supplier's saved pin, or a geocoded
+    // address) and the NIPOST digital postcodes. Null when not known yet.
+    pickupPoint: point(job.pickupLat, job.pickupLng),
+    pickupPostcode: job.pickupPostcode ?? null,
+    destinationPoint: point(job.dropoffLat, job.dropoffLng),
+    destinationPostcode: job.dropoffPostcode ?? null,
     package: {
       description: typeof pkg.description === "string" ? pkg.description : null,
       weight: typeof pkg.weight === "number" ? pkg.weight : null,

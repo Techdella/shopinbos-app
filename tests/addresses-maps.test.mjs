@@ -107,3 +107,37 @@ test("keys stay on the server and lookups are limited and same-origin", () => {
   assert.match(read("src/lib/rate-limit.ts"), /address: \{\},/);
   assert.match(read("next.config.ts"), /geolocation=\(self\)/);
 });
+
+test("portal address forms keep a pin only for the address it was picked for", async () => {
+  const { addressFromForm } = await import("../src/lib/geo/form-address.ts");
+  const form = (fields) => ({ get: (name) => fields[name] ?? null, has: (name) => name in fields });
+  assert.equal(addressFromForm(form({ city: "Lagos" })), null);
+  assert.deepEqual(addressFromForm(form({ address: "12 Allen Ave", postcode: "la11w06tc10", addressLat: "6.6018", addressLng: "3.3515", addressPinFor: "12 Allen Ave" })), {
+    address: "12 Allen Ave", postcode: "LA-11-W06-TC-10", addressLat: 6.6018, addressLng: 3.3515,
+  });
+  // Edited by hand after picking: the old pin is dropped.
+  assert.deepEqual(addressFromForm(form({ address: "14 Allen Ave", postcode: "", addressLat: "6.6018", addressLng: "3.3515", addressPinFor: "12 Allen Ave" })), {
+    address: "14 Allen Ave", postcode: null, addressLat: null, addressLng: null,
+  });
+  assert.match(addressFromForm(form({ address: "12 Allen Ave", postcode: "LA-11" })).error, /LA-11-W06-TC-10/);
+  assert.equal(addressFromForm(form({ address: "1 Ring Rd", postcode: "GA-123-4567" }), { nigeria: false }).postcode, "GA-123-4567");
+});
+
+test("partner systems get the job's points and postcodes", async () => {
+  const { partnerJob } = await import("../src/lib/logistics/partner-api-core.ts");
+  const base = { id: "j1", status: "pending", pickupLocation: "A", destination: "B", packageDetails: {}, deliveryFee: 2000, currency: "NGN", codAmount: null, trackingCode: null, createdAt: new Date("2026-10-16T10:00:00Z") };
+  const job = partnerJob({ ...base, pickupLat: 6.45, pickupLng: 3.4, pickupPostcode: "LA-01-A01-AA-01", dropoffLat: 6.6, dropoffLng: 3.35, dropoffPostcode: "LA-11-W06-TC-10" });
+  assert.deepEqual(job.pickupPoint, { lat: 6.45, lng: 3.4 });
+  assert.deepEqual(job.destinationPoint, { lat: 6.6, lng: 3.35 });
+  assert.equal(job.destinationPostcode, "LA-11-W06-TC-10");
+  const bare = partnerJob(base);
+  assert.equal(bare.pickupPoint, null);
+  assert.equal(bare.destinationPoint, null);
+});
+
+test("every booking creation path saves pickup and drop-off points", () => {
+  for (const path of ["src/lib/logistics/booking.server.ts", "src/app/api/app/logistics/bookings/route.ts", "src/app/api/app/logistics/quotes/[id]/accept/route.ts"]) {
+    assert.match(read(path), /bookingGeoFields\(/, path);
+  }
+  assert.match(read("docs/migrations/2026-11-06-address-pins.sql"), /"dropoffLat" DOUBLE PRECISION/);
+});

@@ -9,6 +9,7 @@ import { bookingNet, lagosStartOfToday, packageSummary } from "@/components/logi
 import { markDelivered, markFailed, setRiderOnline, startRun } from "@/app/rider/[token]/actions";
 import { toE164 } from "@shared/phone";
 import { addressPoint, directionsUrl } from "@shared/delivery-geo";
+import { bookingDropoffPoint } from "@/lib/logistics/booking-geo.server";
 import { pickupWindowText } from "@shared/supplier-pickup";
 import { notesWithRecipient } from "../_shared";
 
@@ -41,7 +42,7 @@ export async function GET(req: NextRequest) {
       select: {
         id: true, status: true, sellerId: true, orderId: true, pickupLocation: true, destination: true, packageDetails: true,
         deliveryFee: true, platformFee: true, netAmount: true, codAmount: true, proofUrl: true, pickupWindowStart: true, pickupWindowEnd: true,
-        pickupLat: true, pickupLng: true,
+        pickupLat: true, pickupLng: true, dropoffLat: true, dropoffLng: true,
         seller: { select: { name: true, store: { select: { name: true } } } },
       },
     }),
@@ -70,7 +71,7 @@ export async function GET(req: NextRequest) {
       address: lines.length ? lines.join(", ") : job.destination,
       area: job.destination,
       // Google Maps directions: the buyer's exact pin when they picked one at checkout, else the address text.
-      mapUrl: directionsUrl({ point: order ? addressPoint(order.deliveryAddress) : null, address: lines.length ? lines.join(", ") : job.destination }),
+      mapUrl: directionsUrl({ point: (order ? addressPoint(order.deliveryAddress) : null) ?? bookingDropoffPoint(job), address: lines.length ? lines.join(", ") : job.destination }),
       buyerName: order?.buyerName ?? null,
       buyerPhone: order?.buyerPhone ? toE164(order.buyerPhone) : null,
       collect: job.codAmount && job.codAmount > 0 ? job.codAmount : 0,

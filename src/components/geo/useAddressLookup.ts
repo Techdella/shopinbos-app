@@ -128,3 +128,13 @@ export function mapImageUrl(point: { lat: number; lng: number }, size: { w?: num
   const params = new URLSearchParams({ lat: point.lat.toFixed(5), lng: point.lng.toFixed(5), w: String(size.w ?? 600), h: String(size.h ?? 220), z: String(size.z ?? 16) });
   return `/api/public/geo/map?${params}`;
 }
+
+/**
+ * A looked-up address as one line, for fields that keep addresses as text (delivery quotes, supplier pickups):
+ * Google's full address plus the NIPOST postcode, so it geocodes back to the same spot.
+ */
+export function addressLine(address: GeoAddress) {
+  const text = address.formatted || [address.street, address.city, address.state].filter(Boolean).join(", ");
+  const postcode = address.postcode?.spaced;
+  return (postcode && !text.includes(postcode) ? `${text}, ${postcode}` : text).slice(0, 300);
+}

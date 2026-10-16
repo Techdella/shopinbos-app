@@ -115,6 +115,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "qf.pickup": "Kpọrọ ya site na",
   "qf.pickupPlaceholder": "dịka Yaba, Lagos",
   "qf.dest": "Buga ya na",
+  "qf.findPickup": "Chọta adreesị ebe pickup",
+  "qf.findDest": "Chọta adreesị ebe a ga-ebuga ya",
   "qf.destPlaceholder": "dịka Wuse 2, Abuja",
   "qf.weight": "Ịdị arọ na kg (nhọrọ)",
   "qf.date": "Ụbọchị ịkpọrọ (nhọrọ)",

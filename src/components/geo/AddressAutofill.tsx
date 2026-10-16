@@ -10,7 +10,7 @@ import { mapImageUrl, useAddressSuggestions, useGeoStatus, useMyLocation } from 
 // and "use my location" that fill the form's own inputs (found by id) with the street, area, state, country and
 // NIPOST postcode. The form still posts its own fields, so nothing changes for it when Maps isn't configured (the
 // box then only offers "use my location" if NIPOST can answer, or hides itself).
-// Only for uncontrolled inputs: a React-controlled field would overwrite what this writes.
+// For a React-controlled form pass `onFill` instead of `targets` and set the fields from the address yourself.
 
 export interface AutofillTargets {
   street?: string;
@@ -21,6 +21,8 @@ export interface AutofillTargets {
   /** Hidden inputs that receive the pin, when the form keeps one. */
   lat?: string;
   lng?: string;
+  /** Hidden input that receives the street the pin was picked for (src/lib/geo/form-address.ts drops a stale pin). */
+  pinFor?: string;
 }
 
 function write(id: string | undefined, value: string | number | null | undefined) {
@@ -39,7 +41,7 @@ function write(id: string | undefined, value: string | number | null | undefined
   input.dispatchEvent(new Event("change", { bubbles: true }));
 }
 
-export function AddressAutofill({ targets, label = "Find your address", country = "Nigeria" }: { targets: AutofillTargets; label?: string; country?: string }) {
+export function AddressAutofill({ targets = {}, onFill, label = "Find your address", country = "Nigeria", id = "address-autofill" }: { targets?: AutofillTargets; onFill?: (address: GeoAddress) => void; label?: string; country?: string; id?: string }) {
   const status = useGeoStatus();
   const [query, setQuery] = useState("");
   const [note, setNote] = useState("");
@@ -50,6 +52,7 @@ export function AddressAutofill({ targets, label = "Find your address", country 
   if (!status.maps && !status.nipost) return null;
 
   function fill(address: GeoAddress) {
+    onFill?.(address);
     write(targets.street, address.street);
     write(targets.city, address.city);
     write(targets.state, address.state);
@@ -57,6 +60,11 @@ export function AddressAutofill({ targets, label = "Find your address", country 
     write(targets.postcode, address.postcode?.postcode);
     write(targets.lat, address.lat);
     write(targets.lng, address.lng);
+    // The pin belongs to whatever the street field now says (kept as is when the lookup had no street).
+    if (targets.pinFor && address.lat !== null) {
+      const street = targets.street ? (document.getElementById(targets.street) as HTMLInputElement | null)?.value : "";
+      write(targets.pinFor, street?.trim().replace(/\s+/g, " ") || null);
+    }
     setPin(address.lat !== null && address.lng !== null ? { lat: address.lat, lng: address.lng } : null);
     setNote(address.postcode ? `Postcode ${address.postcode.spaced} added.` : "Address added. Check it below and save.");
   }
@@ -65,9 +73,9 @@ export function AddressAutofill({ targets, label = "Find your address", country 
     <div className="rounded-[18px] bg-app-canvas p-4">
       {status.maps ? (
         <>
-          <label htmlFor="address-autofill" className={FIELD_LABEL}>{label}</label>
+          <label htmlFor={id} className={FIELD_LABEL}>{label}</label>
           <input
-            id="address-autofill"
+            id={id}
             className={FIELD_INPUT}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
@@ -77,10 +85,10 @@ export function AddressAutofill({ targets, label = "Find your address", country 
             role="combobox"
             aria-autocomplete="list"
             aria-expanded={suggestions.length > 0}
-            aria-controls="address-autofill-options"
+            aria-controls={`${id}-options`}
           />
           {suggestions.length > 0 ? (
-            <ul id="address-autofill-options" role="listbox" className="m-0 mt-1.5 list-none rounded-[16px] border border-app-line bg-white p-1">
+            <ul id={`${id}-options`} role="listbox" className="m-0 mt-1.5 list-none rounded-[16px] border border-app-line bg-white p-1">
               {suggestions.map((suggestion) => (
                 <li
                   key={suggestion.placeId}

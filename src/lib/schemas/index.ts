@@ -96,6 +96,10 @@ export const SupplierOnboardingSchema = z.object({
   country: z.string().min(2).max(60).optional(),
   city: z.string().min(2).max(60).optional(),
   address: z.string().max(300).optional(),
+  /** NIPOST digital postcode and pin from "Find your address"; null clears them. */
+  postcode: z.string().max(20).nullish(),
+  addressLat: z.number().min(-90).max(90).nullish(),
+  addressLng: z.number().min(-180).max(180).nullish(),
   description: z.string().max(2000).optional(),
   categories: z.array(z.string().min(1).max(80)).max(12).optional(),
   documents: z.array(SupplierOnboardingDocumentSchema).max(12).default([]),
@@ -616,6 +620,10 @@ export const DeliveryBookingCreateSchema = z.object({
   currency: z.string().length(3).default("NGN"),
   estimatedDelivery: z.coerce.date().optional(),
   notes: z.string().max(1000).optional(),
+  /** Pins from "Find your address" (optional: without them the drop-off address is geocoded). */
+  pickupPoint: z.object({ lat: z.number().min(-90).max(90), lng: z.number().min(-180).max(180) }).optional(),
+  dropoffPoint: z.object({ lat: z.number().min(-90).max(90), lng: z.number().min(-180).max(180) }).optional(),
+  dropoffPostcode: z.string().max(20).optional(),
 });
 
 export const BookingStatusUpdateSchema = z.object({

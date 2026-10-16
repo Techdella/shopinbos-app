@@ -5,6 +5,7 @@ import { db } from "@/lib/db/client";
 import { invalidatePublicMarketplaceCache } from "@/lib/api/cache";
 import { ok, apiError } from "@/lib/api/response";
 import { SupplierOnboardingSchema } from "@/lib/schemas";
+import { normalizeNgPostcode } from "@shared/ng-postcode";
 import type { AuthUser } from "@/lib/auth/types";
 import {
   SUPPLIER_DOC_TYPES,
@@ -102,6 +103,13 @@ export const PATCH = withSupplier(async (req: NextRequest, { user }: { user: Aut
       country: parsed.data.country ?? supplier.country,
       city: parsed.data.city ?? supplier.city,
       address: parsed.data.address ?? supplier.address,
+      ...(parsed.data.postcode !== undefined ? { postcode: normalizeNgPostcode(parsed.data.postcode) || null } : {}),
+      // Both or neither: a half pin is no pin.
+      ...(parsed.data.addressLat !== undefined || parsed.data.addressLng !== undefined
+        ? parsed.data.addressLat != null && parsed.data.addressLng != null
+          ? { addressLat: parsed.data.addressLat, addressLng: parsed.data.addressLng }
+          : { addressLat: null, addressLng: null }
+        : {}),
       description: parsed.data.description ?? supplier.description,
       categories: parsed.data.categories?.length ? parsed.data.categories : supplier.categories,
       // Only rewritten on submit, so a save never races an upload that is still in flight.

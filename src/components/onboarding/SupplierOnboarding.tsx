@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AddressAutofill } from "@/components/geo/AddressAutofill";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FieldLabel, Mascot, Notice, PillButton, ProgressBars, TextInput, Wordmark, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
@@ -35,6 +36,9 @@ interface SupplierOnboardingProps {
     country: string | null;
     city: string | null;
     address: string | null;
+    postcode?: string | null;
+    addressLat?: number | null;
+    addressLng?: number | null;
     description: string | null;
     categories: string[];
     verificationDocuments?: unknown;
@@ -66,6 +70,11 @@ export function SupplierOnboarding({ initialUser, initialSupplier }: SupplierOnb
   const [country, setCountry] = useState(initialSupplier?.country ?? initialUser?.country ?? "Nigeria");
   const [city, setCity] = useState(initialSupplier?.city ?? initialUser?.city ?? "Lagos");
   const [address, setAddress] = useState(initialSupplier?.address ?? "");
+  // From "Find your address": the postcode, and the pin (dropped when the street is edited by hand).
+  const [postcode, setPostcode] = useState<string | null>(initialSupplier?.postcode ?? null);
+  const [pin, setPin] = useState<{ lat: number; lng: number } | null>(
+    initialSupplier?.addressLat != null && initialSupplier?.addressLng != null ? { lat: initialSupplier.addressLat, lng: initialSupplier.addressLng } : null,
+  );
   const [description, setDescription] = useState(initialSupplier?.description ?? "");
   const [categories, setCategories] = useState<string[]>(initialSupplier?.categories?.length ? initialSupplier.categories : []);
   const [documents, setDocuments] = useState<VerificationDoc[]>(() => normalizeVerificationDocs(initialSupplier?.verificationDocuments));
@@ -141,6 +150,9 @@ export function SupplierOnboarding({ initialUser, initialSupplier }: SupplierOnb
           country: textOrUndefined(country),
           city: textOrUndefined(city),
           address,
+          postcode,
+          addressLat: pin?.lat ?? null,
+          addressLng: pin?.lng ?? null,
           description,
           categories,
           readinessScore,
@@ -220,9 +232,25 @@ export function SupplierOnboarding({ initialUser, initialSupplier }: SupplierOnb
                     <TextInput id="onb-city" value={city} onChange={(e) => setCity(e.target.value)} />
                   </div>
                 </div>
+                <AddressAutofill
+                  country={country}
+                  onFill={(found) => {
+                    if (found.street) setAddress(found.street);
+                    if (found.postcode) setPostcode(found.postcode.postcode);
+                    setPin(found.lat !== null && found.lng !== null ? { lat: found.lat, lng: found.lng } : null);
+                  }}
+                />
                 <div>
                   <FieldLabel htmlFor="onb-address">{t("supplier.address")}</FieldLabel>
-                  <TextInput id="onb-address" value={address} onChange={(e) => setAddress(e.target.value)} placeholder={t("supplier.addressPlaceholder")} />
+                  <TextInput
+                    id="onb-address"
+                    value={address}
+                    onChange={(e) => {
+                      setAddress(e.target.value);
+                      setPin(null);
+                    }}
+                    placeholder={t("supplier.addressPlaceholder")}
+                  />
                 </div>
                 <div>
                   <FieldLabel htmlFor="onb-description">{t("supplier.makeSell")}</FieldLabel>

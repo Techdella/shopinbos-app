@@ -547,6 +547,10 @@ model Supplier {
   country            String
   city               String
   address            String?
+  /// The address's pin and NIPOST digital postcode, from "Find your address" (src/components/geo/AddressAutofill.tsx).
+  addressLat         Float?
+  addressLng         Float?
+  postcode           String?
   description        String?
   logoUrl            String?
   bannerUrl          String?
@@ -1053,6 +1057,10 @@ model LogisticsPartner {
   country            String
   city               String
   address            String?
+  /// The address's pin and NIPOST digital postcode, from "Find your address" (src/components/geo/AddressAutofill.tsx).
+  addressLat         Float?
+  addressLng         Float?
+  postcode           String?
   description        String?
   logoUrl            String?
   bannerUrl          String?
@@ -1258,6 +1266,13 @@ model DeliveryBooking {
   pickupLng          Float?
   pickupGeoSource    String?
   pickupGeocodedAt   DateTime?
+  /// Pickup / drop-off NIPOST postcodes and the drop-off pin (src/lib/logistics/booking-geo.server.ts). The pin is the
+  /// buyer's own (picked at checkout) or a geocoded address; dropoffGeoSource says which: pin | nipost | google | nominatim.
+  pickupPostcode     String?
+  dropoffLat         Float?
+  dropoffLng         Float?
+  dropoffPostcode    String?
+  dropoffGeoSource   String?
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
 

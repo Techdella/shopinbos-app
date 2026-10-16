@@ -2,6 +2,8 @@
 
 import { confirmDialog } from "@/components/ui/dialogs";
 import { useState } from "react";
+import { AddressAutofill } from "@/components/geo/AddressAutofill";
+import { addressLine } from "@/components/geo/useAddressLookup";
 import type { PickupSlot } from "@shared/supplier-pickup";
 import { useT } from "@/components/i18n/I18nProvider";
 
@@ -148,6 +150,7 @@ export function PickupBooking({ initial, shop }: { initial: PickupView; shop: st
         <input value={address} onChange={(event) => setAddress(event.target.value)} maxLength={300} placeholder={t("pickup.addressPlaceholder")} className="min-h-[52px] rounded-[14px] border border-app-line bg-white px-4 text-[16px] font-normal outline-none focus:border-app-ink" />
         <span className="text-[13.5px] font-normal text-app-ink-soft">{state.address ? t("pickup.savedAddress") : t("pickup.saveForNext")}</span>
       </label>
+      <AddressAutofill id="pickup-find" label={t("pickup.findAddress")} onFill={(found) => setAddress(addressLine(found))} />
       {error && <p role="alert" className="m-0 rounded-[14px] bg-app-danger-tint px-4 py-3 text-[14.5px] font-bold text-app-danger">{error}</p>}
       <button type="button" onClick={() => void book()} disabled={Boolean(busy)} className="inline-flex min-h-[56px] w-full items-center justify-center rounded-full bg-app-ink px-6 text-[17px] font-extrabold text-white disabled:opacity-60">
         {busy === "book" ? t("pickup.booking") : editing ? t("pickup.saveNewTime") : t("pickup.book")}

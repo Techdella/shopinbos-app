@@ -4,6 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { FieldLabel, Notice, PillButton, TextInput } from "@/components/app-ui";
 import { useT } from "@/components/i18n/I18nProvider";
+import { AddressAutofill } from "@/components/geo/AddressAutofill";
+import { addressLine } from "@/components/geo/useAddressLookup";
+
 
 interface PartnerOption {
   id: string;
@@ -80,10 +83,16 @@ export function QuoteRequestForm({ partners, defaultPartnerId, defaultPickup }: 
         <div className="min-w-0">
           <FieldLabel htmlFor="q-pickup">{t("qf.pickup")}</FieldLabel>
           <TextInput id="q-pickup" required minLength={2} maxLength={300} value={pickup} onChange={(e) => setPickup(e.target.value)} placeholder={t("qf.pickupPlaceholder")} />
+          <div className="mt-2">
+            <AddressAutofill id="q-pickup-find" label={t("qf.findPickup")} onFill={(found) => setPickup(addressLine(found))} />
+          </div>
         </div>
         <div className="min-w-0">
           <FieldLabel htmlFor="q-dest">{t("qf.dest")}</FieldLabel>
           <TextInput id="q-dest" required minLength={2} maxLength={300} value={destination} onChange={(e) => setDestination(e.target.value)} placeholder={t("qf.destPlaceholder")} />
+          <div className="mt-2">
+            <AddressAutofill id="q-dest-find" label={t("qf.findDest")} onFill={(found) => setDestination(addressLine(found))} />
+          </div>
         </div>
         <div className="min-w-0">
           <FieldLabel htmlFor="q-weight">{t("qf.weight")}</FieldLabel>

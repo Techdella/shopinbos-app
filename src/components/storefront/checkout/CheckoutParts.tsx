@@ -187,7 +187,7 @@ export function StepProgress({ theme, steps, current, reached, onSelect }: { the
 
 // ─── Form sections ────────────────────────────────────────────────────────────
 
-type SetField = <K extends keyof CheckoutDetails>(field: K, value: CheckoutDetails[K]) => void;
+export type SetField = <K extends keyof CheckoutDetails>(field: K, value: CheckoutDetails[K]) => void;
 
 export function ContactFields({ theme, details, errors, set, requirePhone }: { theme: ShopperTheme; details: CheckoutDetails; errors: FieldErrors; set: SetField; requirePhone: boolean }) {
   return (
@@ -303,14 +303,14 @@ export function DeliveryFields({
 // ─── Address helpers (Google Maps + NIPOST postcodes) ───────────────────────────
 
 /** The street field with address suggestions as you type and "use my current location". */
-function StreetAddressField({ theme, details, error, set, onAddress }: { theme: ShopperTheme; details: CheckoutDetails; error?: string; set: SetField; onAddress: (address: GeoAddress) => void }) {
+export function StreetAddressField({ theme, details, error, set, onAddress, idPrefix = "co" }: { theme: ShopperTheme; details: CheckoutDetails; error?: string; set: SetField; onAddress: (address: GeoAddress) => void; idPrefix?: string }) {
   const status = useGeoStatus();
   const { suggestions, loading, pick, close } = useAddressSuggestions(details.street, { country: details.country, enabled: status.maps });
   const { locate, busy, supported } = useMyLocation();
   const [active, setActive] = useState(-1);
   const [note, setNote] = useState("");
   const open = suggestions.length > 0;
-  const listId = "co-street-options";
+  const listId = `${idPrefix}-street-options`;
 
   async function choose(index: number) {
     const suggestion = suggestions[index];
@@ -332,7 +332,7 @@ function StreetAddressField({ theme, details, error, set, onAddress }: { theme: 
     <div>
       <TextField
         theme={theme}
-        id="co-street"
+        id={`${idPrefix}-street`}
         label="Street address"
         value={details.street}
         onChange={(value) => {
@@ -405,7 +405,7 @@ function StreetAddressField({ theme, details, error, set, onAddress }: { theme: 
 }
 
 /** The optional digital postcode, checked offline as it's typed and with NIPOST once it's complete. */
-function PostcodeField({ theme, details, error, set, onAddress }: { theme: ShopperTheme; details: CheckoutDetails; error?: string; set: SetField; onAddress?: (address: GeoAddress) => void }) {
+export function PostcodeField({ theme, details, error, set, onAddress, idPrefix = "co" }: { theme: ShopperTheme; details: CheckoutDetails; error?: string; set: SetField; onAddress?: (address: GeoAddress) => void; idPrefix?: string }) {
   const [state, setState] = useState<{ code: string; text: string; good: boolean } | null>(null);
   const value = details.postcode ?? "";
   const parsed = parseNgPostcode(value);
@@ -429,7 +429,7 @@ function PostcodeField({ theme, details, error, set, onAddress }: { theme: Shopp
   return (
     <TextField
       theme={theme}
-      id="co-postcode"
+      id={`${idPrefix}-postcode`}
       label="Postcode (optional)"
       value={value}
       onChange={(next) => set("postcode", next.toUpperCase())}
@@ -446,7 +446,7 @@ function PostcodeField({ theme, details, error, set, onAddress }: { theme: Shopp
 }
 
 /** A small map with the pin the buyer picked, so a wrong suggestion is easy to spot. */
-function PinPreview({ theme, point }: { theme: ShopperTheme; point: { lat: number; lng: number } }) {
+export function PinPreview({ theme, point }: { theme: ShopperTheme; point: { lat: number; lng: number } }) {
   const [failed, setFailed] = useState(false);
   if (failed) return null;
   return (

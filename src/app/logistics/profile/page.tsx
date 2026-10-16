@@ -8,6 +8,7 @@ import { getLogisticsWorkspace } from "@/lib/workspace";
 import { Card, CardHead, Pill, PillLink, TextLink } from "@/components/app-kit";
 import { Notice } from "@/components/app-ui";
 import { logisticsRouteLimitMessage } from "@/lib/plan-limits";
+import { PortalAddressFields } from "@/components/geo/PortalAddressFields";
 import { KeyValue, PartnerPage, SubmitButton, inputClass, labelClass, naira, textareaClass } from "@/components/logistics/kit";
 import { LogoUploadForm } from "./LogoUploadForm";
 import { IdentityImageUploader } from "@/components/profile/IdentityImageUploader";
@@ -115,6 +116,21 @@ export default async function LogisticsProfilePage({ searchParams }: PageProps) 
                   <textarea id="description" name="description" rows={4} defaultValue={partner.description ?? ""} placeholder={t("company.aboutPlaceholder")} className={textareaClass} />
                   <VoiceInputButton targetId="description" context="a description of a delivery business" className="mt-2" />
                 </div>
+              </div>
+            </Card>
+
+            <Card className="p-5">
+              <CardHead title={t("company.depotAddress")} sub={t("company.depotAddressSub")} />
+              <div className="mt-4">
+                <PortalAddressFields
+                  address={partner.address}
+                  postcode={partner.postcode}
+                  lat={partner.addressLat}
+                  lng={partner.addressLng}
+                  labels={{ street: t("company.street"), postcode: t("company.postcode"), postcodeHelp: t("company.postcodeHelp") }}
+                  inputClass={inputClass}
+                  labelClass={labelClass}
+                />
               </div>
             </Card>
 

@@ -3,6 +3,7 @@ import { withSeller } from "@/lib/auth/middleware";
 import { ok, apiError } from "@/lib/api/response";
 import { emitPartnerEvent } from "@/lib/logistics/webhooks";
 import { partnerJob } from "@/lib/logistics/partner-api-core";
+import { bookingGeoFields } from "@/lib/logistics/booking-geo.server";
 import { notifyJobOffered } from "@/lib/notifications/events.server";
 
 // Seller accepts a partner's quoted price: the quote becomes a booking at that price, offered to the partner
@@ -31,8 +32,11 @@ export const POST = withSeller(async (_req, { user, params }) => {
   const claimed = await db.deliveryQuoteRequest.updateMany({ where: { id: quote.id, status: "responded" }, data: { status: "accepted" } });
   if (claimed.count !== 1) return apiError("CONFLICT", "This quote was already accepted.", 409);
 
+  // Quotes keep addresses as text; picked from suggestions they geocode to the same point (cached).
+  const geo = await bookingGeoFields({ pickup: { address: quote.pickupLocation }, dropoff: { address: quote.destination } });
   const booking = await db.deliveryBooking.create({
     data: {
+      ...geo,
       sellerId: user.id,
       logisticsPartnerId: quote.logisticsPartnerId,
       pickupLocation: quote.pickupLocation,

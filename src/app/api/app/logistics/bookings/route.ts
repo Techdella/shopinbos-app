@@ -6,6 +6,7 @@ import { ok, okList, apiError, parsePagination } from "@/lib/api/response";
 import { DeliveryBookingCreateSchema } from "@/lib/schemas";
 import type { AuthUser } from "@/lib/auth/types";
 import { emitPartnerEvent } from "@/lib/logistics/webhooks";
+import { bookingGeoFields } from "@/lib/logistics/booking-geo.server";
 import { partnerJob } from "@/lib/logistics/partner-api-core";
 import { canOfferJob } from "@/lib/logistics/payin-deadline";
 import { notifyJobOffered } from "@/lib/notifications/events.server";
@@ -66,8 +67,14 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
     return apiError("CONFLICT", "This delivery company can't take jobs where the customer pays when it arrives right now. Pick another delivery company.", 409);
   }
 
+  const { pickupPoint, dropoffPoint, dropoffPostcode, ...fields } = parsed.data;
+  const geo = await bookingGeoFields({
+    pickup: { address: fields.pickupLocation, point: pickupPoint },
+    dropoff: { address: fields.destination, point: dropoffPoint, postcode: dropoffPostcode },
+    orderId: fields.orderId,
+  });
   const booking = await db.deliveryBooking.create({
-    data: { sellerId: user.id, ...parsed.data, codAmount },
+    data: { sellerId: user.id, ...fields, ...geo, codAmount },
   });
   void emitPartnerEvent(partner.id, "job.offered", partnerJob(booking)).catch(() => undefined);
   await notifyJobOffered({ bookingId: booking.id, logisticsPartnerId: partner.id });

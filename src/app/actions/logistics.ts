@@ -1,5 +1,7 @@
 "use server";
 
+import { addressFromForm } from "@/lib/geo/form-address";
+import { isNigeria } from "@shared/cart-checkout";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -471,9 +473,14 @@ export async function updateLogisticsProfile(formData: FormData) {
     data: { name, city, country },
   });
 
+  // Pickup / depot address, postcode and pin ("Find your address"); untouched when the form has no address field.
+  const place = addressFromForm(formData, { nigeria: isNigeria(country) });
+  if (place && "error" in place) redirect(`/logistics/profile?error=${encodeURIComponent(place.error)}`);
+
   await db.logisticsPartner.update({
     where: { id: partner.id },
     data: {
+      ...(place && !("error" in place) ? place : {}),
       displayName,
       companyName: displayName,
       city,
