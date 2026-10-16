@@ -55,6 +55,7 @@ import packaging from "./messages/packaging/index.ts";
 import video from "./messages/video/index.ts";
 import affiliates from "./messages/affiliates/index.ts";
 import analytics from "./messages/analytics/index.ts";
+import traffic from "./messages/traffic/index.ts";
 import reviews from "./messages/reviews/index.ts";
 import discounts from "./messages/discounts/index.ts";
 import campaigns from "./messages/campaigns/index.ts";
@@ -134,6 +135,7 @@ export const CATALOGS = {
   video,
   affiliates,
   analytics,
+  traffic,
   reviews,
   discounts,
   campaigns,

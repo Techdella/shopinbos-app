@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import Script from "next/script";
 import { StorefrontClient } from "./StorefrontClient";
 import { PreviewClient } from "./preview/PreviewClient";
 import { buildStorefrontUrl } from "@/lib/domains/storefront";
@@ -9,7 +8,8 @@ import { storePageSeo } from "@/lib/seo/page-seo";
 import { EMPTY_SEO, seoMetadata } from "@/lib/seo/fields";
 import { resolveStorefront } from "@/lib/storefront/public-store.server";
 import { StoreClosedPage } from "@/components/storefront/shopper/StoreClosedPage";
-import { gaMeasurementId, scriptSafeJson } from "@/lib/security/html";
+import { scriptSafeJson } from "@/lib/security/html";
+import { readIntegrations, storeVerificationMetadata } from "@/lib/storefront/integrations";
 import { normalizeStorefrontPageKey, STOREFRONT_PAGE_PATHS, storeHasStorefrontPage, storefrontPagePath } from "@shared/storefront-pages";
 
 // The live storefront as a route renders it: its home (/s/[slug], /) or one of its pages (/shop, /about, a custom
@@ -18,17 +18,6 @@ import { normalizeStorefrontPageKey, STOREFRONT_PAGE_PATHS, storeHasStorefrontPa
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type StoreData = any;
-
-function getIntegrations(brandSettings?: Record<string, unknown>) {
-  const integrations = brandSettings?.integrations;
-  if (!integrations || typeof integrations !== "object") return {};
-  const i = integrations as Record<string, unknown>;
-  return {
-    // Written into an inline script below, so only a well-formed GA4 ID is used.
-    googleAnalyticsId: gaMeasurementId(i.googleAnalyticsId),
-    gaSiteVerification: typeof i.gaSiteVerification === "string" ? i.gaSiteVerification.trim() : "",
-  };
-}
 
 const PAGE_TITLES: Record<string, string> = { products: "Shop", categories: "Categories", about: "About", contact: "Contact", faq: "FAQ" };
 
@@ -74,9 +63,9 @@ export async function storefrontMetadata(slug: string, pageKey = "home", customD
     }) as Metadata;
   }
 
-  const { gaSiteVerification } = getIntegrations(store.brandSettings);
   // Canonical: the store's real address (its own domain, mybos.store subdomain or app.shopinbos.com/s/<slug>).
-  return storeHomeMetadata(store, buildStorefrontUrl(storeRef), gaSiteVerification || undefined);
+  // Verification tags (Search Console, Bing, Meta, Pinterest) from Settings › Connections, validated.
+  return { ...storeHomeMetadata(store, buildStorefrontUrl(storeRef)), ...storeVerificationMetadata(readIntegrations(store.brandSettings)) };
 }
 
 function buildJsonLd(store: StoreData) {
@@ -142,24 +131,11 @@ export async function StorefrontRoute({ slug, storeBasePath, pageKey = "home", c
   if (view.access === "preview") return <PreviewClient store={view.store} storeBasePath={storeBasePath} live={false} initialPage={pageKey} />;
 
   const store: StoreData = view.store;
-  const { googleAnalyticsId } = getIntegrations(store.brandSettings);
   const jsonLdItems = buildJsonLd(store);
 
   return (
     <>
-      {/* GA4 Analytics */}
-      {googleAnalyticsId && (
-        <>
-          <Script
-            src={`https://www.googletagmanager.com/gtag/js?id=${googleAnalyticsId}`}
-            strategy="afterInteractive"
-          />
-          <Script id="ga4-init" strategy="afterInteractive">
-            {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${googleAnalyticsId}');`}
-          </Script>
-        </>
-      )}
-
+      {/* The seller's GA4 / Tag Manager / pixels load from the storefront layout on every live store page. */}
       {/* JSON-LD Structured Data (Google Merchant + rich snippets) */}
       {jsonLdItems.map((item, i) => (
         <script
