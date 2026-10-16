@@ -197,7 +197,7 @@ test("JSON-LD can't close its <script> and the GA ID can't inject script", () =>
   const integrations = read("src/lib/storefront/integrations.ts");
   assert.match(integrations, /googleAnalyticsId: gaMeasurementId,/);
   assert.match(integrations, /const ga = gaMeasurementId\(integrations\.googleAnalyticsId\);/);
-  assert.match(read("src/app/s/[slug]/layout.tsx"), /<StoreTrackingTags integrations=\{integrations\} \/>/);
+  assert.match(read("src/app/s/[slug]/layout.tsx"), /<StoreTrackingTags integrations=\{integrations\} slug=\{slug\} consent=\{consent\}/);
   assert.match(read("src/app/s/[slug]/product/[productId]/ProductPageView.tsx"), /__html: scriptSafeJson\(/);
   assert.match(read("src/app/actions/workspace.ts"), /const googleAnalyticsId = gaMeasurementId\(formData\.get\("googleAnalyticsId"\)\);/);
   // Every JSON-LD script in the app goes through an escaping helper.

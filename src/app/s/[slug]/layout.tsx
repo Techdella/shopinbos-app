@@ -17,6 +17,7 @@ import { StoreTrackingTags } from "@/components/storefront/StoreTrackingTags";
 import { StoreTrafficBeacon } from "@/components/storefront/StoreTrafficBeacon";
 import { liveStoreIntegrations } from "@/lib/storefront/tracking.server";
 import { isPreviewPath } from "@/lib/storefront/integrations";
+import { storeConsentConfig } from "@/lib/storefront/consent-config";
 
 // Every storefront page gets the store's chat box (it hides itself in the builder preview and when the
 // seller hasn't turned live chat on), and the store's name and colours for its 404 and error pages.
@@ -50,8 +51,10 @@ export default async function StorefrontLayout({ children, params }: { children:
   // Store traffic and the seller's own tags (Settings › Connections): live stores only, never the owner's preview.
   const preview = isPreviewPath(requestHeaders.get("x-shopinbos-path"));
   const integrations = preview ? null : await liveStoreIntegrations(brand);
+  // The cookie banner, when the store has third-party tags and the seller kept it on (Settings › Connections).
+  const consent = integrations && brand ? storeConsentConfig(brand.slug, integrations, brand.brandSettings) : null;
   const value = brand
-    ? { name: brand.name, logoUrl: campaigns?.logoUrl ?? brand.logoUrl, basePath, theme: resolveShopperTheme(brand.brandSettings), slug: brand.slug, showBadge: brand.showBadge, paymentBadges: brand.paymentBadges }
+    ? { name: brand.name, logoUrl: campaigns?.logoUrl ?? brand.logoUrl, basePath, theme: resolveShopperTheme(brand.brandSettings), slug: brand.slug, showBadge: brand.showBadge, paymentBadges: brand.paymentBadges, cookieSettings: Boolean(consent) }
     : null;
   return (
     <StoreBrandProvider value={value}>
@@ -59,7 +62,7 @@ export default async function StorefrontLayout({ children, params }: { children:
       <LiveChatWidget slug={slug} />
       {integrations && (
         <>
-          <StoreTrackingTags integrations={integrations} />
+          <StoreTrackingTags integrations={integrations} slug={slug} consent={consent} currency={brand?.currency ?? "NGN"} />
           <Suspense fallback={null}>
             <StoreTrafficBeacon slug={slug} />
           </Suspense>

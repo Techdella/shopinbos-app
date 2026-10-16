@@ -118,8 +118,9 @@ export default async function TrafficPage({ searchParams }: { searchParams: Sear
   const tiles: Array<{ key: TrafficKpiKey; label: string; value: string; hint: string }> = [
     { key: "sessions", label: t("kpi.visits"), value: n(k.sessions), hint: t("kpi.visitsHint") },
     { key: "pageViews", label: t("kpi.pageViews"), value: n(k.pageViews), hint: t("kpi.pageViewsHint") },
-    { key: "visitors", label: t("kpi.visitors"), value: n(k.visitors), hint: t("kpi.visitorsHint") },
+    { key: "uniqueVisitors", label: t("kpi.visitors"), value: n(k.uniqueVisitors), hint: t("kpi.visitorsHint") },
     { key: "newVisitors", label: t("kpi.newVisitors"), value: n(k.newVisitors), hint: t("kpi.newVisitorsHint") },
+    { key: "returningVisitors", label: t("kpi.returningVisitors"), value: n(k.returningVisitors), hint: t("kpi.returningVisitorsHint") },
     { key: "pagesPerSession", label: t("kpi.pagesPerVisit"), value: k.pagesPerSession == null ? t("kpi.none") : String(k.pagesPerSession), hint: t("kpi.pagesPerVisitHint") },
     { key: "avgEngagedSeconds", label: t("kpi.time"), value: duration(k.avgEngagedSeconds, t), hint: t("kpi.timeHint") },
     { key: "conversionRate", label: t("kpi.conversion"), value: k.conversionRate == null ? t("kpi.none") : `${(Math.round(k.conversionRate * 1000) / 10).toString()}%`, hint: t("kpi.conversionHint", { count: k.paidOrders }) },
@@ -177,7 +178,7 @@ export default async function TrafficPage({ searchParams }: { searchParams: Sear
           {!available ? t("off") : report.since ? t("since", { date: formatDay(new Date(`${report.since}T12:00:00+01:00`), true) }) : t("startsNext")}
         </p>
 
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 2xl:grid-cols-7">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           {tiles.map((tile) => (
             <StatTile key={tile.key} tone="card" label={tile.label} value={tile.value} hint={<span className="grid gap-0.5"><Delta change={report.change[tile.key]} t={t} /><span>{tile.hint}</span></span>} />
           ))}

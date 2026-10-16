@@ -5,17 +5,18 @@
 // Privacy: only counts per day are kept (StoreTrafficDaily). No IP address, no user agent, no visitor id, no full
 // referrer URL: a referrer is cut to its host, a user agent to "mobile" / "tablet" / "desktop", a location to the
 // country and city the hosting platform already derived, and search terms that look like an email, phone number
-// or link are dropped.
+// or link are dropped. Unique visitors come from daily HyperLogLog sketches (StoreVisitorSketch, ./hll.ts), which
+// hold register bytes only and merge across days, so someone who visits on several days counts once.
 
 import { normalizeCampaign, normalizeSource } from "./sources.ts";
 import { rangeBuckets, type ResolvedRange } from "./range.ts";
+import { estimate, mergeSketches, type HllSketch } from "./hll.ts";
 
 export const TRAFFIC_METRICS = [
   "session", // one per browser session (its first page): dims "", source, referrer, device, country, city, medium, campaign
   "entry", // the session's first page: dim path
   "page_view", // every page opened: dims "", path
-  "visitor", // a browser counted once per Lagos day
-  "new_visitor", // a browser's first visit ever (on this device)
+  "new_visitor", // a browser's first visit ever (on this device); unique visitors are StoreVisitorSketch, not a counter
   "engaged_seconds", // seconds a page was visible: dims "", path
   "engaged_view", // pages that reported engaged time: dims "", path
   "search", // a search on the store's shop page: dim term
@@ -211,7 +212,6 @@ export interface TrafficBeacon {
   /** Present on the session's first page. */
   entry?: { ref?: string | null; referrerHost?: string | null; medium?: string | null; campaign?: string | null };
   newVisitor?: boolean;
-  firstToday?: boolean;
   /** Engagement only: seconds the page was visible. */
   seconds?: number;
 }
@@ -238,7 +238,6 @@ export function trafficIncrements(beacon: TrafficBeacon, request: { userAgent?: 
   add("page_view", "", "");
   add("page_view", "path", path);
   if (beacon.search && beacon.path.kind === "shop") add("search", "term", beacon.search);
-  if (beacon.firstToday) add("visitor", "", "");
   if (beacon.newVisitor) add("new_visitor", "", "");
   if (beacon.entry) {
     const source = trafficSource({ ref: beacon.entry.ref, referrerHost: beacon.entry.referrerHost, ownHosts: request.ownHosts });
@@ -329,9 +328,12 @@ export function pageLabel(path: string, productNames: Map<string, string> = new 
 export interface TrafficKpis {
   sessions: number;
   pageViews: number;
-  /** Browsers counted once a day, added up over the days. */
-  visitors: number;
+  /** Distinct browsers over the whole period (HyperLogLog estimate, about ±2%): a person counts once however many days they came. */
+  uniqueVisitors: number;
+  /** Browsers on their first visit ever to the store (on that device). */
   newVisitors: number;
+  /** Unique visitors who had been before. */
+  returningVisitors: number;
   pagesPerSession: number | null;
   /** Average seconds a page stayed open and visible; null when nothing reported it. */
   avgEngagedSeconds: number | null;
@@ -357,7 +359,7 @@ export interface TrafficReport {
   kpis: TrafficKpis;
   previous: TrafficKpis;
   change: Partial<Record<TrafficKpiKey, number | null>>;
-  series: Array<{ label: string; sessions: number | null; pageViews: number | null; previousSessions: number; previousPageViews: number }>;
+  series: Array<{ label: string; sessions: number | null; pageViews: number | null; visitors: number | null; previousSessions: number; previousPageViews: number; previousVisitors: number }>;
   topPages: Array<{ path: string; kind: PageKind; label: string; views: number; entries: number; avgSeconds: number | null }>;
   entryPages: CountRow[];
   sources: Array<CountRow & { kind: SourceKind }>;
@@ -380,6 +382,8 @@ export interface TrafficInput {
   now: Date;
   /** StoreTrafficDaily rows for the current and previous period. */
   rows: TrafficRow[];
+  /** StoreVisitorSketch by day (YYYY-MM-DD) for the current and previous period; a missing day counts nobody. */
+  sketches?: Map<string, HllSketch>;
   /** StoreMetricDaily rows (product_view, add_to_cart, checkout_start with productId) for both periods. */
   funnelRows: Array<{ day: string; metric: string; productId: string; count: number }>;
   /** Paid online orders in both periods, with their lines. */
@@ -412,6 +416,13 @@ function total(rows: TrafficRow[], metric: string, start: Date, end: Date) {
   return sumBy(rows, metric, "", start, end).get("") ?? 0;
 }
 
+/** Distinct visitors in [start, end): the days' sketches merged register by register, then estimated. */
+export function uniqueVisitorsBetween(sketches: Map<string, HllSketch> | undefined, start: Date, end: Date) {
+  if (!sketches?.size) return 0;
+  const days = [...sketches.entries()].filter(([day]) => dayInRange(day, start, end)).map(([, sketch]) => sketch);
+  return days.length ? estimate(mergeSketches(days)) : 0;
+}
+
 /** Sorted rows with each one's share of the total, top `limit`. */
 export function ranked(map: Map<string, number>, label: (key: string) => string = (key) => key, limit = 10): CountRow[] {
   const sum = [...map.values()].reduce((a, b) => a + b, 0);
@@ -441,11 +452,17 @@ function kpisFor(input: TrafficInput, start: Date, end: Date): TrafficKpis {
   const engagedViews = total(input.rows, "engaged_view", start, end);
   const funnel = (metric: string) => input.funnelRows.reduce((sum, row) => (row.metric === metric && dayInRange(row.day, start, end) ? sum + row.count : sum), 0);
   const paidOrders = input.orders.filter((order) => order.createdAt.getTime() >= start.getTime() && order.createdAt.getTime() < end.getTime()).length;
+  // The estimate is within a couple of percent. It is kept between the first-time visitors (each is a unique
+  // visitor) and the visits (each visitor made at least one), so a small store never reads "3 visitors, 2 visits".
+  const newVisitors = total(input.rows, "new_visitor", start, end);
+  const estimated = Math.max(newVisitors, uniqueVisitorsBetween(input.sketches, start, end));
+  const uniqueVisitors = sessions ? Math.min(estimated, sessions) : estimated;
   return {
     sessions,
     pageViews,
-    visitors: total(input.rows, "visitor", start, end),
-    newVisitors: total(input.rows, "new_visitor", start, end),
+    uniqueVisitors,
+    newVisitors,
+    returningVisitors: Math.max(0, uniqueVisitors - newVisitors),
     pagesPerSession: sessions ? Math.round((pageViews / sessions) * 10) / 10 : null,
     avgEngagedSeconds: engagedViews ? Math.round(engagedSeconds / engagedViews) : null,
     searches: [...sumBy(input.rows, "search", "term", start, end).values()].reduce((a, b) => a + b, 0),
@@ -476,8 +493,10 @@ export function computeTraffic(input: TrafficInput): TrafficReport {
       label: bucket.label,
       sessions: future ? null : total(input.rows, "session", bucket.start, bucket.end),
       pageViews: future ? null : total(input.rows, "page_view", bucket.start, bucket.end),
+      visitors: future ? null : uniqueVisitorsBetween(input.sketches, bucket.start, bucket.end),
       previousSessions: total(input.rows, "session", before(bucket.start), before(bucket.end)),
       previousPageViews: total(input.rows, "page_view", before(bucket.start), before(bucket.end)),
+      previousVisitors: uniqueVisitorsBetween(input.sketches, before(bucket.start), before(bucket.end)),
     };
   });
 
@@ -579,7 +598,7 @@ export function trafficContext(report: TrafficReport, section: TrafficSection, r
   const lines: string[] = [`Store traffic, ${rangeLabel}:`];
   const overview = () =>
     lines.push(
-      `Visits ${k.sessions}${changeText(c.sessions)}; page views ${k.pageViews}${changeText(c.pageViews)}; daily visitors ${k.visitors}; new visitors ${k.newVisitors}; pages per visit ${k.pagesPerSession ?? "n/a"}; time on a page ${secondsText(k.avgEngagedSeconds)}; paid orders ${k.paidOrders}; conversion ${pctText(k.conversionRate)}${changeText(c.conversionRate)}.`,
+      `Visits ${k.sessions}${changeText(c.sessions)}; page views ${k.pageViews}${changeText(c.pageViews)}; unique visitors ${k.uniqueVisitors}${changeText(c.uniqueVisitors)} (new ${k.newVisitors}, returning ${k.returningVisitors}); pages per visit ${k.pagesPerSession ?? "n/a"}; time on a page ${secondsText(k.avgEngagedSeconds)}; paid orders ${k.paidOrders}; conversion ${pctText(k.conversionRate)}${changeText(c.conversionRate)}.`,
     );
   if (section === "overview") {
     overview();

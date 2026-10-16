@@ -9,6 +9,8 @@ import { FIELD_HELP, FIELD_INPUT, FIELD_LABEL, SUBMIT_ACCENT } from "@/component
 import { buttonClass } from "@/components/growth/kit";
 import { buildStorefrontUrl } from "@/lib/domains/storefront";
 import { INTEGRATION_KEYS, readIntegrations, sitemapUrl, type IntegrationKey } from "@/lib/storefront/integrations";
+import { BANNER_MESSAGE_MAX, bannerText, hasThirdPartyTags, readCookieBanner, tagCategories } from "@/lib/storefront/consent";
+import { legalLinks } from "@/lib/legal/pages";
 import { getSearchConsoleConnection, listSearchConsoleSites, searchConsoleConfigured } from "@/lib/search-console/google.server";
 import { matchingSites } from "@/lib/search-console/pure";
 import { chooseSearchConsoleProperty, disconnectSearchConsoleAction, saveConnections } from "@/app/actions/connections";
@@ -19,7 +21,8 @@ import type { MessageKey } from "@shared/i18n/catalog";
 // Settings › Connections: Google Analytics 4, Google Tag Manager, Google Search Console (verification tag, the
 // steps to add the store, its sitemap, and optional "Connect with Google"), Bing, Meta, TikTok and Pinterest.
 // Saved in brandSettings.integrations; each ID is validated (src/lib/storefront/integrations.ts) and only ever
-// added to live store pages.
+// added to live store pages. The cookie banner card (on by default once a third-party tag is set) decides whether
+// those tags wait for the shopper's consent (src/lib/storefront/consent.ts).
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -64,6 +67,11 @@ export default async function ConnectionsPage({ searchParams }: { searchParams: 
   if (!store) redirect("/onboarding?role=seller");
 
   const integrations = readIntegrations(store.brandSettings);
+  // The cookie banner: needed once a third-party tag is set; the policy link picks from the published legal pages.
+  const cookieBanner = readCookieBanner(store.brandSettings);
+  const needsBanner = hasThirdPartyTags(tagCategories(integrations));
+  const policies = legalLinks(store.brandSettings);
+  const policyValue = cookieBanner.policy === "auto" || cookieBanner.policy === "none" || policies.some((page) => page.key === cookieBanner.policy) ? cookieBanner.policy : "auto";
   const invalid = new Set((params.invalid ?? "").split(",").filter((key): key is IntegrationKey => (INTEGRATION_KEYS as string[]).includes(key)));
   const freeUrl = buildStorefrontUrl({ slug: store.slug, customDomain: null });
   const ownUrl = store.customDomain ? buildStorefrontUrl({ slug: store.slug, customDomain: store.customDomain }) : null;
@@ -165,6 +173,50 @@ export default async function ConnectionsPage({ searchParams }: { searchParams: 
               <Field name="pinterestSiteVerification" label={t("conn.field.pinterestSiteVerification")} placeholder="0123456789abcdef0123456789abcdef" value={integrations.pinterestSiteVerification} help={t("conn.pinterest.help")} invalid={invalid.has("pinterestSiteVerification")} />
             </Card>
           </div>
+
+          <Card className="min-w-0 p-5">
+            <div id="cookie-banner" className="scroll-mt-24" />
+            <CardHead
+              title={t("conn.cookie.title")}
+              sub={t("conn.cookie.sub")}
+              action={<Pill tone={needsBanner && cookieBanner.enabled ? "success" : "muted"} dot>{!needsBanner ? t("conn.cookie.notNeeded") : cookieBanner.enabled ? t("conn.cookie.on") : t("conn.cookie.off")}</Pill>}
+            />
+            <input type="hidden" name="cookieBannerForm" value="1" />
+            {!needsBanner && <p className="mb-0 mt-3 rounded-[14px] bg-app-canvas px-4 py-3 text-[13.5px] leading-[1.5] text-app-ink-soft">{t("conn.cookie.noTags")}</p>}
+            <div className="mt-4 grid gap-5 lg:grid-cols-2">
+              <div className="min-w-0">
+                <label className="flex items-start gap-3 text-[14px] font-bold">
+                  <input type="checkbox" name="cookieBannerEnabled" defaultChecked={cookieBanner.enabled} className="mt-0.5 h-5 w-5 shrink-0" aria-describedby="cookieBannerEnabled-help" />
+                  <span>{t("conn.cookie.enabled")}</span>
+                </label>
+                <p id="cookieBannerEnabled-help" className={FIELD_HELP}>{t("conn.cookie.enabledHelp")}</p>
+                <p className={FIELD_HELP}>{t("conn.cookie.footer")}</p>
+              </div>
+              <div className="min-w-0">
+                <label htmlFor="cookieBannerMessage" className={FIELD_LABEL}>{t("conn.cookie.message")}</label>
+                <textarea
+                  id="cookieBannerMessage"
+                  name="cookieBannerMessage"
+                  rows={3}
+                  maxLength={BANNER_MESSAGE_MAX}
+                  defaultValue={cookieBanner.message}
+                  placeholder={bannerText("body")}
+                  className={`${FIELD_INPUT} min-h-[88px] py-2`}
+                  aria-describedby="cookieBannerMessage-help"
+                />
+                <p id="cookieBannerMessage-help" className={FIELD_HELP}>{t("conn.cookie.messageHelp", { max: BANNER_MESSAGE_MAX, standard: bannerText("body") })}</p>
+                <label htmlFor="cookieBannerPolicy" className={`${FIELD_LABEL} mt-4 block`}>{t("conn.cookie.policy")}</label>
+                <select id="cookieBannerPolicy" name="cookieBannerPolicy" defaultValue={policyValue} className={FIELD_INPUT} aria-describedby="cookieBannerPolicy-help">
+                  <option value="auto">{t("conn.cookie.policyAuto")}</option>
+                  {policies.map((page) => <option key={page.key} value={page.key}>{page.title}</option>)}
+                  <option value="none">{t("conn.cookie.policyNone")}</option>
+                </select>
+                <p id="cookieBannerPolicy-help" className={FIELD_HELP}>
+                  {policies.length ? t("conn.cookie.policyHelp") : <>{t("conn.cookie.noPolicy")} <TextLink href="/home/legal">{t("conn.cookie.writePolicy")}</TextLink></>}
+                </p>
+              </div>
+            </div>
+          </Card>
 
           <div className="flex flex-wrap items-center gap-3">
             <button className={SUBMIT_ACCENT} type="submit">{t("conn.save")}</button>

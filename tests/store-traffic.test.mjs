@@ -79,7 +79,7 @@ test("devices, places and searches keep no personal data", () => {
 test("one beacon → counters: the landing details once per session, nothing identifying", () => {
   const path = traffic.normalizeStorePath("/shop", "adas");
   const rows = traffic.trafficIncrements(
-    { type: "page_view", path, search: "ankara", entry: { referrerHost: "l.instagram.com", medium: "social", campaign: "Sallah Sale" }, firstToday: true, newVisitor: true },
+    { type: "page_view", path, search: "ankara", entry: { referrerHost: "l.instagram.com", medium: "social", campaign: "Sallah Sale" }, newVisitor: true },
     { userAgent: "Mozilla/5.0 (iPhone) Mobile", country: "NG", city: "Lagos", ownHosts: ["adas.mybos.store"] },
   );
   const keys = rows.map((row) => `${row.metric}|${row.dim}|${row.value}|${row.amount}`).sort();
@@ -97,7 +97,6 @@ test("one beacon → counters: the landing details once per session, nothing ide
     "session|referrer|l.instagram.com|1",
     "session|source|instagram|1",
     "session|||1",
-    "visitor|||1",
   ].sort());
   assert.doesNotMatch(JSON.stringify(rows), /iPhone|Mozilla/, "the user agent itself is never stored");
   // A later page of the same session adds a page view only.
@@ -136,7 +135,7 @@ test("computeTraffic: totals, change vs before, top pages, sources, funnel and c
     row("2026-10-14", "engaged_seconds", "path", "/", 300),
     row("2026-10-14", "engaged_view", "path", "/", 5),
     row("2026-10-14", "search", "term", "ankara", 4),
-    row("2026-10-14", "visitor", "", "", 9),
+    row("2026-10-14", "new_visitor", "", "", 2),
   ];
   const funnelRows = [
     { day: "2026-10-14", metric: "product_view", productId: "p1", count: 8 },
@@ -154,7 +153,7 @@ test("computeTraffic: totals, change vs before, top pages, sources, funnel and c
   assert.equal(report.kpis.pageViews, 30);
   assert.equal(report.kpis.pagesPerSession, 3);
   assert.equal(report.kpis.avgEngagedSeconds, 60);
-  assert.equal(report.kpis.visitors, 9);
+  assert.equal(report.kpis.newVisitors, 2);
   assert.equal(report.kpis.paidOrders, 1);
   assert.equal(report.kpis.conversionRate, 0.1);
   assert.deepEqual(report.topPages.map((page) => [page.path, page.label, page.views]), [["/", "Home page", 12], ["/shop", "Shop", 10], ["/product/p1", "Ankara tote", 8]]);
@@ -264,7 +263,7 @@ test("tags and the traffic beacon render on live store pages only, never in the 
   const layout = read("src/app/s/[slug]/layout.tsx");
   assert.match(layout, /const preview = isPreviewPath\(requestHeaders\.get\("x-shopinbos-path"\)\);/);
   assert.match(layout, /const integrations = preview \? null : await liveStoreIntegrations\(brand\);/);
-  assert.match(layout, /\{integrations && \(\s*<>\s*<StoreTrackingTags integrations=\{integrations\} \/>/);
+  assert.match(layout, /\{integrations && \(\s*<>\s*<StoreTrackingTags integrations=\{integrations\} slug=\{slug\} consent=\{consent\} currency=/);
   const live = read("src/lib/storefront/tracking.server.ts");
   assert.match(live, /if \(!brand\?\.active\) return null;/, "a closed or inactive store gets no tags");
   assert.match(live, /hasPublishedStorefront\(brand\.brandSettings, 0\)/, "an unpublished store gets no tags");
@@ -316,4 +315,248 @@ test("the migration is additive and matches the schema", () => {
   const schema = read("prisma/schema.prisma");
   assert.match(schema, /model StoreTrafficDaily \{[\s\S]*@@unique\(\[storeId, day, metric, dim, value\]\)/);
   assert.match(read("src/lib/analytics/traffic-record.ts"), /ON CONFLICT \("storeId", "day", "metric", "dim", "value"\)/);
+});
+
+// ─── Unique visitors: HyperLogLog ───────────────────────────────────────────────
+
+const hll = await import("../src/lib/analytics/hll.ts");
+const { createHash } = await import("node:crypto");
+const visitorHash = (id) => createHash("sha256").update(`visitor-${id}`).digest();
+const sketchOf = (ids) => {
+  const sketch = hll.createSketch();
+  for (const id of ids) hll.addHash(sketch, visitorHash(id));
+  return sketch;
+};
+const span = (from, to) => Array.from({ length: to - from }, (_, i) => from + i);
+
+test("HyperLogLog: estimates within the expected error, from a handful of visitors to a quarter million", () => {
+  assert.equal(hll.estimate(hll.createSketch()), 0);
+  assert.equal(hll.estimate(sketchOf([1])), 1);
+  // Small numbers are near exact (each visitor lands in its own register).
+  for (const n of [5, 20, 60]) assert.ok(Math.abs(hll.estimate(sketchOf(span(0, n))) - n) <= 1, `n=${n}`);
+  // p = 12: standard error 1.04/√4096 ≈ 1.6%; allow 3 standard errors.
+  for (const n of [500, 3_000, 10_000, 50_000, 250_000]) {
+    const error = Math.abs(hll.estimate(sketchOf(span(0, n))) - n) / n;
+    assert.ok(error < 0.05, `n=${n}: ${(error * 100).toFixed(2)}%`);
+  }
+  // Adding the same visitor again never changes the sketch.
+  const sketch = sketchOf(span(0, 100));
+  const before = Buffer.from(sketch.registers).toString("hex");
+  for (const id of span(0, 100)) assert.equal(hll.addHash(sketch, visitorHash(id)), false);
+  assert.equal(Buffer.from(sketch.registers).toString("hex"), before);
+  assert.throws(() => hll.addHash(sketch, new Uint8Array(4)));
+});
+
+test("HyperLogLog: merged days count a person once; merging is exact and order-free", () => {
+  // 7 days of 2,000 visitors each, 1,500 of them the same people every day: 5,000 distinct people, 14,000 daily visits.
+  const days = span(0, 7).map((day) => sketchOf([...span(0, 1500), ...span(10_000 + day * 500, 10_000 + day * 500 + 500)]));
+  const merged = hll.mergeSketches(days);
+  const error = Math.abs(hll.estimate(merged) - 5_000) / 5_000;
+  assert.ok(error < 0.05, `merged ${hll.estimate(merged)}`);
+  assert.ok(days.reduce((sum, day) => sum + hll.estimate(day), 0) > 13_000, "adding up the days would count regulars 7 times");
+  // A union sketch built directly has exactly the same registers as the merge, in any order.
+  const direct = sketchOf([...span(0, 1500), ...span(10_000, 13_500)]);
+  assert.deepEqual(merged.registers, direct.registers);
+  assert.deepEqual(hll.mergeSketches([...days].reverse()).registers, merged.registers);
+  assert.equal(hll.estimate(hll.mergeSketches([])), 0);
+  assert.throws(() => hll.mergeInto(hll.createSketch(12), hll.createSketch(10)));
+});
+
+test("HyperLogLog: stored as sparse or dense bytes, round trips, and refuses junk", () => {
+  for (const n of [0, 3, 300, 20_000]) {
+    const sketch = sketchOf(span(0, n));
+    const bytes = hll.serializeSketch(sketch);
+    assert.equal(bytes[0], 1);
+    assert.equal(bytes[1], 12);
+    assert.equal(bytes[2], n >= 20_000 ? 0 : 1, "sparse until a third of the registers are set");
+    if (n === 3) assert.equal(bytes.length, 3 + 3 * 3, "a quiet day is a few bytes");
+    if (n === 20_000) assert.equal(bytes.length, 3 + 4096);
+    assert.deepEqual(hll.deserializeSketch(bytes).registers, sketch.registers);
+  }
+  assert.equal(hll.deserializeSketch(null), null);
+  assert.equal(hll.deserializeSketch(new Uint8Array([2, 12, 0])), null, "unknown version");
+  assert.equal(hll.deserializeSketch(new Uint8Array([1, 12, 0, 1, 2])), null, "dense with the wrong length");
+  assert.equal(hll.deserializeSketch(new Uint8Array([1, 12, 1, 0xff, 0xff, 3])), null, "register out of range");
+  assert.equal(hll.deserializeSketch(new Uint8Array([1, 12, 1, 0, 1])), null, "half a sparse entry");
+});
+
+test("the traffic report: unique visitors over the range, per day, new and returning", () => {
+  const now = new Date("2026-10-15T12:00:00Z");
+  const r = resolveRange({ range: "7d" }, now); // 9 Oct .. 15 Oct; previous 2 Oct .. 8 Oct
+  // The same 40 people on the 14th and 15th, plus 10 new people on the 15th; 25 people in the period before.
+  const sketches = new Map([
+    ["2026-10-14", sketchOf(span(0, 40))],
+    ["2026-10-15", sketchOf(span(0, 50))],
+    ["2026-10-05", sketchOf(span(500, 525))],
+  ]);
+  const row = (day, metric, count) => ({ day, metric, dim: "", value: "", count });
+  const rows = [row("2026-10-14", "session", 60), row("2026-10-15", "session", 70), row("2026-10-05", "session", 30), row("2026-10-15", "new_visitor", 10)];
+  const report = traffic.computeTraffic({ range: r, now, rows, sketches, funnelRows: [], orders: [], products: [], since: null });
+  const near = (actual, expected, label) => assert.ok(Math.abs(actual - expected) <= 1, `${label}: ${actual} vs ${expected}`);
+  near(report.kpis.uniqueVisitors, 50, "not 90 (40 + 50 added up)");
+  assert.equal(report.kpis.newVisitors, 10);
+  near(report.kpis.returningVisitors, 40, "returning");
+  near(report.previous.uniqueVisitors, 25, "before");
+  assert.ok(report.change.uniqueVisitors > 90 && report.change.uniqueVisitors < 110);
+  near(report.series.at(-1).visitors, 50, "15 Oct");
+  near(report.series.at(-2).visitors, 40, "14 Oct");
+  near(report.series.at(-4).previousVisitors, 25, "5 Oct");
+  assert.equal("visitors" in report.kpis, false, "the old summed metric is gone");
+  // Never more unique visitors than visits, never fewer than first-timers.
+  const capped = traffic.computeTraffic({ range: r, now, rows: [row("2026-10-15", "session", 30)], sketches, funnelRows: [], orders: [], products: [], since: null });
+  assert.equal(capped.kpis.uniqueVisitors, 30);
+  const none = traffic.computeTraffic({ range: r, now, rows: [row("2026-10-15", "new_visitor", 3)], funnelRows: [], orders: [], products: [], since: null });
+  assert.equal(none.kpis.uniqueVisitors, 3);
+  assert.match(traffic.trafficContext(report, "overview", "Last 7 days"), /unique visitors \d+ \(\+\d+(\.\d)?% vs before\) \(new 10, returning \d+\)/);
+  // Beacons no longer add a per-day "visitor" counter.
+  const beacon = traffic.trafficIncrements({ type: "page_view", path: traffic.normalizeStorePath("/", "adas"), newVisitor: true }, {});
+  assert.deepEqual(beacon.map((item) => item.metric).sort(), ["new_visitor", "page_view", "page_view"]);
+});
+
+test("unique visitors stay private: random token, hashed with a server secret, never stored", () => {
+  const server = read("src/lib/analytics/visitor-sketch.server.ts");
+  assert.match(server, /createHmac\("sha256"/);
+  assert.match(server, /update\(`\$\{storeId\}\\u0000\$\{token\}`\)/, "the hash is per store");
+  assert.match(server, /const env = process\.env;\s*return env\.TRAFFIC_VISITOR_SECRET \|\|/);
+  assert.match(server, /FOR UPDATE/, "two beacons at once both land");
+  assert.doesNotMatch(server, /console\.\w+\([^)]*token/);
+  const api = read("src/app/api/public/store/[slug]/traffic/route.ts");
+  assert.match(api, /visitor: z\.string\(\)\.regex\(VISITOR_TOKEN\)\.optional\(\)/);
+  assert.match(api, /parsed\.data\.visitor && !limited \? recordVisitor\(store\.id, parsed\.data\.visitor\)/);
+  const beacon = read("src/components/storefront/StoreTrafficBeacon.tsx");
+  assert.doesNotMatch(beacon, /document\.cookie/, "the traffic beacon sets no cookie");
+  assert.match(beacon, /crypto\.getRandomValues\(bytes\)/);
+  assert.match(beacon, /const TOKEN_DAYS = 90;/);
+  assert.match(beacon, /if \(local && !limited && readStoredConsent\(slug\)\?\.analytics !== false\) \{/, "no token with DNT / GPC or after a no to analytics");
+  const sql = read("docs/migrations/2026-11-04-store-visitor-sketches.sql");
+  assert.match(sql, /Run BEFORE deploying/);
+  assert.match(sql, /CREATE TABLE IF NOT EXISTS "StoreVisitorSketch"/);
+  assert.match(sql, /"sketch" BYTEA NOT NULL/);
+  assert.match(sql, /CREATE UNIQUE INDEX IF NOT EXISTS "StoreVisitorSketch_storeId_day_key"/);
+  assert.match(sql, /ALTER TABLE "StoreVisitorSketch" ENABLE ROW LEVEL SECURITY;/);
+  assert.doesNotMatch(sql, /DROP |"token"|"hash"/i);
+  assert.match(read("prisma/schema.prisma"), /model StoreVisitorSketch \{[\s\S]*sketch\s+Bytes[\s\S]*@@unique\(\[storeId, day\]\)/);
+});
+
+// ─── Cookie banner and the seller's tags ────────────────────────────────────────
+
+const consent = await import("../src/lib/storefront/consent.ts");
+const consentConfig = await import("../src/lib/storefront/consent-config.ts");
+const tags = await import("../src/lib/storefront/tag-events.ts");
+const ALL_TAGS = { ...integ.EMPTY_INTEGRATIONS, googleAnalyticsId: "G-ABCD1234", gtmContainerId: "GTM-ABC1234", metaPixelId: "123456789012345", tiktokPixelId: "C4ABCDEF1234567890AB" };
+
+test("cookie banner: shown only with third-party tags, seller settings cleaned, policy page picked", () => {
+  const none = integ.EMPTY_INTEGRATIONS;
+  const verificationOnly = { ...none, gaSiteVerification: "abcDEF_123-xyzABCdef0987654321" };
+  assert.equal(consentConfig.storeConsentConfig("adas", none, {}), null);
+  assert.equal(consentConfig.storeConsentConfig("adas", verificationOnly, {}), null, "verification codes set nothing");
+  assert.deepEqual(consent.tagCategories(ALL_TAGS), { analytics: ["Google Analytics", "Google Tag Manager"], marketing: ["Meta Pixel", "TikTok Pixel"] });
+  assert.equal(consentConfig.storeConsentConfig("adas", ALL_TAGS, { cookieBanner: { enabled: false } }), null, "the seller turned it off");
+  const legal = { legalPages: { "privacy-policy": { title: "Privacy policy", published: true }, "cookie-policy": { title: "Cookies", published: true }, "refund-policy": { title: "Refunds", published: true } } };
+  const config = consentConfig.storeConsentConfig("adas", ALL_TAGS, legal);
+  assert.deepEqual(config.policy, { title: "Cookies", path: "/policies/cookie-policy" }, "on by default, cookie policy first");
+  assert.equal(consentConfig.storeConsentConfig("adas", ALL_TAGS, { ...legal, cookieBanner: { policy: "refund-policy" } }).policy.path, "/policies/refund-policy");
+  assert.equal(consentConfig.storeConsentConfig("adas", ALL_TAGS, { ...legal, cookieBanner: { policy: "none" } }).policy, null);
+  assert.equal(consentConfig.storeConsentConfig("adas", ALL_TAGS, { legalPages: { "privacy-policy": { title: "Privacy", published: true } } }).policy.path, "/policies/privacy-policy");
+  assert.equal(consentConfig.storeConsentConfig("adas", ALL_TAGS, { legalPages: { "cookie-policy": { title: "Draft", published: false } } }).policy, null, "drafts are never linked");
+  // Seller text is plain and short; unknown policy values read as automatic.
+  assert.deepEqual(consent.readCookieBanner({ cookieBanner: { message: "  We use <b>cookies</b>\n<script>x</script>  ", policy: "../evil" } }), { enabled: true, message: "We use cookies x", policy: "auto" });
+  assert.equal(consent.cleanBannerMessage("a".repeat(400)).length, consent.BANNER_MESSAGE_MAX);
+  const form = { cookieBannerForm: "1", cookieBannerMessage: "Hi", cookieBannerPolicy: "privacy-policy" };
+  assert.deepEqual(consent.parseCookieBannerForm((name) => form[name] ?? null), { enabled: false, message: "Hi", policy: "privacy-policy" }, "an unticked box is off");
+  assert.equal(consent.parseCookieBannerForm(() => null), null, "a form without the card changes nothing");
+  assert.match(read("src/app/actions/connections.ts"), /parseCookieBannerForm\(\(name\) => formData\.get\(name\)\)/);
+});
+
+test("cookie choice: stored 180 days in a first-party cookie, Consent Mode v2 denied until agreed", () => {
+  const at = Math.floor(Date.parse("2026-10-15T12:00:00Z") / 1000);
+  const choice = { analytics: true, marketing: false, at };
+  assert.equal(consent.serializeConsent(choice), `1.a1m0.${at}`);
+  assert.deepEqual(consent.parseConsent(consent.serializeConsent(choice), at * 1000), choice);
+  assert.equal(consent.parseConsent(`1.a1m0.${at}`, (at + 181 * 86_400) * 1000), null, "asked again after 180 days");
+  for (const bad of ["", "2.a1m1.1760000000", "1.a2m0.1760000000", "1.a1m0", null, 5]) assert.equal(consent.parseConsent(bad, at * 1000), null, String(bad));
+  assert.equal(consent.readCookie(`x=1; sib_consent=1.a0m1.${at}; y=2`, "sib_consent"), `1.a0m1.${at}`);
+  assert.equal(consent.consentCookie(choice, { path: "/s/adas", secure: true }), `sib_consent=1.a1m0.${at}; Max-Age=15552000; Path=/s/adas; SameSite=Lax; Secure`);
+  assert.match(consent.consentCookie(choice, { path: "/x;domain=evil.com" }), /Path=\/; SameSite=Lax$/);
+  assert.deepEqual(consent.googleConsentState(null), { analytics_storage: "denied", ad_storage: "denied", ad_user_data: "denied", ad_personalization: "denied" });
+  assert.deepEqual(consent.googleConsentState({ analytics: true, marketing: false }), { analytics_storage: "granted", ad_storage: "denied", ad_user_data: "denied", ad_personalization: "denied" });
+  const script = consent.googleConsentScript({ analytics: true, marketing: true });
+  assert.ok(script.indexOf("'consent','default'") < script.indexOf("'consent','update'"), "default first, then the choice");
+  assert.match(script, /'default',\{"analytics_storage":"denied","ad_storage":"denied","ad_user_data":"denied","ad_personalization":"denied"\}/);
+  assert.equal(consent.bannerText("analyticsHint", { tools: "Google Analytics" }), "Helps the store see how people use it (Google Analytics).");
+  assert.equal(consent.bannerText("acceptAll", {}, "yo"), "Accept all", "English until stores have a shopper language");
+  // Every tag is labelled with the consent it needs.
+  assert.deepEqual(integ.trackingScripts(ALL_TAGS).map((s) => [s.id, s.category]), [["ga4-src", "analytics"], ["ga4-init", "analytics"], ["gtm-init", "analytics"], ["meta-pixel", "marketing"], ["tiktok-pixel", "marketing"]]);
+});
+
+test("the banner loads nothing third-party before consent, and is reachable and reopenable", () => {
+  const banner = read("src/components/storefront/StoreConsent.tsx");
+  assert.doesNotMatch(read("src/components/storefront/StoreTrackingTags.tsx"), /next\/script/, "no tag is rendered by the server any more");
+  assert.match(banner, /if \(next\.analytics && has\("analytics"\) && !loaded\.current\.analytics\) \{\s*if \(config\) inject\(\{ id: "google-consent", category: "analytics", inline: googleConsentScript\(next\) \}\);/);
+  assert.match(banner, /if \(next\.marketing && has\("marketing"\) && !loaded\.current\.marketing\) \{/);
+  assert.match(banner, /const stored = readStoredConsent\(slug\);\s*if \(stored\) \{/);
+  assert.match(banner, /w\.fbq\?\.\("consent", "revoke"\)/);
+  assert.match(banner, /w\.gtag\("consent", "update", googleConsentState\(next\)\)/);
+  assert.match(banner, /role="dialog"\s*aria-modal="false"\s*aria-labelledby=\{titleId\}\s*aria-describedby=\{bodyId\}/);
+  assert.match(banner, /COOKIE_SETTINGS_EVENT, reopen/);
+  assert.match(banner, /endsWith\(COOKIE_SETTINGS_HASH\)/);
+  assert.match(banner, /decide\(\{ analytics: false, marketing: false \}\)/, "one tap to refuse");
+  assert.match(banner, /tagPageView\(\);/, "pixels hear about in-store page changes");
+  assert.match(read("src/components/storefront/shopper/StoreFooterBadges.tsx"), /badges\.cookieSettings \? <CookieSettingsButton color=\{muted\} \/> : null/);
+  assert.match(read("src/app/s/[slug]/layout.tsx"), /cookieSettings: Boolean\(consent\)/);
+});
+
+test("shop events for the tags: GA4, Meta and TikTok names, value, currency, ids; only what was agreed", () => {
+  const data = { items: [{ id: "p1", name: "Ankara tote", price: 12500, quantity: 2 }, { id: "p2", price: 3000 }], currency: "NGN", orderId: "ord_1" };
+  assert.deepEqual(tags.ga4Event("purchase", data), ["purchase", { currency: "NGN", value: 28000, transaction_id: "ord_1", items: [{ item_id: "p1", item_name: "Ankara tote", price: 12500, quantity: 2 }, { item_id: "p2", price: 3000, quantity: 1 }] }]);
+  const [metaName, metaParams, metaOptions] = tags.metaEvent("purchase", data);
+  assert.equal(metaName, "Purchase");
+  assert.deepEqual(metaParams.content_ids, ["p1", "p2"]);
+  assert.equal(metaParams.value, 28000);
+  assert.equal(metaParams.num_items, 3);
+  assert.deepEqual(metaOptions, { eventID: "order-ord_1" });
+  const [ttName, ttParams, ttOptions] = tags.tiktokEvent("purchase", data);
+  assert.equal(ttName, "CompletePayment");
+  assert.deepEqual(ttParams.contents[0], { content_id: "p1", content_type: "product", quantity: 2, price: 12500, content_name: "Ankara tote" });
+  assert.deepEqual(ttOptions, { event_id: "order-ord_1" });
+  assert.deepEqual(["view_item", "add_to_cart", "begin_checkout"].map((name) => [tags.metaEvent(name, data)[0], tags.tiktokEvent(name, data)[0]]), [["ViewContent", "ViewContent"], ["AddToCart", "AddToCart"], ["InitiateCheckout", "InitiateCheckout"]]);
+  assert.equal(tags.ga4Event("add_to_cart", { items: [{ id: "p1", price: 10 }], currency: "bad" }, "GHS")[1].currency, "GHS");
+
+  // Dispatch: nothing before consent, Google with Analytics, pixels with Marketing.
+  const calls = [];
+  globalThis.window = { gtag: (...a) => calls.push(["gtag", ...a]), fbq: (...a) => calls.push(["fbq", ...a]), ttq: { page: () => calls.push(["ttq.page"]), track: (...a) => calls.push(["ttq", a[0]]) }, dataLayer: [], addEventListener() {}, removeEventListener() {} };
+  try {
+    const base = { ga: true, gtm: true, meta: true, tiktok: true, currency: "NGN" };
+    assert.equal(tags.tagEvent("view_item", data), false, "no state: not a live store");
+    tags.setTagState({ ...base, analytics: false, marketing: false });
+    assert.equal(tags.tagEvent("view_item", data), false);
+    tags.tagPageView();
+    assert.deepEqual(calls, []);
+    tags.setTagState({ ...base, analytics: true, marketing: false });
+    assert.equal(tags.tagEvent("add_to_cart", data), true);
+    assert.deepEqual(calls.map((c) => c[0]), ["gtag"]);
+    assert.equal(globalThis.window.dataLayer.at(-1).event, "add_to_cart");
+    tags.tagPageView();
+    assert.equal(calls.length, 1, "pixels wait for Marketing");
+    tags.setTagState({ ...base, analytics: false, marketing: true });
+    tags.tagEvent("begin_checkout", data);
+    tags.tagPageView();
+    assert.deepEqual(calls.slice(1).map((c) => c.slice(0, 2).join(":")), ["fbq:track", "ttq:InitiateCheckout", "fbq:track", "ttq.page"]);
+  } finally {
+    delete globalThis.window;
+  }
+  // The funnel hooks feed the tags; the order page sends Purchase once per order.
+  const events = read("src/lib/analytics/storefront-events.ts");
+  assert.match(events, /const key = `sib-tag-purchase:\$\{storeSlug\}:\$\{orderId\}`;/);
+  assert.match(events, /if \(localStorage\.getItem\(key\) \|\| sessionStorage\.getItem\(key\)\) return;/);
+  assert.match(read("src/app/s/[slug]/order/[orderId]/OrderConfirmation.tsx"), /useStorePurchase\(store\.slug,/);
+  assert.match(read("src/hooks/useCart.ts"), /trackStoreEvent\(storeSlug, "add_to_cart", item\.productId, \{ items:/);
+  assert.match(read("src/lib/storefront/tag-events.ts"), /we never send page_view ourselves/, "GA4 counts history changes itself");
+});
+
+test("the CSP lets the sellers' tags load on store pages", () => {
+  const config = read("next.config.ts");
+  assert.match(config, /"script-src [^"]*https:\/\/www\.googletagmanager\.com https:\/\/analytics\.tiktok\.com/);
+  assert.match(config, /img-src [^`]*https:\/\/\*\.google-analytics\.com[^`]*https:\/\/www\.facebook\.com/);
+  assert.match(config, /"connect-src 'self' https:\/\/\*\.google-analytics\.com https:\/\/\*\.analytics\.google\.com/);
 });

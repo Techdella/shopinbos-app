@@ -307,8 +307,8 @@ globalThis.__aiMocks = {
     loadTraffic: record("loadTraffic", {
       available: true,
       report: {
-        kpis: { sessions: 0, pageViews: 0, visitors: 0, newVisitors: 0, pagesPerSession: null, avgEngagedSeconds: null, searches: 0, productViews: 0, addToBag: 0, checkouts: 0, paidOrders: 0, conversionRate: null },
-        previous: { sessions: 0, pageViews: 0, paidOrders: 0 },
+        kpis: { sessions: 0, pageViews: 0, uniqueVisitors: 0, newVisitors: 0, returningVisitors: 0, pagesPerSession: null, avgEngagedSeconds: null, searches: 0, productViews: 0, addToBag: 0, checkouts: 0, paidOrders: 0, conversionRate: null },
+        previous: { sessions: 0, pageViews: 0, uniqueVisitors: 0, paidOrders: 0 },
         change: {},
         topPages: [], entryPages: [], sources: [], sourceKinds: [], referrers: [], devices: [], countries: [], cities: [], searchTerms: [], mediums: [], campaigns: [], products: [], funnel: [], since: null,
       },
@@ -624,6 +624,8 @@ test("Peggy read tools only see the seller's own shop", async () => {
   const traffic = JSON.parse((await runPeggy("store_traffic_report", PEGGY_VALID.store_traffic_report)).content);
   assert.equal(called("loadTraffic")[0].args[0], "store-A", "store traffic is read for the seller's own store only");
   assert.equal(traffic.seeAlso, "/home/analytics/traffic");
+  assert.equal(traffic.uniqueVisitors, 0, "true unique visitors for the period, not daily visitors added up");
+  assert.equal(traffic.dailyVisitors, undefined);
   await runPeggy("reviews_summary", PEGGY_VALID.reviews_summary);
   assert.equal(called("loadReviews")[0].args[0], "store-A");
   assert.equal((await runPeggy("reviews_draft_replies", PEGGY_VALID.reviews_draft_replies)).content, "Every review already has a reply.");

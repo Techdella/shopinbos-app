@@ -2,13 +2,37 @@
 
 import { useEffect, useRef } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
+import { readStoredConsent } from "@/lib/storefront/consent-browser";
 
 // Store traffic for /home/analytics/traffic: one small POST per page opened (its path, and the shop search on /shop),
 // the session's landing details once (referrer host only, ?ref / utm tags), and how long each page stayed visible.
 // Counts only: nothing identifies the shopper (see src/lib/analytics/traffic.ts). Never runs in the owner's preview
 // or the builder frame. With Do Not Track or Global Privacy Control on, the landing details and location are left out.
+//
+// No cookies. sessionStorage marks the session's first page; localStorage keeps the day this browser was last
+// counted, a "been here before" flag, and for unique visitors a random token for this store (128 bits, replaced
+// every 90 days). The token goes to our own traffic endpoint once a day and nowhere else; the server folds it into
+// a HyperLogLog sketch and keeps neither it nor its hash (src/lib/analytics/visitor-sketch.server.ts). It is never
+// made or sent with Do Not Track / GPC on, or once the shopper said no to analytics on the cookie banner.
 
 const lagosDay = () => new Date(Date.now() + 60 * 60 * 1000).toISOString().slice(0, 10);
+const TOKEN_DAYS = 90;
+
+/** This browser's random token for the store, made (or replaced once it is 90 days old) on first use. */
+function visitorToken(local: Storage, slug: string) {
+  const key = `sib-trf-vid:${slug}`;
+  try {
+    const saved = JSON.parse(local.getItem(key) ?? "null") as { id?: unknown; since?: unknown } | null;
+    if (saved && typeof saved.id === "string" && /^[0-9a-f]{32}$/.test(saved.id) && typeof saved.since === "number" && Date.now() - saved.since < TOKEN_DAYS * 86_400_000) return saved.id;
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    const id = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+    local.setItem(key, JSON.stringify({ id, since: Date.now() }));
+    return id;
+  } catch {
+    return null;
+  }
+}
 
 function storage(kind: "local" | "session") {
   try {
@@ -87,16 +111,22 @@ export function StoreTrafficBeacon({ slug }: { slug: string }) {
           };
     }
     if (limited) body.limited = true;
-    const dayKey = `sib-trf-day:${slug}`;
-    const today = lagosDay();
-    if (local && local.getItem(dayKey) !== today) {
-      local.setItem(dayKey, today);
-      body.firstToday = true;
-    }
-    const seenKey = `sib-trf-seen:${slug}`;
-    if (local && !local.getItem(seenKey)) {
-      local.setItem(seenKey, "1");
-      body.newVisitor = true;
+    // Unique and new visitors: only for shoppers who didn't opt out (DNT / GPC, or "no" to analytics on the banner).
+    if (local && !limited && readStoredConsent(slug)?.analytics !== false) {
+      const dayKey = `sib-trf-day:${slug}`;
+      const today = lagosDay();
+      if (local.getItem(dayKey) !== today) {
+        const token = visitorToken(local, slug);
+        if (token) {
+          local.setItem(dayKey, today);
+          body.visitor = token;
+        }
+      }
+      const seenKey = `sib-trf-seen:${slug}`;
+      if (!local.getItem(seenKey)) {
+        local.setItem(seenKey, "1");
+        body.newVisitor = true;
+      }
     }
     send(slug, body);
   }, [slug, pathname, query]);
