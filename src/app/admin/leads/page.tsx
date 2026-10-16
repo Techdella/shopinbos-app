@@ -1,13 +1,16 @@
 import { AppPage, EmptyState, FilterChips, Pill, PillLink, SearchForm, StatTile, type Tone } from "@/components/app-kit";
 import { adminFrame, buttonClass, fieldClass, withParams } from "@/components/admin/AdminKit";
-import { setWebsiteLeadStatus } from "@/app/actions/admin-website-leads";
+import { addLeadManually, importLeadsCsv, setWebsiteLeadStatus } from "@/app/actions/admin-website-leads";
+import { Notice } from "@/components/app-ui";
+import { CHANNEL_LABELS, type LeadChannel } from "@/lib/lead-growth/pure";
+import { leadMessages } from "@/lib/lead-growth/service.server";
 import { KIND_LABELS, LEAD_STATUSES, STATUS_LABELS, type LeadStatus } from "@/lib/website-leads/pure";
 import { LEADS_PAGE_SIZE, LeadsNotReady, listWebsiteLeads } from "@/lib/website-leads/service.server";
 import { requireRole } from "@/lib/server-auth";
 
 export const dynamic = "force-dynamic";
 
-type Search = { kind?: string; status?: string; q?: string; page?: string };
+type Search = { kind?: string; status?: string; q?: string; page?: string; added?: string; imported?: string; skipped?: string; error?: string };
 
 const STATUS_TONE: Record<string, Tone> = { new: "accent", contacted: "info", converted: "success", closed: "muted" };
 
@@ -38,13 +41,16 @@ export default async function AdminLeadsPage(props: { searchParams?: Promise<Sea
     return (
       <AppPage frame={frame} title="Website leads" sub="Forms filled on shopinbos.com.">
         <EmptyState icon="list" title="Website leads need a quick database update">
-          Run docs/migrations/2026-10-18-website-leads.sql on the Supabase database, and set WEBSITE_LEADS_SECRET here and SIB_LEADS_SECRET on the website. Until then the website keeps the leads and retries every hour.
+          Run docs/migrations/2026-10-18-website-leads.sql and docs/migrations/2026-11-05-lead-growth.sql on the Supabase database, and set WEBSITE_LEADS_SECRET here and SIB_LEADS_SECRET on the website. Until then the website keeps the leads and retries every hour.
         </EmptyState>
       </AppPage>
     );
   }
 
   const keep = { kind, q, status: status === "new" ? undefined : status };
+  // Messages each lead on this page got from lead campaigns and automations (none before the lead-growth migration).
+  const history = await leadMessages(data.rows.map((lead) => lead.id)).catch(() => []);
+  const sentTo = (leadId: string) => history.filter((m) => m.leadId === leadId);
   const pages = Math.max(1, Math.ceil(data.total / LEADS_PAGE_SIZE));
   const total30 = Object.values(data.kindCounts30d).reduce((a, b) => a + b, 0);
 
@@ -53,8 +59,42 @@ export default async function AdminLeadsPage(props: { searchParams?: Promise<Sea
       frame={frame}
       title="Website leads"
       sub="Everyone who left their details on shopinbos.com: newsletter, WhatsApp tips, guide downloads, tools and the contact form."
-      actions={<PillLink href={withParams("/api/admin/website-leads/export", { kind, q, status })} icon="download">Download CSV</PillLink>}
+      actions={
+        <>
+          <PillLink href="/admin/lead-campaigns" icon="megaphone">Campaigns</PillLink>
+          <PillLink href={withParams("/api/admin/website-leads/export", { kind, q, status })} icon="download">Download CSV</PillLink>
+        </>
+      }
     >
+      {search.error && <div className="mb-4"><Notice>{search.error}</Notice></div>}
+      {search.added && <div className="mb-4"><Notice tone="success">Lead added.</Notice></div>}
+      {search.imported && <div className="mb-4"><Notice tone="success">Imported {search.imported} leads{Number(search.skipped) ? `; ${search.skipped} rows had no usable email or phone and were skipped` : ""}.</Notice></div>}
+
+      <details className="mb-5 rounded-[20px] border border-app-line bg-white p-4 md:p-5">
+        <summary className="cursor-pointer text-[15px] font-bold">Add leads from somewhere else</summary>
+        <div className="mt-4 grid gap-6 lg:grid-cols-2">
+          <form action={addLeadManually} className="flex flex-col gap-3">
+            <b className="text-[14px]">One person</b>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <input name="name" placeholder="Name" maxLength={120} className={fieldClass} aria-label="Name" />
+              <input name="source" placeholder="Where from (event, Instagram…)" maxLength={190} className={fieldClass} aria-label="Source" />
+              <input name="email" type="email" placeholder="Email" maxLength={190} className={fieldClass} aria-label="Email" />
+              <input name="phone" placeholder="Phone / WhatsApp" maxLength={32} className={fieldClass} aria-label="Phone" />
+            </div>
+            <input name="message" placeholder="Note or message (optional)" maxLength={2000} className={fieldClass} aria-label="Message" />
+            <label className="flex items-center gap-2 text-[13.5px]"><input type="checkbox" name="consent" className="h-[18px] w-[18px]" /> They agreed to get messages from us</label>
+            <div><button type="submit" className={buttonClass("ink", "sm")}>Add lead</button></div>
+          </form>
+          <form action={importLeadsCsv} className="flex flex-col gap-3">
+            <b className="text-[14px]">A CSV list</b>
+            <p className="m-0 text-[13px] text-app-ink-soft">Columns by header: name, email, phone, source, consent (yes/no). Up to 5,000 rows. The same email or phone twice is one lead; people who already have an account are marked signed up.</p>
+            <input name="file" type="file" accept=".csv,text/csv" required className="text-[13.5px]" aria-label="CSV file" />
+            <input name="source" placeholder="Source for every row (optional)" maxLength={190} className={fieldClass} aria-label="Source for every row" />
+            <label className="flex items-center gap-2 text-[13.5px]"><input type="checkbox" name="consent" className="h-[18px] w-[18px]" /> Everyone on this list agreed to get messages</label>
+            <div><button type="submit" className={buttonClass("white", "sm")}>Import</button></div>
+          </form>
+        </div>
+      </details>
       <section aria-label="Last 30 days" className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         <StatTile tone="card" label="Last 30 days" value={total30} hint="All forms" />
         {Object.entries(KIND_LABELS).filter(([key]) => data.kindCounts30d[key]).map(([key, label]) => (
@@ -98,6 +138,8 @@ export default async function AdminLeadsPage(props: { searchParams?: Promise<Sea
                       <Pill tone={STATUS_TONE[lead.status] ?? "muted"} dot>{STATUS_LABELS[lead.status as LeadStatus] ?? lead.status}</Pill>
                       <Pill tone="muted">{KIND_LABELS[lead.kind] ?? lead.kind}</Pill>
                       {lead.consent && <Pill tone="success">Agreed to messages</Pill>}
+                      {lead.convertedAt && <Pill tone="success">Has an account</Pill>}
+                      {lead.optedOut.map((channel) => <Pill key={channel} tone="danger">No {CHANNEL_LABELS[channel as LeadChannel] ?? channel}</Pill>)}
                     </div>
                     <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-[13.5px] text-app-ink-soft">
                       <span>{when(lead.createdAt)}</span>
@@ -109,6 +151,11 @@ export default async function AdminLeadsPage(props: { searchParams?: Promise<Sea
                     {lead.message && <p className="mb-0 mt-2 whitespace-pre-line text-[14px]">{lead.message}</p>}
                     {details.length > 0 && (
                       <p className="mb-0 mt-2 text-[13px] text-app-ink-soft">{details.map(([k, v]) => `${k}: ${String(v)}`).join(" · ")}</p>
+                    )}
+                    {sentTo(lead.id).length > 0 && (
+                      <p className="mb-0 mt-2 text-[13px] text-app-ink-soft">
+                        Messages: {sentTo(lead.id).slice(0, 6).map((m) => `${CHANNEL_LABELS[m.channel as LeadChannel] ?? m.channel} ${m.status === "sent" ? "✓" : m.status} (${m.campaign?.name ?? m.automation?.name ?? "test"}, ${when(m.createdAt)})`).join(" · ")}
+                      </p>
                     )}
                   </div>
                   <form action={setWebsiteLeadStatus} className="flex flex-wrap items-center gap-2">

@@ -420,13 +420,119 @@ model WebsiteLead {
   payload    Json     @default("{}")
   status     String   @default("new")
   note       String?
+  // Lead growth (src/lib/lead-growth): the account this lead became (matched on email or phone at sign-up), and
+  // the channels they asked us to stop using ("email" | "sms" | "whatsapp").
+  convertedUserId String?
+  convertedAt     DateTime?
+  optedOut        String[] @default([])
+  lastMessagedAt  DateTime?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+
+  messages    LeadMessage[]
+  enrollments LeadEnrollment[]
 
   @@index([status, createdAt])
   @@index([kind, createdAt])
   @@index([email])
   @@index([phone])
+  @@index([convertedAt])
+}
+
+// ─── Lead growth: campaigns and automations to turn website leads into users ───────────────────────────────────
+// Admin › Lead campaigns. One message per lead per campaign (or per automation step), claimed before it is sent,
+// so a retried run never sends twice. docs/migrations/2026-11-05-lead-growth.sql
+
+model LeadCampaign {
+  id          String    @id @default(cuid())
+  name        String
+  channel     String // email | sms | whatsapp
+  status      String    @default("draft") // draft | scheduled | sending | sent | cancelled
+  audience    Json      @default("{}") // LeadAudience (src/lib/lead-growth/pure.ts)
+  subject     String?
+  body        String
+  ctaLabel    String?
+  ctaUrl      String?
+  waTemplate  String? // approved WhatsApp template name; without one the body goes as plain text
+  waLanguage  String?
+  scheduledAt DateTime?
+  startedAt   DateTime?
+  finishedAt  DateTime?
+  total       Int       @default(0)
+  sent        Int       @default(0)
+  failed      Int       @default(0)
+  createdById String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  messages LeadMessage[]
+
+  @@index([status, scheduledAt])
+}
+
+model LeadAutomation {
+  id              String    @id @default(cuid())
+  name            String
+  active          Boolean   @default(false)
+  audience        Json      @default("{}") // LeadAudience
+  steps           Json      @default("[]") // LeadStep[]: { delayHours, channel, subject?, body, ctaLabel?, ctaUrl?, waTemplate? }
+  includeExisting Boolean   @default(false) // also enrol leads that came in before it was switched on
+  activatedAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  enrollments LeadEnrollment[]
+  messages    LeadMessage[]
+}
+
+model LeadEnrollment {
+  id           String         @id @default(cuid())
+  automationId String
+  leadId       String
+  step         Int            @default(0) // the next step to send
+  nextAt       DateTime
+  status       String         @default("active") // active | done | stopped
+  stopReason   String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  automation   LeadAutomation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  lead         WebsiteLead    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@unique([automationId, leadId])
+  @@index([status, nextAt])
+}
+
+model LeadMessage {
+  id           String          @id @default(cuid())
+  leadId       String
+  campaignId   String?
+  automationId String?
+  step         Int?
+  channel      String
+  to           String
+  status       String          @default("sending") // sending | sent | failed | skipped
+  error        String?
+  providerId   String?
+  sentAt       DateTime?
+  createdAt    DateTime        @default(now())
+  lead         WebsiteLead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  campaign     LeadCampaign?   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  automation   LeadAutomation? @relation(fields: [automationId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, leadId])
+  @@unique([automationId, leadId, step])
+  @@index([leadId])
+  @@index([status, createdAt])
+}
+
+// One row per signed-in account per day they used the app (Admin › Analytics: active users and retention).
+model UserActivityDay {
+  userId String
+  day    DateTime @db.Date
+  role   String
+
+  @@id([userId, day])
+  @@index([day])
 }
 
 // ─── Supplier ─────────────────────────────────────────────────────────────────

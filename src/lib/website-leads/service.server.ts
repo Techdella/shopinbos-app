@@ -15,6 +15,8 @@ async function guard<T>(run: () => Promise<T>): Promise<T> {
     return await run();
   } catch (error) {
     if (isMissingTable(error)) throw new LeadsNotReady("Run docs/migrations/2026-10-18-website-leads.sql first.");
+    // New lead columns (convertedAt, optedOut…) come with the lead-growth migration.
+    if ((error as { code?: string } | null)?.code === "P2022") throw new LeadsNotReady("Run docs/migrations/2026-11-05-lead-growth.sql first.");
     throw error;
   }
 }

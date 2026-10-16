@@ -1,7 +1,9 @@
-import { NextRequest } from "next/server";
+import { NextRequest, after } from "next/server";
 import { apiError, created } from "@/lib/api/response";
 import { checkLeadSignature, WebsiteLeadInput } from "@/lib/website-leads/pure";
 import { LeadsNotReady, saveWebsiteLead } from "@/lib/website-leads/service.server";
+import { enrolLeads, matchLeadsToExistingUsers, runDueSteps } from "@/lib/lead-growth/service.server";
+import { trackServerEvent } from "@/lib/platform-analytics/track.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,6 +28,20 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return apiError("VALIDATION_ERROR", parsed.error.issues[0]?.message ?? "Check the lead.", 422);
   try {
     const lead = await saveWebsiteLead(parsed.data);
+    // After the reply: put the lead into any active automation and send a "welcome now" step straight away,
+    // and tell the analytics tools a lead came in. Errors here never fail the website's post.
+    after(async () => {
+      await matchLeadsToExistingUsers({ leadId: lead.id })
+        .then(() => enrolLeads({ leadId: lead.id }))
+        .then(() => runDueSteps(Date.now() + 20_000)).catch((error) => console.warn("[website leads] automation", error));
+      const utm = parsed.data.payload;
+      await trackServerEvent({
+        event: "lead_captured",
+        distinctId: `lead:${lead.id}`,
+        insertId: `lead-${lead.id}`,
+        properties: { kind: parsed.data.kind, source: parsed.data.source || null, utm_source: typeof utm.utm_source === "string" ? utm.utm_source : null, utm_medium: typeof utm.utm_medium === "string" ? utm.utm_medium : null, utm_campaign: typeof utm.utm_campaign === "string" ? utm.utm_campaign : null },
+      });
+    });
     return created({ id: lead.id });
   } catch (error) {
     if (error instanceof LeadsNotReady) return apiError("NOT_READY", error.message, 503);

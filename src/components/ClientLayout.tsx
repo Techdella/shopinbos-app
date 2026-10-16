@@ -3,6 +3,7 @@
 import { ToastProvider } from "@/components/ui/Toast";
 import { PortalNote } from "@/components/auth/PortalNote";
 import { DialogHost } from "@/components/ui/dialogs";
+import { ProductAnalytics } from "@/components/analytics/ProductAnalytics";
 import type { ReactNode } from "react";
 
 export function ClientLayout({ children }: { children: ReactNode }) {
@@ -10,6 +11,7 @@ export function ClientLayout({ children }: { children: ReactNode }) {
     <ToastProvider>
       <PortalNote />
       <DialogHost />
+      <ProductAnalytics />
       {children}
     </ToastProvider>
   );
