@@ -21,7 +21,7 @@ import { GameSection } from "@/components/storefront/gamification/GameSection";
 import { isGameSectionKind } from "@/lib/gamification/logic";
 import { HeroSlider, slideAlign } from "@/components/storefront/HeroSlider";
 import { itemMediaUrl, readCountdownEnd, readHeroSlides, readOptionalProductLimit, readProductLimit, readSlideTiming, youTubeEmbedUrl, youTubeId, type HeroSlide } from "@/lib/store-templates/section-content";
-import { findStorefrontPage } from "@shared/storefront-pages";
+import { findStorefrontPage, storefrontPageHref } from "@shared/storefront-pages";
 import type { BoutiqueProductDetail } from "@/components/storefront/boutique/BoutiqueProductView";
 import { ClassicPdp } from "@/components/storefront/boutique/pdp/ClassicPdp";
 import { classicLook } from "@/components/storefront/boutique/pdp/classic-look";
@@ -701,6 +701,27 @@ function ClassicShopBrowser({
   );
 }
 
+/**
+ * A product's name inside a clickable card, as a real link to its page (so it opens in a new tab and search engines
+ * follow it). A plain click is left to the card, which opens the product as before; Ctrl/⌘/Shift/middle clicks
+ * are the link's own. Without an address (editor, sample products) it's just the text.
+ */
+function ProductTitleLink({ href, children }: { href?: string; children: React.ReactNode }) {
+  if (!href) return <>{children}</>;
+  return (
+    <a
+      href={href}
+      onClick={(event) => {
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) event.stopPropagation();
+        else event.preventDefault();
+      }}
+      style={{ color: "inherit", textDecoration: "none" }}
+    >
+      {children}
+    </a>
+  );
+}
+
 function ProductCard({
   product,
   theme,
@@ -709,10 +730,13 @@ function ProductCard({
   onToggleWishlist,
   wishlistProductIds = [],
   mode,
+  href,
 }: {
   product: RenderProduct;
   theme: ReturnType<typeof themeFor>;
   onOpenProduct?: () => void;
+  /** The product's own address: its name becomes a real link (new tabs, search engines); plain clicks open it as before. */
+  href?: string;
   onAddToCart?: (productId: string) => void;
   onToggleWishlist?: (productId: string) => void;
   wishlistProductIds?: string[];
@@ -780,7 +804,7 @@ function ProductCard({
           <div>
             {isPremium ? <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: theme.muted }}>{product.subtitle}</div> : null}
             <h3 className={isPremium ? "text-[14.5px] font-semibold leading-snug" : "text-[17px] font-semibold tracking-[-0.03em]"} style={{ color: theme.ink, fontFamily: isPremium ? theme.bodyFont : theme.headingFont }}>
-              {product.title}
+              <ProductTitleLink href={href}>{product.title}</ProductTitleLink>
             </h3>
             {!isPremium ? <p className="mt-1.5 text-[13px] leading-6" style={{ color: theme.muted }}>
               {product.subtitle}
@@ -957,13 +981,19 @@ function ClassicTemplateSurface({
     .filter((item, index, array) => array.indexOf(item) === index);
   const headerLayout = String(header?.settings?.layout ?? "standard");
   const categoryNavLayout = String(header?.settings?.categoryNavLayout ?? "simple");
+  // On a live store every menu item is a real link (/about, /shop?category=…, /product/<id>): shoppers can open it
+  // in a new tab and search engines can follow it. Plain clicks still switch page in place.
+  const liveHref = mode === "live" && storeBasePath !== undefined;
   const shownMenu = resolveMenu(savedMenu, {
     hasPage: (page) => visibleNavLink(page),
     pageLabel: (page) => pageLabel(page),
+    pageHref: liveHref ? (page) => storefrontPageHref(storeBasePath ?? "", normalizePageType(page)) ?? undefined : undefined,
     goPage: (page) => navigate(page),
     categories: productCategories,
+    categoryHref: liveHref ? (slug) => storefrontPageHref(storeBasePath ?? "", "products", new URLSearchParams({ category: slug })) ?? undefined : undefined,
     goCategory: (slug) => navigateCategory({ slug }),
     products: store.storeProducts,
+    productHref: liveHref ? (id) => getPublicStorefrontPath(storeBasePath ?? "", `/product/${encodeURIComponent(id)}`) : undefined,
     goProduct: (id) => openProductPage(id),
     current: currentPage,
     categoriesUnderShop: categoryNavLayout === "simple",
@@ -1389,6 +1419,13 @@ function ClassicTemplateSurface({
 
   function openProduct(product: RenderProduct) {
     openProductPage(product.mappedStoreProductId ?? product.id);
+  }
+
+  /** A real store product's own address on a live store (its card links there); undefined in the editor and for samples. */
+  function productHref(product: RenderProduct) {
+    const id = product.mappedStoreProductId ?? product.id;
+    if (mode !== "live" || !store.storeProducts.some((entry) => entry.id === id)) return undefined;
+    return getPublicStorefrontPath(storeBasePath ?? "", `/product/${encodeURIComponent(id)}`);
   }
 
   async function submitStoreForm(type: "contact" | "newsletter") {
@@ -2129,7 +2166,7 @@ function ClassicTemplateSurface({
             initialCategory={productFilter.category === "all" ? "" : productFilter.category}
             collections={shopperInfo.collections}
             renderCard={(product) => (
-              <ProductCard product={product} theme={theme} onOpenProduct={() => openProduct(product)} onAddToCart={onAddToCart} onToggleWishlist={onToggleWishlist} wishlistProductIds={wishlistProductIds} mode={mode} />
+              <ProductCard product={product} theme={theme} onOpenProduct={() => openProduct(product)} href={productHref(product)} onAddToCart={onAddToCart} onToggleWishlist={onToggleWishlist} wishlistProductIds={wishlistProductIds} mode={mode} />
             )}
           />
         );
@@ -2151,7 +2188,7 @@ function ClassicTemplateSurface({
                   </div>
                   <div className="flex flex-col justify-center p-5">
                     <div className="font-mono text-[11px] uppercase tracking-[0.16em]" style={{ color: theme.accent }}>0{index + 1} - {product.subtitle}</div>
-                    <h3 className="mt-3 text-[28px] font-semibold leading-tight" style={{ color: theme.ink, fontFamily: theme.headingFont }}>{product.title}</h3>
+                    <h3 className="mt-3 text-[28px] font-semibold leading-tight" style={{ color: theme.ink, fontFamily: theme.headingFont }}>{productHref(product) ? <a href={productHref(product)} style={{ color: "inherit", textDecoration: "none" }}>{product.title}</a> : product.title}</h3>
                     <p className="mt-3 max-w-[560px] text-[14px] leading-7" style={{ color: theme.muted }}>{product.subtitle || "Featured product selected for this store."}</p>
                   </div>
                   <div className="flex flex-col justify-center gap-3 border-t p-5 md:min-w-[190px] md:border-l md:border-t-0" style={{ borderColor: theme.border }}>
@@ -2189,7 +2226,7 @@ function ClassicTemplateSurface({
                       </div>
                       <div className="p-5">
                         <div className="text-[10px] font-bold uppercase tracking-[0.12em]" style={{ color: theme.accent }}>{product.subtitle}</div>
-                        <h3 className="mt-2 text-[18px] font-semibold" style={{ color: theme.ink }}>{product.title}</h3>
+                        <h3 className="mt-2 text-[18px] font-semibold" style={{ color: theme.ink }}><ProductTitleLink href={productHref(product)}>{product.title}</ProductTitleLink></h3>
                         <div className="mt-3 flex items-center justify-between gap-3">
                           <span className="text-[17px] font-semibold" style={{ color: theme.ink }}>{product.priceLabel}</span>
                           <span className="rounded-full px-3 py-1.5 text-[11px] font-bold" style={{ background: rgba(theme.accent, 0.1), color: theme.accent }}>View</span>
@@ -2229,6 +2266,7 @@ function ClassicTemplateSurface({
                 product={product}
                 theme={theme}
                 onOpenProduct={() => openProduct(product)}
+                href={productHref(product)}
                 onAddToCart={onAddToCart}
                 onToggleWishlist={onToggleWishlist}
                 wishlistProductIds={wishlistProductIds}
@@ -2421,7 +2459,7 @@ function ClassicTemplateSurface({
                 <SectionHeading eyebrow="Wishlist" title={String(copy.title ?? "Saved for later")} body={String(copy.body ?? "Products you love, ready when you are.")} headingFont={theme.headingFont} accent={theme.accent} ink={theme.ink} muted={theme.muted} />
                 <div className="mt-7 grid gap-4 md:grid-cols-2">
                   {items.map((product) => (
-                    <ProductCard key={product.id} product={product} theme={theme} mode={mode} onOpenProduct={() => openProduct(product)} onAddToCart={onAddToCart} onToggleWishlist={onToggleWishlist} wishlistProductIds={wishlistProductIds} />
+                    <ProductCard key={product.id} product={product} theme={theme} mode={mode} onOpenProduct={() => openProduct(product)} href={productHref(product)} onAddToCart={onAddToCart} onToggleWishlist={onToggleWishlist} wishlistProductIds={wishlistProductIds} />
                   ))}
                 </div>
               </div>
@@ -2441,7 +2479,7 @@ function ClassicTemplateSurface({
               <SectionHeading eyebrow={isCart ? "Cart" : "Wishlist"} title={String(copy.title ?? (isCart ? "Floating cart" : "Floating wishlist"))} body={String(copy.body ?? "A compact floating summary stays visible while shoppers continue browsing.")} headingFont={theme.headingFont} accent={theme.accent} ink={theme.ink} muted={theme.muted} />
               <div className="mt-7 grid gap-4 md:grid-cols-3">
                 {items.slice(0, 3).map((product) => (
-                  <ProductCard key={product.id} product={product} theme={theme} mode={mode} onOpenProduct={() => openProduct(product)} onAddToCart={onAddToCart} onToggleWishlist={onToggleWishlist} wishlistProductIds={wishlistProductIds} />
+                  <ProductCard key={product.id} product={product} theme={theme} mode={mode} onOpenProduct={() => openProduct(product)} href={productHref(product)} onAddToCart={onAddToCart} onToggleWishlist={onToggleWishlist} wishlistProductIds={wishlistProductIds} />
                 ))}
               </div>
               <div className="mt-8 max-w-[420px] rounded-[28px] border bg-white p-5 shadow-[0_24px_80px_rgba(14,42,56,.14)]" style={{ borderColor: theme.border }}>

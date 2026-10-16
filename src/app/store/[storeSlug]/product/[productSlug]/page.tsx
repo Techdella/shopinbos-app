@@ -1,4 +1,4 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { db } from "@/lib/db/client";
 
 function slugify(input: string) {
@@ -34,5 +34,5 @@ export default async function PublicStoreProductAliasPage({
   ));
   if (!product) notFound();
 
-  redirect(`/s/${storeSlug}/product/${product.id}`);
+  permanentRedirect(`/s/${storeSlug}/product/${product.id}`);
 }

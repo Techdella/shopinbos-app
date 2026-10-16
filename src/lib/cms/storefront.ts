@@ -10,6 +10,8 @@ import type { CmsField, RichValue } from "@/lib/cms/fields";
 import { db } from "@/lib/db/client";
 import { loadReferences, loadStorefrontCollection, loadStorefrontItem, readSeoMeta, type PublicStore } from "@/lib/cms/server";
 import { normalizeSeo, seoMetadata } from "@/lib/seo/fields";
+import { NOINDEX_NOFOLLOW, storePageRobots } from "@/lib/seo/indexing";
+import { storeSearchState } from "@/lib/seo/store-seo.server";
 import { naira } from "@shared/onboarding";
 
 /** Loaded once per request (metadata and page share it). */
@@ -63,11 +65,21 @@ export function cmsTheme(store: Pick<PublicStore, "brandSettings" | "status">): 
   };
 }
 
-/** Canonical address of a storefront path: the app's /s/[slug]/… or the seller's own domain. */
+/**
+ * Canonical address of a storefront path: the seller's own domain, else the store's subdomain, else the app's
+ * /s/[slug]/… (the same scheme as the store's home page). Pass the store's customDomain.
+ */
 export function cmsCanonical(storeSlug: string, path: string, customDomain?: string | null) {
-  if (customDomain) return buildStorefrontUrl({ slug: storeSlug, customDomain: normalizeDomain(customDomain) }, path);
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.shopinbos.com";
-  return `${appUrl.replace(/\/$/, "")}/s/${storeSlug}${path}`;
+  return buildStorefrontUrl({ slug: storeSlug, customDomain: customDomain ? normalizeDomain(customDomain) : null }, path);
+}
+
+/**
+ * Robots for a store's CMS, collection and policy pages: indexed only while the store is live and not hidden from
+ * search engines, and never when the item's own SEO tab says so.
+ */
+export async function storeContentRobots(storeSlug: string, pageNoIndex?: boolean) {
+  const state = await storeSearchState(storeSlug);
+  return storePageRobots({ indexable: Boolean(state?.indexable), pageNoIndex });
 }
 
 export function storeLink(basePath: string, path: string) {
@@ -76,35 +88,39 @@ export function storeLink(basePath: string, path: string) {
 
 export async function collectionMetadata(storeSlug: string, collectionSlug: string, customDomain?: string | null): Promise<Metadata> {
   const found = await storefrontCollection(storeSlug, collectionSlug);
-  if (!found) return { title: "Not found" };
+  if (!found) return { title: "Not found", robots: NOINDEX_NOFOLLOW };
   const { store, collection, items } = found;
-  return seoMetadata(normalizeSeo(collection.seo), {
+  const seo = normalizeSeo(collection.seo);
+  const meta = seoMetadata(seo, {
     title: collection.name,
     titleSuffix: store.name,
     description: collection.description || `${collection.name} from ${store.name}`,
     image: items.find((item) => item.featuredImage)?.featuredImage ?? store.logoUrl,
-    canonical: cmsCanonical(store.slug, `/${collection.slug}`, customDomain),
+    canonical: cmsCanonical(store.slug, `/${collection.slug}`, customDomain ?? store.customDomain),
     siteName: store.name,
   }) as Metadata;
+  return { ...meta, robots: await storeContentRobots(storeSlug, seo.noIndex) };
 }
 
 export async function itemMetadata(storeSlug: string, collectionSlug: string, itemSlug: string, customDomain?: string | null): Promise<Metadata> {
   const found = await storefrontItem(storeSlug, collectionSlug, itemSlug);
-  if (!found) return { title: "Not found" };
+  if (!found) return { title: "Not found", robots: NOINDEX_NOFOLLOW };
   const { store, collection, item } = found;
-  const meta = seoMetadata(normalizeSeo(item.seo), {
+  const seo = normalizeSeo(item.seo);
+  const meta = seoMetadata(seo, {
     title: item.title,
     titleSuffix: store.name,
-    description: item.excerpt,
+    description: item.excerpt || `${item.title} from ${store.name}`,
     image: item.featuredImage ?? store.logoUrl,
-    canonical: cmsCanonical(store.slug, `/${collection.slug}/${item.slug}`, customDomain),
+    canonical: cmsCanonical(store.slug, `/${collection.slug}/${item.slug}`, customDomain ?? store.customDomain),
     siteName: store.name,
     type: collection.template === "blog" ? "article" : "website",
   });
+  const robots = await storeContentRobots(storeSlug, seo.noIndex);
   if (collection.template === "blog") {
-    return { ...meta, openGraph: { ...meta.openGraph, type: "article", publishedTime: item.publishedAt?.toISOString(), modifiedTime: item.updatedAt.toISOString(), authors: item.author ? [item.author] : undefined } } as Metadata;
+    return { ...meta, robots, openGraph: { ...meta.openGraph, type: "article", publishedTime: item.publishedAt?.toISOString(), modifiedTime: item.updatedAt.toISOString(), authors: item.author ? [item.author] : undefined } } as Metadata;
   }
-  return meta as Metadata;
+  return { ...meta, robots } as Metadata;
 }
 
 /** Products (for cards and product fields) and linked items an item needs, keyed by id. */
@@ -144,16 +160,19 @@ export const storefrontProductCollection = cache(async (storeSlug: string, handl
 
 export async function productCollectionMetadata(storeSlug: string, handle: string, customDomain?: string | null): Promise<Metadata> {
   const found = await storefrontProductCollection(storeSlug, handle);
-  if (!found) return { title: "Not found" };
+  if (!found) return { title: "Not found", robots: NOINDEX_NOFOLLOW };
   const { store, collection, products, seo } = found;
-  return seoMetadata(seo, {
+  const names = products.slice(0, 4).map((product) => product.name).join(", ");
+  const meta = seoMetadata(seo, {
     title: collection.name,
     titleSuffix: store.name,
-    description: collection.description || `Shop ${collection.name} at ${store.name}`,
+    description: collection.description || `Shop ${collection.name} at ${store.name}${names ? `: ${names}${products.length > 4 ? " and more" : ""}.` : "."}`,
     image: collection.imageUrl ?? products[0]?.images[0] ?? store.logoUrl,
-    canonical: cmsCanonical(store.slug, `/collections/${collection.slug}`, customDomain),
+    canonical: cmsCanonical(store.slug, `/collections/${collection.slug}`, customDomain ?? store.customDomain),
     siteName: store.name,
   }) as Metadata;
+  // An empty collection is a thin page: shown, but not listed.
+  return { ...meta, robots: await storeContentRobots(storeSlug, seo.noIndex || products.length === 0) };
 }
 
 // ─── Products ────────────────────────────────────────────────────────────────
