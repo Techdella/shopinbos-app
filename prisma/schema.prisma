@@ -1089,6 +1089,9 @@ model LogisticsPartner {
   payInPauseWaived   Boolean            @default(false)
   /// Late days counted against the partner (each also lowers reliabilityScore).
   payInStrikes       Int                @default(0)
+  /// A delivery company we book through its own API (lib/logistics/carriers): "kwik". Its jobs are priced live and
+  /// sent to the carrier instead of being offered in the partner portal, and their status comes from the carrier.
+  carrier            String?
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
@@ -1258,6 +1261,14 @@ model DeliveryBooking {
   pickupLng          Float?
   pickupGeoSource    String?
   pickupGeocodedAt   DateTime?
+  /// Carrier jobs (LogisticsPartner.carrier): the carrier's order reference (Kwik unique_order_id), its own job ids,
+  /// tracking link and raw status, and when the status was last read from it.
+  externalCarrier    String?
+  externalRef        String?
+  externalJobIds     Json?
+  externalTrackingUrl String?
+  externalStatus     String?
+  externalSyncedAt   DateTime?
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
 
@@ -1273,6 +1284,7 @@ model DeliveryBooking {
   @@index([trackingCode])
   @@index([status])
   @@index([riderId])
+  @@index([externalCarrier, status])
 }
 
 // ─── Shipping Zone ────────────────────────────────────────────────────────────

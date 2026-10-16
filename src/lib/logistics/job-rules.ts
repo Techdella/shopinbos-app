@@ -2,7 +2,8 @@
 
 export const JOB_STATUSES = ["pending", "confirmed", "picked_up", "in_transit", "delivered", "failed", "cancelled"] as const;
 export type JobStatus = (typeof JOB_STATUSES)[number];
-export type JobActor = "partner" | "rider" | "api";
+/** "carrier": a delivery company booked through its own API (lib/logistics/carriers), moved from its status. */
+export type JobActor = "partner" | "rider" | "api" | "carrier";
 
 const NEXT: Record<JobStatus, JobStatus[]> = {
   pending: ["confirmed", "cancelled"],
@@ -20,6 +21,29 @@ export function nextStatuses(current: string): JobStatus[] {
 
 export function canMove(from: string, to: string) {
   return nextStatuses(from).includes(to as JobStatus);
+}
+
+/**
+ * The steps from one status to another, shortest first ("confirmed" → "delivered": picked_up, delivered), for a
+ * carrier whose status can jump ahead between two reads. Never through "failed" (its retry would loop a finished
+ * pickup back to "confirmed"). Empty when already there or it can't get there.
+ */
+export function stepsTo(from: string, to: string): JobStatus[] {
+  if (from === to) return [];
+  const seen = new Set<string>([from]);
+  const queue: Array<{ at: string; path: JobStatus[] }> = [{ at: from, path: [] }];
+  while (queue.length) {
+    const { at, path } = queue.shift()!;
+    for (const next of nextStatuses(at)) {
+      if (seen.has(next)) continue;
+      const route = [...path, next];
+      if (next === to) return route;
+      seen.add(next);
+      if (next === "failed") continue;
+      queue.push({ at: next, path: route });
+    }
+  }
+  return [];
 }
 
 /** 4-digit code the buyer reads to the rider. */
@@ -41,7 +65,7 @@ export function checkTransition(
   if (!canMove(job.status, input.to)) return { ok: false, error: "This job has already moved on, so that step isn't possible now. Refresh to see where it is." };
   if (input.to === "failed" && !input.failedReason?.trim()) return { ok: false, error: "Say why you couldn't deliver it, for example \"Customer not picking calls\"." };
   if (input.to === "delivered") {
-    if (job.deliveryCode && input.actor !== "partner" && input.code?.trim() !== job.deliveryCode) {
+    if (job.deliveryCode && input.actor !== "partner" && input.actor !== "carrier" && input.code?.trim() !== job.deliveryCode) {
       return { ok: false, error: "That code doesn't match. Ask the customer for the 4-digit code on their phone." };
     }
     if (job.codAmount && job.codAmount > 0) {

@@ -601,6 +601,13 @@ export const DeliveryQuoteResponseSchema = z.object({
 
 // ─── Delivery Booking ─────────────────────────────────────────────────────────
 
+/** Who the rider meets at either end, for delivery companies booked through their own API (lib/logistics/carriers). */
+export const CarrierContactSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  phone: z.string().trim().min(7).max(30),
+  email: z.string().email().max(200).optional(),
+});
+
 export const DeliveryBookingCreateSchema = z.object({
   logisticsPartnerId: z.string(),
   orderId: z.string().optional(),
@@ -616,6 +623,21 @@ export const DeliveryBookingCreateSchema = z.object({
   currency: z.string().length(3).default("NGN"),
   estimatedDelivery: z.coerce.date().optional(),
   notes: z.string().max(1000).optional(),
+  /** Carrier partners: the buyer (defaults to the order's buyer) and the pickup phone (defaults to the seller's). */
+  recipient: CarrierContactSchema.optional(),
+  pickupPhone: z.string().trim().min(7).max(30).optional(),
+});
+
+/** A carrier partner's live price for a delivery (POST /api/app/logistics/live-quote). */
+export const CarrierLiveQuoteSchema = DeliveryBookingCreateSchema.pick({
+  logisticsPartnerId: true,
+  orderId: true,
+  pickupLocation: true,
+  destination: true,
+  recipient: true,
+  pickupPhone: true,
+}).extend({
+  packageDetails: DeliveryBookingCreateSchema.shape.packageDetails.optional(),
 });
 
 export const BookingStatusUpdateSchema = z.object({

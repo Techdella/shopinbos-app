@@ -220,7 +220,8 @@ async function pickPartner(order: PickupOrder) {
     order.storeId ? db.store.findUnique({ where: { id: order.storeId }, select: { brandSettings: true } }) : null,
     db.logisticsPartner.findMany({
       // Pay-when-it-arrives parcels skip partners paused for a late cash pay-in (lib/logistics/payin-deadline.ts).
-      where: { status: "active", verificationStatus: "verified", ...payWhenItArrivesWhere(order.collect > 0) },
+      // Carriers booked through their own API (lib/logistics/carriers) don't take pickup windows yet.
+      where: { status: "active", verificationStatus: "verified", carrier: null, ...payWhenItArrivesWhere(order.collect > 0) },
       select: { id: true, city: true, coverageZones: true, status: true, verificationStatus: true, reliabilityScore: true, rating: true, basePrice: true },
       take: 500,
     }),
