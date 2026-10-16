@@ -2753,6 +2753,50 @@ model StoreMetricDaily {
   @@index([storeId, day])
 }
 
+// Store traffic per Lagos day for /home/analytics/traffic (src/lib/analytics/traffic.ts): page views by path,
+// sessions by source / referrer host / device / country / city / utm, shop searches, engaged seconds. Counts only:
+// no IP, user agent, visitor id or full URL is ever stored.
+model StoreTrafficDaily {
+  id        String   @id @default(cuid())
+  storeId   String
+  day       String // YYYY-MM-DD, Africa/Lagos
+  metric    String // session | entry | page_view | visitor | new_visitor | engaged_seconds | engaged_view | search
+  dim       String   @default("") // "" (the total) | path | source | referrer | device | country | city | medium | campaign | term
+  value     String   @default("")
+  count     Int      @default(0)
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([storeId, day, metric, dim, value])
+  @@index([storeId, day])
+}
+
+// Unique visitors per store per Lagos day as a HyperLogLog sketch (src/lib/analytics/hll.ts): only the register
+// bytes, never a visitor token or hash. Days merge register by register for true unique visitors over a range.
+model StoreVisitorSketch {
+  id        String   @id @default(cuid())
+  storeId   String
+  day       String // YYYY-MM-DD, Africa/Lagos
+  sketch    Bytes
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([storeId, day])
+}
+
+// "Connect with Google" for Search Console performance on /home/analytics/traffic (src/lib/search-console).
+// Tokens are encrypted at rest (src/lib/reviews/secrets.ts) and never sent to the browser.
+model SearchConsoleConnection {
+  id           String    @id @default(cuid())
+  storeId      String    @unique
+  accessToken  String?
+  refreshToken String?
+  expiresAt    DateTime?
+  siteUrl      String? // the chosen property: "https://shop.example.com/" or "sc-domain:example.com"
+  status       String    @default("needs_site") // needs_site | connected
+  lastError    String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
+}
+
 // A store's product catalog on a selling channel (Google Merchant Center, Meta/Instagram/Facebook, TikTok, WhatsApp).
 // Feeds work without any of this; a row records API credentials (token encrypted at rest) and sync/fetch history.
 model SocialChannelConnection {

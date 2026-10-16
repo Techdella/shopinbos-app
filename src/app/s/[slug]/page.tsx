@@ -13,9 +13,9 @@ interface Props {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const { slug } = await params;
-  return storefrontMetadata(slug);
+  return storefrontMetadata(slug, "home", null, await searchParams);
 }
 
 export default async function StorefrontPage({ params, searchParams }: Props) {

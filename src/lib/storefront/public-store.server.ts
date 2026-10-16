@@ -149,13 +149,17 @@ export interface StoreBrand extends StoreBadges {
   name: string;
   slug: string;
   logoUrl: string | null;
+  /** The verified domain the store is served on (its canonical address), if any. */
+  customDomain: string | null;
+  /** For the seller's tags' shop events (value and currency). */
+  currency: string;
   brandSettings: Record<string, unknown>;
 }
 
 /** Also what the storefront layouts hand every page's footer: the "Built with Shopinbos" badge and payment logos. */
 export const loadStoreBrand = cache(async (slug: string): Promise<StoreBrand | null> => {
   const store = await db.store
-    .findUnique({ where: { slug }, select: { id: true, status: true, name: true, slug: true, logoUrl: true, brandSettings: true, user: { select: { planStatus: true, planPaidUntil: true } } } })
+    .findUnique({ where: { slug }, select: { id: true, status: true, name: true, slug: true, logoUrl: true, customDomain: true, currency: true, brandSettings: true, user: { select: { planStatus: true, planPaidUntil: true } } } })
     .catch(() => null);
   if (!store) return null;
   return {
@@ -164,6 +168,8 @@ export const loadStoreBrand = cache(async (slug: string): Promise<StoreBrand | n
     name: store.name,
     slug: store.slug,
     logoUrl: store.logoUrl,
+    customDomain: store.customDomain,
+    currency: store.currency,
     brandSettings: (publicBrandSettings(store.brandSettings) ?? {}) as Record<string, unknown>,
     ...storeBadges(store.user, store.brandSettings),
   };

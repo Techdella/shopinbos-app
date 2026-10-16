@@ -346,6 +346,13 @@ export const MESSAGE_LOADERS: Record<string, Record<string, Loader>> = {
     ha: () => import("@shared/i18n/messages/tour/ha.ts") as Promise<{ default: Record<string, string> }>,
     ig: () => import("@shared/i18n/messages/tour/ig.ts") as Promise<{ default: Record<string, string> }>,
   },
+  traffic: {
+    en: () => import("@shared/i18n/messages/traffic/en.ts") as Promise<{ default: Record<string, string> }>,
+    pcm: () => import("@shared/i18n/messages/traffic/pcm.ts") as Promise<{ default: Record<string, string> }>,
+    yo: () => import("@shared/i18n/messages/traffic/yo.ts") as Promise<{ default: Record<string, string> }>,
+    ha: () => import("@shared/i18n/messages/traffic/ha.ts") as Promise<{ default: Record<string, string> }>,
+    ig: () => import("@shared/i18n/messages/traffic/ig.ts") as Promise<{ default: Record<string, string> }>,
+  },
   ui: {
     en: () => import("@shared/i18n/messages/ui/en.ts") as Promise<{ default: Record<string, string> }>,
     pcm: () => import("@shared/i18n/messages/ui/pcm.ts") as Promise<{ default: Record<string, string> }>,

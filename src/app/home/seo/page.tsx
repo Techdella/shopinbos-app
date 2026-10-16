@@ -13,6 +13,7 @@ import { getT } from "@/lib/i18n/server";
 import { buildStorefrontUrl } from "@/lib/domains/storefront";
 import type { ReactNode } from "react";
 import { SeoImageField } from "@/components/seo/SeoImageField";
+import { storeHiddenFromSearch } from "@/lib/seo/indexing";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +46,7 @@ export default async function SeoSettingsPage({ searchParams }: SeoPageProps) {
       ? (settings.integrations as Record<string, string>)
       : {};
 
+  const hiddenFromSearch = storeHiddenFromSearch(settings);
   const activeTab = params?.tab === "integrations" ? "integrations" : "seo";
   const previewImage = seo.socialImage || store.logoUrl;
   const storeAddress = buildStorefrontUrl({ slug: store.slug, customDomain: store.customDomain ?? null }).replace(/^https?:\/\//, "").replace(/\/$/, "");
@@ -113,6 +115,17 @@ export default async function SeoSettingsPage({ searchParams }: SeoPageProps) {
                 </div>
               </Card>
 
+              <Card className="p-5">
+                <CardHead title={t("seo.visibility")} sub={t("seo.visibilitySub")} />
+                <label className="mt-4 flex cursor-pointer items-start gap-2.5">
+                  <input type="checkbox" name="hideFromSearch" defaultChecked={hiddenFromSearch} className="mt-1 h-4 w-4 shrink-0" />
+                  <span>
+                    <strong className="text-[14px]">{t("seo.hideFromSearch")}</strong>
+                    <span className={`block ${FIELD_HELP}`}>{t("seo.hideFromSearchHelp")}</span>
+                  </span>
+                </label>
+              </Card>
+
               <div>
                 <button className={SUBMIT_ACCENT} type="submit">{t("seo.saveSearch")}</button>
               </div>
@@ -127,6 +140,7 @@ export default async function SeoSettingsPage({ searchParams }: SeoPageProps) {
                   <div className="mt-0.5 line-clamp-2 text-[13px] leading-snug text-[#545454]">{seo.description ?? store.description ?? t("seo.addDesc")}</div>
                 </div>
                 <p className={FIELD_HELP}>{t("seo.showsSaved")}</p>
+                {hiddenFromSearch && <p className={`${FIELD_HELP} font-bold text-app-ink`}>{t("seo.hiddenNotice")}</p>}
               </Card>
               {previewImage && (
                 <Card className="overflow-hidden">

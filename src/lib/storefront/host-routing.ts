@@ -122,6 +122,9 @@ function under(pathname: string, prefix: string) {
   return pathname === prefix || pathname.startsWith(`${prefix}/`);
 }
 
+/** Search and AI files a store host serves from the store itself (robots rules, sitemap, llms.txt). */
+export const STORE_SEO_FILES: ReadonlySet<string> = new Set(["/robots.txt", "/sitemap.xml", "/llms.txt", "/llms-full.txt"]);
+
 export type StorePathAction = { action: "pass" } | { action: "rewrite"; pathname: string } | { action: "not-found" };
 
 /**
@@ -132,7 +135,9 @@ export type StorePathAction = { action: "pass" } | { action: "rewrite"; pathname
 export function storePathAction(pathname: string, slug: string): StorePathAction {
   const path = pathname || "/";
   if (path.startsWith("/_next/")) return { action: "pass" };
-  if (path === "/favicon.ico" || path.startsWith("/favicon") || path === "/robots.txt" || path === "/sitemap.xml") return { action: "pass" };
+  // Each store answers its own robots.txt, sitemap and AI summary (src/app/s/[slug]/robots.txt…), never the app's.
+  if (STORE_SEO_FILES.has(path)) return { action: "rewrite", pathname: `/s/${slug}${path}` };
+  if (path === "/favicon.ico" || path.startsWith("/favicon")) return { action: "pass" };
   if (path === "/api" || path.startsWith("/api/")) {
     return STOREFRONT_API_PREFIXES.some((prefix) => under(path, prefix)) ? { action: "pass" } : { action: "not-found" };
   }

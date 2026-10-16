@@ -57,7 +57,7 @@ export function BoutiqueProductPage({ themeId, snapshot, store, product, reviews
   const cartSettings = readCartSettings(store.brandSettings);
   useCampaignAttribution(store.slug);
   useStoreVisitBeacon(store.slug);
-  useStoreProductView(store.slug, product.id);
+  useStoreProductView(store.slug, product.id, { id: product.id, name: product.name, price: product.retailPrice, currency: store.currency });
   const [cartOpen, setCartOpen] = useState(false);
   const [sheet, setSheet] = useState<ShopperSheet>(null);
   const [shareUrl, setShareUrl] = useState<string | undefined>(undefined);

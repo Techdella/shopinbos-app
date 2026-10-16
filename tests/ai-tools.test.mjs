@@ -303,6 +303,17 @@ globalThis.__aiMocks = {
   },
   "@/lib/analytics/load": { loadAnalytics: record("loadAnalytics", { report: { kpis: { sales: 0, orders: 0, aov: 0, visits: 0, conversionRate: null, returningRate: null, refundsCount: 0, refundsValue: 0 }, change: {}, previous: { sales: 0, orders: 0, visits: 0 }, topProducts: [], channels: [], sources: [], attribution: {}, funnel: [], customers: {} } }) },
   "@/lib/analytics/range": { resolveRange: ({ range }) => ({ label: range }) },
+  "@/lib/analytics/traffic-load": {
+    loadTraffic: record("loadTraffic", {
+      available: true,
+      report: {
+        kpis: { sessions: 0, pageViews: 0, uniqueVisitors: 0, newVisitors: 0, returningVisitors: 0, pagesPerSession: null, avgEngagedSeconds: null, searches: 0, productViews: 0, addToBag: 0, checkouts: 0, paidOrders: 0, conversionRate: null },
+        previous: { sessions: 0, pageViews: 0, uniqueVisitors: 0, paidOrders: 0 },
+        change: {},
+        topPages: [], entryPages: [], sources: [], sourceKinds: [], referrers: [], devices: [], countries: [], cities: [], searchTerms: [], mediums: [], campaigns: [], products: [], funnel: [], since: null,
+      },
+    }),
+  },
   "@/lib/social/server": { productLink: (store, id) => `https://${store.slug}.shop/p/${id}`, feedUrl: (slug, file) => `https://x/${slug}/${file}` },
   "@/lib/reviews/server": { loadReviews: record("loadReviews", []), productNames: async () => new Map(), moderateReview: record("moderateReview", true) },
   "@/lib/reviews/reply": { saveSellerReply: record("saveSellerReply", { ok: true, message: "Reply saved." }) },
@@ -485,6 +496,7 @@ const PEGGY_VALID = {
   inbox_draft_reply: { conversation: "conv-A", instruction: null },
   inbox_send_reply: { conversation: "conv-A", message: "Yes, it is available.", confirmCode: null },
   analytics_report: { period: "30d" },
+  store_traffic_report: { period: "7d" },
   social_write_post: { productName: "Ankara tote", channel: "whatsapp", angle: null },
   reviews_summary: { themes: false, product: null },
   reviews_draft_replies: { limit: null, lowRatingsFirst: null, product: null },
@@ -609,6 +621,11 @@ test("Peggy read tools only see the seller's own shop", async () => {
   assert.deepEqual(called("getSetupOverview")[0].args, [USER_A]);
   await runPeggy("analytics_report", PEGGY_VALID.analytics_report);
   assert.equal(called("loadAnalytics")[0].args[0], "store-A");
+  const traffic = JSON.parse((await runPeggy("store_traffic_report", PEGGY_VALID.store_traffic_report)).content);
+  assert.equal(called("loadTraffic")[0].args[0], "store-A", "store traffic is read for the seller's own store only");
+  assert.equal(traffic.seeAlso, "/home/analytics/traffic");
+  assert.equal(traffic.uniqueVisitors, 0, "true unique visitors for the period, not daily visitors added up");
+  assert.equal(traffic.dailyVisitors, undefined);
   await runPeggy("reviews_summary", PEGGY_VALID.reviews_summary);
   assert.equal(called("loadReviews")[0].args[0], "store-A");
   assert.equal((await runPeggy("reviews_draft_replies", PEGGY_VALID.reviews_draft_replies)).content, "Every review already has a reply.");

@@ -67,9 +67,14 @@ test("store hosts: storefront pages are rewritten, portals never served, storefr
   for (const api of ["/api/app/store", "/api/admin/users", "/api/supplier/orders", "/api/logistics/x", "/api/auth/sync-user", "/api/webhooks/paystack", "/api", "/api/publicity"]) {
     assert.deepEqual(act(api), { action: "not-found" }, api);
   }
-  for (const pass of ["/api/public/store/adas-closet/checkout", "/api/store/coupons/validate", "/_next/data/x.json", "/favicon.ico", "/robots.txt", "/sitemap.xml", "/brand/logo.svg", "/icon.png", "/store-templates/a/b.webp"]) {
+  for (const pass of ["/api/public/store/adas-closet/checkout", "/api/store/coupons/validate", "/_next/data/x.json", "/favicon.ico", "/brand/logo.svg", "/icon.png", "/store-templates/a/b.webp"]) {
     assert.deepEqual(act(pass), { action: "pass" }, pass);
   }
+  // Every store host answers its own robots.txt, sitemap and llms.txt, never the app's.
+  for (const file of ["/robots.txt", "/sitemap.xml", "/llms.txt", "/llms-full.txt"]) {
+    assert.deepEqual(act(file), { action: "rewrite", pathname: `/s/adas-closet${file}` }, file);
+  }
+  assert.deepEqual(act("/sitemap-2.xml"), { action: "pass" }, "other static-looking files still pass");
 });
 
 test("custom domains: a host and its www twin share one ownership key", () => {
