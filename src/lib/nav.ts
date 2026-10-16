@@ -202,6 +202,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
           id: "reports", label: "Analytics", icon: "chart", href: "/home/analytics",
           children: [
             { id: "reports-sales", label: "Sales and visits", href: "/home/analytics" },
+            { id: "reports-traffic", label: "Store traffic", href: "/home/analytics/traffic" },
             { id: "health", label: "Store health", href: "/home/health" },
             { id: "activity", label: "Activity", href: "/home/activity" },
           ],
@@ -218,6 +219,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
             { id: "settings-store", label: "Store settings", href: "/home/settings" },
             { id: "profile", label: "Your profile", href: "/home/profile" },
             { id: "notification-prefs", label: "Notification settings", href: "/home/notifications/preferences" },
+            { id: "connections", label: "Connections", href: "/home/connections" },
             { id: "customise", label: "Customise your menu", href: "/home/features" },
           ],
         },

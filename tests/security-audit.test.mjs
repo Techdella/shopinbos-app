@@ -188,10 +188,16 @@ test("JSON-LD can't close its <script> and the GA ID can't inject script", () =>
   assert.equal(gaMeasurementId("G-ABC123XYZ"), "G-ABC123XYZ");
   assert.equal(gaMeasurementId(" g-abc123 "), "G-ABC123");
   for (const bad of ["G-1');alert(document.cookie);//", "UA-12345-1", "", null, 42, "G-"]) assert.equal(gaMeasurementId(bad), "", String(bad));
-  // The storefront's JSON-LD and GA tags live in the shared route renderer (page.tsx and [collection] use it).
+  // The storefront's JSON-LD lives in the shared route renderer (page.tsx and [collection] use it). The seller's
+  // GA / Tag Manager / pixels load from the storefront layout, built only from validated IDs
+  // (src/lib/storefront/integrations.ts; tests/store-traffic.test.mjs covers the validators and the scripts).
   const page = read("src/app/s/[slug]/storefront-route.tsx");
   assert.match(page, /__html: scriptSafeJson\(item\)/);
-  assert.match(page, /googleAnalyticsId: gaMeasurementId\(i\.googleAnalyticsId\)/);
+  assert.doesNotMatch(page, /googletagmanager/, "GA moved to the layout, so it isn't loaded twice");
+  const integrations = read("src/lib/storefront/integrations.ts");
+  assert.match(integrations, /googleAnalyticsId: gaMeasurementId,/);
+  assert.match(integrations, /const ga = gaMeasurementId\(integrations\.googleAnalyticsId\);/);
+  assert.match(read("src/app/s/[slug]/layout.tsx"), /<StoreTrackingTags integrations=\{integrations\} \/>/);
   assert.match(read("src/app/s/[slug]/product/[productId]/ProductPageView.tsx"), /__html: scriptSafeJson\(/);
   assert.match(read("src/app/actions/workspace.ts"), /const googleAnalyticsId = gaMeasurementId\(formData\.get\("googleAnalyticsId"\)\);/);
   // Every JSON-LD script in the app goes through an escaping helper.

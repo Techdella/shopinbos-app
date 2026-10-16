@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db/client";
 import { getCurrentAppUser } from "@/lib/server-auth";
 import { mergeBrandSettings, parseBrandSettings, slugify } from "@/lib/workspace";
-import { gaMeasurementId } from "@/lib/security/html";
+import { gaMeasurementId, googleSiteVerification } from "@/lib/security/html";
 import { saveSellerBusinessAddress, saveStoreDetails } from "@/lib/seller-settings.server";
 import { changeStoreSlug, clearStaleShopNames, clearStaleShopNamesInStorePages } from "@/lib/store-address.server";
 
@@ -458,13 +458,17 @@ export async function saveStoreIntegrationSettings(formData: FormData) {
 
   // Only a real GA4 ID is kept: the storefront writes it into an inline script.
   const googleAnalyticsId = gaMeasurementId(formData.get("googleAnalyticsId"));
-  const gaSiteVerification = String(formData.get("gaSiteVerification") || "").trim();
+  // The Search Console tag goes into a <meta>: only a well-formed code (or the pasted tag's code) is kept.
+  const gaSiteVerification = googleSiteVerification(formData.get("gaSiteVerification"));
+  // Keep the other connections (Settings › Connections) this form doesn't show.
+  const current = parseBrandSettings(store.brandSettings).integrations;
+  const others = current && typeof current === "object" && !Array.isArray(current) ? (current as Record<string, unknown>) : {};
 
   await db.store.update({
     where: { id: store.id },
     data: {
       brandSettings: mergeBrandSettings(store.brandSettings, {
-        integrations: { googleAnalyticsId, gaSiteVerification },
+        integrations: { ...others, googleAnalyticsId, gaSiteVerification },
       }),
     },
   });
