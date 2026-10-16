@@ -67,6 +67,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "peggy.chats": "{chats, plural, other {Peggy ṣọ́ chat # lónìí.}}",
   "peggy.orders": "{orders, plural, other {Peggy ṣọ́ order # lónìí.}}",
   "peggy.chatsAndOrders": "Peggy ṣọ́ {chats, plural, other {chat #}} àti {orders, plural, other {order #}} lónìí.",
+  "me.open": "Àwòrán rẹ àti ètò",
+  "logo.label": "Logo {name}",
 };
 
 export default yo;

@@ -74,6 +74,10 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   see: "Wo ṣọ́ọ̀bù mi",
   finish: "Parí ìṣètò",
   shareMessage: "Ra ọjà lọ́dọ̀ {name}: {url}",
+  "link.payouts.label": "Payouts",
+  "link.payouts.hint": "Gbogbo order tí wọ́n sanwó àti ibi tí owó lọ",
+  "link.invoices.label": "Àwọn invoice",
+  "link.invoices.hint": "Invoice order, àti ìwé owó tí o fi ránṣẹ́ tàbí gbà",
 };
 
 export default yo;

@@ -74,6 +74,10 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   see: "Duba shagona",
   finish: "Gama saitawa",
   shareMessage: "Yi siyayya a {name}: {url}",
+  "link.payouts.label": "Payouts",
+  "link.payouts.hint": "Kowace oda da aka biya da inda kuɗin ya je",
+  "link.invoices.label": "Invoices",
+  "link.invoices.hint": "Invoices na orders, da takardun kuɗi da ka aika ko ka karɓa",
 };
 
 export default ha;

@@ -18,6 +18,8 @@ export interface OrderRow {
 export interface Dashboard {
   store: { id: string; name: string; slug: string; logoUrl: string | null; url: string | null; live: boolean };
   ownerName: string;
+  /** The person's profile photo, the same as the web's top bar (missing from older servers). */
+  ownerAvatarUrl?: string | null;
   sales: { today: number; week: number; weekChange: number | null };
   counts: { ordersToday: number; visitorsToday: number; chatsToday: number };
   tasks: Array<{ key: string; icon: "chat" | "mail" | "truck" | "box" | "coin"; title: string; hint: string; href: string; image?: string | null; action?: { label: string; href: string } }>;

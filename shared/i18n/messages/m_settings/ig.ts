@@ -35,9 +35,9 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "money.latestEmpty": "Order ndị a kwụrụ ụgwọ ha ga-apụta ebe a.",
   "money.customer": "Onye ahịa",
   "money.payouts": "Ego niile e zitere",
-  "money.payoutsHint": "Order ọ bụla a kwụrụ ụgwọ ya na ebe ego ahụ gara. Ọ ga-emepe na browser gị",
+  "money.payoutsHint": "Order ọ bụla a kwụrụ ụgwọ ya na ebe ego ahụ gara",
   "money.invoices": "Invoice",
-  "money.invoicesHint": "Zitere onye ahịa akwụkwọ ụgwọ. Ọ ga-emepe na browser gị",
+  "money.invoicesHint": "Invoices order, na akwụkwọ ụgwọ ị zitere ma ọ bụ nwetara",
 
   "bank.pickTitle": "Họrọ ụlọ akụ gị",
   "bank.numberTitle": "Nọmba account gị",
@@ -156,6 +156,16 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "money.badBadges": "Họrọ site na logo ịkwụ ụgwọ edepụtara.",
   "money.badge.transfer": "Bank transfer",
   "money.badge.cod": "Kwụọ ụgwọ mgbe ọ bịarutere",
+  "set.logoHint": "Logo ụlọ ahịa gị, otu ihe ahụ dị na Brand kit na web.",
+  "set.photo": "Foto gị",
+  "set.photoHint": "Ọ ga-egosi n'akụkụ aha gị na app na na web.",
+  "set.addPhoto": "Tinye foto",
+  "set.changePhoto": "Gbanwee foto",
+  "set.removePhoto": "Wepụ foto",
+  "set.photoSaved": "Echekwala foto.",
+  "set.photoRemoved": "Ewepụla foto.",
+  "set.photoFailed": "Anyị enweghị ike ibulite foto ahụ. Nwaa ọzọ.",
+  "set.photoRemoveFailed": "Anyị enweghị ike iwepụ ya. Nwaa ọzọ.",
 };
 
 export default ig;

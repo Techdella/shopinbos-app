@@ -45,6 +45,7 @@ import m_settings from "./messages/m_settings/index.ts";
 import m_paylinks from "./messages/m_paylinks/index.ts";
 import m_campaigns from "./messages/m_campaigns/index.ts";
 import m_video from "./messages/m_video/index.ts";
+import m_money from "./messages/m_money/index.ts";
 import verification from "./messages/verification/index.ts";
 import marketing from "./messages/marketing/index.ts";
 import emailBuilder from "./messages/emailBuilder/index.ts";
@@ -125,6 +126,7 @@ export const CATALOGS = {
   m_paylinks,
   m_campaigns,
   m_video,
+  m_money,
   verification,
   marketing,
   emailBuilder,

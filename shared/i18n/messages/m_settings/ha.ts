@@ -35,9 +35,9 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "money.latestEmpty": "Odar da aka biya za ta bayyana a nan.",
   "money.customer": "Abokin ciniki",
   "money.payouts": "Duk kuɗin da aka tura",
-  "money.payoutsHint": "Kowace oda da aka biya da inda kuɗin ya je. Zai buɗe a browser ɗinka",
+  "money.payoutsHint": "Kowace oda da aka biya da inda kuɗin ya je",
   "money.invoices": "Invoice",
-  "money.invoicesHint": "Aika wa abokin ciniki takardar kuɗi. Zai buɗe a browser ɗinka",
+  "money.invoicesHint": "Invoices na orders, da takardun kuɗi da ka aika ko ka karɓa",
 
   "bank.pickTitle": "Zaɓi bankinka",
   "bank.numberTitle": "Lambar account ɗinka",
@@ -156,6 +156,16 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "money.badBadges": "Zaɓi daga cikin tambarin biyan kuɗi da aka lissafa.",
   "money.badge.transfer": "Bank transfer",
   "money.badge.cod": "Biya idan an kawo",
+  "set.logoHint": "Logo na shagonka, iri ɗaya da na Brand kit a web.",
+  "set.photo": "Hotonka",
+  "set.photoHint": "Zai bayyana kusa da sunanka a app da kuma web.",
+  "set.addPhoto": "Ƙara hoto",
+  "set.changePhoto": "Canja hoto",
+  "set.removePhoto": "Cire hoto",
+  "set.photoSaved": "An ajiye hoto.",
+  "set.photoRemoved": "An cire hoto.",
+  "set.photoFailed": "Ba mu iya ɗora wannan hoto ba. Sake gwadawa.",
+  "set.photoRemoveFailed": "Ba mu iya cire shi ba. Sake gwadawa.",
 };
 
 export default ha;

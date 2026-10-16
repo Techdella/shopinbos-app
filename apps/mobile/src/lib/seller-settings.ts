@@ -10,7 +10,7 @@ import type { Zone } from "./settings-pure";
 //   /api/store/shipping-zones      (web /home/shipping)
 //   /api/app/logistics/bookings    (web /home/logistics, "Your deliveries")
 //   /api/app/settings/profile      (web /home/settings, Store tab)
-//   /api/app/me/images             (web logo uploader)
+//   /api/app/me/images             (web logo and photo uploader; see lib/identity.ts)
 
 // ─── Payments ────────────────────────────────────────────────────────────────
 
@@ -79,11 +79,4 @@ export const fetchProfile = () => api<SellerProfile>("/api/app/settings/profile"
 export const saveProfile = (body: { shop?: Partial<Record<ShopFields, string>>; me?: Partial<Record<MeFields, string>> }) =>
   api<SellerProfile>("/api/app/settings/profile", { method: "PATCH", json: body });
 
-export function uploadLogo(photo: { uri: string; mimeType?: string | null; fileName?: string | null }) {
-  const form = new FormData();
-  const type = photo.mimeType ?? "image/jpeg";
-  form.append("kind", "logo");
-  // React Native's FormData takes { uri, name, type } file parts.
-  form.append("file", { uri: photo.uri, name: photo.fileName ?? `logo.${type.split("/")[1] ?? "jpg"}`, type } as unknown as Blob);
-  return api<{ logoUrl: string | null }>("/api/app/me/images", { method: "POST", body: form });
-}
+// The logo and the person's photo upload through lib/identity.ts (/api/app/me/images).

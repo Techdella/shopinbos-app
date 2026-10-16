@@ -69,6 +69,8 @@ const en = {
   "peggy.chats": "{chats, plural, one {Peggy kept an eye on # chat today.} other {Peggy kept an eye on # chats today.}}",
   "peggy.orders": "{orders, plural, one {Peggy kept an eye on # order today.} other {Peggy kept an eye on # orders today.}}",
   "peggy.chatsAndOrders": "Peggy kept an eye on {chats, plural, one {# chat} other {# chats}} and {orders, plural, one {# order} other {# orders}} today.",
+  "me.open": "Your photo and settings",
+  "logo.label": "{name} logo",
 } satisfies Record<string, string>;
 
 export default en;
