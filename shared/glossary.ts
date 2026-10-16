@@ -203,7 +203,7 @@ export const NAV_TERMS: Record<GlossaryRole, Record<string, string>> = {
 export const PLAIN_NAV = new Set([
   "start", "home", "dashboard", "products-all", "products-new",
   "settings", "settings-store", "settings-main", "profile", "company", "notification-prefs", "customise", "team",
-  "labels-designs", "labels-packaging", "labels-studio", "labels-request", "packaging-requests",
+  "labels-designs", "labels-packaging", "labels-studio", "labels-request", "labels-orders", "packaging-requests", "print-orders",
 ]);
 
 /** The glossary entry for a sidebar item, or null for plain words and unknown ids. */

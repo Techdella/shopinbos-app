@@ -2209,6 +2209,45 @@ model PrintDesign {
   @@index([storeId, updatedAt])
 }
 
+// Prints a seller ordered of a packaging design (/home/labels/order): the design is frozen into the order so later
+// edits don't change what gets printed. Paid with Paystack (reference "printorder-…"); worked at /admin/print-orders.
+model PrintOrder {
+  id           String    @id @default(cuid())
+  storeId      String
+  userId       String
+  designId     String?
+  title        String
+  format       String
+  design       Json // the PackDesign as ordered
+  previewUrl   String?
+  quantity     Int
+  material     String
+  finish       String
+  unitPrice    Int // naira
+  setupFee     Int
+  deliveryFee  Int
+  total        Int
+  days         Int // estimated working days to delivery
+  zone         String
+  contactName  String
+  contactPhone String
+  contactEmail String?
+  address      String?
+  city         String?
+  state        String?
+  notes        String?
+  paymentRef   String?   @unique
+  paidAt       DateTime?
+  status       String    @default("awaiting_payment") // awaiting_payment | paid | printing | shipped | delivered | cancelled
+  tracking     String?
+  adminNotes   String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([storeId, createdAt])
+  @@index([status, createdAt])
+}
+
 // "Make my packaging for me": a seller's request for custom packaging or branding, worked by the Shopinbos team
 // (and later branding partners) at /admin/packaging-requests.
 model PackagingRequest {
