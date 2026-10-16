@@ -20,7 +20,7 @@ import { colors } from "@/theme";
 
 // Payments and payouts (web /home/payments): money in over the last 30 days, the payout bank (add or change it,
 // with the account name looked up and confirmed before saving), which ways customers can pay, and the latest
-// payments. Invoices and the full payouts list stay on the web.
+// payments. Payouts (app/payouts.tsx) and Invoices (app/invoices) are their own screens.
 
 type T_ = ReturnType<typeof useT<["m_settings", "m_onboarding", "m_ui", "common"]>>;
 
@@ -197,8 +197,8 @@ export default function Payments() {
       )}
 
       <Card style={{ paddingVertical: 2 }}>
-        <LinkRow first icon="receipt" label={t("money.payouts")} hint={t("money.payoutsHint")} onPress={() => void openWeb("/home/payouts")} />
-        <LinkRow icon="doc" label={t("money.invoices")} hint={t("money.invoicesHint")} onPress={() => void openWeb("/home/invoices")} />
+        <LinkRow first icon="receipt" label={t("money.payouts")} hint={t("money.payoutsHint")} onPress={() => router.push("/payouts")} />
+        <LinkRow icon="doc" label={t("money.invoices")} hint={t("money.invoicesHint")} onPress={() => router.push("/invoices")} />
       </Card>
 
       <BankFlow

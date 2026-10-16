@@ -72,6 +72,10 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   see: "Hụ ụlọ ahịa m",
   finish: "Mechaa ịhazi",
   shareMessage: "Zụta ahịa n'aka {name}: {url}",
+  "link.payouts.label": "Payouts",
+  "link.payouts.hint": "Order ọ bụla a kwụrụ ụgwọ ya na ebe ego ahụ gara",
+  "link.invoices.label": "Invoices",
+  "link.invoices.hint": "Invoices order, na akwụkwọ ụgwọ ị zitere ma ọ bụ nwetara",
 };
 
 export default ig;

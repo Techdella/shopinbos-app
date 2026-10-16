@@ -1,15 +1,16 @@
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { router } from "expo-router";
-import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
+import type { IdentityImageKind } from "@shared/identity-images";
 import { LanguageRow } from "@/components/LanguagePicker";
 import { TipsRow } from "@/components/learn/TipsRow";
 import { AppIcon } from "@/components/icons";
-import { ErrorState, Initials, LinkRow, LoadingBlock, SectionTitle } from "@/components/kit";
+import { ErrorState, LinkRow, LoadingBlock, Picture, SectionTitle } from "@/components/kit";
 import { Screen } from "@/components/Screen";
-import { Card, Field, Label, Notice, PillButton, T } from "@/components/ui";
-import { fetchProfile, saveProfile, uploadLogo, type MeFields, type SellerProfile, type ShopFields } from "@/lib/seller-settings";
+import { Card, Field, Label, LinkButton, Notice, PillButton, T } from "@/components/ui";
+import { fetchIdentity, removeIdentityImage, uploadIdentityImage, type Identity } from "@/lib/identity";
+import { fetchProfile, saveProfile, type MeFields, type SellerProfile, type ShopFields } from "@/lib/seller-settings";
 import { changedFields } from "@/lib/settings-pure";
 import { useLoad } from "@/lib/useLoad";
 import { openWeb } from "@/lib/web";
@@ -17,7 +18,7 @@ import { useT } from "@/lib/i18n";
 import { colors, radii } from "@/theme";
 
 // Settings (web /home/settings, Store tab): the shop's logo, name, description, city, state and phone; the
-// seller's own name and phone; language, notifications and help. Team, billing, security, Peggy and Rex choices
+// seller's own photo, name and phone (photo and logo through the web uploader's API, lib/identity.ts); language, notifications and help. Team, billing, security, Peggy and Rex choices
 // and closing the shop stay on the web ("More settings on the web").
 
 type ShopForm = Record<ShopFields, string>;
@@ -32,9 +33,13 @@ function meForm(profile: SellerProfile): MeForm {
   return { name: profile.me.name, phone: profile.me.phone };
 }
 
+/** The profile and the pictures (photo and logo, the web uploader's API); the page still opens without the pictures. */
+const loadSettings = () =>
+  Promise.all([fetchProfile(), fetchIdentity().catch(() => null)]).then(([profile, identity]) => ({ profile, identity }));
+
 export default function Settings() {
   const t = useT("m_settings");
-  const loaded = useLoad(fetchProfile);
+  const loaded = useLoad(loadSettings);
   if (!loaded.data) {
     return (
       <Screen title={t("set.title")} sub={t("set.sub")} refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
@@ -43,17 +48,19 @@ export default function Settings() {
       </Screen>
     );
   }
-  return <SettingsForm initial={loaded.data} />;
+  return <SettingsForm initial={loaded.data.profile} identity={loaded.data.identity} />;
 }
 
-function SettingsForm({ initial }: { initial: SellerProfile }) {
+function SettingsForm({ initial, identity }: { initial: SellerProfile; identity: Identity | null }) {
   const t = useT("m_settings", "m_products", "common");
   const [saved, setSaved] = useState(initial);
   const [shop, setShop] = useState<ShopForm>(shopForm(initial));
   const [me, setMe] = useState<MeForm>(meForm(initial));
-  const [logoUrl, setLogoUrl] = useState(initial.shop?.logoUrl ?? null);
+  // The logo is the store's logo (the same one as Brand kit on the web); the photo is the person's own.
+  const [logoUrl, setLogoUrl] = useState(identity?.logoUrl ?? initial.shop?.logoUrl ?? null);
+  const [avatarUrl, setAvatarUrl] = useState(identity?.avatarUrl ?? null);
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [uploading, setUploading] = useState<IdentityImageKind | "remove-avatar" | null>(null);
   const [note, setNote] = useState<{ tone: "success" | "error" | "info"; text: string } | null>(null);
 
   const shopChanges = changedFields(shopForm(saved), shop);
@@ -81,21 +88,38 @@ function SettingsForm({ initial }: { initial: SellerProfile }) {
     }
   }
 
-  async function pickLogo() {
+  /** Pick a square picture and upload it as the shop logo or the person's photo (POST /api/app/me/images). */
+  async function pickImage(kind: IdentityImageKind) {
     setNote(null);
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) return setNote({ tone: "info", text: t("drafts.allowPhotos") });
     const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], allowsEditing: true, aspect: [1, 1], quality: 0.7 });
     if (result.canceled || !result.assets.length) return;
-    setUploading(true);
+    setUploading(kind);
     try {
-      const identity = await uploadLogo(result.assets[0]);
-      setLogoUrl(identity.logoUrl);
-      setNote({ tone: "success", text: t("set.logoSaved") });
+      const next = await uploadIdentityImage(kind, result.assets[0]);
+      setLogoUrl(next.logoUrl);
+      setAvatarUrl(next.avatarUrl);
+      setNote({ tone: "success", text: kind === "logo" ? t("set.logoSaved") : t("set.photoSaved") });
     } catch (uploadError) {
-      setNote({ tone: "error", text: uploadError instanceof Error ? uploadError.message : t("set.logoFailed") });
+      setNote({ tone: "error", text: uploadError instanceof Error ? uploadError.message : kind === "logo" ? t("set.logoFailed") : t("set.photoFailed") });
     } finally {
-      setUploading(false);
+      setUploading(null);
+    }
+  }
+
+  async function removePhoto() {
+    if (uploading) return;
+    setNote(null);
+    setUploading("remove-avatar");
+    try {
+      const next = await removeIdentityImage("avatar");
+      setAvatarUrl(next.avatarUrl);
+      setNote({ tone: "success", text: t("set.photoRemoved") });
+    } catch (removeError) {
+      setNote({ tone: "error", text: removeError instanceof Error ? removeError.message : t("set.photoRemoveFailed") });
+    } finally {
+      setUploading(null);
     }
   }
 
@@ -114,16 +138,13 @@ function SettingsForm({ initial }: { initial: SellerProfile }) {
       {saved.shop ? (
         <>
           <Card style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
-            <Pressable accessibilityRole="button" accessibilityLabel={t("set.changeLogo")} onPress={() => void pickLogo()} disabled={uploading}>
-              {logoUrl ? (
-                <Image source={{ uri: logoUrl }} style={{ width: 72, height: 72, borderRadius: radii.field, backgroundColor: colors.canvas }} contentFit="cover" accessibilityIgnoresInvertColors />
-              ) : (
-                <Initials name={shop.name || saved.shop.name} size={72} />
-              )}
+            <Pressable accessibilityRole="button" accessibilityLabel={logoUrl ? t("set.changeLogo") : t("set.addLogo")} onPress={() => void pickImage("logo")} disabled={uploading !== null}>
+              <Picture uri={logoUrl} name={shop.name || saved.shop.name} size={72} shape="square" />
             </Pressable>
             <View style={{ flex: 1, gap: 8 }}>
               <T weight="extrabold" style={{ fontSize: 16 }}>{t("set.logo")}</T>
-              <PillButton title={logoUrl ? t("set.changeLogo") : t("set.addLogo")} tone="white" size="sm" busy={uploading} onPress={() => void pickLogo()} />
+              <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 19 }}>{t("set.logoHint")}</T>
+              <PillButton title={logoUrl ? t("set.changeLogo") : t("set.addLogo")} tone="white" size="sm" busy={uploading === "logo"} disabled={uploading !== null} onPress={() => void pickImage("logo")} />
             </View>
           </Card>
 
@@ -164,6 +185,17 @@ function SettingsForm({ initial }: { initial: SellerProfile }) {
 
       <SectionTitle>{t("set.you")}</SectionTitle>
       <Card style={{ gap: 14 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+          <Pressable accessibilityRole="button" accessibilityLabel={avatarUrl ? t("set.changePhoto") : t("set.addPhoto")} onPress={() => void pickImage("avatar")} disabled={uploading !== null}>
+            <Picture uri={avatarUrl} name={me.name || saved.me.name} size={72} />
+          </Pressable>
+          <View style={{ flex: 1, gap: 8 }}>
+            <T weight="extrabold" style={{ fontSize: 16 }}>{t("set.photo")}</T>
+            <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 19 }}>{t("set.photoHint")}</T>
+            <PillButton title={avatarUrl ? t("set.changePhoto") : t("set.addPhoto")} tone="white" size="sm" busy={uploading === "avatar"} disabled={uploading !== null} onPress={() => void pickImage("avatar")} />
+            {avatarUrl ? <LinkButton title={uploading === "remove-avatar" ? "…" : t("set.removePhoto")} color={colors.inkSoft} onPress={() => void removePhoto()} /> : null}
+          </View>
+        </View>
         <View>
           <Label>{t("set.yourName")}</Label>
           <Field maxLength={120} autoComplete="name" accessibilityLabel={t("set.yourName")} {...meField("name")} />

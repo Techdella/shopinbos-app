@@ -35,9 +35,9 @@ const en = {
   "money.latestEmpty": "Paid orders show up here.",
   "money.customer": "Customer",
   "money.payouts": "All payouts",
-  "money.payoutsHint": "Every paid order and where the money went. Opens in your browser",
+  "money.payoutsHint": "Every paid order and where the money went",
   "money.invoices": "Invoices",
-  "money.invoicesHint": "Send a customer a bill. Opens in your browser",
+  "money.invoicesHint": "Order invoices, and bills you send or get",
 
   // Add or change the payout bank (app/payments.tsx, BankFlow)
   "bank.pickTitle": "Choose your bank",
@@ -159,6 +159,16 @@ const en = {
   "money.badBadges": "Choose from the listed payment logos.",
   "money.badge.transfer": "Bank transfer",
   "money.badge.cod": "Pay on delivery",
+  "set.logoHint": "The logo on your shop, the same one as in Brand kit on the web.",
+  "set.photo": "Your photo",
+  "set.photoHint": "Shows next to your name in the app and on the web.",
+  "set.addPhoto": "Add photo",
+  "set.changePhoto": "Change photo",
+  "set.removePhoto": "Remove photo",
+  "set.photoSaved": "Photo saved.",
+  "set.photoRemoved": "Photo removed.",
+  "set.photoFailed": "Couldn't upload that picture. Try again.",
+  "set.photoRemoveFailed": "Couldn't remove that. Try again.",
 } satisfies Record<string, string>;
 
 export default en;

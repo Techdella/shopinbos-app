@@ -35,9 +35,9 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "money.latestEmpty": "Àwọn order tí wọ́n sanwó fún máa hàn níbí.",
   "money.customer": "Oníbàárà",
   "money.payouts": "Gbogbo owó tí a fi ránṣẹ́",
-  "money.payoutsHint": "Gbogbo order tí wọ́n sanwó àti ibi tí owó lọ. Yóò ṣí nínú browser rẹ",
+  "money.payoutsHint": "Gbogbo order tí wọ́n sanwó àti ibi tí owó lọ",
   "money.invoices": "Invoice",
-  "money.invoicesHint": "Fi ìwé owó ránṣẹ́ sí oníbàárà. Yóò ṣí nínú browser rẹ",
+  "money.invoicesHint": "Invoice order, àti ìwé owó tí o fi ránṣẹ́ tàbí gbà",
 
   "bank.pickTitle": "Yan bank rẹ",
   "bank.numberTitle": "Nọ́ńbà account rẹ",
@@ -156,6 +156,16 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "money.badBadges": "Yan lára àwọn logo ìsanwó tó wà nínú àkójọ.",
   "money.badge.transfer": "Bank transfer",
   "money.badge.cod": "Sanwó nígbà tí ọjà bá dé",
+  "set.logoHint": "Logo ṣọ́ọ̀bù rẹ, èyí kan náà tó wà nínú Brand kit lórí web.",
+  "set.photo": "Àwòrán rẹ",
+  "set.photoHint": "Yóò hàn lẹ́gbẹ̀ẹ́ orúkọ rẹ nínú app àti lórí web.",
+  "set.addPhoto": "Fi àwòrán kún un",
+  "set.changePhoto": "Yí àwòrán padà",
+  "set.removePhoto": "Yọ àwòrán kúrò",
+  "set.photoSaved": "A ti fi àwòrán pamọ́.",
+  "set.photoRemoved": "A ti yọ àwòrán kúrò.",
+  "set.photoFailed": "A kò lè gbé àwòrán yẹn sókè. Tún gbìyànjú.",
+  "set.photoRemoveFailed": "A kò lè yọ ọ́ kúrò. Tún gbìyànjú.",
 };
 
 export default yo;

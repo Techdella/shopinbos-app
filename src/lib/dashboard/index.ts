@@ -27,7 +27,7 @@ async function countSafely(query: Promise<number>) {
 export async function getSellerDashboard(userId: string, now = new Date()) {
   const store = await db.store.findUnique({
     where: { userId },
-    select: { id: true, name: true, slug: true, currency: true, logoUrl: true, user: { select: { name: true } } },
+    select: { id: true, name: true, slug: true, currency: true, logoUrl: true, user: { select: { name: true, avatarUrl: true } } },
   });
   if (!store) return null;
 
@@ -112,6 +112,8 @@ export async function getSellerDashboard(userId: string, now = new Date()) {
   return {
     store: { id: store.id, name: store.name, slug: store.slug, logoUrl: store.logoUrl, url: onboarding?.store.url ?? null, live: onboarding?.store.live ?? false },
     ownerName: store.user.name,
+    /** The person's profile photo (same as the web top bar), or null. */
+    ownerAvatarUrl: store.user.avatarUrl ?? null,
     today: today.toISOString(),
     sales: { today: numbers.todaySales, week: numbers.weekSales, weekChange: numbers.weekChange, todayLabel: naira(numbers.todaySales) },
     counts: { ordersToday: numbers.ordersToday, visitorsToday, chatsToday: messagesToday + submissionsToday },

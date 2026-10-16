@@ -4,11 +4,12 @@ import { router, useFocusEffect } from "expo-router";
 import { HelpButton } from "@/components/Help";
 import { LanguageRow } from "@/components/LanguagePicker";
 import { AppIcon, type AppIconName } from "@/components/icons";
-import { LinkRow } from "@/components/kit";
+import { LinkRow, Picture } from "@/components/kit";
 import { Card, LinkButton, PillButton, T } from "@/components/ui";
 import { TabScreen } from "@/components/TabScreen";
 import { ApiError } from "@/lib/api";
 import { signOut } from "@/lib/auth";
+import { latestPicture, useChangedIdentity } from "@/lib/identity";
 import { fetchSetup, type SetupOverview } from "@/lib/setup";
 import { openShop, shareShop } from "@/lib/share";
 import { openWeb } from "@/lib/web";
@@ -40,6 +41,8 @@ export const SHOP_GROUPS: { key: string; title: string; links: ShopLink[] }[] = 
     title: "Get paid and deliver",
     links: [
       { id: "payments", label: "Payments and payouts", icon: "coin", path: "app:/payments", hint: "How customers pay you, and money sent to your bank" },
+      { id: "payouts", label: "Payouts", icon: "wallet", path: "app:/payouts", hint: "Every paid order and where the money went" },
+      { id: "invoices", label: "Invoices", icon: "doc", path: "app:/invoices", hint: "Order invoices, and bills you send or get" },
       { id: "paymentLinks", label: "Payment links", icon: "link", path: "app:/payment-links", hint: "A link a customer opens from a chat to pay" },
       { id: "delivery", label: "Delivery", icon: "truck", path: "app:/delivery", hint: "Where you deliver and the price" },
       { id: "partners", label: "Partner messages", icon: "users", path: "app:/partners", hint: "Suppliers and delivery partners" },
@@ -81,6 +84,7 @@ export default function MyShop() {
   const [notSeller, setNotSeller] = useState(false);
   const [setup, setSetup] = useState<SetupOverview | null>(null);
   const [shareNote, setShareNote] = useState<string | null>(null);
+  const changedPictures = useChangedIdentity();
 
   useFocusEffect(
     useCallback(() => {
@@ -110,9 +114,7 @@ export default function MyShop() {
       {store ? (
         <Card style={{ gap: 12, marginBottom: 14 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-            <View style={{ width: 48, height: 48, borderRadius: 16, backgroundColor: colors.peach, alignItems: "center", justifyContent: "center" }}>
-              <AppIcon name="store" size={22} color={colors.accentInk} />
-            </View>
+            <Picture uri={latestPicture(changedPictures, "logoUrl", store.logoUrl)} name={store.name} size={48} shape="square" />
             <View style={{ flex: 1 }}>
               <T weight="extrabold" style={{ fontSize: 18 }} numberOfLines={1}>{store.name}</T>
               {store.url ? <T style={{ color: colors.inkSoft, fontSize: 15 }} numberOfLines={1} selectable>{store.url.replace(/^https?:\/\//, "")}</T> : <T style={{ color: colors.inkSoft, fontSize: 15 }}>{t("linkLater")}</T>}

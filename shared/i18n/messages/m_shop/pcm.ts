@@ -72,6 +72,10 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   see: "See my shop",
   finish: "Finish to set up",
   shareMessage: "Buy from {name}: {url}",
+  "link.payouts.label": "Payouts",
+  "link.payouts.hint": "Every paid order and where the money go",
+  "link.invoices.label": "Invoices",
+  "link.invoices.hint": "Order invoices, and bills wey you send or collect",
 };
 
 export default pcm;

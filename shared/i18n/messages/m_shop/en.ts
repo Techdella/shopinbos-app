@@ -73,6 +73,10 @@ const en = {
   see: "See my shop",
   finish: "Finish setting up",
   shareMessage: "Shop with {name}: {url}",
+  "link.payouts.label": "Payouts",
+  "link.payouts.hint": "Every paid order and where the money went",
+  "link.invoices.label": "Invoices",
+  "link.invoices.hint": "Order invoices, and bills you send or get",
 } satisfies Record<string, string>;
 
 export default en;
