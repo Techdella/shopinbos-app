@@ -152,6 +152,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "block.socialHint": "Handle rẹ (bíi @adafabrics) tàbí link kíkún",
   "block.noProducts": "Tẹ ọjà kan jáde ná kí o tó fi kún un níbí.",
   "block.noCollections": "Ṣe collection kan ná nínú Products, lẹ́yìn náà Collections.",
+  "list.pages": "Àwọn ojú-ewé payment link",
+  "list.noneHere": "Kò sí payment link kankan pẹ̀lú ipò yìí.",
 };
 
 export default yo;

@@ -574,6 +574,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "reviewsUi.wholesaleOrders": "Odar wholesale",
   "reviewsUi.finishedDeliveries": "Deliveries da suka kammala",
   "reviewsUi.deliveryFee": "Kuɗin delivery {amount}",
+  "quotes.pages": "Shafukan quote requests",
 };
 
 export default ha;

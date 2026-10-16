@@ -33,7 +33,6 @@ const en = {
   "list.showAll": "Show all orders",
   "list.nothingMatches": "Nothing matches “{query}” in this view.",
   "list.noneInView": "There are no orders in this view right now.",
-  "list.showing": "Showing the latest {shown} of {total} orders.",
   "new.metaTitle": "Record a sale",
   "new.sub": "Sold something on WhatsApp, Instagram or in person? Add it here so your sales, stock and customers stay right.",
   allOrders: "All orders",
@@ -183,7 +182,6 @@ const en = {
   "inv.sub": "Invoices for your orders, and ones you send to or get from suppliers, delivery partners and customers.",
   "inv.money": "Money",
   "inv.orderInvoices": "Order invoices",
-  "inv.latest100": "Latest 100 orders",
   "inv.waiting": "Waiting for payment",
   "inv.paid": "Paid",
   "inv.ordersHint": "orders",
@@ -293,6 +291,9 @@ const en = {
   "ps.scanMe": "Scan me",
   "ps.thanksDefault": "Thank you!",
   "ps.thanksNote": "We packed this with love. Tell us how you like it and come back soon to {store}.",
+  "list.pages": "Order pages",
+  "inv.pages": "Invoice pages",
+  "inv.allOrders": "All your orders",
 } satisfies Record<string, string>;
 
 export default en;

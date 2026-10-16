@@ -60,8 +60,6 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "list.hide": "Fi pamọ́",
   "list.reply": "Fèsì",
   "list.pages": "Àwọn ojú ewé",
-  "list.pageOf": "Ojú ewé {page} nínú {pages} · reviews {count}",
-  "list.previous": "Ti tẹ́lẹ̀",
   "filter.rating": "Ṣàlẹ̀mọ́ nípasẹ̀ rating",
   "filter.anyRating": "Rating èyíkéyìí",
   "filter.stars": "{count, plural, other {ìràwọ̀ #}}",

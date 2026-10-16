@@ -295,6 +295,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "ostatus.shipped": "Yana kan hanya",
   "ostatus.delivered": "An kawo",
   "ostatus.cancelled": "An soke",
+  "orders.pages": "Shafukan orders na bugu",
 };
 
 export default ha;

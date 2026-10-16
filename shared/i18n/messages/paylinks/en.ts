@@ -153,6 +153,8 @@ const en = {
   "block.socialHint": "Your handle (like @adafabrics) or the full link",
   "block.noProducts": "Publish a product first to add it here.",
   "block.noCollections": "Make a collection first in Products, then Collections.",
+  "list.pages": "Payment link pages",
+  "list.noneHere": "No payment links with this status.",
 } satisfies Record<string, string>;
 
 export default en;

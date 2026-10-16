@@ -84,6 +84,12 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "chats.brandKit": "Ngwa akara",
   "chats.madeEmpty": "Ọ dịbeghị ihe e mepụtara. Akara na foto Rex mere ga-apụta ebe a.",
   "chats.allMedia": "Hụ ihe niile na Media",
+  "page.nav": "Peeji",
+  "page.prev": "Azụ",
+  "page.next": "Ọzọ",
+  "page.of": "Peeji {page} n'ime {pages}",
+  "page.number": "Peeji {page}",
+  "page.showing": "Anyị na-egosi {from}–{to} n'ime {total}",
 };
 
 export default ig;

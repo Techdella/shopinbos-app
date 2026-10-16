@@ -574,6 +574,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "reviewsUi.wholesaleOrders": "Wholesale orders",
   "reviewsUi.finishedDeliveries": "Deliveries gwụchara",
   "reviewsUi.deliveryFee": "Ego delivery {amount}",
+  "quotes.pages": "Peeji quote requests",
 };
 
 export default ig;

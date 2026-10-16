@@ -294,6 +294,7 @@ const en = {
   "ostatus.shipped": "On the way",
   "ostatus.delivered": "Delivered",
   "ostatus.cancelled": "Cancelled",
+  "orders.pages": "Print order pages",
 } satisfies Record<string, string>;
 
 export default en;

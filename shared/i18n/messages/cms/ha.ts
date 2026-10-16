@@ -404,6 +404,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "blog.readyBody": "Ba {name} umarni, masu sauraro, kalmomin bincike da adadin kalmomi. Samar da cikakkun maƙalolin SEO ka wallafa su a blog ɗinka.",
   "blog.saveDraft": "Ajiye draft",
   "blog.publish": "Wallafa",
+  "col.pages": "Shafukan abubuwa",
 };
 
 export default ha;

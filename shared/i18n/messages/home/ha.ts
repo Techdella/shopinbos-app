@@ -210,6 +210,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "health.nothingToFix": "Babu abin gyarawa yanzu.",
   "health.again": "Sake lissafawa",
   "health.failed": "Ba a iya lissafa makinka ba. Sake gwadawa.",
+  "activity.pages": "Shafukan ayyuka",
 };
 
 export default ha;

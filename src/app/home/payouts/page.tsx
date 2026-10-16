@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import type { Prisma } from "@prisma/client";
+import { pageWindow } from "@/lib/pagination";
+import { Pagination } from "@/components/seller/Pagination";
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
@@ -15,12 +18,13 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 const PAID = ["paid", "processing", "packed", "shipped", "delivered"] as const;
+const PAGE_SIZE = 50;
 
 function isOnline(method: string | null) {
   return !method || method === "paystack";
 }
 
-export default async function SellerPayoutsPage({ searchParams }: { searchParams?: Promise<{ show?: string }> }) {
+export default async function SellerPayoutsPage({ searchParams }: { searchParams?: Promise<{ show?: string; page?: string }> }) {
   const params = await searchParams;
   const user = await requireRole(["seller"], "/login");
   const t = await getT("payments", "orders", "common");
@@ -28,21 +32,33 @@ export default async function SellerPayoutsPage({ searchParams }: { searchParams
   const naira = (amount: number) => formatMoney(Math.round(amount), locale);
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true, brandSettings: true } });
 
-  const paidOrders = store
+  // Totals cover every paid order; the list shows one page of the chosen kind.
+  const storeId = store?.id ?? "__none__";
+  const paidWhere: Prisma.RetailOrderWhereInput = { storeId, status: { in: [...PAID] } };
+  const onlineWhere: Prisma.RetailOrderWhereInput = { ...paidWhere, OR: [{ paymentMethod: null }, { paymentMethod: "paystack" }] };
+  const offlineWhere: Prisma.RetailOrderWhereInput = { ...paidWhere, AND: [{ NOT: { paymentMethod: null } }, { NOT: { paymentMethod: "paystack" } }] };
+  const [onlineSum, offlineSum] = store
+    ? await Promise.all([
+        db.retailOrder.aggregate({ where: onlineWhere, _count: { _all: true }, _sum: { total: true } }),
+        db.retailOrder.aggregate({ where: offlineWhere, _count: { _all: true }, _sum: { total: true } }),
+      ])
+    : [null, null];
+  const onlineCount = onlineSum?._count._all ?? 0;
+  const offlineCount = offlineSum?._count._all ?? 0;
+  const paidCount = onlineCount + offlineCount;
+  const onlineTotal = Number(onlineSum?._sum.total ?? 0);
+  const offlineTotal = Number(offlineSum?._sum.total ?? 0);
+  const show = params?.show === "offline" ? "offline" : params?.show === "all" ? "all" : "online";
+  const paging = pageWindow(params?.page, show === "online" ? onlineCount : show === "offline" ? offlineCount : paidCount, PAGE_SIZE);
+  const shown = paging.total
     ? await db.retailOrder.findMany({
-        where: { storeId: store.id, status: { in: [...PAID] } },
-        orderBy: { createdAt: "desc" },
-        take: 100,
+        where: show === "online" ? onlineWhere : show === "offline" ? offlineWhere : paidWhere,
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        skip: paging.skip,
+        take: paging.take,
         select: { id: true, orderNumber: true, buyerName: true, total: true, status: true, paymentMethod: true, createdAt: true },
       })
     : [];
-
-  const online = paidOrders.filter((order) => isOnline(order.paymentMethod));
-  const offline = paidOrders.filter((order) => !isOnline(order.paymentMethod));
-  const onlineTotal = online.reduce((sum, order) => sum + order.total, 0);
-  const offlineTotal = offline.reduce((sum, order) => sum + order.total, 0);
-  const show = params?.show === "offline" ? "offline" : params?.show === "all" ? "all" : "online";
-  const shown = show === "online" ? online : show === "offline" ? offline : paidOrders;
   const brand = store?.brandSettings && typeof store.brandSettings === "object" ? (store.brandSettings as Record<string, unknown>) : {};
   const hasBank = Boolean(brand.payoutBank && typeof brand.payoutBank === "object" && (brand.payoutBank as Record<string, unknown>).bankName);
 
@@ -62,21 +78,22 @@ export default async function SellerPayoutsPage({ searchParams }: { searchParams
         )}
 
         <StatGrid>
-          <StatTile tone="card" label={t("po.paidOnline")} value={naira(onlineTotal)} hint={t("count.orders", { count: online.length })} />
-          <StatTile tone="card" label={t("money.collected")} value={naira(offlineTotal)} hint={t("count.orders", { count: offline.length })} />
-          <StatTile tone="card" label={t("po.paidOrders")} value={paidOrders.length} hint={t("po.latest100")} />
+          <StatTile tone="card" label={t("po.paidOnline")} value={naira(onlineTotal)} hint={t("count.orders", { count: onlineCount })} />
+          <StatTile tone="card" label={t("money.collected")} value={naira(offlineTotal)} hint={t("count.orders", { count: offlineCount })} />
+          <StatTile tone="card" label={t("po.paidOrders")} value={paidCount} hint={t("po.allTime")} />
           <StatTile tone="card" label={t("bank.title")} value={hasBank ? t("po.added") : t("po.notAdded")} />
         </StatGrid>
 
         <FilterChips
           items={[
-            { label: t("po.paidOnline"), href: "/home/payouts", count: online.length, active: show === "online" },
-            { label: t("money.collected"), href: "/home/payouts?show=offline", count: offline.length, active: show === "offline" },
-            { label: t("po.all"), href: "/home/payouts?show=all", count: paidOrders.length, active: show === "all" },
+            { label: t("po.paidOnline"), href: "/home/payouts", count: onlineCount, active: show === "online" },
+            { label: t("money.collected"), href: "/home/payouts?show=offline", count: offlineCount, active: show === "offline" },
+            { label: t("po.all"), href: "/home/payouts?show=all", count: paidCount, active: show === "all" },
           ]}
         />
 
         {shown.length ? (
+          <div>
           <ListCard>
             {shown.map((order) => (
               <ListRow key={order.id} href={`/home/orders/${order.id}`}>
@@ -93,6 +110,8 @@ export default async function SellerPayoutsPage({ searchParams }: { searchParams
               </ListRow>
             ))}
           </ListCard>
+          <Pagination {...paging} base="/home/payouts" params={{ show: show === "online" ? undefined : show }} label={t("po.pages")} />
+          </div>
         ) : (
           <EmptyState icon="coin" title={t("po.empty")}>{t("po.emptySub")}</EmptyState>
         )}

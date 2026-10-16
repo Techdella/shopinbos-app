@@ -210,6 +210,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "health.nothingToFix": "Ọ dịghị ihe a ga-edozi ugbu a.",
   "health.again": "Gbakọọ ya ọzọ",
   "health.failed": "Enweghị ike ịgbakọ akara gị. Nwaa ọzọ.",
+  "activity.pages": "Peeji ihe mere",
 };
 
 export default ig;

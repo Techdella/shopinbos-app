@@ -146,7 +146,6 @@ const en = {
   "forms.manage": "Manage forms",
   "forms.viewStore": "View store",
   "forms.total": "Total",
-  "forms.latest100": "Latest 100",
   "forms.new": "New",
   "forms.filter.all": "All",
   "forms.filter.contact": "Contact",
@@ -532,6 +531,9 @@ const en = {
   "nav.previewOpened": "Menu open ({style})",
   "nav.previewEmpty": "No links",
   "nav.unsaved": "You have unsaved changes. This still shows what shoppers see now: save to update it.",
+  "cart.pages": "Left cart pages",
+  "forms.allTime": "All time",
+  "forms.pages": "Form message pages",
 } satisfies Record<string, string>;
 
 export default en;

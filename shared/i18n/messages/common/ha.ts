@@ -84,6 +84,12 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "chats.brandKit": "Kayan alama",
   "chats.madeEmpty": "Ba a yi komai ba tukuna. Tambura da hotunan da Rex ya yi za su bayyana a nan.",
   "chats.allMedia": "Duba komai a Media",
+  "page.nav": "Shafuka",
+  "page.prev": "Na baya",
+  "page.next": "Na gaba",
+  "page.of": "Shafi {page} cikin {pages}",
+  "page.number": "Shafi {page}",
+  "page.showing": "Ana nuna {from}–{to} cikin {total}",
 };
 
 export default ha;

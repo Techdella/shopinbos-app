@@ -295,6 +295,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "ostatus.shipped": "Ó wà lójú ọ̀nà",
   "ostatus.delivered": "Ó ti dé",
   "ostatus.cancelled": "A ti fagi lé e",
+  "orders.pages": "Àwọn ojú-ewé order ìtẹ̀wé",
 };
 
 export default yo;

@@ -258,6 +258,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "importAi.importWithout": "Shigo ba tare da canje-canjen Peggy ba",
   "importAi.enhanced": "{count, plural, one {Kaya # yana da canje-canjen Peggy} other {Kaya # suna da canje-canjen Peggy}}",
   "importAi.showMore": "Nuna ƙari",
+  "list.pages": "Shafukan kayayyaki",
+  "inv.pages": "Shafukan stock",
 };
 
 export default ha;

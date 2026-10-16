@@ -326,8 +326,6 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "subs.noEmail": "Babu email",
   "subs.noConsent": "Ba a rubuta izini ba",
   "subs.pages": "Shafuka",
-  "subs.previous": "Na baya",
-  "subs.page": "Shafi {page} cikin {pages}",
   "subs.emptyTitle": "Babu kowa a nan tukuna",
   "subs.emptyAction": "Shigo da CSV",
   "subs.emptyBody": "Kunna sign-up pop-up, shigo da jerin da kake da shi, ko ƙara mutane ɗaya bayan ɗaya. Masu saye na baya za su iya samun campaigns ta segments.",
@@ -969,6 +967,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "forms.playsWord": "wasanni",
   "forms.preview.beforePlay": "Kafin wasa",
   "forms.preview.afterPlay": "Bayan wasa",
+  "campaigns.pages": "Shafukan campaigns",
 };
 
 export default ha;
