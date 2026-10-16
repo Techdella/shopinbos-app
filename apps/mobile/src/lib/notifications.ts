@@ -1,7 +1,7 @@
 import { router } from "expo-router";
 import { appRouteFor, type NotifyCategory, type NotifyChannel } from "@shared/notifications";
 import { api } from "./api";
-import { openWeb } from "./web";
+import { openPath } from "./web";
 
 // The bell in the app: the same notifications as the web (GET /api/notifications), marking read, the push
 // settings (/api/notifications/settings) and where a tap goes (shared/notifications.ts appRouteFor).
@@ -58,7 +58,9 @@ export function openNotificationTarget(target: { route?: string | null; url?: st
   if (target.route) return router.push(target.route as never);
   const route = appRouteFor(target.url);
   if (route) return router.push((route.params ? { pathname: route.pathname, params: route.params } : route.pathname) as never);
-  if (target.url && target.url.startsWith("/")) return void openWeb(target.url);
+  // Anything else the app has its own screen for (payouts, campaigns, reviews…) opens there; only the rest goes to the web.
+  const path = target.url?.replace(/^https?:\/\/[^/]+/i, "") ?? "";
+  if (path.startsWith("/")) return void openPath(path);
   return router.push("/notifications");
 }
 
