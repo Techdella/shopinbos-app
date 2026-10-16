@@ -34,10 +34,13 @@ async function shopContact(sellerId: string, phone?: string | null): Promise<Con
 }
 
 /** The buyer on one of the seller's own orders. */
-async function orderBuyer(sellerId: string, orderId?: string | null): Promise<Contact | null> {
-  if (!orderId) return null;
-  const order = await db.retailOrder.findFirst({ where: { id: orderId, store: { userId: sellerId } }, select: { buyerName: true, buyerPhone: true, buyerEmail: true } });
-  return order?.buyerPhone ? { name: order.buyerName || "Customer", phone: order.buyerPhone, email: order.buyerEmail || null } : null;
+async function orderBuyer(sellerId: string, orderId?: string | null): Promise<{ contact: Contact | null; total: number | null }> {
+  if (!orderId) return { contact: null, total: null };
+  const order = await db.retailOrder.findFirst({ where: { id: orderId, store: { userId: sellerId } }, select: { buyerName: true, buyerPhone: true, buyerEmail: true, total: true } });
+  return {
+    contact: order?.buyerPhone ? { name: order.buyerName || "Customer", phone: order.buyerPhone, email: order.buyerEmail || null } : null,
+    total: order ? Number(order.total) : null,
+  };
 }
 
 /**
@@ -57,12 +60,14 @@ export async function carrierJobInput(input: {
   pickupAt?: Date | null;
 }): Promise<CarrierJobInput> {
   const shop = await shopContact(input.sellerId, input.pickupPhone);
-  const buyer = input.recipient ?? (await orderBuyer(input.sellerId, input.orderId)) ?? shop;
+  const order = await orderBuyer(input.sellerId, input.orderId);
+  const buyer = input.recipient ?? order.contact ?? shop;
   return {
     pickup: { ...shop, address: input.pickupLocation },
     dropoff: { ...buyer, address: input.destination },
     weightKg: input.weightKg ?? null,
     codAmount: input.codAmount ?? null,
+    parcelValue: order.total,
     notes: input.notes ?? null,
     pickupAt: input.pickupAt ?? null,
   };
@@ -134,19 +139,19 @@ export interface CarrierSyncResult {
  * step at a time, so the seller's order follows. A job the carrier can't move to (e.g. cancelled after pickup)
  * keeps its status here, with the carrier's raw status saved for the team.
  */
-export async function syncCarrierJobs(options: { limit?: number } = {}): Promise<CarrierSyncResult> {
+export async function syncCarrierJobs(options: { limit?: number; ids?: string[] } = {}): Promise<CarrierSyncResult> {
   const jobs = await db.deliveryBooking.findMany({
-    where: { externalCarrier: { not: null }, externalRef: { not: null }, status: { in: [...OPEN_STATUSES] } },
+    where: { externalCarrier: { not: null }, externalRef: { not: null }, status: { in: [...OPEN_STATUSES] }, ...(options.ids ? { id: { in: options.ids } } : {}) },
     orderBy: [{ externalSyncedAt: { sort: "asc", nulls: "first" } }],
     take: options.limit ?? 40,
-    select: { id: true, status: true, codAmount: true, externalCarrier: true, externalRef: true, logisticsPartnerId: true },
+    select: { id: true, status: true, codAmount: true, externalCarrier: true, externalRef: true, externalJobIds: true, logisticsPartnerId: true },
   });
   const result: CarrierSyncResult = { checked: 0, moved: 0, failed: 0 };
   for (const job of jobs) {
     const carrier = carrierFor({ carrier: job.externalCarrier });
     if (!carrier || !job.externalRef) continue;
     result.checked += 1;
-    const tracked = await carrier.track({ ref: job.externalRef }).catch(() => null);
+    const tracked = await carrier.track({ ref: job.externalRef, jobIds: jobIdsOf(job.externalJobIds) }).catch(() => null);
     if (!tracked?.ok) {
       result.failed += 1;
       await db.deliveryBooking.update({ where: { id: job.id }, data: { externalSyncedAt: new Date() } }).catch(() => null);

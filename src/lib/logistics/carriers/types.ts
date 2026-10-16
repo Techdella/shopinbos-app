@@ -17,6 +17,8 @@ export interface CarrierJobInput {
   weightKg?: number | null;
   /** Pay on delivery: what the rider collects from the buyer. */
   codAmount?: number | null;
+  /** What the parcel is worth (the order total), for carriers that insure or declare it. */
+  parcelValue?: number | null;
   notes?: string | null;
   /** When the rider should collect it; now (plus a few minutes) when missing or past. */
   pickupAt?: Date | null;
@@ -53,5 +55,10 @@ export interface Carrier {
   /** Prices and books the job; refuses (PRICE_CHANGED) when the live price is above maxPrice. */
   book(input: CarrierJobInput, options?: { maxPrice?: number | null }): Promise<CarrierResult<CarrierBooking>>;
   cancel(booking: { ref: string; jobIds: Array<string | number> }): Promise<CarrierResult<null>>;
-  track(booking: { ref: string }): Promise<CarrierResult<CarrierTracking>>;
+  track(booking: { ref: string; jobIds: Array<string | number> }): Promise<CarrierResult<CarrierTracking>>;
+  /**
+   * The booking reference a webhook from the carrier is about (its externalRef), or null. The webhook only makes us
+   * read the job's status from the carrier again, so its body is never trusted for the status itself.
+   */
+  webhookRef?(payload: unknown): string | null;
 }

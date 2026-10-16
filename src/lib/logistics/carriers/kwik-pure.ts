@@ -5,6 +5,7 @@
 // (200 done, 100 parameter missing, 101 invalid key, 201 show the message, 404 error in execution).
 
 import type { JobStatus } from "../job-rules.ts";
+import { ngPhone } from "./nigeria.ts";
 
 export const KWIK_STAGING_URL = "https://staging-api-test.kwik.delivery";
 export const KWIK_STAGING_DOMAIN = "staging-client-panel.kwik.delivery";
@@ -67,16 +68,8 @@ export function kwikVehicleSize(weightKg?: number | null) {
 }
 
 /** Kwik wants phone numbers with the country code: "08031234567" → "+2348031234567". */
-export function kwikPhone(phone: string | null | undefined, dialCode = "234") {
-  const raw = (phone ?? "").trim();
-  if (!raw) return "";
-  const digits = raw.replace(/[^\d]/g, "");
-  if (!digits) return "";
-  if (raw.startsWith("+")) return `+${digits}`;
-  if (digits.startsWith("00")) return `+${digits.slice(2)}`;
-  if (digits.startsWith(dialCode) && digits.length > 10) return `+${digits}`;
-  if (digits.startsWith("0")) return `+${dialCode}${digits.slice(1)}`;
-  return `+${dialCode}${digits}`;
+export function kwikPhone(phone: string | null | undefined) {
+  return ngPhone(phone, "intl");
 }
 
 export interface KwikStop {

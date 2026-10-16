@@ -1,0 +1,102 @@
+import "server-only";
+import { randomUUID } from "node:crypto";
+import { callJson, carrierDown, carrierSaid, errorMessage, needPhones, notSetUp, pickupMoment, priceCheck } from "./http.server";
+import { FEZ_SANDBOX_URL, fezBookingStatus, fezCostBody, fezOk, fezOrderBody, fezWebhookRef, readFezCost, readFezLogin, readFezOrderNo, readFezTrack } from "./fez-pure";
+import type { Carrier, CarrierJobInput, CarrierResult } from "./types";
+
+// Fez Delivery (https://fez-delivery-co.gitbook.io/fezcorporate-api-docs): parcels within a state and across
+// Nigeria, with pay on delivery. We book as one Fez business account:
+//   1. POST /user/authenticate { user_id, password } → authToken (with its expiry) and the org's secret-key; every
+//      other call sends `Authorization: Bearer <authToken>` and `secret-key`.
+//   2. Price: POST /order/cost { state, pickUpState, weight } → totalCost (cost plus VAT).
+//   3. Book: POST /order [ { recipient…, uniqueID, BatchID, valueOfItem, weight, sender… } ] → orderNos[uniqueID].
+//   4. Status: GET /order/track/{orderNo}. 5. Cancel: POST /order/cancel { orderNo, reason } (before pickup only).
+// Webhooks (POST /webhooks/store) send { orderNumber, status }: we only use them to re-read the status.
+//
+// Env: FEZ_USER_ID and FEZ_PASSWORD (required), FEZ_BASE_URL (default: the sandbox; Fez gives you the live URL).
+
+const NAME = "Fez";
+
+function config() {
+  return {
+    userId: process.env.FEZ_USER_ID?.trim(),
+    password: process.env.FEZ_PASSWORD?.trim(),
+    baseUrl: (process.env.FEZ_BASE_URL?.trim() || FEZ_SANDBOX_URL).replace(/\/+$/, ""),
+  };
+}
+
+let session: { token: string; secret: string; until: number } | null = null;
+
+async function login(fresh = false): Promise<CarrierResult<{ token: string; secret: string }>> {
+  if (!fresh && session && session.until > Date.now()) return { ok: true, value: session };
+  const { userId, password, baseUrl } = config();
+  if (!userId || !password) return notSetUp(NAME, "FEZ_USER_ID and FEZ_PASSWORD");
+  const res = await callJson(`${baseUrl}/user/authenticate`, { body: { user_id: userId, password } });
+  if ("error" in res) return carrierDown(NAME);
+  const auth = fezOk(res.ok, res.json) ? readFezLogin(res.json) : null;
+  if (!auth) return carrierSaid(NAME, errorMessage(res.json, "login failed"));
+  session = auth;
+  return { ok: true, value: auth };
+}
+
+/** A call with the account's token, logging in again once when Fez says it's no longer valid. */
+async function call(path: string, init: { method?: string; body?: unknown } = {}): Promise<CarrierResult<unknown>> {
+  for (const fresh of [false, true]) {
+    const auth = await login(fresh);
+    if (!auth.ok) return auth;
+    const res = await callJson(`${config().baseUrl}${path}`, { ...init, headers: { Authorization: `Bearer ${auth.value.token}`, "secret-key": auth.value.secret } });
+    if ("error" in res) return carrierDown(NAME);
+    if (res.status === 401 && !fresh) continue;
+    if (!fezOk(res.ok, res.json)) return carrierSaid(NAME, errorMessage(res.json, "the request wasn't accepted"));
+    return { ok: true, value: res.json };
+  }
+  return carrierDown(NAME);
+}
+
+async function quote(job: CarrierJobInput): Promise<CarrierResult<{ price: number; currency: string }>> {
+  const phones = needPhones(job);
+  if (!phones.ok) return phones;
+  const res = await call("/order/cost", { body: fezCostBody(job) });
+  if (!res.ok) return res;
+  const price = readFezCost(res.value);
+  return price ? { ok: true, value: { price, currency: "NGN" } } : carrierSaid(NAME, "no price for this route");
+}
+
+export const fez: Carrier = {
+  id: "fez",
+  name: NAME,
+
+  configured() {
+    const { userId, password } = config();
+    return Boolean(userId && password);
+  },
+
+  quote,
+
+  async book(job, options) {
+    const priced = await quote(job);
+    if (!priced.ok) return priced;
+    const tooDear = priceCheck<never>(NAME, priced.value.price, priced.value.currency, options?.maxPrice);
+    if (tooDear) return tooDear;
+    const uniqueId = `SIB-${randomUUID().replace(/-/g, "").slice(0, 16).toUpperCase()}`;
+    const res = await call("/order", { body: fezOrderBody(job, uniqueId, pickupMoment(job)) });
+    if (!res.ok) return res;
+    const orderNo = readFezOrderNo(res.value, uniqueId);
+    if (!orderNo) return carrierSaid(NAME, "the order was taken but no order number came back. Contact support before booking it again.");
+    return { ok: true, value: { ref: orderNo, jobIds: [uniqueId], trackingUrl: null, ...priced.value } };
+  },
+
+  async cancel(booking) {
+    const res = await call("/order/cancel", { body: { orderNo: booking.ref, reason: "Cancelled by the shop" } });
+    return res.ok ? { ok: true, value: null } : res;
+  },
+
+  async track(booking) {
+    const res = await call(`/order/track/${encodeURIComponent(booking.ref)}`, { method: "GET" });
+    if (!res.ok) return res;
+    const raw = readFezTrack(res.value);
+    return { ok: true, value: { status: fezBookingStatus(raw), raw: raw ?? "" } };
+  },
+
+  webhookRef: fezWebhookRef,
+};

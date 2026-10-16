@@ -6,8 +6,25 @@
 --   * "DeliveryBooking".external*: the carrier's order reference (Kwik unique_order_id), its job ids, tracking link,
 --     raw status and when it was last read.
 --
--- Additive only, safe to run more than once. Run BEFORE deploying the code that uses it. Then mark the Kwik profile:
---   UPDATE "LogisticsPartner" SET carrier = 'kwik' WHERE slug = 'kwik';
+-- Additive only, safe to run more than once. Run BEFORE deploying the code that uses it.
+--
+-- Carriers: kwik, fez, sendstack, sendbox (src/lib/logistics/carriers/index.ts). Each needs a partner profile
+-- marked with its id. The profile needs a User row; a system user with a supabaseId that matches no Supabase account
+-- (so nobody can sign in as it) does. Applied on production 2026-10-16 for Kwik:
+--
+--   with u as (
+--     insert into "User" (id, "supabaseId", name, role, country, city, "verificationStatus", "updatedAt")
+--     values ('carrier_kwik_user', 'carrier:kwik', 'Kwik', 'logistics_partner', 'Nigeria', 'Lagos', 'verified', now())
+--     on conflict ("supabaseId") do update set name = excluded.name returning id)
+--   insert into "LogisticsPartner" (id, "userId", "companyName", slug, "displayName", country, city, description,
+--     "coverageZones", "vehicleTypes", "deliveryTypes", "pricingModel", "estimatedSpeed", "verificationStatus", status,
+--     carrier, "updatedAt")
+--   select 'carrier_kwik', u.id, 'Kwik Delivery', 'kwik', 'Kwik', 'Nigeria', 'Lagos', '...', array['Lagos (Intrastate)'],
+--     array['bike','car','van','truck'], array['same_day','express'], 'live', 'Same day', 'verified', 'active', 'kwik', now()
+--   from u on conflict (slug) do update set carrier = 'kwik', "updatedAt" = now();
+--
+-- Fez, Sendstack and Sendbox: the same with their own ids, names and coverage, once their keys are set.
+-- Their status webhooks go to /api/webhooks/carriers/{fez|sendstack|sendbox}; the cron below covers missed ones.
 
 ALTER TABLE "LogisticsPartner" ADD COLUMN IF NOT EXISTS "carrier" TEXT;
 
