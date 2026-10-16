@@ -7,17 +7,21 @@ import { isBotUserAgent } from "@/lib/analytics/sources";
 import { bioColours } from "@/lib/bio/pure";
 import { loadPublicBio, recordBioView } from "@/lib/bio/service.server";
 import { loadStoreBrand } from "@/lib/storefront/public-store.server";
+import { storePageRobots } from "@/lib/seo/indexing";
+import { storeSearchState, storeUrl } from "@/lib/seo/store-seo.server";
 import { resolveShopperTheme } from "@/components/storefront/shopper/theme";
 
 // The store's link in bio page for both its addresses (/s/<slug>/links and https://<own domain>/links).
 
 export async function bioMetadata(slug: string): Promise<Metadata> {
-  const [page, brand] = await Promise.all([loadPublicBio(slug), loadStoreBrand(slug)]);
+  const [page, brand, state] = await Promise.all([loadPublicBio(slug), loadStoreBrand(slug), storeSearchState(slug)]);
   if (!page || !brand) return { title: "Links", robots: { index: false } };
   const description = page.bio || `Shop ${brand.name}: our products, offers and how to reach us.`;
   return {
     title: { absolute: page.title },
     description,
+    alternates: { canonical: storeUrl(brand, "/links") },
+    robots: storePageRobots({ indexable: Boolean(state?.indexable) }),
     openGraph: { title: page.title, description, siteName: brand.name, type: "website", ...(page.avatarUrl ? { images: [{ url: page.avatarUrl, alt: page.title }] } : {}) },
     twitter: { card: "summary", title: page.title, description, ...(page.avatarUrl ? { images: [page.avatarUrl] } : {}) },
   };

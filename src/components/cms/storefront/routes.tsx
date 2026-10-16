@@ -20,7 +20,7 @@ export async function CollectionRoute({ storeSlug, collectionSlug, basePath, cus
       fields={fields}
       layout={settings.layout}
       basePath={basePath}
-      canonical={cmsCanonical(store.slug, `/${collection.slug}`, customDomain)}
+      canonical={cmsCanonical(store.slug, `/${collection.slug}`, customDomain ?? store.customDomain)}
       chrome={chrome}
     />
   );
@@ -39,7 +39,7 @@ export async function ItemRoute({ storeSlug, collectionSlug, itemSlug, basePath,
       fields={fields}
       siblings={siblings}
       basePath={basePath}
-      canonical={cmsCanonical(store.slug, `/${collection.slug}/${item.slug}`, customDomain)}
+      canonical={cmsCanonical(store.slug, `/${collection.slug}/${item.slug}`, customDomain ?? store.customDomain)}
       refs={refs}
       chrome={chrome}
     />

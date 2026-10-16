@@ -441,6 +441,8 @@ export async function saveStoreSeoSettings(formData: FormData) {
           socialImage: httpsImageUrl(formData.get("socialImage")),
           // The browser-tab icon of every store page (src/lib/seo/store-head.ts); empty falls back to the logo.
           favicon: httpsImageUrl(formData.get("favicon")),
+          // "Hide my store from search engines": noindex on every page, Disallow in robots.txt (src/lib/seo/indexing.ts).
+          hideFromSearch: formData.get("hideFromSearch") === "on",
         },
       }),
     },

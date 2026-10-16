@@ -8,7 +8,7 @@ import { renamedStoreTarget } from "@shared/store-address";
 import { LiveChatWidget } from "@/components/messaging/LiveChatWidget";
 import { StoreBrandProvider } from "@/components/errors/StoreBrandContext";
 import { resolveShopperTheme } from "@/components/storefront/shopper/theme";
-import { getStorefrontBasePathForHost } from "@/lib/domains/storefront";
+import { buildStorefrontUrl, getStorefrontBasePathForHost } from "@/lib/domains/storefront";
 import { loadStoreBrand } from "@/lib/storefront/public-store.server";
 import { loadStorefrontCampaigns } from "@/lib/store-campaigns/storefront.server";
 import { CampaignLayer } from "@/components/storefront/campaign/CampaignLayer";
@@ -17,7 +17,8 @@ import { CampaignLayer } from "@/components/storefront/campaign/CampaignLayer";
 // seller hasn't turned live chat on), and the store's name and colours for its 404 and error pages.
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  return storeHeadMetadata(await loadStoreBrand(slug));
+  const brand = await loadStoreBrand(slug);
+  return storeHeadMetadata(brand, brand ? buildStorefrontUrl({ slug: brand.slug, customDomain: brand.customDomain }) : null);
 }
 
 export default async function StorefrontLayout({ children, params }: { children: ReactNode; params: Promise<{ slug: string }> }) {

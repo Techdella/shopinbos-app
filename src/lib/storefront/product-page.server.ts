@@ -121,7 +121,7 @@ export const loadProductPage = cache(async (slug: string, productId: string, pre
   const [store, product] = await Promise.all([
     db.store.findUnique({
       where: { slug },
-      select: { id: true, name: true, slug: true, description: true, logoUrl: true, city: true, country: true, currency: true, brandSettings: true, status: true },
+      select: { id: true, name: true, slug: true, description: true, logoUrl: true, city: true, country: true, currency: true, customDomain: true, brandSettings: true, status: true },
     }),
     db.storeProduct.findUnique({
       where: { id: productId },
@@ -130,6 +130,7 @@ export const loadProductPage = cache(async (slug: string, productId: string, pre
         storeId: true,
         status: true,
         sku: true,
+        barcode: true,
         longDescription: true,
         specifications: true,
         careInstructions: true,
