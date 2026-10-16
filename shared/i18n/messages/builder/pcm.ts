@@ -2119,6 +2119,12 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "ed.Under the item above": "Under the item wey dey on top",
   "ed.Underline": "Underline",
   "ed.Your menu is empty. Add pages above.": "Your menu empty. Add pages for up.",
+  "ed.Phone menu": "Phone menu",
+  "ed.Phone menu items": "Wetin dey phone menu",
+  "ed.Use the main menu": "Use the main menu",
+  "ed.Own phone menu": "Phone get im own menu",
+  "ed.Footer links": "Footer links",
+  "ed.Until you change them, the footer shows its usual links.": "Until you change dem, the footer go show im normal links.",
 };
 
 export default pcm;

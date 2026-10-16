@@ -7,6 +7,8 @@ import { mergeBrandSettings, parseBrandSettings, slugify } from "@/lib/workspace
 import { gaMeasurementId, googleSiteVerification } from "@/lib/security/html";
 import { saveSellerBusinessAddress, saveStoreDetails } from "@/lib/seller-settings.server";
 import { changeStoreSlug, clearStaleShopNames, clearStaleShopNamesInStorePages } from "@/lib/store-address.server";
+import { saveStoreNavigation } from "@/lib/store-navigation.server";
+import { parseNavigationInput } from "@/lib/storefront/store-navigation";
 
 async function getSellerUserOrThrow() {
   const user = await getCurrentAppUser({ redirectTo: "/login" });
@@ -477,22 +479,20 @@ export async function saveStoreIntegrationSettings(formData: FormData) {
 }
 
 export async function saveStoreNavigationSettings(formData: FormData) {
+  // The menus live in the builder snapshot's header and footer (src/lib/store-navigation.server.ts explains how draft
+  // and published are handled); the form sends them as JSON.
   const user = await getSellerUserOrThrow();
-  const store = await db.store.findUnique({ where: { userId: user.id } });
-  if (!store) redirect("/builder?firstRun=1");
-
-  await db.store.update({
-    where: { id: store.id },
-    data: {
-      brandSettings: mergeBrandSettings(store.brandSettings, {
-        navigation: {
-          mainMenu: String(formData.get("mainMenu") || "").split(",").map((item) => item.trim()).filter(Boolean),
-          footerMenu: String(formData.get("footerMenu") || "").split(",").map((item) => item.trim()).filter(Boolean),
-        },
-      }),
-    },
-  });
-
+  let raw: unknown = null;
+  try {
+    raw = JSON.parse(String(formData.get("navigation") || "null"));
+  } catch {
+    raw = null;
+  }
+  const nav = parseNavigationInput(raw);
+  if (!nav) redirect("/home/navigation?error=1");
+  const result = await saveStoreNavigation(user.id, nav, String(formData.get("fingerprint") || ""));
+  if (result === "missing") redirect("/builder?firstRun=1");
+  if (result === "conflict") redirect("/home/navigation?conflict=1");
   redirect("/home/navigation?saved=1");
 }
 

@@ -5,6 +5,8 @@ import type React from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "@/components/ui/Icon";
 import { MENU_PAGE_LABELS, type MenuItem, type MenuStyle, type MobileMenuStyle } from "@/lib/storefront/menu";
+import { readLogoDisplay, storeLogoView } from "@shared/store-logo";
+import { StoreBrandMark } from "./StoreBrandMark";
 
 // The store's main menu on the page, shared by every theme: the bar on computers (five looks, dropdowns for sub-items)
 // and the ☰ button on phones, which opens the same menu as a side drawer, a full-screen menu or a bottom sheet.
@@ -250,6 +252,7 @@ export function StoreMenuButton({
   headingFont,
   interactive = true,
   extra,
+  brand,
 }: {
   items: ShownMenuItem[];
   style: MobileMenuStyle;
@@ -262,6 +265,11 @@ export function StoreMenuButton({
   interactive?: boolean;
   /** Links under the menu (track an order, account). */
   extra?: ShownMenuItem[];
+  /**
+   * The store, for its logo at the top of the menu: shown the way the header shows it (Brand kit "logoDisplay":
+   * logo, logo and name, icon…); the name alone when the header shows only the name or there is no logo.
+   */
+  brand?: { store: { logoUrl?: string | null; brandSettings?: unknown }; name: string };
 }) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -304,7 +312,14 @@ export function StoreMenuButton({
       <div role="dialog" aria-modal="true" aria-labelledby={titleId} className="smenu-anim absolute flex flex-col overflow-hidden shadow-2xl" style={{ ...panelPosition, background: colors.panel, color: colors.panelInk, animation: `${animation} .25s ease` }}>
         {style === "sheet" ? <span aria-hidden className="mx-auto mt-2.5 block h-1 w-10 shrink-0 rounded-full" style={{ background: colors.border }} /> : null}
         <div className="flex shrink-0 items-center justify-between gap-3 px-5 pb-2 pt-4">
-          <p id={titleId} className="m-0 truncate text-[15px] font-semibold" style={{ fontFamily: headingFont }}>{style === "sheet" ? "Menu" : storeName}</p>
+          {brand && storeLogoView(brand.store).image ? (
+            // The header shows a logo: so does the menu, in the version that reads on the panel's colour (StoreLogo).
+            <p id={titleId} className="m-0 min-w-0" style={{ fontFamily: headingFont }}>
+              <StoreBrandMark store={brand.store} name={brand.name || storeName} display={{ ...readLogoDisplay(brand.store.brandSettings), size: "small" }} background={colors.panel} nameClassName="text-[15px] font-semibold" />
+            </p>
+          ) : (
+            <p id={titleId} className="m-0 truncate text-[15px] font-semibold" style={{ fontFamily: headingFont }}>{style === "sheet" ? "Menu" : storeName}</p>
+          )}
           <button ref={closeRef} type="button" onClick={close} aria-label="Close menu" className="grid h-10 w-10 shrink-0 place-items-center rounded-full border" style={{ borderColor: colors.border, background: "transparent", color: "inherit", cursor: "pointer" }}>
             <Icon name="x" size={18} />
           </button>

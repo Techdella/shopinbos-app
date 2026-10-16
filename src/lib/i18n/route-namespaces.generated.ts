@@ -129,7 +129,7 @@ export const ROUTE_NAMESPACES: ReadonlyArray<readonly [string, readonly string[]
   ["/home/media", ["auth","common","glossary","help","introTitles","learn","media","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
   ["/home/messages", ["auth","common","glossary","help","inbox","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
   ["/home/messages/partners", ["auth","common","glossary","help","inbox","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
-  ["/home/navigation", ["auth","common","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
+  ["/home/navigation", ["auth","common","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","store","support","tour","ui","verification"]],
   ["/home/notifications", ["auth","common","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
   ["/home/notifications/preferences", ["auth","common","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
   ["/home/orders", ["auth","common","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],

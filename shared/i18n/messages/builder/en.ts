@@ -2120,6 +2120,12 @@ const en = {
   "ed.Under the item above": "Under the item above",
   "ed.Underline": "Underline",
   "ed.Your menu is empty. Add pages above.": "Your menu is empty. Add pages above.",
+  "ed.Phone menu": "Phone menu",
+  "ed.Phone menu items": "Phone menu items",
+  "ed.Use the main menu": "Use the main menu",
+  "ed.Own phone menu": "Own phone menu",
+  "ed.Footer links": "Footer links",
+  "ed.Until you change them, the footer shows its usual links.": "Until you change them, the footer shows its usual links.",
 } satisfies Record<string, string>;
 
 export default en;

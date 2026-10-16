@@ -30,7 +30,8 @@ type Source = "pages" | "categories" | "products" | "link";
 
 const KIND_LABEL: Record<MenuItem["kind"], string> = { page: "Page", category: "Category", product: "Product", link: "Custom link" };
 
-export function MenuField({ value, onChange, pageTypes, products }: { value: MenuItem[]; onChange: (menu: MenuItem[]) => void; pageTypes: string[]; products: BuilderProduct[] }) {
+/** `flat`: one level only (footer links): no dropdowns. */
+export function MenuField({ value, onChange, pageTypes, products, flat = false }: { value: MenuItem[]; onChange: (menu: MenuItem[]) => void; pageTypes: string[]; products: BuilderProduct[]; flat?: boolean }) {
   const { tx } = useEditorT();
   const [source, setSource] = useState<Source | null>("pages");
   const [ticked, setTicked] = useState<string[]>([]);
@@ -158,7 +159,7 @@ export function MenuField({ value, onChange, pageTypes, products }: { value: Men
             <div className="flex flex-wrap gap-1.5">
               <MoveButton icon="arrowUp" label={tx("Move up")} disabled={index === 0} onClick={() => onChange(moveMenuItem(value, item.id, -1))} />
               <MoveButton icon="arrowDown" label={tx("Move down")} disabled={index === siblings.length - 1} onClick={() => onChange(moveMenuItem(value, item.id, 1))} />
-              {depth === 0 ? (
+              {flat ? null : depth === 0 ? (
                 <MoveButton icon="chevRight" label={tx("Under the item above")} disabled={!canIndentMenuItem(value, item.id)} onClick={() => onChange(indentMenuItem(value, item.id))} />
               ) : (
                 <MoveButton icon="arrowLeft" label={tx("Out of the dropdown")} onClick={() => onChange(outdentMenuItem(value, item.id))} />
