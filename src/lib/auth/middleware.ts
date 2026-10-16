@@ -6,6 +6,7 @@ import type { AuthUser, JWTClaims, Role } from "./types";
 import { apiError } from "@/lib/api/response";
 import { e164FromSupabase } from "@/lib/auth/app-user";
 import { asAccountRole } from "@/lib/auth/role-rules";
+import { recordActivity } from "@/lib/platform-analytics/activity.server";
 
 // ─── Verify a raw access token via Supabase Admin client ─────────────────────
 
@@ -144,6 +145,7 @@ export function withAuth(handler: Handler, allowedRoles?: Role[]) {
     }
 
     if (!user) return apiError("UNAUTHORIZED", "Could not resolve user — check your database connection", 401);
+    recordActivity(user);
 
     if (allowedRoles && !allowedRoles.includes(user.role)) {
       return apiError("FORBIDDEN", `Role '${user.role}' cannot access this resource`, 403);

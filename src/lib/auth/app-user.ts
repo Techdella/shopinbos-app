@@ -115,6 +115,12 @@ export async function ensureAppUserForSupabaseUser(input: AppUserInput) {
     },
   });
 
+  // A brand-new account: leads with the same email or phone become "signed up", and analytics hears about it.
+  if (!existingUser) {
+    const { onAccountCreated } = await import("@/lib/lead-growth/service.server");
+    await onAccountCreated({ id: user.id, supabaseId: user.supabaseId, email: user.email, phone: user.phone, role: user.role, createdAt: user.createdAt }).catch(() => undefined);
+  }
+
   if (role === "seller") {
     const storeName = input.businessName || `${fullName}'s Store`;
     await db.store.upsert({

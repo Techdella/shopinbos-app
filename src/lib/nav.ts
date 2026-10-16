@@ -356,7 +356,14 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
             { id: "support-macros", label: "Saved replies", href: "/admin/support/macros" },
           ],
         },
-        { id: "leads", label: "Website leads", icon: "list", href: "/admin/leads", core: true },
+        { id: "analytics", label: "Analytics", icon: "chart", href: "/admin/analytics", core: true },
+        {
+          id: "leads", label: "Leads", icon: "list", href: "/admin/leads", core: true,
+          children: [
+            { id: "leads-all", label: "All leads", href: "/admin/leads" },
+            { id: "lead-campaigns", label: "Campaigns & automations", href: "/admin/lead-campaigns" },
+          ],
+        },
         { id: "product-news", label: "Product news", icon: "megaphone", href: "/admin/product-news", core: true },
         { id: "help-videos", label: "Help videos", icon: "play", href: "/admin/help-videos", core: true },
         { id: "ad-requests", label: "Ad requests", icon: "megaphone", href: "/admin/ad-requests", core: true },
