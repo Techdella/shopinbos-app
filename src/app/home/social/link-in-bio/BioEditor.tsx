@@ -15,6 +15,7 @@ import {
   MAX_BIO_BLOCKS,
   SOCIAL_KEYS,
   SOCIAL_LABEL,
+  bioBlockProblems,
   bioColours,
   newBlockId,
   socialUrl,
@@ -23,6 +24,7 @@ import {
   type BioBlock,
   type BioBlockType,
   type BioPreset,
+  type BioProblemField,
   type BioTheme,
 } from "@/lib/bio/pure";
 import type { PublicBioBlock, PublicBioPage, SellerBioPage } from "@/lib/bio/service.server";
@@ -40,6 +42,22 @@ interface PickProduct {
 const BLOCK_ICON: Record<BioBlockType, IconName> = { product: "bag", collection: "grid", link: "link", socials: "instagram", whatsapp: "whatsapp", signup: "mail", text: "edit" };
 const ADDABLE: BioBlockType[] = ["product", "whatsapp", "socials", "link", "collection", "signup", "text"];
 
+/** The id suffix of each field's input in BlockFields (blk-<block id>-<suffix>), to focus the first one to fix. */
+const FIELD_INPUT: Partial<Record<BioProblemField, string>> = { label: "l", url: "u", phone: "ph", text: "x", productId: "p", collectionId: "c" };
+
+/** What needs fixing, per block id then field, in the seller's language. */
+type ProblemMap = Map<string, Map<BioProblemField, string>>;
+
+function focusField(blockId: string, field: BioProblemField) {
+  window.requestAnimationFrame(() => {
+    const suffix = FIELD_INPUT[field];
+    const target = (suffix && document.getElementById(`blk-${blockId}-${suffix}`)) || document.getElementById(`blk-${blockId}`);
+    if (!target) return;
+    target.scrollIntoView({ block: "center", behavior: "smooth" });
+    target.focus({ preventScroll: true });
+  });
+}
+
 function blankBlock(type: BioBlockType, products: PickProduct[], collections: Array<{ id: string }>, whatsapp: string): BioBlock | null {
   const id = newBlockId();
   switch (type) {
@@ -48,11 +66,11 @@ function blankBlock(type: BioBlockType, products: PickProduct[], collections: Ar
     case "collection":
       return collections[0] ? { id, type, collectionId: collections[0].id } : null;
     case "link":
-      return { id, type, label: "", url: "https://" };
+      return { id, type, label: "", url: "" };
     case "socials":
       return { id, type, links: {} };
     case "whatsapp":
-      return { id, type, phone: whatsapp || "+234", label: "" };
+      return { id, type, phone: whatsapp, label: "" };
     case "signup":
       return { id, type, title: "", buttonLabel: "" };
     case "text":
@@ -68,6 +86,8 @@ export function BioEditor({
   collections,
   whatsapp,
   storeColours,
+  storeLogo,
+  storeLive,
 }: {
   slug: string;
   currency: string;
@@ -76,6 +96,10 @@ export function BioEditor({
   collections: Array<{ id: string; name: string }>;
   whatsapp: string;
   storeColours: BioColours;
+  /** The store's logo and its brandSettings.logoVariants, so the preview draws it as the page will. */
+  storeLogo: { logoUrl: string | null; logoVariants: unknown };
+  /** Whether the shop is live (the page opens only then). */
+  storeLive: boolean;
 }) {
   const t = useT("paylinks");
   const [published, setPublished] = useState(initial.published);
@@ -87,10 +111,42 @@ export function BioEditor({
   const [clicks, setClicks] = useState(initial.clicks);
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [notice, setNotice] = useState<{ tone: "error" | "success"; text: string } | null>(null);
+  const [notice, setNotice] = useState<{ tone: "error" | "success"; text: string; blockId?: string; field?: BioProblemField } | null>(null);
+  const [checked, setChecked] = useState(false);
+  const [saved, setSaved] = useState({ exists: initial.exists, published: initial.published });
   const [copied, setCopied] = useState(false);
   const productById = useMemo(() => new Map(products.map((product) => [product.id, product])), [products]);
   const collectionById = useMemo(() => new Map(collections.map((collection) => [collection.id, collection])), [collections]);
+
+  // The same checks the server makes (bioBlockProblems), shown once the seller has tried to save and kept up to
+  // date as they fix each field.
+  const problems = useMemo(() => bioBlockProblems(blocks, { productIds: products.map((product) => product.id), collectionIds: collections.map((collection) => collection.id) }), [blocks, products, collections]);
+  const problemText = (field: BioProblemField) => {
+    switch (field) {
+      case "label":
+        return t("fix.label");
+      case "url":
+        return t("fix.url");
+      case "phone":
+        return t("fix.phone");
+      case "text":
+        return t("fix.text");
+      case "productId":
+        return t("fix.productId");
+      case "collectionId":
+        return t("fix.collectionId");
+      default:
+        return t("fix.other");
+    }
+  };
+  const problemMap: ProblemMap = new Map();
+  const mark = (blockId: string, field: BioProblemField, text: string) => {
+    const fields = problemMap.get(blockId) ?? new Map<BioProblemField, string>();
+    if (!fields.has(field)) fields.set(field, text);
+    problemMap.set(blockId, fields);
+  };
+  if (checked) for (const problem of problems) mark(problem.blockId, problem.field, problemText(problem.field));
+  if (notice?.tone === "error" && notice.blockId && notice.field) mark(notice.blockId, notice.field, problemText(notice.field));
 
   const touch = () => {
     setDirty(true);
@@ -127,8 +183,14 @@ export function BioEditor({
   }
 
   async function save() {
-    setSaving(true);
     setNotice(null);
+    // Nothing goes to the server while a block is missing something: mark each field and go to the first one.
+    if (problems.length) {
+      setChecked(true);
+      focusField(problems[0].blockId, problems[0].field);
+      return;
+    }
+    setSaving(true);
     try {
       const response = await fetch("/api/app/bio", {
         method: "PUT",
@@ -137,12 +199,19 @@ export function BioEditor({
       });
       const json = await response.json().catch(() => null);
       if (!response.ok) {
-        setNotice({ tone: "error", text: json?.error?.message ?? t("bio.saveFailed") });
+        // A refusal about one block (error.blockIndex) marks that block's field too.
+        const index = typeof json?.error?.blockIndex === "number" ? json.error.blockIndex : -1;
+        const block = index >= 0 ? blocks[index] : undefined;
+        const field = typeof json?.error?.field === "string" ? (json.error.field as BioProblemField) : "other";
+        setNotice({ tone: "error", text: json?.error?.message ?? t("bio.saveFailed"), blockId: block?.id, field: block ? field : undefined });
+        if (block) focusField(block.id, field);
         return;
       }
       const page = json.data as SellerBioPage;
       setBlocks(page.blocks);
       setClicks(page.clicks);
+      setSaved({ exists: page.exists, published: page.published });
+      setChecked(false);
       setDirty(false);
       setNotice({ tone: "success", text: t("bio.saved") });
     } catch {
@@ -167,6 +236,7 @@ export function BioEditor({
     avatarUrl: avatarUrl || null,
     theme,
     currency,
+    storeLogo,
     blocks: blocks.flatMap((block): PublicBioBlock[] => {
       if (block.type === "product") {
         const product = productById.get(block.productId);
@@ -204,6 +274,13 @@ export function BioEditor({
             <a href={initial.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-[38px] items-center rounded-full border border-app-line px-4 text-[13px] font-bold text-app-ink no-underline">{t("bio.open")}</a>
           </div>
           <p className="mb-0 mt-2 text-[13px] text-app-ink-soft">{t("bio.views", { count: initial.views })} · {t("bio.taps", { count: totalTaps })}</p>
+          {!storeLive ? (
+            <p className="mb-0 mt-2 text-[13.5px] font-semibold text-app-ink">{t("bio.storeNotLive")}</p>
+          ) : !saved.published ? (
+            <p className="mb-0 mt-2 text-[13.5px] font-semibold text-app-ink">{t("bio.offHint")}</p>
+          ) : !saved.exists ? (
+            <p className="mb-0 mt-2 text-[13.5px] text-app-ink-soft">{t("bio.starterLive")}</p>
+          ) : null}
           <div className="mt-4 grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
             <ul className="m-0 grid list-none gap-2 p-0 text-[14px] leading-[1.5]">
               <li className="flex gap-2"><Icon name="instagram" size={16} className="mt-0.5 shrink-0" />{t("bio.tipInstagram")}</li>
@@ -273,7 +350,7 @@ export function BioEditor({
           {blocks.length === 0 ? <p className="mb-0 mt-3 text-[14px] text-app-ink-soft">{t("bio.noBlocks")}</p> : null}
           <ol className="m-0 mt-3 grid list-none gap-3 p-0">
             {blocks.map((block, index) => (
-              <li key={block.id} className="rounded-[16px] border border-app-line p-3">
+              <li key={block.id} id={`blk-${block.id}`} tabIndex={-1} className={cx("rounded-[16px] border p-3 outline-none", problemMap.has(block.id) ? "border-app-danger" : "border-app-line")}>
                 <div className="flex items-center gap-2">
                   <Icon name={BLOCK_ICON[block.type]} size={16} />
                   <span className="min-w-0 flex-1 text-[14px] font-extrabold">{t(`block.${block.type}`)}</span>
@@ -282,7 +359,8 @@ export function BioEditor({
                   <button type="button" onClick={() => move(index, 1)} disabled={index === blocks.length - 1} aria-label={t("bio.down")} className="grid h-10 w-10 place-items-center rounded-full hover:bg-app-canvas disabled:opacity-30"><Icon name="arrowDown" size={15} /></button>
                   <button type="button" onClick={() => void remove(index)} aria-label={t("bio.remove")} className="grid h-10 w-10 place-items-center rounded-full text-app-danger hover:bg-app-canvas"><Icon name="trash" size={15} /></button>
                 </div>
-                <BlockFields block={block} products={products} collections={collections} onChange={(next) => updateBlock(index, next)} />
+                <BlockFields block={block} products={products} collections={collections} problems={problemMap.get(block.id)} onChange={(next) => updateBlock(index, next)} />
+                {problemMap.get(block.id)?.get("other") ? <p className="mb-0 mt-2 text-[13px] font-semibold text-app-danger">{problemMap.get(block.id)!.get("other")}</p> : null}
               </li>
             ))}
           </ol>
@@ -299,11 +377,20 @@ export function BioEditor({
           </div>
         </section>
 
-        <div className="sticky bottom-3 z-10 flex flex-wrap items-center justify-between gap-3 rounded-[18px] border border-app-line bg-white/95 p-3 shadow-sm backdrop-blur">
-          <span className="text-[13.5px] text-app-ink-soft">{dirty ? t("bio.unsaved") : ""}</span>
-          <PillButton size="md" tone="ink" busy={saving} onClick={() => void save()}>{t("bio.save")}</PillButton>
+        <div className={cx("sticky bottom-3 z-10 grid gap-3 rounded-[18px] border bg-white/95 p-3 shadow-sm backdrop-blur", (checked && problems.length) || notice?.tone === "error" ? "border-app-danger" : "border-app-line")}>
+          {checked && problems.length ? (
+            <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-[14px] bg-app-danger-tint px-4 py-3 text-[14px] font-semibold text-app-danger">
+              <span className="flex min-w-0 items-center gap-2"><Icon name="info" size={16} className="shrink-0" />{t("fix.alert", { count: problems.length })}</span>
+              <button type="button" onClick={() => focusField(problems[0].blockId, problems[0].field)} className="min-h-10 rounded-full border border-app-danger bg-white px-3.5 text-[13px] font-bold text-app-danger">{t("fix.showFirst")}</button>
+            </div>
+          ) : notice ? (
+            <Notice tone={notice.tone}>{notice.text}</Notice>
+          ) : null}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span className="text-[13.5px] text-app-ink-soft">{dirty ? t("bio.unsaved") : ""}</span>
+            <PillButton size="md" tone="ink" busy={saving} onClick={() => void save()}>{t("bio.save")}</PillButton>
+          </div>
         </div>
-        {notice ? <Notice tone={notice.tone}>{notice.text}</Notice> : null}
       </div>
 
       <aside className="min-w-0">
@@ -320,18 +407,26 @@ export function BioEditor({
   );
 }
 
-function BlockFields({ block, products, collections, onChange }: { block: BioBlock; products: PickProduct[]; collections: Array<{ id: string; name: string }>; onChange: (next: BioBlock) => void }) {
+function BlockFields({ block, products, collections, problems, onChange }: { block: BioBlock; products: PickProduct[]; collections: Array<{ id: string; name: string }>; problems?: Map<BioProblemField, string>; onChange: (next: BioBlock) => void }) {
   const t = useT("paylinks");
   const select = "h-12 w-full rounded-[14px] border border-app-line bg-white px-3 text-[15px]";
   const id = `blk-${block.id}`;
+  // A field that needs fixing: red border, aria-invalid, and what to add right under it.
+  const invalid = (field: BioProblemField, inputId: string) =>
+    problems?.has(field) ? ({ "aria-invalid": true as const, "aria-describedby": `${inputId}-err`, className: "!border-app-danger" } as const) : {};
+  const problem = (field: BioProblemField, inputId: string) =>
+    problems?.has(field) ? <p id={`${inputId}-err`} className="mb-0 mt-1.5 text-[13px] font-semibold text-app-danger">{problems.get(field)}</p> : null;
   if (block.type === "product") {
+    const known = products.some((product) => product.id === block.productId);
     return (
       <div className="mt-3 grid gap-3">
         <div>
           <FieldLabel htmlFor={`${id}-p`}>{t("block.pickProduct")}</FieldLabel>
-          <select id={`${id}-p`} value={block.productId} onChange={(event) => onChange({ ...block, productId: event.target.value, payCode: undefined })} className={select}>
+          <select id={`${id}-p`} value={known ? block.productId : ""} onChange={(event) => onChange({ ...block, productId: event.target.value, payCode: undefined })} {...invalid("productId", `${id}-p`)} className={cx(select, problems?.has("productId") && "!border-app-danger")}>
+            {known ? null : <option value="">{t("block.pickProduct")}</option>}
             {products.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
           </select>
+          {problem("productId", `${id}-p`)}
         </div>
         <div className="flex flex-wrap gap-2">
           {(["page", "pay"] as const).map((action) => (
@@ -343,23 +438,28 @@ function BlockFields({ block, products, collections, onChange }: { block: BioBlo
         <Toggle on={block.featured} onChange={(featured) => onChange({ ...block, featured })} label={t("block.featured")} />
         <div>
           <FieldLabel htmlFor={`${id}-l`}>{t("block.label")}</FieldLabel>
-          <TextInput id={`${id}-l`} value={block.label ?? ""} maxLength={80} onChange={(event) => onChange({ ...block, label: event.target.value })} />
+          <TextInput id={`${id}-l`} value={block.label ?? ""} maxLength={80} onChange={(event) => onChange({ ...block, label: event.target.value })} {...invalid("label", `${id}-l`)} />
+          {problem("label", `${id}-l`)}
         </div>
       </div>
     );
   }
   if (block.type === "collection") {
+    const known = collections.some((collection) => collection.id === block.collectionId);
     return (
       <div className="mt-3 grid gap-3">
         <div>
           <FieldLabel htmlFor={`${id}-c`}>{t("block.pickCollection")}</FieldLabel>
-          <select id={`${id}-c`} value={block.collectionId} onChange={(event) => onChange({ ...block, collectionId: event.target.value })} className={select}>
+          <select id={`${id}-c`} value={known ? block.collectionId : ""} onChange={(event) => onChange({ ...block, collectionId: event.target.value })} {...invalid("collectionId", `${id}-c`)} className={cx(select, problems?.has("collectionId") && "!border-app-danger")}>
+            {known ? null : <option value="">{t("block.pickCollection")}</option>}
             {collections.map((collection) => <option key={collection.id} value={collection.id}>{collection.name}</option>)}
           </select>
+          {problem("collectionId", `${id}-c`)}
         </div>
         <div>
           <FieldLabel htmlFor={`${id}-l`}>{t("block.label")}</FieldLabel>
-          <TextInput id={`${id}-l`} value={block.label ?? ""} maxLength={80} onChange={(event) => onChange({ ...block, label: event.target.value })} />
+          <TextInput id={`${id}-l`} value={block.label ?? ""} maxLength={80} onChange={(event) => onChange({ ...block, label: event.target.value })} {...invalid("label", `${id}-l`)} />
+          {problem("label", `${id}-l`)}
         </div>
       </div>
     );
@@ -369,11 +469,13 @@ function BlockFields({ block, products, collections, onChange }: { block: BioBlo
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <div>
           <FieldLabel htmlFor={`${id}-l`}>{t("block.linkLabel")}</FieldLabel>
-          <TextInput id={`${id}-l`} value={block.label} maxLength={80} onChange={(event) => onChange({ ...block, label: event.target.value })} />
+          <TextInput id={`${id}-l`} value={block.label} maxLength={80} onChange={(event) => onChange({ ...block, label: event.target.value })} {...invalid("label", `${id}-l`)} />
+          {problem("label", `${id}-l`)}
         </div>
         <div>
           <FieldLabel htmlFor={`${id}-u`}>{t("block.url")}</FieldLabel>
-          <TextInput id={`${id}-u`} type="url" value={block.url} maxLength={500} onChange={(event) => onChange({ ...block, url: event.target.value })} />
+          <TextInput id={`${id}-u`} type="url" inputMode="url" placeholder="https://" value={block.url} maxLength={500} onChange={(event) => onChange({ ...block, url: event.target.value })} {...invalid("url", `${id}-u`)} />
+          {problem("url", `${id}-u`)}
         </div>
       </div>
     );
@@ -396,11 +498,13 @@ function BlockFields({ block, products, collections, onChange }: { block: BioBlo
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <div>
           <FieldLabel htmlFor={`${id}-ph`}>{t("block.phone")}</FieldLabel>
-          <TextInput id={`${id}-ph`} type="tel" value={block.phone} maxLength={20} onChange={(event) => onChange({ ...block, phone: event.target.value })} />
+          <TextInput id={`${id}-ph`} type="tel" placeholder="+2348012345678" value={block.phone} maxLength={20} onChange={(event) => onChange({ ...block, phone: event.target.value })} {...invalid("phone", `${id}-ph`)} />
+          {problem("phone", `${id}-ph`)}
         </div>
         <div>
           <FieldLabel htmlFor={`${id}-l`}>{t("block.label")}</FieldLabel>
-          <TextInput id={`${id}-l`} value={block.label ?? ""} maxLength={80} onChange={(event) => onChange({ ...block, label: event.target.value })} />
+          <TextInput id={`${id}-l`} value={block.label ?? ""} maxLength={80} onChange={(event) => onChange({ ...block, label: event.target.value })} {...invalid("label", `${id}-l`)} />
+          {problem("label", `${id}-l`)}
         </div>
         <div className="sm:col-span-2">
           <FieldLabel htmlFor={`${id}-m`}>{t("block.message")}</FieldLabel>
@@ -426,7 +530,8 @@ function BlockFields({ block, products, collections, onChange }: { block: BioBlo
   return (
     <div className="mt-3">
       <FieldLabel htmlFor={`${id}-x`}>{t("block.textBody")}</FieldLabel>
-      <textarea id={`${id}-x`} value={block.text} maxLength={500} rows={2} onChange={(event) => onChange({ ...block, text: event.target.value })} className="w-full rounded-[14px] border border-app-line bg-white px-4 py-3 text-[15px]" />
+      <textarea id={`${id}-x`} value={block.text} maxLength={500} rows={2} onChange={(event) => onChange({ ...block, text: event.target.value })} {...invalid("text", `${id}-x`)} className={cx("w-full rounded-[14px] border border-app-line bg-white px-4 py-3 text-[15px]", problems?.has("text") && "!border-app-danger")} />
+      {problem("text", `${id}-x`)}
     </div>
   );
 }

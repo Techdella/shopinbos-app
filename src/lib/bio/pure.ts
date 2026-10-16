@@ -18,6 +18,8 @@ export const SOCIAL_LABEL: Record<SocialKey, string> = {
   youtube: "YouTube",
 };
 
+const WHATSAPP_MESSAGE = "Enter a WhatsApp number like +2348012345678.";
+
 const id = z.string().trim().min(1).max(40).regex(/^[A-Za-z0-9_-]+$/);
 const label = (max = 80) => z.string().trim().max(max);
 
@@ -29,7 +31,8 @@ export const SafeUrl = z
   .refine((value) => {
     try {
       const url = new URL(value);
-      return url.protocol === "https:" || url.protocol === "http:";
+      // A real host: "https://" or a half-typed "https://shop" is not a page anyone can open.
+      return (url.protocol === "https:" || url.protocol === "http:") && /^[^.]+(\.[^.]+)+$/.test(url.hostname);
     } catch {
       return false;
     }
@@ -39,7 +42,7 @@ const ProductBlock = z
   .object({
     id,
     type: z.literal("product"),
-    productId: z.string().trim().min(1).max(64),
+    productId: z.string().trim().min(1, "Choose a product, or remove the block.").max(64),
     /** page = open the product page; pay = open a reusable payment link ("Buy now"). */
     action: z.enum(["page", "pay"]).default("page"),
     /** Big "Buy now" style card. */
@@ -50,7 +53,7 @@ const ProductBlock = z
   })
   .strict();
 
-const CollectionBlock = z.object({ id, type: z.literal("collection"), collectionId: z.string().trim().min(1).max(64), label: label().optional() }).strict();
+const CollectionBlock = z.object({ id, type: z.literal("collection"), collectionId: z.string().trim().min(1, "Choose a collection, or remove the block.").max(64), label: label().optional() }).strict();
 const LinkBlock = z.object({ id, type: z.literal("link"), label: label().min(1, "Give the link a name."), url: SafeUrl }).strict();
 const SocialsBlock = z
   .object({
@@ -63,13 +66,17 @@ const WhatsappBlock = z
   .object({
     id,
     type: z.literal("whatsapp"),
-    phone: z.string().trim().regex(/^\+?[\d\s()-]{7,20}$/, "Enter a WhatsApp number like +2348012345678."),
+    phone: z
+      .string()
+      .trim()
+      .regex(/^\+?[\d\s()-]{7,20}$/, WHATSAPP_MESSAGE)
+      .refine((value) => value.replace(/\D/g, "").length >= 7, WHATSAPP_MESSAGE),
     label: label().optional(),
     message: label(300).optional(),
   })
   .strict();
 const SignupBlock = z.object({ id, type: z.literal("signup"), title: label(120).optional(), buttonLabel: label(40).optional() }).strict();
-const TextBlock = z.object({ id, type: z.literal("text"), text: z.string().trim().min(1).max(500) }).strict();
+const TextBlock = z.object({ id, type: z.literal("text"), text: z.string().trim().min(1, "Write the text, or remove the block.").max(500) }).strict();
 
 export const BioBlockSchema = z.discriminatedUnion("type", [ProductBlock, CollectionBlock, LinkBlock, SocialsBlock, WhatsappBlock, SignupBlock, TextBlock]);
 export type BioBlock = z.infer<typeof BioBlockSchema>;
@@ -199,5 +206,69 @@ export function starterBlocks(input: { productIds: string[]; whatsapp?: string |
   const socials = Object.fromEntries(Object.entries(input.socials ?? {}).filter(([, value]) => value && String(value).trim())) as Partial<Record<SocialKey, string>>;
   if (Object.keys(socials).length) blocks.push({ id: newBlockId(random), type: "socials", links: socials });
   if (input.signup) blocks.push({ id: newBlockId(random), type: "signup", title: "Get our new arrivals first" });
+  return blocks;
+}
+
+// ─── Checks the editor shows before saving ────────────────────────────────────
+
+/** Which part of a block needs the seller's attention. The editor words each one (paylinks fix.*). */
+export type BioProblemField = "label" | "url" | "phone" | "text" | "productId" | "collectionId" | "other";
+
+export interface BioBlockProblem {
+  index: number;
+  blockId: string;
+  type: BioBlockType | "unknown";
+  field: BioProblemField;
+  /** The schema's own words (English), for the API's error message and Peggy. */
+  message: string;
+}
+
+const PROBLEM_FIELDS = new Set<BioProblemField>(["label", "url", "phone", "text", "productId", "collectionId"]);
+
+function problemField(path: PropertyKey | undefined): BioProblemField {
+  return typeof path === "string" && PROBLEM_FIELDS.has(path as BioProblemField) ? (path as BioProblemField) : "other";
+}
+
+/**
+ * Every field that would stop the page saving, block by block, checked with the same schema the server uses (so
+ * the editor never sends a page the server refuses for these reasons). When the lists the seller can pick from
+ * are given, products and collections must be in them too. At most one problem per field.
+ */
+export function bioBlockProblems(blocks: readonly unknown[], known?: { productIds?: Iterable<string>; collectionIds?: Iterable<string> }): BioBlockProblem[] {
+  const products = known?.productIds ? new Set(known.productIds) : null;
+  const collections = known?.collectionIds ? new Set(known.collectionIds) : null;
+  const out: BioBlockProblem[] = [];
+  blocks.forEach((raw, index) => {
+    const entry = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+    const type = (BIO_BLOCK_TYPES as string[]).includes(String(entry.type)) ? (entry.type as BioBlockType) : "unknown";
+    const blockId = typeof entry.id === "string" ? entry.id : "";
+    const seen = new Set<BioProblemField>();
+    const push = (field: BioProblemField, message: string) => {
+      if (seen.has(field)) return;
+      seen.add(field);
+      out.push({ index, blockId, type, field, message });
+    };
+    const parsed = BioBlockSchema.safeParse(raw);
+    if (!parsed.success) for (const issue of parsed.error.issues) push(problemField(issue.path[0]), issue.message);
+    if (type === "product" && products && typeof entry.productId === "string" && entry.productId && !products.has(entry.productId)) push("productId", "Choose a published product, or remove the block.");
+    if (type === "collection" && collections && typeof entry.collectionId === "string" && entry.collectionId && !collections.has(entry.collectionId)) push("collectionId", "Choose a collection, or remove the block.");
+  });
+  return out;
+}
+
+/** Where a page-level zod issue points: blocks[i].field gives { index, field }; anything else null. */
+export function bioIssueTarget(path: readonly PropertyKey[]): { index: number; field: BioProblemField } | null {
+  if (path[0] !== "blocks" || typeof path[1] !== "number") return null;
+  return { index: path[1], field: problemField(path[2]) };
+}
+
+/**
+ * What a live store's /links shows before the seller has saved a page of their own: their top products (the first
+ * as a big card) and a WhatsApp button when the shop has a number. Fixed ids, so the editor and the page agree.
+ */
+export function defaultBioBlocks(input: { productIds: string[]; whatsapp?: string | null }): BioBlock[] {
+  const blocks: BioBlock[] = input.productIds.slice(0, 6).map((productId, index) => ({ id: `auto-product-${index + 1}`, type: "product", productId, action: "page", featured: index === 0 }));
+  const phone = input.whatsapp?.trim();
+  if (phone && digits(phone).length >= 7) blocks.push({ id: "auto-whatsapp", type: "whatsapp", phone: phone.startsWith("+") ? phone : `+${digits(phone)}`, label: "Chat with us on WhatsApp" });
   return blocks;
 }

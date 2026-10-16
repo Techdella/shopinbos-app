@@ -6,12 +6,27 @@ import { db } from "@/lib/db/client";
 import { buildStorefrontUrl } from "@/lib/domains/storefront";
 import { createPaymentLink, LINK_STORE_SELECT, paymentLinkUrl, type LinkStore } from "@/lib/payment-links/service.server";
 import { linkPayBlock, readLinkItems } from "@/lib/payment-links/pure";
-import { BioPageSchema, readBioBlocks, readBioTheme, socialUrl, SOCIAL_KEYS, SOCIAL_LABEL, whatsappChatUrl, type BioBlock, type BioPageInput, type BioTheme, type SocialKey } from "./pure";
+import { sellerWhatsapp } from "@/lib/ads";
+import { BioPageSchema, bioIssueTarget, defaultBioBlocks, readBioBlocks, readBioTheme, socialUrl, SOCIAL_KEYS, SOCIAL_LABEL, whatsappChatUrl, type BioBlock, type BioPageInput, type BioProblemField, type BioTheme, type SocialKey } from "./pure";
 
 // The store's link in bio page on the server: loading it for the editor and the public page, saving it (products
 // and collections must be the store's own; "Buy now" blocks get a reusable payment link), and counting taps.
+// Before the seller saves a page of their own, a live store's /links shows a starter page (defaultBioBlocks: top
+// products and WhatsApp), so the link works the moment they copy it. Only an explicit "Page is live" off (or a
+// store that isn't live) makes it 404.
+
+/** The blocks a store's page shows before the seller saves one: its top published products and WhatsApp, if known. */
+async function bioDefaultBlocks(storeId: string): Promise<BioBlock[]> {
+  const [products, owner] = await Promise.all([
+    db.storeProduct.findMany({ where: { storeId, status: "published" }, orderBy: [{ soldStock: "desc" }, { createdAt: "desc" }], take: 6, select: { id: true } }),
+    db.store.findUnique({ where: { id: storeId }, select: { user: { select: { phone: true } } } }),
+  ]);
+  const whatsapp = await sellerWhatsapp(storeId, owner?.user?.phone ?? null).catch(() => null);
+  return defaultBioBlocks({ productIds: products.map((product) => product.id), whatsapp: whatsapp ? `+${whatsapp}` : null });
+}
 
 export interface SellerBioPage {
+  /** False until the seller saves: the page then shows the starter blocks (also what the editor opens with). */
   exists: boolean;
   published: boolean;
   title: string;
@@ -34,14 +49,25 @@ export async function loadSellerBio(store: { id: string; name: string; slug: str
     bio: page?.bio ?? (store.description ?? "").slice(0, 300),
     avatarUrl: page?.avatarUrl ?? store.logoUrl ?? "",
     theme: readBioTheme(page?.theme),
-    blocks: readBioBlocks(page?.blocks),
+    blocks: page ? readBioBlocks(page.blocks) : await bioDefaultBlocks(store.id),
     views: page?.views ?? 0,
     clicks: Object.fromEntries((page?.clicks ?? []).map((click) => [click.blockId, click.count])),
     url: buildStorefrontUrl(store, "/links"),
   };
 }
 
-export type SaveBioResult = { ok: true; page: SellerBioPage } | { ok: false; message: string };
+/** A refusal, pointing at the block (and field) it is about when there is one, so the editor can mark it. */
+export type SaveBioResult = { ok: true; page: SellerBioPage } | { ok: false; message: string; blockIndex?: number; field?: BioProblemField };
+
+const BLOCK_WORDS: Record<string, string> = { product: "Product", collection: "Collection", link: "Custom link", socials: "Social icons", whatsapp: "WhatsApp button", signup: "Email sign-up", text: "Text" };
+
+/** "Block 2 (Custom link): Enter a full web address…" for a refusal about one block. */
+function blockMessage(raw: unknown, index: number, message: string) {
+  const blocks = raw && typeof raw === "object" ? (raw as { blocks?: unknown }).blocks : null;
+  const block = Array.isArray(blocks) ? blocks[index] : null;
+  const type = block && typeof block === "object" ? String((block as { type?: unknown }).type ?? "") : "";
+  return `Block ${index + 1}${BLOCK_WORDS[type] ? ` (${BLOCK_WORDS[type]})` : ""}: ${message}`;
+}
 
 /** A reusable "Buy now" link for one product, kept when the block already has a working one for that product. */
 async function buyNowCode(store: LinkStore, productId: string, current: string | undefined) {
@@ -58,6 +84,8 @@ export async function saveBioPage(storeId: string, raw: unknown): Promise<SaveBi
   const parsed = BioPageSchema.safeParse(raw);
   if (!parsed.success) {
     const issue = parsed.error.issues[0];
+    const target = issue ? bioIssueTarget(issue.path) : null;
+    if (issue && target) return { ok: false, message: blockMessage(raw, target.index, issue.message), blockIndex: target.index, field: target.field };
     return { ok: false, message: issue?.message ?? "Check the page and try again." };
   }
   const input: BioPageInput = parsed.data;
@@ -72,8 +100,10 @@ export async function saveBioPage(storeId: string, raw: unknown): Promise<SaveBi
   ]);
   const ownProducts = new Set(products.map((product) => product.id));
   const ownCollections = new Set(collections.map((collection) => collection.id));
-  if (productIds.some((id) => !ownProducts.has(id))) return { ok: false, message: "One of the products isn't published in your shop. Publish it or remove it from the page." };
-  if (collectionIds.some((id) => !ownCollections.has(id))) return { ok: false, message: "One of the collections isn't in your shop. Remove it from the page." };
+  const badProduct = input.blocks.findIndex((block) => block.type === "product" && !ownProducts.has(block.productId));
+  if (badProduct >= 0) return { ok: false, message: blockMessage(raw, badProduct, "This product isn't published in your shop. Publish it or remove it from the page."), blockIndex: badProduct, field: "productId" };
+  const badCollection = input.blocks.findIndex((block) => block.type === "collection" && !ownCollections.has(block.collectionId));
+  if (badCollection >= 0) return { ok: false, message: blockMessage(raw, badCollection, "This collection isn't in your shop. Remove it from the page."), blockIndex: badCollection, field: "collectionId" };
 
   const blocks: BioBlock[] = [];
   for (const block of input.blocks) {
@@ -119,16 +149,28 @@ export interface PublicBioPage {
   theme: BioTheme;
   blocks: PublicBioBlock[];
   currency: string;
+  /**
+   * The store's logo, for when the photo is the logo (no photo of the page's own, or the same picture): drawn with
+   * StoreLogo so dark themes get the dark-background version. Only brandSettings.logoVariants, nothing else.
+   */
+  storeLogo?: { logoUrl: string | null; logoVariants: unknown };
+}
+
+/** brandSettings.logoVariants alone (what StoreLogo reads), never the rest of the settings. */
+export function bioLogoVariants(brandSettings: unknown): unknown {
+  return brandSettings && typeof brandSettings === "object" && !Array.isArray(brandSettings) ? ((brandSettings as Record<string, unknown>).logoVariants ?? null) : null;
 }
 
 /**
  * The public page's data: only public product details (name, photo, price) of published products, and links built
- * here (never a URL from a product). Null when the store has no published page.
+ * here (never a URL from a product). Null only when the store isn't live or the seller turned the page off; a live
+ * store with no saved page gets the starter page (name, logo, description, top products, WhatsApp).
  */
 export const loadPublicBio = cache(async (slug: string): Promise<PublicBioPage | null> => {
-  const store = await db.store.findUnique({ where: { slug }, select: { id: true, name: true, slug: true, customDomain: true, currency: true, logoUrl: true, status: true, bioPage: true } });
-  if (!store || store.status !== "active" || !store.bioPage?.published) return null;
-  const blocks = readBioBlocks(store.bioPage.blocks);
+  const store = await db.store.findUnique({ where: { slug }, select: { id: true, name: true, slug: true, customDomain: true, currency: true, logoUrl: true, description: true, brandSettings: true, status: true, bioPage: true } });
+  if (!store || store.status !== "active") return null;
+  if (store.bioPage && !store.bioPage.published) return null;
+  const blocks = store.bioPage ? readBioBlocks(store.bioPage.blocks) : await bioDefaultBlocks(store.id);
   const productIds = blocks.flatMap((block) => (block.type === "product" ? [block.productId] : []));
   const collectionIds = blocks.flatMap((block) => (block.type === "collection" ? [block.collectionId] : []));
   const [products, collections] = await Promise.all([
@@ -173,12 +215,13 @@ export const loadPublicBio = cache(async (slug: string): Promise<PublicBioPage |
     }
   }
   return {
-    title: store.bioPage.title || store.name,
-    bio: store.bioPage.bio ?? "",
-    avatarUrl: store.bioPage.avatarUrl || store.logoUrl || null,
-    theme: readBioTheme(store.bioPage.theme),
+    title: store.bioPage?.title || store.name,
+    bio: store.bioPage ? (store.bioPage.bio ?? "") : (store.description ?? "").slice(0, 300),
+    avatarUrl: store.bioPage?.avatarUrl || store.logoUrl || null,
+    theme: readBioTheme(store.bioPage?.theme),
     blocks: out,
     currency: store.currency,
+    storeLogo: { logoUrl: store.logoUrl ?? null, logoVariants: bioLogoVariants(store.brandSettings) },
   };
 });
 

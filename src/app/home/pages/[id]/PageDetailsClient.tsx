@@ -152,13 +152,14 @@ export function PageDetailsClient({ page: initialPage, storeId, storeSlug, store
           navigation: { ...localNav, menuLabel: localNav.menuLabel || page.title },
         }),
       });
-      if (!res.ok) throw new Error("save failed");
-      const json = await res.json();
+      const json = await res.json().catch(() => null);
+      // The server says why (a page address another page or a store route like /links already has).
+      if (!res.ok) throw new Error(typeof json?.error?.message === "string" ? json.error.message : "");
       setPage((prev) => ({ ...prev, ...json.data, draftContent: json.data.draftContent }));
       toast({ title: t("pages.draftSaved"), variant: "success" });
       router.refresh();
-    } catch {
-      toast({ title: t("pages.err.save"), variant: "error" });
+    } catch (error) {
+      toast({ title: t("pages.err.save"), description: error instanceof Error && error.message ? error.message : undefined, variant: "error" });
     } finally {
       setSaving(false);
     }

@@ -39,9 +39,15 @@ export function showsShopinbosBadge(
   return !(canHideShopinbosBadge(user, now) && readHideShopinbosBadge(brandSettings));
 }
 
-/** Where the badge links: sign-up on the app, tagged with the store it came from (a "start your own store" call to action). */
-export function shopinbosBadgeHref(slug: string, appUrl = "https://app.shopinbos.com") {
-  return `${appUrl.replace(/\/$/, "")}/signup?ref=store_badge&s=${encodeURIComponent(slug)}`;
+/** Where the badges a store can show link from: its footer (store_badge) or its link in bio page (bio_badge). */
+export type ShopinbosBadgeRef = "store_badge" | "bio_badge";
+
+/**
+ * Where the badge links: sign-up on the app, tagged with the store it came from and where on it (a "start your own
+ * store" call to action).
+ */
+export function shopinbosBadgeHref(slug: string, appUrl = "https://app.shopinbos.com", ref: ShopinbosBadgeRef = "store_badge") {
+  return `${appUrl.replace(/\/$/, "")}/signup?ref=${ref}&s=${encodeURIComponent(slug)}`;
 }
 
 /** The logos a seller may save: known keys only, at most one of each. */

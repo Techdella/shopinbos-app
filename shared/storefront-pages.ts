@@ -24,16 +24,68 @@ export const STOREFRONT_PAGE_PATHS: Readonly<Record<string, string>> = {
 const KEY_ALIASES: Readonly<Record<string, string>> = { shop: "products", menu: "products", home: "home" };
 
 /**
- * First path segments that are the store's own routes (cart, product pages, CMS collections' neighbours…), so a
- * custom page with that slug can't take them over. Matches the folders under src/app/s/[slug].
+ * First path segments that are the store's own routes (cart, product pages, the link in bio page, CMS collections'
+ * neighbours…), so a custom page with that slug can't take them over. Matches the folders (and file routes) under
+ * src/app/s/[slug] and src/app/_domain/[domain]; tests/behaviour.test.mjs fails when a new folder isn't listed.
+ * "links" is the link in bio page (/links): it always wins over a page with that slug.
  */
 export const STOREFRONT_ROUTE_SEGMENTS: ReadonlySet<string> = new Set([
-  "api", "blog", "cart", "checkout", "collections", "join", "order", "orders", "policies", "preview", "product",
+  "api", "blog", "cart", "checkout", "collections", "join", "links", "order", "orders", "pay", "policies", "preview", "product",
   "review", "reviews", "wishlist", "s", "_next",
+  "llms.txt", "llms-full.txt", "robots.txt", "sitemap.xml",
 ]);
 
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const MAX_KEY = 80;
+
+/**
+ * The page types stores are built from (templates, Rex, Pages › New). Their rows keep the slug of their type even
+ * when it is a route name (product, cart, blog…), since the storefront finds them by type, not by address.
+ */
+export const TEMPLATE_PAGE_TYPES: ReadonlySet<string> = new Set([
+  "home", "products", "product", "categories", "cart", "checkout", "wishlist", "blog", "about", "contact", "faq", "collection", "custom",
+]);
+
+/**
+ * True when a seller's own page can't have this address: a store route (/links, /cart, /pay…) or another name for
+ * a standard page (/shop, /menu, /home). Such a page would never be shown.
+ */
+export function isReservedPageSlug(slug: string) {
+  const key = slug.trim().toLowerCase();
+  return STOREFRONT_ROUTE_SEGMENTS.has(key) || key in KEY_ALIASES;
+}
+
+/**
+ * A free address for a new or renamed custom page: "links" becomes "links-page" (a store route), and a taken one
+ * gets -2, -3… ("lookbook-2"). `taken` is the store's other page slugs (and page types).
+ */
+export function customPageSlug(base: string, taken: Iterable<string> = []) {
+  const used = new Set(taken);
+  const root = base.trim().toLowerCase() || "page";
+  const start = isReservedPageSlug(root) ? `${root}-page` : root;
+  let slug = start;
+  for (let n = 2; used.has(slug) || isReservedPageSlug(slug); n += 1) slug = `${start}-${n}`;
+  return slug;
+}
+
+/** "My Page " → "my-page": what a typed page address is saved as. */
+export function normalizePageSlug(raw: string) {
+  return raw.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+}
+
+/**
+ * Why a page can't move to this address (null when it can): not a clean slug, or a store route (/links, /cart…).
+ * A template page keeps its own type's slug (the product page stays "product").
+ */
+export function pageSlugProblem(slug: string, pageType?: string | null): string | null {
+  if (!slug || slug.length > MAX_KEY || !SLUG.test(slug)) return "Use lowercase letters, numbers and single dashes for the page address.";
+  if (pageType && slug === pageType && TEMPLATE_PAGE_TYPES.has(slug)) return null;
+  if (isReservedPageSlug(slug)) {
+    const what = slug === "links" ? " for your link in bio page" : "";
+    return `/${slug} is already used by your store${what}. Pick another address, like ${customPageSlug(slug)}.`;
+  }
+  return null;
+}
 
 /** "Shop" → "products", "" → "home", "about" → "about"; null when it can't be a page key. */
 export function normalizeStorefrontPageKey(raw: unknown): string | null {

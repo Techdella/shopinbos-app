@@ -5,7 +5,7 @@ import { db } from "@/lib/db/client";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { getT } from "@/lib/i18n/server";
 import { sellerWhatsapp } from "@/lib/ads";
-import { loadSellerBio } from "@/lib/bio/service.server";
+import { bioLogoVariants, loadSellerBio } from "@/lib/bio/service.server";
 import { resolveShopperTheme } from "@/components/storefront/shopper/theme";
 import { BioEditor } from "./BioEditor";
 
@@ -19,7 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function LinkInBioPage() {
   const user = await requireRole(["seller"], "/login");
   const t = await getT("paylinks");
-  const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, customDomain: true, logoUrl: true, description: true, currency: true, brandSettings: true } });
+  const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, customDomain: true, logoUrl: true, description: true, currency: true, brandSettings: true, status: true } });
   if (!store) redirect("/builder?firstRun=1");
   const [page, products, collections, whatsapp] = await Promise.all([
     loadSellerBio(store),
@@ -39,6 +39,8 @@ export default async function LinkInBioPage() {
         collections={collections}
         whatsapp={whatsapp ? `+${whatsapp}` : ""}
         storeColours={{ background: theme.paper, text: theme.ink, button: theme.cta, buttonText: theme.ctaText }}
+        storeLogo={{ logoUrl: store.logoUrl ?? null, logoVariants: bioLogoVariants(store.brandSettings) }}
+        storeLive={store.status === "active"}
       />
     </SellerPage>
   );

@@ -1,3 +1,4 @@
+import { NextResponse } from "next/server";
 import { db } from "@/lib/db/client";
 import { withSeller } from "@/lib/auth/middleware";
 import { apiError, ok } from "@/lib/api/response";
@@ -16,6 +17,10 @@ export const PUT = withSeller(async (req, { user }) => {
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true } });
   if (!store) return apiError("NOT_FOUND", "Store not found", 404);
   const result = await saveBioPage(store.id, await req.json().catch(() => null));
-  if (!result.ok) return apiError("BAD_REQUEST", result.message);
+  if (!result.ok) {
+    // The editor marks the block the refusal is about (error.blockIndex, error.field) next to its message.
+    if (result.blockIndex === undefined) return apiError("BAD_REQUEST", result.message);
+    return NextResponse.json({ error: { code: "BAD_REQUEST", message: result.message, blockIndex: result.blockIndex, field: result.field ?? "other" } }, { status: 400 });
+  }
   return ok(result.page);
 });
