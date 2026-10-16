@@ -41,6 +41,7 @@ foreach ( [
 	'investors',
 	'seo-map',
 	'media',
+	'showcase',
 	'admin-menu',
 	'schema',
 	'seo',

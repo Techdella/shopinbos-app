@@ -871,3 +871,24 @@ body.site { overflow-x: clip; }
 .sib .prose-sec > h2 { font-size: 34px; margin: 8px 0 0; }
 .sib .prose-sec > ul, .sib .prose-sec > ol { margin: 0; padding-left: 1.25em; display: flex; flex-direction: column; gap: 10px; font-size: 17px; line-height: 1.6; color: #3E3A4D; }
 .sib .prose-sec > p { font-size: 17px; line-height: 1.65; margin: 0; }
+
+/* Store showcase (templates page) */
+.sc-show { padding: 72px 0 24px; }
+.sc-head { max-width: 720px; display: flex; flex-direction: column; gap: 12px; margin-bottom: 30px; }
+.sc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr)); gap: 28px; }
+.sc-card { display: grid; grid-template-columns: 1.35fr 1fr; gap: 26px; align-items: center; background: #F6F5F9; border: 1px solid #ECEAF2; border-radius: 28px; padding: 26px; }
+.sc-shots { position: relative; display: block; padding-right: 54px; padding-bottom: 26px; }
+.sc-browser { display: block; border-radius: 14px; overflow: hidden; background: #fff; box-shadow: 0 30px 60px -30px rgba(22,20,31,.45); border: 1px solid #ECEAF2; transition: transform .3s cubic-bezier(.2,.7,.2,1); }
+.sc-shots:hover .sc-browser { transform: translateY(-4px); }
+.sc-bar { display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: #fff; border-bottom: 1px solid #ECEAF2; }
+.sc-bar i { width: 9px; height: 9px; border-radius: 99px; background: #E3E1EA; }
+.sc-bar em { margin-left: 8px; font-style: normal; font-size: 12px; color: #6B6779; background: #F6F5F9; border-radius: 99px; padding: 3px 12px; }
+.sc-browser img { display: block; width: 100%; height: auto; }
+.sc-phone { position: absolute; right: 0; bottom: 0; width: 34%; max-width: 150px; border-radius: 22px; overflow: hidden; border: 5px solid #16141F; background: #16141F; box-shadow: 0 24px 40px -18px rgba(22,20,31,.6); }
+.sc-phone img { display: block; width: 100%; height: auto; aspect-ratio: 9 / 19; object-fit: cover; object-position: top; }
+.sc-body { display: flex; flex-direction: column; gap: 12px; }
+.sc-body h3 { margin: 0; font-size: 28px; }
+.sc-meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.sc-tpl { font-size: 13px; color: #6B6779; font-weight: 600; }
+.sc-cta { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; margin-top: 4px; }
+@media (max-width: 760px) { .sc-card { grid-template-columns: 1fr; padding: 18px; } .sc-body h3 { font-size: 24px; } }

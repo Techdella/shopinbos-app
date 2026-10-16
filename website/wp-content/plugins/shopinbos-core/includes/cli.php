@@ -108,6 +108,14 @@ class Sib_CLI {
 		$this->store_templates();
 		$this->tools();
 		$this->integration_pages();
+		if ( ! get_posts( [ 'post_type' => 'sib_showcase', 'post_status' => 'any', 'numberposts' => 1, 'fields' => 'ids' ] ) ) {
+			$r  = sib_showcase_rexi();
+			$id = wp_insert_post( [ 'post_type' => 'sib_showcase', 'post_status' => 'publish', 'post_title' => $r['name'], 'post_excerpt' => $r['about'] ] );
+			foreach ( [ 'url', 'sells', 'template', 'desktop', 'mobile' ] as $k ) {
+				update_post_meta( $id, 'sib_showcase_' . $k, $r[ $k ] );
+			}
+			WP_CLI::log( 'Added Rexi to the store showcase (Website > Store showcase)' );
+		}
 		if ( ! empty( $assoc['samples'] ) ) {
 			$this->samples();
 		}
@@ -707,6 +715,17 @@ class Sib_CLI {
 				if ( $this->replaceable( $old ) && '' === trim( wp_strip_all_tags( $old->post_content ) ) ) {
 					wp_trash_post( $old->ID );
 					WP_CLI::log( "Retired empty old page /{$path}/" );
+				}
+			}
+		}
+		// Rules in the Redirection plugin that send a section URL elsewhere (one sent /templates/ to /how-it-works).
+		global $wpdb;
+		$table = $wpdb->prefix . 'redirection_items';
+		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) === $table ) {
+			foreach ( sib_reserved_paths() as $path ) {
+				$n = $wpdb->query( $wpdb->prepare( "DELETE FROM {$table} WHERE url IN (%s, %s) AND action_type = 'url'", untrailingslashit( $path ), $path ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				if ( $n ) {
+					WP_CLI::log( "Removed a Redirection rule that sent {$path} elsewhere" );
 				}
 			}
 		}

@@ -19,6 +19,7 @@ function sib_admin_types(): array {
 		'sib_landing'     => [ __( 'Campaign pages', 'shopinbos' ), __( 'Landing pages', 'shopinbos' ) ],
 		'sib_comparison'  => [ __( 'Compare pages', 'shopinbos' ), __( 'Landing pages', 'shopinbos' ) ],
 		'sib_template'    => [ __( 'Store templates', 'shopinbos' ), __( 'Product', 'shopinbos' ) ],
+		'sib_showcase'    => [ __( 'Store showcase', 'shopinbos' ), __( 'Product', 'shopinbos' ) ],
 		'sib_tool'        => [ __( 'Free tools', 'shopinbos' ), __( 'Learn', 'shopinbos' ) ],
 		'sib_resource'    => [ __( 'Guides and PDFs', 'shopinbos' ), __( 'Learn', 'shopinbos' ) ],
 		'sib_lesson'      => [ __( 'Academy lessons', 'shopinbos' ), __( 'Learn', 'shopinbos' ) ],
