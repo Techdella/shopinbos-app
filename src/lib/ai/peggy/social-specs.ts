@@ -13,7 +13,7 @@ export const SOCIAL_TOOL_SPECS = {
   store_traffic_report: {
     write: false,
     description:
-      "How people find and use the online store for a period (today, last 7, 30 or 90 days, Lagos time) against the period before: visits, page views, daily visitors, new visitors, pages per visit, time on a page, top pages and landing pages, where visits came from (Google, Instagram, WhatsApp, direct, AI assistants like ChatGPT…), websites that sent people, devices, countries and cities, searches typed in the shop, products viewed → added to bag → ordered, the store funnel and conversion rate. Use it to explain the numbers on /home/analytics/traffic or why visits went up or down.",
+      "How people find and use the online store for a period (today, last 7, 30 or 90 days, Lagos time) against the period before: visits, page views, unique visitors (each person once for the whole period), new and returning visitors, pages per visit, time on a page, top pages and landing pages, where visits came from (Google, Instagram, WhatsApp, direct, AI assistants like ChatGPT…), websites that sent people, devices, countries and cities, searches typed in the shop, products viewed → added to bag → ordered, the store funnel and conversion rate. Use it to explain the numbers on /home/analytics/traffic or why visits went up or down.",
     schema: z.object({ period: z.enum(["today", "7d", "30d", "90d"]) }).strict(),
   },
   social_write_post: {

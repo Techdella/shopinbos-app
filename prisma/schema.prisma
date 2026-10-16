@@ -2770,6 +2770,18 @@ model StoreTrafficDaily {
   @@index([storeId, day])
 }
 
+// Unique visitors per store per Lagos day as a HyperLogLog sketch (src/lib/analytics/hll.ts): only the register
+// bytes, never a visitor token or hash. Days merge register by register for true unique visitors over a range.
+model StoreVisitorSketch {
+  id        String   @id @default(cuid())
+  storeId   String
+  day       String // YYYY-MM-DD, Africa/Lagos
+  sketch    Bytes
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([storeId, day])
+}
+
 // "Connect with Google" for Search Console performance on /home/analytics/traffic (src/lib/search-console).
 // Tokens are encrypted at rest (src/lib/reviews/secrets.ts) and never sent to the browser.
 model SearchConsoleConnection {

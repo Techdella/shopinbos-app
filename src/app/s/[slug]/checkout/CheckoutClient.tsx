@@ -131,7 +131,7 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
   const cart = useCart(store.slug);
   const visitorKey = useStoreVisitor(store.slug);
   const campaignToken = useCampaignAttribution(preview ? "" : store.slug);
-  useStoreCheckoutStart(preview ? "" : store.slug);
+  useStoreCheckoutStart(preview ? "" : store.slug, { items: cart.items, loaded: cart.loaded, currency: store.currency });
   const theme = useMemo(() => design?.theme ?? resolveShopperTheme(store.brandSettings), [design?.theme, store.brandSettings]);
   const layout = useMemo(() => design?.settings ?? readCheckoutPageSettings(null, ""), [design?.settings]);
   const policies = useMemo(() => checkoutLegalLinks(store.brandSettings), [store.brandSettings]);

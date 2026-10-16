@@ -2,12 +2,14 @@
 
 import { useStoreBrand } from "@/components/errors/StoreBrandContext";
 import { shopinbosBadgeHref } from "@/lib/store-badges";
+import { COOKIE_SETTINGS_EVENT, bannerText } from "@/lib/storefront/consent";
 import { PaymentBadgeRow } from "./PaymentBadges";
 
 // The storefront footer's badges: the payment logos the seller chose and, on stores with no paid plan, a small
 // "Built with Shopinbos" link. Both come from the storefront layouts (loadStoreBrand → StoreBrandProvider), so
 // every page on /s/[slug] and custom domains shows the same thing. The builder's canvas has no provider, so
 // nothing shows there; the owner's live preview (/s/[slug]/preview) does show them, as shoppers will see them.
+// On stores with the cookie banner (src/components/storefront/StoreConsent.tsx) they start with "Cookie settings".
 
 const MARK = "/brand/logos/shopping%20boss%20black%20icon.png";
 
@@ -57,11 +59,25 @@ export function ShopinbosBadge({ slug, color, borderColor, hoverColor }: { slug:
   );
 }
 
+/** "Cookie settings": opens the store's cookie banner again, in the footer's muted colour. */
+export function CookieSettingsButton({ color }: { color: string }) {
+  return (
+    <button
+      type="button"
+      onClick={() => window.dispatchEvent(new Event(COOKIE_SETTINGS_EVENT))}
+      className="inline-flex min-h-[32px] shrink-0 items-center border-0 bg-transparent p-0 text-[12.5px] underline-offset-4 hover:underline"
+      style={{ color, cursor: "pointer" }}
+    >
+      {bannerText("settings")}
+    </button>
+  );
+}
+
 /** What the footers need from the layout: null outside a storefront (the builder), so they fall back. */
 export function useStoreFooterBadges() {
   const brand = useStoreBrand();
   if (!brand) return null;
-  return { slug: brand.slug ?? "", showBadge: Boolean(brand.showBadge && brand.slug), paymentBadges: brand.paymentBadges ?? [] };
+  return { slug: brand.slug ?? "", showBadge: Boolean(brand.showBadge && brand.slug), paymentBadges: brand.paymentBadges ?? [], cookieSettings: Boolean(brand.cookieSettings) };
 }
 
 /**
@@ -84,9 +100,10 @@ export function StoreFooterBadges({
   const badges = useStoreFooterBadges();
   if (!badges) return null;
   const payments = showPayments ? badges.paymentBadges : [];
-  if (!payments.length && !badges.showBadge) return null;
+  if (!payments.length && !badges.showBadge && !badges.cookieSettings) return null;
   return (
     <div className={`flex flex-wrap items-center gap-x-4 gap-y-2.5 ${className}`}>
+      {badges.cookieSettings ? <CookieSettingsButton color={muted} /> : null}
       <PaymentBadgeRow badges={payments} />
       {badges.showBadge ? <ShopinbosBadge slug={badges.slug} color={muted} borderColor={border} hoverColor={ink} /> : null}
     </div>
@@ -96,7 +113,7 @@ export function StoreFooterBadges({
 /** The same badges as a slim footer of their own, for shopper pages without a store footer (bag, checkout…). */
 export function StoreFootnote({ muted, border, ink, showPayments = true, className = "" }: { muted: string; border: string; ink?: string; showPayments?: boolean; className?: string }) {
   const badges = useStoreFooterBadges();
-  if (!badges || (!(showPayments && badges.paymentBadges.length) && !badges.showBadge)) return null;
+  if (!badges || (!(showPayments && badges.paymentBadges.length) && !badges.showBadge && !badges.cookieSettings)) return null;
   return (
     <footer className={`border-t ${className}`} style={{ borderColor: border }}>
       <StoreFooterBadges muted={muted} border={border} ink={ink} showPayments={showPayments} className="justify-between py-5" />

@@ -7,10 +7,13 @@ import { checkRateLimit } from "@/lib/rate-limit";
 import { isBotUserAgent } from "@/lib/analytics/sources";
 import { normalizeSearchTerm, normalizeStorePath, trafficIncrements } from "@/lib/analytics/traffic";
 import { recordTraffic } from "@/lib/analytics/traffic-record";
+import { VISITOR_TOKEN, recordVisitor } from "@/lib/analytics/visitor-sketch.server";
 
 // Store traffic beacon (src/components/storefront/StoreTrafficBeacon.tsx): page views, the session's landing details
 // and engaged time, added to StoreTrafficDaily. Counts only: the IP is used for rate limiting in memory and never
-// stored, the user agent is reduced to a device class, the referrer to its host.
+// stored, the user agent is reduced to a device class, the referrer to its host. The browser's random visitor token
+// (sent once a day, never with Do Not Track / GPC or after the shopper said no to analytics) only updates today's
+// unique-visitor sketch and is never stored (src/lib/analytics/visitor-sketch.server.ts).
 const CORS = { methods: ["POST", "OPTIONS"], headers: ["Content-Type"] };
 
 export async function OPTIONS(req: NextRequest) {
@@ -30,7 +33,9 @@ const Body = z.object({
     })
     .optional(),
   limited: z.boolean().optional(),
+  /** Sent by pages loaded before unique visitors existed; ignored. */
   firstToday: z.boolean().optional(),
+  visitor: z.string().regex(VISITOR_TOKEN).optional(),
   newVisitor: z.boolean().optional(),
   seconds: z.number().min(0).max(86_400).optional(),
 });
@@ -66,7 +71,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       path,
       search: normalizeSearchTerm(parsed.data.q),
       entry: parsed.data.entry ? (limited ? {} : parsed.data.entry) : undefined,
-      firstToday: parsed.data.firstToday,
       newVisitor: parsed.data.newVisitor,
       seconds: parsed.data.seconds,
     },
@@ -78,6 +82,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       ownHosts: [req.headers.get("host") ?? "", store.customDomain ?? ""].filter(Boolean),
     },
   );
-  await recordTraffic(store.id, increments);
+  await Promise.all([
+    recordTraffic(store.id, increments),
+    parsed.data.type === "page_view" && parsed.data.visitor && !limited ? recordVisitor(store.id, parsed.data.visitor) : null,
+  ]);
   return withCors(req, ok({ counted: increments.length > 0 }), CORS);
 }

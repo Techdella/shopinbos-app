@@ -4,17 +4,19 @@ import { db } from "@/lib/db/client";
 import { PAID_ORDER_STATUSES } from "@/lib/insights";
 import { lagosDayKey, type ResolvedRange } from "./range";
 import { computeTraffic, type TrafficReport, type TrafficRow } from "./traffic";
+import { loadVisitorSketches } from "./visitor-sketch.server";
 
 // Loads what computeTraffic needs for one store and range: the StoreTrafficDaily rows (indexed on storeId + day),
 // the product funnel counters from StoreMetricDaily, and paid online orders. Until the StoreTrafficDaily table
-// exists (docs/migrations/2026-11-03-store-traffic-connections.sql) the report is empty rather than broken.
+// exists (docs/migrations/2026-11-03-store-traffic-connections.sql) the report is empty rather than broken; the
+// unique-visitor sketches (docs/migrations/2026-11-04-store-visitor-sketches.sql) likewise read as none.
 
 const ROW_LIMIT = 200_000;
 
 export async function loadTraffic(storeId: string, range: ResolvedRange, now = new Date()): Promise<{ report: TrafficReport; available: boolean }> {
   const fromDay = lagosDayKey(range.previous.start);
   const toDay = range.toDay;
-  const [traffic, since, funnelRows, orders, products] = await Promise.all([
+  const [traffic, since, funnelRows, orders, products, sketches] = await Promise.all([
     db.storeTrafficDaily
       .findMany({ where: { storeId, day: { gte: fromDay, lte: toDay } }, select: { day: true, metric: true, dim: true, value: true, count: true }, take: ROW_LIMIT })
       .then((rows) => ({ rows: rows as TrafficRow[], available: true }))
@@ -35,11 +37,13 @@ export async function loadTraffic(storeId: string, range: ResolvedRange, now = n
       take: 20_000,
     }),
     db.storeProduct.findMany({ where: { storeId }, select: { id: true, name: true, images: true }, take: 5000 }),
+    loadVisitorSketches(storeId, fromDay, toDay),
   ]);
   const report = computeTraffic({
     range,
     now,
     rows: traffic.rows,
+    sketches,
     funnelRows,
     orders,
     products: products.map((product) => ({ id: product.id, name: product.name, image: product.images[0] ?? null })),
