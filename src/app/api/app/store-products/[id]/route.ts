@@ -6,12 +6,16 @@ import type { AuthUser } from "@/lib/auth/types";
 import { saleBreakdown } from "@/lib/marketplace/find";
 import { editableVariantRows, productKind, tracksStock } from "@shared/product-edit";
 import { productTypeKey, readProductDetails } from "@shared/product-types";
+import { normalizeVariants, readVariantOptions } from "@shared/product-variants";
 
 export const dynamic = "force-dynamic";
 
 // One of the seller's products for the phone's product editor (apps/mobile/src/app/product/[id].tsx): the fields
 // it edits, the versions (price and stock editable, saved as variantUpdates), the type and its details and, for
 // dropship products, the supplier and what each sale leaves, and its category (categoryId + { id, name }).
+// Also everything else the web form fills in (long description, specifications, FAQs, care / shipping / returns /
+// warranty / support, tags, SKU, barcode, video, cost, weight, stock settings, SEO title) and the versions in full
+// (variantOptions + variantRows) so the phone can add or remove sizes and colours (saved as variants + variantOptions).
 // Saving and archiving go to PATCH / DELETE /api/store/products/[id], the same route and rules as the web form;
 // pausing a dropship product goes to POST /api/mobile/dropship. Auth: Bearer (or the web session), role seller.
 
@@ -37,6 +41,26 @@ export const GET = withSeller(async (_req: NextRequest, { user, params }: { user
       productDetails: true,
       careInstructions: true,
       warranty: true,
+      longDescription: true,
+      specifications: true,
+      faqs: true,
+      shippingInfo: true,
+      returnPolicy: true,
+      supportInfo: true,
+      sku: true,
+      barcode: true,
+      videoUrl: true,
+      tags: true,
+      costPrice: true,
+      weight: true,
+      weightUnit: true,
+      featured: true,
+      trackStock: true,
+      continueSellingWhenOut: true,
+      reservedStock: true,
+      seoTitle: true,
+      seoDescription: true,
+      variantOptions: true,
       categoryId: true,
       category: { select: { id: true, name: true } },
       updatedAt: true,
@@ -52,9 +76,12 @@ export const GET = withSeller(async (_req: NextRequest, { user, params }: { user
   });
   if (!product || product.status === "archived") return apiError("NOT_FOUND", "That product couldn't be found.", 404);
 
-  const { dropship, variants, productType, productDetails, ...rest } = product;
+  const { dropship, variants, variantOptions, productType, productDetails, ...rest } = product;
+  const variantRows = normalizeVariants(variants).map(({ sourceIndex: _sourceIndex, ...row }) => row);
   return ok({
     ...rest,
+    variantOptions: readVariantOptions(variantOptions, variantRows),
+    variantRows,
     kind: productKind(product),
     tracksStock: tracksStock(product.inventoryType),
     variants: editableVariantRows(variants),
