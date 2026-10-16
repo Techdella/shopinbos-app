@@ -74,6 +74,7 @@ import { TopBar } from "./TopBar";
 import { IconButton, useMediaQuery } from "./ui";
 import { storefrontHost, useBuilder } from "./useBuilder";
 import { useEditorT } from "./i18n";
+import { customPageSlug } from "@shared/storefront-pages";
 
 type Panel = "sections" | "insert" | "theme" | "apps" | "rex";
 
@@ -449,8 +450,8 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
   const addPage = useCallback((title: string) => {
     if (!draft) return;
     const base = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "page";
-    let slug = base;
-    for (let n = 2; draft.pages.some((entry) => entry.pageType === slug || entry.slug === slug); n += 1) slug = `${base}-${n}`;
+    // Never a store route's address (/links is the link in bio page, /cart, /pay…): "Links" becomes /links-page.
+    const slug = customPageSlug(base, draft.pages.flatMap((entry) => [entry.pageType, entry.slug ?? ""]));
     const home = draft.pages.find((entry) => entry.pageType === "home") ?? draft.pages[0];
     const chrome = (home?.sections ?? []).filter((section) => sectionGroup(section.kind) !== "template");
     const body: TemplateSectionNode = renderer === "boutique"

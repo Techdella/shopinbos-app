@@ -223,6 +223,50 @@ test("bio links: social handles become profile links, WhatsApp opens a chat, col
   assert.equal(bio.BioPageSchema.safeParse({ blocks: starter }).success, true, "a starter page is valid");
 });
 
+test("bio editor checks: half-filled blocks are found field by field before anything is sent", () => {
+  const blocks = [
+    { id: "b1", type: "link", label: "", url: "https://" },
+    { id: "b2", type: "whatsapp", phone: "" },
+    { id: "b3", type: "text", text: "  " },
+    { id: "b4", type: "product", productId: "gone", action: "page", featured: false },
+    { id: "b5", type: "link", label: "Sizes", url: "https://example.com/sizes" },
+    { id: "b6", type: "whatsapp", phone: "+234" },
+    { id: "b7", type: "link", label: "Shop", url: "https://shop" },
+  ];
+  const problems = bio.bioBlockProblems(blocks, { productIds: ["p1"], collectionIds: [] });
+  assert.deepEqual(problems.map((p) => `${p.blockId}.${p.field}`), ["b1.label", "b1.url", "b2.phone", "b3.text", "b4.productId", "b6.phone", "b7.url"]);
+  assert.ok(problems.every((p) => p.message && typeof p.index === "number"));
+  // The editor and the server agree: whatever the checks pass, the schema accepts.
+  const fine = blocks.filter((block) => !problems.some((p) => p.blockId === block.id));
+  assert.deepEqual(fine.map((b) => b.id), ["b5"]);
+  assert.equal(bio.BioPageSchema.safeParse({ blocks: fine }).success, true);
+  for (const block of blocks.filter((b) => b.id !== "b5" && b.id !== "b4")) assert.equal(bio.BioPageSchema.safeParse({ blocks: [block] }).success, false, block.id);
+  // A server refusal points at the block: blocks[i].field.
+  const refused = bio.BioPageSchema.safeParse({ blocks: [blocks[4], blocks[0]] });
+  assert.deepEqual(bio.bioIssueTarget(refused.error.issues[0].path), { index: 1, field: "label" });
+  assert.equal(bio.bioIssueTarget(["title"]), null);
+  // A new WhatsApp or link block no longer starts with a value that can't save ("+234", "https://").
+  const editor = read("src/app/home/social/link-in-bio/BioEditor.tsx");
+  assert.doesNotMatch(editor, /phone: whatsapp \|\| "\+234"/);
+  assert.match(editor, /bioBlockProblems\(/);
+  assert.match(editor, /aria-invalid/);
+  assert.match(editor, /role="alert"/);
+});
+
+test("a live store's /links works before the seller saves: a starter page, 404 only when turned off", () => {
+  const starter = bio.defaultBioBlocks({ productIds: ["p1", "p2", "p3", "p4", "p5", "p6", "p7"], whatsapp: "2348031112222" });
+  assert.equal(starter.filter((b) => b.type === "product").length, 6);
+  assert.equal(starter[0].featured, true);
+  assert.ok(starter.every((b) => b.type !== "product" || b.action === "page"), "no Buy now without a payment link");
+  assert.deepEqual(starter.at(-1), { id: "auto-whatsapp", type: "whatsapp", phone: "+2348031112222", label: "Chat with us on WhatsApp" });
+  assert.equal(bio.defaultBioBlocks({ productIds: [], whatsapp: "" }).length, 0);
+  assert.equal(bio.BioPageSchema.safeParse({ blocks: starter }).success, true, "the starter page saves as is");
+  const service = read("src/lib/bio/service.server.ts");
+  assert.match(service, /if \(!store \|\| store\.status !== "active"\) return null;/);
+  assert.match(service, /if \(store\.bioPage && !store\.bioPage\.published\) return null;/);
+  assert.match(service, /bioDefaultBlocks\(store\.id\)/);
+});
+
 test("the public bio page builds its own links and counts taps only for blocks on the page", () => {
   const service = read("src/lib/bio/service.server.ts");
   assert.match(service, /status: "published"/, "only published products show");
