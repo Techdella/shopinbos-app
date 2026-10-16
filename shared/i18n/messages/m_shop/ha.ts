@@ -48,6 +48,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "link.linkInBio.hint": "Shafi ɗaya don bio na Instagram da TikTok",
   "webOnly.bio.title": "Canza kamannin shafinka a babban allo",
   "webOnly.bio.body": "Launuka, hoto, WhatsApp, social da blocks na rajista na shafin link in bio ɗinka sun fi sauƙin canzawa a kwamfuta ko tablet. Kana iya buɗe shi a wannan waya ma.",
+  "link.video.label": "Video studio",
+  "link.video.hint": "Gajerun bidiyo don talla, kayayyaki da social media",
   "link.rex.label": "Rex Studio",
   "link.rex.hint": "Hotuna, logo da kalmomi don shagonka",
   "link.domain.label": "Domain",

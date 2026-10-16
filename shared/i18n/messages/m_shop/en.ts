@@ -49,6 +49,8 @@ const en = {
   "link.linkInBio.hint": "One page for your Instagram and TikTok bio",
   "webOnly.bio.title": "Change your page's look on a bigger screen",
   "webOnly.bio.body": "Colours, photo, WhatsApp, social and sign-up blocks of your link in bio page are easier to change on a computer or tablet. You can open it on this phone too.",
+  "link.video.label": "Video studio",
+  "link.video.hint": "Reels for ads, products and social media",
   "link.rex.label": "Rex Studio",
   "link.rex.hint": "Pictures, logo and words for your shop",
   "link.domain.label": "Domain",

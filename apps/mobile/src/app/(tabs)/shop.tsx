@@ -53,6 +53,7 @@ export const SHOP_GROUPS: { key: string; title: string; links: ShopLink[] }[] = 
       { id: "campaigns", label: "Seasonal campaigns", icon: "clock", path: "app:/campaigns", hint: "Black Friday, Christmas and more, with a countdown" },
       { id: "reviews", label: "Reviews", icon: "star", path: "app:/reviews", hint: "What customers say, and asking for more" },
       { id: "linkInBio", label: "Link in bio", icon: "share", path: "app:/link-in-bio", hint: "One page for your Instagram and TikTok bio" },
+      { id: "video", label: "Video studio", icon: "play", path: "app:/video", hint: "Reels for ads, products and social media" },
       { id: "rex", label: "Rex Studio", icon: "sparkle", path: "app:/rex", hint: "Pictures, logo and words for your shop" },
       { id: "domain", label: "Domain", icon: "store", path: "app:/ask-us?what=web-address", hint: "Your own name like yourshop.com. We set it up for you" },
     ],

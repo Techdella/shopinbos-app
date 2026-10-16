@@ -48,6 +48,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "link.linkInBio.hint": "Ojú-ìwé kan fún bio Instagram àti TikTok rẹ",
   "webOnly.bio.title": "Yí ìrísí ojú-ìwé rẹ padà lórí ojú-iboju tó tóbi",
   "webOnly.bio.body": "Àwọ̀, fọ́tò, WhatsApp, social àti block ìforúkọsílẹ̀ ojú-ìwé link in bio rẹ rọrùn láti yí padà lórí kọ̀ǹpútà tàbí tablet. O ṣì lè ṣí i lórí fóònù yìí.",
+  "link.video.label": "Video studio",
+  "link.video.hint": "Fídíò kúkúrú fún ìpolówó, ọjà àti social media",
   "link.rex.label": "Rex Studio",
   "link.rex.hint": "Àwòrán, logo àti ọ̀rọ̀ fún ṣọ́ọ̀bù rẹ",
   "link.domain.label": "Domain",
