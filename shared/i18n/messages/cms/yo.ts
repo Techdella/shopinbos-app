@@ -404,6 +404,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "blog.readyBody": "Fún {name} ní ìtọ́ni, àwọn òǹkàwé, ọ̀rọ̀ pàtàkì, àti iye ọ̀rọ̀. Ṣe àpilẹ̀kọ SEO kíkún kí o tẹ̀ wọ́n jáde sí blog rẹ.",
   "blog.saveDraft": "Fi draft pamọ́",
   "blog.publish": "Tẹ̀ ẹ́ jáde",
+  "col.pages": "Àwọn ojú-ewé àkọsílẹ̀",
 };
 
 export default yo;

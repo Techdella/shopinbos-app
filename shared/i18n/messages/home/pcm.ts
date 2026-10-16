@@ -210,6 +210,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "health.nothingToFix": "Nothing to fix now.",
   "health.again": "Work am out again",
   "health.failed": "We no fit work out your score. Try again.",
+  "activity.pages": "Activity pages",
 };
 
 export default pcm;

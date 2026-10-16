@@ -574,6 +574,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "reviewsUi.wholesaleOrders": "Wholesale orders",
   "reviewsUi.finishedDeliveries": "Deliveries wey don finish",
   "reviewsUi.deliveryFee": "{amount} delivery fee",
+  "quotes.pages": "Quote request pages",
 };
 
 export default pcm;

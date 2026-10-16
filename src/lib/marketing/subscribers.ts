@@ -4,6 +4,7 @@ import type { Prisma, SubscriberSource, SubscriberStatus } from "@prisma/client"
 import { db } from "@/lib/db/client";
 import { clearOptOut } from "./opt-outs";
 import { normalizeEmail, normalizePhone } from "./segment-rules";
+import { pageWindow } from "@/lib/pagination";
 
 // Adding people to a shop's list, with a record of how and when they agreed (Subscriber.metadata.consent).
 // A sign-up form or pop-up is an explicit opt-in, so it re-activates someone who unsubscribed before;
@@ -163,7 +164,6 @@ export interface SubscriberListQuery {
 export async function listSubscribers(storeId: string, query: SubscriberListQuery = {}) {
   const q = query.q?.trim().slice(0, 100);
   const limit = Math.min(100, Math.max(1, query.limit ?? SUBSCRIBER_PAGE_SIZE));
-  const page = Math.max(1, query.page ?? 1);
   const where: Prisma.SubscriberWhereInput = {
     storeId,
     ...(query.status ? { status: query.status } : {}),
@@ -172,20 +172,25 @@ export async function listSubscribers(storeId: string, query: SubscriberListQuer
     ...(q ? { OR: [{ email: { contains: q, mode: "insensitive" } }, { name: { contains: q, mode: "insensitive" } }, { phone: { contains: q } }] } : {}),
   };
   const monthAgo = new Date(Date.now() - 30 * 86_400_000);
-  const [rows, filtered, groups, newThisMonth, tagRows] = await Promise.all([
-    db.subscriber.findMany({ where, orderBy: { createdAt: "desc" }, skip: (page - 1) * limit, take: limit }),
+  const [filtered, groups, newThisMonth, tagRows] = await Promise.all([
     db.subscriber.count({ where }),
     db.subscriber.groupBy({ by: ["status"], where: { storeId }, _count: true }),
     db.subscriber.count({ where: { storeId, status: "active", createdAt: { gte: monthAgo } } }),
     db.subscriber.findMany({ where: { storeId, NOT: { tags: { isEmpty: true } } }, select: { tags: true }, take: 5000 }),
   ]);
+  // A page past the end shows the last page.
+  const paging = pageWindow(query.page, filtered, limit);
+  const page = paging.page;
+  const rows = filtered ? await db.subscriber.findMany({ where, orderBy: [{ createdAt: "desc" }, { id: "desc" }], skip: paging.skip, take: paging.take }) : [];
   const count = (status?: SubscriberStatus) => groups.filter((row) => !status || row.status === status).reduce((sum, row) => sum + row._count, 0);
   return {
     rows,
     filtered,
     page,
     limit,
-    pages: Math.max(1, Math.ceil(filtered / limit)),
+    pages: paging.pages,
+    from: paging.from,
+    to: paging.to,
     counts: { all: count(), active: count("active"), unsubscribed: count("unsubscribed"), bounced: count("bounced"), spam: count("spam") },
     newThisMonth,
     tags: [...new Set(tagRows.flatMap((row) => row.tags))].sort(),

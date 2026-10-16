@@ -258,6 +258,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "importAi.importWithout": "Import without Peggy changes",
   "importAi.enhanced": "{count, plural, one {# product get Peggy changes} other {# products get Peggy changes}}",
   "importAi.showMore": "Show more",
+  "list.pages": "Product pages",
+  "inv.pages": "Stock pages",
 };
 
 export default pcm;

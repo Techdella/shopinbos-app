@@ -51,7 +51,6 @@ const en = {
   "po.noBank": "You haven't added a payout bank yet. Add one so money from online orders has somewhere to go.",
   "po.paidOnline": "Paid online",
   "po.paidOrders": "Paid orders",
-  "po.latest100": "Latest 100",
   "po.added": "Added",
   "po.notAdded": "Not added",
   "po.all": "All",
@@ -282,6 +281,8 @@ const en = {
   "cr.fromPlan": "From your plan",
   "cr.outLine": "You're out of credits. Your free daily allowance still works; buy a pack to keep going after it.",
   "sm.credits": "100 AI credits every month",
+  "po.allTime": "All time",
+  "po.pages": "Payout pages",
 } satisfies Record<string, string>;
 
 export default en;

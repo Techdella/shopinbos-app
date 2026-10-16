@@ -146,7 +146,6 @@ const en = {
   "forms.manage": "Manage forms",
   "forms.viewStore": "View store",
   "forms.total": "Total",
-  "forms.latest100": "Latest 100",
   "forms.new": "New",
   "forms.filter.all": "All",
   "forms.filter.contact": "Contact",
@@ -475,6 +474,9 @@ const en = {
   "ba.onDarkTile": "Shown on a light tile until you add one",
   "ba.uploadDark": "Upload for dark",
   "ba.useAuto": "Use automatic",
+  "cart.pages": "Left cart pages",
+  "forms.allTime": "All time",
+  "forms.pages": "Form message pages",
 } satisfies Record<string, string>;
 
 export default en;

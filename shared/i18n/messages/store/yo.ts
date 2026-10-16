@@ -148,7 +148,6 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "forms.manage": "Ṣàkóso fọ́ọ̀mù",
   "forms.viewStore": "Wo store",
   "forms.total": "Àpapọ̀",
-  "forms.latest100": "100 tuntun jù",
   "forms.new": "Tuntun",
   "forms.filter.all": "Gbogbo",
   "forms.filter.contact": "Ìkànsí",
@@ -477,6 +476,9 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "ba.onDarkTile": "Yóò hàn lórí àpótí funfun títí o fi fi ọ̀kan kún un",
   "ba.uploadDark": "Gbé ti dúdú sókè",
   "ba.useAuto": "Lo ti aládàáṣe",
+  "cart.pages": "Àwọn ojú-ewé cart tí wọ́n fi sílẹ̀",
+  "forms.allTime": "Láti ìbẹ̀rẹ̀",
+  "forms.pages": "Àwọn ojú-ewé ìfiránṣẹ́ fọ́ọ̀mù",
 };
 
 export default yo;

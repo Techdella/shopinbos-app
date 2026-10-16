@@ -148,7 +148,6 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "forms.manage": "Sarrafa fom",
   "forms.viewStore": "Duba store",
   "forms.total": "Jimla",
-  "forms.latest100": "Sabbi 100",
   "forms.new": "Sabo",
   "forms.filter.all": "Duka",
   "forms.filter.contact": "Tuntuɓa",
@@ -477,6 +476,9 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "ba.onDarkTile": "Za a nuna shi a kan farin akwati har sai ka ƙara ɗaya",
   "ba.uploadDark": "Ɗora na duhu",
   "ba.useAuto": "Yi amfani da na atomatik",
+  "cart.pages": "Shafukan carts da aka bari",
+  "forms.allTime": "Tun daga farko",
+  "forms.pages": "Shafukan saƙonnin fom",
 };
 
 export default ha;

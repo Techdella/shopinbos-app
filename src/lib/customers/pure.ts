@@ -4,6 +4,7 @@
 // one customer. No server imports; unit-tested in tests/customers.test.mjs.
 
 import { withinServiceWindow, windowClosesAt } from "../inbox/whatsapp-bot.ts";
+import { pageCount as sharedPageCount, pageNumbers as sharedPageNumbers } from "../pagination.ts";
 import { fillTemplateVariables, renderTemplateText, variableCount, type TemplateContent, type VariableValues } from "../marketing/text-channels.ts";
 
 // ─── The list query ──────────────────────────────────────────────────────────
@@ -58,25 +59,11 @@ export function customerListHref(query: Partial<CustomerListQuery>, base = "/hom
 }
 
 export function pageCount(total: number, size = CUSTOMERS_PAGE_SIZE) {
-  return Math.max(1, Math.ceil(Math.max(0, total) / size));
+  return sharedPageCount(total, size);
 }
 
-/** Page numbers to show: always the first and last, the current one with `around` neighbours, gaps between. */
-export function pageNumbers(current: number, totalPages: number, around = 1): Array<number | "gap"> {
-  const last = Math.max(1, totalPages);
-  const page = Math.min(Math.max(1, current), last);
-  const wanted = new Set<number>([1, last]);
-  for (let n = page - around; n <= page + around; n++) if (n >= 1 && n <= last) wanted.add(n);
-  const sorted = [...wanted].sort((a, b) => a - b);
-  const out: Array<number | "gap"> = [];
-  for (const n of sorted) {
-    const prev = out[out.length - 1];
-    if (typeof prev === "number" && n - prev === 2) out.push(n - 1);
-    else if (typeof prev === "number" && n - prev > 2) out.push("gap");
-    out.push(n);
-  }
-  return out;
-}
+/** Page numbers to show (shared with every paged list: src/lib/pagination.ts). */
+export const pageNumbers = sharedPageNumbers;
 
 /** The search box: a LIKE pattern (wildcards in the text escaped) and the digits, for phone numbers. */
 export function searchPattern(q: string): { like: string; digits: string | null } | null {

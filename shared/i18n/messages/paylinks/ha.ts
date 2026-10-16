@@ -140,6 +140,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "block.socialHint": "Handle ɗinka (kamar @adafabrics) ko cikakken link",
   "block.noProducts": "Wallafa kaya tukuna kafin ka ƙara shi a nan.",
   "block.noCollections": "Yi collection tukuna a Products, sannan Collections.",
+  "list.pages": "Shafukan payment links",
+  "list.noneHere": "Babu payment link mai wannan matsayi.",
 };
 
 export default ha;

@@ -60,8 +60,6 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "list.hide": "Ɓoye",
   "list.reply": "Amsa",
   "list.pages": "Shafuka",
-  "list.pageOf": "Shafi {page} cikin {pages} · reviews {count}",
-  "list.previous": "Na baya",
   "filter.rating": "Tace ta rating",
   "filter.anyRating": "Kowane rating",
   "filter.stars": "{count, plural, one {tauraro #} other {taurari #}}",

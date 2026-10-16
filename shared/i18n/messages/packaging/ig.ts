@@ -295,6 +295,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "ostatus.shipped": "Ọ nọ n'ụzọ",
   "ostatus.delivered": "Ọ rutela",
   "ostatus.cancelled": "Akagbuola",
+  "orders.pages": "Peeji orders mbipụta",
 };
 
 export default ig;

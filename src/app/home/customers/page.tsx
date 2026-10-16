@@ -5,12 +5,12 @@ import { requireRole } from "@/lib/server-auth";
 import { getSellerWorkspace } from "@/lib/workspace";
 import { AppPage, EmptyState, FilterChips, ListCard, Pill, PillLink, SearchForm, StatGrid, StatTile, cx } from "@/components/app-kit";
 import { Avatar, sellerFrame, timeAgo } from "@/components/seller-core";
-import { Icon } from "@/components/ui/Icon";
 import { formatMoney, formatNumber, type Locale } from "@shared/i18n";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { customerStats, listCustomers } from "@/lib/customers/queries.server";
-import { CUSTOMERS_PAGE_SIZE, CUSTOMER_FILTERS, CUSTOMER_SORTS, customerBadge, customerListHref, pageNumbers, parseCustomerListQuery, type CustomerListQuery } from "@/lib/customers/pure";
+import { CUSTOMERS_PAGE_SIZE, CUSTOMER_FILTERS, CUSTOMER_SORTS, customerBadge, customerListHref, parseCustomerListQuery, type CustomerListQuery } from "@/lib/customers/pure";
 import { CustomerDrawer, CustomerRowLink } from "./CustomerDrawer";
+import { Pagination } from "@/components/seller/Pagination";
 
 export const dynamic = "force-dynamic";
 
@@ -126,38 +126,17 @@ export default async function SellerCustomersPage({ searchParams }: { searchPara
             </ListCard>
           )}
 
-          {list.total > 0 && (
-            <div className="mt-4 flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
-              <p className="m-0 text-[13px] text-app-ink-soft">{t("page.showing", { from: num(from), to: num(to), total: num(list.total) })}</p>
-              {pages > 1 && (
-                <nav aria-label={t("page.nav")} className="flex items-center gap-1.5">
-                  <PageLink href={page > 1 ? href({ page: page - 1 }) : null} label={t("page.prev")} icon="arrowLeft" />
-                  <span className="px-2 text-[13.5px] font-bold sm:hidden">{t("page.of", { page: num(page), pages: num(pages) })}</span>
-                  <span className="hidden items-center gap-1 sm:flex">
-                    {pageNumbers(page, pages).map((n, i) =>
-                      n === "gap" ? (
-                        <span key={`gap-${i}`} className="px-1 text-app-ink-soft" aria-hidden>…</span>
-                      ) : (
-                        <Link
-                          key={n}
-                          href={href({ page: n })}
-                          aria-current={n === page ? "page" : undefined}
-                          aria-label={t("page.number", { page: n })}
-                          className={cx(
-                            "grid h-9 min-w-9 place-items-center rounded-full px-2 text-[13.5px] font-bold no-underline",
-                            n === page ? "bg-app-ink text-white" : "border border-app-line bg-white text-app-ink hover:border-app-line-strong",
-                          )}
-                        >
-                          {num(n)}
-                        </Link>
-                      ),
-                    )}
-                  </span>
-                  <PageLink href={page < pages ? href({ page: page + 1 }) : null} label={t("page.next")} icon="arrow" iconAfter />
-                </nav>
-              )}
-            </div>
-          )}
+          <Pagination
+            page={page}
+            pages={pages}
+            total={list.total}
+            from={from}
+            to={to}
+            base="/home/customers"
+            params={{ q: query.q, show: query.show !== "all" ? query.show : undefined, sort: query.sort !== "recent" ? query.sort : undefined }}
+            label={t("page.nav")}
+            summary={t("page.showing", { from: num(from), to: num(to), total: num(list.total) })}
+          />
           {filtering && <p className="mb-0 mt-2 text-center text-[13px] sm:text-left"><Link href="/home/customers" className="font-bold text-app-accent-ink">{t("clear")}</Link></p>}
 
           <Suspense fallback={null}>
@@ -166,22 +145,5 @@ export default async function SellerCustomersPage({ searchParams }: { searchPara
         </>
       )}
     </AppPage>
-  );
-}
-
-function PageLink({ href, label, icon, iconAfter = false }: { href: string | null; label: string; icon: "arrowLeft" | "arrow"; iconAfter?: boolean }) {
-  const inner = (
-    <>
-      {!iconAfter && <Icon name={icon} size={14} />}
-      <span>{label}</span>
-      {iconAfter && <Icon name={icon} size={14} />}
-    </>
-  );
-  const cls = "inline-flex min-h-[36px] items-center gap-1.5 rounded-full border px-3.5 text-[13.5px] font-bold no-underline";
-  // On the first and last page the button stays visible but greyed out, and isn't a link.
-  return href ? (
-    <Link href={href} rel={iconAfter ? "next" : "prev"} className={cx(cls, "border-app-line bg-white text-app-ink hover:border-app-line-strong")}>{inner}</Link>
-  ) : (
-    <span aria-disabled="true" className={cx(cls, "border-app-line bg-app-canvas text-app-ink-faint")}>{inner}</span>
   );
 }

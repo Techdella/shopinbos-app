@@ -402,6 +402,7 @@ const en = {
   "blog.readyBody": "Give {name} a prompt, target audience, keywords, and word count. Produce full SEO articles and publish them to your blog.",
   "blog.saveDraft": "Save draft",
   "blog.publish": "Publish",
+  "col.pages": "Item pages",
 } satisfies Record<string, string>;
 
 export default en;

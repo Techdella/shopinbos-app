@@ -295,6 +295,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "ostatus.shipped": "E dey road",
   "ostatus.delivered": "E don land",
   "ostatus.cancelled": "E don cancel",
+  "orders.pages": "Print order pages",
 };
 
 export default pcm;

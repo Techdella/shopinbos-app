@@ -148,7 +148,6 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "forms.manage": "Jikwaa fọm",
   "forms.viewStore": "Lee store",
   "forms.total": "Mkpokọta",
-  "forms.latest100": "100 kacha ọhụrụ",
   "forms.new": "Ọhụrụ",
   "forms.filter.all": "Niile",
   "forms.filter.contact": "Kọntaktị",
@@ -477,6 +476,9 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "ba.onDarkTile": "A ga-egosi ya n'igbe ọcha ruo mgbe ị tinyere otu",
   "ba.uploadDark": "Bulite nke ọchịchịrị",
   "ba.useAuto": "Jiri nke akpaka",
+  "cart.pages": "Peeji carts a hapụrụ",
+  "forms.allTime": "Site na mbido",
+  "forms.pages": "Peeji ozi fọm",
 };
 
 export default ig;

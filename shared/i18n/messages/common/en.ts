@@ -83,6 +83,12 @@ const en = {
   "chats.brandKit": "Brand kit",
   "chats.madeEmpty": "Nothing made yet. Logos and pictures Rex makes show up here.",
   "chats.allMedia": "See everything in Media",
+  "page.nav": "Pages",
+  "page.prev": "Previous",
+  "page.next": "Next",
+  "page.of": "Page {page} of {pages}",
+  "page.number": "Page {page}",
+  "page.showing": "Showing {from}–{to} of {total}",
 } satisfies Record<string, string>;
 
 export default en;

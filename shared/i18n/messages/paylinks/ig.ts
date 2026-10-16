@@ -140,6 +140,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "block.socialHint": "Handle gị (dịka @adafabrics) ma ọ bụ link zuru ezu",
   "block.noProducts": "Bipụta otu ngwaahịa mbụ tupu ị tinye ya ebe a.",
   "block.noCollections": "Mee collection mbụ na Products, wee Collections.",
+  "list.pages": "Peeji payment links",
+  "list.noneHere": "Enweghị payment link nwere ọnọdụ a.",
 };
 
 export default ig;

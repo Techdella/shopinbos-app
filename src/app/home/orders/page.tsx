@@ -9,10 +9,12 @@ import { PAID_ORDER_STATUSES } from "@/lib/insights";
 import { CHANNEL_LABEL, type OrderChannel } from "@shared/channels";
 import { formatMoney, formatNumber } from "@shared/i18n";
 import { getLocale, getT } from "@/lib/i18n/server";
+import { pageWindow } from "@/lib/pagination";
+import { Pagination } from "@/components/seller/Pagination";
 
 export const dynamic = "force-dynamic";
 
-const PAGE_SIZE = 100;
+const PAGE_SIZE = 50;
 
 const FILTERS: Array<{ key: "all" | "needs_action" | "to_send" | "on_the_way" | "delivered" | "unpaid"; statuses: RetailOrderStatus[] | null }> = [
   { key: "all", statuses: null },
@@ -31,9 +33,9 @@ export async function generateMetadata() {
 export default async function OrdersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ filter?: string; q?: string }>
+  searchParams: Promise<{ filter?: string; q?: string; page?: string }>
 }) {
-  const { filter: rawFilter, q: rawQuery } = await searchParams;
+  const { filter: rawFilter, q: rawQuery, page: rawPage } = await searchParams;
   const user = await requireRole(["seller"], "/login");
   const t = await getT("orders", "common");
   const locale = await getLocale();
@@ -58,14 +60,16 @@ export default async function OrdersPage({
     ];
   }
 
-  const [orders, matching, byStatus, paidSales] = store
+  const [matching, byStatus, paidSales] = store
     ? await Promise.all([
-        db.retailOrder.findMany({ where, orderBy: { createdAt: "desc" }, take: PAGE_SIZE }),
         db.retailOrder.count({ where }),
         db.retailOrder.groupBy({ by: ["status"], where: { storeId: store.id }, _count: { _all: true } }),
         db.retailOrder.aggregate({ where: { storeId: store.id, status: { in: [...PAID_ORDER_STATUSES] } }, _sum: { total: true } }),
       ])
-    : [[], 0, [], null];
+    : [0, [], null];
+  // A page past the end shows the last page; the count comes first so the query can skip to it.
+  const paging = pageWindow(rawPage, matching, PAGE_SIZE);
+  const orders = store && matching ? await db.retailOrder.findMany({ where, orderBy: { createdAt: "desc" }, skip: paging.skip, take: paging.take }) : [];
 
   const statusCount = new Map(byStatus.map((row) => [row.status as string, row._count._all]));
   const countFor = (statuses: RetailOrderStatus[] | null) =>
@@ -158,9 +162,12 @@ export default async function OrdersPage({
               );
             })}
           </ListCard>
-          <p className="mb-0 mt-3 text-[13px] text-app-ink-soft">
-            {matching > orders.length ? t("list.showing", { shown: orders.length, total: formatNumber(matching, locale) }) : t("count.orders", { count: matching })}
-          </p>
+          <Pagination
+            {...paging}
+            base="/home/orders"
+            params={{ filter: filter.key === "all" ? undefined : filter.key, q: query || undefined }}
+            label={t("list.pages")}
+          />
         </>
       )}
     </AppPage>

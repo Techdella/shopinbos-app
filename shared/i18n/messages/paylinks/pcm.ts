@@ -140,6 +140,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "block.socialHint": "Your handle (like @adafabrics) or the full link",
   "block.noProducts": "Publish one product first before you add am here.",
   "block.noCollections": "Make collection first for Products, then Collections.",
+  "list.pages": "Payment link pages",
+  "list.noneHere": "No payment link dey for this status.",
 };
 
 export default pcm;

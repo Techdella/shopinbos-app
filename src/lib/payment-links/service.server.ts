@@ -24,6 +24,7 @@ import {
   type LinkItem,
   type PaymentLinkCreator,
 } from "./pure";
+import { DEFAULT_PAGE_SIZE, pageWindow } from "@/lib/pagination";
 
 // Payment links on the server: making them (seller, Peggy in seller chat, Peggy in a customer chat, link in bio),
 // listing and cancelling them, turning one into checkout lines, and marking it paid once its order is paid. Every
@@ -144,14 +145,46 @@ export interface LinkListRow {
   items: Array<{ name: string; quantity: number }>;
 }
 
+const LINK_STATUSES = ["active", "paid", "expired", "cancelled"] as const;
+export type LinkStatusFilter = (typeof LINK_STATUSES)[number];
+
+export function isLinkStatusFilter(value: unknown): value is LinkStatusFilter {
+  return typeof value === "string" && (LINK_STATUSES as readonly string[]).includes(value);
+}
+
+/** The links whose real status (linkStatus in ./pure) is `status`, as a query, so a filter never misses older links. */
+export function linkStatusWhere(status: LinkStatusFilter, now = new Date()): Prisma.PaymentLinkWhereInput {
+  const paidOneTime: Prisma.PaymentLinkWhereInput = { status: "paid", oneTime: true };
+  if (status === "cancelled") return { status: "cancelled" };
+  if (status === "paid") return paidOneTime;
+  if (status === "expired") return { AND: [{ status: { not: "cancelled" } }, { NOT: paidOneTime }, { OR: [{ status: "expired" }, { expiresAt: { lte: now } }] }] };
+  return { AND: [{ status: { notIn: ["cancelled", "expired"] } }, { NOT: paidOneTime }, { OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] }] };
+}
+
 /** The store's links, newest first, with their real status and the order that paid them. */
 export async function listPaymentLinks(store: LinkStore, options: { limit?: number; status?: string | null } = {}): Promise<LinkListRow[]> {
-  const rows = await db.paymentLink.findMany({ where: { storeId: store.id }, orderBy: { createdAt: "desc" }, take: Math.min(options.limit ?? 100, 300) });
+  const now = new Date();
+  const where: Prisma.PaymentLinkWhereInput = { storeId: store.id, ...(isLinkStatusFilter(options.status) ? linkStatusWhere(options.status, now) : {}) };
+  const rows = await db.paymentLink.findMany({ where, orderBy: { createdAt: "desc" }, take: Math.min(options.limit ?? 100, 300) });
+  const list = await toListRows(store, rows, now);
+  return options.status ? list.filter((row) => row.status === options.status) : list;
+}
+
+/** One page of the store's links (newest first), optionally only those with one status: the payment links page. */
+export async function pagePaymentLinks(store: LinkStore, options: { status?: LinkStatusFilter | null; page?: string | number | null; size?: number } = {}) {
+  const now = new Date();
+  const where: Prisma.PaymentLinkWhereInput = { storeId: store.id, ...(options.status ? linkStatusWhere(options.status, now) : {}) };
+  const [total, all] = await Promise.all([db.paymentLink.count({ where }), options.status ? db.paymentLink.count({ where: { storeId: store.id } }) : null]);
+  const window = pageWindow(options.page, total, options.size ?? DEFAULT_PAGE_SIZE);
+  const rows = total ? await db.paymentLink.findMany({ where, orderBy: [{ createdAt: "desc" }, { id: "desc" }], skip: window.skip, take: window.take }) : [];
+  return { links: await toListRows(store, rows, now), window, storeHasLinks: (all ?? total) > 0 };
+}
+
+async function toListRows(store: LinkStore, rows: Array<Prisma.PaymentLinkGetPayload<object>>, now: Date): Promise<LinkListRow[]> {
   const orderIds = rows.map((row) => row.orderId).filter((id): id is string => Boolean(id));
   const orders = orderIds.length ? await db.retailOrder.findMany({ where: { storeId: store.id, id: { in: orderIds } }, select: { id: true, orderNumber: true } }) : [];
   const orderById = new Map(orders.map((order) => [order.id, order]));
-  const now = new Date();
-  const list = rows.map((row) => {
+  return rows.map((row) => {
     const items = readLinkItems(row.items);
     return {
       id: row.id,
@@ -171,7 +204,6 @@ export async function listPaymentLinks(store: LinkStore, options: { limit?: numb
       items: items.map((item) => ({ name: item.name ?? "Item", quantity: item.quantity })),
     };
   });
-  return options.status ? list.filter((row) => row.status === options.status) : list;
 }
 
 /** Finds one of the store's links by id or code. */

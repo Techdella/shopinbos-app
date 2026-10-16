@@ -9,9 +9,13 @@ import { requireRole } from "@/lib/server-auth";
 import { Mascot } from "@/components/brand/Mascot";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { getT } from "@/lib/i18n/server";
+import { pageWindow } from "@/lib/pagination";
+import { Pagination } from "@/components/seller/Pagination";
+
+const PAGE_SIZE = 20;
 
 type PageProps = {
-  searchParams?: Promise<{ error?: string; saved?: string; show?: string }>;
+  searchParams?: Promise<{ error?: string; saved?: string; show?: string; page?: string }>;
 };
 
 const quoteTips = ["quotes.tip1", "quotes.tip2", "quotes.tip3"] as const;
@@ -33,10 +37,20 @@ export default async function SupplierQuoteRequestsPage({ searchParams }: PagePr
   ensureSupplierAccess(supplier);
   const t = await getT("supplier", "common");
 
-  const quotes = await db.supplierQuoteRequest.findMany({
-    where: { supplierId: supplier.id },
-    orderBy: { createdAt: "desc" },
-    take: 50,
+  // Counts and the quoted value cover every request; the list shows one page of the chosen kind.
+  const filter = FILTERS.find((item) => item.key === params?.show);
+  const [byStatus, valued] = await Promise.all([
+    db.supplierQuoteRequest.groupBy({ by: ["status"], where: { supplierId: supplier.id }, _count: { _all: true } }),
+    db.supplierQuoteRequest.findMany({ where: { supplierId: supplier.id, quotedPrice: { not: null } }, select: { quantity: true, quotedPrice: true } }),
+  ]);
+  const countOf = (statuses?: readonly string[]) => byStatus.filter((row) => !statuses || statuses.includes(row.status)).reduce((sum, row) => sum + row._count._all, 0);
+  const allCount = countOf();
+  const paging = pageWindow(params?.page, countOf(filter?.statuses), PAGE_SIZE);
+  const visible = await db.supplierQuoteRequest.findMany({
+    where: { supplierId: supplier.id, ...(filter ? { status: { in: [...filter.statuses] } } : {}) },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    skip: paging.skip,
+    take: paging.take,
     select: {
       id: true,
       quantity: true,
@@ -61,11 +75,7 @@ export default async function SupplierQuoteRequestsPage({ searchParams }: PagePr
     },
   });
 
-  const pendingQuotes = quotes.filter((quote) => quote.status === "pending");
-  const respondedQuotes = quotes.filter((quote) => quote.status === "responded" || quote.status === "accepted");
-  const closedQuotes = quotes.filter((quote) => quote.status === "rejected" || quote.status === "expired");
-  const filter = FILTERS.find((item) => item.key === params?.show);
-  const visible = filter ? quotes.filter((quote) => (filter.statuses as readonly string[]).includes(quote.status)) : quotes;
+  const [waitingCount, answeredCount, closedCount] = FILTERS.map((item) => countOf(item.statuses));
   const verified = supplier.verificationStatus === "verified";
 
   return (
@@ -76,10 +86,10 @@ export default async function SupplierQuoteRequestsPage({ searchParams }: PagePr
       toolbar={
         <FilterChips
           items={[
-            { label: t("products.filter.all"), href: "/supplier/quote-requests", count: quotes.length, active: !filter },
-            { label: t("quotes.waiting"), href: "/supplier/quote-requests?show=waiting", count: pendingQuotes.length, active: filter?.key === "waiting" },
-            { label: t("quotes.answered"), href: "/supplier/quote-requests?show=answered", count: respondedQuotes.length, active: filter?.key === "answered" },
-            { label: t("quotes.closed"), href: "/supplier/quote-requests?show=closed", count: closedQuotes.length, active: filter?.key === "closed" },
+            { label: t("products.filter.all"), href: "/supplier/quote-requests", count: allCount, active: !filter },
+            { label: t("quotes.waiting"), href: "/supplier/quote-requests?show=waiting", count: waitingCount, active: filter?.key === "waiting" },
+            { label: t("quotes.answered"), href: "/supplier/quote-requests?show=answered", count: answeredCount, active: filter?.key === "answered" },
+            { label: t("quotes.closed"), href: "/supplier/quote-requests?show=closed", count: closedCount, active: filter?.key === "closed" },
           ]}
         />
       }
@@ -96,8 +106,8 @@ export default async function SupplierQuoteRequestsPage({ searchParams }: PagePr
             )}
 
             {visible.length === 0 ? (
-              <EmptyState icon="chat" title={quotes.length === 0 ? t("quotes.emptyTitle") : t("quotes.nothingHere")}>
-                {quotes.length === 0
+              <EmptyState icon="chat" title={allCount === 0 ? t("quotes.emptyTitle") : t("quotes.nothingHere")}>
+                {allCount === 0
                   ? t("quotes.emptyBody")
                   : t("quotes.noMatch")}
               </EmptyState>
@@ -201,6 +211,7 @@ export default async function SupplierQuoteRequestsPage({ searchParams }: PagePr
                 );
               })
             )}
+            <Pagination {...paging} base="/supplier/quote-requests" params={{ show: filter?.key }} label={t("quotes.pages")} className="" />
           </>
         }
         side={
@@ -208,10 +219,10 @@ export default async function SupplierQuoteRequestsPage({ searchParams }: PagePr
             <Card className="p-5">
               <h2 className="m-0 text-[17px] font-extrabold">{t("quotes.health")}</h2>
               <div className="mt-2 grid grid-cols-2 gap-1">
-                <StatTile label={t("quotes.waiting")} value={pendingQuotes.length} />
-                <StatTile label={t("quotes.answered")} value={respondedQuotes.length} />
-                <StatTile label={t("quotes.closed")} value={closedQuotes.length} />
-                <StatTile label={t("quotes.quotedValue")} value={money(openQuoteValue(quotes), quotes[0]?.supplierProduct.currency ?? "NGN")} />
+                <StatTile label={t("quotes.waiting")} value={waitingCount} />
+                <StatTile label={t("quotes.answered")} value={answeredCount} />
+                <StatTile label={t("quotes.closed")} value={closedCount} />
+                <StatTile label={t("quotes.quotedValue")} value={money(openQuoteValue(valued), visible[0]?.supplierProduct.currency ?? "NGN")} />
               </div>
             </Card>
             <section className="rounded-[22px] bg-app-peach p-5">

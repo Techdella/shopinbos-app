@@ -494,6 +494,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "jobErrors.quoteAnswered": "Ka riga ka amsa wannan neman quote.",
   "jobErrors.checkQuote": "Duba bayanan quote.",
   "kit.to": " zuwa ",
+  "jobs.pages": "Shafukan ayyuka",
 };
 
 export default ha;

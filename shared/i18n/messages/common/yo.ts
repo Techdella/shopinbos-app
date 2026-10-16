@@ -84,6 +84,12 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "chats.brandKit": "Ohun èlò àmì",
   "chats.madeEmpty": "Kò sí ohun tí a ti ṣe síbẹ̀. Àmì àti àwòrán tí Rex bá ṣe yóò hàn níbí.",
   "chats.allMedia": "Wo gbogbo rẹ̀ nínú Media",
+  "page.nav": "Àwọn ojú-ewé",
+  "page.prev": "Ẹ̀yìn",
+  "page.next": "Èyí tó kàn",
+  "page.of": "Ojú-ewé {page} nínú {pages}",
+  "page.number": "Ojú-ewé {page}",
+  "page.showing": "À ń fi {from}–{to} hàn nínú {total}",
 };
 
 export default yo;

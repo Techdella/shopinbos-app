@@ -210,6 +210,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "health.nothingToFix": "Kò sí nǹkan láti tún ṣe báyìí.",
   "health.again": "Tún un ṣírò",
   "health.failed": "A kò lè ṣírò àmì rẹ. Gbìyànjú lẹ́ẹ̀kan sí i.",
+  "activity.pages": "Àwọn ojú-ewé ìṣẹ̀lẹ̀",
 };
 
 export default yo;

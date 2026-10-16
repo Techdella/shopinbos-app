@@ -148,7 +148,6 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "forms.manage": "Manage forms",
   "forms.viewStore": "View store",
   "forms.total": "Total",
-  "forms.latest100": "Latest 100",
   "forms.new": "New",
   "forms.filter.all": "All",
   "forms.filter.contact": "Contact",
@@ -477,6 +476,9 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "ba.onDarkTile": "E go show for white box until you add one",
   "ba.uploadDark": "Upload for dark",
   "ba.useAuto": "Use automatic",
+  "cart.pages": "Pages for carts wey dem leave",
+  "forms.allTime": "From beginning",
+  "forms.pages": "Form message pages",
 };
 
 export default pcm;
