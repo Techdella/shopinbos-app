@@ -6,12 +6,11 @@ import { Screen } from "@/components/Screen";
 import { Card, T } from "@/components/ui";
 import { fetchTemplates, type TemplateRow } from "@/lib/marketing";
 import { useLoad } from "@/lib/useLoad";
-import { openWeb } from "@/lib/web";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 
-// Email templates gallery (web /home/marketing/templates), read-only: the shop's saved templates and the starter
-// library. Tapping one opens the template editor on the web.
+// Email templates gallery (web /home/marketing/templates): the shop's saved templates and the starter library.
+// Tapping one opens it in the app (marketing/template/[id]): see it, rename it, send a test, or copy a ready-made one.
 
 function TemplateCard({ template, onPress }: { template: TemplateRow; onPress: () => void }) {
   return (
@@ -44,12 +43,12 @@ export default function Templates() {
         <>
           {data.saved.length ? <SectionTitle>{t("templates.yours")}</SectionTitle> : null}
           {data.saved.map((template) => (
-            <TemplateCard key={template.id} template={template} onPress={() => void openWeb(`/home/marketing/templates/${encodeURIComponent(template.id ?? "")}`)} />
+            <TemplateCard key={template.id} template={template} onPress={() => router.push({ pathname: "/marketing/template/[id]", params: { id: template.id ?? "" } })} />
           ))}
           <SectionTitle>{t("templates.readyMade")}</SectionTitle>
           {!data.library.length ? <EmptyState icon="mail" title={t("templates.emptyTitle")}>{t("templates.emptyBody")}</EmptyState> : null}
           {data.library.map((template) => (
-            <TemplateCard key={template.key} template={template} onPress={() => void openWeb("/home/marketing/templates")} />
+            <TemplateCard key={template.key} template={template} onPress={() => router.push({ pathname: "/marketing/template/[id]", params: { id: "new", from: template.key ?? "" } })} />
           ))}
           <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: "/rex", params: { prompt: t("templates.rexPrompt") } })} style={{ alignItems: "center", paddingVertical: 12 }}>
             <T weight="bold" style={{ color: colors.accentInk }}>{t("templates.askRex")}</T>
