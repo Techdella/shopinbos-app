@@ -2,6 +2,7 @@ import * as WebBrowser from "expo-web-browser";
 import { router } from "expo-router";
 import { API_URL } from "./api";
 import { supabase } from "./supabase";
+import { videoScreenFor } from "./video-pure";
 
 // Fresh enough that the web session (which borrows this token, see src/app/auth/handoff) lasts a while.
 const MIN_TOKEN_LIFE_SECONDS = 15 * 60;
@@ -54,6 +55,8 @@ const APP_SCREENS: Record<string, string> = {
   "/home/payment-links": "/payment-links",
   "/home/social/link-in-bio": "/link-in-bio",
   "/home/campaigns": "/campaigns",
+  "/home/video": "/video",
+  "/home/video/studio": "/video/studio",
 };
 
 /** Opens a web-app path, but in the app when the app has that screen (orders, inbox, find products, reviews…). */
@@ -68,6 +71,9 @@ export function openPath(path: string) {
   const campaign = pathname.match(/^\/home\/campaigns\/([\w-]+)$/);
   if (campaign) return router.push({ pathname: "/campaigns/[id]", params: { id: campaign[1] } });
   if (pathname === "/home/reviews/request") return router.push("/reviews/ask" as never);
+  // Video studio links carry the draft (?id=), or what a new video is for (?purpose=, ?product=).
+  const video = videoScreenFor(path);
+  if (video) return router.push({ pathname: video.pathname, params: video.params });
   const conversation = path.match(/^\/home\/messages\?(?:.*&)?c=([\w-]+)/);
   if (conversation) return router.push({ pathname: "/inbox/[id]", params: { id: conversation[1] } });
   const screen = APP_SCREENS[pathname.replace(/\/$/, "")];

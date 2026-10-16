@@ -48,6 +48,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "link.linkInBio.hint": "Otu peeji maka bio Instagram na TikTok gị",
   "webOnly.bio.title": "Gbanwee otú peeji gị dị na ihuenyo buru ibu",
   "webOnly.bio.body": "Agba, foto, WhatsApp, social na blocks ndebanye aha nke peeji link in bio gị dị mfe ịgbanwe na kọmputa ma ọ bụ tablet. Ị nwekwara ike imepe ya na ekwentị a.",
+  "link.video.label": "Video studio",
+  "link.video.hint": "Vidiyo dị mkpụmkpụ maka mgbasa ozi, ngwaahịa na social media",
   "link.rex.label": "Rex Studio",
   "link.rex.hint": "Foto, logo na okwu maka ụlọ ahịa gị",
   "link.domain.label": "Domain",

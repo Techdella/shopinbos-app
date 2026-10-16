@@ -48,6 +48,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "link.linkInBio.hint": "One page for your Instagram and TikTok bio",
   "webOnly.bio.title": "Change how your page look for bigger screen",
   "webOnly.bio.body": "To change colours, photo, WhatsApp, social and sign-up blocks for your link in bio page dey easy for computer or tablet. You fit still open am for this phone.",
+  "link.video.label": "Video studio",
+  "link.video.hint": "Short videos for ads, products and social media",
   "link.rex.label": "Rex Studio",
   "link.rex.hint": "Pictures, logo and words for your shop",
   "link.domain.label": "Domain",

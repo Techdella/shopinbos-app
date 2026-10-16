@@ -1,17 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { Image } from "expo-image";
 import { AppIcon } from "@/components/icons";
 import { Bubble, ChatScreen, Composer } from "@/components/ChatScreen";
 import { Chip, Mascot, PillButton, T } from "@/components/ui";
 import { askRex, cardNote, REX_STARTERS, type RexCard } from "@/lib/rex";
+import { startVideoFromRex } from "@/lib/video";
 import { openPath, openWeb } from "@/lib/web";
 import { useT } from "@/lib/i18n";
 import { colors, radii } from "@/theme";
 
 // Rex Studio chat (web /studio), like Peggy's screen: Rex changes the draft store, makes pictures, logos,
-// descriptions and campaigns. Cards show what he made; previewing, publishing and saving pictures open the web.
+// descriptions and campaigns. Cards show what he made; a reel opens the phone's video studio as a draft with his
+// words; previewing, publishing and saving pictures open the web.
 
 interface Turn {
   from: "me" | "rex";
@@ -22,6 +24,17 @@ interface Turn {
 }
 
 const MAX_TURNS = 20;
+
+/** Rex's reel card: a draft with his words for the product, opened in the phone's video studio. */
+async function makeVideo(card: Extract<RexCard, { type: "video" }>) {
+  try {
+    const id = await startVideoFromRex(card);
+    router.push({ pathname: "/video/studio", params: { id } });
+  } catch {
+    // The draft didn't save: start one for the product instead (Rex's words can be written again there).
+    router.push({ pathname: "/video/studio", params: { purpose: "social", product: card.product.id } });
+  }
+}
 
 function CardAction({ label, onPress }: { label: string; onPress: () => void }) {
   return (
@@ -88,7 +101,7 @@ function CardView({ card, ask }: { card: RexCard; ask: (text: string) => void })
         <View style={frame}>
           <T weight="extrabold" style={{ fontSize: 14.5 }}>{t("card.reel", { name: card.product.name })}</T>
           {card.script.captions.map((caption, index) => <T key={index} style={{ fontSize: 14, color: colors.inkSoft }}>{index + 1}. {caption}</T>)}
-          <CardAction label={t("card.makeVideo")} onPress={() => void openWeb("/home/video")} />
+          <CardAction label={t("card.makeVideo")} onPress={() => void makeVideo(card)} />
         </View>
       );
     case "marketing":
