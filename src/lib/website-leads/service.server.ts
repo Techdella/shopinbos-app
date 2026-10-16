@@ -2,6 +2,7 @@ import "server-only";
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { isMissingTable } from "@/lib/rate-limit-core";
+import { leadRoleFrom } from "@/lib/lead-growth/pure";
 import { LEAD_STATUSES, normalisePhone, type LeadStatus, type WebsiteLeadInputType } from "./pure";
 
 // Website leads: saved from shopinbos.com forms, listed and worked in /admin/leads.
@@ -37,6 +38,8 @@ export function saveWebsiteLead(input: WebsiteLeadInputType) {
         source: input.source,
         pageUrl: input.pageUrl,
         consent: input.consent,
+        // Seller, supplier or delivery partner: the waitlist's "as", or the admin's pick for hand-added leads.
+        role: leadRoleFrom(input.payload.as),
         payload: input.payload as Prisma.InputJsonValue,
         ...(input.createdAt ? { createdAt: new Date(input.createdAt) } : {}),
       },

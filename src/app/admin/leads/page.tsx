@@ -2,7 +2,7 @@ import { AppPage, EmptyState, FilterChips, Pill, PillLink, SearchForm, StatTile,
 import { adminFrame, buttonClass, fieldClass, withParams } from "@/components/admin/AdminKit";
 import { addLeadManually, importLeadsCsv, setWebsiteLeadStatus } from "@/app/actions/admin-website-leads";
 import { Notice } from "@/components/app-ui";
-import { CHANNEL_LABELS, type LeadChannel } from "@/lib/lead-growth/pure";
+import { CHANNEL_LABELS, LEAD_ROLES, type LeadChannel } from "@/lib/lead-growth/pure";
 import { leadMessages } from "@/lib/lead-growth/service.server";
 import { KIND_LABELS, LEAD_STATUSES, STATUS_LABELS, type LeadStatus } from "@/lib/website-leads/pure";
 import { LEADS_PAGE_SIZE, LeadsNotReady, listWebsiteLeads } from "@/lib/website-leads/service.server";
@@ -11,6 +11,8 @@ import { requireRole } from "@/lib/server-auth";
 export const dynamic = "force-dynamic";
 
 type Search = { kind?: string; status?: string; q?: string; page?: string; added?: string; imported?: string; skipped?: string; error?: string };
+
+const ROLE_NAMES = { seller: "Seller", supplier: "Supplier", delivery: "Delivery partner" } as const;
 
 const STATUS_TONE: Record<string, Tone> = { new: "accent", contacted: "info", converted: "success", closed: "muted" };
 
@@ -82,14 +84,20 @@ export default async function AdminLeadsPage(props: { searchParams?: Promise<Sea
               <input name="phone" placeholder="Phone / WhatsApp" maxLength={32} className={fieldClass} aria-label="Phone" />
             </div>
             <input name="message" placeholder="Note or message (optional)" maxLength={2000} className={fieldClass} aria-label="Message" />
+            <select name="as" defaultValue="seller" className={fieldClass} aria-label="They are a">
+              {LEAD_ROLES.map((role) => <option key={role} value={role}>{ROLE_NAMES[role]}</option>)}
+            </select>
             <label className="flex items-center gap-2 text-[13.5px]"><input type="checkbox" name="consent" className="h-[18px] w-[18px]" /> They agreed to get messages from us</label>
             <div><button type="submit" className={buttonClass("ink", "sm")}>Add lead</button></div>
           </form>
           <form action={importLeadsCsv} className="flex flex-col gap-3">
             <b className="text-[14px]">A CSV list</b>
-            <p className="m-0 text-[13px] text-app-ink-soft">Columns by header: name, email, phone, source, consent (yes/no). Up to 5,000 rows. The same email or phone twice is one lead; people who already have an account are marked signed up.</p>
+            <p className="m-0 text-[13px] text-app-ink-soft">Columns by header: name, email, phone, source, consent (yes/no), role (seller / supplier / delivery). Up to 5,000 rows. The same email or phone twice is one lead; people who already have an account are marked signed up.</p>
             <input name="file" type="file" accept=".csv,text/csv" required className="text-[13.5px]" aria-label="CSV file" />
             <input name="source" placeholder="Source for every row (optional)" maxLength={190} className={fieldClass} aria-label="Source for every row" />
+            <select name="as" defaultValue="seller" className={fieldClass} aria-label="Role for rows without one">
+              {LEAD_ROLES.map((role) => <option key={role} value={role}>{ROLE_NAMES[role]}</option>)}
+            </select>
             <label className="flex items-center gap-2 text-[13.5px]"><input type="checkbox" name="consent" className="h-[18px] w-[18px]" /> Everyone on this list agreed to get messages</label>
             <div><button type="submit" className={buttonClass("white", "sm")}>Import</button></div>
           </form>
@@ -137,6 +145,7 @@ export default async function AdminLeadsPage(props: { searchParams?: Promise<Sea
                       <b className="text-[15.5px]">{lead.name || lead.email || lead.phone || "No name"}</b>
                       <Pill tone={STATUS_TONE[lead.status] ?? "muted"} dot>{STATUS_LABELS[lead.status as LeadStatus] ?? lead.status}</Pill>
                       <Pill tone="muted">{KIND_LABELS[lead.kind] ?? lead.kind}</Pill>
+                      {lead.role !== "seller" && <Pill tone="info">{ROLE_NAMES[lead.role as keyof typeof ROLE_NAMES] ?? lead.role}</Pill>}
                       {lead.consent && <Pill tone="success">Agreed to messages</Pill>}
                       {lead.convertedAt && <Pill tone="success">Has an account</Pill>}
                       {lead.optedOut.map((channel) => <Pill key={channel} tone="danger">No {CHANNEL_LABELS[channel as LeadChannel] ?? channel}</Pill>)}
