@@ -36,6 +36,8 @@ export interface RiderDrop {
   status: string;
   address: string;
   area: string;
+  /** Google Maps directions from the server (the buyer's exact pin when they picked one). Older servers omit it. */
+  mapUrl?: string | null;
   buyerName: string | null;
   buyerPhone: string | null;
   collect: number;
@@ -47,6 +49,7 @@ export interface RiderRun {
   key: string;
   pickupName: string;
   pickupAddress: string;
+  pickupMapUrl?: string | null;
   /** Supplier pickups: "Pick up 12–4pm today". */
   pickupWindow?: string | null;
   fees: number;

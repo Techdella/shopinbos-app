@@ -3,6 +3,7 @@
 // saveBusinessAddress action). Only zod and relative imports, so tests/seller-settings.test.mjs loads it directly.
 import { z } from "zod";
 import { cleanAccountNumber, isTransferWindowChoice } from "../../shared/seller-payments.ts";
+import { parseNgPostcode } from "../../shared/ng-postcode.ts";
 import { PaymentBadgesSchema } from "./store-badges.ts";
 
 export const PaymentsPatchSchema = z
@@ -81,5 +82,7 @@ export function cleanBusinessAddress(input: Partial<Record<BusinessAddressKey, u
   const field = (key: BusinessAddressKey) => String(input[key] ?? "").trim().replace(/\s+/g, " ").slice(0, BUSINESS_ADDRESS_LIMITS[key]);
   const out = Object.fromEntries((Object.keys(BUSINESS_ADDRESS_LIMITS) as BusinessAddressKey[]).map((key) => [key, field(key)])) as Record<BusinessAddressKey, string>;
   out.email = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(out.email) ? out.email.toLowerCase() : "";
+  // A NIPOST digital postcode is kept the one way NIPOST writes it (la 11 w06 tc10 → LA-11-W06-TC-10).
+  out.postalCode = parseNgPostcode(out.postalCode)?.canonical ?? out.postalCode;
   return out;
 }

@@ -250,3 +250,24 @@ export function riderWhereWords(rider: { lat?: number | null; lng?: number | nul
   const seen = lastSeenWords(rider.locationAt ?? rider.lastSeenAt ?? null, now);
   return area ? `last seen ${seen}, ${area}` : `last seen ${seen}`;
 }
+
+/**
+ * The pinned point of a saved delivery address (checkout stores `lat` / `lng` when the buyer picked a suggestion or
+ * used their location), or null for a typed-only address.
+ */
+export function addressPoint(address: unknown): LatLng | null {
+  if (!address || typeof address !== "object" || Array.isArray(address)) return null;
+  const { lat, lng } = address as { lat?: unknown; lng?: unknown };
+  const point = { lat: Number(lat), lng: Number(lng) };
+  return typeof lat === "number" && typeof lng === "number" && isLatLng(point) ? point : null;
+}
+
+/**
+ * Google Maps turn-by-turn directions to a place (opens the Maps app on phones). The exact pin when there is one,
+ * otherwise the address text, so Maps searches for it.
+ */
+export function directionsUrl(to: { point?: LatLng | null; address?: string | null }) {
+  const destination = to.point && isLatLng(to.point) ? `${to.point.lat.toFixed(6)},${to.point.lng.toFixed(6)}` : (to.address ?? "").trim();
+  if (!destination) return null;
+  return `https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=${encodeURIComponent(destination)}`;
+}

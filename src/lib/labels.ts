@@ -1,5 +1,7 @@
 // Shipping labels and packing slips (/home/labels). Pure helpers, unit-tested.
 
+import { parseNgPostcode } from "../../shared/ng-postcode.ts";
+
 export const LABEL_FORMATS = [
   { key: "label", label: "Label printer (4 × 6 in)", hint: "One label per sticker, for thermal printers." },
   { key: "a4", label: "A4 paper (4 per page)", hint: "Any printer. Cut along the lines and tape on." },
@@ -33,7 +35,9 @@ export function addressLines(address: unknown): string[] {
   const a = address as LabelAddress;
   const text = (value: unknown) => (typeof value === "string" ? value.trim() : "");
   const cityLine = [text(a.city), text(a.state)].filter(Boolean).join(", ");
-  return [text(a.street), cityLine, text(a.country) && text(a.country).toUpperCase() !== "NG" && text(a.country).toLowerCase() !== "nigeria" ? text(a.country) : ""].filter(Boolean);
+  // NIPOST digital postcodes print spaced, the way the postcode finder shows them: "LA 11 W06 TC 10".
+  const postcode = parseNgPostcode(text(a.postalCode))?.spaced ?? text(a.postalCode);
+  return [text(a.street), cityLine, text(a.country) && text(a.country).toUpperCase() !== "NG" && text(a.country).toLowerCase() !== "nigeria" ? text(a.country) : "", postcode].filter(Boolean);
 }
 
 /** What the rider must collect: unpaid orders are pay on delivery. */

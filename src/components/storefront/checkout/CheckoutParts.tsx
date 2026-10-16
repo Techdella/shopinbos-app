@@ -5,15 +5,18 @@
 // progress and the fields. Presentational only: state and pricing stay with the caller.
 
 import Link from "next/link";
-import { useId } from "react";
+import { useId, useState } from "react";
 import type React from "react";
 import { Icon } from "@/components/ui/Icon";
 import { formatStoreMoney } from "@/lib/storefront/shopper-info";
-import { lineKey, type CartLine, type CheckoutDetails, type DeliveryChoice, type DeliveryOption, type FieldErrors, type OrderTotals } from "@shared/cart-checkout";
+import { isNigeria, lineKey, type CartLine, type CheckoutDetails, type DeliveryChoice, type DeliveryOption, type FieldErrors, type OrderTotals } from "@shared/cart-checkout";
 import type { CheckoutPaymentMethod, CheckoutPaymentOption } from "@shared/checkout-payments";
 import type { AppliedCode } from "@/components/storefront/shopper/checkout-storage";
 import { ItemThumb, Money, Panel, SecondaryButton, fieldClass } from "@/components/storefront/shopper/ShopperShell";
 import type { ShopperTheme } from "@/components/storefront/shopper/theme";
+import { lookupPostcode, mapImageUrl, useAddressSuggestions, useGeoStatus, useMyLocation } from "@/components/geo/useAddressLookup";
+import type { GeoAddress } from "@/lib/geo/types";
+import { couldBeNgPostcode, normalizeNgPostcode, parseNgPostcode } from "@shared/ng-postcode";
 import { hasSideSummary, splitSummaryBlocks, stepProgress, type CheckoutPageSettings, type CheckoutSummaryBlock, type CheckoutTrustBadge } from "./checkout-layout";
 
 const ERROR = "#B42318";
@@ -212,6 +215,7 @@ export function DeliveryFields({
   currency,
   saveOnDevice,
   onSaveOnDevice,
+  onAddress,
 }: {
   theme: ShopperTheme;
   details: CheckoutDetails;
@@ -229,10 +233,19 @@ export function DeliveryFields({
   /** Null hides the "save my details" box (builder preview). */
   saveOnDevice: boolean | null;
   onSaveOnDevice?: (on: boolean) => void;
+  /** Fills the address from a suggestion, the buyer's location or their postcode. Without it (builder preview) the street is a plain field. */
+  onAddress?: (address: GeoAddress) => void;
 }) {
+  const nigeria = isNigeria(details.country);
+  const pin = typeof details.lat === "number" && typeof details.lng === "number" ? { lat: details.lat, lng: details.lng } : null;
   return (
     <div className="grid gap-4">
-      <TextField theme={theme} id="co-street" label="Street address" value={details.street} onChange={(v) => set("street", v)} error={errors.street} autoComplete="street-address" hint="House number, street and estate." />
+      {onAddress ? (
+        <StreetAddressField theme={theme} details={details} error={errors.street} set={set} onAddress={onAddress} />
+      ) : (
+        <TextField theme={theme} id="co-street" label="Street address" value={details.street} onChange={(v) => set("street", v)} error={errors.street} autoComplete="street-address" hint="House number, street and estate." />
+      )}
+      {pin ? <PinPreview theme={theme} point={pin} /> : null}
       <div className="grid gap-4 @2xl:grid-cols-2">
         {regions.length ? (
           <SelectField theme={theme} id="co-state" label="State" value={details.state} onChange={(v) => set("state", v)} error={errors.state} autoComplete="address-level1" options={regions} placeholder="Choose your state" />
@@ -245,6 +258,7 @@ export function DeliveryFields({
         </datalist>
         <TextField theme={theme} id="co-landmark" label="Nearest landmark (optional)" value={details.landmark} onChange={(v) => set("landmark", v)} autoComplete="off" hint="Helps the rider find you." />
         <SelectField theme={theme} id="co-country" label="Country" value={details.country} onChange={onCountry} autoComplete="country-name" options={countries} />
+        {nigeria ? <PostcodeField theme={theme} details={details} error={errors.postcode} set={set} onAddress={onAddress} /> : null}
       </div>
 
       <fieldset className="m-0 mt-1 min-w-0 border-0 p-0">
@@ -283,6 +297,170 @@ export function DeliveryFields({
         </label>
       ) : null}
     </div>
+  );
+}
+
+// ─── Address helpers (Google Maps + NIPOST postcodes) ───────────────────────────
+
+/** The street field with address suggestions as you type and "use my current location". */
+function StreetAddressField({ theme, details, error, set, onAddress }: { theme: ShopperTheme; details: CheckoutDetails; error?: string; set: SetField; onAddress: (address: GeoAddress) => void }) {
+  const status = useGeoStatus();
+  const { suggestions, loading, pick, close } = useAddressSuggestions(details.street, { country: details.country, enabled: status.maps });
+  const { locate, busy, supported } = useMyLocation();
+  const [active, setActive] = useState(-1);
+  const [note, setNote] = useState("");
+  const open = suggestions.length > 0;
+  const listId = "co-street-options";
+
+  async function choose(index: number) {
+    const suggestion = suggestions[index];
+    if (!suggestion) return;
+    setActive(-1);
+    const { data, error: message } = await pick(suggestion);
+    if (data) onAddress(data);
+    setNote(message ?? "");
+  }
+
+  async function useLocation() {
+    setNote("");
+    const { data, error: message } = await locate();
+    if (data) onAddress(data);
+    setNote(message ?? (data && !data.street ? "We found your area. Add your house number and street." : ""));
+  }
+
+  return (
+    <div>
+      <TextField
+        theme={theme}
+        id="co-street"
+        label="Street address"
+        value={details.street}
+        onChange={(value) => {
+          set("street", value);
+          // A pin belongs to the address it came with; typed changes make it unreliable.
+          if (details.lat != null || details.lng != null) {
+            set("lat", null);
+            set("lng", null);
+          }
+          setActive(-1);
+        }}
+        error={error}
+        autoComplete="street-address"
+        hint={status.maps ? "Start typing and pick your address, or add house number, street and estate." : "House number, street and estate."}
+        role="combobox"
+        aria-autocomplete="list"
+        aria-expanded={open}
+        aria-controls={listId}
+        aria-activedescendant={open && active >= 0 ? `${listId}-${active}` : undefined}
+        onKeyDown={(event) => {
+          if (!open) return;
+          if (event.key === "ArrowDown") {
+            event.preventDefault();
+            setActive((index) => (index + 1) % suggestions.length);
+          } else if (event.key === "ArrowUp") {
+            event.preventDefault();
+            setActive((index) => (index <= 0 ? suggestions.length - 1 : index - 1));
+          } else if (event.key === "Enter" && active >= 0) {
+            event.preventDefault();
+            void choose(active);
+          } else if (event.key === "Escape") {
+            close();
+          }
+        }}
+        onBlur={() => window.setTimeout(close, 150)}
+      />
+      {open ? (
+        <ul id={listId} role="listbox" aria-label="Address suggestions" className="m-0 mt-1.5 list-none overflow-hidden rounded-[14px] border bg-white p-1 shadow-lg" style={{ borderColor: theme.border }}>
+          {suggestions.map((suggestion, index) => (
+            <li
+              key={suggestion.placeId}
+              id={`${listId}-${index}`}
+              role="option"
+              aria-selected={index === active}
+              onMouseDown={(event) => {
+                event.preventDefault();
+                void choose(index);
+              }}
+              className="cursor-pointer rounded-[10px] px-3 py-2.5 text-[14.5px]"
+              style={{ background: index === active ? theme.paper : undefined, color: "#16141F" }}
+            >
+              <span className="font-medium">{suggestion.main}</span>
+              {suggestion.secondary ? <span className="block text-[12.5px]" style={{ color: theme.muted }}>{suggestion.secondary}</span> : null}
+            </li>
+          ))}
+          <li aria-hidden className="px-3 pb-1 pt-1.5 text-right text-[10.5px]" style={{ color: theme.muted }}>Powered by Google</li>
+        </ul>
+      ) : null}
+      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+        {supported ? (
+          <button type="button" onClick={useLocation} disabled={busy} className="inline-flex min-h-11 items-center gap-1.5 text-[14px] font-semibold underline-offset-2 hover:underline disabled:opacity-60" style={{ color: theme.cta }}>
+            <Icon name="pin" size={15} /> {busy ? "Finding you…" : "Use my current location"}
+          </button>
+        ) : null}
+        {loading ? <span className="text-[12.5px]" style={{ color: theme.muted }}>Looking up addresses…</span> : null}
+      </div>
+      {note ? <p role="status" className="mt-1 text-[13px]" style={{ color: theme.muted }}>{note}</p> : null}
+    </div>
+  );
+}
+
+/** The optional digital postcode, checked offline as it's typed and with NIPOST once it's complete. */
+function PostcodeField({ theme, details, error, set, onAddress }: { theme: ShopperTheme; details: CheckoutDetails; error?: string; set: SetField; onAddress?: (address: GeoAddress) => void }) {
+  const [state, setState] = useState<{ code: string; text: string; good: boolean } | null>(null);
+  const value = details.postcode ?? "";
+  const parsed = parseNgPostcode(value);
+  const typing = !parsed && couldBeNgPostcode(value);
+  const shownError = error ?? (value.trim() && !typing && normalizeNgPostcode(value) === null ? "That doesn't look like a postcode. They look like LA-11-W06-TC-10." : undefined);
+  const hint = state && parsed && state.code === parsed.canonical ? state.text : parsed ? `${parsed.stateName} postcode` : "Optional. Your NIPOST digital postcode helps the rider find the exact building.";
+
+  async function check() {
+    if (!parsed) return;
+    set("postcode", parsed.canonical);
+    if (!onAddress || state?.code === parsed.canonical) return;
+    const { data } = await lookupPostcode(parsed.canonical);
+    const record = data?.postcode;
+    if (!data || !record) return setState({ code: parsed.canonical, text: `${parsed.stateName} postcode`, good: true });
+    if (record.assigned === false) return setState({ code: parsed.canonical, text: "NIPOST doesn't have this postcode on a building. Check it, or leave it empty.", good: false });
+    setState({ code: parsed.canonical, text: [record.assigned ? "Postcode found" : null, [record.locality, record.lgaName, record.stateName].filter(Boolean).join(", ")].filter(Boolean).join(": "), good: true });
+    // Fill only what the buyer hasn't typed yet.
+    if (!details.street.trim() || !details.city.trim()) onAddress({ ...data, street: details.street.trim() ? "" : data.street });
+  }
+
+  return (
+    <TextField
+      theme={theme}
+      id="co-postcode"
+      label="Postcode (optional)"
+      value={value}
+      onChange={(next) => set("postcode", next.toUpperCase())}
+      onBlur={check}
+      error={shownError}
+      hint={hint}
+      autoComplete="postal-code"
+      autoCapitalize="characters"
+      spellCheck={false}
+      placeholder="LA-11-W06-TC-10"
+      maxLength={20}
+    />
+  );
+}
+
+/** A small map with the pin the buyer picked, so a wrong suggestion is easy to spot. */
+function PinPreview({ theme, point }: { theme: ShopperTheme; point: { lat: number; lng: number } }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return null;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={mapImageUrl(point, { w: 600, h: 200 })}
+      alt="Map showing the delivery address you picked"
+      width={600}
+      height={200}
+      loading="lazy"
+      onError={() => setFailed(true)}
+      className="h-[140px] w-full rounded-[14px] border object-cover"
+      style={{ borderColor: theme.border }}
+    />
   );
 }
 

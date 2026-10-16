@@ -289,7 +289,7 @@ export default function RiderApp() {
               {run.pickupWindow ? <T weight="extrabold" style={{ fontSize: 17, color: colors.accentInk }}>{run.pickupWindow}</T> : null}
               <T style={{ fontSize: 15, color: colors.inkSoft }}>{run.drops.length > 1 ? t.parcels({ count: run.drops.length }) : drop.item}</T>
             </View>
-            <SmallAction icon="pin" label={t.openMap} onPress={() => void Linking.openURL(mapUrl(run.pickupAddress))} />
+            <SmallAction icon="pin" label={t.openMap} onPress={() => void Linking.openURL(run.pickupMapUrl ?? mapUrl(run.pickupAddress))} />
             {error ? <Notice>{error}</Notice> : null}
             <View style={{ marginTop: "auto" }}>
               <BigButton title={t.have} busy={busy === "pickup"} onPress={pickedUp} />
@@ -306,7 +306,7 @@ export default function RiderApp() {
               {drop.collect > 0 ? <T weight="bold" style={{ fontSize: 17, color: "#8A5A00" }}>{t.collect({ amount: naira(drop.collect) })}</T> : null}
             </View>
             <View style={{ flexDirection: "row", gap: 8 }}>
-              <SmallAction icon="pin" label={t.openMap} onPress={() => void Linking.openURL(mapUrl(drop.address))} />
+              <SmallAction icon="pin" label={t.openMap} onPress={() => void Linking.openURL(drop.mapUrl ?? mapUrl(drop.address))} />
               {drop.buyerPhone ? <SmallAction icon="phone" label={t.call} onPress={() => void Linking.openURL(`tel:${drop.buyerPhone}`)} /> : null}
             </View>
             {drop.buyerPhone ? <SmallAction icon="chat" label={t.whatsapp} onPress={() => void Linking.openURL(`https://wa.me/${drop.buyerPhone!.replace(/\D/g, "")}`)} /> : null}

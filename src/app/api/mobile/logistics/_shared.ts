@@ -5,7 +5,7 @@ import { addressLines } from "@/lib/labels";
 import { bookingNet, cashToCollect, jobId, packageInfo, packageSummary, type CodOrder } from "@/components/logistics/kit";
 import { toE164 } from "@shared/phone";
 import { pickupWindowText } from "@shared/supplier-pickup";
-import { riderGroup, riderWhereWords, type LatLng } from "@shared/delivery-geo";
+import { addressPoint, directionsUrl, riderGroup, riderWhereWords, type LatLng } from "@shared/delivery-geo";
 import { ensurePickupCoords } from "@/lib/logistics/geocode";
 
 // Shared by the mobile delivery partner routes (/api/mobile/logistics/**): the job shape the app reads, and
@@ -73,8 +73,16 @@ export function jobView(job: JobRow, order?: OrderRow, pickupGeo?: LatLng | null
     pickupWindow: pickupWindowText(job.pickupWindowStart, job.pickupWindowEnd),
     /** Pickup coordinates, for sorting riders by distance in the picker. */
     pickupGeo: pickupGeo ?? (job.pickupLat !== null && job.pickupLng !== null ? { lat: job.pickupLat, lng: job.pickupLng } : null),
+    /** Google Maps directions to the pickup (its geocoded point when there is one). */
+    pickupMapUrl: directionsUrl({ point: pickupGeo ?? (job.pickupLat !== null && job.pickupLng !== null ? { lat: job.pickupLat, lng: job.pickupLng } : null), address: job.pickupLocation }),
     buyer: open && order
-      ? { name: order.buyerName, phone: order.buyerPhone ? toE164(order.buyerPhone) : null, address: lines.length ? lines.join(", ") : job.destination }
+      ? {
+          name: order.buyerName,
+          phone: order.buyerPhone ? toE164(order.buyerPhone) : null,
+          address: lines.length ? lines.join(", ") : job.destination,
+          // The buyer's exact pin from checkout, when they picked one.
+          mapUrl: directionsUrl({ point: addressPoint(order.deliveryAddress), address: lines.length ? lines.join(", ") : job.destination }),
+        }
       : null,
   };
 }

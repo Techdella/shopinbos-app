@@ -2,8 +2,12 @@ import "server-only";
 import { db } from "@/lib/db/client";
 import { checkRateLimitShared } from "@/lib/rate-limit";
 import { areaFromText, geocodeCacheKey, isLatLng, type LatLng } from "@shared/delivery-geo";
+import { findNgPostcode } from "@shared/ng-postcode";
+import { lookupPostcode } from "@/lib/geo/nipost.server";
 
 // Pickup coordinates for "closest rider". In order:
+//   0. A NIPOST digital postcode written in the address (LA-11-W06-TC-10): the building's own point, when the
+//      NIPOST key's lookup level returns one (src/lib/geo/nipost.server.ts, cached there).
 //   1. GeocodeCache: every address is looked up once (hits and misses are stored; misses are retried after 7 days).
 //   2. Google Geocoding when GOOGLE_MAPS_API_KEY is set.
 //   3. Otherwise OpenStreetMap Nominatim, with the User-Agent its usage policy asks for and at most one request a
@@ -11,7 +15,7 @@ import { areaFromText, geocodeCacheKey, isLatLng, type LatLng } from "@shared/de
 //   4. If neither places the address, the centre of the area it names ("…, Ikeja, Lagos" → Ikeja), not cached.
 // GOOGLE_GEOCODE_BASE_URL / NOMINATIM_BASE_URL point at local stubs in tests. Never throws.
 
-export type GeoSource = "google" | "nominatim" | "area";
+export type GeoSource = "nipost" | "google" | "nominatim" | "area";
 export type GeoResult = LatLng & { source: GeoSource; label: string | null };
 
 const USER_AGENT = "Shopinbos/1.0 (support@shopinbos.com)";
@@ -86,6 +90,11 @@ export async function geocodeAddress(address: string, country?: string | null): 
   const query = address.trim().replace(/\s+/g, " ").slice(0, 300);
   if (!query) return null;
   const cc = countryCode(country);
+  if (cc === "ng") {
+    const postcode = findNgPostcode(query);
+    const record = postcode ? await lookupPostcode(postcode).catch(() => null) : null;
+    if (record?.valid && record.point) return { ...record.point, source: "nipost", label: [record.locality, record.lgaName, record.stateName].filter(Boolean).join(", ") || postcode!.spaced };
+  }
   const key = geocodeCacheKey(query, cc);
 
   const cached = await db.geocodeCache.findUnique({ where: { key } }).catch(() => null);

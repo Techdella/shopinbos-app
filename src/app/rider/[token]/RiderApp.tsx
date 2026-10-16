@@ -13,6 +13,8 @@ export interface RiderDrop {
   status: string;
   address: string;
   area: string;
+  /** Google Maps directions (the buyer's pin when they picked one at checkout). */
+  mapUrl: string | null;
   buyerName: string | null;
   /** E.164, e.g. +2348034127790. */
   buyerPhone: string | null;
@@ -26,6 +28,7 @@ export interface RiderRun {
   pickupAddress: string;
   /** Supplier pickups: "Pick up 12–4pm today". */
   pickupWindow?: string | null;
+  pickupMapUrl: string | null;
   fees: number;
   drops: RiderDrop[];
 }
@@ -173,6 +176,7 @@ function RunCard({ token, run, onError }: { token: string; run: RiderRun; onErro
           <h3 className="m-0 text-[17px] font-extrabold leading-tight">{t("run.pickUp", { name: run.pickupName })}</h3>
           <p className="m-0 mt-0.5 break-words text-[14px] text-app-ink-soft">{run.pickupAddress}</p>
           {run.pickupWindow && <p className="m-0 mt-0.5 text-[14.5px] font-extrabold text-app-accent-ink">{run.pickupWindow}</p>}
+          {run.pickupMapUrl && <DirectionsLink href={run.pickupMapUrl} label={t("run.directions")} />}
         </div>
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
@@ -198,6 +202,15 @@ function RunCard({ token, run, onError }: { token: string; run: RiderRun; onErro
         {run.drops.map((drop, index) => <DropRow key={drop.id} token={token} drop={drop} index={index} />)}
       </ol>
     </article>
+  );
+}
+
+/** Opens Google Maps (the app on phones) with directions. The rider link is the credential, so no referrer. */
+function DirectionsLink({ href, label }: { href: string; label: string }) {
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" className="mt-1.5 inline-flex min-h-9 items-center gap-1.5 rounded-full bg-app-canvas px-3 text-[13.5px] font-bold text-app-ink">
+      <Icon name="pin" size={15} /> {label}
+    </a>
   );
 }
 
@@ -259,6 +272,7 @@ function DropRow({ token, drop, index }: { token: string; drop: RiderDrop; index
           <p className="m-0 mt-0.5 text-[13.5px] text-app-ink-soft">
             {[drop.buyerName, drop.item].filter(Boolean).join(" · ")}
           </p>
+          {drop.mapUrl && <DirectionsLink href={drop.mapUrl} label={t("drop.directions")} />}
           {drop.collect > 0 && (
             <p className="m-0 mt-1.5 inline-block rounded-full bg-app-peach px-3 py-1 text-[13px] font-extrabold text-app-accent-ink">{t("drop.collect", { amount: naira(drop.collect) })}</p>
           )}

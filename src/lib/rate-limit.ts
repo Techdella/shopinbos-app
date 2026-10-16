@@ -96,6 +96,9 @@ export const PUBLIC_LIMITS = {
   abandonedCart: { maxRequests: 60, windowMs: 60_000 },
   wishlist: { maxRequests: 60, windowMs: 60_000 },
   visit: { maxRequests: 60, windowMs: 60_000 },
+  // Address suggestions, pins, postcode checks and map previews (/api/public/geo/*): each is a paid Google or NIPOST
+  // call on a miss, so it's counted globally. A buyer typing an address uses a few dozen.
+  address: { maxRequests: 120, windowMs: 10 * 60_000 },
 } as const satisfies Record<string, RateLimitConfig>;
 
 export type PublicAction = keyof typeof PUBLIC_LIMITS;
@@ -111,6 +114,7 @@ export const SHARED_PUBLIC_LIMITS: Partial<Record<PublicAction, { failClosed?: b
   form: {},
   abandonedCart: {},
   wishlist: {},
+  address: {},
 };
 
 /** The key a public action counts under for this IP (hashed: the table never holds raw IPs). */

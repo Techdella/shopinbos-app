@@ -28,6 +28,7 @@ import { getT } from "@/lib/i18n/server";
 import { StoreAddressFields } from "@/components/seller-settings/StoreAddressFields";
 import { getPlatformRootDomain } from "@/lib/domains/storefront";
 import { slugCooldownDaysLeft } from "@shared/store-address";
+import { AddressAutofill } from "@/components/geo/AddressAutofill";
 
 export const dynamic = "force-dynamic";
 
@@ -152,6 +153,7 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
                       action={businessAddressReady ? <Pill tone="success">{t("addr.added")}</Pill> : <Pill tone="warning">{t("addr.needed")}</Pill>}
                     />
                     <div className="mt-4 grid gap-4">
+                      <AddressAutofill targets={{ street: "line1", city: "addressCity", state: "addressState", country: "addressCountry", postcode: "postalCode" }} />
                       <div>
                         <label htmlFor="legalName" className={FIELD_LABEL}>{t("addr.legalName")}</label>
                         <input id="legalName" name="legalName" className={FIELD_INPUT} defaultValue={businessAddress.legalName} placeholder={storeName} autoComplete="organization" />
@@ -176,7 +178,7 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
                         </div>
                         <div className="min-w-0">
                           <label htmlFor="postalCode" className={FIELD_LABEL}>{t("addr.postal")}</label>
-                          <input id="postalCode" name="postalCode" className={FIELD_INPUT} defaultValue={businessAddress.postalCode} autoComplete="postal-code" />
+                          <input id="postalCode" name="postalCode" className={FIELD_INPUT} defaultValue={businessAddress.postalCode} placeholder="LA-11-W06-TC-10" autoComplete="postal-code" autoCapitalize="characters" spellCheck={false} />
                         </div>
                         <div className="min-w-0">
                           <label htmlFor="addressCountry" className={FIELD_LABEL}>{t("country")}</label>

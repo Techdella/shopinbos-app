@@ -90,6 +90,8 @@ import { TransferInstructions, type TransferDetails } from "../order/[orderId]/T
 import { readGameConfig } from "@/lib/gamification/logic";
 import { RewardProgress } from "@/components/storefront/gamification/RewardProgress";
 import { PointsAtCheckout, WonCodeBanner } from "@/components/storefront/gamification/Rewards";
+import type { GeoAddress } from "@/lib/geo/types";
+import { matchRegion } from "@shared/ng-postcode";
 
 // The checkout in the layout the seller chose in the store builder (checkout page settings, read from the published
 // snapshot): Two columns, One page, Steps (contact → delivery → payment) or Minimal. Guest checkout (no account),
@@ -123,7 +125,7 @@ interface Quote {
   points?: { points: number; amount: number; balance: number; max: number } | null;
 }
 
-const EMPTY_DETAILS: CheckoutDetails = { name: "", email: "", phone: "", street: "", city: "", state: "", country: "", landmark: "" };
+const EMPTY_DETAILS: CheckoutDetails = { name: "", email: "", phone: "", street: "", city: "", state: "", country: "", landmark: "", postcode: "", lat: null, lng: null };
 
 export function CheckoutClient({ store, storeBasePath, commerce, preview = false, design }: Props) {
   const router = useRouter();
@@ -304,6 +306,25 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
   }
 
+  /** A picked suggestion, "use my location" or a looked-up postcode: fills what it knows, keeps the rest. */
+  function applyAddress(address: GeoAddress) {
+    setDetails((prev) => {
+      const country = address.country ? countryName(address.country) : prev.country;
+      const state = matchRegion(address.state, regionsFor(country)) || (regionsFor(country).length ? prev.state : address.state || prev.state);
+      return {
+        ...prev,
+        street: address.street || prev.street,
+        city: address.city || prev.city,
+        state,
+        country,
+        postcode: address.postcode?.postcode ?? prev.postcode,
+        lat: address.lat ?? prev.lat ?? null,
+        lng: address.lng ?? prev.lng ?? null,
+      };
+    });
+    setErrors((prev) => ({ ...prev, street: undefined, city: undefined, state: undefined, postcode: undefined }));
+  }
+
   async function applyCode(value: string, quiet = false) {
     if (!value.trim()) return;
     setCheckingCode(true);
@@ -394,6 +415,9 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
             state: details.state.trim() || undefined,
             country: details.country.trim() || undefined,
             landmark: details.landmark.trim() || undefined,
+            postalCode: details.postcode?.trim() || undefined,
+            lat: typeof details.lat === "number" ? details.lat : undefined,
+            lng: typeof details.lng === "number" ? details.lng : undefined,
           },
           items: cart.items.map(({ productId, name, price, quantity, image, variant, variantId }) => ({ productId, name, price, quantity, image, variant, variantId })),
           paymentMethod: isPaystack ? "inline" : paymentMethod,
@@ -639,6 +663,7 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
       currency={store.currency}
       saveOnDevice={saveOnDevice}
       onSaveOnDevice={setSaveOnDevice}
+      onAddress={preview ? undefined : applyAddress}
     />
   );
   const paymentFields = (
@@ -803,6 +828,7 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
             <ReviewBlock theme={theme} title="Delivery" onEdit={createdOrder ? undefined : () => goTo(1)}>
               {[details.street, details.city, details.state, details.country].filter(Boolean).join(", ")}
               {details.landmark ? <><br />Near {details.landmark}</> : null}
+              {details.postcode ? <><br />Postcode {details.postcode}</> : null}
               <br />
               <span style={{ color: theme.muted }}>{deliveryLine}</span>
             </ReviewBlock>

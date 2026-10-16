@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { normalizeNgPostcode } from "@shared/ng-postcode";
 import { db } from "@/lib/db/client";
 import { withCors, handleOptions } from "@/lib/api/cors";
 import { created, apiError } from "@/lib/api/response";
@@ -14,7 +15,7 @@ import { cleanAffiliateCode, commissionFor } from "@shared/affiliates";
 import { priceOrder } from "@/lib/commerce/pricing.server";
 import { markCartRecovered } from "@/lib/commerce/abandoned-cart.server";
 import { spendPoints } from "@/lib/gamification/loyalty.server";
-import { isPhone, orderNotes, readCheckoutSettings } from "@shared/cart-checkout";
+import { isNigeria, isPhone, orderNotes, readCheckoutSettings } from "@shared/cart-checkout";
 import {
   checkoutPaymentOptions,
   checkoutPaymentSettings,
@@ -50,7 +51,10 @@ const CheckoutSchema = z.object({
     country: z.string().max(80).optional(),
     postalCode: z.string().max(20).optional(),
     landmark: z.string().max(160).optional(),
-  }),
+    // The pin of a picked suggestion or "use my location" (riders get directions to it).
+    lat: z.number().min(-90).max(90).optional(),
+    lng: z.number().min(-180).max(180).optional(),
+  }).transform(({ lat, lng, ...address }) => (lat !== undefined && lng !== undefined ? { ...address, lat, lng } : address)),
   items: z.array(z.object({
     productId: z.string(),
     name: z.string().optional(),
@@ -137,6 +141,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     return withCors(req, apiError("BAD_REQUEST", buyerEmail || !link ? "Enter a valid email address." : "Add your email to pay by card. We send the receipt there."), CHECKOUT_CORS);
   }
 
+  // Nigerian postcodes are stored the one way NIPOST writes them (LA-11-W06-TC-10); old six-digit ones as typed.
+  if (deliveryAddress.postalCode !== undefined && isNigeria(deliveryAddress.country)) {
+    const postcode = normalizeNgPostcode(deliveryAddress.postalCode);
+    if (postcode === null) return withCors(req, apiError("BAD_REQUEST", "Check the postcode. It looks like LA-11-W06-TC-10, or leave it empty."), CHECKOUT_CORS);
+    deliveryAddress.postalCode = postcode || undefined;
+  }
   if (buyerPhone && !isPhone(buyerPhone)) {
     return withCors(req, apiError("BAD_REQUEST", "Enter a phone number with 7 to 15 digits."), CHECKOUT_CORS);
   }

@@ -1253,7 +1253,7 @@ model DeliveryBooking {
   /// When the rider should collect it (supplier pickups): "Pick up 12–4pm today".
   pickupWindowStart  DateTime?
   pickupWindowEnd    DateTime?
-  /// Pickup coordinates for "closest rider" (lib/logistics/geocode.ts): google | nominatim | area.
+  /// Pickup coordinates for "closest rider" (lib/logistics/geocode.ts): nipost | google | nominatim | area.
   pickupLat          Float?
   pickupLng          Float?
   pickupGeoSource    String?

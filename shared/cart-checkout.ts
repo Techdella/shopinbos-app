@@ -3,6 +3,7 @@
 // shopper sees is the total the API charges.
 
 import { matchZone } from "./checkout-payments.ts";
+import { normalizeNgPostcode } from "./ng-postcode.ts";
 
 // ─── Bag lines ────────────────────────────────────────────────────────────────
 
@@ -251,6 +252,17 @@ export interface CheckoutDetails {
   state: string;
   country: string;
   landmark: string;
+  /** Optional NIPOST digital postcode (LA-11-W06-TC-10) or an old six-digit one. */
+  postcode?: string;
+  /** The pin of the picked address suggestion or "use my location"; cleared when the street is edited by hand. */
+  lat?: number | null;
+  lng?: number | null;
+}
+
+/** Nigeria (or no country yet, which the checkout defaults to Nigeria). */
+export function isNigeria(country: string | null | undefined) {
+  const value = (country ?? "").trim().toLowerCase();
+  return !value || value === "nigeria" || value === "ng";
 }
 
 export interface CheckoutRules {
@@ -299,6 +311,9 @@ export function stepErrors(
     if (details.street.trim().length < 3) errors.street = "Enter your street address.";
     if (!details.city.trim()) errors.city = "Enter your area or city.";
     if (rules.requireState && !details.state.trim()) errors.state = "Choose your state.";
+    if (isNigeria(details.country) && normalizeNgPostcode(details.postcode) === null) {
+      errors.postcode = "Check the postcode. It looks like LA-11-W06-TC-10, or leave it empty.";
+    }
     if (rules.deliveryOptionIds.length > 0 && !rules.deliveryOptionIds.includes(choice.deliveryOptionId ?? rules.deliveryOptionIds[0]!)) {
       errors.deliveryOption = "Choose a delivery option.";
     }
@@ -324,8 +339,14 @@ export function sanitizeSavedDetails(value: unknown): Partial<CheckoutDetails> {
   if (!value || typeof value !== "object") return {};
   const raw = value as Record<string, unknown>;
   const out: Partial<CheckoutDetails> = {};
-  for (const key of ["name", "email", "phone", "street", "city", "state", "country", "landmark"] as const) {
+  for (const key of ["name", "email", "phone", "street", "city", "state", "country", "landmark", "postcode"] as const) {
     if (typeof raw[key] === "string") out[key] = (raw[key] as string).slice(0, 200);
+  }
+  const lat = Number(raw.lat);
+  const lng = Number(raw.lng);
+  if (typeof raw.lat === "number" && typeof raw.lng === "number" && Math.abs(lat) <= 90 && Math.abs(lng) <= 180) {
+    out.lat = lat;
+    out.lng = lng;
   }
   return out;
 }
