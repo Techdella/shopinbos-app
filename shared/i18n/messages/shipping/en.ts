@@ -220,6 +220,14 @@ const en = {
   "invite.page.accept": "Accept: deliver for {store}",
   "invite.page.wrongRole": "You're signed in with an account that isn't a delivery company. Sign out, then sign in with your delivery company account to accept.",
   "invite.page.done": "You're {store}'s delivery company on Shopinbos.",
+  "fleet.planLimit": "{count} of {limit} riders on your plan",
+  "sup.title": "Delivery",
+  "sup.sub": "Your own riders and the delivery company you already use.",
+  "sup.deliveries": "Deliveries with your riders",
+  "sup.latest": "The latest ones",
+  "sup.noJobs": "No deliveries with your riders yet.",
+  "sup.inviteSub": "Already use a delivery company? Invite them to Shopinbos: pickups of your packed orders go to them first.",
+  "sup.inviteNote": "When they join, pickups of your packed orders go to them first, unless the shop picked its own delivery company. Shopinbos checks every delivery company before it can take jobs.",
 } satisfies Record<string, string>;
 
 export default en;

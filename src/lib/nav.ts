@@ -239,6 +239,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
           ],
         },
         { id: "quote-requests", label: "Quote requests", icon: "chat", href: "/supplier/quote-requests" },
+        { id: "delivery", label: "Delivery", icon: "truck", href: "/supplier/delivery" },
         {
           id: "products", label: "Products", icon: "bag", href: "/supplier/products", core: true,
           children: [

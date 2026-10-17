@@ -71,3 +71,31 @@ test("riders and invites are translated in every language", async () => {
     for (const key of keys) assert.ok(messages[key], `${lang}: ${key}`);
   }
 });
+
+test("riders by plan: Starter 3, Growth 15, Pro 50; suppliers 3 free, 50 on Supplier Max", () => {
+  const limits = read("src/lib/plan-limits.ts");
+  assert.match(limits, /RIDER_LIMITS = \{ starter: 3, growth: 15, pro: 50, supplier_free: 3, supplier_max: 50 \}/);
+  assert.match(limits, /credits >= 200 \? RIDER_LIMITS\.pro : credits >= 50 \? RIDER_LIMITS\.growth : RIDER_LIMITS\.starter/);
+  const fleet = read("src/lib/logistics/fleet.server.ts");
+  assert.match(fleet, /const plan = await fleetRiderLimit\(sellerId\);\n  if \(count >= plan\.limit\) throw new FleetError\(plan\.message\);/);
+});
+
+test("suppliers get their own riders and invites, never tied to a shop order", () => {
+  for (const path of [
+    "src/app/api/supplier/logistics/my-riders/route.ts",
+    "src/app/api/supplier/logistics/my-riders/[id]/route.ts",
+    "src/app/api/supplier/logistics/my-riders/[id]/link/route.ts",
+    "src/app/api/supplier/logistics/my-riders/jobs/route.ts",
+    "src/app/api/supplier/logistics/my-riders/jobs/[id]/route.ts",
+    "src/app/api/supplier/logistics/invites/route.ts",
+    "src/app/api/supplier/logistics/invites/[id]/route.ts",
+  ]) {
+    const route = read(path);
+    assert.match(route, /withSupplier\(/, path);
+    assert.doesNotMatch(route, /withSeller/, path);
+  }
+  assert.match(read("src/app/api/supplier/logistics/my-riders/jobs/route.ts"), /\{ \.\.\.parsed\.data, orderId: null \}/);
+  assert.match(read("src/app/supplier/delivery/page.tsx"), /logisticsPartner: \{ ownerId: user\.id \}/);
+  // A company the supplier invited collects their pickups, after the shop's own choice.
+  assert.match(read("src/lib/supplier-orders/pickup.server.ts"), /linkedPartnerIds\(order\.supplier\.userId\)/);
+});

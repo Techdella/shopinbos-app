@@ -94,6 +94,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   customise: "Hazie menu gị",
   "supplier.dashboard": "Taa",
   "supplier.quote-requests": "Quote requests",
+  "supplier.delivery": "Nnyefe",
   "supplier.dropship-orders": "Dropship orders",
   "supplier.wholesale-orders": "Wholesale orders",
   "supplier.buyers": "Ndị na-azụ",

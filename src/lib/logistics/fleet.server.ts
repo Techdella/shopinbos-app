@@ -3,21 +3,46 @@ import { randomUUID } from "node:crypto";
 import { toE164 } from "@shared/phone";
 import { db } from "@/lib/db/client";
 import { appOrigin } from "@/lib/ads";
+import { riderLimit, riderLimitMessage } from "@/lib/plan-limits";
 import { notifyRiderAssigned } from "@/lib/notifications/events.server";
 import { orderCollectAmount } from "./booking.server";
 import { makeDeliveryCode } from "./job-rules";
 import { transitionJob } from "./jobs";
 import { newRiderToken } from "./rider-token";
 
-// "My riders": a seller's own delivery riders. Each seller gets one private fleet, a LogisticsPartner row with
+// "My riders": a seller's (or supplier's) own delivery riders. Each gets one private fleet, a LogisticsPartner row with
 // ownerId = the seller (and a system user nobody signs in as), so their riders use the same Riders app, private
 // links and job steps as a delivery partner's riders. A fleet is never listed as a partner, carries no Shopinbos fee,
 // and the cash its riders collect on pay-on-delivery orders is the seller's: it's never a Shopinbos pay-in.
 
 export class FleetError extends Error {}
 
-/** Riders a seller can have at once. */
-export const FLEET_RIDER_LIMIT = 50;
+/** Riders an account can have at once: by plan (riderLimit in src/lib/plan-limits.ts). */
+export async function fleetRiderLimit(ownerId: string) {
+  const owner = await db.user.findUnique({ where: { id: ownerId }, select: { role: true, aiCredits: true } });
+  return { limit: riderLimit(owner ?? {}), message: riderLimitMessage(owner ?? {}) };
+}
+
+/** The name riders and delivery companies know the account by: the store, else the supplier's business. */
+export async function fleetOwner(ownerId: string) {
+  const user = await db.user.findUnique({
+    where: { id: ownerId },
+    select: { name: true, phone: true, role: true, store: { select: { name: true, slug: true, city: true, logoUrl: true } }, supplier: { select: { displayName: true, slug: true, city: true, logoUrl: true } } },
+  });
+  if (!user) return null;
+  const shop = user.role === "supplier" ? user.supplier : user.store ?? user.supplier;
+  return {
+    name: (user.role === "supplier" ? user.supplier?.displayName : user.store?.name) || user.name || "",
+    slug: shop?.slug ?? null,
+    city: shop?.city ?? null,
+    logoUrl: shop?.logoUrl ?? null,
+    phone: user.phone,
+    role: user.role,
+  };
+}
+
+/** Where the owner manages their riders and deliveries. */
+export const fleetPage = (role: string | null | undefined) => (role === "supplier" ? "/supplier/delivery" : "/home/logistics");
 
 const OPEN = ["pending", "confirmed", "picked_up", "in_transit"] as const;
 
@@ -25,9 +50,9 @@ const OPEN = ["pending", "confirmed", "picked_up", "in_transit"] as const;
 export async function ensureSellerFleet(sellerId: string) {
   const existing = await db.logisticsPartner.findUnique({ where: { ownerId: sellerId }, select: { id: true } });
   if (existing) return existing;
-  const seller = await db.user.findUnique({ where: { id: sellerId }, select: { name: true, phone: true, store: { select: { name: true, slug: true, city: true } } } });
+  const seller = await fleetOwner(sellerId);
   if (!seller) throw new FleetError("We couldn't find your account. Sign in again.");
-  const name = seller.store?.name || seller.name || "My riders";
+  const name = seller.name || "My riders";
   const user = await db.user.upsert({
     where: { supabaseId: `fleet:${sellerId}` },
     create: { supabaseId: `fleet:${sellerId}`, name, role: "logistics_partner", country: "Nigeria", verificationStatus: "verified" },
@@ -41,9 +66,9 @@ export async function ensureSellerFleet(sellerId: string) {
       ownerId: sellerId,
       companyName: name,
       displayName: name,
-      slug: `fleet-${seller.store?.slug ?? sellerId}`.slice(0, 120),
+      slug: `fleet-${seller.slug ?? sellerId}`.slice(0, 120),
       country: "Nigeria",
-      city: seller.store?.city || "Lagos",
+      city: seller.city || "Lagos",
       whatsappNumber: seller.phone ?? null,
       pricingModel: "own",
       verificationStatus: "verified",
@@ -94,7 +119,8 @@ export async function addSellerRider(sellerId: string, input: { name: string; ph
   if (!toE164(phone)) throw new FleetError("Add the rider's phone number, like 0803 123 4567.");
   const fleet = await ensureSellerFleet(sellerId);
   const count = await db.logisticsTeamMember.count({ where: { logisticsPartnerId: fleet.id, role: "rider", status: "active" } });
-  if (count >= FLEET_RIDER_LIMIT) throw new FleetError(`You can have up to ${FLEET_RIDER_LIMIT} riders. Remove one first.`);
+  const plan = await fleetRiderLimit(sellerId);
+  if (count >= plan.limit) throw new FleetError(plan.message);
   // Riders sign in with their link, not email: the email only fills the required field and is never used.
   const member = await db.logisticsTeamMember.create({
     data: { logisticsPartnerId: fleet.id, name, phone, email: `rider-${randomUUID()}@riders.shopinbos.invalid`, role: "rider", status: "active" },

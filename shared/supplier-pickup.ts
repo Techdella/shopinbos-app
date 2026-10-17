@@ -330,14 +330,17 @@ function usable(partner: PartnerChoice | undefined | null): partner is PartnerCh
 }
 
 /**
- * Who collects a supplier's parcel: the shop's chosen delivery company, else the platform's default one
+ * Who collects a supplier's parcel: the shop's chosen delivery company, else one the supplier invited (ownIds), else
+ * the platform's default one
  * (SHOPINBOS_DEFAULT_DELIVERY_PARTNER_ID), else the most reliable company covering the area. Only active
  * ("taking new jobs") verified companies that cover the pickup area. Null: nobody covers it, the admin team finds one.
  */
-export function choosePickupPartner(input: { preferredId?: string | null; defaultId?: string | null; partners: PartnerChoice[]; area: { city?: string | null; state?: string | null } }): { id: string; why: "shop" | "default" | "best" } | null {
+export function choosePickupPartner(input: { preferredId?: string | null; ownIds?: string[]; defaultId?: string | null; partners: PartnerChoice[]; area: { city?: string | null; state?: string | null } }): { id: string; why: "shop" | "supplier" | "default" | "best" } | null {
   const byId = new Map(input.partners.map((partner) => [partner.id, partner]));
   const fits = (partner: PartnerChoice | undefined) => usable(partner) && partnerCovers(partner, input.area);
   if (input.preferredId && fits(byId.get(input.preferredId))) return { id: input.preferredId, why: "shop" };
+  const own = (input.ownIds ?? []).find((id) => fits(byId.get(id)));
+  if (own) return { id: own, why: "supplier" };
   if (input.defaultId && fits(byId.get(input.defaultId))) return { id: input.defaultId, why: "default" };
   const best = input.partners
     .filter(fits)

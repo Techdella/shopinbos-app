@@ -94,6 +94,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   customise: "Arrange your menu",
   "supplier.dashboard": "Today",
   "supplier.quote-requests": "Quote requests",
+  "supplier.delivery": "Delivery",
   "supplier.dropship-orders": "Dropship orders",
   "supplier.wholesale-orders": "Wholesale orders",
   "supplier.buyers": "Buyers",

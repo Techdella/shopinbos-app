@@ -222,6 +222,14 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "invite.page.accept": "Nabata: na-ebugara {store}",
   "invite.page.wrongRole": "Account i ji banye abụghị account ụlọ ọrụ delivery. Pụọ, wee jiri account ụlọ ọrụ delivery gị banye ka ị nabata.",
   "invite.page.done": "Ị bụzi ụlọ ọrụ delivery {store} na Shopinbos.",
+  "fleet.planLimit": "Riders {count} n'ime {limit} plan gị kwere",
+  "sup.title": "Nnyefe",
+  "sup.sub": "Riders nke gị na ụlọ ọrụ delivery ị na-eji.",
+  "sup.deliveries": "Nnyefe gị na riders gị",
+  "sup.latest": "Ndị ọhụrụ",
+  "sup.noJobs": "Ọ nweghị nnyefe gị na riders gị ka.",
+  "sup.inviteSub": "Ị na-eji ụlọ ọrụ delivery? Kpọọ ha bịa Shopinbos: ha ga-ebu ụzọ bulite order ndị ị kwakọbara.",
+  "sup.inviteNote": "Mgbe ha sonyere, ha ga-ebu ụzọ bulite order ndị ị kwakọbara, ma ọ bụrụ na ụlọ ahịa ahọrọghị ụlọ ọrụ delivery nke ya. Shopinbos na-enyocha ụlọ ọrụ delivery ọ bụla tupu ọ nara ọrụ.",
 };
 
 export default ig;

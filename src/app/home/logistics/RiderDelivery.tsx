@@ -9,7 +9,7 @@ import { useT } from "@/components/i18n/I18nProvider";
 // Giving a delivery to one of the seller's own riders (free, no Shopinbos fee), then a ready WhatsApp message for
 // the rider. FleetJobActions lets the seller move it by hand for a rider without a smartphone.
 
-export function RiderDelivery({ riders, defaultPickup, orderId }: { riders: Array<{ id: string; name: string }>; defaultPickup?: string; orderId?: string }) {
+export function RiderDelivery({ riders, defaultPickup, orderId, api = "/api/app/logistics" }: { riders: Array<{ id: string; name: string }>; defaultPickup?: string; orderId?: string; api?: string }) {
   const t = useT("shipping", "common");
   const router = useRouter();
   const [riderId, setRiderId] = useState(riders[0]?.id ?? "");
@@ -27,7 +27,7 @@ export function RiderDelivery({ riders, defaultPickup, orderId }: { riders: Arra
     setBusy(true);
     setError(null);
     setSent(null);
-    const res = await fetch("/api/app/logistics/my-riders/jobs", {
+    const res = await fetch(`${api}/my-riders/jobs`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -105,7 +105,7 @@ export function RiderDelivery({ riders, defaultPickup, orderId }: { riders: Arra
 }
 
 /** Picked up / delivered / failed for a delivery with the seller's own rider. */
-export function FleetJobActions({ bookingId, status }: { bookingId: string; status: string }) {
+export function FleetJobActions({ bookingId, status, api = "/api/app/logistics" }: { bookingId: string; status: string; api?: string }) {
   const t = useT("shipping", "common");
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
@@ -114,7 +114,7 @@ export function FleetJobActions({ bookingId, status }: { bookingId: string; stat
     if (to !== "picked_up" && !(await confirmDialog(t(to === "delivered" ? "fleet.deliveredConfirm" : "fleet.failedConfirm")))) return;
     setBusy(to);
     setError(null);
-    const res = await fetch(`/api/app/logistics/my-riders/jobs/${encodeURIComponent(bookingId)}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ to }) }).catch(() => null);
+    const res = await fetch(`${api}/my-riders/jobs/${encodeURIComponent(bookingId)}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ to }) }).catch(() => null);
     const json = res ? ((await res.json().catch(() => null)) as { error?: { message?: string } } | null) : null;
     setBusy(null);
     if (!res?.ok) return setError(json?.error?.message ?? t("fleet.failed"));

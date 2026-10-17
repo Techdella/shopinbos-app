@@ -222,6 +222,14 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "invite.page.accept": "Accept: deliver for {store}",
   "invite.page.wrongRole": "The account wey you sign in no be delivery company account. Sign out, then sign in with your delivery company account to accept.",
   "invite.page.done": "You don be {store} delivery company for Shopinbos.",
+  "fleet.planLimit": "{count} out of {limit} riders for your plan",
+  "sup.title": "Delivery",
+  "sup.sub": "Your own riders and the delivery company wey you dey use already.",
+  "sup.deliveries": "Deliveries wey your riders dey do",
+  "sup.latest": "The latest ones",
+  "sup.noJobs": "Your riders never get any delivery yet.",
+  "sup.inviteSub": "You get delivery company wey you dey use? Invite dem come Shopinbos: na dem go first pick up your orders wey you don pack.",
+  "sup.inviteNote": "When dem join, na dem go first pick up your orders wey you don pack, unless the shop choose their own delivery company. Shopinbos dey check every delivery company before dem fit collect jobs.",
 };
 
 export default pcm;

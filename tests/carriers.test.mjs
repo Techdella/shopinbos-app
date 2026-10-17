@@ -156,3 +156,11 @@ test("every carrier is registered and its webhook only triggers a fresh read", (
   assert.match(webhook, /syncCarrierJobs\(\{ ids: \[booking\.id\] \}\)/);
   assert.doesNotMatch(webhook, /transitionJob/);
 });
+
+test("Fez: the portal's API key and secret key work without a login", () => {
+  const src = readFileSync(new URL("../src/lib/logistics/carriers/fez.ts", import.meta.url), "utf8");
+  assert.match(src, /if \(apiKey && secretKey\) return \{ ok: true, value: \{ token: apiKey, secret: secretKey, fixed: true \} \};/);
+  assert.match(src, /process\.env\.FEZ_API_KEY/);
+  assert.match(src, /process\.env\.FEZ_SECRET_KEY/);
+  assert.match(src, /\{ key: "apiKey", label: "Fez API key", secret: true \}/);
+});

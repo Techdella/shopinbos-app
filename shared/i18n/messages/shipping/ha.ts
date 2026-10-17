@@ -222,6 +222,14 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "invite.page.accept": "Karɓa: yi delivery ga {store}",
   "invite.page.wrongRole": "Account da kuka shiga ba na kamfanin delivery ba ne. Ku fita, sannan ku shiga da account na kamfanin delivery ɗinku don karɓa.",
   "invite.page.done": "Kun zama kamfanin delivery na {store} a Shopinbos.",
+  "fleet.planLimit": "Riders {count} cikin {limit} da plan ɗinku ya ba da dama",
+  "sup.title": "Isar da kaya",
+  "sup.sub": "Riders ɗinku da kamfanin delivery da kuke amfani da shi.",
+  "sup.deliveries": "Isar da kaya da riders ɗinku",
+  "sup.latest": "Sababbi",
+  "sup.noJobs": "Babu isar da kaya da riders ɗinku tukuna.",
+  "sup.inviteSub": "Kuna amfani da kamfanin delivery? Gayyace su zuwa Shopinbos: su ne za su fara ɗaukar odar da kuka shirya.",
+  "sup.inviteNote": "Idan sun shiga, su ne za su fara ɗaukar odar da kuka shirya, sai dai idan shagon ya zaɓi kamfanin delivery nasa. Shopinbos na duba kowane kamfanin delivery kafin ya fara karɓar ayyuka.",
 };
 
 export default ha;

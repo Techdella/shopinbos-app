@@ -10,7 +10,7 @@ import { NetworkAccounts } from "./NetworkAccounts";
 import { MyRiders } from "./MyRiders";
 import { FleetJobActions, RiderDelivery } from "./RiderDelivery";
 import { InviteCompany } from "./InviteCompany";
-import { sellerRiders } from "@/lib/logistics/fleet.server";
+import { fleetRiderLimit, sellerRiders } from "@/lib/logistics/fleet.server";
 import { linkedPartnerIds, sellerInvites } from "@/lib/logistics/invites.server";
 import { sellerNetworks } from "@/lib/logistics/networks.server";
 import { canStoreNetworkAccounts } from "@/lib/logistics/carriers/accounts.server";
@@ -77,7 +77,7 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
     db.deliveryQuoteRequest.findMany({ where: { sellerId: user.id }, include: { logisticsPartner: { select: { displayName: true } } }, orderBy: { createdAt: "desc" }, take: 6 }),
     db.deliveryBooking.findMany({ where: { sellerId: user.id }, include: { logisticsPartner: { select: { displayName: true, ownerId: true } }, rider: { select: { name: true } } }, orderBy: { createdAt: "desc" }, take: 8 }),
   ]);
-  const [riders, invites, linkedIds] = await Promise.all([sellerRiders(user.id), sellerInvites(user.id), linkedPartnerIds(user.id)]);
+  const [riders, invites, linkedIds, riderPlan] = await Promise.all([sellerRiders(user.id), sellerInvites(user.id), linkedPartnerIds(user.id), fleetRiderLimit(user.id)]);
   // The delivery companies this seller invited come first, marked "Your delivery company".
   const linked = new Set(linkedIds);
   partners.sort((a, b) => Number(linked.has(b.id)) - Number(linked.has(a.id)));
@@ -220,7 +220,7 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
               <div id="my-riders" className="scroll-mt-4" />
               <CardHead title={t("fleet.title")} sub={t("fleet.sub")} />
               <div className="mt-4">
-                <MyRiders riders={riders} storeName={workspace.store?.name ?? ""} />
+                <MyRiders riders={riders} storeName={workspace.store?.name ?? ""} limit={riderPlan.limit} />
               </div>
             </Card>
 

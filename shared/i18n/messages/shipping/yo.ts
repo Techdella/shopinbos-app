@@ -222,6 +222,14 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "invite.page.accept": "Gbà á: máa jíṣẹ́ fún {store}",
   "invite.page.wrongRole": "Account tí ẹ fi wọlé kì í ṣe account ilé-iṣẹ́ delivery. Ẹ jáde, kí ẹ sì fi account ilé-iṣẹ́ delivery yín wọlé láti gbà á.",
   "invite.page.done": "Ẹ ti di ilé-iṣẹ́ delivery {store} lórí Shopinbos.",
+  "fleet.planLimit": "Rider {count} nínú {limit} tí plan yín gbà",
+  "sup.title": "Ìfijíṣẹ́",
+  "sup.sub": "Àwọn rider yín àti ilé-iṣẹ́ delivery tí ẹ ti ń lò.",
+  "sup.deliveries": "Ìfijíṣẹ́ pẹ̀lú àwọn rider yín",
+  "sup.latest": "Àwọn tuntun",
+  "sup.noJobs": "Kò sí ìfijíṣẹ́ pẹ̀lú àwọn rider yín síbẹ̀.",
+  "sup.inviteSub": "Ṣé ẹ ti ń lo ilé-iṣẹ́ delivery kan? Pè wọ́n wá sí Shopinbos: àwọn ni yóò kọ́kọ́ gbé àwọn order tí ẹ ti dì.",
+  "sup.inviteNote": "Tí wọ́n bá darapọ̀, àwọn ni yóò kọ́kọ́ gbé àwọn order tí ẹ ti dì, àyàfi tí ṣọ́ọ̀bù bá ti yan ilé-iṣẹ́ delivery tirẹ̀. Shopinbos ń ṣàyẹ̀wò gbogbo ilé-iṣẹ́ delivery kí wọ́n tó lè gba iṣẹ́.",
 };
 
 export default yo;

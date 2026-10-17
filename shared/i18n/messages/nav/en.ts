@@ -96,6 +96,7 @@ const en = {
   customise: "Customise your menu",
   "supplier.dashboard": "Today",
   "supplier.quote-requests": "Quote requests",
+  "supplier.delivery": "Delivery",
   "supplier.dropship-orders": "Dropship orders",
   "supplier.wholesale-orders": "Wholesale orders",
   "supplier.buyers": "Buyers",

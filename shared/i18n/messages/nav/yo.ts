@@ -94,6 +94,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   customise: "Ṣètò menu rẹ",
   "supplier.dashboard": "Òní",
   "supplier.quote-requests": "Quote requests",
+  "supplier.delivery": "Ìfijíṣẹ́",
   "supplier.dropship-orders": "Dropship orders",
   "supplier.wholesale-orders": "Wholesale orders",
   "supplier.buyers": "Àwọn olùrà",

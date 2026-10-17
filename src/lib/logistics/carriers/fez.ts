@@ -13,13 +13,18 @@ import type { Carrier, CarrierCredentials, CarrierJobInput, CarrierResult } from
 //   4. Status: GET /order/track/{orderNo}. 5. Cancel: POST /order/cancel { orderNo, reason } (before pickup only).
 // Webhooks (POST /webhooks/store) send { orderNumber, status }: we only use them to re-read the status.
 //
-// Env: FEZ_USER_ID and FEZ_PASSWORD (required), FEZ_BASE_URL (default: the sandbox; Fez gives you the live URL).
+// Two ways in: the API key and secret key from the Fez business portal (Developers → Manage API Key), sent as they
+// are with no login; or the user ID and password Fez shares after KYC, logged in as in step 1.
+// Env: FEZ_API_KEY and FEZ_SECRET_KEY, or FEZ_USER_ID and FEZ_PASSWORD; FEZ_BASE_URL (default: the sandbox; Fez
+// gives you the live URL).
 
 const NAME = "Fez";
 
 /** The account to use: a seller's own (creds), else Shopinbos's from the environment. */
 function config(creds?: CarrierCredentials | null) {
   return {
+    apiKey: creds ? creds.apiKey?.trim() : process.env.FEZ_API_KEY?.trim(),
+    secretKey: creds ? creds.secretKey?.trim() : process.env.FEZ_SECRET_KEY?.trim(),
     userId: creds ? creds.userId?.trim() : process.env.FEZ_USER_ID?.trim(),
     password: creds ? creds.password?.trim() : process.env.FEZ_PASSWORD?.trim(),
     baseUrl: (process.env.FEZ_BASE_URL?.trim() || FEZ_SANDBOX_URL).replace(/\/+$/, ""),
@@ -29,26 +34,28 @@ function config(creds?: CarrierCredentials | null) {
 // One login per account (Shopinbos's and each seller's own), reused until its token expires.
 const sessions = new Map<string, { token: string; secret: string; until: number }>();
 
-async function login(creds: CarrierCredentials | null | undefined, fresh = false): Promise<CarrierResult<{ token: string; secret: string }>> {
-  const { userId, password, baseUrl } = config(creds);
-  if (!userId || !password) return creds ? carrierSaid(NAME, "add your Fez user ID and password") : notSetUp(NAME, "FEZ_USER_ID and FEZ_PASSWORD");
+async function login(creds: CarrierCredentials | null | undefined, fresh = false): Promise<CarrierResult<{ token: string; secret: string; fixed: boolean }>> {
+  const { apiKey, secretKey, userId, password, baseUrl } = config(creds);
+  if (apiKey && secretKey) return { ok: true, value: { token: apiKey, secret: secretKey, fixed: true } };
+  if (!userId || !password) return creds ? carrierSaid(NAME, "add your Fez API key and secret key") : notSetUp(NAME, "FEZ_API_KEY and FEZ_SECRET_KEY (or FEZ_USER_ID and FEZ_PASSWORD)");
   const session = sessions.get(userId);
-  if (!fresh && session && session.until > Date.now()) return { ok: true, value: session };
+  if (!fresh && session && session.until > Date.now()) return { ok: true, value: { ...session, fixed: false } };
   const res = await callJson(`${baseUrl}/user/authenticate`, { body: { user_id: userId, password } });
   if ("error" in res) return carrierDown(NAME);
   const auth = fezOk(res.ok, res.json) ? readFezLogin(res.json) : null;
   if (!auth) return carrierSaid(NAME, errorMessage(res.json, "login failed"));
   sessions.set(userId, auth);
-  return { ok: true, value: auth };
+  return { ok: true, value: { ...auth, fixed: false } };
 }
 
-/** A call with the account's token, logging in again once when Fez says it's no longer valid. */
+/** A call with the account's token, logging in again once when Fez says it's no longer valid (portal keys don't expire). */
 async function call(creds: CarrierCredentials | null | undefined, path: string, init: { method?: string; body?: unknown } = {}): Promise<CarrierResult<unknown>> {
   for (const fresh of [false, true]) {
     const auth = await login(creds, fresh);
     if (!auth.ok) return auth;
     const res = await callJson(`${config().baseUrl}${path}`, { ...init, headers: { Authorization: `Bearer ${auth.value.token}`, "secret-key": auth.value.secret } });
     if ("error" in res) return carrierDown(NAME);
+    if (res.status === 401 && auth.value.fixed) return carrierSaid(NAME, "the API key or secret key wasn't accepted");
     if (res.status === 401 && !fresh) continue;
     if (!fezOk(res.ok, res.json)) return carrierSaid(NAME, errorMessage(res.json, "the request wasn't accepted"));
     return { ok: true, value: res.json };
@@ -69,19 +76,23 @@ export const fez: Carrier = {
   id: "fez",
   name: NAME,
 
+  // What a seller sees in their Fez business portal (Developers → Manage API Key).
   credentialFields: [
-    { key: "userId", label: "Fez user ID" },
-    { key: "password", label: "Fez password", secret: true },
+    { key: "apiKey", label: "Fez API key", secret: true },
+    { key: "secretKey", label: "Fez secret key", secret: true },
   ],
 
   configured() {
-    const { userId, password } = config();
-    return Boolean(userId && password);
+    const { apiKey, secretKey, userId, password } = config();
+    return Boolean((apiKey && secretKey) || (userId && password));
   },
 
   async verify(creds) {
-    const res = await login(creds, true);
-    return res.ok ? { ok: true, value: { label: config(creds).userId ?? "Fez account" } } : res;
+    // Portal keys need a real call to be checked: a price for a small parcel within Lagos.
+    const { apiKey, userId } = config(creds);
+    const res = apiKey ? await call(creds, "/order/cost", { body: { state: "Lagos", pickUpState: "Lagos", weight: 1 } }) : await login(creds, true);
+    if (!res.ok) return res;
+    return { ok: true, value: { label: userId ?? `Fez key …${apiKey?.slice(-4) ?? ""}` } };
   },
 
   quote,

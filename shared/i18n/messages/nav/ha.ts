@@ -94,6 +94,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   customise: "Tsara menu ɗinka",
   "supplier.dashboard": "Yau",
   "supplier.quote-requests": "Quote requests",
+  "supplier.delivery": "Isar da kaya",
   "supplier.dropship-orders": "Dropship orders",
   "supplier.wholesale-orders": "Wholesale orders",
   "supplier.buyers": "Masu saye",

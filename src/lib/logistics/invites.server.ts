@@ -4,8 +4,9 @@ import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { appOrigin } from "@/lib/ads";
 import { createNotification } from "@/lib/notifications/create";
+import { fleetOwner, fleetPage } from "./fleet.server";
 
-// A seller invites the delivery company they already use. The company opens the invite link, signs up (or logs in)
+// A seller (or supplier) invites the delivery company they already use. The company opens the invite link, signs up (or logs in)
 // as a delivery partner and accepts. It's then linked to the seller as "Your delivery company" (listed first for them)
 // and becomes their preferred partner if they had none. Shopinbos still checks a new company before it can take
 // bookings, like any partner.
@@ -22,12 +23,12 @@ export async function createSellerInvite(sellerId: string, input: { companyName:
   if (companyName.length < 2) throw new InviteError("Add the delivery company's name.");
   const pending = await db.sellerLogisticsInvite.count({ where: { sellerId, status: "pending" } });
   if (pending >= PENDING_INVITE_LIMIT) throw new InviteError(`You have ${pending} invites waiting. Cancel some first.`);
-  const store = await db.store.findUnique({ where: { userId: sellerId }, select: { name: true } });
+  const owner = await fleetOwner(sellerId);
   const invite = await db.sellerLogisticsInvite.create({
     data: { sellerId, code: randomBytes(12).toString("base64url"), companyName, contact: input.contact?.trim().slice(0, 120) || null },
   });
   const url = inviteUrl(invite.code);
-  const message = `Hi ${companyName}, ${store?.name ?? "we"} would like to book our deliveries with you on Shopinbos. Join here, it's free: ${url}`;
+  const message = `Hi ${companyName}, ${owner?.name || "we"} would like to book our deliveries with you on Shopinbos. Join here, it's free: ${url}`;
   const phone = (input.contact ?? "").replace(/[^\d+]/g, "");
   const whatsapp = /^\+?\d{10,15}$/.test(phone) ? phone.replace(/^\+/, "").replace(/^0/, "234") : null;
   return { invite, url, message, whatsapp };
@@ -63,8 +64,8 @@ export async function inviteByCode(code: string) {
   if (!/^[A-Za-z0-9_-]{16}$/.test(code)) return null;
   const invite = await db.sellerLogisticsInvite.findUnique({ where: { code } });
   if (!invite || invite.status === "cancelled") return null;
-  const store = await db.store.findUnique({ where: { userId: invite.sellerId }, select: { name: true, logoUrl: true, city: true } });
-  return { invite, storeName: store?.name ?? "A Shopinbos store", storeLogo: store?.logoUrl ?? null, storeCity: store?.city ?? null };
+  const owner = await fleetOwner(invite.sellerId);
+  return { invite, storeName: owner?.name || "A Shopinbos business", storeLogo: owner?.logoUrl ?? null, storeCity: owner?.city ?? null, ownerRole: owner?.role ?? null };
 }
 
 /**
@@ -96,8 +97,10 @@ export async function acceptSellerInvite(code: string, partnerUserId: string) {
     type: "logistics",
     priority: "success",
     title: `${partner.displayName} accepted your invite`,
-    description: "They're now your delivery company on Shopinbos. You can book them once Shopinbos has checked their details.",
-    link: "/home/logistics#invite",
+    description: found.ownerRole === "supplier"
+      ? "They're now your delivery company on Shopinbos: your pickups go to them first once Shopinbos has checked their details."
+      : "They're now your delivery company on Shopinbos. You can book them once Shopinbos has checked their details.",
+    link: `${fleetPage(found.ownerRole)}#invite`,
     metadata: { logisticsPartnerId: partner.id, inviteId: invite.id },
   }).catch(() => null);
   return { partner, sellerId: invite.sellerId, already: false };

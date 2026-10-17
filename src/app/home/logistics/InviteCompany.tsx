@@ -16,7 +16,7 @@ export interface InviteRow {
   partner: { displayName: string; verificationStatus: string; status: string } | null;
 }
 
-export function InviteCompany({ invites }: { invites: InviteRow[] }) {
+export function InviteCompany({ invites, api = "/api/app/logistics", note }: { invites: InviteRow[]; api?: string; note?: string }) {
   const t = useT("shipping", "common");
   const router = useRouter();
   const [company, setCompany] = useState("");
@@ -30,7 +30,7 @@ export function InviteCompany({ invites }: { invites: InviteRow[] }) {
     event.preventDefault();
     setBusy("new");
     setError(null);
-    const res = await fetch("/api/app/logistics/invites", {
+    const res = await fetch(`${api}/invites`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ companyName: company.trim(), contact: contact.trim() || undefined }),
@@ -48,7 +48,7 @@ export function InviteCompany({ invites }: { invites: InviteRow[] }) {
   async function cancel(id: string) {
     setBusy(id);
     setError(null);
-    const res = await fetch(`/api/app/logistics/invites/${encodeURIComponent(id)}`, { method: "DELETE" }).catch(() => null);
+    const res = await fetch(`${api}/invites/${encodeURIComponent(id)}`, { method: "DELETE" }).catch(() => null);
     setBusy(null);
     if (!res?.ok) return setError(t("fleet.failed"));
     router.refresh();
@@ -113,7 +113,7 @@ export function InviteCompany({ invites }: { invites: InviteRow[] }) {
       )}
 
       {error && <Notice tone="error">{error}</Notice>}
-      <p className="m-0 text-[12.5px] leading-5 text-app-ink-soft">{t("invite.note")}</p>
+      <p className="m-0 text-[12.5px] leading-5 text-app-ink-soft">{note ?? t("invite.note")}</p>
     </div>
   );
 }

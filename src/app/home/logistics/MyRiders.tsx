@@ -20,7 +20,7 @@ export interface FleetRider {
 
 type Link = { url: string; riderName: string; whatsapp: string | null };
 
-export function MyRiders({ riders, storeName }: { riders: FleetRider[]; storeName: string }) {
+export function MyRiders({ riders, storeName, limit, api = "/api/app/logistics" }: { riders: FleetRider[]; storeName: string; limit?: number; api?: string }) {
   const t = useT("shipping", "common");
   const router = useRouter();
   const [adding, setAdding] = useState(riders.length === 0);
@@ -43,7 +43,7 @@ export function MyRiders({ riders, storeName }: { riders: FleetRider[]; storeNam
     setBusy("add");
     setError(null);
     try {
-      const data = (await call("/api/app/logistics/my-riders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, phone }) })) as Link;
+      const data = (await call(`${api}/my-riders`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, phone }) })) as Link;
       setLink(data);
       setCopied(false);
       setName("");
@@ -62,7 +62,7 @@ export function MyRiders({ riders, storeName }: { riders: FleetRider[]; storeNam
     setBusy(rider.id);
     setError(null);
     try {
-      setLink((await call(`/api/app/logistics/my-riders/${encodeURIComponent(rider.id)}/link`, { method: "POST" })) as Link);
+      setLink((await call(`${api}/my-riders/${encodeURIComponent(rider.id)}/link`, { method: "POST" })) as Link);
       setCopied(false);
       router.refresh();
     } catch (err) {
@@ -77,7 +77,7 @@ export function MyRiders({ riders, storeName }: { riders: FleetRider[]; storeNam
     setBusy(rider.id);
     setError(null);
     try {
-      await call(`/api/app/logistics/my-riders/${encodeURIComponent(rider.id)}`, { method: "DELETE" });
+      await call(`${api}/my-riders/${encodeURIComponent(rider.id)}`, { method: "DELETE" });
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : t("fleet.failed"));
@@ -156,6 +156,7 @@ export function MyRiders({ riders, storeName }: { riders: FleetRider[]; storeNam
       )}
 
       {error && <Notice tone="error">{error}</Notice>}
+      {limit !== undefined && <p className="m-0 text-[12.5px] font-bold text-app-ink-soft">{t("fleet.planLimit", { count: riders.length, limit })}</p>}
       <p className="m-0 text-[12.5px] leading-5 text-app-ink-soft">{t("fleet.note")}</p>
     </div>
   );

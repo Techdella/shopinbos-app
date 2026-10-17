@@ -200,7 +200,8 @@ export function notifyJobMoved(input: { bookingId: string; to: string; actor: st
     const partner = short(job.logisticsPartner.displayName, 40) || "The delivery company";
     const order = job.orderId ? await db.retailOrder.findUnique({ where: { id: job.orderId }, select: { orderNumber: true } }) : null;
     const what = order ? `order ${order.orderNumber}` : `the delivery to ${short(job.destination, 40)}`;
-    const link = job.orderId ? `/home/orders/${job.orderId}` : "/home/logistics";
+    const owner = !job.orderId && job.logisticsPartner.ownerId ? await db.user.findUnique({ where: { id: job.sellerId }, select: { role: true } }) : null;
+    const link = job.orderId ? `/home/orders/${job.orderId}` : owner?.role === "supplier" ? "/supplier/delivery" : "/home/logistics";
     const words: Record<string, { title: string; description: string; priority: "info" | "success" | "warning" | "critical" } | undefined> = {
       confirmed: { title: `${partner} accepted ${what}`, description: "A rider will be assigned to pick it up.", priority: "info" },
       picked_up: { title: `Rider picked up ${what}`, description: `${partner} has it and is on the way.`, priority: "info" },
