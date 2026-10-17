@@ -3,6 +3,7 @@ import "server-only";
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
+import { recordMetaUser } from "@/lib/meta/user-links.server";
 import { appOrigin, trackingUrl } from "@/lib/ads";
 import { credentialKey, decryptJson, encryptJson } from "@/lib/inbox/crypto";
 import { GRAPH_VERSION } from "@/lib/inbox/channels/types";
@@ -165,6 +166,7 @@ export async function finishMetaAdsConnect(storeId: string, code: string) {
     lastSyncMessage: null,
   };
   await db.socialChannelConnection.upsert({ where: { storeId_channel: { storeId, channel: CHANNEL } }, create: { storeId, channel: CHANNEL, ...data }, update: data });
+  await recordMetaUser(storeId, "meta_ads", token);
   return data.status;
 }
 
