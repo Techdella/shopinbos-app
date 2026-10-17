@@ -44,11 +44,11 @@ test("charges: only success is paid; amounts are naira (amount_paid first), as k
 });
 
 test("checkout offers Korapay only when the seller switched it on and the server has the key", () => {
-  const base = { methods: { transfer: false, card: true, opay: true, korapay: true, cod: false, wa: false }, paystackReady: true, hostedReady: { opay: true, korapay: true }, transferReady: true, codLimit: null, zones: [] };
+  const base = { methods: { transfer: false, card: true, korapay: true, cod: false, wa: false }, paystackReady: true, hostedReady: { korapay: true }, transferReady: true, codLimit: null, zones: [] };
   const keys = (settings) => pay.checkoutPaymentOptions(settings, {}).map((option) => option.key);
-  assert.deepEqual(keys(base), ["paystack", "opay", "korapay"]);
-  assert.deepEqual(keys({ ...base, hostedReady: { opay: true } }), ["paystack", "opay"]);
-  assert.deepEqual(keys({ ...base, methods: { ...base.methods, card: false, opay: false } }), ["korapay"]);
+  assert.deepEqual(keys(base), ["paystack", "korapay"]);
+  assert.deepEqual(keys({ ...base, hostedReady: {} }), ["paystack"]);
+  assert.deepEqual(keys({ ...base, methods: { ...base.methods, card: false } }), ["korapay"]);
   assert.equal(pay.normalizeCheckoutMethod("korapay"), "korapay");
   assert.equal(pay.isHostedCheckoutMethod("korapay"), true);
   assert.equal(pay.isHostedCheckoutMethod("paystack"), false);
@@ -63,7 +63,7 @@ test("Korapay orders hold stock for the card window, count as online money, and 
   assert.equal(refunds.refundRoute({ id: "o1", paymentMethod: "korapay", paystackRef: null, paystackStatus: "success" }), "korapay");
   assert.equal(refunds.refundRoute({ id: "o1", paymentMethod: "korapay", paystackRef: null, paystackStatus: "pending" }), "manual");
   assert.equal(refunds.refundGatewayName("korapay"), "Korapay");
-  assert.ok(refunds.opayRefundReference("c".repeat(25)).length <= 50, "Korapay refund references are at most 50 characters");
+  assert.ok(refunds.gatewayRefundReference("c".repeat(25)).length <= 50, "Korapay refund references are at most 50 characters");
   assert.equal(refunds.refundStatusFromKorapay("refund.success"), "processed");
   assert.equal(refunds.refundStatusFromKorapay("refund.failed"), "failed");
   assert.equal(refunds.refundStatusFromKorapay("processing"), "processing");

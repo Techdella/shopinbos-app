@@ -80,8 +80,6 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "method.transfer.hint": "Àwọn oníbàárà yóò rí account payout rẹ; o máa sàmì sí i pé wọ́n sanwó nígbà tí ó bá wọlé",
   "method.card.label": "Káàdì àti USSD",
   "method.card.hint": "Nípasẹ̀ Paystack",
-  "method.opay.label": "OPay",
-  "method.opay.hint": "Àpò OPay, káàdì, ìfiránṣẹ́ owó tàbí USSD nípasẹ̀ OPay",
   "method.korapay.label": "Korapay",
   "method.korapay.hint": "Káàdì, ìfiránṣẹ́ owó tàbí sísan láti báńkì nípasẹ̀ Korapay",
   "method.cod.label": "Sanwó nígbà ìfijíṣẹ́",

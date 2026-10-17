@@ -68,8 +68,6 @@ const en = {
   "pm.transfer.hint": "Customers get your payout account; you mark it paid when it lands",
   "pm.card.label": "Card and USSD",
   "pm.card.hint": "Through Paystack",
-  "pm.opay.label": "OPay",
-  "pm.opay.hint": "OPay wallet, card, transfer or USSD through OPay",
   "pm.korapay.label": "Korapay",
   "pm.korapay.hint": "Card, transfer or pay with bank through Korapay",
   "pm.cod.label": "Pay on delivery",

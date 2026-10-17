@@ -5,11 +5,10 @@ import { formatFromAddress, sendEmail } from "@/lib/notifications/resend";
 import { appBase, loadStoreSender } from "@/lib/email/compliance.server";
 import { refundEmail } from "@/lib/email/store-emails";
 import { paystackSecretReady } from "@shared/checkout-payments";
-import { createOpayRefund, opayReady } from "@/lib/opay";
 import { createKorapayRefund, korapayReady } from "@/lib/korapay";
 import {
   canStartRefund,
-  opayRefundReference,
+  gatewayRefundReference,
   paystackRefundBody,
   readPaystackRefund,
   refundGatewayName,
@@ -17,15 +16,14 @@ import {
   refundRoute,
   refundStatusFromEvent,
   refundStatusFromKorapay,
-  refundStatusFromOpay,
   refundStillOpen,
   type RefundStatus,
 } from "./refunds";
 
 // Refunds a payment that arrived after its order expired and the stock had sold (see refunds.ts for the rules).
 // Card payments go back through Paystack's Refund API with the platform key (the same PAYSTACK_SECRET_KEY that
-// initialises and verifies store checkouts: there are no per-store keys); OPay and Korapay checkout payments through
-// their own Refund APIs (src/lib/opay.ts, src/lib/korapay.ts). Anything else (a transfer the seller collected) is flagged for the seller to refund
+// initialises and verifies store checkouts: there are no per-store keys); Korapay checkout payments through Korapay's
+// Refund API (src/lib/korapay.ts). Anything else (a transfer the seller collected) is flagged for the seller to refund
 // by hand. Never throws.
 
 export type RefundOutcome = "started" | "processed" | "manual" | "failed" | "skipped";
@@ -111,10 +109,9 @@ async function callPaystackRefund(secret: string, body: ReturnType<typeof paysta
 type GatewayRefund = { ok: true; id: string | null; status: RefundStatus; key: string } | { ok: false; message: string };
 
 /** Whether the gateway this order was paid through has its keys on the server. */
-type GatewayRoute = "paystack" | "opay" | "korapay";
+type GatewayRoute = "paystack" | "korapay";
 
 function gatewayReady(route: GatewayRoute) {
-  if (route === "opay") return opayReady();
   if (route === "korapay") return korapayReady();
   return paystackSecretReady(process.env.PAYSTACK_SECRET_KEY);
 }
@@ -123,25 +120,13 @@ function gatewayReady(route: GatewayRoute) {
 async function callGatewayRefund(order: RefundOrder, route: GatewayRoute, reason: string): Promise<GatewayRefund> {
   if (route === "korapay") {
     const result = await createKorapayRefund({
-      reference: opayRefundReference(order.id),
+      reference: gatewayRefundReference(order.id),
       paymentReference: order.id,
       reason,
       webhookUrl: `${appBase()}/api/webhooks/korapay`,
     });
     if (!result.ok) return { ok: false, message: result.message };
-    return { ok: true, id: opayRefundReference(order.id), status: refundStatusFromKorapay(result.status), key: refundIdempotencyKey(order.id, order.id) };
-  }
-  if (route === "opay") {
-    const result = await createOpayRefund({
-      reference: opayRefundReference(order.id),
-      originalReference: order.id,
-      amountKobo: Math.round(Number(order.total) * 100),
-      currency: order.currency,
-      callbackUrl: `${appBase()}/api/webhooks/opay`,
-      reason,
-    });
-    if (!result.ok) return { ok: false, message: result.message };
-    return { ok: true, id: result.orderNo, status: refundStatusFromOpay(result.status), key: refundIdempotencyKey(order.id, order.id) };
+    return { ok: true, id: gatewayRefundReference(order.id), status: refundStatusFromKorapay(result.status), key: refundIdempotencyKey(order.id, order.id) };
   }
   const body = paystackRefundBody(order, order.orderNumber);
   const result = await callPaystackRefund(process.env.PAYSTACK_SECRET_KEY!, body);
@@ -285,11 +270,10 @@ export async function refundCancelledOrder(orderId: string, why: string): Promis
 }
 
 /**
- * An OPay or Korapay webhook for a refund we started on this order (as ours: see refundStatusFromOpay and
- * refundStatusFromKorapay): processed marks the order refunded, failed puts the payment issue back and tells the
+ * A Korapay webhook for a refund we started on this order (as ours: see refundStatusFromKorapay): processed marks the order refunded, failed puts the payment issue back and tells the
  * seller to refund by hand. Only moves a refund that is still open, on an order paid through that gateway.
  */
-export async function applyHostedRefundStatus(orderId: string, gateway: "opay" | "korapay", status: RefundStatus, detail: string) {
+export async function applyHostedRefundStatus(orderId: string, gateway: "korapay", status: RefundStatus, detail: string) {
   const found = await db.retailOrder.findUnique({ where: { id: orderId }, select: { id: true, paymentMethod: true, refundStatus: true } });
   if (!found || found.paymentMethod !== gateway || !refundStillOpen(found.refundStatus)) return false;
   if (status === "failed") {

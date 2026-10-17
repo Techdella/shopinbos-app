@@ -38,7 +38,7 @@ interface Props {
     total: number;
     currency: string;
     status: string;
-    /** null or "paystack" for Paystack checkout; "opay", "korapay", "transfer" or "pay_on_delivery" otherwise. */
+    /** null or "paystack" for Paystack checkout; "korapay", "transfer" or "pay_on_delivery" otherwise. */
     paymentMethod?: string | null;
     deliveryAddress: { street?: string; city?: string; state?: string; country?: string; landmark?: string; deliveryOption?: { name?: string; estimatedDays?: string | null; pickup?: boolean } } | null;
     notes?: string | null;
@@ -73,7 +73,7 @@ export function OrderConfirmation({ order, store, storeBasePath, transfer = null
   const theme = useMemo(() => resolveShopperTheme(store.brandSettings), [store.brandSettings]);
   const clearCart = cart.clear;
 
-  // OPay and Korapay are online checkouts like Paystack: the same "waiting for payment" until the gateway confirms it.
+  // Korapay is an online checkout like Paystack: the same "waiting for payment" until the gateway confirms it.
   const method = order.paymentMethod === "transfer" || order.paymentMethod === "pay_on_delivery" ? order.paymentMethod : "paystack";
   const gateway = isHostedCheckoutMethod(order.paymentMethod) ? HOSTED_CHECKOUT_NAMES[order.paymentMethod] : "Paystack";
   const isPaid = PAID.includes(order.status);

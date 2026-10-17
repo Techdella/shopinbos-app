@@ -28,7 +28,6 @@ const en = {
   "po.note": "Shopinbos doesn't show individual bank transfers here yet. Check your bank or Paystack statement to match payments.",
   // How an order was paid (the web's orders "method.*")
   "method.paystack": "Paystack",
-  "method.opay": "OPay",
   "method.korapay": "Korapay",
   "method.transfer": "Bank transfer",
   "method.cash": "Cash",

@@ -3,7 +3,7 @@
 //
 // Idempotent by claim: an order's refund starts only while RetailOrder.refundStatus is null, with a conditional
 // update that sets it to "pending" first. A replayed webhook, the payment return page and the seller marking it
-// paid can all reach the refund, and only the first one through calls Paystack (or OPay, or Korapay).
+// paid can all reach the refund, and only the first one through calls Paystack (or Korapay).
 
 export const REFUND_STATUSES = ["pending", "processing", "processed", "failed", "manual"] as const;
 export type RefundStatus = (typeof REFUND_STATUSES)[number];
@@ -16,34 +16,29 @@ export interface RefundableOrder {
   refundStatus?: string | null;
 }
 
-export type RefundRoute = "paystack" | "opay" | "korapay" | "manual";
+export type RefundRoute = "paystack" | "korapay" | "manual";
 
 /**
  * How this payment goes back: through Paystack when Shopinbos took it by card (it has a Paystack reference),
- * through OPay or Korapay when the buyer paid on that gateway's page (its reference is the order id), else by hand
+ * through Korapay when the buyer paid with Korapay checkout (its reference is the order id), else by hand
  * (a bank transfer, cash or POS the seller collected).
  */
 export function refundRoute(order: RefundableOrder): RefundRoute {
-  if (order.paymentMethod === "opay" || order.paymentMethod === "korapay") return order.paystackStatus === "success" ? order.paymentMethod : "manual";
+  if (order.paymentMethod === "korapay") return order.paystackStatus === "success" ? "korapay" : "manual";
   const card = !order.paymentMethod || order.paymentMethod === "paystack";
   return card && Boolean(order.paystackRef) ? "paystack" : "manual";
 }
 
 /** The gateway's name in seller and buyer messages. */
 export function refundGatewayName(route: RefundRoute) {
-  return route === "opay" ? "OPay" : route === "korapay" ? "Korapay" : "Paystack";
+  return route === "korapay" ? "Korapay" : "Paystack";
 }
 
-/** Our reference for an OPay or Korapay refund (unique per order: a refund is claimed once). Webhooks name it. */
-export const OPAY_REFUND_PREFIX = "refund-";
+/** Our reference for a Korapay refund (unique per order: a refund is claimed once; at most 50 characters). */
+export const GATEWAY_REFUND_PREFIX = "refund-";
 
-export function opayRefundReference(orderId: string) {
-  return `${OPAY_REFUND_PREFIX}${orderId}`;
-}
-
-/** The order an OPay refund reference belongs to, or null for a payment reference. */
-export function orderIdFromOpayRefund(reference: string) {
-  return reference.startsWith(OPAY_REFUND_PREFIX) && reference.length > OPAY_REFUND_PREFIX.length ? reference.slice(OPAY_REFUND_PREFIX.length) : null;
+export function gatewayRefundReference(orderId: string) {
+  return `${GATEWAY_REFUND_PREFIX}${orderId}`;
 }
 
 /** Korapay refund statuses (processing, success, failed) and refund.* events as ours. */
@@ -53,12 +48,6 @@ export function refundStatusFromKorapay(statusOrEvent: unknown): RefundStatus {
   return "processing";
 }
 
-/** OPay refund statuses (INITIAL, PENDING, SUCCESS, FAIL) as ours. */
-export function refundStatusFromOpay(status: unknown): RefundStatus {
-  if (status === "SUCCESS") return "processed";
-  if (status === "FAIL" || status === "CLOSE") return "failed";
-  return "processing";
-}
 
 /** A refund for this order can be started: nobody has claimed it yet. */
 export function canStartRefund(order: Pick<RefundableOrder, "refundStatus">) {

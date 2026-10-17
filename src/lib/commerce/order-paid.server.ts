@@ -10,8 +10,8 @@ import { notifyOrderPaid } from "@/lib/notifications/events.server";
 import { ensureSupplierOrdersSafely } from "@/lib/supplier-orders/service.server";
 import { settlePaymentLinkForOrder } from "@/lib/payment-links/service.server";
 
-// What happens once a storefront order's online payment is confirmed (a Paystack or OPay webhook, or OPay's return
-// page). `newlyPaid` is true only for the caller that moved the order to paid, so the buyer and seller hear about
+// What happens once a storefront order's online payment is confirmed (a Paystack or Korapay webhook, or the
+// order page Korapay returns to). `newlyPaid` is true only for the caller that moved the order to paid, so the buyer and seller hear about
 // it once; the supplier orders and payment link are idempotent and run again on replays. Only settling the payment
 // link can throw (the database was unreachable), so a webhook answers 500 and its retry settles it.
 

@@ -68,7 +68,7 @@ const CheckoutSchema = z.object({
   giftMessage: z.string().max(500).optional(),
   deliveryOptionId: z.string().max(64).optional(),
   // "redirect" and "inline" are older clients asking for Paystack.
-  paymentMethod: z.enum(["paystack", "opay", "korapay", "transfer", "pay_on_delivery", "redirect", "inline"]).optional(),
+  paymentMethod: z.enum(["paystack", "korapay", "transfer", "pay_on_delivery", "redirect", "inline"]).optional(),
   discountCode: z.string().max(40).optional(),
   cartToken: z.string().max(64).optional(),
   campaignToken: z.string().max(64).optional(),
@@ -247,12 +247,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
           discountAmount,
           currency: store.currency,
           notes: orderNotes(settings, notes, giftMessage),
-          // Null keeps meaning "Paystack checkout" for older readers; OPay, Korapay, transfer and pay on delivery wait as pending.
+          // Null keeps meaning "Paystack checkout" for older readers; Korapay, transfer and pay on delivery wait as pending.
           paymentMethod: paymentMethod === "paystack" ? null : paymentMethod,
           status: "pending",
           // What was really taken (versions of products that keep selling at 0 may give less than asked).
           stockHold: JSON.parse(JSON.stringify(stockHolds)),
-          // When it lets its stock go if still unpaid: card, OPay and Korapay 30 min, bank transfer 24 h or the seller's choice.
+          // When it lets its stock go if still unpaid: card and Korapay 30 min, bank transfer 24 h or the seller's choice.
           paymentDueAt: checkoutPaymentDueAt(new Date(), paymentMethod === "paystack" ? null : paymentMethod, store.brandSettings),
         },
       });
@@ -267,7 +267,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     return withCors(req, apiError("BAD_REQUEST", message), CHECKOUT_CORS);
   }
 
-  // OPay and Korapay: open the gateway's hosted page before telling anyone about the order. If it can't, the
+  // Korapay: open the gateway's hosted page before telling anyone about the order. If it can't, the
   // shopper can never pay this order, so it is cancelled straight away (stock and discount given back) and they
   // can try again.
   let hosted: { gateway: string; url: string } | null = null;
@@ -376,7 +376,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       paymentMethod,
     },
     paystack: paystackData,
-    // OPay or Korapay: send the shopper here to pay; the gateway brings them back to the order page.
+    // Korapay: send the shopper here to pay; the gateway brings them back to the order page.
     hosted,
     // Where to send a bank transfer: the exact total, with the order number as the reference.
     transfer: transferAccount ? { ...transferAccount, amount: order.total, reference: order.orderNumber, payBy: order.paymentDueAt?.toISOString() ?? null } : null,

@@ -83,8 +83,6 @@ const en = {
   "method.transfer.hint": "Customers get your payout account; you mark it paid when it lands",
   "method.card.label": "Card and USSD",
   "method.card.hint": "Through Paystack",
-  "method.opay.label": "OPay",
-  "method.opay.hint": "OPay wallet, card, transfer or USSD through OPay",
   "method.korapay.label": "Korapay",
   "method.korapay.hint": "Card, transfer or pay with bank through Korapay",
   "method.cod.label": "Pay on delivery",

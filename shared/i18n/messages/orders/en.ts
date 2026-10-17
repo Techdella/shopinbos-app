@@ -93,7 +93,6 @@ const en = {
   "detail.ref": "Ref: {ref}",
   "detail.status": "Status",
   "method.paystack": "Paystack",
-  "method.opay": "OPay",
   "method.korapay": "Korapay",
   "method.transfer": "Bank transfer",
   "method.cash": "Cash",

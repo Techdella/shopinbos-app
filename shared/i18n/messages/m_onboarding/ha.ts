@@ -80,8 +80,6 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "method.transfer.hint": "Abokan ciniki za su ga account ɗinka na payout; kai ka yi alama an biya idan ya shigo",
   "method.card.label": "Kati da USSD",
   "method.card.hint": "Ta Paystack",
-  "method.opay.label": "OPay",
-  "method.opay.hint": "Walat OPay, kati, tura kuɗi ko USSD ta OPay",
   "method.korapay.label": "Korapay",
   "method.korapay.hint": "Kati, tura kuɗi ko biya ta banki ta Korapay",
   "method.cod.label": "Biya bayan an kawo",

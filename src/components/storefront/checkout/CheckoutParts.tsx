@@ -320,7 +320,7 @@ export function PaymentFields({
               onSelect={() => onSelect(option.key)}
               title={option.label}
               detail={option.hint}
-              icon={option.key === "paystack" || option.key === "opay" || option.key === "korapay" ? "card" : option.key === "transfer" ? "bank" : "truck"}
+              icon={option.key === "paystack" || option.key === "korapay" ? "card" : option.key === "transfer" ? "bank" : "truck"}
             />
           ))}
         </div>

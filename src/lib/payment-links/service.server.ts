@@ -281,7 +281,6 @@ export async function recordLinkView(id: string) {
 
 export interface PaymentReadiness {
   card: boolean;
-  opay: boolean;
   korapay: boolean;
   transfer: boolean;
   payOnDelivery: boolean;
@@ -296,11 +295,10 @@ export async function paymentReadiness(storeId: string): Promise<PaymentReadines
   // The same options checkout offers (it falls back to Paystack when nothing the seller chose can work).
   const keys = checkoutPaymentOptions(settings, {}).map((option) => option.key);
   const card = keys.includes("paystack") && settings.paystackReady;
-  const opay = keys.includes("opay");
   const korapay = keys.includes("korapay");
   const transfer = keys.includes("transfer");
   const payOnDelivery = keys.includes("pay_on_delivery");
-  return { card, opay, korapay, transfer, payOnDelivery, ready: card || opay || korapay || transfer || payOnDelivery };
+  return { card, korapay, transfer, payOnDelivery, ready: card || korapay || transfer || payOnDelivery };
 }
 
 // ─── Peggy in a customer chat ─────────────────────────────────────────────────

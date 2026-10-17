@@ -161,7 +161,7 @@ test("checkout and the quote price a payment link on the server, and paid orders
   assert.match(pricing, /spreadAgreedAmount\(\[\.\.\.merged\.values\(\)\], agreed\)/);
   assert.match(pricing, /if \(!applied && agreed === null\)/, "no automatic discount on an agreed price");
   // Every way an order becomes paid settles its link (idempotent).
-  // (The Paystack and OPay webhooks share src/lib/commerce/order-paid.server.ts.)
+  // (The Paystack and Korapay webhooks share src/lib/commerce/order-paid.server.ts.)
   assert.match(read("src/app/api/webhooks/paystack/route.ts"), /afterRetailOrderPaid\(/);
   assert.match(read("src/lib/commerce/hosted-checkout.server.ts"), /afterRetailOrderPaid\(/);
   for (const file of ["src/lib/commerce/order-paid.server.ts", "src/app/actions/payments.ts", "src/lib/orders/update-status.ts", "src/app/api/public/store/[slug]/checkout/route.ts"]) {

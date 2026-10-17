@@ -80,8 +80,6 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "method.transfer.hint": "Customers go see your payout account; you go mark am paid when e land",
   "method.card.label": "Card and USSD",
   "method.card.hint": "Through Paystack",
-  "method.opay.label": "OPay",
-  "method.opay.hint": "OPay wallet, card, transfer or USSD through OPay",
   "method.korapay.label": "Korapay",
   "method.korapay.hint": "Card, transfer or pay with bank through Korapay",
   "method.cod.label": "Pay on delivery",

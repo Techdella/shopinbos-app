@@ -2,7 +2,6 @@ import "server-only";
 import { db } from "@/lib/db/client";
 import { buildStorefrontUrl } from "@/lib/domains/storefront";
 import { appBase } from "@/lib/email/compliance.server";
-import { createOpayCashier, queryOpayPayment } from "@/lib/opay";
 import { initializeKorapayCharge, queryKorapayCharge } from "@/lib/korapay";
 import { PAYABLE_ORDER_STATUSES, retailChargeProblem } from "@/lib/commerce/paystack-charge";
 import { recoverExpiredOrderPayment, restoreDiscountUse } from "@/lib/commerce/order-expiry.server";
@@ -12,13 +11,9 @@ import { PAID_RETAIL_STATUSES } from "@/lib/supplier-orders/pure";
 import { afterRetailOrderPaid } from "@/lib/commerce/order-paid.server";
 import { HOSTED_CHECKOUT_NAMES, isHostedCheckoutMethod, type HostedCheckoutMethod } from "@shared/checkout-payments";
 
-// Storefront orders paid on a gateway's own hosted page: OPay Checkout (paymentMethod "opay") and Korapay Checkout
-// Redirect ("korapay"). The order id is the gateway's reference, so the status query, the webhook and the return
+// Storefront orders paid through Korapay (paymentMethod "korapay"). The order id is the gateway's reference, so the status query, the webhook and the return
 // page all name the order. Nothing the shopper's browser or a webhook body says marks an order paid: only the
 // gateway's own status reply does, checked against the order's total and currency.
-
-/** Minutes OPay's cashier stays open; the order's own window (CARD_METHODS, 30 min) lets its stock go after that. */
-const CASHIER_MINUTES = 30;
 
 export interface HostedCheckoutOrder {
   id: string;
@@ -37,8 +32,7 @@ export interface HostedCheckoutOrder {
 export async function startHostedCheckout(gateway: HostedCheckoutMethod, order: HostedCheckoutOrder, store: { name: string; slug: string; customDomain: string | null }, clientIp?: string) {
   const orderUrl = `${buildStorefrontUrl(store, `/order/${order.id}`)}?gateway=${gateway}`;
   const label = `Order ${order.orderNumber}`;
-  if (gateway === "korapay") {
-    const { checkoutUrl } = await initializeKorapayCharge({
+  const { checkoutUrl } = await initializeKorapayCharge({
       reference: order.id,
       amount: order.total,
       currency: order.currency,
@@ -48,23 +42,7 @@ export async function startHostedCheckout(gateway: HostedCheckoutMethod, order: 
       customer: { name: order.buyerName, email: order.buyerEmail },
       orderNumber: order.orderNumber,
     });
-    return checkoutUrl;
-  }
-  const { cashierUrl } = await createOpayCashier({
-    reference: order.id,
-    amountKobo: Math.round(order.total * 100),
-    currency: order.currency,
-    returnUrl: orderUrl,
-    cancelUrl: orderUrl,
-    callbackUrl: `${appBase()}/api/webhooks/opay`,
-    displayName: store.name,
-    productName: label,
-    productDescription: `${label} from ${store.name}`,
-    expireAt: CASHIER_MINUTES,
-    user: { name: order.buyerName, email: order.buyerEmail || undefined, phone: order.buyerPhone ?? undefined },
-    clientIp,
-  });
-  return cashierUrl;
+  return checkoutUrl;
 }
 
 /**
@@ -102,17 +80,11 @@ interface GatewayPayment {
 }
 
 async function lookupPayment(gateway: HostedCheckoutMethod, orderId: string): Promise<GatewayPayment | null> {
-  if (gateway === "korapay") {
-    const charge = await queryKorapayCharge(orderId);
-    if (!charge) return null;
-    // Asked by our reference; it must come back as one of the charge's references (Korapay also has its own).
-    const reference = charge.references.includes(orderId) ? orderId : (charge.references[0] ?? null);
-    return { state: charge.state, reference, paidKobo: charge.paidKobo, currency: charge.currency };
-  }
-  const payment = await queryOpayPayment(orderId);
-  if (!payment) return null;
-  const state = payment.status === "SUCCESS" ? "success" : payment.status === "FAIL" || payment.status === "CLOSE" ? "failed" : "waiting";
-  return { state, reference: payment.reference, paidKobo: payment.amount, currency: payment.currency };
+  const charge = await queryKorapayCharge(orderId);
+  if (!charge) return null;
+  // Asked by our reference; it must come back as one of the charge's references (Korapay also has its own).
+  const reference = charge.references.includes(orderId) ? orderId : (charge.references[0] ?? null);
+  return { state: charge.state, reference, paidKobo: charge.paidKobo, currency: charge.currency };
 }
 
 export type HostedConfirmOutcome = "paid" | "already_paid" | "waiting" | "failed" | "rejected" | "needs_refund" | "not_found";
@@ -171,7 +143,7 @@ export async function confirmHostedOrderPayment(orderId: string, gateway: Hosted
 }
 
 /**
- * The order page (where OPay and Korapay send the shopper back): if this is a hosted-checkout order still waiting
+ * The order page (where Korapay sends the shopper back): if this is a hosted-checkout order still waiting
  * for its money, ask its gateway now rather than wait for the webhook. Never throws; the page shows whatever the
  * order says afterwards.
  */

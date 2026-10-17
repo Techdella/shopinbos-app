@@ -27,7 +27,7 @@ export default async function CustomDomainOrderPage({ params, searchParams }: Pr
   if (reference && !gateway) {
     await updateOrderPayment(orderId, reference).catch(() => null);
   }
-  // OPay and Korapay send the shopper back here (?gateway=…); the order is confirmed with the gateway, never from the URL.
+  // Korapay orders are confirmed with Korapay when the shopper lands here, never from the URL.
   await refreshHostedOrderPayment(orderId);
 
   const order = await db.retailOrder.findUnique({ where: { id: orderId } });

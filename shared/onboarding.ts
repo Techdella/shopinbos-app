@@ -97,20 +97,19 @@ export const PRODUCT_DOORS: { key: ProductDoor; label: string; hint: string; not
   },
 ];
 
-export type PaymentMethodKey = "transfer" | "card" | "opay" | "korapay" | "cod" | "wa";
+export type PaymentMethodKey = "transfer" | "card" | "korapay" | "cod" | "wa";
 
 export const PAYMENT_METHODS: { key: PaymentMethodKey; label: string; hint: string }[] = [
   { key: "transfer", label: "Bank transfer", hint: "Customers get your payout account; you mark it paid when it lands" },
   { key: "card", label: "Card and USSD", hint: "Through Paystack" },
-  { key: "opay", label: "OPay", hint: "OPay wallet, card, transfer or USSD through OPay" },
   { key: "korapay", label: "Korapay", hint: "Card, transfer or pay with bank through Korapay" },
   { key: "cod", label: "Pay on delivery", hint: "Up to ₦50,000, verified phone numbers, where riders cover" },
   { key: "wa", label: "Finish on WhatsApp", hint: "Customers can chat to pay" },
 ];
 
-// OPay and Korapay start off: sellers switch them on when they want them (each only shows at checkout once it is set
-// up on the server).
-export const DEFAULT_PAYMENT_METHODS: Record<PaymentMethodKey, boolean> = { transfer: true, card: true, opay: false, korapay: false, cod: true, wa: true };
+// Korapay starts off: sellers switch it on when they want it (it only shows at checkout once it is set up on the
+// server).
+export const DEFAULT_PAYMENT_METHODS: Record<PaymentMethodKey, boolean> = { transfer: true, card: true, korapay: false, cod: true, wa: true };
 
 export interface DeliveryZone {
   name: string;

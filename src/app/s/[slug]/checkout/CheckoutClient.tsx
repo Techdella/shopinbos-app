@@ -425,7 +425,7 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
       rememberBagDiscount(store.slug, null);
       if (paymentMethod === "paystack") return;
 
-      // Transfer and pay on delivery orders are placed now; nothing is charged here. OPay and Korapay orders pay on
+      // Transfer and pay on delivery orders are placed now; nothing is charged here. Korapay orders pay on
       // the gateway's own page, which sends the shopper back to the order page.
       cart.clear();
       const hostedUrl = isHostedCheckoutMethod(paymentMethod) ? (data.data.hosted?.url as string | undefined) : undefined;
