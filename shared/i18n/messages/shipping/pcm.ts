@@ -135,6 +135,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "net.bookFailed": "We no fit book that delivery. Try again for one minute.",
   "net.booked": "E don book with {network}. Dem go send rider.",
   "net.priceSetBy": "Na {network} set this price",
+  "net.via": "through {network}",
   "net.yourAccount": "your own account",
   "net.networkPrice": "{network}:",
   "net.fee": "Shopinbos fee:",

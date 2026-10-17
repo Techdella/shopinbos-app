@@ -57,7 +57,7 @@ test("networks on Shopinbos's account are only booked after a verified payment, 
   assert.match(networks, /maxPrice: row\.networkPrice/);
   assert.match(networks, /refundStatus: null \}, data: \{ refundStatus: "pending" \}/);
   // The seller's own account: no fee, no Shopinbos payment.
-  assert.match(networks, /account\.via === "own" \? \{ price: quote\.value\.price, fee: 0, total: quote\.value\.price \}/);
+  assert.match(networks, /via === "own" \? \{ price, fee: 0, total: price \}/);
   // Callback and webhook both complete it.
   assert.match(read("src/app/api/webhooks/paystack/route.ts"), /ref\.startsWith\(NETWORK_REFERENCE_PREFIX\)/);
   assert.match(read("src/app/api/app/logistics/networks/callback/route.ts"), /completeNetworkCheckout\(reference\)/);

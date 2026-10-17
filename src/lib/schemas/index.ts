@@ -643,6 +643,8 @@ export const NetworkDeliveryRequestSchema = z.object({
 
 export const NetworkBookSchema = z.object({
   network: z.string().min(2).max(30),
+  /** An aggregator's courier (Shipbubble), from the offer it was shown in. */
+  option: z.string().min(1).max(120).optional(),
   request: NetworkDeliveryRequestSchema,
   /** The price the seller saw: a dearer one at booking time is refused, never charged. */
   expectedPrice: z.number().positive(),

@@ -135,6 +135,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "net.bookFailed": "Ba mu iya yin booking na wannan delivery ba. Ku sake gwadawa nan da minti ɗaya.",
   "net.booked": "An yi booking da {network}. Za su turo rider.",
   "net.priceSetBy": "{network} ne ya sa wannan farashin",
+  "net.via": "ta hannun {network}",
   "net.yourAccount": "account ɗinku",
   "net.networkPrice": "{network}:",
   "net.fee": "Kuɗin Shopinbos:",

@@ -133,6 +133,7 @@ const en = {
   "net.bookFailed": "We couldn't book that delivery. Try again in a minute.",
   "net.booked": "Booked with {network}. They'll send a rider.",
   "net.priceSetBy": "Price set by {network}",
+  "net.via": "via {network}",
   "net.yourAccount": "your own account",
   "net.networkPrice": "{network}:",
   "net.fee": "Shopinbos fee:",

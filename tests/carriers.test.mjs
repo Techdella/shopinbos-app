@@ -151,7 +151,7 @@ test("Sendbox: shipment body, rate choice, created shipment and statuses", () =>
 
 test("every carrier is registered and its webhook only triggers a fresh read", () => {
   const index = readFileSync(new URL("../src/lib/logistics/carriers/index.ts", import.meta.url), "utf8");
-  assert.match(index, /\[kwik, fez, sendstack, sendbox\]/);
+  assert.match(index, /\[kwik, fez, sendstack, sendbox, shipbubble\]/);
   const webhook = readFileSync(new URL("../src/app/api/webhooks/carriers/[carrier]/route.ts", import.meta.url), "utf8");
   assert.match(webhook, /syncCarrierJobs\(\{ ids: \[booking\.id\] \}\)/);
   assert.doesNotMatch(webhook, /transitionJob/);

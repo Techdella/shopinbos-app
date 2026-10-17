@@ -120,7 +120,7 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
                       <div className="min-w-0 flex-1 basis-[220px]">
                         <div className="truncate text-[14.5px] font-extrabold">{b.pickupLocation} → {b.destination}</div>
                         <div className="truncate text-[13px] text-app-ink-soft">
-                          {b.externalCarrier ? t("net.viaNetwork", { network: b.logisticsPartner.displayName }) : b.logisticsPartner.displayName}
+                          {b.externalCarrier ? t("net.viaNetwork", { network: b.notes?.match(/^Courier: ([^·]+)/)?.[1]?.trim() || b.logisticsPartner.displayName }) : b.logisticsPartner.displayName}
                           {b.externalRef ? ` · ${b.externalRef}` : b.trackingCode ? ` · ${b.trackingCode}` : ""} · {date(b.createdAt)}
                         </div>
                       </div>

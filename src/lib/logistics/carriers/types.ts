@@ -34,6 +34,15 @@ export interface CarrierQuote {
   currency: string;
 }
 
+/** One courier from an aggregator network (Shipbubble): shown to sellers as its own line. */
+export interface CarrierOption extends CarrierQuote {
+  /** What booking sends back to pick this courier. */
+  id: string;
+  /** The courier's own name ("GIG logistics"): it set the price. */
+  name: string;
+  eta: string | null;
+}
+
 export interface CarrierBooking extends CarrierQuote {
   /** The carrier's order reference (Kwik: unique_order_id). */
   ref: string;
@@ -69,8 +78,13 @@ export interface Carrier {
   /** Checks a seller's credentials work; the label is what they recognise the account by. */
   verify(credentials: CarrierCredentials): Promise<CarrierResult<{ label: string }>>;
   quote(input: CarrierJobInput, credentials?: CarrierCredentials | null): Promise<CarrierResult<CarrierQuote>>;
-  /** Prices and books the job; refuses (PRICE_CHANGED) when the live price is above maxPrice. */
-  book(input: CarrierJobInput, options?: { maxPrice?: number | null; credentials?: CarrierCredentials | null }): Promise<CarrierResult<CarrierBooking>>;
+  /** Aggregators only: every courier's price for the job (cheapest first). quote() is then the cheapest. */
+  options?(input: CarrierJobInput, credentials?: CarrierCredentials | null): Promise<CarrierResult<CarrierOption[]>>;
+  /**
+   * Prices and books the job; refuses (PRICE_CHANGED) when the live price is above maxPrice. optionId picks an
+   * aggregator's courier (CarrierOption.id).
+   */
+  book(input: CarrierJobInput, options?: { maxPrice?: number | null; credentials?: CarrierCredentials | null; optionId?: string | null }): Promise<CarrierResult<CarrierBooking>>;
   cancel(booking: { ref: string; jobIds: Array<string | number> }, credentials?: CarrierCredentials | null): Promise<CarrierResult<null>>;
   track(booking: { ref: string; jobIds: Array<string | number> }, credentials?: CarrierCredentials | null): Promise<CarrierResult<CarrierTracking>>;
   /**

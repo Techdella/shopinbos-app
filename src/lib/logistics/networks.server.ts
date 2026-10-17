@@ -175,30 +175,44 @@ async function jobFor(userId: string, request: NetworkRequest): Promise<CarrierJ
   });
 }
 
+/**
+ * One price to show. `name` is whoever set the price: the network, or for an aggregator (Shipbubble) the courier,
+ * with `networkName` saying which network it comes through and `option` picking that courier when booking.
+ */
 export type NetworkOffer =
-  | { network: string; name: string; ok: true; via: "own" | "shopinbos"; price: number; fee: number; total: number; currency: string }
-  | { network: string; name: string; ok: false; error: string };
+  | { network: string; option?: string; name: string; networkName: string; eta?: string | null; ok: true; via: "own" | "shopinbos"; price: number; fee: number; total: number; currency: string }
+  | { network: string; option?: string; name: string; networkName: string; ok: false; error: string };
+
+const priced = (price: number, via: "own" | "shopinbos") => (via === "own" ? { price, fee: 0, total: price } : networkTotal(price));
 
 /** Live prices from every network the seller can book, side by side (one failing doesn't stop the others). */
 export async function compareNetworks(userId: string, request: NetworkRequest): Promise<NetworkOffer[]> {
   const networks = await sellerNetworks(userId);
   const job = await jobFor(userId, request);
-  return Promise.all(
-    networks.map(async (network): Promise<NetworkOffer> => {
+  const lists = await Promise.all(
+    networks.map(async (network): Promise<NetworkOffer[]> => {
       const carrier = carrierFor({ carrier: network.id })!;
+      const base = { network: network.id, name: network.name, networkName: network.name };
       const account = await accountFor(network);
-      if (!account) return { network: network.id, name: network.name, ok: false, error: `${network.name} isn't available right now.` };
-      const quote = await carrier.quote(job, account.via === "own" ? account.credentials : null).catch(() => null);
-      if (!quote?.ok) return { network: network.id, name: network.name, ok: false, error: quote?.error ?? `${network.name} isn't answering right now.` };
-      const { price, fee, total } = account.via === "own" ? { price: quote.value.price, fee: 0, total: quote.value.price } : networkTotal(quote.value.price);
-      return { network: network.id, name: network.name, ok: true, via: account.via, price, fee, total, currency: quote.value.currency };
+      if (!account) return [{ ...base, ok: false, error: `${network.name} isn't available right now.` }];
+      const credentials = account.via === "own" ? account.credentials : null;
+      if (carrier.options) {
+        // An aggregator: every courier it prices is its own line, priced by that courier.
+        const options = await carrier.options(job, credentials).catch(() => null);
+        if (!options?.ok) return [{ ...base, ok: false, error: options?.error ?? `${network.name} isn't answering right now.` }];
+        return options.value.map((option) => ({ ...base, option: option.id, name: option.name, eta: option.eta, ok: true as const, via: account.via, currency: option.currency, ...priced(option.price, account.via) }));
+      }
+      const quote = await carrier.quote(job, credentials).catch(() => null);
+      if (!quote?.ok) return [{ ...base, ok: false, error: quote?.error ?? `${network.name} isn't answering right now.` }];
+      return [{ ...base, ok: true, via: account.via, currency: quote.value.currency, ...priced(quote.value.price, account.via) }];
     }),
   );
+  return lists.flat();
 }
 
 // ─── Booking ──────────────────────────────────────────────────────────────────
 
-const bookingData = (userId: string, partnerId: string, request: NetworkRequest) => ({
+const bookingData = (userId: string, partnerId: string, request: NetworkRequest, courier?: string | null) => ({
   sellerId: userId,
   logisticsPartnerId: partnerId,
   orderId: request.orderId ?? null,
@@ -209,45 +223,62 @@ const bookingData = (userId: string, partnerId: string, request: NetworkRequest)
     ...(request.weightKg ? { weight: request.weightKg } : {}),
     ...(request.description ? { description: request.description } : {}),
   },
-  notes: request.notes ?? null,
+  // An aggregator's courier ("Courier: GIG logistics") goes first, so the seller sees who is delivering.
+  notes: [courier ? `Courier: ${courier}` : null, request.notes].filter(Boolean).join(" · ") || null,
 });
 
 /**
  * Books a network delivery: at once on the seller's own account, or by sending them to pay on Shopinbos's account.
  * Refuses when the live price is above what they saw (expectedPrice is the network's price, before any fee).
  */
-export async function bookNetwork(user: { id: string; email: string | null }, input: { network: string; request: NetworkRequest; expectedPrice: number }) {
+export async function bookNetwork(user: { id: string; email: string | null }, input: { network: string; option?: string; request: NetworkRequest; expectedPrice: number }) {
   const network = (await sellerNetworks(user.id)).find((n) => n.id === input.network);
   if (!network) throw new NetworkError("NOT_FOUND", "That delivery network isn't available.");
   const carrier = carrierFor({ carrier: network.id })!;
   const account = await accountFor(network);
   if (!account) throw new NetworkError("NOT_CONFIGURED", `${network.name} isn't available right now.`);
+  if (carrier.options && !input.option) throw new NetworkError("BAD_REQUEST", `Pick a courier from ${network.name}.`);
   const job = await jobFor(user.id, input.request);
-  const data = bookingData(user.id, network.partnerId, input.request);
+
+  // The live price now (and, for an aggregator, the chosen courier's name).
+  let livePrice: { price: number; currency: string; courier: string | null };
+  if (carrier.options) {
+    const options = await carrier.options(job, account.via === "own" ? account.credentials : null);
+    if (!options.ok) throw new NetworkError(options.code, options.error);
+    const option = options.value.find((o) => o.id === input.option);
+    if (!option) throw new NetworkError("PRICE_CHANGED", "That courier can't take this delivery any more. Compare prices again.");
+    livePrice = { price: option.price, currency: option.currency, courier: option.name };
+  } else if (account.via === "shopinbos") {
+    const quote = await carrier.quote(job);
+    if (!quote.ok) throw new NetworkError(quote.code, quote.error);
+    livePrice = { ...quote.value, courier: null };
+  } else {
+    livePrice = { price: input.expectedPrice, currency: "NGN", courier: null };
+  }
+  const who = livePrice.courier ?? network.name;
+  if (livePrice.price > input.expectedPrice + 0.005) {
+    throw new NetworkError("PRICE_CHANGED", `${who}'s price for this delivery is now ₦${livePrice.price.toLocaleString("en-NG")}. Check the new price and book again.`);
+  }
+  const data = bookingData(user.id, network.partnerId, input.request, livePrice.courier);
 
   if (account.via === "own") {
-    const res = await createCarrierBooking({ carrier, job, maxPrice: input.expectedPrice, credentials: account.credentials, data: { ...data, networkAccountId: account.accountId } });
+    const res = await createCarrierBooking({ carrier, job, maxPrice: input.expectedPrice, optionId: input.option, credentials: account.credentials, data: { ...data, networkAccountId: account.accountId } });
     if (!res.ok) throw new NetworkError(res.code, res.error);
     return { kind: "booked" as const, booking: res.value };
   }
 
-  const quote = await carrier.quote(job);
-  if (!quote.ok) throw new NetworkError(quote.code, quote.error);
-  if (quote.value.price > input.expectedPrice + 0.005) {
-    throw new NetworkError("PRICE_CHANGED", `${network.name}'s price for this delivery is now ₦${quote.value.price.toLocaleString("en-NG")}. Check the new price and book again.`);
-  }
-  const { price, fee, total } = networkTotal(quote.value.price);
+  const { price, fee, total } = networkTotal(livePrice.price);
   const reference = `${NETWORK_REFERENCE_PREFIX}${randomUUID()}`;
   const checkout = await db.deliveryNetworkCheckout.create({
     data: {
       sellerId: user.id,
       network: network.id,
       logisticsPartnerId: network.partnerId,
-      request: { job: { ...job, pickupAt: job.pickupAt?.toISOString() ?? null }, booking: data } as unknown as Prisma.InputJsonValue,
+      request: { job: { ...job, pickupAt: job.pickupAt?.toISOString() ?? null }, booking: data, option: input.option ?? null } as unknown as Prisma.InputJsonValue,
       networkPrice: price,
       fee,
       total,
-      currency: quote.value.currency,
+      currency: livePrice.currency,
       paymentRef: reference,
     },
   });
@@ -261,7 +292,7 @@ export async function bookNetwork(user: { id: string; email: string | null }, in
   return { kind: "pay" as const, authorizationUrl: session.authorization_url, checkoutId: checkout.id };
 }
 
-type CheckoutRequest = { job: Omit<CarrierJobInput, "pickupAt"> & { pickupAt: string | null }; booking: ReturnType<typeof bookingData> };
+type CheckoutRequest = { job: Omit<CarrierJobInput, "pickupAt"> & { pickupAt: string | null }; booking: ReturnType<typeof bookingData>; option?: string | null };
 
 /**
  * After the seller paid: verifies the payment once (callback and webhook may both call this), books the job with
@@ -294,6 +325,7 @@ export async function completeNetworkCheckout(reference: string): Promise<"booke
       job,
       // The seller paid this network price: never book above it.
       maxPrice: row.networkPrice,
+      optionId: request.option ?? null,
       data: { ...request.booking, platformFee: row.fee, feeBearer: "seller", netAmount: row.networkPrice },
     }).catch((err: unknown) => ({ ok: false as const, code: "UNAVAILABLE" as const, error: err instanceof Error ? err.message : "We couldn't save the booking." }));
     if (res.ok) {

@@ -17,9 +17,12 @@ export interface NetworkOption {
   via: "own" | "shopinbos" | null;
 }
 
+// name is whoever set the price; for an aggregator (Shipbubble) that's the courier, and networkName the network.
 type Offer =
-  | { network: string; name: string; ok: true; via: "own" | "shopinbos"; price: number; fee: number; total: number; currency: string }
-  | { network: string; name: string; ok: false; error: string };
+  | { network: string; option?: string; name: string; networkName: string; eta?: string | null; ok: true; via: "own" | "shopinbos"; price: number; fee: number; total: number; currency: string }
+  | { network: string; option?: string; name: string; networkName: string; ok: false; error: string };
+
+const offerKey = (offer: { network: string; option?: string }) => (offer.option ? `${offer.network}:${offer.option}` : offer.network);
 
 export function NetworkDelivery({ networks, defaultPickup, orderId }: { networks: NetworkOption[]; defaultPickup?: string; orderId?: string }) {
   const t = useT("shipping", "common");
@@ -63,13 +66,13 @@ export function NetworkDelivery({ networks, defaultPickup, orderId }: { networks
   }
 
   async function book(offer: Extract<Offer, { ok: true }>) {
-    setBusy(offer.network);
+    setBusy(offerKey(offer));
     setMessage(null);
     try {
       const res = await fetch("/api/app/logistics/networks/book", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ network: offer.network, request: request(), expectedPrice: offer.price }),
+        body: JSON.stringify({ network: offer.network, ...(offer.option ? { option: offer.option } : {}), request: request(), expectedPrice: offer.price }),
       });
       const json = (await res.json().catch(() => null)) as { data?: { kind: "pay"; authorizationUrl: string } | { kind: "booked" }; error?: { message?: string } } | null;
       if (!res.ok || !json?.data) throw new Error(json?.error?.message ?? t("net.bookFailed"));
@@ -129,12 +132,14 @@ export function NetworkDelivery({ networks, defaultPickup, orderId }: { networks
       {offers && (
         <ul className="m-0 grid list-none gap-3 p-0">
           {offers.map((offer) => (
-            <li key={offer.network} className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-[18px] border border-app-line bg-white px-4 py-3.5">
+            <li key={offerKey(offer)} className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-[18px] border border-app-line bg-white px-4 py-3.5">
               <div className="min-w-0 flex-1 basis-[200px]">
                 <div className="text-[15px] font-extrabold">{offer.name}</div>
                 {offer.ok ? (
                   <div className="text-[12.5px] text-app-ink-soft">
                     {t("net.priceSetBy", { network: offer.name })}
+                    {offer.networkName !== offer.name ? ` · ${t("net.via", { network: offer.networkName })}` : ""}
+                    {offer.eta ? ` · ${offer.eta}` : ""}
                     {offer.via === "own" ? ` · ${t("net.yourAccount")}` : ""}
                   </div>
                 ) : (
@@ -148,7 +153,7 @@ export function NetworkDelivery({ networks, defaultPickup, orderId }: { networks
                     {offer.via === "shopinbos" ? <div className="text-app-ink-soft">{t("net.fee")} {money(offer.fee)}</div> : <div className="text-app-ink-soft">{t("net.payNetwork", { network: offer.name })}</div>}
                     <div className="text-[15px] font-extrabold">{money(offer.total)}</div>
                   </div>
-                  <PillButton tone="accent" size="sm" busy={busy === offer.network} disabled={Boolean(busy)} onClick={() => book(offer)}>
+                  <PillButton tone="accent" size="sm" busy={busy === offerKey(offer)} disabled={Boolean(busy)} onClick={() => book(offer)}>
                     {offer.via === "shopinbos" ? t("net.payAndBook") : t("net.book")}
                   </PillButton>
                 </>

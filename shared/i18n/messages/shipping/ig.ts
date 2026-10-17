@@ -135,6 +135,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "net.bookFailed": "Anyị enweghị ike ịbook delivery ahụ. Nwaa ọzọ n'ime otu nkeji.",
   "net.booked": "Ebookla ya na {network}. Ha ga-ezite rider.",
   "net.priceSetBy": "Ọ bụ {network} setịrị ọnụahịa a",
+  "net.via": "site na {network}",
   "net.yourAccount": "account gị",
   "net.networkPrice": "{network}:",
   "net.fee": "Ego Shopinbos:",

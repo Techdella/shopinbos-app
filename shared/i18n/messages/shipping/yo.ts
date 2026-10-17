@@ -135,6 +135,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "net.bookFailed": "A kò lè book delivery yẹn. Gbìyànjú lẹ́ẹ̀kan sí i láàárín ìṣẹ́jú kan.",
   "net.booked": "A ti book rẹ̀ pẹ̀lú {network}. Wọ́n máa rán rider.",
   "net.priceSetBy": "{network} ló dá owó yìí",
+  "net.via": "láti ọ̀dọ̀ {network}",
   "net.yourAccount": "account tìẹ",
   "net.networkPrice": "{network}:",
   "net.fee": "Owó Shopinbos:",

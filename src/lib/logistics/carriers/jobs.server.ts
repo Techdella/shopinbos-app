@@ -85,9 +85,11 @@ export async function createCarrierBooking(input: {
   maxPrice?: number | null;
   /** The seller's own network account; without it, Shopinbos's. */
   credentials?: CarrierCredentials | null;
+  /** An aggregator's courier (CarrierOption.id). */
+  optionId?: string | null;
   data: Omit<Prisma.DeliveryBookingUncheckedCreateInput, "deliveryFee" | "currency" | "status">;
 }): Promise<CarrierResult<Prisma.DeliveryBookingGetPayload<object>>> {
-  const booked = await input.carrier.book(input.job, { maxPrice: input.maxPrice, credentials: input.credentials });
+  const booked = await input.carrier.book(input.job, { maxPrice: input.maxPrice, credentials: input.credentials, optionId: input.optionId });
   if (!booked.ok) return booked;
   const { value } = booked;
   try {
