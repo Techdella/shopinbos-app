@@ -20,6 +20,7 @@ export const SALE_DELIVERY_KEYS = ["collected", "deliver"] as const satisfies re
 /** How an offline payment is shown on an order. */
 export const PAYMENT_METHOD_LABEL: Record<string, string> = {
   paystack: "Paystack",
+  opay: "OPay",
   transfer: "Bank transfer",
   cash: "Cash",
   pos: "POS or card",

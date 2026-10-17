@@ -208,11 +208,11 @@ export function unpaidTransferTtlHours(raw: string | number | undefined | null =
 }
 
 export const UNPAID_STATUSES = ["pending", "awaiting_payment"] as const;
-/** Card checkout through Paystack (saved as null or "paystack"): the short window. */
-export const CARD_METHODS = ["paystack"] as const;
+/** Online checkout through Paystack (saved as null or "paystack") or OPay ("opay"): the short window. */
+export const CARD_METHODS = ["paystack", "opay"] as const;
 /** Ways to pay the buyer does by hand, outside Paystack, that still expire: the long window. Never pay on delivery. */
 export const OFFLINE_EXPIRING_METHODS = ["transfer"] as const;
-/** Payment methods that expire: Paystack (saved as null or "paystack") and bank transfer. Never pay on delivery. */
+/** Payment methods that expire: Paystack (saved as null or "paystack"), OPay and bank transfer. Never pay on delivery. */
 export const EXPIRING_METHODS = [...CARD_METHODS, ...OFFLINE_EXPIRING_METHODS] as const;
 
 export interface PaymentWindows {

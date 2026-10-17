@@ -68,7 +68,8 @@ test("one supplier order per store order and supplier: the key is stable, distin
 
 test("payment paths create supplier orders, and a replayed webhook stays safe", () => {
   const webhook = read("src/app/api/webhooks/paystack/route.ts");
-  assert.match(webhook, /ensureSupplierOrdersSafely\(ref\)/);
+  assert.match(webhook, /afterRetailOrderPaid\(ref/);
+  assert.match(read("src/lib/commerce/order-paid.server.ts"), /ensureSupplierOrdersSafely\(orderId\)/);
   assert.match(webhook, /recoverExpiredOrderPayment\(ref/);
   assert.match(read("src/app/actions/payments.ts"), /ensureSupplierOrdersSafely\(orderId\)/);
   assert.match(read("src/lib/orders/update-status.ts"), /ensureSupplierOrdersSafely\(order\.id\)/);

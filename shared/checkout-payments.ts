@@ -4,9 +4,9 @@
 
 import { DEFAULT_PAYMENT_METHODS, type PaymentMethodKey } from "./onboarding.ts";
 
-export type CheckoutPaymentMethod = "paystack" | "transfer" | "pay_on_delivery";
+export type CheckoutPaymentMethod = "paystack" | "opay" | "transfer" | "pay_on_delivery";
 
-export const CHECKOUT_PAYMENT_METHODS = ["paystack", "transfer", "pay_on_delivery"] as const satisfies readonly CheckoutPaymentMethod[];
+export const CHECKOUT_PAYMENT_METHODS = ["paystack", "opay", "transfer", "pay_on_delivery"] as const satisfies readonly CheckoutPaymentMethod[];
 
 /** Pay on delivery is capped by default, matching the "Up to ₦50,000" promise sellers see when they turn it on. */
 export const DEFAULT_COD_LIMIT = 50_000;
@@ -23,6 +23,8 @@ export interface CheckoutPaymentSettings {
   methods: Partial<Record<PaymentMethodKey, boolean>> | null;
   /** Paystack keys are set on the server. */
   paystackReady: boolean;
+  /** OPay keys are set on the server (src/lib/opay.ts). */
+  opayReady?: boolean;
   /** The seller's payout account can be shown to buyers (full number known). */
   transferReady: boolean;
   /** Highest order total for pay on delivery; null means no cap. */
@@ -146,12 +148,13 @@ export function payOnDeliveryBlock(settings: CheckoutPaymentSettings, context: C
 
 const OPTION_COPY: Record<CheckoutPaymentMethod, Omit<CheckoutPaymentOption, "key">> = {
   paystack: { label: "Card, bank or USSD", hint: "Pay securely with Paystack" },
+  opay: { label: "OPay", hint: "OPay wallet, card, bank transfer or USSD" },
   transfer: { label: "Bank transfer", hint: "We show you the account after you place the order" },
   pay_on_delivery: { label: "Pay on delivery", hint: "Pay the rider in cash or by transfer" },
 };
 
 /**
- * Buyer-facing payment options, always in the order Paystack, bank transfer, pay on delivery.
+ * Buyer-facing payment options, always in the order Paystack, OPay, bank transfer, pay on delivery.
  * Falls back to Paystack when the seller chose nothing, or nothing they chose can be offered.
  */
 export function checkoutPaymentOptions(settings: CheckoutPaymentSettings, context: CheckoutPaymentContext = {}): CheckoutPaymentOption[] {
@@ -159,6 +162,7 @@ export function checkoutPaymentOptions(settings: CheckoutPaymentSettings, contex
   const keys: CheckoutPaymentMethod[] = [];
   if (methods) {
     if (methods.card && settings.paystackReady) keys.push("paystack");
+    if (methods.opay && settings.opayReady) keys.push("opay");
     if (methods.transfer && settings.transferReady) keys.push("transfer");
     if (methods.cod && !payOnDeliveryBlock(settings, context)) keys.push("pay_on_delivery");
   }
@@ -168,7 +172,7 @@ export function checkoutPaymentOptions(settings: CheckoutPaymentSettings, contex
 
 /** Maps the checkout body's paymentMethod (older clients send "redirect" or "inline", both Paystack). */
 export function normalizeCheckoutMethod(value: string | undefined | null): CheckoutPaymentMethod {
-  if (value === "transfer" || value === "pay_on_delivery") return value;
+  if (value === "opay" || value === "transfer" || value === "pay_on_delivery") return value;
   return "paystack";
 }
 
@@ -176,6 +180,7 @@ export function normalizeCheckoutMethod(value: string | undefined | null): Check
 export function paymentChoiceText(method: CheckoutPaymentMethod) {
   if (method === "transfer") return "They'll pay by bank transfer; check your account, then mark the order as paid.";
   if (method === "pay_on_delivery") return "They'll pay on delivery, in cash or by transfer to the rider.";
+  if (method === "opay") return "They're paying through OPay (wallet, card, bank transfer or USSD).";
   return "They're paying by card, bank or USSD through Paystack.";
 }
 
@@ -203,10 +208,11 @@ export function deliveryFeeFor(zones: FeeZone[], flatRate: number, address: { ci
 }
 
 /** Builds the checkout payment settings from a store's brandSettings and active shipping zones. */
-export function checkoutPaymentSettings(brandSettings: unknown, zones: Array<{ name: string; regions: string[]; rates?: unknown }>, paystackReady: boolean): CheckoutPaymentSettings {
+export function checkoutPaymentSettings(brandSettings: unknown, zones: Array<{ name: string; regions: string[]; rates?: unknown }>, paystackReady: boolean, opayReady = false): CheckoutPaymentSettings {
   return {
     methods: readSavedPaymentMethods(brandSettings),
     paystackReady,
+    opayReady,
     transferReady: readTransferAccount(brandSettings) !== null,
     codLimit: readCodLimit(brandSettings),
     zones: zones.map((zone) => ({ name: zone.name, regions: zone.regions, pickupOnly: isPickupOnlyZone(zone) })),

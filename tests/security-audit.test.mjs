@@ -46,8 +46,11 @@ test("the Paystack webhook checks the charge and only moves a still-unpaid order
   const source = read("src/app/api/webhooks/paystack/route.ts");
   assert.match(source, /retailChargeProblem\(pending, event\.data/);
   assert.match(source, /status: \{ in: \[\.\.\.PAYABLE_ORDER_STATUSES\] \}/);
-  assert.match(source, /if \(moved\.count === 1\) await creditCampaignConversion/);
-  assert.match(source, /moved\.count === 1 && resendKey/, "confirmation email only on the first transition");
+  // Messages and the confirmation email only on the first transition (src/lib/commerce/order-paid.server.ts).
+  assert.match(source, /afterRetailOrderPaid\(ref, moved\.count === 1/);
+  const paid = read("src/lib/commerce/order-paid.server.ts");
+  assert.match(paid, /if \(newlyPaid\) \{\n    await creditCampaignConversion/);
+  assert.match(paid, /if \(!newlyPaid\) return;\n\n  const resendKey/, "confirmation email only on the first transition");
   assert.match(source, /timingSafeEqual/);
   assert.doesNotMatch(source, /updateMany\(\{\s*where: \{ id: ref \},\s*data: \{ status: "paid"/);
   const action = read("src/app/actions/payments.ts");

@@ -3,7 +3,7 @@
 //
 // Idempotent by claim: an order's refund starts only while RetailOrder.refundStatus is null, with a conditional
 // update that sets it to "pending" first. A replayed webhook, the payment return page and the seller marking it
-// paid can all reach the refund, and only the first one through calls Paystack.
+// paid can all reach the refund, and only the first one through calls Paystack (or OPay).
 
 export const REFUND_STATUSES = ["pending", "processing", "processed", "failed", "manual"] as const;
 export type RefundStatus = (typeof REFUND_STATUSES)[number];
@@ -16,13 +16,41 @@ export interface RefundableOrder {
   refundStatus?: string | null;
 }
 
+export type RefundRoute = "paystack" | "opay" | "manual";
+
 /**
- * How this payment goes back: through Paystack when Shopinbos took it by card (it has a Paystack reference), else
- * by hand (a bank transfer, cash or POS the seller collected, or any other gateway).
+ * How this payment goes back: through Paystack when Shopinbos took it by card (it has a Paystack reference),
+ * through OPay when the buyer paid with OPay checkout (its reference is the order id), else by hand (a bank
+ * transfer, cash or POS the seller collected).
  */
-export function refundRoute(order: RefundableOrder): "paystack" | "manual" {
+export function refundRoute(order: RefundableOrder): RefundRoute {
+  if (order.paymentMethod === "opay") return order.paystackStatus === "success" ? "opay" : "manual";
   const card = !order.paymentMethod || order.paymentMethod === "paystack";
   return card && Boolean(order.paystackRef) ? "paystack" : "manual";
+}
+
+/** The gateway's name in seller and buyer messages. */
+export function refundGatewayName(route: RefundRoute) {
+  return route === "opay" ? "OPay" : "Paystack";
+}
+
+/** Our reference for an OPay refund (unique per order: a refund is claimed once). The callback names it. */
+export const OPAY_REFUND_PREFIX = "refund-";
+
+export function opayRefundReference(orderId: string) {
+  return `${OPAY_REFUND_PREFIX}${orderId}`;
+}
+
+/** The order an OPay refund reference belongs to, or null for a payment reference. */
+export function orderIdFromOpayRefund(reference: string) {
+  return reference.startsWith(OPAY_REFUND_PREFIX) && reference.length > OPAY_REFUND_PREFIX.length ? reference.slice(OPAY_REFUND_PREFIX.length) : null;
+}
+
+/** OPay refund statuses (INITIAL, PENDING, SUCCESS, FAIL) as ours. */
+export function refundStatusFromOpay(status: unknown): RefundStatus {
+  if (status === "SUCCESS") return "processed";
+  if (status === "FAIL" || status === "CLOSE") return "failed";
+  return "processing";
 }
 
 /** A refund for this order can be started: nobody has claimed it yet. */

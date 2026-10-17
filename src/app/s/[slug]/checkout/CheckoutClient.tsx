@@ -425,8 +425,14 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
       rememberBagDiscount(store.slug, null);
       if (paymentMethod === "paystack") return;
 
-      // Transfer and pay on delivery orders are placed now; nothing is charged here.
+      // Transfer and pay on delivery orders are placed now; nothing is charged here. OPay orders pay on OPay's page,
+      // which sends the shopper back to the order page.
       cart.clear();
+      const cashierUrl = paymentMethod === "opay" ? (data.data.opay?.cashierUrl as string | undefined) : undefined;
+      if (cashierUrl) {
+        window.location.href = cashierUrl;
+        return;
+      }
       const orderPath = getPublicStorefrontPath(storeBasePath, `/order/${order.id}`);
       if (paymentMethod === "transfer" && data.data.transfer) {
         setTransfer(data.data.transfer as TransferDetails);
@@ -685,7 +691,7 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
     </div>
   ) : null;
 
-  const finalLabel = placeOrderLabel(layout, { paystack: isPaystack, total: totals.total, currency: store.currency });
+  const finalLabel = placeOrderLabel(layout, { paystack: isPaystack || paymentMethod === "opay", total: totals.total, currency: store.currency });
   const nextStep = stepped ? steps[stepIndex + 1] : undefined;
   const actions = (
     <div className="mt-6 flex flex-col-reverse gap-3 @2xl:flex-row @2xl:items-center">

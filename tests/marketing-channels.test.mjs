@@ -238,7 +238,8 @@ test("order statuses map to customer message events; settings default off", () =
 });
 
 test("order code calls the notification hook with one line each", () => {
-  const files = ["../src/lib/orders/update-status.ts", "../src/app/api/public/store/[slug]/checkout/route.ts", "../src/app/api/webhooks/paystack/route.ts"];
+  // Online payments (the Paystack and OPay webhooks, OPay's return page) share src/lib/commerce/order-paid.server.ts.
+  const files = ["../src/lib/orders/update-status.ts", "../src/app/api/public/store/[slug]/checkout/route.ts", "../src/lib/commerce/order-paid.server.ts"];
   for (const file of files) {
     const source = readFileSync(new URL(file, import.meta.url), "utf8");
     assert.equal((source.match(/notifyOrderCustomer\(/g) ?? []).length, 1, file);

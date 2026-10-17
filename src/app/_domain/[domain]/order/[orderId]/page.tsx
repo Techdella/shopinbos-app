@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import { db } from "@/lib/db/client";
 import { updateOrderPayment } from "@/app/actions/payments";
+import { refreshOpayOrderPayment } from "@/lib/commerce/opay-orders.server";
 import { OrderConfirmation } from "@/app/s/[slug]/order/[orderId]/OrderConfirmation";
 import { getStoreByCustomDomain } from "@/lib/domains/lookup";
 import { getStorefrontBasePathForHost } from "@/lib/domains/storefront";
@@ -25,6 +26,8 @@ export default async function CustomDomainOrderPage({ params, searchParams }: Pr
   if (reference) {
     await updateOrderPayment(orderId, reference).catch(() => null);
   }
+  // OPay sends the shopper back here (?gateway=opay); its order is confirmed with OPay, never from the URL.
+  await refreshOpayOrderPayment(orderId);
 
   const order = await db.retailOrder.findUnique({ where: { id: orderId } });
   if (!order) notFound();

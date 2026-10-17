@@ -83,6 +83,8 @@ const en = {
   "method.transfer.hint": "Customers get your payout account; you mark it paid when it lands",
   "method.card.label": "Card and USSD",
   "method.card.hint": "Through Paystack",
+  "method.opay.label": "OPay",
+  "method.opay.hint": "OPay wallet, card, transfer or USSD through OPay",
   "method.cod.label": "Pay on delivery",
   "method.cod.hint": "Up to ₦50,000, verified phone numbers, where riders cover",
   "method.wa.label": "Finish on WhatsApp",

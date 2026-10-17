@@ -95,6 +95,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "detail.ref": "Ntụaka: {ref}",
   "detail.status": "Ọnọdụ",
   "method.paystack": "Paystack",
+  "method.opay": "OPay",
   "method.transfer": "Bank transfer",
   "method.cash": "Ego n'aka",
   "method.pos": "POS ma ọ bụ kaadị",

@@ -1,29 +1,21 @@
-import { sendOrderConfirmationEmail } from "@/lib/email/notices.server";
 import { completeCreditPurchase, grantPlanCredits } from "@/lib/ai/credits.server";
 import { CREDIT_REFERENCE_PREFIX } from "@shared/ai-credits";
 import { AD_SETUP_REFERENCE_PREFIX } from "@shared/ad-campaigns";
 import { completeAdSetupPayment } from "@/lib/ad-campaigns/requests.server";
 import { PRINT_ORDER_REFERENCE_PREFIX } from "@shared/print-orders";
 import { completePrintOrderPayment } from "@/lib/packaging/print-orders.server";
-import { SENDER_STORE_SELECT } from "@/lib/email/compliance.server";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db/client";
-import { buildStorefrontUrl } from "@/lib/domains/storefront";
-import { triggerAutomations } from "@/lib/automations/engine";
 import crypto from "crypto";
 import { completeStoreLaunchPayment } from "@/lib/store-launch-billing";
 import { DOMAIN_REFERENCE_PREFIX, completeDomainPayment } from "@/lib/domains/billing.server";
-import { creditCampaignConversion } from "@/lib/campaigns/send";
-import { notifyOrderCustomer } from "@/lib/notifications/customer-messages";
 import { PAYABLE_ORDER_STATUSES, retailChargeProblem } from "@/lib/commerce/paystack-charge";
 import { recoverExpiredOrderPayment } from "@/lib/commerce/order-expiry.server";
 import { applyRefundEvent } from "@/lib/commerce/refunds.server";
-import { ensureSupplierOrdersSafely } from "@/lib/supplier-orders/service.server";
+import { afterRetailOrderPaid } from "@/lib/commerce/order-paid.server";
 import { PAID_RETAIL_STATUSES } from "@/lib/supplier-orders/pure";
 import { isDedicatedCharge } from "@/lib/logistics/payin-rules";
 import { handleDedicatedAccountAssign, handleDedicatedAccountCharge } from "@/lib/logistics/payins.server";
-import { notifyOrderPaid } from "@/lib/notifications/events.server";
-import { settlePaymentLinkForOrder } from "@/lib/payment-links/service.server";
 import { recordInvoicePaid, recordSubscriptionCreated, recordSubscriptionStatus } from "@/lib/seller-plan.server";
 
 // The plan itself (code, monthly/annual, status, paid-until) is recorded on User for the free-domain rule
@@ -196,61 +188,9 @@ export async function POST(req: NextRequest) {
             where: { id: ref, status: { in: [...PAYABLE_ORDER_STATUSES] } },
             data: { status: "paid", paystackStatus: "success", paystackRef: ref },
           });
-      if (moved.count === 1) await creditCampaignConversion(ref).catch(() => null);
-      if (moved.count === 1) await notifyOrderCustomer(ref, "payment_received"); // WhatsApp/SMS to the buyer, if switched on
-      if (moved.count === 1) await notifyOrderPaid(ref); // the seller's bell and phone
-      // Dropship items go to their suppliers. Idempotent, so a replayed event (or one that failed half way) is safe.
+      // The buyer's and seller's messages (once), supplier orders and the payment link (src/lib/commerce/order-paid.server.ts).
       if (moved.count === 1 || (pending && (PAID_RETAIL_STATUSES as readonly string[]).includes(pending.status))) {
-        await ensureSupplierOrdersSafely(ref);
-        // Paid through a payment link: the link counts the sale (a one-time link closes). Idempotent.
-        await settlePaymentLinkForOrder(ref);
-      }
-
-      const resendKey = process.env.RESEND_API_KEY;
-      // The order is already marked paid; a failure in the follow-up email must not 500 the webhook
-      // (Paystack would keep retrying an event that was processed).
-      try {
-        if (moved.count === 1 && resendKey && !resendKey.includes("your_")) {
-          const order = await db.retailOrder.findUnique({ where: { id: ref } });
-          if (order) {
-            const storeData = await db.store.findUnique({ where: { id: order.storeId }, select: SENDER_STORE_SELECT });
-
-            if (storeData && order.buyerEmail) {
-              const money = (amount: number) => {
-                try {
-                  return new Intl.NumberFormat("en-NG", { style: "currency", currency: order.currency, maximumFractionDigits: 0 }).format(amount);
-                } catch {
-                  return `${order.currency} ${Math.round(amount).toLocaleString("en-NG")}`;
-                }
-              };
-              const items = Array.isArray(order.items) ? (order.items as Array<{ name?: string; quantity?: number; price?: number }>) : [];
-              await sendOrderConfirmationEmail({
-                store: storeData,
-                to: order.buyerEmail,
-                buyerName: order.buyerName,
-                orderNumber: order.orderNumber,
-                items: items.map((item) => ({ name: String(item.name ?? "Item"), qty: Number(item.quantity ?? 1), price: money(Number(item.price ?? 0) * Number(item.quantity ?? 1)) })),
-                total: money(Number(order.total)),
-                orderUrl: buildStorefrontUrl(storeData, `/order/${order.id}`),
-                paymentNote: "Payment received. Thank you!",
-              }).catch(() => null);
-            }
-
-            Promise.allSettled([
-              triggerAutomations("payment_received", {
-                storeId: order.storeId,
-                storeName: storeData?.name ?? "Store",
-                buyerEmail: order.buyerEmail,
-                buyerName: order.buyerName,
-                orderNumber: order.orderNumber,
-                orderTotal: Number(order.total),
-                currency: order.currency,
-              }),
-            ]).catch(() => {});
-          }
-        }
-      } catch (error) {
-        console.error("Paystack webhook follow-up failed:", error);
+        await afterRetailOrderPaid(ref, moved.count === 1, "paystack webhook");
       }
     }
   }

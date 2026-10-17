@@ -251,6 +251,15 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
         setError("Card payment isn't available right now. Choose another way to pay, or message the store.");
         return;
       }
+      if (paymentMethod === "opay") {
+        const url = json.data.opay?.cashierUrl as string | undefined;
+        if (url) {
+          window.location.href = url;
+          return;
+        }
+        setError("OPay isn't available right now. Choose another way to pay, or message the store.");
+        return;
+      }
       if (paymentMethod === "transfer" && json.data.transfer) {
         setTransfer({ orderId: order.id, details: json.data.transfer as TransferDetails });
         window.scrollTo({ top: 0 });
@@ -406,7 +415,7 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
             {quoteError ? <p role="alert" className="text-[14px]" style={{ color: "#C2412D" }}>{quoteError}</p> : null}
             {error ? <p role="alert" className="text-[14px]" style={{ color: "#C2412D" }}>{error}</p> : null}
             <PrimaryButton theme={theme} type="button" onClick={pay} disabled={submitting} className="w-full">
-              {submitting ? "Please wait…" : paymentMethod === "paystack" ? `Pay ${money(totals.total)}` : "Place order"}
+              {submitting ? "Please wait…" : paymentMethod === "paystack" || paymentMethod === "opay" ? `Pay ${money(totals.total)}` : "Place order"}
             </PrimaryButton>
             <p className="flex items-center justify-center gap-1.5 text-[13px]" style={{ color: theme.muted }}><Icon name="lock" size={13} /> Secure payment. {store.name} gets your order straight away.</p>
             <WeAccept muted={theme.muted} className="justify-center" />

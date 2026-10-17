@@ -6,6 +6,7 @@ import { buildStorefrontUrl } from "@/lib/domains/storefront";
 import { PAID_RETAIL_STATUSES } from "@/lib/supplier-orders/pure";
 import { checkoutPaymentOptions, checkoutPaymentSettings, paystackSecretReady } from "@shared/checkout-payments";
 import { normalizeVariants, resolveLineVariant } from "@shared/product-variants";
+import { opayReady } from "@/lib/opay";
 import {
   CUSTOMER_LINK_LIMITS,
   customerLinkProblem,
@@ -280,22 +281,24 @@ export async function recordLinkView(id: string) {
 
 export interface PaymentReadiness {
   card: boolean;
+  opay: boolean;
   transfer: boolean;
   payOnDelivery: boolean;
   /** At least one way to pay works. */
   ready: boolean;
 }
 
-/** Which ways to pay a payment link can offer right now (Paystack keys, the seller's methods and bank details). */
+/** Which ways to pay a payment link can offer right now (Paystack and OPay keys, the seller's methods and bank details). */
 export async function paymentReadiness(storeId: string): Promise<PaymentReadiness> {
   const store = await db.store.findUnique({ where: { id: storeId }, select: { brandSettings: true } });
-  const settings = checkoutPaymentSettings(store?.brandSettings, [], paystackSecretReady(process.env.PAYSTACK_SECRET_KEY));
+  const settings = checkoutPaymentSettings(store?.brandSettings, [], paystackSecretReady(process.env.PAYSTACK_SECRET_KEY), opayReady());
   // The same options checkout offers (it falls back to Paystack when nothing the seller chose can work).
   const keys = checkoutPaymentOptions(settings, {}).map((option) => option.key);
   const card = keys.includes("paystack") && settings.paystackReady;
+  const opay = keys.includes("opay");
   const transfer = keys.includes("transfer");
   const payOnDelivery = keys.includes("pay_on_delivery");
-  return { card, transfer, payOnDelivery, ready: card || transfer || payOnDelivery };
+  return { card, opay, transfer, payOnDelivery, ready: card || opay || transfer || payOnDelivery };
 }
 
 // ─── Peggy in a customer chat ─────────────────────────────────────────────────

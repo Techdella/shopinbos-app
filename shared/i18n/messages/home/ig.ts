@@ -70,6 +70,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "pm.transfer.hint": "Ndị ahịa ga-enweta akaụntụ payout gị; ị ga-aka ya akara akwụọla mgbe ego ahụ batara",
   "pm.card.label": "Kaadị na USSD",
   "pm.card.hint": "Site na Paystack",
+  "pm.opay.label": "OPay",
+  "pm.opay.hint": "Wallet OPay, kaadị, nnyefe ego ma ọ bụ USSD site na OPay",
   "pm.cod.label": "Kwụọ ụgwọ mgbe ebutere",
   "pm.cod.hint": "Ruo ₦50,000, nọmba ekwentị akwadoro, ebe riders na-arụ ọrụ",
   "pm.wa.label": "Mechaa ya na WhatsApp",
