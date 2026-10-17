@@ -340,7 +340,7 @@ export async function getSellerWorkspace(userId: string) {
             where: {
               status: "active",
               verificationStatus: "verified",
-              carrier: null,
+              carrier: null, ownerId: null,
             },
             orderBy: [{ reliabilityScore: "desc" }, { rating: "desc" }],
             take: 6,

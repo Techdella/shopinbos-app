@@ -46,8 +46,9 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
     return apiError("BAD_REQUEST", parsed.error.issues[0]?.message ?? "Invalid input");
   }
 
+  // Private fleets (a seller's own riders) are booked through /api/app/logistics/my-riders/jobs, by their owner only.
   const partner = await db.logisticsPartner.findFirst({
-    where: { id: parsed.data.logisticsPartnerId, status: "active", verificationStatus: "verified" },
+    where: { id: parsed.data.logisticsPartnerId, status: "active", verificationStatus: "verified", ownerId: null },
   });
   if (!partner) return apiError("NOT_FOUND", "Logistics partner not found", 404);
 

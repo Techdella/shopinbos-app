@@ -225,7 +225,8 @@ export async function refreshPayInStandingSafely(partnerId: string) {
 /** The cron: every partner holding unpaid cash or still flagged. */
 export async function runPartnerPayInSweep(now: Date = new Date(), config: PayInConfig = payInConfig()) {
   const [holding, flagged] = await Promise.all([
-    db.deliveryBooking.findMany({ where: UNPAID_CASH_WHERE, distinct: ["logisticsPartnerId"], select: { logisticsPartnerId: true }, take: 5000 }),
+    // A seller's own riders (ownerId) hand cash to the seller, not to Shopinbos: never a pay-in.
+    db.deliveryBooking.findMany({ where: { ...UNPAID_CASH_WHERE, logisticsPartner: { ownerId: null } }, distinct: ["logisticsPartnerId"], select: { logisticsPartnerId: true }, take: 5000 }),
     db.logisticsPartner.findMany({ where: { OR: [{ codPaused: true }, { payInOverdueSince: { not: null } }] }, select: { id: true }, take: 5000 }),
   ]);
   const ids = [...new Set([...holding.map((row) => row.logisticsPartnerId), ...flagged.map((row) => row.id)])];

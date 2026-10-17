@@ -171,6 +171,7 @@ export const ROUTE_NAMESPACES: ReadonlyArray<readonly [string, readonly string[]
   ["/home/taxes", ["auth","common","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
   ["/home/video", ["auth","common","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification","video"]],
   ["/home/video/studio", ["auth","common","glossary","help","introTitles","learn","media","nav","notifications","rex","settings","shell","support","tour","ui","verification","video"]],
+  ["/invite/delivery/[code]", ["common","nav","ui"]],
   ["/login", ["auth","common","nav","settings","support","ui"]],
   ["/logistics", ["common","nav","shell","ui"]],
   ["/logistics/analytics", ["auth","common","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],

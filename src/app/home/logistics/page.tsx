@@ -7,6 +7,11 @@ import { QuoteRequestForm } from "./QuoteRequestForm";
 import { AcceptQuoteButton } from "./AcceptQuoteButton";
 import { CancelNetworkBooking, NetworkDelivery } from "./NetworkDelivery";
 import { NetworkAccounts } from "./NetworkAccounts";
+import { MyRiders } from "./MyRiders";
+import { FleetJobActions, RiderDelivery } from "./RiderDelivery";
+import { InviteCompany } from "./InviteCompany";
+import { sellerRiders } from "@/lib/logistics/fleet.server";
+import { linkedPartnerIds, sellerInvites } from "@/lib/logistics/invites.server";
 import { sellerNetworks } from "@/lib/logistics/networks.server";
 import { canStoreNetworkAccounts } from "@/lib/logistics/carriers/accounts.server";
 import { Notice } from "@/components/app-ui";
@@ -49,7 +54,7 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
   const filter = FILTERS.find((f) => f.key === params.filter)?.key ?? "all";
   const partnerRef = params.partner ?? params.logisticsSlug;
   const chosen = partnerRef
-    ? await db.logisticsPartner.findFirst({ where: { OR: [{ id: partnerRef }, { slug: partnerRef }], carrier: null }, select: { id: true } })
+    ? await db.logisticsPartner.findFirst({ where: { OR: [{ id: partnerRef }, { slug: partnerRef }], carrier: null, ownerId: null }, select: { id: true } })
     : null;
   const chosenId = chosen?.id;
 
@@ -58,7 +63,7 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
       where: {
         status: "active",
         verificationStatus: "verified",
-        carrier: null,
+        carrier: null, ownerId: null,
         ...(filter === "same_day" ? { deliveryTypes: { has: "same_day" } } : {}),
         ...(filter === "nationwide" ? { coverageZones: { hasSome: ["Nationwide", "nationwide"] } } : {}),
       },
@@ -70,8 +75,12 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
     db.deliveryBooking.count({ where: { sellerId: user.id, status: { in: [...ACTIVE] } } }),
     db.deliveryBooking.count({ where: { sellerId: user.id, status: "delivered" } }),
     db.deliveryQuoteRequest.findMany({ where: { sellerId: user.id }, include: { logisticsPartner: { select: { displayName: true } } }, orderBy: { createdAt: "desc" }, take: 6 }),
-    db.deliveryBooking.findMany({ where: { sellerId: user.id }, include: { logisticsPartner: { select: { displayName: true } } }, orderBy: { createdAt: "desc" }, take: 8 }),
+    db.deliveryBooking.findMany({ where: { sellerId: user.id }, include: { logisticsPartner: { select: { displayName: true, ownerId: true } }, rider: { select: { name: true } } }, orderBy: { createdAt: "desc" }, take: 8 }),
   ]);
+  const [riders, invites, linkedIds] = await Promise.all([sellerRiders(user.id), sellerInvites(user.id), linkedPartnerIds(user.id)]);
+  // The delivery companies this seller invited come first, marked "Your delivery company".
+  const linked = new Set(linkedIds);
+  partners.sort((a, b) => Number(linked.has(b.id)) - Number(linked.has(a.id)));
   const networks = await sellerNetworks(user.id);
   const networkOptions = networks
     .map((n) => ({ id: n.id, name: n.name, via: n.account ? ("own" as const) : n.viaShopinbos ? ("shopinbos" as const) : null }))
@@ -80,7 +89,7 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
 
   const allVerified = filter === "all"
     ? partners
-    : await db.logisticsPartner.findMany({ where: { status: "active", verificationStatus: "verified", carrier: null }, orderBy: { displayName: "asc" }, take: 100 });
+    : await db.logisticsPartner.findMany({ where: { status: "active", verificationStatus: "verified", carrier: null, ownerId: null }, orderBy: { displayName: "asc" }, take: 100 });
   const partnerOptions = allVerified.map((p) => ({ id: p.id, name: `${p.displayName} · ${p.city}` }));
   const date = (d: Date) => formatDate(d, locale, { day: "numeric", month: "short" });
 
@@ -120,13 +129,19 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
                       <div className="min-w-0 flex-1 basis-[220px]">
                         <div className="truncate text-[14.5px] font-extrabold">{b.pickupLocation} → {b.destination}</div>
                         <div className="truncate text-[13px] text-app-ink-soft">
-                          {b.externalCarrier ? t("net.viaNetwork", { network: b.notes?.match(/^Courier: ([^·]+)/)?.[1]?.trim() || b.logisticsPartner.displayName }) : b.logisticsPartner.displayName}
+                          {b.logisticsPartner.ownerId
+                            ? t("fleet.byRider", { name: b.rider?.name ?? "" })
+                            : b.externalCarrier
+                              ? t("net.viaNetwork", { network: b.notes?.match(/^Courier: ([^·]+)/)?.[1]?.trim() || b.logisticsPartner.displayName })
+                              : b.logisticsPartner.displayName}
                           {b.externalRef ? ` · ${b.externalRef}` : b.trackingCode ? ` · ${b.trackingCode}` : ""} · {date(b.createdAt)}
                         </div>
                       </div>
                       <Pill tone={BOOKING_TONE[b.status] ?? "muted"} dot>{t.dynamic(`booking.${b.status}`, b.status.replace(/_/g, " "))}</Pill>
                       <span className="w-[90px] shrink-0 text-right text-[14px] font-extrabold">{fmt(b.deliveryFee + (b.externalCarrier ? b.platformFee : 0))}</span>
-                      {b.externalCarrier ? (
+                      {b.logisticsPartner.ownerId ? (
+                        (b.status === "confirmed" || b.status === "picked_up" || b.status === "in_transit") && <FleetJobActions bookingId={b.id} status={b.status} />
+                      ) : b.externalCarrier ? (
                         <>
                           {b.externalTrackingUrl && <PillLink href={b.externalTrackingUrl} size="sm" icon="truck">{t("net.track")}</PillLink>}
                           {(b.status === "pending" || b.status === "confirmed") && <CancelNetworkBooking bookingId={b.id} />}
@@ -153,6 +168,16 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
               </div>
             </Card>
 
+            {riders.length > 0 && (
+              <Card className="scroll-mt-4 p-5">
+                <div id="my-riders-delivery" className="scroll-mt-4" />
+                <CardHead title={t("fleet.giveTitle")} sub={t("fleet.giveSub")} />
+                <div className="mt-4">
+                  <RiderDelivery riders={riders.map((r) => ({ id: r.id, name: r.name }))} defaultPickup={workspace.store?.city ?? undefined} orderId={params.order} />
+                </div>
+              </Card>
+            )}
+
             <section className="grid gap-3">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <h2 className="m-0 text-[17px] font-extrabold">{t("lg.partners")}</h2>
@@ -168,7 +193,10 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
                     <ListRow key={p.id} className={chosenId === p.id ? "bg-app-canvas" : undefined}>
                       <Thumb src={p.logoUrl} label={p.displayName} size={44} />
                       <div className="min-w-0 flex-1 basis-[220px]">
-                        <div className="truncate text-[14.5px] font-extrabold">{p.displayName}</div>
+                        <div className="flex items-center gap-2 truncate text-[14.5px] font-extrabold">
+                          {p.displayName}
+                          {linked.has(p.id) && <Pill tone="success">{t("invite.yours")}</Pill>}
+                        </div>
                         <div className="truncate text-[13px] text-app-ink-soft">
                           {p.city}, {p.country} · {t("lg.reliability", { score: p.reliabilityScore })}{p.rating ? ` · ★ ${p.rating.toFixed(1)}` : ""}
                         </div>
@@ -188,6 +216,22 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
           </div>
 
           <aside className="grid min-w-0 content-start gap-5">
+            <Card className="scroll-mt-4 p-5">
+              <div id="my-riders" className="scroll-mt-4" />
+              <CardHead title={t("fleet.title")} sub={t("fleet.sub")} />
+              <div className="mt-4">
+                <MyRiders riders={riders} storeName={workspace.store?.name ?? ""} />
+              </div>
+            </Card>
+
+            <Card className="scroll-mt-4 p-5">
+              <div id="invite" className="scroll-mt-4" />
+              <CardHead title={t("invite.title")} sub={t("invite.sub")} />
+              <div className="mt-4">
+                <InviteCompany invites={invites.map((i) => ({ id: i.id, companyName: i.companyName, status: i.status, url: i.url, partner: i.partner ? { displayName: i.partner.displayName, verificationStatus: String(i.partner.verificationStatus), status: i.partner.status } : null }))} />
+              </div>
+            </Card>
+
             <Card className="scroll-mt-4 p-5">
               <div id="quote" className="scroll-mt-4" />
               <CardHead title={t("lg.askPrice")} sub={t("lg.askPriceSub")} />

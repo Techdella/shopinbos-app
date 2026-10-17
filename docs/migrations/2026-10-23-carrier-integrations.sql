@@ -80,6 +80,27 @@ CREATE INDEX IF NOT EXISTS "DeliveryNetworkCheckout_status_idx" ON "DeliveryNetw
 ALTER TABLE "DeliveryNetworkAccount" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "DeliveryNetworkCheckout" ENABLE ROW LEVEL SECURITY;
 
+-- Sellers' own riders and invited delivery companies (src/lib/logistics/fleet.server.ts, invites.server.ts).
+ALTER TABLE "LogisticsPartner" ADD COLUMN IF NOT EXISTS "ownerId" TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS "LogisticsPartner_ownerId_key" ON "LogisticsPartner"("ownerId");
+
+CREATE TABLE IF NOT EXISTS "SellerLogisticsInvite" (
+  "id" TEXT NOT NULL PRIMARY KEY,
+  "sellerId" TEXT NOT NULL,
+  "code" TEXT NOT NULL,
+  "companyName" TEXT NOT NULL,
+  "contact" TEXT,
+  "status" TEXT NOT NULL DEFAULT 'pending',
+  "logisticsPartnerId" TEXT,
+  "acceptedAt" TIMESTAMP(3),
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "SellerLogisticsInvite_code_key" ON "SellerLogisticsInvite"("code");
+CREATE INDEX IF NOT EXISTS "SellerLogisticsInvite_sellerId_status_idx" ON "SellerLogisticsInvite"("sellerId", "status");
+CREATE INDEX IF NOT EXISTS "SellerLogisticsInvite_logisticsPartnerId_idx" ON "SellerLogisticsInvite"("logisticsPartnerId");
+ALTER TABLE "SellerLogisticsInvite" ENABLE ROW LEVEL SECURITY;
+
 -- The sync cron reads the open jobs of each carrier.
 CREATE INDEX IF NOT EXISTS "DeliveryBooking_externalCarrier_status_idx" ON "DeliveryBooking"("externalCarrier", "status");
 

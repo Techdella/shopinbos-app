@@ -650,6 +650,34 @@ export const NetworkBookSchema = z.object({
   expectedPrice: z.number().positive(),
 });
 
+/** "My riders": a rider the seller adds, and a delivery they give to one of them. */
+export const FleetRiderSchema = z.object({
+  name: z.string().trim().min(2).max(80),
+  phone: z.string().trim().min(7).max(30),
+});
+
+export const FleetJobSchema = z.object({
+  riderId: z.string().min(1).max(60),
+  pickupLocation: z.string().trim().min(3).max(300),
+  destination: z.string().trim().min(3).max(300),
+  orderId: z.string().max(60).optional(),
+  recipient: CarrierContactSchema.optional(),
+  description: z.string().trim().max(500).optional(),
+  weightKg: z.number().positive().max(5000).optional(),
+  notes: z.string().trim().max(500).optional(),
+});
+
+export const FleetJobMoveSchema = z.object({
+  to: z.enum(["picked_up", "delivered", "failed"]),
+  reason: z.string().trim().max(300).optional(),
+});
+
+/** Inviting the delivery company a seller already uses. contact: their WhatsApp number or email (optional). */
+export const LogisticsInviteSchema = z.object({
+  companyName: z.string().trim().min(2).max(120),
+  contact: z.string().trim().max(120).optional(),
+});
+
 export const NetworkAccountConnectSchema = z.object({
   network: z.string().min(2).max(30),
   credentials: z.record(z.string(), z.string().trim().min(1).max(500)),

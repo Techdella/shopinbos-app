@@ -1094,6 +1094,9 @@ model LogisticsPartner {
   /// A delivery company we book through its own API (lib/logistics/carriers): "kwik". Its jobs are priced live and
   /// sent to the carrier instead of being offered in the partner portal, and their status comes from the carrier.
   carrier            String?
+  /// A seller's own riders ("My riders", lib/logistics/fleet.server.ts): the seller's user id. Private to that seller:
+  /// never listed as a partner, no Shopinbos fee, and the cash its riders collect is the seller's (no pay-ins).
+  ownerId            String?            @unique
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
@@ -1290,6 +1293,26 @@ model DeliveryBooking {
   @@index([status])
   @@index([riderId])
   @@index([externalCarrier, status])
+}
+
+// ─── Delivery companies a seller invites (lib/logistics/invites.server.ts) ───────
+
+/// A seller invites the delivery company they already use. Once the company signs up (or logs in) and accepts, it's
+/// linked to the seller ("Your delivery company") and becomes their preferred partner.
+model SellerLogisticsInvite {
+  id                 String    @id @default(cuid())
+  sellerId           String
+  code               String    @unique
+  companyName        String
+  contact            String?
+  status             String    @default("pending") // pending | accepted | cancelled
+  logisticsPartnerId String?
+  acceptedAt         DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([sellerId, status])
+  @@index([logisticsPartnerId])
 }
 
 // ─── Delivery networks (lib/logistics/networks.server.ts) ──────────────────────

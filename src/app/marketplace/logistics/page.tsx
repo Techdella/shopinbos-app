@@ -50,7 +50,7 @@ export default async function MarketplaceLogisticsPage({ searchParams }: PagePro
   const storeCountry = norm(store.country);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const where: any = { status: "active", verificationStatus: "verified", carrier: null };
+  const where: any = { status: "active", verificationStatus: "verified", carrier: null, ownerId: null };
   if (q) {
     where.OR = [
       { companyName: { contains: q, mode: "insensitive" } },
@@ -64,7 +64,7 @@ export default async function MarketplaceLogisticsPage({ searchParams }: PagePro
   Object.assign(where, payWhenItArrivesWhere(params?.cod === "1" || params?.cod === "true"));
 
   const allVerified = await safeQuery(() => db.logisticsPartner.findMany({
-    where: { status: "active", verificationStatus: "verified", carrier: null },
+    where: { status: "active", verificationStatus: "verified", carrier: null, ownerId: null },
     select: { coverageZones: true, country: true },
   }), []);
   const allZones = [...new Set(allVerified.flatMap((p) => p.coverageZones))].sort();

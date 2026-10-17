@@ -194,7 +194,7 @@ export function notifyJobMoved(input: { bookingId: string; to: string; actor: st
   return safely("job moved", async () => {
     const job = await db.deliveryBooking.findUnique({
       where: { id: input.bookingId },
-      select: { id: true, sellerId: true, orderId: true, riderId: true, destination: true, codAmount: true, currency: true, failedReason: true, logisticsPartner: { select: { displayName: true } } },
+      select: { id: true, sellerId: true, orderId: true, riderId: true, destination: true, codAmount: true, currency: true, failedReason: true, logisticsPartner: { select: { displayName: true, ownerId: true } } },
     });
     if (!job) return;
     const partner = short(job.logisticsPartner.displayName, 40) || "The delivery company";
@@ -220,7 +220,10 @@ export function notifyJobMoved(input: { bookingId: string; to: string; actor: st
         type: "payout",
         priority: "success",
         title: `${naira(input.codCollected ?? job.codAmount, job.currency)} paid on delivery`,
-        description: `Your customer paid the rider for ${what}. ${partner} pays it in to Shopinbos, then it comes to you.`,
+        // The seller's own riders (ownerId) hand the cash straight to the seller.
+        description: job.logisticsPartner.ownerId
+          ? `Your customer paid your rider for ${what}. Collect it from your rider.`
+          : `Your customer paid the rider for ${what}. ${partner} pays it in to Shopinbos, then it comes to you.`,
         link,
         metadata: { bookingId: job.id },
         dedupeKey: `order.cod_paid:${job.id}`,

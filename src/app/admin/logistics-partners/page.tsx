@@ -32,7 +32,7 @@ export default async function AdminLogisticsPartnersPage(props: { searchParams?:
   const searchQuery = searchParams?.q?.trim() || undefined;
 
   // Delivery networks have their own page (/admin/delivery-networks).
-  const where: Record<string, unknown> = { carrier: null };
+  const where: Record<string, unknown> = { carrier: null, ownerId: null };
   if (statusFilter) {
     where.verificationStatus = statusFilter;
   }
@@ -68,7 +68,7 @@ export default async function AdminLogisticsPartnersPage(props: { searchParams?:
       },
     }),
     db.logisticsPartner.groupBy({ by: ["verificationStatus"], _count: { _all: true } }),
-    db.logisticsPartner.count({ where: { carrier: null } }),
+    db.logisticsPartner.count({ where: { carrier: null, ownerId: null } }),
     db.logisticsPartner.count({ where: { onboardingState: { path: ["completed"], equals: true } } }),
     db.logisticsPartner.count({ where: { status: "suspended" } }),
     // Transfers into pay-in accounts we couldn't match to a partner (lib/logistics/payins.server.ts).
