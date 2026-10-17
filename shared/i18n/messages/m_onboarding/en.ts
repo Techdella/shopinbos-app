@@ -83,6 +83,8 @@ const en = {
   "method.transfer.hint": "Customers get your payout account; you mark it paid when it lands",
   "method.card.label": "Card and USSD",
   "method.card.hint": "Through Paystack",
+  "method.korapay.label": "Korapay",
+  "method.korapay.hint": "Card, transfer or pay with bank through Korapay",
   "method.cod.label": "Pay on delivery",
   "method.cod.hint": "Up to ₦50,000, verified phone numbers, where riders cover",
   "method.wa.label": "Finish on WhatsApp",

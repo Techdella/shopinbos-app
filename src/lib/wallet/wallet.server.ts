@@ -2,7 +2,7 @@ import "server-only";
 import { createHmac } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
-import { verifyKorapayIdentity, korapayIdentityReady } from "@/lib/korapay";
+import { korapayCheckoutReady, verifyKorapayIdentity, korapayIdentityReady } from "@/lib/korapay";
 import { createPaystackSubaccount, listPaystackSettlements, updatePaystackSubaccount } from "@/lib/paystack";
 import { PAYSTACK_BANK_CODES, resolvePaystackAccount } from "@/lib/payout-bank";
 import { groupDropshipLines, type DropshipLink } from "@/lib/supplier-orders/pure";
@@ -17,6 +17,7 @@ import {
   readSplitPlan,
   type KycIdType,
   type PaymentSplitPlan,
+  type SplitGateway,
   type WalletRole,
 } from "./rules";
 
@@ -192,6 +193,24 @@ export async function approveWalletBank(walletId: string): Promise<WalletResult>
   return openSubaccount(wallet, "approved");
 }
 
+/**
+ * Records the business's Korapay Split Payments recipient (KPY-SPA-…), which the team adds in the Korapay dashboard
+ * for the wallet's own bank account. Empty clears it (Korapay checkout stops splitting to this business).
+ */
+export async function setWalletKorapaySplitAccount(walletId: string, reference: string): Promise<WalletResult> {
+  const value = reference.trim();
+  if (value && !/^KPY-[A-Z]+-[A-Za-z0-9]+$/.test(value)) return { ok: false, error: "Paste the split account reference from the Korapay dashboard (it starts with KPY-)." };
+  const wallet = await db.wallet.findUnique({ where: { id: walletId }, select: { id: true, kycStatus: true, subaccountStatus: true } });
+  if (!wallet) return { ok: false, error: "Wallet not found." };
+  if (value && (wallet.kycStatus !== "verified" || wallet.subaccountStatus !== "active")) return { ok: false, error: "Finish this wallet's ID and bank checks first, so Korapay pays the same checked account." };
+  try {
+    await db.wallet.update({ where: { id: wallet.id }, data: { korapaySplitAccount: value || null } });
+  } catch {
+    return { ok: false, error: "That split account is already on another wallet." };
+  }
+  return { ok: true };
+}
+
 /** Pauses (or resumes) a wallet: Paystack stops settling to its subaccount and checkout stops splitting to it. */
 export async function setWalletFrozen(walletId: string, frozen: boolean, reason?: string): Promise<WalletResult> {
   const wallet = await db.wallet.findUnique({ where: { id: walletId } });
@@ -211,6 +230,8 @@ export async function setWalletFrozen(walletId: string, frozen: boolean, reason?
 
 const activeWhere = { status: "active", subaccountStatus: "active", subaccountCode: { not: null } } satisfies Prisma.WalletWhereInput;
 
+const korapayWhere = { ...activeWhere, korapaySplitAccount: { not: null } } satisfies Prisma.WalletWhereInput;
+
 /** The seller can take card payments: their wallet settles to their own bank. */
 export async function storeTakesCards(storeId: string) {
   const store = await db.store.findUnique({ where: { id: storeId }, select: { userId: true } });
@@ -218,15 +239,27 @@ export async function storeTakesCards(storeId: string) {
   return (await db.wallet.count({ where: { userId: store.userId, ...activeWhere } })) > 0;
 }
 
+/** The seller can take Korapay payments: Split Payments is on and their wallet has a Korapay split account. */
+export async function storeTakesKorapay(storeId: string) {
+  if (!korapayCheckoutReady()) return false;
+  const store = await db.store.findUnique({ where: { id: storeId }, select: { userId: true } });
+  if (!store) return false;
+  return (await db.wallet.count({ where: { userId: store.userId, ...korapayWhere } })) > 0;
+}
+
 /**
- * The Paystack split for an order about to be paid by card: the seller's subaccount, plus each dropship supplier
- * with an active wallet for their wholesale cost. Null when the seller's wallet can't take payments.
+ * The split for an order about to be paid online: the seller's account on that gateway (Paystack subaccount or
+ * Korapay split account), plus each dropship supplier with one for their wholesale cost. Null when the seller's
+ * wallet can't take payments through that gateway.
  */
-export async function splitPlanForOrder(storeId: string, items: unknown, totalNaira: number): Promise<PaymentSplitPlan | null> {
+export async function splitPlanForOrder(storeId: string, items: unknown, totalNaira: number, gateway: SplitGateway = "paystack"): Promise<PaymentSplitPlan | null> {
   const store = await db.store.findUnique({ where: { id: storeId }, select: { userId: true } });
   if (!store) return null;
-  const seller = await db.wallet.findFirst({ where: { userId: store.userId, ...activeWhere }, select: { subaccountCode: true } });
-  if (!seller?.subaccountCode) return null;
+  const ready = gateway === "korapay" ? korapayWhere : activeWhere;
+  const accountOf = (wallet: { subaccountCode: string | null; korapaySplitAccount: string | null } | undefined | null) => (gateway === "korapay" ? wallet?.korapaySplitAccount : wallet?.subaccountCode) ?? null;
+  const seller = await db.wallet.findFirst({ where: { userId: store.userId, ...ready }, select: { subaccountCode: true, korapaySplitAccount: true } });
+  const sellerAccount = accountOf(seller);
+  if (!sellerAccount) return null;
 
   const productIds = [...new Set((Array.isArray(items) ? items : []).map((item) => (item as { productId?: unknown })?.productId).filter((id): id is string => typeof id === "string"))];
   const products = productIds.length
@@ -244,12 +277,13 @@ export async function splitPlanForOrder(storeId: string, items: unknown, totalNa
     ? await db.supplier.findMany({ where: { id: { in: groups.map((group) => group.supplierId) } }, select: { id: true, userId: true } })
     : [];
   const wallets = suppliers.length
-    ? await db.wallet.findMany({ where: { userId: { in: suppliers.map((supplier) => supplier.userId) }, ...activeWhere }, select: { userId: true, subaccountCode: true } })
+    ? await db.wallet.findMany({ where: { userId: { in: suppliers.map((supplier) => supplier.userId) }, ...ready }, select: { userId: true, subaccountCode: true, korapaySplitAccount: true } })
     : [];
-  const subaccountBySupplier = new Map(suppliers.map((supplier) => [supplier.id, wallets.find((wallet) => wallet.userId === supplier.userId)?.subaccountCode ?? null]));
+  const subaccountBySupplier = new Map(suppliers.map((supplier) => [supplier.id, accountOf(wallets.find((wallet) => wallet.userId === supplier.userId))]));
   return buildSplitPlan({
+    gateway,
     totalKobo: Math.round(totalNaira * 100),
-    sellerSubaccount: seller.subaccountCode,
+    sellerSubaccount: sellerAccount,
     suppliers: groups.map((group) => ({ supplierId: group.supplierId, subaccount: subaccountBySupplier.get(group.supplierId) ?? null, costKobo: Math.round(group.costTotal * 100) })),
   });
 }
@@ -283,7 +317,7 @@ export async function recordOrderShares(orderId: string) {
 export interface WalletView {
   kyc: { status: string; idType: string | null; idLast4: string | null; name: string | null; verifiedAt: string | null; checksReady: boolean };
   bank: { bankName: string; accountName: string; accountEnding: string } | null;
-  settlement: { status: string; error: string | null; frozen: boolean; frozenReason: string | null };
+  settlement: { status: string; error: string | null; frozen: boolean; frozenReason: string | null; korapay: boolean };
   /** Kobo. */
   totals: { paidKobo: number; last30Kobo: number; refundedKobo: number };
   entries: Array<{ id: string; kind: string; description: string; amountKobo: number; status: string; createdAt: string; orderId: string | null }>;
@@ -307,7 +341,7 @@ export async function loadWalletView(user: { id: string; role: WalletRole }): Pr
   return {
     kyc: { status: wallet.kycStatus, idType: wallet.kycIdType, idLast4: wallet.kycIdLast4, name, verifiedAt: wallet.kycVerifiedAt?.toISOString() ?? null, checksReady: korapayIdentityReady() },
     bank: wallet.bankName && wallet.accountName ? { bankName: wallet.bankName, accountName: wallet.accountName, accountEnding: maskAccountNumber(wallet.accountNumber) } : null,
-    settlement: { status: wallet.subaccountStatus, error: wallet.subaccountError, frozen: wallet.status === "frozen", frozenReason: wallet.frozenReason },
+    settlement: { status: wallet.subaccountStatus, error: wallet.subaccountError, frozen: wallet.status === "frozen", frozenReason: wallet.frozenReason, korapay: Boolean(wallet.korapaySplitAccount) && korapayCheckoutReady() },
     totals: { paidKobo: paid._sum.amountKobo ?? 0, last30Kobo: last30._sum.amountKobo ?? 0, refundedKobo: refunded._sum.amountKobo ?? 0 },
     entries: entries.map((entry) => ({ id: entry.id, kind: entry.kind, description: entry.description, amountKobo: entry.amountKobo, status: entry.status, createdAt: entry.createdAt.toISOString(), orderId: entry.orderId })),
     settlements: settlements.map((row) => ({ id: row.id, status: row.status, amountKobo: row.totalAmount, date: row.settlementDate })),

@@ -1,9 +1,9 @@
 // Shopinbos Wallet rules: KYC input checks, matching a bank account's name to the verified person, and the Paystack
 // split each paid order is settled with. Pure (no imports) so tests/wallet.test.mjs can load it directly.
 //
-// Shopinbos never holds anyone's money. A store payment is split by Paystack at checkout: the seller's share goes
-// to the seller's subaccount, each dropship supplier's cost to the supplier's subaccount, and Paystack settles every
-// share straight to that business's own bank. Shopinbos's own share is zero.
+// Shopinbos never holds anyone's money. A store payment is split by the gateway at checkout: the seller's share goes
+// to the seller's Paystack subaccount (or Korapay split account), each dropship supplier's cost to the supplier's,
+// and the gateway settles every share straight to that business's own bank. Shopinbos's own share is zero.
 
 export const WALLET_ROLES = ["seller", "supplier", "logistics_partner"] as const;
 export type WalletRole = (typeof WALLET_ROLES)[number];
@@ -74,9 +74,11 @@ export function maskAccountNumber(accountNumber: string | null | undefined) {
 
 // ─── Splitting a payment ──────────────────────────────────────────────────────
 
+export type SplitGateway = "paystack" | "korapay";
+
 export interface SupplierShareInput {
   supplierId: string;
-  /** The supplier's active Paystack subaccount, or null when they haven't set up their wallet. */
+  /** The supplier's account on this gateway (Paystack subaccount / Korapay split account), or null if none. */
   subaccount: string | null;
   /** What the order owes this supplier for its dropship lines (wholesale cost × quantity), in kobo. */
   costKobo: number;
@@ -84,11 +86,13 @@ export interface SupplierShareInput {
 
 export interface PaymentSplitPlan {
   version: 1;
+  /** Which gateway splits it (older plans: Paystack). The account fields are that gateway's references. */
+  gateway?: SplitGateway;
   totalKobo: number;
   sellerSubaccount: string;
-  /** What Paystack settles to the seller: the total less the suppliers paid in the split. */
+  /** What the gateway settles to the seller: the total less the suppliers paid in the split. */
   sellerKobo: number;
-  /** Suppliers Paystack pays directly in this split. */
+  /** Suppliers the gateway pays directly in this split. */
   suppliers: Array<{ supplierId: string; subaccount: string; kobo: number }>;
   /** Suppliers without a wallet: their cost stays in the seller's share and the seller pays them. */
   sellerSettles: Array<{ supplierId: string; kobo: number }>;
@@ -99,16 +103,18 @@ export interface PaymentSplitPlan {
  * When the suppliers' costs come to more than the total (a product priced below cost), nobody is paid in the split
  * but the seller, and the seller settles the suppliers, so a split never asks Paystack for more than was paid.
  */
-export function buildSplitPlan(input: { totalKobo: number; sellerSubaccount: string; suppliers: SupplierShareInput[] }): PaymentSplitPlan {
+export function buildSplitPlan(input: { totalKobo: number; sellerSubaccount: string; suppliers: SupplierShareInput[]; gateway?: SplitGateway }): PaymentSplitPlan {
   const total = Math.max(0, Math.round(input.totalKobo));
+  const gateway = input.gateway ?? "paystack";
   const owed = input.suppliers.filter((supplier) => supplier.costKobo > 0).map((supplier) => ({ ...supplier, costKobo: Math.round(supplier.costKobo) }));
   const direct = owed.filter((supplier) => supplier.subaccount);
   const directTotal = direct.reduce((sum, supplier) => sum + supplier.costKobo, 0);
   if (directTotal > total) {
-    return { version: 1, totalKobo: total, sellerSubaccount: input.sellerSubaccount, sellerKobo: total, suppliers: [], sellerSettles: owed.map(({ supplierId, costKobo }) => ({ supplierId, kobo: costKobo })) };
+    return { version: 1, gateway, totalKobo: total, sellerSubaccount: input.sellerSubaccount, sellerKobo: total, suppliers: [], sellerSettles: owed.map(({ supplierId, costKobo }) => ({ supplierId, kobo: costKobo })) };
   }
   return {
     version: 1,
+    gateway,
     totalKobo: total,
     sellerSubaccount: input.sellerSubaccount,
     sellerKobo: total - directTotal,
@@ -135,6 +141,24 @@ export function paystackSplitParams(plan: PaymentSplitPlan): Record<string, unkn
       subaccounts: [
         { subaccount: plan.sellerSubaccount, share: plan.sellerKobo },
         ...plan.suppliers.map((supplier) => ({ subaccount: supplier.subaccount, share: supplier.kobo })),
+      ],
+    },
+  };
+}
+
+const naira = (kobo: number) => (Math.round(kobo) / 100).toFixed(2);
+
+/**
+ * What goes into Korapay's charge initialize (Split Payments, dynamic rule): flat naira amounts to each business's
+ * Korapay split account, adding up to the whole amount, so nothing is left in the Shopinbos balance.
+ */
+export function korapaySplitParams(plan: PaymentSplitPlan): Record<string, unknown> {
+  return {
+    split_configuration: {
+      split_type: "flat",
+      split_accounts: [
+        { value: naira(plan.sellerKobo), split_account_reference: plan.sellerSubaccount },
+        ...plan.suppliers.map((supplier) => ({ value: naira(supplier.kobo), split_account_reference: supplier.subaccount })),
       ],
     },
   };

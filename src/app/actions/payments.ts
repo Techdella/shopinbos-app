@@ -12,6 +12,7 @@ import { recoverExpiredOrderPayment } from "@/lib/commerce/order-expiry.server";
 import { ensureSupplierOrdersSafely } from "@/lib/supplier-orders/service.server";
 import { settlePaymentLinkForOrder } from "@/lib/payment-links/service.server";
 import { recordOrderShares } from "@/lib/wallet/wallet.server";
+import { refreshKorapayOrderPayment } from "@/lib/commerce/korapay-orders.server";
 import { createPaystackTransferRecipient, linkSellerPayoutBank, maskAccountNumber, PAYSTACK_BANK_CODES } from "@/lib/payout-bank";
 
 interface PaystackTransaction {
@@ -87,6 +88,16 @@ export async function verifyPaystackPayment(reference: string): Promise<{
 }> {
   const result = await fetchPaystackTransaction(reference);
   return result.success ? { success: true, data: { status: result.data!.status } } : { success: false, error: result.error };
+}
+
+/**
+ * Public: the storefront checkout asks this while Korapay's frame is open. It only re-checks the order with Korapay
+ * (the charge reply is the proof, never the caller) and says whether it is paid.
+ */
+export async function checkKorapayPayment(orderId: string): Promise<{ paid: boolean }> {
+  if (typeof orderId !== "string" || orderId.length > 40) return { paid: false };
+  const outcome = await refreshKorapayOrderPayment(orderId);
+  return { paid: outcome === "paid" || outcome === "already_paid" };
 }
 
 export async function updateOrderPayment(

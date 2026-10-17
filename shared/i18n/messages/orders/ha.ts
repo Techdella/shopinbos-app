@@ -95,6 +95,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "detail.ref": "Lamba: {ref}",
   "detail.status": "Matsayi",
   "method.paystack": "Paystack",
+  "method.korapay": "Korapay",
   "method.transfer": "Bank transfer",
   "method.cash": "Kuɗi hannu",
   "method.pos": "POS ko kati",

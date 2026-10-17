@@ -5,7 +5,7 @@ import { PillLink } from "@/components/app-kit";
 import { buildDirectStorefrontPath } from "@/lib/domains/storefront";
 import { checkoutPaymentOptions, checkoutPaymentSettings, paystackSecretReady } from "@shared/checkout-payments";
 import { readCheckoutSettings } from "@shared/cart-checkout";
-import { storeTakesCards } from "@/lib/wallet/wallet.server";
+import { storeTakesCards, storeTakesKorapay } from "@/lib/wallet/wallet.server";
 import { CheckoutSettings } from "./CheckoutSettings";
 import { getT } from "@/lib/i18n/server";
 
@@ -44,7 +44,7 @@ export default async function CheckoutPage() {
     : [[], []];
 
   // What shoppers will actually be offered right now (same rules as the storefront checkout).
-  const payments = checkoutPaymentOptions(checkoutPaymentSettings(store?.brandSettings, zones, paystackSecretReady(process.env.PAYSTACK_SECRET_KEY) && Boolean(store && (await storeTakesCards(store.id))))).map((option) => t.dynamic(`method.${option.key}`, option.label));
+  const payments = checkoutPaymentOptions(checkoutPaymentSettings(store?.brandSettings, zones, paystackSecretReady(process.env.PAYSTACK_SECRET_KEY) && Boolean(store && (await storeTakesCards(store.id))), Boolean(store && (await storeTakesKorapay(store.id))))).map((option) => t.dynamic(`method.${option.key}`, option.label));
 
   return (
     <SellerPage

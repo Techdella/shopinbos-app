@@ -66,7 +66,7 @@ const nextConfig: NextConfig = {
               `media-src 'self' blob: https://*.supabase.co ${storageOrigin}`.trim(),
               // Embedded Signup opens its login/consent frames on www/web.facebook.com.
               // Help videos pasted as YouTube or Vimeo links play in their embeds (shared/help-videos.ts).
-              "frame-src https://js.paystack.co https://checkout.paystack.com https://checkout.flutterwave.com https://www.youtube-nocookie.com https://player.vimeo.com https://www.googletagmanager.com https://www.facebook.com https://web.facebook.com",
+              "frame-src https://js.paystack.co https://checkout.paystack.com https://checkout.korapay.com https://checkout.flutterwave.com https://www.youtube-nocookie.com https://player.vimeo.com https://www.googletagmanager.com https://www.facebook.com https://web.facebook.com",
               // Admin help-video uploads go straight to Storage with a signed URL (storageOrigin covers a custom/local one).
               // Store tags send their hits to Google Analytics / Tag Manager and TikTok (Meta's go to www.facebook.com).
               "connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://analytics.tiktok.com https://*.supabase.co https://api.paystack.co https://api.flutterwave.com https://api.resend.com https://api.openai.com https://api.anthropic.com https://vitals.vercel-insights.com https://va.vercel-scripts.com https://graph.facebook.com https://www.facebook.com https://web.facebook.com https://*.posthog.com https://api-js.mixpanel.com https://api-eu.mixpanel.com" + (storageOrigin ? ` ${storageOrigin}` : ""),

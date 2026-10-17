@@ -76,7 +76,7 @@ const DAY = 86_400_000;
 
 /** Orders taken through Shopinbos checkout have no offline payment method (or "paystack"). */
 export function isOnlinePayment(method: string | null | undefined) {
-  return !method || method === "paystack";
+  return !method || method === "paystack" || method === "korapay";
 }
 
 /** The calendar day in Lagos (UTC+1, no daylight saving) as YYYY-MM-DD. */

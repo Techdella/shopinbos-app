@@ -12,6 +12,10 @@ export const dynamic = "force-dynamic";
 // there are no balances here: the team approves bank accounts whose name isn't the verified owner's (e.g. a
 // company account: check it belongs to them), and pauses a wallet (its Paystack subaccount is switched off and
 // checkout stops splitting to it) if something looks wrong. Several wallets sharing one ID are flagged.
+//
+// Korapay checkout: add the wallet's checked bank as a recipient in the Korapay dashboard (Settlements → Split
+// Payments; Korapay has no API for it), then paste its split account reference here. Only then can that business
+// be paid through Korapay checkout.
 
 const STATUS: Record<string, { label: string; tone: Tone }> = {
   none: { label: "Not set up", tone: "muted" },
@@ -103,7 +107,15 @@ export default async function AdminWalletsPage({ searchParams }: { searchParams?
                       {wallet.frozenReason ? <div className="mt-1 max-w-[220px] text-[12.5px] text-app-ink-soft">{wallet.frozenReason}</div> : null}
                     </td>
                     <td className="px-4 py-3">
-                      <WalletActions walletId={wallet.id} review={wallet.subaccountStatus === "review" || wallet.subaccountStatus === "failed"} frozen={wallet.status === "frozen"} />
+                      <WalletActions
+                        walletId={wallet.id}
+                        review={wallet.subaccountStatus === "review" || wallet.subaccountStatus === "failed"}
+                        frozen={wallet.status === "frozen"}
+                        korapay={{ allowed: wallet.subaccountStatus === "active", reference: wallet.korapaySplitAccount }}
+                      />
+                      {wallet.subaccountStatus === "active" && !wallet.korapaySplitAccount && wallet.accountNumber ? (
+                        <div className="mt-1 text-[12.5px] text-app-ink-soft">For Korapay: add {wallet.accountName}, {wallet.bankName} {wallet.accountNumber} as a split recipient.</div>
+                      ) : null}
                     </td>
                   </tr>
                 );

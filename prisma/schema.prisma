@@ -3724,6 +3724,9 @@ model Wallet {
   subaccountCode  String?   @unique
   subaccountStatus String   @default("none") // none | active | review | failed
   subaccountError String?
+  // The same bank as a Korapay Split Payments recipient (KPY-SPA-…), added by the team in the Korapay dashboard
+  // (Korapay has no API for it). Set: Korapay checkout can split to this business too.
+  korapaySplitAccount String? @unique
   frozenReason    String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt

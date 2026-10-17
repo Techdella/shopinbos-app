@@ -283,8 +283,9 @@ test("server actions that read by id check the caller owns it", () => {
 
 test("every exported function in a \"use server\" file checks who is calling (or is a known public action)", () => {
   // Public on purpose: the storefront checkout confirms a Paystack payment for a buyer with no account; the
-  // order id plus a verified Paystack reference for that order and amount is the credential.
-  const PUBLIC = new Set(["verifyPaystackPayment", "updateOrderPayment"]);
+  // order id plus a verified Paystack reference for that order and amount is the credential. checkKorapayPayment
+  // only re-asks Korapay about an order and answers paid or not.
+  const PUBLIC = new Set(["verifyPaystackPayment", "updateOrderPayment", "checkKorapayPayment"]);
   const AUTH = /requireRole\(|requireUser\(|getCurrentAppUser\(|getSellerUserOrThrow\(|requireAdmin\(|requireSellerStore\(|getLogisticsActor\(|getSupplierActor\(|sellerAndStore\(|assertOwnSupplier\(|getSupplierForUser\(|requirePartner\(|applyPlanUpgrade\(|upgradeUserToSupplierMax\(|linkSupplierPaystackRecipient\(|getPartner\(|currentPartner\(|actor\(/;
   const missing = [];
   for (const entry of fs.readdirSync(path.join(ROOT, "src/app/actions"))) {

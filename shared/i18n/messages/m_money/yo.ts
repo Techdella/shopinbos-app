@@ -27,6 +27,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "po.emptyFilter": "Kò sí nǹkan níbí. Tẹ Gbogbo láti rí àwọn yòókù.",
   "po.note": "Shopinbos kò tíì máa fi transfer báńkì kọ̀ọ̀kan hàn níbí. Ṣàyẹ̀wò statement báńkì tàbí Paystack rẹ láti bá ìsanwó mu.",
   "method.paystack": "Paystack",
+  "method.korapay": "Korapay",
   "method.transfer": "Bank transfer",
   "method.cash": "Owó lọ́wọ́",
   "method.pos": "POS tàbí káàdì",

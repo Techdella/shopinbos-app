@@ -58,10 +58,16 @@ export function WalletPanel({ view, role, ownerName, orderHref }: { view: Wallet
         {view.settlement.status === "review" ? <Notice tone="info">This account isn&apos;t in the name on your ID, so our team is checking it (usually within a day). Payments start once it&apos;s approved.</Notice> : null}
         {view.settlement.status === "failed" && view.settlement.error ? <Notice tone="error">Paystack couldn&apos;t set up this account: {view.settlement.error}. Check the details or try another account.</Notice> : null}
         {kycDone && !view.settlement.frozen ? <BankForm banks={banks} current={view.bank} /> : !kycDone ? <p className="m-0 text-[13.5px] text-app-ink-soft">Verify your ID first.</p> : null}
+        {view.settlement.status === "active" ? (
+          <p className="m-0 text-[13px] text-app-ink-soft">
+            Paystack: on. Korapay: {view.settlement.korapay ? "on" : "our team is setting it up for this account"}.
+          </p>
+        ) : null}
       </section>
       <p className="m-0 border-t border-app-line pt-4 text-[12.5px] leading-[1.5] text-app-ink-soft">
-        Shopinbos never holds your money. When {words.who} pay by card, Paystack splits the payment and settles your share straight to this bank,
-        usually the next working day. Paystack&apos;s fee comes off your share; Shopinbos takes nothing.
+        Shopinbos never holds your money. When {words.who} pay by card or Korapay, the payment is split at checkout and your share settles
+        straight to this bank, usually the next working day. Paystack&apos;s fee comes off your share (with Korapay the customer pays it); Shopinbos
+        takes nothing.
       </p>
     </Card>
   );

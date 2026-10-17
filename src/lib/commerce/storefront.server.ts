@@ -2,7 +2,7 @@ import "server-only";
 import type { Metadata } from "next";
 import { resolveStorefront } from "@/lib/storefront/public-store.server";
 import { db } from "@/lib/db/client";
-import { storeTakesCards } from "@/lib/wallet/wallet.server";
+import { storeTakesCards, storeTakesKorapay } from "@/lib/wallet/wallet.server";
 import { checkoutPaymentSettings, paystackSecretReady } from "@shared/checkout-payments";
 import { readCartSettings, readCheckoutSettings } from "@shared/cart-checkout";
 import type { ShopperCommerce } from "@/components/storefront/shopper/types";
@@ -36,7 +36,7 @@ export async function loadCommerceContext(slug: string): Promise<CommerceContext
   const flatRate = Number(record(record(store?.brandSettings).shippingConfig).flatRate ?? 0);
   return {
     // Card needs Paystack keys and the seller's wallet (payments settle straight to the seller's bank).
-    payments: checkoutPaymentSettings(store?.brandSettings, zones, paystackSecretReady(process.env.PAYSTACK_SECRET_KEY) && Boolean(store && (await storeTakesCards(store.id)))),
+    payments: checkoutPaymentSettings(store?.brandSettings, zones, paystackSecretReady(process.env.PAYSTACK_SECRET_KEY) && Boolean(store && (await storeTakesCards(store.id))), Boolean(store && (await storeTakesKorapay(store.id)))),
     zones: zones.map((zone) => ({ name: zone.name, regions: zone.regions, rates: JSON.parse(JSON.stringify(zone.rates ?? [])) })),
     flatRate: Number.isFinite(flatRate) ? flatRate : 0,
     cart: readCartSettings(store?.brandSettings),
