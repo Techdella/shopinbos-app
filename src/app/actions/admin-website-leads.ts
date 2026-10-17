@@ -22,6 +22,15 @@ export async function setWebsiteLeadStatus(formData: FormData) {
 
 const field = (formData: FormData, name: string) => String(formData.get(name) ?? "").trim();
 
+/** "Supplier", "wholesaler", "logistics", "rider"… → a lead role; null when the cell doesn't say. */
+function roleFromText(text: string) {
+  const value = text.trim().toLowerCase();
+  if (!value) return null;
+  if (/suppl|wholesal|manufactur|distribut/.test(value)) return "supplier";
+  if (/deliver|logist|rider|courier|dispatch/.test(value)) return "delivery";
+  return "seller";
+}
+
 /** Admin: a lead from anywhere else (an event, a call, Instagram DMs), added by hand. */
 export async function addLeadManually(formData: FormData) {
   await requireRole(["admin"], "/admin/login");
@@ -34,6 +43,7 @@ export async function addLeadManually(formData: FormData) {
     message: field(formData, "message"),
     source: field(formData, "source") || "admin",
     consent: formData.get("consent") === "on",
+    payload: { as: field(formData, "as") || "seller" },
   });
   if (!parsed.success) redirect(`/admin/leads?error=${encodeURIComponent(parsed.error.issues[0]?.message ?? "Check the lead.")}`);
   const lead = await saveWebsiteLead(parsed.data);
@@ -68,6 +78,8 @@ export async function importLeadsCsv(formData: FormData) {
       phone,
       source: (row.source ?? "").trim() || source,
       consent: consentAll || /^(y|yes|true|1)$/i.test((row.consent ?? "").trim()),
+      // seller / supplier / delivery: the row's own "role" column, else the role picked for the whole file.
+      payload: { as: roleFromText(row.role ?? row.as ?? "") ?? (field(formData, "as") || "seller") },
     });
     if (!key || !parsed.success) {
       skipped += 1;

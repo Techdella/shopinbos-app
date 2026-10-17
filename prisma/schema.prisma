@@ -426,6 +426,7 @@ model WebsiteLead {
   convertedAt     DateTime?
   optedOut        String[] @default([])
   lastMessagedAt  DateTime?
+  role            String   @default("seller") // seller | supplier | delivery (payload.as from the waitlist)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -437,6 +438,7 @@ model WebsiteLead {
   @@index([email])
   @@index([phone])
   @@index([convertedAt])
+  @@index([role])
 }
 
 // ─── Lead growth: campaigns and automations to turn website leads into users ───────────────────────────────────
@@ -475,7 +477,7 @@ model LeadAutomation {
   name            String
   active          Boolean   @default(false)
   audience        Json      @default("{}") // LeadAudience
-  steps           Json      @default("[]") // LeadStep[]: { delayHours, channel, subject?, body, ctaLabel?, ctaUrl?, waTemplate? }
+  steps           Json      @default("[]") // LeadStep[]: { delayHours | at, skipAfter?, channel, subject?, body, ctaLabel?, ctaUrl?, waTemplate? }
   includeExisting Boolean   @default(false) // also enrol leads that came in before it was switched on
   activatedAt     DateTime?
   createdAt       DateTime  @default(now())

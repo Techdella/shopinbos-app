@@ -7,6 +7,16 @@ export type LeadChannel = (typeof LEAD_CHANNELS)[number];
 
 export const CHANNEL_LABELS: Record<LeadChannel, string> = { email: "Email", sms: "SMS", whatsapp: "WhatsApp" };
 
+/** Who a lead wants to be on Shopinbos (the website waitlist's "as"); every other form is a seller. */
+export const LEAD_ROLES = ["seller", "supplier", "delivery"] as const;
+export type LeadRole = (typeof LEAD_ROLES)[number];
+
+export const ROLE_LABELS: Record<LeadRole, string> = { seller: "Sellers", supplier: "Suppliers", delivery: "Delivery partners" };
+
+export function leadRoleFrom(value: unknown): LeadRole {
+  return value === "supplier" || value === "delivery" ? value : "seller";
+}
+
 export const CAMPAIGN_STATUSES = ["draft", "scheduled", "sending", "sent", "cancelled"] as const;
 export type CampaignStatus = (typeof CAMPAIGN_STATUSES)[number];
 
@@ -20,6 +30,8 @@ export const CAMPAIGN_STATUS_LABELS: Record<CampaignStatus, string> = {
 
 /** Who a campaign or automation reaches. Leads who signed up, were closed or opted out of the channel never get it. */
 export const LeadAudience = z.object({
+  /** Seller, supplier and/or delivery-partner leads. Empty = everyone. */
+  roles: z.array(z.enum(LEAD_ROLES)).max(3).default([]),
   /** Form kinds (src/lib/website-leads/pure.ts LEAD_KINDS). Empty = every form. */
   kinds: z.array(z.string().max(40)).max(30).default([]),
   /** Lead statuses to include: "new" and/or "contacted". */
@@ -57,9 +69,33 @@ const SUBJECT_MESSAGE = { message: "Emails need a subject.", path: ["subject"] }
 export const LeadMessageContent = MessageFields.refine(emailNeedsSubject, SUBJECT_MESSAGE);
 export type LeadMessageContentType = z.infer<typeof LeadMessageContent>;
 
-/** One automation step: a message sent `delayHours` after the previous one (or after the lead came in). */
-export const LeadStep = MessageFields.extend({ delayHours: z.number().min(0).max(24 * 90) }).refine(emailNeedsSubject, SUBJECT_MESSAGE);
+const isoDate = z.string().datetime({ offset: true }).optional().nullable().or(z.literal("")).transform((v) => v || null);
+
+/**
+ * One automation step. Sent either `delayHours` after the previous step (or after the lead came in), or on a date
+ * (`at`, e.g. a launch countdown). A step still waiting after `skipAfter` is skipped, not sent: a dated update is
+ * stale once its day has passed (36 hours by default), so someone who joins late only gets what's still true.
+ */
+export const LeadStep = MessageFields.extend({
+  delayHours: z.number().min(0).max(24 * 90).default(0),
+  at: isoDate,
+  skipAfter: isoDate,
+}).refine(emailNeedsSubject, SUBJECT_MESSAGE);
 export type LeadStepType = z.infer<typeof LeadStep>;
+
+/** How long after its date a dated step may still go out (when it has no skipAfter of its own). */
+export const DATED_STEP_GRACE_MS = 36 * 3_600_000;
+
+/** When a step becomes due: on its date, or `delayHours` after `from` (the lead's arrival or the previous step). */
+export function stepDueAt(step: Pick<LeadStepType, "at" | "delayHours">, from: Date) {
+  return step.at ? new Date(step.at) : new Date(from.getTime() + step.delayHours * 3_600_000);
+}
+
+/** True when a step that comes due at `now` is too late to send and should be skipped. */
+export function stepIsStale(step: Pick<LeadStepType, "at" | "skipAfter">, now: Date) {
+  const limit = step.skipAfter ? Date.parse(step.skipAfter) : step.at ? Date.parse(step.at) + DATED_STEP_GRACE_MS : null;
+  return limit !== null && now.getTime() > limit;
+}
 
 export function readSteps(value: unknown): LeadStepType[] {
   if (!Array.isArray(value)) return [];
