@@ -15,7 +15,7 @@ import { formatStoreMoney, freeDeliveryEverywhereOver, readShopperInfo } from "@
 import { discountAmount } from "@/lib/discounts";
 import { PaystackCheckoutButton } from "@/components/payments/PaystackCheckout";
 import { verifyPaystackPayment, updateOrderPayment } from "@/app/actions/payments";
-import { checkoutPaymentOptions, isHostedCheckoutMethod, type CheckoutPaymentMethod } from "@shared/checkout-payments";
+import { checkoutPaymentOptions, type CheckoutPaymentMethod } from "@shared/checkout-payments";
 import {
   CHECKOUT_STEP_LABELS,
   chooseDelivery,
@@ -113,6 +113,8 @@ interface CreatedOrder {
   orderNumber: string;
   total: number;
   currency: string;
+  /** The Paystack transaction the server started (split to the businesses' banks), reopened in the popup. */
+  paystackAccessCode?: string | null;
 }
 
 interface Quote {
@@ -419,20 +421,14 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
         return;
       }
 
-      const order = data.data.order as CreatedOrder;
+      const order = { ...(data.data.order as CreatedOrder), paystackAccessCode: (data.data.paystack?.access_code as string | null | undefined) ?? null };
       setCreatedOrder(order);
       rememberCartToken(store.slug, null);
       rememberBagDiscount(store.slug, null);
       if (paymentMethod === "paystack") return;
 
-      // Transfer and pay on delivery orders are placed now; nothing is charged here. Korapay orders pay on
-      // the gateway's own page, which sends the shopper back to the order page.
+      // Transfer and pay on delivery orders are placed now; nothing is charged here.
       cart.clear();
-      const hostedUrl = isHostedCheckoutMethod(paymentMethod) ? (data.data.hosted?.url as string | undefined) : undefined;
-      if (hostedUrl) {
-        window.location.href = hostedUrl;
-        return;
-      }
       const orderPath = getPublicStorefrontPath(storeBasePath, `/order/${order.id}`);
       if (paymentMethod === "transfer" && data.data.transfer) {
         setTransfer(data.data.transfer as TransferDetails);
@@ -691,7 +687,7 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
     </div>
   ) : null;
 
-  const finalLabel = placeOrderLabel(layout, { paystack: isPaystack || isHostedCheckoutMethod(paymentMethod), total: totals.total, currency: store.currency });
+  const finalLabel = placeOrderLabel(layout, { paystack: isPaystack, total: totals.total, currency: store.currency });
   const nextStep = stepped ? steps[stepIndex + 1] : undefined;
   const actions = (
     <div className="mt-6 flex flex-col-reverse gap-3 @2xl:flex-row @2xl:items-center">
@@ -717,6 +713,7 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
           </button>
         ) : finalStep && createdOrder && isPaystack ? (
           <PaystackCheckoutButton
+            accessCode={createdOrder.paystackAccessCode}
             amount={createdOrder.total}
             email={details.email}
             firstName={nameParts[0]}

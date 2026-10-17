@@ -3,7 +3,7 @@
 //
 // Idempotent by claim: an order's refund starts only while RetailOrder.refundStatus is null, with a conditional
 // update that sets it to "pending" first. A replayed webhook, the payment return page and the seller marking it
-// paid can all reach the refund, and only the first one through calls Paystack (or Korapay).
+// paid can all reach the refund, and only the first one through calls Paystack.
 
 export const REFUND_STATUSES = ["pending", "processing", "processed", "failed", "manual"] as const;
 export type RefundStatus = (typeof REFUND_STATUSES)[number];
@@ -14,40 +14,21 @@ export interface RefundableOrder {
   paystackRef: string | null;
   paystackStatus?: string | null;
   refundStatus?: string | null;
+  /** Set when Paystack split the payment to the businesses' own banks (src/lib/wallet). */
+  paymentSplit?: unknown;
 }
 
-export type RefundRoute = "paystack" | "korapay" | "manual";
-
 /**
- * How this payment goes back: through Paystack when Shopinbos took it by card (it has a Paystack reference),
- * through Korapay when the buyer paid with Korapay checkout (its reference is the order id), else by hand
- * (a bank transfer, cash or POS the seller collected).
+ * How this payment goes back: through Paystack when Shopinbos took it by card (it has a Paystack reference), else
+ * by hand (a bank transfer, cash or POS the seller collected, or any other gateway).
  */
-export function refundRoute(order: RefundableOrder): RefundRoute {
-  if (order.paymentMethod === "korapay") return order.paystackStatus === "success" ? "korapay" : "manual";
+export function refundRoute(order: RefundableOrder): "paystack" | "manual" {
+  // A split payment was settled to the seller's (and suppliers') own banks, not Shopinbos's: Shopinbos has nothing
+  // to send back, so the seller refunds the buyer.
+  if (order.paymentSplit) return "manual";
   const card = !order.paymentMethod || order.paymentMethod === "paystack";
   return card && Boolean(order.paystackRef) ? "paystack" : "manual";
 }
-
-/** The gateway's name in seller and buyer messages. */
-export function refundGatewayName(route: RefundRoute) {
-  return route === "korapay" ? "Korapay" : "Paystack";
-}
-
-/** Our reference for a Korapay refund (unique per order: a refund is claimed once; at most 50 characters). */
-export const GATEWAY_REFUND_PREFIX = "refund-";
-
-export function gatewayRefundReference(orderId: string) {
-  return `${GATEWAY_REFUND_PREFIX}${orderId}`;
-}
-
-/** Korapay refund statuses (processing, success, failed) and refund.* events as ours. */
-export function refundStatusFromKorapay(statusOrEvent: unknown): RefundStatus {
-  if (statusOrEvent === "success" || statusOrEvent === "refund.success") return "processed";
-  if (statusOrEvent === "failed" || statusOrEvent === "refund.failed") return "failed";
-  return "processing";
-}
-
 
 /** A refund for this order can be started: nobody has claimed it yet. */
 export function canStartRefund(order: Pick<RefundableOrder, "refundStatus">) {

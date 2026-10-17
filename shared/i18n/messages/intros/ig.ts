@@ -658,6 +658,17 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "seasonal-campaigns.4.sub": "Campaign ọ bụla na-aga na nke na-abịa na-agụ na ihuenyo ụlọ gị, ka ị mara ihe na-aga mgbe niile.",
   "seasonal-campaigns.5.caption": "Hụ ihe o wetara.",
   "seasonal-campaigns.5.sub": "Nleta, ndebanye aha pop-up, orders na ego e retara mgbe ọ na-aga, n'akụkụ ụbọchị ndị bu ya ụzọ.",
+  "wallet.title": "Shopinbos Wallet",
+  "wallet.1.caption": "Kwado njirimara gị otu ugboro.",
+  "wallet.1.sub": "BVN ma ọ bụ NIN gị, anyị ga-eji aha gị na ụbọchị ọmụmụ gị lelee ya.",
+  "wallet.2.caption": "Tinye ụlọ akụ a na-akwụ gị ego na ya.",
+  "wallet.2.sub": "Anyị ga-eji Paystack lelee aha dị na ya.",
+  "wallet.3.caption": "Onye ahịa kwụrụ ụgwọ na kaadị.",
+  "wallet.3.sub": "Paystack na-ekewa ego ahụ: òkè gị, na ego onye na-ebubata ọ bụla.",
+  "wallet.4.caption": "Ọ na-aga ozugbo n'ụlọ akụ gị.",
+  "wallet.4.sub": "Na-abụkarị n'ụbọchị ọrụ na-esote. Shopinbos anaghị ejide ego gị.",
+  "wallet.5.caption": "Hụ ụgwọ ọ bụla.",
+  "wallet.5.sub": "Òkè nke ọ bụla na ụgwọ Paystack, n'otu ndepụta.",
 };
 
 export default ig;

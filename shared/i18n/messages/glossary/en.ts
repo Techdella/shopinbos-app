@@ -139,6 +139,8 @@ const en = {
   "payments.example": "₦18,000 by transfer from Chidi, ₦9,500 cash on delivery from Halima.",
   "payouts.short": "Money Shopinbos sends from your sales into your bank account.",
   "payouts.example": "Monday’s ₦64,000 in sales lands in your GTBank on Tuesday.",
+  "wallet.short": "Where card payments for you are settled: straight to your own bank, never held by Shopinbos.",
+  "wallet.example": "A customer pays ₦30,000: your ₦30,000 (less Paystack’s fee) lands in your GTBank the next working day.",
   "settlement.short": "The moment your money is cleared and moved to your bank.",
   "settlement.example": "Card payments settle the next working day.",
   "escrow.short": "Money held safely in the middle until the order is delivered, then released.",

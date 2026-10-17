@@ -178,6 +178,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "media.example": "Họrọ foto Ankara nke ọnwa gara aga maka banner ọhụrụ kama ibugo ya ọzọ.",
   "seasonal-campaigns.short": "Sale ị na-ahazi otu ugboro nke na-achọ ụlọ ahịa gị mma maka oge ememe, wee laghachi n'onwe ya.",
   "seasonal-campaigns.example": "Black Friday: agba gold, countdown na badge “BF Deal” site na Fraịdee ruo abalị Sọnde.",
+  "wallet.short": "Ebe a na-akwụ gị ego kaadị: ozugbo n'ụlọ akụ gị, Shopinbos anaghị ejide ego gị.",
+  "wallet.example": "Onye ahịa kwụrụ ₦30,000: ₦30,000 gị (wepụ ụgwọ Paystack) ga-abata na GTBank gị n'ụbọchị ọrụ na-esote.",
 };
 
 export default ig;

@@ -9,9 +9,9 @@ import { notifyOrderCustomer } from "@/lib/notifications/customer-messages";
 import { notifyOrderPaid } from "@/lib/notifications/events.server";
 import { ensureSupplierOrdersSafely } from "@/lib/supplier-orders/service.server";
 import { settlePaymentLinkForOrder } from "@/lib/payment-links/service.server";
+import { recordOrderShares } from "@/lib/wallet/wallet.server";
 
-// What happens once a storefront order's online payment is confirmed (a Paystack or Korapay webhook, or the
-// order page Korapay returns to). `newlyPaid` is true only for the caller that moved the order to paid, so the buyer and seller hear about
+// What happens once a storefront order's online payment is confirmed (the Paystack webhook). `newlyPaid` is true only for the caller that moved the order to paid, so the buyer and seller hear about
 // it once; the supplier orders and payment link are idempotent and run again on replays. Only settling the payment
 // link can throw (the database was unreachable), so a webhook answers 500 and its retry settles it.
 
@@ -25,6 +25,8 @@ export async function afterRetailOrderPaid(orderId: string, newlyPaid: boolean, 
   await ensureSupplierOrdersSafely(orderId);
   // Paid through a payment link: the link counts the sale (a one-time link closes). Idempotent.
   await settlePaymentLinkForOrder(orderId);
+  // Each business's share of the split goes on its wallet statement (once).
+  await recordOrderShares(orderId);
   if (!newlyPaid) return;
 
   const resendKey = process.env.RESEND_API_KEY;

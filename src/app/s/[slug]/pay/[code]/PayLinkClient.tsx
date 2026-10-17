@@ -8,7 +8,7 @@ import { Icon } from "@/components/ui/Icon";
 import { getPublicStorefrontPath } from "@/lib/domains/storefront";
 import { formatStoreMoney } from "@/lib/storefront/shopper-info";
 import { channelFromRef } from "@shared/channels";
-import { checkoutPaymentOptions, HOSTED_CHECKOUT_NAMES, isHostedCheckoutMethod, type CheckoutPaymentMethod } from "@shared/checkout-payments";
+import { checkoutPaymentOptions, type CheckoutPaymentMethod } from "@shared/checkout-payments";
 import { chooseDelivery, deliveryOptionsFor, isEmail, isPhone, orderTotals, type OrderTotals } from "@shared/cart-checkout";
 import { countryName, readSavedDetails, regionsFor, saveDetails } from "@/components/storefront/shopper/checkout-storage";
 import { ItemThumb, Panel, PrimaryButton, QuantityStepper, ShopperShell, fieldClass } from "@/components/storefront/shopper/ShopperShell";
@@ -199,7 +199,7 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
     if (needsOption && !optionId) found.option = "Choose an option.";
     if (!details.name.trim()) found.name = "Enter your name.";
     if (!isPhone(details.phone)) found.phone = "Enter a phone number the rider can call.";
-    if (details.email.trim() ? !isEmail(details.email) : (paymentMethod === "paystack" || paymentMethod === "korapay")) found.email = details.email.trim() ? "Enter a valid email." : "Add your email to pay by card. We send the receipt there.";
+    if (details.email.trim() ? !isEmail(details.email) : paymentMethod === "paystack") found.email = details.email.trim() ? "Enter a valid email." : "Add your email to pay by card. We send the receipt there.";
     if (!details.street.trim()) found.street = "Enter your street address.";
     if (!details.city.trim()) found.city = "Enter your area or city.";
     if (regions.length > 0 && !details.state.trim()) found.state = "Choose your state.";
@@ -243,21 +243,24 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
       }
       const order = json.data.order as { id: string };
       if (paymentMethod === "paystack") {
+        // The server started the transaction (split to the seller's own bank); Paystack's popup opens it here.
+        const accessCode = json.data.paystack?.access_code as string | undefined;
         const url = json.data.paystack?.authorization_url as string | undefined;
+        const orderPath = getPublicStorefrontPath(storeBasePath, `/order/${order.id}`);
+        if (accessCode) {
+          const { default: PaystackPop } = await import("@paystack/inline-js");
+          new PaystackPop().resumeTransaction(accessCode, {
+            // The order page confirms the payment with Paystack before marking it paid.
+            onSuccess: (transaction) => onPlaced(`${orderPath}?reference=${encodeURIComponent(transaction.reference)}`),
+            onCancel: () => onPlaced(orderPath),
+          });
+          return;
+        }
         if (url) {
           window.location.href = url;
           return;
         }
         setError("Card payment isn't available right now. Choose another way to pay, or message the store.");
-        return;
-      }
-      if (isHostedCheckoutMethod(paymentMethod)) {
-        const url = json.data.hosted?.url as string | undefined;
-        if (url) {
-          window.location.href = url;
-          return;
-        }
-        setError(`${HOSTED_CHECKOUT_NAMES[paymentMethod]} isn't available right now. Choose another way to pay, or message the store.`);
         return;
       }
       if (paymentMethod === "transfer" && json.data.transfer) {
@@ -361,7 +364,7 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
             <h2 className="text-[18px] font-semibold" style={{ fontFamily: theme.heading }}>Your details</h2>
             {field("name", "Full name", { autoComplete: "name" })}
             {field("phone", "Phone (WhatsApp)", { type: "tel", autoComplete: "tel", inputMode: "tel" })}
-            {field("email", paymentMethod === "paystack" || paymentMethod === "korapay" ? "Email (for your receipt)" : "Email (optional)", { type: "email", autoComplete: "email" })}
+            {field("email", paymentMethod === "paystack" ? "Email (for your receipt)" : "Email (optional)", { type: "email", autoComplete: "email" })}
           </Panel>
 
           <Panel theme={theme} className="grid gap-3 p-5">
@@ -415,7 +418,7 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
             {quoteError ? <p role="alert" className="text-[14px]" style={{ color: "#C2412D" }}>{quoteError}</p> : null}
             {error ? <p role="alert" className="text-[14px]" style={{ color: "#C2412D" }}>{error}</p> : null}
             <PrimaryButton theme={theme} type="button" onClick={pay} disabled={submitting} className="w-full">
-              {submitting ? "Please wait…" : paymentMethod === "paystack" || isHostedCheckoutMethod(paymentMethod) ? `Pay ${money(totals.total)}` : "Place order"}
+              {submitting ? "Please wait…" : paymentMethod === "paystack" ? `Pay ${money(totals.total)}` : "Place order"}
             </PrimaryButton>
             <p className="flex items-center justify-center gap-1.5 text-[13px]" style={{ color: theme.muted }}><Icon name="lock" size={13} /> Secure payment. {store.name} gets your order straight away.</p>
             <WeAccept muted={theme.muted} className="justify-center" />

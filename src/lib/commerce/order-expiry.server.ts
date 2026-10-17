@@ -254,3 +254,26 @@ export async function releaseOrderDiscount(order: { id: string; storeId: string;
   if (!shouldRestoreDiscount(order, statusBefore)) return false;
   return db.$transaction((tx) => restoreDiscountUse(tx, order, statusBefore));
 }
+
+/**
+ * The payment could never start for this just-placed order (the gateway refused), so it is cancelled now, as if it
+ * expired: its stock and discount use go back straight away instead of after the payment window. Never throws.
+ */
+export async function cancelUnstartedOrder(orderId: string, issue: string) {
+  try {
+    const order = await db.retailOrder.findUnique({ where: { id: orderId }, select: EXPIRY_SELECT });
+    if (!order) return;
+    const now = new Date();
+    await db.$transaction(async (tx) => {
+      const moved = await tx.retailOrder.updateMany({
+        where: { id: order.id, status: { in: [...UNPAID_STATUSES] }, stockReleasedAt: null },
+        data: { status: "cancelled", expiredAt: now, stockReleasedAt: now, paymentIssue: issue.slice(0, 500) },
+      });
+      if (moved.count !== 1) return;
+      await releaseStock(tx, orderStockHolds(order));
+      await restoreDiscountUse(tx, order, order.status, now);
+    });
+  } catch (error) {
+    console.error(`[order expiry] could not cancel unstarted order ${orderId}`, error);
+  }
+}

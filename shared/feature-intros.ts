@@ -734,6 +734,21 @@ export const FEATURE_INTROS: FeatureIntro[] = [
     ],
   },
   {
+    key: "wallet",
+    term: "wallet",
+    title: "Shopinbos Wallet",
+    roles: ["seller", "supplier", "logistics_partner"],
+    paths: ["/home/wallet", "/supplier/wallet", "/logistics/wallet", "/wallet"],
+    helpTopic: "get_paid",
+    scenes: [
+      { art: "badge-verify", caption: "Verify your ID once.", sub: "Your BVN or NIN, checked against your name and date of birth.", durationMs: S, label: "BVN verified" },
+      { art: "money-flow", caption: "Add the bank you get paid in.", sub: "We check the name on it with Paystack.", durationMs: S, label: "GTBank •• 4821" },
+      { art: "phone-store", caption: "A customer pays by card.", sub: "Paystack splits the payment: your share, and each supplier's cost.", durationMs: S, value: "₦30,000" },
+      { art: "money-flow", caption: "It goes straight to your bank.", sub: "Usually the next working day. Shopinbos never holds your money.", durationMs: S, value: "₦30,000" },
+      { art: "chart-grow", caption: "See every payment.", sub: "Each order's share and Paystack's settlements, in one list.", durationMs: S },
+    ],
+  },
+  {
     key: "supplier-payouts",
     term: "payouts",
     title: "Earnings and payouts",

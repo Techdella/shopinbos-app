@@ -1,28 +1,22 @@
 import "server-only";
-import { korapayChargeState, korapayPaidKobo } from "./korapay-signature";
 
-// Korapay Checkout Redirect with the platform's merchant account: a hosted payment page for store checkouts, the
-// charge query that decides whether an order is paid, and refunds. Like Paystack there are no per-store keys.
+// Korapay Identity for Shopinbos Wallet KYC: checks a Nigerian BVN or NIN against the name and date of birth the
+// owner typed (https://developers.korapay.com/docs/nigeria-bvn, /nigeria-nin). No money moves through Korapay:
+// payments are settled by Paystack straight to each business's bank (src/lib/wallet).
 //
-// Env: KORAPAY_SECRET_KEY (every call here, and it checks webhook signatures). Test or live is the key itself:
-// Korapay has one API host and separate test and live keys.
+// Env: KORAPAY_SECRET_KEY. A test key runs Korapay's sandbox (BVN 22222222222 and NIN 55555555555 pass there).
+// Each live lookup is charged to the Shopinbos Korapay balance.
 
 const KORAPAY_BASE = "https://api.korapay.com/merchant/api/v1";
 
-const placeholder = (value: string) => !value || value.includes("your_") || value.includes("your-");
-
 function secret() {
-  return process.env.KORAPAY_SECRET_KEY?.trim() ?? "";
+  const key = process.env.KORAPAY_SECRET_KEY?.trim() ?? "";
+  return key && !key.includes("your_") && !key.includes("your-") ? key : "";
 }
 
-/** The secret key is set (not the .env.local.example placeholder). */
-export function korapayReady() {
-  return !placeholder(secret());
-}
-
-/** The secret key, for checking webhook signatures; null when Korapay isn't set up. */
-export function korapaySecretKey() {
-  return korapayReady() ? secret() : null;
+/** Korapay's key is set, so ID checks can run. */
+export function korapayIdentityReady() {
+  return Boolean(secret());
 }
 
 function korapayBase() {
@@ -31,112 +25,64 @@ function korapayBase() {
   return stub && /^https?:\/\//.test(stub) ? stub.replace(/\/+$/, "") : KORAPAY_BASE;
 }
 
-interface KorapayReply {
-  status?: boolean;
-  message?: string;
-  data?: Record<string, unknown> | null;
+const text = (value: unknown) => (typeof value === "string" && value.trim() ? value.trim() : null);
+
+const match = (value: unknown) => {
+  const field = value && typeof value === "object" ? (value as Record<string, unknown>).match : undefined;
+  return typeof field === "boolean" ? field : null;
+};
+
+export interface KorapayIdentity {
+  reference: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  middleName: string | null;
+  dateOfBirth: string | null;
+  /** Korapay's verdict on each field we sent (null when it didn't say). */
+  matches: { firstName: boolean | null; lastName: boolean | null; dateOfBirth: boolean | null };
 }
 
-async function call(path: string, init: { method: "GET" | "POST"; body?: unknown; timeoutMs: number }) {
-  if (!korapayReady()) throw new Error("Korapay is not configured.");
-  const response = await fetch(`${korapayBase()}${path}`, {
-    method: init.method,
-    headers: { Authorization: `Bearer ${secret()}`, ...(init.body ? { "Content-Type": "application/json" } : {}) },
-    ...(init.body ? { body: JSON.stringify(init.body) } : {}),
-    cache: "no-store",
-    signal: AbortSignal.timeout(init.timeoutMs),
-  });
-  return { ok: response.ok, httpStatus: response.status, json: (await response.json().catch(() => null)) as KorapayReply | null };
-}
-
-const text = (value: unknown) => (typeof value === "string" ? value : null);
-
-export interface KorapayChargeInput {
-  /** Our reference: the RetailOrder id, so the charge query and webhooks name the order. */
-  reference: string;
-  /** Naira (major units). */
-  amount: number;
-  currency: string;
-  redirectUrl: string;
-  notificationUrl: string;
-  narration: string;
-  customer: { name?: string; email: string };
-  orderNumber: string;
-}
-
-/** Opens a hosted Korapay checkout (POST /charges/initialize). Returns the URL to send the shopper to. */
-export async function initializeKorapayCharge(input: KorapayChargeInput) {
-  const { ok, json } = await call("/charges/initialize", {
-    method: "POST",
-    timeoutMs: 20_000,
-    body: {
-      reference: input.reference,
-      amount: input.amount,
-      currency: input.currency,
-      redirect_url: input.redirectUrl,
-      notification_url: input.notificationUrl,
-      narration: input.narration.slice(0, 100),
-      channels: ["card", "bank_transfer", "pay_with_bank"],
-      merchant_bears_cost: true,
-      customer: { email: input.customer.email, ...(input.customer.name ? { name: input.customer.name.slice(0, 60) } : {}) },
-      // At most 5 keys of letters, digits and "-" (20 characters each).
-      metadata: { "order-number": input.orderNumber },
-    },
-  });
-  const checkoutUrl = text(json?.data?.checkout_url) ?? "";
-  if (!ok || json?.status !== true || !/^https:\/\//.test(checkoutUrl)) {
-    throw new Error(json?.message ? `Korapay: ${json.message}` : "Korapay could not start this payment.");
-  }
-  return { checkoutUrl };
-}
-
-export interface KorapayCharge {
-  /** Every reference the charge carries: ours (payment_reference, or reference) and Korapay's own (KPY-…). */
-  references: string[];
-  state: "success" | "failed" | "waiting";
-  /** What was paid, in kobo. */
-  paidKobo: number | null;
-  currency: string | null;
-}
+export type IdentityResult = { ok: true; identity: KorapayIdentity } | { ok: false; notFound: boolean; message: string };
 
 /**
- * Asks Korapay what happened to a charge (GET /charges/:reference). This, not the webhook body, is what marks an
- * order paid. Returns null when Korapay has no such charge; throws when Korapay can't be reached or refuses the call.
+ * Looks up a BVN or NIN (POST /identities/ng/bvn | nin) with the owner's consent and the details to match. Never
+ * throws: an unknown number comes back as notFound, anything else (no balance, Korapay down) as a message.
  */
-export async function queryKorapayCharge(reference: string): Promise<KorapayCharge | null> {
-  const { ok, httpStatus, json } = await call(`/charges/${encodeURIComponent(reference)}`, { method: "GET", timeoutMs: 15_000 });
-  if (httpStatus === 404 || (json?.status === false && /not found|does not exist/i.test(json.message ?? ""))) return null;
-  if (!ok || json?.status !== true || !json.data) {
-    throw new Error(json?.message ? `Korapay: ${json.message}` : "Korapay could not check this payment.");
-  }
-  const data = json.data;
-  return {
-    references: [text(data.payment_reference), text(data.reference)].filter((value): value is string => Boolean(value)),
-    state: korapayChargeState(data.status),
-    paidKobo: korapayPaidKobo(data),
-    currency: text(data.currency),
-  };
-}
-
-export interface KorapayRefundResult {
-  ok: boolean;
-  status: "processing" | "success" | "failed" | null;
-  message: string;
-}
-
-/** Refunds a whole payment (POST /refunds/initiate; no amount means all of it). Never throws. */
-export async function createKorapayRefund(input: { reference: string; paymentReference: string; reason: string; webhookUrl: string }): Promise<KorapayRefundResult> {
+export async function verifyKorapayIdentity(input: { type: "bvn" | "nin"; id: string; firstName: string; lastName: string; dateOfBirth: string }): Promise<IdentityResult> {
+  const key = secret();
+  if (!key) return { ok: false, notFound: false, message: "ID checks aren't set up yet." };
   try {
-    const { ok, json } = await call("/refunds/initiate", {
+    const response = await fetch(`${korapayBase()}/identities/ng/${input.type}`, {
       method: "POST",
-      timeoutMs: 15_000,
-      body: { reference: input.reference.slice(0, 50), payment_reference: input.paymentReference, reason: input.reason.slice(0, 200), webhook_url: input.webhookUrl.slice(0, 200) },
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: input.id,
+        verification_consent: true,
+        validation: { first_name: input.firstName, last_name: input.lastName, date_of_birth: input.dateOfBirth },
+      }),
+      cache: "no-store",
+      signal: AbortSignal.timeout(30_000),
     });
-    const message = json?.message ?? "Korapay did not accept the refund.";
-    if (!ok || json?.status !== true) return { ok: false, status: null, message: message.slice(0, 300) };
-    const status = json.data?.status;
-    return { ok: true, status: status === "success" || status === "failed" || status === "processing" ? status : "processing", message };
+    const json = (await response.json().catch(() => null)) as { status?: boolean; message?: string; data?: Record<string, unknown> | null } | null;
+    if (!response.ok || json?.status !== true || !json.data) {
+      const message = json?.message ?? `Korapay answered ${response.status}`;
+      const notFound = (response.status >= 400 && response.status < 500 && response.status !== 401 && response.status !== 403) || /not found|invalid|does not exist/i.test(message);
+      return { ok: false, notFound, message };
+    }
+    const data = json.data;
+    const validation = data.validation && typeof data.validation === "object" ? (data.validation as Record<string, unknown>) : {};
+    return {
+      ok: true,
+      identity: {
+        reference: text(data.reference),
+        firstName: text(data.first_name),
+        lastName: text(data.last_name),
+        middleName: text(data.middle_name),
+        dateOfBirth: text(data.date_of_birth),
+        matches: { firstName: match(validation.first_name), lastName: match(validation.last_name), dateOfBirth: match(validation.date_of_birth) },
+      },
+    };
   } catch (error) {
-    return { ok: false, status: null, message: error instanceof Error ? error.message : "Korapay could not be reached" };
+    return { ok: false, notFound: false, message: error instanceof Error ? error.message : "Korapay could not be reached" };
   }
 }

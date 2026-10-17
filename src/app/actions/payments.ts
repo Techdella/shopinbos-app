@@ -11,6 +11,7 @@ import { notifyOrderCustomer } from "@/lib/notifications/customer-messages";
 import { recoverExpiredOrderPayment } from "@/lib/commerce/order-expiry.server";
 import { ensureSupplierOrdersSafely } from "@/lib/supplier-orders/service.server";
 import { settlePaymentLinkForOrder } from "@/lib/payment-links/service.server";
+import { recordOrderShares } from "@/lib/wallet/wallet.server";
 import { createPaystackTransferRecipient, linkSellerPayoutBank, maskAccountNumber, PAYSTACK_BANK_CODES } from "@/lib/payout-bank";
 
 interface PaystackTransaction {
@@ -95,7 +96,7 @@ export async function updateOrderPayment(
   try {
     const order = await db.retailOrder.findUnique({
       where: { id: orderId },
-      select: { id: true, total: true, currency: true, buyerEmail: true, status: true, paystackRef: true, expiredAt: true },
+      select: { id: true, total: true, currency: true, buyerEmail: true, status: true, paystackRef: true, expiredAt: true, paymentSplit: true },
     });
     if (!order) {
       return { success: false, error: "Order not found" };
@@ -104,6 +105,12 @@ export async function updateOrderPayment(
     const expired = order.status === "cancelled" && Boolean(order.expiredAt);
     if (order.status !== "pending" && order.status !== "awaiting_payment" && !expired) {
       return order.paystackRef === reference ? { success: true } : { success: false, error: "Order is not awaiting payment" };
+    }
+
+    // A split order is paid only by the transaction checkout started for it (reference = order id), which settles
+    // to the businesses' own banks; any other transaction would land in Shopinbos's account.
+    if (order.paymentSplit && reference !== orderId) {
+      return { success: false, error: "Payment does not belong to this order" };
     }
 
     const verification = await fetchPaystackTransaction(reference);
@@ -158,6 +165,7 @@ export async function updateOrderPayment(
     // Dropship items go to their suppliers (idempotent: the webhook may do the same).
     await ensureSupplierOrdersSafely(orderId);
     await settlePaymentLinkForOrder(orderId);
+    await recordOrderShares(orderId);
     revalidatePath("/home/orders");
     revalidatePath(`/s/*/order/${orderId}`);
     return { success: true };

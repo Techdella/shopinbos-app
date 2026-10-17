@@ -23,8 +23,6 @@ import {
   payOnDeliveryBlock,
   paystackSecretReady,
   readTransferAccount,
-  HOSTED_CHECKOUT_NAMES,
-  isHostedCheckoutMethod,
 } from "@shared/checkout-payments";
 import { overPublicLimit } from "@/lib/rate-limit";
 import { reserveStock } from "@/lib/commerce/stock.server";
@@ -33,8 +31,10 @@ import { ensureSupplierOrdersSafely } from "@/lib/supplier-orders/service.server
 import { notifyNewOrder, notifyStockAfterSale } from "@/lib/notifications/events.server";
 import { linkCheckout, settlePaymentLinkForOrder } from "@/lib/payment-links/service.server";
 import { isLinkCode, linkOrderChannel } from "@/lib/payment-links/pure";
-import { hostedGatewaysReady } from "@/lib/hosted-gateways";
-import { releaseUnstartedHostedOrder, startHostedCheckout } from "@/lib/commerce/hosted-checkout.server";
+import { splitPlanForOrder, storeTakesCards } from "@/lib/wallet/wallet.server";
+import { paystackSplitParams } from "@/lib/wallet/rules";
+import { initializePaystackTransaction } from "@/lib/paystack";
+import { cancelUnstartedOrder } from "@/lib/commerce/order-expiry.server";
 
 const CHECKOUT_CORS = { methods: ["POST", "OPTIONS"], headers: ["Content-Type"] };
 
@@ -68,7 +68,7 @@ const CheckoutSchema = z.object({
   giftMessage: z.string().max(500).optional(),
   deliveryOptionId: z.string().max(64).optional(),
   // "redirect" and "inline" are older clients asking for Paystack.
-  paymentMethod: z.enum(["paystack", "korapay", "transfer", "pay_on_delivery", "redirect", "inline"]).optional(),
+  paymentMethod: z.enum(["paystack", "transfer", "pay_on_delivery", "redirect", "inline"]).optional(),
   discountCode: z.string().max(40).optional(),
   cartToken: z.string().max(64).optional(),
   campaignToken: z.string().max(64).optional(),
@@ -137,7 +137,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   const items = link ? link.lines : bagItems;
   if (!items.length) return withCors(req, apiError("BAD_REQUEST", "Your bag is empty."), CHECKOUT_CORS);
   const buyerEmail = rawEmail;
-  if (buyerEmail ? !z.string().email().safeParse(buyerEmail).success : !link || ["paystack", "korapay"].includes(normalizeCheckoutMethod(requestedMethod))) {
+  if (buyerEmail ? !z.string().email().safeParse(buyerEmail).success : !link || normalizeCheckoutMethod(requestedMethod) === "paystack") {
     return withCors(req, apiError("BAD_REQUEST", buyerEmail || !link ? "Enter a valid email address." : "Add your email to pay by card. We send the receipt there."), CHECKOUT_CORS);
   }
 
@@ -177,7 +177,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     orderBy: { sortOrder: "asc" },
     select: { name: true, regions: true, rates: true },
   });
-  const paymentSettings = checkoutPaymentSettings(store.brandSettings, shippingZones, paystackSecretReady(paystackSecret), hostedGatewaysReady());
+  // Card payments need the seller's Shopinbos Wallet: Paystack settles them straight to the seller's own bank.
+  const cardsReady = paystackSecretReady(paystackSecret) && (await storeTakesCards(store.id));
+  const paymentSettings = checkoutPaymentSettings(store.brandSettings, shippingZones, cardsReady);
   const paymentContext = { city: deliveryAddress.city, state: deliveryAddress.state, total };
   if (!checkoutPaymentOptions(paymentSettings, paymentContext).some((option) => option.key === paymentMethod)) {
     const reason = paymentMethod === "pay_on_delivery" && paymentSettings.methods?.cod ? payOnDeliveryBlock(paymentSettings, paymentContext) : null;
@@ -247,12 +249,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
           discountAmount,
           currency: store.currency,
           notes: orderNotes(settings, notes, giftMessage),
-          // Null keeps meaning "Paystack checkout" for older readers; Korapay, transfer and pay on delivery wait as pending.
+          // Null keeps meaning "Paystack checkout" for older readers; transfer and pay on delivery wait as pending.
           paymentMethod: paymentMethod === "paystack" ? null : paymentMethod,
           status: "pending",
           // What was really taken (versions of products that keep selling at 0 may give less than asked).
           stockHold: JSON.parse(JSON.stringify(stockHolds)),
-          // When it lets its stock go if still unpaid: card and Korapay 30 min, bank transfer 24 h or the seller's choice.
+          // When it lets its stock go if still unpaid: card 30 min, bank transfer 24 h or the seller's choice.
           paymentDueAt: checkoutPaymentDueAt(new Date(), paymentMethod === "paystack" ? null : paymentMethod, store.brandSettings),
         },
       });
@@ -267,19 +269,29 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     return withCors(req, apiError("BAD_REQUEST", message), CHECKOUT_CORS);
   }
 
-  // Korapay: open the gateway's hosted page before telling anyone about the order. If it can't, the
-  // shopper can never pay this order, so it is cancelled straight away (stock and discount given back) and they
-  // can try again.
-  let hosted: { gateway: string; url: string } | null = null;
-  if (isHostedCheckoutMethod(paymentMethod)) {
+  // Card: start the Paystack transaction on the server, split so each business's share settles straight to its own
+  // bank (src/lib/wallet). The browser opens it in Paystack's popup with the access code (or follows the URL), so it
+  // can't change the amount or who is paid. If Paystack can't start it, the order is cancelled straight away
+  // (stock and discount given back) and the shopper can try again.
+  let paystackData: { authorization_url: string; access_code: string | null; reference: string } | null = null;
+  if (paymentMethod === "paystack") {
+    const plan = await splitPlanForOrder(store.id, orderItems, total);
     try {
-      const forwarded = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-      const url = await startHostedCheckout(paymentMethod, { ...order, total: Number(order.total) }, store, forwarded || undefined);
-      hosted = { gateway: paymentMethod, url };
+      if (!plan) throw new Error("the store's wallet can't take card payments");
+      const started = await initializePaystackTransaction({
+        email: buyerEmail,
+        amountKobo: plan.totalKobo,
+        reference: order.id,
+        callbackUrl: buildStorefrontUrl(store, `/order/${order.id}`),
+        metadata: { orderId: order.id, orderNumber, storeId: store.id, buyerName },
+        split: paystackSplitParams(plan),
+      });
+      paystackData = { authorization_url: started.authorization_url!, access_code: started.access_code ?? null, reference: started.reference ?? order.id };
+      await db.retailOrder.update({ where: { id: order.id }, data: { paystackRef: paystackData.reference, paymentSplit: JSON.parse(JSON.stringify(plan)) } });
     } catch (error) {
-      console.error(`[checkout] ${paymentMethod} could not start order ${order.id}`, error);
-      await releaseUnstartedHostedOrder(order.id, paymentMethod);
-      return withCors(req, apiError("PAYMENT_UNAVAILABLE", `${HOSTED_CHECKOUT_NAMES[paymentMethod]} isn't responding right now. Try again in a moment or choose another way to pay.`, 502), CHECKOUT_CORS);
+      console.error(`[checkout] Paystack could not start order ${order.id}`, error);
+      await cancelUnstartedOrder(order.id, "Paystack could not start the payment, so the order was cancelled before payment.");
+      return withCors(req, apiError("PAYMENT_UNAVAILABLE", "Card payment isn't available right now. Try again in a moment or choose another way to pay.", 502), CHECKOUT_CORS);
     }
   }
 
@@ -327,45 +339,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     }),
   ]);
 
-  // Initialize Paystack payment if keys are configured (skip for inline client-side payment, transfer and pay on delivery)
-  let paystackData: { authorization_url: string; reference: string } | null = null;
-
-  if (paymentMethod === "paystack" && requestedMethod !== "inline" && paystackSecretReady(paystackSecret)) {
-    try {
-      const callbackUrl = buildStorefrontUrl(store, `/order/${order.id}`);
-      const paystackRes = await fetch("https://api.paystack.co/transaction/initialize", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${paystackSecret}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: buyerEmail,
-          amount: Math.round(total * 100), // kobo
-          reference: order.id,
-          metadata: {
-            orderId: order.id,
-            orderNumber,
-            storeId: store.id,
-            buyerName,
-          },
-          callback_url: callbackUrl,
-        }),
-      });
-
-      const paystackJson = await paystackRes.json();
-      if (paystackJson.status) {
-        paystackData = paystackJson.data;
-        await db.retailOrder.update({
-          where: { id: order.id },
-          data: { paystackRef: paystackData!.reference },
-        });
-      }
-    } catch {
-      // Paystack failed — continue without it
-    }
-  }
-
   return withCors(req, created({
     order: {
       id: order.id,
@@ -376,8 +349,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       paymentMethod,
     },
     paystack: paystackData,
-    // Korapay: send the shopper here to pay; the gateway brings them back to the order page.
-    hosted,
     // Where to send a bank transfer: the exact total, with the order number as the reference.
     transfer: transferAccount ? { ...transferAccount, amount: order.total, reference: order.orderNumber, payBy: order.paymentDueAt?.toISOString() ?? null } : null,
   }), CHECKOUT_CORS);

@@ -21,7 +21,7 @@ const PAID = ["paid", "processing", "packed", "shipped", "delivered"] as const;
 const PAGE_SIZE = 50;
 
 function isOnline(method: string | null) {
-  return !method || method === "paystack" || method === "korapay";
+  return !method || method === "paystack";
 }
 
 export default async function SellerPayoutsPage({ searchParams }: { searchParams?: Promise<{ show?: string; page?: string }> }) {

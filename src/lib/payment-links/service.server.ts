@@ -6,7 +6,7 @@ import { buildStorefrontUrl } from "@/lib/domains/storefront";
 import { PAID_RETAIL_STATUSES } from "@/lib/supplier-orders/pure";
 import { checkoutPaymentOptions, checkoutPaymentSettings, paystackSecretReady } from "@shared/checkout-payments";
 import { normalizeVariants, resolveLineVariant } from "@shared/product-variants";
-import { hostedGatewaysReady } from "@/lib/hosted-gateways";
+import { storeTakesCards } from "@/lib/wallet/wallet.server";
 import {
   CUSTOMER_LINK_LIMITS,
   customerLinkProblem,
@@ -281,24 +281,23 @@ export async function recordLinkView(id: string) {
 
 export interface PaymentReadiness {
   card: boolean;
-  korapay: boolean;
   transfer: boolean;
   payOnDelivery: boolean;
   /** At least one way to pay works. */
   ready: boolean;
 }
 
-/** Which ways to pay a payment link can offer right now (gateway keys, the seller's methods and bank details). */
+/** Which ways to pay a payment link can offer right now (Paystack keys, the seller's methods and bank details). */
 export async function paymentReadiness(storeId: string): Promise<PaymentReadiness> {
   const store = await db.store.findUnique({ where: { id: storeId }, select: { brandSettings: true } });
-  const settings = checkoutPaymentSettings(store?.brandSettings, [], paystackSecretReady(process.env.PAYSTACK_SECRET_KEY), hostedGatewaysReady());
+  // Card needs Paystack keys and the seller's wallet (payments settle straight to the seller's bank).
+  const settings = checkoutPaymentSettings(store?.brandSettings, [], paystackSecretReady(process.env.PAYSTACK_SECRET_KEY) && (await storeTakesCards(storeId)));
   // The same options checkout offers (it falls back to Paystack when nothing the seller chose can work).
   const keys = checkoutPaymentOptions(settings, {}).map((option) => option.key);
   const card = keys.includes("paystack") && settings.paystackReady;
-  const korapay = keys.includes("korapay");
   const transfer = keys.includes("transfer");
   const payOnDelivery = keys.includes("pay_on_delivery");
-  return { card, korapay, transfer, payOnDelivery, ready: card || korapay || transfer || payOnDelivery };
+  return { card, transfer, payOnDelivery, ready: card || transfer || payOnDelivery };
 }
 
 // ─── Peggy in a customer chat ─────────────────────────────────────────────────

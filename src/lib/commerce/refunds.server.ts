@@ -5,26 +5,12 @@ import { formatFromAddress, sendEmail } from "@/lib/notifications/resend";
 import { appBase, loadStoreSender } from "@/lib/email/compliance.server";
 import { refundEmail } from "@/lib/email/store-emails";
 import { paystackSecretReady } from "@shared/checkout-payments";
-import { createKorapayRefund, korapayReady } from "@/lib/korapay";
-import {
-  canStartRefund,
-  gatewayRefundReference,
-  paystackRefundBody,
-  readPaystackRefund,
-  refundGatewayName,
-  refundIdempotencyKey,
-  refundRoute,
-  refundStatusFromEvent,
-  refundStatusFromKorapay,
-  refundStillOpen,
-  type RefundStatus,
-} from "./refunds";
+import { canStartRefund, paystackRefundBody, readPaystackRefund, refundIdempotencyKey, refundRoute, refundStatusFromEvent, refundStillOpen } from "./refunds";
 
 // Refunds a payment that arrived after its order expired and the stock had sold (see refunds.ts for the rules).
 // Card payments go back through Paystack's Refund API with the platform key (the same PAYSTACK_SECRET_KEY that
-// initialises and verifies store checkouts: there are no per-store keys); Korapay checkout payments through Korapay's
-// Refund API (src/lib/korapay.ts). Anything else (a transfer the seller collected) is flagged for the seller to refund
-// by hand. Never throws.
+// initialises and verifies store checkouts: there are no per-store keys). Anything else (a transfer the seller
+// collected, another gateway) is flagged for the seller to refund by hand. Never throws.
 
 export type RefundOutcome = "started" | "processed" | "manual" | "failed" | "skipped";
 
@@ -51,7 +37,7 @@ function loadOrder(orderId: string) {
     where: { id: orderId },
     select: {
       id: true, orderNumber: true, storeId: true, status: true, total: true, currency: true, buyerEmail: true, buyerName: true,
-      paymentMethod: true, paystackRef: true, paystackStatus: true, paymentIssue: true, refundStatus: true, refundId: true,
+      paymentMethod: true, paystackRef: true, paystackStatus: true, paymentIssue: true, refundStatus: true, refundId: true, paymentSplit: true,
       store: { select: { userId: true, name: true } },
     },
   });
@@ -87,8 +73,7 @@ async function markFailed(order: RefundOrder, reason: string) {
   const issue = `${order.paymentIssue ?? "Paid after the order expired and the stock had sold."} Automatic refund failed (${reason}). Refund the buyer by hand.`.slice(0, 500);
   await db.retailOrder.updateMany({ where: { id: order.id, refundStatus: { in: ["pending", "processing"] } }, data: { refundStatus: "failed", paymentIssue: issue } });
   console.warn(`[refunds] refund for order ${order.orderNumber} failed: ${reason}`);
-  const gateway = refundGatewayName(refundRoute(order));
-  await notifySeller(order, `Refund failed: order ${order.orderNumber}`, `The payment came in after this order expired and its stock sold. We tried to refund ${money(Number(order.total), order.currency)} through ${gateway} and it failed (${reason}). ${gateway === "Paystack" ? "Refund the buyer from your Paystack dashboard or by transfer." : "Refund the buyer by transfer."}`, "critical");
+  await notifySeller(order, `Refund failed: order ${order.orderNumber}`, `The payment came in after this order expired and its stock sold. We tried to refund ${money(Number(order.total), order.currency)} through Paystack and it failed (${reason}). Refund the buyer from your Paystack dashboard or by transfer.`, "critical");
 }
 
 async function callPaystackRefund(secret: string, body: ReturnType<typeof paystackRefundBody>): Promise<ReturnType<typeof readPaystackRefund>> {
@@ -106,33 +91,6 @@ async function callPaystackRefund(secret: string, body: ReturnType<typeof paysta
   }
 }
 
-type GatewayRefund = { ok: true; id: string | null; status: RefundStatus; key: string } | { ok: false; message: string };
-
-/** Whether the gateway this order was paid through has its keys on the server. */
-type GatewayRoute = "paystack" | "korapay";
-
-function gatewayReady(route: GatewayRoute) {
-  if (route === "korapay") return korapayReady();
-  return paystackSecretReady(process.env.PAYSTACK_SECRET_KEY);
-}
-
-/** Refunds the whole payment through the gateway that took it. */
-async function callGatewayRefund(order: RefundOrder, route: GatewayRoute, reason: string): Promise<GatewayRefund> {
-  if (route === "korapay") {
-    const result = await createKorapayRefund({
-      reference: gatewayRefundReference(order.id),
-      paymentReference: order.id,
-      reason,
-      webhookUrl: `${appBase()}/api/webhooks/korapay`,
-    });
-    if (!result.ok) return { ok: false, message: result.message };
-    return { ok: true, id: gatewayRefundReference(order.id), status: refundStatusFromKorapay(result.status), key: refundIdempotencyKey(order.id, order.id) };
-  }
-  const body = paystackRefundBody(order, order.orderNumber);
-  const result = await callPaystackRefund(process.env.PAYSTACK_SECRET_KEY!, body);
-  return result.ok ? { ...result, key: refundIdempotencyKey(order.id, body.transaction) } : result;
-}
-
 /**
  * Refunds the late payment on an expired order whose stock is gone, once. Call it after the order was flagged
  * (paymentIssue set). The first caller claims the refund (refundStatus null → "pending"); everyone else gets
@@ -143,26 +101,28 @@ export async function refundLatePayment(orderId: string): Promise<RefundOutcome>
     const order = await loadOrder(orderId);
     if (!order || !canStartRefund(order)) return "skipped";
 
-    const route = refundRoute(order);
-    if (route === "manual") {
+    if (refundRoute(order) === "manual") {
       const claimed = await db.retailOrder.updateMany({ where: { id: order.id, refundStatus: null }, data: { refundStatus: "manual" } });
       if (claimed.count !== 1) return "skipped";
-      await notifySeller(order, `Refund needed: order ${order.orderNumber}`, "This order expired unpaid and its stock sold to someone else, then the payment came in outside Paystack. Refund the buyer or offer a replacement.", "critical");
+      await notifySeller(order, `Refund needed: order ${order.orderNumber}`, order.paymentSplit
+        ? "This order expired unpaid and its stock sold to someone else, then the payment came in. It went straight to your bank through your Shopinbos Wallet, so refund the buyer or offer a replacement."
+        : "This order expired unpaid and its stock sold to someone else, then the payment came in outside Paystack. Refund the buyer or offer a replacement.", "critical");
       await emailBuyer(order, "by_store");
       return "manual";
     }
-    const gateway = refundGatewayName(route);
 
     const claimed = await db.retailOrder.updateMany({ where: { id: order.id, refundStatus: null }, data: { refundStatus: "pending" } });
     if (claimed.count !== 1) return "skipped";
 
-    if (!gatewayReady(route)) {
-      await markFailed(order, `${gateway} isn't set up on the server`);
+    const secret = process.env.PAYSTACK_SECRET_KEY;
+    if (!paystackSecretReady(secret)) {
+      await markFailed(order, "Paystack isn't set up on the server");
       await emailBuyer(order, "by_store");
       return "failed";
     }
 
-    const result = await callGatewayRefund(order, route, `Order ${order.orderNumber} expired before the payment arrived and the items sold out.`);
+    const body = paystackRefundBody(order, order.orderNumber);
+    const result = await callPaystackRefund(secret!, body);
 
     if (!result.ok) {
       await markFailed(order, result.message);
@@ -180,8 +140,8 @@ export async function refundLatePayment(orderId: string): Promise<RefundOutcome>
         ...(processed ? { refundedAt: new Date(), status: "refunded" } : {}),
       },
     });
-    console.info(`[refunds] ${result.key}: ${gateway} refund ${result.id ?? "(already reversed)"} ${result.status}`);
-    await notifySeller(order, `Refunded: order ${order.orderNumber}`, `The payment came in after this order expired and its stock sold, so ${money(Number(order.total), order.currency)} went back to the buyer through ${gateway} automatically.`, "info");
+    console.info(`[refunds] ${refundIdempotencyKey(order.id, body.transaction)}: Paystack refund ${result.id ?? "(already reversed)"} ${result.status}`);
+    await notifySeller(order, `Refunded: order ${order.orderNumber}`, `The payment came in after this order expired and its stock sold, so ${money(Number(order.total), order.currency)} went back to the buyer through Paystack automatically.`, "info");
     await emailBuyer(order, "automatic");
     return processed ? "processed" : "started";
   } catch (error) {
@@ -229,8 +189,7 @@ export async function refundCancelledOrder(orderId: string, why: string): Promis
     if (!paid || Number(order.total) <= 0) return "skipped";
     const amount = money(Number(order.total), order.currency);
 
-    const route = refundRoute(order);
-    if (route === "manual") {
+    if (refundRoute(order) === "manual") {
       const claimed = await db.retailOrder.updateMany({ where: { id: order.id, refundStatus: null }, data: { refundStatus: "manual", paymentIssue: `${why} Refund the customer ${amount} by hand.`.slice(0, 500) } });
       if (claimed.count !== 1) return "skipped";
       await notifySeller(order, `Refund your customer: order ${order.orderNumber}`, `You cancelled this order. The customer paid you directly, so send ${amount} back to them by transfer.`, "critical");
@@ -238,20 +197,19 @@ export async function refundCancelledOrder(orderId: string, why: string): Promis
       return "manual";
     }
 
-    const gateway = refundGatewayName(route);
-    const byHand = route === "paystack" ? "Refund the customer from your Paystack dashboard or by transfer." : "Refund the customer by transfer.";
     const claimed = await db.retailOrder.updateMany({ where: { id: order.id, refundStatus: null }, data: { refundStatus: "pending" } });
     if (claimed.count !== 1) return "skipped";
-    if (!gatewayReady(route)) {
-      await db.retailOrder.updateMany({ where: { id: order.id, refundStatus: "pending" }, data: { refundStatus: "failed", paymentIssue: `${why} Automatic refund failed (${gateway} isn't set up). Refund the customer by hand.`.slice(0, 500) } });
-      await notifySeller(order, `Refund failed: order ${order.orderNumber}`, `We couldn't send ${amount} back automatically. ${byHand}`, "critical");
+    const secret = process.env.PAYSTACK_SECRET_KEY;
+    if (!paystackSecretReady(secret)) {
+      await db.retailOrder.updateMany({ where: { id: order.id, refundStatus: "pending" }, data: { refundStatus: "failed", paymentIssue: `${why} Automatic refund failed (Paystack isn't set up). Refund the customer by hand.`.slice(0, 500) } });
+      await notifySeller(order, `Refund failed: order ${order.orderNumber}`, `We couldn't send ${amount} back automatically. Refund the customer from your Paystack dashboard or by transfer.`, "critical");
       await emailBuyer(order, "by_store");
       return "failed";
     }
-    const result = await callGatewayRefund(order, route, why);
+    const result = await callPaystackRefund(secret!, paystackRefundBody(order, order.orderNumber));
     if (!result.ok) {
       await db.retailOrder.updateMany({ where: { id: order.id, refundStatus: "pending" }, data: { refundStatus: "failed", paymentIssue: `${why} Automatic refund failed (${result.message}). Refund the customer by hand.`.slice(0, 500) } });
-      await notifySeller(order, `Refund failed: order ${order.orderNumber}`, `We tried to send ${amount} back through ${gateway} and it failed (${result.message}). ${byHand}`, "critical");
+      await notifySeller(order, `Refund failed: order ${order.orderNumber}`, `We tried to send ${amount} back through Paystack and it failed (${result.message}). Refund the customer from your Paystack dashboard or by transfer.`, "critical");
       await emailBuyer(order, "by_store");
       return "failed";
     }
@@ -260,31 +218,11 @@ export async function refundCancelledOrder(orderId: string, why: string): Promis
       where: { id: order.id, refundStatus: "pending" },
       data: { refundStatus: result.status, refundId: result.id, ...(processed ? { refundedAt: new Date(), status: "refunded" } : {}) },
     });
-    await notifySeller(order, `Refund started: order ${order.orderNumber}`, `${amount} is going back to your customer through ${gateway}.`, "info");
+    await notifySeller(order, `Refund started: order ${order.orderNumber}`, `${amount} is going back to your customer through Paystack.`, "info");
     await emailBuyer(order, "automatic");
     return processed ? "processed" : "started";
   } catch (error) {
     console.error(`[refunds] could not refund cancelled order ${orderId}`, error);
     return "failed";
   }
-}
-
-/**
- * A Korapay webhook for a refund we started on this order (as ours: see refundStatusFromKorapay): processed marks the order refunded, failed puts the payment issue back and tells the
- * seller to refund by hand. Only moves a refund that is still open, on an order paid through that gateway.
- */
-export async function applyHostedRefundStatus(orderId: string, gateway: "korapay", status: RefundStatus, detail: string) {
-  const found = await db.retailOrder.findUnique({ where: { id: orderId }, select: { id: true, paymentMethod: true, refundStatus: true } });
-  if (!found || found.paymentMethod !== gateway || !refundStillOpen(found.refundStatus)) return false;
-  if (status === "failed") {
-    const order = await loadOrder(found.id);
-    if (order) await markFailed(order, `${refundGatewayName(gateway)}: ${detail}`);
-    return true;
-  }
-  if (status !== "processed") return false;
-  const moved = await db.retailOrder.updateMany({
-    where: { id: found.id, refundStatus: { in: ["pending", "processing"] } },
-    data: { refundStatus: "processed", refundedAt: new Date(), status: "refunded" },
-  });
-  return moved.count === 1;
 }

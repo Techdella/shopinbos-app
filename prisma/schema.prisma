@@ -178,6 +178,7 @@ model User {
   store           Store?
   supplier        Supplier?
   logisticsPartner LogisticsPartner?
+  wallet          Wallet?
 
   // Seller actions
   storeProducts     StoreProduct[]
@@ -2039,6 +2040,10 @@ model RetailOrder {
   partlySentAt       DateTime?
   // The payment link (src/lib/payment-links) this order was paid through, if any.
   paymentLinkId      String?
+  // How Paystack splits this order's payment, set at checkout (src/lib/wallet/split.ts): each business's share goes
+  // straight to its own bank through its Paystack subaccount; Shopinbos receives nothing. Null: no split (older
+  // orders, offline payments).
+  paymentSplit       Json?
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
@@ -3681,4 +3686,73 @@ model BioPageClick {
   bioPage BioPage @relation(fields: [bioPageId], references: [id], onDelete: Cascade)
 
   @@unique([bioPageId, blockId])
+}
+
+// ─── Shopinbos Wallet ─────────────────────────────────────────────────────────
+// A business's money settings on Shopinbos (src/lib/wallet): KYC, the bank Paystack settles to, and its Paystack
+// subaccount. Shopinbos never holds anyone's money: at checkout Paystack splits each payment and settles every
+// share straight to the business's own bank. WalletEntry is the statement of those shares.
+
+model Wallet {
+  id              String    @id @default(cuid())
+  userId          String    @unique
+  role            String // seller | supplier | logistics_partner
+  status          String    @default("active") // active | frozen (the team paused it: no new payments split to it)
+  // KYC: BVN or NIN checked with Korapay Identity against the owner's name and date of birth. Only the last 4
+  // digits and a keyed hash are kept, never the number itself.
+  kycStatus       String    @default("none") // none | verified
+  kycIdType       String? // bvn | nin
+  kycIdLast4      String?
+  kycIdHash       String?
+  kycFirstName    String?
+  kycLastName     String?
+  kycMiddleName   String?
+  kycDateOfBirth  String? // YYYY-MM-DD
+  kycReference    String? // Korapay's verification reference
+  kycVerifiedAt   DateTime?
+  kycAttempts     Int       @default(0) // failed checks on kycAttemptDay
+  kycAttemptDay   String? // YYYY-MM-DD, Lagos time
+  // The bank Paystack settles to (name checked with Paystack's account lookup).
+  bankCode        String?
+  bankName        String?
+  accountNumber   String?
+  accountName     String?
+  // auto: the account name matches the KYC name · review: it doesn't (e.g. a company account), waiting for the
+  // team · approved: the team checked it.
+  nameCheck       String?
+  // The Paystack subaccount payments are split to. Active only once KYC is verified and the bank name is checked.
+  subaccountCode  String?   @unique
+  subaccountStatus String   @default("none") // none | active | review | failed
+  subaccountError String?
+  frozenReason    String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entries WalletEntry[]
+
+  @@index([status])
+  @@index([subaccountStatus])
+  @@index([kycIdHash])
+}
+
+model WalletEntry {
+  id              String   @id @default(cuid())
+  walletId        String
+  // One per share of a payment: sale:<orderId> (the seller's), supplier:<orderId>:<supplierId>. Unique, so a
+  // replayed webhook never records a share twice.
+  reference       String   @unique
+  kind            String // sale | supplier_order
+  amountKobo      Int // the share Paystack settles to this business (before Paystack's fee)
+  status          String   @default("paid") // paid | refunded
+  description     String
+  orderId         String?
+  supplierId      String?
+  paystackReference String?
+  createdAt       DateTime @default(now())
+
+  wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([walletId, createdAt])
+  @@index([orderId])
 }
