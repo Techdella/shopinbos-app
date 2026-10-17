@@ -362,6 +362,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
           children: [
             { id: "leads-all", label: "All leads", href: "/admin/leads" },
             { id: "lead-campaigns", label: "Campaigns & automations", href: "/admin/lead-campaigns" },
+            { id: "lead-whatsapp", label: "WhatsApp", href: "/admin/lead-campaigns/whatsapp" },
           ],
         },
         { id: "product-news", label: "Product news", icon: "megaphone", href: "/admin/product-news", core: true },

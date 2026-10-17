@@ -17,6 +17,8 @@ import {
   type LeadMessageContentType,
 } from "./pure";
 import { optOutUrl } from "./tokens";
+import { whatsappTemplate } from "./whatsapp-content";
+import { metaWhatsAppConfig, sendMetaTemplate, sendMetaText } from "./whatsapp-meta.server";
 
 // One message to one lead, on email, SMS or WhatsApp, from Shopinbos's own accounts (Resend, the platform SMS
 // providers, the platform WhatsApp provider). Every message carries a way to opt out of that channel.
@@ -77,6 +79,18 @@ export async function sendToLead(lead: LeadForMessage, content: LeadMessageConte
       return result.ok ? { status: "sent", to, providerId: result.externalId ?? null } : { status: "failed", to, error: result.error };
     }
     // WhatsApp: a message to someone who hasn't written to us in the last 24 hours must be an approved template.
+    // Our own number on Meta's Cloud API when it's set up (Admin › Leads › WhatsApp), else the platform provider.
+    const meta = metaWhatsAppConfig();
+    if (meta) {
+      const first = firstName(lead.name) || "there";
+      // The launch templates (whatsapp-content.ts) take the first name and the opt-out link; any other approved
+      // template takes the first name as its only variable.
+      const params = whatsappTemplate(content.waTemplate) ? [first, links(lead, content, context).optOut] : [first];
+      const sent = content.waTemplate
+        ? await sendMetaTemplate(meta, { to, template: content.waTemplate, language: content.waLanguage ?? "en", params })
+        : await sendMetaText(meta, { to, text: leadText(lead, content, context) });
+      return sent.ok ? { status: "sent", to, providerId: sent.id } : { status: "failed", to, error: sent.error };
+    }
     // Templates get the first name as their first variable ({{1}}).
     const result = content.waTemplate
       ? await sendWhatsAppTemplate({ to: [to], templateName: content.waTemplate, language: content.waLanguage ?? "en", parameters: { "1": firstName(lead.name) || "there", first_name: firstName(lead.name) || "there" } })
