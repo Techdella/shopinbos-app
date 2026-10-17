@@ -5,6 +5,11 @@ const INTENT_PARAM_KEYS = [
   "logisticsSlug",
   "categorySlug",
   "source",
+  // From shopinbos.com: which store theme, plan or free tool the visitor came from.
+  "template",
+  "plan",
+  "billing",
+  "tool",
 ];
 
 function cleanValue(value) {
@@ -56,8 +61,26 @@ function getContinuationPath(params) {
     return `/home/logistics${query}`;
   }
 
+  // "Use this template" on shopinbos.com/templates: open the theme library on that theme.
+  if (intent === "template") {
+    return `/builder/templates${query}`;
+  }
+
+  // "Start with Growth" on shopinbos.com/pricing.
+  if (intent === "plan") {
+    const billing = new URLSearchParams(query);
+    billing.set("tab", "Billing");
+    return `/home/settings?${billing.toString()}`;
+  }
+
+  // "Try it in the app" from the China import card.
+  if (intent === "import") {
+    return `/home/imports${query}`;
+  }
+
   if (
     intent === "add" ||
+    intent === "add_product" ||
     intent === "sell" ||
     intent === "dropship" ||
     intent === "bulk_order" ||

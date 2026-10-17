@@ -8,12 +8,14 @@ export const GET = withSeller(async (req, { user }) => {
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true } });
   if (!store) return apiError("NOT_FOUND", "Store not found", 404);
 
+  // Categories are shared by all stores, so the count is this store's products only (the page shows it on each row).
   const categories = await db.category.findMany({
     where: { storeProducts: { some: { storeId: store.id } } },
     orderBy: { name: "asc" },
+    include: { _count: { select: { storeProducts: { where: { storeId: store.id } } } } },
   });
 
-  return ok(categories);
+  return ok(categories.map(({ _count, ...category }) => ({ ...category, productCount: _count.storeProducts })));
 });
 
 const CreateSchema = z.object({

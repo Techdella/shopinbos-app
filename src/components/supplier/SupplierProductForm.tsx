@@ -4,6 +4,7 @@ import { Icon } from "@/components/ui/Icon";
 import { PRODUCT_STATUS, buttonClass, fieldClass, hintClass, labelClass, money, statusOf, textareaClass } from "./supplier-kit";
 import { Mascot } from "@/components/brand/Mascot";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
+import { MediaListField } from "@/components/media/MediaListField";
 import { getT } from "@/lib/i18n/server";
 
 interface CategoryOption {
@@ -168,7 +169,8 @@ export async function SupplierProductForm({ mode, action, categories, product, e
         <Section title={t("productForm.photosTitle")} sub={t("productForm.photosSub")}>
           <div className="grid gap-4 lg:grid-cols-2">
             <Field id="product-images" label={t("productForm.images")} hint={t("productForm.imagesHint")}>
-              <textarea id="product-images" className={`${textareaClass} font-mono text-[13.5px]`} name="images" rows={5} defaultValue={(product?.images ?? []).join("\n")} placeholder="https://..." required />
+              {/* Upload, choose from the supplier's media library, or paste links; posts "images" one per line. */}
+              <MediaListField id="product-images" name="images" defaultValue={product?.images ?? []} max={12} />
             </Field>
             <Field id="product-regions" label={t("productForm.regions")} hint={t("productForm.regionsHint")}>
               <textarea id="product-regions" className={textareaClass} name="deliveryRegions" rows={5} defaultValue={(product?.deliveryRegions ?? ["Lagos", "Abuja"]).join("\n")} placeholder={"Lagos\nAbuja\nPort Harcourt"} required />

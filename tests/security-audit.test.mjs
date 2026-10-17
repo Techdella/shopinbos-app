@@ -188,9 +188,16 @@ test("JSON-LD can't close its <script> and the GA ID can't inject script", () =>
   assert.equal(gaMeasurementId("G-ABC123XYZ"), "G-ABC123XYZ");
   assert.equal(gaMeasurementId(" g-abc123 "), "G-ABC123");
   for (const bad of ["G-1');alert(document.cookie);//", "UA-12345-1", "", null, 42, "G-"]) assert.equal(gaMeasurementId(bad), "", String(bad));
-  const page = read("src/app/s/[slug]/page.tsx");
+  // The storefront's JSON-LD lives in the shared route renderer (page.tsx and [collection] use it). The seller's
+  // GA / Tag Manager / pixels load from the storefront layout, built only from validated IDs
+  // (src/lib/storefront/integrations.ts; tests/store-traffic.test.mjs covers the validators and the scripts).
+  const page = read("src/app/s/[slug]/storefront-route.tsx");
   assert.match(page, /__html: scriptSafeJson\(item\)/);
-  assert.match(page, /googleAnalyticsId: gaMeasurementId\(i\.googleAnalyticsId\)/);
+  assert.doesNotMatch(page, /googletagmanager/, "GA moved to the layout, so it isn't loaded twice");
+  const integrations = read("src/lib/storefront/integrations.ts");
+  assert.match(integrations, /googleAnalyticsId: gaMeasurementId,/);
+  assert.match(integrations, /const ga = gaMeasurementId\(integrations\.googleAnalyticsId\);/);
+  assert.match(read("src/app/s/[slug]/layout.tsx"), /<StoreTrackingTags integrations=\{integrations\} slug=\{slug\} consent=\{consent\}/);
   assert.match(read("src/app/s/[slug]/product/[productId]/ProductPageView.tsx"), /__html: scriptSafeJson\(/);
   assert.match(read("src/app/actions/workspace.ts"), /const googleAnalyticsId = gaMeasurementId\(formData\.get\("googleAnalyticsId"\)\);/);
   // Every JSON-LD script in the app goes through an escaping helper.
@@ -450,8 +457,11 @@ test("domains: buying is opt-in, priced by Vercel, capped, and an order attaches
   assert.deepEqual(domainOrdersOf({ domainOrders: "ord_1" }), []);
   const purchase = read("src/app/api/domains/purchase/route.ts");
   assert.match(purchase, /if \(process\.env\.DOMAIN_PURCHASE_ENABLED !== "true"\)/);
-  assert.match(purchase, /years: 1,\s*autoRenew: parsed\.data\.autoRenew,\s*maxPrice: MAX_PRICE_USD,/);
+  // The seller pays first; the domain is bought after a verified payment, one year, never auto-renewed by Vercel,
+  // capped at the quoted cost (tests/domain-billing.test.mjs covers the payment side).
+  assert.doesNotMatch(purchase, /buyDomainOnVercel/);
   assert.doesNotMatch(purchase, /expectedPrice: parsed\.data\.expectedPrice/);
+  assert.match(read("src/lib/domains/billing.server.ts"), /buyDomainOnVercel\(row\.domain, \{ years: 1, autoRenew: false, maxPrice,/);
   const vercel = read("src/lib/domains/vercel.ts");
   assert.match(vercel, /expectedPrice: pricing\.purchasePrice,/);
   assert.match(read("src/app/api/domains/order/[orderId]/route.ts"), /if \(!domainOrdersOf\(store\.brandSettings\)\.includes\(String\(orderId\)\)\)/);

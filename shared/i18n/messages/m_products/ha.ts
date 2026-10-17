@@ -57,6 +57,9 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "list.empty": "Babu kaya tukuna. Taɓa \"Ƙara kaya\", ɗauki hoto, Rex zai rubuta sauran.",
   "list.soldOut": "Ya ƙare",
   "list.left": "{count} suka rage",
+  "cat.all": "Duka",
+  "cat.chip": "{name} ({count})",
+  "cat.empty": "Babu kaya a {name} tukuna.",
 };
 
 export default ha;

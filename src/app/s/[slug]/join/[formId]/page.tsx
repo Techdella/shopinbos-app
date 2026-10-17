@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db/client";
 import { readStoreLook, toHex6 } from "@/app/home/store/look";
-import { readDesign, readFields } from "@/lib/marketing/forms";
+import { readDesign, readFields, readPopupConfig } from "@/lib/marketing/forms";
+import { publicRewardSummary } from "@/lib/marketing/popup-rewards.server";
 import { JoinForm } from "./JoinForm";
 
 // Hosted sign-up page for a form: a link sellers can put in their Instagram bio or WhatsApp status.
@@ -10,7 +11,7 @@ import { JoinForm } from "./JoinForm";
 export const dynamic = "force-dynamic";
 
 async function load(slug: string, formId: string) {
-  const store = await db.store.findUnique({ where: { slug }, select: { id: true, name: true, slug: true, logoUrl: true, status: true, brandSettings: true } });
+  const store = await db.store.findUnique({ where: { slug }, select: { id: true, name: true, slug: true, logoUrl: true, status: true, brandSettings: true, currency: true } });
   if (!store || store.status !== "active") return null;
   const form = await db.storeForm.findFirst({ where: { id: formId, storeId: store.id, active: true } });
   return form ? { store, form } : null;
@@ -37,6 +38,7 @@ export default async function JoinPage({ params }: { params: Promise<{ slug: str
     accentText: toHex6(tokens?.ctaText, "#FFFFFF"),
   };
   const design = readDesign(form.design, form.name);
+  const reward = await publicRewardSummary(store.id, readPopupConfig(form.popupConfig).reward);
   return (
     <main className="grid min-h-[100dvh] place-items-center px-4 py-10" style={{ background: colors.paper, color: colors.ink }}>
       <div className="w-full max-w-[440px]">
@@ -47,7 +49,7 @@ export default async function JoinPage({ params }: { params: Promise<{ slug: str
           ) : null}
           <span className="text-[17px] font-bold">{store.name}</span>
         </a>
-        <JoinForm storeSlug={store.slug} formId={form.id} fields={readFields(form.fields)} design={design} colors={colors} />
+        <JoinForm storeSlug={store.slug} formId={form.id} fields={readFields(form.fields)} design={design} colors={colors} currency={store.currency} reward={reward} />
       </div>
     </main>
   );

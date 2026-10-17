@@ -1,0 +1,841 @@
+[
+ {
+  "slug": "first-order",
+  "title": "Get your first order",
+  "label": "First order",
+  "bg": "#FF6A2B",
+  "fg": "#16141F",
+  "accent": "#FFFFFF",
+  "slides": [
+   {
+    "type": "cover",
+    "eyebrow": "Gist · First order",
+    "headline": "Your first order is closer than you think",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "tip",
+    "eyebrow": "",
+    "headline": "Start with people who know you",
+    "text": "Friends, family, church, old classmates. Send each one a personal message about one product, not a long list.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "list",
+    "eyebrow": "",
+    "headline": "Have these ready before you post",
+    "text": "",
+    "items": [
+     "A clear product photo",
+     "The price, in naira",
+     "How they can pay",
+     "When it will arrive"
+    ],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "myth",
+    "eyebrow": "",
+    "headline": "Myth: you need many followers first",
+    "text": "Truth: one person who trusts you can be your first order. Start with your contacts, then grow.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "number",
+    "eyebrow": "",
+    "headline": "",
+    "text": "About how long Rex takes to build your store from a chat. Then you have a link to share.",
+    "items": [],
+    "number": "5 mins",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "do-dont",
+    "eyebrow": "",
+    "headline": "",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "Reply fast and say the price clearly",
+    "dont": "Reply “DM for price” and leave buyers guessing"
+   },
+   {
+    "type": "cta",
+    "eyebrow": "",
+    "headline": "Open your shop today",
+    "text": "Take the Academy track Start your shop: short lessons from your first product to a store link you can share.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   }
+  ]
+ },
+ {
+  "slug": "whatsapp-status",
+  "title": "WhatsApp Status",
+  "label": "Status",
+  "bg": "#0C4A44",
+  "fg": "#FFFFFF",
+  "accent": "#FFE27A",
+  "slides": [
+   {
+    "type": "cover",
+    "eyebrow": "Gist · WhatsApp",
+    "headline": "Your Status is your shop window",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "tip",
+    "eyebrow": "",
+    "headline": "Post a little, every day",
+    "text": "A few clear updates spread through the day keep you in view without flooding your contacts.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "list",
+    "eyebrow": "",
+    "headline": "A simple week of Status",
+    "text": "",
+    "items": [
+     "Monday: new arrivals",
+     "Wednesday: happy customer feedback",
+     "Friday: price and offer",
+     "Sunday: behind the scenes"
+    ],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "myth",
+    "eyebrow": "",
+    "headline": "Myth: more posts always mean more sales",
+    "text": "Truth: twenty posts in a row get skipped. A few clear posts with prices get read.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "tip",
+    "eyebrow": "",
+    "headline": "Always show the price",
+    "text": "“DM for price” makes people scroll past. Put the price, sizes and how to order on the picture.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "do-dont",
+    "eyebrow": "",
+    "headline": "",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "Add your store link so people can order at night",
+    "dont": "Repost blurry screenshots from your supplier’s Status"
+   },
+   {
+    "type": "cta",
+    "eyebrow": "",
+    "headline": "Turn views into orders",
+    "text": "The Academy track Sell on WhatsApp covers Status, broadcasts, quick replies and follow-ups.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   }
+  ]
+ },
+ {
+  "slug": "pricing",
+  "title": "Pricing",
+  "label": "Pricing",
+  "bg": "#FFE27A",
+  "fg": "#16141F",
+  "accent": "#5B3FD6",
+  "slides": [
+   {
+    "type": "cover",
+    "eyebrow": "Gist · Pricing",
+    "headline": "Price for profit, not just for sales",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "tip",
+    "eyebrow": "",
+    "headline": "Count every cost",
+    "text": "Product, packaging, delivery you cover, payment fees and your time. Skip one and your profit quietly disappears.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "number",
+    "eyebrow": "",
+    "headline": "",
+    "text": "Buy at ₦8,000, sell at ₦12,000. That leaves ₦4,000 before delivery and fees. Know this number.",
+    "items": [],
+    "number": "₦4,000",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "number",
+    "eyebrow": "",
+    "headline": "",
+    "text": "Payment fee on a ₦10,000 order: 1.5% is ₦150, plus ₦100. Fees are capped at ₦2,000.",
+    "items": [],
+    "number": "₦250",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "number",
+    "eyebrow": "",
+    "headline": "",
+    "text": "Payment fee on a ₦2,000 order: 1.5% is ₦30. The ₦100 is waived on orders under ₦2,500.",
+    "items": [],
+    "number": "₦30",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "myth",
+    "eyebrow": "",
+    "headline": "Myth: the cheapest seller always wins",
+    "text": "Truth: buyers also pay for trust, fast replies and safe delivery. Compete on service, not only price.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "cta",
+    "eyebrow": "",
+    "headline": "Work out your price",
+    "text": "Use the free selling price calculator on shopinbos.com to set prices that leave real profit.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   }
+  ]
+ },
+ {
+  "slug": "product-photos",
+  "title": "Product photos",
+  "label": "Photos",
+  "bg": "#FCE4EC",
+  "fg": "#16141F",
+  "accent": "#5B3FD6",
+  "slides": [
+   {
+    "type": "cover",
+    "eyebrow": "Gist · Product photos",
+    "headline": "Good photos sell before you type",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "tip",
+    "eyebrow": "",
+    "headline": "Use daylight, not flash",
+    "text": "Stand near a window in the morning or late afternoon. Soft light shows the real colour.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "list",
+    "eyebrow": "",
+    "headline": "Three photos for every product",
+    "text": "",
+    "items": [
+     "Front, the full product",
+     "Back or side view",
+     "Close-up of the detail"
+    ],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "do-dont",
+    "eyebrow": "",
+    "headline": "",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "Use a plain background, like a white wall",
+    "dont": "Shoot on a busy bed with clothes everywhere"
+   },
+   {
+    "type": "myth",
+    "eyebrow": "",
+    "headline": "Myth: you need an expensive camera",
+    "text": "Truth: a clean phone lens, good light and a steady hand are enough for most products.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "tip",
+    "eyebrow": "",
+    "headline": "Show the size",
+    "text": "Hold the bag, wear the shoe, put the jar beside a phone. Buyers want to picture it in real life.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "cta",
+    "eyebrow": "",
+    "headline": "Make listings that sell",
+    "text": "The Academy track Instagram, TikTok and ads has lessons on photos and short videos that bring buyers.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   }
+  ]
+ },
+ {
+  "slug": "pay-on-delivery",
+  "title": "Pay on delivery",
+  "label": "Pay on delivery",
+  "bg": "#16141F",
+  "fg": "#FFFFFF",
+  "accent": "#FFE27A",
+  "slides": [
+   {
+    "type": "cover",
+    "eyebrow": "Gist · Pay on delivery",
+    "headline": "Pay on delivery, without the wahala",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "tip",
+    "eyebrow": "",
+    "headline": "Why buyers ask for it",
+    "text": "Many buyers have been burnt by online shops before. Paying when the item arrives makes a new shop feel safe.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "number",
+    "eyebrow": "",
+    "headline": "",
+    "text": "Shopinbos pay on delivery covers orders up to ₦50,000 in Lagos, Abuja, Ibadan and Port Harcourt.",
+    "items": [],
+    "number": "₦50,000",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "number",
+    "eyebrow": "",
+    "headline": "",
+    "text": "Every pay on delivery order has a 4-digit code. The customer gives it to the rider when they pay.",
+    "items": [],
+    "number": "4 digits",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "number",
+    "eyebrow": "",
+    "headline": "",
+    "text": "Riders pay the cash in by 6pm the same day. Your balance goes to your bank every Friday.",
+    "items": [],
+    "number": "6pm",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "do-dont",
+    "eyebrow": "",
+    "headline": "",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "Message to confirm the order before dispatch",
+    "dont": "Send big orders to numbers that never pick up"
+   },
+   {
+    "type": "cta",
+    "eyebrow": "",
+    "headline": "Get paid, every time",
+    "text": "Take Get paid and deliver in the Academy: pay on delivery, transfers, riders and refunds, without wahala.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   }
+  ]
+ },
+ {
+  "slug": "delivery",
+  "title": "Delivery",
+  "label": "Delivery",
+  "bg": "#E2F6F1",
+  "fg": "#16141F",
+  "accent": "#0C4A44",
+  "slides": [
+   {
+    "type": "cover",
+    "eyebrow": "Gist · Delivery",
+    "headline": "Clear, careful delivery brings buyers back",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "tip",
+    "eyebrow": "",
+    "headline": "Say the delivery time upfront",
+    "text": "Put your real delivery time on every product. Clear promises stop endless “where is my order?” messages.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "list",
+    "eyebrow": "",
+    "headline": "Pack it like a pro",
+    "text": "",
+    "items": [
+     "Strong nylon or box",
+     "Bubble wrap for fragile items",
+     "Order number on parcel",
+     "A thank-you note inside"
+    ],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "tip",
+    "eyebrow": "",
+    "headline": "No surprise costs",
+    "text": "Shopinbos shows the delivery price at checkout, so buyers see the full cost before they pay.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "number",
+    "eyebrow": "",
+    "headline": "",
+    "text": "Item ₦12,000 plus delivery ₦1,500. The buyer sees ₦13,500 at checkout, so nobody argues at the gate.",
+    "items": [],
+    "number": "₦13,500",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "do-dont",
+    "eyebrow": "",
+    "headline": "",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "Send the rider’s details to your customer",
+    "dont": "Go quiet once the parcel leaves"
+   },
+   {
+    "type": "cta",
+    "eyebrow": "",
+    "headline": "Plan your deliveries",
+    "text": "Book riders straight from the order in Shopinbos, and learn more in the Academy track Get paid and deliver.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   }
+  ]
+ },
+ {
+  "slug": "dropshipping",
+  "title": "Dropshipping",
+  "label": "Dropship",
+  "bg": "#5B3FD6",
+  "fg": "#FFFFFF",
+  "accent": "#FFE27A",
+  "slides": [
+   {
+    "type": "cover",
+    "eyebrow": "Gist · Dropshipping",
+    "headline": "Sell products without buying stock first",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "tip",
+    "eyebrow": "",
+    "headline": "How it works",
+    "text": "You list a supplier’s product in your store. A buyer orders, and the supplier ships with your shop’s label.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "list",
+    "eyebrow": "",
+    "headline": "Before you dropship, check",
+    "text": "",
+    "items": [
+     "The supplier is checked",
+     "Real product photos",
+     "Delivery time",
+     "Return rules"
+    ],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "myth",
+    "eyebrow": "",
+    "headline": "Myth: dropshipping is free money",
+    "text": "Truth: you still do the selling. Posts, replies and customer care are your job.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "number",
+    "eyebrow": "",
+    "headline": "",
+    "text": "Supplier price ₦6,500, your price ₦10,000. ₦3,500 is yours before fees and marketing.",
+    "items": [],
+    "number": "₦3,500",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "do-dont",
+    "eyebrow": "",
+    "headline": "",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "Order a sample and check the quality yourself",
+    "dont": "List hundreds of products you have never seen"
+   },
+   {
+    "type": "cta",
+    "eyebrow": "",
+    "headline": "Find stock to sell",
+    "text": "Browse checked Nigerian suppliers in Shopinbos, then take the Academy track Find stock and dropship.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   }
+  ]
+ },
+ {
+  "slug": "instagram-tiktok",
+  "title": "Instagram and TikTok",
+  "label": "IG and TikTok",
+  "bg": "#16141F",
+  "fg": "#FFFFFF",
+  "accent": "#FF6A2B",
+  "slides": [
+   {
+    "type": "cover",
+    "eyebrow": "Gist · Instagram and TikTok",
+    "headline": "Short videos show what photos can’t",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "tip",
+    "eyebrow": "",
+    "headline": "Hook them in the first seconds",
+    "text": "Open with the product in action or the problem it solves. Keep the long intro for later, or skip it.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "list",
+    "eyebrow": "",
+    "headline": "Easy video ideas",
+    "text": "",
+    "items": [
+     "Unboxing new stock",
+     "Before and after",
+     "Packing an order",
+     "How to style it"
+    ],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "myth",
+    "eyebrow": "",
+    "headline": "Myth: you must dance to sell",
+    "text": "Truth: simple, clear videos of the product, with the price on screen, can sell well.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "tip",
+    "eyebrow": "",
+    "headline": "Make it easy to buy",
+    "text": "Put your store link in your bio and say “link in bio”. Don’t make buyers hunt for how to order.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "do-dont",
+    "eyebrow": "",
+    "headline": "",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "Reply quickly to comments asking “how much?”",
+    "dont": "Hide the price and wait for DMs"
+   },
+   {
+    "type": "cta",
+    "eyebrow": "",
+    "headline": "Grow on social",
+    "text": "The Academy track Instagram, TikTok and ads covers photos, short videos and small ads that bring the right people.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   }
+  ]
+ },
+ {
+  "slug": "repeat-customers",
+  "title": "Repeat customers",
+  "label": "Repeat buyers",
+  "bg": "#FFE27A",
+  "fg": "#16141F",
+  "accent": "#0C4A44",
+  "slides": [
+   {
+    "type": "cover",
+    "eyebrow": "Gist · Repeat customers",
+    "headline": "Your next order can come from old buyers",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "tip",
+    "eyebrow": "",
+    "headline": "Follow up after delivery",
+    "text": "Two or three days later, send a short message: “Did it arrive well? How are you finding it?”",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "number",
+    "eyebrow": "",
+    "headline": "",
+    "text": "One customer who spends ₦10,000 every month is worth ₦120,000 a year. Look after them.",
+    "items": [],
+    "number": "₦120,000",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "list",
+    "eyebrow": "",
+    "headline": "Simple ways to bring them back",
+    "text": "",
+    "items": [
+     "Thank-you note in the parcel",
+     "Early look at new stock",
+     "Small reorder discount",
+     "A birthday message"
+    ],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "myth",
+    "eyebrow": "",
+    "headline": "Myth: happy buyers come back on their own",
+    "text": "Truth: people forget. A friendly WhatsApp message when new stock lands often brings them back.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "do-dont",
+    "eyebrow": "",
+    "headline": "",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "Save every buyer’s name and what they bought",
+    "dont": "Add customers to broadcasts without asking first"
+   },
+   {
+    "type": "cta",
+    "eyebrow": "",
+    "headline": "Keep customers coming back",
+    "text": "Take Grow and keep customers in the Academy: discounts, loyalty and the simple numbers that show what’s working.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   }
+  ]
+ },
+ {
+  "slug": "festive-season",
+  "title": "Festive season",
+  "label": "Festive season",
+  "bg": "#FF6A2B",
+  "fg": "#16141F",
+  "accent": "#FFFFFF",
+  "slides": [
+   {
+    "type": "cover",
+    "eyebrow": "Gist · Festive season",
+    "headline": "Get ready before the rush, not during",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "tip",
+    "eyebrow": "",
+    "headline": "Stock up early",
+    "text": "Suppliers and markets get busy before Christmas and Sallah. Order your best sellers weeks ahead, not days.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "list",
+    "eyebrow": "",
+    "headline": "Your festive checklist",
+    "text": "",
+    "items": [
+     "Best sellers in stock",
+     "Gift bundles ready",
+     "Last delivery dates set",
+     "Extra packaging bought"
+    ],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "number",
+    "eyebrow": "",
+    "headline": "",
+    "text": "Sell a ₦9,000 perfume and a ₦6,000 body lotion as a ₦13,500 gift set. The buyer saves ₦1,500.",
+    "items": [],
+    "number": "₦13,500",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "myth",
+    "eyebrow": "",
+    "headline": "Myth: December sells itself",
+    "text": "Truth: everybody else is selling too. Plan your posts, offers and delivery dates early to stand out.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "do-dont",
+    "eyebrow": "",
+    "headline": "",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "Post your last order date for delivery before the holiday",
+    "dont": "Promise Christmas Eve delivery you can’t keep"
+   },
+   {
+    "type": "cta",
+    "eyebrow": "",
+    "headline": "Plan your season",
+    "text": "The Academy track Grow and keep customers shows how to plan offers, discounts and follow-ups.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   }
+  ]
+ }
+]

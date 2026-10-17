@@ -43,6 +43,7 @@ const en = {
   "preview.note": "Preview uses a sample customer (Ada). Links and your logo and colours come from your brand kit.",
   "preview.of": "Preview of {label}",
   "preview.thumbnail": "{label} thumbnail",
+  "preview.linksHint": "Links work in the email you send.",
   "vars.insert": "Insert a personal detail",
   "flowVar.name": "Their first name (or “there”)",
   "flowVar.full_name": "Their full name",

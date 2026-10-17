@@ -2,7 +2,8 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { db } from "@/lib/db/client";
-import { appUserInputFromSupabaseUser, ensureAppUserForSupabaseUser } from "@/lib/auth/app-user";
+import { alignRoleMetadata, appUserInputFromSupabaseUser, ensureAppUserForSupabaseUser } from "@/lib/auth/app-user";
+import { metadataNeedsAlign, roleToRepair } from "@/lib/auth/role-rules";
 import { csrfRejection } from "@/lib/auth/csrf";
 import { loginRedirectPath, PORTAL_API_PREFIXES, PROTECTED_PREFIXES, rolesForPath, type PortalRole } from "@/lib/auth/route-access";
 import { decodeAccessToken, sessionMaxAgeMs, sessionTooOld } from "@/lib/auth/session-claims";
@@ -77,7 +78,10 @@ async function routeStoreHost(request: NextRequest, route: Exclude<ReturnType<ty
   if (action.action === "not-found") return notFound(pathname);
   const url = request.nextUrl.clone();
   url.pathname = action.pathname;
-  return NextResponse.rewrite(url);
+  // The shopper's own path, so a store that moved address can redirect to the same page (s/[slug]/layout.tsx).
+  const headers = new Headers(request.headers);
+  headers.set(REQUEST_PATH_HEADER, `${pathname}${request.nextUrl.search}`);
+  return NextResponse.rewrite(url, { request: { headers } });
 }
 
 function hasSupabaseAuthCookie(request: NextRequest) {
@@ -95,10 +99,6 @@ function getRoleHome(role: string) {
   return portalDashboardPath("seller");
 }
 
-function getMetadataPortalRole(role: unknown) {
-  return role === "supplier" || role === "logistics_partner" ? role : null;
-}
-
 function trustedOrigins() {
   return [process.env.NEXT_PUBLIC_APP_URL, ...(process.env.CSRF_TRUSTED_ORIGINS ?? "").split(",")].filter((value): value is string => Boolean(value?.trim()));
 }
@@ -106,7 +106,12 @@ function trustedOrigins() {
 export async function proxy(request: NextRequest) {
   const route = hostRoute(request);
   if (route.kind !== "app") return routeStoreHost(request, route);
-  if (skippedOnAppHost(request.nextUrl.pathname)) return NextResponse.next();
+  if (skippedOnAppHost(request.nextUrl.pathname)) {
+    if (!request.nextUrl.pathname.startsWith("/s/")) return NextResponse.next();
+    const headers = new Headers(request.headers);
+    headers.set(REQUEST_PATH_HEADER, `${request.nextUrl.pathname}${request.nextUrl.search}`);
+    return NextResponse.next({ request: { headers } });
+  }
 
   const { pathname, search } = request.nextUrl;
   const isApi = pathname.startsWith("/api/");
@@ -227,23 +232,21 @@ export async function proxy(request: NextRequest) {
     }
   }
 
+  // Repair: only fill in a role that is missing (signed in, but no app account row yet) from the role saved at
+  // sign-up. A stored role is never changed from metadata (people can edit their own), so a seller with a shop is
+  // never turned into a supplier, or the reverse. Metadata that disagrees is put back in line with the stored role.
   if (!appUser) {
-    return response;
-  }
-
-  const metadataRole = getMetadataPortalRole(data.user.user_metadata?.role);
-  if (metadataRole && appUser.role !== metadataRole) {
-    const repairedUser = await ensureAppUserForSupabaseUser({
+    // Page visits only: API calls (sync-user itself among them) make the row with the sign-up details.
+    const missingRole = protectedPage ? roleToRepair(null, data.user.user_metadata?.role) : null;
+    if (!missingRole) return response;
+    const created = await ensureAppUserForSupabaseUser({
       ...appUserInputFromSupabaseUser(data.user),
-      role: metadataRole,
+      role: missingRole,
     }).catch(() => null);
-
-    if (repairedUser) {
-      appUser = { id: repairedUser.id, role: repairedUser.role };
-      if (pathname.startsWith("/onboarding") || pathname === "/home") {
-        return redirectTo(portalOnboardingPath(metadataRole));
-      }
-    }
+    if (!created) return response;
+    appUser = { id: created.id, role: created.role };
+  } else if (metadataNeedsAlign(appUser.role, data.user.user_metadata?.role)) {
+    await alignRoleMetadata(data.user.id, data.user.user_metadata?.role, appUser.role);
   }
 
   if (matchesRoute(pathname, ["/supplier"]) && appUser.role !== "supplier") {

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getCurrentAppUser } from "@/lib/server-auth";
 import { summarize } from "@/lib/cms/richtext";
-import { cmsCanonical } from "@/lib/cms/storefront";
+import { cmsCanonical, storeContentRobots } from "@/lib/cms/storefront";
 import { EMPTY_SEO, seoMetadata } from "@/lib/seo/fields";
 import { legalLinks, legalPagePath, legalPageStatus } from "@/lib/legal/pages";
 import { storefrontLegal } from "@/lib/legal/server";
@@ -39,10 +39,10 @@ export async function legalMetadata(storeSlug: string, key: string, previewWante
     titleSuffix: store.name,
     description: summarize(page.doc, 155),
     image: store.logoUrl,
-    canonical: cmsCanonical(store.slug, legalPagePath(page.key), customDomain),
+    canonical: cmsCanonical(store.slug, legalPagePath(page.key), customDomain ?? store.customDomain),
     siteName: store.name,
   }) as Metadata;
-  return preview ? { ...meta, robots: { index: false, follow: false } } : meta;
+  return preview ? { ...meta, robots: { index: false, follow: false } } : { ...meta, robots: await storeContentRobots(storeSlug, page.seo.noIndex) };
 }
 
 export async function LegalRoute({ storeSlug, pageKey, basePath, previewWanted }: { storeSlug: string; pageKey: string; basePath: string; previewWanted: boolean }) {
@@ -55,10 +55,11 @@ export async function LegalRoute({ storeSlug, pageKey, basePath, previewWanted }
 export async function legalIndexMetadata(storeSlug: string, customDomain?: string | null): Promise<Metadata> {
   const found = await storefrontLegal(storeSlug);
   if (!found || !found.active) return { title: "Not found" };
-  return seoMetadata(
+  const meta = seoMetadata(
     EMPTY_SEO,
-    { title: "Policies", titleSuffix: found.store.name, description: `Policies of ${found.store.name}: delivery, returns, privacy and terms.`, image: found.store.logoUrl, canonical: cmsCanonical(found.store.slug, "/policies", customDomain), siteName: found.store.name },
+    { title: "Policies", titleSuffix: found.store.name, description: `Policies of ${found.store.name}: delivery, returns, privacy and terms.`, image: found.store.logoUrl, canonical: cmsCanonical(found.store.slug, "/policies", customDomain ?? found.store.customDomain), siteName: found.store.name },
   ) as Metadata;
+  return { ...meta, robots: await storeContentRobots(storeSlug) };
 }
 
 export async function LegalIndexRoute({ storeSlug, basePath }: { storeSlug: string; basePath: string }) {

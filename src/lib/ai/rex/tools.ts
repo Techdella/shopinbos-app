@@ -4,7 +4,22 @@ import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { aiText, firstJsonObject } from "@/lib/ai/text";
 import { meterAi, type AiKind } from "@/lib/ai/usage";
-import { EDIT_PROMPTS, editImage, generateImage, ImageUnavailableError, isOwnImageUrl } from "@/lib/ai/images";
+import { EDIT_PROMPTS, editImage, generateImage, ImageUnavailableError, isOwnImageUrl, loadReferences } from "@/lib/ai/images";
+import { BrandBookError, draftBrandBook, saveBrandBook } from "@/lib/ai/brand-book.server";
+import { bookToThemeTokens } from "@shared/brand-book";
+import { PRINT_SPECS } from "@shared/print-labels";
+import { PACK_FORMAT_INFO, PACK_STYLE_INFO, PRODUCT_TYPE_INFO, guessProductType, newDesign } from "@shared/packaging";
+import { CREATIVE_CONCEPT_INFO, CREATIVE_PLACEMENT_INFO, creativePrompt } from "@shared/creatives";
+import { normaliseEan13 } from "@shared/barcodes";
+import { aiConfigured } from "@/lib/ai/client";
+import { fallbackPackCopy, writePackCopy } from "@/lib/packaging/copy.server";
+import { saveLabelDesign, savePackagingDesign } from "@/lib/packaging/designs.server";
+import { buildStorefrontUrl } from "@/lib/domains/storefront";
+import { readLogoDisplay } from "@shared/store-logo";
+import { defaultMood, reelTemplate, type ReelTemplateId } from "@shared/video-style";
+import { makeReelShot } from "@/lib/ai/reel-shots.server";
+import { loadBrandContext } from "@/lib/ai/brand-context.server";
+import { makeBrandImage } from "@/lib/ai/brand-image.server";
 import { getOpenAIClient } from "@/lib/ai/client";
 import { matchProducts } from "@/lib/ai/peggy/pure";
 import { computeStoreHealth } from "@/lib/store-health";
@@ -54,14 +69,16 @@ export interface RexToolOutput {
 
 /** A problem the model should hear about (and can usually fix or explain), sent back as an error result. */
 export class RexToolError extends Error {}
+/** The allowance and credits are used up; the chat shows a "Buy credits" button with Rex's reply. */
+export class RexCreditsError extends RexToolError {}
 
 const money = (amount: number) => naira(Number(amount) || 0);
 
 async function meter(ctx: RexToolContext, kind: AiKind, units = 1) {
   const limited = await meterAi(ctx.userId, kind, units);
   if (!limited) return;
-  const body = (await limited.json().catch(() => null)) as { error?: { message?: string } } | null;
-  throw new RexToolError(`${body?.error?.message ?? "The AI allowance for today is used up."} Tell the seller plainly; nothing was made.`);
+  const body = (await limited.json().catch(() => null)) as { error?: { code?: string; message?: string } } | null;
+  throw new (body?.error?.code === "AI_CREDITS_NEEDED" ? RexCreditsError : RexToolError)(`${body?.error?.message ?? "The AI allowance for today is used up."} Tell the seller plainly; nothing was made.`);
 }
 
 async function logActivity(ctx: RexToolContext, event: { type: string; title: string; description?: string; tool: RexToolName; link?: string; data?: Record<string, unknown> }) {
@@ -195,17 +212,45 @@ async function lifestylePhoto(ctx: RexToolContext, input: RexToolInput<"lifestyl
 
 async function generateProductImage(ctx: RexToolContext, input: RexToolInput<"generate_product_image">): Promise<RexToolOutput> {
   const product = input.product ? await findProduct(ctx, input.product) : null;
+  const brand = await loadBrandContext(ctx.storeId);
+  // References: what Rex picked (the seller's attachments, this shop's product photos or logo), else the product's main photo.
+  let references: string[] = [];
+  if (input.referenceImages?.length) {
+    const shopPhotos = new Set((await db.storeProduct.findMany({ where: { storeId: ctx.storeId }, select: { images: true }, take: 1000 })).flatMap((p) => p.images));
+    references = input.referenceImages.filter((url) => isOwnImageUrl(url) && (ctx.attachments.includes(url) || shopPhotos.has(url) || url === brand?.logoUrl));
+    if (!references.length) throw new RexToolError("Those reference photos aren't in this conversation or this shop. Use photos the seller attached or product photos from list_products.");
+  } else if (product?.images[0]) {
+    references = [product.images[0]];
+  }
   await meter(ctx, "image");
   const prompt = product ? `${input.prompt}\nThe product: ${product.name}.${product.description ? ` ${product.description.slice(0, 300)}` : ""}` : input.prompt;
-  let url: string;
+  const mode = input.brand ?? "colours";
+  let result: Awaited<ReturnType<typeof makeBrandImage>>;
   try {
-    url = await generateImage({ prompt, size: imageSizeFor(input.shape), path: `generated/${ctx.userId}/${Date.now()}` });
+    result = await makeBrandImage({ brand, prompt, size: imageSizeFor(input.shape), logo: mode === "logo", colours: mode !== "none", referenceUrls: references, path: `generated/${ctx.userId}/${Date.now()}` });
   } catch (error) {
     imageFailure(error);
   }
+  const logoNote =
+    result.logoProblem === "no_logo"
+      ? " The shop has no logo in its brand kit yet, so the store name was lettered on instead; tell the seller and offer generate_logo or uploading one at /home/brand-kit."
+      : result.logoProblem === "unreadable"
+        ? " The logo file couldn't be used (it needs to be a PNG, JPG or WebP), so the store name was lettered on instead; tell the seller to upload a PNG logo at /home/brand-kit."
+        : result.usedLogo
+          ? " Their logo from the brand kit is on it."
+          : "";
+  const refNote = result.usedReferences ? ` Worked from ${result.usedReferences} of their photo${result.usedReferences === 1 ? "" : "s"}.` : "";
   return {
-    content: `Made the image: ${url}. ${product ? `The seller can save it to ${product.name} from the card.` : "The seller can download it or ask you to use it on the store."} Not saved to any product yet.`,
-    card: { type: "image", tool: "generate_product_image", title: product ? `New picture for ${product.name}` : "New picture", before: null, after: url, product: product ? { id: product.id, name: product.name } : null, sourceIndex: null },
+    content: `Made the image: ${result.url}.${logoNote}${refNote} ${product ? `The seller can save it to ${product.name} from the card.` : "The seller can download it or ask you to use it on the store."} Not saved to any product yet.`,
+    card: {
+      type: "image",
+      tool: "generate_product_image",
+      title: product ? `New picture for ${product.name}` : result.usedLogo ? "New branded picture" : "New picture",
+      before: result.usedReferences ? references[0] ?? null : null,
+      after: result.url,
+      product: product ? { id: product.id, name: product.name } : null,
+      sourceIndex: null,
+    },
   };
 }
 
@@ -233,9 +278,38 @@ const VIDEO_LANGUAGE_NOTE: Record<VideoLanguage, string> = {
 
 async function makeProductVideo(ctx: RexToolContext, input: RexToolInput<"make_product_video">): Promise<RexToolOutput> {
   const product = await findProduct(ctx, input.product);
-  const photos = product.images.filter(Boolean).slice(0, MAX_PHOTOS);
-  if (!photos.length) throw new RexToolError(`${product.name} has no photos, and a reel is made from photos. Ask the seller to add some, or make one with generate_product_image and save it first.`);
+  const own = (input.photos ?? []).filter((url) => isOwnImageUrl(url));
+  let photos = (own.length ? own : product.images.filter(Boolean)).slice(0, MAX_PHOTOS);
+  if (!photos.length) throw new RexToolError(`${product.name} has no photos, and a reel is made from photos. Ask the seller to add some, or make one with generate_product_image and pass it in photos.`);
   const language = input.language ?? "pidgin";
+  const template: ReelTemplateId = input.template ?? (input.shots === "cutout" ? "float" : input.shots === "brand" ? "words" : "pop");
+
+  // Clean the photos up into reel shots first (each is a picture), keeping any that don't come back.
+  let shotNote = "";
+  if (input.shots && input.shots !== "original") {
+    const look = input.shots;
+    const brand = await loadBrandContext(ctx.storeId);
+    const sources = photos.slice(0, 4).filter((url) => isOwnImageUrl(url));
+    const made: string[] = [];
+    for (const [n, source] of sources.entries()) {
+      try {
+        await meter(ctx, "image");
+      } catch (error) {
+        if (!made.length) throw error;
+        shotNote = ` Stopped after ${made.length} shot(s): ${error instanceof Error ? error.message : "allowance used up"}`;
+        break;
+      }
+      try {
+        made.push(await makeReelShot({ userId: ctx.userId, source, look, product: product.name, brand, n }));
+      } catch (error) {
+        if (error instanceof ImageUnavailableError) throw new RexToolError(`${error.message} The reel can still use the photos as they are (shots: original).`);
+        console.error("[rex] reel shot failed", error);
+        made.push(source);
+      }
+    }
+    if (made.length) photos = made;
+    shotNote ||= ` Made ${made.length} ${look} shot(s) for it.`;
+  }
   const price = money(product.retailPrice);
   await meter(ctx, "text");
   const fallback = fallbackScript(product.name, price, language, photos.length);
@@ -252,8 +326,8 @@ async function makeProductVideo(ctx: RexToolContext, input: RexToolInput<"make_p
   });
   const script = normaliseScript(firstJsonObject(raw?.text ?? null), fallback, photos.length);
   return {
-    content: `Prepared a ${photos.length}-photo reel for ${product.name} in ${language}. Captions: ${script.captions.join(" / ")}. Voiceover: ${script.voiceover}. The seller taps "Open in video studio" to record it in their browser and save it to the product.${raw ? "" : " (The writer was offline, so this is the starter script.)"}`,
-    card: { type: "video", product: { id: product.id, name: product.name, photos }, language, script },
+    content: `Prepared a ${photos.length}-shot "${reelTemplate(template).name}" reel for ${product.name} in ${language}, ${input.voice ?? "female"} Nigerian voice, ${input.music ?? defaultMood(template)} music, in the store's brand colours and logo.${shotNote} Captions: ${script.captions.join(" / ")}. Voiceover: ${script.voiceover}. The seller taps "Open in video studio" to preview it, change the voice (theirs, ElevenLabs or none) or music, and record it in their browser; a finished video uses one of the day's free videos, then credits.${raw ? "" : " (The writer was offline, so this is the starter script.)"}`,
+    card: { type: "video", product: { id: product.id, name: product.name, photos }, language, script, template, voice: input.voice ?? "female", music: input.music ?? defaultMood(template) },
   };
 }
 
@@ -419,6 +493,179 @@ async function improveEmailCopy(ctx: RexToolContext, input: RexToolInput<"improv
   }
 }
 
+// ─── Brand: style book, icon and favicon, print studio ───────────────────────
+
+async function createBrandBook(ctx: RexToolContext, input: RexToolInput<"create_brand_book">): Promise<RexToolOutput> {
+  await meter(ctx, "text", 2);
+  let book: Awaited<ReturnType<typeof saveBrandBook>>;
+  try {
+    book = await saveBrandBook(ctx.storeId, await draftBrandBook(ctx.storeId, input.direction));
+  } catch (error) {
+    if (error instanceof BrandBookError) throw new RexToolError(error.message);
+    throw error;
+  }
+  let applied = "";
+  if (input.applyColours) {
+    const store = await studioStore(ctx);
+    const plan = parseRexStudioPlan({ reply: "", tokens: bookToThemeTokens(book.colours, book.typography.style), tokensSummary: `Brand colours from the style book (${book.paletteName})` });
+    const result = plan ? await applyStudioPlan(store, plan, `Brand colours: ${book.paletteName}`) : null;
+    if (result?.draft) {
+      ctx.draft = result.draft;
+      ctx.versions = result.versions ?? ctx.versions;
+      applied = ` Applied the colours to the store DRAFT (version ${result.version?.n ?? "?"}); shoppers see nothing until Publish.`;
+    }
+  }
+  await logActivity(ctx, { type: "brand", title: `Rex wrote the brand style book (${book.paletteName})`, tool: "create_brand_book", link: "/home/brand-kit/book" });
+  return {
+    content: `Wrote the style book "${book.paletteName}": tagline "${book.tagline}", colours ${Object.values(book.colours).join(", ")}, fonts ${book.typography.headings} and ${book.typography.body}, voice: ${book.voice.traits.join(", ")}.${applied} It's at /home/brand-kit/book, ready to print.${applied ? "" : " The store's colours are unchanged; the seller can apply them from the book or ask you."}`,
+    card: {
+      type: "brand",
+      kind: "book",
+      title: `${book.paletteName} style book`,
+      summary: `${book.tagline} · ${book.typography.headings} + ${book.typography.body} · ${book.voice.traits.join(", ")}`,
+      href: "/home/brand-kit/book",
+      swatches: [book.colours.primary, book.colours.secondary, book.colours.accent, book.colours.background, book.colours.text],
+    },
+  };
+}
+
+const ICON_PROMPTS = {
+  icon: "Turn this logo into a square brand icon (like an app icon or profile picture): keep the brand's symbol or initial and its colours, centred with generous padding on a solid brand-coloured or white square background. Bold, simple, readable at 64 pixels. Keep any letters exactly as in the logo; no new words.",
+  favicon: "Turn this logo into a favicon for browser tabs: the simplest recognisable mark from the logo (its symbol or first letter) in its strongest brand colour, very bold, high contrast, filling a square with a little padding. Must read clearly at 16 to 32 pixels. No small text, no thin lines.",
+} as const;
+
+async function makeBrandIcon(ctx: RexToolContext, input: RexToolInput<"make_brand_icon">): Promise<RexToolOutput> {
+  const store = await db.store.findUnique({ where: { id: ctx.storeId }, select: { logoUrl: true } });
+  if (!store?.logoUrl || !isOwnImageUrl(store.logoUrl)) throw new RexToolError("The store has no logo yet. Offer generate_logo or uploading one in Brand kit first.");
+  const references = await loadReferences([store.logoUrl]);
+  if (!references.length) throw new RexToolError("The logo file can't be read (it needs to be a PNG, JPG or WebP). Ask the seller to upload a PNG logo in Brand kit.");
+  await meter(ctx, "image");
+  let url: string;
+  try {
+    url = await generateImage({ prompt: ICON_PROMPTS[input.kind], size: "1024x1024", references, path: `logos/${ctx.userId}/${input.kind}-${Date.now()}` });
+  } catch (error) {
+    imageFailure(error);
+  }
+  const what = input.kind === "icon" ? "logo icon" : "favicon";
+  return {
+    content: `Made the ${what} from the logo: ${url}. The seller taps "Use as ${what}" on the card to keep it; nothing changed yet.`,
+    card: { type: "brand", kind: input.kind, title: input.kind === "icon" ? "New logo icon" : "New favicon", summary: input.kind === "icon" ? "Square mark for app icons and profile pictures." : "Shows in browser tabs and bookmarks.", href: "/home/brand-kit", image: url },
+  };
+}
+
+const LOGO_STYLE_WORDS = { logo_text: "the logo with the store name beside it", logo: "the full logo on its own", icon_text: "the logo icon with the store name", icon: "the logo icon on its own", text: "the store name only" } as const;
+
+async function setLogoDisplay(ctx: RexToolContext, input: RexToolInput<"set_logo_display">): Promise<RexToolOutput> {
+  const store = await db.store.findUnique({ where: { id: ctx.storeId }, select: { brandSettings: true, logoUrl: true } });
+  if (!store) throw new RexToolError("The store couldn't be loaded.");
+  const settings = store.brandSettings && typeof store.brandSettings === "object" && !Array.isArray(store.brandSettings) ? (store.brandSettings as Record<string, unknown>) : {};
+  const current = readLogoDisplay(settings);
+  const next = { style: input.style ?? current.style, size: input.size ?? current.size };
+  await db.store.update({ where: { id: ctx.storeId }, data: { brandSettings: { ...settings, logoDisplay: next } as Prisma.InputJsonValue } });
+  const noLogo = next.style !== "text" && !store.logoUrl ? " The store has no logo yet, so the name shows until one is added (offer generate_logo)." : "";
+  return {
+    content: `The store header now shows ${LOGO_STYLE_WORDS[next.style]}, ${next.size} size, live on the store already (no publish needed). The seller can change it any time in Brand kit.${noLogo}`,
+    card: { type: "brand", kind: "display", title: "Logo on your store", summary: `${LOGO_STYLE_WORDS[next.style][0].toUpperCase()}${LOGO_STYLE_WORDS[next.style].slice(1)}, ${next.size}.`, href: "/home/brand-kit", image: store.logoUrl ?? null },
+  };
+}
+
+async function makePrintLabels(ctx: RexToolContext, input: RexToolInput<"make_print_labels">): Promise<RexToolOutput> {
+  const ids: string[] = [];
+  const names: string[] = [];
+  for (const query of input.products ?? []) {
+    const product = await findProduct(ctx, query);
+    if (!ids.includes(product.id)) {
+      ids.push(product.id);
+      names.push(product.name);
+    }
+  }
+  if (PRINT_SPECS[input.kind].perProduct && !ids.length) throw new RexToolError(`${input.kind} labels are for products: say which products (use list_products).`);
+  const params = new URLSearchParams({ kind: input.kind });
+  if (ids.length) params.set("products", ids.join(","));
+  if (input.headline) params.set("headline", input.headline);
+  if (input.note) params.set("note", input.note);
+  if (input.qr) params.set("qr", input.qr);
+  if (input.copies) params.set("copies", String(input.copies));
+  const href = `/home/labels/studio?${params.toString()}`;
+  const label = { tag: "Hang tags", price: "Price & barcode labels", qr: "QR code stickers", package: "Package labels", thanks: "Thank-you cards" }[input.kind];
+  const count = Math.max(1, ids.length) * (input.copies ?? 1);
+  // Saved to Labels and print so it's there later, not only in this chat.
+  try {
+    await saveLabelDesign({ storeId: ctx.storeId, userId: ctx.userId, title: `${label}${names.length ? ` · ${names.slice(0, 2).join(", ")}` : ""}`, kind: input.kind, href, productId: ids[0] ?? null, source: "rex" });
+  } catch (error) {
+    console.error("[rex] couldn't save the label setup", error);
+  }
+  return {
+    content: `Set up ${count} ${label.toLowerCase()} ${names.length ? `for ${names.join(", ")}` : "for the store"} in the Print studio, in the store's brand, with real barcodes and QR codes. The seller opens the card to check them, then prints (A4 or a label printer), downloads a 300 dpi file, or emails it to a print shop. Saved on Labels and print (/home/labels).`,
+    card: { type: "brand", kind: "print", title: label, summary: `${count} label${count === 1 ? "" : "s"}${names.length ? ` · ${names.slice(0, 3).join(", ")}${names.length > 3 ? "…" : ""}` : ""}${input.headline ? ` · "${input.headline}"` : ""}`, href },
+  };
+}
+
+// ─── Packaging and marketing creatives ───────────────────────────────────────
+
+async function designPackaging(ctx: RexToolContext, input: RexToolInput<"design_packaging">): Promise<RexToolOutput> {
+  const product = input.product ? await findProduct(ctx, input.product) : null;
+  const name = (input.name ?? product?.name ?? "").trim();
+  if (!name) throw new RexToolError("Say which product the packaging is for (use list_products), or give its name.");
+  const store = await db.store.findUnique({ where: { id: ctx.storeId }, select: { name: true, slug: true, customDomain: true, logoUrl: true } });
+  const extra = product ? await db.storeProduct.findUnique({ where: { id: product.id }, select: { barcode: true } }) : null;
+  const productType = input.productType ?? guessProductType(`${name} ${product?.description?.slice(0, 200) ?? ""}`);
+  const website = store ? buildStorefrontUrl(store) : "";
+  const design = newDesign({
+    productType,
+    format: input.format ?? undefined,
+    style: input.style ?? undefined,
+    brand: ctx.storeName,
+    name: name.replace(/\s*[-–(].*$/, "").split(/\s+/).slice(0, 4).join(" "),
+    productId: product?.id ?? null,
+    image: product?.images[0] ?? null,
+    logoUrl: store?.logoUrl ?? null,
+    website: website.replace(/^https?:\/\//, "").replace(/\/$/, ""),
+    barcode: extra?.barcode && normaliseEan13(extra.barcode) ? extra.barcode : "",
+    qrUrl: website,
+  });
+  const request = { storeName: ctx.storeName, productType, name, description: product?.description ?? null, price: product ? naira(Number(product.retailPrice) || 0) : null, brief: input.brief ?? null };
+  let words = fallbackPackCopy(request);
+  if (aiConfigured()) {
+    await meter(ctx, "text");
+    words = (await writePackCopy(request)) ?? words;
+  }
+  design.content = { ...design.content, ...words, brand: ctx.storeName };
+  const title = `${name} · ${PACK_FORMAT_INFO[design.format].name}`;
+  const row = await savePackagingDesign({ storeId: ctx.storeId, userId: ctx.userId, title, design, source: "rex" });
+  const href = `/home/labels/packaging?design=${row.id}&from=rex`;
+  const typeInfo = PRODUCT_TYPE_INFO[productType];
+  return {
+    content: `Designed ${PACK_FORMAT_INFO[design.format].name.toLowerCase()} packaging for ${name} in the "${PACK_STYLE_INFO[design.style].name}" template (${design.size.w} × ${design.size.h}${design.size.d ? ` × ${design.size.d}` : ""} mm), saved on Labels and print. Peggy wrote the words: "${design.content.name}"${design.content.tagline ? `, "${design.content.tagline}"` : ""}, with ${typeInfo.fields.filter((field) => field !== "nutrition").join(", ")} on the back.${typeInfo.regLabel ? ` Tell the seller to add their ${typeInfo.regLabel} and check the ingredients are true before printing.` : ""}${design.content.barcode ? "" : " No retail barcode yet (supermarkets need an EAN-13 from GS1 Nigeria)."} They open the card to change anything and download the print-ready PDF for their printer.`,
+    card: { type: "brand", kind: "packaging", title, summary: `${PACK_STYLE_INFO[design.style].name} · ${design.content.tagline || design.content.variant || typeInfo.name}`, href, image: product?.images[0] ?? null },
+  };
+}
+
+async function makeCreative(ctx: RexToolContext, input: RexToolInput<"make_creative">): Promise<RexToolOutput> {
+  const products: Awaited<ReturnType<typeof findProduct>>[] = [];
+  for (const query of input.products ?? []) {
+    const found = await findProduct(ctx, query);
+    if (!products.some((item) => item.id === found.id)) products.push(found);
+  }
+  const brand = await loadBrandContext(ctx.storeId);
+  const references = [...products.map((product) => product.images[0]).filter((url): url is string => Boolean(url)), ...ctx.attachments.filter(isOwnImageUrl)].slice(0, 4);
+  await meter(ctx, "image");
+  const place = CREATIVE_PLACEMENT_INFO[input.placement];
+  const prompt = creativePrompt({ placement: input.placement, concept: input.concept, headline: input.headline, subline: input.subline, cta: input.cta, products: products.map((product) => product.name), extra: input.extra, brandName: ctx.storeName });
+  const mode = input.brand ?? "colours";
+  let result: Awaited<ReturnType<typeof makeBrandImage>>;
+  try {
+    result = await makeBrandImage({ brand, prompt, size: imageSizeFor(place.shape), logo: mode === "logo", colours: mode !== "none", referenceUrls: references, path: `generated/${ctx.userId}/${Date.now()}` });
+  } catch (error) {
+    imageFailure(error);
+  }
+  const title = `${CREATIVE_CONCEPT_INFO[input.concept].name} · ${place.name}`;
+  return {
+    content: `Made the ${place.name.toLowerCase()} image (${CREATIVE_CONCEPT_INFO[input.concept].name.toLowerCase()}, ${place.ratio}): ${result.url}.${input.headline ? ` Lettered "${input.headline}" on it; ask the seller to check the spelling.` : ""} It's saved in their media library; they can download it or use it in an ad, a campaign, an email or on the store.`,
+    card: { type: "image", tool: "generate_product_image", title, before: null, after: result.url, product: products[0] ? { id: products[0].id, name: products[0].name } : null, sourceIndex: null },
+  };
+}
+
 type Runner<N extends RexToolName> = (ctx: RexToolContext, input: RexToolInput<N>) => Promise<RexToolOutput>;
 
 export const REX_TOOL_RUNNERS: { [N in RexToolName]: Runner<N> } = {
@@ -443,6 +690,12 @@ export const REX_TOOL_RUNNERS: { [N in RexToolName]: Runner<N> } = {
   cms_write_item: cmsWriteItem,
   draft_email_template: draftEmailTemplate,
   improve_email_copy: improveEmailCopy,
+  create_brand_book: createBrandBook,
+  make_brand_icon: makeBrandIcon,
+  set_logo_display: setLogoDisplay,
+  make_print_labels: makePrintLabels,
+  design_packaging: designPackaging,
+  make_creative: makeCreative,
 };
 
 export { MarketingError };

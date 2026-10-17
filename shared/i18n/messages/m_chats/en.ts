@@ -134,6 +134,12 @@ const en = {
   "bot.faqs": "Questions and answers",
   "bot.faqsCount": "Questions and answers ({count})",
   "bot.faqsHint": "Change them and try Peggy out in your browser",
+  "list.email": "Email",
+  "list.emailHint": "Read and answer customer emails here",
+  "thread.subject": "Subject",
+  "thread.emailPlaceholder": "Write your email reply",
+  "thread.emailGoesAs": "Goes out as an email: {subject}",
+  "thread.emailGoes": "Goes out as an email to the customer",
 } satisfies Record<string, string>;
 
 export default en;

@@ -15,6 +15,8 @@ export interface EmailOptions {
   headers?: Record<string, string>;
   /** Plain-text alternative. */
   text?: string;
+  /** Files to attach (e.g. print-ready labels for a print shop). */
+  attachments?: Array<{ filename: string; content: Buffer }>;
 }
 
 export interface EmailSendResult {
@@ -45,6 +47,7 @@ export async function sendEmail(options: EmailOptions): Promise<EmailSendResult>
     text: options.text,
     replyTo: options.replyTo,
     headers: options.headers,
+    ...(options.attachments?.length ? { attachments: options.attachments } : {}),
   });
 
   if (error) {

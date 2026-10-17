@@ -116,7 +116,7 @@ export function Menu({
     <div ref={ref} className="relative">
       {trigger({ open, toggle: () => setOpen((value) => !value) })}
       {open ? (
-        <div role="menu" aria-label={tx(label)} className={cx("absolute top-full z-50 mt-1 min-w-[200px] rounded-[14px] border border-app-line bg-white p-1.5 shadow-[0_18px_50px_rgba(22,20,31,.16)]", align === "right" ? "right-0" : "left-0")}>
+        <div role="menu" aria-label={tx(label)} className={cx("absolute top-full z-50 mt-1 max-h-[min(420px,calc(100dvh-120px))] min-w-[200px] max-w-[calc(100vw-24px)] overflow-y-auto rounded-[14px] border border-app-line bg-white p-1.5 shadow-[0_18px_50px_rgba(22,20,31,.16)]", align === "right" ? "right-0" : "left-0")}>
           {children(() => setOpen(false))}
         </div>
       ) : null}

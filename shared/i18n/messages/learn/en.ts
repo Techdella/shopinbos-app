@@ -27,6 +27,8 @@ const en = {
   eg: "e.g. {example}",
   thatsIt: "That’s it. You’ve got {term}.",
   replayHint: "Replay it any time from “Learn · 60s” at the top of this page.",
+  tipsOffLead: "Don't need tips?",
+  tipsOffLink: "Turn them off in Settings",
   watchIntro: "Watch 60-sec intro",
   watchIntroLong: "Watch the 60-sec intro",
   whatItMeans: "{term}: what it means",

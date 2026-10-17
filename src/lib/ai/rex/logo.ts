@@ -34,19 +34,80 @@ export const LOGO_STYLES: {
 
 export type LogoOption = { style: string; label: string; url: string; palette: { primary: string; secondary: string; accent: string } };
 
-/** Draws all three logo ideas; keeps the ones that worked and the reasons the others failed. */
-export async function drawLogoOptions(
-  input: { businessName: string; business: string; paletteHint?: string; userId: string },
-  draw: (prompt: string, path: string) => Promise<string>,
-): Promise<{ logos: LogoOption[]; failures: string[] }> {
-  const results = await Promise.allSettled(
-    LOGO_STYLES.map(async ({ style, label, prompt, palette }) => {
-      const url = await draw(prompt(input.businessName.trim().slice(0, 80), (input.business || "retail business").slice(0, 300), input.paletteHint?.slice(0, 200)), `logos/${input.userId}/${style}-${Date.now()}`);
-      return { style, label, url, palette };
-    }),
-  );
+/** Fresh directions for "New ideas" (round 2, 3, …), so a new round doesn't repeat the last one. */
+const FRESH_DIRECTIONS = [
+  "Try a completely different concept from a typical logo for this kind of business: a fresh symbol idea and different letterforms.",
+  "Try a monogram or lettermark built from the initials, with a distinctive shape.",
+  "Try a badge or emblem shape with the name integrated.",
+  "Try a playful hand-drawn feel with a friendly mascot-like mark.",
+  "Try a premium luxury direction: elegant serif lettering and a refined small mark.",
+];
+
+type LogoInput = {
+  businessName: string;
+  business: string;
+  paletteHint?: string;
+  userId: string;
+  round?: number;
+  /** What the seller added: likes, dislikes, the story behind the name, where the logo will be used. */
+  notes?: string;
+  /** How many inspiration pictures (photos or video stills) go with the request as references. */
+  inspiration?: number;
+};
+
+/** The seller's own context, added to every logo prompt. */
+export function logoContext(input: Pick<LogoInput, "notes" | "inspiration">, afterReference = 0) {
+  const parts: string[] = [];
+  if (input.notes?.trim()) parts.push(`What the owner told us: ${input.notes.trim().slice(0, 600)}`);
+  if (input.inspiration) {
+    const which = afterReference ? `The reference images after the first are` : input.inspiration === 1 ? "The reference image is" : "The reference images are";
+    parts.push(`${which} the owner's inspiration (their shop, packaging, an old sign or logos they like): take the mood, colours and shapes from them, but make an original logo; never copy another brand's logo or name.`);
+  }
+  return parts.length ? ` ${parts.join(" ")}` : "";
+}
+
+async function settle(jobs: Array<Promise<LogoOption>>) {
+  const results = await Promise.allSettled(jobs);
   return {
     logos: results.filter((r): r is PromiseFulfilledResult<LogoOption> => r.status === "fulfilled").map((r) => r.value),
     failures: results.filter((r): r is PromiseRejectedResult => r.status === "rejected").map((r) => (r.reason as Error)?.message ?? "unknown"),
   };
+}
+
+/** Draws all three logo ideas; keeps the ones that worked and the reasons the others failed. */
+export async function drawLogoOptions(
+  input: LogoInput,
+  draw: (prompt: string, path: string) => Promise<string>,
+): Promise<{ logos: LogoOption[]; failures: string[] }> {
+  const round = input.round ?? 1;
+  const fresh = round > 1 ? ` ${FRESH_DIRECTIONS[(round - 2) % FRESH_DIRECTIONS.length]}` : "";
+  return settle(
+    LOGO_STYLES.map(async ({ style, label, prompt, palette }) => {
+      const url = await draw(`${prompt(input.businessName.trim().slice(0, 80), (input.business || "retail business").slice(0, 300), input.paletteHint?.slice(0, 200))}${fresh}${logoContext(input)}`, `logos/${input.userId}/${style}-${Date.now()}`);
+      return { style, label, url, palette };
+    }),
+  );
+}
+
+const VARIATIONS = [
+  { style: "refined", label: "Refined", ask: "Refine this exact logo: keep its idea, layout and colours, but make the lines cleaner, the lettering crisper and the balance better." },
+  { style: "new-colours", label: "New colours", ask: "Keep this logo's shapes and lettering exactly, but try a different, harmonious colour palette." },
+  { style: "simplified", label: "Simplified mark", ask: "Make a simpler version of this logo that still reads well as a small app icon or profile picture: fewer details, same spirit." },
+];
+
+/** "More like this": three variations of one logo (passed to the image model as the reference). */
+export async function drawLogoVariations(
+  input: LogoInput,
+  draw: (prompt: string, path: string) => Promise<string>,
+): Promise<{ logos: LogoOption[]; failures: string[] }> {
+  const name = input.businessName.trim().slice(0, 80);
+  return settle(
+    VARIATIONS.map(async ({ style, label, ask }, index) => {
+      const url = await draw(
+        `${ask} The first reference image is the logo to work from. The business name on the logo is "${name}"; spell it exactly. White or transparent background.${input.paletteHint ? ` ${input.paletteHint.slice(0, 200)}` : ""}${logoContext(input, 1)}`,
+        `logos/${input.userId}/${style}-${Date.now()}`,
+      );
+      return { style, label, url, palette: LOGO_STYLES[index % LOGO_STYLES.length].palette };
+    }),
+  );
 }

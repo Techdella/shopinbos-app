@@ -8,8 +8,17 @@ import { getSellerWorkspace } from "@/lib/workspace";
 import { db } from "@/lib/db/client";
 import { formatMoney, formatNumber } from "@shared/i18n";
 import { getLocale, getT } from "@/lib/i18n/server";
+import { productCampaignTimers } from "@/lib/store-campaigns/server";
+import { ProductCampaignBadge } from "@/components/campaigns/ProductCampaignBadge";
+import { PaymentLinkButton } from "@/components/payment-links/PaymentLinkButton";
+import { linkProductView } from "@/lib/payment-links/pure";
+import { paymentReadiness } from "@/lib/payment-links/service.server";
+import { pageSlice } from "@/lib/pagination";
+import { Pagination } from "@/components/seller/Pagination";
 
 export const dynamic = "force-dynamic";
+
+const PAGE_SIZE = 50;
 
 type ProductRow = {
   status: string;
@@ -17,11 +26,13 @@ type ProductRow = {
   inventoryType: string;
   currentStock: number;
   lowStockThreshold: number;
+  trackStock: boolean;
 };
 
 const isLive = (p: ProductRow) => p.status === "active" || p.status === "published";
 const isDropship = (p: ProductRow) => p.fulfillmentType === "dropship" || p.inventoryType === "dropshipping";
-const isLow = (p: ProductRow) => !isDropship(p) && p.currentStock <= p.lowStockThreshold;
+// Only counted stock ("Track stock") can run low; untracked products never sell out.
+const isLow = (p: ProductRow) => !isDropship(p) && p.trackStock && p.currentStock <= p.lowStockThreshold;
 
 // Old links used ?status=active|draft|archived; they map onto the new chips.
 const FILTERS: Array<{ key: "all" | "live" | "draft" | "low_stock" | "dropship" | "archived"; test: (p: ProductRow) => boolean }> = [
@@ -53,9 +64,9 @@ function variantCount(variants: unknown) {
 export default async function ProductsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; filter?: string; visibility?: string; q?: string }>
+  searchParams: Promise<{ status?: string; filter?: string; visibility?: string; q?: string; page?: string }>
 }) {
-  const { status, filter: rawFilter, visibility, q } = await searchParams;
+  const { status, filter: rawFilter, visibility, q, page: rawPage } = await searchParams;
   const user = await requireRole(["seller"], "/login");
   const t = await getT("products", "common");
   const locale = await getLocale();
@@ -87,13 +98,18 @@ export default async function ProductsPage({
       inventoryType: true,
       currentStock: true,
       lowStockThreshold: true,
+      trackStock: true,
       soldStock: true,
       supplierStock: true,
       variants: true,
       featured: true,
+      tags: true,
       category: { select: { name: true } },
     },
   });
+  // Live and upcoming seasonal campaigns that badge a product show a small timer on its row.
+  const campaignNow = new Date();
+  const [campaignTimers, readiness] = await Promise.all([productCampaignTimers(storeId, all, campaignNow), paymentReadiness(storeId)]);
 
   const needle = query.toLowerCase();
   const products = all.filter(
@@ -102,6 +118,9 @@ export default async function ProductsPage({
       (visibilityKey === "all" || p.visibility === visibilityKey) &&
       (!needle || p.name.toLowerCase().includes(needle) || (p.sku ?? "").toLowerCase().includes(needle)),
   );
+
+  // The filters run over every product, then one page of the matches is shown.
+  const paged = pageSlice(products, rawPage, PAGE_SIZE);
 
   const href = (next: { filter?: string; visibility?: string }) => {
     const params = new URLSearchParams();
@@ -188,13 +207,16 @@ export default async function ProductsPage({
           {query ? t("list.nothingMatches", { query }) : t("list.tryFilter")}
         </EmptyState>
       ) : (
+        <>
         <ListCard>
-          {products.map((p) => {
+          {paged.rows.map((p) => {
             const dropship = isDropship(p);
-            const stock = {
-              low: p.currentStock <= 0 || p.currentStock <= p.lowStockThreshold,
-              label: p.currentStock <= 0 ? t("stock.soldOut") : p.currentStock <= p.lowStockThreshold ? t("stock.left", { count: p.currentStock }) : t("stock.inStock", { count: p.currentStock }),
-            };
+            const stock = !p.trackStock
+              ? { low: false, label: t("stock.notTracked") }
+              : {
+                  low: p.currentStock <= 0 || p.currentStock <= p.lowStockThreshold,
+                  label: p.currentStock <= 0 ? t("stock.soldOut") : p.currentStock <= p.lowStockThreshold ? t("stock.left", { count: p.currentStock }) : t("stock.inStock", { count: p.currentStock }),
+                };
             const variants = variantCount(p.variants);
             const detail = [variants > 0 ? t("list.variants", { count: variants }) : p.category?.name ?? p.sku, dropship ? t("list.dropship") : t("list.ownStock")].filter(Boolean).join(" · ");
             const statusPill = isLive(p) ? (
@@ -208,7 +230,12 @@ export default async function ProductsPage({
               ? p.supplierStock ? t("list.atSupplier", { count: p.supplierStock }) : t("list.supplierStock")
               : stock.label;
             return (
-              <ListRow key={p.id} href={`/products/${p.id}`}>
+              <ListRow
+                key={p.id}
+                href={`/products/${p.id}`}
+                // A payment link to send in a chat (published products only: the pay page shows public products).
+                aside={p.status === "published" ? <PaymentLinkButton compact product={linkProductView(p)} storeName={workspace.store!.name} ready={readiness.ready} /> : undefined}
+              >
                 <div className="flex w-full min-w-0 items-start gap-3.5 md:items-center md:gap-4">
                   <Thumb src={p.images[0]} label={p.name} />
                   <div className="grid min-w-0 flex-1 items-center gap-x-5 gap-y-2 md:grid-cols-[minmax(0,1.6fr)_minmax(0,1.2fr)_auto] xl:grid-cols-[minmax(0,2fr)_110px_minmax(0,0.9fr)_minmax(0,0.8fr)_120px]">
@@ -216,6 +243,7 @@ export default async function ProductsPage({
                       <div className="flex min-w-0 items-center gap-2">
                         <span className="truncate text-[15px] font-extrabold">{p.name}</span>
                         {p.featured && <span className="shrink-0 text-app-accent" title={t("list.featured")}><Icon name="star" size={14} /><span className="sr-only">{t("list.featured")}</span></span>}
+                        {campaignTimers[p.id] ? <ProductCampaignBadge campaign={campaignTimers[p.id]!} serverNow={campaignNow.toISOString()} /> : null}
                       </div>
                       <div className="truncate text-[13px] text-app-ink-soft">
                         {detail}
@@ -239,6 +267,13 @@ export default async function ProductsPage({
             );
           })}
         </ListCard>
+        <Pagination
+          {...paged.window}
+          base="/products"
+          params={{ filter: filter.key === "all" ? undefined : filter.key, visibility: visibilityKey === "all" ? undefined : visibilityKey, q: query || undefined }}
+          label={t("list.pages")}
+        />
+        </>
       )}
     </AppPage>
   );

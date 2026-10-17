@@ -28,6 +28,16 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "scene.tapToFinish": "Pịa ka i mechaa",
   "scene.deal": "Ekwekọrịtara ✓",
   "scene.cashAtDoor": "EGO N'ỌNỤ ỤZỌ",
+  // Logged in on another portal's page: why they landed on their own home (components/auth/PortalNote.tsx)
+  "portalNote.seller": "Ị nwere account onye na-ere ahịa, ya mere anyị mepere ụlọ ahịa gị.",
+  "portalNote.supplier": "Ị nwere account onye na-enye ngwaahịa, ya mere anyị mepere portal gị.",
+  "portalNote.logistics_partner": "Ị nwere account onye mmekọ nnyefe, ya mere anyị mepere portal nnyefe gị.",
+  "portalNote.admin": "Ị nwere account admin, ya mere anyị mepere admin panel.",
+  "dialog.ok": "Ọ dị mma",
+  "dialog.continue": "Gaa n'ihu",
+  "dialog.done": "Emechaala",
+  "dialog.copy": "Detuo",
+  "dialog.copied": "Edetuola",
 };
 
 export default ig;

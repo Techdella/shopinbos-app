@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { creditBalance } from "@/lib/ai/credits.server";
 import { withSeller } from "@/lib/auth/middleware";
-import { db } from "@/lib/db/client";
 import { EDIT_PROMPTS, editImage, ImageUnavailableError, type EditKind } from "@/lib/ai/images";
 import { meterAi } from "@/lib/ai/usage";
 
@@ -23,8 +23,8 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
 
   try {
     const url = await editImage({ sourceUrl: imageUrl, prompt, transparent: kind === "remove_background", path: `enhanced/${user.id}/${Date.now()}` });
-    const credits = await db.user.findUnique({ where: { id: user.id }, select: { aiCredits: true } });
-    return NextResponse.json({ image: { url }, creditsRemaining: credits?.aiCredits ?? 0 });
+    const credits = await creditBalance(user.id);
+    return NextResponse.json({ image: { url }, creditsRemaining: credits });
   } catch (error) {
     const status = error instanceof ImageUnavailableError ? 503 : 400;
     const message = error instanceof Error ? error.message : "Couldn't edit that photo";

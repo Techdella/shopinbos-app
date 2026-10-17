@@ -2,6 +2,7 @@ import { upsertCategory } from "@/app/actions/admin";
 import { AppPage, Card, CardHead, EmptyState, ListCard, Pill, SplitLayout, Thumb } from "@/components/app-kit";
 import { CountRow, Field, adminFrame, buttonClass, fieldClass } from "@/components/admin/AdminKit";
 import { db } from "@/lib/db/client";
+import { MediaPicker } from "@/components/media/MediaPicker";
 import { requireRole } from "@/lib/server-auth";
 
 type CategoryRow = {
@@ -27,8 +28,8 @@ function CategoryForm({ category, options, idPrefix }: { category?: CategoryRow;
         <Field label="Slug" htmlFor={`${idPrefix}-slug`}>
           <input id={`${idPrefix}-slug`} name="slug" defaultValue={category?.slug} placeholder="food-groceries" className={fieldClass} />
         </Field>
-        <Field label="Image URL" htmlFor={`${idPrefix}-image`}>
-          <input id={`${idPrefix}-image`} name="imageUrl" defaultValue={category?.imageUrl ?? ""} placeholder="https://..." className={fieldClass} />
+        <Field label="Picture" htmlFor={`${idPrefix}-image-choose`}>
+          <MediaPicker id={`${idPrefix}-image`} name="imageUrl" defaultValue={category?.imageUrl ?? ""} compact />
         </Field>
         <Field label="Sort order" htmlFor={`${idPrefix}-sort`}>
           <input id={`${idPrefix}-sort`} name="sortOrder" type="number" defaultValue={category?.sortOrder ?? 0} className={fieldClass} />

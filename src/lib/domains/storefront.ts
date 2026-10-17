@@ -42,6 +42,25 @@ export function buildPlatformSubdomainOrigin(slug: string) {
   return `${appUrl.protocol}//${slug}.${rootDomain}${port}`;
 }
 
+/**
+ * Shop subdomains (yourshop.shopinbos.com) need a wildcard DNS record for the root domain pointed at Vercel, and
+ * the wildcard added to the Vercel project. Until NEXT_PUBLIC_STORE_SUBDOMAINS=true says that's done, shops live
+ * at app.shopinbos.com/s/yourshop, which always works. (Local development keeps *.localhost subdomains.)
+ */
+export function storeSubdomainsEnabled() {
+  return process.env.NEXT_PUBLIC_STORE_SUBDOMAINS === "true" || getPlatformRootDomain() === "localhost";
+}
+
+/** A shop's free address without a trailing slash: its subdomain, or the app's /s/<slug> path. */
+export function buildPlatformStoreBase(slug: string) {
+  if (storeSubdomainsEnabled()) return buildPlatformSubdomainOrigin(slug);
+  return `${getAppUrl().origin}${buildDirectStorefrontPath(slug)}`;
+}
+
+/**
+ * Where a shop lives, without a trailing slash: its own domain, its subdomain, or the app's /s/<slug> path.
+ * Append storefront paths to it ("/product/…"); it may include a path, so don't pass it to new URL() as a base.
+ */
 export function buildStorefrontOrigin(store: StorefrontStoreRef) {
   if (store.customDomain) {
     const domain = normalizeDomain(store.customDomain);
@@ -49,12 +68,15 @@ export function buildStorefrontOrigin(store: StorefrontStoreRef) {
     return `${protocol}//${domain}`;
   }
 
-  return buildPlatformSubdomainOrigin(store.slug);
+  return buildPlatformStoreBase(store.slug);
 }
 
 export function buildStorefrontUrl(store: StorefrontStoreRef, pathname = "/") {
   const normalizedPath = pathname.startsWith("/") ? pathname : `/${pathname}`;
-  return new URL(normalizedPath, `${buildStorefrontOrigin(store)}/`).toString();
+  const base = buildStorefrontOrigin(store);
+  // A path base (/s/<slug>) takes the page path after it; an origin takes it as its whole path.
+  if (new URL(base).pathname !== "/") return normalizedPath === "/" ? base : `${base}${normalizedPath}`;
+  return new URL(normalizedPath, `${base}/`).toString();
 }
 
 export function buildDirectStorefrontPath(slug: string, pathname = "/") {

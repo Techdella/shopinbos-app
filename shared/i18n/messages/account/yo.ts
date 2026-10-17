@@ -31,8 +31,9 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "addr.line2": "Ilé, àjà tàbí àmì ìdánimọ̀ (àṣàyàn)",
   "addr.state": "Ìpínlẹ̀",
   "addr.postal": "Kóòdù ìfìwéránṣẹ́ (àṣàyàn)",
-  "addr.email": "Email ìkànsí oníbàárà (àṣàyàn)",
-  "addr.phone": "Fóònù ìkànsí oníbàárà (àṣàyàn)",
+  "addr.email": "Email ilé ìtajà tí àwọn oníbàárà rẹ lè kọ sí (àṣàyàn)",
+  "addr.phone": "Fóònù ilé ìtajà tí àwọn oníbàárà rẹ lè pè (àṣàyàn)",
+  "addr.contactHelp": "Àwọn oníbàárà rẹ yóò rí i nínú àwọn email tí ilé ìtajà rẹ ń fi ránṣẹ́ sí wọn, kí wọ́n lè kàn sí ọ. Èyí kì í ṣe ti wíwọlé rẹ.",
   "addr.save": "Fi àdírẹ́sì iṣẹ́ pamọ́",
   "contact.title": "Àlàyé ìkànsí",
   email: "Email",
@@ -164,6 +165,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "menu.loading": "À ń gbé menu rẹ wá…",
   "menu.onlyUse": "Rí ohun tí o ń lò nìkan",
   "menu.onlyUseSub": "Pípa nǹkan kan máa fi pamọ́ kúrò nínú menu rẹ. Kò sí ohun tí a pa rẹ́: data rẹ wà níbẹ̀, o sì lè tan án padà níbí nígbàkigbà.",
+  "menu.tips": "Àwọn ìmọ̀ràn àti àlàyé kékeré",
+  "menu.tipsSub": "Àlàyé kékeré tí ó máa ń yọ nígbà tí o bá tọ́ka sí tàbí tẹ ọ̀rọ̀ kan, àwọn ìmọ̀ràn lórí menu, àti àwọn ìfihàn kúkúrú tí ó máa ń ṣí fúnra wọn lórí ojú-ìwé tuntun. Tí o bá pa á, o ṣì lè wo ìfihàn èyíkéyìí láti “Learn” ní òkè ojú-ìwé.",
   "menu.walkthrough": "Ìtọ́sọ́nà",
   "menu.walkthroughSub": "Tún wo ìrìn àjò kíákíá ti menu rẹ àti àwọn bọ́tìnnì àkọ́kọ́.",
   "menu.replay": "Tún fi mí hàn yíká",
@@ -181,6 +184,12 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "img.addLogo": "Fi logo kún un",
   "img.uploading": "À ń gbé e sókè…",
   "img.removing": "À ń yọ ọ́ kúrò…",
+  "details.nameHelp": "Yíyí orúkọ store rẹ padà kò ní yí àdírẹ́sì wẹ́ẹ̀bù rẹ padà.",
+  "details.slugLocked": "O ṣẹ̀ṣẹ̀ yí àdírẹ́sì wẹ́ẹ̀bù rẹ padà. O lè tún yí i padà lẹ́yìn {days, plural, one {ọjọ́ #} other {ọjọ́ #}}.",
+  "details.slugWarnTitle": "O fẹ́ yí àdírẹ́sì wẹ́ẹ̀bù store rẹ padà",
+  "details.slugWarnLive": "Store rẹ yóò kúrò ní {old} lọ sí {new}. A ó darí àwọn oníbàárà tó bá ṣí àdírẹ́sì àtijọ́ sí èyí tuntun, ṣùgbọ́n ṣàtúnṣe àwọn link tí o ti pín (bio Instagram, status WhatsApp, ìwé ìpolówó, àwọn ìpolówó míì) kí o sì sọ fún àwọn oníbàárà tí wọ́n máa ń rajà lọ́dọ̀ rẹ. Ẹ̀ẹ̀kan péré láàrin ọjọ́ {days} ni o lè yí àdírẹ́sì rẹ padà.",
+  "details.slugWarnDraft": "Store rẹ yóò kúrò ní {old} lọ sí {new}. A ó darí ẹnikẹ́ni tó bá ṣí àdírẹ́sì àtijọ́ sí èyí tuntun. Nígbà tí store rẹ bá wà láàyè, ẹ̀ẹ̀kan péré láàrin ọjọ́ {days} ni o lè yí àdírẹ́sì rẹ padà.",
+  "details.slugConfirm": "Ó yé mi. Gbé store mi lọ sí {new}",
 };
 
 export default yo;

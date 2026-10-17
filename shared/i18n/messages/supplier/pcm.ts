@@ -97,8 +97,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "productForm.tiersHint": "One tier for each line: quantity range, then unit price.",
   "productForm.photosTitle": "Photos and delivery",
   "productForm.photosSub": "Wetin sellers dey see for marketplace and where you fit send am.",
-  "productForm.images": "Image URLs",
-  "productForm.imagesHint": "One link for each line. The first one na the cover.",
+  "productForm.images": "Product pictures",
+  "productForm.imagesHint": "The first one na the cover. Upload am or pick from your media.",
   "productForm.regions": "Delivery areas",
   "productForm.regionsHint": "One city or state for each line.",
   "productForm.howBuy": "How sellers fit buy",
@@ -574,6 +574,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "reviewsUi.wholesaleOrders": "Wholesale orders",
   "reviewsUi.finishedDeliveries": "Deliveries wey don finish",
   "reviewsUi.deliveryFee": "{amount} delivery fee",
+  "quotes.pages": "Quote request pages",
 };
 
 export default pcm;

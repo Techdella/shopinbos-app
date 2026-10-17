@@ -130,6 +130,12 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "bot.faqs": "Questions and answers",
   "bot.faqsCount": "Questions and answers ({count})",
   "bot.faqsHint": "Change them and try Peggy for your browser",
+  "list.email": "Email",
+  "list.emailHint": "Read and answer customer emails for here",
+  "thread.subject": "Subject",
+  "thread.emailPlaceholder": "Write your email reply",
+  "thread.emailGoesAs": "E go comot as email: {subject}",
+  "thread.emailGoes": "E go comot as email go the customer",
 };
 
 export default pcm;

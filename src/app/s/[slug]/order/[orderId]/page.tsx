@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { shopperOrder } from "@/lib/commerce/stock-holds";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
@@ -7,6 +8,9 @@ import { OrderConfirmation } from "./OrderConfirmation";
 import { getStorefrontBasePathForHost } from "@/lib/domains/storefront";
 import { loadOrderNextSteps } from "./order-props";
 import { orderRewards } from "@/lib/gamification/play.server";
+
+// A shopper's own order: never listed by search engines.
+export const metadata: Metadata = { title: "Your order", robots: { index: false, follow: false } };
 
 interface Props {
   params: Promise<{ slug: string; orderId: string }>;

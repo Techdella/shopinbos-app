@@ -1,5 +1,6 @@
 "use client";
 
+import { confirmDialog } from "@/components/ui/dialogs";
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardHead, EmptyState, Pill } from "@/components/app-kit";
@@ -101,8 +102,8 @@ export function WhatsAppTemplates({ initial, whatsapp }: { initial: Row[]; whats
       return t("wa.waiting", { name: friendlyName(submitted.name) });
     });
 
-  const remove = (row: Row) => {
-    if (!window.confirm(`${t("wa.confirmDelete", { name: friendlyName(row.name) })}${row.status !== "DRAFT" ? ` ${t("wa.deletedFromWhatsApp")}` : ""}`)) return;
+  const remove = async (row: Row) => {
+    if (!(await confirmDialog(`${t("wa.confirmDelete", { name: friendlyName(row.name) })}${row.status !== "DRAFT" ? ` ${t("wa.deletedFromWhatsApp")}` : ""}`))) return;
     void run(`delete:${row.id}`, async () => {
       await api(`/api/app/marketing/whatsapp-templates/${row.id}`, "DELETE");
       await refresh();

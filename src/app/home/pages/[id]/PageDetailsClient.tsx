@@ -1,5 +1,6 @@
 "use client";
 
+import { confirmDialog } from "@/components/ui/dialogs";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Icon, type IconName } from "@/components/ui/Icon";
@@ -10,6 +11,7 @@ import { SeoTab } from "@/components/seo/SeoTab";
 import { normalizeSeo } from "@/lib/seo/fields";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import { formatDate, type Locale } from "@shared/i18n";
+import { storefrontPageHref } from "@shared/storefront-pages";
 
 type StoreT = ReturnType<typeof useT<["store", "common"]>>;
 
@@ -150,13 +152,14 @@ export function PageDetailsClient({ page: initialPage, storeId, storeSlug, store
           navigation: { ...localNav, menuLabel: localNav.menuLabel || page.title },
         }),
       });
-      if (!res.ok) throw new Error("save failed");
-      const json = await res.json();
+      const json = await res.json().catch(() => null);
+      // The server says why (a page address another page or a store route like /links already has).
+      if (!res.ok) throw new Error(typeof json?.error?.message === "string" ? json.error.message : "");
       setPage((prev) => ({ ...prev, ...json.data, draftContent: json.data.draftContent }));
       toast({ title: t("pages.draftSaved"), variant: "success" });
       router.refresh();
-    } catch {
-      toast({ title: t("pages.err.save"), variant: "error" });
+    } catch (error) {
+      toast({ title: t("pages.err.save"), description: error instanceof Error && error.message ? error.message : undefined, variant: "error" });
     } finally {
       setSaving(false);
     }
@@ -273,7 +276,7 @@ export function PageDetailsClient({ page: initialPage, storeId, storeSlug, store
   }, [page.id, localScheduling.publishAt, router, t]);
 
   const handleDelete = useCallback(async () => {
-    if (!confirm(t("pages.confirmDelete"))) return;
+    if (!(await confirmDialog(t("pages.confirmDelete")))) return;
     try {
       const res = await fetch(`/api/store/pages/${page.id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("delete failed");
@@ -285,7 +288,7 @@ export function PageDetailsClient({ page: initialPage, storeId, storeSlug, store
   }, [page.id, router, t]);
 
   const previewUrl = `/preview/store/${storeSlug}/${page.id}`;
-  const liveUrl = isLive && page.status === "published" ? `/s/${storeSlug}/${page.slug}` : null;
+  const liveUrl = isLive && page.status === "published" ? storefrontPageHref(`/s/${storeSlug}`, page.slug) : null;
 
   const isArchived = page.status === "archived";
 

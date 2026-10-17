@@ -46,9 +46,10 @@ test("My shop groups everything else by goal: Sell; Get paid and deliver; Grow",
   const shop = read("app/(tabs)/shop.tsx");
   const titles = [...shop.matchAll(/title: "([^"]+)",\n\s+links:/g)].map((match) => match[1]);
   assert.deepEqual(titles.slice(0, 3), ["Sell", "Get paid and deliver", "Grow"]);
-  // Technical set-up goes to "Ask us", not to the web pages with records and keys.
+  // The domain goes to "Ask us", not to the web page with records; Sell everywhere opens the one-tap connect page.
   assert.match(shop, /app:\/ask-us\?what=web-address/);
-  assert.match(shop, /app:\/ask-us\?what=channels/);
+  // Sell everywhere, payments, delivery and settings are app screens now (no browser).
+  for (const id of ["channels", "payments", "delivery", "settings"]) assert.match(shop, new RegExp(`path: "app:/${id}"`));
   assert.doesNotMatch(shop, /\/home\/domain|\/home\/inbox\/channels|developer|api-keys/);
 });
 

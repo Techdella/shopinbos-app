@@ -20,7 +20,7 @@ export function WonCodeBanner({ storeSlug, appliedCode, onApply, colors, currenc
     <div className="flex flex-wrap items-center gap-2 rounded-[14px] border border-dashed px-3 py-2.5 text-[14px]" style={{ borderColor: colors.ink, background: colors.card }}>
       <Icon name="sparkle" size={15} />
       <span className="min-w-0 flex-1">
-        You won <strong>{won.label.toLowerCase()}</strong>: <span className="font-mono font-semibold">{won.code}</span>
+        {won.source === "signup" ? "Your sign-up reward" : "You won"} <strong>{won.label.toLowerCase()}</strong>: <span className="font-mono font-semibold">{won.code}</span>
         {won.minOrder ? <span style={{ color: colors.muted }}> · orders over {formatStoreMoney(won.minOrder, currency)}</span> : null}
       </span>
       <button type="button" onClick={() => onApply(won.code)} className="min-h-10 rounded-full px-3 text-[13.5px] font-semibold underline underline-offset-4 focus-visible:outline focus-visible:outline-2">Use it</button>

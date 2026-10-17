@@ -28,6 +28,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   eg: "Misali: {example}",
   thatsIt: "Shi ke nan. Yanzu ka san {term}.",
   replayHint: "Za ka iya sake kallo kowane lokaci daga “Koyo · 60s” a saman wannan shafin.",
+  tipsOffLead: "Ba ka buƙatar shawarwari?",
+  tipsOffLink: "Kashe su a Settings",
   watchIntro: "Kalli bayanin minti ɗaya",
   watchIntroLong: "Kalli bayanin minti ɗaya",
   whatItMeans: "{term}: ma'anarsa",

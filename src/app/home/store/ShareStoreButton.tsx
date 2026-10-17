@@ -1,5 +1,6 @@
 "use client";
 
+import { promptDialog } from "@/components/ui/dialogs";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { useT } from "@/components/i18n/I18nProvider";
@@ -35,7 +36,7 @@ export function ShareStoreButton({ url, storeName }: { url: string; storeName: s
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2000);
     } catch {
-      window.prompt(t("share.copyPrompt"), url);
+      await promptDialog({ title: t("share.copyPrompt"), defaultValue: url, readOnly: true, icon: "link" });
     }
   }
 
@@ -63,7 +64,7 @@ export function ShareStoreButton({ url, storeName }: { url: string; storeName: s
         <Icon name="upload" size={16} /> {t("share.button")}
       </button>
       {open && (
-        <div role="menu" className="absolute right-0 top-[calc(100%+8px)] z-30 w-[260px] max-w-[calc(100vw-32px)] rounded-[18px] border border-app-line bg-white p-2 shadow-[0_18px_40px_-12px_rgba(22,20,31,0.25)]">
+        <div role="menu" className="absolute right-0 top-[calc(100%+8px)] z-30 max-h-[calc(100dvh-160px)] w-[260px] max-w-[calc(100vw-32px)] overflow-y-auto rounded-[18px] border border-app-line bg-white p-2 shadow-[0_18px_40px_-12px_rgba(22,20,31,0.25)]">
           <p className="m-0 truncate px-3 pb-2 pt-1 text-[12.5px] text-app-ink-soft">{url.replace(/^https?:\/\//, "")}</p>
           <button type="button" role="menuitem" onClick={() => void copy()} className={item}>
             <Icon name={copied ? "check" : "copy"} size={16} /> {copied ? t("share.copied") : t("share.copy")}

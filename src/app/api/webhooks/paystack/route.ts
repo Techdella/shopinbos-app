@@ -1,4 +1,10 @@
 import { sendOrderConfirmationEmail } from "@/lib/email/notices.server";
+import { completeCreditPurchase, grantPlanCredits } from "@/lib/ai/credits.server";
+import { CREDIT_REFERENCE_PREFIX } from "@shared/ai-credits";
+import { AD_SETUP_REFERENCE_PREFIX } from "@shared/ad-campaigns";
+import { completeAdSetupPayment } from "@/lib/ad-campaigns/requests.server";
+import { PRINT_ORDER_REFERENCE_PREFIX } from "@shared/print-orders";
+import { completePrintOrderPayment } from "@/lib/packaging/print-orders.server";
 import { SENDER_STORE_SELECT } from "@/lib/email/compliance.server";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db/client";
@@ -6,6 +12,7 @@ import { buildStorefrontUrl } from "@/lib/domains/storefront";
 import { triggerAutomations } from "@/lib/automations/engine";
 import crypto from "crypto";
 import { completeStoreLaunchPayment } from "@/lib/store-launch-billing";
+import { DOMAIN_REFERENCE_PREFIX, completeDomainPayment } from "@/lib/domains/billing.server";
 import { creditCampaignConversion } from "@/lib/campaigns/send";
 import { notifyOrderCustomer } from "@/lib/notifications/customer-messages";
 import { PAYABLE_ORDER_STATUSES, retailChargeProblem } from "@/lib/commerce/paystack-charge";
@@ -16,6 +23,14 @@ import { PAID_RETAIL_STATUSES } from "@/lib/supplier-orders/pure";
 import { isDedicatedCharge } from "@/lib/logistics/payin-rules";
 import { handleDedicatedAccountAssign, handleDedicatedAccountCharge } from "@/lib/logistics/payins.server";
 import { notifyOrderPaid } from "@/lib/notifications/events.server";
+import { settlePaymentLinkForOrder } from "@/lib/payment-links/service.server";
+import { recordInvoicePaid, recordSubscriptionCreated, recordSubscriptionStatus } from "@/lib/seller-plan.server";
+
+// The plan itself (code, monthly/annual, status, paid-until) is recorded on User for the free-domain rule
+// (src/lib/seller-plan.ts). A failure there is logged, never fails the webhook: the credits above still apply.
+function recordPlan(work: Promise<unknown>) {
+  return work.catch((error) => console.error("[paystack webhook] could not record the seller plan", error));
+}
 
 const PLAN_CREDITS: Record<string, number> = {
   PLN_8ou289e71czicvm: 50,   // Seller Growth (monthly)
@@ -88,6 +103,7 @@ export async function POST(req: NextRequest) {
         data: { aiCredits: credits },
       });
     }
+    await recordPlan(recordSubscriptionCreated(event.data ?? {}));
   }
 
   // ── Invoice paid (monthly renewal) ───────────────────────────────────────
@@ -104,7 +120,12 @@ export async function POST(req: NextRequest) {
         where: { email: customerEmail },
         data: { aiCredits: credits },
       });
+      // Each paid renewal adds the plan's credits to the balance (once per invoice).
+      const payer = await db.user.findFirst({ where: { email: { equals: customerEmail, mode: "insensitive" } }, select: { id: true } });
+      const reference = (event.data?.transaction?.reference as string | undefined) ?? (event.data?.invoice_code as string | undefined);
+      if (payer && reference) await grantPlanCredits(payer.id, planCode, reference).catch((error) => console.error("Plan credits not added:", error));
     }
+    await recordPlan(recordInvoicePaid(event.data ?? {}));
   }
 
   // ── Subscription cancelled ────────────────────────────────────────────────
@@ -116,15 +137,41 @@ export async function POST(req: NextRequest) {
         data: { aiCredits: 5 },
       });
     }
+    await recordPlan(recordSubscriptionStatus(event.data ?? {}, eventType === "subscription.disable" ? "cancelled" : "non_renewing"));
   }
 
   // ── Retail order payment (storefront checkout) ────────────────────────────
   if (eventType === "charge.success") {
     const ref = event.data?.reference as string | undefined;
     if (ref) {
+      if (ref.startsWith(AD_SETUP_REFERENCE_PREFIX)) {
+        await completeAdSetupPayment(ref).catch((error) => {
+          console.error("Ad setup payment completion failed:", error);
+        });
+        return NextResponse.json({ received: true });
+      }
+      if (ref.startsWith(PRINT_ORDER_REFERENCE_PREFIX)) {
+        await completePrintOrderPayment(ref).catch((error) => {
+          console.error("Print order payment completion failed:", error);
+        });
+        return NextResponse.json({ received: true });
+      }
+      if (ref.startsWith(CREDIT_REFERENCE_PREFIX)) {
+        await completeCreditPurchase(ref).catch((error) => {
+          console.error("AI credit purchase completion failed:", error);
+        });
+        return NextResponse.json({ received: true });
+      }
       if (ref.startsWith("store-launch-")) {
         await completeStoreLaunchPayment(ref).catch((error) => {
           console.error("Store launch payment completion failed:", error);
+        });
+      }
+      // Domains bought or renewed through Shopinbos (purpose domain_purchase / domain_renewal): verified and
+      // completed idempotently, the same as the callback; the registrar is only called after a verified payment.
+      if (ref.startsWith(DOMAIN_REFERENCE_PREFIX)) {
+        await completeDomainPayment(ref).catch((error) => {
+          console.error("Domain payment completion failed:", error);
         });
       }
       // Inline payments carry an amount the buyer's browser chose, so check it against the order before
@@ -155,6 +202,8 @@ export async function POST(req: NextRequest) {
       // Dropship items go to their suppliers. Idempotent, so a replayed event (or one that failed half way) is safe.
       if (moved.count === 1 || (pending && (PAID_RETAIL_STATUSES as readonly string[]).includes(pending.status))) {
         await ensureSupplierOrdersSafely(ref);
+        // Paid through a payment link: the link counts the sale (a one-time link closes). Idempotent.
+        await settlePaymentLinkForOrder(ref);
       }
 
       const resendKey = process.env.RESEND_API_KEY;

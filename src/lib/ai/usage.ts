@@ -2,17 +2,24 @@ import "server-only";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db/client";
 import { checkRateLimitShared, rateLimitKey } from "@/lib/rate-limit";
+import { creditBalance, spendCredits } from "@/lib/ai/credits.server";
+import { creditCost, creditsUrlFor, outOfCreditsMessage } from "@shared/ai-credits";
 
-// Daily limits for Rex and Peggy so a loop, a bot or one busy user can't run up the AI bill.
+/** Where a seller buys AI credits. */
+export const CREDITS_URL = "/home/credits";
+
+// Daily limits for Rex and Peggy so a loop, a bot or one busy user can't run up the AI bill. Past the day's
+// allowance, bought AI credits pay per request (shared/ai-credits.ts, src/lib/ai/credits.server.ts).
 // aiCredits is the plan tier elsewhere in the app (see plan-limits.ts), so it is read here, never spent.
 
 // "speech" is voice typing (speech to text, POST /api/ai/transcribe): short and frequent, so its own allowance.
-export type AiKind = "text" | "image" | "voice" | "build" | "speech";
+// "video" is a finished reel from the video studio (the pictures and voice in it are metered on their own).
+export type AiKind = "text" | "image" | "voice" | "build" | "speech" | "video";
 
 const DAILY: Record<"starter" | "growth" | "pro", Record<AiKind, number>> = {
-  starter: { text: 60, image: 8, voice: 10, build: 6, speech: 60 },
-  growth: { text: 300, image: 40, voice: 40, build: 20, speech: 200 },
-  pro: { text: 1500, image: 150, voice: 150, build: 60, speech: 600 },
+  starter: { text: 60, image: 8, voice: 10, build: 6, speech: 60, video: 2 },
+  growth: { text: 300, image: 40, voice: 40, build: 20, speech: 200, video: 10 },
+  pro: { text: 1500, image: 150, voice: 150, build: 60, speech: 600, video: 40 },
 };
 
 export function aiTier(aiCredits: number | null | undefined): keyof typeof DAILY {
@@ -24,7 +31,7 @@ export function dailyLimit(kind: AiKind, aiCredits: number | null | undefined) {
   return DAILY[aiTier(aiCredits)][kind];
 }
 
-const KIND_WORD: Record<AiKind, string> = { text: "AI requests", image: "images", voice: "voiceovers", build: "store builds", speech: "voice typing recordings" };
+const KIND_WORD: Record<AiKind, string> = { text: "AI requests", image: "images", voice: "voiceovers", build: "store builds", speech: "voice typing recordings", video: "videos" };
 
 /**
  * Checks and records one use. Returns a 429 response when over the limit (or bursting), else null.
@@ -39,15 +46,24 @@ export async function meterAi(userId: string, kind: AiKind, units = 1): Promise<
   try {
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const [user, used] = await Promise.all([
-      db.user.findUnique({ where: { id: userId }, select: { aiCredits: true } }),
+      db.user.findUnique({ where: { id: userId }, select: { aiCredits: true, role: true } }),
       db.aiUsage.aggregate({ where: { userId, kind, createdAt: { gte: since } }, _sum: { units: true } }),
     ]);
     const limit = dailyLimit(kind, user?.aiCredits);
     if ((used._sum.units ?? 0) + units > limit) {
-      return NextResponse.json(
-        { error: { code: "AI_LIMIT", message: `You've used today's ${limit} ${KIND_WORD[kind]}. It resets over the next 24 hours, or upgrade your plan for more.` } },
-        { status: 429 },
-      );
+      // Allowance used up: bought credits pay for it (the saved card tops them up when auto top-up is on).
+      const cost = creditCost(kind, units);
+      const left = await spendCredits(userId, cost).catch((error) => {
+        console.error("[ai/usage] credit spend failed", error);
+        return null;
+      });
+      if (left === null) {
+        const balance = await creditBalance(userId);
+        return NextResponse.json(
+          { error: { code: "AI_CREDITS_NEEDED", message: outOfCreditsMessage(`${limit} ${KIND_WORD[kind]}`, cost, balance), buyUrl: creditsUrlFor(user?.role), cost, balance } },
+          { status: 402 },
+        );
+      }
     }
     await db.aiUsage.create({ data: { userId, kind, units } });
   } catch (error) {
@@ -57,7 +73,7 @@ export async function meterAi(userId: string, kind: AiKind, units = 1): Promise<
   return null;
 }
 
-const ALLOWANCE_LABEL: Record<AiKind, string> = { text: "Peggy & Rex requests", image: "Pictures", voice: "Voiceovers", build: "Store builds", speech: "Voice typing" };
+const ALLOWANCE_LABEL: Record<AiKind, string> = { text: "Peggy & Rex requests", image: "Pictures", voice: "Voiceovers", build: "Store builds", speech: "Voice typing", video: "Videos" };
 
 /** What the seller has used of each daily AI allowance (last 24 hours), for Settings. Null if it can't be read. */
 export async function aiAllowanceToday(userId: string, aiCredits: number | null | undefined) {

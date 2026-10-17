@@ -226,7 +226,7 @@ export default function OrderScreen() {
           <T weight="extrabold" style={{ fontSize: 22 }}>{t("order.send")}</T>
           <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 22 }}>{t("order.sendBody", { name: firstName })}</T>
           <LinkButton title={busy === "shipped" ? t("saving") : t("order.sentMyself")} onPress={() => void change("shipped", { logisticsType: "personal" })} />
-          <LinkButton title={t("order.printLabel")} color={colors.inkSoft} onPress={() => void openWeb(`/home/labels?orders=${order.id}`)} />
+          <LinkButton title={t("order.printLabel")} color={colors.inkSoft} onPress={() => router.push({ pathname: "/order/label", params: { id: order.id } })} />
         </Card>
       )}
       {order.status === "shipped" && (

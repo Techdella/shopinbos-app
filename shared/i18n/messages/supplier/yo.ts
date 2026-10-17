@@ -97,8 +97,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "productForm.tiersHint": "Ìpele kan ní ìlà kọ̀ọ̀kan: iye ọjà, lẹ́yìn náà iye owó ẹyọ kan.",
   "productForm.photosTitle": "Àwòrán àti delivery",
   "productForm.photosSub": "Ohun tí àwọn olùtajà ń rí lórí marketplace àti ibi tí o lè fi ránṣẹ́ sí.",
-  "productForm.images": "Image URLs",
-  "productForm.imagesHint": "Link kan ní ìlà kọ̀ọ̀kan. Èyí àkọ́kọ́ ni cover.",
+  "productForm.images": "Àwọn àwòrán ọjà",
+  "productForm.imagesHint": "Èyí àkọ́kọ́ ni cover. Upload wọn tàbí yàn láti inú media rẹ.",
   "productForm.regions": "Àwọn agbègbè delivery",
   "productForm.regionsHint": "Ìlú tàbí ìpínlẹ̀ kan ní ìlà kọ̀ọ̀kan.",
   "productForm.howBuy": "Bí àwọn olùtajà ṣe lè rà",
@@ -574,6 +574,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "reviewsUi.wholesaleOrders": "Wholesale order",
   "reviewsUi.finishedDeliveries": "Delivery tó ti parí",
   "reviewsUi.deliveryFee": "Owó delivery {amount}",
+  "quotes.pages": "Àwọn ojú-ewé quote requests",
 };
 
 export default yo;

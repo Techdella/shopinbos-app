@@ -90,6 +90,10 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "studio.example": "Sọ fọ́tò kéèkì tí o yà pẹ̀lú fóònù di àwòrán tó mọ́ pẹ̀lú ẹ̀yìn funfun.",
   "domain.short": "Àdírẹ́sì wẹ́ẹ̀bù ṣọ́ọ̀bù rẹ tí àwọn ènìyàn ń tẹ̀ láti rí ọ.",
   "domain.example": "mamaputkitchen.com dípò link gígùn.",
+  "payment-links.short": "Link tí o fi ránṣẹ́ nínú chat kí oníbàárà lè sanwó fún ọjà gangan, kí ó sì yan delivery.",
+  "payment-links.example": "Tolu béèrè fún àpò pupa lórí WhatsApp. O fi link ránṣẹ́, ó sì san ₦18,000 pẹ̀lú card.",
+  "link-in-bio.short": "Ojú-ìwé kan pẹ̀lú àwọn ọjà rẹ, bọ́tìnnì Buy now àti WhatsApp, fún bio Instagram tàbí TikTok rẹ.",
+  "link-in-bio.example": "Bio TikTok rẹ sọ pé adafabrics.shopinbos.com/links. Àwọn olólùfẹ́ tẹ̀ ẹ́, wọ́n sì rà.",
   "checkout.short": "Ojú-ewé tí olùrà ti ń fi àdírẹ́sì rẹ̀ sí, tí ó sì ti ń sanwó.",
   "checkout.example": "Kemi fi àdírẹ́sì Yaba rẹ̀ sí i, ó yan bank transfer, ó sì san ₦24,000.",
   "abandoned-carts.short": "Cart tí àwọn ènìyàn kún ṣùgbọ́n tí wọ́n fi sílẹ̀ kí wọ́n tó sanwó, kí o lè rán wọn létí.",
@@ -170,6 +174,10 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "on-time-rate.example": "Delivery 48 nínú 50 dé lásìkò ní ọ̀sẹ̀ yìí: on-time rate 96%.",
   "api-key.short": "Kóòdù àṣírí tó ń jẹ́ kí app mìíràn ṣiṣẹ́ pẹ̀lú account Shopinbos rẹ.",
   "api-key.example": "Lẹ̀ ẹ́ sínú dispatch software rẹ, kí o sì pa á mọ́ bí password.",
+  "media.short": "Gbogbo àwòrán àti fídíò ìtajà rẹ, ní ibì kan láti fún wọn lórúkọ, ṣàlàyé wọn, kí o sì tún lò wọ́n.",
+  "media.example": "Yan àwòrán Ankara oṣù tó kọjá fún àsíá tuntun dípò kí o tún gbé e sókè.",
+  "seasonal-campaigns.short": "Sale tí o ṣètò lẹ́ẹ̀kan tó ń ṣe ṣọ́ọ̀bù rẹ lọ́ṣọ̀ọ́ fún àsìkò kan, lẹ́yìn náà ó padà sí bó ṣe wà fúnra rẹ̀.",
+  "seasonal-campaigns.example": "Black Friday: àwọ̀ gold, countdown àti badge “BF Deal” láti Ẹtì títí di alẹ́ Àìkú.",
 };
 
 export default yo;

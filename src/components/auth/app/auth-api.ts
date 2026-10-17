@@ -65,18 +65,20 @@ export async function signInWithPassword(email: string, password: string) {
   return data?.accessToken ?? null;
 }
 
-export function callbackUrl(role: AuthRole, next: string) {
+/** mode "signup" lets the callback say "This email already has a seller account" when the Google account has one. */
+export function callbackUrl(role: AuthRole, next: string, mode?: "login" | "signup") {
   const url = new URL("/auth/callback", window.location.origin);
   url.searchParams.set("role", role);
   url.searchParams.set("next", next);
+  if (mode === "signup") url.searchParams.set("mode", "signup");
   return url.toString();
 }
 
-export async function signInWithGoogle(role: AuthRole, next: string) {
+export async function signInWithGoogle(role: AuthRole, next: string, mode?: "login" | "signup") {
   const supabase = requireSupabase();
   const { error } = await supabase.auth.signInWithOAuth({
     provider: "google",
-    options: { redirectTo: callbackUrl(role, next), queryParams: { prompt: "select_account" } },
+    options: { redirectTo: callbackUrl(role, next, mode), queryParams: { prompt: "select_account" } },
   });
   if (error) throw new Error(/provider is not enabled/i.test(error.message) ? "Google sign-in isn't switched on yet. Use your phone or email." : error.message);
 }

@@ -6,12 +6,13 @@ import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { Card, CardHead, EmptyState, FilterChips, ListCard, ListRow, Pill, PillLink, SplitLayout, StatGrid, StatTile, type Tone } from "@/components/app-kit";
 import { Field, buttonClass, formatDate, humanize, inputClass, selectClass } from "@/components/growth/kit";
 import { revalidatePath } from "next/cache";
-import { formatFromAddress, sendEmail } from "@/lib/notifications/resend";
-import { appBase, SENDER_STORE_SELECT, storeSender } from "@/lib/email/compliance.server";
-import { invoiceEmail } from "@/lib/email/store-emails";
-import type { Prisma } from "@prisma/client";
+import { createManualInvoice } from "@/lib/seller-money.server";
+import { ManualInvoiceSchema, readManualInvoices } from "@/lib/seller-invoices";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { formatMoney } from "@shared/i18n";
+import type { RetailOrderStatus } from "@prisma/client";
+import { pageSlice, pageWindow } from "@/lib/pagination";
+import { Pagination } from "@/components/seller/Pagination";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -19,76 +20,36 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("inv.title") };
 }
 
-function fmt(n: number) { return "₦" + Math.round(n).toLocaleString("en-US"); }
-
-type ManualInvoice = {
-  id: string;
-  direction: "sent" | "received";
-  partyType: "customer" | "supplier" | "logistics";
-  partyName: string;
-  partyEmail: string;
-  description: string;
-  amount: number;
-  status: "sent" | "received" | "paid";
-  createdAt: string;
-};
-
-function readManualInvoices(settings: unknown): ManualInvoice[] {
-  if (!settings || typeof settings !== "object" || Array.isArray(settings)) return [];
-  const value = (settings as Record<string, unknown>).manualInvoices;
-  return Array.isArray(value) ? (value as ManualInvoice[]) : [];
-}
-
-async function createManualInvoice(formData: FormData) {
+async function createManualInvoiceAction(formData: FormData) {
   "use server";
   const user = await requireRole(["seller"], "/login");
-  const store = await db.store.findUnique({ where: { userId: user.id }, select: SENDER_STORE_SELECT });
-  if (!store) redirect("/builder?firstRun=1");
-
-  const direction = String(formData.get("direction") || "sent") === "received" ? "received" : "sent";
-  const invoice: ManualInvoice = {
-    id: `INV-${Date.now().toString(36).toUpperCase()}`,
-    direction,
-    partyType: (String(formData.get("partyType") || "supplier") as ManualInvoice["partyType"]),
-    partyName: String(formData.get("partyName") || "").trim(),
-    partyEmail: String(formData.get("partyEmail") || "").trim(),
-    description: String(formData.get("description") || "").trim(),
-    amount: Number(formData.get("amount") || 0),
-    status: direction,
-    createdAt: new Date().toISOString(),
-  };
-
-  const settings = typeof store.brandSettings === "object" && store.brandSettings ? (store.brandSettings as Record<string, unknown>) : {};
-  const manualInvoices = [invoice, ...readManualInvoices(settings)].slice(0, 100);
-  await db.store.update({
-    where: { id: store.id },
-    data: { brandSettings: { ...settings, manualInvoices } as Prisma.InputJsonValue },
+  // Same rules and saving as POST /api/app/invoices (the phone app); the form's required fields catch most mistakes first.
+  const parsed = ManualInvoiceSchema.safeParse({
+    direction: formData.get("direction") || "sent",
+    partyType: formData.get("partyType") || "supplier",
+    partyName: formData.get("partyName") ?? "",
+    partyEmail: formData.get("partyEmail") ?? "",
+    amount: formData.get("amount") || 0,
+    description: formData.get("description") ?? "",
   });
-
-  if (invoice.direction === "sent" && invoice.partyEmail) {
-    const email = invoiceEmail({ appUrl: appBase(), store: storeSender(store), invoiceId: invoice.id, description: invoice.description, amount: fmt(invoice.amount) });
-    await sendEmail({
-      to: [invoice.partyEmail],
-      subject: `${store.name} invoice ${invoice.id}`,
-      html: email,
-      from: formatFromAddress(store.name),
-      replyTo: user.email ?? undefined,
-    });
-  }
-
+  if (!parsed.success) return;
+  const result = await createManualInvoice({ id: user.id, email: user.email }, parsed.data);
+  if (!result) redirect("/builder?firstRun=1");
   revalidatePath("/home/invoices");
 }
 
-const PAID = ["paid", "processing", "packed", "shipped", "delivered"];
+const PAID: RetailOrderStatus[] = ["paid", "processing", "packed", "shipped", "delivered"];
+const WAITING: RetailOrderStatus[] = ["pending", "awaiting_payment"];
+const PAGE_SIZE = 50;
 
 function orderTone(status: string): Tone {
   if (status === "delivered") return "success";
-  if (PAID.includes(status)) return "info";
+  if ((PAID as string[]).includes(status)) return "info";
   if (status === "pending" || status === "awaiting_payment") return "warning";
   return "muted";
 }
 
-export default async function SellerInvoicesPage({ searchParams }: { searchParams?: Promise<{ show?: string }> }) {
+export default async function SellerInvoicesPage({ searchParams }: { searchParams?: Promise<{ show?: string; page?: string }> }) {
   const params = await searchParams;
   const user = await requireRole(["seller"], "/login");
   const t = await getT("orders", "common");
@@ -97,23 +58,32 @@ export default async function SellerInvoicesPage({ searchParams }: { searchParam
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true, brandSettings: true } });
   if (!store) redirect("/builder?firstRun=1");
 
-  const orders = await db.retailOrder.findMany({
-    where: { storeId: store.id },
-    orderBy: { createdAt: "desc" },
-    take: 100,
-    select: {
-      id: true, orderNumber: true, buyerName: true, buyerEmail: true,
-      subtotal: true, shippingFee: true, total: true, currency: true,
-      status: true, paystackStatus: true, createdAt: true,
-    },
-  });
-
-  const paidOrders = orders.filter((o) => PAID.includes(o.status));
-  const pendingOrders = orders.filter((o) => o.status === "pending" || o.status === "awaiting_payment");
-  const pendingValue = pendingOrders.reduce((s, o) => s + Number(o.total), 0);
-  const grossValue = orders.reduce((s, o) => s + Number(o.total), 0);
-  const manualInvoices = readManualInvoices(store.brandSettings);
+  // The numbers cover every order; the list shows one page of them.
   const show = params?.show === "manual" ? "manual" : "orders";
+  const [orderCount, waiting, paidCount, gross] = await Promise.all([
+    db.retailOrder.count({ where: { storeId: store.id } }),
+    db.retailOrder.aggregate({ where: { storeId: store.id, status: { in: WAITING } }, _sum: { total: true }, _count: { _all: true } }),
+    db.retailOrder.count({ where: { storeId: store.id, status: { in: PAID } } }),
+    db.retailOrder.aggregate({ where: { storeId: store.id }, _sum: { total: true } }),
+  ]);
+  const pendingValue = Number(waiting._sum.total ?? 0);
+  const grossValue = Number(gross._sum.total ?? 0);
+  const manualInvoices = readManualInvoices(store.brandSettings);
+  const manualPage = pageSlice(manualInvoices, params?.page, PAGE_SIZE);
+  const ordersPage = pageWindow(params?.page, orderCount, PAGE_SIZE);
+  const orders = show === "orders" && orderCount
+    ? await db.retailOrder.findMany({
+        where: { storeId: store.id },
+        orderBy: { createdAt: "desc" },
+        skip: ordersPage.skip,
+        take: ordersPage.take,
+        select: {
+          id: true, orderNumber: true, buyerName: true, buyerEmail: true,
+          subtotal: true, shippingFee: true, total: true, currency: true,
+          status: true, paystackStatus: true, createdAt: true,
+        },
+      })
+    : [];
 
   return (
     <SellerPage
@@ -127,23 +97,24 @@ export default async function SellerInvoicesPage({ searchParams }: { searchParam
         main={
           <>
             <StatGrid>
-              <StatTile tone="card" label={t("inv.orderInvoices")} value={orders.length} hint={t("inv.latest100")} />
-              <StatTile tone="card" label={t("inv.waiting")} value={money(pendingValue)} hint={t("count.orders", { count: pendingOrders.length })} />
-              <StatTile tone="card" label={t("inv.paid")} value={paidOrders.length} hint={t("inv.ordersHint")} />
+              <StatTile tone="card" label={t("inv.orderInvoices")} value={orderCount} hint={t("inv.allOrders")} />
+              <StatTile tone="card" label={t("inv.waiting")} value={money(pendingValue)} hint={t("count.orders", { count: waiting._count._all })} />
+              <StatTile tone="card" label={t("inv.paid")} value={paidCount} hint={t("inv.ordersHint")} />
               <StatTile tone="card" label={t("inv.totalOrdered")} value={money(grossValue)} />
             </StatGrid>
 
             <FilterChips
               items={[
-                { label: t("inv.orderInvoices"), href: "/home/invoices", count: orders.length, active: show === "orders" },
+                { label: t("inv.orderInvoices"), href: "/home/invoices", count: orderCount, active: show === "orders" },
                 { label: t("inv.youMade"), href: "/home/invoices?show=manual", count: manualInvoices.length, active: show === "manual" },
               ]}
             />
 
             {show === "manual" ? (
               manualInvoices.length ? (
+                <div>
                 <ListCard>
-                  {manualInvoices.map((invoice) => (
+                  {manualPage.rows.map((invoice) => (
                     <ListRow key={invoice.id}>
                       <span className="min-w-0 flex-1 basis-full sm:basis-auto">
                         <span className="block truncate text-[14.5px] font-extrabold">{invoice.partyName}</span>
@@ -158,12 +129,15 @@ export default async function SellerInvoicesPage({ searchParams }: { searchParam
                     </ListRow>
                   ))}
                 </ListCard>
+                <Pagination {...manualPage.window} base="/home/invoices" params={{ show: "manual" }} label={t("inv.pages")} />
+                </div>
               ) : (
                 <EmptyState icon="document" title={t("inv.noneMade")}>{t("inv.noneMadeSub")}</EmptyState>
               )
             ) : orders.length ? (
+              <div>
               <ListCard>
-                {orders.slice(0, 50).map((o) => (
+                {orders.map((o) => (
                   <ListRow key={o.id} href={`/home/orders/${o.id}`}>
                     <span className="min-w-0 flex-1 basis-full sm:basis-auto">
                       <span className="block truncate text-[14.5px] font-extrabold">{o.buyerName || t("inv.customer")}</span>
@@ -178,6 +152,8 @@ export default async function SellerInvoicesPage({ searchParams }: { searchParam
                   </ListRow>
                 ))}
               </ListCard>
+              <Pagination {...ordersPage} base="/home/invoices" label={t("inv.pages")} />
+              </div>
             ) : (
               <EmptyState icon="document" title={t("inv.noOrders")}>{t("inv.noOrdersSub")}</EmptyState>
             )}
@@ -186,7 +162,7 @@ export default async function SellerInvoicesPage({ searchParams }: { searchParam
         side={
           <Card className="p-5">
             <CardHead title={t("inv.new")} sub={t("inv.newSub")} />
-            <form id="new-invoice" action={createManualInvoice} className="mt-4 grid gap-4">
+            <form id="new-invoice" action={createManualInvoiceAction} className="mt-4 grid gap-4">
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
                 <Field label={t("inv.type")} htmlFor="inv-direction">
                   <select id="inv-direction" name="direction" className={selectClass}>

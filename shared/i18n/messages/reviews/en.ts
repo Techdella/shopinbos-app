@@ -61,8 +61,6 @@ const en = {
   "list.hide": "Hide",
   "list.reply": "Reply",
   "list.pages": "Pages",
-  "list.pageOf": "Page {page} of {pages} · {count} reviews",
-  "list.previous": "Previous",
   // Review filters (reviews/ReviewFilters.tsx)
   "filter.rating": "Filter by rating",
   "filter.anyRating": "Any rating",

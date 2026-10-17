@@ -12,6 +12,7 @@ import { PAYMENT_METHOD_LABEL } from "@shared/sales";
 import { formatDate as formatLocaleDate, formatMoney, formatNumber, type Locale } from "@shared/i18n";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { messagesHref } from "@/lib/conversations/pure";
+import { customerKey } from "@/lib/customers/pure";
 import { Notice } from "@/components/app-ui";
 import { cancelAndRefundExpiredOrder, undoSupplierSwitchAction } from "./supplier-actions";
 import { sellerPartsView } from "@/lib/supplier-orders/parts.server";
@@ -146,7 +147,8 @@ export default async function OrderDetailPage({ params, searchParams }: { params
                         <div className="min-w-0 flex-1">
                           <div className="truncate text-[15px] font-bold">{name}</div>
                           <div className="text-[13px] text-app-ink-soft">
-                            {item.variant ? `${item.variant} · ` : ""}
+                            {/* Newer orders name the size / colour in the item name ("Ankara dress · L / Red"). */}
+                            {item.variant && !name.includes(item.variant) ? `${item.variant} · ` : ""}
                             {quantity} × {money(price)}
                           </div>
                         </div>
@@ -241,7 +243,8 @@ export default async function OrderDetailPage({ params, searchParams }: { params
                     <div className="min-w-0">
                       <dt className="text-[12.5px] text-app-ink-soft">{t("detail.email")}</dt>
                       <dd className="m-0 break-all">
-                        <a href={`mailto:${order.buyerEmail}`} className="font-bold text-app-accent-ink no-underline hover:underline">{order.buyerEmail}</a>
+                        {/* Opens the customer's drawer on the in-app email composer (sent from the seller's connected email). */}
+                        <a href={`/home/customers?customer=${encodeURIComponent(customerKey(order))}&compose=email`} className="font-bold text-app-accent-ink no-underline hover:underline">{order.buyerEmail}</a>
                       </dd>
                     </div>
                   )}

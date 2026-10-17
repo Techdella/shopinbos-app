@@ -7,6 +7,7 @@ import { appUserInputFromSupabaseUser, ensureAppUserForSupabaseUser } from "@/li
 import { loginRedirectPath } from "@/lib/auth/route-access";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { portalDashboardPath } from "@/lib/portal-routes";
+import { recordActivity } from "@/lib/platform-analytics/activity.server";
 import type { AuthUser, Role } from "@/lib/auth/types";
 
 /** Set by src/proxy.ts on every page request so server code can send people back after sign-in. */
@@ -46,6 +47,7 @@ export async function getCurrentAppUser(options?: { redirectTo?: string; expecte
     user = null;
   }
 
+  if (user) recordActivity(user);
   if (!user && options?.redirectTo) redirect(await withNextPath(options.redirectTo));
   return user;
 }

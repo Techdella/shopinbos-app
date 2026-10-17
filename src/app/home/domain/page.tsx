@@ -6,10 +6,12 @@ import { AssistantNote, Pill } from "@/components/app-kit";
 import { Icon } from "@/components/ui/Icon";
 import { PageToast } from "@/components/PageToast";
 import { db } from "@/lib/db/client";
-import { buildPlatformSubdomainOrigin } from "@/lib/domains/storefront";
+import { buildStorefrontOrigin } from "@/lib/domains/storefront";
 import { hasVercelDomainConfig } from "@/lib/domains/vercel";
 import { getDomainSettings } from "@/lib/domains/ownership.server";
 import { DomainConnect } from "./DomainConnect";
+import { DomainPurchaseBanner } from "@/components/domains/BoughtDomain";
+import { domainPurchaseEnabled } from "@/lib/domains/billing.server";
 import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
@@ -79,13 +81,18 @@ type RegistrarRow = {
   logoUrl: string | null;
 };
 
-export default async function DomainSettingsPage() {
+const PURCHASE_RESULTS = new Set(["bought", "renewed", "processing", "failed"]);
+
+export default async function DomainSettingsPage({ searchParams }: { searchParams?: Promise<{ domain?: string }> }) {
   const user = await requireRole(["seller"], "/login");
   const t = await getT("domain");
   const workspace = await getSellerWorkspace(user.id);
   if (!workspace?.store) redirect("/onboarding?role=seller");
 
   const store = workspace.store;
+  // Back from Paystack (/api/billing/domain/callback): ?domain=bought|renewed|processing|failed.
+  const resultParam = (await searchParams)?.domain ?? null;
+  const purchaseResult = resultParam && PURCHASE_RESULTS.has(resultParam) ? resultParam : null;
 
   let dbPartners: RegistrarRow[] = [];
   try {
@@ -99,8 +106,8 @@ export default async function DomainSettingsPage() {
   }
 
   const registrars: RegistrarRow[] = dbPartners.length > 0 ? dbPartners : FALLBACK_REGISTRARS;
-  const freeOrigin = buildPlatformSubdomainOrigin(store.slug);
-  const freeHost = new URL(freeOrigin).host;
+  const freeOrigin = buildStorefrontOrigin({ slug: store.slug });
+  const freeHost = freeOrigin.replace(/^https?:\/\//, "");
   const live = store.status === "active" || store.status === "published";
 
   return (
@@ -113,6 +120,7 @@ export default async function DomainSettingsPage() {
       <PageToast />
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(300px,400px)]">
         <div className="grid min-w-0 content-start gap-4">
+          <DomainPurchaseBanner result={purchaseResult} />
           <div className="flex flex-wrap items-center gap-3 rounded-[22px] border border-app-line bg-white p-4 sm:p-5">
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-app-canvas"><Icon name="globe" size={18} /></span>
             <div className="min-w-0 flex-1">
@@ -127,7 +135,7 @@ export default async function DomainSettingsPage() {
           <DomainConnect
             storeSlug={store.slug}
             storeName={store.name}
-            configured={hasVercelDomainConfig()}
+            configured={hasVercelDomainConfig() && domainPurchaseEnabled()}
             initialState={await getDomainSettings(user.id)}
             registrars={registrars.map(({ id, name, description, baseUrl, affiliateUrl }) => ({ id, name, description, baseUrl, affiliateUrl }))}
           />

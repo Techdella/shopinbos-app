@@ -6,6 +6,7 @@ import type React from "react";
 import Link from "next/link";
 import { Icon } from "@/components/ui/Icon";
 import { useCart } from "@/hooks/useCart";
+import { useStorePurchase } from "@/lib/analytics/storefront-events";
 import { getPublicStorefrontPath } from "@/lib/domains/storefront";
 import { formatStoreMoney } from "@/lib/storefront/shopper-info";
 import { ItemThumb, Panel, ShopperShell } from "@/components/storefront/shopper/ShopperShell";
@@ -83,6 +84,9 @@ export function OrderConfirmation({ order, store, storeBasePath, transfer = null
     if (isPaid || method !== "paystack") clearCart();
   }, [clearCart, isPaid, method]);
 
+  // Purchase for the seller's tags (once per order): paid, or a pay-on-delivery order just placed.
+  useStorePurchase(store.slug, (isPaid || (method === "pay_on_delivery" && isOpen)) && order.status !== "cancelled" ? order : null);
+
   const partly = customerProgress(order);
   const headline = order.status === "cancelled" ? "Order cancelled" : isPaid ? `Thank you, ${firstName}` : method === "paystack" ? "Waiting for payment" : `Thank you, ${firstName}`;
   const subline = order.status === "cancelled"
@@ -105,7 +109,7 @@ export function OrderConfirmation({ order, store, storeBasePath, transfer = null
   const productDiscount = Math.max(0, Number(order.discountAmount ?? 0) - pointsOff);
 
   return (
-    <ShopperShell theme={theme} storeName={store.name} logoUrl={store.logoUrl} basePath={storeBasePath} title="Order">
+    <ShopperShell theme={theme} storeName={store.name} logoUrl={store.logoUrl} brandSettings={store.brandSettings} basePath={storeBasePath} title="Order">
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)] xl:gap-12">
         <div className="grid min-w-0 gap-5">
           <div>

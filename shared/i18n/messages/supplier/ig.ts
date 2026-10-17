@@ -97,8 +97,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "productForm.tiersHint": "Otu ọkwa n'ahịrị ọ bụla: ọnụọgụ, wee ọnụahịa otu.",
   "productForm.photosTitle": "Foto na delivery",
   "productForm.photosSub": "Ihe ndị na-ere ahịa na-ahụ na marketplace na ebe ị nwere ike iziga ya.",
-  "productForm.images": "Image URLs",
-  "productForm.imagesHint": "Otu link n'ahịrị ọ bụla. Nke mbụ bụ cover.",
+  "productForm.images": "Foto ngwaahịa",
+  "productForm.imagesHint": "Nke mbụ bụ cover. Upload ha maọbụ họrọ site na media gị.",
   "productForm.regions": "Ebe delivery",
   "productForm.regionsHint": "Otu obodo ma ọ bụ steeti n'ahịrị ọ bụla.",
   "productForm.howBuy": "Otu ndị na-ere ahịa ga-esi zụta",
@@ -574,6 +574,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "reviewsUi.wholesaleOrders": "Wholesale orders",
   "reviewsUi.finishedDeliveries": "Deliveries gwụchara",
   "reviewsUi.deliveryFee": "Ego delivery {amount}",
+  "quotes.pages": "Peeji quote requests",
 };
 
 export default ig;

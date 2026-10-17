@@ -14,6 +14,9 @@ import { cardNote } from "@/lib/ai/rex/cards";
 import { isPreviewRequest } from "@/lib/ai/rex/starters";
 import { askRex, buildWholeStore, publishDraft, restoreVersion } from "./api";
 import { RexChat } from "./RexChat";
+import { guessRexJob, type RexJob } from "@shared/rex-progress";
+import { ChatHistoryMenu, useChatAutosave } from "@/components/ai/ChatHistory";
+import { CreditsBadge, creditsChanged, isCreditsError } from "@/components/credits/CreditsBadge";
 import { RexPreview } from "./RexPreview";
 import { RexSidePanel } from "./RexSidePanel";
 import type { ChatMessage, RexStudioProps } from "./types";
@@ -63,6 +66,7 @@ export function RexStudio(props: RexStudioProps) {
   const [versions, setVersions] = useState<RexVersionSummary[]>(props.versions);
   const [messages, setMessages] = useState<ChatMessage[]>([greeting(t, props.firstName, props.fromOnboarding, props.draftSaved)]);
   const [busy, setBusy] = useState<null | "chat" | "build">(null);
+  const [busyJob, setBusyJob] = useState<RexJob | null>(null);
   const [undoingId, setUndoingId] = useState<string | null>(null);
   const [restoringId, setRestoringId] = useState<string | null>(null);
   const [tab, setTab] = useState<StorePageKey>("home");
@@ -136,6 +140,24 @@ export function RexStudio(props: RexStudioProps) {
   const chips = useMemo(() => rexSuggestionChips(facts, { hasDraft: draftSaved, exclude: lastSeller ? [lastSeller] : [] }), [facts, draftSaved, lastSeller]);
   const themeName = themeLibraryEntry(draft.templateId)?.name ?? (draft.templateId === props.initialDraft.templateId ? props.themeName : draft.templateName);
   const busyLabel = busy === "build" ? t("rex.st.building") : t("rex.st.working");
+  const { chatId, adopt } = useChatAutosave("rex", messages, busy === null, messages.some((message) => message.role === "seller"));
+
+  /** Reopens a saved chat (Rex carries on from it; undo buttons of old versions still work). */
+  function openChat(chat: { id: string; messages: unknown[] }) {
+    const stamp = Date.now();
+    const loaded = chat.messages
+      .filter((entry): entry is ChatMessage => Boolean(entry) && typeof entry === "object" && ((entry as ChatMessage).role === "seller" || (entry as ChatMessage).role === "rex") && typeof (entry as ChatMessage).text === "string")
+      .map((entry, index) => ({ ...entry, id: entry.id === "hello" ? "hello" : `h${stamp}-${index}` }));
+    if (!loaded.length) return;
+    setMessages(loaded);
+    adopt(chat.id, loaded.length);
+  }
+
+  function newChat() {
+    const fresh = [greeting(t, props.firstName, false, draftSaved)];
+    setMessages(fresh);
+    adopt(null, fresh.length);
+  }
 
   /** The conversation for Rex: his words plus a note of what each card made, and the seller's photo links. */
   function history() {
@@ -149,6 +171,8 @@ export function RexStudio(props: RexStudioProps) {
       .filter((turn) => turn.content.trim())
       .slice(-MAX_HISTORY);
   }
+
+  const [attachRequest, setAttachRequest] = useState<{ url: string; n: number } | null>(null);
 
   function rexSays(message: Omit<Extract<ChatMessage, { role: "rex" }>, "id" | "role">) {
     setMessages((prev) => [...prev, { id: nextId(), role: "rex", ...message }]);
@@ -167,7 +191,7 @@ export function RexStudio(props: RexStudioProps) {
     if (nextVersions) setVersions(nextVersions);
   }
 
-  async function send(text: string, imageUrls: string[] = []) {
+  async function send(text: string, imageUrls: string[] = [], videoStills: string[] = []) {
     const request = text.trim();
     if (!request || busy) return;
     const past = history();
@@ -180,6 +204,7 @@ export function RexStudio(props: RexStudioProps) {
     }
 
     if (BUILD_REQUEST.test(request)) {
+      setBusyJob("build");
       setBusy("build");
       try {
         const result = await buildWholeStore({
@@ -207,26 +232,31 @@ export function RexStudio(props: RexStudioProps) {
         rexSays({ text: error instanceof Error ? error.message : t("rex.st.buildFailed"), tone: "error" });
       } finally {
         setBusy(null);
+        creditsChanged();
       }
       return;
     }
 
+    setBusyJob(guessRexJob(request, imageUrls.length > 0));
     setBusy("chat");
     try {
-      const messagesForRex = [
-        ...past,
-        { role: "user" as const, content: imageUrls.length ? `${request}\n[Photos attached: ${imageUrls.join(" ")}]` : request },
-      ];
+      const photos = imageUrls.filter((url) => !videoStills.includes(url));
+      const attachedNote = [
+        photos.length ? `[Photos attached: ${photos.join(" ")}]` : "",
+        videoStills.length ? `[Stills from a video the seller attached: ${videoStills.join(" ")}]` : "",
+      ].filter(Boolean);
+      const messagesForRex = [...past, { role: "user" as const, content: [request, ...attachedNote].join("\n") }];
       const result = await askRex({ messages: messagesForRex, imageUrls });
       if (result.draft) takeDraft(result.draft, result.versions);
-      rexSays({ text: result.text, cards: result.cards });
+      rexSays({ text: result.text, cards: result.cards, ...(result.creditsNeeded ? { buyCredits: true } : {}) });
       // Rex changed the store or was asked to show it: open the preview on the page he worked on.
       const storeCard = [...result.cards].reverse().find((card) => card.type === "store" || card.type === "preview");
       if (result.draft || storeCard) showPreview(storeCard && "page" in storeCard ? storeCard.page : null);
     } catch (error) {
-      rexSays({ text: error instanceof Error ? error.message : t("rex.st.answerFailed"), tone: "error" });
+      rexSays({ text: error instanceof Error ? error.message : t("rex.st.answerFailed"), tone: "error", ...(isCreditsError((error as { code?: string }).code) ? { buyCredits: true } : {}) });
     } finally {
       setBusy(null);
+      creditsChanged();
     }
   }
 
@@ -373,6 +403,8 @@ export function RexStudio(props: RexStudioProps) {
           </div>
 
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+            <CreditsBadge compact />
+            <ChatHistoryMenu assistant="rex" currentId={chatId} onOpen={openChat} onNew={newChat} creations onUseCreation={(url) => setAttachRequest({ url, n: Date.now() })} />
             <div ref={toolsRef} className="relative hidden sm:block">
               <button
                 type="button"
@@ -387,7 +419,7 @@ export function RexStudio(props: RexStudioProps) {
                 <Icon name="chevDown" size={14} />
               </button>
               {toolsOpen ? (
-                <div role="menu" className="absolute right-0 top-full z-30 mt-2 w-[240px] rounded-[18px] border border-app-line bg-white p-1.5 shadow-[0_18px_50px_rgba(22,20,31,0.14)]">
+                <div role="menu" className="absolute right-0 top-full z-30 mt-2 max-h-[calc(100dvh-140px)] w-[240px] max-w-[calc(100vw-24px)] overflow-y-auto rounded-[18px] border border-app-line bg-white p-1.5 shadow-[0_18px_50px_rgba(22,20,31,0.14)]">
                   <Link role="menuitem" href="/studio/images" className="flex min-h-[44px] items-center gap-2.5 rounded-[12px] px-3 text-[14px] font-bold hover:bg-app-canvas">
                     <Icon name="image" size={16} /> {t("rex.makeImages")}
                   </Link>
@@ -434,6 +466,7 @@ export function RexStudio(props: RexStudioProps) {
             messages={messages}
             busy={busy !== null}
             busyLabel={busyLabel}
+            busyJob={busy ? busyJob : null}
             chips={chips}
             wide={!previewOpen}
             initialText={props.initialPrompt}
@@ -442,6 +475,7 @@ export function RexStudio(props: RexStudioProps) {
             onUndo={undo}
             onOpenPreview={showPreview}
             undoingId={undoingId}
+            attachRequest={attachRequest}
           />
         </section>
 

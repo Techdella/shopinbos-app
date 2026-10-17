@@ -27,6 +27,8 @@ export interface SetupProgress {
 }
 
 export interface StoreBrandSettings {
+  /** A paid seller turned off the "Built with Shopinbos" badge (src/lib/store-badges.ts; free stores always show it). */
+  hideShopinbosBadge?: boolean;
   connectedChannels?: ChannelKey[];
   setup?: SetupProgress;
   onboardingMemory?: StoreOnboardingMemory;
@@ -227,15 +229,15 @@ export const socialChannels: Array<{
 ];
 
 export async function getSellerWorkspace(userId: string) {
-  const user = await safeQuery(
-    () =>
-      db.user.findUnique({
-        where: { id: userId },
-        include: {
-          store: true,
-        },
-      }),
-    null,
+  // Not safeQuery: a failing query here (e.g. a column the database doesn't have yet) must show the error page.
+  // Turned into null, it looked like "no store" and bounced the seller through /onboarding back to /home.
+  const user = await workspaceQueryLimiter.run(() =>
+    db.user.findUnique({
+      where: { id: userId },
+      include: {
+        store: true,
+      },
+    }),
   );
 
   if (!user) {

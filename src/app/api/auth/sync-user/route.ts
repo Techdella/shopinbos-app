@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db/client";
 import { verifyJWT } from "@/lib/auth/middleware";
-import { ensureAppUserForSupabaseUser } from "@/lib/auth/app-user";
+import { alignRoleMetadata, ensureAppUserForSupabaseUser } from "@/lib/auth/app-user";
+import { requestedSignupRole } from "@/lib/auth/role-rules";
 
 function adminInviteEmails() {
   return (process.env.SHOPINBOS_ADMIN_INVITE_EMAILS ?? "")
@@ -41,7 +42,9 @@ export async function POST(request: NextRequest) {
     source?: "signup";
   };
 
-  const requestedRole = claims.user_metadata?.role ?? (body.source === "signup" ? body.role : undefined) ?? "seller";
+  // The role saved on the login when it was made, else (Google sign-ups carry none) the one picked on the sign-up
+  // page. It only matters for a brand-new account: an existing one keeps its role (src/lib/auth/role-rules.ts).
+  const requestedRole = requestedSignupRole(claims.user_metadata?.rawRole, body.role, body.source === "signup");
   const fullName =
     body.fullName ||
     claims.user_metadata?.name ||
@@ -84,6 +87,9 @@ export async function POST(request: NextRequest) {
     // A verified phone from the session wins over whatever the form sent.
     phone: claims.phone ?? body.phone,
   });
+
+  // Fill in (or put back) the role on the login itself, so the phone app and API fallbacks read the same role.
+  await alignRoleMetadata(claims.sub, claims.user_metadata?.rawRole, user.role);
 
   return NextResponse.json({ data: { id: user.id, role: user.role } });
 }

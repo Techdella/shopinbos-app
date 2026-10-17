@@ -1,5 +1,6 @@
 "use client";
 
+import { confirmDialog } from "@/components/ui/dialogs";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, EmptyState, Pill, type Tone } from "@/components/app-kit";
@@ -11,6 +12,8 @@ import { api, errorText } from "../_kit/client";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import { formatNumber } from "@shared/i18n";
 import type { MessageKey } from "@shared/i18n/catalog";
+import { Pagination } from "@/components/seller/Pagination";
+import type { PageParams } from "@/lib/pagination";
 
 interface Row {
   id: string;
@@ -209,7 +212,7 @@ export function SubscribersManager({
   total: number;
   exportHref: string;
   tags: string[];
-  pagination: { page: number; pages: number; prev: string | null; next: string | null };
+  pagination: { page: number; pages: number; total: number; from: number; to: number; base: string; params: PageParams };
 }) {
   const router = useRouter();
   const t = useT("marketing", "common");
@@ -223,8 +226,8 @@ export function SubscribersManager({
   const allOnPage = rows.length > 0 && rows.every((row) => selected.includes(row.id));
 
   async function bulk(action: "tag" | "untag" | "unsubscribe" | "delete") {
-    if (action === "unsubscribe" && !window.confirm(t("subs.bulk.confirmUnsub", { count: selected.length }))) return;
-    if (action === "delete" && !window.confirm(t("subs.bulk.confirmRemove", { count: selected.length }))) return;
+    if (action === "unsubscribe" && !(await confirmDialog(t("subs.bulk.confirmUnsub", { count: selected.length })))) return;
+    if (action === "delete" && !(await confirmDialog(t("subs.bulk.confirmRemove", { count: selected.length })))) return;
     if ((action === "tag" || action === "untag") && !tag.trim()) return setError(t("subs.bulk.typeTag"));
     setBusy(true);
     setError(null);
@@ -298,13 +301,7 @@ export function SubscribersManager({
               );
             })}
           </ul>
-          {pagination.pages > 1 ? (
-            <nav aria-label={t("subs.pages")} className="flex items-center justify-between gap-2 border-t border-app-line px-4 py-3 text-[14px] sm:px-5">
-              {pagination.prev ? <a href={pagination.prev} className={buttonClass("white", "sm")}>{t("subs.previous")}</a> : <span />}
-              <span className="text-app-ink-soft">{t("subs.page", { page: pagination.page, pages: pagination.pages })}</span>
-              {pagination.next ? <a href={pagination.next} className={buttonClass("white", "sm")}>{t("next")}</a> : <span />}
-            </nav>
-          ) : null}
+          <Pagination {...pagination} label={t("subs.pages")} className="border-t border-app-line px-4 py-3 sm:px-5" />
         </Card>
       ) : (
         <EmptyState icon="users" title={t("subs.emptyTitle")} action={<PillButton size="md" onClick={() => setModal("import")}>{t("subs.emptyAction")}</PillButton>}>

@@ -18,6 +18,8 @@ export interface ShopperTheme {
   body: string;
   /** Card corner radius in px. */
   radius: number;
+  /** Button corner radius in px (the theme's own); pill buttons when not set. */
+  buttonRadius?: number;
 }
 
 function record(value: unknown): Record<string, unknown> {

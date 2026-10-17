@@ -1,7 +1,6 @@
 import { AppPage, Card, CardHead, Pill, PillLink, SplitLayout } from "@/components/app-kit";
 import { sellerFrame, timeAgo } from "@/components/seller-core";
-import { db } from "@/lib/db/client";
-import { storeChannelReadiness } from "@/lib/reviews/requests";
+import { requestableOrders, storeChannelReadiness } from "@/lib/reviews/requests";
 import { getReviewSettings, reviewUrls } from "@/lib/reviews/server";
 import { RequestForm, type RequestableOrder } from "../_components/RequestForm";
 import { SettingsForm } from "../_components/SettingsForm";
@@ -18,26 +17,10 @@ export default async function RequestReviewsPage() {
   const t = await getT("reviews");
   const locale = await getLocale();
   const CHANNEL_LABEL: Record<string, string> = { email: t("req.email"), sms: "SMS", whatsapp: "WhatsApp", link: t("ask.yourWhatsApp") };
-  const since = new Date(Date.now() - 120 * 86_400_000);
-  const [settings, orders, requests] = await Promise.all([
-    getReviewSettings(store.id),
-    db.retailOrder.findMany({
-      where: { storeId: store.id, status: { in: ["paid", "processing", "packed", "shipped", "delivered"] }, createdAt: { gte: since } },
-      orderBy: [{ deliveredAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
-      take: 300,
-      select: { id: true, orderNumber: true, buyerName: true, buyerEmail: true, buyerPhone: true, status: true, createdAt: true, deliveredAt: true },
-    }),
-    db.reviewRequest.findMany({ where: { storeId: store.id }, orderBy: { createdAt: "desc" }, take: 500 }).catch(() => []),
-  ]);
-  const reviewedRows = orders.length
-    ? await db.$queryRawUnsafe<Array<{ orderId: string }>>(`SELECT DISTINCT "orderId" FROM "ProductReview" WHERE "storeId" = $1 AND "orderId" = ANY($2)`, store.id, orders.map((o) => o.id)).catch(() => [])
-    : [];
-  const reviewed = new Set(reviewedRows.map((row) => row.orderId));
-  const lastAsked = new Map<string, (typeof requests)[number]>();
-  for (const request of requests) if (!lastAsked.has(request.orderId) && request.status !== "failed") lastAsked.set(request.orderId, request);
+  const [settings, { orders, requests }] = await Promise.all([getReviewSettings(store.id), requestableOrders(store.id)]);
 
   const rows: RequestableOrder[] = orders.map((order) => {
-    const asked = lastAsked.get(order.id);
+    const asked = order.asked;
     return {
       id: order.id,
       orderNumber: order.orderNumber,
@@ -47,8 +30,8 @@ export default async function RequestReviewsPage() {
       hasPhone: Boolean(order.buyerPhone),
       status: t.dynamic(`orderStatus.${order.status}`, order.status === "delivered" ? "Delivered" : order.status.charAt(0).toUpperCase() + order.status.slice(1)),
       date: locale === "en" ? new Date(order.deliveredAt ?? order.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "Africa/Lagos" }) : formatDate(order.deliveredAt ?? order.createdAt, locale, { day: "numeric", month: "short" }),
-      asked: asked ? `${CHANNEL_LABEL[asked.channel] ?? asked.channel}, ${timeAgo(asked.createdAt, Date.now(), locale)}` : null,
-      reviewed: reviewed.has(order.id),
+      asked: asked ? `${CHANNEL_LABEL[asked.channel] ?? asked.channel}, ${timeAgo(asked.at, Date.now(), locale)}` : null,
+      reviewed: order.reviewed,
     };
   });
 

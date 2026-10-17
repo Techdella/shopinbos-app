@@ -1,5 +1,6 @@
 "use client";
 
+import { confirmDialog } from "@/components/ui/dialogs";
 import { useDeferredValue, useMemo, useRef, useState } from "react";
 import { Card, CardHead } from "@/components/app-kit";
 import { Notice, PillButton, Toggle } from "@/components/app-ui";
@@ -159,7 +160,7 @@ export function EmailBuilder({ content, onChange, brand, shop }: { content: Emai
     commit(blocks.map((b, i) => (i === target.index ? ({ ...b, ...(target.field === "label" ? { label: next } : { text: next }) } as EmailBlock) : b)));
   }
 
-  function switchMode(next: "visual" | "html") {
+  async function switchMode(next: "visual" | "html") {
     if (next === mode) return;
     if (next === "html") {
       onChange({ ...content, bodyHtml: blocksToHtml(blocks) });
@@ -172,7 +173,7 @@ export function EmailBuilder({ content, onChange, brand, shop }: { content: Emai
       setMode("visual");
       return;
     }
-    if (content.bodyHtml.trim() && !window.confirm(t("builder.confirmFresh"))) return;
+    if (content.bodyHtml.trim() && !(await confirmDialog(t("builder.confirmFresh")))) return;
     setPast([]);
     setFuture([]);
     setBlocks(STARTER);

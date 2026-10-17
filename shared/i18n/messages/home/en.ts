@@ -208,6 +208,7 @@ const en = {
   "health.nothingToFix": "Nothing to fix right now.",
   "health.again": "Work it out again",
   "health.failed": "Couldn't work out your score. Try again.",
+  "activity.pages": "Activity pages",
 } satisfies Record<string, string>;
 
 export default en;

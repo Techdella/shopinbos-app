@@ -4,7 +4,7 @@
 // other pure helpers imported) so it is unit-tested in tests/behaviour.test.mjs.
 
 import { EMPTY_DOC, headingIds, plainText, sanitizeDoc, type RichDoc, type RichNode } from "../cms/richtext.ts";
-import { markdownToDoc } from "../cms/markdown.ts";
+import { docHasRichOnlyBlocks, docToMarkdown, markdownToDoc } from "../cms/markdown.ts";
 import { normalizeSeo, type SeoFields } from "../seo/fields.ts";
 
 export const STANDARD_LEGAL_PAGES = [
@@ -145,6 +145,21 @@ export function legacyTextToDoc(text: string): RichDoc {
   const clean = text.replace(/\r\n?/g, "\n").trim();
   if (!clean) return EMPTY_DOC;
   return sanitizeDoc(markdownToDoc(clean));
+}
+
+/**
+ * Plain-text editing (the phone app): the page as text, and the document to save from edited text. Text that
+ * wasn't changed keeps the stored document exactly; a page with videos, buttons or product cards can't be saved
+ * from text (they'd be lost), so it is edited on the web.
+ */
+export function legalPageText(doc: RichDoc) {
+  return { text: docToMarkdown(doc), textEditable: !docHasRichOnlyBlocks(doc) };
+}
+
+export function docFromEditedText(current: RichDoc, text: string | undefined): { doc: RichDoc } | { error: string } {
+  if (text === undefined || text.replace(/\r\n?/g, "\n").trim() === docToMarkdown(current).trim()) return { doc: current };
+  if (docHasRichOnlyBlocks(current)) return { error: "This page has a video, button or product on it. Edit it on the web so they aren't lost." };
+  return { doc: legacyTextToDoc(text) };
 }
 
 export function isDocEmpty(doc: RichDoc) {

@@ -7,6 +7,8 @@ import { loadProductPage } from "@/lib/storefront/product-page.server";
 import { resolveStorefront } from "@/lib/storefront/public-store.server";
 import { PreviewFrame } from "@/components/storefront/shopper/PreviewBar";
 import { StoreClosedPage } from "@/components/storefront/shopper/StoreClosedPage";
+import { NOINDEX_NOFOLLOW, storePageRobots } from "@/lib/seo/indexing";
+import { storeSearchState } from "@/lib/seo/store-seo.server";
 import { canonicalProductUrl, productMetadata, ProductPageView } from "./ProductPageView";
 
 interface Props {
@@ -29,10 +31,12 @@ async function loadProductRoute(slug: string, productId: string) {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug, productId } = await params;
   const route = await loadProductRoute(slug, productId);
-  if (route.kind === "closed") return { title: { absolute: route.brand.name }, robots: { index: false, follow: false } };
-  if (route.kind === "preview") return { ...productMetadata(route.data, ""), robots: { index: false, follow: false } };
+  if (route.kind === "closed") return { title: { absolute: route.brand.name }, robots: NOINDEX_NOFOLLOW };
+  if (route.kind === "preview") return { ...productMetadata(route.data, ""), robots: NOINDEX_NOFOLLOW };
   const data = route.kind === "live" ? route.data : null;
-  return withProductSeo(productMetadata(data, data ? canonicalProductUrl(data) : ""), data?.product.id);
+  // Live store: indexed unless the seller hid the store (the product's own SEO tab can still hide the product).
+  const robots = storePageRobots({ indexable: Boolean((await storeSearchState(slug))?.indexable) });
+  return withProductSeo(productMetadata(data, data ? canonicalProductUrl(data) : "", data ? robots : undefined), data?.product.id);
 }
 
 export default async function ProductDetailPage({ params }: Props) {

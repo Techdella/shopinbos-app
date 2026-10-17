@@ -1319,7 +1319,7 @@ test("advanced builder: page list, insert options and apps follow the store's re
   assert.deepEqual(bare.map((entry) => entry.label), ["Home page"], "no products page, no Products or Collections entries");
 
   const boutique = logic.insertOptions({ renderer: "boutique", target: "template", existingKinds: [] });
-  assert.deepEqual(boutique.map((group) => group.group), ["Banners", "Products", "Story", "Grow"]);
+  assert.deepEqual(boutique.map((group) => group.group), ["Banners", "Products", "Trust", "Story", "Grow", "Extras"], "the ready-made blocks add Trust and Extras");
   assert.ok(boutique.flatMap((group) => group.items).every((item) => item.renderers.includes("boutique")), "only sections the theme can draw");
   assert.deepEqual(logic.insertOptions({ renderer: "boutique", target: "header", existingKinds: ["header"] }).flatMap((group) => group.items.map((item) => item.kind)), ["announcement-bar"]);
   assert.deepEqual(logic.insertOptions({ renderer: "classic", target: "template", existingKinds: [], query: "countdown" }), [], "the countdown needs a 2026 theme");
@@ -1470,7 +1470,7 @@ test("Rex's chat body keeps the newest seller message last and only uploaded pho
   assert.equal(ok.imageUrls.length, 1);
   assert.equal(rex.parseRexBody({ messages: [{ role: "user", content: "hi" }, { role: "assistant", content: "yes?" }] }).ok, false, "must end with the seller");
   assert.equal(rex.parseRexBody({ messages: [{ role: "user", content: "hi" }], imageUrls: ["http://evil.example/x.png"] }).ok, false, "photos must be https uploads");
-  assert.equal(rex.parseRexBody({ messages: [{ role: "user", content: "hi" }], imageUrls: Array(5).fill("https://a.supabase.co/x.png") }).ok, false);
+  assert.equal(rex.parseRexBody({ messages: [{ role: "user", content: "hi" }], imageUrls: Array(rex.REX_MAX_PHOTOS + 1).fill("https://a.supabase.co/x.png") }).ok, false);
   assert.equal(rex.parseRexBody({ messages: [{ role: "user", content: "x".repeat(rex.REX_MAX_CHARS + 1) }] }).ok, false);
 });
 
@@ -1748,9 +1748,8 @@ test("product feeds: only published products with a photo and price, with each c
   assert.equal(batch[0].data.sale_price, "15000.00 NGN");
 });
 
-test("social sharing: tagged links, caption limits, share pages, channel status and visit sources", async () => {
+test("social sharing: tagged links, caption limits, share pages and visit sources", async () => {
   const share = await import("../src/lib/social/share.ts");
-  const status = await import("../src/lib/social/status.ts");
   const sources = await import("../src/lib/analytics/sources.ts");
   const channels = await import("../shared/channels.ts");
   const link = share.taggedProductLink("https://ada.shopinbos.com/product/p1", "x");
@@ -1764,14 +1763,7 @@ test("social sharing: tagged links, caption limits, share pages, channel status 
   assert.match(share.postText("instagram", "Hi", "https://l.ng"), /link in bio$/);
   assert.match(share.fallbackCaption({ name: "Bag", price: "₦5,000", storeName: "Ada" }, "whatsapp"), /^Bag, ₦5,000\. Available now at Ada\./);
 
-  const now = new Date("2026-10-11T12:00:00Z");
-  const facts = { feedAddedAt: null, lastFetchAt: null, hasToken: false, lastSyncAt: null, lastSyncStatus: null };
-  assert.deepEqual(status.channelStatus(null, now), { tone: "muted", label: "Not set up" });
-  assert.equal(status.channelStatus({ ...facts, feedAddedAt: now }, now).label, "Waiting for the first fetch");
-  assert.deepEqual(status.channelStatus({ ...facts, lastFetchAt: new Date("2026-10-11T10:00:00Z") }, now), { tone: "success", label: "Feed fetched 2 hours ago" });
-  assert.equal(status.channelStatus({ ...facts, lastFetchAt: new Date("2026-10-01T10:00:00Z") }, now).tone, "warning");
-  assert.equal(status.channelStatus({ ...facts, hasToken: true, lastSyncStatus: "error" }, now).tone, "danger");
-  assert.equal(status.channelStatus({ ...facts, hasToken: true }, now).label, "Connected, not synced yet");
+  // Channel card status moved to src/lib/sales-channels/pure.ts (tests/sales-channels.test.mjs).
 
   assert.equal(sources.normalizeSource("wa"), "whatsapp");
   assert.equal(sources.normalizeSource("Twitter"), "x");
@@ -2613,4 +2605,785 @@ test("legal pages: footer links, public summary and templates", async () => {
   assert.match(text, /\[Check:/, "guesses are marked for the seller");
   assert.equal(legal.legalTemplate("warranty", { storeName: "x" }), null, "custom pages have no template");
   for (const page of legal.STANDARD_LEGAL_PAGES) assert.ok(!legal.isDocEmpty(legal.legalTemplate(page.key, { storeName: "Shop" })));
+});
+
+test("every store preview bar has an Exit preview button back to the dashboard", () => {
+  const bar = readFileSync(new URL("../src/components/storefront/shopper/PreviewBar.tsx", import.meta.url), "utf8");
+  assert.match(bar, /PREVIEW_EXIT_HREF = "\/home"/);
+  assert.match(bar, /href=\{PREVIEW_EXIT_HREF\}/);
+  assert.match(bar, /Exit preview/);
+  for (const file of ["../src/app/preview/store/[slug]/[pageId]/PreviewPageClient.tsx", "../src/app/s/[slug]/preview/PreviewFallbackClient.tsx"]) {
+    assert.match(readFileSync(new URL(file, import.meta.url), "utf8"), /<a href="\/home"[^>]*>\s*Exit preview/, file);
+  }
+});
+
+test("Rex's pictures use the seller's brand kit: logo only when asked, colours, real products for ideas", async () => {
+  const b = await import("../shared/brand-context.ts");
+  assert.equal(b.wantsLogo("Professional product photo of plantain chips branded in a jar on white background, studio lighting with my logo"), true);
+  assert.equal(b.wantsLogo("Put our logo on the pack"), true);
+  assert.equal(b.wantsLogo("A banner for my shoe sale"), false);
+  assert.equal(b.wantsLogo("Design me a new logo"), false, "asking for a new logo is not 'put my logo on it'");
+  const brand = {
+    storeName: "Mama Put Snacks", business: "Crunchy plantain chips and chin chin from Ibadan", category: "Food", location: "Ibadan, Nigeria",
+    logoUrl: "https://x.supabase.co/storage/v1/object/public/brand/logo.png",
+    colours: { accent: "#F2A93B", ink: "#16141F", paper: "#FAF7F1", button: "#2E7E78", hero: "#0E2A38" },
+    paletteName: null, headingStyle: "grotesk", audience: "Office workers", vibe: "warm and homely",
+    categories: [{ name: "Chips", products: 3 }, { name: "Chin chin", products: 2 }],
+    products: [{ id: "p1", name: "Plantain Chips - 500g jar", price: "₦3,500", category: "Chips", photo: null, sold: 40 }, { id: "p2", name: "Chin Chin", price: "₦2,000", category: "Chin chin", photo: null, sold: 10 }],
+    productCount: 5,
+  };
+  const withLogo = b.brandImageBrief(brand, { logo: true, colours: true, otherReferences: 1 });
+  assert.match(withLogo, /first reference image is the logo of "Mama Put Snacks"/);
+  assert.match(withLogo, /#F2A93B/);
+  assert.match(withLogo, /other reference images are the seller's own photos/);
+  assert.match(withLogo, /Nigerian/);
+  const noKit = b.brandImageBrief({ ...brand, logoUrl: null }, { logo: true, colours: false });
+  assert.match(noKit, /brand name "Mama Put Snacks"/, "no logo file: the name is lettered instead");
+  assert.doesNotMatch(noKit, /#F2A93B/, "colours off");
+  const ideas = b.brandImageIdeas(brand, new Date("2026-12-01T12:00:00Z"));
+  assert.ok(ideas[0].includes("Plantain Chips") && ideas[0].includes("with my logo"), ideas[0]);
+  assert.ok(ideas.some((idea) => idea.includes("Detty December")));
+  assert.deepEqual(b.brandImageIdeas({ ...brand, products: [] }), [], "no products, no made-up ideas");
+  assert.equal(b.brandContextForAi(brand).products.length, 2);
+});
+
+test("Rex's progress names the job and never finishes before the answer", async () => {
+  const p = await import("../shared/rex-progress.ts");
+  assert.equal(p.guessRexJob("Professional product photo of plantain chips branded in a jar with my logo"), "image");
+  assert.equal(p.guessRexJob("Design me a new logo"), "logo");
+  assert.equal(p.guessRexJob("Make a reel for my bag"), "video");
+  assert.equal(p.guessRexJob("Make this brighter on a white background", true), "photo_edit");
+  assert.equal(p.guessRexJob("Build my store"), "build");
+  assert.equal(p.guessRexJob("Change my homepage colours to green"), "store_edit");
+  assert.equal(p.guessRexJob("Give me ideas for Sallah"), "ideas");
+  assert.equal(p.guessRexJob("hello"), "chat");
+  assert.equal(p.rexProgressAt(0, 50), 0);
+  assert.ok(p.rexProgressAt(10_000_000, 50) <= 94);
+  assert.ok(p.rexProgressAt(25_000, 50) < p.rexProgressAt(40_000, 50));
+  const plan = p.REX_JOB_PLAN.image;
+  assert.equal(p.rexStepAt(0, plan), 0);
+  assert.equal(p.rexStepAt(10_000_000, plan), plan.steps - 1, "the last step holds");
+  assert.equal(p.rexIsSlow(30_000, 50), false);
+  assert.equal(p.rexIsSlow(80_000, 50), true);
+});
+
+test("AI credits: packs, costs and an auto top-up that can't run away", async () => {
+  const c = await import("../shared/ai-credits.ts");
+  assert.equal(c.creditPack("medium").credits, 200);
+  assert.equal(c.creditPack("nope"), null);
+  assert.equal(c.packKobo(c.creditPack("small")), 200_000);
+  assert.equal(c.creditCost("image"), 5);
+  assert.equal(c.creditCost("text", 3), 3);
+  assert.ok(c.creditCost("build") > c.creditCost("image"), "a store build costs more than a picture");
+  const base = { autoTopUp: true, hasCard: true, packId: "medium", need: 5, balance: 2, autoChargesToday: 0 };
+  assert.equal(c.shouldAutoTopUp(base), true);
+  assert.equal(c.shouldAutoTopUp({ ...base, balance: 10 }), false, "enough credits already");
+  assert.equal(c.shouldAutoTopUp({ ...base, autoTopUp: false }), false);
+  assert.equal(c.shouldAutoTopUp({ ...base, hasCard: false }), false);
+  assert.equal(c.shouldAutoTopUp({ ...base, autoChargesToday: c.AUTO_TOP_UP_PER_DAY }), false, "capped per day");
+  assert.equal(c.shouldAutoTopUp({ ...base, packId: "small", need: 500 }), false, "a pack that can't cover it isn't bought");
+  assert.match(c.outOfCreditsMessage("8 images", 5, 0), /Buy AI credits to carry on/);
+  assert.doesNotMatch(c.outOfCreditsMessage("8 images", 5, 0), /\/home\/credits/);
+});
+
+test("Rex and Peggy chats save with a title from the seller's first words, within limits", async () => {
+  const h = await import("../shared/ai-chats.ts");
+  assert.equal(h.aiChatTitle([{ role: "rex", text: "Hi" }, { role: "seller", text: "Make a banner for my Sallah sale\n[Photos attached: https://x]" }]), "Make a banner for my Sallah sale");
+  assert.equal(h.aiChatTitle([{ role: "user", content: "x".repeat(100) }]).length, 68);
+  assert.equal(h.aiChatTitle([]), "New chat");
+  assert.equal(h.parseAiChatSave({ assistant: "rex", messages: [{ role: "seller", text: "hi" }] }).ok, true);
+  assert.equal(h.parseAiChatSave({ assistant: "chip", messages: [{}] }).ok, false);
+  assert.equal(h.parseAiChatSave({ assistant: "peggy", messages: [] }).ok, false);
+  assert.equal(h.parseAiChatSave({ assistant: "peggy", messages: Array(h.AI_CHAT_MAX_MESSAGES + 1).fill({}) }).ok, false);
+  assert.equal(h.parseAiChatSave({ assistant: "peggy", messages: [{ content: "x".repeat(h.AI_CHAT_MAX_BYTES) }] }).ok, false);
+  const weird = h.parseAiChatSave({ id: "../../etc", assistant: "rex", messages: [{}] });
+  assert.equal(weird.ok && weird.save.id, null, "odd ids start a new chat");
+});
+
+test("Plans put their AI credits into the same balance Rex and Peggy spend", async () => {
+  const c = await import("../shared/ai-credits.ts");
+  assert.equal(c.WELCOME_CREDITS, 5, "Starter: 5 AI credits to get started");
+  assert.equal(c.planCreditGrant("PLN_8ou289e71czicvm").credits, 50, "Growth monthly");
+  assert.equal(c.planCreditGrant("PLN_2gph11w3yd0250y").credits, 200, "Pro monthly");
+  assert.equal(c.planCreditGrant("PLN_q1k3ssxpx7rxxuz").credits, 600, "Growth annual: twelve months up front");
+  assert.equal(c.planCreditGrant("PLN_unknown"), null);
+  assert.equal(c.planCreditGrant(null), null);
+});
+
+test("product CSV import reads loose headers, photo links and uploaded photo names", async () => {
+  const imp = await import("../shared/product-import.ts");
+  assert.equal(imp.importHeadersProblem(["Index", "Name", "Price"]), null);
+  assert.match(imp.importHeadersProblem(["Name", "Stock"]), /price/);
+
+  const row = {
+    Index: "1", Name: "Compact Printer", Description: "Small printer", Brand: "Garner, Boyle and Flynn", Category: "Books & Stationery",
+    Price: "265", Currency: "usd", Stock: "774", EAN: "2091465262179", Color: "ForestGreen", Size: "Large",
+    Availability: "pre_order", "Internal ID": "56",
+    "Image URL": "https://cdn.example.com/a.jpg | https://cdn.example.com/a.jpg; printer-side.JPG", "Image 2": "https://cdn.example.com/b.png",
+  };
+  const product = imp.mapImportRow(row, "NGN");
+  assert.equal(product.name, "Compact Printer");
+  assert.equal(product.retailPrice, 265);
+  assert.equal(product.currency, "USD");
+  assert.equal(product.currentStock, 774);
+  assert.equal(product.barcode, "2091465262179");
+  assert.equal(product.sku, "56");
+  assert.equal(product.status, "published");
+  assert.deepEqual(product.tags, ["Books & Stationery", "Garner, Boyle and Flynn"]);
+  assert.deepEqual(product.specifications, [{ name: "Brand", value: "Garner, Boyle and Flynn" }, { name: "Color", value: "ForestGreen" }, { name: "Size", value: "Large" }]);
+  assert.deepEqual(product.imageRefs, ["https://cdn.example.com/a.jpg", "printer-side.JPG", "https://cdn.example.com/b.png"]);
+  assert.equal(imp.imageFileKey("photos/Printer-Side.JPG"), "printer-side.jpg");
+
+  assert.equal(imp.mapImportRow({ name: "Old", retailPrice: "₦12,500", availability: "discontinued" }, "NGN").status, "draft");
+  assert.equal(imp.mapImportRow({ name: "Old", retailPrice: "₦12,500" }, "NGN").retailPrice, 12500);
+  assert.equal(imp.mapImportRow({ name: "Shirt", retailPrice: "10", status: "active" }, "NGN").status, "published", "legacy 'active' imports as live");
+  assert.deepEqual(imp.mapImportRow({ name: "", price: "10" }, "NGN"), { error: "missing name" });
+  assert.deepEqual(imp.splitImageCell("https://x.example/w_10,h_10/a.jpg, b.png,c.webp"), ["https://x.example/w_10,h_10/a.jpg", "b.png", "c.webp"]);
+});
+
+test("store web address: normalized, reserved names refused, 30-day limit, old addresses redirect to the same page", async () => {
+  const a = await import("../shared/store-address.ts");
+  assert.equal(a.normalizeStoreSlug("Ada's Fabrics & Co."), "adas-fabrics-co");
+  assert.equal(a.normalizeStoreSlug("  Café Lagos  "), "cafe-lagos");
+  assert.match(a.storeSlugShapeProblem("ab", new Set()), /at least 3/);
+  assert.match(a.storeSlugShapeProblem("admin", new Set(["admin"])), /reserved/);
+  assert.equal(a.storeSlugShapeProblem("rexi", new Set(["admin"])), null);
+
+  const now = new Date("2026-10-28T12:00:00Z");
+  assert.equal(a.slugCooldownDaysLeft(null, now), 0);
+  assert.equal(a.slugCooldownDaysLeft(new Date("2026-10-27T12:00:00Z"), now), 29);
+  assert.equal(a.slugCooldownDaysLeft(new Date("2026-09-01T12:00:00Z"), now), 0);
+
+  assert.deepEqual(a.nextPreviousSlugs(["older"], "old", "new"), ["old", "older"]);
+  assert.deepEqual(a.nextPreviousSlugs(["new", "older"], "old", "new"), ["old", "older"], "taking back an old address drops it from the list");
+  assert.equal(a.nextPreviousSlugs(["a", "b", "c", "d", "e"], "old", "new").length, a.PREVIOUS_SLUGS_KEPT);
+
+  assert.equal(a.renamedStoreTarget({ host: "joanna.mybos.store", path: "/product/abc?x=1", oldSlug: "joanna", newSlug: "rexi", storeHost: true }), "https://rexi.mybos.store/product/abc?x=1");
+  assert.equal(a.renamedStoreTarget({ host: "app.shopinbos.com", path: "/s/joanna/cart", oldSlug: "joanna", newSlug: "rexi", storeHost: false }), "/s/rexi/cart");
+  assert.equal(a.renamedStoreTarget({ host: "app.shopinbos.com", path: "/s/joanna?page=about", oldSlug: "joanna", newSlug: "rexi", storeHost: false }), "/s/rexi?page=about");
+  assert.equal(a.renamedStoreTarget({ host: "other.mybos.store", path: "/", oldSlug: "joanna", newSlug: "rexi", storeHost: true }), null);
+});
+
+// ─── Media page: title and alt text ──────────────────────────────────────────────────────────────────
+
+test("media title and alt text are cleaned, length-checked, and only saved on the person's own entries", async () => {
+  const media = await import("../shared/media.ts");
+  const { MediaDetailsSchema } = await import("../shared/media-details.ts");
+
+  assert.equal(media.cleanMediaText("  Red   Ankara\n dress  ", 120), "Red Ankara dress");
+  assert.equal(media.cleanMediaText("<b>bold</b>\u0000", 120), "b bold /b", "no tags or control characters");
+  assert.equal(media.cleanMediaText("   ", 120), null, "blank clears it");
+  assert.equal(media.cleanMediaText(42, 120), null);
+  assert.equal(media.cleanMediaText("abcdef", 3), "abc");
+  assert.equal(media.mediaLabel({ title: " Hero ", name: "IMG_2041" }), "Hero");
+  assert.equal(media.mediaLabel({ title: "", name: "IMG_2041" }), "IMG_2041");
+  assert.equal(media.mediaLabel({ title: null, name: null }), null);
+  assert.equal(media.mediaSizeLabel(512), "512 B");
+  assert.equal(media.mediaSizeLabel(860_000), "840 KB");
+  assert.equal(media.mediaSizeLabel(2.4 * 1024 * 1024), "2.4 MB");
+  assert.equal(media.mediaSizeLabel(null), "");
+
+  assert.deepEqual(MediaDetailsSchema.parse({ title: "  Hero banner ", alt: "Woman in a red dress\n" }), { title: "Hero banner", alt: "Woman in a red dress" });
+  assert.deepEqual(MediaDetailsSchema.parse({ alt: "" }), { alt: null }, "empty clears, missing title is left alone");
+  assert.deepEqual(MediaDetailsSchema.parse({ title: null }), { title: null });
+  assert.equal(MediaDetailsSchema.safeParse({}).success, false, "must change something");
+  assert.equal(MediaDetailsSchema.safeParse({ alt: "x".repeat(media.MEDIA_ALT_MAX + 1) }).success, false);
+  assert.equal(MediaDetailsSchema.safeParse({ title: "x".repeat(media.MEDIA_TITLE_MAX + 1) }).success, false);
+  assert.equal(MediaDetailsSchema.safeParse({ alt: "x".repeat(media.MEDIA_ALT_MAX) }).success, true);
+  assert.equal(MediaDetailsSchema.safeParse({ alt: 5 }).success, false);
+  assert.equal(MediaDetailsSchema.safeParse({ alt: "ok", userId: "someone-else" }).success, false, "no other fields");
+
+  const route = readFileSync(new URL("../src/app/api/app/media/[id]/route.ts", import.meta.url), "utf8");
+  const lib = readFileSync(new URL("../src/lib/media/library.server.ts", import.meta.url), "utf8");
+  assert.match(route, /export const PATCH = withAuth\(/);
+  assert.match(route, /MediaDetailsSchema\.safeParse\(body\)/);
+  assert.match(route, /updateMediaDetails\(user\.id, id, parsed\.data\)/);
+  assert.match(lib, /updateMany\(\{ where: \{ id, userId, hiddenAt: null \}, data \}\)/, "owner-scoped, hidden ones stay untouched");
+  const sql = readFileSync(new URL("../docs/migrations/2026-10-29-media-alt-title.sql", import.meta.url), "utf8");
+  assert.match(sql, /ADD COLUMN IF NOT EXISTS "title" TEXT/);
+  assert.match(sql, /ADD COLUMN IF NOT EXISTS "alt" TEXT/);
+  assert.doesNotMatch(sql, /\bDROP\b|\bTRUNCATE\b|\bDELETE FROM\b|NOT NULL/i);
+  const nav = readFileSync(new URL("../src/lib/nav.ts", import.meta.url), "utf8");
+  assert.match(nav, /id: "brand-kit"[^\n]*\n\s*\{ id: "media", label: "Media", icon: "image", href: "\/home\/media" \}/);
+});
+
+test("store pages have clean addresses: /shop, /about, custom pages; old ?page= links redirect there", async () => {
+  const p = await import("../shared/storefront-pages.ts");
+  // Key → path.
+  assert.equal(p.storefrontPagePath("home"), "/");
+  assert.equal(p.storefrontPagePath("products"), "/shop");
+  assert.equal(p.storefrontPagePath("shop"), "/shop");
+  assert.equal(p.storefrontPagePath("about"), "/about");
+  assert.equal(p.storefrontPagePath("contact"), "/contact");
+  assert.equal(p.storefrontPagePath("faq"), "/faq");
+  assert.equal(p.storefrontPagePath("wishlist"), "/wishlist", "the wishlist keeps its own route");
+  assert.equal(p.storefrontPagePath("lookbook"), "/lookbook", "custom pages live at their slug");
+  for (const taken of ["product", "cart", "collections", "policies", "reviews", "order", "preview"]) assert.equal(p.storefrontPagePath(taken), null, `${taken} is a route, not a page`);
+  assert.equal(p.storefrontPagePath("../admin"), null);
+  assert.equal(p.storefrontPagePath("Bad Slug"), null);
+
+  // Path → key.
+  assert.equal(p.storefrontPageKeyFromPath("/"), "home");
+  assert.equal(p.storefrontPageKeyFromPath("/shop"), "products");
+  assert.equal(p.storefrontPageKeyFromPath("/products/"), "products");
+  assert.equal(p.storefrontPageKeyFromPath("/about"), "about");
+  assert.equal(p.storefrontPageKeyFromPath("/cart"), null);
+  assert.equal(p.storefrontPageKeyFromPath("/product/abc"), null);
+  assert.equal(p.storefrontPageKeyFromLocation("/s/adas/about", "/s/adas"), "about");
+  assert.equal(p.storefrontPageKeyFromLocation("/s/adas", "/s/adas"), "home");
+  assert.equal(p.storefrontPageKeyFromLocation("/s/other/about", "/s/adas"), null);
+  assert.equal(p.storefrontPageKeyFromLocation("/faq", ""), "faq");
+  assert.equal(p.isStorefrontPageAlias("products", "products"), true, "/products redirects to /shop");
+  assert.equal(p.isStorefrontPageAlias("shop", "products"), false);
+  assert.equal(p.isStorefrontPageAlias("about", "about"), false);
+
+  // Hrefs under the store's base: "" on its own domain, /s/<slug> on the app host.
+  assert.equal(p.storefrontPageHref("", "about"), "/about");
+  assert.equal(p.storefrontPageHref("/s/adas", "home"), "/s/adas");
+  assert.equal(p.storefrontPageHref("/s/adas", "products", new URLSearchParams({ category: "bags" })), "/s/adas/shop?category=bags");
+  assert.equal(p.storefrontPageHref("", "product"), null);
+
+  // Old links keep working, with the rest of their query.
+  const legacy = (base, query) => p.legacyPageRedirectTarget(base, new URLSearchParams(query));
+  assert.equal(legacy("", "page=about"), "/about");
+  assert.equal(legacy("/s/adas", "page=products&category=bags&q=red&sort=price"), "/s/adas/shop?category=bags&q=red&sort=price");
+  assert.equal(legacy("", "page=home&sib_c=x"), "/?sib_c=x");
+  assert.equal(legacy("/s/adas", "page=product"), "/s/adas", "pages without an address go home");
+  assert.equal(legacy("", "q=red"), null, "no ?page=, no redirect");
+  assert.deepEqual([...p.searchParamsFromRecord({ page: "about", tag: ["a", "b"], none: undefined }).entries()], [["page", "about"], ["tag", "a"], ["tag", "b"]]);
+
+  // Which pages a store has: its published builder snapshot or its published page rows.
+  const pages = [{ pageType: "home", slug: "" }, { pageType: "about", slug: "about" }, { pageType: "custom", slug: "lookbook" }];
+  assert.equal(p.findStorefrontPage(pages, "lookbook")?.pageType, "custom");
+  assert.equal(p.findStorefrontPage(pages, "home")?.pageType, "home");
+  assert.equal(p.findStorefrontPage(pages, "faq"), undefined);
+  const store = { brandSettings: { editor: { published: { pages } } }, pages: [{ type: "faq", slug: "faq", content: {} }] };
+  assert.equal(p.storeHasStorefrontPage(store, "about"), true);
+  assert.equal(p.storeHasStorefrontPage(store, "lookbook"), true);
+  assert.equal(p.storeHasStorefrontPage(store, "faq"), true, "page rows count too");
+  assert.equal(p.storeHasStorefrontPage(store, "contact"), false);
+  assert.equal(p.storeHasStorefrontPage(store, "shop"), true, "every store has a shop");
+  assert.equal(p.storeHasStorefrontPage(store, "cart"), false);
+});
+
+test("store routes (/links, /pay, /cart…) are reserved: a seller's page never takes their address", async () => {
+  const p = await import("../shared/storefront-pages.ts");
+  const { readdirSync } = await import("node:fs");
+  // Every static route under the store (both the app host and custom domains) is in the reserved set.
+  for (const dir of ["src/app/s/[slug]", "src/app/_domain/[domain]"]) {
+    const entries = readdirSync(new URL(`../${dir}`, import.meta.url), { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.name.startsWith("[")) continue; // the dynamic page / collection segment itself
+      if (!entry.isDirectory() && !/\.(txt|xml)$/.test(entry.name)) continue; // page.tsx, layout.tsx…
+      assert.ok(p.STOREFRONT_ROUTE_SEGMENTS.has(entry.name), `${dir}/${entry.name} must be in STOREFRONT_ROUTE_SEGMENTS`);
+    }
+  }
+  assert.equal(p.storefrontPagePath("links"), null, "/links is the link in bio page, never a page");
+  assert.equal(p.storefrontPageKeyFromPath("/links"), null);
+  assert.equal(p.storefrontPagePath("pay"), null);
+  assert.equal(p.isReservedPageSlug("links"), true);
+  assert.equal(p.isReservedPageSlug("Shop"), true, "another name for the shop page");
+  assert.equal(p.isReservedPageSlug("lookbook"), false);
+  // New pages get a free address: "links" → "links-page", taken ones get -2.
+  assert.equal(p.customPageSlug("links"), "links-page");
+  assert.equal(p.customPageSlug("cart"), "cart-page");
+  assert.equal(p.customPageSlug("links", ["links-page"]), "links-page-2");
+  assert.equal(p.customPageSlug("lookbook", ["lookbook"]), "lookbook-2");
+  assert.equal(p.customPageSlug("lookbook"), "lookbook");
+  assert.equal(p.storefrontPagePath(p.customPageSlug("links")), "/links-page");
+  // Renaming refuses a route's address; template pages keep their own type's slug.
+  assert.match(p.pageSlugProblem("links", "custom") ?? "", /link in bio/);
+  assert.match(p.pageSlugProblem("pay", "custom") ?? "", /pay-page/);
+  assert.equal(p.pageSlugProblem("product", "product"), null, "the product template keeps /product as its key");
+  assert.equal(p.pageSlugProblem("our-story", "about"), null);
+  assert.ok(p.pageSlugProblem("Bad Slug", "custom"));
+  assert.equal(p.normalizePageSlug(" Our Story! "), "our-story");
+  // Every place that makes or renames a page uses these.
+  const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
+  assert.match(read("src/components/builder/editor/Builder.tsx"), /customPageSlug\(/);
+  assert.match(read("src/app/api/store/pages/route.ts"), /customPageSlug\(/);
+  assert.match(read("src/app/api/store/pages/[id]/route.ts"), /pageSlugProblem\(/);
+});
+
+// ─── Store builder: shared chrome, product counts and layouts ─────────────────
+
+function chromeFixture() {
+  const sec = (id, kind, copy = {}, settings = {}) => ({ id, kind, name: kind, visible: true, blocks: [{ id: `${id}-copy`, type: "copy", content: copy }], settings });
+  const page = (pageType, sections) => ({ id: pageType, pageType, title: pageType, slug: pageType, sections });
+  return {
+    sec,
+    snapshot: {
+      templateId: "breeze", templateName: "Breeze", layoutFamily: "minimal-showcase", themeTokens: {}, updatedAt: "",
+      pages: [
+        page("home", [sec("announcement", "announcement-bar", { text: "Free delivery" }), sec("header", "header", { navLinks: ["home", "products", "about"] }), sec("hero", "hero-split"), sec("footer", "footer", { summary: "Home footer" })]),
+        page("products", [sec("announcement", "announcement-bar", { text: "Old text" }), sec("header", "header", { navLinks: ["home", "contact"] }), sec("grid", "featured-products", {}, { layout: "grid" }), sec("footer", "footer", { summary: "Shop footer" })]),
+        page("about", [sec("header", "header", { navLinks: ["home"] }), sec("story", "story-split"), sec("popup", "spin-wheel")]),
+      ],
+    },
+  };
+}
+
+test("store chrome: older per-page headers and footers become the home page's, in place, on every page", async () => {
+  const chrome = await import("../src/lib/store-templates/chrome.ts");
+  const { snapshot } = chromeFixture();
+  const normal = chrome.normalizeChrome(snapshot);
+  for (const page of normal.pages) {
+    assert.deepEqual(chrome.pageChrome(page), chrome.pageChrome(normal.pages[0]), `${page.pageType} carries the home page's chrome`);
+  }
+  assert.deepEqual(normal.pages[1].sections.map((s) => s.id), ["announcement", "header", "grid", "footer"]);
+  assert.deepEqual(normal.pages[2].sections.map((s) => s.id), ["announcement", "header", "story", "popup", "footer"], "a page without a footer gets it at the end; one without an announcement bar gets it on top");
+  assert.equal(normal.pages[1].sections[1].blocks[0].content.navLinks.join(), "home,products,about", "the menu no longer changes from page to page");
+  assert.equal(normal.pages[0], snapshot.pages[0], "the home page itself is untouched");
+  assert.equal(chrome.normalizeChrome(normal), normal, "normalising twice changes nothing (same object)");
+  assert.equal(chrome.normalizeChrome(null), null);
+
+  // Home without a footer (older save): the footer another page has is kept for every page.
+  const noFooter = { ...snapshot, pages: [{ ...snapshot.pages[0], sections: snapshot.pages[0].sections.filter((s) => s.kind !== "footer") }, ...snapshot.pages.slice(1)] };
+  const adopted = chrome.normalizeChrome(noFooter);
+  for (const page of adopted.pages) assert.equal(page.sections.find((s) => s.kind === "footer")?.blocks[0].content.summary, "Shop footer", page.pageType);
+});
+
+test("store chrome: editing the header or footer on any page edits every page; removing it removes it everywhere", async () => {
+  const chrome = await import("../src/lib/store-templates/chrome.ts");
+  const { snapshot } = chromeFixture();
+  const prev = chrome.normalizeChrome(snapshot);
+  const setNav = (page, nav) => ({ ...page, sections: page.sections.map((s) => (s.kind === "header" ? { ...s, blocks: [{ ...s.blocks[0], content: { ...s.blocks[0].content, navLinks: nav } }] } : s)) });
+  const edited = { ...prev, pages: prev.pages.map((page) => (page.pageType === "about" ? setNav(page, ["home", "faq"]) : page)) };
+  const next = chrome.propagateChrome(prev, edited);
+  for (const page of next.pages) assert.deepEqual(page.sections.find((s) => s.kind === "header").blocks[0].content.navLinks, ["home", "faq"], page.pageType);
+  assert.deepEqual(next.pages[1].sections.map((s) => s.id), ["announcement", "header", "grid", "footer"], "body sections keep their place");
+
+  const removed = { ...prev, pages: prev.pages.map((page) => (page.pageType === "products" ? { ...page, sections: page.sections.filter((s) => s.kind !== "announcement-bar") } : page)) };
+  assert.ok(chrome.propagateChrome(prev, removed).pages.every((page) => !page.sections.some((s) => s.kind === "announcement-bar")));
+
+  const hidden = { ...prev, pages: prev.pages.map((page) => (page.pageType === "products" ? { ...page, sections: page.sections.map((s) => (s.kind === "footer" ? { ...s, visible: false } : s)) } : page)) };
+  assert.ok(chrome.propagateChrome(prev, hidden).pages.every((page) => page.sections.find((s) => s.kind === "footer").visible === false));
+
+  const bodyOnly = { ...prev, pages: prev.pages.map((page) => (page.pageType === "about" ? { ...page, sections: page.sections.filter((s) => s.kind !== "story-split") } : page)) };
+  assert.equal(chrome.propagateChrome(prev, bodyOnly), bodyOnly, "edits that don't touch chrome pass through unchanged");
+});
+
+test("store chrome is shared wherever snapshots change or render: builder edits, Rex ops, publish, live pages", () => {
+  // editor.ts imports ./chrome without a file extension (bundler resolution), so its wiring is checked in source.
+  const source = readFileSync(new URL("../src/lib/store-templates/editor.ts", import.meta.url), "utf8");
+  assert.match(source, /return propagateChrome\(snapshot, next\);/);
+  const builder = readFileSync(new URL("../src/components/builder/editor/useBuilder.ts", import.meta.url), "utf8");
+  assert.match(builder, /propagateChrome\(current\.present, updater\(current\.present\)\)/, "every builder edit shares chrome changes");
+  assert.match(builder, /normalizeChrome\(migrateSnapshot\(/, "drafts open with one shared header and footer");
+  assert.match(readFileSync(new URL("../src/lib/store-publishing.ts", import.meta.url), "utf8"), /normalizeChrome\(fillMissingPageSeo\(/, "publishing publishes the same chrome everywhere");
+  assert.match(readFileSync(new URL("../src/components/storefront/TemplateStorefrontSurface.tsx", import.meta.url), "utf8"), /normalizeChrome\(props\.snapshot\)/, "live stores render one header before they republish");
+});
+
+test("store rename clears a stale header shop name anywhere in a snapshot or page content", async () => {
+  const chrome = await import("../src/lib/store-templates/chrome.ts");
+  const content = { schemaVersion: 2, sections: [{ kind: "header", blocks: [{ type: "copy", content: { logoText: " Joanna ", cartLabel: "Bag" } }] }, { kind: "hero-split", blocks: [{ type: "copy", content: { logoText: "Other" } }] }] };
+  const cleared = chrome.clearStaleLogoText(content, "Joanna");
+  assert.equal(cleared.sections[0].blocks[0].content.logoText, "");
+  assert.equal(cleared.sections[0].blocks[0].content.cartLabel, "Bag");
+  assert.equal(cleared.sections[1].blocks[0].content.logoText, "Other");
+  assert.equal(chrome.clearStaleLogoText(content, "Rexi"), null, "nothing to clear");
+  assert.equal(chrome.clearStaleLogoText(content, "  "), null);
+  const server = readFileSync(new URL("../src/lib/store-address.server.ts", import.meta.url), "utf8");
+  assert.match(server, /for \(const key of \["content", "draftContent", "publishedContent"\] as const\)/, "StorePage rows are cleaned too");
+});
+
+test("product counts: an explicit 'How many products' always applies; unset keeps each layout's default", async () => {
+  const c = await import("../src/lib/store-templates/section-content.ts");
+  assert.equal(c.readOptionalProductLimit({}), null);
+  assert.equal(c.readOptionalProductLimit({ limit: "" }), null);
+  assert.equal(c.readOptionalProductLimit({ limit: 5 }), 5);
+  assert.equal(c.readOptionalProductLimit({ limit: "12" }), 12);
+  assert.equal(c.readOptionalProductLimit({ limit: 99 }), 24);
+  assert.equal(c.readOptionalProductLimit({ limit: -3 }), null);
+  assert.equal(c.readProductLimit({}, 8), 8);
+  assert.equal(c.readProductLimit({ limit: 3 }, 8), 3);
+
+  // The shop page's section is the full grid only when it says so (or saved no layout at all).
+  assert.equal(c.isShopGridSection({ settings: { layout: "grid" } }, "home"), true);
+  assert.equal(c.isShopGridSection({ settings: {} }, "products"), true);
+  assert.equal(c.isShopGridSection({ settings: { layout: "menu" } }, "products"), false, "a chosen layout shows on the shop page too");
+
+  const boutique = readFileSync(new URL("../src/components/storefront/boutique/BoutiqueStorefront.tsx", import.meta.url), "utf8");
+  assert.doesNotMatch(boutique, /current === "products"\) return shopGrid/, "the shop page no longer ignores the layout");
+  assert.match(boutique, /data-limit=\{explicitLimit \?\? undefined\}/);
+  const look = readFileSync(new URL("../src/components/storefront/boutique/look.ts", import.meta.url), "utf8");
+  assert.doesNotMatch(look, /\.bq-(rail|tiles|dense) > \*:nth-child\(n\+\d+\)\{display:none\}/, "CSS caps never hide products the seller asked for");
+  const classic = readFileSync(new URL("../src/components/storefront/TemplateStorefrontSurface.tsx", import.meta.url), "utf8");
+  assert.match(classic, /readOptionalProductLimit\(kindSection\.settings\) \?\? \(currentPage === "products"/);
+});
+
+test("shop page layouts: columns, list, large cards, filters and Show more read with safe defaults", async () => {
+  const c = await import("../src/lib/store-templates/section-content.ts");
+  assert.deepEqual(c.readShopGridOptions({ layout: "grid", filters: true }), { view: "grid", columns: "auto", filters: "top", pageSize: null });
+  assert.deepEqual(c.readShopGridOptions({ shopView: "list", columns: "5", filterPlacement: "sidebar", pageSize: "12" }), { view: "list", columns: "5", filters: "sidebar", pageSize: 12 });
+  assert.equal(c.readShopGridOptions({ filters: false }).filters, "none", "older grids that hid filters keep them hidden");
+  assert.equal(c.readShopGridOptions({ pageSize: "all" }).pageSize, null);
+  assert.equal(c.readShopGridOptions({ columns: "7", shopView: "x" }).columns, "auto");
+  assert.deepEqual(c.readProductCardOptions({}), { showRating: false, quickAdd: false, hoverImage: false });
+  assert.deepEqual(c.readProductCardOptions({ showRating: true, quickAdd: true, hoverImage: true }), { showRating: true, quickAdd: true, hoverImage: true });
+
+  // Older shop pages saved without a layout get "grid" written; Dúdú's story name maps to its option.
+  const snap = { pages: [
+    { pageType: "products", sections: [{ id: "g", kind: "featured-products", name: "All", visible: true, blocks: [], settings: { source: "all" } }] },
+    { pageType: "home", sections: [{ id: "f", kind: "featured-products", name: "Best", visible: true, blocks: [], settings: {} }, { id: "s", kind: "story-split", name: "Story", visible: true, blocks: [], settings: { layout: "noir-split" } }] },
+  ] };
+  const migrated = c.migrateSnapshot(snap);
+  assert.equal(migrated.pages[0].sections[0].settings.layout, "grid");
+  assert.equal(migrated.pages[1].sections[0].settings.layout, undefined, "home rails keep their theme default");
+  assert.equal(migrated.pages[1].sections[1].settings.layout, "boutique");
+});
+
+test("builder: product section fields follow the layout, and every layout offered is drawn by the theme renderer", async () => {
+  const schema = await import("../src/components/builder/editor/section-schema.ts");
+  const fp = (settings) => ({ id: "p", kind: "featured-products", name: "Products", visible: true, blocks: [], settings });
+  const ids = (settings, theme = "breeze") => schema.visibleFields(fp(settings), "boutique", theme).map((field) => field.id);
+  assert.ok(ids({ layout: "menu" }).includes("limit"), "menu lists have a product count");
+  assert.ok(!ids({ layout: "menu" }).includes("shopView"));
+  assert.ok(ids({ layout: "dense" }).includes("limit-dense") && !ids({ layout: "dense" }).includes("limit"), "the compact grid's count starts at its own default");
+  const dense = schema.allFields(schema.sectionSchema("featured-products", "boutique", "oja")).find((field) => field.id === "limit-dense");
+  assert.equal(dense.fallback, 12);
+  const grid = ids({ layout: "grid" });
+  for (const id of ["shopView", "columns", "filterPlacement", "pageSize", "showRating", "quickAdd", "hoverImage"]) assert.ok(grid.includes(id), id);
+  assert.ok(!grid.includes("limit") && !grid.includes("source"));
+  assert.ok(!ids({ layout: "grid", shopView: "list" }).includes("columns"), "lists have no column count");
+
+  // Each layout value offered for a 2026 theme section is handled by BoutiqueStorefront (defaults fall through).
+  const boutique = readFileSync(new URL("../src/components/storefront/boutique/BoutiqueStorefront.tsx", import.meta.url), "utf8");
+  const defaults = new Set(["carousel", "boutique-tiles", "boutique", "accordion", "centered", "split"]);
+  for (const kind of ["featured-products", "category-grid", "story-split", "faq", "contact-form", "testimonials", "header"]) {
+    const layout = schema.allFields(schema.sectionSchema(kind, "boutique", "breeze")).find((field) => field.id === "layout");
+    assert.ok(layout, `${kind} offers layouts`);
+    for (const option of layout.options) {
+      if (defaults.has(option.value) && option.value === layout.fallback) continue;
+      assert.ok(boutique.includes(`"${option.value}"`), `${kind} layout "${option.value}" is drawn`);
+    }
+  }
+  for (const value of ["shopView", "filterPlacement", "pageSize"]) assert.ok(readFileSync(new URL("../src/lib/store-templates/section-content.ts", import.meta.url), "utf8").includes(`settings?.${value}`), value);
+  assert.match(readFileSync(new URL("../src/components/storefront/boutique/BoutiqueChrome.tsx", import.meta.url), "utf8"), /bold\?: boolean/, "the Bold header has its own look");
+
+  const chromeNote = schema.visibleFields({ id: "h", kind: "header", name: "Header", visible: true, blocks: [], settings: {} }, "boutique", "breeze")[0];
+  assert.match(chromeNote.label, /same on every page/);
+});
+
+test("Suppliers buy and are pointed to AI credits in their own portal", async () => {
+  const c = await import("../shared/ai-credits.ts");
+  assert.equal(c.creditsUrlFor("supplier"), "/supplier/credits");
+  assert.equal(c.creditsUrlFor("seller"), "/home/credits");
+  assert.equal(c.planCreditGrant("PLN_q78304vgj7p35o6").credits, 100, "Supplier Max monthly");
+});
+
+test("Logo prompts carry the seller's notes and inspiration, and never copy another brand", async () => {
+  const { logoContext } = await import("../src/lib/ai/rex/logo.ts");
+  assert.equal(logoContext({}), "");
+  const withBoth = logoContext({ notes: "Rexi means king. No gold.", inspiration: 2 });
+  assert.match(withBoth, /Rexi means king/);
+  assert.match(withBoth, /inspiration/);
+  assert.match(withBoth, /never copy another brand/);
+  assert.match(logoContext({ inspiration: 1 }, 1), /after the first/, "variations: the first reference is the chosen logo");
+});
+
+test("Barcodes: EAN-13 for retail numbers, Code 128 for everything else", async () => {
+  const b = await import("../shared/barcodes.ts");
+  assert.equal(b.normaliseEan13("400638133393"), "4006381333931", "adds the check digit");
+  assert.equal(b.normaliseEan13("4006381333932"), null, "wrong check digit");
+  assert.equal(b.ean13Modules("4006381333931").length, 95);
+  assert.equal(b.barcodeKindFor("4006381333931"), "ean13");
+  assert.equal(b.barcodeKindFor("SKU-RED-42"), "code128");
+  const widths = b.code128Widths("SKU-RED-42");
+  assert.equal(widths.slice(0, -7).reduce((a, c) => a + c, 0), (1 + 10 + 1) * 11, "start, 10 characters and checksum, 11 modules each");
+  assert.throws(() => b.code128Widths("naïra"), /simple symbols/);
+  assert.match(b.barcodeSvg("SKU-RED-42"), /^<svg[^>]*viewBox/);
+  assert.doesNotMatch(b.barcodeSvg("<b>&"), /<b>/, "text is escaped");
+});
+
+test("Print studio: real sizes, sheet counts, QR targets and label lists", async () => {
+  const p = await import("../shared/print-labels.ts");
+  assert.equal(p.labelsPerSheet("price"), 3 * 10, "50x25mm price labels on A4");
+  assert.equal(p.labelsPerSheet("package"), 1 * 3);
+  const store = { name: "Mama Put", url: "https://mamaput.shopinbos.com/", whatsapp: "+234 803 000 0000", reviewsUrl: "https://mamaput.shopinbos.com/reviews" };
+  const product = { id: "prod_123456789abc", name: "Plantain chips", price: "₦3,500", url: "https://mamaput.shopinbos.com/product/p1", barcode: "400638133393", sku: null };
+  assert.equal(p.qrTargetUrl("whatsapp", store, product, ""), "https://wa.me/2348030000000?text=Hi%2C%20I'd%20like%20Plantain%20chips");
+  assert.equal(p.qrTargetUrl("custom", store, product, "javascript:alert(1)"), store.url, "only http(s) custom links");
+  assert.equal(p.barcodeValueFor(product), "4006381333931");
+  assert.equal(p.barcodeValueFor({ id: "prod_123456789abc", barcode: null, sku: null }), "3456789ABC", "no barcode or SKU: a short id");
+  assert.equal(p.barcodeValueFor({ id: "x", barcode: null, sku: "RED-42" }), "RED-42");
+  assert.equal(p.buildPrintItems({ kind: "price", products: [product], copies: 3, target: "product", custom: "", store }).length, 3);
+  assert.equal(p.buildPrintItems({ kind: "thanks", products: [], copies: 4, target: "store", custom: "", store }).length, 4, "store-wide cards with no product");
+  assert.equal(p.buildPrintItems({ kind: "price", products: Array(10).fill(product), copies: 100, target: "product", custom: "", store }).length, 300, "capped");
+  assert.match(p.pageCss("price", "roll"), /size: 50mm 25mm/);
+});
+
+test("Style book colours become readable store colours; brand marks fall back to the logo", async () => {
+  const bb = await import("../shared/brand-book.ts");
+  const tokens = bb.bookToThemeTokens({ primary: "#F2A93B", secondary: "#0E2A38", accent: "#E86A4F", background: "#FAF7F1", surface: "#FFFFFF", text: "#EEEEEE" }, "serif");
+  assert.equal(tokens.ctaText, "#111111", "dark text on a light button");
+  assert.equal(tokens.heroText, "#FFFFFF", "white text on a dark banner");
+  assert.equal(tokens.ink, "#111111", "unreadable body text is replaced");
+  assert.equal(tokens.headingStyle, "serif");
+  assert.equal(bb.readBrandBook({ paletteName: "x" }), null, "an incomplete book isn't shown");
+  const a = await import("../shared/brand-assets.ts");
+  const logo = "https://x.supabase.co/storage/v1/object/public/brand/logo.png";
+  assert.deepEqual(a.readBrandAssets({ logoUrl: logo, brandSettings: {} }).shown, { icon: logo, favicon: logo });
+  const icon = "https://x.supabase.co/storage/v1/object/public/brand/icon.png";
+  assert.equal(a.readBrandAssets({ logoUrl: logo, brandSettings: { logoIcon: icon } }).shown.favicon, icon, "favicon falls back to the icon first");
+  assert.equal(a.readBrandAssets({ logoUrl: logo, brandSettings: { logoIcon: "javascript:x" } }).icon, null);
+});
+
+test("Rex's creations are labelled by what he made", async () => {
+  const m = await import("../shared/media.ts");
+  assert.equal(m.aiCreationKind("logos/user_123456/logo-1.webp"), "logo");
+  assert.equal(m.aiCreationKind("enhanced/user_123456/x.webp"), "edit");
+  assert.equal(m.aiCreationKind("banners/user_123456/x.webp"), "banner");
+  assert.equal(m.aiCreationKind("generated/user_123456/x.webp"), "image");
+  assert.equal(m.aiCreationKind(null), "image");
+});
+
+test("The store header shows the logo, icon or name the seller picked, never nothing", async () => {
+  const l = await import("../shared/store-logo.ts");
+  const logo = "https://x.supabase.co/storage/v1/object/public/brand/logo.png";
+  const icon = "https://x.supabase.co/storage/v1/object/public/brand/icon.png";
+  assert.deepEqual(l.readLogoDisplay({}), { style: "logo_text", size: "medium" });
+  assert.deepEqual(l.readLogoDisplay({ logoDisplay: { style: "nope", size: "large" } }), { style: "logo_text", size: "large" });
+  const store = { logoUrl: logo, brandSettings: { logoIcon: icon, logoDisplay: { style: "logo", size: "large" } } };
+  assert.deepEqual(l.storeLogoView(store), { image: logo, shape: "logo", height: 60, showName: false });
+  assert.deepEqual(l.storeLogoView(store, { style: "icon_text", size: "small" }), { image: icon, shape: "icon", height: 32, showName: true });
+  assert.equal(l.storeLogoView({ logoUrl: logo, brandSettings: {} }, { style: "icon", size: "medium" }).image, logo, "no icon: the logo stands in");
+  assert.deepEqual(l.storeLogoView({ logoUrl: null }, { style: "logo", size: "medium" }), { image: null, shape: null, height: 44, showName: true }, "no picture: the name shows");
+  assert.equal(l.storeLogoView(store, { style: "text", size: "medium" }).image, null);
+});
+
+test("builder status: publishing's own SEO defaults aren't unpublished changes; a closed store shows offline", async () => {
+  const logic = await import("../src/components/builder/editor/editor-logic.ts");
+  const { fillMissingPageSeo } = await import("../src/lib/store-templates/seo-defaults.ts");
+  const draft = { templateId: "breeze", templateName: "Breeze", layoutFamily: "minimal-showcase", themeTokens: {}, updatedAt: "1", pages: [
+    { id: "h", pageType: "home", title: "Home", slug: "", sections: [] },
+    { id: "a", pageType: "about", title: "About", slug: "about", sections: [], seo: { metaTitle: "Our story" } },
+  ] };
+  // What the publish route saves: the same draft with blank search titles and descriptions filled in.
+  const published = { ...fillMissingPageSeo(draft, "Rexi"), updatedAt: "2" };
+  assert.equal(logic.publishState(draft, published), "changes", "compared as is, the filled-in SEO looked like an edit (the old bug)");
+  assert.equal(logic.publishState(draft, published, { storeName: "Rexi" }), "live", "right after Publish the pill says Live");
+  assert.equal(logic.publishState(published, published, { storeName: "Rexi" }), "live");
+  const edited = { ...draft, pages: [{ ...draft.pages[0], title: "Welcome" }, draft.pages[1]] };
+  assert.equal(logic.publishState(edited, published, { storeName: "Rexi" }), "changes", "a real edit still shows");
+  assert.equal(logic.publishState(draft, published, { storeName: "Rexi", storeLive: false }), "offline", "published but the store is closed");
+  assert.equal(logic.publishState(edited, published, { storeName: "Rexi", storeLive: false }), "changes");
+  assert.equal(logic.publishState(draft, null, { storeName: "Rexi", storeLive: true }), "draft");
+
+  const history = logic.pushHistory(logic.createHistory(draft), edited);
+  const swapped = logic.replacePresent(history, published);
+  assert.equal(swapped.present, published);
+  assert.deepEqual(swapped.past, history.past, "no undo step is added");
+});
+
+test("logo variants: luminance, dark backgrounds and which logo shows", async () => {
+  const lv = await import("../shared/logo-variants.ts");
+  assert.deepEqual(lv.parseColour("#0E2A38"), { r: 14, g: 42, b: 56, a: 1 });
+  assert.deepEqual(lv.parseColour("#fff"), { r: 255, g: 255, b: 255, a: 1 });
+  assert.equal(lv.parseColour("rgba(10,10,10,.94)").a, 0.94);
+  assert.deepEqual(lv.parseColour("rgb(1 2 3 / 50%)"), { r: 1, g: 2, b: 3, a: 0.5 });
+  assert.equal(lv.parseColour("var(--x)"), null);
+  assert.equal(lv.parseColour("linear-gradient(red, blue)"), null);
+  assert.ok(Math.abs(lv.relativeLuminance({ r: 255, g: 255, b: 255 }) - 1) < 1e-9);
+  assert.equal(lv.relativeLuminance({ r: 0, g: 0, b: 0 }), 0);
+
+  assert.equal(lv.isDarkBackground("#0E2A38"), true, "navy");
+  assert.equal(lv.isDarkBackground("#0A0A0A"), true);
+  assert.equal(lv.isDarkBackground("rgba(10,10,10,.94)"), true, "boutique dark header (94% over white) is still dark");
+  assert.equal(lv.isDarkBackground("rgba(255,255,255,.96)"), false);
+  assert.equal(lv.isDarkBackground("#73D8C8"), false, "mint is light");
+  assert.equal(lv.isDarkBackground("#F4F1EA"), false, "cream");
+  assert.equal(lv.isDarkBackground("rgba(0,0,0,.1)"), false, "a faint tint over white is light");
+  assert.equal(lv.isDarkBackground("rgba(0,0,0,.1)", { under: "#000" }), true, "but dark over a dark page");
+  assert.equal(lv.isDarkBackground("var(--bg)", { fallback: true }), true, "unreadable colours use the fallback");
+
+  const logo = "https://x.supabase.co/storage/v1/object/public/brand/logos/u1/logo.webp";
+  const dark = "https://x.supabase.co/storage/v1/object/public/brand/logos/u1/on-dark.png";
+  const analysis = (extra) => ({ background: "transparent", backgroundColour: null, mono: false, ink: "dark", inkColour: null, ...extra });
+  const storeWith = (variants) => ({ logoUrl: logo, brandSettings: variants ? { logoVariants: variants } : {} });
+
+  // Never measured: legible on dark thanks to a light tile; untouched on light.
+  assert.deepEqual(lv.chooseLogo(lv.readStoreLogo(storeWith(null)), true), { src: logo, treatment: "light-chip" });
+  assert.deepEqual(lv.chooseLogo(lv.readStoreLogo(storeWith(null)), false), { src: logo, treatment: "none" });
+  // A saved dark version wins on dark backgrounds only.
+  const withDark = lv.readStoreLogo(storeWith({ for: logo, onDark: dark, source: "auto", analysis: analysis({ background: "plain", backgroundColour: "#FFFFFF", mono: true }) }));
+  assert.deepEqual(lv.chooseLogo(withDark, true), { src: dark, treatment: "none" });
+  assert.deepEqual(lv.chooseLogo(withDark, false), { src: logo, treatment: "none" });
+  // A one-colour dark mark on nothing is re-inked white (flag saved when the logo was saved, not guessed now).
+  assert.deepEqual(lv.chooseLogo(lv.readStoreLogo(storeWith({ for: logo, onDark: null, source: "auto", analysis: analysis({ mono: true }) })), true), { src: logo, treatment: "to-light" });
+  assert.deepEqual(lv.chooseLogo(lv.readStoreLogo(storeWith({ for: logo, onDark: null, source: "auto", analysis: analysis({ mono: false }) })), true), { src: logo, treatment: "light-chip" }, "several colours get a tile, not a filter");
+  assert.deepEqual(lv.chooseLogo(lv.readStoreLogo(storeWith({ for: logo, onDark: null, source: "auto", analysis: analysis({ ink: "light", mono: true }) })), false), { src: logo, treatment: "to-dark" }, "a white mark on a light header turns dark");
+  assert.deepEqual(lv.chooseLogo(lv.readStoreLogo(storeWith({ for: logo, onDark: null, source: "auto", analysis: analysis({ background: "plain", backgroundColour: "#FFFFFF" }) })), true), { src: logo, treatment: "none" }, "a logo with its own background reads anywhere");
+  // Facts about an older logo are ignored.
+  const stale = lv.readStoreLogo({ logoUrl: logo, brandSettings: { logoVariants: { for: "https://x.supabase.co/old.png", onDark: dark, source: "seller", analysis: null } } });
+  assert.equal(stale.dark, null);
+  assert.equal(lv.readStoreLogo(storeWith({ for: logo, onDark: "javascript:alert(1)", source: "seller" })).dark, null, "only https pictures");
+  assert.equal(lv.chooseLogo(lv.readStoreLogo({ logoUrl: null, brandSettings: {} }), true), null, "no logo: the name shows");
+  assert.deepEqual(lv.logoTreatmentStyle("to-light"), { filter: "brightness(0) invert(1)" });
+  assert.deepEqual(lv.logoTreatmentStyle("none"), {});
+
+  const a = await import("../shared/brand-assets.ts");
+  const assets = a.readBrandAssets(storeWith({ for: logo, onDark: dark, source: "seller", analysis: null }));
+  assert.equal(assets.logoDark, dark, "the seller's own dark logo");
+  assert.deepEqual(assets.onDark, { src: dark, treatment: "none" });
+  assert.equal(a.readBrandAssets(storeWith({ for: logo, onDark: dark, source: "auto", analysis: null })).logoDark, null, "an automatic one isn't listed as the seller's");
+  assert.ok(a.BRAND_ASSET_KINDS.includes("logoDark"));
+});
+
+test("logo variants: measuring logo pixels, knocking out the background and re-inking SVGs", async () => {
+  const lv = await import("../shared/logo-variants.ts");
+  const W = 20;
+  const H = 20;
+  const image = (bg, ink, inside = (x, y) => x >= 6 && x < 14 && y >= 6 && y < 14) => {
+    const pixels = new Uint8ClampedArray(W * H * 4);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) pixels.set(inside(x, y) ? ink(x, y) : bg, (y * W + x) * 4);
+    return pixels;
+  };
+  const navy = () => [14, 42, 56, 255];
+  const transparentDark = lv.analyseLogoPixels(image([0, 0, 0, 0], navy), W, H);
+  assert.equal(transparentDark.background, "transparent");
+  assert.equal(transparentDark.mono, true);
+  assert.equal(transparentDark.ink, "dark");
+  assert.equal(transparentDark.inkColour, "#0E2A38");
+
+  const onWhite = lv.analyseLogoPixels(image([255, 255, 255, 255], navy), W, H);
+  assert.equal(onWhite.background, "plain");
+  assert.equal(onWhite.backgroundColour, "#FFFFFF");
+  assert.equal(onWhite.mono, true);
+  assert.equal(onWhite.ink, "dark");
+
+  const twoColours = lv.analyseLogoPixels(image([0, 0, 0, 0], (x) => (x < 10 ? [14, 42, 56, 255] : [242, 169, 59, 255])), W, H);
+  assert.equal(twoColours.mono, false, "navy and amber is not one colour");
+
+  const whiteMark = lv.analyseLogoPixels(image([0, 0, 0, 0], () => [255, 255, 255, 255]), W, H);
+  assert.equal(whiteMark.ink, "light");
+
+  const noisy = image([0, 0, 0, 255], navy, () => false).map((v, i) => (i % 4 === 3 ? 255 : (i * 37) % 256));
+  const photo = lv.analyseLogoPixels(noisy, W, H);
+  assert.equal(photo.background, "complex");
+  assert.equal(photo.mono, false);
+
+  const knocked = lv.knockOutForDark(image([255, 255, 255, 255], navy), "#FFFFFF", "#0E2A38");
+  const px = (x, y) => Array.from(knocked.slice((y * W + x) * 4, (y * W + x) * 4 + 4));
+  assert.deepEqual(px(0, 0), [255, 255, 255, 0], "the white background becomes see-through");
+  assert.deepEqual(px(10, 10), [255, 255, 255, 255], "the navy ink becomes solid white");
+
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><style>.a{fill:#0E2A38}</style><path class="a" d="M0 0h5v5z"/><circle fill="#73D8C8" r="2"/><rect stroke="black" fill="none" style="fill:#111;stroke:rgb(20,20,20)" width="3" height="3"/><stop stop-color="#000"/><script>alert(1)</script><g onclick="x()"></g></svg>';
+  const out = lv.recolourSvgForDark(svg);
+  assert.match(out, /\.a\{fill:#FFFFFF\}/, "dark ink in <style> turns light");
+  assert.match(out, /<circle fill="#73D8C8"/, "the light accent stays");
+  assert.match(out, /stroke="#FFFFFF" fill="none"/, "named black turns light; none stays");
+  assert.match(out, /style="fill:#FFFFFF;stroke:#FFFFFF"/);
+  assert.match(out, /stop-color="#FFFFFF"/);
+  assert.match(out, /^<svg xmlns="http:\/\/www.w3.org\/2000\/svg" viewBox="0 0 10 10" fill="#FFFFFF" color="#FFFFFF">/, "unpainted shapes inherit the light ink");
+  assert.doesNotMatch(out, /<script|onclick/);
+  assert.equal(lv.isSvgLogo("https://x/logo.svg?v=1"), true);
+  assert.equal(lv.isSvgLogo("https://x/logo.png", "image/svg+xml"), true);
+  assert.equal(lv.isSvgLogo("https://x/logo.webp"), false);
+});
+
+test("see-through logos with dark lettering and coloured accents get a light-lettered version for dark backgrounds", async () => {
+  const l = await import("../shared/logo-variants.ts");
+  // black letter, red accent, see-through background, a soft black edge
+  const px = [0, 0, 0, 255, 230, 20, 40, 255, 0, 0, 0, 0, 10, 10, 10, 120];
+  assert.equal(l.hasDarkNeutralInk(px), true);
+  const out = Array.from(l.relightDarkInk(px));
+  assert.deepEqual(out.slice(0, 4), [255, 255, 255, 255], "lettering turns white");
+  assert.deepEqual(out.slice(4, 8), [230, 20, 40, 255], "the accent keeps its colour");
+  assert.deepEqual(out.slice(8, 12), [0, 0, 0, 0], "see-through stays see-through");
+  assert.deepEqual(out.slice(12, 16), [255, 255, 255, 120], "soft edges keep their transparency");
+  assert.equal(l.hasDarkNeutralInk([230, 20, 40, 255, 20, 200, 90, 255]), false, "an all-colour logo is left alone");
+  const script = readFileSync(new URL("../scripts/backfill-logo-variants.mjs", import.meta.url), "utf8");
+  assert.match(script, /relightDarkInk/, "the one-off backfill uses the same rule as saving a logo");
+});
+
+test("Reel styles: timing follows the voice, voices are Nigerian, brand colours are safe", async () => {
+  const v = await import("../shared/video-style.ts");
+  const plain = v.styledTimeline("float", 3, null);
+  assert.equal(plain.perShot, 2.6);
+  assert.equal(plain.total, plain.perShot * 3 + plain.endCard);
+  const grid = v.styledTimeline("grid", 3, null);
+  assert.ok(grid.intro > 0, "the collage opens on a grid");
+  const voiced = v.styledTimeline("bold", 3, 14);
+  assert.ok(Math.abs(voiced.total - (14 + 0.8)) < 0.01, "the reel runs as long as the voice plus a beat");
+  assert.equal(v.styledTimeline("pop", 2, 60).perShot, 5, "shots never drag past 5 seconds");
+  assert.equal(v.styledTimeline("pop", 6, 2).perShot, 1.4, "or flash by under 1.4");
+
+  assert.equal(v.openAiVoice("male", "expressive"), "ash");
+  assert.equal(v.openAiVoice("female", "basic"), "nova");
+  assert.match(v.voiceDirection("pidgin", "male"), /Nigerian man.*Pidgin/s);
+  assert.match(v.voiceDirection("english", "female"), /Nigerian woman.*Nigerian accent/s);
+
+  const brand = v.reelBrand({ button: "#e86a4f", hero: "nope", paper: "#FAF7F1", ink: null }, null);
+  assert.equal(brand.primary, "#E86A4F");
+  assert.equal(brand.secondary, "#16141F", "a bad colour falls back");
+  assert.equal(v.textOn("#FFFFFF"), "#16141F");
+  assert.equal(v.textOn("#0E2A38"), "#FFFFFF");
+  assert.equal(new Set(v.popColours(brand)).size, v.popColours(brand).length, "no repeated colours");
+
+  assert.equal(v.reelTemplate("nope").id, "float");
+  assert.ok(v.isReelTemplate("words") && !v.isReelTemplate("x"));
+  assert.ok(v.MUSIC_MOODS.every((mood) => v.isMusicMood(mood.id)));
+  assert.equal(v.defaultMood("bold"), "afrobeats");
+  const under = v.musicLevels(1, true);
+  assert.ok(under.underVoice < under.base, "music dips under the voice");
+  assert.match(v.reelShotPrompt("cutout", { product: "Ankara tote", colours: null }), /transparent.*Keep the product exactly the same/s);
+  assert.match(v.reelShotPrompt("studio", { product: null, colours: { paper: "#FAF7F1", accent: "#E86A4F" } }), /#FAF7F1/);
+  assert.match(v.REEL_TEMPLATE_CREDIT, /Pinterest/);
+});
+
+test("Ad campaigns: validation, Meta payloads, insights and statuses", async () => {
+  const a = await import("../shared/ad-campaigns.ts");
+  const creative = { productId: "p1", kind: "image", mediaUrl: "https://x.supabase.co/storage/v1/object/public/p.jpg", headline: "Soft tote", primaryText: "Order now.", cta: "SHOP_NOW" };
+  const base = { name: "Totes", mode: "meta", objective: "traffic", productIds: ["p1"], audience: { countries: ["NG"], states: ["Lagos"], ageMin: 18, ageMax: 40, gender: "women", interests: ["fashion"] }, creatives: [creative], dailyBudget: 5000, currency: "NGN", startAt: "2026-11-01", days: 7 };
+  assert.equal(a.CampaignInputSchema.safeParse(base).success, true);
+  assert.match(a.CampaignInputSchema.safeParse({ ...base, dailyBudget: 300 }).error.issues[0].message, /smallest daily budget/);
+  assert.match(a.CampaignInputSchema.safeParse({ ...base, audience: { ...base.audience, ageMin: 50, ageMax: 30 } }).error.issues[0].message, /oldest age/);
+  assert.equal(a.CampaignInputSchema.safeParse({ ...base, productIds: [] }).success, false);
+
+  const targeting = a.metaTargeting(base.audience, { regions: [{ key: "2570" }], interests: [{ id: "6003", name: "Fashion" }] });
+  assert.deepEqual(targeting.geo_locations, { regions: [{ key: "2570" }] }, "states narrow Nigeria");
+  assert.deepEqual(targeting.genders, [2]);
+  assert.equal(targeting.flexible_spec[0].interests[0].id, "6003");
+  assert.deepEqual(a.metaTargeting({ ...base.audience, states: [], countries: ["NG", "GH"], gender: "all" }, { regions: [], interests: [] }).geo_locations, { countries: ["NG", "GH"] });
+
+  const { start, end } = a.campaignWindow("2026-11-01", 7, new Date("2026-10-01T00:00:00Z"));
+  assert.equal(Math.round((end - start) / 86400000), 7);
+  assert.ok(a.campaignWindow("2020-01-01", 3, new Date("2026-10-01T00:00:00Z")).start >= new Date("2026-10-01T00:00:00Z"), "a past start begins now");
+  const adset = a.metaAdSetBody({ name: "x", campaignId: "c1", objective: "traffic", dailyBudget: 5000, start, end, targeting });
+  assert.equal(adset.daily_budget, 500000, "budgets go to Meta in kobo");
+  assert.equal(adset.optimization_goal, "LINK_CLICKS");
+  assert.equal(a.metaObjective("awareness").objective, "OUTCOME_AWARENESS");
+  assert.equal(a.metaCampaignBody({ name: "x", objective: "whatsapp" }).status, "PAUSED", "created paused, switched on at the end");
+
+  const link = a.metaCreativeBody({ name: "x", pageId: "pg", link: "https://app/r/ad/AB?p=p1", creative, imageHash: "h1" });
+  assert.equal(link.object_story_spec.link_data.image_hash, "h1");
+  assert.equal(link.object_story_spec.link_data.call_to_action.value.link, "https://app/r/ad/AB?p=p1");
+  const video = a.metaCreativeBody({ name: "x", pageId: "pg", instagramId: "ig", link: "https://l", creative: { ...creative, kind: "video", thumbUrl: "https://t.jpg" }, videoId: "v1" });
+  assert.equal(video.object_story_spec.video_data.video_id, "v1");
+  assert.equal(video.object_story_spec.instagram_user_id, "ig");
+
+  assert.deepEqual(a.readInsights([{ spend: "1234.5", impressions: "900", reach: "700", inline_link_clicks: "33" }]), { spend: 1234.5, impressions: 900, reach: 700, clicks: 33 });
+  assert.deepEqual(a.readInsights([]), { spend: 0, impressions: 0, reach: 0, clicks: 0 });
+  assert.equal(a.statusFromMeta("ACTIVE"), "running");
+  assert.equal(a.statusFromMeta("CAMPAIGN_PAUSED"), "paused");
+  assert.equal(a.statusFromMeta("ARCHIVED"), "ended");
+  assert.equal(a.campaignTotal(5000, 7), 35000);
+  assert.ok(a.AD_SETUP_FEES.tiktok > 0 && a.AD_SETUP_FEES.meta > 0);
+  assert.equal(a.AdRequestSchema.safeParse({ platform: "tiktok", contactName: "Ada", contactPhone: "0803", businessName: "Ada Fabrics" }).success, false, "a real phone number is needed");
+  assert.equal(a.AdRequestSchema.safeParse({ platform: "tiktok", contactName: "Ada", contactPhone: "08031234567", businessName: "Ada Fabrics" }).success, true);
+});
+
+test("Video projects: purposes start right, settings come back, publishing is remembered once", async () => {
+  const v = await import("../shared/video-projects.ts");
+  assert.equal(v.PURPOSE_DEFAULTS.ad.template, "words");
+  assert.equal(v.PURPOSE_DEFAULTS.product.music, "chill");
+  assert.deepEqual(v.readVideoConfig({ template: "pop", photos: ["https://a"], hacker: true }), { template: "pop", photos: ["https://a"] });
+  assert.deepEqual(v.readVideoConfig({ template: "nope" }), {}, "a bad config reads as empty");
+  assert.equal(v.videoTitle("ad", "Ankara tote"), "Ankara tote ad");
+  assert.match(v.videoTitle("social", null, new Date("2026-10-15T10:00:00Z")), /^Social video, 15 Oct$/);
+  const once = v.addPublished([], { kind: "product", id: "p1" }, new Date("2026-10-15T10:00:00Z"));
+  assert.equal(v.addPublished(once, { kind: "product", id: "p1" }).length, 1);
+  assert.equal(v.addPublished(once, { kind: "ad", id: "c1" }).length, 2);
+  assert.deepEqual(v.readPublished([{ kind: "x", at: "y" }, ...once]), once);
 });

@@ -9,6 +9,7 @@ import { Fold, TechFold } from "@/components/simple/Fold";
 import { dayLabel } from "@/lib/conversations/pure";
 import type { DnsRecord, DomainSettingsState, HostingStatus, ServeAs, VerifyCheck } from "@/lib/domains/verification";
 import { RegistrarTip } from "./RegistrarTip";
+import { BoughtDomainPanel } from "./BoughtDomain";
 import { setupStepsMessage, whatsappShareUrl } from "./steps";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import { formatDate, type Locale } from "@shared/i18n";
@@ -205,6 +206,8 @@ export function DomainOwnership({
             <p className="m-0 text-[13px] leading-[1.5] text-app-ink-soft">{t("own.routing", { domain: live.domain })}</p>
             <RecordList records={live.records} />
           </TechFold>
+          {/* Bought through Shopinbos: paid-until date, "Renew for ₦X", "Move my domain to another company". */}
+          <BoughtDomainPanel domain={live.domain} />
           <div className="mt-4 flex flex-wrap items-center gap-2">
             {!pending && !changing && (
               <PillButton size="sm" tone="white" onClick={() => setChanging(true)}>{t("own.different")}</PillButton>

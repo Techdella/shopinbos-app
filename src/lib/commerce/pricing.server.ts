@@ -1,15 +1,17 @@
 import "server-only";
 import { db } from "@/lib/db/client";
+import { lockedEmailError } from "@/lib/marketing/popup-rewards";
 import { bestAutomaticDiscount, discountAmount, describeDiscount, parseDiscountConfig, redemptionError, type DiscountLine } from "@/lib/discounts";
 import { contactsInSegment, segmentRules } from "@/lib/marketing/contacts";
 import { readGameConfig } from "@/lib/gamification/logic";
 import { quotePoints, type PointsRedemption } from "@/lib/gamification/loyalty.server";
-import { buildStockHolds, stockShortfalls, type StockHold } from "@/lib/commerce/stock-holds";
+import { buildStockHolds, isDropshipProduct, stockShortfallDetails, stockShortfallMessage, storeStockMode, type StockHold, type VariantHold } from "@/lib/commerce/stock-holds";
+import { normalizeVariants, resolveLineVariant } from "@shared/product-variants";
 import { maybeExpireUnpaidOrders } from "@/lib/commerce/order-expiry.server";
+import { spreadAgreedAmount } from "@/lib/payment-links/pure";
 import {
   chooseDelivery,
   deliveryOptionsFor,
-  linePrice,
   orderTotals,
   type CheckoutSettings,
   type DeliveryChoice,
@@ -26,7 +28,10 @@ export interface PricedItem {
   name: string;
   price: number;
   quantity: number;
+  /** The version's label, e.g. "L / Red" (the name then reads "Ankara dress · L / Red"). */
   variant?: string;
+  /** The version's id in the product's variants. */
+  variantId?: string;
   image?: string;
 }
 
@@ -56,7 +61,7 @@ export interface PricedOrder {
 
 export interface PricingInput {
   store: { id: string; brandSettings: unknown };
-  items: Array<{ productId: string; quantity: number; variant?: string | null }>;
+  items: Array<{ productId: string; quantity: number; variant?: string | null; variantId?: string | null }>;
   address: { city?: string; state?: string };
   deliveryOptionId?: string | null;
   discountCode?: string | null;
@@ -64,6 +69,16 @@ export interface PricingInput {
   settings: Pick<CheckoutSettings, "enableCoupon">;
   /** Loyalty points the shopper wants to use; needs buyerEmail and the phone from an earlier order. */
   loyalty?: { points: number; phone?: string | null } | null;
+  /**
+   * A price the seller agreed for these items (before delivery), from a payment link loaded on the server, never
+   * from the browser. The lines are re-priced to add up to it and no automatic discount is added on top.
+   */
+  agreedItemsTotal?: number | null;
+}
+
+/** Stock left per version id (null when that version isn't counted). */
+function resolveStock(raw: unknown) {
+  return new Map(normalizeVariants(raw).map((variant) => [variant.id, variant.stock] as const));
 }
 
 function record(value: unknown): Record<string, unknown> {
@@ -74,6 +89,9 @@ function record(value: unknown): Record<string, unknown> {
 async function eligibilityError(storeId: string, discount: { code: string; config: unknown }, buyerEmail: string | null | undefined) {
   const config = parseDiscountConfig(discount.config);
   const email = buyerEmail?.trim().toLowerCase();
+  // A sign-up form's one-person code only works with the email that signed up.
+  const locked = lockedEmailError(discount.config, buyerEmail);
+  if (locked) return locked;
   if (config.oncePerCustomer) {
     if (!email) return "Enter your email to use this code.";
     const used = await db.retailOrder.count({ where: { storeId, buyerEmail: { equals: email, mode: "insensitive" }, discountCode: discount.code, status: { notIn: ["cancelled"] } } });
@@ -100,37 +118,73 @@ export async function priceOrder(input: PricingInput): Promise<PricedOrder | { o
     where: { storeId: input.store.id, id: { in: [...quantities.keys()] }, status: "published" },
     select: {
       id: true, name: true, images: true, retailPrice: true, currentStock: true, variants: true,
+      // The seller's "Track stock" switch: untracked products are never short and give no stock.
+      trackStock: true, continueSellingWhenOut: true, reservedStock: true,
       // Dropship products sell from the supplier's stock (the seller holds none).
       fulfillmentType: true, supplierProductId: true, supplierProduct: { select: { id: true, stockQuantity: true, status: true } },
     },
   });
   if (products.length !== quantities.size) return { ok: false, message: "One or more items in your bag are no longer available. Remove them and try again." };
 
-  const short = stockShortfalls(products, quantities);
-  if (short.length) return { ok: false, message: `Not enough stock for: ${short.join(", ")}. Lower the quantity and try again.` };
-  const stockHolds = buildStockHolds(products, quantities);
-
+  // Each line's version (size / colour…) and price come from the product, never from the browser.
   const byId = new Map(products.map((product) => [product.id, product]));
   const merged = new Map<string, PricedItem>();
+  const variantHolds = new Map<string, VariantHold[]>();
   for (const line of input.items) {
     const product = byId.get(line.productId)!;
-    const variant = line.variant?.trim() || undefined;
-    const key = `${product.id}::${variant ?? ""}`;
+    const choice = resolveLineVariant(product, { variantId: line.variantId, label: line.variant });
+    if (!choice.ok) {
+      return {
+        ok: false,
+        message: choice.reason === "choose"
+          ? `Choose a size or option for ${product.name} on its page, then try again.`
+          : `The option you picked for ${product.name} isn't available any more. Remove it from your bag and choose again.`,
+      };
+    }
+    const variant = choice.variant;
+    // Dropship products sell from the supplier's stock, so only the seller's own versions are counted here, and
+    // only when the seller tracks this product's stock.
+    if (variant && variant.stock !== null && !isDropshipProduct(product) && storeStockMode(product) !== "off") {
+      const list = variantHolds.get(product.id) ?? [];
+      const held = list.find((entry) => entry.id === variant.id);
+      if (held) held.quantity += line.quantity;
+      else list.push({ id: variant.id, quantity: line.quantity, name: `${product.name} · ${variant.name}` });
+      variantHolds.set(product.id, list);
+    }
+    const key = `${product.id}::${variant?.id ?? ""}`;
     const existing = merged.get(key);
     if (existing) {
       existing.quantity += line.quantity;
       continue;
     }
+    const image = variant?.imageUrl ?? product.images[0];
     merged.set(key, {
       productId: product.id,
-      name: variant ? `${product.name} (${variant})` : product.name,
-      price: linePrice(product.retailPrice, product.variants, variant),
+      name: variant ? `${product.name} · ${variant.name}` : product.name,
+      price: choice.price,
       quantity: line.quantity,
-      ...(variant ? { variant } : {}),
-      ...(product.images[0] ? { image: product.images[0] } : {}),
+      ...(variant ? { variant: variant.name, variantId: variant.id } : {}),
+      ...(image ? { image } : {}),
     });
   }
-  const items = [...merged.values()];
+
+  // Tracked products can't sell more than is left (in stock minus set aside); dropship ones more than the supplier has.
+  const short = stockShortfallDetails(products, quantities);
+  // A size or colour counted on its own needs enough of that version too (unless the product keeps selling at 0).
+  for (const [productId, holds] of variantHolds) {
+    const product = byId.get(productId)!;
+    if (storeStockMode(product) !== "strict") continue;
+    const variants = resolveStock(product.variants);
+    for (const hold of holds) {
+      const left = variants.get(hold.id);
+      if (left !== undefined && left !== null && left < hold.quantity && !short.some((entry) => entry.name === hold.name)) short.push({ name: hold.name, available: Math.max(0, left) });
+    }
+  }
+  if (short.length) return { ok: false, message: stockShortfallMessage(short) };
+  const stockHolds = buildStockHolds(products, quantities, variantHolds);
+
+  const agreed = typeof input.agreedItemsTotal === "number" && input.agreedItemsTotal > 0 ? input.agreedItemsTotal : null;
+  const items = agreed !== null ? spreadAgreedAmount([...merged.values()], agreed) : [...merged.values()];
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   const zones = await db.shippingZone.findMany({
@@ -171,7 +225,7 @@ export async function priceOrder(input: PricingInput): Promise<PricedOrder | { o
     }
   }
 
-  if (!applied) {
+  if (!applied && agreed === null) {
     const candidates = await db.discount.findMany({ where: { storeId: input.store.id, status: "active" } });
     const best = bestAutomaticDiscount(candidates, lines, fee);
     if (best && !(await eligibilityError(input.store.id, best.discount, input.buyerEmail))) {

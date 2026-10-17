@@ -16,6 +16,9 @@ import { formatDate, formatMoney, formatNumber, type Locale } from "@shared/i18n
 import { getLocale, getT } from "@/lib/i18n/server";
 import { isPeggyNight } from "@shared/mascots";
 import type { OrderChannel } from "@shared/channels";
+import { CampaignsWidget } from "@/components/campaigns/CampaignsWidget";
+import { sellerCountdowns } from "@/lib/store-campaigns/server";
+import { sortForWidget } from "@/lib/store-campaigns/status";
 
 // Seller home, following the 2026 "Seller app · web" mockup.
 
@@ -52,6 +55,7 @@ const CHANNEL_BAR: Record<OrderChannel, string> = {
   email: "bg-app-accent",
   online_store: "bg-app-forest",
   in_person: "bg-[#F2A93B]",
+  payment_link: "bg-[#6B4F8A]",
 };
 
 const TASK_ICON: Record<SellerDashboard["tasks"][number]["icon"], IconName> = {
@@ -138,10 +142,14 @@ export default async function HomePage() {
   // Setup finished elsewhere (or dismissed): take "Start here" out of the menu. Writes only when it changes.
   if (setup && !setup.checklist.showStart) await syncStartNav(user.id, false).catch(() => undefined);
 
+  // Active & upcoming campaigns: live and scheduled countdowns (campaigns, countdown pop-ups and sections).
+  const now = new Date();
+  const countdownStore = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, brandSettings: true } });
+  const countdowns = countdownStore ? sortForWidget(await sellerCountdowns(countdownStore, now).catch(() => []), 5) : [];
+
   const t = await getT("home", "orders", "common");
   const locale = await getLocale();
   const naira = (amount: number) => formatMoney(Math.round(amount), locale);
-  const now = new Date();
   const firstName = user.name.split(/\s+/)[0] || user.name;
   const storeHost = dashboard.store.url?.replace(/^https?:\/\//, "").replace(/\/$/, "");
 
@@ -284,6 +292,8 @@ export default async function HomePage() {
         </Card>
 
         <div className="grid content-start gap-5">
+          <CampaignsWidget items={countdowns} serverNow={now.toISOString()} />
+
           {/* Where orders come from */}
           <Card className="p-5">
             <h2 className="m-0 text-[17px] font-extrabold">{t("sources.title")}</h2>

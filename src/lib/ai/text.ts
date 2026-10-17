@@ -1,5 +1,6 @@
 import "server-only";
 import type Anthropic from "@anthropic-ai/sdk";
+import type OpenAI from "openai";
 import {
   CLAUDE_FAST_MODEL,
   getAnthropicClient,
@@ -26,6 +27,8 @@ export interface AiTextOptions {
   fast?: boolean;
   /** Upper bound on the reply. Claude also spends tokens thinking, so keep this generous. */
   maxTokens?: number;
+  /** Public image URLs shown to the model with the last user turn (a product photo). */
+  images?: string[];
 }
 
 export interface AiTextResult {
@@ -41,6 +44,16 @@ function turns(options: AiTextOptions): ChatTurn[] {
   return [{ role: "user", content: options.prompt ?? "" }];
 }
 
+/** The turns with the images put in front of the last user turn's text (each provider's own part shapes). */
+function withImages(list: ChatTurn[], images: string[] | undefined, image: (url: string) => unknown, text: (value: string) => unknown) {
+  const urls = (images ?? []).filter((url) => /^https:\/\//.test(url)).slice(0, 4);
+  return list.map((turn, index) =>
+    urls.length && index === list.length - 1 && turn.role === "user"
+      ? { role: turn.role, content: [...urls.map(image), text(turn.content)] }
+      : { role: turn.role, content: turn.content },
+  );
+}
+
 async function viaAnthropic(options: AiTextOptions): Promise<string | null> {
   const anthropic = getAnthropicClient();
   if (!anthropic) return null;
@@ -49,7 +62,7 @@ async function viaAnthropic(options: AiTextOptions): Promise<string | null> {
     max_tokens: options.maxTokens ?? 16000,
     ...(options.system ? { system: options.system } : {}),
     output_config: { effort: options.fast ? "low" : "medium" },
-    messages: turns(options) as Anthropic.MessageParam[],
+    messages: withImages(turns(options), options.images, (url) => ({ type: "image", source: { type: "url", url } }), (text) => ({ type: "text", text })) as Anthropic.MessageParam[],
   }, requestOptions(options));
   if (response.stop_reason === "refusal") return null;
   const text = response.content.map((block) => (block.type === "text" ? block.text : "")).join("").trim();
@@ -62,7 +75,7 @@ async function viaOpenAI(options: AiTextOptions): Promise<string | null> {
   const response = await openai.responses.create({
     model: PEGGY_OPENAI_MODEL,
     ...(options.system ? { instructions: options.system } : {}),
-    input: turns(options).map((turn) => ({ role: turn.role, content: turn.content })),
+    input: withImages(turns(options), options.images, (url) => ({ type: "input_image", image_url: url, detail: "auto" }), (text) => ({ type: "input_text", text })) as OpenAI.Responses.ResponseInput,
     max_output_tokens: options.maxTokens ?? 4000,
   }, requestOptions(options));
   return response.output_text?.trim() || null;

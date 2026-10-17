@@ -90,6 +90,10 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "studio.example": "Turn phone picture of cake to clean picture with white background.",
   "domain.short": "Your shop own web address wey people go type to find you.",
   "domain.example": "mamaputkitchen.com instead of one long link.",
+  "payment-links.short": "Link wey you send for chat so customer fit pay for the exact products and choose delivery.",
+  "payment-links.example": "Tolu ask for the red bag for WhatsApp. You send link, she pay ₦18,000 with card.",
+  "link-in-bio.short": "One page wey get your products, Buy now buttons and WhatsApp, for your Instagram or TikTok bio.",
+  "link-in-bio.example": "Your TikTok bio talk adafabrics.shopinbos.com/links. Fans tap am come buy.",
   "checkout.short": "The page where buyer go put im address and pay.",
   "checkout.example": "Kemi put her Yaba address, pick bank transfer and pay ₦24,000.",
   "abandoned-carts.short": "Carts wey people fill but dem comot before dem pay, so you fit remind dem.",
@@ -170,6 +174,10 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "on-time-rate.example": "48 out of 50 deliveries reach on time this week: na 96% on-time rate.",
   "api-key.short": "Secret code wey make another app fit work with your Shopinbos account.",
   "api-key.example": "Paste am inside your dispatch software, and hide am like password.",
+  "media.short": "All the pictures and videos for your shop, for one place so you fit name, describe and use dem again.",
+  "media.example": "Pick the Ankara photo from last month for new banner instead to upload am again.",
+  "seasonal-campaigns.short": "Sale wey you plan once, e go dress your shop for the season, then e go switch back by itself.",
+  "seasonal-campaigns.example": "Black Friday: gold colours, countdown and “BF Deal” badge from Friday reach Sunday night.",
 };
 
 export default pcm;

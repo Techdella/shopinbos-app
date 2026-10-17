@@ -26,6 +26,8 @@ export interface DashboardProduct {
   currentStock: number;
   lowStockThreshold: number;
   soldStock: number;
+  /** false: the seller doesn't track this product's stock (never low or sold out). */
+  trackStock?: boolean;
 }
 
 export type Tone = "accent" | "success" | "warning" | "muted" | "danger";
@@ -117,6 +119,7 @@ export function orderRow(order: DashboardOrder): OrderRow {
 }
 
 export function stockLabel(product: DashboardProduct): { label: string; low: boolean } {
+  if (product.trackStock === false) return { label: "Stock not tracked", low: false };
   if (product.currentStock <= 0) return { label: "Sold out", low: true };
   const low = product.currentStock <= product.lowStockThreshold;
   return { label: low ? `${product.currentStock} left` : `${product.currentStock} in stock`, low };
@@ -168,7 +171,7 @@ export function computeDashboard({ orders, products, now = new Date() }: Dashboa
     .slice(0, 6)
     .map((p) => ({ id: p.id, name: p.name, image: p.images[0] ?? null, price: p.retailPrice, sold: p.soldStock, stock: stockLabel(p) }));
   const lowStock = products
-    .filter((p) => p.currentStock <= p.lowStockThreshold)
+    .filter((p) => p.trackStock !== false && p.currentStock <= p.lowStockThreshold)
     .sort((a, b) => b.soldStock - a.soldStock || a.currentStock - b.currentStock);
 
   return {

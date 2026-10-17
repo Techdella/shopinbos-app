@@ -1,5 +1,6 @@
 "use client";
 
+import { CreditsBadge } from "@/components/credits/CreditsBadge";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -113,6 +114,7 @@ export function GlobalTopBar({
         <button type="button" aria-label={t("shell.search")} onClick={() => setSearchOpen(true)} className="grid h-10 w-10 place-items-center rounded-full border border-app-line md:hidden">
           <Icon name="search" size={17} />
         </button>
+        {(role === "seller" || role === "supplier") && <CreditsBadge manageHref={role === "supplier" ? "/supplier/credits" : "/home/credits"} />}
         {role === "seller" && (
           <Link href="/peggy" data-tour="ask-peggy" className="hidden h-[42px] items-center gap-2 rounded-full border border-app-line bg-white pl-1.5 pr-4 text-[14px] font-extrabold text-app-ink no-underline hover:border-app-line-strong sm:flex">
             <Mascot name="peggy" className="h-8 w-8" alt="" /> {t("shell.askPeggy")}
@@ -139,7 +141,7 @@ export function GlobalTopBar({
             )}
           </button>
           {menuOpen && (
-            <div className="absolute right-0 top-full z-50 mt-2 min-w-[220px] rounded-[18px] border border-app-line bg-white p-1.5 shadow-[0_20px_40px_-20px_rgba(22,20,31,0.35)]">
+            <div className="absolute right-0 top-full z-50 mt-2 max-h-[calc(100dvh-88px)] min-w-[220px] max-w-[calc(100vw-24px)] overflow-y-auto rounded-[18px] border border-app-line bg-white p-1.5 shadow-[0_20px_40px_-20px_rgba(22,20,31,0.35)]">
               <div className="px-3 py-2">
                 <div className="truncate text-[14px] font-extrabold">{displayName}</div>
                 {email && <div className="truncate text-[12px] text-app-ink-soft">{email}</div>}

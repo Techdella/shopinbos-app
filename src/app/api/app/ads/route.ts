@@ -6,6 +6,7 @@ import { getSellerAds } from "@/lib/ads";
 import { firstJsonObject, generateText } from "@/lib/ai/text";
 import { AD_PLATFORMS, AD_PLATFORM_KEYS, adCode, fallbackAdCopy } from "@shared/ads";
 import { naira } from "@shared/onboarding";
+import { isOwnImageUrl } from "@/lib/ai/images";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,6 +18,8 @@ const CreateSchema = z.object({
   destination: z.enum(["whatsapp", "store"]),
   dailyBudget: z.number().min(500, "The smallest budget is ₦500 a day").max(1_000_000),
   days: z.number().int().min(1).max(30),
+  /** A picture from Rex or the media library (our own storage only); else the product's main photo. */
+  imageUrl: z.string().max(2000).refine(isOwnImageUrl, "Use a picture saved in your shop").optional(),
 });
 
 export const GET = withSeller(async (_req, { user }) => {
@@ -71,7 +74,7 @@ export const POST = withSeller(async (req, { user }) => {
         destination: input.destination,
         headline,
         primaryText,
-        imageUrl: product.images[0] ?? null,
+        imageUrl: input.imageUrl ?? product.images[0] ?? null,
         dailyBudget: input.dailyBudget,
         days: input.days,
       },

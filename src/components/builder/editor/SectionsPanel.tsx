@@ -4,7 +4,9 @@ import { useState, type DragEvent, type KeyboardEvent } from "react";
 import { cx } from "@/components/app-ui";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import type { TemplateSectionNode } from "@/lib/store-templates";
+import { LAYOUT_ROW_KIND, columnPreset } from "@/components/storefront/boutique/blocks/layout-logic";
 import { GROUP_LABELS, groupSections, sectionBlocks, type SectionBlockRow, type SectionGroup } from "./editor-logic";
+import { hasInsertThumb, InsertThumb } from "./insert-thumbnails";
 import { useEditorT } from "./i18n";
 
 const KIND_ICONS: Record<string, IconName> = {
@@ -35,6 +37,17 @@ const BLOCK_ICONS: Record<SectionBlockRow["icon"], IconName> = { text: "edit", b
 
 export function sectionIcon(kind: string): IconName {
   return KIND_ICONS[kind] ?? "layers";
+}
+
+/** The section's wireframe picture (insert-thumbnails.tsx) when it has one, else its icon. */
+function SectionGlyph({ section }: { section: TemplateSectionNode }) {
+  const kind = section.kind === LAYOUT_ROW_KIND ? `layout:${columnPreset(section.settings?.preset).id}` : section.kind;
+  if (!hasInsertThumb(kind)) return <Icon name={sectionIcon(section.kind)} size={15} className="shrink-0" />;
+  return (
+    <span className="grid h-[22px] w-[34px] shrink-0 place-items-center rounded-[5px] bg-app-canvas text-app-ink-soft">
+      <InsertThumb kind={kind} className="block h-[18px] w-[30px]" />
+    </span>
+  );
 }
 
 export interface SectionsPanelProps {
@@ -131,7 +144,7 @@ export function SectionsPanel(props: SectionsPanelProps) {
                         aria-current={selected ? "true" : undefined}
                         className={cx("flex min-h-10 min-w-0 flex-1 items-center gap-2.5 text-left text-[13.5px]", selected ? "font-semibold text-[#2F66F6]" : "font-medium text-app-ink", hidden && "opacity-50")}
                       >
-                        <Icon name={sectionIcon(section.kind)} size={15} className="shrink-0" />
+                        <SectionGlyph section={section} />
                         <span className="truncate">{tx(section.name)}</span>
                       </button>
                       <button

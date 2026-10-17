@@ -101,8 +101,8 @@ const en = {
   "productForm.tiersHint": "One tier per line: quantity range, then unit price.",
   "productForm.photosTitle": "Photos and delivery",
   "productForm.photosSub": "What sellers see in the marketplace and where you can send it.",
-  "productForm.images": "Image URLs",
-  "productForm.imagesHint": "One link per line. The first one is the cover.",
+  "productForm.images": "Product photos",
+  "productForm.imagesHint": "The first one is the cover. Upload them or choose from your media.",
   "productForm.regions": "Delivery regions",
   "productForm.regionsHint": "One city or state per line.",
   "productForm.howBuy": "How sellers can buy",
@@ -592,6 +592,7 @@ const en = {
   "reviewsUi.wholesaleOrders": "Wholesale orders",
   "reviewsUi.finishedDeliveries": "Finished deliveries",
   "reviewsUi.deliveryFee": "{amount} delivery fee",
+  "quotes.pages": "Quote request pages",
 } satisfies Record<string, string>;
 
 export default en;

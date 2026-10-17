@@ -51,6 +51,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
           children: [
             { id: "orders-all", label: "All orders", href: "/home/orders" },
             { id: "orders-new", label: "Record a sale", href: "/home/orders/new" },
+            { id: "payment-links", label: "Payment links", href: "/home/payment-links" },
           ],
         },
         {
@@ -137,6 +138,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
           ],
         },
         { id: "brand-kit", label: "Brand kit", icon: "tag", href: "/home/brand-kit" },
+        { id: "media", label: "Media", icon: "image", href: "/home/media" },
         { id: "templates", label: "Templates", icon: "grid", href: "/builder/templates" },
         { id: "domain", label: "Domain", icon: "globe", href: "/home/domain" },
       ],
@@ -150,6 +152,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
           children: [
             { id: "marketing-overview", label: "Overview", href: "/home/marketing" },
             { id: "campaigns", label: "Campaigns", href: "/home/marketing/campaigns" },
+            { id: "seasonal-campaigns", label: "Seasonal campaigns", href: "/home/campaigns" },
             { id: "automations", label: "Automations", href: "/home/automations" },
             { id: "email-templates", label: "Email templates", href: "/home/marketing/templates" },
             { id: "mkt-forms", label: "Forms and pop-ups", href: "/home/marketing/forms" },
@@ -162,6 +165,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
         { id: "discounts", label: "Discounts", icon: "percent", href: "/home/discounts" },
         { id: "affiliates", label: "Affiliates", icon: "link", href: "/home/affiliates" },
         { id: "sell-everywhere", label: "Sell everywhere", icon: "globe", href: "/channels" },
+        { id: "link-in-bio", label: "Link in bio", icon: "instagram", href: "/home/social/link-in-bio" },
       ],
     },
     {
@@ -184,11 +188,21 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
             { id: "shipping", label: "Shipping rates", href: "/home/shipping" },
           ],
         },
-        { id: "labels", label: "Labels and print", icon: "tag", href: "/home/labels" },
+        {
+          id: "labels", label: "Labels and print", icon: "tag", href: "/home/labels",
+          children: [
+            { id: "labels-designs", label: "Designs and shipping", href: "/home/labels" },
+            { id: "labels-packaging", label: "Packaging designer", href: "/home/labels/packaging" },
+            { id: "labels-studio", label: "Labels and tags", href: "/home/labels/studio" },
+            { id: "labels-orders", label: "Print orders", href: "/home/labels/orders" },
+            { id: "labels-request", label: "Custom packaging", href: "/home/labels/request" },
+          ],
+        },
         {
           id: "reports", label: "Analytics", icon: "chart", href: "/home/analytics",
           children: [
             { id: "reports-sales", label: "Sales and visits", href: "/home/analytics" },
+            { id: "reports-traffic", label: "Store traffic", href: "/home/analytics/traffic" },
             { id: "health", label: "Store health", href: "/home/health" },
             { id: "activity", label: "Activity", href: "/home/activity" },
           ],
@@ -205,6 +219,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
             { id: "settings-store", label: "Store settings", href: "/home/settings" },
             { id: "profile", label: "Your profile", href: "/home/profile" },
             { id: "notification-prefs", label: "Notification settings", href: "/home/notifications/preferences" },
+            { id: "connections", label: "Connections", href: "/home/connections" },
             { id: "customise", label: "Customise your menu", href: "/home/features" },
           ],
         },
@@ -341,8 +356,20 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
             { id: "support-macros", label: "Saved replies", href: "/admin/support/macros" },
           ],
         },
+        { id: "analytics", label: "Analytics", icon: "chart", href: "/admin/analytics", core: true },
+        {
+          id: "leads", label: "Leads", icon: "list", href: "/admin/leads", core: true,
+          children: [
+            { id: "leads-all", label: "All leads", href: "/admin/leads" },
+            { id: "lead-campaigns", label: "Campaigns & automations", href: "/admin/lead-campaigns" },
+            { id: "lead-whatsapp", label: "WhatsApp", href: "/admin/lead-campaigns/whatsapp" },
+          ],
+        },
         { id: "product-news", label: "Product news", icon: "megaphone", href: "/admin/product-news", core: true },
         { id: "help-videos", label: "Help videos", icon: "play", href: "/admin/help-videos", core: true },
+        { id: "ad-requests", label: "Ad requests", icon: "megaphone", href: "/admin/ad-requests", core: true },
+        { id: "packaging-requests", label: "Packaging requests", icon: "package", href: "/admin/packaging-requests", core: true },
+        { id: "print-orders", label: "Print orders", icon: "truck", href: "/admin/print-orders", core: true },
       ],
     },
     {
@@ -364,6 +391,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
             { id: "marketplace-sync", label: "Marketplace", href: "/admin/marketplace" },
             { id: "categories", label: "Categories", href: "/admin/categories" },
             { id: "domain-partners", label: "Domain partners", href: "/admin/domain-partners" },
+            { id: "domain-purchases", label: "Domains sellers bought", href: "/admin/domains" },
           ],
         },
       ],

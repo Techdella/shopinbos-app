@@ -12,11 +12,18 @@ export interface AppPreferences {
   introsSeen?: string[];
   /** App language (shared/i18n); left out until they pick one (the device's language is used meanwhile). */
   language?: Locale;
+  /** false once they switch off tips and tooltips (word tooltips, menu tips, intros that open by themselves). Left out while on. */
+  tips?: boolean;
 }
 
 export const DEFAULT_PREFERENCES: AppPreferences = { hiddenNav: [], tour: null };
 
 /** Intro keys kept per person (oldest dropped first). */
+/** Tips and tooltips are on unless the person switched them off. */
+export function tipsOn(prefs: Pick<AppPreferences, "tips"> | null | undefined): boolean {
+  return prefs?.tips !== false;
+}
+
 export const MAX_INTROS_SEEN = 60;
 const INTRO_KEY = /^[a-z0-9-]{1,40}$/;
 
@@ -38,6 +45,7 @@ export function parsePreferences(raw: unknown): AppPreferences {
     tour: value.tour === "done" ? "done" : null,
     ...(introsSeen.length ? { introsSeen } : {}),
     ...(isLocale(value.language) ? { language: value.language } : {}),
+    ...(value.tips === false ? { tips: false as const } : {}),
   };
 }
 
@@ -54,5 +62,7 @@ export function mergePreferences(current: AppPreferences, patch: Partial<AppPref
     if (merged.length) next.introsSeen = merged;
   }
   if (isLocale(patch.language)) next.language = patch.language;
+  if (patch.tips === false) next.tips = false;
+  else if (patch.tips === true) delete next.tips;
   return next;
 }

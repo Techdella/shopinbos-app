@@ -4,6 +4,8 @@ import { withSeller } from "@/lib/auth/middleware";
 import { apiError, ok } from "@/lib/api/response";
 import { sellerStore } from "@/lib/inbox/auth";
 import { addNote, sendReply } from "@/lib/inbox/service";
+import { db } from "@/lib/db/client";
+import { checkRateLimitShared, rateLimitKey } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -21,6 +23,13 @@ export const POST = withSeller(async (req: NextRequest, { user, params }) => {
     const note = await addNote({ storeId: store.id, conversationId: String(params.id), body: parsed.data.body, authorName: user.name ?? "You" });
     if (!note) return apiError("NOT_FOUND", "Conversation not found", 404);
     return ok({ id: note.id, status: note.status });
+  }
+
+  // Email goes out from the seller's own address (Gmail or their domain): the same limit as the customer drawer.
+  const conversation = await db.inboxConversation.findFirst({ where: { id: String(params.id), storeId: store.id }, select: { channel: true } });
+  if (conversation && ["email", "form"].includes(conversation.channel)) {
+    const limit = await checkRateLimitShared(rateLimitKey("customer-message", store.id), { maxRequests: 30, windowMs: 10 * 60_000 });
+    if (!limit.allowed) return apiError("RATE_LIMITED", "You've sent a lot of emails in a short time. Wait a few minutes and try again.", 429);
   }
 
   const result = await sendReply({ storeId: store.id, conversationId: String(params.id), body: parsed.data.body, authorName: user.name ?? "You" });

@@ -1,17 +1,21 @@
 "use client";
 
+import { mediaFile, useMediaLibrary } from "@/components/media/useMediaLibrary";
+import { BuyCreditsButton } from "@/components/credits/CreditsBadge";
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import { Mascot, MicIcon, Spinner, cx } from "@/components/app-ui";
+import { Mascot, Spinner, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { useT } from "@/components/i18n/I18nProvider";
-import { transcribe } from "@/components/onboarding/seller/api";
 import { REX_STARTERS } from "@/lib/ai/rex/starters";
 import { uploadStudioPhoto } from "./api";
+import { RexProgress } from "./RexProgress";
+import { isVideoFile, videoFrames } from "./video-frames";
+import type { RexJob } from "@shared/rex-progress";
 import { RexCardView, type RexCardHandlers } from "./RexCards";
 import type { ChatMessage } from "./types";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 
-const MAX_PHOTOS = 4;
+const MAX_PHOTOS = 6;
 
 function RexAvatar({ mood = "idle" }: { mood?: "idle" | "thinking" }) {
   return <Mascot name="rex" mood={mood} alt="" className="mt-0.5 h-8 w-8 shrink-0" />;
@@ -25,6 +29,7 @@ export function RexChat({
   messages,
   busy,
   busyLabel,
+  busyJob,
   chips,
   wide,
   disabledReason,
@@ -33,31 +38,36 @@ export function RexChat({
   onUndo,
   onOpenPreview,
   undoingId,
+  attachRequest,
 }: {
   messages: ChatMessage[];
   busy: boolean;
   busyLabel: string;
+  /** What Rex is busy with, for the step-by-step progress (null: a plain "working" note). */
+  busyJob?: RexJob | null;
   chips: string[];
   /** True when the chat has the whole width (no preview beside it). */
   wide: boolean;
   /** Set when Rex can't take requests (AI not configured); the composer explains instead. */
   disabledReason: string | null;
   initialText?: string;
-  onSend: (text: string, imageUrls: string[]) => Promise<void> | void;
+  /** `videoStills`: the attached photos that are stills taken from a video the seller attached. */
+  onSend: (text: string, imageUrls: string[], videoStills?: string[]) => Promise<void> | void;
   onUndo: (undoTo: string) => Promise<boolean>;
   onOpenPreview: (page: string | null) => void;
   undoingId: string | null;
+  /** A picture to attach to the chat box (History > Creations > Use with Rex); `n` makes repeats count. */
+  attachRequest?: { url: string; n: number } | null;
 }) {
   const t = useT("builder", "common");
+  const media = useMediaLibrary();
   const [text, setText] = useState(initialText ?? "");
   const [photos, setPhotos] = useState<string[]>([]);
+  const [stills, setStills] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
   const [link, setLink] = useState("");
-  const [recording, setRecording] = useState(false);
-  const [transcribing, setTranscribing] = useState(false);
   const [note, setNote] = useState<string | null>(null);
-  const recorderRef = useRef<MediaRecorder | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -74,6 +84,13 @@ export function RexChat({
     input.setSelectionRange(input.value.length, input.value.length);
   }, [initialText]);
 
+  useEffect(() => {
+    if (!attachRequest) return;
+    setPhotos((prev) => (prev.includes(attachRequest.url) ? prev : [...prev, attachRequest.url].slice(-MAX_PHOTOS)));
+    setText((current) => current || t("rex.ch.photoPrompt"));
+    inputRef.current?.focus();
+  }, [attachRequest, t]);
+
   const blocked = busy || Boolean(disabledReason);
   const fresh = !messages.some((message) => message.role === "seller");
   const handlers: RexCardHandlers = { onAsk: (prompt) => void onSend(prompt, []), onOpenPreview, onUndo, busy: blocked };
@@ -85,9 +102,11 @@ export function RexChat({
     if (!message || blocked || uploading) return;
     setText("");
     const attached = photos;
+    const fromVideo = stills.filter((url) => attached.includes(url));
     setPhotos([]);
+    setStills([]);
     setNote(null);
-    await onSend(message, attached);
+    await onSend(message, attached, fromVideo);
   }
 
   function onKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
@@ -97,21 +116,51 @@ export function RexChat({
     }
   }
 
-  async function addPhotos(files: FileList | null) {
-    if (!files?.length) return;
+  /** The paperclip opens the media library first (it uploads too); a library video becomes a few stills. */
+  async function attachFromMedia() {
+    const picked = await media.open({ multiple: true, accept: "any" });
+    if (!picked.length) return;
     const room = MAX_PHOTOS - photos.length;
+    const pictures = picked.filter((asset) => asset.kind !== "video").map((asset) => asset.url).filter((url) => !photos.includes(url)).slice(0, Math.max(0, room));
+    if (pictures.length) {
+      setPhotos((prev) => [...prev, ...pictures].slice(0, MAX_PHOTOS));
+      if (!text.trim()) setText(t("rex.ch.photoPrompt"));
+      inputRef.current?.focus();
+    }
+    const videos = picked.filter((asset) => asset.kind === "video");
+    if (videos.length) {
+      try {
+        await addPhotos(await Promise.all(videos.map(mediaFile)));
+      } catch {
+        setNote(t("rex.ch.uploadFailed"));
+      }
+    }
+  }
+
+  async function addPhotos(files: FileList | File[] | null) {
+    if (!files?.length) return;
+    let room = MAX_PHOTOS - photos.length;
     if (room <= 0) {
       setNote(t("rex.ch.maxPhotos", { count: MAX_PHOTOS }));
       return;
     }
     setUploading(true);
     setNote(null);
+    let video = false;
     try {
-      for (const file of Array.from(files).slice(0, room)) {
-        const url = await uploadStudioPhoto(file);
-        setPhotos((prev) => [...prev, url]);
+      for (const file of Array.from(files)) {
+        if (room <= 0) break;
+        // A video goes to Rex as a few stills (the AI reads pictures); a photo goes as it is.
+        const parts = isVideoFile(file) ? await videoFrames(file, Math.min(3, room)) : [file];
+        for (const part of parts) {
+          const url = await uploadStudioPhoto(part);
+          setPhotos((prev) => [...prev, url]);
+          if (part !== file) setStills((prev) => [...prev, url]);
+          room -= 1;
+        }
+        video ||= isVideoFile(file);
       }
-      if (!text.trim()) setText(t("rex.ch.photoPrompt"));
+      if (!text.trim()) setText(video ? t("rex.ch.videoPrompt") : t("rex.ch.photoPrompt"));
       inputRef.current?.focus();
     } catch (error) {
       setNote(error instanceof Error ? error.message : t("rex.ch.uploadFailed"));
@@ -133,46 +182,6 @@ export function RexChat({
     setLinkOpen(false);
     setNote(null);
     inputRef.current?.focus();
-  }
-
-  async function toggleMic() {
-    if (recording) {
-      recorderRef.current?.stop();
-      setRecording(false);
-      return;
-    }
-    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
-      setNote(t("rex.ch.noVoice"));
-      return;
-    }
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
-      const chunks: Blob[] = [];
-      recorder.ondataavailable = (event) => {
-        if (event.data.size) chunks.push(event.data);
-      };
-      recorder.onstop = async () => {
-        stream.getTracks().forEach((track) => track.stop());
-        setTranscribing(true);
-        try {
-          const heard = await transcribe(new Blob(chunks, { type: "audio/webm" }));
-          if (heard) setText((prev) => `${prev.trim() ? `${prev.trim()} ` : ""}${heard}`);
-          else setNote(t("rex.ch.notCaught"));
-        } catch (error) {
-          setNote(error instanceof Error ? error.message : t("rex.ch.notHeard"));
-        } finally {
-          setTranscribing(false);
-          inputRef.current?.focus();
-        }
-      };
-      recorderRef.current = recorder;
-      recorder.start();
-      setRecording(true);
-      setNote(null);
-    } catch {
-      setNote(t("rex.ch.allowMic"));
-    }
   }
 
   return (
@@ -234,6 +243,7 @@ export function RexChat({
                           </button>
                         </div>
                       ) : null}
+                      {message.buyCredits || message.text.includes("Buy AI credits") ? <BuyCreditsButton className="mt-3 min-h-[36px] text-[13px]" label={t("rex.ch.buyCredits")} /> : null}
                       {message.offer ? (
                         <button
                           type="button"
@@ -283,11 +293,17 @@ export function RexChat({
           ) : null}
 
           {busy ? (
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-start gap-2.5">
               <RexAvatar mood="thinking" />
-              <div className="flex items-center gap-2 rounded-[18px] rounded-tl-[6px] bg-app-peach px-4 py-3 text-[14px]">
-                <Spinner className="h-4 w-4" /> {busyLabel}
-              </div>
+              {busyJob ? (
+                <div className="w-full max-w-[420px] rounded-[18px] rounded-tl-[6px] border border-app-line bg-white px-4 py-3.5">
+                  <RexProgress job={busyJob} compact />
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 rounded-[18px] rounded-tl-[6px] bg-app-peach px-4 py-3 text-[14px]">
+                  <Spinner className="h-4 w-4" /> {busyLabel}
+                </div>
+              )}
             </div>
           ) : null}
         </div>
@@ -321,9 +337,17 @@ export function RexChat({
                     <span key={url} className="relative">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={url} alt={t("rex.ch.photoToSend")} className="h-14 w-14 rounded-[10px] object-cover" />
+                      {stills.includes(url) ? (
+                        <span className="absolute bottom-1 left-1 grid h-5 w-5 place-items-center rounded-full bg-app-ink/80 text-white" title={t("rex.ch.fromVideo")}>
+                          <Icon name="play" size={10} />
+                        </span>
+                      ) : null}
                       <button
                         type="button"
-                        onClick={() => setPhotos((prev) => prev.filter((entry) => entry !== url))}
+                        onClick={() => {
+                          setPhotos((prev) => prev.filter((entry) => entry !== url));
+                          setStills((prev) => prev.filter((entry) => entry !== url));
+                        }}
                         aria-label={t("rex.ch.removePhoto")}
                         className="absolute -right-1.5 -top-1.5 grid h-6 w-6 place-items-center rounded-full bg-app-ink text-white"
                       >
@@ -365,10 +389,11 @@ export function RexChat({
                 </div>
               ) : null}
               <div className="flex items-center gap-1.5 px-1">
-                <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" multiple className="sr-only" tabIndex={-1} onChange={(event) => void addPhotos(event.target.files)} />
+                <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,video/mp4,video/webm,video/quicktime" multiple className="sr-only" tabIndex={-1} onChange={(event) => void addPhotos(event.target.files)} />
+                {media.dialog}
                 <button
                   type="button"
-                  onClick={() => fileRef.current?.click()}
+                  onClick={() => void attachFromMedia()}
                   disabled={uploading || blocked}
                   aria-label={t("rex.ch.attach")}
                   title={t("rex.ch.attach")}
@@ -388,20 +413,6 @@ export function RexChat({
                 </button>
                 <VoiceInputButton variant="icon" value={text} onChange={setText} maxLength={2000} context="a request for Rex" disabled={blocked} />
                 <button
-                  type="button"
-                  onClick={() => void toggleMic()}
-                  disabled={transcribing || busy}
-                  aria-label={recording ? t("rex.ch.stopUse") : t("rex.ch.speak")}
-                  aria-pressed={recording}
-                  title={recording ? t("rex.ch.stop") : t("rex.ch.speak")}
-                  className={cx(
-                    "grid h-10 w-10 place-items-center rounded-full border hover:bg-app-canvas disabled:opacity-50",
-                    recording ? "border-app-accent bg-app-accent text-white hover:bg-app-accent" : "border-app-line",
-                  )}
-                >
-                  {transcribing ? <Spinner className="h-4 w-4" /> : <MicIcon size={17} />}
-                </button>
-                <button
                   type="submit"
                   disabled={!text.trim() || blocked || uploading}
                   aria-label={t("rex.ch.sendToRex")}
@@ -413,7 +424,6 @@ export function RexChat({
             </form>
           )}
           {note ? <p className="m-0 mt-2 text-[12.5px] text-app-danger" role="status">{note}</p> : null}
-          {recording ? <p className="m-0 mt-2 text-[12.5px] font-bold text-app-accent-ink" role="status">{t("rex.ch.listening")}</p> : null}
         </div>
       </div>
     </div>

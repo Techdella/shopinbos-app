@@ -46,7 +46,10 @@ test("the seller's own transfer window comes from paymentConfig.transferWindowHo
   assert.ok(payments.TRANSFER_WINDOW_CHOICES.includes(24));
   const expiry = read("src/lib/commerce/order-expiry.server.ts");
   assert.match(expiry, /readTransferWindowHours\(brandSettings\)/);
-  assert.match(read("src/app/home/payments/actions.ts"), /TRANSFER_WINDOW_CHOICES/);
+  // The web action and /api/app/payments both save through saveSellerTransferWindow, which only takes a listed time.
+  assert.match(read("src/app/home/payments/actions.ts"), /saveSellerTransferWindow/);
+  assert.match(read("src/lib/seller-payments.server.ts"), /isTransferWindowChoice\(hours\)/);
+  assert.match(read("shared/seller-payments.ts"), /TRANSFER_WINDOW_CHOICES/);
 });
 
 test("checkout saves the deadline and expiry uses it (older orders use the method's window)", () => {

@@ -38,6 +38,8 @@ const en = {
   "canTitle": "What Peggy can do",
   "neverAlone": "She never sends messages, publishes posts or starts ads on her own; those are saved as drafts for you.",
   "didThis": "Peggy did this",
+  "askRex": "Ask Rex: {request}",
+  "buyCredits": "Buy AI credits",
 } satisfies Record<string, string>;
 
 export default en;

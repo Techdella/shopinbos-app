@@ -1,6 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db/client";
-import { fromExternalReview, fromStoreReview, sortReviews, type ReviewItem } from "./pure";
+import { fromExternalReview, fromStoreReview, reviewModerationData, sortReviews, type ReviewItem, type ReviewStatusValue } from "./pure";
 
 // Loading reviews from every source into one list. Reads fall back gracefully while the reviews migration
 // (docs/migrations/2026-10-12-reviews.sql) hasn't been applied: store reviews still load, imported ones read
@@ -77,6 +77,16 @@ export async function loadReview(storeId: string, kind: "store" | "external", id
   }
   const row = await db.externalReview.findFirst({ where: { id, storeId } }).catch(() => null);
   return row ? fromExternalReview(row) : null;
+}
+
+/** Publish / hold back / hide, or feature / unfeature one review of this store. Returns false when it isn't theirs. */
+export async function moderateReview(storeId: string, ref: { kind: "store" | "external"; id: string }, change: { status: ReviewStatusValue } | { featured: boolean }) {
+  const data = reviewModerationData(change);
+  const result =
+    ref.kind === "store"
+      ? await db.productReview.updateMany({ where: { id: ref.id, storeId }, data })
+      : await db.externalReview.updateMany({ where: { id: ref.id, storeId }, data });
+  return result.count > 0;
 }
 
 export async function productNames(storeId: string, ids?: string[]) {

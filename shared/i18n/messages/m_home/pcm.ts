@@ -67,6 +67,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "peggy.chats": "{chats, plural, one {Peggy watch # chat today.} other {Peggy watch # chats today.}}",
   "peggy.orders": "{orders, plural, one {Peggy watch # order today.} other {Peggy watch # orders today.}}",
   "peggy.chatsAndOrders": "Peggy watch {chats, plural, one {# chat} other {# chats}} and {orders, plural, one {# order} other {# orders}} today.",
+  "me.open": "Your photo and settings",
+  "logo.label": "{name} logo",
 };
 
 export default pcm;

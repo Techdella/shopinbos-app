@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import QRCode from "qrcode";
 import { requireRole } from "@/lib/server-auth";
-import { db } from "@/lib/db/client";
-import { buildStorefrontUrl } from "@/lib/domains/storefront";
-import { addressLines, amountToCollect, itemCount, parseLabelFormat, parseOrderIds } from "@/lib/labels";
+import { parseLabelFormat, parseOrderIds } from "@/lib/labels";
+import { loadLabels } from "@/lib/labels.server";
 import { naira } from "@shared/onboarding";
 import { PrintButton } from "./PrintButton";
 import { getT } from "@/lib/i18n/server";
@@ -31,24 +29,8 @@ export default async function PrintLabelsPage({ searchParams }: { searchParams: 
   const withSlips = params.slips !== "0";
   const ids = parseOrderIds(params.orders);
 
-  const store = await db.store.findUnique({
-    where: { userId: user.id },
-    select: { id: true, name: true, slug: true, customDomain: true, logoUrl: true, liveChatConfig: { select: { whatsappNumber: true, contactPhone: true } } },
-  });
-  const orders = store && ids.length
-    ? await db.retailOrder.findMany({ where: { storeId: store.id, id: { in: ids } }, orderBy: { createdAt: "asc" } })
-    : [];
-  const storePhone = store?.liveChatConfig?.whatsappNumber || store?.liveChatConfig?.contactPhone || user.phone || null;
-
-  const labels = await Promise.all(
-    orders.map(async (order) => ({
-      order,
-      qr: await QRCode.toString(buildStorefrontUrl(store!, `/order/${order.id}`), { type: "svg", margin: 0, errorCorrectionLevel: "M" }),
-      lines: addressLines(order.deliveryAddress),
-      collect: amountToCollect({ status: order.status, total: Number(order.total) }),
-      count: itemCount(order.items),
-    })),
-  );
+  // The same labels the phone app previews and prints (src/lib/labels.server.ts).
+  const { store, storePhone, labels } = await loadLabels({ userId: user.id, userPhone: user.phone ?? null, orderIds: ids });
 
   const pageSize = format === "a4" ? "A4" : "4in 6in";
 

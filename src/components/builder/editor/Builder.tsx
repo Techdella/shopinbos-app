@@ -18,8 +18,24 @@ import {
   type TemplateSectionNode,
   type ThemeTokenSet,
 } from "@/lib/store-templates";
+import {
+  LAYOUT_ROW_KIND,
+  addLayoutElement,
+  applyElementMove,
+  findLayoutElement,
+  layoutElementLabel,
+  newLayoutElement,
+  newLayoutRowSection,
+  normaliseLayoutRow,
+  type ColumnPresetId,
+  type ElementMoveRequest,
+  type LayoutElementType,
+  type RowMove,
+  type RowMoveOutcome,
+} from "@/components/storefront/boutique/blocks/layout-logic";
 import { AppsPanel } from "./AppsPanel";
 import { Canvas, type CanvasToolbarAction, type Device } from "./Canvas";
+import { CanvasInserter } from "./CanvasInserter";
 import {
   buildPageList,
   canDuplicateSection,
@@ -28,6 +44,9 @@ import {
   findPageEntry,
   insertLabel,
   insertSection,
+  insertSectionAt,
+  insertSlots,
+  slotBelow,
   moveSection,
   moveSectionTo,
   newBoutiqueSection,
@@ -55,8 +74,18 @@ import { TopBar } from "./TopBar";
 import { IconButton, useMediaQuery } from "./ui";
 import { storefrontHost, useBuilder } from "./useBuilder";
 import { useEditorT } from "./i18n";
+import { customPageSlug } from "@shared/storefront-pages";
 
 type Panel = "sections" | "insert" | "theme" | "apps" | "rex";
+
+/** A move of an element in rows and columns, waiting to be read out once its commit has been drawn. */
+interface PendingMove {
+  token: number;
+  request: ElementMoveRequest;
+  select: boolean;
+  /** What the commit did, on the page it ran on; null until it runs. */
+  ran: { before: TemplateSectionNode[]; outcome: RowMoveOutcome; move: RowMove } | null;
+}
 
 const RAIL: Array<{ id: Exclude<Panel, "rex">; icon: IconName; label: string }> = [
   { id: "sections", icon: "list", label: "Sections" },
@@ -98,12 +127,23 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
   const [inspectorOpen, setInspectorOpen] = useState(true);
   const [entryId, setEntryId] = useState("home");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  /** An element inside a rows-and-columns section, picked on the canvas or in the panel. */
+  const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
+  /** The canvas "+" inserter: open at a spot between sections, or for one column of a row. */
+  const [canvasInsert, setCanvasInsert] = useState<{ type: "slot"; slotKey: string } | { type: "column"; sectionId: string; column: number } | null>(null);
   const [focusField, setFocusField] = useState<string | null>(null);
   const [inspectorTab, setInspectorTab] = useState<"settings" | "style">("settings");
   const [device, setDevice] = useState<Device>("desktop");
   const [scrollToken, setScrollToken] = useState(0);
   const [sheet, setSheet] = useState<"section" | "sections" | null>(null);
   const [phoneNote, setPhoneNote] = useState(true);
+  /** "Preview store": the page as shoppers see it, no editing tools (unsaved edits included). */
+  const [storePreview, setStorePreview] = useState(false);
+  /** Where "Leave" was going while the save-or-lose prompt is open. */
+  const [leaving, setLeaving] = useState<string | null>(null);
+  const [leaveSaving, setLeaveSaving] = useState(false);
+  /** Read out to screen readers (moves of elements in rows and columns). `n` makes a repeat of the same words count. */
+  const [announcement, setAnnouncement] = useState<{ text: string; n: number }>({ text: "", n: 0 });
   const insertSearchRef = useRef<HTMLInputElement>(null);
 
   const snapshot = preview?.snapshot ?? draft;
@@ -131,6 +171,14 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
   useEffect(() => {
     if (selectedId && !selected) setSelectedId(null);
   }, [selected, selectedId]);
+  // Undo, a removed element or another section: the element selection only stays while it exists.
+  useEffect(() => {
+    if (selectedElementId && (!selected || selected.kind !== LAYOUT_ROW_KIND || !findLayoutElement(selected, selectedElementId))) setSelectedElementId(null);
+  }, [selected, selectedElementId]);
+  // The canvas inserter belongs to one page.
+  useEffect(() => {
+    setCanvasInsert(null);
+  }, [pageType, preview]);
   useEffect(() => {
     if (draft && !draft.pages.some((candidate) => candidate.pageType === pageType)) setEntryId(draft.pages[0]?.pageType ?? "home");
   }, [draft, pageType]);
@@ -147,6 +195,7 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
 
   const select = useCallback((id: string | null, from: "canvas" | "tree" = "canvas") => {
     setSelectedId(id);
+    setSelectedElementId(null);
     if (id) {
       setInspectorTab("settings");
       if (from === "tree") setScrollToken((token) => token + 1);
@@ -180,10 +229,15 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
     setTimeout(() => insertSearchRef.current?.focus(), 30);
   }, []);
 
-  const insert = useCallback((kind: string) => {
+  const createSection = useCallback((kind: string) => {
     const id = newId(kind);
     const section = renderer === "boutique" ? newBoutiqueSection(kind, id) : { ...createSectionFromLibrary(kind), id };
     if (renderer !== "boutique") section.name = section.name || insertLabel(kind);
+    return section;
+  }, [renderer]);
+
+  /** Insert panel: above the chosen section, below the selected one, or at the end of the page body. */
+  const insertNode = useCallback((section: TemplateSectionNode) => {
     let beforeId = insertTarget.beforeId;
     if (!beforeId && insertTarget.group === "template" && selected && sectionGroup(selected.kind) === "template") {
       const index = sections.findIndex((entry) => entry.id === selected.id);
@@ -191,13 +245,132 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
     }
     editSections((list) => insertSection(list, section, beforeId));
     setInsertTarget({ group: "template", beforeId: null });
-    select(id, "tree");
-    b.showToast(`${section.name} added`);
-  }, [b, editSections, insertTarget, renderer, sections, select, selected]);
+    select(section.id, "tree");
+    b.showToast(t("edk.added", { name: tx(section.name) }));
+  }, [b, editSections, insertTarget, sections, select, selected, t, tx]);
+
+  const insert = useCallback((kind: string) => insertNode(createSection(kind)), [createSection, insertNode]);
+
+  /** Canvas "+": at that exact spot (looked up again in the current page, so an undo in between can't misplace it). */
+  const placeAtSlot = useCallback((section: TemplateSectionNode, slotKey: string, elementId?: string) => {
+    editSections((list) => {
+      const slot = insertSlots(list).find((entry) => entry.key === slotKey);
+      return slot ? insertSectionAt(list, section, slot.index) : insertSection(list, section, null);
+    });
+    setCanvasInsert(null);
+    select(section.id, "tree");
+    if (elementId) {
+      setSelectedElementId(elementId);
+      setFocusField(`element:${elementId}`);
+    }
+    b.showToast(t("edk.added", { name: tx(section.name) }));
+  }, [b, editSections, select, t, tx]);
+
+  const addElementToColumn = useCallback((sectionId: string, column: number, type: LayoutElementType) => {
+    const element = newLayoutElement(type, newId("el"));
+    editSection(sectionId, (current) => addLayoutElement(current, column, element));
+    setCanvasInsert(null);
+    select(sectionId, "tree");
+    setSelectedElementId(element.id);
+    setFocusField(`element:${element.id}`);
+  }, [editSection, select]);
+
+  // Hints drawn on the canvas (rows and columns, empty blocks, samples), in the seller's language: storefront code
+  // has no builder catalog.
+  const editorText = useCallback((english: string, vars?: Record<string, string | number>) => t.dynamic(`ed.${english}`, english, vars), [t]);
+
+  // Drag and drop (canvas or panel), up / down and "Move to": one undoable change, read out to screen readers.
+  // `select` keeps the moved element picked (canvas drops and "Move to"); up / down leave the selection alone.
+  // `toSectionId` moves it into another rows / columns section on the page; it is then picked there.
+  // The move runs inside the commit, on the page as it is then (a drag can outlive an undo or another edit), and
+  // records what it came to (applyElementMove). Once that change has been drawn, the effect below reads the record:
+  // only a real move is announced and selected; otherwise nothing changed, the selection stays and the reason is read
+  // out (the column filled up, the row or element is gone, or it was dropped where it was).
+  const pendingMoves = useRef<PendingMove[]>([]);
+  const lastMoveToken = useRef(0);
+  const [moveToken, setMoveToken] = useState(0);
+  const moveElement = useCallback((sectionId: string, elementId: string, column: number, index: number, options?: { select?: boolean; toSectionId?: string }) => {
+    lastMoveToken.current += 1;
+    const record: PendingMove = { token: lastMoveToken.current, request: { fromSectionId: sectionId, elementId, toSectionId: options?.toSectionId ?? sectionId, column, index }, select: Boolean(options?.select), ran: null };
+    pendingMoves.current.push(record);
+    editSections((list) => {
+      const applied = applyElementMove(list, record.request);
+      // The updater can run more than once (strict mode, a re-based update): the last run is the one committed.
+      record.ran = { before: list, outcome: applied.outcome, move: applied.move };
+      return applied.next;
+    });
+    // Drawn in the same render as the commit, so the effect below sees the page this move produced.
+    setMoveToken(record.token);
+  }, [editSections]);
+
+  useEffect(() => {
+    // Only moves whose commit this render has drawn (a later one waits for its own render).
+    const done = pendingMoves.current.filter((record) => record.token <= moveToken);
+    if (!done.length) return;
+    pendingMoves.current = pendingMoves.current.filter((record) => record.token > moveToken);
+    for (const { request, select: keepPicked, ran } of done) {
+      const before = ran?.before ?? [];
+      const target = before.find((entry) => entry.id === request.toSectionId);
+      const across = request.toSectionId !== request.fromSectionId;
+      const rows = before.filter((entry) => entry.kind === LAYOUT_ROW_KIND);
+      const rowLabel = (row: TemplateSectionNode) => t("edk.rowNamed", { n: rows.findIndex((entry) => entry.id === row.id) + 1, name: tx(row.name || "Columns") });
+      const columnLabel = (row: TemplateSectionNode, at: number) => {
+        const view = normaliseLayoutRow(row);
+        const n = Math.min(Math.max(0, Math.trunc(at)), view.cells.length - 1) + 1;
+        return view.preset.id.startsWith("grid") ? t("edk.boxN", { n }) : t("edk.columnN", { n });
+      };
+      const say = (text: string) => setAnnouncement((previous) => ({ text, n: previous.n + 1 }));
+      // No run at all: the page itself was gone by then.
+      const outcome = ran?.outcome ?? "row-gone";
+      const movedId = ran?.move.elementId;
+      if (outcome !== "moved" || !movedId || !target) {
+        if (outcome === "full" && target) say(t("edk.columnFull", { column: across ? t("edk.rowColumn", { row: rowLabel(target), column: columnLabel(target, request.column) }) : columnLabel(target, request.column) }));
+        else if (outcome === "row-gone") say(t("edk.rowGone"));
+        else if (outcome === "element-gone") say(t("edk.elementGone"));
+        else say(t("edk.notMoved"));
+        continue;
+      }
+      if (keepPicked) {
+        if (selectedId !== request.toSectionId) select(request.toSectionId);
+        setSelectedElementId(movedId);
+        setFocusField(`element:${movedId}`);
+      }
+      const placed = findLayoutElement(ran.move.sections.find((entry) => entry.id === request.toSectionId) ?? target, movedId);
+      if (!placed) continue;
+      const name = tx(layoutElementLabel(placed.element));
+      const words = across
+        ? t("edk.movedToRow", { name, row: rowLabel(target), column: columnLabel(target, placed.cellIndex), n: placed.index + 1 })
+        : t("edk.movedTo", { name, column: columnLabel(target, placed.cellIndex), n: placed.index + 1 });
+      say(target.visible === false ? t("edk.movedToHiddenRow", { moved: words }) : words);
+    }
+  }, [moveToken, select, selectedId, t, tx]);
+
+  const insertLayout = useCallback((preset: ColumnPresetId) => {
+    const section = newLayoutRowSection(newId(LAYOUT_ROW_KIND), preset);
+    if (canvasInsert?.type === "slot") placeAtSlot(section, canvasInsert.slotKey);
+    else insertNode(section);
+  }, [canvasInsert, insertNode, placeAtSlot]);
+
+  const insertElement = useCallback((type: LayoutElementType) => {
+    if (canvasInsert?.type === "column") {
+      addElementToColumn(canvasInsert.sectionId, canvasInsert.column, type);
+      return;
+    }
+    if (canvasInsert?.type !== "slot") return;
+    // A single element gets its own one-column row, so more can go beside it later.
+    const element = newLayoutElement(type, newId("el"));
+    placeAtSlot(newLayoutRowSection(newId(LAYOUT_ROW_KIND), "1", element), canvasInsert.slotKey, element.id);
+  }, [addElementToColumn, canvasInsert, placeAtSlot]);
 
   const addBlock = useCallback((sectionId: string, blockId: string) => {
     const section = sections.find((entry) => entry.id === sectionId);
     if (!section) return;
+    if (section.kind === LAYOUT_ROW_KIND && blockId.startsWith("element:")) {
+      // Into the column of the picked element, else the first column.
+      const column = selectedId === sectionId && selectedElementId ? findLayoutElement(section, selectedElementId)?.cellIndex ?? 0 : 0;
+      addElementToColumn(sectionId, column, blockId.slice("element:".length) as LayoutElementType);
+      return;
+    }
     select(sectionId, "tree");
     if (blockId === "image") { setFocusField("media"); return; }
     if (blockId === "product") { setFocusField("items"); return; }
@@ -225,7 +398,7 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
     if (!item) return;
     editSection(sectionId, (current) => ({ ...current, items: [...(current.items ?? []), item] }));
     setFocusField(`item-${(section.items ?? []).length}`);
-  }, [editSection, sections, select]);
+  }, [addElementToColumn, editSection, sections, select, selectedElementId, selectedId]);
 
   const addableFor = useCallback((section: TemplateSectionNode) => sectionSchema(section.kind, renderer, themeId).addable, [renderer, themeId]);
 
@@ -250,6 +423,8 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
       const response = await fetch("/api/app/store", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ logoUrl: url }) });
       if (!response.ok) throw new Error();
       b.showToast(tx("Logo updated"));
+      // The server works out the new logo's dark-background version; the preview picks it up.
+      void b.refreshLogo();
     } catch {
       b.showToast(tx("The logo shows here but couldn't be saved. Try again."), "error");
     }
@@ -275,8 +450,8 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
   const addPage = useCallback((title: string) => {
     if (!draft) return;
     const base = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "page";
-    let slug = base;
-    for (let n = 2; draft.pages.some((entry) => entry.pageType === slug || entry.slug === slug); n += 1) slug = `${base}-${n}`;
+    // Never a store route's address (/links is the link in bio page, /cart, /pay…): "Links" becomes /links-page.
+    const slug = customPageSlug(base, draft.pages.flatMap((entry) => [entry.pageType, entry.slug ?? ""]));
     const home = draft.pages.find((entry) => entry.pageType === "home") ?? draft.pages[0];
     const chrome = (home?.sections ?? []).filter((section) => sectionGroup(section.kind) !== "template");
     const body: TemplateSectionNode = renderer === "boutique"
@@ -294,13 +469,84 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
 
   // ── Leaving, keyboard ───────────────────────────────────────────────────
 
+  // Unsaved edits: ask first (save and leave, leave and lose them, or keep editing). Autosave usually got there.
   const leave = useCallback(async (destination: string) => {
     if (b.dirty) {
-      const ok = await b.save({ quiet: true });
-      if (!ok) return;
+      setLeaving(destination);
+      return;
     }
     router.push(destination);
   }, [b, router]);
+
+  // The browser's back button: an extra history entry catches it, so unsaved edits get the same question.
+  // "back" as the destination means "go where Back was going" (two steps: past the catch entry and the editor).
+  const dirtyRef = useRef(b.dirty);
+  dirtyRef.current = b.dirty;
+  const passBack = useRef(false);
+  useEffect(() => {
+    window.history.pushState({ ...(window.history.state ?? {}), editorGuard: true }, "", window.location.href);
+    const onPop = () => {
+      if (passBack.current) return;
+      if (dirtyRef.current) {
+        window.history.pushState({ ...(window.history.state ?? {}), editorGuard: true }, "", window.location.href);
+        setLeaving("back");
+        return;
+      }
+      passBack.current = true;
+      window.history.back();
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
+  const go = useCallback((destination: string) => {
+    if (destination === "back") {
+      passBack.current = true;
+      window.history.go(-2);
+    } else {
+      router.push(destination);
+    }
+  }, [router]);
+
+  const saveAndLeave = useCallback(async () => {
+    if (!leaving) return;
+    setLeaveSaving(true);
+    const ok = await b.save({ quiet: true });
+    setLeaveSaving(false);
+    if (ok) go(leaving);
+  }, [b, go, leaving]);
+
+  const leaveWithoutSaving = useCallback(() => {
+    if (!leaving) return;
+    b.forgetUnsaved();
+    go(leaving);
+  }, [b, go, leaving]);
+
+  // Pick up where they stopped: the page and section they were on come back next time.
+  const placeKey = b.store.slug ? `shopinbos:editor-place:${b.store.slug}` : null;
+  const placeRestored = useRef(false);
+  useEffect(() => {
+    if (!placeKey || !draft || placeRestored.current) return;
+    placeRestored.current = true;
+    try {
+      const place = JSON.parse(localStorage.getItem(placeKey) ?? "null") as { page?: string; section?: string | null } | null;
+      const target = place?.page ? draft.pages.find((entry) => entry.pageType === place.page) : null;
+      if (target) {
+        setEntryId(target.pageType);
+        if (place?.section && target.sections.some((section) => section.id === place.section)) setSelectedId(place.section);
+      }
+    } catch {
+      // Nothing saved here yet.
+    }
+  }, [draft, placeKey]);
+  useEffect(() => {
+    if (!placeKey || !placeRestored.current) return;
+    try {
+      localStorage.setItem(placeKey, JSON.stringify({ page: entryId, section: selectedId }));
+    } catch {
+      // Private mode: they start on the home page next time.
+    }
+  }, [entryId, placeKey, selectedId]);
 
   useEffect(() => {
     const handler = (event: Event) => { void leave(String((event as CustomEvent).detail ?? "/home/store")); };
@@ -327,13 +573,17 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
       } else if (mod && key === "f" && !phone) {
         event.preventDefault();
         openInsert(insertTarget.group, insertTarget.beforeId);
+      } else if (event.key === "Escape" && storePreview) {
+        setStorePreview(false);
+      } else if (event.key === "Escape" && selectedElementId) {
+        setSelectedElementId(null);
       } else if (event.key === "Escape" && selectedId) {
         setSelectedId(null);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [b, insertTarget, openInsert, phone, selectedId, view]);
+  }, [b, insertTarget, openInsert, phone, selectedElementId, selectedId, storePreview, view]);
 
   // ── Themes ──────────────────────────────────────────────────────────────
 
@@ -378,8 +628,13 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
     return base;
   }, [b.store.shopper.collections, b.surfaceStore, entry?.collectionId, entry?.productId]);
 
-  const editing = !preview;
+  const editing = !preview && !storePreview;
+  // The canvas "+" spots: 2026 themes, while editing on a computer (the same as the selection outline).
+  const canvasOverlay = renderer === "boutique" && editing && !phone;
+  const slots = useMemo(() => (canvasOverlay ? insertSlots(sections) : undefined), [canvasOverlay, sections]);
+  const belowSelected = selected ? slotBelow(sections, selected.id) : null;
   const toolbar: CanvasToolbarAction[] = selected ? [
+    ...(canvasOverlay ? [{ id: "add", icon: "plus" as IconName, label: "Add below", disabled: !belowSelected, onClick: () => { if (belowSelected) setCanvasInsert({ type: "slot", slotKey: belowSelected.key }); } }] : []),
     { id: "up", icon: "arrowUp", label: "Move up", disabled: !canMoveSection(sections, selected.id, "up"), onClick: () => sectionAction(selected.id, "up") },
     { id: "down", icon: "arrowDown", label: "Move down", disabled: !canMoveSection(sections, selected.id, "down"), onClick: () => sectionAction(selected.id, "down") },
     { id: "duplicate", icon: "copy", label: "Duplicate", disabled: !canDuplicateSection(selected), onClick: () => sectionAction(selected.id, "duplicate") },
@@ -409,6 +664,11 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
       onUpdateStoreLogo={editing ? (url) => void updateStoreLogo(url) : undefined}
       onUpdateSectionItem={editing ? (id, index, changes) => editSection(id, (section) => ({ ...section, items: (section.items ?? []).map((item, i) => (i === index ? { ...item, ...changes } : item)) })) : undefined}
       onUpdateImageBlock={editing ? (id, blockId, url) => editSection(id, (section) => ({ ...section, blocks: section.blocks.map((block) => (block.id === blockId ? { ...block, content: { ...block.content, originalSrc: url, resolvedSrc: url } } : block)) })) : undefined}
+      selectedElementId={editing ? selectedElementId : null}
+      onSelectElement={editing ? (sectionId, elementId) => { select(sectionId); setSelectedElementId(elementId); setFocusField(`element:${elementId}`); } : undefined}
+      onAddToColumn={canvasOverlay ? (sectionId, column) => { select(sectionId); setCanvasInsert({ type: "column", sectionId, column }); } : undefined}
+      onMoveElement={editing ? (sectionId, elementId, column, index, toSectionId) => moveElement(sectionId, elementId, column, index, { select: true, toSectionId }) : undefined}
+      editorText={editorText}
       cartCount={0}
     />
   ) : null;
@@ -458,6 +718,8 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
       storeName={b.store.name}
       storeHost={storefrontHost(b.store.storefrontUrl)}
       products={b.store.products}
+      collections={b.store.shopper.collections}
+      pageTypes={draft.pages.map((entry) => entry.pageType)}
       tab={phone ? "settings" : inspectorTab}
       onTab={setInspectorTab}
       focusField={focusField}
@@ -475,6 +737,10 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
       onAddBlock={(blockId) => selected && addBlock(selected.id, blockId)}
       onClose={wide ? undefined : () => { if (phone) setSheet(null); else setInspectorOpen(false); }}
       compact={phone}
+      selectedElementId={selectedElementId}
+      onSelectElement={setSelectedElementId}
+      onAddLayoutElement={(column, type) => selected && addElementToColumn(selected.id, column, type)}
+      onMoveLayoutElement={(elementId, column, index, options) => selected && moveElement(selected.id, elementId, column, index, options)}
     />
   ) : null;
 
@@ -484,7 +750,11 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
       sections={sections}
       selectedId={selectedId}
       onSelect={(id) => select(id, "tree")}
-      onSelectBlock={(id, block: SectionBlockRow) => { select(id, "tree"); setFocusField(block.field ?? (block.itemIndex !== undefined ? "items" : null)); }}
+      onSelectBlock={(id, block: SectionBlockRow) => {
+        select(id, "tree");
+        if (block.field?.startsWith("element:")) setSelectedElementId(block.field.slice("element:".length));
+        setFocusField(block.field ?? (block.itemIndex !== undefined ? "items" : null));
+      }}
       onToggleHidden={(id) => sectionAction(id, "hide")}
       onMove={(id, direction) => sectionAction(id, direction)}
       onDrop={(id, targetId, place) => editSections((list) => moveSectionTo(list, id, targetId, place))}
@@ -511,6 +781,7 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
           ? t("edk.addsAbove", { name: tx(sections.find((section) => section.id === insertTarget.beforeId)?.name ?? "the chosen section") })
           : insertTarget.group === "header" ? tx("Adds to the header") : selected && sectionGroup(selected.kind) === "template" ? t("edk.addsBelow", { name: tx(selected.name) }) : t("edk.addsToEnd", { name: tx(currentLabel) })}
         onInsert={insert}
+        onInsertLayout={renderer === "boutique" ? insertLayout : undefined}
         selectedName={selected?.name ?? null}
         elements={selected ? addableFor(selected) : []}
         onAddElement={(id) => selected && addBlock(selected.id, id)}
@@ -548,6 +819,33 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
     </div>
   );
 
+  const storePreviewBar = storePreview ? (
+    <div role="status" className="flex shrink-0 flex-wrap items-center gap-2 border-b border-app-line bg-app-mint px-4 py-2 text-[13.5px]">
+      <Icon name="eye" size={16} />
+      <span className="min-w-0 flex-1"><strong>{tx("Previewing your store.")}</strong> {tx("This is how shoppers see it, including edits you haven't published yet.")}</span>
+      {b.status === "live" && b.store.storefrontUrl ? (
+        <a href={b.store.storefrontUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-9 items-center rounded-full border border-app-ink/15 bg-white px-3 font-semibold text-app-ink no-underline">{tx("Open live store")}</a>
+      ) : null}
+      <button type="button" onClick={() => setStorePreview(false)} className="min-h-9 rounded-full bg-app-ink px-3 font-semibold text-white">{tx("Back to editing")}</button>
+    </div>
+  ) : null;
+
+  const leavePrompt = leaving ? (
+    <div className="fixed inset-0 z-[700] grid place-items-center bg-black/35 p-4" role="presentation" onClick={() => !leaveSaving && setLeaving(null)}>
+      <div role="alertdialog" aria-modal="true" aria-labelledby="leave-title" aria-describedby="leave-body" onClick={(event) => event.stopPropagation()} className="w-full max-w-[420px] rounded-[22px] bg-white p-5 shadow-[0_24px_60px_-20px_rgba(22,20,31,0.45)]">
+        <h2 id="leave-title" className="m-0 text-[18px] font-extrabold">{tx("Save your changes?")}</h2>
+        <p id="leave-body" className="mb-0 mt-2 text-[14.5px] leading-[1.55] text-app-ink-soft">{tx("You have edits that aren't saved yet. Save them before you go, or leave and lose them.")}</p>
+        <div className="mt-5 grid gap-2">
+          <button type="button" autoFocus disabled={leaveSaving} onClick={() => void saveAndLeave()} className="min-h-11 rounded-full bg-app-ink px-4 text-[14.5px] font-bold text-white disabled:opacity-60">
+            {leaveSaving ? tx("Saving…") : tx("Save and leave")}
+          </button>
+          <button type="button" disabled={leaveSaving} onClick={leaveWithoutSaving} className="min-h-11 rounded-full border border-app-line bg-white px-4 text-[14.5px] font-bold text-app-danger disabled:opacity-60">{tx("Leave without saving")}</button>
+          <button type="button" disabled={leaveSaving} onClick={() => setLeaving(null)} className="min-h-11 rounded-full px-4 text-[14.5px] font-bold text-app-ink-soft hover:text-app-ink">{tx("Keep editing")}</button>
+        </div>
+      </div>
+    </div>
+  ) : null;
+
   const previewBar = preview ? (
     <div className="flex flex-wrap items-center gap-2 border-b border-app-line bg-app-peach px-4 py-2 text-[13.5px] text-app-ink">
       <span className="min-w-0 flex-1"><strong>{t("edk.previewing", { name: preview.name })}</strong> {tx("Your products show in it; nothing changes until you use it.")}</span>
@@ -556,17 +854,46 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
     </div>
   ) : null;
 
+  const insertSlot = canvasInsert?.type === "slot" ? slots?.find((slot) => slot.key === canvasInsert.slotKey) ?? null : null;
+  const columnSection = canvasInsert?.type === "column" ? sections.find((section) => section.id === canvasInsert.sectionId) ?? null : null;
+  const canvasInserter = canvasOverlay && (insertSlot || columnSection) && canvasInsert ? {
+    anchor: canvasInsert.type === "slot"
+      ? { slotKey: canvasInsert.slotKey }
+      : { selector: `[data-column-add="${CSS.escape(`${canvasInsert.sectionId}:${canvasInsert.column}`)}"]` },
+    node: (
+      <CanvasInserter
+        key={canvasInsert.type === "slot" ? canvasInsert.slotKey : `${canvasInsert.sectionId}:${canvasInsert.column}`}
+        renderer={renderer}
+        existingKinds={sections.map((section) => section.kind)}
+        mode={canvasInsert.type}
+        placeLabel={canvasInsert.type === "column"
+          ? t("edk.addsToColumn", { n: canvasInsert.column + 1, name: tx(columnSection?.name ?? "Columns") })
+          : insertSlot?.beforeId && sections.find((section) => section.id === insertSlot.beforeId && sectionGroup(section.kind) !== "footer")
+            ? t("edk.addsAbove", { name: tx(sections.find((section) => section.id === insertSlot.beforeId)?.name ?? "") })
+            : t("edk.addsToEnd", { name: tx(currentLabel) })}
+        onInsertSection={(kind) => { if (canvasInsert.type === "slot") placeAtSlot(createSection(kind), canvasInsert.slotKey); }}
+        onInsertLayout={insertLayout}
+        onInsertElement={insertElement}
+        onClose={() => setCanvasInsert(null)}
+      />
+    ),
+  } : null;
+
   const canvas = snapshot ? (
     <Canvas
       device={phone ? "mobile" : device}
       fit={phone}
       selectedId={editing ? selectedId : null}
       selectedName={selected?.name ?? null}
-      overlay={renderer === "boutique" && editing && !phone}
+      overlay={canvasOverlay}
       actions={toolbar}
       layoutVersion={snapshot}
       scrollToken={scrollToken}
       onBackgroundClick={() => setSelectedId(null)}
+      slots={slots}
+      onOpenSlot={(slot) => setCanvasInsert({ type: "slot", slotKey: slot.key })}
+      emptyPage={slots?.length === 1}
+      inserter={canvasInserter}
     >
       {surface}
     </Canvas>
@@ -583,6 +910,7 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
 
   return (
     <div className="fixed inset-0 z-[500] flex flex-col bg-white font-app text-app-ink">
+      <p className="sr-only" aria-live="polite" aria-atomic="true">{announcement.text}{announcement.n % 2 ? " " : ""}</p>
       <TopBar
         themeName={preview ? preview.name : draft?.templateName ?? tx("Your store")}
         status={b.status}
@@ -602,6 +930,8 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
         publishing={b.publishing}
         canPublish={Boolean(draft) && (b.status !== "live" || b.dirty)}
         onSave={() => void b.save()}
+        onPreviewStore={draft && !preview ? () => { setSelectedId(null); setSheet(null); setStorePreview((on) => !on); } : undefined}
+        previewingStore={storePreview}
         saving={b.saving}
         dirty={b.dirty}
         phone={phone}
@@ -620,6 +950,7 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
         </div>
       ) : phone ? (
         <div className="relative flex min-h-0 flex-1 flex-col">
+          {storePreviewBar}
           {previewBar}
           {phoneNote ? (
             <div className="flex items-start gap-2 border-b border-app-line bg-app-mint px-3 py-2 text-[12.5px] leading-5 text-app-forest">
@@ -684,6 +1015,7 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
           ) : null}
           {leftPanel ? <aside aria-label={tx("Builder panel")} className="w-[264px] shrink-0 border-r border-app-line bg-white xl:w-[280px]">{leftPanel}</aside> : null}
           <main className="flex min-h-0 min-w-0 flex-1 flex-col" aria-label={tx("Page preview")}>
+            {storePreviewBar}
             {previewBar}
             <div className="min-h-0 flex-1">{canvas}</div>
           </main>
@@ -698,6 +1030,7 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
       )}
 
       {toast}
+      {leavePrompt}
       <StoreLaunchBillingModal open={Boolean(b.launchPricing)} pricing={b.launchPricing} onClose={b.clearLaunchPricing} />
     </div>
   );

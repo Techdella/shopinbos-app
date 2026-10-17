@@ -57,6 +57,9 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "list.empty": "No product yet. Tap \"Add product\", snap photo, Rex go write the rest.",
   "list.soldOut": "E don finish",
   "list.left": "{count} remain",
+  "cat.all": "All",
+  "cat.chip": "{name} ({count})",
+  "cat.empty": "No product dey {name} yet.",
 };
 
 export default pcm;

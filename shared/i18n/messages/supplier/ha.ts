@@ -97,8 +97,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "productForm.tiersHint": "Mataki ɗaya a kowane layi: yawan kaya, sannan farashin ɗaya.",
   "productForm.photosTitle": "Hotuna da delivery",
   "productForm.photosSub": "Abin da masu sayarwa ke gani a marketplace da inda za ka iya tura shi.",
-  "productForm.images": "Image URLs",
-  "productForm.imagesHint": "Link ɗaya a kowane layi. Na farko shi ne cover.",
+  "productForm.images": "Hotunan kaya",
+  "productForm.imagesHint": "Na farko shi ne cover. Ka upload ko ka zaɓa daga media ɗinka.",
   "productForm.regions": "Yankunan delivery",
   "productForm.regionsHint": "Birni ko jiha ɗaya a kowane layi.",
   "productForm.howBuy": "Yadda masu sayarwa za su iya saya",
@@ -574,6 +574,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "reviewsUi.wholesaleOrders": "Odar wholesale",
   "reviewsUi.finishedDeliveries": "Deliveries da suka kammala",
   "reviewsUi.deliveryFee": "Kuɗin delivery {amount}",
+  "quotes.pages": "Shafukan quote requests",
 };
 
 export default ha;

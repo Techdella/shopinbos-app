@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import { Icon } from "@/components/ui/Icon";
 import { LANGUAGES, languageOf, type Locale } from "@shared/i18n";
 import { useLocale, useLocaleChanging, useSetLocale, useT } from "./I18nProvider";
@@ -58,22 +59,57 @@ function LanguageOptions({ onChosen, dense = false }: { onChosen?: () => void; d
 function usePopover() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
+  // The globe's list is portalled to <body>, so clicks inside it count as inside too.
+  const panelRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     if (!open) return;
-    const onDown = (event: MouseEvent) => {
-      if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false);
+    const onDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (ref.current?.contains(target) || panelRef.current?.contains(target)) return;
+      setOpen(false);
     };
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") setOpen(false);
     };
-    window.addEventListener("mousedown", onDown);
+    window.addEventListener("pointerdown", onDown);
     window.addEventListener("keydown", onKey);
     return () => {
-      window.removeEventListener("mousedown", onDown);
+      window.removeEventListener("pointerdown", onDown);
       window.removeEventListener("keydown", onKey);
     };
   }, [open]);
-  return { open, setOpen, ref };
+  return { open, setOpen, ref, panelRef };
+}
+
+const PANEL_WIDTH = 260;
+const GAP = 8;
+const EDGE = 12;
+/** Below this width the list is a bottom sheet instead of a popover. */
+const SHEET_BELOW = 640;
+
+type Placement = { sheet: true } | { sheet: false; style: CSSProperties };
+
+/**
+ * Where the globe's list goes: a bottom sheet on phones; otherwise a popover under the button, or above it when
+ * there isn't room below (the footer of sign-up), always inside the window and scrolling if it's short.
+ */
+function placePanel(button: HTMLElement): Placement {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  if (vw < SHEET_BELOW) return { sheet: true };
+  const rect = button.getBoundingClientRect();
+  const width = Math.min(PANEL_WIDTH, vw - EDGE * 2);
+  const left = Math.min(Math.max(EDGE, rect.right - width), vw - width - EDGE);
+  const below = vh - rect.bottom - GAP - EDGE;
+  const above = rect.top - GAP - EDGE;
+  const openUp = below < 340 && above > below;
+  const maxHeight = Math.max(160, openUp ? above : below);
+  return {
+    sheet: false,
+    style: openUp
+      ? { position: "fixed", left, width, bottom: vh - rect.top + GAP, maxHeight }
+      : { position: "fixed", left, width, top: rect.bottom + GAP, maxHeight },
+  };
 }
 
 export function LanguagePicker({ variant = "list", className = "" }: { variant?: Variant; className?: string }) {
@@ -118,9 +154,48 @@ export function LanguagePicker({ variant = "list", className = "" }: { variant?:
   }
 
   // globe
+  return <GlobePicker className={className} />;
+}
+
+function GlobePicker({ className }: { className: string }) {
+  const locale = useLocale();
+  const t = useT("settings");
+  const current = languageOf(locale);
+  const { open, setOpen, ref, panelRef } = usePopover();
+  const panelId = useId();
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const [placement, setPlacement] = useState<Placement | null>(null);
+
+  const place = useCallback(() => {
+    if (buttonRef.current) setPlacement(placePanel(buttonRef.current));
+  }, []);
+  useLayoutEffect(() => {
+    if (!open) return;
+    place();
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+    };
+  }, [open, place]);
+  // The phone sheet covers the page: keep the page from scrolling behind it.
+  useEffect(() => {
+    if (!open || !placement?.sheet) return;
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = overflow;
+    };
+  }, [open, placement]);
+
+  const close = () => setOpen(false);
+  const heading = <div className="px-3 pb-1 pt-2 text-[11px] font-extrabold uppercase tracking-[0.7px] text-[#9A96A8]">{t("language.choose")}</div>;
+
   return (
     <div ref={ref} className={`relative ${className}`}>
       <button
+        ref={buttonRef}
         type="button"
         aria-label={t("language.button", { language: current.nativeName })}
         aria-expanded={open}
@@ -132,17 +207,41 @@ export function LanguagePicker({ variant = "list", className = "" }: { variant?:
         <Icon name="globe" size={16} />
         <span className="uppercase tracking-[0.04em]">{locale}</span>
       </button>
-      {open && (
-        <div
-          id={panelId}
-          role="dialog"
-          aria-label={t("language.choose")}
-          className="absolute right-0 top-full z-50 mt-2 w-[min(260px,calc(100vw-32px))] rounded-[18px] border border-app-line bg-white p-1.5 font-app shadow-[0_20px_40px_-20px_rgba(22,20,31,0.35)]"
-        >
-          <div className="px-3 pb-1 pt-2 text-[11px] font-extrabold uppercase tracking-[0.7px] text-[#9A96A8]">{t("language.choose")}</div>
-          <LanguageOptions dense onChosen={() => setOpen(false)} />
-        </div>
-      )}
+      {open &&
+        placement &&
+        typeof document !== "undefined" &&
+        createPortal(
+          placement.sheet ? (
+            <div className="fixed inset-0 z-[80] font-app">
+              <div aria-hidden onClick={close} className="absolute inset-0 bg-[rgba(22,20,31,0.38)]" />
+              <div
+                ref={panelRef}
+                id={panelId}
+                role="dialog"
+                aria-modal="true"
+                aria-label={t("language.choose")}
+                className="absolute inset-x-0 bottom-0 max-h-[80vh] overflow-y-auto overscroll-contain rounded-t-[22px] bg-white px-3 pb-[max(16px,env(safe-area-inset-bottom))] pt-2 shadow-[0_-20px_40px_-20px_rgba(22,20,31,0.35)]"
+              >
+                <div aria-hidden className="mx-auto mb-1 mt-1 h-1 w-10 rounded-full bg-app-line" />
+                {heading}
+                <LanguageOptions dense onChosen={close} />
+              </div>
+            </div>
+          ) : (
+            <div
+              ref={panelRef}
+              id={panelId}
+              role="dialog"
+              aria-label={t("language.choose")}
+              style={placement.style}
+              className="z-[80] overflow-y-auto overscroll-contain rounded-[18px] border border-app-line bg-white p-1.5 font-app shadow-[0_20px_40px_-20px_rgba(22,20,31,0.35)]"
+            >
+              {heading}
+              <LanguageOptions dense onChosen={close} />
+            </div>
+          ),
+          document.body,
+        )}
     </div>
   );
 }

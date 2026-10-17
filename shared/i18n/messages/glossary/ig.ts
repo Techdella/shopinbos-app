@@ -90,6 +90,10 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "studio.example": "Mee ka foto keki i ji ekwentị see ghọọ foto dị ọcha nwere azụ ọcha.",
   "domain.short": "Adreesị weebụ nke ụlọ ahịa gị ndị mmadụ na-ede iji chọta gị.",
   "domain.example": "mamaputkitchen.com kama ogologo link.",
+  "payment-links.short": "Link ị na-ezipu na chat ka onye ahịa kwụọ ụgwọ maka ezigbo ngwaahịa ma họrọ delivery.",
+  "payment-links.example": "Tolu jụrụ maka akpa uhie na WhatsApp. Ị zitere link, ọ kwụrụ ₦18,000 site na kaadị.",
+  "link-in-bio.short": "Otu peeji nwere ngwaahịa gị, bọtịnụ Buy now na WhatsApp, maka bio Instagram ma ọ bụ TikTok gị.",
+  "link-in-bio.example": "Bio TikTok gị kwuru adafabrics.shopinbos.com/links. Ndị na-akwado gị pịa ya wee zụta.",
   "checkout.short": "Peeji ebe onye na-azụ na-etinye adreesị ya ma kwụọ ụgwọ.",
   "checkout.example": "Kemi tinyere adreesị ya nke Yaba, họrọ bank transfer wee kwụọ ₦24,000.",
   "abandoned-carts.short": "Cart ndị mmadụ mejupụtara mana hapụrụ tupu ha akwụọ ụgwọ, ka i wee chetara ha.",
@@ -170,6 +174,10 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "on-time-rate.example": "Deliveries 48 n'ime 50 rutere n'oge n'izu a: on-time rate 96%.",
   "api-key.short": "Koodu nzuzo na-enye app ọzọ ohere iji account Shopinbos gị rụọ ọrụ.",
   "api-key.example": "Mado ya na dispatch software gị, ma zoo ya dịka password.",
+  "media.short": "Foto na vidiyo niile nke ụlọ ahịa gị, n'otu ebe ka ị kpọọ ha aha, kọwaa ha ma jiri ha ọzọ.",
+  "media.example": "Họrọ foto Ankara nke ọnwa gara aga maka banner ọhụrụ kama ibugo ya ọzọ.",
+  "seasonal-campaigns.short": "Sale ị na-ahazi otu ugboro nke na-achọ ụlọ ahịa gị mma maka oge ememe, wee laghachi n'onwe ya.",
+  "seasonal-campaigns.example": "Black Friday: agba gold, countdown na badge “BF Deal” site na Fraịdee ruo abalị Sọnde.",
 };
 
 export default ig;

@@ -7,11 +7,13 @@ import { naira } from "@shared/onboarding";
 import { isPeggyNight } from "@shared/mascots";
 import { AppIcon, type AppIconName } from "@/components/icons";
 import { HomeSkeleton, OfflineBanner, OpeningShop, SlowNetwork } from "@/components/Loading";
+import { Picture } from "@/components/kit";
 import { HelpButton } from "@/components/Help";
 import { Mascot, Notice, T } from "@/components/ui";
 import { stepWords } from "@/lib/setup-words";
 import { doNextItems, peggyLine, type DoNextItem } from "@/lib/home-pure";
 import { useHomeData } from "@/lib/homeData";
+import { latestPicture, useChangedIdentity } from "@/lib/identity";
 import { hasOpenedHome, rememberedStoreName } from "@/lib/launch";
 import { useSession } from "@/lib/session";
 import { fetchSetup, type SetupOverview } from "@/lib/setup";
@@ -19,6 +21,7 @@ import { openPath } from "@/lib/web";
 import { colors } from "@/theme";
 import { PushPromptCard } from "@/components/PushPromptCard";
 import { NotificationBellButton } from "@/components/NotificationBellButton";
+import { CampaignsCard } from "@/components/CampaignsCard";
 import { useT } from "@/lib/i18n";
 
 // Seller Home (build spec 8A, "Simple app" prototype): today's sales, at most three "Do these next" items and one
@@ -40,6 +43,7 @@ export default function Home() {
   const { session } = useSession();
   const uid = session?.user.id;
   const home = useHomeData(uid);
+  const changedPictures = useChangedIdentity();
   const { data, error, cachedAt } = home;
   const load = home.reload;
   const [refreshing, setRefreshing] = useState(false);
@@ -81,6 +85,7 @@ export default function Home() {
   }
 
   const firstName = data?.ownerName.split(/\s+/)[0] ?? "";
+  const shopName = data?.store.name ?? "";
   const items = data ? doNextItems(data.tasks, setup?.checklist.showStart && !setup.checklist.complete && setup.checklist.next ? { key: setup.checklist.next.key, ...stepWords(setup.checklist.next, t) } : null) : [];
 
   return (
@@ -90,16 +95,20 @@ export default function Home() {
           contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 120 }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await Promise.all([load(), loadSetup()]); setRefreshing(false); }} />}
         >
+          {/* The shop's logo next to its name (initials when there's none), and the person's photo, which opens Settings. */}
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-            <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: colors.peach, alignItems: "center", justifyContent: "center" }}>
-              <T weight="extrabold" style={{ fontSize: 18, color: colors.accentInk }}>{(firstName || "S").charAt(0)}</T>
+            <View accessible accessibilityLabel={shopName ? t("logo.label", { name: shopName }) : undefined}>
+              <Picture uri={latestPicture(changedPictures, "logoUrl", data?.store.logoUrl)} name={shopName || firstName || "S"} size={46} shape="square" />
             </View>
             <View style={{ flex: 1 }}>
-              <T style={{ color: colors.inkSoft, fontSize: 15 }}>{t(greeting())}</T>
-              <T weight="extrabold" style={{ fontSize: 18 }} numberOfLines={1}>{firstName || " "}</T>
+              <T style={{ color: colors.inkSoft, fontSize: 15 }} numberOfLines={1}>{firstName ? `${t(greeting())}, ${firstName}` : t(greeting())}</T>
+              <T weight="extrabold" style={{ fontSize: 18 }} numberOfLines={1}>{shopName || firstName || " "}</T>
             </View>
             <NotificationBellButton />
             <HelpButton />
+            <Pressable accessibilityRole="button" accessibilityLabel={t("me.open")} onPress={() => router.push("/settings")} hitSlop={6} style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}>
+              <Picture uri={latestPicture(changedPictures, "avatarUrl", data?.ownerAvatarUrl)} name={data?.ownerName || firstName || "S"} size={40} />
+            </Pressable>
           </View>
 
           {/* After the first sale: the moment a push matters. */}
@@ -154,6 +163,8 @@ export default function Home() {
                   <T style={{ fontSize: 15, lineHeight: 22 }}>{t("nothingNext")}</T>
                 </View>
               )}
+
+              <CampaignsCard />
 
               <Pressable accessibilityRole="button" onPress={() => router.push("/peggy")} style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 18, paddingVertical: 6 }}>
                 <Mascot name="peggy" mood={isPeggyNight() ? "sleep" : "idle"} size={36} />

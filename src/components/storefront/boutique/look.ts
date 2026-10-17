@@ -593,7 +593,13 @@ export function navColors(look: BoutiqueLook): Partial<ShopperNavColors> {
 /** Scoped CSS for the 2026 themes. Container queries, so editor phone previews lay out like real phones. */
 export const BOUTIQUE_CSS = `
 /* width:100% — a size container has no intrinsic width, so inside a flex row or any shrink-to-fit parent it would collapse. */
-.bq{container-type:inline-size;container-name:bq;width:100%;min-width:0;flex:1 1 auto;min-height:100%;-webkit-font-smoothing:antialiased}
+.bq{container-type:inline-size;container-name:bq;width:100%;min-width:0;flex:1 1 auto;min-height:100%;-webkit-font-smoothing:antialiased;overflow-x:clip}
+.bq-burger{display:inline-grid;margin-left:-8px}
+/* The floating phone bar (ShopperBottomNav, phones only) never covers the footer's last row ("Built with Shopinbos"). */
+@media (max-width: 767px){
+  .bq[data-floating-nav] .bq-footer{padding-bottom:calc(88px + env(safe-area-inset-bottom))}
+  .bq[data-floating-nav]:has(.bq-footer) .bq-page{padding-bottom:24px}
+}
 .bq *{box-sizing:border-box}
 .bq a{color:inherit;text-decoration:none}
 .bq :where(a,button,input,select,textarea,summary,[tabindex]):focus-visible{outline:2px solid var(--bq-accent);outline-offset:3px}
@@ -610,7 +616,7 @@ export const BOUTIQUE_CSS = `
 .bq-nav-desktop{display:none}
 .bq-only-wide{display:none}
 .bq-rail{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-.bq-rail > *:nth-child(n+7){display:none}
+.bq-rail:not([data-limit]) > *:nth-child(n+7){display:none}
 .bq-hero{aspect-ratio:4/5;border-radius:24px;margin:0 14px}
 .bq-cats{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:4px;scrollbar-width:none}
 .bq-cats::-webkit-scrollbar,.bq-rail::-webkit-scrollbar,.bq-gallery::-webkit-scrollbar{display:none}
@@ -654,12 +660,12 @@ export const BOUTIQUE_CSS = `
 .bq-chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px}
 .bq-chips::-webkit-scrollbar{display:none}
 .bq-tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 12px}
-.bq-tiles > *:nth-child(n+7){display:none}
+.bq-tiles:not([data-limit]) > *:nth-child(n+7){display:none}
 @container bq (min-width: 760px){
   .bq-split-hero{grid-template-columns:1.05fr 1fr;min-height:520px}
   .bq-tiles{grid-template-columns:repeat(4,minmax(0,1fr));gap:28px 18px}
   .bq-tiles > *:nth-child(n+7){display:block}
-  .bq-tiles > *:nth-child(n+9){display:none}
+  .bq-tiles:not([data-limit]) > *:nth-child(n+9){display:none}
   .bq[data-pdp="left"] .bq-pdp{grid-template-columns:minmax(0,1.05fr) minmax(0,1fr)}
   .bq[data-pdp="left"] .bq-pdp-gallery{order:0}
   .bq[data-pdp="wide"] .bq-pdp{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)}
@@ -671,7 +677,7 @@ export const BOUTIQUE_CSS = `
 }
 /* Dense catalogue (Ọjà, Danfo): 2 across on phones, 6 on desktop, up to 12 tiles. */
 .bq-dense{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 10px}
-.bq-dense > *:nth-child(n+9){display:none}
+.bq-dense:not([data-limit]) > *:nth-child(n+9){display:none}
 /* Menu list (Oúnjẹ): photo, dish, what's in it, price. */
 .bq-menu{display:grid;gap:12px}
 .bq-menu-item{display:grid;grid-template-columns:88px minmax(0,1fr);gap:14px;align-items:center;padding:12px;border-radius:var(--bq-card-radius);background:var(--bq-card);text-align:left;width:100%;border:0;color:inherit;cursor:pointer}
@@ -683,12 +689,38 @@ export const BOUTIQUE_CSS = `
 @container bq (min-width: 760px){
   .bq-dense{grid-template-columns:repeat(6,minmax(0,1fr));gap:22px 14px}
   .bq-dense > *:nth-child(n+9){display:block}
-  .bq-dense > *:nth-child(n+13){display:none}
+  .bq-dense:not([data-limit]) > *:nth-child(n+13){display:none}
   .bq-menu{grid-template-columns:1fr 1fr;gap:14px}
   .bq-menu-item{grid-template-columns:112px minmax(0,1fr)}
   .bq-menu-item .bq-media{width:112px;height:112px}
   .bq-shelf{grid-template-columns:repeat(4,minmax(0,1fr))}
   .bq-shelf > *:nth-child(n+4){display:block}
+}
+/* Shop page layouts: columns, list rows, large cards, side filters; product card extras. */
+.bq-shop-grid[data-view="large"]{grid-template-columns:minmax(0,1fr);gap:28px}
+.bq-shop-list{display:grid;gap:12px}
+.bq-shop-row{display:grid;grid-template-columns:96px minmax(0,1fr);gap:14px;align-items:center;padding:12px;border-radius:var(--bq-card-radius);border:1px solid var(--bq-border);background:transparent;color:inherit;text-align:left;width:100%;cursor:pointer}
+.bq-shop-row .bq-media{width:96px;height:96px;border-radius:calc(var(--bq-card-radius) - 4px)}
+.bq-shop-row-side{display:none}
+.bq-shop-layout{display:grid;gap:20px}
+.bq-tile-alt{opacity:0;transition:opacity .25s}
+.bq-tile:hover .bq-tile-alt,.bq-tile:focus-within .bq-tile-alt{opacity:1}
+@container bq (min-width: 760px){
+  .bq-shop-grid[data-cols="2"],.bq-shop-grid[data-view="large"]{grid-template-columns:repeat(2,minmax(0,1fr));gap:40px 24px}
+  .bq-shop-grid[data-cols="3"]{grid-template-columns:repeat(3,minmax(0,1fr));gap:32px 20px}
+  .bq-shop-grid[data-cols="5"]{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .bq-shop-row{grid-template-columns:140px minmax(0,1fr) auto;gap:20px;padding:14px}
+  .bq-shop-row .bq-media{width:140px;height:140px}
+  .bq-shop-row-side{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+  .bq-shop-layout{grid-template-columns:220px minmax(0,1fr);gap:36px;align-items:start}
+  .bq-shop-aside{position:sticky;top:88px}
+  .bq-cats[data-shape="circles"]{display:flex;flex-wrap:wrap;gap:24px}
+  .bq-cats[data-shape="circles"] .bq-cat{width:124px;position:static;align-items:center}
+  .bq-cats[data-shape="circles"] .bq-cat .bq-media{width:112px;height:112px;aspect-ratio:auto;border-radius:999px}
+  .bq-cats[data-shape="circles"] .bq-cat-label{position:static;background:none;color:inherit;padding:0;font-weight:500}
+}
+@container bq (min-width: 1100px){
+  .bq-shop-grid[data-cols="5"]{grid-template-columns:repeat(5,minmax(0,1fr))}
 }
 @media (prefers-reduced-motion: reduce){.bq *{scroll-behavior:auto !important;transition:none !important}}
 `;

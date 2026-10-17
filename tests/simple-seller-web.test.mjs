@@ -12,7 +12,7 @@ const read = (path) => readFileSync(join(ROOT, path), "utf8");
 
 // ─── "We'll set it up for you" ────────────────────────────────────────────────
 
-test("domain, channels and WhatsApp catalog offer 'Ask us to set it up' and fold the technical details", () => {
+test("domain and WhatsApp catalog offer 'Ask us to set it up' and fold the technical details; channels just connect", () => {
   // Domain copy lives in the domain catalog (shared/i18n/messages/domain/en.ts); the screens show it through t().
   const domainCopy = read("shared/i18n/messages/domain/en.ts");
   const connect = read("src/app/home/domain/DomainConnect.tsx") + domainCopy;
@@ -39,17 +39,15 @@ test("domain, channels and WhatsApp catalog offer 'Ask us to set it up' and fold
   assert.match(read("src/components/simple/Fold.tsx"), /t\("techDetails", \{ forWho \}\)/);
   assert.match(read("shared/i18n/messages/ui/en.ts"), /techDetails: "Show the technical details \(for \{forWho\}\)"/);
 
-  const channels = read("src/app/channels/page.tsx");
-  assert.match(channels, /<SetupHelpRequest/);
+  // Sell everywhere is simpler still: connect your accounts and start selling. One card per platform with one
+  // button; no help forms, voice input, technical folds, feed links or token forms on the page.
+  const channels = read("src/app/channels/page.tsx") + read("src/app/channels/ChannelClient.tsx");
+  assert.match(channels, /<ConnectCard/);
+  assert.match(channels, /<SoonCard/);
+  assert.doesNotMatch(channels, /<SetupHelpRequest|<TechFold|<Fold\b|<CopyField value=\{feed|MetaConnectForm|VoiceInput|Mic/);
   const socialCopy = read("shared/i18n/messages/social/en.ts");
-  assert.match(socialCopy, /"ch\.meta\.action": "Show my products on Facebook and Instagram"/);
-  assert.match(channels, /action: t\("ch\.meta\.action"\)/);
-  assert.match(channels, /<TechFold forWho=\{t\("forWho", \{ account: channel\.account \}\)\}>/);
-  assert.match(socialCopy, /"forWho": "the person who manages your \{account\} account"/);
-  // Feed links and the Meta token form only appear inside the technical fold.
-  const before = channels.slice(0, channels.indexOf("<TechFold"));
-  assert.doesNotMatch(before, /<CopyField|<MetaConnectForm/);
-
+  assert.match(socialCopy, /"card\.connect": "Connect"/);
+  assert.match(socialCopy, /"soon\.notify": "Tell me when it's ready"/);
   const catalog = read("src/app/home/inbox/whatsapp-catalog/WhatsAppCatalogClient.tsx");
   assert.match(catalog, /<SetupHelpRequest/);
   assert.match(catalog, /<TechFold forWho=\{t\("wa\.forWhoFacebook"\)\}>/);

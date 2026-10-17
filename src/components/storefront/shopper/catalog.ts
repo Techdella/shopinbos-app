@@ -1,5 +1,8 @@
 // Product helpers shared by the storefront themes, the product page and the shopper bottom nav.
 
+import { isColourOption, normalizeVariants, totalVariantStock } from "../../../../shared/product-variants.ts";
+import { listingSoldOut, type ShopperStock } from "../../../../shared/product-stock.ts";
+
 export interface ShopperVariant {
   id?: string;
   name?: string;
@@ -21,11 +24,18 @@ export interface ShopperProduct {
   retailPrice: number;
   compareAtPrice?: number | null;
   currency: string;
-  category?: { id: string; name: string; slug: string } | null;
+  category?: { id: string; name: string; slug: string; imageUrl?: string | null } | null;
   avgRating?: number;
   reviewCount?: number;
   variants?: unknown;
+  variantOptions?: unknown;
+  /** Product type key (shared/product-types.ts) and tags, for "Customers also like" when none are picked. */
+  productType?: string | null;
+  tags?: string[];
+  relatedProductIds?: string[];
   supplierProduct?: { stockQuantity?: number | null } | null;
+  /** Tracked stock (shared/product-stock.ts forShoppers); null or absent when the seller doesn't track it. */
+  stock?: ShopperStock | null;
 }
 
 export function readVariants(value: unknown): ShopperVariant[] {
@@ -86,23 +96,35 @@ export function variantLabel(variant: ShopperVariant) {
   return [variant.color, variant.size].filter(Boolean).join(" / ") || variant.name || variant.sku || "Option";
 }
 
-/** Units left when the seller tracks stock (variant stock, or the supplier's stock for dropship); null otherwise. */
-export function unitsLeft(product: Pick<ShopperProduct, "variants" | "supplierProduct">) {
-  const variants = readVariants(product.variants);
-  const tracked = variants.filter((variant) => typeof variant.stock === "number");
-  if (tracked.length) return tracked.reduce((sum, variant) => sum + Math.max(0, variant.stock ?? 0), 0);
+/**
+ * Units left when stock is tracked: the product's tracked stock, else its versions' own counts, else the supplier's
+ * stock for dropship; null otherwise (and for tracked products that keep selling at 0).
+ */
+export function unitsLeft(product: Pick<ShopperProduct, "variants" | "supplierProduct" | "stock">) {
+  if (product.stock) return product.stock.continueSelling ? null : product.stock.left;
+  const tracked = totalVariantStock(normalizeVariants(product.variants));
+  if (tracked !== null) return Math.max(0, tracked);
   const supplier = product.supplierProduct?.stockQuantity;
   return typeof supplier === "number" ? supplier : null;
 }
 
-/** "Only 3 left" only when stock is tracked and genuinely low. */
-export function lowStockLabel(product: Pick<ShopperProduct, "variants" | "supplierProduct">) {
+/** "Only 3 left" only when stock is tracked and genuinely low (the seller's low-stock level, else 5). */
+export function lowStockLabel(product: Pick<ShopperProduct, "variants" | "supplierProduct" | "stock">) {
   const left = unitsLeft(product);
-  return left !== null && left > 0 && left <= 5 ? `Only ${left} left` : null;
+  const lowAt = product.stock?.lowAt ?? 5;
+  return left !== null && left > 0 && left <= lowAt ? `Only ${left} left` : null;
+}
+
+/** A card's "Sold out" badge: tracked stock (or the supplier's for dropship) at 0, with no backorders. */
+export function soldOutLabel(product: Pick<ShopperProduct, "supplierProduct" | "stock">) {
+  return listingSoldOut(product) ? "Sold out" : null;
 }
 
 export function productColours(product: Pick<ShopperProduct, "variants">) {
-  return unique(readVariants(product.variants).map((variant) => variant.color))
+  const colours = normalizeVariants(product.variants)
+    .filter((variant) => variant.enabled)
+    .map((variant) => Object.entries(variant.options).find(([name]) => isColourOption(name))?.[1]);
+  return unique(colours)
     .map((name) => ({ name, hex: colourHex(name) }))
     .filter((entry): entry is { name: string; hex: string } => Boolean(entry.hex))
     .slice(0, 4);
@@ -140,4 +162,33 @@ export function bestSellers<P extends ShopperProduct>(products: P[]) {
     .map((product, index) => ({ product, index }))
     .sort((a, b) => (b.product.reviewCount ?? 0) - (a.product.reviewCount ?? 0) || (b.product.avgRating ?? 0) - (a.product.avgRating ?? 0) || a.index - b.index)
     .map((entry) => entry.product);
+}
+
+/** A product with more than one version to choose from: quick "Add to bag" buttons open its page instead. */
+export function needsOptions(product: Pick<ShopperProduct, "variants">) {
+  return normalizeVariants(product.variants).filter((variant) => variant.enabled).length > 1;
+}
+
+/**
+ * "Customers also like": the products the seller picked (in their order), else the store's products of the same
+ * type, category or tags (closest first), then the rest. The product itself never appears.
+ */
+export function relatedProducts<P extends Pick<ShopperProduct, "id" | "category" | "productType" | "tags">>(
+  product: Pick<ShopperProduct, "id" | "category" | "productType" | "tags" | "relatedProductIds">,
+  catalog: P[],
+  limit = 8,
+): P[] {
+  const others = catalog.filter((entry) => entry.id !== product.id);
+  const picked = (product.relatedProductIds ?? []).map((id) => others.find((entry) => entry.id === id)).filter((entry): entry is P => Boolean(entry));
+  if (picked.length) return picked.slice(0, limit);
+  const tags = new Set((product.tags ?? []).map((tag) => tag.toLowerCase()));
+  const score = (entry: P) =>
+    (product.productType && entry.productType === product.productType ? 2 : 0) +
+    (product.category?.slug && entry.category?.slug === product.category.slug ? 3 : 0) +
+    (entry.tags ?? []).filter((tag) => tags.has(tag.toLowerCase())).length;
+  return others
+    .map((entry, index) => ({ entry, index, score: score(entry) }))
+    .sort((a, b) => b.score - a.score || a.index - b.index)
+    .map((row) => row.entry)
+    .slice(0, limit);
 }

@@ -21,6 +21,7 @@ export const GLOSSARY: GlossaryEntry[] = [
   // ── Customers and marketing ──
   { key: "segments", term: "Segments", short: "Groups of customers you pick by what they bought, where they live or what they did.", example: "Everyone in Lagos who bought shoes twice this year.", aliases: ["segment", "customer groups", "groups of customers"], introKey: "segments" },
   { key: "campaigns", term: "Campaigns", short: "One message you send to many customers at once, by email, WhatsApp or SMS.", example: "A Friday WhatsApp message to your VIPs: “New ankara just landed, 10% off till Sunday.”", aliases: ["campaign", "broadcast", "broadcasts", "messages to customers"], introKey: "campaigns" },
+  { key: "seasonal-campaigns", term: "Seasonal campaigns", short: "A sale you plan once that dresses up your shop for a season, then switches back by itself.", example: "Black Friday: gold colours, a countdown and a “BF Deal” badge from Friday to Sunday night.", aliases: ["seasonal campaign", "black friday", "sale campaign", "countdown", "countdowns", "announcement bar"], introKey: "seasonal-campaigns" },
   { key: "automations", term: "Automations", short: "Messages and tasks that run by themselves when something happens in your shop.", example: "When someone buys, send “Thank you, Ada!” and ask for a review 5 days later.", aliases: ["automation", "automated", "flows", "workflows"], introKey: "automations" },
   { key: "subscribers", term: "Subscribers", short: "People who said yes to getting your messages, so you can market to them.", example: "The 240 people who joined your list from the pop-up on your shop.", aliases: ["subscriber", "mailing list", "contact list", "opt-in"], introKey: "subscribers" },
   { key: "audiences", term: "Audiences", short: "The people an advert or message is shown to, chosen by place, age or interest.", example: "Women 22–40 in Abuja and Port Harcourt who like fashion.", aliases: ["audience", "targeting"], introKey: "ads" },
@@ -83,8 +84,11 @@ export const GLOSSARY: GlossaryEntry[] = [
   { key: "menus", term: "Menus", short: "The links at the top and bottom of your shop that help buyers move around.", example: "Shop · Wigs · Lace · Contact.", aliases: ["menu", "navigation"] },
   { key: "content", term: "Content", short: "Blog posts and articles on your shop that bring visitors from Google.", example: "“5 ways to keep your wig fresh in Harmattan.”", aliases: ["blog", "cms", "articles"], introKey: "seo" },
   { key: "brand-kit", term: "Brand kit", short: "Your logo, colours and fonts in one place, so everything you make looks like you.", example: "Your mint green, your logo and your tagline on every flyer Rex makes.", aliases: ["brand", "branding"], introKey: "brand-kit" },
+  { key: "media", term: "Media library", short: "Every picture and video in your shop, kept in one place to name, describe and use again.", example: "Pick last month’s Ankara photo for a new banner instead of uploading it again.", aliases: ["my media", "alt text", "pictures and videos"], introKey: "media" },
   { key: "studio", term: "Rex Studio", short: "Rex, the AI designer, makes product photos, logos and posts for you.", example: "Turn a phone photo of a cake into a clean white-background picture.", aliases: ["rex studio", "studio"], introKey: "rex-studio" },
   { key: "domain", term: "Domain", short: "Your shop’s own web address that people type to find you.", example: "mamaputkitchen.com instead of a long link.", aliases: ["domains", "web address", "custom domain", "url"], introKey: "domain" },
+  { key: "payment-links", term: "Payment links", short: "A link you send in a chat so a customer can pay for exact products and pick delivery.", example: "Tolu asks for the red bag on WhatsApp. You send a link, she pays ₦18,000 by card.", aliases: ["payment link", "pay link", "checkout link"] },
+  { key: "link-in-bio", term: "Link in bio", short: "One page with your products, Buy now buttons and WhatsApp, for your Instagram or TikTok bio.", example: "Your TikTok bio says adafabrics.shopinbos.com/links. Fans tap it and buy.", aliases: ["bio link", "linktree", "links page"] },
   { key: "checkout", term: "Checkout", short: "The page where a buyer enters their address and pays.", example: "Kemi adds her Yaba address, picks bank transfer and pays ₦24,000.", aliases: ["payment page", "check out"], introKey: "abandoned-carts" },
   { key: "abandoned-carts", term: "Abandoned carts", short: "Carts people filled but left before paying, so you can remind them.", example: "Bola added two wigs at 10pm and left. A reminder brings her back.", aliases: ["abandoned cart", "abandoned checkout", "cart and wishlist", "cart", "wishlist"], introKey: "abandoned-carts" },
   { key: "seo", term: "SEO", short: "Making your shop easy to find on Google for free.", example: "Showing up when someone searches “ankara gown Abuja”.", aliases: ["search engine optimisation", "search engine optimization", "show up on google", "google", "seo and content"], introKey: "seo" },
@@ -173,15 +177,15 @@ export const NAV_TERMS: Record<GlossaryRole, Record<string, string>> = {
     products: "inventory", "products-import": "imports", inventory: "inventory", collections: "collections", categories: "categories",
     "find-products": "marketplace", "find-products-all": "marketplace", "find-suppliers": "marketplace", "find-logistics": "logistics", "find-wholesale-orders": "wholesale",
     dropship: "dropship", imports: "sourcing-imports",
-    orders: "orders", "orders-all": "orders", "orders-new": "record-sale", customers: "customers", "customers-all": "customers",
+    orders: "orders", "orders-all": "orders", "orders-new": "record-sale", "payment-links": "payment-links", "link-in-bio": "link-in-bio", customers: "customers", "customers-all": "customers",
     subscribers: "subscribers", segments: "segments",
     "your-store": "store-builder", editor: "store-builder", pages: "pages", navigation: "menus", blog: "content", checkout: "checkout", cart: "abandoned-carts", seo: "seo", legal: "legal-pages",
-    "rex-studio": "studio", "studio-home": "studio", "studio-images": "studio", "studio-logo": "brand-kit", "brand-kit": "brand-kit", templates: "themes", domain: "domain",
-    marketing: "campaigns", "marketing-overview": "campaigns", campaigns: "campaigns", automations: "automations", "email-templates": "templates", "mkt-forms": "forms", "mkt-rewards": "rewards", "marketing-analytics": "analytics",
+    "rex-studio": "studio", "studio-home": "studio", "studio-images": "studio", "studio-logo": "brand-kit", "brand-kit": "brand-kit", media: "media", templates: "themes", domain: "domain",
+    marketing: "campaigns", "marketing-overview": "campaigns", campaigns: "campaigns", "seasonal-campaigns": "seasonal-campaigns", automations: "automations", "email-templates": "templates", "mkt-forms": "forms", "mkt-rewards": "rewards", "marketing-analytics": "analytics",
     ads: "ads", video: "video-studio", discounts: "discounts", affiliates: "affiliates", "sell-everywhere": "channels",
     money: "payments", payments: "payments", invoices: "invoices", taxes: "taxes",
     delivery: "logistics", "delivery-partners": "logistics", shipping: "shipping-rates", labels: "labels",
-    reports: "analytics", "reports-sales": "analytics", health: "store-health", activity: "activity",
+    reports: "analytics", "reports-sales": "analytics", "reports-traffic": "analytics", connections: "integrations", health: "store-health", activity: "activity",
   },
   supplier: {
     ...SHARED_NAV,
@@ -199,6 +203,7 @@ export const NAV_TERMS: Record<GlossaryRole, Record<string, string>> = {
 export const PLAIN_NAV = new Set([
   "start", "home", "dashboard", "products-all", "products-new",
   "settings", "settings-store", "settings-main", "profile", "company", "notification-prefs", "customise", "team",
+  "labels-designs", "labels-packaging", "labels-studio", "labels-request", "labels-orders", "packaging-requests", "print-orders",
 ]);
 
 /** The glossary entry for a sidebar item, or null for plain words and unknown ids. */

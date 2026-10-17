@@ -90,6 +90,10 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "studio.example": "Mayar da hoton kek da aka ɗauka da waya zuwa hoto mai tsabta da farin baya.",
   "domain.short": "Adireshin yanar gizo na shagonka da mutane ke rubutawa don su same ka.",
   "domain.example": "mamaputkitchen.com maimakon dogon link.",
+  "payment-links.short": "Link da kake turawa a chat don abokin ciniki ya biya ainihin kaya ya zaɓi delivery.",
+  "payment-links.example": "Tolu ta nemi jakar ja ta WhatsApp. Ka tura link, ta biya ₦18,000 da kati.",
+  "link-in-bio.short": "Shafi ɗaya mai kayanka, maɓallan Buy now da WhatsApp, don bio na Instagram ko TikTok.",
+  "link-in-bio.example": "Bio na TikTok ɗinka ya ce adafabrics.shopinbos.com/links. Masoya suna taɓawa su saya.",
   "checkout.short": "Shafin da mai saye ke shigar da adireshinsa ya biya.",
   "checkout.example": "Kemi ta saka adireshinta na Yaba, ta zaɓi bank transfer ta biya ₦24,000.",
   "abandoned-carts.short": "Cart da mutane suka cika amma suka bar kafin su biya, don ka tunatar da su.",
@@ -170,6 +174,10 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "on-time-rate.example": "Deliveries 48 cikin 50 sun isa a kan lokaci a wannan mako: on-time rate 96%.",
   "api-key.short": "Lambar sirri da ke bari wata app ta yi aiki da account ɗinka na Shopinbos.",
   "api-key.example": "Liƙa ta a cikin dispatch software ɗinka, kuma ka ɓoye ta kamar password.",
+  "media.short": "Duk hotuna da bidiyon shagonka, a wuri ɗaya don ka sa musu suna, ka bayyana su, ka sake amfani da su.",
+  "media.example": "Zaɓi hoton Ankara na watan jiya don sabon banner maimakon sake ɗora shi.",
+  "seasonal-campaigns.short": "Sale da ka tsara sau ɗaya wanda ke ƙawata shagonka don wani lokaci, sannan ya koma yadda yake da kansa.",
+  "seasonal-campaigns.example": "Black Friday: launin gold, ƙidayar lokaci da badge “BF Deal” daga Juma'a zuwa daren Lahadi.",
 };
 
 export default ha;

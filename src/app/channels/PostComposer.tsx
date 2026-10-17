@@ -18,9 +18,10 @@ export interface ComposerProduct {
 
 // Pick a product and an app, let Peggy write the caption, edit it, then copy, download the photo or open the
 // app's share page. Nothing is posted for the seller; links carry utm tags so results show under that channel.
-export function PostComposer({ products }: { products: ComposerProduct[] }) {
+/** `image`: a picture made by Rex (or from the media library) to post instead of the product's own photo. */
+export function PostComposer({ products, image = null, initialProductId }: { products: ComposerProduct[]; image?: string | null; initialProductId?: string }) {
   const t = useT("social", "common");
-  const [productId, setProductId] = useState(products[0]?.id ?? "");
+  const [productId, setProductId] = useState(products.find((item) => item.id === initialProductId)?.id ?? products[0]?.id ?? "");
   const [channel, setChannel] = useState<ShareChannel>("whatsapp");
   const [angle, setAngle] = useState("");
   const [caption, setCaption] = useState("");
@@ -31,6 +32,8 @@ export function PostComposer({ products }: { products: ComposerProduct[] }) {
   useEffect(() => setCanNativeShare(typeof navigator.share === "function"), []);
 
   const product = products.find((item) => item.id === productId) ?? null;
+  const picture = image ?? product?.image ?? null;
+  const pictureDownload = image ?? (product ? `/api/app/social/image?productId=${encodeURIComponent(product.id)}` : null);
   const link = useMemo(() => (product ? taggedProductLink(product.url, channel) : ""), [product, channel]);
   const room = link ? captionRoom(channel, link) : 0;
   const spec = SHARE_CHANNELS.find((item) => item.key === channel)!;
@@ -74,8 +77,8 @@ export function PostComposer({ products }: { products: ComposerProduct[] }) {
     if (!product) return;
     const text = postText(channel, caption, link);
     try {
-      if (product.image) {
-        const response = await fetch(`/api/app/social/image?productId=${encodeURIComponent(product.id)}`);
+      if (picture && pictureDownload) {
+        const response = await fetch(pictureDownload);
         if (response.ok) {
           const blob = await response.blob();
           const file = new File([blob], `${product.name.slice(0, 40) || "product"}.${blob.type.split("/")[1] ?? "jpg"}`, { type: blob.type });
@@ -140,9 +143,9 @@ export function PostComposer({ products }: { products: ComposerProduct[] }) {
 
       <div className="grid content-start gap-3">
         <div className="flex gap-3 rounded-[18px] bg-app-canvas p-3">
-          {product?.image ? (
+          {picture ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={product.image} alt="" className="h-24 w-24 shrink-0 rounded-[14px] object-cover" />
+            <img src={picture} alt="" className="h-24 w-24 shrink-0 rounded-[14px] object-cover" />
           ) : (
             <span className="grid h-24 w-24 shrink-0 place-items-center rounded-[14px] bg-white text-[12px] text-app-ink-soft">{t("pc.noPhoto")}</span>
           )}
@@ -166,8 +169,8 @@ export function PostComposer({ products }: { products: ComposerProduct[] }) {
             <Icon name={copied ? "check" : "copy"} size={15} />
             <span aria-live="polite">{copied ? t("copied") : t("pc.copyPost")}</span>
           </button>
-          {product?.image && (
-            <a href={`/api/app/social/image?productId=${encodeURIComponent(product.id)}`} download className={buttonClass("white", "sm")}>
+          {picture && pictureDownload && (
+            <a href={pictureDownload} download target={image ? "_blank" : undefined} rel={image ? "noopener noreferrer" : undefined} className={buttonClass("white", "sm")}>
               <Icon name="download" size={15} />
               {t("pc.download")}
             </a>
