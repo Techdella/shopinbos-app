@@ -1,0 +1,227 @@
+import Link from "next/link";
+import { AppPage, Card, CardHead, EmptyState, Pill, PillLink, StatTile, type Tone } from "@/components/app-kit";
+import { Notice } from "@/components/app-ui";
+import { adminFrame, buttonClass } from "@/components/admin/AdminKit";
+import { addWhatsAppSequences, submitWhatsAppTemplates, toggleLeadAutomation } from "@/app/actions/admin-lead-growth";
+import { ROLE_LABELS, type LeadRole } from "@/lib/lead-growth/pure";
+import { LeadGrowthNotReady, listAutomations, whatsappOverview } from "@/lib/lead-growth/service.server";
+import { WHATSAPP_AUTOMATIONS, WHATSAPP_TEMPLATES, templatePreviewText, templatesUsed } from "@/lib/lead-growth/whatsapp-content";
+import { metaPhoneInfo, metaTemplates, metaWhatsAppConfig, type MetaTemplateStatus } from "@/lib/lead-growth/whatsapp-meta.server";
+import { requireRole } from "@/lib/server-auth";
+import { GrowthNotReady, lagosTime } from "../_shared";
+
+export const dynamic = "force-dynamic";
+export const maxDuration = 300;
+
+// /admin/lead-campaigns/whatsapp: WhatsApp for website leads, from Shopinbos's own number on Meta's Cloud API.
+// The number's status, the launch templates Meta has to approve (submit them from here), the WhatsApp launch
+// sequences per role, who WhatsApp can reach, and the latest messages.
+
+const STATUS_TONE: Record<string, Tone> = { APPROVED: "success", PENDING: "warning", IN_APPEAL: "warning", REJECTED: "danger", PAUSED: "danger", DISABLED: "danger" };
+const MSG_TONE: Record<string, Tone> = { sent: "success", failed: "danger", skipped: "muted", sending: "info" };
+
+const mask = (phone: string) => (phone.length > 6 ? `${phone.slice(0, 4)}•••${phone.slice(-3)}` : phone || "-");
+
+type Search = { error?: string; submitted?: string };
+
+export default async function LeadWhatsAppPage(props: { searchParams?: Promise<Search> }) {
+  const user = await requireRole(["admin"], "/admin/login");
+  const frame = adminFrame(user, "Search leads");
+  const search = (await props.searchParams) ?? {};
+  const config = metaWhatsAppConfig();
+  const sub = "Message website leads on WhatsApp from Shopinbos's own number on Meta. No third-party provider.";
+
+  let overview: Awaited<ReturnType<typeof whatsappOverview>>;
+  let automations: Awaited<ReturnType<typeof listAutomations>>;
+  try {
+    [overview, automations] = await Promise.all([whatsappOverview(), listAutomations()]);
+  } catch (error) {
+    if (!(error instanceof LeadGrowthNotReady)) throw error;
+    return (
+      <AppPage frame={frame} title="WhatsApp" sub={sub}>
+        <GrowthNotReady />
+      </AppPage>
+    );
+  }
+  const [phone, metaList] = config ? await Promise.all([metaPhoneInfo(config), metaTemplates(config)]) : [null, null];
+  const onMeta = new Map<string, MetaTemplateStatus>((metaList?.ok ? metaList.templates : []).map((t) => [`${t.name}:${t.language}`, t]));
+  const statusOf = (name: string, language: string) => onMeta.get(`${name}:${language}`) ?? null;
+  const approved = (name: string) => WHATSAPP_TEMPLATES.some((t) => t.name === name && statusOf(t.name, t.language)?.status === "APPROVED");
+  const waAutomations = automations.filter((a) => a.steps.some((step) => step.channel === "whatsapp"));
+  const missingSequences = WHATSAPP_AUTOMATIONS.some((a) => !automations.some((have) => have.name === a.name));
+  const missingTemplates = WHATSAPP_TEMPLATES.filter((t) => !statusOf(t.name, t.language)).length;
+  const reachTotal = Object.values(overview.reachableByRole).reduce((a, b) => a + b, 0);
+
+  return (
+    <AppPage
+      frame={frame}
+      title="WhatsApp"
+      sub={sub}
+      actions={
+        <>
+          <PillLink href="/admin/lead-campaigns" icon="arrowLeft">Campaigns</PillLink>
+          <PillLink href="/admin/lead-campaigns/new?channel=whatsapp" tone="ink" icon="whatsapp">New WhatsApp campaign</PillLink>
+        </>
+      }
+    >
+      {search.error && <div className="mb-4"><Notice>{search.error}</Notice></div>}
+      {search.submitted && <div className="mb-4"><Notice tone="success">Sent {search.submitted} template{search.submitted === "1" ? "" : "s"} to Meta for review. Approval usually takes minutes, sometimes up to a day.</Notice></div>}
+
+      <section aria-label="Reach" className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+        <StatTile tone="card" label="Reachable on WhatsApp" value={reachTotal} hint={`${overview.consented} agreed to messages`} />
+        {(Object.keys(ROLE_LABELS) as LeadRole[]).map((role) => (
+          <StatTile key={role} tone="card" label={ROLE_LABELS[role]} value={overview.reachableByRole[role] ?? 0} hint="With a phone number" />
+        ))}
+        <StatTile tone="card" label="Sent, last 30 days" value={overview.last30.sent ?? 0} hint={`${overview.last30.failed ?? 0} failed`} />
+        <StatTile tone="card" label="Opted out" value={overview.optedOut} hint="Never messaged again" />
+      </section>
+
+      <Card className="mb-5 p-5">
+        <CardHead title="Your WhatsApp number" />
+        {!config ? (
+          <div className="flex flex-col gap-2 text-[14px]">
+            <p className="m-0">Not connected yet. Add these in Vercel (Settings › Environment Variables), then redeploy:</p>
+            <ul className="m-0 pl-5 text-[13.5px]">
+              <li><span className="font-mono">WHATSAPP_LEADS_TOKEN</span>: a System User token from Meta Business Settings with <i>whatsapp_business_messaging</i> and <i>whatsapp_business_management</i></li>
+              <li><span className="font-mono">WHATSAPP_LEADS_PHONE_NUMBER_ID</span>: WhatsApp Manager › Phone numbers › your number's ID</li>
+              <li><span className="font-mono">WHATSAPP_LEADS_WABA_ID</span>: your WhatsApp Business Account ID (to submit and track templates)</li>
+            </ul>
+            <p className="m-0 text-[13px] text-app-ink-soft">The number that sends sign-in codes (WHATSAPP_OTP_TOKEN / WHATSAPP_OTP_PHONE_NUMBER_ID) is used if those are set and these aren't.</p>
+          </div>
+        ) : phone && phone.ok ? (
+          <div className="flex flex-wrap items-center gap-2 text-[14.5px]">
+            <b>{phone.number}</b>
+            <span className="text-app-ink-soft">{phone.name}</span>
+            <Pill tone={phone.quality === "GREEN" ? "success" : phone.quality === "YELLOW" ? "warning" : phone.quality === "RED" ? "danger" : "muted"} dot>Quality: {phone.quality.toLowerCase()}</Pill>
+            {!config.wabaId && <Pill tone="warning">Add WHATSAPP_LEADS_WABA_ID to manage templates</Pill>}
+          </div>
+        ) : (
+          <Notice>Meta didn't accept the number's details: {phone?.ok === false ? phone.error : "unknown error"}. Check the token and phone number ID.</Notice>
+        )}
+      </Card>
+
+      <Card className="mb-5 p-5">
+        <CardHead
+          title="Launch templates"
+          sub="WhatsApp only lets a business start a chat with a template Meta has approved. Each has the lead's first name and their opt-out link."
+          action={
+            config?.wabaId && missingTemplates > 0 ? (
+              <form action={submitWhatsAppTemplates}>
+                <button type="submit" className={buttonClass("ink", "sm")}>Submit {missingTemplates} to Meta</button>
+              </form>
+            ) : undefined
+          }
+        />
+        {metaList && !metaList.ok && config?.wabaId && <div className="mb-3"><Notice>Couldn't read templates from Meta: {metaList.error}</Notice></div>}
+        <ul className="m-0 flex list-none flex-col divide-y divide-app-line p-0">
+          {WHATSAPP_TEMPLATES.map((template) => {
+            const status = statusOf(template.name, template.language);
+            return (
+              <li key={template.name} className="py-3">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <b className="font-mono text-[13.5px]">{template.name}</b>
+                      <Pill tone="muted">{ROLE_LABELS[template.role]}</Pill>
+                      {status ? <Pill tone={STATUS_TONE[status.status] ?? "muted"} dot>{status.status.toLowerCase().replace(/_/g, " ")}</Pill> : <Pill tone="muted">Not on Meta yet</Pill>}
+                    </div>
+                    <p className="mb-0 mt-1 text-[13px] text-app-ink-soft">{template.purpose}{status?.reason ? ` · Rejected: ${status.reason.toLowerCase().replace(/_/g, " ")}` : ""}</p>
+                    <details className="mt-1.5">
+                      <summary className="cursor-pointer text-[13px] font-bold">Preview</summary>
+                      <div className="mt-2 max-w-[420px] whitespace-pre-line rounded-[14px] bg-[#ECE5DD] p-3 text-[13.5px]">
+                        <div className="rounded-[12px] rounded-tl-[4px] bg-white px-3 py-2">{templatePreviewText(template)}</div>
+                        <div className="mt-1.5 rounded-[12px] bg-white px-3 py-2 text-center font-bold text-[#00A5F4]">{template.button.text}</div>
+                      </div>
+                    </details>
+                  </div>
+                  {config?.wabaId && (!status || status.status === "REJECTED") && (
+                    <form action={submitWhatsAppTemplates}>
+                      <input type="hidden" name="name" value={template.name} />
+                      <button type="submit" className={buttonClass("white", "sm")}>{status ? "Resubmit" : "Submit to Meta"}</button>
+                    </form>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </Card>
+
+      <Card className="mb-5 p-5">
+        <CardHead
+          title="WhatsApp launch sequences"
+          sub="Run alongside the email sequences: a welcome an hour after someone joins, registration day for partners, launch day and one reminder. Each stops when the lead signs up or opts out."
+          action={
+            missingSequences ? (
+              <form action={addWhatsAppSequences}>
+                <button type="submit" className={buttonClass("white", "sm")}>Add WhatsApp sequences</button>
+              </form>
+            ) : undefined
+          }
+        />
+        {waAutomations.length === 0 ? (
+          <EmptyState icon="whatsapp" title="No WhatsApp sequences yet">Add them, get the templates approved, then switch them on.</EmptyState>
+        ) : (
+          <ul className="m-0 flex list-none flex-col divide-y divide-app-line p-0">
+            {waAutomations.map((automation) => {
+              const needed = templatesUsed(automation.steps);
+              const ready = needed.filter(approved).length;
+              const blocked = !config || ready < needed.length;
+              return (
+                <li key={automation.id} className="flex flex-wrap items-center justify-between gap-3 py-3.5">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Link href={`/admin/lead-campaigns/automations/${automation.id}`} className="text-[15.5px] font-bold underline-offset-2 hover:underline">{automation.name}</Link>
+                      <Pill tone={automation.active ? "success" : "muted"} dot>{automation.active ? "On" : "Off"}</Pill>
+                      <Pill tone={ready === needed.length ? "success" : "warning"}>{ready}/{needed.length} templates approved</Pill>
+                    </div>
+                    <p className="mb-0 mt-1 text-[13px] text-app-ink-soft">
+                      {automation.steps.length} messages · {automation.enrolled} entered · {automation.sent} sent · <b className="text-app-ink">{automation.converted} signed up</b>
+                    </p>
+                  </div>
+                  <form action={toggleLeadAutomation}>
+                    <input type="hidden" name="id" value={automation.id} />
+                    <input type="hidden" name="active" value={automation.active ? "0" : "1"} />
+                    <button type="submit" className={buttonClass(automation.active ? "white" : "ink", "sm")} disabled={!automation.active && blocked} title={!automation.active && blocked ? "Connect the number and get its templates approved first" : undefined}>
+                      {automation.active ? "Turn off" : "Turn on"}
+                    </button>
+                  </form>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </Card>
+
+      <Card className="p-5">
+        <CardHead title="Latest WhatsApp messages" />
+        {overview.recent.length === 0 ? (
+          <p className="m-0 text-[13.5px] text-app-ink-soft">None yet.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] border-collapse text-left text-[13.5px]">
+              <thead>
+                <tr className="border-b border-app-line text-[12px] text-app-ink-soft">
+                  <th className="py-2 pr-3 font-bold">When</th>
+                  <th className="py-2 pr-3 font-bold">To</th>
+                  <th className="py-2 pr-3 font-bold">From</th>
+                  <th className="py-2 font-bold">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {overview.recent.map((message) => (
+                  <tr key={message.id} className="border-b border-app-line last:border-0">
+                    <td className="py-2 pr-3">{lagosTime(message.createdAt)}</td>
+                    <td className="py-2 pr-3">{message.lead.name || "No name"} <span className="font-mono text-app-ink-soft">{mask(message.to)}</span></td>
+                    <td className="py-2 pr-3">{message.campaign?.name ?? message.automation?.name ?? "-"}</td>
+                    <td className="py-2"><Pill tone={MSG_TONE[message.status] ?? "muted"} dot>{message.status}</Pill>{message.error && <span className="ml-2 text-[12.5px] text-app-ink-soft">{message.error.slice(0, 120)}</span>}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+    </AppPage>
+  );
+}

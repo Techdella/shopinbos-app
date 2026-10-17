@@ -24,6 +24,7 @@ import {
   type LeadStepType,
 } from "./pure";
 import { leadEmail, sendToLead, type SendOutcome } from "./send.server";
+import { metaWhatsAppConfig } from "./whatsapp-meta.server";
 
 // Lead growth: one-off campaigns and step-by-step automations that turn website leads into Shopinbos accounts.
 // Runs from Admin › Lead campaigns ("Send now") and /api/cron/lead-growth (scheduled campaigns, automation steps,
@@ -46,7 +47,7 @@ function isMissingColumn(error: unknown) {
 }
 
 export function channelReadiness(): Record<LeadChannel, boolean> {
-  return { email: isEmailConfigured(), sms: platformSmsReady(), whatsapp: platformWhatsAppReady() };
+  return { email: isEmailConfigured(), sms: platformSmsReady(), whatsapp: Boolean(metaWhatsAppConfig()) || platformWhatsAppReady() };
 }
 
 const LEAD_SELECT = { id: true, name: true, email: true, phone: true, kind: true, optedOut: true } as const;
@@ -417,6 +418,50 @@ export async function addLaunchContent(createdById: string) {
       added += 1;
     }
     return { added };
+  });
+}
+
+// ─── WhatsApp (Admin › Leads › WhatsApp) ────────────────────────────────────────────────────────────────────────
+
+/** Adds the WhatsApp launch sequences that aren't here yet (switched off: they need approved templates first). */
+export async function addWhatsAppContent() {
+  const { WHATSAPP_AUTOMATIONS } = await import("./whatsapp-content");
+  return guardGrowth(async () => {
+    const have = new Set((await db.leadAutomation.findMany({ select: { name: true } })).map((a) => a.name));
+    let added = 0;
+    for (const automation of WHATSAPP_AUTOMATIONS) {
+      if (have.has(automation.name)) continue;
+      await createAutomation(automation);
+      added += 1;
+    }
+    return { added };
+  });
+}
+
+/** Who WhatsApp can reach, by role, and how lead WhatsApp messages have gone lately. */
+export function whatsappOverview() {
+  return guardGrowth(async () => {
+    const reachable = { status: { in: ["new", "contacted"] }, convertedAt: null, phone: { not: null }, NOT: { optedOut: { has: "whatsapp" } } } satisfies Prisma.WebsiteLeadWhereInput;
+    const since = new Date(Date.now() - 30 * 86_400_000);
+    const [byRole, consented, optedOut, statuses, recent] = await Promise.all([
+      db.websiteLead.groupBy({ by: ["role"], where: reachable, _count: { _all: true } }),
+      db.websiteLead.count({ where: { ...reachable, consent: true } }),
+      db.websiteLead.count({ where: { optedOut: { has: "whatsapp" } } }),
+      db.leadMessage.groupBy({ by: ["status"], where: { channel: "whatsapp", createdAt: { gte: since } }, _count: { _all: true } }),
+      db.leadMessage.findMany({
+        where: { channel: "whatsapp" },
+        orderBy: { createdAt: "desc" },
+        take: 25,
+        select: { id: true, to: true, status: true, error: true, createdAt: true, lead: { select: { name: true, role: true } }, campaign: { select: { name: true } }, automation: { select: { name: true } } },
+      }),
+    ]);
+    return {
+      reachableByRole: Object.fromEntries(byRole.map((row) => [row.role, row._count._all])) as Record<string, number>,
+      consented,
+      optedOut,
+      last30: Object.fromEntries(statuses.map((row) => [row.status, row._count._all])) as Record<string, number>,
+      recent,
+    };
   });
 }
 

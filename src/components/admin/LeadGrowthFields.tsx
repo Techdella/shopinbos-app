@@ -6,6 +6,7 @@ import { previewLeadAudience, sendLeadTest } from "@/app/actions/admin-lead-grow
 import { Notice, PillButton, Segmented, TextInput, cx } from "@/components/app-ui";
 import { Field, checkClass, selectClass, textareaClass } from "@/components/growth/kit";
 import { html, platformEmail, type PlatformLegal } from "@/lib/email/shell";
+import { WHATSAPP_TEMPLATES, templatePreviewText, whatsappTemplate } from "@/lib/lead-growth/whatsapp-content";
 import { CHANNEL_LABELS, LEAD_CHANNELS, LEAD_ROLES, ROLE_LABELS, personalise, smsParts, type LeadAudienceType, type LeadChannel, type LeadRole } from "@/lib/lead-growth/pure";
 
 // Pieces shared by the lead campaign and lead automation editors (/admin/lead-campaigns): who it reaches (with a
@@ -163,7 +164,10 @@ export function MessageEditor({ value, onChange, readiness, idPrefix }: { value:
       {value.channel === "whatsapp" && (
         <div className="grid gap-4 md:grid-cols-[1fr_140px]">
           <Field label="Approved template name" htmlFor={`${idPrefix}-tpl`} hint="WhatsApp only lets businesses start a chat with an approved template. Its first variable ({{1}}) gets the first name. Leave empty to send the text below (only reaches people who messaged you in the last 24 hours).">
-            <TextInput id={`${idPrefix}-tpl`} value={value.waTemplate} maxLength={120} placeholder="lead_welcome" onChange={(e) => set({ waTemplate: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "_") })} />
+            <TextInput id={`${idPrefix}-tpl`} list={`${idPrefix}-tpl-list`} value={value.waTemplate} maxLength={120} placeholder="sib_seller_live" onChange={(e) => set({ waTemplate: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "_") })} />
+            <datalist id={`${idPrefix}-tpl-list`}>
+              {WHATSAPP_TEMPLATES.map((template) => <option key={template.name} value={template.name}>{template.purpose}</option>)}
+            </datalist>
           </Field>
           <Field label="Language" htmlFor={`${idPrefix}-lang`}>
             <TextInput id={`${idPrefix}-lang`} value={value.waLanguage} maxLength={12} placeholder="en" onChange={(e) => set({ waLanguage: e.target.value })} />
@@ -232,11 +236,17 @@ export function MessagePreview({ value, legal, appUrl }: { value: MessageDraft; 
       </div>
     );
   }
-  const text = value.channel === "whatsapp" && value.waTemplate ? `Template "${value.waTemplate}" with {{1}} = Ada` : personalise(value.body || "Your message", vars);
+  const known = value.channel === "whatsapp" ? whatsappTemplate(value.waTemplate) : null;
+  const text = known
+    ? personalise(templatePreviewText(known), vars).replace("[opt-out link]", "https://…/opt-out")
+    : value.channel === "whatsapp" && value.waTemplate
+      ? `Template "${value.waTemplate}" with {{1}} = Ada`
+      : personalise(value.body || "Your message", vars);
   return (
     <div className="rounded-[18px] border border-app-line bg-[#ECE5DD] p-4">
       <div className="max-w-[340px] whitespace-pre-line rounded-[14px] rounded-tl-[4px] bg-white px-3.5 py-2.5 text-[14px] shadow-sm">
         {text}
+        {known && <span className="mt-2 block rounded-[10px] border border-app-line px-3 py-1.5 text-center font-bold text-[#00A5F4]">{known.button.text}</span>}
         {!(value.channel === "whatsapp" && value.waTemplate) && (
           <span className="mt-2 block text-[12.5px] text-app-ink-soft">{value.channel === "sms" ? "Stop: https://…/opt-out" : "Don't want these messages? https://…/opt-out"}</span>
         )}

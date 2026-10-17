@@ -158,3 +158,36 @@ test("launch sequences: every step is valid and late joiners only get what's sti
   for (const step of sellers) if (step.at && Date.parse(step.at) < Date.parse("2026-11-01T08:00:00Z")) assert.ok(!/signup/.test(step.ctaUrl), step.subject);
   assert.ok(!/signup/.test(sellers[0].ctaUrl));
 });
+
+test("whatsapp: launch templates follow Meta's rules and every sequence step uses one", async () => {
+  const wa = await import("../src/lib/lead-growth/whatsapp-content.ts");
+  const names = new Set();
+  for (const t of wa.WHATSAPP_TEMPLATES) {
+    assert.match(t.name, /^[a-z0-9_]{1,512}$/, t.name);
+    assert.ok(!names.has(t.name), `duplicate ${t.name}`);
+    names.add(t.name);
+    assert.ok(t.body.length <= 1024, `${t.name} body too long`);
+    assert.ok(t.body.includes("{{1}}") && t.body.includes("{{2}}"), `${t.name} needs {{1}} and {{2}}`);
+    assert.ok(!/^\s*\{\{/.test(t.body) && !/\}\}\s*[.!?]?\s*$/.test(t.body), `${t.name}: a variable can't start or end the text`);
+    assert.ok(t.button.text.length <= 25, `${t.name} button text over 25 characters`);
+    assert.match(t.button.url, /^https:\/\//);
+    const payload = wa.metaTemplatePayload(t);
+    assert.equal(payload.components[0].example.body_text[0].length, 2);
+  }
+  for (const automation of wa.WHATSAPP_AUTOMATIONS) {
+    assert.equal(automation.audience.roles.length, 1);
+    for (const step of automation.steps) {
+      assert.equal(growth.LeadStep.safeParse(step).success, true, `${automation.name}: ${step.waTemplate}`);
+      const template = wa.whatsappTemplate(step.waTemplate);
+      assert.ok(template, `${step.waTemplate} isn't a launch template`);
+      assert.equal(template.role, automation.audience.roles[0], `${step.waTemplate} is for another role`);
+    }
+  }
+  // A supplier who joins after registration opened gets "registration is open" first, never the stale welcome.
+  const suppliers = wa.WHATSAPP_AUTOMATIONS.find((a) => a.audience.roles[0] === "supplier").steps;
+  // walk() reports subjects; WhatsApp steps have none, so walk them by template name.
+  const byTemplate = suppliers.map((s) => ({ ...s, subject: s.waTemplate }));
+  assert.deepEqual(walk(byTemplate, new Date("2026-10-27T15:00:00Z")).map((m) => m.subject), ["sib_supplier_registration_open", "sib_supplier_finish", "sib_supplier_live"]);
+  assert.deepEqual(walk(byTemplate, new Date("2026-10-17T15:00:00Z")).map((m) => m.subject), ["sib_supplier_welcome", "sib_supplier_registration_open", "sib_supplier_finish", "sib_supplier_live"]);
+  assert.equal(wa.templatesUsed(suppliers).length, 4);
+});
