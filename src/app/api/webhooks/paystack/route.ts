@@ -5,6 +5,7 @@ import { AD_SETUP_REFERENCE_PREFIX } from "@shared/ad-campaigns";
 import { completeAdSetupPayment } from "@/lib/ad-campaigns/requests.server";
 import { PRINT_ORDER_REFERENCE_PREFIX } from "@shared/print-orders";
 import { completePrintOrderPayment } from "@/lib/packaging/print-orders.server";
+import { NETWORK_REFERENCE_PREFIX, completeNetworkCheckout } from "@/lib/logistics/networks.server";
 import { SENDER_STORE_SELECT } from "@/lib/email/compliance.server";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db/client";
@@ -153,6 +154,12 @@ export async function POST(req: NextRequest) {
       if (ref.startsWith(PRINT_ORDER_REFERENCE_PREFIX)) {
         await completePrintOrderPayment(ref).catch((error) => {
           console.error("Print order payment completion failed:", error);
+        });
+        return NextResponse.json({ received: true });
+      }
+      if (ref.startsWith(NETWORK_REFERENCE_PREFIX)) {
+        await completeNetworkCheckout(ref).catch((error) => {
+          console.error("Delivery network payment completion failed:", error);
         });
         return NextResponse.json({ received: true });
       }

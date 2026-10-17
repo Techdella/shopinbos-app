@@ -130,8 +130,5 @@ test("carrier partners stay out of the portal's flows they can't work", () => {
   const pickup = readFileSync(new URL("../src/lib/supplier-orders/pickup.server.ts", import.meta.url), "utf8");
   assert.match(pickup, /carrier: null/);
   const bookings = readFileSync(new URL("../src/app/api/app/logistics/bookings/route.ts", import.meta.url), "utf8");
-  assert.match(bookings, /carrierFor\(partner\)/);
-  assert.match(bookings, /maxPrice: deliveryFee/);
-  const quotes = readFileSync(new URL("../src/app/api/app/logistics/quotes/route.ts", import.meta.url), "utf8");
-  assert.match(quotes, /carrier\.quote\(job\)/);
+  assert.match(bookings, /if \(partner\.carrier\) return apiError/);
 });

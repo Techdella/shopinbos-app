@@ -1271,6 +1271,9 @@ model DeliveryBooking {
   externalTrackingUrl String?
   externalStatus     String?
   externalSyncedAt   DateTime?
+  /// Delivery networks: booked on the seller's own network account (DeliveryNetworkAccount); null = Shopinbos's
+  /// account, paid through a DeliveryNetworkCheckout (platformFee is the Shopinbos fee on top of deliveryFee).
+  networkAccountId   String?
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
 
@@ -1287,6 +1290,51 @@ model DeliveryBooking {
   @@index([status])
   @@index([riderId])
   @@index([externalCarrier, status])
+}
+
+// ─── Delivery networks (lib/logistics/networks.server.ts) ──────────────────────
+
+/// A seller's own account with a delivery network (Kwik, Fez, …): jobs are booked and paid on it directly, with no
+/// Shopinbos fee. Credentials are encrypted (lib/inbox/crypto.ts, INBOX_ENCRYPTION_KEY).
+model DeliveryNetworkAccount {
+  id          String   @id @default(cuid())
+  userId      String
+  network     String
+  credentials String
+  /// What the seller recognises it by: the login email or a masked key.
+  label       String
+  status      String   @default("connected") // connected | error
+  lastError   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, network])
+}
+
+/// A delivery booked on Shopinbos's network account: the seller pays the network's price plus the Shopinbos fee
+/// with Paystack first; once the payment is verified the job is booked with the network (or the money refunded).
+model DeliveryNetworkCheckout {
+  id                 String    @id @default(cuid())
+  sellerId           String
+  network            String
+  logisticsPartnerId String
+  /// The booking as asked (addresses, contacts, parcel, order) and the job sent to the network.
+  request            Json
+  networkPrice       Float
+  fee                Float
+  total              Float
+  currency           String    @default("NGN")
+  paymentRef         String    @unique
+  status             String    @default("pending") // pending | booking | booked | failed
+  bookingId          String?   @unique
+  error              String?
+  refundStatus       String?   // pending | processed | failed
+  paidAt             DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([sellerId, createdAt])
+  @@index([status])
 }
 
 // ─── Shipping Zone ────────────────────────────────────────────────────────────

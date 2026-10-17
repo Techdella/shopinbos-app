@@ -35,6 +35,51 @@ ALTER TABLE "DeliveryBooking" ADD COLUMN IF NOT EXISTS "externalTrackingUrl" TEX
 ALTER TABLE "DeliveryBooking" ADD COLUMN IF NOT EXISTS "externalStatus" TEXT;
 ALTER TABLE "DeliveryBooking" ADD COLUMN IF NOT EXISTS "externalSyncedAt" TIMESTAMP(3);
 
+-- Delivery networks: sellers' own network accounts, paid checkouts on Shopinbos's account, and which account a
+-- booking used (src/lib/logistics/networks.server.ts).
+ALTER TABLE "DeliveryBooking" ADD COLUMN IF NOT EXISTS "networkAccountId" TEXT;
+
+CREATE TABLE IF NOT EXISTS "DeliveryNetworkAccount" (
+  "id" TEXT NOT NULL PRIMARY KEY,
+  "userId" TEXT NOT NULL,
+  "network" TEXT NOT NULL,
+  "credentials" TEXT NOT NULL,
+  "label" TEXT NOT NULL,
+  "status" TEXT NOT NULL DEFAULT 'connected',
+  "lastError" TEXT,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "DeliveryNetworkAccount_userId_network_key" ON "DeliveryNetworkAccount"("userId", "network");
+
+CREATE TABLE IF NOT EXISTS "DeliveryNetworkCheckout" (
+  "id" TEXT NOT NULL PRIMARY KEY,
+  "sellerId" TEXT NOT NULL,
+  "network" TEXT NOT NULL,
+  "logisticsPartnerId" TEXT NOT NULL,
+  "request" JSONB NOT NULL,
+  "networkPrice" DOUBLE PRECISION NOT NULL,
+  "fee" DOUBLE PRECISION NOT NULL,
+  "total" DOUBLE PRECISION NOT NULL,
+  "currency" TEXT NOT NULL DEFAULT 'NGN',
+  "paymentRef" TEXT NOT NULL,
+  "status" TEXT NOT NULL DEFAULT 'pending',
+  "bookingId" TEXT,
+  "error" TEXT,
+  "refundStatus" TEXT,
+  "paidAt" TIMESTAMP(3),
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "DeliveryNetworkCheckout_paymentRef_key" ON "DeliveryNetworkCheckout"("paymentRef");
+CREATE UNIQUE INDEX IF NOT EXISTS "DeliveryNetworkCheckout_bookingId_key" ON "DeliveryNetworkCheckout"("bookingId");
+CREATE INDEX IF NOT EXISTS "DeliveryNetworkCheckout_sellerId_createdAt_idx" ON "DeliveryNetworkCheckout"("sellerId", "createdAt");
+CREATE INDEX IF NOT EXISTS "DeliveryNetworkCheckout_status_idx" ON "DeliveryNetworkCheckout"("status");
+
+-- Server-only tables (credentials, payments): RLS on with no policies, like the other server-only tables.
+ALTER TABLE "DeliveryNetworkAccount" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "DeliveryNetworkCheckout" ENABLE ROW LEVEL SECURITY;
+
 -- The sync cron reads the open jobs of each carrier.
 CREATE INDEX IF NOT EXISTS "DeliveryBooking_externalCarrier_status_idx" ON "DeliveryBooking"("externalCarrier", "status");
 

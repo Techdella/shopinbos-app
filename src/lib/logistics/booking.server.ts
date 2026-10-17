@@ -1,5 +1,6 @@
 import "server-only";
 import type { Prisma } from "@prisma/client";
+import { ownPartCollect } from "@shared/cod-split";
 import { db } from "@/lib/db/client";
 import { partnerJob } from "./partner-api-core";
 import { emitPartnerEvent } from "./webhooks";
@@ -8,6 +9,22 @@ import { notifyJobOffered } from "@/lib/notifications/events.server";
 // Creating a delivery job for a partner, the same way POST /api/app/logistics/bookings does (save it, then offer
 // it to the partner's systems as "job.offered"). Used for supplier pickups (src/lib/supplier-orders/pickup.server.ts),
 // which also carry a pickup window.
+
+/**
+ * What the rider collects at the door for one of the seller's orders: unpaid (pay-on-delivery) orders only. When
+ * suppliers send some of the lines, this parcel collects only the seller's own lines' share, so the customer never
+ * pays the total twice. Undefined when nothing is collected.
+ */
+export async function orderCollectAmount(sellerId: string, orderId: string | null | undefined) {
+  if (!orderId) return undefined;
+  const order = await db.retailOrder.findFirst({
+    where: { id: orderId, store: { userId: sellerId } },
+    select: { total: true, status: true, items: true, supplierOrders: { select: { items: true } } },
+  });
+  if (!order || (order.status !== "pending" && order.status !== "awaiting_payment")) return undefined;
+  const ownShare = ownPartCollect(order.items, order.total, order.supplierOrders.map((part) => part.items));
+  return ownShare > 0 ? ownShare : undefined;
+}
 
 export interface DeliveryJobInput {
   sellerId: string;

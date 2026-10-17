@@ -43,7 +43,7 @@ export default async function SellerMessagesPage({ searchParams }: { searchParam
       select: { userId: true, businessName: true },
     }), []),
     safeQuery(() => db.logisticsPartner.findMany({
-      where: { status: "active", verificationStatus: "verified" },
+      where: { status: "active", verificationStatus: "verified", carrier: null },
       orderBy: [{ reliabilityScore: "desc" }, { createdAt: "desc" }],
       take: 20,
       select: { userId: true, companyName: true },

@@ -40,6 +40,20 @@ async function requireAdmin() {
   return requireRole(["admin"], "/admin/login");
 }
 
+/** Switches a delivery network (Kwik, Fez, …) on or off for sellers (lib/logistics/networks.server.ts). */
+export async function setDeliveryNetworkEnabled(formData: FormData) {
+  await requireAdmin();
+  const parsed = z.object({ network: z.string().min(2).max(30), enabled: z.enum(["on", "off"]) }).safeParse({ network: formData.get("network"), enabled: formData.get("enabled") });
+  if (!parsed.success) redirect("/admin/delivery-networks?error=Pick%20a%20network");
+  const { setNetworkEnabled } = await import("@/lib/logistics/networks.server");
+  const done = await setNetworkEnabled(parsed.data.network, parsed.data.enabled === "on").then(() => true).catch((error) => {
+    console.error("[admin] delivery network switch failed", error);
+    return false;
+  });
+  revalidateAdminPaths("/admin/delivery-networks", "/home/logistics");
+  redirect(done ? `/admin/delivery-networks?saved=${encodeURIComponent(parsed.data.enabled === "on" ? "Switched on" : "Switched off")}` : "/admin/delivery-networks?error=Couldn%27t%20save%20that.%20Try%20again.");
+}
+
 export async function updateSupplierVerification(formData: FormData) {
   await requireAdmin();
   const supplierId = formData.get("supplierId");

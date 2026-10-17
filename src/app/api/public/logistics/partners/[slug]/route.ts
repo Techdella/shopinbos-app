@@ -18,6 +18,7 @@ export async function GET(
       slug,
       status: "active",
       verificationStatus: "verified",
+      carrier: null,
     },
     select: {
       id: true,

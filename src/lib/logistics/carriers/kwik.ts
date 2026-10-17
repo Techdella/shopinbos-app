@@ -23,7 +23,7 @@ import {
   type KwikJobInput,
   type KwikPricing,
 } from "./kwik-pure";
-import type { Carrier, CarrierJobInput, CarrierResult } from "./types";
+import type { Carrier, CarrierCredentials, CarrierJobInput, CarrierResult } from "./types";
 
 // Kwik (https://apikwik.docs.apiary.io), Lagos same-day delivery. We book as one Kwik business account:
 //   1. POST /vendor_login with the account's email and password → access_token, vendor_id, user_id, form_id.
@@ -46,9 +46,10 @@ const DELIVERY_AFTER_PICKUP_MS = 2 * 60 * 60 * 1000;
 /** Our own code for "no credentials", next to Kwik's (0 is "couldn't reach Kwik"). */
 const NOT_SET_UP = -1;
 
-function config() {
-  const email = process.env.KWIK_EMAIL?.trim();
-  const password = process.env.KWIK_PASSWORD?.trim();
+/** The account to use: a seller's own (creds), else Shopinbos's from the environment. */
+function config(creds?: CarrierCredentials | null) {
+  const email = creds ? creds.email?.trim() : process.env.KWIK_EMAIL?.trim();
+  const password = creds ? creds.password?.trim() : process.env.KWIK_PASSWORD?.trim();
   return {
     email,
     password,
@@ -77,11 +78,12 @@ async function call<T>(path: string, init: { method: "GET" | "POST"; body?: unkn
 
 // ─── Login ────────────────────────────────────────────────────────────────────
 
-let session: { account: KwikAccount; until: number } | null = null;
-let loggingIn: Promise<KwikEnvelope<KwikAccount>> | null = null;
+// One login per account (Shopinbos's and each seller's own), reused until it expires.
+const sessions = new Map<string, { account: KwikAccount; until: number }>();
+const loggingIn = new Map<string, Promise<KwikEnvelope<KwikAccount>>>();
 
-async function login(): Promise<KwikEnvelope<KwikAccount>> {
-  const { email, password, domainName } = config();
+async function login(creds?: CarrierCredentials | null): Promise<KwikEnvelope<KwikAccount>> {
+  const { email, password, domainName } = config(creds);
   if (!email || !password) return { ok: false, code: NOT_SET_UP, message: "Kwik isn't set up (KWIK_EMAIL and KWIK_PASSWORD)." };
   const res = await call<Record<string, unknown>>("/vendor_login", { method: "POST", body: { domain_name: domainName, email, password, api_login: 1 } });
   if (!res.ok) return res;
@@ -105,21 +107,28 @@ async function login(): Promise<KwikEnvelope<KwikAccount>> {
   };
 }
 
-async function account(fresh = false): Promise<KwikEnvelope<KwikAccount>> {
+async function account(creds: CarrierCredentials | null | undefined, fresh = false): Promise<KwikEnvelope<KwikAccount>> {
+  const key = config(creds).email?.toLowerCase() ?? "";
+  const session = sessions.get(key);
   if (!fresh && session && session.until > Date.now()) return { ok: true, data: session.account, message: "" };
-  loggingIn ??= login().finally(() => (loggingIn = null));
-  const res = await loggingIn;
-  session = res.ok ? { account: res.data, until: Date.now() + TOKEN_TTL_MS } : null;
+  let pending = loggingIn.get(key);
+  if (!pending) {
+    pending = login(creds).finally(() => loggingIn.delete(key));
+    loggingIn.set(key, pending);
+  }
+  const res = await pending;
+  if (res.ok) sessions.set(key, { account: res.data, until: Date.now() + TOKEN_TTL_MS });
+  else sessions.delete(key);
   return res;
 }
 
 /** Calls Kwik with the logged-in account, logging in again once when Kwik says the token is no longer valid. */
-async function withAccount<T>(run: (acct: KwikAccount) => Promise<KwikEnvelope<T>>): Promise<KwikEnvelope<T>> {
-  const first = await account();
+async function withAccount<T>(creds: CarrierCredentials | null | undefined, run: (acct: KwikAccount) => Promise<KwikEnvelope<T>>): Promise<KwikEnvelope<T>> {
+  const first = await account(creds);
   if (!first.ok) return first;
   const res = await run(first.data);
   if (res.ok || res.code !== KWIK_CODE.INVALID_KEY) return res;
-  const again = await account(true);
+  const again = await account(creds, true);
   return again.ok ? run(again.data) : again;
 }
 
@@ -132,10 +141,10 @@ const fromKwik = <T>(res: { ok: false; code: number; message: string }): Carrier
   return fail("REJECTED", `Kwik: ${res.message}`);
 };
 
-async function vehicleFor(weightKg?: number | null): Promise<KwikEnvelope<number>> {
+async function vehicleFor(creds: CarrierCredentials | null | undefined, weightKg?: number | null): Promise<KwikEnvelope<number>> {
   const fixed = config().vehicleId;
   if (fixed) return { ok: true, data: fixed, message: "" };
-  const res = await withAccount((acct) =>
+  const res = await withAccount(creds, (acct) =>
     call<Array<{ vehicle_id: number; is_deleted?: number }>>("/getVehicle", {
       method: "GET",
       query: { access_token: acct.accessToken, is_vendor: 1, size: kwikVehicleSize(weightKg) },
@@ -148,7 +157,7 @@ async function vehicleFor(weightKg?: number | null): Promise<KwikEnvelope<number
 
 type Prepared = { input: KwikJobInput; pickupTime: string };
 
-async function prepare(job: CarrierJobInput): Promise<CarrierResult<Prepared>> {
+async function prepare(job: CarrierJobInput, creds?: CarrierCredentials | null): Promise<CarrierResult<Prepared>> {
   const pickupPhone = kwikPhone(job.pickup.phone);
   const dropoffPhone = kwikPhone(job.dropoff.phone);
   if (!pickupPhone) return fail("BAD_ADDRESS", "Add a phone number for the pickup so the rider can call.");
@@ -156,7 +165,7 @@ async function prepare(job: CarrierJobInput): Promise<CarrierResult<Prepared>> {
   const [from, to] = await Promise.all([geocodeAddress(job.pickup.address, "Nigeria").catch(() => null), geocodeAddress(job.dropoff.address, "Nigeria").catch(() => null)]);
   if (!from) return fail("BAD_ADDRESS", "We couldn't find the pickup address on the map. Add the street and area.");
   if (!to) return fail("BAD_ADDRESS", "We couldn't find the delivery address on the map. Add the street and area.");
-  const vehicle = await vehicleFor(job.weightKg);
+  const vehicle = await vehicleFor(creds, job.weightKg);
   if (!vehicle.ok) return fromKwik(vehicle);
   const vehicleId = vehicle.data;
 
@@ -196,11 +205,11 @@ async function price(acct: KwikAccount, prepared: Prepared): Promise<KwikEnvelop
 }
 
 /** Prices the job with the logged-in account (logging in again once if the token went stale). */
-async function priced(job: CarrierJobInput): Promise<CarrierResult<{ acct: KwikAccount; prepared: Prepared; priced: Priced }>> {
-  const prepared = await prepare(job);
+async function priced(job: CarrierJobInput, creds?: CarrierCredentials | null): Promise<CarrierResult<{ acct: KwikAccount; prepared: Prepared; priced: Priced }>> {
+  const prepared = await prepare(job, creds);
   if (!prepared.ok) return prepared;
   let acct: KwikAccount | null = null;
-  const res = await withAccount((current) => {
+  const res = await withAccount(creds, (current) => {
     acct = current;
     return price(current, prepared.value);
   });
@@ -212,19 +221,29 @@ export const kwik: Carrier = {
   id: "kwik",
   name: "Kwik",
 
+  credentialFields: [
+    { key: "email", label: "Kwik login email" },
+    { key: "password", label: "Kwik password", secret: true },
+  ],
+
   configured() {
     const { email, password } = config();
     return Boolean(email && password);
   },
 
-  async quote(job) {
-    const res = await priced(job);
+  async verify(creds) {
+    const res = await account(creds, true);
+    return res.ok ? { ok: true, value: { label: config(creds).email ?? "Kwik account" } } : fromKwik(res);
+  },
+
+  async quote(job, creds) {
+    const res = await priced(job, creds);
     if (!res.ok) return res;
     return { ok: true, value: { price: res.value.priced.price, currency: res.value.priced.currency } };
   },
 
   async book(job, options) {
-    const res = await priced(job);
+    const res = await priced(job, options?.credentials);
     if (!res.ok) return res;
     const { acct, prepared, priced: p } = res.value;
     if (options?.maxPrice != null && p.price > options.maxPrice + 0.005) {
@@ -232,7 +251,7 @@ export const kwik: Carrier = {
     }
     const created = await call<unknown>("/v2/create_task_via_vendor", { method: "POST", body: kwikCreateBody(acct, prepared.input, p.pricing, p.bill) });
     if (!created.ok) {
-      if (created.code === KWIK_CODE.INVALID_KEY) session = null;
+      if (created.code === KWIK_CODE.INVALID_KEY) sessions.delete(config(options?.credentials).email?.toLowerCase() ?? "");
       return fromKwik(created);
     }
     const order = readKwikCreated(created.data);
@@ -240,10 +259,10 @@ export const kwik: Carrier = {
     return { ok: true, value: { ref: order.ref, jobIds: order.jobIds, trackingUrl: order.trackingUrl, price: p.price, currency: p.currency } };
   },
 
-  async cancel(booking) {
+  async cancel(booking, creds) {
     const ids = booking.jobIds.map(String).filter(Boolean);
     if (!ids.length) return fail("REJECTED", "This Kwik job has no task ids to cancel.");
-    const res = await withAccount((acct) =>
+    const res = await withAccount(creds, (acct) =>
       call<unknown>("/cancel_vendor_task", {
         method: "POST",
         body: { access_token: acct.accessToken, vendor_id: acct.vendorId, domain_name: acct.domainName, job_id: ids.join(","), job_status: 9 },
@@ -253,8 +272,8 @@ export const kwik: Carrier = {
     return { ok: true, value: null };
   },
 
-  async track(booking) {
-    const res = await withAccount((acct) =>
+  async track(booking, creds) {
+    const res = await withAccount(creds, (acct) =>
       call<unknown>("/view_task_by_relationship_id", { method: "GET", query: { access_token: acct.accessToken, unique_order_id: booking.ref } }),
     );
     if (!res.ok) return fromKwik(res);

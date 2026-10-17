@@ -623,21 +623,34 @@ export const DeliveryBookingCreateSchema = z.object({
   currency: z.string().length(3).default("NGN"),
   estimatedDelivery: z.coerce.date().optional(),
   notes: z.string().max(1000).optional(),
-  /** Carrier partners: the buyer (defaults to the order's buyer) and the pickup phone (defaults to the seller's). */
-  recipient: CarrierContactSchema.optional(),
-  pickupPhone: z.string().trim().min(7).max(30).optional(),
 });
 
-/** A carrier partner's live price for a delivery (POST /api/app/logistics/live-quote). */
-export const CarrierLiveQuoteSchema = DeliveryBookingCreateSchema.pick({
-  logisticsPartnerId: true,
-  orderId: true,
-  pickupLocation: true,
-  destination: true,
-  recipient: true,
-  pickupPhone: true,
-}).extend({
-  packageDetails: DeliveryBookingCreateSchema.shape.packageDetails.optional(),
+/**
+ * A delivery to price or book with the delivery networks (POST /api/app/logistics/networks/quotes and /book).
+ * The customer defaults to the order's buyer; the pickup phone to the seller's.
+ */
+export const NetworkDeliveryRequestSchema = z.object({
+  pickupLocation: z.string().trim().min(5).max(300),
+  destination: z.string().trim().min(5).max(300),
+  recipient: CarrierContactSchema.optional(),
+  pickupPhone: z.string().trim().min(7).max(30).optional(),
+  orderId: z.string().max(60).optional(),
+  weightKg: z.number().positive().max(5000).optional(),
+  description: z.string().trim().max(500).optional(),
+  fragile: z.boolean().default(false),
+  notes: z.string().trim().max(500).optional(),
+});
+
+export const NetworkBookSchema = z.object({
+  network: z.string().min(2).max(30),
+  request: NetworkDeliveryRequestSchema,
+  /** The price the seller saw: a dearer one at booking time is refused, never charged. */
+  expectedPrice: z.number().positive(),
+});
+
+export const NetworkAccountConnectSchema = z.object({
+  network: z.string().min(2).max(30),
+  credentials: z.record(z.string(), z.string().trim().min(1).max(500)),
 });
 
 export const BookingStatusUpdateSchema = z.object({

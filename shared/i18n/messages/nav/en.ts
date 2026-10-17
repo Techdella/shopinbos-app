@@ -138,6 +138,8 @@ const en = {
   "admin.support-macros": "Saved replies",
   "admin.suppliers": "Suppliers",
   "admin.logistics-partners": "Logistics",
+  "admin.logistics-partners-all": "Logistics partners",
+  "admin.delivery-networks": "Delivery networks",
   "admin.marketplace": "Marketplace",
   "admin.suppliers-all": "Suppliers",
   "admin.supplier-products": "Supplier products",

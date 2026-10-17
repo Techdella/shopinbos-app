@@ -59,6 +59,8 @@ export async function GET(req: NextRequest) {
   const where = {
     status: "active" as const,
     verificationStatus: "verified" as const,
+    // Delivery networks (booked through their own API) aren't partners.
+    carrier: null,
     // ?cod=true: for pay-when-it-arrives deliveries, skip partners paused for a late cash pay-in.
     ...payWhenItArrivesWhere(cod === "true" || cod === "1"),
     ...(country ? { country } : {}),

@@ -5,9 +5,6 @@ import { ok, okList, apiError, parsePagination } from "@/lib/api/response";
 import { DeliveryQuoteRequestSchema } from "@/lib/schemas";
 import type { AuthUser } from "@/lib/auth/types";
 import { notifyDeliveryQuoteRequested } from "@/lib/notifications/events.server";
-import { carrierFor } from "@/lib/logistics/carriers";
-import { CARRIER_QUOTE_TTL_MS, carrierJobInput } from "@/lib/logistics/carriers/jobs.server";
-import { replyToQuote } from "@/lib/logistics/quotes";
 
 export const GET = withSeller(async (req: NextRequest, { user }: { user: AuthUser }) => {
   const { page, limit, skip } = parsePagination(req.nextUrl.searchParams);
@@ -42,7 +39,8 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
   const { logisticsPartnerId, pickupLocation, destination, packageDetails, preferredDate } = parsed.data;
 
   const partner = await db.logisticsPartner.findFirst({
-    where: { id: logisticsPartnerId, status: "active", verificationStatus: "verified" },
+    // Delivery networks price live (POST /api/app/logistics/networks/quotes); quotes are for partners.
+    where: { id: logisticsPartnerId, status: "active", verificationStatus: "verified", carrier: null },
   });
   if (!partner) return apiError("NOT_FOUND", "Logistics partner not found", 404);
 
@@ -56,19 +54,6 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
       preferredDate,
     },
   });
-
-  // A company we book through its own API (Kwik) answers at once with its live price, good for 30 minutes.
-  const carrier = carrierFor(partner);
-  if (carrier) {
-    const job = await carrierJobInput({ sellerId: user.id, pickupLocation, destination, weightKg: packageDetails.weight });
-    const live = await carrier.quote(job);
-    const reply = await replyToQuote(
-      live.ok
-        ? { partnerId: partner.id, quoteId: quote.id, intent: "respond", quotedPrice: live.value.price, partnerResponse: `Live price from ${carrier.name}.`, expiresAt: new Date(Date.now() + CARRIER_QUOTE_TTL_MS) }
-        : { partnerId: partner.id, quoteId: quote.id, intent: "reject", partnerResponse: live.error },
-    );
-    return ok(reply.ok ? { ...quote, ...reply.quote } : quote, 201);
-  }
 
   await notifyDeliveryQuoteRequested(quote.id);
 

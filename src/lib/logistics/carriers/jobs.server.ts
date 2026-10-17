@@ -4,8 +4,9 @@ import { apiError } from "@/lib/api/response";
 import { db } from "@/lib/db/client";
 import { stepsTo } from "../job-rules";
 import { transitionJob } from "../jobs";
+import { networkCredentials } from "./accounts.server";
 import { carrierFor } from "./index";
-import type { Carrier, CarrierJobInput, CarrierResult } from "./types";
+import type { Carrier, CarrierCredentials, CarrierJobInput, CarrierResult } from "./types";
 
 // Jobs with delivery companies we book through their own API (LogisticsPartner.carrier). They skip the partner
 // portal: the price comes live from the carrier, the job is created with the carrier when booked (so it starts
@@ -20,7 +21,7 @@ export function carrierError(res: { code: string; error: string }) {
   return apiError("CARRIER_REJECTED", res.error, 422);
 }
 
-/** How long a live carrier price is good for when it answers a quote request. */
+/** How long a live network price is shown as good for. */
 export const CARRIER_QUOTE_TTL_MS = 30 * 60 * 1000;
 
 const OPEN_STATUSES = ["pending", "confirmed", "picked_up", "in_transit"] as const;
@@ -82,9 +83,11 @@ export async function createCarrierBooking(input: {
   job: CarrierJobInput;
   /** Refuse when the live price went above what the seller agreed to. */
   maxPrice?: number | null;
+  /** The seller's own network account; without it, Shopinbos's. */
+  credentials?: CarrierCredentials | null;
   data: Omit<Prisma.DeliveryBookingUncheckedCreateInput, "deliveryFee" | "currency" | "status">;
 }): Promise<CarrierResult<Prisma.DeliveryBookingGetPayload<object>>> {
-  const booked = await input.carrier.book(input.job, { maxPrice: input.maxPrice });
+  const booked = await input.carrier.book(input.job, { maxPrice: input.maxPrice, credentials: input.credentials });
   if (!booked.ok) return booked;
   const { value } = booked;
   try {
@@ -105,7 +108,7 @@ export async function createCarrierBooking(input: {
     });
     return { ok: true, value: booking };
   } catch (error) {
-    await input.carrier.cancel({ ref: value.ref, jobIds: value.jobIds }).catch(() => null);
+    await input.carrier.cancel({ ref: value.ref, jobIds: value.jobIds }, input.credentials).catch(() => null);
     throw error;
   }
 }
@@ -116,13 +119,13 @@ const jobIdsOf = (value: Prisma.JsonValue | null) => (Array.isArray(value) ? val
 export async function cancelCarrierBooking(bookingId: string, sellerId: string): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
   const job = await db.deliveryBooking.findFirst({
     where: { id: bookingId, sellerId },
-    select: { id: true, status: true, externalRef: true, externalJobIds: true, logisticsPartner: { select: { carrier: true } } },
+    select: { id: true, status: true, externalRef: true, externalJobIds: true, networkAccountId: true, logisticsPartner: { select: { carrier: true } } },
   });
   if (!job) return { ok: false, status: 404, error: "Booking not found" };
   const carrier = carrierFor(job.logisticsPartner);
   if (!carrier || !job.externalRef) return { ok: false, status: 400, error: "This booking isn't with a delivery company we book directly." };
   if (job.status !== "pending" && job.status !== "confirmed") return { ok: false, status: 409, error: "The rider already has it, so it can't be cancelled here. Call the delivery company." };
-  const res = await carrier.cancel({ ref: job.externalRef, jobIds: jobIdsOf(job.externalJobIds) });
+  const res = await carrier.cancel({ ref: job.externalRef, jobIds: jobIdsOf(job.externalJobIds) }, await networkCredentials(job.networkAccountId));
   if (!res.ok) return { ok: false, status: res.code === "UNAVAILABLE" ? 503 : 409, error: res.error };
   await db.deliveryBooking.updateMany({ where: { id: job.id, status: { in: ["pending", "confirmed"] } }, data: { status: "cancelled", externalStatus: "cancelled_by_shop", externalSyncedAt: new Date() } });
   return { ok: true };
@@ -144,14 +147,15 @@ export async function syncCarrierJobs(options: { limit?: number; ids?: string[] 
     where: { externalCarrier: { not: null }, externalRef: { not: null }, status: { in: [...OPEN_STATUSES] }, ...(options.ids ? { id: { in: options.ids } } : {}) },
     orderBy: [{ externalSyncedAt: { sort: "asc", nulls: "first" } }],
     take: options.limit ?? 40,
-    select: { id: true, status: true, codAmount: true, externalCarrier: true, externalRef: true, externalJobIds: true, logisticsPartnerId: true },
+    select: { id: true, status: true, codAmount: true, externalCarrier: true, externalRef: true, externalJobIds: true, networkAccountId: true, logisticsPartnerId: true },
   });
   const result: CarrierSyncResult = { checked: 0, moved: 0, failed: 0 };
   for (const job of jobs) {
     const carrier = carrierFor({ carrier: job.externalCarrier });
     if (!carrier || !job.externalRef) continue;
     result.checked += 1;
-    const tracked = await carrier.track({ ref: job.externalRef, jobIds: jobIdsOf(job.externalJobIds) }).catch(() => null);
+    const credentials = job.networkAccountId ? await networkCredentials(job.networkAccountId) : null;
+    const tracked = job.networkAccountId && !credentials ? null : await carrier.track({ ref: job.externalRef, jobIds: jobIdsOf(job.externalJobIds) }, credentials).catch(() => null);
     if (!tracked?.ok) {
       result.failed += 1;
       await db.deliveryBooking.update({ where: { id: job.id }, data: { externalSyncedAt: new Date() } }).catch(() => null);
@@ -166,8 +170,8 @@ export async function syncCarrierJobs(options: { limit?: number; ids?: string[] 
         to: step,
         actor: "carrier",
         failedReason: step === "failed" ? `${carrier.name} couldn't deliver it.` : null,
-        // Pay on delivery: the carrier collects and settles the cash with the Shopinbos account, not as a
-        // partner cash pay-in, so it's recorded as a transfer.
+        // Pay on delivery: the network collects and settles the cash with the account the job was booked on
+        // (Shopinbos's or the seller's own), not as a partner cash pay-in, so it's recorded as a transfer.
         ...(step === "delivered" && job.codAmount ? { codCollected: job.codAmount, codMethod: "transfer" } : {}),
       });
       if (!res.ok) break;

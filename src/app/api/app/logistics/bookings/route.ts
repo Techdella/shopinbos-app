@@ -1,4 +1,3 @@
-import { ownPartCollect } from "@shared/cod-split";
 import { NextRequest } from "next/server";
 import { withSeller } from "@/lib/auth/middleware";
 import { db } from "@/lib/db/client";
@@ -9,8 +8,7 @@ import { emitPartnerEvent } from "@/lib/logistics/webhooks";
 import { partnerJob } from "@/lib/logistics/partner-api-core";
 import { canOfferJob } from "@/lib/logistics/payin-deadline";
 import { notifyJobOffered } from "@/lib/notifications/events.server";
-import { carrierFor } from "@/lib/logistics/carriers";
-import { carrierError, carrierJobInput, createCarrierBooking } from "@/lib/logistics/carriers/jobs.server";
+import { orderCollectAmount } from "@/lib/logistics/booking.server";
 
 export const GET = withSeller(async (req: NextRequest, { user }: { user: AuthUser }) => {
   const { page, limit, skip } = parsePagination(req.nextUrl.searchParams);
@@ -53,46 +51,17 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
   });
   if (!partner) return apiError("NOT_FOUND", "Logistics partner not found", 404);
 
-  // Unpaid (pay-on-delivery) orders: the rider collects at the door. When suppliers send some of the lines, this
-  // parcel collects only the seller's own lines' share, so the customer never pays the total twice.
-  const order = parsed.data.orderId
-    ? await db.retailOrder.findFirst({
-        where: { id: parsed.data.orderId, store: { userId: user.id } },
-        select: { total: true, status: true, items: true, supplierOrders: { select: { items: true } } },
-      })
-    : null;
-  const ownShare = order ? ownPartCollect(order.items, order.total, order.supplierOrders.map((part) => part.items)) : 0;
-  const codAmount = order && (order.status === "pending" || order.status === "awaiting_payment") && ownShare > 0 ? ownShare : undefined;
+  // Delivery networks are paid and booked through POST /api/app/logistics/networks/book.
+  if (partner.carrier) return apiError("BAD_REQUEST", `Book ${partner.displayName} from Delivery networks.`);
+
+  const codAmount = await orderCollectAmount(user.id, parsed.data.orderId);
   // A partner who is late paying in customers' cash gets no new pay-when-it-arrives jobs (prepaid ones still go).
   if (!canOfferJob({ ...partner, verificationStatus: String(partner.verificationStatus) }, { cod: Boolean(codAmount) })) {
     return apiError("CONFLICT", "This delivery company can't take jobs where the customer pays when it arrives right now. Pick another delivery company.", 409);
   }
 
-  const { recipient, pickupPhone, ...fields } = parsed.data;
-
-  // A delivery company we book through its own API: booked with it now at its live price. The deliveryFee sent is
-  // the price the seller saw (POST /api/app/logistics/live-quote); a dearer live price is refused, not charged.
-  const carrier = carrierFor(partner);
-  if (carrier) {
-    const job = await carrierJobInput({
-      sellerId: user.id,
-      pickupLocation: fields.pickupLocation,
-      destination: fields.destination,
-      orderId: fields.orderId,
-      recipient,
-      pickupPhone,
-      weightKg: fields.packageDetails.weight,
-      codAmount,
-      notes: fields.notes,
-    });
-    const { deliveryFee, currency: _currency, ...rest } = fields;
-    const res = await createCarrierBooking({ carrier, job, maxPrice: deliveryFee, data: { sellerId: user.id, ...rest } });
-    if (!res.ok) return carrierError(res);
-    return ok(res.value, 201);
-  }
-
   const booking = await db.deliveryBooking.create({
-    data: { sellerId: user.id, ...fields, codAmount },
+    data: { sellerId: user.id, ...parsed.data, codAmount },
   });
   void emitPartnerEvent(partner.id, "job.offered", partnerJob(booking)).catch(() => undefined);
   await notifyJobOffered({ bookingId: booking.id, logisticsPartnerId: partner.id });

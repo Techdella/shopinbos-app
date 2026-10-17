@@ -22,6 +22,7 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
       id: parsed.data.logisticsPartnerId,
       status: "active",
       verificationStatus: "verified",
+      carrier: null,
     },
     select: { id: true, displayName: true, slug: true },
   });

@@ -47,15 +47,32 @@ export interface CarrierTracking {
   raw: string;
 }
 
+/**
+ * A seller's own login or keys for a network (fields from Carrier.credentialFields). Every call takes them
+ * optionally: without them it uses Shopinbos's own account from the environment.
+ */
+export type CarrierCredentials = Record<string, string>;
+
+export interface CarrierCredentialField {
+  key: string;
+  label: string;
+  secret?: boolean;
+}
+
 export interface Carrier {
   id: string;
   name: string;
+  /** What a seller types to connect their own account. */
+  credentialFields: CarrierCredentialField[];
+  /** Shopinbos's own account is set up (its keys are in the environment). */
   configured(): boolean;
-  quote(input: CarrierJobInput): Promise<CarrierResult<CarrierQuote>>;
+  /** Checks a seller's credentials work; the label is what they recognise the account by. */
+  verify(credentials: CarrierCredentials): Promise<CarrierResult<{ label: string }>>;
+  quote(input: CarrierJobInput, credentials?: CarrierCredentials | null): Promise<CarrierResult<CarrierQuote>>;
   /** Prices and books the job; refuses (PRICE_CHANGED) when the live price is above maxPrice. */
-  book(input: CarrierJobInput, options?: { maxPrice?: number | null }): Promise<CarrierResult<CarrierBooking>>;
-  cancel(booking: { ref: string; jobIds: Array<string | number> }): Promise<CarrierResult<null>>;
-  track(booking: { ref: string; jobIds: Array<string | number> }): Promise<CarrierResult<CarrierTracking>>;
+  book(input: CarrierJobInput, options?: { maxPrice?: number | null; credentials?: CarrierCredentials | null }): Promise<CarrierResult<CarrierBooking>>;
+  cancel(booking: { ref: string; jobIds: Array<string | number> }, credentials?: CarrierCredentials | null): Promise<CarrierResult<null>>;
+  track(booking: { ref: string; jobIds: Array<string | number> }, credentials?: CarrierCredentials | null): Promise<CarrierResult<CarrierTracking>>;
   /**
    * The booking reference a webhook from the carrier is about (its externalRef), or null. The webhook only makes us
    * read the job's status from the carrier again, so its body is never trusted for the status itself.

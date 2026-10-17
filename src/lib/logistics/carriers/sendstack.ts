@@ -12,7 +12,7 @@ import {
   sendstackOffersBody,
   sendstackWebhookRef,
 } from "./sendstack-pure";
-import type { Carrier, CarrierJobInput, CarrierResult } from "./types";
+import type { Carrier, CarrierCredentials, CarrierJobInput, CarrierResult } from "./types";
 
 // Sendstack (https://docs.sendstackhq.com): same-day and scheduled bike delivery, mostly Lagos, through partner
 // riders on its network. Every call sends the app's `app_id` and `app_secret` headers:
@@ -27,32 +27,33 @@ import type { Carrier, CarrierJobInput, CarrierResult } from "./types";
 
 const NAME = "Sendstack";
 
-function config() {
+/** The account to use: a seller's own (creds), else Shopinbos's from the environment. */
+function config(creds?: CarrierCredentials | null) {
   return {
-    appId: process.env.SENDSTACK_APP_ID?.trim(),
-    appSecret: process.env.SENDSTACK_APP_SECRET?.trim(),
+    appId: creds ? creds.appId?.trim() : process.env.SENDSTACK_APP_ID?.trim(),
+    appSecret: creds ? creds.appSecret?.trim() : process.env.SENDSTACK_APP_SECRET?.trim(),
     baseUrl: (process.env.SENDSTACK_BASE_URL?.trim() || SENDSTACK_SANDBOX_URL).replace(/\/+$/, ""),
   };
 }
 
-async function call(path: string, init: { method?: string; body?: unknown } = {}): Promise<CarrierResult<unknown>> {
-  const { appId, appSecret, baseUrl } = config();
-  if (!appId || !appSecret) return notSetUp(NAME, "SENDSTACK_APP_ID and SENDSTACK_APP_SECRET");
+async function call(creds: CarrierCredentials | null | undefined, path: string, init: { method?: string; body?: unknown } = {}): Promise<CarrierResult<unknown>> {
+  const { appId, appSecret, baseUrl } = config(creds);
+  if (!appId || !appSecret) return creds ? carrierSaid(NAME, "add your app ID and app secret") : notSetUp(NAME, "SENDSTACK_APP_ID and SENDSTACK_APP_SECRET");
   const res = await callJson(`${baseUrl}${path}`, { ...init, headers: { app_id: appId, app_secret: appSecret, "x-sendstack-source": "control.sendstack" } });
   if ("error" in res) return carrierDown(NAME);
-  if (res.status === 422) return carrierSaid(NAME, "the Shopinbos Sendstack wallet needs topping up before this delivery can be booked.");
+  if (res.status === 422) return carrierSaid(NAME, `the ${creds ? "" : "Shopinbos "}Sendstack wallet needs topping up before this delivery can be booked.`);
   const read = readSendstack(res.ok, res.json);
   return read.ok ? { ok: true, value: read.data } : carrierSaid(NAME, read.message);
 }
 
-async function offer(job: CarrierJobInput) {
+async function offer(job: CarrierJobInput, creds?: CarrierCredentials | null) {
   const phones = needPhones(job);
   if (!phones.ok) return phones;
   const placed = await placeStops(job);
   if (!placed.ok) return placed;
   const { from, to } = placed.value;
   const pickupAt = pickupMoment(job);
-  const res = await call("/deliveries/offers", { body: sendstackOffersBody(job, from, to, pickupAt) });
+  const res = await call(creds, "/deliveries/offers", { body: sendstackOffersBody(job, from, to, pickupAt) });
   if (!res.ok) return res;
   const best = cheapestSendstackOffer(res.value);
   if (!best) return carrierSaid<never>(NAME, "no rider can take this route right now");
@@ -63,24 +64,34 @@ export const sendstack: Carrier = {
   id: "sendstack",
   name: NAME,
 
+  credentialFields: [
+    { key: "appId", label: "Sendstack app ID" },
+    { key: "appSecret", label: "Sendstack app secret", secret: true },
+  ],
+
   configured() {
     const { appId, appSecret } = config();
     return Boolean(appId && appSecret);
   },
 
-  async quote(job) {
-    const res = await offer(job);
+  async verify(creds) {
+    const res = await call(creds, "/locations?country=NG", { method: "GET" });
+    return res.ok ? { ok: true, value: { label: `App ${String(creds.appId ?? "").slice(0, 4)}…` } } : res;
+  },
+
+  async quote(job, creds) {
+    const res = await offer(job, creds);
     return res.ok ? { ok: true, value: { price: res.value.best.price, currency: "NGN" } } : res;
   },
 
   async book(job, options) {
-    const priced = await offer(job);
+    const priced = await offer(job, options?.credentials);
     if (!priced.ok) return priced;
     const { best, from, to, pickupAt } = priced.value;
     const tooDear = priceCheck<never>(NAME, best.price, "NGN", options?.maxPrice);
     if (tooDear) return tooDear;
     const externalId = `SIB-${randomUUID().replace(/-/g, "").slice(0, 16).toUpperCase()}`;
-    const res = await call("/deliveries", { body: sendstackDeliveryBody(job, from, to, pickupAt, best.partnerId, externalId) });
+    const res = await call(options?.credentials, "/deliveries", { body: sendstackDeliveryBody(job, from, to, pickupAt, best.partnerId, externalId) });
     if (!res.ok) return res;
     const created = readSendstackCreated(res.value);
     if (!created) return carrierSaid(NAME, "the delivery was taken but no tracking id came back. Contact support before booking it again.");
@@ -96,17 +107,17 @@ export const sendstack: Carrier = {
     };
   },
 
-  async cancel(booking) {
+  async cancel(booking, creds) {
     const [dropId, batchId] = booking.jobIds.map(String);
     if (!dropId) return carrierSaid(NAME, "this delivery has no drop id to cancel");
-    const res = await call("/drops/cancel", { body: { dropIds: [dropId], trackingId: booking.ref, ...(batchId ? { batchId } : {}), note: "Cancelled by the shop" } });
+    const res = await call(creds, "/drops/cancel", { body: { dropIds: [dropId], trackingId: booking.ref, ...(batchId ? { batchId } : {}), note: "Cancelled by the shop" } });
     return res.ok ? { ok: true, value: null } : res;
   },
 
-  async track(booking) {
+  async track(booking, creds) {
     const batchId = booking.jobIds.map(String)[1];
     const query = new URLSearchParams({ trackingId: booking.ref, ...(batchId ? { batchId } : {}) });
-    const res = await call(`/deliveries/track?${query}`, { method: "GET" });
+    const res = await call(creds, `/deliveries/track?${query}`, { method: "GET" });
     if (!res.ok) return res;
     const raw = readSendstackStatus(res.value, booking.ref);
     return { ok: true, value: { status: sendstackBookingStatus(raw), raw: raw ?? "" } };
