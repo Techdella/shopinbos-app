@@ -5,6 +5,7 @@ import { addressLines } from "@/lib/labels";
 import { createNotification } from "@/lib/notifications/create";
 import { cancelUnassignedDeliveryJob, createDeliveryJob, moveDeliveryJobWindow } from "@/lib/logistics/booking.server";
 import { payWhenItArrivesWhere } from "@/lib/logistics/payin-deadline";
+import { linkedPartnerIds } from "@/lib/logistics/invites.server";
 import {
   buildPickupJob,
   choosePickupPartner,
@@ -216,11 +217,14 @@ async function tellAdmins(order: PickupOrder, window: { start: Date; end: Date }
 }
 
 async function pickPartner(order: PickupOrder) {
-  const [store, partners] = await Promise.all([
+  const [store, ownIds, partners] = await Promise.all([
     order.storeId ? db.store.findUnique({ where: { id: order.storeId }, select: { brandSettings: true } }) : null,
+    // Delivery companies the supplier invited (src/lib/logistics/invites.server.ts): next after the shop's choice.
+    linkedPartnerIds(order.supplier.userId),
     db.logisticsPartner.findMany({
       // Pay-when-it-arrives parcels skip partners paused for a late cash pay-in (lib/logistics/payin-deadline.ts).
-      where: { status: "active", verificationStatus: "verified", ...payWhenItArrivesWhere(order.collect > 0) },
+      // Carriers booked through their own API (lib/logistics/carriers) don't take pickup windows yet.
+      where: { status: "active", verificationStatus: "verified", carrier: null, ownerId: null, ...payWhenItArrivesWhere(order.collect > 0) },
       select: { id: true, city: true, coverageZones: true, status: true, verificationStatus: true, reliabilityScore: true, rating: true, basePrice: true },
       take: 500,
     }),
@@ -229,6 +233,7 @@ async function pickPartner(order: PickupOrder) {
   const preferredId = typeof settings.logistics?.preferredPartnerId === "string" ? settings.logistics.preferredPartnerId : null;
   const choice = choosePickupPartner({
     preferredId,
+    ownIds,
     defaultId: process.env.SHOPINBOS_DEFAULT_DELIVERY_PARTNER_ID?.trim() || null,
     partners: partners.map((partner) => ({ ...partner, verificationStatus: String(partner.verificationStatus) })),
     area: { city: order.supplier.city },

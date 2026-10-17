@@ -39,7 +39,8 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
   const { logisticsPartnerId, pickupLocation, destination, packageDetails, preferredDate } = parsed.data;
 
   const partner = await db.logisticsPartner.findFirst({
-    where: { id: logisticsPartnerId, status: "active", verificationStatus: "verified" },
+    // Delivery networks price live (POST /api/app/logistics/networks/quotes); quotes are for partners.
+    where: { id: logisticsPartnerId, status: "active", verificationStatus: "verified", carrier: null, ownerId: null },
   });
   if (!partner) return apiError("NOT_FOUND", "Logistics partner not found", 404);
 
@@ -53,6 +54,7 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
       preferredDate,
     },
   });
+
   await notifyDeliveryQuoteRequested(quote.id);
 
   return ok(quote, 201);

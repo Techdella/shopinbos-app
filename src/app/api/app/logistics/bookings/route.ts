@@ -1,4 +1,3 @@
-import { ownPartCollect } from "@shared/cod-split";
 import { NextRequest } from "next/server";
 import { withSeller } from "@/lib/auth/middleware";
 import { db } from "@/lib/db/client";
@@ -9,6 +8,7 @@ import { emitPartnerEvent } from "@/lib/logistics/webhooks";
 import { partnerJob } from "@/lib/logistics/partner-api-core";
 import { canOfferJob } from "@/lib/logistics/payin-deadline";
 import { notifyJobOffered } from "@/lib/notifications/events.server";
+import { orderCollectAmount } from "@/lib/logistics/booking.server";
 
 export const GET = withSeller(async (req: NextRequest, { user }: { user: AuthUser }) => {
   const { page, limit, skip } = parsePagination(req.nextUrl.searchParams);
@@ -30,7 +30,7 @@ export const GET = withSeller(async (req: NextRequest, { user }: { user: AuthUse
         id: true, pickupLocation: true, destination: true,
         packageDetails: true, deliveryFee: true, currency: true,
         status: true, trackingCode: true, estimatedDelivery: true,
-        deliveredAt: true, notes: true, createdAt: true,
+        deliveredAt: true, notes: true, createdAt: true, externalTrackingUrl: true,
         logisticsPartner: { select: { id: true, displayName: true, slug: true, logoUrl: true } },
       },
     }),
@@ -46,21 +46,16 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
     return apiError("BAD_REQUEST", parsed.error.issues[0]?.message ?? "Invalid input");
   }
 
+  // Private fleets (a seller's own riders) are booked through /api/app/logistics/my-riders/jobs, by their owner only.
   const partner = await db.logisticsPartner.findFirst({
-    where: { id: parsed.data.logisticsPartnerId, status: "active", verificationStatus: "verified" },
+    where: { id: parsed.data.logisticsPartnerId, status: "active", verificationStatus: "verified", ownerId: null },
   });
   if (!partner) return apiError("NOT_FOUND", "Logistics partner not found", 404);
 
-  // Unpaid (pay-on-delivery) orders: the rider collects at the door. When suppliers send some of the lines, this
-  // parcel collects only the seller's own lines' share, so the customer never pays the total twice.
-  const order = parsed.data.orderId
-    ? await db.retailOrder.findFirst({
-        where: { id: parsed.data.orderId, store: { userId: user.id } },
-        select: { total: true, status: true, items: true, supplierOrders: { select: { items: true } } },
-      })
-    : null;
-  const ownShare = order ? ownPartCollect(order.items, order.total, order.supplierOrders.map((part) => part.items)) : 0;
-  const codAmount = order && (order.status === "pending" || order.status === "awaiting_payment") && ownShare > 0 ? ownShare : undefined;
+  // Delivery networks are paid and booked through POST /api/app/logistics/networks/book.
+  if (partner.carrier) return apiError("BAD_REQUEST", `Book ${partner.displayName} from Delivery networks.`);
+
+  const codAmount = await orderCollectAmount(user.id, parsed.data.orderId);
   // A partner who is late paying in customers' cash gets no new pay-when-it-arrives jobs (prepaid ones still go).
   if (!canOfferJob({ ...partner, verificationStatus: String(partner.verificationStatus) }, { cod: Boolean(codAmount) })) {
     return apiError("CONFLICT", "This delivery company can't take jobs where the customer pays when it arrives right now. Pick another delivery company.", 409);

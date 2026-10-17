@@ -231,6 +231,8 @@ test("delivery company: the shop's choice, else the platform default, else the m
   assert.deepEqual(sp.choosePickupPartner({ preferredId: "p-lagos", defaultId: "p-best", partners, area }), { id: "p-lagos", why: "shop" });
   assert.deepEqual(sp.choosePickupPartner({ preferredId: "p-abuja", defaultId: "p-lagos", partners, area }), { id: "p-lagos", why: "default" }, "the shop's choice doesn't cover the area");
   assert.deepEqual(sp.choosePickupPartner({ preferredId: "p-paused", partners, area }), { id: "p-best", why: "best" }, "paused companies aren't taking jobs");
+  assert.deepEqual(sp.choosePickupPartner({ preferredId: "p-abuja", ownIds: ["p-paused", "p-lagos"], defaultId: "p-best", partners, area }), { id: "p-lagos", why: "supplier" }, "a company the supplier invited comes before the default");
+  assert.deepEqual(sp.choosePickupPartner({ preferredId: "p-best", ownIds: ["p-lagos"], partners, area }), { id: "p-best", why: "shop" }, "the shop's choice still comes first");
   assert.deepEqual(sp.choosePickupPartner({ partners, area: { city: "Wuse" } }), { id: "p-abuja", why: "best" }, "coverage areas count");
   assert.equal(sp.choosePickupPartner({ partners, area: { city: "Kano" } }), null);
 });

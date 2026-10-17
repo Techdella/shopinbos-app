@@ -39,7 +39,7 @@ export default async function ShippingPage() {
         })
       : Promise.resolve([]),
     db.logisticsPartner.findMany({
-      where: { status: "active" },
+      where: { status: "active", carrier: null, ownerId: null },
       orderBy: { reliabilityScore: "desc" },
       take: 6,
       select: {

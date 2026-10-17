@@ -5,6 +5,16 @@ import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { AssistantNote, Card, CardHead, FilterChips, ListCard, ListRow, Pill, PillLink, StatGrid, StatTile, Thumb, EmptyState, type Tone } from "@/components/app-kit";
 import { QuoteRequestForm } from "./QuoteRequestForm";
 import { AcceptQuoteButton } from "./AcceptQuoteButton";
+import { CancelNetworkBooking, NetworkDelivery } from "./NetworkDelivery";
+import { NetworkAccounts } from "./NetworkAccounts";
+import { MyRiders } from "./MyRiders";
+import { FleetJobActions, RiderDelivery } from "./RiderDelivery";
+import { InviteCompany } from "./InviteCompany";
+import { fleetRiderLimit, sellerRiders } from "@/lib/logistics/fleet.server";
+import { linkedPartnerIds, sellerInvites } from "@/lib/logistics/invites.server";
+import { sellerNetworks } from "@/lib/logistics/networks.server";
+import { canStoreNetworkAccounts } from "@/lib/logistics/carriers/accounts.server";
+import { Notice } from "@/components/app-ui";
 import { messagesHref } from "@/lib/conversations/pure";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { formatDate, formatMoney } from "@shared/i18n";
@@ -29,7 +39,8 @@ const FILTERS = [
 ] as const;
 
 // partner may be an id or a slug; logisticsSlug arrives from the marketing site ("Book delivery" intent).
-type Search = { filter?: string; partner?: string; intent?: string; logisticsSlug?: string };
+// network: the result of paying for a delivery network booking (booked | failed | pending); order: book for an order.
+type Search = { filter?: string; partner?: string; intent?: string; logisticsSlug?: string; network?: string; order?: string };
 
 export default async function SellerLogisticsPage({ searchParams }: { searchParams: Promise<Search> }) {
   const params = await searchParams;
@@ -43,7 +54,7 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
   const filter = FILTERS.find((f) => f.key === params.filter)?.key ?? "all";
   const partnerRef = params.partner ?? params.logisticsSlug;
   const chosen = partnerRef
-    ? await db.logisticsPartner.findFirst({ where: { OR: [{ id: partnerRef }, { slug: partnerRef }] }, select: { id: true } })
+    ? await db.logisticsPartner.findFirst({ where: { OR: [{ id: partnerRef }, { slug: partnerRef }], carrier: null, ownerId: null }, select: { id: true } })
     : null;
   const chosenId = chosen?.id;
 
@@ -52,6 +63,7 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
       where: {
         status: "active",
         verificationStatus: "verified",
+        carrier: null, ownerId: null,
         ...(filter === "same_day" ? { deliveryTypes: { has: "same_day" } } : {}),
         ...(filter === "nationwide" ? { coverageZones: { hasSome: ["Nationwide", "nationwide"] } } : {}),
       },
@@ -63,12 +75,21 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
     db.deliveryBooking.count({ where: { sellerId: user.id, status: { in: [...ACTIVE] } } }),
     db.deliveryBooking.count({ where: { sellerId: user.id, status: "delivered" } }),
     db.deliveryQuoteRequest.findMany({ where: { sellerId: user.id }, include: { logisticsPartner: { select: { displayName: true } } }, orderBy: { createdAt: "desc" }, take: 6 }),
-    db.deliveryBooking.findMany({ where: { sellerId: user.id }, include: { logisticsPartner: { select: { displayName: true } } }, orderBy: { createdAt: "desc" }, take: 8 }),
+    db.deliveryBooking.findMany({ where: { sellerId: user.id }, include: { logisticsPartner: { select: { displayName: true, ownerId: true } }, rider: { select: { name: true } } }, orderBy: { createdAt: "desc" }, take: 8 }),
   ]);
+  const [riders, invites, linkedIds, riderPlan] = await Promise.all([sellerRiders(user.id), sellerInvites(user.id), linkedPartnerIds(user.id), fleetRiderLimit(user.id)]);
+  // The delivery companies this seller invited come first, marked "Your delivery company".
+  const linked = new Set(linkedIds);
+  partners.sort((a, b) => Number(linked.has(b.id)) - Number(linked.has(a.id)));
+  const networks = await sellerNetworks(user.id);
+  const networkOptions = networks
+    .map((n) => ({ id: n.id, name: n.name, via: n.account ? ("own" as const) : n.viaShopinbos ? ("shopinbos" as const) : null }))
+    .filter((n) => n.via !== null);
+  const paymentResult = params.network === "booked" || params.network === "failed" || params.network === "pending" ? params.network : null;
 
   const allVerified = filter === "all"
     ? partners
-    : await db.logisticsPartner.findMany({ where: { status: "active", verificationStatus: "verified" }, orderBy: { displayName: "asc" }, take: 100 });
+    : await db.logisticsPartner.findMany({ where: { status: "active", verificationStatus: "verified", carrier: null, ownerId: null }, orderBy: { displayName: "asc" }, take: 100 });
   const partnerOptions = allVerified.map((p) => ({ id: p.id, name: `${p.displayName} · ${p.city}` }));
   const date = (d: Date) => formatDate(d, locale, { day: "numeric", month: "short" });
 
@@ -107,16 +128,55 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
                     <li key={b.id} className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-5 py-3.5 sm:flex-nowrap">
                       <div className="min-w-0 flex-1 basis-[220px]">
                         <div className="truncate text-[14.5px] font-extrabold">{b.pickupLocation} → {b.destination}</div>
-                        <div className="truncate text-[13px] text-app-ink-soft">{b.logisticsPartner.displayName}{b.trackingCode ? ` · ${b.trackingCode}` : ""} · {date(b.createdAt)}</div>
+                        <div className="truncate text-[13px] text-app-ink-soft">
+                          {b.logisticsPartner.ownerId
+                            ? t("fleet.byRider", { name: b.rider?.name ?? "" })
+                            : b.externalCarrier
+                              ? t("net.viaNetwork", { network: b.notes?.match(/^Courier: ([^·]+)/)?.[1]?.trim() || b.logisticsPartner.displayName })
+                              : b.logisticsPartner.displayName}
+                          {b.externalRef ? ` · ${b.externalRef}` : b.trackingCode ? ` · ${b.trackingCode}` : ""} · {date(b.createdAt)}
+                        </div>
                       </div>
                       <Pill tone={BOOKING_TONE[b.status] ?? "muted"} dot>{t.dynamic(`booking.${b.status}`, b.status.replace(/_/g, " "))}</Pill>
-                      <span className="w-[90px] shrink-0 text-right text-[14px] font-extrabold">{fmt(b.deliveryFee)}</span>
-                      <PillLink href={messagesHref("seller", { with: b.logisticsPartnerId, context: { kind: "booking", id: b.id } })} size="sm" icon="chat">{t("lg.message")}</PillLink>
+                      <span className="w-[90px] shrink-0 text-right text-[14px] font-extrabold">{fmt(b.deliveryFee + (b.externalCarrier ? b.platformFee : 0))}</span>
+                      {b.logisticsPartner.ownerId ? (
+                        (b.status === "confirmed" || b.status === "picked_up" || b.status === "in_transit") && <FleetJobActions bookingId={b.id} status={b.status} />
+                      ) : b.externalCarrier ? (
+                        <>
+                          {b.externalTrackingUrl && <PillLink href={b.externalTrackingUrl} size="sm" icon="truck">{t("net.track")}</PillLink>}
+                          {(b.status === "pending" || b.status === "confirmed") && <CancelNetworkBooking bookingId={b.id} />}
+                        </>
+                      ) : (
+                        <PillLink href={messagesHref("seller", { with: b.logisticsPartnerId, context: { kind: "booking", id: b.id } })} size="sm" icon="chat">{t("lg.message")}</PillLink>
+                      )}
                     </li>
                   ))}
                 </ul>
               )}
             </Card>
+
+            <Card className="scroll-mt-4 p-5">
+              <div id="networks" className="scroll-mt-4" />
+              <CardHead title={t("net.title")} sub={t("net.sub")} />
+              {paymentResult && (
+                <div className="mt-4">
+                  <Notice tone={paymentResult === "booked" ? "success" : paymentResult === "failed" ? "error" : "info"}>{t(`net.paid.${paymentResult}`)}</Notice>
+                </div>
+              )}
+              <div className="mt-4">
+                <NetworkDelivery networks={networkOptions} defaultPickup={workspace.store?.city ?? undefined} orderId={params.order} />
+              </div>
+            </Card>
+
+            {riders.length > 0 && (
+              <Card className="scroll-mt-4 p-5">
+                <div id="my-riders-delivery" className="scroll-mt-4" />
+                <CardHead title={t("fleet.giveTitle")} sub={t("fleet.giveSub")} />
+                <div className="mt-4">
+                  <RiderDelivery riders={riders.map((r) => ({ id: r.id, name: r.name }))} defaultPickup={workspace.store?.city ?? undefined} orderId={params.order} />
+                </div>
+              </Card>
+            )}
 
             <section className="grid gap-3">
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -133,7 +193,10 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
                     <ListRow key={p.id} className={chosenId === p.id ? "bg-app-canvas" : undefined}>
                       <Thumb src={p.logoUrl} label={p.displayName} size={44} />
                       <div className="min-w-0 flex-1 basis-[220px]">
-                        <div className="truncate text-[14.5px] font-extrabold">{p.displayName}</div>
+                        <div className="flex items-center gap-2 truncate text-[14.5px] font-extrabold">
+                          {p.displayName}
+                          {linked.has(p.id) && <Pill tone="success">{t("invite.yours")}</Pill>}
+                        </div>
                         <div className="truncate text-[13px] text-app-ink-soft">
                           {p.city}, {p.country} · {t("lg.reliability", { score: p.reliabilityScore })}{p.rating ? ` · ★ ${p.rating.toFixed(1)}` : ""}
                         </div>
@@ -153,6 +216,22 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
           </div>
 
           <aside className="grid min-w-0 content-start gap-5">
+            <Card className="scroll-mt-4 p-5">
+              <div id="my-riders" className="scroll-mt-4" />
+              <CardHead title={t("fleet.title")} sub={t("fleet.sub")} />
+              <div className="mt-4">
+                <MyRiders riders={riders} storeName={workspace.store?.name ?? ""} limit={riderPlan.limit} />
+              </div>
+            </Card>
+
+            <Card className="scroll-mt-4 p-5">
+              <div id="invite" className="scroll-mt-4" />
+              <CardHead title={t("invite.title")} sub={t("invite.sub")} />
+              <div className="mt-4">
+                <InviteCompany invites={invites.map((i) => ({ id: i.id, companyName: i.companyName, status: i.status, url: i.url, partner: i.partner ? { displayName: i.partner.displayName, verificationStatus: String(i.partner.verificationStatus), status: i.partner.status } : null }))} />
+              </div>
+            </Card>
+
             <Card className="scroll-mt-4 p-5">
               <div id="quote" className="scroll-mt-4" />
               <CardHead title={t("lg.askPrice")} sub={t("lg.askPriceSub")} />
@@ -188,6 +267,15 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
                 </ul>
               )}
             </Card>
+
+            {networks.length > 0 && canStoreNetworkAccounts() && (
+              <Card className="p-5">
+                <CardHead title={t("net.accountsTitle")} sub={t("net.accountsSub")} />
+                <div className="mt-4">
+                  <NetworkAccounts networks={networks.map((n) => ({ id: n.id, name: n.name, account: n.account ? { label: n.account.label, status: n.account.status } : null, fields: n.credentialFields }))} />
+                </div>
+              </Card>
+            )}
 
             <AssistantNote who="peggy">{t("lg.peggy")}</AssistantNote>
           </aside>

@@ -239,6 +239,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
           ],
         },
         { id: "quote-requests", label: "Quote requests", icon: "chat", href: "/supplier/quote-requests" },
+        { id: "delivery", label: "Delivery", icon: "truck", href: "/supplier/delivery" },
         {
           id: "products", label: "Products", icon: "bag", href: "/supplier/products", core: true,
           children: [
@@ -384,7 +385,13 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
             { id: "supplier-pickups", label: "Pickups waiting for a rider", href: "/admin/supplier-pickups" },
           ],
         },
-        { id: "logistics-partners", label: "Logistics", icon: "truck", href: "/admin/logistics-partners", core: true },
+        {
+          id: "logistics-partners", label: "Logistics", icon: "truck", href: "/admin/logistics-partners", core: true,
+          children: [
+            { id: "logistics-partners-all", label: "Logistics partners", href: "/admin/logistics-partners" },
+            { id: "delivery-networks", label: "Delivery networks", href: "/admin/delivery-networks" },
+          ],
+        },
         {
           id: "marketplace", label: "Marketplace", icon: "monitor", href: "/admin/marketplace",
           children: [
