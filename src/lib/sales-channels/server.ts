@@ -4,6 +4,7 @@ import { db } from "@/lib/db/client";
 import { appOrigin } from "@/lib/ads";
 import { credentialKey, decryptJson, encryptJson } from "@/lib/inbox/crypto";
 import { buildStoreFeed, feedUrl } from "@/lib/social/server";
+import { graph } from "@/lib/whatsapp-catalog/graph";
 import { createCatalog, disconnectCatalog, ensureCatalogRow, itemCounts, listCatalogs, selectCatalog, syncCatalog } from "@/lib/whatsapp-catalog/server";
 import { ChannelError, GRAPH_VERSION, PROVIDERS, type ProviderContext, type StoreRef } from "./providers";
 import {
@@ -153,6 +154,22 @@ export async function disconnectPlatform(storeId: string, platform: LivePlatform
     where: { id: row.id },
     data: { tokenEnc: null, tokenExpiresAt: null, status: null, accountId: null, externalId: null, feedId: null, productCount: null, connectedAt: null, lastSyncAt: null, lastSyncStatus: null, lastSyncMessage: null },
   });
+}
+
+/** Catalog webhook (feed or items batch finished): refresh the product count of the Facebook & Instagram card. */
+export async function refreshCatalogCount(catalogId: string) {
+  const rows = await db.socialChannelConnection.findMany({ where: { channel: "meta", externalId: catalogId, tokenEnc: { not: null } } });
+  for (const row of rows) {
+    const tokens = readTokens(decryptJson(row.tokenEnc));
+    if (!tokens) continue;
+    const count = await graph(encodeURIComponent(catalogId), tokens.token, { query: { fields: "product_count" } });
+    if (!count.ok || typeof count.json.product_count !== "number") continue;
+    const productCount = count.json.product_count;
+    await db.socialChannelConnection.update({
+      where: { id: row.id },
+      data: { productCount, ...(row.status === "syncing" && productCount > 0 ? { status: "connected" } : {}) },
+    });
+  }
 }
 
 // ─── WhatsApp ───────────────────────────────────────────────────────────────

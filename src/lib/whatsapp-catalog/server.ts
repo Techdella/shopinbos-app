@@ -7,7 +7,7 @@ import { whatsappError } from "@/lib/inbox/channels/whatsapp";
 import { buildFeedItems, type FeedBuild } from "@/lib/social/feeds";
 import { loadFeedProducts, productLink } from "@/lib/social/server";
 import { storeUnavailableReason } from "@/lib/storefront/store-visibility";
-import { debugToken, graph } from "./graph";
+import { debugToken, graph, setCatalogSubscription } from "./graph";
 import {
   catalogFeedPath,
   chunk,
@@ -195,6 +195,7 @@ export async function selectCatalog(storeId: string, catalogId: string, knownNam
   if (row.catalogId !== catalogId) {
     // A different catalog starts empty: every product is sent again.
     await db.whatsAppCatalogItem.deleteMany({ where: { storeId } });
+    await setCatalogSubscription(catalogId, creds.accessToken);
   }
   await db.whatsAppCatalog.update({
     where: { storeId },
@@ -240,6 +241,8 @@ export async function linkCatalog(storeId: string): Promise<ActionResult> {
 
 /** Stop syncing (the catalog and its products stay in Meta; nothing is deleted there). */
 export async function disconnectCatalog(storeId: string) {
+  const [row, creds] = await Promise.all([getCatalogRow(storeId), whatsappCreds(storeId)]);
+  if (row?.catalogId && creds) await setCatalogSubscription(row.catalogId, creds.accessToken, true).catch(() => false);
   await db.whatsAppCatalogItem.deleteMany({ where: { storeId } });
   await db.whatsAppCatalog.updateMany({
     where: { storeId },
@@ -300,6 +303,17 @@ async function pollPending(storeId: string, catalogId: string, token: string, ro
       await applyResults(storeId, items, status.errors);
     }
     if (round < rounds - 1) await sleep(1500);
+  }
+}
+
+/** Catalog webhook (items_batch finished): record that batch's results now instead of on the next sync. */
+export async function checkBatchHandle(catalogId: string, handle: string) {
+  const rows = await db.whatsAppCatalog.findMany({ where: { catalogId }, select: { storeId: true } });
+  for (const { storeId } of rows) {
+    const pending = await db.whatsAppCatalogItem.count({ where: { storeId, catalogId, status: "pending", handle } });
+    if (!pending) continue;
+    const creds = await whatsappCreds(storeId);
+    if (creds) await pollPending(storeId, catalogId, creds.accessToken, 1);
   }
 }
 

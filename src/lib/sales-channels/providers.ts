@@ -1,7 +1,7 @@
 import "server-only";
 
 import { GRAPH_VERSION } from "@/lib/inbox/channels/types";
-import { debugToken, graph, graphBase } from "@/lib/whatsapp-catalog/graph";
+import { debugToken, graph, graphBase, setCatalogSubscription } from "@/lib/whatsapp-catalog/graph";
 import { grantedTargets } from "@/lib/whatsapp-catalog/pure";
 import { pushMetaCatalog } from "@/lib/social/server";
 import {
@@ -140,6 +140,8 @@ const meta: Provider = {
         if (!catalogId) throw new ChannelError("Facebook didn't return the new catalog.");
       }
     }
+    // A newly picked catalog: subscribe our app to its items_batch / product_feed webhooks.
+    if (catalogId !== ctx.catalogId) await setCatalogSubscription(catalogId, token);
     let feedId = ctx.feedId;
     if (!feedId) {
       // A daily feed keeps Facebook up to date even if our pushes stop; failing here isn't fatal (we push anyway).
@@ -159,6 +161,7 @@ const meta: Provider = {
   },
 
   async remove(ctx) {
+    if (ctx.catalogId) await setCatalogSubscription(ctx.catalogId, ctx.tokens.token, true).catch(() => false);
     if (ctx.feedId) await graph(encodeURIComponent(ctx.feedId), ctx.tokens.token, { method: "DELETE" }).catch(() => null);
   },
 };

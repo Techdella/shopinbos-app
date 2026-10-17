@@ -341,3 +341,43 @@ export function channelActionAllowed(platform: string, action: ChannelAction): b
 export function isLivePlatform(value: unknown): value is LivePlatform {
   return typeof value === "string" && (LIVE_PLATFORMS as readonly string[]).includes(value);
 }
+
+// ─── Catalog webhooks ───────────────────────────────────────────────────────
+
+/** One change from Meta's catalog webhook (object "catalog", fields items_batch and product_feed). */
+export interface CatalogWebhookEvent {
+  field: "items_batch" | "product_feed";
+  catalogId: string;
+  status: string | null;
+  /** items_batch: the handle items_batch returned, for check_batch_request_status. */
+  handle: string | null;
+  /** product_feed: the feed that finished. */
+  feedId: string | null;
+}
+
+const idString = (value: unknown) => (typeof value === "string" && value ? value : typeof value === "number" ? String(value) : null);
+
+/** The catalog events in a webhook body; anything else (another object, unknown fields) is ignored. */
+export function parseCatalogWebhook(payload: unknown): CatalogWebhookEvent[] {
+  if (!payload || typeof payload !== "object") return [];
+  const body = payload as { object?: unknown; entry?: unknown };
+  if (body.object !== "catalog" || !Array.isArray(body.entry)) return [];
+  const events: CatalogWebhookEvent[] = [];
+  for (const entry of body.entry as Array<{ id?: unknown; changes?: unknown }>) {
+    if (!entry || !Array.isArray(entry.changes)) continue;
+    for (const change of entry.changes as Array<{ field?: unknown; value?: unknown }>) {
+      if (change?.field !== "items_batch" && change?.field !== "product_feed") continue;
+      const value = (change.value && typeof change.value === "object" ? change.value : {}) as Record<string, unknown>;
+      const catalogId = idString(value.catalog_id) ?? idString(entry.id);
+      if (!catalogId) continue;
+      events.push({
+        field: change.field,
+        catalogId,
+        status: typeof value.status === "string" ? value.status : null,
+        handle: change.field === "items_batch" ? idString(value.handle) : null,
+        feedId: change.field === "product_feed" ? idString(value.product_feed_id) : null,
+      });
+    }
+  }
+  return events;
+}

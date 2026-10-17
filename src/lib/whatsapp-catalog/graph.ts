@@ -48,3 +48,15 @@ export async function debugToken(token: string): Promise<Record<string, unknown>
   const json = ((await response.json().catch(() => null)) ?? {}) as { data?: Record<string, unknown> };
   return json.data ?? null;
 }
+
+/**
+ * Subscribes (or, with remove, unsubscribes) our app to the catalog's webhooks (items_batch, product_feed), which
+ * then arrive at /api/webhooks/meta-catalog. Needs catalog_management and edit access to the catalog. Best effort:
+ * the sync works without it (it polls batch results itself), so a failure only returns false.
+ */
+export async function setCatalogSubscription(catalogId: string, token: string, remove = false): Promise<boolean> {
+  const appId = process.env.META_APP_ID?.trim();
+  if (!appId) return false;
+  const res = await graph(`${encodeURIComponent(catalogId)}/subscribed_apps`, token, remove ? { method: "DELETE", query: { app_id: appId } } : { body: { app_id: appId } });
+  return res.ok;
+}

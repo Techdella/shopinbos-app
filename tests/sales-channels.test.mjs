@@ -209,3 +209,43 @@ test("the sync cron needs the cron secret", () => {
   assert.match(cron, /cronAuthorization\(req\.headers\.get\("authorization"\), secret\) !== "ok"/);
   assert.match(cron, /syncDueConnections\(\)/);
 });
+
+// ─── Catalog webhooks ───────────────────────────────────────────────────────
+
+test("catalog webhooks: items_batch and product_feed changes are read, anything else ignored", () => {
+  const events = sc.parseCatalogWebhook({
+    object: "catalog",
+    entry: [
+      {
+        id: "111",
+        time: 1,
+        changes: [
+          { field: "items_batch", value: { catalog_id: "111", handle: "AbC123", status: "Finished" } },
+          { field: "product_feed", value: { catalog_id: 222, product_feed_id: "333", status: "Finished" } },
+          { field: "something_else", value: { catalog_id: "111" } },
+          { field: "items_batch", value: {} },
+        ],
+      },
+    ],
+  });
+  assert.deepEqual(events, [
+    { field: "items_batch", catalogId: "111", status: "Finished", handle: "AbC123", feedId: null },
+    { field: "product_feed", catalogId: "222", status: "Finished", handle: null, feedId: "333" },
+    { field: "items_batch", catalogId: "111", status: null, handle: null, feedId: null },
+  ]);
+  assert.deepEqual(sc.parseCatalogWebhook({ object: "page", entry: [{ changes: [{ field: "items_batch", value: { catalog_id: "1" } }] }] }), []);
+  assert.deepEqual(sc.parseCatalogWebhook(null), []);
+  assert.deepEqual(sc.parseCatalogWebhook({ object: "catalog", entry: "x" }), []);
+});
+
+test("catalog webhooks: the route checks Meta's signature, and connect/disconnect subscribe and unsubscribe the catalog", () => {
+  const route = read("src/app/api/webhooks/meta-catalog/route.ts");
+  assert.match(route, /metaVerifyHandshake/);
+  assert.match(route, /verifyMetaSignature\(raw, req\.headers\.get\("x-hub-signature-256"\), process\.env\.META_APP_SECRET\)/);
+  const providers = read("src/lib/sales-channels/providers.ts");
+  assert.match(providers, /if \(catalogId !== ctx\.catalogId\) await setCatalogSubscription\(catalogId, token\)/);
+  assert.match(providers, /setCatalogSubscription\(ctx\.catalogId, ctx\.tokens\.token, true\)/);
+  const whatsapp = read("src/lib/whatsapp-catalog/server.ts");
+  assert.match(whatsapp, /setCatalogSubscription\(catalogId, creds\.accessToken\)/);
+  assert.match(whatsapp, /setCatalogSubscription\(row\.catalogId, creds\.accessToken, true\)/);
+});
