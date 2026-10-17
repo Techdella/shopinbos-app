@@ -82,6 +82,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "method.card.hint": "Ta Paystack",
   "method.opay.label": "OPay",
   "method.opay.hint": "Walat OPay, kati, tura kuɗi ko USSD ta OPay",
+  "method.korapay.label": "Korapay",
+  "method.korapay.hint": "Kati, tura kuɗi ko biya ta banki ta Korapay",
   "method.cod.label": "Biya bayan an kawo",
   "method.cod.hint": "Har zuwa ₦50,000, lambobin waya da aka tabbatar, inda riders suke zuwa",
   "method.wa.label": "Kammala a WhatsApp",

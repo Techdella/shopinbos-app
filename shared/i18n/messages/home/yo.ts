@@ -72,6 +72,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "pm.card.hint": "Nípasẹ̀ Paystack",
   "pm.opay.label": "OPay",
   "pm.opay.hint": "Àpò OPay, káàdì, ìfiránṣẹ́ owó tàbí USSD nípasẹ̀ OPay",
+  "pm.korapay.label": "Korapay",
+  "pm.korapay.hint": "Káàdì, ìfiránṣẹ́ owó tàbí sísan láti báńkì nípasẹ̀ Korapay",
   "pm.cod.label": "Sanwó nígbà tí ẹrù bá dé",
   "pm.cod.hint": "Títí dé ₦50,000, nọ́mbà fóònù tí a ti jẹ́rìísí, níbi tí àwọn rider ti ń ṣiṣẹ́",
   "pm.wa.label": "Parí rẹ̀ lórí WhatsApp",

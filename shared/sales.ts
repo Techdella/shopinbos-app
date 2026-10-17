@@ -21,6 +21,7 @@ export const SALE_DELIVERY_KEYS = ["collected", "deliver"] as const satisfies re
 export const PAYMENT_METHOD_LABEL: Record<string, string> = {
   paystack: "Paystack",
   opay: "OPay",
+  korapay: "Korapay",
   transfer: "Bank transfer",
   cash: "Cash",
   pos: "POS or card",

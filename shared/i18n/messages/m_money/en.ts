@@ -29,6 +29,7 @@ const en = {
   // How an order was paid (the web's orders "method.*")
   "method.paystack": "Paystack",
   "method.opay": "OPay",
+  "method.korapay": "Korapay",
   "method.transfer": "Bank transfer",
   "method.cash": "Cash",
   "method.pos": "POS or card",

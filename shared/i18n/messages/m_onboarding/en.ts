@@ -85,6 +85,8 @@ const en = {
   "method.card.hint": "Through Paystack",
   "method.opay.label": "OPay",
   "method.opay.hint": "OPay wallet, card, transfer or USSD through OPay",
+  "method.korapay.label": "Korapay",
+  "method.korapay.hint": "Card, transfer or pay with bank through Korapay",
   "method.cod.label": "Pay on delivery",
   "method.cod.hint": "Up to ₦50,000, verified phone numbers, where riders cover",
   "method.wa.label": "Finish on WhatsApp",

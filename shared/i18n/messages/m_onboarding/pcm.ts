@@ -82,6 +82,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "method.card.hint": "Through Paystack",
   "method.opay.label": "OPay",
   "method.opay.hint": "OPay wallet, card, transfer or USSD through OPay",
+  "method.korapay.label": "Korapay",
+  "method.korapay.hint": "Card, transfer or pay with bank through Korapay",
   "method.cod.label": "Pay on delivery",
   "method.cod.hint": "Reach ₦50,000, verified phone numbers, where riders dey cover",
   "method.wa.label": "Finish am for WhatsApp",

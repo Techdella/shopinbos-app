@@ -54,9 +54,10 @@ export function cleanPaymentBadges(input: unknown): PaymentBadgeKey[] {
 }
 
 /** What a store shows before the seller picks: the ways customers can actually pay. Card gives Visa, Mastercard, Verve. */
-export function defaultPaymentBadges(methods: { card?: boolean; opay?: boolean; transfer?: boolean; cod?: boolean }): PaymentBadgeKey[] {
+export function defaultPaymentBadges(methods: { card?: boolean; opay?: boolean; korapay?: boolean; transfer?: boolean; cod?: boolean }): PaymentBadgeKey[] {
   return [
-    ...(methods.card ? (["visa", "mastercard", "verve"] as const) : []),
+    // Korapay takes the same cards (it has no logo of its own here).
+    ...(methods.card || methods.korapay ? (["visa", "mastercard", "verve"] as const) : []),
     ...(methods.opay ? (["opay"] as const) : []),
     ...(methods.transfer ? (["transfer"] as const) : []),
     ...(methods.cod ? (["cod"] as const) : []),

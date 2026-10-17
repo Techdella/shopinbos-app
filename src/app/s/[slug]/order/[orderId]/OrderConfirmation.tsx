@@ -1,6 +1,7 @@
 "use client";
 
 import { customerProgress } from "@shared/order-parts";
+import { HOSTED_CHECKOUT_NAMES, isHostedCheckoutMethod } from "@shared/checkout-payments";
 import { useEffect, useMemo, useState } from "react";
 import type React from "react";
 import Link from "next/link";
@@ -37,7 +38,7 @@ interface Props {
     total: number;
     currency: string;
     status: string;
-    /** null or "paystack" for Paystack checkout; "opay", "transfer" or "pay_on_delivery" otherwise. */
+    /** null or "paystack" for Paystack checkout; "opay", "korapay", "transfer" or "pay_on_delivery" otherwise. */
     paymentMethod?: string | null;
     deliveryAddress: { street?: string; city?: string; state?: string; country?: string; landmark?: string; deliveryOption?: { name?: string; estimatedDays?: string | null; pickup?: boolean } } | null;
     notes?: string | null;
@@ -72,9 +73,9 @@ export function OrderConfirmation({ order, store, storeBasePath, transfer = null
   const theme = useMemo(() => resolveShopperTheme(store.brandSettings), [store.brandSettings]);
   const clearCart = cart.clear;
 
-  // OPay is an online checkout like Paystack: the same "waiting for payment" until the gateway confirms it.
+  // OPay and Korapay are online checkouts like Paystack: the same "waiting for payment" until the gateway confirms it.
   const method = order.paymentMethod === "transfer" || order.paymentMethod === "pay_on_delivery" ? order.paymentMethod : "paystack";
-  const gateway = order.paymentMethod === "opay" ? "OPay" : "Paystack";
+  const gateway = isHostedCheckoutMethod(order.paymentMethod) ? HOSTED_CHECKOUT_NAMES[order.paymentMethod] : "Paystack";
   const isPaid = PAID.includes(order.status);
   const isOpen = !["cancelled", "returned", "refunded", "partially_refunded", "delivered"].includes(order.status);
   const money = (amount: number) => formatStoreMoney(Number(amount), order.currency);

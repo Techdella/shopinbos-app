@@ -96,6 +96,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "detail.status": "Ipò",
   "method.paystack": "Paystack",
   "method.opay": "OPay",
+  "method.korapay": "Korapay",
   "method.transfer": "Bank transfer",
   "method.cash": "Owó lọ́wọ́",
   "method.pos": "POS tàbí káàdì",

@@ -28,6 +28,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "po.note": "Shopinbos ba ya nuna kowane bank transfer a nan tukuna. Duba statement na bankinka ko Paystack don daidaita biyan kuɗi.",
   "method.paystack": "Paystack",
   "method.opay": "OPay",
+  "method.korapay": "Korapay",
   "method.transfer": "Bank transfer",
   "method.cash": "Kuɗi hannu",
   "method.pos": "POS ko kati",

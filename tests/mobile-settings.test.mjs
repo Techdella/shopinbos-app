@@ -14,16 +14,16 @@ const { NAMESPACES } = await import("../shared/i18n/catalog.ts");
 // ─── Money settings (shared by the web actions and /api/app/payments) ────────
 
 test("payment methods: always every key, and at least one must stay on", () => {
-  assert.deepEqual(money.cleanPaymentMethods({ card: true, cod: 1, junk: true }), { transfer: false, card: true, opay: false, cod: true, wa: false });
-  assert.deepEqual(money.cleanPaymentMethods(null), { transfer: false, card: false, opay: false, cod: false, wa: false });
+  assert.deepEqual(money.cleanPaymentMethods({ card: true, cod: 1, junk: true }), { transfer: false, card: true, opay: false, korapay: false, cod: true, wa: false });
+  assert.deepEqual(money.cleanPaymentMethods(null), { transfer: false, card: false, opay: false, korapay: false, cod: false, wa: false });
   assert.equal(money.paymentMethodsProblem(money.cleanPaymentMethods({})), "keepOne");
   assert.equal(money.paymentMethodsProblem(money.cleanPaymentMethods({ wa: true })), null);
 });
 
 test("payment switches read the way checkout reads them", () => {
   // Never saved: card only (checkout offers card only), not the onboarding defaults.
-  assert.deepEqual(money.readShopPaymentMethods({}), { transfer: false, card: true, opay: false, cod: false, wa: false });
-  assert.deepEqual(money.readShopPaymentMethods({ paymentConfig: { methods: { cod: true } } }), { transfer: false, card: false, opay: false, cod: true, wa: false });
+  assert.deepEqual(money.readShopPaymentMethods({}), { transfer: false, card: true, opay: false, korapay: false, cod: false, wa: false });
+  assert.deepEqual(money.readShopPaymentMethods({ paymentConfig: { methods: { cod: true } } }), { transfer: false, card: false, opay: false, korapay: false, cod: true, wa: false });
 });
 
 test("transfer window: the listed hours or the default", () => {

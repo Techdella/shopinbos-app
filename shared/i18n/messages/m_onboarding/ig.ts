@@ -82,6 +82,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "method.card.hint": "Site na Paystack",
   "method.opay.label": "OPay",
   "method.opay.hint": "Wallet OPay, kaadị, nnyefe ego ma ọ bụ USSD site na OPay",
+  "method.korapay.label": "Korapay",
+  "method.korapay.hint": "Kaadị, nnyefe ego ma ọ bụ ịkwụ ụgwọ site na ụlọ akụ site na Korapay",
   "method.cod.label": "Kwụọ mgbe a bugara ya",
   "method.cod.hint": "Ruo ₦50,000, nọmba ekwentị e kwenyere, ebe riders na-aga",
   "method.wa.label": "Mechaa ya na WhatsApp",

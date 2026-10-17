@@ -163,7 +163,7 @@ test("checkout and the quote price a payment link on the server, and paid orders
   // Every way an order becomes paid settles its link (idempotent).
   // (The Paystack and OPay webhooks share src/lib/commerce/order-paid.server.ts.)
   assert.match(read("src/app/api/webhooks/paystack/route.ts"), /afterRetailOrderPaid\(/);
-  assert.match(read("src/lib/commerce/opay-orders.server.ts"), /afterRetailOrderPaid\(/);
+  assert.match(read("src/lib/commerce/hosted-checkout.server.ts"), /afterRetailOrderPaid\(/);
   for (const file of ["src/lib/commerce/order-paid.server.ts", "src/app/actions/payments.ts", "src/lib/orders/update-status.ts", "src/app/api/public/store/[slug]/checkout/route.ts"]) {
     assert.match(read(file), /settlePaymentLinkForOrder\(/, file);
   }

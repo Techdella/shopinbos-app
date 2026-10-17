@@ -28,6 +28,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "po.note": "Shopinbos never dey show each bank transfer here. Check your bank or Paystack statement to match payments.",
   "method.paystack": "Paystack",
   "method.opay": "OPay",
+  "method.korapay": "Korapay",
   "method.transfer": "Bank transfer",
   "method.cash": "Cash",
   "method.pos": "POS or card",

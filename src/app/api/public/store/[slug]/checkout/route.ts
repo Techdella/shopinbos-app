@@ -23,6 +23,8 @@ import {
   payOnDeliveryBlock,
   paystackSecretReady,
   readTransferAccount,
+  HOSTED_CHECKOUT_NAMES,
+  isHostedCheckoutMethod,
 } from "@shared/checkout-payments";
 import { overPublicLimit } from "@/lib/rate-limit";
 import { reserveStock } from "@/lib/commerce/stock.server";
@@ -31,8 +33,8 @@ import { ensureSupplierOrdersSafely } from "@/lib/supplier-orders/service.server
 import { notifyNewOrder, notifyStockAfterSale } from "@/lib/notifications/events.server";
 import { linkCheckout, settlePaymentLinkForOrder } from "@/lib/payment-links/service.server";
 import { isLinkCode, linkOrderChannel } from "@/lib/payment-links/pure";
-import { opayReady } from "@/lib/opay";
-import { releaseUnstartedOpayOrder, startOpayCheckout } from "@/lib/commerce/opay-orders.server";
+import { hostedGatewaysReady } from "@/lib/hosted-gateways";
+import { releaseUnstartedHostedOrder, startHostedCheckout } from "@/lib/commerce/hosted-checkout.server";
 
 const CHECKOUT_CORS = { methods: ["POST", "OPTIONS"], headers: ["Content-Type"] };
 
@@ -66,7 +68,7 @@ const CheckoutSchema = z.object({
   giftMessage: z.string().max(500).optional(),
   deliveryOptionId: z.string().max(64).optional(),
   // "redirect" and "inline" are older clients asking for Paystack.
-  paymentMethod: z.enum(["paystack", "opay", "transfer", "pay_on_delivery", "redirect", "inline"]).optional(),
+  paymentMethod: z.enum(["paystack", "opay", "korapay", "transfer", "pay_on_delivery", "redirect", "inline"]).optional(),
   discountCode: z.string().max(40).optional(),
   cartToken: z.string().max(64).optional(),
   campaignToken: z.string().max(64).optional(),
@@ -135,7 +137,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   const items = link ? link.lines : bagItems;
   if (!items.length) return withCors(req, apiError("BAD_REQUEST", "Your bag is empty."), CHECKOUT_CORS);
   const buyerEmail = rawEmail;
-  if (buyerEmail ? !z.string().email().safeParse(buyerEmail).success : !link || normalizeCheckoutMethod(requestedMethod) === "paystack") {
+  if (buyerEmail ? !z.string().email().safeParse(buyerEmail).success : !link || ["paystack", "korapay"].includes(normalizeCheckoutMethod(requestedMethod))) {
     return withCors(req, apiError("BAD_REQUEST", buyerEmail || !link ? "Enter a valid email address." : "Add your email to pay by card. We send the receipt there."), CHECKOUT_CORS);
   }
 
@@ -175,7 +177,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     orderBy: { sortOrder: "asc" },
     select: { name: true, regions: true, rates: true },
   });
-  const paymentSettings = checkoutPaymentSettings(store.brandSettings, shippingZones, paystackSecretReady(paystackSecret), opayReady());
+  const paymentSettings = checkoutPaymentSettings(store.brandSettings, shippingZones, paystackSecretReady(paystackSecret), hostedGatewaysReady());
   const paymentContext = { city: deliveryAddress.city, state: deliveryAddress.state, total };
   if (!checkoutPaymentOptions(paymentSettings, paymentContext).some((option) => option.key === paymentMethod)) {
     const reason = paymentMethod === "pay_on_delivery" && paymentSettings.methods?.cod ? payOnDeliveryBlock(paymentSettings, paymentContext) : null;
@@ -245,12 +247,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
           discountAmount,
           currency: store.currency,
           notes: orderNotes(settings, notes, giftMessage),
-          // Null keeps meaning "Paystack checkout" for older readers; OPay, transfer and pay on delivery wait as pending.
+          // Null keeps meaning "Paystack checkout" for older readers; OPay, Korapay, transfer and pay on delivery wait as pending.
           paymentMethod: paymentMethod === "paystack" ? null : paymentMethod,
           status: "pending",
           // What was really taken (versions of products that keep selling at 0 may give less than asked).
           stockHold: JSON.parse(JSON.stringify(stockHolds)),
-          // When it lets its stock go if still unpaid: card and OPay 30 min, bank transfer 24 h or the seller's choice.
+          // When it lets its stock go if still unpaid: card, OPay and Korapay 30 min, bank transfer 24 h or the seller's choice.
           paymentDueAt: checkoutPaymentDueAt(new Date(), paymentMethod === "paystack" ? null : paymentMethod, store.brandSettings),
         },
       });
@@ -265,18 +267,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     return withCors(req, apiError("BAD_REQUEST", message), CHECKOUT_CORS);
   }
 
-  // OPay: open its hosted cashier before telling anyone about the order. If OPay can't, the shopper can never pay
-  // this order, so it is cancelled straight away (stock and discount given back) and they can try again.
-  let opayData: { cashierUrl: string } | null = null;
-  if (paymentMethod === "opay") {
+  // OPay and Korapay: open the gateway's hosted page before telling anyone about the order. If it can't, the
+  // shopper can never pay this order, so it is cancelled straight away (stock and discount given back) and they
+  // can try again.
+  let hosted: { gateway: string; url: string } | null = null;
+  if (isHostedCheckoutMethod(paymentMethod)) {
     try {
       const forwarded = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-      const cashier = await startOpayCheckout({ ...order, total: Number(order.total) }, store, forwarded || undefined);
-      opayData = { cashierUrl: cashier.cashierUrl };
+      const url = await startHostedCheckout(paymentMethod, { ...order, total: Number(order.total) }, store, forwarded || undefined);
+      hosted = { gateway: paymentMethod, url };
     } catch (error) {
-      console.error(`[checkout] OPay could not start order ${order.id}`, error);
-      await releaseUnstartedOpayOrder(order.id);
-      return withCors(req, apiError("PAYMENT_UNAVAILABLE", "OPay isn't responding right now. Try again in a moment or choose another way to pay.", 502), CHECKOUT_CORS);
+      console.error(`[checkout] ${paymentMethod} could not start order ${order.id}`, error);
+      await releaseUnstartedHostedOrder(order.id, paymentMethod);
+      return withCors(req, apiError("PAYMENT_UNAVAILABLE", `${HOSTED_CHECKOUT_NAMES[paymentMethod]} isn't responding right now. Try again in a moment or choose another way to pay.`, 502), CHECKOUT_CORS);
     }
   }
 
@@ -373,8 +376,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       paymentMethod,
     },
     paystack: paystackData,
-    // Send the shopper here to pay; OPay brings them back to the order page.
-    opay: opayData,
+    // OPay or Korapay: send the shopper here to pay; the gateway brings them back to the order page.
+    hosted,
     // Where to send a bank transfer: the exact total, with the order number as the reference.
     transfer: transferAccount ? { ...transferAccount, amount: order.total, reference: order.orderNumber, payBy: order.paymentDueAt?.toISOString() ?? null } : null,
   }), CHECKOUT_CORS);

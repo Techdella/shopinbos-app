@@ -69,15 +69,16 @@ test("OPay statuses and success codes", () => {
 });
 
 test("checkout offers OPay only when the seller switched it on and the server has OPay keys", () => {
-  const base = { methods: { transfer: false, card: true, opay: true, cod: false, wa: false }, paystackReady: true, opayReady: true, transferReady: true, codLimit: null, zones: [] };
+  const base = { methods: { transfer: false, card: true, opay: true, cod: false, wa: false }, paystackReady: true, hostedReady: { opay: true }, transferReady: true, codLimit: null, zones: [] };
   const keys = (settings) => pay.checkoutPaymentOptions(settings, {}).map((option) => option.key);
   assert.deepEqual(keys(base), ["paystack", "opay"]);
-  assert.deepEqual(keys({ ...base, opayReady: false }), ["paystack"]);
+  assert.deepEqual(keys({ ...base, hostedReady: { opay: false } }), ["paystack"]);
+  assert.deepEqual(keys({ ...base, hostedReady: undefined }), ["paystack"]);
   assert.deepEqual(keys({ ...base, methods: { ...base.methods, opay: false } }), ["paystack"]);
   assert.deepEqual(keys({ ...base, methods: { ...base.methods, card: false } }), ["opay"]);
   // Older callers that don't pass OPay readiness never offer it.
-  assert.equal(pay.checkoutPaymentSettings({ paymentConfig: { methods: { opay: true } } }, [], true).opayReady, false);
-  assert.equal(pay.checkoutPaymentSettings({ paymentConfig: { methods: { opay: true } } }, [], true, true).opayReady, true);
+  assert.deepEqual(pay.checkoutPaymentSettings({ paymentConfig: { methods: { opay: true } } }, [], true).hostedReady, {});
+  assert.deepEqual(pay.checkoutPaymentSettings({ paymentConfig: { methods: { opay: true } } }, [], true, { opay: true }).hostedReady, { opay: true });
   assert.equal(pay.normalizeCheckoutMethod("opay"), "opay");
   assert.match(pay.paymentChoiceText("opay"), /OPay/);
   // A store that never saved its choices still offers card only; OPay starts off.
@@ -104,13 +105,15 @@ test("OPay orders hold stock for the short (card) window, count as online money,
 });
 
 test("an OPay order is marked paid only from OPay's status reply, checked against the order", () => {
-  const orders = read("src/lib/commerce/opay-orders.server.ts");
-  assert.match(orders, /queryOpayPayment\(order\.id\)/);
+  const orders = read("src/lib/commerce/hosted-checkout.server.ts");
+  assert.match(orders, /queryOpayPayment\(orderId\)/);
+  assert.match(orders, /lookupPayment\(gateway, order\.id\)/);
+  assert.match(orders, /if \(order\.paymentMethod !== gateway\) return "rejected";/, "one gateway's payment never settles another's order");
   assert.match(orders, /retailChargeProblem\(/);
   assert.match(orders, /status: \{ in: \[\.\.\.PAYABLE_ORDER_STATUSES\] \}/, "only an unpaid order moves");
   const webhook = read("src/app/api/webhooks/opay/route.ts");
   assert.match(webhook, /verifyCallbackSignature\(payload, event\?\.sha512, secret\)/);
-  assert.match(webhook, /confirmOpayOrderPayment\(reference\)/);
+  assert.match(webhook, /confirmHostedOrderPayment\(reference, "opay"\)/);
   assert.doesNotMatch(webhook, /status: "paid"/, "the callback body never marks an order paid by itself");
   // The live site never takes a test stub or silently uses the sandbox.
   const client = read("src/lib/opay.ts");

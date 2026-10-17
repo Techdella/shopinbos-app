@@ -6,6 +6,7 @@ import { appBase, loadStoreSender } from "@/lib/email/compliance.server";
 import { refundEmail } from "@/lib/email/store-emails";
 import { paystackSecretReady } from "@shared/checkout-payments";
 import { createOpayRefund, opayReady } from "@/lib/opay";
+import { createKorapayRefund, korapayReady } from "@/lib/korapay";
 import {
   canStartRefund,
   opayRefundReference,
@@ -15,6 +16,7 @@ import {
   refundIdempotencyKey,
   refundRoute,
   refundStatusFromEvent,
+  refundStatusFromKorapay,
   refundStatusFromOpay,
   refundStillOpen,
   type RefundStatus,
@@ -22,8 +24,8 @@ import {
 
 // Refunds a payment that arrived after its order expired and the stock had sold (see refunds.ts for the rules).
 // Card payments go back through Paystack's Refund API with the platform key (the same PAYSTACK_SECRET_KEY that
-// initialises and verifies store checkouts: there are no per-store keys); OPay checkout payments through OPay's
-// Refund API (src/lib/opay.ts). Anything else (a transfer the seller collected) is flagged for the seller to refund
+// initialises and verifies store checkouts: there are no per-store keys); OPay and Korapay checkout payments through
+// their own Refund APIs (src/lib/opay.ts, src/lib/korapay.ts). Anything else (a transfer the seller collected) is flagged for the seller to refund
 // by hand. Never throws.
 
 export type RefundOutcome = "started" | "processed" | "manual" | "failed" | "skipped";
@@ -88,7 +90,7 @@ async function markFailed(order: RefundOrder, reason: string) {
   await db.retailOrder.updateMany({ where: { id: order.id, refundStatus: { in: ["pending", "processing"] } }, data: { refundStatus: "failed", paymentIssue: issue } });
   console.warn(`[refunds] refund for order ${order.orderNumber} failed: ${reason}`);
   const gateway = refundGatewayName(refundRoute(order));
-  await notifySeller(order, `Refund failed: order ${order.orderNumber}`, `The payment came in after this order expired and its stock sold. We tried to refund ${money(Number(order.total), order.currency)} through ${gateway} and it failed (${reason}). ${gateway === "OPay" ? "Refund the buyer by transfer." : "Refund the buyer from your Paystack dashboard or by transfer."}`, "critical");
+  await notifySeller(order, `Refund failed: order ${order.orderNumber}`, `The payment came in after this order expired and its stock sold. We tried to refund ${money(Number(order.total), order.currency)} through ${gateway} and it failed (${reason}). ${gateway === "Paystack" ? "Refund the buyer from your Paystack dashboard or by transfer." : "Refund the buyer by transfer."}`, "critical");
 }
 
 async function callPaystackRefund(secret: string, body: ReturnType<typeof paystackRefundBody>): Promise<ReturnType<typeof readPaystackRefund>> {
@@ -109,12 +111,26 @@ async function callPaystackRefund(secret: string, body: ReturnType<typeof paysta
 type GatewayRefund = { ok: true; id: string | null; status: RefundStatus; key: string } | { ok: false; message: string };
 
 /** Whether the gateway this order was paid through has its keys on the server. */
-function gatewayReady(route: "paystack" | "opay") {
-  return route === "opay" ? opayReady() : paystackSecretReady(process.env.PAYSTACK_SECRET_KEY);
+type GatewayRoute = "paystack" | "opay" | "korapay";
+
+function gatewayReady(route: GatewayRoute) {
+  if (route === "opay") return opayReady();
+  if (route === "korapay") return korapayReady();
+  return paystackSecretReady(process.env.PAYSTACK_SECRET_KEY);
 }
 
 /** Refunds the whole payment through the gateway that took it. */
-async function callGatewayRefund(order: RefundOrder, route: "paystack" | "opay", reason: string): Promise<GatewayRefund> {
+async function callGatewayRefund(order: RefundOrder, route: GatewayRoute, reason: string): Promise<GatewayRefund> {
+  if (route === "korapay") {
+    const result = await createKorapayRefund({
+      reference: opayRefundReference(order.id),
+      paymentReference: order.id,
+      reason,
+      webhookUrl: `${appBase()}/api/webhooks/korapay`,
+    });
+    if (!result.ok) return { ok: false, message: result.message };
+    return { ok: true, id: opayRefundReference(order.id), status: refundStatusFromKorapay(result.status), key: refundIdempotencyKey(order.id, order.id) };
+  }
   if (route === "opay") {
     const result = await createOpayRefund({
       reference: opayRefundReference(order.id),
@@ -238,7 +254,7 @@ export async function refundCancelledOrder(orderId: string, why: string): Promis
     }
 
     const gateway = refundGatewayName(route);
-    const byHand = route === "opay" ? "Refund the customer by transfer." : "Refund the customer from your Paystack dashboard or by transfer.";
+    const byHand = route === "paystack" ? "Refund the customer from your Paystack dashboard or by transfer." : "Refund the customer by transfer.";
     const claimed = await db.retailOrder.updateMany({ where: { id: order.id, refundStatus: null }, data: { refundStatus: "pending" } });
     if (claimed.count !== 1) return "skipped";
     if (!gatewayReady(route)) {
@@ -269,16 +285,16 @@ export async function refundCancelledOrder(orderId: string, why: string): Promis
 }
 
 /**
- * OPay's callback for a refund we started (reference refund-<order id>): SUCCESS marks the order refunded, FAIL puts
- * the payment issue back and tells the seller to refund by hand. Only moves a refund that is still open.
+ * An OPay or Korapay webhook for a refund we started on this order (as ours: see refundStatusFromOpay and
+ * refundStatusFromKorapay): processed marks the order refunded, failed puts the payment issue back and tells the
+ * seller to refund by hand. Only moves a refund that is still open, on an order paid through that gateway.
  */
-export async function applyOpayRefundStatus(orderId: string, opayStatus: unknown) {
-  const status = refundStatusFromOpay(opayStatus);
+export async function applyHostedRefundStatus(orderId: string, gateway: "opay" | "korapay", status: RefundStatus, detail: string) {
   const found = await db.retailOrder.findUnique({ where: { id: orderId }, select: { id: true, paymentMethod: true, refundStatus: true } });
-  if (!found || found.paymentMethod !== "opay" || !refundStillOpen(found.refundStatus)) return false;
+  if (!found || found.paymentMethod !== gateway || !refundStillOpen(found.refundStatus)) return false;
   if (status === "failed") {
     const order = await loadOrder(found.id);
-    if (order) await markFailed(order, typeof opayStatus === "string" ? `OPay: ${opayStatus}` : "OPay reported it failed");
+    if (order) await markFailed(order, `${refundGatewayName(gateway)}: ${detail}`);
     return true;
   }
   if (status !== "processed") return false;
