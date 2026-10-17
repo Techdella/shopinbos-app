@@ -21,8 +21,8 @@ function sib_settings_fields(): array {
 		'launch' => [
 			'title'  => __( 'Launch', 'shopinbos' ),
 			'fields' => [
-				'app_live'      => [ __( 'The web app is live', 'shopinbos' ), '0', 'checkbox', __( 'Off: every “Start your shop” and “Log in” button goes to the Coming soon page with a waitlist form. Tick it on launch day to send people to the app.', 'shopinbos' ) ],
-				'site_coming_soon' => [ __( 'Show only the Coming soon page to visitors', 'shopinbos' ), '0', 'checkbox', __( 'Hides the whole website behind the Coming soon page (logged-in editors still see everything). Leave off to keep the site and blog visible to Google.', 'shopinbos' ) ],
+				'launch_date'   => [ __( 'Launch date', 'shopinbos' ), '2026-11-01', 'text', __( 'YYYY-MM-DD. Until midnight (Lagos time) on this date, sign-up buttons open the waitlist pop-up and /go/ links land on /waitlist/. From then on they go straight to the app, automatically. Log-in links always go to the app.', 'shopinbos' ) ],
+				'app_live'      => [ __( 'Go live now', 'shopinbos' ), '0', 'checkbox', __( 'Switch to the app before the launch date. Leave unticked to switch automatically on the launch date.', 'shopinbos' ) ],
 			],
 		],
 		'popups' => [

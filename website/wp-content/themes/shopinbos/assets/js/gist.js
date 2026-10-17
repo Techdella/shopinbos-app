@@ -12,7 +12,7 @@
 	function markSeen() { document.querySelectorAll('.gist-item').forEach(function (b) { b.classList.toggle('is-seen', !!seen[b.getAttribute('data-gist')]); }); }
 	markSeen();
 
-	var view, gi = 0, si = 0, t0 = 0, raf = 0, paused = false, elapsed = 0;
+	var view, gi = 0, si = 0, t0 = 0, raf = 0, paused = false, elapsed = 0, muted = false;
 	function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text) e.textContent = text; return e; }
 	function track(ev, p) { try { if (window.SIB && SIB.track) SIB.track(ev, p); } catch (e) {} }
 
@@ -48,6 +48,25 @@
 		var n = el('div', 'gs gs-is-' + s.type);
 		var add = function (tag, cls, text, i) { if (!text) return null; var x = el(tag, cls + ' ga', text); x.style.animationDelay = (0.12 + (i || 0) * 0.12) + 's'; n.appendChild(x); return x; };
 		n.appendChild(el('span', 'gs-blob gs-b1')); n.appendChild(el('span', 'gs-blob gs-b2'));
+		if (s.type === 'video') {
+			n.innerHTML = '';
+			var v = el('video', 'gs-video');
+			v.src = s.video; if (s.poster) { v.poster = s.poster; n.style.background = '#000 url("' + s.poster.replace(/"/g, '') + '") center / cover no-repeat'; }
+			v.playsInline = true; v.setAttribute('playsinline', ''); v.preload = 'auto'; v.muted = muted;
+			n.appendChild(v);
+			if (s.headline) v.setAttribute('aria-label', s.headline);
+			var mb = el('button', 'gs-mute'); mb.type = 'button';
+			var setLabel = function () { mb.setAttribute('aria-label', v.muted ? 'Turn sound on' : 'Turn sound off'); mb.innerHTML = v.muted ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M23 9l-6 6M17 9l6 6"/></svg>' : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg>'; };
+			setLabel();
+			mb.addEventListener('click', function (e) { e.stopPropagation(); muted = !muted; v.muted = muted; setLabel(); if (v.paused) v.play().catch(function () {}); });
+			mb.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
+			n.appendChild(mb);
+			v.addEventListener('ended', function () { next(); });
+			v.addEventListener('error', function () { v.classList.add('is-failed'); t0 = performance.now(); });
+			var p = v.play();
+			if (p && p.catch) p.catch(function () { muted = true; v.muted = true; setLabel(); v.play().catch(function () {}); });
+			return n;
+		}
 		if (s.type === 'cover') {
 			var pic = el('span', 'gs-pic'); var im = el('img'); im.src = g.img; im.alt = ''; pic.appendChild(im); n.appendChild(pic);
 			add('span', 'gs-eye', s.eyebrow || 'Gist', 0); add('b', 'gs-h gs-h-xl', s.headline, 1);
@@ -94,10 +113,18 @@
 	}
 	function tick(now) {
 		if (!view || view.hidden) return;
-		if (!paused) elapsed = now - t0;
 		var bar = view.querySelectorAll('.gv-bar')[si];
-		if (bar) bar.firstChild.style.width = Math.min(100, elapsed / DUR * 100) + '%';
-		if (elapsed >= DUR) next();
+		var vid = view.querySelector('.gs-video:not(.is-failed)');
+		if (vid) {
+			// Video slides run on the video's own clock and move on when it ends.
+			if (paused && !vid.paused) vid.pause(); else if (!paused && vid.paused && !vid.ended && vid.dataset.started) vid.play().catch(function () {});
+			if (!vid.paused) vid.dataset.started = '1';
+			if (bar && vid.duration) bar.firstChild.style.width = Math.min(100, vid.currentTime / vid.duration * 100) + '%';
+		} else {
+			if (!paused) elapsed = now - t0;
+			if (bar) bar.firstChild.style.width = Math.min(100, elapsed / DUR * 100) + '%';
+			if (elapsed >= DUR) next();
+		}
 		raf = requestAnimationFrame(tick);
 	}
 	function next() { var g = groups[gi]; if (si < g.slides.length - 1) si++; else if (gi < groups.length - 1) { gi++; si = 0; } else { close(); return; } show(); }
@@ -111,9 +138,11 @@
 	}
 	function close() {
 		if (!view) return;
+		var vid = view.querySelector('.gs-video'); if (vid) vid.pause();
 		view.hidden = true; document.documentElement.classList.remove('gv-open'); cancelAnimationFrame(raf); markSeen();
 		if (history.replaceState && location.hash) history.replaceState(null, '', location.pathname);
 	}
+	window.SIBGist = { close: close };
 	document.addEventListener('click', function (e) { var b = e.target.closest('[data-gist]'); if (b) { e.preventDefault(); open(b.getAttribute('data-gist')); } });
 	if (location.pathname.indexOf('/gist') === 0 && location.hash.length > 1) {
 		var h = location.hash.slice(1);

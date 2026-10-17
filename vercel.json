@@ -13,5 +13,10 @@
       "schedule": "17 9 * * *"
     }
   ],
-  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- . ':(exclude)website' ':(exclude).github/workflows/website.yml' ':(exclude).github/workflows/website-deploy.yml'"
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- . ':(exclude)website' ':(exclude).github/workflows/website.yml' ':(exclude).github/workflows/website-deploy.yml'",
+  "git": {
+    "deploymentEnabled": {
+      "claude/*": false
+    }
+  }
 }

@@ -19,10 +19,12 @@ function sib_admin_types(): array {
 		'sib_landing'     => [ __( 'Campaign pages', 'shopinbos' ), __( 'Landing pages', 'shopinbos' ) ],
 		'sib_comparison'  => [ __( 'Compare pages', 'shopinbos' ), __( 'Landing pages', 'shopinbos' ) ],
 		'sib_template'    => [ __( 'Store templates', 'shopinbos' ), __( 'Product', 'shopinbos' ) ],
+		'sib_showcase'    => [ __( 'Store showcase', 'shopinbos' ), __( 'Product', 'shopinbos' ) ],
 		'sib_tool'        => [ __( 'Free tools', 'shopinbos' ), __( 'Learn', 'shopinbos' ) ],
 		'sib_resource'    => [ __( 'Guides and PDFs', 'shopinbos' ), __( 'Learn', 'shopinbos' ) ],
 		'sib_lesson'      => [ __( 'Academy lessons', 'shopinbos' ), __( 'Learn', 'shopinbos' ) ],
 		'sib_gist'        => [ __( 'Gist stories', 'shopinbos' ), __( 'Learn', 'shopinbos' ) ],
+		'sib_trend'       => [ __( 'Trend reports', 'shopinbos' ), __( 'Learn', 'shopinbos' ) ],
 		'sib_help'        => [ __( 'Help articles', 'shopinbos' ), __( 'Support', 'shopinbos' ) ],
 	];
 }
@@ -88,7 +90,7 @@ function sib_admin_overview(): void {
 		foreach ( $types as $type => $label ) {
 			$c    = wp_count_posts( $type );
 			$obj  = get_post_type_object( $type );
-			$view = $obj->public && $obj->has_archive ? get_post_type_archive_link( $type ) : ( 'sib_gist' === $type ? home_url( '/gist/' ) : '' );
+			$view = $obj->public && $obj->has_archive ? get_post_type_archive_link( $type ) : ( [ 'sib_gist' => home_url( '/gist/' ), 'sib_trend' => home_url( '/trending/' ) ][ $type ] ?? '' );
 			echo '<div class="c"><b>' . esc_html( $label ) . '</b><span class="n">' . esc_html( sprintf( __( '%1$d published, %2$d draft', 'shopinbos' ), (int) ( $c->publish ?? 0 ) + (int) ( $c->future ?? 0 ), (int) ( $c->draft ?? 0 ) ) ) . '</span><span class="l">'
 				. '<a href="' . esc_url( admin_url( 'edit.php?post_type=' . $type ) ) . '">' . esc_html__( 'View all', 'shopinbos' ) . '</a>'
 				. ( current_user_can( $obj->cap->create_posts ) ? '<a href="' . esc_url( admin_url( 'post-new.php?post_type=' . $type ) ) . '">' . esc_html__( 'Add new', 'shopinbos' ) . '</a>' : '' )

@@ -40,6 +40,9 @@ function sib_app_lead_from_form( string $kind, array $in ): void {
 	$str     = fn( $k, $max = 300 ) => mb_substr( sanitize_text_field( (string) ( $in[ $k ] ?? '' ) ), 0, $max );
 	$email   = sanitize_email( (string) ( $in['email'] ?? '' ) );
 	$phone   = preg_replace( '/[^0-9+]/', '', (string) ( $in['phone'] ?? '' ) );
+	if ( $phone && function_exists( 'sib_lead_phone' ) ) {
+		$phone = sib_lead_phone( $phone ) ?: $phone;
+	}
 	if ( ! $email && ! $phone && ! empty( $in['contact'] ) ) {
 		$contact = trim( (string) $in['contact'] );
 		is_email( $contact ) ? $email = sanitize_email( $contact ) : $phone = preg_replace( '/[^0-9+]/', '', $contact );
