@@ -92,6 +92,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "quote.rejected": "Dem decline",
   "quote.expired": "E don expire",
   "lg.message": "Message",
+  "lg.feePaid": "E don pay",
+  "lg.payFee": "Pay {amount}",
   "lg.partners": "Delivery partners",
   "filter.all": "All partners",
   "filter.same_day": "Same day",

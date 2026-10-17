@@ -42,6 +42,7 @@ const en = {
   "supplier-products.title": "Your products and white label",
   "supplier-orders.title": "Orders and fulfilment",
   "supplier-quotes.title": "Quote requests",
+  "wallet.title": "Shopinbos Wallet",
   "supplier-payouts.title": "Earnings and payouts",
   "supplier-home.title": "Your Today dashboard",
   "supplier-wholesale.title": "Wholesale orders",

@@ -92,6 +92,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "quote.rejected": "Wọ́n kọ̀ ọ́",
   "quote.expired": "Ó ti parí",
   "lg.message": "Fi ìfiránṣẹ́ ránṣẹ́",
+  "lg.feePaid": "Ti san",
+  "lg.payFee": "San {amount}",
   "lg.partners": "Àwọn alábàáṣiṣẹ́ delivery",
   "filter.all": "Gbogbo alábàáṣiṣẹ́",
   "filter.same_day": "Ọjọ́ kan náà",

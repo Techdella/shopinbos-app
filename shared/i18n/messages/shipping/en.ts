@@ -90,6 +90,8 @@ const en = {
   "quote.rejected": "Declined",
   "quote.expired": "Expired",
   "lg.message": "Message",
+  "lg.feePaid": "Paid",
+  "lg.payFee": "Pay {amount}",
   "lg.partners": "Delivery partners",
   "filter.all": "All partners",
   "filter.same_day": "Same day",

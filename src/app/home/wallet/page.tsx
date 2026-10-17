@@ -4,15 +4,18 @@ import { requireRole } from "@/lib/server-auth";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { WalletPanel } from "@/components/wallet/WalletPanel";
 import { loadWalletView } from "@/lib/wallet/wallet.server";
+import { cashOwedToSeller } from "@/lib/logistics/seller-payins.server";
+import { CashToReceive } from "@/components/wallet/CashToReceive";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Shopinbos Wallet" };
 
 export default async function SellerWalletPage() {
   const user = await requireRole(["seller"], "/login");
-  const [store, view] = await Promise.all([
+  const [store, view, cash] = await Promise.all([
     db.store.findUnique({ where: { userId: user.id }, select: { name: true, slug: true, logoUrl: true } }),
     loadWalletView({ id: user.id, role: "seller" }),
+    cashOwedToSeller(user.id),
   ]);
   return (
     <SellerPage user={user} store={storeSummary(store)} title="Shopinbos Wallet" sub="Card payments from your store go straight to your bank.">
@@ -21,6 +24,7 @@ export default async function SellerWalletPage() {
           Your store takes card payments once your wallet is set up. Until then customers can still pay by bank transfer or on delivery.
         </p>
       ) : null}
+      <div className="mb-5"><CashToReceive rows={cash} /></div>
       <WalletPanel view={view} role="seller" ownerName={user.name} orderHref={(orderId) => `/home/orders/${orderId}`} />
     </SellerPage>
   );

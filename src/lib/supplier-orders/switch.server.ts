@@ -18,6 +18,7 @@ import {
 import { acceptByFor, messageSupplierPhone } from "./deadline.server";
 import { plainText, supplierOrderRef } from "./pure";
 import { orderLines } from "./views.server";
+import { readSplitPlan } from "@/lib/wallet/rules";
 
 // Sending an expired supplier order to another supplier with the same product (build spec 7.2: "REROUTED to next
 // supplier with same product (max 2)"). Called by the acceptance cron right after an order expires
@@ -68,12 +69,18 @@ export async function switchAfterExpiry(expiredId: string, now = new Date()): Pr
     (await record({ ...base, outcome, note })) ? { outcome, note } : { outcome: "already" };
 
   const [order, store, siblings, switchesSoFar] = await Promise.all([
-    db.retailOrder.findUnique({ where: { id: expired.retailOrderId }, select: { id: true, status: true, items: true, stockHold: true, stockReleasedAt: true } }),
+    db.retailOrder.findUnique({ where: { id: expired.retailOrderId }, select: { id: true, status: true, items: true, stockHold: true, stockReleasedAt: true, paymentSplit: true } }),
     db.store.findUnique({ where: { id: expired.storeId }, select: { id: true, name: true, autoSwitchSupplier: true, switchCostRule: true, switchMaxIncreasePct: true, switchMinMarginPct: true } }),
     db.supplierOrder.findMany({ where: { retailOrderId: expired.retailOrderId }, select: { supplierId: true, status: true } }),
     db.supplierSwitch.count({ where: { retailOrderId: expired.retailOrderId, outcome: { in: ["switched", "undone"] } } }),
   ]);
   if (!order || !store || !LIVE_RETAIL.includes(order.status) || order.stockReleasedAt) return stop("none", "The shop order isn't waiting any more.");
+  // Paystack already settled this supplier's cost to their bank in the checkout split (src/lib/wallet): a
+  // replacement supplier would be owed money nobody holds, so the order isn't moved. The supplier returns the money
+  // to the shop (both wallets show it) and the shop decides what to do with the order.
+  if (readSplitPlan(order.paymentSplit)?.suppliers.some((share) => share.supplierId === expired.supplierId)) {
+    return stop("none", "This supplier was already paid for the order by card, so it can't move to another supplier automatically. Ask them to return the money, then refund or replace the order.");
+  }
   const settings = switchSettings(store);
   const blocked = switchAllowed({ settings, switchesSoFar });
   if (blocked) return stop(blocked, blocked === "off" ? "The shop turned automatic switching off." : "Already switched twice on this order.");

@@ -324,6 +324,11 @@ export interface WalletView {
   settlements: Array<{ id: string; status: string; amountKobo: number; date: string | null }>;
   /** Supplier orders whose supplier has no wallet: the seller pays them. */
   sellerSettles: Array<{ orderId: string; orderNumber: string; amountKobo: number }>;
+  /**
+   * Dropship shares Paystack paid to a supplier who then declined, missed or cancelled the order: the supplier
+   * returns them to the shop. For a seller, who owes them back; for a supplier, which shops to pay back.
+   */
+  toReturn: Array<{ orderId: string; orderNumber: string; otherParty: string; amountKobo: number }>;
 }
 
 export async function loadWalletView(user: { id: string; role: WalletRole }): Promise<WalletView> {
@@ -337,6 +342,7 @@ export async function loadWalletView(user: { id: string; role: WalletRole }): Pr
     wallet.subaccountCode ? listPaystackSettlements(wallet.subaccountCode).catch(() => []) : Promise.resolve([]),
     user.role === "seller" ? sellerOwedSuppliers(user.id) : Promise.resolve([]),
   ]);
+  const toReturn = user.role === "seller" || user.role === "supplier" ? await paidButNotSent(user).catch(() => []) : [];
   const name = [wallet.kycFirstName, wallet.kycMiddleName, wallet.kycLastName].filter(Boolean).join(" ") || null;
   return {
     kyc: { status: wallet.kycStatus, idType: wallet.kycIdType, idLast4: wallet.kycIdLast4, name, verifiedAt: wallet.kycVerifiedAt?.toISOString() ?? null, checksReady: korapayIdentityReady() },
@@ -346,7 +352,37 @@ export async function loadWalletView(user: { id: string; role: WalletRole }): Pr
     entries: entries.map((entry) => ({ id: entry.id, kind: entry.kind, description: entry.description, amountKobo: entry.amountKobo, status: entry.status, createdAt: entry.createdAt.toISOString(), orderId: entry.orderId })),
     settlements: settlements.map((row) => ({ id: row.id, status: row.status, amountKobo: row.totalAmount, date: row.settlementDate })),
     sellerSettles: owed,
+    toReturn,
   };
+}
+
+const NOT_SENT = ["rejected", "expired", "cancelled"];
+
+/**
+ * Supplier shares of split orders whose supplier order ended without being sent (declined, missed the deadline, or
+ * cancelled), so the supplier holds money for goods they didn't send. Shown to both sides; Shopinbos never held it.
+ */
+async function paidButNotSent(user: { id: string; role: WalletRole }) {
+  const supplier = user.role === "supplier" ? await db.supplier.findUnique({ where: { userId: user.id }, select: { id: true } }) : null;
+  const rows = await db.supplierOrder.findMany({
+    where: {
+      status: { in: NOT_SENT },
+      ...(supplier ? { supplierId: supplier.id } : { sellerId: user.id }),
+      retailOrder: { paymentSplit: { not: Prisma.DbNull }, paystackStatus: "success" },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 50,
+    select: {
+      supplierId: true,
+      retailOrder: { select: { id: true, orderNumber: true, paymentSplit: true, store: { select: { name: true } } } },
+      supplier: { select: { displayName: true } },
+    },
+  });
+  return rows.flatMap((row) => {
+    const share = readSplitPlan(row.retailOrder.paymentSplit)?.suppliers.find((item) => item.supplierId === row.supplierId);
+    if (!share) return [];
+    return [{ orderId: row.retailOrder.id, orderNumber: row.retailOrder.orderNumber, otherParty: supplier ? row.retailOrder.store.name : row.supplier.displayName, amountKobo: share.kobo }];
+  });
 }
 
 /** Recent card orders where a dropship supplier had no wallet, so their cost went to the seller to pass on. */

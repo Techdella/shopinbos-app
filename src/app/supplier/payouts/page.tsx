@@ -2,7 +2,7 @@ import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { ensureSupplierAccess, getSupplierForUser } from "@/lib/role-queries";
 import { AppPage, type Tone, Card, CardHead, EmptyState, ListCard, Pill, SplitLayout, StatGrid, StatTile, Thumb } from "@/components/app-kit";
-import { PayoutBankSection } from "@/components/payments/PayoutBankSection";
+import { WalletStatusCard, walletReady } from "@/components/wallet/WalletStatusCard";
 import { ORDER_STATUS, money, orderRef, shortDate, statusOf, supplierFrame } from "@/components/supplier/supplier-kit";
 import { markSupplierPayout } from "@/app/actions/supplier";
 import { DROPSHIP_TO_SHIP, SUPPLIER_EARNED_STATUSES, WHOLESALE_TO_SHIP, supplierOrderRef } from "@/lib/supplier-orders/pure";
@@ -123,15 +123,14 @@ export default async function SupplierPayoutsPage({ searchParams }: { searchPara
 
   const openCount = openWholesale._count._all + openDropship._count._all;
   const openValue = (openWholesale._sum.totalPrice ?? 0) + (openDropship._sum.costTotal ?? 0);
-  const verifiedBank = payoutAccount?.verificationStatus === "verified";
+  // Paystack settles shops' card payments for these orders straight to the supplier's bank (Shopinbos Wallet).
+  const verifiedBank = await walletReady(user.id);
 
   return (
     <AppPage
       frame={supplierFrame(user, supplier)}
       title={t("payouts.title")}
-      sub={payoutAccount && verifiedBank
-        ? t("payouts.subReady", { bank: payoutAccount.bankName, mask: payoutAccount.accountNumberMask })
-        : t("payouts.subSetup", { count: totals.earnedCount, amount: money(totals.earned) })}
+      sub={verifiedBank ? "Shops' card payments for your products go straight to your bank through your Shopinbos Wallet." : t("payouts.subSetup", { count: totals.earnedCount, amount: money(totals.earned) })}
     >
       {notice.error ? <div role="alert" className="mb-4 rounded-[16px] bg-app-danger-tint px-4 py-3 text-[14px] font-bold text-app-danger">{notice.error}</div> : null}
       <StatGrid className="mb-5">
@@ -139,7 +138,7 @@ export default async function SupplierPayoutsPage({ searchParams }: { searchPara
         <StatTile tone="card" label={t("payouts.owed")} value={money(totals.owed)} hint={t("payouts.owedHint", { count: totals.owedCount })} />
         <StatTile tone="card" label={t("payouts.paid")} value={money(totals.paid)} hint={t("payouts.paidHint", { count: totals.paidCount })} />
         <StatTile tone="card" label={t("payouts.stillToSend")} value={money(openValue)} hint={t("payouts.openHint", { count: openCount })} />
-        <StatTile tone="card" label={t("payouts.bankAccount")} value={verifiedBank ? t("payouts.ready") : payoutAccount ? t("payouts.checking") : t("payouts.notSet")} hint={payoutAccount ? payoutAccount.bankName : t("payouts.addBelow")} />
+        <StatTile tone="card" label={t("payouts.bankAccount")} value={verifiedBank ? t("payouts.ready") : t("payouts.notSet")} hint={verifiedBank ? "Shopinbos Wallet" : t("payouts.addBelow")} />
       </StatGrid>
 
       <SplitLayout
@@ -182,22 +181,7 @@ export default async function SupplierPayoutsPage({ searchParams }: { searchPara
         }
         side={
           <>
-            <PayoutBankSection role="supplier" payoutBank={payoutBank} displayName={supplier.displayName} />
-            <Card className="p-5">
-              <CardHead title={t("payouts.payoutAccount")} />
-              <dl className="m-0 mt-3 divide-y divide-app-line text-[14px]">
-                {[
-                  [t("payouts.bank"), payoutBank ? `${payoutBank.bankName} ··${payoutBank.accountNumber.slice(-4)}` : t("payouts.notConnected")],
-                  [t("payouts.paystackCheck"), payoutAccount?.verificationStatus ?? t("payouts.notSetUp")],
-                  [t("payouts.transferRecipient"), payoutAccount?.paystackRecipientCode ? t("payouts.connected") : t("payouts.notCreated")],
-                ].map(([label, value]) => (
-                  <div key={label} className="flex justify-between gap-3 py-2.5">
-                    <dt className="text-app-ink-soft">{label}</dt>
-                    <dd className="m-0 truncate font-bold">{value}</dd>
-                  </div>
-                ))}
-              </dl>
-            </Card>
+            <WalletStatusCard userId={user.id} href="/supplier/wallet" what="Shops' card payments for your products" />
           </>
         }
       />

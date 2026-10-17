@@ -78,6 +78,27 @@ export function WalletPanel({ view, role, ownerName, orderHref }: { view: Wallet
         <StatTile tone="card" label="Paid to you, last 30 days" value={naira(view.totals.last30Kobo)} />
         <StatTile tone="card" label="Paid to you, all time" value={naira(view.totals.paidKobo)} hint="Before Paystack's fee" />
       </StatGrid>
+      {view.toReturn.length ? (
+        <Card className="grid gap-3 p-5">
+          <CardHead
+            title={role === "supplier" ? "Pay these shops back" : "Money a supplier should return to you"}
+            sub={role === "supplier"
+              ? "You were paid for these dropship orders at checkout but didn't send them. Transfer the amount back to the shop."
+              : "Paystack paid these suppliers at checkout, then they didn't send the order. Ask them to transfer it back, then refund or replace the order."}
+          />
+          <ListCard>
+            {view.toReturn.map((row) => (
+              <ListRow key={`${row.orderId}-${row.otherParty}`} href={role === "seller" ? orderHref?.(row.orderId) : undefined}>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[14px] font-bold">Order {row.orderNumber}</span>
+                  <span className="block text-[12.5px] text-app-ink-soft">{row.otherParty}</span>
+                </span>
+                <span className="text-[14px] font-extrabold">{naira(row.amountKobo)}</span>
+              </ListRow>
+            ))}
+          </ListCard>
+        </Card>
+      ) : null}
       {view.sellerSettles.length ? (
         <Card className="grid gap-3 p-5">
           <CardHead title="Pay these suppliers yourself" sub="They haven't set up a Shopinbos Wallet yet, so their cost was paid to you with the order." />

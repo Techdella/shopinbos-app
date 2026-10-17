@@ -13,6 +13,8 @@ import { PAYABLE_ORDER_STATUSES, retailChargeProblem } from "@/lib/commerce/pays
 import { recoverExpiredOrderPayment } from "@/lib/commerce/order-expiry.server";
 import { applyRefundEvent } from "@/lib/commerce/refunds.server";
 import { afterRetailOrderPaid } from "@/lib/commerce/order-paid.server";
+import { SELLER_PAYIN_PREFIX, confirmSellerPayIn } from "@/lib/logistics/seller-payins.server";
+import { DELIVERY_FEE_PREFIX, confirmDeliveryFeePayment } from "@/lib/logistics/delivery-fee-payments.server";
 import { PAID_RETAIL_STATUSES } from "@/lib/supplier-orders/pure";
 import { isDedicatedCharge } from "@/lib/logistics/payin-rules";
 import { handleDedicatedAccountAssign, handleDedicatedAccountCharge } from "@/lib/logistics/payins.server";
@@ -130,6 +132,23 @@ export async function POST(req: NextRequest) {
       });
     }
     await recordPlan(recordSubscriptionStatus(event.data ?? {}, eventType === "subscription.disable" ? "cancelled" : "non_renewing"));
+  }
+
+  // ── Cash on delivery a delivery partner paid to a seller (split to the seller's own bank) ──
+  // Idempotent on the reference, so a 500 (Paystack or the database unreachable) is safe for Paystack to retry.
+  if (eventType === "charge.success" && typeof event.data?.reference === "string" && event.data.reference.startsWith(SELLER_PAYIN_PREFIX)) {
+    const result = await confirmSellerPayIn(event.data.reference).catch((error) => ({ ok: false as const, error: String(error), retry: true }));
+    if (!result.ok && result.retry) return new NextResponse("Retry later", { status: 500 });
+    if (!result.ok) console.warn(`[paystack webhook] seller pay-in ${event.data.reference} not applied: ${result.error}`);
+    return new NextResponse("OK", { status: 200 });
+  }
+
+  // ── A delivery fee a seller paid by card (split to the delivery partner's own bank) ──
+  if (eventType === "charge.success" && typeof event.data?.reference === "string" && event.data.reference.startsWith(DELIVERY_FEE_PREFIX)) {
+    const result = await confirmDeliveryFeePayment(event.data.reference).catch((error) => ({ ok: false as const, error: String(error), retry: true }));
+    if (!result.ok && result.retry) return new NextResponse("Retry later", { status: 500 });
+    if (!result.ok) console.warn(`[paystack webhook] delivery fee ${event.data.reference} not applied: ${result.error}`);
+    return new NextResponse("OK", { status: 200 });
   }
 
   // ── Retail order payment (storefront checkout) ────────────────────────────

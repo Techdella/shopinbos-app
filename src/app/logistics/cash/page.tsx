@@ -2,12 +2,11 @@ import type { Metadata } from "next";
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { ensureLogisticsAccess, getLogisticsPartnerForUser } from "@/lib/role-queries";
-import { recordCodRemittance } from "@/app/actions/logistics";
 import { Card, CardHead, ListCard, ListRow, Pill, StatGrid, StatTile } from "@/components/app-kit";
 import { cashToPayIn } from "@/lib/logistics/job-rules";
 import { owedAfterCredit, payInDue, payInStatusWords } from "@/lib/logistics/payin-rules";
-import { ensurePayInAccountSafely, payInAccountView } from "@/lib/logistics/paystack-dva";
-import { PayInAccountCard } from "@/components/logistics/PayInAccountCard";
+import { cashOwedBySeller } from "@/lib/logistics/seller-payins.server";
+import { PaySellerList } from "@/components/logistics/PaySellerList";
 import { PayInOverdueCard } from "@/components/logistics/PayInOverdueCard";
 import { overdueCardWords, payInConfig } from "@/lib/logistics/payin-deadline";
 import { payInOverdueView } from "@/lib/logistics/payin-standing.server";
@@ -29,10 +28,10 @@ import {
 } from "@/components/logistics/kit";
 import { getT } from "@/lib/i18n/server";
 
-// Cash on delivery: what riders collect at the door, what the partner still has to pay in (by 6pm), their own pay-in
-// account (transfers to it are matched automatically: lib/logistics/payins.server.ts), and the pay-ins with status.
-// Without a pay-in account (Paystack not set up, or not available yet) the "Record a pay-in" form shows.
-// Transfers go straight from the buyer to the seller, so they're shown apart and never owed.
+// Cash on delivery: what riders collect at the door, what the partner still has to pass on to each seller (by 6pm),
+// and the payments made. The cash belongs to the seller, so it's paid to each seller directly, never to Shopinbos:
+// through Paystack, split to the seller's own bank, or handed over and confirmed by the seller
+// (lib/logistics/seller-payins.server.ts). Transfers go straight from the buyer to the seller, so they're never owed.
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -71,7 +70,7 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
     seller: { select: { name: true } }, rider: { select: { name: true } },
   } as const;
 
-  const [openJobs, heldCash, transfers, collectedRecent, remittances, payInAccount, overdue] = await Promise.all([
+  const [openJobs, heldCash, transfers, collectedRecent, remittances, sellersOwed, overdue] = await Promise.all([
     db.deliveryBooking.findMany({
       where: { logisticsPartnerId: partner.id, status: { in: ["pending", ...ACTIVE_STATUSES] }, OR: [{ codAmount: { gt: 0 } }, { codAmount: null, orderId: { not: null } }] },
       orderBy: { createdAt: "asc" },
@@ -100,10 +99,9 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
       take: 30,
       select: { id: true, amount: true, method: true, reference: true, note: true, createdAt: true, outcome: true, covered: true, creditAfter: true, _count: { select: { bookings: true } } },
     }),
-    ensurePayInAccountSafely(partner.id),
+    cashOwedBySeller(partner.id),
     payInOverdueView(partner.id),
   ]);
-  const account = payInAccountView(payInAccount);
 
   // Older jobs were booked before codAmount existed: fall back to the linked order's unpaid total.
   const legacyOrderIds = openJobs.filter((job) => job.codAmount === null && job.orderId).map((job) => job.orderId!);
@@ -239,51 +237,10 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
                     : t("cash.whenCollect")}
                 </p>
               </div>
-              {account.state === "ready" ? (
-                // The late card above already shows the account with Copy.
-                overdue?.account ? null : <PayInAccountCard accountNumber={account.accountNumber} bankName={account.bankName} accountName={account.accountName} />
-              ) : (
-                <>
-                  <p className="m-0 rounded-[14px] bg-app-canvas p-3 text-[15px] leading-[1.5] text-app-ink-soft">
-                    {account.state === "setting_up"
-                      ? t("cash.settingUp")
-                      : t("cash.usualWay")}
-                  </p>
-                  <form action={recordCodRemittance} className="grid gap-3">
-                    <CardHead title={t("cash.recordTitle")} sub={owed > 0 ? t("cash.youOwe", { amount: naira(owed) }) : t("cash.nothingOwedNow")} />
-                    <div>
-                      <label htmlFor="payin-amount" className={labelClass}>{t("cash.amount")}</label>
-                      <input id="payin-amount" name="amount" type="number" min="1" step="any" inputMode="decimal" required defaultValue={owed > 0 ? String(owed) : ""} className={inputClass} />
-                    </div>
-                    <div>
-                      <label htmlFor="payin-method" className={labelClass}>{t("cash.howPaid")}</label>
-                      <select id="payin-method" name="method" defaultValue="transfer" className={inputClass}>
-                        <option value="transfer">{t("cash.bankTransfer")}</option>
-                        <option value="cash">{t("cash.cash")}</option>
-                      </select>
-                    </div>
-                    <details className="group">
-                      <summary className="cursor-pointer list-none text-[15px] font-bold text-app-ink-soft [&::-webkit-details-marker]:hidden">
-                        {t("jobs.moreOptions")} <span aria-hidden className="inline-block transition group-open:rotate-90">›</span>
-                      </summary>
-                      <div className="mt-3 grid gap-3">
-                        <div>
-                          <label htmlFor="payin-reference" className={labelClass}>{t("cash.reference")}</label>
-                          <input id="payin-reference" name="reference" maxLength={120} placeholder={t("cash.referencePlaceholder")} className={inputClass} />
-                        </div>
-                        <div>
-                          <label htmlFor="payin-note" className={labelClass}>{t("cash.note")}</label>
-                          <input id="payin-note" name="note" maxLength={300} className={inputClass} />
-                        </div>
-                      </div>
-                    </details>
-                    <SubmitButton>{t("cash.record")}</SubmitButton>
-                    <p className="m-0 text-[15px] leading-[1.5] text-app-ink-soft">
-                      {t("cash.settlesNote")}
-                    </p>
-                  </form>
-                </>
-              )}
+              <PaySellerList rows={sellersOwed.map((row) => ({ sellerId: row.sellerId, sellerName: row.sellerName, amount: row.amount, jobs: row.jobIds.length, payable: row.payable }))} />
+              <p className="m-0 text-[13.5px] leading-[1.5] text-app-ink-soft">
+                Cash on delivery belongs to the seller, so it goes to each seller directly. Paying in the app sends it straight to their bank through Paystack and settles the jobs at once.
+              </p>
             </Card>
 
             <section aria-labelledby="history" className="min-w-0">
@@ -297,7 +254,7 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-[15px] font-extrabold">{naira(row.amount)}</div>
                         <div className="truncate text-[15px] text-app-ink-soft">
-                          {lagosDate(row.createdAt, undefined, now, t)}, {lagosTime(row.createdAt, t)} · {row.method === "account" ? t("cash.method.account") : row.method === "settled" ? t("cash.method.settled") : row.method === "cash" ? t("cash.cash") : row.method === "api" ? t("cash.method.api") : t("cash.method.transfer")}
+                          {lagosDate(row.createdAt, undefined, now, t)}, {lagosTime(row.createdAt, t)} · {row.method === "seller" ? "Paid to the seller" : row.method === "seller_confirmed" ? "Seller confirmed" : row.method === "account" ? t("cash.method.account") : row.method === "settled" ? t("cash.method.settled") : row.method === "cash" ? t("cash.cash") : row.method === "api" ? t("cash.method.api") : t("cash.method.transfer")}
                           {row.reference && row.method !== "account" ? ` · ${row.reference}` : ""}
                         </div>
                         <div className="truncate text-[14px] font-bold text-app-forest">

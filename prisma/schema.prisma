@@ -1252,6 +1252,9 @@ model DeliveryBooking {
   codCollected       Float?
   codMethod          String? // cash | transfer
   codCollectedAt     DateTime?
+  /// The seller paid the delivery fee by card, split straight to the partner's bank (src/lib/logistics/delivery-fee-payments.server.ts).
+  feePaidAt          DateTime?
+  feePaymentRef      String?       @unique
   remittanceId       String?
   /// When the rider should collect it (supplier pickups): "Pick up 12–4pm today".
   pickupWindowStart  DateTime?
@@ -3745,7 +3748,7 @@ model WalletEntry {
   // One per share of a payment: sale:<orderId> (the seller's), supplier:<orderId>:<supplierId>. Unique, so a
   // replayed webhook never records a share twice.
   reference       String   @unique
-  kind            String // sale | supplier_order
+  kind            String // sale | supplier_order | delivery_fee (delivery:<bookingId>)
   amountKobo      Int // the share Paystack settles to this business (before Paystack's fee)
   status          String   @default("paid") // paid | refunded
   description     String
