@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db/client";
+import { cachedPublic, publicCacheKey, PUBLIC_LIST_TTL_S } from "@/lib/api/public-cache";
 import { PUBLIC_LIST_CACHE, withCors, handleOptions } from "@/lib/api/cors";
 import { okList, apiError } from "@/lib/api/response";
 import { PublicLogisticsQuerySchema } from "@/lib/schemas";
@@ -75,16 +76,19 @@ export async function GET(req: NextRequest) {
     } : {}),
   };
 
-  const [total, partners] = await Promise.all([
-    db.logisticsPartner.count({ where }),
-    db.logisticsPartner.findMany({
-      where,
-      select,
-      orderBy: logisticsOrderBy(sort),
-      skip,
-      take: limit,
-    }),
-  ]);
+  const { total, partners } = await cachedPublic(publicCacheKey("logistics:list", parsed.data), PUBLIC_LIST_TTL_S, async () => {
+    const [total, partners] = await Promise.all([
+      db.logisticsPartner.count({ where }),
+      db.logisticsPartner.findMany({
+        where,
+        select,
+        orderBy: logisticsOrderBy(sort),
+        skip,
+        take: limit,
+      }),
+    ]);
+    return { total, partners };
+  });
 
   return withCors(req, okList(partners, { page, limit, total }), { cacheControl: PUBLIC_LIST_CACHE });
 }

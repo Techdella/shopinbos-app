@@ -35,14 +35,14 @@ const STARTERS: Record<LeadChannel, Pick<MessageDraft, "subject" | "body">> = {
   whatsapp: { subject: "", body: "Hi {{first_name}} 👋 Thanks for checking out Shopinbos! Chip, our AI, can build your online store in about 5 minutes. Start free here: {{signup_link}}" },
 };
 
-export function LeadCampaignEditor({ initial, readiness, kinds, legal, appUrl, locked }: { initial: CampaignDraftInput | null; readiness: Readiness; kinds: Array<{ key: string; label: string }>; legal: PlatformLegal; appUrl: string; locked: boolean }) {
+export function LeadCampaignEditor({ initial, defaultChannel = "email", readiness, kinds, legal, appUrl, locked }: { initial: CampaignDraftInput | null; defaultChannel?: LeadChannel; readiness: Readiness; kinds: Array<{ key: string; label: string }>; legal: PlatformLegal; appUrl: string; locked: boolean }) {
   const router = useRouter();
   const [name, setName] = useState(initial?.name ?? "");
   const [audience, setAudience] = useState<LeadAudienceType>(initial?.audience ?? EMPTY_AUDIENCE);
   const [draft, setDraft] = useState<MessageDraft>(() => ({
-    channel: initial?.channel ?? "email",
+    channel: initial?.channel ?? defaultChannel,
     subject: initial?.subject ?? STARTERS.email.subject,
-    body: initial?.body ?? STARTERS.email.body,
+    body: initial?.body ?? STARTERS[defaultChannel].body,
     ctaLabel: initial?.ctaLabel ?? "",
     ctaUrl: initial?.ctaUrl ?? "",
     waTemplate: initial?.waTemplate ?? "",

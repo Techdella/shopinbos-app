@@ -19,7 +19,7 @@ interface LaunchSetupProps {
   onDone: () => void;
 }
 
-type PaymentProvider = "paystack" | "flutterwave" | "bank";
+type PaymentProvider = "paystack" | "bank";
 type ShippingOption = "self" | "logistics" | "flat";
 
 export function LaunchSetup({
@@ -52,7 +52,7 @@ export function LaunchSetup({
     if (paymentProvider === "bank") {
       return t("ls.help.bank");
     }
-    if (paymentProvider === "paystack" || paymentProvider === "flutterwave") {
+    if (paymentProvider === "paystack") {
       return t("ls.help.online");
     }
     return "";
@@ -193,10 +193,9 @@ export function LaunchSetup({
 
       <fieldset className="m-0 min-w-0 border-0 p-0">
         <legend className="mb-3 p-0 text-[15px] font-extrabold">{t("ls.howPay")}</legend>
-        <div className="grid gap-2 sm:grid-cols-3">
+        <div className="grid gap-2 sm:grid-cols-2">
           {[
             { id: "paystack" as const, label: "Paystack", desc: t("ls.paystack.desc"), icon: "card" as IconName },
-            { id: "flutterwave" as const, label: "Flutterwave", desc: t("ls.flutterwave.desc"), icon: "globe" as IconName },
             { id: "bank" as const, label: t("ls.bank"), desc: t("ls.bank.desc"), icon: "bank" as IconName },
           ].map((provider) => (
             <ChoiceCard key={provider.id} active={paymentProvider === provider.id} onClick={() => setPaymentProvider(provider.id)} icon={provider.icon} label={provider.label} desc={provider.desc} />

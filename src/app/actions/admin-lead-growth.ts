@@ -6,9 +6,12 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireRole } from "@/lib/server-auth";
 import { LeadAudience, LeadMessageContent, LeadStep } from "@/lib/lead-growth/pure";
+import { WHATSAPP_TEMPLATES, whatsappTemplate } from "@/lib/lead-growth/whatsapp-content";
+import { metaTemplates, metaWhatsAppConfig, submitMetaTemplate } from "@/lib/lead-growth/whatsapp-meta.server";
 import {
   LeadGrowthNotReady,
   addLaunchContent,
+  addWhatsAppContent,
   cancelCampaign,
   countAudience,
   createAutomation,
@@ -171,4 +174,43 @@ export async function addLaunchSequences() {
   const admin = await requireRole(["admin"], "/admin/login");
   await addLaunchContent(admin.id);
   revalidatePath(PATH);
+}
+
+// ─── WhatsApp ───────────────────────────────────────────────────────────────────────────────────────────────────
+
+const WA_PATH = "/admin/lead-campaigns/whatsapp";
+
+function waBack(params: Record<string, string>): never {
+  redirect(`${WA_PATH}?${new URLSearchParams(params)}`);
+}
+
+/** Admin: the WhatsApp launch sequences, switched off. */
+export async function addWhatsAppSequences() {
+  await requireRole(["admin"], "/admin/login");
+  await addWhatsAppContent();
+  revalidatePath(WA_PATH);
+  revalidatePath(PATH);
+}
+
+/** Admin: send one launch template (or every one Meta doesn't have yet) to Meta for approval. */
+export async function submitWhatsAppTemplates(formData: FormData) {
+  await requireRole(["admin"], "/admin/login");
+  const config = metaWhatsAppConfig();
+  if (!config) waBack({ error: "Connect the WhatsApp number first." });
+  const name = String(formData.get("name") ?? "");
+  let wanted = name ? [whatsappTemplate(name)].filter((t) => t !== null) : WHATSAPP_TEMPLATES;
+  if (!name) {
+    const existing = await metaTemplates(config);
+    if (!existing.ok) waBack({ error: existing.error });
+    const have = new Set(existing.templates.map((t) => `${t.name}:${t.language}`));
+    wanted = wanted.filter((t) => !have.has(`${t.name}:${t.language}`));
+  }
+  const failures: string[] = [];
+  for (const template of wanted) {
+    const result = await submitMetaTemplate(config, template);
+    if (!result.ok) failures.push(`${template.name}: ${result.error}`);
+  }
+  revalidatePath(WA_PATH);
+  if (failures.length) waBack({ error: failures.join(" · ").slice(0, 600) });
+  waBack({ submitted: String(wanted.length) });
 }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cronAuthorization } from "@/lib/auth/cron";
+import { cronDenied } from "@/lib/auth/cron-request";
 import { expireUnpaidOrders, unpaidOrderTtl } from "@/lib/commerce/order-expiry.server";
 
 export const dynamic = "force-dynamic";
@@ -10,11 +10,8 @@ export const maxDuration = 120;
 // Called every 5 minutes by Supabase pg_cron (docs/migrations/2026-10-14-expire-orders-cron.sql) with
 // `Authorization: Bearer $CRON_SECRET`. Checkout also runs it cheaply, so it works before the job is scheduled.
 export async function GET(req: NextRequest) {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return NextResponse.json({ error: { code: "NOT_CONFIGURED", message: "CRON_SECRET is not set" } }, { status: 503 });
-  if (cronAuthorization(req.headers.get("authorization"), secret) !== "ok") {
-    return NextResponse.json({ error: { code: "UNAUTHORIZED", message: "Invalid cron secret" } }, { status: 401 });
-  }
+  const denied = await cronDenied(req);
+  if (denied) return denied;
   try {
     let checked = 0;
     let expired = 0;

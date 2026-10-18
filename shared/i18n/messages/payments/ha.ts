@@ -128,7 +128,6 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "bm.failed": "Ba a iya haɗa asusun banki ba",
   "bm.title": "Haɗa Asusun Banki",
   "bm.paystackDesc": "Settlement nan take, Najeriya",
-  "bm.flutterwaveDesc": "Payouts a duk faɗin Afirka",
   "bm.intro": "Saita inda za ka karɓi payouts ɗinka. Ana sarrafa biyan kuɗi da kansu kuma suna shiga asusun bankinka.",
   "bm.bankName": "Sunan Banki",
   "bm.chooseBank": "-- Zaɓi banki --",

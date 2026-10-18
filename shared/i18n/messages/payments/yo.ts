@@ -128,7 +128,6 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "bm.failed": "A kò lè so àkáǹtì báńkì pọ̀",
   "bm.title": "So Àkáǹtì Báńkì Pọ̀",
   "bm.paystackDesc": "Settlement kíákíá, Nàìjíríà",
-  "bm.flutterwaveDesc": "Payouts káàkiri Áfíríkà",
   "bm.intro": "Ṣètò ibi tí o ti máa gba payouts rẹ. A máa ń ṣe ìsanwó fúnra wọn, wọ́n sì máa wọ àkáǹtì báńkì rẹ.",
   "bm.bankName": "Orúkọ Báńkì",
   "bm.chooseBank": "-- Yan báńkì kan --",
