@@ -15,15 +15,15 @@ async function actor() {
 }
 
 export async function startSellerPayInAction(sellerId: string) {
-  const actor = await actor();
-  if (!actor) return { ok: false as const, error: "Finish setting up your delivery business first." };
-  return startSellerPayIn({ id: actor.partnerId, email: actor.email }, String(sellerId).slice(0, 40));
+  const me = await actor();
+  if (!me) return { ok: false as const, error: "Finish setting up your delivery business first." };
+  return startSellerPayIn({ id: me.partnerId, email: me.email }, String(sellerId).slice(0, 40));
 }
 
 export async function confirmSellerPayInAction(reference: string) {
-  const actor = await actor();
-  if (!actor) return { ok: false as const, error: "Sign in again." };
-  const result = await confirmSellerPayIn(String(reference).slice(0, 60), actor.partnerId);
+  const me = await actor();
+  if (!me) return { ok: false as const, error: "Sign in again." };
+  const result = await confirmSellerPayIn(String(reference).slice(0, 60), me.partnerId);
   revalidatePath("/logistics/cash");
   return result;
 }
