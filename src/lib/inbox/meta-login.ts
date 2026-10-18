@@ -14,15 +14,13 @@ import { GRAPH_URL, GRAPH_VERSION } from "@/lib/inbox/channels/types";
 //      it comes from a long-lived user token. Several: the user token waits, encrypted, in a 15-minute httpOnly
 //      cookie and the card asks which Page; /api/app/inbox/meta/pick finishes it.
 // Either way connectChannel does the rest (checks the token, subscribes the Page to our webhook, saves it encrypted).
-// Optional META_INBOX_CONFIG_ID: a Facebook Login for Business configuration with the same permissions.
+// META_INBOX_CONFIG_ID: the Facebook Login for Business configuration with those permissions.
 
 export type MetaLoginChannel = "messenger" | "instagram";
 export const META_LOGIN_CHANNELS: MetaLoginChannel[] = ["messenger", "instagram"];
 
-const SCOPES: Record<MetaLoginChannel, string[]> = {
-  messenger: ["pages_show_list", "pages_messaging", "pages_manage_metadata", "business_management"],
-  instagram: ["pages_show_list", "pages_messaging", "pages_manage_metadata", "business_management", "instagram_basic", "instagram_manage_messages"],
-};
+// The configuration's permissions: pages_show_list, pages_messaging, pages_manage_metadata, business_management,
+// instagram_basic, instagram_manage_messages (one configuration serves both cards).
 const MAX_AGE_MS = 15 * 60_000;
 
 export const META_LOGIN_NONCE_COOKIE = "sib_inbox_meta_n";
@@ -33,8 +31,10 @@ export function isMetaLoginChannel(value: unknown): value is MetaLoginChannel {
   return value === "messenger" || value === "instagram";
 }
 
+// Business-type Meta apps refuse a login without a configuration ("config_id is required"), so this needs
+// META_INBOX_CONFIG_ID; until it's set the cards offer the token form instead.
 export function metaLoginConfigured(env: Record<string, string | undefined> = process.env) {
-  return Boolean(env.META_APP_ID?.trim() && env.META_APP_SECRET?.trim() && credentialKey(env));
+  return Boolean(env.META_APP_ID?.trim() && env.META_APP_SECRET?.trim() && /^\d{5,25}$/.test(env.META_INBOX_CONFIG_ID?.trim() ?? "") && credentialKey(env));
 }
 
 const redirectUri = () => `${appOrigin()}/api/app/inbox/meta/callback`;
@@ -55,11 +55,8 @@ export function startMetaLogin(storeId: string, channel: MetaLoginChannel): { ur
   const nonce = randomBytes(18).toString("base64url");
   const payload = Buffer.from(JSON.stringify({ s: storeId, c: channel, n: nonce, t: Date.now() })).toString("base64url");
   const params = new URLSearchParams({ client_id: process.env.META_APP_ID ?? "", redirect_uri: redirectUri(), state: `${payload}.${sign(payload, key)}`, response_type: "code" });
-  const config = process.env.META_INBOX_CONFIG_ID?.trim();
-  if (config) {
-    params.set("config_id", config);
-    params.set("override_default_response_type", "true");
-  } else params.set("scope", SCOPES[channel].join(","));
+  params.set("config_id", process.env.META_INBOX_CONFIG_ID?.trim() ?? "");
+  params.set("override_default_response_type", "true");
   return { url: `https://www.facebook.com/${GRAPH_VERSION}/dialog/oauth?${params}`, nonce };
 }
 
