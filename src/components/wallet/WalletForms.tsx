@@ -20,9 +20,9 @@ function Field({ label, htmlFor, hint, children }: { label: string; htmlFor: str
   );
 }
 
-export function KycForm({ defaultName }: { defaultName: { firstName: string; lastName: string } }) {
+export function KycForm({ defaultName, onVerified }: { defaultName: { firstName: string; lastName: string }; onVerified?: () => void }) {
   const router = useRouter();
-  const [idType, setIdType] = useState<"bvn" | "nin">("bvn");
+  const [idType, setIdType] = useState<"bvn" | "nin">("nin");
   const [idNumber, setIdNumber] = useState("");
   const [firstName, setFirstName] = useState(defaultName.firstName);
   const [lastName, setLastName] = useState(defaultName.lastName);
@@ -38,6 +38,7 @@ export function KycForm({ defaultName }: { defaultName: { firstName: string; las
       const result = await verifyWalletIdentityAction({ idType, idNumber, firstName, lastName, dateOfBirth, consent });
       if (result.ok) {
         setOutcome({ tone: "success", text: result.message ?? "Your ID is verified." });
+        onVerified?.();
         router.refresh();
       } else {
         setOutcome({ tone: "error", text: result.error });
@@ -47,10 +48,10 @@ export function KycForm({ defaultName }: { defaultName: { firstName: string; las
 
   return (
     <form onSubmit={submit} className="grid gap-4">
-      <Field label="ID type" htmlFor="kyc-type" hint="Your BVN is best: it's what Paystack-linked banks check. NIN works too.">
+      <Field label="ID type" htmlFor="kyc-type" hint="NIN is quickest: it also confirms your date of birth. BVN works too.">
         <select id="kyc-type" className={selectClass} value={idType} onChange={(event) => setIdType(event.target.value as "bvn" | "nin")} disabled={pending}>
-          <option value="bvn">BVN (Bank Verification Number)</option>
           <option value="nin">NIN (National Identification Number)</option>
+          <option value="bvn">BVN (Bank Verification Number)</option>
         </select>
       </Field>
       <Field label={idType === "bvn" ? "BVN" : "NIN"} htmlFor="kyc-id" hint="11 digits. We keep only the last 4.">
@@ -69,7 +70,7 @@ export function KycForm({ defaultName }: { defaultName: { firstName: string; las
       </Field>
       <label className="flex items-start gap-3 text-[13.5px] leading-[1.45]">
         <input type="checkbox" className={`${checkClass} mt-0.5`} checked={consent} onChange={(event) => setConsent(event.target.checked)} disabled={pending} />
-        <span>I agree that Shopinbos can check this ID with our verification partner (Korapay) to confirm it&apos;s me.</span>
+        <span>I agree that Shopinbos can check this ID with the national records, through our verification partner, to confirm it&apos;s me.</span>
       </label>
       {outcome ? <Notice tone={outcome.tone}>{outcome.text}</Notice> : null}
       <div>

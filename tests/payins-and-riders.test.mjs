@@ -257,8 +257,9 @@ test("partner screens show the account with Copy and the automatic-matching line
   assert.match(read("shared/i18n/messages/m_partner/en.ts"), /"money\.autoMatch": "We match your payment automatically\. It shows here within a few minutes\."/);
   assert.match(read("shared/i18n/messages/common/en.ts"), /copy: "Copy"/);
   const cash = read("src/app/logistics/cash/page.tsx");
-  assert.match(cash, /t\("cash\.recordTitle"\)/, "the manual form stays as the fallback");
-  assert.match(logisticsWords, /"cash\.recordTitle": "Record a pay-in"/);
+  // Cash on delivery goes to each seller (src/lib/logistics/seller-payins.server.ts), never to a Shopinbos account.
+  assert.match(cash, /<PaySellerList rows=/, "the partner pays each seller, or hands the cash over");
+  assert.doesNotMatch(cash, /recordCodRemittance/, "no pay-in to Shopinbos is recorded by hand");
   // What a partner can read: the source without imports and comments.
   const visible = (source) => source.replace(/^import .*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`])\/\/.*$/gm, "$1");
   for (const source of [web, mobile, cash, logisticsWords]) {

@@ -141,7 +141,7 @@ export const CHECKLIST: { key: ChecklistKey; label: string; hint: string; href: 
   { key: "brand", label: "Pick your brand and look", hint: "Name, colours and template", href: "/home/brand-kit" },
   { key: "bank", label: "Add your payout bank", hint: "Money waits in your balance until you do", href: "/home/payments" },
   { key: "wa", label: "Connect WhatsApp for Peggy", hint: "Peggy drafts replies for you", href: "/home/social/whatsapp" },
-  { key: "id", label: "Verify your ID", hint: "BVN or NIN lifts payout limits", href: "/home/profile" },
+  { key: "id", label: "Verify your ID", hint: "NIN or BVN: opens card payments to your bank", href: "/home/wallet" },
   { key: "ig", label: "Connect Instagram and TikTok", hint: "Sync your catalogue and posts", href: "/home/social" },
   { key: "labels", label: "Print your first price tags", hint: "Two taps from your products", href: "/products" },
 ];

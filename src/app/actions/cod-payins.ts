@@ -8,20 +8,20 @@ import { confirmSellerPayIn, sellerConfirmsCash, startSellerPayIn } from "@/lib/
 // Cash on delivery goes to the seller, never to Shopinbos: the delivery partner pays each seller (Paystack, split to
 // the seller's own bank) or the seller confirms they received it (src/lib/logistics/seller-payins.server.ts).
 
-async function partnerActor() {
+async function actor() {
   const user = await requireRole(["logistics_partner"], "/logistics/login");
   const partner = await db.logisticsPartner.findUnique({ where: { userId: user.id }, select: { id: true } });
   return partner ? { partnerId: partner.id, email: user.email ?? null } : null;
 }
 
 export async function startSellerPayInAction(sellerId: string) {
-  const actor = await partnerActor();
+  const actor = await actor();
   if (!actor) return { ok: false as const, error: "Finish setting up your delivery business first." };
   return startSellerPayIn({ id: actor.partnerId, email: actor.email }, String(sellerId).slice(0, 40));
 }
 
 export async function confirmSellerPayInAction(reference: string) {
-  const actor = await partnerActor();
+  const actor = await actor();
   if (!actor) return { ok: false as const, error: "Sign in again." };
   const result = await confirmSellerPayIn(String(reference).slice(0, 60), actor.partnerId);
   revalidatePath("/logistics/cash");

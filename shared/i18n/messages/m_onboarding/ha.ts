@@ -135,7 +135,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "checklist.wa.label": "Haɗa WhatsApp don Peggy",
   "checklist.wa.hint": "Peggy tana rubuta maka amsoshi",
   "checklist.id.label": "Tabbatar da ID ɗinka",
-  "checklist.id.hint": "BVN ko NIN suna ɗaga iyakar payout",
+  "checklist.id.hint": "NIN ko BVN: yana buɗe biyan kati zuwa bankinka",
   "checklist.ig.label": "Haɗa Instagram da TikTok",
   "checklist.ig.hint": "Daidaita catalogue da posts ɗinka",
   "checklist.labels.label": "Buga alamun farashinka na farko",

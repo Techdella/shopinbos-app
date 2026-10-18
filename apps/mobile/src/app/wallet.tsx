@@ -161,7 +161,7 @@ function Row({ label, hint, amount, onPress }: { label: string; hint?: string; a
 
 function KycForm({ ownerName, t, onDone }: { ownerName: string; t: TFn; onDone: () => void }) {
   const [first = "", ...rest] = ownerName.trim().split(/\s+/);
-  const [idType, setIdType] = useState<"bvn" | "nin">("bvn");
+  const [idType, setIdType] = useState<"bvn" | "nin">("nin");
   const [idNumber, setIdNumber] = useState("");
   const [firstName, setFirstName] = useState(first);
   const [lastName, setLastName] = useState(rest.join(" "));
@@ -185,7 +185,7 @@ function KycForm({ ownerName, t, onDone }: { ownerName: string; t: TFn; onDone: 
 
   return (
     <View style={{ gap: 10 }}>
-      <Segmented options={[{ value: "bvn", label: "BVN" }, { value: "nin", label: "NIN" }]} value={idType} onChange={setIdType} />
+      <Segmented options={[{ value: "nin", label: "NIN" }, { value: "bvn", label: "BVN" }]} value={idType} onChange={setIdType} />
       <View>
         <Label>{idType === "bvn" ? t("w.bvn") : t("w.nin")}</Label>
         <Field keyboardType="number-pad" maxLength={11} value={idNumber} onChangeText={(text) => setIdNumber(text.replace(/\D/g, ""))} accessibilityLabel={idType === "bvn" ? t("w.bvn") : t("w.nin")} />

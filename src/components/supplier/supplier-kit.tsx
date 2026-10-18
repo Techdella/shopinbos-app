@@ -28,6 +28,8 @@ export function supplierFrame(
     userInitials: initials(user.name),
     avatarUrl: user.avatarUrl ?? null,
     userEmail: user.email ?? null,
+    // Shows the "verify your business" strip until the team has approved the supplier.
+    ...(supplier.verificationStatus ? { verificationStatus: supplier.verificationStatus } : {}),
     ...extra,
   };
 }

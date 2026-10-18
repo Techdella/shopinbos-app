@@ -239,7 +239,7 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
               </div>
               <PaySellerList rows={sellersOwed.map((row) => ({ sellerId: row.sellerId, sellerName: row.sellerName, amount: row.amount, jobs: row.jobIds.length, payable: row.payable }))} />
               <p className="m-0 text-[13.5px] leading-[1.5] text-app-ink-soft">
-                Cash on delivery belongs to the seller, so it goes to each seller directly. Paying in the app sends it straight to their bank through Paystack and settles the jobs at once.
+                Cash on delivery belongs to the seller, so it goes to each seller directly. Paying in the app sends it straight to their bank and settles the jobs at once.
               </p>
             </Card>
 

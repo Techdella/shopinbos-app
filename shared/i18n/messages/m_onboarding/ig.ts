@@ -135,7 +135,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "checklist.wa.label": "Jikọọ WhatsApp maka Peggy",
   "checklist.wa.hint": "Peggy na-edere gị azịza",
   "checklist.id.label": "Kwenye ID gị",
-  "checklist.id.hint": "BVN ma ọ bụ NIN na-ebuli oke payout",
+  "checklist.id.hint": "NIN ma ọ bụ BVN: ọ na-emepe ịkwụ ụgwọ kaadị n'ụlọ akụ gị",
   "checklist.ig.label": "Jikọọ Instagram na TikTok",
   "checklist.ig.hint": "Mee ka catalogue na posts gị kwekọọ",
   "checklist.labels.label": "Bipụta akara ọnụahịa mbụ gị",

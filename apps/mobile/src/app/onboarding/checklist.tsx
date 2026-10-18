@@ -58,7 +58,7 @@ export default function Checklist() {
               >
                 {item.done && <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 14 }}>✓</T>}
               </Pressable>
-              <Pressable style={{ flex: 1 }} onPress={() => void WebBrowser.openBrowserAsync(`${API_URL}${item.href}`)}>
+              <Pressable style={{ flex: 1 }} onPress={() => (item.key === "id" ? router.push("/wallet") : void WebBrowser.openBrowserAsync(`${API_URL}${item.href}`))}>
                 <T weight="bold" style={{ fontSize: 15, textDecorationLine: item.done ? "line-through" : "none" }}>{t.dynamic(`checklist.${item.key}.label`, item.label)}</T>
                 <T style={{ color: colors.inkSoft, fontSize: 14 }}>{t.dynamic(`checklist.${item.key}.hint`, item.hint)}</T>
               </Pressable>

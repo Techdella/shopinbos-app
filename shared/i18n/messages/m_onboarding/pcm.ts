@@ -135,7 +135,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "checklist.wa.label": "Connect WhatsApp for Peggy",
   "checklist.wa.hint": "Peggy go draft replies for you",
   "checklist.id.label": "Verify your ID",
-  "checklist.id.hint": "BVN or NIN go raise payout limits",
+  "checklist.id.hint": "NIN or BVN: e go open card payments to your bank",
   "checklist.ig.label": "Connect Instagram and TikTok",
   "checklist.ig.hint": "Sync your catalogue and posts",
   "checklist.labels.label": "Print your first price tags",

@@ -135,7 +135,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "checklist.wa.label": "So WhatsApp pọ̀ fún Peggy",
   "checklist.wa.hint": "Peggy yóò kọ ìdáhùn fún ọ",
   "checklist.id.label": "Jẹ́rìísí ID rẹ",
-  "checklist.id.hint": "BVN tàbí NIN ń gbé òpin payout sókè",
+  "checklist.id.hint": "NIN tàbí BVN: ó ń ṣí owó káàdì sí báńkì rẹ",
   "checklist.ig.label": "So Instagram àti TikTok pọ̀",
   "checklist.ig.hint": "Mú catalogue àti post rẹ bára mu",
   "checklist.labels.label": "Tẹ àwọn àmì owó àkọ́kọ́ rẹ jáde",

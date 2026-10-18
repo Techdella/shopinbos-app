@@ -12,6 +12,7 @@ export interface OnboardingStatus {
   memory: StoreOnboardingMemory | null;
   launch: { status: string; totalNgn: number; depositNgn: number };
   productCount: number;
+  idCheck?: { verified: boolean; checksReady: boolean; name: string | null };
   checklist: Array<{ key: string; label: string; hint: string; href: string; done: boolean; manual: boolean }>;
 }
 

@@ -6,6 +6,7 @@ import { invalidatePublicMarketplaceCache } from "@/lib/api/cache";
 import { ok, apiError } from "@/lib/api/response";
 import { SupplierOnboardingSchema } from "@/lib/schemas";
 import type { AuthUser } from "@/lib/auth/types";
+import { syncIdentityDocFromWallet } from "@/lib/kyb/identity-doc.server";
 import {
   SUPPLIER_DOC_TYPES,
   isDocComplete,
@@ -16,6 +17,7 @@ import {
 } from "@shared/verification-docs";
 
 export const GET = withSupplier(async (_req: NextRequest, { user }: { user: AuthUser }) => {
+  await syncIdentityDocFromWallet(user.id, "supplier");
   const supplier = await db.supplier.findUnique({
     where: { userId: user.id },
     select: {

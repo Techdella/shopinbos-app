@@ -157,9 +157,9 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "today.riderOnJob": "{name} · ó wà lẹ́nu iṣẹ́",
   "today.riderFree": "{name} · ó wà lófo",
   "today.seenRecently": "a rí i láìpẹ́",
-  payIn: "San {amount} wọlé {by}",
+  payIn: "Fi {amount} lé lọ́wọ́ {by}",
   bySix: "kí aago mẹ́fà ìrọ̀lẹ́ tó lù",
-  codExplain: "Cash on delivery (COD) tí àwọn rider rẹ gbà tí o kò tíì san wọlé.",
+  codExplain: "Owó ìfijiṣẹ́ (COD) tí àwọn rider rẹ gbà tí o kò tíì fi lé àwọn olùtajà lọ́wọ́.",
 
   "jobs.title": "Àwọn iṣẹ́",
   "jobs.new": "Tuntun",
@@ -204,9 +204,9 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "addRider.phone": "Nọ́ńbà WhatsApp rider",
 
   "money.title": "Owó",
-  "money.cashToPayIn": "Owó láti san wọlé",
-  "money.nothingToPayIn": "Kò sí ohun láti san wọlé",
-  "money.late": "Ó yẹ kí o ti san èyí ní kùtùkùtù òní. San án wọlé báyìí kí o lè máa gba iṣẹ́ cash-on-delivery.",
+  "money.cashToPayIn": "Owó láti fi lé àwọn olùtajà lọ́wọ́",
+  "money.nothingToPayIn": "Kò sí ohun tí o máa fi lé lọ́wọ́",
+  "money.late": "Ó yẹ kí èyí ti lọ ní ìṣáájú lónìí. Fi lé àwọn olùtajà lọ́wọ́ báyìí kí o lè máa rí iṣẹ́ owó ìfijiṣẹ́.",
   "money.credit": "O san {amount} lé e. A máa lò ó fún iṣẹ́ cash rẹ tó kàn.",
   "money.codShows": "Cash on delivery (COD) tí àwọn rider rẹ gbà máa hàn níbí.",
   "money.account": "Àkáǹtì pay-in rẹ",
@@ -279,6 +279,15 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "connect.description": "Sọ software tí o ń lò àti bí a ṣe lè kàn sí ọ fún wa. A máa ṣe ìyókù.",
   "connect.question": "Software tàbí app wo lo ń lò?",
   "connect.placeholder": "bíi Shipbubble, ẹ̀rọ tiwa",
+  "money.wallet": "Shopinbos Wallet",
+  "money.open": "Ṣí i",
+  "money.walletHint": "Owó ìfijiṣẹ́ tí a san pẹ̀lú káàdì ń lọ tààrà sí báńkì rẹ.",
+  "money.paySellers": "Fi owó lé àwọn olùtajà lọ́wọ́",
+  "money.paySellersSub": "Owó ìfijiṣẹ́ jẹ́ ti olùtajà. San fún olùtajà kọ̀ọ̀kan níbí tààrà sí báńkì wọn, tàbí fi lé wọn lọ́wọ́ wọn yóò sì jẹ́rìí rẹ̀.",
+  "money.paySeller": "San {amount}",
+  "money.paidSeller": "O ti san fún {name}. A ti yanjú àwọn iṣẹ́ owó wọn.",
+  "money.notSeenYet": "A kò tíì rí owó náà. Bí o bá ti san, yóò hàn níbí ní ìṣẹ́jú kan.",
+  "money.handOver": "Fi owó náà lé {name} lọ́wọ́. Wọn yóò jẹ́rìí rẹ̀ nínú Shopinbos.",
 };
 
 export default yo;

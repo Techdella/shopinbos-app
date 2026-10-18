@@ -29,3 +29,15 @@ export async function approveIdentityDocFromWallet(userId: string, role: "suppli
     console.error(`[kyb] could not approve the ID document for ${role} ${userId}`, error);
   }
 }
+
+/** Catches up an ID check done before the business profile existed (or before this feature): approves the doc once. */
+export async function syncIdentityDocFromWallet(userId: string, role: "supplier" | "logistics_partner") {
+  const wallet = await db.wallet.findUnique({ where: { userId }, select: { kycStatus: true, kycIdType: true, kycIdLast4: true, kycFirstName: true, kycLastName: true, kycVerifiedAt: true } }).catch(() => null);
+  if (wallet?.kycStatus !== "verified" || (wallet.kycIdType !== "bvn" && wallet.kycIdType !== "nin")) return;
+  await approveIdentityDocFromWallet(userId, role, {
+    idType: wallet.kycIdType,
+    idLast4: wallet.kycIdLast4 ?? "",
+    name: [wallet.kycFirstName, wallet.kycLastName].filter(Boolean).join(" "),
+    checkedAt: (wallet.kycVerifiedAt ?? new Date()).toISOString(),
+  });
+}

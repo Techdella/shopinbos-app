@@ -156,6 +156,10 @@ const en = {
   "w.cashSub": "Riders collected this for your orders. Their delivery partner pays it to you. If they hand it over or transfer it to you directly, confirm it here.",
   "w.jobs": "{count, plural, one {# delivery} other {# deliveries}}",
   "w.gotIt": "I've received this cash",
+  "w.verifyTitle": "Let's verify you",
+  "w.verifySub": "Check your NIN or BVN in a minute so customers can pay you by card, straight to your bank.",
+  "w.verifyNow": "Verify now",
+  "w.later": "Later",
 } satisfies Record<string, string>;
 
 export default en;
