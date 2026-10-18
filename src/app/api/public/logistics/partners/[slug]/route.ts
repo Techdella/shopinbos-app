@@ -18,7 +18,7 @@ export async function GET(
       slug,
       status: "active",
       verificationStatus: "verified",
-      carrier: null, ownerId: null,
+      ownerId: null,
     },
     select: {
       id: true,

@@ -75,7 +75,7 @@ export async function inviteByCode(code: string) {
 export async function acceptSellerInvite(code: string, partnerUserId: string) {
   const found = await inviteByCode(code);
   if (!found) throw new InviteError("This invite link isn't valid any more. Ask the store for a new one.");
-  const partner = await db.logisticsPartner.findFirst({ where: { userId: partnerUserId, carrier: null, ownerId: null }, select: { id: true, displayName: true } });
+  const partner = await db.logisticsPartner.findFirst({ where: { userId: partnerUserId, ownerId: null }, select: { id: true, displayName: true } });
   if (!partner) throw new InviteError("Sign in with your delivery company account to accept.");
   const { invite } = found;
   if (invite.status === "accepted") {

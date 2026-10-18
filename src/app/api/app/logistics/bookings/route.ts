@@ -30,7 +30,7 @@ export const GET = withSeller(async (req: NextRequest, { user }: { user: AuthUse
         id: true, pickupLocation: true, destination: true,
         packageDetails: true, deliveryFee: true, currency: true,
         status: true, trackingCode: true, estimatedDelivery: true,
-        deliveredAt: true, notes: true, createdAt: true, externalTrackingUrl: true,
+        deliveredAt: true, notes: true, createdAt: true,
         logisticsPartner: { select: { id: true, displayName: true, slug: true, logoUrl: true } },
       },
     }),
@@ -51,9 +51,6 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
     where: { id: parsed.data.logisticsPartnerId, status: "active", verificationStatus: "verified", ownerId: null },
   });
   if (!partner) return apiError("NOT_FOUND", "Logistics partner not found", 404);
-
-  // Delivery networks are paid and booked through POST /api/app/logistics/networks/book.
-  if (partner.carrier) return apiError("BAD_REQUEST", `Book ${partner.displayName} from Delivery networks.`);
 
   const codAmount = await orderCollectAmount(user.id, parsed.data.orderId);
   // A partner who is late paying in customers' cash gets no new pay-when-it-arrives jobs (prepaid ones still go).

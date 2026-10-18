@@ -5,16 +5,11 @@ import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { AssistantNote, Card, CardHead, FilterChips, ListCard, ListRow, Pill, PillLink, StatGrid, StatTile, Thumb, EmptyState, type Tone } from "@/components/app-kit";
 import { QuoteRequestForm } from "./QuoteRequestForm";
 import { AcceptQuoteButton } from "./AcceptQuoteButton";
-import { CancelNetworkBooking, NetworkDelivery } from "./NetworkDelivery";
-import { NetworkAccounts } from "./NetworkAccounts";
 import { MyRiders } from "./MyRiders";
 import { FleetJobActions, RiderDelivery } from "./RiderDelivery";
 import { InviteCompany } from "./InviteCompany";
 import { fleetRiderLimit, sellerRiders } from "@/lib/logistics/fleet.server";
 import { linkedPartnerIds, sellerInvites } from "@/lib/logistics/invites.server";
-import { sellerNetworks } from "@/lib/logistics/networks.server";
-import { canStoreNetworkAccounts } from "@/lib/logistics/carriers/accounts.server";
-import { Notice } from "@/components/app-ui";
 import { messagesHref } from "@/lib/conversations/pure";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { formatDate, formatMoney } from "@shared/i18n";
@@ -39,8 +34,8 @@ const FILTERS = [
 ] as const;
 
 // partner may be an id or a slug; logisticsSlug arrives from the marketing site ("Book delivery" intent).
-// network: the result of paying for a delivery network booking (booked | failed | pending); order: book for an order.
-type Search = { filter?: string; partner?: string; intent?: string; logisticsSlug?: string; network?: string; order?: string };
+// order: give the delivery for one of the seller's orders to their own rider.
+type Search = { filter?: string; partner?: string; intent?: string; logisticsSlug?: string; order?: string };
 
 export default async function SellerLogisticsPage({ searchParams }: { searchParams: Promise<Search> }) {
   const params = await searchParams;
@@ -54,7 +49,7 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
   const filter = FILTERS.find((f) => f.key === params.filter)?.key ?? "all";
   const partnerRef = params.partner ?? params.logisticsSlug;
   const chosen = partnerRef
-    ? await db.logisticsPartner.findFirst({ where: { OR: [{ id: partnerRef }, { slug: partnerRef }], carrier: null, ownerId: null }, select: { id: true } })
+    ? await db.logisticsPartner.findFirst({ where: { OR: [{ id: partnerRef }, { slug: partnerRef }], ownerId: null }, select: { id: true } })
     : null;
   const chosenId = chosen?.id;
 
@@ -63,7 +58,7 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
       where: {
         status: "active",
         verificationStatus: "verified",
-        carrier: null, ownerId: null,
+        ownerId: null,
         ...(filter === "same_day" ? { deliveryTypes: { has: "same_day" } } : {}),
         ...(filter === "nationwide" ? { coverageZones: { hasSome: ["Nationwide", "nationwide"] } } : {}),
       },
@@ -81,15 +76,10 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
   // The delivery companies this seller invited come first, marked "Your delivery company".
   const linked = new Set(linkedIds);
   partners.sort((a, b) => Number(linked.has(b.id)) - Number(linked.has(a.id)));
-  const networks = await sellerNetworks(user.id);
-  const networkOptions = networks
-    .map((n) => ({ id: n.id, name: n.name, via: n.account ? ("own" as const) : n.viaShopinbos ? ("shopinbos" as const) : null }))
-    .filter((n) => n.via !== null);
-  const paymentResult = params.network === "booked" || params.network === "failed" || params.network === "pending" ? params.network : null;
 
   const allVerified = filter === "all"
     ? partners
-    : await db.logisticsPartner.findMany({ where: { status: "active", verificationStatus: "verified", carrier: null, ownerId: null }, orderBy: { displayName: "asc" }, take: 100 });
+    : await db.logisticsPartner.findMany({ where: { status: "active", verificationStatus: "verified", ownerId: null }, orderBy: { displayName: "asc" }, take: 100 });
   const partnerOptions = allVerified.map((p) => ({ id: p.id, name: `${p.displayName} · ${p.city}` }));
   const date = (d: Date) => formatDate(d, locale, { day: "numeric", month: "short" });
 
@@ -131,21 +121,14 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
                         <div className="truncate text-[13px] text-app-ink-soft">
                           {b.logisticsPartner.ownerId
                             ? t("fleet.byRider", { name: b.rider?.name ?? "" })
-                            : b.externalCarrier
-                              ? t("net.viaNetwork", { network: b.notes?.match(/^Courier: ([^·]+)/)?.[1]?.trim() || b.logisticsPartner.displayName })
-                              : b.logisticsPartner.displayName}
-                          {b.externalRef ? ` · ${b.externalRef}` : b.trackingCode ? ` · ${b.trackingCode}` : ""} · {date(b.createdAt)}
+                            : b.logisticsPartner.displayName}
+                          {b.trackingCode ? ` · ${b.trackingCode}` : ""} · {date(b.createdAt)}
                         </div>
                       </div>
                       <Pill tone={BOOKING_TONE[b.status] ?? "muted"} dot>{t.dynamic(`booking.${b.status}`, b.status.replace(/_/g, " "))}</Pill>
-                      <span className="w-[90px] shrink-0 text-right text-[14px] font-extrabold">{fmt(b.deliveryFee + (b.externalCarrier ? b.platformFee : 0))}</span>
+                      <span className="w-[90px] shrink-0 text-right text-[14px] font-extrabold">{fmt(b.deliveryFee)}</span>
                       {b.logisticsPartner.ownerId ? (
                         (b.status === "confirmed" || b.status === "picked_up" || b.status === "in_transit") && <FleetJobActions bookingId={b.id} status={b.status} />
-                      ) : b.externalCarrier ? (
-                        <>
-                          {b.externalTrackingUrl && <PillLink href={b.externalTrackingUrl} size="sm" icon="truck">{t("net.track")}</PillLink>}
-                          {(b.status === "pending" || b.status === "confirmed") && <CancelNetworkBooking bookingId={b.id} />}
-                        </>
                       ) : (
                         <PillLink href={messagesHref("seller", { with: b.logisticsPartnerId, context: { kind: "booking", id: b.id } })} size="sm" icon="chat">{t("lg.message")}</PillLink>
                       )}
@@ -153,19 +136,6 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
                   ))}
                 </ul>
               )}
-            </Card>
-
-            <Card className="scroll-mt-4 p-5">
-              <div id="networks" className="scroll-mt-4" />
-              <CardHead title={t("net.title")} sub={t("net.sub")} />
-              {paymentResult && (
-                <div className="mt-4">
-                  <Notice tone={paymentResult === "booked" ? "success" : paymentResult === "failed" ? "error" : "info"}>{t(`net.paid.${paymentResult}`)}</Notice>
-                </div>
-              )}
-              <div className="mt-4">
-                <NetworkDelivery networks={networkOptions} defaultPickup={workspace.store?.city ?? undefined} orderId={params.order} />
-              </div>
             </Card>
 
             {riders.length > 0 && (
@@ -267,15 +237,6 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
                 </ul>
               )}
             </Card>
-
-            {networks.length > 0 && canStoreNetworkAccounts() && (
-              <Card className="p-5">
-                <CardHead title={t("net.accountsTitle")} sub={t("net.accountsSub")} />
-                <div className="mt-4">
-                  <NetworkAccounts networks={networks.map((n) => ({ id: n.id, name: n.name, account: n.account ? { label: n.account.label, status: n.account.status } : null, fields: n.credentialFields }))} />
-                </div>
-              </Card>
-            )}
 
             <AssistantNote who="peggy">{t("lg.peggy")}</AssistantNote>
           </aside>

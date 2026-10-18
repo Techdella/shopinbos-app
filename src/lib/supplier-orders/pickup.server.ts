@@ -224,7 +224,7 @@ async function pickPartner(order: PickupOrder) {
     db.logisticsPartner.findMany({
       // Pay-when-it-arrives parcels skip partners paused for a late cash pay-in (lib/logistics/payin-deadline.ts).
       // Carriers booked through their own API (lib/logistics/carriers) don't take pickup windows yet.
-      where: { status: "active", verificationStatus: "verified", carrier: null, ownerId: null, ...payWhenItArrivesWhere(order.collect > 0) },
+      where: { status: "active", verificationStatus: "verified", ownerId: null, ...payWhenItArrivesWhere(order.collect > 0) },
       select: { id: true, city: true, coverageZones: true, status: true, verificationStatus: true, reliabilityScore: true, rating: true, basePrice: true },
       take: 500,
     }),

@@ -57,7 +57,7 @@ async function getRecommendedLogistics(supplier: { city: string; country: string
     where: {
       status: "active",
       verificationStatus: "verified",
-      carrier: null, ownerId: null,
+      ownerId: null,
       OR: [
         { coverageZones: { has: supplier.city } },
         { city: supplier.city },

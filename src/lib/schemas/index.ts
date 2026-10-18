@@ -601,13 +601,6 @@ export const DeliveryQuoteResponseSchema = z.object({
 
 // ─── Delivery Booking ─────────────────────────────────────────────────────────
 
-/** Who the rider meets at either end, for delivery companies booked through their own API (lib/logistics/carriers). */
-export const CarrierContactSchema = z.object({
-  name: z.string().trim().min(1).max(120),
-  phone: z.string().trim().min(7).max(30),
-  email: z.string().email().max(200).optional(),
-});
-
 export const DeliveryBookingCreateSchema = z.object({
   logisticsPartnerId: z.string(),
   orderId: z.string().optional(),
@@ -625,31 +618,6 @@ export const DeliveryBookingCreateSchema = z.object({
   notes: z.string().max(1000).optional(),
 });
 
-/**
- * A delivery to price or book with the delivery networks (POST /api/app/logistics/networks/quotes and /book).
- * The customer defaults to the order's buyer; the pickup phone to the seller's.
- */
-export const NetworkDeliveryRequestSchema = z.object({
-  pickupLocation: z.string().trim().min(5).max(300),
-  destination: z.string().trim().min(5).max(300),
-  recipient: CarrierContactSchema.optional(),
-  pickupPhone: z.string().trim().min(7).max(30).optional(),
-  orderId: z.string().max(60).optional(),
-  weightKg: z.number().positive().max(5000).optional(),
-  description: z.string().trim().max(500).optional(),
-  fragile: z.boolean().default(false),
-  notes: z.string().trim().max(500).optional(),
-});
-
-export const NetworkBookSchema = z.object({
-  network: z.string().min(2).max(30),
-  /** An aggregator's courier (Shipbubble), from the offer it was shown in. */
-  option: z.string().min(1).max(120).optional(),
-  request: NetworkDeliveryRequestSchema,
-  /** The price the seller saw: a dearer one at booking time is refused, never charged. */
-  expectedPrice: z.number().positive(),
-});
-
 /** "My riders": a rider the seller adds, and a delivery they give to one of them. */
 export const FleetRiderSchema = z.object({
   name: z.string().trim().min(2).max(80),
@@ -661,7 +629,8 @@ export const FleetJobSchema = z.object({
   pickupLocation: z.string().trim().min(3).max(300),
   destination: z.string().trim().min(3).max(300),
   orderId: z.string().max(60).optional(),
-  recipient: CarrierContactSchema.optional(),
+  /** The customer the rider meets. */
+  recipient: z.object({ name: z.string().trim().min(1).max(120), phone: z.string().trim().min(7).max(30) }).optional(),
   description: z.string().trim().max(500).optional(),
   weightKg: z.number().positive().max(5000).optional(),
   notes: z.string().trim().max(500).optional(),
@@ -676,11 +645,6 @@ export const FleetJobMoveSchema = z.object({
 export const LogisticsInviteSchema = z.object({
   companyName: z.string().trim().min(2).max(120),
   contact: z.string().trim().max(120).optional(),
-});
-
-export const NetworkAccountConnectSchema = z.object({
-  network: z.string().min(2).max(30),
-  credentials: z.record(z.string(), z.string().trim().min(1).max(500)),
 });
 
 export const BookingStatusUpdateSchema = z.object({

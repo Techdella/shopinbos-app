@@ -66,18 +66,18 @@ export function RiderDelivery({ riders, defaultPickup, orderId, api = "/api/app/
         </div>
         <div className="min-w-0">
           <FieldLabel htmlFor="rd-pickup">{t("qf.pickup")}</FieldLabel>
-          <TextInput id="rd-pickup" required minLength={3} maxLength={300} value={pickup} onChange={(e) => setPickup(e.target.value)} placeholder={t("net.addressPlaceholder")} />
+          <TextInput id="rd-pickup" required minLength={3} maxLength={300} value={pickup} onChange={(e) => setPickup(e.target.value)} placeholder={t("fleet.address")} />
         </div>
         <div className="min-w-0">
           <FieldLabel htmlFor="rd-dest">{t("qf.dest")}</FieldLabel>
-          <TextInput id="rd-dest" required minLength={3} maxLength={300} value={destination} onChange={(e) => setDestination(e.target.value)} placeholder={t("net.addressPlaceholder")} />
+          <TextInput id="rd-dest" required minLength={3} maxLength={300} value={destination} onChange={(e) => setDestination(e.target.value)} placeholder={t("fleet.address")} />
         </div>
         <div className="min-w-0">
-          <FieldLabel htmlFor="rd-name">{t("net.customerName")}</FieldLabel>
+          <FieldLabel htmlFor="rd-name">{t("fleet.customerName")}</FieldLabel>
           <TextInput id="rd-name" maxLength={120} value={name} onChange={(e) => setName(e.target.value)} />
         </div>
         <div className="min-w-0">
-          <FieldLabel htmlFor="rd-phone">{t("net.customerPhone")}</FieldLabel>
+          <FieldLabel htmlFor="rd-phone">{t("fleet.customerPhone")}</FieldLabel>
           <TextInput id="rd-phone" type="tel" inputMode="tel" maxLength={30} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="0803 123 4567" />
         </div>
         <div className="min-w-0 sm:col-span-2">

@@ -60,7 +60,7 @@ export async function GET(req: NextRequest) {
     status: "active" as const,
     verificationStatus: "verified" as const,
     // Delivery networks (booked through their own API) aren't partners.
-    carrier: null, ownerId: null,
+    ownerId: null,
     // ?cod=true: for pay-when-it-arrives deliveries, skip partners paused for a late cash pay-in.
     ...payWhenItArrivesWhere(cod === "true" || cod === "1"),
     ...(country ? { country } : {}),

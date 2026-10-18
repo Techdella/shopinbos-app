@@ -51,7 +51,7 @@ test("invites: one company per invite, accepted only by a signed-in delivery com
   const invites = read("src/lib/logistics/invites.server.ts");
   assert.match(invites, /where: \{ id: invite\.id, status: "pending" \}, data: \{ status: "accepted"/);
   assert.match(invites, /Another delivery company already accepted this invite\./);
-  assert.match(invites, /where: \{ userId: partnerUserId, carrier: null, ownerId: null \}/);
+  assert.match(invites, /where: \{ userId: partnerUserId, ownerId: null \}/);
   // Preferred partner only when the seller has none.
   assert.match(invites, /if \(store && !logistics\.preferredPartnerId\)/);
   const action = read("src/app/invite/delivery/[code]/actions.ts");
