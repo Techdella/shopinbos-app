@@ -3,6 +3,7 @@ import "server-only";
 import { randomBytes } from "node:crypto";
 import { z } from "zod";
 import { db } from "@/lib/db/client";
+import { recordMetaUser } from "@/lib/meta/user-links.server";
 import { encryptJson, decryptJson, hasCredentialKey, randomSecret } from "./crypto";
 import { inboxAddress, inboxEmailDomain } from "./channels/email";
 import { disconnectEmail } from "@/lib/email-channel/gmail.server";
@@ -179,6 +180,7 @@ export async function connectChannel(store: { id: string; slug: string }, channe
     const credentials = { pageAccessToken: input.pageAccessToken!, pageId: check.pageId, ...(input.appSecret ? { appSecret: input.appSecret } : {}) };
     const row = await save(store.id, channel, { externalId, displayName: check.displayName, credentials, webhookSecret: randomSecret() });
     if (!subscribed.ok) await db.inboxChannel.update({ where: { id: row.id }, data: { lastError: subscribed.error } });
+    await recordMetaUser(store.id, channel === "instagram" ? "inbox_instagram" : "inbox_messenger", input.pageAccessToken!);
     return { ok: true, view: await viewOf(store.id, channel) };
   }
 
@@ -228,6 +230,7 @@ async function saveWhatsApp(storeId: string, credentials: Record<string, string>
     },
   });
   if (subscribed && !subscribed.ok) await db.inboxChannel.update({ where: { id: row.id }, data: { lastError: subscribed.error } });
+  await recordMetaUser(storeId, "inbox_whatsapp", credentials.accessToken);
   return { ok: true, view: await viewOf(storeId, "whatsapp") };
 }
 

@@ -126,7 +126,6 @@ const en = {
   "bm.failed": "Failed to link bank account",
   "bm.title": "Link Bank Account",
   "bm.paystackDesc": "Instant settlements, Nigeria",
-  "bm.flutterwaveDesc": "Pan-African payouts",
   "bm.intro": "Configure where you collect your payouts. Payments are automatically processed and dropped into your bank account.",
   "bm.bankName": "Bank Name",
   "bm.chooseBank": "-- Choose a bank --",

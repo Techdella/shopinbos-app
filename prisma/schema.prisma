@@ -3682,3 +3682,34 @@ model BioPageClick {
 
   @@unique([bioPageId, blockId])
 }
+
+// Who connected a store through our Meta app (Facebook Login: WhatsApp Embedded Signup, catalog, ads; pasted tokens
+// issued to our app). Meta's Deauthorize and Data Deletion callbacks name the person only by this app-scoped ID.
+// src/lib/meta/user-links.server.ts records it; src/lib/meta/user-data.server.ts acts on it.
+model MetaUserLink {
+  id         String   @id @default(cuid())
+  metaUserId String // app-scoped user ID (debug_token / signed_request user_id)
+  storeId    String
+  source     String // inbox_whatsapp | inbox_messenger | inbox_instagram | sales_meta | meta_ads
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([metaUserId, storeId, source])
+  @@index([storeId])
+}
+
+// Meta Data Deletion callback requests. The person checks progress at /meta-data-deletion?code=… (the URL we hand
+// back to Meta). Holds a hash of the user ID, never the ID itself.
+model MetaDataDeletionRequest {
+  id               String    @id @default(cuid())
+  confirmationCode String    @unique
+  metaUserHash     String
+  status           String    @default("received") // received | completed | failed
+  storesAffected   Int       @default(0)
+  summary          Json      @default("{}")
+  error            String?
+  requestedAt      DateTime  @default(now())
+  completedAt      DateTime?
+
+  @@index([metaUserHash])
+}

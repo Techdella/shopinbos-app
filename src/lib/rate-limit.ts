@@ -1,11 +1,12 @@
 import { db } from "@/lib/db/client";
+import { getRedis } from "@/lib/redis";
 import { checkShared, rateLimitKey, type RateLimitConfig, type RateLimitResult, type SharedRateLimitConfig } from "@/lib/rate-limit-core";
 
 // Two limiters:
 // - checkRateLimit: in-memory, per server instance. Cheap; fine for analytics pings, chat polling and other
 //   low-risk endpoints, and the fast first gate of the shared one.
-// - checkRateLimitShared: the same memory gate, then a count in Postgres ("RateLimitBucket") that every instance
-//   shares, so a limit is global on Vercel. Used where abuse costs something: sign-in and codes, checkout, order
+// - checkRateLimitShared: the same memory gate, then a count every instance shares (Upstash Redis when configured,
+//   else Postgres "RateLimitBucket"), so a limit is global on Vercel. Used where abuse costs something: sign-in and codes, checkout, order
 //   lookup, forms, support tickets, AI, CAC checks, domain verification, delivery codes.
 
 export type { RateLimitConfig, RateLimitResult, SharedRateLimitConfig };
@@ -47,11 +48,37 @@ export function checkRateLimit(
 
 type BumpRow = { current: number; previous: number | null };
 
+// Upstash Redis when it's configured (src/lib/redis.ts); otherwise the Postgres table. Same windows and keys either
+// way, so switching backends only resets the current window.
+const REDIS_PREFIX = "rl:";
+
 /**
- * Counts one request for `key` in the shared table (after the in-memory gate) and says whether it's allowed.
- * Fails open with a console.warn when the database errors, unless `failClosed` is set.
+ * Counts one request for `key` in the shared store (after the in-memory gate) and says whether it's allowed.
+ * Fails open with a console.warn when the store errors, unless `failClosed` is set.
  */
 export function checkRateLimitShared(key: string, config: SharedRateLimitConfig): Promise<RateLimitResult> {
+  const kv = getRedis();
+  if (kv) {
+    return checkShared(
+      {
+        memory: checkRateLimit,
+        // One round trip: count this window (the key expires itself once the sliding estimate is done with it)
+        // and read the previous window's count.
+        async bump({ key: bucketKey, windowStart, previousStart, expiresAt }) {
+          const current = `${REDIS_PREFIX}${bucketKey}:${windowStart.getTime()}`;
+          const [count, , previous] = await kv
+            .pipeline()
+            .incr(current)
+            .pexpireat(current, expiresAt.getTime())
+            .get<number | string>(`${REDIS_PREFIX}${bucketKey}:${previousStart.getTime()}`)
+            .exec<[number, number, number | string | null]>();
+          return { current: Number(count), previous: Number(previous ?? 0) };
+        },
+      },
+      key,
+      config,
+    );
+  }
   return checkShared(
     {
       memory: checkRateLimit,
@@ -83,7 +110,7 @@ export function requestIp(headers: { get(name: string): string | null }) {
 
 /**
  * Per-IP limits for the public storefront APIs (no sign-in). The ones in SHARED_PUBLIC_LIMITS are global (counted
- * in Postgres); the rest are per server instance: they slow a single client down, not a global quota.
+ * in the shared store); the rest are per server instance: they slow a single client down, not a global quota.
  */
 export const PUBLIC_LIMITS = {
   // Generous enough for shoppers sharing a mobile carrier's IP (CGNAT), tight enough to stop order spam
