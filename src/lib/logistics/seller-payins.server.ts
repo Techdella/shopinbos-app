@@ -53,7 +53,7 @@ export async function cashOwedBySeller(partnerId: string): Promise<SellerCashOwe
   return [...bySeller.values()];
 }
 
-export type StartResult = { ok: true; accessCode: string; reference: string } | { ok: false; error: string };
+export type StartResult = { ok: true; accessCode: string; reference: string; authorizationUrl: string | null } | { ok: false; error: string };
 
 /** Starts the Paystack payment of this seller's cash, split straight to the seller's bank. */
 export async function startSellerPayIn(partner: { id: string; email: string | null }, sellerId: string): Promise<StartResult> {
@@ -74,7 +74,7 @@ export async function startSellerPayIn(partner: { id: string; email: string | nu
       split: { subaccount: wallet.subaccountCode, transaction_charge: 0, bearer: "subaccount" },
     });
     if (!started.access_code) return { ok: false, error: "Paystack couldn't start this payment. Try again." };
-    return { ok: true, accessCode: started.access_code, reference: started.reference ?? reference };
+    return { ok: true, accessCode: started.access_code, reference: started.reference ?? reference, authorizationUrl: started.authorization_url ?? null };
   } catch (error) {
     console.error(`[seller payins] could not start a pay-in for partner ${partner.id}`, error);
     return { ok: false, error: "Paystack couldn't start this payment. Try again in a moment." };

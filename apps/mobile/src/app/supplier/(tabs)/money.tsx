@@ -46,8 +46,7 @@ export default function SupplierMoney() {
                 : t("money.addBankFirst")}
             </T>
             <T style={{ fontSize: 15, lineHeight: 21 }}>{t("escrow")}</T>
-            <PillButton title={data.overview.bank ? t("money.seePayouts") : t("money.addBank")} tone={data.overview.bank ? "white" : "ink"} style={{ marginTop: 6 }} onPress={() => void openWeb("/supplier/payouts")} />
-            <T style={{ color: colors.inkSoft, fontSize: 14, textAlign: "center" }}>{t("opensInBrowser")}</T>
+            <PillButton title={t("money.openWallet")} tone="white" style={{ marginTop: 6 }} onPress={() => router.push("/wallet")} />
           </Card>
 
           <T weight="extrabold" style={{ fontSize: 17 }} accessibilityRole="header">{t("money.recent")}</T>

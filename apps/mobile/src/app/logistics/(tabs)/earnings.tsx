@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { router } from "expo-router";
+import { PaySellersCard } from "@/components/PaySellersCard";
 import { Pressable, View } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import { naira } from "@shared/onboarding";
@@ -17,8 +19,8 @@ import { colors, radii } from "@/theme";
 
 // Money: "Pay in ₦X by 6pm", the company's own pay-in account number with a Copy button (transfers to it are matched
 // automatically, lib/logistics/payins.server.ts), recent pay-ins with their status, then what the company earned
-// (after the Shopinbos fee) and where we send its money. Without a pay-in account (not available yet), "I've paid it
-// in" opens the web form. Changing the bank happens on the web.
+// (after the Shopinbos fee) and the company's Shopinbos Wallet. Cash on delivery belongs to the sellers: without a
+// pay-in account, the partner pays each seller straight to their bank (PaySellersCard) or hands it over.
 
 export default function LogisticsEarnings() {
   const t = useT("m_partner", "common");
@@ -73,17 +75,9 @@ export default function LogisticsEarnings() {
               <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21 }}>{t("money.autoMatch")}</T>
             </Card>
             )
-          ) : data.cashToPayIn > 0 ? (
-            <Card style={{ gap: 8, padding: 18 }}>
-              <T weight="extrabold" style={{ fontSize: 17 }}>{t("money.howToPayIn")}</T>
-              <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21 }}>
-                {data.payIn?.state === "setting_up"
-                  ? t("money.settingUp")
-                  : t("money.manual")}
-              </T>
-              <PillButton title={t("money.record")} style={{ marginTop: 4 }} onPress={() => void openWeb("/logistics/cash")} />
-            </Card>
           ) : null}
+
+          <PaySellersCard onPaid={() => void earnings.reload()} />
 
           <View style={{ flexDirection: "row", gap: 10 }}>
             {[
@@ -99,15 +93,13 @@ export default function LogisticsEarnings() {
             ))}
           </View>
 
-          <Pressable accessibilityRole="button" onPress={() => void openWeb("/logistics/payouts")} style={{ backgroundColor: data.bank?.ready ? colors.surface : "#FDF0D5", borderRadius: radii.card, padding: 16, gap: 6 }}>
+          <Pressable accessibilityRole="button" onPress={() => router.push("/wallet")} style={{ backgroundColor: colors.surface, borderRadius: radii.card, padding: 16, gap: 6 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-              <AppIcon name="coin" size={20} />
-              <T weight="extrabold" style={{ flex: 1, fontSize: 15 }}>{t("money.payouts")}</T>
-              <T weight="bold" style={{ color: colors.accentInk, fontSize: 15 }}>{data.bank ? t("money.change") : t("money.addBank")}</T>
+              <AppIcon name="wallet" size={20} />
+              <T weight="extrabold" style={{ flex: 1, fontSize: 15 }}>{t("money.wallet")}</T>
+              <T weight="bold" style={{ color: colors.accentInk, fontSize: 15 }}>{t("money.open")}</T>
             </View>
-            <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21 }}>
-              {data.bank ? `${data.bank.bankName} ${data.bank.account} · ${data.bank.accountName}${data.bank.ready ? "" : ` · ${t("money.beingVerified")}`}` : t("money.noBank")}
-            </T>
+            <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21 }}>{t("money.walletHint")}</T>
           </Pressable>
 
           {data.remittances.length ? (

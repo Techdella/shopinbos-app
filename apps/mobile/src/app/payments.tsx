@@ -197,7 +197,8 @@ export default function Payments() {
       )}
 
       <Card style={{ paddingVertical: 2 }}>
-        <LinkRow first icon="receipt" label={t("money.payouts")} hint={t("money.payoutsHint")} onPress={() => router.push("/payouts")} />
+        <LinkRow first icon="wallet" label={t("money.wallet")} hint={t("money.walletHint")} onPress={() => router.push("/wallet")} />
+        <LinkRow icon="receipt" label={t("money.payouts")} hint={t("money.payoutsHint")} onPress={() => router.push("/payouts")} />
         <LinkRow icon="doc" label={t("money.invoices")} hint={t("money.invoicesHint")} onPress={() => router.push("/invoices")} />
       </Card>
 

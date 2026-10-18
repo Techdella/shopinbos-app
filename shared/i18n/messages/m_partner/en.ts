@@ -165,9 +165,9 @@ const en = {
   "today.riderOnJob": "{name} · on a job",
   "today.riderFree": "{name} · free",
   "today.seenRecently": "last seen recently",
-  payIn: "Pay in {amount} {by}",
+  payIn: "Pass on {amount} {by}",
   bySix: "by 6pm",
-  codExplain: "Cash on delivery (COD) your riders collected and you haven't paid in yet.",
+  codExplain: "Cash on delivery (COD) your riders collected that you haven't passed on to the sellers yet.",
 
   // Jobs (app/logistics/(tabs)/jobs.tsx)
   "jobs.title": "Jobs",
@@ -215,9 +215,9 @@ const en = {
 
   // Money (app/logistics/(tabs)/earnings.tsx)
   "money.title": "Money",
-  "money.cashToPayIn": "Cash to pay in",
-  "money.nothingToPayIn": "Nothing to pay in",
-  "money.late": "This was due earlier today. Pay it in now so you keep getting cash-on-delivery jobs.",
+  "money.cashToPayIn": "Cash to pass on to sellers",
+  "money.nothingToPayIn": "Nothing to pass on",
+  "money.late": "This was due earlier today. Pass it on to the sellers now so you keep getting cash-on-delivery jobs.",
   "money.credit": "You paid {amount} extra. We'll use it for your next cash jobs.",
   "money.codShows": "Cash on delivery (COD) your riders collect shows here.",
   "money.account": "Your pay-in account",
@@ -292,6 +292,15 @@ const en = {
   "connect.description": "Tell us which software you use and how to reach you. We'll do the rest.",
   "connect.question": "Which software or app do you use?",
   "connect.placeholder": "e.g. Shipbubble, our own system",
+  "money.wallet": "Shopinbos Wallet",
+  "money.open": "Open",
+  "money.walletHint": "Delivery fees paid by card go straight to your bank.",
+  "money.paySellers": "Pass cash on to sellers",
+  "money.paySellersSub": "Cash on delivery belongs to the seller. Pay each seller here, straight to their bank, or hand it over and they'll confirm it.",
+  "money.paySeller": "Pay {amount}",
+  "money.paidSeller": "Paid {name}. Their cash jobs are settled.",
+  "money.notSeenYet": "We haven't seen the payment yet. If you paid, it shows here in a minute.",
+  "money.handOver": "Hand the cash to {name}. They confirm it in Shopinbos.",
 } satisfies Record<string, string>;
 
 export default en;

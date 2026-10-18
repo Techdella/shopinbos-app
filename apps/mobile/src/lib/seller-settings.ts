@@ -60,6 +60,10 @@ export interface DeliveryBooking {
   trackingCode: string | null;
   createdAt: string;
   logisticsPartner: { id: string; displayName: string };
+  /** Paid by card, straight to the delivery partner's bank. */
+  feePaidAt?: string | null;
+  /** The seller can pay this fee by card now (the partner's Shopinbos Wallet is set up). */
+  feePayable?: boolean;
 }
 
 export const fetchBookings = () => api<DeliveryBooking[]>("/api/app/logistics/bookings?limit=8");

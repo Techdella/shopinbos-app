@@ -31,7 +31,7 @@ export async function payableDeliveryFees(bookingIds: string[]): Promise<Set<str
   return new Set(bookings.filter((booking) => ready.has(booking.logisticsPartner.userId)).map((booking) => booking.id));
 }
 
-export type StartResult = { ok: true; accessCode: string; reference: string } | { ok: false; error: string };
+export type StartResult = { ok: true; accessCode: string; reference: string; authorizationUrl: string | null } | { ok: false; error: string };
 
 /** Starts the Paystack payment of this booking's delivery fee, split straight to the partner's bank. */
 export async function startDeliveryFeePayment(seller: { id: string; email: string | null }, bookingId: string): Promise<StartResult> {
@@ -58,7 +58,7 @@ export async function startDeliveryFeePayment(seller: { id: string; email: strin
       split: { subaccount: wallet.subaccountCode, transaction_charge: 0, bearer: "subaccount" },
     });
     if (!started.access_code) return { ok: false, error: "Paystack couldn't start this payment. Try again." };
-    return { ok: true, accessCode: started.access_code, reference: started.reference ?? reference };
+    return { ok: true, accessCode: started.access_code, reference: started.reference ?? reference, authorizationUrl: started.authorization_url ?? null };
   } catch (error) {
     console.error(`[delivery fees] could not start a payment for booking ${booking.id}`, error);
     return { ok: false, error: "Paystack couldn't start this payment. Try again in a moment." };

@@ -67,7 +67,7 @@ export default function Payouts() {
               <Notice tone="info">{t("po.noBank")}</Notice>
             )}
             <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>{t("po.auto")}</T>
-            <PillButton title={data.bank ? t("po.changeBank") : t("po.addBank")} tone={data.bank ? "white" : "ink"} size="md" onPress={() => router.push("/payments")} />
+            <PillButton title={data.bank ? t("po.changeBank") : t("po.addBank")} tone={data.bank ? "white" : "ink"} size="md" onPress={() => router.push("/wallet")} />
           </Card>
 
           {orders.length ? (
