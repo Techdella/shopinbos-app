@@ -164,11 +164,6 @@ function loadNamespace(locale: Locale, namespace: string): Tracked {
   return promise;
 }
 
-function loadedSync(locale: Locale, namespace: string): Loaded | undefined {
-  const tracked = LOADS.get(`${locale}:${namespace}`);
-  return tracked?.status === "fulfilled" ? tracked.value : undefined;
-}
-
 /**
  * A translate function for one or more namespaces. Outside the provider (tests, isolated renders) it shows the
  * fallback text given to t.dynamic, else the key.
@@ -183,9 +178,11 @@ export function useT<const NS extends readonly Namespace[]>(...namespaces: NS): 
   if (state) {
     for (const namespace of namespaces) {
       if (messages?.[namespace]) continue;
-      const ready = loadedSync(locale, namespace);
+      // Always through `use`, even when the chunk is already in (the tracked promise carries React's status/value,
+      // so `use` returns it at once): skipping `use` on React's replay of a suspended mount, once the load landed,
+      // threw "Update hook called on initial render" (seen on every 404 for a namespace the server didn't send).
       // Suspends until the chunk is in (rejected loads throw to the nearest error boundary, which can retry).
-      (extra ??= {})[namespace] = ready ?? use(loadNamespace(locale, namespace) as Promise<Loaded>);
+      (extra ??= {})[namespace] = use(loadNamespace(locale, namespace) as Promise<Loaded>);
     }
   }
   const extraKey = extra ? Object.keys(extra).join("|") : "";
