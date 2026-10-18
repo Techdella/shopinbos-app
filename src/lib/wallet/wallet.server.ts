@@ -3,6 +3,8 @@ import { createHmac } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { korapayCheckoutReady, verifyKorapayIdentity, korapayIdentityReady } from "@/lib/korapay";
+import { verifyYouverifyIdentity, youverifyReady } from "@/lib/youverify";
+import { approveIdentityDocFromWallet } from "@/lib/kyb/identity-doc.server";
 import { createPaystackSubaccount, listPaystackSettlements, updatePaystackSubaccount } from "@/lib/paystack";
 import { PAYSTACK_BANK_CODES, resolvePaystackAccount } from "@/lib/payout-bank";
 import { groupDropshipLines, type DropshipLink } from "@/lib/supplier-orders/pure";
@@ -58,8 +60,17 @@ export interface KycInput {
   consent: boolean;
 }
 
+/** ID checks run through Youverify when it is set up, else Korapay Identity (the same result shape). */
+export function identityChecksReady() {
+  return youverifyReady() || korapayIdentityReady();
+}
+
+function verifyIdentity(input: { type: "bvn" | "nin"; id: string; firstName: string; lastName: string; dateOfBirth: string }) {
+  return youverifyReady() ? verifyYouverifyIdentity(input) : verifyKorapayIdentity(input);
+}
+
 /**
- * Checks the owner's BVN or NIN with Korapay against the name and date of birth they typed. The ID must exist and
+ * Checks the owner's BVN or NIN (Youverify, else Korapay) against the name and date of birth they typed. The ID must exist and
  * all three must match. Up to KYC_DAILY_ATTEMPTS failed checks a day (each lookup is paid for).
  */
 export async function verifyWalletIdentity(user: { id: string; role: WalletRole }, input: KycInput): Promise<WalletResult> {
@@ -70,14 +81,14 @@ export async function verifyWalletIdentity(user: { id: string; role: WalletRole 
   const lastName = input.lastName.trim();
   if (!firstName || !lastName) return { ok: false, error: "Enter your first and last name as they are on your ID." };
   if (!adultDateOfBirth(input.dateOfBirth)) return { ok: false, error: "Enter your date of birth. You must be 18 or older." };
-  if (!korapayIdentityReady()) return { ok: false, error: "ID checks aren't switched on yet. Try again later." };
+  if (!identityChecksReady()) return { ok: false, error: "ID checks aren't switched on yet. Try again later." };
 
   const wallet = await ensureWallet(user);
   if (wallet.kycStatus === "verified") return { ok: true, message: "Your ID is already verified." };
   const now = new Date();
   if (!kycAttemptAllowed(wallet, now)) return { ok: false, error: "Too many tries today. Check your details and try again tomorrow." };
 
-  const result = await verifyKorapayIdentity({ type: input.idType, id, firstName, lastName, dateOfBirth: input.dateOfBirth });
+  const result = await verifyIdentity({ type: input.idType, id, firstName, lastName, dateOfBirth: input.dateOfBirth });
   const failed = async (error: string) => {
     const today = lagosDay(now);
     await db.wallet.update({ where: { id: wallet.id }, data: { kycAttemptDay: today, kycAttempts: wallet.kycAttemptDay === today ? { increment: 1 } : 1 } });
@@ -85,14 +96,19 @@ export async function verifyWalletIdentity(user: { id: string; role: WalletRole 
   };
   if (!result.ok) {
     if (result.notFound) return failed(`We couldn't find that ${input.idType === "bvn" ? "BVN" : "NIN"}. Check the number and try again.`);
+    if ("pending" in result && result.pending) return { ok: false, error: "The ID registry is slow right now. Try again in a few minutes." };
     console.error(`[wallet] ID check for wallet ${wallet.id} failed: ${result.message}`);
     return { ok: false, error: "We couldn't check your ID just now. Try again in a few minutes." };
   }
   const { identity } = result;
   if (identity.matches.firstName === false || identity.matches.lastName === false) return failed("The name doesn't match the one on this ID. Type it exactly as it is on your ID.");
   if (identity.matches.dateOfBirth === false) return failed("The date of birth doesn't match this ID.");
+  if (input.idType === "bvn" && identity.matches.firstName && identity.matches.lastName && identity.matches.dateOfBirth === null) {
+    // The BVN record didn't include a date of birth to compare (not charged as a failed try): NIN always has one.
+    return { ok: false, error: "We couldn't confirm your date of birth from your BVN. Verify with your NIN instead." };
+  }
   if (identity.matches.firstName === null || identity.matches.lastName === null || identity.matches.dateOfBirth === null) {
-    // Korapay didn't say whether the details match: never treat that as a pass.
+    // The provider didn't say whether the details match: never treat that as a pass.
     console.error(`[wallet] ID check for wallet ${wallet.id} came back without a match result`);
     return { ok: false, error: "We couldn't confirm your details just now. Try again in a few minutes." };
   }
@@ -113,6 +129,8 @@ export async function verifyWalletIdentity(user: { id: string; role: WalletRole 
       kycAttempts: 0,
     },
   });
+  // A supplier's or delivery partner's ID document is this check: approve it so they don't upload a NIN slip.
+  if (user.role !== "seller") await approveIdentityDocFromWallet(user.id, user.role, { idType: input.idType, idLast4: id.slice(-4), name: [identity.firstName ?? firstName, identity.lastName ?? lastName].join(" "), checkedAt: now.toISOString() });
   // A bank linked before KYC (or waiting) can now be checked against the verified name.
   const refreshed = await findWallet(user.id);
   if (refreshed?.bankCode && refreshed.accountNumber && refreshed.accountName && refreshed.subaccountStatus !== "active") {
@@ -345,7 +363,7 @@ export async function loadWalletView(user: { id: string; role: WalletRole }): Pr
   const toReturn = user.role === "seller" || user.role === "supplier" ? await paidButNotSent(user).catch(() => []) : [];
   const name = [wallet.kycFirstName, wallet.kycMiddleName, wallet.kycLastName].filter(Boolean).join(" ") || null;
   return {
-    kyc: { status: wallet.kycStatus, idType: wallet.kycIdType, idLast4: wallet.kycIdLast4, name, verifiedAt: wallet.kycVerifiedAt?.toISOString() ?? null, checksReady: korapayIdentityReady() },
+    kyc: { status: wallet.kycStatus, idType: wallet.kycIdType, idLast4: wallet.kycIdLast4, name, verifiedAt: wallet.kycVerifiedAt?.toISOString() ?? null, checksReady: identityChecksReady() },
     bank: wallet.bankName && wallet.accountName ? { bankName: wallet.bankName, accountName: wallet.accountName, accountEnding: maskAccountNumber(wallet.accountNumber) } : null,
     settlement: { status: wallet.subaccountStatus, error: wallet.subaccountError, frozen: wallet.status === "frozen", frozenReason: wallet.frozenReason, korapay: Boolean(wallet.korapaySplitAccount) && korapayCheckoutReady() },
     totals: { paidKobo: paid._sum.amountKobo ?? 0, last30Kobo: last30._sum.amountKobo ?? 0, refundedKobo: refunded._sum.amountKobo ?? 0 },
