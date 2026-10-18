@@ -1,5 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db/client";
+import { recordRefundedSplit } from "./payment-split.server";
 import { createNotification } from "@/lib/notifications/create";
 import { formatFromAddress, sendEmail } from "@/lib/notifications/resend";
 import { appBase, loadStoreSender } from "@/lib/email/compliance.server";
@@ -171,6 +172,8 @@ export async function applyRefundEvent(event: string, data: Record<string, unkno
     where: { id: found.id, refundStatus: { in: ["pending", "processing"] } },
     data: { refundStatus: status, ...(refundId ? { refundId } : {}), ...(status === "processed" ? { refundedAt: new Date(), status: "refunded" } : {}) },
   });
+  // A split order's share had gone to the seller's bank: they owe it back (taken from their next sales).
+  if (status === "processed") await recordRefundedSplit(found.id).catch((error) => console.error(`[refunds] split balance for ${found.id} failed`, error));
   return moved.count === 1;
 }
 

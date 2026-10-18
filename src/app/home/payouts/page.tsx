@@ -10,6 +10,7 @@ import { formatDate, humanize } from "@/components/growth/kit";
 import { PAYMENT_METHOD_LABEL } from "@shared/sales";
 import { formatMoney } from "@shared/i18n";
 import { getLocale, getT } from "@/lib/i18n/server";
+import { sellerBalance } from "@/lib/commerce/payment-split.server";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -61,6 +62,8 @@ export default async function SellerPayoutsPage({ searchParams }: { searchParams
     : [];
   const brand = store?.brandSettings && typeof store.brandSettings === "object" ? (store.brandSettings as Record<string, unknown>) : {};
   const hasBank = Boolean(brand.payoutBank && typeof brand.payoutBank === "object" && (brand.payoutBank as Record<string, unknown>).bankName);
+  // Split payments: what refunded orders left the seller owing (+), or Shopinbos owing them (-).
+  const balance = store ? await sellerBalance(store.id).catch(() => 0) : 0;
 
   return (
     <SellerPage
@@ -76,6 +79,9 @@ export default async function SellerPayoutsPage({ searchParams }: { searchParams
             {t("po.noBank")}
           </AssistantNote>
         )}
+
+        {balance >= 1 && <AssistantNote>{t("po.splitOwes", { amount: naira(balance) })}</AssistantNote>}
+        {balance <= -1 && <AssistantNote>{t("po.splitOwed", { amount: naira(-balance) })}</AssistantNote>}
 
         <StatGrid>
           <StatTile tone="card" label={t("po.paidOnline")} value={naira(onlineTotal)} hint={t("count.orders", { count: onlineCount })} />

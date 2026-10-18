@@ -26,6 +26,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "po.emptySub": "Paid orders go show here once customers start to pay.",
   "po.emptyFilter": "Nothing dey here. Tap All to see the rest.",
   "po.note": "Shopinbos never dey show each bank transfer here. Check your bank or Paystack statement to match payments.",
+  "po.splitOwes": "{amount} from orders wey dem refund go comot from your next online sales. Paystack go send the rest to your bank as e dey do.",
+  "po.splitOwed": "Shopinbos owe you {amount}. We go add am to your next online sales.",
   "method.paystack": "Paystack",
   "method.transfer": "Bank transfer",
   "method.cash": "Cash",

@@ -26,6 +26,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "po.emptySub": "Orders akwụrụ ụgwọ ga-egosi ebe a ozugbo ndị ahịa malitere ịkwụ ụgwọ.",
   "po.emptyFilter": "Ọ dịghị ihe ebe a. Pịa Niile ka ị hụ ndị ọzọ.",
   "po.note": "Shopinbos egosibeghị bank transfer ọ bụla ebe a. Lelee statement bank gị ma ọ bụ Paystack iji dakọọ ịkwụ ụgwọ.",
+  "po.splitOwes": "{amount} site n'ọda ndị e weghachiri ego ha ga-esi n'ire ịntanetị gị na-esote pụọ. Paystack ga-eziga ndị fọdụrụ n'ụlọ akụ gị dịka ọ na-emebu.",
+  "po.splitOwed": "Shopinbos ji gị {amount}. A ga-agbakwunye ya n'ire ịntanetị gị na-esote.",
   "method.paystack": "Paystack",
   "method.transfer": "Bank transfer",
   "method.cash": "Ego n'aka",

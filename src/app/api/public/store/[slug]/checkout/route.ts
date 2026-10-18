@@ -1,5 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db/client";
+import { paystackBase, planOrderSplit, splitInitializeParams } from "@/lib/commerce/payment-split.server";
+import type { StoredSplit } from "@/lib/commerce/payment-split";
 import { withCors, handleOptions } from "@/lib/api/cors";
 import { created, apiError } from "@/lib/api/response";
 import { buildStorefrontUrl } from "@/lib/domains/storefront";
@@ -307,13 +309,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     }),
   ]);
 
-  // Initialize Paystack payment if keys are configured (skip for inline client-side payment, transfer and pay on delivery)
-  let paystackData: { authorization_url: string; reference: string } | null = null;
+  // Card payments start on the server (the popup resumes it with the access code), so the reference is always the
+  // order id and the split below can't be changed in the browser. Transfer and pay on delivery skip this.
+  let paystackData: { authorization_url: string; reference: string; access_code?: string } | null = null;
 
-  if (paymentMethod === "paystack" && requestedMethod !== "inline" && paystackSecretReady(paystackSecret)) {
-    try {
-      const callbackUrl = buildStorefrontUrl(store, `/order/${order.id}`);
-      const paystackRes = await fetch("https://api.paystack.co/transaction/initialize", {
+  if (paymentMethod === "paystack" && paystackSecretReady(paystackSecret)) {
+    const callbackUrl = buildStorefrontUrl(store, `/order/${order.id}`);
+    const initialize = async (split: StoredSplit) => {
+      const paystackRes = await fetch(`${paystackBase()}/transaction/initialize`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${paystackSecret}`,
@@ -322,7 +325,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
         body: JSON.stringify({
           email: buyerEmail,
           amount: Math.round(total * 100), // kobo
+          currency: order.currency,
           reference: order.id,
+          ...splitInitializeParams(split),
           metadata: {
             orderId: order.id,
             orderNumber,
@@ -332,18 +337,30 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
           callback_url: callbackUrl,
         }),
       });
-
-      const paystackJson = await paystackRes.json();
-      if (paystackJson.status) {
-        paystackData = paystackJson.data;
-        await db.retailOrder.update({
-          where: { id: order.id },
-          data: { paystackRef: paystackData!.reference },
-        });
+      const paystackJson = await paystackRes.json().catch(() => null);
+      return paystackJson?.status ? (paystackJson.data as NonNullable<typeof paystackData>) : null;
+    };
+    // What the order is actually paid as is saved only once Paystack has accepted it: a split it refused, or no
+    // transaction at all (the popup then starts one in the browser), means the money comes to Shopinbos.
+    let split: StoredSplit = { mode: "held", reason: "error" };
+    try {
+      // The seller's share goes straight to their bank; Shopinbos keeps its fee and what's owed to others.
+      const planned = await planOrderSplit({ storeId: store.id, total, shippingFee, stockHolds: priced.stockHolds, affiliateCommission: order.affiliateCommission });
+      paystackData = await initialize(planned);
+      if (paystackData) split = planned;
+      else if (planned.mode === "split") {
+        console.warn(`[paystack split] Paystack refused the split for order ${order.id}; charging without it`);
+        paystackData = await initialize(split);
       }
     } catch {
       // Paystack failed — continue without it
     }
+    await db.retailOrder
+      .update({
+        where: { id: order.id },
+        data: { paymentSplit: JSON.parse(JSON.stringify(split)), ...(paystackData ? { paystackRef: paystackData.reference } : {}) },
+      })
+      .catch((error) => console.error(`[checkout] couldn't save the payment for order ${order.id}`, error));
   }
 
   return withCors(req, created({

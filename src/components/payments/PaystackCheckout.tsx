@@ -118,3 +118,52 @@ export function PaystackCheckoutButton({
     </button>
   );
 }
+
+interface PaystackResumeProps {
+  /** From /transaction/initialize on our server (the order's reference and any split are already fixed there). */
+  accessCode: string;
+  onSuccess?: (reference: string) => void;
+  onClose?: () => void;
+  className?: string;
+  style?: React.CSSProperties;
+  disabled?: boolean;
+  label?: string;
+}
+
+/** Opens Paystack's popup for a transaction the server already started (store checkout). */
+export function PaystackResumeButton({ accessCode, onSuccess, onClose, className, style, disabled, label = "Pay with Paystack" }: PaystackResumeProps) {
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+
+  const handlePayment = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { default: PaystackPop } = await import("@paystack/inline-js");
+      new PaystackPop().resumeTransaction(accessCode, {
+        onSuccess: (transaction) => {
+          setLoading(false);
+          toast("Payment successful!", "success");
+          onSuccess?.(transaction.reference);
+        },
+        onCancel: () => {
+          setLoading(false);
+          toast("Payment cancelled", "info");
+          onClose?.();
+        },
+        onError: (error) => {
+          setLoading(false);
+          toast(error?.message || "Paystack couldn't open. Try again.", "error");
+        },
+      });
+    } catch {
+      setLoading(false);
+      toast("Paystack couldn't open. Check your connection and try again.", "error");
+    }
+  }, [accessCode, onSuccess, onClose, toast]);
+
+  return (
+    <button type="button" onClick={handlePayment} className={className ?? "btn btn-mint"} style={style} disabled={disabled || loading}>
+      {loading ? "Processing..." : label}
+    </button>
+  );
+}

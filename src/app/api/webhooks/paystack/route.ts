@@ -8,6 +8,7 @@ import { completePrintOrderPayment } from "@/lib/packaging/print-orders.server";
 import { SENDER_STORE_SELECT } from "@/lib/email/compliance.server";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db/client";
+import { confirmOrderSplit } from "@/lib/commerce/payment-split.server";
 import { buildStorefrontUrl } from "@/lib/domains/storefront";
 import { triggerAutomations } from "@/lib/automations/engine";
 import crypto from "crypto";
@@ -202,6 +203,8 @@ export async function POST(req: NextRequest) {
       // Dropship items go to their suppliers. Idempotent, so a replayed event (or one that failed half way) is safe.
       if (moved.count === 1 || (pending && (PAID_RETAIL_STATUSES as readonly string[]).includes(pending.status))) {
         await ensureSupplierOrdersSafely(ref);
+        // A split order that took back (or paid back) part of the seller's balance records it. Idempotent.
+        await confirmOrderSplit(ref).catch((error) => console.error(`[paystack webhook] split balance for ${ref} failed`, error));
         // Paid through a payment link: the link counts the sale (a one-time link closes). Idempotent.
         await settlePaymentLinkForOrder(ref);
       }

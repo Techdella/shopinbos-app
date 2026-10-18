@@ -13,7 +13,7 @@ import { getPublicStorefrontPath } from "@/lib/domains/storefront";
 import { checkoutLegalLinks, legalPagePath } from "@/lib/legal/pages";
 import { formatStoreMoney, freeDeliveryEverywhereOver, readShopperInfo } from "@/lib/storefront/shopper-info";
 import { discountAmount } from "@/lib/discounts";
-import { PaystackCheckoutButton } from "@/components/payments/PaystackCheckout";
+import { PaystackCheckoutButton, PaystackResumeButton } from "@/components/payments/PaystackCheckout";
 import { verifyPaystackPayment, updateOrderPayment } from "@/app/actions/payments";
 import { checkoutPaymentOptions, type CheckoutPaymentMethod } from "@shared/checkout-payments";
 import {
@@ -156,6 +156,7 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [createdOrder, setCreatedOrder] = useState<CreatedOrder | null>(null);
+  const [accessCode, setAccessCode] = useState<string | null>(null);
   const [transfer, setTransfer] = useState<TransferDetails | null>(null);
   const [paying, setPaying] = useState(false);
   const [payClosed, setPayClosed] = useState(false);
@@ -421,6 +422,8 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
 
       const order = data.data.order as CreatedOrder;
       setCreatedOrder(order);
+      // The server started the card payment (with the seller's split); the popup resumes it.
+      setAccessCode(typeof data.data.paystack?.access_code === "string" ? data.data.paystack.access_code : null);
       rememberCartToken(store.slug, null);
       rememberBagDiscount(store.slug, null);
       if (paymentMethod === "paystack") return;
@@ -709,6 +712,16 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
           >
             <Icon name="lock" size={16} /> Checkout is off in preview
           </button>
+        ) : finalStep && createdOrder && isPaystack && accessCode ? (
+          <PaystackResumeButton
+            accessCode={accessCode}
+            onSuccess={handlePaymentSuccess}
+            onClose={() => setPayClosed(true)}
+            disabled={paying}
+            label={paying ? "Confirming payment…" : `Pay ${formatStoreMoney(createdOrder.total, createdOrder.currency)}`}
+            className="inline-flex min-h-12 w-full items-center justify-center rounded-full px-6 text-[16px] font-semibold disabled:opacity-60"
+            style={{ background: theme.cta, color: theme.ctaText, border: "none", borderRadius: theme.buttonRadius }}
+          />
         ) : finalStep && createdOrder && isPaystack ? (
           <PaystackCheckoutButton
             amount={createdOrder.total}

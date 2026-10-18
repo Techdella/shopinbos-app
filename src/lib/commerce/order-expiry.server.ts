@@ -1,6 +1,7 @@
 import "server-only";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
+import { confirmOrderSplit } from "./payment-split.server";
 import { InsufficientStockError, releaseStock, reserveStock } from "@/lib/commerce/stock.server";
 import {
   CARD_METHODS,
@@ -209,6 +210,7 @@ export async function recoverExpiredOrderPayment(orderId: string, payment: { ref
     if (!reinstated) return "not_expired";
     console.warn(`[order expiry] order ${order.orderNumber} was paid after it expired; stock was still there, so it is paid again`);
     await ensureSupplierOrdersSafely(order.id);
+    await confirmOrderSplit(order.id).catch((error) => console.error(`[order expiry] split balance for ${order.id} failed`, error));
     return "reinstated";
   } catch (error) {
     if (!(error instanceof InsufficientStockError)) throw error;

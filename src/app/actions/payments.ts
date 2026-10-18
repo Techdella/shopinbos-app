@@ -2,6 +2,7 @@
 
 import { grantPlanCredits } from "@/lib/ai/credits.server";
 import { db } from "@/lib/db/client";
+import { confirmOrderSplit } from "@/lib/commerce/payment-split.server";
 import { billingEmail } from "@/lib/auth/billing-email";
 import { revalidatePath } from "next/cache";
 import { getCurrentAppUser } from "@/lib/server-auth";
@@ -157,6 +158,7 @@ export async function updateOrderPayment(
     if (moved.count === 1) await notifyOrderCustomer(orderId, "payment_received"); // WhatsApp/SMS to the buyer, if switched on (sent once)
     // Dropship items go to their suppliers (idempotent: the webhook may do the same).
     await ensureSupplierOrdersSafely(orderId);
+    await confirmOrderSplit(orderId).catch((error) => console.error(`[payments] split balance for ${orderId} failed`, error));
     await settlePaymentLinkForOrder(orderId);
     revalidatePath("/home/orders");
     revalidatePath(`/s/*/order/${orderId}`);

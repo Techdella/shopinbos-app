@@ -51,6 +51,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "po.title": "Payouts",
   "po.sub": "Orders da aka biya da inda kuɗin kowanne ya tafi.",
   "po.noBank": "Ba ka saka bankin payout ba tukuna. Saka ɗaya domin kuɗin orders na intanet su sami inda za su je.",
+  "po.splitOwes": "{amount} daga odar da aka mayar da kuɗinsu za a cire daga sayarwarka ta yanar gizo na gaba. Paystack zai tura sauran zuwa bankinka kamar yadda aka saba.",
+  "po.splitOwed": "Shopinbos na bin ka bashin {amount}. Za a ƙara shi a sayarwarka ta yanar gizo na gaba.",
   "po.paidOnline": "An biya ta intanet",
   "po.paidOrders": "Orders da aka biya",
   "po.added": "An saka",

@@ -49,6 +49,8 @@ const en = {
   "po.title": "Payouts",
   "po.sub": "Paid orders and where the money for each one went.",
   "po.noBank": "You haven't added a payout bank yet. Add one so money from online orders has somewhere to go.",
+  "po.splitOwes": "{amount} from refunded orders comes out of your next online sales. Paystack sends the rest to your bank as usual.",
+  "po.splitOwed": "Shopinbos owes you {amount}. It's added to your next online sales.",
   "po.paidOnline": "Paid online",
   "po.paidOrders": "Paid orders",
   "po.added": "Added",

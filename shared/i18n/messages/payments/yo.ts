@@ -51,6 +51,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "po.title": "Payouts",
   "po.sub": "Àwọn order tí wọ́n ti san àti ibi tí owó ọ̀kọ̀ọ̀kan lọ.",
   "po.noBank": "O kò tíì fi báńkì payout kún un. Fi ọ̀kan kún un kí owó láti order orí ayélujára lè ní ibi tí yóò lọ.",
+  "po.splitOwes": "{amount} láti inú àwọn order tí a dá owó wọn padà yóò yọ kúrò nínú àwọn títà orí ayélujára rẹ tó ń bọ̀. Paystack yóò fi ìyókù ránṣẹ́ sí báńkì rẹ bí ó ti máa ń ṣe.",
+  "po.splitOwed": "Shopinbos jẹ ọ́ ní {amount}. A ó fi kún àwọn títà orí ayélujára rẹ tó ń bọ̀.",
   "po.paidOnline": "A san lórí ayélujára",
   "po.paidOrders": "Order tí wọ́n ti san",
   "po.added": "Ó ti wà",

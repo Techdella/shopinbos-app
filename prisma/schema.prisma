@@ -2031,6 +2031,9 @@ model RetailOrder {
   refundStatus       String? // pending (claimed) | processing | processed | failed | manual
   refundId           String? // Paystack refund id
   refundedAt         DateTime?
+  // Paystack split at checkout: { mode: "split", subaccount, sellerShare, platformShare, ... } or { mode: "held", reason }
+  // (src/lib/commerce/payment-split.ts). Null for orders from before splits, and for transfer / pay on delivery.
+  paymentSplit       Json?
   // Orders sent in more than one parcel (some lines from suppliers, maybe some from the seller's own stock):
   // the seller's own part, and when the first parcel left (the customer is told "part of your order is on its
   // way" once). The order's status is worked out from its parts (src/lib/supplier-orders/parts.server.ts).
@@ -3712,4 +3715,21 @@ model MetaDataDeletionRequest {
   completedAt      DateTime?
 
   @@index([metaUserHash])
+}
+
+// The seller's running balance with Shopinbos from Paystack split payments (src/lib/commerce/payment-split.server.ts).
+// Positive = the seller owes Shopinbos: a refunded split order whose share had already gone to their bank ("refund").
+// Negative entries ("recovered") are what later split orders took back from the seller's share. One entry per order
+// and kind, so replayed webhooks can't count twice.
+model SellerBalanceEntry {
+  id        String   @id @default(cuid())
+  storeId   String
+  orderId   String
+  kind      String // refund | recovered | adjustment
+  amount    Float // naira; + the seller owes, - paid off
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@unique([orderId, kind])
+  @@index([storeId])
 }

@@ -2,6 +2,7 @@ import "server-only";
 
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
+import { sellerBalance } from "@/lib/commerce/payment-split.server";
 import { formatFromAddress, sendEmail } from "@/lib/notifications/resend";
 import { appBase, SENDER_STORE_SELECT, storeSender } from "@/lib/email/compliance.server";
 import { invoiceEmail } from "@/lib/email/store-emails";
@@ -32,6 +33,8 @@ export async function sellerPayouts(userId: string) {
   return {
     hasStore: Boolean(store),
     bank: readPayoutBankSummary(store?.brandSettings),
+    // Split payments: + the seller owes from refunded orders (taken from their next online sales), - Shopinbos owes them.
+    splitBalance: store ? await sellerBalance(store.id).catch(() => 0) : 0,
     online: { total: sum(online), count: online.length },
     offline: { total: sum(offline), count: offline.length },
     orders: rows,

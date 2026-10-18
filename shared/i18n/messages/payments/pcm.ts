@@ -51,6 +51,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "po.title": "Payouts",
   "po.sub": "Paid orders and where the money for each one go.",
   "po.noBank": "You never add payout bank. Add one make money from online orders get where to go.",
+  "po.splitOwes": "{amount} from orders wey dem refund go comot from your next online sales. Paystack go send the rest to your bank as e dey do.",
+  "po.splitOwed": "Shopinbos owe you {amount}. We go add am to your next online sales.",
   "po.paidOnline": "Paid online",
   "po.paidOrders": "Paid orders",
   "po.added": "Don add",

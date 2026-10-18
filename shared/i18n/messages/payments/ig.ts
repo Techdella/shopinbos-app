@@ -51,6 +51,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "po.title": "Payouts",
   "po.sub": "Orders akwụrụ ụgwọ na ebe ego nke ọ bụla gara.",
   "po.noBank": "Ị tinyebeghị bank payout. Tinye otu ka ego site na orders online nwee ebe ọ ga-aga.",
+  "po.splitOwes": "{amount} site n'ọda ndị e weghachiri ego ha ga-esi n'ire ịntanetị gị na-esote pụọ. Paystack ga-eziga ndị fọdụrụ n'ụlọ akụ gị dịka ọ na-emebu.",
+  "po.splitOwed": "Shopinbos ji gị {amount}. A ga-agbakwunye ya n'ire ịntanetị gị na-esote.",
   "po.paidOnline": "Akwụrụ online",
   "po.paidOrders": "Orders akwụrụ ụgwọ",
   "po.added": "Etinyela",

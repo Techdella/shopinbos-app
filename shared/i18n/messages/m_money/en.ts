@@ -26,6 +26,8 @@ const en = {
   "po.emptySub": "Paid orders show up here once customers start paying.",
   "po.emptyFilter": "Nothing here. Tap All to see the rest.",
   "po.note": "Shopinbos doesn't show individual bank transfers here yet. Check your bank or Paystack statement to match payments.",
+  "po.splitOwes": "{amount} from refunded orders comes out of your next online sales. Paystack sends the rest to your bank as usual.",
+  "po.splitOwed": "Shopinbos owes you {amount}. It's added to your next online sales.",
   // How an order was paid (the web's orders "method.*")
   "method.paystack": "Paystack",
   "method.transfer": "Bank transfer",

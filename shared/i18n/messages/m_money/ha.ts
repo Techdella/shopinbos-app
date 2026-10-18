@@ -26,6 +26,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "po.emptySub": "Orders da aka biya za su bayyana a nan da zarar kwastomomi sun fara biya.",
   "po.emptyFilter": "Babu komai a nan. Taɓa Duka don ganin sauran.",
   "po.note": "Shopinbos ba ya nuna kowane bank transfer a nan tukuna. Duba statement na bankinka ko Paystack don daidaita biyan kuɗi.",
+  "po.splitOwes": "{amount} daga odar da aka mayar da kuɗinsu za a cire daga sayarwarka ta yanar gizo na gaba. Paystack zai tura sauran zuwa bankinka kamar yadda aka saba.",
+  "po.splitOwed": "Shopinbos na bin ka bashin {amount}. Za a ƙara shi a sayarwarka ta yanar gizo na gaba.",
   "method.paystack": "Paystack",
   "method.transfer": "Bank transfer",
   "method.cash": "Kuɗi hannu",

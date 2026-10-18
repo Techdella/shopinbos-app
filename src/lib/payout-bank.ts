@@ -2,6 +2,7 @@ import "server-only";
 
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
+import { ensureSellerSubaccount, splitsEnabled } from "@/lib/commerce/payment-split.server";
 
 // Paystack payout-bank helpers, shared by the payments server actions (web) and /api/app/payout-bank (mobile).
 
@@ -113,7 +114,10 @@ export async function linkSellerPayoutBank(userId: string, bankName: string, acc
     accountNumber: cleanAccountNumber,
     accountName: accountName.trim(),
   });
+  const previous = brandSettings.payoutBank && typeof brandSettings.payoutBank === "object" ? (brandSettings.payoutBank as Record<string, unknown>) : {};
   brandSettings.payoutBank = {
+    // Kept so a new bank updates the same Paystack subaccount (ensureSellerSubaccount below).
+    ...(typeof previous.paystackSubaccountCode === "string" ? { paystackSubaccountCode: previous.paystackSubaccountCode } : {}),
     bankName,
     accountNumberMask: maskAccountNumber(cleanAccountNumber),
     accountName: accountName.trim(),
@@ -126,6 +130,10 @@ export async function linkSellerPayoutBank(userId: string, bankName: string, acc
     where: { id: store.id },
     data: { brandSettings: brandSettings as Prisma.InputJsonValue },
   });
+  // Split payments (PAYSTACK_SPLITS=on): the seller's share of each card order settles straight to this account.
+  // A new bank moves the existing subaccount to it. A failure here just means orders are paid to Shopinbos for now.
+  const bankCode = PAYSTACK_BANK_CODES[bankName];
+  if (splitsEnabled() && bankCode) await ensureSellerSubaccount(store.id, { bankCode, accountNumber: cleanAccountNumber });
   return { success: true };
 }
 
