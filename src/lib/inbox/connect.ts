@@ -11,7 +11,7 @@ import { connectTelegram, disconnectTelegram } from "./channels/telegram";
 import { smsProvider, SMS_PROVIDER_MODULES } from "@/lib/sms";
 import { isSmsProvider, providerWebhookUrl, SMS_PROVIDER_LABELS, storeNumber, termiiBaseUrl, type SmsProviderKey } from "@/lib/sms/pure";
 import { appUrl } from "./channels/types";
-import { exchangeSignupCode, registerWhatsAppNumber, subscribeWaba, verifyWhatsApp, whatsappTokenExpiry } from "./channels/whatsapp";
+import { embeddedSignupConfig, exchangeSignupCode, registerWhatsAppNumber, subscribeWaba, verifyWhatsApp, whatsappTokenExpiry } from "./channels/whatsapp";
 import { CONNECTABLE_CHANNELS, normalisePhone, type ConnectableChannel } from "./pure";
 
 // Connecting a channel: validate what the seller pasted, check it with the provider, encrypt it, and wire the
@@ -115,7 +115,7 @@ export function platformReadiness() {
     emailDomain: inboxEmailDomain(),
     metaAppSecret: Boolean(process.env.META_APP_SECRET),
     metaVerifyToken: Boolean(process.env.META_WEBHOOK_VERIFY_TOKEN),
-    whatsappEmbeddedSignup: Boolean(process.env.META_APP_ID && process.env.META_CONFIG_ID && process.env.META_APP_SECRET),
+    whatsappEmbeddedSignup: embeddedSignupConfig() !== null,
   };
 }
 
