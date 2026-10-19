@@ -136,6 +136,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "thread.emailPlaceholder": "Write your email reply",
   "thread.emailGoesAs": "E go comot as email: {subject}",
   "thread.emailGoes": "E go comot as email go the customer",
+  "thread.call": "Call {name}",
+  "thread.callFailed": "This phone no fit make calls.",
 };
 
 export default pcm;

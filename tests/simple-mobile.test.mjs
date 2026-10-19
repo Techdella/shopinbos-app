@@ -125,3 +125,10 @@ test("dates and amounts in plain words", () => {
   assert.equal(domainStep.label, "Ask us");
   assert.equal(supplier.waitingLabel(new Date(Date.parse("2026-10-12T12:00:00Z")).toISOString(), Date.parse("2026-10-12T15:00:00Z")), "Waiting 3 hours");
 });
+
+test("a chat with the customer's number has a Call button that opens the phone's own dialer", () => {
+  const thread = read("app/inbox/[id].tsx");
+  assert.match(thread, /const call = callLink\(conversation\?\.contactPhone\);/);
+  assert.match(thread, /\{call \? \(\n\s+<Pressable\n\s+onPress=\{\(\) => void Linking\.openURL\(call\)/);
+  assert.match(thread, /accessibilityLabel=\{t\("thread\.call"/);
+});
