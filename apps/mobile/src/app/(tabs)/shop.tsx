@@ -15,6 +15,7 @@ import { openShop, shareShop } from "@/lib/share";
 import { openWeb } from "@/lib/web";
 import { useT } from "@/lib/i18n";
 import { colors, radii } from "@/theme";
+import { DeleteAccountButton } from "@/components/DeleteAccountButton";
 
 // My shop (build spec 8A): everything that isn't Home, Orders or Chats, grouped by goal. "app:" paths are
 // screens in the app; "web:" opens that page of the web app, signed in. Sell everywhere connects each platform in one tap
@@ -164,6 +165,7 @@ export default function MyShop() {
       </Card>
       <View style={{ marginTop: 4 }}>
         <LinkButton title={t("logOut")} color={colors.danger} onPress={() => void signOut().then(() => router.replace("/welcome"))} />
+        <DeleteAccountButton />
       </View>
     </TabScreen>
   );

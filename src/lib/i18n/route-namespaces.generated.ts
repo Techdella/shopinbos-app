@@ -64,6 +64,7 @@ export const ROUTE_NAMESPACES: ReadonlyArray<readonly [string, readonly string[]
   ["/builder/templates", ["auth","builder","campaigns","common","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
   ["/channels", ["auth","common","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","social","support","tour","ui","verification"]],
   ["/chip", ["common","nav","ui"]],
+  ["/delete-account", ["common","nav","ui"]],
   ["/email/preferences/[token]", ["common","nav","ui"]],
   ["/email/unsubscribe/[token]", ["common","nav","ui"]],
   ["/forgot-password", ["auth","common","nav","settings","support","ui"]],

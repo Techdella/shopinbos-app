@@ -11,6 +11,7 @@ import { PRIVACY_URL, TERMS_URL } from "@/lib/support";
 import { openWeb } from "@/lib/web";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
+import { DeleteAccountButton } from "@/components/DeleteAccountButton";
 
 // The More tab for suppliers and delivery partners. "app:" paths are screens in the app, "url:" opens a public
 // page, "mailto:" the mail app; anything else opens that page of the web portal, signed in.
@@ -66,6 +67,7 @@ export function PartnerMore({ sections }: { sections: Array<{ title: string; lin
         <LanguageRow first />
       </Card>
       <LinkButton title={t("logOut")} color={colors.danger} onPress={() => confirmSignOut()} />
+      <DeleteAccountButton />
     </TabScreen>
   );
 }
