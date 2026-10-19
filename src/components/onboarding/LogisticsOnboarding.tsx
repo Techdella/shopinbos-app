@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { FieldLabel, Mascot, Notice, PillButton, ProgressBars, TextInput, Wordmark, cx } from "@/components/app-ui";
 import { CacInstantCheck } from "@/components/verification/CacInstantCheck";
 import type { VerificationDoc } from "@shared/verification-docs";
-import { VerifyIdCard, type IdCheckState } from "@/components/verification/VerifyIdCard";
 import { Icon } from "@/components/ui/Icon";
 import intentRouting from "@/lib/intent-routing";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
@@ -63,7 +62,7 @@ function Chip({ on, onClick, children, title }: { on: boolean; onClick: () => vo
 
 const scopeLabel = (scope: DeliveryScope) => deliveryScopeOptions.find((option) => option.value === scope)?.label ?? scope;
 
-export function LogisticsOnboarding({ initialUser, idCheck }: { initialUser?: InitialUser | null; idCheck?: IdCheckState }) {
+export function LogisticsOnboarding({ initialUser }: { initialUser?: InitialUser | null }) {
   const t = useT("onboarding", "common");
   const locale = useLocale();
   const naira = (value: number) => formatMoney(Math.round(value), locale);
@@ -376,10 +375,9 @@ export function LogisticsOnboarding({ initialUser, idCheck }: { initialUser?: In
                   <>
                     <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.8px] sm:text-[34px]">Verify your business</h1>
                     <p className="mb-0 mt-2 max-w-[640px] text-[15px] leading-[1.5] text-app-ink-soft">
-                      Shops only see verified delivery partners, and jobs only come once you&apos;re verified. Two quick checks: your ID, then your CAC registration. You can skip for now and finish later from Verification.
+                      Shops only see verified delivery partners, and jobs only come once you&apos;re verified. Check your CAC or business name (BN) registration. You can skip for now and finish later from Verification.
                     </p>
                     <div className="mt-6 grid gap-4">
-                      <VerifyIdCard state={idCheck ?? { verified: false, checksReady: false }} ownerName={initialUser?.name ?? ""} />
                       <CacInstantCheck apiPath="/api/logistics/verification/cac" defaultName={companyName} cacDoc={cacDoc} onVerified={setCacDoc} />
                     </div>
                     <button type="button" onClick={() => void goTo(step + 1)} className="mt-4 text-[14px] font-bold text-app-ink-soft underline-offset-4 hover:text-app-ink hover:underline" disabled={saving}>

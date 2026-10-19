@@ -75,12 +75,9 @@ test("Korapay's CAC answer becomes a record: active key personnel only, one name
 });
 
 test("Korapay runs ID and CAC checks when its key is set, ahead of Youverify and Dojah, with the key kept on the server", () => {
-  const wallet = read("src/lib/wallet/wallet.server.ts");
-  assert.match(wallet, /return korapayIdentityReady\(\) \|\| youverifyReady\(\);/);
   const server = read("src/lib/kyb/verify-cac.server.ts");
   assert.match(server, /\["korapay", korapayIdentityReady\(\), lookupKorapayCac\],\s*\["youverify", youverifyReady\(\), lookupYouverifyCac\],\s*\["dojah", dojahReady\(\), lookupCac\]/, "Korapay, then Youverify, then Dojah");
   assert.match(server, /if \(lookup\.ok \|\| lookup\.reason === "busy"\) break;/, "an unavailable provider hands over to the next");
-  assert.match(wallet, /if \(!result\.ok && !result\.notFound && youverifyReady\(\)\) return verifyYouverifyIdentity\(input\);/, "Korapay refusing (not a wrong ID) falls back to Youverify");
   assert.match(server, /"\/identities\/ng\/cac"/);
   const client = read("src/lib/korapay.ts");
   assert.match(client, /^import "server-only";/);

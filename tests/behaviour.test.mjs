@@ -424,7 +424,7 @@ test("verification documents: one shared type list, real files only, old onboard
   }
   // A supplier is checked on its business registration (CAC or BN), not the owner's NIN.
   assert.deepEqual(docs.SUPPLIER_DOC_TYPES.filter((c) => c.required).map((c) => c.type), ["cac", "product-images"]);
-  assert.equal(docs.SUPPLIER_DOC_TYPES.some((c) => c.type === "identity"), false);
+  assert.equal([...docs.SUPPLIER_DOC_TYPES, ...docs.LOGISTICS_DOC_TYPES].some((c) => c.type === "identity"), false, "nobody uploads an ID");
   assert.deepEqual(docs.LOGISTICS_DOC_TYPES.filter((c) => c.required).map((c) => c.type), ["cac", "insurance"]);
   assert.equal(docs.docTypesForRole("logistics_partner"), docs.LOGISTICS_DOC_TYPES);
 

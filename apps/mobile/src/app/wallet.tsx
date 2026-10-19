@@ -8,7 +8,7 @@ import { Screen } from "@/components/Screen";
 import { Card, Chip, Field, Label, Notice, PillButton, Segmented, T, Toggle } from "@/components/ui";
 import { useLoad } from "@/lib/useLoad";
 import { useT } from "@/lib/i18n";
-import { checkWalletAccount, confirmCashReceived, fetchWallet, linkWalletBank, nairaFromKobo, verifyWalletId, type WalletData } from "@/lib/wallet";
+import { checkWalletAccount, confirmCashReceived, fetchWallet, linkWalletBank, nairaFromKobo, type WalletData } from "@/lib/wallet";
 import { colors, radii } from "@/theme";
 import { MoneyOwedCard } from "@/components/MoneyOwedCard";
 
@@ -44,9 +44,8 @@ export default function Wallet() {
 
 function WalletBody({ data, t, reload }: { data: WalletData; t: TFn; reload: () => void }) {
   const { view, role } = data;
-  const kycDone = view.kyc.status === "verified";
-  // Sellers have no check; a supplier's is its CAC or BN registration. An older server only sends kyc: the ID step.
-  const check = view.check ?? (role === "seller" ? { kind: "none" as const } : { kind: "id" as const });
+  // Sellers have no check; a supplier's or delivery partner's is its CAC or BN registration.
+  const check = view.check ?? { kind: "none" as const };
   const active = view.settlement.status === "active" && !view.settlement.frozen;
 
   return (
@@ -75,7 +74,7 @@ function WalletBody({ data, t, reload }: { data: WalletData; t: TFn; reload: () 
         </View>
         {view.settlement.frozen ? <Notice>{view.settlement.frozenReason ? t("w.pausedWhy", { reason: view.settlement.frozenReason }) : t("w.pausedSupport")}</Notice> : null}
 
-        {/* Getting paid comes first (like Shopify Payments): the bank, then the supplier's or delivery partner's check. */}
+        {/* Getting paid comes first (like Shopify Payments): the bank, then a supplier's or delivery partner's CAC or BN. */}
         <View style={{ gap: 8, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 12 }}>
           <T weight="extrabold" style={{ fontSize: 15.5 }}>{t("w.bankStep")}{active ? " ✓" : ""}</T>
           {view.bank ? <T style={{ fontSize: 15 }}>{`${view.bank.accountName} · ${view.bank.bankName} ${view.bank.accountEnding}`}</T> : null}
@@ -89,22 +88,8 @@ function WalletBody({ data, t, reload }: { data: WalletData; t: TFn; reload: () 
             <T weight="extrabold" style={{ fontSize: 15.5 }}>{t("w.businessStep")}{check.status === "approved" ? " ✓" : ""}</T>
             <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>{t.dynamic(`w.business.${check.status}`, "")}</T>
             {check.status !== "approved" ? (
-              <PillButton title={check.status === "pending" ? t("w.businessView") : t("w.businessGo")} size="sm" style={{ alignSelf: "flex-start" }} onPress={() => router.push("/supplier/verification")} />
+              <PillButton title={check.status === "pending" ? t("w.businessView") : t("w.businessGo")} size="sm" style={{ alignSelf: "flex-start" }} onPress={() => router.push(role === "supplier" ? "/supplier/verification" : "/logistics/verification")} />
             ) : null}
-          </View>
-        ) : check.kind === "id" ? (
-          <View style={{ gap: 8, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 12 }}>
-            <T weight="extrabold" style={{ fontSize: 15.5 }}>{t("w.idStep")}{kycDone ? " ✓" : ""}</T>
-            {kycDone ? (
-              <T style={{ color: colors.inkSoft, fontSize: 15 }}>
-                {t("w.verified", { name: view.kyc.name ?? "", id: view.kyc.idType === "nin" ? "NIN" : "BVN", last4: view.kyc.idLast4 ?? "" })}
-              </T>
-            ) : (
-              <>
-                <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>{t("w.idWhyBusiness")}</T>
-                {view.kyc.checksReady ? <KycForm ownerName={data.ownerName} t={t} onDone={reload} /> : <Notice tone="info">{t("w.checksSoon")}</Notice>}
-              </>
-            )}
           </View>
         ) : null}
 
@@ -176,61 +161,6 @@ function Row({ label, hint, amount, onPress }: { label: string; hint?: string; a
     </View>
   );
   return onPress ? <Pressable accessibilityRole="button" onPress={onPress}>{body}</Pressable> : body;
-}
-
-function KycForm({ ownerName, t, onDone }: { ownerName: string; t: TFn; onDone: () => void }) {
-  const [first = "", ...rest] = ownerName.trim().split(/\s+/);
-  const [idType, setIdType] = useState<"bvn" | "nin">("nin");
-  const [idNumber, setIdNumber] = useState("");
-  const [firstName, setFirstName] = useState(first);
-  const [lastName, setLastName] = useState(rest.join(" "));
-  const [dateOfBirth, setDateOfBirth] = useState("");
-  const [consent, setConsent] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function submit() {
-    setBusy(true);
-    setError(null);
-    try {
-      await verifyWalletId({ idType, idNumber, firstName, lastName, dateOfBirth, consent });
-      onDone();
-    } catch (failure) {
-      setError(failure instanceof Error ? failure.message : t("w.tryAgain"));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <View style={{ gap: 10 }}>
-      <Segmented options={[{ value: "nin", label: "NIN" }, { value: "bvn", label: "BVN" }]} value={idType} onChange={setIdType} />
-      <View>
-        <Label>{idType === "bvn" ? t("w.bvn") : t("w.nin")}</Label>
-        <Field keyboardType="number-pad" maxLength={11} value={idNumber} onChangeText={(text) => setIdNumber(text.replace(/\D/g, ""))} accessibilityLabel={idType === "bvn" ? t("w.bvn") : t("w.nin")} />
-      </View>
-      <View style={{ flexDirection: "row", gap: 10 }}>
-        <View style={{ flex: 1 }}>
-          <Label>{t("w.firstName")}</Label>
-          <Field value={firstName} onChangeText={setFirstName} autoComplete="given-name" />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Label>{t("w.lastName")}</Label>
-          <Field value={lastName} onChangeText={setLastName} autoComplete="family-name" />
-        </View>
-      </View>
-      <View>
-        <Label>{t("w.dob")}</Label>
-        <Field placeholder="1990-05-31" keyboardType="numbers-and-punctuation" maxLength={10} value={dateOfBirth} onChangeText={setDateOfBirth} accessibilityLabel={t("w.dob")} />
-      </View>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-        <T style={{ flex: 1, fontSize: 14, lineHeight: 20 }}>{t("w.consent")}</T>
-        <Toggle on={consent} onChange={setConsent} label={t("w.consent")} />
-      </View>
-      {error ? <Notice>{error}</Notice> : null}
-      <PillButton title={t("w.verify")} size="md" busy={busy} disabled={!consent || idNumber.length !== 11 || !dateOfBirth} onPress={() => void submit()} />
-    </View>
-  );
 }
 
 function BankForm({ banks, hasBank, t, onDone }: { banks: string[]; hasBank: boolean; t: TFn; onDone: () => void }) {

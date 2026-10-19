@@ -2,15 +2,15 @@ import * as WebBrowser from "expo-web-browser";
 import { api } from "./api";
 
 // The Shopinbos Wallet (web /home/wallet, /supplier/wallet, /logistics/wallet) for sellers, suppliers and delivery
-// partners: add the bank Paystack settles to (then a supplier's CAC or BN registration, a delivery partner's ID), then see what Paystack paid in. Shopinbos
+// partners: add the bank Paystack settles to (then a supplier's or delivery partner's CAC or BN registration), then see what Paystack paid in. Shopinbos
 // never holds the money. Also the two card payments that go straight to another business's bank: a delivery
 // partner paying a seller their cash on delivery, and a seller paying a delivery fee.
 
 export type WalletRole = "seller" | "supplier" | "logistics_partner";
 
 export interface WalletView {
-  /** What this business is checked on: nothing (sellers), its CAC or BN registration (suppliers), or the owner's ID. Older servers don't send it. */
-  check?: { kind: "none" } | { kind: "business"; status: "approved" | "pending" | "rejected" | "missing"; href: string } | { kind: "id" };
+  /** What this business is checked on: nothing (sellers), or its CAC or BN registration (suppliers and delivery partners). */
+  check?: { kind: "none" } | { kind: "business"; status: "approved" | "pending" | "rejected" | "missing"; href: string };
   kyc: { status: string; idType: string | null; idLast4: string | null; name: string | null; verifiedAt: string | null; checksReady: boolean };
   bank: { bankName: string; accountName: string; accountEnding: string } | null;
   settlement: { status: string; error: string | null; frozen: boolean; frozenReason: string | null; korapay: boolean };
@@ -78,9 +78,6 @@ export interface WalletData {
 }
 
 export const fetchWallet = () => api<WalletData>("/api/mobile/wallet");
-
-export const verifyWalletId = (input: { idType: "bvn" | "nin"; idNumber: string; firstName: string; lastName: string; dateOfBirth: string; consent: boolean }) =>
-  api<{ ok: true; message?: string }>("/api/mobile/wallet/kyc", { method: "POST", json: input });
 
 export const linkWalletBank = (input: { bankName: string; accountNumber: string }) =>
   api<{ ok: true; message?: string }>("/api/mobile/wallet/bank", { method: "POST", json: input });

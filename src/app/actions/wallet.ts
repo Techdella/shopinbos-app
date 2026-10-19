@@ -6,7 +6,7 @@ import { getCurrentAppUser } from "@/lib/server-auth";
 import { db } from "@/lib/db/client";
 import { checkRateLimitShared, rateLimitKey } from "@/lib/rate-limit";
 import { isWalletRole } from "@/lib/wallet/rules";
-import { approveWalletBank, checkWalletAccount, linkWalletBank, setWalletFrozen, setWalletKorapaySplitAccount, verifyWalletIdentity, walletBankNames, type WalletResult } from "@/lib/wallet/wallet.server";
+import { approveWalletBank, checkWalletAccount, linkWalletBank, setWalletFrozen, setWalletKorapaySplitAccount, walletBankNames, type WalletResult } from "@/lib/wallet/wallet.server";
 
 // Shopinbos Wallet actions for sellers, suppliers and delivery partners (their own wallet), and the team's
 // review/pause actions. Money never moves here: these set up where Paystack settles each business's share.
@@ -19,25 +19,6 @@ function refresh() {
 
 function walletOwner(user: Awaited<ReturnType<typeof getCurrentAppUser>>) {
   return user && isWalletRole(user.role) ? { id: user.id, role: user.role } : null;
-}
-
-const KycSchema = z.object({
-  idType: z.enum(["bvn", "nin"]),
-  idNumber: z.string().max(20),
-  firstName: z.string().max(60),
-  lastName: z.string().max(60),
-  dateOfBirth: z.string().max(10),
-  consent: z.boolean(),
-});
-
-export async function verifyWalletIdentityAction(input: z.infer<typeof KycSchema>): Promise<WalletResult> {
-  const owner = walletOwner(await getCurrentAppUser());
-  if (!owner) return { ok: false, error: "Sign in to your business account first." };
-  const parsed = KycSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Check the details and try again." };
-  const result = await verifyWalletIdentity(owner, parsed.data);
-  refresh();
-  return result;
 }
 
 const BankSchema = z.object({ bankName: z.string().max(80), accountNumber: z.string().max(20) });

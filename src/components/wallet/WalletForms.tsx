@@ -3,11 +3,11 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Notice } from "@/components/app-ui";
-import { buttonClass, checkClass, inputClass, selectClass } from "@/components/growth/kit";
-import { checkWalletAccountAction, linkWalletBankAction, verifyWalletIdentityAction } from "@/app/actions/wallet";
+import { buttonClass, inputClass, selectClass } from "@/components/growth/kit";
+import { checkWalletAccountAction, linkWalletBankAction } from "@/app/actions/wallet";
 import { useT } from "@/components/i18n/I18nProvider";
 
-// The two steps of setting up a Shopinbos Wallet: verify your ID (BVN or NIN), then add the bank Paystack pays you in.
+// Setting up a Shopinbos Wallet: add the bank Paystack pays you in (the name on it is looked up first).
 
 type Outcome = { tone: "success" | "error" | "info"; text: string } | null;
 
@@ -18,67 +18,6 @@ function Field({ label, htmlFor, hint, children }: { label: string; htmlFor: str
       {children}
       {hint ? <span className="text-[12.5px] leading-[1.4] text-app-ink-soft">{hint}</span> : null}
     </div>
-  );
-}
-
-export function KycForm({ defaultName, onVerified }: { defaultName: { firstName: string; lastName: string }; onVerified?: () => void }) {
-  const t = useT("wallet");
-  const router = useRouter();
-  const [idType, setIdType] = useState<"bvn" | "nin">("nin");
-  const [idNumber, setIdNumber] = useState("");
-  const [firstName, setFirstName] = useState(defaultName.firstName);
-  const [lastName, setLastName] = useState(defaultName.lastName);
-  const [dateOfBirth, setDateOfBirth] = useState("");
-  const [consent, setConsent] = useState(false);
-  const [outcome, setOutcome] = useState<Outcome>(null);
-  const [pending, startTransition] = useTransition();
-
-  function submit(event: React.FormEvent) {
-    event.preventDefault();
-    setOutcome(null);
-    startTransition(async () => {
-      const result = await verifyWalletIdentityAction({ idType, idNumber, firstName, lastName, dateOfBirth, consent });
-      if (result.ok) {
-        setOutcome({ tone: "success", text: result.message ?? t("kyc.done") });
-        onVerified?.();
-        router.refresh();
-      } else {
-        setOutcome({ tone: "error", text: result.error });
-      }
-    });
-  }
-
-  return (
-    <form onSubmit={submit} className="grid gap-4">
-      <Field label={t("kyc.type")} htmlFor="kyc-type" hint={t("kyc.typeHint")}>
-        <select id="kyc-type" className={selectClass} value={idType} onChange={(event) => setIdType(event.target.value as "bvn" | "nin")} disabled={pending}>
-          <option value="nin">{t("kyc.nin")}</option>
-          <option value="bvn">{t("kyc.bvn")}</option>
-        </select>
-      </Field>
-      <Field label={idType === "bvn" ? "BVN" : "NIN"} htmlFor="kyc-id" hint={t("kyc.idHint")}>
-        <input id="kyc-id" className={inputClass} inputMode="numeric" autoComplete="off" maxLength={13} value={idNumber} onChange={(event) => setIdNumber(event.target.value)} disabled={pending} required />
-      </Field>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Field label={t("kyc.first")} htmlFor="kyc-first" hint={t("kyc.firstHint")}>
-          <input id="kyc-first" className={inputClass} autoComplete="given-name" value={firstName} onChange={(event) => setFirstName(event.target.value)} disabled={pending} required />
-        </Field>
-        <Field label={t("kyc.last")} htmlFor="kyc-last">
-          <input id="kyc-last" className={inputClass} autoComplete="family-name" value={lastName} onChange={(event) => setLastName(event.target.value)} disabled={pending} required />
-        </Field>
-      </div>
-      <Field label={t("kyc.dob")} htmlFor="kyc-dob">
-        <input id="kyc-dob" type="date" className={inputClass} autoComplete="bday" value={dateOfBirth} onChange={(event) => setDateOfBirth(event.target.value)} disabled={pending} required />
-      </Field>
-      <label className="flex items-start gap-3 text-[13.5px] leading-[1.45]">
-        <input type="checkbox" className={`${checkClass} mt-0.5`} checked={consent} onChange={(event) => setConsent(event.target.checked)} disabled={pending} />
-        <span>{t("kyc.consent")}</span>
-      </label>
-      {outcome ? <Notice tone={outcome.tone}>{outcome.text}</Notice> : null}
-      <div>
-        <button type="submit" className={buttonClass("ink")} disabled={pending || !consent}>{pending ? t("kyc.checking") : t("kyc.verify")}</button>
-      </div>
-    </form>
   );
 }
 
