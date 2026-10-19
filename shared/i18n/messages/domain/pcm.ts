@@ -17,7 +17,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "choice.buy": "Buy new one",
   "choice.buyDesc": "Search for name and pay. We go set am up for you.",
   "choice.own": "I get one already",
-  "choice.ownDesc": "Send the steps to the person wey set am up. We go make the WhatsApp message for you.",
+  "choice.ownDesc": "Type am, tap Connect, and log in where you buy am. We go add everything for you.",
   "choice.team": "Ask the Shopinbos team make dem do am",
   "choice.teamDesc": "We go set am up with you, free.",
   "where.summary": "You never get one? Where to buy am",
@@ -62,7 +62,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "pend.checking": "We dey check…",
   "pend.waiting": "Dey wait",
   "pend.title": "We dey wait make your domain connect",
-  "pend.sub": "Tap below and Shopinbos team go connect am with you. We go dey check, and your shop go open there the moment e work.",
+  "pend.sub": "Tap Connect and log in where you buy am. We go add everything for you, and your shop go open there the moment e work.",
   "pend.liveKeeps": "{domain} go still dey work meanwhile.",
   "pend.freeKeeps": "Your free address go still dey work meanwhile.",
   "pend.sendWa": "Send the steps for WhatsApp",
@@ -222,6 +222,9 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "free.notFree": "Your plan no cover free domain now. E cost {price} for 1 year. Check am, then pay.",
   "pend.askUs": "Ask us make we connect am",
   "pend.checkNow": "Check am now",
+  "choice.soon": "Using your own domain dey come soon. Your free address dey work meanwhile.",
+  "pend.connect": "Connect {domain}",
+  "pend.connectFailed": "Connect no open just now. Try again in one minute.",
 };
 
 export default pcm;

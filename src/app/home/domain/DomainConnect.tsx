@@ -5,31 +5,32 @@ import { useRouter } from "next/navigation";
 import { DomainSetup } from "@/components/builder/DomainSetup";
 import { BackButton, cx } from "@/components/app-ui";
 import { DomainOwnership } from "@/components/domains/DomainOwnership";
-import { SetupHelpRequest } from "@/components/support/SetupHelpRequest";
 import { Fold } from "@/components/simple/Fold";
 import type { DomainSettingsState } from "@/lib/domains/verification";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { useT } from "@/components/i18n/I18nProvider";
 
 type Registrar = { id: string; name: string; description: string; baseUrl: string; affiliateUrl: string | null };
-type Choice = "buy" | "own" | "team";
+type Choice = "buy" | "own";
 
-// "Use your own domain" (simplicity rules, section 8A): three plain choices instead of DNS records.
+// "Use your own domain" (simplicity rules, section 8A): plain choices, each connects itself; no DNS records.
 // - Buy a new one (only when buying inside Shopinbos is switched on): search, pay, we set it up.
-// - I already have one: we make a WhatsApp message with the steps for the person who set it up
-//   (DomainOwnership; the records and the Verify button are folded under "technical details").
-// - Ask the Shopinbos team to do it: a setup request (support ticket, topic "setup").
+// - I already have one (only when Entri is set up, src/lib/entri/server.ts): type it, then "Connect" opens Entri,
+//   where the seller logs in to the company they bought it from and the records are added for them.
 // Once a domain is waiting or connected, DomainOwnership shows its status instead.
 export function DomainConnect({
   storeSlug,
   storeName,
   configured,
+  entriReady,
   initialState,
   registrars,
 }: {
   storeSlug: string;
   storeName: string;
   configured: boolean;
+  /** Entri is set up, so a domain bought elsewhere connects in one click. */
+  entriReady: boolean;
   initialState: DomainSettingsState;
   registrars: Registrar[];
 }) {
@@ -65,25 +66,9 @@ export function DomainConnect({
     );
   }
 
-  if (choice === "team") {
-    return (
-      <div className="grid min-w-0 gap-3">
-        <BackButton onClick={() => setChoice(null)} />
-        <SetupHelpRequest
-          title={t("team.title")}
-          description={t("team.desc")}
-          feature="custom_domain"
-          softwareQuestion={t("team.which")}
-          softwarePlaceholder="yourbrand.com"
-        />
-      </div>
-    );
-  }
-
   const choices: Array<{ id: Choice; icon: IconName; title: string; desc: string }> = [
     ...(configured ? [{ id: "buy" as const, icon: "cart" as const, title: t("choice.buy"), desc: t("choice.buyDesc") }] : []),
-    { id: "own", icon: "whatsapp", title: t("choice.own"), desc: t("choice.ownDesc") },
-    { id: "team", icon: "chat", title: t("choice.team"), desc: t("choice.teamDesc") },
+    ...(entriReady ? [{ id: "own" as const, icon: "link" as const, title: t("choice.own"), desc: t("choice.ownDesc") }] : []),
   ];
 
   return (
@@ -92,6 +77,7 @@ export function DomainConnect({
         <h2 id="own-address-title" className="m-0 text-[22px] font-extrabold leading-tight">{t("choice.title")}</h2>
         <p className="mb-0 mt-1 text-[15px] leading-[1.5] text-app-ink-soft">{t("choice.sub")}</p>
       </div>
+      {choices.length === 0 && <p className="m-0 rounded-[14px] bg-app-canvas px-4 py-3 text-[14px] text-app-ink-soft">{t("choice.soon")}</p>}
       <div className="grid gap-2.5">
         {choices.map((item) => (
           <button

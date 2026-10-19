@@ -57,7 +57,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "email.confirm": "Dá fífi email ránṣẹ́ láti àdírẹ́sì yìí dúró? Àwọn ìjíròrò rẹ yóò wà nínú Inbox rẹ.",
   "email.disconnected": "A ti yọ email kúrò.",
   "email.domainTitle": "Ṣètò email domain rẹ lórí ojú ìbòjú tó tóbi",
-  "email.domainBody": "Email bí hello@yourshop.com nílò àwọn ètò díẹ̀ lórí domain rẹ. Ó rọrùn lórí kọ̀ǹpútà, ṣùgbọ́n o lè ṣí i lórí fóònù yìí náà. Tàbí bi wá, a ó ṣètò rẹ̀ fún ọ.",
+  "email.domainBody": "Ìmeèlì bí hello@yourshop.com: yan àdírẹ́sì náà kí o sì tẹ Connect. Ó rọrùn lórí kọ̀ǹpútà, ṣùgbọ́n o lè ṣí i lórí fóònù yìí náà.",
   "email.askUs": "Bi wá kí a ṣètò rẹ̀",
 };
 

@@ -13,8 +13,7 @@ import { ChannelHelp, SmsCounter, TemplateStatusPill, WhatsAppBubble, useTemplat
 import { useT } from "@/components/i18n/I18nProvider";
 import type { MessageKey } from "@shared/i18n/catalog";
 import { EVENT_COPY, friendlyName } from "../_kit/friendly";
-import { AdvancedFold, Fold } from "@/components/simple/Fold";
-import { SetupHelpRequest } from "@/components/support/SetupHelpRequest";
+import { AdvancedFold } from "@/components/simple/Fold";
 
 const SMS_DETAILS: Array<{ token: string; label: MessageKey<"marketing"> }> = [
   { token: "{{name}}", label: "om.detail.name" },
@@ -70,14 +69,9 @@ export function OrderMessages({ initial, channels, templates, currency }: { init
         </Notice>
       ) : null}
       {!smsReady ? (
-        <div className="grid gap-2">
-          <Notice tone="info">
-            <ChannelHelp label="SMS" howTo={t("om.smsHow")} href={channels.sms.connectHref} linkLabel={channels.sms.connectLabel} />
-          </Notice>
-          <Fold summary={t("om.askSetup")}>
-            <SetupHelpRequest title={t("om.setupTitle")} description={t("om.setupDesc")} feature="sms" softwareQuestion={t("om.setupQuestion")} softwarePlaceholder={t("om.setupPlaceholder")} />
-          </Fold>
-        </div>
+        <Notice tone="info">
+          <ChannelHelp label="SMS" howTo={t("om.smsHow")} href={channels.sms.connectHref} linkLabel={channels.sms.connectLabel} />
+        </Notice>
       ) : null}
 
       <Card className="grid gap-2 p-5">

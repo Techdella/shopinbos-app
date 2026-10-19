@@ -15,7 +15,7 @@ const en = {
   "choice.buy": "Buy a new one",
   "choice.buyDesc": "Search for a name and pay. We set it up for you.",
   "choice.own": "I already have one",
-  "choice.ownDesc": "Send the steps to the person who set it up. We make the WhatsApp message for you.",
+  "choice.ownDesc": "Type it, tap Connect, and log in where you bought it. We add everything for you.",
   "choice.team": "Ask the Shopinbos team to do it",
   "choice.teamDesc": "We'll set it up with you, free.",
   "where.summary": "Don't have one yet? Where to buy one",
@@ -60,7 +60,7 @@ const en = {
   "pend.checking": "Checking…",
   "pend.waiting": "Waiting",
   "pend.title": "Waiting for your domain to be connected",
-  "pend.sub": "Tap below and the Shopinbos team connects it with you. We keep checking, and your shop opens there the moment it works.",
+  "pend.sub": "Tap Connect and log in where you bought it. We add everything for you, and your shop opens there the moment it works.",
   "pend.liveKeeps": "{domain} keeps working meanwhile.",
   "pend.freeKeeps": "Your free address keeps working meanwhile.",
   "pend.sendWa": "Send the steps on WhatsApp",
@@ -220,6 +220,9 @@ const en = {
   "free.notFree": "Your plan doesn't cover a free domain right now. It costs {price} for 1 year. Check it, then pay.",
   "pend.askUs": "Ask us to connect it",
   "pend.checkNow": "Check now",
+  "choice.soon": "Using your own domain is coming soon. Your free address works meanwhile.",
+  "pend.connect": "Connect {domain}",
+  "pend.connectFailed": "Connecting didn't open just now. Try again in a minute.",
 } satisfies Record<string, string>;
 
 export default en;

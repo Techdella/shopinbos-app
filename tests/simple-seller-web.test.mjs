@@ -17,15 +17,25 @@ test("nothing technical for sellers: no technical-details folds, no pasted keys 
   const domainCopy = read("shared/i18n/messages/domain/en.ts");
   const connect = read("src/app/home/domain/DomainConnect.tsx") + domainCopy;
   const ownership = read("src/components/domains/DomainOwnership.tsx");
-  assert.match(connect, /<SetupHelpRequest/);
   assert.match(connect, /Use your own domain/);
   assert.match(connect, /Buy a new one/);
   assert.match(connect, /\.\.\.\(configured \?/, "buying only shows when the purchase flow is on");
   assert.match(connect, /I already have one/);
-  assert.match(connect, /Ask the Shopinbos team to do it/);
-  // A domain bought elsewhere: "Ask us to connect it" and "Check now"; no DNS records, no "send the steps".
-  assert.match(ownership, /<SetupHelpRequest/);
-  assert.match(ownership, /t\("pend\.askUs"\)[\s\S]*t\("pend\.checkNow"\)/);
+  assert.match(connect, /\.\.\.\(entriReady \?/, "a domain bought elsewhere is offered only when it connects in one click");
+  // A domain bought elsewhere: "Connect" (Entri logs in where it was bought and adds the records) and "Check now".
+  assert.match(ownership, /<EntriConnect/);
+  assert.match(ownership, /t\("pend\.connect", \{ domain \}\)[\s\S]*t\("pend\.checkNow"\)/);
+
+  // No "Ask us to connect it" anywhere a seller connects something: everything connects by itself.
+  for (const file of [
+    "src/app/home/domain/DomainConnect.tsx",
+    "src/components/domains/DomainOwnership.tsx",
+    "src/app/home/inbox/channels/ChannelsClient.tsx",
+    "src/app/home/inbox/email/EmailSetupClient.tsx",
+    "src/app/home/marketing/messages/OrderMessages.tsx",
+    "src/app/home/connections/page.tsx",
+    "src/app/channels/page.tsx",
+  ]) assert.doesNotMatch(read(file), /SetupHelpRequest|askUs|askTeam/, file);
   assert.doesNotMatch(ownership, /RecordList|whatsappShareUrl|pend\.sendWa|pend\.copy/);
   assert.match(ownership, /<Pill tone="success" dot>\{t\("own\.connected"\)\}<\/Pill>/);
 

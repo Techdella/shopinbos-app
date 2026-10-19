@@ -733,7 +733,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "email.domain.askDesc": "Tell us where you buy {domain}. We go set up your email address with you and message you when e work.",
   "ch.rejected": "{title} no gree accept those details. Check dem well, then try again.",
   "ch.cantReach": "We no fit reach {title} now. Connect am again make e work.",
-  "ch.noEncryption": "To connect WhatsApp, Instagram, Facebook, SMS and calls never dey on for this server (INBOX_ENCRYPTION_KEY). Live chat, contact forms and email don already dey work.",
+  "ch.noEncryption": "Connecting WhatsApp, Instagram and Facebook never switch on yet. Live chat, contact forms and email don dey work.",
   "ch.notSure": "You no sure how? Every card get \"Show me how\": the steps, and the exact buttons wey you go tap.",
   "ch.connectFacebook": "Connect with Facebook",
   "ch.connectStart": "Connect",
@@ -806,6 +806,10 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "ch.helpTitle": "Connect {title}",
   "ch.helpDesc": "We go connect {title} to your inbox for you and message you when e dey work.",
   "ch.askUs": "Ask us make we connect am",
+  "email.domain.connect": "Connect {domain}",
+  "email.domain.connectFailed": "Connect no open just now. Try again in one minute.",
+  "email.domain.entriBlurb": "Send from address for {domain}. Pick the address, then tap Connect and log in where you buy the domain. We go add everything for you.",
+  "email.domain.next": "Continue",
 };
 
 export default pcm;

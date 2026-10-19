@@ -733,7 +733,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "email.domain.askDesc": "Gaya mana inda ka sayi {domain}. Za mu saita adireshin imel ɗinka tare da kai mu kuma aika maka saƙo idan ya yi aiki.",
   "ch.rejected": "{title} bai karɓi waɗannan bayanai ba. Duba su sannan ka sake gwadawa.",
   "ch.cantReach": "Ba mu iya kaiwa ga {title} yanzu ba. Sake haɗa shi don gyarawa.",
-  "ch.noEncryption": "Haɗa WhatsApp, Instagram, Facebook, SMS da kira bai kunnu a wannan server ba tukuna (INBOX_ENCRYPTION_KEY). Live chat, fom ɗin tuntuɓa da email sun riga sun fara aiki.",
+  "ch.noEncryption": "Ba a kunna haɗa WhatsApp, Instagram da Facebook ba tukuna. Live chat, fom ɗin tuntuɓa da imel sun riga sun fara aiki.",
   "ch.notSure": "Ba ka da tabbas yaya? Kowane kati yana da \"Show me how\": matakai, da ainihin maɓallan da za ka taɓa.",
   "ch.connectFacebook": "Haɗa da Facebook",
   "ch.connectStart": "Haɗa",
@@ -806,6 +806,10 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "ch.helpTitle": "Haɗa {title}",
   "ch.helpDesc": "Za mu haɗa {title} da inbox ɗinka kuma mu aiko maka saƙo idan yana aiki.",
   "ch.askUs": "Nemi mu haɗa shi",
+  "email.domain.connect": "Haɗa {domain}",
+  "email.domain.connectFailed": "Haɗawa bai buɗe yanzu ba. Sake gwadawa nan da minti ɗaya.",
+  "email.domain.entriBlurb": "Aika daga adireshi a {domain}. Zaɓi adireshin, sannan taɓa Connect ka shiga inda ka sayi domain ɗin. Za mu ƙara komai maka.",
+  "email.domain.next": "Ci gaba",
 };
 
 export default ha;

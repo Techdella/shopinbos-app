@@ -12,6 +12,7 @@ import { getDomainSettings } from "@/lib/domains/ownership.server";
 import { DomainConnect } from "./DomainConnect";
 import { DomainPurchaseBanner } from "@/components/domains/BoughtDomain";
 import { domainPurchaseEnabled } from "@/lib/domains/billing.server";
+import { entriConfigured } from "@/lib/entri/server";
 import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
@@ -136,6 +137,7 @@ export default async function DomainSettingsPage({ searchParams }: { searchParam
             storeSlug={store.slug}
             storeName={store.name}
             configured={hasVercelDomainConfig() && domainPurchaseEnabled()}
+            entriReady={entriConfigured()}
             initialState={await getDomainSettings(user.id)}
             registrars={registrars.map(({ id, name, description, baseUrl, affiliateUrl }) => ({ id, name, description, baseUrl, affiliateUrl }))}
           />

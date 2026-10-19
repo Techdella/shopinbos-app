@@ -6,14 +6,14 @@ import { Card, Pill } from "@/components/app-kit";
 import { cx, Notice, PillButton } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { confirmDialog } from "@/components/ui/dialogs";
-import { SetupHelpRequest } from "@/components/support/SetupHelpRequest";
+import { EntriConnect } from "@/components/domains/EntriConnect";
 import { useT } from "@/components/i18n/I18nProvider";
 import { EMAIL_PREFIXES, type EmailOption } from "@/lib/email-channel/shared";
 import type { EmailSetupView } from "@/lib/email-channel/server";
 
 // Inbox → Email: connect the store's email so customers get emails from the seller's own address and their
 // replies come back to the Inbox. The option we recommend comes first: one click on a domain bought through
-// Shopinbos, "Ask us to set it up" for a domain bought elsewhere, Gmail on a free Shopinbos address. Tokens never reach here.
+// Shopinbos, one "Connect" through Entri for a domain bought elsewhere (only when Entri is set up), Gmail on a free Shopinbos address. Tokens never reach here.
 
 type ApiError = Error & { code?: string };
 
@@ -50,7 +50,7 @@ function OptionCard({ title, recommended, icon, children }: { title: string; rec
   );
 }
 
-export function EmailSetupClient({ initial, gmailResult }: { initial: EmailSetupView; gmailResult: string | null }) {
+export function EmailSetupClient({ initial, gmailResult, entriReady }: { initial: EmailSetupView; gmailResult: string | null; entriReady: boolean }) {
   const t = useT("inbox", "common");
   const [view, setView] = useState(initial);
   const [busy, setBusy] = useState<string | null>(null);
@@ -145,7 +145,17 @@ export function EmailSetupClient({ initial, gmailResult }: { initial: EmailSetup
             {manual ? t("email.domain.addRecords", { domain: domain.name }) : t("email.domain.settingUp", { address: `${domain.prefix}@${domain.name}` })}
           </p>
           {domain.dnsError && auto && <Notice tone="info">{t("email.domain.autoFailed")}</Notice>}
-          {manual && <SetupHelpRequest title={t("email.domain.askTitle", { domain: domain.name })} description={t("email.domain.askDesc", { domain: domain.name })} feature="email_domain" />}
+          {manual && (
+            <EntriConnect
+              domain={domain.name}
+              records={domain.records.map((r) => ({ type: r.type, host: r.name, value: r.value, priority: r.priority }))}
+              label={t("email.domain.connect", { domain: domain.name })}
+              failedText={t("email.domain.connectFailed")}
+              onDone={(success) => {
+                if (success) void checkAgain();
+              }}
+            />
+          )}
           {!manual && (
             <ul className="m-0 grid list-none gap-1.5 p-0 text-[13px]">
               {domain.records.map((r) => (
@@ -163,16 +173,15 @@ export function EmailSetupClient({ initial, gmailResult }: { initial: EmailSetup
         </div>
       );
     }
-    // A domain bought elsewhere needs records added there: the Shopinbos team does that with the seller.
-    if (!auto) return <SetupHelpRequest title={t("email.domain.askTitle", { domain: rec.domain ?? "" })} description={t("email.domain.askDesc", { domain: rec.domain ?? "" })} feature="email_domain" />;
+    // A domain bought elsewhere: pick the address, then "Connect" opens Entri, which adds the settings for them.
     return (
       <div className="grid gap-3">
-        <p className="m-0 text-[13.5px] leading-[1.5] text-app-ink-soft">{t("email.domain.autoBlurb", { domain: rec.domain ?? "" })}</p>
+        <p className="m-0 text-[13.5px] leading-[1.5] text-app-ink-soft">{auto ? t("email.domain.autoBlurb", { domain: rec.domain ?? "" }) : t("email.domain.entriBlurb", { domain: rec.domain ?? "" })}</p>
         {prefixField}
         {nameField}
         <div>
           <PillButton size="md" tone="ink" busy={busy === "domain"} disabled={!prefix.trim() || !fromName.trim()} onClick={() => void startDomain()}>
-            {t("email.domain.oneClick", { domain: rec.domain ?? "" })}
+            {auto ? t("email.domain.oneClick", { domain: rec.domain ?? "" }) : t("email.domain.next")}
           </PillButton>
         </div>
       </div>
@@ -250,7 +259,7 @@ export function EmailSetupClient({ initial, gmailResult }: { initial: EmailSetup
       )}
 
       {view.connected && <h2 className="m-0 text-[16px] font-extrabold">{t("email.otherWays")}</h2>}
-      <section className="grid gap-4 lg:grid-cols-2">{rec.options.map(option)}</section>
+      <section className="grid gap-4 lg:grid-cols-2">{rec.options.filter((key) => key !== "domain_dns" || entriReady).map(option)}</section>
 
       {!view.connected && view.platformAddress && view.ready.resend && (
         <p className="m-0 text-[13px] leading-[1.5] text-app-ink-soft">

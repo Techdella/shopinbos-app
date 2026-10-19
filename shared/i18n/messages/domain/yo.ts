@@ -17,7 +17,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "choice.buy": "Ra tuntun",
   "choice.buyDesc": "Wá orúkọ kan kí o sì sanwó. A ó ṣètò rẹ̀ fún ọ.",
   "choice.own": "Mo ti ní ọ̀kan",
-  "choice.ownDesc": "Fi àwọn ìgbésẹ̀ ránṣẹ́ sí ẹni tó ṣètò rẹ̀. A ó ṣe ìfiránṣẹ́ WhatsApp fún ọ.",
+  "choice.ownDesc": "Tẹ ẹ́, tẹ Connect, kí o sì wọlé síbi tí o ti rà á. A ó fi gbogbo rẹ̀ kún un fún ọ.",
   "choice.team": "Ní kí ẹgbẹ́ Shopinbos ṣe é",
   "choice.teamDesc": "A ó ṣètò rẹ̀ pẹ̀lú rẹ, lọ́fẹ̀ẹ́.",
   "where.summary": "O kò tíì ní ọ̀kan? Ibi tí o ti lè rà á",
@@ -62,7 +62,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "pend.checking": "À ń ṣàyẹ̀wò…",
   "pend.waiting": "Ń dúró",
   "pend.title": "À ń dúró kí domain rẹ sopọ̀",
-  "pend.sub": "Tẹ ìsàlẹ̀, àwọn òṣìṣẹ́ Shopinbos á so ó pọ̀ pẹ̀lú rẹ. A ó máa ṣàyẹ̀wò, ṣọ́ọ̀bù rẹ á sì ṣí síbẹ̀ ní kété tí ó bá ṣiṣẹ́.",
+  "pend.sub": "Tẹ Connect kí o sì wọlé síbi tí o ti rà á. A ó fi gbogbo rẹ̀ kún un fún ọ, ṣọ́ọ̀bù rẹ á sì ṣí síbẹ̀ ní kété tí ó bá ṣiṣẹ́.",
   "pend.liveKeeps": "{domain} yóò máa ṣiṣẹ́ ní àkókò yìí.",
   "pend.freeKeeps": "Àdírẹ́sì ọ̀fẹ́ rẹ yóò máa ṣiṣẹ́ ní àkókò yìí.",
   "pend.sendWa": "Fi àwọn ìgbésẹ̀ ránṣẹ́ lórí WhatsApp",
@@ -222,6 +222,9 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "free.notFree": "Plan rẹ kò bo domain ọ̀fẹ́ báyìí. Ó jẹ́ {price} fún ọdún kan. Ṣàyẹ̀wò rẹ̀, lẹ́yìn náà sanwó.",
   "pend.askUs": "Ní kí a so ó pọ̀",
   "pend.checkNow": "Ṣàyẹ̀wò báyìí",
+  "choice.soon": "Lílo domain tìrẹ ń bọ̀ láìpẹ́. Àdírẹ́sì ọ̀fẹ́ rẹ ń ṣiṣẹ́ títí di ìgbà náà.",
+  "pend.connect": "So {domain} pọ̀",
+  "pend.connectFailed": "Ìsopọ̀ kò ṣí báyìí. Gbìyànjú lẹ́ẹ̀kan sí i ní ìṣẹ́jú kan.",
 };
 
 export default yo;

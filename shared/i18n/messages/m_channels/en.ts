@@ -55,7 +55,7 @@ const en = {
   "email.confirm": "Stop sending email from this address? Your chats stay in your Inbox.",
   "email.disconnected": "Email is disconnected.",
   "email.domainTitle": "Set up your domain email on a bigger screen",
-  "email.domainBody": "Email like hello@yourshop.com needs a few settings added to your domain. It's easier on a computer, but you can open it on this phone too. Or ask us and we'll set it up.",
+  "email.domainBody": "Email like hello@yourshop.com: pick the address and tap Connect. It's easier on a computer, but you can open it on this phone too.",
   "email.askUs": "Ask us to set it up",
 } satisfies Record<string, string>;
 

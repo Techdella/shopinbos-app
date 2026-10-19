@@ -733,7 +733,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "email.domain.askDesc": "Gwa anyị ebe ị zụtara {domain}. Anyị ga-edozi adreesị email gị na gị ma zigara gị ozi mgbe ọ rụrụ ọrụ.",
   "ch.rejected": "{title} anabataghị nkọwa ndị ahụ. Lelee ha ma nwaa ọzọ.",
   "ch.cantReach": "Anyị enweghị ike iru {title} ugbu a. Jikọọ ya ọzọ ka o rụọ ọrụ.",
-  "ch.noEncryption": "Ijikọ WhatsApp, Instagram, Facebook, SMS na oku agbanyeghị na server a (INBOX_ENCRYPTION_KEY). Live chat, fọm kọntaktị na email na-arụ ọrụ.",
+  "ch.noEncryption": "Agbanyebeghị njikọ WhatsApp, Instagram na Facebook. Live chat, fọm kọntaktị na email na-arụ ọrụ.",
   "ch.notSure": "Ị maghị etu? Kaadị ọ bụla nwere \"Show me how\": usoro, na bọtịnụ ndị ị ga-apị.",
   "ch.connectFacebook": "Jikọọ na Facebook",
   "ch.connectStart": "Jikọọ",
@@ -806,6 +806,10 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "ch.helpTitle": "Jikọọ {title}",
   "ch.helpDesc": "Anyị ga-ejikọ {title} n'inbox gị maka gị ma zitere gị ozi mgbe ọ na-arụ ọrụ.",
   "ch.askUs": "Rịọ anyị ka anyị jikọọ ya",
+  "email.domain.connect": "Jikọọ {domain}",
+  "email.domain.connectFailed": "Njikọ emeghe ugbu a. Nwaa ọzọ n'otu nkeji.",
+  "email.domain.entriBlurb": "Ziga site na adreesị na {domain}. Họrọ adreesị ahụ, wee pịa Connect ma banye ebe ị zụtara domain ahụ. Anyị ga-etinye ihe niile maka gị.",
+  "email.domain.next": "Gaa n'ihu",
 };
 
 export default ig;

@@ -775,7 +775,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "om.detail.tracking": "Link na tracking",
   "om.detail.cart": "Link don kammala biya",
   "om.waHow": "Haɗa lambarka ta WhatsApp Business don aika labaran order a WhatsApp.",
-  "om.smsHow": "Saƙonnin SMS suna buƙatar account na SMS. Za mu iya saita maka.",
+  "om.smsHow": "Ba a kunna saƙonnin SMS ba tukuna. Za su yi aiki a nan da kansu da zarar an kunna; babu abin da za a haɗa.",
   "om.askSetup": "Nemi mu saita SMS",
   "om.setupTitle": "Saita SMS don saƙonnin order ɗina",
   "om.setupDesc": "Za mu haɗa account na SMS don shagonka mu faɗa maka idan saƙonni sun shirya.",

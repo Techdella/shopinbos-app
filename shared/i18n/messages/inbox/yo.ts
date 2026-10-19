@@ -733,7 +733,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "email.domain.askDesc": "Sọ ibi tí o ti ra {domain} fún wa. A ó ṣètò àdírẹ́sì ìmeèlì rẹ pẹ̀lú rẹ, a ó sì fi ìfiránṣẹ́ ránṣẹ́ sí ọ nígbà tí ó bá ṣiṣẹ́.",
   "ch.rejected": "{title} kò gba àwọn àlàyé yẹn. Ṣàyẹ̀wò wọn kí o sì tún gbìyànjú.",
   "ch.cantReach": "A kò lè dé ọ̀dọ̀ {title} báyìí. Tún un so pọ̀ láti ṣàtúnṣe rẹ̀.",
-  "ch.noEncryption": "Sísopọ̀ WhatsApp, Instagram, Facebook, SMS àti ìpè kò tíì tàn lórí server yìí (INBOX_ENCRYPTION_KEY). Live chat, fọ́ọ̀mù ìkànsí àti email ti ń ṣiṣẹ́.",
+  "ch.noEncryption": "Sísopọ̀ WhatsApp, Instagram àti Facebook kò tíì tàn. Live chat, fọ́ọ̀mù ìkànsí àti ìmeèlì ti ń ṣiṣẹ́.",
   "ch.notSure": "Kò dá ọ lójú bí? Káàdì kọ̀ọ̀kan ní \"Show me how\": àwọn ìgbésẹ̀, àti àwọn bọ́tìnnì gan-an tí o máa tẹ̀.",
   "ch.connectFacebook": "So pọ̀ pẹ̀lú Facebook",
   "ch.connectStart": "So pọ̀",
@@ -806,6 +806,10 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "ch.helpTitle": "So {title} pọ̀",
   "ch.helpDesc": "A máa so {title} mọ́ inbox rẹ fún ọ, a ó sì kọ̀wé sí ọ nígbà tó bá ń ṣiṣẹ́.",
   "ch.askUs": "Ní kí a so ó pọ̀",
+  "email.domain.connect": "So {domain} pọ̀",
+  "email.domain.connectFailed": "Ìsopọ̀ kò ṣí báyìí. Gbìyànjú lẹ́ẹ̀kan sí i ní ìṣẹ́jú kan.",
+  "email.domain.entriBlurb": "Fi ránṣẹ́ láti àdírẹ́sì lórí {domain}. Yan àdírẹ́sì náà, lẹ́yìn náà tẹ Connect kí o sì wọlé síbi tí o ti ra domain náà. A ó fi gbogbo rẹ̀ kún un fún ọ.",
+  "email.domain.next": "Tẹ̀síwájú",
 };
 
 export default yo;

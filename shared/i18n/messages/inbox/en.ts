@@ -276,7 +276,7 @@ const en = {
   "ch.keysNote": "Keys are checked with the provider, stored encrypted, and never shown in the browser again.",
   "ch.turnOn": "Turn on",
   "ch.disconnect": "Disconnect",
-  "ch.noEncryption": "Connecting WhatsApp, Instagram, Facebook, SMS and calls isn't switched on on this server yet (INBOX_ENCRYPTION_KEY). Live chat, contact forms and email already work.",
+  "ch.noEncryption": "Connecting WhatsApp, Instagram and Facebook isn't switched on yet. Live chat, contact forms and email already work.",
   "ch.builtIn": "Built in",
   "ch.onStore": "On your store",
   "ch.off": "Off",
@@ -821,6 +821,10 @@ const en = {
   "ch.helpTitle": "Connect {title}",
   "ch.helpDesc": "We'll connect {title} to your inbox for you and message you when it's working.",
   "ch.askUs": "Ask us to connect it",
+  "email.domain.connect": "Connect {domain}",
+  "email.domain.connectFailed": "Connecting didn't open just now. Try again in a minute.",
+  "email.domain.entriBlurb": "Send from an address on {domain}. Pick the address, then tap Connect and log in where you bought the domain. We add everything for you.",
+  "email.domain.next": "Continue",
 } satisfies Record<string, string>;
 
 export default en;
