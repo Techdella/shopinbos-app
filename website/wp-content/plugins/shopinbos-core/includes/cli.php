@@ -353,7 +353,20 @@ class Sib_CLI {
 		$legal   = $this->refresh_page( 'legal', 'Legal', $hub, 'page-article' );
 		$privacy = 0;
 		foreach ( sib_seed_legal_docs() as $i => [ $slug, $title, $lead, $summary, $sections, $email ] ) {
-			$id = $this->refresh_page( $slug, $title, sib_seed_legal_markup( $summary, $sections ), 'page-legal', $lead, $legal, $i + 1 );
+			$markup = sib_seed_legal_markup( $summary, $sections );
+			$before = get_page_by_path( 'legal/' . $slug );
+			$old    = $before ? (string) get_post_meta( $before->ID, '_sib_seed_src', true ) : '';
+			$id     = $this->refresh_page( $slug, $title, $markup, 'page-legal', $lead, $legal, $i + 1 );
+			$now    = (string) get_post_meta( $id, '_sib_seed_src', true );
+			if ( $before && $old && $old !== $now ) {
+				// The approved wording changed: new "last updated" date, and 30 days' notice before it applies.
+				$today = new DateTimeImmutable( 'today', wp_timezone() );
+				update_post_meta( $id, 'sib_updated', $today->format( 'Y-m-d' ) );
+				update_post_meta( $id, 'sib_effective', $today->modify( '+30 days' )->format( 'Y-m-d' ) );
+				WP_CLI::log( "Legal: /legal/{$slug}/ updated, applies from " . $today->modify( '+30 days' )->format( 'j F Y' ) );
+			} elseif ( $before && md5( $markup ) !== $now ) {
+				WP_CLI::warning( "Legal: /legal/{$slug}/ was edited in WordPress, so it was not updated. Apply the new wording by hand, then set its dates." );
+			}
 			foreach ( [ 'sib_updated' => '2026-10-01', 'sib_effective' => '2026-11-01', 'sib_legal_email' => $email ] as $k => $v ) {
 				if ( ! get_post_meta( $id, $k, true ) ) {
 					update_post_meta( $id, $k, $v );
