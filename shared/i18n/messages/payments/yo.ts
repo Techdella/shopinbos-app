@@ -284,6 +284,10 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "sm.credits": "Kírẹ́dítì AI {count} lóṣooṣù",
   "po.allTime": "Láti ìbẹ̀rẹ̀",
   "po.pages": "Àwọn ojú-ewé payout",
+  "app.launchTitle": "Ṣọ́ọ̀bù rẹ ti ṣetán",
+  "app.launchBody": "Yóò wà láàyè ní kété tí wọ́n bá ti launch rẹ̀. O kò lè launch rẹ̀ nínú app Shopinbos.",
+  "app.ok": "Ó dáa",
+  "app.billingOff": "Plans, billing àti AI credits kò sí nínú app Shopinbos.",
 };
 
 export default yo;

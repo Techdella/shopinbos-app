@@ -284,6 +284,10 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "sm.credits": "{count} AI credits every month",
   "po.allTime": "From beginning",
   "po.pages": "Payout pages",
+  "app.launchTitle": "Your shop don ready",
+  "app.launchBody": "E go dey live once dem launch am. You no fit launch am inside the Shopinbos app.",
+  "app.ok": "OK",
+  "app.billingOff": "Plans, billing and AI credits no dey inside the Shopinbos app.",
 };
 
 export default pcm;

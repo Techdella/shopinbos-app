@@ -284,6 +284,10 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "sm.credits": "Kiredit na AI {count} kowane wata",
   "po.allTime": "Tun daga farko",
   "po.pages": "Shafukan payouts",
+  "app.launchTitle": "Shagonka ya shirya",
+  "app.launchBody": "Zai fara aiki da zarar an launch shi. Ba za ka iya launch shi a cikin app ɗin Shopinbos ba.",
+  "app.ok": "To",
+  "app.billingOff": "Plans, billing da AI credits ba sa cikin app ɗin Shopinbos.",
 };
 
 export default ha;
