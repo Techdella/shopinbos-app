@@ -89,6 +89,8 @@ export const NOTIFY_EVENTS = {
   "store_campaign.ending_soon": { category: "marketing" },
   "store_campaign.ended": { category: "marketing" },
   "tip": { category: "marketing" },
+  // Admin › Pricing › Promotions going live (delivery partners get it as account news).
+  "pricing.promotion": { category: "marketing" },
   "payout.sent": { category: "money" },
   "payout.failed": { category: "money" },
   // Suppliers

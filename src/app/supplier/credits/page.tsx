@@ -9,6 +9,7 @@ import { creditOverview, liveCreditPrices } from "@/lib/ai/credits.server";
 import { aiAllowanceToday } from "@/lib/ai/usage";
 import { db } from "@/lib/db/client";
 import { CreditsClient } from "@/app/home/credits/CreditsClient";
+import { PromoBanner } from "@/components/pricing/PromoBanner";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +39,7 @@ export default async function SupplierCreditsPage({ searchParams }: { searchPara
       sub={t("cr.sub")}
       actions={<PillLink href="/supplier/profile?tab=Billing%20%26%20Plan" icon="arrowLeft">{t("cr.billing")}</PillLink>}
     >
+      <PromoBanner role="supplier" className="mb-5" />
       <CreditsClient
         initial={overview}
         packs={prices.packs}

@@ -5,6 +5,7 @@ import { requireRole } from "@/lib/server-auth";
 import { db } from "@/lib/db/client";
 import { getSetupOverview, syncStartNav } from "@/lib/setup/server";
 import { StartHere } from "./StartHere";
+import { PromoBanner } from "@/components/pricing/PromoBanner";
 import { getT } from "@/lib/i18n/server";
 
 // Start here: the first-time page for new sellers. A short checklist built from the real state of the shop;
@@ -46,6 +47,7 @@ export default async function StartHerePage({ searchParams }: { searchParams: Pr
       avatarUrl={user.avatarUrl}
       userEmail={user.email}
     >
+      <PromoBanner role="seller" className="px-4 pt-6 sm:px-6 xl:px-8 2xl:px-10" />
       <StartHere
         firstName={firstName}
         overview={JSON.parse(JSON.stringify(overview))}

@@ -38,6 +38,7 @@ import {
   type LogisticsT,
 } from "@/components/logistics/kit";
 import { getT } from "@/lib/i18n/server";
+import { PromoBanner } from "@/components/pricing/PromoBanner";
 
 // Partner "Today", following the 2026 "Shopinbos Partners · web dispatch console" and mobile mockups.
 
@@ -124,6 +125,7 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
       sub={`${lagosDate(now, { weekday: "long", day: "numeric", month: "long" }, now, t)} · ${areas}`}
       actions={<Pill tone={taking ? "success" : "muted"} dot>{taking ? t("today.taking") : t("today.notTaking")}</Pill>}
     >
+      <PromoBanner role="logistics_partner" className="mb-5" />
       <ActionNotice saved={saved} error={error} savedText={t("today.saved")} />
 
       <div className="mb-5">
