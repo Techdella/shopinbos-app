@@ -8,7 +8,7 @@ import { getMessagingSettings } from "@/lib/marketing/messaging-settings";
 import { loadOptOuts } from "@/lib/marketing/opt-outs";
 import { normalizePhone } from "@/lib/marketing/segment-rules";
 import { CUSTOMER_EVENTS, customerEventFor, mayText, type CustomerEvent, type CustomerEventSetting, type OptOutLookup, type TextChannel, type VariableValues } from "@/lib/marketing/text-channels";
-import { resolveTemplate, sendTemplate } from "@/lib/marketing/whatsapp-templates.server";
+import { refreshTemplateStatus, resolvePresetTemplate, resolveTemplate, sendTemplate } from "@/lib/marketing/whatsapp-templates.server";
 
 // Order and cart messages to a store's customers by WhatsApp and/or SMS, as the seller switched on in
 // Marketing › Order messages (StoreMessagingSettings.transactional). Order code calls one function,
@@ -17,7 +17,8 @@ import { resolveTemplate, sendTemplate } from "@/lib/marketing/whatsapp-template
 //   - never without the buyer's phone (given at checkout);
 //   - order messages may go to that phone without a marketing opt-in, but never after a full STOP;
 //   - WhatsApp uses the approved template chosen for the event (else the store's approved template from the
-//     matching ready-made one); SMS uses the seller's text;
+//     matching ready-made one, which src/lib/marketing/order-messages-setup.server.ts submits when WhatsApp is
+//     connected); a template still pending here is re-checked with Meta first; SMS uses the seller's text;
 //   - each event goes out once per order (or cart) per channel (CustomerMessage, unique), and every outcome,
 //     including "skipped" with the reason, is recorded so the seller sees it on the Order messages page.
 
@@ -71,7 +72,9 @@ async function deliver(store: Store, setting: CustomerEventSetting, recipient: R
     const send = await sender();
     if (channel === "whatsapp") {
       const preset = CUSTOMER_EVENTS.find((e) => e.key === recipient.event)!.preset;
-      const template = (setting.templateId ? await resolveTemplate(store.id, setting.templateId) : null) ?? (await resolveTemplate(store.id, `preset:${preset}`));
+      let template = (setting.templateId ? await resolveTemplate(store.id, setting.templateId) : null) ?? (await resolvePresetTemplate(store.id, preset));
+      // Meta may have approved it since we last looked (approval usually takes minutes, and comes by webhook).
+      if (template && template.status === "PENDING") template = (await refreshTemplateStatus(store.id, template.id)) ?? template;
       if (!template || template.status !== "APPROVED") {
         const error = template ? `The WhatsApp template "${template.name}" isn't approved (${template.status.toLowerCase()})` : "No approved WhatsApp template for this message. Pick one in Marketing › Order messages.";
         await finish(id, { ok: false, error, skipped: true }, template?.id);
