@@ -15,7 +15,6 @@ import {
   AD_CTAS,
   AD_OBJECTIVE_INFO,
   AD_OBJECTIVES,
-  AD_SETUP_FEES,
   MIN_DAILY_BUDGET,
   NG_STATES,
   campaignTotal,
@@ -68,6 +67,7 @@ export function CampaignWizard({
   initialProductIds,
   contact,
   hasWhatsapp,
+  prices,
 }: {
   products: WizardProduct[];
   videos: WizardVideo[];
@@ -76,6 +76,8 @@ export function CampaignWizard({
   initialProductIds: string[];
   contact: { name: string; phone: string; email: string; businessName: string; website: string };
   hasWhatsapp: boolean;
+  /** Setup fees and the naira minimum (Admin › Pricing). */
+  prices: { setup: { meta: number; tiktok: number }; minDailyNgn: number };
 }) {
   const t = useT("ads");
   const router = useRouter();
@@ -106,7 +108,8 @@ export function CampaignWizard({
   const chosen = useMemo(() => products.filter((product) => productIds.includes(product.id)), [products, productIds]);
   const currency = mode === "meta" ? meta.currency : "NGN";
   const managedPlatform = mode === "managed_tiktok" ? "tiktok" : "meta";
-  const fee = mode === "meta" ? 0 : AD_SETUP_FEES[managedPlatform];
+  const fee = mode === "meta" ? 0 : prices.setup[managedPlatform];
+  const minDaily = currency === "NGN" ? prices.minDailyNgn : MIN_DAILY_BUDGET[currency] ?? 1;
   const money = (value: number) => (currency === "NGN" ? naira(value) : `${value.toLocaleString()} ${currency}`);
 
   // Every chosen product gets an ad with its photo; ads for products taken out go too (videos stay).
@@ -130,7 +133,7 @@ export function CampaignWizard({
     step === "how" ? mode !== "meta" || meta.status === "connected" :
     step === "products" ? productIds.length > 0 :
     step === "audience" ? audience.countries.length > 0 && audience.ageMin <= audience.ageMax :
-    step === "budget" ? dailyBudget >= (MIN_DAILY_BUDGET[currency] ?? 1) && days >= 1 :
+    step === "budget" ? dailyBudget >= minDaily && days >= 1 :
     step === "ads" ? creatives.length > 0 && creatives.every((creative) => creative.headline.trim() && creative.primaryText.trim()) :
     true;
 
@@ -253,8 +256,8 @@ export function CampaignWizard({
           <div className="mt-4 grid gap-3 md:grid-cols-3" role="radiogroup" aria-label={t("c.how")}>
             {([
               ["meta", "facebook", t("c.mode.meta"), t("c.mode.metaHint")],
-              ["managed_meta", "users", t("c.mode.managedMeta"), t("c.mode.managedMetaHint", { fee: naira(AD_SETUP_FEES.meta) })],
-              ["managed_tiktok", "tiktok", t("c.mode.tiktok"), t("c.mode.tiktokHint", { fee: naira(AD_SETUP_FEES.tiktok) })],
+              ["managed_meta", "users", t("c.mode.managedMeta"), t("c.mode.managedMetaHint", { fee: naira(prices.setup.meta) })],
+              ["managed_tiktok", "tiktok", t("c.mode.tiktok"), t("c.mode.tiktokHint", { fee: naira(prices.setup.tiktok) })],
             ] as const).map(([value, icon, title, hint]) => (
               <button key={value} type="button" role="radio" aria-checked={mode === value} onClick={() => setMode(value)} className={cx("flex flex-col items-start gap-2 rounded-[18px] border-2 p-4 text-left", mode === value ? "border-app-ink bg-app-canvas" : "border-app-line hover:border-app-line-strong")}>
                 <span className="grid h-10 w-10 place-items-center rounded-[12px] bg-app-peach"><Icon name={icon} size={18} /></span>
@@ -406,7 +409,7 @@ export function CampaignWizard({
             {t("c.totalSpend", { total: money(campaignTotal(dailyBudget, days)), platform: mode === "managed_tiktok" ? "TikTok" : "Meta" })}
             {fee ? ` ${t("c.plusFee", { fee: naira(fee) })}` : ""}
           </p>
-          {dailyBudget < (MIN_DAILY_BUDGET[currency] ?? 1) ? <Notice>{t("c.minBudget", { amount: money(MIN_DAILY_BUDGET[currency] ?? 1) })}</Notice> : null}
+          {dailyBudget < minDaily ? <Notice>{t("c.minBudget", { amount: money(minDaily) })}</Notice> : null}
         </section>
       ) : null}
 

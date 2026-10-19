@@ -6,19 +6,15 @@ import type { Prisma } from "@prisma/client";
 import { verifyPaystackTransaction } from "@/lib/paystack";
 import { publishStoreDraft } from "@/lib/store-publishing";
 import { mergeBrandSettings } from "@/lib/workspace";
+import { getPriceBook } from "@/lib/pricing/price-book.server";
 
 export type StoreLaunchPaymentOption = "full" | "installment" | "balance";
 
-function positiveNaira(value: string | undefined, fallback: number) {
-  const amount = Number(value ?? fallback);
-  return Number.isSafeInteger(amount) && amount > 0 ? amount : fallback;
+/** The launch fee and deposit in naira, from Admin › Pricing (the deposit is never more than the fee). */
+export async function storeLaunchPrices() {
+  const book = await getPriceBook();
+  return { totalNgn: book["launch.price"], depositNgn: book["launch.deposit"] };
 }
-
-export const STORE_LAUNCH_TOTAL_NGN = positiveNaira(process.env.STORE_LAUNCH_PRICE_NGN, 8000);
-export const STORE_LAUNCH_DEPOSIT_NGN = Math.min(
-  positiveNaira(process.env.STORE_LAUNCH_DEPOSIT_NGN, 4000),
-  STORE_LAUNCH_TOTAL_NGN,
-);
 
 export function installmentDueAt(from = new Date()) {
   return new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth() + 1, 0, 22, 59, 59));

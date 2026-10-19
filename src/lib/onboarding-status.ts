@@ -3,7 +3,7 @@ import "server-only";
 import { db } from "@/lib/db/client";
 import { buildStorefrontUrl } from "@/lib/domains/storefront";
 import { parseOnboardingMemory } from "@/lib/onboarding-memory";
-import { STORE_LAUNCH_DEPOSIT_NGN, STORE_LAUNCH_TOTAL_NGN } from "@/lib/store-launch-billing";
+import { storeLaunchPrices } from "@/lib/store-launch-billing";
 import { CHECKLIST, type ChecklistKey } from "@shared/onboarding";
 import { idCheckState } from "@/lib/wallet/id-check-state.server";
 
@@ -71,8 +71,7 @@ export async function getSellerOnboardingStatus(userId: string) {
     memory: parseOnboardingMemory(settings.onboardingMemory) ?? null,
     launch: {
       status: typeof launchBilling.status === "string" ? launchBilling.status : "unpaid",
-      totalNgn: STORE_LAUNCH_TOTAL_NGN,
-      depositNgn: STORE_LAUNCH_DEPOSIT_NGN,
+      ...(await storeLaunchPrices()),
     },
     productCount: store._count.storeProducts,
     /** The Shopinbos Wallet ID check (NIN or BVN): optional for sellers, offered in onboarding and the top bar. */

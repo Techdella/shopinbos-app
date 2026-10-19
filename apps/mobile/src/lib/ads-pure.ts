@@ -132,8 +132,8 @@ export function campaignTotal(dailyBudget: number, days: number) {
   return Math.round(dailyBudget * Math.max(1, days) * 100) / 100;
 }
 
-export function modeFee(mode: AdMode) {
-  return mode === "meta" ? 0 : mode === "managed_tiktok" ? AD_SETUP_FEES.tiktok : AD_SETUP_FEES.meta;
+export function modeFee(mode: AdMode, fees: { meta: number; tiktok: number } = AD_SETUP_FEES) {
+  return mode === "meta" ? 0 : mode === "managed_tiktok" ? fees.tiktok : fees.meta;
 }
 
 /** The mode a new campaign starts on: the seller's own Meta account when it's connected, else the team. */
@@ -141,8 +141,9 @@ export function defaultMode(meta: Pick<MetaStatus, "configured" | "status">): Ad
   return meta.configured && meta.status === "connected" ? "meta" : "managed_meta";
 }
 
-export function minBudget(currency: string) {
-  return MIN_DAILY_BUDGET[currency] ?? 1;
+/** `minNgn`: the live naira minimum from the server, when it sent one. */
+export function minBudget(currency: string, minNgn?: number) {
+  return currency === "NGN" && minNgn ? minNgn : MIN_DAILY_BUDGET[currency] ?? 1;
 }
 
 export const WIZARD_STEPS = ["how", "products", "audience", "budget", "ads", "review"] as const;
@@ -157,6 +158,8 @@ export interface WizardState {
   currency: string;
   days: number;
   creatives: AdCreative[];
+  /** The server's naira minimum, when it sent one. */
+  minDailyNgn?: number;
 }
 
 /** Whether "Next" works on a step (the web wizard's rules). */
@@ -169,7 +172,7 @@ export function canGoOn(step: WizardStep, state: WizardState) {
     case "audience":
       return state.audience.countries.length > 0 && state.audience.ageMin <= state.audience.ageMax;
     case "budget":
-      return state.dailyBudget >= minBudget(state.currency) && state.days >= 1;
+      return state.dailyBudget >= minBudget(state.currency, state.minDailyNgn) && state.days >= 1;
     case "ads":
       return state.creatives.length > 0 && state.creatives.every((creative) => creative.headline.trim() && creative.primaryText.trim());
     default:

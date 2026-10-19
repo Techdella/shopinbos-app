@@ -1,8 +1,7 @@
 import { NextRequest } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
 import { apiError, ok } from "@/lib/api/response";
-import { CreditError, creditOverview, forgetCreditCard, setAutoTopUp } from "@/lib/ai/credits.server";
-import { CREDIT_COST, CREDIT_PACKS } from "@shared/ai-credits";
+import { CreditError, creditOverview, forgetCreditCard, liveCreditPrices, setAutoTopUp } from "@/lib/ai/credits.server";
 import { db } from "@/lib/db/client";
 import { aiAllowanceToday } from "@/lib/ai/usage";
 
@@ -14,8 +13,8 @@ export const dynamic = "force-dynamic";
 
 export const GET = withAuth(async (_req: NextRequest, { user }) => {
   const plan = await db.user.findUnique({ where: { id: user.id }, select: { aiCredits: true } });
-  const [overview, allowance] = await Promise.all([creditOverview(user.id), aiAllowanceToday(user.id, plan?.aiCredits)]);
-  return ok({ ...overview, packs: CREDIT_PACKS, costs: CREDIT_COST, allowance: allowance ?? [] });
+  const [overview, allowance, { packs, costs }] = await Promise.all([creditOverview(user.id), aiAllowanceToday(user.id, plan?.aiCredits), liveCreditPrices()]);
+  return ok({ ...overview, packs, costs, allowance: allowance ?? [] });
 });
 
 export const PATCH = withAuth(async (req: NextRequest, { user }) => {

@@ -10,6 +10,7 @@ import { getT } from "@/lib/i18n/server";
 import { loadBrandContext } from "@/lib/ai/brand-context.server";
 import { elevenLabsReady } from "@/lib/ai/elevenlabs.server";
 import { reelBrand } from "@shared/video-style";
+import { liveCreditPrices } from "@/lib/ai/credits.server";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -32,7 +33,7 @@ export default async function VideoStudioPage({ searchParams }: { searchParams: 
     : [];
   const project = id && store ? await db.videoProject.findFirst({ where: { id, storeId: store.id } }).catch(() => null) : null;
   if (id && !project) redirect("/home/video");
-  const brand = store ? await loadBrandContext(store.id).catch(() => null) : null;
+  const [brand, { costs }] = await Promise.all([store ? loadBrandContext(store.id).catch(() => null) : null, liveCreditPrices()]);
   const storeHost = store ? buildStorefrontUrl(store, "/").replace(/^https?:\/\//, "").replace(/\/$/, "") : "";
 
   return (
@@ -50,6 +51,7 @@ export default async function VideoStudioPage({ searchParams }: { searchParams: 
         purpose={isVideoPurpose(purpose) ? purpose : "social"}
         brand={reelBrand(brand?.colours ?? null, store?.logoUrl ?? brand?.logoUrl ?? null)}
         elevenLabs={elevenLabsReady()}
+        costs={costs}
         products={products.map((item) => ({
           id: item.id,
           name: item.name,
