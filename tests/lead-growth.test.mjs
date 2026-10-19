@@ -2,6 +2,7 @@
 // SMS parts, retention grid and which pages the product trackers may run on.
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 
 const growth = await import("../src/lib/lead-growth/pure.ts");
 const tokens = await import("../src/lib/lead-growth/tokens.ts");
@@ -190,4 +191,23 @@ test("whatsapp: launch templates follow Meta's rules and every sequence step use
   assert.deepEqual(walk(byTemplate, new Date("2026-10-27T15:00:00Z")).map((m) => m.subject), ["sib_supplier_registration_open", "sib_supplier_finish", "sib_supplier_live"]);
   assert.deepEqual(walk(byTemplate, new Date("2026-10-17T15:00:00Z")).map((m) => m.subject), ["sib_supplier_welcome", "sib_supplier_registration_open", "sib_supplier_finish", "sib_supplier_live"]);
   assert.equal(wa.templatesUsed(suppliers).length, 4);
+});
+
+test("seller value moments reach Shopinbos's analytics from the server, after the response, against the seller's id", () => {
+  const src = (file) => readFileSync(new URL(`../${file}`, import.meta.url), "utf8");
+  const events = src("src/lib/platform-analytics/seller-events.server.ts");
+  assert.match(events, /after\(job\)/, "never slows the seller down");
+  assert.match(events, /select: \{ supabaseId: true \}/, "the same id the browser identifies people with");
+  assert.match(events, /event: "store_published"/);
+  assert.match(events, /event: "product_added"/);
+  assert.match(events, /event: "first_order_received",\s*insertId: `fo-\$\{order\.storeId\}`/, "counted once per store");
+  assert.doesNotMatch(events, /email|phone|buyerName/, "no personal data in events");
+  assert.match(src("src/lib/store-publishing.ts"), /trackStorePublished\(store\.id, store\.onboardingState !== "LIVE"\);/);
+  assert.match(src("src/lib/commerce/order-paid.server.ts"), /trackFirstOrderIfFirst\(orderId\);/);
+  assert.match(src("src/app/api/public/store/[slug]/checkout/route.ts"), /if \(paymentMethod === "pay_on_delivery"\) trackFirstOrderIfFirst\(order\.id\);/);
+  for (const file of ["src/app/actions/workspace.ts", "src/app/actions/sourcing.ts", "src/app/api/app/store-products/route.ts", "src/app/api/app/store-products/add-from-supplier/route.ts", "src/app/api/app/dropship/start/route.ts", "src/app/api/store/products/route.ts", "src/app/api/mobile/marketplace/route.ts"]) {
+    assert.match(src(file), /trackProductAdded\(\{ userId: user\.id, source: /, file);
+  }
+  assert.match(src("src/app/api/products/import/route.ts"), /if \(imported\) trackProductAdded\(\{ userId: user\.id, source: "csv_import", count: imported \}\);/, "one event per import, not per row");
+  assert.match(src("src/lib/lead-growth/service.server.ts"), /event: "sign_up_completed"/);
 });

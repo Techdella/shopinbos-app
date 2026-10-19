@@ -8,6 +8,7 @@ import { saveSellerBusinessAddress, saveStoreDetails } from "@/lib/seller-settin
 import { changeStoreSlug, clearStaleShopNames, clearStaleShopNamesInStorePages } from "@/lib/store-address.server";
 import { saveStoreNavigation } from "@/lib/store-navigation.server";
 import { parseNavigationInput } from "@/lib/storefront/store-navigation";
+import { trackProductAdded } from "@/lib/platform-analytics/seller-events.server";
 
 async function getSellerUserOrThrow() {
   const user = await getCurrentAppUser({ redirectTo: "/login" });
@@ -140,6 +141,7 @@ export async function addMarketplaceProduct(formData: FormData) {
       status: "draft",
     },
   });
+  trackProductAdded({ userId: user.id, source: "manual" });
 
   await db.store.update({
     where: { id: store.id },

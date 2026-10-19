@@ -7,6 +7,7 @@ import type { AuthUser } from "@/lib/auth/types";
 import { markCatalogDirty } from "@/lib/whatsapp-catalog/dirty";
 import { productFieldsData } from "@/lib/products/save-fields.server";
 import { stockTrackingFor } from "@shared/product-stock";
+import { trackProductAdded } from "@/lib/platform-analytics/seller-events.server";
 
 export const GET = withSeller(async (req: NextRequest, { user }: { user: AuthUser }) => {
   const sp = req.nextUrl.searchParams;
@@ -70,6 +71,7 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
       ...(fields.data as Record<string, never>),
     },
   });
+  trackProductAdded({ userId: user.id, source: "manual" });
 
   await markCatalogDirty(store.id);
   return ok(product, 201);

@@ -44,7 +44,7 @@ async function start(): Promise<Clients> {
   if (GA_ID) clients.gtag = loadGa();
   if (MIXPANEL_TOKEN) {
     const mixpanel = (await import("mixpanel-browser")).default;
-    mixpanel.init(MIXPANEL_TOKEN, { persistence: "localStorage", track_pageview: false, ...(MIXPANEL_EU ? { api_host: "https://api-eu.mixpanel.com" } : {}) });
+    mixpanel.init(MIXPANEL_TOKEN, { persistence: "localStorage", track_pageview: false, debug: process.env.NODE_ENV === "development", ...(MIXPANEL_EU ? { api_host: "https://api-eu.mixpanel.com" } : {}) });
     clients.mixpanel = mixpanel;
   }
   if (POSTHOG_KEY) {

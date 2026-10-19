@@ -4,6 +4,7 @@ import { db } from "@/lib/db/client";
 import { ok, apiError } from "@/lib/api/response";
 import { StartDropshipSchema } from "@/lib/schemas";
 import type { AuthUser } from "@/lib/auth/types";
+import { trackProductAdded } from "@/lib/platform-analytics/seller-events.server";
 
 export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUser }) => {
   const body = await req.json().catch(() => null);
@@ -50,6 +51,7 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
       status: "draft",
     },
   });
+  trackProductAdded({ userId: user.id, source: "dropship", fromSupplier: true });
 
   const relationship = await db.dropshipRelationship.create({
     data: {

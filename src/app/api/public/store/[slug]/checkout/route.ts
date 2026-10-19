@@ -36,6 +36,7 @@ import { startKorapayCheckout } from "@/lib/commerce/korapay-orders.server";
 import { paystackSplitParams } from "@/lib/wallet/rules";
 import { initializePaystackTransaction } from "@/lib/paystack";
 import { cancelUnstartedOrder } from "@/lib/commerce/order-expiry.server";
+import { trackFirstOrderIfFirst } from "@/lib/platform-analytics/seller-events.server";
 
 const CHECKOUT_CORS = { methods: ["POST", "OPTIONS"], headers: ["Content-Type"] };
 
@@ -317,6 +318,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   if (paymentMethod === "pay_on_delivery") await ensureSupplierOrdersSafely(order.id);
   // A payment link placed as pay on delivery counts now (a one-time link closes); card and transfer once paid.
   if (paymentMethod === "pay_on_delivery" && link) await settlePaymentLinkForOrder(order.id);
+  // Shopinbos's own analytics: a pay-on-delivery order counts as received now (online ones once paid).
+  if (paymentMethod === "pay_on_delivery") trackFirstOrderIfFirst(order.id);
 
   const money = (amount: number) => new Intl.NumberFormat("en-NG", { style: "currency", currency: store.currency, maximumFractionDigits: 0 }).format(amount);
   const sellerDescription = `${buyerName} placed an order worth ${money(total)}. ${paymentChoiceText(paymentMethod)}`;

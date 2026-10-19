@@ -55,3 +55,23 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Draft edits (SEO, nav) go into `draftContent`; publish snapshots go into `content` + `publishedContent`
 - Per-page previews render at `/preview/store/[slug]/[pageId]` using a single-page snapshot
 <!-- END:session-summary -->
+
+## Product analytics (Mixpanel, also PostHog / GA4 when their keys are set)
+
+Shopinbos's own analytics run on the app and portals only, never on sellers' storefronts. Keys come from env
+(`NEXT_PUBLIC_MIXPANEL_TOKEN`, see `.env.local.example`); never hardcode a token. Identity is the Supabase user id
+(`identify` on sign-in, `reset` on sign-out, `src/components/analytics/ProductAnalytics.tsx`); never an email, name
+or phone, and no personal data in event properties.
+
+| Event | Sent from | Properties |
+|---|---|---|
+| `$mp_web_page_view` | browser, each app page | — |
+| `sign_up_completed` | server, `onAccountCreated` (src/lib/lead-growth/service.server.ts) | `role`, `from_lead` |
+| `lead_captured` | server, website lead form | `kind`, `source`, `utm_*` |
+| `store_published` | server, `publishStoreDraft` | `is_first_publish` |
+| `product_added` | server, every seller product create (not Rex's draft samples) | `source`, `product_count`, `is_from_supplier` |
+| `first_order_received` | server, first paid or pay-on-delivery order (`$insert_id` per store) | `order_total`, `currency`, `payment_method` |
+
+Seller events go through `src/lib/platform-analytics/seller-events.server.ts` (runs after the response, never
+throws). New events: snake_case, past-tense verb + noun, booleans prefixed `is_`, fired only after the action succeeds,
+one event per bulk action (never inside a loop).

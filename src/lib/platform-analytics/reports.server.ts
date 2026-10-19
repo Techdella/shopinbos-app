@@ -121,7 +121,7 @@ export async function mixpanelReport(days: number): Promise<ProviderReport> {
     type Segmentation = { data?: { series?: string[]; values?: Record<string, Record<string, number>> } };
     const [pageviews, signups, top] = await Promise.all([
       get<Segmentation>("segmentation", { event: "$mp_web_page_view", from_date: from, to_date: to, unit: "day", type: "unique" }),
-      get<Segmentation>("segmentation", { event: "signed_up", from_date: from, to_date: to, unit: "day", type: "general" }),
+      get<Segmentation>("segmentation", { event: "sign_up_completed", from_date: from, to_date: to, unit: "day", type: "general" }),
       get<{ events?: Array<{ event: string; amount: number }> }>("events/top", { type: "general", limit: "10" }),
     ]);
     const values = (report: Segmentation) => Object.values(report.data?.values ?? {})[0] ?? {};
@@ -158,7 +158,7 @@ export async function posthogReport(days: number): Promise<ProviderReport> {
     const n = Math.max(1, Math.min(365, Math.floor(days)));
     const [daily, totals, referrers, events] = await Promise.all([
       query(`SELECT toDate(timestamp) AS day, count(DISTINCT person_id) FROM events WHERE timestamp > now() - INTERVAL ${n} DAY GROUP BY day ORDER BY day`),
-      query(`SELECT count(DISTINCT person_id), countIf(event = 'signed_up'), countIf(event = '$pageview') FROM events WHERE timestamp > now() - INTERVAL ${n} DAY`),
+      query(`SELECT count(DISTINCT person_id), countIf(event = 'sign_up_completed'), countIf(event = '$pageview') FROM events WHERE timestamp > now() - INTERVAL ${n} DAY`),
       query(`SELECT coalesce(nullIf(properties.$referring_domain, ''), '$direct') AS ref, count(DISTINCT person_id) AS people FROM events WHERE event = '$pageview' AND timestamp > now() - INTERVAL ${n} DAY GROUP BY ref ORDER BY people DESC LIMIT 10`),
       query(`SELECT event, count() AS c FROM events WHERE timestamp > now() - INTERVAL ${n} DAY GROUP BY event ORDER BY c DESC LIMIT 10`),
     ]);

@@ -10,6 +10,7 @@ import { notifyOrderPaid } from "@/lib/notifications/events.server";
 import { ensureSupplierOrdersSafely } from "@/lib/supplier-orders/service.server";
 import { settlePaymentLinkForOrder } from "@/lib/payment-links/service.server";
 import { recordOrderShares } from "@/lib/wallet/wallet.server";
+import { trackFirstOrderIfFirst } from "@/lib/platform-analytics/seller-events.server";
 
 // What happens once a storefront order's online payment is confirmed (the Paystack webhook). `newlyPaid` is true only for the caller that moved the order to paid, so the buyer and seller hear about
 // it once; the supplier orders and payment link are idempotent and run again on replays. Only settling the payment
@@ -20,6 +21,7 @@ export async function afterRetailOrderPaid(orderId: string, newlyPaid: boolean, 
     await creditCampaignConversion(orderId).catch(() => null);
     await notifyOrderCustomer(orderId, "payment_received").catch(() => null); // WhatsApp/SMS to the buyer, if switched on
     await notifyOrderPaid(orderId).catch(() => null); // the seller's bell and phone
+    trackFirstOrderIfFirst(orderId); // Shopinbos's own analytics: the store's first order
   }
   // Dropship items go to their suppliers. Idempotent, so a replayed event (or one that failed half way) is safe.
   await ensureSupplierOrdersSafely(orderId);

@@ -5,6 +5,7 @@ import { ok, apiError } from "@/lib/api/response";
 import { AddFromSupplierSchema } from "@/lib/schemas";
 import type { AuthUser } from "@/lib/auth/types";
 import { markCatalogDirty } from "@/lib/whatsapp-catalog/dirty";
+import { trackProductAdded } from "@/lib/platform-analytics/seller-events.server";
 
 export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUser }) => {
   const body = await req.json().catch(() => null);
@@ -50,6 +51,7 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
       status: "published",
     },
   });
+  trackProductAdded({ userId: user.id, source: "supplier", fromSupplier: true });
 
   if (fulfillmentType === "dropship") {
     await db.dropshipRelationship.create({

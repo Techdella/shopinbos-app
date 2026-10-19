@@ -522,7 +522,7 @@ export function matchLeadsToExistingUsers(options: { leadId?: string; days?: num
 /** Called once when a brand-new account is created (src/lib/auth/app-user.ts). Never throws. */
 export async function onAccountCreated(user: { id: string; supabaseId: string; email: string | null; phone: string | null; role: string; createdAt: Date }) {
   const linked = await linkLeadsToUser(user).catch(() => 0);
-  await trackServerEvent({ event: "signed_up", distinctId: user.supabaseId, properties: { role: user.role, from_lead: linked > 0 } }).catch(() => undefined);
+  await trackServerEvent({ event: "sign_up_completed", distinctId: user.supabaseId, properties: { role: user.role, from_lead: linked > 0 } }).catch(() => undefined);
 }
 
 export function optOutLead(leadId: string, channel: LeadChannel) {

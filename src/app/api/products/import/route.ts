@@ -12,6 +12,7 @@ import { findOrCreateCategory } from "@/lib/products/categories.server";
 import { parseImageMap } from "@/lib/products/import.server";
 import { IMPORT_MAX_ROWS, importHeadersProblem, isColumnTarget, mapImportRow, resolveImportImages, type ColumnMap } from "@shared/product-import";
 import { ImportEnhancementsSchema, mergeEnhancement, type ImportEnhancement } from "@shared/product-content";
+import { trackProductAdded } from "@/lib/platform-analytics/seller-events.server";
 
 type ProductImportRow = Record<string, string | undefined>;
 
@@ -142,5 +143,6 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
   }
 
   if (imported) await markCatalogDirty(store.id);
+  if (imported) trackProductAdded({ userId: user.id, source: "csv_import", count: imported });
   return ok({ imported, withImages, enhanced, errors, notices });
 });

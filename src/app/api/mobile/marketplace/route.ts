@@ -4,6 +4,7 @@ import { withSeller } from "@/lib/auth/middleware";
 import { apiError, ok } from "@/lib/api/response";
 import { db } from "@/lib/db/client";
 import { mergeBrandSettings } from "@/lib/workspace";
+import { trackProductAdded } from "@/lib/platform-analytics/seller-events.server";
 
 export const dynamic = "force-dynamic";
 
@@ -73,6 +74,7 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
       status: "draft",
     },
   });
+  trackProductAdded({ userId: user.id, source: dropship ? "dropship" : "supplier", fromSupplier: true });
   if (dropship) {
     await db.dropshipRelationship.create({
       data: { sellerId: user.id, storeId: store.id, supplierId: product.supplierId, supplierProductId: product.id, storeProductId: storeProduct.id },

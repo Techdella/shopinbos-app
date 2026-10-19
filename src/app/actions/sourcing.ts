@@ -18,6 +18,7 @@ import {
   type ImportRequest,
   type SourcingSettings,
 } from "@/lib/marketplace/find";
+import { trackProductAdded } from "@/lib/platform-analytics/seller-events.server";
 
 // Find products (/marketplace) and My imports (/home/imports): add a supplier's product to the store, ask for a
 // wholesale quote, save, message the supplier, get told when suppliers join, and ask for a China import.
@@ -92,6 +93,7 @@ export async function addSupplierProductToStore(input: { supplierProductId: stri
       status: "draft",
     },
   });
+  trackProductAdded({ userId: user.id, source: dropship ? "dropship" : "supplier", fromSupplier: true });
   if (dropship) {
     await db.dropshipRelationship.create({
       data: { sellerId: user.id, storeId: store.id, supplierId: product.supplierId, supplierProductId: product.id, storeProductId: storeProduct.id },
