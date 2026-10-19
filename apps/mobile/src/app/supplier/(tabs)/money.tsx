@@ -15,6 +15,7 @@ import { supplierOrderStage } from "@/lib/supplier-pure";
 import { useLoad } from "@/lib/useLoad";
 import { openWeb } from "@/lib/web";
 import { colors } from "@/theme";
+import { DeleteAccountButton } from "@/components/DeleteAccountButton";
 
 // Supplier Money (build spec 8A): what's coming to the bank, where it goes, recent orders, and the rows that used to
 // be on More (verification, quotes, profile, team, settings). The bank form itself is on the web for now.
@@ -80,6 +81,7 @@ export default function SupplierMoney() {
             <LinkRow icon="help" label={t("help")} hint={t("money.helpHint")} onPress={() => router.push("/help")} />
           </Card>
           <LinkButton title={t("logOut")} color={colors.danger} onPress={() => confirmSignOut()} />
+          <DeleteAccountButton />
         </View>
       ) : null}
     </TabScreen>

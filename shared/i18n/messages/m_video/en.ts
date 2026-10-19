@@ -29,7 +29,7 @@ const en = {
   "photos.adding": "Adding…",
   "photos.allow": "Allow Shopinbos to use your photos in your phone's settings, then try again.",
   "photos.problem": "That photo didn't upload. Try another one.",
-  "shots.credits": "You've used today's free pictures. Buy credits on the web to make more shots.",
+  "shots.credits": "You've used today's free pictures. You get more tomorrow.",
   "shots.done": "{count, plural, one {Your shot is ready} other {Your # shots are ready}}.",
   "words.language": "Language",
   "words.write": "Write the words with Rex",

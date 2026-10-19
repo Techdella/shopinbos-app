@@ -5,6 +5,7 @@ import { billingEmail } from "@/lib/auth/billing-email";
 import { AppPage, PillLink } from "@/components/app-kit";
 import { supplierFrame } from "@/components/supplier/supplier-kit";
 import { getT } from "@/lib/i18n/server";
+import { isAppSession } from "@/lib/app-session.server";
 import { creditOverview, liveCreditPrices } from "@/lib/ai/credits.server";
 import { aiAllowanceToday } from "@/lib/ai/usage";
 import { db } from "@/lib/db/client";
@@ -32,6 +33,8 @@ export default async function SupplierCreditsPage({ searchParams }: { searchPara
   ]);
   const [allowance, prices] = await Promise.all([aiAllowanceToday(user.id, plan?.aiCredits), liveCreditPrices()]);
 
+  const inApp = await isAppSession();
+
   return (
     <AppPage
       frame={supplierFrame({ ...user, email: billingEmail(user) }, workspace.supplier)}
@@ -39,16 +42,22 @@ export default async function SupplierCreditsPage({ searchParams }: { searchPara
       sub={t("cr.sub")}
       actions={<PillLink href="/supplier/profile?tab=Billing%20%26%20Plan" icon="arrowLeft">{t("cr.billing")}</PillLink>}
     >
-      <PromoBanner role="supplier" className="mb-5" />
-      <CreditsClient
-        initial={overview}
-        packs={prices.packs}
-        costs={prices.costs}
-        allowance={allowance}
-        result={query.credits === "paid" || query.credits === "failed" || query.credits === "pending" ? query.credits : null}
-        resultError={query.error?.slice(0, 300) ?? null}
-        returnTo="/supplier/credits"
-      />
+      {inApp ? (
+        <p className="m-0 text-[14px] leading-[1.5]">{t("app.billingOff")}</p>
+      ) : (
+        <>
+          <PromoBanner role="supplier" className="mb-5" />
+          <CreditsClient
+            initial={overview}
+            packs={prices.packs}
+            costs={prices.costs}
+            allowance={allowance}
+            result={query.credits === "paid" || query.credits === "failed" || query.credits === "pending" ? query.credits : null}
+            resultError={query.error?.slice(0, 300) ?? null}
+            returnTo="/supplier/credits"
+          />
+        </>
+      )}
     </AppPage>
   );
 }

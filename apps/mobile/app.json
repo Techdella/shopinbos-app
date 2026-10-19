@@ -28,10 +28,14 @@
       "permissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS",
-        "android.permission.FOREGROUND_SERVICE",
-        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"
+      ],
+      "blockedPermissions": [
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
       ]
     },
     "web": {
@@ -65,16 +69,27 @@
         "expo-audio",
         {
           "microphonePermission": "Shopinbos uses the microphone only when you tap the mic, so you can speak instead of typing.",
-          "recordAudioAndroid": true
+          "recordAudioAndroid": true,
+          "enableBackgroundPlayback": false,
+          "enableBackgroundRecording": false
         }
       ],
-      "expo-video",
+      [
+        "expo-video",
+        {
+          "supportsBackgroundPlayback": false,
+          "supportsPictureInPicture": false
+        }
+      ],
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Shopinbos uses your location only while you're online, so we can give you jobs near you.",
+          "locationWhenInUsePermission": "While you're online or on a delivery, Shopinbos shares your location with your delivery company so they can give you nearby jobs and track deliveries.",
           "isAndroidBackgroundLocationEnabled": false,
-          "isIosBackgroundLocationEnabled": false
+          "isIosBackgroundLocationEnabled": false,
+          "locationAlwaysAndWhenInUsePermission": false,
+          "locationAlwaysPermission": false,
+          "motionUsagePermission": false
         }
       ],
       [
@@ -84,7 +99,8 @@
           "color": "#FF6A2B",
           "defaultChannel": "orders"
         }
-      ]
+      ],
+      "expo-asset"
     ],
     "extra": {
       "router": {},

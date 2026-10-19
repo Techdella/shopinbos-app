@@ -28,7 +28,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "photos.adding": "Na-etinye…",
   "photos.allow": "Kwe ka Shopinbos jiri foto gị na ntọala ekwentị gị, wee nwaa ọzọ.",
   "photos.problem": "Foto ahụ ebugoghị. Nwaa nke ọzọ.",
-  "shots.credits": "I jirila foto efu nke taa. Zụta credits na weebụ iji mee shots ndị ọzọ.",
+  "shots.credits": "I jirila foto efu nke taa. Ị ga-enweta ndị ọzọ echi.",
   "shots.done": "{count, plural, one {Shot gị dị njikere} other {Shots # gị dị njikere}}.",
   "words.language": "Asụsụ",
   "words.write": "Ka Rex dee okwu ndị ahụ",

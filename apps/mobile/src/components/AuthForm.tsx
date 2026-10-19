@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, View } from "react-native";
 import { router } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { DEFAULT_DIAL_COUNTRY, DIAL_COUNTRIES, isValidEmail, toE164, type DialCountry } from "@shared/phone";
@@ -14,6 +15,9 @@ import { colors } from "@/theme";
 import { HelpButton } from "@/components/Help";
 import { LanguageButton } from "@/components/LanguagePicker";
 import { useT } from "@/lib/i18n";
+import { PRIVACY_URL, TERMS_URL } from "@/lib/support";
+
+const legalLink = { color: colors.ink, textDecorationLine: "underline" } as const;
 
 type Mode = "signup" | "login";
 type Method = "phone" | "email";
@@ -37,6 +41,7 @@ function changeRole() {
 
 export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller" }: { mode: Mode; initialMethod?: Method; initialRole?: SignupRole }) {
   const t = useT("m_auth");
+  const tLegal = useT("auth");
   const [method, setMethod] = useState<Method>(initialMethod);
   // Who is signing up, picked on the Welcome cards (seller, supplier, delivery partner). Sets a new account's role.
   const role = initialRole;
@@ -224,7 +229,11 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
                 <T style={{ flex: 1, fontSize: 12, color: colors.inkSoft, lineHeight: 18 }}>{t("form.noPassword")}</T>
               </View>
               <T style={{ fontSize: 12, color: colors.inkSoft, lineHeight: 18, marginBottom: 12 }}>
-                {t("form.terms")}
+                {tLegal("terms.before")}{" "}
+                <T style={legalLink} onPress={() => void WebBrowser.openBrowserAsync(TERMS_URL)}>{tLegal("terms.terms")}</T>{" "}
+                {tLegal("terms.and")}{" "}
+                <T style={legalLink} onPress={() => void WebBrowser.openBrowserAsync(PRIVACY_URL)}>{tLegal("terms.privacy")}</T>
+                {tLegal("terms.after")}
               </T>
             </>
           )}

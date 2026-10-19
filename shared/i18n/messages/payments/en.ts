@@ -288,6 +288,10 @@ const en = {
   "sm.credits": "{count} AI credits every month",
   "po.allTime": "All time",
   "po.pages": "Payout pages",
+  "app.launchTitle": "Your shop is ready",
+  "app.launchBody": "It goes live once it's launched. Launching isn't available in the Shopinbos app.",
+  "app.ok": "OK",
+  "app.billingOff": "Plans, billing and AI credits aren't available in the Shopinbos app.",
 } satisfies Record<string, string>;
 
 export default en;

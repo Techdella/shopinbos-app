@@ -290,6 +290,10 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "sm.credits": "Kredit AI {count} kwa ọnwa",
   "po.allTime": "Site na mbido",
   "po.pages": "Peeji payouts",
+  "app.launchTitle": "Ụlọ ahịa gị adịla njikere",
+  "app.launchBody": "Ọ ga-amalite ozugbo e launch ya. Ị nweghị ike ịlaunch ya n'ime app Shopinbos.",
+  "app.ok": "Ọ dị mma",
+  "app.billingOff": "Plans, billing na AI credits adịghị n'ime app Shopinbos.",
 };
 
 export default ig;

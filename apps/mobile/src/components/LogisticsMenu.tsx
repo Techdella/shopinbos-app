@@ -11,6 +11,7 @@ import { Card, LinkButton, T } from "@/components/ui";
 import { useT } from "@/lib/i18n";
 import { openWeb } from "@/lib/web";
 import { colors } from "@/theme";
+import { DeleteAccountButton } from "@/components/DeleteAccountButton";
 
 // The delivery partner's menu, opened from "Menu" on Today (the app has four tabs: Today, Jobs, Riders, Money).
 // "app:" paths are screens in the app; anything else opens that page of the web console, signed in.
@@ -69,6 +70,7 @@ export function LogisticsMenu() {
         <LanguageRow first />
       </Card>
       <LinkButton title={t("logOut")} color={colors.danger} onPress={() => confirmSignOut()} />
+      <DeleteAccountButton />
     </Screen>
   );
 }

@@ -5,6 +5,8 @@ import { PaystackCheckoutButton } from "./PaystackCheckout";
 import { upgradeUserToSupplierMax } from "@/app/actions/payments";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/components/i18n/I18nProvider";
+import { AppBillingNotice } from "@/components/billing/AppBillingNotice";
+import { useAppSession } from "@/components/billing/useAppSession";
 import type { PlanOfferView } from "@shared/plan-catalog";
 
 interface PlanUpgradeSectionProps {
@@ -19,7 +21,13 @@ interface PlanUpgradeSectionProps {
   offer: PlanOfferView;
 }
 
-export function PlanUpgradeSection({ userEmail, userName, aiCredits, creditBalance, productCount = 0, offer }: PlanUpgradeSectionProps) {
+/** Hidden on pages the phone app opened (app store rules; see src/lib/app-session.ts). */
+export function PlanUpgradeSection(props: PlanUpgradeSectionProps) {
+  const inApp = useAppSession();
+  return inApp ? <AppBillingNotice /> : <PlanUpgradeSectionInner {...props} />;
+}
+
+function PlanUpgradeSectionInner({ userEmail, userName, aiCredits, creditBalance, productCount = 0, offer }: PlanUpgradeSectionProps) {
   const t = useT("payments", "account");
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
