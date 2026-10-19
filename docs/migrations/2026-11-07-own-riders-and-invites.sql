@@ -31,7 +31,7 @@ ALTER TABLE "SellerLogisticsInvite" ENABLE ROW LEVEL SECURITY;
 -- Removing the delivery network APIs (Kwik, Fez, Sendstack, Sendbox, Shipbubble).
 -- Done on production 2026-10-19: the carrier-sync cron is unscheduled, and the two hidden network partner rows
 -- (carrier_kwik, carrier_shipbubble) are suspended and rejected, so they can never be listed or booked.
--- Still to run (optional cleanup; nothing reads these any more). Run it AFTER this code is deployed:
+-- Then the rows, tables and columns only they used were removed (run in the Supabase SQL editor, 2026-10-19):
 --
 -- delete from "DeliveryQuoteRequest" where "logisticsPartnerId" in ('carrier_kwik', 'carrier_shipbubble');
 -- delete from "Notification" where "userId" in ('carrier_kwik_user', 'carrier_shipbubble_user');
