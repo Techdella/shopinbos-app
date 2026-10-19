@@ -6,6 +6,7 @@ import { getPriceBook } from "@/lib/pricing/price-book.server";
 import { Card, CardHead, EmptyState, ListCard, ListRow, StatGrid, StatTile } from "@/components/app-kit";
 import { KeyValue, PartnerPage, StatusPill, lagosDate, naira } from "@/components/logistics/kit";
 import { getT } from "@/lib/i18n/server";
+import { PromoBanner } from "@/components/pricing/PromoBanner";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -54,6 +55,7 @@ export default async function LogisticsBillingPage() {
       title={t("fees.title")}
       sub={t("fees.sub", { rate, who: t.dynamic(`fees.bearerWho.${bearer}`, (BEARERS[bearer] ?? bearer).split(" (")[0].toLowerCase()) })}
     >
+      <PromoBanner role="logistics_partner" className="mb-5" />
       <StatGrid className="mb-5 md:grid-cols-3">
         <StatTile tone="card" label={t("fees.earned")} value={naira(totalGross)} hint={t("fees.deliveredJobsCount", { count: delivered.length })} />
         <StatTile tone="card" label={t("fees.shopinbosFees", { rate })} value={naira(totalFees)} />

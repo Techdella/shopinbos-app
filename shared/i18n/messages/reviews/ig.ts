@@ -252,7 +252,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "src.notice.failed": "Ịbanye Google arụghị ọrụ.",
   "src.notice.invalid": "Link ịbanye Google ahụ agwụla ma ọ bụ ọ bụghị maka ụlọ ahịa a. Nwaa ọzọ.",
   "src.notice.notConfigured": "Agbanyebeghị ijikọ Google. Tinye Google reviews gị n'okpuru ugbu a.",
-  "src.locationsFailed": "Anyị enweghị ike ibunye ebe Google gị.",
+  "src.locationsFailed": "Google egosibeghị anyị azụmahịa gị. Nwaa ọzọ n'ime nkeji ole na ole.",
   "src.sub": "Weta reviews site na Google, WhatsApp, social media na marketplaces n'otu ndepụta.",
   "src.connectedTo": "Ejikọọla na {name}",
   "src.googleSub": "Reviews gị na Google Search na Maps.",
@@ -280,6 +280,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "src.feedHow": "Na Google Merchant Center, mepee Growth, wee Manage programs, wee Product ratings, ma tinye URL a dị ka scheduled feed. Ọ na-edepụta reviews e bipụtara ndị na-azụ dere n'ụlọ ahịa gị, n'usoro product reviews nke Google.",
   "src.feedNote": "Google na-egosi kpakpando ozugbo ngwaahịa nwere reviews zuru ezu (na-abụkarị 50 n'ụlọ ahịa gị niile, na opekata mpe 3 maka otu ngwaahịa). Google, social na marketplace reviews ebubatara anọghị na feed n'ihi na Google na-anabata naanị reviews ị chịkọtara n'onwe gị.",
   "src.marketplacesBody": "Shopinbos marketplace bụ ebe ị na-azụta n'aka suppliers, ya mere o nweghị reviews ndị na-azụ gbasara ụlọ ahịa gị iweta. Maka Jumia, Konga ma ọ bụ marketplace ọzọ, bubata reviews site na screenshot ma ọ bụ site n'ịmado ha: a ga-ede aha marketplace ahụ.",
+  "ask.howPlain": "Email adịla njikere. WhatsApp ga-eziga site na nọmba gị ozugbo ị jikọrọ ya. “Site na WhatsApp gị” na-emepe chat na ekwentị gị, ya mere ọ na-arụ ọrụ mgbe niile.",
+  "ask.connectWa": "Jikọọ WhatsApp",
 };
 
 export default ig;

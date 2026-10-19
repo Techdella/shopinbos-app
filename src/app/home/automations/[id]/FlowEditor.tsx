@@ -1,5 +1,6 @@
 "use client";
 
+import { SMS_ENABLED } from "@/lib/features";
 import { confirmDialog } from "@/components/ui/dialogs";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -28,7 +29,7 @@ interface Initial {
 
 // Triggers the seller can pick; post_purchase / review_request duplicate payment_received / order_delivered.
 const TRIGGERS: FlowTrigger[] = ["welcome_email", "abandoned_checkout", "browse_abandonment", "order_placed", "payment_received", "order_shipped", "order_delivered", "new_customer", "win_back", "birthday"];
-const ADDABLE: FlowStepType[] = ["wait", "condition", "send_email", "send_whatsapp", "send_sms", "give_discount", "add_tag", "request_review", "notify_seller"];
+const ADDABLE: FlowStepType[] = ["wait", "condition", "send_email", "send_whatsapp", ...(SMS_ENABLED ? (["send_sms"] as const) : []), "give_discount", "add_tag", "request_review", "notify_seller"];
 
 function blank(type: FlowStepType): FlowStep {
   switch (type) {

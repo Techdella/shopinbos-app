@@ -10,7 +10,13 @@ import { ConnectCard } from "./ChannelClient";
 
 export async function ConnectAccounts({ storeId, only, next, columns = "sm:grid-cols-2 xl:grid-cols-3" }: { storeId: string; only?: LivePlatform[]; next?: "/home/connections" | "/home/inbox/channels" | "/home/start"; columns?: string }) {
   const t = await getT("social", "common");
-  const { cards } = await channelCards(storeId);
+  // Falls back to no cards rather than taking the page down; logged so the cause shows in the server logs.
+  const cards = await channelCards(storeId)
+    .then((result) => result.cards)
+    .catch((error: unknown) => {
+      console.error("[connect-accounts] channel cards failed", error instanceof Error ? `${error.name}: ${error.message.slice(0, 300)}` : "unknown");
+      return [];
+    });
   const signup = embeddedSignupConfig();
   const shown = only ? cards.filter((card) => only.includes(card.platform)) : cards;
   return (

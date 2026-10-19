@@ -1,6 +1,8 @@
 "use server";
 
 import { grantPlanCredits } from "@/lib/ai/credits.server";
+import { getPlanCatalog } from "@/lib/plans/catalog.server";
+import { PLAN_TIERS, planVersion, type PlanTier } from "@shared/plan-catalog";
 import { db } from "@/lib/db/client";
 import { billingEmail } from "@/lib/auth/billing-email";
 import { revalidatePath } from "next/cache";
@@ -27,13 +29,10 @@ interface PaystackTransaction {
   plan_object?: { plan_code?: string } | null;
 }
 
-// Paystack plan codes per upgrade, with the minimum amount (NGN) each must have charged.
-const UPGRADE_PLANS = {
-  seller_growth: { credits: 50, plans: { PLN_8ou289e71czicvm: 8000, PLN_q1k3ssxpx7rxxuz: 80000 } },
-  seller_pro: { credits: 200, plans: { PLN_2gph11w3yd0250y: 18000, PLN_9gma70ofldhbj4r: 180000 } },
-  supplier_max: { credits: 100, plans: { PLN_q78304vgj7p35o6: 25000 } },
-} as const;
-type UpgradeKey = keyof typeof UPGRADE_PLANS;
+// Upgrades are the plan tiers (shared/plan-catalog.ts). Any price the tier was sold at is accepted (Admin › Pricing ›
+// Plans creates a new Paystack plan per price; a checkout opened before a change pays the older one), as long as
+// Paystack charged at least that plan's amount.
+type UpgradeKey = PlanTier;
 
 async function fetchPaystackTransaction(reference: string): Promise<{ success: boolean; data?: PaystackTransaction; error?: string }> {
   const secret = process.env.PAYSTACK_SECRET_KEY ?? "";
@@ -336,12 +335,12 @@ async function applyPlanUpgrade(reference: string, upgrade: UpgradeKey, paths: s
     }
 
     const planCode = typeof tx.plan === "string" ? tx.plan : tx.plan?.plan_code ?? tx.plan_object?.plan_code;
-    const plans = UPGRADE_PLANS[upgrade].plans as Record<string, number>;
-    const minimum = planCode ? plans[planCode] : undefined;
-    if (minimum === undefined) {
+    await getPlanCatalog();
+    const version = planVersion(planCode);
+    if (!version || version.tier !== upgrade || version.amountNgn === null) {
       return { success: false, error: "Payment is not for this plan" };
     }
-    if (tx.amount / 100 < minimum) {
+    if (tx.amount / 100 < version.amountNgn) {
       return { success: false, error: "Payment amount is less than the plan price" };
     }
     if (tx.customer?.email?.toLowerCase() !== billingEmail(user)) {
@@ -354,7 +353,7 @@ async function applyPlanUpgrade(reference: string, upgrade: UpgradeKey, paths: s
         db.paymentReceipt.create({
           data: { reference, userId: user.id, purpose: upgrade, amount: tx.amount / 100, provider: "paystack" },
         }),
-        db.user.update({ where: { id: user.id }, data: { aiCredits: UPGRADE_PLANS[upgrade].credits } }),
+        db.user.update({ where: { id: user.id }, data: { aiCredits: PLAN_TIERS[upgrade].marker } }),
       ]);
     } catch (error) {
       if ((error as { code?: string }).code === "P2002") {

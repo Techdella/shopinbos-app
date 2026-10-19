@@ -19,6 +19,7 @@ import type { OrderChannel } from "@shared/channels";
 import { CampaignsWidget } from "@/components/campaigns/CampaignsWidget";
 import { sellerCountdowns } from "@/lib/store-campaigns/server";
 import { sortForWidget } from "@/lib/store-campaigns/status";
+import { PromoBanner } from "@/components/pricing/PromoBanner";
 
 // Seller home, following the 2026 "Seller app · web" mockup.
 
@@ -165,6 +166,7 @@ export default async function HomePage() {
       userEmail={user.email}
     >
       <div className="grid w-full gap-5 px-4 py-6 font-app text-app-ink sm:px-6 xl:grid-cols-[minmax(0,1fr)_420px] xl:px-8 2xl:grid-cols-[minmax(0,1fr)_480px] 2xl:px-10">
+        <PromoBanner role="seller" className="xl:col-span-2" />
         {/* Hero */}
         <Card className="app-wash relative overflow-hidden p-6 sm:p-7">
           <div className="text-[14px] text-app-ink-soft">{lagosDate(now, locale)}</div>

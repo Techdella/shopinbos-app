@@ -57,7 +57,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "email.confirm": "Stop to send email from this address? Your chats go still dey your Inbox.",
   "email.disconnected": "Email don disconnect.",
   "email.domainTitle": "Set up your domain email for bigger screen",
-  "email.domainBody": "Email like hello@yourshop.com need some settings for your domain. E easy pass for computer, but you fit open am for this phone too. Or ask us make we set am up.",
+  "email.domainBody": "Email like hello@yourshop.com: pick the address and tap Connect. E easier for computer, but you fit open am for this phone too.",
   "email.askUs": "Ask us make we set am up",
 };
 

@@ -77,7 +77,7 @@ export default function Chats() {
           <EmptyState
             icon="chat"
             title={items.length ? t("list.nothing") : t("list.noMessages")}
-            action={items.length ? undefined : <PillButton title={t("list.connectButton")} size="md" onPress={() => router.push({ pathname: "/ask-us", params: { what: "channels" } })} />}
+            action={items.length ? undefined : <PillButton title={t("list.connectButton")} size="md" onPress={() => router.push("/channels")} />}
           >
             {items.length ? t("list.nothingBody") : t("list.emptyBody")}
           </EmptyState>
@@ -117,7 +117,7 @@ export default function Chats() {
         <LinkRow first icon="users" label={t("partners.title")} hint={t("list.partnersHint")} onPress={() => router.push("/partners")} />
         <LinkRow icon="clock" label={t("list.autoReplies")} hint={t("list.autoRepliesHint")} onPress={() => router.push("/inbox/auto-replies")} />
         <LinkRow icon="mail" label={t("list.email")} hint={t("list.emailHint")} onPress={() => router.push("/channels")} />
-        <LinkRow icon="chat" label={t("list.connect")} hint={t("list.connectHint")} onPress={() => router.push({ pathname: "/ask-us", params: { what: "channels" } })} />
+        <LinkRow icon="chat" label={t("list.connect")} hint={t("list.connectHint")} onPress={() => router.push("/channels")} />
       </Card>
     </TabScreen>
   );

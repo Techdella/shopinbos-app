@@ -775,7 +775,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "om.detail.tracking": "Link tracking",
   "om.detail.cart": "Link iji kwụchaa ụgwọ",
   "om.waHow": "Jikọọ nọmba WhatsApp Business gị iji ziga ozi order na WhatsApp.",
-  "om.smsHow": "Ozi SMS chọrọ account SMS. Anyị nwere ike ịhazi ya maka gị.",
+  "om.smsHow": "Agbanyebeghị ozi SMS. Ha ga-arụ ọrụ ebe a n'onwe ha ozugbo agbanyere ha; ọ nweghị ihe a ga-ejikọ.",
   "om.askSetup": "Rịọ anyị ka anyị hazie SMS",
   "om.setupTitle": "Hazie SMS maka ozi order m",
   "om.setupDesc": "Anyị ga-ejikọ account SMS maka ụlọ ahịa gị ma gwa gị mgbe ozi dị njikere ịga.",

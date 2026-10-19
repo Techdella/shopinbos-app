@@ -252,7 +252,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "src.notice.failed": "Wíwọlé Google kò ṣiṣẹ́.",
   "src.notice.invalid": "Link wíwọlé Google yẹn ti parí tàbí kì í ṣe fún ṣọ́ọ̀bù yìí. Tún gbìyànjú.",
   "src.notice.notConfigured": "Sísopọ̀ Google kò tíì wà ní títàn. Fi Google reviews rẹ kún un nísàlẹ̀ fún báyìí.",
-  "src.locationsFailed": "A kò lè ṣí àwọn ibi Google rẹ.",
+  "src.locationsFailed": "Google kò tíì fi iṣẹ́ rẹ hàn wá. Gbìyànjú lẹ́ẹ̀kan sí i ní ìṣẹ́jú díẹ̀.",
   "src.sub": "Mú reviews láti Google, WhatsApp, social media àti marketplaces wá sínú àkójọ kan.",
   "src.connectedTo": "Ó ti so mọ́ {name}",
   "src.googleSub": "Reviews rẹ lórí Google Search àti Maps.",
@@ -280,6 +280,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "src.feedHow": "Nínú Google Merchant Center, ṣí Growth, lẹ́yìn náà Manage programs, lẹ́yìn náà Product ratings, kí o sì fi URL yìí kún un bí scheduled feed. Ó ń ṣe àkójọ reviews tí a ti gbé jáde tí àwọn oníbàárà kọ sórí ṣọ́ọ̀bù rẹ, ní ìlànà product reviews ti Google.",
   "src.feedNote": "Google máa ń fi ìràwọ̀ hàn tí ọjà kan bá ti ní reviews tó tó (nígbà gbogbo 50 jákèjádò ṣọ́ọ̀bù rẹ, àti ó kéré tán 3 fún ọjà kan). Google, social àti marketplace reviews tí a mú wọlé kò sí nínú feed nítorí Google máa ń gba reviews tí o kó jọ fúnra rẹ nìkan.",
   "src.marketplacesBody": "Shopinbos marketplace ni ibi tí o ti ń rà láti ọ̀dọ̀ àwọn supplier, nítorí náà kò ní reviews oníbàárà nípa ṣọ́ọ̀bù rẹ láti mú wá. Fún Jumia, Konga tàbí marketplace míì, mú reviews wọlé pẹ̀lú screenshot tàbí nípa lílẹ̀ wọ́n: a máa kọ orúkọ marketplace náà sí wọn.",
+  "ask.howPlain": "Ìmeèlì ti ṣetán. WhatsApp á fi ránṣẹ́ láti nọ́mbà tìrẹ ní kété tí o bá so ó pọ̀. “Láti WhatsApp rẹ” á ṣí chat lórí fóònù rẹ, nítorí náà ó máa ń ṣiṣẹ́ nígbà gbogbo.",
+  "ask.connectWa": "So WhatsApp pọ̀",
 };
 
 export default yo;

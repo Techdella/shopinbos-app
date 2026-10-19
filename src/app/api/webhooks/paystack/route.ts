@@ -20,6 +20,8 @@ import { PAID_RETAIL_STATUSES } from "@/lib/supplier-orders/pure";
 import { isDedicatedCharge } from "@/lib/logistics/payin-rules";
 import { handleDedicatedAccountAssign, handleDedicatedAccountCharge } from "@/lib/logistics/payins.server";
 import { recordInvoicePaid, recordSubscriptionCreated, recordSubscriptionStatus } from "@/lib/seller-plan.server";
+import { getPlanCatalog } from "@/lib/plans/catalog.server";
+import { FREE_PLAN_MARKER, planMarker } from "@shared/plan-catalog";
 
 // The plan itself (code, monthly/annual, status, paid-until) is recorded on User for the free-domain rule
 // (src/lib/seller-plan.ts). A failure there is logged, never fails the webhook: the credits above still apply.
@@ -27,14 +29,6 @@ function recordPlan(work: Promise<unknown>) {
   return work.catch((error) => console.error("[paystack webhook] could not record the seller plan", error));
 }
 
-const PLAN_CREDITS: Record<string, number> = {
-  PLN_8ou289e71czicvm: 50,   // Seller Growth (monthly)
-  PLN_2gph11w3yd0250y: 200,  // Seller Pro (monthly)
-  PLN_q78304vgj7p35o6: 100,  // Supplier Max (monthly)
-  PLN_q1k3ssxpx7rxxuz: 50,   // Seller Growth Annual
-  PLN_9gma70ofldhbj4r: 200,  // Seller Pro Annual
-  PLN_0a6z6ns429ohli1: 100,  // Supplier Max Annual
-};
 
 function verifySignature(body: string, signature: string | null, secret: string): boolean {
   if (!signature) return false;
@@ -88,14 +82,17 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Subscription created (first payment via plan) ────────────────────────
+  // Subscription events: load the plan catalog first so plan codes created from Admin › Pricing › Plans are known.
+  if (eventType?.startsWith("subscription.") || eventType === "invoice.update") await getPlanCatalog();
+
   if (eventType === "subscription.create") {
     const planCode = event.data?.plan?.plan_code as string | undefined;
     const customerEmail = event.data?.customer?.email as string | undefined;
-    if (planCode && customerEmail && PLAN_CREDITS[planCode] !== undefined) {
-      const credits = PLAN_CREDITS[planCode];
+    const marker = planMarker(planCode);
+    if (planCode && customerEmail && marker !== null) {
       await db.user.updateMany({
         where: { email: customerEmail },
-        data: { aiCredits: credits },
+        data: { aiCredits: marker },
       });
     }
     await recordPlan(recordSubscriptionCreated(event.data ?? {}));
@@ -109,11 +106,11 @@ export async function POST(req: NextRequest) {
   if (eventType === "invoice.update" && event.data?.paid === true) {
     const planCode = event.data?.subscription?.plan?.plan_code as string | undefined;
     const customerEmail = event.data?.customer?.email as string | undefined;
-    if (planCode && customerEmail && PLAN_CREDITS[planCode] !== undefined) {
-      const credits = PLAN_CREDITS[planCode];
+    const marker = planMarker(planCode);
+    if (planCode && customerEmail && marker !== null) {
       await db.user.updateMany({
         where: { email: customerEmail },
-        data: { aiCredits: credits },
+        data: { aiCredits: marker },
       });
       // Each paid renewal adds the plan's credits to the balance (once per invoice).
       const payer = await db.user.findFirst({ where: { email: { equals: customerEmail, mode: "insensitive" } }, select: { id: true } });
@@ -129,7 +126,7 @@ export async function POST(req: NextRequest) {
     if (customerEmail) {
       await db.user.updateMany({
         where: { email: customerEmail },
-        data: { aiCredits: 5 },
+        data: { aiCredits: FREE_PLAN_MARKER },
       });
     }
     await recordPlan(recordSubscriptionStatus(event.data ?? {}, eventType === "subscription.disable" ? "cancelled" : "non_renewing"));

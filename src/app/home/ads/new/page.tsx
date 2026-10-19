@@ -9,6 +9,7 @@ import { getT } from "@/lib/i18n/server";
 import { getPriceBook } from "@/lib/pricing/price-book.server";
 import { adPrices } from "@shared/platform-pricing";
 import { CampaignWizard } from "./CampaignWizard";
+import { PromoBanner } from "@/components/pricing/PromoBanner";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -41,6 +42,7 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
 
   return (
     <SellerPage user={user} store={storeSummary(store)} title={t("c.title")} sub={t("c.sub")}>
+      <PromoBanner role="seller" className="mb-5" />
       <CampaignWizard
         products={products.map((product) => ({ id: product.id, name: product.name, price: product.retailPrice, image: product.images[0] ?? null }))}
         videos={videos.flatMap((video) => (video.videoUrl ? [{ id: video.id, title: video.title, videoUrl: video.videoUrl, posterUrl: video.posterUrl, productId: video.productId }] : []))}

@@ -17,7 +17,7 @@ const GROWTH_ANNUAL = "PLN_q1k3ssxpx7rxxuz";
 const PRO_ANNUAL = "PLN_9gma70ofldhbj4r";
 const active = (over = {}) => ({ planCode: GROWTH_ANNUAL, planInterval: "annual", planStatus: "active", planPaidUntil: inDays(200), ...over });
 
-test("plan codes map to monthly or annual; only seller annual plans come with a domain", () => {
+test("plan codes map to monthly or annual; only seller annual plans come with a domain", async () => {
   assert.equal(plan.planInterval("PLN_8ou289e71czicvm"), "monthly");
   assert.equal(plan.planInterval("PLN_2gph11w3yd0250y"), "monthly");
   assert.equal(plan.planInterval("PLN_q78304vgj7p35o6"), "monthly");
@@ -27,10 +27,13 @@ test("plan codes map to monthly or annual; only seller annual plans come with a 
   assert.equal(plan.planInterval("PLN_unknown"), null);
   assert.equal(plan.planInterval(null), null);
   assert.equal(plan.planInterval("toString"), null, "no prototype keys");
-  assert.deepEqual([...plan.SELLER_ANNUAL_PLANS].sort(), [GROWTH_ANNUAL, PRO_ANNUAL].sort());
-  // Same codes as the webhook's credit table.
+  const catalog = await import("../shared/plan-catalog.ts");
+  const freeDomain = catalog.BUILTIN_PLAN_VERSIONS.map((v) => v.code).filter((code) => plan.isFreeDomainPlan(code));
+  assert.deepEqual(freeDomain.sort(), [GROWTH_ANNUAL, PRO_ANNUAL].sort());
+  // The webhook takes the tier from the same catalog (codes created from admin included).
   const webhook = read("src/app/api/webhooks/paystack/route.ts");
-  for (const code of Object.keys(plan.PLAN_INTERVALS)) assert.match(webhook, new RegExp(code));
+  assert.match(webhook, /planMarker\(planCode\)/);
+  assert.match(webhook, /await getPlanCatalog\(\)/);
 });
 
 test("free domain: active annual Growth or Pro, paid up past now", () => {
@@ -73,7 +76,7 @@ test("wiring: the webhook records the plan, free rows never touch Paystack, the 
   assert.match(webhook, /recordPlan\(recordSubscriptionCreated\(event\.data/);
   assert.match(webhook, /recordPlan\(recordInvoicePaid\(event\.data/);
   assert.match(webhook, /recordSubscriptionStatus\(event\.data \?\? \{\}, eventType === "subscription\.disable" \? "cancelled" : "non_renewing"\)/);
-  assert.match(webhook, /data: \{ aiCredits: credits \}/, "credits unchanged");
+  assert.match(webhook, /data: \{ aiCredits: marker \}/, "the plan marker still set");
   const recorder = read("src/lib/seller-plan.server.ts");
   assert.match(recorder, /planPaidUntil: paystackDate\(data\?\.next_payment_date\)/);
   assert.match(recorder, /paystackDate\(subscription\.next_payment_date\) \?\? extendPaidUntil\(/);
@@ -112,7 +115,7 @@ test("wiring: the webhook records the plan, free rows never touch Paystack, the 
   assert.match(sql, /ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "planPaidUntil" TIMESTAMP\(3\)/);
   assert.match(sql, /ALTER TABLE "DomainPurchase" ADD COLUMN IF NOT EXISTS "coveredByPlan" BOOLEAN NOT NULL DEFAULT false/);
 
-  assert.match(read("src/components/payments/SellerBillingSection.tsx"), /billing === "annual" && plan\.annualPlan && [\s\S]*t\("plan\.freeDomain"\)/);
+  assert.match(read("src/components/payments/SellerBillingSection.tsx"), /billing === "annual" && offer\?\.annual && [\s\S]*t\("plan\.freeDomain"\)/);
   assert.match(read("src/components/builder/DomainSetup.tsx"), /href=\{PLANS_HREF\}/);
   assert.match(read("src/app/admin/domains/page.tsx"), /Free \(annual plan\)/);
 });

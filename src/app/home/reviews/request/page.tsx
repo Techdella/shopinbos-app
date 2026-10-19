@@ -1,4 +1,5 @@
 import { AppPage, Card, CardHead, Pill, PillLink, SplitLayout } from "@/components/app-kit";
+import { SMS_ENABLED } from "@/lib/features";
 import { sellerFrame, timeAgo } from "@/components/seller-core";
 import { requestableOrders, storeChannelReadiness } from "@/lib/reviews/requests";
 import { getReviewSettings, reviewUrls } from "@/lib/reviews/server";
@@ -70,7 +71,7 @@ export default async function RequestReviewsPage() {
             <Card className="p-5">
               <CardHead title={t("ask.how")} />
               <ul className="m-0 mt-3 grid list-none gap-2 p-0 text-[14px]">
-                {(["email", "sms", "whatsapp"] as const).map((channel) => (
+                {(SMS_ENABLED ? (["email", "sms", "whatsapp"] as const) : (["email", "whatsapp"] as const)).map((channel) => (
                   <li key={channel} className="flex items-center justify-between gap-3">
                     <span className="font-bold">{CHANNEL_LABEL[channel]}</span>
                     <Pill tone={ready[channel] ? "success" : "muted"}>{ready[channel] ? t("ask.ready") : t("ask.notSetUp")}</Pill>
@@ -78,7 +79,9 @@ export default async function RequestReviewsPage() {
                 ))}
                 <li className="flex items-center justify-between gap-3"><span className="font-bold">{t("ask.fromYourWhatsApp")}</span><Pill tone="success">{t("ask.alwaysWorks")}</Pill></li>
               </ul>
-              <p className="m-0 mt-3 text-[12.5px] leading-[1.5] text-app-ink-soft">{t("ask.howNote", { wa: ready.ownWhatsapp ? t("ask.waConnected") : t("ask.waNotConnected"), sms: ready.ownSms ? t("ask.smsConnected") : t("ask.smsNotConnected") })}</p>
+              <p className="m-0 mt-3 text-[12.5px] leading-[1.5] text-app-ink-soft">
+                {t("ask.howPlain")}{!ready.whatsapp ? <> <a href="/home/connections" className="font-bold text-app-accent-ink">{t("ask.connectWa")}</a></> : null}
+              </p>
               <p className="m-0 mt-2 text-[12.5px] text-app-ink-soft">{t("ask.wall")} <a href={reviewUrls(store.slug).wall} target="_blank" rel="noopener noreferrer" className="font-bold text-app-accent-ink">{t("ask.open")}</a></p>
             </Card>
             <Card className="p-5">

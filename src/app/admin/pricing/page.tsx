@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { AppPage, Card, CardHead, EmptyState, ListCard, ListRow, Pill } from "@/components/app-kit";
+import { AppPage, Card, CardHead, EmptyState, ListCard, ListRow, Pill, PillLink } from "@/components/app-kit";
 import { Field, adminFrame, buttonClass, fieldClass, formatDate } from "@/components/admin/AdminKit";
 import { savePricing } from "@/app/actions/pricing";
 import { requireRole } from "@/lib/server-auth";
@@ -53,6 +53,7 @@ export default async function AdminPricingPage({ searchParams }: { searchParams:
       frame={adminFrame(user)}
       title="Pricing"
       sub="Every fee and price Shopinbos charges. Changes apply within 30 seconds; payments already started keep their price."
+      actions={<><PillLink href="/admin/pricing/plans" size="sm" icon="cards">Plans</PillLink><PillLink href="/admin/pricing/promotions" size="sm" icon="percent">Promotions</PillLink></>}
     >
       {query.error ? (
         <div role="alert" className="mb-5 rounded-[22px] border border-app-danger bg-white p-4 text-[14px] text-app-danger">{query.error}</div>

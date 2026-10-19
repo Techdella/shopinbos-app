@@ -1,5 +1,6 @@
 "use client";
 
+import { SMS_ENABLED } from "@/lib/features";
 import { confirmDialog } from "@/components/ui/dialogs";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -218,7 +219,7 @@ export function CampaignEditor({
                 </Field>
                 <Field label={t("editor.sendBy")}>
                   <Segmented
-                    options={(["email", "sms", "whatsapp"] as Channel[]).map((value) => ({ value, label: CHANNEL_LABEL[value] }))}
+                    options={(["email", "sms", "whatsapp"] as Channel[]).filter((value) => value !== "sms" || SMS_ENABLED || draft.channel === "sms").map((value) => ({ value, label: CHANNEL_LABEL[value] }))}
                     value={draft.channel}
                     onChange={async (channel) => {
                       // Emails and texts are written differently, so switching between them starts a fresh message.
