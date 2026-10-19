@@ -116,7 +116,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "w.step2": "2. Saka bankin da ake biyanka a ciki",
   "w.verified": "{name} · {id} mai ƙarewa da {last4} · an tabbatar",
   "w.checksSoon": "Ana kunna duba ID. Dawo nan ba da jimawa ba.",
-  "w.review": "Wannan asusun ba a sunan da ke kan ID ɗinka yake ba, don haka ƙungiyarmu tana duba shi (yawanci cikin kwana ɗaya). Biya zai fara da zarar an amince.",
+  "w.review": "Wannan asusun ba a sunanka ko sunan kasuwancinka yake ba, don haka ƙungiyarmu tana duba shi (yawanci cikin kwana ɗaya). Tabbatar da ID ɗinka zai iya amincewa nan take idan sunan ya dace.",
   "w.failed": "Paystack bai iya saita wannan asusun ba: {reason}. Duba bayanan ko gwada wani asusu.",
   "w.idFirst": "Fara tabbatar da ID ɗinka.",
   "w.never": "Shopinbos ba ya riƙe kuɗinka. Idan wani ya biya da kati, ana raba kuɗin a wurin biya kuma rabonka yana zuwa wannan banki kai tsaye, yawanci ranar aiki ta gaba. Kuɗin Paystack yana fita daga rabonka; Shopinbos ba ya karɓar komai.",
@@ -155,6 +155,15 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "w.verifySub": "Duba NIN ko BVN ɗinka cikin minti ɗaya domin abokan ciniki su biya ka da kati, kai tsaye zuwa bankinka.",
   "w.verifyNow": "Tabbatar yanzu",
   "w.later": "Daga baya",
+  "w.getPaid": "Karɓi kuɗinka",
+  "w.bankStep": "1. Ina za mu tura kuɗinka?",
+  "w.idStep": "2. Tabbatar da ID ɗinka",
+  "w.idWhySeller": "Yana ba shagonka alamar tabbaci kuma yana amincewa da asusu a sunanka nan take. Yi shi kowane lokaci.",
+  "w.idWhyBusiness": "Ana buƙatarsa don a tabbatar da kai a Shopinbos. Yana kuma amincewa da takardar ID ɗinka, don haka ba za ka ɗora ta ba.",
+  "w.accountName": "Sunan asusu",
+  "w.lookingUp": "Ana duba asusun…",
+  "w.payMeHere": "Ee, biya ni a nan",
+  "w.noSuchAccount": "Wannan lambar asusun ba ta wanzu a wannan banki.",
 };
 
 export default ha;

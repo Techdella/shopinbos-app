@@ -116,7 +116,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "w.step2": "2. Fi báńkì tí wọ́n ti ń sanwó fún ọ kún un",
   "w.verified": "{name} · {id} tó parí pẹ̀lú {last4} · a ti jẹ́rìí rẹ̀",
   "w.checksSoon": "À ń tan àyẹ̀wò ìdánimọ̀. Padà wá láìpẹ́.",
-  "w.review": "Àkáǹtì yìí kò sí ní orúkọ tó wà lórí ìdánimọ̀ rẹ, nítorí náà ẹgbẹ́ wa ń ṣàyẹ̀wò rẹ̀ (nígbà gbogbo láàárín ọjọ́ kan). Owó yóò bẹ̀rẹ̀ nígbà tí a bá fọwọ́ sí i.",
+  "w.review": "Àkáǹtì yìí kò sí ní orúkọ rẹ tàbí ti iṣẹ́ rẹ, nítorí náà ẹgbẹ́ wa ń ṣàyẹ̀wò rẹ̀ (nígbà gbogbo láàárín ọjọ́ kan). Jíjẹ́rìí ìdánimọ̀ rẹ lè fọwọ́ sí i lẹ́sẹ̀kẹsẹ̀ bí orúkọ bá bá a mu.",
   "w.failed": "Paystack kò lè ṣètò àkáǹtì yìí: {reason}. Ṣàyẹ̀wò àwọn àlàyé tàbí gbìyànjú àkáǹtì mìíràn.",
   "w.idFirst": "Kọ́kọ́ jẹ́rìí ìdánimọ̀ rẹ.",
   "w.never": "Shopinbos kì í dì owó rẹ mú. Nígbà tí ẹnìkan bá san pẹ̀lú káàdì, a pín owó náà níbi isanwó, ìpín rẹ sì ń lọ tààrà sí báńkì yìí, nígbà gbogbo ní ọjọ́ iṣẹ́ tó tẹ̀lé e. Owó Paystack ń jáde láti inú ìpín rẹ; Shopinbos kò gba nǹkan kan.",
@@ -155,6 +155,15 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "w.verifySub": "Ṣàyẹ̀wò NIN tàbí BVN rẹ ní ìṣẹ́jú kan kí àwọn oníbàárà lè sanwó fún ọ pẹ̀lú káàdì, tààrà sí báńkì rẹ.",
   "w.verifyNow": "Jẹ́rìí báyìí",
   "w.later": "Lẹ́yìn náà",
+  "w.getPaid": "Gba owó rẹ",
+  "w.bankStep": "1. Ibo ni kí a fi owó rẹ ránṣẹ́ sí?",
+  "w.idStep": "2. Jẹ́rìí ìdánimọ̀ rẹ",
+  "w.idWhySeller": "Ó ń fún ṣọ́ọ̀bù rẹ ní àmì ìjẹ́rìísí, ó sì ń fọwọ́ sí àkáǹtì tó wà ní orúkọ rẹ lẹ́sẹ̀kẹsẹ̀. Ṣe é nígbàkigbà.",
+  "w.idWhyBusiness": "O nílò rẹ̀ láti di ẹni tí a jẹ́rìí lórí Shopinbos. Ó tún ń fọwọ́ sí ìwé ìdánimọ̀ rẹ, nítorí náà o kò ní gbé e sókè.",
+  "w.accountName": "Orúkọ àkáǹtì",
+  "w.lookingUp": "À ń wá àkáǹtì náà…",
+  "w.payMeHere": "Bẹ́ẹ̀ni, sanwó fún mi níbí",
+  "w.noSuchAccount": "Nọ́ńbà àkáǹtì yẹn kò sí ní báńkì yìí.",
 };
 
 export default yo;

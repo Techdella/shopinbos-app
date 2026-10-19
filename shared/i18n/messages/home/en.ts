@@ -211,6 +211,7 @@ const en = {
   "health.again": "Work it out again",
   "health.failed": "Couldn't work out your score. Try again.",
   "activity.pages": "Activity pages",
+  "step.Card payments go straight to your bank once you add it.": "Card payments go straight to your bank once you add it.",
 } satisfies Record<string, string>;
 
 export default en;

@@ -116,7 +116,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "w.step2": "2. Tinye ụlọ akụ a na-akwụ gị ụgwọ",
   "w.verified": "{name} · {id} na-ejedebe na {last4} · akwadoro",
   "w.checksSoon": "A na-agbanye nlele ID. Lọghachi n'oge na-adịghị anya.",
-  "w.review": "Akaụntụ a adịghị n'aha dị na ID gị, ya mere ndị otu anyị na-enyocha ya (na-abụkarị n'ime otu ụbọchị). Ịkwụ ụgwọ ga-amalite ozugbo akwadoro ya.",
+  "w.review": "Akaụntụ a adịghị n'aha gị ma ọ bụ nke azụmahịa gị, ya mere ndị otu anyị na-enyocha ya (na-abụkarị n'ime otu ụbọchị). Ịkwado ID gị nwere ike ịkwado ya ozugbo ma ọ bụrụ na aha ahụ dakọtara.",
   "w.failed": "Paystack enweghị ike ịhazi akaụntụ a: {reason}. Lelee nkọwa ma ọ bụ nwalee akaụntụ ọzọ.",
   "w.idFirst": "Buru ụzọ kwado ID gị.",
   "w.never": "Shopinbos anaghị ejide ego gị. Mgbe mmadụ kwụrụ site na kaadị, a na-ekewa ego ahụ n'oge ịkwụ ụgwọ, òkè gị na-agakwa ozugbo n'ụlọ akụ a, na-abụkarị n'ụbọchị ọrụ na-esote. Ụgwọ Paystack na-esi n'òkè gị apụ; Shopinbos anaghị ewere ihe ọ bụla.",
@@ -155,6 +155,15 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "w.verifySub": "Lelee NIN ma ọ bụ BVN gị n'otu nkeji ka ndị ahịa nwee ike ịkwụ gị site na kaadị, ozugbo n'ụlọ akụ gị.",
   "w.verifyNow": "Kwado ugbu a",
   "w.later": "Emechaa",
+  "w.getPaid": "Nata ego gị",
+  "w.bankStep": "1. Ebee ka anyị ga-eziga ego gị?",
+  "w.idStep": "2. Kwado ID gị",
+  "w.idWhySeller": "Ọ na-enye ụlọ ahịa gị akara nkwado ma kwado akaụntụ n'aha gị ozugbo. Mee ya oge ọ bụla.",
+  "w.idWhyBusiness": "Ọ dị mkpa ka akwado gị na Shopinbos. Ọ na-akwadokwa akwụkwọ ID gị, ya mere ị gaghị ebugo ya.",
+  "w.accountName": "Aha akaụntụ",
+  "w.lookingUp": "A na-achọ akaụntụ ahụ…",
+  "w.payMeHere": "Ee, kwụọ m ebe a",
+  "w.noSuchAccount": "Nọmba akaụntụ ahụ adịghị n'ụlọ akụ a.",
 };
 
 export default ig;

@@ -35,6 +35,7 @@ export async function getSellerOnboardingStatus(userId: string) {
   });
   if (!store) return null;
   const idCheck = await idCheckState(userId);
+  const walletBank = Boolean(await db.wallet.findFirst({ where: { userId, subaccountStatus: { in: ["active", "review"] } }, select: { id: true } }));
 
   const settings = record(store.brandSettings);
   const editor = record(settings.editor);
@@ -48,7 +49,7 @@ export async function getSellerOnboardingStatus(userId: string) {
     live,
     product: store._count.storeProducts > 0,
     brand: Boolean(editor.draft || editor.published || settings.template),
-    bank: Boolean(record(settings.payoutBank).paystackRecipientCode || record(settings.payoutBank).accountNumberMask),
+    bank: Boolean(record(settings.payoutBank).paystackRecipientCode || record(settings.payoutBank).accountNumberMask) || walletBank,
     wa: channels.includes("whatsapp") || manual.wa === true,
     id: idCheck.verified || store.user.verificationStatus === "verified",
     ig: channels.includes("instagram") || channels.includes("tiktok") || manual.ig === true,

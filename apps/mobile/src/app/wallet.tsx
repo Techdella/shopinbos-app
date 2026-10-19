@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
 import { router } from "expo-router";
 import { naira } from "@shared/onboarding";
@@ -8,7 +8,7 @@ import { Screen } from "@/components/Screen";
 import { Card, Chip, Field, Label, Notice, PillButton, Segmented, T, Toggle } from "@/components/ui";
 import { useLoad } from "@/lib/useLoad";
 import { useT } from "@/lib/i18n";
-import { confirmCashReceived, fetchWallet, linkWalletBank, nairaFromKobo, verifyWalletId, type WalletData } from "@/lib/wallet";
+import { checkWalletAccount, confirmCashReceived, fetchWallet, linkWalletBank, nairaFromKobo, verifyWalletId, type WalletData } from "@/lib/wallet";
 import { colors, radii } from "@/theme";
 
 // Shopinbos Wallet (web /home/wallet, /supplier/wallet, /logistics/wallet), the same screen for sellers, suppliers
@@ -66,30 +66,32 @@ function WalletBody({ data, t, reload }: { data: WalletData; t: TFn; reload: () 
 
       <Card style={{ gap: 14 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-          <T weight="extrabold" style={{ flex: 1, fontSize: 17 }} accessibilityRole="header">{t("w.setUp")}</T>
+          <T weight="extrabold" style={{ flex: 1, fontSize: 17 }} accessibilityRole="header">{t("w.getPaid")}</T>
           {statusBadge(view, t)}
         </View>
         {view.settlement.frozen ? <Notice>{view.settlement.frozenReason ? t("w.pausedWhy", { reason: view.settlement.frozenReason }) : t("w.pausedSupport")}</Notice> : null}
 
+        {/* Getting paid comes first (like Shopify Payments): the bank, then the ID check, which no longer gates it. */}
         <View style={{ gap: 8, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 12 }}>
-          <T weight="extrabold" style={{ fontSize: 15.5 }}>{t("w.step1")}{kycDone ? " ✓" : ""}</T>
+          <T weight="extrabold" style={{ fontSize: 15.5 }}>{t("w.bankStep")}{active ? " ✓" : ""}</T>
+          {view.bank ? <T style={{ fontSize: 15 }}>{`${view.bank.accountName} · ${view.bank.bankName} ${view.bank.accountEnding}`}</T> : null}
+          {view.settlement.status === "review" ? <Notice tone="info">{t("w.review")}</Notice> : null}
+          {view.settlement.status === "failed" && view.settlement.error ? <Notice>{t("w.failed", { reason: view.settlement.error })}</Notice> : null}
+          {!view.settlement.frozen ? <BankForm banks={data.banks} hasBank={Boolean(view.bank)} t={t} onDone={reload} /> : null}
+        </View>
+
+        <View style={{ gap: 8, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 12 }}>
+          <T weight="extrabold" style={{ fontSize: 15.5 }}>{t("w.idStep")}{kycDone ? " ✓" : ""}</T>
           {kycDone ? (
             <T style={{ color: colors.inkSoft, fontSize: 15 }}>
               {t("w.verified", { name: view.kyc.name ?? "", id: view.kyc.idType === "nin" ? "NIN" : "BVN", last4: view.kyc.idLast4 ?? "" })}
             </T>
-          ) : view.kyc.checksReady ? (
-            <KycForm ownerName={data.ownerName} t={t} onDone={reload} />
           ) : (
-            <Notice tone="info">{t("w.checksSoon")}</Notice>
+            <>
+              <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>{role === "seller" ? t("w.idWhySeller") : t("w.idWhyBusiness")}</T>
+              {view.kyc.checksReady ? <KycForm ownerName={data.ownerName} t={t} onDone={reload} /> : <Notice tone="info">{t("w.checksSoon")}</Notice>}
+            </>
           )}
-        </View>
-
-        <View style={{ gap: 8, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 12 }}>
-          <T weight="extrabold" style={{ fontSize: 15.5 }}>{t("w.step2")}</T>
-          {view.bank ? <T style={{ fontSize: 15 }}>{`${view.bank.accountName} · ${view.bank.bankName} ${view.bank.accountEnding}`}</T> : null}
-          {view.settlement.status === "review" ? <Notice tone="info">{t("w.review")}</Notice> : null}
-          {view.settlement.status === "failed" && view.settlement.error ? <Notice>{t("w.failed", { reason: view.settlement.error })}</Notice> : null}
-          {kycDone && !view.settlement.frozen ? <BankForm banks={data.banks} hasBank={Boolean(view.bank)} t={t} onDone={reload} /> : !kycDone ? <T style={{ color: colors.inkSoft, fontSize: 14 }}>{t("w.idFirst")}</T> : null}
         </View>
 
         <T style={{ color: colors.inkSoft, fontSize: 13.5, lineHeight: 19, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 12 }}>{t("w.never")}</T>
@@ -222,6 +224,20 @@ function BankForm({ banks, hasBank, t, onDone }: { banks: string[]; hasBank: boo
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const matches = search.trim() ? banks.filter((bank) => bank.toLowerCase().includes(search.trim().toLowerCase())).slice(0, 8) : [];
+  // Whose account it is, looked up once the 10 digits are in, so the person confirms before saving.
+  const [holder, setHolder] = useState<{ key: string; name: string | null; missing: boolean } | null>(null);
+  const lookupKey = bankName && accountNumber.length === 10 ? `${bankName}:${accountNumber}` : "";
+  useEffect(() => {
+    if (!lookupKey) return;
+    let alive = true;
+    checkWalletAccount({ bankName, accountNumber })
+      .then((result) => alive && setHolder({ key: lookupKey, name: result.status === "resolved" ? result.accountName : null, missing: result.status === "not_found" }))
+      .catch(() => alive && setHolder({ key: lookupKey, name: null, missing: false }));
+    return () => {
+      alive = false;
+    };
+  }, [lookupKey, bankName, accountNumber]);
+  const shown = holder && holder.key === lookupKey ? holder : null;
 
   if (!open) return <PillButton title={t("w.changeBank")} tone="white" size="md" onPress={() => setOpen(true)} />;
 
@@ -264,8 +280,16 @@ function BankForm({ banks, hasBank, t, onDone }: { banks: string[]; hasBank: boo
         <Label>{t("w.accountNumber")}</Label>
         <Field keyboardType="number-pad" maxLength={10} value={accountNumber} onChangeText={(text) => setAccountNumber(text.replace(/\D/g, ""))} accessibilityLabel={t("w.accountNumber")} />
       </View>
+      {lookupKey && !shown ? <T style={{ color: colors.inkSoft, fontSize: 14 }}>{t("w.lookingUp")}</T> : null}
+      {shown?.name ? (
+        <View style={{ backgroundColor: colors.canvas, borderRadius: radii.card, padding: 12, gap: 2 }}>
+          <T style={{ color: colors.inkSoft, fontSize: 13 }}>{t("w.accountName")}</T>
+          <T weight="extrabold" style={{ fontSize: 16 }}>{shown.name}</T>
+        </View>
+      ) : null}
+      {shown?.missing ? <Notice>{t("w.noSuchAccount")}</Notice> : null}
       {error ? <Notice>{error}</Notice> : null}
-      <PillButton title={t("w.saveBank")} size="md" busy={busy} disabled={!bankName || accountNumber.length !== 10} onPress={() => void submit()} />
+      <PillButton title={shown?.name ? t("w.payMeHere") : t("w.saveBank")} size="md" busy={busy} disabled={!bankName || accountNumber.length !== 10 || Boolean(shown?.missing)} onPress={() => void submit()} />
     </View>
   );
 }

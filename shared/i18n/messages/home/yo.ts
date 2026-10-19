@@ -213,6 +213,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "health.again": "Tún un ṣírò",
   "health.failed": "A kò lè ṣírò àmì rẹ. Gbìyànjú lẹ́ẹ̀kan sí i.",
   "activity.pages": "Àwọn ojú-ewé ìṣẹ̀lẹ̀",
+  "step.Card payments go straight to your bank once you add it.": "Owó káàdì yóò lọ tààrà sí báńkì rẹ nígbà tí o bá fi kún un.",
 };
 
 export default yo;

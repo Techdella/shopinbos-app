@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { Mascot, Notice, PillButton, Toggle } from "@/components/app-ui";
 import { cx } from "@/components/app-ui/cx";
 import { Icon } from "@/components/ui/Icon";
-import { BankLinkingModal } from "@/components/payments/BankLinkingModal";
 import { withChannelRef } from "@shared/channels";
 import { PAYMENT_METHODS, type PaymentMethodKey } from "@shared/onboarding";
 import { formatMoney, formatNumber } from "@shared/i18n";
@@ -283,7 +282,6 @@ function StepPanel({
 }) {
   if (step.key === "payments") return <PaymentsPanel initial={overview.payments} payoutBank={overview.facts.payoutBank} onDone={onDone} />;
   if (step.key === "delivery") return <DeliveryPanel zones={overview.zones} onDone={onDone} />;
-  if (step.key === "payout") return <PayoutPanel done={step.done} onDone={onDone} />;
   if (step.key === "live") return <LivePanel live={overview.facts.live} launch={overview.launch} onDone={onDone} onError={onError} />;
   if (step.key === "share") return <SharePanel name={overview.store.name} url={overview.store.url} onShared={onShared} />;
   return null;
@@ -430,20 +428,6 @@ function DeliveryPanel({ zones, onDone }: { zones: SetupOverview["zones"]; onDon
       >
         {t("start.del.save")}
       </PillButton>
-    </div>
-  );
-}
-
-function PayoutPanel({ done, onDone }: { done: boolean; onDone: (message: string) => void }) {
-  const t = useT("home", "common");
-  const [open, setOpen] = useState(false);
-  return (
-    <div>
-      <p className="m-0 text-[14px] leading-[1.5]">
-        {done ? t("start.payout.linked") : t("start.payout.intro")}
-      </p>
-      <PillButton className="mt-3" size="md" onClick={() => setOpen(true)}>{done ? t("start.payout.change") : t("start.payout.add")}</PillButton>
-      <BankLinkingModal isOpen={open} onClose={() => setOpen(false)} role="seller" onSuccess={() => onDone(t("start.payout.saved"))} />
     </div>
   );
 }

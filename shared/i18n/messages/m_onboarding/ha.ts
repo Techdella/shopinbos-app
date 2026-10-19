@@ -131,7 +131,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "checklist.brand.label": "Zaɓi brand da kamanninka",
   "checklist.brand.hint": "Suna, launuka da template",
   "checklist.bank.label": "Ƙara bankinka na payout",
-  "checklist.bank.hint": "Kuɗi yana jira a balance ɗinka har sai ka yi",
+  "checklist.bank.hint": "Kuɗin kati suna tafiya kai tsaye zuwa bankinka",
   "checklist.wa.label": "Haɗa WhatsApp don Peggy",
   "checklist.wa.hint": "Peggy tana rubuta maka amsoshi",
   "checklist.id.label": "Tabbatar da ID ɗinka",

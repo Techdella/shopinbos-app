@@ -131,7 +131,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "checklist.brand.label": "Yan brand àti ìrísí rẹ",
   "checklist.brand.hint": "Orúkọ, àwọ̀ àti template",
   "checklist.bank.label": "Fi bank payout rẹ kún un",
-  "checklist.bank.hint": "Owó yóò dúró nínú balance rẹ títí o fi ṣe é",
+  "checklist.bank.hint": "Owó káàdì ń lọ tààrà sí báńkì rẹ",
   "checklist.wa.label": "So WhatsApp pọ̀ fún Peggy",
   "checklist.wa.hint": "Peggy yóò kọ ìdáhùn fún ọ",
   "checklist.id.label": "Jẹ́rìísí ID rẹ",

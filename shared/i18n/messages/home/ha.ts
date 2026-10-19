@@ -213,6 +213,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "health.again": "Sake lissafawa",
   "health.failed": "Ba a iya lissafa makinka ba. Sake gwadawa.",
   "activity.pages": "Shafukan ayyuka",
+  "step.Card payments go straight to your bank once you add it.": "Kuɗin kati za su tafi kai tsaye zuwa bankinka da zarar ka saka shi.",
 };
 
 export default ha;

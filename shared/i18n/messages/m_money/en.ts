@@ -121,7 +121,7 @@ const en = {
   "w.step2": "2. Add the bank you get paid in",
   "w.verified": "{name} · {id} ending {last4} · verified",
   "w.checksSoon": "ID checks are being switched on. Check back soon.",
-  "w.review": "This account isn't in the name on your ID, so our team is checking it (usually within a day). Payments start once it's approved.",
+  "w.review": "This account isn't in your name or your business's, so our team is checking it (usually within a day). Verifying your ID can approve it at once if the name matches.",
   "w.failed": "Paystack couldn't set up this account: {reason}. Check the details or try another account.",
   "w.idFirst": "Verify your ID first.",
   "w.never": "Shopinbos never holds your money. When someone pays by card, the payment is split at checkout and your share settles straight to this bank, usually the next working day. Paystack's fee comes off your share; Shopinbos takes nothing.",
@@ -160,6 +160,15 @@ const en = {
   "w.verifySub": "Check your NIN or BVN in a minute so customers can pay you by card, straight to your bank.",
   "w.verifyNow": "Verify now",
   "w.later": "Later",
+  "w.getPaid": "Get paid",
+  "w.bankStep": "1. Where should we send your money?",
+  "w.idStep": "2. Verify your ID",
+  "w.idWhySeller": "Earns your shop a verified badge and approves an account in your name straight away. Do it any time.",
+  "w.idWhyBusiness": "Needed to get verified on Shopinbos. It also approves your ID document, so you don't upload one.",
+  "w.accountName": "Account name",
+  "w.lookingUp": "Looking up the account…",
+  "w.payMeHere": "Yes, pay me here",
+  "w.noSuchAccount": "That account number doesn't exist at this bank.",
 } satisfies Record<string, string>;
 
 export default en;
