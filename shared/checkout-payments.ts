@@ -166,8 +166,18 @@ export function checkoutPaymentOptions(settings: CheckoutPaymentSettings, contex
     if (methods.transfer && settings.transferReady) keys.push("transfer");
     if (methods.cod && !payOnDeliveryBlock(settings, context)) keys.push("pay_on_delivery");
   }
-  if (keys.length === 0) keys.push("paystack");
+  // Never offer a way to pay that can't work: a store that never chose its methods gets card only when its wallet
+  // takes cards; otherwise the list is empty and checkout says so (noWayToPayText) instead of failing at payment.
+  if (keys.length === 0 && !methods && settings.paystackReady) keys.push("paystack");
   return keys.map((key) => ({ key, ...OPTION_COPY[key] }));
+}
+
+/** What checkout says when no way to pay works for this order (why pay on delivery is out, when it is). */
+export function noWayToPayText(settings: CheckoutPaymentSettings, context: CheckoutPaymentContext = {}): string {
+  const cod = settings.methods?.cod ? payOnDeliveryBlock(settings, context) : null;
+  return cod
+    ? `${cod} The store can't take other payments here yet, so message the store to order.`
+    : "This store can't take payments here yet. Message the store to order.";
 }
 
 /** Maps the checkout body's paymentMethod (older clients send "redirect" or "inline", both Paystack). */

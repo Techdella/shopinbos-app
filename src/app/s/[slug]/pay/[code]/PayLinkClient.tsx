@@ -9,7 +9,7 @@ import { getPublicStorefrontPath } from "@/lib/domains/storefront";
 import { KorapayFrame } from "@/components/payments/KorapayFrame";
 import { formatStoreMoney } from "@/lib/storefront/shopper-info";
 import { channelFromRef } from "@shared/channels";
-import { checkoutPaymentOptions, type CheckoutPaymentMethod } from "@shared/checkout-payments";
+import { checkoutPaymentOptions, noWayToPayText, type CheckoutPaymentMethod } from "@shared/checkout-payments";
 import { chooseDelivery, deliveryOptionsFor, isEmail, isPhone, orderTotals, type OrderTotals } from "@shared/cart-checkout";
 import { countryName, readSavedDetails, regionsFor, saveDetails } from "@/components/storefront/shopper/checkout-storage";
 import { ItemThumb, Panel, PrimaryButton, QuantityStepper, ShopperShell, fieldClass } from "@/components/storefront/shopper/ShopperShell";
@@ -161,7 +161,8 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
   const totals = quote && quote.key === quoteKey ? quote.totals : estimate;
 
   const paymentOptions = useMemo(() => checkoutPaymentOptions(commerce.payments, { city: details.city, state: details.state, total: totals.total }), [commerce.payments, details.city, details.state, totals.total]);
-  const paymentMethod: CheckoutPaymentMethod = paymentOptions.some((option) => option.key === chosenMethod) ? chosenMethod! : paymentOptions[0]!.key;
+  const noWayToPay = paymentOptions.length === 0 ? noWayToPayText(commerce.payments, { city: details.city, state: details.state, total: totals.total }) : null;
+  const paymentMethod: CheckoutPaymentMethod = paymentOptions.some((option) => option.key === chosenMethod) ? chosenMethod! : paymentOptions[0]?.key ?? "transfer";
 
   // The server's totals for the same choices (delivery, options, agreed amount): what checkout will charge.
   useEffect(() => {
@@ -211,6 +212,7 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
   async function pay() {
     setError(null);
     if (preview) return setError("This is your preview. Customers pay here once the store is live.");
+    if (noWayToPay) return setError(noWayToPay);
     const found = validate();
     setErrors(found);
     if (Object.keys(found).length) {
@@ -425,6 +427,7 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
                 </label>
               ))}
             </div>
+            {noWayToPay && !error ? <p role="alert" className="text-[14px]" style={{ color: "#C2412D" }}>{noWayToPay}</p> : null}
             <dl className="mt-1 grid gap-1.5 text-[15px]">
               <div className="flex justify-between"><dt>Items</dt><dd>{money(totals.subtotal)}</dd></div>
               <div className="flex justify-between"><dt>Delivery</dt><dd>{totals.shippingFee ? money(totals.shippingFee) : "Free"}</dd></div>
@@ -433,7 +436,7 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
             </dl>
             {quoteError ? <p role="alert" className="text-[14px]" style={{ color: "#C2412D" }}>{quoteError}</p> : null}
             {error ? <p role="alert" className="text-[14px]" style={{ color: "#C2412D" }}>{error}</p> : null}
-            <PrimaryButton theme={theme} type="button" onClick={pay} disabled={submitting} className="w-full">
+            <PrimaryButton theme={theme} type="button" onClick={pay} disabled={submitting || Boolean(noWayToPay)} className="w-full">
               {submitting ? "Please wait…" : paymentMethod === "paystack" || paymentMethod === "korapay" ? `Pay ${money(totals.total)}` : "Place order"}
             </PrimaryButton>
             <p className="flex items-center justify-center gap-1.5 text-[13px]" style={{ color: theme.muted }}><Icon name="lock" size={13} /> Secure payment. {store.name} gets your order straight away.</p>
