@@ -658,6 +658,17 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "seasonal-campaigns.4.sub": "Every live and upcoming campaign dey tick for your home screen, so you go always know wetin dey run.",
   "seasonal-campaigns.5.caption": "See wetin e bring.",
   "seasonal-campaigns.5.sub": "Visits, pop-up sign-ups, orders and sales while e dey run, side by side with the days before.",
+  "wallet.title": "Shopinbos Wallet",
+  "wallet.1.caption": "Verify your ID once.",
+  "wallet.1.sub": "Your BVN or NIN, we go check am with your name and date of birth.",
+  "wallet.2.caption": "Add the bank wey dem dey pay you.",
+  "wallet.2.sub": "We go check the name on top am with Paystack.",
+  "wallet.3.caption": "Customer pay with card.",
+  "wallet.3.sub": "Paystack go share the payment: your own, and each supplier cost.",
+  "wallet.4.caption": "E go enter your bank straight.",
+  "wallet.4.sub": "Usually next working day. Shopinbos no dey hold your money.",
+  "wallet.5.caption": "See every payment.",
+  "wallet.5.sub": "Each order share and Paystack settlement, for one list.",
 };
 
 export default pcm;

@@ -1,6 +1,8 @@
 import "server-only";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
+import { bumpPublicCacheVersion } from "@/lib/api/public-cache";
 
 const PUBLIC_MARKETPLACE_PATHS = [
   "/api/public/products",
@@ -21,6 +23,14 @@ interface PublicMarketplaceCacheTargets {
 }
 
 export function invalidatePublicMarketplaceCache(targets: PublicMarketplaceCacheTargets = {}) {
+  // after(): finish the Redis write even once the response has gone (Vercel can freeze a dangling promise).
+  const bump = () => bumpPublicCacheVersion().catch((error) => console.warn("[public-cache] invalidation failed", error));
+  try {
+    after(bump);
+  } catch {
+    void bump(); // outside a request (scripts): run it directly
+  }
+
   for (const path of PUBLIC_MARKETPLACE_PATHS) {
     revalidatePath(path);
   }

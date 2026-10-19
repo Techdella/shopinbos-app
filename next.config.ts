@@ -56,7 +56,7 @@ const nextConfig: NextConfig = {
               // connect.facebook.net: Meta's SDK for WhatsApp Embedded Signup (/home/inbox/chatbot?tab=whatsapp), and
               // the Meta Pixel on live stores. The sellers' own tags (Settings › Connections, loaded only after the
               // shopper agrees on the cookie banner): Google tag / Tag Manager and the TikTok Pixel.
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.paystack.co https://*.supabase.co https://checkout.flutterwave.com https://va.vercel-scripts.com https://www.googletagmanager.com https://analytics.tiktok.com https://connect.facebook.net https://*.posthog.com https://cdn.mxpnl.com",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.paystack.co https://checkout.paystack.com https://*.supabase.co https://va.vercel-scripts.com https://www.googletagmanager.com https://analytics.tiktok.com https://connect.facebook.net https://*.posthog.com https://cdn.mxpnl.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               // Theme previews show sample products with Unsplash photos (src/lib/store-templates/demo-photos.ts).
               // The store tags' tracking pixels: Google Analytics, Meta (www.facebook.com/tr) and TikTok.
@@ -66,10 +66,12 @@ const nextConfig: NextConfig = {
               `media-src 'self' blob: https://*.supabase.co ${storageOrigin}`.trim(),
               // Embedded Signup opens its login/consent frames on www/web.facebook.com.
               // Help videos pasted as YouTube or Vimeo links play in their embeds (shared/help-videos.ts).
-              "frame-src https://js.paystack.co https://checkout.flutterwave.com https://www.youtube-nocookie.com https://player.vimeo.com https://www.googletagmanager.com https://www.facebook.com https://web.facebook.com",
+              "frame-src https://js.paystack.co https://checkout.paystack.com https://standard.paystack.co https://checkout.korapay.com https://www.youtube-nocookie.com https://player.vimeo.com https://www.googletagmanager.com https://www.facebook.com https://web.facebook.com",
               // Admin help-video uploads go straight to Storage with a signed URL (storageOrigin covers a custom/local one).
               // Store tags send their hits to Google Analytics / Tag Manager and TikTok (Meta's go to www.facebook.com).
-              "connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://analytics.tiktok.com https://*.supabase.co https://api.paystack.co https://api.flutterwave.com https://api.resend.com https://api.openai.com https://api.anthropic.com https://vitals.vercel-insights.com https://va.vercel-scripts.com https://graph.facebook.com https://www.facebook.com https://web.facebook.com https://*.posthog.com https://api-js.mixpanel.com https://api-eu.mixpanel.com" + (storageOrigin ? ` ${storageOrigin}` : ""),
+              "connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://analytics.tiktok.com https://*.supabase.co https://api.paystack.co https://api.resend.com https://api.openai.com https://api.anthropic.com https://vitals.vercel-insights.com https://va.vercel-scripts.com https://graph.facebook.com https://www.facebook.com https://web.facebook.com https://*.posthog.com https://api-js.mixpanel.com https://api-eu.mixpanel.com https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io" + (storageOrigin ? ` ${storageOrigin}` : ""),
+              // Sentry session replay compresses in a blob: worker.
+              "worker-src 'self' blob:",
               "object-src 'none'",
               // Same as X-Frame-Options DENY, for browsers that only read CSP.
               "frame-ancestors 'none'",

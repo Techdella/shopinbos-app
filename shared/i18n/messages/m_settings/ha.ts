@@ -166,6 +166,11 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "set.photoRemoved": "An cire hoto.",
   "set.photoFailed": "Ba mu iya ɗora wannan hoto ba. Sake gwadawa.",
   "set.photoRemoveFailed": "Ba mu iya cire shi ba. Sake gwadawa.",
+  "money.wallet": "Shopinbos Wallet",
+  "money.walletHint": "Kuɗin kati suna tafiya kai tsaye zuwa bankinka",
+  "del.payFee": "Biya {amount} da kati",
+  "del.feePaid": "An biya kuɗin kawowa",
+  "del.feeNotSeen": "Ba mu ga biyan ba tukuna. Idan ka biya, zai bayyana a nan cikin minti ɗaya.",
 };
 
 export default ha;

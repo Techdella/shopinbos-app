@@ -6,6 +6,7 @@ import type React from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
 import { getPublicStorefrontPath } from "@/lib/domains/storefront";
+import { KorapayFrame } from "@/components/payments/KorapayFrame";
 import { formatStoreMoney } from "@/lib/storefront/shopper-info";
 import { channelFromRef } from "@shared/channels";
 import { checkoutPaymentOptions, type CheckoutPaymentMethod } from "@shared/checkout-payments";
@@ -124,6 +125,7 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [transfer, setTransfer] = useState<{ orderId: string; details: TransferDetails } | null>(null);
+  const [korapay, setKorapay] = useState<{ orderId: string; checkoutUrl: string } | null>(null);
   const [ref, setRef] = useState<string | null>(null);
   const regions = regionsFor(details.country);
   const unavailable = link.items.some((item) => !item.available);
@@ -199,7 +201,7 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
     if (needsOption && !optionId) found.option = "Choose an option.";
     if (!details.name.trim()) found.name = "Enter your name.";
     if (!isPhone(details.phone)) found.phone = "Enter a phone number the rider can call.";
-    if (details.email.trim() ? !isEmail(details.email) : paymentMethod === "paystack") found.email = details.email.trim() ? "Enter a valid email." : "Add your email to pay by card. We send the receipt there.";
+    if (details.email.trim() ? !isEmail(details.email) : (paymentMethod === "paystack" || paymentMethod === "korapay")) found.email = details.email.trim() ? "Enter a valid email." : "Add your email to pay by card. We send the receipt there.";
     if (!details.street.trim()) found.street = "Enter your street address.";
     if (!details.city.trim()) found.city = "Enter your area or city.";
     if (regions.length > 0 && !details.state.trim()) found.state = "Choose your state.";
@@ -243,12 +245,33 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
       }
       const order = json.data.order as { id: string };
       if (paymentMethod === "paystack") {
+        // The server started the transaction (split to the seller's own bank); Paystack's popup opens it here.
+        const accessCode = json.data.paystack?.access_code as string | undefined;
         const url = json.data.paystack?.authorization_url as string | undefined;
+        const orderPath = getPublicStorefrontPath(storeBasePath, `/order/${order.id}`);
+        if (accessCode) {
+          const { default: PaystackPop } = await import("@paystack/inline-js");
+          new PaystackPop().resumeTransaction(accessCode, {
+            // The order page confirms the payment with Paystack before marking it paid.
+            onSuccess: (transaction) => onPlaced(`${orderPath}?reference=${encodeURIComponent(transaction.reference)}`),
+            onCancel: () => onPlaced(orderPath),
+          });
+          return;
+        }
         if (url) {
           window.location.href = url;
           return;
         }
         setError("Card payment isn't available right now. Choose another way to pay, or message the store.");
+        return;
+      }
+      if (paymentMethod === "korapay") {
+        const checkoutUrl = json.data.korapay?.checkoutUrl as string | undefined;
+        if (checkoutUrl) {
+          setKorapay({ orderId: order.id, checkoutUrl });
+          return;
+        }
+        setError("Korapay isn't available right now. Choose another way to pay, or message the store.");
         return;
       }
       if (paymentMethod === "transfer" && json.data.transfer) {
@@ -262,6 +285,11 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (korapay) {
+    const done = () => onPlaced(getPublicStorefrontPath(storeBasePath, `/order/${korapay.orderId}`));
+    return <KorapayFrame orderId={korapay.orderId} checkoutUrl={korapay.checkoutUrl} onPaid={done} onClose={done} />;
   }
 
   if (transfer) {
@@ -406,7 +434,7 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
             {quoteError ? <p role="alert" className="text-[14px]" style={{ color: "#C2412D" }}>{quoteError}</p> : null}
             {error ? <p role="alert" className="text-[14px]" style={{ color: "#C2412D" }}>{error}</p> : null}
             <PrimaryButton theme={theme} type="button" onClick={pay} disabled={submitting} className="w-full">
-              {submitting ? "Please wait…" : paymentMethod === "paystack" ? `Pay ${money(totals.total)}` : "Place order"}
+              {submitting ? "Please wait…" : paymentMethod === "paystack" || paymentMethod === "korapay" ? `Pay ${money(totals.total)}` : "Place order"}
             </PrimaryButton>
             <p className="flex items-center justify-center gap-1.5 text-[13px]" style={{ color: theme.muted }}><Icon name="lock" size={13} /> Secure payment. {store.name} gets your order straight away.</p>
             <WeAccept muted={theme.muted} className="justify-center" />

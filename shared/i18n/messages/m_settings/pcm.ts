@@ -166,6 +166,11 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "set.photoRemoved": "Photo don comot.",
   "set.photoFailed": "We no fit upload that picture. Try again.",
   "set.photoRemoveFailed": "We no fit remove am. Try again.",
+  "money.wallet": "Shopinbos Wallet",
+  "money.walletHint": "Card payments dey enter your bank straight",
+  "del.payFee": "Pay {amount} by card",
+  "del.feePaid": "Fee don pay",
+  "del.feeNotSeen": "We never see the payment. If you don pay, e go show here in one minute.",
 };
 
 export default pcm;

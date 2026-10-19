@@ -14,6 +14,8 @@ export interface RefundableOrder {
   paystackRef: string | null;
   paystackStatus?: string | null;
   refundStatus?: string | null;
+  /** Set when Paystack split the payment to the businesses' own banks (src/lib/wallet). */
+  paymentSplit?: unknown;
 }
 
 /**
@@ -21,6 +23,9 @@ export interface RefundableOrder {
  * by hand (a bank transfer, cash or POS the seller collected, or any other gateway).
  */
 export function refundRoute(order: RefundableOrder): "paystack" | "manual" {
+  // A split payment was settled to the seller's (and suppliers') own banks, not Shopinbos's: Shopinbos has nothing
+  // to send back, so the seller refunds the buyer.
+  if (order.paymentSplit) return "manual";
   const card = !order.paymentMethod || order.paymentMethod === "paystack";
   return card && Boolean(order.paystackRef) ? "paystack" : "manual";
 }

@@ -11,7 +11,10 @@ import { notifyOrderCustomer } from "@/lib/notifications/customer-messages";
 import { recoverExpiredOrderPayment } from "@/lib/commerce/order-expiry.server";
 import { ensureSupplierOrdersSafely } from "@/lib/supplier-orders/service.server";
 import { settlePaymentLinkForOrder } from "@/lib/payment-links/service.server";
-import { createPaystackTransferRecipient, linkSellerPayoutBank, maskAccountNumber, PAYSTACK_BANK_CODES } from "@/lib/payout-bank";
+import { recordOrderShares } from "@/lib/wallet/wallet.server";
+import { refreshKorapayOrderPayment } from "@/lib/commerce/korapay-orders.server";
+import { createPaystackTransferRecipient, linkSellerPayoutBank, maskAccountNumber, settlementBanks } from "@/lib/payout-bank";
+import { linkWalletBank } from "@/lib/wallet/wallet.server";
 
 interface PaystackTransaction {
   amount: number;
@@ -88,6 +91,16 @@ export async function verifyPaystackPayment(reference: string): Promise<{
   return result.success ? { success: true, data: { status: result.data!.status } } : { success: false, error: result.error };
 }
 
+/**
+ * Public: the storefront checkout asks this while Korapay's frame is open. It only re-checks the order with Korapay
+ * (the charge reply is the proof, never the caller) and says whether it is paid.
+ */
+export async function checkKorapayPayment(orderId: string): Promise<{ paid: boolean }> {
+  if (typeof orderId !== "string" || orderId.length > 40) return { paid: false };
+  const outcome = await refreshKorapayOrderPayment(orderId);
+  return { paid: outcome === "paid" || outcome === "already_paid" };
+}
+
 export async function updateOrderPayment(
   orderId: string,
   reference: string,
@@ -95,7 +108,7 @@ export async function updateOrderPayment(
   try {
     const order = await db.retailOrder.findUnique({
       where: { id: orderId },
-      select: { id: true, total: true, currency: true, buyerEmail: true, status: true, paystackRef: true, expiredAt: true },
+      select: { id: true, total: true, currency: true, buyerEmail: true, status: true, paystackRef: true, expiredAt: true, paymentSplit: true },
     });
     if (!order) {
       return { success: false, error: "Order not found" };
@@ -104,6 +117,12 @@ export async function updateOrderPayment(
     const expired = order.status === "cancelled" && Boolean(order.expiredAt);
     if (order.status !== "pending" && order.status !== "awaiting_payment" && !expired) {
       return order.paystackRef === reference ? { success: true } : { success: false, error: "Order is not awaiting payment" };
+    }
+
+    // A split order is paid only by the transaction checkout started for it (reference = order id), which settles
+    // to the businesses' own banks; any other transaction would land in Shopinbos's account.
+    if (order.paymentSplit && reference !== orderId) {
+      return { success: false, error: "Payment does not belong to this order" };
     }
 
     const verification = await fetchPaystackTransaction(reference);
@@ -158,6 +177,7 @@ export async function updateOrderPayment(
     // Dropship items go to their suppliers (idempotent: the webhook may do the same).
     await ensureSupplierOrdersSafely(orderId);
     await settlePaymentLinkForOrder(orderId);
+    await recordOrderShares(orderId);
     revalidatePath("/home/orders");
     revalidatePath(`/s/*/order/${orderId}`);
     return { success: true };
@@ -178,6 +198,17 @@ export async function linkBankAccount(
       return { success: false, error: "Not authenticated" };
     }
 
+    // Card payments are split straight to the bank of the business's Shopinbos Wallet (src/lib/wallet), so every
+    // "add your bank" form sets that up too; the Paystack transfer recipient below is kept for the older screens.
+    if (role === "seller" || role === "supplier" || role === "logistics_partner") {
+      if (user.role !== role) return { success: false, error: "Sign in to this account first." };
+      const wallet = await linkWalletBank({ id: user.id, role }, { bankName, accountNumber });
+      if (!wallet.ok) return { success: false, error: wallet.error };
+      revalidatePath("/home/wallet");
+      revalidatePath("/supplier/wallet");
+      revalidatePath("/logistics/wallet");
+    }
+
     if (role === "seller") {
       const result = await linkSellerPayoutBank(user.id, bankName, accountNumber, accountName);
       if (!result.success) return result;
@@ -192,7 +223,7 @@ export async function linkBankAccount(
       }
       const recipient = await createPaystackTransferRecipient({
         bankName,
-        bankCode: PAYSTACK_BANK_CODES[bankName],
+        bankCode: (await settlementBanks())[bankName],
         accountNumber: cleanAccountNumber,
         accountName: accountName.trim(),
       });
@@ -250,7 +281,7 @@ export async function linkSupplierPaystackRecipient(
       return { success: false, error: "Choose a bank, enter a 10 digit account number, and add the account name." };
     }
 
-    const bankCode = PAYSTACK_BANK_CODES[bankName];
+    const bankCode = (await settlementBanks())[bankName];
     const recipient = await createPaystackTransferRecipient({
       bankName,
       bankCode,
@@ -286,115 +317,6 @@ export async function linkSupplierPaystackRecipient(
     revalidatePath("/supplier/payouts");
     revalidatePath("/supplier/settings");
     return { success: true, status: recipient.status };
-  } catch (e) {
-    return { success: false, error: String(e) };
-  }
-}
-
-// ─── Flutterwave payout integration ───────────────────────────────────────────
-
-function getFlutterwaveSecret() {
-  const secret = process.env.FLUTTERWAVE_SECRET_KEY ?? "";
-  return secret && !secret.includes("your-") && !secret.includes("your_") ? secret : null;
-}
-
-async function createFlutterwaveTransferRecipient(input: {
-  bankName: string;
-  accountNumber: string;
-  accountName: string;
-}) {
-  const secret = getFlutterwaveSecret();
-  if (!secret) {
-    return {
-      status: "unconfigured" as const,
-      recipientCode: null,
-      providerResponse: { message: "Flutterwave secret key is not configured." },
-    };
-  }
-
-  const cleanAccountNumber = input.accountNumber.replace(/\D/g, "");
-
-  const response = await fetch("https://api.flutterwave.com/v3/transfer-recipients", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${secret}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      type: "nuban",
-      name: input.accountName,
-      account_number: cleanAccountNumber,
-      bank_code: input.bankName,
-      currency: "NGN",
-    }),
-  });
-
-  const data = await response.json().catch(() => ({}));
-
-  if (!response.ok || data.status !== "success") {
-    return {
-      status: "failed" as const,
-      recipientCode: null,
-      providerResponse: data,
-    };
-  }
-
-  return {
-    status: "verified" as const,
-    recipientCode: data.data?.recipient_code ?? data.data?.id ?? null,
-    providerResponse: data,
-  };
-}
-
-export async function linkFlutterwaveBankAccount(
-  bankName: string,
-  accountNumber: string,
-  accountName: string,
-): Promise<{ success: boolean; error?: string }> {
-  try {
-    const user = await getCurrentAppUser();
-    if (!user || user.role !== "supplier") {
-      return { success: false, error: "Not authenticated as a supplier" };
-    }
-
-    const supplier = await db.supplier.findUnique({ where: { userId: user.id } });
-    if (!supplier) return { success: false, error: "Supplier not found" };
-
-    const cleanAccountNumber = accountNumber.replace(/\D/g, "");
-    if (!bankName || cleanAccountNumber.length !== 10 || !accountName.trim()) {
-      return { success: false, error: "Choose a bank, enter a 10 digit account number, and add the account name." };
-    }
-
-    const recipient = await createFlutterwaveTransferRecipient({
-      bankName,
-      accountNumber: cleanAccountNumber,
-      accountName: accountName.trim(),
-    });
-
-    const provider = "flutterwave";
-    await db.supplierPayoutAccount.upsert({
-      where: { supplierId: supplier.id },
-      create: {
-        supplierId: supplier.id,
-        bankName,
-        accountNumberMask: maskAccountNumber(cleanAccountNumber),
-        accountName: accountName.trim(),
-        paystackRecipientCode: recipient.recipientCode,
-        verificationStatus: recipient.status,
-        providerResponse: { ...recipient.providerResponse, provider } as Prisma.InputJsonValue,
-      },
-      update: {
-        bankName,
-        accountNumberMask: maskAccountNumber(cleanAccountNumber),
-        accountName: accountName.trim(),
-        paystackRecipientCode: recipient.recipientCode,
-        verificationStatus: recipient.status,
-        providerResponse: { ...recipient.providerResponse, provider } as Prisma.InputJsonValue,
-      },
-    });
-
-    revalidatePath("/supplier/payouts");
-    return { success: true };
   } catch (e) {
     return { success: false, error: String(e) };
   }

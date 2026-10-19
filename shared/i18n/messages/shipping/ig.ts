@@ -92,6 +92,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "quote.rejected": "Ajụrụ",
   "quote.expired": "Agwụla",
   "lg.message": "Zipu ozi",
+  "lg.feePaid": "Akwụọla",
+  "lg.payFee": "Kwụọ {amount}",
   "lg.partners": "Ndị mmekọ delivery",
   "filter.all": "Ndị mmekọ niile",
   "filter.same_day": "Otu ụbọchị",

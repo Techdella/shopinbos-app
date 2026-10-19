@@ -3,6 +3,9 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FieldLabel, Mascot, Notice, PillButton, ProgressBars, TextInput, Wordmark, cx } from "@/components/app-ui";
+import { CacInstantCheck } from "@/components/verification/CacInstantCheck";
+import type { VerificationDoc } from "@shared/verification-docs";
+import { VerifyIdCard, type IdCheckState } from "@/components/verification/VerifyIdCard";
 import { Icon } from "@/components/ui/Icon";
 import intentRouting from "@/lib/intent-routing";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
@@ -31,7 +34,8 @@ interface InitialUser {
   country: string | null;
 }
 
-const STEPS = ["Company", "Coverage", "Fleet", "Pricing", "Review"];
+const STEPS = ["Company", "Coverage", "Fleet", "Pricing", "Verify", "Review"];
+const VERIFY_STEP = 5;
 const VEHICLES = ["bike", "van", "truck"];
 const DELIVERY_TYPES = ["same_day", "express", "next_day", "bulk"];
 const SPEEDS = ["Same-day in active zones", "45-90 minutes in active zones", "Next-day within city", "2-3 business days"];
@@ -59,7 +63,7 @@ function Chip({ on, onClick, children, title }: { on: boolean; onClick: () => vo
 
 const scopeLabel = (scope: DeliveryScope) => deliveryScopeOptions.find((option) => option.value === scope)?.label ?? scope;
 
-export function LogisticsOnboarding({ initialUser }: { initialUser?: InitialUser | null }) {
+export function LogisticsOnboarding({ initialUser, idCheck }: { initialUser?: InitialUser | null; idCheck?: IdCheckState }) {
   const t = useT("onboarding", "common");
   const locale = useLocale();
   const naira = (value: number) => formatMoney(Math.round(value), locale);
@@ -71,6 +75,7 @@ export function LogisticsOnboarding({ initialUser }: { initialUser?: InitialUser
   const { extractIntentParams, getContinuationPath } = intentRouting;
 
   const [step, setStep] = useState(1);
+  const [cacDoc, setCacDoc] = useState<VerificationDoc | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -203,6 +208,7 @@ export function LogisticsOnboarding({ initialUser }: { initialUser?: InitialUser
     activeZones.length > 0,
     vehicleTypes.length > 0 && deliveryTypes.length > 0,
     basePrice > 0,
+    true,
     true,
   ][step - 1];
 
@@ -366,7 +372,23 @@ export function LogisticsOnboarding({ initialUser }: { initialUser?: InitialUser
                   </>
                 )}
 
-                {step === 5 && (
+                {step === VERIFY_STEP && (
+                  <>
+                    <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.8px] sm:text-[34px]">Verify your business</h1>
+                    <p className="mb-0 mt-2 max-w-[640px] text-[15px] leading-[1.5] text-app-ink-soft">
+                      Shops only see verified delivery partners, and jobs only come once you&apos;re verified. Two quick checks: your ID, then your CAC registration. You can skip for now and finish later from Verification.
+                    </p>
+                    <div className="mt-6 grid gap-4">
+                      <VerifyIdCard state={idCheck ?? { verified: false, checksReady: false }} ownerName={initialUser?.name ?? ""} />
+                      <CacInstantCheck apiPath="/api/logistics/verification/cac" defaultName={companyName} cacDoc={cacDoc} onVerified={setCacDoc} />
+                    </div>
+                    <button type="button" onClick={() => void goTo(step + 1)} className="mt-4 text-[14px] font-bold text-app-ink-soft underline-offset-4 hover:text-app-ink hover:underline" disabled={saving}>
+                      Skip for now. I&apos;ll verify before taking jobs.
+                    </button>
+                  </>
+                )}
+
+                {step === 6 && (
                   <>
                     <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.8px] sm:text-[34px]">{t("lp.reviewTitle")}</h1>
                     <p className="mb-0 mt-2 max-w-[640px] text-[15px] leading-[1.5] text-app-ink-soft">{t("lp.reviewSub")}</p>

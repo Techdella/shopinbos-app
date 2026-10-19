@@ -157,9 +157,9 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "today.riderOnJob": "{name} · e dey do job",
   "today.riderFree": "{name} · e free",
   "today.seenRecently": "we see am small time ago",
-  payIn: "Pay in {amount} {by}",
+  payIn: "Pass {amount} {by}",
   bySix: "before 6pm",
-  codExplain: "Cash on delivery (COD) wey your riders collect and you never pay in.",
+  codExplain: "Cash on delivery (COD) wey your riders collect wey you never pass give the sellers.",
 
   "jobs.title": "Jobs",
   "jobs.new": "New",
@@ -204,9 +204,9 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "addRider.phone": "Rider WhatsApp number",
 
   "money.title": "Money",
-  "money.cashToPayIn": "Cash wey you go pay in",
-  "money.nothingToPayIn": "Nothing to pay in",
-  "money.late": "This one suppose don pay earlier today. Pay am in now make you dey still get cash-on-delivery jobs.",
+  "money.cashToPayIn": "Cash to pass give sellers",
+  "money.nothingToPayIn": "Nothing to pass",
+  "money.late": "E suppose don pass earlier today. Pass am give the sellers now so you go still dey get cash-on-delivery jobs.",
   "money.credit": "You pay {amount} pass. We go use am for your next cash jobs.",
   "money.codShows": "Cash on delivery (COD) wey your riders collect go show here.",
   "money.account": "Your pay-in account",
@@ -279,6 +279,15 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "connect.description": "Tell us which software you dey use and how we go reach you. We go do the rest.",
   "connect.question": "Which software or app you dey use?",
   "connect.placeholder": "e.g. Shipbubble, our own system",
+  "money.wallet": "Shopinbos Wallet",
+  "money.open": "Open",
+  "money.walletHint": "Delivery fees wey dem pay by card dey enter your bank straight.",
+  "money.paySellers": "Pass cash give sellers",
+  "money.paySellersSub": "Cash on delivery na the seller own. Pay each seller here straight to their bank, or hand am over and dem go confirm am.",
+  "money.paySeller": "Pay {amount}",
+  "money.paidSeller": "You don pay {name}. Their cash jobs don settle.",
+  "money.notSeenYet": "We never see the payment. If you don pay, e go show here in one minute.",
+  "money.handOver": "Hand the cash give {name}. Dem go confirm am for Shopinbos.",
 };
 
 export default pcm;

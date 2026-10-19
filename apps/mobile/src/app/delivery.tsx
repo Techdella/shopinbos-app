@@ -11,6 +11,7 @@ import { friendlyDay } from "@/lib/friendly";
 import { createZone, deleteZone, fetchBookings, fetchZones, updateZone, type DeliveryBooking } from "@/lib/seller-settings";
 import { addAreas, areasLine, feeEditable, feeText, parseFee, zoneBody, zoneProblem, type Zone, type ZoneDraft } from "@/lib/settings-pure";
 import { useLoad } from "@/lib/useLoad";
+import { payDeliveryFee } from "@/lib/wallet";
 import { openWeb } from "@/lib/web";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
@@ -90,7 +91,7 @@ export default function Delivery() {
           ) : data.bookings.length ? (
             <Card style={{ paddingVertical: 2 }}>
               {data.bookings.map((booking, index) => (
-                <BookingRow key={booking.id} booking={booking} first={index === 0} />
+                <BookingRow key={booking.id} booking={booking} first={index === 0} onPaid={() => void loaded.reload()} />
               ))}
             </Card>
           ) : (
@@ -118,9 +119,26 @@ export default function Delivery() {
   );
 }
 
-function BookingRow({ booking, first }: { booking: DeliveryBooking; first: boolean }) {
+function BookingRow({ booking, first, onPaid }: { booking: DeliveryBooking; first: boolean; onPaid: () => void }) {
   const t = useT("m_settings", "shipping");
   const tone = BOOKING_TONE[booking.status] ?? "muted";
+  const [paying, setPaying] = useState(false);
+  const [payError, setPayError] = useState<string | null>(null);
+
+  // Card payment of the fee, split by Paystack straight to the delivery partner's bank.
+  async function pay() {
+    setPaying(true);
+    setPayError(null);
+    try {
+      const result = await payDeliveryFee(booking.id);
+      if (!result.paid) setPayError(result.message ?? t("del.feeNotSeen"));
+      onPaid();
+    } catch (failure) {
+      setPayError(failure instanceof Error ? failure.message : t("del.feeNotSeen"));
+    } finally {
+      setPaying(false);
+    }
+  }
   return (
     <View style={{ paddingVertical: 12, gap: 4, borderTopWidth: first ? 0 : 1, borderTopColor: colors.line }}>
       <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 10 }}>
@@ -130,7 +148,14 @@ function BookingRow({ booking, first }: { booking: DeliveryBooking; first: boole
       <T style={{ color: colors.inkSoft, fontSize: 14 }} numberOfLines={1}>
         {[booking.logisticsPartner.displayName, booking.trackingCode, friendlyDay(booking.createdAt)].filter(Boolean).join(" · ")}
       </T>
-      <Badge label={t.dynamic(`booking.${booking.status}`, booking.status.replace(/_/g, " "))} bg={TONE_COLORS[tone].bg} fg={TONE_COLORS[tone].fg} />
+      <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
+        <Badge label={t.dynamic(`booking.${booking.status}`, booking.status.replace(/_/g, " "))} bg={TONE_COLORS[tone].bg} fg={TONE_COLORS[tone].fg} />
+        {booking.feePaidAt ? <Badge label={t("del.feePaid")} bg={colors.successTint} fg={colors.success} /> : null}
+      </View>
+      {!booking.feePaidAt && booking.feePayable ? (
+        <PillButton title={t("del.payFee", { amount: naira(booking.deliveryFee) })} size="sm" tone="white" busy={paying} style={{ alignSelf: "flex-start", marginTop: 4 }} onPress={() => void pay()} />
+      ) : null}
+      {payError ? <Notice>{payError}</Notice> : null}
     </View>
   );
 }

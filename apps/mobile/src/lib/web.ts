@@ -58,6 +58,7 @@ const APP_SCREENS: Record<string, string> = {
   "/home/video": "/video",
   "/home/video/studio": "/video/studio",
   "/home/payouts": "/payouts",
+  "/home/wallet": "/wallet",
   "/home/invoices": "/invoices",
   "/home/invoicing": "/invoices",
   "/home/ads": "/ads",

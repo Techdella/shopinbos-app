@@ -92,6 +92,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "quote.rejected": "An ƙi",
   "quote.expired": "Ya ƙare",
   "lg.message": "Aika saƙo",
+  "lg.feePaid": "An biya",
+  "lg.payFee": "Biya {amount}",
   "lg.partners": "Abokan delivery",
   "filter.all": "Duk abokan aiki",
   "filter.same_day": "Rana ɗaya",

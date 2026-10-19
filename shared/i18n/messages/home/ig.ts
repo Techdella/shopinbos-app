@@ -70,6 +70,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "pm.transfer.hint": "Ndị ahịa ga-enweta akaụntụ payout gị; ị ga-aka ya akara akwụọla mgbe ego ahụ batara",
   "pm.card.label": "Kaadị na USSD",
   "pm.card.hint": "Site na Paystack",
+  "pm.korapay.label": "Korapay",
+  "pm.korapay.hint": "Kaadị, nnyefe ego ma ọ bụ ịkwụ ụgwọ site na ụlọ akụ site na Korapay",
   "pm.cod.label": "Kwụọ ụgwọ mgbe ebutere",
   "pm.cod.hint": "Ruo ₦50,000, nọmba ekwentị akwadoro, ebe riders na-arụ ọrụ",
   "pm.wa.label": "Mechaa ya na WhatsApp",
@@ -211,6 +213,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "health.again": "Gbakọọ ya ọzọ",
   "health.failed": "Enweghị ike ịgbakọ akara gị. Nwaa ọzọ.",
   "activity.pages": "Peeji ihe mere",
+  "step.Card payments go straight to your bank once you add it.": "Ego kaadị ga-aga ozugbo n'ụlọ akụ gị ozugbo ị tinyere ya.",
 };
 
 export default ig;

@@ -9,6 +9,7 @@ import { emitPartnerEvent } from "@/lib/logistics/webhooks";
 import { partnerJob } from "@/lib/logistics/partner-api-core";
 import { canOfferJob } from "@/lib/logistics/payin-deadline";
 import { notifyJobOffered } from "@/lib/notifications/events.server";
+import { payableDeliveryFees } from "@/lib/logistics/delivery-fee-payments.server";
 
 export const GET = withSeller(async (req: NextRequest, { user }: { user: AuthUser }) => {
   const { page, limit, skip } = parsePagination(req.nextUrl.searchParams);
@@ -30,13 +31,15 @@ export const GET = withSeller(async (req: NextRequest, { user }: { user: AuthUse
         id: true, pickupLocation: true, destination: true,
         packageDetails: true, deliveryFee: true, currency: true,
         status: true, trackingCode: true, estimatedDelivery: true,
-        deliveredAt: true, notes: true, createdAt: true,
+        deliveredAt: true, notes: true, createdAt: true, feePaidAt: true,
         logisticsPartner: { select: { id: true, displayName: true, slug: true, logoUrl: true } },
       },
     }),
   ]);
 
-  return okList(bookings, { page, limit, total });
+  // feePayable: the seller can pay this fee by card now, split straight to the partner's bank.
+  const payable = await payableDeliveryFees(bookings.map((booking) => booking.id));
+  return okList(bookings.map((booking) => ({ ...booking, feePayable: payable.has(booking.id) })), { page, limit, total });
 });
 
 export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUser }) => {

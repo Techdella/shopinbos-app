@@ -72,9 +72,9 @@ const ha: Partial<Record<keyof typeof en, string>> = {
 
   "money.title": "Kuɗi",
   "money.loading": "Ana loda kuɗinka…",
-  "money.payoutsTo": "Payouts suna zuwa {bank} {account}.",
-  "money.payoutsToChecking": "Payouts suna zuwa {bank} {account}. Muna duba wannan asusun.",
-  "money.addBankFirst": "Ƙara asusun bankinka don samun payouts.",
+  "money.payoutsTo": "Kuɗinka na dropship orders da aka biya suna tafiya kai tsaye zuwa {bank} {account}.",
+  "money.payoutsToChecking": "Kuɗinka na dropship orders da aka biya za su tafi {bank} {account} da zarar mun duba wannan asusun.",
+  "money.addBankFirst": "Saita Shopinbos Wallet ɗinka domin kuɗinka na orders da aka biya su tafi kai tsaye zuwa bankinka.",
   "money.seePayouts": "Duba payouts ɗina",
   "money.addBank": "Ƙara bankina",
   "money.recent": "Na kwanan nan",
@@ -295,6 +295,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "quote.saidCant": "Ka ce ba za ka iya wannan ba",
   "quote.saidPrice": "Ka ce {price} kowanne",
   "quote.aPrice": "wani farashi",
+  "money.openWallet": "Buɗe Shopinbos Wallet ɗina",
 };
 
 export default ha;

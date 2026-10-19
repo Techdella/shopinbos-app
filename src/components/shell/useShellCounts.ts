@@ -9,6 +9,8 @@ export interface ShellCounts {
   orders: number;
   preferences?: AppPreferences;
   identity?: ShellIdentity | null;
+  /** Sellers: the Shopinbos Wallet ID check (null for other roles). */
+  idCheck?: { verified: boolean; checksReady: boolean } | null;
 }
 
 export interface ShellIdentity {

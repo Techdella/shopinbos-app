@@ -178,6 +178,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "media.example": "Zaɓi hoton Ankara na watan jiya don sabon banner maimakon sake ɗora shi.",
   "seasonal-campaigns.short": "Sale da ka tsara sau ɗaya wanda ke ƙawata shagonka don wani lokaci, sannan ya koma yadda yake da kansa.",
   "seasonal-campaigns.example": "Black Friday: launin gold, ƙidayar lokaci da badge “BF Deal” daga Juma'a zuwa daren Lahadi.",
+  "wallet.short": "Inda ake biyan kuɗin kati naka: kai tsaye zuwa bankinka, Shopinbos ba ya riƙe kuɗinka.",
+  "wallet.example": "Abokin ciniki ya biya ₦30,000: ₦30,000 naka (ban da kuɗin Paystack) zai shiga GTBank ɗinka a ranar aiki ta gaba.",
 };
 
 export default ha;

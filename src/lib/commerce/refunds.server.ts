@@ -37,7 +37,7 @@ function loadOrder(orderId: string) {
     where: { id: orderId },
     select: {
       id: true, orderNumber: true, storeId: true, status: true, total: true, currency: true, buyerEmail: true, buyerName: true,
-      paymentMethod: true, paystackRef: true, paystackStatus: true, paymentIssue: true, refundStatus: true, refundId: true,
+      paymentMethod: true, paystackRef: true, paystackStatus: true, paymentIssue: true, refundStatus: true, refundId: true, paymentSplit: true,
       store: { select: { userId: true, name: true } },
     },
   });
@@ -104,7 +104,9 @@ export async function refundLatePayment(orderId: string): Promise<RefundOutcome>
     if (refundRoute(order) === "manual") {
       const claimed = await db.retailOrder.updateMany({ where: { id: order.id, refundStatus: null }, data: { refundStatus: "manual" } });
       if (claimed.count !== 1) return "skipped";
-      await notifySeller(order, `Refund needed: order ${order.orderNumber}`, "This order expired unpaid and its stock sold to someone else, then the payment came in outside Paystack. Refund the buyer or offer a replacement.", "critical");
+      await notifySeller(order, `Refund needed: order ${order.orderNumber}`, order.paymentSplit
+        ? "This order expired unpaid and its stock sold to someone else, then the payment came in. It went straight to your bank through your Shopinbos Wallet, so refund the buyer or offer a replacement."
+        : "This order expired unpaid and its stock sold to someone else, then the payment came in outside Paystack. Refund the buyer or offer a replacement.", "critical");
       await emailBuyer(order, "by_store");
       return "manual";
     }

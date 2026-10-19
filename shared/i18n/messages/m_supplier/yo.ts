@@ -72,9 +72,9 @@ const yo: Partial<Record<keyof typeof en, string>> = {
 
   "money.title": "Owó",
   "money.loading": "À ń gbé owó rẹ wá…",
-  "money.payoutsTo": "Payouts ń lọ sí {bank} {account}.",
-  "money.payoutsToChecking": "Payouts ń lọ sí {bank} {account}. À ń ṣàyẹ̀wò àkáǹtì yìí.",
-  "money.addBankFirst": "Fi àkáǹtì báǹkì rẹ kún un láti gba payouts.",
+  "money.payoutsTo": "Owó rẹ lórí àwọn order dropship tí a ti san ń lọ tààrà sí {bank} {account}.",
+  "money.payoutsToChecking": "Owó rẹ lórí àwọn order dropship tí a ti san yóò lọ sí {bank} {account} nígbà tí a bá ti ṣàyẹ̀wò àkáǹtì yìí.",
+  "money.addBankFirst": "Ṣètò Shopinbos Wallet rẹ kí owó rẹ lórí àwọn order tí a ti san lè lọ tààrà sí báńkì rẹ.",
   "money.seePayouts": "Wo payouts mi",
   "money.addBank": "Fi báǹkì mi kún un",
   "money.recent": "Àìpẹ́",
@@ -295,6 +295,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "quote.saidCant": "O sọ pé o kò lè ṣe èyí",
   "quote.saidPrice": "O sọ {price} ẹyọ kan",
   "quote.aPrice": "iye owó kan",
+  "money.openWallet": "Ṣí Shopinbos Wallet mi",
 };
 
 export default yo;

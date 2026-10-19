@@ -46,8 +46,11 @@ test("the Paystack webhook checks the charge and only moves a still-unpaid order
   const source = read("src/app/api/webhooks/paystack/route.ts");
   assert.match(source, /retailChargeProblem\(pending, event\.data/);
   assert.match(source, /status: \{ in: \[\.\.\.PAYABLE_ORDER_STATUSES\] \}/);
-  assert.match(source, /if \(moved\.count === 1\) await creditCampaignConversion/);
-  assert.match(source, /moved\.count === 1 && resendKey/, "confirmation email only on the first transition");
+  // Messages and the confirmation email only on the first transition (src/lib/commerce/order-paid.server.ts).
+  assert.match(source, /afterRetailOrderPaid\(ref, moved\.count === 1/);
+  const paid = read("src/lib/commerce/order-paid.server.ts");
+  assert.match(paid, /if \(newlyPaid\) \{\n    await creditCampaignConversion/);
+  assert.match(paid, /if \(!newlyPaid\) return;\n\n  const resendKey/, "confirmation email only on the first transition");
   assert.match(source, /timingSafeEqual/);
   assert.doesNotMatch(source, /updateMany\(\{\s*where: \{ id: ref \},\s*data: \{ status: "paid"/);
   const action = read("src/app/actions/payments.ts");
@@ -280,8 +283,9 @@ test("server actions that read by id check the caller owns it", () => {
 
 test("every exported function in a \"use server\" file checks who is calling (or is a known public action)", () => {
   // Public on purpose: the storefront checkout confirms a Paystack payment for a buyer with no account; the
-  // order id plus a verified Paystack reference for that order and amount is the credential.
-  const PUBLIC = new Set(["verifyPaystackPayment", "updateOrderPayment"]);
+  // order id plus a verified Paystack reference for that order and amount is the credential. checkKorapayPayment
+  // only re-asks Korapay about an order and answers paid or not.
+  const PUBLIC = new Set(["verifyPaystackPayment", "updateOrderPayment", "checkKorapayPayment"]);
   const AUTH = /requireRole\(|requireUser\(|getCurrentAppUser\(|getSellerUserOrThrow\(|requireAdmin\(|requireSellerStore\(|getLogisticsActor\(|getSupplierActor\(|sellerAndStore\(|assertOwnSupplier\(|getSupplierForUser\(|requirePartner\(|applyPlanUpgrade\(|upgradeUserToSupplierMax\(|linkSupplierPaystackRecipient\(|getPartner\(|currentPartner\(|actor\(/;
   const missing = [];
   for (const entry of fs.readdirSync(path.join(ROOT, "src/app/actions"))) {

@@ -5,6 +5,7 @@ import { RexDrawerProvider } from "@/components/rex/RexDrawerContext";
 import { GuidedTour } from "./GuidedTour";
 import { FeatureIntroHost } from "@/components/learn/FeatureIntroHost";
 import { AnnouncementBanner } from "@/components/verification/AnnouncementBanner";
+import { VerifyYouBar } from "./VerifyYouBar";
 import type { Role } from "@/lib/nav";
 
 interface AppFrameProps {
@@ -71,6 +72,7 @@ export function AppFrame({
             role={role}
             searchPlaceholder={searchPlaceholder}
           />
+          {role === "seller" && <VerifyYouBar />}
           {verificationStatus && role !== "seller" && role !== "admin" && (
             <AnnouncementBanner
               role={role === "logistics_partner" ? "logistics_partner" : "supplier"}

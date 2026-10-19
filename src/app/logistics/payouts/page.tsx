@@ -3,7 +3,7 @@ import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { ensureLogisticsAccess, getLogisticsPartnerForUser } from "@/lib/role-queries";
 import { EmptyState, ListCard, ListRow, StatGrid, StatTile } from "@/components/app-kit";
-import { PayoutBankSection } from "@/components/payments/PayoutBankSection";
+import { WalletStatusCard, walletReady } from "@/components/wallet/WalletStatusCard";
 import { ACTIVE_STATUSES, PartnerPage, Route, bookingNet, jobId, lagosDate, lagosStartOfToday, naira } from "@/components/logistics/kit";
 import { getT } from "@/lib/i18n/server";
 
@@ -52,7 +52,7 @@ export default async function LogisticsPayoutsPage() {
     <PartnerPage
       frame={{ user, partner }}
       title={t("earnings.title")}
-      sub={payoutBank ? t("earnings.paidTo", { bank: payoutBank.bankName, account: payoutBank.accountNumber }) : t("earnings.addBank")}
+      sub={(await walletReady(user.id)) ? "Delivery payments go straight to your bank through your Shopinbos Wallet." : t("earnings.addBank")}
     >
       <StatGrid className="mb-5">
         <StatTile tone="card" label={t("today.earnedToday")} value={naira(sumNet(today))} hint={t("earnings.delivered", { count: today.length })} />
@@ -85,7 +85,7 @@ export default async function LogisticsPayoutsPage() {
         </section>
 
         <div className="min-w-0">
-          <PayoutBankSection role="logistics_partner" payoutBank={payoutBank} displayName={partner.displayName} />
+          <WalletStatusCard userId={user.id} href="/logistics/wallet" what="Delivery payments" />
         </div>
       </div>
     </PartnerPage>

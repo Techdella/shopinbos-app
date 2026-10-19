@@ -166,6 +166,11 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "set.photoRemoved": "A ti yọ àwòrán kúrò.",
   "set.photoFailed": "A kò lè gbé àwòrán yẹn sókè. Tún gbìyànjú.",
   "set.photoRemoveFailed": "A kò lè yọ ọ́ kúrò. Tún gbìyànjú.",
+  "money.wallet": "Shopinbos Wallet",
+  "money.walletHint": "Owó káàdì ń lọ tààrà sí báńkì rẹ",
+  "del.payFee": "San {amount} pẹ̀lú káàdì",
+  "del.feePaid": "A ti san owó ìfijiṣẹ́",
+  "del.feeNotSeen": "A kò tíì rí owó náà. Bí o bá ti san, yóò hàn níbí ní ìṣẹ́jú kan.",
 };
 
 export default yo;

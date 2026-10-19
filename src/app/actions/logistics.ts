@@ -10,7 +10,6 @@ import { requireRole } from "@/lib/server-auth";
 import { isOnboardingComplete, isProPlan } from "@/lib/role-queries";
 import { replyToQuote } from "@/lib/logistics/quotes";
 import { getPublicEnv } from "@/lib/env";
-import { recordRemittance } from "@/lib/logistics/remittances";
 import { assignRider, transitionJob } from "@/lib/logistics/jobs";
 import { newRiderToken } from "@/lib/logistics/rider-token";
 import { toE164 } from "@shared/phone";
@@ -276,30 +275,11 @@ export async function revokeRiderLink(formData: FormData) {
  * Record cash paid in from pay-on-delivery jobs. It settles the oldest unremitted cash jobs it fully covers;
  * whatever is left over stays on the pay-in record.
  */
-export async function recordCodRemittance(formData: FormData) {
-  const { partner } = await getLogisticsActor();
-  assertVerifiedLogistics(partner);
-  const amount = parsePositiveNumber(formData.get("amount"));
-  const reference = String(formData.get("reference") || "").trim().slice(0, 120);
-  const method = String(formData.get("method") || "transfer");
-  const note = String(formData.get("note") || "").trim().slice(0, 300);
-
-  if (!(amount > 0)) redirect("/logistics/cash?error=Enter%20the%20amount%20you%20paid%20in.");
-  if (!["transfer", "cash"].includes(method)) redirect("/logistics/cash?error=Choose%20how%20you%20paid%20it%20in.");
-
-  // With their own pay-in account, transfers are matched automatically from the bank's record; a typed-in pay-in
-  // could tick off jobs for money that never arrived, so the form is only for partners without one.
-  const payInAccount = await db.partnerPayInAccount.findUnique({ where: { logisticsPartnerId: partner.id }, select: { status: true, accountNumber: true } });
-  if (payInAccount?.status === "assigned" && payInAccount.accountNumber) {
-    redirect(`/logistics/cash?error=${encodeURIComponent("Pay into your own account number on this page. We match it automatically.")}`);
-  }
-
-  const result = await recordRemittance({ partnerId: partner.id, amount, method: method as "transfer" | "cash", reference, note });
-  if (!result.ok) redirect(`/logistics/cash?error=${encodeURIComponent(result.error)}`);
-
-  revalidatePath("/logistics/cash");
-  revalidatePath("/logistics/dashboard");
-  redirect("/logistics/cash?saved=1");
+export async function recordCodRemittance(_formData: FormData) {
+  // Retired: cash on delivery belongs to the seller and is paid to each seller directly (src/lib/logistics/
+  // seller-payins.server.ts), never to Shopinbos, so a pay-in to Shopinbos can't be recorded any more.
+  await getLogisticsActor();
+  redirect(`/logistics/cash?error=${encodeURIComponent("Cash now goes to each seller directly. Use Pay the seller on this page.")}`);
 }
 
 export async function updateLogisticsCoverage(formData: FormData) {

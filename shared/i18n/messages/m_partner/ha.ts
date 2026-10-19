@@ -157,9 +157,9 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "today.riderOnJob": "{name} · yana aiki",
   "today.riderFree": "{name} · ba shi da aiki",
   "today.seenRecently": "an gan shi kwanan nan",
-  payIn: "Biya {amount} {by}",
+  payIn: "Bayar da {amount} {by}",
   bySix: "kafin ƙarfe 6 na yamma",
-  codExplain: "Cash on delivery (COD) da riders ɗinka suka karɓa ba ka biya ba tukuna.",
+  codExplain: "Kuɗin kawowa (COD) da riders ɗinka suka karɓa ba ka ba masu sayarwa ba tukuna.",
 
   "jobs.title": "Ayyuka",
   "jobs.new": "Sababbi",
@@ -204,9 +204,9 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "addRider.phone": "Lambar WhatsApp ta rider",
 
   "money.title": "Kuɗi",
-  "money.cashToPayIn": "Kuɗin da za ka biya",
-  "money.nothingToPayIn": "Babu abin da za ka biya",
-  "money.late": "Wannan ya kamata a biya shi da safiyar yau. Biya shi yanzu don ka ci gaba da samun ayyukan cash-on-delivery.",
+  "money.cashToPayIn": "Kuɗin da za a ba masu sayarwa",
+  "money.nothingToPayIn": "Babu abin da za a bayar",
+  "money.late": "Wannan ya kamata a bayar tun ɗazu yau. Ba masu sayarwa yanzu domin ka ci gaba da samun ayyukan kuɗin kawowa.",
   "money.credit": "Ka biya ƙarin {amount}. Za mu yi amfani da shi don ayyukan cash ɗinka na gaba.",
   "money.codShows": "Cash on delivery (COD) da riders ɗinka suka karɓa yana bayyana a nan.",
   "money.account": "Asusun pay-in ɗinka",
@@ -279,6 +279,15 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "connect.description": "Gaya mana software da kake amfani da shi da yadda za mu same ka. Za mu yi sauran.",
   "connect.question": "Wane software ko app kake amfani da shi?",
   "connect.placeholder": "misali Shipbubble, tsarinmu na kanmu",
+  "money.wallet": "Shopinbos Wallet",
+  "money.open": "Buɗe",
+  "money.walletHint": "Kuɗin kawowa da aka biya da kati suna tafiya kai tsaye zuwa bankinka.",
+  "money.paySellers": "Ba masu sayarwa kuɗinsu",
+  "money.paySellersSub": "Kuɗin kawowa na mai sayarwa ne. Biya kowane mai sayarwa a nan kai tsaye zuwa bankinsa, ko ka ba shi hannu shi kuma zai tabbatar.",
+  "money.paySeller": "Biya {amount}",
+  "money.paidSeller": "Ka biya {name}. An daidaita ayyukan kuɗinsu.",
+  "money.notSeenYet": "Ba mu ga biyan ba tukuna. Idan ka biya, zai bayyana a nan cikin minti ɗaya.",
+  "money.handOver": "Ba {name} kuɗin a hannu. Zai tabbatar a Shopinbos.",
 };
 
 export default ha;

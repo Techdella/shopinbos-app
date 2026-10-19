@@ -5,6 +5,7 @@ import { Pagination } from "@/components/seller/Pagination";
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
+import { walletReady } from "@/components/wallet/WalletStatusCard";
 import { AssistantNote, EmptyState, FilterChips, ListCard, ListRow, Pill, PillLink, StatGrid, StatTile } from "@/components/app-kit";
 import { formatDate, humanize } from "@/components/growth/kit";
 import { PAYMENT_METHOD_LABEL } from "@shared/sales";
@@ -21,7 +22,7 @@ const PAID = ["paid", "processing", "packed", "shipped", "delivered"] as const;
 const PAGE_SIZE = 50;
 
 function isOnline(method: string | null) {
-  return !method || method === "paystack";
+  return !method || method === "paystack" || method === "korapay";
 }
 
 export default async function SellerPayoutsPage({ searchParams }: { searchParams?: Promise<{ show?: string; page?: string }> }) {
@@ -35,8 +36,9 @@ export default async function SellerPayoutsPage({ searchParams }: { searchParams
   // Totals cover every paid order; the list shows one page of the chosen kind.
   const storeId = store?.id ?? "__none__";
   const paidWhere: Prisma.RetailOrderWhereInput = { storeId, status: { in: [...PAID] } };
-  const onlineWhere: Prisma.RetailOrderWhereInput = { ...paidWhere, OR: [{ paymentMethod: null }, { paymentMethod: "paystack" }] };
-  const offlineWhere: Prisma.RetailOrderWhereInput = { ...paidWhere, AND: [{ NOT: { paymentMethod: null } }, { NOT: { paymentMethod: "paystack" } }] };
+  // Online: Paystack (saved as null or "paystack") and Korapay, the same split as isOnline above.
+  const onlineWhere: Prisma.RetailOrderWhereInput = { ...paidWhere, OR: [{ paymentMethod: null }, { paymentMethod: { in: ["paystack", "korapay"] } }] };
+  const offlineWhere: Prisma.RetailOrderWhereInput = { ...paidWhere, AND: [{ NOT: { paymentMethod: null } }, { paymentMethod: { notIn: ["paystack", "korapay"] } }] };
   const [onlineSum, offlineSum] = store
     ? await Promise.all([
         db.retailOrder.aggregate({ where: onlineWhere, _count: { _all: true }, _sum: { total: true } }),
@@ -60,7 +62,8 @@ export default async function SellerPayoutsPage({ searchParams }: { searchParams
       })
     : [];
   const brand = store?.brandSettings && typeof store.brandSettings === "object" ? (store.brandSettings as Record<string, unknown>) : {};
-  const hasBank = Boolean(brand.payoutBank && typeof brand.payoutBank === "object" && (brand.payoutBank as Record<string, unknown>).bankName);
+  // Card payments settle straight to the seller's bank through their Shopinbos Wallet (src/lib/wallet).
+  const hasBank = await walletReady(user.id);
 
   return (
     <SellerPage
@@ -72,7 +75,7 @@ export default async function SellerPayoutsPage({ searchParams }: { searchParams
     >
       <div className="grid gap-5">
         {!hasBank && (
-          <AssistantNote action={<PillLink href="/home/payments" tone="ink" size="sm">{t("bank.add")}</PillLink>}>
+          <AssistantNote action={<PillLink href="/home/wallet" tone="ink" size="sm">Set up your wallet</PillLink>}>
             {t("po.noBank")}
           </AssistantNote>
         )}

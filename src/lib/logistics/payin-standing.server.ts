@@ -252,7 +252,10 @@ export async function payInOverdueView(partnerId: string, now: Date = new Date()
     select: { codPaused: true, payInOverdueSince: true, payInOverdueAmount: true },
   });
   if (!partner?.payInOverdueSince || partner.payInOverdueAmount <= 0) return null;
-  const account = await db.partnerPayInAccount.findUnique({ where: { logisticsPartnerId: partnerId }, select: { status: true, accountNumber: true, bankName: true, accountName: true } }).catch(() => null);
+  // Shopinbos pay-in accounts are off unless PAYSTACK_DVA_ENABLED=true: cash goes to each seller (seller-payins.server.ts).
+  const account = process.env.PAYSTACK_DVA_ENABLED?.trim().toLowerCase() === "true"
+    ? await db.partnerPayInAccount.findUnique({ where: { logisticsPartnerId: partnerId }, select: { status: true, accountNumber: true, bankName: true, accountName: true } }).catch(() => null)
+    : null;
   const words = overdueCardWords({ amount: partner.payInOverdueAmount, since: partner.payInOverdueSince, paused: partner.codPaused, now });
   return {
     amount: partner.payInOverdueAmount,

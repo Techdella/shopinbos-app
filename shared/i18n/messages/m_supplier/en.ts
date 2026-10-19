@@ -76,9 +76,9 @@ const en = {
   // Money (app/supplier/(tabs)/money.tsx)
   "money.title": "Money",
   "money.loading": "Loading your money…",
-  "money.payoutsTo": "Payouts go to {bank} {account}.",
-  "money.payoutsToChecking": "Payouts go to {bank} {account}. We're checking this account.",
-  "money.addBankFirst": "Add your bank account to get payouts.",
+  "money.payoutsTo": "Your cost on paid dropship orders goes straight to {bank} {account}.",
+  "money.payoutsToChecking": "Your cost on paid dropship orders goes to {bank} {account} once we've checked this account.",
+  "money.addBankFirst": "Set up your Shopinbos Wallet so your cost on paid orders goes straight to your bank.",
   "money.seePayouts": "See my payouts",
   "money.addBank": "Add my bank",
   "money.recent": "Recent",
@@ -306,6 +306,7 @@ const en = {
   "quote.saidCant": "You said you can't do this one",
   "quote.saidPrice": "You said {price} each",
   "quote.aPrice": "a price",
+  "money.openWallet": "Open my Shopinbos Wallet",
 } satisfies Record<string, string>;
 
 export default en;

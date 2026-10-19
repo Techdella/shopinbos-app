@@ -166,6 +166,11 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "set.photoRemoved": "Ewepụla foto.",
   "set.photoFailed": "Anyị enweghị ike ibulite foto ahụ. Nwaa ọzọ.",
   "set.photoRemoveFailed": "Anyị enweghị ike iwepụ ya. Nwaa ọzọ.",
+  "money.wallet": "Shopinbos Wallet",
+  "money.walletHint": "Ego kaadị na-aga ozugbo n'ụlọ akụ gị",
+  "del.payFee": "Kwụọ {amount} site na kaadị",
+  "del.feePaid": "Akwụọla ụgwọ mbuga",
+  "del.feeNotSeen": "Anyị ahụbeghị ịkwụ ụgwọ ahụ. Ọ bụrụ na ị kwụọla, ọ ga-apụta ebe a n'otu nkeji.",
 };
 
 export default ig;

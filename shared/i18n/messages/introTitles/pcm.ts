@@ -59,6 +59,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "connections.title": "Connections",
   "media.title": "Media",
   "seasonal-campaigns.title": "Seasonal campaigns",
+  "wallet.title": "Shopinbos Wallet",
 };
 
 export default pcm;

@@ -100,6 +100,7 @@ export const GLOSSARY: GlossaryEntry[] = [
   // ── Money ──
   { key: "payments", term: "Payments", short: "Money customers pay you, by card, bank transfer, USSD or cash on delivery.", example: "₦18,000 by transfer from Chidi, ₦9,500 cash on delivery from Halima.", aliases: ["payment"], introKey: "payouts" },
   { key: "payouts", term: "Payouts", short: "Money Shopinbos sends from your sales into your bank account.", example: "Monday’s ₦64,000 in sales lands in your GTBank on Tuesday.", aliases: ["payout", "money sent to your bank", "earnings", "withdrawals"], introKey: "payouts" },
+  { key: "wallet", term: "Shopinbos Wallet", short: "Where card payments for you are settled: straight to your own bank, never held by Shopinbos.", example: "A customer pays ₦30,000: your ₦30,000 (less Paystack’s fee) lands in your GTBank the next working day.", aliases: ["wallet", "business wallet"], introKey: "wallet" },
   { key: "settlement", term: "Settlement", short: "The moment your money is cleared and moved to your bank.", example: "Card payments settle the next working day.", aliases: ["settlements", "settled"], introKey: "payouts" },
   { key: "escrow", term: "Escrow", short: "Money held safely in the middle until the order is delivered, then released.", example: "The buyer pays ₦30,000; it’s released to you once they get the parcel.", aliases: ["held money", "on hold"], introKey: "payouts" },
   { key: "invoices", term: "Invoices", short: "A bill with your logo that tells a customer what they owe and how to pay.", example: "Invoice #014 for 20 cartons, due Friday.", aliases: ["invoice", "invoicing"], introKey: "invoices" },
@@ -168,7 +169,7 @@ export type GlossaryRole = "seller" | "supplier" | "logistics_partner";
 const SHARED_NAV: Record<string, string> = {
   inbox: "inbox", "inbox-messages": "inbox", "inbox-partners": "inbox", "inbox-forms": "forms", "inbox-chat": "live-chat",
   "inbox-auto-replies": "auto-replies", "inbox-chatbot": "chatbot", "inbox-whatsapp-catalog": "whatsapp-catalog", "inbox-notifications": "notifications",
-  reviews: "reviews", verification: "verification", cms: "content", analytics: "analytics", payouts: "payouts",
+  reviews: "reviews", verification: "verification", cms: "content", analytics: "analytics", payouts: "payouts", wallet: "wallet",
 };
 
 export const NAV_TERMS: Record<GlossaryRole, Record<string, string>> = {

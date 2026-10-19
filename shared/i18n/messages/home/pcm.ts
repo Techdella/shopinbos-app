@@ -70,6 +70,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "pm.transfer.hint": "Customers go see your payout account; you go mark am paid when the money land",
   "pm.card.label": "Card and USSD",
   "pm.card.hint": "Through Paystack",
+  "pm.korapay.label": "Korapay",
+  "pm.korapay.hint": "Card, transfer or pay with bank through Korapay",
   "pm.cod.label": "Pay on delivery",
   "pm.cod.hint": "Up to ₦50,000, verified phone numbers, where riders dey cover",
   "pm.wa.label": "Finish am for WhatsApp",
@@ -211,6 +213,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "health.again": "Work am out again",
   "health.failed": "We no fit work out your score. Try again.",
   "activity.pages": "Activity pages",
+  "step.Card payments go straight to your bank once you add it.": "Card payments go enter your bank straight once you add am.",
 };
 
 export default pcm;

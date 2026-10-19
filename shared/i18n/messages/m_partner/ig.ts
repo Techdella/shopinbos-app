@@ -157,9 +157,9 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "today.riderOnJob": "{name} · ọ nọ n'ọrụ",
   "today.riderFree": "{name} · ọ nọ efu",
   "today.seenRecently": "a hụrụ ya n'oge na-adịbeghị anya",
-  payIn: "Kwụọ {amount} {by}",
+  payIn: "Nye {amount} {by}",
   bySix: "tupu elekere 6 mgbede",
-  codExplain: "Cash on delivery (COD) riders gị natara nke ị kwụbeghị.",
+  codExplain: "Ego mbuga (COD) riders gị natara nke i nyebeghị ndị na-ere.",
 
   "jobs.title": "Ọrụ",
   "jobs.new": "Ọhụrụ",
@@ -204,9 +204,9 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "addRider.phone": "Nọmba WhatsApp rider",
 
   "money.title": "Ego",
-  "money.cashToPayIn": "Ego ị ga-akwụ",
-  "money.nothingToPayIn": "Ọ dịghị ihe ị ga-akwụ",
-  "money.late": "E kwesịrị ịkwụ nke a n'isi ụtụtụ taa. Kwụọ ya ugbu a ka ị na-anọgide na-enweta ọrụ cash-on-delivery.",
+  "money.cashToPayIn": "Ego ị ga-enye ndị na-ere",
+  "money.nothingToPayIn": "Ọ dịghị ihe ị ga-enye",
+  "money.late": "Nke a kwesịrị ịga n'isi ụtụtụ taa. Nye ndị na-ere ugbu a ka ị nọgide na-enweta ọrụ ego mbuga.",
   "money.credit": "I kwụfere {amount}. Anyị ga-eji ya maka ọrụ cash gị na-esote.",
   "money.codShows": "Cash on delivery (COD) riders gị na-anara na-apụta ebe a.",
   "money.account": "Akaụntụ pay-in gị",
@@ -279,6 +279,15 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "connect.description": "Gwa anyị software ị na-eji na otú anyị ga-esi kpọtụrụ gị. Anyị ga-eme ihe fọdụrụ.",
   "connect.question": "Kedu software ma ọ bụ app ị na-eji?",
   "connect.placeholder": "dịka Shipbubble, sistemụ nke anyị",
+  "money.wallet": "Shopinbos Wallet",
+  "money.open": "Mepee",
+  "money.walletHint": "Ụgwọ mbuga a kwụrụ site na kaadị na-aga ozugbo n'ụlọ akụ gị.",
+  "money.paySellers": "Nye ndị na-ere ego ha",
+  "money.paySellersSub": "Ego mbuga bụ nke onye na-ere. Kwụọ onye na-ere ọ bụla ebe a ozugbo n'ụlọ akụ ha, ma ọ bụ nye ha n'aka ha ga-akwado ya.",
+  "money.paySeller": "Kwụọ {amount}",
+  "money.paidSeller": "Ị kwụọla {name}. Edozila ọrụ ego ha.",
+  "money.notSeenYet": "Anyị ahụbeghị ịkwụ ụgwọ ahụ. Ọ bụrụ na ị kwụọla, ọ ga-apụta ebe a n'otu nkeji.",
+  "money.handOver": "Nye {name} ego ahụ n'aka. Ha ga-akwado ya na Shopinbos.",
 };
 
 export default ig;

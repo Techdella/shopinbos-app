@@ -169,6 +169,11 @@ const en = {
   "set.photoRemoved": "Photo removed.",
   "set.photoFailed": "Couldn't upload that picture. Try again.",
   "set.photoRemoveFailed": "Couldn't remove that. Try again.",
+  "money.wallet": "Shopinbos Wallet",
+  "money.walletHint": "Card payments go straight to your bank",
+  "del.payFee": "Pay {amount} by card",
+  "del.feePaid": "Fee paid",
+  "del.feeNotSeen": "We haven't seen the payment yet. If you paid, it shows here in a minute.",
 } satisfies Record<string, string>;
 
 export default en;

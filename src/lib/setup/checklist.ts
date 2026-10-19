@@ -207,10 +207,11 @@ export function buildSetupChecklist(facts: SetupFacts, choices: SetupChoices): S
     {
       key: "payout",
       title: "Add your payout bank",
-      hint: facts.payoutBank ? "Your bank account is linked for payouts." : "Money waits safely in your balance until you do.",
+      hint: facts.payoutBank ? "Your bank account is linked for payouts." : "Card payments go straight to your bank once you add it.",
       optional: false,
       done: facts.payoutBank,
-      action: { kind: "inline", label: "Add bank" },
+      // The Shopinbos Wallet: pick the bank, see the account name, confirm (src/lib/wallet).
+      action: { kind: "link", label: "Add bank", href: "/home/wallet" },
       helper: null,
     },
     {

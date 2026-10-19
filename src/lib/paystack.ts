@@ -34,6 +34,8 @@ export async function initializePaystackTransaction(input: {
   reference: string;
   callbackUrl: string;
   metadata: Record<string, unknown>;
+  /** Who the payment is settled to (src/lib/wallet/rules.ts paystackSplitParams): a subaccount or a dynamic split. */
+  split?: Record<string, unknown>;
 }) {
   const response = await fetch(`${PAYSTACK_BASE}/transaction/initialize`, {
     method: "POST",
@@ -48,6 +50,7 @@ export async function initializePaystackTransaction(input: {
       reference: input.reference,
       callback_url: input.callbackUrl,
       metadata: input.metadata,
+      ...(input.split ?? {}),
     }),
     cache: "no-store",
   });
@@ -143,4 +146,96 @@ export async function chargePaystackAuthorization(input: {
     return { status: "failed", message: json?.message ?? "Paystack could not charge the saved card." };
   }
   return { status: json.data.status ?? "failed", message: json.data.gateway_response ?? json.message ?? "" };
+}
+
+// ─── Subaccounts: each business's own settlement (Shopinbos Wallet) ─────────────
+
+export interface PaystackSubaccount {
+  code: string;
+  verified: boolean;
+  active: boolean;
+}
+
+function readSubaccount(data: Record<string, unknown> | undefined): PaystackSubaccount | null {
+  const code = typeof data?.subaccount_code === "string" ? data.subaccount_code : "";
+  if (!code) return null;
+  return { code, verified: data?.is_verified === true, active: data?.active !== false };
+}
+
+/**
+ * Creates the subaccount a business's shares are settled to (POST /subaccount). percentage_charge 0: the main
+ * (Shopinbos) account keeps nothing; each checkout also passes a zero transaction charge. Throws when Paystack
+ * refuses (e.g. the account number doesn't exist at that bank).
+ */
+export async function createPaystackSubaccount(input: { businessName: string; bankCode: string; accountNumber: string; email?: string | null; contactName: string; phone?: string | null; walletId: string }) {
+  const response = await fetch(`${PAYSTACK_BASE}/subaccount`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${secretKey()}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      business_name: input.businessName.slice(0, 100),
+      settlement_bank: input.bankCode,
+      account_number: input.accountNumber,
+      percentage_charge: 0,
+      description: "Shopinbos Wallet",
+      primary_contact_name: input.contactName.slice(0, 100),
+      ...(input.email ? { primary_contact_email: input.email } : {}),
+      ...(input.phone ? { primary_contact_phone: input.phone } : {}),
+      metadata: { walletId: input.walletId },
+    }),
+    cache: "no-store",
+    signal: AbortSignal.timeout(20_000),
+  });
+  const json = (await response.json().catch(() => null)) as { status?: boolean; message?: string; data?: Record<string, unknown> } | null;
+  const subaccount = readSubaccount(json?.data);
+  if (!response.ok || !json?.status || !subaccount) throw new Error(json?.message ?? "Paystack could not set up this settlement account.");
+  return subaccount;
+}
+
+/** Changes the bank a subaccount settles to, or switches it on/off (PUT /subaccount/:code). */
+export async function updatePaystackSubaccount(code: string, change: { bankCode?: string; accountNumber?: string; businessName?: string; active?: boolean }) {
+  const response = await fetch(`${PAYSTACK_BASE}/subaccount/${encodeURIComponent(code)}`, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${secretKey()}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      ...(change.businessName ? { business_name: change.businessName.slice(0, 100) } : {}),
+      ...(change.bankCode ? { settlement_bank: change.bankCode } : {}),
+      ...(change.accountNumber ? { account_number: change.accountNumber } : {}),
+      ...(change.active === undefined ? {} : { active: change.active }),
+      percentage_charge: 0,
+    }),
+    cache: "no-store",
+    signal: AbortSignal.timeout(20_000),
+  });
+  const json = (await response.json().catch(() => null)) as { status?: boolean; message?: string; data?: Record<string, unknown> } | null;
+  if (!response.ok || !json?.status) throw new Error(json?.message ?? "Paystack could not update this settlement account.");
+  return readSubaccount(json.data);
+}
+
+export interface PaystackSettlement {
+  id: string;
+  status: string;
+  /** Kobo. */
+  totalAmount: number;
+  settlementDate: string | null;
+}
+
+/** Recent settlements Paystack made to a subaccount's bank (GET /settlement?subaccount=…). Empty when Paystack can't say. */
+export async function listPaystackSettlements(subaccountCode: string, perPage = 10): Promise<PaystackSettlement[]> {
+  try {
+    const response = await fetch(`${PAYSTACK_BASE}/settlement?subaccount=${encodeURIComponent(subaccountCode)}&perPage=${perPage}`, {
+      headers: { Authorization: `Bearer ${secretKey()}` },
+      cache: "no-store",
+      signal: AbortSignal.timeout(10_000),
+    });
+    const json = (await response.json().catch(() => null)) as { status?: boolean; data?: Array<Record<string, unknown>> } | null;
+    if (!response.ok || !json?.status || !Array.isArray(json.data)) return [];
+    return json.data.map((row) => ({
+      id: String(row.id ?? ""),
+      status: typeof row.status === "string" ? row.status : "",
+      totalAmount: Number(row.total_amount ?? row.effective_amount ?? 0) || 0,
+      settlementDate: typeof row.settlement_date === "string" ? row.settlement_date : typeof row.settled_at === "string" ? row.settled_at : null,
+    }));
+  } catch {
+    return [];
+  }
 }

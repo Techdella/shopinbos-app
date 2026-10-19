@@ -12,8 +12,12 @@ import { isDedicatedCharge, readDedicatedAccount } from "./payin-rules";
 //   2. POST /dedicated_account  { customer, preferred_bank }             → account_number, account_name, bank
 //      Some businesses get the account later: dedicatedaccount.assign.success / .failed then completes it.
 //
+// Off unless PAYSTACK_DVA_ENABLED=true: money paid into these accounts lands in Shopinbos's Paystack balance, and
+// cash on delivery belongs to the seller, so partners now pay each seller directly (seller-payins.server.ts).
+// Accounts already handed out keep being matched by the webhook, so a transfer someone still makes isn't lost.
+//
 // Env: PAYSTACK_SECRET_KEY (required), PAYSTACK_DVA_BANK (bank slug; "test-bank" for test keys, e.g. "wema-bank" or
-// "titan-paystack" live), PAYSTACK_DVA_ENABLED=false to switch the feature off (partners then see the manual form),
+// "titan-paystack" live), PAYSTACK_DVA_ENABLED=true to switch the feature back on,
 // PAYSTACK_BASE_URL for a local stub. Dedicated Virtual Accounts must be enabled on the Paystack business.
 // Nothing here throws, and no Paystack message ever reaches a partner: the account just shows as "not ready".
 
@@ -34,7 +38,7 @@ function secret() {
 
 /** True when pay-in accounts can be used: Paystack keys are set and the feature isn't switched off. */
 export function payInAccountsConfigured() {
-  return paystackSecretReady(secret()) && process.env.PAYSTACK_DVA_ENABLED?.trim().toLowerCase() !== "false";
+  return paystackSecretReady(secret()) && process.env.PAYSTACK_DVA_ENABLED?.trim().toLowerCase() === "true";
 }
 
 export function dvaBank() {
@@ -103,10 +107,11 @@ export type PayInAccountView =
 
 /** What the partner screens show: their account, "we're setting it up", or the manual form. */
 export function payInAccountView(account: { status: string; accountNumber: string | null; accountName: string | null; bankName: string | null } | null): PayInAccountView {
+  // Switched off (the default): never show a Shopinbos account to pay cash into, even one handed out before.
+  if (!payInAccountsConfigured()) return { state: "manual" };
   if (account?.status === "assigned" && account.accountNumber) {
     return { state: "ready", accountNumber: account.accountNumber, accountName: account.accountName ?? "", bankName: account.bankName ?? "" };
   }
-  if (!payInAccountsConfigured()) return { state: "manual" };
   if (!account || account.status === "pending") return { state: "setting_up" };
   return { state: "manual" };
 }

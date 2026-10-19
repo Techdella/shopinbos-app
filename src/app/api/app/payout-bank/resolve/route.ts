@@ -2,7 +2,8 @@ import { NextRequest } from "next/server";
 import { withSeller } from "@/lib/auth/middleware";
 import { apiError, ok } from "@/lib/api/response";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { resolvePaystackAccount, SELLER_PAYOUT_BANKS } from "@/lib/payout-bank";
+import { resolvePaystackAccount } from "@/lib/payout-bank";
+import { walletBankNames } from "@/lib/wallet/wallet.server";
 import { ResolveAccountSchema } from "@/lib/seller-settings-rules";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +20,6 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
   }
   const parsed = ResolveAccountSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return apiError("BAD_REQUEST", parsed.error.issues[0]?.message ?? "Check your bank details.");
-  if (!SELLER_PAYOUT_BANKS.includes(parsed.data.bankName)) return apiError("BAD_REQUEST", "Choose your bank from the list.");
+  if (!(await walletBankNames()).includes(parsed.data.bankName)) return apiError("BAD_REQUEST", "Choose your bank from the list.");
   return ok(await resolvePaystackAccount(parsed.data.bankName, parsed.data.accountNumber));
 });

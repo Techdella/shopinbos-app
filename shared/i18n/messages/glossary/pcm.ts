@@ -178,6 +178,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "media.example": "Pick the Ankara photo from last month for new banner instead to upload am again.",
   "seasonal-campaigns.short": "Sale wey you plan once, e go dress your shop for the season, then e go switch back by itself.",
   "seasonal-campaigns.example": "Black Friday: gold colours, countdown and “BF Deal” badge from Friday reach Sunday night.",
+  "wallet.short": "Na where card payment for you dey settle: straight enter your own bank, Shopinbos no dey hold your money.",
+  "wallet.example": "Customer pay ₦30,000: your ₦30,000 (minus Paystack fee) go land your GTBank next working day.",
 };
 
 export default pcm;

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cronAuthorization } from "@/lib/auth/cron";
+import { cronDenied } from "@/lib/auth/cron-request";
 import { syncDueStores } from "@/lib/whatsapp-catalog/server";
 
 export const maxDuration = 300;
@@ -10,11 +10,8 @@ export const dynamic = "force-dynamic";
 // Called every 15 minutes by Supabase pg_cron (docs/migrations/2026-10-15-whatsapp-catalog.sql) with
 // `Authorization: Bearer $CRON_SECRET`.
 export async function GET(req: NextRequest) {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return NextResponse.json({ error: { code: "NOT_CONFIGURED", message: "CRON_SECRET is not set" } }, { status: 503 });
-  if (cronAuthorization(req.headers.get("authorization"), secret) !== "ok") {
-    return NextResponse.json({ error: { code: "UNAUTHORIZED", message: "Invalid cron secret" } }, { status: 401 });
-  }
+  const denied = await cronDenied(req);
+  if (denied) return denied;
   try {
     return NextResponse.json({ data: await syncDueStores() });
   } catch (error) {

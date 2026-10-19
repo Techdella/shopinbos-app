@@ -5,6 +5,8 @@ import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { AssistantNote, Card, CardHead, FilterChips, ListCard, ListRow, Pill, PillLink, StatGrid, StatTile, Thumb, EmptyState, type Tone } from "@/components/app-kit";
 import { QuoteRequestForm } from "./QuoteRequestForm";
 import { AcceptQuoteButton } from "./AcceptQuoteButton";
+import { PayDeliveryFeeButton } from "@/components/logistics/PayDeliveryFeeButton";
+import { payableDeliveryFees } from "@/lib/logistics/delivery-fee-payments.server";
 import { messagesHref } from "@/lib/conversations/pure";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { formatDate, formatMoney } from "@shared/i18n";
@@ -66,6 +68,7 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
     db.deliveryBooking.findMany({ where: { sellerId: user.id }, include: { logisticsPartner: { select: { displayName: true } } }, orderBy: { createdAt: "desc" }, take: 8 }),
   ]);
 
+  const payable = await payableDeliveryFees(recentBookings.map((b) => b.id));
   const allVerified = filter === "all"
     ? partners
     : await db.logisticsPartner.findMany({ where: { status: "active", verificationStatus: "verified" }, orderBy: { displayName: "asc" }, take: 100 });
@@ -111,6 +114,7 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
                       </div>
                       <Pill tone={BOOKING_TONE[b.status] ?? "muted"} dot>{t.dynamic(`booking.${b.status}`, b.status.replace(/_/g, " "))}</Pill>
                       <span className="w-[90px] shrink-0 text-right text-[14px] font-extrabold">{fmt(b.deliveryFee)}</span>
+                      {b.feePaidAt ? <Pill tone="success">{t("lg.feePaid")}</Pill> : payable.has(b.id) ? <PayDeliveryFeeButton bookingId={b.id} label={t("lg.payFee", { amount: fmt(b.deliveryFee) })} /> : null}
                       <PillLink href={messagesHref("seller", { with: b.logisticsPartnerId, context: { kind: "booking", id: b.id } })} size="sm" icon="chat">{t("lg.message")}</PillLink>
                     </li>
                   ))}

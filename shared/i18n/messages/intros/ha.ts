@@ -658,6 +658,17 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "seasonal-campaigns.4.sub": "Kowane campaign mai gudana da mai zuwa yana ƙidaya a shafin farko, don ka san abin da ke gudana koyaushe.",
   "seasonal-campaigns.5.caption": "Duba abin da ya kawo.",
   "seasonal-campaigns.5.sub": "Ziyara, rajistar pop-up, orders da cinikin da aka yi lokacin da yake gudana, kusa da kwanakin da suka gabata.",
+  "wallet.title": "Shopinbos Wallet",
+  "wallet.1.caption": "Tabbatar da shaidarka sau ɗaya.",
+  "wallet.1.sub": "BVN ko NIN ɗinka, za mu duba shi da sunanka da ranar haihuwarka.",
+  "wallet.2.caption": "Ƙara bankin da ake biyanka a ciki.",
+  "wallet.2.sub": "Za mu duba sunan da ke kansa da Paystack.",
+  "wallet.3.caption": "Abokin ciniki ya biya da kati.",
+  "wallet.3.sub": "Paystack zai raba kuɗin: rabonka, da kuɗin kowane mai kawowa.",
+  "wallet.4.caption": "Kai tsaye zuwa bankinka.",
+  "wallet.4.sub": "Yawanci a ranar aiki ta gaba. Shopinbos ba ya riƙe kuɗinka.",
+  "wallet.5.caption": "Duba kowane biya.",
+  "wallet.5.sub": "Rabon kowane oda da biyan Paystack, a jeri ɗaya.",
 };
 
 export default ha;

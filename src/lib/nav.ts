@@ -177,6 +177,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
           children: [
             { id: "payments", label: "Payments", href: "/home/payments" },
             { id: "payouts", label: "Payouts", href: "/home/payouts" },
+            { id: "wallet", label: "Wallet", href: "/home/wallet" },
             { id: "invoices", label: "Invoices", href: "/home/invoices" },
             { id: "taxes", label: "Taxes", href: "/home/taxes" },
           ],
@@ -261,6 +262,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
           ],
         },
         { id: "payouts", label: "Earnings", icon: "bank", href: "/supplier/payouts", core: true },
+        { id: "wallet", label: "Wallet", icon: "coin", href: "/supplier/wallet" },
         { id: "analytics", label: "Performance", icon: "chart", href: "/supplier/analytics" },
         { id: "cms", label: "Blog", icon: "edit", href: "/supplier/cms" },
       ],
@@ -315,6 +317,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
           id: "payouts", label: "Earnings", icon: "chart", href: "/logistics/payouts", core: true,
           children: [
             { id: "earnings", label: "Earnings", href: "/logistics/payouts" },
+            { id: "wallet", label: "Wallet", href: "/logistics/wallet" },
             { id: "billing", label: "Fees", href: "/logistics/billing" },
           ],
         },
@@ -385,6 +388,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
           ],
         },
         { id: "logistics-partners", label: "Logistics", icon: "truck", href: "/admin/logistics-partners", core: true },
+        { id: "wallets", label: "Wallets", icon: "coin", href: "/admin/wallets" },
         {
           id: "marketplace", label: "Marketplace", icon: "monitor", href: "/admin/marketplace",
           children: [

@@ -658,6 +658,17 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "seasonal-campaigns.4.sub": "Gbogbo campaign tó ń lọ àti tó ń bọ̀ ń ka lórí ojú-ìwé ilé rẹ, kí o lè mọ ohun tó ń lọ nígbà gbogbo.",
   "seasonal-campaigns.5.caption": "Wo ohun tó mú wá.",
   "seasonal-campaigns.5.sub": "Ìbẹ̀wò, ìforúkọsílẹ̀ pop-up, order àti owó tí o pa nígbà tó ń lọ, ní ẹ̀gbẹ́ àwọn ọjọ́ tó ṣáájú.",
+  "wallet.title": "Shopinbos Wallet",
+  "wallet.1.caption": "Fìdí ìdánimọ̀ rẹ múlẹ̀ lẹ́ẹ̀kan.",
+  "wallet.1.sub": "BVN tàbí NIN rẹ, a ó fi orúkọ àti ọjọ́ ìbí rẹ ṣàyẹ̀wò rẹ̀.",
+  "wallet.2.caption": "Ṣàfikún báńkì tí wọ́n ń sanwó fún ọ sí.",
+  "wallet.2.sub": "A ó fi Paystack ṣàyẹ̀wò orúkọ tó wà lórí rẹ̀.",
+  "wallet.3.caption": "Oníbàárà sanwó pẹ̀lú káàdì.",
+  "wallet.3.sub": "Paystack pín owó náà: ìpín tìrẹ, àti iye owó olùpèsè kọ̀ọ̀kan.",
+  "wallet.4.caption": "Ó lọ tààrà sí báńkì rẹ.",
+  "wallet.4.sub": "Ní ọjọ́ iṣẹ́ tó tẹ̀lé e ní gbogbo ìgbà. Shopinbos kì í di owó rẹ mú.",
+  "wallet.5.caption": "Wo gbogbo owó tí wọ́n san.",
+  "wallet.5.sub": "Ìpín ọjà kọ̀ọ̀kan àti ìsanwó Paystack, nínú àkójọ kan.",
 };
 
 export default yo;

@@ -72,9 +72,9 @@ const ig: Partial<Record<keyof typeof en, string>> = {
 
   "money.title": "Ego",
   "money.loading": "Anyị na-ebupụta ego gị…",
-  "money.payoutsTo": "Payouts na-aga {bank} {account}.",
-  "money.payoutsToChecking": "Payouts na-aga {bank} {account}. Anyị na-enyocha akaụntụ a.",
-  "money.addBankFirst": "Tinye akaụntụ ụlọ akụ gị ka ị nweta payouts.",
+  "money.payoutsTo": "Ego gị na dropship orders a kwụrụ na-aga ozugbo na {bank} {account}.",
+  "money.payoutsToChecking": "Ego gị na dropship orders a kwụrụ ga-aga na {bank} {account} ozugbo anyị nyochachara akaụntụ a.",
+  "money.addBankFirst": "Hazie Shopinbos Wallet gị ka ego gị na orders a kwụrụ gaa ozugbo n'ụlọ akụ gị.",
   "money.seePayouts": "Lee payouts m",
   "money.addBank": "Tinye ụlọ akụ m",
   "money.recent": "Nso nso a",
@@ -295,6 +295,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "quote.saidCant": "I kwuru na ị nweghị ike ime nke a",
   "quote.saidPrice": "I kwuru {price} otu",
   "quote.aPrice": "otu ọnụahịa",
+  "money.openWallet": "Mepee Shopinbos Wallet m",
 };
 
 export default ig;

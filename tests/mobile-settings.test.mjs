@@ -14,16 +14,16 @@ const { NAMESPACES } = await import("../shared/i18n/catalog.ts");
 // ─── Money settings (shared by the web actions and /api/app/payments) ────────
 
 test("payment methods: always every key, and at least one must stay on", () => {
-  assert.deepEqual(money.cleanPaymentMethods({ card: true, cod: 1, junk: true }), { transfer: false, card: true, cod: true, wa: false });
-  assert.deepEqual(money.cleanPaymentMethods(null), { transfer: false, card: false, cod: false, wa: false });
+  assert.deepEqual(money.cleanPaymentMethods({ card: true, korapay: false, cod: 1, junk: true }), { transfer: false, card: true, korapay: false, cod: true, wa: false });
+  assert.deepEqual(money.cleanPaymentMethods(null), { transfer: false, card: false, korapay: false, cod: false, wa: false });
   assert.equal(money.paymentMethodsProblem(money.cleanPaymentMethods({})), "keepOne");
   assert.equal(money.paymentMethodsProblem(money.cleanPaymentMethods({ wa: true })), null);
 });
 
 test("payment switches read the way checkout reads them", () => {
   // Never saved: card only (checkout offers card only), not the onboarding defaults.
-  assert.deepEqual(money.readShopPaymentMethods({}), { transfer: false, card: true, cod: false, wa: false });
-  assert.deepEqual(money.readShopPaymentMethods({ paymentConfig: { methods: { cod: true } } }), { transfer: false, card: false, cod: true, wa: false });
+  assert.deepEqual(money.readShopPaymentMethods({}), { transfer: false, card: true, korapay: false, cod: false, wa: false });
+  assert.deepEqual(money.readShopPaymentMethods({ paymentConfig: { methods: { cod: true } } }), { transfer: false, card: false, korapay: false, cod: true, wa: false });
 });
 
 test("transfer window: the listed hours or the default", () => {
@@ -68,7 +68,7 @@ test("money summary: online vs collected, refunds, Lagos days and methods", () =
 
 test("PATCH /api/app/payments: methods and/or a listed time, nothing else", () => {
   const ok = (body) => rules.PaymentsPatchSchema.safeParse(body).success;
-  assert.ok(ok({ methods: { transfer: true, card: true, cod: false, wa: false } }));
+  assert.ok(ok({ methods: { transfer: true, card: true, korapay: false, cod: false, wa: false } }));
   assert.ok(ok({ transferWindowHours: 48 }));
   assert.ok(ok({ transferWindowHours: null }));
   assert.ok(!ok({}), "nothing to save");

@@ -362,7 +362,7 @@ const en = {
   "payouts.dropshipStage.cancelled": "Cancelled",
   "payouts.title": "Payouts",
   "payouts.subReady": "{bank} {mask} · Paystack recipient ready",
-  "payouts.subSetup": "{count, plural, one {# order} other {# orders}} shipped or delivered, worth {amount}. Add your bank account so we can send you your money.",
+  "payouts.subSetup": "{count, plural, one {# order} other {# orders}} shipped or delivered, worth {amount}. Set up your Shopinbos Wallet so shops' card payments for your products go straight to your bank.",
   "payouts.earned": "Earned",
   "payouts.earnedHint": "{count} shipped or delivered, wholesale and dropship",
   "payouts.owed": "Owed to you",

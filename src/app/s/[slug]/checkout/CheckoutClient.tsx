@@ -14,6 +14,7 @@ import { checkoutLegalLinks, legalPagePath } from "@/lib/legal/pages";
 import { formatStoreMoney, freeDeliveryEverywhereOver, readShopperInfo } from "@/lib/storefront/shopper-info";
 import { discountAmount } from "@/lib/discounts";
 import { PaystackCheckoutButton } from "@/components/payments/PaystackCheckout";
+import { KorapayFrame } from "@/components/payments/KorapayFrame";
 import { verifyPaystackPayment, updateOrderPayment } from "@/app/actions/payments";
 import { checkoutPaymentOptions, type CheckoutPaymentMethod } from "@shared/checkout-payments";
 import {
@@ -113,6 +114,8 @@ interface CreatedOrder {
   orderNumber: string;
   total: number;
   currency: string;
+  /** The Paystack transaction the server started (split to the businesses' banks), reopened in the popup. */
+  paystackAccessCode?: string | null;
 }
 
 interface Quote {
@@ -159,6 +162,8 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
   const [transfer, setTransfer] = useState<TransferDetails | null>(null);
   const [paying, setPaying] = useState(false);
   const [payClosed, setPayClosed] = useState(false);
+  // Korapay's payment page for the order just placed, shown in a frame over the checkout.
+  const [korapay, setKorapay] = useState<{ orderId: string; checkoutUrl: string } | null>(null);
 
   const [codeInput, setCodeInput] = useState("");
   const [applied, setApplied] = useState<AppliedCode | null>(null);
@@ -419,11 +424,18 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
         return;
       }
 
-      const order = data.data.order as CreatedOrder;
+      const order = { ...(data.data.order as CreatedOrder), paystackAccessCode: (data.data.paystack?.access_code as string | null | undefined) ?? null };
       setCreatedOrder(order);
       rememberCartToken(store.slug, null);
       rememberBagDiscount(store.slug, null);
       if (paymentMethod === "paystack") return;
+
+      // Korapay: pay in the frame; the order page follows once Korapay confirms.
+      const korapayUrl = paymentMethod === "korapay" ? (data.data.korapay?.checkoutUrl as string | undefined) : undefined;
+      if (korapayUrl) {
+        setKorapay({ orderId: order.id, checkoutUrl: korapayUrl });
+        return;
+      }
 
       // Transfer and pay on delivery orders are placed now; nothing is charged here.
       cart.clear();
@@ -685,7 +697,7 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
     </div>
   ) : null;
 
-  const finalLabel = placeOrderLabel(layout, { paystack: isPaystack, total: totals.total, currency: store.currency });
+  const finalLabel = placeOrderLabel(layout, { paystack: isPaystack || paymentMethod === "korapay", total: totals.total, currency: store.currency });
   const nextStep = stepped ? steps[stepIndex + 1] : undefined;
   const actions = (
     <div className="mt-6 flex flex-col-reverse gap-3 @2xl:flex-row @2xl:items-center">
@@ -711,6 +723,7 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
           </button>
         ) : finalStep && createdOrder && isPaystack ? (
           <PaystackCheckoutButton
+            accessCode={createdOrder.paystackAccessCode}
             amount={createdOrder.total}
             email={details.email}
             firstName={nameParts[0]}
@@ -837,8 +850,24 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
     </form>
   );
 
+  const korapayFrame = korapay ? (
+    <KorapayFrame
+      orderId={korapay.orderId}
+      checkoutUrl={korapay.checkoutUrl}
+      onPaid={() => {
+        cart.clear();
+        router.push(getPublicStorefrontPath(storeBasePath, `/order/${korapay.orderId}`));
+      }}
+      onClose={() => {
+        // Not paid (yet): the order page waits for Korapay and updates once it confirms.
+        cart.clear();
+        router.push(getPublicStorefrontPath(storeBasePath, `/order/${korapay.orderId}`));
+      }}
+    />
+  ) : null;
+
   return shell(
-    <CheckoutFrame theme={theme} settings={layout} summary={summary} summaryOpen={summaryOpen} onToggleSummary={() => setSummaryOpen((open) => !open)} total={totals.total} currency={store.currency}>
+    <>{korapayFrame}<CheckoutFrame theme={theme} settings={layout} summary={summary} summaryOpen={summaryOpen} onToggleSummary={() => setSummaryOpen((open) => !open)} total={totals.total} currency={store.currency}>
       {stepped ? (
         <StepProgress
           theme={theme}
@@ -853,6 +882,6 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
       <CheckoutMessage theme={theme} text={layout.message} />
       {banners}
       {form}
-    </CheckoutFrame>,
+    </CheckoutFrame></>,
   );
 }

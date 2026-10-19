@@ -877,7 +877,9 @@ test("campaigns send through Resend with tracking, suppression and attribution",
   assert.match(send, /"List-Unsubscribe-Post": "List-Unsubscribe=One-Click"/);
   assert.match(send, /extractCampaignLinks\(recipient\.campaign\.bodyHtml\)\.includes\(url\)/, "click tracking is not an open redirect");
   assert.match(checkout, /validCampaignToken\(store\.id, rawCampaignToken\)/);
-  assert.match(webhook, /creditCampaignConversion\(ref\)/);
+  // Paid orders credit the campaign in the shared follow-ups once per order.
+  assert.match(webhook, /afterRetailOrderPaid\(ref, moved\.count === 1/);
+  assert.match(read("src/lib/commerce/order-paid.server.ts"), /if \(newlyPaid\) \{\n    await creditCampaignConversion\(orderId\)/);
   assert.match(stubRoute, /sendCampaign\(store\.id, params\.id\)/);
 });
 

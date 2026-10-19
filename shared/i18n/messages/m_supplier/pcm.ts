@@ -72,9 +72,9 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
 
   "money.title": "Money",
   "money.loading": "We dey load your money…",
-  "money.payoutsTo": "Payouts go enter {bank} {account}.",
-  "money.payoutsToChecking": "Payouts go enter {bank} {account}. We dey check this account.",
-  "money.addBankFirst": "Add your bank account make you fit get payouts.",
+  "money.payoutsTo": "Your cost for paid dropship orders dey go straight to {bank} {account}.",
+  "money.payoutsToChecking": "Your cost for paid dropship orders go go {bank} {account} once we check this account.",
+  "money.addBankFirst": "Set up your Shopinbos Wallet make your cost for paid orders enter your bank straight.",
   "money.seePayouts": "See my payouts",
   "money.addBank": "Add my bank",
   "money.recent": "Recent",
@@ -295,6 +295,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "quote.saidCant": "You talk say you no fit do this one",
   "quote.saidPrice": "You talk {price} each",
   "quote.aPrice": "one price",
+  "money.openWallet": "Open my Shopinbos Wallet",
 };
 
 export default pcm;

@@ -222,7 +222,8 @@ test("wiring: one notify() path, every role's key events, cron and push plumbing
   }
   assert.match(read("src/app/api/public/store/[slug]/checkout/route.ts"), /notifyNewOrder\(/);
   assert.doesNotMatch(read("src/app/api/public/store/[slug]/checkout/route.ts"), /db\.notification\.create/);
-  assert.match(read("src/app/api/webhooks/paystack/route.ts"), /notifyOrderPaid\(ref\)/);
+  assert.match(read("src/app/api/webhooks/paystack/route.ts"), /afterRetailOrderPaid\(ref/);
+  assert.match(read("src/lib/commerce/order-paid.server.ts"), /notifyOrderPaid\(orderId\)/);
   assert.match(read("src/lib/logistics/jobs.ts"), /notifyJobMoved\(/);
   assert.match(read("src/lib/logistics/jobs.ts"), /notifyRiderAssigned\(/);
   assert.match(read("src/lib/supplier-orders/service.server.ts"), /event: "supplier_order\.new"/);
