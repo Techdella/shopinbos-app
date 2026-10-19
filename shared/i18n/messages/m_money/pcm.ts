@@ -120,6 +120,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "w.failed": "Paystack no fit set up this account: {reason}. Check the details or try another account.",
   "w.idFirst": "Verify your ID first.",
   "w.never": "Shopinbos no dey ever hold your money. When person pay by card, the payment dey split for checkout and your share go enter this bank straight, usually the next working day. Paystack fee dey comot from your share; Shopinbos no dey take anything.",
+  "w.fee": "Shopinbos no dey ever hold your money. When person pay by card, the payment dey split for checkout and your share go enter this bank straight, usually the next working day. Paystack fee dey comot from your share; Shopinbos fee of {fee} for each sale (no be for delivery) go comot from am too.",
   "w.payBack": "Pay these shops back",
   "w.payBackSub": "Dem pay you for these dropship orders for checkout but you no send dem. Transfer the money back to the shop.",
   "w.toReturn": "Money wey supplier suppose return give you",

@@ -25,6 +25,13 @@ function SettlementStatus({ view }: { view: WalletView }) {
   return <Pill tone="muted" dot>Not set up</Pill>;
 }
 
+/** "1.5%", "1.5% (at least ₦100, at most ₦2,000)". */
+function feeText(fee: { rate: number; minFee: number; maxFee: number }) {
+  const amount = (value: number) => `₦${value.toLocaleString("en-NG")}`;
+  const limits = [fee.minFee > 0 ? `at least ${amount(fee.minFee)}` : null, fee.maxFee > 0 ? `at most ${amount(fee.maxFee)}` : null].filter(Boolean);
+  return `${fee.rate}%${limits.length ? ` (${limits.join(", ")})` : ""}`;
+}
+
 export async function WalletPanel({ view, role, ownerName, orderHref }: { view: WalletView; role: WalletRole; ownerName: string; orderHref?: (orderId: string) => string }) {
   const words = ROLE_WORDS[role];
   const [firstName = "", ...rest] = ownerName.trim().split(/\s+/);
@@ -70,8 +77,8 @@ export async function WalletPanel({ view, role, ownerName, orderHref }: { view: 
       </section>
       <p className="m-0 border-t border-app-line pt-4 text-[12.5px] leading-[1.5] text-app-ink-soft">
         Shopinbos never holds your money. When {words.who} pay by card or Korapay, the payment is split at checkout and your share settles
-        straight to this bank, usually the next working day. Paystack&apos;s fee comes off your share (with Korapay the customer pays it); Shopinbos
-        takes nothing.
+        straight to this bank, usually the next working day. Paystack&apos;s fee comes off your share (with Korapay the customer pays it);{" "}
+        {view.fee ? `Shopinbos's fee of ${feeText(view.fee)} on each sale (not on delivery) comes off it too.` : "Shopinbos takes nothing."}
       </p>
     </Card>
   );

@@ -17,6 +17,8 @@ export interface WalletView {
   settlements: { id: string; date: string | null; status: string; amountKobo: number }[];
   sellerSettles: { orderId: string; orderNumber: string; amountKobo: number }[];
   toReturn: { orderId: string; orderNumber: string; otherParty: string; amountKobo: number }[];
+  /** Sellers: Shopinbos's fee on their store sales (null = none). */
+  fee?: { rate: number; minFee: number; maxFee: number } | null;
 }
 
 export interface CashToReceive {

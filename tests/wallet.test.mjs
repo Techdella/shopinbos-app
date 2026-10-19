@@ -95,3 +95,43 @@ test("checkout: card only with the seller's wallet, split started on the server,
   assert.doesNotMatch(read("prisma/schema.prisma"), /kycIdNumber|bvnNumber/);
   assert.match(read("next.config.ts"), /frame-src https:\/\/js\.paystack\.co https:\/\/checkout\.paystack\.com/);
 });
+
+test("Shopinbos's fee: rate on the sale (not delivery), within min and max, never more than the base", () => {
+  const fee = { rate: 1.5, minFee: 0, maxFee: 0 };
+  assert.equal(rules.platformFeeKobo(1_000_000, fee), 15_000);
+  assert.equal(rules.platformFeeKobo(1_000_000, null), 0, "no fee config: no fee");
+  assert.equal(rules.platformFeeKobo(1_000_000, { rate: 0, minFee: 0, maxFee: 0 }), 0);
+  assert.equal(rules.platformFeeKobo(100_000, { rate: 1.5, minFee: 100, maxFee: 0 }), 10_000, "minimum ₦100");
+  assert.equal(rules.platformFeeKobo(100_000_000, { rate: 1.5, minFee: 0, maxFee: 2_000 }), 200_000, "maximum ₦2,000");
+  assert.equal(rules.platformFeeKobo(5_000, { rate: 1.5, minFee: 100, maxFee: 0 }), 5_000, "never more than the sale");
+});
+
+test("the fee stays with Shopinbos: the seller's flat charge, or what a multi-split's shares leave over", () => {
+  const solo = rules.buildSplitPlan({ totalKobo: 1_000_000, sellerSubaccount: "ACCT_seller", suppliers: [], platformKobo: 15_000 });
+  assert.equal(solo.sellerKobo, 985_000);
+  assert.equal(solo.platformKobo, 15_000);
+  assert.deepEqual(rules.paystackSplitParams(solo), { subaccount: "ACCT_seller", transaction_charge: 15_000, bearer: "subaccount" });
+
+  const multi = rules.buildSplitPlan({
+    totalKobo: 1_500_000,
+    sellerSubaccount: "ACCT_seller",
+    suppliers: [{ supplierId: "s1", subaccount: "ACCT_s1", costKobo: 600_000 }],
+    platformKobo: 22_500,
+  });
+  assert.equal(multi.sellerKobo, 1_500_000 - 600_000 - 22_500);
+  const shares = rules.paystackSplitParams(multi).split.subaccounts.reduce((sum, row) => sum + row.share, 0);
+  assert.equal(1_500_000 - shares, 22_500, "the remainder is Shopinbos's fee");
+  const korapay = rules.korapaySplitParams({ ...multi, gateway: "korapay" }).split_configuration.split_accounts.reduce((sum, row) => sum + Number(row.value), 0);
+  assert.equal(Math.round((15_000 - korapay) * 100), 22_500);
+});
+
+test("the fee never takes the seller below ₦100, and there's none when suppliers' costs use up the order", () => {
+  const thin = rules.buildSplitPlan({ totalKobo: 700_000, sellerSubaccount: "ACCT_seller", suppliers: [{ supplierId: "s1", subaccount: "ACCT_s1", costKobo: 680_000 }], platformKobo: 15_000 });
+  assert.equal(thin.sellerKobo, rules.MIN_SELLER_KOBO);
+  assert.equal(thin.platformKobo, 700_000 - 680_000 - rules.MIN_SELLER_KOBO);
+  const under = rules.buildSplitPlan({ totalKobo: 100_000, sellerSubaccount: "ACCT_seller", suppliers: [{ supplierId: "s1", subaccount: "ACCT_s1", costKobo: 150_000 }], platformKobo: 1_500 });
+  assert.equal(under.platformKobo ?? 0, 0);
+  assert.equal(under.sellerKobo, 100_000);
+  const old = rules.buildSplitPlan({ totalKobo: 1_000_000, sellerSubaccount: "ACCT_seller", suppliers: [] });
+  assert.equal(rules.paystackSplitParams(old).transaction_charge, 0, "no fee asked for: unchanged");
+});
