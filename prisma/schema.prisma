@@ -204,6 +204,8 @@ model User {
   @@index([email])
   @@index([supabaseId])
   @@index([role])
+  platformSettingChanges PlatformSettingChange[] @relation("PlatformSettingChanges")
+  pricePromotions        PricePromotion[]        @relation("PricePromotions")
 }
 
 // ─── Store ────────────────────────────────────────────────────────────────────
@@ -3792,4 +3794,58 @@ model MetaDataDeletionRequest {
   completedAt      DateTime?
 
   @@index([metaUserHash])
+}
+
+// Platform-wide settings an admin changes without a deploy. Prices live under "price.<key>" (Admin › Pricing,
+// shared/platform-pricing.ts); unset keys use the registry's defaults.
+model PlatformSetting {
+  key         String   @id
+  value       Json
+  updatedById String?
+  updatedAt   DateTime @updatedAt
+}
+
+// Every change to a PlatformSetting: who, when, from what to what, and why.
+model PlatformSettingChange {
+  id          String   @id @default(cuid())
+  key         String
+  before      Json?
+  after       Json
+  note        String?
+  changedById String?
+  changedBy   User?    @relation("PlatformSettingChanges", fields: [changedById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+
+  @@index([key, createdAt])
+  @@index([createdAt])
+}
+
+// A Black Friday or seasonal price drop (Admin › Pricing › Promotions): some prices from the price book set
+// differently between startsAt and endsAt, then back to normal by themselves (shared/price-promotions.ts).
+// When it starts, the product-news email it scheduled goes out and the in-app notice + push are sent in batches
+// (noticeCursor: the last user notified). Migration: docs/migrations/2026-11-10-price-promotions.sql.
+model PricePromotion {
+  id             String    @id @default(cuid())
+  name           String
+  headline       String
+  message        String?
+  prices         Json // { "<price key>": value }, checked against shared/platform-pricing.ts
+  startsAt       DateTime
+  endsAt         DateTime
+  status         String    @default("scheduled") // scheduled | cancelled (upcoming / live / ended come from the dates)
+  audience       String[] // seller | supplier | logistics_partner
+  announceEmail  Boolean   @default(true)
+  announceNotice Boolean   @default(true)
+  broadcastId    String?
+  noticeStatus   String    @default("pending") // pending | sending | sent | off
+  noticeCursor   String?
+  noticeCount    Int       @default(0)
+  createdById    String?
+  createdBy      User?     @relation("PricePromotions", fields: [createdById], references: [id], onDelete: SetNull)
+  cancelledAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([status, startsAt])
+  @@index([endsAt])
 }

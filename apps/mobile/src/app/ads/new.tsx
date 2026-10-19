@@ -95,7 +95,9 @@ export default function NewAdCampaign() {
   const meta = overview?.meta ?? { configured: false, status: "off" as const, accountId: null, accountName: null, pageName: null, currency: "NGN" };
   const chosenMode: AdMode = mode ?? defaultMode(meta);
   const currency = chosenMode === "meta" ? meta.currency : "NGN";
-  const fee = modeFee(chosenMode);
+  const setupFees = overview?.prices?.setup ?? AD_SETUP_FEES;
+  const minDailyNgn = overview?.prices?.minDailyNgn;
+  const fee = modeFee(chosenMode, setupFees);
   const products = useMemo(() => overview?.products ?? [], [overview]);
   const chosen = products.filter((product) => productIds.includes(product.id));
   const money = (value: number) => adMoney(value, currency);
@@ -119,7 +121,7 @@ export default function NewAdCampaign() {
   }
 
   const index = WIZARD_STEPS.indexOf(step);
-  const state = { mode: chosenMode, meta, productIds, audience, dailyBudget, currency, days, creatives };
+  const state = { mode: chosenMode, meta, productIds, audience, dailyBudget, currency, days, creatives, minDailyNgn };
   const ready = canGoOn(step, state);
   const campaignName = name.trim() || (chosen.length === 1 ? t("c.nameOne", { product: chosen[0].name }) : t("c.nameMany", { count: chosen.length || productIds.length }));
   const visible = products.filter((product) => !query.trim() || product.name.toLowerCase().includes(query.trim().toLowerCase()));
@@ -185,8 +187,8 @@ export default function NewAdCampaign() {
       {step === "how" ? (
         <>
           <RadioCard icon="globe" title={t("c.mode.meta")} sub={t("c.mode.metaHint")} on={chosenMode === "meta"} onPress={() => setMode("meta")} />
-          <RadioCard icon="users" title={t("c.mode.managedMeta")} sub={t("c.mode.managedMetaHint", { fee: naira(AD_SETUP_FEES.meta) })} on={chosenMode === "managed_meta"} onPress={() => setMode("managed_meta")} />
-          <RadioCard icon="play" title={t("c.mode.tiktok")} sub={t("c.mode.tiktokHint", { fee: naira(AD_SETUP_FEES.tiktok) })} on={chosenMode === "managed_tiktok"} onPress={() => setMode("managed_tiktok")} />
+          <RadioCard icon="users" title={t("c.mode.managedMeta")} sub={t("c.mode.managedMetaHint", { fee: naira(setupFees.meta) })} on={chosenMode === "managed_meta"} onPress={() => setMode("managed_meta")} />
+          <RadioCard icon="play" title={t("c.mode.tiktok")} sub={t("c.mode.tiktokHint", { fee: naira(setupFees.tiktok) })} on={chosenMode === "managed_tiktok"} onPress={() => setMode("managed_tiktok")} />
           {chosenMode === "meta" ? (
             meta.status === "connected" ? (
               <Notice tone="success">{t("m.connected", { account: meta.accountName ?? meta.accountId ?? "", page: meta.pageName ?? "" })}</Notice>
@@ -307,7 +309,7 @@ export default function NewAdCampaign() {
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
             {(currency === "NGN" ? BUDGET_CHOICES.NGN : BUDGET_CHOICES.other).map((value) => <Chip key={value} label={money(value)} on={dailyBudget === value} onPress={() => setDailyBudget(value)} />)}
           </View>
-          {dailyBudget < minBudget(currency) ? <Notice>{t("c.minBudget", { amount: money(minBudget(currency)) })}</Notice> : null}
+          {dailyBudget < minBudget(currency, minDailyNgn) ? <Notice>{t("c.minBudget", { amount: money(minBudget(currency, minDailyNgn)) })}</Notice> : null}
           <Label>{t("c.startDate")}</Label>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
             {START_CHOICES.map((value) => <Chip key={value} label={t(`start.${value}`)} on={startIn === value} onPress={() => setStartIn(value)} />)}

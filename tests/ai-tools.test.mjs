@@ -275,6 +275,9 @@ globalThis.__aiMocks = {
     setMetaCampaignActive: record("setMetaCampaignActive", undefined),
     syncMetaCampaign: record("syncMetaCampaign", null),
   },
+  "@/lib/pricing/price-book.server": {
+    getPriceBook: async () => ({ "ads.setup.meta": 20_000, "ads.setup.tiktok": 30_000, "ads.min_daily_budget": 1_000 }),
+  },
   "@/lib/ad-campaigns/requests.server": {
     createAdRequest: record("createAdRequest", { id: "req-1", authorizationUrl: "https://checkout.paystack.com/abc" }),
   },

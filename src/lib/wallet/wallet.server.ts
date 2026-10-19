@@ -2,6 +2,8 @@ import "server-only";
 import { createHmac } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
+import { getPriceBook } from "@/lib/pricing/price-book.server";
+import { storeFeeConfig } from "@shared/platform-pricing";
 import { korapayCheckoutReady, verifyKorapayIdentity, korapayIdentityReady } from "@/lib/korapay";
 import { verifyYouverifyIdentity, youverifyReady } from "@/lib/youverify";
 import { approveIdentityDocFromWallet } from "@/lib/kyb/identity-doc.server";
@@ -17,9 +19,11 @@ import {
   kycAttemptAllowed,
   lagosDay,
   maskAccountNumber,
+  platformFeeKobo,
   readSplitPlan,
   type KycIdType,
   type PaymentSplitPlan,
+  type PlatformFee,
   type SplitGateway,
   type WalletRole,
 } from "./rules";
@@ -295,7 +299,20 @@ export async function storeTakesKorapay(storeId: string) {
  * Korapay split account), plus each dropship supplier with one for their wholesale cost. Null when the seller's
  * wallet can't take payments through that gateway.
  */
-export async function splitPlanForOrder(storeId: string, items: unknown, totalNaira: number, gateway: SplitGateway = "paystack"): Promise<PaymentSplitPlan | null> {
+/** Shopinbos's fee on store sales (Admin › Pricing), or none when neither a rate nor a minimum is set. */
+export async function platformFee(): Promise<PlatformFee | null> {
+  const fee = storeFeeConfig(await getPriceBook());
+  return fee.rate > 0 || fee.minFee > 0 ? fee : null;
+}
+
+export async function splitPlanForOrder(
+  storeId: string,
+  items: unknown,
+  totalNaira: number,
+  gateway: SplitGateway = "paystack",
+  /** The order's delivery fee: Shopinbos's fee is on what the seller sells, not on delivery. */
+  shippingNaira = 0,
+): Promise<PaymentSplitPlan | null> {
   const store = await db.store.findUnique({ where: { id: storeId }, select: { userId: true } });
   if (!store) return null;
   const ready = gateway === "korapay" ? korapayWhere : activeWhere;
@@ -323,9 +340,12 @@ export async function splitPlanForOrder(storeId: string, items: unknown, totalNa
     ? await db.wallet.findMany({ where: { userId: { in: suppliers.map((supplier) => supplier.userId) }, ...ready }, select: { userId: true, subaccountCode: true, korapaySplitAccount: true } })
     : [];
   const subaccountBySupplier = new Map(suppliers.map((supplier) => [supplier.id, accountOf(wallets.find((wallet) => wallet.userId === supplier.userId))]));
+  const totalKobo = Math.round(totalNaira * 100);
+  const fee = await platformFee();
   return buildSplitPlan({
     gateway,
-    totalKobo: Math.round(totalNaira * 100),
+    totalKobo,
+    platformKobo: platformFeeKobo(Math.max(0, totalKobo - Math.round(Math.max(0, shippingNaira) * 100)), fee),
     sellerSubaccount: sellerAccount,
     suppliers: groups.map((group) => ({ supplierId: group.supplierId, subaccount: subaccountBySupplier.get(group.supplierId) ?? null, costKobo: Math.round(group.costTotal * 100) })),
   });
@@ -372,6 +392,8 @@ export interface WalletView {
    * returns them to the shop. For a seller, who owes them back; for a supplier, which shops to pay back.
    */
   toReturn: Array<{ orderId: string; orderNumber: string; otherParty: string; amountKobo: number }>;
+  /** Sellers: Shopinbos's fee on their store sales (null = none). Suppliers and delivery partners pay none. */
+  fee: PlatformFee | null;
 }
 
 export async function loadWalletView(user: { id: string; role: WalletRole }): Promise<WalletView> {
@@ -396,6 +418,7 @@ export async function loadWalletView(user: { id: string; role: WalletRole }): Pr
     settlements: settlements.map((row) => ({ id: row.id, status: row.status, amountKobo: row.totalAmount, date: row.settlementDate })),
     sellerSettles: owed,
     toReturn,
+    fee: user.role === "seller" ? await platformFee().catch(() => null) : null,
   };
 }
 

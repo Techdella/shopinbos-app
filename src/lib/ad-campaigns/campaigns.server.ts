@@ -7,6 +7,7 @@ import { isOwnImageUrl } from "@/lib/ai/images";
 import { naira } from "@shared/onboarding";
 import { adCode } from "@shared/ads";
 import { AD_OBJECTIVE_INFO, campaignWindow, type AdObjective, type CampaignInput } from "@shared/ad-campaigns";
+import { getPriceBook } from "@/lib/pricing/price-book.server";
 import { launchMetaCampaign, MetaAdsError, metaAdsStatus } from "./meta.server";
 
 // Ad campaigns for /home/ads/new and Peggy: save a draft (several products, audience, ads), write the ad words,
@@ -21,6 +22,9 @@ async function storeProducts(storeId: string, ids: string[]) {
 
 /** Saves a campaign as a draft (new, or replacing an unlaunched draft's details). */
 export async function saveCampaignDraft(storeId: string, input: CampaignInput, existingId?: string | null) {
+  // The naira minimum is set in Admin › Pricing (the input schema only checks the lowest it can be).
+  const minNgn = (await getPriceBook())["ads.min_daily_budget"];
+  if (input.currency === "NGN" && input.dailyBudget < minNgn) throw new CampaignError(`The smallest daily budget is ${naira(minNgn)}.`);
   const products = await storeProducts(storeId, input.productIds);
   const productIds = input.productIds.filter((id) => products.has(id));
   if (!productIds.length) throw new CampaignError("Those products aren't in your store.");

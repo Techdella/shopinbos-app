@@ -390,6 +390,13 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
         { id: "logistics-partners", label: "Logistics", icon: "truck", href: "/admin/logistics-partners", core: true },
         { id: "wallets", label: "Wallets", icon: "coin", href: "/admin/wallets" },
         {
+          id: "pricing", label: "Pricing", icon: "percent", href: "/admin/pricing",
+          children: [
+            { id: "pricing-prices", label: "Prices and fees", href: "/admin/pricing" },
+            { id: "pricing-promotions", label: "Promotions", href: "/admin/pricing/promotions" },
+          ],
+        },
+        {
           id: "marketplace", label: "Marketplace", icon: "monitor", href: "/admin/marketplace",
           children: [
             { id: "marketplace-sync", label: "Marketplace", href: "/admin/marketplace" },

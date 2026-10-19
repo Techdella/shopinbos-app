@@ -8,8 +8,7 @@ import { assertStoreDraftPublishable, StorePublishError } from "@/lib/store-publ
 import {
   ensureStoreLaunchPaymentsTable,
   installmentDueAt,
-  STORE_LAUNCH_DEPOSIT_NGN,
-  STORE_LAUNCH_TOTAL_NGN,
+  storeLaunchPrices,
   type StoreLaunchPaymentOption,
 } from "@/lib/store-launch-billing";
 
@@ -53,8 +52,9 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
 
   await ensureStoreLaunchPaymentsTable();
   const reference = `store-launch-${crypto.randomUUID()}`;
-  const amountDue = body.option === "full" ? STORE_LAUNCH_TOTAL_NGN : STORE_LAUNCH_DEPOSIT_NGN;
-  const balanceDue = STORE_LAUNCH_TOTAL_NGN - amountDue;
+  const { totalNgn, depositNgn } = await storeLaunchPrices();
+  const amountDue = body.option === "full" ? totalNgn : depositNgn;
+  const balanceDue = totalNgn - amountDue;
   const dueAt = body.option === "installment" ? installmentDueAt() : null;
   const id = crypto.randomUUID();
 
@@ -67,7 +67,7 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
     store.id,
     reference,
     body.option,
-    STORE_LAUNCH_TOTAL_NGN,
+    totalNgn,
     amountDue,
     balanceDue,
     dueAt,
@@ -98,7 +98,7 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
         authorizationUrl: payment.authorization_url,
         reference,
         amountDue,
-        totalAmount: STORE_LAUNCH_TOTAL_NGN,
+        totalAmount: totalNgn,
         balanceDue,
         dueAt: dueAt?.toISOString() ?? null,
       },

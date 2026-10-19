@@ -59,7 +59,10 @@ export const AD_COUNTRIES = [
   { code: "CA", name: "Canada" },
 ] as const;
 
+/** NGN is the default; the live naira minimum is "ads.min_daily_budget" in Admin › Pricing. */
 export const MIN_DAILY_BUDGET: Record<string, number> = { NGN: 1_000, USD: 1, GBP: 1, EUR: 1 };
+/** The lowest naira minimum an admin can set (shared/platform-pricing.ts). */
+export const NGN_BUDGET_FLOOR = 100;
 
 const text = (max: number) => z.string().trim().max(max);
 
@@ -104,7 +107,8 @@ export const CampaignInputSchema = z
     days: z.number().int().min(1).max(90),
   })
   .superRefine((value, ctx) => {
-    const min = MIN_DAILY_BUDGET[value.currency] ?? 1;
+    // Naira: only the lowest minimum Admin › Pricing allows; saveCampaignDraft checks the live one.
+    const min = value.currency === "NGN" ? NGN_BUDGET_FLOOR : MIN_DAILY_BUDGET[value.currency] ?? 1;
     if (value.dailyBudget < min) ctx.addIssue({ code: "custom", path: ["dailyBudget"], message: `The smallest daily budget is ${value.currency === "NGN" ? `₦${min.toLocaleString("en-NG")}` : `${min} ${value.currency}`}` });
     if (value.audience.ageMin > value.audience.ageMax) ctx.addIssue({ code: "custom", path: ["audience", "ageMax"], message: "The oldest age must be above the youngest" });
   });

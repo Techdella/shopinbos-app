@@ -125,6 +125,7 @@ const en = {
   "w.failed": "Paystack couldn't set up this account: {reason}. Check the details or try another account.",
   "w.idFirst": "Verify your ID first.",
   "w.never": "Shopinbos never holds your money. When someone pays by card, the payment is split at checkout and your share settles straight to this bank, usually the next working day. Paystack's fee comes off your share; Shopinbos takes nothing.",
+  "w.fee": "Shopinbos never holds your money. When someone pays by card, the payment is split at checkout and your share settles straight to this bank, usually the next working day. Paystack's fee comes off your share; Shopinbos's fee of {fee} on each sale (not on delivery) comes off it too.",
   "w.payBack": "Pay these shops back",
   "w.payBackSub": "You were paid for these dropship orders at checkout but didn't send them. Transfer the amount back to the shop.",
   "w.toReturn": "Money a supplier should return to you",

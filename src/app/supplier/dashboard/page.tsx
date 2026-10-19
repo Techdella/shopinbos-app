@@ -15,6 +15,7 @@ import { supplierEarnings, supplierOrdersToShip } from "@/lib/supplier-orders/mo
 import { Mascot } from "@/components/brand/Mascot";
 import { getT } from "@/lib/i18n/server";
 import { intlLocale } from "@shared/i18n";
+import { PromoBanner } from "@/components/pricing/PromoBanner";
 
 // Supplier home in the "Seller app · web" language: greeting, real tiles, orders to ship and quote requests.
 
@@ -223,6 +224,7 @@ export default async function SupplierDashboardPage({ searchParams }: { searchPa
   return (
     <AppFrame {...supplierFrame(user, supplier)}>
       <div className="grid w-full gap-5 px-4 py-6 font-app text-app-ink sm:px-6 xl:grid-cols-[minmax(0,1fr)_420px] xl:px-8 2xl:grid-cols-[minmax(0,1fr)_480px] 2xl:px-10">
+        <PromoBanner role="supplier" className="xl:col-span-2" />
         <VerificationChecklist
           docs={supplier.verificationDocuments}
           configs={SUPPLIER_DOC_TYPES}

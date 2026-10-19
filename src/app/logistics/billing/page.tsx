@@ -2,10 +2,11 @@ import type { Metadata } from "next";
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { ensureLogisticsAccess, getLogisticsPartnerForUser } from "@/lib/role-queries";
-import { updateFeeBearer } from "@/app/actions/billing";
+import { getPriceBook } from "@/lib/pricing/price-book.server";
 import { Card, CardHead, EmptyState, ListCard, ListRow, StatGrid, StatTile } from "@/components/app-kit";
-import { KeyValue, PartnerPage, StatusPill, SubmitButton, inputClass, labelClass, lagosDate, naira } from "@/components/logistics/kit";
+import { KeyValue, PartnerPage, StatusPill, lagosDate, naira } from "@/components/logistics/kit";
 import { getT } from "@/lib/i18n/server";
+import { PromoBanner } from "@/components/pricing/PromoBanner";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -23,11 +24,10 @@ export default async function LogisticsBillingPage() {
   const partner = await getLogisticsPartnerForUser(user);
   ensureLogisticsAccess(partner);
   const t = await getT("logistics", "common");
-  const bearerLabel = (value: string) => (BEARERS[value] ? t.dynamic(`fees.bearer.${value}`, BEARERS[value]) : value);
   const bearerShort = (value: string) => (BEARERS[value] ? t.dynamic(`fees.bearerShort.${value}`, value.replace(/_/g, " ")) : value.replace(/_/g, " "));
 
-  const [feeConfig, bookings] = await Promise.all([
-    db.platformFeeConfig.findFirst({ where: { active: true } }),
+  const [book, bookings] = await Promise.all([
+    getPriceBook(),
     db.deliveryBooking.findMany({
       where: { logisticsPartnerId: partner.id },
       orderBy: { createdAt: "desc" },
@@ -40,8 +40,9 @@ export default async function LogisticsBillingPage() {
     }),
   ]);
 
-  const rate = feeConfig?.rate ?? 1.5;
-  const bearer = feeConfig?.bearer ?? "seller";
+  // Shopinbos sets the rate and who pays it (Admin › Pricing); partners see it here but can't change it.
+  const rate = book["delivery.fee_rate"];
+  const bearer = book["delivery.fee_bearer"];
   const feeOf = (booking: (typeof bookings)[number]) => booking.platformFee || Math.round((booking.deliveryFee * rate) / 100);
   const delivered = bookings.filter((booking) => booking.status === "delivered");
   const totalGross = delivered.reduce((sum, booking) => sum + booking.deliveryFee, 0);
@@ -54,6 +55,7 @@ export default async function LogisticsBillingPage() {
       title={t("fees.title")}
       sub={t("fees.sub", { rate, who: t.dynamic(`fees.bearerWho.${bearer}`, (BEARERS[bearer] ?? bearer).split(" (")[0].toLowerCase()) })}
     >
+      <PromoBanner role="logistics_partner" className="mb-5" />
       <StatGrid className="mb-5 md:grid-cols-3">
         <StatTile tone="card" label={t("fees.earned")} value={naira(totalGross)} hint={t("fees.deliveredJobsCount", { count: delivered.length })} />
         <StatTile tone="card" label={t("fees.shopinbosFees", { rate })} value={naira(totalFees)} />
@@ -88,18 +90,6 @@ export default async function LogisticsBillingPage() {
         </section>
 
         <div className="grid min-w-0 content-start gap-5">
-          <Card className="p-5">
-            <CardHead title={t("fees.whoPays")} />
-            <form action={updateFeeBearer} className="mt-4 grid gap-3">
-              <div>
-                <label htmlFor="feeBearer" className={labelClass}>{t("fees.ratePaidBy", { rate })}</label>
-                <select id="feeBearer" name="feeBearer" defaultValue={bearer} className={inputClass}>
-                  {Object.keys(BEARERS).map((value) => <option key={value} value={value}>{bearerLabel(value)}</option>)}
-                </select>
-              </div>
-              <SubmitButton>{t("save")}</SubmitButton>
-            </form>
-          </Card>
           <Card className="p-5">
             <CardHead title={t("fees.summary")} />
             <div className="mt-2 divide-y divide-app-line">

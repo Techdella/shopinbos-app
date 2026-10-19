@@ -1,31 +1,8 @@
 "use server";
 
 import { db } from "@/lib/db/client";
-import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/server-auth";
-import { getLogisticsPartnerForUser } from "@/lib/role-queries";
-
-export async function updateFeeBearer(formData: FormData) {
-  const user = await requireRole(["logistics_partner"], "/logistics/login");
-  const partner = await getLogisticsPartnerForUser(user);
-  if (!partner) redirect("/logistics/profile");
-
-  const bearer = String(formData.get("feeBearer") || "seller").trim();
-  if (!["seller", "supplier", "logistics_partner"].includes(bearer)) {
-    redirect("/logistics/billing?error=Invalid%20fee%20bearer");
-  }
-
-  const config = await db.platformFeeConfig.findFirst({ where: { active: true } });
-  if (config) {
-    await db.platformFeeConfig.update({ where: { id: config.id }, data: { bearer } });
-  } else {
-    await db.platformFeeConfig.create({ data: { active: true, rate: 1.5, bearer } });
-  }
-
-  revalidatePath("/logistics/billing");
-  redirect("/logistics/billing?saved=1");
-}
+import { getPriceBook } from "@/lib/pricing/price-book.server";
 
 export async function getBillingData(logisticsPartnerId: string) {
   // Exported from a "use server" file, so it is callable from the browser: only the partner itself (or an admin).
@@ -34,8 +11,8 @@ export async function getBillingData(logisticsPartnerId: string) {
     const own = await db.logisticsPartner.findFirst({ where: { id: logisticsPartnerId, userId: user.id }, select: { id: true } });
     if (!own) throw new Error("Not allowed");
   }
-  const [feeConfig, bookings] = await Promise.all([
-    db.platformFeeConfig.findFirst({ where: { active: true } }),
+  const [book, bookings] = await Promise.all([
+    getPriceBook(),
     db.deliveryBooking.findMany({
       where: { logisticsPartnerId },
       orderBy: { createdAt: "desc" },
@@ -48,8 +25,9 @@ export async function getBillingData(logisticsPartnerId: string) {
     }),
   ]);
 
-  const rate = feeConfig?.rate ?? 1.5;
-  const bearer = feeConfig?.bearer ?? "seller";
+  // Set by Shopinbos in Admin › Pricing; partners only see it.
+  const rate = book["delivery.fee_rate"];
+  const bearer = book["delivery.fee_bearer"];
 
   const delivered = bookings.filter((b) => b.status === "delivered");
   const totalGross = delivered.reduce((s, b) => s + b.deliveryFee, 0);
@@ -57,7 +35,7 @@ export async function getBillingData(logisticsPartnerId: string) {
   const totalNet = delivered.reduce((s, b) => s + b.netAmount, 0);
 
   return {
-    feeConfig: { rate, bearer, exists: !!feeConfig },
+    feeConfig: { rate, bearer },
     bookings: bookings.map((b) => ({
       ...b,
       createdAt: b.createdAt.toISOString(),

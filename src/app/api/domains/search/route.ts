@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withSeller } from "@/lib/auth/middleware";
 import { searchDomainsOnVercel } from "@/lib/domains/vercel";
-import { nairaQuote, sellerGetsFreeDomain } from "@/lib/domains/billing.server";
+import { domainPricing, nairaQuote, sellerGetsFreeDomain } from "@/lib/domains/billing.server";
 
 export const GET = withSeller(async (req: NextRequest, { user }) => {
   const q = new URL(req.url).searchParams.get("q");
@@ -15,12 +15,12 @@ export const GET = withSeller(async (req: NextRequest, { user }) => {
   }
 
   try {
-    // Sellers see naira only: the registrar's USD price × DOMAIN_USD_NGN_RATE + DOMAIN_MARKUP_NGN, rounded up to
-    // ₦500 (src/lib/domains/billing-pure.ts). Names above DOMAIN_PURCHASE_MAX_USD come back without a price.
+    // Sellers see naira only: the registrar's USD price × the exchange rate + markup (Admin › Pricing), rounded up to
+    // ₦500 (src/lib/domains/billing-pure.ts). Names above the USD cap come back without a price.
     // free: the seller's annual plan pays for it (a hint for the screen; the purchase route checks again).
-    const free = await sellerGetsFreeDomain(user.id);
+    const [free, pricing] = await Promise.all([sellerGetsFreeDomain(user.id), domainPricing()]);
     const domains = (await searchDomainsOnVercel(query)).map((result) => {
-      const quote = nairaQuote(result.price, result.renewalPrice);
+      const quote = nairaQuote(result.price, result.renewalPrice, pricing);
       return {
         domain: result.domain,
         ending: result.ending,
