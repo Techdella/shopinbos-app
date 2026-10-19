@@ -7,6 +7,7 @@ import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { catalogView, syncIfDirty } from "@/lib/whatsapp-catalog/server";
+import { embeddedSignupConfig } from "@/lib/inbox/channels/whatsapp";
 import { WhatsAppCatalogClient } from "./WhatsAppCatalogClient";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +21,10 @@ export default async function WhatsAppCatalogPage() {
   const t = await getT("inbox");
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true } });
   if (!store) redirect("/builder?firstRun=1");
-  const view = await catalogView(store.id);
+  const view = await catalogView(store.id).catch((error: Error) => {
+    console.error("[whatsapp-catalog] page data failed", error.message?.slice(0, 200));
+    return null;
+  });
   if (!view) redirect("/builder?firstRun=1");
   // Product changes since the last sync go to Meta after this page has been sent (never blocks the page).
   if (view.catalog.id && view.catalog.dirty && !view.catalog.syncing) after(() => syncIfDirty(store.id).then(() => undefined).catch(() => undefined));
@@ -38,7 +42,7 @@ export default async function WhatsAppCatalogPage() {
         </>
       }
     >
-      <WhatsAppCatalogClient initial={view} storeName={store.name} />
+      <WhatsAppCatalogClient initial={view} storeName={store.name} signup={embeddedSignupConfig()} />
     </SellerPage>
   );
 }

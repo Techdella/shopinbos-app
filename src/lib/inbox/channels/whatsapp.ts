@@ -122,9 +122,14 @@ export async function whatsappTokenExpiry(accessToken: string): Promise<Date | "
 
 /** The browser needs the app id and the Embedded Signup configuration id; the secret stays here. */
 export function embeddedSignupConfig(): { appId: string; configId: string } | null {
-  const appId = process.env.META_APP_ID;
-  const configId = process.env.META_CONFIG_ID;
-  return appId && configId && process.env.META_APP_SECRET ? { appId, configId } : null;
+  // Both are numeric ids; a stray quote, space or the wrong value makes Facebook answer "config_id is required".
+  const appId = process.env.META_APP_ID?.trim().replace(/^["']|["']$/g, "") ?? "";
+  const configId = process.env.META_CONFIG_ID?.trim().replace(/^["']|["']$/g, "") ?? "";
+  if (!/^\d{5,25}$/.test(appId) || !/^\d{5,25}$/.test(configId) || !process.env.META_APP_SECRET?.trim()) {
+    if (configId || appId) console.warn("[whatsapp] Embedded Signup is off: META_APP_ID and META_CONFIG_ID must be numeric ids (and META_APP_SECRET set).");
+    return null;
+  }
+  return { appId, configId };
 }
 
 /** Exchanges the 30-second code from FB.login for the customer's business token. */
