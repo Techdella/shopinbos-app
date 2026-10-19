@@ -5,20 +5,18 @@ import { useRouter } from "next/navigation";
 import { DomainSetup } from "@/components/builder/DomainSetup";
 import { BackButton, cx } from "@/components/app-ui";
 import { DomainOwnership } from "@/components/domains/DomainOwnership";
-import { SetupHelpRequest } from "@/components/support/SetupHelpRequest";
 import { Fold } from "@/components/simple/Fold";
 import type { DomainSettingsState } from "@/lib/domains/verification";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { useT } from "@/components/i18n/I18nProvider";
 
 type Registrar = { id: string; name: string; description: string; baseUrl: string; affiliateUrl: string | null };
-type Choice = "buy" | "own" | "team";
+type Choice = "buy" | "own";
 
-// "Use your own domain" (simplicity rules, section 8A): three plain choices instead of DNS records.
+// "Use your own domain" (simplicity rules, section 8A): plain choices, no DNS records.
 // - Buy a new one (only when buying inside Shopinbos is switched on): search, pay, we set it up.
-// - I already have one: we make a WhatsApp message with the steps for the person who set it up
-//   (DomainOwnership; the records and the Verify button are folded under "technical details").
-// - Ask the Shopinbos team to do it: a setup request (support ticket, topic "setup").
+// - I already have one: type it, then "Ask us to connect it" (DomainOwnership): the Shopinbos team connects it with
+//   the seller, and the page keeps checking until it works.
 // Once a domain is waiting or connected, DomainOwnership shows its status instead.
 export function DomainConnect({
   storeSlug,
@@ -65,25 +63,9 @@ export function DomainConnect({
     );
   }
 
-  if (choice === "team") {
-    return (
-      <div className="grid min-w-0 gap-3">
-        <BackButton onClick={() => setChoice(null)} />
-        <SetupHelpRequest
-          title={t("team.title")}
-          description={t("team.desc")}
-          feature="custom_domain"
-          softwareQuestion={t("team.which")}
-          softwarePlaceholder="yourbrand.com"
-        />
-      </div>
-    );
-  }
-
   const choices: Array<{ id: Choice; icon: IconName; title: string; desc: string }> = [
     ...(configured ? [{ id: "buy" as const, icon: "cart" as const, title: t("choice.buy"), desc: t("choice.buyDesc") }] : []),
-    { id: "own", icon: "whatsapp", title: t("choice.own"), desc: t("choice.ownDesc") },
-    { id: "team", icon: "chat", title: t("choice.team"), desc: t("choice.teamDesc") },
+    { id: "own", icon: "chat", title: t("choice.own"), desc: t("choice.ownDesc") },
   ];
 
   return (

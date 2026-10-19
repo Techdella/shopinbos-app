@@ -57,7 +57,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "email.confirm": "Kwụsị izipu email site n'adreesị a? Mkparịta ụka gị ga-anọgide n'Inbox gị.",
   "email.disconnected": "Ewepụla email.",
   "email.domainTitle": "Hazie email domain gị na ihuenyo buru ibu",
-  "email.domainBody": "Email dị ka hello@yourshop.com chọrọ ka etinye ntọala ole na ole na domain gị. Ọ dị mfe na kọmputa, mana ị nwekwara ike imepe ya na ekwentị a. Ma ọ bụ jụọ anyị, anyị ga-ahazi ya maka gị.",
+  "email.domainBody": "Email dị ka hello@yourshop.com: họrọ adreesị ahụ ma pịa Connect. Ọ dị mfe na kọmputa, mana ị nwekwara ike imepe ya na ekwentị a.",
   "email.askUs": "Jụọ anyị ka anyị hazie ya",
 };
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { SMS_ENABLED } from "@/lib/features";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardHead } from "@/components/app-kit";
@@ -13,8 +14,7 @@ import { ChannelHelp, SmsCounter, TemplateStatusPill, WhatsAppBubble, useTemplat
 import { useT } from "@/components/i18n/I18nProvider";
 import type { MessageKey } from "@shared/i18n/catalog";
 import { EVENT_COPY, friendlyName } from "../_kit/friendly";
-import { AdvancedFold, Fold } from "@/components/simple/Fold";
-import { SetupHelpRequest } from "@/components/support/SetupHelpRequest";
+import { AdvancedFold } from "@/components/simple/Fold";
 
 const SMS_DETAILS: Array<{ token: string; label: MessageKey<"marketing"> }> = [
   { token: "{{name}}", label: "om.detail.name" },
@@ -69,15 +69,10 @@ export function OrderMessages({ initial, channels, templates, currency }: { init
           <ChannelHelp label="WhatsApp" howTo={t("om.waHow")} href={channels.whatsapp.connectHref} linkLabel={channels.whatsapp.connectLabel} />
         </Notice>
       ) : null}
-      {!smsReady ? (
-        <div className="grid gap-2">
-          <Notice tone="info">
-            <ChannelHelp label="SMS" howTo={t("om.smsHow")} href={channels.sms.connectHref} linkLabel={channels.sms.connectLabel} />
-          </Notice>
-          <Fold summary={t("om.askSetup")}>
-            <SetupHelpRequest title={t("om.setupTitle")} description={t("om.setupDesc")} feature="sms" softwareQuestion={t("om.setupQuestion")} softwarePlaceholder={t("om.setupPlaceholder")} />
-          </Fold>
-        </div>
+      {SMS_ENABLED && !smsReady ? (
+        <Notice tone="info">
+          <ChannelHelp label="SMS" howTo={t("om.smsHow")} href={channels.sms.connectHref} linkLabel={channels.sms.connectLabel} />
+        </Notice>
       ) : null}
 
       <Card className="grid gap-2 p-5">
@@ -95,7 +90,7 @@ export function OrderMessages({ initial, channels, templates, currency }: { init
         return (
           <Card key={event.key} className="grid gap-4 p-5">
             <CardHead title={eventLabel(event.key, event.label)} sub={t.dynamic(`om.event.${event.key}.sub`, EVENT_COPY[event.key]?.sub ?? event.sub)} />
-            <div className="grid gap-4 lg:grid-cols-2">
+            <div className={SMS_ENABLED ? "grid gap-4 lg:grid-cols-2" : "grid gap-4"}>
               <div className="grid content-start gap-3">
                 <label className="flex items-center justify-between gap-3 text-[14px] font-bold">
                   <span>WhatsApp</span>
@@ -127,6 +122,7 @@ export function OrderMessages({ initial, channels, templates, currency }: { init
                   </>
                 ) : null}
               </div>
+              {SMS_ENABLED && (
               <div className="grid content-start gap-3">
                 <label className="flex items-center justify-between gap-3 text-[14px] font-bold">
                   <span>SMS</span>
@@ -148,11 +144,13 @@ export function OrderMessages({ initial, channels, templates, currency }: { init
                   </>
                 ) : null}
               </div>
+              )}
             </div>
           </Card>
         );
       })}
 
+      {SMS_ENABLED && (
       <AdvancedFold label={t("om.smsSettings")} hint={t("om.smsSettingsHint")}>
         <div className="grid gap-4 md:grid-cols-2">
           <Field label={t("editor.senderName")} htmlFor="sms-sender" hint={t("om.senderHint")}>
@@ -163,6 +161,7 @@ export function OrderMessages({ initial, channels, templates, currency }: { init
           </Field>
         </div>
       </AdvancedFold>
+      )}
 
       <div className="flex flex-wrap gap-2">
         <PillButton size="md" busy={busy} onClick={() => void save()}>{t("save")}</PillButton>

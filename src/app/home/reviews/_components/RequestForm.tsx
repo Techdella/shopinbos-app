@@ -1,5 +1,6 @@
 "use client";
 
+import { SMS_ENABLED } from "@/lib/features";
 import { useActionState, useMemo, useState } from "react";
 import { sendReviewRequests, type RequestState } from "@/app/actions/reviews";
 import { Notice, PillButton, cx } from "@/components/app-ui";
@@ -21,7 +22,7 @@ export interface RequestableOrder {
 
 const CHANNELS = [
   { value: "email", label: "req.email" },
-  { value: "sms", label: "SMS" },
+  ...(SMS_ENABLED ? [{ value: "sms", label: "SMS" }] : []),
   { value: "whatsapp", label: "WhatsApp" },
   { value: "link", label: "req.fromMyWhatsApp" },
 ] as const;

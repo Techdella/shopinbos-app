@@ -252,7 +252,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "src.notice.failed": "Shiga Google bai yi aiki ba.",
   "src.notice.invalid": "Wannan link na shiga Google ya ƙare ko ba na wannan shago ba ne. Sake gwadawa.",
   "src.notice.notConfigured": "Haɗa Google ba a kunna ba tukuna. Ƙara Google reviews ɗinka a ƙasa a yanzu.",
-  "src.locationsFailed": "Ba a iya loda wuraren Google ɗinka ba.",
+  "src.locationsFailed": "Google bai nuna mana kasuwancinka ba tukuna. Sake gwadawa nan da 'yan mintuna.",
   "src.sub": "Kawo reviews daga Google, WhatsApp, social media da marketplaces cikin jeri ɗaya.",
   "src.connectedTo": "An haɗa da {name}",
   "src.googleSub": "Reviews ɗinka a Google Search da Maps.",
@@ -280,6 +280,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "src.feedHow": "A Google Merchant Center, buɗe Growth, sannan Manage programs, sannan Product ratings, ka ƙara wannan URL a matsayin scheduled feed. Yana jera reviews da aka wallafa da masu saye suka rubuta a shagonka, a tsarin product reviews na Google.",
   "src.feedNote": "Google tana nuna taurari idan kaya yana da isassun reviews (yawanci 50 a dukan shagonka, kuma aƙalla 3 ga kaya ɗaya). Google, social da marketplace reviews da aka shigo da su ba sa cikin feed saboda Google tana karɓar reviews da ka tattara da kanka kawai.",
   "src.marketplacesBody": "Shopinbos marketplace shi ne inda kake saya daga suppliers, don haka ba shi da reviews na masu saye game da shagonka da za a kawo. Don Jumia, Konga ko wani marketplace, shigo da reviews da screenshot ko ta hanyar liƙa su: za a nuna sunan marketplace ɗin.",
+  "ask.howPlain": "Imel ya shirya. WhatsApp zai aika daga lambarka da zarar ka haɗa shi. “Daga WhatsApp ɗinka” yana buɗe hirar a wayarka, don haka koyaushe yana aiki.",
+  "ask.connectWa": "Haɗa WhatsApp",
 };
 
 export default ha;

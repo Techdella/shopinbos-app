@@ -1,14 +1,14 @@
 "use client";
 
+import { SMS_ENABLED, WEB_CALLS_ENABLED } from "@/lib/features";
 import { confirmDialog } from "@/components/ui/dialogs";
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import { Card, Pill } from "@/components/app-kit";
-import { cx, Notice, PillButton } from "@/components/app-ui";
+import { Notice, PillButton } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { ChannelMark, inboxApi } from "@/components/messaging/inbox-ui";
 import { Fold } from "@/components/simple/Fold";
-import { SetupHelpRequest } from "@/components/support/SetupHelpRequest";
 import type { ConnectableChannel } from "@/lib/inbox/meta";
 import type { ChannelView } from "@/lib/inbox/connect";
 import { Mascot } from "@/components/brand/Mascot";
@@ -16,9 +16,9 @@ import { useT } from "@/components/i18n/I18nProvider";
 
 // Inbox channels below the one-tap cards: live chat, forms, email, and (folded) SMS, phone calls and Telegram.
 // WhatsApp, Instagram and Messenger connect with one tap on the cards above this list (src/app/channels/
-// ConnectAccounts.tsx). SMS, phone calls and Telegram need an account with a provider, so the seller taps "Ask us
-// to set it up" and the Shopinbos team sorts it out with them. No keys, webhooks or steps are shown to sellers; the
-// API (POST /api/app/inbox/channels/[channel]) still accepts provider keys.
+// ConnectAccounts.tsx). SMS, phone calls and Telegram need an account with a provider and can't be connected in one
+// tap, so they only show (status and Disconnect) for stores that already have them. No keys, webhooks, steps or
+// "Ask us" buttons are shown to sellers; the API still accepts provider keys.
 type KeyChannel = Exclude<ConnectableChannel, "whatsapp" | "instagram" | "messenger" | "email">;
 
 const FALLBACK: Record<KeyChannel, { title: string; blurb: string }> = {
@@ -28,7 +28,8 @@ const FALLBACK: Record<KeyChannel, { title: string; blurb: string }> = {
 };
 
 /** Phone and bot channels, folded under "More ways customers can reach you". */
-const MORE: KeyChannel[] = ["sms", "voice", "telegram"];
+// SMS and phone calls are switched off on the web for now (src/lib/features.ts).
+const MORE: KeyChannel[] = [...(SMS_ENABLED ? (["sms"] as const) : []), ...(WEB_CALLS_ENABLED ? (["voice"] as const) : []), "telegram"];
 
 // Each channel (simplicity rules, section 8A): a plain status and one action, "Ask us to set it up".
 function ChannelCard({ view, onChange, extra }: { view: ChannelView; onChange: (view: ChannelView) => void; extra?: ReactNode }) {
@@ -36,7 +37,6 @@ function ChannelCard({ view, onChange, extra }: { view: ChannelView; onChange: (
   const t = useT("inbox", "common");
   const title = t.dynamic(`ch.${key}.title`, FALLBACK[key].title);
   const connected = view.status === "connected";
-  const [askUs, setAskUs] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ tone: "error" | "success"; text: string } | null>(null);
 
@@ -69,18 +69,6 @@ function ChannelCard({ view, onChange, extra }: { view: ChannelView; onChange: (
 
       {view.lastError && (connected || view.status === "error") && <Notice tone="error">{t("ch.cantReach", { title })}</Notice>}
       {extra}
-
-      {askUs ? (
-        <SetupHelpRequest
-          title={connected ? t("ch.fixTitle", { title }) : t("ch.helpTitle", { title })}
-          description={connected ? t("ch.fixDesc", { title }) : t("ch.helpDesc", { title })}
-          feature={`inbox_${view.channel}`}
-        />
-      ) : !connected ? (
-        <div><PillButton size="md" tone="ink" onClick={() => setAskUs(true)}>{t("ch.askUs")}</PillButton></div>
-      ) : view.lastError || view.status === "error" ? (
-        <div><PillButton size="sm" tone="white" onClick={() => setAskUs(true)}>{t("ch.askHelp")}</PillButton></div>
-      ) : null}
 
       {connected && (
         <div className="flex flex-wrap gap-2">
@@ -131,7 +119,8 @@ export function ChannelsClient({
   const t = useT("inbox");
   const [views, setViews] = useState(initial);
   const update = (next: ChannelView) => setViews((current) => current.map((v) => (v.channel === next.channel ? next : v)));
-  const connectedCount = views.filter((v) => MORE.includes(v.channel as KeyChannel) && v.status === "connected").length;
+  // SMS, phone calls and Telegram can't be connected in one tap, so they only show for stores that already have them.
+  const connectedCount = views.filter((v) => MORE.includes(v.channel as KeyChannel) && v.status !== "disconnected").length;
 
   return (
     <div className="grid gap-5">
@@ -185,9 +174,10 @@ export function ChannelsClient({
         </Link>
       </section>
 
+      {connectedCount > 0 && (
       <Fold summary={t("ch.more")} hint={t("ch.moreHint", { count: connectedCount })}>
         <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
-          {MORE.map((key) => {
+          {MORE.filter((key) => views.find((v) => v.channel === key)?.status !== "disconnected").map((key) => {
             const view = views.find((v) => v.channel === key)!;
             const extra =
               key === "voice" && view.status === "connected" ? (
@@ -197,9 +187,7 @@ export function ChannelsClient({
           })}
         </div>
       </Fold>
-      <p className={cx("m-0 text-[13px] text-app-ink-soft")}>
-        {t("ch.notSure")}
-      </p>
+      )}
     </div>
   );
 }

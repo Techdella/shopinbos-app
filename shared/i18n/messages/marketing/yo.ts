@@ -775,7 +775,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "om.detail.tracking": "Link tracking",
   "om.detail.cart": "Link láti parí ìsanwó",
   "om.waHow": "So nọ́ńbà WhatsApp Business rẹ pọ̀ láti fi ìròyìn order ránṣẹ́ lórí WhatsApp.",
-  "om.smsHow": "Ọ̀rọ̀ SMS nílò account SMS. A lè ṣètò rẹ̀ fún ọ.",
+  "om.smsHow": "Àwọn ìfiránṣẹ́ SMS kò tíì tàn. Wọ́n á ṣiṣẹ́ níbí fúnra wọn nígbà tí wọ́n bá tàn; kò sí nǹkan láti so pọ̀.",
   "om.askSetup": "Ní kí a ṣètò SMS",
   "om.setupTitle": "Ṣètò SMS fún ìfiránṣẹ́ order mi",
   "om.setupDesc": "A máa so account SMS pọ̀ fún ṣọ́ọ̀bù rẹ, a ó sì sọ fún ọ nígbà tí ọ̀rọ̀ bá ti ṣetán láti lọ.",

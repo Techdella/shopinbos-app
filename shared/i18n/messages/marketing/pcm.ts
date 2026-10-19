@@ -775,7 +775,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "om.detail.tracking": "Tracking link",
   "om.detail.cart": "Link to finish payment",
   "om.waHow": "Connect your WhatsApp Business number to send order updates for WhatsApp.",
-  "om.smsHow": "Texts need SMS account. We fit set am up for you.",
+  "om.smsHow": "Text messages never switch on yet. Dem go work here by themselves once dem switch on; nothing to connect.",
   "om.askSetup": "Ask us make we set up SMS",
   "om.setupTitle": "Set up SMS for my order messages",
   "om.setupDesc": "We go connect SMS account for your shop and tell you when texts don ready.",

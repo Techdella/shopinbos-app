@@ -1,5 +1,6 @@
 "use client";
 
+import { SMS_ENABLED, WEB_CALLS_ENABLED } from "@/lib/features";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cx, PillButton, Segmented } from "@/components/app-ui";
@@ -47,11 +48,11 @@ function replyHint(channel: InboxChannelKey, data: ThreadData, connected: string
     case "livechat":
       return c.contactEmail ? t("hint.livechatEmail", { email: c.contactEmail }) : t("hint.livechat");
     case "form":
-      return c.contactEmail ? t("hint.byEmail", { to: c.contactEmail }) : c.contactPhone && connected.includes("sms") ? t("hint.bySms", { to: c.contactPhone }) : t("hint.noEmail");
+      return c.contactEmail ? t("hint.byEmail", { to: c.contactEmail }) : SMS_ENABLED && c.contactPhone && connected.includes("sms") ? t("hint.bySms", { to: c.contactPhone }) : t("hint.noEmail");
     case "email":
       return t("hint.byEmail", { to: c.contactEmail ?? t("hint.them") });
     case "voice":
-      return connected.includes("sms") ? t("hint.bySms", { to: c.contactPhone ?? t("hint.caller") }) : t("hint.connectSms");
+      return SMS_ENABLED && connected.includes("sms") ? t("hint.bySms", { to: c.contactPhone ?? t("hint.caller") }) : t("hint.connectSms");
     case "tiktok":
       return t("hint.tiktok");
     default:
@@ -377,7 +378,7 @@ export function InboxThread({ conversationId, me, team, canned, connected, aiAva
 
   const c = data.conversation;
   const channel = c.channel;
-  const canReply = CHANNELS[channel].replies && !(channel === "form" && !c.contactEmail && !(c.contactPhone && connected.includes("sms"))) && !(channel === "voice" && !connected.includes("sms")) && (["livechat", "form", "email", "voice"].includes(channel) || connected.includes(channel));
+  const canReply = CHANNELS[channel].replies && !(channel === "form" && !c.contactEmail && !(SMS_ENABLED && c.contactPhone && connected.includes("sms"))) && !(channel === "voice" && !(SMS_ENABLED && connected.includes("sms"))) && (["livechat", "form", "email", "voice"].includes(channel) || connected.includes(channel));
   const windowClosed = META_WINDOW.includes(channel) && c.lastInboundAt && Date.now() - new Date(c.lastInboundAt).getTime() > 24 * 3_600_000;
   const phone = c.contactPhone;
 
@@ -394,9 +395,11 @@ export function InboxThread({ conversationId, me, team, canned, connected, aiAva
             <div className="truncate text-[12.5px] text-app-ink-soft">{t.dynamic(`channel.${c.channel}`, c.channelLabel)}{c.subject ? ` · ${c.subject}` : ""}</div>
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
-            <button type="button" onClick={() => setShowCall((v) => !v)} aria-label={phone ? t("msg.call") : t("call.log")} aria-expanded={showCall} className="grid h-10 w-10 place-items-center rounded-full border border-app-line hover:border-app-line-strong">
-              <Icon name="phone" size={16} />
-            </button>
+            {WEB_CALLS_ENABLED && (
+              <button type="button" onClick={() => setShowCall((v) => !v)} aria-label={phone ? t("msg.call") : t("call.log")} aria-expanded={showCall} className="grid h-10 w-10 place-items-center rounded-full border border-app-line hover:border-app-line-strong">
+                <Icon name="phone" size={16} />
+              </button>
+            )}
             <label className="sr-only" htmlFor={`assign-${c.id}`}>{t("thread.assignedTo")}</label>
             <select
               id={`assign-${c.id}`}
@@ -430,7 +433,7 @@ export function InboxThread({ conversationId, me, team, canned, connected, aiAva
           </div>
         </header>
 
-        {showCall && <CallPanel conversationId={c.id} phone={phone} voiceOn={connected.includes("voice")} defaultPhone={me.phone} onDone={() => void load()} onClose={() => setShowCall(false)} />}
+        {WEB_CALLS_ENABLED && showCall && <CallPanel conversationId={c.id} phone={phone} voiceOn={connected.includes("voice")} defaultPhone={me.phone} onDone={() => void load()} onClose={() => setShowCall(false)} />}
 
         <div className="flex flex-1 flex-col gap-2.5 overflow-y-auto bg-app-canvas/50 px-3 py-4 sm:px-5" aria-live="polite">
           {data.messages.map((message) => <MessageBubble key={message.id} message={message} />)}

@@ -1,5 +1,6 @@
 "use client";
 
+import { SMS_ENABLED } from "@/lib/features";
 import { confirmDialog } from "@/components/ui/dialogs";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -294,7 +295,7 @@ export function SubscribersManager({
                   </div>
                   <div className="text-[13px] text-app-ink-soft sm:w-[190px]" title={row.consent?.at ? t("subs.agreed", { date: formatDate(row.consent.at, true, locale) }) : undefined}>
                     {row.sourceLabel} · {formatDate(row.createdAt, false, locale)}
-                    <div>{row.consent ? `${row.consent.email ? t("channel.email") : t("subs.noEmail")}${row.consent.text ? " + SMS/WhatsApp" : ""}` : t("subs.noConsent")}</div>
+                    <div>{row.consent ? `${row.consent.email ? t("channel.email") : t("subs.noEmail")}${row.consent.text ? (SMS_ENABLED ? " + SMS/WhatsApp" : " + WhatsApp") : ""}` : t("subs.noConsent")}</div>
                   </div>
                   <Pill tone={status.tone}>{t(status.label)}</Pill>
                 </li>

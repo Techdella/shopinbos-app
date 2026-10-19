@@ -28,7 +28,6 @@ export interface ChannelStatus {
 }
 
 export const WHATSAPP_CONNECT_HREF = "/home/inbox/chatbot?tab=whatsapp";
-export const SMS_CONNECT_HREF = "/home/inbox/channels";
 
 const platformSms = () => platformSmsReady();
 const ownSmsLabel = (provider: unknown) => (isSmsProvider(provider) ? SMS_PROVIDER_LABELS[provider] : "SMS");
@@ -42,16 +41,17 @@ export async function channelStatus(storeId: string): Promise<Record<MarketingCh
     email: {
       ready: isEmailConfigured(),
       via: isEmailConfigured() ? "Resend" : null,
-      howTo: "Email needs RESEND_API_KEY (and RESEND_FROM_EMAIL on a domain verified in Resend) in the app environment.",
+      howTo: "Email isn't switched on yet. It will work here by itself once it is.",
       connectHref: null,
       connectLabel: null,
     },
     sms: {
       ready: Boolean(sms) || platformSms(),
       via: sms ? `Your ${ownSmsLabel(sms.credentials.provider)} account${sms.row.displayName ? ` (${sms.row.displayName})` : ""}` : platformSmsLabel(),
-      howTo: "SMS isn't set up. Connect your Termii, Africa's Talking or Sendchamp account in Inbox › Channels (or the platform needs SMS_PROVIDER with its keys).",
-      connectHref: SMS_CONNECT_HREF,
-      connectLabel: "Connect SMS",
+      // Texts go through Shopinbos's own SMS account (SMS_PROVIDER), so there is nothing for the seller to connect.
+      howTo: "Text messages aren't switched on yet. They'll work here by themselves once they are; nothing to connect.",
+      connectHref: null,
+      connectLabel: null,
     },
     whatsapp: {
       ready: Boolean(whatsapp) || platformWhatsApp(),
@@ -59,8 +59,8 @@ export async function channelStatus(storeId: string): Promise<Record<MarketingCh
       howTo: whatsapp
         ? waba
           ? "Ready."
-          : "Your WhatsApp number is connected without its WhatsApp Business Account ID, so templates can't be managed. Reconnect it with Embedded Signup in Inbox › Chatbot › WhatsApp."
-        : "WhatsApp isn't connected. Connect your WhatsApp Business number in Inbox › Chatbot › WhatsApp to send templates.",
+          : "Connect WhatsApp again (one tap) so you can send message templates."
+        : "Connect your WhatsApp Business number (one tap) to send WhatsApp messages.",
       connectHref: WHATSAPP_CONNECT_HREF,
       connectLabel: whatsapp ? "WhatsApp settings" : "Connect WhatsApp",
       templates: waba,

@@ -1,5 +1,6 @@
 "use client";
 
+import { WEB_CALLS_ENABLED } from "@/lib/features";
 import Link from "next/link";
 import { useState } from "react";
 import { Card, CardHead } from "@/components/app-kit";
@@ -85,6 +86,7 @@ export function InboxSettingsClient({ initial, canned, aiAvailable, voiceConnect
           ))}
         </Card>
 
+        {WEB_CALLS_ENABLED && (
         <Card className="grid gap-4 p-5">
           <CardHead title={t("set.calls")} sub={voiceConnected ? t("set.callsOn") : t("set.callsOff")} />
           {voiceConnected ? (
@@ -96,6 +98,7 @@ export function InboxSettingsClient({ initial, canned, aiAvailable, voiceConnect
             <div><Link href="/home/inbox/channels" className="inline-flex min-h-[44px] items-center rounded-full border border-app-line px-5 text-[14px] font-bold text-app-ink no-underline">{t("set.connectCalls")}</Link></div>
           )}
         </Card>
+        )}
 
         <div className="flex flex-wrap items-center gap-3">
           <PillButton size="md" busy={saving} onClick={() => void save()}>{t("set.save")}</PillButton>
