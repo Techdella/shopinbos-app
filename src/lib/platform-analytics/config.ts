@@ -1,25 +1,15 @@
-// Shopinbos's own product analytics (not the sellers' store tags): which of Google Analytics 4, Mixpanel and PostHog
-// are connected, from env. Two halves each:
+// Shopinbos's own product analytics (not the sellers' store tags): which of Mixpanel and PostHog are connected, from env. Two halves each:
 //   - tracking: the browser SDK on app pages (NEXT_PUBLIC_* keys) plus server events (sign-ups, leads);
 //   - reporting: Admin › Analytics reads numbers back with a read-only key (never sent to the browser).
 // Pure so tests can use it.
 
-export type AnalyticsProvider = "ga4" | "mixpanel" | "posthog";
+export type AnalyticsProvider = "mixpanel" | "posthog";
 
-export const PROVIDER_LABELS: Record<AnalyticsProvider, string> = { ga4: "Google Analytics 4", mixpanel: "Mixpanel", posthog: "PostHog" };
+export const PROVIDER_LABELS: Record<AnalyticsProvider, string> = { mixpanel: "Mixpanel", posthog: "PostHog" };
 
 type Env = Record<string, string | undefined>;
 
 const clean = (value: string | undefined) => value?.trim() || "";
-
-export function ga4Config(env: Env = process.env) {
-  return {
-    measurementId: clean(env.NEXT_PUBLIC_GA_MEASUREMENT_ID),
-    apiSecret: clean(env.GA4_API_SECRET),
-    propertyId: clean(env.GA4_PROPERTY_ID).replace(/^properties\//, ""),
-    serviceAccount: clean(env.GA4_SERVICE_ACCOUNT_JSON),
-  };
-}
 
 export function mixpanelConfig(env: Env = process.env) {
   const eu = (clean(env.NEXT_PUBLIC_MIXPANEL_REGION) || clean(env.MIXPANEL_REGION)).toLowerCase() === "eu";
@@ -59,20 +49,10 @@ export type ProviderStatus = {
 };
 
 export function providerStatuses(env: Env = process.env): ProviderStatus[] {
-  const ga = ga4Config(env);
   const mp = mixpanelConfig(env);
   const ph = posthogConfig(env);
   const missing = (pairs: Array<[string, string]>) => pairs.filter(([, value]) => !value).map(([name]) => name);
   return [
-    {
-      provider: "ga4",
-      label: PROVIDER_LABELS.ga4,
-      tracking: Boolean(ga.measurementId),
-      serverEvents: Boolean(ga.measurementId && ga.apiSecret),
-      reporting: Boolean(ga.propertyId && ga.serviceAccount),
-      missing: missing([["NEXT_PUBLIC_GA_MEASUREMENT_ID", ga.measurementId], ["GA4_API_SECRET", ga.apiSecret], ["GA4_PROPERTY_ID", ga.propertyId], ["GA4_SERVICE_ACCOUNT_JSON", ga.serviceAccount]]),
-      dashboardUrl: ga.propertyId ? `https://analytics.google.com/analytics/web/#/p${ga.propertyId}/reports/intelligenthome` : "https://analytics.google.com/",
-    },
     {
       provider: "mixpanel",
       label: PROVIDER_LABELS.mixpanel,

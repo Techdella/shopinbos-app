@@ -67,13 +67,13 @@ export default async function ConnectionsPage({ searchParams }: { searchParams: 
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true, brandSettings: true, customDomain: true } });
   if (!store) redirect("/onboarding?role=seller");
 
-  const [{ cards, interest }, google, email] = await Promise.all([channelCards(store.id), googleOverview(store.id, store.brandSettings), emailRow(store.id).catch(() => null)]);
+  const [{ cards, interest }, google, email] = await Promise.all([channelCards(store.id), googleOverview(store.id), emailRow(store.id).catch(() => null)]);
   const shopping = cards.find((card) => card.platform === "google")?.state ?? { kind: "soon" as const };
   const googleReady = platformConfigured("google");
   const googleLinked = shopping.kind !== "connect" && shopping.kind !== "soon";
   const emailSettings = readEmailSettings(email?.settings);
   const gmail = email?.status === "connected" && emailSettings.provider === "gmail" ? (emailSettings.gmail?.email ?? null) : null;
-  const unfinished = googleLinked && (google.reviews.state !== "on" || google.search.state !== "on" || google.analytics.state !== "on");
+  const unfinished = googleLinked && (google.reviews.state !== "on" || google.search.state !== "on");
 
   const done = isOAuthPlatform(params.connected) && !params.problem ? PLATFORM_NAME[params.connected] : null;
   const failed = isOAuthPlatform(params.problem) ? PLATFORM_NAME[params.problem] : null;
@@ -137,12 +137,6 @@ export default async function ConnectionsPage({ searchParams }: { searchParams: 
                 what={t("cx.g.search.what")}
                 on={google.search.state === "on"}
                 status={google.search.state === "on" ? <>{on()} · <TextLink href="/home/analytics/traffic">{t("cx.see")}</TextLink></> : google.search.state === "waiting" ? <span className="text-app-ink-soft">{t("cx.g.search.waiting")}</span> : off}
-              />
-              <GoogleRow
-                title={t("cx.g.stats.title")}
-                what={t("cx.g.stats.what")}
-                on={google.analytics.state === "on"}
-                status={google.analytics.state === "on" ? on() : google.analytics.state === "none" ? <>{t("cx.g.stats.none")} {external("https://analytics.google.com/", t("cx.createFree"))}</> : off}
               />
               <GoogleRow
                 title={t("cx.g.gmail.title")}

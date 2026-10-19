@@ -244,7 +244,7 @@ test("one Facebook sign-in also connects the Page and Instagram inboxes, and Dis
   assert.doesNotMatch(inbox, /console\.[a-z]+\([^)]*token/i, "tokens never reach a log line");
 });
 
-test("Connect Google: one client and one set of scopes for shopping, reviews, search and visitor stats", async () => {
+test("Connect Google: one client and one set of scopes for shopping, reviews and search", async () => {
   const g = await import("../src/lib/google/oauth.ts");
   assert.deepEqual([...g.GOOGLE_CONNECT_SCOPES], [
     "openid",
@@ -253,8 +253,8 @@ test("Connect Google: one client and one set of scopes for shopping, reviews, se
     "https://www.googleapis.com/auth/business.manage",
     "https://www.googleapis.com/auth/webmasters",
     "https://www.googleapis.com/auth/siteverification",
-    "https://www.googleapis.com/auth/analytics.edit",
   ]);
+  assert.ok(!g.GOOGLE_CONNECT_SCOPES.some((scope) => scope.includes("analytics")), "no Google Analytics");
   assert.ok(!g.GOOGLE_CONNECT_SCOPES.some((scope) => scope.includes("gmail")), "Gmail asks separately, from the email card");
   const shared = { GOOGLE_CLIENT_ID: "shared", GOOGLE_CLIENT_SECRET: "s", GOOGLE_MERCHANT_CLIENT_ID: "old", GOOGLE_MERCHANT_CLIENT_SECRET: "o" };
   for (const feature of ["merchant", "business", "searchConsole"]) assert.deepEqual(g.googleClient(feature, shared), { id: "shared", secret: "s" }, feature);
@@ -268,6 +268,6 @@ test("Connect Google: one client and one set of scopes for shopping, reviews, se
   assert.match(connect, /"https:\/\/www\.googleapis\.com\/siteVerification\/v1"/);
   assert.match(connect, /\$\{VERIFY_API\}\/token`, \{ body: \{ site, verificationMethod: "META" \} \}/);
   assert.match(connect, /setStoreIntegration\(store\.id, "gaSiteVerification", code\)/);
-  assert.match(connect, /setStoreIntegration\(store\.id, "googleAnalyticsId", measurementId, \{ onlyIfEmpty: true \}\)/);
+  assert.doesNotMatch(connect, /analyticsadmin|googleAnalyticsId/, "Connect Google no longer sets up Google Analytics");
   assert.doesNotMatch(connect, /console\.[a-z]+\([^)]*token/i, "tokens never reach a log line");
 });

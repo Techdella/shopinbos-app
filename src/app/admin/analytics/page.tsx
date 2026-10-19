@@ -13,7 +13,7 @@ import { requireRole } from "@/lib/server-auth";
 export const dynamic = "force-dynamic";
 
 // /admin/analytics: sign-ups, acquisition (where leads come from and how many become accounts), the seller funnel,
-// active users and weekly retention from our own database, plus Google Analytics 4, Mixpanel and PostHog numbers
+// active users and weekly retention from our own database, plus Mixpanel and PostHog numbers
 // when they are connected (src/lib/platform-analytics).
 
 const RANGES = [7, 30, 90] as const;
@@ -115,7 +115,7 @@ export default async function AdminAnalyticsPage(props: { searchParams?: Promise
   const notReady = "Run docs/migrations/2026-11-05-lead-growth.sql to see this.";
 
   return (
-    <AppPage frame={adminFrame(user, "Search")} title="Analytics" sub="Sign-ups, acquisition, activation and retention across Shopinbos, with Google Analytics, Mixpanel and PostHog alongside.">
+    <AppPage frame={adminFrame(user, "Search")} title="Analytics" sub="Sign-ups, acquisition, activation and retention across Shopinbos, with Mixpanel and PostHog alongside.">
       <FilterChips className="mb-5" items={RANGES.map((r) => ({ label: `Last ${r} days`, href: r === 30 ? "/admin/analytics" : `/admin/analytics?days=${r}`, active: r === days }))} />
 
       <section aria-label="Headlines" className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">

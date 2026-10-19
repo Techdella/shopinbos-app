@@ -470,3 +470,11 @@ test("storefront pages: canonical on the store's own address, robots from the st
   assert.match(read("src/app/actions/workspace.ts"), /hideFromSearch: formData\.get\("hideFromSearch"\) === "on"/);
   assert.match(read("src/app/home/seo/page.tsx"), /name="hideFromSearch" defaultChecked=\{hiddenFromSearch\}/);
 });
+
+test("the app sitemap lists every live store's sitemap on its Shopinbos address, subdomains included", () => {
+  const route = read("src/app/sitemap.xml/route.ts");
+  assert.doesNotMatch(route, /if \(!storeSubdomainsEnabled\(\)\)/, "stores on subdomains are listed too, so Google finds them");
+  assert.match(route, /buildPlatformSubdomainOrigin\(slug\)\}\/sitemap\.xml/);
+  assert.match(route, /"customDomain" IS NULL/, "a seller's own domain isn't ours to list");
+  assert.match(route, /hideFromSearch/);
+});

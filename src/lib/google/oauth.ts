@@ -1,6 +1,6 @@
 // One "Connect Google" for everything Google: a single sign-in (one OAuth client, GOOGLE_CLIENT_ID) gives the
-// store free product listings (Merchant Center), its Google reviews (Business Profile), Google search numbers and
-// automatic site verification (Search Console + Site Verification) and visitor stats (Google Analytics 4).
+// store free product listings (Merchant Center), its Google reviews (Business Profile), and Google search numbers
+// with automatic site verification (Search Console + Site Verification).
 // Gmail asks for its own permission, separately, from the email card: reading mail is a bigger ask.
 // Pure (no imports) so tests can read it.
 
@@ -12,7 +12,6 @@ export const GOOGLE_CONNECT_SCOPES = [
   "https://www.googleapis.com/auth/business.manage",
   "https://www.googleapis.com/auth/webmasters",
   "https://www.googleapis.com/auth/siteverification",
-  "https://www.googleapis.com/auth/analytics.edit",
 ] as const;
 
 type Env = Record<string, string | undefined>;
