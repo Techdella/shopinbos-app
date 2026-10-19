@@ -35,30 +35,6 @@ function parsePositiveNumber(value: FormDataEntryValue | null) {
   return Number.isFinite(amount) ? amount : 0;
 }
 
-function parseCoverageRows(value: FormDataEntryValue | null, fallbackZones: string[], fallbackBasePrice: number) {
-  const rows = String(value || "")
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      const [nameRaw, serviceRaw, priceRaw, demandRaw] = line.split("|").map((part) => part?.trim());
-      const name = nameRaw || "";
-      if (!name) return null;
-
-      return {
-        name,
-        service: serviceRaw || "Same-day",
-        basePrice: parsePositiveNumber(priceRaw || String(fallbackBasePrice)),
-        active: true,
-        ...(demandRaw ? { demandSignal: demandRaw } : {}),
-      };
-    })
-    .filter((zone): zone is { name: string; service: string; basePrice: number; active: boolean; demandSignal?: string } => Boolean(zone));
-
-  if (rows.length > 0) return rows;
-  return fallbackZones.map((name) => ({ name, service: "Same-day", basePrice: fallbackBasePrice, active: true }));
-}
-
 /** Where to send the partner after a dispatch action: a /logistics page they came from, or the fallback. */
 function returnPath(formData: FormData, fallback: string) {
   const value = String(formData.get("returnTo") || "");
@@ -305,12 +281,23 @@ export async function recordCodRemittance(formData: FormData) {
 export async function updateLogisticsCoverage(formData: FormData) {
   const { user, partner } = await getLogisticsActor();
   assertVerifiedLogistics(partner);
-  const coverageZones = splitList(formData.get("coverageZones"));
   const vehicleTypes = splitList(formData.get("vehicleTypes"));
   const deliveryTypes = splitList(formData.get("deliveryTypes"));
   const depot = String(formData.get("depot") || "").trim();
+  // The editor (src/app/logistics/coverage/CoverageEditor.tsx) sends the zones, each a state picked from the list.
+  let zones: unknown = [];
+  try {
+    zones = JSON.parse(String(formData.get("coverageJson") || "[]"));
+  } catch {
+    redirect("/logistics/coverage?error=Check%20your%20coverage%20areas%2C%20then%20save%20again.");
+  }
+  const activeZones = Array.isArray(zones) ? zones.filter((zone) => zone && typeof zone === "object" && (zone as { active?: unknown }).active !== false) : [];
+  const coverageZones = activeZones.map((zone) => String((zone as { name?: unknown }).name ?? "")).filter(Boolean);
+  if (coverageZones.length === 0) redirect("/logistics/coverage?error=Add%20at%20least%20one%20state%20you%20deliver%20in.");
+  if (vehicleTypes.length === 0) redirect("/logistics/coverage?error=Pick%20the%20vehicles%20you%20use.");
+  if (deliveryTypes.length === 0) redirect("/logistics/coverage?error=Pick%20the%20kinds%20of%20delivery%20you%20offer.");
   const coverageMap = {
-    zones: parseCoverageRows(formData.get("coverageRows"), coverageZones, partner.basePrice),
+    zones,
     ...(depot ? { depot } : {}),
     updatedBy: "portal" as const,
   };

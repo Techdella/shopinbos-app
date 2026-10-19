@@ -181,7 +181,7 @@ export const ROUTE_NAMESPACES: ReadonlyArray<readonly [string, readonly string[]
   ["/logistics/cms", ["auth","cms","common","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
   ["/logistics/connect", ["auth","common","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
   ["/logistics/couriers", ["auth","common","glossary","help","introTitles","learn","logistics","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
-  ["/logistics/coverage", ["auth","common","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
+  ["/logistics/coverage", ["auth","common","glossary","help","introTitles","learn","logistics","nav","notifications","onboarding","rex","settings","shell","support","tour","ui","verification"]],
   ["/logistics/dashboard", ["auth","common","glossary","help","introTitles","learn","logistics","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
   ["/logistics/features", ["account","auth","common","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
   ["/logistics/inbox", ["auth","common","glossary","help","inbox","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],

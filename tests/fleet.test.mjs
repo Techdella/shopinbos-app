@@ -111,3 +111,14 @@ test("partner onboarding asks for a logo and offers the launch areas; sellers an
   assert.match(supplier, /partnersNear\(supplier\.city\)/);
   assert.match(supplier, /<Thumb src=\{p\.logoUrl\}/);
 });
+
+test("the coverage page picks states from the list, never free text", () => {
+  const page = read("src/app/logistics/coverage/page.tsx");
+  assert.match(page, /<CoverageEditor/);
+  assert.doesNotMatch(page, /name="coverageZones"/);
+  const editor = read("src/app/logistics/coverage/CoverageEditor.tsx");
+  assert.match(editor, /westAfricaCountries\.find/);
+  assert.match(editor, /name="coverageJson"/);
+  const action = read("src/app/actions/logistics.ts");
+  assert.match(action, /JSON\.parse\(String\(formData\.get\("coverageJson"\)/);
+});

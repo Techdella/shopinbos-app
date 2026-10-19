@@ -4,8 +4,9 @@ import { ensureLogisticsAccess, getLogisticsPartnerForUser } from "@/lib/role-qu
 import { updateLogisticsCoverage } from "@/app/actions/logistics";
 import { Card, CardHead, EmptyState, ListCard, ListRow, Pill, PillLink } from "@/components/app-kit";
 import { LOGISTICS_FREE_ROUTE_LIMIT } from "@/lib/plan-limits";
-import { ActionNotice, PartnerPage, SubmitButton, inputClass, labelClass, naira, textareaClass } from "@/components/logistics/kit";
-import { coverageDepot, coverageZoneRows } from "@/components/logistics/coverage";
+import { ActionNotice, PartnerPage, SubmitButton, inputClass, labelClass, naira } from "@/components/logistics/kit";
+import { coverageDepot, coverageZoneRows, editorZones } from "@/components/logistics/coverage";
+import { CoverageEditor } from "./CoverageEditor";
 import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
@@ -74,42 +75,17 @@ export default async function LogisticsCoveragePage({ searchParams }: { searchPa
         <Card className="h-fit p-5">
           <CardHead title={t("coverage.edit")} sub={t("coverage.starterLimit", { limit: LOGISTICS_FREE_ROUTE_LIMIT })} />
           <form action={updateLogisticsCoverage} className="mt-4 grid gap-3">
+            <CoverageEditor
+              zones={editorZones(partner)}
+              vehicleTypes={partner.vehicleTypes}
+              deliveryTypes={partner.deliveryTypes}
+              defaultCountry={partner.country || "Nigeria"}
+              defaultPrice={partner.basePrice}
+            />
             <div>
-              <label htmlFor="coverageZones" className={labelClass}>{t("coverage.areas")}</label>
-              <textarea id="coverageZones" name="coverageZones" rows={4} defaultValue={partner.coverageZones.join("\n")} placeholder={"Yaba\nIkeja\nLekki"} className={textareaClass} />
-              <p className="mb-0 mt-1 text-[15px] text-app-ink-soft">{t("coverage.oneArea")}</p>
+              <label htmlFor="depot" className={labelClass}>{t("coverage.depotLabel")}</label>
+              <input id="depot" name="depot" defaultValue={depot} className={inputClass} />
             </div>
-            <div>
-              <label htmlFor="vehicleTypes" className={labelClass}>{t("coverage.vehicles")}</label>
-              <input id="vehicleTypes" name="vehicleTypes" defaultValue={partner.vehicleTypes.join(", ")} placeholder={t("coverage.vehiclesPlaceholder")} className={inputClass} />
-            </div>
-            <details className="group">
-              <summary className="cursor-pointer list-none text-[15px] font-bold text-app-ink-soft [&::-webkit-details-marker]:hidden">
-                {t("jobs.moreOptions")} <span aria-hidden className="inline-block transition group-open:rotate-90">›</span>
-              </summary>
-              <div className="mt-3 grid gap-3">
-                <div>
-                  <label htmlFor="coverageRows" className={labelClass}>{t("coverage.ratesPerArea")}</label>
-                  <textarea
-                    id="coverageRows"
-                    name="coverageRows"
-                    rows={4}
-                    defaultValue={zones.map((zone) => [zone.name, zone.service, zone.basePrice, zone.demandSignal].filter((part) => part !== undefined && part !== "").join("|")).join("\n")}
-                    placeholder="Yaba|Same-day|2500"
-                    className={textareaClass}
-                  />
-                  <p className="mb-0 mt-1 text-[15px] text-app-ink-soft">{t("coverage.ratesHint")}</p>
-                </div>
-                <div>
-                  <label htmlFor="deliveryTypes" className={labelClass}>{t("coverage.deliveryTypes")}</label>
-                  <input id="deliveryTypes" name="deliveryTypes" defaultValue={partner.deliveryTypes.join(", ")} placeholder={t("coverage.deliveryTypesPlaceholder")} className={inputClass} />
-                </div>
-                <div>
-                  <label htmlFor="depot" className={labelClass}>{t("coverage.depotLabel")}</label>
-                  <input id="depot" name="depot" defaultValue={depot} className={inputClass} />
-                </div>
-              </div>
-            </details>
             <SubmitButton>{t("coverage.save")}</SubmitButton>
           </form>
         </Card>

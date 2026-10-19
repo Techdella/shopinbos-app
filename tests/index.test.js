@@ -569,7 +569,7 @@ test("logistics pages support quote, booking, coverage, and pricing workflows", 
 
   assert.match(coverage, /updateLogisticsCoverage/);
   assert.match(coverage, /Edit coverage/);
-  assert.match(coverage, /name="coverageRows"/);
+  assert.match(coverage, /<CoverageEditor/);
   assert.match(pricing, /updateLogisticsPricing/);
   assert.match(pricing, /Edit pricing/);
   assert.match(pricing, /What sellers see/);

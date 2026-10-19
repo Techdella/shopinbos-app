@@ -293,11 +293,7 @@ const en = {
   "coverage.edit": "Edit coverage",
   "coverage.starterLimit": "Starter covers up to {limit} areas.",
   "coverage.areas": "Areas you deliver to",
-  "coverage.oneArea": "One area per line.",
-  "coverage.vehiclesPlaceholder": "Bike, Van",
   "coverage.ratesPerArea": "Rates per area",
-  "coverage.ratesHint": "One per line: area | service | starting price, like Yaba|Same-day|2500. Leave empty to use your base price everywhere.",
-  "coverage.deliveryTypesPlaceholder": "Same-day, Next-day",
   "coverage.depotLabel": "Depot (where your riders start from)",
   "coverage.save": "Save coverage",
   // Pricing (/logistics/pricing)
