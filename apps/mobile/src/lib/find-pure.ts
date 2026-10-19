@@ -60,11 +60,11 @@ export function parsePricingTiers(value: unknown): FindTier[] {
 }
 
 /** "24 hours" → "Ships in 24 hours"; "Same day in Lagos" stays as it is. */
-export function shipsLabel(processingTime: string | null | undefined) {
+export function shipsLabel(processingTime: string | null | undefined, t?: { dynamic(key: string, fallback?: string, vars?: Record<string, string>): string }) {
   const text = (processingTime ?? "").trim().replace(/\s+/g, " ");
   if (!text) return "";
   if (/^(ships|same day|next day|ready)/i.test(text)) return text.charAt(0).toUpperCase() + text.slice(1);
-  return `Ships in ${text}`;
+  return t ? t.dynamic("ships", `Ships in ${text}`, { time: text }) : `Ships in ${text}`;
 }
 
 /** Marketplace category names are long ("Electronics & Gadgets"); chips use one word. */

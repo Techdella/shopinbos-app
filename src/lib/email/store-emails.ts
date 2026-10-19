@@ -42,6 +42,28 @@ export function orderConfirmationEmail(input: OrderEmailInput) {
   };
 }
 
+/** Some parcels of a shop order have left, not all: "Part of your order is on its way" (sent once per order). */
+export function orderPartlySentEmail(input: { appUrl: string; store: StoreSender; buyerName?: string | null; orderNumber: string; sentItems: string[]; waitingItems: string[]; partsLine?: string | null; orderUrl?: string | null }) {
+  const rows = [
+    ...input.sentItems.map((name) => ({ label: name, value: "On its way" })),
+    ...input.waitingItems.map((name) => ({ label: name, value: "Coming soon", muted: true })),
+  ];
+  return {
+    subject: `Part of your order is on its way: ${input.orderNumber}`,
+    html: storeEmail({
+      appUrl: input.appUrl,
+      store: input.store,
+      kind: "transactional",
+      preheader: `Part of your order ${input.orderNumber} from ${input.store.name} is on its way. The rest follows soon.`,
+      eyebrow: `Order ${input.orderNumber}`,
+      heading: "Part of your order is on its way",
+      bodyHtml: `${html.raw(`Hi ${escapeHtml(first(input.buyerName))}, your order from <strong>${escapeHtml(input.store.name)}</strong> comes in more than one parcel${input.partsLine ? ` (${escapeHtml(input.partsLine)})` : ""}. Here's what's on its way now.`)}${rows.length ? html.rows(rows) : ""}${html.small("We'll tell you when the rest is on its way. You don't need to do anything.")}`,
+      cta: input.orderUrl ? { label: "View your order", url: input.orderUrl } : null,
+      reason: `you placed order ${input.orderNumber} with ${input.store.name}`,
+    }),
+  };
+}
+
 export function refundEmail(input: { appUrl: string; store: StoreSender; buyerName: string; orderNumber: string; amount: string; kind: "automatic" | "by_store" }) {
   const body =
     input.kind === "automatic"
@@ -102,4 +124,23 @@ export function inboxReplyEmail(input: { appUrl: string; store: StoreSender; bod
     reason: `you contacted ${input.store.name}`,
     serviceNote: `This is a reply to your conversation with ${input.store.name}.`,
   });
+}
+
+/** The free download someone asked for in a pop-up (size guide, e-book…): sent once, right after they sign up. */
+export function leadMagnetEmail(input: { appUrl: string; store: StoreSender; name: string; url: string; buyerName?: string | null }) {
+  return {
+    subject: `Your download: ${input.name}`.slice(0, 160),
+    html: storeEmail({
+      appUrl: input.appUrl,
+      store: input.store,
+      kind: "transactional",
+      preheader: `Here's ${input.name} from ${input.store.name}, as promised.`,
+      eyebrow: "Your free download",
+      heading: input.name,
+      bodyHtml: `${html.p(`Hi ${first(input.buyerName)}, thanks for joining ${input.store.name}. Here's the download you asked for. The button below opens it.`)}${html.small("Keep this email to download it again any time.")}`,
+      cta: { label: "Download now", url: input.url },
+      reason: `you asked for this download on ${input.store.name}`,
+      serviceNote: `This is a one-off email with the download you asked for.`,
+    }),
+  };
 }

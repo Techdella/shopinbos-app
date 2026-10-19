@@ -16,6 +16,8 @@ export interface InboxListItem {
   channel: ListChannel;
   name: string;
   sub: string | null;
+  /** Email and contact-form conversations: the subject line (null for chats). */
+  subject: string | null;
   preview: string;
   at: string;
   unread: number;
@@ -75,6 +77,7 @@ export async function listInbox(storeId: string, userId: string): Promise<InboxL
     channel: isChannelKey(c.channel) ? c.channel : "livechat",
     name: contactLabel(c),
     sub: c.contactEmail || c.contactPhone || c.contactHandle || null,
+    subject: c.subject ?? null,
     preview: c.lastMessagePreview ?? "",
     at: c.lastMessageAt.toISOString(),
     unread: c.unreadCount,
@@ -96,6 +99,7 @@ export async function listInbox(storeId: string, userId: string): Promise<InboxL
       channel: "partner",
       name: other.name,
       sub: PARTNER_ROLE[other.role] ?? other.role,
+      subject: null,
       preview: last?.text ?? "",
       at: (last?.createdAt ?? chat.updatedAt).toISOString(),
       unread: last && !last.read && last.senderId !== userId ? 1 : 0,

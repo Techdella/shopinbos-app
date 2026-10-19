@@ -1,28 +1,31 @@
 "use client";
 
+import { confirmDialog, alertDialog } from "@/components/ui/dialogs";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Toggle } from "@/components/app-ui";
 import { buttonClass } from "@/components/growth/kit";
 import { api, errorText } from "../marketing/_kit/client";
+import { useT } from "@/components/i18n/I18nProvider";
 
 /** On/off switch; switching on asks first because the flow will message customers by itself. */
 export function FlowToggle({ id, name, active, messages }: { id: string; name: string; active: boolean; messages: number }) {
   const router = useRouter();
+  const t = useT("automations");
   const [on, setOn] = useState(active);
   return (
     <Toggle
       on={on}
-      label={`${name} on`}
+      label={t("toggle.label", { name })}
       onChange={async (next) => {
-        if (next && !window.confirm(`Switch on "${name}"? It will send ${messages ? `up to ${messages} message${messages === 1 ? "" : "s"}` : "messages"} to each customer it applies to, automatically.`)) return;
+        if (next && !(await confirmDialog(t("toggle.confirm", { name, what: messages ? t("toggle.upTo", { count: messages }) : t("toggle.messages") })))) return;
         setOn(next);
         try {
           await api(`/api/app/marketing/automations/${id}`, "PATCH", { active: next });
           router.refresh();
         } catch (error) {
           setOn(!next);
-          window.alert(errorText(error));
+          await alertDialog(errorText(error));
         }
       }}
     />
@@ -31,6 +34,7 @@ export function FlowToggle({ id, name, active, messages }: { id: string; name: s
 
 export function AddPresetButton({ presetKey, added }: { presetKey: string; added: boolean }) {
   const router = useRouter();
+  const t = useT("automations", "common");
   const [busy, setBusy] = useState(false);
   return (
     <button
@@ -43,12 +47,12 @@ export function AddPresetButton({ presetKey, added }: { presetKey: string; added
           const flow = await api<{ id: string }>("/api/app/marketing/automations", "POST", { presetKey, active: false });
           router.push(`/home/automations/${flow.id}`);
         } catch (error) {
-          window.alert(errorText(error));
+          await alertDialog(errorText(error));
           setBusy(false);
         }
       }}
     >
-      {busy ? "Adding…" : added ? "Add another" : "Add"}
+      {busy ? t("add.adding") : added ? t("add.another") : t("add")}
     </button>
   );
 }

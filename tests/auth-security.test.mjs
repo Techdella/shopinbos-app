@@ -215,7 +215,7 @@ test("login, codes and resets are rate-limited, locked after failures, generic a
   assert.match(events, /sendEmail\(/);
   const throttle = read("src/lib/auth/throttle.ts");
   assert.match(throttle, /INSERT INTO "AuthThrottle"/);
-  assert.match(throttle, /checkRateLimit\(/, "falls back to memory before the migration runs");
+  assert.match(throttle, /checkRateLimitShared\(`auth:\$\{key\}`, \{[^}]*failClosed: true/, "request windows use the shared limiter, failing closed");
 
   const sql = read("docs/migrations/2026-10-12-auth-security.sql");
   assert.match(sql, /CREATE TABLE IF NOT EXISTS "AuthEvent"/);
@@ -249,8 +249,12 @@ test("password reset needs the link's session, can't be reused, and signs out ot
   const page = read("src/app/reset-password/page.tsx");
   assert.match(page, /isRecoverySession\(session\.claims\)/);
   const screens = read("src/components/auth/app/PasswordScreens.tsx");
-  assert.match(screens, /You&apos;ve been signed out on other devices/);
-  assert.match(screens, /This link has expired/);
+  // Copy lives in the auth catalog (shared/i18n/messages/auth/en.ts); the screens show it through t().
+  const authCopy = read("shared/i18n/messages/auth/en.ts");
+  assert.match(screens, /t\("reset\.signedOut"\)/);
+  assert.match(authCopy, /"reset\.signedOut": "You've been signed out on other devices\."/);
+  assert.match(screens, /t\("reset\.expired"\)/);
+  assert.match(authCopy, /"reset\.expired": "This link has expired"/);
   assert.doesNotMatch(screens, /hasSession\(\)/, "the server decides whether the link is usable");
 });
 
@@ -264,10 +268,15 @@ test("every log out asks first, in an accessible dialog", () => {
   assert.match(dialog, /event\.key !== "Tab"/, "focus is trapped");
   assert.match(dialog, /cancelButton\.current\?\.focus\(\)/, "focus starts on Cancel");
   assert.match(dialog, /previous\?\.focus\?\.\(\)/, "focus returns to the opener");
-  assert.match(dialog, /Log out of Shopinbos\?/);
-  assert.match(dialog, /You'll need your code or password to get back in\./);
-  assert.match(dialog, />\s*Cancel\s*</);
-  assert.match(dialog, /"Log out"/);
+  const dialogCopy = read("shared/i18n/messages/auth/en.ts");
+  const commonCopy = read("shared/i18n/messages/common/en.ts");
+  assert.match(dialog, /t\("signout\.title"\)/);
+  assert.match(dialogCopy, /"signout\.title": "Log out of Shopinbos\?"/);
+  assert.match(dialogCopy, /"signout\.body": "You'll need your code or password to get back in\."/);
+  assert.match(dialog, />\s*\{t\("cancel"\)\}\s*</);
+  assert.match(commonCopy, /cancel: "Cancel"/);
+  assert.match(dialog, /t\("logOut"\)/);
+  assert.match(commonCopy, /logOut: "Log out"/);
 
   const button = read("src/components/shell/SignOutButton.tsx");
   assert.match(button, /<SignOutDialog/);
@@ -295,7 +304,8 @@ test("every log out asks first, in an accessible dialog", () => {
 
   // Settings > Security in every portal, with "Log out of all devices".
   const security = read("src/components/auth/SecuritySettings.tsx");
-  assert.match(security, /Log out of all devices/);
+  assert.match(security, /t\("security\.logoutAll"\)/);
+  assert.match(read("shared/i18n/messages/auth/en.ts"), /"security\.logoutAll": "Log out of all devices"/);
   assert.match(security, /scope="global"/);
   assert.match(security, /autoComplete="current-password"/);
   for (const file of ["src/app/home/settings/page.tsx", "src/app/supplier/settings/page.tsx", "src/app/logistics/profile/page.tsx", "src/app/admin/settings/page.tsx"]) {
@@ -307,11 +317,13 @@ test("every log out asks first, in an accessible dialog", () => {
   // Mobile: the Log out button confirms; a session that ends on its own is reported and sent to login.
   const mobileAuth = read("apps/mobile/src/lib/auth.ts");
   assert.match(mobileAuth, /Alert\.alert\(/);
-  assert.match(mobileAuth, /"Log out of Shopinbos\?"/);
+  assert.match(mobileAuth, /t\("logout\.title"\)/);
+  assert.match(read("shared/i18n/messages/m_auth/en.ts"), /"logout\.title": "Log out of Shopinbos\?"/);
   assert.match(mobileAuth, /style: "cancel"/);
   assert.match(mobileAuth, /export function signOut\(/);
   const mobileSession = read("apps/mobile/src/lib/session.tsx");
   assert.match(mobileSession, /signOutWasRequested\(\)/);
-  assert.match(mobileSession, /Your session has ended/);
+  assert.match(mobileSession, /"session\.endedBody"/);
+  assert.match(read("shared/i18n/messages/m_auth/en.ts"), /Your session has ended/);
   assert.match(mobileSession, /router\.replace\("\/login"\)/);
 });

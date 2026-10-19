@@ -1,5 +1,8 @@
 "use server";
 
+import { grantPlanCredits } from "@/lib/ai/credits.server";
+import { getPlanCatalog } from "@/lib/plans/catalog.server";
+import { PLAN_TIERS, planVersion, type PlanTier } from "@shared/plan-catalog";
 import { db } from "@/lib/db/client";
 import { billingEmail } from "@/lib/auth/billing-email";
 import { revalidatePath } from "next/cache";
@@ -9,7 +12,11 @@ import { creditCampaignConversion } from "@/lib/campaigns/send";
 import { notifyOrderCustomer } from "@/lib/notifications/customer-messages";
 import { recoverExpiredOrderPayment } from "@/lib/commerce/order-expiry.server";
 import { ensureSupplierOrdersSafely } from "@/lib/supplier-orders/service.server";
-import { createPaystackTransferRecipient, linkSellerPayoutBank, maskAccountNumber, PAYSTACK_BANK_CODES } from "@/lib/payout-bank";
+import { settlePaymentLinkForOrder } from "@/lib/payment-links/service.server";
+import { recordOrderShares } from "@/lib/wallet/wallet.server";
+import { refreshKorapayOrderPayment } from "@/lib/commerce/korapay-orders.server";
+import { createPaystackTransferRecipient, linkSellerPayoutBank, maskAccountNumber, settlementBanks } from "@/lib/payout-bank";
+import { linkWalletBank } from "@/lib/wallet/wallet.server";
 
 interface PaystackTransaction {
   amount: number;
@@ -22,13 +29,10 @@ interface PaystackTransaction {
   plan_object?: { plan_code?: string } | null;
 }
 
-// Paystack plan codes per upgrade, with the minimum amount (NGN) each must have charged.
-const UPGRADE_PLANS = {
-  seller_growth: { credits: 50, plans: { PLN_8ou289e71czicvm: 8000, PLN_q1k3ssxpx7rxxuz: 80000 } },
-  seller_pro: { credits: 200, plans: { PLN_2gph11w3yd0250y: 18000, PLN_9gma70ofldhbj4r: 180000 } },
-  supplier_max: { credits: 100, plans: { PLN_q78304vgj7p35o6: 25000 } },
-} as const;
-type UpgradeKey = keyof typeof UPGRADE_PLANS;
+// Upgrades are the plan tiers (shared/plan-catalog.ts). Any price the tier was sold at is accepted (Admin › Pricing ›
+// Plans creates a new Paystack plan per price; a checkout opened before a change pays the older one), as long as
+// Paystack charged at least that plan's amount.
+type UpgradeKey = PlanTier;
 
 async function fetchPaystackTransaction(reference: string): Promise<{ success: boolean; data?: PaystackTransaction; error?: string }> {
   const secret = process.env.PAYSTACK_SECRET_KEY ?? "";
@@ -86,6 +90,16 @@ export async function verifyPaystackPayment(reference: string): Promise<{
   return result.success ? { success: true, data: { status: result.data!.status } } : { success: false, error: result.error };
 }
 
+/**
+ * Public: the storefront checkout asks this while Korapay's frame is open. It only re-checks the order with Korapay
+ * (the charge reply is the proof, never the caller) and says whether it is paid.
+ */
+export async function checkKorapayPayment(orderId: string): Promise<{ paid: boolean }> {
+  if (typeof orderId !== "string" || orderId.length > 40) return { paid: false };
+  const outcome = await refreshKorapayOrderPayment(orderId);
+  return { paid: outcome === "paid" || outcome === "already_paid" };
+}
+
 export async function updateOrderPayment(
   orderId: string,
   reference: string,
@@ -93,7 +107,7 @@ export async function updateOrderPayment(
   try {
     const order = await db.retailOrder.findUnique({
       where: { id: orderId },
-      select: { id: true, total: true, currency: true, buyerEmail: true, status: true, paystackRef: true, expiredAt: true },
+      select: { id: true, total: true, currency: true, buyerEmail: true, status: true, paystackRef: true, expiredAt: true, paymentSplit: true },
     });
     if (!order) {
       return { success: false, error: "Order not found" };
@@ -102,6 +116,12 @@ export async function updateOrderPayment(
     const expired = order.status === "cancelled" && Boolean(order.expiredAt);
     if (order.status !== "pending" && order.status !== "awaiting_payment" && !expired) {
       return order.paystackRef === reference ? { success: true } : { success: false, error: "Order is not awaiting payment" };
+    }
+
+    // A split order is paid only by the transaction checkout started for it (reference = order id), which settles
+    // to the businesses' own banks; any other transaction would land in Shopinbos's account.
+    if (order.paymentSplit && reference !== orderId) {
+      return { success: false, error: "Payment does not belong to this order" };
     }
 
     const verification = await fetchPaystackTransaction(reference);
@@ -135,6 +155,7 @@ export async function updateOrderPayment(
     if (expired) {
       const outcome = await recoverExpiredOrderPayment(orderId, { reference });
       if (outcome === "reinstated") await creditCampaignConversion(orderId).catch(() => null);
+      if (outcome === "reinstated") await settlePaymentLinkForOrder(orderId);
       revalidatePath("/home/orders");
       return outcome === "needs_refund"
         ? { success: false, error: "This order expired before the payment arrived and the items have sold out. The store will refund you." }
@@ -154,6 +175,8 @@ export async function updateOrderPayment(
     if (moved.count === 1) await notifyOrderCustomer(orderId, "payment_received"); // WhatsApp/SMS to the buyer, if switched on (sent once)
     // Dropship items go to their suppliers (idempotent: the webhook may do the same).
     await ensureSupplierOrdersSafely(orderId);
+    await settlePaymentLinkForOrder(orderId);
+    await recordOrderShares(orderId);
     revalidatePath("/home/orders");
     revalidatePath(`/s/*/order/${orderId}`);
     return { success: true };
@@ -174,6 +197,17 @@ export async function linkBankAccount(
       return { success: false, error: "Not authenticated" };
     }
 
+    // Card payments are split straight to the bank of the business's Shopinbos Wallet (src/lib/wallet), so every
+    // "add your bank" form sets that up too; the Paystack transfer recipient below is kept for the older screens.
+    if (role === "seller" || role === "supplier" || role === "logistics_partner") {
+      if (user.role !== role) return { success: false, error: "Sign in to this account first." };
+      const wallet = await linkWalletBank({ id: user.id, role }, { bankName, accountNumber });
+      if (!wallet.ok) return { success: false, error: wallet.error };
+      revalidatePath("/home/wallet");
+      revalidatePath("/supplier/wallet");
+      revalidatePath("/logistics/wallet");
+    }
+
     if (role === "seller") {
       const result = await linkSellerPayoutBank(user.id, bankName, accountNumber, accountName);
       if (!result.success) return result;
@@ -188,7 +222,7 @@ export async function linkBankAccount(
       }
       const recipient = await createPaystackTransferRecipient({
         bankName,
-        bankCode: PAYSTACK_BANK_CODES[bankName],
+        bankCode: (await settlementBanks())[bankName],
         accountNumber: cleanAccountNumber,
         accountName: accountName.trim(),
       });
@@ -246,7 +280,7 @@ export async function linkSupplierPaystackRecipient(
       return { success: false, error: "Choose a bank, enter a 10 digit account number, and add the account name." };
     }
 
-    const bankCode = PAYSTACK_BANK_CODES[bankName];
+    const bankCode = (await settlementBanks())[bankName];
     const recipient = await createPaystackTransferRecipient({
       bankName,
       bankCode,
@@ -287,115 +321,6 @@ export async function linkSupplierPaystackRecipient(
   }
 }
 
-// ─── Flutterwave payout integration ───────────────────────────────────────────
-
-function getFlutterwaveSecret() {
-  const secret = process.env.FLUTTERWAVE_SECRET_KEY ?? "";
-  return secret && !secret.includes("your-") && !secret.includes("your_") ? secret : null;
-}
-
-async function createFlutterwaveTransferRecipient(input: {
-  bankName: string;
-  accountNumber: string;
-  accountName: string;
-}) {
-  const secret = getFlutterwaveSecret();
-  if (!secret) {
-    return {
-      status: "unconfigured" as const,
-      recipientCode: null,
-      providerResponse: { message: "Flutterwave secret key is not configured." },
-    };
-  }
-
-  const cleanAccountNumber = input.accountNumber.replace(/\D/g, "");
-
-  const response = await fetch("https://api.flutterwave.com/v3/transfer-recipients", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${secret}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      type: "nuban",
-      name: input.accountName,
-      account_number: cleanAccountNumber,
-      bank_code: input.bankName,
-      currency: "NGN",
-    }),
-  });
-
-  const data = await response.json().catch(() => ({}));
-
-  if (!response.ok || data.status !== "success") {
-    return {
-      status: "failed" as const,
-      recipientCode: null,
-      providerResponse: data,
-    };
-  }
-
-  return {
-    status: "verified" as const,
-    recipientCode: data.data?.recipient_code ?? data.data?.id ?? null,
-    providerResponse: data,
-  };
-}
-
-export async function linkFlutterwaveBankAccount(
-  bankName: string,
-  accountNumber: string,
-  accountName: string,
-): Promise<{ success: boolean; error?: string }> {
-  try {
-    const user = await getCurrentAppUser();
-    if (!user || user.role !== "supplier") {
-      return { success: false, error: "Not authenticated as a supplier" };
-    }
-
-    const supplier = await db.supplier.findUnique({ where: { userId: user.id } });
-    if (!supplier) return { success: false, error: "Supplier not found" };
-
-    const cleanAccountNumber = accountNumber.replace(/\D/g, "");
-    if (!bankName || cleanAccountNumber.length !== 10 || !accountName.trim()) {
-      return { success: false, error: "Choose a bank, enter a 10 digit account number, and add the account name." };
-    }
-
-    const recipient = await createFlutterwaveTransferRecipient({
-      bankName,
-      accountNumber: cleanAccountNumber,
-      accountName: accountName.trim(),
-    });
-
-    const provider = "flutterwave";
-    await db.supplierPayoutAccount.upsert({
-      where: { supplierId: supplier.id },
-      create: {
-        supplierId: supplier.id,
-        bankName,
-        accountNumberMask: maskAccountNumber(cleanAccountNumber),
-        accountName: accountName.trim(),
-        paystackRecipientCode: recipient.recipientCode,
-        verificationStatus: recipient.status,
-        providerResponse: { ...recipient.providerResponse, provider } as Prisma.InputJsonValue,
-      },
-      update: {
-        bankName,
-        accountNumberMask: maskAccountNumber(cleanAccountNumber),
-        accountName: accountName.trim(),
-        paystackRecipientCode: recipient.recipientCode,
-        verificationStatus: recipient.status,
-        providerResponse: { ...recipient.providerResponse, provider } as Prisma.InputJsonValue,
-      },
-    });
-
-    revalidatePath("/supplier/payouts");
-    return { success: true };
-  } catch (e) {
-    return { success: false, error: String(e) };
-  }
-}
-
 async function applyPlanUpgrade(reference: string, upgrade: UpgradeKey, paths: string[]): Promise<{ success: boolean; error?: string }> {
   try {
     const user = await getCurrentAppUser();
@@ -410,12 +335,12 @@ async function applyPlanUpgrade(reference: string, upgrade: UpgradeKey, paths: s
     }
 
     const planCode = typeof tx.plan === "string" ? tx.plan : tx.plan?.plan_code ?? tx.plan_object?.plan_code;
-    const plans = UPGRADE_PLANS[upgrade].plans as Record<string, number>;
-    const minimum = planCode ? plans[planCode] : undefined;
-    if (minimum === undefined) {
+    await getPlanCatalog();
+    const version = planVersion(planCode);
+    if (!version || version.tier !== upgrade || version.amountNgn === null) {
       return { success: false, error: "Payment is not for this plan" };
     }
-    if (tx.amount / 100 < minimum) {
+    if (tx.amount / 100 < version.amountNgn) {
       return { success: false, error: "Payment amount is less than the plan price" };
     }
     if (tx.customer?.email?.toLowerCase() !== billingEmail(user)) {
@@ -428,7 +353,7 @@ async function applyPlanUpgrade(reference: string, upgrade: UpgradeKey, paths: s
         db.paymentReceipt.create({
           data: { reference, userId: user.id, purpose: upgrade, amount: tx.amount / 100, provider: "paystack" },
         }),
-        db.user.update({ where: { id: user.id }, data: { aiCredits: UPGRADE_PLANS[upgrade].credits } }),
+        db.user.update({ where: { id: user.id }, data: { aiCredits: PLAN_TIERS[upgrade].marker } }),
       ]);
     } catch (error) {
       if ((error as { code?: string }).code === "P2002") {
@@ -437,7 +362,9 @@ async function applyPlanUpgrade(reference: string, upgrade: UpgradeKey, paths: s
       throw error;
     }
 
-    for (const path of paths) revalidatePath(path);
+    // The plan's credits go into the same balance Rex and Peggy spend (once per payment reference).
+    await grantPlanCredits(user.id, planCode, reference).catch((error) => console.error("[payments] plan credits not added", error));
+    for (const path of [...paths, "/home/credits"]) revalidatePath(path);
     return { success: true };
   } catch (e) {
     return { success: false, error: String(e) };

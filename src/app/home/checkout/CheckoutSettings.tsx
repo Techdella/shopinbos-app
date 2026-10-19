@@ -5,24 +5,21 @@ import { useMemo, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { Notice, PillButton, Toggle, cx } from "@/components/app-ui";
 import type { CheckoutSettings as Settings } from "@shared/cart-checkout";
+import { formatMoney } from "@shared/i18n";
+import { useLocale, useT } from "@/components/i18n/I18nProvider";
 
 // Only settings the storefront checkout honours: each toggle changes what shoppers see or must fill in.
 
-const TOGGLES: ReadonlyArray<{ key: keyof Omit<Settings, "upsellProducts">; label: string; desc: string }> = [
-  { key: "requirePhone", label: "Ask for a phone number", desc: "Shoppers can't continue without one. Pay on delivery always asks for it." },
-  { key: "enableCoupon", label: "Discount codes", desc: "Show a discount code box in the bag and at checkout. Automatic discounts still apply when this is off." },
-  { key: "enableNotes", label: "Order notes", desc: "Let shoppers add a note, like a good time to deliver." },
-  { key: "enableGiftNote", label: "Gift messages", desc: "Let shoppers add a gift message. It's added to the order note you see." },
-  { key: "enableTrustBadges", label: "Secure checkout line", desc: "Show \"Secure checkout\" with the ways you accept payment under the order summary." },
-  { key: "enableUpsells", label: "Add-ons at checkout", desc: "Offer the products you pick below on the review step, and show them first in \"You may also like\" in the bag." },
+const TOGGLES: ReadonlyArray<{ key: keyof Omit<Settings, "upsellProducts"> }> = [
+  { key: "requirePhone" },
+  { key: "enableCoupon" },
+  { key: "enableNotes" },
+  { key: "enableGiftNote" },
+  { key: "enableTrustBadges" },
+  { key: "enableUpsells" },
 ];
 
-const STEPS = [
-  { label: "Contact", desc: "Name, email and phone. No account needed." },
-  { label: "Delivery", desc: "Address with Nigerian states, and your delivery options." },
-  { label: "Payment", desc: "Only the ways you accept." },
-  { label: "Review", desc: "Check everything, then place the order." },
-];
+const STEPS = ["contact", "delivery", "payment", "review"] as const;
 
 interface ProductOption {
   id: string;
@@ -33,6 +30,8 @@ interface ProductOption {
 }
 
 export function CheckoutSettings({ initial, products, paymentLabels, zoneCount }: { initial: Settings; products: ProductOption[]; paymentLabels: string[]; zoneCount: number }) {
+  const t = useT("payments", "common");
+  const locale = useLocale();
   const [settings, setSettings] = useState<Settings>(initial);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<"idle" | "saved" | "error">("idle");
@@ -74,15 +73,15 @@ export function CheckoutSettings({ initial, products, paymentLabels, zoneCount }
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_400px]">
       <div className="grid min-w-0 content-start gap-5">
         <section className="rounded-[22px] border border-app-line bg-white p-5">
-          <h2 className="m-0 text-[17px] font-extrabold">What shoppers are asked</h2>
+          <h2 className="m-0 text-[17px] font-extrabold">{t("co.asked")}</h2>
           <ul className="m-0 mt-2 list-none divide-y divide-app-line p-0">
             {TOGGLES.map((toggle) => (
               <li key={toggle.key} className="flex items-center gap-4 py-3.5">
                 <div className="min-w-0 flex-1">
-                  <div className="text-[14.5px] font-bold">{toggle.label}</div>
-                  <div className="text-[13px] leading-[1.45] text-app-ink-soft">{toggle.desc}</div>
+                  <div className="text-[14.5px] font-bold">{t(`tog.${toggle.key}.label`)}</div>
+                  <div className="text-[13px] leading-[1.45] text-app-ink-soft">{t(`tog.${toggle.key}.desc`)}</div>
                 </div>
-                <Toggle on={settings[toggle.key]} onChange={(on) => update(toggle.key, on)} label={toggle.label} />
+                <Toggle on={settings[toggle.key]} onChange={(on) => update(toggle.key, on)} label={t(`tog.${toggle.key}.label`)} />
               </li>
             ))}
           </ul>
@@ -90,19 +89,19 @@ export function CheckoutSettings({ initial, products, paymentLabels, zoneCount }
 
         {settings.enableUpsells ? (
           <section className="rounded-[22px] border border-app-line bg-white p-5">
-            <h2 className="m-0 text-[17px] font-extrabold">Add-ons to offer</h2>
-            <p className="mb-0 mt-1 text-[13.5px] text-app-ink-soft">Pick up to 6. Products with sizes or colours can't be added in one tap, so they aren't listed.</p>
-            <label htmlFor="upsell-search" className="sr-only">Search your products</label>
+            <h2 className="m-0 text-[17px] font-extrabold">{t("co.addons")}</h2>
+            <p className="mb-0 mt-1 text-[13.5px] text-app-ink-soft">{t("co.addonsSub")}</p>
+            <label htmlFor="upsell-search" className="sr-only">{t("co.search")}</label>
             <input
               id="upsell-search"
               type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search your products"
+              placeholder={t("co.search")}
               className="mt-4 h-11 w-full rounded-full border border-app-line bg-app-canvas px-4 text-[14.5px] outline-none focus-visible:border-app-ink"
             />
             {matches.length === 0 ? (
-              <p className="mb-0 mt-4 text-[14px] text-app-ink-soft">{products.length ? "No products match." : "Publish a product first."}</p>
+              <p className="mb-0 mt-4 text-[14px] text-app-ink-soft">{products.length ? t("co.noMatch") : t("co.publishFirst")}</p>
             ) : (
               <ul className="m-0 mt-3 grid list-none gap-2 p-0 sm:grid-cols-2 2xl:grid-cols-3">
                 {matches.map((product) => {
@@ -121,7 +120,7 @@ export function CheckoutSettings({ initial, products, paymentLabels, zoneCount }
                         </span>
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-[14px] font-bold">{product.name}</span>
-                          <span className="block text-[12.5px] text-app-ink-soft">₦{Math.round(product.price).toLocaleString("en-NG")}</span>
+                          <span className="block text-[12.5px] text-app-ink-soft">{formatMoney(Math.round(product.price), locale)}</span>
                         </span>
                         <Icon name={on ? "checkCircle" : "plus"} size={17} className={on ? "text-app-success" : "text-app-ink-soft"} />
                       </button>
@@ -136,14 +135,14 @@ export function CheckoutSettings({ initial, products, paymentLabels, zoneCount }
 
       <aside className="grid min-w-0 content-start gap-5">
         <section className="rounded-[22px] border border-app-line bg-white p-5">
-          <h2 className="m-0 text-[17px] font-extrabold">The steps</h2>
+          <h2 className="m-0 text-[17px] font-extrabold">{t("co.steps")}</h2>
           <ol className="m-0 mt-3 grid list-none gap-3 p-0">
             {STEPS.map((step, index) => (
-              <li key={step.label} className="flex gap-3">
+              <li key={step} className="flex gap-3">
                 <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-app-ink text-[12.5px] font-bold text-white">{index + 1}</span>
                 <span className="min-w-0">
-                  <span className="block text-[14.5px] font-bold">{step.label}</span>
-                  <span className="block text-[13px] text-app-ink-soft">{step.desc}</span>
+                  <span className="block text-[14.5px] font-bold">{t(`step.${step}.label`)}</span>
+                  <span className="block text-[13px] text-app-ink-soft">{t(`step.${step}.desc`)}</span>
                 </span>
               </li>
             ))}
@@ -151,42 +150,42 @@ export function CheckoutSettings({ initial, products, paymentLabels, zoneCount }
         </section>
 
         <section className="rounded-[22px] border border-app-line bg-white p-5">
-          <h2 className="m-0 text-[17px] font-extrabold">Set elsewhere</h2>
+          <h2 className="m-0 text-[17px] font-extrabold">{t("co.elsewhere")}</h2>
           <ul className="m-0 mt-2 list-none divide-y divide-app-line p-0 text-[14px]">
             <li className="flex items-center gap-3 py-3">
               <Icon name="card" size={17} className="shrink-0" />
               <span className="min-w-0 flex-1">
-                <span className="block font-bold">Ways to pay</span>
+                <span className="block font-bold">{t("co.waysToPay")}</span>
                 <span className="block text-[13px] text-app-ink-soft">{paymentLabels.join(", ")}</span>
               </span>
-              <Link href="/home/payments" className="font-bold underline underline-offset-4">Change</Link>
+              <Link href="/home/payments" className="font-bold underline underline-offset-4">{t("co.change")}</Link>
             </li>
             <li className="flex items-center gap-3 py-3">
               <Icon name="truck" size={17} className="shrink-0" />
               <span className="min-w-0 flex-1">
-                <span className="block font-bold">Delivery options</span>
-                <span className="block text-[13px] text-app-ink-soft">{zoneCount ? `${zoneCount} delivery ${zoneCount === 1 ? "zone" : "zones"}; each rate is an option shoppers can pick` : "No zones yet, so your flat delivery fee is used"}</span>
+                <span className="block font-bold">{t("co.deliveryOptions")}</span>
+                <span className="block text-[13px] text-app-ink-soft">{zoneCount ? t("co.zones", { count: zoneCount }) : t("co.noZones")}</span>
               </span>
-              <Link href="/home/shipping" className="font-bold underline underline-offset-4">Change</Link>
+              <Link href="/home/shipping" className="font-bold underline underline-offset-4">{t("co.change")}</Link>
             </li>
             <li className="flex items-center gap-3 py-3">
               <Icon name="tag" size={17} className="shrink-0" />
               <span className="min-w-0 flex-1">
-                <span className="block font-bold">Discounts</span>
-                <span className="block text-[13px] text-app-ink-soft">Codes and automatic discounts</span>
+                <span className="block font-bold">{t("co.discounts")}</span>
+                <span className="block text-[13px] text-app-ink-soft">{t("co.discountsSub")}</span>
               </span>
-              <Link href="/home/discounts" className="font-bold underline underline-offset-4">Change</Link>
+              <Link href="/home/discounts" className="font-bold underline underline-offset-4">{t("co.change")}</Link>
             </li>
           </ul>
         </section>
 
-        {status === "error" ? <Notice>Couldn&apos;t save your checkout settings. Try again.</Notice> : null}
+        {status === "error" ? <Notice>{t("co.saveFailed")}</Notice> : null}
         <div className="flex flex-wrap items-center justify-end gap-3">
           {status === "saved" ? (
-            <span role="status" className="inline-flex items-center gap-1.5 text-[14px] font-bold text-app-success"><Icon name="check" size={15} /> Saved</span>
+            <span role="status" className="inline-flex items-center gap-1.5 text-[14px] font-bold text-app-success"><Icon name="check" size={15} /> {t("saved")}</span>
           ) : null}
           <PillButton tone="accent" size="md" onClick={() => void save()} busy={saving} className="w-full sm:w-auto">
-            Save checkout
+            {t("co.save")}
           </PillButton>
         </div>
       </aside>

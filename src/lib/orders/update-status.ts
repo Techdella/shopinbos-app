@@ -6,6 +6,7 @@ import { notifyOrderCustomer } from "@/lib/notifications/customer-messages";
 import { statusWhenMarkedPaid } from "@shared/sales";
 import { recoverExpiredOrderPayment, releaseOrderDiscount, releaseOrderStock } from "@/lib/commerce/order-expiry.server";
 import { cancelSupplierOrdersFor, ensureSupplierOrdersSafely } from "@/lib/supplier-orders/service.server";
+import { settlePaymentLinkForOrder } from "@/lib/payment-links/service.server";
 
 // Changing a retail order's status: PATCH /api/app/orders/[id] (web + mobile) and Peggy's mark_order tool
 // share these rules so an order moves the same way whoever moves it.
@@ -54,6 +55,13 @@ export async function updateOrderStatus(
     updateData.paymentMethod = input.paymentMethod ?? order.paymentMethod ?? "transfer";
     if (status === "delivered") updateData.deliveredAt = new Date();
   }
+  // An order with supplier parcels and lines the seller sends themselves: "sent" / "delivered" is the seller's own
+  // part, and the order follows all its parts (shipped only when every parcel has left).
+  if (input.status === "shipped" || input.status === "delivered") {
+    const { markOwnPart } = await import("@/lib/supplier-orders/parts.server");
+    const own = await markOwnPart(order.id, input.status, { trackingCode: input.trackingCode, notes: input.notes, logisticsType: input.logisticsType, logisticsDetails: input.logisticsDetails });
+    if (own) return { ok: true, order: own };
+  }
   if (input.notes) updateData.notes = input.notes;
   if (input.trackingCode) updateData.trackingCode = input.trackingCode;
   if (input.logisticsType) updateData.logisticsDetails = { type: input.logisticsType, ...(input.logisticsDetails || {}) };
@@ -77,6 +85,8 @@ export async function updateOrderStatus(
 
   // Dropship items: paid → their suppliers get orders (idempotent); cancelled → suppliers stop.
   if (input.status === "paid") await ensureSupplierOrdersSafely(order.id);
+  // Paid through a payment link (e.g. a bank transfer the seller confirmed): the link counts it, a one-time link closes.
+  if (input.status === "paid") await settlePaymentLinkForOrder(order.id);
   if (input.status === "cancelled") {
     await cancelSupplierOrdersFor(order.id).catch((error) => console.error("[orders] could not cancel supplier orders", error));
     // Not sent yet: the stock it held goes back (the store's, or the supplier's for dropship).

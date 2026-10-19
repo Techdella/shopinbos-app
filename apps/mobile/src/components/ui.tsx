@@ -17,6 +17,8 @@ import Svg, { Defs, Path, RadialGradient, Rect, Stop } from "react-native-svg";
 import { OTP_LENGTH, type DialCountry } from "@shared/phone";
 import { washStops } from "@shared/tokens";
 import { colors, fonts, radii } from "@/theme";
+import { Mascot as SharedMascot, type MascotMood, type MascotWho } from "@/components/Mascot";
+import { useT } from "@/lib/i18n";
 
 // Building blocks for the 2026 app redesign, matching the web app's src/components/app-ui.
 
@@ -24,14 +26,11 @@ export const images = {
   wordmark: require("../../assets/brand/wordmark-dark.png"),
   wordmarkLight: require("../../assets/brand/wordmark-light.png"),
   markWhite: require("../../assets/brand/mark-white.png"),
-  rex: require("../../assets/brand/rex.png"),
-  peggy: require("../../assets/brand/peggy.png"),
-  peggyWave: require("../../assets/brand/peggy-wave.png"),
 };
 
 export function T({ style, weight = "regular", children, ...props }: { style?: StyleProp<TextStyle>; weight?: keyof typeof fonts; children: ReactNode } & Omit<React.ComponentProps<typeof Text>, "style">) {
   return (
-    <Text style={[{ fontFamily: fonts[weight], color: colors.ink, fontSize: 14 }, style]} {...props}>
+    <Text style={[{ fontFamily: fonts[weight], color: colors.ink, fontSize: 15 }, style]} {...props}>
       {children}
     </Text>
   );
@@ -67,8 +66,11 @@ export function Wordmark({ height = 18, light = false }: { height?: number; ligh
   return <Image source={light ? images.wordmarkLight : images.wordmark} style={{ height, width: height * (660 / 63) }} contentFit="contain" accessibilityLabel="Shopinbos" />;
 }
 
-export function Mascot({ name, size, label }: { name: "rex" | "peggy" | "peggyWave"; size: number; label?: string }) {
-  return <Image source={images[name]} style={{ width: size, height: size }} contentFit="contain" accessibilityLabel={label ?? (name === "rex" ? "Rex" : "Peggy")} />;
+/** Rex or Peggy: wraps the shared <Mascot> (components/Mascot.tsx) for older call sites. `peggyWave` is Peggy's wave
+ * mood; an empty `label` makes it decorative. */
+export function Mascot({ name, who, mood, size, label, style }: { name?: "rex" | "peggy" | "peggyWave"; who?: MascotWho; mood?: MascotMood; size: number; label?: string; style?: StyleProp<ViewStyle> }) {
+  const mascot: MascotWho = who ?? (name === "rex" ? "rex" : "peggy");
+  return <SharedMascot who={mascot} mood={mood ?? (name === "peggyWave" ? "wave" : "idle")} size={size} decorative={label === ""} label={label || undefined} style={style} />;
 }
 
 type Tone = "ink" | "white" | "accent" | "forest";
@@ -85,7 +87,8 @@ export function PillButton({
 }: { title?: string; tone?: Tone; size?: "lg" | "md" | "sm"; busy?: boolean; style?: StyleProp<ViewStyle>; children?: ReactNode } & Omit<PressableProps, "style" | "children">) {
   const bg = tone === "ink" ? colors.ink : tone === "accent" ? colors.accent : tone === "forest" ? colors.forest : colors.surface;
   const fg = tone === "white" ? colors.ink : "#FFFFFF";
-  const height = size === "lg" ? 58 : size === "md" ? 50 : 38;
+  // lg is the one main button per screen: full width, 56 tall (build spec 8A).
+  const height = size === "lg" ? 56 : size === "md" ? 50 : 44;
   const off = disabled || busy;
   return (
     <Pressable
@@ -100,22 +103,23 @@ export function PillButton({
       ]}
       {...props}
     >
-      {busy ? <ActivityIndicator color={fg} /> : children ?? <T weight={size === "lg" ? "extrabold" : "bold"} style={{ color: fg, fontSize: size === "lg" ? 16 : size === "md" ? 15 : 13 }}>{title}</T>}
+      {busy ? <ActivityIndicator color={fg} /> : children ?? <T weight={size === "lg" ? "extrabold" : "bold"} style={{ color: fg, fontSize: size === "lg" ? 17 : size === "md" ? 16 : 15 }}>{title}</T>}
     </Pressable>
   );
 }
 
-export function LinkButton({ title, onPress, style, color = colors.ink }: { title: string; onPress: () => void; style?: StyleProp<ViewStyle>; color?: string }) {
+export function LinkButton({ title, onPress, style, color = colors.ink, testID }: { title: string; onPress: () => void; style?: StyleProp<ViewStyle>; color?: string; testID?: string }) {
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} hitSlop={8} style={[{ minHeight: 44, alignItems: "center", justifyContent: "center" }, style]}>
-      <T weight="bold" style={{ fontSize: 15, color }}>{title}</T>
+    <Pressable testID={testID} accessibilityRole="button" onPress={onPress} hitSlop={8} style={[{ minHeight: 44, alignItems: "center", justifyContent: "center" }, style]}>
+      <T weight="bold" style={{ fontSize: 15, color, textAlign: "center" }}>{title}</T>
     </Pressable>
   );
 }
 
 export function BackButton({ onPress }: { onPress: () => void }) {
+  const t = useT("common");
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={onPress} hitSlop={6} style={styles.round}>
+    <Pressable accessibilityRole="button" accessibilityLabel={t("back")} onPress={onPress} hitSlop={6} style={styles.round}>
       <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={colors.ink} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
         <Path d="M15 6l-6 6 6 6" />
       </Svg>
@@ -124,7 +128,7 @@ export function BackButton({ onPress }: { onPress: () => void }) {
 }
 
 export function Label({ children }: { children: ReactNode }) {
-  return <T weight="bold" style={{ fontSize: 14, marginBottom: 8 }}>{children}</T>;
+  return <T weight="bold" style={{ fontSize: 15, marginBottom: 8 }}>{children}</T>;
 }
 
 export const Field = forwardRef<TextInput, TextInputProps>(function Field({ style, ...props }, ref) {
@@ -132,9 +136,10 @@ export const Field = forwardRef<TextInput, TextInputProps>(function Field({ styl
 });
 
 export function PhoneField({ country, onCountryPress, value, onChangeText }: { country: DialCountry; onCountryPress: () => void; value: string; onChangeText: (value: string) => void }) {
+  const t = useT("m_ui");
   return (
     <View style={{ flexDirection: "row", gap: 8 }}>
-      <Pressable accessibilityRole="button" accessibilityLabel={`Country code ${country.dial}, change`} onPress={onCountryPress} style={[styles.field, { minWidth: 70, paddingHorizontal: 12, alignItems: "center", justifyContent: "center", flex: 0 }]}>
+      <Pressable accessibilityRole="button" accessibilityLabel={t("phone.countryCode", { dial: country.dial })} onPress={onCountryPress} style={[styles.field, { minWidth: 70, paddingHorizontal: 12, alignItems: "center", justifyContent: "center", flex: 0 }]}>
         <T weight="bold" style={{ fontSize: 15 }}>{country.dial}</T>
       </Pressable>
       <Field style={{ flex: 1 }} keyboardType="phone-pad" textContentType="telephoneNumber" autoComplete="tel" placeholder={country.example} value={value} onChangeText={onChangeText} />
@@ -171,20 +176,21 @@ export function Chip({ label, on, onPress }: { label: string; on: boolean; onPre
       onPress={onPress}
       style={{ borderRadius: radii.pill, paddingHorizontal: 16, paddingVertical: 10, backgroundColor: on ? colors.ink : colors.surface, borderWidth: 1, borderColor: on ? colors.ink : colors.line }}
     >
-      <T weight="bold" style={{ color: on ? "#FFFFFF" : colors.ink }}>{label}</T>
+      <T weight="bold" style={{ color: on ? "#FFFFFF" : colors.ink, fontSize: 15 }}>{label}</T>
     </Pressable>
   );
 }
 
 /** One hidden input drives six boxes, so paste and SMS autofill work. */
 export function CodeInput({ value, onChange, onComplete }: { value: string; onChange: (value: string) => void; onComplete?: (value: string) => void }) {
+  const t = useT("m_ui");
   const input = useRef<TextInput>(null);
   useEffect(() => {
     const timer = setTimeout(() => input.current?.focus(), 300);
     return () => clearTimeout(timer);
   }, []);
   return (
-    <Pressable onPress={() => input.current?.focus()} accessibilityLabel="Verification code">
+    <Pressable onPress={() => input.current?.focus()} accessibilityLabel={t("code.label")}>
       <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
         {Array.from({ length: OTP_LENGTH }, (_, index) => {
           const digit = value[index] ?? "";
@@ -219,7 +225,7 @@ export function Notice({ tone = "error", children }: { tone?: "error" | "info" |
   const fg = tone === "error" ? colors.danger : tone === "success" ? colors.success : colors.forest;
   return (
     <View accessibilityRole={tone === "error" ? "alert" : undefined} style={{ backgroundColor: bg, borderRadius: radii.field, paddingHorizontal: 16, paddingVertical: 12 }}>
-      <T weight="medium" style={{ color: fg, lineHeight: 21 }}>{children}</T>
+      <T weight="medium" style={{ color: fg, fontSize: 15, lineHeight: 22 }}>{children}</T>
     </View>
   );
 }
@@ -233,8 +239,9 @@ export function Toggle({ on, onChange, label }: { on: boolean; onChange: (on: bo
 }
 
 export function ProgressBars({ total, current }: { total: number; current: number }) {
+  const t = useT("m_ui");
   return (
-    <View style={{ flex: 1, flexDirection: "row", gap: 6 }} accessibilityLabel={`Step ${current + 1} of ${total}`}>
+    <View style={{ flex: 1, flexDirection: "row", gap: 6 }} accessibilityLabel={t("progress.step", { current: current + 1, total })}>
       {Array.from({ length: total }, (_, index) => (
         <View key={index} style={{ flex: 1, height: 5, borderRadius: 3, backgroundColor: index <= current ? colors.ink : colors.track }} />
       ))}

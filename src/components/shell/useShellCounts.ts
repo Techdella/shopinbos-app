@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { DEFAULT_PREFERENCES, parsePreferences, type AppPreferences } from "@shared/preferences";
+import { DEFAULT_PREFERENCES, MAX_INTROS_SEEN, parsePreferences, tipsOn, type AppPreferences } from "@shared/preferences";
 
 export interface ShellCounts {
   notifications: number;
@@ -9,6 +9,8 @@ export interface ShellCounts {
   orders: number;
   preferences?: AppPreferences;
   identity?: ShellIdentity | null;
+  /** Sellers: the Shopinbos Wallet ID check (null for other roles). */
+  idCheck?: { verified: boolean; checksReady: boolean } | null;
 }
 
 export interface ShellIdentity {
@@ -69,14 +71,23 @@ function broadcast(prefs: AppPreferences) {
 
 export function usePreferences() {
   const [prefs, setPrefs] = useState<AppPreferences | null>(null);
+  // True once this page load has the server's copy. The localStorage cache can be stale (new device, cleared
+  // storage), so anything that must not repeat (the guided tour) waits for this.
+  const [confirmed, setConfirmed] = useState(false);
   useEffect(() => {
+    let alive = true;
     setPrefs(cachedPreferences());
     const onChange = (event: Event) => setPrefs((event as CustomEvent<AppPreferences>).detail);
     window.addEventListener(PREFS_EVENT, onChange);
     void loadCounts().then((counts) => {
-      if (counts?.preferences) broadcast(parsePreferences(counts.preferences));
+      if (!counts?.preferences) return;
+      broadcast(parsePreferences(counts.preferences));
+      if (alive) setConfirmed(true);
     });
-    return () => window.removeEventListener(PREFS_EVENT, onChange);
+    return () => {
+      alive = false;
+      window.removeEventListener(PREFS_EVENT, onChange);
+    };
   }, []);
 
   async function save(patch: Partial<AppPreferences>) {
@@ -91,7 +102,51 @@ export function usePreferences() {
     broadcast(parsePreferences(body.data));
   }
 
-  return { prefs, loaded: prefs !== null, save };
+  /** Marks a 60-second feature intro as seen (server copy, with this device's localStorage as the fallback). */
+  async function markIntroSeen(key: string) {
+    rememberIntroLocally(key);
+    const seen = prefs?.introsSeen ?? [];
+    if (seen.includes(key)) return;
+    await save({ introsSeen: [...seen, key].slice(-MAX_INTROS_SEEN) }).catch(() => undefined);
+  }
+
+  return { prefs, loaded: prefs !== null, confirmed, save, markIntroSeen };
+}
+
+/**
+ * Whether tips and tooltips are on (Customise your menu → Tips and tooltips). Reads the cached preferences and
+ * follows changes; the shell's usePreferences loads the server copy, so this never fetches on its own.
+ */
+export function useTipsOn() {
+  const [on, setOn] = useState(true);
+  useEffect(() => {
+    setOn(tipsOn(cachedPreferences()));
+    const onChange = (event: Event) => setOn(tipsOn((event as CustomEvent<AppPreferences>).detail));
+    window.addEventListener(PREFS_EVENT, onChange);
+    return () => window.removeEventListener(PREFS_EVENT, onChange);
+  }, []);
+  return on;
+}
+
+// Intros seen on this device: only a fallback for when the server save fails (offline, signed out mid-way).
+const INTROS_KEY = "shopinbos:intros-seen";
+
+function rememberIntroLocally(key: string) {
+  try {
+    const seen = introsSeenLocally().filter((item) => item !== key);
+    localStorage.setItem(INTROS_KEY, JSON.stringify([...seen, key].slice(-MAX_INTROS_SEEN)));
+  } catch {
+    // Private mode: the server copy is the only record.
+  }
+}
+
+export function introsSeenLocally(): string[] {
+  try {
+    const raw = JSON.parse(localStorage.getItem(INTROS_KEY) ?? "[]") as unknown;
+    return Array.isArray(raw) ? raw.filter((item): item is string => typeof item === "string") : [];
+  } catch {
+    return [];
+  }
 }
 
 // The person's photo and logo. Pages pass what they loaded on the server; the shell-counts response fills in

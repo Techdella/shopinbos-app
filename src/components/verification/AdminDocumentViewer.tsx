@@ -1,5 +1,6 @@
 "use client";
 
+import { promptDialog } from "@/components/ui/dialogs";
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
@@ -41,7 +42,7 @@ export function AdminDocumentViewer({ role, entityId, docs, verificationStatus, 
     setError(null);
 
     const rejectionReason = action === "reject"
-      ? prompt("Rejection reason (optional):") ?? undefined
+      ? (await promptDialog({ title: "Reject this document?", message: "Tell them what to fix (optional).", placeholder: "Rejection reason", optional: true, multiline: true, confirmLabel: "Reject", tone: "danger" })) ?? undefined
       : undefined;
 
     if (action === "reject" && rejectionReason === undefined) {
@@ -103,7 +104,7 @@ export function AdminDocumentViewer({ role, entityId, docs, verificationStatus, 
                       {formatBytes(doc.fileSize) && <span>{formatBytes(doc.fileSize)}</span>}
                     </>
                   ) : docHasEvidence(doc) ? (
-                    <span>No file: verified against the CAC registry</span>
+                    <span>{doc.idCheck ? "No file: the owner's ID passed the Wallet ID check" : "No file: verified against the CAC registry"}</span>
                   ) : (
                     <span>No file was stored{doc.fileName ? ` (${doc.fileName} was picked but never uploaded)` : ""}. Ask for a re-upload.</span>
                   )}
@@ -111,6 +112,14 @@ export function AdminDocumentViewer({ role, entityId, docs, verificationStatus, 
                 </div>
                 {doc.rejectionReason && (
                   <div className="mt-1 text-[13px] text-app-danger">Reason: {doc.rejectionReason}</div>
+                )}
+                {doc.idCheck && (
+                  <div className="mt-1.5 rounded-[12px] bg-app-canvas px-3 py-2 text-[12.5px] leading-[1.5]">
+                    <div className="font-bold">
+                      ID check (Shopinbos Wallet): {doc.idCheck.name} · {doc.idCheck.idType === "nin" ? "NIN" : "BVN"} ending {doc.idCheck.idLast4}
+                    </div>
+                    <div className="text-app-ink-soft">Name and date of birth matched the national record · checked {new Date(doc.idCheck.checkedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</div>
+                  </div>
                 )}
                 {doc.registry && (
                   <div className="mt-1.5 rounded-[12px] bg-app-canvas px-3 py-2 text-[12.5px] leading-[1.5]">

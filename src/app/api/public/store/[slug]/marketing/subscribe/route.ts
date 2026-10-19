@@ -1,20 +1,22 @@
 import { NextRequest } from "next/server";
-import { randomBytes } from "node:crypto";
 import { z } from "zod";
 import type { SubscriberSource } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { withCors, handleOptions } from "@/lib/api/cors";
 import { created, apiError } from "@/lib/api/response";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimitShared, rateLimitKey } from "@/lib/rate-limit";
 import { triggerAutomations } from "@/lib/automations/engine";
 import { readDesign, readFields, readPopupConfig } from "@/lib/marketing/forms";
+import { sendLeadMagnetEmail } from "@/lib/email/notices.server";
+import { issueFormReward } from "@/lib/marketing/popup-rewards.server";
 import { normalizeEmail } from "@/lib/marketing/segment-rules";
 import { addSubscriber } from "@/lib/marketing/subscribers";
 import { upsertStoreVisitor } from "@/lib/storefront/visitor-data";
 
 // A shopper signs up through a pop-up or sign-up form: they join the list (with their consent recorded),
-// the answers are saved as a form submission, a one-use reward code is made if the form offers one, and
-// the welcome flow starts.
+// the answers are saved as a form submission, the form's reward code is handed out if it offers one, and
+// the welcome flow starts. A free-download pop-up hands back its download link (and emails it, if the seller
+// chose that): the link is never in the storefront's copy of the pop-up, only here, after a real sign-up.
 
 const CORS = { methods: ["POST", "OPTIONS"], headers: ["Content-Type"] };
 
@@ -32,7 +34,8 @@ const Body = z.object({
 export async function POST(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-  if (!checkRateLimit(`mkt-signup:${ip}`, { maxRequests: 8, windowMs: 60_000 }).allowed) {
+  // Shared across server instances (fails open): a signup can trigger a welcome email to the address given.
+  if (!(await checkRateLimitShared(rateLimitKey("mkt-signup", ip), { maxRequests: 8, windowMs: 60_000 })).allowed) {
     return withCors(req, apiError("RATE_LIMITED", "Too many tries. Wait a minute and try again.", 429), CORS);
   }
   const store = await db.store.findUnique({ where: { slug }, select: { id: true, name: true, status: true } });
@@ -89,23 +92,41 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     update: { submissions: { increment: 1 } },
   });
 
-  // Reward: one code per new subscriber, so a code can't be passed around.
-  let code: string | null = null;
-  const reward = form.isPopup ? readPopupConfig(form.popupConfig).reward : null;
-  if (reward && (result.created || result.reactivated)) {
-    const prefix = store.name.replace(/[^A-Za-z]/g, "").slice(0, 6).toUpperCase() || "WELCOME";
-    for (let attempt = 0; attempt < 5 && !code; attempt++) {
-      const candidate = `${prefix}-${randomBytes(3).toString("hex").toUpperCase()}`;
-      const coupon = await db.coupon
-        .create({ data: { storeId: store.id, code: candidate, type: reward.type, value: reward.value, maxUses: 1, expiresAt: new Date(Date.now() + reward.days * 86_400_000) } })
-        .catch(() => null);
-      if (coupon) code = coupon.code;
-    }
-  }
+  // Reward: the shared code, or this person's own one-use code (one per email per form; signing up again
+  // shows the same code). The rate limit above covers this too.
+  const issued = await issueFormReward(store.id, form, email).catch((error) => {
+    console.error("[marketing] reward not issued", error);
+    return null;
+  });
+  const reward = issued && "issued" in issued ? issued.issued : null;
+  const code = reward?.code ?? null;
+
+  const leadMagnet = readPopupConfig(form.popupConfig);
+  const download = leadMagnet.kind === "lead_magnet" && leadMagnet.leadMagnet ? leadMagnet.leadMagnet : null;
+  const emailed = download?.emailIt
+    ? await sendLeadMagnetEmail({ store: store.id, to: email, name: download.name, url: download.url, buyerName: name })
+        .then((sent) => sent.success)
+        .catch((error) => {
+          console.error("[marketing] download email failed", error);
+          return false;
+        })
+    : false;
 
   if (result.created || result.reactivated) {
     await triggerAutomations("welcome_email", { storeId: store.id, storeName: store.name, buyerEmail: email, buyerName: name, buyerPhone: phone, dedupe: `welcome:${email}`, discountCode: code });
   }
 
-  return withCors(req, created({ subscribed: true, alreadySubscribed: !result.created && !result.reactivated, code, message: design.successMessage }), CORS);
+  return withCors(
+    req,
+    created({
+      subscribed: true,
+      alreadySubscribed: !result.created && !result.reactivated,
+      code,
+      reward: reward ? { label: reward.label, expiresAt: reward.expiresAt, minOrder: reward.minOrder, again: reward.again } : null,
+      rewardSpent: Boolean(issued && "spent" in issued),
+      download: download ? { url: download.url, name: download.name, emailed } : null,
+      message: design.successMessage,
+    }),
+    CORS,
+  );
 }

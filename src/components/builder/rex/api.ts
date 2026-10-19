@@ -93,12 +93,23 @@ export interface RexAgentReply {
   cards: RexCard[];
   draft: StoreEditorSnapshot | null;
   versions: RexVersionSummary[] | null;
+  creditsNeeded?: boolean;
+}
+
+/** An error from the Rex API with its code (AI_CREDITS_NEEDED when the allowance and credits are used up). */
+export class RexApiError extends Error {
+  constructor(message: string, readonly code?: string) {
+    super(message);
+  }
 }
 
 /** One turn with Rex's agent (tools: pictures, logos, videos, store edits, copy, marketing). */
 export async function askRex(input: { messages: Array<{ role: "user" | "assistant"; content: string }>; imageUrls: string[] }): Promise<RexAgentReply> {
   const response = await fetch("/api/ai/rex", json(input));
-  if (!response.ok) throw new Error(await readError(response, "Rex couldn't answer just now. Nothing was changed; try again."));
+  if (!response.ok) {
+    const code = response.status === 402 ? ((await response.clone().json().catch(() => null)) as { error?: { code?: string } } | null)?.error?.code : undefined;
+    throw new RexApiError(await readError(response, "Rex couldn't answer just now. Nothing was changed; try again."), code);
+  }
   return ((await response.json()) as { data: RexAgentReply }).data;
 }
 
@@ -106,7 +117,16 @@ export type RexCardAction =
   | { action: "save_product_image"; productId: string; imageUrl: string; mode: "add" | "main" | "replace"; replaceIndex: number | null }
   | { action: "set_logo"; imageUrl: string }
   | { action: "apply_product_copy"; productId: string; description: string }
-  | { action: "activate_automation"; id: string };
+  | { action: "activate_automation"; id: string }
+  | { action: "save_to_media"; url: string; kind: "image" | "video"; name: string | null }
+  | { action: "set_brand_asset"; kind: "icon" | "favicon"; url: string };
+
+/** The seller's products, for "Add to a product" on a picture made without one. */
+export async function rexProductChoices(): Promise<Array<{ id: string; name: string; image: string | null }>> {
+  const response = await fetch("/api/ai/rex/actions");
+  if (!response.ok) throw new Error(await readError(response, "Couldn't load your products."));
+  return ((await response.json()) as { data: { products: Array<{ id: string; name: string; image: string | null }> } }).data.products;
+}
 
 /** A tap on one of Rex's cards: the seller's confirmation. */
 export async function rexCardAction(payload: RexCardAction): Promise<{ message: string; href?: string }> {

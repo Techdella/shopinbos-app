@@ -2,11 +2,11 @@ import "server-only";
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { createNotification } from "@/lib/notifications/create";
+import { acceptByFor, messageSupplierPhone } from "./deadline.server";
 import {
   groupDropshipLines,
   plainText,
   readyForSuppliers,
-  retailStatusAfterSupplierUpdate,
   supplierOrderKey,
   supplierOrderRef,
   supplierOrderStatusAfter,
@@ -19,6 +19,9 @@ import {
 // supplier order per supplier once it's paid (webhook, payment return page, seller marking it paid) or placed
 // with pay on delivery. The supplier accepts, ships with a tracking code, marks delivered, or declines with a
 // reason; the seller's store order follows (src/lib/supplier-orders/pure.ts has the rules).
+
+/** What a supplier sees when they try to accept an order whose time ran out. */
+export const TIME_RAN_OUT = "Time ran out on this order, so the shop was told. Don't send it.";
 
 export type ServiceResult<T> = { ok: true; data: T } | { ok: false; code: "NOT_FOUND" | "CONFLICT" | "BAD_REQUEST"; message: string };
 
@@ -72,6 +75,14 @@ export async function ensureSupplierOrders(retailOrderId: string): Promise<{ cre
   });
   const sent = new Set(existing.map((row) => row.idempotencyKey));
 
+  // Each supplier has a deadline to accept (4 hours unless set otherwise): see acceptance.server.ts.
+  const supplierRows = await db.supplier.findMany({
+    where: { id: { in: groups.map((group) => group.supplierId) } },
+    select: { id: true, userId: true, acceptHoursDropship: true, acceptHoursWholesale: true },
+  });
+  const now = new Date();
+  const deadlines = new Map(supplierRows.map((row) => [row.id, acceptByFor("dropship", row, now)]));
+
   const created: Array<{ id: string; supplierId: string; items: SupplierOrderLine[]; costTotal: number }> = [];
   for (const group of groups) {
     if (sent.has(supplierOrderKey(order.id, group.supplierId))) continue;
@@ -89,6 +100,7 @@ export async function ensureSupplierOrders(retailOrderId: string): Promise<{ cre
           shippingAddress: (order.deliveryAddress ?? {}) as Prisma.InputJsonValue,
           recipientName: order.buyerName,
           recipientPhone: order.buyerPhone,
+          acceptBy: (deadlines.get(group.supplierId) ?? acceptByFor("dropship", null, now)).acceptBy,
         },
         select: { id: true },
       });
@@ -100,7 +112,7 @@ export async function ensureSupplierOrders(retailOrderId: string): Promise<{ cre
   }
 
   if (created.length) {
-    const suppliers = await db.supplier.findMany({ where: { id: { in: created.map((row) => row.supplierId) } }, select: { id: true, userId: true } });
+    const suppliers = supplierRows;
     const shop = plainText(order.store.name) || "A shop";
     const address = order.deliveryAddress && typeof order.deliveryAddress === "object" ? (order.deliveryAddress as Record<string, unknown>) : {};
     const place = plainText([address.city, address.state].filter((part) => typeof part === "string" && part).join(", "), 60);
@@ -110,17 +122,23 @@ export async function ensureSupplierOrders(retailOrderId: string): Promise<{ cre
         const supplier = suppliers.find((item) => item.id === row.supplierId);
         if (!supplier) return Promise.resolve(null);
         const units = row.items.reduce((sum, item) => sum + item.quantity, 0);
+        const within = deadlines.get(row.supplierId)?.words ?? "4 hours";
+        const ref = supplierOrderRef(row.id);
+        void messageSupplierPhone(row.supplierId, `Shopinbos: new order ${ref} from ${shop}. You get ${money(row.costTotal, order.currency)}. Accept it within ${within} in the app.`);
         return createNotification({
           userId: supplier.userId,
           type: "dropshipping",
           priority: "warning",
-          title: `New dropship order ${supplierOrderRef(row.id)} from ${shop}`,
-          description: `${units} ${units === 1 ? "unit" : "units"} to ship${place ? ` to ${place}` : ""}. You're owed ${money(row.costTotal, order.currency)} at wholesale.${pod ? " The buyer pays the rider on delivery." : ""} Accept it, then add the tracking code when it ships.`,
-          link: "/supplier/orders?kind=dropship",
-          actionLabel: "View order",
-          actionUrl: "/supplier/orders?kind=dropship",
+          title: `New dropship order ${ref} from ${shop}: accept within ${within}`,
+          description: `${shop} sold ${units} ${units === 1 ? "piece" : "pieces"} for you${place ? `, going to ${place}` : ""}. You get ${money(row.costTotal, order.currency)}.${pod ? " The customer pays the rider when it arrives." : ""} Accept it within ${within}, or the shop will be told you didn't answer.`,
+          link: `/supplier/orders/${row.id}`,
+          actionLabel: "Accept order",
+          actionUrl: `/supplier/orders/${row.id}`,
           metadata: { supplierOrderId: row.id, retailOrderId: order.id },
           sendEmail: true,
+          event: "supplier_order.new",
+          dedupeKey: `supplier_order.new:${row.id}`,
+          phoneHandled: true,
         });
       }),
     );
@@ -155,6 +173,8 @@ export async function cancelSupplierOrdersFor(retailOrderId: string) {
         description: "The shop cancelled this order. Don't ship it.",
         link: "/supplier/orders?kind=dropship",
         sendEmail: true,
+        event: "supplier_order.cancelled",
+        dedupeKey: `supplier_order.cancelled:${row.id}`,
       }).catch(() => null);
     }
   }
@@ -174,9 +194,10 @@ export interface MoveInput {
 export async function moveSupplierOrder(input: MoveInput): Promise<ServiceResult<{ id: string; status: string }>> {
   const order = await db.supplierOrder.findFirst({
     where: { id: input.orderId, supplierId: input.supplierId },
-    select: { id: true, status: true, retailOrderId: true, sellerId: true, trackingCode: true, supplier: { select: { displayName: true } }, retailOrder: { select: { orderNumber: true } } },
+    select: { id: true, status: true, retailOrderId: true, storeId: true, sellerId: true, trackingCode: true, supplier: { select: { displayName: true } }, retailOrder: { select: { orderNumber: true } } },
   });
   if (!order) return { ok: false, code: "NOT_FOUND", message: "Order not found" };
+  if (order.status === "expired") return { ok: false, code: "CONFLICT", message: TIME_RAN_OUT };
   const next = supplierOrderStatusAfter(order.status, input.action);
   if (!next) return { ok: false, code: "CONFLICT", message: "This order has already moved on. Refresh to see where it is." };
   const reason = input.reason?.trim();
@@ -199,7 +220,11 @@ export async function moveSupplierOrder(input: MoveInput): Promise<ServiceResult
   }
   // Only if nobody moved it in the meantime.
   const moved = await db.supplierOrder.updateMany({ where: { id: order.id, supplierId: input.supplierId, status: order.status }, data });
-  if (moved.count !== 1) return { ok: false, code: "CONFLICT", message: "This order has already moved on. Refresh to see where it is." };
+  if (moved.count !== 1) {
+    // The acceptance cron may have expired it a moment before.
+    const current = await db.supplierOrder.findUnique({ where: { id: order.id }, select: { status: true } });
+    return { ok: false, code: "CONFLICT", message: current?.status === "expired" ? TIME_RAN_OUT : "This order has already moved on. Refresh to see where it is." };
+  }
 
   await syncRetailOrder(order.retailOrderId, next === "shipped" ? trackingCode ?? order.trackingCode : null).catch((error) => {
     console.error(`[supplier orders] could not move store order ${order.retailOrderId}`, error);
@@ -214,7 +239,14 @@ export async function moveSupplierOrder(input: MoveInput): Promise<ServiceResult
     rejected: { title: `${supplierName} can't fill order ${ref}`, description: `${supplierName} declined the dropship items on order ${ref}: "${plainText(reason, 300)}". Contact the buyer, then refund or replace the items.`, priority: "critical" as const },
     pending: null,
     cancelled: null,
+    expired: null,
   }[next];
+  if (note && (next === "shipped" || next === "delivered")) {
+    // "2 of 3 parcels sent": the seller sees where the whole order is.
+    const { sellerPartsView } = await import("./parts.server");
+    const parts = await sellerPartsView(order.retailOrderId, order.storeId).catch(() => null);
+    if (parts?.line) note.description = `${note.description} ${parts.line}.`;
+  }
   if (note) {
     await createNotification({
       userId: order.sellerId,
@@ -224,24 +256,19 @@ export async function moveSupplierOrder(input: MoveInput): Promise<ServiceResult
       description: note.description,
       link: `/home/orders/${order.retailOrderId}`,
       sendEmail: next === "rejected" || next === "shipped",
+      event: next === "accepted" ? "supplier.accepted" : next === "rejected" ? "supplier.declined" : "supplier.update",
+      dedupeKey: `supplier.${next}:${order.id}`,
     }).catch(() => null);
   }
   return { ok: true, data: { id: order.id, status: next } };
 }
 
-/** Moves the seller's store order along with its suppliers (only forward; see retailStatusAfterSupplierUpdate). */
-export async function syncRetailOrder(retailOrderId: string, trackingCode: string | null) {
-  const order = await db.retailOrder.findUnique({ where: { id: retailOrderId } });
-  if (!order) return;
-  const supplierOrders = await db.supplierOrder.findMany({ where: { retailOrderId }, select: { status: true, items: true, trackingCode: true } });
-  const covered = new Set(supplierOrders.flatMap((row) => (Array.isArray(row.items) ? row.items : []).map((item) => String((item as { storeProductId?: unknown })?.storeProductId ?? ""))));
-  const sellerLines = (Array.isArray(order.items) ? order.items : []).filter((item) => !covered.has(String((item as { productId?: unknown })?.productId ?? ""))).length;
-  const target = retailStatusAfterSupplierUpdate({ retailStatus: order.status, supplierStatuses: supplierOrders.map((row) => row.status), sellerLines });
-  if (!target) return;
-  const store = await db.store.findUnique({ where: { id: order.storeId }, select: { id: true, name: true } });
-  if (!store) return;
-  const codes = [...new Set(supplierOrders.map((row) => row.trackingCode).filter((code): code is string => Boolean(code)))];
-  const tracking = target === "shipped" ? (codes.length ? codes.join(", ") : trackingCode) : null;
-  const { updateOrderStatus } = await import("@/lib/orders/update-status");
-  await updateOrderStatus(store, order, { status: target, ...(tracking && !order.trackingCode ? { trackingCode: tracking.slice(0, 200) } : {}) });
+/**
+ * Moves the seller's store order along with its parcels (only forward; shared/order-parts.ts has the rules): shipped
+ * once every parcel has left, delivered once every parcel arrived. Locked and idempotent (parts.server.ts).
+ */
+export async function syncRetailOrder(retailOrderId: string, _trackingCode?: string | null) {
+  void _trackingCode;
+  const { recomputeOrderStatus } = await import("./parts.server");
+  return recomputeOrderStatus(retailOrderId);
 }

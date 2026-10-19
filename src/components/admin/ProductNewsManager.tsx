@@ -1,6 +1,8 @@
 "use client";
 
+import { confirmDialog } from "@/components/ui/dialogs";
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
+import { EmailPreviewIframe } from "@/app/home/marketing/_kit/EmailFrame";
 import { Card, CardHead, Pill, type Tone } from "@/components/app-kit";
 import { DeviceToggle, FieldLabel, Notice, PillButton, TextInput, Toggle, cx } from "@/components/app-ui";
 import { textareaClass } from "@/components/growth/kit";
@@ -30,6 +32,10 @@ export interface BroadcastRow {
   sentCount: number;
   failedCount: number;
   skippedCount: number;
+  /** Failed rows "Retry failed" would resend (the provider refused them, so nothing went out). */
+  retryableCount: number;
+  /** Failed rows that may have been delivered: never resent, to avoid duplicates. */
+  unconfirmedCount: number;
   lastError: string | null;
   createdAt: string;
   updatedAt: string;
@@ -224,7 +230,7 @@ export function ProductNewsManager({ initial, appUrl, legal, hosts, adminEmail }
     const question = at
       ? `Schedule "${draft.subject}" for ${when(at.toISOString())} (Lagos time) to about ${n(count)} people?`
       : `Send "${draft.subject}" to ${n(count)} ${count === 1 ? "person" : "people"} now? This can't be undone.`;
-    if (!window.confirm(question)) return;
+    if (!(await confirmDialog(question))) return;
     const id = await save();
     const result = await call<{ broadcast: BroadcastRow; progress: { status: string; sent?: number; skipped?: number; failed?: number; queued?: number } }>(`/api/admin/product-news/${id}/send`, {
       method: "POST",
@@ -248,7 +254,7 @@ export function ProductNewsManager({ initial, appUrl, legal, hosts, adminEmail }
       if (action === "retry") await call(`/api/admin/product-news/${row.id}/retry`, { method: "POST", body: "{}" });
       if (action === "unschedule") await call(`/api/admin/product-news/${row.id}`, { method: "PATCH", body: JSON.stringify({ unschedule: true }) });
       if (action === "delete") {
-        if (!window.confirm(`Delete the draft "${row.subject}"?`)) return;
+        if (!(await confirmDialog(`Delete the draft "${row.subject}"?`))) return;
         await call(`/api/admin/product-news/${row.id}`, { method: "DELETE" });
         if (editingId === row.id) startNew();
       }
@@ -374,7 +380,7 @@ export function ProductNewsManager({ initial, appUrl, legal, hosts, adminEmail }
         <Card className="grid min-w-0 content-start gap-3 p-4 sm:p-5">
           <CardHead title="Preview" sub="Exactly what people get: the Shopinbos logo, light and dark mode, and the footer with Unsubscribe." action={<DeviceToggle value={device} onChange={setDevice} size="sm" />} />
           <div className="overflow-hidden rounded-[18px] border border-app-line bg-app-canvas">
-            <iframe title="Email preview" sandbox="" srcDoc={previewHtml} className={cx("mx-auto block h-[720px] border-0 bg-white", device === "mobile" ? "w-[375px] max-w-full" : "w-full")} />
+            <EmailPreviewIframe title="Email preview" html={previewHtml} className={cx("mx-auto block h-[720px] border-0 bg-white", device === "mobile" ? "w-[375px] max-w-full" : "w-full")} />
           </div>
           <p className="m-0 truncate text-[12.5px] text-app-ink-soft">
             <span className="font-semibold text-app-ink">{draft.subject || "Subject"}</span> · {draft.preheader || "Preview line"}
@@ -415,11 +421,16 @@ export function ProductNewsManager({ initial, appUrl, legal, hosts, adminEmail }
                       </div>
                     ) : null}
                     {row.lastError ? <p className="m-0 text-[12.5px] font-semibold text-app-danger">{row.lastError}</p> : null}
+                    {row.unconfirmedCount > 0 && row.status !== "draft" ? (
+                      <p className="m-0 text-[12.5px] text-app-ink-soft">
+                        {n(row.unconfirmedCount)} couldn&apos;t be confirmed and won&apos;t be resent to avoid duplicates.
+                      </p>
+                    ) : null}
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {["draft", "scheduled"].includes(row.status) ? <PillButton tone="white" size="sm" onClick={() => open(row)}>Edit</PillButton> : <PillButton tone="white" size="sm" onClick={() => open(row)}>View</PillButton>}
                     {row.status === "scheduled" ? <PillButton tone="white" size="sm" busy={busy === `unschedule-${row.id}`} onClick={() => rowAction(row, "unschedule")}>Unschedule</PillButton> : null}
-                    {row.failedCount > 0 && row.status !== "draft" ? <PillButton tone="white" size="sm" busy={busy === `retry-${row.id}`} onClick={() => rowAction(row, "retry")}>Retry failed</PillButton> : null}
+                    {row.retryableCount > 0 && row.status !== "draft" ? <PillButton tone="white" size="sm" busy={busy === `retry-${row.id}`} onClick={() => rowAction(row, "retry")}>Retry {n(row.retryableCount)} failed</PillButton> : null}
                     {row.status === "draft" ? <PillButton tone="white" size="sm" busy={busy === `delete-${row.id}`} onClick={() => rowAction(row, "delete")}>Delete</PillButton> : null}
                   </div>
                 </li>

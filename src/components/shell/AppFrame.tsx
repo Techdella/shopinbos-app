@@ -3,7 +3,9 @@ import { Sidebar } from "./Sidebar";
 import { GlobalTopBar } from "./GlobalTopBar";
 import { RexDrawerProvider } from "@/components/rex/RexDrawerContext";
 import { GuidedTour } from "./GuidedTour";
+import { FeatureIntroHost } from "@/components/learn/FeatureIntroHost";
 import { AnnouncementBanner } from "@/components/verification/AnnouncementBanner";
+import { VerifyYouBar } from "./VerifyYouBar";
 import type { Role } from "@/lib/nav";
 
 interface AppFrameProps {
@@ -58,6 +60,8 @@ export function AppFrame({
         />
         {/* Short walkthrough on the first visit to the portal's home page (replayable from Customise your menu). */}
         <GuidedTour role={role} />
+        {/* 60-second feature intros: open once on the first visit to a feature's page, replayable from "Learn · 60s". */}
+        {role !== "admin" && <FeatureIntroHost role={role} />}
 
         <main className="relative flex-1 flex flex-col overflow-hidden min-w-0">
           <GlobalTopBar
@@ -68,6 +72,7 @@ export function AppFrame({
             role={role}
             searchPlaceholder={searchPlaceholder}
           />
+          {role === "seller" && <VerifyYouBar />}
           {verificationStatus && role !== "seller" && role !== "admin" && (
             <AnnouncementBanner
               role={role === "logistics_partner" ? "logistics_partner" : "supplier"}

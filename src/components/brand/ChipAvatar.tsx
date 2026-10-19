@@ -1,28 +1,17 @@
-import Image from "next/image";
 import { cn } from "@/lib/utils";
-import { mascotPaths } from "@/lib/brand";
+import { Mascot, type MascotMood } from "@/components/brand/Mascot";
 
 interface ChipAvatarProps {
   mascot?: "rex" | "peggy";
   size?: number;
   className?: string;
+  mood?: MascotMood;
 }
 
-export function ChipAvatar({ mascot = "rex", size = 36, className }: ChipAvatarProps) {
-  const src = mascot === "peggy" ? mascotPaths.peggy[1] : mascotPaths.rex[1];
-
+export function ChipAvatar({ mascot = "rex", size = 36, className, mood = "idle" }: ChipAvatarProps) {
   return (
-    <div
-      className={cn("shrink-0 overflow-hidden rounded-[10px]", className)}
-      style={{ width: size, height: size, minWidth: size }}
-    >
-      <Image
-        src={src}
-        alt={mascot === "peggy" ? "Peggy" : "Rex"}
-        width={size * 2}
-        height={size * 2}
-        className="h-full w-full object-cover object-top"
-      />
+    <div className={cn("shrink-0 overflow-hidden rounded-[10px]", className)} style={{ width: size, height: size, minWidth: size }}>
+      <Mascot who={mascot} mood={mood} className="h-full w-full" />
     </div>
   );
 }

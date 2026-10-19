@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LanguageSettingsCard } from "@/components/i18n/LanguagePicker";
 import { SecuritySettings } from "@/components/auth/SecuritySettings";
 import { saveSupplierNotificationPreferences } from "@/app/actions/supplier";
 import { AppPage, Card } from "@/components/app-kit";
@@ -9,6 +10,7 @@ import { db } from "@/lib/db/client";
 import { getSupplierForUser } from "@/lib/role-queries";
 import { requireRole } from "@/lib/server-auth";
 import { userLinks } from "@/lib/email/compliance.server";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -16,13 +18,15 @@ type PageProps = {
   searchParams?: Promise<{ saved?: string }>;
 };
 
-const LINKS: Array<{ label: string; hint: string; href: string; icon: IconName }> = [
-  { label: "Supplier profile", hint: "Name, logo, about, contact", href: "/supplier/profile", icon: "shop" },
-  { label: "Billing and plan", hint: "Free plan or Supplier Max", href: "/supplier/profile?tab=Billing%20%26%20Plan", icon: "card" },
-  { label: "Payouts", hint: "Bank account for payments", href: "/supplier/payouts", icon: "bank" },
-  { label: "Team", hint: "People who help you", href: "/supplier/team", icon: "users" },
-  { label: "Verification", hint: "Documents and trust score", href: "/supplier/verification", icon: "shield" },
-  { label: "Customise your menu", hint: "Switch off what you don't use; replay the walkthrough", href: "/supplier/features", icon: "settings" },
+// Labels and hints are "supplier" keys: settings.link.<key>.label / .hint.
+const LINKS: Array<{ key: string; href: string; icon: IconName }> = [
+  { key: "profile", href: "/supplier/profile", icon: "shop" },
+  { key: "billing", href: "/supplier/profile?tab=Billing%20%26%20Plan", icon: "card" },
+  { key: "payouts", href: "/supplier/payouts", icon: "bank" },
+  { key: "team", href: "/supplier/team", icon: "users" },
+  { key: "verification", href: "/supplier/verification", icon: "shield" },
+  { key: "notifications", href: "/home/notifications/preferences", icon: "bell" },
+  { key: "features", href: "/supplier/features", icon: "settings" },
 ];
 
 function ToggleRow({
@@ -56,6 +60,7 @@ export default async function SupplierSettingsPage({ searchParams }: PageProps) 
   const user = await requireRole(["supplier"], "/supplier/login");
   const supplier = await getSupplierForUser(user);
   const emailPreferencesUrl = userLinks(user.id)?.preferences ?? null;
+  const t = await getT("supplier", "common");
   const preference = await db.notificationPreference.findUnique({
     where: {
       userId_eventKey_category: {
@@ -69,51 +74,51 @@ export default async function SupplierSettingsPage({ searchParams }: PageProps) 
   return (
     <AppPage
       frame={supplierFrame(user, supplier)}
-      title="Settings"
-      sub="How Shopinbos lets you know when sellers message you."
+      title={t("settings")}
+      sub={t("settings.sub")}
     >
-      {params?.saved && <div className="mb-4"><Notice tone="success">Notification settings saved.</Notice></div>}
+      {params?.saved && <div className="mb-4"><Notice tone="success">{t("settings.saved")}</Notice></div>}
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
         <Card className="p-5 sm:p-6">
           <form action={saveSupplierNotificationPreferences}>
-            <h2 className="m-0 text-[17px] font-extrabold">Message notifications</h2>
-            <p className="mb-0 mt-1 text-[14px] text-app-ink-soft">Choose how we tell you about new messages from sellers.</p>
+            <h2 className="m-0 text-[17px] font-extrabold">{t("settings.messageNotifications")}</h2>
+            <p className="mb-0 mt-1 text-[14px] text-app-ink-soft">{t("settings.chooseHow")}</p>
 
             <div className="mt-2 divide-y divide-app-line">
               <ToggleRow
                 name="messageInApp"
-                label="In the app"
-                description="Show a notification in your supplier portal."
+                label={t("settings.inApp")}
+                description={t("settings.inAppHint")}
                 defaultChecked={preference?.inApp ?? true}
               />
               <ToggleRow
                 name="messageEmail"
-                label="Email"
-                description={`Send alerts to ${user.email}.`}
+                label={t("team.email")}
+                description={t("settings.emailHint", { email: user.email })}
                 defaultChecked={preference?.email ?? false}
               />
               <ToggleRow
                 name="messageSms"
-                label="SMS"
-                description={user.phone ? `Text alerts to ${user.phone}.` : "Add a phone number to your account first."}
+                label={t("settings.sms")}
+                description={user.phone ? t("settings.smsHint", { phone: user.phone }) : t("settings.addPhone")}
                 defaultChecked={preference?.sms ?? false}
               />
             </div>
 
             <p className="mb-0 mt-3 rounded-[16px] bg-app-canvas px-4 py-3 text-[13.5px] leading-[1.5] text-app-ink-soft">
-              Email and SMS only go out when those services are switched on for Shopinbos. In-app alerts always work.
+              {t("settings.channelsNote")}
             </p>
 
             <div className="mt-5 flex justify-end">
               <button type="submit" className={buttonClass.ink}>
-                <Icon name="check" size={15} /> Save
+                <Icon name="check" size={15} /> {t("save")}
               </button>
             </div>
           </form>
         </Card>
 
-        <nav aria-label="More settings">
+        <nav aria-label={t("settings.more")}>
           <Card className="overflow-hidden">
             <ul className="m-0 list-none divide-y divide-app-line p-0">
               {LINKS.map((link) => (
@@ -121,8 +126,8 @@ export default async function SupplierSettingsPage({ searchParams }: PageProps) 
                   <Link href={link.href} className="flex min-h-[60px] items-center gap-3 px-5 py-3 text-app-ink no-underline hover:bg-app-canvas">
                     <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-app-canvas"><Icon name={link.icon} size={16} /></span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[14.5px] font-bold">{link.label}</span>
-                      <span className="block truncate text-[12.5px] text-app-ink-soft">{link.hint}</span>
+                      <span className="block truncate text-[14.5px] font-bold">{t.dynamic(`settings.link.${link.key}.label`)}</span>
+                      <span className="block truncate text-[12.5px] text-app-ink-soft">{t.dynamic(`settings.link.${link.key}.hint`)}</span>
                     </span>
                     <Icon name="chevRight" size={16} className="text-app-ink-soft" />
                   </Link>
@@ -133,8 +138,8 @@ export default async function SupplierSettingsPage({ searchParams }: PageProps) 
                   <a href={emailPreferencesUrl} className="flex min-h-[60px] items-center gap-3 px-5 py-3 text-app-ink no-underline hover:bg-app-canvas">
                     <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-app-canvas"><Icon name="mail" size={16} /></span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[14.5px] font-bold">Email preferences</span>
-                      <span className="block truncate text-[12.5px] text-app-ink-soft">Product news, setup nudges, weekly summaries</span>
+                      <span className="block truncate text-[14.5px] font-bold">{t("settings.emailPrefs")}</span>
+                      <span className="block truncate text-[12.5px] text-app-ink-soft">{t("settings.emailPrefsHint")}</span>
                     </span>
                     <Icon name="chevRight" size={16} className="text-app-ink-soft" />
                   </a>
@@ -145,6 +150,7 @@ export default async function SupplierSettingsPage({ searchParams }: PageProps) 
         </nav>
       </div>
 
+      <LanguageSettingsCard className="mt-5 sm:p-6" />
       <SecuritySettings className="mt-5 p-5 sm:p-6" />
     </AppPage>
   );

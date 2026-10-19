@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { DeviceToggle, Spinner } from "@/components/app-ui";
 import { cx } from "@/components/app-ui/cx";
 import { FLOW_VARIABLES } from "@/lib/marketing/flows";
+import { useT } from "@/components/i18n/I18nProvider";
+import { EmailPreviewIframe } from "./EmailFrame";
 
 // Client pieces shared by the marketing editors (campaigns, templates, automations, forms).
 
@@ -30,6 +32,7 @@ export function useDebounced<T>(value: T, ms = 400) {
 
 /** The email as recipients see it, with the shop's brand kit and sample customer details. */
 export function EmailPreview({ bodyHtml, preheader, subject }: { bodyHtml: string; preheader?: string | null; subject?: string }) {
+  const t = useT("emailBuilder");
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
   const [html, setHtml] = useState<string>("");
   const [loading, setLoading] = useState(false);
@@ -62,34 +65,34 @@ export function EmailPreview({ bodyHtml, preheader, subject }: { bodyHtml: strin
       </div>
       {subject ? (
         <div className="rounded-[14px] bg-app-canvas px-4 py-2.5 text-[13.5px]">
-          <span className="text-app-ink-soft">Subject: </span>
-          <strong>{subject.replace(/{{\s*store\s*}}/g, "your shop").replace(/{{\s*name\s*}}/g, "Ada")}</strong>
+          <span className="text-app-ink-soft">{t("preview.subject")} </span>
+          <strong>{subject.replace(/{{\s*store\s*}}/g, t("preview.yourShop")).replace(/{{\s*name\s*}}/g, "Ada")}</strong>
         </div>
       ) : null}
       {error ? <p className="m-0 text-[13px] text-app-danger">{error}</p> : null}
       <div className="overflow-hidden rounded-[18px] border border-app-line bg-app-canvas">
-        <iframe
-          title="Email preview"
-          sandbox=""
-          srcDoc={html}
+        <EmailPreviewIframe
+          title={t("preview.title")}
+          html={html}
           className={cx("mx-auto block h-[560px] border-0 bg-white transition-all", device === "mobile" ? "w-[375px] max-w-full" : "w-full")}
         />
       </div>
-      <p className="m-0 text-[12.5px] text-app-ink-soft">Preview uses a sample customer (Ada). Links and your logo and colours come from your brand kit.</p>
+      <p className="m-0 text-[12.5px] text-app-ink-soft">{t("preview.note")}</p>
     </div>
   );
 }
 
 /** Buttons that insert {{variables}} into the field the seller is editing. */
 export function VariableChips({ onInsert, only }: { onInsert: (token: string) => void; only?: string[] }) {
+  const t = useT("emailBuilder");
   const list = FLOW_VARIABLES.filter(([key]) => !only || only.includes(key));
   return (
-    <div className="flex flex-wrap gap-1.5" aria-label="Insert a personal detail">
+    <div className="flex flex-wrap gap-1.5" aria-label={t("vars.insert")}>
       {list.map(([key, label]) => (
         <button
           key={key}
           type="button"
-          title={label}
+          title={t.dynamic(`flowVar.${key}`, label)}
           onClick={() => onInsert(`{{${key}}}`)}
           className="min-h-[32px] rounded-full border border-app-line bg-white px-3 text-[12.5px] font-semibold hover:border-app-ink"
         >

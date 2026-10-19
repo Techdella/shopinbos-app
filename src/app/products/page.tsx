@@ -6,10 +6,19 @@ import { sellerFrame } from "@/components/seller-core";
 import { requireRole } from "@/lib/server-auth";
 import { getSellerWorkspace } from "@/lib/workspace";
 import { db } from "@/lib/db/client";
-import { stockLabel } from "@/lib/dashboard/compute";
-import { naira } from "@shared/onboarding";
+import { formatMoney, formatNumber } from "@shared/i18n";
+import { getLocale, getT } from "@/lib/i18n/server";
+import { productCampaignTimers } from "@/lib/store-campaigns/server";
+import { ProductCampaignBadge } from "@/components/campaigns/ProductCampaignBadge";
+import { PaymentLinkButton } from "@/components/payment-links/PaymentLinkButton";
+import { linkProductView } from "@/lib/payment-links/pure";
+import { paymentReadiness } from "@/lib/payment-links/service.server";
+import { pageSlice } from "@/lib/pagination";
+import { Pagination } from "@/components/seller/Pagination";
 
 export const dynamic = "force-dynamic";
+
+const PAGE_SIZE = 50;
 
 type ProductRow = {
   status: string;
@@ -17,29 +26,36 @@ type ProductRow = {
   inventoryType: string;
   currentStock: number;
   lowStockThreshold: number;
+  trackStock: boolean;
 };
 
 const isLive = (p: ProductRow) => p.status === "active" || p.status === "published";
 const isDropship = (p: ProductRow) => p.fulfillmentType === "dropship" || p.inventoryType === "dropshipping";
-const isLow = (p: ProductRow) => !isDropship(p) && p.currentStock <= p.lowStockThreshold;
+// Only counted stock ("Track stock") can run low; untracked products never sell out.
+const isLow = (p: ProductRow) => !isDropship(p) && p.trackStock && p.currentStock <= p.lowStockThreshold;
 
 // Old links used ?status=active|draft|archived; they map onto the new chips.
-const FILTERS: Array<{ key: string; label: string; test: (p: ProductRow) => boolean }> = [
-  { key: "all", label: "All", test: (p) => p.status !== "archived" },
-  { key: "live", label: "Live", test: isLive },
-  { key: "draft", label: "Drafts", test: (p) => p.status === "draft" },
-  { key: "low_stock", label: "Low stock", test: (p) => p.status !== "archived" && isLow(p) },
-  { key: "dropship", label: "Dropship", test: (p) => p.status !== "archived" && isDropship(p) },
-  { key: "archived", label: "Archived", test: (p) => p.status === "archived" },
+const FILTERS: Array<{ key: "all" | "live" | "draft" | "low_stock" | "dropship" | "archived"; test: (p: ProductRow) => boolean }> = [
+  { key: "all", test: (p) => p.status !== "archived" },
+  { key: "live", test: isLive },
+  { key: "draft", test: (p) => p.status === "draft" },
+  { key: "low_stock", test: (p) => p.status !== "archived" && isLow(p) },
+  { key: "dropship", test: (p) => p.status !== "archived" && isDropship(p) },
+  { key: "archived", test: (p) => p.status === "archived" },
 ];
 
 const VISIBILITY = [
-  { key: "all", label: "Anywhere" },
-  { key: "storefront", label: "On storefront" },
-  { key: "featured", label: "Featured" },
-  { key: "collection_only", label: "Collections only" },
-  { key: "hidden", label: "Hidden" },
-];
+  { key: "all" },
+  { key: "storefront" },
+  { key: "featured" },
+  { key: "collection_only" },
+  { key: "hidden" },
+] as const;
+
+export async function generateMetadata() {
+  const t = await getT("products");
+  return { title: t("list.title") };
+}
 
 function variantCount(variants: unknown) {
   return Array.isArray(variants) ? variants.length : 0;
@@ -48,10 +64,13 @@ function variantCount(variants: unknown) {
 export default async function ProductsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; filter?: string; visibility?: string; q?: string }>
+  searchParams: Promise<{ status?: string; filter?: string; visibility?: string; q?: string; page?: string }>
 }) {
-  const { status, filter: rawFilter, visibility, q } = await searchParams;
+  const { status, filter: rawFilter, visibility, q, page: rawPage } = await searchParams;
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("products", "common");
+  const locale = await getLocale();
+  const naira = (amount: number) => formatMoney(Math.round(amount), locale);
   const workspace = await getSellerWorkspace(user.id);
   if (!workspace) return null;
   if (!workspace.store) redirect("/builder?firstRun=1");
@@ -59,7 +78,7 @@ export default async function ProductsPage({
   const storeId = workspace.store.id;
   const filterKey = rawFilter ?? (status === "active" || status === "published" ? "live" : status);
   const filter = FILTERS.find((item) => item.key === filterKey) ?? FILTERS[0];
-  const visibilityKey = VISIBILITY.some((item) => item.key === visibility) ? visibility! : "all";
+  const visibilityKey: string = VISIBILITY.some((item) => item.key === visibility) ? visibility! : "all";
   const query = q?.trim() ?? "";
 
   const all = await db.storeProduct.findMany({
@@ -79,13 +98,18 @@ export default async function ProductsPage({
       inventoryType: true,
       currentStock: true,
       lowStockThreshold: true,
+      trackStock: true,
       soldStock: true,
       supplierStock: true,
       variants: true,
       featured: true,
+      tags: true,
       category: { select: { name: true } },
     },
   });
+  // Live and upcoming seasonal campaigns that badge a product show a small timer on its row.
+  const campaignNow = new Date();
+  const [campaignTimers, readiness] = await Promise.all([productCampaignTimers(storeId, all, campaignNow), paymentReadiness(storeId)]);
 
   const needle = query.toLowerCase();
   const products = all.filter(
@@ -94,6 +118,9 @@ export default async function ProductsPage({
       (visibilityKey === "all" || p.visibility === visibilityKey) &&
       (!needle || p.name.toLowerCase().includes(needle) || (p.sku ?? "").toLowerCase().includes(needle)),
   );
+
+  // The filters run over every product, then one page of the matches is shown.
+  const paged = pageSlice(products, rawPage, PAGE_SIZE);
 
   const href = (next: { filter?: string; visibility?: string }) => {
     const params = new URLSearchParams();
@@ -107,30 +134,30 @@ export default async function ProductsPage({
   };
 
   const chips = FILTERS.filter((item) => item.key !== "archived" || filter.key === "archived" || all.some(item.test)).map((item) => ({
-    label: item.label,
+    label: t(`filter.${item.key}`),
     href: href({ filter: item.key }),
     count: item.key === "all" ? all.filter(item.test).length : undefined,
     active: item.key === filter.key,
   }));
 
-  const money = (amount: number, currency: string) => (currency === "NGN" ? naira(amount) : `${currency} ${Math.round(amount).toLocaleString("en-NG")}`);
+  const money = (amount: number, currency: string) => (currency === "NGN" ? naira(amount) : `${currency} ${formatNumber(Math.round(amount), locale)}`);
 
   return (
     <AppPage
       frame={sellerFrame(user, workspace.store)}
-      title="Products"
+      title={t("list.title")}
       actions={
         <>
-          <PillLink href="/products/import" icon="upload">Import</PillLink>
+          <PillLink href="/products/import" icon="upload">{t("list.import")}</PillLink>
           <a
             href="/api/products/export"
             download
             className="inline-flex min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-full border border-app-line bg-white px-5 text-[14px] font-extrabold text-app-ink no-underline transition hover:border-app-line-strong"
           >
             <Icon name="download" size={16} />
-            Export
+            {t("list.export")}
           </a>
-          <PillLink href="/products/new" tone="accent" icon="plus">Add product</PillLink>
+          <PillLink href="/products/new" tone="accent" icon="plus">{t("addProduct")}</PillLink>
         </>
       }
       toolbar={
@@ -139,14 +166,14 @@ export default async function ProductsPage({
           <SearchForm
             action="/products"
             defaultValue={query}
-            placeholder="Search name or SKU"
+            placeholder={t("list.search")}
             keep={{ filter: filter.key === "all" ? undefined : filter.key, visibility: visibilityKey === "all" ? undefined : visibilityKey }}
           />
         </>
       }
     >
-      <nav aria-label="Where products show" className="-mt-1 mb-4 flex flex-wrap items-center gap-x-1 gap-y-1 text-[13px] text-app-ink-soft">
-        <span className="mr-1">Showing:</span>
+      <nav aria-label={t("list.whereShow")} className="-mt-1 mb-4 flex flex-wrap items-center gap-x-1 gap-y-1 text-[13px] text-app-ink-soft">
+        <span className="mr-1">{t("list.showing")}</span>
         {VISIBILITY.map((item) => (
           <Link
             key={item.key}
@@ -157,7 +184,7 @@ export default async function ProductsPage({
               item.key === visibilityKey ? "bg-white font-bold text-app-ink ring-1 ring-app-line" : "text-app-ink-soft hover:text-app-ink",
             )}
           >
-            {item.label}
+            {t(`vis.${item.key}`)}
           </Link>
         ))}
       </nav>
@@ -165,56 +192,68 @@ export default async function ProductsPage({
       {all.length === 0 ? (
         <EmptyState
           icon="bag"
-          title="No products yet"
+          title={t("list.empty")}
           action={
             <div className="flex flex-wrap justify-center gap-2">
-              <PillLink href="/products/new" tone="ink" icon="plus">Add product</PillLink>
-              <PillLink href="/products/import" icon="upload">Import a CSV</PillLink>
+              <PillLink href="/products/new" tone="ink" icon="plus">{t("addProduct")}</PillLink>
+              <PillLink href="/products/import" icon="upload">{t("list.importCsv")}</PillLink>
             </div>
           }
         >
-          Add your first product, import a list, or pick dropship products from the marketplace.
+          {t("list.emptySub")}
         </EmptyState>
       ) : products.length === 0 ? (
-        <EmptyState icon="search" title="No products match" action={<PillLink href="/products">Show all products</PillLink>}>
-          {query ? `Nothing matches “${query}” here.` : "Try a different filter."}
+        <EmptyState icon="search" title={t("list.noMatch")} action={<PillLink href="/products">{t("list.showAll")}</PillLink>}>
+          {query ? t("list.nothingMatches", { query }) : t("list.tryFilter")}
         </EmptyState>
       ) : (
+        <>
         <ListCard>
-          {products.map((p) => {
+          {paged.rows.map((p) => {
             const dropship = isDropship(p);
-            const stock = stockLabel(p);
+            const stock = !p.trackStock
+              ? { low: false, label: t("stock.notTracked") }
+              : {
+                  low: p.currentStock <= 0 || p.currentStock <= p.lowStockThreshold,
+                  label: p.currentStock <= 0 ? t("stock.soldOut") : p.currentStock <= p.lowStockThreshold ? t("stock.left", { count: p.currentStock }) : t("stock.inStock", { count: p.currentStock }),
+                };
             const variants = variantCount(p.variants);
-            const detail = [variants > 0 ? `${variants} ${variants === 1 ? "variant" : "variants"}` : p.category?.name ?? p.sku, dropship ? "Dropship" : "Own stock"].filter(Boolean).join(" · ");
+            const detail = [variants > 0 ? t("list.variants", { count: variants }) : p.category?.name ?? p.sku, dropship ? t("list.dropship") : t("list.ownStock")].filter(Boolean).join(" · ");
             const statusPill = isLive(p) ? (
-              <Pill tone="success">Live</Pill>
+              <Pill tone="success">{t("status.live")}</Pill>
             ) : p.status === "archived" ? (
-              <Pill tone="muted">Archived</Pill>
+              <Pill tone="muted">{t("status.archived")}</Pill>
             ) : (
-              <Pill tone="muted">Draft</Pill>
+              <Pill tone="muted">{t("status.draft")}</Pill>
             );
             const stockText = dropship
-              ? p.supplierStock ? `${p.supplierStock} at supplier` : "Supplier stock"
+              ? p.supplierStock ? t("list.atSupplier", { count: p.supplierStock }) : t("list.supplierStock")
               : stock.label;
             return (
-              <ListRow key={p.id} href={`/products/${p.id}`}>
+              <ListRow
+                key={p.id}
+                href={`/products/${p.id}`}
+                // A payment link to send in a chat (published products only: the pay page shows public products).
+                aside={p.status === "published" ? <PaymentLinkButton compact product={linkProductView(p)} storeName={workspace.store!.name} ready={readiness.ready} /> : undefined}
+              >
                 <div className="flex w-full min-w-0 items-start gap-3.5 md:items-center md:gap-4">
                   <Thumb src={p.images[0]} label={p.name} />
                   <div className="grid min-w-0 flex-1 items-center gap-x-5 gap-y-2 md:grid-cols-[minmax(0,1.6fr)_minmax(0,1.2fr)_auto] xl:grid-cols-[minmax(0,2fr)_110px_minmax(0,0.9fr)_minmax(0,0.8fr)_120px]">
                     <div className="min-w-0">
                       <div className="flex min-w-0 items-center gap-2">
                         <span className="truncate text-[15px] font-extrabold">{p.name}</span>
-                        {p.featured && <span className="shrink-0 text-app-accent" title="Featured"><Icon name="star" size={14} /><span className="sr-only">Featured</span></span>}
+                        {p.featured && <span className="shrink-0 text-app-accent" title={t("list.featured")}><Icon name="star" size={14} /><span className="sr-only">{t("list.featured")}</span></span>}
+                        {campaignTimers[p.id] ? <ProductCampaignBadge campaign={campaignTimers[p.id]!} serverNow={campaignNow.toISOString()} /> : null}
                       </div>
                       <div className="truncate text-[13px] text-app-ink-soft">
                         {detail}
-                        {p.visibility === "hidden" && isLive(p) ? " · Hidden from store" : ""}
+                        {p.visibility === "hidden" && isLive(p) ? ` · ${t("list.hiddenFromStore")}` : ""}
                       </div>
                     </div>
                     <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5 text-[13.5px] xl:contents">
                       <span>{statusPill}</span>
                       <span className={cx("font-semibold", !dropship && stock.low ? "text-app-accent-ink" : "text-app-ink-soft")}>{stockText}</span>
-                      <span className="text-app-ink-soft">{p.soldStock.toLocaleString("en-NG")} sold</span>
+                      <span className="text-app-ink-soft">{t("list.sold", { count: p.soldStock })}</span>
                     </div>
                     <div className="text-[15px] font-extrabold md:text-right">
                       {money(p.retailPrice, p.currency)}
@@ -228,6 +267,13 @@ export default async function ProductsPage({
             );
           })}
         </ListCard>
+        <Pagination
+          {...paged.window}
+          base="/products"
+          params={{ filter: filter.key === "all" ? undefined : filter.key, visibility: visibilityKey === "all" ? undefined : visibilityKey, q: query || undefined }}
+          label={t("list.pages")}
+        />
+        </>
       )}
     </AppPage>
   );

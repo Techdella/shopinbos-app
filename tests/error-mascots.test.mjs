@@ -12,6 +12,10 @@ test("stale-build errors are recognised from every browser's wording and from se
   chunk.name = "ChunkLoadError";
   assert.equal(reload.isStaleBuildError(chunk), true);
   assert.equal(reload.isStaleBuildError({ name: "ChunkLoadError", message: "" }), true);
+  // Next.js 16: a page from before a deploy calls a server action the new build renamed.
+  const stale = Object.assign(new Error('Server Action "40f5378593cc0e761e085ecfc727811bba15a739c8" was not found on the server. \nRead more: https://nextjs.org/docs/messages/failed-to-find-server-action'), { name: "UnrecognizedActionError" });
+  assert.equal(reload.isStaleBuildError(stale), true);
+  assert.equal(reload.isStaleBuildError(new Error('Server Action "abc123" was not found on the server.')), true);
   for (const message of [
     "Loading CSS chunk app-layout failed",
     "Failed to fetch dynamically imported module: https://app.shopinbos.com/_next/static/chunks/a.js",
@@ -44,7 +48,8 @@ test("the deploy recovery hook guards with sessionStorage and the app, portal an
   assert.match(hook, /sessionStorage\.setItem\(CHUNK_RELOAD_KEY/);
   const pages = readFileSync("src/components/errors/AppErrorPages.tsx", "utf8");
   assert.match(pages, /useDeployRecovery\(error\)/);
-  assert.match(pages, /Shopinbos just got an update — reloading…/);
+  assert.match(pages, /title=\{t\("update\.title"\)\}/);
+  assert.match(readFileSync("shared/i18n/messages/errors/en.ts", "utf8"), /"update\.title": "Shopinbos just got an update — reloading…"/);
   assert.match(readFileSync("src/components/errors/PortalErrorPages.tsx", "utf8"), /ErrorSceneFor/);
   assert.match(readFileSync("src/app/global-error.tsx", "utf8"), /GlobalAppError/);
 });

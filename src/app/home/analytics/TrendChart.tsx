@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { Segmented } from "@/components/app-ui";
 import { cx } from "@/components/app-ui/cx";
+import { useT } from "@/components/i18n/I18nProvider";
 
-// Sales (or orders) over time, this period against the one before, on one axis. Hover or arrow keys move a
-// crosshair that reads out both values; "Show as table" lists every point for screen readers and print.
+// One number over time, this period against the one before, on one axis (CompareChart): sales or orders here,
+// visits or page views on /home/analytics/traffic. Hover or arrow keys move a crosshair that reads out both
+// values; "Show as table" lists every point for screen readers and print.
 
 export interface TrendPoint {
   label: string;
@@ -42,7 +44,43 @@ function ticks(max: number) {
 }
 
 export function TrendChart({ points, rangeLabel }: { points: TrendPoint[]; rangeLabel: string }) {
+  const t = useT("analytics");
   const [metric, setMetric] = useState<"sales" | "orders">("sales");
+  return (
+    <CompareChart
+      points={points.map((point) => ({ label: point.label, current: metric === "sales" ? point.sales : point.orders, previous: metric === "sales" ? point.previousSales : point.previousOrders }))}
+      metricLabel={metric === "sales" ? t("kpi.sales") : t("kpi.orders")}
+      rangeLabel={rangeLabel}
+      format={metric === "sales" ? naira : (value: number) => t("customers.orders", { count: value })}
+      tickFormat={metric === "sales" ? compactNaira : (value: number) => value.toLocaleString("en-NG")}
+      controls={<Segmented options={[{ value: "sales", label: t("kpi.sales") }, { value: "orders", label: t("chart.orders") }]} value={metric} onChange={setMetric} />}
+    />
+  );
+}
+
+export interface ComparePoint {
+  label: string;
+  /** null for buckets that haven't happened yet. */
+  current: number | null;
+  previous: number;
+}
+
+export function CompareChart({
+  points,
+  metricLabel,
+  rangeLabel,
+  format,
+  tickFormat,
+  controls,
+}: {
+  points: ComparePoint[];
+  metricLabel: string;
+  rangeLabel: string;
+  format: (value: number) => string;
+  tickFormat: (value: number) => string;
+  controls?: ReactNode;
+}) {
+  const t = useT("analytics");
   const [active, setActive] = useState<number | null>(null);
   const [showTable, setShowTable] = useState(false);
   const [width, setWidth] = useState(640);
@@ -57,10 +95,8 @@ export function TrendChart({ points, rangeLabel }: { points: TrendPoint[]; range
     return () => observer.disconnect();
   }, []);
 
-  const format = metric === "sales" ? naira : (value: number) => `${value.toLocaleString("en-NG")} order${value === 1 ? "" : "s"}`;
-  const tickFormat = metric === "sales" ? compactNaira : (value: number) => value.toLocaleString("en-NG");
-  const current = points.map((point) => (metric === "sales" ? point.sales : point.orders));
-  const previous = points.map((point) => (metric === "sales" ? point.previousSales : point.previousOrders));
+  const current = points.map((point) => point.current);
+  const previous = points.map((point) => point.previous);
   const yTicks = useMemo(() => ticks(Math.max(0, ...current.map((v) => v ?? 0), ...previous)), [current, previous]);
   const yMax = yTicks[yTicks.length - 1] || 1;
   const plotW = width - PAD.left - PAD.right;
@@ -87,7 +123,7 @@ export function TrendChart({ points, rangeLabel }: { points: TrendPoint[]; range
   const labelEvery = Math.max(1, Math.ceil(points.length / Math.max(2, Math.floor(plotW / 90))));
   const total = current.reduce<number>((sum, value) => sum + (value ?? 0), 0);
   const previousTotal = previous.reduce((sum, value) => sum + value, 0);
-  const summary = `${metric === "sales" ? "Sales" : "Paid orders"} for ${rangeLabel}: ${format(total)}, against ${format(previousTotal)} in the period before.`;
+  const summary = t("chart.summary", { metric: metricLabel, range: rangeLabel, total: format(total), previous: format(previousTotal) });
 
   function pick(clientX: number) {
     const rect = box.current?.getBoundingClientRect();
@@ -114,18 +150,18 @@ export function TrendChart({ points, rangeLabel }: { points: TrendPoint[]; range
     <figure className="m-0" aria-labelledby={titleId}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-4 text-[13px] text-app-ink-soft" aria-hidden="true">
-          <span className="inline-flex items-center gap-2"><span className="h-[3px] w-5 rounded-full" style={{ background: CURRENT }} />This period</span>
-          <span className="inline-flex items-center gap-2"><span className="h-0 w-5 border-t-2 border-dashed" style={{ borderColor: PREVIOUS }} />Period before</span>
+          <span className="inline-flex items-center gap-2"><span className="h-[3px] w-5 rounded-full" style={{ background: CURRENT }} />{t("chart.thisPeriod")}</span>
+          <span className="inline-flex items-center gap-2"><span className="h-0 w-5 border-t-2 border-dashed" style={{ borderColor: PREVIOUS }} />{t("chart.before")}</span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Segmented options={[{ value: "sales", label: "Sales" }, { value: "orders", label: "Orders" }]} value={metric} onChange={setMetric} />
+          {controls}
           <button
             type="button"
             onClick={() => setShowTable((value) => !value)}
             aria-expanded={showTable}
             className="inline-flex min-h-[40px] items-center rounded-full border border-app-line bg-white px-4 text-[13px] font-bold hover:border-app-line-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-app-ink"
           >
-            {showTable ? "Hide table" : "Show as table"}
+            {showTable ? t("chart.hideTable") : t("chart.showTable")}
           </button>
         </div>
       </div>
@@ -136,7 +172,7 @@ export function TrendChart({ points, rangeLabel }: { points: TrendPoint[]; range
         className="relative mt-4 select-none outline-none focus-visible:rounded-[12px] focus-visible:ring-2 focus-visible:ring-app-ink"
         tabIndex={0}
         role="img"
-        aria-label={`${summary} Use the left and right arrow keys to read each point.`}
+        aria-label={`${summary} ${t("chart.keys")}`}
         onPointerMove={(event) => pick(event.clientX)}
         onPointerLeave={() => setActive(null)}
         onKeyDown={onKey}
@@ -173,16 +209,16 @@ export function TrendChart({ points, rangeLabel }: { points: TrendPoint[]; range
             <div className="text-app-ink-soft">{tip.label}</div>
             <div className="mt-1 flex items-center gap-2">
               <span className="h-[3px] w-3 shrink-0 rounded-full" style={{ background: CURRENT }} />
-              <strong className="text-[14px]">{current[active!] == null ? "Not yet" : format(current[active!]!)}</strong>
+              <strong className="text-[14px]">{current[active!] == null ? t("chart.notYet") : format(current[active!]!)}</strong>
             </div>
             <div className="mt-0.5 flex items-center gap-2 text-app-ink-soft">
               <span className="w-3 shrink-0 border-t-2 border-dashed" style={{ borderColor: PREVIOUS }} />
-              <span>{format(previous[active!])} before</span>
+              <span>{t("chart.valueBefore", { value: format(previous[active!]) })}</span>
             </div>
           </div>
         )}
       </div>
-      <div className="sr-only" aria-live="polite">{tip ? `${tip.label}: ${current[active!] == null ? "not yet" : format(current[active!]!)}, period before ${format(previous[active!])}` : ""}</div>
+      <div className="sr-only" aria-live="polite">{tip ? t("chart.live", { label: tip.label, current: current[active!] == null ? t("chart.notYetLower") : format(current[active!]!), previous: format(previous[active!]) }) : ""}</div>
 
       {showTable && (
         <div className="mt-4 max-h-[360px] overflow-auto rounded-[14px] border border-app-line">
@@ -190,16 +226,16 @@ export function TrendChart({ points, rangeLabel }: { points: TrendPoint[]; range
             <caption className="sr-only">{summary}</caption>
             <thead className="sticky top-0 bg-white">
               <tr className="text-left text-app-ink-soft">
-                <th scope="col" className="px-3 py-2 font-semibold">When</th>
-                <th scope="col" className="px-3 py-2 text-right font-semibold">This period</th>
-                <th scope="col" className="px-3 py-2 text-right font-semibold">Period before</th>
+                <th scope="col" className="px-3 py-2 font-semibold">{t("chart.when")}</th>
+                <th scope="col" className="px-3 py-2 text-right font-semibold">{t("chart.thisPeriod")}</th>
+                <th scope="col" className="px-3 py-2 text-right font-semibold">{t("chart.before")}</th>
               </tr>
             </thead>
             <tbody>
               {points.map((point, index) => (
                 <tr key={index} className={cx("border-t border-app-line", index % 2 ? "bg-app-canvas/50" : "")}>
                   <th scope="row" className="px-3 py-2 text-left font-semibold">{point.label}</th>
-                  <td className="px-3 py-2 text-right tabular-nums">{current[index] == null ? "Not yet" : format(current[index]!)}</td>
+                  <td className="px-3 py-2 text-right tabular-nums">{current[index] == null ? t("chart.notYet") : format(current[index]!)}</td>
                   <td className="px-3 py-2 text-right tabular-nums text-app-ink-soft">{format(previous[index])}</td>
                 </tr>
               ))}

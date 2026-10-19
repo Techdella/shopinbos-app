@@ -1,17 +1,19 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import QRCode from "qrcode";
 import { requireRole } from "@/lib/server-auth";
-import { db } from "@/lib/db/client";
-import { buildStorefrontUrl } from "@/lib/domains/storefront";
-import { addressLines, amountToCollect, itemCount, parseLabelFormat, parseOrderIds } from "@/lib/labels";
+import { parseLabelFormat, parseOrderIds } from "@/lib/labels";
+import { loadLabels } from "@/lib/labels.server";
 import { naira } from "@shared/onboarding";
 import { PrintButton } from "./PrintButton";
+import { getT } from "@/lib/i18n/server";
 
 // Print view for /home/labels: no app shell, sized for a 4×6 label printer or A4 (4 labels a page).
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Print labels" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT("orders");
+  return { title: t("lab.printTitle") };
+}
 
 interface Item {
   name?: string;
@@ -21,29 +23,14 @@ interface Item {
 
 export default async function PrintLabelsPage({ searchParams }: { searchParams: Promise<{ orders?: string; format?: string; slips?: string }> }) {
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("orders");
   const params = await searchParams;
   const format = parseLabelFormat(params.format);
   const withSlips = params.slips !== "0";
   const ids = parseOrderIds(params.orders);
 
-  const store = await db.store.findUnique({
-    where: { userId: user.id },
-    select: { id: true, name: true, slug: true, customDomain: true, logoUrl: true, liveChatConfig: { select: { whatsappNumber: true, contactPhone: true } } },
-  });
-  const orders = store && ids.length
-    ? await db.retailOrder.findMany({ where: { storeId: store.id, id: { in: ids } }, orderBy: { createdAt: "asc" } })
-    : [];
-  const storePhone = store?.liveChatConfig?.whatsappNumber || store?.liveChatConfig?.contactPhone || user.phone || null;
-
-  const labels = await Promise.all(
-    orders.map(async (order) => ({
-      order,
-      qr: await QRCode.toString(buildStorefrontUrl(store!, `/order/${order.id}`), { type: "svg", margin: 0, errorCorrectionLevel: "M" }),
-      lines: addressLines(order.deliveryAddress),
-      collect: amountToCollect({ status: order.status, total: Number(order.total) }),
-      count: itemCount(order.items),
-    })),
-  );
+  // The same labels the phone app previews and prints (src/lib/labels.server.ts).
+  const { store, storePhone, labels } = await loadLabels({ userId: user.id, userPhone: user.phone ?? null, orderIds: ids });
 
   const pageSize = format === "a4" ? "A4" : "4in 6in";
 
@@ -64,13 +51,13 @@ export default async function PrintLabelsPage({ searchParams }: { searchParams: 
       `}</style>
 
       <div className="no-print sticky top-0 z-10 flex flex-wrap items-center justify-between gap-3 border-b border-app-line bg-white px-5 py-3">
-        <Link href="/home/labels" className="text-[14px] font-extrabold text-app-ink no-underline">← Back to labels</Link>
-        <span className="text-[14px] text-app-ink-soft">{labels.length} label{labels.length === 1 ? "" : "s"} · {format === "a4" ? "A4 paper" : "4 × 6 in"}</span>
-        <PrintButton disabled={!labels.length} />
+        <Link href="/home/labels" className="text-[14px] font-extrabold text-app-ink no-underline">{t("lab.back")}</Link>
+        <span className="text-[14px] text-app-ink-soft">{t("lab.count", { count: labels.length })} · {format === "a4" ? t("lab.a4") : "4 × 6 in"}</span>
+        <PrintButton disabled={!labels.length} label={t("lab.printButton")} />
       </div>
 
       {!labels.length ? (
-        <p className="p-10 text-center text-[15px] text-app-ink-soft">No orders to print. Go back and choose some orders.</p>
+        <p className="p-10 text-center text-[15px] text-app-ink-soft">{t("lab.nothingToPrint")}</p>
       ) : (
         <div className="mx-auto w-fit p-6 print:p-0">
           <div className={format === "a4" ? "sheet bg-white" : "one grid gap-6 print:gap-0"}>

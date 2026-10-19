@@ -7,9 +7,13 @@ import { AppFrame } from "@/components/shell/AppFrame";
 import { sellerFrame } from "@/components/seller-core";
 import { findSample, isSampleId, parseSourcing, similarRange, toFindProduct, type FindProduct } from "@/lib/marketplace/find";
 import { ProductDetail, type MyWholesaleOrder } from "../../_components/ProductDetail";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Find products" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT("marketplace");
+  return { title: t("ws.findProducts") };
+}
 
 const supplierSelect = { id: true, userId: true, slug: true, displayName: true, city: true, rating: true, ratingCount: true, verificationStatus: true } as const;
 

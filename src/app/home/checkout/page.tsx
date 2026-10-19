@@ -5,12 +5,20 @@ import { PillLink } from "@/components/app-kit";
 import { buildDirectStorefrontPath } from "@/lib/domains/storefront";
 import { checkoutPaymentOptions, checkoutPaymentSettings, paystackSecretReady } from "@shared/checkout-payments";
 import { readCheckoutSettings } from "@shared/cart-checkout";
+import { storeTakesCards, storeTakesKorapay } from "@/lib/wallet/wallet.server";
 import { CheckoutSettings } from "./CheckoutSettings";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
+export async function generateMetadata() {
+  const t = await getT("payments");
+  return { title: t("co.title") };
+}
+
 export default async function CheckoutPage() {
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("payments", "orders");
   const store = await db.store.findUnique({
     where: { userId: user.id },
     select: {
@@ -36,15 +44,15 @@ export default async function CheckoutPage() {
     : [[], []];
 
   // What shoppers will actually be offered right now (same rules as the storefront checkout).
-  const payments = checkoutPaymentOptions(checkoutPaymentSettings(store?.brandSettings, zones, paystackSecretReady(process.env.PAYSTACK_SECRET_KEY))).map((option) => option.label);
+  const payments = checkoutPaymentOptions(checkoutPaymentSettings(store?.brandSettings, zones, paystackSecretReady(process.env.PAYSTACK_SECRET_KEY) && Boolean(store && (await storeTakesCards(store.id))), Boolean(store && (await storeTakesKorapay(store.id))))).map((option) => t.dynamic(`method.${option.key}`, option.label));
 
   return (
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title="Checkout"
-      sub="Shoppers check out in four short steps: contact, delivery, payment and review. Choose what they're asked for."
-      actions={store ? <PillLink href={buildDirectStorefrontPath(store.slug, "/checkout")} icon="eye">See your checkout</PillLink> : undefined}
+      title={t("co.title")}
+      sub={t("co.sub")}
+      actions={store ? <PillLink href={buildDirectStorefrontPath(store.slug, "/checkout")} icon="eye">{t("co.see")}</PillLink> : undefined}
     >
       <CheckoutSettings
         initial={readCheckoutSettings(store?.checkoutConfig ?? null)}

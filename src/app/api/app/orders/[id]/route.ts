@@ -4,6 +4,7 @@ import { withSeller } from "@/lib/auth/middleware";
 import { ok, apiError } from "@/lib/api/response";
 import { orderRow } from "@/lib/dashboard/compute";
 import { OrderStatusUpdateSchema, updateOrderStatus } from "@/lib/orders/update-status";
+import { sellerPartsView } from "@/lib/supplier-orders/parts.server";
 
 export const GET = withSeller(async (req, { user, params }) => {
   const { id } = await params;
@@ -20,7 +21,11 @@ export const GET = withSeller(async (req, { user, params }) => {
     select: { id: true, status: true, items: true, trackingCode: true, carrier: true, rejectReason: true, shippedAt: true, deliveredAt: true, supplier: { select: { id: true, displayName: true } } },
   });
 
-  return ok({ ...order, supplierOrders, row: orderRow({ ...order, total: Number(order.total) }) });
+  // Parcels ("2 of 3 parcels sent") and anything the seller has to decide (a supplier didn't accept in time).
+  const parts = await sellerPartsView(order.id, store.id).catch(() => null);
+
+  const row = orderRow({ ...order, total: Number(order.total) });
+  return ok({ ...order, supplierOrders, parts, row: parts?.stage ? { ...row, stage: parts.stage } : row });
 });
 
 export const PATCH = withSeller(async (req, { user, params }) => {
@@ -39,6 +44,8 @@ export const PATCH = withSeller(async (req, { user, params }) => {
   const result = await updateOrderStatus(store, order, parsed.data);
   if (!result.ok) return apiError("BAD_REQUEST", result.error);
   const updated = result.order;
+  const parts = await sellerPartsView(updated.id, store.id).catch(() => null);
 
-  return ok({ ...updated, row: orderRow({ ...updated, total: Number(updated.total) }) });
+  const row = orderRow({ ...updated, total: Number(updated.total) });
+  return ok({ ...updated, parts, row: parts?.stage ? { ...row, stage: parts.stage } : row });
 });

@@ -149,7 +149,7 @@ export function getTemplate(id: string): CollectionTemplate {
 
 /** Paths under /s/[slug]/ that belong to the store itself, so no collection may use them. */
 export const RESERVED_COLLECTION_SLUGS = [
-  "api", "cart", "checkout", "wishlist", "order", "orders", "product", "products", "preview", "join", "review", "reviews",
+  "api", "cart", "checkout", "wishlist", "order", "orders", "product", "products", "shop", "menu", "preview", "join", "review", "reviews",
   "collections", "c", "search", "account", "login", "signup", "s", "admin", "static", "_next", "favicon.ico", "robots.txt", "sitemap.xml", "policies",
 ] as const;
 

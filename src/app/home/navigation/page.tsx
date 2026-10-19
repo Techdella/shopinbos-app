@@ -1,92 +1,93 @@
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/server-auth";
-import { getSellerWorkspace, parseBrandSettings } from "@/lib/workspace";
+import { getSellerWorkspace } from "@/lib/workspace";
+import { db } from "@/lib/db/client";
 import { saveStoreNavigationSettings } from "@/app/actions/workspace";
 import { PageToast } from "@/components/PageToast";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
-import { Card, CardHead, PillLink } from "@/components/app-kit";
+import { PillLink } from "@/components/app-kit";
 import { Notice } from "@/components/app-ui";
-import { FIELD_HELP, FIELD_INPUT, FIELD_LABEL, SUBMIT_ACCENT } from "@/components/seller-settings/fields";
+import { getT } from "@/lib/i18n/server";
+import { parseEditorState } from "@/lib/store-templates";
+import { navigationDraft, navigationOf } from "@/lib/store-navigation.server";
+import { navigationFingerprint } from "@/lib/storefront/store-navigation";
+import { publicBrandSettings } from "@shared/public-brand-settings";
+import { NavigationEditor } from "./NavigationEditor";
 
 export const dynamic = "force-dynamic";
 
-type NavPageProps = { searchParams?: Promise<{ saved?: string }> };
-
-function splitMenu(value: string) {
-  return value.split(",").map((item) => item.trim()).filter(Boolean);
+export async function generateMetadata() {
+  const t = await getT("store");
+  return { title: t("nav.title") };
 }
 
+type NavPageProps = { searchParams?: Promise<{ saved?: string; conflict?: string; error?: string }> };
+
+// The store's menus, read from (and saved to) the builder snapshot's header and footer: the same data the storefront
+// renders and the store builder edits (src/lib/store-navigation.server.ts).
 export default async function NavigationSettingsPage({ searchParams }: NavPageProps) {
   const params = await searchParams;
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("store");
   const workspace = await getSellerWorkspace(user.id);
   if (!workspace?.store) redirect("/onboarding?role=seller");
 
   const store = workspace.store;
-  const settings = parseBrandSettings(store.brandSettings);
-  const navigation = settings.navigation && typeof settings.navigation === "object"
-    ? settings.navigation as Record<string, unknown>
-    : {};
-  const mainMenu = Array.isArray(navigation.mainMenu)
-    ? navigation.mainMenu.join(", ")
-    : "Home, Shop, About, Contact";
-  const footerMenu = Array.isArray(navigation.footerMenu)
-    ? navigation.footerMenu.join(", ")
-    : "Privacy, Terms, Returns, Contact";
+  const draft = navigationDraft(store.brandSettings, store.name);
+  const published = parseEditorState((store.brandSettings as Record<string, unknown> | null)?.editor).published ?? null;
+  const nav = navigationOf(draft);
+  // "What shoppers see now": the live menus when the store is published, else the draft's.
+  const live = published ? navigationOf(published) : nav;
+  const unpublishedBuilderChanges = Boolean(published) && navigationFingerprint(live) !== navigationFingerprint(nav);
+
+  const products = await db.storeProduct.findMany({
+    where: { storeId: store.id, status: "published" },
+    select: { id: true, name: true, category: { select: { slug: true, name: true } } },
+    orderBy: { createdAt: "desc" },
+    take: 300,
+  });
+  const categories = [...new Map(products.filter((product) => product.category).map((product) => [product.category!.slug, { slug: product.category!.slug, name: product.category!.name }])).values()];
+  const pageTypes = [...new Set((draft?.pages ?? []).map((page) => String(page.pageType)))];
+  const logoText = (() => {
+    const header = (draft?.pages ?? []).flatMap((page) => page.sections ?? []).find((section) => section?.kind === "header");
+    const value = header?.blocks?.find((block) => block.type === "copy")?.content?.logoText;
+    return typeof value === "string" && value.trim() && value.trim() !== "Store" ? value.trim() : store.name;
+  })();
 
   return (
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title="Navigation"
-      sub="The menu at the top of your store and the links in its footer."
-      actions={<PillLink href="/home/pages" icon="document">Pages</PillLink>}
+      title={t("nav.title")}
+      sub={t("nav.sub")}
+      actions={
+        <>
+          <PillLink href="/home/pages" icon="document">{t("nav.pages")}</PillLink>
+          <PillLink href="/builder" icon="palette" tone="ink">{t("nav.builder")}</PillLink>
+        </>
+      }
     >
       <PageToast />
       <div className="grid gap-5">
-        {params?.saved && <Notice tone="success">Navigation saved.</Notice>}
+        {params?.saved && <Notice tone="success">{t("nav.saved")}</Notice>}
+        {params?.conflict && <Notice tone="error">{t("nav.conflict")}</Notice>}
+        {params?.error && <Notice tone="error">{t("nav.error")}</Notice>}
+        <Notice tone="info">{published ? t("nav.live") : t("nav.liveDraft")}</Notice>
+        {unpublishedBuilderChanges && <Notice tone="info">{t("nav.builderDraft")}</Notice>}
+        {!nav.hasHeader && <Notice tone="info">{t("nav.noHeader")}</Notice>}
+        {!nav.hasFooter && <Notice tone="info">{t("nav.noFooter")}</Notice>}
 
-        <form action={saveStoreNavigationSettings} className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
-          <div className="grid min-w-0 content-start gap-5">
-            <Card className="p-5">
-              <CardHead title="Main menu" sub="Links at the top of every page in your store." />
-              <div className="mt-4">
-                <label htmlFor="mainMenu" className={FIELD_LABEL}>Menu items</label>
-                <input id="mainMenu" name="mainMenu" className={FIELD_INPUT} placeholder="Home, Shop, About, Contact" defaultValue={mainMenu} />
-                <p className={FIELD_HELP}>Separate items with commas. Each one links to the page with the same name.</p>
-              </div>
-            </Card>
-
-            <Card className="p-5">
-              <CardHead title="Footer menu" sub="Links at the bottom, usually policies and help." />
-              <div className="mt-4">
-                <label htmlFor="footerMenu" className={FIELD_LABEL}>Footer links</label>
-                <input id="footerMenu" name="footerMenu" className={FIELD_INPUT} placeholder="Privacy, Terms, Returns, Contact" defaultValue={footerMenu} />
-                <p className={FIELD_HELP}>Separate items with commas.</p>
-              </div>
-            </Card>
-
-            <div>
-              <button className={SUBMIT_ACCENT} type="submit">Save navigation</button>
-            </div>
-          </div>
-
-          <aside className="min-w-0">
-            <Card className="p-5">
-              <CardHead title="What shoppers see now" />
-              <div className="mt-4 overflow-hidden rounded-[16px] border border-app-line">
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-app-line bg-app-canvas px-4 py-3">
-                  <span className="mr-auto truncate text-[14px] font-extrabold">{store.name}</span>
-                  {splitMenu(mainMenu).map((item) => <span key={item} className="text-[13px] font-bold">{item}</span>)}
-                </div>
-                <div className="h-24" />
-                <div className="flex flex-wrap gap-x-4 gap-y-1 border-t border-app-line px-4 py-3">
-                  {splitMenu(footerMenu).map((item) => <span key={item} className="text-[12.5px] text-app-ink-soft">{item}</span>)}
-                </div>
-              </div>
-              <p className={FIELD_HELP}>This shows your saved menus.</p>
-            </Card>
-          </aside>
+        <form action={saveStoreNavigationSettings}>
+          <input type="hidden" name="fingerprint" value={navigationFingerprint(nav)} />
+          <NavigationEditor
+            initial={{ main: nav.main, mobileSource: nav.mobileSource, mobile: nav.mobile, mobileStyle: nav.mobileStyle, footer: nav.footer }}
+            live={{ main: live.main, mobileSource: live.mobileSource, mobile: live.mobile, mobileStyle: live.mobileStyle, footer: live.footer }}
+            pageTypes={pageTypes}
+            categories={categories}
+            products={products.map((product) => ({ id: product.id, name: product.name }))}
+            store={{ name: store.name, logoUrl: store.logoUrl ?? null, brandSettings: { ...(publicBrandSettings(store.brandSettings) as Record<string, unknown> | null ?? {}), editor: undefined } }}
+            logoText={logoText}
+          />
         </form>
       </div>
     </SellerPage>

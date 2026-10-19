@@ -34,7 +34,8 @@ export interface RequestOutcome {
   whatsappUrl?: string;
 }
 
-const REQUESTABLE = new Set(["paid", "processing", "packed", "shipped", "delivered"]);
+const REQUESTABLE_STATUSES = ["paid", "processing", "packed", "shipped", "delivered"] as const;
+const REQUESTABLE = new Set<string>(REQUESTABLE_STATUSES);
 
 export function channelReadiness() {
   const sms = platformSmsReady();
@@ -70,6 +71,37 @@ function orderItemNames(items: unknown): string[] {
 export function whatsappLink(phone: string | null, text: string) {
   const e164 = phone ? toE164(phone) : null;
   return `https://wa.me/${e164 ? e164.replace(/^\+/, "") : ""}?text=${encodeURIComponent(text)}`;
+}
+
+/**
+ * "Ask for reviews now": paid-or-later orders from the last 120 days (delivered first), each with when and how the
+ * buyer was last asked and whether they already reviewed, plus the store's recent requests. Used by the web
+ * page (/home/reviews/request) and the app (/api/app/reviews/requests).
+ */
+export async function requestableOrders(storeId: string, take = 300) {
+  const since = new Date(Date.now() - 120 * 86_400_000);
+  const [orders, requests] = await Promise.all([
+    db.retailOrder.findMany({
+      where: { storeId, status: { in: [...REQUESTABLE_STATUSES] }, createdAt: { gte: since } },
+      orderBy: [{ deliveredAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
+      take,
+      select: { id: true, orderNumber: true, buyerName: true, buyerEmail: true, buyerPhone: true, status: true, createdAt: true, deliveredAt: true },
+    }),
+    db.reviewRequest.findMany({ where: { storeId }, orderBy: { createdAt: "desc" }, take: 500 }).catch(() => []),
+  ]);
+  const reviewedRows = orders.length
+    ? await db.$queryRawUnsafe<Array<{ orderId: string }>>(`SELECT DISTINCT "orderId" FROM "ProductReview" WHERE "storeId" = $1 AND "orderId" = ANY($2)`, storeId, orders.map((o) => o.id)).catch(() => [])
+    : [];
+  const reviewed = new Set(reviewedRows.map((row) => row.orderId));
+  const lastAsked = new Map<string, (typeof requests)[number]>();
+  for (const request of requests) if (!lastAsked.has(request.orderId) && request.status !== "failed") lastAsked.set(request.orderId, request);
+  return {
+    orders: orders.map((order) => {
+      const asked = lastAsked.get(order.id);
+      return { ...order, asked: asked ? { channel: asked.channel, at: asked.createdAt } : null, reviewed: reviewed.has(order.id) };
+    }),
+    requests,
+  };
 }
 
 /** Sends (or prepares) review requests for orders in one store. Never sends twice for the same order and channel unless `resend`. */

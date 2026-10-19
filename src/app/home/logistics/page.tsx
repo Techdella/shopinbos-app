@@ -5,23 +5,29 @@ import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { AssistantNote, Card, CardHead, FilterChips, ListCard, ListRow, Pill, PillLink, StatGrid, StatTile, Thumb, EmptyState, type Tone } from "@/components/app-kit";
 import { QuoteRequestForm } from "./QuoteRequestForm";
 import { AcceptQuoteButton } from "./AcceptQuoteButton";
+import { PayDeliveryFeeButton } from "@/components/logistics/PayDeliveryFeeButton";
+import { payableDeliveryFees } from "@/lib/logistics/delivery-fee-payments.server";
 import { messagesHref } from "@/lib/conversations/pure";
+import { getLocale, getT } from "@/lib/i18n/server";
+import { formatDate, formatMoney } from "@shared/i18n";
 
 export const dynamic = "force-dynamic";
 
-function fmt(n: number) { return "₦" + Math.round(n).toLocaleString("en-US"); }
+export async function generateMetadata() {
+  const t = await getT("shipping");
+  return { title: t("lg.title") };
+}
 
 const ACTIVE = ["pending", "confirmed", "picked_up", "in_transit"] as const;
 
 const QUOTE_TONE: Record<string, Tone> = { pending: "warning", responded: "info", accepted: "success", rejected: "muted", expired: "muted" };
-const QUOTE_LABEL: Record<string, string> = { pending: "Waiting", responded: "Price in", accepted: "Accepted", rejected: "Declined", expired: "Expired" };
+
 const BOOKING_TONE: Record<string, Tone> = { pending: "warning", confirmed: "info", picked_up: "info", in_transit: "info", delivered: "success", failed: "danger", cancelled: "muted" };
-const BOOKING_LABEL: Record<string, string> = { pending: "Needs a rider", confirmed: "Rider booked", picked_up: "Rider picked it up", in_transit: "Rider on the way", delivered: "Delivered", failed: "Failed", cancelled: "Cancelled" };
 
 const FILTERS = [
-  { key: "all", label: "All partners" },
-  { key: "same_day", label: "Same day" },
-  { key: "nationwide", label: "Nationwide" },
+  { key: "all" },
+  { key: "same_day" },
+  { key: "nationwide" },
 ] as const;
 
 // partner may be an id or a slug; logisticsSlug arrives from the marketing site ("Book delivery" intent).
@@ -30,6 +36,9 @@ type Search = { filter?: string; partner?: string; intent?: string; logisticsSlu
 export default async function SellerLogisticsPage({ searchParams }: { searchParams: Promise<Search> }) {
   const params = await searchParams;
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("shipping", "common");
+  const locale = await getLocale();
+  const fmt = (n: number) => formatMoney(Math.round(n), locale);
   const workspace = await getSellerWorkspace(user.id);
   if (!workspace) return null;
 
@@ -59,41 +68,42 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
     db.deliveryBooking.findMany({ where: { sellerId: user.id }, include: { logisticsPartner: { select: { displayName: true } } }, orderBy: { createdAt: "desc" }, take: 8 }),
   ]);
 
+  const payable = await payableDeliveryFees(recentBookings.map((b) => b.id));
   const allVerified = filter === "all"
     ? partners
     : await db.logisticsPartner.findMany({ where: { status: "active", verificationStatus: "verified" }, orderBy: { displayName: "asc" }, take: 100 });
   const partnerOptions = allVerified.map((p) => ({ id: p.id, name: `${p.displayName} · ${p.city}` }));
-  const date = (d: Date) => new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  const date = (d: Date) => formatDate(d, locale, { day: "numeric", month: "short" });
 
   return (
     <SellerPage
       user={user}
       store={storeSummary(workspace.store)}
-      title="Delivery"
-      sub="Book riders, compare delivery partners and follow every parcel."
+      title={t("lg.title")}
+      sub={t("lg.sub")}
       actions={
         <>
-          <PillLink href="/marketplace?type=logistics" icon="truck">Find partners</PillLink>
-          <PillLink href="/home/logistics?intent=book_delivery#quote" tone="accent" icon="plus">Book delivery</PillLink>
+          <PillLink href="/marketplace?type=logistics" icon="truck">{t("lg.findPartners")}</PillLink>
+          <PillLink href="/home/logistics?intent=book_delivery#quote" tone="accent" icon="plus">{t("lg.book")}</PillLink>
         </>
       }
     >
       <div className="grid gap-5">
         <StatGrid>
-          <StatTile tone="card" label="On the way" value={activeCount} />
-          <StatTile tone="card" label="Delivered" value={deliveredCount} />
-          <StatTile tone="card" label="Quotes waiting" value={pendingQuotes} hint={`${quoteCount} asked in total`} />
-          <StatTile tone="card" label="Verified partners" value={allVerified.length} />
+          <StatTile tone="card" label={t("lg.onTheWay")} value={activeCount} />
+          <StatTile tone="card" label={t("lg.delivered")} value={deliveredCount} />
+          <StatTile tone="card" label={t("lg.quotesWaiting")} value={pendingQuotes} hint={t("lg.askedTotal", { count: quoteCount })} />
+          <StatTile tone="card" label={t("lg.verified")} value={allVerified.length} />
         </StatGrid>
 
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_440px]">
           <div className="grid min-w-0 content-start gap-5">
             <Card className="overflow-hidden">
               <div className="flex flex-wrap items-end justify-between gap-3 px-5 pb-4 pt-5">
-                <CardHead title="Your deliveries" sub="Latest bookings across your store" />
+                <CardHead title={t("lg.yourDeliveries")} sub={t("lg.latest")} />
               </div>
               {recentBookings.length === 0 ? (
-                <p className="m-0 border-t border-app-line px-5 py-8 text-center text-[14px] text-app-ink-soft">Bookings show here once you confirm a delivery partner.</p>
+                <p className="m-0 border-t border-app-line px-5 py-8 text-center text-[14px] text-app-ink-soft">{t("lg.noBookings")}</p>
               ) : (
                 <ul className="m-0 list-none divide-y divide-app-line border-t border-app-line p-0">
                   {recentBookings.map((b) => (
@@ -102,9 +112,10 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
                         <div className="truncate text-[14.5px] font-extrabold">{b.pickupLocation} → {b.destination}</div>
                         <div className="truncate text-[13px] text-app-ink-soft">{b.logisticsPartner.displayName}{b.trackingCode ? ` · ${b.trackingCode}` : ""} · {date(b.createdAt)}</div>
                       </div>
-                      <Pill tone={BOOKING_TONE[b.status] ?? "muted"} dot>{BOOKING_LABEL[b.status] ?? b.status.replace(/_/g, " ")}</Pill>
+                      <Pill tone={BOOKING_TONE[b.status] ?? "muted"} dot>{t.dynamic(`booking.${b.status}`, b.status.replace(/_/g, " "))}</Pill>
                       <span className="w-[90px] shrink-0 text-right text-[14px] font-extrabold">{fmt(b.deliveryFee)}</span>
-                      <PillLink href={messagesHref("seller", { with: b.logisticsPartnerId, context: { kind: "booking", id: b.id } })} size="sm" icon="chat">Message</PillLink>
+                      {b.feePaidAt ? <Pill tone="success">{t("lg.feePaid")}</Pill> : payable.has(b.id) ? <PayDeliveryFeeButton bookingId={b.id} label={t("lg.payFee", { amount: fmt(b.deliveryFee) })} /> : null}
+                      <PillLink href={messagesHref("seller", { with: b.logisticsPartnerId, context: { kind: "booking", id: b.id } })} size="sm" icon="chat">{t("lg.message")}</PillLink>
                     </li>
                   ))}
                 </ul>
@@ -113,12 +124,12 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
 
             <section className="grid gap-3">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <h2 className="m-0 text-[17px] font-extrabold">Delivery partners</h2>
-                <FilterChips items={FILTERS.map((f) => ({ label: f.label, href: f.key === "all" ? "/home/logistics" : `/home/logistics?filter=${f.key}`, active: f.key === filter }))} />
+                <h2 className="m-0 text-[17px] font-extrabold">{t("lg.partners")}</h2>
+                <FilterChips items={FILTERS.map((f) => ({ label: t(`filter.${f.key}`), href: f.key === "all" ? "/home/logistics" : `/home/logistics?filter=${f.key}`, active: f.key === filter }))} />
               </div>
               {partners.length === 0 ? (
-                <EmptyState icon="truck" title={filter === "all" ? "No verified partners yet" : "No partners match"}>
-                  {filter === "all" ? "Verified delivery partners show here as soon as they're approved." : "Try another filter to see more partners."}
+                <EmptyState icon="truck" title={filter === "all" ? t("lg.noVerified") : t("lg.noMatch")}>
+                  {filter === "all" ? t("lg.noVerifiedSub") : t("lg.tryFilter")}
                 </EmptyState>
               ) : (
                 <ListCard>
@@ -128,16 +139,16 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
                       <div className="min-w-0 flex-1 basis-[220px]">
                         <div className="truncate text-[14.5px] font-extrabold">{p.displayName}</div>
                         <div className="truncate text-[13px] text-app-ink-soft">
-                          {p.city}, {p.country} · reliability {p.reliabilityScore}/100{p.rating ? ` · ★ ${p.rating.toFixed(1)}` : ""}
+                          {p.city}, {p.country} · {t("lg.reliability", { score: p.reliabilityScore })}{p.rating ? ` · ★ ${p.rating.toFixed(1)}` : ""}
                         </div>
-                        {p.coverageZones.length > 0 && <div className="truncate text-[12.5px] text-app-ink-soft">Covers {p.coverageZones.join(", ")}</div>}
+                        {p.coverageZones.length > 0 && <div className="truncate text-[12.5px] text-app-ink-soft">{t("partners.covers", { zones: p.coverageZones.join(", ") })}</div>}
                       </div>
                       <div className="shrink-0 text-right">
-                        <div className="text-[12.5px] text-app-ink-soft">From</div>
+                        <div className="text-[12.5px] text-app-ink-soft">{t("lg.from")}</div>
                         <div className="text-[14.5px] font-extrabold">{fmt(p.basePrice)}</div>
                       </div>
-                      <PillLink href={messagesHref("seller", { with: p.id })} size="sm" icon="chat">Message</PillLink>
-                      <PillLink href={`/home/logistics?intent=quote&partner=${p.id}${filter !== "all" ? `&filter=${filter}` : ""}#quote`} size="sm" tone={chosenId === p.id ? "ink" : "white"}>Get a quote</PillLink>
+                      <PillLink href={messagesHref("seller", { with: p.id })} size="sm" icon="chat">{t("lg.message")}</PillLink>
+                      <PillLink href={`/home/logistics?intent=quote&partner=${p.id}${filter !== "all" ? `&filter=${filter}` : ""}#quote`} size="sm" tone={chosenId === p.id ? "ink" : "white"}>{t("getQuote")}</PillLink>
                     </ListRow>
                   ))}
                 </ListCard>
@@ -148,7 +159,7 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
           <aside className="grid min-w-0 content-start gap-5">
             <Card className="scroll-mt-4 p-5">
               <div id="quote" className="scroll-mt-4" />
-              <CardHead title="Ask for a delivery price" sub="The partner replies with a price you can accept." />
+              <CardHead title={t("lg.askPrice")} sub={t("lg.askPriceSub")} />
               <div className="mt-4">
                 <QuoteRequestForm
                   key={chosenId ?? "none"}
@@ -160,9 +171,9 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
             </Card>
 
             <Card className="overflow-hidden">
-              <CardHead title="Quote requests" sub="Prices partners sent you, and routes still waiting for an answer" className="px-5 pb-3 pt-5" />
+              <CardHead title={t("lg.quoteRequests")} sub={t("lg.quoteRequestsSub")} className="px-5 pb-3 pt-5" />
               {recentQuotes.length === 0 ? (
-                <p className="m-0 border-t border-app-line px-5 py-6 text-[14px] text-app-ink-soft">When you ask for delivery prices, they show up here.</p>
+                <p className="m-0 border-t border-app-line px-5 py-6 text-[14px] text-app-ink-soft">{t("lg.noQuotes")}</p>
               ) : (
                 <ul className="m-0 list-none divide-y divide-app-line border-t border-app-line p-0">
                   {recentQuotes.map((q) => (
@@ -172,7 +183,7 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
                         <div className="truncate text-[13px] text-app-ink-soft">{q.pickupLocation} → {q.destination} · {date(q.createdAt)}</div>
                       </div>
                       <div className="shrink-0 text-right">
-                        <Pill tone={QUOTE_TONE[q.status] ?? "muted"}>{QUOTE_LABEL[q.status] ?? q.status}</Pill>
+                        <Pill tone={QUOTE_TONE[q.status] ?? "muted"}>{t.dynamic(`quote.${q.status}`, q.status)}</Pill>
                         {q.quotedPrice != null && <div className="mt-1 text-[13.5px] font-extrabold">{fmt(q.quotedPrice)}</div>}
                         {q.status === "responded" && q.quotedPrice != null && (!q.expiresAt || q.expiresAt.getTime() > Date.now()) && <AcceptQuoteButton quoteId={q.id} />}
                       </div>
@@ -182,7 +193,7 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
               )}
             </Card>
 
-            <AssistantNote who="peggy">Book riders before 2pm for same-day delivery. I compare reliability, price and reply time before you book.</AssistantNote>
+            <AssistantNote who="peggy">{t("lg.peggy")}</AssistantNote>
           </aside>
         </div>
       </div>

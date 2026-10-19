@@ -16,6 +16,7 @@ import {
   validateDocFile,
 } from "@shared/verification-docs";
 import { assertUploadContent, privateBucket, removePrivateFile } from "@/lib/supabase/storage.server";
+import { notifyAdminsToReview } from "@/lib/notifications/events.server";
 
 const BUCKET = process.env.NEXT_PUBLIC_STORAGE_BUCKET ?? "shopinbos-media";
 
@@ -167,6 +168,13 @@ export async function submitVerification(
         verificationDocuments: updatedDocs,
         verificationStatus: "pending",
       },
+    });
+    const who = role === "supplier" ? "supplier" : "delivery company";
+    await notifyAdminsToReview({
+      title: `${String(entity.displayName ?? entity.businessName ?? entity.companyName ?? "A business").slice(0, 60)} sent documents to verify`,
+      description: `A ${who} is waiting for verification. Check their documents.`,
+      link: role === "supplier" ? `/admin/suppliers/${entity.id}` : `/admin/logistics-partners/${entity.id}`,
+      dedupeKey: `admin.verify:${entity.id}:${new Date().toISOString().slice(0, 10)}`,
     });
 
     return { success: true };

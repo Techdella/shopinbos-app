@@ -7,12 +7,16 @@ import { PillLink } from "@/components/app-kit";
 import { buildStorefrontOrigin } from "@/lib/domains/storefront";
 import { readFields } from "@/lib/cms/fields";
 import { ItemEditor, type EditorItem } from "./ItemEditor";
+import { formatDate } from "@shared/i18n";
+import { getLocale, getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
 export default async function CmsItemPage({ params }: { params: Promise<{ collectionId: string; itemId: string }> }) {
   const { collectionId, itemId } = await params;
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("cms");
+  const locale = await getLocale();
   const workspace = await getSellerWorkspace(user.id);
   const store = workspace?.store;
   if (!store) notFound();
@@ -45,9 +49,9 @@ export default async function CmsItemPage({ params }: { params: Promise<{ collec
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title={row ? row.title : `New ${collection.itemLabel.toLowerCase()}`}
-      sub={`${collection.name} · ${row ? `last saved ${row.updatedAt.toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}` : "not saved yet"}`}
-      actions={<PillLink href={`/home/cms/${collection.id}`} icon="arrowLeft">All {collection.itemLabel.toLowerCase()}s</PillLink>}
+      title={row ? row.title : t("newItem", { label: collection.itemLabel.toLowerCase() })}
+      sub={`${collection.name} · ${row ? t("item.lastSaved", { date: formatDate(row.updatedAt, locale, { dateStyle: "medium", timeStyle: "short" }) }) : t("item.notSaved")}`}
+      actions={<PillLink href={`/home/cms/${collection.id}`} icon="arrowLeft">{t("item.all", { label: collection.itemLabel.toLowerCase() })}</PillLink>}
     >
       <ItemEditor
         collection={{ id: collection.id, name: collection.name, slug: collection.slug, itemLabel: collection.itemLabel, template: collection.template, isPublished: collection.isPublished }}

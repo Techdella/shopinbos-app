@@ -40,7 +40,19 @@ export function parseLagosInput(value: string | null | undefined): Date | null {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-export async function saveDiscount(storeId: string, id: string | null, input: DiscountInput) {
+// Keys other features keep on Discount.config (spin-to-win prizes, sign-up form codes). Editing a code here keeps them.
+const OWNED_CONFIG_KEYS = ["game", "form"] as const;
+
+function ownedConfig(raw: unknown): Record<string, unknown> {
+  const c = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
+  return Object.fromEntries(OWNED_CONFIG_KEYS.filter((key) => key in c).map((key) => [key, c[key]]));
+}
+
+/**
+ * Creates (id null) or updates a discount with the same rules everywhere codes are made.
+ * `extraConfig` adds a feature's own marker to config (e.g. { form: { formId, email } } for a sign-up code).
+ */
+export async function saveDiscount(storeId: string, id: string | null, input: DiscountInput, extraConfig?: Record<string, unknown>) {
   const config = parseDiscountConfig(input.config ?? {});
   const automatic = config.automatic;
   let code = (input.code ?? "").toUpperCase().replace(/[^A-Z0-9_-]/g, "");
@@ -66,12 +78,12 @@ export async function saveDiscount(storeId: string, id: string | null, input: Di
     startsAt,
     expiresAt,
     status: input.status ?? "active",
-    config: config as unknown as Prisma.InputJsonValue,
+    config: { ...config, ...extraConfig } as unknown as Prisma.InputJsonValue,
   };
   if (id) {
-    const existing = await db.discount.findFirst({ where: { id, storeId }, select: { id: true } });
+    const existing = await db.discount.findFirst({ where: { id, storeId }, select: { id: true, config: true } });
     if (!existing) throw new MarketingError("Discount not found");
-    return db.discount.update({ where: { id }, data });
+    return db.discount.update({ where: { id }, data: { ...data, config: { ...config, ...ownedConfig(existing.config), ...extraConfig } as unknown as Prisma.InputJsonValue } });
   }
   return db.discount.create({ data: { storeId, ...data } });
 }

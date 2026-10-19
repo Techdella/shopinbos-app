@@ -1,9 +1,10 @@
 import "server-only";
 
 import { db } from "@/lib/db/client";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimitShared, rateLimitKey } from "@/lib/rate-limit";
 import { parseVerificationDocs } from "@/lib/verification-utils";
 import type { AuthUser } from "@/lib/auth/types";
+import { youverifyPost, youverifyReady } from "@/lib/youverify";
 import type { RegistryCheck, VerificationDoc } from "@shared/verification-docs";
 import { DOC_TYPE_LABELS, docHasFile } from "@shared/verification-docs";
 import {
@@ -13,27 +14,55 @@ import {
   isCacCompanyType,
   parseCacNumber,
   parseDojahCac,
+  parseYouverifyCac,
+  prefixedCacNumber,
   recentAttempts,
   type CacCompanyType,
   type CacOutcome,
   type CacRecord,
 } from "./cac";
 
-// Instant CAC check for suppliers and delivery partners (see ./cac.ts for the rules). Needs DOJAH_APP_ID and
-// DOJAH_SECRET_KEY; DOJAH_ENV=sandbox uses Dojah's test registry. Without keys the check is off and the page
-// keeps asking for the certificate upload.
+// Instant CAC check for suppliers and delivery partners (see ./cac.ts for the rules). Youverify when
+// YOUVERIFY_SECRET_KEY is set (src/lib/youverify.ts), else Dojah (DOJAH_APP_ID + DOJAH_SECRET_KEY; DOJAH_ENV=sandbox
+// uses Dojah's test registry). Without either the check is off and the page keeps asking for the certificate.
 
 const LOOKUP_TIMEOUT_MS = 15_000;
 
-export function cacCheckEnabled() {
+function dojahReady() {
   return Boolean(process.env.DOJAH_APP_ID?.trim() && process.env.DOJAH_SECRET_KEY?.trim());
 }
+
+export function cacCheckEnabled() {
+  return youverifyReady() || dojahReady();
+}
+
+const cacProvider = () => (youverifyReady() ? "youverify" : "dojah");
 
 function dojahBaseUrl() {
   return process.env.DOJAH_ENV?.trim().toLowerCase() === "sandbox" ? "https://sandbox.dojah.io" : "https://api.dojah.io";
 }
 
 type LookupResult = { ok: true; record: CacRecord | null } | { ok: false; reason: "unavailable" | "busy" };
+
+/** TaxID and Business Verification: the registry profile with address and key personnel, for RC, BN, IT, LP, LLP. */
+async function lookupYouverifyCac(rcNumber: string, companyType: CacCompanyType): Promise<LookupResult> {
+  try {
+    const { status, json } = await youverifyPost("/v2/api/verifications/ng/advance-check-with-tax", { registrationNumber: prefixedCacNumber(rcNumber, companyType), isConsent: true }, LOOKUP_TIMEOUT_MS);
+    if (status === 404) return { ok: true, record: null };
+    if (status === 429) return { ok: false, reason: "busy" };
+    if (status < 200 || status >= 300) {
+      // 401 (keys) and 402 (balance) are ours to fix; the person just gets the upload route.
+      console.error("[kyb/cac] Youverify lookup failed", status);
+      return { ok: false, reason: "unavailable" };
+    }
+    const found = String(((json as { data?: { status?: unknown } } | null)?.data?.status ?? "")).toLowerCase();
+    if (found === "pending") return { ok: false, reason: "busy" };
+    return { ok: true, record: parseYouverifyCac(json) };
+  } catch (error) {
+    console.error("[kyb/cac] Youverify lookup error", error instanceof Error ? error.message : error);
+    return { ok: false, reason: "unavailable" };
+  }
+}
 
 async function lookupCac(rcNumber: string, companyType: CacCompanyType): Promise<LookupResult> {
   const url = new URL("/api/v1/kyc/cac/advance", dojahBaseUrl());
@@ -83,8 +112,8 @@ export async function runCacCheck(
   if (!parsed) return { ok: false, code: "INVALID", status: 400, message: "Enter your BN or RC number, for example RC 1234567." };
   if (!companyType) return { ok: false, code: "INVALID", status: 400, message: "Pick your business type." };
 
-  // Bursts within one server instance; the daily limit below is stored on the profile.
-  if (!checkRateLimit(`kyb-cac:${user.id}`, { maxRequests: 3, windowMs: 60_000 }).allowed) {
+  // Bursts across every server instance (shared, fails open); the daily limit below is stored on the profile.
+  if (!(await checkRateLimitShared(rateLimitKey("kyb-cac", user.id), { maxRequests: 3, windowMs: 60_000 })).allowed) {
     return { ok: false, code: "LIMIT", status: 429, message: "Too many checks. Wait a minute and try again." };
   }
 
@@ -107,7 +136,7 @@ export async function runCacCheck(
   await model.update({ where: { id: entity.id }, data: { onboardingState: { ...state, cacChecks: [...attempts, now] } } });
   const attemptsLeft = CAC_DAILY_ATTEMPTS - attempts.length - 1;
 
-  const lookup = await lookupCac(parsed.number, companyType);
+  const lookup = youverifyReady() ? await lookupYouverifyCac(parsed.number, companyType) : await lookupCac(parsed.number, companyType);
   if (!lookup.ok) {
     return {
       ok: false,
@@ -118,7 +147,10 @@ export async function runCacCheck(
   }
 
   const record = lookup.record;
-  const evaluation = evaluateCac(record, { enteredName, ownerName: user.name ?? "" });
+  // The owner's name from their verified ID (Shopinbos Wallet) beats the account name they typed at sign-up.
+  const wallet = await db.wallet.findUnique({ where: { userId: user.id }, select: { kycStatus: true, kycFirstName: true, kycLastName: true } });
+  const ownerName = wallet?.kycStatus === "verified" && wallet.kycFirstName && wallet.kycLastName ? `${wallet.kycFirstName} ${wallet.kycLastName}` : user.name ?? "";
+  const evaluation = evaluateCac(record, { enteredName, ownerName });
   const message = cacOutcomeMessage(evaluation, record?.companyName ?? "");
   if (!record || evaluation.outcome === "name_mismatch") {
     return { ok: true, outcome: evaluation.outcome, message, attemptsLeft };
@@ -126,7 +158,7 @@ export async function runCacCheck(
 
   const registry: RegistryCheck = {
     source: "cac",
-    provider: "dojah",
+    provider: cacProvider(),
     rcNumber: record.rcNumber || parsed.number,
     companyType,
     enteredName,

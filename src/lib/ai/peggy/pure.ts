@@ -15,6 +15,10 @@ import { COMMERCE_TOOL_SPECS } from "./commerce-specs.ts";
 import { CMS_TOOL_SPECS } from "./cms-specs.ts";
 import { EMAIL_TOOL_SPECS } from "./email-specs.ts";
 import { LEGAL_TOOL_SPECS } from "./legal-specs.ts";
+import { PRODUCTS_TOOL_SPECS } from "./products-specs.ts";
+import { ADS_TOOL_SPECS } from "./ads-specs.ts";
+import { CATALOG_TOOL_SPECS } from "./catalog-specs.ts";
+import { PAYLINKS_TOOL_SPECS } from "./paylinks-specs.ts";
 
 const DAY = 86_400_000;
 const PAID = new Set<string>(PAID_ORDER_STATUSES);
@@ -195,6 +199,10 @@ export const PEGGY_TOOL_SPECS = {
   ...CMS_TOOL_SPECS,
   ...EMAIL_TOOL_SPECS,
   ...LEGAL_TOOL_SPECS,
+  ...PRODUCTS_TOOL_SPECS,
+  ...ADS_TOOL_SPECS,
+  ...CATALOG_TOOL_SPECS,
+  ...PAYLINKS_TOOL_SPECS,
 } as const;
 
 export type PeggyToolName = keyof typeof PEGGY_TOOL_SPECS;
@@ -243,6 +251,16 @@ export function presentedConfirmationCode(input: unknown): string | null {
 /** The parts a send-a-reply confirmation code is tied to: the conversation and the exact words (spacing aside). */
 export function replyConfirmationParts(storeId: string, conversationId: string, message: string) {
   return [storeId, "reply", conversationId, message.replace(/\s+/g, " ").trim()];
+}
+
+/** The parts a review-reply confirmation code is tied to: the review and the exact words (spacing aside). */
+export function reviewReplyConfirmationParts(storeId: string, reviewKey: string, reply: string) {
+  return [storeId, "review-reply", reviewKey, reply.replace(/\s+/g, " ").trim()];
+}
+
+/** The parts a review publish / hide / feature code is tied to: the action and exactly these reviews. */
+export function reviewModerationConfirmationParts(storeId: string, action: string, reviewKeys: string[]) {
+  return [storeId, "review-moderate", action, [...new Set(reviewKeys)].sort().join(",")];
 }
 
 /** The parts a review-request confirmation code is tied to: the channel and exactly these orders. */
@@ -390,12 +408,14 @@ export interface PeggyStockProduct {
   lowStockThreshold: number;
   soldStock: number;
   status: string;
+  /** false: not tracked (never low). */
+  trackStock?: boolean;
 }
 
 /** Products at or below their own low-stock level, best sellers and emptiest first. */
 export function lowStockProducts<T extends PeggyStockProduct>(products: T[]): T[] {
   return products
-    .filter((p) => p.status !== "archived" && p.currentStock <= p.lowStockThreshold)
+    .filter((p) => p.status !== "archived" && p.trackStock !== false && p.currentStock <= p.lowStockThreshold)
     .sort((a, b) => b.soldStock - a.soldStock || a.currentStock - b.currentStock);
 }
 

@@ -5,11 +5,15 @@ import { Image } from "expo-image";
 import { naira } from "@shared/onboarding";
 import { CHANNEL_LABEL, RECORDED_SALE_CHANNELS, type RecordedSaleChannel } from "@shared/channels";
 import { SALE_DELIVERY, SALE_PAYMENTS, saleTotals, type SaleDelivery, type SalePayment } from "@shared/sales";
-import { Card, Chip, Field, Label, Notice, PillButton, T } from "@/components/ui";
+import { AppIcon } from "@/components/icons";
+import { ChipRow } from "@/components/kit";
+import { Card, Chip, Field, Label, LinkButton, Notice, PillButton, T } from "@/components/ui";
 import { Screen } from "@/components/Screen";
 import { fetchProducts, type ProductItem } from "@/lib/dashboard";
 import { recordSale } from "@/lib/orders";
 import { colors } from "@/theme";
+import { VoiceInput } from "@/components/VoiceInput";
+import { useT } from "@/lib/i18n";
 
 interface Line {
   key: string;
@@ -24,6 +28,7 @@ const amount = (value: string) => Number(value.replace(/[^\d.]/g, "")) || 0;
 
 // "Record sale" quick action: a sale made on WhatsApp, Instagram or in person. Same API and rules as the web form.
 export default function RecordSale() {
+  const t = useT("m_orders", "common");
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [search, setSearch] = useState("");
   const [lines, setLines] = useState<Line[]>([]);
@@ -38,6 +43,10 @@ export default function RecordSale() {
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // One question per screen (build spec 8A): what they bought, how they paid, who bought it, then "Sale saved".
+  const [step, setStep] = useState(0);
+  const [more, setMore] = useState(false);
+  const [savedId, setSavedId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchProducts().then(setProducts).catch(() => setProducts([]));
@@ -64,11 +73,32 @@ export default function RecordSale() {
     setLines((current) => current.map((line) => (line.key === key ? { ...line, ...patch } : line)));
   }
 
+  function problem(upTo: number) {
+    if (!lines.length) return { step: 0, text: t("sale.needProduct") };
+    if (upTo < 1) return null;
+    if (delivery === "deliver" && (!street.trim() || !city.trim())) return { step: 1, text: t("sale.needAddress") };
+    if (upTo < 2) return null;
+    if (!buyerName.trim()) return { step: 2, text: t("sale.needName") };
+    return null;
+  }
+
+  function next() {
+    const found = problem(step);
+    if (found) {
+      setStep(found.step);
+      return setError(found.text);
+    }
+    setError(null);
+    setStep(step + 1);
+  }
+
   async function save() {
     setError(null);
-    if (!lines.length) return setError("Add at least one item.");
-    if (!buyerName.trim()) return setError("Add the customer's name.");
-    if (delivery === "deliver" && (!street.trim() || !city.trim())) return setError("Add the delivery address.");
+    const found = problem(2);
+    if (found) {
+      setStep(found.step);
+      return setError(found.text);
+    }
     setBusy(true);
     try {
       const order = await recordSale({
@@ -82,91 +112,123 @@ export default function RecordSale() {
         channel,
         notes: notes || null,
       });
-      router.replace({ pathname: "/order/[id]", params: { id: order.id } });
+      setSavedId(order.id);
+      setBusy(false);
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Couldn't save this sale.");
+      setError(saveError instanceof Error ? saveError.message : t("sale.saveFailed"));
       setBusy(false);
     }
   }
 
+  if (savedId) {
+    return (
+      <Screen title={t("sale.saved")} footer={<PillButton title={t("done")} onPress={() => (router.canGoBack() ? router.back() : router.replace("/orders"))} />}>
+        <Card style={{ alignItems: "center", gap: 12, paddingVertical: 28 }}>
+          <View style={{ width: 84, height: 84, borderRadius: 42, backgroundColor: colors.successTint, alignItems: "center", justifyContent: "center" }}>
+            <AppIcon name="check" size={38} color={colors.success} strokeWidth={2.6} />
+          </View>
+          <T weight="extrabold" style={{ fontSize: 22 }}>{naira(totals.total)}</T>
+          <T style={{ fontSize: 16, lineHeight: 23, textAlign: "center" }}>{t("sale.savedBody")}</T>
+        </Card>
+        <LinkButton title={t("sale.seeOrder")} onPress={() => router.replace({ pathname: "/order/[id]", params: { id: savedId } })} />
+      </Screen>
+    );
+  }
+
+  const questions = [t("sale.q1"), t("sale.q2"), t("sale.q3")];
+
   return (
     <Screen
-      title="Record a sale"
-      sub="Sold on WhatsApp, Instagram or in person? Add it so your sales and stock stay right."
+      title={questions[step]}
+      sub={t("sale.step", { step: step + 1, total: 3 })}
       footer={
-        <>
-          {error && <View style={{ marginBottom: 10 }}><Notice>{error}</Notice></View>}
-          <PillButton title={lines.length ? `Save sale · ${naira(totals.total)}` : "Save sale"} busy={busy} onPress={() => void save()} />
-        </>
+        <View style={{ gap: 6 }}>
+          {error && <Notice>{error}</Notice>}
+          {step < 2 ? (
+            <PillButton title={lines.length ? t("sale.nextTotal", { total: naira(totals.total) }) : t("next")} onPress={next} />
+          ) : (
+            <PillButton title={t("sale.save", { total: naira(totals.total) })} busy={busy} onPress={() => void save()} />
+          )}
+          {step > 0 ? <LinkButton title={t("back")} color={colors.inkSoft} onPress={() => { setError(null); setStep(step - 1); }} /> : null}
+        </View>
       }
     >
-      <Card style={{ gap: 10 }}>
-        <T weight="extrabold" style={{ fontSize: 16 }}>What did they buy?</T>
-        <Field accessibilityLabel="Search your products" placeholder="Search, or type something new" value={search} onChangeText={setSearch} />
-        {matches.map((product) => (
-          <Pressable key={product.id} accessibilityRole="button" accessibilityLabel={`Add ${product.name}`} onPress={() => addProduct(product)} style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-            {product.images[0] ? (
-              <Image source={{ uri: product.images[0] }} style={{ width: 40, height: 40, borderRadius: 10 }} contentFit="cover" />
-            ) : (
-              <View style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: colors.canvas }} />
-            )}
-            <View style={{ flex: 1 }}>
-              <T weight="bold" numberOfLines={1}>{product.name}</T>
-              <T style={{ color: colors.inkSoft, fontSize: 13 }}>{naira(product.retailPrice)} · {product.currentStock > 0 ? `${product.currentStock} in stock` : "Sold out"}</T>
-            </View>
-            <T weight="extrabold" style={{ color: colors.accentInk }}>Add</T>
-          </Pressable>
-        ))}
-        {search.trim() ? (
-          <Pressable accessibilityRole="button" onPress={() => { setLines((current) => [...current, { key: `c-${Date.now()}`, productId: null, name: search.trim(), price: 0, quantity: 1, image: null }]); setSearch(""); }}>
-            <T weight="bold" style={{ color: colors.accentInk, paddingVertical: 6 }}>+ Add “{search.trim()}” (not in your shop)</T>
-          </Pressable>
-        ) : null}
-
-        {lines.map((line) => (
-          <View key={line.key} style={{ backgroundColor: colors.canvas, borderRadius: 16, padding: 12, gap: 8 }}>
-            <Field accessibilityLabel="Item name" value={line.name} onChangeText={(value) => update(line.key, { name: value })} />
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-              <Field style={{ flex: 1 }} accessibilityLabel="Price in naira" keyboardType="number-pad" placeholder="Price (₦)" value={line.price ? String(line.price) : ""} onChangeText={(value) => update(line.key, { price: amount(value) })} />
-              <PillButton title="−" tone="white" size="sm" accessibilityLabel="One fewer" onPress={() => update(line.key, { quantity: Math.max(1, line.quantity - 1) })} />
-              <T weight="extrabold" style={{ minWidth: 22, textAlign: "center" }}>{line.quantity}</T>
-              <PillButton title="+" tone="white" size="sm" accessibilityLabel="One more" onPress={() => update(line.key, { quantity: line.quantity + 1 })} />
-            </View>
-            <Pressable onPress={() => setLines((current) => current.filter((item) => item.key !== line.key))} hitSlop={8}>
-              <T weight="bold" style={{ color: colors.danger }}>Remove</T>
+      {step === 0 ? (
+        <>
+          <Field accessibilityLabel={t("sale.find")} placeholder={t("sale.findPlaceholder")} value={search} onChangeText={setSearch} />
+          {matches.map((product) => (
+            <Pressable key={product.id} accessibilityRole="button" accessibilityLabel={t("sale.addName", { name: product.name })} onPress={() => addProduct(product)} style={{ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.surface, borderRadius: 18, padding: 12 }}>
+              {product.images[0] ? (
+                <Image source={{ uri: product.images[0] }} style={{ width: 48, height: 48, borderRadius: 12 }} contentFit="cover" />
+              ) : (
+                <View style={{ width: 48, height: 48, borderRadius: 12, backgroundColor: colors.canvas }} />
+              )}
+              <View style={{ flex: 1 }}>
+                <T weight="bold" style={{ fontSize: 16 }} numberOfLines={1}>{product.name}</T>
+                <T style={{ color: colors.inkSoft, fontSize: 15 }}>{naira(product.retailPrice)} · {product.currentStock > 0 ? t("sale.left", { count: product.currentStock }) : t("sale.soldOut")}</T>
+              </View>
+              <T weight="extrabold" style={{ color: colors.accentInk, fontSize: 15 }}>{t("sale.add")}</T>
             </Pressable>
-          </View>
-        ))}
-      </Card>
+          ))}
+          {search.trim() ? (
+            <Pressable accessibilityRole="button" onPress={() => { setLines((current) => [...current, { key: `c-${Date.now()}`, productId: null, name: search.trim(), price: 0, quantity: 1, image: null }]); setSearch(""); }}>
+              <T weight="bold" style={{ color: colors.accentInk, paddingVertical: 8, fontSize: 15 }}>{t("sale.addNew", { name: search.trim() })}</T>
+            </Pressable>
+          ) : null}
 
-      <Card style={{ gap: 10 }}>
-        <T weight="extrabold" style={{ fontSize: 16 }}>Who bought it?</T>
-        <Field accessibilityLabel="Customer name" placeholder="Customer name" value={buyerName} onChangeText={setBuyerName} />
-        <Field accessibilityLabel="Phone or WhatsApp" placeholder="Phone or WhatsApp (optional)" keyboardType="phone-pad" value={buyerPhone} onChangeText={setBuyerPhone} />
-        <Label>Where did they buy?</Label>
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-          {RECORDED_SALE_CHANNELS.map((key) => <Chip key={key} label={CHANNEL_LABEL[key]} on={channel === key} onPress={() => setChannel(key)} />)}
-        </View>
-      </Card>
+          {lines.length ? <T weight="extrabold" style={{ fontSize: 17, marginTop: 6 }}>{t("sale.theyBought")}</T> : null}
+          {lines.map((line) => (
+            <Card key={line.key} style={{ gap: 8 }}>
+              <Field accessibilityLabel={t("sale.whatItIs")} value={line.name} onChangeText={(value) => update(line.key, { name: value })} />
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Field style={{ flex: 1 }} accessibilityLabel={t("sale.priceLabel")} keyboardType="number-pad" placeholder={t("sale.pricePlaceholder")} value={line.price ? String(line.price) : ""} onChangeText={(value) => update(line.key, { price: amount(value) })} />
+                <PillButton title="−" tone="white" size="sm" accessibilityLabel={t("sale.fewer")} onPress={() => update(line.key, { quantity: Math.max(1, line.quantity - 1) })} />
+                <T weight="extrabold" style={{ minWidth: 24, textAlign: "center", fontSize: 17 }}>{line.quantity}</T>
+                <PillButton title="+" tone="white" size="sm" accessibilityLabel={t("sale.more")} onPress={() => update(line.key, { quantity: line.quantity + 1 })} />
+              </View>
+              <LinkButton title={t("remove")} color={colors.danger} style={{ alignItems: "flex-start" }} onPress={() => setLines((current) => current.filter((item) => item.key !== line.key))} />
+            </Card>
+          ))}
+        </>
+      ) : null}
 
-      <Card style={{ gap: 10 }}>
-        <T weight="extrabold" style={{ fontSize: 16 }}>Payment</T>
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-          {SALE_PAYMENTS.map((option) => <Chip key={option.key} label={option.label} on={payment === option.key} onPress={() => setPayment(option.key)} />)}
-        </View>
-        <T weight="extrabold" style={{ fontSize: 16, marginTop: 6 }}>Delivery</T>
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-          {SALE_DELIVERY.map((option) => <Chip key={option.key} label={option.label} on={delivery === option.key} onPress={() => setDelivery(option.key)} />)}
-        </View>
-        {delivery === "deliver" && (
-          <>
-            <Field accessibilityLabel="Delivery address" placeholder="Street address" value={street} onChangeText={setStreet} />
-            <Field accessibilityLabel="Area or city" placeholder="Area or city" value={city} onChangeText={setCity} />
-            <Field accessibilityLabel="Delivery fee in naira" placeholder="Delivery fee (₦)" keyboardType="number-pad" value={deliveryFee} onChangeText={setDeliveryFee} />
-          </>
-        )}
-        <Field accessibilityLabel="Note" placeholder="Note (optional)" value={notes} onChangeText={setNotes} />
-      </Card>
+      {step === 1 ? (
+        <>
+          <ChipRow>
+            {SALE_PAYMENTS.map((option) => <Chip key={option.key} label={t.dynamic(`sale.payment.${option.key}`, option.label)} on={payment === option.key} onPress={() => setPayment(option.key)} />)}
+          </ChipRow>
+          <T weight="extrabold" style={{ fontSize: 22, marginTop: 12 }}>{t("sale.haveIt")}</T>
+          <ChipRow>
+            {SALE_DELIVERY.map((option) => <Chip key={option.key} label={t.dynamic(`sale.delivery.${option.key}`, option.label)} on={delivery === option.key} onPress={() => setDelivery(option.key)} />)}
+          </ChipRow>
+          {delivery === "deliver" && (
+            <>
+              <Field accessibilityLabel={t("sale.street")} placeholder={t("sale.street")} value={street} onChangeText={setStreet} />
+              <Field accessibilityLabel={t("sale.city")} placeholder={t("sale.city")} value={city} onChangeText={setCity} />
+              <Field accessibilityLabel={t("sale.deliveryLabel")} placeholder={t("sale.deliveryPlaceholder")} keyboardType="number-pad" value={deliveryFee} onChangeText={setDeliveryFee} />
+            </>
+          )}
+        </>
+      ) : null}
+
+      {step === 2 ? (
+        <>
+          <Field accessibilityLabel={t("sale.customerName")} placeholder={t("sale.customerName")} value={buyerName} onChangeText={setBuyerName} />
+          <Field accessibilityLabel={t("sale.customerPhone")} placeholder={t("sale.customerPhone")} keyboardType="phone-pad" value={buyerPhone} onChangeText={setBuyerPhone} />
+          {more ? (
+            <>
+              <Label>{t("sale.where")}</Label>
+              <ChipRow>
+                {RECORDED_SALE_CHANNELS.map((key) => <Chip key={key} label={key === "in_person" ? t("sale.inPerson") : CHANNEL_LABEL[key]} on={channel === key} onPress={() => setChannel(key)} />)}
+              </ChipRow>
+              <Field accessibilityLabel={t("sale.note")} placeholder={t("sale.note")} value={notes} onChangeText={setNotes} />
+              <VoiceInput value={notes} onChange={setNotes} context="a note about a sale" />
+            </>
+          ) : (
+            <LinkButton title={t("sale.moreLink")} color={colors.inkSoft} onPress={() => setMore(true)} />
+          )}
+        </>
+      ) : null}
     </Screen>
   );
 }

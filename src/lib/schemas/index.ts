@@ -1,5 +1,13 @@
 import { z } from "zod";
 import type { Prisma } from "@prisma/client";
+import {
+  ProductDetailsSchema,
+  ProductTypeSchema,
+  RelatedProductIdsSchema,
+  VariantOptionsSchema,
+  VariantRowSchema,
+  VariantRowsSchema,
+} from "../../../shared/product-variants-schema.ts";
 
 // Request bodies come from JSON, so free-form objects are valid Prisma Json input.
 const jsonObject = () => z.record(z.string(), z.unknown()) as unknown as z.ZodType<Prisma.InputJsonObject>;
@@ -177,21 +185,9 @@ export const StoreSchema = StoreCreateSchema.extend({
 
 // ─── Store Product ────────────────────────────────────────────────────────────
 
-export const ProductVariantSchema = z.object({
-  id: z.string().optional(),
-  name: z.string().min(1).max(100),
-  sku: z.string().max(60).optional(),
-  price: z.number().positive().optional(),
-  color: z.string().max(60).optional(),
-  size: z.string().max(60).optional(),
-  imageUrl: z.string().optional(),
-  images: z.array(z.string()).default([]),
-  customFields: z.array(z.object({
-    name: z.string().min(1).max(80),
-    value: z.string().max(500),
-  })).default([]),
-  stock: z.number().int().min(0).default(0),
-});
+// One version (variant) of a product: options such as Size and Colour, its own price, stock, photo and on/off.
+// Older rows ({ name, color, size, price, stock }) are still accepted. See shared/product-variants.ts.
+export const ProductVariantSchema = VariantRowSchema;
 
 export const StoreProductCreateSchema = z.object({
   supplierProductId: z.string().optional(),
@@ -236,7 +232,12 @@ export const StoreProductCreateSchema = z.object({
   inventoryType: InventoryTypeSchema.default("seller"),
   sourceType: ProductSourceTypeSchema.optional(),
   categoryId: z.string().optional(),
-  variants: z.array(ProductVariantSchema).default([]),
+  variants: VariantRowsSchema.default([]),
+  // Product type (preset category), its details, the options for the versions and "Customers also like".
+  productType: ProductTypeSchema.nullable().optional(),
+  productDetails: ProductDetailsSchema.optional(),
+  variantOptions: VariantOptionsSchema.optional(),
+  relatedProductIds: RelatedProductIdsSchema.optional(),
   tags: z.array(z.string()).default([]),
   featured: z.boolean().default(false),
   sortOrder: z.number().int().default(0),
@@ -244,6 +245,10 @@ export const StoreProductCreateSchema = z.object({
   currentStock: z.number().int().min(0).default(0),
   reservedStock: z.number().int().min(0).default(0),
   lowStockThreshold: z.number().int().min(0).default(10),
+  // "Track stock" (shared/product-stock.ts). Left out on create: on when a count above 0 (or per-version counts) is
+  // given; left out on edit: switched on when a count above 0 is sent (see stockTrackingFor).
+  trackStock: z.boolean().optional(),
+  continueSellingWhenOut: z.boolean().optional(),
   // Page builder
   pageVariant: ProductPageVariantSchema.default("shopify"),
   pageLayout: jsonObject().default({}),
@@ -256,7 +261,20 @@ export const StoreProductCreateSchema = z.object({
   socialMediaCopy: z.string().max(2000).optional(),
 });
 
-export const StoreProductUpdateSchema = StoreProductCreateSchema.partial();
+// On an edit, `compareAtPrice: null` takes the crossed-out "was" price off (the phone's product editor sends it).
+export const StoreProductUpdateSchema = StoreProductCreateSchema.partial().extend({
+  compareAtPrice: z.number().positive().nullable().optional(),
+  // The phone's product editor changes price, stock or on/off of existing versions by id.
+  variantUpdates: z
+    .array(z.object({
+      id: z.string().min(1).max(80),
+      price: z.number().min(0).max(100_000_000).nullable().optional(),
+      stock: z.number().int().min(0).max(10_000_000).nullable().optional(),
+      enabled: z.boolean().optional(),
+    }))
+    .max(100)
+    .optional(),
+});
 
 export const InventoryUpdateSchema = z.object({
   currentStock: z.number().int().min(0),
@@ -264,6 +282,8 @@ export const InventoryUpdateSchema = z.object({
   incomingStock: z.number().int().min(0).optional(),
   damagedStock: z.number().int().min(0).optional(),
   lowStockThreshold: z.number().int().min(0).optional(),
+  // Left out: switched on when a count above 0 is set (setting a count means counting it).
+  trackStock: z.boolean().optional(),
   note: z.string().max(500).optional(),
 });
 
@@ -640,6 +660,8 @@ export const PublicLogisticsQuerySchema = z.object({
   zone: z.string().optional(),
   vehicleType: z.string().optional(),
   q: z.string().max(200).optional(),
+  /** "true": only partners taking pay-when-it-arrives (cash) jobs now, skipping those paused for a late pay-in. */
+  cod: z.enum(["true", "false", "1", "0"]).optional(),
 });
 
 // ─── Notification Enums ────────────────────────────────────────────────────────

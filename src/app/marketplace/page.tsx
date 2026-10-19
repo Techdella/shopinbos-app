@@ -17,8 +17,14 @@ import {
   type FindProduct,
 } from "@/lib/marketplace/find";
 import { FindProductsView, type FindTab } from "./_components/FindProductsView";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata() {
+  const t = await getT("marketplace");
+  return { title: t("find.title") };
+}
 
 // Find products to sell (seller app, "Find products" prototype): local suppliers who dropship or sell wholesale
 // (Nigeria tab), imports from China through the sourcing partner (China · 1688), and what's selling (Trending).
@@ -34,6 +40,7 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
   const tab: FindTab = params.tab === "china" || params.tab === "trending" ? params.tab : params.trending === "true" ? "trending" : "nigeria";
 
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("marketplace");
   const store = await db.store.findUnique({
     where: { userId: user.id },
     select: { id: true, name: true, slug: true, logoUrl: true, country: true, brandSettings: true },
@@ -82,11 +89,11 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title="Find products to sell"
-      sub="Local suppliers who dropship or sell wholesale, and imports from China."
+      title={t("find.title")}
+      sub={t("find.sub")}
       actions={
         <PillLink href="/home/imports" icon="truck">
-          {importsOnTheWay > 0 ? `My imports · ${importsOnTheWay}` : "My imports"}
+          {importsOnTheWay > 0 ? t("find.myImportsCount", { count: importsOnTheWay }) : t("find.myImports")}
         </PillLink>
       }
     >

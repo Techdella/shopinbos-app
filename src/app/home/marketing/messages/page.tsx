@@ -10,21 +10,29 @@ import { getMessagingSettings } from "@/lib/marketing/messaging-settings";
 import { CUSTOMER_EVENTS } from "@/lib/marketing/text-channels";
 import { listWhatsAppTemplates } from "@/lib/marketing/whatsapp-templates.server";
 import { OrderMessages } from "./OrderMessages";
+import { EVENT_COPY } from "../_kit/friendly";
+import { getLocale, getT } from "@/lib/i18n/server";
+import type { MessageKey } from "@shared/i18n/catalog";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Order messages" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT("marketing");
+  return { title: t("hub.tool.orderMessages") };
+}
 
-const STATUS: Record<string, { tone: Tone; label: string }> = {
-  queued: { tone: "muted", label: "Sending" },
-  sent: { tone: "info", label: "Sent" },
-  delivered: { tone: "success", label: "Delivered" },
-  read: { tone: "success", label: "Read" },
-  failed: { tone: "danger", label: "Failed" },
-  skipped: { tone: "warning", label: "Skipped" },
+const STATUS: Record<string, { tone: Tone; label: MessageKey<"marketing"> }> = {
+  queued: { tone: "muted", label: "campaignStatus.sending" },
+  sent: { tone: "info", label: "campaign.recipient.sent" },
+  delivered: { tone: "success", label: "campaign.recipient.delivered" },
+  read: { tone: "success", label: "campaign.recipient.read" },
+  failed: { tone: "danger", label: "campaign.recipient.failed" },
+  skipped: { tone: "warning", label: "hub.notSent" },
 };
 
 export default async function OrderMessagesPage() {
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("marketing");
+  const locale = await getLocale();
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true, currency: true } });
   if (!store) redirect("/onboarding");
   const [settings, channels, templates, recent, optOuts] = await Promise.all([
@@ -40,19 +48,19 @@ export default async function OrderMessagesPage() {
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title="Order messages"
-      sub="Send buyers WhatsApp and SMS updates about their order, alongside the emails they already get."
-      actions={<PillLink href="/home/marketing/whatsapp" icon="whatsapp">WhatsApp templates</PillLink>}
+      title={t("hub.tool.orderMessages")}
+      sub={t("om.sub")}
+      actions={<PillLink href="/home/marketing/whatsapp" icon="whatsapp">{t("hub.tool.whatsappTemplates")}</PillLink>}
     >
       <div className="grid gap-5">
         <OrderMessages
           initial={settings}
           channels={{ sms: channels.sms, whatsapp: channels.whatsapp }}
-          templates={templates.map((t) => ({ id: t.id, name: t.name, language: t.language, category: t.category, status: t.status, rejectedReason: t.rejectedReason, content: t.content, variables: t.variables, preset: t.preset }))}
+          templates={templates.map((row) => ({ id: row.id, name: row.name, language: row.language, category: row.category, status: row.status, rejectedReason: row.rejectedReason, content: row.content, variables: row.variables, preset: row.preset }))}
           currency={store.currency || "NGN"}
         />
         <Card className="p-5">
-          <CardHead title="Recently sent" sub={`Opted out: ${optedOut("sms")} by SMS, ${optedOut("whatsapp")} on WhatsApp. They never get texts you didn't promise them.`} />
+          <CardHead title={t("om.recent")} sub={t("om.optedOut", { sms: optedOut("sms"), whatsapp: optedOut("whatsapp") })} />
           {recent.length ? (
             <ul className="m-0 mt-3 list-none divide-y divide-app-line p-0">
               {recent.map((m) => {
@@ -60,17 +68,17 @@ export default async function OrderMessagesPage() {
                 return (
                   <li key={m.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5 text-[13.5px]">
                     <span className="min-w-0 flex-1 basis-[220px]">
-                      <span className="block truncate font-bold">{CUSTOMER_EVENTS.find((e) => e.key === m.event)?.label ?? m.event} · {m.channel === "sms" ? "SMS" : "WhatsApp"}</span>
-                      <span className="block truncate text-[12.5px] text-app-ink-soft">{m.to}{m.error ? ` · ${m.error}` : ""}</span>
+                      <span className="block truncate font-bold">{t.dynamic(`om.event.${m.event}.label`, EVENT_COPY[m.event]?.label ?? CUSTOMER_EVENTS.find((e) => e.key === m.event)?.label ?? m.event)} · {m.channel === "sms" ? "SMS" : "WhatsApp"}</span>
+                      <span className="block truncate text-[12.5px] text-app-ink-soft" title={m.error ?? undefined}>{m.to}{m.error ? ` · ${t("om.badNumber")}` : ""}</span>
                     </span>
-                    <span className="text-[12.5px] text-app-ink-soft">{formatDate(m.createdAt, true)}</span>
-                    <Pill tone={s.tone}>{s.label}</Pill>
+                    <span className="text-[12.5px] text-app-ink-soft">{formatDate(m.createdAt, true, locale)}</span>
+                    <Pill tone={s.tone}>{t(s.label)}</Pill>
                   </li>
                 );
               })}
             </ul>
           ) : (
-            <p className="mb-0 mt-3 text-[14px] text-app-ink-soft">Nothing yet. Messages show here as orders come in.</p>
+            <p className="mb-0 mt-3 text-[14px] text-app-ink-soft">{t("om.nothing")}</p>
           )}
         </Card>
       </div>

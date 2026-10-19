@@ -9,6 +9,11 @@ import { Icon } from "@/components/ui/Icon";
 import { clampSellingPrice, naira, priceStep, saleBreakdown, supplierInitials, tierPrice, type FindProduct } from "@/lib/marketplace/find";
 import { SampleNotice } from "./SampleNotice";
 import { messagesHref } from "@/lib/conversations/pure";
+import { sellerWholesaleStage } from "@/lib/supplier-orders/pure";
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
+import { useLocale, useT } from "@/components/i18n/I18nProvider";
+import { formatMoney, formatNumber } from "@shared/i18n";
+import { localWholesaleStage } from "./wholesaleStage";
 
 const CARD = "rounded-[20px] border border-app-line bg-white";
 
@@ -22,19 +27,13 @@ export interface MyWholesaleOrder {
   createdAt: string;
 }
 
-const WHOLESALE_STAGE: Record<string, string> = {
-  pending: "Waiting for the supplier",
-  confirmed: "Confirmed: expect their invoice",
-  processing: "Being packed",
-  shipped: "On the way",
-  delivered: "Delivered",
-  cancelled: "Declined",
-  refunded: "Refunded",
-};
-
 /** Product page in Find products: price it, see the money on each sale, add it, or buy wholesale. */
 export function ProductDetail({ product, added: addedAtStart, saved: savedAtStart, notified, defaultAddress = "", wholesaleOrders = [] }: { product: FindProduct; added: boolean; saved: boolean; notified: boolean; defaultAddress?: string; wholesaleOrders?: MyWholesaleOrder[] }) {
   const router = useRouter();
+  const t = useT("marketplace");
+  const locale = useLocale();
+  const money = (amount: number) => (locale === "en" ? naira(amount) : formatMoney(Math.round(amount), locale));
+  const num = (value: number) => (locale === "en" ? value.toLocaleString("en-NG") : formatNumber(value, locale));
   const [mode, setMode] = useState<"dropship" | "wholesale">(product.dropship ? "dropship" : "wholesale");
   const [price, setPrice] = useState(() => clampSellingPrice(product.price, product.cost));
   const [quantity, setQuantity] = useState(product.moq);
@@ -60,7 +59,7 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
     supplier.city,
     supplier.rating ? `★ ${supplier.rating.toFixed(1)}` : "",
     product.ships,
-    supplier.onTimePct ? `${supplier.onTimePct}% on time` : "",
+    supplier.onTimePct ? t("pd.onTime", { pct: supplier.onTimePct }) : "",
   ].filter(Boolean);
 
   function guard(action: () => void) {
@@ -104,7 +103,7 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
     guard(() =>
       start(async () => {
         if (address.trim().length < 5) {
-          setError("Enter the full delivery address for this order.");
+          setError(t("pd.addressError"));
           return;
         }
         // The seller app's own API (cookie session); the supplier sees it in their Orders.
@@ -115,7 +114,7 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
         }).catch(() => null);
         const body = (await response?.json().catch(() => null)) as { data?: { id: string; quantity: number; totalPrice: number; status: string; createdAt: string }; error?: { message?: string } } | null;
         if (!response?.ok || !body?.data) {
-          setError(body?.error?.message ?? "Couldn't place the order. Try again.");
+          setError(body?.error?.message ?? t("pd.placeError"));
           return;
         }
         const order = body.data;
@@ -132,7 +131,7 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
           <button
             type="button"
             onClick={() => (window.history.length > 1 ? router.back() : router.push("/marketplace"))}
-            aria-label="Back"
+            aria-label={t("pd.back")}
             className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-full border border-app-line bg-white hover:border-app-line-strong"
           >
             <Icon name="arrowLeft" size={17} />
@@ -151,18 +150,18 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
         </div>
         <div className="flex gap-2">
           <button type="button" onClick={save} disabled={pending} aria-pressed={saved} className="inline-flex min-h-[42px] items-center gap-2 rounded-full border border-app-line bg-white px-4 text-[14px] font-extrabold hover:border-app-line-strong disabled:opacity-60">
-            <Icon name="heart" size={15} fill={saved ? "currentColor" : "none"} className={saved ? "text-app-accent" : ""} /> {saved ? "Saved" : "Save"}
+            <Icon name="heart" size={15} fill={saved ? "currentColor" : "none"} className={saved ? "text-app-accent" : ""} /> {saved ? t("pd.saved") : t("pd.save")}
           </button>
           <button type="button" onClick={() => guard(() => setMessageOpen(true))} className="inline-flex min-h-[42px] items-center gap-2 rounded-full border border-app-line bg-white px-4 text-[14px] font-extrabold hover:border-app-line-strong">
-            <Icon name="chat" size={15} /> Message supplier
+            <Icon name="chat" size={15} /> {t("pd.message")}
           </button>
         </div>
       </header>
 
       {product.sample && (
         <p className="m-0 flex flex-wrap items-center gap-2 rounded-[14px] border border-dashed border-app-line-strong bg-white px-3.5 py-2.5 text-[13.5px] text-app-ink-soft">
-          <span className="rounded-full bg-[#FDF0D5] px-2.5 py-0.5 text-[12px] font-extrabold text-[#8A5A00]">Sample product</span>
-          Suppliers are joining. This shows how selling a supplier&apos;s product works.
+          <span className="rounded-full bg-[#FDF0D5] px-2.5 py-0.5 text-[12px] font-extrabold text-[#8A5A00]">{t("pd.sampleBadge")}</span>
+          {t("pd.sampleNote")}
         </p>
       )}
       {error && <p role="alert" className="m-0 rounded-[14px] bg-app-danger-tint px-4 py-3 text-[14px] font-bold text-app-danger">{error}</p>}
@@ -184,7 +183,7 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
                   key={src}
                   type="button"
                   onClick={() => setImage(index)}
-                  aria-label={`Photo ${index + 1}`}
+                  aria-label={t("pd.photo", { n: index + 1 })}
                   aria-pressed={image === index}
                   className={cx("overflow-hidden rounded-[14px] border-2 bg-app-canvas p-0", image === index ? "border-app-ink" : "border-transparent hover:border-app-line-strong")}
                 >
@@ -198,8 +197,8 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
         </div>
 
         <div className="grid min-w-0 gap-3 lg:col-start-2 lg:row-span-2 lg:row-start-1">
-          <div role="tablist" aria-label="How you sell it" className="grid grid-cols-2 gap-1 rounded-full bg-white p-1">
-            {([["dropship", "Dropship · no stock"], ["wholesale", "Buy wholesale"]] as const).map(([value, label]) => {
+          <div role="tablist" aria-label={t("pd.howSell")} className="grid grid-cols-2 gap-1 rounded-full bg-white p-1">
+            {([["dropship", t("pd.mode.dropship")], ["wholesale", t("pd.mode.wholesale")]] as const).map(([value, label]) => {
               const disabled = value === "dropship" ? !product.dropship : !product.wholesale;
               return (
                 <button
@@ -220,63 +219,63 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
           {mode === "dropship" ? (
             <>
               <section className={cx(CARD, "p-4 text-center")}>
-                <h2 className="m-0 text-[13px] font-bold text-app-ink-soft">Your selling price</h2>
+                <h2 className="m-0 text-[13px] font-bold text-app-ink-soft">{t("pd.sellingPrice")}</h2>
                 <div className="mx-auto mt-2 inline-flex items-center gap-3 rounded-full bg-app-canvas p-1">
-                  <button type="button" aria-label={`Lower the price by ${naira(step)}`} onClick={() => setPrice((value) => clampSellingPrice(value - priceStep(value - 1), product.cost))} className="grid h-10 w-10 place-items-center rounded-full bg-white text-[18px] font-extrabold">
+                  <button type="button" aria-label={t("pd.lower", { amount: money(step) })} onClick={() => setPrice((value) => clampSellingPrice(value - priceStep(value - 1), product.cost))} className="grid h-10 w-10 place-items-center rounded-full bg-white text-[18px] font-extrabold">
                     <Icon name="minus" size={16} />
                   </button>
-                  <output aria-live="polite" className="min-w-[120px] text-[24px] font-extrabold tracking-[-0.5px]">{naira(price)}</output>
-                  <button type="button" aria-label={`Raise the price by ${naira(step)}`} onClick={() => setPrice((value) => clampSellingPrice(value + priceStep(value), product.cost))} className="grid h-10 w-10 place-items-center rounded-full bg-app-ink text-white">
+                  <output aria-live="polite" className="min-w-[120px] text-[24px] font-extrabold tracking-[-0.5px]">{money(price)}</output>
+                  <button type="button" aria-label={t("pd.raise", { amount: money(step) })} onClick={() => setPrice((value) => clampSellingPrice(value + priceStep(value), product.cost))} className="grid h-10 w-10 place-items-center rounded-full bg-app-ink text-white">
                     <Icon name="plus" size={16} />
                   </button>
                 </div>
                 {product.similar && (
-                  <p className="mb-0 mt-2 text-[12.5px] text-app-ink-soft">Similar items sell for {naira(product.similar[0])} to {naira(product.similar[1])}</p>
+                  <p className="mb-0 mt-2 text-[12.5px] text-app-ink-soft">{t("pd.similar", { low: money(product.similar[0]), high: money(product.similar[1]) })}</p>
                 )}
               </section>
 
               <section className={cx(CARD, "p-4")}>
-                <h2 className="m-0 text-[14.5px] font-extrabold">On each sale</h2>
+                <h2 className="m-0 text-[14.5px] font-extrabold">{t("pd.eachSale")}</h2>
                 <dl className="m-0 mt-2 grid gap-2 text-[14px]">
-                  <div className="flex justify-between gap-3"><dt className="text-app-ink-soft">Shopper pays you</dt><dd className="m-0 font-bold">{naira(sale.shopperPays)}</dd></div>
-                  <div className="flex justify-between gap-3"><dt className="min-w-0 truncate text-app-ink-soft">{supplier.name} gets</dt><dd className="m-0 font-bold">−{naira(sale.supplierGets)}</dd></div>
-                  <div className="flex justify-between gap-3"><dt className="text-app-ink-soft">Payment fee</dt><dd className="m-0 font-bold">−{naira(sale.fee)}</dd></div>
+                  <div className="flex justify-between gap-3"><dt className="text-app-ink-soft">{t("pd.shopperPays")}</dt><dd className="m-0 font-bold">{money(sale.shopperPays)}</dd></div>
+                  <div className="flex justify-between gap-3"><dt className="min-w-0 truncate text-app-ink-soft">{t("pd.supplierGets", { name: supplier.name })}</dt><dd className="m-0 font-bold">−{money(sale.supplierGets)}</dd></div>
+                  <div className="flex justify-between gap-3"><dt className="text-app-ink-soft">{t("pd.fee")}</dt><dd className="m-0 font-bold">−{money(sale.fee)}</dd></div>
                 </dl>
                 <div className="mt-3 border-t border-app-line pt-3">
                   <div className="flex items-baseline justify-between gap-3">
-                    <span className="text-[14.5px] font-extrabold">You keep</span>
-                    <span className={cx("text-[17px] font-extrabold", sale.keep > 0 ? "text-app-success" : "text-app-danger")}>{naira(sale.keep)} · {sale.keepPct}%</span>
+                    <span className="text-[14.5px] font-extrabold">{t("pd.keep")}</span>
+                    <span className={cx("text-[17px] font-extrabold", sale.keep > 0 ? "text-app-success" : "text-app-danger")}>{money(sale.keep)} · {sale.keepPct}%</span>
                   </div>
-                  <p className="mb-0 mt-1 text-[12.5px] text-app-ink-soft">Delivery is added at checkout and goes to the rider.</p>
+                  <p className="mb-0 mt-1 text-[12.5px] text-app-ink-soft">{t("pd.delivery")}</p>
                 </div>
               </section>
 
               {added ? (
                 <div role="status" className="flex min-h-[54px] flex-wrap items-center justify-center gap-x-3 gap-y-1 rounded-full bg-app-success-tint px-5 text-[15px] font-extrabold text-app-success">
-                  <span className="inline-flex items-center gap-2"><Icon name="check" size={17} /> Added to your store</span>
-                  <Link href="/products" className="text-app-success underline-offset-2 hover:underline">View in products</Link>
+                  <span className="inline-flex items-center gap-2"><Icon name="check" size={17} /> {t("pd.addedToStore")}</span>
+                  <Link href="/products" className="text-app-success underline-offset-2 hover:underline">{t("pd.viewProducts")}</Link>
                 </div>
               ) : (
                 <button type="button" onClick={add} disabled={pending} className="inline-flex min-h-[54px] w-full items-center justify-center rounded-full bg-app-accent px-5 text-[15.5px] font-extrabold text-white hover:brightness-95 disabled:opacity-60">
-                  {pending ? "Adding…" : <>Add to my store at&nbsp;{naira(price)}</>}
+                  {pending ? t("pd.adding") : t("pd.addAt", { price: ` ${money(price)}` }).replace("  ", " ")}
                 </button>
               )}
             </>
           ) : (
             <>
               <section className={cx(CARD, "p-4")}>
-                <h2 className="m-0 text-[14.5px] font-extrabold">Buy wholesale</h2>
-                <p className="mb-0 mt-1 text-[13px] text-app-ink-soft">Minimum order {product.moq.toLocaleString("en-NG")}. You hold the stock and sell it at your price.</p>
+                <h2 className="m-0 text-[14.5px] font-extrabold">{t("pd.buyWholesale")}</h2>
+                <p className="mb-0 mt-1 text-[13px] text-app-ink-soft">{t("pd.moq", { count: num(product.moq) })}</p>
                 <ul className="m-0 mt-3 grid list-none gap-1.5 p-0 text-[14px]">
                   {(product.tiers.length ? product.tiers : [{ minQty: product.moq, price: product.cost }]).map((tier) => (
                     <li key={tier.minQty} className={cx("flex justify-between gap-3 rounded-[12px] px-3 py-2", unit === tier.price && quantity >= tier.minQty ? "bg-app-canvas font-bold" : "")}>
-                      <span>{tier.minQty.toLocaleString("en-NG")}{"maxQty" in tier && tier.maxQty ? `–${tier.maxQty.toLocaleString("en-NG")}` : "+"} units</span>
-                      <span>{naira(tier.price)} each</span>
+                      <span>{t("pd.units", { range: `${num(tier.minQty)}${"maxQty" in tier && tier.maxQty ? `–${num(tier.maxQty)}` : "+"}` })}</span>
+                      <span>{t("pd.each", { price: money(tier.price) })}</span>
                     </li>
                   ))}
                 </ul>
                 <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-app-line pt-3">
-                  <label htmlFor="wholesale-qty" className="text-[14px] font-bold">How many</label>
+                  <label htmlFor="wholesale-qty" className="text-[14px] font-bold">{t("pd.howMany")}</label>
                   <input
                     id="wholesale-qty"
                     type="number"
@@ -289,68 +288,74 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
                   />
                 </div>
                 <div className="mt-2 flex items-baseline justify-between gap-3">
-                  <span className="text-[13.5px] text-app-ink-soft">{naira(unit)} each</span>
-                  <span className="text-[17px] font-extrabold">{naira(unit * quantity)}</span>
+                  <span className="text-[13.5px] text-app-ink-soft">{t("pd.each", { price: money(unit) })}</span>
+                  <span className="text-[17px] font-extrabold">{money(unit * quantity)}</span>
                 </div>
               </section>
               <section className={cx(CARD, "grid gap-3 p-4")}>
-                <h2 className="m-0 text-[14.5px] font-extrabold">Place the order</h2>
+                <h2 className="m-0 text-[14.5px] font-extrabold">{t("pd.place")}</h2>
                 <div>
-                  <label htmlFor="wholesale-address" className="mb-1 block text-[13px] font-bold">Deliver to</label>
+                  <label htmlFor="wholesale-address" className="mb-1 block text-[13px] font-bold">{t("pd.deliverTo")}</label>
                   <textarea
                     id="wholesale-address"
                     rows={2}
                     maxLength={300}
                     value={address}
                     onChange={(event) => setAddress(event.target.value)}
-                    placeholder="Street, area, city"
+                    placeholder={t("pd.addressPh")}
                     className="w-full resize-y rounded-[12px] border border-app-line px-3 py-2 text-[14px] outline-none focus:border-app-ink"
                   />
                 </div>
                 <div>
-                  <label htmlFor="wholesale-note" className="mb-1 block text-[13px] font-bold">Note for {supplier.name} <span className="font-normal text-app-ink-soft">(optional)</span></label>
+                  <label htmlFor="wholesale-note" className="mb-1 block text-[13px] font-bold">{t("pd.noteFor", { name: supplier.name })} <span className="font-normal text-app-ink-soft">{t("pd.optional")}</span></label>
                   <input
                     id="wholesale-note"
                     maxLength={1000}
                     value={orderNote}
                     onChange={(event) => setOrderNote(event.target.value)}
-                    placeholder="Sizes, colours, delivery days"
+                    placeholder={t("pd.notePh")}
                     className="h-11 w-full rounded-[12px] border border-app-line px-3 text-[14px] outline-none focus:border-app-ink"
                   />
                 </div>
                 <p className="m-0 rounded-[12px] bg-app-canvas px-3 py-2 text-[12.5px] leading-[1.5] text-app-ink-soft">
-                  <strong className="text-app-ink">You don&apos;t pay on Shopinbos.</strong> {supplier.name} confirms the order and sends you an invoice; you pay them directly.
+                  <strong className="text-app-ink">{t("pd.noPay")}</strong> {t("pd.noPayBody", { name: supplier.name })}
                 </p>
                 {justPlaced && (
                   <p role="status" className="m-0 rounded-[14px] bg-app-success-tint px-3 py-2 text-[13.5px] font-extrabold text-app-success">
-                    Order sent. {supplier.name} will confirm it and send their invoice.
+                    {t("pd.sent", { name: supplier.name })}
                   </p>
                 )}
                 <button type="button" onClick={placeWholesale} disabled={pending || quantity < product.moq} className="inline-flex min-h-[54px] w-full items-center justify-center rounded-full bg-app-ink px-5 text-[15.5px] font-extrabold text-white hover:bg-black disabled:opacity-60">
-                  {pending ? "Sending…" : <>Order {quantity.toLocaleString("en-NG")} for&nbsp;{naira(unit * quantity)}</>}
+                  {pending ? t("pd.sending") : t("pd.orderFor", { count: num(quantity), total: ` ${money(unit * quantity)}` }).replace("  ", " ")}
                 </button>
                 {quoted ? (
                   <p role="status" className="m-0 text-[13px] font-bold text-app-success">
-                    Quote requested. {supplier.name} will send their price for {quantity.toLocaleString("en-NG")} units.
+                    {t("pd.quoted", { name: supplier.name, count: num(quantity) })}
                   </p>
                 ) : (
                   <button type="button" onClick={quote} disabled={pending} className="inline-flex min-h-[44px] w-full items-center justify-center rounded-full border border-app-line bg-white px-5 text-[14px] font-extrabold hover:border-app-line-strong disabled:opacity-60">
-                    Ask for a better price instead
+                    {t("pd.betterPrice")}
                   </button>
                 )}
               </section>
               {placed.length > 0 && (
                 <section className={cx(CARD, "p-4")}>
-                  <h2 className="m-0 text-[14.5px] font-extrabold">Your wholesale orders</h2>
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <h2 className="m-0 text-[14.5px] font-extrabold">{t("pd.yourOrders")}</h2>
+                    <Link href="/marketplace/wholesale" className="text-[13px] font-extrabold text-app-accent-ink no-underline hover:underline">{t("pd.allOrders")}</Link>
+                  </div>
                   <ul className="m-0 mt-2 grid list-none gap-2 p-0 text-[13.5px]">
                     {placed.map((order) => (
                       <li key={order.id} className="grid gap-0.5">
                         <div className="flex justify-between gap-3">
-                          <span>{order.quantity.toLocaleString("en-NG")} units · {naira(order.totalPrice)}</span>
-                          <span className="font-bold">{WHOLESALE_STAGE[order.status] ?? order.status}</span>
+                          <span>{t("pd.unitsTotal", { count: num(order.quantity), total: money(order.totalPrice) })}</span>
+                          <span className="font-bold">{localWholesaleStage(t, sellerWholesaleStage(order.status, order.rejectReason)).label}</span>
                         </div>
-                        {order.trackingCode && <span className="text-app-ink-soft">Tracking {order.trackingCode}</span>}
-                        {order.rejectReason && <span className="text-app-danger">Declined: {order.rejectReason}</span>}
+                        {order.trackingCode && <span className="text-app-ink-soft">{t("pd.tracking", { code: order.trackingCode })}</span>}
+                        {(() => {
+                          const stage = localWholesaleStage(t, sellerWholesaleStage(order.status, order.rejectReason));
+                          return stage.note ? <span className={stage.tone === "danger" ? "text-app-danger" : "text-app-ink-soft"}>{stage.note}</span> : null;
+                        })()}
                       </li>
                     ))}
                   </ul>
@@ -366,21 +371,21 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
                 {supplier.slug ? <Link href={`/suppliers/${supplier.slug}`} className="text-app-ink no-underline hover:underline">{supplier.name}</Link> : supplier.name}
               </div>
               <div className="flex flex-wrap items-center gap-1 text-[13px] text-app-ink-soft">
-                {supplier.verified && <><Icon name="checkCircle" size={14} className="text-app-success" /> Verified by Shopinbos</>}
-                {product.stock > 0 && <span>{supplier.verified ? "· " : ""}{product.stock.toLocaleString("en-NG")} in stock</span>}
+                {supplier.verified && <><Icon name="checkCircle" size={14} className="text-app-success" /> {t("pd.verified")}</>}
+                {product.stock > 0 && <span>{supplier.verified ? "· " : ""}{t("pd.inStock", { count: num(product.stock) })}</span>}
               </div>
             </div>
           </section>
         </div>
         <div className="grid min-w-0 gap-4 lg:col-start-1">
           <section className={cx(CARD, "p-4 sm:p-5")}>
-            <h2 className="m-0 text-[15px] font-extrabold">What happens when it sells</h2>
+            <h2 className="m-0 text-[15px] font-extrabold">{t("pd.whatHappens")}</h2>
             <ol className="m-0 mt-3 grid list-none gap-3 p-0 sm:grid-cols-2">
               {[
-                "The shopper pays you. Shopinbos holds the money.",
-                `${supplier.name} packs it with your label.`,
-                "A rider delivers. Peggy tracks it in your name.",
-                "48 hours after delivery the money splits.",
+                t("pd.step.0"),
+                t("pd.step.1", { name: supplier.name }),
+                t("pd.step.2"),
+                t("pd.step.3"),
               ].map((text, index) => (
                 <li key={text} className="flex items-start gap-3">
                   <span className="grid h-7 w-7 shrink-0 place-items-center rounded-[9px] bg-app-canvas text-[13px] font-extrabold">{index + 1}</span>
@@ -392,7 +397,7 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
 
           {product.description && (
             <section className={cx(CARD, "p-4 sm:p-5")}>
-              <h2 className="m-0 text-[15px] font-extrabold">About this product</h2>
+              <h2 className="m-0 text-[15px] font-extrabold">{t("pd.about")}</h2>
               <p className="mb-0 mt-2 whitespace-pre-line text-[14px] leading-[1.6] text-app-ink-soft">{product.description}</p>
             </section>
           )}
@@ -417,6 +422,7 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
 }
 
 function MessageDialog({ open, supplierName, productName, onClose, onSend }: { open: boolean; supplierName: string; productName: string; onClose: () => void; onSend: (text: string) => Promise<string | null> }) {
+  const t = useT("marketplace");
   const ref = useRef<HTMLDialogElement>(null);
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -442,24 +448,25 @@ function MessageDialog({ open, supplierName, productName, onClose, onSend }: { o
           });
         }}
       >
-        <h2 id="message-supplier-title" className="m-0 text-[19px] font-extrabold">Message {supplierName}</h2>
-        <p className="mb-0 mt-1 text-[13.5px] text-app-ink-soft">About {productName}. Their reply comes to your Inbox.</p>
-        <label htmlFor="message-supplier-text" className="sr-only">Your message</label>
+        <h2 id="message-supplier-title" className="m-0 text-[19px] font-extrabold">{t("pd.msgTitle", { name: supplierName })}</h2>
+        <p className="mb-0 mt-1 text-[13.5px] text-app-ink-soft">{t("pd.msgAbout", { product: productName })}</p>
+        <label htmlFor="message-supplier-text" className="sr-only">{t("pd.yourMessage")}</label>
         <textarea
           id="message-supplier-text"
           rows={4}
           value={text}
           onChange={(event) => setText(event.target.value)}
           maxLength={2000}
-          placeholder="Hi, can you do my label on the box? How fast can you ship to Abuja?"
+          placeholder={t("pd.msgPh")}
           className="mt-3 w-full resize-y rounded-[16px] border border-app-line px-4 py-3 text-[15px] leading-[1.5] outline-none placeholder:text-app-ink-faint focus:border-app-ink"
         />
+        <VoiceInputButton value={text} onChange={setText} maxLength={2000} context="a message to a supplier" className="mt-2" />
         {error && <p role="alert" className="mb-0 mt-2 text-[13.5px] font-bold text-app-danger">{error}</p>}
         <div className="mt-4 flex flex-wrap gap-2">
           <button type="submit" disabled={pending || !text.trim()} className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-app-ink px-5 text-[14px] font-extrabold text-white hover:bg-black disabled:opacity-60">
-            <Icon name="send" size={15} /> {pending ? "Sending…" : "Send"}
+            <Icon name="send" size={15} /> {pending ? t("pd.sending") : t("pd.send")}
           </button>
-          <button type="button" onClick={onClose} className="inline-flex min-h-[44px] items-center rounded-full border border-app-line bg-white px-5 text-[14px] font-extrabold">Cancel</button>
+          <button type="button" onClick={onClose} className="inline-flex min-h-[44px] items-center rounded-full border border-app-line bg-white px-5 text-[14px] font-extrabold">{t("pd.cancel")}</button>
         </div>
       </form>
     </dialog>

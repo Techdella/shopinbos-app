@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { askRex, getSuggestions } from "@/app/actions/ai";
 import { ChipAvatar } from "@/components/brand/ChipAvatar";
 import { Icon } from "@/components/ui/Icon";
+import { useT } from "@/components/i18n/I18nProvider";
 
 interface Message {
   role: "user" | "assistant";
@@ -38,15 +39,16 @@ export function AssistantRexDrawer({
   initialMessage,
   userName,
 }: AssistantRexDrawerProps) {
+  const t = useT("rex");
   const pathname = usePathname();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [suggestionChips, setSuggestionChips] = useState<string[]>([
-    "Build my store",
-    "Create a landing page",
-    "Draft product descriptions",
-    "Help me upload products",
+  const [suggestionChips, setSuggestionChips] = useState<string[]>(() => [
+    t("drawer.chip.build"),
+    t("drawer.chip.landing"),
+    t("drawer.chip.descriptions"),
+    t("drawer.chip.upload"),
   ]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -82,24 +84,24 @@ export function AssistantRexDrawer({
 
     if (meta?.needsConfirmation) {
       actions.push({
-        label: meta.confirmationLabel || "Generate draft",
-        prompt: "Yes, generate the draft now.",
+        label: meta.confirmationLabel || t("drawer.generate"),
+        prompt: t("drawer.generatePrompt"),
         icon: "check",
       });
     }
     if (meta?.draftCreated && meta.previewUrl) {
-      actions.push({ label: "Preview draft", href: meta.previewUrl, icon: "eye" });
+      actions.push({ label: t("drawer.preview"), href: meta.previewUrl, icon: "eye" });
     }
     if (meta?.draftCreated && meta.builderUrl) {
-      actions.push({ label: "Open builder", href: meta.builderUrl, icon: "wand" });
+      actions.push({ label: t("drawer.openBuilder"), href: meta.builderUrl, icon: "wand" });
     }
 
     return {
       role: "assistant",
-      text: ("text" in result && result.text) || "Rex could not answer that yet.",
+      text: ("text" in result && result.text) || t("drawer.noAnswer"),
       actions,
     };
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (isOpen) {
@@ -109,15 +111,15 @@ export function AssistantRexDrawer({
         if (s.rexSuggestions.length > 0) setSuggestionChips(s.rexSuggestions);
         setMessages([{
           role: "assistant",
-          text: s.greeting ?? `Hi ${userName?.split(" ")[0] ?? "there"}, I'm Rex. I can help set up your store, create landing pages, write product descriptions, upload products, connect logistics, and get your Shopinbos account ready.`,
+          text: s.greeting ?? t("drawer.greeting", { name: userName?.split(" ")[0] ?? t("studio.there") }),
         }]);
       }).catch(() => {
-        const name = userName?.split(" ")[0] ?? "there";
-        setMessages([{ role: "assistant", text: `Hi ${name}, I'm Rex. How can I help you today?` }]);
+        const name = userName?.split(" ")[0] ?? t("studio.there");
+        setMessages([{ role: "assistant", text: t("drawer.greetingShort", { name }) }]);
       });
       setTimeout(() => inputRef.current?.focus(), 350);
     }
-  }, [isOpen, userName, pathname]);
+  }, [isOpen, userName, pathname, t]);
 
   useEffect(() => {
     if (initialMessage && isOpen && messages.length <= 1) {
@@ -230,12 +232,12 @@ export function AssistantRexDrawer({
               Rex
             </div>
             <div style={{ fontSize: 11.5, color: "var(--teal-600, #2EB39A)" }}>
-              Online &middot; AI Assistant
+              {t("drawer.status")}
             </div>
           </div>
           <button
             onClick={onClose}
-            aria-label="Close Rex assistant"
+            aria-label={t("drawer.close")}
             style={{
               width: 32, height: 32, borderRadius: 8, border: "none",
               background: "var(--ink-50, #F6F2E9)", cursor: "pointer",
@@ -423,7 +425,7 @@ export function AssistantRexDrawer({
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Ask Rex anything…"
+                placeholder={t("drawer.placeholder")}
                 disabled={isLoading}
                 style={{
                   border: "none", background: "none", outline: "none",
@@ -435,7 +437,7 @@ export function AssistantRexDrawer({
             </div>
             <button
               onClick={handleSend}
-              aria-label="Send message to Rex"
+              aria-label={t("drawer.send")}
               disabled={!input.trim() || isLoading}
               style={{
                 width: 40, height: 40, borderRadius: 10, border: "none",

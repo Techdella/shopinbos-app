@@ -68,7 +68,8 @@ test("one supplier order per store order and supplier: the key is stable, distin
 
 test("payment paths create supplier orders, and a replayed webhook stays safe", () => {
   const webhook = read("src/app/api/webhooks/paystack/route.ts");
-  assert.match(webhook, /ensureSupplierOrdersSafely\(ref\)/);
+  assert.match(webhook, /afterRetailOrderPaid\(ref/);
+  assert.match(read("src/lib/commerce/order-paid.server.ts"), /ensureSupplierOrdersSafely\(orderId\)/);
   assert.match(webhook, /recoverExpiredOrderPayment\(ref/);
   assert.match(read("src/app/actions/payments.ts"), /ensureSupplierOrdersSafely\(orderId\)/);
   assert.match(read("src/lib/orders/update-status.ts"), /ensureSupplierOrdersSafely\(order\.id\)/);
@@ -142,7 +143,8 @@ test("suppliers and sellers only reach their own orders", () => {
 test("wholesale never fakes a payment", () => {
   const detail = read("src/app/marketplace/_components/ProductDetail.tsx");
   assert.match(detail, /\/api\/app\/wholesale\/request/);
-  assert.match(detail, /You don&apos;t pay on Shopinbos/);
+  assert.match(detail, /t\("pd\.noPay"\)/);
+  assert.match(read("shared/i18n/messages/marketplace/en.ts"), /"pd\.noPay": "You don't pay on Shopinbos\."/);
   const service = read("src/lib/supplier-orders/wholesale.server.ts");
   assert.match(service, /tierPrice\(parsePricingTiers\(product\.pricingTiers\), input\.quantity, product\.wholesalePrice\)/);
   assert.match(service, /input\.quantity < moq/);
@@ -186,13 +188,14 @@ test("saved stock holds round-trip and junk is ignored", () => {
 test("checkout reserves through the holds and saves them on the order", () => {
   const checkout = read("src/app/api/public/store/[slug]/checkout/route.ts");
   assert.match(checkout, /await reserveStock\(tx, store\.id, priced\.stockHolds\)/);
-  assert.match(checkout, /stockHold: JSON\.parse\(JSON\.stringify\(priced\.stockHolds\)\)/);
+  assert.match(checkout, /const stockHolds = await reserveStock/);
+  assert.match(checkout, /stockHold: JSON\.parse\(JSON\.stringify\(stockHolds\)\)/, "the holds as really taken are saved");
   assert.doesNotMatch(checkout, /currentStock: \{ decrement/);
   const reserve = read("src/lib/commerce/stock.server.ts");
   assert.match(reserve, /stockQuantity: \{ gte: quantity \}/);
-  assert.match(reserve, /currentStock: \{ gte: quantity \}/);
+  assert.match(reserve, /"currentStock" - GREATEST\("reservedStock", 0\) >= \$\{quantity\}/);
   const pricing = read("src/lib/commerce/pricing.server.ts");
-  assert.match(pricing, /stockShortfalls\(products, quantities\)/);
+  assert.match(pricing, /stockShortfallDetails\(products, quantities\)/);
   assert.match(pricing, /maybeExpireUnpaidOrders\(input\.store\.id\)/);
 });
 

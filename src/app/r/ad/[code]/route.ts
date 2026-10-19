@@ -14,7 +14,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ code
   const ad = code
     ? await db.adCampaign.findUnique({
         where: { code },
-        select: { id: true, code: true, platform: true, destination: true, headline: true, storeProductId: true, store: { select: { id: true, slug: true, customDomain: true, user: { select: { phone: true } } } } },
+        select: { id: true, code: true, platform: true, destination: true, headline: true, storeProductId: true, productIds: true, store: { select: { id: true, slug: true, customDomain: true, user: { select: { phone: true } } } } },
       })
     : null;
   if (!ad) return NextResponse.redirect(appOrigin());
@@ -23,5 +23,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ code
     await db.adCampaign.update({ where: { id: ad.id }, data: { clicks: { increment: 1 } } }).catch(() => null);
   }
   const whatsapp = ad.destination === "whatsapp" ? await sellerWhatsapp(ad.store.id, ad.store.user.phone) : null;
-  return NextResponse.redirect(adLandingUrl(ad, ad.store, ad.storeProductId, whatsapp), 302);
+  // A campaign with several products sends each ad's taps to its own product (?p=).
+  const asked = req.nextUrl.searchParams.get("p");
+  const productId = asked && ad.productIds.includes(asked) ? asked : ad.storeProductId;
+  return NextResponse.redirect(adLandingUrl(ad, ad.store, productId, whatsapp), 302);
 }

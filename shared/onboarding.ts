@@ -97,16 +97,18 @@ export const PRODUCT_DOORS: { key: ProductDoor; label: string; hint: string; not
   },
 ];
 
-export type PaymentMethodKey = "transfer" | "card" | "cod" | "wa";
+export type PaymentMethodKey = "transfer" | "card" | "korapay" | "cod" | "wa";
 
 export const PAYMENT_METHODS: { key: PaymentMethodKey; label: string; hint: string }[] = [
   { key: "transfer", label: "Bank transfer", hint: "Customers get your payout account; you mark it paid when it lands" },
   { key: "card", label: "Card and USSD", hint: "Through Paystack" },
+  { key: "korapay", label: "Korapay", hint: "Card, transfer or pay with bank through Korapay" },
   { key: "cod", label: "Pay on delivery", hint: "Up to ₦50,000, verified phone numbers, where riders cover" },
   { key: "wa", label: "Finish on WhatsApp", hint: "Customers can chat to pay" },
 ];
 
-export const DEFAULT_PAYMENT_METHODS: Record<PaymentMethodKey, boolean> = { transfer: true, card: true, cod: true, wa: true };
+// Korapay starts off: sellers switch it on (it only shows at checkout once their wallet has a Korapay split account).
+export const DEFAULT_PAYMENT_METHODS: Record<PaymentMethodKey, boolean> = { transfer: true, card: true, korapay: false, cod: true, wa: true };
 
 export interface DeliveryZone {
   name: string;
@@ -137,9 +139,9 @@ export const CHECKLIST: { key: ChecklistKey; label: string; hint: string; href: 
   { key: "live", label: "Go live", hint: "Your shop link works", href: "/home/editor" },
   { key: "product", label: "Add your first products", hint: "One is enough to start", href: "/products" },
   { key: "brand", label: "Pick your brand and look", hint: "Name, colours and template", href: "/home/brand-kit" },
-  { key: "bank", label: "Add your payout bank", hint: "Money waits in your balance until you do", href: "/home/payments" },
+  { key: "bank", label: "Add your payout bank", hint: "Card payments go straight to your bank", href: "/home/wallet" },
   { key: "wa", label: "Connect WhatsApp for Peggy", hint: "Peggy drafts replies for you", href: "/home/social/whatsapp" },
-  { key: "id", label: "Verify your ID", hint: "BVN or NIN lifts payout limits", href: "/home/profile" },
+  { key: "id", label: "Verify your ID", hint: "NIN or BVN: opens card payments to your bank", href: "/home/wallet" },
   { key: "ig", label: "Connect Instagram and TikTok", hint: "Sync your catalogue and posts", href: "/home/social" },
   { key: "labels", label: "Print your first price tags", hint: "Two taps from your products", href: "/products" },
 ];

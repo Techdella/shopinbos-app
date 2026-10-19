@@ -41,7 +41,8 @@ export async function verifyPartnerKey(authorization: string | null): Promise<Ve
   });
   if (!row || row.revokedAt) return { ok: false, status: 401, code: "UNAUTHORIZED", message: "This API key is not valid or has been revoked." };
   const partner = row.logisticsPartner;
-  if (partner.status !== "active" || partner.verificationStatus !== "verified") {
+  // "paused" = the partner switched off "Taking new jobs"; their software still updates jobs they already have.
+  if ((partner.status !== "active" && partner.status !== "paused") || partner.verificationStatus !== "verified") {
     return { ok: false, status: 403, code: "FORBIDDEN", message: "Your partner account isn't active and verified yet." };
   }
 

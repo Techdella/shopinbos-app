@@ -1,5 +1,6 @@
 "use client";
 
+import { SMS_ENABLED } from "@/lib/features";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardHead } from "@/components/app-kit";
@@ -9,17 +10,33 @@ import type { ChannelStatus } from "@/lib/marketing/channels";
 import type { MessagingSettings } from "@/lib/marketing/messaging-settings";
 import { CUSTOMER_EVENTS, type CustomerEvent, type CustomerEventSetting } from "@/lib/marketing/text-channels";
 import { api, errorText } from "../_kit/client";
-import { ChannelHelp, SmsCounter, TemplateStatusPill, WhatsAppBubble, type TemplateOption } from "../_kit/text";
+import { ChannelHelp, SmsCounter, TemplateStatusPill, WhatsAppBubble, useTemplateStatusLabel, type TemplateOption } from "../_kit/text";
+import { useT } from "@/components/i18n/I18nProvider";
+import type { MessageKey } from "@shared/i18n/catalog";
+import { EVENT_COPY, friendlyName } from "../_kit/friendly";
+import { AdvancedFold } from "@/components/simple/Fold";
+
+const SMS_DETAILS: Array<{ token: string; label: MessageKey<"marketing"> }> = [
+  { token: "{{name}}", label: "om.detail.name" },
+  { token: "{{store}}", label: "om.detail.store" },
+  { token: "{{order_number}}", label: "om.detail.orderNumber" },
+  { token: "{{order_total}}", label: "om.detail.orderTotal" },
+  { token: "{{tracking_link}}", label: "om.detail.tracking" },
+  { token: "{{cart_url}}", label: "om.detail.cart" },
+];
 
 type Template = TemplateOption & { preset: string | null };
 
 export function OrderMessages({ initial, channels, templates, currency }: { initial: MessagingSettings; channels: { sms: ChannelStatus; whatsapp: ChannelStatus }; templates: Template[]; currency: string }) {
   const router = useRouter();
+  const t = useT("marketing", "common");
+  const statusLabel = useTemplateStatusLabel();
   const [settings, setSettings] = useState(initial);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const setEvent = (key: CustomerEvent, patch: Partial<CustomerEventSetting>) => setSettings((s) => ({ ...s, transactional: { ...s.transactional, [key]: { ...s.transactional[key], ...patch } } }));
+  const eventLabel = (key: string, fallback: string) => t.dynamic(`om.event.${key}.label`, EVENT_COPY[key]?.label ?? fallback);
   const waReady = Boolean(channels.whatsapp.templates);
   const smsReady = channels.sms.ready;
 
@@ -34,7 +51,7 @@ export function OrderMessages({ initial, channels, templates, currency }: { init
         transactional: Object.fromEntries(CUSTOMER_EVENTS.map((e) => [e.key, settings.transactional[e.key]])),
       });
       setSettings(saved);
-      setNotice("Saved.");
+      setNotice(t("editor.saved"));
       router.refresh();
     } catch (saveError) {
       setError(errorText(saveError));
@@ -49,44 +66,44 @@ export function OrderMessages({ initial, channels, templates, currency }: { init
       {notice ? <Notice tone="success">{notice}</Notice> : null}
       {!waReady ? (
         <Notice tone="info">
-          <ChannelHelp label="WhatsApp" howTo={channels.whatsapp.howTo} href={channels.whatsapp.connectHref} linkLabel={channels.whatsapp.connectLabel} />
+          <ChannelHelp label="WhatsApp" howTo={t("om.waHow")} href={channels.whatsapp.connectHref} linkLabel={channels.whatsapp.connectLabel} />
         </Notice>
       ) : null}
-      {!smsReady ? (
+      {SMS_ENABLED && !smsReady ? (
         <Notice tone="info">
-          <ChannelHelp label="SMS" howTo={channels.sms.howTo} href={channels.sms.connectHref} linkLabel={channels.sms.connectLabel} />
+          <ChannelHelp label="SMS" howTo={t("om.smsHow")} href={channels.sms.connectHref} linkLabel={channels.sms.connectLabel} />
         </Notice>
       ) : null}
 
       <Card className="grid gap-2 p-5">
-        <CardHead title="Who gets these" />
+        <CardHead title={t("om.whoGets")} />
         <p className="m-0 text-[14px] leading-[1.55] text-app-ink-soft">
-          Order messages go only to the phone number the buyer typed at checkout, and only about their own order or cart. They don't need a marketing opt-in, but anyone who replied STOP never gets them. No phone number, no message. Each message goes once per order.
+          {t("om.whoGetsBody")}
         </p>
       </Card>
 
       {CUSTOMER_EVENTS.map((event) => {
         const s = settings.transactional[event.key];
-        const auto = templates.find((t) => t.preset === event.preset && t.status === "APPROVED");
-        const chosen = templates.find((t) => t.id === s.templateId) ?? null;
+        const auto = templates.find((tpl) => tpl.preset === event.preset && tpl.status === "APPROVED");
+        const chosen = templates.find((tpl) => tpl.id === s.templateId) ?? null;
         const shown = chosen ?? auto ?? null;
         return (
           <Card key={event.key} className="grid gap-4 p-5">
-            <CardHead title={event.label} sub={event.sub} />
-            <div className="grid gap-4 lg:grid-cols-2">
+            <CardHead title={eventLabel(event.key, event.label)} sub={t.dynamic(`om.event.${event.key}.sub`, EVENT_COPY[event.key]?.sub ?? event.sub)} />
+            <div className={SMS_ENABLED ? "grid gap-4 lg:grid-cols-2" : "grid gap-4"}>
               <div className="grid content-start gap-3">
                 <label className="flex items-center justify-between gap-3 text-[14px] font-bold">
                   <span>WhatsApp</span>
-                  <Toggle on={s.whatsapp} onChange={(on) => setEvent(event.key, { whatsapp: on })} label={`${event.label} on WhatsApp`} />
+                  <Toggle on={s.whatsapp} onChange={(on) => setEvent(event.key, { whatsapp: on })} label={t("om.onWhatsApp", { event: eventLabel(event.key, event.label) })} />
                 </label>
                 {s.whatsapp ? (
                   <>
-                    <Field label="Template" htmlFor={`tpl-${event.key}`} hint={auto && !s.templateId ? `Using ${auto.name} (approved).` : `Leave on automatic to use your approved “${event.preset.replace(/_/g, " ")}” template.`}>
+                    <Field label={t("campaign.template")} htmlFor={`tpl-${event.key}`} hint={auto && !s.templateId ? t("om.using", { name: friendlyName(auto.name) }) : t("om.leaveAuto", { preset: event.preset.replace(/_/g, " ") })}>
                       <select id={`tpl-${event.key}`} className={selectClass} value={s.templateId ?? ""} onChange={(e) => setEvent(event.key, { templateId: e.target.value || null })}>
-                        <option value="">Automatic{auto ? ` (${auto.name})` : ""}</option>
-                        {templates.map((t) => (
-                          <option key={t.id} value={t.id} disabled={t.status !== "APPROVED"}>
-                            {t.name} ({t.language}){t.status !== "APPROVED" ? ` · ${t.status.toLowerCase()}` : ""}
+                        <option value="">{t("om.automatic")}{auto ? ` (${friendlyName(auto.name)})` : ""}</option>
+                        {templates.map((tpl) => (
+                          <option key={tpl.id} value={tpl.id} disabled={tpl.status !== "APPROVED"}>
+                            {friendlyName(tpl.name)}{tpl.status !== "APPROVED" ? ` · ${statusLabel(tpl.status).toLowerCase()}` : ""}
                           </option>
                         ))}
                       </select>
@@ -98,46 +115,56 @@ export function OrderMessages({ initial, channels, templates, currency }: { init
                       </div>
                     ) : (
                       <p className="m-0 text-[13px] font-semibold text-app-accent-ink">
-                        No approved template yet, so nothing goes out on WhatsApp.{" "}
-                        <a href="/home/marketing/whatsapp" className="underline">Submit the ready-made “{event.preset.replace(/_/g, " ")}” template</a>.
+                        {t("om.noApproved")}{" "}
+                        <a href="/home/marketing/whatsapp" className="underline">{t("om.submitPreset", { preset: event.preset.replace(/_/g, " ") })}</a>.
                       </p>
                     )}
                   </>
                 ) : null}
               </div>
+              {SMS_ENABLED && (
               <div className="grid content-start gap-3">
                 <label className="flex items-center justify-between gap-3 text-[14px] font-bold">
                   <span>SMS</span>
-                  <Toggle on={s.sms} onChange={(on) => setEvent(event.key, { sms: on })} label={`${event.label} by SMS`} />
+                  <Toggle on={s.sms} onChange={(on) => setEvent(event.key, { sms: on })} label={t("om.bySms", { event: eventLabel(event.key, event.label) })} />
                 </label>
                 {s.sms ? (
                   <>
-                    <Field label="Text" htmlFor={`sms-${event.key}`} hint="{{name}}, {{store}}, {{order_number}}, {{order_total}}, {{tracking_code}}, {{tracking_link}}, {{cart_url}} are filled in.">
+                    <Field label={t("rewards.text")} htmlFor={`sms-${event.key}`} hint={t("om.textHint")}>
                       <textarea id={`sms-${event.key}`} rows={3} className={textareaClass} value={s.smsText} maxLength={480} onChange={(e) => setEvent(event.key, { smsText: e.target.value })} />
                     </Field>
+                    <div className="flex flex-wrap gap-1.5" role="group" aria-label={t("wa.addDetail")}>
+                      {SMS_DETAILS.map((d) => (
+                        <button key={d.token} type="button" className="min-h-[36px] rounded-full border border-app-line bg-white px-3 text-[13px] font-bold" onClick={() => setEvent(event.key, { smsText: `${s.smsText}${s.smsText && !/\s$/.test(s.smsText) ? " " : ""}${d.token}`.slice(0, 480) })}>
+                          + {t(d.label)}
+                        </button>
+                      ))}
+                    </div>
                     <SmsCounter text={s.smsText.replace(/{{\s*[a-z_]+\s*}}/g, "XXXXXXXX")} />
                   </>
                 ) : null}
               </div>
+              )}
             </div>
           </Card>
         );
       })}
 
-      <Card className="grid gap-4 p-5">
-        <CardHead title="SMS settings" />
+      {SMS_ENABLED && (
+      <AdvancedFold label={t("om.smsSettings")} hint={t("om.smsSettingsHint")}>
         <div className="grid gap-4 md:grid-cols-2">
-          <Field label="Sender ID" htmlFor="sms-sender" hint="3-11 letters or numbers, registered with your SMS provider. Empty uses your account's default.">
-            <input id="sms-sender" value={settings.smsSenderId ?? ""} onChange={(e) => setSettings({ ...settings, smsSenderId: e.target.value.slice(0, 11) || null })} className={inputClass} maxLength={11} placeholder="e.g. ADIREHOUSE" />
+          <Field label={t("editor.senderName")} htmlFor="sms-sender" hint={t("om.senderHint")}>
+            <input id="sms-sender" value={settings.smsSenderId ?? ""} onChange={(e) => setSettings({ ...settings, smsSenderId: e.target.value.slice(0, 11) || null })} className={inputClass} maxLength={11} placeholder={t("editor.senderPlaceholder")} />
           </Field>
-          <Field label={`Price per SMS part (${currency}, optional)`} htmlFor="sms-cost" hint="From your SMS provider. Used for cost estimates in campaigns.">
-            <input id="sms-cost" type="number" min={0} step="0.01" value={settings.smsCostPerSegment ?? ""} onChange={(e) => setSettings({ ...settings, smsCostPerSegment: e.target.value === "" ? null : Number(e.target.value) })} className={inputClass} placeholder="e.g. 4.5" />
+          <Field label={t("om.price", { currency })} htmlFor="sms-cost" hint={t("om.priceHint")}>
+            <input id="sms-cost" type="number" min={0} step="0.01" value={settings.smsCostPerSegment ?? ""} onChange={(e) => setSettings({ ...settings, smsCostPerSegment: e.target.value === "" ? null : Number(e.target.value) })} className={inputClass} placeholder={t("om.pricePlaceholder")} />
           </Field>
         </div>
-      </Card>
+      </AdvancedFold>
+      )}
 
       <div className="flex flex-wrap gap-2">
-        <PillButton size="md" busy={busy} onClick={() => void save()}>Save</PillButton>
+        <PillButton size="md" busy={busy} onClick={() => void save()}>{t("save")}</PillButton>
       </div>
     </div>
   );

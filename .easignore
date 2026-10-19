@@ -49,11 +49,17 @@ ts-errors.txt
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+website/dist/
 
-# EAS uploads: the mobile app only needs apps/mobile and shared/
+# EAS builds the phone app (apps/mobile), which only needs apps/mobile and shared/.
+/.claude/
 /public/
+/website/
 /src/
 /tests/
+/docs/
 /prisma/
 /scripts/
-/docs/
+/apps/mobile/dist/
+/apps/mobile/node_modules/
+*.tsbuildinfo

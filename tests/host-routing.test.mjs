@@ -67,9 +67,14 @@ test("store hosts: storefront pages are rewritten, portals never served, storefr
   for (const api of ["/api/app/store", "/api/admin/users", "/api/supplier/orders", "/api/logistics/x", "/api/auth/sync-user", "/api/webhooks/paystack", "/api", "/api/publicity"]) {
     assert.deepEqual(act(api), { action: "not-found" }, api);
   }
-  for (const pass of ["/api/public/store/adas-closet/checkout", "/api/store/coupons/validate", "/_next/data/x.json", "/favicon.ico", "/robots.txt", "/sitemap.xml", "/brand/logo.svg", "/icon.png", "/store-templates/a/b.webp"]) {
+  for (const pass of ["/api/public/store/adas-closet/checkout", "/api/store/coupons/validate", "/_next/data/x.json", "/favicon.ico", "/brand/logo.svg", "/icon.png", "/store-templates/a/b.webp"]) {
     assert.deepEqual(act(pass), { action: "pass" }, pass);
   }
+  // Every store host answers its own robots.txt, sitemap and llms.txt, never the app's.
+  for (const file of ["/robots.txt", "/sitemap.xml", "/llms.txt", "/llms-full.txt"]) {
+    assert.deepEqual(act(file), { action: "rewrite", pathname: `/s/adas-closet${file}` }, file);
+  }
+  assert.deepEqual(act("/sitemap-2.xml"), { action: "pass" }, "other static-looking files still pass");
 });
 
 test("custom domains: a host and its www twin share one ownership key", () => {
@@ -83,7 +88,8 @@ test("custom domains: a host and its www twin share one ownership key", () => {
 test("the proxy routes store hosts before auth, keeps app-host auth, and the dead root middleware is gone", () => {
   const proxy = readFileSync(new URL("../src/proxy.ts", import.meta.url), "utf8");
   assert.ok(proxy.indexOf('if (route.kind !== "app") return routeStoreHost') < proxy.indexOf("csrfRejection("), "store hosts are routed before the app's checks");
-  assert.match(proxy, /skippedOnAppHost\(request\.nextUrl\.pathname\)\) return NextResponse\.next\(\)/, "/s/ and /api/public stay untouched on app hosts");
+  // /s/ and /api/public skip the app's auth on app hosts; /s/ only gains the shopper's path header (for old-address redirects).
+  assert.match(proxy, /if \(skippedOnAppHost\(request\.nextUrl\.pathname\)\) \{\n    if \(!request\.nextUrl\.pathname\.startsWith\("\/s\/"\)\) return NextResponse\.next\(\);/, "/s/ and /api/public stay untouched on app hosts");
   assert.doesNotMatch(proxy, /api\/public\|s\//, "the matcher no longer skips the storefront paths");
   assert.match(proxy, /resolveCustomDomainSlug\(/);
   const lookup = readFileSync(new URL("../src/lib/domains/lookup.ts", import.meta.url), "utf8");

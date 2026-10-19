@@ -4,13 +4,14 @@ import type { SubscriberSource } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { withCors, handleOptions } from "@/lib/api/cors";
 import { created, apiError } from "@/lib/api/response";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimit, checkRateLimitShared, rateLimitKey } from "@/lib/rate-limit";
 import { triggerAutomations } from "@/lib/automations/engine";
 import { normalizeEmail, normalizePhone } from "@/lib/marketing/segment-rules";
 import { addSubscriber } from "@/lib/marketing/subscribers";
 import { upsertStoreVisitor } from "@/lib/storefront/visitor-data";
 import { GameError } from "@/lib/gamification/config.server";
 import { playGame } from "@/lib/gamification/play.server";
+import { readPopupConfig } from "@/lib/marketing/forms";
 
 // A shopper spins the wheel, scratches the card, or takes their post-purchase spin. The server draws the
 // prize (the page only animates to it) and issues a unique one-use code. Rate-limited per connection; one
@@ -24,7 +25,9 @@ export async function OPTIONS(req: NextRequest) {
 }
 
 const Body = z.object({
-  game: z.enum(["wheel", "scratch", "post_purchase"]),
+  game: z.enum(["wheel", "scratch", "post_purchase", "box"]),
+  /** Played from a game pop-up: its id. The pop-up's settings are read from the database, never from the page. */
+  formId: z.string().min(1).max(64).optional(),
   email: z.string().max(200).optional(),
   phone: z.string().max(40).optional(),
   name: z.string().max(80).optional(),
@@ -51,8 +54,22 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   if (input.phone?.trim() && !phone) return withCors(req, apiError("BAD_REQUEST", "Enter a valid WhatsApp number, like 0803 123 4567."), CORS);
   if (input.game !== "post_purchase" && !email && !phone) return withCors(req, apiError("BAD_REQUEST", "Enter your email or WhatsApp number so we can keep your prize."), CORS);
   const contact = email ?? phone ?? input.orderId ?? "";
-  if (!checkRateLimit(`game:${store.id}:${contact}`, { maxRequests: 3, windowMs: 600_000 }).allowed) {
+  // Per player across every server instance (shared, fails open): prizes are discount codes.
+  if (!(await checkRateLimitShared(rateLimitKey(`game:${store.id}`, contact), { maxRequests: 3, windowMs: 600_000 })).allowed) {
     return withCors(req, apiError("RATE_LIMITED", "You've already played. Check your code below or try again later.", 429), CORS);
+  }
+
+  // A game pop-up: it must be this store's live pop-up for this very game.
+  let viaPopup: { formId: string; collect: "email" | "whatsapp" | "either"; frequencyDays: number } | null = null;
+  if (input.formId) {
+    const form = await db.storeForm.findFirst({ where: { id: input.formId, storeId: store.id, active: true, isPopup: true }, select: { id: true, popupConfig: true } });
+    const popup = form ? readPopupConfig(form.popupConfig) : null;
+    if (!form || !popup || input.game === "post_purchase" || popup.kind !== "game" || popup.game !== input.game) {
+      return withCors(req, apiError("NOT_FOUND", "This game isn't on right now.", 404), CORS);
+    }
+    viaPopup = { formId: form.id, collect: popup.collect, frequencyDays: popup.playEveryDays };
+  } else if (input.game === "box") {
+    return withCors(req, apiError("BAD_REQUEST", "This game isn't on right now."), CORS);
   }
 
   const marketing = input.game !== "post_purchase" && input.consent.marketing;
@@ -60,7 +77,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
 
   let result;
   try {
-    result = await playGame({ storeId: store.id, game: input.game, email, phone, orderId: input.orderId ?? null, consent: consentRecord });
+    result = await playGame({ storeId: store.id, game: input.game, email, phone, orderId: input.orderId ?? null, consent: consentRecord, viaPopup });
   } catch (error) {
     if (error instanceof GameError) return withCors(req, apiError("BAD_REQUEST", error.message), CORS);
     console.error("[gamification] play failed", error);
@@ -81,7 +98,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
         )
       : null,
     input.visitorKey && (email || phone) ? upsertStoreVisitor({ storeId: store.id, visitorKey: input.visitorKey, email, phone, name: input.name ?? null }) : null,
+    // A play from a pop-up counts towards that pop-up's numbers (Marketing > Forms and pop-ups).
+    viaPopup ? countPopupPlay(store.id, viaPopup.formId) : null,
   ]);
 
   return withCors(req, created(result), CORS);
+}
+
+function countPopupPlay(storeId: string, formId: string) {
+  const day = new Date(new Date().toISOString().slice(0, 10));
+  return db.marketingFormStat.upsert({
+    where: { formId_day: { formId, day } },
+    create: { storeId, formId, day, submissions: 1 },
+    update: { submissions: { increment: 1 } },
+  });
 }

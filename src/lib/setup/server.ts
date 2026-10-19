@@ -3,7 +3,7 @@ import "server-only";
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { buildStorefrontUrl } from "@/lib/domains/storefront";
-import { STORE_LAUNCH_DEPOSIT_NGN, STORE_LAUNCH_TOTAL_NGN } from "@/lib/store-launch-billing";
+import { storeLaunchPrices } from "@/lib/store-launch-billing";
 import { mergePreferences, parsePreferences } from "@shared/preferences";
 import { DEFAULT_PAYMENT_METHODS, type PaymentMethodKey } from "@shared/onboarding";
 import { toggleableItems } from "@/lib/nav";
@@ -50,15 +50,17 @@ export async function getSetupOverview(userId: string) {
   });
   if (!store) return null;
 
-  const [products, productsWithPhotos, zones, subscribers, campaignsSent, onlineOrders] = await Promise.all([
+  const [products, productsWithPhotos, zones, subscribers, campaignsSent, onlineOrders, socialsConnected] = await Promise.all([
     db.storeProduct.count({ where: { storeId: store.id, status: { not: "archived" } } }),
     db.storeProduct.count({ where: { storeId: store.id, status: { not: "archived" }, images: { isEmpty: false } } }),
     db.shippingZone.findMany({ where: { storeId: store.id, active: true }, orderBy: { sortOrder: "asc" }, select: { id: true, name: true, regions: true, rates: true } }),
     db.subscriber.count({ where: { storeId: store.id, status: "active" } }),
     db.broadcastCampaign.count({ where: { storeId: store.id, status: "sent" } }),
     db.retailOrder.count({ where: { storeId: store.id, channel: "online_store" } }),
+    db.inboxChannel.count({ where: { storeId: store.id, channel: { in: ["whatsapp", "messenger", "instagram"] }, status: "connected" } }),
   ]);
 
+  const wallet = await db.wallet.findUnique({ where: { userId }, select: { subaccountStatus: true } }).catch(() => null);
   const settings = record(store.brandSettings);
   const editor = record(settings.editor);
   const bank = record(settings.payoutBank);
@@ -73,8 +75,10 @@ export async function getSetupOverview(userId: string) {
     productsWithPhotos,
     paymentMethodsOn: methods ? Object.values(methods).filter(Boolean).length : 0,
     activeDeliveryZones: zones.length,
-    payoutBank: Boolean(bank.paystackRecipientCode || bank.accountNumberMask),
+    // The Shopinbos Wallet bank (card payments split straight to it); an old payout bank still counts.
+    payoutBank: Boolean(bank.paystackRecipientCode || bank.accountNumberMask) || ["active", "review"].includes(wallet?.subaccountStatus ?? ""),
     live,
+    socialsConnected,
     shared: Boolean(choices.sharedAt) || onlineOrders > 0,
     customDomain: Boolean(store.customDomain),
     subscribers,
@@ -99,7 +103,7 @@ export async function getSetupOverview(userId: string) {
       regions: zone.regions,
       fee: Number(record(Array.isArray(zone.rates) ? zone.rates[0] : null).price ?? 0) || 0,
     })),
-    launch: { totalNgn: STORE_LAUNCH_TOTAL_NGN, depositNgn: STORE_LAUNCH_DEPOSIT_NGN },
+    launch: await storeLaunchPrices(),
   };
 }
 

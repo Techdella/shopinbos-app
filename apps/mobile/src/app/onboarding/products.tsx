@@ -8,9 +8,11 @@ import { useOnboarding } from "@/components/OnboardingContext";
 import { ProductDraftsCard, useProductDrafts } from "@/components/ProductDrafts";
 import { API_URL } from "@/lib/api";
 import { saveMemory } from "@/lib/onboarding";
+import { useT } from "@/lib/i18n";
 import { colors, radii } from "@/theme";
 
 export default function Products() {
+  const t = useT("m_onboarding", "m_products");
   const params = useLocalSearchParams<{ door?: string }>();
   const { status, setStatus } = useOnboarding();
   const [door, setDoor] = useState<ProductDoor>(params.door === "sup" ? "sup" : "snap");
@@ -27,7 +29,7 @@ export default function Products() {
       await saveMemory({ screen: "payments" }).catch(() => null);
       router.push("/onboarding/payments");
     } catch (productError) {
-      drafts.setError(productError instanceof Error ? productError.message : "Couldn't add those products.");
+      drafts.setError(productError instanceof Error ? productError.message : t("add.saveFailed"));
     } finally {
       setBusy(false);
     }
@@ -35,7 +37,7 @@ export default function Products() {
 
   const info = PRODUCT_DOORS.find((item) => item.key === door)!;
   const count = drafts.drafts.length;
-  const label = count ? `Continue with ${count} product${count === 1 ? "" : "s"}` : status?.productCount ? "Continue" : "Add products later";
+  const label = count ? t("products.continueWith", { count }) : status?.productCount ? t("products.continue") : t("products.later");
 
   return (
     <OnboardingFrame
@@ -47,13 +49,13 @@ export default function Products() {
         </>
       }
     >
-      <T weight="extrabold" style={{ fontSize: 30, letterSpacing: -0.6, lineHeight: 33 }} accessibilityRole="header">Add your first products</T>
-      <T style={{ color: colors.inkSoft, marginTop: 6, marginBottom: 18 }}>One is enough to go live. Add the rest later.</T>
+      <T weight="extrabold" style={{ fontSize: 30, letterSpacing: -0.6, lineHeight: 33 }} accessibilityRole="header">{t("products.title")}</T>
+      <T style={{ color: colors.inkSoft, marginTop: 6, marginBottom: 18 }}>{t("products.sub")}</T>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
         {PRODUCT_DOORS.map((item) => (
           <Pressable key={item.key} accessibilityRole="button" accessibilityState={{ selected: door === item.key }} onPress={() => setDoor(item.key)} style={{ width: "48.4%", minHeight: 118, backgroundColor: colors.surface, borderRadius: radii.card, padding: 16, borderWidth: 2, borderColor: door === item.key ? colors.ink : "transparent" }}>
-            <T weight="extrabold" style={{ fontSize: 15, lineHeight: 18 }}>{item.label}</T>
-            <T style={{ color: colors.inkSoft, fontSize: 13, lineHeight: 18, marginTop: 6 }}>{item.hint}</T>
+            <T weight="extrabold" style={{ fontSize: 15, lineHeight: 18 }}>{t.dynamic(`door.${item.key}.label`, item.label)}</T>
+            <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 18, marginTop: 6 }}>{t.dynamic(`door.${item.key}.hint`, item.hint)}</T>
           </Pressable>
         ))}
       </View>
@@ -62,12 +64,12 @@ export default function Products() {
           <ProductDraftsCard state={drafts} />
         ) : (
           <Card style={{ padding: 20 }}>
-            <T style={{ color: colors.inkSoft, lineHeight: 21 }}>{info.note}</T>
+            <T style={{ color: colors.inkSoft, lineHeight: 21 }}>{t.dynamic(`door.${info.key}.note`, info.note)}</T>
             {door === "ig" ? (
-              <T weight="bold" style={{ color: colors.inkFaint, fontSize: 13, marginTop: 12 }}>Instagram import is coming soon. Snap photos for now.</T>
+              <T weight="bold" style={{ color: colors.inkFaint, fontSize: 14, marginTop: 12 }}>{t("products.igSoon")}</T>
             ) : (
               <PillButton
-                title={door === "file" ? "Upload a spreadsheet on the web" : "Browse suppliers"}
+                title={door === "file" ? t("products.upload") : t("products.browse")}
                 size="md"
                 style={{ marginTop: 14 }}
                 onPress={() => void Linking.openURL(`${API_URL}${door === "file" ? "/products/import" : "/marketplace"}`)}

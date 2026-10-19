@@ -5,14 +5,19 @@ import { sellerFrame } from "@/components/seller-core";
 import { MessagesPage, type MessagesSearchParams } from "@/components/conversations/MessagesPage";
 import { requireRole } from "@/lib/server-auth";
 import { getSellerWorkspace } from "@/lib/workspace";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Supplier and delivery messages" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT("inbox");
+  return { title: t("partner.title") };
+}
 
 // Seller ↔ supplier and seller ↔ delivery partner chats (the same messenger as the top bar's Messages drawer).
 export default async function SellerPartnerMessagesPage({ searchParams }: { searchParams?: Promise<MessagesSearchParams> }) {
   const params = await searchParams;
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("inbox");
   const workspace = await getSellerWorkspace(user.id);
   if (!workspace) return null;
   if (!workspace.store) redirect("/builder?firstRun=1");
@@ -20,12 +25,12 @@ export default async function SellerPartnerMessagesPage({ searchParams }: { sear
   return (
     <AppPage
       frame={sellerFrame(user, workspace.store)}
-      title="Supplier and delivery messages"
-      sub="Ask suppliers about stock and prices, and sort out pickups with delivery partners. Link a product, order or delivery so everyone's on the same page."
+      title={t("partner.title")}
+      sub={t("partner.sub")}
       actions={
         <>
-          <PillLink href="/marketplace/suppliers" icon="search">Find suppliers</PillLink>
-          <PillLink href="/marketplace/logistics" icon="truck">Find delivery partners</PillLink>
+          <PillLink href="/marketplace/suppliers" icon="search">{t("partner.findSuppliers")}</PillLink>
+          <PillLink href="/marketplace/logistics" icon="truck">{t("partner.findPartners")}</PillLink>
         </>
       }
     >

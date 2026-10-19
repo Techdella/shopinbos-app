@@ -3,16 +3,21 @@ import { View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { formatE164, OTP_LENGTH, OTP_RESEND_SECONDS } from "@shared/phone";
-import { sendCode, syncAccount, verifyCode, type CodeTarget } from "@/lib/auth";
+import { explainSignupConflict, sendCode, signOutNow, syncAccount, verifyCode, type CodeChannel, type CodeTarget } from "@/lib/auth";
 import { asSignupRole } from "@/lib/partner-pure";
 import { rememberSignedInRole } from "@/lib/role";
 import { BackButton, CodeInput, LinkButton, Notice, PillButton, T } from "@/components/ui";
 import { colors } from "@/theme";
+import { HelpButton } from "@/components/Help";
+import { useT } from "@/lib/i18n";
 
 export default function Verify() {
-  const params = useLocalSearchParams<{ target: string; mode: string; name?: string; role?: string }>();
+  const t = useT("m_auth");
+  const params = useLocalSearchParams<{ target: string; mode: string; name?: string; role?: string; channel?: string }>();
   const initialTarget = useMemo(() => JSON.parse(params.target ?? "{}") as CodeTarget, [params.target]);
   const [target, setTarget] = useState<CodeTarget>(initialTarget);
+  // The channel the server really used (WhatsApp, SMS or email), so the screen says where to look.
+  const [channel, setChannel] = useState<CodeChannel>(params.channel === "whatsapp" ? "whatsapp" : initialTarget.kind === "email" ? "email" : "sms");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,11 +44,20 @@ export default function Verify() {
     try {
       await verifyCode(target, value);
       const role = asSignupRole(params.role);
-      const actual = await syncAccount({ fullName: params.name || undefined, phone: target.kind === "phone" ? target.phone : undefined, signup: params.mode === "signup", role });
+      const signup = params.mode === "signup";
+      const actual = await syncAccount({ fullName: params.name || undefined, phone: target.kind === "phone" ? target.phone : undefined, signup, role });
       await rememberSignedInRole(actual);
+      // This email or phone already has another kind of account (a seller signing up as a supplier): nothing was
+      // changed. "Use a different email" logs out and goes back to the form; otherwise their own account opens.
+      if (signup && actual && actual !== role && (await explainSignupConflict(actual, role, target.kind)) === "different") {
+        await signOutNow();
+        router.replace({ pathname: "/signup", params: { role, method: target.kind } });
+        return;
+      }
+      // Each role opens its own tabs: the launch gate sends sellers home, suppliers to /supplier, delivery to /logistics.
       router.replace("/");
     } catch (verifyError) {
-      setError(verifyError instanceof Error ? verifyError.message : "Couldn't check that code.");
+      setError(verifyError instanceof Error ? verifyError.message : t("verify.checkFailed"));
       setBusy(false);
     }
   }
@@ -51,34 +65,45 @@ export default function Verify() {
   async function resend(next: CodeTarget) {
     setError(null);
     try {
-      await sendCode(next, { create: params.mode === "signup", fullName: params.name, role: asSignupRole(params.role) });
+      const used = await sendCode(next, { create: params.mode === "signup", fullName: params.name, role: asSignupRole(params.role) });
       setTarget(next);
+      setChannel(used);
       startCountdown();
     } catch (sendError) {
-      setError(sendError instanceof Error ? sendError.message : "Couldn't send a new code.");
+      setError(sendError instanceof Error ? sendError.message : t("verify.resendFailed"));
     }
   }
 
-  const where = target.kind === "phone" ? `SMS on ${formatE164(target.phone)}` : target.email;
+  const where = target.kind === "phone"
+    ? channel === "whatsapp" ? t("verify.whatsappOn", { phone: formatE164(target.phone) }) : t("verify.smsOn", { phone: formatE164(target.phone) })
+    : target.email;
+  const title = channel === "whatsapp" ? t("verify.titleWhatsapp") : channel === "email" ? t("verify.titleEmail") : t("verify.titleSms");
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas, paddingHorizontal: 22 }}>
-      <View style={{ paddingTop: 10, marginBottom: 24 }}>
+      <View style={{ paddingTop: 10, marginBottom: 24, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
         <BackButton onPress={() => router.back()} />
+        <HelpButton />
       </View>
-      <T weight="extrabold" style={{ fontSize: 30, letterSpacing: -0.6 }} accessibilityRole="header">Enter the code</T>
-      <T style={{ color: colors.inkSoft, marginTop: 8, marginBottom: 24 }}>We sent it to {where}</T>
+      <T weight="extrabold" style={{ fontSize: 30, letterSpacing: -0.6 }} accessibilityRole="header">{title}</T>
+      <T style={{ color: colors.inkSoft, marginTop: 8, marginBottom: 24 }}>{t("verify.sentTo", { where })}</T>
       <CodeInput value={code} onChange={setCode} onComplete={(value) => void submit(value)} />
       {seconds > 0 ? (
-        <T style={{ color: colors.inkSoft, marginTop: 16 }}>Didn&apos;t get it? Resend in 0:{String(seconds).padStart(2, "0")}</T>
+        <T style={{ color: colors.inkSoft, marginTop: 16 }}>{t("verify.resendIn", { time: `0:${String(seconds).padStart(2, "0")}` })}</T>
       ) : (
         <View style={{ flexDirection: "row", columnGap: 18, flexWrap: "wrap" }}>
-          <LinkButton title="Resend code" onPress={() => void resend(target)} />
+          <LinkButton title={t("verify.resend")} onPress={() => void resend(target)} />
         </View>
       )}
+      {target.kind === "phone" && channel === "whatsapp" ? (
+        <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: 6 }}>
+          <T style={{ color: colors.inkSoft }}>{t("verify.noWhatsapp")}</T>
+          <LinkButton title={t("verify.sendSms")} onPress={() => void resend({ kind: "phone", phone: target.phone, via: "sms" })} />
+        </View>
+      ) : null}
       {error && <View style={{ marginTop: 18 }}><Notice>{error}</Notice></View>}
       <View style={{ flex: 1 }} />
-      <PillButton title="Verify" busy={busy} disabled={code.length !== OTP_LENGTH} onPress={() => void submit()} style={{ marginBottom: 12 }} />
+      <PillButton title={t("verify.submit")} busy={busy} disabled={code.length !== OTP_LENGTH} onPress={() => void submit()} style={{ marginBottom: 12 }} />
     </SafeAreaView>
   );
 }

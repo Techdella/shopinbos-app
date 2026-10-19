@@ -5,6 +5,7 @@ import * as Clipboard from "expo-clipboard";
 import { Screen } from "@/components/Screen";
 import { Field, Label, Notice, PillButton, T } from "@/components/ui";
 import { parseRiderToken } from "@/lib/partner-pure";
+import { useT } from "@/lib/i18n";
 import { fetchRider, forgetRiderToken, saveRiderToken } from "@/lib/rider";
 import { colors } from "@/theme";
 
@@ -12,6 +13,7 @@ import { colors } from "@/theme";
 // lands here through shopinbos://rider/<token>; otherwise paste it.
 
 export default function RiderLink() {
+  const t = useT("m_rider");
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,7 +25,7 @@ export default function RiderLink() {
 
   async function open() {
     const token = parseRiderToken(text);
-    if (!token) return setError("That doesn't look like a Riders app link. Copy the whole link your dispatcher sent.");
+    if (!token) return setError(t("link.bad"));
     setBusy(true);
     setError(null);
     saveRiderToken(token);
@@ -32,7 +34,7 @@ export default function RiderLink() {
       router.replace("/rider");
     } catch (linkError) {
       forgetRiderToken();
-      setError(linkError instanceof Error ? linkError.message : "That link didn't work.");
+      setError(linkError instanceof Error ? linkError.message : t("link.failed"));
     } finally {
       setBusy(false);
     }
@@ -40,17 +42,17 @@ export default function RiderLink() {
 
   return (
     <Screen
-      title="Open your Riders app"
-      sub="Your dispatcher sends you a private link on WhatsApp. Paste it here once and your runs show up every day."
-      footer={<PillButton title="Open my runs" busy={busy} onPress={() => void open()} />}
+      title={t("link.title")}
+      sub={t("link.sub")}
+      footer={<PillButton title={t("link.open")} busy={busy} onPress={() => void open()} />}
     >
       {error ? <Notice>{error}</Notice> : null}
       <View>
-        <Label>Your Riders app link</Label>
-        <Field value={text} onChangeText={setText} placeholder="https://app.shopinbos.com/rider/…" autoCapitalize="none" autoCorrect={false} />
+        <Label>{t("link.label")}</Label>
+        <Field value={text} onChangeText={setText} placeholder="https://app.shopinbos.com/rider/…" autoCapitalize="none" autoCorrect={false} accessibilityLabel={t("link.label")} />
       </View>
-      <PillButton title="Paste from clipboard" tone="white" size="sm" style={{ alignSelf: "flex-start" }} onPress={() => void paste()} />
-      <T style={{ color: colors.inkSoft, lineHeight: 20 }}>Keep the link to yourself: anyone with it can see your drops. Lost it? Ask your dispatcher for a new one.</T>
+      <PillButton title={t("link.paste")} tone="white" size="sm" style={{ alignSelf: "flex-start" }} onPress={() => void paste()} />
+      <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21 }}>{t("link.private")}</T>
     </Screen>
   );
 }

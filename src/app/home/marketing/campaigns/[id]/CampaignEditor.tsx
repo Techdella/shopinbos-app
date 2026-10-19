@@ -1,18 +1,25 @@
 "use client";
 
+import { SMS_ENABLED } from "@/lib/features";
+import { confirmDialog } from "@/components/ui/dialogs";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardHead, Pill, SplitLayout } from "@/components/app-kit";
 import { Notice, PillButton, Segmented } from "@/components/app-ui";
 import { Modal } from "@/components/growth/Modal";
+import { MediaPicker } from "@/components/media/MediaPicker";
 import { Field, buttonClass, inputClass, selectClass, textareaClass } from "@/components/growth/kit";
 import type { ChannelStatus } from "@/lib/marketing/channels";
 import type { CampaignChannelConfig } from "@/lib/marketing/campaign-config";
 import { variableCount } from "@/lib/marketing/text-channels";
 import { EmailComposer } from "../../_kit/EmailComposer";
 import { EmailPreview, VariableChips, api, errorText, insertAtCursor, useDebounced } from "../../_kit/client";
-import { ChannelHelp, SmsCounter, TemplateStatusPill, VariableMapper, WhatsAppBubble, type TemplateOption } from "../../_kit/text";
+import { categoryLabel, friendlyName } from "../../_kit/friendly";
+import { ChannelHelp, SmsCounter, TemplateStatusPill, VariableMapper, WhatsAppBubble, useTemplateStatusLabel, type TemplateOption } from "../../_kit/text";
 import { TextPreview } from "./TextPreview";
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
+import { useLocale, useT } from "@/components/i18n/I18nProvider";
+import { formatNumber } from "@shared/i18n";
 
 type Channel = "email" | "sms" | "whatsapp";
 
@@ -30,7 +37,6 @@ interface Draft {
   channelConfig: CampaignChannelConfig;
 }
 
-const CHANNEL_LABEL: Record<Channel, string> = { email: "Email", sms: "SMS", whatsapp: "WhatsApp" };
 
 export function CampaignEditor({
   initial,
@@ -52,6 +58,11 @@ export function CampaignEditor({
   sms: { senderId: string | null; costPerSegment: number | null; currency: string };
 }) {
   const router = useRouter();
+  const t = useT("marketing", "common");
+  const tb = useT("emailBuilder");
+  const locale = useLocale();
+  const statusLabel = useTemplateStatusLabel();
+  const CHANNEL_LABEL: Record<Channel, string> = { email: t("channel.email"), sms: "SMS", whatsapp: "WhatsApp" };
   const [draft, setDraft] = useState<Draft>(initial);
   const [composerKey, setComposerKey] = useState(0);
   const [audience, setAudience] = useState<number | null>(null);
@@ -85,36 +96,36 @@ export function CampaignEditor({
   const ready = status.ready && (draft.channel !== "whatsapp" || Boolean(status.templates));
   const config = draft.channelConfig;
   const setConfig = (patch: Partial<CampaignChannelConfig>) => set({ channelConfig: { ...config, ...patch } });
-  const template = waTemplates.find((t) => t.id === config.templateId) ?? null;
+  const template = waTemplates.find((item) => item.id === config.templateId) ?? null;
   const mapping = config.variables?.some(Boolean) ? config.variables : template?.variables ?? [];
   const product = products.find((p) => p.id === config.productId) ?? null;
   const whatsappProblem =
     draft.channel !== "whatsapp"
       ? null
       : !template
-        ? "Pick an approved WhatsApp template."
+        ? t("editor.wa.pickTemplate")
         : template.status !== "APPROVED"
-          ? "This template isn't approved yet, so it can't be sent."
+          ? t("editor.wa.notApproved")
           : Array.from({ length: variableCount(template.content) }).some((_, i) => !mapping[i])
-            ? "Choose what fills every {{number}} in the template."
+            ? t("editor.wa.pickDetails")
             : mapping.includes("discount_code") && !config.discountCode
-              ? "Enter the discount code to send."
+              ? t("editor.wa.typeCode")
               : template.content.header.format === "IMAGE" && !config.headerImageUrl && !product
-                ? "Pick a product or an image for the header."
+                ? t("editor.wa.pickPicture")
                 : null;
 
   async function save(quiet = false): Promise<string | null> {
     setError(null);
     if (!draft.name.trim()) {
-      setError("Give the campaign a name.");
+      setError(t("editor.err.name"));
       return null;
     }
     if (draft.channel === "email" && !draft.subject.trim()) {
-      setError("Add a subject line.");
+      setError(t("editor.err.subject"));
       return null;
     }
     if (draft.channel === "sms" && config.senderId && !/^(?=.*[A-Za-z])[A-Za-z0-9 ]{3,11}$/.test(config.senderId)) {
-      setError("A sender ID is 3-11 letters or numbers, with at least one letter.");
+      setError(t("editor.err.senderId"));
       return null;
     }
     setBusy("save");
@@ -137,7 +148,7 @@ export function CampaignEditor({
         setDraft((current) => ({ ...current, id: saved.id }));
         router.replace(`/home/marketing/campaigns/${saved.id}`);
       }
-      if (!quiet) setNotice("Saved.");
+      if (!quiet) setNotice(t("editor.saved"));
       return saved.id;
     } catch (saveError) {
       setError(errorText(saveError));
@@ -155,14 +166,14 @@ export function CampaignEditor({
     setNotice(null);
     try {
       const result = await api<Record<string, unknown>>(`/api/app/marketing/campaigns/${id}`, "POST", { action, ...extra });
-      if (action === "test") setNotice(`Test sent to ${String(result.to)}.`);
+      if (action === "test") setNotice(t("editor.testSent", { to: String(result.to) }));
       if (action === "schedule") {
         setDraft((current) => ({ ...current, status: "scheduled" }));
-        setNotice("Scheduled. It goes out at that time (Lagos), within 10 minutes.");
+        setNotice(t("editor.scheduledNotice"));
       }
       if (action === "unschedule") {
         setDraft((current) => ({ ...current, status: "draft", scheduledAt: "" }));
-        setNotice("No longer scheduled. It's a draft again.");
+        setNotice(t("editor.unscheduledNotice"));
       }
       if (action === "send") {
         setConfirmSend(false);
@@ -176,15 +187,15 @@ export function CampaignEditor({
     }
   }
 
-  function applyTemplate(id: string) {
-    const template = templates.find((t) => t.id === id);
+  async function applyTemplate(id: string) {
+    const template = templates.find((item) => item.id === id);
     if (!template) return;
-    if (draft.bodyHtml.trim() && !window.confirm(`Replace your content with "${template.name}"?`)) return;
+    if (draft.bodyHtml.trim() && !(await confirmDialog(t("editor.confirmReplace", { name: template.name })))) return;
     set({ subject: template.subject, preheader: template.preheader, bodyHtml: template.bodyHtml, name: draft.name || template.name });
     setComposerKey((key) => key + 1);
   }
 
-  const peopleWord = (n: number) => `${n.toLocaleString("en-NG")} ${n === 1 ? "person" : "people"}`;
+  const peopleWord = (n: number) => t("campaign.people", { count: n });
 
   return (
     <div className="grid gap-5">
@@ -192,7 +203,7 @@ export function CampaignEditor({
       {notice ? <Notice tone="success">{notice}</Notice> : null}
       {!ready ? (
         <Notice tone="info">
-          <ChannelHelp label={`${CHANNEL_LABEL[draft.channel]} can't send yet`} howTo={`${status.howTo} You can still write and save the campaign.`} href={status.connectHref} linkLabel={status.connectLabel} />
+          <ChannelHelp label={t("editor.cantSendYet", { channel: CHANNEL_LABEL[draft.channel] })} howTo={t("editor.cantSendHow")} href={status.connectHref} linkLabel={status.connectLabel} />
         </Notice>
       ) : null}
 
@@ -201,19 +212,19 @@ export function CampaignEditor({
         main={
           <>
             <Card className="grid gap-5 p-5 sm:p-6">
-              <CardHead title="Campaign" />
+              <CardHead title={t("campaign.metaTitle")} />
               <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Name (only you see this)" htmlFor="c-name">
-                  <input id="c-name" value={draft.name} onChange={(e) => set({ name: e.target.value })} className={inputClass} placeholder="e.g. December sale" maxLength={120} />
+                <Field label={t("editor.name")} htmlFor="c-name">
+                  <input id="c-name" value={draft.name} onChange={(e) => set({ name: e.target.value })} className={inputClass} placeholder={t("editor.namePlaceholder")} maxLength={120} />
                 </Field>
-                <Field label="Send by">
+                <Field label={t("editor.sendBy")}>
                   <Segmented
-                    options={(["email", "sms", "whatsapp"] as Channel[]).map((value) => ({ value, label: CHANNEL_LABEL[value] }))}
+                    options={(["email", "sms", "whatsapp"] as Channel[]).filter((value) => value !== "sms" || SMS_ENABLED || draft.channel === "sms").map((value) => ({ value, label: CHANNEL_LABEL[value] }))}
                     value={draft.channel}
-                    onChange={(channel) => {
+                    onChange={async (channel) => {
                       // Emails and texts are written differently, so switching between them starts a fresh message.
                       const crossing = (channel === "email") !== (draft.channel === "email");
-                      if (crossing && draft.bodyHtml.trim() && !window.confirm("Switching between email and text starts a fresh message. Continue?")) return;
+                      if (crossing && draft.bodyHtml.trim() && !(await confirmDialog(t("editor.confirmCrossing")))) return;
                       set({ channel, bodyHtml: crossing ? "" : draft.bodyHtml });
                       setComposerKey((key) => key + 1);
                     }}
@@ -223,8 +234,8 @@ export function CampaignEditor({
             </Card>
 
             <Card className="grid gap-4 p-5 sm:p-6">
-              <CardHead title="Who gets it" sub={audience === null ? "Counting…" : `${peopleWord(audience)} can get this by ${CHANNEL_LABEL[draft.channel]} right now`} />
-              <Field label="Audience" htmlFor="c-audience" hint={draft.channel === "email" ? "People who unsubscribed are always left out. Every email has an unsubscribe link." : `Only people who said yes to ${CHANNEL_LABEL[draft.channel]} offers (sign-up forms, pop-ups, or added by you with their permission) get it. Anyone who replied STOP is left out. A phone given at checkout is for order messages only.`}>
+              <CardHead title={t("editor.whoGetsIt")} sub={audience === null ? t("editor.counting") : t("editor.canGetNow", { people: peopleWord(audience), channel: CHANNEL_LABEL[draft.channel] })} />
+              <Field label={t("campaign.audience")} htmlFor="c-audience" hint={draft.channel === "email" ? t("editor.audienceEmailHint") : t("editor.audienceTextHint", { channel: CHANNEL_LABEL[draft.channel] })}>
                 <select
                   id="c-audience"
                   className={selectClass}
@@ -235,10 +246,10 @@ export function CampaignEditor({
                     else set({ segmentId: null, audienceMode: value as "all" | "subscribers" });
                   }}
                 >
-                  <option value="all">Everyone: subscribers and past buyers</option>
-                  <option value="subscribers">Subscribers only</option>
+                  <option value="all">{t("editor.everyone")}</option>
+                  <option value="subscribers">{t("editor.subscribersOnly")}</option>
                   {segments.length ? (
-                    <optgroup label="Saved segments">
+                    <optgroup label={t("editor.savedSegments")}>
                       {segments.map((segment) => (
                         <option key={segment.id} value={`segment:${segment.id}`}>
                           {segment.name} ({segment.count})
@@ -249,31 +260,31 @@ export function CampaignEditor({
                 </select>
               </Field>
               {draft.segmentId ? <p className="m-0 text-[13px] text-app-ink-soft">{segments.find((s) => s.id === draft.segmentId)?.summary}</p> : null}
-              <a href="/home/marketing/segments" className="text-[13.5px] font-bold text-app-accent-ink no-underline hover:underline">Make a new segment</a>
+              <a href="/home/marketing/segments" className="text-[13.5px] font-bold text-app-accent-ink no-underline hover:underline">{t("editor.newSegment")}</a>
             </Card>
 
             <Card className="grid gap-4 p-5 sm:p-6">
-              <CardHead title="Message" />
+              <CardHead title={t("editor.message")} />
               {draft.channel === "email" ? (
                 <>
-                  <Field label="Start from a template (optional)" htmlFor="c-template">
+                  <Field label={t("editor.startFromTemplate")} htmlFor="c-template">
                     <select id="c-template" className={selectClass} value="" onChange={(event) => applyTemplate(event.target.value)}>
-                      <option value="">Choose a template…</option>
-                      {templates.some((t) => t.saved) ? (
-                        <optgroup label="Your templates">
-                          {templates.filter((t) => t.saved).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                      <option value="">{t("editor.chooseTemplate")}</option>
+                      {templates.some((item) => item.saved) ? (
+                        <optgroup label={t("editor.yourTemplates")}>
+                          {templates.filter((item) => item.saved).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
                         </optgroup>
                       ) : null}
-                      <optgroup label="Starter templates">
-                        {templates.filter((t) => !t.saved).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                      <optgroup label={t("editor.starterTemplates")}>
+                        {templates.filter((item) => !item.saved).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
                       </optgroup>
                     </select>
                   </Field>
                   <div className="grid gap-4 md:grid-cols-2">
-                    <Field label="Subject" htmlFor="c-subject">
-                      <input id="c-subject" value={draft.subject} onChange={(e) => set({ subject: e.target.value })} className={inputClass} maxLength={200} placeholder="e.g. 20% off this weekend, {{name}}" />
+                    <Field label={t("campaign.subject")} htmlFor="c-subject">
+                      <input id="c-subject" value={draft.subject} onChange={(e) => set({ subject: e.target.value })} className={inputClass} maxLength={200} placeholder={t("editor.subjectPlaceholder")} />
                     </Field>
-                    <Field label="Preview text (optional)" htmlFor="c-pre" hint="Shown after the subject in most inboxes.">
+                    <Field label={t("editor.previewText")} htmlFor="c-pre" hint={t("editor.previewTextHint")}>
                       <input id="c-pre" value={draft.preheader} onChange={(e) => set({ preheader: e.target.value })} className={inputClass} maxLength={200} />
                     </Field>
                   </div>
@@ -282,68 +293,69 @@ export function CampaignEditor({
               ) : draft.channel === "sms" ? (
                 <>
                   <VariableChips only={["name", "store", "store_url"]} onInsert={(token) => set({ bodyHtml: insertAtCursor(textRef.current, draft.bodyHtml, token) })} />
-                  <Field label="SMS message" htmlFor="c-text" hint="Plain text only. Say who it's from, and how to stop.">
-                    <textarea ref={textRef} id="c-text" rows={6} value={draft.bodyHtml} onChange={(e) => set({ bodyHtml: e.target.value })} className={textareaClass} maxLength={918} placeholder="{{store}}: our December sale starts today, 20% off everything: {{store_url}} Reply STOP to opt out" />
+                  <Field label={t("editor.smsMessage")} htmlFor="c-text" hint={t("editor.smsHint")}>
+                    <textarea ref={textRef} id="c-text" rows={6} value={draft.bodyHtml} onChange={(e) => set({ bodyHtml: e.target.value })} className={textareaClass} maxLength={918} placeholder={t("editor.smsPlaceholder")} />
+                    <VoiceInputButton value={draft.bodyHtml} onChange={(bodyHtml) => set({ bodyHtml })} maxLength={918} context="a text message to customers" className="mt-2" />
                   </Field>
-                  <SmsCounter text={draft.bodyHtml.replace(/{{\s*name\s*}}/g, "Adaeze").replace(/{{\s*store\s*}}/g, "Your shop").replace(/{{\s*store_url\s*}}/g, "https://yourshop.shopinbos.com")} recipients={audience} costPerSegment={sms.costPerSegment} currency={sms.currency} />
+                  <SmsCounter text={draft.bodyHtml.replace(/{{\s*name\s*}}/g, "Adaeze").replace(/{{\s*store\s*}}/g, tb("bs.link.shop")).replace(/{{\s*store_url\s*}}/g, "https://yourshop.shopinbos.com")} recipients={audience} costPerSegment={sms.costPerSegment} currency={sms.currency} />
                   {!/\bSTOP\b/i.test(draft.bodyHtml) ? (
-                    <button type="button" className={`${buttonClass("white", "sm")} justify-self-start`} onClick={() => set({ bodyHtml: `${draft.bodyHtml.trimEnd()} Reply STOP to opt out` })}>Add “Reply STOP to opt out”</button>
+                    <button type="button" className={`${buttonClass("white", "sm")} justify-self-start`} onClick={() => set({ bodyHtml: `${draft.bodyHtml.trimEnd()} ${t("editor.replyStop")}` })}>{t("editor.addReplyStop", { text: t("editor.replyStop") })}</button>
                   ) : null}
-                  <Field label="Sender ID (optional)" htmlFor="c-sender" hint={`The name people see instead of a number, registered with your SMS provider. ${sms.senderId ? `Leave empty to use ${sms.senderId}.` : "Leave empty to use your account's default."}`}>
-                    <input id="c-sender" value={config.senderId ?? ""} onChange={(e) => setConfig({ senderId: e.target.value.slice(0, 11) || null })} className={`${inputClass} max-w-[220px]`} maxLength={11} placeholder={sms.senderId ?? "e.g. ADIREHOUSE"} />
+                  <Field label={t("editor.senderName")} htmlFor="c-sender" hint={`${t("editor.senderHint")} ${sms.senderId ? t("editor.senderLeaveEmpty", { id: sms.senderId }) : t("editor.senderLeaveEmptyUsual")}`}>
+                    <input id="c-sender" value={config.senderId ?? ""} onChange={(e) => setConfig({ senderId: e.target.value.slice(0, 11) || null })} className={`${inputClass} max-w-[220px]`} maxLength={11} placeholder={sms.senderId ?? t("editor.senderPlaceholder")} />
                   </Field>
                 </>
               ) : !status.templates ? (
                 <Notice tone="info">
-                  <ChannelHelp label="WhatsApp campaigns use approved templates" howTo={status.howTo} href={status.connectHref} linkLabel={status.connectLabel} />
+                  <ChannelHelp label={t("editor.connectWhatsApp")} howTo={t("editor.connectWhatsAppHow")} href={status.connectHref} linkLabel={status.connectLabel} />
                 </Notice>
               ) : (
                 <>
-                  <Field label="Approved template" htmlFor="c-wa-template" hint="Marketing messages on WhatsApp must use a template Meta has approved.">
+                  <Field label={t("editor.approvedTemplate")} htmlFor="c-wa-template" hint={t("editor.approvedTemplateHint")}>
                     <select
                       id="c-wa-template"
                       className={selectClass}
                       value={config.templateId ?? ""}
                       onChange={(e) => {
-                        const next = waTemplates.find((t) => t.id === e.target.value);
+                        const next = waTemplates.find((item) => item.id === e.target.value);
                         setConfig({ templateId: e.target.value || null, variables: next ? [...next.variables] : [] });
                       }}
                     >
-                      <option value="">Choose a template…</option>
-                      {waTemplates.map((t) => (
-                        <option key={t.id} value={t.id} disabled={t.status !== "APPROVED"}>
-                          {t.name} ({t.language}){t.status !== "APPROVED" ? ` · ${t.status.toLowerCase()}` : ""}
+                      <option value="">{t("editor.chooseTemplate")}</option>
+                      {waTemplates.map((item) => (
+                        <option key={item.id} value={item.id} disabled={item.status !== "APPROVED"}>
+                          {friendlyName(item.name)}{item.status !== "APPROVED" ? ` · ${statusLabel(item.status).toLowerCase()}` : ""}
                         </option>
                       ))}
                     </select>
                   </Field>
                   <p className="m-0 text-[13px]">
-                    {waTemplates.some((t) => t.status === "APPROVED") ? null : "No approved templates yet. "}
-                    <a href="/home/marketing/whatsapp" className="font-bold text-app-accent-ink no-underline hover:underline">Manage WhatsApp templates</a>
+                    {waTemplates.some((item) => item.status === "APPROVED") ? null : `${t("editor.noApproved")} `}
+                    <a href="/home/marketing/whatsapp" className="font-bold text-app-accent-ink no-underline hover:underline">{t("editor.manageWhatsApp")}</a>
                   </p>
                   {template ? (
                     <>
                       <div className="flex flex-wrap items-center gap-2 text-[13px]">
                         <TemplateStatusPill status={template.status} />
-                        <span className="text-app-ink-soft">{template.category === "UTILITY" ? "Utility" : "Marketing"} · {template.language}</span>
+                        <span className="text-app-ink-soft">{t.dynamic(`wa.category.${template.category}`, categoryLabel(template.category))}</span>
                       </div>
                       <VariableMapper template={template} value={config.variables ?? []} onChange={(variables) => setConfig({ variables })} />
                       {mapping.includes("discount_code") ? (
-                        <Field label="Discount code" htmlFor="c-wa-code" hint="Make it in Discounts first; it goes into the message as written.">
-                          <input id="c-wa-code" value={config.discountCode ?? ""} onChange={(e) => setConfig({ discountCode: e.target.value.toUpperCase().slice(0, 40) || null })} className={`${inputClass} max-w-[240px]`} placeholder="e.g. DEC20" />
+                        <Field label={t("editor.discountCode")} htmlFor="c-wa-code" hint={t("editor.discountCodeHint")}>
+                          <input id="c-wa-code" value={config.discountCode ?? ""} onChange={(e) => setConfig({ discountCode: e.target.value.toUpperCase().slice(0, 40) || null })} className={`${inputClass} max-w-[240px]`} placeholder={t("editor.discountPlaceholder")} />
                         </Field>
                       ) : null}
                       {template.content.header.format === "IMAGE" || mapping.some((v) => v === "product_name" || v === "product_link") ? (
                         <div className="grid gap-3 md:grid-cols-2">
-                          <Field label="Product (optional)" htmlFor="c-wa-product" hint={template.content.header.format === "IMAGE" ? "Its photo is the header picture." : "Fills the product name and link."}>
+                          <Field label={t("editor.productOptional")} htmlFor="c-wa-product" hint={template.content.header.format === "IMAGE" ? t("editor.productPhotoHint") : t("editor.productFillsHint")}>
                             <select id="c-wa-product" className={selectClass} value={config.productId ?? ""} onChange={(e) => setConfig({ productId: e.target.value || null })}>
-                              <option value="">None</option>
+                              <option value="">{t("editor.none")}</option>
                               {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                             </select>
                           </Field>
                           {template.content.header.format === "IMAGE" ? (
-                            <Field label="Or a header image link" htmlFor="c-wa-image" hint="An https:// link to a JPG or PNG.">
-                              <input id="c-wa-image" value={config.headerImageUrl ?? ""} onChange={(e) => setConfig({ headerImageUrl: e.target.value.trim() || null })} className={inputClass} placeholder="https://…" />
+                            <Field label={t("editor.orPicture")} htmlFor="c-wa-image-choose" hint={t("editor.orPictureHint")}>
+                              <MediaPicker id="c-wa-image" value={config.headerImageUrl ?? ""} onChange={(url) => setConfig({ headerImageUrl: url.trim() || null })} compact />
                             </Field>
                           ) : null}
                         </div>
@@ -356,27 +368,27 @@ export function CampaignEditor({
             </Card>
 
             <Card className="flex flex-wrap items-center gap-2 p-4 sm:p-5">
-              <PillButton size="md" tone="white" busy={busy === "save"} onClick={() => void save()}>{draft.id ? "Save" : "Save draft"}</PillButton>
+              <PillButton size="md" tone="white" busy={busy === "save"} onClick={() => void save()}>{draft.id ? t("save") : t("editor.saveDraft")}</PillButton>
               <PillButton size="md" tone="white" busy={busy === "test"} onClick={() => void act("test")} disabled={!ready || Boolean(whatsappProblem)}>
-                Send me a test
+                {t("editor.sendTest")}
               </PillButton>
               {scheduled ? (
-                <PillButton size="md" tone="white" busy={busy === "unschedule"} onClick={() => void act("unschedule")}>Unschedule</PillButton>
+                <PillButton size="md" tone="white" busy={busy === "unschedule"} onClick={() => void act("unschedule")}>{t("editor.dontSendLater")}</PillButton>
               ) : (
-                <PillButton size="md" tone="white" onClick={() => setScheduleOpen(true)} disabled={!ready || Boolean(whatsappProblem)}>Schedule</PillButton>
+                <PillButton size="md" tone="white" onClick={() => setScheduleOpen(true)} disabled={!ready || Boolean(whatsappProblem)}>{t("editor.schedule")}</PillButton>
               )}
               <PillButton size="md" tone="accent" className="sm:ml-auto" onClick={() => setConfirmSend(true)} disabled={!ready || !audience || Boolean(whatsappProblem)}>
-                Send now
+                {t("editor.sendNow")}
               </PillButton>
               <p className="m-0 w-full text-[12.5px] text-app-ink-soft">
-                Tests go to {draft.channel === "email" ? testTo.email ?? "your account email (add one in settings)" : testTo.phone ?? "your phone (add one in settings)"} only.
+                {t("editor.testsGoTo", { to: draft.channel === "email" ? testTo.email ?? t("editor.yourAccountEmail") : testTo.phone ?? t("editor.yourPhone") })}
               </p>
             </Card>
           </>
         }
         side={
           <Card className="p-5">
-            <CardHead title="Preview" action={scheduled ? <Pill tone="info">Scheduled</Pill> : <Pill tone="muted">Draft</Pill>} />
+            <CardHead title={t("editor.preview")} action={scheduled ? <Pill tone="info">{t("campaignStatus.scheduled")}</Pill> : <Pill tone="muted">{t("campaignStatus.draft")}</Pill>} />
             <div className="mt-3">
               {draft.channel === "email" ? (
                 <EmailPreview bodyHtml={draft.bodyHtml} preheader={draft.preheader} subject={draft.subject} />
@@ -384,10 +396,10 @@ export function CampaignEditor({
                 template ? (
                   <div className="grid gap-2">
                     <WhatsAppBubble content={template.content} mapping={mapping} values={{ ...(config.discountCode ? { discount_code: config.discountCode } : {}), ...(product ? { product_name: product.name } : {}) }} headerImageUrl={config.headerImageUrl || product?.image || null} />
-                    <p className="m-0 text-[12.5px] text-app-ink-soft">Preview uses a sample customer (Ada). Each person gets their own name.</p>
+                    <p className="m-0 text-[12.5px] text-app-ink-soft">{t("editor.previewSample")}</p>
                   </div>
                 ) : (
-                  <p className="m-0 text-[14px] text-app-ink-soft">Pick a template to see the message.</p>
+                  <p className="m-0 text-[14px] text-app-ink-soft">{t("editor.pickTemplateToSee")}</p>
                 )
               ) : (
                 <TextPreview channel="sms" message={draft.bodyHtml} />
@@ -398,21 +410,21 @@ export function CampaignEditor({
       />
 
       {confirmSend ? (
-        <Modal title="Send this campaign now?" onClose={() => setConfirmSend(false)}>
+        <Modal title={t("editor.confirmSendTitle")} onClose={() => setConfirmSend(false)}>
           <div className="grid gap-4">
             <p className="m-0 text-[15px] leading-[1.55]">
-              {draft.channel === "email" ? <>The email <strong>“{draft.subject}”</strong></> : `This ${CHANNEL_LABEL[draft.channel]} message`} goes to <strong>{peopleWord(audience ?? 0)}</strong> right away. You can't unsend it.
+              {draft.channel === "email" ? <>{t("editor.theEmail")} <strong>“{draft.subject}”</strong></> : t("editor.thisMessage", { channel: CHANNEL_LABEL[draft.channel] })} {t("editor.goesTo")} <strong>{peopleWord(audience ?? 0)}</strong> {t("editor.rightAway")}
             </p>
             <div className="flex flex-wrap justify-end gap-2">
-              <PillButton size="md" tone="white" onClick={() => setConfirmSend(false)}>Cancel</PillButton>
-              <PillButton size="md" tone="accent" busy={busy === "send"} onClick={() => void act("send")}>Send to {peopleWord(audience ?? 0)}</PillButton>
+              <PillButton size="md" tone="white" onClick={() => setConfirmSend(false)}>{t("cancel")}</PillButton>
+              <PillButton size="md" tone="accent" busy={busy === "send"} onClick={() => void act("send")}>{t("editor.sendTo", { people: peopleWord(audience ?? 0) })}</PillButton>
             </div>
           </div>
         </Modal>
       ) : null}
 
       {scheduleOpen ? (
-        <Modal title="Schedule" onClose={() => setScheduleOpen(false)}>
+        <Modal title={t("editor.schedule")} onClose={() => setScheduleOpen(false)}>
           <form
             className="grid gap-4"
             onSubmit={(event) => {
@@ -420,12 +432,12 @@ export function CampaignEditor({
               void act("schedule", { scheduledAt: draft.scheduledAt });
             }}
           >
-            <Field label="Send on (Lagos time)" htmlFor="c-when" hint={`Goes to whoever matches the audience at that moment (${audience === null ? "…" : peopleWord(audience)} today).`}>
+            <Field label={t("editor.sendOn")} htmlFor="c-when" hint={t("editor.sendOnHint", { people: audience === null ? "…" : peopleWord(audience) })}>
               <input id="c-when" type="datetime-local" required value={draft.scheduledAt} onChange={(e) => set({ scheduledAt: e.target.value })} className={inputClass} />
             </Field>
             <div className="flex flex-wrap justify-end gap-2">
-              <button type="button" className={buttonClass("white")} onClick={() => setScheduleOpen(false)}>Cancel</button>
-              <PillButton size="md" type="submit" busy={busy === "schedule"}>Schedule</PillButton>
+              <button type="button" className={buttonClass("white")} onClick={() => setScheduleOpen(false)}>{t("cancel")}</button>
+              <PillButton size="md" type="submit" busy={busy === "schedule"}>{t("editor.schedule")}</PillButton>
             </div>
           </form>
         </Modal>

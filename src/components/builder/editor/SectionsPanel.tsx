@@ -4,7 +4,10 @@ import { useState, type DragEvent, type KeyboardEvent } from "react";
 import { cx } from "@/components/app-ui";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import type { TemplateSectionNode } from "@/lib/store-templates";
+import { LAYOUT_ROW_KIND, columnPreset } from "@/components/storefront/boutique/blocks/layout-logic";
 import { GROUP_LABELS, groupSections, sectionBlocks, type SectionBlockRow, type SectionGroup } from "./editor-logic";
+import { hasInsertThumb, InsertThumb } from "./insert-thumbnails";
+import { useEditorT } from "./i18n";
 
 const KIND_ICONS: Record<string, IconName> = {
   "announcement-bar": "megaphone",
@@ -36,6 +39,17 @@ export function sectionIcon(kind: string): IconName {
   return KIND_ICONS[kind] ?? "layers";
 }
 
+/** The section's wireframe picture (insert-thumbnails.tsx) when it has one, else its icon. */
+function SectionGlyph({ section }: { section: TemplateSectionNode }) {
+  const kind = section.kind === LAYOUT_ROW_KIND ? `layout:${columnPreset(section.settings?.preset).id}` : section.kind;
+  if (!hasInsertThumb(kind)) return <Icon name={sectionIcon(section.kind)} size={15} className="shrink-0" />;
+  return (
+    <span className="grid h-[22px] w-[34px] shrink-0 place-items-center rounded-[5px] bg-app-canvas text-app-ink-soft">
+      <InsertThumb kind={kind} className="block h-[18px] w-[30px]" />
+    </span>
+  );
+}
+
 export interface SectionsPanelProps {
   pageTitle: string;
   sections: TemplateSectionNode[];
@@ -52,6 +66,7 @@ export interface SectionsPanelProps {
 }
 
 export function SectionsPanel(props: SectionsPanelProps) {
+  const { t, tx } = useEditorT();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [dragId, setDragId] = useState<string | null>(null);
   const [dropHint, setDropHint] = useState<{ id: string; place: "before" | "after" } | null>(null);
@@ -76,12 +91,12 @@ export function SectionsPanel(props: SectionsPanelProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <h2 className="truncate px-4 pb-1 pt-4 text-[16px] font-bold text-app-ink">{props.pageTitle}</h2>
-      <p className="sr-only">Drag sections to reorder them, or select one and press Alt with the arrow keys.</p>
+      <h2 className="truncate px-4 pb-1 pt-4 text-[16px] font-bold text-app-ink">{tx(props.pageTitle)}</h2>
+      <p className="sr-only">{tx("Drag sections to reorder them, or select one and press Alt with the arrow keys.")}</p>
       <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-4">
         {groups.map(({ group, sections }) => (
-          <section key={group} aria-label={GROUP_LABELS[group]} className="pt-3">
-            <h3 className="px-2 pb-1 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-app-ink-faint">{GROUP_LABELS[group]}</h3>
+          <section key={group} aria-label={tx(GROUP_LABELS[group])} className="pt-3">
+            <h3 className="px-2 pb-1 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-app-ink-faint">{tx(GROUP_LABELS[group])}</h3>
             <ul className="m-0 list-none p-0">
               {sections.map((section) => {
                 const blocks = sectionBlocks(section);
@@ -114,7 +129,7 @@ export function SectionsPanel(props: SectionsPanelProps) {
                     >
                       <button
                         type="button"
-                        aria-label={open ? `Collapse ${section.name}` : `Expand ${section.name}`}
+                        aria-label={open ? t("edk.collapse", { name: tx(section.name) }) : t("edk.expand", { name: tx(section.name) })}
                         aria-expanded={open}
                         disabled={!blocks.length}
                         onClick={() => setExpanded((prev) => ({ ...prev, [section.id]: !open }))}
@@ -129,13 +144,13 @@ export function SectionsPanel(props: SectionsPanelProps) {
                         aria-current={selected ? "true" : undefined}
                         className={cx("flex min-h-10 min-w-0 flex-1 items-center gap-2.5 text-left text-[13.5px]", selected ? "font-semibold text-[#2F66F6]" : "font-medium text-app-ink", hidden && "opacity-50")}
                       >
-                        <Icon name={sectionIcon(section.kind)} size={15} className="shrink-0" />
-                        <span className="truncate">{section.name}</span>
+                        <SectionGlyph section={section} />
+                        <span className="truncate">{tx(section.name)}</span>
                       </button>
                       <button
                         type="button"
-                        aria-label={hidden ? `Show ${section.name}` : `Hide ${section.name}`}
-                        title={hidden ? "Show" : "Hide"}
+                        aria-label={hidden ? t("edk.showName", { name: tx(section.name) }) : t("edk.hideName", { name: tx(section.name) })}
+                        title={hidden ? tx("Show") : tx("Hide")}
                         aria-pressed={hidden}
                         onClick={() => props.onToggleHidden(section.id)}
                         className={cx(
@@ -153,14 +168,14 @@ export function SectionsPanel(props: SectionsPanelProps) {
                           <li key={block.id}>
                             <button type="button" onClick={() => props.onSelectBlock(section.id, block)} className="flex min-h-8 w-full items-center gap-2 rounded-[8px] px-2 text-left text-[13px] text-app-ink-soft hover:bg-app-canvas hover:text-app-ink">
                               <Icon name={BLOCK_ICONS[block.icon]} size={13} className="shrink-0" />
-                              <span className="truncate">{block.label}</span>
+                              <span className="truncate">{tx(block.label)}</span>
                             </button>
                           </li>
                         ))}
                         {props.canAddBlock(section) ? (
                           <li>
                             <button type="button" onClick={() => props.onAddBlock(section.id)} className="flex min-h-8 items-center gap-2 rounded-[8px] px-2 text-[13px] font-semibold text-[#2F66F6] hover:bg-[#EAF0FF]">
-                              <Icon name="plus" size={13} /> Add block
+                              <Icon name="plus" size={13} /> {tx("Add block")}
                             </button>
                           </li>
                         ) : null}
@@ -176,10 +191,10 @@ export function SectionsPanel(props: SectionsPanelProps) {
                 onClick={() => props.onAddSection(group, null)}
                 className="ml-1 mt-0.5 flex min-h-9 items-center gap-2 rounded-[8px] px-2 text-[13.5px] font-semibold text-[#2F66F6] hover:bg-[#EAF0FF]"
               >
-                <Icon name="plus" size={14} /> Add section
+                <Icon name="plus" size={14} /> {tx("Add section")}
               </button>
             ) : null}
-            {group === "template" && sections.length === 0 ? <p className="px-2 py-1 text-[12.5px] text-app-ink-soft">No sections on this page yet.</p> : null}
+            {group === "template" && sections.length === 0 ? <p className="px-2 py-1 text-[12.5px] text-app-ink-soft">{tx("No sections on this page yet.")}</p> : null}
           </section>
         ))}
       </div>

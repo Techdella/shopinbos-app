@@ -3,6 +3,10 @@ import type { ComponentProps, ReactNode } from "react";
 import { AppFrame } from "@/components/shell/AppFrame";
 import { cx } from "@/components/app-ui/cx";
 import { Icon, type IconName } from "@/components/ui/Icon";
+import { HelpButton } from "@/components/simple/HelpButton";
+import { Mascot, type MascotMood } from "@/components/brand/Mascot";
+import { LearnPill } from "@/components/learn/FeatureIntroHost";
+import { TitleTerm } from "@/components/learn/Term";
 
 // The 2026 app look ("Seller app · web", "Products, web", "Partners · web dispatch console" prototypes)
 // as server-safe building blocks. Pages are full-bleed: they use the whole width at every size.
@@ -52,7 +56,12 @@ export function AppPage({
   return (
     <AppFrame {...frame}>
       <div className={cx("w-full px-4 py-6 font-app text-app-ink sm:px-6 xl:px-8 2xl:px-10", className)}>
-        <PageHead title={title} sub={sub} actions={actions} />
+        <PageHead
+          title={typeof title === "string" ? <TitleTerm title={title} /> : title}
+          sub={sub}
+          learn={!frame.role || frame.role === "admin" ? undefined : <LearnPill role={frame.role} variant="inline" className="mt-3.5" />}
+          actions={frame.role === "seller" || frame.role === "supplier" ? <>{actions}<HelpButton /></> : actions}
+        />
         {toolbar && <div className="mb-4 flex flex-wrap items-center justify-between gap-3">{toolbar}</div>}
         {children}
       </div>
@@ -60,12 +69,13 @@ export function AppPage({
   );
 }
 
-export function PageHead({ title, sub, actions }: { title: ReactNode; sub?: ReactNode; actions?: ReactNode }) {
+export function PageHead({ title, sub, actions, learn }: { title: ReactNode; sub?: ReactNode; actions?: ReactNode; learn?: ReactNode }) {
   return (
     <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
       <div className="min-w-0">
         <h1 className="m-0 break-words text-[28px] font-extrabold leading-[1.1] tracking-[-0.8px] sm:text-[30px]">{title}</h1>
         {sub && <p className="mb-0 mt-1.5 max-w-[720px] text-[14.5px] leading-[1.5] text-app-ink-soft">{sub}</p>}
+        {learn}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </header>
@@ -207,9 +217,11 @@ export function ListCard({ children, className }: { children: ReactNode; classNa
   return <Card className={cx("overflow-hidden", className)}><ul className="m-0 list-none divide-y divide-app-line p-0">{children}</ul></Card>;
 }
 
-export function ListRow({ href, children, className }: { href?: string; children: ReactNode; className?: string }) {
-  const inner = cx("flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3.5 text-app-ink no-underline sm:flex-nowrap sm:px-5", href && "hover:bg-app-canvas", className);
-  return <li>{href ? <Link href={href} className={inner}>{children}</Link> : <div className={inner}>{children}</div>}</li>;
+/** A list row; `aside` sits beside the row's link (for a button that mustn't be inside the link). */
+export function ListRow({ href, children, className, aside }: { href?: string; children: ReactNode; className?: string; aside?: ReactNode }) {
+  const inner = cx("flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3.5 text-app-ink no-underline sm:flex-nowrap sm:px-5", href && "hover:bg-app-canvas", aside ? "min-w-0 flex-1 pr-2 sm:pr-2" : null, className);
+  const row = href ? <Link href={href} className={inner}>{children}</Link> : <div className={inner}>{children}</div>;
+  return <li className={aside ? "flex items-center pr-3 sm:pr-4" : undefined}>{row}{aside}</li>;
 }
 
 export function EmptyState({ icon = "sparkle", title, children, action }: { icon?: IconName; title: string; children?: ReactNode; action?: ReactNode }) {
@@ -224,11 +236,10 @@ export function EmptyState({ icon = "sparkle", title, children, action }: { icon
 }
 
 /** Peggy/Rex tip strip (mint for Peggy, peach for Rex). */
-export function AssistantNote({ who = "peggy", children, action }: { who?: "peggy" | "rex"; children: ReactNode; action?: ReactNode }) {
+export function AssistantNote({ who = "peggy", mood = "idle", children, action }: { who?: "peggy" | "rex"; mood?: MascotMood; children: ReactNode; action?: ReactNode }) {
   return (
     <div className={cx("flex flex-wrap items-center gap-3 rounded-[18px] px-4 py-3", who === "peggy" ? "bg-app-mint" : "bg-app-peach")}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={who === "peggy" ? "/brand/app/peggy.png" : "/brand/app/rex.png"} alt={who === "peggy" ? "Peggy" : "Rex"} className="h-9 w-9 shrink-0 object-contain" />
+      <Mascot who={who} mood={mood} size={36} />
       <p className="m-0 min-w-0 flex-1 text-[14px] leading-[1.5]">{children}</p>
       {action}
     </div>

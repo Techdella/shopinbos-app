@@ -135,6 +135,43 @@ export async function notifyOrderCustomer(orderId: string, status: string) {
   }
 }
 
+/** The SMS for a shop order sent in more than one parcel, when the first parcel leaves. */
+export const PARTLY_SENT_SMS = "{{store}}: part of your order {{order_number}} is on its way. We'll text you when the rest is sent. {{order_url}}";
+
+/**
+ * "Part of your order is on its way" by SMS, once per order, when the seller turned on the "Shipped" order
+ * message (src/lib/supplier-orders/parts.server.ts calls it when the first parcel of a mixed order leaves). The
+ * full "on its way" message waits until every parcel has left. WhatsApp needs an approved template for each
+ * wording, so the partial update goes by SMS only. Never throws.
+ */
+export async function notifyOrderCustomerPartlySent(orderId: string) {
+  try {
+    const order = await db.retailOrder.findUnique({ where: { id: orderId }, select: { id: true, storeId: true, orderNumber: true, buyerName: true, buyerPhone: true } });
+    const phone = normalizePhone(order?.buyerPhone);
+    if (!order || !phone) return [];
+    const settings = await getMessagingSettings(order.storeId);
+    if (!settings.transactional.order_shipped.sms) return [];
+    const store = await db.store.findUnique({ where: { id: order.storeId }, select: MARKETING_STORE_SELECT });
+    if (!store) return [];
+    const recipient = { event: "order_partly_shipped" as CustomerEvent, refId: order.id, phone, name: order.buyerName, values: {}, smsVars: {} } satisfies Recipient;
+    const id = await claim(store.id, recipient, "sms");
+    if (!id) return [];
+    const allowed = mayText({ channel: "sms", phone, purpose: "transactional", consent: true, optOuts: await loadOptOuts(store.id) });
+    if (!allowed.ok) {
+      await finish(id, { ok: false, error: allowed.reason, skipped: true });
+      return [{ channel: "sms" as const, ok: false, error: allowed.reason }];
+    }
+    const body = fillVariables(PARTLY_SENT_SMS, { store: store.name, order_number: order.orderNumber, order_url: storeUrl(store, `/order/${order.id}`) } as unknown as FlowVariables, "text").replace(/\s{2,}/g, " ").trim();
+    const send = await textSender(store, { senderId: settings.smsSenderId });
+    const outcome = await send.sms(phone, body).catch((error): SendOutcome => ({ ok: false, error: String(error) }));
+    await finish(id, outcome);
+    return [{ channel: "sms" as const, ok: outcome.ok }];
+  } catch (error) {
+    console.error(`[customer messages] partly sent for order ${orderId} failed`, error);
+    return [];
+  }
+}
+
 /**
  * Abandoned carts with a phone, left 1 to 24 hours ago and not paid for: one WhatsApp/SMS reminder each, for
  * stores that turned it on. A channel the store's own abandoned-cart automation already texts on is skipped,

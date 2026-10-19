@@ -1,0 +1,43 @@
+// Draft: needs native-speaker review
+import type en from "./en.ts";
+
+const yo: Partial<Record<keyof typeof en, string>> = {
+  "status.published": "Ó wà lórí ṣọ́ọ̀bù rẹ",
+  "status.draft": "Draft",
+  "status.empty": "O kò tíì kọ ọ́",
+  saved: "A fi pamọ́ {date}",
+  notSaved: "A kò tíì fi pamọ́",
+  gone: "Ojú-ìwé yìí kò sí mọ́.",
+  name: "Orúkọ ojú-ìwé",
+  text: "Ohun tí ojú-ìwé náà sọ",
+  textHint: "Bẹ̀rẹ̀ ìlà pẹ̀lú # láti ṣe àkọlé, tàbí pẹ̀lú - láti ṣe àkójọ.",
+  textPlaceholder: "Kọ ojú-ìwé rẹ síbí…",
+  richOnly: "Ojú-ìwé yìí ní fídíò, bọ́tìnnì tàbí ọjà nínú, nítorí náà orí web ni a ti ń ṣàtúnṣe ọ̀rọ̀ rẹ̀ kí wọ́n má baà sọnù.",
+  editWeb: "Ṣàtúnṣe lórí web",
+  view: "Wò ó lórí ṣọ́ọ̀bù rẹ",
+  unsaved: "O ní àyípadà tí o kò tíì fi pamọ́.",
+  write: "Kọ ọ́ fún mi",
+  writeSub: "Peggy á kọ draft àkọ́kọ́ láti inú ohun tí ó mọ̀ nípa ṣọ́ọ̀bù rẹ. Kà á kí o yí ohunkóhun tí a sàmì sí [Check: …] padà.",
+  brief: "Ṣé ohun kan wà tí Peggy yẹ kí ó mọ̀? (kò pọn dandan)",
+  briefPlaceholder: "Bí àpẹẹrẹ: a kì í gba aṣọ abẹ́ padà",
+  writeGo: "Kọ draft náà",
+  replaceTitle: "Rọ́pò ọ̀rọ̀ rẹ?",
+  replaceBody: "Draft Peggy á rọ́pò ohun tí ojú-ìwé náà sọ báyìí. A kò ní fi nǹkan pamọ́ títí o fi tẹ Save.",
+  replace: "Rọ́pò",
+  drafted: "Draft Peggy ti dé. Kà á, yí ohunkóhun tí a sàmì sí [Check: …] padà, pa àkíyèsí tó wà lókè rẹ́, lẹ́yìn náà fi pamọ́.",
+  draftedTemplate: "Ọwọ́ Peggy dí, nítorí náà draft tí a ti ṣe sílẹ̀ nìyí. Kà á, yí ohunkóhun tí a sàmì sí [Check: …] padà, pa àkíyèsí tó wà lókè rẹ́, lẹ́yìn náà fi pamọ́.",
+  draftFailed: "Peggy kò lè kọ ojú-ìwé yìí báyìí. Tún gbìyànjú láìpẹ́.",
+  saveDraft: "Fi draft pamọ́",
+  publish: "Gbé e jáde",
+  update: "Fi àyípadà pamọ́",
+  unpublish: "Yọ ọ́ kúrò",
+  published: "A ti gbé e jáde. Àwọn oníbàárà lè rí i lórí ṣọ́ọ̀bù rẹ.",
+  updated: "A ti fi pamọ́. Àwọn oníbàárà á rí èyí tuntun.",
+  unpublished: "A ti yọ ọ́ kúrò. Àwọn oníbàárà kò lè rí i báyìí.",
+  savedDraft: "A ti fi pamọ́ gẹ́gẹ́ bí draft.",
+  writeFirst: "Kọ nǹkan kí o tó gbé ojú-ìwé yìí jáde.",
+  addName: "Fún ojú-ìwé náà ní orúkọ.",
+  saveFailed: "A kò lè fi ojú-ìwé náà pamọ́. Ṣàyẹ̀wò network rẹ kí o tún gbìyànjú.",
+};
+
+export default yo;

@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { requireRole } from "@/lib/server-auth";
 import { db } from "@/lib/db/client";
 import { parseBrandSettings } from "@/lib/workspace";
-import { buildStorefrontUrl } from "@/lib/domains/storefront";
+import { buildStorefrontUrl, buildDirectStorefrontPath } from "@/lib/domains/storefront";
 import { THEME_LIBRARY } from "@/lib/store-templates";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { Card, EmptyState, PillLink, cx } from "@/components/app-kit";
@@ -13,11 +13,18 @@ import { Icon, type IconName } from "@/components/ui/Icon";
 import { StorePreviewCard } from "./StorePreviewCard";
 import { ShareStoreButton } from "./ShareStoreButton";
 import { REBRAND_PROMPT, contentSectionCount, hasPage, headingFont, readStoreLook } from "./look";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
+export async function generateMetadata() {
+  const t = await getT("store");
+  return { title: t("hub.title") };
+}
+
 export default async function YourStorePage() {
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("store", "common");
   const store = await db.store.findUnique({
     where: { userId: user.id },
     select: {
@@ -65,9 +72,11 @@ export default async function YourStorePage() {
   const hasDeliveryText = ["shippingPolicy", "returnPolicy"].some((key) => typeof legal[key] === "string" && (legal[key] as string).trim());
 
   const storeUrl = buildStorefrontUrl({ slug: store.slug, customDomain: store.customDomain });
-  const host = new URL(storeUrl).host;
+  // Not live yet: open the owner's preview on the app itself (where they're signed in), whatever the shop's address.
+  const openUrl = look.live ? storeUrl : buildDirectStorefrontPath(store.slug);
+  const host = storeUrl.replace(/^https?:\/\//, "").replace(/\/$/, "");
   const tokens = look.tokens;
-  const sub = [host, look.themeName ? `${look.themeName} template` : null, look.live ? "live" : "draft"].filter(Boolean).join(" · ");
+  const sub = [host, look.themeName ? t("hub.template", { name: look.themeName }) : null, look.live ? t("hub.live") : t("hub.draft")].filter(Boolean).join(" · ");
 
   const homeSections = contentSectionCount(look.snapshot, "home");
   const pageRow = (type: string) => pages.find((page) => page.type === type) ?? null;
@@ -76,21 +85,23 @@ export default async function YourStorePage() {
     const inStore = hasPage(look.snapshot, type) || Boolean(row);
     return {
       title,
-      status: inStore ? (row?.isPublished ? "Live" : look.live && hasPage(look.snapshot, type) ? "Live" : "Draft") : "Not written yet",
-      href: row ? `/home/pages/${row.id}` : `/studio?prompt=${encodeURIComponent(`Write my ${title} page.`)}`,
+      status: inStore ? (row?.isPublished ? t("hub.statusLive") : look.live && hasPage(look.snapshot, type) ? t("hub.statusLive") : t("hub.statusDraft")) : t("hub.notWritten"),
+      todo: !inStore,
+      href: row ? `/home/pages/${row.id}` : `/studio?prompt=${encodeURIComponent(t("hub.writeMy", { title }))}`,
     };
   };
 
   const pageItems: Array<PageItem & { icon: IconName }> = [
     {
       icon: "home",
-      title: "Home",
-      status: homeSections === null ? "Not built yet" : `${homeSections} ${homeSections === 1 ? "section" : "sections"}`,
+      title: t("hub.home"),
+      status: homeSections === null ? t("hub.notBuilt") : t("hub.sections", { count: homeSections }),
+      todo: homeSections === null,
       href: "/seller/store/builder",
     },
-    { icon: "document", ...writtenPage("about", "About us") },
-    { icon: "truck", title: "Delivery and returns", status: hasDeliveryText ? "From your settings" : "Not written yet", href: "/home/legal" },
-    { icon: "info", ...writtenPage("faq", "Questions") },
+    { icon: "document", ...writtenPage("about", t("hub.about")) },
+    { icon: "truck", title: t("hub.delivery"), status: hasDeliveryText ? t("hub.fromSettings") : t("hub.notWritten"), todo: !hasDeliveryText, href: "/home/legal" },
+    { icon: "info", ...writtenPage("faq", t("hub.faq")) },
   ];
 
   const colourDots = tokens ? [tokens.paperBg, tokens.ink, tokens.accent] : [];
@@ -99,17 +110,17 @@ export default async function YourStorePage() {
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title="Your store"
+      title={t("hub.title")}
       sub={sub}
       actions={
         <>
           <a
-            href={storeUrl}
+            href={openUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-app-line bg-white px-5 text-[14px] font-extrabold text-app-ink no-underline transition hover:border-app-line-strong"
           >
-            <Icon name="eye" size={16} /> View store
+            <Icon name="eye" size={16} /> {t("hub.view")}
           </a>
           <ShareStoreButton url={storeUrl} storeName={store.name} />
         </>
@@ -133,32 +144,32 @@ export default async function YourStorePage() {
                   storeProducts: products,
                 }}
                 snapshot={look.snapshot}
-                href={storeUrl}
-                label={`Open ${store.name} in a new tab`}
+                href={openUrl}
+                label={t("hub.open", { name: store.name })}
               />
               {look.source !== "published" && (
                 <p className="m-0 text-[13px] text-app-ink-soft">
-                  {look.source === "draft" ? "This is your draft. Shoppers see it once you publish." : "This is your template before any changes. Build it with Rex or the builder."}
+                  {look.source === "draft" ? t("hub.draftNote") : t("hub.templateNote")}
                 </p>
               )}
             </div>
           ) : (
-            <EmptyState icon="store" title="Your store isn't built yet" action={<PillLink href="/builder" tone="ink" icon="sparkle">Build it with Rex</PillLink>}>
-              Tell Rex what you sell and he builds your home page, product pages and checkout. You can change everything after.
+            <EmptyState icon="store" title={t("hub.notBuiltTitle")} action={<PillLink href="/builder" tone="ink" icon="sparkle">{t("hub.buildWithRex")}</PillLink>}>
+              {t("hub.notBuiltSub")}
             </EmptyState>
           )}
 
           <div className="grid gap-3 sm:grid-cols-3">
-            <ActionCard href="/studio" tone="dark" icon="chat" title="Rex Studio" sub="Build and change your store by chatting" />
-            <ActionCard href={`/studio?prompt=${encodeURIComponent(REBRAND_PROMPT)}`} tone="mint" icon="sparkle" title="Rebrand with Rex" sub="New logo, colours, homepage" />
-            <ActionCard href="/seller/store/builder" tone="white" icon="monitor" title="Edit your store" sub="Pages, sections and themes" />
+            <ActionCard href="/studio" tone="dark" icon="chat" title={t("hub.studio")} sub={t("hub.studioSub")} />
+            <ActionCard href={`/studio?prompt=${encodeURIComponent(REBRAND_PROMPT)}`} tone="mint" icon="sparkle" title={t("hub.rebrand")} sub={t("hub.rebrandSub")} />
+            <ActionCard href="/seller/store/builder" tone="white" icon="monitor" title={t("hub.edit")} sub={t("hub.editSub")} />
           </div>
         </div>
 
         <div className="grid min-w-0 content-start gap-4">
           <Link href="/home/brand-kit" className="block rounded-[22px] border border-app-line bg-white p-5 text-app-ink no-underline transition hover:border-app-line-strong">
             <span className="flex items-center justify-between gap-2">
-              <span className="text-[17px] font-extrabold">Brand kit</span>
+              <span className="text-[17px] font-extrabold">{t("hub.brandKit")}</span>
               <Icon name="chevRight" size={18} className="text-app-ink-soft" />
             </span>
             <span className="mt-3 flex min-h-[62px] items-center justify-between gap-3 rounded-[16px] px-4 py-3" style={{ background: tokens?.paperBg ?? "#F6F5F9" }}>
@@ -172,25 +183,25 @@ export default async function YourStorePage() {
                 </span>
               </span>
               {colourDots.length > 0 && (
-                <span className="flex shrink-0 gap-1.5" aria-label="Brand colours">
+                <span className="flex shrink-0 gap-1.5" aria-label={t("hub.brandColours")}>
                   {colourDots.map((colour, index) => (
                     <span key={`${colour}-${index}`} className="h-6 w-6 rounded-full" style={{ background: colour, boxShadow: "inset 0 0 0 1px rgba(22,20,31,0.1)" }} />
                   ))}
                 </span>
               )}
             </span>
-            <span className="mt-3 block text-[13.5px] text-app-ink-soft">Used on your store and shipping labels.</span>
+            <span className="mt-3 block text-[13.5px] text-app-ink-soft">{t("hub.brandUsed")}</span>
           </Link>
 
           <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2">
-            <TileLink href="/builder/templates" icon="grid" title="Templates" sub={look.themeName ? `${look.themeName} · ${THEME_LIBRARY.length} looks` : `${THEME_LIBRARY.length} looks to choose from`} />
-            <TileLink href="/home/domain" icon="globe" title="Domain" sub={host} />
+            <TileLink href="/builder/templates" icon="grid" title={t("hub.templates")} sub={look.themeName ? t("hub.lookCount", { name: look.themeName, count: THEME_LIBRARY.length }) : t("hub.looks", { count: THEME_LIBRARY.length })} />
+            <TileLink href="/home/domain" icon="globe" title={t("hub.domain")} sub={host} />
           </div>
 
           <Card className="p-5">
             <div className="flex items-center justify-between gap-2">
-              <h2 className="m-0 text-[17px] font-extrabold">Pages</h2>
-              <Link href="/home/pages" className="text-[13.5px] font-extrabold text-app-accent-ink no-underline hover:underline">All pages</Link>
+              <h2 className="m-0 text-[17px] font-extrabold">{t("hub.pages")}</h2>
+              <Link href="/home/pages" className="text-[13.5px] font-extrabold text-app-accent-ink no-underline hover:underline">{t("hub.allPages")}</Link>
             </div>
             <ul className="m-0 mt-2 list-none divide-y divide-app-line p-0">
               {pageItems.map((page) => (
@@ -198,7 +209,7 @@ export default async function YourStorePage() {
                   <Link href={page.href} className="flex min-h-[52px] items-center gap-3 py-2 text-app-ink no-underline hover:text-app-accent-ink">
                     <Icon name={page.icon} size={18} className="shrink-0 text-app-ink-soft" />
                     <span className="min-w-0 flex-1 truncate text-[14.5px] font-semibold">{page.title}</span>
-                    <span className={cx("shrink-0 text-[13px]", page.status === "Not written yet" || page.status === "Not built yet" ? "text-app-accent-ink" : "text-app-ink-soft")}>{page.status}</span>
+                    <span className={cx("shrink-0 text-[13px]", page.todo ? "text-app-accent-ink" : "text-app-ink-soft")}>{page.status}</span>
                   </Link>
                 </li>
               ))}
@@ -211,7 +222,7 @@ export default async function YourStorePage() {
   );
 }
 
-type PageItem = { title: string; status: string; href: string };
+type PageItem = { title: string; status: string; href: string; todo?: boolean };
 
 const ACTION_TONE = {
   dark: { card: "bg-app-ink text-white border-transparent hover:bg-black", icon: "bg-white/10 text-white", sub: "text-white/75" },

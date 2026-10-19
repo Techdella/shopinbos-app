@@ -2,7 +2,12 @@
 // (name + BN/RC number), decides the company type, compares names, links the account holder to the record and
 // turns the provider's answer into one result. No imports, so it is unit-tested in tests/kyb-cac.test.mjs.
 //
-// Provider: Dojah (checked against docs.dojah.io, October 2026):
+// Providers: Youverify when YOUVERIFY_SECRET_KEY is set (doc.youverify.co, October 2026):
+//   POST {base}/v2/api/verifications/ng/advance-check-with-tax { registrationNumber: "RC1234567" | "BN…", isConsent }
+//   Header: token (secret key). Base: https://api.youverify.co, sandbox https://api.sandbox.youverify.co
+//   200 → { data: { status: "found", name, registrationNumber, companyStatus, typeOfEntity, address, keyPersonnel } }
+//   404 no record · 402 no balance · 429 slow down
+// else Dojah (checked against docs.dojah.io, October 2026):
 //   GET {base}/api/v1/kyc/cac/advance?rc_number=…&company_type=…
 //   Headers: AppId, Authorization (secret key, no "Bearer"). Base: https://api.dojah.io, sandbox https://sandbox.dojah.io
 //   company_type: BUSINESS_NAME | COMPANY | INCORPORATED_TRUSTEES | LIMITED_PARTNERSHIP | LIMITED_LIABILITY_PARTNERSHIP
@@ -97,13 +102,25 @@ export interface CacAffiliate {
   firstName: string;
   lastName: string;
   role: string;
+  /** Registries that give one name line (Youverify's keyPersonnel) instead of first and last names. */
+  fullName?: string;
 }
+
+/** Roles on a CAC record that never make someone the business's owner. */
+const NOT_OWNER_ROLES = /witness|secretary/i;
 
 /** The account holder's name has the first and last name of someone on the CAC record, in any order. */
 export function ownerListed(ownerName: string, affiliates: CacAffiliate[]): boolean {
   const owner = personTokens(ownerName);
   if (owner.size < 2) return false;
   return affiliates.some((person) => {
+    if (person.role && NOT_OWNER_ROLES.test(person.role)) return false;
+    if (person.fullName) {
+      // One name line in no set order: the holder's first and last names must both be in it.
+      const words = personTokens(person.fullName);
+      const ownerWords = [...owner];
+      return words.has(ownerWords[0]) && words.has(ownerWords[ownerWords.length - 1]);
+    }
     const first = personTokens(person.firstName);
     const last = personTokens(person.lastName);
     if (!first.size || !last.size) return false;
@@ -149,6 +166,51 @@ export function parseDojahCac(body: unknown): CacRecord | null {
     companyType: str(e.type_of_company),
     ...(str(e.address) ? { address: str(e.address) } : {}),
     ...(str(e.date_of_registration) ? { registeredAt: str(e.date_of_registration) } : {}),
+    affiliates,
+  };
+}
+
+/** The number with its registry prefix (RC1234567, BN1234567…), the form Youverify looks up. */
+export function prefixedCacNumber(number: string, companyType: CacCompanyType): string {
+  const prefix = { BUSINESS_NAME: "BN", COMPANY: "RC", INCORPORATED_TRUSTEES: "IT", LIMITED_PARTNERSHIP: "LP", LIMITED_LIABILITY_PARTNERSHIP: "LLP" }[companyType];
+  return `${prefix}${number}`;
+}
+
+function addressLine(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (!value || typeof value !== "object") return "";
+  const parts = ["addressLine", "street", "city", "lga", "state"].map((key) => str((value as Record<string, unknown>)[key])).filter(Boolean);
+  return [...new Set(parts)].join(", ");
+}
+
+/**
+ * Reads Youverify's TaxID and Business Verification answer (POST /v2/api/verifications/ng/advance-check-with-tax):
+ * { success, data: { status: "found", name, registrationNumber, companyStatus, typeOfEntity, address,
+ * registrationDate, keyPersonnel: [{ name, designation, status }] } }. Null when there is no usable record.
+ */
+export function parseYouverifyCac(body: unknown): CacRecord | null {
+  const data = (body as { data?: unknown } | null)?.data;
+  if (!data || typeof data !== "object") return null;
+  const d = data as Record<string, unknown>;
+  const companyName = str(d.name);
+  if (!companyName || (str(d.status) && !/^found$/i.test(str(d.status)))) return null;
+  const affiliates = Array.isArray(d.keyPersonnel)
+    ? d.keyPersonnel
+        .filter((p): p is Record<string, unknown> => Boolean(p) && typeof p === "object")
+        // Former directors (status "INACTIVE", "RESIGNED"…) aren't the business's people any more.
+        .filter((p) => !str(p.status) || /^active$/i.test(str(p.status)))
+        .map((p) => ({ firstName: "", lastName: "", fullName: str(p.name), role: str(p.designation) }))
+        .filter((p) => p.fullName)
+    : [];
+  const address = addressLine(d.address);
+  const registeredAt = str(d.registrationDate).slice(0, 10);
+  return {
+    companyName,
+    rcNumber: str(d.registrationNumber),
+    status: str(d.companyStatus),
+    companyType: str(d.typeOfEntity),
+    ...(address ? { address } : {}),
+    ...(registeredAt ? { registeredAt } : {}),
     affiliates,
   };
 }

@@ -3,14 +3,15 @@ import "server-only";
 import { db } from "@/lib/db/client";
 import { buildStorefrontUrl } from "@/lib/domains/storefront";
 import { appOrigin } from "@/lib/ads";
-import { buildFeedItems, metaBatchRequests, type FeedBuild, type FeedChannel } from "./feeds";
+import { buildFeedItems, legacyFeedPath, metaBatchRequests, type FeedBuild, type FeedChannel } from "./feeds";
 
 // Server side of social selling: catalog feeds, the store's channel connections, and the feed URLs sellers paste.
 
 export const FEED_PRODUCT_LIMIT = 5000;
 
-export function feedUrl(slug: string, file: string) {
-  return `${appOrigin()}/api/public/feeds/${encodeURIComponent(slug)}/${file}`;
+/** A channel feed URL with the store's private feed key (WhatsAppCatalog.feedToken; see ensureFeedToken). */
+export function feedUrl(slug: string, file: string, token: string) {
+  return `${appOrigin()}${legacyFeedPath(slug, file, token)}`;
 }
 
 export function productLink(store: { slug: string; customDomain: string | null }, productId: string) {

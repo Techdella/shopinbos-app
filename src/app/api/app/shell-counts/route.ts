@@ -3,6 +3,7 @@ import { ok } from "@/lib/api/response";
 import { db } from "@/lib/db/client";
 import { parsePreferences } from "@shared/preferences";
 import { getIdentity } from "@/lib/identity";
+import { idCheckState } from "@/lib/wallet/id-check-state.server";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,9 @@ export const GET = withAuth(async (_req, { user }) => {
     }
   }
 
+  // The seller's "Let's verify you" bar: whether their ID passed the Shopinbos Wallet check.
+  const idCheck = user.role === "seller" ? await idCheckState(user.id).catch(() => null) : null;
+
   // Menu choices, walkthrough state and the person's photo/logo ride along so the shell needs one request per page load.
-  return ok({ notifications, inbox, orders, preferences: parsePreferences(prefsRow?.preferences), identity });
+  return ok({ notifications, inbox, orders, preferences: parsePreferences(prefsRow?.preferences), identity, idCheck });
 });

@@ -22,6 +22,18 @@ export interface VerificationDoc {
   rejectionReason?: string;
   /** Set when the business was checked against the CAC registry instead of (or before) a file upload. */
   registry?: RegistryCheck;
+  /** Set on the "identity" document when the owner's BVN or NIN passed the Shopinbos Wallet ID check. */
+  idCheck?: IdCheck;
+}
+
+/** The owner's ID check (Shopinbos Wallet, src/lib/wallet): stands in for an uploaded ID. Never the full number. */
+export interface IdCheck {
+  source: "wallet";
+  idType: "bvn" | "nin";
+  idLast4: string;
+  /** Name on the ID. */
+  name: string;
+  checkedAt: string;
 }
 
 /** Result of an instant CAC registry lookup, kept on the "cac" document so admins see what was matched. */
@@ -166,9 +178,17 @@ export function normalizeVerificationDocs(value: unknown): VerificationDoc[] {
       updatedAt: text(row.updatedAt) || uploadedAt,
       ...(typeof row.rejectionReason === "string" && row.rejectionReason ? { rejectionReason: row.rejectionReason } : {}),
       ...(normalizeRegistry(row.registry) ? { registry: normalizeRegistry(row.registry)! } : {}),
+      ...(normalizeIdCheck(row.idCheck) ? { idCheck: normalizeIdCheck(row.idCheck)! } : {}),
     });
   }
   return docs;
+}
+
+function normalizeIdCheck(value: unknown): IdCheck | null {
+  if (!value || typeof value !== "object") return null;
+  const r = value as Record<string, unknown>;
+  if (r.source !== "wallet" || (r.idType !== "bvn" && r.idType !== "nin") || !text(r.checkedAt)) return null;
+  return { source: "wallet", idType: r.idType, idLast4: text(r.idLast4).slice(-4), name: text(r.name), checkedAt: text(r.checkedAt) };
 }
 
 function normalizeRegistry(value: unknown): RegistryCheck | null {
@@ -201,9 +221,14 @@ export function docRegistryVerified(doc: Pick<VerificationDoc, "registry"> | nul
   return Boolean(doc?.registry?.verified);
 }
 
-/** A file or a registry match backs the document. */
-export function docHasEvidence(doc: Pick<VerificationDoc, "filePath" | "registry"> | null | undefined): boolean {
-  return docHasFile(doc) || docRegistryVerified(doc);
+/** The owner's BVN or NIN passed the Wallet ID check, so no ID upload is needed. */
+export function docIdChecked(doc: Pick<VerificationDoc, "idCheck"> | null | undefined): boolean {
+  return Boolean(doc?.idCheck);
+}
+
+/** A file, a registry match or a passed ID check backs the document. */
+export function docHasEvidence(doc: Pick<VerificationDoc, "filePath" | "registry" | "idCheck"> | null | undefined): boolean {
+  return docHasFile(doc) || docRegistryVerified(doc) || docIdChecked(doc);
 }
 
 /** A document counts towards verification only when a stored file (or a CAC registry match) backs it and it hasn't been rejected. */

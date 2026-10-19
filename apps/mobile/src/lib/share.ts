@@ -1,0 +1,27 @@
+import { Share } from "react-native";
+import * as WebBrowser from "expo-web-browser";
+import { fetchSetup, patchSetup } from "./setup";
+import { tNow } from "./app-locale";
+
+/** "Share my shop": the phone's share sheet with the shop link. Counts towards "Share your shop link" on Start here. */
+export async function shareShop(): Promise<"shared" | "dismissed" | "no-link"> {
+  const overview = await fetchSetup().catch(() => null);
+  const url = overview?.store.url;
+  if (!url) return "no-link";
+  const result = await Share.share({ message: tNow("m_shop")("shareMessage", { name: overview.store.name, url }) }).catch(() => null);
+  if (result && result.action !== Share.dismissedAction) {
+    void patchSetup({ type: "shared" }).catch(() => null);
+    return "shared";
+  }
+  return "dismissed";
+}
+
+export function openShop(url: string) {
+  return WebBrowser.openBrowserAsync(url);
+}
+
+/** The phone's share sheet with any message (a payment link, the link in bio page). True when it was sent somewhere. */
+export async function shareText(message: string): Promise<boolean> {
+  const result = await Share.share({ message }).catch(() => null);
+  return Boolean(result && result.action !== Share.dismissedAction);
+}

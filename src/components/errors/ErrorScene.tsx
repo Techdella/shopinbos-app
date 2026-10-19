@@ -45,6 +45,26 @@ export const APP_PALETTE: ScenePalette = {
   line: "rgba(14,42,56,0.14)",
 };
 
+/** The scene's own words. App pages pass them in the person's language; storefront pages keep the English ones. */
+export interface SceneLabels {
+  another: string;
+  /** "Ref {ref}" with the short reference filled in. */
+  ref: (short: string) => string;
+  copy: string;
+  copied: string;
+  copyRef: string;
+  refCopied: string;
+}
+
+export const ENGLISH_SCENE_LABELS: SceneLabels = {
+  another: "Tell me another",
+  ref: (short) => `Ref ${short}`,
+  copy: "Copy",
+  copied: "Copied",
+  copyRef: "Copy error reference for support",
+  refCopied: "Reference copied",
+};
+
 export type SceneAction =
   | { label: string; href: string; icon?: IconName; primary?: boolean; external?: boolean }
   | { label: string; onClick: () => void; icon?: IconName; primary?: boolean };
@@ -63,6 +83,7 @@ export function ErrorScene({
   embedded = false,
   brand,
   footer,
+  labels = ENGLISH_SCENE_LABELS,
 }: {
   palette?: ScenePalette;
   /** Colour of the scene's main shape (defaults to mint on app pages). */
@@ -80,6 +101,7 @@ export function ErrorScene({
   embedded?: boolean;
   brand?: React.ReactNode;
   footer?: React.ReactNode;
+  labels?: SceneLabels;
 }) {
   const style = {
     background: embedded ? undefined : palette.page,
@@ -110,7 +132,7 @@ export function ErrorScene({
         <h1 id="sbx-title" className="mt-2 text-[28px] font-medium leading-[1.1] tracking-[-0.025em] sm:text-[34px]" style={{ fontFamily: palette.heading ?? "var(--font-display)" }}>
           {title}
         </h1>
-        <Quip lines={lines} palette={palette} />
+        <Quip lines={lines} palette={palette} another={labels.another} />
         <div className="mt-3 max-w-[46ch] text-[15px] leading-6" style={{ color: palette.muted }}>{body}</div>
 
         {actions.length ? (
@@ -119,7 +141,7 @@ export function ErrorScene({
           </div>
         ) : null}
 
-        {digest ? <DigestChip digest={digest} palette={palette} /> : null}
+        {digest ? <DigestChip digest={digest} palette={palette} labels={labels} /> : null}
         {footer ? <div className="mt-6 text-[13.5px]" style={{ color: palette.muted }}>{footer}</div> : null}
       </Wrapper>
     </div>
@@ -127,7 +149,7 @@ export function ErrorScene({
 }
 
 /** One witty line; a random one after load and another on request. Lines share one grid cell, so swapping never moves the page. */
-function Quip({ lines, palette }: { lines: readonly string[]; palette: ScenePalette }) {
+function Quip({ lines, palette, another }: { lines: readonly string[]; palette: ScenePalette; another: string }) {
   const [index, setIndex] = useState(0);
   const [asked, setAsked] = useState(false);
   useEffect(() => {
@@ -153,7 +175,7 @@ function Quip({ lines, palette }: { lines: readonly string[]; palette: ScenePale
           className="inline-flex min-h-9 items-center gap-1.5 rounded-full px-3 text-[12.5px] font-medium underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
           style={{ color: palette.muted, outlineColor: palette.ink }}
         >
-          <Icon name="refresh" size={12} /> Tell me another
+          <Icon name="refresh" size={12} /> {another}
         </button>
       ) : null}
     </div>
@@ -183,13 +205,13 @@ function ActionButton({ action, palette }: { action: SceneAction; palette: Scene
   return <button type="button" onClick={action.onClick} className={className} style={style}>{content}</button>;
 }
 
-function DigestChip({ digest, palette }: { digest: string; palette: ScenePalette }) {
+function DigestChip({ digest, palette, labels }: { digest: string; palette: ScenePalette; labels: SceneLabels }) {
   const [copied, setCopied] = useState(false);
   const short = formatDigest(digest);
   if (!short) return null;
   return (
     <div className="mt-6 inline-flex max-w-full items-center gap-2 rounded-full border py-1 pl-3.5 pr-1 font-mono text-[12px]" style={{ borderColor: palette.line, color: palette.muted, background: palette.paper }}>
-      <span className="truncate">Ref {short}</span>
+      <span className="truncate">{labels.ref(short)}</span>
       <button
         type="button"
         onClick={() => {
@@ -197,9 +219,9 @@ function DigestChip({ digest, palette }: { digest: string; palette: ScenePalette
         }}
         className="inline-flex min-h-8 items-center gap-1 rounded-full px-2.5 font-sans text-[12px] font-semibold focus-visible:outline focus-visible:outline-2"
         style={{ color: palette.ink, outlineColor: palette.ink }}
-        aria-label={copied ? "Reference copied" : "Copy error reference for support"}
+        aria-label={copied ? labels.refCopied : labels.copyRef}
       >
-        <Icon name={copied ? "check" : "copy"} size={13} /> {copied ? "Copied" : "Copy"}
+        <Icon name={copied ? "check" : "copy"} size={13} /> {copied ? labels.copied : labels.copy}
       </button>
     </div>
   );

@@ -4,6 +4,7 @@ import { db } from "@/lib/db/client";
 import { ok, okList, apiError, parsePagination } from "@/lib/api/response";
 import { QuoteRequestCreateSchema } from "@/lib/schemas";
 import type { AuthUser } from "@/lib/auth/types";
+import { notifySupplierQuoteRequested } from "@/lib/notifications/events.server";
 
 export const GET = withSeller(async (req: NextRequest, { user }: { user: AuthUser }) => {
   const { page, limit, skip } = parsePagination(req.nextUrl.searchParams);
@@ -57,6 +58,7 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
   const quote = await db.supplierQuoteRequest.create({
     data: { sellerId: user.id, supplierId, supplierProductId, quantity, destination, notes },
   });
+  await notifySupplierQuoteRequested(quote.id);
 
   return ok(quote, 201);
 });

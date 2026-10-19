@@ -24,16 +24,30 @@ function targetFields(target: CodeTarget) {
   return target.kind === "phone" ? { phone: target.phone, via: target.via } : { email: target.email };
 }
 
+/** How the code actually went: WhatsApp, SMS (WhatsApp off, failed, or "Send it by SMS") or email. */
+export type CodeChannel = "whatsapp" | "sms" | "email";
+
+/** Sends a code. Returns the channel that really carried it, so the screen can say where to look. */
 export async function sendCode(
   target: CodeTarget,
   options: { create: boolean; profile?: { fullName?: string; role?: SignupRole; businessName?: string } },
-) {
-  await postJson("/api/auth/otp", { action: "send", ...targetFields(target), create: options.create, profile: options.profile });
+): Promise<CodeChannel> {
+  const data = await postJson<{ channel?: CodeChannel | null }>("/api/auth/otp", { action: "send", ...targetFields(target), create: options.create, profile: options.profile });
+  const channel = data?.channel;
+  return channel === "whatsapp" || channel === "sms" || channel === "email" ? channel : target.kind === "email" ? "email" : "sms";
 }
 
+/** Can phone codes go by WhatsApp on this server (AUTH_OTP_WHATSAPP)? false when unknown. */
+export async function fetchWhatsAppCodes() {
+  const response = await fetch("/api/auth/otp", { headers: { Accept: "application/json" } }).catch(() => null);
+  const body = (await response?.json().catch(() => null)) as { data?: { whatsapp?: boolean } } | null;
+  return body?.data?.whatsapp === true;
+}
+
+/** Checks the code. needsName: a brand-new account, so ask "What should we call you?" before going on. */
 export async function verifyCode(target: CodeTarget, token: string) {
-  const data = await postJson<{ accessToken: string | null }>("/api/auth/otp", { action: "verify", ...targetFields(target), token });
-  return data?.accessToken ?? null;
+  const data = await postJson<{ accessToken: string | null; needsName?: boolean }>("/api/auth/otp", { action: "verify", ...targetFields(target), token });
+  return { accessToken: data?.accessToken ?? null, needsName: data?.needsName === true };
 }
 
 /** Creates or refreshes the app's User row. Returns the role the account actually has. */
@@ -51,18 +65,20 @@ export async function signInWithPassword(email: string, password: string) {
   return data?.accessToken ?? null;
 }
 
-export function callbackUrl(role: AuthRole, next: string) {
+/** mode "signup" lets the callback say "This email already has a seller account" when the Google account has one. */
+export function callbackUrl(role: AuthRole, next: string, mode?: "login" | "signup") {
   const url = new URL("/auth/callback", window.location.origin);
   url.searchParams.set("role", role);
   url.searchParams.set("next", next);
+  if (mode === "signup") url.searchParams.set("mode", "signup");
   return url.toString();
 }
 
-export async function signInWithGoogle(role: AuthRole, next: string) {
+export async function signInWithGoogle(role: AuthRole, next: string, mode?: "login" | "signup") {
   const supabase = requireSupabase();
   const { error } = await supabase.auth.signInWithOAuth({
     provider: "google",
-    options: { redirectTo: callbackUrl(role, next), queryParams: { prompt: "select_account" } },
+    options: { redirectTo: callbackUrl(role, next, mode), queryParams: { prompt: "select_account" } },
   });
   if (error) throw new Error(/provider is not enabled/i.test(error.message) ? "Google sign-in isn't switched on yet. Use your phone or email." : error.message);
 }

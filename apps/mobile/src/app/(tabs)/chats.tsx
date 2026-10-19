@@ -5,21 +5,22 @@ import { Image } from "expo-image";
 import { AppIcon } from "@/components/icons";
 import { ChipRow, EmptyState, ErrorState, Initials, LinkRow, LoadingBlock } from "@/components/kit";
 import { TabScreen } from "@/components/TabScreen";
-import { Card, Chip, Field, Mascot, Segmented, T } from "@/components/ui";
+import { Card, Chip, Field, Mascot, PillButton, Segmented, T } from "@/components/ui";
 import { fetchInbox, type InboxListItem } from "@/lib/inbox";
-import { channelLabel, channelsInUse, filterInbox, shortTime, type InboxView } from "@/lib/inbox-pure";
+import { channelLabel, channelsInUse, filterInbox, repliesByEmail, shortTime, type InboxView } from "@/lib/inbox-pure";
 import { useLoad } from "@/lib/useLoad";
-import { openWeb } from "@/lib/web";
+import { useT } from "@/lib/i18n";
 import { colors, radii } from "@/theme";
 
 // The all-in-one inbox (web /home/messages): every customer conversation (WhatsApp, Instagram, email, live
 // chat, contact form…) and the seller's supplier and delivery-partner chats, in one list.
 
-const VIEWS: Array<{ value: InboxView; label: string }> = [
-  { value: "open", label: "Open" },
-  { value: "unread", label: "Unread" },
-  { value: "snoozed", label: "Snoozed" },
-  { value: "closed", label: "Done" },
+// Labels are m_chats keys.
+const VIEWS: Array<{ value: InboxView; label: "view.open" | "view.unread" | "view.snoozed" | "view.closed" }> = [
+  { value: "open", label: "view.open" },
+  { value: "unread", label: "view.unread" },
+  { value: "snoozed", label: "view.snoozed" },
+  { value: "closed", label: "view.closed" },
 ];
 
 function open(item: InboxListItem) {
@@ -31,6 +32,7 @@ function open(item: InboxListItem) {
 }
 
 export default function Chats() {
+  const t = useT("m_chats", "m_ui", "nav");
   const inbox = useLoad(fetchInbox);
   const [view, setView] = useState<InboxView>("open");
   const [channel, setChannel] = useState("");
@@ -42,52 +44,49 @@ export default function Chats() {
 
   return (
     <TabScreen
-      title="Chats"
-      action={
-        <Pressable accessibilityRole="button" accessibilityLabel="Auto-replies and chatbot" onPress={() => router.push("/inbox/auto-replies")} style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: colors.surface, alignItems: "center", justifyContent: "center" }}>
-          <AppIcon name="settings" size={20} />
-        </Pressable>
-      }
+      title={t("tab.chats")}
       refreshing={inbox.refreshing}
       onRefresh={() => void inbox.refresh()}
     >
       <Pressable accessibilityRole="button" onPress={() => router.push("/peggy")} style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: colors.mintTint, borderRadius: radii.card, padding: 12, marginBottom: 14 }}>
         <Mascot name="peggy" size={38} />
         <View style={{ flex: 1 }}>
-          <T weight="extrabold" style={{ fontSize: 14.5 }}>Ask Peggy</T>
-          <T style={{ color: colors.inkSoft, fontSize: 12.5 }}>Sales, stock, what to restock, what to post next.</T>
+          <T weight="extrabold" style={{ fontSize: 16 }}>{t("peggy.ask")}</T>
+          <T style={{ color: colors.inkSoft, fontSize: 15 }}>{t("list.peggySub")}</T>
         </View>
         <AppIcon name="chevron" size={18} color={colors.inkSoft} />
       </Pressable>
 
-      <Segmented options={VIEWS.map((option) => ({ ...option, label: option.value === "unread" && unread ? `Unread ${unread}` : option.label }))} value={view} onChange={setView} />
+      <Segmented options={VIEWS.map((option) => ({ ...option, label: option.value === "unread" && unread ? t("view.unreadCount", { count: unread }) : t(option.label) }))} value={view} onChange={setView} />
 
-      <Field value={q} onChangeText={setQ} placeholder="Search name or message" returnKeyType="search" accessibilityLabel="Search conversations" style={{ marginTop: 12, height: 48 }} />
+      <Field value={q} onChangeText={setQ} placeholder={t("list.search")} returnKeyType="search" accessibilityLabel={t("list.searchLabel")} style={{ marginTop: 12, height: 48 }} />
 
       {channels.length > 1 ? (
         <View style={{ marginTop: 12 }}>
           <ChipRow>
-            <Chip label="All" on={channel === ""} onPress={() => setChannel("")} />
-            {channels.map((key) => <Chip key={key} label={channelLabel(key)} on={channel === key} onPress={() => setChannel(channel === key ? "" : key)} />)}
+            <Chip label={t("partners.all")} on={channel === ""} onPress={() => setChannel("")} />
+            {channels.map((key) => <Chip key={key} label={channelLabel(key, t)} on={channel === key} onPress={() => setChannel(channel === key ? "" : key)} />)}
           </ChipRow>
         </View>
       ) : null}
 
       <View style={{ marginTop: 14, gap: 8 }}>
-        {inbox.loading && !items ? <LoadingBlock label="Loading your chats…" /> : null}
-        {inbox.error && !items ? <ErrorState message={inbox.error} onRetry={() => void inbox.reload()} web={{ label: "Open on web", onPress: () => void openWeb("/home/messages") }} /> : null}
+        {inbox.loading && !items ? <LoadingBlock label={t("list.loading")} /> : null}
+        {inbox.error && !items ? <ErrorState message={inbox.error} onRetry={() => void inbox.reload()} /> : null}
         {items && !shown.length ? (
-          <EmptyState icon="chat" title={items.length ? "Nothing here" : "No messages yet"}>
-            {items.length
-              ? "Try another filter, or pull down to check for new messages."
-              : "Connect WhatsApp, Instagram, email and more on the web, and every customer message lands here."}
+          <EmptyState
+            icon="chat"
+            title={items.length ? t("list.nothing") : t("list.noMessages")}
+            action={items.length ? undefined : <PillButton title={t("list.connectButton")} size="md" onPress={() => router.push("/channels")} />}
+          >
+            {items.length ? t("list.nothingBody") : t("list.emptyBody")}
           </EmptyState>
         ) : null}
         {shown.map((item) => (
           <Pressable
             key={item.key}
             accessibilityRole="button"
-            accessibilityLabel={`${item.name}, ${channelLabel(item.channel)}${item.unread ? `, ${item.unread} unread` : ""}`}
+            accessibilityLabel={`${item.unread ? t("list.itemUnread", { name: item.name, channel: channelLabel(item.channel, t), count: item.unread }) : `${item.name}, ${channelLabel(item.channel, t)}`}${item.subject ? `, ${item.subject}` : ""}`}
             onPress={() => open(item)}
             style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.surface, borderRadius: 18, padding: 12, opacity: pressed ? 0.8 : 1 })}
           >
@@ -95,17 +94,19 @@ export default function Chats() {
             <View style={{ flex: 1, gap: 2 }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                 <T weight={item.unread ? "extrabold" : "bold"} style={{ flex: 1, fontSize: 15 }} numberOfLines={1}>{item.name}</T>
-                <T style={{ color: colors.inkSoft, fontSize: 12 }}>{shortTime(item.at)}</T>
+                <T style={{ color: colors.inkSoft, fontSize: 13.5 }}>{shortTime(item.at, new Date(), t)}</T>
               </View>
-              <T style={{ color: item.unread ? colors.ink : colors.inkSoft, fontSize: 13 }} numberOfLines={1}>{item.preview || "No messages yet"}</T>
+              {item.subject ? <T weight={item.unread ? "bold" : "semibold"} style={{ fontSize: 15 }} numberOfLines={1}>{item.subject}</T> : null}
+              <T style={{ color: item.unread ? colors.ink : colors.inkSoft, fontSize: 15 }} numberOfLines={1}>{item.preview || t("list.noMessages")}</T>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 }}>
-                <T weight="semibold" style={{ fontSize: 11.5, color: colors.inkSoft }}>{item.source === "partner" ? item.sub ?? "Partner" : channelLabel(item.channel)}</T>
-                {item.status === "snoozed" ? <T weight="semibold" style={{ fontSize: 11.5, color: colors.accentInk }}>· Snoozed</T> : null}
+                {repliesByEmail(item.channel) ? <AppIcon name="mail" size={14} color={colors.inkSoft} /> : null}
+                <T weight="semibold" style={{ fontSize: 13, color: colors.inkSoft }}>{item.source === "partner" ? item.sub ?? t("partners.partner") : channelLabel(item.channel, t)}</T>
+                {item.status === "snoozed" ? <T weight="semibold" style={{ fontSize: 13, color: colors.accentInk }}>· {t("view.snoozed")}</T> : null}
               </View>
             </View>
             {item.unread ? (
               <View style={{ minWidth: 22, height: 22, borderRadius: 11, paddingHorizontal: 6, backgroundColor: colors.accent, alignItems: "center", justifyContent: "center" }}>
-                <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 12 }}>{String(item.unread)}</T>
+                <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 13.5 }}>{String(item.unread)}</T>
               </View>
             ) : null}
           </Pressable>
@@ -113,10 +114,10 @@ export default function Chats() {
       </View>
 
       <Card style={{ marginTop: 18, paddingVertical: 2 }}>
-        <LinkRow first icon="truck" label="Suppliers & delivery partners" hint="Message the people you buy from and ship with" onPress={() => router.push("/partners")} />
-        <LinkRow icon="clock" label="Auto-replies" hint="Away message and opening hours" onPress={() => router.push("/inbox/auto-replies")} />
-        <LinkRow icon="bot" label="Peggy chatbot" hint="Answers shoppers on your store's chat" onPress={() => router.push("/inbox/chatbot")} />
-        <LinkRow icon="settings" label="Connect channels" hint="WhatsApp, Instagram, email… (opens the web)" onPress={() => void openWeb("/home/inbox/channels")} />
+        <LinkRow first icon="users" label={t("partners.title")} hint={t("list.partnersHint")} onPress={() => router.push("/partners")} />
+        <LinkRow icon="clock" label={t("list.autoReplies")} hint={t("list.autoRepliesHint")} onPress={() => router.push("/inbox/auto-replies")} />
+        <LinkRow icon="mail" label={t("list.email")} hint={t("list.emailHint")} onPress={() => router.push("/channels")} />
+        <LinkRow icon="chat" label={t("list.connect")} hint={t("list.connectHint")} onPress={() => router.push("/channels")} />
       </Card>
     </TabScreen>
   );

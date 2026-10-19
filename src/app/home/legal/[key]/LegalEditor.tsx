@@ -1,5 +1,6 @@
 "use client";
 
+import { confirmDialog } from "@/components/ui/dialogs";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
@@ -9,6 +10,7 @@ import { RichTextEditor } from "@/components/cms/RichTextEditor";
 import { SeoTab } from "@/components/seo/SeoTab";
 import { docImages, firstParagraphText, plainText, summarize, wordCount, type RichDoc } from "@/lib/cms/richtext";
 import { normalizeSeo, type SeoFields } from "@/lib/seo/fields";
+import { useT } from "@/components/i18n/I18nProvider";
 import {
   LAYOUT_PRESETS,
   LEGAL_LAYOUTS,
@@ -48,6 +50,9 @@ export function LegalEditor(props: {
   theme: { accent: string; ink: string; paper: string; soft: string; serifHeadings: boolean };
 }) {
   const router = useRouter();
+  const t = useT("legal");
+  const tRef = useRef(t);
+  tRef.current = t;
   const [tab, setTab] = useState<Tab>("content");
   const initial: Draft = { title: props.page.title, doc: props.page.doc, style: props.page.style, seo: normalizeSeo(props.page.seo) };
   const [draft, setDraft] = useState<Draft>(initial);
@@ -72,10 +77,14 @@ export function LegalEditor(props: {
       if (!dirtyRef.current || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey) return;
       const link = (event.target as HTMLElement | null)?.closest?.("a[href]") as HTMLAnchorElement | null;
       if (!link || link.target === "_blank" || link.closest("[data-legal-editor-body]")) return;
-      if (!window.confirm("You have unsaved changes. Leave without saving?")) {
-        event.preventDefault();
-        event.stopPropagation();
-      }
+      // Hold the click, ask in-app, then follow the link ourselves if they choose to leave.
+      event.preventDefault();
+      event.stopPropagation();
+      void confirmDialog(tRef.current("ed.leave")).then((leave) => {
+        if (!leave) return;
+        dirtyRef.current = false;
+        link.click();
+      });
     };
     window.addEventListener("beforeunload", warn);
     document.addEventListener("click", click, true);
@@ -98,12 +107,12 @@ export function LegalEditor(props: {
   async function save(nextPublished: boolean, kind: "draft" | "publish" | "unpublish") {
     if (!draft.title.trim()) {
       setTab("content");
-      setTitleError("Add a title");
+      setTitleError(t("ed.addTitle"));
       return;
     }
     if (nextPublished && empty) {
       setTab("content");
-      setNotice({ tone: "error", text: "Write something before you publish this page." });
+      setNotice({ tone: "error", text: t("ed.writeFirst") });
       return;
     }
     setBusy(kind);
@@ -117,7 +126,7 @@ export function LegalEditor(props: {
       });
       const json = (await res.json().catch(() => null)) as { data?: LegalPage; error?: { message?: string } } | null;
       if (!res.ok || !json?.data) {
-        setNotice({ tone: "error", text: json?.error?.message ?? "Couldn't save. Try again." });
+        setNotice({ tone: "error", text: json?.error?.message ?? t("ed.saveError") });
         return;
       }
       // Keep the editor's own document so the cursor doesn't jump; take the cleaned style and SEO back.
@@ -127,53 +136,53 @@ export function LegalEditor(props: {
       saved.current = JSON.stringify(next);
       setNotice({
         tone: "success",
-        text: kind === "publish" ? (published ? "Updated. Shoppers see the new version now." : "Published. It's in your store footer and at checkout now.") : kind === "unpublish" ? "Unpublished. Shoppers can't see it any more." : "Saved as a draft. Shoppers can't see it.",
+        text: kind === "publish" ? (published ? t("ed.updated") : t("ed.published")) : kind === "unpublish" ? t("ed.unpublished") : t("ed.savedDraft"),
       });
       router.refresh();
     } catch {
-      setNotice({ tone: "error", text: "Couldn't reach the server. Check your connection and try again." });
+      setNotice({ tone: "error", text: t("err.network") });
     } finally {
       setBusy("");
     }
   }
 
-  function applyTemplate() {
+  async function applyTemplate() {
     const doc = legalTemplate(props.page.key, props.templateContext);
     if (!doc) return;
-    if (!empty && !window.confirm("Replace what you've written with the template? You can undo this by leaving without saving.")) return;
+    if (!empty && !(await confirmDialog(t("ed.replaceTemplate")))) return;
     set({ doc });
-    setNotice({ tone: "info", text: "Template added. Replace every [Check: …] with your own details before you publish." });
+    setNotice({ tone: "info", text: t("ed.templateAdded") });
   }
 
   async function askPeggy() {
-    if (!empty && !window.confirm("Replace what you've written with Peggy's draft? You can undo this by leaving without saving.")) return;
+    if (!empty && !(await confirmDialog(t("ed.replacePeggy")))) return;
     setBusy("peggy");
     setNotice(null);
     try {
       const res = await fetch(`/api/app/legal/${props.page.key}/draft`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: draft.title, brief }) });
       const json = (await res.json().catch(() => null)) as { data?: { doc: RichDoc; source: "ai" | "template" }; error?: { message?: string } } | null;
       if (!res.ok || !json?.data) {
-        setNotice({ tone: "error", text: json?.error?.message ?? "Peggy couldn't write this right now. Try again." });
+        setNotice({ tone: "error", text: json?.error?.message ?? t("ed.peggyError") });
         return;
       }
       set({ doc: json.data.doc });
       setAsking(false);
-      setNotice({ tone: "info", text: json.data.source === "ai" ? "Peggy's draft is in. Read it through and fill in every [Check: …] before you publish." : "Peggy isn't available right now, so we started you from the template. Fill in every [Check: …] before you publish." });
+      setNotice({ tone: "info", text: json.data.source === "ai" ? t("ed.peggyIn") : t("ed.peggyFallback") });
     } catch {
-      setNotice({ tone: "error", text: "Couldn't reach the server. Check your connection and try again." });
+      setNotice({ tone: "error", text: t("err.network") });
     } finally {
       setBusy("");
     }
   }
 
   async function remove() {
-    if (!window.confirm(`Delete "${draft.title}"? This can't be undone.`)) return;
+    if (!(await confirmDialog(t("ed.confirmDelete", { title: draft.title })))) return;
     setBusy("delete");
     try {
       const res = await fetch(`/api/app/legal/${props.page.key}`, { method: "DELETE" });
       if (!res.ok) {
         const json = (await res.json().catch(() => null)) as { error?: { message?: string } } | null;
-        setNotice({ tone: "error", text: json?.error?.message ?? "Couldn't delete the page." });
+        setNotice({ tone: "error", text: json?.error?.message ?? t("ed.deleteError") });
         return;
       }
       saved.current = JSON.stringify(draft);
@@ -185,15 +194,15 @@ export function LegalEditor(props: {
   }
 
   const tabs: Array<{ key: Tab; label: string }> = [
-    { key: "content", label: "Content" },
-    { key: "style", label: "Style" },
-    { key: "seo", label: "SEO" },
+    { key: "content", label: t("ed.tab.content") },
+    { key: "style", label: t("ed.tab.style") },
+    { key: "seo", label: t("ed.tab.seo") },
   ];
 
   return (
     <div className="grid gap-5 pb-2">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div role="tablist" aria-label="Editor sections" className="flex gap-2 overflow-x-auto">
+        <div role="tablist" aria-label={t("ed.sections")} className="flex gap-2 overflow-x-auto">
           {tabs.map((entry) => (
             <button
               key={entry.key}
@@ -218,7 +227,7 @@ export function LegalEditor(props: {
       <div id="panel-content" role="tabpanel" aria-labelledby="tab-content" hidden={tab !== "content"} className="grid gap-5" data-legal-editor-body>
         <section className="grid gap-5 rounded-[22px] border border-app-line bg-white p-4 sm:p-6">
           <div>
-            <label htmlFor="legal-title" className="mb-1.5 block text-[14px] font-extrabold">Title</label>
+            <label htmlFor="legal-title" className="mb-1.5 block text-[14px] font-extrabold">{t("ed.title")}</label>
             <input
               id="legal-title"
               className={cx(input, "min-h-[52px] text-[20px] font-extrabold")}
@@ -234,34 +243,34 @@ export function LegalEditor(props: {
             <div className="flex flex-wrap items-center gap-2">
               {props.standard && (
                 <PillButton tone="white" size="sm" type="button" onClick={applyTemplate} disabled={Boolean(busy)}>
-                  <Icon name="document" size={14} /> Start from a template
+                  <Icon name="document" size={14} /> {t("ed.fromTemplate")}
                 </PillButton>
               )}
               <PillButton tone="white" size="sm" type="button" onClick={() => setAsking((value) => !value)} disabled={Boolean(busy)} aria-expanded={asking}>
-                <Icon name="sparkle" size={14} /> Ask Peggy to draft
+                <Icon name="sparkle" size={14} /> {t("ed.askPeggy")}
               </PillButton>
-              <span className="text-[12.5px] text-app-ink-soft">{words.toLocaleString("en-GB")} {words === 1 ? "word" : "words"}{toc.length ? ` · ${toc.length} ${toc.length === 1 ? "section" : "sections"}` : ""}</span>
+              <span className="text-[12.5px] text-app-ink-soft">{t("words", { count: words })}{toc.length ? ` · ${t("ed.sectionCount", { count: toc.length })}` : ""}</span>
             </div>
             {props.standard && (
-              <p className="m-0 text-[12.5px] text-app-ink-soft">Templates are written for Nigerian businesses and filled in with your store name, place, contacts and delivery zones. They are a starting point, not legal advice.</p>
+              <p className="m-0 text-[12.5px] text-app-ink-soft">{t("ed.templateNote")}</p>
             )}
             {asking && (
               <div className="grid gap-2">
-                <label htmlFor="legal-brief" className="text-[13.5px] font-bold">Anything Peggy should know? <span className="font-normal text-app-ink-soft">(optional)</span></label>
-                <textarea id="legal-brief" rows={2} maxLength={1000} className={cx(input, "resize-y py-2.5")} value={brief} onChange={(e) => setBrief(e.target.value)} placeholder="e.g. We accept returns within 14 days, no returns on sale items, we deliver nationwide with GIG." />
+                <label htmlFor="legal-brief" className="text-[13.5px] font-bold">{t("ed.briefLabel")} <span className="font-normal text-app-ink-soft">{t("ed.optional")}</span></label>
+                <textarea id="legal-brief" rows={2} maxLength={1000} className={cx(input, "resize-y py-2.5")} value={brief} onChange={(e) => setBrief(e.target.value)} placeholder={t("ed.briefPh")} />
                 <div>
-                  <PillButton tone="accent" size="sm" type="button" busy={busy === "peggy"} disabled={Boolean(busy)} onClick={() => void askPeggy()}>Write my draft</PillButton>
+                  <PillButton tone="accent" size="sm" type="button" busy={busy === "peggy"} disabled={Boolean(busy)} onClick={() => void askPeggy()}>{t("ed.writeDraft")}</PillButton>
                 </div>
               </div>
             )}
           </div>
 
-          <RichTextEditor label={`${draft.title || "Page"} text`} value={draft.doc} onChange={(doc) => set({ doc })} placeholder="Write your page, or start from a template above. Use Heading 1 and Heading 2 for sections; they become the table of contents." />
+          <RichTextEditor label={t("ed.textLabel", { title: draft.title || t("ed.page") })} value={draft.doc} onChange={(doc) => set({ doc })} placeholder={t("ed.textPh")} />
 
           {!props.standard && (
             <div className="flex justify-end">
               <button type="button" onClick={() => void remove()} disabled={Boolean(busy)} className="inline-flex min-h-[44px] items-center gap-2 rounded-full px-4 text-[13.5px] font-bold text-app-danger hover:bg-app-danger-tint">
-                <Icon name="trash" size={15} /> Delete this page
+                <Icon name="trash" size={15} /> {t("ed.deletePage")}
               </button>
             </div>
           )}
@@ -283,32 +292,32 @@ export function LegalEditor(props: {
           siteName={props.storeName}
           content={content}
         />
-        <p className="m-0 mt-2 text-[12.5px] text-app-ink-soft">The web address of a legal page is fixed, so links in your footer and checkout keep working.</p>
+        <p className="m-0 mt-2 text-[12.5px] text-app-ink-soft">{t("ed.fixedAddress")}</p>
       </div>
 
       <div className="sticky bottom-0 z-20 -mx-4 border-t border-app-line bg-white/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-[18px] sm:border">
         <div className="flex flex-wrap items-center gap-2">
-          <Pill tone={published ? "success" : empty ? "muted" : "warning"} dot>{published ? "Published" : empty ? "Empty" : "Draft"}</Pill>
-          <span className="text-[13px] text-app-ink-soft" aria-live="polite">{busy === "draft" || busy === "publish" || busy === "unpublish" ? "Saving…" : dirty ? "Unsaved changes" : "All changes saved"}</span>
+          <Pill tone={published ? "success" : empty ? "muted" : "warning"} dot>{published ? t("status.published") : empty ? t("status.empty") : t("status.draft")}</Pill>
+          <span className="text-[13px] text-app-ink-soft" aria-live="polite">{busy === "draft" || busy === "publish" || busy === "unpublish" ? t("ed.saving") : dirty ? t("ed.unsaved") : t("ed.allSaved")}</span>
           <div className="ml-auto flex flex-wrap items-center gap-2">
             <a
               href={previewHref}
               target="_blank"
               rel="noreferrer"
-              title={dirty ? "Shows the last saved version" : undefined}
+              title={dirty ? t("ed.lastSavedVersion") : undefined}
               className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-app-line bg-white px-4 text-[14px] font-bold text-app-ink no-underline hover:border-app-line-strong"
             >
-              <Icon name="eye" size={15} /> {published ? "View" : "Preview"}
+              <Icon name="eye" size={15} /> {published ? t("ed.view") : t("ed.preview")}
             </a>
             {published ? (
               <>
-                <PillButton tone="white" size="md" busy={busy === "unpublish"} disabled={Boolean(busy)} onClick={() => void save(false, "unpublish")}>Unpublish</PillButton>
-                <PillButton tone="accent" size="md" busy={busy === "publish"} disabled={Boolean(busy) || !dirty} onClick={() => void save(true, "publish")}>Update</PillButton>
+                <PillButton tone="white" size="md" busy={busy === "unpublish"} disabled={Boolean(busy)} onClick={() => void save(false, "unpublish")}>{t("ed.unpublish")}</PillButton>
+                <PillButton tone="accent" size="md" busy={busy === "publish"} disabled={Boolean(busy) || !dirty} onClick={() => void save(true, "publish")}>{t("ed.update")}</PillButton>
               </>
             ) : (
               <>
-                <PillButton tone="white" size="md" busy={busy === "draft"} disabled={Boolean(busy)} onClick={() => void save(false, "draft")}>Save draft</PillButton>
-                <PillButton tone="accent" size="md" busy={busy === "publish"} disabled={Boolean(busy) || empty} onClick={() => void save(true, "publish")}>Publish</PillButton>
+                <PillButton tone="white" size="md" busy={busy === "draft"} disabled={Boolean(busy)} onClick={() => void save(false, "draft")}>{t("ed.saveDraft")}</PillButton>
+                <PillButton tone="accent" size="md" busy={busy === "publish"} disabled={Boolean(busy) || empty} onClick={() => void save(true, "publish")}>{t("ed.publish")}</PillButton>
               </>
             )}
           </div>
@@ -321,12 +330,13 @@ export function LegalEditor(props: {
 // ─── Style tab ───────────────────────────────────────────────────────────────
 
 function StylePanel({ style, setStyle, theme, tocCount }: { style: LegalStyle; setStyle: (patch: Partial<LegalStyle>) => void; theme: { accent: string; ink: string; paper: string; soft: string; serifHeadings: boolean }; tocCount: number }) {
+  const t = useT("legal");
   const accent = style.accent || theme.accent;
   return (
     <div className="grid gap-5 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
       <section className="grid content-start gap-4 rounded-[22px] border border-app-line bg-white p-4 sm:p-6">
-        <h2 className="m-0 text-[16px] font-extrabold">Page layout</h2>
-        <div role="radiogroup" aria-label="Page layout" className="grid grid-cols-2 gap-3">
+        <h2 className="m-0 text-[16px] font-extrabold">{t("st.layout")}</h2>
+        <div role="radiogroup" aria-label={t("st.layout")} className="grid grid-cols-2 gap-3">
           {LEGAL_LAYOUTS.map((layout) => {
             const active = style.layout === layout.id;
             return (
@@ -339,8 +349,8 @@ function StylePanel({ style, setStyle, theme, tocCount }: { style: LegalStyle; s
                 className={cx("grid gap-2 rounded-[16px] border p-2.5 text-left transition", active ? "border-app-ink ring-2 ring-app-ink/15" : "border-app-line hover:border-app-line-strong")}
               >
                 <LayoutThumb layout={layout.id} theme={theme} accent={accent} />
-                <span className="text-[14px] font-extrabold">{layout.label}</span>
-                <span className="text-[12px] leading-4 text-app-ink-soft">{layout.hint}</span>
+                <span className="text-[14px] font-extrabold">{t(`st.layout.${layout.id}`)}</span>
+                <span className="text-[12px] leading-4 text-app-ink-soft">{t(`st.layout.${layout.id}.hint`)}</span>
               </button>
             );
           })}
@@ -348,31 +358,31 @@ function StylePanel({ style, setStyle, theme, tocCount }: { style: LegalStyle; s
       </section>
 
       <section className="grid content-start gap-5 rounded-[22px] border border-app-line bg-white p-4 sm:p-6">
-        <h2 className="m-0 text-[16px] font-extrabold">Options</h2>
+        <h2 className="m-0 text-[16px] font-extrabold">{t("st.options")}</h2>
         <div>
-          <span className="mb-1.5 block text-[13.5px] font-bold">Text width</span>
-          <Segmented<LegalWidth> options={[{ value: "narrow", label: "Narrow" }, { value: "normal", label: "Normal" }, { value: "wide", label: "Wide" }]} value={style.width} onChange={(width) => setStyle({ width })} />
+          <span className="mb-1.5 block text-[13.5px] font-bold">{t("st.width")}</span>
+          <Segmented<LegalWidth> options={[{ value: "narrow", label: t("st.narrow") }, { value: "normal", label: t("st.normal") }, { value: "wide", label: t("st.wide") }]} value={style.width} onChange={(width) => setStyle({ width })} />
         </div>
         <div className="grid gap-1">
-          <Toggle on={style.toc} onChange={(toc) => setStyle({ toc })} label="Show a table of contents" />
-          <p className="m-0 text-[12.5px] text-app-ink-soft">{tocCount ? `Built from your ${tocCount} section headings.` : "Add Heading 1 or Heading 2 sections to your text to fill it."}</p>
+          <Toggle on={style.toc} onChange={(toc) => setStyle({ toc })} label={t("st.toc")} />
+          <p className="m-0 text-[12.5px] text-app-ink-soft">{tocCount ? t("st.tocBuilt", { count: tocCount }) : t("st.tocEmpty")}</p>
         </div>
-        <Toggle on={style.showUpdated} onChange={(showUpdated) => setStyle({ showUpdated })} label='Show "Last updated" date' />
+        <Toggle on={style.showUpdated} onChange={(showUpdated) => setStyle({ showUpdated })} label={t("st.showUpdated")} />
         <div>
-          <span className="mb-1.5 block text-[13.5px] font-bold">Heading font</span>
-          <Segmented<LegalStyle["headingFont"]> options={[{ value: "theme", label: "From theme" }, { value: "serif", label: "Serif" }, { value: "sans", label: "Sans" }]} value={style.headingFont} onChange={(headingFont) => setStyle({ headingFont })} />
+          <span className="mb-1.5 block text-[13.5px] font-bold">{t("st.headingFont")}</span>
+          <Segmented<LegalStyle["headingFont"]> options={[{ value: "theme", label: t("st.fromTheme") }, { value: "serif", label: t("st.serif") }, { value: "sans", label: t("st.sans") }]} value={style.headingFont} onChange={(headingFont) => setStyle({ headingFont })} />
         </div>
         <div>
-          <span className="mb-1.5 block text-[13.5px] font-bold">Link and accent colour</span>
+          <span className="mb-1.5 block text-[13.5px] font-bold">{t("st.accent")}</span>
           <div className="flex flex-wrap items-center gap-3">
-            <Segmented<"theme" | "custom"> options={[{ value: "theme", label: "From theme" }, { value: "custom", label: "Custom" }]} value={style.accent ? "custom" : "theme"} onChange={(mode) => setStyle({ accent: mode === "custom" ? (style.accent || theme.accent.toUpperCase()) : "" })} />
+            <Segmented<"theme" | "custom"> options={[{ value: "theme", label: t("st.fromTheme") }, { value: "custom", label: t("st.custom") }]} value={style.accent ? "custom" : "theme"} onChange={(mode) => setStyle({ accent: mode === "custom" ? (style.accent || theme.accent.toUpperCase()) : "" })} />
             {style.accent ? (
               <label className="inline-flex min-h-[44px] items-center gap-2 text-[13.5px] font-bold">
-                <input type="color" value={style.accent} onChange={(e) => setStyle({ accent: e.target.value.toUpperCase() })} className="h-9 w-12 cursor-pointer rounded-[10px] border border-app-line bg-white p-0.5" aria-label="Accent colour" />
+                <input type="color" value={style.accent} onChange={(e) => setStyle({ accent: e.target.value.toUpperCase() })} className="h-9 w-12 cursor-pointer rounded-[10px] border border-app-line bg-white p-0.5" aria-label={t("st.accentColour")} />
                 <span className="font-mono text-[12.5px] text-app-ink-soft">{style.accent}</span>
               </label>
             ) : (
-              <span className="inline-flex items-center gap-2 text-[13px] text-app-ink-soft"><span className="h-5 w-5 rounded-full border border-app-line" style={{ background: theme.accent }} aria-hidden /> Your theme&apos;s accent</span>
+              <span className="inline-flex items-center gap-2 text-[13px] text-app-ink-soft"><span className="h-5 w-5 rounded-full border border-app-line" style={{ background: theme.accent }} aria-hidden /> {t("st.themeAccent")}</span>
             )}
           </div>
         </div>

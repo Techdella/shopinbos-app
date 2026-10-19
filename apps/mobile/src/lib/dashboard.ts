@@ -18,6 +18,8 @@ export interface OrderRow {
 export interface Dashboard {
   store: { id: string; name: string; slug: string; logoUrl: string | null; url: string | null; live: boolean };
   ownerName: string;
+  /** The person's profile photo, the same as the web's top bar (missing from older servers). */
+  ownerAvatarUrl?: string | null;
   sales: { today: number; week: number; weekChange: number | null };
   counts: { ordersToday: number; visitorsToday: number; chatsToday: number };
   tasks: Array<{ key: string; icon: "chat" | "mail" | "truck" | "box" | "coin"; title: string; hint: string; href: string; image?: string | null; action?: { label: string; href: string } }>;
@@ -41,9 +43,12 @@ export interface ProductItem {
   retailPrice: number;
   currentStock: number;
   status: string;
+  category?: { id: string; name: string } | null;
 }
 
-export const fetchProducts = () => api<ProductItem[]>("/api/store/products?limit=50&sort=newest");
+/** The newest 50 products, or the newest 50 in one category. */
+export const fetchProducts = (categoryId?: string) =>
+  api<ProductItem[]>(`/api/store/products?limit=50&sort=newest${categoryId ? `&categoryId=${encodeURIComponent(categoryId)}` : ""}`);
 
 export const TONE_COLORS: Record<Tone, { bg: string; fg: string }> = {
   accent: { bg: "#FFEDE4", fg: "#B23E0A" },

@@ -5,8 +5,9 @@ import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { AppPage } from "@/components/app-kit";
 
 // The notifications drawer links every role here, so non-sellers get their own portal frame.
-export async function NotificationsShell({ title, sub, actions, children }: { title: string; sub: string; actions?: ReactNode; children: ReactNode }) {
+export async function NotificationsShell({ title, sub, actions, children: content }: { title: string; sub: string; actions?: ReactNode; children: ReactNode | ((role: string) => ReactNode) }) {
   const user = await requireRole(["seller", "supplier", "logistics_partner", "admin"], "/login");
+  const children = typeof content === "function" ? content(user.role) : content;
 
   if (user.role !== "seller") {
     return (

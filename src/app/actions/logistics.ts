@@ -10,7 +10,6 @@ import { requireRole } from "@/lib/server-auth";
 import { isOnboardingComplete, isProPlan } from "@/lib/role-queries";
 import { replyToQuote } from "@/lib/logistics/quotes";
 import { getPublicEnv } from "@/lib/env";
-import { recordRemittance } from "@/lib/logistics/remittances";
 import { assignRider, transitionJob } from "@/lib/logistics/jobs";
 import { newRiderToken } from "@/lib/logistics/rider-token";
 import { toE164 } from "@shared/phone";
@@ -139,7 +138,7 @@ export async function updateDeliveryBookingStatus(formData: FormData) {
   });
 
   if (!parsed.success || !bookingStatuses.includes(status as never)) {
-    redirect(`${back}?error=Choose%20a%20valid%20booking%20status.`);
+    redirect(`${back}?error=${encodeURIComponent("Pick a status from the list, then update the job again.")}`);
   }
 
   const booking = bookingId
@@ -149,7 +148,7 @@ export async function updateDeliveryBookingStatus(formData: FormData) {
       })
     : null;
 
-  if (!booking) redirect(`${back}?error=Booking%20not%20found.`);
+  if (!booking) redirect(`${back}?error=${encodeURIComponent("We couldn't find that job. It may have been cancelled. Refresh the page.")}`);
 
   // Status changes go through the shared job rules (delivery code, failure reason, cash on delivery) and
   // keep the seller's order in step. The dispatcher can close a job without the buyer's code.
@@ -171,7 +170,7 @@ export async function updateDeliveryBookingStatus(formData: FormData) {
   if (parsed.data.estimatedDelivery) details.estimatedDelivery = parsed.data.estimatedDelivery;
   if (Object.keys(details).length > 0) {
     const saved = await db.deliveryBooking.update({ where: { id: booking.id }, data: details }).catch(() => null);
-    if (!saved) redirect(`${back}?error=${encodeURIComponent("That tracking code is already used on another job.")}`);
+    if (!saved) redirect(`${back}?error=${encodeURIComponent("That tracking code is already on another job. Check it and try again.")}`);
   }
 
   if (riderField !== null) {
@@ -248,9 +247,9 @@ export async function createRiderLink(teamMemberId: string): Promise<RiderLinkRe
     where: { id: String(teamMemberId || ""), logisticsPartnerId: partner.id },
     select: { id: true, name: true, role: true, status: true, phone: true },
   });
-  if (!member) return { ok: false, error: "Rider not found." };
+  if (!member) return { ok: false, error: "We couldn't find that rider. Refresh the page." };
   if (member.role !== "rider") return { ok: false, error: "Only riders get a Riders app link." };
-  if (member.status !== "active") return { ok: false, error: "Reactivate this rider first." };
+  if (member.status !== "active") return { ok: false, error: "This rider is inactive. Reactivate them first." };
 
   const { token, hash } = newRiderToken();
   await db.logisticsTeamMember.update({ where: { id: member.id }, data: { riderTokenHash: hash } });
@@ -266,7 +265,7 @@ export async function revokeRiderLink(formData: FormData) {
     where: { id: String(formData.get("teamMemberId") || ""), logisticsPartnerId: partner.id },
     select: { id: true },
   });
-  if (!member) redirect("/logistics/couriers?error=Rider%20not%20found.");
+  if (!member) redirect(`/logistics/couriers?error=${encodeURIComponent("We couldn't find that rider. Refresh the page.")}`);
   await db.logisticsTeamMember.update({ where: { id: member.id }, data: { riderTokenHash: null, online: false } });
   revalidatePath("/logistics/couriers");
   redirect("/logistics/couriers?saved=1");
@@ -276,23 +275,11 @@ export async function revokeRiderLink(formData: FormData) {
  * Record cash paid in from pay-on-delivery jobs. It settles the oldest unremitted cash jobs it fully covers;
  * whatever is left over stays on the pay-in record.
  */
-export async function recordCodRemittance(formData: FormData) {
-  const { partner } = await getLogisticsActor();
-  assertVerifiedLogistics(partner);
-  const amount = parsePositiveNumber(formData.get("amount"));
-  const reference = String(formData.get("reference") || "").trim().slice(0, 120);
-  const method = String(formData.get("method") || "transfer");
-  const note = String(formData.get("note") || "").trim().slice(0, 300);
-
-  if (!(amount > 0)) redirect("/logistics/cash?error=Enter%20the%20amount%20you%20paid%20in.");
-  if (!["transfer", "cash"].includes(method)) redirect("/logistics/cash?error=Choose%20how%20you%20paid%20it%20in.");
-
-  const result = await recordRemittance({ partnerId: partner.id, amount, method: method as "transfer" | "cash", reference, note });
-  if (!result.ok) redirect(`/logistics/cash?error=${encodeURIComponent(result.error)}`);
-
-  revalidatePath("/logistics/cash");
-  revalidatePath("/logistics/dashboard");
-  redirect("/logistics/cash?saved=1");
+export async function recordCodRemittance(_formData: FormData) {
+  // Retired: cash on delivery belongs to the seller and is paid to each seller directly (src/lib/logistics/
+  // seller-payins.server.ts), never to Shopinbos, so a pay-in to Shopinbos can't be recorded any more.
+  await getLogisticsActor();
+  redirect(`/logistics/cash?error=${encodeURIComponent("Cash now goes to each seller directly. Use Pay the seller on this page.")}`);
 }
 
 export async function updateLogisticsCoverage(formData: FormData) {
@@ -315,7 +302,7 @@ export async function updateLogisticsCoverage(formData: FormData) {
   });
 
   if (!parsed.success) {
-    redirect(`/logistics/coverage?error=${encodeURIComponent(parsed.error.issues[0]?.message ?? "Check coverage details.")}`);
+    redirect(`/logistics/coverage?error=${encodeURIComponent(parsed.error.issues[0]?.message ?? "Check your coverage areas and rates, then save again.")}`);
   }
   await assertLogisticsPlanAllowsRoutes(user.id, parsed.data.coverageZones.length);
 
@@ -341,7 +328,7 @@ export async function updateLogisticsPricing(formData: FormData) {
   });
 
   if (!parsed.success) {
-    redirect(`/logistics/pricing?error=${encodeURIComponent(parsed.error.issues[0]?.message ?? "Check pricing details.")}`);
+    redirect(`/logistics/pricing?error=${encodeURIComponent(parsed.error.issues[0]?.message ?? "Check your pricing, then save again.")}`);
   }
 
   await db.logisticsPartner.update({
@@ -367,7 +354,7 @@ export async function addLogisticsTeamMember(formData: FormData) {
   const role = String(formData.get("role") || "dispatcher").trim() || "dispatcher";
 
   if (name.length < 2 || !email.includes("@")) {
-    redirect("/logistics/couriers?error=Add%20a%20valid%20name%20and%20email.");
+    redirect(`/logistics/couriers?error=${encodeURIComponent("Add their name and an email address like name@example.com.")}`);
   }
 
   await db.logisticsTeamMember.upsert({
@@ -405,7 +392,7 @@ export async function updateLogisticsTeamMemberStatus(formData: FormData) {
   const teamMemberId = String(formData.get("teamMemberId") || "");
   const status = String(formData.get("status") || "inactive");
   if (!["active", "inactive"].includes(status)) {
-    redirect("/logistics/couriers?error=Choose%20a%20valid%20team%20member%20status.");
+    redirect(`/logistics/couriers?error=${encodeURIComponent("Something went wrong with that button. Refresh the page and try again.")}`);
   }
 
   const teamMember = await db.logisticsTeamMember.findFirst({
@@ -413,7 +400,7 @@ export async function updateLogisticsTeamMemberStatus(formData: FormData) {
     select: { id: true },
   });
 
-  if (!teamMember) redirect("/logistics/couriers?error=Team%20member%20not%20found.");
+  if (!teamMember) redirect(`/logistics/couriers?error=${encodeURIComponent("We couldn't find that person. Refresh the page.")}`);
 
   await db.logisticsTeamMember.update({
     where: { id: teamMember.id },
@@ -492,7 +479,7 @@ export async function updateLogisticsProfile(formData: FormData) {
 export async function uploadLogisticsLogo(formData: FormData) {
   const { user, partner } = await getLogisticsActor();
   const file = formData.get("logo") as File | null;
-  if (!file) redirect("/logistics/profile?error=No+file+selected");
+  if (!file) redirect("/logistics/profile?error=Pick+a+picture+first.");
 
   try {
     const { uploadFileServer, uploadPath } = await import("@/lib/supabase/storage.server");
@@ -500,6 +487,6 @@ export async function uploadLogisticsLogo(formData: FormData) {
     await db.logisticsPartner.update({ where: { id: partner.id }, data: { logoUrl: publicUrl } });
     redirect("/logistics/profile?saved=true");
   } catch {
-    redirect("/logistics/profile?error=Upload+failed");
+    redirect("/logistics/profile?error=That+picture+didn%27t+upload.+Try+a+smaller+photo.");
   }
 }

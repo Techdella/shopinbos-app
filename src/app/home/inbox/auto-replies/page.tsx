@@ -7,12 +7,17 @@ import { hasAiProvider } from "@/lib/inbox/ai";
 import { loadAutomation } from "@/lib/inbox/automation.server";
 import { requireRole } from "@/lib/server-auth";
 import { AutoRepliesClient } from "./AutoRepliesClient";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Auto-replies" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT("inbox");
+  return { title: t("autoReplies") };
+}
 
 export default async function AutoRepliesPage() {
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("inbox");
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true } });
   if (!store) redirect("/builder?firstRun=1");
   const [settings, automation] = await Promise.all([db.inboxSettings.findUnique({ where: { storeId: store.id } }), loadAutomation(store.id)]);
@@ -21,12 +26,12 @@ export default async function AutoRepliesPage() {
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title="Auto-replies"
-      sub="Answer customers on every channel while you're busy or closed: away message, opening hours, quick replies to common questions."
+      title={t("autoReplies")}
+      sub={t("ar.sub")}
       actions={
         <>
-          <PillLink href="/home/inbox/chatbot" icon="sparkle">Peggy chatbot</PillLink>
-          <PillLink href="/home/messages" icon="chat" tone="ink">Open inbox</PillLink>
+          <PillLink href="/home/inbox/chatbot" icon="sparkle">{t("chatbot")}</PillLink>
+          <PillLink href="/home/messages" icon="chat" tone="ink">{t("ch.openInbox")}</PillLink>
         </>
       }
     >

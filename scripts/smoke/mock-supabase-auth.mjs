@@ -1,6 +1,7 @@
 // Minimal stand-ins for Supabase Auth and Resend so the app can be smoke-tested against a local database.
 // Supabase: GET /auth/v1/user, plus POST /auth/v1/otp and /auth/v1/verify for code sign-in (the code is always
-// 123456; codes sent are listed at GET /auth/v1/__otp). Every other Supabase call gets an empty 404.
+// 123456; codes sent are listed at GET /auth/v1/__otp), and Storage uploads (direct and signed) and public reads.
+// Every other Supabase call gets an empty 404.
 // Resend (set RESEND_BASE_URL=http://127.0.0.1:54321/resend): emails are recorded, never delivered,
 // and can be read back from GET /resend/__sent (DELETE /resend/__sent clears them). To test the refusal and retry
 // paths, POST /resend/__fail {"mode", "times", "status", "message", "indexes"} makes the next `times` batch calls
@@ -48,6 +49,8 @@ let resendFail = { mode: "off", times: 0 };
 const resendCalls = [];
 // In-memory Supabase Storage: uploads, public reads and deletes, enough for photo/logo/document uploads.
 const storedFiles = new Map();
+// One-time tokens from createSignedUploadUrl, keyed to the path they may write.
+const signedUploads = new Map();
 
 function readRaw(req) {
   return new Promise((resolve) => {
@@ -68,6 +71,33 @@ function readBody(req) {
 http
   .createServer(async (req, res) => {
     res.setHeader("content-type", "application/json");
+    // Signed uploads (createSignedUploadUrl → the browser PUTs the file), as the admin help-video upload uses.
+    const signed = req.url?.match(/^\/storage\/v1\/object\/upload\/sign\/([^?]+)(?:\?token=([^&]+))?/);
+    if (signed) {
+      res.setHeader("access-control-allow-origin", "*");
+      res.setHeader("access-control-allow-methods", "POST, PUT, OPTIONS");
+      res.setHeader("access-control-allow-headers", "authorization, apikey, content-type, x-upsert, cache-control");
+      const key = decodeURIComponent(signed[1]);
+      if (req.method === "OPTIONS") {
+        res.statusCode = 204;
+        return res.end();
+      }
+      if (req.method === "POST") {
+        const token = `mock-${Math.random().toString(36).slice(2)}`;
+        signedUploads.set(token, key);
+        return res.end(JSON.stringify({ url: `/object/upload/sign/${signed[1]}?token=${token}` }));
+      }
+      if (req.method === "PUT") {
+        const body = await readRaw(req);
+        if (signedUploads.get(signed[2] ?? "") !== key) {
+          res.statusCode = 400;
+          return res.end(JSON.stringify({ statusCode: "403", error: "InvalidSignature", message: "Invalid signature" }));
+        }
+        signedUploads.delete(signed[2]);
+        storedFiles.set(key, { body, type: req.headers["content-type"] ?? "application/octet-stream" });
+        return res.end(JSON.stringify({ Key: key }));
+      }
+    }
     const storage = req.url?.match(/^\/storage\/v1\/object\/(public\/)?([^?]+)/);
     if (storage) {
       const key = decodeURIComponent(storage[2]);

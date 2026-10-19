@@ -13,8 +13,10 @@ import { Icon, type IconName } from "@/components/ui/Icon";
 import { PillButton, Spinner, cx } from "@/components/app-ui";
 import { CMS_PROSE_CSS } from "@/components/cms/prose-css";
 import { Modal, RecordPicker, uploadCmsFile } from "@/components/cms/pickers";
+import { MediaLibraryDialog } from "@/components/media/MediaLibraryDialog";
 import { markdownToDoc } from "@/lib/cms/markdown";
 import { youtubeEmbedUrl, type RichDoc } from "@/lib/cms/richtext";
+import { useT } from "@/components/i18n/I18nProvider";
 
 // Block editor for CMS rich text fields (WordPress/Notion feel): headings, marks, links, lists, quotes, code,
 // alignment, images (uploaded to the store's media), YouTube, tables, info boxes, dividers, buttons and
@@ -113,9 +115,13 @@ function ToolButton({ icon, label, onClick, active, disabled, children }: { icon
 
 const Sep = () => <span aria-hidden className="mx-0.5 h-6 w-px shrink-0 bg-app-line" />;
 
-export function RichTextEditor({ value, onChange, label, placeholder = "Start writing, or use the toolbar to add headings, pictures and more" }: { value: RichDoc | null; onChange: (doc: RichDoc) => void; label: string; placeholder?: string }) {
+export function RichTextEditor({ value, onChange, label, placeholder: placeholderProp }: { value: RichDoc | null; onChange: (doc: RichDoc) => void; label: string; placeholder?: string }) {
+  const t = useT("cms");
+  const placeholder = placeholderProp ?? t("rte.placeholder");
   const [dialog, setDialog] = useState<DialogState>(null);
   const [uploading, setUploading] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const tm = useT("media");
   const [error, setError] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
   const labelId = useId();
@@ -188,7 +194,7 @@ export function RichTextEditor({ value, onChange, label, placeholder = "Start wr
     return (
       <div className="rounded-[18px] border border-app-line bg-white">
         <p id={labelId} className="sr-only">{label}</p>
-        <div className="flex min-h-[220px] items-center justify-center gap-2 text-[14px] text-app-ink-soft"><Spinner /> Loading editor</div>
+        <div className="flex min-h-[220px] items-center justify-center gap-2 text-[14px] text-app-ink-soft"><Spinner /> {t("rte.loading")}</div>
       </div>
     );
   }
@@ -201,10 +207,10 @@ export function RichTextEditor({ value, onChange, label, placeholder = "Start wr
     setError("");
     try {
       const uploaded = await uploadCmsFile(file);
-      if (!uploaded.type.startsWith("image/")) throw new Error("Pick a picture (JPG, PNG, WebP or GIF)");
+      if (!uploaded.type.startsWith("image/")) throw new Error(t("rte.pickPicture"));
       setDialog({ kind: "image", src: uploaded.url, alt: file.name.replace(/\.[a-z0-9]+$/i, "").replace(/[-_]+/g, " "), caption: "", editing: false });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Upload failed");
+      setError(e instanceof Error ? e.message : t("rte.uploadFailed"));
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -222,7 +228,7 @@ export function RichTextEditor({ value, onChange, label, placeholder = "Start wr
       }
       case "youtube":
         if (!youtubeEmbedUrl(dialog.url)) {
-          setError("That isn't a YouTube link. Paste a link like https://youtu.be/…");
+          setError(t("rte.notYoutube"));
           return;
         }
         chain().setYoutubeVideo({ src: dialog.url.trim() }).run();
@@ -234,7 +240,7 @@ export function RichTextEditor({ value, onChange, label, placeholder = "Start wr
       case "button": {
         const href = dialog.href.trim();
         if (!href || !dialog.label.trim()) {
-          setError("A button needs words and a link");
+          setError(t("rte.buttonNeeds"));
           return;
         }
         const attrs = { href: /^(https?:|mailto:|tel:|\/|#)/.test(href) ? href : `https://${href}`, label: dialog.label.trim(), variant: dialog.variant };
@@ -256,8 +262,8 @@ export function RichTextEditor({ value, onChange, label, placeholder = "Start wr
     <div className="overflow-hidden rounded-[18px] border border-app-line bg-white focus-within:border-app-ink">
       <style>{CMS_PROSE_CSS + EDITOR_CSS}</style>
       <p id={labelId} className="sr-only">{label}</p>
-      <div role="toolbar" aria-label={`${label} formatting`} className="sticky top-0 z-10 flex items-center gap-0.5 overflow-x-auto border-b border-app-line bg-white px-2 py-1.5">
-        <label className="sr-only" htmlFor={`${labelId}-block`}>Text style</label>
+      <div role="toolbar" aria-label={t("rte.formatting", { label })} className="sticky top-0 z-10 flex items-center gap-0.5 overflow-x-auto border-b border-app-line bg-white px-2 py-1.5">
+        <label className="sr-only" htmlFor={`${labelId}-block`}>{t("rte.textStyle")}</label>
         <select
           id={`${labelId}-block`}
           value={state.block}
@@ -268,79 +274,85 @@ export function RichTextEditor({ value, onChange, label, placeholder = "Start wr
           }}
           className="h-9 shrink-0 rounded-[10px] border border-app-line bg-white px-2 text-[13.5px] font-bold"
         >
-          <option value="p">Paragraph</option>
-          <option value="h2">Heading</option>
-          <option value="h3">Subheading</option>
-          <option value="h4">Small heading</option>
-          <option value="h1">Large heading</option>
+          <option value="p">{t("rte.paragraph")}</option>
+          <option value="h2">{t("rte.heading")}</option>
+          <option value="h3">{t("rte.subheading")}</option>
+          <option value="h4">{t("rte.smallHeading")}</option>
+          <option value="h1">{t("rte.largeHeading")}</option>
         </select>
         <Sep />
-        <ToolButton label="Bold" active={state.bold} onClick={() => chain().toggleBold().run()}><strong>B</strong></ToolButton>
-        <ToolButton label="Italic" active={state.italic} onClick={() => chain().toggleItalic().run()}><em className="font-serif">I</em></ToolButton>
-        <ToolButton label="Underline" active={state.underline} onClick={() => chain().toggleUnderline().run()}><span className="underline">U</span></ToolButton>
-        <ToolButton label="Strikethrough" active={state.strike} onClick={() => chain().toggleStrike().run()}><span className="line-through">S</span></ToolButton>
-        <ToolButton label="Inline code" icon="code" active={state.code} onClick={() => chain().toggleCode().run()} />
-        <ToolButton label="Link" icon="link" active={state.link} onClick={() => setDialog({ kind: "link", href: (editor.getAttributes("link").href as string) ?? "", newTab: editor.getAttributes("link").target === "_blank" })} />
+        <ToolButton label={t("rte.bold")} active={state.bold} onClick={() => chain().toggleBold().run()}><strong>B</strong></ToolButton>
+        <ToolButton label={t("rte.italic")} active={state.italic} onClick={() => chain().toggleItalic().run()}><em className="font-serif">I</em></ToolButton>
+        <ToolButton label={t("rte.underline")} active={state.underline} onClick={() => chain().toggleUnderline().run()}><span className="underline">U</span></ToolButton>
+        <ToolButton label={t("rte.strike")} active={state.strike} onClick={() => chain().toggleStrike().run()}><span className="line-through">S</span></ToolButton>
+        <ToolButton label={t("rte.inlineCode")} icon="code" active={state.code} onClick={() => chain().toggleCode().run()} />
+        <ToolButton label={t("rte.link")} icon="link" active={state.link} onClick={() => setDialog({ kind: "link", href: (editor.getAttributes("link").href as string) ?? "", newTab: editor.getAttributes("link").target === "_blank" })} />
         <Sep />
-        <ToolButton label="Bulleted list" icon="list" active={state.bullet} onClick={() => chain().toggleBulletList().run()} />
-        <ToolButton label="Numbered list" active={state.ordered} onClick={() => chain().toggleOrderedList().run()}><span className="text-[12px]">1.</span></ToolButton>
-        <ToolButton label="Quote" active={state.quote} onClick={() => chain().toggleBlockquote().run()}><span className="text-[17px] leading-none">&ldquo;</span></ToolButton>
-        <ToolButton label="Code block" active={state.codeBlock} onClick={() => chain().toggleCodeBlock().run()}><span className="font-mono text-[12px]">{"{}"}</span></ToolButton>
+        <ToolButton label={t("rte.bullets")} icon="list" active={state.bullet} onClick={() => chain().toggleBulletList().run()} />
+        <ToolButton label={t("rte.numbered")} active={state.ordered} onClick={() => chain().toggleOrderedList().run()}><span className="text-[12px]">1.</span></ToolButton>
+        <ToolButton label={t("rte.quote")} active={state.quote} onClick={() => chain().toggleBlockquote().run()}><span className="text-[17px] leading-none">&ldquo;</span></ToolButton>
+        <ToolButton label={t("rte.codeBlock")} active={state.codeBlock} onClick={() => chain().toggleCodeBlock().run()}><span className="font-mono text-[12px]">{"{}"}</span></ToolButton>
         <Sep />
-        <ToolButton label="Align left" active={!state.center && !state.right && !state.justify} onClick={() => chain().setTextAlign("left").run()}><AlignGlyph align="left" /></ToolButton>
-        <ToolButton label="Align centre" active={state.center} onClick={() => chain().setTextAlign("center").run()}><AlignGlyph align="center" /></ToolButton>
-        <ToolButton label="Align right" active={state.right} onClick={() => chain().setTextAlign("right").run()}><AlignGlyph align="right" /></ToolButton>
+        <ToolButton label={t("rte.alignLeft")} active={!state.center && !state.right && !state.justify} onClick={() => chain().setTextAlign("left").run()}><AlignGlyph align="left" /></ToolButton>
+        <ToolButton label={t("rte.alignCentre")} active={state.center} onClick={() => chain().setTextAlign("center").run()}><AlignGlyph align="center" /></ToolButton>
+        <ToolButton label={t("rte.alignRight")} active={state.right} onClick={() => chain().setTextAlign("right").run()}><AlignGlyph align="right" /></ToolButton>
         <Sep />
         <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="sr-only" tabIndex={-1} aria-hidden onChange={(event) => void onFile(event.target.files?.[0])} />
-        <ToolButton label={uploading ? "Uploading picture" : "Add a picture"} icon="image" disabled={uploading} onClick={() => fileRef.current?.click()} />
-        <ToolButton label="Add a YouTube video" icon="play" onClick={() => setDialog({ kind: "youtube", url: "" })} />
-        <ToolButton label="Add a table" icon="grid" active={state.table} onClick={() => chain().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()} />
-        <ToolButton label="Add an info box" icon="info" active={state.callout} onClick={() => (state.callout ? chain().lift("callout").run() : chain().wrapIn("callout", { tone: "info" }).run())} />
-        <ToolButton label="Add a divider" icon="minus" onClick={() => chain().setHorizontalRule().run()} />
-        <ToolButton label="Add a button" icon="arrow" onClick={() => setDialog({ kind: "button", href: "", label: "", variant: "solid", editing: false })} />
-        <ToolButton label="Add a product card" icon="bag" onClick={() => setDialog({ kind: "product" })} />
+        <ToolButton label={uploading ? t("rte.uploadingPicture") : t("rte.addPicture")} icon="image" disabled={uploading} onClick={() => fileRef.current?.click()} />
+        <ToolButton label={tm("field.choose")} icon="layers" disabled={uploading} onClick={() => setLibraryOpen(true)} />
+        <MediaLibraryDialog
+          open={libraryOpen}
+          onClose={() => setLibraryOpen(false)}
+          onSelect={([asset]) => asset && setDialog({ kind: "image", src: asset.url, alt: asset.alt ?? asset.name ?? "", caption: "", editing: false })}
+        />
+        <ToolButton label={t("rte.addYoutube")} icon="play" onClick={() => setDialog({ kind: "youtube", url: "" })} />
+        <ToolButton label={t("rte.addTable")} icon="grid" active={state.table} onClick={() => chain().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()} />
+        <ToolButton label={t("rte.addInfo")} icon="info" active={state.callout} onClick={() => (state.callout ? chain().lift("callout").run() : chain().wrapIn("callout", { tone: "info" }).run())} />
+        <ToolButton label={t("rte.addDivider")} icon="minus" onClick={() => chain().setHorizontalRule().run()} />
+        <ToolButton label={t("rte.addButton")} icon="arrow" onClick={() => setDialog({ kind: "button", href: "", label: "", variant: "solid", editing: false })} />
+        <ToolButton label={t("rte.addProduct")} icon="bag" onClick={() => setDialog({ kind: "product" })} />
         <Sep />
-        <ToolButton label="Import Markdown" icon="download" onClick={() => setDialog({ kind: "markdown", text: "" })} />
-        <ToolButton label="Undo" icon="undo" disabled={!state.canUndo} onClick={() => chain().undo().run()} />
-        <ToolButton label="Redo" icon="refresh" disabled={!state.canRedo} onClick={() => chain().redo().run()} />
+        <ToolButton label={t("rte.importMd")} icon="download" onClick={() => setDialog({ kind: "markdown", text: "" })} />
+        <ToolButton label={t("rte.undo")} icon="undo" disabled={!state.canUndo} onClick={() => chain().undo().run()} />
+        <ToolButton label={t("rte.redo")} icon="refresh" disabled={!state.canRedo} onClick={() => chain().redo().run()} />
       </div>
 
       {(state.table || state.callout || state.image || state.button) && (
         <div className="flex flex-wrap items-center gap-1 border-b border-app-line bg-app-canvas px-2 py-1.5 text-[13px]">
           {state.table && (
             <>
-              <span className="px-1.5 font-bold text-app-ink-soft">Table</span>
-              <ToolButton label="Add row below" onClick={() => chain().addRowAfter().run()}>+ Row</ToolButton>
-              <ToolButton label="Add column right" onClick={() => chain().addColumnAfter().run()}>+ Column</ToolButton>
-              <ToolButton label="Delete row" onClick={() => chain().deleteRow().run()}>− Row</ToolButton>
-              <ToolButton label="Delete column" onClick={() => chain().deleteColumn().run()}>− Column</ToolButton>
-              <ToolButton label="Header row on or off" onClick={() => chain().toggleHeaderRow().run()}>Header</ToolButton>
-              <ToolButton label="Delete table" icon="trash" onClick={() => chain().deleteTable().run()} />
+              <span className="px-1.5 font-bold text-app-ink-soft">{t("rte.table")}</span>
+              <ToolButton label={t("rte.addRow")} onClick={() => chain().addRowAfter().run()}>{t("rte.plusRow")}</ToolButton>
+              <ToolButton label={t("rte.addCol")} onClick={() => chain().addColumnAfter().run()}>{t("rte.plusCol")}</ToolButton>
+              <ToolButton label={t("rte.delRow")} onClick={() => chain().deleteRow().run()}>{t("rte.minusRow")}</ToolButton>
+              <ToolButton label={t("rte.delCol")} onClick={() => chain().deleteColumn().run()}>{t("rte.minusCol")}</ToolButton>
+              <ToolButton label={t("rte.headerToggle")} onClick={() => chain().toggleHeaderRow().run()}>{t("rte.header")}</ToolButton>
+              <ToolButton label={t("rte.delTable")} icon="trash" onClick={() => chain().deleteTable().run()} />
             </>
           )}
           {state.callout && (
             <>
-              <span className="px-1.5 font-bold text-app-ink-soft">Info box</span>
+              <span className="px-1.5 font-bold text-app-ink-soft">{t("rte.infoBox")}</span>
               {(["info", "tip", "success", "warning"] as const).map((tone) => (
-                <ToolButton key={tone} label={`${tone} style`} active={state.calloutTone === tone} onClick={() => chain().updateAttributes("callout", { tone }).run()}>
-                  <span className="capitalize">{tone === "info" ? "Note" : tone}</span>
+                <ToolButton key={tone} label={t("rte.toneStyle", { tone: t(`rte.tone.${tone}`) })} active={state.calloutTone === tone} onClick={() => chain().updateAttributes("callout", { tone }).run()}>
+                  <span className="capitalize">{t(`rte.tone.${tone}`)}</span>
                 </ToolButton>
               ))}
-              <ToolButton label="Remove info box" onClick={() => chain().lift("callout").run()}>Remove</ToolButton>
+              <ToolButton label={t("rte.removeInfo")} onClick={() => chain().lift("callout").run()}>{t("rte.remove")}</ToolButton>
             </>
           )}
           {state.image && (
             <>
-              <span className="px-1.5 font-bold text-app-ink-soft">Picture</span>
-              <ToolButton label="Edit description and caption" onClick={() => setDialog({ kind: "image", src: editor.getAttributes("image").src as string, alt: (editor.getAttributes("image").alt as string) ?? "", caption: (editor.getAttributes("image").title as string) ?? "", editing: true })}>Description</ToolButton>
-              <ToolButton label="Remove picture" icon="trash" onClick={() => chain().deleteSelection().run()} />
+              <span className="px-1.5 font-bold text-app-ink-soft">{t("rte.picture")}</span>
+              <ToolButton label={t("rte.editDesc")} onClick={() => setDialog({ kind: "image", src: editor.getAttributes("image").src as string, alt: (editor.getAttributes("image").alt as string) ?? "", caption: (editor.getAttributes("image").title as string) ?? "", editing: true })}>{t("rte.description")}</ToolButton>
+              <ToolButton label={t("rte.removePicture")} icon="trash" onClick={() => chain().deleteSelection().run()} />
             </>
           )}
           {state.button && (
             <>
-              <span className="px-1.5 font-bold text-app-ink-soft">Button</span>
-              <ToolButton label="Edit button" onClick={() => { const attrs = editor.getAttributes("button"); setDialog({ kind: "button", href: attrs.href ?? "", label: attrs.label ?? "", variant: attrs.variant === "outline" ? "outline" : "solid", editing: true }); }}>Edit</ToolButton>
-              <ToolButton label="Remove button" icon="trash" onClick={() => chain().deleteSelection().run()} />
+              <span className="px-1.5 font-bold text-app-ink-soft">{t("rte.button")}</span>
+              <ToolButton label={t("rte.editButton")} onClick={() => { const attrs = editor.getAttributes("button"); setDialog({ kind: "button", href: attrs.href ?? "", label: attrs.label ?? "", variant: attrs.variant === "outline" ? "outline" : "solid", editing: true }); }}>{t("rte.edit")}</ToolButton>
+              <ToolButton label={t("rte.removeButton")} icon="trash" onClick={() => chain().deleteSelection().run()} />
             </>
           )}
         </div>
@@ -350,38 +362,38 @@ export function RichTextEditor({ value, onChange, label, placeholder = "Start wr
       <EditorContent editor={editor} className="px-4 py-4 sm:px-6 sm:py-5" />
 
       {dialog?.kind === "link" && (
-        <Modal title="Link" onClose={() => setDialog(null)} footer={<><PillButton tone="white" size="sm" onClick={() => { chain().extendMarkRange("link").unsetLink().run(); setDialog(null); }}>Remove link</PillButton><PillButton tone="ink" size="sm" onClick={applyDialog}>Save link</PillButton></>}>
-          <label className="mb-1.5 block text-[13.5px] font-bold" htmlFor={`${labelId}-href`}>Web address</label>
-          <input id={`${labelId}-href`} className={field} value={dialog.href} placeholder="https://… or /product/…" onChange={(e) => setDialog({ ...dialog, href: e.target.value })} onKeyDown={(e) => e.key === "Enter" && applyDialog()} />
-          <label className="mt-3 flex items-center gap-2 text-[14px]"><input type="checkbox" checked={dialog.newTab} onChange={(e) => setDialog({ ...dialog, newTab: e.target.checked })} /> Open in a new tab</label>
+        <Modal title={t("rte.link")} onClose={() => setDialog(null)} footer={<><PillButton tone="white" size="sm" onClick={() => { chain().extendMarkRange("link").unsetLink().run(); setDialog(null); }}>{t("rte.removeLink")}</PillButton><PillButton tone="ink" size="sm" onClick={applyDialog}>{t("rte.saveLink")}</PillButton></>}>
+          <label className="mb-1.5 block text-[13.5px] font-bold" htmlFor={`${labelId}-href`}>{t("rte.webAddress")}</label>
+          <input id={`${labelId}-href`} className={field} value={dialog.href} placeholder={t("rte.hrefPh")} onChange={(e) => setDialog({ ...dialog, href: e.target.value })} onKeyDown={(e) => e.key === "Enter" && applyDialog()} />
+          <label className="mt-3 flex items-center gap-2 text-[14px]"><input type="checkbox" checked={dialog.newTab} onChange={(e) => setDialog({ ...dialog, newTab: e.target.checked })} /> {t("rte.newTab")}</label>
         </Modal>
       )}
       {dialog?.kind === "youtube" && (
-        <Modal title="YouTube video" onClose={() => setDialog(null)} footer={<PillButton tone="ink" size="sm" onClick={applyDialog}>Add video</PillButton>}>
-          <label className="mb-1.5 block text-[13.5px] font-bold" htmlFor={`${labelId}-yt`}>YouTube link</label>
+        <Modal title={t("rte.ytTitle")} onClose={() => setDialog(null)} footer={<PillButton tone="ink" size="sm" onClick={applyDialog}>{t("rte.addVideo")}</PillButton>}>
+          <label className="mb-1.5 block text-[13.5px] font-bold" htmlFor={`${labelId}-yt`}>{t("rte.ytLink")}</label>
           <input id={`${labelId}-yt`} className={field} value={dialog.url} placeholder="https://youtu.be/…" onChange={(e) => setDialog({ ...dialog, url: e.target.value })} onKeyDown={(e) => e.key === "Enter" && applyDialog()} />
         </Modal>
       )}
       {dialog?.kind === "image" && (
-        <Modal title="Picture" onClose={() => setDialog(null)} footer={<PillButton tone="ink" size="sm" onClick={applyDialog}>{dialog.editing ? "Save" : "Add picture"}</PillButton>}>
+        <Modal title={t("rte.picture")} onClose={() => setDialog(null)} footer={<PillButton tone="ink" size="sm" onClick={applyDialog}>{dialog.editing ? t("rte.save") : t("rte.addPictureBtn")}</PillButton>}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={dialog.src} alt="" className="mb-3 max-h-[220px] w-full rounded-[14px] object-contain bg-app-canvas" />
-          <label className="mb-1.5 block text-[13.5px] font-bold" htmlFor={`${labelId}-alt`}>Describe the picture <span className="block text-[12.5px] font-normal text-app-ink-soft">For people using screen readers and for Google.</span></label>
+          <label className="mb-1.5 block text-[13.5px] font-bold" htmlFor={`${labelId}-alt`}>{t("rte.describe")} <span className="block text-[12.5px] font-normal text-app-ink-soft">{t("rte.describeHelp")}</span></label>
           <input id={`${labelId}-alt`} className={field} value={dialog.alt} onChange={(e) => setDialog({ ...dialog, alt: e.target.value })} />
-          <label className="mb-1.5 mt-3 block text-[13.5px] font-bold" htmlFor={`${labelId}-cap`}>Caption (optional)</label>
+          <label className="mb-1.5 mt-3 block text-[13.5px] font-bold" htmlFor={`${labelId}-cap`}>{t("rte.caption")}</label>
           <input id={`${labelId}-cap`} className={field} value={dialog.caption} onChange={(e) => setDialog({ ...dialog, caption: e.target.value })} />
         </Modal>
       )}
       {dialog?.kind === "button" && (
-        <Modal title="Button" onClose={() => setDialog(null)} footer={<PillButton tone="ink" size="sm" onClick={applyDialog}>{dialog.editing ? "Save" : "Add button"}</PillButton>}>
-          <label className="mb-1.5 block text-[13.5px] font-bold" htmlFor={`${labelId}-bl`}>Button words</label>
-          <input id={`${labelId}-bl`} className={field} value={dialog.label} maxLength={80} placeholder="Shop the collection" onChange={(e) => setDialog({ ...dialog, label: e.target.value })} />
-          <label className="mb-1.5 mt-3 block text-[13.5px] font-bold" htmlFor={`${labelId}-bh`}>Link</label>
-          <input id={`${labelId}-bh`} className={field} value={dialog.href} placeholder="https://… or /product/…" onChange={(e) => setDialog({ ...dialog, href: e.target.value })} />
+        <Modal title={t("rte.button")} onClose={() => setDialog(null)} footer={<PillButton tone="ink" size="sm" onClick={applyDialog}>{dialog.editing ? t("rte.save") : t("rte.addButtonBtn")}</PillButton>}>
+          <label className="mb-1.5 block text-[13.5px] font-bold" htmlFor={`${labelId}-bl`}>{t("rte.buttonWords")}</label>
+          <input id={`${labelId}-bl`} className={field} value={dialog.label} maxLength={80} placeholder={t("rte.buttonWordsPh")} onChange={(e) => setDialog({ ...dialog, label: e.target.value })} />
+          <label className="mb-1.5 mt-3 block text-[13.5px] font-bold" htmlFor={`${labelId}-bh`}>{t("rte.link")}</label>
+          <input id={`${labelId}-bh`} className={field} value={dialog.href} placeholder={t("rte.hrefPh")} onChange={(e) => setDialog({ ...dialog, href: e.target.value })} />
           <fieldset className="m-0 mt-3 flex gap-4 border-0 p-0">
-            <legend className="mb-1.5 text-[13.5px] font-bold">Style</legend>
+            <legend className="mb-1.5 text-[13.5px] font-bold">{t("rte.style")}</legend>
             {(["solid", "outline"] as const).map((variant) => (
-              <label key={variant} className="flex items-center gap-2 text-[14px] capitalize"><input type="radio" name={`${labelId}-variant`} checked={dialog.variant === variant} onChange={() => setDialog({ ...dialog, variant })} /> {variant === "solid" ? "Filled" : "Outline"}</label>
+              <label key={variant} className="flex items-center gap-2 text-[14px] capitalize"><input type="radio" name={`${labelId}-variant`} checked={dialog.variant === variant} onChange={() => setDialog({ ...dialog, variant })} /> {variant === "solid" ? t("rte.filled") : t("rte.outline")}</label>
             ))}
           </fieldset>
         </Modal>
@@ -391,14 +403,14 @@ export function RichTextEditor({ value, onChange, label, placeholder = "Start wr
           kind="products"
           multiple={false}
           selected={[]}
-          title="Add a product card"
+          title={t("rte.addProduct")}
           onClose={() => setDialog(null)}
           onPick={([row]) => row && chain().insertContent({ type: "productCard", attrs: { productId: row.id, name: row.name, image: row.image } }).run()}
         />
       )}
       {dialog?.kind === "markdown" && (
-        <Modal title="Import Markdown" wide onClose={() => setDialog(null)} footer={<PillButton tone="ink" size="sm" disabled={!dialog.text.trim()} onClick={applyDialog}>Insert</PillButton>}>
-          <label className="mb-1.5 block text-[13.5px] font-bold" htmlFor={`${labelId}-md`}>Paste Markdown <span className="block text-[12.5px] font-normal text-app-ink-soft">Headings (#), lists, **bold**, links, pictures and | tables | are converted.</span></label>
+        <Modal title={t("rte.importMd")} wide onClose={() => setDialog(null)} footer={<PillButton tone="ink" size="sm" disabled={!dialog.text.trim()} onClick={applyDialog}>{t("rte.insert")}</PillButton>}>
+          <label className="mb-1.5 block text-[13.5px] font-bold" htmlFor={`${labelId}-md`}>{t("rte.pasteMd")} <span className="block text-[12.5px] font-normal text-app-ink-soft">{t("rte.pasteMdHelp")}</span></label>
           <textarea id={`${labelId}-md`} rows={12} className="w-full rounded-[14px] border border-app-line p-3 font-mono text-[13.5px] outline-none focus:border-app-ink" value={dialog.text} onChange={(e) => setDialog({ ...dialog, text: e.target.value })} />
         </Modal>
       )}

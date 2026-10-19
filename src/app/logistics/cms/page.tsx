@@ -4,20 +4,24 @@ import { ensureLogisticsAccess, getLogisticsPartnerForUser } from "@/lib/role-qu
 import { PortalBlogCmsClient } from "@/components/cms/PortalBlogCmsClient";
 import { AppPage } from "@/components/app-kit";
 import { partnerFrame } from "@/components/logistics/kit";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Blog" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT("logistics"))("cms.title") };
+}
 
 export default async function LogisticsCmsPage() {
   const user = await requireRole(["logistics_partner"], "/logistics/login");
   const partner = await getLogisticsPartnerForUser(user);
   ensureLogisticsAccess(partner);
+  const t = await getT("logistics");
 
   return (
     <AppPage
-      frame={{ ...partnerFrame({ user, partner }), chipMessage: "Your blog is set up. Rex can write full SEO articles for your logistics profile." }}
-      title="Blog"
-      sub="Articles on your public partner page. Rex can write a draft from a short prompt; you check it and publish."
+      frame={{ ...partnerFrame({ user, partner }, t), chipMessage: t("cms.chipMessage") }}
+      title={t("cms.title")}
+      sub={t("cms.sub")}
     >
       <PortalBlogCmsClient
         role="logistics_partner"

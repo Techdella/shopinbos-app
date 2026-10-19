@@ -4,6 +4,9 @@ import { getAuthRouteClient } from "@/lib/auth/session.server";
 import { clearAuthFailures, consumeAuthLimit, lockedForSeconds, recordAuthFailure } from "@/lib/auth/throttle";
 import { clientIp, deviceCookie, logAuthEvent, recordSignIn } from "@/lib/auth/events";
 import { authError, authJson, rateLimited } from "@/lib/auth/responses";
+import { db } from "@/lib/db/client";
+import { chooseCodeChannel, whatsappCodesAvailable } from "@/lib/auth/otp-channel";
+import { channelUsedFor, rememberWantedChannel } from "@/lib/auth/otp-delivery.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,7 +18,10 @@ type OtpBody = {
   email?: string;
   /** E.164, e.g. +2348031234567 */
   phone?: string;
-  /** Ignored: phone codes always go by SMS (our Send SMS hook has no WhatsApp path). Kept for older clients. */
+  /**
+   * "whatsapp" (or nothing, from older clients): WhatsApp when it is set up (AUTH_OTP_WHATSAPP), else SMS.
+   * "sms": always SMS (the "No WhatsApp on this number? Send it by SMS" link).
+   */
   via?: "whatsapp" | "sms";
   token?: string;
   /** true when this code also creates the account (sign up), false for sign in. */
@@ -40,6 +46,23 @@ function friendlySendError(message: string, phone: boolean) {
     return "Please wait a minute before asking for another code.";
   }
   return "We couldn't send a code right now. Please try again.";
+}
+
+/** Public flag for the sign-in screens: can phone codes go by WhatsApp? `{ data: { whatsapp: boolean } }` */
+export async function GET() {
+  return authJson({ whatsapp: whatsappCodesAvailable(process.env) });
+}
+
+/**
+ * A brand-new account asks "What should we call you?" after the code (Prototype 10). Existing accounts (an app
+ * user row, or a name saved at sign-up by older clients, the phone app or Google) skip it.
+ */
+async function needsName(user: { id: string; user_metadata?: Record<string, unknown> | null }) {
+  const meta = user.user_metadata ?? {};
+  if ([meta.full_name, meta.fullName, meta.name].some((value) => typeof value === "string" && value.trim())) return false;
+  const existing = await db.user.findUnique({ where: { supabaseId: user.id }, select: { name: true } }).catch(() => ({ name: "unknown" }));
+  // "Shopinbos User" is the stand-in name when someone left at the name screen and the account row was made later.
+  return !existing || existing.name.trim() === "Shopinbos User";
 }
 
 export async function POST(request: NextRequest) {
@@ -71,6 +94,10 @@ export async function POST(request: NextRequest) {
           }
         : undefined;
 
+      // Phone: note the channel to try; the Send SMS hook reads it (Supabase itself is always asked for SMS).
+      const wanted = usePhone ? chooseCodeChannel(body.via, whatsappCodesAvailable(process.env)) : null;
+      if (usePhone && wanted) await rememberWantedChannel(phone, wanted);
+
       const { error } = usePhone
         ? await supabase.auth.signInWithOtp({
             phone,
@@ -84,11 +111,13 @@ export async function POST(request: NextRequest) {
         // Signing in with an email or phone that has no account looks exactly like a sent code.
         if (/signups not allowed|user not found/i.test(error.message)) {
           await logAuthEvent(request, { type: "login_failure", method: usePhone ? "otp_phone" : "otp_email", detail: { reason: "unknown_identifier" } });
-          return authJson({ sent: true });
+          // Same answer as a real send, so it never tells whether an account exists.
+          return authJson(usePhone ? { sent: true, channel: wanted } : { sent: true, channel: "email" });
         }
         return fail(friendlySendError(error.message, usePhone), error.status === 429 ? 429 : 400, error.status === 429 ? "RATE_LIMITED" : "BAD_REQUEST");
       }
-      return authJson({ sent: true });
+      // The channel that really carried the code (WhatsApp, or SMS when WhatsApp is off or failed).
+      return authJson(usePhone ? { sent: true, channel: await channelUsedFor(phone) } : { sent: true, channel: "email" });
     }
 
     if (body?.action === "verify") {
@@ -114,7 +143,7 @@ export async function POST(request: NextRequest) {
 
       await clearAuthFailures(identifier);
       const deviceId = await recordSignIn(request, data.user, method);
-      const response = authJson({ accessToken: data.session?.access_token ?? null });
+      const response = authJson({ accessToken: data.session?.access_token ?? null, needsName: await needsName(data.user) });
       const device = deviceCookie(deviceId);
       response.cookies.set(device.name, device.value, device.options);
       return response;

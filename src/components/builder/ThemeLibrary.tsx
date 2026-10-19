@@ -22,6 +22,8 @@ import {
 } from "@/lib/store-templates/theme-library";
 import { ThemePreviewDialog, ThemeThumbnail } from "./theme-preview/ThemePreview";
 import type { PreviewOwnStore } from "./theme-preview/preview-store";
+import { Mascot } from "@/components/brand/Mascot";
+import { useT } from "@/components/i18n/I18nProvider";
 
 // The 2026 storefront themes as cards with real previews (the storefront renderer, scaled down, with a sample
 // catalogue or the seller's own products). Used by /builder/templates (mode "page") and the builder's Themes view
@@ -50,6 +52,8 @@ export type ThemeLibraryProps = {
   onSwitched?: (result: ThemeSwitchedResult) => void;
   /** Optional: the seller's store, for "Show with my products" (needs 4 or more products with photos). */
   ownStore?: PreviewOwnStore | null;
+  /** Optional: a theme to open in preview straight away (e.g. "Use this template" on shopinbos.com). */
+  initialPreviewId?: string | null;
 };
 
 export const THEME_SWITCHED_EVENT = "shopinbos:theme-switched";
@@ -61,15 +65,17 @@ function nameFont(theme: ThemeLibraryEntry): React.CSSProperties {
   return { fontFamily: family, fontWeight: Math.max(500, theme.preview.nameWeight), fontStyle: theme.preview.nameItalic ? "italic" : undefined, letterSpacing: theme.preview.nameFont === "sans" ? "-0.02em" : "-0.01em" };
 }
 
-export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, initialCategory, nextPath, onSwitched, ownStore }: ThemeLibraryProps) {
+export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, initialCategory, nextPath, onSwitched, ownStore, initialPreviewId }: ThemeLibraryProps) {
   const router = useRouter();
+  const t = useT("builder");
+  const meaningLine = (theme: ThemeLibraryEntry) => themeMeaningLine({ name: theme.name, meaning: t.dynamic(`theme.${theme.id}.meaning`, theme.meaning) });
   const chips = useMemo(() => themeCategoryChips(THEME_LIBRARY), []);
   const [category, setCategory] = useState<ThemeChipId>(() => {
     const wanted = chipForStoreCategory(initialCategory);
     return chips.some((chip) => chip.id === wanted) ? wanted : "all";
   });
   const [query, setQuery] = useState("");
-  const [previewId, setPreviewId] = useState<string | null>(null);
+  const [previewId, setPreviewId] = useState<string | null>(initialPreviewId ?? null);
   // "Show with my products": only when the store has enough products with photos to fill a page.
   const own = useMemo<PreviewOwnStore | null>(() => {
     const products = ownStore ? ownPreviewProducts(ownStore.storeProducts) : null;
@@ -99,7 +105,7 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
         error?: { message?: string };
       } | null;
       if (!response.ok || !json?.data) {
-        setError(json?.error?.message ?? "That theme didn't switch. Please try again.");
+        setError(json?.error?.message ?? t("tl.err.switch"));
         return;
       }
       const result: ThemeSwitchedResult = {
@@ -120,7 +126,7 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
       setSwitched(result);
       router.refresh();
     } catch {
-      setError("That theme didn't switch. Check your connection and try again.");
+      setError(t("tl.err.switchNet"));
     } finally {
       setBusyId(null);
     }
@@ -133,13 +139,13 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
       const response = await fetch("/api/store/templates/recommend", { method: "POST" });
       const json = (await response.json().catch(() => null)) as { data?: RexPick; error?: { message?: string } } | null;
       if (!response.ok || !json?.data) {
-        setError(json?.error?.message ?? "Rex couldn't pick a theme just now.");
+        setError(json?.error?.message ?? t("tl.err.pick"));
         return;
       }
       setPick(json.data);
       setCategory("all");
     } catch {
-      setError("Rex couldn't pick a theme just now. Check your connection and try again.");
+      setError(t("tl.err.pickNet"));
     } finally {
       setPicking(false);
     }
@@ -152,15 +158,14 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
       {mode === "builder" ? (
         <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
           <div className="min-w-0">
-            <h2 className="m-0 text-[28px] font-extrabold leading-[1.1] tracking-[-0.6px]">Theme library</h2>
+            <h2 className="m-0 text-[28px] font-extrabold leading-[1.1] tracking-[-0.6px]">{t("tl.title")}</h2>
             <p className="mb-0 mt-1.5 text-[14.5px] text-app-ink-soft">
-              {THEME_LIBRARY.length} themes, each with its own home, product and collection layouts. Your products, brand and orders carry over.
+              {t("tl.sub", { count: THEME_LIBRARY.length })}
             </p>
           </div>
           <PillButton tone="white" size="md" onClick={() => void askRex()} busy={picking}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/app/rex.png" alt="" className="h-6 w-6 object-contain" />
-            Let Rex pick one
+            <Mascot who="rex" mood={picking ? "thinking" : "idle"} className="h-6 w-6" decorative />
+            {t("tl.letRex")}
           </PillButton>
         </div>
       ) : null}
@@ -168,24 +173,24 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <label className="flex h-11 min-w-[220px] max-w-[420px] flex-1 items-center gap-2 rounded-full border border-app-line bg-white px-4 focus-within:border-app-ink">
           <Icon name="search" size={16} />
-          <span className="sr-only">Search themes</span>
+          <span className="sr-only">{t("tl.search")}</span>
           <input
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search themes: afefe, hair, food…"
+            placeholder={t("tl.searchPh")}
             className="h-full min-w-0 flex-1 bg-transparent text-[14.5px] outline-none"
           />
         </label>
         {own ? (
           <label className="flex items-center gap-2.5 text-[14px] font-bold">
-            <Toggle on={useOwn} onChange={setUseOwn} label="Show with my products" />
-            Show with my products
+            <Toggle on={useOwn} onChange={setUseOwn} label={t("tl.showOwn")} />
+            {t("tl.showOwn")}
           </label>
         ) : null}
       </div>
 
-      <div className="mb-5 flex flex-wrap gap-2" role="group" aria-label="Filter themes by category">
+      <div className="mb-5 flex flex-wrap gap-2" role="group" aria-label={t("tl.filter")}>
         {chips.map((chip) => {
           const active = category === chip.id;
           return (
@@ -199,7 +204,7 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
                 active ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white text-app-ink hover:border-app-line-strong",
               )}
             >
-              {chip.label}
+              {t.dynamic(`chipf.${chip.id}`, chip.label)}
             </button>
           );
         })}
@@ -210,24 +215,24 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
         {switched ? (
           <div role="status" className="flex flex-wrap items-center gap-3 rounded-[18px] bg-app-success-tint px-4 py-3">
             <p className="m-0 min-w-0 flex-1 text-[14.5px] font-medium leading-6 text-app-ink">
-              Switched to {switched.templateName}. Your products and pages stay. Publish when you&apos;re happy.
-              {switched.draftOnly ? <span className="text-app-ink-soft"> Shoppers keep seeing your live store until then.</span> : null}
+              {t("tl.switched", { name: switched.templateName })}
+              {switched.draftOnly ? <span className="text-app-ink-soft">{t("tl.liveUntil")}</span> : null}
             </p>
             <div className="flex flex-wrap gap-2">
               {mode === "builder" ? (
                 <>
-                  {onPreview ? <PillButton tone="white" size="sm" onClick={() => onPreview(switched.templateId)}>Preview</PillButton> : null}
-                  {onCustomize ? <PillButton tone="ink" size="sm" onClick={onCustomize}>Customize</PillButton> : null}
+                  {onPreview ? <PillButton tone="white" size="sm" onClick={() => onPreview(switched.templateId)}>{t("tl.preview")}</PillButton> : null}
+                  {onCustomize ? <PillButton tone="ink" size="sm" onClick={onCustomize}>{t("tl.customize")}</PillButton> : null}
                 </>
               ) : (
                 <>
                   {switched.storeSlug ? (
                     <a href={`/s/${switched.storeSlug}/preview`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-[38px] items-center rounded-full border border-app-line bg-white px-4 text-[13px] font-bold text-app-ink no-underline hover:border-app-line-strong">
-                      Preview
+                      {t("tl.preview")}
                     </a>
                   ) : null}
                   <Link href="/builder/editor" className="inline-flex min-h-[38px] items-center rounded-full bg-app-ink px-4 text-[13px] font-bold text-white no-underline hover:bg-black">
-                    Open in builder
+                    {t("tl.openBuilder")}
                   </Link>
                 </>
               )}
@@ -239,11 +244,11 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
             who="rex"
             action={
               picked.id === current ? (
-                <span className="text-[13.5px] font-bold">Already your theme</span>
+                <span className="text-[13.5px] font-bold">{t("tl.already")}</span>
               ) : (
                 <div className="flex flex-wrap gap-2">
-                  <PillButton tone="white" size="sm" onClick={() => setPreviewId(picked.id)}>Preview</PillButton>
-                  <PillButton tone="ink" size="sm" busy={busyId === picked.id} onClick={() => void applyTheme(picked.id)}>Use {picked.name}</PillButton>
+                  <PillButton tone="white" size="sm" onClick={() => setPreviewId(picked.id)}>{t("tl.preview")}</PillButton>
+                  <PillButton tone="ink" size="sm" busy={busyId === picked.id} onClick={() => void applyTheme(picked.id)}>{t("tl.useName", { name: picked.name })}</PillButton>
                 </div>
               )
             }
@@ -272,33 +277,33 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
                   <button
                     type="button"
                     onClick={() => setPreviewId(theme.id)}
-                    aria-label={`Preview ${theme.name}`}
+                    aria-label={t("tl.previewName", { name: theme.name })}
                     className="absolute inset-0 z-[1] block h-full w-full cursor-pointer rounded-[22px] border-0 bg-transparent p-0 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-[-3px] focus-visible:outline-app-ink"
                   />
                   <span className="pointer-events-none absolute left-3 top-3 z-[2] flex flex-wrap gap-1.5">
-                    {theme.isNew ? <span className="rounded-full bg-app-accent px-2.5 py-1 text-[11px] font-bold text-white shadow-sm">New</span> : null}
-                    {isCurrent ? <span className="rounded-full bg-app-ink px-2.5 py-1 text-[11px] font-bold text-white shadow-sm">Current</span> : null}
+                    {theme.isNew ? <span className="rounded-full bg-app-accent px-2.5 py-1 text-[11px] font-bold text-white shadow-sm">{t("tl.new")}</span> : null}
+                    {isCurrent ? <span className="rounded-full bg-app-ink px-2.5 py-1 text-[11px] font-bold text-white shadow-sm">{t("tl.current")}</span> : null}
                   </span>
                   <span aria-hidden className="pointer-events-none absolute bottom-3 right-3 z-[2] inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-[12.5px] font-bold text-app-ink opacity-0 shadow-sm transition group-hover:opacity-100 group-focus-within:opacity-100">
-                    <Icon name="eye" size={14} /> Preview
+                    <Icon name="eye" size={14} /> {t("tl.preview")}
                   </span>
                 </div>
                 <div className="mt-3 flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <h3 id={`theme-${theme.id}`} className="m-0 text-[18px] leading-tight" style={nameFont(theme)}>
                       {theme.name}
-                      {isCurrent ? <span className="sr-only"> (current theme)</span> : null}
+                      {isCurrent ? <span className="sr-only">{t("tl.currentSr")}</span> : null}
                     </h3>
-                    <p className="m-0 mt-0.5 text-[12.5px] font-semibold text-app-ink-soft">{themeMeaningLine(theme)}</p>
-                    <p className="m-0 mt-1 text-[13px] leading-[1.45] text-app-ink-soft">{theme.blurb}</p>
+                    <p className="m-0 mt-0.5 text-[12.5px] font-semibold text-app-ink-soft">{meaningLine(theme)}</p>
+                    <p className="m-0 mt-1 text-[13px] leading-[1.45] text-app-ink-soft">{t.dynamic(`theme.${theme.id}.blurb`, theme.blurb)}</p>
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-2 min-[420px]:flex-row min-[420px]:items-center">
-                    <PillButton tone="white" size="sm" onClick={() => setPreviewId(theme.id)} aria-label={`Preview ${theme.name}`}>Preview</PillButton>
+                    <PillButton tone="white" size="sm" onClick={() => setPreviewId(theme.id)} aria-label={t("tl.previewName", { name: theme.name })}>{t("tl.preview")}</PillButton>
                     {isCurrent ? (
-                      mode === "builder" && onCustomize ? <PillButton tone="ink" size="sm" onClick={onCustomize}>Customize</PillButton> : null
+                      mode === "builder" && onCustomize ? <PillButton tone="ink" size="sm" onClick={onCustomize}>{t("tl.customize")}</PillButton> : null
                     ) : (
-                      <PillButton tone="ink" size="sm" busy={busyId === theme.id} disabled={Boolean(busyId)} onClick={() => void applyTheme(theme.id)} aria-label={`Use ${theme.name}`}>
-                        {mode === "page" ? "Use this" : "Use"}
+                      <PillButton tone="ink" size="sm" busy={busyId === theme.id} disabled={Boolean(busyId)} onClick={() => void applyTheme(theme.id)} aria-label={t("tl.useName", { name: theme.name })}>
+                        {mode === "page" ? t("tl.useThis") : t("tl.use")}
                       </PillButton>
                     )}
                   </div>
@@ -310,8 +315,10 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
       </ul>
       {!themes.length ? (
         <p className="py-10 text-center text-[14.5px] text-app-ink-soft">
-          No theme matches &ldquo;{query}&rdquo;{category !== "all" ? " in this category" : ""}. Try another word, or{" "}
-          <button type="button" className="font-bold underline underline-offset-4" onClick={() => { setQuery(""); setCategory("all"); }}>see all themes</button>.
+          {(() => {
+            const [before, after = ""] = t(category !== "all" ? "tl.noMatchCat" : "tl.noMatch", { query, link: "\u0001" }).split("\u0001");
+            return <>{before}<button type="button" className="font-bold underline underline-offset-4" onClick={() => { setQuery(""); setCategory("all"); }}>{t("tl.seeAll")}</button>{after}</>;
+          })()}
         </p>
       ) : null}
 
@@ -333,7 +340,7 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
 
       {current && !themeLibraryEntry(current) ? (
         <p className="mt-6 text-[13.5px] text-app-ink-soft">
-          Your store uses an older template. It keeps working; pick one of these whenever you want the new look.
+          {t("tl.older")}
         </p>
       ) : null}
     </div>

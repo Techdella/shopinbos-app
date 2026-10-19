@@ -4,6 +4,9 @@ import { db } from "@/lib/db/client";
 import { addressLines } from "@/lib/labels";
 import { bookingNet, cashToCollect, jobId, packageInfo, packageSummary, type CodOrder } from "@/components/logistics/kit";
 import { toE164 } from "@shared/phone";
+import { pickupWindowText } from "@shared/supplier-pickup";
+import { riderGroup, riderWhereWords, type LatLng } from "@shared/delivery-geo";
+import { ensurePickupCoords } from "@/lib/logistics/geocode";
 
 // Shared by the mobile delivery partner routes (/api/mobile/logistics/**): the job shape the app reads, and
 // the buyer details a rider needs at the door. Same numbers as the web dispatch console (net fee, cash to collect).
@@ -12,7 +15,8 @@ export const JOB_SELECT = {
   id: true, status: true, orderId: true, pickupLocation: true, destination: true, packageDetails: true,
   deliveryFee: true, platformFee: true, netAmount: true, currency: true, codAmount: true, codCollected: true, codMethod: true,
   trackingCode: true, estimatedDelivery: true, pickedUpAt: true, deliveredAt: true, failedReason: true, proofUrl: true,
-  notes: true, createdAt: true, riderId: true,
+  notes: true, createdAt: true, riderId: true, pickupWindowStart: true, pickupWindowEnd: true,
+  pickupLat: true, pickupLng: true, pickupGeoSource: true, pickupGeocodedAt: true,
   rider: { select: { id: true, name: true } },
   seller: { select: { id: true, name: true, store: { select: { name: true } } } },
 } satisfies Prisma.DeliveryBookingSelect;
@@ -36,7 +40,7 @@ export async function ordersFor(jobs: Array<{ orderId: string | null }>) {
 }
 
 /** One job as the app shows it. Buyer contact details only travel while the job is open. */
-export function jobView(job: JobRow, order?: OrderRow) {
+export function jobView(job: JobRow, order?: OrderRow, pickupGeo?: LatLng | null) {
   const open = ["confirmed", "picked_up", "in_transit"].includes(job.status);
   const lines = order ? addressLines(order.deliveryAddress) : [];
   const pkg = packageInfo(job.packageDetails);
@@ -65,6 +69,10 @@ export function jobView(job: JobRow, order?: OrderRow) {
     proofUrl: job.proofUrl,
     notes: job.notes,
     createdAt: job.createdAt.toISOString(),
+    /** Supplier pickups: "Pick up 12–4pm today". */
+    pickupWindow: pickupWindowText(job.pickupWindowStart, job.pickupWindowEnd),
+    /** Pickup coordinates, for sorting riders by distance in the picker. */
+    pickupGeo: pickupGeo ?? (job.pickupLat !== null && job.pickupLng !== null ? { lat: job.pickupLat, lng: job.pickupLng } : null),
     buyer: open && order
       ? { name: order.buyerName, phone: order.buyerPhone ? toE164(order.buyerPhone) : null, address: lines.length ? lines.join(", ") : job.destination }
       : null,
@@ -92,4 +100,48 @@ export function proofFile(form: FormData | null): { ok: true; file: File } | { o
   if (!PROOF_TYPES.has(file.type)) return { ok: false, error: "Use a JPG, PNG or WebP photo." };
   if (file.size > MAX_PROOF_BYTES) return { ok: false, error: "That photo is too big (max 10 MB)." };
   return { ok: true, file };
+}
+
+/**
+ * Pickup coordinates for jobs that still need a rider or are on the road, geocoding (and storing) up to three
+ * missing ones per call. See lib/logistics/geocode.ts.
+ */
+export async function pickupGeoFor(jobs: Array<JobRow>, country?: string | null) {
+  const open = jobs.filter((job) => ["pending", "confirmed", "picked_up", "in_transit"].includes(job.status));
+  return ensurePickupCoords(open, country).catch(() => new Map<string, LatLng>());
+}
+
+/** Coordinates rounded to ~100 m: enough to sort by distance, no more precise than the picker needs. */
+const coarse = (value: number | null) => (value === null ? null : Math.round(value * 1000) / 1000);
+
+/**
+ * Active riders for the "Assign a rider" sheet, best first: free riders who are out now (online, no open job), then
+ * riders out but finishing a job, then offline riders. Each carries a coarse latest location so the app can put
+ * the closest first for a given pickup (shared/delivery-geo rankRidersForPickup), and "last seen 2 min ago, Ikeja".
+ */
+export async function dispatchRiders(partnerId: string, now = new Date()) {
+  const [riders, open] = await Promise.all([
+    db.logisticsTeamMember.findMany({
+      where: { logisticsPartnerId: partnerId, role: "rider", status: "active" },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, online: true, lastSeenAt: true, lastLat: true, lastLng: true, lastLocationAt: true },
+    }),
+    db.deliveryBooking.groupBy({ by: ["riderId"], where: { logisticsPartnerId: partnerId, status: { in: ["confirmed", "picked_up", "in_transit"] }, riderId: { not: null } }, _count: { _all: true } }),
+  ]);
+  const openBy = new Map(open.map((row) => [row.riderId, row._count._all]));
+  return riders
+    .map((rider) => ({ ...rider, openJobs: openBy.get(rider.id) ?? 0 }))
+    .sort((a, b) => riderGroup(a, now) - riderGroup(b, now) || a.openJobs - b.openJobs || a.name.localeCompare(b.name))
+    .map((rider) => ({
+      id: rider.id,
+      name: rider.name,
+      online: rider.online,
+      lastSeenAt: rider.lastSeenAt?.toISOString() ?? null,
+      openJobs: rider.openJobs,
+      out: riderGroup(rider, now) < 2,
+      lat: coarse(rider.lastLat),
+      lng: coarse(rider.lastLng),
+      locationAt: rider.lastLocationAt?.toISOString() ?? null,
+      where: riderWhereWords({ lat: rider.lastLat, lng: rider.lastLng, locationAt: rider.lastLocationAt, lastSeenAt: rider.lastSeenAt }, now),
+    }));
 }

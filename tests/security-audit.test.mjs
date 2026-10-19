@@ -46,8 +46,11 @@ test("the Paystack webhook checks the charge and only moves a still-unpaid order
   const source = read("src/app/api/webhooks/paystack/route.ts");
   assert.match(source, /retailChargeProblem\(pending, event\.data/);
   assert.match(source, /status: \{ in: \[\.\.\.PAYABLE_ORDER_STATUSES\] \}/);
-  assert.match(source, /if \(moved\.count === 1\) await creditCampaignConversion/);
-  assert.match(source, /moved\.count === 1 && resendKey/, "confirmation email only on the first transition");
+  // Messages and the confirmation email only on the first transition (src/lib/commerce/order-paid.server.ts).
+  assert.match(source, /afterRetailOrderPaid\(ref, moved\.count === 1/);
+  const paid = read("src/lib/commerce/order-paid.server.ts");
+  assert.match(paid, /if \(newlyPaid\) \{\n    await creditCampaignConversion/);
+  assert.match(paid, /if \(!newlyPaid\) return;\n\n  const resendKey/, "confirmation email only on the first transition");
   assert.match(source, /timingSafeEqual/);
   assert.doesNotMatch(source, /updateMany\(\{\s*where: \{ id: ref \},\s*data: \{ status: "paid"/);
   const action = read("src/app/actions/payments.ts");
@@ -188,9 +191,16 @@ test("JSON-LD can't close its <script> and the GA ID can't inject script", () =>
   assert.equal(gaMeasurementId("G-ABC123XYZ"), "G-ABC123XYZ");
   assert.equal(gaMeasurementId(" g-abc123 "), "G-ABC123");
   for (const bad of ["G-1');alert(document.cookie);//", "UA-12345-1", "", null, 42, "G-"]) assert.equal(gaMeasurementId(bad), "", String(bad));
-  const page = read("src/app/s/[slug]/page.tsx");
+  // The storefront's JSON-LD lives in the shared route renderer (page.tsx and [collection] use it). The seller's
+  // GA / Tag Manager / pixels load from the storefront layout, built only from validated IDs
+  // (src/lib/storefront/integrations.ts; tests/store-traffic.test.mjs covers the validators and the scripts).
+  const page = read("src/app/s/[slug]/storefront-route.tsx");
   assert.match(page, /__html: scriptSafeJson\(item\)/);
-  assert.match(page, /googleAnalyticsId: gaMeasurementId\(i\.googleAnalyticsId\)/);
+  assert.doesNotMatch(page, /googletagmanager/, "GA moved to the layout, so it isn't loaded twice");
+  const integrations = read("src/lib/storefront/integrations.ts");
+  assert.match(integrations, /googleAnalyticsId: gaMeasurementId,/);
+  assert.match(integrations, /const ga = gaMeasurementId\(integrations\.googleAnalyticsId\);/);
+  assert.match(read("src/app/s/[slug]/layout.tsx"), /<StoreTrackingTags integrations=\{integrations\} slug=\{slug\} consent=\{consent\}/);
   assert.match(read("src/app/s/[slug]/product/[productId]/ProductPageView.tsx"), /__html: scriptSafeJson\(/);
   assert.match(read("src/app/actions/workspace.ts"), /const googleAnalyticsId = gaMeasurementId\(formData\.get\("googleAnalyticsId"\)\);/);
   // Every JSON-LD script in the app goes through an escaping helper.
@@ -273,8 +283,9 @@ test("server actions that read by id check the caller owns it", () => {
 
 test("every exported function in a \"use server\" file checks who is calling (or is a known public action)", () => {
   // Public on purpose: the storefront checkout confirms a Paystack payment for a buyer with no account; the
-  // order id plus a verified Paystack reference for that order and amount is the credential.
-  const PUBLIC = new Set(["verifyPaystackPayment", "updateOrderPayment"]);
+  // order id plus a verified Paystack reference for that order and amount is the credential. checkKorapayPayment
+  // only re-asks Korapay about an order and answers paid or not.
+  const PUBLIC = new Set(["verifyPaystackPayment", "updateOrderPayment", "checkKorapayPayment"]);
   const AUTH = /requireRole\(|requireUser\(|getCurrentAppUser\(|getSellerUserOrThrow\(|requireAdmin\(|requireSellerStore\(|getLogisticsActor\(|getSupplierActor\(|sellerAndStore\(|assertOwnSupplier\(|getSupplierForUser\(|requirePartner\(|applyPlanUpgrade\(|upgradeUserToSupplierMax\(|linkSupplierPaystackRecipient\(|getPartner\(|currentPartner\(|actor\(/;
   const missing = [];
   for (const entry of fs.readdirSync(path.join(ROOT, "src/app/actions"))) {
@@ -294,10 +305,17 @@ test("the public storefront APIs that write are rate limited", () => {
   }
 });
 
-test("phone sign-in codes go by SMS only (the Send SMS hook has no WhatsApp path)", () => {
+test("phone sign-in codes: Supabase is only asked for SMS; WhatsApp is ours (env-gated) and the screens say what was used", () => {
   assert.match(read("src/app/api/auth/otp/route.ts"), /channel: "sms", data/);
-  assert.doesNotMatch(read("src/components/auth/app/AppAuth.tsx"), /code on WhatsApp/);
-  assert.doesNotMatch(read("apps/mobile/src/components/AuthForm.tsx"), /code on WhatsApp/);
+  assert.match(read("apps/mobile/src/lib/auth.ts"), /channel: "sms", data/, "the phone app never asks Supabase for WhatsApp (that needs Twilio)");
+  // The WhatsApp button only shows when GET /api/auth/otp says it is on, and the code screen follows the channel used.
+  const web = read("src/components/auth/app/AppAuth.tsx");
+  assert.match(web, /fetchWhatsAppCodes/);
+  assert.match(web, /setChannel\(used\)/);
+  const mobile = read("apps/mobile/src/components/AuthForm.tsx");
+  assert.match(mobile, /fetchWhatsAppCodes/);
+  assert.match(mobile, /method === "phone" && whatsapp/);
+  assert.match(read("apps/mobile/src/app/verify.tsx"), /setChannel\(used\)/);
 });
 
 test("a migration turns RLS on for every public table and adds a private bucket", () => {
@@ -443,8 +461,11 @@ test("domains: buying is opt-in, priced by Vercel, capped, and an order attaches
   assert.deepEqual(domainOrdersOf({ domainOrders: "ord_1" }), []);
   const purchase = read("src/app/api/domains/purchase/route.ts");
   assert.match(purchase, /if \(process\.env\.DOMAIN_PURCHASE_ENABLED !== "true"\)/);
-  assert.match(purchase, /years: 1,\s*autoRenew: parsed\.data\.autoRenew,\s*maxPrice: MAX_PRICE_USD,/);
+  // The seller pays first; the domain is bought after a verified payment, one year, never auto-renewed by Vercel,
+  // capped at the quoted cost (tests/domain-billing.test.mjs covers the payment side).
+  assert.doesNotMatch(purchase, /buyDomainOnVercel/);
   assert.doesNotMatch(purchase, /expectedPrice: parsed\.data\.expectedPrice/);
+  assert.match(read("src/lib/domains/billing.server.ts"), /buyDomainOnVercel\(row\.domain, \{ years: 1, autoRenew: false, maxPrice,/);
   const vercel = read("src/lib/domains/vercel.ts");
   assert.match(vercel, /expectedPrice: pricing\.purchasePrice,/);
   assert.match(read("src/app/api/domains/order/[orderId]/route.ts"), /if \(!domainOrdersOf\(store\.brandSettings\)\.includes\(String\(orderId\)\)\)/);

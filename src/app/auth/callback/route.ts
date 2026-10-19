@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { AuthRole } from "@/lib/brand";
-import { portalLoginPath, portalOnboardingPath } from "@/lib/portal-routes";
-import { appUserInputFromSupabaseUser, ensureAppUserForSupabaseUser } from "@/lib/auth/app-user";
+import { roleDestination } from "@/lib/brand";
+import { portalLoginPath, portalOnboardingPath, portalSignupPath } from "@/lib/portal-routes";
+import { alignRoleMetadata, appUserInputFromSupabaseUser, ensureAppUserForSupabaseUser } from "@/lib/auth/app-user";
+import { asAccountRole, asSignupRole, withPortalNote } from "@/lib/auth/role-rules";
 import { getAuthRouteClient, recoveryCookieOptions, recoveryMarker, RECOVERY_COOKIE } from "@/lib/auth/session.server";
 import { decodeAccessToken } from "@/lib/auth/session-claims";
 import { safeNextPath } from "@/lib/auth/route-access";
@@ -43,12 +45,29 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(redirectUrl(request, isReset ? RESET_PATH : portalLoginPath(role), isReset ? "link_expired" : "confirmation_failed"));
   }
 
-  await ensureAppUserForSupabaseUser({
+  // Google (and email links) say which portal's page they came from (?role=). That only decides the role of a
+  // brand-new account; an existing account keeps its own role (src/lib/auth/role-rules.ts).
+  const metadataRole = asAccountRole(data.user.user_metadata?.role);
+  const appUser = await ensureAppUserForSupabaseUser({
     ...appUserInputFromSupabaseUser(data.user),
-    role,
+    role: isReset ? metadataRole ?? role : role,
   });
+  await alignRoleMetadata(data.user.id, data.user.user_metadata?.role, appUser.role);
 
-  const response = NextResponse.redirect(redirectUrl(request, destination));
+  let landing = destination;
+  if (!isReset && appUser.role !== role) {
+    const pageRole = asSignupRole(role);
+    if (request.nextUrl.searchParams.get("mode") === "signup" && pageRole) {
+      // Signed up on the supplier page with an email that already has a seller account (or any other mix): say so
+      // on that sign-up page ("This email already has a seller account…") instead of quietly changing anything.
+      landing = `${portalSignupPath(pageRole)}?conflict=${appUser.role}&via=email`;
+    } else {
+      // Logged in on another portal's page: open their own portal, with a note saying why.
+      landing = withPortalNote(roleDestination(appUser.role), role);
+    }
+  }
+
+  const response = NextResponse.redirect(redirectUrl(request, landing));
   response.headers.set("Cache-Control", "private, no-store");
   const claims = decodeAccessToken(data.session?.access_token);
 

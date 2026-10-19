@@ -1,22 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cronAuthorization } from "@/lib/auth/cron";
+import { cronDenied } from "@/lib/auth/cron-request";
 import { runProductNewsCron } from "@/lib/email/product-news.server";
+import { runPromotionNotices } from "@/lib/pricing/promotions.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 // Product news (/admin/product-news): starts broadcasts scheduled for now or earlier and carries on with any still
-// sending, in bounded batches. Called every 10 minutes by Supabase pg_cron
+// sending, in bounded batches. Also sends the in-app notice + push for price promotions that have gone live
+// (src/lib/pricing/promotions.server.ts; their emails are product-news broadcasts, so they go out above). Called every 10 minutes by Supabase pg_cron
 // (docs/migrations/2026-10-16-weekly-summary-product-news.sql) with `Authorization: Bearer $CRON_SECRET`.
 export async function GET(req: NextRequest) {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return NextResponse.json({ error: { code: "NOT_CONFIGURED", message: "CRON_SECRET is not set" } }, { status: 503 });
-  if (cronAuthorization(req.headers.get("authorization"), secret) !== "ok") {
-    return NextResponse.json({ error: { code: "UNAUTHORIZED", message: "Invalid cron secret" } }, { status: 401 });
-  }
+  const denied = await cronDenied(req);
+  if (denied) return denied;
   try {
-    return NextResponse.json({ data: await runProductNewsCron(new Date(), Date.now() + 240_000) });
+    const news = await runProductNewsCron(new Date(), Date.now() + 180_000);
+    const promotions = await runPromotionNotices(new Date(), Date.now() + 60_000).catch((error) => {
+      console.error("[cron product-news] promotion notices failed", error);
+      return { error: error instanceof Error ? error.message : "failed" };
+    });
+    return NextResponse.json({ data: { ...news, promotions } });
   } catch (error) {
     console.error("[cron product-news] failed", error);
     return NextResponse.json({ error: { code: "INTERNAL_ERROR", message: error instanceof Error ? error.message : "Product news run failed" } }, { status: 500 });

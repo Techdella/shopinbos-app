@@ -6,7 +6,8 @@ import { aiText } from "@/lib/ai/text";
 import { meterAi } from "@/lib/ai/usage";
 import { loadAnalytics } from "@/lib/analytics/load";
 import { resolveRange } from "@/lib/analytics/range";
-import { feedUrl, productLink } from "@/lib/social/server";
+import { loadTraffic } from "@/lib/analytics/traffic-load";
+import { productLink } from "@/lib/social/server";
 import { SHARE_CHANNELS, captionRoom, fallbackCaption, fitCaption, postText, taggedProductLink } from "@/lib/social/share";
 import { naira } from "@shared/onboarding";
 import { matchProducts, type PeggyToolInput } from "./pure";
@@ -39,6 +40,46 @@ async function analyticsReport(ctx: PeggyToolContext, input: PeggyToolInput<"ana
       funnel: report.funnel.map((s) => ({ step: s.label, count: s.count })),
       newVsReturning: report.customers,
       seeAlso: "/home/analytics",
+    }),
+  };
+}
+
+const seconds = (value: number | null) => (value == null ? null : value >= 60 ? `${Math.floor(value / 60)}m ${value % 60}s` : `${value}s`);
+
+/** Store traffic for the seller's own store only (the store id comes from the session, never the model). */
+async function storeTrafficReport(ctx: PeggyToolContext, input: PeggyToolInput<"store_traffic_report">): Promise<ToolOutput> {
+  const range = resolveRange({ range: input.period });
+  const { report, available } = await loadTraffic(ctx.store.id, range);
+  const k = report.kpis;
+  const rows = (list: Array<{ label: string; count: number; share: number }>, n = 6) => list.slice(0, n).map((row) => ({ name: row.label, visits: row.count, share: pct(row.share) }));
+  return {
+    content: JSON.stringify({
+      period: range.label,
+      tracking: available ? (report.since ? `counted since ${report.since}` : "no visits counted yet") : "store traffic tracking is not switched on yet",
+      visits: k.sessions,
+      pageViews: k.pageViews,
+      uniqueVisitors: k.uniqueVisitors,
+      newVisitors: k.newVisitors,
+      returningVisitors: k.returningVisitors,
+      pagesPerVisit: k.pagesPerSession,
+      averageTimeOnAPage: seconds(k.avgEngagedSeconds),
+      paidOnlineOrders: k.paidOrders,
+      conversionRate: pct(k.conversionRate),
+      changeVsPeriodBeforePercent: report.change,
+      previous: { visits: report.previous.sessions, pageViews: report.previous.pageViews, uniqueVisitors: report.previous.uniqueVisitors, paidOnlineOrders: report.previous.paidOrders },
+      topPages: report.topPages.slice(0, 8).map((page) => ({ page: page.label, path: page.path, views: page.views, landedHere: page.entries, averageTime: seconds(page.avgSeconds) })),
+      sources: rows(report.sources, 10),
+      sourceKinds: rows(report.sourceKinds),
+      websites: rows(report.referrers),
+      devices: rows(report.devices, 3),
+      countries: rows(report.countries),
+      cities: rows(report.cities),
+      shopSearches: report.searchTerms.slice(0, 10).map((row) => ({ term: row.label, times: row.count })),
+      campaignTags: rows(report.campaigns, 5),
+      products: report.products.slice(0, 8).map((p) => ({ name: p.name, views: p.views, addedToBag: p.addToBag, orders: p.orders, conversion: pct(p.conversionRate) })),
+      funnel: report.funnel.map((step) => ({ step: step.label, count: step.count })),
+      note: "Counts only, no personal data. Visits are browser sessions; unique visitors count each browser once for the whole period however many days it came (an estimate, within about 2%, from privacy-safe sketches; shoppers with Do Not Track or who refused analytics cookies are left out); new visitors came for the first time, returning visitors had been before. WhatsApp often passes no referrer, so some WhatsApp visits show as Direct unless the link has ?ref=wa.",
+      seeAlso: "/home/analytics/traffic",
     }),
   };
 }
@@ -76,7 +117,8 @@ async function socialWritePost(ctx: PeggyToolContext, input: PeggyToolInput<"soc
       summary,
       `Post (show it in full):\n${post}`,
       `Tagged link (orders from it count under ${spec.label}): ${link}`,
-      `Catalog feeds for listing every product: Google ${feedUrl(store.slug, "google.xml")}, Facebook/Instagram ${feedUrl(store.slug, "meta.csv")}, TikTok ${feedUrl(store.slug, "tiktok.csv")}, WhatsApp ${feedUrl(store.slug, "whatsapp.csv")}. Setup steps are on /channels.`,
+      // Feed links carry the store's private key, so they stay on /channels rather than in the chat transcript.
+      "Catalog feeds for listing every product on Google, Facebook/Instagram, TikTok and WhatsApp: copy the private links and setup steps on /channels.",
     ].join("\n"),
     action: { summary, href: "/channels" },
   };
@@ -84,5 +126,6 @@ async function socialWritePost(ctx: PeggyToolContext, input: PeggyToolInput<"soc
 
 export const SOCIAL_TOOL_RUNNERS = {
   analytics_report: analyticsReport,
+  store_traffic_report: storeTrafficReport,
   social_write_post: socialWritePost,
 };

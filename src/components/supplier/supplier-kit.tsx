@@ -1,5 +1,12 @@
 import type { ComponentProps } from "react";
 import type { AppPage, Tone } from "@/components/app-kit";
+import { intlLocale, type Locale, type TFunction } from "@shared/i18n";
+import type { KeysOf } from "@shared/i18n/catalog";
+
+/** Any translate function (pages pass `await getT("supplier", "common")`); keys built here use t.dynamic. */
+export type Translate = Pick<TFunction, "dynamic">;
+/** The supplier pages' translate function, for helper components that take it as a prop. */
+export type SupplierT = TFunction<KeysOf<["supplier", "common"]>>;
 
 // Shared bits for the supplier portal pages (2026 app look): frame props, status wording and form field classes.
 
@@ -21,6 +28,8 @@ export function supplierFrame(
     userInitials: initials(user.name),
     avatarUrl: user.avatarUrl ?? null,
     userEmail: user.email ?? null,
+    // Shows the "verify your business" strip until the team has approved the supplier.
+    ...(supplier.verificationStatus ? { verificationStatus: supplier.verificationStatus } : {}),
     ...extra,
   };
 }
@@ -35,19 +44,20 @@ export function money(amount: number | null | undefined, currency = "NGN") {
   return new Intl.NumberFormat("en", { style: "currency", currency, maximumFractionDigits: 0 }).format(amount);
 }
 
-export function shortDate(value: Date | string | null | undefined) {
+export function shortDate(value: Date | string | null | undefined, locale: Locale = "en") {
   if (!value) return "—";
-  return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(new Date(value));
+  return new Intl.DateTimeFormat(locale === "en" ? "en-GB" : intlLocale(locale), { day: "numeric", month: "short", year: "numeric" }).format(new Date(value));
 }
 
-export function timeAgo(value: Date | string) {
+/** "5 min ago", "Yesterday"… in English, or in the page's language when given its translate function. */
+export function timeAgo(value: Date | string, t?: Translate) {
   const minutes = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 60000));
-  if (minutes < 60) return minutes <= 1 ? "Just now" : `${minutes} min ago`;
+  if (minutes < 60) return minutes <= 1 ? (t ? t.dynamic("ago.justNow", "Just now") : "Just now") : t ? t.dynamic("ago.minutes", "{count} min ago", { count: minutes }) : `${minutes} min ago`;
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} hr ago`;
+  if (hours < 24) return t ? t.dynamic("ago.hours", "{count} hr ago", { count: hours }) : `${hours} hr ago`;
   const days = Math.floor(hours / 24);
-  if (days === 1) return "Yesterday";
-  if (days < 30) return `${days} days ago`;
+  if (days === 1) return t ? t.dynamic("ago.yesterday", "Yesterday") : "Yesterday";
+  if (days < 30) return t ? t.dynamic("ago.days", "{count} days ago", { count: days }) : `${days} days ago`;
   return shortDate(value);
 }
 
@@ -57,10 +67,10 @@ export function orderRef(id: string) {
 }
 
 export const ORDER_STATUS: Record<string, { label: string; tone: Tone }> = {
-  pending: { label: "To ship", tone: "accent" },
-  confirmed: { label: "Confirmed", tone: "info" },
+  pending: { label: "New: accept it", tone: "accent" },
+  confirmed: { label: "To pack", tone: "info" },
   processing: { label: "Packing", tone: "warning" },
-  shipped: { label: "On the way", tone: "info" },
+  shipped: { label: "Sent", tone: "info" },
   delivered: { label: "Delivered", tone: "success" },
   cancelled: { label: "Cancelled", tone: "muted" },
   refunded: { label: "Refunded", tone: "danger" },
@@ -90,8 +100,24 @@ export const VERIFICATION_LABEL: Record<string, string> = {
   suspended: "Suspended",
 };
 
-export function statusOf<T extends { label: string; tone: Tone }>(map: Record<string, T>, status: string): { label: string; tone: Tone } {
-  return map[status] ?? { label: status.replace(/_/g, " "), tone: "muted" };
+const STATUS_KEYS = new Map<object, string>([
+  [ORDER_STATUS, "orderStatus"],
+  [QUOTE_STATUS, "quoteStatus"],
+  [PRODUCT_STATUS, "productStatus"],
+]);
+
+/** A status's label and tone; pass the page's translate function to get the label in the person's language. */
+export function statusOf<T extends { label: string; tone: Tone }>(map: Record<string, T>, status: string, t?: Translate): { label: string; tone: Tone } {
+  const found = map[status];
+  if (!found) return { label: status.replace(/_/g, " "), tone: "muted" };
+  const prefix = STATUS_KEYS.get(map);
+  return t && prefix ? { label: t.dynamic(`${prefix}.${status}`, found.label), tone: found.tone } : found;
+}
+
+/** The verification status words, translated when given the page's translate function. */
+export function verificationLabel(status: string, t?: Translate) {
+  const english = VERIFICATION_LABEL[status] ?? status;
+  return t && VERIFICATION_LABEL[status] ? t.dynamic(`verificationStatus.${status}`, english) : english;
 }
 
 /** Form field classes matching app-ui TextInput, for server-rendered forms. */

@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { pillButton } from "@/components/seller-core";
 import { Icon } from "@/components/ui/Icon";
+import { useT } from "@/components/i18n/I18nProvider";
 
 export function CopyField({ label, value, multiline = false }: { label: string; value: string; multiline?: boolean }) {
+  const t = useT("reviews", "common");
   const [copied, setCopied] = useState(false);
   const id = `copy-${label.replace(/\W+/g, "-").toLowerCase()}`;
   async function copy() {
@@ -25,7 +27,7 @@ export function CopyField({ label, value, multiline = false }: { label: string; 
         ) : (
           <input id={id} readOnly value={value} className="h-11 min-w-0 flex-1 rounded-full border border-app-line bg-app-canvas px-4 font-mono text-[12.5px] text-app-ink" onFocus={(e) => e.currentTarget.select()} />
         )}
-        <button type="button" onClick={copy} className={pillButton.white} aria-label={`Copy ${label}`}><Icon name={copied ? "check" : "copy"} size={14} /> {copied ? "Copied" : "Copy"}</button>
+        <button type="button" onClick={copy} className={pillButton.white} aria-label={t("copyLabel", { label })}><Icon name={copied ? "check" : "copy"} size={14} /> {copied ? t("copied") : t("copy")}</button>
       </div>
     </div>
   );

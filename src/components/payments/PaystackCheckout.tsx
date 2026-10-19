@@ -14,6 +14,11 @@ declare global {
 }
 
 interface PaystackCheckoutProps {
+  /**
+   * A transaction the server already started (store checkout: it carries the Paystack split that settles each
+   * business's share to its own bank). The popup reopens it, so the amount and who is paid can't change here.
+   */
+  accessCode?: string | null;
   amount?: number;
   plan?: string;
   email: string;
@@ -33,6 +38,7 @@ interface PaystackCheckoutProps {
 const PUBLIC_KEY = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY ?? "";
 
 export function PaystackCheckoutButton({
+  accessCode,
   amount,
   plan,
   email,
@@ -58,6 +64,37 @@ export function PaystackCheckoutButton({
   }, [style]);
 
   const handlePayment = useCallback(() => {
+    if (accessCode !== undefined) {
+      if (!accessCode) {
+        toast("Card payment isn't available right now. Refresh and try again.", "error");
+        return;
+      }
+      setLoading(true);
+      void import("@paystack/inline-js")
+        .then(({ default: PaystackPop }) => {
+          new PaystackPop().resumeTransaction(accessCode, {
+            onSuccess: (transaction) => {
+              setLoading(false);
+              toast("Payment successful!", "success");
+              onSuccess?.(transaction.reference);
+            },
+            onCancel: () => {
+              setLoading(false);
+              toast("Payment cancelled", "info");
+              onClose?.();
+            },
+            onError: () => {
+              setLoading(false);
+              toast("Paystack couldn't open. Check your connection and try again.", "error");
+            },
+          });
+        })
+        .catch(() => {
+          setLoading(false);
+          toast("Paystack couldn't open. Check your connection and try again.", "error");
+        });
+      return;
+    }
     if (!PUBLIC_KEY) {
       toast("Paystack is not configured", "error");
       return;
@@ -83,7 +120,7 @@ export function PaystackCheckoutButton({
           toast("Payment successful!", "success");
           onSuccess?.(response.reference);
         } else {
-          toast("Payment failed", "error");
+          toast("The payment didn't go through. Nothing was taken. Try again.", "error");
         }
       },
       onClose: () => {
@@ -105,7 +142,7 @@ export function PaystackCheckoutButton({
       };
       document.body.appendChild(script);
     }
-  }, [amount, plan, email, firstName, lastName, phone, metadata, onSuccess, onClose, toast]);
+  }, [accessCode, amount, plan, email, firstName, lastName, phone, metadata, onSuccess, onClose, toast]);
 
   return (
     <button

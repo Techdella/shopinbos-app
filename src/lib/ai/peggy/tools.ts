@@ -17,9 +17,13 @@ import { SOCIAL_TOOL_RUNNERS } from "./social-tools";
 import { REVIEWS_TOOL_RUNNERS } from "./reviews-tools";
 import { MARKETING_TOOL_RUNNERS } from "./marketing-tools";
 import { COMMERCE_TOOL_RUNNERS } from "./commerce-tools";
+import { ADS_TOOL_RUNNERS } from "./ads-tools";
 import { CMS_TOOL_RUNNERS } from "./cms-tools";
 import { EMAIL_TOOL_RUNNERS } from "./email-tools";
 import { LEGAL_TOOL_RUNNERS } from "./legal-tools";
+import { PRODUCTS_TOOL_RUNNERS } from "./products-tools";
+import { CATALOG_TOOL_RUNNERS } from "./catalog-tools";
+import { PAYLINKS_TOOL_RUNNERS } from "./paylinks-tools";
 import { saveMarkdownPost } from "@/lib/cms/server";
 import {
   aggregateCustomers,
@@ -66,7 +70,7 @@ const PAID_STATUSES = ["paid", "processing", "packed", "shipped", "delivered"] a
 const money = (amount: number) => naira(Number(amount) || 0);
 const dateOnly = (date: Date) => new Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Lagos", day: "numeric", month: "short", year: "numeric" }).format(date);
 
-async function recordActivity(ctx: PeggyToolContext, event: { type: string; title: string; description?: string; tool: string; link?: string; data?: Record<string, unknown> }) {
+export async function recordActivity(ctx: PeggyToolContext, event: { type: string; title: string; description?: string; tool: string; link?: string; data?: Record<string, unknown> }) {
   await db.activityEvent
     .create({
       data: {
@@ -97,11 +101,11 @@ async function storeProducts(ctx: PeggyToolContext) {
     where: { storeId: ctx.store.id, status: { not: "archived" } },
     orderBy: { createdAt: "desc" },
     take: 1000,
-    select: { id: true, name: true, status: true, retailPrice: true, costPrice: true, currentStock: true, lowStockThreshold: true, soldStock: true, description: true, images: true },
+    select: { id: true, name: true, status: true, retailPrice: true, costPrice: true, currentStock: true, lowStockThreshold: true, soldStock: true, trackStock: true, description: true, images: true },
   });
 }
 
-async function findProduct(ctx: PeggyToolContext, query: string) {
+export async function findProduct(ctx: PeggyToolContext, query: string) {
   const matches = matchProducts(await storeProducts(ctx), query);
   if (!matches.length) throw new ToolError(`No product matches "${query}". Use list_products to find it.`);
   if (matches.length > 1) {
@@ -280,6 +284,8 @@ async function updateProduct(ctx: PeggyToolContext, input: PeggyToolInput<"updat
   const stockChange = input.stock !== null ? input.stock - product.currentStock : 0;
   if (input.stock !== null && stockChange !== 0) {
     data.currentStock = input.stock;
+    // Giving a product a count means counting it: checkout then sells only what is there.
+    if (input.stock > 0) data.trackStock = true;
     changes.push(`stock ${product.currentStock} → ${input.stock}`);
   }
   if (input.status !== null && input.status !== product.status) {
@@ -479,9 +485,13 @@ export const PEGGY_TOOL_RUNNERS: { [N in PeggyToolName]: Runner<N> } = {
   ...REVIEWS_TOOL_RUNNERS,
   ...MARKETING_TOOL_RUNNERS,
   ...COMMERCE_TOOL_RUNNERS,
+  ...ADS_TOOL_RUNNERS,
   ...CMS_TOOL_RUNNERS,
   ...EMAIL_TOOL_RUNNERS,
   ...LEGAL_TOOL_RUNNERS,
+  ...PRODUCTS_TOOL_RUNNERS,
+  ...CATALOG_TOOL_RUNNERS,
+  ...PAYLINKS_TOOL_RUNNERS,
 };
 
 export const isWriteTool = (name: string) => name in PEGGY_TOOL_SPECS && PEGGY_TOOL_SPECS[name as PeggyToolName].write;

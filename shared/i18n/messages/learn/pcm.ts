@@ -1,0 +1,40 @@
+// Draft: needs native-speaker review
+import type en from "./en.ts";
+
+const pcm: Partial<Record<keyof typeof en, string>> = {
+  pill: "Learn",
+  pillTitle: "{title} for 60 seconds",
+  eyebrow: "Learn · {seconds} sec",
+  in60: "for 60 seconds",
+  skip: "Skip am",
+  close: "Close",
+  replay: "Play am again",
+  replayFromStart: "Start am again from beginning",
+  gotIt: "I don understand",
+  next: "Next",
+  previousScene: "The one before",
+  nextScene: "The next one",
+  play: "Play",
+  pause: "Pause",
+  scenes: "Parts",
+  sceneOf: "Part {n} of {total}: {caption}",
+  sceneProgress: "Part {n} of {total}",
+  howToWatch: "How you wan watch",
+  animated: "Cartoon intro",
+  watchVideo: "Watch the video",
+  wordToKnow: "The word wey you suppose know",
+  forExample: "Like dis: {example}",
+  forExampleLabel: "Like dis",
+  eg: "Like: {example}",
+  thatsIt: "Na so e be. You don sabi {term}.",
+  replayHint: "You fit play am again anytime from “Learn · 60s” for the top of dis page.",
+  tipsOffLead: "You no need tips?",
+  tipsOffLink: "Off am for Settings",
+  watchIntro: "Watch 60-sec intro",
+  watchIntroLong: "Watch the 60-sec intro",
+  whatItMeans: "{term}: wetin e mean",
+  whatItMeansSr: ", wetin e mean",
+  explains: "E explain {term}",
+};
+
+export default pcm;

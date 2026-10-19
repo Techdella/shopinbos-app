@@ -1,106 +1,178 @@
+import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { router } from "expo-router";
 import { naira } from "@shared/onboarding";
-import { AppIcon } from "@/components/icons";
+import { AppIcon, type AppIconName } from "@/components/icons";
 import { JobCard } from "@/components/JobCard";
+import { PayInOverdueCard } from "@/components/PayInOverdueCard";
 import { EmptyState, ErrorState, LoadingBlock, SectionTitle } from "@/components/kit";
-import { PartnerHeader, PartnerScroll, StatTile } from "@/components/partner";
-import { LinkButton, T } from "@/components/ui";
-import { fetchLogisticsOverview } from "@/lib/logistics";
+import { PartnerHeader, PartnerScroll } from "@/components/partner";
+import { Card, LinkButton, Notice, T, Toggle } from "@/components/ui";
+import { useT } from "@/lib/i18n";
+import { fetchLogisticsOverview, setTakingJobs } from "@/lib/logistics";
 import { verificationStage } from "@/lib/partner-pure";
 import { useLoad } from "@/lib/useLoad";
 import { openWeb } from "@/lib/web";
 import { colors, radii } from "@/theme";
+import { PushPromptCard } from "@/components/PushPromptCard";
+import { NotificationBellButton } from "@/components/NotificationBellButton";
 
-// Delivery partner "Today", from the "Shopinbos Partners · mobile" prototype: taking new jobs, delivered and
-// earned today, New / Active / Issues, the new requests to accept and assign, riders out and cash to pay in.
+// Delivery partner "Today" (spec 8A, "Simple supplier, delivery and rider apps"): a big "Taking new jobs" switch,
+// today's deliveries and earnings, the newest job with "Accept and assign", and the cash to pay in by 6pm.
+// Everything else is one tap away: Messages and Menu in the header, the other tabs below.
+
+function HeaderButton({ icon, label, onPress }: { icon: AppIconName; label: string; onPress: () => void }) {
+  return (
+    <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => ({ minHeight: 46, borderRadius: radii.pill, backgroundColor: colors.surface, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 6, opacity: pressed ? 0.85 : 1 })}>
+      <AppIcon name={icon} size={18} />
+      <T weight="bold" style={{ fontSize: 15 }}>{label}</T>
+    </Pressable>
+  );
+}
 
 export default function LogisticsToday() {
+  const t = useT("m_partner");
   const overview = useLoad(fetchLogisticsOverview);
   const data = overview.data;
-  const verification = data ? verificationStage(data.partner.verificationStatus) : null;
+  const verification = data ? verificationStage(data.partner.verificationStatus, t) : null;
+  // What the partner just switched to, until the next load says the same.
+  const [override, setTaking] = useState<boolean | null>(null);
+  const taking = override ?? data?.partner.taking ?? false;
+  const [switching, setSwitching] = useState(false);
+  const [switchError, setSwitchError] = useState<string | null>(null);
+
+  async function toggleTaking(next: boolean) {
+    setSwitching(true);
+    setSwitchError(null);
+    setTaking(next);
+    try {
+      await setTakingJobs(next);
+    } catch (error) {
+      setTaking(!next);
+      setSwitchError(error instanceof Error ? error.message : t("error.retry"));
+    } finally {
+      setSwitching(false);
+    }
+  }
+
+  const ready = data ? data.partner.verificationStatus === "verified" && data.partner.onboarded : false;
+  const newest = data?.newJobs[0];
+  const moreNew = data ? data.counts.new - (newest ? 1 : 0) : 0;
+  // Riders switched Online and seen in the last 30 minutes (the server sends them first). No map: a list with where
+  // each was last seen ("last seen 2 min ago, Ikeja").
+  const outNow = (data?.riderList ?? []).filter((rider) => rider.out);
 
   return (
     <PartnerScroll refreshing={overview.refreshing} onRefresh={() => void overview.refresh()}>
       <PartnerHeader
         eyebrow="Shopinbos Partners"
-        name={data?.partner.name ?? "Your company"}
+        name={data?.partner.name ?? t("today.company")}
         logoUrl={data?.partner.logoUrl}
         right={
-          <Pressable accessibilityRole="button" accessibilityLabel="Messages" onPress={() => router.push("/logistics/messages")} style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: colors.surface, alignItems: "center", justifyContent: "center" }}>
-            <AppIcon name="chat" size={20} />
-          </Pressable>
+          <View style={{ flexDirection: "row", gap: 6 }}>
+            <NotificationBellButton />
+            <HeaderButton icon="chat" label={t("today.messages")} onPress={() => router.push("/logistics/messages")} />
+            <HeaderButton icon="grid" label={t("today.menu")} onPress={() => router.push("/logistics/menu")} />
+          </View>
         }
       />
 
-      {overview.loading && !data ? <LoadingBlock label="Loading today…" /> : null}
-      {overview.error && !data ? <ErrorState message={overview.error} onRetry={() => void overview.reload()} web={{ label: "Open on web", onPress: () => void openWeb("/logistics/dashboard") }} /> : null}
+      <PushPromptCard who="logistics" when={Boolean(data)} />
+      {overview.loading && !data ? <LoadingBlock label={t("today.loading")} /> : null}
+      {overview.error && !data ? <ErrorState message={overview.error} onRetry={() => void overview.reload()} web={{ label: t("openOnWeb"), onPress: () => void openWeb("/logistics/dashboard") }} /> : null}
 
       {data && verification ? (
         <>
-          {data.partner.verificationStatus !== "verified" || !data.partner.onboarded ? (
+          {!ready ? (
             <Pressable accessibilityRole="button" onPress={() => router.push("/logistics/verification")} style={{ backgroundColor: colors.surface, borderRadius: radii.card, padding: 16, gap: 8 }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                 <AppIcon name="shield" size={20} color={colors.forest} />
-                <T weight="extrabold" style={{ flex: 1, fontSize: 15 }}>{data.partner.onboarded ? verification.label : "Finish setting up"}</T>
+                <T weight="extrabold" style={{ flex: 1, fontSize: 16 }}>{data.partner.onboarded ? verification.label : t("today.finish")}</T>
                 <AppIcon name="chevron" size={18} color={colors.inkSoft} />
               </View>
-              <T style={{ color: colors.inkSoft, lineHeight: 20 }}>{data.partner.onboarded ? verification.hint : "Set where you deliver and your prices, then upload your documents to start taking jobs."}</T>
+              <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21 }}>{data.partner.onboarded ? verification.hint : t("today.finishHint")}</T>
             </Pressable>
           ) : (
-            <View style={{ backgroundColor: colors.surface, borderRadius: radii.card, padding: 16, flexDirection: "row", alignItems: "center", gap: 12 }}>
-              <View style={{ flex: 1 }}>
-                <T weight="extrabold" style={{ color: data.partner.taking ? colors.success : colors.inkSoft, fontSize: 15 }}>{data.partner.taking ? "Taking new jobs" : "Not taking new jobs"}</T>
-                <T style={{ color: colors.inkSoft, fontSize: 13 }} numberOfLines={2}>{data.partner.areas}</T>
+            <Pressable
+              accessibilityRole="switch"
+              accessibilityLabel={t("today.taking")}
+              accessibilityState={{ checked: Boolean(taking), busy: switching }}
+              disabled={switching}
+              onPress={() => void toggleTaking(!taking)}
+              style={{ backgroundColor: taking ? colors.successTint : colors.surface, borderRadius: radii.card, padding: 18, flexDirection: "row", alignItems: "center", gap: 14, minHeight: 84 }}
+            >
+              <View style={{ flex: 1, gap: 2 }}>
+                <T weight="extrabold" style={{ fontSize: 20, color: taking ? colors.success : colors.ink }}>{taking ? t("today.taking") : t("today.notTaking")}</T>
+                <T style={{ color: colors.inkSoft, fontSize: 15 }} numberOfLines={2}>{taking ? t("today.takingHint", { areas: data.partner.areas }) : t("today.notTakingHint")}</T>
               </View>
-              <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: data.partner.taking ? colors.success : colors.toggleOff }} />
-            </View>
+              <View pointerEvents="none" style={{ transform: [{ scale: 1.3 }] }}>
+                <Toggle on={Boolean(taking)} onChange={() => undefined} label={t("today.taking")} />
+              </View>
+            </Pressable>
           )}
+          {switchError ? <Notice>{switchError}</Notice> : null}
 
-          <View>
-            <T weight="extrabold" style={{ fontSize: 30, letterSpacing: -0.8, lineHeight: 34 }} accessibilityRole="header">{data.deliveredToday} delivered today</T>
-            <T weight="extrabold" style={{ fontSize: 30, letterSpacing: -0.8, lineHeight: 34 }}>{naira(data.earnedToday)} earned</T>
-            {data.onTime !== null ? <T style={{ color: colors.inkSoft, marginTop: 6 }}>{data.onTime}% on time over the last 30 days</T> : null}
-          </View>
+          {data.overdue ? <PayInOverdueCard overdue={data.overdue} onChecked={() => void overview.reload()} /> : null}
 
           <View style={{ flexDirection: "row", gap: 10 }}>
-            <StatTile label="New" value={data.counts.new} onPress={() => router.push({ pathname: "/logistics/jobs", params: { view: "new" } })} />
-            <StatTile label="Active" value={data.counts.active} onPress={() => router.push({ pathname: "/logistics/jobs", params: { view: "active" } })} />
-            <StatTile label="Issues" value={data.counts.issues} tone="danger" onPress={() => router.push({ pathname: "/logistics/jobs", params: { view: "issues" } })} />
+            <Card style={{ flex: 1, gap: 4 }}>
+              <T style={{ color: colors.inkSoft, fontSize: 15 }}>{t("today.delivered")}</T>
+              <T weight="extrabold" style={{ fontSize: 28, letterSpacing: -0.6 }} accessibilityRole="header">{data.deliveredToday}</T>
+            </Card>
+            <Card style={{ flex: 1, gap: 4 }}>
+              <T style={{ color: colors.inkSoft, fontSize: 15 }}>{t("today.earned")}</T>
+              <T weight="extrabold" style={{ fontSize: 28, letterSpacing: -0.6 }}>{naira(data.earnedToday)}</T>
+            </Card>
           </View>
 
-          <SectionTitle action={<LinkButton title="See all" color={colors.accentInk} onPress={() => router.push({ pathname: "/logistics/jobs", params: { view: "new" } })} style={{ minHeight: 32 }} />}>New requests</SectionTitle>
-          {data.newJobs.length ? (
-            <View style={{ gap: 10 }}>
-              {data.newJobs.map((job) => <JobCard key={job.id} job={job} riders={data.riderList} onChanged={() => void overview.reload()} />)}
-            </View>
+          {data.counts.issues ? (
+            <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: "/logistics/jobs", params: { view: "issues" } })} style={{ backgroundColor: colors.dangerTint, borderRadius: 18, padding: 14, flexDirection: "row", alignItems: "center", gap: 10 }}>
+              <AppIcon name="help" size={20} color={colors.danger} />
+              <T weight="bold" style={{ flex: 1, fontSize: 15, color: colors.danger }}>{t("today.failed", { count: data.counts.issues })}</T>
+              <T weight="bold" style={{ fontSize: 15, color: colors.danger }}>{t("today.see")}</T>
+            </Pressable>
+          ) : null}
+
+          <SectionTitle action={moreNew > 0 ? <LinkButton title={t("today.more", { count: moreNew })} color={colors.accentInk} onPress={() => router.push({ pathname: "/logistics/jobs", params: { view: "new" } })} style={{ minHeight: 32 }} /> : undefined}>{t("today.newRequests")}</SectionTitle>
+          {newest ? (
+            <JobCard job={newest} riders={data.riderList} onChanged={() => void overview.reload()} />
           ) : (
-            <EmptyState icon="truck" title="No new requests">Shops book you at checkout. New jobs land here to accept and assign.</EmptyState>
+            <EmptyState icon="truck" title={t("today.noRequests")}>{t("today.noRequestsBody")}</EmptyState>
           )}
           {data.counts.quotes ? (
             <Pressable accessibilityRole="button" onPress={() => void openWeb("/logistics/quotes")} style={{ backgroundColor: colors.surface, borderRadius: 18, padding: 14, flexDirection: "row", alignItems: "center", gap: 10 }}>
               <AppIcon name="tag" size={20} />
-              <T weight="bold" style={{ flex: 1 }}>{data.counts.quotes} shop{data.counts.quotes === 1 ? "" : "s"} asking for a price</T>
+              <T weight="bold" style={{ flex: 1, fontSize: 15 }}>{t("today.quotes", { count: data.counts.quotes })}</T>
               <AppIcon name="chevron" size={18} color={colors.inkSoft} />
             </Pressable>
           ) : null}
 
-          <Pressable accessibilityRole="button" onPress={() => router.push("/logistics/riders")} style={{ backgroundColor: colors.surface, borderRadius: 18, padding: 14, flexDirection: "row", alignItems: "center", gap: 10 }}>
-            <AppIcon name="truck" size={20} />
-            <T weight="bold" style={{ flex: 1 }}>{data.riders.total ? `${data.riders.out} rider${data.riders.out === 1 ? "" : "s"} out · ${data.riders.offline} offline` : "No riders yet"}</T>
-            <T weight="bold" style={{ color: colors.accentInk }}>See riders</T>
-          </Pressable>
+          {outNow.length ? (
+            <>
+              <SectionTitle action={<LinkButton title={t("today.allRiders")} color={colors.accentInk} onPress={() => router.push("/logistics/riders")} style={{ minHeight: 32 }} />}>{t("today.ridersOut")}</SectionTitle>
+              <Card style={{ paddingVertical: 4 }}>
+                {outNow.slice(0, 6).map((rider, index) => (
+                  <View key={rider.id} style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12, borderTopWidth: index ? 1 : 0, borderTopColor: colors.line }}>
+                    <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: rider.openJobs ? colors.accent : colors.success }} />
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <T weight="bold" style={{ fontSize: 15 }}>{rider.openJobs ? t("today.riderOnJob", { name: rider.name }) : t("today.riderFree", { name: rider.name })}</T>
+                      <T style={{ color: colors.inkSoft, fontSize: 14 }}>{rider.where ?? t("today.seenRecently")}</T>
+                    </View>
+                  </View>
+                ))}
+              </Card>
+            </>
+          ) : null}
 
-          <View style={{ backgroundColor: "#FDF0D5", borderRadius: radii.card, padding: 16, gap: 10 }}>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-              <T weight="extrabold" style={{ fontSize: 15 }}>Cash to pay in</T>
-              <T weight="extrabold" style={{ fontSize: 17 }}>{naira(data.cashToPayIn)}</T>
-            </View>
-            <T style={{ color: "#6B4A00", lineHeight: 20 }}>From pay-on-delivery orders your riders collected in cash.</T>
-            <Pressable accessibilityRole="button" onPress={() => router.push("/logistics/earnings")} style={{ alignSelf: "flex-start", backgroundColor: colors.ink, borderRadius: radii.pill, paddingHorizontal: 16, minHeight: 40, justifyContent: "center" }}>
-              <T weight="bold" style={{ color: "#FFFFFF", fontSize: 13.5 }}>Open cash</T>
+          {data.cashToPayIn > 0 && !data.overdue ? (
+            <Pressable accessibilityRole="button" onPress={() => router.push("/logistics/earnings")} style={{ backgroundColor: "#FDF0D5", borderRadius: radii.card, padding: 16, gap: 6 }}>
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+                <T weight="extrabold" style={{ fontSize: 17, flex: 1 }}>{t("payIn", { amount: naira(data.cashToPayIn), by: data.payInBy ?? t("bySix") })}</T>
+                <AppIcon name="chevron" size={18} color={colors.inkSoft} />
+              </View>
+              <T style={{ color: "#6B4A00", fontSize: 15, lineHeight: 21 }}>{t("codExplain")}</T>
             </Pressable>
-          </View>
+          ) : null}
         </>
       ) : null}
     </PartnerScroll>

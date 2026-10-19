@@ -15,8 +15,10 @@ export const PAYSTACK_BANK_CODES: Record<string, string> = {
   "Guaranty Trust Bank (GTBank)": "058",
   "Heritage Bank": "030",
   "Keystone Bank": "082",
+  "Kuda Microfinance Bank": "50211",
   "Moniepoint MFB": "50515",
   Opay: "999992",
+  PalmPay: "999991",
   "Polaris Bank": "076",
   "Providus Bank": "101",
   "Stanbic IBTC Bank": "221",
@@ -109,7 +111,7 @@ export async function linkSellerPayoutBank(userId: string, bankName: string, acc
   }
   const recipient = await createPaystackTransferRecipient({
     bankName,
-    bankCode: PAYSTACK_BANK_CODES[bankName],
+    bankCode: PAYSTACK_BANK_CODES[bankName] ?? (await settlementBanks())[bankName],
     accountNumber: cleanAccountNumber,
     accountName: accountName.trim(),
   });
@@ -127,4 +129,65 @@ export async function linkSellerPayoutBank(userId: string, bankName: string, acc
     data: { brandSettings: brandSettings as Prisma.InputJsonValue },
   });
   return { success: true };
+}
+
+/**
+ * Every Nigerian bank and fintech Paystack can settle to (GET /bank?country=nigeria), name → code, cached for a few
+ * hours; the short list above when Paystack can't be reached. The Shopinbos Wallet's bank picker uses this.
+ */
+let bankListCache: { at: number; banks: Record<string, string> } | null = null;
+
+export async function settlementBanks(): Promise<Record<string, string>> {
+  if (bankListCache && Date.now() - bankListCache.at < 6 * 60 * 60_000) return bankListCache.banks;
+  const secret = getPaystackSecret();
+  if (!secret) return PAYSTACK_BANK_CODES;
+  try {
+    const response = await fetch("https://api.paystack.co/bank?country=nigeria&currency=NGN&perPage=500", {
+      headers: { Authorization: `Bearer ${secret}` },
+      signal: AbortSignal.timeout(10_000),
+    });
+    const data = (await response.json().catch(() => null)) as { data?: Array<{ name?: unknown; code?: unknown; active?: unknown; is_deleted?: unknown }> } | null;
+    const banks: Record<string, string> = {};
+    for (const bank of data?.data ?? []) {
+      if (typeof bank.name === "string" && typeof bank.code === "string" && bank.active !== false && bank.is_deleted !== true) banks[bank.name.trim()] = bank.code;
+    }
+    if (!response.ok || Object.keys(banks).length < 10) return PAYSTACK_BANK_CODES;
+    // The names people already saved keep working.
+    bankListCache = { at: Date.now(), banks: { ...PAYSTACK_BANK_CODES, ...banks } };
+    return bankListCache.banks;
+  } catch {
+    return PAYSTACK_BANK_CODES;
+  }
+}
+
+export type ResolvedAccount =
+  | { status: "resolved"; accountName: string }
+  /** Paystack doesn't know this number at this bank. */
+  | { status: "not_found" }
+  /** Paystack isn't set up here or didn't answer: the seller types the name instead. */
+  | { status: "unavailable" };
+
+/**
+ * Looks up the name on a bank account (Paystack "Resolve Account Number"), so a seller can confirm it's theirs
+ * before saving it as the payout bank. Saving still goes through linkSellerPayoutBank.
+ */
+export async function resolvePaystackAccount(bankName: string, accountNumber: string): Promise<ResolvedAccount> {
+  const secret = getPaystackSecret();
+  const bankCode = PAYSTACK_BANK_CODES[bankName] ?? (await settlementBanks())[bankName];
+  const digits = accountNumber.replace(/\D/g, "");
+  if (!secret || !bankCode || digits.length !== 10) return { status: "unavailable" };
+  try {
+    const response = await fetch(`https://api.paystack.co/bank/resolve?account_number=${digits}&bank_code=${encodeURIComponent(bankCode)}`, {
+      headers: { Authorization: `Bearer ${secret}` },
+      signal: AbortSignal.timeout(10_000),
+    });
+    const data = await response.json().catch(() => null);
+    const name = typeof data?.data?.account_name === "string" ? data.data.account_name.trim() : "";
+    if (response.ok && data?.status && name) return { status: "resolved", accountName: name };
+    // Paystack answers 422 (or 400) when the number doesn't exist at that bank.
+    if (response.status === 422 || response.status === 400) return { status: "not_found" };
+    return { status: "unavailable" };
+  } catch {
+    return { status: "unavailable" };
+  }
 }

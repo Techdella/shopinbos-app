@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cronAuthorization } from "@/lib/auth/cron";
+import { cronDenied } from "@/lib/auth/cron-request";
 import { runWeeklySummaries } from "@/lib/email/weekly-summary.server";
 
 export const runtime = "nodejs";
@@ -11,11 +11,8 @@ export const maxDuration = 300;
 // docs/migrations/2026-10-16-weekly-summary-product-news.sql) with `Authorization: Bearer $CRON_SECRET`.
 // Safe to call again: each user/week is claimed once (WeeklySummaryLog), and a call carries on where the last stopped.
 export async function GET(req: NextRequest) {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return NextResponse.json({ error: { code: "NOT_CONFIGURED", message: "CRON_SECRET is not set" } }, { status: 503 });
-  if (cronAuthorization(req.headers.get("authorization"), secret) !== "ok") {
-    return NextResponse.json({ error: { code: "UNAUTHORIZED", message: "Invalid cron secret" } }, { status: 401 });
-  }
+  const denied = await cronDenied(req);
+  if (denied) return denied;
   try {
     const result = await runWeeklySummaries({ deadline: Date.now() + 240_000 });
     return NextResponse.json({ data: result });

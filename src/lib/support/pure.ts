@@ -10,6 +10,8 @@ export const TOPICS = [
   { value: "payments", label: "Payments" },
   { value: "store", label: "My store" },
   { value: "orders", label: "Orders" },
+  // "We'll set it up for you": connecting another system, a web address, feeds and other technical jobs.
+  { value: "setup", label: "Set something up for me" },
   { value: "other", label: "Something else" },
 ] as const;
 export type SupportTopic = (typeof TOPICS)[number]["value"];

@@ -107,6 +107,9 @@ export interface PartnerJobSource {
   proofUrl?: string | null;
   createdAt: Date;
   rider?: { id: string; name: string; phone: string | null } | null;
+  /** Supplier pickups: when the rider should collect it. */
+  pickupWindowStart?: Date | null;
+  pickupWindowEnd?: Date | null;
 }
 
 /**
@@ -130,6 +133,7 @@ export function partnerJob(job: PartnerJobSource, buyer?: { name: string | null;
     cod: job.codCollected != null ? { collected: job.codCollected, method: job.codMethod ?? null } : null,
     trackingCode: job.trackingCode,
     estimatedDelivery: job.estimatedDelivery?.toISOString() ?? null,
+    pickupWindow: job.pickupWindowStart && job.pickupWindowEnd ? { start: job.pickupWindowStart.toISOString(), end: job.pickupWindowEnd.toISOString() } : null,
     pickedUpAt: job.pickedUpAt?.toISOString() ?? null,
     deliveredAt: job.deliveredAt?.toISOString() ?? null,
     failedReason: job.failedReason ?? null,

@@ -37,7 +37,13 @@ Run `node scripts/configure-supabase-auth.mjs` from the repo root (see the scrip
 
 ## Builds
 
-Native folders are generated (Continuous Native Generation), so don't commit `ios/` or `android/`. Build with EAS: `npx eas-cli@latest build --profile development`. App ids are `com.shopinbos.app` on both platforms, and the deep-link scheme is `shopinbos`.
+Native folders are generated (Continuous Native Generation), so don't commit `ios/` or `android/`. Build with EAS (profiles in `eas.json`):
+
+1. Once, from `apps/mobile`: `npx eas-cli@latest init`. It creates the Expo project and writes `extra.eas.projectId` into `app.json`; commit that. Push notifications need the project id to get a token (`src/lib/push.ts`).
+2. Add the app's settings as EAS environment variables in the `preview` and `production` environments, which `eas.json` maps to each profile: `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`, `EXPO_PUBLIC_SUPPORT_WHATSAPP`.
+3. `npx eas-cli@latest build --profile preview` builds an installable test app: an APK for Android, ad hoc for registered iPhones. `--profile simulator` builds for the iOS simulator. `--profile production` builds for the stores, and the build number goes up by itself.
+4. `npx eas-cli@latest credentials` sets up the APNs key (iOS push) and the FCM key (Android push), which Expo's push service needs.
+5. `npx eas-cli@latest submit --profile production` uploads to App Store Connect / Google Play. App ids are `com.shopinbos.app` on both platforms, and the deep-link scheme is `shopinbos`.
 
 This folder is outside the web app's TypeScript project and its Next.js build. Vercel only installs the root package.
 

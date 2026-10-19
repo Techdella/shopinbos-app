@@ -1,0 +1,40 @@
+// Draft: needs native-speaker review
+import type en from "./en.ts";
+
+const ha: Partial<Record<keyof typeof en, string>> = {
+  pill: "Koyo",
+  pillTitle: "{title} cikin minti ɗaya",
+  eyebrow: "Koyo · daƙiƙa {seconds}",
+  in60: "cikin minti ɗaya",
+  skip: "Tsallake",
+  close: "Rufe",
+  replay: "Sake kallo",
+  replayFromStart: "Sake farawa daga farko",
+  gotIt: "Na gane",
+  next: "Na gaba",
+  previousScene: "Sashin baya",
+  nextScene: "Sashi na gaba",
+  play: "Kunna",
+  pause: "Dakata",
+  scenes: "Sassa",
+  sceneOf: "Sashi {n} cikin {total}: {caption}",
+  sceneProgress: "Sashi {n} cikin {total}",
+  howToWatch: "Yadda za ka kalla",
+  animated: "Bayani mai motsi",
+  watchVideo: "Kalli bidiyo",
+  wordToKnow: "Kalmar da ya kamata ka sani",
+  forExample: "Misali: {example}",
+  forExampleLabel: "Misali",
+  eg: "Misali: {example}",
+  thatsIt: "Shi ke nan. Yanzu ka san {term}.",
+  replayHint: "Za ka iya sake kallo kowane lokaci daga “Koyo · 60s” a saman wannan shafin.",
+  tipsOffLead: "Ba ka buƙatar shawarwari?",
+  tipsOffLink: "Kashe su a Settings",
+  watchIntro: "Kalli bayanin minti ɗaya",
+  watchIntroLong: "Kalli bayanin minti ɗaya",
+  whatItMeans: "{term}: ma'anarsa",
+  whatItMeansSr: ", ma'anarsa",
+  explains: "Yana bayyana {term}",
+};
+
+export default ha;

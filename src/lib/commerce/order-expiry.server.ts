@@ -11,6 +11,7 @@ import {
   isExpirableOrder,
   isLegacyCheckoutOrder,
   orderStockHolds,
+  parseStockHold,
   paymentDueAt,
   shouldRestoreDiscount,
   unpaidOrderTtlMinutes,
@@ -240,7 +241,10 @@ export async function releaseOrderStock(orderId: string) {
       data: { stockReleasedAt: new Date(), ...(legacy ? { stockHold: JSON.parse(JSON.stringify(holds)) } : {}) },
     });
     if (claimed.count !== 1) return false;
-    await releaseStock(tx, holds);
+    // Read the hold again under the claim: a supplier order that ran out of time may have just given back its
+    // own lines and taken them off the hold (src/lib/supplier-orders/acceptance.server.ts).
+    const fresh = legacy ? null : await tx.retailOrder.findUnique({ where: { id: order.id }, select: { stockHold: true } });
+    await releaseStock(tx, fresh ? parseStockHold(fresh.stockHold) : holds);
     return true;
   });
 }
@@ -249,4 +253,27 @@ export async function releaseOrderStock(orderId: string) {
 export async function releaseOrderDiscount(order: { id: string; storeId: string; discountCode: string | null; discountReleasedAt?: Date | null }, statusBefore: string) {
   if (!shouldRestoreDiscount(order, statusBefore)) return false;
   return db.$transaction((tx) => restoreDiscountUse(tx, order, statusBefore));
+}
+
+/**
+ * The payment could never start for this just-placed order (the gateway refused), so it is cancelled now, as if it
+ * expired: its stock and discount use go back straight away instead of after the payment window. Never throws.
+ */
+export async function cancelUnstartedOrder(orderId: string, issue: string) {
+  try {
+    const order = await db.retailOrder.findUnique({ where: { id: orderId }, select: EXPIRY_SELECT });
+    if (!order) return;
+    const now = new Date();
+    await db.$transaction(async (tx) => {
+      const moved = await tx.retailOrder.updateMany({
+        where: { id: order.id, status: { in: [...UNPAID_STATUSES] }, stockReleasedAt: null },
+        data: { status: "cancelled", expiredAt: now, stockReleasedAt: now, paymentIssue: issue.slice(0, 500) },
+      });
+      if (moved.count !== 1) return;
+      await releaseStock(tx, orderStockHolds(order));
+      await restoreDiscountUse(tx, order, order.status, now);
+    });
+  } catch (error) {
+    console.error(`[order expiry] could not cancel unstarted order ${orderId}`, error);
+  }
 }

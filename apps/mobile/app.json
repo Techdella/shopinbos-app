@@ -12,7 +12,8 @@
       "bundleIdentifier": "com.shopinbos.app",
       "infoPlist": {
         "NSCameraUsageDescription": "Take photos of your products, and proof of delivery photos.",
-        "NSPhotoLibraryUsageDescription": "Choose product photos so Rex can list them in your shop."
+        "NSPhotoLibraryUsageDescription": "Choose product photos so Rex can list them in your shop.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -24,8 +25,13 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "blockedPermissions": [
-        "android.permission.RECORD_AUDIO"
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
       ]
     },
     "web": {
@@ -43,8 +49,7 @@
         "expo-image-picker",
         {
           "photosPermission": "Choose product photos so Rex can list them in your shop.",
-          "cameraPermission": "Take photos of your products, and proof of delivery photos.",
-          "microphonePermission": false
+          "cameraPermission": "Take photos of your products, and proof of delivery photos."
         }
       ],
       [
@@ -55,14 +60,39 @@
           "resizeMode": "contain",
           "backgroundColor": "#0C4A44"
         }
-      ]
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Shopinbos uses the microphone only when you tap the mic, so you can speak instead of typing.",
+          "recordAudioAndroid": true
+        }
+      ],
+      "expo-video",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Shopinbos uses your location only while you're online, so we can give you jobs near you.",
+          "isAndroidBackgroundLocationEnabled": false,
+          "isIosBackgroundLocationEnabled": false
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/android-icon-monochrome.png",
+          "color": "#FF6A2B",
+          "defaultChannel": "orders"
+        }
+      ],
+      "expo-asset"
     ],
-    "owner": "shopinbos-app",
     "extra": {
       "router": {},
       "eas": {
         "projectId": "4ae115fe-eb0f-4c1c-82f4-9e38b3c88c07"
       }
-    }
+    },
+    "owner": "shopinbos-app"
   }
 }

@@ -5,6 +5,8 @@ import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { AssistantNote, Card, CardHead, EmptyState, FilterChips, ListCard, ListRow, Pill, PillLink, type Tone } from "@/components/app-kit";
 import { Notice } from "@/components/app-ui";
 import { Icon, type IconName } from "@/components/ui/Icon";
+import { formatDate } from "@shared/i18n";
+import { getLocale, getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -19,10 +21,17 @@ const PAGE_ICONS: Record<string, IconName> = {
 const SYSTEM_PAGE_TYPES = new Set(["product", "product-detail", "cart", "checkout", "wishlist", "categories"]);
 const LEGAL_PAGE_TYPES = new Set(["privacy-policy", "terms-and-conditions", "cookie-policy", "refund-policy", "shipping-policy", "return-policy"]);
 
-function getPageStatusBadge(isPublished: boolean, storeIsLive: boolean): { label: string; tone: Tone } {
-  if (!storeIsLive) return { label: "Draft · store not live", tone: "warning" };
-  if (isPublished) return { label: "Live", tone: "success" };
-  return { label: "Draft", tone: "muted" };
+type StoreT = Awaited<ReturnType<typeof getT<["store", "common"]>>>;
+
+function getPageStatusBadge(t: StoreT, isPublished: boolean, storeIsLive: boolean): { label: string; tone: Tone } {
+  if (!storeIsLive) return { label: t("pages.badge.notLive"), tone: "warning" };
+  if (isPublished) return { label: t("status.live"), tone: "success" };
+  return { label: t("status.draft"), tone: "muted" };
+}
+
+export async function generateMetadata() {
+  const t = await getT("store");
+  return { title: t("pages.title") };
 }
 
 type PagesPageProps = { searchParams?: Promise<{ drafts?: string }> };
@@ -32,6 +41,8 @@ export default async function PagesPage({ searchParams }: PagesPageProps) {
   const showDrafts = params?.drafts === "1";
 
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("store", "common");
+  const locale = await getLocale();
   const workspace = await getSellerWorkspace(user.id);
   const store = workspace?.store ?? null;
   const storeIsLive = store?.status === "active" || store?.status === "published";
@@ -52,19 +63,19 @@ export default async function PagesPage({ searchParams }: PagesPageProps) {
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title="Pages"
-      sub={`${websitePages.length} ${showDrafts ? "" : "published "}${websitePages.length === 1 ? "page" : "pages"} in your store.`}
-      actions={<PillLink href="/home/editor" tone="accent" icon="plus">Add page</PillLink>}
+      title={t("pages.title")}
+      sub={t(showDrafts ? "pages.subAll" : "pages.subPublished", { count: websitePages.length })}
+      actions={<PillLink href="/home/editor" tone="accent" icon="plus">{t("pages.add")}</PillLink>}
     >
       <div className="grid gap-5">
         <FilterChips
           items={[
-            { label: "Published", href: "/home/pages", active: !showDrafts },
-            { label: "Include drafts", href: "/home/pages?drafts=1", active: showDrafts },
+            { label: t("pages.published"), href: "/home/pages", active: !showDrafts },
+            { label: t("pages.includeDrafts"), href: "/home/pages?drafts=1", active: showDrafts },
           ]}
         />
 
-        {!storeIsLive && <Notice tone="info">Your store is not live yet. Shoppers can only see pages after you publish your store.</Notice>}
+        {!storeIsLive && <Notice tone="info">{t("pages.notLive")}</Notice>}
 
         {websitePages.length > 0 ? (
           <ListCard>
@@ -72,7 +83,7 @@ export default async function PagesPage({ searchParams }: PagesPageProps) {
               const content = (p.content ?? {}) as Record<string, unknown>;
               const seo = (content.seo ?? {}) as Record<string, unknown>;
               const hasSeo = !!(seo.metaTitle || seo.metaDescription);
-              const badge = getPageStatusBadge(p.isPublished, storeIsLive);
+              const badge = getPageStatusBadge(t, p.isPublished, storeIsLive);
               const previewHref = storeIsLive && p.isPublished ? `/s/${store?.slug}/${p.slug}` : `/preview/store/${store?.slug}/${p.id}`;
 
               return (
@@ -86,20 +97,20 @@ export default async function PagesPage({ searchParams }: PagesPageProps) {
                   </a>
                   <div className="flex shrink-0 flex-wrap gap-1.5">
                     <Pill tone={badge.tone} dot>{badge.label}</Pill>
-                    <Pill tone={hasSeo ? "success" : "warning"}>{hasSeo ? "Search ready" : "Search details missing"}</Pill>
+                    <Pill tone={hasSeo ? "success" : "warning"}>{hasSeo ? t("pages.searchReady") : t("pages.searchMissing")}</Pill>
                   </div>
                   <span className="hidden w-[110px] shrink-0 text-[13px] text-app-ink-soft lg:block">
-                    {new Date(p.updatedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                    {formatDate(p.updatedAt, locale, { day: "numeric", month: "short", year: "numeric" })}
                   </span>
                   <div className="flex shrink-0 gap-2">
-                    <PillLink href={`/home/pages/${p.id}`} size="sm" icon="edit">Edit</PillLink>
+                    <PillLink href={`/home/pages/${p.id}`} size="sm" icon="edit">{t("edit")}</PillLink>
                     <a
                       href={previewHref}
                       target="_blank"
                       rel="noreferrer"
                       className="inline-flex min-h-[34px] items-center gap-1.5 rounded-full border border-app-line bg-white px-3.5 text-[13px] font-extrabold text-app-ink no-underline hover:border-app-line-strong"
                     >
-                      <Icon name="eye" size={14} /> Preview
+                      <Icon name="eye" size={14} /> {t("pages.preview")}
                     </a>
                   </div>
                 </ListRow>
@@ -107,17 +118,17 @@ export default async function PagesPage({ searchParams }: PagesPageProps) {
             })}
           </ListCard>
         ) : (
-          <EmptyState icon="document" title={showDrafts ? "No pages yet" : "No published pages"} action={<PillLink href="/home/editor" tone="ink" icon="plus">Create a page</PillLink>}>
-            {showDrafts ? "Create your first page to get started." : "Published pages show here. Include drafts to see pages you are still working on."}
+          <EmptyState icon="document" title={showDrafts ? t("pages.noPages") : t("pages.noPublished")} action={<PillLink href="/home/editor" tone="ink" icon="plus">{t("pages.create")}</PillLink>}>
+            {showDrafts ? t("pages.createFirst") : t("pages.publishedHere")}
           </EmptyState>
         )}
 
         {legalPages.length > 0 && (
           <Card className="overflow-hidden">
-            <CardHead title="Legal pages" action={<PillLink href="/home/legal" size="sm">Manage</PillLink>} className="px-5 pb-3 pt-5" />
+            <CardHead title={t("pages.legal")} action={<PillLink href="/home/legal" size="sm">{t("pages.manage")}</PillLink>} className="px-5 pb-3 pt-5" />
             <ul className="m-0 list-none divide-y divide-app-line border-t border-app-line p-0">
               {legalPages.map((page) => {
-                const badge = getPageStatusBadge(page.isPublished, storeIsLive);
+                const badge = getPageStatusBadge(t, page.isPublished, storeIsLive);
                 return (
                   <li key={page.id} className="flex items-center gap-3 px-5 py-3">
                     <Icon name="shield" size={16} className="shrink-0 text-app-ink-soft" />
@@ -131,7 +142,7 @@ export default async function PagesPage({ searchParams }: PagesPageProps) {
         )}
 
         <AssistantNote who="peggy">
-          <strong>Peggy&apos;s tip:</strong> open each page to set its search details, menu spot and publishing before you go live.
+          <strong>{t("pages.tipLead")}</strong> {t("pages.tip")}
         </AssistantNote>
       </div>
     </SellerPage>

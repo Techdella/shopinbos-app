@@ -15,13 +15,15 @@ const STALE_BUILD_PATTERNS = [
   /Importing a module script failed/i,
   /error loading dynamically imported module/i,
   /Failed to find Server Action/i,
+  // Next.js 16 in the browser: the old page called a server action the new deployment renamed.
+  /Server Action "?[\w-]*"? was not found on the server/i,
 ];
 
 /** True when an error looks like the page is running an older build than the server (missing chunk or action). */
 export function isStaleBuildError(error: unknown) {
   if (!error || typeof error !== "object") return false;
   const { name, message } = error as { name?: unknown; message?: unknown };
-  if (name === "ChunkLoadError") return true;
+  if (name === "ChunkLoadError" || name === "UnrecognizedActionError") return true;
   const text = typeof message === "string" ? message : "";
   return text.length > 0 && STALE_BUILD_PATTERNS.some((pattern) => pattern.test(text));
 }

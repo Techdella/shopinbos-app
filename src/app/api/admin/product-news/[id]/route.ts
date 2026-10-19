@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db/client";
 import { apiError } from "@/lib/api/response";
 import { withAdmin } from "@/lib/auth/middleware";
 import { newsError, parseNewsInput } from "@/lib/email/product-news.api";
-import { BROADCAST_SELECT, deleteDraft, unscheduleBroadcast, updateBroadcast } from "@/lib/email/product-news.server";
+import { deleteDraft, loadBroadcast, unscheduleBroadcast, updateBroadcast } from "@/lib/email/product-news.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// GET /api/admin/product-news/:id — one email with its progress (sent, failed, skipped)
+// GET /api/admin/product-news/:id — one email with its progress (sent, failed, skipped) and retryableCount
 export const GET = withAdmin(async (_req: NextRequest, { params }) => {
-  const broadcast = await db.productNewsBroadcast.findUnique({ where: { id: String(params.id) }, select: BROADCAST_SELECT });
+  const broadcast = await loadBroadcast(String(params.id));
   return broadcast ? NextResponse.json({ data: broadcast }) : apiError("NOT_FOUND", "Not found", 404);
 });
 

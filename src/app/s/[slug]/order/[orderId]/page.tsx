@@ -1,27 +1,35 @@
+import type { Metadata } from "next";
 import { shopperOrder } from "@/lib/commerce/stock-holds";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import { db } from "@/lib/db/client";
 import { updateOrderPayment } from "@/app/actions/payments";
+import { refreshKorapayOrderPayment } from "@/lib/commerce/korapay-orders.server";
 import { OrderConfirmation } from "./OrderConfirmation";
 import { getStorefrontBasePathForHost } from "@/lib/domains/storefront";
 import { loadOrderNextSteps } from "./order-props";
 import { orderRewards } from "@/lib/gamification/play.server";
 
+// A shopper's own order: never listed by search engines.
+export const metadata: Metadata = { title: "Your order", robots: { index: false, follow: false } };
+
 interface Props {
   params: Promise<{ slug: string; orderId: string }>;
-  searchParams: Promise<{ reference?: string }>;
+  searchParams: Promise<{ reference?: string; gateway?: string }>;
 }
 
 export default async function OrderPage({ params, searchParams }: Props) {
   const { slug, orderId } = await params;
-  const { reference } = await searchParams;
+  const { reference, gateway } = await searchParams;
 
   // Paystack redirected here with a reference: confirm it with Paystack before marking the order paid.
   // The reference is visible to the buyer, so it is never trusted on its own.
-  if (reference) {
+  // Korapay also adds ?reference= (its own, with ?gateway=korapay): that one is not a Paystack reference.
+  if (reference && !gateway) {
     await updateOrderPayment(orderId, reference).catch(() => null);
   }
+  // Korapay orders are confirmed with Korapay when the shopper lands here, never from the URL.
+  await refreshKorapayOrderPayment(orderId);
 
   const order = await db.retailOrder.findUnique({ where: { id: orderId } });
   if (!order) notFound();

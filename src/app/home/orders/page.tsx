@@ -7,28 +7,39 @@ import { db } from "@/lib/db/client";
 import { orderRow } from "@/lib/dashboard/compute";
 import { PAID_ORDER_STATUSES } from "@/lib/insights";
 import { CHANNEL_LABEL, type OrderChannel } from "@shared/channels";
-import { naira } from "@shared/onboarding";
+import { formatMoney, formatNumber } from "@shared/i18n";
+import { getLocale, getT } from "@/lib/i18n/server";
+import { pageWindow } from "@/lib/pagination";
+import { Pagination } from "@/components/seller/Pagination";
 
 export const dynamic = "force-dynamic";
 
-const PAGE_SIZE = 100;
+const PAGE_SIZE = 50;
 
-const FILTERS: Array<{ key: string; label: string; statuses: RetailOrderStatus[] | null }> = [
-  { key: "all", label: "All", statuses: null },
-  { key: "needs_action", label: "Needs action", statuses: ["pending", "awaiting_payment", "paid", "processing", "packed"] },
-  { key: "to_send", label: "To send", statuses: ["paid", "processing", "packed"] },
-  { key: "on_the_way", label: "On the way", statuses: ["shipped"] },
-  { key: "delivered", label: "Delivered", statuses: ["delivered"] },
-  { key: "unpaid", label: "Unpaid", statuses: ["pending", "awaiting_payment"] },
+const FILTERS: Array<{ key: "all" | "needs_action" | "to_send" | "on_the_way" | "delivered" | "unpaid"; statuses: RetailOrderStatus[] | null }> = [
+  { key: "all", statuses: null },
+  { key: "needs_action", statuses: ["pending", "awaiting_payment", "paid", "processing", "packed"] },
+  { key: "to_send", statuses: ["paid", "processing", "packed"] },
+  { key: "on_the_way", statuses: ["shipped"] },
+  { key: "delivered", statuses: ["delivered"] },
+  { key: "unpaid", statuses: ["pending", "awaiting_payment"] },
 ];
+
+export async function generateMetadata() {
+  const t = await getT("orders");
+  return { title: t("list.title") };
+}
 
 export default async function OrdersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ filter?: string; q?: string }>
+  searchParams: Promise<{ filter?: string; q?: string; page?: string }>
 }) {
-  const { filter: rawFilter, q: rawQuery } = await searchParams;
+  const { filter: rawFilter, q: rawQuery, page: rawPage } = await searchParams;
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("orders", "common");
+  const locale = await getLocale();
+  const naira = (amount: number) => formatMoney(Math.round(amount), locale);
 
   const store = await db.store.findUnique({
     where: { userId: user.id },
@@ -49,14 +60,16 @@ export default async function OrdersPage({
     ];
   }
 
-  const [orders, matching, byStatus, paidSales] = store
+  const [matching, byStatus, paidSales] = store
     ? await Promise.all([
-        db.retailOrder.findMany({ where, orderBy: { createdAt: "desc" }, take: PAGE_SIZE }),
         db.retailOrder.count({ where }),
         db.retailOrder.groupBy({ by: ["status"], where: { storeId: store.id }, _count: { _all: true } }),
         db.retailOrder.aggregate({ where: { storeId: store.id, status: { in: [...PAID_ORDER_STATUSES] } }, _sum: { total: true } }),
       ])
-    : [[], 0, [], null];
+    : [0, [], null];
+  // A page past the end shows the last page; the count comes first so the query can skip to it.
+  const paging = pageWindow(rawPage, matching, PAGE_SIZE);
+  const orders = store && matching ? await db.retailOrder.findMany({ where, orderBy: { createdAt: "desc" }, skip: paging.skip, take: paging.take }) : [];
 
   const statusCount = new Map(byStatus.map((row) => [row.status as string, row._count._all]));
   const countFor = (statuses: RetailOrderStatus[] | null) =>
@@ -75,8 +88,8 @@ export default async function OrdersPage({
   return (
     <AppPage
       frame={sellerFrame(user, store)}
-      title="Orders"
-      sub={totalOrders > 0 ? `${totalOrders.toLocaleString("en-NG")} orders · ${naira(revenue)} in paid sales` : undefined}
+      title={t("list.title")}
+      sub={totalOrders > 0 ? t("list.sub", { count: formatNumber(totalOrders, locale), amount: naira(revenue) }) : undefined}
       actions={
         <>
           <a
@@ -85,38 +98,39 @@ export default async function OrdersPage({
             className="inline-flex min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-full border border-app-line bg-white px-5 text-[14px] font-extrabold text-app-ink no-underline transition hover:border-app-line-strong"
           >
             <Icon name="download" size={16} />
-            Export
+            {t("list.export")}
           </a>
-          <PillLink href="/home/orders/new" tone="accent" icon="plus">Record a sale</PillLink>
+          <PillLink href="/home/orders/new" tone="accent" icon="plus">{t("recordSale")}</PillLink>
         </>
       }
       toolbar={
         <>
           <FilterChips
-            items={FILTERS.map((item) => ({ label: item.label, href: chipHref(item.key), count: countFor(item.statuses), active: item.key === filter.key }))}
+            items={FILTERS.map((item) => ({ label: t(`filter.${item.key}`), href: chipHref(item.key), count: countFor(item.statuses), active: item.key === filter.key }))}
           />
-          <SearchForm action="/home/orders" defaultValue={query} placeholder="Search name, phone or order no." keep={{ filter: filter.key === "all" ? undefined : filter.key }} />
+          <SearchForm action="/home/orders" defaultValue={query} placeholder={t("list.search")} keep={{ filter: filter.key === "all" ? undefined : filter.key }} />
         </>
       }
     >
       {totalOrders === 0 ? (
         <EmptyState
           icon="bag"
-          title="No orders yet"
-          action={<PillLink href="/home/orders/new" tone="ink" icon="plus">Record a sale</PillLink>}
+          title={t("list.empty")}
+          action={<PillLink href="/home/orders/new" tone="ink" icon="plus">{t("recordSale")}</PillLink>}
         >
-          Share your store link to start getting orders, or record a sale you made on WhatsApp, Instagram or in person.
+          {t("list.emptySub")}
         </EmptyState>
       ) : orders.length === 0 ? (
-        <EmptyState icon="search" title="No orders match" action={<PillLink href="/home/orders">Show all orders</PillLink>}>
-          {query ? `Nothing matches “${query}” in this view.` : "There are no orders in this view right now."}
+        <EmptyState icon="search" title={t("list.noMatch")} action={<PillLink href="/home/orders">{t("list.showAll")}</PillLink>}>
+          {query ? t("list.nothingMatches", { query }) : t("list.noneInView")}
         </EmptyState>
       ) : (
         <>
           <ListCard>
             {orders.map((order) => {
               const row = orderRow({ ...order, total: Number(order.total) });
-              const channel = order.channel ? CHANNEL_LABEL[order.channel as OrderChannel] ?? order.channel : null;
+              const channelLabel = order.channel ? CHANNEL_LABEL[order.channel as OrderChannel] ?? order.channel : null;
+              const channel = channelLabel ? t.dynamic(`channel.${channelLabel}`, channelLabel) : null;
               return (
                 <ListRow key={order.id} href={`/home/orders/${order.id}`}>
                   <div className="flex w-full min-w-0 items-start gap-3.5 md:items-center md:gap-4">
@@ -129,9 +143,9 @@ export default async function OrdersPage({
                         </div>
                       </div>
                       <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5 xl:contents">
-                        <StageDot tone={row.stage.tone}>{row.stage.label}</StageDot>
+                        <StageDot tone={row.stage.tone}>{t.dynamic(`stage.${row.stage.label}`, row.stage.label)}</StageDot>
                         <span>
-                          <Pill tone={row.payment.tone}>{row.payment.label}</Pill>
+                          <Pill tone={row.payment.tone}>{t.dynamic(`pay.${row.payment.label}`, row.payment.label)}</Pill>
                         </span>
                         <span className="hidden truncate text-[13.5px] text-app-ink-soft xl:block">{channel ?? "—"}</span>
                       </div>
@@ -139,7 +153,7 @@ export default async function OrdersPage({
                         <span className="text-[15px] font-extrabold xl:text-right">{naira(row.total)}</span>
                         <span className="text-[12.5px] text-app-ink-soft xl:text-right">
                           <span className="xl:hidden">{channel ? `${channel} · ` : ""}</span>
-                          <time dateTime={order.createdAt.toISOString()}>{timeAgo(order.createdAt)}</time>
+                          <time dateTime={order.createdAt.toISOString()}>{timeAgo(order.createdAt, Date.now(), locale)}</time>
                         </span>
                       </div>
                     </div>
@@ -148,9 +162,12 @@ export default async function OrdersPage({
               );
             })}
           </ListCard>
-          <p className="mb-0 mt-3 text-[13px] text-app-ink-soft">
-            {matching > orders.length ? `Showing the latest ${orders.length} of ${matching.toLocaleString("en-NG")} orders.` : `${matching.toLocaleString("en-NG")} ${matching === 1 ? "order" : "orders"}`}
-          </p>
+          <Pagination
+            {...paging}
+            base="/home/orders"
+            params={{ filter: filter.key === "all" ? undefined : filter.key, q: query || undefined }}
+            label={t("list.pages")}
+          />
         </>
       )}
     </AppPage>

@@ -1,0 +1,42 @@
+// Draft: needs native-speaker review
+import type en from "./en.ts";
+
+const ig: Partial<Record<keyof typeof en, string>> = {
+  "metaTitle": "Affiliates",
+  "title": "Ndị creator na affiliates",
+  "sub": "Nye creator link nke ya. Mgbe mmadụ zụrụ site na ya ma e bute order ahụ, ha ga-enweta òkè. Ị ga-akwụ ha ụgwọ, anyị ga-edebe ọnụ ọgụgụ.",
+  "myShop": "ụlọ ahịa m",
+  "err.add": "Anyị enweghị ike itinye creator a.",
+  "err.update": "Anyị enweghị ike imelite creator a.",
+  "err.copy": "O nweghị ike ịdepụta. Họrọ link ahụ ma depụta ya.",
+  "add.title": "Tinye creator",
+  "add.name": "Aha",
+  "add.namePlaceholder": "dịka Tolu Styles",
+  "add.whatsapp": "WhatsApp (ọ bụrụ na ị chọrọ)",
+  "add.rate": "Ihe ha ga-enweta (%)",
+  "add.create": "Mepụta link",
+  "invite": "Ndewo {name}! Nke a bụ link {store} gị: {link}\nỊ ga-enweta {rate}% n'order ọ bụla si na ya ozugbo e butere ya. A na-akwụ ụgwọ na Fraịde.",
+  "rateCode": "{rate}% nke order ọ bụla e butere · code {code}",
+  "linkOn": "Link dị ndụ",
+  "linkOff": "Link agbanyụọla",
+  "linkIsOn": "Link {name} dị ndụ",
+  "linkIsOff": "Link {name} agbanyụọla",
+  "sendWhatsApp": "Ziga na WhatsApp",
+  "stat.orders": "Orders",
+  "stat.sales": "Ahịa e butere",
+  "stat.pending": "Na-eche nnyefe",
+  "stat.paid": "Ihe a kwụrụla ruo ugbu a",
+  "youOwe": "Ị ji {amount}",
+  "payBy": "Kwụọ {name} tupu {date}, wee kaa akara na ị kwụọla.",
+  "markPaid": "Kaa akara na a kwụọla",
+  "order.paid": "a kwụọla",
+  "order.owed": "ị ji",
+  "order.none": "enweghị commission",
+  "order.after": "mgbe e butere",
+  "confirmRemove": "Wepụ {name}? Link ha ga-akwụsị ịrụ ọrụ. Orders ha wetara ga-anọgide n'akụkọ gị.",
+  "removeCreator": "Wepụ creator",
+  "owedTotal": "Ị ji ndị creator {amount} n'ozuzu maka orders e butere. Ụbọchị ịkwụ ụgwọ bụ {date}.",
+  "emptyBody": "Tinye creator n'elu ka i nweta link ha. Onye ọ bụla zụrụ site na ya n'ime ụbọchị 30 ga-agụta, ha ga-enwetakwa ego ozugbo e butere order ahụ.",
+};
+
+export default ig;

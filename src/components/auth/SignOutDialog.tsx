@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { PillButton, Spinner } from "@/components/app-ui";
 import { signOutOfShopinbos } from "./sign-out";
+import { useT } from "@/components/i18n/I18nProvider";
 
 const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])';
 
@@ -22,6 +23,7 @@ export function SignOutDialog({
   scope?: "local" | "global";
   beforeSignOut?: () => void;
 }) {
+  const t = useT("auth", "common");
   const titleId = useId();
   const bodyId = useId();
   const panel = useRef<HTMLDivElement>(null);
@@ -87,16 +89,14 @@ export function SignOutDialog({
         className="w-full rounded-t-[22px] bg-white px-5 pb-6 pt-5 shadow-[0_30px_60px_-30px_rgba(22,20,31,0.5)] sm:max-w-[420px] sm:rounded-[22px] sm:p-6"
       >
         <h2 id={titleId} className="m-0 text-[20px] font-extrabold tracking-[-0.3px]">
-          {global ? "Log out of all devices?" : "Log out of Shopinbos?"}
+          {global ? t("signout.titleAll") : t("signout.title")}
         </h2>
         <p id={bodyId} className="mb-0 mt-2 text-[14.5px] leading-[1.55] text-app-ink-soft">
-          {global
-            ? "This logs you out here and on every phone, tablet and computer signed in to your account. You'll need your code or password to get back in."
-            : "You'll need your code or password to get back in."}
+          {global ? t("signout.bodyAll") : t("signout.body")}
         </p>
         <div className="mt-6 flex flex-col-reverse gap-2.5 sm:flex-row sm:justify-end">
           <PillButton ref={cancelButton} tone="white" size="md" onClick={onCancel} disabled={busy}>
-            Cancel
+            {t("cancel")}
           </PillButton>
           <button
             type="button"
@@ -104,7 +104,7 @@ export function SignOutDialog({
             disabled={busy}
             className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full bg-app-danger px-5 text-[15px] font-bold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-55"
           >
-            {busy ? <Spinner /> : global ? "Log out everywhere" : "Log out"}
+            {busy ? <Spinner /> : global ? t("signout.everywhere") : t("logOut")}
           </button>
         </div>
       </div>

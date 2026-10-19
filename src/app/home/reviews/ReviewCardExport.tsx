@@ -4,8 +4,10 @@ import { useCallback, useState } from "react";
 import { toPng } from "html-to-image";
 import { Icon } from "@/components/ui/Icon";
 import { pillButton } from "@/components/seller-core";
+import { useT } from "@/components/i18n/I18nProvider";
 
 export function ReviewCardExport({ reviewId }: { reviewId: string }) {
+  const t = useT("reviews");
   const [busy, setBusy] = useState(false);
   const handleExport = useCallback(async () => {
     const el = document.getElementById(`review-${reviewId}`);
@@ -33,7 +35,7 @@ export function ReviewCardExport({ reviewId }: { reviewId: string }) {
   return (
     <button type="button" onClick={handleExport} disabled={busy} className={pillButton.white}>
       <Icon name="image" size={14} />
-      {busy ? "Saving…" : "Save as image"}
+      {busy ? t("export.saving") : t("export.save")}
     </button>
   );
 }

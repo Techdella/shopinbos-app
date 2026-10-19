@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { Notice, PillButton, Spinner, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { field } from "@/components/seller-core";
+import { useLocale, useT } from "@/components/i18n/I18nProvider";
+import { formatMoney } from "@shared/i18n";
 
 interface Product {
   id: string;
@@ -29,7 +31,7 @@ type RawProduct = { id?: string; name?: string; image?: string | null; images?: 
 // store products (images[], retailPrice); both are flattened to one shape here.
 function toProduct(raw: RawProduct & { product?: RawProduct }): Product {
   const p = raw.product ?? raw;
-  return { id: String(p.id ?? ""), name: String(p.name ?? "Product"), image: p.image ?? p.images?.[0] ?? null, price: p.price ?? p.retailPrice ?? null };
+  return { id: String(p.id ?? ""), name: String(p.name ?? ""), image: p.image ?? p.images?.[0] ?? null, price: p.price ?? p.retailPrice ?? null };
 }
 
 function toCollection(raw: Record<string, unknown>): CollectionDetail {
@@ -58,9 +60,10 @@ function Thumb({ product }: { product: Product }) {
   );
 }
 
-const money = (price: number | null) => (price == null ? "—" : `₦${Math.round(price).toLocaleString("en-NG")}`);
-
 export function CollectionDetailClient({ id }: { id: string }) {
+  const t = useT("products", "common");
+  const locale = useLocale();
+  const money = (price: number | null) => (price == null ? "—" : formatMoney(Math.round(price), locale));
   const [collection, setCollection] = useState<CollectionDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState<{ tone: "success" | "error"; text: string } | null>(null);
@@ -78,11 +81,11 @@ export function CollectionDetailClient({ id }: { id: string }) {
       const data = await res.json();
       if (data.data) setCollection(toCollection(data.data));
     } catch {
-      setNotice({ tone: "error", text: "Could not load collection" });
+      setNotice({ tone: "error", text: t("col.loadOneFailed") });
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, t]);
 
   useEffect(() => {
     void load();
@@ -113,11 +116,11 @@ export function CollectionDetailClient({ id }: { id: string }) {
       const data = await res.json();
       if (Array.isArray(data.data)) setSearchResults(data.data.map(toProduct));
     } catch {
-      setNotice({ tone: "error", text: "Search failed" });
+      setNotice({ tone: "error", text: t("col.searchFailed") });
     } finally {
       setSearching(false);
     }
-  }, []);
+  }, [t]);
 
   const addProducts = useCallback(async () => {
     if (selectedIds.size === 0) return;
@@ -131,17 +134,17 @@ export function CollectionDetailClient({ id }: { id: string }) {
       if (res.ok) {
         await load();
         closeModal();
-        setNotice({ tone: "success", text: "Products added" });
+        setNotice({ tone: "success", text: t("col.added") });
       } else {
         const data = await res.json().catch(() => null);
-        setNotice({ tone: "error", text: data?.error?.message ?? "Could not add products" });
+        setNotice({ tone: "error", text: data?.error?.message ?? t("col.addFailed") });
       }
     } catch {
-      setNotice({ tone: "error", text: "Could not add products" });
+      setNotice({ tone: "error", text: t("col.addFailed") });
     } finally {
       setAdding(false);
     }
-  }, [id, selectedIds, load, closeModal]);
+  }, [id, selectedIds, load, closeModal, t]);
 
   const removeProduct = useCallback(async (productId: string) => {
     setRemoving(productId);
@@ -153,17 +156,17 @@ export function CollectionDetailClient({ id }: { id: string }) {
       });
       if (res.ok) {
         await load();
-        setNotice({ tone: "success", text: "Product removed" });
+        setNotice({ tone: "success", text: t("col.removed") });
       } else {
         const data = await res.json().catch(() => null);
-        setNotice({ tone: "error", text: data?.error?.message ?? "Could not remove product" });
+        setNotice({ tone: "error", text: data?.error?.message ?? t("col.removeFailed") });
       }
     } catch {
-      setNotice({ tone: "error", text: "Could not remove product" });
+      setNotice({ tone: "error", text: t("col.removeFailed") });
     } finally {
       setRemoving(null);
     }
-  }, [id, load]);
+  }, [id, load, t]);
 
   const toggleSelected = useCallback((productId: string) => {
     setSelectedIds((prev) => {
@@ -175,11 +178,11 @@ export function CollectionDetailClient({ id }: { id: string }) {
   }, []);
 
   if (loading) {
-    return <div className="flex items-center justify-center gap-2 rounded-[22px] border border-app-line bg-white px-6 py-12 text-[14px] text-app-ink-soft"><Spinner /> Loading collection…</div>;
+    return <div className="flex items-center justify-center gap-2 rounded-[22px] border border-app-line bg-white px-6 py-12 text-[14px] text-app-ink-soft"><Spinner /> {t("col.loadingOne")}</div>;
   }
 
   if (!collection) {
-    return <Notice>Collection not found.</Notice>;
+    return <Notice>{t("col.notFound")}</Notice>;
   }
 
   return (
@@ -187,7 +190,7 @@ export function CollectionDetailClient({ id }: { id: string }) {
       {notice && (
         <div className="flex items-start gap-2">
           <div className="min-w-0 flex-1"><Notice tone={notice.tone}>{notice.text}</Notice></div>
-          <button type="button" onClick={() => setNotice(null)} aria-label="Dismiss message" className="grid h-11 w-11 shrink-0 place-items-center rounded-full hover:bg-black/[0.04]">
+          <button type="button" onClick={() => setNotice(null)} aria-label={t("dismiss")} className="grid h-11 w-11 shrink-0 place-items-center rounded-full hover:bg-black/[0.04]">
             <Icon name="x" size={16} />
           </button>
         </div>
@@ -211,14 +214,14 @@ export function CollectionDetailClient({ id }: { id: string }) {
 
       <section className="overflow-hidden rounded-[22px] border border-app-line bg-white">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-app-line px-4 py-3.5 sm:px-5">
-          <h2 className="m-0 text-[17px] font-extrabold">Products · {collection.products.length}</h2>
+          <h2 className="m-0 text-[17px] font-extrabold">{t("col.productsCount", { count: collection.products.length })}</h2>
           <PillButton tone="ink" size="sm" onClick={() => setShowAddModal(true)}>
-            <Icon name="plus" size={14} /> Add products
+            <Icon name="plus" size={14} /> {t("col.addProducts")}
           </PillButton>
         </div>
         {collection.products.length === 0 ? (
           <p className="m-0 px-5 py-10 text-center text-[14px] text-app-ink-soft">
-            No products in this collection yet. Use &ldquo;Add products&rdquo; to pick some.
+            {t("col.noneIn")}
           </p>
         ) : (
           <ul className="m-0 list-none divide-y divide-app-line p-0">
@@ -226,18 +229,18 @@ export function CollectionDetailClient({ id }: { id: string }) {
               <li key={p.id} className="flex items-center gap-3.5 px-4 py-3 sm:px-5">
                 <Thumb product={p} />
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-[15px] font-extrabold">{p.name}</div>
+                  <div className="truncate text-[15px] font-extrabold">{p.name || t("col.product")}</div>
                   <div className="text-[13px] text-app-ink-soft">{money(p.price)}</div>
                 </div>
                 <button
                   type="button"
                   onClick={() => void removeProduct(p.id)}
                   disabled={removing === p.id}
-                  aria-label={`Remove ${p.name} from this collection`}
+                  aria-label={t("col.removeFrom", { name: p.name || t("col.product") })}
                   className="inline-flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-full border border-app-line bg-white px-3.5 text-[13px] font-bold text-app-danger hover:border-app-danger disabled:opacity-55"
                 >
                   {removing === p.id ? <Spinner className="h-4 w-4" /> : <Icon name="x" size={14} />}
-                  <span className="hidden sm:inline">Remove</span>
+                  <span className="hidden sm:inline">{t("remove")}</span>
                 </button>
               </li>
             ))}
@@ -255,8 +258,8 @@ export function CollectionDetailClient({ id }: { id: string }) {
             className="flex max-h-[90dvh] w-full flex-col overflow-hidden rounded-t-[22px] bg-white font-app text-app-ink sm:max-h-[80vh] sm:max-w-[560px] sm:rounded-[22px]"
           >
             <div className="flex items-center justify-between gap-3 border-b border-app-line px-5 py-4">
-              <h2 id="add-products-title" className="m-0 text-[17px] font-extrabold">Add products</h2>
-              <button type="button" onClick={closeModal} aria-label="Close" className="grid h-10 w-10 place-items-center rounded-full hover:bg-app-canvas">
+              <h2 id="add-products-title" className="m-0 text-[17px] font-extrabold">{t("col.addProducts")}</h2>
+              <button type="button" onClick={closeModal} aria-label={t("close")} className="grid h-10 w-10 place-items-center rounded-full hover:bg-app-canvas">
                 <Icon name="x" size={18} />
               </button>
             </div>
@@ -265,17 +268,17 @@ export function CollectionDetailClient({ id }: { id: string }) {
                 value={searchQuery}
                 onChange={(e) => searchProducts(e.target.value)}
                 className={field.input}
-                placeholder="Search your products"
-                aria-label="Search your products"
+                placeholder={t("col.search")}
+                aria-label={t("col.search")}
                 autoFocus
               />
             </div>
             <div className="min-h-[200px] flex-1 overflow-auto p-2">
               {searching ? (
-                <div className="flex items-center justify-center gap-2 p-6 text-[14px] text-app-ink-soft"><Spinner /> Searching…</div>
+                <div className="flex items-center justify-center gap-2 p-6 text-[14px] text-app-ink-soft"><Spinner /> {t("col.searching")}</div>
               ) : searchResults.length === 0 ? (
                 <p className="m-0 p-6 text-center text-[14px] text-app-ink-soft">
-                  {searchQuery ? "No products found" : "Type to search for products"}
+                  {searchQuery ? t("col.noneFound") : t("col.typeToSearch")}
                 </p>
               ) : (
                 <ul className="m-0 grid list-none gap-1 p-0">
@@ -296,11 +299,11 @@ export function CollectionDetailClient({ id }: { id: string }) {
                         >
                           <Thumb product={p} />
                           <span className="min-w-0 flex-1">
-                            <span className="block truncate text-[14.5px] font-bold">{p.name}</span>
+                            <span className="block truncate text-[14.5px] font-bold">{p.name || t("col.product")}</span>
                             <span className="block text-[13px] text-app-ink-soft">{money(p.price)}</span>
                           </span>
                           {alreadyIn ? (
-                            <span className="rounded-full bg-app-canvas px-2.5 py-1 text-[12px] font-bold text-app-ink-soft">Added</span>
+                            <span className="rounded-full bg-app-canvas px-2.5 py-1 text-[12px] font-bold text-app-ink-soft">{t("col.alreadyAdded")}</span>
                           ) : selected ? (
                             <Icon name="checkCircle" size={20} className="text-app-forest" />
                           ) : null}
@@ -312,9 +315,9 @@ export function CollectionDetailClient({ id }: { id: string }) {
               )}
             </div>
             <div className="flex flex-wrap justify-end gap-2 border-t border-app-line px-5 py-3">
-              <PillButton tone="white" size="md" onClick={closeModal}>Cancel</PillButton>
+              <PillButton tone="white" size="md" onClick={closeModal}>{t("cancel")}</PillButton>
               <PillButton tone="accent" size="md" onClick={() => void addProducts()} disabled={selectedIds.size === 0} busy={adding}>
-                Add {selectedIds.size > 0 ? `(${selectedIds.size})` : ""}
+                {selectedIds.size > 0 ? t("col.addN", { count: selectedIds.size }) : t("col.add")}
               </PillButton>
             </div>
           </div>

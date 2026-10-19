@@ -3,14 +3,16 @@ import "server-only";
 import { randomBytes } from "node:crypto";
 import { z } from "zod";
 import { db } from "@/lib/db/client";
+import { recordMetaUser } from "@/lib/meta/user-links.server";
 import { encryptJson, decryptJson, hasCredentialKey, randomSecret } from "./crypto";
 import { inboxAddress, inboxEmailDomain } from "./channels/email";
+import { disconnectEmail } from "@/lib/email-channel/gmail.server";
 import { subscribePage, verifyMetaPage } from "./channels/meta";
 import { connectTelegram, disconnectTelegram } from "./channels/telegram";
 import { smsProvider, SMS_PROVIDER_MODULES } from "@/lib/sms";
 import { isSmsProvider, providerWebhookUrl, SMS_PROVIDER_LABELS, storeNumber, termiiBaseUrl, type SmsProviderKey } from "@/lib/sms/pure";
 import { appUrl } from "./channels/types";
-import { exchangeSignupCode, registerWhatsAppNumber, subscribeWaba, verifyWhatsApp, whatsappTokenExpiry } from "./channels/whatsapp";
+import { embeddedSignupConfig, exchangeSignupCode, registerWhatsAppNumber, subscribeWaba, verifyWhatsApp, whatsappTokenExpiry } from "./channels/whatsapp";
 import { CONNECTABLE_CHANNELS, normalisePhone, type ConnectableChannel } from "./pure";
 
 // Connecting a channel: validate what the seller pasted, check it with the provider, encrypt it, and wire the
@@ -114,7 +116,7 @@ export function platformReadiness() {
     emailDomain: inboxEmailDomain(),
     metaAppSecret: Boolean(process.env.META_APP_SECRET),
     metaVerifyToken: Boolean(process.env.META_WEBHOOK_VERIFY_TOKEN),
-    whatsappEmbeddedSignup: Boolean(process.env.META_APP_ID && process.env.META_CONFIG_ID && process.env.META_APP_SECRET),
+    whatsappEmbeddedSignup: embeddedSignupConfig() !== null,
   };
 }
 
@@ -150,13 +152,17 @@ export async function connectChannel(store: { id: string; slug: string }, channe
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the details and try again." };
   const input = parsed.data as Record<string, string | undefined>;
   if (channel !== "email" && !hasCredentialKey()) {
-    return { ok: false, error: "This server can't store channel keys safely yet (INBOX_ENCRYPTION_KEY isn't set). Ask your Shopinbos admin." };
+    return { ok: false, error: "Connecting isn't switched on yet. Tap Help and we'll connect it for you." };
   }
 
   if (channel === "email") {
-    if (!process.env.RESEND_API_KEY) return { ok: false, error: "Email sending isn't set up on this server yet (RESEND_API_KEY)." };
+    if (!process.env.RESEND_API_KEY) return { ok: false, error: "Email isn't switched on yet. Tap Help and we'll sort it out." };
     const address = inboxAddress(store.slug);
-    await save(store.id, "email", { externalId: address, displayName: address ?? "Replies by email", credentials: null });
+    // The store's Shopinbos inbox address. A domain set up earlier stays in the settings, so it can be finished later.
+    const current = await db.inboxChannel.findUnique({ where: { storeId_channel: { storeId: store.id, channel: "email" } }, select: { settings: true } });
+    const { gmail: _gmail, ...kept } = (current?.settings as Record<string, unknown> | null) ?? {};
+    void _gmail;
+    await save(store.id, "email", { externalId: address, displayName: address ?? "Replies by email", credentials: null, settings: { ...kept, provider: "platform" } });
     return { ok: true, view: await viewOf(store.id, "email") };
   }
 
@@ -174,6 +180,7 @@ export async function connectChannel(store: { id: string; slug: string }, channe
     const credentials = { pageAccessToken: input.pageAccessToken!, pageId: check.pageId, ...(input.appSecret ? { appSecret: input.appSecret } : {}) };
     const row = await save(store.id, channel, { externalId, displayName: check.displayName, credentials, webhookSecret: randomSecret() });
     if (!subscribed.ok) await db.inboxChannel.update({ where: { id: row.id }, data: { lastError: subscribed.error } });
+    await recordMetaUser(store.id, channel === "instagram" ? "inbox_instagram" : "inbox_messenger", input.pageAccessToken!);
     return { ok: true, view: await viewOf(store.id, channel) };
   }
 
@@ -223,6 +230,7 @@ async function saveWhatsApp(storeId: string, credentials: Record<string, string>
     },
   });
   if (subscribed && !subscribed.ok) await db.inboxChannel.update({ where: { id: row.id }, data: { lastError: subscribed.error } });
+  await recordMetaUser(storeId, "inbox_whatsapp", credentials.accessToken);
   return { ok: true, view: await viewOf(storeId, "whatsapp") };
 }
 
@@ -235,8 +243,8 @@ const EmbeddedSignupSchema = z.object({ code: z.string().trim().min(10).max(2000
  */
 export async function connectWhatsAppEmbedded(store: { id: string }, raw: unknown): Promise<Result> {
   const parsed = EmbeddedSignupSchema.safeParse(raw ?? {});
-  if (!parsed.success) return { ok: false, error: "WhatsApp sign-up didn't send back your number. Start again." };
-  if (!hasCredentialKey()) return { ok: false, error: "This server can't store channel keys safely yet (INBOX_ENCRYPTION_KEY isn't set). Ask your Shopinbos admin." };
+  if (!parsed.success) return { ok: false, error: "Facebook didn't send back your WhatsApp number. Tap Connect WhatsApp again." };
+  if (!hasCredentialKey()) return { ok: false, error: "Connecting isn't switched on yet. Tap Help and we'll connect it for you." };
   const exchanged = await exchangeSignupCode(parsed.data.code);
   if (!exchanged.ok) return exchanged;
   const pin = String(100000 + (randomBytes(4).readUInt32BE(0) % 900000));
@@ -310,6 +318,7 @@ async function connectVoice(store: { id: string }, input: Record<string, string 
 }
 
 export async function disconnectChannel(storeId: string, channel: ConnectableChannel) {
+  if (channel === "email") return disconnectEmail(storeId);
   const row = await db.inboxChannel.findUnique({ where: { storeId_channel: { storeId, channel } } });
   if (!row) return;
   if (channel === "telegram") {

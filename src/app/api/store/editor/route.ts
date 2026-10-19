@@ -6,6 +6,7 @@ import { parseBody } from "@/lib/api/validate";
 import { EditorUpdateSchema } from "@/lib/schemas";
 import { buildStorefrontUrl } from "@/lib/domains/storefront";
 import { loadShopperInfo } from "@/lib/storefront/shopper-info.server";
+import { forShoppers } from "@shared/product-stock";
 import {
   buildEditorEnvelope,
   createSnapshotFromTemplate,
@@ -49,6 +50,33 @@ async function getStoreEditorData(userId: string) {
           retailPrice: true,
           currency: true,
           category: { select: { id: true, name: true, slug: true } },
+          // The builder's product page preview shows the real product.
+          compareAtPrice: true,
+          variants: true,
+          variantOptions: true,
+          productType: true,
+          productDetails: true,
+          relatedProductIds: true,
+          tags: true,
+          sku: true,
+          longDescription: true,
+          specifications: true,
+          faqs: true,
+          careInstructions: true,
+          shippingInfo: true,
+          returnPolicy: true,
+          warranty: true,
+          supportInfo: true,
+          videoUrl: true,
+          // Stock as shoppers see it (forShoppers), and the product's own page layout / sections.
+          fulfillmentType: true,
+          supplierProduct: { select: { stockQuantity: true } },
+          trackStock: true,
+          continueSellingWhenOut: true,
+          currentStock: true,
+          reservedStock: true,
+          lowStockThreshold: true,
+          pageLayout: true,
         },
       },
     },
@@ -78,7 +106,7 @@ async function getStoreEditorData(userId: string) {
     storeProducts: store.storeProducts.map((product) => {
       const review = reviewMap.get(product.id);
       return {
-        ...product,
+        ...forShoppers(product),
         avgRating: review?.avgRating ?? 0,
         reviewCount: review?.count ?? 0,
       };

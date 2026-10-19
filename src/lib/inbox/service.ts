@@ -175,6 +175,8 @@ async function notifySeller(storeId: string, conversationId: string, channel: In
     actionLabel: "Reply",
     actionUrl: `/home/messages?c=${conversationId}`,
     metadata: { source: "inbox", channel, conversationId },
+    event: "customer.message",
+    dedupeKey: false,
   }).catch((error) => console.error("[inbox] notification failed", error));
 }
 
@@ -200,9 +202,11 @@ export interface ReplyInput {
   meta?: Record<string, string | boolean | null>;
   /** WhatsApp only: send this list or button message; `body` is what the inbox shows. */
   interactive?: WhatsAppInteractive | null;
+  /** Email only: the seller is starting this thread, so the conversation's subject goes out as is (no "Re:"). */
+  firstEmail?: boolean;
 }
 
-async function deliver(store: StoreRef, conversation: { id: string; channel: string; externalThreadId: string; contactEmail: string | null; contactPhone: string | null; subject: string | null; visitorSeenAt: Date | null; lastInboundAt: Date | null }, body: string, sellerEmail: string | null, interactive?: WhatsAppInteractive | null): Promise<SendResult & { via?: string }> {
+async function deliver(store: StoreRef, conversation: { id: string; channel: string; externalThreadId: string; contactEmail: string | null; contactPhone: string | null; subject: string | null; visitorSeenAt: Date | null; lastInboundAt: Date | null }, body: string, sellerEmail: string | null, interactive?: WhatsAppInteractive | null, firstEmail = false): Promise<SendResult & { via?: string }> {
   const channel = conversation.channel as InboxChannelKey;
   const base = { body, store: { id: store.id, name: store.name, slug: store.slug } };
 
@@ -210,7 +214,7 @@ async function deliver(store: StoreRef, conversation: { id: string; channel: str
     // The widget polls for replies. If the shopper has left the page, also email the reply when we can.
     const away = !conversation.visitorSeenAt || Date.now() - conversation.visitorSeenAt.getTime() > LIVECHAT_EMAIL_AFTER_MS;
     if (away && conversation.contactEmail) {
-      const emailed = await sendInboxEmail({ ...base, to: conversation.contactEmail, subject: `Your chat with ${store.name}`, credentials: {}, replyTo: sellerEmail });
+      const emailed = await sendInboxEmail({ ...base, to: conversation.contactEmail, subject: `Your chat with ${store.name}`, credentials: {}, replyTo: sellerEmail, conversationId: conversation.id });
       return emailed.ok ? { ok: true, externalId: emailed.externalId, via: "livechat+email" } : { ok: true, externalId: null, via: "livechat" };
     }
     return { ok: true, externalId: null, via: "livechat" };
@@ -219,7 +223,7 @@ async function deliver(store: StoreRef, conversation: { id: string; channel: str
   if (channel === "email" || channel === "form") {
     if (conversation.contactEmail) {
       const subject = conversation.subject ?? (channel === "form" ? `Your message to ${store.name}` : null);
-      return { ...(await sendInboxEmail({ ...base, to: conversation.contactEmail, subject, credentials: {}, replyTo: sellerEmail })), via: "email" };
+      return { ...(await sendInboxEmail({ ...base, to: conversation.contactEmail, subject, credentials: {}, replyTo: sellerEmail, exactSubject: firstEmail, conversationId: conversation.id })), via: "email" };
     }
     if (channel === "form" && conversation.contactPhone) {
       const sms = await getChannel(store.id, "sms");
@@ -262,6 +266,21 @@ async function deliver(store: StoreRef, conversation: { id: string; channel: str
 
 /** Sends a reply on the conversation's own channel and records it (sent or failed, never pretend). */
 export async function sendReply(input: ReplyInput) {
+  return sendRecorded(input, ({ store, conversation, body, sellerEmail }) => deliver(store, conversation, body, sellerEmail, input.interactive, input.firstEmail));
+}
+
+type RecordedConversation = NonNullable<Awaited<ReturnType<typeof db.inboxConversation.findFirst>>>;
+
+/**
+ * Records an outbound message in its conversation the way every inbox reply is recorded: saved as "queued", then
+ * "sent" with the provider's id or "failed" with its reason, and the conversation's preview updated. `send` does
+ * the sending: sendReply's channel adapters, or a caller with its own payload (an approved WhatsApp template
+ * sent from the customer drawer).
+ */
+export async function sendRecorded(
+  input: Omit<ReplyInput, "interactive" | "firstEmail">,
+  send: (ctx: { store: StoreRef; conversation: RecordedConversation; body: string; sellerEmail: string | null }) => Promise<SendResult & { via?: string }>,
+) {
   const body = input.body.trim().slice(0, 4000);
   if (!body) return { ok: false as const, error: "Write a message first." };
   const [store, conversation] = await Promise.all([
@@ -274,11 +293,11 @@ export async function sendReply(input: ReplyInput) {
   const message = await db.inboxMessage.create({
     data: { conversationId: conversation.id, storeId: store.id, direction: "outbound", kind: input.kind ?? "text", body, status: "queued", authorName: input.authorName },
   });
-  const result = await deliver(store, conversation, body, seller?.email ?? null, input.interactive).catch((error: Error) => ({ ok: false as const, error: error.message || "Sending failed." }));
+  const result = await send({ store, conversation, body, sellerEmail: seller?.email ?? null }).catch((error: Error) => ({ ok: false as const, error: error.message || "Sending failed." }));
   const saved = await db.inboxMessage.update({
     where: { id: message.id },
     data: result.ok
-      ? { status: "sent", externalId: result.externalId, meta: { via: "via" in result ? result.via ?? null : null, ...(input.meta ?? {}) } }
+      ? { status: "sent", externalId: result.externalId, meta: { via: "via" in result ? result.via ?? null : null, ...(result.meta ?? {}), ...(input.meta ?? {}) } }
       : { status: "failed", error: result.error.slice(0, 300), ...(input.meta ? { meta: input.meta } : {}) },
   });
   await db.inboxConversation.update({
@@ -420,7 +439,7 @@ async function maybeAutoReply(conversationId: string) {
 
   if (decision.kind === "chatbot") {
     const history = await db.inboxMessage.findMany({ where: { conversationId, direction: { in: ["inbound", "outbound"] }, status: { not: "failed" } }, orderBy: { createdAt: "desc" }, take: 12, select: { direction: true, body: true } });
-    const answer = await chatbotAnswer(conversation.storeId, bot, rules, history.reverse().map((m) => ({ from: m.direction === "inbound" ? "shopper" : "shop", body: m.body })));
+    const answer = await chatbotAnswer(conversation.storeId, bot, rules, history.reverse().map((m) => ({ from: m.direction === "inbound" ? "shopper" : "shop", body: m.body })), { channel: "livechat", conversationId: conversation.id });
     await sendReply({ ...base, body: answer.reply, authorName: `${bot.name} (chatbot)`, meta: { bot: true, source: answer.source } });
     if (answer.handoff) await handOff(conversation.storeId, conversation.id, conversation.tags, lastInbound?.body ?? "");
     return;
@@ -482,6 +501,7 @@ async function maybeWhatsAppBot(
     replyId: typeof replyId === "string" ? replyId : null,
     phone: conversation.externalThreadId,
     firstMessage: earlierOutbound === 0,
+    conversationId: conversation.id,
   });
   void markWhatsAppRead(connected.credentials, lastInbound.externalId).catch(() => null);
 
@@ -507,6 +527,7 @@ async function maybeWhatsAppBot(
         actionLabel: "Reply",
         actionUrl: `/home/messages?c=${conversation.id}`,
         metadata: { source: "whatsapp-bot", conversationId: conversation.id },
+        event: "customer.message",
       }).catch((error) => console.error("[inbox] order request notification failed", error));
     }
   }
@@ -529,6 +550,8 @@ async function handOff(storeId: string, conversationId: string, tags: string[], 
     actionLabel: "Reply",
     actionUrl: `/home/messages?c=${conversationId}`,
     metadata: { source: "chatbot", conversationId },
+    event: "customer.message",
+    urgent: false,
   }).catch((error) => console.error("[inbox] hand-off notification failed", error));
 }
 

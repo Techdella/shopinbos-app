@@ -1,12 +1,14 @@
 "use client";
 
 import { Icon } from "@/components/ui/Icon";
+import { useT } from "@/components/i18n/I18nProvider";
 
 interface VerificationProgressProps {
   steps: { label: string; done: boolean }[];
 }
 
 export function VerificationProgress({ steps }: VerificationProgressProps) {
+  const t = useT("verification");
   const done = steps.filter((s) => s.done).length;
   const pct = Math.round((done / Math.max(steps.length, 1)) * 100);
 
@@ -20,7 +22,7 @@ export function VerificationProgress({ steps }: VerificationProgressProps) {
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-        <span style={{ fontSize: 14, fontWeight: 700 }}>Onboarding progress</span>
+        <span style={{ fontSize: 14, fontWeight: 700 }}>{t("progress.title")}</span>
         <span style={{ fontSize: 20, fontWeight: 700, color: "var(--success)" }}>{pct}%</span>
       </div>
       <div style={{ height: 6, background: "#BBF7D0", borderRadius: 999, overflow: "hidden", marginBottom: 12 }}>

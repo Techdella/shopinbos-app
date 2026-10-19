@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Notice, PillButton, Spinner } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { field } from "@/components/seller-core";
+import { useT } from "@/components/i18n/I18nProvider";
 
 interface Category {
   id: string;
@@ -15,6 +16,7 @@ interface Category {
 }
 
 export function CategoriesClient({ startOpen }: { startOpen: boolean }) {
+  const t = useT("products", "common");
   const router = useRouter();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,18 +57,18 @@ export function CategoriesClient({ startOpen }: { startOpen: boolean }) {
         setShowForm(false);
         if (startOpen) router.replace("/home/categories", { scroll: false });
         setForm({ name: "", slug: "", description: "" });
-        setNotice({ tone: "success", text: "Category created" });
+        setNotice({ tone: "success", text: t("cat.created") });
         const reload = await fetch("/api/store/categories");
         const data = await reload.json();
         setCategories(data.data ?? []);
       } else {
         const err = await res.json();
-        setNotice({ tone: "error", text: err.error?.message ?? "Failed to create" });
+        setNotice({ tone: "error", text: err.error?.message ?? t("cat.createFailed") });
       }
-    } catch { setNotice({ tone: "error", text: "Network error" }); }
+    } catch { setNotice({ tone: "error", text: t("noConnection") }); }
     setSaving(false);
     setTimeout(() => setNotice(null), 3000);
-  }, [form, router, startOpen]);
+  }, [form, router, startOpen, t]);
 
   return (
     <div className="grid gap-4">
@@ -74,31 +76,31 @@ export function CategoriesClient({ startOpen }: { startOpen: boolean }) {
 
       {showForm && (
         <form onSubmit={handleCreate} className="grid gap-4 rounded-[22px] border border-app-line bg-white p-5 sm:p-6">
-          <h2 className="m-0 text-[17px] font-extrabold">New category</h2>
+          <h2 className="m-0 text-[17px] font-extrabold">{t("cat.new")}</h2>
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <label htmlFor="category-name" className={field.label}>Name</label>
+              <label htmlFor="category-name" className={field.label}>{t("field.name")}</label>
               <input id="category-name" className={field.input} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
             </div>
             <div>
-              <label htmlFor="category-slug" className={field.label}>Web address</label>
-              <input id="category-slug" className={field.input} value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} required placeholder="e.g. skincare" />
+              <label htmlFor="category-slug" className={field.label}>{t("field.webAddress")}</label>
+              <input id="category-slug" className={field.input} value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} required placeholder={t("cat.slugPlaceholder")} />
             </div>
           </div>
           <div>
-            <label htmlFor="category-description" className={field.label}>Description</label>
+            <label htmlFor="category-description" className={field.label}>{t("field.description")}</label>
             <textarea id="category-description" className={field.textarea} rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
           </div>
           <div className="flex flex-wrap gap-2">
-            <PillButton type="submit" tone="accent" size="md" busy={saving}>Create category</PillButton>
-            <PillButton tone="white" size="md" onClick={close}>Cancel</PillButton>
+            <PillButton type="submit" tone="accent" size="md" busy={saving}>{t("cat.create")}</PillButton>
+            <PillButton tone="white" size="md" onClick={close}>{t("cancel")}</PillButton>
           </div>
         </form>
       )}
 
       <section className="overflow-hidden rounded-[22px] border border-app-line bg-white">
         {loading ? (
-          <div className="flex items-center justify-center gap-2 px-6 py-12 text-[14px] text-app-ink-soft"><Spinner /> Loading categories…</div>
+          <div className="flex items-center justify-center gap-2 px-6 py-12 text-[14px] text-app-ink-soft"><Spinner /> {t("cat.loading")}</div>
         ) : categories.length > 0 ? (
           <ul className="m-0 list-none divide-y divide-app-line p-0">
             {categories.map((cat) => (
@@ -109,7 +111,7 @@ export function CategoriesClient({ startOpen }: { startOpen: boolean }) {
                   <div className="truncate text-[13px] text-app-ink-soft">/{cat.slug}{cat.description ? ` · ${cat.description}` : ""}</div>
                 </div>
                 <div className="w-full pl-[60px] text-[14px] font-bold sm:w-auto sm:pl-0 sm:text-right">
-                  {cat.productCount ?? 0} <span className="font-normal text-app-ink-soft">{(cat.productCount ?? 0) === 1 ? "product" : "products"}</span>
+                  {t("col.productCount", { count: cat.productCount ?? 0 })}
                 </div>
               </li>
             ))}
@@ -117,10 +119,10 @@ export function CategoriesClient({ startOpen }: { startOpen: boolean }) {
         ) : (
           <div className="flex flex-col items-center px-6 py-12 text-center">
             <span className="grid h-12 w-12 place-items-center rounded-full bg-app-peach text-app-accent-ink"><Icon name="grid" size={22} /></span>
-            <h2 className="mb-0 mt-4 text-[18px] font-extrabold">No categories yet</h2>
-            <p className="mb-0 mt-1.5 max-w-[460px] text-[14.5px] leading-[1.55] text-app-ink-soft">Categories help organise your products and let customers browse by type.</p>
+            <h2 className="mb-0 mt-4 text-[18px] font-extrabold">{t("cat.empty")}</h2>
+            <p className="mb-0 mt-1.5 max-w-[460px] text-[14.5px] leading-[1.55] text-app-ink-soft">{t("cat.emptySub")}</p>
             {!showForm && (
-              <div className="mt-5"><PillButton tone="ink" size="md" onClick={() => setShowForm(true)}><Icon name="plus" size={16} /> Add category</PillButton></div>
+              <div className="mt-5"><PillButton tone="ink" size="md" onClick={() => setShowForm(true)}><Icon name="plus" size={16} /> {t("cat.add")}</PillButton></div>
             )}
           </div>
         )}

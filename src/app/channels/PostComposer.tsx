@@ -6,6 +6,7 @@ import { buttonClass, inputClass, selectClass, textareaClass } from "@/component
 import { cx } from "@/components/app-ui/cx";
 import { SHARE_CHANNELS, captionRoom, postText, shareIntentUrl, taggedProductLink, type ShareChannel } from "@/lib/social/share";
 import { CopyField } from "./ChannelClient";
+import { useT } from "@/components/i18n/I18nProvider";
 
 export interface ComposerProduct {
   id: string;
@@ -17,9 +18,17 @@ export interface ComposerProduct {
 
 // Pick a product and an app, let Peggy write the caption, edit it, then copy, download the photo or open the
 // app's share page. Nothing is posted for the seller; links carry utm tags so results show under that channel.
-export function PostComposer({ products }: { products: ComposerProduct[] }) {
-  const [productId, setProductId] = useState(products[0]?.id ?? "");
-  const [channel, setChannel] = useState<ShareChannel>("whatsapp");
+/** TikTok and Instagram have no web share page: "Send to …" copies the caption and hands the photo to the app. */
+const APP_HOME: Partial<Record<ShareChannel, string>> = { tiktok: "https://www.tiktok.com/upload", instagram: "https://www.instagram.com/" };
+
+/**
+ * `image`: a picture made by Rex (or from the media library) to post instead of the product's own photo.
+ * `initialChannel`: the app to start on (/channels?tab=post&to=tiktok from the TikTok card).
+ */
+export function PostComposer({ products, image = null, initialProductId, initialChannel }: { products: ComposerProduct[]; image?: string | null; initialProductId?: string; initialChannel?: ShareChannel }) {
+  const t = useT("social", "common");
+  const [productId, setProductId] = useState(products.find((item) => item.id === initialProductId)?.id ?? products[0]?.id ?? "");
+  const [channel, setChannel] = useState<ShareChannel>(initialChannel ?? "whatsapp");
   const [angle, setAngle] = useState("");
   const [caption, setCaption] = useState("");
   const [busy, setBusy] = useState(false);
@@ -29,6 +38,8 @@ export function PostComposer({ products }: { products: ComposerProduct[] }) {
   useEffect(() => setCanNativeShare(typeof navigator.share === "function"), []);
 
   const product = products.find((item) => item.id === productId) ?? null;
+  const picture = image ?? product?.image ?? null;
+  const pictureDownload = image ?? (product ? `/api/app/social/image?productId=${encodeURIComponent(product.id)}` : null);
   const link = useMemo(() => (product ? taggedProductLink(product.url, channel) : ""), [product, channel]);
   const room = link ? captionRoom(channel, link) : 0;
   const spec = SHARE_CHANNELS.find((item) => item.key === channel)!;
@@ -46,13 +57,13 @@ export function PostComposer({ products }: { products: ComposerProduct[] }) {
       });
       const json = await response.json().catch(() => null);
       if (!response.ok) {
-        setNote({ ok: false, text: json?.error?.message ?? "Peggy couldn't write that just now. Try again." });
+        setNote({ ok: false, text: json?.error?.message ?? t("pc.failed") });
         return;
       }
       setCaption(json.data.caption);
-      setNote(json.data.ai ? { ok: true, text: "Peggy wrote this. Edit anything before you post." } : { ok: false, text: "AI writing isn't set up, so this is a plain caption from the product details." });
+      setNote(json.data.ai ? { ok: true, text: t("pc.wrote") } : { ok: false, text: t("pc.noAi") });
     } catch {
-      setNote({ ok: false, text: "Couldn't reach Peggy. Check your connection." });
+      setNote({ ok: false, text: t("pc.offline") });
     } finally {
       setBusy(false);
     }
@@ -72,8 +83,8 @@ export function PostComposer({ products }: { products: ComposerProduct[] }) {
     if (!product) return;
     const text = postText(channel, caption, link);
     try {
-      if (product.image) {
-        const response = await fetch(`/api/app/social/image?productId=${encodeURIComponent(product.id)}`);
+      if (picture && pictureDownload) {
+        const response = await fetch(pictureDownload);
         if (response.ok) {
           const blob = await response.blob();
           const file = new File([blob], `${product.name.slice(0, 40) || "product"}.${blob.type.split("/")[1] ?? "jpg"}`, { type: blob.type });
@@ -89,21 +100,55 @@ export function PostComposer({ products }: { products: ComposerProduct[] }) {
     }
   }
 
+  /**
+   * On a phone: copy the caption, then share the photo so they pick TikTok (or Instagram) in the share sheet and
+   * paste. Where files can't be shared (most computers): copy, download the photo and open the app's site.
+   */
+  async function sendToApp() {
+    if (!product) return;
+    await navigator.clipboard?.writeText(postText(channel, caption, link)).catch(() => undefined);
+    setNote({ ok: true, text: t("pc.sendCopied", { channel: spec.label }) });
+    try {
+      if (pictureDownload) {
+        const response = await fetch(pictureDownload);
+        if (response.ok) {
+          const blob = await response.blob();
+          const file = new File([blob], `${product.name.slice(0, 40) || "product"}.${blob.type.split("/")[1] ?? "jpg"}`, { type: blob.type });
+          if (navigator.canShare?.({ files: [file] })) {
+            await navigator.share({ files: [file] });
+            return;
+          }
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = file.name;
+          a.click();
+          window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
+        }
+      }
+    } catch {
+      // Cancelled: the caption is still copied.
+      return;
+    }
+    const home = APP_HOME[channel];
+    if (home) window.open(home, "_blank", "noopener,noreferrer");
+  }
+
   if (!products.length) {
-    return <p className="m-0 text-[14px] text-app-ink-soft">Publish a product to start posting it.</p>;
+    return <p className="m-0 text-[14px] text-app-ink-soft">{t("pc.empty")}</p>;
   }
 
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
       <div className="grid content-start gap-3">
         <label className="grid gap-1 text-[13.5px] font-bold">
-          Product
+          {t("pc.product")}
           <select value={productId} onChange={(event) => { setProductId(event.target.value); setCaption(""); setNote(null); }} className={selectClass}>
             {products.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.price}</option>)}
           </select>
         </label>
         <fieldset className="m-0 min-w-0 border-0 p-0">
-          <legend className="mb-1.5 text-[13.5px] font-bold">Post to</legend>
+          <legend className="mb-1.5 text-[13.5px] font-bold">{t("pc.postTo")}</legend>
           <div className="flex flex-wrap gap-2">
             {SHARE_CHANNELS.map((item) => (
               <button
@@ -122,39 +167,39 @@ export function PostComposer({ products }: { products: ComposerProduct[] }) {
           </div>
         </fieldset>
         <label className="grid gap-1 text-[13.5px] font-bold">
-          Anything to mention? <span className="font-normal text-app-ink-soft">Optional, e.g. new arrival, weekend sale</span>
+          {t("pc.mention")} <span className="font-normal text-app-ink-soft">{t("pc.mentionHint")}</span>
           <input value={angle} onChange={(event) => setAngle(event.target.value)} maxLength={200} className={inputClass} />
         </label>
         <button type="button" onClick={write} disabled={busy} className={buttonClass("accent")}>
           <Icon name="sparkle" size={16} />
-          {busy ? "Peggy is writing…" : caption ? "Write it again" : "Ask Peggy to write it"}
+          {busy ? t("pc.writing") : caption ? t("pc.again") : t("pc.ask")}
         </button>
         <div>
-          <div className="mb-1.5 text-[13.5px] font-bold">Tagged link for {spec.label}</div>
-          <CopyField value={link} label={`${spec.label} product link`} />
-          <p className="mb-0 mt-1.5 text-[12.5px] text-app-ink-soft">Visits and orders from this link show under {spec.label} in Analytics.</p>
+          <div className="mb-1.5 text-[13.5px] font-bold">{t("pc.tagged", { channel: spec.label })}</div>
+          <CopyField value={link} label={t("pc.linkLabel", { channel: spec.label })} />
+          <p className="mb-0 mt-1.5 text-[12.5px] text-app-ink-soft">{t("pc.tagHint", { channel: spec.label })}</p>
         </div>
       </div>
 
       <div className="grid content-start gap-3">
         <div className="flex gap-3 rounded-[18px] bg-app-canvas p-3">
-          {product?.image ? (
+          {picture ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={product.image} alt="" className="h-24 w-24 shrink-0 rounded-[14px] object-cover" />
+            <img src={picture} alt="" className="h-24 w-24 shrink-0 rounded-[14px] object-cover" />
           ) : (
-            <span className="grid h-24 w-24 shrink-0 place-items-center rounded-[14px] bg-white text-[12px] text-app-ink-soft">No photo</span>
+            <span className="grid h-24 w-24 shrink-0 place-items-center rounded-[14px] bg-white text-[12px] text-app-ink-soft">{t("pc.noPhoto")}</span>
           )}
           <label className="grid min-w-0 flex-1 gap-1 text-[13px] font-bold">
-            Caption
+            {t("pc.caption")}
             <textarea
               value={caption}
               onChange={(event) => setCaption(event.target.value)}
               rows={6}
-              placeholder="Ask Peggy, or write your own"
+              placeholder={t("pc.captionHint")}
               className={cx(textareaClass, "text-[14px]")}
             />
             <span className={cx("text-[12px] font-normal", caption.length > room ? "text-app-danger" : "text-app-ink-soft")}>
-              {caption.length} of {room} characters{caption.length > room ? " (it will be shortened)" : ""}
+              {t("pc.chars", { count: String(caption.length), room: String(room) })}{caption.length > room ? t("pc.shortened") : ""}
             </span>
           </label>
         </div>
@@ -162,33 +207,39 @@ export function PostComposer({ products }: { products: ComposerProduct[] }) {
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={copyPost} disabled={!caption.trim()} className={buttonClass("ink", "sm")}>
             <Icon name={copied ? "check" : "copy"} size={15} />
-            <span aria-live="polite">{copied ? "Copied" : "Copy post"}</span>
+            <span aria-live="polite">{copied ? t("copied") : t("pc.copyPost")}</span>
           </button>
-          {product?.image && (
-            <a href={`/api/app/social/image?productId=${encodeURIComponent(product.id)}`} download className={buttonClass("white", "sm")}>
+          {picture && pictureDownload && (
+            <a href={pictureDownload} download target={image ? "_blank" : undefined} rel={image ? "noopener noreferrer" : undefined} className={buttonClass("white", "sm")}>
               <Icon name="download" size={15} />
-              Download photo
+              {t("pc.download")}
             </a>
           )}
           {intent && (
             <a href={intent} target="_blank" rel="noopener noreferrer" className={buttonClass("white", "sm")}>
               <Icon name={channel === "whatsapp" ? "whatsapp" : channel === "facebook" ? "facebook" : "send"} size={15} />
-              Open {spec.label}
+              {t("pc.open", { channel: spec.label })}
             </a>
           )}
-          {canNativeShare && caption.trim() && (
+          {APP_HOME[channel] && caption.trim() && (
+            <button type="button" onClick={sendToApp} className={buttonClass("ink", "sm")}>
+              <Icon name="send" size={15} />
+              {t("pc.sendTo", { channel: spec.label })}
+            </button>
+          )}
+          {canNativeShare && caption.trim() && !APP_HOME[channel] && (
             <button type="button" onClick={nativeShare} className={buttonClass("white", "sm")}>
               <Icon name="send" size={15} />
-              Share from this device
+              {t("pc.share")}
             </button>
           )}
         </div>
         <p className="m-0 text-[12.5px] leading-[1.5] text-app-ink-soft">
           {channel === "instagram" || channel === "tiktok"
-            ? `${spec.label} has no web share page: download the photo, copy the post, and paste them in the app. Put the tagged link in your bio.`
+            ? t("pc.noWebShare", { channel: spec.label })
             : channel === "facebook"
-              ? "Facebook only takes the link from the share page, so copy the post first and paste the caption there."
-              : `Opens ${spec.label} with the caption and link filled in. You choose who to send it to.`}
+              ? t("pc.facebook")
+              : t("pc.opens", { channel: spec.label })}
         </p>
       </div>
     </div>

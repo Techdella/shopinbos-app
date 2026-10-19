@@ -5,6 +5,10 @@ import { ProductForm } from "@/app/components/ProductForm";
 import { AppPage, PillLink } from "@/components/app-kit";
 import { sellerFrame } from "@/components/seller-core";
 import { buildStorefrontOrigin } from "@/lib/domains/storefront";
+import { getT } from "@/lib/i18n/server";
+import { PaymentLinkButton } from "@/components/payment-links/PaymentLinkButton";
+import { linkProductView } from "@/lib/payment-links/pure";
+import { paymentReadiness } from "@/lib/payment-links/service.server";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +19,7 @@ export default async function ProductEditPage({
 }) {
   const { id } = await params;
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("products");
 
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true, customDomain: true } });
   if (!store) {
@@ -33,17 +38,33 @@ export default async function ProductEditPage({
     notFound();
   }
 
-  const categories = await db.category.findMany({
-    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-    select: { id: true, name: true, slug: true },
-  });
+  const [categories, others, readiness] = await Promise.all([
+    db.category.findMany({
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      select: { id: true, name: true, slug: true },
+    }),
+    // For "Customers also like".
+    db.storeProduct.findMany({
+      where: { storeId: store.id, status: { not: "archived" }, id: { not: product.id } },
+      orderBy: { createdAt: "desc" },
+      take: 300,
+      select: { id: true, name: true, images: true, retailPrice: true },
+    }),
+    paymentReadiness(store.id),
+  ]);
 
   return (
     <AppPage
       frame={sellerFrame(user, store)}
       title={product.name}
-      sub="Edit details, visibility, stock and how the product page looks."
-      actions={<PillLink href="/products" icon="arrowLeft">All products</PillLink>}
+      sub={t("edit.sub")}
+      actions={
+        <>
+          <PillLink href="/products" icon="arrowLeft">{t("allProducts")}</PillLink>
+          {/* Only published products can be paid for (the pay page shows public products only). */}
+          {product.status === "published" ? <PaymentLinkButton product={linkProductView(product)} storeName={store.name} ready={readiness.ready} /> : null}
+        </>
+      }
     >
       <ProductForm
         product={product as any}
@@ -51,6 +72,7 @@ export default async function ProductEditPage({
         isEdit
         storeOrigin={buildStorefrontOrigin({ slug: store.slug, customDomain: store.customDomain })}
         storeName={store.name}
+        storeProducts={others.map((entry) => ({ id: entry.id, name: entry.name, image: entry.images[0] ?? null, price: entry.retailPrice }))}
       />
     </AppPage>
   );

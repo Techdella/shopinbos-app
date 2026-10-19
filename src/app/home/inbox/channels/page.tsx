@@ -4,15 +4,20 @@ import { PillLink } from "@/components/app-kit";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { db } from "@/lib/db/client";
 import { channelViews, platformReadiness } from "@/lib/inbox/connect";
-import { inboxAddress } from "@/lib/inbox/channels/email";
 import { requireRole } from "@/lib/server-auth";
 import { ChannelsClient } from "./ChannelsClient";
+import { ConnectAccounts } from "@/app/channels/ConnectAccounts";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Inbox channels" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT("inbox");
+  return { title: t("ch.title") };
+}
 
 export default async function InboxChannelsPage() {
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("inbox");
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true } });
   if (!store) redirect("/builder?firstRun=1");
 
@@ -27,14 +32,18 @@ export default async function InboxChannelsPage() {
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title="Inbox channels"
-      sub="Connect the places your customers message you. Replies go back on the same channel, from your inbox."
-      actions={<PillLink href="/home/messages" icon="chat" tone="ink">Open inbox</PillLink>}
+      title={t("ch.title")}
+      sub={t("ch.sub")}
+      actions={<PillLink href="/home/messages" icon="chat" tone="ink">{t("ch.openInbox")}</PillLink>}
     >
+      <section aria-labelledby="connect-yours" className="mb-6 grid gap-3">
+        <h2 id="connect-yours" className="m-0 text-[17px] font-extrabold">{t("ch.connectYours")}</h2>
+        <p className="m-0 text-[14px] text-app-ink-soft">{t("ch.connectOnce")}</p>
+        <ConnectAccounts storeId={store.id} only={["whatsapp", "meta"]} next="/home/inbox/channels" columns="md:grid-cols-2" />
+      </section>
       <ChannelsClient
         initial={views}
         platform={platformReadiness()}
-        inboxAddress={inboxAddress(store.slug)}
         liveChat={{ on: Boolean(chat) && chatMode !== "whatsapp", mode: chatMode }}
         forwardCallsTo={settings?.forwardCallsTo ?? ""}
       />

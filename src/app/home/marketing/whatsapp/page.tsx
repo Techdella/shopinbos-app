@@ -7,12 +7,17 @@ import { AssistantNote, PillLink } from "@/components/app-kit";
 import { channelStatus } from "@/lib/marketing/channels";
 import { listWhatsAppTemplates } from "@/lib/marketing/whatsapp-templates.server";
 import { WhatsAppTemplates } from "./WhatsAppTemplates";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "WhatsApp templates" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT("marketing");
+  return { title: t("hub.tool.whatsappTemplates") };
+}
 
 export default async function WhatsAppTemplatesPage() {
   const user = await requireRole(["seller"], "/login");
+  const t = await getT("marketing");
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true } });
   if (!store) redirect("/onboarding");
   const [templates, channels] = await Promise.all([listWhatsAppTemplates(store.id), channelStatus(store.id)]);
@@ -21,21 +26,21 @@ export default async function WhatsAppTemplatesPage() {
     <SellerPage
       user={user}
       store={storeSummary(store)}
-      title="WhatsApp templates"
-      sub="Messages Meta has approved, for campaigns, automations and order updates outside the 24-hour reply window."
+      title={t("hub.tool.whatsappTemplates")}
+      sub={t("wa.sub")}
       actions={
         <>
-          <PillLink href="/home/marketing/messages" icon="bell">Order messages</PillLink>
-          <PillLink href="/home/marketing/campaigns/new?channel=whatsapp" tone="accent" icon="plus">WhatsApp campaign</PillLink>
+          <PillLink href="/home/marketing/messages" icon="bell">{t("hub.tool.orderMessages")}</PillLink>
+          <PillLink href="/home/marketing/campaigns/new?channel=whatsapp" tone="accent" icon="plus">{t("wa.campaign")}</PillLink>
         </>
       }
     >
       <div className="grid gap-5">
         <WhatsAppTemplates
-          initial={templates.map((t) => ({ id: t.id, name: t.name, language: t.language, category: t.category, status: t.status, rejectedReason: t.rejectedReason, content: t.content, variables: t.variables, preset: t.preset, syncedAt: t.syncedAt?.toISOString() ?? null }))}
+          initial={templates.map((row) => ({ id: row.id, name: row.name, language: row.language, category: row.category, status: row.status, rejectedReason: row.rejectedReason, content: row.content, variables: row.variables, preset: row.preset, syncedAt: row.syncedAt?.toISOString() ?? null }))}
           whatsapp={channels.whatsapp}
         />
-        <AssistantNote>Meta usually reviews a template within minutes, sometimes up to a day. Utility templates must only be about an order; anything promotional is Marketing, and Meta may move it there.</AssistantNote>
+        <AssistantNote>{t("wa.note")}</AssistantNote>
       </div>
     </SellerPage>
   );

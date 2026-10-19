@@ -7,6 +7,7 @@ import { Notice, PillButton, Spinner } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { VerificationDocUploader } from "@/components/verification/VerificationDocUploader";
 import { CacInstantCheck } from "@/components/verification/CacInstantCheck";
+import { WalletIdHint } from "@/components/verification/WalletIdHint";
 import { VerificationProgress } from "@/components/verification/VerificationProgress";
 import { TrustScoreBreakdown } from "@/components/verification/TrustScoreBreakdown";
 import { VerificationBadge } from "@/components/verification/VerificationBadge";
@@ -16,6 +17,7 @@ import {
   type TrustScoreBreakdownItem,
   logisticsDocTypes,
 } from "@/lib/verification-utils";
+import { useT } from "@/components/i18n/I18nProvider";
 
 interface PartnerData {
   id: string;
@@ -49,29 +51,32 @@ interface TrustData {
 export const dynamic = "force-dynamic";
 
 export default function LogisticsVerificationPage() {
+  const t = useT("verification", "logistics", "common");
   const [partner, setPartner] = useState<PartnerData | null>(null);
   const [user, setUser] = useState<UserData | null>(null);
   const [documents, setDocuments] = useState<VerificationDoc[]>([]);
   const [trustData, setTrustData] = useState<TrustData | null>(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [failed, setFailed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const say = useCallback((text: string, isError: boolean) => { setFailed(isError); setMessage(text); }, []);
 
   const fetchData = useCallback(async () => {
     try {
       const r = await fetch("/api/logistics/me");
-      if (!r.ok) throw new Error("Unable to load verification data.");
+      if (!r.ok) throw new Error(t("page.partnerLoadConnection"));
       const d = await r.json();
       const payload = d.data ?? d;
-      if (!payload.partner || !payload.user) throw new Error("Details not returned.");
+      if (!payload.partner || !payload.user) throw new Error(t("page.partnerLoadRefresh"));
       setPartner(payload.partner);
       setUser(payload.user);
       setDocuments(payload.partner.verificationDocuments ?? []);
       if (payload.trustBreakdown) setTrustData(payload.trustBreakdown);
     } catch (err: any) {
-      setError(err.message || "Unable to load verification.");
+      setError(err.message || t("page.partnerLoadRefresh"));
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -83,11 +88,11 @@ export default function LogisticsVerificationPage() {
     try {
       const r = await fetch("/api/logistics/verification/upload", { method: "POST", body: formData });
       const result = await r.json();
-      if (!result.success) { setMessage(result.error ?? "Upload failed"); return; }
-      setMessage("Document uploaded successfully.");
+      if (!result.success) { say(result.error ?? t("page.uploadFailed"), true); return; }
+      say(t("page.uploaded"), false);
       fetchData();
-    } catch { setMessage("Upload failed."); }
-  }, [fetchData]);
+    } catch { say(t("page.uploadFailed"), true); }
+  }, [fetchData, say, t]);
 
   const handleDelete = useCallback(async (docId: string) => {
     setMessage("");
@@ -98,11 +103,11 @@ export default function LogisticsVerificationPage() {
         body: JSON.stringify({ docId }),
       });
       const result = await r.json();
-      if (!result.success) { setMessage(result.error ?? "Delete failed"); return; }
-      setMessage("Document removed.");
+      if (!result.success) { say(result.error ?? t("page.removeFailed"), true); return; }
+      say(t("page.removed"), false);
       fetchData();
-    } catch { setMessage("Delete failed."); }
-  }, [fetchData]);
+    } catch { say(t("page.removeFailed"), true); }
+  }, [fetchData, say, t]);
 
   const handleSubmit = useCallback(async () => {
     setSubmitting(true);
@@ -110,12 +115,12 @@ export default function LogisticsVerificationPage() {
     try {
       const r = await fetch("/api/logistics/verification/submit", { method: "POST" });
       const result = await r.json();
-      if (!result.success) { setMessage(result.error ?? "Submit failed"); setSubmitting(false); return; }
-      setMessage("Verification submitted for review.");
+      if (!result.success) { say(result.error ?? t("page.partnerSendFailed"), true); setSubmitting(false); return; }
+      say(t("page.partnerSent"), false);
       fetchData();
-    } catch { setMessage("Submit failed."); }
+    } catch { say(t("page.partnerSendFailedConnection"), true); }
     finally { setSubmitting(false); }
-  }, [fetchData]);
+  }, [fetchData, say, t]);
 
   if (error) {
     return (
@@ -128,7 +133,7 @@ export default function LogisticsVerificationPage() {
   if (!partner || !user) {
     return (
       <div className="grid min-h-dvh place-items-center bg-app-canvas font-app text-app-ink-soft" role="status">
-        <span className="flex items-center gap-2 text-[14.5px]"><Spinner /> Loading verification</span>
+        <span className="flex items-center gap-2 text-[15px]"><Spinner /> {t("page.loading")}</span>
       </div>
     );
   }
@@ -137,12 +142,12 @@ export default function LogisticsVerificationPage() {
   const isPending = partner.verificationStatus === "pending";
 
   const progressSteps = [
-    { label: "Account setup", done: true },
-    { label: "Business profile", done: Boolean(partner.companyName && partner.city) },
-    { label: "Documents uploaded", done: documents.some((d) => d.status === "uploaded" || d.status === "submitted") },
-    { label: "Verification submitted", done: isPending || isVerified },
-    { label: "Shopinbos review", done: isPending || isVerified },
-    { label: "Verification approved", done: isVerified },
+    { label: t("step.account"), done: true },
+    { label: t("step.profile"), done: Boolean(partner.companyName && partner.city) },
+    { label: t("step.documents"), done: documents.some((d) => d.status === "uploaded" || d.status === "submitted") },
+    { label: t("step.submitted"), done: isPending || isVerified },
+    { label: t("step.review"), done: isPending || isVerified },
+    { label: t("step.approved"), done: isVerified },
   ];
 
   const badgeTier = isVerified
@@ -152,13 +157,12 @@ export default function LogisticsVerificationPage() {
       : "bronze"
     : "none";
 
-  const failed = /fail|error/i.test(message);
 
   return (
     <AppFrame
       role="logistics_partner"
       storeName={partner.displayName}
-      storeSlug={partner.city ? `${partner.city} · Partner` : "Delivery partner"}
+      storeSlug={partner.city ? t("kit.cityPartner", { city: partner.city }) : t("kit.deliveryPartner")}
       storeInitial={partner.displayName.charAt(0).toUpperCase()}
       storeLogoUrl={partner.logoUrl ?? null}
       userName={user.name}
@@ -169,8 +173,8 @@ export default function LogisticsVerificationPage() {
     >
       <div className="w-full px-4 py-6 font-app text-app-ink sm:px-6 xl:px-8 2xl:px-10">
         <PageHead
-          title="Verification"
-          sub="Shopinbos checks your business papers before sellers can book you. It usually takes a day or two."
+          title={t("page.title")}
+          sub={t("page.partnerSub")}
           actions={
             isVerified && trustData ? (
               <VerificationBadge tier={badgeTier} trustScore={trustData.total} verificationStatus={partner.verificationStatus} size="md" />
@@ -186,21 +190,21 @@ export default function LogisticsVerificationPage() {
           </span>
           <div className="min-w-0 flex-1">
             <h2 className="m-0 text-[18px] font-extrabold">
-              {isVerified ? "You're verified" : isPending ? "We're checking your papers" : "Not verified yet"}
+              {isVerified ? t("page.partnerVerified") : isPending ? t("page.underReview") : t("page.notVerifiedYet")}
             </h2>
-            <p className="m-0 mt-0.5 text-[14px] text-app-ink-soft">
+            <p className="m-0 mt-0.5 text-[15px] text-app-ink-soft">
               {isVerified
-                ? `Trust score ${trustData?.total ?? partner.reliabilityScore} out of 100.`
+                ? t("page.trustOutOf", { score: trustData?.total ?? partner.reliabilityScore })
                 : isPending
-                  ? "The Shopinbos team is reviewing your documents. We'll let you know when it's done."
-                  : "Upload the documents below, then send them for review."}
+                  ? t("page.partnerPending")
+                  : t("page.uploadThenSend")}
             </p>
           </div>
         </Card>
 
         <div className="grid gap-5 xl:[grid-template-columns:minmax(0,1fr)_400px]">
           <Card className="min-w-0 p-5">
-            <CardHead title="Your documents" />
+            <CardHead title={t("page.yourDocuments")} />
             <div className="mt-4">
               <CacInstantCheck
                 apiPath="/api/logistics/verification/cac"
@@ -208,6 +212,7 @@ export default function LogisticsVerificationPage() {
                 cacDoc={documents.find((d) => d.type === "cac")}
                 onVerified={(doc) => { setDocuments((current) => [...current.filter((d) => d.type !== "cac"), doc]); fetchData(); }}
               />
+              <div className="mt-4"><WalletIdHint identityDoc={documents.find((d) => d.type === "identity")} walletHref="/logistics/wallet" /></div>
               <div className="mt-4">
                 <VerificationDocUploader
                   role="logistics_partner"
@@ -221,7 +226,7 @@ export default function LogisticsVerificationPage() {
             </div>
             {!isVerified && !isPending && (
               <PillButton size="md" className="mt-4 w-full" onClick={handleSubmit} busy={submitting}>
-                Send for review
+                {t("page.sendForReview")}
               </PillButton>
             )}
           </Card>
@@ -230,7 +235,7 @@ export default function LogisticsVerificationPage() {
             <VerificationProgress steps={progressSteps} />
             {trustData && (
               <Card className="p-5">
-                <CardHead title="Trust score" />
+                <CardHead title={t("badge.trustScore")} />
                 <div className="mt-4">
                   <TrustScoreBreakdown
                     items={trustData.items}

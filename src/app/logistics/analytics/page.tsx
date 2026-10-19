@@ -4,9 +4,12 @@ import { requireRole } from "@/lib/server-auth";
 import { ensureLogisticsAccess, getLogisticsPartnerForUser } from "@/lib/role-queries";
 import { Card, CardHead, StatGrid, StatTile, TextLink } from "@/components/app-kit";
 import { BOOKING_STATUSES, PartnerPage, StatusPill, bookingNet, lagosDate, lagosDay, lagosStartOfToday, naira } from "@/components/logistics/kit";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Performance" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT("logistics"))("performance.title") };
+}
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -25,6 +28,9 @@ export default async function LogisticsAnalyticsPage() {
   const user = await requireRole(["logistics_partner"], "/logistics/login");
   const partner = await getLogisticsPartnerForUser(user);
   ensureLogisticsAccess(partner);
+  const t = await getT("logistics", "common");
+  const now = new Date();
+  const dayWords = (day: Date) => lagosDate(day, { weekday: "short", day: "numeric", month: "short" }, now, t);
 
   const startOfToday = lagosStartOfToday();
   const since = new Date(startOfToday.getTime() - 29 * DAY);
@@ -61,26 +67,26 @@ export default async function LogisticsAnalyticsPage() {
   const topDestinations = topBy(bookings, (booking) => booking.destination, () => 1);
 
   return (
-    <PartnerPage frame={{ user, partner }} title="Performance" sub={`How ${partner.displayName} did over the last 30 days.`}>
+    <PartnerPage frame={{ user, partner }} title={t("performance.title")} sub={t("performance.sub")}>
       <StatGrid className="mb-5">
-        <StatTile tone="card" label="Jobs" value={bookings.length} hint={`${delivered.length} delivered`} />
-        <StatTile tone="card" label="Earned" value={naira(earned)} hint="After Shopinbos fees" />
-        <StatTile tone="card" label="Delivered" value={deliveryRate === null ? "—" : `${deliveryRate}%`} hint={deliveryRate === null ? "No finished jobs yet" : "Of finished jobs"} />
-        <StatTile tone="card" label="On time" value={onTime === null ? "—" : `${onTime}%`} hint={onTime === null ? "Set expected delivery times on jobs" : `${timed.length} jobs with a promised time`} />
+        <StatTile tone="card" label={t("jobs.title")} value={bookings.length} hint={t("earnings.delivered", { count: delivered.length })} />
+        <StatTile tone="card" label={t("performance.earned")} value={naira(earned)} hint={t("performance.afterFees")} />
+        <StatTile tone="card" label={t("stage.delivered")} value={deliveryRate === null ? "—" : `${deliveryRate}%`} hint={deliveryRate === null ? t("performance.noFinished") : t("performance.ofFinished")} />
+        <StatTile tone="card" label={t("performance.onTime")} value={onTime === null ? "—" : `${onTime}%`} hint={onTime === null ? t("performance.onTimeHint") : t("performance.promised", { count: timed.length })} />
       </StatGrid>
 
       <div className="grid gap-5 xl:[grid-template-columns:minmax(0,1fr)_400px]">
         <div className="grid min-w-0 content-start gap-5">
           <Card className="p-5">
-            <CardHead title="Deliveries per day" sub={`${twoWeekTotal} in the last 14 days`} />
+            <CardHead title={t("performance.perDay")} sub={t("performance.last14", { count: twoWeekTotal })} />
             {twoWeekTotal === 0 ? (
-              <p className="m-0 mt-6 text-[14.5px] text-app-ink-soft">No deliveries in the last 14 days.</p>
+              <p className="m-0 mt-6 text-[15px] text-app-ink-soft">{t("performance.none14")}</p>
             ) : (
               <>
-                <ol aria-label="Deliveries per day, last 14 days" className="m-0 mt-5 flex h-[180px] list-none items-end gap-1.5 p-0 sm:gap-2.5">
+                <ol aria-label={t("performance.chartAria")} className="m-0 mt-5 flex h-[180px] list-none items-end gap-1.5 p-0 sm:gap-2.5">
                   {series.map((point) => (
-                    <li key={point.day.toISOString()} className="group relative flex h-full min-w-0 flex-1 flex-col justify-end" title={`${lagosDate(point.day, { weekday: "short", day: "numeric", month: "short" })}: ${point.count} delivered`}>
-                      <span className="sr-only">{lagosDate(point.day, { weekday: "short", day: "numeric", month: "short" })}: {point.count} delivered</span>
+                    <li key={point.day.toISOString()} className="group relative flex h-full min-w-0 flex-1 flex-col justify-end" title={t("performance.dayCount", { day: dayWords(point.day), count: point.count })}>
+                      <span className="sr-only">{t("performance.dayCount", { day: dayWords(point.day), count: point.count })}</span>
                       <span
                         aria-hidden
                         className="block w-full rounded-t-[4px] bg-app-ink transition group-hover:bg-app-accent"
@@ -90,17 +96,17 @@ export default async function LogisticsAnalyticsPage() {
                   ))}
                 </ol>
                 <div aria-hidden className="mt-2 flex justify-between text-[12px] text-app-ink-soft">
-                  <span>{lagosDate(days[0])}</span>
-                  <span>Today</span>
+                  <span>{lagosDate(days[0], undefined, now, t)}</span>
+                  <span>{t("time.today")}</span>
                 </div>
               </>
             )}
           </Card>
 
           <Card className="p-5">
-            <CardHead title="Jobs by stage" />
+            <CardHead title={t("performance.byStage")} />
             {byStatus.length === 0 ? (
-              <p className="m-0 mt-3 text-[14.5px] text-app-ink-soft">No jobs in the last 30 days.</p>
+              <p className="m-0 mt-3 text-[15px] text-app-ink-soft">{t("performance.none30")}</p>
             ) : (
               <ul className="m-0 mt-3 list-none divide-y divide-app-line p-0">
                 {byStatus.map((row) => (
@@ -116,27 +122,27 @@ export default async function LogisticsAnalyticsPage() {
 
         <div className="grid min-w-0 content-start gap-5">
           <Card className="p-5">
-            <CardHead title="Rating" action={<TextLink href="/logistics/reviews">Reviews</TextLink>} />
+            <CardHead title={t("performance.rating")} action={<TextLink href="/logistics/reviews">{t("reviews.title")}</TextLink>} />
             <div className="mt-3 flex items-baseline gap-2">
               <span className="text-[34px] font-extrabold leading-none">{partner.ratingCount ? partner.rating.toFixed(1) : "—"}</span>
-              <span className="text-[14px] text-app-ink-soft">{partner.ratingCount ? `from ${partner.ratingCount} ${partner.ratingCount === 1 ? "review" : "reviews"}` : "No reviews yet"}</span>
+              <span className="text-[15px] text-app-ink-soft">{partner.ratingCount ? t("performance.fromReviews", { count: partner.ratingCount }) : t("reviews.emptyTitle")}</span>
             </div>
-            {partner.reliabilityScore > 0 && <p className="m-0 mt-2 text-[14px] text-app-ink-soft">Reliability score {partner.reliabilityScore} out of 100</p>}
+            {partner.reliabilityScore > 0 && <p className="m-0 mt-2 text-[15px] text-app-ink-soft">{t("performance.reliability", { score: partner.reliabilityScore })}</p>}
           </Card>
 
           <Card className="p-5">
-            <CardHead title="Top sellers" sub="By delivery fees" />
+            <CardHead title={t("performance.topSellers")} sub={t("performance.byFees")} />
             {topSellers.length === 0 ? (
-              <p className="m-0 mt-3 text-[14.5px] text-app-ink-soft">No jobs yet.</p>
+              <p className="m-0 mt-3 text-[15px] text-app-ink-soft">{t("performance.noJobs")}</p>
             ) : (
               <ul className="m-0 mt-3 list-none divide-y divide-app-line p-0">
                 {topSellers.map((seller) => (
                   <li key={seller.name} className="flex items-center gap-3 py-2.5">
                     <div className="min-w-0 flex-1">
-                      <div className="truncate text-[14.5px] font-bold">{seller.name}</div>
-                      <div className="text-[13px] text-app-ink-soft">{seller.count} {seller.count === 1 ? "job" : "jobs"}</div>
+                      <div className="truncate text-[15px] font-bold">{seller.name}</div>
+                      <div className="text-[15px] text-app-ink-soft">{t("cash.jobs", { count: seller.count })}</div>
                     </div>
-                    <span className="text-[14.5px] font-extrabold">{naira(seller.value)}</span>
+                    <span className="text-[15px] font-extrabold">{naira(seller.value)}</span>
                   </li>
                 ))}
               </ul>
@@ -144,15 +150,15 @@ export default async function LogisticsAnalyticsPage() {
           </Card>
 
           <Card className="p-5">
-            <CardHead title="Busiest drop-off areas" />
+            <CardHead title={t("performance.busiest")} />
             {topDestinations.length === 0 ? (
-              <p className="m-0 mt-3 text-[14.5px] text-app-ink-soft">No jobs yet.</p>
+              <p className="m-0 mt-3 text-[15px] text-app-ink-soft">{t("performance.noJobs")}</p>
             ) : (
               <ul className="m-0 mt-3 list-none divide-y divide-app-line p-0">
                 {topDestinations.map((place) => (
                   <li key={place.name} className="flex items-center justify-between gap-3 py-2.5">
-                    <span className="min-w-0 truncate text-[14.5px] font-bold">{place.name}</span>
-                    <span className="shrink-0 text-[13.5px] text-app-ink-soft">{place.count} {place.count === 1 ? "job" : "jobs"}</span>
+                    <span className="min-w-0 truncate text-[15px] font-bold">{place.name}</span>
+                    <span className="shrink-0 text-[15px] text-app-ink-soft">{t("cash.jobs", { count: place.count })}</span>
                   </li>
                 ))}
               </ul>

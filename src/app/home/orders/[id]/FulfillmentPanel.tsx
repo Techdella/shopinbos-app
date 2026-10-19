@@ -2,22 +2,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { FieldLabel, Notice, PillButton, TextInput, cx } from "@/components/app-ui";
+import { useT } from "@/components/i18n/I18nProvider";
 
 const STATUS_FLOW = ["pending", "paid", "processing", "packed", "shipped", "delivered"];
 
-const STATUS_LABELS: Record<string, string> = {
-  pending: "Placed",
-  awaiting_payment: "Waiting for payment",
-  paid: "Paid",
-  processing: "Processing",
-  packed: "Packed",
-  shipped: "Shipped",
-  delivered: "Delivered",
-  cancelled: "Cancelled",
-  returned: "Returned",
-  refunded: "Refunded",
-  partially_refunded: "Partly refunded",
-};
 
 const TRANSITIONS: Record<string, string[]> = {
   paid:       ["processing", "cancelled"],
@@ -29,19 +17,10 @@ const TRANSITIONS: Record<string, string[]> = {
   awaiting_payment: ["paid", "cancelled"],
 };
 
-const ACTION_LABELS: Record<string, string> = {
-  paid: "Mark as paid",
-  processing: "Start processing",
-  packed: "Mark as packed",
-  shipped: "Ship order",
-  delivered: "Mark as delivered",
-  cancelled: "Cancel order",
-};
-
 const LOGISTICS_OPTIONS = [
-  { value: "personal", label: "I'll deliver it", desc: "You or your own rider takes it to the buyer" },
-  { value: "pickup", label: "Buyer pickup", desc: "The buyer collects it in person" },
-];
+  { value: "personal", label: "ful.personal", desc: "ful.personalDesc" },
+  { value: "pickup", label: "ful.pickup", desc: "ful.pickupDesc" },
+] as const;
 
 interface FulfillmentPanelProps {
   orderId: string;
@@ -51,6 +30,8 @@ interface FulfillmentPanelProps {
 }
 
 export function FulfillmentPanel({ orderId, currentStatus, trackingCode, logisticsDetails }: FulfillmentPanelProps) {
+  const t = useT("orders", "common");
+  const statusLabel = (status: string) => t.dynamic(`status.${status}`, status);
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -75,13 +56,13 @@ export function FulfillmentPanel({ orderId, currentStatus, trackingCode, logisti
       });
       if (!res.ok) {
         const data = await res.json();
-        setError(data.error?.message ?? "Failed to update order");
+        setError(data.error?.message ?? t("ful.updateFailed"));
       } else {
         setShowLogistics(false);
         router.refresh();
       }
     } catch {
-      setError("Network error. Please try again.");
+      setError(t("noConnection"));
     } finally {
       setLoading(null);
     }
@@ -110,9 +91,9 @@ export function FulfillmentPanel({ orderId, currentStatus, trackingCode, logisti
     <div className="grid gap-4">
       {/* Where the order is in the flow */}
       {offFlow ? (
-        <p className="m-0 text-[14px] font-bold">{STATUS_LABELS[currentStatus] ?? currentStatus}</p>
+        <p className="m-0 text-[14px] font-bold">{statusLabel(currentStatus)}</p>
       ) : (
-        <ol className="m-0 grid list-none gap-0 p-0" aria-label="Order progress">
+        <ol className="m-0 grid list-none gap-0 p-0" aria-label={t("ful.progress")}>
           {STATUS_FLOW.map((step, index) => {
             const done = index < currentIdx;
             const active = index === currentIdx;
@@ -131,10 +112,10 @@ export function FulfillmentPanel({ orderId, currentStatus, trackingCode, logisti
                   {active && <span className="h-1.5 w-1.5 rounded-full bg-app-accent" />}
                 </span>
                 <span className={cx("text-[14px]", active ? "font-extrabold" : done ? "font-semibold" : "text-app-ink-soft")}>
-                  {step === "pending" && currentStatus === "awaiting_payment" ? STATUS_LABELS.awaiting_payment : STATUS_LABELS[step]}
+                  {step === "pending" && currentStatus === "awaiting_payment" ? statusLabel("awaiting_payment") : statusLabel(step)}
                 </span>
-                {active && <span className="ml-auto text-[12.5px] font-bold text-app-accent-ink">Now</span>}
-                {done && <span className="sr-only">(done)</span>}
+                {active && <span className="ml-auto text-[12.5px] font-bold text-app-accent-ink">{t("ful.now")}</span>}
+                {done && <span className="sr-only">{t("ful.done")}</span>}
               </li>
             );
           })}
@@ -144,7 +125,7 @@ export function FulfillmentPanel({ orderId, currentStatus, trackingCode, logisti
       {/* Shipping method */}
       {showLogistics && (
         <fieldset className="m-0 grid gap-3 rounded-[18px] border border-app-line p-4">
-          <legend className="px-1 text-[15px] font-extrabold">How is it getting there?</legend>
+          <legend className="px-1 text-[15px] font-extrabold">{t("ful.howGetting")}</legend>
           <div className="grid gap-2">
             {LOGISTICS_OPTIONS.map((opt) => (
               <label
@@ -163,18 +144,18 @@ export function FulfillmentPanel({ orderId, currentStatus, trackingCode, logisti
                   className="mt-1 h-4 w-4 accent-[#16141F]"
                 />
                 <span>
-                  <span className="block text-[14px] font-bold">{opt.label}</span>
-                  <span className="block text-[12.5px] text-app-ink-soft">{opt.desc}</span>
+                  <span className="block text-[14px] font-bold">{t(opt.label)}</span>
+                  <span className="block text-[12.5px] text-app-ink-soft">{t(opt.desc)}</span>
                 </span>
               </label>
             ))}
           </div>
           {logisticsType === "personal" && (
             <div>
-              <FieldLabel htmlFor="tracking-code">Tracking code (optional)</FieldLabel>
+              <FieldLabel htmlFor="tracking-code">{t("ful.trackingOptional")}</FieldLabel>
               <TextInput
                 id="tracking-code"
-                placeholder="e.g. NIPOST-12345"
+                placeholder={t("ful.trackingPlaceholder")}
                 value={trackingInput}
                 onChange={(e) => setTrackingInput(e.target.value)}
                 className="h-12"
@@ -183,9 +164,9 @@ export function FulfillmentPanel({ orderId, currentStatus, trackingCode, logisti
           )}
           <div className="flex flex-wrap gap-2">
             <PillButton tone="accent" size="md" onClick={handleShipWithLogistics} busy={loading === "shipped"} disabled={loading !== null}>
-              Mark as shipped
+              {t("action.markShipped")}
             </PillButton>
-            <PillButton tone="white" size="md" onClick={() => setShowLogistics(false)}>Cancel</PillButton>
+            <PillButton tone="white" size="md" onClick={() => setShowLogistics(false)}>{t("cancel")}</PillButton>
           </div>
         </fieldset>
       )}
@@ -193,11 +174,11 @@ export function FulfillmentPanel({ orderId, currentStatus, trackingCode, logisti
       {/* Tracking */}
       {trackingCode && currentStatus === "shipped" && (
         <div className="rounded-[16px] bg-app-canvas px-4 py-3">
-          <div className="text-[12.5px] text-app-ink-soft">Tracking</div>
+          <div className="text-[12.5px] text-app-ink-soft">{t("detail.tracking")}</div>
           <div className="break-all text-[15px] font-extrabold">{trackingCode}</div>
           {logisticsDetails && (
             <div className="mt-0.5 text-[12.5px] text-app-ink-soft">
-              {logisticsDetails.type === "pickup" ? "Buyer pickup" : "Personal logistics"}
+              {logisticsDetails.type === "pickup" ? t("detail.pickup") : t("detail.personal")}
             </div>
           )}
         </div>
@@ -216,7 +197,7 @@ export function FulfillmentPanel({ orderId, currentStatus, trackingCode, logisti
               disabled={loading !== null}
               className={cx("w-full", status === "cancelled" && "text-app-danger hover:border-app-danger")}
             >
-              {ACTION_LABELS[status] ?? STATUS_LABELS[status] ?? status}
+              {t.dynamic(`action.${status}`, statusLabel(status))}
             </PillButton>
           ))}
         </div>
@@ -225,7 +206,7 @@ export function FulfillmentPanel({ orderId, currentStatus, trackingCode, logisti
       {error && <Notice>{error}</Notice>}
 
       {isTerminal && (
-        <p className="m-0 text-[13.5px] text-app-ink-soft">This order is complete.</p>
+        <p className="m-0 text-[13.5px] text-app-ink-soft">{t("ful.complete")}</p>
       )}
     </div>
   );

@@ -1,27 +1,33 @@
-import { sendOrderConfirmationEmail } from "@/lib/email/notices.server";
-import { SENDER_STORE_SELECT } from "@/lib/email/compliance.server";
+import { completeCreditPurchase, grantPlanCredits } from "@/lib/ai/credits.server";
+import { CREDIT_REFERENCE_PREFIX } from "@shared/ai-credits";
+import { AD_SETUP_REFERENCE_PREFIX } from "@shared/ad-campaigns";
+import { completeAdSetupPayment } from "@/lib/ad-campaigns/requests.server";
+import { PRINT_ORDER_REFERENCE_PREFIX } from "@shared/print-orders";
+import { completePrintOrderPayment } from "@/lib/packaging/print-orders.server";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db/client";
-import { buildStorefrontUrl } from "@/lib/domains/storefront";
-import { triggerAutomations } from "@/lib/automations/engine";
 import crypto from "crypto";
 import { completeStoreLaunchPayment } from "@/lib/store-launch-billing";
-import { creditCampaignConversion } from "@/lib/campaigns/send";
-import { notifyOrderCustomer } from "@/lib/notifications/customer-messages";
+import { DOMAIN_REFERENCE_PREFIX, completeDomainPayment } from "@/lib/domains/billing.server";
 import { PAYABLE_ORDER_STATUSES, retailChargeProblem } from "@/lib/commerce/paystack-charge";
 import { recoverExpiredOrderPayment } from "@/lib/commerce/order-expiry.server";
 import { applyRefundEvent } from "@/lib/commerce/refunds.server";
-import { ensureSupplierOrdersSafely } from "@/lib/supplier-orders/service.server";
+import { afterRetailOrderPaid } from "@/lib/commerce/order-paid.server";
+import { SELLER_PAYIN_PREFIX, confirmSellerPayIn } from "@/lib/logistics/seller-payins.server";
+import { DELIVERY_FEE_PREFIX, confirmDeliveryFeePayment } from "@/lib/logistics/delivery-fee-payments.server";
 import { PAID_RETAIL_STATUSES } from "@/lib/supplier-orders/pure";
+import { isDedicatedCharge } from "@/lib/logistics/payin-rules";
+import { handleDedicatedAccountAssign, handleDedicatedAccountCharge } from "@/lib/logistics/payins.server";
+import { recordInvoicePaid, recordSubscriptionCreated, recordSubscriptionStatus } from "@/lib/seller-plan.server";
+import { getPlanCatalog } from "@/lib/plans/catalog.server";
+import { FREE_PLAN_MARKER, planMarker } from "@shared/plan-catalog";
 
-const PLAN_CREDITS: Record<string, number> = {
-  PLN_8ou289e71czicvm: 50,   // Seller Growth (monthly)
-  PLN_2gph11w3yd0250y: 200,  // Seller Pro (monthly)
-  PLN_q78304vgj7p35o6: 100,  // Supplier Max (monthly)
-  PLN_q1k3ssxpx7rxxuz: 50,   // Seller Growth Annual
-  PLN_9gma70ofldhbj4r: 200,  // Seller Pro Annual
-  PLN_0a6z6ns429ohli1: 100,  // Supplier Max Annual
-};
+// The plan itself (code, monthly/annual, status, paid-until) is recorded on User for the free-domain rule
+// (src/lib/seller-plan.ts). A failure there is logged, never fails the webhook: the credits above still apply.
+function recordPlan(work: Promise<unknown>) {
+  return work.catch((error) => console.error("[paystack webhook] could not record the seller plan", error));
+}
+
 
 function verifySignature(body: string, signature: string | null, secret: string): boolean {
   if (!signature) return false;
@@ -59,17 +65,36 @@ export async function POST(req: NextRequest) {
 
   const eventType = event.event as string;
 
+  // ── Delivery partners' pay-in accounts (Paystack Dedicated Virtual Accounts) ──────────────────────────────
+  // A transfer into a partner's own account settles their cash from pay-on-delivery jobs (lib/logistics/payins.server.ts).
+  // Kept apart from everything below: it is never a store order or a subscription. Idempotent on the Paystack
+  // reference, so a 500 here (the database was unreachable) is safe for Paystack to retry.
+  if ((eventType === "charge.success" && isDedicatedCharge(event.data)) || eventType?.startsWith("dedicatedaccount.assign.")) {
+    try {
+      if (eventType === "charge.success") await handleDedicatedAccountCharge(event.data);
+      else await handleDedicatedAccountAssign(eventType, event.data);
+    } catch (error) {
+      console.error(`[paystack webhook] pay-in account event ${eventType} failed`, error);
+      return new NextResponse("Retry later", { status: 500 });
+    }
+    return new NextResponse("OK", { status: 200 });
+  }
+
   // ── Subscription created (first payment via plan) ────────────────────────
+  // Subscription events: load the plan catalog first so plan codes created from Admin › Pricing › Plans are known.
+  if (eventType?.startsWith("subscription.") || eventType === "invoice.update") await getPlanCatalog();
+
   if (eventType === "subscription.create") {
     const planCode = event.data?.plan?.plan_code as string | undefined;
     const customerEmail = event.data?.customer?.email as string | undefined;
-    if (planCode && customerEmail && PLAN_CREDITS[planCode] !== undefined) {
-      const credits = PLAN_CREDITS[planCode];
+    const marker = planMarker(planCode);
+    if (planCode && customerEmail && marker !== null) {
       await db.user.updateMany({
         where: { email: customerEmail },
-        data: { aiCredits: credits },
+        data: { aiCredits: marker },
       });
     }
+    await recordPlan(recordSubscriptionCreated(event.data ?? {}));
   }
 
   // ── Invoice paid (monthly renewal) ───────────────────────────────────────
@@ -80,13 +105,18 @@ export async function POST(req: NextRequest) {
   if (eventType === "invoice.update" && event.data?.paid === true) {
     const planCode = event.data?.subscription?.plan?.plan_code as string | undefined;
     const customerEmail = event.data?.customer?.email as string | undefined;
-    if (planCode && customerEmail && PLAN_CREDITS[planCode] !== undefined) {
-      const credits = PLAN_CREDITS[planCode];
+    const marker = planMarker(planCode);
+    if (planCode && customerEmail && marker !== null) {
       await db.user.updateMany({
         where: { email: customerEmail },
-        data: { aiCredits: credits },
+        data: { aiCredits: marker },
       });
+      // Each paid renewal adds the plan's credits to the balance (once per invoice).
+      const payer = await db.user.findFirst({ where: { email: { equals: customerEmail, mode: "insensitive" } }, select: { id: true } });
+      const reference = (event.data?.transaction?.reference as string | undefined) ?? (event.data?.invoice_code as string | undefined);
+      if (payer && reference) await grantPlanCredits(payer.id, planCode, reference).catch((error) => console.error("Plan credits not added:", error));
     }
+    await recordPlan(recordInvoicePaid(event.data ?? {}));
   }
 
   // ── Subscription cancelled ────────────────────────────────────────────────
@@ -95,18 +125,61 @@ export async function POST(req: NextRequest) {
     if (customerEmail) {
       await db.user.updateMany({
         where: { email: customerEmail },
-        data: { aiCredits: 5 },
+        data: { aiCredits: FREE_PLAN_MARKER },
       });
     }
+    await recordPlan(recordSubscriptionStatus(event.data ?? {}, eventType === "subscription.disable" ? "cancelled" : "non_renewing"));
+  }
+
+  // ── Cash on delivery a delivery partner paid to a seller (split to the seller's own bank) ──
+  // Idempotent on the reference, so a 500 (Paystack or the database unreachable) is safe for Paystack to retry.
+  if (eventType === "charge.success" && typeof event.data?.reference === "string" && event.data.reference.startsWith(SELLER_PAYIN_PREFIX)) {
+    const result = await confirmSellerPayIn(event.data.reference).catch((error) => ({ ok: false as const, error: String(error), retry: true }));
+    if (!result.ok && result.retry) return new NextResponse("Retry later", { status: 500 });
+    if (!result.ok) console.warn(`[paystack webhook] seller pay-in ${event.data.reference} not applied: ${result.error}`);
+    return new NextResponse("OK", { status: 200 });
+  }
+
+  // ── A delivery fee a seller paid by card (split to the delivery partner's own bank) ──
+  if (eventType === "charge.success" && typeof event.data?.reference === "string" && event.data.reference.startsWith(DELIVERY_FEE_PREFIX)) {
+    const result = await confirmDeliveryFeePayment(event.data.reference).catch((error) => ({ ok: false as const, error: String(error), retry: true }));
+    if (!result.ok && result.retry) return new NextResponse("Retry later", { status: 500 });
+    if (!result.ok) console.warn(`[paystack webhook] delivery fee ${event.data.reference} not applied: ${result.error}`);
+    return new NextResponse("OK", { status: 200 });
   }
 
   // ── Retail order payment (storefront checkout) ────────────────────────────
   if (eventType === "charge.success") {
     const ref = event.data?.reference as string | undefined;
     if (ref) {
+      if (ref.startsWith(AD_SETUP_REFERENCE_PREFIX)) {
+        await completeAdSetupPayment(ref).catch((error) => {
+          console.error("Ad setup payment completion failed:", error);
+        });
+        return NextResponse.json({ received: true });
+      }
+      if (ref.startsWith(PRINT_ORDER_REFERENCE_PREFIX)) {
+        await completePrintOrderPayment(ref).catch((error) => {
+          console.error("Print order payment completion failed:", error);
+        });
+        return NextResponse.json({ received: true });
+      }
+      if (ref.startsWith(CREDIT_REFERENCE_PREFIX)) {
+        await completeCreditPurchase(ref).catch((error) => {
+          console.error("AI credit purchase completion failed:", error);
+        });
+        return NextResponse.json({ received: true });
+      }
       if (ref.startsWith("store-launch-")) {
         await completeStoreLaunchPayment(ref).catch((error) => {
           console.error("Store launch payment completion failed:", error);
+        });
+      }
+      // Domains bought or renewed through Shopinbos (purpose domain_purchase / domain_renewal): verified and
+      // completed idempotently, the same as the callback; the registrar is only called after a verified payment.
+      if (ref.startsWith(DOMAIN_REFERENCE_PREFIX)) {
+        await completeDomainPayment(ref).catch((error) => {
+          console.error("Domain payment completion failed:", error);
         });
       }
       // Inline payments carry an amount the buyer's browser chose, so check it against the order before
@@ -131,58 +204,9 @@ export async function POST(req: NextRequest) {
             where: { id: ref, status: { in: [...PAYABLE_ORDER_STATUSES] } },
             data: { status: "paid", paystackStatus: "success", paystackRef: ref },
           });
-      if (moved.count === 1) await creditCampaignConversion(ref).catch(() => null);
-      if (moved.count === 1) await notifyOrderCustomer(ref, "payment_received"); // WhatsApp/SMS to the buyer, if switched on
-      // Dropship items go to their suppliers. Idempotent, so a replayed event (or one that failed half way) is safe.
+      // The buyer's and seller's messages (once), supplier orders and the payment link (src/lib/commerce/order-paid.server.ts).
       if (moved.count === 1 || (pending && (PAID_RETAIL_STATUSES as readonly string[]).includes(pending.status))) {
-        await ensureSupplierOrdersSafely(ref);
-      }
-
-      const resendKey = process.env.RESEND_API_KEY;
-      // The order is already marked paid; a failure in the follow-up email must not 500 the webhook
-      // (Paystack would keep retrying an event that was processed).
-      try {
-        if (moved.count === 1 && resendKey && !resendKey.includes("your_")) {
-          const order = await db.retailOrder.findUnique({ where: { id: ref } });
-          if (order) {
-            const storeData = await db.store.findUnique({ where: { id: order.storeId }, select: SENDER_STORE_SELECT });
-
-            if (storeData && order.buyerEmail) {
-              const money = (amount: number) => {
-                try {
-                  return new Intl.NumberFormat("en-NG", { style: "currency", currency: order.currency, maximumFractionDigits: 0 }).format(amount);
-                } catch {
-                  return `${order.currency} ${Math.round(amount).toLocaleString("en-NG")}`;
-                }
-              };
-              const items = Array.isArray(order.items) ? (order.items as Array<{ name?: string; quantity?: number; price?: number }>) : [];
-              await sendOrderConfirmationEmail({
-                store: storeData,
-                to: order.buyerEmail,
-                buyerName: order.buyerName,
-                orderNumber: order.orderNumber,
-                items: items.map((item) => ({ name: String(item.name ?? "Item"), qty: Number(item.quantity ?? 1), price: money(Number(item.price ?? 0) * Number(item.quantity ?? 1)) })),
-                total: money(Number(order.total)),
-                orderUrl: buildStorefrontUrl(storeData, `/order/${order.id}`),
-                paymentNote: "Payment received. Thank you!",
-              }).catch(() => null);
-            }
-
-            Promise.allSettled([
-              triggerAutomations("payment_received", {
-                storeId: order.storeId,
-                storeName: storeData?.name ?? "Store",
-                buyerEmail: order.buyerEmail,
-                buyerName: order.buyerName,
-                orderNumber: order.orderNumber,
-                orderTotal: Number(order.total),
-                currency: order.currency,
-              }),
-            ]).catch(() => {});
-          }
-        }
-      } catch (error) {
-        console.error("Paystack webhook follow-up failed:", error);
+        await afterRetailOrderPaid(ref, moved.count === 1, "paystack webhook");
       }
     }
   }

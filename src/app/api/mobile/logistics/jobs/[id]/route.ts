@@ -5,7 +5,7 @@ import { db } from "@/lib/db/client";
 import { apiError, ok } from "@/lib/api/response";
 import { isOnboardingComplete } from "@/lib/role-queries";
 import { assignRider, transitionJob } from "@/lib/logistics/jobs";
-import { JOB_SELECT, jobView, notesWithRecipient, ordersFor, partnerForUser } from "../../_shared";
+import { JOB_SELECT, dispatchRiders, jobView, notesWithRecipient, ordersFor, partnerForUser, pickupGeoFor } from "../../_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -31,22 +31,22 @@ const Body = z.discriminatedUnion("action", [
   }),
 ]);
 
-async function loadJob(partnerId: string, id: string) {
+async function loadJob(partnerId: string, id: string, country?: string | null) {
   const job = await db.deliveryBooking.findFirst({ where: { id, logisticsPartnerId: partnerId }, select: JOB_SELECT });
   if (!job) return null;
-  const orders = await ordersFor([job]);
-  return jobView(job, job.orderId ? orders.get(job.orderId) : undefined);
+  const [orders, pickupGeo] = await Promise.all([ordersFor([job]), pickupGeoFor([job], country)]);
+  return jobView(job, job.orderId ? orders.get(job.orderId) : undefined, pickupGeo.get(job.id));
 }
 
 export const GET = withLogistics(async (_req: NextRequest, { user, params }) => {
   const partner = await partnerForUser(user.id);
   if (!partner) return apiError("NOT_FOUND", "Delivery partner profile not found", 404);
   const [job, riders] = await Promise.all([
-    loadJob(partner.id, String(params.id)),
-    db.logisticsTeamMember.findMany({ where: { logisticsPartnerId: partner.id, role: "rider", status: "active" }, orderBy: { name: "asc" }, select: { id: true, name: true, online: true, lastSeenAt: true } }),
+    loadJob(partner.id, String(params.id), partner.country),
+    dispatchRiders(partner.id),
   ]);
-  if (!job) return apiError("NOT_FOUND", "Job not found", 404);
-  return ok({ job, riders: riders.map((rider) => ({ ...rider, lastSeenAt: rider.lastSeenAt?.toISOString() ?? null })) });
+  if (!job) return apiError("NOT_FOUND", "We couldn't find that job. It may have been cancelled.", 404);
+  return ok({ job, riders });
 });
 
 export const POST = withLogistics(async (req: NextRequest, { user, params }) => {

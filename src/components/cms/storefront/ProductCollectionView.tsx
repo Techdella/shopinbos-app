@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { CmsShell } from "@/components/cms/storefront/CmsPages";
 import { jsonLdString } from "@/lib/cms/jsonld";
 import { cmsCanonical, storeLink, storefrontProductCollection } from "@/lib/cms/storefront";
+import { breadcrumbLd, itemListLd, webPageLd } from "@/lib/seo/structured-data";
 import { naira } from "@shared/onboarding";
 
 // A product collection's own page (/collections/<slug>), so each collection has an address with its own
@@ -12,19 +13,20 @@ export async function ProductCollectionRoute({ storeSlug, handle, basePath, cust
   const found = await storefrontProductCollection(storeSlug, handle);
   if (!found) notFound();
   const { store, collection, products } = found;
-  const canonical = cmsCanonical(store.slug, `/collections/${collection.slug}`, customDomain);
+  const domain = customDomain ?? store.customDomain;
+  const canonical = cmsCanonical(store.slug, `/collections/${collection.slug}`, domain);
+  const home = cmsCanonical(store.slug, "/", domain);
   const price = (amount: number, currency: string) => (currency === "NGN" ? naira(amount) : `${currency} ${amount.toLocaleString()}`);
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "CollectionPage",
-    name: collection.name,
-    description: collection.description ?? undefined,
-    url: canonical,
-    mainEntity: { "@type": "ItemList", itemListElement: products.slice(0, 50).map((product, index) => ({ "@type": "ListItem", position: index + 1, url: canonical.replace(/\/collections\/[^/]+$/, `/product/${product.id}`), name: product.name })) },
-  };
+  const jsonLd = [
+    {
+      ...webPageLd({ type: "CollectionPage", name: collection.name, url: canonical, storeUrl: home, description: collection.description, image: collection.imageUrl }),
+      mainEntity: itemListLd({ items: products.slice(0, 100).map((product) => ({ url: cmsCanonical(store.slug, `/product/${encodeURIComponent(product.id)}`, domain), name: product.name, image: product.images[0] ?? null })) }) ?? undefined,
+    },
+    breadcrumbLd([{ name: store.name, url: home }, { name: collection.name, url: canonical }]),
+  ].filter(Boolean);
   return (
     <CmsShell store={store} basePath={basePath}>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(jsonLd) }} />
+      {jsonLd.map((entry, index) => <script key={index} type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(entry) }} />)}
       <nav className="cms-crumbs" aria-label="Breadcrumb"><Link href={storeLink(basePath, "/")}>{store.name}</Link><span aria-hidden>/</span><span aria-current="page">{collection.name}</span></nav>
       <h1 className="cms-h1">{collection.name}</h1>
       {collection.description && <p className="cms-lede">{collection.description}</p>}

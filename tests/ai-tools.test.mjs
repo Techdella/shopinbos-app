@@ -26,6 +26,8 @@ const REAL = [
   "lib/marketing/flows",
   "lib/reviews/pure",
   "lib/cms/fields",
+  "lib/payment-links/pure",
+  "lib/bio/pure",
 ];
 
 const HOOKS = `
@@ -200,6 +202,10 @@ function freshDb() {
     ],
     checkoutConfig: [],
     reviewRequest: [],
+    paymentLink: [
+      { id: "pl-A", storeId: "store-A", code: "aaaabbbbcccc", status: "active", oneTime: true, expiresAt: null, items: [], createdAt: new Date() },
+      { id: "pl-B", storeId: "store-B", code: "zzzzyyyyxxxx", status: "active", oneTime: true, expiresAt: null, items: [], createdAt: new Date() },
+    ],
   };
   const db = Object.fromEntries(Object.entries(tables).map(([name, rows]) => [name, model(rows)]));
   db.$transaction = async (ops) => Promise.all(ops);
@@ -257,6 +263,24 @@ globalThis.__aiMocks = {
     checkConfirmationCode: (given, parts) => Boolean(given) && given.trim().toUpperCase() === code(parts),
   },
   "@/lib/ads": { sellerWhatsapp: async () => "2348031111111" },
+  "@/lib/ad-campaigns/campaigns.server": {
+    CampaignError: class CampaignError extends Error {},
+    writeAdCopy: record("writeAdCopy", (store, ids) => ids.map((productId) => ({ productId, headline: "Soft tote", primaryText: "Order now." }))),
+    saveCampaignDraft: record("saveCampaignDraft", (storeId, input) => ({ id: "camp-1", name: input.name, storeId })),
+    launchCampaign: record("launchCampaign", { id: "camp-1" }),
+  },
+  "@/lib/ad-campaigns/meta.server": {
+    MetaAdsError: class MetaAdsError extends Error {},
+    metaAdsStatus: async () => ({ configured: true, status: "connected", accountId: "act_1", accountName: "Ada Ads", pageName: "Ada Fabrics", currency: "NGN" }),
+    setMetaCampaignActive: record("setMetaCampaignActive", undefined),
+    syncMetaCampaign: record("syncMetaCampaign", null),
+  },
+  "@/lib/pricing/price-book.server": {
+    getPriceBook: async () => ({ "ads.setup.meta": 20_000, "ads.setup.tiktok": 30_000, "ads.min_daily_budget": 1_000 }),
+  },
+  "@/lib/ad-campaigns/requests.server": {
+    createAdRequest: record("createAdRequest", { id: "req-1", authorizationUrl: "https://checkout.paystack.com/abc" }),
+  },
   "@/lib/orders/update-status": {
     updateOrderStatus: async (store, current, input) => {
       calls.push({ name: "updateOrderStatus", args: [store, current, input] });
@@ -282,8 +306,30 @@ globalThis.__aiMocks = {
   },
   "@/lib/analytics/load": { loadAnalytics: record("loadAnalytics", { report: { kpis: { sales: 0, orders: 0, aov: 0, visits: 0, conversionRate: null, returningRate: null, refundsCount: 0, refundsValue: 0 }, change: {}, previous: { sales: 0, orders: 0, visits: 0 }, topProducts: [], channels: [], sources: [], attribution: {}, funnel: [], customers: {} } }) },
   "@/lib/analytics/range": { resolveRange: ({ range }) => ({ label: range }) },
+  "@/lib/analytics/traffic-load": {
+    loadTraffic: record("loadTraffic", {
+      available: true,
+      report: {
+        kpis: { sessions: 0, pageViews: 0, uniqueVisitors: 0, newVisitors: 0, returningVisitors: 0, pagesPerSession: null, avgEngagedSeconds: null, searches: 0, productViews: 0, addToBag: 0, checkouts: 0, paidOrders: 0, conversionRate: null },
+        previous: { sessions: 0, pageViews: 0, uniqueVisitors: 0, paidOrders: 0 },
+        change: {},
+        topPages: [], entryPages: [], sources: [], sourceKinds: [], referrers: [], devices: [], countries: [], cities: [], searchTerms: [], mediums: [], campaigns: [], products: [], funnel: [], since: null,
+      },
+    }),
+  },
   "@/lib/social/server": { productLink: (store, id) => `https://${store.slug}.shop/p/${id}`, feedUrl: (slug, file) => `https://x/${slug}/${file}` },
-  "@/lib/reviews/server": { loadReviews: record("loadReviews", []), productNames: async () => new Map() },
+  "@/lib/reviews/server": { loadReviews: record("loadReviews", []), productNames: async () => new Map(), moderateReview: record("moderateReview", true) },
+  "@/lib/reviews/reply": { saveSellerReply: record("saveSellerReply", { ok: true, message: "Reply saved." }) },
+  "@/lib/whatsapp-catalog/dirty": { markCatalogDirty: record("markCatalogDirty", undefined) },
+  "@/lib/products/categories.server": {
+    categoryNamesFor: async () => ["Bags"],
+    findCategoryByName: async (name) => (name.toLowerCase() === "bags" ? { id: "cat-bags", name: "Bags" } : null),
+    findOrCreateCategory: record("findOrCreateCategory", (name) => ({ id: "cat-new", name, created: true })),
+  },
+  "@/lib/products/content-ai.server": {
+    contentCallCount: () => 1,
+    suggestProductContent: record("suggestProductContent", (items) => ({ suggestions: items.map((item) => ({ description: `About ${item.name}.`, specifications: [{ name: "Material", value: "Cotton" }], seoTitle: item.name })), source: "ai", aiCalls: 1 })),
+  },
   "@/lib/reviews/ai": { draftReviewReply: async () => "Thank you!", summarizeReviewThemes: async () => ({ summary: { bySource: {} }, themes: null }) },
   "@/lib/reviews/requests": {
     storeChannelReadiness: async () => ({ email: true, sms: false, whatsapp: false }),
@@ -322,12 +368,42 @@ globalThis.__aiMocks = {
   },
   "@/lib/legal/pages": { legalPageStatus: () => "empty" },
   "@/lib/domains/storefront": { buildStorefrontUrl: (store, path) => `https://${store.slug}.shop${path}` },
+  "@/lib/payment-links/service.server": {
+    LINK_STORE_SELECT: { id: true, name: true, slug: true, customDomain: true, currency: true },
+    snapshotItems: record("snapshotItems", (storeId, items) => ({ ok: true, items: items.map((item) => ({ ...item, name: "Ankara tote", price: 15000 })), total: items.reduce((sum, item) => sum + 15000 * item.quantity, 0) })),
+    createPaymentLink: record("createPaymentLink", (store, input) => ({ ok: true, link: { id: "pl-new", code: "mmmmnnnnpppp" }, url: `https://${store.slug}.shop/pay/mmmmnnnnpppp`, total: input.customAmount ?? 15000, items: [{ name: "Ankara tote", quantity: 1 }] })),
+    listPaymentLinks: record("listPaymentLinks", () => [{ id: "pl-A", code: "aaaabbbbcccc", url: "https://ada.shop/pay/aaaabbbbcccc", title: "Ankara tote", status: "paid", oneTime: true, amount: 15000, createdBy: "peggy_customer", createdAt: "2026-10-15T10:00:00.000Z", expiresAt: null, views: 3, paidCount: 1, order: { id: "o1", orderNumber: "SIB-1001" }, buyerName: null, items: [] }]),
+    cancelPaymentLink: record("cancelPaymentLink", { ok: true, title: "Ankara tote" }),
+    paymentReadiness: async () => ({ card: true, transfer: true, payOnDelivery: false, ready: true }),
+  },
+  "@/lib/bio/service.server": {
+    saveBioPage: record("saveBioPage", (storeId, input) => ({ ok: true, page: { blocks: input.blocks } })),
+    topProductIds: record("topProductIds", () => [{ id: "pa1", name: "Ankara tote" }, { id: "pa2", name: "Adire scarf" }]),
+  },
   "@/lib/ai/images": {
     ImageUnavailableError,
     EDIT_PROMPTS: { enhance: "enhance", white_background: "white", remove_background: "cut", lifestyle: "scene" },
     isOwnImageUrl: (url) => url.startsWith("https://proj.supabase.co/storage/v1/"),
     editImage: record("editImage", "https://proj.supabase.co/storage/v1/object/public/brand/edited.webp"),
     generateImage: record("generateImage", "https://proj.supabase.co/storage/v1/object/public/brand/new.webp"),
+  },
+  "@/lib/ai/brand-context.server": { loadBrandContext: async () => null },
+  "@/lib/ai/brand-book.server": {
+    BrandBookError: class BrandBookError extends Error {},
+    draftBrandBook: record("draftBrandBook", { paletteName: "Lagos Sunset", tagline: "Good things, well made", colours: { primary: "#E2541B", secondary: "#0E2A38", accent: "#F2A93B", background: "#FAF7F1", surface: "#FFFFFF", text: "#16141F" }, typography: { headings: "Fraunces", body: "Inter", style: "serif", note: "x" }, voice: { traits: ["warm"] } }),
+    saveBrandBook: record("saveBrandBook", (storeId, book) => ({ ...book, updatedAt: "2026-10-15" })),
+  },
+  "@/lib/packaging/designs.server": {
+    saveLabelDesign: record("saveLabelDesign", { id: "design-1" }),
+    savePackagingDesign: record("savePackagingDesign", (input) => ({ id: "pack-1", title: input.title })),
+  },
+  "@/lib/packaging/copy.server": {
+    writePackCopy: record("writePackCopy", { name: "Ankara Tote", tagline: "Carry the culture", claims: ["Handmade"] }),
+    fallbackPackCopy: (input) => ({ name: input.name, claims: [] }),
+  },
+  "@/lib/ai/reel-shots.server": { makeReelShot: record("makeReelShot", "https://proj.supabase.co/storage/v1/object/public/brand/shot.webp") },
+  "@/lib/ai/brand-image.server": {
+    makeBrandImage: record("makeBrandImage", { url: "https://proj.supabase.co/storage/v1/object/public/brand/new.webp", usedLogo: false, usedReferences: 0, logoProblem: null }),
   },
   "@/lib/ai/rex/logo": { LOGO_STYLES: ["minimal", "bold", "illustrative"], drawLogoOptions: record("drawLogoOptions", { logos: [{ url: "https://proj.supabase.co/l.webp", label: "Minimal", palette: {} }], failures: [] }) },
   "@/lib/store-health": { computeStoreHealth: () => ({ score: 62, missing: [{ label: "Add an About page", rexPrompt: "Write my About page", href: null }] }) },
@@ -386,6 +462,15 @@ async function runRex(name, input, ctx = rexCtx()) {
   return REX_TOOL_RUNNERS[name](ctx, parsed.input);
 }
 
+/** An edit_products change that keeps every field except the ones given. */
+function NO_CHANGE(fields = {}) {
+  return {
+    description: null, longDescription: null, careInstructions: null, shippingInfo: null, returnPolicy: null, warranty: null, supportInfo: null,
+    seoTitle: null, seoDescription: null, specifications: null, faqs: null, productType: null, productDetails: null, category: null, tags: null,
+    weight: null, weightUnit: null, dimensions: null, relatedProducts: null, compareAtPrice: null, ...fields,
+  };
+}
+
 // One valid input per tool. Each test below runs it, and every tool also refuses the same input with a
 // storeId, userId or other field the model might try to slip in.
 const PEGGY_VALID = {
@@ -401,6 +486,11 @@ const PEGGY_VALID = {
   draft_blog_post: { title: "Caring for Ankara", topic: "Washing and ironing tips" },
   draft_broadcast: { channel: "email", audience: "subscribers", subject: "New in", message: "Fresh Ankara totes are in the shop this week." },
   draft_ad: { productName: "Ankara tote", platform: "instagram", destination: null, dailyBudget: null, days: null },
+  ads_overview: {},
+  ads_create_campaign: { products: ["Ankara tote"], mode: "meta", platform: null, objective: null, dailyBudget: null, days: null, startDate: null, states: ["Lagos"], ageMin: null, ageMax: null, gender: null, interests: ["fashion"], video: null, name: null },
+  ads_launch_campaign: { campaign: "Ankara", confirmCode: null },
+  ads_manage_campaign: { campaign: "Ankara", action: "pause", confirmCode: null },
+  ads_request_help: { platform: "tiktok", campaign: null, handle: "@adafabrics", pageUrl: null, dailyBudget: null, days: null, goals: null, notes: null },
   write_copy: { kind: "instagram_caption", about: "Our Ankara tote" },
   setup_status: {},
   setup_payment_methods: { transfer: null, card: true, cod: null, wa: null },
@@ -409,9 +499,13 @@ const PEGGY_VALID = {
   inbox_draft_reply: { conversation: "conv-A", instruction: null },
   inbox_send_reply: { conversation: "conv-A", message: "Yes, it is available.", confirmCode: null },
   analytics_report: { period: "30d" },
+  store_traffic_report: { period: "7d" },
   social_write_post: { productName: "Ankara tote", channel: "whatsapp", angle: null },
-  reviews_summary: { themes: false },
-  reviews_draft_replies: { limit: null, lowRatingsFirst: null },
+  reviews_summary: { themes: false, product: null },
+  reviews_draft_replies: { limit: null, lowRatingsFirst: null, product: null },
+  reviews_list: { product: null, filter: "needs_reply", limit: null },
+  reviews_reply: { review: "store:r1", reply: "Thank you, Tolu!", confirmCode: null },
+  reviews_moderate: { reviews: ["store:r1"], action: "feature", confirmCode: null },
   reviews_request: { orderNumbers: ["SIB-1001"], channel: "email", confirmCode: null },
   marketing_overview: {},
   marketing_create_segment: { name: "Big spenders", match: "all", conditions: [{ field: "spent", op: "gte", value: "50000" }] },
@@ -427,6 +521,14 @@ const PEGGY_VALID = {
   draft_email_template: { brief: "A Sallah sale email with 10% off", name: null, kind: null },
   improve_email_copy: { template: "Welcome", instruction: "Make it shorter" },
   legal_draft_page: { page: "refund-policy", brief: null, confirmCode: null },
+  get_product: { product: "Ankara tote" },
+  edit_products: { target: { products: null, name: "tote", category: null, tag: null, productType: null, batch: null }, changes: NO_CHANGE({ warranty: "12 months" }), perProduct: null, confirmCode: null },
+  draft_product_content: { target: { products: ["Ankara tote"], name: null, category: null, tag: null, productType: null, batch: null }, fields: ["description", "specifications", "seo"], instruction: null, usePhotos: true },
+  set_product_variants: { product: "Ankara tote", options: [{ name: "Size", values: ["S", "M", "L"] }], basePrice: null, priceAdjustments: [{ option: "Size", value: "L", amount: 2000 }], exactPrices: null, confirmCode: null },
+  create_payment_link: { products: [{ product: "Ankara tote", option: null, quantity: 2 }], oneTime: true, expiry: "24h", customAmount: null, note: null, buyerName: "Chika", buyerPhone: "08035555555", buyerEmail: null, confirmCode: null },
+  list_payment_links: { status: null, limit: null },
+  cancel_payment_link: { link: "aaaabbbbcccc", confirmCode: null },
+  build_link_in_bio: { products: null, productCount: 2, whatsapp: true, socials: { instagram: "@adafabrics", tiktok: null, x: null, facebook: null, youtube: null }, buyNow: true, signup: false, bio: null, confirmCode: null },
 };
 
 const REX_VALID = {
@@ -437,9 +539,9 @@ const REX_VALID = {
   edit_product_photo: { product: "Ankara tote", imageIndex: null, imageUrl: null, style: "enhance", instructions: null },
   remove_background: { product: "Ankara tote", imageIndex: null, imageUrl: null },
   lifestyle_photo: { product: "Ankara tote", imageIndex: null, imageUrl: null, scene: null },
-  generate_product_image: { prompt: "A bright banner of Ankara fabric rolls", product: null, shape: "landscape" },
+  generate_product_image: { prompt: "A bright banner of Ankara fabric rolls", product: null, shape: "landscape", brand: null, referenceImages: null },
   generate_logo: { businessName: null, about: null, paletteHint: null },
-  make_product_video: { product: "Ankara tote", language: null },
+  make_product_video: { product: "Ankara tote", language: null, template: null, shots: null, photos: null, voice: null, music: null },
   edit_store_section: { instruction: "Rewrite the banner in Pidgin", page: "home" },
   rebuild_section: { page: "about", section: "our story", direction: null },
   switch_theme: { themeId: "noir" },
@@ -451,6 +553,12 @@ const REX_VALID = {
   draft_email_template: { brief: "A welcome email", name: null },
   improve_email_copy: { template: "Welcome", instruction: "Warmer" },
   cms_write_item: { collection: "Blog", brief: "How to tie a gele", title: null },
+  create_brand_book: { direction: null, applyColours: null },
+  make_brand_icon: { kind: "favicon" },
+  set_logo_display: { style: "logo", size: "large" },
+  make_print_labels: { kind: "tag", products: ["pa1"], headline: "Handmade in Lagos", note: null, qr: "product", copies: 2 },
+  design_packaging: { product: "pa1", name: null, productType: null, format: "bag", style: "ankara", brief: null },
+  make_creative: { placement: "story", concept: "bold_headline", products: ["pa1"], headline: "Tough choice.", subline: null, cta: "Shop now", brand: null, extra: null },
 };
 
 test("every Peggy and Rex tool has a runner, a valid example, and refuses smuggled ids", () => {
@@ -474,7 +582,7 @@ test("every Peggy and Rex tool has a runner, a valid example, and refuses smuggl
 });
 
 test("Peggy and Rex tools that send or replace things are marked as writes", () => {
-  for (const name of ["create_discount", "update_product", "mark_order", "inbox_send_reply", "reviews_request", "marketing_send_campaign", "marketing_create_automation", "legal_draft_page", "commerce_update_settings", "setup_payment_methods"]) {
+  for (const name of ["create_payment_link", "cancel_payment_link", "build_link_in_bio", "create_discount", "update_product", "mark_order", "inbox_send_reply", "reviews_request", "marketing_send_campaign", "marketing_create_automation", "legal_draft_page", "commerce_update_settings", "setup_payment_methods", "set_product_variants", "edit_products", "reviews_reply", "reviews_moderate"]) {
     assert.equal(isWriteTool(name), true, name);
   }
   for (const name of ["edit_store_section", "rebuild_section", "switch_theme", "create_campaign", "create_automation"]) assert.equal(rexPure.isRexWriteTool(name), true, name);
@@ -516,6 +624,11 @@ test("Peggy read tools only see the seller's own shop", async () => {
   assert.deepEqual(called("getSetupOverview")[0].args, [USER_A]);
   await runPeggy("analytics_report", PEGGY_VALID.analytics_report);
   assert.equal(called("loadAnalytics")[0].args[0], "store-A");
+  const traffic = JSON.parse((await runPeggy("store_traffic_report", PEGGY_VALID.store_traffic_report)).content);
+  assert.equal(called("loadTraffic")[0].args[0], "store-A", "store traffic is read for the seller's own store only");
+  assert.equal(traffic.seeAlso, "/home/analytics/traffic");
+  assert.equal(traffic.uniqueVisitors, 0, "true unique visitors for the period, not daily visitors added up");
+  assert.equal(traffic.dailyVisitors, undefined);
   await runPeggy("reviews_summary", PEGGY_VALID.reviews_summary);
   assert.equal(called("loadReviews")[0].args[0], "store-A");
   assert.equal((await runPeggy("reviews_draft_replies", PEGGY_VALID.reviews_draft_replies)).content, "Every review already has a reply.");
@@ -839,7 +952,15 @@ test("Rex picture tools edit only the store's own photos and never save by thems
   assert.equal(rexPure.parseRexToolInput("edit_product_photo", { ...REX_VALID.edit_product_photo, imageUrl: "http://evil.example/x.png" }).ok, false, "https only");
 
   assert.equal((await runRex("generate_product_image", REX_VALID.generate_product_image)).card.after, "https://proj.supabase.co/storage/v1/object/public/brand/new.webp");
-  assert.equal(called("generateImage")[0].args[0].size, "1536x1024");
+  assert.equal(called("makeBrandImage")[0].args[0].size, "1536x1024");
+  assert.equal(called("makeBrandImage")[0].args[0].logo, false, "no logo unless asked");
+  await runRex("generate_product_image", { ...REX_VALID.generate_product_image, brand: "logo" });
+  assert.equal(called("makeBrandImage")[1].args[0].logo, true);
+  await assert.rejects(
+    runRex("generate_product_image", { ...REX_VALID.generate_product_image, referenceImages: ["https://proj.supabase.co/storage/v1/object/public/p/other-shop.webp"] }),
+    /aren't in this conversation or this shop/,
+    "references stay within the shop",
+  );
   await assert.rejects(runRex("generate_logo", REX_VALID.generate_logo), /OpenAI key/, "logos say plainly when there's no image key");
   globalThis.__fakeOpenAI = {};
   assert.equal((await runRex("generate_logo", REX_VALID.generate_logo)).card.type, "logos");
@@ -858,7 +979,16 @@ test("Rex video, copy and store tools make drafts and cards, scoped to the selle
   const video = await runRex("make_product_video", REX_VALID.make_product_video);
   assert.equal(video.card.type, "video");
   assert.equal(video.card.language, "pidgin");
-  await assert.rejects(runRex("make_product_video", { product: "Leather bag", language: null }), /No product matches/);
+  assert.equal(video.card.template, "pop", "Rex picks a template");
+  assert.equal(video.card.voice, "female");
+  calls.length = 0;
+  const shot = await runRex("make_product_video", { ...REX_VALID.make_product_video, shots: "cutout", voice: "male", music: "afrobeats" });
+  assert.equal(shot.card.template, "float", "cut-outs float");
+  assert.equal(shot.card.voice, "male");
+  assert.equal(shot.card.music, "afrobeats");
+  assert.ok(called("makeReelShot").length > 0, "the photos were made into reel shots");
+  assert.ok(shot.card.product.photos.every((url) => url.endsWith("shot.webp")));
+  await assert.rejects(runRex("make_product_video", { ...REX_VALID.make_product_video, product: "Leather bag" }), /No product matches/);
 
   aiReply = "Soft and strong.\n- Hand-stitched";
   const copy = await runRex("write_product_copy", REX_VALID.write_product_copy);
@@ -916,4 +1046,235 @@ test("AI routes that spend money are metered", () => {
     assert.match(source, /meterAi\(user\.id/, `${route} is metered`);
   }
   assert.match(readFileSync(new URL("../src/app/api/app/peggy/route.ts", import.meta.url), "utf8"), /meterAi\(user\.id, "text"\)/);
+});
+
+test("Rex brand tools: style book, icon from the logo, labels in the print studio", async () => {
+  useDb();
+  calls.length = 0;
+  const book = await runRex("create_brand_book", { direction: "earthy", applyColours: null });
+  assert.equal(book.card.type, "brand");
+  assert.equal(book.card.kind, "book");
+  assert.equal(book.card.href, "/home/brand-kit/book");
+  assert.equal(called("draftBrandBook")[0].args[0], "store-A", "always the seller's own store");
+  assert.match(book.content, /colours are unchanged/, "colours only change when asked");
+
+  const labels = await runRex("make_print_labels", REX_VALID.make_print_labels);
+  assert.equal(labels.card.kind, "print");
+  assert.match(labels.card.href, /^\/home\/labels\/studio\?kind=tag&products=pa1/);
+  await assert.rejects(runRex("make_print_labels", { ...REX_VALID.make_print_labels, products: ["pb1"] }), RexToolError, "shop B's product");
+  await assert.rejects(runRex("make_print_labels", { ...REX_VALID.make_print_labels, products: null }), /for products/);
+  assert.equal(called("saveLabelDesign").at(-1).args[0].storeId, "store-A", "Rex's labels are saved to the seller's own Labels and print");
+
+  const pack = await runRex("design_packaging", REX_VALID.design_packaging);
+  assert.equal(pack.card.kind, "packaging");
+  assert.match(pack.card.href, /^\/home\/labels\/packaging\?design=pack-1/);
+  const saved = called("savePackagingDesign").at(-1).args[0];
+  assert.equal(saved.storeId, "store-A");
+  assert.equal(saved.source, "rex");
+  assert.equal(saved.design.format, "bag");
+  assert.equal(saved.design.content.tagline, "Carry the culture", "Peggy's words are on the pack");
+  await assert.rejects(runRex("design_packaging", { ...REX_VALID.design_packaging, product: "pb1" }), RexToolError, "shop B's product");
+
+  const creative = await runRex("make_creative", REX_VALID.make_creative);
+  assert.equal(creative.card.type, "image");
+  assert.match(called("makeBrandImage").at(-1).args[0].prompt, /Tough choice\./);
+  assert.equal(called("makeBrandImage").at(-1).args[0].size, "1024x1536", "stories are portrait");
+  assert.equal(rexPure.parseRexAction({ action: "set_brand_asset", kind: "favicon", url: "https://proj.supabase.co/storage/v1/object/public/brand/f.webp" }).ok, true);
+  assert.equal(rexPure.parseRexAction({ action: "set_brand_asset", kind: "logo", url: "https://proj.supabase.co/x.webp" }).ok, false, "the logo is changed with set_logo");
+});
+
+test("Peggy runs ads: drafts spend nothing, launching needs the seller's yes, help goes to a paid request", async () => {
+  const d = useDb();
+  calls.length = 0;
+  const draft = await runPeggy("ads_create_campaign", PEGGY_VALID.ads_create_campaign);
+  assert.match(draft.content, /draft campaign/i);
+  const saved = called("saveCampaignDraft")[0].args[1];
+  assert.equal(saved.mode, "meta");
+  assert.deepEqual(saved.audience.states, ["Lagos"]);
+  assert.equal(saved.creatives[0].headline, "Soft tote", "Peggy's words go in the ad");
+
+  d.adCampaign.rows.push({ id: "camp-1", storeId: "store-A", mode: "meta", name: "Ankara tote campaign", headline: "x", status: "draft", dailyBudget: 5000, days: 7, currency: "NGN", platform: "meta", external: null, createdAt: new Date() });
+  const preview = await runPeggy("ads_launch_campaign", PEGGY_VALID.ads_launch_campaign);
+  assert.match(preview.content, /NOT LAUNCHED YET.*Confirmation code: ([A-Z0-9]+)/s);
+  assert.equal(called("launchCampaign").length, 0, "nothing launches without the code");
+  const code = preview.content.match(/Confirmation code: ([A-Z0-9]+)/)[1];
+  const launched = await runPeggy("ads_launch_campaign", { campaign: "camp-1", confirmCode: code });
+  assert.match(launched.content, /Launched/);
+  assert.equal(called("launchCampaign").length, 1);
+
+  const help = await runPeggy("ads_request_help", PEGGY_VALID.ads_request_help);
+  assert.equal(help.action.href, "https://checkout.paystack.com/abc", "the seller pays the setup fee from the card");
+  assert.equal(called("createAdRequest")[0].args[0].request.platform, "tiktok");
+});
+
+// ─── Peggy: product details, written content and reviews ───────────────────────
+
+test("edit_products previews before → after, saves only the seller's products, and only with the code", async () => {
+  const d = useDb();
+  calls.length = 0;
+  const preview = await runPeggy("edit_products", PEGGY_VALID.edit_products);
+  assert.match(preview.content, /NOT SAVED YET[\s\S]*Ankara tote:\n  - Warranty: \(empty\) → 12 months/);
+  assert.equal(preview.action, undefined);
+  assert.equal(d.storeProduct.rows.find((p) => p.id === "pa1").warranty, undefined, "nothing saved by the preview");
+  const [issued] = peggyPure.issuedConfirmationCodes(preview.content);
+  await runPeggy("edit_products", { ...PEGGY_VALID.edit_products, confirmCode: "WRONG1" });
+  assert.equal(d.storeProduct.rows.find((p) => p.id === "pa1").warranty, undefined, "a wrong code saves nothing");
+  const other = await runPeggy("edit_products", { ...PEGGY_VALID.edit_products, changes: NO_CHANGE({ warranty: "24 months" }), confirmCode: issued });
+  assert.match(other.content, /NOT SAVED YET/, "a code for one change doesn't save another");
+  const saved = await runPeggy("edit_products", { ...PEGGY_VALID.edit_products, confirmCode: issued });
+  assert.match(saved.action.summary, /Updated Ankara tote: warranty/);
+  assert.equal(d.storeProduct.rows.find((p) => p.id === "pa1").warranty, "12 months");
+  assert.equal(called("markCatalogDirty")[0].args[0], "store-A");
+
+  // Shop B's products are never matched, by name or id.
+  await assert.rejects(runPeggy("edit_products", { ...PEGGY_VALID.edit_products, target: { ...PEGGY_VALID.edit_products.target, name: "bag" } }), /No products match/);
+  await assert.rejects(runPeggy("edit_products", { target: null, changes: null, perProduct: [{ product: "pb1", changes: NO_CHANGE({ description: "x" }) }], confirmCode: null }), /No product matches/);
+
+  // A new category is only made once the seller confirms; a was-price below the price is left out.
+  const change = { target: null, changes: null, perProduct: [{ product: "Adire scarf", changes: NO_CHANGE({ category: "Scarves", compareAtPrice: 1000, specifications: { mode: "merge", items: [{ name: "Material", value: "Silk" }] } }) }], confirmCode: null };
+  const scarf = await runPeggy("edit_products", change);
+  assert.match(scarf.content, /Category: \(none\) → Scarves \(new category\)/);
+  assert.match(scarf.content, /was-price ₦1,000 must be above the price/);
+  assert.equal(called("findOrCreateCategory").length, 0);
+  const [scarfCode] = peggyPure.issuedConfirmationCodes(scarf.content);
+  await runPeggy("edit_products", { ...change, confirmCode: scarfCode });
+  const row = d.storeProduct.rows.find((p) => p.id === "pa2");
+  assert.equal(row.categoryId, "cat-new");
+  assert.deepEqual(row.specifications, [{ name: "Material", value: "Silk" }]);
+  assert.equal(row.compareAtPrice, undefined);
+  assert.equal(d.storeProduct.rows.find((p) => p.id === "pb1").categoryId, undefined, "shop B untouched");
+  assertOnlyStoreA(d);
+});
+
+test("get_product and draft_product_content read only the seller's products; drafts save nothing", async () => {
+  const d = useDb();
+  calls.length = 0;
+  const info = JSON.parse((await runPeggy("get_product", PEGGY_VALID.get_product)).content);
+  assert.equal(info.name, "Ankara tote");
+  assert.equal(info.link, "/products/pa1");
+  await assert.rejects(runPeggy("get_product", { product: "Secret bag" }), /No product matches/);
+
+  const draft = await runPeggy("draft_product_content", PEGGY_VALID.draft_product_content);
+  assert.match(draft.content, /NOTHING IS SAVED/);
+  assert.equal(d.storeProduct.rows.find((p) => p.id === "pa1").description, "Hand-stitched.");
+  const perProduct = JSON.parse(draft.content.match(/perProduct exactly: (\[.*\])/)[1]);
+  const next = await runPeggy("edit_products", { target: null, changes: null, perProduct, confirmCode: null });
+  assert.match(next.content, /Description: Hand-stitched\. → About Ankara tote\./, "what Peggy wrote goes through the same preview");
+  aiLimited = true;
+  await assert.rejects(runPeggy("draft_product_content", PEGGY_VALID.draft_product_content), /allowance/);
+  aiLimited = false;
+});
+
+test("reviews_list, reviews_reply and reviews_moderate act on the seller's own reviews, with a code", async () => {
+  useDb();
+  calls.length = 0;
+  const reviews = globalThis.__aiMocks["@/lib/reviews/server"];
+  const item = (storeId, id) => ({ key: `store:${id}`, kind: "store", id, source: "store", importMethod: "form", authorName: "Tolu", authorEmail: null, authorPhotoUrl: null, rating: 2, title: "", body: "The strap broke", images: [], status: "pending", featured: false, verifiedBuyer: true, productId: storeId === "store-A" ? "pa1" : "pb1", orderId: null, reply: null, repliedAt: null, sourceUrl: null, createdAt: "2026-10-01T10:00:00.000Z" });
+  const original = reviews.loadReviews;
+  reviews.loadReviews = async (storeId) => (storeId === "store-A" ? [item("store-A", "r1")] : [item("store-B", "rb")]);
+  try {
+    const list = JSON.parse((await runPeggy("reviews_list", { product: "Ankara tote", filter: "low_rating", limit: null })).content);
+    assert.equal(list.reviews[0].key, "store:r1");
+    await assert.rejects(runPeggy("reviews_reply", { ...PEGGY_VALID.reviews_reply, review: "store:rb" }), /No review store:rb/, "shop B's review is invisible");
+
+    const preview = await runPeggy("reviews_reply", PEGGY_VALID.reviews_reply);
+    assert.match(preview.content, /NOT POSTED YET[\s\S]*"Thank you, Tolu!"/);
+    assert.equal(called("saveSellerReply").length, 0);
+    const [code] = peggyPure.issuedConfirmationCodes(preview.content);
+    const changed = await runPeggy("reviews_reply", { ...PEGGY_VALID.reviews_reply, reply: "Sorry, we will refund you", confirmCode: code });
+    assert.match(changed.content, /NOT POSTED YET/, "a code for other words posts nothing");
+    const posted = await runPeggy("reviews_reply", { ...PEGGY_VALID.reviews_reply, confirmCode: code });
+    assert.match(posted.action.summary, /Replied to Tolu's review/);
+    assert.deepEqual(called("saveSellerReply")[0].args, ["store-A", { kind: "store", id: "r1" }, "Thank you, Tolu!"]);
+
+    await assert.rejects(runPeggy("reviews_moderate", { reviews: ["store:rb"], action: "hide", confirmCode: null }), /Not in this shop/);
+    const moderate = await runPeggy("reviews_moderate", PEGGY_VALID.reviews_moderate);
+    assert.match(moderate.content, /NOT CHANGED YET. Would feature/);
+    const [modCode] = peggyPure.issuedConfirmationCodes(moderate.content);
+    const featured = await runPeggy("reviews_moderate", { ...PEGGY_VALID.reviews_moderate, confirmCode: modCode });
+    assert.match(featured.action.summary, /Featured 1 review/);
+    assert.deepEqual(called("moderateReview")[0].args, ["store-A", { kind: "store", id: "r1" }, { featured: true }]);
+
+    const summary = JSON.parse((await runPeggy("reviews_summary", { themes: false, product: "Ankara tote" })).content);
+    assert.equal(summary.product, "Ankara tote");
+    assert.equal(summary.average, 2);
+  } finally {
+    reviews.loadReviews = original;
+  }
+});
+
+test("new Peggy tool schemas turn into strict provider schemas", () => {
+  for (const name of ["edit_products", "draft_product_content", "get_product", "reviews_list", "reviews_reply", "reviews_moderate"]) {
+    const schema = peggyPure.providerSchema(peggyPure.PEGGY_TOOL_SPECS[name].schema);
+    assert.equal(schema.type, "object", name);
+    assert.equal(schema.additionalProperties, false, name);
+  }
+  assert.equal(peggyPure.parseToolInput("edit_products", { ...PEGGY_VALID.edit_products, perProduct: [{ product: "x", changes: NO_CHANGE() }] }).ok, false, "not both forms at once");
+  assert.equal(peggyPure.parseToolInput("edit_products", { ...PEGGY_VALID.edit_products, target: { products: null, name: null, category: null, tag: null, productType: null, batch: null } }).ok, false, "a target says which products");
+  assert.equal(peggyPure.parseToolInput("reviews_reply", { ...PEGGY_VALID.reviews_reply, review: "r1" }).ok, false, "review keys only");
+  assert.deepEqual(peggyPure.reviewModerationConfirmationParts("s", "hide", ["b", "a", "a"]), ["s", "review-moderate", "hide", "a,b"]);
+});
+
+// ─── Peggy: payment links and link in bio ────────────────────────────────────────
+
+test("create_payment_link previews with a code, then makes the link in the seller's own shop only", async () => {
+  const d = useDb();
+  calls.length = 0;
+  const preview = await runPeggy("create_payment_link", PEGGY_VALID.create_payment_link);
+  assert.match(preview.content, /NOT MADE YET.*2 × Ankara tote.*₦30,000/s);
+  assert.equal(called("createPaymentLink").length, 0, "nothing is made on the first call");
+  const code = preview.content.match(/Confirmation code: ([A-Z0-9]+)/)[1];
+  // A code for these details doesn't make a different link.
+  const other = await runPeggy("create_payment_link", { ...PEGGY_VALID.create_payment_link, customAmount: 1000, confirmCode: code });
+  assert.match(other.content, /NOT MADE YET/);
+  assert.equal(called("createPaymentLink").length, 0);
+  const made = await runPeggy("create_payment_link", { ...PEGGY_VALID.create_payment_link, confirmCode: code });
+  assert.match(made.content, /https:\/\/ada\.shop\/pay\/mmmmnnnnpppp/);
+  assert.match(made.content, /wa\.me\/2348035555555/, "a WhatsApp link to the customer");
+  const [store, input, by] = called("createPaymentLink")[0].args;
+  assert.equal(store.id, "store-A");
+  assert.deepEqual(input.items, [{ productId: "pa1", variantId: null, quantity: 2 }]);
+  assert.equal(by.createdBy, "peggy_seller");
+  await assert.rejects(runPeggy("create_payment_link", { ...PEGGY_VALID.create_payment_link, products: [{ product: "Secret bag", option: null, quantity: 1 }] }), /No product matches/, "another shop's product is invisible");
+  await assert.rejects(runPeggy("create_payment_link", { ...PEGGY_VALID.create_payment_link, products: [{ product: "Ankara tote", option: "XL", quantity: 1 }] }), /no options/);
+  d.storeProduct.rows.find((row) => row.id === "pa2").status = "draft";
+  await assert.rejects(runPeggy("create_payment_link", { ...PEGGY_VALID.create_payment_link, products: [{ product: "Adire scarf", option: null, quantity: 1 }] }), /isn't published/);
+  assert.equal(peggyPure.parseToolInput("create_payment_link", { ...PEGGY_VALID.create_payment_link, buyerEmail: "nope" }).ok, false);
+  assert.equal(peggyPure.parseToolInput("create_payment_link", { ...PEGGY_VALID.create_payment_link, products: [] }).ok, false);
+  assertOnlyStoreA(d);
+});
+
+test("list and cancel payment links stay inside the seller's shop", async () => {
+  const d = useDb();
+  calls.length = 0;
+  const list = JSON.parse((await runPeggy("list_payment_links", PEGGY_VALID.list_payment_links)).content);
+  assert.equal(list.links[0].madeBy, "Peggy (customer chat)");
+  assert.equal(list.links[0].paidOrder, "SIB-1001");
+  assert.equal(called("listPaymentLinks")[0].args[0].id, "store-A");
+  await assert.rejects(runPeggy("cancel_payment_link", { link: "zzzzyyyyxxxx", confirmCode: null }), /No payment link/, "shop B's link is invisible");
+  const preview = await runPeggy("cancel_payment_link", { link: "https://ada.shop/pay/aaaabbbbcccc", confirmCode: null });
+  assert.match(preview.content, /NOT CANCELLED YET/);
+  assert.equal(called("cancelPaymentLink").length, 0);
+  const code = preview.content.match(/Confirmation code: ([A-Z0-9]+)/)[1];
+  const done = await runPeggy("cancel_payment_link", { link: "aaaabbbbcccc", confirmCode: code });
+  assert.match(done.action.summary, /Cancelled/);
+  assert.deepEqual(called("cancelPaymentLink")[0].args, ["store-A", "pl-A"]);
+  assertOnlyStoreA(d);
+});
+
+test("build_link_in_bio previews the page, then saves top products, Buy now and WhatsApp for the seller's shop", async () => {
+  useDb();
+  calls.length = 0;
+  const preview = await runPeggy("build_link_in_bio", PEGGY_VALID.build_link_in_bio);
+  assert.match(preview.content, /NOT SAVED YET.*Big Buy now card: Ankara tote.*WhatsApp chat button.*instagram/s);
+  assert.equal(called("saveBioPage").length, 0);
+  const code = preview.content.match(/Confirmation code: ([A-Z0-9]+)/)[1];
+  const saved = await runPeggy("build_link_in_bio", { ...PEGGY_VALID.build_link_in_bio, confirmCode: code });
+  assert.match(saved.content, /https:\/\/ada\.shop\/links/);
+  const [storeId, page] = called("saveBioPage")[0].args;
+  assert.equal(storeId, "store-A");
+  assert.deepEqual(page.blocks.filter((block) => block.type === "product").map((block) => [block.productId, block.action]), [["pa1", "pay"], ["pa2", "page"]]);
+  assert.ok(page.blocks.some((block) => block.type === "whatsapp" && block.phone === "2348031111111"));
+  assert.ok(page.blocks.some((block) => block.type === "socials" && block.links.instagram === "@adafabrics"));
+  await assert.rejects(runPeggy("build_link_in_bio", { ...PEGGY_VALID.build_link_in_bio, products: ["Leather bag"] }), /No product matches/);
 });

@@ -165,12 +165,20 @@ model User {
   aiCredits          Int                @default(5)
   verificationStatus VerificationStatus @default(unverified)
   preferences        Json               @default("{}") // menu items switched off, walkthrough progress (shared/preferences.ts)
+  // The paid plan as Paystack's subscription webhooks report it (src/lib/seller-plan.ts). An active annual seller
+  // plan paid up past now makes a domain free (src/lib/domains/billing.server.ts).
+  planCode           String?
+  planInterval       String? // monthly | annual
+  planStatus         String? // active | non_renewing | cancelled
+  planPaidUntil      DateTime?
+  subscriptionCode   String?
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
   store           Store?
   supplier        Supplier?
   logisticsPartner LogisticsPartner?
+  wallet          Wallet?
 
   // Seller actions
   storeProducts     StoreProduct[]
@@ -183,6 +191,8 @@ model User {
   logisticsReviews   LogisticsReview[]
   notifications      Notification[]
   notificationPreferences NotificationPreference[]
+  pushDevices        PushDevice[]
+  notificationSetting NotificationSetting?
   onboardingResponses OnboardingResponse[]
   storeLaunchPayments StoreLaunchPayment[]
 
@@ -194,6 +204,9 @@ model User {
   @@index([email])
   @@index([supabaseId])
   @@index([role])
+  platformSettingChanges PlatformSettingChange[] @relation("PlatformSettingChanges")
+  pricePromotions        PricePromotion[]        @relation("PricePromotions")
+  planVersionsCreated    SubscriptionPlanVersion[] @relation("PlanVersionsCreated")
 }
 
 // ─── Store ────────────────────────────────────────────────────────────────────
@@ -203,6 +216,10 @@ model Store {
   userId                     String   @unique
   name                       String
   slug                       String   @unique
+  // Addresses the store had before (newest first). They keep redirecting here and no other store can take them.
+  previousSlugs              String[] @default([])
+  // When the address last changed; changes are limited to one every 30 days (src/lib/store-address.server.ts).
+  slugChangedAt              DateTime?
   description                String?
   logoUrl                    String?
   country                    String
@@ -220,6 +237,13 @@ model Store {
   status                     String   @default("active")
   onboardingState            String?
   firstDashboardVisitComplete Boolean  @default(false)
+  /// When a supplier doesn't accept in time, send the order to another supplier with the same product (on by
+  /// default), as long as the cost stays within the limit: "cost" = at most switchMaxIncreasePct above the
+  /// original cost; "margin" = the seller keeps at least switchMinMarginPct of their price.
+  autoSwitchSupplier         Boolean  @default(true)
+  switchCostRule             String   @default("cost")
+  switchMaxIncreasePct       Int      @default(10)
+  switchMinMarginPct         Int      @default(20)
   createdAt                  DateTime @default(now())
   updatedAt                  DateTime @updatedAt
 
@@ -250,8 +274,12 @@ model Store {
   launchPayments StoreLaunchPayment[]
   affiliates     Affiliate[]
   adCampaigns    AdCampaign[]
+  storeCampaigns StoreCampaign[]
+  paymentLinks   PaymentLink[]
+  bioPage        BioPage?
 
   @@index([slug])
+  @@index([previousSlugs], type: Gin)
   @@index([userId])
 }
 
@@ -380,6 +408,139 @@ model StoreFormSubmission {
   @@index([email])
 }
 
+// Forms filled on shopinbos.com (WordPress): newsletter, WhatsApp tips, guide downloads, tool results, contact.
+// The website posts each one to /api/public/website-leads, signed with WEBSITE_LEADS_SECRET. Admin: /admin/leads.
+model WebsiteLead {
+  id         String   @id @default(cuid())
+  externalId String   @unique
+  kind       String
+  name       String?
+  email      String?
+  phone      String?
+  message    String?
+  source     String   @default("")
+  pageUrl    String?
+  consent    Boolean  @default(false)
+  payload    Json     @default("{}")
+  status     String   @default("new")
+  note       String?
+  // Lead growth (src/lib/lead-growth): the account this lead became (matched on email or phone at sign-up), and
+  // the channels they asked us to stop using ("email" | "sms" | "whatsapp").
+  convertedUserId String?
+  convertedAt     DateTime?
+  optedOut        String[] @default([])
+  lastMessagedAt  DateTime?
+  role            String   @default("seller") // seller | supplier | delivery (payload.as from the waitlist)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  messages    LeadMessage[]
+  enrollments LeadEnrollment[]
+
+  @@index([status, createdAt])
+  @@index([kind, createdAt])
+  @@index([email])
+  @@index([phone])
+  @@index([convertedAt])
+  @@index([role])
+}
+
+// ─── Lead growth: campaigns and automations to turn website leads into users ───────────────────────────────────
+// Admin › Lead campaigns. One message per lead per campaign (or per automation step), claimed before it is sent,
+// so a retried run never sends twice. docs/migrations/2026-11-05-lead-growth.sql
+
+model LeadCampaign {
+  id          String    @id @default(cuid())
+  name        String
+  channel     String // email | sms | whatsapp
+  status      String    @default("draft") // draft | scheduled | sending | sent | cancelled
+  audience    Json      @default("{}") // LeadAudience (src/lib/lead-growth/pure.ts)
+  subject     String?
+  body        String
+  ctaLabel    String?
+  ctaUrl      String?
+  waTemplate  String? // approved WhatsApp template name; without one the body goes as plain text
+  waLanguage  String?
+  scheduledAt DateTime?
+  startedAt   DateTime?
+  finishedAt  DateTime?
+  total       Int       @default(0)
+  sent        Int       @default(0)
+  failed      Int       @default(0)
+  createdById String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  messages LeadMessage[]
+
+  @@index([status, scheduledAt])
+}
+
+model LeadAutomation {
+  id              String    @id @default(cuid())
+  name            String
+  active          Boolean   @default(false)
+  audience        Json      @default("{}") // LeadAudience
+  steps           Json      @default("[]") // LeadStep[]: { delayHours | at, skipAfter?, channel, subject?, body, ctaLabel?, ctaUrl?, waTemplate? }
+  includeExisting Boolean   @default(false) // also enrol leads that came in before it was switched on
+  activatedAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  enrollments LeadEnrollment[]
+  messages    LeadMessage[]
+}
+
+model LeadEnrollment {
+  id           String         @id @default(cuid())
+  automationId String
+  leadId       String
+  step         Int            @default(0) // the next step to send
+  nextAt       DateTime
+  status       String         @default("active") // active | done | stopped
+  stopReason   String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  automation   LeadAutomation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  lead         WebsiteLead    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@unique([automationId, leadId])
+  @@index([status, nextAt])
+}
+
+model LeadMessage {
+  id           String          @id @default(cuid())
+  leadId       String
+  campaignId   String?
+  automationId String?
+  step         Int?
+  channel      String
+  to           String
+  status       String          @default("sending") // sending | sent | failed | skipped
+  error        String?
+  providerId   String?
+  sentAt       DateTime?
+  createdAt    DateTime        @default(now())
+  lead         WebsiteLead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  campaign     LeadCampaign?   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  automation   LeadAutomation? @relation(fields: [automationId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, leadId])
+  @@unique([automationId, leadId, step])
+  @@index([leadId])
+  @@index([status, createdAt])
+}
+
+// One row per signed-in account per day they used the app (Admin › Analytics: active users and retention).
+model UserActivityDay {
+  userId String
+  day    DateTime @db.Date
+  role   String
+
+  @@id([userId, day])
+  @@index([day])
+}
+
 // ─── Supplier ─────────────────────────────────────────────────────────────────
 
 model Supplier {
@@ -408,6 +569,11 @@ model Supplier {
   whatsappNumber     String?
   website            String?
   status             String             @default("active")
+  /// Hours this supplier has to accept a new order (admin override; null = SUPPLIER_ACCEPT_HOURS_* or 4 h / 24 h).
+  acceptHoursDropship  Int?
+  acceptHoursWholesale Int?
+  /// New orders that ran out of time without an answer (src/lib/supplier-orders/acceptance.server.ts).
+  missedOrders       Int                @default(0)
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
@@ -533,6 +699,11 @@ model SupplierProduct {
   deliveryRegions       String[]
   processingTime        String?
   trendScore            Float         @default(0)
+  /// The same product from several suppliers shares a family key (or names another listing's id). Used to send an
+  /// order to another supplier when one doesn't answer (src/lib/supplier-orders/switch.server.ts).
+  familyKey             String?
+  /// Sizes and colours the supplier has: [{ size?, color? }]. Empty = one kind only.
+  variants              Json          @default("[]")
   status                ProductStatus @default(draft)
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
@@ -549,6 +720,7 @@ model SupplierProduct {
   @@index([slug])
   @@index([status])
   @@index([trendScore(sort: Desc)])
+  @@index([familyKey])
 }
 
 // ─── Store Product ────────────────────────────────────────────────────────────
@@ -589,6 +761,13 @@ model StoreProduct {
   sourceType        ProductSourceType? // tracks original source
   categoryId        String?
   variants          Json?
+  // Preset category (shared/product-types.ts); null = "other". Details are { fieldKey: value }.
+  productType       String?
+  productDetails    Json            @default("{}")
+  // Options for the versions in order: [{ name, values }] (shared/product-variants.ts).
+  variantOptions    Json            @default("[]")
+  // "Customers also like": up to 8 of the store's own products.
+  relatedProductIds String[]        @default([])
   tags              String[]
   featured          Boolean         @default(false)
   sortOrder         Int             @default(0)
@@ -600,8 +779,16 @@ model StoreProduct {
   incomingStock     Int             @default(0)
   damagedStock      Int             @default(0)
   lowStockThreshold Int             @default(10)
+  // Explicit stock tracking (shared/product-stock.ts). Off: the product is never sold out and checkout takes no
+  // stock (the count, if any, is ignored). On: shoppers can buy up to currentStock - reservedStock (and each
+  // version's own count). Dropship products always use the supplier's stock instead.
+  trackStock             Boolean    @default(false)
+  // Tracked products only: keep selling at 0 (backorder); the count may then go below zero.
+  continueSellingWhenOut Boolean    @default(false)
 
   // Product page builder
+  // Per-product page settings: { override: true, layout?, buyBox?, sections? } overrides the store's product page
+  // settings (src/components/storefront/boutique/pdp/product-override.ts). Without the marker: store default.
   pageLayout        Json            @default("{}")
   pageVariant       ProductPageVariant @default(shopify)
   descriptionBuilder Json           @default("{}")
@@ -632,6 +819,7 @@ model StoreProduct {
   productSources  ProductSource[]
 
   @@index([storeId])
+  @@index([storeId, productType])
   @@index([supplierProductId])
   @@index([categoryId])
   @@index([sku])
@@ -746,6 +934,9 @@ model WholesaleOrder {
   stockReserved     Int         @default(0) // supplier stock taken when placed (0: none tracked, e.g. older orders)
   stockReleasedAt   DateTime?   // given back once (declined or cancelled)
   paidOutAt         DateTime?   // the supplier confirmed they were paid
+  acceptBy          DateTime?   // the supplier must accept by then, or it is cancelled (expiredAt set)
+  acceptReminderAt  DateTime?   // "1 hour left" reminder sent
+  expiredAt         DateTime?   // ran out of time without an answer (status cancelled)
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
 
@@ -756,6 +947,7 @@ model WholesaleOrder {
   @@index([sellerId])
   @@index([supplierId])
   @@index([status])
+  @@index([status, acceptBy])
 }
 
 // ─── Supplier Order (dropship) ────────────────────────────────────────────────
@@ -784,6 +976,15 @@ model SupplierOrder {
   deliveredAt     DateTime?
   rejectedAt      DateTime?
   paidOutAt       DateTime? // the supplier confirmed they were paid what they're owed (costTotal)
+  acceptBy        DateTime? // the supplier must accept by then, or it expires (status expired)
+  acceptReminderAt DateTime? // "1 hour left" reminder sent
+  expiredAt       DateTime?
+  packedAt        DateTime? // the supplier said "I've packed it"
+  stockReleasedAt DateTime? // the supplier stock this order's lines held went back (expired), once
+  /// Automatic switch: the expired order this one took over (idempotencyKey "switch:<that id>").
+  replacesId      String?
+  /// The seller pressed Undo before this supplier accepted (status cancelled).
+  undoneAt        DateTime?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
@@ -793,6 +994,58 @@ model SupplierOrder {
   @@index([supplierId, status])
   @@index([retailOrderId])
   @@index([storeId])
+  @@index([status, acceptBy])
+  @@index([replacesId])
+}
+
+/// What happened when a supplier didn't accept a shop's order in time: switched to another supplier, nobody
+/// qualified, the shop turned switching off, or the limit was reached; later "undone" when the seller pressed
+/// Undo. One row per expired supplier order (unique), so a cron re-run never switches twice.
+model SupplierSwitch {
+  id                  String    @id @default(cuid())
+  retailOrderId       String
+  storeId             String
+  fromSupplierOrderId String    @unique
+  fromSupplierId      String
+  /// switched | undone | none | off | limit
+  outcome             String
+  toSupplierOrderId   String?   @unique
+  toSupplierId        String?
+  costBefore          Float     @default(0)
+  costAfter           Float?
+  note                String?
+  undoneAt            DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([retailOrderId])
+  @@index([storeId, createdAt])
+}
+
+/// A rider booked to collect a supplier's packed order at a set time (dropship SupplierOrder or WholesaleOrder,
+/// one per order). Links the delivery job once a partner is found; "finding_rider" waits for the admin team.
+model SupplierPickup {
+  id                 String    @id @default(cuid())
+  orderKind          String    // dropship | wholesale
+  orderId            String
+  supplierId         String
+  sellerId           String
+  /// booked | finding_rider | cancelled | picked_up | delivered
+  status             String    @default("booked")
+  pickupAddress      String
+  slotKey            String
+  windowStart        DateTime
+  windowEnd          DateTime
+  deliveryBookingId  String?   @unique
+  logisticsPartnerId String?
+  needsAdmin         Boolean   @default(false)
+  adminNote          String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@unique([orderKind, orderId])
+  @@index([supplierId])
+  @@index([needsAdmin, status])
 }
 
 // ─── Logistics Partner ────────────────────────────────────────────────────────
@@ -825,6 +1078,23 @@ model LogisticsPartner {
   verificationDocuments Json            @default("[]")
   whatsappNumber     String?
   status             String             @default("active")
+  /// Cash pay-ins: money paid in beyond the cash jobs it could settle, used first by the next pay-in.
+  payInCredit        Float              @default(0)
+  /// Late pay-ins (lib/logistics/payin-deadline.ts): paused from new pay-when-it-arrives (COD) jobs only. Set and
+  /// cleared by the system (cron + pay-in matching) or the team, never by the partner's "Taking new jobs" switch.
+  codPaused          Boolean            @default(false)
+  /// The missed pay-in deadline (6pm Lagos) of the oldest cash still owed, while the partner is late.
+  payInOverdueSince  DateTime?
+  /// Cash past its deadline and grace, still owed after credit.
+  payInOverdueAmount Float              @default(0)
+  /// 24 hours late: told again, high priority for the team.
+  payInEscalatedAt   DateTime?
+  /// 72 hours late: flagged for the team to review (never suspended automatically).
+  payInReviewAt      DateTime?
+  /// The team unpaused the partner for this late period; the cron won't pause them again until it clears.
+  payInPauseWaived   Boolean            @default(false)
+  /// Late days counted against the partner (each also lowers reliabilityScore).
+  payInStrikes       Int                @default(0)
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
@@ -837,6 +1107,9 @@ model LogisticsPartner {
   webhooks       PartnerWebhook[]
   payoutAccount  LogisticsPayoutAccount?
   reviews        LogisticsReview[]
+  payInAccount   PartnerPayInAccount?
+  payIns         PartnerPayIn[]
+  payInEvents    PartnerPayInEvent[]
 
   @@index([slug])
   @@index([country, city])
@@ -873,11 +1146,18 @@ model LogisticsTeamMember {
   riderTokenHash     String?          @unique
   online             Boolean          @default(false)
   lastSeenAt         DateTime?
+  /// Riders app: the rider's latest location only (reported while online or on a job). Never shown to shops or customers.
+  lastLat            Float?
+  lastLng            Float?
+  lastAccuracy       Float?
+  lastLocationAt     DateTime?
   invitedAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
 
   logisticsPartner LogisticsPartner @relation(fields: [logisticsPartnerId], references: [id])
   jobs             DeliveryBooking[]
+  trail            RiderLocationPoint[]
+  pushDevices      PushDevice[]
 
   @@unique([logisticsPartnerId, email])
   @@index([logisticsPartnerId])
@@ -975,7 +1255,18 @@ model DeliveryBooking {
   codCollected       Float?
   codMethod          String? // cash | transfer
   codCollectedAt     DateTime?
+  /// The seller paid the delivery fee by card, split straight to the partner's bank (src/lib/logistics/delivery-fee-payments.server.ts).
+  feePaidAt          DateTime?
+  feePaymentRef      String?       @unique
   remittanceId       String?
+  /// When the rider should collect it (supplier pickups): "Pick up 12–4pm today".
+  pickupWindowStart  DateTime?
+  pickupWindowEnd    DateTime?
+  /// Pickup coordinates for "closest rider" (lib/logistics/geocode.ts): google | nominatim | area.
+  pickupLat          Float?
+  pickupLng          Float?
+  pickupGeoSource    String?
+  pickupGeocodedAt   DateTime?
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
 
@@ -984,6 +1275,7 @@ model DeliveryBooking {
   rider            LogisticsTeamMember? @relation(fields: [riderId], references: [id], onDelete: SetNull)
   remittance       CodRemittance?       @relation(fields: [remittanceId], references: [id], onDelete: SetNull)
   review           LogisticsReview?
+  trail            RiderLocationPoint[]
 
   @@index([sellerId])
   @@index([logisticsPartnerId])
@@ -1137,15 +1429,102 @@ model Notification {
   readAt      DateTime?
   scheduledFor DateTime?
   channel     NotificationChannel @default(in_app)
+  /// notify(): the event (e.g. "order.new"), its settings category (shared/notifications.ts) and a key that stops
+  /// the same thing being sent twice (unique per person).
+  event       String?
+  category    String?
+  dedupeKey   String?
   createdAt   DateTime            @default(now())
 
-  user User @relation(fields: [userId], references: [id])
+  user       User                   @relation(fields: [userId], references: [id])
+  deliveries NotificationDelivery[]
 
+  @@unique([userId, dedupeKey])
   @@index([userId])
   @@index([userId, type])
   @@index([userId, priority])
   @@index([userId, read])
   @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, category, createdAt(sort: Desc)])
+}
+
+/// A phone (Expo push token) or browser (Web Push subscription) that gets push notifications. Belongs to an
+/// account (userId) or to a rider (riderId: riders have no account, they use their private link).
+model PushDevice {
+  id           String    @id @default(cuid())
+  userId       String?
+  riderId      String?
+  /// ios | android | web
+  platform     String
+  /// expo | webpush
+  provider     String
+  /// The Expo push token, or the Web Push endpoint URL.
+  token        String    @unique
+  /// Web Push subscription keys.
+  p256dh       String?
+  auth         String?
+  appVersion   String?
+  deviceName   String?
+  lastSeenAt   DateTime  @default(now())
+  /// Set when the person turns push off here, or the token stops working (uninstalled, expired).
+  disabledAt   DateTime?
+  failureCount Int       @default(0)
+  lastError    String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user       User?                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rider      LogisticsTeamMember?   @relation(fields: [riderId], references: [id], onDelete: Cascade)
+  deliveries NotificationDelivery[]
+
+  @@index([userId, disabledAt])
+  @@index([riderId, disabledAt])
+}
+
+/// Each message sent (or held back) for a notification on push, email, SMS or WhatsApp. Expo push tickets are
+/// checked later by /api/cron/push-receipts; "held" rows (quiet hours, a burst) are sent there as one summary.
+model NotificationDelivery {
+  id             String    @id @default(cuid())
+  notificationId String?
+  userId         String?
+  riderId        String?
+  deviceId       String?
+  /// push | email | sms | whatsapp
+  channel        String
+  /// expo | webpush | resend | sms | whatsapp
+  provider       String?
+  /// sent | ok | error | expired (no receipt) | held_quiet | held_burst | flushed | skipped
+  status         String
+  ticketId       String?
+  collapseKey    String?
+  category       String?
+  title          String?
+  body           String?
+  error          String?
+  createdAt      DateTime  @default(now())
+  checkedAt      DateTime?
+
+  notification Notification? @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  device       PushDevice?   @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([ticketId])
+  @@index([userId, collapseKey, createdAt])
+  @@index([notificationId])
+}
+
+/// Per-person notification settings that aren't a category × channel switch (those are NotificationPreference
+/// rows with eventKey "notify.<category>"): quiet hours.
+model NotificationSetting {
+  userId            String   @id
+  quietHoursEnabled Boolean  @default(true)
+  /// "HH:MM" in timezone. Default 22:00 to 07:00 Lagos time.
+  quietStart        String   @default("22:00")
+  quietEnd          String   @default("07:00")
+  timezone          String   @default("Africa/Lagos")
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model NotificationPreference {
@@ -1319,6 +1698,8 @@ model Discount {
   config      Json           @default("{}") // marketing: { automatic, buyQuantity, getQuantity, getPercent, productIds, segmentId, oncePerCustomer }
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
+
+  storeCampaigns StoreCampaign[]
 
   @@unique([storeId, code])
   @@index([storeId])
@@ -1657,6 +2038,18 @@ model RetailOrder {
   refundStatus       String? // pending (claimed) | processing | processed | failed | manual
   refundId           String? // Paystack refund id
   refundedAt         DateTime?
+  // Orders sent in more than one parcel (some lines from suppliers, maybe some from the seller's own stock):
+  // the seller's own part, and when the first parcel left (the customer is told "part of your order is on its
+  // way" once). The order's status is worked out from its parts (src/lib/supplier-orders/parts.server.ts).
+  ownShippedAt       DateTime?
+  ownDeliveredAt     DateTime?
+  partlySentAt       DateTime?
+  // The payment link (src/lib/payment-links) this order was paid through, if any.
+  paymentLinkId      String?
+  // How Paystack splits this order's payment, set at checkout (src/lib/wallet/split.ts): each business's share goes
+  // straight to its own bank through its Paystack subaccount; Shopinbos receives nothing. Null: no split (older
+  // orders, offline payments).
+  paymentSplit       Json?
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
@@ -1673,6 +2066,7 @@ model RetailOrder {
   @@index([affiliateId])
   @@index([adCampaignId])
   @@index([refundId])
+  @@index([paymentLinkId])
 }
 
 model AbandonedCartEvent {
@@ -1856,6 +2250,23 @@ model AdCampaign {
   status         String    @default("draft") // draft | running | paused | ended
   startedAt      DateTime?
   pausedAt       DateTime?
+  // Campaigns (/home/ads/new; docs/migrations/2026-10-31-video-projects-ad-campaigns.sql). Older ads are one
+  // product run by hand ("manual"); campaigns can have several products and run through the Meta Marketing API
+  // ("meta") or be set up by the Shopinbos team ("managed", AdServiceRequest).
+  name           String?
+  mode           String    @default("manual") // manual | meta | managed
+  objective      String? // traffic | whatsapp | awareness
+  productIds     String[]  @default([])
+  audience       Json? // shared/ad-campaigns.ts AdAudience
+  creatives      Json? // shared/ad-campaigns.ts AdCreative[]
+  currency       String    @default("NGN")
+  startAt        DateTime?
+  endAt          DateTime?
+  external       Json? // Meta ids: { campaignId, adSetId, adIds[] }
+  impressions    Int       @default(0)
+  reach          Int       @default(0)
+  lastSyncAt     DateTime?
+  syncError      String?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
@@ -1863,6 +2274,126 @@ model AdCampaign {
   orders RetailOrder[]
 
   @@index([storeId])
+}
+
+// "Get help with ads": the Shopinbos team sets up a TikTok or Meta campaign for the seller after they share their
+// details and pay the setup fee (Paystack). Admin works them at /admin/ad-requests.
+model AdServiceRequest {
+  id           String    @id @default(cuid())
+  storeId      String
+  userId       String
+  campaignId   String?
+  platform     String // meta | tiktok
+  contactName  String
+  contactPhone String
+  contactEmail String?
+  businessName String
+  handle       String? // TikTok / Instagram handle
+  pageUrl      String? // Facebook page, TikTok profile or shop link
+  website      String?
+  adAccountId  String? // the seller's ad account, when they have one
+  dailyBudget  Float     @default(0)
+  days         Int       @default(7)
+  goals        String?
+  audience     String?
+  notes        String?
+  setupFee     Int // naira
+  paymentRef   String?   @unique
+  paidAt       DateTime?
+  status       String    @default("awaiting_payment") // awaiting_payment | new | in_progress | live | done | cancelled
+  adminNotes   String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([storeId, createdAt])
+  @@index([status, createdAt])
+}
+
+// Labels and print (/home/labels): designs the seller (or Rex) made and saved. kind packaging = the packaging
+// designer (data is a PackDesign, shared/packaging.ts); label = a Print studio setup (data.href reopens it).
+model PrintDesign {
+  id         String   @id @default(cuid())
+  storeId    String
+  userId     String
+  kind       String // packaging | label
+  format     String? // pouch | box | … for packaging; tag | price | qr | package | thanks for labels
+  title      String
+  productId  String?
+  data       Json
+  previewUrl String?
+  source     String   @default("studio") // studio | rex
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([storeId, updatedAt])
+}
+
+// Prints a seller ordered of a packaging design (/home/labels/order): the design is frozen into the order so later
+// edits don't change what gets printed. Paid with Paystack (reference "printorder-…"); worked at /admin/print-orders.
+model PrintOrder {
+  id           String    @id @default(cuid())
+  storeId      String
+  userId       String
+  designId     String?
+  title        String
+  format       String
+  design       Json // the PackDesign as ordered
+  previewUrl   String?
+  quantity     Int
+  material     String
+  finish       String
+  unitPrice    Int // naira
+  setupFee     Int
+  deliveryFee  Int
+  total        Int
+  days         Int // estimated working days to delivery
+  zone         String
+  contactName  String
+  contactPhone String
+  contactEmail String?
+  address      String?
+  city         String?
+  state        String?
+  notes        String?
+  paymentRef   String?   @unique
+  paidAt       DateTime?
+  status       String    @default("awaiting_payment") // awaiting_payment | paid | printing | shipped | delivered | cancelled
+  tracking     String?
+  adminNotes   String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([storeId, createdAt])
+  @@index([status, createdAt])
+}
+
+// "Make my packaging for me": a seller's request for custom packaging or branding, worked by the Shopinbos team
+// (and later branding partners) at /admin/packaging-requests.
+model PackagingRequest {
+  id            String    @id @default(cuid())
+  storeId       String
+  userId        String
+  designId      String? // a PrintDesign to start from
+  productName   String
+  productType   String
+  packType      String // a PackFormat, or "other"
+  quantity      Int
+  size          String?
+  budget        Int? // naira
+  deadline      DateTime?
+  services      String[]  @default([]) // design | print | brand_identity | photography | barcode_registration
+  details       String
+  referenceUrls String[]  @default([])
+  contactName   String
+  contactPhone  String
+  contactEmail  String?
+  status        String    @default("new") // new | quoted | in_progress | done | cancelled
+  adminNotes    String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([storeId, createdAt])
+  @@index([status, createdAt])
 }
 
 // ─── AI usage (daily limits for Rex and Peggy; aiCredits stays the plan tier) ─
@@ -1877,6 +2408,89 @@ model AiUsage {
   @@index([userId, kind, createdAt])
 }
 
+// Bought AI credits: spent when a daily plan allowance runs out (src/lib/ai/credits.server.ts). With autoTopUp the
+// card saved from a credit purchase is charged for autoPackId again when the balance can't cover a request.
+model AiCreditAccount {
+  userId        String   @id
+  balance       Int      @default(0)
+  autoTopUp     Boolean  @default(false)
+  autoPackId    String?
+  // Reusable Paystack card from a credit purchase the seller allowed to save (shape: domains/billing-pure).
+  authorization Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// One row per credit pack checkout or automatic top-up; a reference is credited once (status pending → paid).
+model AiCreditPurchase {
+  reference  String    @id
+  userId     String
+  packId     String
+  credits    Int
+  amountKobo Int
+  status     String    @default("pending") // pending | paid | failed
+  auto       Boolean   @default(false)
+  saveCard   Boolean   @default(false)
+  error      String?
+  createdAt  DateTime  @default(now())
+  paidAt     DateTime?
+
+  @@index([userId, createdAt])
+}
+
+// Saved Rex Studio and Peggy conversations, so a seller can pick one up again (src/lib/ai/chats.server.ts).
+// Video studio projects (/home/video): every reel the seller starts, as a draft (the studio's settings, saved as
+// they work), then saved (the recorded video in storage) and published (on a product page, in an ad, or posted).
+model VideoProject {
+  id          String   @id @default(cuid())
+  storeId     String
+  userId      String
+  title       String
+  purpose     String // ad | product | social
+  status      String   @default("draft") // draft | saved | published
+  productId   String?
+  config      Json
+  videoUrl    String?
+  posterUrl   String?
+  seconds     Float?
+  publishedTo Json? // [{ kind: "product" | "ad" | "social", id?, at }]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([storeId, status, updatedAt])
+}
+
+model AiChat {
+  id        String   @id @default(cuid())
+  userId    String
+  assistant String // rex | peggy
+  title     String
+  messages  Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, assistant, updatedAt])
+}
+
+// ─── One-minute help videos (Help → "Watch a 1-minute video"; topics in shared/help-videos.ts) ─────
+
+model HelpVideo {
+  id              String   @id @default(cuid())
+  topic           String // add_product | record_sale | get_paid | … (HELP_TOPICS)
+  title           String
+  roles           String[] @default([]) // seller | supplier | logistics_partner | rider
+  language        String   @default("en") // en | pcm | yo | ha | ig
+  videoUrl        String? // our media bucket (platform/help-videos/…) or a YouTube/Vimeo link
+  posterUrl       String?
+  durationSeconds Int?
+  published       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([topic, language])
+  @@index([published, topic])
+}
+
 // ─── Delivery partners: cash-on-delivery pay-ins, API keys and webhooks ──────
 
 model CodRemittance {
@@ -1886,12 +2500,122 @@ model CodRemittance {
   method             String   @default("transfer") // transfer | cash | api
   reference          String?
   note               String?
+  /// What this pay-in settled (jobs ticked off), the partner's credit after it, and exact | over | under.
+  covered            Float?
+  creditAfter        Float?
+  outcome            String?
   createdAt          DateTime @default(now())
 
   logisticsPartner LogisticsPartner  @relation(fields: [logisticsPartnerId], references: [id], onDelete: Cascade)
   bookings         DeliveryBooking[]
+  payIn            PartnerPayIn?
 
   @@index([logisticsPartnerId, createdAt])
+}
+
+/// A delivery partner's own pay-in bank account (Paystack Dedicated Virtual Account). Money sent to it is
+/// matched to the partner automatically (charge.success, channel dedicated_nuban).
+/// Pay-in deadline history per partner: reminders, late flags, escalations, strikes, clears and the team's
+/// actions. dedupeKey is unique, so the cron (every 15 minutes) never sends the same message twice.
+model PartnerPayInEvent {
+  id                 String   @id @default(cuid())
+  logisticsPartnerId String
+  /// reminder | overdue | escalated | review | strike | cleared | settled | unpaused | recheck
+  kind               String
+  dedupeKey          String   @unique
+  amount             Float?
+  /// The deadline this is about (6pm Lagos).
+  deadline           DateTime?
+  note               String?
+  adminUserId        String?
+  createdAt          DateTime @default(now())
+
+  logisticsPartner LogisticsPartner @relation(fields: [logisticsPartnerId], references: [id], onDelete: Cascade)
+
+  @@index([logisticsPartnerId, createdAt])
+  @@index([kind, createdAt])
+}
+
+model PartnerPayInAccount {
+  id                 String   @id @default(cuid())
+  logisticsPartnerId String   @unique
+  provider           String   @default("paystack")
+  customerCode       String?
+  customerId         String?
+  providerAccountId  String?
+  accountNumber      String?  @unique
+  accountName        String?
+  bankName           String?
+  bankSlug           String?
+  /// pending | assigned | failed | unavailable (DVA not switched on for the business)
+  status             String   @default("pending")
+  lastError          String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  logisticsPartner LogisticsPartner @relation(fields: [logisticsPartnerId], references: [id], onDelete: Cascade)
+
+  @@index([customerCode])
+}
+
+/// Every transfer into a pay-in account, once per Paystack reference (replays are ignored). Matched ones point
+/// at the CodRemittance they created; unmatched ones wait for the team to assign them.
+model PartnerPayIn {
+  id                 String    @id @default(cuid())
+  provider           String    @default("paystack")
+  reference          String    @unique
+  amount             Float
+  currency           String    @default("NGN")
+  accountNumber      String?
+  customerCode       String?
+  senderName         String?
+  senderBank         String?
+  paidAt             DateTime  @default(now())
+  /// matched | unmatched
+  status             String    @default("unmatched")
+  matchedBy          String?   // auto | admin
+  matchedByUserId    String?
+  matchedAt          DateTime?
+  logisticsPartnerId String?
+  remittanceId       String?   @unique
+  raw                Json      @default("{}")
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  logisticsPartner LogisticsPartner? @relation(fields: [logisticsPartnerId], references: [id], onDelete: SetNull)
+  remittance       CodRemittance?    @relation(fields: [remittanceId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([logisticsPartnerId, createdAt])
+}
+
+/// A short location trail for a rider's current job (live tracking). Deleted 7 days after delivery.
+model RiderLocationPoint {
+  id        String   @id @default(cuid())
+  riderId   String
+  bookingId String
+  lat       Float
+  lng       Float
+  accuracy  Float?
+  at        DateTime
+
+  rider   LogisticsTeamMember @relation(fields: [riderId], references: [id], onDelete: Cascade)
+  booking DeliveryBooking     @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId, at])
+  @@index([at])
+}
+
+/// Addresses already looked up (Google or OpenStreetMap), so each address is geocoded once.
+model GeocodeCache {
+  key       String   @id
+  query     String
+  lat       Float?
+  lng       Float?
+  source    String
+  label     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model PartnerApiKey {
@@ -1939,7 +2663,7 @@ model InboxChannel {
   displayName   String?
   credentials   String? // AES-256-GCM encrypted JSON (src/lib/inbox/crypto.ts); never sent to the browser
   webhookSecret String? // per-channel random secret (Meta verify token, Telegram secret token)
-  settings      Json      @default("{}")
+  settings      Json      @default("{}") // email: { provider: platform | resend_domain | gmail, address, fromName, domain, gmail } (src/lib/email-channel)
   lastError     String?
   connectedAt   DateTime?
   createdAt     DateTime  @default(now())
@@ -2148,13 +2872,57 @@ model StoreMetricDaily {
   @@index([storeId, day])
 }
 
+// Store traffic per Lagos day for /home/analytics/traffic (src/lib/analytics/traffic.ts): page views by path,
+// sessions by source / referrer host / device / country / city / utm, shop searches, engaged seconds. Counts only:
+// no IP, user agent, visitor id or full URL is ever stored.
+model StoreTrafficDaily {
+  id        String   @id @default(cuid())
+  storeId   String
+  day       String // YYYY-MM-DD, Africa/Lagos
+  metric    String // session | entry | page_view | visitor | new_visitor | engaged_seconds | engaged_view | search
+  dim       String   @default("") // "" (the total) | path | source | referrer | device | country | city | medium | campaign | term
+  value     String   @default("")
+  count     Int      @default(0)
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([storeId, day, metric, dim, value])
+  @@index([storeId, day])
+}
+
+// Unique visitors per store per Lagos day as a HyperLogLog sketch (src/lib/analytics/hll.ts): only the register
+// bytes, never a visitor token or hash. Days merge register by register for true unique visitors over a range.
+model StoreVisitorSketch {
+  id        String   @id @default(cuid())
+  storeId   String
+  day       String // YYYY-MM-DD, Africa/Lagos
+  sketch    Bytes
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([storeId, day])
+}
+
+// "Connect with Google" for Search Console performance on /home/analytics/traffic (src/lib/search-console).
+// Tokens are encrypted at rest (src/lib/reviews/secrets.ts) and never sent to the browser.
+model SearchConsoleConnection {
+  id           String    @id @default(cuid())
+  storeId      String    @unique
+  accessToken  String?
+  refreshToken String?
+  expiresAt    DateTime?
+  siteUrl      String? // the chosen property: "https://shop.example.com/" or "sc-domain:example.com"
+  status       String    @default("needs_site") // needs_site | connected
+  lastError    String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
+}
+
 // A store's product catalog on a selling channel (Google Merchant Center, Meta/Instagram/Facebook, TikTok, WhatsApp).
 // Feeds work without any of this; a row records API credentials (token encrypted at rest) and sync/fetch history.
 model SocialChannelConnection {
   id              String    @id @default(cuid())
   storeId         String
   channel         String // google | meta | tiktok | whatsapp
-  externalId      String? // Merchant Center ID, Meta catalog ID, TikTok catalog ID, WhatsApp catalog ID
+  externalId      String? // the catalog: Meta catalog ID, TikTok catalog ID (Google: the Merchant Center account ID)
   tokenEnc        String? // encrypted access token (src/lib/social/secrets.ts); never sent to the browser
   feedAddedAt     DateTime? // seller said they pasted the feed URL into the channel
   lastFetchAt     DateTime? // the channel's crawler last downloaded the feed
@@ -2162,11 +2930,32 @@ model SocialChannelConnection {
   lastSyncAt      DateTime?
   lastSyncStatus  String? // ok | error
   lastSyncMessage String?
+  // One-tap connect on /channels (src/lib/sales-channels; docs/migrations/2026-10-22-sales-channels.sql).
+  // tokenEnc then holds encrypted JSON { token, refreshToken? }; null status with a token = an older pasted-token link.
+  status          String? // syncing | connected | error | reauth | needs_account
+  accountId       String? // Meta business ID, Google Merchant Center account ID, TikTok Business Center ID
+  feedId          String? // the scheduled feed we registered there (Meta product feed, Google data source, TikTok feed)
+  tokenExpiresAt  DateTime? // null = doesn't expire (or unknown)
+  productCount    Int? // products the platform reports it has
+  connectedAt     DateTime?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
   @@unique([storeId, channel])
   @@index([storeId])
+  @@index([status, lastSyncAt])
+}
+
+/// "Tell me when it's ready" on a coming-soon sales channel (Amazon, Jumia, Konga…), one row per store and platform.
+model SalesChannelInterest {
+  id        String   @id @default(cuid())
+  storeId   String
+  platform  String // amazon | jumia | konga | jiji | ebay | etsy | shopify | pinterest | snapchat
+  userId    String?
+  createdAt DateTime @default(now())
+
+  @@unique([storeId, platform])
+  @@index([platform])
 }
 // ---- end analytics + social selling (agent G) ----
 
@@ -2463,6 +3252,33 @@ model AuthThrottle {
 }
 // ---- end auth security ----
 
+// ---- sign-in codes on WhatsApp (docs/migrations/2026-10-21-auth-code-channel.sql) ----
+/// Per phone (hashed): the channel the send route wants for the next sign-in code, and the one the Supabase Send SMS
+/// hook actually used (WhatsApp or the SMS fallback). Short-lived; src/lib/auth/otp-delivery.server.ts.
+model AuthCodeChannel {
+  key       String   @id
+  wanted    String
+  used      String?
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}
+// ---- end sign-in codes on WhatsApp ----
+
+// ---- shared rate limits (docs/migrations/2026-10-17-followups.sql) ----
+/// One row per limiter key and fixed window: src/lib/rate-limit.ts counts requests here with an atomic upsert so
+/// limits hold across serverless instances. Keys hash the IP/identifier. Expired rows are swept opportunistically.
+model RateLimitBucket {
+  key         String
+  windowStart DateTime
+  count       Int      @default(0)
+  expiresAt   DateTime
+
+  @@id([key, windowStart])
+  @@index([expiresAt])
+}
+// ---- end shared rate limits ----
+
 // ---- WhatsApp catalog (agent: whatsapp-catalog) ----
 // A store's WhatsApp product catalog: the token-protected Meta feed URL, and the optional direct Graph API sync
 // (catalog chosen or created, linked to the WhatsApp Business Account, cart and catalog switched on).
@@ -2662,4 +3478,392 @@ model ProductNewsRecipient {
 
   @@unique([broadcastId, userId])
   @@index([broadcastId, status])
+}
+
+// ---- domain billing ----
+// A domain a seller buys (or renews) through Shopinbos on the platform's Vercel registrar account. The seller pays
+// through Paystack first; only a verified payment moves the row paid → buying (one caller) → bought, else the
+// payment is refunded (src/lib/domains/billing.server.ts). The latest bought row per domain carries the expiry the
+// renewal cron reminds about (/api/cron/domain-renewals). Migration: docs/migrations/2026-10-24-domain-billing.sql.
+model DomainPurchase {
+  id                    String    @id @default(cuid())
+  storeId               String
+  userId                String
+  domain                String
+  kind                  String // new | renewal
+  years                 Int       @default(1)
+  costUsd               Float // the registrar price we quoted from (Vercel, USD)
+  amountNgn             Int // what the seller pays
+  coveredByPlan         Boolean   @default(false) // free with an annual plan: no Paystack payment, nothing to refund
+  reference             String    @unique // Paystack reference (domain-<uuid>)
+  status                String    @default("pending_payment") // pending_payment | payment_failed | paid | buying | bought | failed | refunded | refund_failed | expired
+  payerEmail            String? // the email Paystack charged (billingEmail, or the saved card's email)
+  vercelOrderId         String?
+  contactInformation    Json? // the registrant contact the registrar needs (renewals reuse it)
+  paystackAuthorization Json? // the reusable card authorization from the paid charge, for renewal charges
+  remindersSent         Json      @default("[]") // r30 | r7 | r1 | charge
+  paidAt                DateTime?
+  expiresAt             DateTime?
+  error                 String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([storeId])
+  @@index([status])
+  @@index([expiresAt])
+}
+// ---- end domain billing ----
+
+// ---- media library ----
+// Every picture (or video) a person has in their library: things they uploaded, and the photos, logo, banners and
+// editor images found in their store (docs/migrations/2026-10-26-media-library.sql backfills, and
+// shopinbos_media_sync(userId) tops it up when the library opens). Removing one only hides it (hiddenAt): the file
+// may still be on a live page. src/lib/media/library.server.ts, /api/app/media.
+model MediaAsset {
+  id        String    @id @default(cuid())
+  userId    String
+  storeId   String?
+  url       String
+  path      String? // storage path in the public bucket, when we stored it
+  name      String? // original file name or the product's name, for search
+  title     String? // the person's own name for it (Media page); shown instead of `name` when set
+  alt       String? // alt text: what the picture shows, for screen readers and search engines
+  kind      String    @default("image") // image | video
+  width     Int?
+  height    Int?
+  bytes     Int?
+  source    String    @default("upload") // upload | product | ai | logo | banner | editor | collection | cms
+  hiddenAt  DateTime?
+  createdAt DateTime  @default(now())
+
+  @@unique([userId, url])
+  @@index([userId, createdAt])
+  @@index([storeId])
+}
+// ---- end media library ----
+
+// ─── Seasonal campaigns (Marketing > Seasonal campaigns) ─────────────────────
+// A scheduled bundle that changes the live store for a while (Black Friday, Detty December…) and reverts by itself.
+// The store's own design is never edited: the look and section changes are stored as differences and merged when
+// the storefront renders (src/lib/store-campaigns/merge.ts). The status is worked out from the dates
+// (src/lib/store-campaigns/status.ts); the *JobRanAt columns only make the start/end side effects run once
+// (/api/cron/seasonal-campaigns). docs/migrations/2026-10-30-campaigns.sql creates the tables.
+
+model StoreCampaign {
+  id                 String    @id @default(cuid())
+  storeId            String
+  name               String
+  preset             String?   // black_friday | christmas | … (src/lib/store-campaigns/presets.ts) or null
+  startsAt           DateTime? // UTC; null = draft
+  endsAt             DateTime? // UTC
+  timezone           String    @default("Africa/Lagos") // IANA, for showing and picking dates
+  priority           Int       @default(0)
+  pausedAt           DateTime?
+  archivedAt         DateTime?
+  endingSoonHours    Int       @default(24)
+  discountId         String?
+  discountAutoToggle Boolean   @default(false) // switch the linked discount on at the start and off at the end
+  themeOverride      Json      @default("{}") // { tokens: Partial<ThemeTokenSet>, logoUrl? }
+  sectionOverrides   Json      @default("[]") // [{ id, page, action: add|hide|replace|reorder, sectionId?, section?, position? }]
+  startJobRanAt      DateTime?
+  endJobRanAt        DateTime?
+  endingSoonSentAt   DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  store    Store                @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  discount Discount?            @relation(fields: [discountId], references: [id], onDelete: SetNull)
+  blocks   StoreCampaignBlock[]
+  events   StoreCampaignEvent[]
+
+  @@index([storeId, startsAt, endsAt])
+  @@index([endsAt])
+}
+
+/// Store-wide pieces a campaign adds: announcement bar, pop-up (a StoreForm, so there is one pop-up engine),
+/// product badges and the countdown.
+model StoreCampaignBlock {
+  id         String   @id @default(cuid())
+  campaignId String
+  type       String   // announcement | popup | badge | countdown
+  enabled    Boolean  @default(true)
+  settings   Json     @default("{}")
+  targeting  Json     @default("{}")
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  campaign StoreCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId, type])
+}
+
+/// Storefront events for campaign reports: page_view, block_view, block_click, popup_shown, popup_closed, popup_converted.
+model StoreCampaignEvent {
+  id         String   @id @default(cuid())
+  storeId    String
+  campaignId String
+  blockId    String?
+  event      String
+  sessionId  String?
+  createdAt  DateTime @default(now())
+
+  campaign StoreCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId, event, createdAt])
+}
+
+// ─── Payment links and link in bio ────────────────────────────────────────────
+
+/// A link a seller (or Peggy) shares so a customer can pay for exact products from a chat or a bio:
+/// https://<store>/pay/<code>. Paying goes through the normal checkout (src/lib/payment-links/service.server.ts).
+model PaymentLink {
+  id             String    @id @default(cuid())
+  storeId        String
+  /// Public, unguessable (12 characters from a 29-letter alphabet, src/lib/payment-links/pure.ts).
+  code           String    @unique
+  title          String?
+  /// [{ productId, variantId?, quantity, name, price, image? }]: what the link sells, with the price when it was made.
+  items          Json      @default("[]")
+  /// An agreed price for the items (before delivery), set by the seller; null = the product prices.
+  customAmount   Float?
+  note           String?
+  buyerName      String?
+  buyerPhone     String?
+  buyerEmail     String?
+  /// One-time links close once paid; reusable ones (link in bio) keep selling.
+  oneTime        Boolean   @default(true)
+  /// How many the buyer may choose on a single-product link.
+  maxQuantity    Int       @default(10)
+  expiresAt      DateTime?
+  status         String    @default("active") // active | paid | expired | cancelled
+  /// The order that paid a one-time link (the latest paid order for reusable ones).
+  orderId        String?
+  paidCount      Int       @default(0)
+  paidAt         DateTime?
+  cancelledAt    DateTime?
+  /// seller | peggy_seller | peggy_customer | bio
+  createdBy      String    @default("seller")
+  /// For links Peggy made in a customer chat: the inbox conversation and the customer's phone or handle.
+  conversationId String?
+  customerRef    String?
+  /// The chat channel the link was sent on (whatsapp, livechat…), used for the order's channel.
+  channel        String?
+  views          Int       @default(0)
+  lastViewedAt   DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@index([storeId, createdAt])
+  @@index([storeId, status])
+  @@index([conversationId, createdAt])
+}
+
+/// The store's link in bio page: https://<store>/links. One per store.
+model BioPage {
+  id        String   @id @default(cuid())
+  storeId   String   @unique
+  published Boolean  @default(true)
+  title     String?
+  bio       String?
+  avatarUrl String?
+  /// { preset, background, text, button, buttonText } (src/lib/bio/pure.ts)
+  theme     Json     @default("{}")
+  /// Ordered blocks: product, collection, link, socials, whatsapp, signup (src/lib/bio/pure.ts).
+  blocks    Json     @default("[]")
+  views     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  store  Store          @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  clicks BioPageClick[]
+}
+
+/// Taps per link in bio block (a lightweight counter).
+model BioPageClick {
+  id        String   @id @default(cuid())
+  bioPageId String
+  blockId   String
+  count     Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  bioPage BioPage @relation(fields: [bioPageId], references: [id], onDelete: Cascade)
+
+  @@unique([bioPageId, blockId])
+}
+
+// ─── Shopinbos Wallet ─────────────────────────────────────────────────────────
+// A business's money settings on Shopinbos (src/lib/wallet): KYC, the bank Paystack settles to, and its Paystack
+// subaccount. Shopinbos never holds anyone's money: at checkout Paystack splits each payment and settles every
+// share straight to the business's own bank. WalletEntry is the statement of those shares.
+
+model Wallet {
+  id              String    @id @default(cuid())
+  userId          String    @unique
+  role            String // seller | supplier | logistics_partner
+  status          String    @default("active") // active | frozen (the team paused it: no new payments split to it)
+  // KYC: BVN or NIN checked with Korapay Identity against the owner's name and date of birth. Only the last 4
+  // digits and a keyed hash are kept, never the number itself.
+  kycStatus       String    @default("none") // none | verified
+  kycIdType       String? // bvn | nin
+  kycIdLast4      String?
+  kycIdHash       String?
+  kycFirstName    String?
+  kycLastName     String?
+  kycMiddleName   String?
+  kycDateOfBirth  String? // YYYY-MM-DD
+  kycReference    String? // Korapay's verification reference
+  kycVerifiedAt   DateTime?
+  kycAttempts     Int       @default(0) // failed checks on kycAttemptDay
+  kycAttemptDay   String? // YYYY-MM-DD, Lagos time
+  // The bank Paystack settles to (name checked with Paystack's account lookup).
+  bankCode        String?
+  bankName        String?
+  accountNumber   String?
+  accountName     String?
+  // auto: the account name matches the KYC name · review: it doesn't (e.g. a company account), waiting for the
+  // team · approved: the team checked it.
+  nameCheck       String?
+  // The Paystack subaccount payments are split to. Active only once KYC is verified and the bank name is checked.
+  subaccountCode  String?   @unique
+  subaccountStatus String   @default("none") // none | active | review | failed
+  subaccountError String?
+  // The same bank as a Korapay Split Payments recipient (KPY-SPA-…), added by the team in the Korapay dashboard
+  // (Korapay has no API for it). Set: Korapay checkout can split to this business too.
+  korapaySplitAccount String? @unique
+  frozenReason    String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entries WalletEntry[]
+
+  @@index([status])
+  @@index([subaccountStatus])
+  @@index([kycIdHash])
+}
+
+model WalletEntry {
+  id              String   @id @default(cuid())
+  walletId        String
+  // One per share of a payment: sale:<orderId> (the seller's), supplier:<orderId>:<supplierId>. Unique, so a
+  // replayed webhook never records a share twice.
+  reference       String   @unique
+  kind            String // sale | supplier_order | delivery_fee (delivery:<bookingId>)
+  amountKobo      Int // the share Paystack settles to this business (before Paystack's fee)
+  status          String   @default("paid") // paid | refunded
+  description     String
+  orderId         String?
+  supplierId      String?
+  paystackReference String?
+  createdAt       DateTime @default(now())
+
+  wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([walletId, createdAt])
+  @@index([orderId])
+}
+
+// Who connected a store through our Meta app (Facebook Login: WhatsApp Embedded Signup, catalog, ads; pasted tokens
+// issued to our app). Meta's Deauthorize and Data Deletion callbacks name the person only by this app-scoped ID.
+// src/lib/meta/user-links.server.ts records it; src/lib/meta/user-data.server.ts acts on it.
+model MetaUserLink {
+  id         String   @id @default(cuid())
+  metaUserId String // app-scoped user ID (debug_token / signed_request user_id)
+  storeId    String
+  source     String // inbox_whatsapp | inbox_messenger | inbox_instagram | sales_meta | meta_ads
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([metaUserId, storeId, source])
+  @@index([storeId])
+}
+
+// Meta Data Deletion callback requests. The person checks progress at /meta-data-deletion?code=… (the URL we hand
+// back to Meta). Holds a hash of the user ID, never the ID itself.
+model MetaDataDeletionRequest {
+  id               String    @id @default(cuid())
+  confirmationCode String    @unique
+  metaUserHash     String
+  status           String    @default("received") // received | completed | failed
+  storesAffected   Int       @default(0)
+  summary          Json      @default("{}")
+  error            String?
+  requestedAt      DateTime  @default(now())
+  completedAt      DateTime?
+
+  @@index([metaUserHash])
+}
+
+// Platform-wide settings an admin changes without a deploy. Prices live under "price.<key>" (Admin › Pricing,
+// shared/platform-pricing.ts); unset keys use the registry's defaults.
+model PlatformSetting {
+  key         String   @id
+  value       Json
+  updatedById String?
+  updatedAt   DateTime @updatedAt
+}
+
+// Every change to a PlatformSetting: who, when, from what to what, and why.
+model PlatformSettingChange {
+  id          String   @id @default(cuid())
+  key         String
+  before      Json?
+  after       Json
+  note        String?
+  changedById String?
+  changedBy   User?    @relation("PlatformSettingChanges", fields: [changedById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+
+  @@index([key, createdAt])
+  @@index([createdAt])
+}
+
+// A Black Friday or seasonal price drop (Admin › Pricing › Promotions): some prices from the price book set
+// differently between startsAt and endsAt, then back to normal by themselves (shared/price-promotions.ts).
+// When it starts, the product-news email it scheduled goes out and the in-app notice + push are sent in batches
+// (noticeCursor: the last user notified). Migration: docs/migrations/2026-11-10-price-promotions.sql.
+model PricePromotion {
+  id             String    @id @default(cuid())
+  name           String
+  headline       String
+  message        String?
+  prices         Json // { "<price key>": value }, checked against shared/platform-pricing.ts
+  startsAt       DateTime
+  endsAt         DateTime
+  status         String    @default("scheduled") // scheduled | cancelled (upcoming / live / ended come from the dates)
+  audience       String[] // seller | supplier | logistics_partner
+  announceEmail  Boolean   @default(true)
+  announceNotice Boolean   @default(true)
+  broadcastId    String?
+  noticeStatus   String    @default("pending") // pending | sending | sent | off
+  noticeCursor   String?
+  noticeCount    Int       @default(0)
+  createdById    String?
+  createdBy      User?     @relation("PricePromotions", fields: [createdById], references: [id], onDelete: SetNull)
+  cancelledAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([status, startsAt])
+  @@index([endsAt])
+}
+
+// Every Paystack plan code Shopinbos sells or has sold (Admin › Pricing › Plans, shared/plan-catalog.ts). A new
+// price creates a new Paystack plan and a new row marked current; older rows stay so people subscribed at an older
+// price keep their tier's perks and credits. Migration: docs/migrations/2026-11-11-subscription-plans.sql.
+model SubscriptionPlanVersion {
+  code        String    @id // Paystack plan_code
+  tier        String // seller_growth | seller_pro | supplier_max
+  billing     String // monthly | annual
+  amountNgn   Int? // null: an old code we honour but never sold here
+  current     Boolean   @default(false)
+  createdById String?
+  createdBy   User?     @relation("PlanVersionsCreated", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now())
+  retiredAt   DateTime?
+
+  @@index([tier, billing, current])
 }

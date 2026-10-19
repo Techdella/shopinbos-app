@@ -437,12 +437,12 @@ export function TemplateGallery({
       });
       if (!response.ok) {
         const json = (await response.json().catch(() => null)) as { error?: { message?: string } } | null;
-        setApplyError(json?.error?.message ?? "Template could not be applied.");
+        setApplyError(json?.error?.message ?? "That theme didn't switch. Check your connection and try again.");
         return;
       }
       startTransition(() => router.push(destination));
     } catch (error) {
-      setApplyError(error instanceof Error ? error.message : "Template could not be applied.");
+      setApplyError(error instanceof Error ? error.message : "That theme didn't switch. Check your connection and try again.");
     } finally {
       setApplyingId(null);
     }

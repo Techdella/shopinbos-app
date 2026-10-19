@@ -5,6 +5,7 @@ import { ensureSupplierAccess, getSupplierForUser, isProPlan } from "@/lib/role-
 import { AppPage, AssistantNote, EmptyState, FilterChips, ListCard, ListRow, Pill, PillLink, SearchForm, Thumb } from "@/components/app-kit";
 import { cx } from "@/components/app-ui/cx";
 import { PRODUCT_STATUS, money, statusOf, supplierFrame } from "@/components/supplier/supplier-kit";
+import { getT } from "@/lib/i18n/server";
 
 const LOW_STOCK = 5;
 
@@ -33,6 +34,7 @@ export default async function SupplierProductsPage({ searchParams }: PageProps) 
   const user = await requireRole(["supplier"], "/supplier/login");
   const supplier = await getSupplierForUser(user);
   ensureSupplierAccess(supplier);
+  const t = await getT("supplier", "common");
 
   const show = params.show && FILTERS[params.show] ? params.show : undefined;
   const q = params.q?.trim() || undefined;
@@ -74,26 +76,26 @@ export default async function SupplierProductsPage({ searchParams }: PageProps) 
 
   return (
     <AppPage
-      frame={supplierFrame(user, supplier, { searchPlaceholder: "Search products…" })}
-      title="Products"
-      sub={isPro ? "Supplier Max · unlimited products" : `${Math.min(total, 50)} of 50 products on the free plan. Draft privately, then send complete products to marketplace review.`}
-      actions={<PillLink href="/supplier/products/new" tone="accent" icon="plus">Add product</PillLink>}
+      frame={supplierFrame(user, supplier, { searchPlaceholder: t("products.searchPlaceholder") })}
+      title={t("products.title")}
+      sub={isPro ? t("products.subPro") : t("products.subFree", { count: Math.min(total, 50) })}
+      actions={<PillLink href="/supplier/products/new" tone="accent" icon="plus">{t("dashboard.addProduct")}</PillLink>}
       toolbar={
         <>
           <FilterChips
             items={[
-              { label: "All", href: href(undefined, q), count: total, active: !show },
-              ...Object.entries(FILTERS).map(([key, filter], index) => ({ label: filter.label, href: href(key, q), count: filterCounts[index], active: show === key })),
+              { label: t("products.filter.all"), href: href(undefined, q), count: total, active: !show },
+              ...Object.entries(FILTERS).map(([key, filter], index) => ({ label: t.dynamic(`products.filter.${key}`, filter.label), href: href(key, q), count: filterCounts[index], active: show === key })),
             ]}
           />
-          <SearchForm action="/supplier/products" defaultValue={q} placeholder="Search name or slug" keep={{ show }} />
+          <SearchForm action="/supplier/products" defaultValue={q} placeholder={t("products.searchNameSlug")} keep={{ show }} />
         </>
       }
     >
       {!isPro && total >= 50 && (
         <div className="mb-4">
-          <AssistantNote who="rex" action={<PillLink href="/supplier/profile?tab=Billing%20%26%20Plan" tone="ink" size="sm">See plans</PillLink>}>
-            You&apos;ve reached the 50 products on the free plan. Supplier Max (₦25,000/month) lets you add more.
+          <AssistantNote who="rex" action={<PillLink href="/supplier/profile?tab=Billing%20%26%20Plan" tone="ink" size="sm">{t("products.seePlans")}</PillLink>}>
+            {t("products.limitReached")}
           </AssistantNote>
         </div>
       )}
@@ -101,32 +103,32 @@ export default async function SupplierProductsPage({ searchParams }: PageProps) 
       {products.length === 0 ? (
         <EmptyState
           icon="box"
-          title={total === 0 ? "No products yet" : "No products match"}
-          action={total === 0 ? <PillLink href="/supplier/products/new" tone="ink" icon="plus">Add product</PillLink> : undefined}
+          title={total === 0 ? t("products.emptyTitle") : t("products.noMatchTitle")}
+          action={total === 0 ? <PillLink href="/supplier/products/new" tone="ink" icon="plus">{t("dashboard.addProduct")}</PillLink> : undefined}
         >
           {total === 0
-            ? "Add images, MOQ, stock, delivery regions and tier pricing, then send it to review so sellers can find it."
-            : "Try another filter or clear the search."}
+            ? t("products.emptyBody")
+            : t("products.noMatchBody")}
         </EmptyState>
       ) : (
         <ListCard>
           {products.map((product) => {
-            const status = statusOf(PRODUCT_STATUS, product.status);
+            const status = statusOf(PRODUCT_STATUS, product.status, t);
             const low = product.stockQuantity <= LOW_STOCK;
-            const terms = [product.dropshipAvailable ? "Dropship" : null, product.bulkOrderAvailable ? "Wholesale" : null].filter(Boolean).join(" + ") || "Standard";
+            const terms = [product.dropshipAvailable ? t("productForm.dropship") : null, product.bulkOrderAvailable ? t("productForm.wholesale") : null].filter(Boolean).join(" + ") || t("products.standard");
             return (
               <ListRow key={product.id} href={`/supplier/products/${product.id}/edit`} className="lg:grid lg:grid-cols-[56px_minmax(0,2fr)_110px_minmax(0,1fr)_minmax(0,1fr)_auto]">
                 <Thumb src={product.images[0]} label={product.name} size={56} />
                 <span className="min-w-0 flex-1 basis-[calc(100%-72px)] sm:basis-0">
                   <span className="block truncate text-[14.5px] font-extrabold">{product.name}</span>
-                  <span className="block truncate text-[13px] text-app-ink-soft">{product.category.name} · MOQ {product.moq.toLocaleString("en-NG")} · {terms}</span>
+                  <span className="block truncate text-[13px] text-app-ink-soft">{product.category.name} · {t("products.moq", { moq: product.moq.toLocaleString("en-NG") })} · {terms}</span>
                 </span>
                 <span><Pill tone={status.tone}>{status.label}</Pill></span>
                 <span className={cx("shrink-0 text-[13.5px]", low ? "font-bold text-app-accent-ink" : "text-app-ink-soft")}>
-                  {low ? `${product.stockQuantity} left` : `${product.stockQuantity.toLocaleString("en-NG")} in stock`}
+                  {low ? t("dashboard.left", { count: product.stockQuantity }) : t("dashboard.inStock", { count: product.stockQuantity })}
                 </span>
                 <span className="hidden text-[13.5px] text-app-ink-soft lg:block">
-                  {product._count.wholesales} order{product._count.wholesales === 1 ? "" : "s"} · {product._count.storeProducts} shop{product._count.storeProducts === 1 ? "" : "s"}
+                  {t("products.ordersShops", { orders: product._count.wholesales, shops: product._count.storeProducts })}
                 </span>
                 <span className="ml-auto text-right text-[14.5px] font-extrabold">{money(product.wholesalePrice, product.currency)}</span>
               </ListRow>

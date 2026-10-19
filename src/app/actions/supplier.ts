@@ -13,6 +13,7 @@ import { z } from "zod";
 import { moveSupplierOrder } from "@/lib/supplier-orders/service.server";
 import { moveWholesaleOrder } from "@/lib/supplier-orders/wholesale.server";
 import { setSupplierPayout } from "@/lib/supplier-orders/money.server";
+import { notifyProductForReview, notifySupplierQuoteAnswered } from "@/lib/notifications/events.server";
 
 async function getSupplierActor() {
   const user = await requireRole(["supplier"], "/supplier/login");
@@ -143,6 +144,7 @@ export async function createSupplierProduct(formData: FormData) {
   });
 
   invalidatePublicMarketplaceCache({ productSlug: product.slug, supplierSlug: supplier.slug, categorySlug: category.slug });
+  if (product.status === "pending_review") await notifyProductForReview(product.id, product.name, supplier.displayName);
   revalidatePath("/supplier/products");
   revalidatePath("/supplier/dashboard");
   redirect(`/supplier/products/${product.id}/edit${wantsReview && !verified ? `?error=${encodeURIComponent(DRAFT_UNTIL_VERIFIED)}` : ""}`);
@@ -178,6 +180,7 @@ export async function updateSupplierProduct(formData: FormData) {
   });
 
   invalidatePublicMarketplaceCache({ productSlug: updated.slug, supplierSlug: supplier.slug, categorySlug: category.slug ?? product.category.slug });
+  if (updated.status === "pending_review" && product.status !== "pending_review") await notifyProductForReview(updated.id, updated.name, supplier.displayName);
   revalidatePath("/supplier/products");
   revalidatePath(`/supplier/products/${product.id}/edit`);
   revalidatePath("/supplier/dashboard");
@@ -214,6 +217,7 @@ export async function respondToSupplierQuote(formData: FormData) {
         supplierResponse: supplierResponse || "Thanks for reaching out. This request is not a fit for us right now.",
       },
     });
+    await notifySupplierQuoteAnswered(quote.id);
 
     revalidatePath("/supplier/quote-requests");
     revalidatePath("/supplier/dashboard");
@@ -239,6 +243,7 @@ export async function respondToSupplierQuote(formData: FormData) {
       expiresAt: parsed.data.expiresAt,
     },
   });
+  await notifySupplierQuoteAnswered(quote.id);
 
   revalidatePath("/supplier/quote-requests");
   revalidatePath("/supplier/dashboard");
@@ -276,6 +281,9 @@ export async function updateSupplierOrderStatus(formData: FormData) {
     const params = new URLSearchParams(query);
     const kind = text("kind");
     if (kind === "dropship" || kind === "wholesale") params.set("kind", kind);
+    // From the order's own page (/supplier/orders/[id]), go back there.
+    const orderPage = text("returnTo");
+    if (orderPage && /^\/supplier\/orders\/[\w-]{6,64}$/.test(orderPage)) return `${orderPage}?${params.toString()}`;
     return `/supplier/orders?${params.toString()}`;
   };
   if (!parsed.success) redirect(back({ error: "Choose a valid order action." }));
@@ -286,6 +294,7 @@ export async function updateSupplierOrderStatus(formData: FormData) {
   if (!result.ok) redirect(back({ error: result.message }));
 
   revalidatePath("/supplier/orders");
+  revalidatePath(`/supplier/orders/${parsed.data.orderId}`);
   revalidatePath("/supplier/dashboard");
   redirect(back({ saved: "1" }));
 }

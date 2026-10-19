@@ -6,7 +6,7 @@ import { getPublicEnv } from "@/lib/env";
 import { sendEmailBatch, type BatchEmail } from "@/lib/notifications/resend";
 import { buildPlatformEmail, sendPlatformEmail } from "./compliance.server";
 import { platformEventKey } from "./preferences";
-import { NEWS_INTERRUPTED, NEWS_UNKNOWN_PREFIX, NewsRunError, processNewsBroadcast, retryNewsFailed, type NewsRecipient, type NewsRunInput, type NewsStore } from "./product-news-run";
+import { NEWS_INTERRUPTED, NewsRunError, newsRetrySummary, processNewsBroadcast, retryNewsFailed, retryableNewsWhere, type NewsRecipient, type NewsRunInput, type NewsStore } from "./product-news-run";
 import { productNewsBody, productNewsCta, splitNewsAudience, type NewsAudience, type NewsImageHosts, type ProductNewsContent, type ProductNewsInput } from "./product-news";
 
 // Product news broadcasts (/admin/product-news): drafts, the recipient snapshot, and sending in batches.
@@ -65,6 +65,25 @@ export const BROADCAST_SELECT = {
   createdAt: true,
   updatedAt: true,
 } as const;
+
+/**
+ * Adds retryableCount (failed rows "Retry failed" would resend, by the same filter the retry uses) and
+ * unconfirmedCount (failed rows that may have been delivered, never resent) to each broadcast.
+ */
+export async function withRetryCounts<T extends { id: string; failedCount: number }>(rows: T[]): Promise<Array<T & { retryableCount: number; unconfirmedCount: number }>> {
+  const ids = rows.filter((row) => row.failedCount > 0).map((row) => row.id);
+  const groups = ids.length
+    ? await db.productNewsRecipient.groupBy({ by: ["broadcastId"], where: retryableNewsWhere({ in: ids }), _count: { _all: true } })
+    : [];
+  const byId = new Map(groups.map((group) => [group.broadcastId, group._count._all]));
+  return rows.map((row) => ({ ...row, ...newsRetrySummary(row.failedCount, byId.get(row.id) ?? 0) }));
+}
+
+/** One broadcast with its retry counts, or null. */
+export async function loadBroadcast(id: string) {
+  const row = await db.productNewsBroadcast.findUnique({ where: { id }, select: BROADCAST_SELECT });
+  return row ? (await withRetryCounts([row]))[0]! : null;
+}
 
 function clean(input: ProductNewsInput) {
   return {
@@ -246,11 +265,7 @@ function prismaStore(content: ProductNewsContent | null): NewsStore<BatchEmail> 
       await db.productNewsBroadcast.update({ where: { id }, data: { lastError } });
     },
     async requeueRetryable(id) {
-      // Explicit about NULL errors: NOT (error = x) alone would skip them.
-      const moved = await db.productNewsRecipient.updateMany({
-        where: { broadcastId: id, status: "failed", OR: [{ error: null }, { AND: [{ NOT: { error: NEWS_INTERRUPTED } }, { NOT: { error: { startsWith: NEWS_UNKNOWN_PREFIX } } }] }] },
-        data: { status: "queued", error: null },
-      });
+      const moved = await db.productNewsRecipient.updateMany({ where: retryableNewsWhere(id), data: { status: "queued", error: null } });
       return moved.count;
     },
     async resume(id) {

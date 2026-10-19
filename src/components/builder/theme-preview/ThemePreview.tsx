@@ -9,6 +9,7 @@ import { BOUTIQUE_FONT_CLASS } from "@/components/storefront/boutique/fonts";
 import { BOUTIQUE_THEME_TOKENS, isBoutiqueTheme } from "@/lib/store-templates/boutique-themes";
 import { themeLibraryEntry } from "@/lib/store-templates/theme-library";
 import { previewData, type PreviewOwnStore } from "./preview-store";
+import { useT } from "@/components/i18n/I18nProvider";
 
 // Real theme previews: the storefront renderer itself, at desktop width, scaled down onto the card (thumbnails)
 // or into a dialog (live preview). Thumbnails mount only when near the viewport and are inert.
@@ -132,6 +133,7 @@ export interface ThemePreviewDialogProps {
 
 /** Larger live preview: desktop or phone, home or product page, sample or own products. */
 export function ThemePreviewDialog({ themeId, onClose, own, useOwn, onUseOwnChange, isCurrent, busy, onUse }: ThemePreviewDialogProps) {
+  const t = useT("builder");
   const theme = themeLibraryEntry(themeId);
   const [device, setDevice] = useState<"desktop" | "mobile">(() => (typeof window !== "undefined" && window.innerWidth < 760 ? "mobile" : "desktop"));
   const [page, setPage] = useState<string>("home");
@@ -202,22 +204,22 @@ export function ThemePreviewDialog({ themeId, onClose, own, useOwn, onUseOwnChan
         <div className="flex flex-wrap items-center gap-x-4 gap-y-3 border-b border-app-line px-4 py-3 sm:px-5">
           <div className="min-w-0 flex-1">
             <h2 id={titleId} className="m-0 truncate text-[20px] font-extrabold leading-tight">{theme.name}</h2>
-            <p className="m-0 truncate text-[13px] text-app-ink-soft">{theme.meaning} · {theme.categoryLabel}</p>
+            <p className="m-0 truncate text-[13px] text-app-ink-soft">{t.dynamic(`theme.${theme.id}.meaning`, theme.meaning)} · {t.dynamic(`theme.cat.${theme.categoryLabel}`, theme.categoryLabel)}</p>
           </div>
           <DeviceToggle value={device} onChange={(value) => { setDevice(value); body.current?.scrollTo({ top: 0 }); }} />
           <Segmented<PreviewPage>
             className="border border-app-line"
-            options={[{ value: "home", label: "Home" }, { value: "product", label: "Product" }]}
+            options={[{ value: "home", label: t("tp.home") }, { value: "product", label: t("tp.product") }]}
             value={segmentPage}
             onChange={navigate}
           />
           <div className="flex items-center gap-2">
             {isCurrent ? (
-              <span className="px-2 text-[14px] font-extrabold">Your current theme</span>
+              <span className="px-2 text-[14px] font-extrabold">{t("tp.current")}</span>
             ) : (
-              <PillButton tone="ink" size="sm" busy={busy} disabled={busy} onClick={onUse}>Use {theme.name}</PillButton>
+              <PillButton tone="ink" size="sm" busy={busy} disabled={busy} onClick={onUse}>{t("tl.useName", { name: theme.name })}</PillButton>
             )}
-            <button ref={closeButton} type="button" onClick={onClose} aria-label="Close preview" className="grid h-10 w-10 place-items-center rounded-full border border-app-line bg-white hover:border-app-line-strong">
+            <button ref={closeButton} type="button" onClick={onClose} aria-label={t("tp.close")} className="grid h-10 w-10 place-items-center rounded-full border border-app-line bg-white hover:border-app-line-strong">
               <Icon name="x" size={17} />
             </button>
           </div>
@@ -225,13 +227,13 @@ export function ThemePreviewDialog({ themeId, onClose, own, useOwn, onUseOwnChan
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-app-line bg-app-canvas px-4 py-2 text-[13px] sm:px-5">
           <p className="m-0 text-app-ink-soft">
             {data.sample
-              ? "Sample products and pictures, to show the layout. Your own products, photos and settings replace them."
-              : "Your own products in this theme. Nothing changes on your store until you use it and publish."}
+              ? t("tp.sample")
+              : t("tp.own")}
           </p>
           {own ? (
             <label className="flex items-center gap-2 font-semibold">
-              Show with my products
-              <Toggle on={useOwn} onChange={onUseOwnChange} label="Show with my products" />
+              {t("tl.showOwn")}
+              <Toggle on={useOwn} onChange={onUseOwnChange} label={t("tl.showOwn")} />
             </label>
           ) : null}
         </div>

@@ -8,19 +8,27 @@ import { AssistantNote, type Tone, Card, CardHead, ListCard, ListRow, Pill, Pill
 import { Icon } from "@/components/ui/Icon";
 import { VerificationChecklist } from "@/components/verification/VerificationChecklist";
 import { SUPPLIER_DOC_TYPES } from "@shared/verification-docs";
-import { ORDER_STATUS, PRODUCT_STATUS, QUOTE_STATUS, VERIFICATION_LABEL, money, statusOf, supplierFrame, timeAgo } from "@/components/supplier/supplier-kit";
+import { ORDER_STATUS, PRODUCT_STATUS, QUOTE_STATUS, money, statusOf, supplierFrame, timeAgo, verificationLabel, type SupplierT } from "@/components/supplier/supplier-kit";
 import { DROPSHIP_TO_SHIP, WHOLESALE_TO_SHIP } from "@/lib/supplier-orders/pure";
 import { listDropshipOrders } from "@/lib/supplier-orders/views.server";
 import { supplierEarnings, supplierOrdersToShip } from "@/lib/supplier-orders/money.server";
+import { Mascot } from "@/components/brand/Mascot";
+import { getT } from "@/lib/i18n/server";
+import { intlLocale } from "@shared/i18n";
+import { PromoBanner } from "@/components/pricing/PromoBanner";
 
 // Supplier home in the "Seller app · web" language: greeting, real tiles, orders to ship and quote requests.
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Dashboard" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT("supplier"))("dashboard.metaTitle") };
+}
+
+type T = SupplierT;
 
 const DROPSHIP_STAGE: Record<string, { label: string; tone: "accent" | "warning" }> = {
   pending: { label: "New: accept it", tone: "accent" },
-  accepted: { label: "Accepted: to ship", tone: "warning" },
+  accepted: { label: "To pack", tone: "warning" },
 };
 
 /** One row of "Orders to ship": wholesale and dropship orders in one list, oldest first. */
@@ -36,13 +44,13 @@ interface ShipRow {
   currency: string;
 }
 
-function lagosGreeting(now: Date) {
+function lagosGreeting(now: Date, t: T) {
   const hour = (now.getUTCHours() + 1) % 24;
-  return hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  return hour < 12 ? t("dashboard.morning") : hour < 17 ? t("dashboard.afternoon") : t("dashboard.evening");
 }
 
-function lagosDate(now: Date) {
-  return new Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Lagos", weekday: "long", day: "numeric", month: "long" }).format(now);
+function lagosDate(now: Date, t: T) {
+  return new Intl.DateTimeFormat(t.locale === "en" ? "en-GB" : intlLocale(t.locale), { timeZone: "Africa/Lagos", weekday: "long", day: "numeric", month: "long" }).format(now);
 }
 
 async function getRecommendedLogistics(supplier: { city: string; country: string }) {
@@ -101,6 +109,7 @@ export default async function SupplierDashboardPage({ searchParams }: { searchPa
   const supplier = await getSupplierForUser(user);
   ensureSupplierAccess(supplier);
   const { docs: docsParam } = await searchParams;
+  const t = await getT("supplier", "common");
 
   const now = new Date();
   const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -184,8 +193,8 @@ export default async function SupplierDashboardPage({ searchParams }: { searchPa
       href: "/supplier/orders?kind=wholesale",
       image: order.supplierProduct.images[0],
       title: `${order.supplierProduct.name} × ${order.quantity.toLocaleString("en-NG")}`,
-      sub: `${order.seller.name} · ${order.deliveryAddress || "No address yet"}`,
-      stage: statusOf(ORDER_STATUS, order.status),
+      sub: `${order.seller.name} · ${order.deliveryAddress || t("dashboard.noAddress")}`,
+      stage: statusOf(ORDER_STATUS, order.status, t),
       createdAt: order.createdAt,
       amount: order.totalPrice,
       currency: order.currency,
@@ -197,9 +206,9 @@ export default async function SupplierDashboardPage({ searchParams }: { searchPa
         key: `d-${order.id}`,
         href: "/supplier/orders?kind=dropship",
         image: first?.image,
-        title: order.items.length > 1 ? `${first?.name ?? "Products"} and ${order.items.length - 1} more · ${units} units` : `${first?.name ?? "Product"} × ${units}`,
-        sub: `Dropship for ${order.shop} · ${order.recipient.address[order.recipient.address.length - 1] ?? order.recipient.name}`,
-        stage: statusOf(DROPSHIP_STAGE, order.status),
+        title: order.items.length > 1 ? t("dashboard.itemsMore", { name: first?.name ?? t("dashboard.products"), more: order.items.length - 1, units }) : `${first?.name ?? t("dashboard.product")} × ${units}`,
+        sub: t("dashboard.dropshipFor", { shop: order.shop, place: order.recipient.address[order.recipient.address.length - 1] ?? order.recipient.name }),
+        stage: DROPSHIP_STAGE[order.status] ? { ...DROPSHIP_STAGE[order.status], label: t.dynamic(`dashboard.dropshipStage.${order.status}`, DROPSHIP_STAGE[order.status].label) } : statusOf(DROPSHIP_STAGE, order.status),
         createdAt: new Date(order.createdAt),
         amount: order.costTotal,
         currency: order.currency,
@@ -215,6 +224,7 @@ export default async function SupplierDashboardPage({ searchParams }: { searchPa
   return (
     <AppFrame {...supplierFrame(user, supplier)}>
       <div className="grid w-full gap-5 px-4 py-6 font-app text-app-ink sm:px-6 xl:grid-cols-[minmax(0,1fr)_420px] xl:px-8 2xl:grid-cols-[minmax(0,1fr)_480px] 2xl:px-10">
+        <PromoBanner role="supplier" className="xl:col-span-2" />
         <VerificationChecklist
           docs={supplier.verificationDocuments}
           configs={SUPPLIER_DOC_TYPES}
@@ -225,52 +235,51 @@ export default async function SupplierDashboardPage({ searchParams }: { searchPa
 
         {/* Hero */}
         <Card className="app-wash relative overflow-hidden p-6 sm:p-7">
-          <div className="text-[14px] text-app-ink-soft">{lagosDate(now)}</div>
+          <div className="text-[14px] text-app-ink-soft">{lagosDate(now, t)}</div>
           <h1 className="mb-0 mt-3 text-[34px] font-medium leading-[1.05] tracking-[-1px] sm:text-[42px]">
-            {lagosGreeting(now)}, {firstName}.
+            {t("dashboard.greeting", { greeting: lagosGreeting(now, t), name: firstName })}
             <br />
             <span className="font-extrabold">
-              {toShipCount > 0 ? `${toShipCount} order${toShipCount === 1 ? "" : "s"} to ship.` : pendingQuotes > 0 ? `${pendingQuotes} quote${pendingQuotes === 1 ? "" : "s"} to answer.` : "You're all caught up."}
+              {toShipCount > 0 ? t("dashboard.ordersToShip", { count: toShipCount }) : pendingQuotes > 0 ? t("dashboard.quotesToAnswer", { count: pendingQuotes }) : t("dashboard.caughtUp")}
             </span>
           </h1>
           <div className="mt-6 flex flex-wrap gap-2.5">
-            <PillLink href="/supplier/products/new" tone="ink">Add product</PillLink>
-            <PillLink href="/supplier/quote-requests">Reply to quotes</PillLink>
-            <PillLink href={`/suppliers/${supplier.slug}`}>See your public page</PillLink>
+            <PillLink href="/supplier/products/new" tone="ink">{t("dashboard.addProduct")}</PillLink>
+            <PillLink href="/supplier/quote-requests">{t("dashboard.replyQuotes")}</PillLink>
+            <PillLink href={`/suppliers/${supplier.slug}`}>{t("dashboard.publicPage")}</PillLink>
           </div>
           <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <StatTile label="Orders to ship" value={toShipCount.toLocaleString("en-NG")} />
-            <StatTile label="Quotes waiting" value={pendingQuotes.toLocaleString("en-NG")} />
-            <StatTile label="Earned, 30 days" value={money(earned30.earned)} hint={earnedAll.owed > 0 ? `${money(earnedAll.owed)} still owed to you` : `${money(earnedAll.earned)} all time`} />
-            <StatTile label="Products live" value={publishedProducts.toLocaleString("en-NG")} hint={`of ${totalProducts} in your catalogue`} />
+            <StatTile label={t("dashboard.tileToShip")} value={toShipCount.toLocaleString("en-NG")} />
+            <StatTile label={t("dashboard.tileQuotes")} value={pendingQuotes.toLocaleString("en-NG")} />
+            <StatTile label={t("dashboard.tileEarned")} value={money(earned30.earned)} hint={earnedAll.owed > 0 ? t("dashboard.stillOwed", { amount: money(earnedAll.owed) }) : t("dashboard.allTime", { amount: money(earnedAll.earned) })} />
+            <StatTile label={t("dashboard.tileLive")} value={publishedProducts.toLocaleString("en-NG")} hint={t("dashboard.ofCatalogue", { total: totalProducts })} />
           </div>
         </Card>
 
         {/* Rex's brief */}
         <section className="rounded-[22px] bg-app-peach p-5">
           <div className="mb-4 flex items-center gap-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/app/rex.png" alt="Rex" className="h-12 w-12 object-contain" />
+            <Mascot who="rex" className="h-12 w-12" />
             <div>
-              <h2 className="m-0 text-[17px] font-extrabold">Rex&apos;s brief</h2>
+              <h2 className="m-0 text-[17px] font-extrabold">{t("dashboard.rexBrief")}</h2>
               <div className="text-[13px] text-app-ink-soft">
-                {verified ? `${supplier.displayName} is verified` : `Verification: ${VERIFICATION_LABEL[supplier.verificationStatus] ?? supplier.verificationStatus}`} · trust score {supplier.trustScore}
+                {verified ? t("dashboard.isVerified", { name: supplier.displayName }) : t("dashboard.verificationIs", { status: verificationLabel(supplier.verificationStatus, t) })} · {t("dashboard.trustScore", { score: supplier.trustScore })}
               </div>
             </div>
           </div>
           <div className="grid gap-2">
             {toShipCount > 0 && (
-              <BriefLink href="/supplier/orders" icon="truck" title={`${toShipCount} order${toShipCount === 1 ? "" : "s"} to ship`} hint="Mark them shipped with a tracking code." action="Ship" />
+              <BriefLink href="/supplier/orders" icon="truck" title={t("dashboard.briefToShip", { count: toShipCount })} hint={t("dashboard.briefToShipHint")} action={t("dashboard.briefShip")} />
             )}
             {pendingQuotes > 0 && (
-              <BriefLink href="/supplier/quote-requests" icon="chat" title={`${pendingQuotes} quote request${pendingQuotes === 1 ? "" : "s"} waiting`} hint="Sellers buy from the supplier who answers first." action="Reply" />
+              <BriefLink href="/supplier/quote-requests" icon="chat" title={t("dashboard.briefQuotes", { count: pendingQuotes })} hint={t("dashboard.briefQuotesHint")} action={t("dashboard.reply")} />
             )}
             {totalProducts === 0 && (
-              <BriefLink href="/supplier/products/new" icon="box" title="Add your first product" hint="Draft it now and send it to review when it's ready." action="Add" />
+              <BriefLink href="/supplier/products/new" icon="box" title={t("dashboard.briefFirst")} hint={t("dashboard.briefFirstHint")} action={t("add")} />
             )}
             {verified && toShipCount === 0 && pendingQuotes === 0 && totalProducts > 0 && (
               <div className="rounded-[16px] bg-white px-4 py-3 text-[13.5px] text-app-ink-soft">
-                Nothing needs you right now. Every order is moving and every quote has an answer.
+                {t("dashboard.nothingNeeded")}
               </div>
             )}
           </div>
@@ -279,8 +288,8 @@ export default async function SupplierDashboardPage({ searchParams }: { searchPa
         {/* Orders to ship */}
         <section className="min-w-0">
           <div className="mb-3 flex items-baseline justify-between gap-2">
-            <h2 className="m-0 text-[17px] font-extrabold">Orders to ship</h2>
-            <TextLink href="/supplier/orders">All orders</TextLink>
+            <h2 className="m-0 text-[17px] font-extrabold">{t("dashboard.ordersHeading")}</h2>
+            <TextLink href="/supplier/orders">{t("dashboard.allOrders")}</TextLink>
           </div>
           {ordersToShip.length ? (
             <ListCard>
@@ -292,14 +301,14 @@ export default async function SupplierDashboardPage({ searchParams }: { searchPa
                     <span className="block truncate text-[12.5px] text-app-ink-soft">{order.sub}</span>
                   </span>
                   <span className="hidden w-[130px] sm:block"><StageDot tone={order.stage.tone}>{order.stage.label}</StageDot></span>
-                  <span className="hidden w-[90px] text-[13px] text-app-ink-soft md:block">{timeAgo(order.createdAt)}</span>
+                  <span className="hidden w-[90px] text-[13px] text-app-ink-soft md:block">{timeAgo(order.createdAt, t)}</span>
                   <span className="ml-auto text-right text-[14px] font-extrabold">{money(order.amount, order.currency)}</span>
                 </ListRow>
               ))}
             </ListCard>
           ) : (
             <Card className="px-5 py-8 text-center text-[14px] text-app-ink-soft">
-              Nothing to ship. New orders from sellers land here first.
+              {t("dashboard.nothingToPack")}
             </Card>
           )}
         </section>
@@ -307,13 +316,13 @@ export default async function SupplierDashboardPage({ searchParams }: { searchPa
         {/* Quote requests */}
         <section className="min-w-0">
           <div className="mb-3 flex items-baseline justify-between gap-2">
-            <h2 className="m-0 text-[17px] font-extrabold">Quote requests</h2>
-            <TextLink href="/supplier/quote-requests">See all</TextLink>
+            <h2 className="m-0 text-[17px] font-extrabold">{t("dashboard.quoteRequests")}</h2>
+            <TextLink href="/supplier/quote-requests">{t("seeAll")}</TextLink>
           </div>
           {waitingQuotes.length ? (
             <div className="grid gap-3">
               {waitingQuotes.map((quote) => {
-                const status = statusOf(QUOTE_STATUS, quote.status);
+                const status = statusOf(QUOTE_STATUS, quote.status, t);
                 return (
                   <Card key={quote.id} as="article" className="p-4">
                     <div className="flex items-start gap-3">
@@ -321,15 +330,15 @@ export default async function SupplierDashboardPage({ searchParams }: { searchPa
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-[14px] font-extrabold">{quote.seller.name}</div>
                         <div className="truncate text-[12.5px] text-app-ink-soft">
-                          {quote.quantity.toLocaleString("en-NG")} × {quote.supplierProduct.name} to {quote.destination}
+                          {t("dashboard.quoteLine", { qty: quote.quantity.toLocaleString("en-NG"), product: quote.supplierProduct.name, destination: quote.destination })}
                         </div>
                       </div>
                       <Pill tone={status.tone}>{status.label}</Pill>
                     </div>
                     {quote.notes && <p className="mb-0 mt-3 line-clamp-2 text-[13.5px] leading-[1.5]">&ldquo;{quote.notes}&rdquo;</p>}
                     <div className="mt-3 flex items-center justify-between gap-2">
-                      <span className="text-[12.5px] text-app-ink-soft">{timeAgo(quote.createdAt)}</span>
-                      <PillLink href={`/supplier/quote-requests#quote-${quote.id}`} tone="ink" size="sm">Reply</PillLink>
+                      <span className="text-[12.5px] text-app-ink-soft">{timeAgo(quote.createdAt, t)}</span>
+                      <PillLink href={`/supplier/quote-requests#quote-${quote.id}`} tone="ink" size="sm">{t("dashboard.reply")}</PillLink>
                     </div>
                   </Card>
                 );
@@ -337,7 +346,7 @@ export default async function SupplierDashboardPage({ searchParams }: { searchPa
             </div>
           ) : (
             <Card className="px-5 py-8 text-center text-[14px] text-app-ink-soft">
-              No quote requests waiting. When a seller asks for bulk pricing it shows up here.
+              {t("dashboard.noQuotes")}
             </Card>
           )}
         </section>
@@ -345,13 +354,13 @@ export default async function SupplierDashboardPage({ searchParams }: { searchPa
         {/* Top products */}
         <section className="min-w-0">
           <div className="mb-3 flex items-baseline justify-between gap-2">
-            <h2 className="m-0 text-[17px] font-extrabold">Your products</h2>
-            <TextLink href="/supplier/products">All products</TextLink>
+            <h2 className="m-0 text-[17px] font-extrabold">{t("dashboard.yourProducts")}</h2>
+            <TextLink href="/supplier/products">{t("dashboard.allProducts")}</TextLink>
           </div>
           {topProducts.length ? (
             <ListCard>
               {topProducts.map((product) => {
-                const status = statusOf(PRODUCT_STATUS, product.status);
+                const status = statusOf(PRODUCT_STATUS, product.status, t);
                 const low = product.stockQuantity < Math.max(product.moq, 5);
                 return (
                   <ListRow key={product.id} href={`/supplier/products/${product.id}/edit`}>
@@ -359,7 +368,7 @@ export default async function SupplierDashboardPage({ searchParams }: { searchPa
                     <span className="min-w-0 flex-1 basis-[calc(100%-72px)] sm:basis-0 truncate text-[14px] font-extrabold">{product.name}</span>
                     <Pill tone={status.tone}>{status.label}</Pill>
                     <span className={low ? "w-[90px] text-[13px] font-bold text-app-accent-ink" : "w-[90px] text-[13px] text-app-ink-soft"}>
-                      {low ? `${product.stockQuantity} left` : `${product.stockQuantity.toLocaleString("en-NG")} in stock`}
+                      {low ? t("dashboard.left", { count: product.stockQuantity }) : t("dashboard.inStock", { count: product.stockQuantity })}
                     </span>
                     <span className="ml-auto text-right text-[14px] font-extrabold">{money(product.wholesalePrice, product.currency)}</span>
                   </ListRow>
@@ -368,7 +377,7 @@ export default async function SupplierDashboardPage({ searchParams }: { searchPa
             </ListCard>
           ) : (
             <Card className="px-5 py-8 text-center text-[14px] text-app-ink-soft">
-              Add products to build your catalogue. <Link href="/supplier/products/new" className="font-extrabold text-app-accent-ink no-underline">Add product</Link>
+              {t("dashboard.buildCatalogue")} <Link href="/supplier/products/new" className="font-extrabold text-app-accent-ink no-underline">{t("dashboard.addProduct")}</Link>
             </Card>
           )}
         </section>
@@ -376,18 +385,18 @@ export default async function SupplierDashboardPage({ searchParams }: { searchPa
         <div className="grid min-w-0 content-start gap-5">
           {recommendedLogistics.length > 0 && (
             <Card className="p-5">
-              <CardHead title={`Delivery partners in ${supplier.city}`} sub="Verified and rated by sellers" />
+              <CardHead title={t("dashboard.partnersIn", { city: supplier.city })} sub={t("dashboard.partnersSub")} />
               <ul className="m-0 mt-3 list-none divide-y divide-app-line p-0">
                 {recommendedLogistics.map((partner) => (
                   <li key={partner.id} className="flex min-h-[52px] items-center gap-3 py-2.5">
                     <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-app-canvas"><Icon name="truck" size={16} /></span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[14px] font-extrabold">{partner.displayName}</span>
-                      <span className="block truncate text-[12.5px] text-app-ink-soft">{partner.city} · {partner.estimatedSpeed ?? "Standard delivery"}</span>
+                      <span className="block truncate text-[12.5px] text-app-ink-soft">{partner.city} · {partner.estimatedSpeed ?? t("dashboard.standardDelivery")}</span>
                     </span>
                     <span className="text-right text-[13px]">
-                      <span className="block font-extrabold">{partner.rating.toFixed(1)} rating</span>
-                      <span className="block text-app-ink-soft">{money(partner.basePrice)} base</span>
+                      <span className="block font-extrabold">{t("dashboard.rating", { rating: partner.rating.toFixed(1) })}</span>
+                      <span className="block text-app-ink-soft">{t("dashboard.base", { amount: money(partner.basePrice) })}</span>
                     </span>
                   </li>
                 ))}
@@ -397,16 +406,16 @@ export default async function SupplierDashboardPage({ searchParams }: { searchPa
 
           {activeSellers.length > 0 && (
             <Card className="p-5">
-              <CardHead title="Sellers buying in your categories" sub="Recent wholesale buyers from other suppliers" />
+              <CardHead title={t("dashboard.sellersBuying")} sub={t("dashboard.sellersBuyingSub")} />
               <ul className="m-0 mt-3 list-none divide-y divide-app-line p-0">
                 {activeSellers.map((seller) => (
                   <li key={seller.id} className="flex min-h-[52px] items-center gap-3 py-2.5">
                     <Thumb label={seller.name} size={36} />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[14px] font-extrabold">{seller.name}</span>
-                      <span className="block truncate text-[12.5px] text-app-ink-soft">{[seller.city, seller.country].filter(Boolean).join(" · ") || "Location not set"}</span>
+                      <span className="block truncate text-[12.5px] text-app-ink-soft">{[seller.city, seller.country].filter(Boolean).join(" · ") || t("dashboard.noLocation")}</span>
                     </span>
-                    <Pill tone="success" dot>Active buyer</Pill>
+                    <Pill tone="success" dot>{t("dashboard.activeBuyer")}</Pill>
                   </li>
                 ))}
               </ul>
@@ -415,7 +424,7 @@ export default async function SupplierDashboardPage({ searchParams }: { searchPa
 
           {recommendedLogistics.length === 0 && activeSellers.length === 0 && (
             <AssistantNote who="rex">
-              Rex shows delivery partners in {supplier.city} and sellers buying in your categories here once there are some to show.
+              {t("dashboard.rexEmpty", { city: supplier.city })}
             </AssistantNote>
           )}
         </div>
