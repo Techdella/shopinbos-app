@@ -7,6 +7,7 @@ import { LanguageRow } from "@/components/LanguagePicker";
 import { confirmSignOut } from "@/components/partner";
 import { TabScreen } from "@/components/TabScreen";
 import { Card, LinkButton, T } from "@/components/ui";
+import { PRIVACY_URL, TERMS_URL } from "@/lib/support";
 import { openWeb } from "@/lib/web";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
@@ -27,8 +28,8 @@ export const HELP_SECTION: { title: string; links: MoreLink[] } = {
   title: "Help and legal",
   links: [
     { label: "Email support", icon: "help", path: "mailto:support@shopinbos.com", hint: "support@shopinbos.com" },
-    { label: "Terms", icon: "doc", path: "url:https://shopinbos.com/terms" },
-    { label: "Privacy", icon: "doc", path: "url:https://shopinbos.com/privacy", hint: "How we handle your data under the NDPA" },
+    { label: "Terms", icon: "doc", path: `url:${TERMS_URL}` },
+    { label: "Privacy", icon: "doc", path: `url:${PRIVACY_URL}`, hint: "How we handle your data under the NDPA" },
   ],
 };
 
