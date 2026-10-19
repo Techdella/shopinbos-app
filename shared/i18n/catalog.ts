@@ -46,6 +46,7 @@ import m_paylinks from "./messages/m_paylinks/index.ts";
 import m_campaigns from "./messages/m_campaigns/index.ts";
 import m_video from "./messages/m_video/index.ts";
 import m_money from "./messages/m_money/index.ts";
+import wallet from "./messages/wallet/index.ts";
 import m_ads from "./messages/m_ads/index.ts";
 import verification from "./messages/verification/index.ts";
 import marketing from "./messages/marketing/index.ts";
@@ -129,6 +130,7 @@ export const CATALOGS = {
   m_campaigns,
   m_video,
   m_money,
+  wallet,
   m_ads,
   verification,
   marketing,

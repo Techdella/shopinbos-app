@@ -213,6 +213,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "ps.addedLabel": "An ƙara {name}",
   "ps.addLabel": "Ƙara {name}",
   "ps.added": "An ƙara",
+  "ps.checkFirst": "Kira supplier ka duba kaya tukuna",
   "ps.add": "Ƙara",
   "ps.back": "Koma",
   "ps.saved": "An ajiye",

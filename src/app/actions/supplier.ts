@@ -515,3 +515,12 @@ export async function removeSupplierTeamMember(formData: FormData) {
   revalidatePath("/supplier/profile");
   redirect("/supplier/team?saved=1");
 }
+
+/** A shop asked to dropship this supplier's products: accept the Dropship agreement, or decline it saying why. */
+export async function answerDropshipAgreementAction(agreementId: string, accept: boolean, note?: string) {
+  const { user } = await getSupplierActor();
+  const { answerAgreement } = await import("@/lib/marketplace/agreements.server");
+  const result = await answerAgreement(user, String(agreementId).slice(0, 40), accept === true, typeof note === "string" ? note.slice(0, 600) : undefined);
+  revalidatePath("/supplier/agreements");
+  return result;
+}

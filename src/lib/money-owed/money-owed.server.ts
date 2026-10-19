@@ -11,8 +11,12 @@ import {
   CLAIM_REASONS,
   CLAIM_WITHIN_DAYS,
   MIN_DEBT_KOBO,
+  MORE_TIME_DAYS,
+  PAUSE_AFTER_OVERDUE_DAYS,
   PAY_WITHIN_DAYS,
   PLANNED_HOLD_MS,
+  debtPauses,
+  pausesAt,
   applyPayment,
   claimProblem,
   debtIsOwed,
@@ -279,6 +283,7 @@ export async function applyDeductions(input: { key: string; deductions: SplitDed
             .catch(() => null);
         }
       }
+      await refreshDebtPause(applied.debt.debtorUserId);
       const names = await businessNames([applied.debt.debtorUserId, applied.debt.creditorUserId]);
       const rest = remainingKobo({ amountKobo: applied.debt.amountKobo, paidKobo: applied.debt.paidKobo + applied.credit });
       await notify(applied.debt.debtorUserId, `${naira(deduction.kobo)} of ${label} went to what you owe`, `It went straight to ${applied.debt.creditorUserId ? names.get(applied.debt.creditorUserId)?.name ?? "the business you owe" : "Shopinbos"}. ${rest > 0 ? `${naira(rest)} is still owed: pay it in your Shopinbos Wallet to keep your full share of your next orders.` : "You've paid it all."}`);
@@ -362,6 +367,7 @@ export async function confirmDebtPayment(reference: string, expectedUserId?: str
   if (!(kobo > 0)) return { ok: false, error: "The payment has no amount." };
   const applied = await db.$transaction((tx) => applyToDebt(tx, { debtId, kobo, method: "paystack", reference }));
   if (!applied) return { ok: true, fresh: false };
+  await refreshDebtPause(applied.debt.debtorUserId);
   const names = await businessNames([applied.debt.debtorUserId]);
   const rest = remainingKobo({ amountKobo: applied.debt.amountKobo, paidKobo: applied.debt.paidKobo + applied.credit });
   await notify(applied.debt.creditorUserId, `${names.get(applied.debt.debtorUserId)?.name ?? "A business"} paid you ${naira(kobo)}`, `For ${debtReasonLabel(applied.debt.reason).toLowerCase()}. It goes straight to your bank.${rest > 0 ? ` ${naira(rest)} is still owed.` : ""}`);
@@ -375,6 +381,7 @@ export async function creditorConfirmsPaid(user: { id: string }, debtId: string)
   const kobo = remainingKobo(debt);
   if (kobo <= 0) return { ok: false, error: "This is already paid." };
   await db.$transaction((tx) => applyToDebt(tx, { debtId, kobo, method: "confirmed", reference: `confirm:${debtId}:${Date.now()}` }));
+  await refreshDebtPause(debt.debtorUserId);
   const names = await businessNames([user.id]);
   await notify(debt.debtorUserId, `${names.get(user.id)?.name ?? "They"} confirmed you paid them`, `${naira(kobo)} for ${debtReasonLabel(debt.reason).toLowerCase()} is settled.`);
   return { ok: true, message: "Marked as paid." };
@@ -465,6 +472,7 @@ export async function creditorCancels(user: { id: string }, debtId: string): Pro
   const debt = await db.businessDebt.findFirst({ where: { id: debtId, creditorUserId: user.id, status: { in: ["claimed", "disputed", "open"] } } });
   if (!debt) return { ok: false, error: "There's nothing to cancel on this." };
   await db.businessDebt.update({ where: { id: debt.id }, data: { status: debtIsPending(debt.status) ? "rejected" : "waived", decisionNote: "Cancelled by the business owed." } });
+  await refreshDebtPause(debt.debtorUserId);
   const names = await businessNames([user.id]);
   await notify(debt.debtorUserId, `${names.get(user.id)?.name ?? "They"} cancelled what you owed`, `${debtReasonLabel(debt.reason)}: nothing more to pay.`);
   return { ok: true, message: "Cancelled." };
@@ -498,7 +506,54 @@ export async function waiveDebt(admin: { id: string }, debtId: string, note: str
   const text = note.trim().slice(0, 1500);
   if (text.length < 5) return { ok: false, error: "Write why: both businesses see it." };
   const moved = await db.businessDebt.updateMany({ where: { id: debtId, status: { in: ["open", "claimed", "disputed"] } }, data: { status: "waived", decisionNote: text, decidedByUserId: admin.id, decidedAt: new Date() } });
-  return moved.count ? { ok: true } : { ok: false, error: "This is already closed." };
+  if (!moved.count) return { ok: false, error: "This is already closed." };
+  const debt = await db.businessDebt.findUnique({ where: { id: debtId }, select: { debtorUserId: true } });
+  if (debt) await refreshDebtPause(debt.debtorUserId);
+  return { ok: true };
+}
+
+/**
+ * The team gives a business more time to pay (for example they agreed a plan): the due date moves MORE_TIME_DAYS
+ * past today, which stops deductions from its sales until then and lifts a pause this debt caused.
+ */
+export async function giveMoreTime(admin: { id: string }, debtId: string, note: string): Promise<MoneyResult> {
+  const text = note.trim().slice(0, 1500);
+  if (text.length < 5) return { ok: false, error: "Write why: both businesses see it." };
+  const debt = await db.businessDebt.findUnique({ where: { id: debtId } });
+  if (!debt || !debtIsOwed(debt.status)) return { ok: false, error: "Only money still owed can get more time." };
+  const now = new Date();
+  const dueAt = new Date(now.getTime() + MORE_TIME_DAYS * 24 * 60 * 60 * 1000);
+  await db.businessDebt.update({ where: { id: debt.id }, data: { dueAt, remindedAt: null, decisionNote: text, decidedByUserId: admin.id, decidedAt: now } });
+  await refreshDebtPause(debt.debtorUserId, now);
+  await notify(debt.debtorUserId, `More time to pay: due ${dueAt.toLocaleDateString("en-NG", { day: "numeric", month: "short", timeZone: "Africa/Lagos" })}`, `Our team gave you until then for ${naira(remainingKobo(debt))}: "${text}".`);
+  return { ok: true };
+}
+
+// ─── Pausing for money long overdue ───────────────────────────────────────────
+
+/**
+ * Pauses a business from new business through Shopinbos while any debt it owes is PAUSE_AFTER_OVERDUE_DAYS
+ * overdue, and lifts the pause once none is (User.debtPausedAt). Tells them either way, once. Never throws.
+ */
+export async function refreshDebtPause(userId: string, now = new Date()) {
+  try {
+    const [user, debts] = await Promise.all([
+      db.user.findUnique({ where: { id: userId }, select: { debtPausedAt: true } }),
+      db.businessDebt.findMany({ where: { debtorUserId: userId, status: "open", dueAt: { lte: now } }, select: { status: true, dueAt: true, amountKobo: true, paidKobo: true } }),
+    ]);
+    if (!user) return;
+    const pausing = debts.filter((debt) => debtPauses(debt, now));
+    if (pausing.length && !user.debtPausedAt) {
+      await db.user.update({ where: { id: userId }, data: { debtPausedAt: now } });
+      const owed = pausing.reduce((sum, debt) => sum + remainingKobo(debt), 0);
+      await notify(userId, `Paused from new business: ${naira(owed)} is ${PAUSE_AFTER_OVERDUE_DAYS} days overdue`, "Until it's paid, shops can't find you for new orders or deliveries, and you can't list new supplier products or place wholesale orders. Orders you already have carry on. Pay it in your Shopinbos Wallet and the pause lifts straight away.", "critical", `debt-pause:${userId}:${now.toISOString().slice(0, 10)}`);
+    } else if (!pausing.length && user.debtPausedAt) {
+      await db.user.update({ where: { id: userId }, data: { debtPausedAt: null } });
+      await notify(userId, "Pause lifted", "Nothing you owe is long overdue any more, so shops can find you again.", "info");
+    }
+  } catch (error) {
+    console.error(`[money owed] could not refresh the pause of ${userId}`, error);
+  }
 }
 
 /**
@@ -551,14 +606,24 @@ export async function runMoneyOwedSweep(now = new Date()) {
     await notify(
       debt.debtorUserId,
       overdue ? `Overdue: you owe ${who} ${naira(left)}` : `Due tomorrow: ${naira(left)} to ${who}`,
-      overdue ? "Until it's paid, part of your share of each sale goes to it. Pay it in your Shopinbos Wallet to get your full share back." : `For ${debtReasonLabel(debt.reason).toLowerCase()}. Pay it in your Shopinbos Wallet; after the due date it comes out of your next sales.`,
+      overdue
+        ? `Until it's paid, part of your share of each sale goes to it. If it's still owed on ${pausesAt(debt.dueAt!).toLocaleDateString("en-NG", { day: "numeric", month: "short", timeZone: "Africa/Lagos" })}, you'll be paused from new business. Pay it in your Shopinbos Wallet.`
+        : `For ${debtReasonLabel(debt.reason).toLowerCase()}. Pay it in your Shopinbos Wallet; after the due date it comes out of your next sales.`,
       overdue ? "critical" : "warning",
       `money-owed:${debt.id}:${now.toISOString().slice(0, 10)}`,
     );
     await db.businessDebt.update({ where: { id: debt.id }, data: { remindedAt: now } });
     reminded += 1;
   }
-  return { recorded, reminded };
+  // Pause (or lift the pause of) everyone with a debt long overdue, or a pause nothing justifies any more.
+  const pauseFrom = new Date(now.getTime() - PAUSE_AFTER_OVERDUE_DAYS * 24 * 60 * 60 * 1000);
+  const [longOverdue, paused] = await Promise.all([
+    db.businessDebt.findMany({ where: { status: "open", dueAt: { lte: pauseFrom } }, select: { debtorUserId: true }, distinct: ["debtorUserId"], take: 500 }),
+    db.user.findMany({ where: { debtPausedAt: { not: null } }, select: { id: true }, take: 500 }),
+  ]);
+  const check = [...new Set([...longOverdue.map((row) => row.debtorUserId), ...paused.map((row) => row.id)])];
+  for (const userId of check) await refreshDebtPause(userId, now);
+  return { recorded, reminded, pauseChecked: check.length };
 }
 
 // ─── What the wallet page shows ───────────────────────────────────────────────
@@ -595,6 +660,8 @@ export interface MoneyOwedView {
   owedToMe: DebtView[];
   /** Sellers: recent orders they can raise a claim on. */
   claimable: ClaimableOrder[];
+  /** Paused from new business for money long overdue (ISO), or null. */
+  pausedAt: string | null;
 }
 
 const SHOWN_STATUSES = ["claimed", "disputed", "open"];
@@ -639,6 +706,7 @@ export async function loadMoneyOwed(user: { id: string; role: string }, now = ne
     iOwe: debts.filter((debt) => debt.debtorUserId === user.id).map((debt) => view(debt, true)),
     owedToMe: debts.filter((debt) => debt.creditorUserId === user.id).map((debt) => view(debt, false)),
     claimable: user.role === "seller" ? await claimableOrders(user.id, now) : [],
+    pausedAt: (await db.user.findUnique({ where: { id: user.id }, select: { debtPausedAt: true } }))?.debtPausedAt?.toISOString() ?? null,
   };
 }
 

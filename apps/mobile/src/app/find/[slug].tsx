@@ -8,7 +8,8 @@ import { Badge, ErrorState, Initials, LoadingBlock } from "@/components/kit";
 import { Screen } from "@/components/Screen";
 import { Card, Field, Label, LinkButton, Notice, PillButton, Segmented, T } from "@/components/ui";
 import { clampSellingPrice, priceStep, saleBreakdown, tierPrice } from "@/lib/find-pure";
-import { addToStore, fetchFindContext, fetchFindProduct, requestQuote, type FindContext, type FindProduct } from "@/lib/marketplace";
+import { addToStore, fetchFindContext, fetchFindProduct, requestQuote, type FindContext, type FindProduct, type Listing } from "@/lib/marketplace";
+import { BeforeYouList, SupplierRiskCard, SupplierTrustBadges } from "@/components/SupplierTrust";
 import { useLoad } from "@/lib/useLoad";
 import { openWeb } from "@/lib/web";
 import { useT } from "@/lib/i18n";
@@ -16,6 +17,8 @@ import { colors, radii } from "@/theme";
 
 // One supplier product (web /marketplace/product/[id]): photos, Dropship (pick your price, see what you keep,
 // add it to your store as a draft) or Wholesale (quantity, tier price, request a quote), and Message supplier.
+// The supplier's verification, risk score and distance show first; dropshipping needs the call, the stock check and
+// the Dropship agreement both sides accept (components/SupplierTrust.tsx).
 
 function Stepper({ label, value, onMinus, onPlus, minusOff, plusOff }: { label: string; value: string; onMinus: () => void; onPlus: () => void; minusOff?: boolean; plusOff?: boolean }) {
   const t = useT("m_find");
@@ -49,8 +52,8 @@ export default function FindProductDetail() {
   const t = useT("m_find");
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const loaded = useLoad(async () => {
-    const [product, context] = await Promise.all([fetchFindProduct(String(slug)), fetchFindContext().catch(() => null)]);
-    return { product, context };
+    const [found, context] = await Promise.all([fetchFindProduct(String(slug)), fetchFindContext().catch(() => null)]);
+    return { product: found.product, listing: found.listing, context };
   }, String(slug));
 
   if (!loaded.data) {
@@ -62,10 +65,10 @@ export default function FindProductDetail() {
     );
   }
   // Keyed by product so the price and quantity start from this product's numbers.
-  return <ProductView key={loaded.data.product.id} product={loaded.data.product} context={loaded.data.context} refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()} />;
+  return <ProductView key={loaded.data.product.id} product={loaded.data.product} listing={loaded.data.listing} context={loaded.data.context} refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()} />;
 }
 
-function ProductView({ product, context, refreshing, onRefresh }: { product: FindProduct; context: FindContext | null; refreshing: boolean; onRefresh: () => void }) {
+function ProductView({ product, listing, context, refreshing, onRefresh }: { product: FindProduct; listing: Listing; context: FindContext | null; refreshing: boolean; onRefresh: () => void }) {
   const t = useT("m_find");
   const [mode, setMode] = useState<"dropship" | "wholesale">(product.dropship ? "dropship" : "wholesale");
   const [price, setPrice] = useState(() => clampSellingPrice(product.price || product.cost * 1.5, product.cost));
@@ -111,11 +114,13 @@ function ProductView({ product, context, refreshing, onRefresh }: { product: Fin
     }
   }
 
+  // Dropship from a supplier the seller hasn't agreed with yet: the steps below come first, no add button.
+  const mustAgree = mode === "dropship" && !already && listing.step !== "ready";
   const footer =
     mode === "dropship" ? (
       already ? (
         <PillButton title={t("product.seeInProducts")} onPress={() => router.push("/products")} />
-      ) : (
+      ) : mustAgree ? undefined : (
         <PillButton title={t("product.put", { price: naira(price) })} busy={busy} onPress={() => void add()} />
       )
     ) : (
@@ -153,6 +158,7 @@ function ProductView({ product, context, refreshing, onRefresh }: { product: Fin
           <T style={{ color: colors.inkSoft, fontSize: 14 }} numberOfLines={1}>
             {[product.supplier.city, product.supplier.rating ? `★ ${product.supplier.rating.toFixed(1)}` : null, product.supplier.responds].filter(Boolean).join(" · ")}
           </T>
+          <View style={{ marginTop: 6 }}><SupplierTrustBadges supplier={product.supplier} /></View>
         </View>
         <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: "/partners/[id]", params: { id: product.supplier.id, name: product.supplier.name } })} style={{ height: 38, borderRadius: radii.pill, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: colors.canvas }}>
           <AppIcon name="chat" size={16} />
@@ -172,6 +178,9 @@ function ProductView({ product, context, refreshing, onRefresh }: { product: Fin
       ) : null}
 
       {note ? <Notice tone={note.tone}>{note.text}</Notice> : null}
+
+      <SupplierRiskCard supplier={product.supplier} />
+      {mustAgree ? <BeforeYouList product={product} listing={listing} onSent={onRefresh} /> : null}
 
       {mode === "dropship" ? (
         <Card style={{ gap: 6 }}>

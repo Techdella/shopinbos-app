@@ -9,6 +9,7 @@ import { mergeBrandSettings } from "@/lib/workspace";
 import { createNotification } from "@/lib/notifications/create";
 import { ConversationError, sendPartnerMessage } from "@/lib/conversations/service.server";
 import { uploadFileServer, uploadPath } from "@/lib/supabase/storage.server";
+import { VISIBLE_SUPPLIER, listingCheck, requestAgreement } from "@/lib/marketplace/agreements.server";
 import {
   clampSellingPrice,
   isSampleId,
@@ -22,7 +23,7 @@ import {
 // Find products (/marketplace) and My imports (/home/imports): add a supplier's product to the store, ask for a
 // wholesale quote, save, message the supplier, get told when suppliers join, and ask for a China import.
 
-type Result<T = unknown> = ({ ok: true } & T) | { ok: false; error: string; sample?: boolean };
+type Result<T = unknown> = ({ ok: true } & T) | { ok: false; error: string; sample?: boolean; code?: string };
 
 const SAMPLE_ERROR = "This is a sample product. Suppliers are joining Shopinbos now, and real products will show here.";
 
@@ -47,8 +48,8 @@ async function saveSourcing(storeId: string, brandSettings: unknown, sourcing: S
 
 async function liveSupplierProduct(id: string) {
   return db.supplierProduct.findFirst({
-    where: { id, status: "published", supplier: { status: "active", verificationStatus: "verified" } },
-    include: { supplier: { select: { id: true, userId: true, displayName: true } } },
+    where: { id, status: "published", supplier: VISIBLE_SUPPLIER },
+    include: { supplier: { select: { id: true, userId: true, displayName: true, verificationStatus: true } } },
   });
 }
 
@@ -69,8 +70,15 @@ export async function addSupplierProductToStore(input: { supplierProductId: stri
   const existing = await db.storeProduct.findFirst({ where: { storeId: store.id, supplierProductId: product.id }, select: { id: true } });
   if (existing) return { ok: true, storeProductId: existing.id, already: true };
 
-  const retailPrice = clampSellingPrice(parsed.data.retailPrice ?? product.suggestedRetailPrice, product.wholesalePrice);
   const dropship = product.dropshipAvailable;
+  // Dropship: the seller called the supplier, checked the stock and both agreed (src/lib/marketplace/agreements.server.ts).
+  if (dropship) {
+    const gate = await listingCheck(user.id, product.supplierId);
+    if (!gate.ok) return { ok: false, error: gate.message, code: gate.code };
+  } else if (product.supplier.verificationStatus !== "verified") {
+    return { ok: false, error: "Buy stock only from verified suppliers. This one isn't verified yet." };
+  }
+  const retailPrice = clampSellingPrice(parsed.data.retailPrice ?? product.suggestedRetailPrice, product.wholesalePrice);
   const storeProduct = await db.storeProduct.create({
     data: {
       storeId: store.id,
@@ -101,6 +109,26 @@ export async function addSupplierProductToStore(input: { supplierProductId: stri
   revalidatePath("/marketplace");
   revalidatePath("/products");
   return { ok: true, storeProductId: storeProduct.id, already: false };
+}
+
+const AgreementSchema = z.object({
+  supplierId: z.string().min(1).max(64),
+  called: z.boolean(),
+  stockCheck: z.string().max(20),
+  agreed: z.boolean(),
+  note: z.string().max(600).optional(),
+});
+
+/** Before listing a supplier's products: the seller called them, checked the stock and accepts the Dropship agreement. */
+export async function requestDropshipAgreement(input: z.infer<typeof AgreementSchema>): Promise<Result<{ message: string }>> {
+  const parsed = AgreementSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Fill in each step first." };
+  const ctx = await sellerAndStore();
+  if (!ctx) return { ok: false, error: "Sign in to your store first." };
+  const result = await requestAgreement(ctx.user, parsed.data);
+  if (!result.ok) return { ok: false, error: result.error };
+  revalidatePath("/marketplace");
+  return { ok: true, message: result.message };
 }
 
 const QuoteSchema = z.object({

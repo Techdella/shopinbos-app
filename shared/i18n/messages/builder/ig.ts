@@ -213,6 +213,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "ps.addedLabel": "Etinyela {name}",
   "ps.addLabel": "Tinye {name}",
   "ps.added": "Etinyela",
+  "ps.checkFirst": "Kpọọ supplier ma lelee ngwa ahụ mbụ",
   "ps.add": "Tinye",
   "ps.back": "Laghachi",
   "ps.saved": "Echekwala",

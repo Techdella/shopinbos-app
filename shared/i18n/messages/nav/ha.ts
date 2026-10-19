@@ -102,6 +102,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "supplier.analytics": "Yadda kake tafiya",
   "supplier.cms": "Blog",
   "supplier.buyers-all": "Shagunan da ke sayar da kayanka",
+  "supplier.agreements": "Yarjejeniyar dropship",
   "supplier.settings-main": "Saituna",
   "supplier.profile": "Bayanan kamfani",
   "supplier.verification": "Verification",

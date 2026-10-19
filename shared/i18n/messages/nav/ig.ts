@@ -102,6 +102,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "supplier.analytics": "Otú ị na-eme",
   "supplier.cms": "Blog",
   "supplier.buyers-all": "Ụlọ ahịa na-ere ngwaahịa gị",
+  "supplier.agreements": "Nkwekọrịta dropship",
   "supplier.settings-main": "Ntọala",
   "supplier.profile": "Profaịlụ ụlọ ọrụ",
   "supplier.verification": "Verification",

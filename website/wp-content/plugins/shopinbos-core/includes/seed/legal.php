@@ -335,6 +335,14 @@ function sib_seed_legal_core(): array {
     "Be decent."
    ],
    [
+    "Selling a supplier’s products",
+    [
+     "For now you can only dropship from suppliers near you. Before you list a supplier’s products, call them, see the stock yourself (visit them or video call) and accept the Dropship agreement in the app. Some suppliers aren’t verified yet: the app shows that, with a risk score, so you can decide.",
+     "Your customers are yours: you set the price and handle their refunds and returns under your own policy. If a supplier sends the wrong or damaged goods, or a delivery partner loses a parcel, claim it back in your Shopinbos Wallet within 7 days. If you owe a supplier, a delivery partner or Shopinbos and it is 7 days overdue, you can’t list new supplier products or place wholesale orders until it is paid."
+    ],
+    "Call them, see the stock, agree. Then sell."
+   ],
+   [
     "If a rule is broken",
     [
      "We may remove a product, pause your store or close your account, depending on how serious it is. Except for fraud or danger to others, we warn you first and tell you how to fix it."
@@ -369,6 +377,14 @@ function sib_seed_legal_core(): array {
      "Write your return policy on your profile. Shops see it before they list your products. It can be more generous than the minimum in these terms, never less."
     ],
     "Keep stock accurate, and say what you take back."
+   ],
+   [
+    "Dropship agreements with shops",
+    [
+     "Before a shop can sell your products by dropship, they call you, see your stock (a visit or a video call) and accept the Dropship agreement in the app. Their request shows under Dropship agreements; accept it only if they really called you and saw your stock.",
+     "The agreement is the same for every shop: you keep your stock and prices up to date, ship on time under the shop’s name, never contact the shop’s customers to sell to them directly, take back wrong or damaged items and pay back orders you were paid for but didn’t send. You can decline new orders at any time."
+    ],
+    "Shops call you and see your stock first. You both agree."
    ],
    [
     "Shipping dropship orders",
@@ -407,7 +423,8 @@ function sib_seed_legal_core(): array {
    [
     "Quality",
     [
-     "If too many of your orders are returned, late or not sent, we may pause your listings while we work with you to fix it. If you keep not paying back what you owe, we may pause your account."
+     "If too many of your orders are returned, late or not sent, we may pause your listings while we work with you to fix it.",
+     "If something you owe is 7 days overdue, you are paused from new business: shops can’t find your products and no new shop can start selling them. Orders you already have carry on, so your sales keep paying it off. The pause lifts as soon as it is paid."
     ],
     "Quality keeps your listings live."
    ]
@@ -467,7 +484,8 @@ function sib_seed_legal_core(): array {
     [
      "You are responsible for a parcel from pickup until the buyer gives the delivery code. If it is lost or damaged in that time, you owe the shop what the goods were worth on the order. Your goods-in-transit insurance is there to cover this, and we help you with the paperwork.",
      "The shop claims in the app within 7 days. You can accept the claim or say why it isn’t right. If you don’t agree, our team decides using what the app recorded (pickup time, rider location, delivery code, photos) and what you both send us. Either of you can ask for the decision to be reviewed by writing to legal@shopinbos.com.",
-     "An accepted or upheld claim is due within 3 days. After that, until it is paid, up to half of each delivery fee paid to you in the app goes to the shop instead, straight to their bank."
+     "An accepted or upheld claim is due within 3 days. After that, until it is paid, up to half of each delivery fee paid to you in the app goes to the shop instead, straight to their bank.",
+     "If it is still owed 7 days after it was due, new shops can’t find or book you until it is paid. Shops you already work with can still book you, so your fees keep paying it off."
     ],
     "From pickup to the code, the parcel is yours to protect."
    ]

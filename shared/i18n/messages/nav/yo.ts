@@ -102,6 +102,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "supplier.analytics": "Bí o ṣe ń ṣe",
   "supplier.cms": "Blog",
   "supplier.buyers-all": "Ṣọ́ọ̀bù tó ń ta ọjà rẹ",
+  "supplier.agreements": "Àdéhùn dropship",
   "supplier.settings-main": "Ètò",
   "supplier.profile": "Profaili ilé-iṣẹ́",
   "supplier.verification": "Verification",

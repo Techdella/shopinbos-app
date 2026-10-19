@@ -207,6 +207,12 @@ model User {
   platformSettingChanges PlatformSettingChange[] @relation("PlatformSettingChanges")
   debtsOwed              BusinessDebt[]          @relation("DebtDebtor")
   debtsOwedTo            BusinessDebt[]          @relation("DebtCreditor")
+  supplierAgreements     SupplierAgreement[]     @relation("SellerAgreements")
+  /// Paused from new business through Shopinbos for money owed and long overdue (src/lib/money-owed): a supplier is
+  /// hidden from sellers looking for products, a delivery partner from sellers looking for delivery, and a seller
+  /// can't list new supplier products or place wholesale orders. What they already have keeps working, so their
+  /// sales keep paying it off. Cleared by the cron once nothing is long overdue.
+  debtPausedAt           DateTime?
 }
 
 // ─── Store ────────────────────────────────────────────────────────────────────
@@ -586,6 +592,7 @@ model Supplier {
   quoteRequests    SupplierQuoteRequest[] @relation("SupplierQuotes")
   wholesaleOrders  WholesaleOrder[]       @relation("SupplierWholesale")
   supplierOrders   SupplierOrder[]
+  agreements       SupplierAgreement[]
   payoutAccount    SupplierPayoutAccount?
   teamMembers      SupplierTeamMember[]
   reviews          SupplierReview[]
@@ -3767,6 +3774,39 @@ model WalletEntry {
 
   @@index([walletId, createdAt])
   @@index([orderId])
+}
+
+// ─── Dropship agreement ───────────────────────────────────────────────────────
+// Before a seller lists a supplier's products to dropship, the seller calls the supplier, checks the stock
+// themselves (a visit or a video call) and accepts the Dropship agreement; the supplier accepts it too
+// (shared/supplier-trust.ts, src/lib/marketplace/agreements.server.ts). One per seller and supplier.
+
+model SupplierAgreement {
+  id               String    @id @default(cuid())
+  sellerId         String
+  supplierId       String
+  /// requested (the seller checked and agreed; waiting for the supplier) · active (both agreed) · declined
+  status           String    @default("requested")
+  /// AGREEMENT_VERSION both sides accepted.
+  version          String
+  /// How the seller saw the stock: visit | video
+  stockCheck       String
+  /// The seller confirmed they called the supplier.
+  calledAt         DateTime
+  sellerNote       String?
+  sellerAgreedAt   DateTime
+  supplierAgreedAt DateTime?
+  /// Why the supplier declined.
+  supplierNote     String?
+  declinedAt       DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  seller   User     @relation("SellerAgreements", fields: [sellerId], references: [id], onDelete: Cascade)
+  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@unique([sellerId, supplierId])
+  @@index([supplierId, status])
 }
 
 // ─── Money owed between businesses ────────────────────────────────────────────

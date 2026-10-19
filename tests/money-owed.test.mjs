@@ -7,7 +7,7 @@ import { readFileSync } from "node:fs";
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 const rules = await import("../src/lib/wallet/rules.ts");
-const owed = await import("../src/lib/money-owed/rules.ts");
+const owed = await import("../shared/money-owed.ts");
 
 const sumShares = (plan) => rules.splitShares(plan).reduce((sum, share) => sum + share.kobo, 0) + (plan.platformKobo ?? 0);
 

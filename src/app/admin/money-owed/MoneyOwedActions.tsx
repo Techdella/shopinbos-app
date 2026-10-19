@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { decideClaimAction, recordDebtAction, waiveDebtAction } from "@/app/actions/money-owed";
+import { decideClaimAction, giveMoreTimeAction, recordDebtAction, waiveDebtAction } from "@/app/actions/money-owed";
 import { buttonClass, fieldClass } from "@/components/admin/AdminKit";
 import { DEBT_REASONS } from "@/lib/money-owed/rules";
 
@@ -42,7 +42,9 @@ export function DebtDecision({ debtId, pending: claim, amount: claimed }: { debt
             <button type="button" className={buttonClass("ink", "sm")} disabled={pending} onClick={() => run(() => decideClaimAction(debtId, true, amount, note))}>Uphold</button>
             <button type="button" className={buttonClass("white", "sm")} disabled={pending} onClick={() => run(() => decideClaimAction(debtId, false, "", note))}>Reject</button>
           </>
-        ) : null}
+        ) : (
+          <button type="button" className={buttonClass("white", "sm")} disabled={pending} onClick={() => run(() => giveMoreTimeAction(debtId, note))}>Give 7 more days</button>
+        )}
         <button type="button" className={buttonClass("danger", "sm")} disabled={pending} onClick={() => run(() => waiveDebtAction(debtId, note))}>Cancel what&apos;s left</button>
       </div>
       {error ? <p role="alert" className="m-0 text-[13px] text-app-danger">{error}</p> : null}

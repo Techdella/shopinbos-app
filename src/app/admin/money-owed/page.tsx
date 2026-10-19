@@ -12,7 +12,8 @@ export const metadata: Metadata = { title: "Money owed" };
 
 // Money owed between businesses (src/lib/money-owed). Shopinbos never holds it: the team is the referee. Claims a
 // business disputed, or didn't answer within PAY_WITHIN_DAYS, wait here for a decision; overdue debts are being
-// paid off from the debtor's later sales (pause their wallet under Wallets if they stop selling to avoid it);
+// paid off from the debtor's later sales, and 7 days overdue the debtor is paused from new business automatically
+// ("Give 7 more days" moves the due date and lifts it);
 // chargebacks Paystack took from Shopinbos's balance are recorded here against the business that sold.
 
 const STATUS: Record<string, { label: string; tone: Tone }> = {
@@ -51,7 +52,7 @@ export default async function AdminMoneyOwedPage({ searchParams }: { searchParam
     orderBy: [{ createdAt: "asc" }],
     take: 200,
     include: {
-      debtor: { select: { name: true, email: true, role: true } },
+      debtor: { select: { name: true, email: true, role: true, debtPausedAt: true } },
       creditor: { select: { name: true, email: true, role: true } },
       payments: { where: { status: "applied" }, orderBy: { createdAt: "asc" }, select: { method: true, amountKobo: true, createdAt: true } },
     },
@@ -82,6 +83,7 @@ export default async function AdminMoneyOwedPage({ searchParams }: { searchParam
                     {debt.paidKobo > 0 && debt.status === "open" ? <span className="font-bold text-app-ink-soft"> ({naira(remainingKobo(debt))} left)</span> : null}
                   </div>
                   <div className="flex gap-2">
+                    {debt.debtor.debtPausedAt ? <Pill tone="danger">Paused from new business</Pill> : null}
                     {overdue ? <Pill tone="danger">Overdue</Pill> : null}
                     <Pill tone={status.tone}>{debt.status === "claimed" && debt.createdAt <= unanswered ? "No answer: decide" : status.label}</Pill>
                   </div>

@@ -11,6 +11,7 @@ import { redirect } from "next/navigation";
 import { MarketplaceChatWrapper } from "@/components/marketplace/MarketplaceChatWrapper";
 import { ChatButton } from "@/components/marketplace/ChatButton";
 import { getT } from "@/lib/i18n/server";
+import { VISIBLE_SUPPLIER, nearness, sellerHasPlace, supplierTrust } from "@/lib/marketplace/agreements.server";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +23,8 @@ export async function generateMetadata() {
 type PageProps = {
   searchParams?: Promise<{ q?: string; country?: string; category?: string; near?: string }>;
 };
+
+const RISK_TONE = { low: "success", medium: "warning", high: "danger" } as const;
 
 function norm(value?: string | null) {
   return (value ?? "").trim().toLowerCase();
@@ -42,7 +45,7 @@ export default async function MarketplaceSuppliersPage({ searchParams }: PagePro
   const storeCountry = norm(store.country);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const where: any = { status: "active", verificationStatus: "verified" };
+  const where: any = { ...VISIBLE_SUPPLIER };
   if (q) {
     where.OR = [
       { businessName: { contains: q, mode: "insensitive" } },
@@ -63,22 +66,28 @@ export default async function MarketplaceSuppliersPage({ searchParams }: PagePro
   const rawSuppliers = await safeQuery(() => db.supplier.findMany({
     where,
     orderBy: [{ trustScore: "desc" }, { createdAt: "desc" }],
-    take: 50,
+    take: 300,
     select: {
       id: true, slug: true, displayName: true, description: true,
       logoUrl: true, bannerUrl: true, categories: true,
-      city: true, country: true, businessType: true, trustScore: true,
+      city: true, address: true, country: true, businessType: true, trustScore: true, verificationStatus: true,
       userId: true,
       _count: { select: { products: { where: { status: "published" } } } },
     },
   }), []);
-  const suppliers = [...rawSuppliers].sort((a, b) => {
+  // For now, only suppliers near the seller (shared/supplier-trust.ts), so they can go and see the stock.
+  const place = { city: store.city ?? user.city ?? null, address: null };
+  const hasPlace = sellerHasPlace(place);
+  const distances = new Map(rawSuppliers.map((supplier) => [supplier.id, nearness(place, supplier)]));
+  const near = hasPlace ? rawSuppliers.filter((supplier) => distances.get(supplier.id)?.near) : [];
+  const trust = await supplierTrust(near.map((supplier) => supplier.id));
+  const suppliers = [...near].sort((a, b) => {
     const localScore = (supplier: typeof rawSuppliers[number]) => {
       if (selectedNear === "city") return storeCity && norm(supplier.city) === storeCity ? 2 : 0;
       if (selectedNear === "country") return storeCountry && norm(supplier.country) === storeCountry ? 1 : 0;
       return (storeCity && norm(supplier.city) === storeCity ? 2 : 0) + (storeCountry && norm(supplier.country) === storeCountry ? 1 : 0);
     };
-    return localScore(b) - localScore(a) || b.trustScore - a.trustScore;
+    return localScore(b) - localScore(a) || (trust.get(a.id)?.risk.score ?? 100) - (trust.get(b.id)?.risk.score ?? 100);
   });
   const nearbyCount = suppliers.filter((supplier) =>
     (storeCity && norm(supplier.city) === storeCity) ||
@@ -132,6 +141,10 @@ export default async function MarketplaceSuppliersPage({ searchParams }: PagePro
             {t("sup.peggy", { place: `${store.city ? `${store.city}, ` : ""}${store.country ?? ""}` })}
           </AssistantNote>
 
+          {!hasPlace ? (
+            <AssistantNote who="peggy" action={<PillLink href="/home/settings" tone="ink" size="sm">{t("trust.addCityBtn")}</PillLink>}>{t("trust.addCity")}</AssistantNote>
+          ) : null}
+
           {suppliers.length === 0 ? (
             <EmptyState icon="people" title={filtered ? t("sup.noMatch") : t("sup.noneYet")} action={filtered ? <PillLink href="/marketplace/suppliers" tone="ink">{t("sup.clearFilters")}</PillLink> : undefined}>
               {filtered ? t("sup.tryDifferent") : t("sup.showOnce")}
@@ -161,9 +174,10 @@ export default async function MarketplaceSuppliersPage({ searchParams }: PagePro
                           {s.businessType ? ` · ${s.businessType.replace(/_/g, " ")}` : ""}
                         </div>
                       </div>
-                      <div className="shrink-0 text-right">
-                        <div className="text-[22px] font-extrabold leading-none">{s.trustScore}</div>
-                        <div className="text-[12px] text-app-ink-soft">{t("sup.trust")}</div>
+                      <div className="grid shrink-0 justify-items-end gap-1 text-right">
+                        {s.verificationStatus === "verified" ? <Pill tone="success">{t("trust.verified")}</Pill> : <Pill tone="danger">{s.verificationStatus === "pending" ? t("trust.pending") : t("trust.unverified")}</Pill>}
+                        {trust.get(s.id) ? <Pill tone={RISK_TONE[trust.get(s.id)!.risk.level]}>{t.dynamic(`trust.risk.${trust.get(s.id)!.risk.level}`, "", { score: trust.get(s.id)!.risk.score })}</Pill> : null}
+                        {typeof distances.get(s.id)?.km === "number" ? <span className="text-[12px] font-bold text-app-ink-soft">{t("trust.km", { km: String(Math.max(1, Math.round(distances.get(s.id)!.km!))) })}</span> : null}
                       </div>
                     </div>
                     {s.description && (

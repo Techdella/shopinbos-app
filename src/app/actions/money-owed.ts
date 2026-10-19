@@ -11,6 +11,7 @@ import {
   creditorCancels,
   creditorConfirmsPaid,
   decideClaim,
+  giveMoreTime,
   raiseClaim,
   recordDebt,
   respondToClaim,
@@ -113,6 +114,14 @@ export async function waiveDebtAction(debtId: string, note: string): Promise<Mon
   const user = await admin();
   if (!user) return { ok: false, error: "Only the Shopinbos team can do this." };
   const result = await waiveDebt(user, id(debtId), String(note ?? "").slice(0, 2000));
+  refresh();
+  return result;
+}
+
+export async function giveMoreTimeAction(debtId: string, note: string): Promise<MoneyResult> {
+  const user = await admin();
+  if (!user) return { ok: false, error: "Only the Shopinbos team can do this." };
+  const result = await giveMoreTime(user, id(debtId), String(note ?? "").slice(0, 2000));
   refresh();
   return result;
 }

@@ -102,6 +102,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "supplier.analytics": "How you dey do",
   "supplier.cms": "Blog",
   "supplier.buyers-all": "Shops wey dey sell your products",
+  "supplier.agreements": "Dropship agreements",
   "supplier.settings-main": "Settings",
   "supplier.profile": "Company profile",
   "supplier.verification": "Verification",

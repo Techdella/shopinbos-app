@@ -24,6 +24,15 @@ export interface FindSupplier {
   verified: boolean;
   /** What the supplier takes back (their own words), or null: the minimum in the Supplier terms applies. */
   returnPolicy?: string | null;
+  /** verified | pending | unverified (shown as "Verified" / "Not verified yet"). */
+  verificationStatus?: string;
+  /** Shopinbos's risk score for this supplier (shared/supplier-trust.ts), when worked out. */
+  risk?: { score: number; level: "low" | "medium" | "high"; reasons: string[] } | null;
+  /** How far from the seller, and the supplier's area. */
+  km?: number | null;
+  area?: string | null;
+  /** The seller and this supplier both accepted the Dropship agreement, so its products can be listed. */
+  agreed?: boolean;
 }
 
 export interface FindProduct {
@@ -164,7 +173,7 @@ export interface SupplierProductRow {
   processingTime: string | null;
   trendScore: number;
   category: { name: string } | null;
-  supplier: { id: string; userId: string; slug: string; displayName: string; city: string; rating: number; ratingCount: number; verificationStatus: string; returnPolicy?: string | null };
+  supplier: { id: string; userId: string; slug: string; displayName: string; city: string; rating: number; ratingCount: number; verificationStatus: string; returnPolicy?: string | null; address?: string | null };
 }
 
 export function parsePricingTiers(value: unknown): FindPricingTier[] {
@@ -197,6 +206,7 @@ export function toFindProduct(row: SupplierProductRow): FindProduct {
       rating: row.supplier.ratingCount > 0 ? row.supplier.rating : null,
       onTimePct: null,
       verified: row.supplier.verificationStatus === "verified",
+      verificationStatus: row.supplier.verificationStatus,
       returnPolicy: row.supplier.returnPolicy?.trim() || null,
     },
     cost: row.wholesalePrice,

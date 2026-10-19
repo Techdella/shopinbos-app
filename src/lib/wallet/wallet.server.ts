@@ -423,7 +423,7 @@ export async function loadWalletView(user: { id: string; role: WalletRole }): Pr
   ]);
   const moneyOwed = await loadMoneyOwed(user).catch((error) => {
     console.error(`[wallet] could not load money owed for ${user.id}`, error);
-    return { iOwe: [], owedToMe: [], claimable: [] } satisfies MoneyOwedView;
+    return { iOwe: [], owedToMe: [], claimable: [], pausedAt: null } satisfies MoneyOwedView;
   });
   const toReturn = await notSentStillOwed(user, moneyOwed);
   const name = [wallet.kycFirstName, wallet.kycMiddleName, wallet.kycLastName].filter(Boolean).join(" ") || null;

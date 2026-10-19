@@ -104,6 +104,7 @@ const en = {
   "supplier.analytics": "Performance",
   "supplier.cms": "Blog",
   "supplier.buyers-all": "Shops selling your products",
+  "supplier.agreements": "Dropship agreements",
   "supplier.settings-main": "Settings",
   "supplier.profile": "Company profile",
   "supplier.verification": "Verification",

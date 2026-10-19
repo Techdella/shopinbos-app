@@ -258,6 +258,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
           id: "buyers", label: "Buyers", icon: "users", href: "/supplier/buyers",
           children: [
             { id: "buyers-all", label: "Shops selling your products", href: "/supplier/buyers" },
+            { id: "agreements", label: "Dropship agreements", href: "/supplier/agreements" },
             { id: "reviews", label: "Reviews", href: "/supplier/reviews" },
           ],
         },
