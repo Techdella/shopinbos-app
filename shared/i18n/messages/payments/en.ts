@@ -126,7 +126,6 @@ const en = {
   "bm.failed": "Failed to link bank account",
   "bm.title": "Link Bank Account",
   "bm.paystackDesc": "Instant settlements, Nigeria",
-  "bm.flutterwaveDesc": "Pan-African payouts",
   "bm.intro": "Choose the bank account your money goes to. Paystack settles card payments straight into it; Shopinbos never holds them.",
   "bm.bankName": "Bank Name",
   "bm.chooseBank": "-- Choose a bank --",

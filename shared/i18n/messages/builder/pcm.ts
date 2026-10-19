@@ -379,7 +379,6 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "ls.intro": "E remain small. Choose how customers go pay you, where payouts go land and how you go deliver, then publish. Publishing go make your store show for buyers; the first launch get one-time launch fee.",
   "ls.howPay": "How customers go pay you?",
   "ls.paystack.desc": "Customers go pay online. Best for Nigeria.",
-  "ls.flutterwave.desc": "Customers go pay online across Africa.",
   "ls.bank": "Bank transfer",
   "ls.bank.desc": "Customers go pay straight into your account.",
   "ls.wherePayouts": "Where payouts go go?",

@@ -379,7 +379,6 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "ls.intro": "Ó kù díẹ̀. Yan bí àwọn oníbàárà ṣe máa sanwó fún ọ, ibi tí payout yóò balẹ̀ sí àti bí o ṣe máa fi jiṣẹ́, lẹ́yìn náà tẹ̀ ẹ́ jáde. Títẹ̀jáde máa jẹ́ kí àwọn oníbàárà rí store rẹ; ìfilọ́lẹ̀ àkọ́kọ́ ní owó ìfilọ́lẹ̀ ẹ̀ẹ̀kan.",
   "ls.howPay": "Báwo ni àwọn oníbàárà ṣe máa sanwó fún ọ?",
   "ls.paystack.desc": "Àwọn oníbàárà ń sanwó lórí ayélujára. Ó dára jù fún Nàìjíríà.",
-  "ls.flutterwave.desc": "Àwọn oníbàárà ń sanwó lórí ayélujára káàkiri Áfíríkà.",
   "ls.bank": "Transfer bánkì",
   "ls.bank.desc": "Àwọn oníbàárà ń sanwó tààrà sínú àkáǹtì rẹ.",
   "ls.wherePayouts": "Ibo ni payout yóò lọ?",

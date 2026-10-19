@@ -2,6 +2,7 @@ import "server-only";
 
 import { db } from "@/lib/db/client";
 import { appOrigin } from "@/lib/ads";
+import { recordMetaUser } from "@/lib/meta/user-links.server";
 import { credentialKey, decryptJson, encryptJson } from "@/lib/inbox/crypto";
 import { buildStoreFeed, feedUrl } from "@/lib/social/server";
 import { createCatalog, disconnectCatalog, ensureCatalogRow, itemCounts, listCatalogs, selectCatalog, syncCatalog } from "@/lib/whatsapp-catalog/server";
@@ -55,6 +56,7 @@ export function startConnect(storeId: string, platform: OAuthPlatform): { url: s
 /** The platform sent the seller back with a code: keep the tokens (encrypted) and set everything up. */
 export async function finishConnect(storeId: string, platform: OAuthPlatform, code: string): Promise<CardState["kind"]> {
   const exchanged = await PROVIDERS[platform].exchange(code, appOrigin());
+  if (platform === "meta") await recordMetaUser(storeId, "sales_meta", exchanged.tokens.token);
   const previous = await findRow(storeId, platform);
   // Google sends a refresh token only on first consent; keep the one we had.
   const refreshToken = exchanged.tokens.refreshToken ?? readTokens(decryptJson(previous?.tokenEnc))?.refreshToken;

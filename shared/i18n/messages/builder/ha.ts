@@ -379,7 +379,6 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "ls.intro": "Saura kaɗan. Zaɓi yadda abokan ciniki za su biya ka, inda payouts za su sauka da yadda za ka isar, sannan ka wallafa. Wallafawa tana sa masu saye su ga store ɗinka; ƙaddamarwa ta farko tana da kuɗin ƙaddamarwa na lokaci ɗaya.",
   "ls.howPay": "Yaya abokan ciniki za su biya ka?",
   "ls.paystack.desc": "Abokan ciniki suna biya ta yanar gizo. Mafi kyau ga Najeriya.",
-  "ls.flutterwave.desc": "Abokan ciniki suna biya ta yanar gizo a duk Afirka.",
   "ls.bank": "Transfer na banki",
   "ls.bank.desc": "Abokan ciniki suna biya kai tsaye cikin asusunka.",
   "ls.wherePayouts": "Ina payouts za su tafi?",
