@@ -3538,6 +3538,7 @@ model BusinessRegistration {
   submittedAt    DateTime?
   approvedAt     DateTime?
   checkedAt      DateTime? // last time CAC's status was read
+  answeredAt     DateTime? // when the owner last answered CAC's queries (a status read older than this is stale)
   error          String?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt

@@ -284,7 +284,7 @@ export async function approveCacDocFromRegistration(
     if (!entity) return;
     const docs = parseVerificationDocs(entity.verificationDocuments);
     const current = docs.find((d) => d.type === "cac");
-    if (current && current.status === "approved") return;
+    if (current && ["approved", "submitted", "under_review"].includes(current.status)) return;
     const now = new Date().toISOString();
     const registry: RegistryCheck = {
       source: "cac",

@@ -3,7 +3,7 @@
 --
 --   * "BusinessRegistration": one row per application. The owner checks the name (free), fills in their details and
 --     uploads a passport photo, signature and ID (private bucket), pays through Paystack, and only a verified payment
---     is filed with CAC (paid → submitting, one caller). CAC's status is read every 30 minutes
+--     is filed with CAC (paid → submitting, one caller). CAC's status is read every 30 minutes (the job runs every 10)
 --     (/api/cron/business-registrations): pending → approved (BN number + certificate) or queried (the owner answers
 --     in the app). If CAC refuses the filing outright, the payment is refunded.
 --
@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS "BusinessRegistration" (
   "submittedAt" TIMESTAMP(3),
   "approvedAt" TIMESTAMP(3),
   "checkedAt" TIMESTAMP(3),
+  "answeredAt" TIMESTAMP(3),
   "error" TEXT,
   "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -43,10 +44,10 @@ CREATE INDEX IF NOT EXISTS "BusinessRegistration_status_idx" ON "BusinessRegistr
 
 ALTER TABLE "BusinessRegistration" ENABLE ROW LEVEL SECURITY;
 
--- Status checks every 30 minutes, for applications with CAC. QStash runs it once docs/qstash.md is done; until then:
+-- Status checks every 10 minutes, for applications with CAC. QStash runs it once docs/qstash.md is done; until then:
 -- select cron.schedule(
 --   'business-registrations',
---   '*/30 * * * *',
+--   '*/10 * * * *',
 --   $$
 --   select net.http_get(
 --     url := 'https://app.shopinbos.com/api/cron/business-registrations',

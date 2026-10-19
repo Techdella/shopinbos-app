@@ -35,7 +35,7 @@ export const JOBS = [
   { id: "lead-growth", path: "/api/cron/lead-growth", cron: "*/10 * * * *" },
   { id: "sales-channels", path: "/api/cron/sales-channels", cron: "23 */2 * * *" },
   { id: "domain-renewals", path: "/api/cron/domain-renewals", cron: "17 7 * * *" },
-  { id: "business-registrations", path: "/api/cron/business-registrations", cron: "*/30 * * * *" },
+  { id: "business-registrations", path: "/api/cron/business-registrations", cron: "*/10 * * * *" },
   // Monday 06:00 UTC, then every 20 minutes until 09:40 to carry on with a large send.
   { id: "weekly-summary", path: "/api/cron/weekly-summary", cron: "0 6 * * 1" },
   { id: "weekly-summary-continue", path: "/api/cron/weekly-summary", cron: "20,40 6-9 * * 1" },

@@ -32,9 +32,12 @@ import {
 //   submitting → filed with CAC → submitted. CAC is never called to file without a verified payment. If CAC refuses
 //   the filing outright, the payment is refunded (refunded, or refund_failed for the team).
 //
-// Every 30 minutes (/api/cron/business-registrations) CAC's status is read: approved (BN number, certificate; the
-// files are deleted, and a supplier's or partner's CAC document is approved) or queried (the owner answers in the app,
-// which goes back to CAC as an update).
+// Every 10 minutes /api/cron/business-registrations files paid applications and reads CAC's status (each one at most
+// every 25 minutes): approved (BN number, certificate; the files are deleted, and a supplier's or partner's CAC
+// document is approved) or queried (the owner answers in the app, which goes back to CAC as an update).
+//
+// A filing is never sent twice: one that got no answer (timeout, crash) may have reached CAC, so it stays
+// "submitting" and the team checks the VAS portal; only a clear "not taken" (5xx, 429, our key or balance) is retried.
 
 export type RegistrationRole = "seller" | "supplier" | "logistics_partner";
 
@@ -118,6 +121,18 @@ export async function startBusinessRegistration(input: {
   if (!registrationEnabled()) throw new RegistrationError("disabled", "Business registration isn't switched on yet.", 503);
   const form = cleanRegistrationForm(input.form);
   const problems: Record<string, string> = { ...registrationFormProblems(form), ...checkFiles(input.files) };
+  // One application per name at a time: paid, with CAC, or paid for in the last hour.
+  const open = await db.businessRegistration.findFirst({
+    where: {
+      userId: input.user.id,
+      proposedName: { equals: form.proposedName, mode: "insensitive" },
+      OR: [{ status: { in: ["paid", "submitting", "submitted", "queried", "answering", "approved"] } }, { status: "pending_payment", createdAt: { gt: new Date(Date.now() - 60 * 60_000) } }],
+    },
+    select: { status: true },
+  });
+  if (open) {
+    throw new RegistrationError("duplicate", open.status === "pending_payment" ? "You started paying for this name a moment ago. Finish that payment, or try again in an hour." : open.status === "approved" ? "This name is already registered to you." : "This name is already with CAC. Follow it below.", 409);
+  }
   if (Object.keys(problems).length) throw new RegistrationError("invalid", "Check the highlighted fields.", 400, problems);
 
   const nameCheck = await checkBusinessName(form.proposedName, form.lineOfBusiness);
@@ -171,31 +186,44 @@ export async function startBusinessRegistration(input: {
   }
 }
 
-/** Checks Paystack's record against the row (amount, purpose, account), then marks it paid. */
+/**
+ * Checks Paystack's record against the row (amount, purpose, account), then marks it paid. A charge that went through
+ * but doesn't match this application is never kept: it's refunded.
+ */
 async function recordVerifiedPayment(row: BusinessRegistration) {
   const verified = await verifyPaystackTransaction(row.reference);
   if (verified.status !== "success") throw new RegistrationError("not_paid", "Paystack hasn't confirmed this payment.");
-  if (verified.currency !== "NGN" || verified.amount !== row.amountNgn * 100) throw new RegistrationError("amount_mismatch", "Paystack did not confirm the expected payment amount.");
   const metadata = verified.metadata ?? {};
-  if (verified.reference !== row.reference || metadata.purpose !== PURPOSE || metadata.user_id !== row.userId || metadata.registration_id !== row.id) {
-    throw new RegistrationError("details_mismatch", "Paystack returned payment details that don't match this registration.");
-  }
   const user = await db.user.findUnique({ where: { id: row.userId }, select: { id: true, email: true } });
   const customer = verified.customer?.email?.toLowerCase() ?? "";
   const allowed = new Set([user ? billingEmail(user) : "", row.payerEmail?.toLowerCase() ?? ""].filter(Boolean));
-  if (!user || !customer || !allowed.has(customer)) throw new RegistrationError("customer_mismatch", "The Paystack customer does not match this Shopinbos account.");
+  const mismatch =
+    verified.currency !== "NGN" || verified.amount !== row.amountNgn * 100
+      ? "the amount paid wasn't the registration price"
+      : verified.reference !== row.reference || metadata.purpose !== PURPOSE || metadata.user_id !== row.userId || metadata.registration_id !== row.id
+        ? "the payment details didn't match this application"
+        : !user || !customer || !allowed.has(customer)
+          ? "the payment came from a different account"
+          : null;
+  if (mismatch) {
+    await refundRegistration(row.id, `We couldn't use this payment: ${mismatch}.`, ["pending_payment", "payment_failed"]);
+    throw new RegistrationError("payment_mismatch", "This payment didn't match the application, so it was refunded.");
+  }
   await db.businessRegistration.updateMany({ where: { id: row.id, status: { in: ["pending_payment", "payment_failed"] } }, data: { status: "paid", paidAt: new Date(), error: null } });
 }
 
-/** Finishes a paid checkout: verifies, then files with CAC. Idempotent: callback, webhook and cron can all call it. */
-export async function completeRegistrationPayment(reference: string) {
+/**
+ * Finishes a paid checkout: verifies, then (fileNow) files with CAC. Idempotent: callback, webhook and cron can all
+ * call it. The webhook passes fileNow false (Paystack wants a quick answer): the callback or the cron files it.
+ */
+export async function completeRegistrationPayment(reference: string, options: { fileNow?: boolean } = {}) {
   let row = await db.businessRegistration.findUnique({ where: { reference } });
   if (!row) throw new RegistrationError("not_found", "Registration not found.", 404);
   if (row.status === "pending_payment" || row.status === "payment_failed") {
     await recordVerifiedPayment(row);
     row = (await db.businessRegistration.findUnique({ where: { id: row.id } }))!;
   }
-  if (row.status === "paid") await fileWithCac(row);
+  if (row.status === "paid" && options.fileNow !== false) await fileWithCac(row);
   return (await db.businessRegistration.findUnique({ where: { id: row.id } }))!;
 }
 
@@ -210,14 +238,22 @@ async function loadFiles(row: Pick<BusinessRegistration, "filePaths">, keys: rea
 async function fileWithCac(row: BusinessRegistration) {
   const claimed = await db.businessRegistration.updateMany({ where: { id: row.id, status: "paid" }, data: { status: "submitting" } });
   if (claimed.count !== 1) return;
+  let files: Record<RegistrationFile, string>;
+  try {
+    files = (await loadFiles(row, REGISTRATION_FILES)) as Record<RegistrationFile, string>;
+  } catch (error) {
+    // Nothing was sent: back to paid, the cron tries again.
+    await db.businessRegistration.update({ where: { id: row.id }, data: { status: "paid", error: `Couldn't read the pictures: ${plainError(error)}` } });
+    return;
+  }
   let status = 0;
   let json: unknown = null;
   try {
-    const files = (await loadFiles(row, REGISTRATION_FILES)) as Record<RegistrationFile, string>;
     ({ status, json } = await cacVasCall("/api/vas/engine/pre/business-name", { body: registrationPayload(row.form as unknown as RegistrationForm, files), timeoutMs: 60_000 }));
   } catch (error) {
-    // CAC didn't answer (or the files couldn't be read): back to paid, the cron tries again.
-    await db.businessRegistration.update({ where: { id: row.id }, data: { status: "paid", error: plainError(error) } });
+    // No answer: CAC may have it. Never send it again on our own; the team checks the VAS portal.
+    await db.businessRegistration.update({ where: { id: row.id }, data: { error: `No answer from CAC while filing (${plainError(error)}). Check the VAS portal before filing again.` } });
+    await notifyAdmins({ event: "account.update", type: "system", priority: "critical", title: "Check a business registration on the VAS portal", description: `${row.proposedName} (${row.reference}) was paid and sent to CAC, but CAC didn't answer. Look it up on vas.cac.gov.ng; don't file it again if it's there.`, link: "/admin", dedupeKey: `bizreg-unknown:${row.id}` }).catch(() => null);
     return;
   }
   const data = (json && typeof json === "object" ? (json as { data?: { transactionRef?: unknown } }).data : null) ?? null;
@@ -228,8 +264,8 @@ async function fileWithCac(row: BusinessRegistration) {
     return;
   }
   const reason = cacVasError(json) || `CAC answered ${status}`;
-  if (status >= 400 && status < 500 && status !== 429 && status !== 401 && status !== 403) {
-    // CAC refused the application itself: nothing was filed, so the payment goes back.
+  if (status === 400 || status === 422) {
+    // CAC refused the application itself (its validation): nothing was filed, so the payment goes back.
     await refundRegistration(row.id, `CAC didn't accept the application: ${reason}.`);
     return;
   }
@@ -242,8 +278,8 @@ async function fileWithCac(row: BusinessRegistration) {
 }
 
 /** Refunds a paid application CAC refused. Only the caller that moves it to failed sends the refund. */
-async function refundRegistration(id: string, reason: string) {
-  const claimed = await db.businessRegistration.updateMany({ where: { id, status: { in: ["paid", "submitting"] } }, data: { status: "failed", error: reason.slice(0, 400) } });
+async function refundRegistration(id: string, reason: string, from: string[] = ["paid", "submitting"]) {
+  const claimed = await db.businessRegistration.updateMany({ where: { id, status: { in: from } }, data: { status: "failed", error: reason.slice(0, 400) } });
   if (claimed.count !== 1) return;
   const row = (await db.businessRegistration.findUnique({ where: { id } }))!;
   try {
@@ -260,7 +296,7 @@ async function refundRegistration(id: string, reason: string) {
 /** Reads CAC's status for a filed application and acts on it. */
 export async function refreshRegistration(row: BusinessRegistration) {
   if (!row.transactionRef || !["submitted", "queried"].includes(row.status)) return row;
-  const { status, json } = await cacVasCall(`/api/vas/portal/user/status/${encodeURIComponent(row.transactionRef)}`, { method: "GET" });
+  const { status, json } = await cacVasCall(`/api/vas/portal/user/status/${encodeURIComponent(row.transactionRef)}`, { method: "GET", timeoutMs: 15_000 });
   if (status < 200 || status >= 300) {
     await db.businessRegistration.update({ where: { id: row.id }, data: { checkedAt: new Date(), error: (cacVasError(json) || `CAC answered ${status}`).slice(0, 400) } });
     return row;
@@ -277,10 +313,15 @@ export async function refreshRegistration(row: BusinessRegistration) {
     return updated;
   }
   if (state.status === "queried") {
+    // Just answered: CAC still shows the queries it raised before the answer. Only newer ones count.
+    const newest = Math.max(0, ...state.queries.map((q) => (q.date ? Date.parse(q.date) || 0 : 0)));
+    const stale = row.status === "submitted" && row.answeredAt && (newest ? newest <= row.answeredAt.getTime() : Date.now() - row.answeredAt.getTime() < 6 * 60 * 60_000);
+    if (stale) return db.businessRegistration.update({ where: { id: row.id }, data: { checkedAt: new Date() } });
     const fresh = row.status !== "queried";
-    const updated = await db.businessRegistration.update({ where: { id: row.id }, data: { status: "queried", queries: asJson(state.queries), checkedAt: new Date() } });
-    if (fresh) await tellOwner(row, `queried:${row.id}:${Date.now()}`, "warning", "CAC asked for changes", `CAC needs a few changes to ${row.proposedName}: ${state.queries.map((q) => q.comment).slice(0, 2).join(" ")} Open the registration page to answer.`);
-    return updated;
+    // Only if nobody changed it meanwhile (an answer going in moves it to answering/submitted).
+    const moved = await db.businessRegistration.updateMany({ where: { id: row.id, status: row.status, updatedAt: row.updatedAt }, data: { status: "queried", queries: asJson(state.queries), checkedAt: new Date() } });
+    if (moved.count === 1 && fresh) await tellOwner(row, `queried:${row.id}:${newest || Date.now()}`, "warning", "CAC asked for changes", `CAC needs a few changes to ${row.proposedName}: ${state.queries.map((q) => q.comment).slice(0, 2).join(" ")} Open the registration page to answer.`);
+    return (await db.businessRegistration.findUnique({ where: { id: row.id } }))!;
   }
   return db.businessRegistration.update({ where: { id: row.id }, data: { checkedAt: new Date() } });
 }
@@ -317,20 +358,36 @@ export async function answerRegistrationQuery(input: { userId: string; id: strin
   }
   if (!Object.keys(update).length) throw new RegistrationError("nothing_changed", "Change what CAC asked about, then send it back.");
 
-  const { status, json } = await cacVasCall("/api/vas/engine/pre/query", { body: { transactionRef: row.transactionRef, ...update }, timeoutMs: 60_000 });
+  // One answer at a time: claim it, store the new pictures, then send.
+  const claimed = await db.businessRegistration.updateMany({ where: { id: row.id, status: "queried" }, data: { status: "answering" } });
+  if (claimed.count !== 1) throw new RegistrationError("not_queried", "Your changes are already on their way to CAC.", 409);
+  const paths = { ...((row.filePaths ?? {}) as Record<string, string>) };
+  const replaced: string[] = [];
+  try {
+    for (const [key, file] of Object.entries(newFiles)) {
+      if (paths[key]) replaced.push(paths[key]);
+      paths[key] = (await uploadPrivateFile(`business-registrations/${row.userId}`, file!)).path;
+    }
+  } catch (error) {
+    await db.businessRegistration.update({ where: { id: row.id }, data: { status: "queried" } });
+    throw new RegistrationError("upload_failed", "We couldn't save the new pictures. Try again.", 503);
+  }
+  let status = 0;
+  let json: unknown = null;
+  try {
+    ({ status, json } = await cacVasCall("/api/vas/engine/pre/query", { body: { transactionRef: row.transactionRef, ...update }, timeoutMs: 60_000 }));
+  } catch {
+    status = 0;
+  }
   if (status < 200 || status >= 300) {
     console.error("[business registration] query answer failed", status, cacVasError(json));
-    throw new RegistrationError("unavailable", cacVasError(json) || "CAC didn't take the changes just now. Try again in a minute.", status >= 500 ? 503 : 400);
+    await db.businessRegistration.update({ where: { id: row.id }, data: { status: "queried" } });
+    throw new RegistrationError("unavailable", cacVasError(json) || "CAC didn't take the changes just now. Try again in a minute.", status >= 500 || status === 0 ? 503 : 400);
   }
-  const paths = { ...((row.filePaths ?? {}) as Record<string, string>) };
-  for (const [key, file] of Object.entries(newFiles)) {
-    const old = paths[key];
-    paths[key] = (await uploadPrivateFile(`business-registrations/${row.userId}`, file!)).path;
-    if (old) await removePrivateFile(old).catch(() => undefined);
-  }
+  await Promise.allSettled(replaced.map((path) => removePrivateFile(path)));
   return db.businessRegistration.update({
     where: { id: row.id },
-    data: { status: "submitted", form: asJson(changed), proposedName: changed.proposedName, lineOfBusiness: changed.lineOfBusiness, filePaths: asJson(paths), queries: [], error: null },
+    data: { status: "submitted", form: asJson(changed), proposedName: changed.proposedName, lineOfBusiness: changed.lineOfBusiness, filePaths: asJson(paths), queries: [], answeredAt: new Date(), error: null },
   });
 }
 
@@ -378,17 +435,17 @@ export async function runRegistrationChecks(now = new Date()) {
   const result = { paid: 0, filed: 0, checked: 0, failed: 0 };
   if (!cacVasReady()) return result;
   const minutes = (n: number) => new Date(now.getTime() - n * 60_000);
-  const unpaid = await db.businessRegistration.findMany({ where: { status: { in: ["pending_payment"] }, createdAt: { lt: minutes(10), gt: minutes(2 * 24 * 60) } }, take: 25 });
+  const unpaid = await db.businessRegistration.findMany({ where: { status: { in: ["pending_payment"] }, createdAt: { lt: minutes(10), gt: minutes(2 * 24 * 60) } }, take: 10 });
   for (const row of unpaid) {
-    await completeRegistrationPayment(row.reference).then(() => (result.paid += 1)).catch(() => undefined);
+    await completeRegistrationPayment(row.reference, { fileNow: false }).then(() => (result.paid += 1)).catch(() => undefined);
   }
-  const toFile = await db.businessRegistration.findMany({ where: { OR: [{ status: "paid" }, { status: "submitting", updatedAt: { lt: minutes(15) } }] }, take: 10 });
+  // A couple per run, so a slow CAC never runs the job out of time mid-filing. Rows stuck in "submitting" are never
+  // refiled here (CAC may have them): the team was told when the filing got no answer.
+  const toFile = await db.businessRegistration.findMany({ where: { status: "paid" }, orderBy: { paidAt: "asc" }, take: 2 });
   for (const row of toFile) {
-    // A filing that never came back (stuck in submitting) is retried as paid.
-    if (row.status === "submitting") await db.businessRegistration.updateMany({ where: { id: row.id, status: "submitting" }, data: { status: "paid" } });
-    await fileWithCac({ ...row, status: "paid" }).then(() => (result.filed += 1)).catch(() => (result.failed += 1));
+    await fileWithCac(row).then(() => (result.filed += 1)).catch(() => (result.failed += 1));
   }
-  const filed = await db.businessRegistration.findMany({ where: { status: { in: ["submitted", "queried"] }, OR: [{ checkedAt: null }, { checkedAt: { lt: minutes(25) } }] }, orderBy: { checkedAt: { sort: "asc", nulls: "first" } }, take: 40 });
+  const filed = await db.businessRegistration.findMany({ where: { status: { in: ["submitted", "queried"] }, OR: [{ checkedAt: null }, { checkedAt: { lt: minutes(25) } }] }, orderBy: { checkedAt: { sort: "asc", nulls: "first" } }, take: 15 });
   for (const row of filed) {
     await refreshRegistration(row).then(() => (result.checked += 1)).catch(() => (result.failed += 1));
   }

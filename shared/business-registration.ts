@@ -19,10 +19,11 @@ export const REGISTRATION_REFERENCE_PREFIX = "bizreg-";
  *   submitting       being sent to CAC
  *   submitted        CAC has it (pending review)
  *   queried          CAC asked for changes: the owner answers in the app
+ *   answering        the owner's answer is on its way to CAC (back to queried if CAC doesn't take it)
  *   approved         registered: CAC number and certificate
  *   failed           CAC refused it before it was filed (refunded, or refund_failed for the team)
  */
-export type RegistrationStatus = "draft" | "pending_payment" | "payment_failed" | "paid" | "submitting" | "submitted" | "queried" | "approved" | "failed" | "refunded" | "refund_failed";
+export type RegistrationStatus = "draft" | "pending_payment" | "payment_failed" | "paid" | "submitting" | "submitted" | "queried" | "answering" | "approved" | "failed" | "refunded" | "refund_failed";
 
 export const NIGERIAN_STATES = [
   "Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue", "Borno", "Cross River", "Delta", "Ebonyi", "Edo",
@@ -265,6 +266,7 @@ export function registrationStatusText(status: RegistrationStatus): { label: str
     case "submitted":
     case "paid":
     case "submitting":
+    case "answering":
       return { label: "With CAC", tone: "info" };
     case "queried":
       return { label: "CAC needs changes", tone: "warning" };

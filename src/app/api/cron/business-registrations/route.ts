@@ -5,9 +5,9 @@ import { runRegistrationChecks } from "@/lib/business-registration/service.serve
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
-// Business name registrations with CAC (src/lib/business-registration), every 30 minutes: finishes payments the
-// callback and webhook missed, retries filings CAC didn't take yet, and reads CAC's answer (approved or queried) on
-// the rest. QStash (scripts/qstash-schedules.mjs) or pg_cron with `Authorization: Bearer $CRON_SECRET`.
+// Business name registrations with CAC (src/lib/business-registration), every 10 minutes: finishes payments the
+// callback and webhook missed, files paid applications, and reads CAC's answer (approved or queried) on the ones
+// not checked in the last 25 minutes. QStash (scripts/qstash-schedules.mjs) or pg_cron with `Authorization: Bearer $CRON_SECRET`.
 export async function GET(req: NextRequest) {
   const denied = await cronDenied(req);
   if (denied) return denied;

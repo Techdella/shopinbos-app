@@ -184,9 +184,10 @@ export async function POST(req: NextRequest) {
           console.error("Domain payment completion failed:", error);
         });
       }
-      // Business name registrations with CAC: verified the same way, then filed with CAC (never before).
+      // Business name registrations with CAC: verified the same way here; filing (slow: pictures go along) happens
+      // from the callback or the 10-minute cron, never before a verified payment.
       if (ref.startsWith(REGISTRATION_REFERENCE_PREFIX)) {
-        await completeRegistrationPayment(ref).catch((error) => {
+        await completeRegistrationPayment(ref, { fileNow: false }).catch((error) => {
           console.error("Business registration payment completion failed:", error);
         });
         return NextResponse.json({ received: true });

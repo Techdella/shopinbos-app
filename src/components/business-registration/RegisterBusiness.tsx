@@ -41,7 +41,9 @@ const day = (iso: string) => new Date(iso).toLocaleDateString("en-NG", { day: "n
 const RESULT_TEXT: Record<string, { tone: "success" | "info" | "error"; text: string }> = {
   submitted: { tone: "success", text: "Paid, and filed with CAC. We'll tell you as soon as they answer (usually a few working days)." },
   processing: { tone: "info", text: "Payment received. We're filing it with CAC now; this page updates when it's done." },
-  failed: { tone: "error", text: "The payment didn't go through. Nothing was charged; try again." },
+  refunded: { tone: "info", text: "We couldn't use this payment for the application, so it was refunded to your card or account. It can take a few days to show." },
+  refund_failed: { tone: "info", text: "We couldn't file this application. Our team will send your money back within 2 working days; you don't need to do anything." },
+  failed: { tone: "error", text: "The payment didn't go through, so nothing was charged. Try again." },
 };
 
 async function send(url: string, body: FormData | object) {
@@ -260,9 +262,9 @@ function Application({ row, onChange }: { row: RegistrationRow; onChange: () => 
         </div>
       ) : null}
 
-      {row.status === "submitted" || row.status === "paid" || row.status === "submitting" ? (
+      {row.status === "submitted" || row.status === "paid" || row.status === "submitting" || row.status === "answering" ? (
         <div className="mt-3 flex flex-wrap items-center gap-3">
-          <p className="m-0 flex-1 text-[13.5px] leading-[1.5] text-app-ink-soft">CAC is reviewing it. It usually takes a few working days; we check for you every 30 minutes.</p>
+          <p className="m-0 flex-1 text-[13.5px] leading-[1.5] text-app-ink-soft">CAC is reviewing it. It usually takes a few working days; we check for you regularly and tell you when CAC answers.</p>
           <button type="button" className={buttonClass("white", "sm")} onClick={refresh} disabled={pending}>Check now</button>
         </div>
       ) : null}

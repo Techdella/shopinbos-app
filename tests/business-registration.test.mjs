@@ -110,3 +110,17 @@ test("CAC is only asked to file after a verified payment, by one caller, and a r
   assert.match(read("prisma/schema.prisma"), /model BusinessRegistration \{/);
   assert.match(read("docs/migrations/2026-11-12-business-registration.sql"), /CREATE TABLE IF NOT EXISTS "BusinessRegistration"/);
 });
+
+test("money safety: no second filing, refunds only for CAC's own refusal, mismatched charges refunded, one answer at a time", () => {
+  const service = read("src/lib/business-registration/service.server.ts");
+  assert.match(service, /No answer: CAC may have it\. Never send it again on our own/);
+  assert.doesNotMatch(service, /status: "submitting", updatedAt/, "the cron never refiles a filing that got no answer");
+  assert.match(service, /if \(status === 400 \|\| status === 422\) \{/, "only CAC's validation refusal is refunded");
+  assert.match(service, /refundRegistration\(row\.id, `We couldn't use this payment: \$\{mismatch\}\.`, \["pending_payment", "payment_failed"\]\)/);
+  assert.match(service, /updateMany\(\{ where: \{ id: row\.id, status: "queried" \}, data: \{ status: "answering" \} \}\)/);
+  assert.match(service, /proposedName: \{ equals: form\.proposedName, mode: "insensitive" \}/, "one application per name");
+  assert.match(service, /const stale = row\.status === "submitted" && row\.answeredAt/, "an answered query isn't put back by a late status read");
+  assert.match(read("src/app/api/webhooks/paystack/route.ts"), /completeRegistrationPayment\(ref, \{ fileNow: false \}\)/, "the webhook answers Paystack quickly");
+  const callback = read("src/app/api/billing/business-registration/callback/route.ts");
+  assert.match(callback, /row\.status === "refunded" \|\| row\.status === "refund_failed"/, "a charged person is never told nothing was charged");
+});
