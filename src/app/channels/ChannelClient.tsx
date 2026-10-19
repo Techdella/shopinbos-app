@@ -39,10 +39,19 @@ export function CopyField({ value, label }: { value: string; label: string }) {
 const cardClass = "flex min-w-0 flex-col gap-4 rounded-[22px] border border-app-line bg-white p-5";
 const smallLink = "min-h-[40px] cursor-pointer border-0 bg-transparent px-1 text-[13px] font-bold text-app-ink-soft underline underline-offset-2 hover:text-app-ink disabled:opacity-50";
 
+/** What a card's connected accounts are called (the WhatsApp number, the Facebook Page, the Instagram account). */
+export interface CardAccounts {
+  whatsapp: string | null;
+  facebook: string | null;
+  instagram: string | null;
+}
+
 /**
- * One platform: logo, name, one line, one button. Connected: "Connected ✓ · n products showing" and a small
- * Disconnect. Facebook & Instagram, TikTok and Google sign in through /api/app/sales-channels/<platform>/connect;
- * WhatsApp runs Meta's Embedded Signup here when the number isn't connected yet, then sets up the catalog.
+ * One platform: logo, name, one line, one button. Connected: "Connected ✓ · n products showing", the accounts it
+ * brought in (WhatsApp number, Facebook Page, Instagram) and a small Disconnect. Facebook & Instagram and Google
+ * sign in through /api/app/sales-channels/<platform>/connect (one sign-in also turns on Facebook and Instagram
+ * messages in the inbox); WhatsApp runs Meta's sign-up popup here when the number isn't connected yet, then sets up
+ * the catalog. `next`: the page the sign-in returns to (Inbox → Channels, Start here); /channels by default.
  */
 export function ConnectCard({
   platform,
@@ -51,6 +60,8 @@ export function ConnectCard({
   state,
   accountUrl,
   signup,
+  accounts,
+  next,
 }: {
   platform: LivePlatform;
   name: string;
@@ -58,13 +69,15 @@ export function ConnectCard({
   state: CardState;
   accountUrl: string | null;
   signup: { appId: string; configId: string } | null;
+  accounts?: CardAccounts;
+  next?: string;
 }) {
   const t = useT("social");
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const connectHref = `/api/app/sales-channels/${platform}/connect`;
+  const connectHref = `/api/app/sales-channels/${platform}/connect${next ? `?next=${encodeURIComponent(next)}` : ""}`;
   const working = pending || busy;
 
   function retry() {
@@ -76,7 +89,7 @@ export function ConnectCard({
   }
 
   async function disconnect() {
-    if (!(await confirmDialog(t("card.confirm", { name })))) return;
+    if (!(await confirmDialog(t(platform === "meta" ? "card.confirmMeta" : "card.confirm", { name })))) return;
     startTransition(async () => {
       await disconnectAction(platform);
       router.refresh();
@@ -117,6 +130,21 @@ export function ConnectCard({
   const disconnectButton = (
     <button type="button" onClick={disconnect} disabled={working} className={smallLink}>{t("card.disconnect")}</button>
   );
+
+  // The accounts this card brought in, by name. Facebook & Instagram says plainly when Instagram didn't come along.
+  const linked = state.kind !== "connect" && state.kind !== "soon";
+  const accountLines: ReactNode[] = [];
+  if (linked && platform === "whatsapp" && accounts?.whatsapp) accountLines.push(<AccountLine key="wa" text={t("acc.whatsapp", { name: accounts.whatsapp })} />);
+  if (linked && platform === "meta" && accounts) {
+    if (accounts.facebook) accountLines.push(<AccountLine key="fb" text={t("acc.facebook", { name: accounts.facebook })} />);
+    if (accounts.instagram) accountLines.push(<AccountLine key="ig" text={t("acc.instagram", { name: accounts.instagram })} />);
+    else if (accounts.facebook)
+      accountLines.push(
+        <p key="noig" className="m-0 text-[13px] leading-[1.45] text-app-ink-soft">
+          {t("acc.noInstagram")} <a href={connectHref} className="font-bold text-app-ink underline underline-offset-2">{t("card.connectAgain")}</a>
+        </p>,
+      );
+  }
 
   let body: ReactNode;
   switch (state.kind) {
@@ -172,9 +200,12 @@ export function ConnectCard({
       break;
     case "needs_account": {
       const which = platform === "whatsapp" ? "meta" : platform;
+      // Facebook & Instagram messages can be on already; only the products need the free business account.
+      const messagesOn = platform === "meta" && Boolean(accounts?.facebook);
       body = (
         <div className="grid gap-2.5">
-          <p className="m-0 text-[14px]">{t(`card.needs.${which}`)}</p>
+          {messagesOn && <span className="text-[14px] font-bold text-app-success" role="status">{t("card.connected")}</span>}
+          <p className="m-0 text-[14px]">{messagesOn ? t("card.needs.metaProducts") : t(`card.needs.${which}`)}</p>
           {accountUrl && (
             <a href={accountUrl} target="_blank" rel="noopener noreferrer" className={buttonClass("white", "sm")}>
               {t(`card.create.${which}`)}
@@ -200,9 +231,19 @@ export function ConnectCard({
           <p className="mb-0 mt-1 text-[14px] leading-[1.45] text-app-ink-soft">{line}</p>
         </div>
       </div>
+      {accountLines.length > 0 && <div className="grid gap-1.5">{accountLines}</div>}
       <div className="mt-auto">{body}</div>
       {error && <p role="alert" className="m-0 text-[13.5px] text-app-danger">{error}</p>}
     </li>
+  );
+}
+
+function AccountLine({ text }: { text: string }) {
+  return (
+    <p className="m-0 flex min-w-0 items-center gap-1.5 text-[13.5px] font-semibold">
+      <Icon name="check" size={14} className="shrink-0 text-app-success" />
+      <span className="min-w-0 truncate">{text}</span>
+    </p>
   );
 }
 
@@ -220,6 +261,9 @@ export function SoonCard({ platform, name, noted }: { platform: ComingSoonPlatfo
           <span className="mt-0.5 inline-flex whitespace-nowrap rounded-full bg-app-canvas px-2 py-0.5 text-[11px] font-bold text-app-ink-soft">{t("card.soon")}</span>
         </div>
       </div>
+      {platform === "tiktok" && (
+        <a href="/channels?tab=post&to=tiktok" className={buttonClass("ink", "sm", "mt-auto w-full px-2.5 text-[12.5px] leading-tight")}>{t("soon.postTiktok")}</a>
+      )}
       {done ? (
         <p className="m-0 mt-auto flex min-h-[40px] items-center gap-1.5 text-[13px] font-bold text-app-success" role="status">
           <Icon name="check" size={14} />

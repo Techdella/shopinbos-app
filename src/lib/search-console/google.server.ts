@@ -3,13 +3,13 @@ import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { db } from "@/lib/db/client";
 import { encryptionConfigured, openSecret, sealSecret } from "@/lib/reviews/secrets";
 import { appUrl } from "@/lib/reviews/server";
+import { googleClient } from "@/lib/google/oauth";
 import { parsePerformance, validSiteUrl, type SearchConsolePerformance } from "./pure";
 
-// "Connect with Google" for Search Console (read-only scope): the seller signs in, picks the property for their
-// store, and /home/analytics/traffic shows clicks, impressions, average position and top searches from Google.
-// Optional: needs GOOGLE_OAUTH_CLIENT_ID, GOOGLE_OAUTH_CLIENT_SECRET and INTEGRATIONS_ENCRYPTION_KEY (tokens are
-// stored encrypted, per store). Without them the Connections page shows the manual steps only.
-// Redirect URI to register in Google Cloud: {NEXT_PUBLIC_APP_URL}/api/app/search-console/callback
+// Search Console for a store: /home/analytics/traffic shows clicks, impressions, average position and top searches
+// from Google. Normally filled by "Connect Google" (src/lib/google/connect.server.ts), which also adds and verifies
+// the store; the older read-only sign-in below (webmasters.readonly) still works. Needs the Google client
+// (GOOGLE_CLIENT_ID/SECRET, or the older GOOGLE_OAUTH_*) and INTEGRATIONS_ENCRYPTION_KEY (tokens stored encrypted).
 
 const AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
@@ -19,7 +19,7 @@ const SCOPE = "https://www.googleapis.com/auth/webmasters.readonly";
 export class SearchConsoleError extends Error {}
 
 export function searchConsoleConfigured() {
-  return Boolean(process.env.GOOGLE_OAUTH_CLIENT_ID && process.env.GOOGLE_OAUTH_CLIENT_SECRET && encryptionConfigured());
+  return Boolean(googleClient("searchConsole").id && googleClient("searchConsole").secret && encryptionConfigured());
 }
 
 export function searchConsoleRedirectUri() {
@@ -27,7 +27,7 @@ export function searchConsoleRedirectUri() {
 }
 
 function stateSecret() {
-  return process.env.GOOGLE_OAUTH_CLIENT_SECRET || "";
+  return googleClient("searchConsole").secret;
 }
 
 /** OAuth state: store id + nonce, signed so the callback only accepts a sign-in we started for this store. */
@@ -46,7 +46,7 @@ export function readSearchConsoleState(state: string): string | null {
 
 export function searchConsoleAuthUrl(state: string) {
   const params = new URLSearchParams({
-    client_id: process.env.GOOGLE_OAUTH_CLIENT_ID ?? "",
+    client_id: googleClient("searchConsole").id,
     redirect_uri: searchConsoleRedirectUri(),
     response_type: "code",
     scope: SCOPE,
@@ -62,7 +62,7 @@ async function tokenRequest(body: Record<string, string>) {
   const res = await fetch(TOKEN_URL, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ client_id: process.env.GOOGLE_OAUTH_CLIENT_ID ?? "", client_secret: process.env.GOOGLE_OAUTH_CLIENT_SECRET ?? "", ...body }),
+    body: new URLSearchParams({ client_id: googleClient("searchConsole").id, client_secret: googleClient("searchConsole").secret, ...body }),
     signal: AbortSignal.timeout(10_000),
   });
   const json = (await res.json().catch(() => ({}))) as { access_token?: string; refresh_token?: string; expires_in?: number; error_description?: string; error?: string };
@@ -87,6 +87,31 @@ export async function connectSearchConsole(storeId: string, code: string) {
     lastError: null,
   };
   await db.searchConsoleConnection.upsert({ where: { storeId }, create: { storeId, ...data }, update: data });
+}
+
+/** Tokens from "Connect Google" (src/lib/google/connect.server.ts): one sign-in fills this too. */
+export async function saveSearchConsoleTokens(storeId: string, token: { access: string; refresh?: string; expiresAt: Date | null }) {
+  const existing = await getSearchConsoleConnection(storeId);
+  const data = {
+    accessToken: sealSecret(token.access),
+    refreshToken: token.refresh ? sealSecret(token.refresh) : (existing?.refreshToken ?? null),
+    expiresAt: token.expiresAt ?? new Date(Date.now() + 3600_000),
+    status: existing?.siteUrl ? "connected" : "needs_site",
+    lastError: null,
+  };
+  await db.searchConsoleConnection.upsert({ where: { storeId }, create: { storeId, ...data }, update: data });
+}
+
+/** A fresh Google access token for this store (refreshed when needed); also used for Analytics and verification. */
+export async function searchConsoleToken(storeId: string) {
+  return (await accessToken(storeId)).token;
+}
+
+/** Sets the property without listing first (we just added and verified it ourselves). */
+export async function setSearchConsoleSite(storeId: string, siteUrl: string) {
+  const site = validSiteUrl(siteUrl);
+  if (!site) throw new SearchConsoleError("That property isn't valid.");
+  await db.searchConsoleConnection.update({ where: { storeId }, data: { siteUrl: site, status: "connected", lastError: null } });
 }
 
 async function accessToken(storeId: string) {

@@ -12,7 +12,7 @@ const read = (path) => readFileSync(join(ROOT, path), "utf8");
 
 // ─── "We'll set it up for you" ────────────────────────────────────────────────
 
-test("domain and WhatsApp catalog offer 'Ask us to set it up' and fold the technical details; channels just connect", () => {
+test("nothing technical for sellers: no technical-details folds, no pasted keys or records; accounts connect by signing in", () => {
   // Domain copy lives in the domain catalog (shared/i18n/messages/domain/en.ts); the screens show it through t().
   const domainCopy = read("shared/i18n/messages/domain/en.ts");
   const connect = read("src/app/home/domain/DomainConnect.tsx") + domainCopy;
@@ -23,53 +23,45 @@ test("domain and WhatsApp catalog offer 'Ask us to set it up' and fold the techn
   assert.match(connect, /\.\.\.\(configured \?/, "buying only shows when the purchase flow is on");
   assert.match(connect, /I already have one/);
   assert.match(connect, /Ask the Shopinbos team to do it/);
+  // A domain bought elsewhere: "Ask us to connect it" and "Check now"; no DNS records, no "send the steps".
   assert.match(ownership, /<SetupHelpRequest/);
-  assert.match(ownership, /whatsappShareUrl\(message\)/);
-  assert.match(ownership, /t\("pend\.copy"\)/);
-  assert.match(domainCopy, /"pend\.copy": "Copy the steps"/);
-  assert.match(ownership, /t\("pend\.title"\)/);
-  assert.match(domainCopy, /"pend\.title": "Waiting for your domain to be connected"/);
+  assert.match(ownership, /t\("pend\.askUs"\)[\s\S]*t\("pend\.checkNow"\)/);
+  assert.doesNotMatch(ownership, /RecordList|whatsappShareUrl|pend\.sendWa|pend\.copy/);
   assert.match(ownership, /<Pill tone="success" dot>\{t\("own\.connected"\)\}<\/Pill>/);
-  assert.match(domainCopy, /"own\.connected": "Connected"/);
-  assert.match(ownership, /<TechFold forWho=\{t\("own\.forWho"\)\}/);
-  assert.match(domainCopy, /"own\.forWho": "the person who set up your domain"/);
-  // Records and Verify are inside the fold.
-  const fold = ownership.slice(ownership.indexOf('<TechFold forWho={t("own.forWho")} className="mt-4">'));
-  assert.match(fold.slice(0, fold.indexOf("</TechFold>")), /<RecordList records=\{records\} \/>[\s\S]*>\{t\("verify"\)\}</);
-  assert.match(read("src/components/simple/Fold.tsx"), /t\("techDetails", \{ forWho \}\)/);
-  assert.match(read("shared/i18n/messages/ui/en.ts"), /techDetails: "Show the technical details \(for \{forWho\}\)"/);
 
-  // Sell everywhere is simpler still: connect your accounts and start selling. One card per platform with one
-  // button; no help forms, voice input, technical folds, feed links or token forms on the page.
+  // No seller screen has a "Show the technical details" fold any more.
+  assert.doesNotMatch(read("src/components/simple/Fold.tsx"), /export function TechFold/);
+  for (const file of [
+    "src/app/home/inbox/channels/ChannelsClient.tsx",
+    "src/app/home/inbox/chatbot/WhatsAppPeggyClient.tsx",
+    "src/app/home/inbox/whatsapp-catalog/WhatsAppCatalogClient.tsx",
+    "src/app/home/inbox/email/EmailSetupClient.tsx",
+    "src/app/home/reviews/sources/page.tsx",
+    "src/app/home/connections/page.tsx",
+    "src/app/home/seo/page.tsx",
+  ]) {
+    const source = read(file);
+    assert.doesNotMatch(source, /TechFold|forWho|Callback URL|Verify token|Measurement ID|G-XXXXXXXXXX|GTM-|accessToken"|phoneNumberId"|RecordCard|RegistrarTip/, file);
+  }
+
+  // Connections: every account on one page, each with one button; Google is one sign-in for everything Google.
+  const connections = read("src/app/home/connections/page.tsx");
+  assert.match(connections, /<ConnectAccounts storeId=\{store\.id\} only=\{\["whatsapp", "meta"\]\}/);
+  assert.match(connections, /\/api\/app\/sales-channels\/google\/connect\?next=/);
+  assert.doesNotMatch(connections, /<input[^>]+name="(googleAnalyticsId|gtmContainerId|metaPixelId|tiktokPixelId|gaSiteVerification|bingSiteVerification|pinterestSiteVerification)"/);
+
+  // Sell everywhere: one card per platform with one button; no help forms, folds, feed links or token forms.
   const channels = read("src/app/channels/page.tsx") + read("src/app/channels/ChannelClient.tsx");
-  assert.match(channels, /<ConnectCard/);
+  assert.match(channels, /<ConnectAccounts|<ConnectCard/);
   assert.match(channels, /<SoonCard/);
   assert.doesNotMatch(channels, /<SetupHelpRequest|<TechFold|<Fold\b|<CopyField value=\{feed|MetaConnectForm|VoiceInput|Mic/);
   const socialCopy = read("shared/i18n/messages/social/en.ts");
   assert.match(socialCopy, /"card\.connect": "Connect"/);
   assert.match(socialCopy, /"soon\.notify": "Tell me when it's ready"/);
   const catalog = read("src/app/home/inbox/whatsapp-catalog/WhatsAppCatalogClient.tsx");
-  assert.match(catalog, /<SetupHelpRequest/);
-  assert.match(catalog, /<TechFold forWho=\{t\("wa\.forWhoFacebook"\)\}>/);
-  assert.match(read("shared/i18n/messages/inbox/en.ts"), /"wa\.forWhoFacebook": "the person who manages your Facebook account"/);
-  const catalogTop = catalog.slice(0, catalog.indexOf("<TechFold"));
-  assert.doesNotMatch(catalogTop, /<CopyRow|rotate_token|catalog_management<\/b>/);
+  assert.match(catalog, /runEmbeddedSignup/, "the catalog connects WhatsApp itself, with one button");
+  assert.doesNotMatch(catalog, /<CopyRow|rotate_token|catalog_management<\/b>/);
   assert.match(catalog, /plainMetaError/);
-});
-
-test("the WhatsApp steps message carries every record and opens a WhatsApp share link", async () => {
-  const { setupStepsMessage, whatsappShareUrl } = await import("../src/components/domains/steps.ts");
-  const records = [
-    { purpose: "verify", type: "TXT", name: "_shopinbos-verify.adas.ng", label: "_shopinbos-verify", value: "shopinbos-verify=abc", required: true, note: "" },
-    { purpose: "route", type: "CNAME", name: "www.adas.ng", label: "www", value: "cname.vercel-dns.com", required: true, note: "" },
-  ];
-  const message = setupStepsMessage("www.adas.ng", records);
-  assert.match(message, /www\.adas\.ng/);
-  assert.match(message, /TXT record \(proves we own it\)\n {3}Name: _shopinbos-verify\n {3}Value: shopinbos-verify=abc/);
-  assert.match(message, /CNAME record \(required\)\n {3}Name: www\n {3}Value: cname\.vercel-dns\.com/);
-  const url = whatsappShareUrl(message);
-  assert.ok(url.startsWith("https://wa.me/?text="));
-  assert.equal(decodeURIComponent(url.slice("https://wa.me/?text=".length)), message);
 });
 
 test("Meta permission problems read as 'We need your permission on Facebook'", async () => {

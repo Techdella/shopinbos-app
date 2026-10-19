@@ -6,14 +6,14 @@ import { Card, Pill } from "@/components/app-kit";
 import { cx, Notice, PillButton } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { confirmDialog } from "@/components/ui/dialogs";
-import { RegistrarTip } from "@/components/domains/RegistrarTip";
+import { SetupHelpRequest } from "@/components/support/SetupHelpRequest";
 import { useT } from "@/components/i18n/I18nProvider";
-import { EMAIL_PREFIXES, type EmailDnsRecord, type EmailOption } from "@/lib/email-channel/shared";
+import { EMAIL_PREFIXES, type EmailOption } from "@/lib/email-channel/shared";
 import type { EmailSetupView } from "@/lib/email-channel/server";
 
 // Inbox → Email: connect the store's email so customers get emails from the seller's own address and their
 // replies come back to the Inbox. The option we recommend comes first: one click on a domain bought through
-// Shopinbos, DNS steps on a domain bought elsewhere, Gmail on a free Shopinbos address. Tokens never reach here.
+// Shopinbos, "Ask us to set it up" for a domain bought elsewhere, Gmail on a free Shopinbos address. Tokens never reach here.
 
 type ApiError = Error & { code?: string };
 
@@ -31,49 +31,6 @@ async function api<T>(url: string, init?: RequestInit): Promise<T> {
 const fieldClass = "h-11 w-full min-w-0 rounded-[14px] border border-app-line bg-white px-3 text-[14.5px] text-app-ink outline-none placeholder:text-app-ink-faint focus:border-app-ink";
 const POLL_MS = 15_000;
 const POLL_TIMES = 24;
-
-function CopyValue({ label, value }: { label: string; value: string }) {
-  const t = useT("inbox");
-  const [copied, setCopied] = useState(false);
-  return (
-    <div className="grid min-w-0 gap-1">
-      <span className="text-[12px] font-bold text-app-ink-soft">{label}</span>
-      <div className="flex min-w-0 items-center gap-2 rounded-[12px] bg-app-canvas px-3 py-2">
-        <code className="min-w-0 flex-1 break-all font-mono text-[12.5px]">{value}</code>
-        <button
-          type="button"
-          onClick={() => {
-            void navigator.clipboard?.writeText(value).then(() => {
-              setCopied(true);
-              window.setTimeout(() => setCopied(false), 1500);
-            });
-          }}
-          aria-label={t("ch.copy", { label })}
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-full hover:bg-white"
-        >
-          <Icon name={copied ? "check" : "copy"} size={15} />
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function RecordCard({ record }: { record: EmailDnsRecord }) {
-  const t = useT("inbox");
-  const tone = record.status === "verified" ? "success" : record.status === "failed" ? "danger" : "warning";
-  return (
-    <li className="grid min-w-0 gap-2 rounded-[16px] border border-app-line bg-white p-3.5">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="rounded-full bg-app-canvas px-2.5 py-1 font-mono text-[12px] font-bold">{record.type}</span>
-        <span className="min-w-0 flex-1 text-[13.5px] font-bold">{t.dynamic(`email.purpose.${record.purpose}`, record.purpose)}</span>
-        <Pill tone={tone} dot>{t.dynamic(`email.status.${record.status}`, record.status)}</Pill>
-      </div>
-      <CopyValue label={t("email.rec.name")} value={record.name} />
-      <CopyValue label={t("email.rec.value")} value={record.value} />
-      {record.priority !== null && <CopyValue label={t("email.rec.priority")} value={String(record.priority)} />}
-    </li>
-  );
-}
 
 function OptionCard({ title, recommended, icon, children }: { title: string; recommended?: boolean; icon: "globe" | "mail" | "cart"; children: ReactNode }) {
   const t = useT("inbox");
@@ -188,13 +145,7 @@ export function EmailSetupClient({ initial, gmailResult }: { initial: EmailSetup
             {manual ? t("email.domain.addRecords", { domain: domain.name }) : t("email.domain.settingUp", { address: `${domain.prefix}@${domain.name}` })}
           </p>
           {domain.dnsError && auto && <Notice tone="info">{t("email.domain.autoFailed")}</Notice>}
-          {manual && (
-            <>
-              <ul className="m-0 grid list-none gap-2 p-0">{domain.records.map((r) => <RecordCard key={`${r.type}-${r.name}-${r.purpose}`} record={r} />)}</ul>
-              <p className="m-0 text-[12.5px] leading-[1.5] text-app-ink-soft">{t("email.domain.dmarcNote")}</p>
-              <div className="rounded-[18px] bg-app-canvas p-3.5"><RegistrarTip /></div>
-            </>
-          )}
+          {manual && <SetupHelpRequest title={t("email.domain.askTitle", { domain: domain.name })} description={t("email.domain.askDesc", { domain: domain.name })} feature="email_domain" />}
           {!manual && (
             <ul className="m-0 grid list-none gap-1.5 p-0 text-[13px]">
               {domain.records.map((r) => (
@@ -212,14 +163,16 @@ export function EmailSetupClient({ initial, gmailResult }: { initial: EmailSetup
         </div>
       );
     }
+    // A domain bought elsewhere needs records added there: the Shopinbos team does that with the seller.
+    if (!auto) return <SetupHelpRequest title={t("email.domain.askTitle", { domain: rec.domain ?? "" })} description={t("email.domain.askDesc", { domain: rec.domain ?? "" })} feature="email_domain" />;
     return (
       <div className="grid gap-3">
-        <p className="m-0 text-[13.5px] leading-[1.5] text-app-ink-soft">{auto ? t("email.domain.autoBlurb", { domain: rec.domain ?? "" }) : t("email.domain.dnsBlurb", { domain: rec.domain ?? "" })}</p>
+        <p className="m-0 text-[13.5px] leading-[1.5] text-app-ink-soft">{t("email.domain.autoBlurb", { domain: rec.domain ?? "" })}</p>
         {prefixField}
         {nameField}
         <div>
           <PillButton size="md" tone="ink" busy={busy === "domain"} disabled={!prefix.trim() || !fromName.trim()} onClick={() => void startDomain()}>
-            {auto ? t("email.domain.oneClick", { domain: rec.domain ?? "" }) : t("email.domain.showRecords")}
+            {t("email.domain.oneClick", { domain: rec.domain ?? "" })}
           </PillButton>
         </div>
       </div>

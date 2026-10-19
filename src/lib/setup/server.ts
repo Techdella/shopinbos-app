@@ -50,13 +50,14 @@ export async function getSetupOverview(userId: string) {
   });
   if (!store) return null;
 
-  const [products, productsWithPhotos, zones, subscribers, campaignsSent, onlineOrders] = await Promise.all([
+  const [products, productsWithPhotos, zones, subscribers, campaignsSent, onlineOrders, socialsConnected] = await Promise.all([
     db.storeProduct.count({ where: { storeId: store.id, status: { not: "archived" } } }),
     db.storeProduct.count({ where: { storeId: store.id, status: { not: "archived" }, images: { isEmpty: false } } }),
     db.shippingZone.findMany({ where: { storeId: store.id, active: true }, orderBy: { sortOrder: "asc" }, select: { id: true, name: true, regions: true, rates: true } }),
     db.subscriber.count({ where: { storeId: store.id, status: "active" } }),
     db.broadcastCampaign.count({ where: { storeId: store.id, status: "sent" } }),
     db.retailOrder.count({ where: { storeId: store.id, channel: "online_store" } }),
+    db.inboxChannel.count({ where: { storeId: store.id, channel: { in: ["whatsapp", "messenger", "instagram"] }, status: "connected" } }),
   ]);
 
   const wallet = await db.wallet.findUnique({ where: { userId }, select: { subaccountStatus: true } }).catch(() => null);
@@ -77,6 +78,7 @@ export async function getSetupOverview(userId: string) {
     // The Shopinbos Wallet bank (card payments split straight to it); an old payout bank still counts.
     payoutBank: Boolean(bank.paystackRecipientCode || bank.accountNumberMask) || ["active", "review"].includes(wallet?.subaccountStatus ?? ""),
     live,
+    socialsConnected,
     shared: Boolean(choices.sharedAt) || onlineOrders > 0,
     customDomain: Boolean(store.customDomain),
     subscribers,

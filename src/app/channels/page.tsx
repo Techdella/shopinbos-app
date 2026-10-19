@@ -8,12 +8,13 @@ import { AssistantNote, Card, CardHead, EmptyState, FilterChips, PillLink, TextL
 import { ShareBar } from "@/components/growth/kit";
 import { loadAnalytics } from "@/lib/analytics/load";
 import { resolveRange } from "@/lib/analytics/range";
-import { embeddedSignupConfig } from "@/lib/inbox/channels/whatsapp";
 import { feedHealth, productLink } from "@/lib/social/server";
 import { channelCards } from "@/lib/sales-channels/server";
 import { COMING_SOON_PLATFORMS, PLATFORM_NAME, isOAuthPlatform } from "@/lib/sales-channels/pure";
+import { SHARE_CHANNEL_KEYS, type ShareChannel } from "@/lib/social/share";
 import { naira } from "@shared/onboarding";
-import { ConnectCard, SoonCard } from "./ChannelClient";
+import { SoonCard } from "./ChannelClient";
+import { ConnectAccounts } from "./ConnectAccounts";
 import { isOwnImageUrl } from "@/lib/ai/images";
 import { PostComposer } from "./PostComposer";
 
@@ -24,10 +25,11 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 // Sell everywhere: connect your accounts and start selling. One card per platform with one button ("Connect");
-// once connected, "Connected ✓ · n products showing" and a small Disconnect. Platforms we can't connect yet are
-// "Coming soon" with "Tell me when it's ready". Posting and per-channel results live in the "Post & share" tab.
+// once connected, "Connected ✓ · n products showing", the accounts it brought in and a small Disconnect. One
+// Facebook sign-in covers the Facebook shop, Instagram and both inboxes. Platforms we can't connect yet (TikTok in
+// Nigeria, Pinterest…) are "Coming soon" with "Tell me when it's ready". Posting lives in the "Post & share" tab.
 
-export default async function ChannelsPage({ searchParams }: { searchParams: Promise<{ tab?: string; problem?: string; image?: string; product?: string }> }) {
+export default async function ChannelsPage({ searchParams }: { searchParams: Promise<{ tab?: string; problem?: string; connected?: string; image?: string; product?: string; to?: string }> }) {
   const user = await requireRole(["seller"], "/login");
   const t = await getT("social", "common");
   const query = await searchParams;
@@ -57,36 +59,29 @@ export default async function ChannelsPage({ searchParams }: { searchParams: Pro
   return (
     <SellerPage user={user} store={storeSummary(store)} title={t("title")} sub={t("sub")}>
       {tabs}
-      {tab === "post" ? <PostAndShare store={store} image={query.image && isOwnImageUrl(query.image) ? query.image : null} productId={query.product} /> : <ConnectTab store={store} problem={query.problem} />}
+      {tab === "post" ? (
+        <PostAndShare store={store} image={query.image && isOwnImageUrl(query.image) ? query.image : null} productId={query.product} to={(SHARE_CHANNEL_KEYS as string[]).includes(query.to ?? "") ? (query.to as ShareChannel) : undefined} />
+      ) : (
+        <ConnectTab store={store} problem={query.problem} connected={query.connected} />
+      )}
     </SellerPage>
   );
 }
 
-async function ConnectTab({ store, problem }: { store: { id: string; name: string; slug: string; customDomain: string | null }; problem?: string }) {
+async function ConnectTab({ store, problem, connected }: { store: { id: string; name: string; slug: string; customDomain: string | null }; problem?: string; connected?: string }) {
   const t = await getT("social", "common");
-  const [{ cards, interest, saved }, health] = await Promise.all([channelCards(store.id), feedHealth(store)]);
-  const signup = embeddedSignupConfig();
+  const [{ interest, saved }, health] = await Promise.all([channelCards(store.id), feedHealth(store)]);
   const failed = isOAuthPlatform(problem) ? PLATFORM_NAME[problem] : null;
+  const done = !failed && isOAuthPlatform(connected) ? PLATFORM_NAME[connected] : null;
 
   return (
     <div className="grid gap-6">
       {!saved && <p className="m-0 rounded-[14px] bg-app-peach px-4 py-3 text-[14px]">{t("cantSave")}</p>}
       {failed && <p role="status" className="m-0 rounded-[14px] bg-app-danger-tint px-4 py-3 text-[14px] text-app-danger">{t("problem", { name: failed })}</p>}
+      {done && <p role="status" className="m-0 rounded-[14px] bg-app-mint px-4 py-3 text-[14px] font-semibold">{t("connectedOk", { name: done })}</p>}
 
       <section aria-label={t("tab.connect")} className="grid gap-3">
-        <ul className="m-0 grid list-none gap-4 p-0 sm:grid-cols-2 xl:grid-cols-4">
-          {cards.map((card) => (
-            <ConnectCard
-              key={card.platform}
-              platform={card.platform}
-              name={PLATFORM_NAME[card.platform]}
-              line={t(`p.${card.platform}`)}
-              state={card.state}
-              accountUrl={card.accountUrl}
-              signup={card.platform === "whatsapp" ? signup : null}
-            />
-          ))}
-        </ul>
+        <ConnectAccounts storeId={store.id} />
         <p className="m-0 text-[13.5px] text-app-ink-soft">
           {t("ready", { count: health.listed })}
           {health.skipped.length > 0 && (
@@ -110,12 +105,12 @@ async function ConnectTab({ store, problem }: { store: { id: string; name: strin
   );
 }
 
-async function PostAndShare({ store, image, productId }: { store: { id: string; slug: string; customDomain: string | null }; image: string | null; productId?: string }) {
+async function PostAndShare({ store, image, productId, to }: { store: { id: string; slug: string; customDomain: string | null }; image: string | null; productId?: string; to?: ShareChannel }) {
   const t = await getT("social", "common");
   const locale = await getLocale();
   const now = new Date();
   const range = resolveRange({ range: "30d" }, now);
-  const [products, { report }] = await Promise.all([
+  const [products, { report }, { cards }] = await Promise.all([
     db.storeProduct.findMany({
       where: { storeId: store.id, status: "published" },
       orderBy: [{ featured: "desc" }, { createdAt: "desc" }],
@@ -123,7 +118,15 @@ async function PostAndShare({ store, image, productId }: { store: { id: string; 
       select: { id: true, name: true, retailPrice: true, images: true },
     }),
     loadAnalytics(store.id, range, now),
+    channelCards(store.id),
   ]);
+  // Connected once on the Connect tab, shown here too.
+  const accounts = cards[0]?.accounts ?? { whatsapp: null, facebook: null, instagram: null };
+  const yours = [
+    { key: "whatsapp", label: "WhatsApp", name: accounts.whatsapp },
+    { key: "facebook", label: "Facebook", name: accounts.facebook },
+    { key: "instagram", label: "Instagram", name: accounts.instagram },
+  ];
   const composerProducts = products.map((product) => ({
     id: product.id,
     name: product.name,
@@ -135,10 +138,20 @@ async function PostAndShare({ store, image, productId }: { store: { id: string; 
 
   return (
     <div className="grid gap-5">
+      <div className="flex flex-wrap items-center gap-2 text-[13.5px]">
+        <span className="font-bold">{t("post.yours")}</span>
+        {yours.map((item) => (
+          <span key={item.key} className={item.name ? "rounded-full bg-app-mint px-3 py-1 font-semibold" : "rounded-full bg-app-canvas px-3 py-1 text-app-ink-soft"}>
+            {item.name ? `${item.label} ✓ ${item.name}` : t("post.notYet", { name: item.label })}
+          </span>
+        ))}
+        {yours.some((item) => !item.name) && <TextLink href="/channels">{t("post.connect")}</TextLink>}
+      </div>
+
       <Card className="p-5">
         <CardHead title={t("post.title")} sub={t("post.sub")} />
         <div className="mt-4">
-          <PostComposer products={composerProducts} image={image} initialProductId={productId} />
+          <PostComposer products={composerProducts} image={image} initialProductId={productId} initialChannel={to} />
         </div>
       </Card>
 

@@ -3,6 +3,7 @@
 // Pure (node:crypto only, no database, no network) so tests/sales-channels.test.mjs can run it directly.
 
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
+import { GOOGLE_CONNECT_SCOPES, googleClient } from "../google/oauth.ts";
 
 /** Platforms that connect for real, in the order Nigerian sellers use them. */
 export const LIVE_PLATFORMS = ["whatsapp", "meta", "tiktok", "google"] as const;
@@ -12,8 +13,12 @@ export type LivePlatform = (typeof LIVE_PLATFORMS)[number];
 export const OAUTH_PLATFORMS = ["meta", "tiktok", "google"] as const;
 export type OAuthPlatform = (typeof OAUTH_PLATFORMS)[number];
 
-/** Shown greyed with "Coming soon" and "Tell me when it's ready". */
-export const COMING_SOON_PLATFORMS = ["pinterest", "snapchat", "amazon", "jumia", "konga", "jiji", "ebay", "etsy", "shopify"] as const;
+/**
+ * Shown greyed with "Coming soon" and "Tell me when it's ready". TikTok is first: TikTok Shop and its catalog
+ * aren't open to Nigerian sellers, so its card is hidden (unless a store linked it before) and sellers post to
+ * TikTok from "Post & share" instead.
+ */
+export const COMING_SOON_PLATFORMS = ["tiktok", "pinterest", "snapchat", "amazon", "jumia", "konga", "jiji", "ebay", "etsy", "shopify"] as const;
 export type ComingSoonPlatform = (typeof COMING_SOON_PLATFORMS)[number];
 
 export const PLATFORM_NAME: Record<LivePlatform | ComingSoonPlatform, string> = {
@@ -40,6 +45,9 @@ export function isComingSoon(value: unknown): value is ComingSoonPlatform {
   return typeof value === "string" && (COMING_SOON_PLATFORMS as readonly string[]).includes(value);
 }
 
+/** Live platforms whose card is hidden until they open in Nigeria (shown only to a store that already linked it). */
+export const PAUSED_PLATFORMS: readonly LivePlatform[] = ["tiktok"];
+
 type Env = Record<string, string | undefined>;
 const set = (value: string | undefined) => Boolean(value && value.trim());
 
@@ -52,11 +60,12 @@ export function platformConfigured(platform: LivePlatform, env: Env = process.en
   if (!key) return false;
   switch (platform) {
     case "meta":
-      return set(env.META_APP_ID) && set(env.META_APP_SECRET) && set(env.META_CATALOG_CONFIG_ID);
+      // META_CATALOG_CONFIG_ID is optional: without it the sign-in asks for META_LOGIN_SCOPES directly.
+      return set(env.META_APP_ID) && set(env.META_APP_SECRET);
     case "whatsapp":
       return set(env.META_APP_ID) && set(env.META_APP_SECRET) && set(env.META_CONFIG_ID);
     case "google":
-      return set(env.GOOGLE_MERCHANT_CLIENT_ID) && set(env.GOOGLE_MERCHANT_CLIENT_SECRET);
+      return set(googleClient("merchant", env).id) && set(googleClient("merchant", env).secret);
     case "tiktok":
       return set(env.TIKTOK_APP_ID) && set(env.TIKTOK_APP_SECRET);
   }
@@ -129,6 +138,20 @@ export const nonceCookieName = (platform: OAuthPlatform) => `sib_sc_${platform}`
 // ─── Sign-in URLs ───────────────────────────────────────────────────────────
 
 export const GOOGLE_CONTENT_SCOPE = "https://www.googleapis.com/auth/content";
+/** "Connect Google" asks once for everything (src/lib/google/oauth.ts): shopping, reviews, search, visitor stats. */
+export const GOOGLE_SCOPE = GOOGLE_CONNECT_SCOPES.join(" ");
+
+/** What "Connect Facebook & Instagram" asks for when no Login for Business configuration is set. */
+export const META_LOGIN_SCOPES = [
+  "business_management",
+  "catalog_management",
+  "pages_show_list",
+  "pages_read_engagement",
+  "pages_messaging",
+  "pages_manage_metadata",
+  "instagram_basic",
+  "instagram_manage_messages",
+] as const;
 
 export function redirectUri(origin: string, platform: OAuthPlatform) {
   return `${origin.replace(/\/+$/, "")}/api/app/sales-channels/${platform}/callback`;
@@ -137,9 +160,16 @@ export function redirectUri(origin: string, platform: OAuthPlatform) {
 export function authorizeUrl(platform: OAuthPlatform, options: { origin: string; state: string; env?: Env; graphVersion?: string }): string {
   const env = options.env ?? process.env;
   const redirect_uri = redirectUri(options.origin, platform);
+  if (platform === "meta" && !set(env.META_CATALOG_CONFIG_ID)) {
+    // Classic Facebook Login: no configuration to get wrong; asks for every permission by name.
+    const params = new URLSearchParams({ client_id: env.META_APP_ID ?? "", redirect_uri, state: options.state, response_type: "code", scope: META_LOGIN_SCOPES.join(",") });
+    return `https://www.facebook.com/${options.graphVersion ?? "v21.0"}/dialog/oauth?${params}`;
+  }
   if (platform === "meta") {
-    // Facebook Login for Business: the configuration (META_CATALOG_CONFIG_ID) holds the permissions
-    // (catalog_management, business_management) and the token type.
+    // Facebook Login for Business: the configuration (META_CATALOG_CONFIG_ID) holds the permissions and the token
+    // type. One sign-in covers the catalog (catalog_management, business_management) and the seller's Page and
+    // Instagram messages (pages_show_list, pages_messaging, pages_manage_metadata, instagram_basic,
+    // instagram_manage_messages), so "Connect Facebook & Instagram" turns on both. See .env.local.example.
     const params = new URLSearchParams({
       client_id: env.META_APP_ID ?? "",
       redirect_uri,
@@ -152,10 +182,10 @@ export function authorizeUrl(platform: OAuthPlatform, options: { origin: string;
   }
   if (platform === "google") {
     const params = new URLSearchParams({
-      client_id: env.GOOGLE_MERCHANT_CLIENT_ID ?? "",
+      client_id: googleClient("merchant", env).id,
       redirect_uri,
       response_type: "code",
-      scope: GOOGLE_CONTENT_SCOPE,
+      scope: GOOGLE_SCOPE,
       access_type: "offline",
       prompt: "consent",
       include_granted_scopes: "true",
@@ -315,6 +345,19 @@ export function appReturnUrl(value: string | null | undefined): string | null {
   if (url.protocol === "shopinbos:") return value;
   if ((url.protocol === "exp:" || url.protocol === "exps:") && PRIVATE_HOST.test(url.hostname)) return value;
   return null;
+}
+
+// ─── Where the web sign-in ends ─────────────────────────────────────────────
+// "Connect" can start from /channels, Inbox → Channels or Start here; the callback sends the seller back to the
+// page they started on (?next=, kept in an httpOnly cookie). Only these pages are accepted.
+
+export const RETURN_PATHS = ["/channels", "/home/connections", "/home/inbox/channels", "/home/start", "/home/reviews/sources", "/home/analytics/traffic"] as const;
+
+export const returnCookieName = (platform: OAuthPlatform) => `sib_sc_next_${platform}`;
+
+/** The page to end on, or null when it isn't one of ours. */
+export function safeReturnPath(value: string | null | undefined): (typeof RETURN_PATHS)[number] | null {
+  return (RETURN_PATHS as readonly string[]).includes(value ?? "") ? (value as (typeof RETURN_PATHS)[number]) : null;
 }
 
 export type AppConnectResult = "connected" | "problem" | "closed";
