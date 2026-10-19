@@ -7,15 +7,14 @@ import { Card, Pill } from "@/components/app-kit";
 import { cx, Notice, PillButton } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { ChannelMark, inboxApi } from "@/components/messaging/inbox-ui";
-import { TechFold } from "@/components/simple/Fold";
+import { Fold, TechFold } from "@/components/simple/Fold";
 import { SetupHelpRequest } from "@/components/support/SetupHelpRequest";
-import { plainMetaError } from "@/components/simple/plain";
 import type { ConnectableChannel } from "@/lib/inbox/meta";
 import type { ChannelView } from "@/lib/inbox/connect";
 import { Mascot } from "@/components/brand/Mascot";
 import { useT } from "@/components/i18n/I18nProvider";
 
-// Connect screens for every inbox channel: status, what you need, step-by-step setup, and the form.
+// Inbox channels below the one-tap cards: live chat, forms, email, and (folded) SMS, phone calls and Telegram.
 // Keys go to the server once, are checked with the provider and stored encrypted; they never come back here.
 
 interface Field {
@@ -39,55 +38,12 @@ interface Setup {
   fields: Field[];
 }
 
-const SETUPS: Record<ConnectableChannel, Setup> = {
-  whatsapp: {
-    title: "WhatsApp Business",
-    blurb: "Customers message your WhatsApp Business number; you reply from here.",
-    needs: "A Meta Business account and a number on the WhatsApp Business Platform (Cloud API). A number already in the WhatsApp Business app must be moved to the platform first.",
-    steps: [
-      "In Meta for Developers, create a Business app and add the WhatsApp product.",
-      "In WhatsApp → API Setup, add and verify your business number. Copy its Phone number ID and your WhatsApp Business Account ID.",
-      "In Business Settings → System users, create a system user, give it your WhatsApp account, and generate a permanent token with whatsapp_business_messaging and whatsapp_business_management.",
-      "Paste them below and connect. We check them with Meta before saving.",
-      "In your app's WhatsApp → Configuration, set the callback URL and verify token shown after connecting, then subscribe to \"messages\".",
-    ],
-    fields: [
-      { name: "accessToken", label: "Permanent access token", secret: true },
-      { name: "phoneNumberId", label: "Phone number ID", placeholder: "1234567890123" },
-      { name: "wabaId", label: "WhatsApp Business Account ID", optional: true, hint: "Lets us subscribe your account to messages for you." },
-      { name: "appSecret", label: "App secret", secret: true, optional: true, hint: "From App settings → Basic. Needed to check that messages really come from Meta, unless Shopinbos's own Meta app is used." },
-    ],
-  },
-  instagram: {
-    title: "Instagram DMs",
-    blurb: "Direct messages to your Instagram professional account.",
-    needs: "An Instagram professional (business or creator) account linked to a Facebook Page, and a Meta app with instagram_manage_messages.",
-    steps: [
-      "Link your Instagram professional account to your Facebook Page (Meta Business Suite → Settings → Instagram).",
-      "In Instagram settings → Messages and story replies → Message controls, turn on \"Allow access to messages\".",
-      "In your Meta app (Graph API Explorer works), get a Page access token with pages_messaging, instagram_basic and instagram_manage_messages, then exchange it for a long-lived token.",
-      "Paste it below. We find the linked Instagram account and subscribe your Page to messages.",
-      "In your app's Webhooks → Instagram, set the callback URL and verify token shown after connecting, and subscribe to \"messages\".",
-    ],
-    fields: [
-      { name: "pageAccessToken", label: "Page access token", secret: true },
-      { name: "appSecret", label: "App secret", secret: true, optional: true },
-    ],
-  },
-  messenger: {
-    title: "Facebook Messenger",
-    blurb: "Messages to your Facebook Page.",
-    needs: "A Facebook Page you manage and a Meta app with pages_messaging.",
-    steps: [
-      "In your Meta app, add Messenger and connect your Page, or use Graph API Explorer to get a Page access token with pages_messaging and pages_manage_metadata.",
-      "Exchange it for a long-lived Page token and paste it below. We subscribe your Page to messages.",
-      "In your app's Webhooks → Page, set the callback URL and verify token shown after connecting, and subscribe to \"messages\".",
-    ],
-    fields: [
-      { name: "pageAccessToken", label: "Page access token", secret: true },
-      { name: "appSecret", label: "App secret", secret: true, optional: true },
-    ],
-  },
+// WhatsApp, Instagram and Messenger connect with one tap on the cards above this list (src/app/channels/
+// ConnectAccounts.tsx: Meta's sign-up popup, or one Facebook sign-in for Page and Instagram messages). What's left
+// here needs an account with an SMS, phone-call or Telegram provider.
+type KeyChannel = Exclude<ConnectableChannel, "whatsapp" | "instagram" | "messenger">;
+
+const SETUPS: Record<KeyChannel, Setup> = {
   sms: {
     title: "SMS",
     blurb: "Text customers from your own Termii, Africa's Talking or Sendchamp account. With a Termii number or an Africa's Talking shortcode, their replies arrive here too.",
@@ -156,7 +112,8 @@ const SETUPS: Record<ConnectableChannel, Setup> = {
   },
 };
 
-const ORDER: ConnectableChannel[] = ["whatsapp", "instagram", "messenger", "email", "sms", "voice", "telegram"];
+/** Phone and bot channels, folded under "More ways customers can reach you". */
+const MORE: KeyChannel[] = ["sms", "voice", "telegram"];
 
 function CopyRow({ label, value }: { label: string; value: string }) {
   const t = useT("inbox");
@@ -185,8 +142,7 @@ function CopyRow({ label, value }: { label: string; value: string }) {
 }
 
 // Each channel (simplicity rules, section 8A): a plain status and one action, "Ask us to connect it". The keys,
-// steps, callback URLs and the connect form are for "the person who manages your … account", in a TechFold.
-const metaChannelKey = (channel: string) => channel === "whatsapp" || channel === "instagram" || channel === "messenger";
+// steps, webhook URLs and the connect form are for "the person who manages your … account", in a TechFold.
 
 function ChannelCard({ view, setup, onChange, encryptionReady, extra, tech }: { view: ChannelView; setup: Setup; onChange: (view: ChannelView) => void; encryptionReady: boolean; extra?: ReactNode; tech?: ReactNode }) {
   const t = useT("inbox", "common");
@@ -210,9 +166,8 @@ function ChannelCard({ view, setup, onChange, encryptionReady, extra, tech }: { 
       setValues({});
       setOpen(false);
       setMessage({ tone: "success", text: t("ch.isConnected", { title }) });
-    } catch (error) {
-      const raw = (error as Error).message;
-      setMessage({ tone: "error", text: metaChannelKey(view.channel) ? plainMetaError(raw) : t("ch.rejected", { title }) });
+    } catch {
+      setMessage({ tone: "error", text: t("ch.rejected", { title }) });
     } finally {
       setBusy(false);
     }
@@ -234,7 +189,6 @@ function ChannelCard({ view, setup, onChange, encryptionReady, extra, tech }: { 
 
   const needsKeys = setup.fields.some((f) => !f.optional) || view.channel === "voice";
   const blocked = needsKeys && !encryptionReady && view.channel !== "email";
-  const metaChannel = metaChannelKey(view.channel);
 
   return (
     <Card className="grid content-start gap-3 p-5">
@@ -250,7 +204,7 @@ function ChannelCard({ view, setup, onChange, encryptionReady, extra, tech }: { 
       </div>
 
       {view.lastError && (connected || view.status === "error") && (
-        <Notice tone="error">{metaChannel ? plainMetaError(view.lastError) : t("ch.cantReach", { title })}</Notice>
+        <Notice tone="error">{t("ch.cantReach", { title })}</Notice>
       )}
       {extra}
 
@@ -264,17 +218,11 @@ function ChannelCard({ view, setup, onChange, encryptionReady, extra, tech }: { 
       {connected && view.lastError && !askUs && <div><PillButton size="sm" tone="white" onClick={() => setAskUs(true)}>{t("ch.askHelp")}</PillButton></div>}
       {connected && view.lastError && askUs && <SetupHelpRequest title={t("ch.fixTitle", { title })} description={t("ch.fixDesc", { title })} feature={`inbox_${view.channel}`} />}
 
-      {setup.fields.length > 0 || tech || (connected && metaChannel && view.webhookUrl) ? (
+      {setup.fields.length > 0 || tech ? (
       <TechFold forWho={t("ch.forWho", { title })}>
       <div className="grid gap-3">
       {view.lastError && <p className="m-0 break-words text-[12.5px] text-app-ink-soft">{t("ch.lastProblem", { error: view.lastError })}</p>}
       {tech}
-      {connected && metaChannel && view.webhookUrl && (
-        <div className="grid gap-2">
-          <CopyRow label={t("ch.callbackUrl")} value={view.webhookUrl} />
-          {view.verifyToken && <CopyRow label={t("ch.verifyToken")} value={view.verifyToken} />}
-        </div>
-      )}
 
       <div className="grid gap-2">
         <p className="m-0 text-[13px] leading-[1.5] text-app-ink-soft"><strong className="text-app-ink">{t("ch.youNeed")}</strong> {setup.needs}</p>
@@ -343,10 +291,9 @@ function ChannelCard({ view, setup, onChange, encryptionReady, extra, tech }: { 
       </TechFold>
       ) : null}
 
-      {(setup.fields.length === 0 && !connected) || connected ? (
+      {connected ? (
         <div className="flex flex-wrap gap-2">
-          {setup.fields.length === 0 && !connected ? <PillButton size="md" busy={busy} onClick={() => void connect()}>{t("ch.turnOn")}</PillButton> : null}
-          {connected && <PillButton size="md" tone="ghost" busy={busy} onClick={() => void disconnect()}>{t("ch.disconnect")}</PillButton>}
+          <PillButton size="md" tone="ghost" busy={busy} onClick={() => void disconnect()}>{t("ch.disconnect")}</PillButton>
         </div>
       ) : null}
       {message && <Notice tone={message.tone}>{message.text}</Notice>}
@@ -393,7 +340,7 @@ export function ChannelsClient({
   const t = useT("inbox");
   const [views, setViews] = useState(initial);
   const update = (next: ChannelView) => setViews((current) => current.map((v) => (v.channel === next.channel ? next : v)));
-  const connectedCount = views.filter((v) => v.status === "connected").length;
+  const connectedCount = views.filter((v) => MORE.includes(v.channel as KeyChannel) && v.status === "connected").length;
 
   return (
     <div className="grid gap-5">
@@ -435,45 +382,36 @@ export function ChannelsClient({
         </Card>
       </section>
 
-      <h2 className="m-0 text-[17px] font-extrabold">{t("ch.connectYours")} <span className="font-semibold text-app-ink-soft">· {t("ch.connectedCount", { count: connectedCount })}</span></h2>
       <section aria-label={t("ch.toConnect")} className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
-        {ORDER.map((key) => {
-          const view = views.find((v) => v.channel === key)!;
-          if (key === "email") return <EmailChannelCard key={key} view={view} />;
-          let extra: ReactNode = null;
-          if (key === "voice" && view.status === "connected") {
-            extra = (
-              <div className="grid gap-2">
-                <p className="m-0 text-[13px] text-app-ink-soft">{forwardCallsTo ? t("ch.callsRing", { phone: forwardCallsTo }) : t("ch.voicemail")} {t("ch.changeIn")} <Link href="/home/inbox/settings" className="font-bold text-app-ink">{t("ch.inboxSettings")}</Link>.</p>
-
-              </div>
-            );
-          }
-          if (key === "whatsapp") {
-            extra = (
-              <Link href="/home/inbox/chatbot?tab=whatsapp" className="flex min-h-[48px] items-center gap-3 rounded-[14px] bg-app-canvas px-3.5 py-2 text-app-ink no-underline hover:bg-app-mint">
-                <Mascot who="peggy" className="h-8 w-8 rounded-full bg-white p-0.5" decorative />
-                <span className="min-w-0 flex-1">
-                  <span className="block text-[13.5px] font-bold">{t("ch.peggyOnWhatsApp")}</span>
-                  <span className="block text-[12px] text-app-ink-soft">{view.status === "connected" ? t("ch.peggyConnected") : t("ch.peggySetup")}</span>
-                </span>
-                <Icon name="chevRight" size={16} />
-              </Link>
-            );
-          }
-          let tech: ReactNode = null;
-          if (key === "voice" && view.status === "connected" && view.webhookUrl) {
-            tech = <CopyRow label={t("ch.voiceCallback")} value={view.webhookUrl} />;
-          }
-          if (key === "sms" && view.status === "connected" && view.webhookUrl) {
-            tech = <CopyRow label={t("ch.smsWebhook")} value={view.webhookUrl} />;
-          }
-          if (key === "telegram" && view.status === "connected" && view.webhookUrl) {
-            tech = <CopyRow label={t("ch.telegramWebhook")} value={view.webhookUrl} />;
-          }
-          return <ChannelCard key={key} view={view} setup={SETUPS[key]} onChange={update} encryptionReady={platform.encryption} extra={extra} tech={tech} />;
-        })}
+        <EmailChannelCard view={views.find((v) => v.channel === "email")!} />
+        <Link href="/home/inbox/chatbot?tab=whatsapp" className="flex min-h-[48px] items-center gap-3 self-start rounded-[18px] border border-app-line bg-white px-4 py-3 text-app-ink no-underline hover:bg-app-mint">
+          <Mascot who="peggy" className="h-9 w-9 rounded-full bg-app-canvas p-0.5" decorative />
+          <span className="min-w-0 flex-1">
+            <span className="block text-[14px] font-bold">{t("ch.peggyOnWhatsApp")}</span>
+            <span className="block text-[12.5px] text-app-ink-soft">{views.find((v) => v.channel === "whatsapp")?.status === "connected" ? t("ch.peggyConnected") : t("ch.peggySetup")}</span>
+          </span>
+          <Icon name="chevRight" size={16} />
+        </Link>
       </section>
+
+      <Fold summary={t("ch.more")} hint={t("ch.moreHint", { count: connectedCount })}>
+        <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+          {MORE.map((key) => {
+            const view = views.find((v) => v.channel === key)!;
+            let extra: ReactNode = null;
+            let tech: ReactNode = null;
+            if (key === "voice" && view.status === "connected") {
+              extra = (
+                <p className="m-0 text-[13px] text-app-ink-soft">{forwardCallsTo ? t("ch.callsRing", { phone: forwardCallsTo }) : t("ch.voicemail")} {t("ch.changeIn")} <Link href="/home/inbox/settings" className="font-bold text-app-ink">{t("ch.inboxSettings")}</Link>.</p>
+              );
+              if (view.webhookUrl) tech = <CopyRow label={t("ch.voiceCallback")} value={view.webhookUrl} />;
+            }
+            if (key === "sms" && view.status === "connected" && view.webhookUrl) tech = <CopyRow label={t("ch.smsWebhook")} value={view.webhookUrl} />;
+            if (key === "telegram" && view.status === "connected" && view.webhookUrl) tech = <CopyRow label={t("ch.telegramWebhook")} value={view.webhookUrl} />;
+            return <ChannelCard key={key} view={view} setup={SETUPS[key]} onChange={update} encryptionReady={platform.encryption} extra={extra} tech={tech} />;
+          })}
+        </div>
+      </Fold>
       <p className={cx("m-0 text-[13px] text-app-ink-soft")}>
         {t("ch.notSure")}
       </p>

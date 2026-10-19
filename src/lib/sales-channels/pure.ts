@@ -12,8 +12,12 @@ export type LivePlatform = (typeof LIVE_PLATFORMS)[number];
 export const OAUTH_PLATFORMS = ["meta", "tiktok", "google"] as const;
 export type OAuthPlatform = (typeof OAUTH_PLATFORMS)[number];
 
-/** Shown greyed with "Coming soon" and "Tell me when it's ready". */
-export const COMING_SOON_PLATFORMS = ["pinterest", "snapchat", "amazon", "jumia", "konga", "jiji", "ebay", "etsy", "shopify"] as const;
+/**
+ * Shown greyed with "Coming soon" and "Tell me when it's ready". TikTok is first: TikTok Shop and its catalog
+ * aren't open to Nigerian sellers, so its card is hidden (unless a store linked it before) and sellers post to
+ * TikTok from "Post & share" instead.
+ */
+export const COMING_SOON_PLATFORMS = ["tiktok", "pinterest", "snapchat", "amazon", "jumia", "konga", "jiji", "ebay", "etsy", "shopify"] as const;
 export type ComingSoonPlatform = (typeof COMING_SOON_PLATFORMS)[number];
 
 export const PLATFORM_NAME: Record<LivePlatform | ComingSoonPlatform, string> = {
@@ -39,6 +43,9 @@ export function isOAuthPlatform(value: unknown): value is OAuthPlatform {
 export function isComingSoon(value: unknown): value is ComingSoonPlatform {
   return typeof value === "string" && (COMING_SOON_PLATFORMS as readonly string[]).includes(value);
 }
+
+/** Live platforms whose card is hidden until they open in Nigeria (shown only to a store that already linked it). */
+export const PAUSED_PLATFORMS: readonly LivePlatform[] = ["tiktok"];
 
 type Env = Record<string, string | undefined>;
 const set = (value: string | undefined) => Boolean(value && value.trim());
@@ -138,8 +145,10 @@ export function authorizeUrl(platform: OAuthPlatform, options: { origin: string;
   const env = options.env ?? process.env;
   const redirect_uri = redirectUri(options.origin, platform);
   if (platform === "meta") {
-    // Facebook Login for Business: the configuration (META_CATALOG_CONFIG_ID) holds the permissions
-    // (catalog_management, business_management) and the token type.
+    // Facebook Login for Business: the configuration (META_CATALOG_CONFIG_ID) holds the permissions and the token
+    // type. One sign-in covers the catalog (catalog_management, business_management) and the seller's Page and
+    // Instagram messages (pages_show_list, pages_messaging, pages_manage_metadata, instagram_basic,
+    // instagram_manage_messages), so "Connect Facebook & Instagram" turns on both. See .env.local.example.
     const params = new URLSearchParams({
       client_id: env.META_APP_ID ?? "",
       redirect_uri,
@@ -315,6 +324,19 @@ export function appReturnUrl(value: string | null | undefined): string | null {
   if (url.protocol === "shopinbos:") return value;
   if ((url.protocol === "exp:" || url.protocol === "exps:") && PRIVATE_HOST.test(url.hostname)) return value;
   return null;
+}
+
+// ─── Where the web sign-in ends ─────────────────────────────────────────────
+// "Connect" can start from /channels, Inbox → Channels or Start here; the callback sends the seller back to the
+// page they started on (?next=, kept in an httpOnly cookie). Only these pages are accepted.
+
+export const RETURN_PATHS = ["/channels", "/home/inbox/channels", "/home/start"] as const;
+
+export const returnCookieName = (platform: OAuthPlatform) => `sib_sc_next_${platform}`;
+
+/** The page to end on, or null when it isn't one of ours. */
+export function safeReturnPath(value: string | null | undefined): (typeof RETURN_PATHS)[number] | null {
+  return (RETURN_PATHS as readonly string[]).includes(value ?? "") ? (value as (typeof RETURN_PATHS)[number]) : null;
 }
 
 export type AppConnectResult = "connected" | "problem" | "closed";

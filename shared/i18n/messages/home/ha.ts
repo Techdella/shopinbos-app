@@ -213,6 +213,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "health.again": "Sake lissafawa",
   "health.failed": "Ba a iya lissafa makinka ba. Sake gwadawa.",
   "activity.pages": "Shafukan ayyuka",
+  "step.Connect WhatsApp, Facebook & Instagram": "Haɗa WhatsApp, Facebook da Instagram",
+  "step.One tap each. Customers' messages come to your inbox and your products show there.": "Taɓawa ɗaya kowanne. Saƙonnin kwastomomi za su zo inbox ɗinka kuma kayayyakinka za su bayyana a can.",
 };
 
 export default ha;

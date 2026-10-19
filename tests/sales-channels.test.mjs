@@ -209,3 +209,31 @@ test("the sync cron needs the cron secret", () => {
   assert.match(cron, /cronAuthorization\(req\.headers\.get\("authorization"\), secret\) !== "ok"/);
   assert.match(cron, /syncDueConnections\(\)/);
 });
+
+test("Connect returns to the page it started on, and only to our own pages", () => {
+  for (const path of ["/channels", "/home/inbox/channels", "/home/start"]) assert.equal(sc.safeReturnPath(path), path);
+  for (const bad of ["https://evil.example/channels", "//evil.example", "/channels/../admin", "/home", "", null, undefined]) assert.equal(sc.safeReturnPath(bad), null, String(bad));
+  const connect = read("src/app/api/app/sales-channels/[platform]/connect/route.ts");
+  assert.match(connect, /safeReturnPath\(req\.nextUrl\.searchParams\.get\("next"\)\)/);
+  assert.match(connect, /returnCookieName\(platform\), next, \{ httpOnly: true/);
+  const callback = read("src/app/api/app/sales-channels/[platform]/callback/route.ts");
+  assert.match(callback, /safeReturnPath\(req\.cookies\.get\(returnCookieName\(platform\)\)\?\.value\) \?\? "\/channels"/);
+});
+
+test("TikTok is coming soon in Nigeria: its card hides unless a store linked it before", () => {
+  assert.equal(sc.COMING_SOON_PLATFORMS[0], "tiktok");
+  assert.ok(sc.PAUSED_PLATFORMS.includes("tiktok"));
+  assert.equal(sc.channelActionAllowed("tiktok", "notify"), true, "Tell me when it's ready works for TikTok");
+  const server = read("src/lib/sales-channels/server.ts");
+  assert.match(server, /!PAUSED_PLATFORMS\.includes\(card\.platform\) \|\| Boolean\(byPlatform\.get\(card\.platform\)\?\.tokenEnc\)/);
+});
+
+test("one Facebook sign-in also connects the Page and Instagram inboxes, and Disconnect turns off only those", () => {
+  const server = read("src/lib/sales-channels/server.ts");
+  assert.match(server, /if \(platform === "meta"\) \{\n\s+const store = await loadStore\(storeId\);\n\s+if \(store\) await connectMetaInbox\(store, exchanged\.tokens\.token\);/);
+  assert.match(server, /if \(platform === "meta"\) await disconnectMetaInbox\(storeId\);/);
+  const inbox = read("src/lib/sales-channels/meta-inbox.server.ts");
+  assert.match(inbox, /connectChannel\(store, channel, \{ pageAccessToken: page\.token \}\)/);
+  assert.match(inbox, /via === VIA_FACEBOOK_LOGIN\) await disconnectChannel/);
+  assert.doesNotMatch(inbox, /console\.[a-z]+\([^)]*token/i, "tokens never reach a log line");
+});

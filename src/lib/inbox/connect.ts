@@ -152,11 +152,11 @@ export async function connectChannel(store: { id: string; slug: string }, channe
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the details and try again." };
   const input = parsed.data as Record<string, string | undefined>;
   if (channel !== "email" && !hasCredentialKey()) {
-    return { ok: false, error: "This server can't store channel keys safely yet (INBOX_ENCRYPTION_KEY isn't set). Ask your Shopinbos admin." };
+    return { ok: false, error: "Connecting isn't switched on yet. Tap Help and we'll connect it for you." };
   }
 
   if (channel === "email") {
-    if (!process.env.RESEND_API_KEY) return { ok: false, error: "Email sending isn't set up on this server yet (RESEND_API_KEY)." };
+    if (!process.env.RESEND_API_KEY) return { ok: false, error: "Email isn't switched on yet. Tap Help and we'll sort it out." };
     const address = inboxAddress(store.slug);
     // The store's Shopinbos inbox address. A domain set up earlier stays in the settings, so it can be finished later.
     const current = await db.inboxChannel.findUnique({ where: { storeId_channel: { storeId: store.id, channel: "email" } }, select: { settings: true } });
@@ -243,8 +243,8 @@ const EmbeddedSignupSchema = z.object({ code: z.string().trim().min(10).max(2000
  */
 export async function connectWhatsAppEmbedded(store: { id: string }, raw: unknown): Promise<Result> {
   const parsed = EmbeddedSignupSchema.safeParse(raw ?? {});
-  if (!parsed.success) return { ok: false, error: "WhatsApp sign-up didn't send back your number. Start again." };
-  if (!hasCredentialKey()) return { ok: false, error: "This server can't store channel keys safely yet (INBOX_ENCRYPTION_KEY isn't set). Ask your Shopinbos admin." };
+  if (!parsed.success) return { ok: false, error: "Facebook didn't send back your WhatsApp number. Tap Connect WhatsApp again." };
+  if (!hasCredentialKey()) return { ok: false, error: "Connecting isn't switched on yet. Tap Help and we'll connect it for you." };
   const exchanged = await exchangeSignupCode(parsed.data.code);
   if (!exchanged.ok) return exchanged;
   const pin = String(100000 + (randomBytes(4).readUInt32BE(0) % 900000));

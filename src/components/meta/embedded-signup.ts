@@ -33,9 +33,9 @@ export function loadFacebookSdk(appId: string): Promise<NonNullable<Window["FB"]
     script.src = "https://connect.facebook.net/en_US/sdk.js";
     script.async = true;
     script.crossOrigin = "anonymous";
-    script.onerror = () => reject(new EmbeddedSignupError("sdk", "Facebook sign-up couldn't load here. Use the manual connect below."));
+    script.onerror = () => reject(new EmbeddedSignupError("sdk", "Facebook couldn't open here. Check your internet and try again."));
     document.body.appendChild(script);
-    window.setTimeout(() => reject(new EmbeddedSignupError("sdk", "Facebook sign-up took too long to load. Use the manual connect below.")), 15_000);
+    window.setTimeout(() => reject(new EmbeddedSignupError("sdk", "Facebook took too long to open. Check your internet and try again.")), 15_000);
   });
 }
 

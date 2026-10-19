@@ -213,6 +213,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "health.again": "Gbakọọ ya ọzọ",
   "health.failed": "Enweghị ike ịgbakọ akara gị. Nwaa ọzọ.",
   "activity.pages": "Peeji ihe mere",
+  "step.Connect WhatsApp, Facebook & Instagram": "Jikọọ WhatsApp, Facebook na Instagram",
+  "step.One tap each. Customers' messages come to your inbox and your products show there.": "Otu mpị maka nke ọ bụla. Ozi ndị ahịa ga-abata n'inbox gị, ngwaahịa gị ga-egosikwa ebe ahụ.",
 };
 
 export default ig;

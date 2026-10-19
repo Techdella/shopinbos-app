@@ -8,7 +8,6 @@ import { Icon } from "@/components/ui/Icon";
 import { formatWhen, inboxApi } from "@/components/messaging/inbox-ui";
 import type { ChatbotSettings, WhatsAppBotSettings } from "@/lib/inbox/assistant";
 import type { ChannelView } from "@/lib/inbox/connect";
-import { TechFold } from "@/components/simple/Fold";
 import { SetupHelpRequest } from "@/components/support/SetupHelpRequest";
 import { plainMetaError } from "@/components/simple/plain";
 import type { WhatsAppHealth } from "@/lib/inbox/whatsapp-bot.server";
@@ -19,8 +18,8 @@ import type { MessageKey } from "@shared/i18n/catalog";
 
 type InboxT = TFunction<MessageKey<"inbox"> | MessageKey<"common">>;
 
-// "Put Peggy on your WhatsApp": 1. connect WhatsApp Business (Embedded Signup when the platform has a Meta app,
-// otherwise the guided manual connect), 2. choose what Peggy does there, 3. test on your own number, then go live.
+// "Put Peggy on your WhatsApp": 1. connect WhatsApp Business (one tap: Meta's sign-up popup; or "Ask us to connect
+// it" when the platform has no Meta app), 2. choose what Peggy does there, 3. test on your own number, then go live.
 // Health on top: last message in, Peggy's last reply, failures, token expiry. Keys never come back to the browser.
 
 const input = "h-11 w-full rounded-[14px] border border-app-line bg-white px-3 text-[15px] outline-none focus:border-app-ink";
@@ -34,32 +33,6 @@ function Switch({ label, sub, on, onChange }: { label: string; sub?: ReactNode; 
         {sub ? <span className="block text-[12.5px] text-app-ink-soft">{sub}</span> : null}
       </span>
       <Toggle on={on} onChange={onChange} label={label} />
-    </div>
-  );
-}
-
-function CopyRow({ label, value }: { label: string; value: string }) {
-  const t = useT("inbox");
-  const [copied, setCopied] = useState(false);
-  return (
-    <div className="grid gap-1">
-      <span className="text-[12.5px] font-bold text-app-ink-soft">{label}</span>
-      <div className="flex min-w-0 items-center gap-2 rounded-[12px] bg-app-canvas px-3 py-2">
-        <code className="min-w-0 flex-1 break-all font-mono text-[12.5px]">{value}</code>
-        <button
-          type="button"
-          onClick={() => {
-            void navigator.clipboard?.writeText(value).then(() => {
-              setCopied(true);
-              window.setTimeout(() => setCopied(false), 1500);
-            });
-          }}
-          aria-label={t("ch.copy", { label })}
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-full hover:bg-white"
-        >
-          <Icon name={copied ? "check" : "copy"} size={15} />
-        </button>
-      </div>
     </div>
   );
 }
@@ -94,7 +67,6 @@ export function WhatsAppPeggyClient({
   aiAvailable,
   hoursOn,
   encryptionReady,
-  platformSecret,
   signup,
   ownerPhone,
   storeName,
@@ -106,7 +78,6 @@ export function WhatsAppPeggyClient({
   aiAvailable: boolean;
   hoursOn: boolean;
   encryptionReady: boolean;
-  platformSecret: boolean;
   signup: { appId: string; configId: string } | null;
   ownerPhone: string;
   storeName: string;
@@ -121,9 +92,7 @@ export function WhatsAppPeggyClient({
   const setWa = (patch: Partial<WhatsAppBotSettings>) => setBot((b) => ({ ...b, whatsapp: { ...b.whatsapp, ...patch } }));
 
   // Step 1
-  const [manual, setManual] = useState(!signup);
   const [askTeam, setAskTeam] = useState(false);
-  const [keys, setKeys] = useState<Record<string, string>>({});
   const [connecting, setConnecting] = useState(false);
   const [connectMessage, setConnectMessage] = useState<{ tone: "error" | "success"; text: string } | null>(null);
   const [checking, setChecking] = useState(false);
@@ -135,23 +104,6 @@ export function WhatsAppPeggyClient({
   const [testMessage, setTestMessage] = useState<{ tone: "error" | "success"; text: string } | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<{ tone: "error" | "success"; text: string } | null>(null);
-
-  async function connectManual() {
-    setConnecting(true);
-    setConnectMessage(null);
-    try {
-      const body = Object.fromEntries(Object.entries(keys).filter(([, v]) => v.trim()));
-      const next = await inboxApi<ChannelView>("/api/app/inbox/channels/whatsapp", { method: "POST", body: JSON.stringify(body) });
-      setView(next);
-      setKeys({});
-      setConnectMessage({ tone: "success", text: t("wa.connectedManual") });
-      setHealth(await inboxApi<WhatsAppHealth>("/api/app/inbox/whatsapp"));
-    } catch (error) {
-      setConnectMessage({ tone: "error", text: plainMetaError((error as Error).message) });
-    } finally {
-      setConnecting(false);
-    }
-  }
 
   async function connectEmbedded() {
     if (!signup) return;
@@ -234,16 +186,6 @@ export function WhatsAppPeggyClient({
               </div>
               {view.lastError ? <Notice tone="error">{plainMetaError(view.lastError)}</Notice> : null}
               {view.lastError ? <SetupHelpRequest title={t("wa.fixTitle")} description={t("wa.fixDesc")} feature="whatsapp_connect" /> : null}
-              {health.via !== "embedded" && view.webhookUrl ? (
-                <TechFold forWho={t("wa.forWhoFacebook")}>
-                  <div className="grid gap-2">
-                    {view.lastError ? <p className="m-0 break-words text-[12.5px] text-app-ink-soft">{t("ch.lastProblem", { error: view.lastError })}</p> : null}
-                    <p className="m-0 text-[13px] text-app-ink-soft">In your Meta app → WhatsApp → Configuration, set this callback URL and verify token, then subscribe to <strong>messages</strong>.</p>
-                    <CopyRow label="Callback URL" value={view.webhookUrl} />
-                    {view.verifyToken ? <CopyRow label="Verify token" value={view.verifyToken} /> : null}
-                  </div>
-                </TechFold>
-              ) : null}
               <div className="flex flex-wrap gap-2">
                 <PillButton size="md" tone="white" busy={checking} onClick={() => void testConnection()}>{t("wa.check")}</PillButton>
                 <Link href="/home/inbox/channels" className="inline-flex min-h-[48px] items-center rounded-full px-5 text-[15px] font-bold text-app-ink no-underline hover:bg-black/[0.04]">{t("wa.change")}</Link>
@@ -268,7 +210,7 @@ export function WhatsAppPeggyClient({
               {signup ? (
                 <div className="grid gap-2">
                   <div>
-                    <PillButton size="md" busy={connecting && !manual} onClick={() => void connectEmbedded()}>
+                    <PillButton size="md" busy={connecting} onClick={() => void connectEmbedded()}>
                       <Icon name="whatsapp" size={16} /> {t("wa.withFacebook")}
                     </PillButton>
                   </div>
@@ -280,52 +222,6 @@ export function WhatsAppPeggyClient({
               ) : (
                 <button type="button" onClick={() => setAskTeam(true)} className="w-fit min-h-[44px] text-[14px] font-bold text-app-ink underline">{t("wa.askUs")}</button>
               )}
-              <TechFold forWho={t("wa.forWhoFacebook")}>
-              <div className="grid gap-3">
-              <button type="button" onClick={() => setManual((m) => !m)} className="w-fit text-[13px] font-bold text-app-ink underline">{manual || !signup ? "Connect with your own Meta app" : "I have my own Meta app (connect manually)"}</button>
-              {manual || !signup ? (
-                <form
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    void connectManual();
-                  }}
-                  className="grid gap-3"
-                >
-                  <ol className="m-0 grid gap-1.5 pl-5 text-[13px] leading-[1.5]">
-                    <li>In <a href="https://developers.facebook.com/apps" target="_blank" rel="noreferrer" className="font-bold underline">Meta for Developers</a>, create a Business app and add WhatsApp.</li>
-                    <li>In WhatsApp → API Setup, add and verify your business number. Copy its <strong>Phone number ID</strong> and <strong>WhatsApp Business Account ID</strong>.</li>
-                    <li>In Business Settings → System users, create a system user with your WhatsApp account and generate a permanent token with <code>whatsapp_business_messaging</code> and <code>whatsapp_business_management</code>.</li>
-                    <li>Paste them here. We check them with Meta before saving, and subscribe your account to messages.</li>
-                    <li>Then set the callback URL and verify token we show you in your app&apos;s WhatsApp → Configuration.</li>
-                  </ol>
-                  {[
-                    { name: "accessToken", label: "Permanent access token", secret: true },
-                    { name: "phoneNumberId", label: "Phone number ID", placeholder: "1234567890123" },
-                    { name: "wabaId", label: "WhatsApp Business Account ID", placeholder: "1029384756" },
-                    { name: "appSecret", label: "App secret", secret: true, optional: platformSecret, hint: "App settings → Basic. We use it to check that messages really come from Meta." },
-                  ].map((field) => (
-                    <label key={field.name} className="grid gap-1 text-[13.5px] font-bold">
-                      <span>{field.label}{field.optional ? <span className="font-normal text-app-ink-soft"> {t("wa.optional")}</span> : null}</span>
-                      <input
-                        type={field.secret ? "password" : "text"}
-                        autoComplete="off"
-                        spellCheck={false}
-                        required={!field.optional}
-                        value={keys[field.name] ?? ""}
-                        onChange={(e) => setKeys((k) => ({ ...k, [field.name]: e.target.value }))}
-                        placeholder={field.placeholder}
-                        className={`${input} font-mono text-[14px] font-normal`}
-                      />
-                      {field.hint ? <span className="text-[12px] font-normal text-app-ink-soft">{field.hint}</span> : null}
-                    </label>
-                  ))}
-                  {view.webhookUrl ? <CopyRow label="Callback URL (for your Meta app)" value={view.webhookUrl} /> : null}
-                  <p className="m-0 text-[12.5px] text-app-ink-soft">{t("wa.verifyAfter")}</p>
-                  <div><PillButton type="submit" size="md" busy={connecting && manual}>{t("cat.connectWa")}</PillButton></div>
-                </form>
-              ) : null}
-              </div>
-              </TechFold>
             </div>
           )}
           {connectMessage ? <Notice tone={connectMessage.tone}>{connectMessage.text}</Notice> : null}

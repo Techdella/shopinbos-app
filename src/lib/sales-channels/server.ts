@@ -7,6 +7,7 @@ import { credentialKey, decryptJson, encryptJson } from "@/lib/inbox/crypto";
 import { buildStoreFeed, feedUrl } from "@/lib/social/server";
 import { createCatalog, disconnectCatalog, ensureCatalogRow, itemCounts, listCatalogs, selectCatalog, syncCatalog } from "@/lib/whatsapp-catalog/server";
 import { ChannelError, GRAPH_VERSION, PROVIDERS, type ProviderContext, type StoreRef } from "./providers";
+import { connectMetaInbox, disconnectMetaInbox } from "./meta-inbox.server";
 import {
   authorizeUrl,
   cardState,
@@ -15,6 +16,7 @@ import {
   needsRefresh,
   newNonce,
   OAUTH_PLATFORMS,
+  PAUSED_PLATFORMS,
   platformConfigured,
   readTokens,
   signState,
@@ -74,6 +76,11 @@ export async function finishConnect(storeId: string, platform: OAuthPlatform, co
     create: { storeId, channel: platform, ...data },
     update: data,
   });
+  // The same sign-in brings the seller's Facebook Page and Instagram messages into the inbox.
+  if (platform === "meta") {
+    const store = await loadStore(storeId);
+    if (store) await connectMetaInbox(store, exchanged.tokens.token);
+  }
   return syncPlatform(storeId, platform);
 }
 
@@ -143,6 +150,7 @@ export async function disconnectPlatform(storeId: string, platform: LivePlatform
     await disconnectCatalog(storeId);
     return;
   }
+  if (platform === "meta") await disconnectMetaInbox(storeId);
   const [row, store] = await Promise.all([findRow(storeId, platform), loadStore(storeId)]);
   if (!row) return;
   const tokens = readTokens(decryptJson(row.tokenEnc));
@@ -200,6 +208,8 @@ export interface ChannelCardView {
   state: CardState;
   /** Google Merchant Center / Meta business / TikTok Business Center sign-up page, when they need one first. */
   accountUrl: string | null;
+  /** What's connected, by name: the WhatsApp number, the Facebook Page and the Instagram account (null when not). */
+  accounts: { whatsapp: string | null; facebook: string | null; instagram: string | null };
 }
 
 const ACCOUNT_URL: Record<OAuthPlatform, string> = {
@@ -209,17 +219,24 @@ const ACCOUNT_URL: Record<OAuthPlatform, string> = {
 };
 
 export async function channelCards(storeId: string): Promise<{ cards: ChannelCardView[]; interest: ComingSoonPlatform[]; saved: boolean }> {
-  const [rows, interestRows, catalog, waChannel, counts] = await Promise.all([
+  const [rows, interestRows, catalog, inbox, counts] = await Promise.all([
     db.socialChannelConnection.findMany({ where: { storeId }, select: { channel: true, status: true, tokenEnc: true, productCount: true, lastSyncStatus: true } }).catch(() => null),
     db.salesChannelInterest.findMany({ where: { storeId }, select: { platform: true } }).catch(() => []),
     ensureCatalogRow(storeId).catch(() => null),
-    db.inboxChannel.findUnique({ where: { storeId_channel: { storeId, channel: "whatsapp" } }, select: { status: true } }).catch(() => null),
+    db.inboxChannel.findMany({ where: { storeId, channel: { in: ["whatsapp", "messenger", "instagram"] } }, select: { channel: true, status: true, displayName: true } }).catch(() => []),
     itemCounts(storeId).catch(() => null),
   ]);
   const byPlatform = new Map((rows ?? []).map((row) => [row.channel, row]));
+  const named = (channel: string) => {
+    const row = inbox.find((item) => item.channel === channel && item.status === "connected");
+    return row ? row.displayName || channel : null;
+  };
+  const accounts = { whatsapp: named("whatsapp"), facebook: named("messenger"), instagram: named("instagram") };
+  const waChannel = inbox.find((item) => item.channel === "whatsapp") ?? null;
   const whatsapp: ChannelCardView = {
     platform: "whatsapp",
     accountUrl: null,
+    accounts,
     state: whatsappCardState({
       signupConfigured: platformConfigured("whatsapp"),
       whatsappConnected: waChannel?.status === "connected",
@@ -232,10 +249,14 @@ export async function channelCards(storeId: string): Promise<{ cards: ChannelCar
   const oauth = OAUTH_PLATFORMS.map((platform): ChannelCardView => ({
     platform,
     accountUrl: ACCOUNT_URL[platform],
+    accounts,
     state: cardState(platformConfigured(platform), byPlatform.get(platform) ?? null),
   }));
   const order: LivePlatform[] = ["whatsapp", "meta", "tiktok", "google"];
-  const cards = [whatsapp, ...oauth].sort((a, b) => order.indexOf(a.platform) - order.indexOf(b.platform));
+  // A paused platform (TikTok) only shows for a store that linked it before, so they can still disconnect.
+  const cards = [whatsapp, ...oauth]
+    .filter((card) => !PAUSED_PLATFORMS.includes(card.platform) || Boolean(byPlatform.get(card.platform)?.tokenEnc))
+    .sort((a, b) => order.indexOf(a.platform) - order.indexOf(b.platform));
   const interest = interestRows.map((row) => row.platform).filter((p): p is ComingSoonPlatform => (COMING_SOON_PLATFORMS as readonly string[]).includes(p));
   return { cards, interest, saved: rows !== null };
 }

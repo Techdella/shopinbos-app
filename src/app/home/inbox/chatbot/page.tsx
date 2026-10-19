@@ -64,7 +64,6 @@ export default async function ChatbotPage({ searchParams }: { searchParams: Prom
           aiAvailable={hasAiProvider()}
           hoursOn={automation.autoReply.hours.enabled}
           encryptionReady={platform.encryption}
-          platformSecret={platform.metaAppSecret}
           signup={embeddedSignupConfig()}
           ownerPhone={owner?.phone ?? ""}
           storeName={store.name}

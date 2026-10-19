@@ -18,11 +18,17 @@ export interface ComposerProduct {
 
 // Pick a product and an app, let Peggy write the caption, edit it, then copy, download the photo or open the
 // app's share page. Nothing is posted for the seller; links carry utm tags so results show under that channel.
-/** `image`: a picture made by Rex (or from the media library) to post instead of the product's own photo. */
-export function PostComposer({ products, image = null, initialProductId }: { products: ComposerProduct[]; image?: string | null; initialProductId?: string }) {
+/** TikTok and Instagram have no web share page: "Send to …" copies the caption and hands the photo to the app. */
+const APP_HOME: Partial<Record<ShareChannel, string>> = { tiktok: "https://www.tiktok.com/upload", instagram: "https://www.instagram.com/" };
+
+/**
+ * `image`: a picture made by Rex (or from the media library) to post instead of the product's own photo.
+ * `initialChannel`: the app to start on (/channels?tab=post&to=tiktok from the TikTok card).
+ */
+export function PostComposer({ products, image = null, initialProductId, initialChannel }: { products: ComposerProduct[]; image?: string | null; initialProductId?: string; initialChannel?: ShareChannel }) {
   const t = useT("social", "common");
   const [productId, setProductId] = useState(products.find((item) => item.id === initialProductId)?.id ?? products[0]?.id ?? "");
-  const [channel, setChannel] = useState<ShareChannel>("whatsapp");
+  const [channel, setChannel] = useState<ShareChannel>(initialChannel ?? "whatsapp");
   const [angle, setAngle] = useState("");
   const [caption, setCaption] = useState("");
   const [busy, setBusy] = useState(false);
@@ -92,6 +98,40 @@ export function PostComposer({ products, image = null, initialProductId }: { pro
     } catch {
       // Cancelled or unsupported; the other buttons still work.
     }
+  }
+
+  /**
+   * On a phone: copy the caption, then share the photo so they pick TikTok (or Instagram) in the share sheet and
+   * paste. Where files can't be shared (most computers): copy, download the photo and open the app's site.
+   */
+  async function sendToApp() {
+    if (!product) return;
+    await navigator.clipboard?.writeText(postText(channel, caption, link)).catch(() => undefined);
+    setNote({ ok: true, text: t("pc.sendCopied", { channel: spec.label }) });
+    try {
+      if (pictureDownload) {
+        const response = await fetch(pictureDownload);
+        if (response.ok) {
+          const blob = await response.blob();
+          const file = new File([blob], `${product.name.slice(0, 40) || "product"}.${blob.type.split("/")[1] ?? "jpg"}`, { type: blob.type });
+          if (navigator.canShare?.({ files: [file] })) {
+            await navigator.share({ files: [file] });
+            return;
+          }
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = file.name;
+          a.click();
+          window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
+        }
+      }
+    } catch {
+      // Cancelled: the caption is still copied.
+      return;
+    }
+    const home = APP_HOME[channel];
+    if (home) window.open(home, "_blank", "noopener,noreferrer");
   }
 
   if (!products.length) {
@@ -181,7 +221,13 @@ export function PostComposer({ products, image = null, initialProductId }: { pro
               {t("pc.open", { channel: spec.label })}
             </a>
           )}
-          {canNativeShare && caption.trim() && (
+          {APP_HOME[channel] && caption.trim() && (
+            <button type="button" onClick={sendToApp} className={buttonClass("ink", "sm")}>
+              <Icon name="send" size={15} />
+              {t("pc.sendTo", { channel: spec.label })}
+            </button>
+          )}
+          {canNativeShare && caption.trim() && !APP_HOME[channel] && (
             <button type="button" onClick={nativeShare} className={buttonClass("white", "sm")}>
               <Icon name="send" size={15} />
               {t("pc.share")}

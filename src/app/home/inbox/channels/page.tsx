@@ -6,6 +6,7 @@ import { db } from "@/lib/db/client";
 import { channelViews, platformReadiness } from "@/lib/inbox/connect";
 import { requireRole } from "@/lib/server-auth";
 import { ChannelsClient } from "./ChannelsClient";
+import { ConnectAccounts } from "@/app/channels/ConnectAccounts";
 import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
@@ -35,6 +36,11 @@ export default async function InboxChannelsPage() {
       sub={t("ch.sub")}
       actions={<PillLink href="/home/messages" icon="chat" tone="ink">{t("ch.openInbox")}</PillLink>}
     >
+      <section aria-labelledby="connect-yours" className="mb-6 grid gap-3">
+        <h2 id="connect-yours" className="m-0 text-[17px] font-extrabold">{t("ch.connectYours")}</h2>
+        <p className="m-0 text-[14px] text-app-ink-soft">{t("ch.connectOnce")}</p>
+        <ConnectAccounts storeId={store.id} only={["whatsapp", "meta"]} next="/home/inbox/channels" columns="md:grid-cols-2" />
+      </section>
       <ChannelsClient
         initial={views}
         platform={platformReadiness()}

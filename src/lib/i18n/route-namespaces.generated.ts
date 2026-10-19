@@ -101,7 +101,7 @@ export const ROUTE_NAMESPACES: ReadonlyArray<readonly [string, readonly string[]
   ["/home/imports", ["auth","common","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
   ["/home/inbox", ["common","nav","ui"]],
   ["/home/inbox/auto-replies", ["auth","common","glossary","help","inbox","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
-  ["/home/inbox/channels", ["auth","common","glossary","help","inbox","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
+  ["/home/inbox/channels", ["auth","common","glossary","help","inbox","introTitles","learn","nav","notifications","rex","settings","shell","social","support","tour","ui","verification"]],
   ["/home/inbox/chatbot", ["auth","common","glossary","help","inbox","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
   ["/home/inbox/email", ["auth","common","domain","glossary","help","inbox","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
   ["/home/inbox/settings", ["auth","common","glossary","help","inbox","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
