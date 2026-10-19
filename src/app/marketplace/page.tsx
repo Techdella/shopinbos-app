@@ -1,3 +1,4 @@
+import { VISIBLE_SUPPLIER, nearbyForSeller } from "@/lib/marketplace/agreements.server";
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/server-auth";
 import { safeQuery } from "@/lib/workspace";
@@ -43,7 +44,7 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
   const t = await getT("marketplace");
   const store = await db.store.findUnique({
     where: { userId: user.id },
-    select: { id: true, name: true, slug: true, logoUrl: true, country: true, brandSettings: true },
+    select: { id: true, name: true, slug: true, logoUrl: true, country: true, city: true, brandSettings: true },
   });
   if (!store) redirect("/builder?firstRun=1");
 
@@ -55,18 +56,20 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
 
   const [rows, inStore] = await Promise.all([
     safeQuery(() => db.supplierProduct.findMany({
-      where: { status: "published", supplier: { status: "active", verificationStatus: "verified", country: { equals: country, mode: "insensitive" } } },
+      // Verified or not (sellers see which, and the risk score), near the seller only: src/lib/marketplace/agreements.server.ts.
+      where: { status: "published", supplier: { ...VISIBLE_SUPPLIER, country: { equals: country, mode: "insensitive" } } },
       include: {
-        supplier: { select: { id: true, userId: true, slug: true, displayName: true, city: true, rating: true, ratingCount: true, verificationStatus: true } },
+        supplier: { select: { id: true, userId: true, slug: true, displayName: true, city: true, address: true, rating: true, ratingCount: true, verificationStatus: true } },
         category: { select: { name: true } },
       },
       orderBy: [{ trendScore: "desc" }, { createdAt: "desc" }],
-      take: 120,
+      take: 300,
     }), []),
     safeQuery(() => db.storeProduct.findMany({ where: { storeId: store.id, supplierProductId: { not: null } }, select: { supplierProductId: true } }), []),
   ]);
 
-  const live = rows.map(toFindProduct);
+  const nearby = await nearbyForSeller(user.id, rows.map(toFindProduct), new Map(rows.map((row) => [row.supplier.id, row.supplier.address])));
+  const live = nearby.products;
   const sampleMode = live.length === 0;
   const catalogue: FindProduct[] = sampleMode ? SAMPLE_PRODUCTS : live;
   const categories = categoriesOf(catalogue);
@@ -108,6 +111,7 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
         supplierName={supplierName}
         insight={insight}
         trends={trends}
+        nearby={{ hasPlace: nearby.hasPlace, city: store.city ?? null }}
         addedIds={inStore.map((row) => row.supplierProductId).filter((id): id is string => Boolean(id))}
         notified={sourcing.notifyNewSuppliers}
         error={params.error}

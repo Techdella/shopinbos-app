@@ -16,7 +16,7 @@ import { discountAmount } from "@/lib/discounts";
 import { PaystackCheckoutButton } from "@/components/payments/PaystackCheckout";
 import { KorapayFrame } from "@/components/payments/KorapayFrame";
 import { verifyPaystackPayment, updateOrderPayment } from "@/app/actions/payments";
-import { checkoutPaymentOptions, type CheckoutPaymentMethod } from "@shared/checkout-payments";
+import { checkoutPaymentOptions, noWayToPayText, type CheckoutPaymentMethod } from "@shared/checkout-payments";
 import {
   CHECKOUT_STEP_LABELS,
   chooseDelivery,
@@ -199,7 +199,9 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
     [commerce.payments, details.city, details.state, totals.total],
   );
   // Keep the shopper's pick while it is still on offer (an address or total change can rule pay on delivery out).
-  const paymentMethod: CheckoutPaymentMethod = paymentOptions.some((option) => option.key === chosenMethod) ? chosenMethod! : paymentOptions[0]!.key;
+  // No way to pay that works for this order: nothing is placed, and the shopper is told to message the store.
+  const noWayToPay = paymentOptions.length === 0 ? noWayToPayText(commerce.payments, { city: details.city, state: details.state, total: totals.total }) : null;
+  const paymentMethod: CheckoutPaymentMethod = paymentOptions.some((option) => option.key === chosenMethod) ? chosenMethod! : paymentOptions[0]?.key ?? "transfer";
   const isPaystack = paymentMethod === "paystack";
 
   const rules: CheckoutRules = {
@@ -368,6 +370,7 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
     setError(null);
     // Preview never creates an order or opens a payment window.
     if (preview || cart.items.length === 0) return;
+    if (noWayToPay) return setError(noWayToPay);
     if (stepped) {
       const failing = firstStepWithErrors(steps, details, rules, choice);
       if (failing >= 0) {
@@ -659,6 +662,7 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
       options={paymentOptions}
       method={paymentMethod}
       onSelect={setChosenMethod}
+      unavailable={noWayToPay}
       errors={errors}
       // One page: the contact phone field is on screen already (and pay on delivery errors show there).
       riderPhone={stepped ? <TextField theme={theme} id="co-phone" label="Phone number for the rider" type="tel" inputMode="tel" value={details.phone} onChange={(v) => set("phone", v)} error={errors.phone} autoComplete="tel" /> : null}
@@ -738,7 +742,7 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
             style={{ background: theme.cta, color: theme.ctaText, border: "none", borderRadius: theme.buttonRadius }}
           />
         ) : (
-          <PrimaryButton theme={theme} type="submit" disabled={submitting || (finalStep && Boolean(quoteError))} className="w-full">
+          <PrimaryButton theme={theme} type="submit" disabled={submitting || (finalStep && (Boolean(quoteError) || Boolean(noWayToPay)))} className="w-full">
             {finalStep
               ? submitting
                 ? "Placing order…"

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppPage, Card, CardHead, Pill, PillLink, SplitLayout, StageDot, Thumb } from "@/components/app-kit";
 import { sellerFrame } from "@/components/seller-core";
@@ -223,6 +224,9 @@ export default async function OrderDetailPage({ params, searchParams }: { params
                           <div className="text-[13px]">{t("detail.tracking")} <span className="font-bold">{part.trackingCode}</span>{supplierOrder?.carrier ? ` · ${supplierOrder.carrier}` : ""}{supplierOrder?.shippedAt ? ` · ${t("detail.sentOn", { date: formatDate(supplierOrder.shippedAt, locale) })}` : ""}</div>
                         )}
                         {supplierOrder?.rejectReason && <div className="text-[13px] font-bold text-app-danger">{t("detail.declined", { reason: supplierOrder.rejectReason })}</div>}
+                        {supplierOrder && ["shipped", "delivered"].includes(supplierOrder.status) && (
+                          <Link href={`/home/wallet?claim=supplier_order:${supplierOrder.id}`} className="text-[13px] font-bold text-app-accent-ink no-underline hover:underline">{t("detail.reportProblem")}</Link>
+                        )}
                       </li>
                     );
                   })}
@@ -293,6 +297,9 @@ export default async function OrderDetailPage({ params, searchParams }: { params
                           <div className="font-mono text-[22px] font-extrabold tracking-[0.2em]">{booking.deliveryCode}</div>
                           <div className="text-[12.5px] text-app-forest">{t("detail.codeNote")}</div>
                         </div>
+                      )}
+                      {["picked_up", "in_transit", "delivered", "failed"].includes(booking.status) && (
+                        <Link href={`/home/wallet?claim=booking:${booking.id}`} className="text-[13px] font-bold text-app-accent-ink no-underline hover:underline">{t("detail.reportProblem")}</Link>
                       )}
                     </div>
                   )}

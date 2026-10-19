@@ -50,7 +50,8 @@ export default async function MarketplaceLogisticsPage({ searchParams }: PagePro
   const storeCountry = norm(store.country);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const where: any = { status: "active", verificationStatus: "verified" };
+  // Not partners paused for money long overdue (src/lib/money-owed): no new shops until it's paid.
+  const where: any = { status: "active", verificationStatus: "verified", user: { debtPausedAt: null } };
   if (q) {
     where.OR = [
       { companyName: { contains: q, mode: "insensitive" } },

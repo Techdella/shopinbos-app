@@ -105,7 +105,8 @@ export async function switchAfterExpiry(expiredId: string, now = new Date()): Pr
       id: { notIn: originalRows.map((row) => row.id) },
       status: "published",
       dropshipAvailable: true,
-      supplier: { verificationStatus: "verified", status: "active" },
+      // Only a supplier this shop has a Dropship agreement with: they called them and checked the stock.
+      supplier: { verificationStatus: "verified", status: "active", user: { debtPausedAt: null }, agreements: { some: { sellerId: expired.sellerId, status: "active" } } },
       OR: [
         ...(families.length ? [{ familyKey: { in: families } }, { id: { in: families } }] : []),
         { familyKey: { in: originalRows.map((row) => row.id) } },

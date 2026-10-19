@@ -9,13 +9,15 @@ import { Screen } from "@/components/Screen";
 import { Card, Chip, Field, Mascot, PillButton, Segmented, T } from "@/components/ui";
 import { saleBreakdown, sortCategories } from "@/lib/find-pure";
 import { fetchFindContext, fetchFindProducts, type FindProduct } from "@/lib/marketplace";
+import { SupplierTrustBadges } from "@/components/SupplierTrust";
 import { useLoad } from "@/lib/useLoad";
 import { openWeb } from "@/lib/web";
 import { useT } from "@/lib/i18n";
 import { colors, radii } from "@/theme";
 
 // Find products to sell (web /marketplace): Nigeria (local suppliers who dropship or sell wholesale),
-// China · 1688 (imports through the sourcing partner, on the web) and Trending. Cards show Cost / Sell / You keep.
+// China · 1688 (imports through the sourcing partner, on the web) and Trending. Cards show Cost / Sell / You keep
+// and the supplier's verification, risk score and distance. For now only suppliers near the seller show.
 
 type Tab = "nigeria" | "china" | "trending";
 
@@ -45,6 +47,7 @@ function ProductCard({ product, added }: { product: FindProduct; added: boolean 
       <View style={{ padding: 10, gap: 6 }}>
         <T weight="bold" style={{ fontSize: 13.5, lineHeight: 18 }} numberOfLines={2}>{product.name}</T>
         <T style={{ color: colors.inkSoft, fontSize: 11.5 }} numberOfLines={1}>{[product.supplier.name, product.supplier.city].filter(Boolean).join(" · ")}</T>
+        <SupplierTrustBadges supplier={product.supplier} />
         <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
           <View>
             <T style={{ color: colors.inkSoft, fontSize: 10.5 }}>{t("card.cost")}</T>
@@ -65,13 +68,13 @@ function ProductCard({ product, added }: { product: FindProduct; added: boolean 
 
 export default function FindProducts() {
   const loaded = useLoad(async () => {
-    const context = await fetchFindContext().catch(() => null);
-    const products = await fetchFindProducts(context?.country ?? "Nigeria");
-    return { context, products };
+    const [context, found] = await Promise.all([fetchFindContext().catch(() => null), fetchFindProducts()]);
+    return { context, products: found.products, hasPlace: found.hasPlace, city: found.city };
   });
   // "Find another supplier" on an order opens this filtered to that product (?q=classic dashiki shirt).
   const params = useLocalSearchParams<{ q?: string }>();
   const t = useT("m_find");
+  const tm = useT("marketplace");
   const [tab, setTab] = useState<Tab>("nigeria");
   const [q, setQ] = useState(typeof params.q === "string" ? params.q.slice(0, 60) : "");
   const [category, setCategory] = useState("");
@@ -108,6 +111,16 @@ export default function FindProducts() {
               <Chip label={t("all")} on={!category} onPress={() => setCategory("")} />
               {categories.map((name) => <Chip key={name} label={t.dynamic(`category.${name}`, name)} on={category === name} onPress={() => setCategory(category === name ? "" : name)} />)}
             </ChipRow>
+          ) : null}
+          {loaded.data ? (
+            loaded.data.hasPlace ? (
+              <T style={{ color: colors.inkSoft, fontSize: 13.5, lineHeight: 19 }}>{tm("trust.nearbyOnly", { city: loaded.data.city ?? "" })}</T>
+            ) : (
+              <Card style={{ gap: 10, backgroundColor: "#FDF0D5" }}>
+                <T style={{ fontSize: 14, lineHeight: 20 }}>{tm("trust.addCity")}</T>
+                <PillButton title={tm("trust.addCityBtn")} tone="white" size="sm" onPress={() => void openWeb("/home/settings")} />
+              </Card>
+            )
           ) : null}
           {loaded.loading && !loaded.data ? <LoadingBlock label={t("loading")} /> : null}
           {loaded.error && !loaded.data ? <ErrorState message={loaded.error} onRetry={() => void loaded.reload()} /> : null}

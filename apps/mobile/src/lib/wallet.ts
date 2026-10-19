@@ -17,8 +17,47 @@ export interface WalletView {
   settlements: { id: string; date: string | null; status: string; amountKobo: number }[];
   sellerSettles: { orderId: string; orderNumber: string; amountKobo: number }[];
   toReturn: { orderId: string; orderNumber: string; otherParty: string; amountKobo: number }[];
+  /** Money owed between this business and others (web src/lib/money-owed). Older servers don't send it. */
+  owed?: MoneyOwed;
   /** Sellers: Shopinbos's fee on their store sales (null = none). */
   fee?: { rate: number; minFee: number; maxFee: number } | null;
+}
+
+export interface Debt {
+  id: string;
+  otherParty: string;
+  reason: string;
+  reasonLabel: string;
+  /** claimed | disputed | open | paid | rejected | waived */
+  status: string;
+  amountKobo: number;
+  remainingKobo: number;
+  details: string | null;
+  response: string | null;
+  decisionNote: string | null;
+  dueAt: string | null;
+  overdue: boolean;
+  createdAt: string;
+  orderId: string | null;
+  /** The business owed can be paid by card in the app. */
+  payable: boolean;
+}
+
+export interface ClaimableOrder {
+  target: "supplier_order" | "wholesale_order" | "booking";
+  id: string;
+  label: string;
+  party: string;
+  maxKobo: number;
+}
+
+export interface MoneyOwed {
+  iOwe: Debt[];
+  owedToMe: Debt[];
+  /** Sellers: recent orders a claim can be raised on. */
+  claimable: ClaimableOrder[];
+  /** Paused from new business for money long overdue. */
+  pausedAt: string | null;
 }
 
 export interface CashToReceive {
@@ -84,5 +123,27 @@ export const paySellerCash = (sellerId: string) =>
 /** A seller pays a booking's delivery fee by card, straight to the delivery partner's bank. */
 export const payDeliveryFee = (bookingId: string) =>
   payInBrowser(() => api<Started>(`/api/mobile/deliveries/${encodeURIComponent(bookingId)}/pay-fee`, { method: "POST" }), "/api/mobile/deliveries/fee-confirm");
+
+const owedAction = <T,>(json: Record<string, unknown>) => api<T>("/api/mobile/wallet/owed", { method: "POST", json });
+
+/** Pay what's left of a debt by card, straight to the other business's bank. */
+export async function payDebt(debtId: string): Promise<{ paid: boolean; message?: string }> {
+  const started = await owedAction<Started>({ action: "pay", debtId });
+  if (!started.authorizationUrl) return { paid: false };
+  await WebBrowser.openBrowserAsync(started.authorizationUrl);
+  return owedAction<{ paid: boolean; message?: string }>({ action: "pay-confirm", reference: started.reference });
+}
+
+/** Accept a claim (it's owed from now), or dispute it for the Shopinbos team to decide. */
+export const answerClaim = (debtId: string, accept: boolean, response?: string) => owedAction<{ ok: true; message?: string }>({ action: "respond", debtId, accept, response });
+
+/** The business owed was paid another way: what's left is settled. */
+export const confirmDebtPaid = (debtId: string) => owedAction<{ ok: true; message?: string }>({ action: "confirm-paid", debtId });
+
+/** The business owed withdraws its claim, or lets what's left go. */
+export const cancelDebt = (debtId: string) => owedAction<{ ok: true; message?: string }>({ action: "cancel", debtId });
+
+/** Sellers: claim from a supplier (wrong or damaged goods) or a delivery partner (lost after pickup). */
+export const raiseClaim = (input: { target: ClaimableOrder["target"]; targetId: string; reason: string; amount: string; details: string }) => owedAction<{ ok: true; message?: string }>({ action: "claim", ...input });
 
 export const nairaFromKobo = (kobo: number) => `₦${(kobo / 100).toLocaleString("en-NG", { maximumFractionDigits: 2 })}`;

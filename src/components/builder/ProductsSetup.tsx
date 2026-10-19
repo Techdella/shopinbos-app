@@ -182,6 +182,8 @@ export function ProductsSetup({ category, onNext, onBack, onProductsChange }: Pr
   const [saved, setSaved] = useState(false);
   const [mpProducts, setMpProducts] = useState<Array<{ id: string; name: string; price: number; currency: string; supplier: string; imageUrl?: string }>>([]);
   const [addedMp, setAddedMp] = useState<Set<string>>(new Set());
+  // Dropship needs the seller to call the supplier, check the stock and agree first (on the product page).
+  const [checkFirst, setCheckFirst] = useState<Set<string>>(new Set());
   const [mpState, setMpState] = useState<"idle" | "loading" | "done" | "error">("idle");
   const csvRef = useRef<HTMLInputElement>(null);
 
@@ -369,7 +371,7 @@ export function ProductsSetup({ category, onNext, onBack, onProductsChange }: Pr
     const product = mpProducts.find((item) => item.id === id);
     if (!product) return;
     try {
-      await fetch("/api/app/store-products/add-from-supplier", {
+      const response = await fetch("/api/app/store-products/add-from-supplier", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -378,7 +380,8 @@ export function ProductsSetup({ category, onNext, onBack, onProductsChange }: Pr
           fulfillmentType: "dropship",
         }),
       });
-      setAddedMp((prev) => new Set([...prev, id]));
+      if (response.status === 409) setCheckFirst((prev) => new Set([...prev, id]));
+      else if (response.ok) setAddedMp((prev) => new Set([...prev, id]));
     } catch { /* best-effort */ }
   }
 
@@ -720,9 +723,13 @@ export function ProductsSetup({ category, onNext, onBack, onProductsChange }: Pr
                     <span className="block truncate text-[14px] font-bold">{p.name}</span>
                     <span className="block truncate text-[12.5px] text-app-ink-soft">{p.supplier} · {p.currency} {p.price}</span>
                   </span>
-                  <PillButton size="sm" tone={addedMp.has(p.id) ? "white" : "ink"} onClick={() => addMpProduct(p.id)} disabled={addedMp.has(p.id)} aria-label={addedMp.has(p.id) ? t("ps.addedLabel", { name: p.name }) : t("ps.addLabel", { name: p.name })}>
-                    {addedMp.has(p.id) ? <><Icon name="check" size={13} /> {t("ps.added")}</> : t("ps.add")}
-                  </PillButton>
+                  {checkFirst.has(p.id) ? (
+                    <a href={`/marketplace/product/${encodeURIComponent(p.id)}`} target="_blank" rel="noreferrer" className="shrink-0 text-[13px] font-extrabold text-app-accent-ink no-underline hover:underline">{t("ps.checkFirst")}</a>
+                  ) : (
+                    <PillButton size="sm" tone={addedMp.has(p.id) ? "white" : "ink"} onClick={() => addMpProduct(p.id)} disabled={addedMp.has(p.id)} aria-label={addedMp.has(p.id) ? t("ps.addedLabel", { name: p.name }) : t("ps.addLabel", { name: p.name })}>
+                      {addedMp.has(p.id) ? <><Icon name="check" size={13} /> {t("ps.added")}</> : t("ps.add")}
+                    </PillButton>
+                  )}
                 </li>
               ))}
             </ul>
