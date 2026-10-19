@@ -65,17 +65,17 @@ export interface KycInput {
   consent: boolean;
 }
 
-/** ID checks run through Youverify when it is set up, else Korapay Identity (the same result shape). */
+/** ID checks run through Korapay Identity when it is set up, else Youverify (the same result shape). */
 export function identityChecksReady() {
-  return youverifyReady() || korapayIdentityReady();
+  return korapayIdentityReady() || youverifyReady();
 }
 
 function verifyIdentity(input: { type: "bvn" | "nin"; id: string; firstName: string; lastName: string; dateOfBirth: string }) {
-  return youverifyReady() ? verifyYouverifyIdentity(input) : verifyKorapayIdentity(input);
+  return korapayIdentityReady() ? verifyKorapayIdentity(input) : verifyYouverifyIdentity(input);
 }
 
 /**
- * Checks the owner's BVN or NIN (Youverify, else Korapay) against the name and date of birth they typed. The ID must exist and
+ * Checks the owner's BVN or NIN (Korapay, else Youverify) against the name and date of birth they typed. The ID must exist and
  * all three must match. Up to KYC_DAILY_ATTEMPTS failed checks a day (each lookup is paid for).
  */
 export async function verifyWalletIdentity(user: { id: string; role: WalletRole }, input: KycInput): Promise<WalletResult> {

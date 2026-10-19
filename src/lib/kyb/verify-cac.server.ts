@@ -4,6 +4,7 @@ import { db } from "@/lib/db/client";
 import { checkRateLimitShared, rateLimitKey } from "@/lib/rate-limit";
 import { parseVerificationDocs } from "@/lib/verification-utils";
 import type { AuthUser } from "@/lib/auth/types";
+import { korapayIdentityPost, korapayIdentityReady } from "@/lib/korapay";
 import { youverifyPost, youverifyReady } from "@/lib/youverify";
 import type { RegistryCheck, VerificationDoc } from "@shared/verification-docs";
 import { DOC_TYPE_LABELS, docHasFile } from "@shared/verification-docs";
@@ -14,6 +15,7 @@ import {
   isCacCompanyType,
   parseCacNumber,
   parseDojahCac,
+  parseKorapayCac,
   parseYouverifyCac,
   prefixedCacNumber,
   recentAttempts,
@@ -22,9 +24,10 @@ import {
   type CacRecord,
 } from "./cac";
 
-// Instant CAC check for suppliers and delivery partners (see ./cac.ts for the rules). Youverify when
-// YOUVERIFY_SECRET_KEY is set (src/lib/youverify.ts), else Dojah (DOJAH_APP_ID + DOJAH_SECRET_KEY; DOJAH_ENV=sandbox
-// uses Dojah's test registry). Without either the check is off and the page keeps asking for the certificate.
+// Instant CAC check for suppliers and delivery partners (see ./cac.ts for the rules). Korapay Identity when
+// KORAPAY_SECRET_KEY is set (src/lib/korapay.ts), else Youverify (YOUVERIFY_SECRET_KEY, src/lib/youverify.ts), else
+// Dojah (DOJAH_APP_ID + DOJAH_SECRET_KEY; DOJAH_ENV=sandbox uses Dojah's test registry). Without any the check is off
+// and the page keeps asking for the certificate.
 
 const LOOKUP_TIMEOUT_MS = 15_000;
 
@@ -33,16 +36,37 @@ function dojahReady() {
 }
 
 export function cacCheckEnabled() {
-  return youverifyReady() || dojahReady();
+  return korapayIdentityReady() || youverifyReady() || dojahReady();
 }
 
-const cacProvider = () => (youverifyReady() ? "youverify" : "dojah");
+const cacProvider = () => (korapayIdentityReady() ? "korapay" : youverifyReady() ? "youverify" : "dojah");
 
 function dojahBaseUrl() {
   return process.env.DOJAH_ENV?.trim().toLowerCase() === "sandbox" ? "https://sandbox.dojah.io" : "https://api.dojah.io";
 }
 
 type LookupResult = { ok: true; record: CacRecord | null } | { ok: false; reason: "unavailable" | "busy" };
+
+/** Korapay's CAC lookup (POST /identities/ng/cac): the registry profile with address and key personnel. */
+async function lookupKorapayCac(rcNumber: string, companyType: CacCompanyType): Promise<LookupResult> {
+  const id = prefixedCacNumber(rcNumber, companyType);
+  try {
+    const { status, json } = await korapayIdentityPost("/identities/ng/cac", { id, registration_type: id.replace(/\d+$/, ""), verification_consent: true }, LOOKUP_TIMEOUT_MS);
+    if (status === 404) return { ok: true, record: null };
+    if (status === 429) return { ok: false, reason: "busy" };
+    const reply = json as { status?: unknown; message?: unknown } | null;
+    if (status === 400 || status === 422) {
+      // A refused number is "no record"; a refused key, consent or balance is ours to fix (the person gets the upload route).
+      const message = typeof reply?.message === "string" ? reply.message : "";
+      return /not found|no record|invalid (rc|bn|cac|registration|id)|does not exist/i.test(message) ? { ok: true, record: null } : { ok: false, reason: "unavailable" };
+    }
+    if (status < 200 || status >= 300 || reply?.status !== true) return { ok: false, reason: "unavailable" };
+    return { ok: true, record: parseKorapayCac(json) };
+  } catch (error) {
+    console.error("[kyb/cac] Korapay lookup error", error instanceof Error ? error.message : error);
+    return { ok: false, reason: "unavailable" };
+  }
+}
 
 /** TaxID and Business Verification: the registry profile with address and key personnel, for RC, BN, IT, LP, LLP. */
 async function lookupYouverifyCac(rcNumber: string, companyType: CacCompanyType): Promise<LookupResult> {
@@ -136,7 +160,11 @@ export async function runCacCheck(
   await model.update({ where: { id: entity.id }, data: { onboardingState: { ...state, cacChecks: [...attempts, now] } } });
   const attemptsLeft = CAC_DAILY_ATTEMPTS - attempts.length - 1;
 
-  const lookup = youverifyReady() ? await lookupYouverifyCac(parsed.number, companyType) : await lookupCac(parsed.number, companyType);
+  const lookup = korapayIdentityReady()
+    ? await lookupKorapayCac(parsed.number, companyType)
+    : youverifyReady()
+      ? await lookupYouverifyCac(parsed.number, companyType)
+      : await lookupCac(parsed.number, companyType);
   if (!lookup.ok) {
     return {
       ok: false,
