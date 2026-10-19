@@ -2,7 +2,21 @@
 // (name + BN/RC number), decides the company type, compares names, links the account holder to the record and
 // turns the provider's answer into one result. No imports, so it is unit-tested in tests/kyb-cac.test.mjs.
 //
-// Providers: Youverify when YOUVERIFY_SECRET_KEY is set (doc.youverify.co, October 2026):
+// Providers, first one set up wins (an unavailable one hands over to the next):
+// CAC's own VAS Validation API when CAC_VAS_API_KEY is set (documenter.getpostman.com/view/54596520/2sBY4VJcUc,
+// read October 2026), straight from the registry:
+//   POST {base}/api/vas/validation/single-service { rc_number: "1234567", entity_type } with header X_API_KEY
+//   Base: https://vasapp.cac.gov.ng, staging https://vasapp.oasisproducts.ng (CAC_VAS_ENV=staging)
+//   entity_type: COMPANY | BUSINESS_NAME | INCORPORATED_TRUSTEE | LIMITED_PARTNERSHIP | LIMITED_LIABILITY_PARTNERSHIP
+//   200 → { success, data: { rc_number, entity_name, entity_type, registration_date, address, entity_status,
+//          affiliates: [{ first_name, surname, affiliation_type: ["DIRECTOR"], status }] } }
+//   400 "company not found" / "invalid rc_number passed" · 401 bad key · 403 no balance or no permission
+// then Korapay Identity when KORAPAY_SECRET_KEY is set (developers.korapay.com, October 2026):
+//   POST https://api.korapay.com/merchant/api/v1/identities/ng/cac { id: "RC1234567", registration_type, verification_consent }
+//   Header: Authorization: Bearer <secret key>. A test key runs the sandbox (RC00000011 is found, RC11111111 is not).
+//   200 → { status: true, data: { name, registration_number, company_status, type_of_entity, address,
+//          registration_date, key_personnel: [{ name, designation, status, is_corporate }] } }
+// else Youverify when YOUVERIFY_SECRET_KEY is set (doc.youverify.co, October 2026):
 //   POST {base}/v2/api/verifications/ng/advance-check-with-tax { registrationNumber: "RC1234567" | "BN…", isConsent }
 //   Header: token (secret key). Base: https://api.youverify.co, sandbox https://api.sandbox.youverify.co
 //   200 → { data: { status: "found", name, registrationNumber, companyStatus, typeOfEntity, address, keyPersonnel } }
@@ -102,7 +116,7 @@ export interface CacAffiliate {
   firstName: string;
   lastName: string;
   role: string;
-  /** Registries that give one name line (Youverify's keyPersonnel) instead of first and last names. */
+  /** Registries that give one name line (Korapay's key_personnel, Youverify's keyPersonnel) instead of first and last names. */
   fullName?: string;
 }
 
@@ -170,7 +184,7 @@ export function parseDojahCac(body: unknown): CacRecord | null {
   };
 }
 
-/** The number with its registry prefix (RC1234567, BN1234567…), the form Youverify looks up. */
+/** The number with its registry prefix (RC1234567, BN1234567…), the form Korapay and Youverify look up. */
 export function prefixedCacNumber(number: string, companyType: CacCompanyType): string {
   const prefix = { BUSINESS_NAME: "BN", COMPANY: "RC", INCORPORATED_TRUSTEES: "IT", LIMITED_PARTNERSHIP: "LP", LIMITED_LIABILITY_PARTNERSHIP: "LLP" }[companyType];
   return `${prefix}${number}`;
@@ -209,6 +223,86 @@ export function parseYouverifyCac(body: unknown): CacRecord | null {
     rcNumber: str(d.registrationNumber),
     status: str(d.companyStatus),
     companyType: str(d.typeOfEntity),
+    ...(address ? { address } : {}),
+    ...(registeredAt ? { registeredAt } : {}),
+    affiliates,
+  };
+}
+
+/** CAC VAS's name for each business type (its trustees type is singular). */
+export function cacVasEntityType(companyType: CacCompanyType): string {
+  return companyType === "INCORPORATED_TRUSTEES" ? "INCORPORATED_TRUSTEE" : companyType;
+}
+
+/** "Thu Jul 02 13:50:56 GMT 2026" or ISO → YYYY-MM-DD; "" when it isn't a date. */
+function vasDate(value: string): string {
+  if (/^\d{4}-\d{2}-\d{2}/.test(value)) return value.slice(0, 10);
+  const time = Date.parse(value);
+  return Number.isFinite(time) ? new Date(time).toISOString().slice(0, 10) : "";
+}
+
+/**
+ * Reads CAC VAS's Business Validation Single Service answer (POST /api/vas/validation/single-service):
+ * { success, data: { rc_number, entity_name, entity_status, entity_type, address, registration_date,
+ * affiliates: [{ first_name, surname, affiliation_type: [...], status }] } }. Null when there is no usable record.
+ */
+export function parseCacVas(body: unknown): CacRecord | null {
+  const json = (body && typeof body === "object" ? body : {}) as { success?: unknown; data?: unknown };
+  if (json.success === false || !json.data || typeof json.data !== "object" || Array.isArray(json.data)) return null;
+  const d = json.data as Record<string, unknown>;
+  const companyName = str(d.entity_name);
+  if (!companyName) return null;
+  const affiliates = Array.isArray(d.affiliates)
+    ? d.affiliates
+        .filter((a): a is Record<string, unknown> => Boolean(a) && typeof a === "object")
+        // Former directors (status "INACTIVE", "RESIGNED"…) aren't the business's people any more.
+        .filter((a) => !str(a.status) || /^active$/i.test(str(a.status)))
+        .map((a) => ({
+          firstName: str(a.first_name),
+          lastName: str(a.surname) || str(a.last_name),
+          role: (Array.isArray(a.affiliation_type) ? a.affiliation_type.map(str).filter(Boolean) : [str(a.affiliation_type)]).join(", "),
+        }))
+        .filter((a) => a.firstName || a.lastName)
+    : [];
+  const address = str(d.address);
+  const registeredAt = vasDate(str(d.registration_date));
+  return {
+    companyName,
+    rcNumber: str(d.rc_number),
+    status: str(d.entity_status),
+    companyType: str(d.entity_type),
+    ...(address ? { address } : {}),
+    ...(registeredAt ? { registeredAt } : {}),
+    affiliates,
+  };
+}
+
+/**
+ * Reads Korapay's CAC answer (POST /identities/ng/cac): { status: true, data: { name, registration_number,
+ * company_status, type_of_entity, address, registration_date, key_personnel: [{ name, designation, status }] } }.
+ * Null when there is no usable record.
+ */
+export function parseKorapayCac(body: unknown): CacRecord | null {
+  const data = (body as { data?: unknown } | null)?.data;
+  if (!data || typeof data !== "object") return null;
+  const d = data as Record<string, unknown>;
+  const companyName = str(d.name);
+  if (!companyName) return null;
+  const affiliates = Array.isArray(d.key_personnel)
+    ? d.key_personnel
+        .filter((p): p is Record<string, unknown> => Boolean(p) && typeof p === "object")
+        // Former directors (status "INACTIVE", "RESIGNED"…) aren't the business's people any more.
+        .filter((p) => !str(p.status) || /^active$/i.test(str(p.status)))
+        .map((p) => ({ firstName: "", lastName: "", fullName: str(p.name), role: str(p.designation) }))
+        .filter((p) => p.fullName)
+    : [];
+  const address = str(d.address) || str(d.branch_address) || str(d.head_office_address);
+  const registeredAt = str(d.registration_date).slice(0, 10);
+  return {
+    companyName,
+    rcNumber: str(d.registration_number) || str(d.id),
+    status: str(d.company_status),
+    companyType: str(d.type_of_entity),
     ...(address ? { address } : {}),
     ...(registeredAt ? { registeredAt } : {}),
     affiliates,

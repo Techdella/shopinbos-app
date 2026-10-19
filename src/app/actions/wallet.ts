@@ -3,9 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getCurrentAppUser } from "@/lib/server-auth";
+import { db } from "@/lib/db/client";
 import { checkRateLimitShared, rateLimitKey } from "@/lib/rate-limit";
 import { isWalletRole } from "@/lib/wallet/rules";
-import { approveWalletBank, checkWalletAccount, linkWalletBank, setWalletFrozen, setWalletKorapaySplitAccount, verifyWalletIdentity, type WalletResult } from "@/lib/wallet/wallet.server";
+import { approveWalletBank, checkWalletAccount, linkWalletBank, setWalletFrozen, setWalletKorapaySplitAccount, verifyWalletIdentity, walletBankNames, type WalletResult } from "@/lib/wallet/wallet.server";
 
 // Shopinbos Wallet actions for sellers, suppliers and delivery partners (their own wallet), and the team's
 // review/pause actions. Money never moves here: these set up where Paystack settles each business's share.
@@ -59,6 +60,20 @@ export async function checkWalletAccountAction(input: z.infer<typeof BankSchema>
   if (!parsed.success) return { status: "not_found" as const };
   if (!(await checkRateLimitShared(rateLimitKey("wallet-account-check", user.id), { maxRequests: 10, windowMs: 60_000 })).allowed) return { status: "unavailable" as const };
   return checkWalletAccount(parsed.data);
+}
+
+/** Every bank and fintech payments can settle to, for the "add your bank" pickers that open in a dialog. */
+export async function walletBankNamesAction(): Promise<string[]> {
+  if (!walletOwner(await getCurrentAppUser())) return [];
+  return walletBankNames();
+}
+
+/** The bank the signed-in business already gets paid into (looked up and saved), or null. */
+export async function myWalletBankAction(): Promise<{ bankName: string; accountName: string } | null> {
+  const owner = walletOwner(await getCurrentAppUser());
+  if (!owner) return null;
+  const wallet = await db.wallet.findUnique({ where: { userId: owner.id }, select: { bankName: true, accountName: true } });
+  return wallet?.bankName && wallet.accountName ? { bankName: wallet.bankName, accountName: wallet.accountName } : null;
 }
 
 export async function approveWalletBankAction(walletId: string): Promise<WalletResult> {

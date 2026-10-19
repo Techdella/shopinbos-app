@@ -6,7 +6,7 @@ import { requireRole } from "@/lib/server-auth";
 import { maskAccountNumber } from "@/lib/wallet/rules";
 import { WalletActions } from "./WalletActions";
 import { youverifyHealth, type YouverifyHealth } from "@/lib/youverify";
-import { korapayIdentityReady } from "@/lib/korapay";
+import { korapayIdentityHealth, korapayIdentityReady, type KorapayIdentityHealth } from "@/lib/korapay";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +39,8 @@ export default async function AdminWalletsPage({ searchParams }: { searchParams?
   const user = await requireRole(["admin"], "/admin/login");
   const filter = (await searchParams)?.status ?? "";
   const where = filter === "frozen" ? { status: "frozen" } : filter ? { subaccountStatus: filter } : {};
+  // ID and CAC checks run through Korapay Identity when its key is set, else Youverify.
+  const korapay = korapayIdentityReady();
   const [wallets, counts, idChecks] = await Promise.all([
     db.wallet.findMany({
       where,
@@ -47,13 +49,13 @@ export default async function AdminWalletsPage({ searchParams }: { searchParams?
       include: { user: { select: { name: true, email: true } } },
     }),
     db.wallet.groupBy({ by: ["kycIdHash"], where: { kycIdHash: { not: null } }, _count: { _all: true } }),
-    youverifyHealth(),
+    korapay ? korapayIdentityHealth() : youverifyHealth(),
   ]);
   const shared = new Set(counts.filter((row) => row._count._all > 1).map((row) => row.kycIdHash));
 
   return (
     <AppPage frame={adminFrame(user)} title="Wallets" sub="Where each business's card payments are settled. Shopinbos holds no money.">
-      <IdChecksStatus health={idChecks} korapay={korapayIdentityReady()} />
+      {korapay ? <KorapayChecksStatus health={idChecks as KorapayIdentityHealth} /> : <IdChecksStatus health={idChecks as YouverifyHealth} />}
       <div className="mb-4 flex flex-wrap gap-2">
         {FILTERS.map((option) => (
           <Link key={option.id} href={withParams("/admin/wallets", { status: option.id || undefined })} className={`rounded-full border px-3.5 py-1.5 text-[13px] font-bold no-underline ${filter === option.id ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white text-app-ink"}`}>
@@ -134,11 +136,34 @@ export default async function AdminWalletsPage({ searchParams }: { searchParams?
   );
 }
 
+/** Whether Korapay Identity's key works and what's in the balance the checks are paid from, so the team can fix the setup. */
+function KorapayChecksStatus({ health }: { health: KorapayIdentityHealth }) {
+  const words: Record<KorapayIdentityHealth["state"], { tone: Tone; text: string }> = {
+    ok: { tone: "success", text: "Korapay Identity runs the ID (BVN/NIN) and CAC checks. Each live check is paid from the Korapay NGN balance. If checks still fail, make sure Identity is enabled in the Korapay dashboard (Identity → request access)." },
+    not_set: { tone: "danger", text: "No ID checks are set up: add KORAPAY_SECRET_KEY in Vercel, then redeploy." },
+    key_rejected: { tone: "danger", text: "Korapay rejects the key. Copy the secret key again from the Korapay dashboard (Settings → API Configuration), update KORAPAY_SECRET_KEY in Vercel and redeploy." },
+    unreachable: { tone: "warning", text: "Korapay couldn't be reached just now. Refresh in a minute." },
+    other: { tone: "warning", text: "Korapay answered with an unexpected error." },
+  };
+  const shown = words[health.state];
+  const naira = health.state === "ok" && health.balance !== null ? `₦${health.balance.toLocaleString("en-NG", { maximumFractionDigits: 2 })}` : null;
+  const detail = health.state === "ok" ? (naira ? `Available balance: ${naira}` : "") : "status" in health || "message" in health ? [("status" in health && health.status) ? `HTTP ${health.status}` : "", "message" in health && health.message ? health.message : ""].filter(Boolean).join(" · ") : "";
+  return (
+    <Card className="mb-4 flex flex-wrap items-center gap-3 p-4">
+      <Pill tone={health.state === "ok" && health.balance === 0 ? "warning" : shown.tone} dot>{health.state === "ok" ? `ID checks: Korapay (${health.environment})` : "ID checks"}</Pill>
+      <span className="min-w-0 flex-1 basis-[280px] text-[13.5px] leading-[1.45]">
+        {shown.text}
+        {detail ? <span className="block text-[12.5px] text-app-ink-soft">{health.state === "ok" ? detail : `Korapay said: ${detail}`}</span> : null}
+      </span>
+    </Card>
+  );
+}
+
 /** Why ID checks work or don't (Youverify answers a free request with the key), so the team can fix the setup. */
-function IdChecksStatus({ health, korapay }: { health: YouverifyHealth; korapay: boolean }) {
+function IdChecksStatus({ health }: { health: YouverifyHealth }) {
   const words: Record<YouverifyHealth["state"], { tone: Tone; text: string }> = {
     ok: { tone: "success", text: "Youverify is connected. ID and CAC checks run through it." },
-    not_set: { tone: korapay ? "info" : "danger", text: korapay ? "Youverify isn't set (YOUVERIFY_SECRET_KEY). ID checks use Korapay; CAC checks use Dojah if set." : "No ID checks are set up: add YOUVERIFY_SECRET_KEY in Vercel, then redeploy. Until then people see “ID checks are being switched on”." },
+    not_set: { tone: "danger", text: "No ID checks are set up: add KORAPAY_SECRET_KEY in Vercel (Korapay Identity runs ID and CAC checks), then redeploy. Until then people see “ID checks are being switched on”." },
     key_rejected: { tone: "danger", text: "Youverify rejects the key (401) on both sandbox and live. Copy the secret key again from cowork.youverify.co → Settings → API Keys (not the public merchant key), update YOUVERIFY_SECRET_KEY in Vercel and redeploy." },
     no_balance: { tone: "danger", text: "Youverify says the account has no funds (402). Top up the Youverify wallet or plan." },
     plan_limit: { tone: "danger", text: "Youverify refuses on plan grounds (403). Ask Youverify to enable NIN, BVN and business checks for this account." },

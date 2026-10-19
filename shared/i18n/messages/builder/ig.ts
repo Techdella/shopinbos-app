@@ -2126,6 +2126,9 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "ed.Own phone menu": "Menu ekwentị nke ya",
   "ed.Footer links": "Njikọ ala ibe",
   "ed.Until you change them, the footer shows its usual links.": "Ruo mgbe ị gbanwere ha, footer ga-egosi njikọ ya ndị a na-ahụkarị.",
+  "ls.online": "Kaadị na nnyefe ego",
+  "ls.addBank": "Tinye akaụntụ bank gị",
+  "ls.changeBank": "Gbanwee",
 };
 
 export default ig;

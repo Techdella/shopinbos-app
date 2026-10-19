@@ -79,9 +79,6 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "method.transfer.label": "Bank transfer",
   "method.transfer.hint": "Abokan ciniki za su ga account ɗinka na payout; kai ka yi alama an biya idan ya shigo",
   "method.card.label": "Kati da USSD",
-  "method.card.hint": "Ta Paystack",
-  "method.korapay.label": "Korapay",
-  "method.korapay.hint": "Kati, tura kuɗi ko biya ta banki ta Korapay",
   "method.cod.label": "Biya bayan an kawo",
   "method.cod.hint": "Har zuwa ₦50,000, lambobin waya da aka tabbatar, inda riders suke zuwa",
   "method.wa.label": "Kammala a WhatsApp",
@@ -150,6 +147,9 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "welcome.sub": "Rex yana shirin gina shagonka tare da kai.",
   "welcome.progress": "Muna shirya shagonka",
   "welcome.start": "Fara yanzu",
+  "method.card.hint": "Kati da USSD, kuɗin suna shiga bankinka kai tsaye",
+  "method.korapay.label": "Biya ta banki",
+  "method.korapay.hint": "Wurin biya na biyu mai tsaro: kati, tura kuɗi ko app na banki",
 };
 
 export default ha;

@@ -45,7 +45,7 @@ ALTER TABLE "SalesChannelInterest" ENABLE ROW LEVEL SECURITY;
 --   '23 */2 * * *',
 --   $$
 --   select net.http_get(
---     url := 'https://shopinbos-app.vercel.app/api/cron/sales-channels',
+--     url := 'https://app.shopinbos.com/api/cron/sales-channels',
 --     headers := jsonb_build_object(
 --       'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'cron_secret')
 --     ),

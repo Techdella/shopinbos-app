@@ -296,6 +296,7 @@ export function PaymentFields({
   riderPhone,
   total,
   currency,
+  whatsappOrderHref = null,
 }: {
   theme: ShopperTheme;
   options: CheckoutPaymentOption[];
@@ -308,6 +309,8 @@ export function PaymentFields({
   riderPhone: React.ReactNode | null;
   total: number;
   currency: string;
+  /** "Finish on WhatsApp": the seller turned it on and the store has a number. Opens a chat with the bag in it. */
+  whatsappOrderHref?: string | null;
 }) {
   return (
     <div className="grid gap-3">
@@ -335,6 +338,14 @@ export function PaymentFields({
           {riderPhone}
           <p className="text-[13px]" style={{ color: theme.muted }}>Have <Money amount={total} currency={currency} /> ready when your order arrives.</p>
         </div>
+      ) : null}
+      {whatsappOrderHref ? (
+        <p className="text-[13.5px]" style={{ color: theme.muted }}>
+          Prefer to chat?{" "}
+          <a href={whatsappOrderHref} target="_blank" rel="noopener noreferrer" className="font-semibold underline underline-offset-4" style={{ color: theme.ink }}>
+            Finish your order on WhatsApp
+          </a>
+        </p>
       ) : null}
     </div>
   );

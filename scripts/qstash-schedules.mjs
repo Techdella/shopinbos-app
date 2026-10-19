@@ -3,8 +3,8 @@
 // Supabase pg_cron jobs that used to call them. Safe to run again: each schedule has a fixed id, so a re-run
 // updates it in place.
 //
-//   QSTASH_TOKEN=... node scripts/qstash-schedules.mjs https://shopinbos-app.vercel.app            # create / update
-//   QSTASH_TOKEN=... node scripts/qstash-schedules.mjs https://shopinbos-app.vercel.app --paused   # create paused
+//   QSTASH_TOKEN=... node scripts/qstash-schedules.mjs https://app.shopinbos.com            # create / update
+//   QSTASH_TOKEN=... node scripts/qstash-schedules.mjs https://app.shopinbos.com --paused   # create paused
 //   QSTASH_TOKEN=... node scripts/qstash-schedules.mjs --list
 //   QSTASH_TOKEN=... node scripts/qstash-schedules.mjs --resume | --pause | --delete
 //
@@ -30,6 +30,12 @@ export const JOBS = [
   { id: "whatsapp-catalog", path: "/api/cron/whatsapp-catalog", cron: "*/15 * * * *" },
   { id: "partner-payins", path: "/api/cron/partner-payins", cron: "*/15 * * * *" },
   { id: "verification-reminders", path: "/api/cron/verification-reminders", cron: "17 * * * *" },
+  { id: "seasonal-campaigns", path: "/api/cron/seasonal-campaigns", cron: "*/5 * * * *" },
+  { id: "gmail-sync", path: "/api/cron/gmail-sync", cron: "*/5 * * * *" },
+  { id: "lead-growth", path: "/api/cron/lead-growth", cron: "*/10 * * * *" },
+  { id: "sales-channels", path: "/api/cron/sales-channels", cron: "23 */2 * * *" },
+  { id: "domain-renewals", path: "/api/cron/domain-renewals", cron: "17 7 * * *" },
+  { id: "business-registrations", path: "/api/cron/business-registrations", cron: "*/10 * * * *" },
   // Monday 06:00 UTC, then every 20 minutes until 09:40 to carry on with a large send.
   { id: "weekly-summary", path: "/api/cron/weekly-summary", cron: "0 6 * * 1" },
   { id: "weekly-summary-continue", path: "/api/cron/weekly-summary", cron: "20,40 6-9 * * 1" },
@@ -61,7 +67,7 @@ async function main() {
   }
 
   const base = args.find((arg) => !arg.startsWith("--"))?.replace(/\/+$/, "");
-  if (!base || !/^https:\/\//.test(base)) throw new Error("Pass the app's https base URL, e.g. https://shopinbos-app.vercel.app");
+  if (!base || !/^https:\/\//.test(base)) throw new Error("Pass the app's https base URL, e.g. https://app.shopinbos.com");
   const paused = args.includes("--paused");
 
   for (const job of JOBS) {

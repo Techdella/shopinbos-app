@@ -79,12 +79,12 @@ test("a passed Wallet ID check stands in for the ID document upload", () => {
   assert.equal(docs.isDocComplete(bare), false, "no file and no ID check is not evidence");
 });
 
-test("the Wallet uses Youverify when it is set up, sends the key as a token header, and keeps it on the server", () => {
+test("the Wallet falls back to Youverify when Korapay isn't set up, sends the key as a token header, and keeps it on the server", () => {
   const client = readFileSync(new URL("../src/lib/youverify.ts", import.meta.url), "utf8");
   assert.match(client, /^import "server-only";/);
   assert.match(client, /headers: \{ token: key/);
   assert.doesNotMatch(client, /Authorization:/);
   const wallet = readFileSync(new URL("../src/lib/wallet/wallet.server.ts", import.meta.url), "utf8");
-  assert.match(wallet, /youverifyReady\(\) \? verifyYouverifyIdentity\(input\) : verifyKorapayIdentity\(input\)/);
+  assert.match(wallet, /if \(!korapayIdentityReady\(\)\) return verifyYouverifyIdentity\(input\);/);
   assert.match(wallet, /approveIdentityDocFromWallet/);
 });

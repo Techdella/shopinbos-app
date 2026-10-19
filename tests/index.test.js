@@ -247,9 +247,12 @@ test("supplier portal has payout recipients, public profiles, and message prefer
   assert.match(schema, /model NotificationPreference/);
   assert.match(schema, /@@unique\(\[userId, eventKey, category\]\)/);
 
-  assert.match(payments, /export async function linkSupplierPaystackRecipient/);
-  assert.match(read("src/lib/payout-bank.ts"), /https:\/\/api\.paystack\.co\/transferrecipient/);
-  assert.match(payments, /verificationStatus: recipient\.status/);
+  // Supplier payout accounts are saved with the wallet bank (one bank everywhere: src/lib/payout-bank.ts syncPayoutBank).
+  const payoutBank = read("src/lib/payout-bank.ts");
+  assert.match(payoutBank, /export async function syncPayoutBank/);
+  assert.match(payoutBank, /https:\/\/api\.paystack\.co\/transferrecipient/);
+  assert.match(payoutBank, /verificationStatus: recipient\.status/);
+  assert.match(payoutBank, /db\.supplierPayoutAccount\.upsert/);
 
   assert.match(supplierActions, /export async function saveSupplierNotificationPreferences/);
   assert.match(supplierSettings, /Message notifications/);

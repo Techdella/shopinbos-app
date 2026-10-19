@@ -154,6 +154,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "step.submitted": "A ti fi verification ránṣẹ́",
   "step.review": "Àyẹ̀wò Shopinbos",
   "step.approved": "A ti fọwọ́ sí verification",
+  "cac.register": "Kò sí nọ́mbà CAC síbẹ̀? Forúkọ iṣẹ́ rẹ sílẹ̀ níbí",
 };
 
 export default yo;

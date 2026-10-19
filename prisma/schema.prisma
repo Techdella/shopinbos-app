@@ -3526,6 +3526,40 @@ model DomainPurchase {
 }
 // ---- end domain billing ----
 
+// ---- business name registration ----
+// A business name registered with CAC through Shopinbos (src/lib/business-registration, CAC's VAS API). Paid first
+// through Paystack; only a verified payment is filed with CAC. Files (passport, signature, ID) live in the private
+// bucket (filePaths) and are removed once CAC approves. docs/migrations/2026-11-12-business-registration.sql.
+model BusinessRegistration {
+  id             String    @id @default(cuid())
+  userId         String
+  role           String // seller | supplier | logistics_partner
+  proposedName   String
+  lineOfBusiness String
+  form           Json // shared/business-registration.ts RegistrationForm (no files)
+  filePaths      Json      @default("{}") // { passport, signature, meansOfId, supportingDoc? } → private storage paths
+  nameCheck      Json? // CAC's compliance answer for the name
+  amountNgn      Int
+  reference      String    @unique // Paystack reference (bizreg-<uuid>)
+  status         String    @default("draft") // shared/business-registration.ts RegistrationStatus
+  payerEmail     String?
+  transactionRef String?   @unique // CAC's reference once filed (VAS…)
+  rcNumber       String? // the BN number CAC gives on approval
+  queries        Json      @default("[]") // CAC's latest queries: [{ field, comment, date }]
+  paidAt         DateTime?
+  submittedAt    DateTime?
+  approvedAt     DateTime?
+  checkedAt      DateTime? // last time CAC's status was read
+  answeredAt     DateTime? // when the owner last answered CAC's queries (a status read older than this is stale)
+  error          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
+// ---- end business name registration ----
+
 // ---- media library ----
 // Every picture (or video) a person has in their library: things they uploaded, and the photos, logo, banners and
 // editor images found in their store (docs/migrations/2026-10-26-media-library.sql backfills, and

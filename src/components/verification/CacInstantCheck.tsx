@@ -124,6 +124,9 @@ export function CacInstantCheck({ apiPath, defaultName = "", cacDoc, onVerified 
       <PillButton tone="ink" size="md" className="mt-4 w-full sm:w-auto" onClick={check} disabled={!canCheck} busy={busy}>
         {t("cac.check")}
       </PillButton>
+      <p className="mb-0 mt-3 text-[13px] text-app-ink-soft">
+        <a href={apiPath.startsWith("/api/supplier") ? "/supplier/register-business" : "/logistics/register-business"} className="font-bold text-app-ink underline underline-offset-4">{t("cac.register")}</a>
+      </p>
     </section>
   );
 }

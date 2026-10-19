@@ -69,9 +69,6 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "pm.transfer.label": "Bank transfer",
   "pm.transfer.hint": "Ndị ahịa ga-enweta akaụntụ payout gị; ị ga-aka ya akara akwụọla mgbe ego ahụ batara",
   "pm.card.label": "Kaadị na USSD",
-  "pm.card.hint": "Site na Paystack",
-  "pm.korapay.label": "Korapay",
-  "pm.korapay.hint": "Kaadị, nnyefe ego ma ọ bụ ịkwụ ụgwọ site na ụlọ akụ site na Korapay",
   "pm.cod.label": "Kwụọ ụgwọ mgbe ebutere",
   "pm.cod.hint": "Ruo ₦50,000, nọmba ekwentị akwadoro, ebe riders na-arụ ọrụ",
   "pm.wa.label": "Mechaa ya na WhatsApp",
@@ -216,6 +213,9 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "step.Connect WhatsApp, Facebook & Instagram": "Jikọọ WhatsApp, Facebook na Instagram",
   "step.One tap each. Customers' messages come to your inbox and your products show there.": "Otu mpị maka nke ọ bụla. Ozi ndị ahịa ga-abata n'inbox gị, ngwaahịa gị ga-egosikwa ebe ahụ.",
   "step.Card payments go straight to your bank once you add it.": "Ego kaadị ga-aga ozugbo n'ụlọ akụ gị ozugbo ị tinyere ya.",
+  "pm.card.hint": "Kaadị na USSD, ego na-abanye na bank gị ozugbo",
+  "pm.korapay.label": "Kwụọ site na bank",
+  "pm.korapay.hint": "Ebe ịkwụ ụgwọ nke abụọ echekwara: kaadị, nnyefe ego ma ọ bụ app bank",
 };
 
 export default ig;

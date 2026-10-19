@@ -4,7 +4,7 @@ import { parseVerificationDocs } from "@/lib/verification-utils";
 import { DOC_TYPE_LABELS, docHasFile, type IdCheck, type VerificationDoc } from "@shared/verification-docs";
 
 // A supplier's or delivery partner's "identity" document (their NIN) is the same check as their Shopinbos Wallet
-// ID check (Youverify, src/lib/wallet): once the owner's BVN or NIN has passed, the document is approved with the
+// ID check (Korapay Identity, src/lib/wallet): once the owner's BVN or NIN has passed, the document is approved with the
 // check attached, so they never upload a NIN slip. An uploaded ID that is already approved or with the review team
 // is left as it is. Never throws (the wallet check has already succeeded).
 

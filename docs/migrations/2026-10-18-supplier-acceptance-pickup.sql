@@ -76,7 +76,7 @@ UPDATE "WholesaleOrder" SET "acceptBy" = CURRENT_TIMESTAMP + interval '24 hours'
 --   '*/5 * * * *',
 --   $$
 --   select net.http_get(
---     url := 'https://shopinbos-app.vercel.app/api/cron/supplier-acceptance',
+--     url := 'https://app.shopinbos.com/api/cron/supplier-acceptance',
 --     headers := jsonb_build_object(
 --       'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'cron_secret')
 --     ),

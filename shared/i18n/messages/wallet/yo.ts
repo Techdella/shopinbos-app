@@ -72,7 +72,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "bank.lookingUp": "Ó ń wá account náà…",
   "bank.accountName": "Orúkọ account",
   "bank.notFound": "Nọ́mbà account yẹn kò sí ní bánkì yìí.",
-  "bank.unavailable": "A kò lè wá account yìí báyìí. O ṣì lè fi pamọ́.",
+  "bank.unavailable": "A kò lè ṣàyẹ̀wò àkáǹtì yìí báyìí. Gbìyànjú lẹ́ẹ̀kan sí i ní ìṣẹ́jú kan.",
   "bank.settingUp": "Ó ń ṣètò…",
   "bank.payMeHere": "Bẹ́ẹ̀ ni, sanwó fún mi níbí",
   "bank.change": "Yí account padà",

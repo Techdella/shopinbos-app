@@ -4,6 +4,8 @@ import { db } from "@/lib/db/client";
 import { checkRateLimitShared, rateLimitKey } from "@/lib/rate-limit";
 import { parseVerificationDocs } from "@/lib/verification-utils";
 import type { AuthUser } from "@/lib/auth/types";
+import { cacVasCall, cacVasError, cacVasKey } from "@/lib/cac-vas.server";
+import { korapayIdentityPost, korapayIdentityReady } from "@/lib/korapay";
 import { youverifyPost, youverifyReady } from "@/lib/youverify";
 import type { RegistryCheck, VerificationDoc } from "@shared/verification-docs";
 import { DOC_TYPE_LABELS, docHasFile } from "@shared/verification-docs";
@@ -14,6 +16,9 @@ import {
   isCacCompanyType,
   parseCacNumber,
   parseDojahCac,
+  parseKorapayCac,
+  parseCacVas,
+  cacVasEntityType,
   parseYouverifyCac,
   prefixedCacNumber,
   recentAttempts,
@@ -22,9 +27,11 @@ import {
   type CacRecord,
 } from "./cac";
 
-// Instant CAC check for suppliers and delivery partners (see ./cac.ts for the rules). Youverify when
-// YOUVERIFY_SECRET_KEY is set (src/lib/youverify.ts), else Dojah (DOJAH_APP_ID + DOJAH_SECRET_KEY; DOJAH_ENV=sandbox
-// uses Dojah's test registry). Without either the check is off and the page keeps asking for the certificate.
+// Instant CAC check for suppliers and delivery partners (see ./cac.ts for the rules). CAC's own VAS Validation API
+// when CAC_VAS_API_KEY is set (CAC_VAS_ENV=staging for its test registry), else Korapay Identity when
+// KORAPAY_SECRET_KEY is set (src/lib/korapay.ts), else Youverify (YOUVERIFY_SECRET_KEY, src/lib/youverify.ts), else
+// Dojah (DOJAH_APP_ID + DOJAH_SECRET_KEY; DOJAH_ENV=sandbox uses Dojah's test registry). Without any the check is off
+// and the page keeps asking for the certificate.
 
 const LOOKUP_TIMEOUT_MS = 15_000;
 
@@ -33,16 +40,65 @@ function dojahReady() {
 }
 
 export function cacCheckEnabled() {
-  return youverifyReady() || dojahReady();
+  return Boolean(cacVasKey()) || korapayIdentityReady() || youverifyReady() || dojahReady();
 }
 
-const cacProvider = () => (youverifyReady() ? "youverify" : "dojah");
+const cacProvider = () => (cacVasKey() ? "cac" : korapayIdentityReady() ? "korapay" : youverifyReady() ? "youverify" : "dojah");
 
 function dojahBaseUrl() {
   return process.env.DOJAH_ENV?.trim().toLowerCase() === "sandbox" ? "https://sandbox.dojah.io" : "https://api.dojah.io";
 }
 
 type LookupResult = { ok: true; record: CacRecord | null } | { ok: false; reason: "unavailable" | "busy" };
+
+/** CAC's own Business Validation Single Service: the registry record with its directors, proprietors and shareholders. */
+async function lookupCacVas(rcNumber: string, companyType: CacCompanyType): Promise<LookupResult> {
+  try {
+    const { status, json } = await cacVasCall("/api/vas/validation/single-service", {
+      body: { rc_number: rcNumber, entity_type: cacVasEntityType(companyType) },
+      timeoutMs: LOOKUP_TIMEOUT_MS,
+    });
+    if (status === 429) return { ok: false, reason: "busy" };
+    if (status === 400 || status === 404) {
+      // "company not found" / "invalid rc_number passed" is no record; anything else refused (e.g. a type this
+      // service doesn't take) hands over to the next provider.
+      const error = cacVasError(json);
+      if (status === 404 || /not found|invalid rc_number/i.test(error)) return { ok: true, record: null };
+      console.error("[kyb/cac] CAC VAS refused the lookup", status, error);
+      return { ok: false, reason: "unavailable" };
+    }
+    if (status < 200 || status >= 300) {
+      // 401 (key) and 403 (no balance, or the service isn't on the account) are ours to fix.
+      console.error("[kyb/cac] CAC VAS lookup failed", status, cacVasError(json));
+      return { ok: false, reason: "unavailable" };
+    }
+    return { ok: true, record: parseCacVas(json) };
+  } catch (error) {
+    console.error("[kyb/cac] CAC VAS lookup error", error instanceof Error ? error.message : error);
+    return { ok: false, reason: "unavailable" };
+  }
+}
+
+/** Korapay's CAC lookup (POST /identities/ng/cac): the registry profile with address and key personnel. */
+async function lookupKorapayCac(rcNumber: string, companyType: CacCompanyType): Promise<LookupResult> {
+  const id = prefixedCacNumber(rcNumber, companyType);
+  try {
+    const { status, json } = await korapayIdentityPost("/identities/ng/cac", { id, registration_type: id.replace(/\d+$/, ""), verification_consent: true }, LOOKUP_TIMEOUT_MS);
+    if (status === 404) return { ok: true, record: null };
+    if (status === 429) return { ok: false, reason: "busy" };
+    const reply = json as { status?: unknown; message?: unknown } | null;
+    if (status === 400 || status === 422) {
+      // A refused number is "no record"; a refused key, consent or balance is ours to fix (the person gets the upload route).
+      const message = typeof reply?.message === "string" ? reply.message : "";
+      return /not found|no record|invalid (rc|bn|cac|registration|id)|does not exist/i.test(message) ? { ok: true, record: null } : { ok: false, reason: "unavailable" };
+    }
+    if (status < 200 || status >= 300 || reply?.status !== true) return { ok: false, reason: "unavailable" };
+    return { ok: true, record: parseKorapayCac(json) };
+  } catch (error) {
+    console.error("[kyb/cac] Korapay lookup error", error instanceof Error ? error.message : error);
+    return { ok: false, reason: "unavailable" };
+  }
+}
 
 /** TaxID and Business Verification: the registry profile with address and key personnel, for RC, BN, IT, LP, LLP. */
 async function lookupYouverifyCac(rcNumber: string, companyType: CacCompanyType): Promise<LookupResult> {
@@ -136,7 +192,20 @@ export async function runCacCheck(
   await model.update({ where: { id: entity.id }, data: { onboardingState: { ...state, cacChecks: [...attempts, now] } } });
   const attemptsLeft = CAC_DAILY_ATTEMPTS - attempts.length - 1;
 
-  const lookup = youverifyReady() ? await lookupYouverifyCac(parsed.number, companyType) : await lookupCac(parsed.number, companyType);
+  // Korapay first; a provider that's unavailable (not set up, refusing, down) hands over to the next one.
+  let lookup: LookupResult = { ok: false, reason: "unavailable" };
+  let provider = cacProvider();
+  for (const [name, ready, run] of [
+    ["cac", Boolean(cacVasKey()), lookupCacVas],
+    ["korapay", korapayIdentityReady(), lookupKorapayCac],
+    ["youverify", youverifyReady(), lookupYouverifyCac],
+    ["dojah", dojahReady(), lookupCac],
+  ] as const) {
+    if (!ready) continue;
+    lookup = await run(parsed.number, companyType);
+    provider = name;
+    if (lookup.ok || lookup.reason === "busy") break;
+  }
   if (!lookup.ok) {
     return {
       ok: false,
@@ -158,7 +227,7 @@ export async function runCacCheck(
 
   const registry: RegistryCheck = {
     source: "cac",
-    provider: cacProvider(),
+    provider,
     rcNumber: record.rcNumber || parsed.number,
     companyType,
     enteredName,
@@ -197,4 +266,46 @@ export async function runCacCheck(
   });
 
   return { ok: true, outcome: evaluation.outcome, message, registeredName: record.companyName, doc, attemptsLeft };
+}
+
+/**
+ * A business name Shopinbos registered with CAC for this supplier or delivery partner (src/lib/business-registration)
+ * counts as their CAC document straight away: CAC approved it with them as the proprietor, so there's nothing left
+ * to match. An uploaded certificate already approved or with the review team is left as it is. Never throws.
+ */
+export async function approveCacDocFromRegistration(
+  role: "supplier" | "logistics_partner",
+  userId: string,
+  business: { rcNumber: string; name: string; address?: string; registeredAt?: string | null },
+) {
+  try {
+    const model = (role === "supplier" ? db.supplier : db.logisticsPartner) as any;
+    const entity = await model.findUnique({ where: { userId } });
+    if (!entity) return;
+    const docs = parseVerificationDocs(entity.verificationDocuments);
+    const current = docs.find((d) => d.type === "cac");
+    if (current && ["approved", "submitted", "under_review"].includes(current.status)) return;
+    const now = new Date().toISOString();
+    const registry: RegistryCheck = {
+      source: "cac",
+      provider: "cac-registration",
+      rcNumber: business.rcNumber,
+      companyType: "BUSINESS_NAME",
+      enteredName: business.name,
+      registeredName: business.name,
+      registryStatus: "ACTIVE",
+      nameMatched: true,
+      ownerMatched: true,
+      verified: true,
+      ...(business.address ? { address: business.address } : {}),
+      ...(business.registeredAt ? { registeredAt: business.registeredAt } : {}),
+      checkedAt: now,
+    };
+    const doc: VerificationDoc = current
+      ? { ...current, registry, status: "approved", updatedAt: now }
+      : { id: `cac-${Date.now()}`, type: "cac", label: DOC_TYPE_LABELS.cac, fileName: "", filePath: "", fileSize: 0, mimeType: "", status: "approved", uploadedAt: now, updatedAt: now, registry };
+    await model.update({ where: { id: entity.id }, data: { verificationDocuments: [...docs.filter((d) => d.type !== "cac"), doc] } });
+  } catch (error) {
+    console.error("[kyb/cac] couldn't approve the CAC document from a registration", error instanceof Error ? error.message : error);
+  }
 }

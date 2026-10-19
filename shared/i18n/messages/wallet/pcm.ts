@@ -72,7 +72,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "bank.lookingUp": "E dey find the account…",
   "bank.accountName": "Account name",
   "bank.notFound": "That account number no dey this bank.",
-  "bank.unavailable": "We no fit find this account now. You fit still save am.",
+  "bank.unavailable": "We no fit check this account now. Try again in one minute.",
   "bank.settingUp": "E dey set up…",
   "bank.payMeHere": "Yes, pay me here",
   "bank.change": "Change account",

@@ -148,7 +148,7 @@ export function BankForm({ banks, current }: { banks: string[]; current: { bankN
       {shown?.note ? <Notice tone={shown.name ? "info" : "error"}>{noteText(shown.note)}</Notice> : null}
       {outcome ? <Notice tone={outcome.tone}>{outcome.text}</Notice> : null}
       <div>
-        <button type="submit" className={buttonClass("ink")} disabled={pending || !lookupKey || Boolean(shown && !shown.name && shown.note === "not_found")}>
+        <button type="submit" className={buttonClass("ink")} disabled={pending || !lookupKey || !shown?.name}>
           {pending ? t("bank.settingUp") : shown?.name ? t("bank.payMeHere") : current ? t("bank.change") : t("bank.save")}
         </button>
       </div>

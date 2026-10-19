@@ -127,7 +127,7 @@ WHERE l."convertedUserId" IS NULL
 --   '*/10 * * * *',
 --   $$
 --   select net.http_get(
---     url := 'https://shopinbos-app.vercel.app/api/cron/lead-growth',
+--     url := 'https://app.shopinbos.com/api/cron/lead-growth',
 --     headers := jsonb_build_object(
 --       'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'cron_secret')
 --     ),

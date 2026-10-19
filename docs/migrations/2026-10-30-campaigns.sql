@@ -111,7 +111,7 @@ ALTER TABLE "StoreCampaignEvent" ENABLE ROW LEVEL SECURITY;
 --   '*/5 * * * *',
 --   $$
 --   select net.http_get(
---     url := 'https://shopinbos-app.vercel.app/api/cron/seasonal-campaigns',
+--     url := 'https://app.shopinbos.com/api/cron/seasonal-campaigns',
 --     headers := jsonb_build_object(
 --       'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'cron_secret')
 --     ),
@@ -134,7 +134,7 @@ BEGIN
       '*/5 * * * *',
       $job$
       select net.http_get(
-        url := 'https://shopinbos-app.vercel.app/api/cron/seasonal-campaigns',
+        url := 'https://app.shopinbos.com/api/cron/seasonal-campaigns',
         headers := jsonb_build_object(
           'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'cron_secret')
         ),

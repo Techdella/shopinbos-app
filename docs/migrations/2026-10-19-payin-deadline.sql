@@ -62,7 +62,7 @@ ALTER TABLE "PartnerPayInEvent" ENABLE ROW LEVEL SECURITY;
 --   '*/15 * * * *',
 --   $$
 --   select net.http_get(
---     url := 'https://shopinbos-app.vercel.app/api/cron/partner-payins',
+--     url := 'https://app.shopinbos.com/api/cron/partner-payins',
 --     headers := jsonb_build_object(
 --       'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'cron_secret')
 --     ),

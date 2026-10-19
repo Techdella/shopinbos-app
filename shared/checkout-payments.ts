@@ -148,14 +148,14 @@ export function payOnDeliveryBlock(settings: CheckoutPaymentSettings, context: C
 
 const OPTION_COPY: Record<CheckoutPaymentMethod, Omit<CheckoutPaymentOption, "key">> = {
   paystack: { label: "Card, bank or USSD", hint: "Pay securely with Paystack" },
-  korapay: { label: "Card or bank", hint: "Pay securely with Korapay" },
+  korapay: { label: "Card or bank", hint: "Card, transfer or your bank app" },
   transfer: { label: "Bank transfer", hint: "We show you the account after you place the order" },
   pay_on_delivery: { label: "Pay on delivery", hint: "Pay the rider in cash or by transfer" },
 };
 
 /**
  * Buyer-facing payment options, always in the order Paystack, Korapay, bank transfer, pay on delivery.
- * Falls back to Paystack when the seller chose nothing, or nothing they chose can be offered.
+ * A store that never chose gets card when its wallet takes cards; when nothing works the list is empty.
  */
 export function checkoutPaymentOptions(settings: CheckoutPaymentSettings, context: CheckoutPaymentContext = {}): CheckoutPaymentOption[] {
   const methods = settings.methods;
@@ -190,7 +190,7 @@ export function normalizeCheckoutMethod(value: string | undefined | null): Check
 export function paymentChoiceText(method: CheckoutPaymentMethod) {
   if (method === "transfer") return "They'll pay by bank transfer; check your account, then mark the order as paid.";
   if (method === "pay_on_delivery") return "They'll pay on delivery, in cash or by transfer to the rider.";
-  if (method === "korapay") return "They're paying by card or bank through Korapay.";
+  if (method === "korapay") return "They're paying online by card or bank.";
   return "They're paying by card, bank or USSD through Paystack.";
 }
 

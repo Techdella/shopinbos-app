@@ -94,7 +94,7 @@ const en = {
   "detail.ref": "Ref: {ref}",
   "detail.status": "Status",
   "method.paystack": "Paystack",
-  "method.korapay": "Korapay",
+  "method.korapay": "Card or bank (online)",
   "method.transfer": "Bank transfer",
   "method.cash": "Cash",
   "method.pos": "POS or card",

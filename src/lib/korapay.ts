@@ -1,15 +1,19 @@
 import "server-only";
 import { korapayChargeState, korapayPaidKobo } from "./korapay-signature";
+import { readKorapayIdentity, type IdentityCheckResult } from "./korapay-identity-rules";
 
 // Korapay for the Shopinbos Wallet:
-//   * Identity: checks a Nigerian BVN or NIN against the name and date of birth the owner typed
-//     (https://developers.korapay.com/docs/nigeria-bvn, /nigeria-nin). Each live lookup is charged to Shopinbos.
+//   * Identity: the ID and business checks. A Nigerian BVN or NIN against the name and date of birth the owner typed
+//     (https://developers.korapay.com/docs/nigeria-bvn, /nigeria-nin), and CAC numbers for suppliers and delivery
+//     partners (/nigeria-certificate-incorporation, used by src/lib/kyb). Identity must be enabled on the Korapay
+//     account (dashboard → Identity → request access); each live lookup is paid from the NGN balance.
 //   * Checkout with Split Payments (https://developers.korapay.com/docs/split-payments): the charge is started on the
 //     server with a dynamic split that sends every naira to the businesses' own Korapay split accounts, so nothing
 //     is left in the Shopinbos balance. Off until KORAPAY_SPLIT_ENABLED=true (Korapay must switch Split Payments on
 //     for the account, and confirm shares settle straight to the recipients' banks).
 //
-// Env: KORAPAY_SECRET_KEY (a test key runs Korapay's sandbox: BVN 22222222222 and NIN 55555555555 pass there).
+// Env: KORAPAY_SECRET_KEY (a test key runs Korapay's sandbox: BVN 22222222222, NIN 55555555555 and CAC RC00000011
+// are found there).
 
 const KORAPAY_BASE = "https://api.korapay.com/merchant/api/v1";
 
@@ -130,62 +134,79 @@ export async function queryKorapayCharge(reference: string): Promise<KorapayChar
   };
 }
 
-const match = (value: unknown) => {
-  const field = value && typeof value === "object" ? (value as Record<string, unknown>).match : undefined;
-  return typeof field === "boolean" ? field : null;
-};
-
-export interface KorapayIdentity {
-  reference: string | null;
-  firstName: string | null;
-  lastName: string | null;
-  middleName: string | null;
-  dateOfBirth: string | null;
-  /** Korapay's verdict on each field we sent (null when it didn't say). */
-  matches: { firstName: boolean | null; lastName: boolean | null; dateOfBirth: boolean | null };
-}
-
-export type IdentityResult = { ok: true; identity: KorapayIdentity } | { ok: false; notFound: boolean; message: string };
-
 /**
- * Looks up a BVN or NIN (POST /identities/ng/bvn | nin) with the owner's consent and the details to match. Never
- * throws: an unknown number comes back as notFound, anything else (no balance, Korapay down) as a message.
+ * Looks up a BVN or NIN (POST /identities/ng/bvn | nin) with the owner's consent and compares the name and date of
+ * birth they typed (./korapay-identity-rules.ts). Never throws: an unknown number comes back as notFound, anything
+ * else (no balance, Identity not enabled, Korapay down) as a message, which is logged for the team.
  */
-export async function verifyKorapayIdentity(input: { type: "bvn" | "nin"; id: string; firstName: string; lastName: string; dateOfBirth: string }): Promise<IdentityResult> {
-  const key = secret();
-  if (!key) return { ok: false, notFound: false, message: "ID checks aren't set up yet." };
+export async function verifyKorapayIdentity(input: { type: "bvn" | "nin"; id: string; firstName: string; lastName: string; dateOfBirth: string }): Promise<IdentityCheckResult> {
+  if (!secret()) return { ok: false, notFound: false, message: "ID checks aren't set up yet." };
   try {
-    const response = await fetch(`${korapayBase()}/identities/ng/${input.type}`, {
+    const { httpStatus, json } = await call(`/identities/ng/${input.type}`, {
       method: "POST",
-      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
+      body: {
         id: input.id,
         verification_consent: true,
         validation: { first_name: input.firstName, last_name: input.lastName, date_of_birth: input.dateOfBirth },
-      }),
-      cache: "no-store",
-      signal: AbortSignal.timeout(30_000),
-    });
-    const json = (await response.json().catch(() => null)) as { status?: boolean; message?: string; data?: Record<string, unknown> | null } | null;
-    if (!response.ok || json?.status !== true || !json.data) {
-      const message = json?.message ?? `Korapay answered ${response.status}`;
-      const notFound = (response.status >= 400 && response.status < 500 && response.status !== 401 && response.status !== 403) || /not found|invalid|does not exist/i.test(message);
-      return { ok: false, notFound, message };
-    }
-    const data = json.data;
-    const validation = data.validation && typeof data.validation === "object" ? (data.validation as Record<string, unknown>) : {};
-    return {
-      ok: true,
-      identity: {
-        reference: text(data.reference),
-        firstName: text(data.first_name),
-        lastName: text(data.last_name),
-        middleName: text(data.middle_name),
-        dateOfBirth: text(data.date_of_birth),
-        matches: { firstName: match(validation.first_name), lastName: match(validation.last_name), dateOfBirth: match(validation.date_of_birth) },
       },
-    };
+      timeoutMs: 30_000,
+    });
+    const result = readKorapayIdentity(httpStatus, json, input);
+    // Shows in the Vercel logs: 401 key, 403 Identity not enabled, 402 or "insufficient balance" to top up.
+    if (!result.ok && !result.notFound) console.error(`[korapay] identity ${input.type} answered ${httpStatus}: ${result.message}`);
+    return result;
   } catch (error) {
     return { ok: false, notFound: false, message: error instanceof Error ? error.message : "Korapay could not be reached" };
+  }
+}
+
+/** POSTs an Identity lookup (KYB: /identities/ng/cac). Throws only when Korapay can't be reached. */
+export async function korapayIdentityPost(path: string, body: Record<string, unknown>, timeoutMs = 30_000) {
+  const { httpStatus, json } = await call(path, { method: "POST", body, timeoutMs });
+  if (httpStatus >= 400 && httpStatus !== 404) console.error(`[korapay] ${path} answered ${httpStatus}: ${json?.message ?? ""}`);
+  return { status: httpStatus, json: json as unknown };
+}
+
+/**
+ * The name on a Nigerian bank account (POST /misc/banks/resolve, free), the second opinion when Paystack's lookup
+ * doesn't answer. Null when Korapay isn't set up, doesn't know the bank code or the account: the caller decides.
+ */
+export async function resolveKorapayBankAccount(bankCode: string, accountNumber: string): Promise<{ accountName: string } | { notFound: true } | null> {
+  if (!secret()) return null;
+  try {
+    const { httpStatus, json } = await call("/misc/banks/resolve", { method: "POST", body: { bank: bankCode, account: accountNumber, currency: "NGN" }, timeoutMs: 10_000 });
+    const name = text(json?.data?.account_name);
+    if (httpStatus >= 200 && httpStatus < 300 && json?.status === true && name) return { accountName: name };
+    // Korapay answers 400 with "invalid account" for a number its bank doesn't have; other refusals tell us nothing.
+    if (httpStatus === 400 && /invalid account|account (number )?(is )?(invalid|not found)|could not resolve/i.test(json?.message ?? "")) return { notFound: true };
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export type KorapayIdentityHealth =
+  | { state: "not_set" }
+  | { state: "ok"; environment: "test" | "live"; balance: number | null }
+  | { state: "key_rejected" | "unreachable" | "other"; status?: number; message?: string };
+
+/**
+ * Whether the key works, for the team (Admin → Wallets): reads the balance (free), since every live ID or CAC check
+ * is paid from the NGN balance. A working key doesn't prove Identity is enabled on the account: a refused check
+ * shows in the Vercel logs as "[korapay] identity … answered 403".
+ */
+export async function korapayIdentityHealth(): Promise<KorapayIdentityHealth> {
+  const key = secret();
+  if (!key) return { state: "not_set" };
+  try {
+    const { httpStatus, json } = await call("/balances", { method: "GET", timeoutMs: 15_000 });
+    const message = text(json?.message) ?? undefined;
+    if (httpStatus === 401 || httpStatus === 403) return { state: "key_rejected", status: httpStatus, message };
+    if (httpStatus < 200 || httpStatus >= 300) return { state: "other", status: httpStatus, message };
+    const ngn = json?.data && typeof json.data === "object" ? (json.data as Record<string, unknown>).NGN : null;
+    const available = ngn && typeof ngn === "object" ? Number((ngn as Record<string, unknown>).available_balance) : NaN;
+    return { state: "ok", environment: key.startsWith("sk_test") ? "test" : "live", balance: Number.isFinite(available) ? available : null };
+  } catch (error) {
+    return { state: "unreachable", message: error instanceof Error ? error.message : undefined };
   }
 }

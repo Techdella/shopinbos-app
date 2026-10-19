@@ -71,7 +71,7 @@ const en = {
   "bank.lookingUp": "Looking up the account…",
   "bank.accountName": "Account name",
   "bank.notFound": "That account number doesn't exist at this bank.",
-  "bank.unavailable": "We couldn't look up this account just now. You can still save it.",
+  "bank.unavailable": "We couldn't look up this account just now. Try again in a minute.",
   "bank.settingUp": "Setting up…",
   "bank.payMeHere": "Yes, pay me here",
   "bank.change": "Change account",

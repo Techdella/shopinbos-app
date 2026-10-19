@@ -2126,6 +2126,9 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "ed.Own phone menu": "Phone get im own menu",
   "ed.Footer links": "Footer links",
   "ed.Until you change them, the footer shows its usual links.": "Until you change dem, the footer go show im normal links.",
+  "ls.online": "Card and transfer",
+  "ls.addBank": "Add your bank account",
+  "ls.changeBank": "Change",
 };
 
 export default pcm;

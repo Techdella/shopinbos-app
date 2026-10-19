@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { FieldLabel, Mascot, Notice, PillButton, TextInput, cx } from "@/components/app-ui";
 import { Icon, type IconName } from "@/components/ui/Icon";
@@ -9,6 +9,8 @@ import type { StoreConfig } from "@/lib/ai/store-types";
 import type { PreviewVariant } from "./StorePreview";
 import { StoreLaunchBillingModal, type StoreLaunchPricing } from "@/components/billing/StoreLaunchBillingModal";
 import { useT } from "@/components/i18n/I18nProvider";
+import { BankLinkingModal } from "@/components/payments/BankLinkingModal";
+import { myWalletBankAction } from "@/app/actions/wallet";
 
 interface LaunchSetupProps {
   storeName: string;
@@ -33,9 +35,10 @@ export function LaunchSetup({
   const t = useT("builder");
   const [paymentProvider, setPaymentProvider] = useState<PaymentProvider | null>(null);
   const [shippingOption, setShippingOption] = useState<ShippingOption | null>(null);
-  const [payoutBankName, setPayoutBankName] = useState("");
-  const [payoutAccountName, setPayoutAccountName] = useState("");
-  const [payoutAccountNumber, setPayoutAccountNumber] = useState("");
+  // The payout bank is looked up and saved through the same dialog as the Money page (it also sets up the wallet
+  // that lets customers pay by card), so bank transfer and card payments work as soon as the store is live.
+  const [payoutBank, setPayoutBank] = useState<{ bankName: string; accountName: string } | null>(null);
+  const [bankOpen, setBankOpen] = useState(false);
   const [flatRate, setFlatRate] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -58,11 +61,10 @@ export function LaunchSetup({
     return "";
   }, [paymentProvider, t]);
 
-  const payoutReady =
-    !!paymentProvider &&
-    payoutBankName.trim().length > 1 &&
-    payoutAccountName.trim().length > 1 &&
-    payoutAccountNumber.trim().length >= 10;
+  const refreshPayoutBank = () => void myWalletBankAction().then(setPayoutBank).catch(() => undefined);
+  useEffect(refreshPayoutBank, []);
+
+  const payoutReady = !!paymentProvider && payoutBank !== null;
 
   async function handleSave() {
     if (!paymentProvider || !shippingOption || !payoutReady) return;
@@ -82,9 +84,6 @@ export function LaunchSetup({
             layoutVariant,
             paymentConfig: {
               provider: paymentProvider,
-              payoutBankName: payoutBankName.trim(),
-              payoutAccountName: payoutAccountName.trim(),
-              payoutAccountNumber: payoutAccountNumber.trim(),
             },
             shippingConfig: {
               option: shippingOption,
@@ -195,7 +194,7 @@ export function LaunchSetup({
         <legend className="mb-3 p-0 text-[15px] font-extrabold">{t("ls.howPay")}</legend>
         <div className="grid gap-2 sm:grid-cols-2">
           {[
-            { id: "paystack" as const, label: "Paystack", desc: t("ls.paystack.desc"), icon: "card" as IconName },
+            { id: "paystack" as const, label: t("ls.online"), desc: t("ls.paystack.desc"), icon: "card" as IconName },
             { id: "bank" as const, label: t("ls.bank"), desc: t("ls.bank.desc"), icon: "bank" as IconName },
           ].map((provider) => (
             <ChoiceCard key={provider.id} active={paymentProvider === provider.id} onClick={() => setPaymentProvider(provider.id)} icon={provider.icon} label={provider.label} desc={provider.desc} />
@@ -206,27 +205,21 @@ export function LaunchSetup({
           <div className="mt-4 rounded-[18px] bg-app-canvas p-4">
             <h3 className="m-0 text-[14.5px] font-extrabold">{t("ls.wherePayouts")}</h3>
             <p className="mb-0 mt-1 text-[13px] leading-[1.5] text-app-ink-soft">{payoutHelp}</p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <div className="min-w-0">
-                <FieldLabel htmlFor="payout-bank">{t("ls.bankName")}</FieldLabel>
-                <TextInput id="payout-bank" value={payoutBankName} onChange={(event) => setPayoutBankName(event.target.value)} placeholder={t("ls.bankNamePh")} className="h-[48px] text-[15px]" />
+            {payoutBank ? (
+              <div className="mt-4 flex flex-wrap items-center gap-3 rounded-[14px] bg-white p-3">
+                <Icon name="bank" size={18} />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[14.5px] font-extrabold">{payoutBank.accountName}</span>
+                  <span className="block truncate text-[13px] text-app-ink-soft">{payoutBank.bankName}</span>
+                </span>
+                <PillButton size="sm" tone="white" onClick={() => setBankOpen(true)}>{t("ls.changeBank")}</PillButton>
               </div>
-              <div className="min-w-0">
-                <FieldLabel htmlFor="payout-name">{t("ls.accountName")}</FieldLabel>
-                <TextInput id="payout-name" value={payoutAccountName} onChange={(event) => setPayoutAccountName(event.target.value)} placeholder={t("ls.accountNamePh")} autoComplete="name" className="h-[48px] text-[15px]" />
-              </div>
-              <div className="min-w-0 sm:col-span-2">
-                <FieldLabel htmlFor="payout-number">{t("ls.accountNumber")}</FieldLabel>
-                <TextInput
-                  id="payout-number"
-                  inputMode="numeric"
-                  value={payoutAccountNumber}
-                  onChange={(event) => setPayoutAccountNumber(event.target.value.replace(/\D/g, "").slice(0, 12))}
-                  placeholder={t("ls.accountNumberPh")}
-                  className="h-[48px] text-[15px]"
-                />
-              </div>
-            </div>
+            ) : (
+              <PillButton size="md" tone="ink" className="mt-4" onClick={() => setBankOpen(true)}>
+                <Icon name="plus" size={16} /> {t("ls.addBank")}
+              </PillButton>
+            )}
+            <BankLinkingModal isOpen={bankOpen} onClose={() => setBankOpen(false)} onSuccess={refreshPayoutBank} role="seller" initialBankName={payoutBank?.bankName ?? ""} />
           </div>
         )}
       </fieldset>

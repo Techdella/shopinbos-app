@@ -72,7 +72,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "bank.lookingUp": "Ọ na-achọ account ahụ…",
   "bank.accountName": "Aha account",
   "bank.notFound": "Nọmba account ahụ adịghị n'ụlọ akụ a.",
-  "bank.unavailable": "Anyị enweghị ike ịchọta account a ugbu a. Ị ka nwere ike chekwaa ya.",
+  "bank.unavailable": "Anyị enweghị ike ilele akaụntụ a ugbu a. Nwaa ọzọ n'otu nkeji.",
   "bank.settingUp": "Ọ na-edozi…",
   "bank.payMeHere": "Ee, kwụọ m ebe a",
   "bank.change": "Gbanwee account",

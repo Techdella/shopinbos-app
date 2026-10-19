@@ -8,7 +8,7 @@ import { korapayCheckoutReady, verifyKorapayIdentity, korapayIdentityReady } fro
 import { verifyYouverifyIdentity, youverifyReady } from "@/lib/youverify";
 import { approveIdentityDocFromWallet } from "@/lib/kyb/identity-doc.server";
 import { createPaystackSubaccount, listPaystackSettlements, updatePaystackSubaccount } from "@/lib/paystack";
-import { resolvePaystackAccount, settlementBanks, type ResolvedAccount } from "@/lib/payout-bank";
+import { resolveBankAccount, settlementBanks, syncPayoutBank, type ResolvedAccount } from "@/lib/payout-bank";
 import { companyNamesMatch } from "@/lib/kyb/cac";
 import { groupDropshipLines, type DropshipLink } from "@/lib/supplier-orders/pure";
 import { applyDeductions, debtsToDeduct, holdPlannedDeductions, loadMoneyOwed, type MoneyOwedView } from "@/lib/money-owed/money-owed.server";
@@ -66,17 +66,21 @@ export interface KycInput {
   consent: boolean;
 }
 
-/** ID checks run through Youverify when it is set up, else Korapay Identity (the same result shape). */
+/** ID checks run through Korapay Identity when it is set up, else Youverify (the same result shape). */
 export function identityChecksReady() {
-  return youverifyReady() || korapayIdentityReady();
+  return korapayIdentityReady() || youverifyReady();
 }
 
-function verifyIdentity(input: { type: "bvn" | "nin"; id: string; firstName: string; lastName: string; dateOfBirth: string }) {
-  return youverifyReady() ? verifyYouverifyIdentity(input) : verifyKorapayIdentity(input);
+async function verifyIdentity(input: { type: "bvn" | "nin"; id: string; firstName: string; lastName: string; dateOfBirth: string }) {
+  if (!korapayIdentityReady()) return verifyYouverifyIdentity(input);
+  const result = await verifyKorapayIdentity(input);
+  // Korapay refused for a reason that's ours (Identity not enabled, no balance, down): Youverify, when it's set up.
+  if (!result.ok && !result.notFound && youverifyReady()) return verifyYouverifyIdentity(input);
+  return result;
 }
 
 /**
- * Checks the owner's BVN or NIN (Youverify, else Korapay) against the name and date of birth they typed. The ID must exist and
+ * Checks the owner's BVN or NIN (Korapay, else Youverify) against the name and date of birth they typed. The ID must exist and
  * all three must match. Up to KYC_DAILY_ATTEMPTS failed checks a day (each lookup is paid for).
  */
 export async function verifyWalletIdentity(user: { id: string; role: WalletRole }, input: KycInput): Promise<WalletResult> {
@@ -175,6 +179,14 @@ async function openSubaccount(wallet: WalletRow, nameCheck: "auto" | "approved" 
       where: { id: wallet.id },
       data: { nameCheck, subaccountCode: subaccount?.code ?? wallet.subaccountCode, subaccountStatus: "active", subaccountError: null },
     });
+    // One bank everywhere: once the account is live (in the owner's or business's name, or approved by the team), it
+    // also becomes the role's payout bank (a seller's bank-transfer account, a supplier's or partner's payouts),
+    // whichever screen it was chosen on. Never before: an account under review isn't paid out to or shown to buyers.
+    const payout = await syncPayoutBank({ id: wallet.userId, role: wallet.role }, wallet.bankName ?? "", wallet.accountNumber!, wallet.accountName ?? "");
+    if (!payout.success) {
+      console.error(`[wallet] couldn't save the payout bank for wallet ${wallet.id}: ${payout.error}`);
+      return { ok: false, error: `Card payments now go to this account, but we couldn't save it as your payout bank yet (${payout.error}). Save it again in a minute.` };
+    }
     return { ok: true, message: "Done. Payments now go straight to this account." };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Paystack didn't accept this account.";
@@ -201,11 +213,11 @@ export async function walletBankNames() {
   return Object.keys(await settlementBanks()).sort((a, b) => a.localeCompare(b));
 }
 
-/** Looks up the name on an account before it's saved, so the person sees whose account it is (Paystack's lookup). */
+/** Looks up the name on an account before it's saved, so the person sees whose account it is (Paystack's lookup, else Korapay's). */
 export async function checkWalletAccount(input: { bankName: string; accountNumber: string }): Promise<ResolvedAccount> {
   const digits = input.accountNumber.replace(/\D/g, "");
   if (digits.length !== 10 || !(await settlementBanks())[input.bankName]) return { status: "not_found" };
-  return resolvePaystackAccount(input.bankName, digits);
+  return resolveBankAccount(input.bankName, digits);
 }
 
 /**
@@ -220,7 +232,7 @@ export async function linkWalletBank(user: { id: string; role: WalletRole }, inp
   const accountNumber = input.accountNumber.replace(/\D/g, "");
   if (!bankCode) return { ok: false, error: "Choose your bank from the list." };
   if (accountNumber.length !== 10) return { ok: false, error: "Enter your 10-digit account number." };
-  const resolved = await resolvePaystackAccount(input.bankName, accountNumber);
+  const resolved = await resolveBankAccount(input.bankName, accountNumber);
   if (resolved.status === "not_found") return { ok: false, error: "That account number doesn't exist at this bank." };
   if (resolved.status !== "resolved") return { ok: false, error: "We couldn't check this account just now. Try again in a few minutes." };
 

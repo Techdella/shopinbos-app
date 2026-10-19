@@ -27,7 +27,6 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "po.emptyFilter": "Ọ dịghị ihe ebe a. Pịa Niile ka ị hụ ndị ọzọ.",
   "po.note": "Shopinbos egosibeghị bank transfer ọ bụla ebe a. Lelee statement bank gị ma ọ bụ Paystack iji dakọọ ịkwụ ụgwọ.",
   "method.paystack": "Paystack",
-  "method.korapay": "Korapay",
   "method.transfer": "Bank transfer",
   "method.cash": "Ego n'aka",
   "method.pos": "POS ma ọ bụ kaadị",
@@ -165,6 +164,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "w.lookingUp": "A na-achọ akaụntụ ahụ…",
   "w.payMeHere": "Ee, kwụọ m ebe a",
   "w.noSuchAccount": "Nọmba akaụntụ ahụ adịghị n'ụlọ akụ a.",
+  "method.korapay": "Kaadị ma ọ bụ bank (online)",
 };
 
 export default ig;

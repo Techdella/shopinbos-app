@@ -72,7 +72,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "bank.lookingUp": "Ana neman account ɗin…",
   "bank.accountName": "Sunan account",
   "bank.notFound": "Wannan lambar account ba ta wannan bankin ba ce.",
-  "bank.unavailable": "Ba mu iya neman wannan account yanzu ba. Za ka iya ajiye shi har yanzu.",
+  "bank.unavailable": "Ba mu iya duba wannan asusun yanzu ba. Sake gwadawa nan da minti ɗaya.",
   "bank.settingUp": "Ana shiryawa…",
   "bank.payMeHere": "E, biya ni a nan",
   "bank.change": "Canja account",

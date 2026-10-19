@@ -1,5 +1,11 @@
 # Shopinbos App + Marketplace API — Claude Code Instructions
 
+## Production URL
+
+The app lives at **https://app.shopinbos.com** (sellers, suppliers, delivery partners, admin, and stores at
+`/s/<slug>`). Use it in docs, scripts, cron jobs, webhook and OAuth callback URLs, emails, and when testing.
+Never use the old `shopinbos-app.vercel.app` domain; `*.vercel.app` hosts are only Vercel preview deployments.
+
 ## Role
 
 You are building the authenticated Shopinbos application, backend, portals, marketplace database, and shared API.
