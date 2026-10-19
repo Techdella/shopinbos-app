@@ -800,6 +800,18 @@ const en = {
   "email.card.blurb": "Email customers from your own address or Gmail, and see their replies here.",
   "email.card.manage": "Manage email",
   "email.card.connect": "Connect email",
+  "wa.oneTitle": "Connect your WhatsApp",
+  "wa.oneSub": "One tap: log in to Facebook, pick your number, and WhatsApp messages arrive in your inbox.",
+  "wa.connecting": "Connecting…",
+  "wa.oneUnavailable": "Connecting with Facebook isn't switched on yet. You can connect WhatsApp with a token in",
+  "wa.peggyOn": "Peggy answers on WhatsApp",
+  "wa.peggyOnSub": "She replies to customers, shows products and hands over to you when needed.",
+  "wa.peggyOnSubNoAi": "She shows products, takes orders and hands over to you when needed.",
+  "wa.moreSettings": "Peggy's settings",
+  "wa.moreSettingsHint": "Products, orders, when she answers, tone and greeting",
+  "cat.oneSub": "Customers see your products in your WhatsApp chat and can add them to a cart.",
+  "cat.oneClick": "Connect WhatsApp and show my products",
+  "cat.oneClickSub": "A Facebook window opens. Log in and pick your number; we set up the catalog and send your products.",
 } satisfies Record<string, string>;
 
 export default en;

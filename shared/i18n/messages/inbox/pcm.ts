@@ -785,6 +785,18 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "guide.click.switchPro": "Switch to professional account",
   "guide.click.connectAccount": "Connect account",
   "guide.click.allowAccess": "Allow access to messages",
+  "wa.oneTitle": "Connect your WhatsApp",
+  "wa.oneSub": "One tap: log in to Facebook, pick your number, and WhatsApp messages go dey enter your inbox.",
+  "wa.connecting": "E dey connect…",
+  "wa.oneUnavailable": "Connect with Facebook never dey on. You fit connect WhatsApp with token for",
+  "wa.peggyOn": "Peggy dey answer for WhatsApp",
+  "wa.peggyOnSub": "She dey reply customers, show products, and pass am give you when e need you.",
+  "wa.peggyOnSubNoAi": "She dey show products, take orders, and pass am give you when e need you.",
+  "wa.moreSettings": "Peggy settings",
+  "wa.moreSettingsHint": "Products, orders, when she go answer, tone and greeting",
+  "cat.oneSub": "Customers go see your products inside your WhatsApp chat and fit add dem to cart.",
+  "cat.oneClick": "Connect WhatsApp and show my products",
+  "cat.oneClickSub": "Facebook window go open. Log in and pick your number; we go set up the catalog and send your products.",
 };
 
 export default pcm;

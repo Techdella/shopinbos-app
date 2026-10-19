@@ -785,6 +785,18 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "guide.click.switchPro": "Switch to professional account",
   "guide.click.connectAccount": "Connect account",
   "guide.click.allowAccess": "Allow access to messages",
+  "wa.oneTitle": "Jikọọ WhatsApp gị",
+  "wa.oneSub": "Pịa otu ugboro: banye na Facebook, họrọ nọmba gị, ozi WhatsApp ga-abata n'inbox gị.",
+  "wa.connecting": "Ọ na-ejikọ…",
+  "wa.oneUnavailable": "Ijikọ na Facebook agbanyeghị. Ị nwere ike iji token jikọọ WhatsApp na",
+  "wa.peggyOn": "Peggy na-aza na WhatsApp",
+  "wa.peggyOnSub": "Ọ na-aza ndị ahịa, na-egosi ngwaahịa, ma nyefee gị mgbe ọ dị mkpa.",
+  "wa.peggyOnSubNoAi": "Ọ na-egosi ngwaahịa, na-anara ọda, ma nyefee gị mgbe ọ dị mkpa.",
+  "wa.moreSettings": "Ntọala Peggy",
+  "wa.moreSettingsHint": "Ngwaahịa, ọda, mgbe ọ na-aza, ụda olu na ekele",
+  "cat.oneSub": "Ndị ahịa ga-ahụ ngwaahịa gị na mkparịta ụka WhatsApp gị ma tinye ha n'ụgbọ.",
+  "cat.oneClick": "Jikọọ WhatsApp ma gosi ngwaahịa m",
+  "cat.oneClickSub": "Windo Facebook ga-emepe. Banye ma họrọ nọmba gị; anyị ga-ahazi catalog ma ziga ngwaahịa gị.",
 };
 
 export default ig;

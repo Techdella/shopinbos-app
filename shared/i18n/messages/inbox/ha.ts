@@ -785,6 +785,18 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "guide.click.switchPro": "Switch to professional account",
   "guide.click.connectAccount": "Connect account",
   "guide.click.allowAccess": "Allow access to messages",
+  "wa.oneTitle": "Haɗa WhatsApp ɗinka",
+  "wa.oneSub": "Taɓa sau ɗaya: shiga Facebook, zaɓi lambarka, saƙonnin WhatsApp za su shigo inbox ɗinka.",
+  "wa.connecting": "Ana haɗawa…",
+  "wa.oneUnavailable": "Haɗa da Facebook bai kunnu ba tukuna. Za ka iya haɗa WhatsApp da token a",
+  "wa.peggyOn": "Peggy tana amsawa a WhatsApp",
+  "wa.peggyOnSub": "Tana amsa kwastomomi, tana nuna kayayyaki, kuma tana miƙa maka idan ana buƙata.",
+  "wa.peggyOnSubNoAi": "Tana nuna kayayyaki, tana karɓar oda, kuma tana miƙa maka idan ana buƙata.",
+  "wa.moreSettings": "Saitunan Peggy",
+  "wa.moreSettingsHint": "Kayayyaki, oda, lokacin amsawa, salo da gaisuwa",
+  "cat.oneSub": "Kwastomomi za su ga kayayyakinka a cikin hirar WhatsApp ɗinka kuma su saka su a kwando.",
+  "cat.oneClick": "Haɗa WhatsApp ka nuna kayayyakina",
+  "cat.oneClickSub": "Tagar Facebook za ta buɗe. Shiga ka zaɓi lambarka; za mu saita catalog mu aika kayayyakinka.",
 };
 
 export default ha;

@@ -785,6 +785,18 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "guide.click.switchPro": "Switch to professional account",
   "guide.click.connectAccount": "Connect account",
   "guide.click.allowAccess": "Allow access to messages",
+  "wa.oneTitle": "So WhatsApp rẹ pọ̀",
+  "wa.oneSub": "Tẹ̀ẹ́ lẹ́ẹ̀kan: wọlé sí Facebook, yan nọ́mbà rẹ, àwọn ìfiránṣẹ́ WhatsApp á sì dé inbox rẹ.",
+  "wa.connecting": "Ó ń so pọ̀…",
+  "wa.oneUnavailable": "Sísopọ̀ pẹ̀lú Facebook kò tíì tàn. O lè fi token so WhatsApp pọ̀ nínú",
+  "wa.peggyOn": "Peggy ń dáhùn lórí WhatsApp",
+  "wa.peggyOnSub": "Ó ń dá àwọn oníbàárà lóhùn, ó ń fi ọjà hàn, ó sì ń gbé e fún ọ nígbà tó bá yẹ.",
+  "wa.peggyOnSubNoAi": "Ó ń fi ọjà hàn, ó ń gba àṣẹ, ó sì ń gbé e fún ọ nígbà tó bá yẹ.",
+  "wa.moreSettings": "Ètò Peggy",
+  "wa.moreSettingsHint": "Ọjà, àṣẹ, ìgbà tó ń dáhùn, ohùn àti ìkíni",
+  "cat.oneSub": "Àwọn oníbàárà á rí ọjà rẹ nínú ìjíròrò WhatsApp rẹ, wọ́n sì lè fi wọ́n sínú kẹ̀kẹ́.",
+  "cat.oneClick": "So WhatsApp pọ̀ kí o sì fi ọjà mi hàn",
+  "cat.oneClickSub": "Fèrèsé Facebook kan máa ṣí. Wọlé kí o yan nọ́mbà rẹ; a máa ṣètò catalog, a sì máa fi ọjà rẹ ránṣẹ́.",
 };
 
 export default yo;
