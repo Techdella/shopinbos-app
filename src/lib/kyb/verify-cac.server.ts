@@ -16,6 +16,8 @@ import {
   parseCacNumber,
   parseDojahCac,
   parseKorapayCac,
+  parseCacVas,
+  cacVasEntityType,
   parseYouverifyCac,
   prefixedCacNumber,
   recentAttempts,
@@ -24,7 +26,8 @@ import {
   type CacRecord,
 } from "./cac";
 
-// Instant CAC check for suppliers and delivery partners (see ./cac.ts for the rules). Korapay Identity when
+// Instant CAC check for suppliers and delivery partners (see ./cac.ts for the rules). CAC's own VAS Validation API
+// when CAC_VAS_API_KEY is set (CAC_VAS_ENV=staging for its test registry), else Korapay Identity when
 // KORAPAY_SECRET_KEY is set (src/lib/korapay.ts), else Youverify (YOUVERIFY_SECRET_KEY, src/lib/youverify.ts), else
 // Dojah (DOJAH_APP_ID + DOJAH_SECRET_KEY; DOJAH_ENV=sandbox uses Dojah's test registry). Without any the check is off
 // and the page keeps asking for the certificate.
@@ -35,17 +38,58 @@ function dojahReady() {
   return Boolean(process.env.DOJAH_APP_ID?.trim() && process.env.DOJAH_SECRET_KEY?.trim());
 }
 
-export function cacCheckEnabled() {
-  return korapayIdentityReady() || youverifyReady() || dojahReady();
+function cacVasKey() {
+  const key = process.env.CAC_VAS_API_KEY?.trim();
+  return key && !/^your[-_]|^x+$/i.test(key) ? key : null;
 }
 
-const cacProvider = () => (korapayIdentityReady() ? "korapay" : youverifyReady() ? "youverify" : "dojah");
+function cacVasBase() {
+  return process.env.CAC_VAS_ENV?.trim().toLowerCase() === "staging" ? "https://vasapp.oasisproducts.ng" : "https://vasapp.cac.gov.ng";
+}
+
+export function cacCheckEnabled() {
+  return Boolean(cacVasKey()) || korapayIdentityReady() || youverifyReady() || dojahReady();
+}
+
+const cacProvider = () => (cacVasKey() ? "cac" : korapayIdentityReady() ? "korapay" : youverifyReady() ? "youverify" : "dojah");
 
 function dojahBaseUrl() {
   return process.env.DOJAH_ENV?.trim().toLowerCase() === "sandbox" ? "https://sandbox.dojah.io" : "https://api.dojah.io";
 }
 
 type LookupResult = { ok: true; record: CacRecord | null } | { ok: false; reason: "unavailable" | "busy" };
+
+/** CAC's own Business Validation Single Service: the registry record with its directors, proprietors and shareholders. */
+async function lookupCacVas(rcNumber: string, companyType: CacCompanyType): Promise<LookupResult> {
+  try {
+    const res = await fetch(`${cacVasBase()}/api/vas/validation/single-service`, {
+      method: "POST",
+      headers: { X_API_KEY: cacVasKey()!, "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ rc_number: rcNumber, entity_type: cacVasEntityType(companyType) }),
+      signal: AbortSignal.timeout(LOOKUP_TIMEOUT_MS),
+      cache: "no-store",
+    });
+    const json = (await res.json().catch(() => null)) as { error?: unknown; errors?: unknown } | null;
+    if (res.status === 429) return { ok: false, reason: "busy" };
+    if (res.status === 400 || res.status === 404) {
+      // "company not found" / "invalid rc_number passed" is no record; anything else refused (e.g. a type this
+      // service doesn't take) hands over to the next provider.
+      const error = typeof json?.error === "string" ? json.error : "";
+      if (res.status === 404 || /not found|invalid rc_number/i.test(error)) return { ok: true, record: null };
+      console.error("[kyb/cac] CAC VAS refused the lookup", res.status, error);
+      return { ok: false, reason: "unavailable" };
+    }
+    if (!res.ok) {
+      // 401 (key) and 403 (no balance, or the service isn't on the account) are ours to fix.
+      console.error("[kyb/cac] CAC VAS lookup failed", res.status, typeof json?.error === "string" ? json.error : "");
+      return { ok: false, reason: "unavailable" };
+    }
+    return { ok: true, record: parseCacVas(json) };
+  } catch (error) {
+    console.error("[kyb/cac] CAC VAS lookup error", error instanceof Error ? error.message : error);
+    return { ok: false, reason: "unavailable" };
+  }
+}
 
 /** Korapay's CAC lookup (POST /identities/ng/cac): the registry profile with address and key personnel. */
 async function lookupKorapayCac(rcNumber: string, companyType: CacCompanyType): Promise<LookupResult> {
@@ -164,6 +208,7 @@ export async function runCacCheck(
   let lookup: LookupResult = { ok: false, reason: "unavailable" };
   let provider = cacProvider();
   for (const [name, ready, run] of [
+    ["cac", Boolean(cacVasKey()), lookupCacVas],
     ["korapay", korapayIdentityReady(), lookupKorapayCac],
     ["youverify", youverifyReady(), lookupYouverifyCac],
     ["dojah", dojahReady(), lookupCac],
