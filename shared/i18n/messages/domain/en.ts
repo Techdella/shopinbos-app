@@ -60,7 +60,7 @@ const en = {
   "pend.checking": "Checking…",
   "pend.waiting": "Waiting",
   "pend.title": "Waiting for your domain to be connected",
-  "pend.sub": "Send the steps to the person who set it up. We'll keep checking and your shop opens there the moment it works.",
+  "pend.sub": "Tap below and the Shopinbos team connects it with you. We keep checking, and your shop opens there the moment it works.",
   "pend.liveKeeps": "{domain} keeps working meanwhile.",
   "pend.freeKeeps": "Your free address keeps working meanwhile.",
   "pend.sendWa": "Send the steps on WhatsApp",
@@ -218,6 +218,8 @@ const en = {
   "free.renewsCard": "Renews free with your annual plan",
   "free.failed": "We couldn't get {domain} for you. Nothing was charged. Pick another name, or tap Help.",
   "free.notFree": "Your plan doesn't cover a free domain right now. It costs {price} for 1 year. Check it, then pay.",
+  "pend.askUs": "Ask us to connect it",
+  "pend.checkNow": "Check now",
 } satisfies Record<string, string>;
 
 export default en;

@@ -1,17 +1,14 @@
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/server-auth";
 import { getSellerWorkspace, parseBrandSettings } from "@/lib/workspace";
-import { saveStoreSeoSettings, saveStoreIntegrationSettings } from "@/app/actions/workspace";
+import { saveStoreSeoSettings } from "@/app/actions/workspace";
 import { PageToast } from "@/components/PageToast";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
-import { Card, CardHead, FilterChips, Pill } from "@/components/app-kit";
+import { Card, CardHead, FilterChips, Pill, PillLink } from "@/components/app-kit";
 import { Notice } from "@/components/app-ui";
-import { SetupHelpRequest } from "@/components/support/SetupHelpRequest";
-import { AdvancedFold } from "@/components/simple/Fold";
 import { FIELD_HELP, FIELD_INPUT, FIELD_LABEL, FIELD_TEXTAREA, SUBMIT_ACCENT } from "@/components/seller-settings/fields";
 import { getT } from "@/lib/i18n/server";
 import { buildStorefrontUrl } from "@/lib/domains/storefront";
-import type { ReactNode } from "react";
 import { SeoImageField } from "@/components/seo/SeoImageField";
 import { storeHiddenFromSearch } from "@/lib/seo/indexing";
 
@@ -20,13 +17,6 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata() {
   const t = await getT("store");
   return { title: t("seo.title") };
-}
-
-// Puts a styled piece (code, bold path, link) where the translated sentence has its placeholder.
-const SLOT = "\u0001";
-function slot(text: string, node: ReactNode) {
-  const [before, after = ""] = text.split(SLOT);
-  return <>{before}{node}{after}</>;
 }
 
 type SeoPageProps = { searchParams?: Promise<{ saved?: string; tab?: string }> };
@@ -156,68 +146,10 @@ export default async function SeoSettingsPage({ searchParams }: SeoPageProps) {
             </aside>
           </form>
         ) : (
-          <div className="grid gap-5">
-          <SetupHelpRequest
-            title={t("seo.help.title")}
-            description={t("seo.help.desc")}
-            feature="google_tracking"
-            softwareQuestion={t("seo.help.question")}
-            softwarePlaceholder={t("seo.help.placeholder")}
-          />
-          <AdvancedFold label={t("seo.advanced")} hint={integrations.googleAnalyticsId || integrations.gaSiteVerification ? t("seo.someSaved") : t("seo.forManager")}>
-          <form action={saveStoreIntegrationSettings} className="grid gap-5">
-            <div className="grid gap-5 xl:grid-cols-2">
-              <Card className="min-w-0 p-5">
-                <CardHead
-                  title="Google Analytics 4"
-                  sub={t("seo.ga.sub")}
-                  action={<Pill tone={integrations.googleAnalyticsId ? "success" : "muted"} dot>{integrations.googleAnalyticsId ? t("seo.connected") : t("seo.notSet")}</Pill>}
-                />
-                <p className="mb-0 mt-3 text-[13.5px] leading-[1.5] text-app-ink-soft">
-                  {slot(t("seo.ga.find", { path: SLOT }), <strong className="text-app-ink">Google Analytics → Admin → Data streams → Web stream</strong>)}
-                </p>
-                <div className="mt-4">
-                  <label htmlFor="googleAnalyticsId" className={FIELD_LABEL}>Measurement ID</label>
-                  <input id="googleAnalyticsId" name="googleAnalyticsId" className={FIELD_INPUT} placeholder="G-XXXXXXXXXX" defaultValue={integrations.googleAnalyticsId ?? ""} pattern="G-[A-Z0-9]+" />
-                  <p className={FIELD_HELP}>{slot(t("seo.ga.help", { code: SLOT }), <code>G-XXXXXXXXXX</code>)}</p>
-                </div>
-              </Card>
-
-              <Card className="min-w-0 p-5">
-                <CardHead
-                  title="Google Search Console"
-                  sub={t("seo.gsc.sub")}
-                  action={<Pill tone={integrations.gaSiteVerification ? "success" : "muted"} dot>{integrations.gaSiteVerification ? t("seo.tagSet") : t("seo.notSet")}</Pill>}
-                />
-                <p className="mb-0 mt-3 text-[13.5px] leading-[1.5] text-app-ink-soft">
-                  {slot(t("seo.gsc.how", { tag: SLOT }), <strong className="text-app-ink">HTML tag</strong>)}
-                </p>
-                <div className="mt-4">
-                  <label htmlFor="gaSiteVerification" className={FIELD_LABEL}>{t("seo.verifyCode")}</label>
-                  <input id="gaSiteVerification" name="gaSiteVerification" className={FIELD_INPUT} placeholder={t("seo.verifyPh")} defaultValue={integrations.gaSiteVerification ?? ""} />
-                  <p className={`${FIELD_HELP} break-words`}>
-                    {(() => {
-                      const [before, middle = "", after = ""] = t("seo.copyOnly", { content: SLOT, example: SLOT }).split(SLOT);
-                      return <>{before}<code>content=&quot;...&quot;</code>{middle}<code>{"<meta name=\"google-site-verification\" content=\"PASTE_THIS_PART\" />"}</code>{after}</>;
-                    })()}
-                  </p>
-                </div>
-              </Card>
-            </div>
-
-            <Card className="p-5">
-              <CardHead title="Google Merchant Center" action={<Pill tone="success" dot>{t("seo.ready")}</Pill>} />
-              <p className="mb-0 mt-2 text-[14px] leading-[1.55] text-app-ink-soft">
-                {slot(t("seo.merchant", { link: SLOT }), <a href="/channels#google" className="font-bold underline">{t("seo.sellEverywhere")}</a>)}
-              </p>
-            </Card>
-
-            <div>
-              <button className={SUBMIT_ACCENT} type="submit">{t("seo.saveGoogle")}</button>
-            </div>
-          </form>
-          </AdvancedFold>
-          </div>
+          <Card className="grid gap-3 p-5">
+            <CardHead title={t("seo.googleTitle")} sub={t("seo.googleSub")} action={<Pill tone={integrations.googleAnalyticsId || integrations.gaSiteVerification ? "success" : "muted"} dot>{integrations.googleAnalyticsId || integrations.gaSiteVerification ? t("seo.connected") : t("seo.notSet")}</Pill>} />
+            <div><PillLink href="/home/connections#google" tone="ink">{t("seo.googleOpen")}</PillLink></div>
+          </Card>
         )}
       </div>
     </SellerPage>

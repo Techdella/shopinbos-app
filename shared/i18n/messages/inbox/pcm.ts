@@ -736,6 +736,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "ch.more": "More ways wey customers fit reach you",
   "ch.moreHint": "{count, plural, =0 {SMS, phone calls and Telegram. Tap one and we go set am up for you.} one {# don connect} other {# don connect}}",
   "cat.connectOnce": "One tap: log in with Facebook and pick your WhatsApp number.",
+  "email.domain.askTitle": "Set up email for {domain}",
+  "email.domain.askDesc": "Tell us where you buy {domain}. We go set up your email address with you and message you when e work.",
 };
 
 export default pcm;

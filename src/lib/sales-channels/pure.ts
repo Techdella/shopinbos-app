@@ -3,6 +3,7 @@
 // Pure (node:crypto only, no database, no network) so tests/sales-channels.test.mjs can run it directly.
 
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
+import { GOOGLE_CONNECT_SCOPES, googleClient } from "../google/oauth.ts";
 
 /** Platforms that connect for real, in the order Nigerian sellers use them. */
 export const LIVE_PLATFORMS = ["whatsapp", "meta", "tiktok", "google"] as const;
@@ -63,7 +64,7 @@ export function platformConfigured(platform: LivePlatform, env: Env = process.en
     case "whatsapp":
       return set(env.META_APP_ID) && set(env.META_APP_SECRET) && set(env.META_CONFIG_ID);
     case "google":
-      return set(env.GOOGLE_MERCHANT_CLIENT_ID) && set(env.GOOGLE_MERCHANT_CLIENT_SECRET);
+      return set(googleClient("merchant", env).id) && set(googleClient("merchant", env).secret);
     case "tiktok":
       return set(env.TIKTOK_APP_ID) && set(env.TIKTOK_APP_SECRET);
   }
@@ -136,6 +137,8 @@ export const nonceCookieName = (platform: OAuthPlatform) => `sib_sc_${platform}`
 // ─── Sign-in URLs ───────────────────────────────────────────────────────────
 
 export const GOOGLE_CONTENT_SCOPE = "https://www.googleapis.com/auth/content";
+/** "Connect Google" asks once for everything (src/lib/google/oauth.ts): shopping, reviews, search, visitor stats. */
+export const GOOGLE_SCOPE = GOOGLE_CONNECT_SCOPES.join(" ");
 
 export function redirectUri(origin: string, platform: OAuthPlatform) {
   return `${origin.replace(/\/+$/, "")}/api/app/sales-channels/${platform}/callback`;
@@ -161,10 +164,10 @@ export function authorizeUrl(platform: OAuthPlatform, options: { origin: string;
   }
   if (platform === "google") {
     const params = new URLSearchParams({
-      client_id: env.GOOGLE_MERCHANT_CLIENT_ID ?? "",
+      client_id: googleClient("merchant", env).id,
       redirect_uri,
       response_type: "code",
-      scope: GOOGLE_CONTENT_SCOPE,
+      scope: GOOGLE_SCOPE,
       access_type: "offline",
       prompt: "consent",
       include_granted_scopes: "true",
@@ -330,7 +333,7 @@ export function appReturnUrl(value: string | null | undefined): string | null {
 // "Connect" can start from /channels, Inbox → Channels or Start here; the callback sends the seller back to the
 // page they started on (?next=, kept in an httpOnly cookie). Only these pages are accepted.
 
-export const RETURN_PATHS = ["/channels", "/home/inbox/channels", "/home/start"] as const;
+export const RETURN_PATHS = ["/channels", "/home/connections", "/home/inbox/channels", "/home/start", "/home/reviews/sources", "/home/analytics/traffic"] as const;
 
 export const returnCookieName = (platform: OAuthPlatform) => `sib_sc_next_${platform}`;
 

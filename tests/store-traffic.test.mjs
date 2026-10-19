@@ -298,9 +298,10 @@ test("Search Console: properties are validated and matched to the store, answers
   assert.equal(perf.queries[0].key, "ankara bag lagos");
   assert.deepEqual(perf.pages, []);
   assert.deepEqual(sc.parsePerformance(null, null, null).totals, { clicks: 0, impressions: 0, ctr: null, position: null });
-  // Signing in with Google is optional and gated on its env vars plus token encryption.
+  // Signing in with Google is optional and gated on the Google client (shared, or the older Search Console one)
+  // plus token encryption.
   const server = read("src/lib/search-console/google.server.ts");
-  assert.match(server, /process\.env\.GOOGLE_OAUTH_CLIENT_ID && process\.env\.GOOGLE_OAUTH_CLIENT_SECRET && encryptionConfigured\(\)/);
+  assert.match(server, /googleClient\("searchConsole"\)\.id && googleClient\("searchConsole"\)\.secret && encryptionConfigured\(\)/);
   assert.match(server, /accessToken: sealSecret\(/);
   assert.match(server, /webmasters\.readonly/);
 });

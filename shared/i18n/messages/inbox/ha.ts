@@ -736,6 +736,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "ch.more": "Ƙarin hanyoyin da kwastomomi za su same ka",
   "ch.moreHint": "{count, plural, =0 {SMS, kiran waya da Telegram. Taɓa ɗaya za mu saita maka.} one {# an haɗa} other {# an haɗa}}",
   "cat.connectOnce": "Taɓawa ɗaya: shiga da Facebook ka zaɓi lambar WhatsApp ɗinka.",
+  "email.domain.askTitle": "Saita imel a {domain}",
+  "email.domain.askDesc": "Gaya mana inda ka sayi {domain}. Za mu saita adireshin imel ɗinka tare da kai mu kuma aika maka saƙo idan ya yi aiki.",
 };
 
 export default ha;

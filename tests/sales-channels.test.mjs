@@ -118,7 +118,7 @@ test("sign-in URLs carry the state and the registered redirect URI", () => {
   const origin = "https://app.shopinbos.com";
   const google = new URL(sc.authorizeUrl("google", { origin, state: "st", env: FULL }));
   assert.equal(google.origin + google.pathname, "https://accounts.google.com/o/oauth2/v2/auth");
-  assert.equal(google.searchParams.get("scope"), "https://www.googleapis.com/auth/content");
+  assert.equal(google.searchParams.get("scope"), sc.GOOGLE_SCOPE, "one Google sign-in asks for everything Google");
   assert.equal(google.searchParams.get("access_type"), "offline");
   assert.equal(google.searchParams.get("redirect_uri"), "https://app.shopinbos.com/api/app/sales-channels/google/callback");
   assert.equal(google.searchParams.get("state"), "st");
@@ -236,4 +236,32 @@ test("one Facebook sign-in also connects the Page and Instagram inboxes, and Dis
   assert.match(inbox, /connectChannel\(store, channel, \{ pageAccessToken: page\.token \}\)/);
   assert.match(inbox, /via === VIA_FACEBOOK_LOGIN\) await disconnectChannel/);
   assert.doesNotMatch(inbox, /console\.[a-z]+\([^)]*token/i, "tokens never reach a log line");
+});
+
+test("Connect Google: one client and one set of scopes for shopping, reviews, search and visitor stats", async () => {
+  const g = await import("../src/lib/google/oauth.ts");
+  assert.deepEqual([...g.GOOGLE_CONNECT_SCOPES], [
+    "openid",
+    "email",
+    "https://www.googleapis.com/auth/content",
+    "https://www.googleapis.com/auth/business.manage",
+    "https://www.googleapis.com/auth/webmasters",
+    "https://www.googleapis.com/auth/siteverification",
+    "https://www.googleapis.com/auth/analytics.edit",
+  ]);
+  assert.ok(!g.GOOGLE_CONNECT_SCOPES.some((scope) => scope.includes("gmail")), "Gmail asks separately, from the email card");
+  const shared = { GOOGLE_CLIENT_ID: "shared", GOOGLE_CLIENT_SECRET: "s", GOOGLE_MERCHANT_CLIENT_ID: "old", GOOGLE_MERCHANT_CLIENT_SECRET: "o" };
+  for (const feature of ["merchant", "business", "searchConsole"]) assert.deepEqual(g.googleClient(feature, shared), { id: "shared", secret: "s" }, feature);
+  assert.deepEqual(g.googleClient("merchant", { GOOGLE_MERCHANT_CLIENT_ID: "old", GOOGLE_MERCHANT_CLIENT_SECRET: "o" }), { id: "old", secret: "o" }, "older clients still work alone");
+  assert.deepEqual(g.googleClient("business", { GOOGLE_BUSINESS_CLIENT_ID: "b", GOOGLE_BUSINESS_CLIENT_SECRET: "bs" }), { id: "b", secret: "bs" });
+  assert.equal(sc.platformConfigured("google", { INBOX_ENCRYPTION_KEY: KEY, GOOGLE_CLIENT_ID: "x", GOOGLE_CLIENT_SECRET: "y" }), true, "the shared client is enough");
+  const server = read("src/lib/sales-channels/server.ts");
+  assert.match(server, /if \(platform === "google"\) await connectGoogleEverything\(storeId, tokens, exchanged\.expiresAt\);/);
+  assert.match(server, /if \(platform === "google"\) await disconnectGoogleEverything\(storeId\);/);
+  const connect = read("src/lib/google/connect.server.ts");
+  assert.match(connect, /"https:\/\/www\.googleapis\.com\/siteVerification\/v1"/);
+  assert.match(connect, /\$\{VERIFY_API\}\/token`, \{ body: \{ site, verificationMethod: "META" \} \}/);
+  assert.match(connect, /setStoreIntegration\(store\.id, "gaSiteVerification", code\)/);
+  assert.match(connect, /setStoreIntegration\(store\.id, "googleAnalyticsId", measurementId, \{ onlyIfEmpty: true \}\)/);
+  assert.doesNotMatch(connect, /console\.[a-z]+\([^)]*token/i, "tokens never reach a log line");
 });

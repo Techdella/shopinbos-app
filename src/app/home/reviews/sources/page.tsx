@@ -1,11 +1,10 @@
-import { TechFold } from "@/components/simple/Fold";
 import { AppPage, Card, CardHead, Pill, PillLink, SplitLayout } from "@/components/app-kit";
 import { Icon } from "@/components/ui/Icon";
 import { field, pillButton, sellerFrame, timeAgo } from "@/components/seller-core";
 import { chooseGoogleLocationAction, disconnectGoogleAction } from "@/app/actions/reviews";
 import { aiConfigured } from "@/lib/ai/client";
 import { db } from "@/lib/db/client";
-import { getGoogleConnection, googleConfigured, googleRedirectUri, GoogleReviewsError, listGoogleLocations, type GoogleLocation } from "@/lib/reviews/google";
+import { getGoogleConnection, googleConfigured, GoogleReviewsError, listGoogleLocations, type GoogleLocation } from "@/lib/reviews/google";
 import { IMPORT_SOURCES } from "@/lib/reviews/pure";
 import { productNames, reviewUrls } from "@/lib/reviews/server";
 import { CopyField } from "../_components/CopyField";
@@ -77,13 +76,6 @@ export default async function ReviewSourcesPage({ searchParams }: { searchParams
                 {!configured && !connection ? (
                   <>
                     <p className="m-0">{t("src.notOn")}</p>
-                    <TechFold forWho={t("src.team")}>
-                      <ol className="m-0 grid gap-1 pl-5 text-[13.5px]">
-                        <li>In Google Cloud, enable the My Business Account Management, Business Information and My Business (v4 reviews) APIs, and apply for Business Profile API access.</li>
-                        <li>Create an OAuth client (web) with the redirect URI <code className="break-all">{googleRedirectUri()}</code>.</li>
-                        <li>Set GOOGLE_BUSINESS_CLIENT_ID and GOOGLE_BUSINESS_CLIENT_SECRET, and INTEGRATIONS_ENCRYPTION_KEY to encrypt the tokens.</li>
-                      </ol>
-                    </TechFold>
                   </>
                 ) : null}
 

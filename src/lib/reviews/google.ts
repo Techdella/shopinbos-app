@@ -1,6 +1,7 @@
 import "server-only";
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { db } from "@/lib/db/client";
+import { googleClient } from "@/lib/google/oauth";
 import { googleReviewToRow } from "./pure";
 import { openSecret, sealSecret } from "./secrets";
 import { appUrl } from "./server";
@@ -21,7 +22,7 @@ const PROVIDER = "google_business";
 export class GoogleReviewsError extends Error {}
 
 export function googleConfigured() {
-  return Boolean(process.env.GOOGLE_BUSINESS_CLIENT_ID && process.env.GOOGLE_BUSINESS_CLIENT_SECRET);
+  return Boolean(googleClient("business").id && googleClient("business").secret);
 }
 
 export function googleRedirectUri() {
@@ -29,7 +30,7 @@ export function googleRedirectUri() {
 }
 
 function stateSecret() {
-  return process.env.GOOGLE_BUSINESS_CLIENT_SECRET || "";
+  return googleClient("business").secret;
 }
 
 /** OAuth state: store id + nonce, signed so the callback only accepts what we started. */
@@ -49,7 +50,7 @@ export function readGoogleState(state: string): string | null {
 
 export function googleAuthUrl(state: string) {
   const params = new URLSearchParams({
-    client_id: process.env.GOOGLE_BUSINESS_CLIENT_ID ?? "",
+    client_id: googleClient("business").id,
     redirect_uri: googleRedirectUri(),
     response_type: "code",
     scope: SCOPE,
@@ -65,7 +66,7 @@ async function tokenRequest(body: Record<string, string>) {
   const res = await fetch(TOKEN_URL, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ client_id: process.env.GOOGLE_BUSINESS_CLIENT_ID ?? "", client_secret: process.env.GOOGLE_BUSINESS_CLIENT_SECRET ?? "", ...body }),
+    body: new URLSearchParams({ client_id: googleClient("business").id, client_secret: googleClient("business").secret, ...body }),
   });
   const json = (await res.json().catch(() => ({}))) as { access_token?: string; refresh_token?: string; expires_in?: number; error_description?: string; error?: string };
   if (!res.ok || !json.access_token) throw new GoogleReviewsError(json.error_description || json.error || `Google sign-in failed (${res.status})`);
@@ -88,6 +89,19 @@ export async function connectGoogle(storeId: string, code: string) {
     create: { storeId, provider: PROVIDER, ...data },
     update: data,
   });
+}
+
+/** Tokens from "Connect Google" (src/lib/google/connect.server.ts): one sign-in fills this too. */
+export async function saveGoogleReviewTokens(storeId: string, token: { access: string; refresh?: string; expiresAt: Date | null }) {
+  const existing = await db.reviewSourceConnection.findUnique({ where: { storeId_provider: { storeId, provider: PROVIDER } } });
+  const data = {
+    accessToken: sealSecret(token.access),
+    refreshToken: token.refresh ? sealSecret(token.refresh) : (existing?.refreshToken ?? null),
+    expiresAt: token.expiresAt ?? new Date(Date.now() + 3600_000),
+    status: existing?.locationName ? "connected" : "needs_location",
+    lastError: null,
+  };
+  await db.reviewSourceConnection.upsert({ where: { storeId_provider: { storeId, provider: PROVIDER } }, create: { storeId, provider: PROVIDER, ...data }, update: data });
 }
 
 export async function getGoogleConnection(storeId: string) {

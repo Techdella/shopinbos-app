@@ -8,7 +8,7 @@ import { ConnectCard } from "./ChannelClient";
 // once and it shows everywhere (inbox, WhatsApp catalog, Facebook & Instagram shop, Post & share).
 // `only`: which cards to show (the inbox shows WhatsApp and Facebook & Instagram); `next`: where a sign-in returns.
 
-export async function ConnectAccounts({ storeId, only, next, columns = "sm:grid-cols-2 xl:grid-cols-3" }: { storeId: string; only?: LivePlatform[]; next?: "/home/inbox/channels" | "/home/start"; columns?: string }) {
+export async function ConnectAccounts({ storeId, only, next, columns = "sm:grid-cols-2 xl:grid-cols-3" }: { storeId: string; only?: LivePlatform[]; next?: "/home/connections" | "/home/inbox/channels" | "/home/start"; columns?: string }) {
   const t = await getT("social", "common");
   const { cards } = await channelCards(storeId);
   const signup = embeddedSignupConfig();

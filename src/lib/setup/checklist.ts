@@ -233,7 +233,7 @@ export function buildSetupChecklist(facts: SetupFacts, choices: SetupChoices): S
           : "One tap each. Customers' messages come to your inbox and your products show there.",
       optional: false,
       done: facts.socialsConnected > 0,
-      action: { kind: "link", label: "Connect", href: "/channels" },
+      action: { kind: "link", label: "Connect", href: "/home/connections" },
       helper: null,
     },
     {

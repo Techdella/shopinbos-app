@@ -14,7 +14,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "p.whatsapp": "Saƙonnin kwastomomi za su zo inbox ɗinka, kuma za su ga kayayyakinka a cikin WhatsApp.",
   "p.meta": "Taɓawa ɗaya don duka biyun. Saƙonni daga Page ɗinka da Instagram za su zo inbox ɗinka, kuma kayayyakinka za su bayyana a shagon Facebook da Instagram ɗinka.",
   "p.tiktok": "Kayayyakinka a TikTok ads da product links.",
-  "p.google": "Kayayyakinka za su bayyana kyauta idan mutane suna nema a Google.",
+  "p.google": "Taɓawa ɗaya don duk Google: jera kyauta, reviews ɗinka na Google, bincike da ƙididdigar baƙi.",
   "card.connect": "Haɗa",
   "card.connecting": "Ana haɗawa…",
   "card.soon": "Yana zuwa nan ba da daɗewa ba",

@@ -14,7 +14,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "p.whatsapp": "Àwọn ìfiránṣẹ́ oníbàárà máa wá sí inbox rẹ, wọ́n á sì rí àwọn ọjà rẹ nínú WhatsApp.",
   "p.meta": "Títẹ̀ kan fún méjèèjì. Àwọn ìfiránṣẹ́ láti Page àti Instagram rẹ máa wá sí inbox rẹ, àwọn ọjà rẹ á sì hàn nínú ṣọ́ọ̀bù Facebook àti Instagram rẹ.",
   "p.tiktok": "Àwọn ọjà rẹ nínú ads TikTok àti àwọn product link.",
-  "p.google": "Àwọn ọjà rẹ á hàn lọ́fẹ̀ẹ́ tí àwọn èèyàn bá ń wá nǹkan lórí Google.",
+  "p.google": "Títẹ̀ kan fún gbogbo Google: ìpolówó ọ̀fẹ́, àwọn review Google rẹ, ìwákiri àti ìṣirò àwọn àlejò.",
   "card.connect": "So pọ̀",
   "card.connecting": "Ó ń so pọ̀…",
   "card.soon": "Ó ń bọ̀ láìpẹ́",

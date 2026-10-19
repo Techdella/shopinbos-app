@@ -14,7 +14,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "p.whatsapp": "Customers' messages go land for your inbox, and dem go see your products inside WhatsApp.",
   "p.meta": "One tap for both. Messages from your Page and Instagram go land for your inbox, and your products go show for your Facebook and Instagram shop.",
   "p.tiktok": "Your products for TikTok ads and product links.",
-  "p.google": "Your products go show free when people search for Google.",
+  "p.google": "One tap for all of Google: free listings, your Google reviews, search and visitor stats.",
   "card.connect": "Connect",
   "card.connecting": "E dey connect…",
   "card.soon": "E dey come soon",

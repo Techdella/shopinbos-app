@@ -4,6 +4,7 @@ import { db } from "@/lib/db/client";
 import { connectChannel, disconnectChannel } from "@/lib/inbox/connect";
 import { debugToken, graph } from "@/lib/whatsapp-catalog/graph";
 import { grantedTargets } from "@/lib/whatsapp-catalog/pure";
+import { setStoreIntegration } from "@/lib/storefront/integrations.server";
 
 // One "Connect Facebook & Instagram" for everything Meta: after the sign-in on /channels, the seller's Facebook
 // Page and the Instagram account linked to it are connected to the inbox too, with the Page's own token (never
@@ -80,5 +81,25 @@ export async function disconnectMetaInbox(storeId: string) {
   const rows = await db.inboxChannel.findMany({ where: { storeId, channel: { in: ["messenger", "instagram"] }, status: "connected" }, select: { channel: true, settings: true } });
   for (const row of rows) {
     if ((row.settings as { via?: unknown } | null)?.via === VIA_FACEBOOK_LOGIN) await disconnectChannel(storeId, row.channel as "messenger" | "instagram");
+  }
+}
+
+/**
+ * The store's Facebook pixel (visitor and ads stats on the store), found or made in the business the catalog uses,
+ * so nobody pastes a pixel ID. Never replaces one already set; never throws.
+ */
+export async function pickMetaPixel(storeId: string, businessId: string, token: string) {
+  try {
+    const listed = await graph(`${encodeURIComponent(businessId)}/adspixels`, token, { query: { fields: "id,name", limit: "25" } });
+    const pixels = listed.ok && Array.isArray(listed.json.data) ? (listed.json.data as Array<{ id?: unknown }>) : [];
+    let pixelId = pixels.map((item) => item.id).find((id): id is string => typeof id === "string") ?? null;
+    if (!pixelId) {
+      const store = await db.store.findUnique({ where: { id: storeId }, select: { name: true } });
+      const created = await graph(`${encodeURIComponent(businessId)}/adspixels`, token, { body: { name: `${(store?.name ?? "My shop").slice(0, 60)} (Shopinbos)` } });
+      pixelId = created.ok && typeof created.json.id === "string" ? created.json.id : null;
+    }
+    if (pixelId) await setStoreIntegration(storeId, "metaPixelId", pixelId, { onlyIfEmpty: true });
+  } catch (error) {
+    console.error("[sales-channels] meta pixel failed", error instanceof Error ? error.message.slice(0, 200) : "unknown");
   }
 }

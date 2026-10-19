@@ -534,6 +534,9 @@ const en = {
   "cart.pages": "Left cart pages",
   "forms.allTime": "All time",
   "forms.pages": "Form message pages",
+  "seo.googleTitle": "Google",
+  "seo.googleSub": "Free listings, your Google reviews, Google search and visitor stats: one sign-in on the Connections page sets them all up.",
+  "seo.googleOpen": "Connect Google",
 } satisfies Record<string, string>;
 
 export default en;

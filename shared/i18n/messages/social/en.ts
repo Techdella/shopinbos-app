@@ -15,7 +15,7 @@ const en = {
   "p.whatsapp": "Customers' messages come to your inbox, and they see your products right inside WhatsApp.",
   "p.meta": "One tap for both. Messages from your Page and Instagram come to your inbox, and your products show in your Facebook and Instagram shop.",
   "p.tiktok": "Your products in TikTok ads and product links.",
-  "p.google": "Your products show free when people search on Google.",
+  "p.google": "One tap for all of Google: free listings, your Google reviews, search and visitor stats.",
   "card.connect": "Connect",
   "card.connecting": "Connecting…",
   "card.soon": "Coming soon",

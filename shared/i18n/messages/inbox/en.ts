@@ -751,6 +751,8 @@ const en = {
   "ch.more": "More ways customers can reach you",
   "ch.moreHint": "{count, plural, =0 {SMS, phone calls and Telegram. Tap one and we'll set it up for you.} one {# connected} other {# connected}}",
   "cat.connectOnce": "One tap: log in with Facebook and pick your WhatsApp number.",
+  "email.domain.askTitle": "Set up email on {domain}",
+  "email.domain.askDesc": "Tell us where you bought {domain}. We'll set up your email address with you and message you when it works.",
 } satisfies Record<string, string>;
 
 export default en;

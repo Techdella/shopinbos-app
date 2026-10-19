@@ -62,7 +62,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "pend.checking": "À ń ṣàyẹ̀wò…",
   "pend.waiting": "Ń dúró",
   "pend.title": "À ń dúró kí domain rẹ sopọ̀",
-  "pend.sub": "Fi àwọn ìgbésẹ̀ ránṣẹ́ sí ẹni tó ṣètò rẹ̀. A ó máa ṣàyẹ̀wò, ṣọ́ọ̀bù rẹ yóò sì ṣí síbẹ̀ ní kété tí ó bá ṣiṣẹ́.",
+  "pend.sub": "Tẹ ìsàlẹ̀, àwọn òṣìṣẹ́ Shopinbos á so ó pọ̀ pẹ̀lú rẹ. A ó máa ṣàyẹ̀wò, ṣọ́ọ̀bù rẹ á sì ṣí síbẹ̀ ní kété tí ó bá ṣiṣẹ́.",
   "pend.liveKeeps": "{domain} yóò máa ṣiṣẹ́ ní àkókò yìí.",
   "pend.freeKeeps": "Àdírẹ́sì ọ̀fẹ́ rẹ yóò máa ṣiṣẹ́ ní àkókò yìí.",
   "pend.sendWa": "Fi àwọn ìgbésẹ̀ ránṣẹ́ lórí WhatsApp",
@@ -220,6 +220,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "free.renewsCard": "Ó ń tún ara rẹ̀ ṣe lọ́fẹ̀ẹ́ pẹ̀lú plan ọdọọdún rẹ",
   "free.failed": "A kò lè gba {domain} fún ọ. A kò gba owó kankan. Yan orúkọ míì, tàbí tẹ Ìrànlọ́wọ́.",
   "free.notFree": "Plan rẹ kò bo domain ọ̀fẹ́ báyìí. Ó jẹ́ {price} fún ọdún kan. Ṣàyẹ̀wò rẹ̀, lẹ́yìn náà sanwó.",
+  "pend.askUs": "Ní kí a so ó pọ̀",
+  "pend.checkNow": "Ṣàyẹ̀wò báyìí",
 };
 
 export default yo;

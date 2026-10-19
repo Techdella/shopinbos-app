@@ -536,6 +536,9 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "cart.pages": "Pages for carts wey dem leave",
   "forms.allTime": "From beginning",
   "forms.pages": "Form message pages",
+  "seo.googleTitle": "Google",
+  "seo.googleSub": "Free listings, your Google reviews, Google search and visitor stats: one sign-in for Connections page go set dem all up.",
+  "seo.googleOpen": "Connect Google",
 };
 
 export default pcm;

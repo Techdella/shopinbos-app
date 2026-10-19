@@ -8,8 +8,8 @@ import { useT } from "@/components/i18n/I18nProvider";
 // default. A plain <details>, so it works without JavaScript; a client component (for the translated summaries) that
 // server pages can render as usual.
 //
-// Use `Fold` for "Advanced (optional)" settings and `TechFold` for things only "the person who set it up" needs
-// (records, keys, links for Facebook or Google). Text inside a TechFold may use technical words.
+// Use `Fold` for "Advanced (optional)" settings. There is no "technical details" fold: sellers never see keys,
+// records, webhooks or IDs. Accounts connect by signing in, and anything else is "Ask us to set it up".
 
 export function Fold({
   summary,
@@ -37,17 +37,6 @@ export function Fold({
       </summary>
       <div className="min-w-0 border-t border-app-line px-4 pb-4 pt-3">{children}</div>
     </details>
-  );
-}
-
-/** "Show the technical details (for …)": only for the person who manages the technical side. */
-export function TechFold({ forWho, children, className, testId }: { forWho: string; children: ReactNode; className?: string; testId?: string }) {
-  const t = useT("ui");
-  // "Show the technical details (for {forWho})" in English (ui catalog).
-  return (
-    <Fold className={className} testId={testId ?? "technical"} summary={t("techDetails", { forWho })}>
-      {children}
-    </Fold>
   );
 }
 

@@ -736,6 +736,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "ch.more": "Ụzọ ndị ọzọ ndị ahịa ga-esi nweta gị",
   "ch.moreHint": "{count, plural, =0 {SMS, oku ekwentị na Telegram. Pịa otu, anyị ga-edozi ya maka gị.} one {# ejikọọla} other {# ejikọọla}}",
   "cat.connectOnce": "Otu mpị: banye na Facebook ma họrọ nọmba WhatsApp gị.",
+  "email.domain.askTitle": "Dozie email na {domain}",
+  "email.domain.askDesc": "Gwa anyị ebe ị zụtara {domain}. Anyị ga-edozi adreesị email gị na gị ma zigara gị ozi mgbe ọ rụrụ ọrụ.",
 };
 
 export default ig;

@@ -14,7 +14,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "p.whatsapp": "Ozi ndị ahịa ga-abata n'inbox gị, ha ga-ahụkwa ngwaahịa gị n'ime WhatsApp.",
   "p.meta": "Otu mpị maka ha abụọ. Ozi si na Page gị na Instagram ga-abata n'inbox gị, ngwaahịa gị ga-egosikwa n'ụlọ ahịa Facebook na Instagram gị.",
   "p.tiktok": "Ngwaahịa gị na TikTok ads na product links.",
-  "p.google": "Ngwaahịa gị ga-apụta n'efu mgbe ndị mmadụ na-achọ ihe na Google.",
+  "p.google": "Otu mpị maka Google niile: ndepụta n'efu, reviews Google gị, ọchụchọ na ọnụ ọgụgụ ndị ọbịa.",
   "card.connect": "Jikọọ",
   "card.connecting": "Ọ na-ejikọ…",
   "card.soon": "Ọ na-abịa n'oge na-adịghị anya",

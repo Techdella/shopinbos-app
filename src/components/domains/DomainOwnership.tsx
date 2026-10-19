@@ -5,12 +5,10 @@ import { Card, Pill } from "@/components/app-kit";
 import { FieldLabel, Notice, PillButton, Segmented, TextInput } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { SetupHelpRequest } from "@/components/support/SetupHelpRequest";
-import { Fold, TechFold } from "@/components/simple/Fold";
+import { Fold } from "@/components/simple/Fold";
 import { dayLabel } from "@/lib/conversations/pure";
-import type { DnsRecord, DomainSettingsState, HostingStatus, ServeAs, VerifyCheck } from "@/lib/domains/verification";
-import { RegistrarTip } from "./RegistrarTip";
+import type { DomainSettingsState, ServeAs, VerifyCheck } from "@/lib/domains/verification";
 import { BoughtDomainPanel } from "./BoughtDomain";
-import { setupStepsMessage, whatsappShareUrl } from "./steps";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import { formatDate, type Locale } from "@shared/i18n";
 
@@ -201,11 +199,6 @@ export function DomainOwnership({
           {!state.hostingConfigured && !check?.ok && (
             <p className="mb-0 mt-2 text-[14px] leading-[1.5] text-app-ink-soft">{t("own.finishing")}</p>
           )}
-          <TechFold forWho={t("own.forWho")} className="mt-3">
-            {check?.ok && check.hosting && <HostingNote hosting={check.hosting} />}
-            <p className="m-0 text-[13px] leading-[1.5] text-app-ink-soft">{t("own.routing", { domain: live.domain })}</p>
-            <RecordList records={live.records} />
-          </TechFold>
           {/* Bought through Shopinbos: paid-until date, "Renew for ₦X", "Move my domain to another company". */}
           <BoughtDomainPanel domain={live.domain} />
           <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -228,9 +221,7 @@ export function DomainOwnership({
 
       {pending && <PendingCard
         domain={pending.domain}
-        records={pending.records}
         live={live?.domain ?? null}
-        hostingConfigured={state.hostingConfigured}
         verifying={verifying}
         check={check}
         verifyError={verifyError}
@@ -288,9 +279,7 @@ export function DomainOwnership({
 
 function PendingCard({
   domain,
-  records,
   live,
-  hostingConfigured,
   verifying,
   check,
   verifyError,
@@ -301,9 +290,7 @@ function PendingCard({
   onRemove,
 }: {
   domain: string;
-  records: DnsRecord[];
   live: string | null;
-  hostingConfigured: boolean;
   verifying: boolean;
   check: VerifyCheck | null;
   verifyError: string | null;
@@ -314,19 +301,7 @@ function PendingCard({
   onRemove: () => void;
 }) {
   const t = useT("domain", "common");
-  const [copied, setCopied] = useState(false);
-  const message = setupStepsMessage(domain, records);
   const plain = check ? plainCheck(check, t) : null;
-
-  async function copySteps() {
-    try {
-      await navigator.clipboard.writeText(message);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // Clipboard blocked: the steps are in the technical details as selectable text.
-    }
-  }
 
   return (
     <Card className="min-w-0 p-4 sm:p-5">
@@ -346,29 +321,17 @@ function PendingCard({
         {live ? ` ${t("pend.liveKeeps", { domain: live })}` : ` ${t("pend.freeKeeps")}`}
       </p>
 
-      <div className="mt-4 grid gap-2 sm:flex sm:flex-wrap sm:items-center">
-        <a
-          href={whatsappShareUrl(message)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-full bg-app-ink px-6 text-[15px] font-extrabold text-white no-underline hover:bg-black"
-        >
-          <Icon name="chat" size={18} /> {t("pend.sendWa")}
-        </a>
-        <PillButton size="md" tone="white" onClick={() => void copySteps()}>
-          <Icon name={copied ? "check" : "copy"} size={16} /> {copied ? t("copied") : t("pend.copy")}
-        </PillButton>
-      </div>
+      {!askTeam && (
+        <div className="mt-4 grid gap-2 sm:flex sm:flex-wrap sm:items-center">
+          <PillButton size="lg" onClick={onAskTeam}>{t("pend.askUs")}</PillButton>
+          <PillButton size="md" tone="white" busy={verifying} onClick={onVerify}>{t("pend.checkNow")}</PillButton>
+        </div>
+      )}
 
       {plain && <div className="mt-3"><Notice tone="info">{plain}</Notice></div>}
       {verifyError && <div className="mt-3"><Notice>{verifyError}</Notice></div>}
 
       <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1">
-        {!askTeam && (
-          <button type="button" onClick={onAskTeam} className="min-h-[44px] text-[14.5px] font-bold text-app-ink underline underline-offset-4">
-            {t("pend.noOne")}
-          </button>
-        )}
         <button type="button" onClick={onRemove} disabled={removing} className="min-h-[44px] text-[14.5px] font-bold text-app-ink-soft underline-offset-4 hover:underline">
           {live ? t("pend.keepCurrent") : t("own.different")}
         </button>
@@ -385,108 +348,6 @@ function PendingCard({
         />
       )}
 
-      <TechFold forWho={t("own.forWho")} className="mt-4">
-        <p className="m-0 text-[13.5px] leading-[1.5] text-app-ink-soft">
-          {t("pend.dnsIntro", { domain })}
-        </p>
-        <RecordList records={records} />
-        {check && !check.ok && (
-          <div className="mt-3">
-            <Notice tone="info">
-              {check.message}
-              {check.found && check.found.length > 0 && <span className="mt-1 block break-all font-mono text-[12.5px]">{t("pend.found", { values: check.found.join(" · ") })}</span>}
-            </Notice>
-          </div>
-        )}
-        {!hostingConfigured && (
-          <p className="mb-0 mt-3 text-[13px] leading-[1.5] text-app-ink-soft">{t("pend.hosting")}</p>
-        )}
-        <div className="mt-3">
-          <PillButton size="md" busy={verifying} onClick={onVerify}>{t("verify")}</PillButton>
-        </div>
-        <div className="mt-4 border-t border-app-line pt-4">
-          <RegistrarTip />
-        </div>
-      </TechFold>
     </Card>
   );
 }
-
-function HostingNote({ hosting }: { hosting: HostingStatus }) {
-  return (
-    <div className="mb-3 grid gap-2">
-      <Notice tone={hosting.status === "failed" ? "error" : hosting.status === "added" ? "success" : "info"}>{hosting.message}</Notice>
-      {hosting.records.length > 0 && (
-        <RecordList
-          records={hosting.records.map((record) => ({
-            purpose: "route" as const,
-            type: record.type as DnsRecord["type"],
-            name: record.domain,
-            label: record.domain,
-            value: record.value,
-            required: true,
-            note: record.reason,
-          }))}
-        />
-      )}
-    </div>
-  );
-}
-
-function RecordList({ records }: { records: DnsRecord[] }) {
-  return (
-    <ul className="m-0 mt-3 grid list-none gap-2 p-0">
-      {records.map((record) => (
-        <RecordRow key={`${record.type}-${record.name}-${record.value}`} record={record} />
-      ))}
-    </ul>
-  );
-}
-
-function CopyButton({ value, label }: { value: string; label: string }) {
-  const t = useT("domain", "common");
-  const [copied, setCopied] = useState(false);
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(value);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // Clipboard blocked: the value is selectable text.
-    }
-  }
-  return (
-    <button type="button" onClick={() => void copy()} aria-label={t("copyLabel", { label })} className="inline-flex min-h-[32px] shrink-0 items-center gap-1 rounded-full border border-app-line bg-white px-2.5 text-[12px] font-bold">
-      <Icon name={copied ? "check" : "copy"} size={12} /> {copied ? t("copied") : t("copy")}
-    </button>
-  );
-}
-
-function RecordRow({ record }: { record: DnsRecord }) {
-  const t = useT("domain", "common");
-  return (
-    <li className="min-w-0 rounded-[16px] bg-app-canvas px-4 py-3">
-      <div className="mb-2 flex flex-wrap items-center gap-2">
-        <span className="font-mono text-[13px] font-bold">{record.type}</span>
-        <Pill tone={record.required ? "ink" : "muted"}>{record.purpose === "verify" ? t("rec.proves") : record.required ? t("rec.required") : t("rec.optional")}</Pill>
-      </div>
-      <dl className="m-0 grid grid-cols-[52px_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-[13.5px]">
-        <dt className="text-app-ink-soft">{t("rec.nameLabel")}</dt>
-        <dd className="m-0 flex min-w-0 items-start gap-2">
-          <span className="min-w-0 flex-1 break-all font-mono">
-            {record.label}
-            {record.label !== record.name && <span className="block text-[12px] text-app-ink-soft">{t("rec.fullName", { name: record.name })}</span>}
-          </span>
-          <CopyButton value={record.label} label={t("rec.name", { type: record.type })} />
-        </dd>
-        <dt className="text-app-ink-soft">{t("rec.valueLabel")}</dt>
-        <dd className="m-0 flex min-w-0 items-start gap-2">
-          <span className="min-w-0 flex-1 break-all font-mono">{record.value}</span>
-          <CopyButton value={record.value} label={t("rec.value", { type: record.type })} />
-        </dd>
-      </dl>
-      {record.note && <p className="mb-0 mt-2 text-[12.5px] leading-[1.45] text-app-ink-soft">{record.note}</p>}
-    </li>
-  );
-}
-

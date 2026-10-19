@@ -736,6 +736,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "ch.more": "Àwọn ọ̀nà míì tí oníbàárà lè gbà kàn sí ọ",
   "ch.moreHint": "{count, plural, =0 {SMS, ìpè fóònù àti Telegram. Tẹ ọ̀kan, a ó sì ṣètò rẹ̀ fún ọ.} one {# ti so pọ̀} other {# ti so pọ̀}}",
   "cat.connectOnce": "Títẹ̀ kan: wọlé pẹ̀lú Facebook kí o sì yan nọ́mbà WhatsApp rẹ.",
+  "email.domain.askTitle": "Ṣètò ìmeèlì lórí {domain}",
+  "email.domain.askDesc": "Sọ ibi tí o ti ra {domain} fún wa. A ó ṣètò àdírẹ́sì ìmeèlì rẹ pẹ̀lú rẹ, a ó sì fi ìfiránṣẹ́ ránṣẹ́ sí ọ nígbà tí ó bá ṣiṣẹ́.",
 };
 
 export default yo;

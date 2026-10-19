@@ -1400,7 +1400,7 @@ test("Start here checklist is built from real shop state, honours skips, and onl
   assert.equal(finished.showStart, false);
   assert.equal(finished.next.key, "domain", "optional steps are offered once the required ones are done");
   assert.match(finished.steps.find((step) => step.key === "payments").hint, /2 ways to pay are on/);
-  assert.equal(finished.steps.find((step) => step.key === "socials").action.href, "/channels", "connect once on /channels");
+  assert.equal(finished.steps.find((step) => step.key === "socials").action.href, "/home/connections", "connect once on Connections");
 
   // Dismissing hides Start here without completing it.
   const dismissed = setup.buildSetupChecklist(empty, { ...none, dismissed: true });
