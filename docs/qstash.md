@@ -23,6 +23,12 @@ Defined in `scripts/qstash-schedules.mjs` (cron times are UTC):
 | shopinbos-whatsapp-catalog              | /api/cron/whatsapp-catalog           | `*/15 * * * *`    |
 | shopinbos-partner-payins                | /api/cron/partner-payins             | `*/15 * * * *`    |
 | shopinbos-verification-reminders        | /api/cron/verification-reminders     | `17 * * * *`      |
+| shopinbos-seasonal-campaigns            | /api/cron/seasonal-campaigns         | `*/5 * * * *`     |
+| shopinbos-gmail-sync                    | /api/cron/gmail-sync                 | `*/5 * * * *`     |
+| shopinbos-lead-growth                   | /api/cron/lead-growth                | `*/10 * * * *`    |
+| shopinbos-sales-channels                | /api/cron/sales-channels             | `23 */2 * * *`    |
+| shopinbos-domain-renewals               | /api/cron/domain-renewals            | `17 7 * * *`      |
+| shopinbos-business-registrations        | /api/cron/business-registrations     | `*/10 * * * *`    |
 | shopinbos-weekly-summary                | /api/cron/weekly-summary             | `0 6 * * 1`       |
 | shopinbos-weekly-summary-continue       | /api/cron/weekly-summary             | `20,40 6-9 * * 1` |
 
@@ -31,7 +37,7 @@ These stay where they are:
 - **`rider-trail-cleanup`** stays on pg_cron because it's plain SQL with no HTTP call.
 - **`/api/cron/reviews`** stays on Vercel Cron (`vercel.json`).
 
-That comes to about 1,800 calls a day, which is above QStash's free daily allowance. Put the account on
+That comes to about 2,900 calls a day, which is above QStash's free daily allowance. Put the account on
 pay-as-you-go (a few cents a day at this volume).
 
 ## Switching over
@@ -39,7 +45,7 @@ pay-as-you-go (a few cents a day at this volume).
 1. In Vercel, set `QSTASH_CURRENT_SIGNING_KEY` and `QSTASH_NEXT_SIGNING_KEY`. Copy them from
    console.upstash.com → QStash, us-east-1. Then deploy.
 2. Create the schedules:
-   `QSTASH_TOKEN=... node scripts/qstash-schedules.mjs https://shopinbos-app.vercel.app`
+   `QSTASH_TOKEN=... node scripts/qstash-schedules.mjs https://app.shopinbos.com`
 3. Watch a few runs in console.upstash.com → QStash → Logs. Every call should return 200.
 4. Switch off the pg_cron jobs QStash now runs. Run this in the Supabase SQL editor:
 
@@ -47,7 +53,8 @@ pay-as-you-go (a few cents a day at this volume).
    select cron.unschedule(jobname) from cron.job where jobname in (
      'send-scheduled-campaigns', 'run-marketing', 'send-unread-message-emails', 'expire-unpaid-orders',
      'verification-reminders', 'whatsapp-catalog-sync', 'weekly-summary', 'weekly-summary-continue',
-     'product-news', 'supplier-acceptance', 'partner-payins', 'push-receipts'
+     'product-news', 'supplier-acceptance', 'partner-payins', 'push-receipts',
+     'seasonal-campaigns', 'gmail-sync', 'lead-growth', 'sales-channels', 'sales-channels-sync', 'domain-renewals'
    );
    ```
 

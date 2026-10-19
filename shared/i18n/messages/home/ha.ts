@@ -69,9 +69,6 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "pm.transfer.label": "Bank transfer",
   "pm.transfer.hint": "Kwastomomi za su sami asusun payout ɗinka; za ka yi alamar an biya idan kuɗin ya shigo",
   "pm.card.label": "Kati da USSD",
-  "pm.card.hint": "Ta Paystack",
-  "pm.korapay.label": "Korapay",
-  "pm.korapay.hint": "Kati, tura kuɗi ko biya ta banki ta Korapay",
   "pm.cod.label": "Biya idan an kawo",
   "pm.cod.hint": "Har zuwa ₦50,000, lambobin waya da aka tabbatar, inda riders ke aiki",
   "pm.wa.label": "Kammala a WhatsApp",
@@ -216,6 +213,9 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "step.Connect WhatsApp, Facebook & Instagram": "Haɗa WhatsApp, Facebook da Instagram",
   "step.One tap each. Customers' messages come to your inbox and your products show there.": "Taɓawa ɗaya kowanne. Saƙonnin kwastomomi za su zo inbox ɗinka kuma kayayyakinka za su bayyana a can.",
   "step.Card payments go straight to your bank once you add it.": "Kuɗin kati za su tafi kai tsaye zuwa bankinka da zarar ka saka shi.",
+  "pm.card.hint": "Kati da USSD, kuɗin suna shiga bankinka kai tsaye",
+  "pm.korapay.label": "Biya ta banki",
+  "pm.korapay.hint": "Wurin biya na biyu mai tsaro: kati, tura kuɗi ko app na banki",
 };
 
 export default ha;

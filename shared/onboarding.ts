@@ -101,8 +101,8 @@ export type PaymentMethodKey = "transfer" | "card" | "korapay" | "cod" | "wa";
 
 export const PAYMENT_METHODS: { key: PaymentMethodKey; label: string; hint: string }[] = [
   { key: "transfer", label: "Bank transfer", hint: "Customers get your payout account; you mark it paid when it lands" },
-  { key: "card", label: "Card and USSD", hint: "Through Paystack" },
-  { key: "korapay", label: "Korapay", hint: "Card, transfer or pay with bank through Korapay" },
+  { key: "card", label: "Card and USSD", hint: "Debit cards and USSD, paid straight into your bank" },
+  { key: "korapay", label: "Pay with bank", hint: "A second secure checkout: card, transfer or bank app" },
   { key: "cod", label: "Pay on delivery", hint: "Up to ₦50,000, verified phone numbers, where riders cover" },
   { key: "wa", label: "Finish on WhatsApp", hint: "Customers can chat to pay" },
 ];

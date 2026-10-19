@@ -9,12 +9,15 @@ import { db } from "@/lib/db/client";
 import crypto from "crypto";
 import { completeStoreLaunchPayment } from "@/lib/store-launch-billing";
 import { DOMAIN_REFERENCE_PREFIX, completeDomainPayment } from "@/lib/domains/billing.server";
+import { completeRegistrationPayment } from "@/lib/business-registration/service.server";
+import { REGISTRATION_REFERENCE_PREFIX } from "@shared/business-registration";
 import { PAYABLE_ORDER_STATUSES, retailChargeProblem } from "@/lib/commerce/paystack-charge";
 import { recoverExpiredOrderPayment } from "@/lib/commerce/order-expiry.server";
 import { applyRefundEvent } from "@/lib/commerce/refunds.server";
 import { afterRetailOrderPaid } from "@/lib/commerce/order-paid.server";
 import { SELLER_PAYIN_PREFIX, confirmSellerPayIn } from "@/lib/logistics/seller-payins.server";
 import { DELIVERY_FEE_PREFIX, confirmDeliveryFeePayment } from "@/lib/logistics/delivery-fee-payments.server";
+import { DEBT_PAYMENT_PREFIX, confirmDebtPayment } from "@/lib/money-owed/money-owed.server";
 import { PAID_RETAIL_STATUSES } from "@/lib/supplier-orders/pure";
 import { isDedicatedCharge } from "@/lib/logistics/payin-rules";
 import { handleDedicatedAccountAssign, handleDedicatedAccountCharge } from "@/lib/logistics/payins.server";
@@ -148,6 +151,14 @@ export async function POST(req: NextRequest) {
     return new NextResponse("OK", { status: 200 });
   }
 
+  // ── Money one business owed another, paid in the app (split to the creditor's own bank) ──
+  if (eventType === "charge.success" && typeof event.data?.reference === "string" && event.data.reference.startsWith(DEBT_PAYMENT_PREFIX)) {
+    const result = await confirmDebtPayment(event.data.reference).catch((error) => ({ ok: false as const, error: String(error), retry: true }));
+    if (!result.ok && result.retry) return new NextResponse("Retry later", { status: 500 });
+    if (!result.ok) console.warn(`[paystack webhook] debt payment ${event.data.reference} not applied: ${result.error}`);
+    return new NextResponse("OK", { status: 200 });
+  }
+
   // ── Retail order payment (storefront checkout) ────────────────────────────
   if (eventType === "charge.success") {
     const ref = event.data?.reference as string | undefined;
@@ -181,6 +192,14 @@ export async function POST(req: NextRequest) {
         await completeDomainPayment(ref).catch((error) => {
           console.error("Domain payment completion failed:", error);
         });
+      }
+      // Business name registrations with CAC: verified the same way here; filing (slow: pictures go along) happens
+      // from the callback or the 10-minute cron, never before a verified payment.
+      if (ref.startsWith(REGISTRATION_REFERENCE_PREFIX)) {
+        await completeRegistrationPayment(ref, { fileNow: false }).catch((error) => {
+          console.error("Business registration payment completion failed:", error);
+        });
+        return NextResponse.json({ received: true });
       }
       // Inline payments carry an amount the buyer's browser chose, so check it against the order before
       // marking it paid. Only a pending order moves, so a retried or replayed event can't undo a later status.

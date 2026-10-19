@@ -154,6 +154,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "step.submitted": "E zigala verification",
   "step.review": "Nyocha Shopinbos",
   "step.approved": "E kwadoro verification",
+  "cac.register": "Enweghị nọmba CAC ka? Debanye aha azụmahịa gị ebe a",
 };
 
 export default ig;

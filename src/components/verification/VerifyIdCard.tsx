@@ -4,12 +4,12 @@ import { useState } from "react";
 import { KycForm } from "@/components/wallet/WalletForms";
 
 // "Verify you" during onboarding (sellers, suppliers, delivery partners): the Shopinbos Wallet ID check (BVN or NIN,
-// Youverify, src/lib/wallet). One check serves everything: it opens card payments to the person's bank, and for a
+// Korapay Identity, else Youverify, src/lib/wallet). One check serves everything: it opens card payments to the person's bank, and for a
 // supplier or delivery partner it also approves their ID document (src/lib/kyb/identity-doc.server.ts).
 
 export interface IdCheckState {
   verified: boolean;
-  /** ID checks are configured (Youverify or Korapay). */
+  /** ID checks are configured (Korapay or Youverify). */
   checksReady: boolean;
   name?: string | null;
 }

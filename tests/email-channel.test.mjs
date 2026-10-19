@@ -217,7 +217,7 @@ test("wiring: seller-only routes with zod, the cron job, rate limits, and email 
   }
   assert.match(read("src/app/api/app/inbox/email/gmail/callback/route.ts"), /checkGmailState\(/);
   const cron = read("src/app/api/cron/gmail-sync/route.ts");
-  assert.match(cron, /cronAuthorization\(/);
+  assert.match(cron, /const denied = await cronDenied\(req\);\n  if \(denied\) return denied;/, "the cron secret or a signed QStash call");
   const sql = read("docs/migrations/2026-10-31-email-channel.sql");
   assert.match(sql, /NOT EXISTS \(SELECT 1 FROM cron\.job WHERE jobname = 'gmail-sync'\)/);
   assert.match(sql, /'\*\/5 \* \* \* \*'/);

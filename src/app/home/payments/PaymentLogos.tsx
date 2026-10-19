@@ -5,14 +5,18 @@ import { Card, CardHead } from "@/components/app-kit";
 import { Notice } from "@/components/app-ui";
 import { cx } from "@/components/app-ui/cx";
 import { PaymentBadge, PaymentBadgeRow } from "@/components/storefront/shopper/PaymentBadges";
-import { PAYMENT_BADGE_KEYS, PAYMENT_BADGE_LABELS, cleanPaymentBadges, type PaymentBadgeKey } from "@shared/payment-badges";
+import { PAYMENT_BADGE_KEYS, PAYMENT_BADGE_LABELS, cleanPaymentBadges, type BadgeBlock, type PaymentBadgeKey } from "@shared/payment-badges";
 import { useT } from "@/components/i18n/I18nProvider";
 import { savePaymentBadges } from "./actions";
 
 // "Payment logos on your store": the seller taps logos on or off and sees the row as shoppers will (storefront
-// footer and checkout). Saved straight away through savePaymentBadges (src/lib/seller-payments.server.ts).
+// footer and checkout). Only logos for ways the store really takes payment can be tapped; the others show why
+// (shared/payment-badges.ts paymentBadgeAvailability). Saved straight away through savePaymentBadges
+// (src/lib/seller-payments.server.ts).
 
-export function PaymentLogos({ initial, defaults }: { initial: PaymentBadgeKey[]; defaults: PaymentBadgeKey[] }) {
+const BLOCK_ORDER: BadgeBlock[] = ["turn_on_card", "wallet", "turn_on_transfer", "transfer_bank", "turn_on_cod", "not_supported"];
+
+export function PaymentLogos({ initial, defaults, available, blocked }: { initial: PaymentBadgeKey[]; defaults: PaymentBadgeKey[]; available: PaymentBadgeKey[]; blocked: Partial<Record<PaymentBadgeKey, BadgeBlock>> }) {
   const t = useT("payments");
   const [badges, setBadges] = useState<PaymentBadgeKey[]>(initial);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +41,12 @@ export function PaymentLogos({ initial, defaults }: { initial: PaymentBadgeKey[]
     });
   }
 
-  const toggle = (badge: PaymentBadgeKey) => save(cleanPaymentBadges(badges.includes(badge) ? badges.filter((key) => key !== badge) : [...badges, badge]));
+  const toggle = (badge: PaymentBadgeKey) => {
+    if (!available.includes(badge)) return;
+    save(cleanPaymentBadges(badges.includes(badge) ? badges.filter((key) => key !== badge) : [...badges, badge]));
+  };
+  // "Visa, Mastercard, Verve: set up your Shopinbos Wallet first", one line per reason.
+  const reasons = BLOCK_ORDER.map((block) => ({ block, names: PAYMENT_BADGE_KEYS.filter((key) => blocked[key] === block).map(name) })).filter((row) => row.names.length);
   const isDefault = badges.length === defaults.length && badges.every((badge) => defaults.includes(badge));
 
   return (
@@ -46,15 +55,20 @@ export function PaymentLogos({ initial, defaults }: { initial: PaymentBadgeKey[]
       <ul className="m-0 mt-3 flex list-none flex-wrap gap-2 p-0">
         {PAYMENT_BADGE_KEYS.map((badge) => {
           const on = badges.includes(badge);
+          const off = !available.includes(badge);
           return (
             <li key={badge}>
               <button
                 type="button"
-                aria-pressed={on}
+                aria-pressed={off ? undefined : on}
+                disabled={off}
+                title={off && blocked[badge] ? t.dynamic(`badges.block.${blocked[badge]}`, "") : undefined}
                 onClick={() => toggle(badge)}
                 className={cx(
                   "inline-flex min-h-[44px] items-center gap-2 rounded-full border-2 py-1.5 pl-1.5 pr-3 text-[13px] font-bold transition",
-                  on ? "border-app-ink bg-white text-app-ink" : "border-app-line bg-app-canvas text-app-ink-soft opacity-80 hover:opacity-100",
+                  off
+                    ? "cursor-not-allowed border-dashed border-app-line bg-transparent text-app-ink-faint opacity-45 grayscale"
+                    : on ? "border-app-ink bg-white text-app-ink" : "border-app-line bg-app-canvas text-app-ink-soft opacity-80 hover:opacity-100",
                 )}
               >
                 <PaymentBadge badge={badge} label={words[badge]} />
@@ -65,6 +79,14 @@ export function PaymentLogos({ initial, defaults }: { initial: PaymentBadgeKey[]
           );
         })}
       </ul>
+
+      {reasons.length ? (
+        <ul className="m-0 mt-3 grid list-none gap-1 p-0 text-[12.5px] leading-[1.45] text-app-ink-soft">
+          {reasons.map((row) => (
+            <li key={row.block}><span className="font-bold text-app-ink">{row.names.join(", ")}</span>: {t.dynamic(`badges.block.${row.block}`, "")}</li>
+          ))}
+        </ul>
+      ) : null}
 
       <div className="mt-4 rounded-[14px] border border-app-line bg-app-canvas px-4 py-3">
         <div className="text-[12.5px] font-bold text-app-ink-soft">{t("badges.preview")}</div>

@@ -48,10 +48,12 @@ export interface FindProductsViewProps {
   notified: boolean;
   error?: string;
   focusPhoto?: boolean;
+  /** For now only suppliers near the seller show; without a city set, none do. */
+  nearby?: { hasPlace: boolean; city: string | null };
 }
 
 /** Body of "Find products to sell" under the page title: tabs, search, and the active tab. */
-export async function FindProductsView({ tab, country, q, cat, categories, products, sampleMode, supplierName, insight, trends, addedIds, notified }: FindProductsViewProps) {
+export async function FindProductsView({ tab, country, q, cat, categories, products, sampleMode, supplierName, insight, trends, addedIds, notified, nearby }: FindProductsViewProps) {
   const t = await getT("marketplace");
   const hrefFor = findHref;
   const tip = insightText(t, insight);
@@ -112,6 +114,16 @@ export async function FindProductsView({ tab, country, q, cat, categories, produ
               ))}
             </ul>
           </div>
+
+          {nearby ? (
+            <div className={cx("flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[16px] px-4 py-3", nearby.hasPlace ? "border border-app-line bg-white" : "bg-[#FDF0D5]")}>
+              <Icon name={nearby.hasPlace ? "pin" : "shield"} size={17} className="shrink-0" />
+              <span className="min-w-0 flex-1 text-[13.5px] leading-[1.5]">
+                {nearby.hasPlace ? t("trust.nearbyOnly", { city: nearby.city ?? "" }) : t("trust.addCity")}
+              </span>
+              {!nearby.hasPlace ? <PillLink href="/home/settings" size="sm">{t("trust.addCityBtn")}</PillLink> : null}
+            </div>
+          ) : null}
 
           {sampleMode && (
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-[16px] border border-dashed border-app-line-strong bg-white px-4 py-3">

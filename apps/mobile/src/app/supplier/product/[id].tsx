@@ -155,7 +155,7 @@ export default function SupplierProductScreen() {
         <PillButton title={hidden ? t("showToShops") : t("product.hide")} tone="white" size="md" busy={busy === "publish"} disabled={Boolean(busy)} onPress={() => void publish(hidden)} />
       </Card>
 
-      <LinkButton title={t("product.editOnWeb")} color={colors.inkSoft} onPress={() => void openWeb(`/supplier/products/${data.id}`)} />
+      <LinkButton title={t("product.editOnWeb")} color={colors.inkSoft} onPress={() => void openWeb(`/supplier/products/${data.id}/edit`)} />
     </Screen>
   );
 }

@@ -14,6 +14,7 @@ import { DELIVERY_CITY_PRESETS, ELSEWHERE_AREA, START_SEEN_COOKIE, type SetupSte
 import type { SetupOverview } from "@/lib/setup/server";
 import { chooseSetupStep, saveDeliveryPicks, savePaymentChoices } from "./actions";
 import { StartHelpers } from "./StartHelpers";
+import { useAppSession } from "@/components/billing/useAppSession";
 
 interface Props {
   firstName: string;
@@ -447,10 +448,14 @@ function LivePanel({
   const naira = useNaira();
   const [busy, setBusy] = useState<"full" | "installment" | null>(null);
   const [blocker, setBlocker] = useState<string | null>(null);
+  const inApp = useAppSession();
+  const tPay = useT("payments");
 
   if (live) {
     return <p className="m-0 text-[14px] leading-[1.5]">{t("start.live.isLive")}</p>;
   }
+  // Opened from the phone app: no price or payment (app store rules; see src/lib/app-session.ts).
+  if (inApp) return <p className="m-0 text-[14px] leading-[1.5]">{tPay("app.launchBody")}</p>;
 
   async function pay(option: "full" | "installment") {
     setBusy(option);

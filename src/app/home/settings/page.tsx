@@ -26,6 +26,7 @@ import { SupplierSwitchCard } from "@/components/settings/SupplierSwitchCard";
 import { switchSettings } from "@shared/order-parts";
 import { NotificationSettingsPanel } from "@/components/notifications/NotificationSettingsPanel";
 import { getT } from "@/lib/i18n/server";
+import { isAppSession } from "@/lib/app-session.server";
 import { StoreAddressFields } from "@/components/seller-settings/StoreAddressFields";
 import { getPlatformRootDomain } from "@/lib/domains/storefront";
 import { slugCooldownDaysLeft } from "@shared/store-address";
@@ -52,6 +53,7 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
   const user = await requireRole(["seller"], "/login");
   const t = await getT("account", "common");
   const tPay = await getT("payments");
+  const inApp = await isAppSession();
   const workspace = await getSellerWorkspace(user.id);
 
   if (!workspace) return null;
@@ -278,7 +280,10 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
               </>
             )}
 
-            {activeTab === "Billing" && (
+            {activeTab === "Billing" && inApp && (
+              <Card className="p-5"><p className="m-0 text-[14px] leading-[1.5]">{tPay("app.billingOff")}</p></Card>
+            )}
+            {activeTab === "Billing" && !inApp && (
               <>
                 <StoreLaunchBalanceCard balanceDue={Number(launchBilling?.balanceDue ?? 0)} dueAt={launchBilling?.dueAt} />
                 <Card className="p-5">

@@ -291,20 +291,26 @@ export function PaymentFields({
   options,
   method,
   onSelect,
+  unavailable,
   errors,
   riderPhone,
   total,
   currency,
+  whatsappOrderHref = null,
 }: {
   theme: ShopperTheme;
   options: CheckoutPaymentOption[];
   method: CheckoutPaymentMethod;
   onSelect: (method: CheckoutPaymentMethod) => void;
+  /** Set when no way to pay works for this order: what to tell the shopper instead of the choices. */
+  unavailable?: string | null;
   errors: FieldErrors;
   /** The rider's phone field for pay on delivery (Steps, where the contact fields aren't on screen); null to skip it. */
   riderPhone: React.ReactNode | null;
   total: number;
   currency: string;
+  /** "Finish on WhatsApp": the seller turned it on and the store has a number. Opens a chat with the bag in it. */
+  whatsappOrderHref?: string | null;
 }) {
   return (
     <div className="grid gap-3">
@@ -325,12 +331,21 @@ export function PaymentFields({
           ))}
         </div>
       </fieldset>
+      {unavailable ? <p role="alert" className="text-[14px]" style={{ color: ERROR }}>{unavailable}</p> : null}
       {errors.paymentMethod ? <p role="alert" className="text-[13px]" style={{ color: ERROR }}>{errors.paymentMethod}</p> : null}
       {method === "pay_on_delivery" ? (
         <div className="grid gap-2">
           {riderPhone}
           <p className="text-[13px]" style={{ color: theme.muted }}>Have <Money amount={total} currency={currency} /> ready when your order arrives.</p>
         </div>
+      ) : null}
+      {whatsappOrderHref ? (
+        <p className="text-[13.5px]" style={{ color: theme.muted }}>
+          Prefer to chat?{" "}
+          <a href={whatsappOrderHref} target="_blank" rel="noopener noreferrer" className="font-semibold underline underline-offset-4" style={{ color: theme.ink }}>
+            Finish your order on WhatsApp
+          </a>
+        </p>
       ) : null}
     </div>
   );

@@ -72,7 +72,7 @@ ALTER TABLE "WhatsAppCatalogItem" ENABLE ROW LEVEL SECURITY;
 --   '*/15 * * * *',
 --   $$
 --   select net.http_get(
---     url := 'https://shopinbos-app.vercel.app/api/cron/whatsapp-catalog',
+--     url := 'https://app.shopinbos.com/api/cron/whatsapp-catalog',
 --     headers := jsonb_build_object(
 --       'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'cron_secret')
 --     ),

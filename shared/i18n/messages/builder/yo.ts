@@ -213,6 +213,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "ps.addedLabel": "A ti fi {name} kún un",
   "ps.addLabel": "Fi {name} kún un",
   "ps.added": "A ti fi kún un",
+  "ps.checkFirst": "Pe supplier, kí o sì yẹ ọjà wò ná",
   "ps.add": "Fi kún un",
   "ps.back": "Padà",
   "ps.saved": "A ti fi pamọ́",
@@ -2125,6 +2126,9 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "ed.Own phone menu": "Mẹ́nù fóònù tirẹ̀",
   "ed.Footer links": "Àwọn ìjápọ̀ ìsàlẹ̀",
   "ed.Until you change them, the footer shows its usual links.": "Títí tí o fi máa yí wọn padà, footer á máa fi àwọn ìjápọ̀ rẹ̀ tó wọ́pọ̀ hàn.",
+  "ls.online": "Káàdì àti ìfiránṣẹ́ owó",
+  "ls.addBank": "Fi àkáǹtì báńkì rẹ kún un",
+  "ls.changeBank": "Yí i padà",
 };
 
 export default yo;

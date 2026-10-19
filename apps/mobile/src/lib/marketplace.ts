@@ -1,9 +1,10 @@
 import { api } from "./api";
 import { parsePricingTiers, shipsLabel, shortCategory, type FindTier } from "./find-pure";
 
-// Find products: supplier products from the public marketplace API (/api/public/products, the same rows the
-// web's /marketplace shows), plus the seller's own bits from /api/mobile/marketplace (already added, where
-// wholesale ships to) and "Add to store" / "Request a quote".
+// Find products: supplier products from /api/mobile/marketplace/products (the same rows the web's /marketplace
+// shows: suppliers near the seller, verified or not, with their risk score), plus the seller's own bits from
+// /api/mobile/marketplace (already added, where wholesale ships to), the Dropship agreement before listing
+// (call the supplier, check the stock, agree), and "Add to store" / "Request a quote".
 
 interface RawProduct {
   id: string;
@@ -20,8 +21,28 @@ interface RawProduct {
   bulkOrderAvailable: boolean;
   processingTime: string | null;
   trendScore: number;
-  supplier: { id: string; displayName: string; slug: string; city: string; rating: number; ratingCount?: number; description?: string | null; responseTimeLabel?: string | null };
+  supplier: {
+    id: string;
+    displayName: string;
+    slug: string;
+    city: string;
+    rating: number;
+    ratingCount?: number;
+    description?: string | null;
+    responseTimeLabel?: string | null;
+    verificationStatus?: string;
+    returnPolicy?: string | null;
+    risk?: SupplierRisk | null;
+    km?: number | null;
+    agreed?: boolean;
+  };
   category: { name: string } | null;
+}
+
+export interface SupplierRisk {
+  score: number;
+  level: "low" | "medium" | "high";
+  reasons: string[];
 }
 
 export interface FindProduct {
@@ -31,7 +52,21 @@ export interface FindProduct {
   description: string;
   category: string;
   images: string[];
-  supplier: { id: string; name: string; city: string; rating: number | null; about: string | null; responds: string | null };
+  supplier: {
+    id: string;
+    name: string;
+    city: string;
+    rating: number | null;
+    about: string | null;
+    responds: string | null;
+    /** verified | pending | unverified */
+    verificationStatus: string;
+    returnPolicy: string | null;
+    risk: SupplierRisk | null;
+    km: number | null;
+    /** The seller and the supplier both accepted the Dropship agreement. */
+    agreed: boolean;
+  };
   /** What the supplier charges per unit (dropship). */
   cost: number;
   /** Suggested selling price. */
@@ -61,6 +96,11 @@ function toFindProduct(row: RawProduct): FindProduct {
       rating: rated ? row.supplier.rating : null,
       about: row.supplier.description ?? null,
       responds: row.supplier.responseTimeLabel ?? null,
+      verificationStatus: row.supplier.verificationStatus ?? "verified",
+      returnPolicy: row.supplier.returnPolicy?.trim() || null,
+      risk: row.supplier.risk ?? null,
+      km: typeof row.supplier.km === "number" ? row.supplier.km : null,
+      agreed: row.supplier.agreed === true,
     },
     cost: Number(row.wholesalePrice) || 0,
     price: Number(row.suggestedRetailPrice) || 0,
@@ -74,17 +114,37 @@ function toFindProduct(row: RawProduct): FindProduct {
   };
 }
 
-/** Up to 100 products from verified suppliers in the seller's country, most trending first. */
-export async function fetchFindProducts(country: string, q?: string) {
-  const params = new URLSearchParams({ limit: "100", sort: "trending", country });
+/**
+ * Up to 100 products from suppliers near the seller (verified or not), most trending first. `hasPlace` false: the
+ * store has no city yet, so no supplier counts as near (the screen asks for one).
+ */
+export async function fetchFindProducts(q?: string) {
+  const params = new URLSearchParams();
   if (q?.trim()) params.set("q", q.trim().slice(0, 120));
-  const rows = await api<RawProduct[]>(`/api/public/products?${params.toString()}`);
-  return rows.map(toFindProduct);
+  const result = await api<{ hasPlace: boolean; city: string | null; products: RawProduct[] }>(`/api/mobile/marketplace/products${params.toString() ? `?${params.toString()}` : ""}`);
+  return { hasPlace: result.hasPlace, city: result.city, products: result.products.map(toFindProduct) };
+}
+
+/** What the seller does before dropshipping a supplier's products (the web's "Before you sell" steps). */
+export type ListingStep = "agree" | "waiting" | "declined" | "ready" | "far" | "noPlace";
+
+export interface Listing {
+  step: ListingStep;
+  /** The supplier's phone and address, only while the seller still has to call them. */
+  phone: string | null;
+  address: string | null;
+  /** Why the supplier declined. */
+  supplierNote: string | null;
 }
 
 export async function fetchFindProduct(slug: string) {
-  return toFindProduct(await api<RawProduct>(`/api/public/products/${encodeURIComponent(slug)}`));
+  const row = await api<RawProduct & { listing: Listing }>(`/api/mobile/marketplace/products/${encodeURIComponent(slug)}`);
+  return { product: toFindProduct(row), listing: row.listing };
 }
+
+/** The seller called the supplier, checked the stock and accepts the Dropship agreement: it goes to the supplier. */
+export const sendAgreement = (input: { supplierId: string; called: boolean; stockCheck: "visit" | "video"; agreed: boolean; note?: string }) =>
+  api<{ message: string }>("/api/mobile/marketplace/agreement", { method: "POST", json: input });
 
 export interface FindContext {
   country: string;

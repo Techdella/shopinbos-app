@@ -2,12 +2,14 @@ import "server-only";
 
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
-import { readTransferWindowHours } from "@shared/checkout-payments";
+import { paystackSecretReady, readTransferAccount, readTransferWindowHours } from "@shared/checkout-payments";
+import { korapayCheckoutReady } from "@/lib/korapay";
 import type { PaymentMethodKey } from "@shared/onboarding";
 import {
   cleanPaymentMethods,
   isTransferWindowChoice,
   PAID_STATUSES,
+  paymentMethodStates,
   paymentMethodsProblem,
   readPayoutBankSummary,
   readShopPaymentMethods,
@@ -16,8 +18,9 @@ import {
   type PaymentsSettingsError,
 } from "@shared/seller-payments";
 import { unpaidTransferTtlHours } from "@/lib/commerce/stock-holds";
-import { defaultPaymentBadges, hasChosenPaymentBadges, readPaymentBadges } from "@shared/payment-badges";
+import { defaultPaymentBadges, hasChosenPaymentBadges, paymentBadgeAvailability, readPaymentBadges } from "@shared/payment-badges";
 import { parsePaymentBadges } from "@/lib/store-badges";
+import { storeTakesCards, storeTakesKorapay } from "@/lib/wallet/wallet.server";
 
 // A seller's money settings, shared by the /home/payments server actions (web) and /api/app/payments (phone app).
 
@@ -65,27 +68,50 @@ export async function saveSellerTransferWindow(userId: string, hours: number | n
 }
 
 /**
+ * Which ways the store can take payment right now, for which payment logos it may show
+ * (shared/payment-badges.ts paymentBadgeAvailability): cards when its wallet settles to its bank, Korapay when
+ * Split Payments is on for it, transfer when it has an account to pay into. Never throws.
+ */
+export async function storePaymentReadiness(storeId: string, brandSettings: unknown) {
+  const [cards, korapay] = await Promise.all([
+    paystackSecretReady(process.env.PAYSTACK_SECRET_KEY) ? storeTakesCards(storeId).catch(() => false) : Promise.resolve(false),
+    storeTakesKorapay(storeId).catch(() => false),
+  ]);
+  return { cards, korapay, transfer: readTransferAccount(brandSettings) !== null };
+}
+
+/** The logos this store may show now, and why each other one isn't available. */
+export async function storeBadgeAvailability(storeId: string, brandSettings: unknown) {
+  return paymentBadgeAvailability(readShopPaymentMethods(brandSettings), await storePaymentReadiness(storeId, brandSettings));
+}
+
+/**
  * Which payment logos the store shows shoppers (footer, checkout "We accept"). An empty list shows none; only the
- * known logos are kept (src/lib/store-badges.ts).
+ * known logos are kept (src/lib/store-badges.ts), and only ones for ways the store can take payment now.
  */
 export async function saveSellerPaymentBadges(userId: string, badges: unknown): Promise<{ error?: PaymentsSettingsError }> {
   const parsed = parsePaymentBadges(badges);
   if (!parsed.ok) return { error: "badges" };
   const store = await storeSettings(userId);
   if (!store) return { error: "noStore" };
+  const { available } = await storeBadgeAvailability(store.id, store.settings);
   await db.store.update({
     where: { id: store.id },
-    data: { brandSettings: { ...store.settings, paymentBadges: parsed.badges } as Prisma.InputJsonValue },
+    data: { brandSettings: { ...store.settings, paymentBadges: parsed.badges.filter((badge) => available.includes(badge)) } as Prisma.InputJsonValue },
   });
   return {};
 }
 
-/** The logos shown now, whether the seller picked them, and what their payment methods would give. */
-export function sellerPaymentBadges(brandSettings: unknown) {
+/** The logos shown now, whether the seller picked them, what their payment methods would give, and which can be picked. */
+export async function sellerPaymentBadges(store: { id: string; brandSettings: unknown } | null) {
+  const brandSettings = store?.brandSettings;
+  const { available, blocked } = store ? await storeBadgeAvailability(store.id, brandSettings) : { available: [], blocked: {} };
   return {
-    selected: readPaymentBadges(brandSettings),
+    selected: readPaymentBadges(brandSettings, available),
     chosen: hasChosenPaymentBadges(brandSettings),
-    defaults: defaultPaymentBadges(readShopPaymentMethods(brandSettings)),
+    defaults: defaultPaymentBadges(readShopPaymentMethods(brandSettings)).filter((badge) => available.includes(badge)),
+    available,
+    blocked,
   };
 }
 
@@ -120,6 +146,23 @@ export async function sellerMoneyOverview(store: { id: string; brandSettings: un
     methods: readShopPaymentMethods(store?.brandSettings),
     transferWindow: { hours: readTransferWindowHours(store?.brandSettings), defaultHours: defaultTransferWindowHours() },
     bank: readPayoutBankSummary(store?.brandSettings),
-    paymentBadges: sellerPaymentBadges(store?.brandSettings),
+    paymentBadges: await sellerPaymentBadges(store),
   };
+}
+
+/** Whether each way to pay reaches customers yet (shared/seller-payments.ts paymentMethodStates), for the Money page. */
+export async function sellerPaymentStates(userId: string, store: { id: string; brandSettings: unknown } | null) {
+  const [wallet, chat] = await Promise.all([
+    db.wallet.findUnique({ where: { userId }, select: { accountNumber: true, subaccountStatus: true, status: true, korapaySplitAccount: true } }),
+    store ? db.liveChatConfig.findUnique({ where: { storeId: store.id }, select: { whatsappNumber: true } }).catch(() => null) : null,
+  ]);
+  return paymentMethodStates({
+    cardKeys: paystackSecretReady(process.env.PAYSTACK_SECRET_KEY),
+    secondCheckout: korapayCheckoutReady(),
+    wallet: wallet
+      ? { hasBank: Boolean(wallet.accountNumber), settlement: wallet.subaccountStatus, frozen: wallet.status === "frozen", secondCheckoutAccount: Boolean(wallet.korapaySplitAccount) }
+      : null,
+    transferAccount: readTransferAccount(store?.brandSettings) !== null,
+    whatsapp: Boolean(chat?.whatsappNumber?.replace(/\D/g, "")),
+  });
 }

@@ -1,18 +1,17 @@
 import { useEffect, useState } from "react";
 import { Modal, Pressable, ScrollView, TextInput, View } from "react-native";
 import { router } from "expo-router";
-import * as WebBrowser from "expo-web-browser";
-import { DEFAULT_DELIVERY_ZONES, DEFAULT_PAYMENT_METHODS, naira, PAYMENT_METHODS, type DeliveryZone, type PaymentMethodKey } from "@shared/onboarding";
+import { DEFAULT_DELIVERY_ZONES, DEFAULT_PAYMENT_METHODS, PAYMENT_METHODS, type DeliveryZone, type PaymentMethodKey } from "@shared/onboarding";
 import { Card, Field, Label, Notice, PillButton, T, Toggle } from "@/components/ui";
 import { OnboardingFrame } from "@/components/OnboardingFrame";
 import { useOnboarding } from "@/components/OnboardingContext";
-import { fetchPayoutBank, linkPayoutBank, savePayments, startLaunchPayment } from "@/lib/onboarding";
+import { emailLaunchSteps, fetchPayoutBank, linkPayoutBank, savePayments } from "@/lib/onboarding";
 import { useT } from "@/lib/i18n";
 import { colors, fonts } from "@/theme";
 
 export default function Payments() {
   const t = useT("m_onboarding");
-  const { status, refresh, waitForBuild, startBuild } = useOnboarding();
+  const { status, waitForBuild, startBuild } = useOnboarding();
   const [methods, setMethods] = useState<Record<PaymentMethodKey, boolean>>(DEFAULT_PAYMENT_METHODS);
   const [zones, setZones] = useState<DeliveryZone[]>(DEFAULT_DELIVERY_ZONES);
   const [banks, setBanks] = useState<string[]>([]);
@@ -21,7 +20,9 @@ export default function Payments() {
   const [bankName, setBankName] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
   const [accountName, setAccountName] = useState("");
+  // Not live yet: the phone app can't take the launch fee (app store rules), so we email the next steps instead.
   const [launchOpen, setLaunchOpen] = useState(false);
+  const [emailedTo, setEmailedTo] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -58,7 +59,11 @@ export default function Payments() {
       await (status?.memory?.storeName ? waitForBuild() : startBuild(status?.store.name ?? "My Shop"));
       setNote(null);
       if (status?.store.live) router.replace("/onboarding/live");
-      else setLaunchOpen(true);
+      else {
+        const sent = await emailLaunchSteps().catch(() => null);
+        setEmailedTo(sent?.emailed ? sent.email : null);
+        setLaunchOpen(true);
+      }
     } catch (liveError) {
       setError(liveError instanceof Error ? liveError.message : t("pay.saveFailed"));
     } finally {
@@ -67,22 +72,9 @@ export default function Payments() {
     }
   }
 
-  async function pay(option: "full" | "installment") {
-    setBusy(true);
-    setError(null);
-    try {
-      const result = await startLaunchPayment(option);
-      if (result.authorizationUrl) await WebBrowser.openBrowserAsync(result.authorizationUrl);
-      // Paystack's callback publishes the shop; check once the browser closes.
-      const next = await refresh();
-      setLaunchOpen(false);
-      if (next?.store.live) router.replace("/onboarding/live");
-      else setError(t("pay.notSeen"));
-    } catch (payError) {
-      setError(payError instanceof Error ? payError.message : t("pay.paystackFailed"));
-    } finally {
-      setBusy(false);
-    }
+  function next() {
+    setLaunchOpen(false);
+    router.replace("/onboarding/checklist");
   }
 
   return (
@@ -141,11 +133,6 @@ export default function Payments() {
           </View>
         ))}
       </Card>
-      {!status?.store.live && status && (
-        <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 19, marginTop: 14, paddingHorizontal: 4 }}>
-          {t("pay.costs", { total: naira(status.launch.totalNgn), deposit: naira(status.launch.depositNgn) })}
-        </T>
-      )}
 
       <Modal visible={bankOpen} transparent animationType="slide" onRequestClose={() => setBankOpen(false)}>
         <Pressable style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "flex-end" }} onPress={() => !busy && setBankOpen(false)}>
@@ -173,28 +160,14 @@ export default function Payments() {
         </Pressable>
       </Modal>
 
-      <Modal visible={launchOpen} transparent animationType="slide" onRequestClose={() => setLaunchOpen(false)}>
-        <Pressable style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "flex-end" }} onPress={() => !busy && setLaunchOpen(false)}>
+      <Modal visible={launchOpen} transparent animationType="slide" onRequestClose={next}>
+        <Pressable style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "flex-end" }} onPress={next}>
           <Pressable style={{ backgroundColor: colors.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 36 }} onPress={() => undefined}>
-            <T weight="extrabold" style={{ fontSize: 24, letterSpacing: -0.4 }}>{t("pay.putLive", { name: status?.store.name ?? "" })}</T>
-            <T style={{ color: colors.inkSoft, marginTop: 8, marginBottom: 18, lineHeight: 21 }}>{t("pay.launchFee")}</T>
-            {status && (
-              <>
-                <PillButton title={t("pay.payFull", { amount: naira(status.launch.totalNgn) })} busy={busy} onPress={() => void pay("full")} />
-                {status.launch.depositNgn < status.launch.totalNgn && (
-                  <PillButton
-                    title={t("pay.payPart", { now: naira(status.launch.depositNgn), rest: naira(status.launch.totalNgn - status.launch.depositNgn) })}
-                    tone="white"
-                    size="md"
-                    style={{ marginTop: 10 }}
-                    disabled={busy}
-                    onPress={() => void pay("installment")}
-                  />
-                )}
-              </>
-            )}
-            {error && <View style={{ marginTop: 12 }}><Notice>{error}</Notice></View>}
-            <T style={{ color: colors.inkFaint, fontSize: 13.5, textAlign: "center", marginTop: 14 }}>{t("pay.paystackNote")}</T>
+            <T weight="extrabold" style={{ fontSize: 24, letterSpacing: -0.4 }}>{t("pay.readyTitle", { name: status?.store.name ?? "" })}</T>
+            <T style={{ color: colors.inkSoft, marginTop: 8, marginBottom: 18, lineHeight: 21 }}>
+              {emailedTo ? t("pay.readyEmailed", { email: emailedTo }) : t("pay.readyLater")}
+            </T>
+            <PillButton title={t("pay.readyNext")} onPress={next} />
           </Pressable>
         </Pressable>
       </Modal>

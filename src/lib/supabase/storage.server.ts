@@ -59,6 +59,19 @@ export async function uploadPrivateFile(dir: string, file: File | Blob): Promise
   return { path };
 }
 
+/** Reads a private file back (the private bucket first, then the main one). Throws when it isn't there. */
+export async function readPrivateFile(path: string): Promise<Blob> {
+  const supabase = await getSupabaseServiceClient();
+  const priv = privateBucket();
+  if (priv) {
+    const { data } = await supabase.storage.from(priv).download(path);
+    if (data) return data;
+  }
+  const { data, error } = await supabase.storage.from(BUCKET).download(path);
+  if (error || !data) throw new Error(error?.message ?? "File not found");
+  return data;
+}
+
 /** Removes a private file from whichever bucket holds it. Best effort. */
 export async function removePrivateFile(path: string) {
   const supabase = await getSupabaseServiceClient();

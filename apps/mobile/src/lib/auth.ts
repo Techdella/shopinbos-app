@@ -1,4 +1,6 @@
-import { Alert } from "react-native";
+import { Alert, Platform } from "react-native";
+import * as AppleAuthentication from "expo-apple-authentication";
+import * as Crypto from "expo-crypto";
 import * as WebBrowser from "expo-web-browser";
 import { makeRedirectUri } from "expo-auth-session";
 import { api, API_URL } from "./api";
@@ -98,6 +100,36 @@ export async function signInWithGoogle() {
   const exchange = await supabase.auth.exchangeCodeForSession(code);
   if (exchange.error) throw new Error(friendly(exchange.error.message));
   return exchange.data.session;
+}
+
+/** Sign in with Apple is offered on iPhone only (Apple requires it there because the app offers Google sign-in). */
+export async function appleSignInAvailable() {
+  return Platform.OS === "ios" && (await AppleAuthentication.isAvailableAsync().catch(() => false));
+}
+
+/**
+ * Sign in with Apple, natively: Apple signs an ID token for this nonce and Supabase checks it (provider "apple",
+ * client ID = the app's bundle ID). Returns the person's name too, which Apple shares on their first sign-in only.
+ * null when they cancel.
+ */
+export async function signInWithApple() {
+  const nonce = Crypto.randomUUID();
+  const hashedNonce = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, nonce);
+  let credential: AppleAuthentication.AppleAuthenticationCredential;
+  try {
+    credential = await AppleAuthentication.signInAsync({
+      requestedScopes: [AppleAuthentication.AppleAuthenticationScope.FULL_NAME, AppleAuthentication.AppleAuthenticationScope.EMAIL],
+      nonce: hashedNonce,
+    });
+  } catch (error) {
+    if ((error as { code?: string }).code === "ERR_REQUEST_CANCELED") return null;
+    throw new Error(tNow("m_auth")("error.appleUnfinished"));
+  }
+  if (!credential.identityToken) throw new Error(tNow("m_auth")("error.appleUnfinished"));
+  const { data, error } = await supabase.auth.signInWithIdToken({ provider: "apple", token: credential.identityToken, nonce });
+  if (error) throw new Error(friendly(error.message));
+  const fullName = [credential.fullName?.givenName, credential.fullName?.familyName].filter(Boolean).join(" ").trim();
+  return { session: data.session, fullName: fullName || undefined };
 }
 
 export async function sendPasswordReset(email: string) {

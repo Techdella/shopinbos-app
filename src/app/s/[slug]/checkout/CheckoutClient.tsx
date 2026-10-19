@@ -11,12 +11,13 @@ import { readLinkCode, readOrderChannel, useCampaignAttribution } from "@/hooks/
 import { readRememberedStoreVisitor, rememberStoreVisitor, useStoreVisitor } from "@/hooks/useStoreVisitor";
 import { getPublicStorefrontPath } from "@/lib/domains/storefront";
 import { checkoutLegalLinks, legalPagePath } from "@/lib/legal/pages";
-import { formatStoreMoney, freeDeliveryEverywhereOver, readShopperInfo } from "@/lib/storefront/shopper-info";
+import { formatStoreMoney, freeDeliveryEverywhereOver, readShopperInfo, whatsappLink } from "@/lib/storefront/shopper-info";
+import { whatsappOrderMessage } from "@shared/seller-payments";
 import { discountAmount } from "@/lib/discounts";
 import { PaystackCheckoutButton } from "@/components/payments/PaystackCheckout";
 import { KorapayFrame } from "@/components/payments/KorapayFrame";
 import { verifyPaystackPayment, updateOrderPayment } from "@/app/actions/payments";
-import { checkoutPaymentOptions, type CheckoutPaymentMethod } from "@shared/checkout-payments";
+import { checkoutPaymentOptions, noWayToPayText, type CheckoutPaymentMethod } from "@shared/checkout-payments";
 import {
   CHECKOUT_STEP_LABELS,
   chooseDelivery,
@@ -199,7 +200,9 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
     [commerce.payments, details.city, details.state, totals.total],
   );
   // Keep the shopper's pick while it is still on offer (an address or total change can rule pay on delivery out).
-  const paymentMethod: CheckoutPaymentMethod = paymentOptions.some((option) => option.key === chosenMethod) ? chosenMethod! : paymentOptions[0]!.key;
+  // No way to pay that works for this order: nothing is placed, and the shopper is told to message the store.
+  const noWayToPay = paymentOptions.length === 0 ? noWayToPayText(commerce.payments, { city: details.city, state: details.state, total: totals.total }) : null;
+  const paymentMethod: CheckoutPaymentMethod = paymentOptions.some((option) => option.key === chosenMethod) ? chosenMethod! : paymentOptions[0]?.key ?? "transfer";
   const isPaystack = paymentMethod === "paystack";
 
   const rules: CheckoutRules = {
@@ -368,6 +371,7 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
     setError(null);
     // Preview never creates an order or opens a payment window.
     if (preview || cart.items.length === 0) return;
+    if (noWayToPay) return setError(noWayToPay);
     if (stepped) {
       const failing = firstStepWithErrors(steps, details, rules, choice);
       if (failing >= 0) {
@@ -653,17 +657,23 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
       onSaveOnDevice={setSaveOnDevice}
     />
   );
+  // "Finish on WhatsApp" (Money page): a chat with the store, the bag already written out.
+  const whatsappOrderHref = commerce.payments.methods?.wa && info.whatsappNumber && cart.items.length && !createdOrder
+    ? whatsappLink(info.whatsappNumber, whatsappOrderMessage(store.name, cart.items, formatStoreMoney(totals.total, store.currency)))
+    : null;
   const paymentFields = (
     <PaymentFields
       theme={theme}
       options={paymentOptions}
       method={paymentMethod}
       onSelect={setChosenMethod}
+      unavailable={noWayToPay}
       errors={errors}
       // One page: the contact phone field is on screen already (and pay on delivery errors show there).
       riderPhone={stepped ? <TextField theme={theme} id="co-phone" label="Phone number for the rider" type="tel" inputMode="tel" value={details.phone} onChange={(v) => set("phone", v)} error={errors.phone} autoComplete="tel" /> : null}
       total={totals.total}
       currency={store.currency}
+      whatsappOrderHref={whatsappOrderHref}
     />
   );
   const showNote = settings.enableNotes && layout.orderNote;
@@ -738,7 +748,7 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
             style={{ background: theme.cta, color: theme.ctaText, border: "none", borderRadius: theme.buttonRadius }}
           />
         ) : (
-          <PrimaryButton theme={theme} type="submit" disabled={submitting || (finalStep && Boolean(quoteError))} className="w-full">
+          <PrimaryButton theme={theme} type="submit" disabled={submitting || (finalStep && (Boolean(quoteError) || Boolean(noWayToPay)))} className="w-full">
             {finalStep
               ? submitting
                 ? "Placing order…"

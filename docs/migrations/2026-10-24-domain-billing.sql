@@ -50,7 +50,7 @@ ALTER TABLE "DomainPurchase" ENABLE ROW LEVEL SECURITY;
 --   '17 7 * * *',
 --   $$
 --   select net.http_get(
---     url := 'https://shopinbos-app.vercel.app/api/cron/domain-renewals',
+--     url := 'https://app.shopinbos.com/api/cron/domain-renewals',
 --     headers := jsonb_build_object(
 --       'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'cron_secret')
 --     ),

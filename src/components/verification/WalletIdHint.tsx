@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { VerificationDoc } from "@shared/verification-docs";
 
-// The owner's ID document can come from the Shopinbos Wallet ID check (Youverify) instead of a NIN slip upload
+// The owner's ID document can come from the Shopinbos Wallet ID check (Korapay Identity) instead of a NIN slip upload
 // (src/lib/kyb/identity-doc.server.ts). Shows that route, or that it's done.
 export function WalletIdHint({ identityDoc, walletHref }: { identityDoc?: VerificationDoc; walletHref: string }) {
   if (identityDoc?.idCheck) {

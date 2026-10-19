@@ -12,6 +12,8 @@ import { messagesHref } from "@/lib/conversations/pure";
 import { sellerWholesaleStage } from "@/lib/supplier-orders/pure";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
+import { BeforeYouList, type ListingInfo } from "./BeforeYouList";
+import { SupplierTrustBadges } from "./SupplierTrust";
 import { formatMoney, formatNumber } from "@shared/i18n";
 import { localWholesaleStage } from "./wholesaleStage";
 
@@ -28,7 +30,7 @@ export interface MyWholesaleOrder {
 }
 
 /** Product page in Find products: price it, see the money on each sale, add it, or buy wholesale. */
-export function ProductDetail({ product, added: addedAtStart, saved: savedAtStart, notified, defaultAddress = "", wholesaleOrders = [] }: { product: FindProduct; added: boolean; saved: boolean; notified: boolean; defaultAddress?: string; wholesaleOrders?: MyWholesaleOrder[] }) {
+export function ProductDetail({ product, added: addedAtStart, saved: savedAtStart, notified, defaultAddress = "", wholesaleOrders = [], listing }: { product: FindProduct; added: boolean; saved: boolean; notified: boolean; defaultAddress?: string; wholesaleOrders?: MyWholesaleOrder[]; listing?: ListingInfo }) {
   const router = useRouter();
   const t = useT("marketplace");
   const locale = useLocale();
@@ -250,7 +252,9 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
                 </div>
               </section>
 
-              {added ? (
+              {!added && listing && listing.step !== "ready" ? (
+                <BeforeYouList supplier={product.supplier} listing={listing} />
+              ) : added ? (
                 <div role="status" className="flex min-h-[54px] flex-wrap items-center justify-center gap-x-3 gap-y-1 rounded-full bg-app-success-tint px-5 text-[15px] font-extrabold text-app-success">
                   <span className="inline-flex items-center gap-2"><Icon name="check" size={17} /> {t("pd.addedToStore")}</span>
                   <Link href="/products" className="text-app-success underline-offset-2 hover:underline">{t("pd.viewProducts")}</Link>
@@ -371,10 +375,15 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
                 {supplier.slug ? <Link href={`/suppliers/${supplier.slug}`} className="text-app-ink no-underline hover:underline">{supplier.name}</Link> : supplier.name}
               </div>
               <div className="flex flex-wrap items-center gap-1 text-[13px] text-app-ink-soft">
-                {supplier.verified && <><Icon name="checkCircle" size={14} className="text-app-success" /> {t("pd.verified")}</>}
-                {product.stock > 0 && <span>{supplier.verified ? "· " : ""}{t("pd.inStock", { count: num(product.stock) })}</span>}
+                {product.sample ? (supplier.verified && <><Icon name="checkCircle" size={14} className="text-app-success" /> {t("pd.verified")}</>) : <SupplierTrustBadges supplier={supplier} compact />}
+                {product.stock > 0 && <span>· {t("pd.inStock", { count: num(product.stock) })}</span>}
               </div>
             </div>
+          </section>
+          <section className={cx(CARD, "grid gap-1.5 p-4")}>
+            <h2 className="m-0 text-[14.5px] font-extrabold">{t("pd.returns", { name: supplier.name })}</h2>
+            <p className="m-0 whitespace-pre-line text-[13.5px] leading-[1.5]">{supplier.returnPolicy || t("pd.returnsDefault", { name: supplier.name })}</p>
+            <p className="m-0 text-[12.5px] leading-[1.5] text-app-ink-soft">{t("pd.returnsNote")}</p>
           </section>
         </div>
         <div className="grid min-w-0 gap-4 lg:col-start-1">

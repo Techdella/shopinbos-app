@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import { formatNumber } from "@shared/i18n";
+import { useAppSession } from "@/components/billing/useAppSession";
 
 export type StoreLaunchPricing = { total: number; deposit: number };
 
@@ -16,8 +17,10 @@ export function StoreLaunchBillingModal({ open, pricing, onClose }: {
   const [option, setOption] = useState<"full" | "installment">("full");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const inApp = useAppSession();
 
   if (!open || !pricing) return null;
+  if (inApp) return <AppLaunchNotice onClose={onClose} />;
   const balance = Math.max(0, pricing.total - pricing.deposit);
   const money = (amount: number) => `NGN ${formatNumber(amount, locale)}`;
 
@@ -78,6 +81,20 @@ export function StoreLaunchBillingModal({ open, pricing, onClose }: {
           {busy ? t("lb.opening") : t("lm.continue", { amount: money(option === "full" ? pricing.total : pricing.deposit) })}
         </button>
         <p className="mt-3 text-center text-[11px] text-neutral-400">{t("lm.secure")}</p>
+      </div>
+    </div>
+  );
+}
+
+/** Opened from the phone app: no price or payment (app store rules; see src/lib/app-session.ts). */
+function AppLaunchNotice({ onClose }: { onClose: () => void }) {
+  const t = useT("payments");
+  return (
+    <div className="fixed inset-0 z-[1000] grid place-items-center bg-black/50 px-4" role="presentation" onMouseDown={onClose}>
+      <div role="dialog" aria-modal="true" aria-labelledby="store-launch-app-title" className="w-full max-w-[520px] rounded-2xl bg-white p-6 text-left shadow-2xl" onMouseDown={(event) => event.stopPropagation()}>
+        <h2 id="store-launch-app-title" className="text-2xl font-semibold text-[#0e2a38]">{t("app.launchTitle")}</h2>
+        <p className="mt-2 text-[14px] leading-6 text-neutral-600">{t("app.launchBody")}</p>
+        <button type="button" onClick={onClose} className="mt-5 w-full rounded-xl bg-teal-500 px-5 py-3 text-sm font-semibold text-[#0e2a38] hover:bg-teal-400">{t("app.ok")}</button>
       </div>
     </div>
   );

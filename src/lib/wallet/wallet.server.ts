@@ -8,9 +8,10 @@ import { korapayCheckoutReady, verifyKorapayIdentity, korapayIdentityReady } fro
 import { verifyYouverifyIdentity, youverifyReady } from "@/lib/youverify";
 import { approveIdentityDocFromWallet } from "@/lib/kyb/identity-doc.server";
 import { createPaystackSubaccount, listPaystackSettlements, updatePaystackSubaccount } from "@/lib/paystack";
-import { resolvePaystackAccount, settlementBanks, type ResolvedAccount } from "@/lib/payout-bank";
+import { resolveBankAccount, settlementBanks, syncPayoutBank, type ResolvedAccount } from "@/lib/payout-bank";
 import { companyNamesMatch } from "@/lib/kyb/cac";
 import { groupDropshipLines, type DropshipLink } from "@/lib/supplier-orders/pure";
+import { applyDeductions, debtsToDeduct, holdPlannedDeductions, loadMoneyOwed, type MoneyOwedView } from "@/lib/money-owed/money-owed.server";
 import {
   accountNameMatches,
   adultDateOfBirth,
@@ -65,17 +66,21 @@ export interface KycInput {
   consent: boolean;
 }
 
-/** ID checks run through Youverify when it is set up, else Korapay Identity (the same result shape). */
+/** ID checks run through Korapay Identity when it is set up, else Youverify (the same result shape). */
 export function identityChecksReady() {
-  return youverifyReady() || korapayIdentityReady();
+  return korapayIdentityReady() || youverifyReady();
 }
 
-function verifyIdentity(input: { type: "bvn" | "nin"; id: string; firstName: string; lastName: string; dateOfBirth: string }) {
-  return youverifyReady() ? verifyYouverifyIdentity(input) : verifyKorapayIdentity(input);
+async function verifyIdentity(input: { type: "bvn" | "nin"; id: string; firstName: string; lastName: string; dateOfBirth: string }) {
+  if (!korapayIdentityReady()) return verifyYouverifyIdentity(input);
+  const result = await verifyKorapayIdentity(input);
+  // Korapay refused for a reason that's ours (Identity not enabled, no balance, down): Youverify, when it's set up.
+  if (!result.ok && !result.notFound && youverifyReady()) return verifyYouverifyIdentity(input);
+  return result;
 }
 
 /**
- * Checks the owner's BVN or NIN (Youverify, else Korapay) against the name and date of birth they typed. The ID must exist and
+ * Checks the owner's BVN or NIN (Korapay, else Youverify) against the name and date of birth they typed. The ID must exist and
  * all three must match. Up to KYC_DAILY_ATTEMPTS failed checks a day (each lookup is paid for).
  */
 export async function verifyWalletIdentity(user: { id: string; role: WalletRole }, input: KycInput): Promise<WalletResult> {
@@ -174,6 +179,14 @@ async function openSubaccount(wallet: WalletRow, nameCheck: "auto" | "approved" 
       where: { id: wallet.id },
       data: { nameCheck, subaccountCode: subaccount?.code ?? wallet.subaccountCode, subaccountStatus: "active", subaccountError: null },
     });
+    // One bank everywhere: once the account is live (in the owner's or business's name, or approved by the team), it
+    // also becomes the role's payout bank (a seller's bank-transfer account, a supplier's or partner's payouts),
+    // whichever screen it was chosen on. Never before: an account under review isn't paid out to or shown to buyers.
+    const payout = await syncPayoutBank({ id: wallet.userId, role: wallet.role }, wallet.bankName ?? "", wallet.accountNumber!, wallet.accountName ?? "");
+    if (!payout.success) {
+      console.error(`[wallet] couldn't save the payout bank for wallet ${wallet.id}: ${payout.error}`);
+      return { ok: false, error: `Card payments now go to this account, but we couldn't save it as your payout bank yet (${payout.error}). Save it again in a minute.` };
+    }
     return { ok: true, message: "Done. Payments now go straight to this account." };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Paystack didn't accept this account.";
@@ -200,11 +213,11 @@ export async function walletBankNames() {
   return Object.keys(await settlementBanks()).sort((a, b) => a.localeCompare(b));
 }
 
-/** Looks up the name on an account before it's saved, so the person sees whose account it is (Paystack's lookup). */
+/** Looks up the name on an account before it's saved, so the person sees whose account it is (Paystack's lookup, else Korapay's). */
 export async function checkWalletAccount(input: { bankName: string; accountNumber: string }): Promise<ResolvedAccount> {
   const digits = input.accountNumber.replace(/\D/g, "");
   if (digits.length !== 10 || !(await settlementBanks())[input.bankName]) return { status: "not_found" };
-  return resolvePaystackAccount(input.bankName, digits);
+  return resolveBankAccount(input.bankName, digits);
 }
 
 /**
@@ -219,7 +232,7 @@ export async function linkWalletBank(user: { id: string; role: WalletRole }, inp
   const accountNumber = input.accountNumber.replace(/\D/g, "");
   if (!bankCode) return { ok: false, error: "Choose your bank from the list." };
   if (accountNumber.length !== 10) return { ok: false, error: "Enter your 10-digit account number." };
-  const resolved = await resolvePaystackAccount(input.bankName, accountNumber);
+  const resolved = await resolveBankAccount(input.bankName, accountNumber);
   if (resolved.status === "not_found") return { ok: false, error: "That account number doesn't exist at this bank." };
   if (resolved.status !== "resolved") return { ok: false, error: "We couldn't check this account just now. Try again in a few minutes." };
 
@@ -312,6 +325,8 @@ export async function splitPlanForOrder(
   gateway: SplitGateway = "paystack",
   /** The order's delivery fee: Shopinbos's fee is on what the seller sells, not on delivery. */
   shippingNaira = 0,
+  /** The order being paid: overdue money its businesses owe is taken from their shares and held for it. */
+  orderId?: string,
 ): Promise<PaymentSplitPlan | null> {
   const store = await db.store.findUnique({ where: { id: storeId }, select: { userId: true } });
   if (!store) return null;
@@ -342,13 +357,19 @@ export async function splitPlanForOrder(
   const subaccountBySupplier = new Map(suppliers.map((supplier) => [supplier.id, accountOf(wallets.find((wallet) => wallet.userId === supplier.userId))]));
   const totalKobo = Math.round(totalNaira * 100);
   const fee = await platformFee();
-  return buildSplitPlan({
+  // Overdue money owed by the seller or a supplier paid in this split goes to whoever it's owed to (src/lib/money-owed).
+  const debtors = new Map<string, string>([[store.userId, "seller"]]);
+  for (const supplier of suppliers) if (subaccountBySupplier.get(supplier.id)) debtors.set(supplier.userId, supplier.id);
+  const plan = buildSplitPlan({
     gateway,
     totalKobo,
     platformKobo: platformFeeKobo(Math.max(0, totalKobo - Math.round(Math.max(0, shippingNaira) * 100)), fee),
     sellerSubaccount: sellerAccount,
     suppliers: groups.map((group) => ({ supplierId: group.supplierId, subaccount: subaccountBySupplier.get(group.supplierId) ?? null, costKobo: Math.round(group.costTotal * 100) })),
+    debts: orderId ? await debtsToDeduct(debtors, gateway) : [],
   });
+  if (orderId) await holdPlannedDeductions(orderId, plan.deductions ?? []);
+  return plan;
 }
 
 /** Writes each business's share of a paid order to its statement, once (unique references). Never throws. */
@@ -370,6 +391,8 @@ export async function recordOrderShares(orderId: string) {
       }
     }
     if (rows.length) await db.walletEntry.createMany({ data: rows, skipDuplicates: true });
+    // What the split took from the shares for money owed is now paid (once per order and debt).
+    if (plan.deductions?.length) await applyDeductions({ key: order.id, deductions: plan.deductions, label: `order ${order.orderNumber}`, paystackReference: order.paystackRef, retailOrderId: order.id });
   } catch (error) {
     console.error(`[wallet] could not record the shares of order ${orderId}`, error);
   }
@@ -388,10 +411,13 @@ export interface WalletView {
   /** Supplier orders whose supplier has no wallet: the seller pays them. */
   sellerSettles: Array<{ orderId: string; orderNumber: string; amountKobo: number }>;
   /**
-   * Dropship shares Paystack paid to a supplier who then declined, missed or cancelled the order: the supplier
-   * returns them to the shop. For a seller, who owes them back; for a supplier, which shops to pay back.
+   * Dropship shares Paystack paid to a supplier who then declined, missed or cancelled the order, still not paid
+   * back: for a seller, who owes them; for a supplier, which shops to pay back (the phone app shows these; the web
+   * shows everything owed in `owed`).
    */
   toReturn: Array<{ orderId: string; orderNumber: string; otherParty: string; amountKobo: number }>;
+  /** Money owed between this business and others (src/lib/money-owed), and the orders a seller can claim on. */
+  owed: MoneyOwedView;
   /** Sellers: Shopinbos's fee on their store sales (null = none). Suppliers and delivery partners pay none. */
   fee: PlatformFee | null;
 }
@@ -407,7 +433,11 @@ export async function loadWalletView(user: { id: string; role: WalletRole }): Pr
     wallet.subaccountCode ? listPaystackSettlements(wallet.subaccountCode).catch(() => []) : Promise.resolve([]),
     user.role === "seller" ? sellerOwedSuppliers(user.id) : Promise.resolve([]),
   ]);
-  const toReturn = user.role === "seller" || user.role === "supplier" ? await paidButNotSent(user).catch(() => []) : [];
+  const moneyOwed = await loadMoneyOwed(user).catch((error) => {
+    console.error(`[wallet] could not load money owed for ${user.id}`, error);
+    return { iOwe: [], owedToMe: [], claimable: [], pausedAt: null } satisfies MoneyOwedView;
+  });
+  const toReturn = await notSentStillOwed(user, moneyOwed);
   const name = [wallet.kycFirstName, wallet.kycMiddleName, wallet.kycLastName].filter(Boolean).join(" ") || null;
   return {
     kyc: { status: wallet.kycStatus, idType: wallet.kycIdType, idLast4: wallet.kycIdLast4, name, verifiedAt: wallet.kycVerifiedAt?.toISOString() ?? null, checksReady: identityChecksReady() },
@@ -418,37 +448,18 @@ export async function loadWalletView(user: { id: string; role: WalletRole }): Pr
     settlements: settlements.map((row) => ({ id: row.id, status: row.status, amountKobo: row.totalAmount, date: row.settlementDate })),
     sellerSettles: owed,
     toReturn,
+    owed: moneyOwed,
     fee: user.role === "seller" ? await platformFee().catch(() => null) : null,
   };
 }
 
-const NOT_SENT = ["rejected", "expired", "cancelled"];
-
-/**
- * Supplier shares of split orders whose supplier order ended without being sent (declined, missed the deadline, or
- * cancelled), so the supplier holds money for goods they didn't send. Shown to both sides; Shopinbos never held it.
- */
-async function paidButNotSent(user: { id: string; role: WalletRole }) {
-  const supplier = user.role === "supplier" ? await db.supplier.findUnique({ where: { userId: user.id }, select: { id: true } }) : null;
-  const rows = await db.supplierOrder.findMany({
-    where: {
-      status: { in: NOT_SENT },
-      ...(supplier ? { supplierId: supplier.id } : { sellerId: user.id }),
-      retailOrder: { paymentSplit: { not: Prisma.DbNull }, paystackStatus: "success" },
-    },
-    orderBy: { createdAt: "desc" },
-    take: 50,
-    select: {
-      supplierId: true,
-      retailOrder: { select: { id: true, orderNumber: true, paymentSplit: true, store: { select: { name: true } } } },
-      supplier: { select: { displayName: true } },
-    },
-  });
-  return rows.flatMap((row) => {
-    const share = readSplitPlan(row.retailOrder.paymentSplit)?.suppliers.find((item) => item.supplierId === row.supplierId);
-    if (!share) return [];
-    return [{ orderId: row.retailOrder.id, orderNumber: row.retailOrder.orderNumber, otherParty: supplier ? row.retailOrder.store.name : row.supplier.displayName, amountKobo: share.kobo }];
-  });
+/** Not-sent dropship shares still owed, in the shape the phone app reads (one row per order). */
+async function notSentStillOwed(user: { id: string; role: WalletRole }, owed: MoneyOwedView): Promise<WalletView["toReturn"]> {
+  if (user.role === "logistics_partner") return [];
+  const rows = (user.role === "supplier" ? owed.iOwe : owed.owedToMe).filter((debt) => debt.reason === "not_sent" && debt.status === "open" && debt.remainingKobo > 0 && debt.orderId);
+  if (!rows.length) return [];
+  const orders = await db.retailOrder.findMany({ where: { id: { in: rows.map((row) => row.orderId!) } }, select: { id: true, orderNumber: true } }).catch(() => []);
+  return rows.map((row) => ({ orderId: row.orderId!, orderNumber: orders.find((order) => order.id === row.orderId)?.orderNumber ?? "", otherParty: row.otherParty, amountKobo: row.remainingKobo }));
 }
 
 /** Recent card orders where a dropship supplier had no wallet, so their cost went to the seller to pass on. */

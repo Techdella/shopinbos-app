@@ -117,3 +117,42 @@ test("CAC check routes are role-gated, the provider key stays server-side, and t
   assert.equal(docs.DOC_FORMATS_LABEL, "PDF, JPG, PNG or WebP, up to 10 MB");
   assert.deepEqual([...docs.DOC_MIME_TYPES], ["application/pdf", "image/jpeg", "image/png", "image/webp"]);
 });
+
+test("CAC's own VAS answer becomes a record: people's names in two parts, roles joined, dates read", () => {
+  const record = cac.parseCacVas({
+    statusCode: 200,
+    success: true,
+    data: {
+      rc_number: "80569782",
+      entity_name: "MyTest Ventures",
+      entity_type: "BUSINESS_NAME",
+      registration_date: "Thu Jul 02 13:50:56 GMT 2026",
+      address: "Apt. 855 West Ports",
+      entity_status: "ACTIVE",
+      affiliates: [
+        { first_name: "Edwardo", surname: "Jacobson", affiliation_type: ["DIRECTOR"], status: "" },
+        { first_name: "Old", surname: "Partner", affiliation_type: ["PROPRIETOR"], status: "RESIGNED" },
+        { first_name: "Cody", surname: "Hodkiewicz", affiliation_type: ["WITNESS"], status: "ACTIVE" },
+      ],
+    },
+  });
+  assert.equal(record.companyName, "MyTest Ventures");
+  assert.equal(record.rcNumber, "80569782");
+  assert.equal(record.registeredAt, "2026-07-02");
+  assert.deepEqual(record.affiliates.map((a) => `${a.firstName} ${a.lastName}: ${a.role}`), ["Edwardo Jacobson: DIRECTOR", "Cody Hodkiewicz: WITNESS"]);
+  assert.equal(cac.evaluateCac(record, { enteredName: "MyTest Ventures", ownerName: "Edwardo Jacobson" }).outcome, "verified");
+  assert.equal(cac.evaluateCac(record, { enteredName: "MyTest Ventures", ownerName: "Cody Hodkiewicz" }).outcome, "needs_review", "a witness isn't the owner");
+  assert.equal(cac.parseCacVas({ statusCode: 400, success: false, error: "company not found" }), null);
+  assert.equal(cac.cacVasEntityType("INCORPORATED_TRUSTEES"), "INCORPORATED_TRUSTEE");
+  assert.equal(cac.cacVasEntityType("BUSINESS_NAME"), "BUSINESS_NAME");
+});
+
+test("the CAC registry's own API goes first when its key is set, with the key kept on the server", () => {
+  const server = readFileSync("src/lib/kyb/verify-cac.server.ts", "utf8");
+  assert.match(server, /\["cac", Boolean\(cacVasKey\(\)\), lookupCacVas\],\s*\["korapay"/);
+  const vas = readFileSync("src/lib/cac-vas.server.ts", "utf8");
+  assert.match(vas, /^import "server-only";/);
+  assert.match(vas, /headers: \{ X_API_KEY: key/);
+  assert.match(vas, /vasapp\.cac\.gov\.ng/);
+  assert.doesNotMatch(readFileSync("src/components/verification/CacInstantCheck.tsx", "utf8"), /CAC_VAS/);
+});

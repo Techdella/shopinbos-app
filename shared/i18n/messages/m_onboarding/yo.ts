@@ -79,9 +79,6 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "method.transfer.label": "Bank transfer",
   "method.transfer.hint": "Àwọn oníbàárà yóò rí account payout rẹ; o máa sàmì sí i pé wọ́n sanwó nígbà tí ó bá wọlé",
   "method.card.label": "Káàdì àti USSD",
-  "method.card.hint": "Nípasẹ̀ Paystack",
-  "method.korapay.label": "Korapay",
-  "method.korapay.hint": "Káàdì, ìfiránṣẹ́ owó tàbí sísan láti báńkì nípasẹ̀ Korapay",
   "method.cod.label": "Sanwó nígbà ìfijíṣẹ́",
   "method.cod.hint": "Títí dé ₦50,000, nọ́ńbà fóònù tí a jẹ́rìísí, níbi tí rider ti ń lọ",
   "method.wa.label": "Parí rẹ̀ lórí WhatsApp",
@@ -107,6 +104,10 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "pay.payFull": "San {amount}",
   "pay.payPart": "San {now} báyìí, {rest} ní òpin oṣù",
   "pay.paystackNote": "Paystack ló ń bójú tó ìsanwó. Shopinbos kò rí káàdì rẹ rí.",
+  "pay.readyTitle": "{name} ti ṣetán",
+  "pay.readyEmailed": "Yóò wà láàyè ní kété tí wọ́n bá ti launch rẹ̀. A ti fi àwọn ìgbésẹ̀ tó kàn ránṣẹ́ sí {email}.",
+  "pay.readyLater": "Yóò wà láàyè ní kété tí wọ́n bá ti launch rẹ̀.",
+  "pay.readyNext": "Tẹ̀síwájú",
   "live.copied": "A ti da link kọ",
   "live.isLive": "Ṣọ́ọ̀bù rẹ ti jáde",
   "live.open": "{name} ti ṣí",
@@ -146,6 +147,9 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "welcome.sub": "Rex ń múra láti kọ́ ṣọ́ọ̀bù rẹ pẹ̀lú rẹ.",
   "welcome.progress": "À ń pèsè ṣọ́ọ̀bù rẹ sílẹ̀",
   "welcome.start": "Bẹ̀rẹ̀ báyìí",
+  "method.card.hint": "Káàdì àti USSD, owó máa wọ báńkì rẹ tààrà",
+  "method.korapay.label": "Sanwó láti báńkì",
+  "method.korapay.hint": "Ibi ìsanwó kejì tó ní ààbò: káàdì, ìfiránṣẹ́ owó tàbí app báńkì",
 };
 
 export default yo;

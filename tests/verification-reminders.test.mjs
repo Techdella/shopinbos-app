@@ -37,7 +37,7 @@ test("the clock starts at 'documents later', else a completed onboarding save", 
 test("reminder email escapes names and lists what's missing", () => {
   const { subject, html } = r.reminderEmail({
     index: 0, role: "supplier", firstName: "Ada<script>", businessName: "Ada & Co", missing: ["Owner identity document (NIN)"],
-    link: "https://shopinbos-app.vercel.app/supplier/verification", cacEnabled: true,
+    link: "https://app.shopinbos.com/supplier/verification", cacEnabled: true,
   });
   assert.match(subject, /Ada & Co/);
   assert.doesNotMatch(html, /<script>/);

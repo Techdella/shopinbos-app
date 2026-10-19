@@ -7,6 +7,10 @@ import { api } from "./api";
 /** Same address as the web (src/lib/support/pure.ts SUPPORT_EMAIL). */
 export const SUPPORT_EMAIL = "support@shopinbos.com";
 
+/** Shopinbos terms and privacy policy on the website (both stores ask for them to be reachable in the app). */
+export const TERMS_URL = "https://shopinbos.com/legal/terms";
+export const PRIVACY_URL = "https://shopinbos.com/legal/privacy";
+
 /**
  * The support team's WhatsApp number, digits only with the country code (e.g. 234…).
  * TODO: set EXPO_PUBLIC_SUPPORT_WHATSAPP (the web uses NEXT_PUBLIC_SUPPORT_WHATSAPP) to the real support number.

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Notice } from "@/components/app-ui";
 import { buttonClass, checkClass, inputClass, selectClass } from "@/components/growth/kit";
 import { checkWalletAccountAction, linkWalletBankAction, verifyWalletIdentityAction } from "@/app/actions/wallet";
+import { useT } from "@/components/i18n/I18nProvider";
 
 // The two steps of setting up a Shopinbos Wallet: verify your ID (BVN or NIN), then add the bank Paystack pays you in.
 
@@ -21,6 +22,7 @@ function Field({ label, htmlFor, hint, children }: { label: string; htmlFor: str
 }
 
 export function KycForm({ defaultName, onVerified }: { defaultName: { firstName: string; lastName: string }; onVerified?: () => void }) {
+  const t = useT("wallet");
   const router = useRouter();
   const [idType, setIdType] = useState<"bvn" | "nin">("nin");
   const [idNumber, setIdNumber] = useState("");
@@ -37,7 +39,7 @@ export function KycForm({ defaultName, onVerified }: { defaultName: { firstName:
     startTransition(async () => {
       const result = await verifyWalletIdentityAction({ idType, idNumber, firstName, lastName, dateOfBirth, consent });
       if (result.ok) {
-        setOutcome({ tone: "success", text: result.message ?? "Your ID is verified." });
+        setOutcome({ tone: "success", text: result.message ?? t("kyc.done") });
         onVerified?.();
         router.refresh();
       } else {
@@ -48,39 +50,40 @@ export function KycForm({ defaultName, onVerified }: { defaultName: { firstName:
 
   return (
     <form onSubmit={submit} className="grid gap-4">
-      <Field label="ID type" htmlFor="kyc-type" hint="NIN is quickest: it also confirms your date of birth. BVN works too.">
+      <Field label={t("kyc.type")} htmlFor="kyc-type" hint={t("kyc.typeHint")}>
         <select id="kyc-type" className={selectClass} value={idType} onChange={(event) => setIdType(event.target.value as "bvn" | "nin")} disabled={pending}>
-          <option value="nin">NIN (National Identification Number)</option>
-          <option value="bvn">BVN (Bank Verification Number)</option>
+          <option value="nin">{t("kyc.nin")}</option>
+          <option value="bvn">{t("kyc.bvn")}</option>
         </select>
       </Field>
-      <Field label={idType === "bvn" ? "BVN" : "NIN"} htmlFor="kyc-id" hint="11 digits. We keep only the last 4.">
+      <Field label={idType === "bvn" ? "BVN" : "NIN"} htmlFor="kyc-id" hint={t("kyc.idHint")}>
         <input id="kyc-id" className={inputClass} inputMode="numeric" autoComplete="off" maxLength={13} value={idNumber} onChange={(event) => setIdNumber(event.target.value)} disabled={pending} required />
       </Field>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="First name" htmlFor="kyc-first" hint="Exactly as on your ID">
+        <Field label={t("kyc.first")} htmlFor="kyc-first" hint={t("kyc.firstHint")}>
           <input id="kyc-first" className={inputClass} autoComplete="given-name" value={firstName} onChange={(event) => setFirstName(event.target.value)} disabled={pending} required />
         </Field>
-        <Field label="Last name" htmlFor="kyc-last">
+        <Field label={t("kyc.last")} htmlFor="kyc-last">
           <input id="kyc-last" className={inputClass} autoComplete="family-name" value={lastName} onChange={(event) => setLastName(event.target.value)} disabled={pending} required />
         </Field>
       </div>
-      <Field label="Date of birth" htmlFor="kyc-dob">
+      <Field label={t("kyc.dob")} htmlFor="kyc-dob">
         <input id="kyc-dob" type="date" className={inputClass} autoComplete="bday" value={dateOfBirth} onChange={(event) => setDateOfBirth(event.target.value)} disabled={pending} required />
       </Field>
       <label className="flex items-start gap-3 text-[13.5px] leading-[1.45]">
         <input type="checkbox" className={`${checkClass} mt-0.5`} checked={consent} onChange={(event) => setConsent(event.target.checked)} disabled={pending} />
-        <span>I agree that Shopinbos can check this ID with the national records, through our verification partner, to confirm it&apos;s me.</span>
+        <span>{t("kyc.consent")}</span>
       </label>
       {outcome ? <Notice tone={outcome.tone}>{outcome.text}</Notice> : null}
       <div>
-        <button type="submit" className={buttonClass("ink")} disabled={pending || !consent}>{pending ? "Checking…" : "Verify my ID"}</button>
+        <button type="submit" className={buttonClass("ink")} disabled={pending || !consent}>{pending ? t("kyc.checking") : t("kyc.verify")}</button>
       </div>
     </form>
   );
 }
 
 export function BankForm({ banks, current }: { banks: string[]; current: { bankName: string } | null }) {
+  const t = useT("wallet");
   const router = useRouter();
   const [bankName, setBankName] = useState(current?.bankName ?? "");
   const [accountNumber, setAccountNumber] = useState("");
@@ -99,13 +102,14 @@ export function BankForm({ banks, current }: { banks: string[]; current: { bankN
       setHolder({
         key: lookupKey,
         name: result.status === "resolved" ? result.accountName : null,
-        note: result.status === "not_found" ? "That account number doesn't exist at this bank." : result.status === "unavailable" ? "We couldn't look up this account just now. You can still save it." : null,
+        note: result.status === "not_found" ? "not_found" : result.status === "unavailable" ? "unavailable" : null,
       });
     });
     return () => {
       alive = false;
     };
   }, [lookupKey, bankName, digits]);
+  const noteText = (note: string) => (note === "not_found" ? t("bank.notFound") : t("bank.unavailable"));
   const shown = holder && holder.key === lookupKey ? holder : null;
 
   function submit(event: React.FormEvent) {
@@ -114,7 +118,7 @@ export function BankForm({ banks, current }: { banks: string[]; current: { bankN
     startTransition(async () => {
       const result = await linkWalletBankAction({ bankName, accountNumber: digits });
       if (result.ok) {
-        setOutcome({ tone: "success", text: result.message ?? "Saved." });
+        setOutcome({ tone: "success", text: result.message ?? t("bank.saved") });
         setAccountNumber("");
         router.refresh();
       } else {
@@ -125,27 +129,27 @@ export function BankForm({ banks, current }: { banks: string[]; current: { bankN
 
   return (
     <form onSubmit={submit} className="grid gap-4">
-      <Field label="Bank" htmlFor="wallet-bank">
+      <Field label={t("bank.bank")} htmlFor="wallet-bank">
         <select id="wallet-bank" className={selectClass} value={bankName} onChange={(event) => setBankName(event.target.value)} disabled={pending} required>
-          <option value="" disabled>Choose your bank</option>
+          <option value="" disabled>{t("bank.choose")}</option>
           {banks.map((bank) => <option key={bank} value={bank}>{bank}</option>)}
         </select>
       </Field>
-      <Field label="Account number" htmlFor="wallet-account" hint="10 digits. In your name or your business's name: card payments start straight away.">
+      <Field label={t("bank.account")} htmlFor="wallet-account" hint={t("bank.accountHint")}>
         <input id="wallet-account" className={inputClass} inputMode="numeric" autoComplete="off" maxLength={12} value={accountNumber} onChange={(event) => setAccountNumber(event.target.value)} disabled={pending} required />
       </Field>
-      {lookupKey && !shown ? <p className="m-0 text-[13.5px] text-app-ink-soft" aria-live="polite">Looking up the account…</p> : null}
+      {lookupKey && !shown ? <p className="m-0 text-[13.5px] text-app-ink-soft" aria-live="polite">{t("bank.lookingUp")}</p> : null}
       {shown?.name ? (
         <div className="rounded-[14px] border border-app-line bg-app-canvas px-4 py-3" aria-live="polite">
-          <div className="text-[12.5px] text-app-ink-soft">Account name</div>
+          <div className="text-[12.5px] text-app-ink-soft">{t("bank.accountName")}</div>
           <div className="text-[15px] font-extrabold">{shown.name}</div>
         </div>
       ) : null}
-      {shown?.note ? <Notice tone={shown.name ? "info" : "error"}>{shown.note}</Notice> : null}
+      {shown?.note ? <Notice tone={shown.name ? "info" : "error"}>{noteText(shown.note)}</Notice> : null}
       {outcome ? <Notice tone={outcome.tone}>{outcome.text}</Notice> : null}
       <div>
-        <button type="submit" className={buttonClass("ink")} disabled={pending || !lookupKey || Boolean(shown && !shown.name && shown.note?.startsWith("That account"))}>
-          {pending ? "Setting up…" : shown?.name ? "Yes, pay me here" : current ? "Change account" : "Save account"}
+        <button type="submit" className={buttonClass("ink")} disabled={pending || !lookupKey || !shown?.name}>
+          {pending ? t("bank.settingUp") : shown?.name ? t("bank.payMeHere") : current ? t("bank.change") : t("bank.save")}
         </button>
       </div>
     </form>

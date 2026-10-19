@@ -63,6 +63,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "detail.tracking": "Bibiya",
   "detail.sentOn": "an tura {date}",
   "detail.declined": "An ƙi: {reason}.",
+  "detail.reportProblem": "Kai rahoton matsala",
   "detail.customer": "Kwastoma",
   "detail.name": "Suna",
   "detail.email": "Email",
@@ -95,7 +96,6 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "detail.ref": "Lamba: {ref}",
   "detail.status": "Matsayi",
   "method.paystack": "Paystack",
-  "method.korapay": "Korapay",
   "method.transfer": "Bank transfer",
   "method.cash": "Kuɗi hannu",
   "method.pos": "POS ko kati",
@@ -297,6 +297,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "list.pages": "Shafukan orders",
   "inv.pages": "Shafukan invoices",
   "inv.allOrders": "Duk orders ɗinka",
+  "method.korapay": "Kati ko banki (online)",
 };
 
 export default ha;

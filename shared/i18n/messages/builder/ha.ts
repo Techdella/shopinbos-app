@@ -213,6 +213,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "ps.addedLabel": "An ƙara {name}",
   "ps.addLabel": "Ƙara {name}",
   "ps.added": "An ƙara",
+  "ps.checkFirst": "Kira supplier ka duba kaya tukuna",
   "ps.add": "Ƙara",
   "ps.back": "Koma",
   "ps.saved": "An ajiye",
@@ -2125,6 +2126,9 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "ed.Own phone menu": "Menu na waya na daban",
   "ed.Footer links": "Hanyoyin ƙasan shafi",
   "ed.Until you change them, the footer shows its usual links.": "Har sai kun canza su, footer zai nuna hanyoyinsa na yau da kullum.",
+  "ls.online": "Kati da tura kuɗi",
+  "ls.addBank": "Ƙara asusun bankinka",
+  "ls.changeBank": "Canza",
 };
 
 export default ha;

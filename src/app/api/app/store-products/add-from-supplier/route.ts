@@ -5,6 +5,7 @@ import { ok, apiError } from "@/lib/api/response";
 import { AddFromSupplierSchema } from "@/lib/schemas";
 import type { AuthUser } from "@/lib/auth/types";
 import { markCatalogDirty } from "@/lib/whatsapp-catalog/dirty";
+import { listingCheck } from "@/lib/marketplace/agreements.server";
 
 export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUser }) => {
   const body = await req.json().catch(() => null);
@@ -30,6 +31,10 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
 
   const store = await db.store.findUnique({ where: { userId: user.id } });
   if (!store) return apiError("NOT_FOUND", "Store not found. Complete onboarding first.", 404);
+  if (fulfillmentType === "dropship") {
+    const gate = await listingCheck(user.id, supplierProduct.supplierId);
+    if (!gate.ok) return apiError(gate.code, gate.message, 409);
+  }
 
   const costPrice = supplierProduct.wholesalePrice;
   const margin = Math.round(((retailPrice - costPrice) / retailPrice) * 100);

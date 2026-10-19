@@ -69,9 +69,6 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "pm.transfer.label": "Bank transfer",
   "pm.transfer.hint": "Àwọn oníbàárà máa rí àkáǹtì payout rẹ; o máa sàmì pé wọ́n ti san nígbà tí owó bá dé",
   "pm.card.label": "Káàdì àti USSD",
-  "pm.card.hint": "Nípasẹ̀ Paystack",
-  "pm.korapay.label": "Korapay",
-  "pm.korapay.hint": "Káàdì, ìfiránṣẹ́ owó tàbí sísan láti báńkì nípasẹ̀ Korapay",
   "pm.cod.label": "Sanwó nígbà tí ẹrù bá dé",
   "pm.cod.hint": "Títí dé ₦50,000, nọ́mbà fóònù tí a ti jẹ́rìísí, níbi tí àwọn rider ti ń ṣiṣẹ́",
   "pm.wa.label": "Parí rẹ̀ lórí WhatsApp",
@@ -216,6 +213,9 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "step.Connect WhatsApp, Facebook & Instagram": "So WhatsApp, Facebook àti Instagram pọ̀",
   "step.One tap each. Customers' messages come to your inbox and your products show there.": "Títẹ̀ kan fún ọ̀kọ̀ọ̀kan. Àwọn ìfiránṣẹ́ oníbàárà máa wá sí inbox rẹ, àwọn ọjà rẹ á sì hàn níbẹ̀.",
   "step.Card payments go straight to your bank once you add it.": "Owó káàdì yóò lọ tààrà sí báńkì rẹ nígbà tí o bá fi kún un.",
+  "pm.card.hint": "Káàdì àti USSD, owó máa wọ báńkì rẹ tààrà",
+  "pm.korapay.label": "Sanwó láti báńkì",
+  "pm.korapay.hint": "Ibi ìsanwó kejì tó ní ààbò: káàdì, ìfiránṣẹ́ owó tàbí app báńkì",
 };
 
 export default yo;

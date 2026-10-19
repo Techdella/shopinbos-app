@@ -400,7 +400,7 @@ test("wiring: seller-only APIs scoped to their store, cron auth, migration, nav"
   assert.match(api, /withSeller\(/);
   const server = read("src/lib/store-campaigns/server.ts");
   assert.match(server, /findFirst\(\{ where: \{ id, storeId: store\.id \}/, "every campaign is looked up within the seller's own store");
-  assert.match(read("src/app/api/cron/seasonal-campaigns/route.ts"), /cronAuthorization\(req\.headers\.get\("authorization"\), secret\)/);
+  assert.match(read("src/app/api/cron/seasonal-campaigns/route.ts"), /const denied = await cronDenied\(req\);\n  if \(denied\) return denied;/);
   const sql = read("docs/migrations/2026-10-30-campaigns.sql");
   for (const table of ["StoreCampaign", "StoreCampaignBlock", "StoreCampaignEvent"]) {
     assert.match(sql, new RegExp(`CREATE TABLE IF NOT EXISTS "${table}"`));

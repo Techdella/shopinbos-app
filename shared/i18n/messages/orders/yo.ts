@@ -63,6 +63,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "detail.tracking": "Ìtọpinpin",
   "detail.sentOn": "a fi ránṣẹ́ ní {date}",
   "detail.declined": "Wọ́n kọ̀ ọ́: {reason}.",
+  "detail.reportProblem": "Ròyìn ìṣòro kan",
   "detail.customer": "Oníbàárà",
   "detail.name": "Orúkọ",
   "detail.email": "Email",
@@ -95,7 +96,6 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "detail.ref": "Ìtọ́kasí: {ref}",
   "detail.status": "Ipò",
   "method.paystack": "Paystack",
-  "method.korapay": "Korapay",
   "method.transfer": "Bank transfer",
   "method.cash": "Owó lọ́wọ́",
   "method.pos": "POS tàbí káàdì",
@@ -297,6 +297,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "list.pages": "Àwọn ojú-ewé order",
   "inv.pages": "Àwọn ojú-ewé invoice",
   "inv.allOrders": "Gbogbo order yín",
+  "method.korapay": "Káàdì tàbí báńkì (lórí ayélujára)",
 };
 
 export default yo;
