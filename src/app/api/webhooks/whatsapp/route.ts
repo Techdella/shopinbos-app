@@ -3,11 +3,14 @@ import { findChannelByAccount, ingestInbound, markChannelError, updateMessageSta
 import { parseWhatsAppWebhook, parseWhatsAppWebhookErrors, verifyMetaSignature } from "@/lib/inbox/pure";
 import { metaVerifyHandshake } from "@/lib/inbox/webhooks";
 import { marketingInboundHook, marketingStatusHook } from "@/lib/marketing/webhook-hooks";
+import { parseTemplateStatusUpdates } from "@/lib/marketing/text-channels";
+import { applyTemplateStatusUpdates } from "@/lib/marketing/whatsapp-templates.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// WhatsApp Cloud API webhook. Callback URL: https://<app>/api/webhooks/whatsapp, field "messages".
+// WhatsApp Cloud API webhook. Callback URL: https://<app>/api/webhooks/whatsapp, fields "messages" and
+// "message_template_status_update" (template approvals, so order messages start without a manual Sync).
 // GET is Meta's verify handshake; POST is signed with X-Hub-Signature-256 (the app secret): the platform's
 // META_APP_SECRET (Embedded Signup, or sellers on Shopinbos's app) or the seller's own app secret. Each phone
 // number's messages and receipts are only processed when the signature checks out for that number's store.
@@ -60,6 +63,10 @@ export async function POST(req: NextRequest) {
     const error = errors.find((e) => e.accountId === accountId);
     if (error) await markChannelError(channel.row.id, `WhatsApp reported a problem: ${error.message}`);
   }
+
+  // Template approvals and rejections, for WhatsApp accounts connected through Shopinbos's app.
+  const templateUpdates = platformOk ? parseTemplateStatusUpdates(payload) : [];
+  if (templateUpdates.length) await applyTemplateStatusUpdates(templateUpdates).catch((error) => console.error("[webhooks/whatsapp] template status failed", error));
 
   if (!anyVerified && (messages.length || statuses.length)) return new NextResponse("Invalid signature", { status: 401 });
   return NextResponse.json({ received: true });

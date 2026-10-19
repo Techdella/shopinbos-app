@@ -506,3 +506,51 @@ export function customerEventFor(statusOrEvent: string): CustomerEvent | null {
       return null;
   }
 }
+
+// ─── Automatic WhatsApp order messages ────────────────────────────────────────
+
+/**
+ * The ready-made utility templates a store gets on its own WhatsApp account as soon as it connects WhatsApp
+ * (src/lib/marketing/order-messages-setup.server.ts), and the order events switched on to use them. Payment
+ * received stays off: it would repeat the "Order confirmed" wording a minute after checkout.
+ */
+export const ORDER_MESSAGE_PRESETS = ["order_confirmation", "order_shipped", "order_delivered"] as const satisfies ReadonlyArray<TemplatePreset["key"]>;
+export const ORDER_MESSAGE_EVENTS_ON: CustomerEvent[] = ["order_confirmed", "order_shipped", "order_delivered"];
+
+export interface TemplateStatusUpdate {
+  wabaId: string;
+  metaId: string;
+  name: string | null;
+  language: string | null;
+  status: string;
+  reason: string | null;
+}
+
+/**
+ * Meta's "message_template_status_update" webhook (field on the WhatsApp Business Account) → one update per
+ * template: { entry: [{ id: WABA_ID, changes: [{ field, value: { event, message_template_id, … , reason } }] }] }.
+ */
+export function parseTemplateStatusUpdates(payload: unknown): TemplateStatusUpdate[] {
+  const out: TemplateStatusUpdate[] = [];
+  const entries = (payload as { entry?: unknown })?.entry;
+  if (!Array.isArray(entries)) return out;
+  for (const entry of entries as Array<{ id?: unknown; changes?: unknown }>) {
+    if (!Array.isArray(entry?.changes)) continue;
+    for (const change of entry.changes as Array<{ field?: unknown; value?: Record<string, unknown> }>) {
+      if (change?.field !== "message_template_status_update" || !change.value) continue;
+      const v = change.value;
+      const metaId = v.message_template_id == null ? "" : String(v.message_template_id);
+      const status = typeof v.event === "string" ? v.event.toUpperCase() : "";
+      if (!/^\d+$/.test(metaId) || !status) continue;
+      out.push({
+        wabaId: entry.id == null ? "" : String(entry.id),
+        metaId,
+        name: typeof v.message_template_name === "string" ? v.message_template_name : null,
+        language: typeof v.message_template_language === "string" ? v.message_template_language : null,
+        status,
+        reason: typeof v.reason === "string" && v.reason && v.reason !== "NONE" ? v.reason : null,
+      });
+    }
+  }
+  return out;
+}

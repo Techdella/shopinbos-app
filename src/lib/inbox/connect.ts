@@ -1,6 +1,7 @@
 import "server-only";
 
 import { randomBytes } from "node:crypto";
+import { after } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db/client";
 import { recordMetaUser } from "@/lib/meta/user-links.server";
@@ -231,7 +232,26 @@ async function saveWhatsApp(storeId: string, credentials: Record<string, string>
   });
   if (subscribed && !subscribed.ok) await db.inboxChannel.update({ where: { id: row.id }, data: { lastError: subscribed.error } });
   await recordMetaUser(storeId, "inbox_whatsapp", credentials.accessToken);
+  if (credentials.wabaId) setUpOrderMessagesLater(storeId);
   return { ok: true, view: await viewOf(storeId, "whatsapp") };
+}
+
+/**
+ * Order messages on WhatsApp without setup: submits the ready-made order templates to the seller's WhatsApp
+ * account and switches the order events on (src/lib/marketing/order-messages-setup.server.ts), after the
+ * response so connecting stays quick.
+ */
+function setUpOrderMessagesLater(storeId: string) {
+  const task = async () => {
+    const { setUpWhatsAppOrderMessages } = await import("@/lib/marketing/order-messages-setup.server");
+    const result = await setUpWhatsAppOrderMessages(storeId);
+    if (!result.ok) console.warn(`[whatsapp] order message templates for store ${storeId}: ${result.error ?? result.templates.map((t) => `${t.name} ${t.error ?? t.status}`).join("; ")}`);
+  };
+  try {
+    after(() => task().catch((error) => console.error("[whatsapp] order message setup failed", error)));
+  } catch {
+    void task().catch((error) => console.error("[whatsapp] order message setup failed", error));
+  }
 }
 
 const EmbeddedSignupSchema = z.object({ code: z.string().trim().min(10).max(2000), phoneNumberId: z.string().trim().regex(/^\d{6,25}$/), wabaId: z.string().trim().regex(/^\d{6,25}$/) }).strict();

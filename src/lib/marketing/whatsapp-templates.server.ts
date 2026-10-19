@@ -22,6 +22,7 @@ import {
   variableCount,
   type TemplateCategory,
   type TemplateContent,
+  type TemplateStatusUpdate,
   type VariableValues,
 } from "./text-channels";
 import type { SendOutcome, TextSender } from "./channels";
@@ -86,6 +87,60 @@ export async function resolveTemplate(storeId: string, ref: string | null | unde
     ? await db.whatsAppTemplate.findFirst({ where: { storeId, preset: ref.slice(7), status: "APPROVED" }, orderBy: { updatedAt: "desc" } })
     : await db.whatsAppTemplate.findFirst({ where: { id: ref, storeId } });
   return row ? shape(row) : null;
+}
+
+/**
+ * Asks Meta for one submitted template's current status and saves it. Order messages call this when the store's
+ * ready-made template is still "pending" here, so an approval Meta gave minutes ago is used without a manual Sync.
+ */
+export async function refreshTemplateStatus(storeId: string, id: string) {
+  const row = await db.whatsAppTemplate.findFirst({ where: { id, storeId } });
+  if (!row?.metaId) return row ? shape(row) : null;
+  const access = await wabaAccess(storeId);
+  if (!access.ok) return shape(row);
+  const res = await fetch(`${whatsappGraphBase()}/${encodeURIComponent(row.metaId)}?fields=status,rejected_reason,category`, {
+    headers: { Authorization: `Bearer ${access.access.accessToken}` },
+    signal: AbortSignal.timeout(10_000),
+  }).catch(() => null);
+  if (!res?.ok) return shape(row);
+  const json = await readJson(res);
+  const status = typeof json.status === "string" ? json.status.toUpperCase() : row.status;
+  const reason = typeof json.rejected_reason === "string" && json.rejected_reason !== "NONE" ? json.rejected_reason : null;
+  return shape(
+    await db.whatsAppTemplate.update({
+      where: { id: row.id },
+      data: { status, rejectedReason: status === "REJECTED" ? reason ?? "Meta didn't give a reason" : null, category: typeof json.category === "string" ? json.category.toUpperCase() : row.category, syncedAt: new Date() },
+    }),
+  );
+}
+
+/** The store's approved template from a ready-made one; a pending one is re-checked with Meta first. */
+export async function resolvePresetTemplate(storeId: string, preset: string) {
+  const approved = await resolveTemplate(storeId, `preset:${preset}`);
+  if (approved) return approved;
+  const waiting = await db.whatsAppTemplate.findFirst({ where: { storeId, preset, status: { in: ["PENDING", "IN_APPEAL"] }, metaId: { not: null } }, orderBy: { updatedAt: "desc" }, select: { id: true } });
+  return waiting ? refreshTemplateStatus(storeId, waiting.id) : null;
+}
+
+/**
+ * Applies Meta's message_template_status_update webhooks. Only templates on the WhatsApp account the update came
+ * from are touched (the store's channel must name that WABA).
+ */
+export async function applyTemplateStatusUpdates(updates: TemplateStatusUpdate[]) {
+  let applied = 0;
+  for (const update of updates) {
+    const rows = await db.whatsAppTemplate.findMany({ where: { metaId: update.metaId }, select: { id: true, storeId: true } });
+    for (const row of rows) {
+      const access = await wabaAccess(row.storeId);
+      if (!access.ok || access.access.wabaId !== update.wabaId) continue;
+      await db.whatsAppTemplate.update({
+        where: { id: row.id },
+        data: { status: update.status, rejectedReason: update.status === "REJECTED" ? update.reason ?? "Meta didn't give a reason" : null, syncedAt: new Date() },
+      });
+      applied++;
+    }
+  }
+  return applied;
 }
 
 function check(input: TemplateInput) {

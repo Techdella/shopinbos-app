@@ -246,6 +246,48 @@ test("order code calls the notification hook with one line each", () => {
   }
 });
 
+// ─── Automatic WhatsApp order messages ────────────────────────────────────────
+
+test("connecting WhatsApp sets up utility order templates for confirmed, shipped (tracking) and delivered", () => {
+  for (const key of tc.ORDER_MESSAGE_PRESETS) {
+    const preset = tc.presetTemplate(key);
+    assert.equal(preset.category, "UTILITY", `${key} is a utility template (Meta reviews those automatically)`);
+    assert.deepEqual(tc.templateProblems({ name: preset.name, category: preset.category, language: "en", content: preset.content, variables: [...preset.variables] }), [], `${key} passes our own checks`);
+  }
+  assert.ok(tc.presetTemplate("order_shipped").variables.includes("tracking_link"), "shipped carries the tracking link");
+  for (const event of tc.ORDER_MESSAGE_EVENTS_ON) {
+    const preset = tc.CUSTOMER_EVENTS.find((e) => e.key === event).preset;
+    assert.ok(tc.ORDER_MESSAGE_PRESETS.includes(preset), `${event} uses a template the setup submits`);
+  }
+  assert.ok(!tc.ORDER_MESSAGE_EVENTS_ON.includes("payment_received"), "no second 'Order confirmed' right after checkout");
+
+  const connect = readFileSync(new URL("../src/lib/inbox/connect.ts", import.meta.url), "utf8");
+  assert.match(connect, /if \(credentials\.wabaId\) setUpOrderMessagesLater\(storeId\)/, "runs after every WhatsApp connect that has a WhatsApp account id");
+});
+
+test("Meta's template status webhook is read per template, ignoring other fields and junk", () => {
+  const payload = {
+    object: "whatsapp_business_account",
+    entry: [
+      {
+        id: "102290129340398",
+        changes: [
+          { field: "message_template_status_update", value: { event: "APPROVED", message_template_id: 1259544702043867, message_template_name: "order_shipped", message_template_language: "en", reason: "NONE" } },
+          { field: "message_template_status_update", value: { event: "REJECTED", message_template_id: "42", message_template_name: "store_promo", message_template_language: "en", reason: "INCORRECT_CATEGORY" } },
+          { field: "messages", value: { messages: [] } },
+          { field: "message_template_status_update", value: { event: "APPROVED", message_template_id: "not-a-number" } },
+        ],
+      },
+    ],
+  };
+  assert.deepEqual(tc.parseTemplateStatusUpdates(payload), [
+    { wabaId: "102290129340398", metaId: "1259544702043867", name: "order_shipped", language: "en", status: "APPROVED", reason: null },
+    { wabaId: "102290129340398", metaId: "42", name: "store_promo", language: "en", status: "REJECTED", reason: "INCORRECT_CATEGORY" },
+  ]);
+  assert.deepEqual(tc.parseTemplateStatusUpdates(null), []);
+  assert.deepEqual(tc.parseTemplateStatusUpdates({ entry: "x" }), []);
+});
+
 // ─── Automation steps ─────────────────────────────────────────────────────────
 
 test("automation steps: WhatsApp template steps parse and validate", () => {
