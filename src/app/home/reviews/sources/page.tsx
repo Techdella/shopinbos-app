@@ -6,8 +6,7 @@ import { aiConfigured } from "@/lib/ai/client";
 import { db } from "@/lib/db/client";
 import { getGoogleConnection, googleConfigured, GoogleReviewsError, listGoogleLocations, type GoogleLocation } from "@/lib/reviews/google";
 import { IMPORT_SOURCES } from "@/lib/reviews/pure";
-import { productNames, reviewUrls } from "@/lib/reviews/server";
-import { CopyField } from "../_components/CopyField";
+import { productNames } from "@/lib/reviews/server";
 import { GoogleSyncButton } from "../_components/GoogleSyncButton";
 import { ImportForm } from "../_components/ImportForm";
 import { ReviewTabs, reviewSourceLabel, reviewsContext } from "../_components/shared";
@@ -41,11 +40,12 @@ export default async function ReviewSourcesPage({ searchParams }: { searchParams
     try {
       locations = await listGoogleLocations(store.id);
     } catch (error) {
-      locationError = error instanceof GoogleReviewsError ? error.message : t("src.locationsFailed");
+      // Google's own wording (quotas, project numbers) stays in the server log; sellers get a plain line.
+      console.error("[reviews] google locations failed", error instanceof GoogleReviewsError ? error.message.slice(0, 300) : "unknown");
+      locationError = t("src.locationsFailed");
     }
   }
   const notice = sp.google ? GOOGLE_NOTICE[sp.google] : null;
-  const urls = reviewUrls(store.slug);
   const sourceCount = new Map(counts.map((row) => [row.source, row._count._all]));
 
   return (
@@ -111,7 +111,7 @@ export default async function ReviewSourcesPage({ searchParams }: { searchParams
                     <p className="m-0 text-app-ink-soft">
                       {t("src.imported", { count: sourceCount.get("google") ?? 0 })}{connection.lastSyncedAt ? ` · ${t("src.lastImport", { when: timeAgo(connection.lastSyncedAt, Date.now(), locale) })}` : ""}. {t("src.repliesPosted")}
                     </p>
-                    {connection.lastError ? <p className="m-0 text-app-danger" title={connection.lastError}>{t("src.lastFailed")}</p> : null}
+                    {connection.lastError ? <p className="m-0 text-app-danger">{t("src.lastFailed")}</p> : null}
                     <GoogleSyncButton />
                   </>
                 ) : null}
@@ -150,14 +150,6 @@ export default async function ReviewSourcesPage({ searchParams }: { searchParams
               </ul>
             </Card>
 
-            <Card className="p-5">
-              <CardHead title={t("src.shopping")} sub={t("src.shoppingSub")} />
-              <div className="mt-3 grid gap-3 text-[13.5px] leading-[1.55]">
-                <CopyField label={t("src.feed")} value={urls.feed} />
-                <p className="m-0">{t("src.feedHow")}</p>
-                <p className="m-0 text-app-ink-soft">{t("src.feedNote")}</p>
-              </div>
-            </Card>
 
             <Card className="p-5">
               <CardHead title={t("filter.marketplaces")} />
