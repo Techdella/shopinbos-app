@@ -19,6 +19,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "partners.title": "Ndị mmekọ delivery na Shopinbos",
   "partners.seeAll": "Lee niile",
   "partners.covers": "Ọ na-ekpuchi {zones}",
+  "partners.riders": "{count, plural, other {riders #}}",
   getQuote: "Nweta quote",
   "new.title": "Tinye zone delivery",
   "new.sub": "Tọọ mpaghara zone a na-ekpuchi na ụgwọ delivery ndị na-azụ ebe ahụ ga-akwụ na checkout.",
@@ -195,6 +196,9 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "sup.noJobs": "Ọ nweghị nnyefe gị na riders gị ka.",
   "sup.inviteSub": "Ị na-eji ụlọ ọrụ delivery? Kpọọ ha bịa Shopinbos: ha ga-ebu ụzọ bulite order ndị ị kwakọbara.",
   "sup.inviteNote": "Mgbe ha sonyere, ha ga-ebu ụzọ bulite order ndị ị kwakọbara, ma ọ bụrụ na ụlọ ahịa ahọrọghị ụlọ ọrụ delivery nke ya. Shopinbos na-enyocha ụlọ ọrụ delivery ọ bụla tupu ọ nara ọrụ.",
+  "sup.partnersTitle": "Ụlọ ọrụ delivery dị nso gị",
+  "sup.partnersSub": "Shopinbos enyochala ha. Mbulite order ndị ị kwakọbara na-aga n'ụlọ ọrụ delivery ụlọ ahịa ahụ, ma ọ bụ nke ị kpọrọ, ma ọ bụ nke kachasị ntụkwasị obi ebe a.",
+  "sup.noPartners": "Ọ nweghị ụlọ ọrụ delivery enyochara na mpaghara gị ka. Kpọọ nke ị na-eji.",
 };
 
 export default ig;

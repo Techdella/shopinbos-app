@@ -19,6 +19,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "partners.title": "Delivery partners for Shopinbos",
   "partners.seeAll": "See all",
   "partners.covers": "E cover {zones}",
+  "partners.riders": "{count, plural, one {# rider} other {# riders}}",
   getQuote: "Get quote",
   "new.title": "Add delivery zone",
   "new.sub": "Set the areas wey this zone cover and the delivery fee wey buyers for there go pay for checkout.",
@@ -195,6 +196,9 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "sup.noJobs": "Your riders never get any delivery yet.",
   "sup.inviteSub": "You get delivery company wey you dey use? Invite dem come Shopinbos: na dem go first pick up your orders wey you don pack.",
   "sup.inviteNote": "When dem join, na dem go first pick up your orders wey you don pack, unless the shop choose their own delivery company. Shopinbos dey check every delivery company before dem fit collect jobs.",
+  "sup.partnersTitle": "Delivery companies wey dey near you",
+  "sup.partnersSub": "Shopinbos don check dem. Pickup for your packed orders go go the shop delivery company, if no be so the one wey you invite, if no be so the most reliable one for here.",
+  "sup.noPartners": "No checked delivery company dey cover your area yet. Invite the one wey you dey use.",
 };
 
 export default pcm;

@@ -13,6 +13,7 @@ import { MarketplaceChatWrapper } from "@/components/marketplace/MarketplaceChat
 import { ChatButton } from "@/components/marketplace/ChatButton";
 import { formatMoney, type Locale } from "@shared/i18n";
 import { getLocale, getT } from "@/lib/i18n/server";
+import { activeRiderCounts } from "@/lib/logistics/partner-riders.server";
 
 export const dynamic = "force-dynamic";
 
@@ -92,6 +93,7 @@ export default async function MarketplaceLogisticsPage({ searchParams }: PagePro
     };
     return localScore(b) - localScore(a) || b.reliabilityScore - a.reliabilityScore;
   });
+  const riders = await safeQuery(() => activeRiderCounts(partners.map((partner) => partner.id)), new Map<string, number>());
   const nearbyCount = partners.filter((partner) =>
     (storeCity && (norm(partner.city) === storeCity || partner.coverageZones.some((zone) => norm(zone).includes(storeCity)))) ||
     (storeCountry && norm(partner.country) === storeCountry),
@@ -179,6 +181,7 @@ export default async function MarketplaceLogisticsPage({ searchParams }: PagePro
                   <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-[13.5px]">
                     {p.basePrice > 0 && <span className="font-extrabold">{t("lp.from", { price: fmtMoney(p.basePrice, locale) })}</span>}
                     {p.coverageZones.length > 0 && <span className="text-app-ink-soft">{t("lp.areas", { count: p.coverageZones.length })}</span>}
+                    {(riders.get(p.id) ?? 0) > 0 && <span className="text-app-ink-soft">{t("lp.riders", { count: riders.get(p.id) ?? 0 })}</span>}
                     {p.estimatedSpeed && <span className="text-app-ink-soft">{p.estimatedSpeed}</span>}
                   </div>
                   <div className="mt-auto grid grid-cols-2 gap-2 pt-4">

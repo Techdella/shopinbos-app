@@ -288,6 +288,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "lp.reliability": "Ìgbẹ́kẹ̀lé",
   "lp.from": "Láti {price}",
   "lp.areas": "{count, plural, other {Agbègbè #}}",
+  "lp.riders": "{count, plural, other {rider #}}",
   "lp.quote": "Gba quote",
 };
 

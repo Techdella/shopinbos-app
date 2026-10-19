@@ -1,18 +1,20 @@
-import { AppPage, Card, CardHead, Pill, type Tone } from "@/components/app-kit";
+import { AppPage, Card, CardHead, Pill, Thumb, type Tone } from "@/components/app-kit";
 import { supplierFrame } from "@/components/supplier/supplier-kit";
 import { MyRiders } from "@/app/home/logistics/MyRiders";
 import { FleetJobActions, RiderDelivery } from "@/app/home/logistics/RiderDelivery";
 import { InviteCompany } from "@/app/home/logistics/InviteCompany";
 import { db } from "@/lib/db/client";
 import { fleetRiderLimit, sellerRiders } from "@/lib/logistics/fleet.server";
-import { sellerInvites } from "@/lib/logistics/invites.server";
+import { linkedPartnerIds, sellerInvites } from "@/lib/logistics/invites.server";
+import { partnersNear } from "@/lib/logistics/partners-near.server";
 import { ensureSupplierAccess, getSupplierForUser } from "@/lib/role-queries";
 import { requireRole } from "@/lib/server-auth";
 import { getLocale, getT } from "@/lib/i18n/server";
-import { formatDate } from "@shared/i18n";
+import { formatDate, formatMoney } from "@shared/i18n";
 
 // The supplier's own delivery: their riders ("My riders", src/lib/logistics/fleet.server.ts), deliveries given to
-// them, and invites for the delivery company they already use (who then gets their order pickups first).
+// them, invites for the delivery company they already use (who then gets their order pickups first), and the
+// checked delivery companies serving their area.
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +35,7 @@ export default async function SupplierDeliveryPage() {
   const locale = await getLocale();
   const date = (d: Date) => formatDate(d, locale, { day: "numeric", month: "short" });
 
-  const [riders, invites, riderPlan, jobs] = await Promise.all([
+  const [riders, invites, riderPlan, jobs, nearby, linkedIds] = await Promise.all([
     sellerRiders(user.id),
     sellerInvites(user.id),
     fleetRiderLimit(user.id),
@@ -43,7 +45,11 @@ export default async function SupplierDeliveryPage() {
       orderBy: { createdAt: "desc" },
       take: 20,
     }),
+    partnersNear(supplier.city),
+    linkedPartnerIds(user.id),
   ]);
+  const linked = new Set(linkedIds);
+  nearby.sort((a, b) => Number(linked.has(b.id)) - Number(linked.has(a.id)));
 
   return (
     <AppPage frame={supplierFrame(user, supplier)} title={t("sup.title")} sub={t("sup.sub")}>
@@ -75,6 +81,37 @@ export default async function SupplierDeliveryPage() {
                     </div>
                     <Pill tone={BOOKING_TONE[b.status] ?? "muted"} dot>{t.dynamic(`booking.${b.status}`, b.status.replace(/_/g, " "))}</Pill>
                     {OPEN.includes(b.status) && <FleetJobActions bookingId={b.id} status={b.status} api={API} />}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+
+          <Card className="overflow-hidden">
+            <div className="px-5 pb-4 pt-5">
+              <CardHead title={t("sup.partnersTitle")} sub={t("sup.partnersSub")} />
+            </div>
+            {nearby.length === 0 ? (
+              <p className="m-0 border-t border-app-line px-5 py-8 text-center text-[14px] text-app-ink-soft">{t("sup.noPartners")}</p>
+            ) : (
+              <ul className="m-0 list-none divide-y divide-app-line border-t border-app-line p-0">
+                {nearby.map((p) => (
+                  <li key={p.id} className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-5 py-3.5 sm:flex-nowrap">
+                    <Thumb src={p.logoUrl} label={p.displayName} size={44} />
+                    <div className="min-w-0 flex-1 basis-[200px]">
+                      <div className="flex items-center gap-2 truncate text-[14.5px] font-extrabold">
+                        {p.displayName}
+                        {linked.has(p.id) && <Pill tone="success">{t("invite.yours")}</Pill>}
+                      </div>
+                      <div className="truncate text-[13px] text-app-ink-soft">
+                        {[p.city, p.riders ? t("partners.riders", { count: p.riders }) : null, p.estimatedSpeed].filter(Boolean).join(" · ")}
+                      </div>
+                      {p.coverageZones.length > 0 && <div className="truncate text-[12.5px] text-app-ink-soft">{t("partners.covers", { zones: p.coverageZones.join(", ") })}</div>}
+                    </div>
+                    {p.basePrice > 0 && <span className="shrink-0 text-[14px] font-extrabold">{formatMoney(Math.round(p.basePrice), locale)}</span>}
+                    {p.whatsappNumber && (
+                      <a href={`https://wa.me/${p.whatsappNumber.replace(/\D/g, "")}`} target="_blank" rel="noreferrer" className="inline-flex min-h-[36px] items-center rounded-full border border-app-line bg-white px-3.5 text-[13px] font-bold text-app-ink">WhatsApp</a>
+                    )}
                   </li>
                 ))}
               </ul>

@@ -288,6 +288,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "lp.reliability": "Aminci",
   "lp.from": "Daga {price}",
   "lp.areas": "{count, plural, one {Yanki #} other {Yankuna #}}",
+  "lp.riders": "{count, plural, other {riders #}}",
   "lp.quote": "Samu quote",
 };
 

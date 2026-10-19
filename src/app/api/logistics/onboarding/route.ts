@@ -18,6 +18,7 @@ export const GET = withLogistics(async (_req: NextRequest, { user }: { user: Aut
       country: true,
       city: true,
       description: true,
+      logoUrl: true,
       coverageZones: true,
       coverageMap: true,
       vehicleTypes: true,

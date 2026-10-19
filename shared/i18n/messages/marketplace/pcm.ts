@@ -288,6 +288,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "lp.reliability": "Reliability",
   "lp.from": "From {price}",
   "lp.areas": "{count, plural, one {# area} other {# areas}}",
+  "lp.riders": "{count, plural, one {# rider} other {# riders}}",
   "lp.quote": "Get quote",
 };
 

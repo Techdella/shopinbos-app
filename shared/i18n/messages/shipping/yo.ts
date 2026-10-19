@@ -19,6 +19,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "partners.title": "Àwọn alábàáṣiṣẹ́ delivery lórí Shopinbos",
   "partners.seeAll": "Wo gbogbo",
   "partners.covers": "Ó bo {zones}",
+  "partners.riders": "{count, plural, other {rider #}}",
   getQuote: "Gba quote",
   "new.title": "Fi zone delivery kún un",
   "new.sub": "Ṣètò àwọn agbègbè tí zone yìí bo àti owó delivery tí oníbàárà ibẹ̀ máa san ní checkout.",
@@ -195,6 +196,9 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "sup.noJobs": "Kò sí ìfijíṣẹ́ pẹ̀lú àwọn rider yín síbẹ̀.",
   "sup.inviteSub": "Ṣé ẹ ti ń lo ilé-iṣẹ́ delivery kan? Pè wọ́n wá sí Shopinbos: àwọn ni yóò kọ́kọ́ gbé àwọn order tí ẹ ti dì.",
   "sup.inviteNote": "Tí wọ́n bá darapọ̀, àwọn ni yóò kọ́kọ́ gbé àwọn order tí ẹ ti dì, àyàfi tí ṣọ́ọ̀bù bá ti yan ilé-iṣẹ́ delivery tirẹ̀. Shopinbos ń ṣàyẹ̀wò gbogbo ilé-iṣẹ́ delivery kí wọ́n tó lè gba iṣẹ́.",
+  "sup.partnersTitle": "Àwọn ilé-iṣẹ́ delivery nítòsí yín",
+  "sup.partnersSub": "Shopinbos ti ṣàyẹ̀wò wọn. Gbígbé àwọn order tí ẹ ti dì máa lọ sí ilé-iṣẹ́ delivery ṣọ́ọ̀bù, tàbí èyí tí ẹ pè, tàbí èyí tó ṣeé gbẹ́kẹ̀lé jù níbí.",
+  "sup.noPartners": "Kò sí ilé-iṣẹ́ delivery tí a ti ṣàyẹ̀wò ní agbègbè yín síbẹ̀. Ẹ pe èyí tí ẹ ń lò.",
 };
 
 export default yo;

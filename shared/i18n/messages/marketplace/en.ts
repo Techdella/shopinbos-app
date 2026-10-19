@@ -286,6 +286,7 @@ const en = {
   "lp.reliability": "Reliability",
   "lp.from": "From {price}",
   "lp.areas": "{count, plural, one {# area} other {# areas}}",
+  "lp.riders": "{count, plural, one {# rider} other {# riders}}",
   "lp.quote": "Get a quote",
 } satisfies Record<string, string>;
 

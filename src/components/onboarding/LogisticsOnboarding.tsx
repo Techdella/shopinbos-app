@@ -8,6 +8,7 @@ import intentRouting from "@/lib/intent-routing";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import { formatMoney } from "@shared/i18n";
 import { deliveryScopeOptions, westAfricaCountries, type DeliveryScope } from "@/lib/data/west-africa";
+import { LogoUploadForm } from "@/app/logistics/profile/LogoUploadForm";
 
 // Delivery partner setup in the 2026 app look (same shell as SupplierOnboarding). Everything stays in this
 // component's state across steps; the server only gets a save once the profile is complete enough for its schema
@@ -34,6 +35,8 @@ interface InitialUser {
 const STEPS = ["Company", "Coverage", "Fleet", "Pricing", "Review"];
 const VEHICLES = ["bike", "van", "truck"];
 const DELIVERY_TYPES = ["same_day", "express", "next_day", "bulk"];
+// Where Shopinbos is building its delivery network first; offered as one-tap areas on the coverage step.
+const LAUNCH_AREAS = [{ region: "Lagos", label: "Lagos" }, { region: "Oyo", label: "Oyo (Ibadan)" }, { region: "Osun", label: "Osun" }];
 const SPEEDS = ["Same-day in active zones", "45-90 minutes in active zones", "Next-day within city", "2-3 business days"];
 
 const selectClass = "h-[54px] w-full rounded-[16px] border border-app-line bg-white px-4 text-[16px] text-app-ink outline-none transition focus:border-app-ink disabled:opacity-55";
@@ -76,6 +79,7 @@ export function LogisticsOnboarding({ initialUser }: { initialUser?: InitialUser
   const [error, setError] = useState("");
   const [companyName, setCompanyName] = useState(initialUser?.name ?? "");
   const [description, setDescription] = useState("");
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [city, setCity] = useState(initialUser?.city ?? "Lagos");
   const [country, setCountry] = useState(initialUser?.country ?? "Nigeria");
   const [zones, setZones] = useState<CoverageZone[]>([]);
@@ -96,6 +100,7 @@ export function LogisticsOnboarding({ initialUser }: { initialUser?: InitialUser
         if (!data) return;
         setCompanyName(data.displayName || data.companyName || "");
         setDescription(data.description || "");
+        setLogoUrl(data.logoUrl || null);
         setCity(data.city || "Lagos");
         setCountry(data.country || "Nigeria");
         const mapZones = data.coverageMap?.zones;
@@ -232,6 +237,13 @@ export function LogisticsOnboarding({ initialUser }: { initialUser?: InitialUser
                     <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.8px] sm:text-[34px]">{t("lp.companyTitle")}</h1>
                     <p className="mb-0 mt-2 max-w-[640px] text-[15px] leading-[1.5] text-app-ink-soft">{t("lp.companySub")}</p>
                     <div className={cx(cardClass, "mt-6")}>
+                      <div className="flex items-center gap-4">
+                        <LogoUploadForm currentLogo={logoUrl} displayName={companyName || "?"} />
+                        <div className="min-w-0">
+                          <div className="text-[15px] font-bold">{t("lp.logo")}</div>
+                          <p className="m-0 mt-1 text-[13px] leading-5 text-app-ink-soft">{t("lp.logoSub")}</p>
+                        </div>
+                      </div>
                       <div>
                         <FieldLabel htmlFor="lp-name">{t("lp.companyName")}</FieldLabel>
                         <TextInput id="lp-name" value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder={t("lp.companyNamePlaceholder")} />
@@ -276,6 +288,16 @@ export function LogisticsOnboarding({ initialUser }: { initialUser?: InitialUser
                           </select>
                         </div>
                       </div>
+                      {newZoneCountry === "Nigeria" && (
+                        <div>
+                          <p className="m-0 mb-2 text-[13px] text-app-ink-soft">{t("lp.launchAreas")}</p>
+                          <div className="flex flex-wrap gap-2">
+                            {LAUNCH_AREAS.map((area) => (
+                              <Chip key={area.region} on={newZoneRegion === area.region} onClick={() => setNewZoneRegion(area.region)}>{area.label}</Chip>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                       <fieldset className="m-0 border-0 p-0">
                         <legend className="mb-2 text-[14px] font-bold">{t("lp.scope")}</legend>
                         <div className="flex flex-wrap gap-2">

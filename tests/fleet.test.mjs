@@ -99,3 +99,15 @@ test("suppliers get their own riders and invites, never tied to a shop order", (
   // A company the supplier invited collects their pickups, after the shop's own choice.
   assert.match(read("src/lib/supplier-orders/pickup.server.ts"), /linkedPartnerIds\(order\.supplier\.userId\)/);
 });
+
+test("partner onboarding asks for a logo and offers the launch areas; sellers and suppliers see logos and riders", () => {
+  const onboarding = read("src/components/onboarding/LogisticsOnboarding.tsx");
+  assert.match(onboarding, /<LogoUploadForm currentLogo=\{logoUrl\}/);
+  assert.match(onboarding, /region: "Lagos".*region: "Oyo", label: "Oyo \(Ibadan\)".*region: "Osun"/);
+  assert.match(read("src/lib/logistics/partners-near.server.ts"), /ibadan: "oyo"/);
+  assert.match(read("src/app/home/logistics/page.tsx"), /activeRiderCounts\(partners\.map/);
+  assert.match(read("src/app/marketplace/logistics/page.tsx"), /activeRiderCounts\(partners\.map/);
+  const supplier = read("src/app/supplier/delivery/page.tsx");
+  assert.match(supplier, /partnersNear\(supplier\.city\)/);
+  assert.match(supplier, /<Thumb src=\{p\.logoUrl\}/);
+});

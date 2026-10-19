@@ -19,6 +19,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "partners.title": "Abokan delivery a Shopinbos",
   "partners.seeAll": "Duba duka",
   "partners.covers": "Yana rufe {zones}",
+  "partners.riders": "{count, plural, other {riders #}}",
   getQuote: "Sami quote",
   "new.title": "Saka zone na delivery",
   "new.sub": "Saita yankunan da wannan zone ke rufewa da kuɗin delivery da masu saye a can za su biya a checkout.",
@@ -195,6 +196,9 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "sup.noJobs": "Babu isar da kaya da riders ɗinku tukuna.",
   "sup.inviteSub": "Kuna amfani da kamfanin delivery? Gayyace su zuwa Shopinbos: su ne za su fara ɗaukar odar da kuka shirya.",
   "sup.inviteNote": "Idan sun shiga, su ne za su fara ɗaukar odar da kuka shirya, sai dai idan shagon ya zaɓi kamfanin delivery nasa. Shopinbos na duba kowane kamfanin delivery kafin ya fara karɓar ayyuka.",
+  "sup.partnersTitle": "Kamfanonin delivery kusa da ku",
+  "sup.partnersSub": "Shopinbos ta duba su. Ɗaukar odar da kuka shirya tana zuwa kamfanin delivery na shagon, ko wanda kuka gayyata, ko mafi amintacce a nan.",
+  "sup.noPartners": "Babu kamfanin delivery da aka duba a yankinku tukuna. Gayyaci wanda kuke amfani da shi.",
 };
 
 export default ha;

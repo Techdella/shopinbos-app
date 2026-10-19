@@ -288,6 +288,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "lp.reliability": "Ntụkwasị obi",
   "lp.from": "Site na {price}",
   "lp.areas": "{count, plural, other {Mpaghara #}}",
+  "lp.riders": "{count, plural, other {riders #}}",
   "lp.quote": "Nweta quote",
 };
 

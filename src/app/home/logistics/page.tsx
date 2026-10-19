@@ -9,6 +9,7 @@ import { MyRiders } from "./MyRiders";
 import { FleetJobActions, RiderDelivery } from "./RiderDelivery";
 import { InviteCompany } from "./InviteCompany";
 import { fleetRiderLimit, sellerRiders } from "@/lib/logistics/fleet.server";
+import { activeRiderCounts } from "@/lib/logistics/partner-riders.server";
 import { linkedPartnerIds, sellerInvites } from "@/lib/logistics/invites.server";
 import { messagesHref } from "@/lib/conversations/pure";
 import { getLocale, getT } from "@/lib/i18n/server";
@@ -76,6 +77,7 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
   // The delivery companies this seller invited come first, marked "Your delivery company".
   const linked = new Set(linkedIds);
   partners.sort((a, b) => Number(linked.has(b.id)) - Number(linked.has(a.id)));
+  const partnerRiders = await activeRiderCounts(partners.map((p) => p.id));
 
   const allVerified = filter === "all"
     ? partners
@@ -168,7 +170,7 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
                           {linked.has(p.id) && <Pill tone="success">{t("invite.yours")}</Pill>}
                         </div>
                         <div className="truncate text-[13px] text-app-ink-soft">
-                          {p.city}, {p.country} · {t("lg.reliability", { score: p.reliabilityScore })}{p.rating ? ` · ★ ${p.rating.toFixed(1)}` : ""}
+                          {p.city}, {p.country}{partnerRiders.get(p.id) ? ` · ${t("partners.riders", { count: partnerRiders.get(p.id) ?? 0 })}` : ""} · {t("lg.reliability", { score: p.reliabilityScore })}{p.rating ? ` · ★ ${p.rating.toFixed(1)}` : ""}
                         </div>
                         {p.coverageZones.length > 0 && <div className="truncate text-[12.5px] text-app-ink-soft">{t("partners.covers", { zones: p.coverageZones.join(", ") })}</div>}
                       </div>

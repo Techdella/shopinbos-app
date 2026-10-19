@@ -17,6 +17,7 @@ const en = {
   "partners.title": "Delivery partners on Shopinbos",
   "partners.seeAll": "See all",
   "partners.covers": "Covers {zones}",
+  "partners.riders": "{count, plural, one {# rider} other {# riders}}",
   getQuote: "Get a quote",
   "new.title": "Add delivery zone",
   "new.sub": "Set the areas this zone covers and the delivery fee shoppers there pay at checkout.",
@@ -193,6 +194,9 @@ const en = {
   "sup.noJobs": "No deliveries with your riders yet.",
   "sup.inviteSub": "Already use a delivery company? Invite them to Shopinbos: pickups of your packed orders go to them first.",
   "sup.inviteNote": "When they join, pickups of your packed orders go to them first, unless the shop picked its own delivery company. Shopinbos checks every delivery company before it can take jobs.",
+  "sup.partnersTitle": "Delivery companies near you",
+  "sup.partnersSub": "Checked by Shopinbos. Your packed-order pickups go to the shop's delivery company, else one you invited, else the most reliable one here.",
+  "sup.noPartners": "No checked delivery companies cover your area yet. Invite the one you use.",
 } satisfies Record<string, string>;
 
 export default en;
