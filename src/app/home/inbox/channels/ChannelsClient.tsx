@@ -2,7 +2,7 @@
 
 import { confirmDialog } from "@/components/ui/dialogs";
 import Link from "next/link";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Card, Pill } from "@/components/app-kit";
 import { cx, Notice, PillButton } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
@@ -14,6 +14,8 @@ import type { ConnectableChannel } from "@/lib/inbox/meta";
 import type { ChannelView } from "@/lib/inbox/connect";
 import { Mascot } from "@/components/brand/Mascot";
 import { useT } from "@/components/i18n/I18nProvider";
+import { EmbeddedSignupError, runEmbeddedSignup } from "@/components/meta/embedded-signup";
+import { ConnectGuide } from "./ConnectGuide";
 
 // Connect screens for every inbox channel: status, what you need, step-by-step setup, and the form.
 // Keys go to the server once, are checked with the provider and stored encrypted; they never come back here.
@@ -184,11 +186,57 @@ function CopyRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-// Each channel (simplicity rules, section 8A): a plain status and one action, "Ask us to connect it". The keys,
-// steps, callback URLs and the connect form are for "the person who manages your … account", in a TechFold.
+// Each channel (simplicity rules, section 8A): a plain status and one action the seller does themselves. WhatsApp,
+// Messenger and Instagram connect with Facebook in one go (Embedded Signup / Facebook Login on Shopinbos's own Meta
+// app) with a "Show me how" tour of what they'll tap; the other channels open their steps and the form right here.
+// Tokens for "your own Meta app", callback URLs and verify tokens stay in a TechFold.
 const metaChannelKey = (channel: string) => channel === "whatsapp" || channel === "instagram" || channel === "messenger";
 
-function ChannelCard({ view, setup, onChange, encryptionReady, extra, tech }: { view: ChannelView; setup: Setup; onChange: (view: ChannelView) => void; encryptionReady: boolean; extra?: ReactNode; tech?: ReactNode }) {
+/** How a card connects in one tap, when the server has it set up. */
+export type OneTap = { kind: "whatsapp"; signup: { appId: string; configId: string } } | { kind: "facebook" };
+/** Back from Facebook Login (?meta=…), and the Pages to choose from when there were several. */
+export type MetaReturn = { channel: string; result: string };
+export type PagePick = { channel: string; pages: Array<{ id: string; name: string; instagram: string | null }> };
+
+const META_RESULTS = ["connected", "cancelled", "no_page", "no_instagram", "taken", "problem", "unavailable"];
+
+function PagePicker({ pick, onChange }: { pick: PagePick; onChange: (view: ChannelView) => void }) {
+  const t = useT("inbox");
+  const [chosen, setChosen] = useState(pick.pages[0]?.id ?? "");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  async function connect() {
+    setBusy(true);
+    setError(null);
+    try {
+      onChange(await inboxApi<ChannelView>("/api/app/inbox/meta/pick", { method: "POST", body: JSON.stringify({ channel: pick.channel, pageId: chosen }) }));
+    } catch (e) {
+      setError(plainMetaError((e as Error).message));
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <div className="grid gap-3 rounded-[14px] bg-app-canvas p-3.5">
+      <p className="m-0 text-[13.5px] font-bold">{pick.channel === "instagram" ? t("ch.pickInstagram") : t("ch.pickPage")}</p>
+      <div className="grid gap-2" role="radiogroup">
+        {pick.pages.map((page) => (
+          <label key={page.id} className={cx("flex min-h-[48px] cursor-pointer items-center gap-3 rounded-[12px] border bg-white px-3 py-2", chosen === page.id ? "border-app-ink" : "border-app-line")}>
+            <input type="radio" name={`page-${pick.channel}`} checked={chosen === page.id} onChange={() => setChosen(page.id)} />
+            <span className="min-w-0 flex-1">
+              <span className="block text-[14px] font-bold">{pick.channel === "instagram" && page.instagram ? page.instagram : page.name}</span>
+              {pick.channel === "instagram" && <span className="block text-[12px] text-app-ink-soft">{page.name}</span>}
+            </span>
+          </label>
+        ))}
+      </div>
+      <div><PillButton size="md" busy={busy} disabled={!chosen} onClick={() => void connect()}>{t("ch.pickConnect")}</PillButton></div>
+      {error && <Notice tone="error">{error}</Notice>}
+    </div>
+  );
+}
+
+function ChannelCard({ view, setup, onChange, encryptionReady, extra, tech, oneTap, metaReturn, pick }: { view: ChannelView; setup: Setup; onChange: (view: ChannelView) => void; encryptionReady: boolean; extra?: ReactNode; tech?: ReactNode; oneTap?: OneTap | null; metaReturn?: string | null; pick?: PagePick | null }) {
   const t = useT("inbox", "common");
   const title = t.dynamic(`ch.${view.channel}.title`, setup.title);
   const connected = view.status === "connected";
@@ -196,7 +244,10 @@ function ChannelCard({ view, setup, onChange, encryptionReady, extra, tech }: { 
   const [askUs, setAskUs] = useState(false);
   const [values, setValues] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<{ tone: "error" | "success"; text: string } | null>(null);
+  const [message, setMessage] = useState<{ tone: "error" | "success" | "info"; text: string } | null>(() => {
+    if (!metaReturn || !META_RESULTS.includes(metaReturn) || (metaReturn === "connected") !== connected) return null;
+    return { tone: metaReturn === "connected" ? "success" : metaReturn === "cancelled" || metaReturn === "unavailable" ? "info" : "error", text: t.dynamic(`ch.meta.${metaReturn}`, "", { title }) };
+  });
 
   async function connect() {
     setBusy(true);
@@ -213,6 +264,23 @@ function ChannelCard({ view, setup, onChange, encryptionReady, extra, tech }: { 
     } catch (error) {
       const raw = (error as Error).message;
       setMessage({ tone: "error", text: metaChannelKey(view.channel) ? plainMetaError(raw) : t("ch.rejected", { title }) });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /** WhatsApp Embedded Signup in a Facebook popup; the server swaps the code and registers the number. */
+  async function connectWhatsApp(signup: { appId: string; configId: string }) {
+    setBusy(true);
+    setMessage(null);
+    try {
+      const info = await runEmbeddedSignup(signup);
+      const result = await inboxApi<{ view: ChannelView }>("/api/app/inbox/whatsapp", { method: "POST", body: JSON.stringify({ action: "embedded_signup", code: info.code, phoneNumberId: info.phoneNumberId, wabaId: info.wabaId }) });
+      onChange(result.view);
+      setMessage({ tone: "success", text: t("ch.meta.connected", { title }) });
+    } catch (error) {
+      const code = error instanceof EmbeddedSignupError ? error.code : null;
+      setMessage({ tone: code === "closed" ? "info" : "error", text: code === "closed" ? t("wa.signupClosed") : code === "no_number" ? t("wa.noNumber") : plainMetaError((error as Error).message) });
     } finally {
       setBusy(false);
     }
@@ -235,9 +303,70 @@ function ChannelCard({ view, setup, onChange, encryptionReady, extra, tech }: { 
   const needsKeys = setup.fields.some((f) => !f.optional) || view.channel === "voice";
   const blocked = needsKeys && !encryptionReady && view.channel !== "email";
   const metaChannel = metaChannelKey(view.channel);
+  const reconnecting = view.status === "error" || Boolean(connected && view.lastError);
+  // One-tap channels keep the token form in the TechFold; the rest show their steps and form on the card.
+  const formOnCard = !oneTap && !connected;
+
+  const form = open ? (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        void connect();
+      }}
+      className="grid gap-3"
+    >
+      {setup.fields.filter((field) => !field.only || field.only.includes(values.provider ?? "")).map((field) => (
+        <label key={field.name} className="grid gap-1 text-[13.5px] font-bold">
+          <span>{field.label}{field.optional ? <span className="font-normal text-app-ink-soft"> {t("ch.optional")}</span> : null}</span>
+          {field.options ? (
+            <select
+              required={!field.optional}
+              value={values[field.name] ?? ""}
+              onChange={(e) => setValues((v) => ({ ...v, [field.name]: e.target.value }))}
+              className="h-11 w-full rounded-[14px] border border-app-line bg-white px-3 text-[14px] font-normal outline-none focus:border-app-ink"
+            >
+              <option value="">{field.optional ? t("ch.default") : t("ch.choose")}</option>
+              {field.options
+                .filter((option) => field.name !== "route" || (values.provider === "termii" ? ["dnd", "generic"] : ["dnd", "non_dnd", "international"]).includes(option.value))
+                .map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+            </select>
+          ) : (
+          <input
+            type={field.secret ? "password" : "text"}
+            autoComplete="off"
+            spellCheck={false}
+            required={!field.optional}
+            value={values[field.name] ?? ""}
+            onChange={(e) => setValues((v) => ({ ...v, [field.name]: e.target.value }))}
+            placeholder={field.placeholder}
+            className="h-11 w-full rounded-[14px] border border-app-line bg-white px-3 font-mono text-[14px] font-normal outline-none focus:border-app-ink"
+          />
+          )}
+          {field.hint && <span className="text-[12px] font-normal text-app-ink-soft">{field.hint}</span>}
+        </label>
+      ))}
+      {(connected || view.status === "error") && setup.fields.length > 0 && <p className="m-0 text-[12.5px] text-app-ink-soft">{t("ch.savedKeys")}</p>}
+      <div className="flex flex-wrap gap-2">
+        <PillButton type="submit" size="md" busy={busy}>{connected || view.status === "error" ? t("ch.saveReconnect") : t("ch.connect")}</PillButton>
+        <PillButton size="md" tone="ghost" onClick={() => setOpen(false)}>{t("cancel")}</PillButton>
+      </div>
+    </form>
+  ) : null;
+
+  const steps = (
+    <div className="grid gap-2">
+      <p className="m-0 text-[13px] leading-[1.5] text-app-ink-soft"><strong className="text-app-ink">{t("ch.youNeed")}</strong> {setup.needs}</p>
+      <ol className="m-0 grid gap-1.5 pl-5 text-[13px] leading-[1.5]">
+        {setup.steps.map((step) => <li key={step}>{step}</li>)}
+      </ol>
+    </div>
+  );
+
+  const facebookButtonClass = "inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full bg-[#1877F2] px-5 text-[15px] font-bold text-white no-underline transition hover:brightness-95";
 
   return (
     <Card className="grid content-start gap-3 p-5">
+      <span id={view.channel} aria-hidden className="block h-0 scroll-mt-24" />
       <div className="flex items-start gap-3">
         <ChannelMark channel={view.channel} size={44} />
         <div className="min-w-0 flex-1">
@@ -254,17 +383,46 @@ function ChannelCard({ view, setup, onChange, encryptionReady, extra, tech }: { 
       )}
       {extra}
 
-      {!connected && setup.fields.length > 0 && (
-        askUs ? (
-          <SetupHelpRequest title={t("ch.helpTitle", { title })} description={t("ch.helpDesc", { title })} feature={`inbox_${view.channel}`} />
+      {pick && !connected ? <PagePicker pick={pick} onChange={(next) => { onChange(next); setMessage({ tone: "success", text: t("ch.meta.connected", { title }) }); }} /> : null}
+
+      {oneTap && (!connected || reconnecting) && !pick && !blocked ? (
+        <div className="grid gap-2">
+          <div>
+            {oneTap.kind === "whatsapp" ? (
+              <button type="button" disabled={busy} onClick={() => void connectWhatsApp(oneTap.signup)} className={cx(facebookButtonClass, "disabled:opacity-60")}>
+                <Icon name="facebook" size={17} /> {reconnecting ? t("ch.reconnectFacebook") : t("ch.connectFacebook")}
+              </button>
+            ) : (
+              <a href={`/api/app/inbox/meta/connect?channel=${view.channel}`} className={facebookButtonClass}>
+                <Icon name="facebook" size={17} /> {reconnecting ? t("ch.reconnectFacebook") : t("ch.connectFacebook")}
+              </a>
+            )}
+          </div>
+          {!connected && <p className="m-0 text-[13px] leading-[1.5] text-app-ink-soft">{view.channel === "whatsapp" ? t("ch.whatsappSub") : view.channel === "instagram" ? t("ch.instagramSub") : t("ch.facebookSub")}</p>}
+        </div>
+      ) : null}
+      {oneTap && !connected && (view.channel === "whatsapp" || view.channel === "messenger" || view.channel === "instagram") ? <ConnectGuide kind={view.channel} defaultOpen={metaReturn === "no_instagram"} /> : null}
+
+      {formOnCard && setup.fields.length > 0 && (
+        blocked ? (
+          <p className="m-0 text-[13px] text-app-ink-soft">{t("ch.noKeyStore")}</p>
+        ) : open ? (
+          <div className="grid gap-3 rounded-[14px] border border-app-line p-3.5">
+            {steps}
+            {form}
+          </div>
         ) : (
-          <div><PillButton size="md" tone="ink" onClick={() => setAskUs(true)}>{t("ch.askUs")}</PillButton></div>
+          <div className="grid gap-2">
+            <div><PillButton size="md" tone="ink" onClick={() => setOpen(true)}>{t("ch.connectStart")}</PillButton></div>
+            <p className="m-0 text-[13px] leading-[1.5] text-app-ink-soft">{t("ch.manualSub")}</p>
+          </div>
         )
       )}
+
       {connected && view.lastError && !askUs && <div><PillButton size="sm" tone="white" onClick={() => setAskUs(true)}>{t("ch.askHelp")}</PillButton></div>}
       {connected && view.lastError && askUs && <SetupHelpRequest title={t("ch.fixTitle", { title })} description={t("ch.fixDesc", { title })} feature={`inbox_${view.channel}`} />}
 
-      {setup.fields.length > 0 || tech || (connected && metaChannel && view.webhookUrl) ? (
+      {(!formOnCard && setup.fields.length > 0) || tech || (connected && metaChannel && view.webhookUrl) ? (
       <TechFold forWho={t("ch.forWho", { title })}>
       <div className="grid gap-3">
       {view.lastError && <p className="m-0 break-words text-[12.5px] text-app-ink-soft">{t("ch.lastProblem", { error: view.lastError })}</p>}
@@ -276,69 +434,23 @@ function ChannelCard({ view, setup, onChange, encryptionReady, extra, tech }: { 
         </div>
       )}
 
-      <div className="grid gap-2">
-        <p className="m-0 text-[13px] leading-[1.5] text-app-ink-soft"><strong className="text-app-ink">{t("ch.youNeed")}</strong> {setup.needs}</p>
-        <ol className="m-0 grid gap-1.5 pl-5 text-[13px] leading-[1.5]">
-          {setup.steps.map((step) => <li key={step}>{step}</li>)}
-        </ol>
-      </div>
-
-      {open && (
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            void connect();
-          }}
-          className="grid gap-3"
-        >
-          {setup.fields.filter((field) => !field.only || field.only.includes(values.provider ?? "")).map((field) => (
-            <label key={field.name} className="grid gap-1 text-[13.5px] font-bold">
-              <span>{field.label}{field.optional ? <span className="font-normal text-app-ink-soft"> {t("ch.optional")}</span> : null}</span>
-              {field.options ? (
-                <select
-                  required={!field.optional}
-                  value={values[field.name] ?? ""}
-                  onChange={(e) => setValues((v) => ({ ...v, [field.name]: e.target.value }))}
-                  className="h-11 w-full rounded-[14px] border border-app-line bg-white px-3 text-[14px] font-normal outline-none focus:border-app-ink"
-                >
-                  <option value="">{field.optional ? t("ch.default") : t("ch.choose")}</option>
-                  {field.options
-                    .filter((option) => field.name !== "route" || (values.provider === "termii" ? ["dnd", "generic"] : ["dnd", "non_dnd", "international"]).includes(option.value))
-                    .map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                </select>
+      {!formOnCard && setup.fields.length > 0 && (
+        <>
+          {oneTap && !connected && <p className="m-0 text-[13px] font-bold">{t("ch.ownMetaApp")}</p>}
+          {steps}
+          {form}
+          {!open && (
+            <div className="flex flex-wrap gap-2">
+              {blocked ? (
+                <p className="m-0 text-[13px] text-app-ink-soft">{t("ch.noKeyStore")}</p>
               ) : (
-              <input
-                type={field.secret ? "password" : "text"}
-                autoComplete="off"
-                spellCheck={false}
-                required={!field.optional}
-                value={values[field.name] ?? ""}
-                onChange={(e) => setValues((v) => ({ ...v, [field.name]: e.target.value }))}
-                placeholder={field.placeholder}
-                className="h-11 w-full rounded-[14px] border border-app-line bg-white px-3 font-mono text-[14px] font-normal outline-none focus:border-app-ink"
-              />
+                <PillButton size="md" tone="white" onClick={() => setOpen(true)}>{connected ? t("ch.updateKeys") : t("ch.connectKeys")}</PillButton>
               )}
-              {field.hint && <span className="text-[12px] font-normal text-app-ink-soft">{field.hint}</span>}
-            </label>
-          ))}
-          {(connected || view.status === "error") && setup.fields.length > 0 && <p className="m-0 text-[12.5px] text-app-ink-soft">{t("ch.savedKeys")}</p>}
-          <div className="flex flex-wrap gap-2">
-            <PillButton type="submit" size="md" busy={busy}>{connected || view.status === "error" ? t("ch.saveReconnect") : t("ch.connect")}</PillButton>
-            <PillButton size="md" tone="ghost" onClick={() => setOpen(false)}>{t("cancel")}</PillButton>
-          </div>
-        </form>
-      )}
-
-      {!open && setup.fields.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {blocked ? (
-            <p className="m-0 text-[13px] text-app-ink-soft">{t("ch.noKeyStore")}</p>
-          ) : (
-            <PillButton size="md" tone="white" onClick={() => setOpen(true)}>{connected ? t("ch.updateKeys") : t("ch.connectKeys")}</PillButton>
+            </div>
           )}
-        </div>
+          <p className="m-0 text-[12px] text-app-ink-soft">{t("ch.keysNote")}</p>
+        </>
       )}
-      <p className="m-0 text-[12px] text-app-ink-soft">{t("ch.keysNote")}</p>
       </div>
       </TechFold>
       ) : null}
@@ -384,14 +496,32 @@ export function ChannelsClient({
   platform,
   liveChat,
   forwardCallsTo,
+  whatsappSignup,
+  facebookLogin,
+  metaReturn,
+  pick,
 }: {
   initial: ChannelView[];
   platform: { encryption: boolean; resend: boolean; resendInbound: boolean; emailDomain: string | null; metaAppSecret: boolean; metaVerifyToken: boolean };
   liveChat: { on: boolean; mode: string };
   forwardCallsTo: string;
+  /** WhatsApp Embedded Signup (META_APP_ID + META_CONFIG_ID + META_APP_SECRET), else null. */
+  whatsappSignup: { appId: string; configId: string } | null;
+  /** Facebook Login for Messenger and Instagram on Shopinbos's Meta app. */
+  facebookLogin: boolean;
+  metaReturn: MetaReturn | null;
+  pick: PagePick | null;
 }) {
   const t = useT("inbox");
   const [views, setViews] = useState(initial);
+  // Drop ?meta=… once its message is on the card, so a refresh doesn't show it again.
+  useEffect(() => {
+    if (!metaReturn) return;
+    const url = new URL(window.location.href);
+    url.searchParams.delete("meta");
+    url.searchParams.delete("channel");
+    window.history.replaceState(null, "", url.toString());
+  }, [metaReturn]);
   const update = (next: ChannelView) => setViews((current) => current.map((v) => (v.channel === next.channel ? next : v)));
   const connectedCount = views.filter((v) => v.status === "connected").length;
 
@@ -471,7 +601,21 @@ export function ChannelsClient({
           if (key === "telegram" && view.status === "connected" && view.webhookUrl) {
             tech = <CopyRow label={t("ch.telegramWebhook")} value={view.webhookUrl} />;
           }
-          return <ChannelCard key={key} view={view} setup={SETUPS[key]} onChange={update} encryptionReady={platform.encryption} extra={extra} tech={tech} />;
+          const oneTap: OneTap | null = !platform.encryption ? null : key === "whatsapp" ? (whatsappSignup ? { kind: "whatsapp", signup: whatsappSignup } : null) : (key === "messenger" || key === "instagram") && facebookLogin ? { kind: "facebook" } : null;
+          return (
+            <ChannelCard
+              key={key}
+              view={view}
+              setup={SETUPS[key]}
+              onChange={update}
+              encryptionReady={platform.encryption}
+              extra={extra}
+              tech={tech}
+              oneTap={oneTap}
+              metaReturn={metaReturn?.channel === key ? metaReturn.result : null}
+              pick={pick?.channel === key ? pick : null}
+            />
+          );
         })}
       </section>
       <p className={cx("m-0 text-[13px] text-app-ink-soft")}>

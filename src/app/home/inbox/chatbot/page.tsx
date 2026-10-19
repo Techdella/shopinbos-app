@@ -7,8 +7,7 @@ import { db } from "@/lib/db/client";
 import { hasAiProvider } from "@/lib/inbox/ai";
 import { loadAutomation } from "@/lib/inbox/automation.server";
 import { embeddedSignupConfig } from "@/lib/inbox/channels/whatsapp";
-import { channelViews, platformReadiness } from "@/lib/inbox/connect";
-import { whatsappHealth } from "@/lib/inbox/whatsapp-bot.server";
+import { channelViews, platformReadiness, type ChannelView } from "@/lib/inbox/connect";
 import { requireRole } from "@/lib/server-auth";
 import { ChatbotClient } from "./ChatbotClient";
 import { WhatsAppPeggyClient } from "./WhatsAppPeggyClient";
@@ -39,8 +38,15 @@ export default async function ChatbotPage({ searchParams }: { searchParams: Prom
   );
 
   if (tab === "whatsapp") {
-    const [views, health, owner] = await Promise.all([channelViews(store.id), whatsappHealth(store.id), db.user.findUnique({ where: { id: user.id }, select: { phone: true } }).catch(() => null)]);
-    const view = views.find((v) => v.channel === "whatsapp")!;
+    // Each lookup falls back on its own, so one failing query can't take the whole page down.
+    const [views, owner] = await Promise.all([
+      channelViews(store.id).catch((error: Error) => {
+        console.error("[whatsapp-page] channel views failed", error.message?.slice(0, 200));
+        return [];
+      }),
+      db.user.findUnique({ where: { id: user.id }, select: { phone: true } }).catch(() => null),
+    ]);
+    const view: ChannelView = views.find((v) => v.channel === "whatsapp") ?? { channel: "whatsapp", status: "disconnected", displayName: null, account: null, connectedAt: null, lastError: null, webhookUrl: null, verifyToken: null };
     const platform = platformReadiness();
     return (
       <SellerPage
@@ -59,15 +65,12 @@ export default async function ChatbotPage({ searchParams }: { searchParams: Prom
         <WhatsAppPeggyClient
           initialBot={automation.chatbot}
           initialView={view}
-          initialHealth={health}
           ready={automation.ready}
           aiAvailable={hasAiProvider()}
           hoursOn={automation.autoReply.hours.enabled}
           encryptionReady={platform.encryption}
-          platformSecret={platform.metaAppSecret}
           signup={embeddedSignupConfig()}
           ownerPhone={owner?.phone ?? ""}
-          storeName={store.name}
         />
       </SellerPage>
     );
