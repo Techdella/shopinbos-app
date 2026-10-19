@@ -40,8 +40,13 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
 
   const partner = await db.logisticsPartner.findFirst({
     where: { id: logisticsPartnerId, status: "active", verificationStatus: "verified" },
+    include: { user: { select: { debtPausedAt: true } } },
   });
   if (!partner) return apiError("NOT_FOUND", "Logistics partner not found", 404);
+  // Paused for money long overdue (src/lib/money-owed): shops they already work with can still book them.
+  if (partner.user.debtPausedAt && !(await db.deliveryBooking.count({ where: { sellerId: user.id, logisticsPartnerId: partner.id } }))) {
+    return apiError("NOT_AVAILABLE", "This delivery partner isn't taking new shops right now. Choose another one.", 409);
+  }
 
   const quote = await db.deliveryQuoteRequest.create({
     data: {

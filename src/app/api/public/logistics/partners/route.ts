@@ -60,6 +60,8 @@ export async function GET(req: NextRequest) {
   const where = {
     status: "active" as const,
     verificationStatus: "verified" as const,
+    // Not partners paused for money long overdue (src/lib/money-owed).
+    user: { debtPausedAt: null },
     // ?cod=true: for pay-when-it-arrives deliveries, skip partners paused for a late cash pay-in.
     ...payWhenItArrivesWhere(cod === "true" || cod === "1"),
     ...(country ? { country } : {}),

@@ -118,6 +118,54 @@ export interface PaymentSplitPlan {
   sellerSettles: Array<{ supplierId: string; kobo: number }>;
   /** Shopinbos's fee: what no business's share covers, so the gateway leaves it in Shopinbos's balance (older plans: 0). */
   platformKobo?: number;
+  /**
+   * Overdue money a business in this order owes (src/lib/money-owed), paid from its share: `from` is "seller" or
+   * the supplier's id, `to` the account of the business owed (null: Shopinbos, so it stays in Shopinbos's balance
+   * and is counted in platformKobo). The shares above are already what's left after these (older plans: none).
+   */
+  deductions?: SplitDeduction[];
+}
+
+export interface SplitDeduction {
+  debtId: string;
+  from: string;
+  to: string | null;
+  kobo: number;
+}
+
+/** An overdue debt a business in the order owes, oldest first: what of it can be taken from this order. */
+export interface DebtToDeduct {
+  debtId: string;
+  /** "seller" or the supplier's id. */
+  from: string;
+  /** The account of the business owed on this gateway, or null for Shopinbos. */
+  to: string | null;
+  /** Still owed and not held by another checkout. */
+  availableKobo: number;
+}
+
+/** At most this part of a business's share of one order goes to what it owes, so it still gets paid for the order. */
+export const DEDUCTION_SHARE = 0.5;
+
+/**
+ * Takes overdue debts out of the shares (oldest first): at most DEDUCTION_SHARE of each business's share, never
+ * leaving it less than MIN_SELLER_KOBO, and never a part smaller than MIN_SELLER_KOBO (Paystack won't settle it).
+ */
+function takeDebts(shares: Map<string, number>, debts: DebtToDeduct[]) {
+  const start = new Map(shares);
+  const taken = new Map<string, number>();
+  const deductions: SplitDeduction[] = [];
+  for (const debt of debts) {
+    const current = shares.get(debt.from);
+    if (current === undefined || !(debt.availableKobo > 0)) continue;
+    const cap = Math.floor((start.get(debt.from) ?? 0) * DEDUCTION_SHARE) - (taken.get(debt.from) ?? 0);
+    const kobo = Math.floor(Math.min(debt.availableKobo, cap, current - MIN_SELLER_KOBO));
+    if (kobo < MIN_SELLER_KOBO) continue;
+    shares.set(debt.from, current - kobo);
+    taken.set(debt.from, (taken.get(debt.from) ?? 0) + kobo);
+    deductions.push({ debtId: debt.debtId, from: debt.from, to: debt.to, kobo });
+  }
+  return deductions;
 }
 
 /**
@@ -126,7 +174,7 @@ export interface PaymentSplitPlan {
  * suppliers' costs come to more than the total (a product priced below cost), nobody is paid in the split but the
  * seller, there's no fee, and the seller settles the suppliers, so a split never asks Paystack for more than was paid.
  */
-export function buildSplitPlan(input: { totalKobo: number; sellerSubaccount: string; suppliers: SupplierShareInput[]; gateway?: SplitGateway; platformKobo?: number }): PaymentSplitPlan {
+export function buildSplitPlan(input: { totalKobo: number; sellerSubaccount: string; suppliers: SupplierShareInput[]; gateway?: SplitGateway; platformKobo?: number; debts?: DebtToDeduct[] }): PaymentSplitPlan {
   const total = Math.max(0, Math.round(input.totalKobo));
   const gateway = input.gateway ?? "paystack";
   const owed = input.suppliers.filter((supplier) => supplier.costKobo > 0).map((supplier) => ({ ...supplier, costKobo: Math.round(supplier.costKobo) }));
@@ -136,17 +184,34 @@ export function buildSplitPlan(input: { totalKobo: number; sellerSubaccount: str
     return { version: 1, gateway, totalKobo: total, sellerSubaccount: input.sellerSubaccount, sellerKobo: total, suppliers: [], sellerSettles: owed.map(({ supplierId, costKobo }) => ({ supplierId, kobo: costKobo })) };
   }
   const available = total - directTotal;
-  const platformKobo = Math.max(0, Math.min(Math.round(input.platformKobo ?? 0), available - MIN_SELLER_KOBO));
+  const feeKobo = Math.max(0, Math.min(Math.round(input.platformKobo ?? 0), available - MIN_SELLER_KOBO));
+  const shares = new Map<string, number>([["seller", available - feeKobo], ...direct.map((supplier) => [supplier.supplierId, supplier.costKobo] as [string, number])]);
+  const deductions = takeDebts(shares, input.debts ?? []);
+  const toShopinbos = deductions.filter((deduction) => deduction.to === null).reduce((sum, deduction) => sum + deduction.kobo, 0);
   return {
     version: 1,
     gateway,
     totalKobo: total,
     sellerSubaccount: input.sellerSubaccount,
-    sellerKobo: available - platformKobo,
-    platformKobo,
-    suppliers: direct.map((supplier) => ({ supplierId: supplier.supplierId, subaccount: supplier.subaccount!, kobo: supplier.costKobo })),
+    sellerKobo: shares.get("seller")!,
+    platformKobo: feeKobo + toShopinbos,
+    suppliers: direct.map((supplier) => ({ supplierId: supplier.supplierId, subaccount: supplier.subaccount!, kobo: shares.get(supplier.supplierId)! })),
     sellerSettles: owed.filter((supplier) => !supplier.subaccount).map(({ supplierId, costKobo }) => ({ supplierId, kobo: costKobo })),
+    ...(deductions.length ? { deductions } : {}),
   };
+}
+
+/**
+ * Every business account paid in the split with its share, one entry per account: a business owed money can also
+ * be in the order (a shop paid back from its own supplier's share), and a gateway takes each account once.
+ */
+export function splitShares(plan: PaymentSplitPlan): Array<{ account: string; kobo: number }> {
+  const shares = new Map<string, number>();
+  const add = (account: string, kobo: number) => shares.set(account, (shares.get(account) ?? 0) + kobo);
+  add(plan.sellerSubaccount, plan.sellerKobo);
+  for (const supplier of plan.suppliers) add(supplier.subaccount, supplier.kobo);
+  for (const deduction of plan.deductions ?? []) if (deduction.to) add(deduction.to, deduction.kobo);
+  return [...shares].map(([account, kobo]) => ({ account, kobo }));
 }
 
 /**
@@ -156,18 +221,16 @@ export function buildSplitPlan(input: { totalKobo: number; sellerSubaccount: str
  * account), each business bearing its share of Paystack's fee.
  */
 export function paystackSplitParams(plan: PaymentSplitPlan): Record<string, unknown> {
-  if (!plan.suppliers.length) {
-    return { subaccount: plan.sellerSubaccount, transaction_charge: plan.platformKobo ?? 0, bearer: "subaccount" };
+  const shares = splitShares(plan);
+  if (shares.length === 1) {
+    return { subaccount: shares[0]!.account, transaction_charge: plan.platformKobo ?? 0, bearer: "subaccount" };
   }
   return {
     split: {
       type: "flat",
       bearer_type: "all-proportional",
       currency: "NGN",
-      subaccounts: [
-        { subaccount: plan.sellerSubaccount, share: plan.sellerKobo },
-        ...plan.suppliers.map((supplier) => ({ subaccount: supplier.subaccount, share: supplier.kobo })),
-      ],
+      subaccounts: shares.map((share) => ({ subaccount: share.account, share: share.kobo })),
     },
   };
 }
@@ -183,10 +246,7 @@ export function korapaySplitParams(plan: PaymentSplitPlan): Record<string, unkno
   return {
     split_configuration: {
       split_type: "flat",
-      split_accounts: [
-        { value: naira(plan.sellerKobo), split_account_reference: plan.sellerSubaccount },
-        ...plan.suppliers.map((supplier) => ({ value: naira(supplier.kobo), split_account_reference: supplier.subaccount })),
-      ],
+      split_accounts: splitShares(plan).map((share) => ({ value: naira(share.kobo), split_account_reference: share.account })),
     },
   };
 }
@@ -196,5 +256,5 @@ export function readSplitPlan(value: unknown): PaymentSplitPlan | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const plan = value as Partial<PaymentSplitPlan>;
   if (plan.version !== 1 || typeof plan.sellerSubaccount !== "string" || typeof plan.sellerKobo !== "number" || !Array.isArray(plan.suppliers)) return null;
-  return { ...plan, sellerSettles: Array.isArray(plan.sellerSettles) ? plan.sellerSettles : [] } as PaymentSplitPlan;
+  return { ...plan, sellerSettles: Array.isArray(plan.sellerSettles) ? plan.sellerSettles : [], deductions: Array.isArray(plan.deductions) ? plan.deductions : [] } as PaymentSplitPlan;
 }

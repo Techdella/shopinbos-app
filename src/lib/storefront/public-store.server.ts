@@ -5,6 +5,7 @@ import { getPlanCatalog } from "@/lib/plans/catalog.server";
 import { getCurrentAppUser } from "@/lib/server-auth";
 import { publicBrandSettings } from "@shared/public-brand-settings";
 import { readPaymentBadges, type PaymentBadgeKey } from "@shared/payment-badges";
+import { storeBadgeAvailability } from "@/lib/seller-payments.server";
 import { showsShopinbosBadge } from "@/lib/store-badges";
 import { forShoppers } from "@shared/product-stock";
 import { loadShopperInfo } from "./shopper-info.server";
@@ -102,8 +103,10 @@ export interface StoreBadges {
   paymentBadges: PaymentBadgeKey[];
 }
 
-function storeBadges(owner: { planCode: string | null; planStatus: string | null; planPaidUntil: Date | null } | null | undefined, brandSettings: unknown): StoreBadges {
-  return { showBadge: showsShopinbosBadge(owner, new Date(), brandSettings), paymentBadges: readPaymentBadges(brandSettings) };
+async function storeBadges(storeId: string, owner: { planCode: string | null; planStatus: string | null; planPaidUntil: Date | null } | null | undefined, brandSettings: unknown): Promise<StoreBadges> {
+  // Only logos for ways this store's checkout really takes payment now (shared/payment-badges.ts).
+  const { available } = await storeBadgeAvailability(storeId, brandSettings);
+  return { showBadge: showsShopinbosBadge(owner, new Date(), brandSettings), paymentBadges: readPaymentBadges(brandSettings, available) };
 }
 
 /** Shapes a store row into the public payload: public brand settings, review stats, shopper info, no owner id or plan. */
@@ -122,7 +125,7 @@ async function shapePublicStore(row: StoreRow) {
   await getPlanCatalog(); // plans created from admin count for the badge rule
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- brand settings are free-form JSON each renderer reads its own way
   const brandSettings = (publicBrandSettings(store.brandSettings) ?? {}) as Record<string, any>;
-  const payload = { ...store, brandSettings, storeProducts, shopper, ...storeBadges(owner, store.brandSettings) };
+  const payload = { ...store, brandSettings, storeProducts, shopper, ...(await storeBadges(store.id, owner, store.brandSettings)) };
   // The same plain JSON the API sends, so client components get identical props either way.
   return JSON.parse(JSON.stringify(payload)) as typeof payload;
 }
@@ -174,7 +177,7 @@ export const loadStoreBrand = cache(async (slug: string): Promise<StoreBrand | n
     customDomain: store.customDomain,
     currency: store.currency,
     brandSettings: (publicBrandSettings(store.brandSettings) ?? {}) as Record<string, unknown>,
-    ...storeBadges(store.user, store.brandSettings),
+    ...(await storeBadges(store.id, store.user, store.brandSettings)),
   };
 });
 

@@ -10,11 +10,13 @@ import { useLoad } from "@/lib/useLoad";
 import { useT } from "@/lib/i18n";
 import { checkWalletAccount, confirmCashReceived, fetchWallet, linkWalletBank, nairaFromKobo, verifyWalletId, type WalletData } from "@/lib/wallet";
 import { colors, radii } from "@/theme";
+import { MoneyOwedCard } from "@/components/MoneyOwedCard";
 
 // Shopinbos Wallet (web /home/wallet, /supplier/wallet, /logistics/wallet), the same screen for sellers, suppliers
 // and delivery partners: two steps to set up (verify a BVN or NIN, then the bank Paystack settles to), then what
 // Paystack paid in and settled. Shopinbos never holds the money: each card payment is split at checkout and every
-// share settles straight to the business's own bank. Sellers also see cash on delivery a partner still owes them.
+// share settles straight to the business's own bank. Sellers also see cash on delivery a partner still owes them,
+// and everyone sees money owed between businesses (components/MoneyOwedCard.tsx).
 
 type TFn = ReturnType<typeof useT<["m_money", "m_ui"]>>;
 
@@ -97,7 +99,10 @@ function WalletBody({ data, t, reload }: { data: WalletData; t: TFn; reload: () 
         <T style={{ color: colors.inkSoft, fontSize: 13.5, lineHeight: 19, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 12 }}>{view.fee ? t("w.fee", { fee: feeText(view.fee) }) : t("w.never")}</T>
       </Card>
 
-      {view.toReturn.length ? (
+      {view.owed ? (
+        <MoneyOwedCard owed={view.owed} role={role} onChanged={reload} />
+      ) : view.toReturn.length ? (
+        // An older server without money owed: the not-sent dropship orders only.
         <Card style={{ gap: 8 }}>
           <T weight="extrabold" style={{ fontSize: 16 }}>{role === "supplier" ? t("w.payBack") : t("w.toReturn")}</T>
           <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>{role === "supplier" ? t("w.payBackSub") : t("w.toReturnSub")}</T>

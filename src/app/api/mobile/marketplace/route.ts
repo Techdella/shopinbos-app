@@ -4,6 +4,7 @@ import { withSeller } from "@/lib/auth/middleware";
 import { apiError, ok } from "@/lib/api/response";
 import { db } from "@/lib/db/client";
 import { mergeBrandSettings } from "@/lib/workspace";
+import { VISIBLE_SUPPLIER, listingCheck } from "@/lib/marketplace/agreements.server";
 
 export const dynamic = "force-dynamic";
 
@@ -43,12 +44,21 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
   if (!store) return apiError("NOT_FOUND", "Set up your store first.", 404);
 
   const product = await db.supplierProduct.findFirst({
-    where: { id: parsed.data.supplierProductId, status: "published", supplier: { status: "active", verificationStatus: "verified" } },
+    where: { id: parsed.data.supplierProductId, status: "published", supplier: VISIBLE_SUPPLIER },
+    include: { supplier: { select: { verificationStatus: true } } },
   });
   if (!product) return apiError("NOT_FOUND", "This product isn't available any more.", 404);
-
   const existing = await db.storeProduct.findFirst({ where: { storeId: store.id, supplierProductId: product.id }, select: { id: true } });
   if (existing) return ok({ storeProductId: existing.id, already: true });
+
+  // The same checks as the web (src/lib/marketplace/agreements.server.ts): dropship needs the agreement.
+  if (product.dropshipAvailable) {
+    const gate = await listingCheck(user.id, product.supplierId);
+    if (!gate.ok) return apiError(gate.code, gate.message, 409);
+  } else if (product.supplier.verificationStatus !== "verified") {
+    return apiError("NOT_AVAILABLE", "Buy stock only from verified suppliers. This one isn't verified yet.", 409);
+  }
+
 
   const retailPrice = clampSellingPrice(parsed.data.retailPrice ?? product.suggestedRetailPrice, product.wholesalePrice);
   const dropship = product.dropshipAvailable;

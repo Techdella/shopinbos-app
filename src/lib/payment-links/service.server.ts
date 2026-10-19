@@ -293,7 +293,7 @@ export async function paymentReadiness(storeId: string): Promise<PaymentReadines
   const store = await db.store.findUnique({ where: { id: storeId }, select: { brandSettings: true } });
   // Card needs Paystack keys and the seller's wallet (payments settle straight to the seller's bank).
   const settings = checkoutPaymentSettings(store?.brandSettings, [], paystackSecretReady(process.env.PAYSTACK_SECRET_KEY) && (await storeTakesCards(storeId)), await storeTakesKorapay(storeId));
-  // The same options checkout offers (it falls back to Paystack when nothing the seller chose can work).
+  // The same options checkout offers (card only when the wallet takes it; nothing that can't work).
   const keys = checkoutPaymentOptions(settings, {}).map((option) => option.key);
   const card = keys.includes("paystack") && settings.paystackReady;
   const korapay = keys.includes("korapay");

@@ -213,6 +213,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "ps.addedLabel": "A ti fi {name} kún un",
   "ps.addLabel": "Fi {name} kún un",
   "ps.added": "A ti fi kún un",
+  "ps.checkFirst": "Pe supplier, kí o sì yẹ ọjà wò ná",
   "ps.add": "Fi kún un",
   "ps.back": "Padà",
   "ps.saved": "A ti fi pamọ́",

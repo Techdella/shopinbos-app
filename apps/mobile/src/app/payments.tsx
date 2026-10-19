@@ -3,7 +3,7 @@ import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, View } fr
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { naira, PAYMENT_METHODS, type PaymentMethodKey } from "@shared/onboarding";
-import { cleanPaymentBadges, PAYMENT_BADGE_KEYS, PAYMENT_BADGE_LABELS, type PaymentBadgeKey } from "@shared/payment-badges";
+import { cleanPaymentBadges, PAYMENT_BADGE_KEYS, PAYMENT_BADGE_LABELS, type BadgeBlock, type PaymentBadgeKey } from "@shared/payment-badges";
 import { AppIcon } from "@/components/icons";
 import { Badge, ErrorState, LinkRow, LoadingBlock, SectionTitle } from "@/components/kit";
 import { Screen } from "@/components/Screen";
@@ -21,6 +21,9 @@ import { colors } from "@/theme";
 // Payments and payouts (web /home/payments): money in over the last 30 days, the payout bank (add or change it,
 // with the account name looked up and confirmed before saving), which ways customers can pay, and the latest
 // payments. Payouts (app/payouts.tsx) and Invoices (app/invoices) are their own screens.
+
+/** The reasons a logo can't be shown, in the order the seller can fix them. */
+const BLOCK_ORDER: BadgeBlock[] = ["turn_on_card", "wallet", "turn_on_transfer", "transfer_bank", "turn_on_cod", "not_supported"];
 
 type T_ = ReturnType<typeof useT<["m_settings", "m_onboarding", "m_ui", "common"]>>;
 
@@ -74,7 +77,7 @@ export default function Payments() {
   const setBadges = (paymentBadges: PaymentBadgeKey[]) =>
     void save({ paymentBadges }, (current) => ({ ...current, paymentBadges: { ...current.paymentBadges, selected: paymentBadges, chosen: true } }));
   const toggleBadge = (badge: PaymentBadgeKey) => {
-    if (!data) return;
+    if (!data || !data.paymentBadges.available.includes(badge)) return;
     const selected = data.paymentBadges.selected;
     setBadges(cleanPaymentBadges(selected.includes(badge) ? selected.filter((key) => key !== badge) : [...selected, badge]));
   };
@@ -167,13 +170,27 @@ export default function Payments() {
         <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>{t("money.badgesHint")}</T>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
           {PAYMENT_BADGE_KEYS.map((badge) => (
-            <Chip key={badge} label={badgeName(badge)} on={data.paymentBadges.selected.includes(badge)} onPress={() => toggleBadge(badge)} />
+            <Chip
+              key={badge}
+              label={badgeName(badge)}
+              on={data.paymentBadges.selected.includes(badge)}
+              disabled={!data.paymentBadges.available.includes(badge)}
+              onPress={() => toggleBadge(badge)}
+            />
           ))}
         </View>
+        {BLOCK_ORDER.map((block) => {
+          const names = PAYMENT_BADGE_KEYS.filter((badge) => data.paymentBadges.blocked[badge] === block).map(badgeName);
+          return names.length ? (
+            <T key={block} style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>
+              <T weight="bold" style={{ color: colors.ink, fontSize: 14 }}>{names.join(", ")}</T>: {t.dynamic(`money.block.${block}`, "")}
+            </T>
+          ) : null;
+        })}
         {!data.paymentBadges.selected.length ? <T style={{ color: colors.inkSoft, fontSize: 14 }}>{t("money.badgesNone")}</T> : null}
         {data.paymentBadges.defaults.length > 0 &&
         (data.paymentBadges.selected.length !== data.paymentBadges.defaults.length || data.paymentBadges.selected.some((badge) => !data.paymentBadges.defaults.includes(badge))) ? (
-          <LinkButton title={t("money.badgesReset")} onPress={() => setBadges(data.paymentBadges.defaults)} />
+          <LinkButton title={t("money.badgesReset")} onPress={() => setBadges(data.paymentBadges.defaults.filter((badge) => data.paymentBadges.available.includes(badge)))} />
         ) : null}
       </Card>
 

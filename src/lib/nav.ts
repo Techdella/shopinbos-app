@@ -258,6 +258,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
           id: "buyers", label: "Buyers", icon: "users", href: "/supplier/buyers",
           children: [
             { id: "buyers-all", label: "Shops selling your products", href: "/supplier/buyers" },
+            { id: "agreements", label: "Dropship agreements", href: "/supplier/agreements" },
             { id: "reviews", label: "Reviews", href: "/supplier/reviews" },
           ],
         },
@@ -389,6 +390,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
         },
         { id: "logistics-partners", label: "Logistics", icon: "truck", href: "/admin/logistics-partners", core: true },
         { id: "wallets", label: "Wallets", icon: "coin", href: "/admin/wallets" },
+        { id: "money-owed", label: "Money owed", icon: "coin", href: "/admin/money-owed" },
         {
           id: "pricing", label: "Pricing", icon: "percent", href: "/admin/pricing",
           children: [

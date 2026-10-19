@@ -483,7 +483,7 @@ test("verification documents: one shared type list, real files only, old onboard
   assert.equal(docs.formatBytes(0), "");
 });
 
-test("checkout offers the payment methods the seller chose, in a fixed order, with Paystack as the safe default", async () => {
+test("checkout offers the payment methods the seller chose, in a fixed order, and never one that can't work", async () => {
   const pay = await import("../shared/checkout-payments.ts");
   const zones = [
     { name: "Lekki", regions: ["Lekki"], pickupOnly: false },
@@ -506,9 +506,15 @@ test("checkout offers the payment methods the seller chose, in a fixed order, wi
   assert.deepEqual(keys({ ...all, zones: [] }, { city: "Kano", total: 1000 }), ["paystack", "transfer", "pay_on_delivery"]);
   // Seller turned methods off.
   assert.deepEqual(keys({ ...all, methods: { transfer: true, card: false, cod: false, wa: false } }, {}), ["transfer"]);
-  // Nothing configured, or nothing that can be offered: Paystack.
+  // Nothing configured: card, but only when the wallet takes it. Nothing that can work: no options, never a card
+  // payment bound to fail (a store whose wallet is in review, transfer off and the order over the pay on delivery cap).
   assert.deepEqual(keys({ ...all, methods: null }, {}), ["paystack"]);
-  assert.deepEqual(keys({ ...all, methods: { transfer: false, card: false, cod: false, wa: true } }, {}), ["paystack"]);
+  assert.deepEqual(keys({ ...all, methods: null, paystackReady: false }, {}), []);
+  assert.deepEqual(keys({ ...all, methods: { transfer: false, card: false, cod: false, wa: true } }, {}), []);
+  const stuck = { ...all, paystackReady: false, transferReady: false, zones: [] };
+  assert.deepEqual(keys(stuck, { total: 1115800 }), []);
+  assert.match(pay.noWayToPayText(stuck, { total: 1115800 }), /^Pay on delivery is for orders up to ₦50,000\. .*message the store/);
+  assert.match(pay.noWayToPayText({ ...stuck, methods: { card: true } }, {}), /can't take payments here yet/);
 
   assert.equal(pay.normalizeCheckoutMethod("inline"), "paystack");
   assert.equal(pay.normalizeCheckoutMethod("redirect"), "paystack");

@@ -277,7 +277,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   // (stock and discount given back) and the shopper can try again.
   let paystackData: { authorization_url: string; access_code: string | null; reference: string } | null = null;
   if (paymentMethod === "paystack") {
-    const plan = await splitPlanForOrder(store.id, orderItems, total, "paystack", shippingFee);
+    const plan = await splitPlanForOrder(store.id, orderItems, total, "paystack", shippingFee, order.id);
     try {
       if (!plan) throw new Error("the store's wallet can't take card payments");
       const started = await initializePaystackTransaction({
@@ -300,7 +300,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   // Korapay: the same, with Korapay Split Payments. The page shows Korapay's checkout in a frame on the store.
   let korapayData: { checkoutUrl: string } | null = null;
   if (paymentMethod === "korapay") {
-    const plan = await splitPlanForOrder(store.id, orderItems, total, "korapay", shippingFee);
+    const plan = await splitPlanForOrder(store.id, orderItems, total, "korapay", shippingFee, order.id);
     try {
       if (!plan) throw new Error("the store's wallet can't take Korapay payments");
       korapayData = await startKorapayCheckout({ ...order, total: Number(order.total) }, store, buildStorefrontUrl(store, `/order/${order.id}`), plan);

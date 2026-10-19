@@ -213,6 +213,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "ps.addedLabel": "{name} don add",
   "ps.addLabel": "Add {name}",
   "ps.added": "Don add",
+  "ps.checkFirst": "Call and check the supplier first",
   "ps.add": "Add",
   "ps.back": "Back",
   "ps.saved": "Saved",

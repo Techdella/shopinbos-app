@@ -1,6 +1,6 @@
 import type { PaymentMethodKey } from "@shared/onboarding";
 import type { PayoutBankSummary } from "@shared/seller-payments";
-import type { PaymentBadgeKey } from "@shared/payment-badges";
+import type { BadgeBlock, PaymentBadgeKey } from "@shared/payment-badges";
 import { api } from "./api";
 import type { Zone } from "./settings-pure";
 
@@ -22,7 +22,14 @@ export interface PaymentsOverview {
   bank: PayoutBankSummary | null;
   banks: string[];
   /** The payment logos on the store: shown now, whether the seller picked them, and the payment-method defaults. */
-  paymentBadges: { selected: PaymentBadgeKey[]; chosen: boolean; defaults: PaymentBadgeKey[] };
+  paymentBadges: {
+    selected: PaymentBadgeKey[];
+    chosen: boolean;
+    defaults: PaymentBadgeKey[];
+    /** The logos the store can show: the ways it really takes payment. The rest can't be tapped. */
+    available: PaymentBadgeKey[];
+    blocked: Partial<Record<PaymentBadgeKey, BadgeBlock>>;
+  };
   money: { moneyIn: number; online: number; offline: number; refunded: number; paidCount: number; waiting: { total: number; count: number } };
   latestPaid: { id: string; orderNumber: string; buyerName: string | null; total: number; paymentMethod: string | null; createdAt: string }[];
 }

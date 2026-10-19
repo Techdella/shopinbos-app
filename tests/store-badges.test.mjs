@@ -139,3 +139,36 @@ test("words: every new key in all five languages", () => {
   }
   assert.match(read("src/components/payments/SellerBillingSection.tsx"), /t\("plan\.noBadge"\)/);
 });
+
+test("payment logos: only the ways the store really takes payment can be shown or tapped", () => {
+  const none = badges.paymentBadgeAvailability({}, { cards: false, korapay: false, transfer: false });
+  assert.deepEqual(none.available, []);
+  assert.equal(none.blocked.visa, "turn_on_card");
+  assert.equal(none.blocked.cod, "turn_on_cod");
+  assert.equal(none.blocked.paypal, "not_supported");
+  const noWallet = badges.paymentBadgeAvailability({ card: true, transfer: true }, { cards: false, korapay: false, transfer: false });
+  assert.equal(noWallet.blocked.visa, "wallet", "card is on but the wallet isn't set up, so cards can't be taken yet");
+  assert.equal(noWallet.blocked.transfer, "transfer_bank");
+  const korapay = badges.paymentBadgeAvailability({ korapay: true, cod: true }, { cards: false, korapay: true, transfer: false });
+  assert.deepEqual(korapay.available, ["visa", "mastercard", "verve", "cod"], "Korapay takes cards but doesn't show the Paystack logo");
+  const all = badges.paymentBadgeAvailability({ card: true, transfer: true, cod: true }, { cards: true, korapay: false, transfer: true });
+  assert.deepEqual(all.available, ["visa", "mastercard", "verve", "paystack", "transfer", "cod"].filter((key) => badges.PAYMENT_BADGE_KEYS.includes(key)));
+  for (const key of badges.UNSUPPORTED_PAYMENT_BADGES) assert.equal(all.available.includes(key), false, key);
+  assert.deepEqual(badges.readPaymentBadges({ paymentBadges: ["visa", "opay", "cod"] }, ["visa"]), ["visa"], "a logo saved earlier stops showing once the store can't take it");
+});
+
+test("payment logos wired in: saves, the storefront and both pickers use what's available", () => {
+  const server = read("src/lib/seller-payments.server.ts");
+  assert.match(server, /storeBadgeAvailability/);
+  assert.match(read("src/lib/storefront/public-store.server.ts"), /readPaymentBadges\(brandSettings, available\)/);
+  assert.match(read("src/app/home/payments/PaymentLogos.tsx"), /disabled=\{off\}|disabled=/);
+  assert.match(read("apps/mobile/src/app/payments.tsx"), /disabled=\{!data\.paymentBadges\.available\.includes\(badge\)\}/);
+  for (const locale of ["en", "pcm", "yo", "ha", "ig"]) {
+    const web = read(`shared/i18n/messages/payments/${locale}.ts`);
+    const phone = read(`shared/i18n/messages/m_settings/${locale}.ts`);
+    for (const block of ["not_supported", "turn_on_card", "wallet", "turn_on_transfer", "transfer_bank", "turn_on_cod"]) {
+      assert.match(web, new RegExp(`"badges\\.block\\.${block}"`), `${locale} web ${block}`);
+      assert.match(phone, new RegExp(`"money\\.block\\.${block}"`), `${locale} phone ${block}`);
+    }
+  }
+});
