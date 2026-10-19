@@ -537,7 +537,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "forms.allTime": "Láti ìbẹ̀rẹ̀",
   "forms.pages": "Àwọn ojú-ewé ìfiránṣẹ́ fọ́ọ̀mù",
   "seo.googleTitle": "Google",
-  "seo.googleSub": "Ìpolówó ọ̀fẹ́, àwọn review Google rẹ, ìwákiri Google àti ìṣirò àwọn àlejò: wíwọlé kan lórí ojú-ìwé Connections á ṣètò gbogbo wọn.",
+  "seo.googleSub": "Ìpolówó ọ̀fẹ́, àwọn review Google rẹ àti ìwákiri Google: wíwọlé kan lórí ojú-ìwé Connections á ṣètò gbogbo wọn.",
   "seo.googleOpen": "So Google pọ̀",
 };
 

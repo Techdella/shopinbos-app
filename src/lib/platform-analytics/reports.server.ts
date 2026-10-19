@@ -1,8 +1,10 @@
 import "server-only";
 
-import { mixpanelConfig, posthogConfig, PROVIDER_LABELS, type AnalyticsProvider } from "./config";
+import { SignJWT, importPKCS8 } from "jose";
+import { ga4Config, mixpanelConfig, posthogConfig, PROVIDER_LABELS, type AnalyticsProvider } from "./config";
 
 // Admin › Analytics reads the last N days back from each connected tool with read-only server keys:
+//   GA4       Data API (service account with Viewer on the property)
 //   Mixpanel  Query API (service account)
 //   PostHog   HogQL query API (personal API key with query:read)
 // Each report is the same shape so the page draws them alike. A tool that isn't set up or errors returns
@@ -24,6 +26,86 @@ async function json<T>(url: string, init: RequestInit): Promise<T> {
 
 const isoDay = (date: Date) => date.toISOString().slice(0, 10);
 const fail = (provider: AnalyticsProvider, error: unknown): ProviderReport => ({ provider, label: PROVIDER_LABELS[provider], ok: false, error: error instanceof Error ? error.message : String(error) });
+
+// ─── Google Analytics 4 ─────────────────────────────────────────────────────────────────────────────────────────
+
+/** GA4_SERVICE_ACCOUNT_JSON is the key file Google gives you, as raw JSON or base64. */
+function readServiceAccount(raw: string) {
+  const text = raw.trim().startsWith("{") ? raw : Buffer.from(raw, "base64").toString("utf8");
+  const parsed = JSON.parse(text) as { client_email?: string; private_key?: string };
+  if (!parsed.client_email || !parsed.private_key) throw new Error("GA4_SERVICE_ACCOUNT_JSON needs client_email and private_key");
+  return { email: parsed.client_email, key: parsed.private_key.replace(/\\n/g, "\n") };
+}
+
+let gaToken: { value: string; expires: number } | null = null;
+
+async function googleToken(serviceAccount: string) {
+  if (gaToken && gaToken.expires > Date.now() + 60_000) return gaToken.value;
+  const account = readServiceAccount(serviceAccount);
+  const now = Math.floor(Date.now() / 1000);
+  const assertion = await new SignJWT({ scope: "https://www.googleapis.com/auth/analytics.readonly" })
+    .setProtectedHeader({ alg: "RS256", typ: "JWT" })
+    .setIssuer(account.email)
+    .setAudience("https://oauth2.googleapis.com/token")
+    .setIssuedAt(now)
+    .setExpirationTime(now + 3600)
+    .sign(await importPKCS8(account.key, "RS256"));
+  const token = await json<{ access_token: string; expires_in: number }>("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion }),
+  });
+  gaToken = { value: token.access_token, expires: Date.now() + token.expires_in * 1000 };
+  return gaToken.value;
+}
+
+type GaReport = { rows?: Array<{ dimensionValues?: Array<{ value: string }>; metricValues?: Array<{ value: string }> }> };
+
+export async function ga4Report(days: number): Promise<ProviderReport> {
+  const ga = ga4Config();
+  if (!ga.propertyId || !ga.serviceAccount) return fail("ga4", "Not connected: set GA4_PROPERTY_ID and GA4_SERVICE_ACCOUNT_JSON.");
+  try {
+    const token = await googleToken(ga.serviceAccount);
+    const run = (body: object) =>
+      json<GaReport>(`https://analyticsdata.googleapis.com/v1beta/properties/${encodeURIComponent(ga.propertyId)}:runReport`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ dateRanges: [{ startDate: `${days}daysAgo`, endDate: "today" }], ...body }),
+      });
+    const [daily, totals, channels, sources] = await Promise.all([
+      run({ dimensions: [{ name: "date" }], metrics: [{ name: "activeUsers" }], orderBys: [{ dimension: { dimensionName: "date" } }] }),
+      run({ metrics: [{ name: "activeUsers" }, { name: "newUsers" }, { name: "sessions" }, { name: "engagementRate" }] }),
+      run({ dimensions: [{ name: "sessionDefaultChannelGroup" }], metrics: [{ name: "newUsers" }], orderBys: [{ metric: { metricName: "newUsers" }, desc: true }], limit: 10 }),
+      run({ dimensions: [{ name: "sessionSourceMedium" }], metrics: [{ name: "newUsers" }], orderBys: [{ metric: { metricName: "newUsers" }, desc: true }], limit: 10 }),
+    ]);
+    const metric = (report: GaReport, index: number) => Number(report.rows?.[0]?.metricValues?.[index]?.value ?? 0);
+    const rows = (report: GaReport) => (report.rows ?? []).map((row) => ({ label: row.dimensionValues?.[0]?.value || "(not set)", value: Number(row.metricValues?.[0]?.value ?? 0) }));
+    return {
+      provider: "ga4",
+      label: PROVIDER_LABELS.ga4,
+      ok: true,
+      series: {
+        name: "Active users",
+        points: (daily.rows ?? []).map((row) => {
+          const d = row.dimensionValues?.[0]?.value ?? "";
+          return { date: `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}`, value: Number(row.metricValues?.[0]?.value ?? 0) };
+        }),
+      },
+      totals: [
+        { label: "Active users", value: metric(totals, 0) },
+        { label: "New users", value: metric(totals, 1) },
+        { label: "Sessions", value: metric(totals, 2) },
+        { label: "Engagement rate %", value: Math.round(metric(totals, 3) * 1000) / 10 },
+      ],
+      tables: [
+        { title: "New users by channel", rows: rows(channels) },
+        { title: "New users by source / medium", rows: rows(sources) },
+      ],
+    };
+  } catch (error) {
+    return fail("ga4", error);
+  }
+}
 
 // ─── Mixpanel ───────────────────────────────────────────────────────────────────────────────────────────────────
 
@@ -103,5 +185,5 @@ export async function posthogReport(days: number): Promise<ProviderReport> {
 }
 
 export function providerReports(days: number) {
-  return Promise.all([mixpanelReport(days), posthogReport(days)]);
+  return Promise.all([ga4Report(days), mixpanelReport(days), posthogReport(days)]);
 }

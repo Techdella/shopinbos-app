@@ -211,14 +211,14 @@ test("every connection ID accepts the real format and refuses script injection",
 });
 
 test("the Connections form names each malformed field and keeps only clean values", () => {
-  const form = { googleAnalyticsId: "G-ABCD1234", metaPixelId: "</script>", tiktokPixelId: "", gaSiteVerification: "abcDEF_123-xyzABCdef0987654321" };
+  const form = { gtmContainerId: "GTM-ABC1234", metaPixelId: "</script>", tiktokPixelId: "", gaSiteVerification: "abcDEF_123-xyzABCdef0987654321" };
   const { values, invalid } = integ.parseIntegrationsForm((name) => form[name] ?? null);
   assert.deepEqual(invalid, ["metaPixelId"]);
-  assert.equal(values.googleAnalyticsId, "G-ABCD1234");
+  assert.equal(values.gtmContainerId, "GTM-ABC1234");
   assert.equal(values.metaPixelId, "");
   // Values are validated again when read, so a bad value saved by hand never reaches a page.
-  const read = integ.readIntegrations({ integrations: { googleAnalyticsId: "G-1');alert(1);//", gtmContainerId: "GTM-ABC1234", bingSiteVerification: "<script>" } });
-  assert.equal(read.googleAnalyticsId, "");
+  const read = integ.readIntegrations({ integrations: { googleAnalyticsId: "G-ABCD1234", gtmContainerId: "GTM-ABC1234", bingSiteVerification: "<script>" } });
+  assert.equal("googleAnalyticsId" in read, false, "a Google Analytics ID saved before is ignored");
   assert.equal(read.gtmContainerId, "GTM-ABC1234");
   assert.equal(read.bingSiteVerification, "");
   assert.deepEqual(integ.readIntegrations(null), integ.EMPTY_INTEGRATIONS);
@@ -244,13 +244,12 @@ test("verification tags become Next.js metadata, and scripts carry nothing but c
   });
   assert.deepEqual(integ.storeVerificationMetadata(integ.EMPTY_INTEGRATIONS), {});
   const scripts = integ.trackingScripts(all);
-  assert.deepEqual(scripts.map((s) => s.id), ["ga4-src", "ga4-init", "gtm-init", "meta-pixel", "tiktok-pixel"]);
-  assert.equal(scripts[0].src, "https://www.googletagmanager.com/gtag/js?id=G-ABCD1234");
-  assert.match(scripts[1].inline, /gtag\('config',"G-ABCD1234"\)/);
-  assert.match(scripts[3].inline, /fbq\('init',"123456789012345"\)/);
+  assert.deepEqual(scripts.map((s) => s.id), ["gtm-init", "meta-pixel", "tiktok-pixel"], "no Google Analytics, even with an old ID saved");
+  assert.ok(scripts.every((s) => !s.src && !/gtag\/js|G-ABCD1234/.test(s.inline ?? "")));
+  assert.match(scripts[1].inline, /fbq\('init',"123456789012345"\)/);
   assert.equal(integ.gtmNoscriptSrc(all), "https://www.googletagmanager.com/ns.html?id=GTM-ABC1234");
   // Even if a caller skipped readIntegrations, a bad ID produces no script.
-  assert.deepEqual(integ.trackingScripts({ ...integ.EMPTY_INTEGRATIONS, googleAnalyticsId: "G-1');alert(1);//", metaPixelId: "1</script>" }), []);
+  assert.deepEqual(integ.trackingScripts({ ...integ.EMPTY_INTEGRATIONS, gtmContainerId: "GTM-1');alert(1);//", metaPixelId: "1</script>" }), []);
   assert.deepEqual(integ.trackingScripts(integ.EMPTY_INTEGRATIONS), []);
   assert.equal(integ.sitemapUrl("https://adas.mybos.store/"), "https://adas.mybos.store/sitemap.xml");
 });
@@ -444,14 +443,14 @@ test("unique visitors stay private: random token, hashed with a server secret, n
 const consent = await import("../src/lib/storefront/consent.ts");
 const consentConfig = await import("../src/lib/storefront/consent-config.ts");
 const tags = await import("../src/lib/storefront/tag-events.ts");
-const ALL_TAGS = { ...integ.EMPTY_INTEGRATIONS, googleAnalyticsId: "G-ABCD1234", gtmContainerId: "GTM-ABC1234", metaPixelId: "123456789012345", tiktokPixelId: "C4ABCDEF1234567890AB" };
+const ALL_TAGS = { ...integ.EMPTY_INTEGRATIONS, gtmContainerId: "GTM-ABC1234", metaPixelId: "123456789012345", tiktokPixelId: "C4ABCDEF1234567890AB" };
 
 test("cookie banner: shown only with third-party tags, seller settings cleaned, policy page picked", () => {
   const none = integ.EMPTY_INTEGRATIONS;
   const verificationOnly = { ...none, gaSiteVerification: "abcDEF_123-xyzABCdef0987654321" };
   assert.equal(consentConfig.storeConsentConfig("adas", none, {}), null);
   assert.equal(consentConfig.storeConsentConfig("adas", verificationOnly, {}), null, "verification codes set nothing");
-  assert.deepEqual(consent.tagCategories(ALL_TAGS), { analytics: ["Google Analytics", "Google Tag Manager"], marketing: ["Meta Pixel", "TikTok Pixel"] });
+  assert.deepEqual(consent.tagCategories(ALL_TAGS), { analytics: ["Google Tag Manager"], marketing: ["Meta Pixel", "TikTok Pixel"] });
   assert.equal(consentConfig.storeConsentConfig("adas", ALL_TAGS, { cookieBanner: { enabled: false } }), null, "the seller turned it off");
   const legal = { legalPages: { "privacy-policy": { title: "Privacy policy", published: true }, "cookie-policy": { title: "Cookies", published: true }, "refund-policy": { title: "Refunds", published: true } } };
   const config = consentConfig.storeConsentConfig("adas", ALL_TAGS, legal);
@@ -487,7 +486,7 @@ test("cookie choice: stored 180 days in a first-party cookie, Consent Mode v2 de
   assert.equal(consent.bannerText("analyticsHint", { tools: "Google Analytics" }), "Helps the store see how people use it (Google Analytics).");
   assert.equal(consent.bannerText("acceptAll", {}, "yo"), "Accept all", "English until stores have a shopper language");
   // Every tag is labelled with the consent it needs.
-  assert.deepEqual(integ.trackingScripts(ALL_TAGS).map((s) => [s.id, s.category]), [["ga4-src", "analytics"], ["ga4-init", "analytics"], ["gtm-init", "analytics"], ["meta-pixel", "marketing"], ["tiktok-pixel", "marketing"]]);
+  assert.deepEqual(integ.trackingScripts(ALL_TAGS).map((s) => [s.id, s.category]), [["gtm-init", "analytics"], ["meta-pixel", "marketing"], ["tiktok-pixel", "marketing"]]);
 });
 
 test("the banner loads nothing third-party before consent, and is reachable and reopenable", () => {
@@ -507,7 +506,7 @@ test("the banner loads nothing third-party before consent, and is reachable and 
   assert.match(read("src/app/s/[slug]/layout.tsx"), /cookieSettings: Boolean\(consent\)/);
 });
 
-test("shop events for the tags: GA4, Meta and TikTok names, value, currency, ids; only what was agreed", () => {
+test("shop events for the tags: Tag Manager, Meta and TikTok names, value, currency, ids; only what was agreed", () => {
   const data = { items: [{ id: "p1", name: "Ankara tote", price: 12500, quantity: 2 }, { id: "p2", price: 3000 }], currency: "NGN", orderId: "ord_1" };
   assert.deepEqual(tags.ga4Event("purchase", data), ["purchase", { currency: "NGN", value: 28000, transaction_id: "ord_1", items: [{ item_id: "p1", item_name: "Ankara tote", price: 12500, quantity: 2 }, { item_id: "p2", price: 3000, quantity: 1 }] }]);
   const [metaName, metaParams, metaOptions] = tags.metaEvent("purchase", data);
@@ -527,7 +526,7 @@ test("shop events for the tags: GA4, Meta and TikTok names, value, currency, ids
   const calls = [];
   globalThis.window = { gtag: (...a) => calls.push(["gtag", ...a]), fbq: (...a) => calls.push(["fbq", ...a]), ttq: { page: () => calls.push(["ttq.page"]), track: (...a) => calls.push(["ttq", a[0]]) }, dataLayer: [], addEventListener() {}, removeEventListener() {} };
   try {
-    const base = { ga: true, gtm: true, meta: true, tiktok: true, currency: "NGN" };
+    const base = { gtm: true, meta: true, tiktok: true, currency: "NGN" };
     assert.equal(tags.tagEvent("view_item", data), false, "no state: not a live store");
     tags.setTagState({ ...base, analytics: false, marketing: false });
     assert.equal(tags.tagEvent("view_item", data), false);
@@ -535,14 +534,14 @@ test("shop events for the tags: GA4, Meta and TikTok names, value, currency, ids
     assert.deepEqual(calls, []);
     tags.setTagState({ ...base, analytics: true, marketing: false });
     assert.equal(tags.tagEvent("add_to_cart", data), true);
-    assert.deepEqual(calls.map((c) => c[0]), ["gtag"]);
+    assert.deepEqual(calls, [], "no Google Analytics call, Tag Manager reads the dataLayer");
     assert.equal(globalThis.window.dataLayer.at(-1).event, "add_to_cart");
     tags.tagPageView();
-    assert.equal(calls.length, 1, "pixels wait for Marketing");
+    assert.equal(calls.length, 0, "pixels wait for Marketing");
     tags.setTagState({ ...base, analytics: false, marketing: true });
     tags.tagEvent("begin_checkout", data);
     tags.tagPageView();
-    assert.deepEqual(calls.slice(1).map((c) => c.slice(0, 2).join(":")), ["fbq:track", "ttq:InitiateCheckout", "fbq:track", "ttq.page"]);
+    assert.deepEqual(calls.map((c) => c.slice(0, 2).join(":")), ["fbq:track", "ttq:InitiateCheckout", "fbq:track", "ttq.page"]);
   } finally {
     delete globalThis.window;
   }
@@ -552,7 +551,7 @@ test("shop events for the tags: GA4, Meta and TikTok names, value, currency, ids
   assert.match(events, /if \(localStorage\.getItem\(key\) \|\| sessionStorage\.getItem\(key\)\) return;/);
   assert.match(read("src/app/s/[slug]/order/[orderId]/OrderConfirmation.tsx"), /useStorePurchase\(store\.slug,/);
   assert.match(read("src/hooks/useCart.ts"), /trackStoreEvent\(storeSlug, "add_to_cart", item\.productId, \{ items:/);
-  assert.match(read("src/lib/storefront/tag-events.ts"), /we never send page_view ourselves/, "GA4 counts history changes itself");
+  assert.match(read("src/lib/storefront/tag-events.ts"), /we never send page_view ourselves/, "Tag Manager counts history changes itself");
 });
 
 test("the CSP lets the sellers' tags load on store pages", () => {

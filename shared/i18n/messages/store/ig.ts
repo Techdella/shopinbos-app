@@ -537,7 +537,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "forms.allTime": "Site na mbido",
   "forms.pages": "Peeji ozi fọm",
   "seo.googleTitle": "Google",
-  "seo.googleSub": "Ndepụta n'efu, reviews Google gị, ọchụchọ Google na ọnụ ọgụgụ ndị ọbịa: otu mbanye na peeji Connections ga-edozi ha niile.",
+  "seo.googleSub": "Ndepụta n'efu, reviews Google gị na ọchụchọ Google: otu mbanye na peeji Connections ga-edozi ha niile.",
   "seo.googleOpen": "Jikọọ Google",
 };
 

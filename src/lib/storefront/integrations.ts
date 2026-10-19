@@ -1,6 +1,7 @@
-// A store's connections to outside tools (Settings › Connections), stored in brandSettings.integrations: Google
-// Analytics 4, Google Tag Manager, Meta Pixel, TikTok Pixel, and the site-verification codes for Google Search
-// Console, Bing, Meta and Pinterest. Pure (no server imports) so tests/store-traffic.test.mjs runs it.
+// A store's connections to outside tools (Settings › Connections), stored in brandSettings.integrations: Google Tag
+// Manager, Meta Pixel, TikTok Pixel, and the site-verification codes for Google Search Console, Bing, Meta and
+// Pinterest. Stores don't load Google Analytics: a googleAnalyticsId saved by an older version is ignored.
+// Pure (no server imports) so tests/store-traffic.test.mjs runs it.
 //
 // Everything is re-validated on the way OUT as well as on save: a value saved by an older version, or edited in
 // the database, still can't put script on a storefront. Tags are only for live store pages (see
@@ -9,7 +10,6 @@
 import {
   bingSiteVerification,
   facebookDomainVerification,
-  gaMeasurementId,
   googleSiteVerification,
   gtmContainerId,
   metaPixelId,
@@ -19,7 +19,6 @@ import {
 } from "../security/html.ts";
 
 export interface StoreIntegrations {
-  googleAnalyticsId: string;
   gtmContainerId: string;
   metaPixelId: string;
   tiktokPixelId: string;
@@ -34,7 +33,6 @@ export type IntegrationKey = keyof StoreIntegrations;
 
 /** Each connection's validator; the form, the saved value and the storefront all go through these. */
 export const INTEGRATION_VALIDATORS: Record<IntegrationKey, (value: unknown) => string> = {
-  googleAnalyticsId: gaMeasurementId,
   gtmContainerId,
   metaPixelId,
   tiktokPixelId,
@@ -99,14 +97,9 @@ export interface TrackingScript {
 /** The tracking scripts for a live store page, in load order. Empty when nothing is connected. */
 export function trackingScripts(integrations: StoreIntegrations): TrackingScript[] {
   const out: TrackingScript[] = [];
-  const ga = gaMeasurementId(integrations.googleAnalyticsId);
   const gtm = gtmContainerId(integrations.gtmContainerId);
   const meta = metaPixelId(integrations.metaPixelId);
   const tiktok = tiktokPixelId(integrations.tiktokPixelId);
-  if (ga) {
-    out.push({ id: "ga4-src", category: "analytics", src: `https://www.googletagmanager.com/gtag/js?id=${ga}` });
-    out.push({ id: "ga4-init", category: "analytics", inline: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config',${scriptSafeJson(ga)});` });
-  }
   if (gtm) {
     out.push({
       id: "gtm-init",

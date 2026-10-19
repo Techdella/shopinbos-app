@@ -147,7 +147,7 @@ export default async function SeoSettingsPage({ searchParams }: SeoPageProps) {
           </form>
         ) : (
           <Card className="grid gap-3 p-5">
-            <CardHead title={t("seo.googleTitle")} sub={t("seo.googleSub")} action={<Pill tone={integrations.googleAnalyticsId || integrations.gaSiteVerification ? "success" : "muted"} dot>{integrations.googleAnalyticsId || integrations.gaSiteVerification ? t("seo.connected") : t("seo.notSet")}</Pill>} />
+            <CardHead title={t("seo.googleTitle")} sub={t("seo.googleSub")} action={<Pill tone={integrations.gaSiteVerification ? "success" : "muted"} dot>{integrations.gaSiteVerification ? t("seo.connected") : t("seo.notSet")}</Pill>} />
             <div><PillLink href="/home/connections#google" tone="ink">{t("seo.googleOpen")}</PillLink></div>
           </Card>
         )}

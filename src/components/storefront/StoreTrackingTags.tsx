@@ -3,7 +3,7 @@ import { gtmNoscriptSrc, trackingScripts, type StoreIntegrations } from "@/lib/s
 import type { StoreConsentConfig } from "@/lib/storefront/consent";
 import { StoreConsent } from "./StoreConsent";
 
-// The seller's own tracking tags (Settings › Connections): GA4, Google Tag Manager, Meta Pixel and TikTok Pixel.
+// The seller's own tracking tags (Settings › Connections): Google Tag Manager, Meta Pixel and TikTok Pixel.
 // Rendered by the storefront layout on every page of a live store (home, shop, product, bag, checkout, blog…,
 // on the free address and the store's own domain), never in the owner's preview. Every ID was validated by
 // src/lib/storefront/integrations.ts, so the inline code holds nothing a seller typed except a checked ID.

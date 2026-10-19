@@ -11,8 +11,8 @@ import { TAGS_READY_EVENT, setTagState, tagPageView } from "@/lib/storefront/tag
 
 // The seller's tags on a live store page, and the cookie banner in front of them (src/lib/storefront/consent.ts).
 //
-// With a banner (the default once a store has GA4, Tag Manager, Meta or TikTok): nothing third-party loads until
-// the shopper chooses. Accepting Analytics loads GA4 / Tag Manager with Consent Mode v2 set to the choice;
+// With a banner (the default once a store has Tag Manager, Meta or TikTok): nothing third-party loads until
+// the shopper chooses. Accepting Analytics loads Tag Manager with Consent Mode v2 set to the choice;
 // accepting Marketing loads the pixels. Taking a consent back tells loaded tags (Consent Mode update, fbq consent
 // revoke, ttq.revokeConsent) and stops every event from here. "Cookie settings" in the store footer, or any link
 // to #cookie-settings, opens the banner again. The banner sits at the bottom of the screen and never blocks the
@@ -77,7 +77,7 @@ export function StoreConsent({ slug, scripts, config, currency }: Props) {
     (next: Pick<ConsentChoice, "analytics" | "marketing">) => {
       const w = window as TagWindow;
       const googleLoaded = loaded.current.analytics;
-      // Analytics: Consent Mode first (banner stores only), then GA4 / Tag Manager.
+      // Analytics: Consent Mode first (banner stores only), then Tag Manager.
       if (next.analytics && has("analytics") && !loaded.current.analytics) {
         if (config) inject({ id: "google-consent", category: "analytics", inline: googleConsentScript(next) });
         for (const script of scripts) if (script.category === "analytics") inject(script);
@@ -109,7 +109,6 @@ export function StoreConsent({ slug, scripts, config, currency }: Props) {
       setTagState({
         analytics: next.analytics && loaded.current.analytics,
         marketing: next.marketing && loaded.current.marketing,
-        ga: tool("ga4-init"),
         gtm: tool("gtm-init"),
         meta: tool("meta-pixel"),
         tiktok: tool("tiktok-pixel"),
@@ -131,7 +130,7 @@ export function StoreConsent({ slug, scripts, config, currency }: Props) {
       setChoice(stored);
       apply(stored);
     } else {
-      setTagState({ analytics: false, marketing: false, ga: false, gtm: false, meta: false, tiktok: false, currency });
+      setTagState({ analytics: false, marketing: false, gtm: false, meta: false, tiktok: false, currency });
       setOpen(true);
     }
     return () => setTagState(null);

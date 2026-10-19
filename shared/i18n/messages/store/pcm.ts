@@ -537,7 +537,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "forms.allTime": "From beginning",
   "forms.pages": "Form message pages",
   "seo.googleTitle": "Google",
-  "seo.googleSub": "Free listings, your Google reviews, Google search and visitor stats: one sign-in for Connections page go set dem all up.",
+  "seo.googleSub": "Free listings, your Google reviews and Google search: one sign-in for Connections page go set dem all up.",
   "seo.googleOpen": "Connect Google",
 };
 

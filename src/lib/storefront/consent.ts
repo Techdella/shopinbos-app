@@ -1,7 +1,7 @@
 // The cookie banner on live store pages (free address and own domain) and what it decides: which of the seller's
 // tags (Settings › Connections) may load. Pure (no server or browser imports) so tests/store-traffic.test.mjs runs it.
 //
-// - The banner shows only when the store has a third-party tag (GA4, Tag Manager, Meta Pixel, TikTok Pixel) and
+// - The banner shows only when the store has a third-party tag (Tag Manager, Meta Pixel, TikTok Pixel) and
 //   the seller left it on (the default). Verification <meta> tags set nothing and need no consent.
 // - Analytics covers Google Analytics and Google Tag Manager; Marketing covers the Meta and TikTok pixels and
 //   Google's ad signals. Nothing of either loads before the shopper agrees; Google tags start from Consent Mode
@@ -71,10 +71,9 @@ export interface TagCategories {
 }
 
 /** The store's third-party tools by category (names shoppers recognise). Empty lists: no banner needed. */
-export function tagCategories(integrations: Pick<StoreIntegrations, "googleAnalyticsId" | "gtmContainerId" | "metaPixelId" | "tiktokPixelId">): TagCategories {
+export function tagCategories(integrations: Pick<StoreIntegrations, "gtmContainerId" | "metaPixelId" | "tiktokPixelId">): TagCategories {
   const analytics: string[] = [];
   const marketing: string[] = [];
-  if (integrations.googleAnalyticsId) analytics.push("Google Analytics");
   if (integrations.gtmContainerId) analytics.push("Google Tag Manager");
   if (integrations.metaPixelId) marketing.push("Meta Pixel");
   if (integrations.tiktokPixelId) marketing.push("TikTok Pixel");

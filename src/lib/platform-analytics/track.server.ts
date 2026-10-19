@@ -1,7 +1,7 @@
 import "server-only";
 
 import { randomUUID } from "node:crypto";
-import { mixpanelConfig, posthogConfig } from "./config";
+import { ga4Config, mixpanelConfig, posthogConfig } from "./config";
 
 // Server-side events to every connected analytics tool (sign-ups, leads coming in, leads converting). These don't
 // depend on a browser running the SDK, so ad blockers don't hide sign-ups. The distinct id is the Supabase user id,
@@ -12,6 +12,11 @@ import { mixpanelConfig, posthogConfig } from "./config";
 export type ServerEvent = { event: string; distinctId: string; properties?: Record<string, string | number | boolean | null>; insertId?: string };
 
 const TIMEOUT_MS = 4000;
+
+/** GA4 event params are strings or numbers only. */
+function gaParams(properties: Record<string, string | number | boolean | null>) {
+  return Object.fromEntries(Object.entries(properties).flatMap(([key, value]) => (value === null ? [] : [[key, typeof value === "boolean" ? String(value) : value]])));
+}
 
 async function post(url: string, init: RequestInit) {
   const response = await fetch(url, { ...init, signal: AbortSignal.timeout(TIMEOUT_MS) });
@@ -42,6 +47,22 @@ export async function trackServerEvent(input: ServerEvent) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ api_key: ph.key, event: input.event, distinct_id: input.distinctId, timestamp: new Date(time).toISOString(), properties: { ...properties, $process_person_profile: !input.distinctId.startsWith("lead:"), source: "server" } }),
+      }),
+    );
+  }
+
+  const ga = ga4Config();
+  if (ga.measurementId && ga.apiSecret) {
+    // Measurement Protocol needs a client id; server events use one per person so GA counts them as that user.
+    jobs.push(
+      post(`https://www.google-analytics.com/mp/collect?measurement_id=${encodeURIComponent(ga.measurementId)}&api_secret=${encodeURIComponent(ga.apiSecret)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          client_id: `srv.${input.distinctId}`,
+          ...(input.distinctId.startsWith("lead:") ? {} : { user_id: input.distinctId }),
+          events: [{ name: input.event.replace(/[^\w]/g, "_").slice(0, 40), params: { ...gaParams(properties), engagement_time_msec: 1 } }],
+        }),
       }),
     );
   }

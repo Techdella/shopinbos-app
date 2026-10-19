@@ -1,12 +1,12 @@
-// The seller's tags (GA4, Tag Manager, Meta Pixel, TikTok Pixel) told about what happens inside the store: page
+// The seller's tags (Tag Manager, Meta Pixel, TikTok Pixel) told about what happens inside the store: page
 // changes the store makes without a full page load, and the shop funnel (product viewed, added to bag, checkout
 // started, order placed). Only for tags the shopper agreed to (src/components/storefront/StoreConsent.tsx keeps
 // window.__sibTags up to date) and only once their code is on the page. No import from the app, so
 // tests/store-traffic.test.mjs runs the mapping directly.
 //
-// GA4 page views: GA's enhanced measurement ("page changes based on browser history events", on by default)
-// already counts history changes, so we never send page_view ourselves (it would count every page twice). The
-// Meta and TikTok pixels don't, so they get PageView / page() on each in-store page change.
+// Page views: Tag Manager's history-change trigger counts in-store page changes, so we never send page_view ourselves
+// (it would count every page twice). The Meta and TikTok pixels don't, so they get PageView / page() on each in-store
+// page change.
 
 export type TagEventName = "view_item" | "add_to_cart" | "begin_checkout" | "purchase";
 
@@ -29,7 +29,6 @@ export interface TagEventData {
 export interface TagState {
   analytics: boolean;
   marketing: boolean;
-  ga: boolean;
   gtm: boolean;
   meta: boolean;
   tiktok: boolean;
@@ -53,7 +52,7 @@ function normalized(data: TagEventData, fallbackCurrency: string) {
   return { items, value, currency: cleanCurrency(data.currency, fallbackCurrency), orderId: data.orderId ? cleanId(data.orderId) : "" };
 }
 
-/** GA4 recommended e-commerce event params (also what Tag Manager gets as `ecommerce`). */
+/** The standard (GA4-format) e-commerce event params Tag Manager gets as `ecommerce`. */
 export function ga4Event(name: TagEventName, data: TagEventData, fallbackCurrency = "NGN"): [string, Record<string, unknown>] {
   const n = normalized(data, fallbackCurrency);
   return [
@@ -101,7 +100,6 @@ export function tiktokEvent(name: TagEventName, data: TagEventData, fallbackCurr
 type Fn = (...args: unknown[]) => void;
 interface TagWindow {
   __sibTags?: TagState;
-  gtag?: Fn;
   dataLayer?: unknown[];
   fbq?: Fn;
   ttq?: { page?: Fn; track?: Fn };
@@ -142,7 +140,7 @@ export function tagPageView() {
 export const TAGS_READY_EVENT = "sib:tags-ready";
 
 /**
- * A shop funnel step for the agreed tags: GA4 / Tag Manager with Analytics consent, the pixels with Marketing.
+ * A shop funnel step for the agreed tags: Tag Manager with Analytics consent, the pixels with Marketing.
  * Returns whether any tag got it.
  */
 export function tagEvent(name: TagEventName, data: TagEventData): boolean {
@@ -152,10 +150,6 @@ export function tagEvent(name: TagEventName, data: TagEventData): boolean {
   let sent = false;
   if (state.analytics) {
     const [event, params] = ga4Event(name, data, state.currency);
-    if (state.ga && w.gtag) safely(() => {
-      w.gtag!("event", event, params);
-      sent = true;
-    });
     if (state.gtm && Array.isArray(w.dataLayer)) safely(() => {
       w.dataLayer!.push({ ecommerce: null });
       w.dataLayer!.push({ event, ecommerce: params });

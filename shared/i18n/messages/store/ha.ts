@@ -537,7 +537,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "forms.allTime": "Tun daga farko",
   "forms.pages": "Shafukan saƙonnin fom",
   "seo.googleTitle": "Google",
-  "seo.googleSub": "Jera kyauta, reviews ɗinka na Google, binciken Google da ƙididdigar baƙi: shiga sau ɗaya a shafin Connections zai saita su duka.",
+  "seo.googleSub": "Jera kyauta, reviews ɗinka na Google da binciken Google: shiga sau ɗaya a shafin Connections zai saita su duka.",
   "seo.googleOpen": "Haɗa Google",
 };
 
