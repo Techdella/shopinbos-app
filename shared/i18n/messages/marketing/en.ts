@@ -790,7 +790,7 @@ const en = {
   "om.detail.tracking": "Tracking link",
   "om.detail.cart": "Link to finish paying",
   "om.waHow": "Connect your WhatsApp Business number to send order updates on WhatsApp.",
-  "om.smsHow": "Texts need an SMS account. We can set it up for you.",
+  "om.smsHow": "Text messages aren't switched on yet. They'll work here by themselves once they are; there's nothing to connect.",
   "om.askSetup": "Ask us to set up SMS",
   "om.setupTitle": "Set up SMS for my order messages",
   "om.setupDesc": "We'll connect an SMS account for your shop and tell you when texts are ready to go.",

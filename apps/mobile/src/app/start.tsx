@@ -46,7 +46,7 @@ export default function StartHere() {
 
   function run(step: SetupStep, overview: SetupOverview) {
     // Technical steps never show their workings on a phone: the team sets up the domain.
-    if (step.key === "domain") return void router.push({ pathname: "/ask-us", params: { what: "web-address" } });
+    if (step.key === "domain") return void openPath("/home/domain");
     if (step.key === "look") return void router.push({ pathname: "/web-only", params: { what: "look" } });
     if (step.key === "audience") return void router.push("/marketing");
     if (step.action.kind === "link") return void openPath(step.action.href);

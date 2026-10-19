@@ -252,7 +252,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "src.notice.failed": "Google sign-in no work.",
   "src.notice.invalid": "That Google sign-in link don expire or e no be for this store. Try again.",
   "src.notice.notConfigured": "To connect Google never on yet. Add your Google reviews for down for now.",
-  "src.locationsFailed": "We no fit load your Google locations.",
+  "src.locationsFailed": "Google never show your business to us yet. Try again in small minutes.",
   "src.sub": "Bring reviews from Google, WhatsApp, social media and marketplaces come one list.",
   "src.connectedTo": "E don connect to {name}",
   "src.googleSub": "Your reviews for Google Search and Maps.",
@@ -280,6 +280,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "src.feedHow": "For Google Merchant Center, open Growth, then Manage programs, then Product ratings, and add this URL as scheduled feed. E dey list the published reviews wey buyers write for your store, for Google product reviews format.",
   "src.feedNote": "Google go show stars once product get enough reviews (usually 50 across your shop, and at least 3 for one product). Google, social and marketplace reviews wey you import no dey the feed because Google only dey accept reviews wey you collect yourself.",
   "src.marketplacesBody": "The Shopinbos marketplace na where you dey buy from suppliers, so e no get buyer reviews of your shop to bring come. For Jumia, Konga or another marketplace, import reviews with screenshot or by to paste dem: dem go show the marketplace name.",
+  "ask.howPlain": "Email don ready. WhatsApp go send from your own number once you connect am. “From your WhatsApp” go open the chat for your phone, so e always dey work.",
+  "ask.connectWa": "Connect WhatsApp",
 };
 
 export default pcm;

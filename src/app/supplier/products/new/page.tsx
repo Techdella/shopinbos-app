@@ -7,6 +7,7 @@ import { AppPage, AssistantNote, Card } from "@/components/app-kit";
 import { supplierFrame } from "@/components/supplier/supplier-kit";
 import { createSupplierProduct } from "@/app/actions/supplier";
 import { SupplierProductForm } from "@/components/supplier/SupplierProductForm";
+import { planOffers } from "@/lib/plans/catalog.server";
 import { PlanUpgradeSection } from "@/components/payments/PlanUpgradeSection";
 import { getT } from "@/lib/i18n/server";
 
@@ -48,7 +49,7 @@ export default async function NewSupplierProductPage({
               {t("newProduct.limitBody", { count: productCount })}
             </p>
           </Card>
-          <PlanUpgradeSection userEmail={billingEmail(user)} userName={user.name} aiCredits={aiCredits} creditBalance={await creditBalance(user.id)} />
+          <PlanUpgradeSection userEmail={billingEmail(user)} userName={user.name} aiCredits={aiCredits} creditBalance={await creditBalance(user.id)} offer={(await planOffers()).supplierMax} />
         </div>
       ) : (
         <>

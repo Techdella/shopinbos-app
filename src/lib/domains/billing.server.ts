@@ -2,6 +2,7 @@ import "server-only";
 import crypto from "node:crypto";
 import type { DomainPurchase, Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
+import { getPlanCatalog } from "@/lib/plans/catalog.server";
 import { billingEmail } from "@/lib/auth/billing-email";
 import { notify } from "@/lib/notifications/notify.server";
 import {
@@ -124,7 +125,7 @@ const PLAN_SELECT = { planCode: true, planInterval: true, planStatus: true, plan
 
 /** Whether the seller's plan pays for a domain now (renewalStartsAt: the domain's current expiry, for a renewal). */
 export async function sellerGetsFreeDomain(userId: string, now = new Date(), renewalStartsAt?: Date | null) {
-  const user = await db.user.findUnique({ where: { id: userId }, select: PLAN_SELECT });
+  const [user] = await Promise.all([db.user.findUnique({ where: { id: userId }, select: PLAN_SELECT }), getPlanCatalog()]);
   return renewalStartsAt === undefined ? freeDomainEligible(user, now) : freeDomainEligible(user, now, renewalStartsAt);
 }
 

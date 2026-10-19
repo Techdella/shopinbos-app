@@ -262,7 +262,7 @@ const en = {
   "src.notice.failed": "Google sign-in didn't work.",
   "src.notice.invalid": "That Google sign-in link expired or wasn't for this store. Try again.",
   "src.notice.notConfigured": "Connecting Google isn't switched on yet. Add your Google reviews below for now.",
-  "src.locationsFailed": "Couldn't load your Google locations.",
+  "src.locationsFailed": "Google isn't showing your business to us yet. Try again in a few minutes.",
   "src.sub": "Bring reviews from Google, WhatsApp, social media and marketplaces into one list.",
   "src.connectedTo": "Connected to {name}",
   "src.googleSub": "Your reviews on Google Search and Maps.",
@@ -290,6 +290,8 @@ const en = {
   "src.feedHow": "In Google Merchant Center, open Growth, then Manage programs, then Product ratings, and add this URL as a scheduled feed. It lists the published reviews buyers left on your store, in Google's product reviews format.",
   "src.feedNote": "Google shows stars once a product has enough reviews (usually 50 across your shop, and at least 3 for a product). Imported Google, social and marketplace reviews aren't in the feed because Google only accepts reviews you collected yourself.",
   "src.marketplacesBody": "The Shopinbos marketplace is where you buy from suppliers, so it has no buyer reviews of your shop to bring in. For Jumia, Konga or another marketplace, import reviews with a screenshot or by pasting them: they are labelled with that marketplace.",
+  "ask.howPlain": "Email is ready to use. WhatsApp sends from your own number once you connect it. “From your WhatsApp” opens the chat on your phone, so it always works.",
+  "ask.connectWa": "Connect WhatsApp",
 } satisfies Record<string, string>;
 
 export default en;

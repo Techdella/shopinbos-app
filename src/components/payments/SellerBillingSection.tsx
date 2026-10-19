@@ -6,6 +6,7 @@ import { upgradeSellerToGrowth, upgradeSellerToMax } from "@/app/actions/payment
 import { useToast } from "@/components/ui/Toast";
 import { cx } from "@/components/app-ui/cx";
 import { useT } from "@/components/i18n/I18nProvider";
+import { annualSaving, type PlanOfferView } from "@shared/plan-catalog";
 
 interface SellerBillingSectionProps {
   userEmail: string;
@@ -15,48 +16,34 @@ interface SellerBillingSectionProps {
   /** The AI credits Rex and Peggy actually spend (AiCreditAccount.balance). */
   creditBalance: number;
   productCount?: number;
+  /** Today's Growth and Pro prices, plan codes and monthly credits (Admin › Pricing › Plans). */
+  offers: { growth: PlanOfferView; pro: PlanOfferView };
 }
+
+const naira = (amount: number) => `₦${amount.toLocaleString("en-NG")}`;
 
 const PLANS = [
   {
     key: "starter",
     label: "Starter",
-    monthlyPrice: "Free",
-    annualPrice: "Free",
-    priceSub: "",
-    annualNote: "",
     creditThreshold: 0,
     features: ["5 AI credits to get started", "Up to 10 store products", "Marketplace access", "Community support"],
-    monthlyPlan: null,
-    annualPlan: null,
   },
   {
     key: "growth",
     label: "Growth",
-    monthlyPrice: "₦8,000",
-    annualPrice: "₦80,000",
-    priceSub: "/month",
-    annualNote: "₦6,667/mo · 2 months free",
     creditThreshold: 50,
     features: ["50 AI credits/month", "Up to 200 store products", "Analytics dashboard", "Email support"],
-    monthlyPlan: "PLN_8ou289e71czicvm",
-    annualPlan: "PLN_q1k3ssxpx7rxxuz",
   },
   {
     key: "pro",
     label: "Seller Pro",
-    monthlyPrice: "₦18,000",
-    annualPrice: "₦180,000",
-    priceSub: "/month",
-    annualNote: "₦15,000/mo · 2 months free",
     creditThreshold: 200,
     features: ["200 AI credits/month", "Unlimited products", "Use your own domain", "Priority support"],
-    monthlyPlan: "PLN_2gph11w3yd0250y",
-    annualPlan: "PLN_9gma70ofldhbj4r",
   },
 ] as const;
 
-export function SellerBillingSection({ userEmail, userName, aiCredits, creditBalance, productCount = 0 }: SellerBillingSectionProps) {
+export function SellerBillingSection({ userEmail, userName, aiCredits, creditBalance, productCount = 0, offers }: SellerBillingSectionProps) {
   const t = useT("payments");
   const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
   const [isPending, startTransition] = useTransition();
@@ -119,10 +106,12 @@ export function SellerBillingSection({ userEmail, userName, aiCredits, creditBal
         <div className="mt-4 grid gap-3 md:grid-cols-3">
           {PLANS.map((plan) => {
             const isCurrent = currentPlan === plan.key;
-            const planCode = billing === "annual" ? plan.annualPlan : plan.monthlyPlan;
-            const rawPrice = billing === "annual" ? plan.annualPrice : plan.monthlyPrice;
-            const displayPrice = rawPrice === "Free" ? t("plan.free") : rawPrice;
-            const displaySub = billing === "annual" ? (plan.key === "starter" ? "" : t("plan.perYear")) : plan.priceSub ? t("plan.perMonth") : "";
+            const offer = plan.key === "starter" ? null : offers[plan.key];
+            const sold = offer ? (billing === "annual" ? offer.annual : offer.monthly) : null;
+            const planCode = sold?.code ?? null;
+            const displayPrice = offer ? (sold ? naira(sold.amountNgn) : "—") : t("plan.free");
+            const saving = offer?.monthly && offer.annual ? annualSaving(offer.monthly.amountNgn, offer.annual.amountNgn) : null;
+            const displaySub = !offer ? "" : billing === "annual" ? t("plan.perYear") : t("plan.perMonth");
 
             return (
               <div key={plan.key} className={cx("flex min-w-0 flex-col rounded-[18px] border-2 p-4", isCurrent ? "border-app-ink" : "border-app-line")}>
@@ -138,17 +127,24 @@ export function SellerBillingSection({ userEmail, userName, aiCredits, creditBal
                   {displayPrice}
                   <span className="text-[13px] font-medium text-app-ink-soft">{displaySub}</span>
                 </div>
-                {billing === "annual" && plan.annualNote && <div className="mt-0.5 text-[12.5px] font-bold text-app-success">{plan.key === "growth" ? t("plan.growthNote") : t("plan.proNote")}</div>}
+                {billing === "annual" && saving && (
+                  <div className="mt-0.5 text-[12.5px] font-bold text-app-success">
+                    {t(plan.key === "growth" ? "plan.growthNote" : "plan.proNote", { perMonth: naira(saving.perMonth), months: saving.months })}
+                  </div>
+                )}
                 <ul className="m-0 mt-3 grid list-none gap-1.5 p-0 text-[13.5px] text-app-ink-soft">
                   {plan.features.map((f, index) => (
-                    <li key={f} className="flex gap-2"><span aria-hidden className="text-app-success">✓</span>{t.dynamic(`plan.${plan.key}.f${index + 1}`, f)}</li>
+                    <li key={f} className="flex gap-2">
+                      <span aria-hidden className="text-app-success">✓</span>
+                      {offer && index === 0 ? t(plan.key === "growth" ? "plan.growth.f1" : "plan.pro.f1", { count: offer.creditsPerMonth }) : t.dynamic(`plan.${plan.key}.f${index + 1}`, f)}
+                    </li>
                   ))}
                   {/* Any paid plan lets the seller turn the "Built with Shopinbos" badge off in the store editor (src/lib/store-badges.ts). */}
-                  {plan.monthlyPlan && (
+                  {offer && (
                     <li className="flex gap-2"><span aria-hidden className="text-app-success">✓</span>{t("plan.noBadge")}</li>
                   )}
                   {/* Annual Growth and Pro pay for the seller's domain (src/lib/seller-plan.ts); monthly plans don't. */}
-                  {billing === "annual" && plan.annualPlan && (
+                  {billing === "annual" && offer?.annual && (
                     <li className="flex gap-2 font-bold text-app-ink"><span aria-hidden className="text-app-success">✓</span>{t("plan.freeDomain")}</li>
                   )}
                 </ul>

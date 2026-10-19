@@ -57,7 +57,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "email.confirm": "A daina aika email daga wannan adireshi? Tattaunawarka za su ci gaba da kasancewa a Inbox ɗinka.",
   "email.disconnected": "An cire email.",
   "email.domainTitle": "Saita email na domain ɗinka a babban allo",
-  "email.domainBody": "Email kamar hello@yourshop.com yana buƙatar ƙara wasu saituna a domain ɗinka. Ya fi sauƙi a kwamfuta, amma za ka iya buɗe shi a wannan wayar ma. Ko ka tambaye mu, mu saita maka.",
+  "email.domainBody": "Imel kamar hello@yourshop.com: zaɓi adireshin ka taɓa Connect. Ya fi sauƙi a kwamfuta, amma kana iya buɗe shi a wannan wayar ma.",
   "email.askUs": "Tambaye mu mu saita maka",
 };
 

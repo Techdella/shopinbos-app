@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SMS_ENABLED } from "@/lib/features";
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/server-auth";
 import { db } from "@/lib/db/client";
@@ -173,7 +174,7 @@ export default async function MarketingOverviewPage({ searchParams }: { searchPa
               <Card className="p-5">
                 <CardHead title={t("hub.sendingChannels")} />
                 <ul className="m-0 mt-3 grid list-none gap-2 p-0">
-                  {(["email", "sms", "whatsapp"] as const).map((key) => (
+                  {(SMS_ENABLED ? (["email", "sms", "whatsapp"] as const) : (["email", "whatsapp"] as const)).map((key) => (
                     <li key={key} className="flex items-start gap-3 text-[14px]">
                       <Icon name={key === "email" ? "mail" : key === "sms" ? "message" : "whatsapp"} size={18} className="mt-0.5 shrink-0" />
                       <span className="min-w-0 flex-1">

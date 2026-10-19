@@ -23,7 +23,7 @@ export function supplierProductLimit(plan: SupplierPlan) {
 }
 
 export function supplierProductLimitMessage(limit = SUPPLIER_FREE_PRODUCT_LIMIT) {
-  return `Free plan includes up to ${limit} products. Upgrade to Supplier Max (₦25,000/month) for unlimited products.`;
+  return `Free plan includes up to ${limit} products. Upgrade to Supplier Max for unlimited products.`;
 }
 
 export function logisticsRouteLimitMessage(limit = LOGISTICS_FREE_ROUTE_LIMIT) {

@@ -53,7 +53,7 @@ export default async function AdminPricingPage({ searchParams }: { searchParams:
       frame={adminFrame(user)}
       title="Pricing"
       sub="Every fee and price Shopinbos charges. Changes apply within 30 seconds; payments already started keep their price."
-      actions={<PillLink href="/admin/pricing/promotions" size="sm" icon="percent">Promotions</PillLink>}
+      actions={<><PillLink href="/admin/pricing/plans" size="sm" icon="cards">Plans</PillLink><PillLink href="/admin/pricing/promotions" size="sm" icon="percent">Promotions</PillLink></>}
     >
       {query.error ? (
         <div role="alert" className="mb-5 rounded-[22px] border border-app-danger bg-white p-4 text-[14px] text-app-danger">{query.error}</div>

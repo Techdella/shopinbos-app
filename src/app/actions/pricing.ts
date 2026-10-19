@@ -7,6 +7,8 @@ import { savePrices } from "@/lib/pricing/price-book.server";
 import { cancelPromotion, createPromotion, PromotionError, updatePromotion } from "@/lib/pricing/promotions.server";
 import { cleanPriceValue, PRICE_KEYS, PRICE_SETTINGS } from "@shared/platform-pricing";
 import { fromLagosInput, PROMO_AUDIENCES, type PromoInput } from "@shared/price-promotions";
+import { PlanSaveError, savePlanTier } from "@/lib/plans/catalog.server";
+import { PLAN_TIER_KEYS, type PlanTier } from "@shared/plan-catalog";
 
 /** Admin › Pricing: saves one section's prices (fields are named by price key) with an optional note. */
 export async function savePricing(formData: FormData) {
@@ -79,4 +81,25 @@ export async function endPromotion(formData: FormData) {
   const promo = await cancelPromotion(String(formData.get("id") ?? ""));
   revalidatePath("/admin/pricing/promotions");
   redirect(`/admin/pricing/promotions?${new URLSearchParams({ saved: promo.status === "cancelled" ? "Promotion cancelled." : "Promotion ended: prices are back to normal." }).toString()}`);
+}
+
+/** Admin › Pricing › Plans: a tier's prices (a new price creates a new Paystack plan) and monthly AI credits. */
+export async function savePlan(formData: FormData) {
+  const user = await requireRole(["admin"], "/admin/login");
+  const tier = String(formData.get("tier") ?? "");
+  if (!PLAN_TIER_KEYS.includes(tier as PlanTier)) redirect("/admin/pricing/plans");
+  let message: string;
+  try {
+    const result = await savePlanTier(
+      tier as PlanTier,
+      { monthlyNgn: formData.get("monthlyNgn") ?? undefined, annualNgn: formData.get("annualNgn") ?? undefined, creditsPerMonth: formData.get("creditsPerMonth") ?? undefined },
+      { userId: user.id, note: String(formData.get("note") ?? "") },
+    );
+    message = result.changed ? `Saved.${result.created.length ? ` New Paystack plan${result.created.length === 1 ? "" : "s"}: ${result.created.join(", ")}.` : ""}` : "Nothing changed.";
+  } catch (error) {
+    const text = error instanceof PlanSaveError ? error.message : `Paystack said: ${error instanceof Error ? error.message : "it couldn't create the plan"}. Nothing was changed.`;
+    redirect(`/admin/pricing/plans?${new URLSearchParams({ error: text }).toString()}#${tier}`);
+  }
+  revalidatePath("/admin/pricing/plans");
+  redirect(`/admin/pricing/plans?${new URLSearchParams({ saved: message }).toString()}#${tier}`);
 }

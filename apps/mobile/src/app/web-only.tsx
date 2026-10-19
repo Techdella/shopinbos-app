@@ -21,13 +21,11 @@ const TOOLS: Record<string, { title: "webOnly.look.title" | "webOnly.bio.title" 
     ask: "/rex",
     askLabel: "webOnly.askRex",
   },
-  // Email from the shop's own domain (hello@myshop.com): DNS records are added on the web's email page.
+  // Email from the shop's own domain (hello@myshop.com): connected in one tap on the web's email page.
   emailDomain: {
     title: "email.domainTitle",
     body: "email.domainBody",
     path: EMAIL_SETUP_PATH,
-    ask: "/ask-us?what=channels",
-    askLabel: "email.askUs",
   },
   // Link in bio colours, photo and the blocks the phone doesn't edit (app/link-in-bio.tsx).
   bio: {

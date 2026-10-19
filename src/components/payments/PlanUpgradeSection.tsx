@@ -5,6 +5,7 @@ import { PaystackCheckoutButton } from "./PaystackCheckout";
 import { upgradeUserToSupplierMax } from "@/app/actions/payments";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/components/i18n/I18nProvider";
+import type { PlanOfferView } from "@shared/plan-catalog";
 
 interface PlanUpgradeSectionProps {
   userEmail: string;
@@ -14,9 +15,11 @@ interface PlanUpgradeSectionProps {
   /** The AI credits the supplier actually spends (welcome, plan and bought credits). */
   creditBalance: number;
   productCount?: number;
+  /** Today's Supplier Max price, plan code and monthly credits (Admin › Pricing › Plans). */
+  offer: PlanOfferView;
 }
 
-export function PlanUpgradeSection({ userEmail, userName, aiCredits, creditBalance, productCount = 0 }: PlanUpgradeSectionProps) {
+export function PlanUpgradeSection({ userEmail, userName, aiCredits, creditBalance, productCount = 0, offer }: PlanUpgradeSectionProps) {
   const t = useT("payments", "account");
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
@@ -100,7 +103,7 @@ export function PlanUpgradeSection({ userEmail, userName, aiCredits, creditBalan
             {isSupplierMax ? t("sm.current") : "Supplier Max"}
           </div>
           <div style={{ fontSize: 22, fontWeight: 700, color: "var(--ink-900)" }}>
-            ₦25,000<span style={{ fontSize: 13, fontWeight: 400, color: "var(--ink-500)" }}>{t("plan.perMonth")}</span>
+            {offer.monthly ? `₦${offer.monthly.amountNgn.toLocaleString("en-NG")}` : "—"}<span style={{ fontSize: 13, fontWeight: 400, color: "var(--ink-500)" }}>{t("plan.perMonth")}</span>
           </div>
           <div style={{ fontSize: 13, color: "var(--ink-600)" }}>
             {isSupplierMax ? t("sm.active") : t("plan.pro.f2")}
@@ -109,14 +112,14 @@ export function PlanUpgradeSection({ userEmail, userName, aiCredits, creditBalan
             <li>{t("plan.pro.f2")}</li>
             <li>{t("sm.f5")}</li>
             <li>{t("sm.f6")}</li>
-            <li>{t("sm.credits")}</li>
+            <li>{t("sm.credits", { count: offer.creditsPerMonth })}</li>
             <li>{t("plan.pro.f4")}</li>
           </ul>
 
-          {!isSupplierMax && (
+          {!isSupplierMax && offer.monthly && (
             <div style={{ marginTop: 12 }}>
               <PaystackCheckoutButton
-                plan="PLN_q78304vgj7p35o6"
+                plan={offer.monthly.code}
                 email={userEmail}
                 firstName={firstName}
                 lastName={lastName}

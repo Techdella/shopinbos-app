@@ -1,5 +1,6 @@
 "use client";
 
+import { SMS_ENABLED } from "@/lib/features";
 import { useActionState, useState } from "react";
 import { saveReviewSettings, type ActionState } from "@/app/actions/reviews";
 import { Notice, PillButton, Toggle } from "@/components/app-ui";
@@ -32,7 +33,7 @@ export function SettingsForm({ initial, ready }: { initial: { autoRequest: boole
           <label htmlFor="requestChannel" className={field.label}>{t("req.sendBy")}</label>
           <select id="requestChannel" name="requestChannel" value={channel} onChange={(e) => setChannel(e.target.value)} className={field.select}>
             <option value="email">{t("req.email")}{ready.email ? "" : ` (${t("req.notSetUp")})`}</option>
-            <option value="sms">SMS{ready.sms ? "" : ` (${t("req.notSetUp")})`}</option>
+            {(SMS_ENABLED || channel === "sms") && <option value="sms">SMS{ready.sms ? "" : ` (${t("req.notSetUp")})`}</option>}
             <option value="whatsapp">WhatsApp{ready.whatsapp ? "" : ` (${t("req.notSetUp")})`}</option>
           </select>
         </div>

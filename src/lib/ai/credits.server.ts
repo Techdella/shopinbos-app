@@ -3,6 +3,7 @@ import "server-only";
 import crypto from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
+import { getPlanCatalog } from "@/lib/plans/catalog.server";
 import { billingEmail } from "@/lib/auth/billing-email";
 import { chargePaystackAuthorization, initializePaystackTransaction, verifyPaystackTransaction } from "@/lib/paystack";
 import { readSavedAuthorization, savedAuthorization } from "@/lib/domains/billing-pure";
@@ -74,7 +75,7 @@ export async function creditBalance(userId: string) {
  * invoice). Returns the credits added (0 when this reference was already counted or the plan has none).
  */
 export async function grantPlanCredits(userId: string, planCode: string | null | undefined, reference: string) {
-  const grant = planCreditGrant(planCode);
+  const grant = planCreditGrant(planCode, (await getPlanCatalog()).creditsPerMonth);
   if (!grant) return 0;
   await ensureCreditAccount(userId);
   try {

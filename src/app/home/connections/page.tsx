@@ -12,7 +12,7 @@ import { PlatformLogo } from "@/components/channels/PlatformLogo";
 import { readIntegrations } from "@/lib/storefront/integrations";
 import { BANNER_MESSAGE_MAX, bannerText, hasThirdPartyTags, readCookieBanner, tagCategories } from "@/lib/storefront/consent";
 import { legalLinks } from "@/lib/legal/pages";
-import { googleOverview } from "@/lib/google/connect.server";
+import { googleOverview, type GoogleOverview } from "@/lib/google/connect.server";
 import { channelCards } from "@/lib/sales-channels/server";
 import { COMING_SOON_PLATFORMS, PLATFORM_NAME, isOAuthPlatform, platformConfigured } from "@/lib/sales-channels/pure";
 import { emailRow, googleConfigured as gmailConfigured, readEmailSettings } from "@/lib/email-channel/server";
@@ -39,6 +39,18 @@ type ConnT = TFunction<MessageKey<"traffic"> | MessageKey<"social"> | MessageKey
 type Search = Promise<{ saved?: string; connected?: string; problem?: string; finished?: string }>;
 
 const NEXT = encodeURIComponent("/home/connections");
+
+/** Each lookup falls back on its own, so one failing part can't take the whole page down (logged as [connections-page]). */
+async function safe<T>(label: string, work: () => Promise<T> | T, fallback: T): Promise<T> {
+  try {
+    return await work();
+  } catch (error) {
+    console.error(`[connections-page] ${label} failed`, error instanceof Error ? `${error.name}: ${error.message.slice(0, 300)}` : "unknown");
+    return fallback;
+  }
+}
+
+const NO_GOOGLE: GoogleOverview = { reviews: { state: "off", name: null }, search: { state: "off", site: null }, analytics: { state: "off" } };
 
 /** One Google feature: what it does, and where it stands. */
 function GoogleRow({ title, what, status, on }: { title: string; what: string; status: ReactNode; on: boolean }) {
@@ -67,7 +79,11 @@ export default async function ConnectionsPage({ searchParams }: { searchParams: 
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true, brandSettings: true, customDomain: true } });
   if (!store) redirect("/onboarding?role=seller");
 
-  const [{ cards, interest }, google, email] = await Promise.all([channelCards(store.id), googleOverview(store.id, store.brandSettings), emailRow(store.id).catch(() => null)]);
+  const [{ cards, interest }, google, email] = await Promise.all([
+    safe("channel cards", () => channelCards(store.id), { cards: [], interest: [], saved: false }),
+    safe("google overview", () => googleOverview(store.id, store.brandSettings), NO_GOOGLE),
+    safe("email", () => emailRow(store.id), null),
+  ]);
   const shopping = cards.find((card) => card.platform === "google")?.state ?? { kind: "soon" as const };
   const googleReady = platformConfigured("google");
   const googleLinked = shopping.kind !== "connect" && shopping.kind !== "soon";
@@ -78,9 +94,11 @@ export default async function ConnectionsPage({ searchParams }: { searchParams: 
   const done = isOAuthPlatform(params.connected) && !params.problem ? PLATFORM_NAME[params.connected] : null;
   const failed = isOAuthPlatform(params.problem) ? PLATFORM_NAME[params.problem] : null;
 
-  const cookieBanner = readCookieBanner(store.brandSettings);
-  const needsBanner = hasThirdPartyTags(tagCategories(readIntegrations(store.brandSettings)));
-  const policies = legalLinks(store.brandSettings);
+  const [cookieBanner, needsBanner, policies] = await Promise.all([
+    safe("cookie banner", () => readCookieBanner(store.brandSettings), readCookieBanner(null)),
+    safe("tags", () => hasThirdPartyTags(tagCategories(readIntegrations(store.brandSettings))), false),
+    safe("legal pages", () => legalLinks(store.brandSettings), [] as ReturnType<typeof legalLinks>),
+  ]);
   const policyValue = cookieBanner.policy === "auto" || cookieBanner.policy === "none" || policies.some((page) => page.key === cookieBanner.policy) ? cookieBanner.policy : "auto";
 
   const off = <span className="text-app-ink-soft">{t("cx.off")}</span>;

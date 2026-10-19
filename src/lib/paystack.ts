@@ -239,3 +239,21 @@ export async function listPaystackSettlements(subaccountCode: string, perPage = 
     return [];
   }
 }
+
+/**
+ * Creates a subscription plan (POST /plan) and returns its plan_code. Paystack charges subscribers the amount of the
+ * plan they subscribed to, so a new price is a new plan (Admin › Pricing › Plans).
+ */
+export async function createPaystackPlan(input: { name: string; amountKobo: number; interval: "monthly" | "annually"; description?: string }) {
+  const response = await fetch(`${PAYSTACK_BASE}/plan`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${secretKey()}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ name: input.name.slice(0, 100), amount: input.amountKobo, interval: input.interval, currency: "NGN", ...(input.description ? { description: input.description } : {}) }),
+    cache: "no-store",
+    signal: AbortSignal.timeout(20_000),
+  });
+  const json = (await response.json().catch(() => null)) as { status?: boolean; message?: string; data?: { plan_code?: unknown } } | null;
+  const code = typeof json?.data?.plan_code === "string" ? json.data.plan_code : null;
+  if (!response.ok || !json?.status || !code || !/^PLN_[A-Za-z0-9]+$/.test(code)) throw new Error(json?.message ?? "Paystack could not create the plan.");
+  return code;
+}
