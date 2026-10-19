@@ -7,6 +7,7 @@
 // (shared/platform-pricing.ts): server code passes them in (creditPacksFrom, creditCosts) where it says so below.
 
 import { creditCosts, creditPackPrices, type PriceBook } from "./platform-pricing.ts";
+import { PLAN_TIERS, planCreditsPerPayment, planVersion, type PlanTier } from "./plan-catalog.ts";
 
 export interface CreditPack {
   id: string;
@@ -41,20 +42,20 @@ export { creditCosts };
 export const WELCOME_CREDITS = 5;
 
 /**
- * Credits a paid plan adds to the balance each time it is paid (Paystack plan codes). Monthly plans add the
- * month's credits; annual plans add twelve months' worth up front. The daily allowance comes from the plan too.
+ * Credits a paid plan adds to the balance each time it is paid. Monthly plans add the month's credits; annual plans
+ * add twelve months' worth up front. `creditsPerMonth` is from Admin › Pricing › Plans (the tiers' defaults when
+ * not given); the plan code can be any price the tier was ever sold at (shared/plan-catalog.ts).
  */
-export const PLAN_CREDIT_GRANTS: Record<string, { credits: number; label: string }> = {
-  PLN_8ou289e71czicvm: { credits: 50, label: "Growth plan" },
-  PLN_q1k3ssxpx7rxxuz: { credits: 600, label: "Growth plan (year)" },
-  PLN_2gph11w3yd0250y: { credits: 200, label: "Seller Pro plan" },
-  PLN_9gma70ofldhbj4r: { credits: 2_400, label: "Seller Pro plan (year)" },
-  PLN_q78304vgj7p35o6: { credits: 100, label: "Supplier Max plan" },
-  PLN_0a6z6ns429ohli1: { credits: 1_200, label: "Supplier Max plan (year)" },
-};
+export function planCreditGrant(planCode: string | null | undefined, creditsPerMonth?: Partial<Record<PlanTier, number>>) {
+  const version = planVersion(planCode);
+  if (!version) return null;
+  const perMonth = { ...defaultCreditsPerMonth(), ...creditsPerMonth };
+  const credits = planCreditsPerPayment(planCode, perMonth)!;
+  return { credits, label: `${PLAN_TIERS[version.tier].label} plan${version.billing === "annual" ? " (year)" : ""}` };
+}
 
-export function planCreditGrant(planCode: string | null | undefined) {
-  return planCode ? PLAN_CREDIT_GRANTS[planCode] ?? null : null;
+function defaultCreditsPerMonth() {
+  return Object.fromEntries(Object.entries(PLAN_TIERS).map(([tier, info]) => [tier, info.defaults.creditsPerMonth])) as Record<PlanTier, number>;
 }
 
 /** Credits per request once the day's allowance is used: a picture costs more than a chat message. */

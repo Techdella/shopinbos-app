@@ -1,5 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db/client";
+import { getPlanCatalog } from "@/lib/plans/catalog.server";
 import { extendPaidUntil, paystackDate, planInterval, sameSubscription, type PlanStatus } from "@/lib/seller-plan";
 
 // Records the seller's plan from Paystack subscription webhooks on User (planCode, planInterval, planStatus,
@@ -10,6 +11,7 @@ type Data = Record<string, any>; // eslint-disable-line @typescript-eslint/no-ex
 
 async function userByEmail(email: unknown) {
   if (typeof email !== "string" || !email) return null;
+  await getPlanCatalog(); // so plan codes created from admin are known
   return db.user.findUnique({ where: { email }, select: { id: true, subscriptionCode: true, planCode: true, planInterval: true, planPaidUntil: true } });
 }
 

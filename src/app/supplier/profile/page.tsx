@@ -7,6 +7,7 @@ import { getSupplierWorkspace } from "@/lib/workspace";
 import { AppPage, AssistantNote, Card, CardHead, FilterChips, Pill, PillLink, SplitLayout } from "@/components/app-kit";
 import { Notice } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
+import { planOffers } from "@/lib/plans/catalog.server";
 import { PlanUpgradeSection } from "@/components/payments/PlanUpgradeSection";
 import { SupplierCoverUpload, SupplierPhotoUpload } from "@/components/supplier/SupplierProfileUploads";
 import { IdentityImageUploader } from "@/components/profile/IdentityImageUploader";
@@ -93,6 +94,7 @@ export default async function SupplierProfilePage({ searchParams }: PageProps) {
             aiCredits={aiCredits}
             creditBalance={await creditBalance(user.id)}
             productCount={workspace.metrics.productCount}
+            offer={(await planOffers()).supplierMax}
           />
         ) : (
           <SplitLayout
