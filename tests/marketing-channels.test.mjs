@@ -288,6 +288,41 @@ test("Meta's template status webhook is read per template, ignoring other fields
   assert.deepEqual(tc.parseTemplateStatusUpdates({ entry: "x" }), []);
 });
 
+test("Template Library: blanks map to order details by their words, or the template is skipped", () => {
+  const base = "https://adire.shopinbos.com/order";
+  const shipped = tc.planLibraryTemplate(
+    {
+      name: "shipment_confirmation_2",
+      header: "Your order is on its way",
+      body: "Hi {{1}}, your order {{2}} has shipped. Your tracking number is {{3}}. Thank you for shopping with {{4}}.",
+      body_params: ["Jim", "#12345", "1Z999", "CS Mutual"],
+      buttons: [{ type: "URL", text: "Track order", url: "https://www.example.com/" }],
+    },
+    base,
+  );
+  assert.deepEqual(shipped.variables, ["first_name", "order_number", "tracking_code", "store_name"]);
+  assert.equal(shipped.libraryName, "shipment_confirmation_2");
+  assert.deepEqual(shipped.content.buttons, [{ type: "URL", text: "Track order", url: `${base}/{{1}}` }]);
+  assert.deepEqual(shipped.buttonInputs, [{ type: "URL", url: { base_url: `${base}/{{1}}`, url_suffix_example: `${base}/1042` } }]);
+
+  const signOff = tc.planLibraryTemplate({ name: "order_confirmation_1", body: "Hello {{1}}, we received your order {{2}} for a total of {{3}}. Thank you. {{4}}", body_params: ["Jim", "123", "$75.00", "CS Mutual"] }, base);
+  assert.deepEqual(signOff.variables, ["first_name", "order_number", "order_total", "store_name"], "closing business name");
+
+  assert.equal(tc.planLibraryTemplate({ name: "delivery_update_1", body: "Hi {{1}}, your order will arrive on {{2}}.", body_params: ["Jim", "June 5"] }, base), null, "a delivery date we don't have");
+  assert.equal(tc.planLibraryTemplate({ name: "order_confirmation_3", body: "Hi {{1}}, thanks for your order {{2}}.", buttons: [{ type: "PHONE_NUMBER", text: "Call us", phone_number: "+1800" }] }, base), null, "a phone button we can't fill");
+  assert.equal(tc.planLibraryTemplate({ name: "x_1", header: "Order {{1}}", body: "Hi {{1}}, thanks." }, base), null, "header blanks");
+});
+
+test("Template Library order buttons: the order id goes at the end of the link when sending", () => {
+  const content = { header: { format: "NONE" }, body: "Hi {{1}}", buttons: [{ type: "QUICK_REPLY", text: "Thanks" }, { type: "URL", text: "Track", url: "https://adire.shopinbos.com/order/{{1}}" }] };
+  assert.deepEqual(tc.urlButtonSuffixes(content, { order_link: "https://adire.shopinbos.com/order/cm9xyz" }), [{ index: 1, text: "cm9xyz" }]);
+  assert.equal(tc.urlButtonSuffixes(content, { order_link: "https://other.shop/order/cm9xyz" }), null, "a link from another domain can't be used");
+  assert.deepEqual(tc.urlButtonSuffixes({ ...content, buttons: [] }, {}), []);
+  const message = tc.templateMessage({ name: "order_shipped_quick", language: "en_US", params: ["Ada"], urlButtons: [{ index: 1, text: "cm9xyz" }] });
+  assert.deepEqual(message.template.components.at(-1), { type: "button", sub_type: "url", index: "1", parameters: [{ type: "text", text: "cm9xyz" }] });
+  for (const key of tc.ORDER_MESSAGE_PRESETS) assert.ok(tc.LIBRARY_USECASES[key].length, `${key} has library use cases`);
+});
+
 // ─── Automation steps ─────────────────────────────────────────────────────────
 
 test("automation steps: WhatsApp template steps parse and validate", () => {

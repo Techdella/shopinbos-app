@@ -350,10 +350,11 @@ export function fillTemplateVariables(mapping: string[], count: number, values: 
 }
 
 /** The template message for POST /{PHONE_NUMBER_ID}/messages. */
-export function templateMessage(input: { name: string; language: string; params: string[]; headerImageUrl?: string | null }) {
+export function templateMessage(input: { name: string; language: string; params: string[]; headerImageUrl?: string | null; urlButtons?: Array<{ index: number; text: string }> }) {
   const components: Array<Record<string, unknown>> = [];
   if (input.headerImageUrl) components.push({ type: "header", parameters: [{ type: "image", image: { link: input.headerImageUrl } }] });
   if (input.params.length) components.push({ type: "body", parameters: input.params.map((text) => ({ type: "text", text })) });
+  for (const button of input.urlButtons ?? []) components.push({ type: "button", sub_type: "url", index: String(button.index), parameters: [{ type: "text", text: button.text }] });
   return { type: "template", template: { name: input.name, language: { code: input.language }, ...(components.length ? { components } : {}) } };
 }
 
@@ -551,6 +552,112 @@ export function parseTemplateStatusUpdates(payload: unknown): TemplateStatusUpda
         reason: typeof v.reason === "string" && v.reason && v.reason !== "NONE" ? v.reason : null,
       });
     }
+  }
+  return out;
+}
+
+// ─── Meta's Template Library (pre-approved utility templates) ─────────────────
+
+/**
+ * Meta's Template Library has fixed-wording utility templates that are approved the moment they're created
+ * (POST /{WABA_ID}/message_templates with library_template_name). For each ready-made order template we look
+ * for one of these first, under the matching use cases, and only submit our own wording when none fits.
+ */
+export const LIBRARY_USECASES: Record<(typeof ORDER_MESSAGE_PRESETS)[number], string[]> = {
+  order_confirmation: ["ORDER_CONFIRMATION"],
+  order_shipped: ["SHIPMENT_CONFIRMATION", "DELIVERY_UPDATE"],
+  order_delivered: ["DELIVERY_CONFIRMATION"],
+};
+
+/** One entry of GET /message_template_library. */
+export interface LibraryTemplate {
+  name?: unknown;
+  language?: unknown;
+  header?: unknown;
+  body?: unknown;
+  body_params?: unknown;
+  buttons?: unknown;
+}
+
+export interface LibraryPlan {
+  libraryName: string;
+  content: TemplateContent;
+  variables: TemplateVariable[];
+  /** library_template_button_inputs: our order page as the link of a URL button. */
+  buttonInputs: Array<Record<string, unknown>>;
+}
+
+const MONEY = /[$€£₦¢]|\b(ngn|ghs|kes|usd|zar)\b|\d[\d,]*\.\d{2}\b/i;
+
+/** What a library template's {{n}} is, from the words just before it (and its sample value); null when unsure. */
+function libraryVariable(before: string, sample: string, isLastAtEnd: boolean): TemplateVariable | null {
+  const b = before.toLowerCase().replace(/[\s:#*(\-–]+$/, "").trim();
+  if (/\btracking (number|no\.?|code|id)( is)?$|\btracking$|\bwaybill( number| no\.?)?$/.test(b)) return "tracking_code";
+  if (/\b(order|order number|order no\.?|order id|purchase|purchase number)$/.test(b) && !MONEY.test(sample)) return "order_number";
+  if (/\b(total|amount|total of|amount of|for a total of|payment of|sum of)$/.test(b) || (MONEY.test(sample) && /\b(of|for|is|total)$/.test(b))) return "order_total";
+  if (/(^|[\s,.!])(hi|hello|hey|dear|thanks|thank you)$/.test(b)) return "first_name";
+  if (/\b(from|at|with|by|shopping with|shopping at|team at|the team at)$/.test(b) && !MONEY.test(sample)) return "store_name";
+  // A sign-off: the business name closing the message ("… Thank you. {{4}}").
+  if (isLastAtEnd && (b === "" || /[.!\n]$/.test(before.trimEnd()) || /\b(thanks|thank you|regards|cheers)[,.!]?$/.test(b))) return "store_name";
+  return null;
+}
+
+/**
+ * Turns a library template into what we create and later send, or null when any blank can't be filled with an
+ * order detail we have, the header has blanks, or a button needs something we can't give (a phone number, a form).
+ */
+export function planLibraryTemplate(t: LibraryTemplate, orderPageBase: string): LibraryPlan | null {
+  const libraryName = typeof t.name === "string" ? t.name : "";
+  const body = typeof t.body === "string" ? t.body : "";
+  if (!/^[a-z0-9_]+$/.test(libraryName) || !body.trim()) return null;
+  const header = typeof t.header === "string" ? t.header.trim() : "";
+  if (placeholders(header).length || header.length > 60) return null;
+  const samples = Array.isArray(t.body_params) ? t.body_params.map((s) => String(s ?? "")) : [];
+
+  const order = placeholders(body);
+  const count = order.length ? Math.max(...order) : 0;
+  if (count !== order.length) return null; // gaps
+  const variables: TemplateVariable[] = [];
+  for (let n = 1; n <= count; n++) {
+    const token = new RegExp(`{{\\s*${n}\\s*}}`);
+    const at = body.search(token);
+    const prev = body.slice(0, at).replace(/^[\s\S]*}}/, "");
+    const rest = body.slice(at).replace(token, "");
+    const variable = libraryVariable(prev, samples[n - 1] ?? "", rest.trim() === "" || /^[\s.!]*$/.test(rest));
+    if (!variable) return null;
+    variables.push(variable);
+  }
+
+  const buttons: TemplateButton[] = [];
+  const buttonInputs: Array<Record<string, unknown>> = [];
+  const base = orderPageBase.replace(/\/+$/, "");
+  if (!/^https:\/\/[^\s{}]+$/.test(base)) return null;
+  for (const raw of Array.isArray(t.buttons) ? (t.buttons as Array<Record<string, unknown>>) : []) {
+    const type = String(raw?.type ?? "").toUpperCase();
+    const text = String(raw?.text ?? "").slice(0, 25);
+    if (type === "QUICK_REPLY") {
+      buttons.push({ type: "QUICK_REPLY", text });
+    } else if (type === "URL") {
+      // Our order page, with the order id as the end of the link: https://shop/order/{{1}}
+      buttons.push({ type: "URL", text, url: `${base}/{{1}}` });
+      buttonInputs.push({ type: "URL", url: { base_url: `${base}/{{1}}`, url_suffix_example: `${base}/1042` } });
+    } else {
+      return null;
+    }
+  }
+  if (buttons.length > 3) return null;
+  return { libraryName, content: { header: header ? { format: "TEXT", text: header } : { format: "NONE" }, body, buttons }, variables, buttonInputs };
+}
+
+/** The end of the order page link a URL button with {{1}} needs ("…/order/{{1}}" + order link → the order id). */
+export function urlButtonSuffixes(content: TemplateContent, values: VariableValues): Array<{ index: number; text: string }> | null {
+  const out: Array<{ index: number; text: string }> = [];
+  for (const [index, button] of content.buttons.entries()) {
+    if (button.type !== "URL" || !placeholders(button.url).length) continue;
+    const base = (button.url ?? "").replace(/{{\s*1\s*}}.*$/, "");
+    const link = values.order_link ?? "";
+    if (!base || !link.startsWith(base) || link.length === base.length) return null;
+    out.push({ index, text: link.slice(base.length) });
   }
   return out;
 }

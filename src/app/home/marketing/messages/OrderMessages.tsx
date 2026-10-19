@@ -97,7 +97,16 @@ export function OrderMessages({ initial, channels, templates, currency }: { init
           </div>
         </Card>
       ) : null}
-      {waitingForMeta ? <Notice tone="info">{t("om.waWaiting")}</Notice> : null}
+      {waitingForMeta ? (
+        <Notice tone="info">
+          <span className="grid gap-2">
+            <span>{t("om.waWaiting")}</span>
+            <span>
+              <PillButton size="sm" tone="ghost" busy={busy} onClick={() => void setUpWhatsApp()}>{t("om.waCheckAgain")}</PillButton>
+            </span>
+          </span>
+        </Notice>
+      ) : null}
       {SMS_ENABLED && !smsReady ? (
         <Notice tone="info">
           <ChannelHelp label="SMS" howTo={t("om.smsHow")} href={channels.sms.connectHref} linkLabel={channels.sms.connectLabel} />

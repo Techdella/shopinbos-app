@@ -19,6 +19,7 @@ import {
   templateMessage,
   templateProblems,
   toMetaComponents,
+  urlButtonSuffixes,
   variableCount,
   type TemplateCategory,
   type TemplateContent,
@@ -362,7 +363,10 @@ export async function sendTemplate(
   const count = variableCount(template.content);
   const { params } = fillTemplateVariables(mapping, count, input.values);
   if (template.content.header.format === "IMAGE" && !input.headerImageUrl) return { ok: false, error: `The template "${template.name}" has an image header: pick an image or a product.` };
-  const message = templateMessage({ name: template.name, language: template.language, params, headerImageUrl: template.content.header.format === "IMAGE" ? input.headerImageUrl : null });
+  // Library templates link to the order page with the order id at the end of the button's link.
+  const urlButtons = urlButtonSuffixes(template.content, input.values);
+  if (!urlButtons) return { ok: false, error: `The template "${template.name}" has an order link button, so it can only be sent about an order.` };
+  const message = templateMessage({ name: template.name, language: template.language, params, headerImageUrl: template.content.header.format === "IMAGE" ? input.headerImageUrl : null, urlButtons });
   const result = await sender.whatsappTemplate(to, message);
   return result.ok ? { ...result, text: renderTemplateText(template.content, params) } : result;
 }
