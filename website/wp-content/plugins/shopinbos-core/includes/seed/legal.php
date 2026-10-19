@@ -84,9 +84,9 @@ function sib_seed_legal_core(): array {
     "Suppliers and delivery partners",
     [
      "Suppliers and delivery partners on Shopinbos are independent businesses. We check their registration documents before they join, but we do not make or ship their products ourselves.",
-     "If something goes wrong with a supplier or a delivery, report it in the app within 48 hours and we will help settle it using our dispute process."
+     "If a supplier sends the wrong or damaged goods, or a parcel is lost or damaged after pickup, claim it in your Shopinbos Wallet within 7 days of delivery. If you don’t agree, our team decides."
     ],
-    "Partners are checked, independent businesses. Report problems within 48 hours."
+    "Partners are checked, independent businesses. Claim problems within 7 days."
    ],
    [
     "Ending your account",
