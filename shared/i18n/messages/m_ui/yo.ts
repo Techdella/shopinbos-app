@@ -33,6 +33,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "error.tooMany": "O ti gbìyànjú lọ́pọ̀ ní àkókò kúkúrú. Dúró fún ìṣẹ́jú kan, kí o tún gbìyànjú.",
   "error.form": "Nǹkan kan nínú fọ́ọ̀mù nílò àyẹ̀wò. Ṣàyẹ̀wò rẹ̀ kí o tún gbìyànjú.",
   "error.server": "Shopinbos ní ìṣòro díẹ̀ báyìí. Dúró fún ìṣẹ́jú kan kí o tún gbìyànjú, tàbí tẹ Help.",
+  "error.aiAllowance": "O ti lo AI ọ̀fẹ́ ti òní tán. Yóò bẹ̀rẹ̀ padà lọ́la.",
   "error.notReady": "Apá Shopinbos yìí kò tíì ṣetán nínú app. Tẹ Help, a ó yanjú rẹ̀.",
   "verify.title": "Ìjẹ́rìísí",
   "verify.sub": "Àwọn ṣọ́ọ̀bù máa ń kọ́kọ́ gbẹ́kẹ̀lé àwọn partner tí a ti jẹ́rìísí. A ń fi ọwọ́ ṣàyẹ̀wò àwọn ìwé rẹ.",

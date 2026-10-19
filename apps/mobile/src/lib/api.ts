@@ -30,6 +30,15 @@ export function plainMessage(message: string | null | undefined, status: number)
   return t("error.server");
 }
 
+/**
+ * The server's message for an error code, as the phone shows it. Out of AI credits: the server says to buy more,
+ * but app store rules don't allow pointing to a purchase outside in-app purchase, so the phone says when it resets.
+ */
+function phoneMessage(message: string | null | undefined, status: number, code?: string): string {
+  if (code === "AI_CREDITS_NEEDED") return tNow("m_ui")("error.aiAllowance");
+  return plainMessage(message, status);
+}
+
 async function authHeader(): Promise<Record<string, string>> {
   const { data } = await supabase.auth.getSession();
   return data.session ? { Authorization: `Bearer ${data.session.access_token}` } : {};
@@ -55,7 +64,7 @@ export async function api<T>(path: string, init: RequestInit & { json?: unknown 
   const body = (await response.json().catch(() => null)) as { data?: T; error?: { message?: string; code?: string } } | T | null;
   if (!response.ok) {
     const error = (body as { error?: { message?: string; code?: string } } | null)?.error;
-    throw new ApiError(plainMessage(error?.message, response.status), response.status, error?.code);
+    throw new ApiError(phoneMessage(error?.message, response.status, error?.code), response.status, error?.code);
   }
   return (body && typeof body === "object" && "data" in (body as object) ? (body as { data: T }).data : body) as T;
 }
@@ -86,7 +95,7 @@ export async function apiBody<T>(path: string, init: RequestInit & { json?: unkn
   if (!response.ok) {
     const raw = body?.error;
     const error = raw && typeof raw === "object" ? (raw as { message?: string; code?: string }) : { message: typeof raw === "string" ? raw : undefined, code: undefined };
-    throw new ApiError(plainMessage(response.status === 401 ? null : error.message, response.status), response.status, error.code);
+    throw new ApiError(phoneMessage(response.status === 401 ? null : error.message, response.status, error.code), response.status, error.code);
   }
   return body as T;
 }

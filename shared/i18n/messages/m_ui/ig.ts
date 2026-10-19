@@ -33,6 +33,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "error.tooMany": "Ị nwaala ọtụtụ ugboro n'obere oge. Chere otu nkeji, wee nwaa ọzọ.",
   "error.form": "Ihe dị na fọm ahụ chọrọ ka e lee ya ọzọ. Lelee ya wee nwaa ọzọ.",
   "error.server": "Shopinbos nwere obere nsogbu ugbu a. Chere otu nkeji wee nwaa ọzọ, ma ọ bụ pịa Help.",
+  "error.aiAllowance": "I jirila AI efu nke taa. Ọ ga-amalite ọzọ echi.",
   "error.notReady": "Akụkụ Shopinbos a adịbeghị njikere n'app. Pịa Help, anyị ga-edozi ya.",
   "verify.title": "Nkwenye",
   "verify.sub": "Ụlọ ahịa na-ebu ụzọ tụkwasị partners e kwenyere obi. Anyị ji aka na-elele akwụkwọ gị.",

@@ -33,6 +33,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "error.tooMany": "You don try too many times for short time. Wait one minute, then try again.",
   "error.form": "Something for the form need another look. Check am, then try again.",
   "error.server": "Shopinbos get small wahala now. Wait one minute come try again, or tap Help.",
+  "error.aiAllowance": "You don use today free AI finish. E go reset tomorrow.",
   "error.notReady": "This part of Shopinbos never ready for the app. Tap Help, we go sort am.",
   "verify.title": "Verification",
   "verify.sub": "Shops dey trust partners wey dem don verify first. We dey check your documents with hand.",

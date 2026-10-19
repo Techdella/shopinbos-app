@@ -33,6 +33,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "error.tooMany": "Ka gwada sau da yawa cikin ɗan lokaci. Jira minti ɗaya, sannan ka sake gwadawa.",
   "error.form": "Wani abu a fom ɗin yana buƙatar a sake duba. Duba shi ka sake gwadawa.",
   "error.server": "Shopinbos yana da ɗan matsala yanzu. Jira minti ɗaya ka sake gwadawa, ko ka taɓa Help.",
+  "error.aiAllowance": "Ka yi amfani da AI na kyauta na yau. Zai sake farawa gobe.",
   "error.notReady": "Wannan ɓangaren Shopinbos bai shirya a app ba tukuna. Taɓa Help, za mu gyara.",
   "verify.title": "Tabbatarwa",
   "verify.sub": "Shaguna sun fi amincewa da partners da aka tabbatar. Muna duba takardunka da hannu.",

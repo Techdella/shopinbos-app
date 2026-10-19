@@ -89,15 +89,8 @@ export const tickChecklist = (key: string, done: boolean) => api<OnboardingStatu
 export const finishOnboarding = (live: boolean) =>
   api("/api/app/store", { method: "PATCH", json: { firstDashboardVisitComplete: true, onboardingState: live ? "LIVE" : "INCOMPLETE" } });
 
-export async function startLaunchPayment(option: "full" | "installment") {
-  try {
-    const data = await api<{ authorizationUrl: string }>("/api/billing/store-launch/initialize", { method: "POST", json: { option, returnTo: "/onboarding/rex?step=live" } });
-    return { authorizationUrl: data.authorizationUrl };
-  } catch (error) {
-    if ((error as { status?: number }).status === 409) return { alreadyLive: true as const };
-    throw error;
-  }
-}
+/** The phone can't take the launch fee (app store rules): the server emails the seller the next steps instead. */
+export const emailLaunchSteps = () => api<{ emailed: boolean; email: string | null }>("/api/mobile/onboarding/launch-email", { method: "POST" });
 
 // ── Rex store build (mirrors the web onboarding) ─────────────────────────────
 

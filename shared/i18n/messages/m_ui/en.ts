@@ -33,6 +33,7 @@ const en = {
   "error.tooMany": "That's a lot of tries in a short time. Wait a minute, then try again.",
   "error.form": "Something in the form needs another look. Check it and try again.",
   "error.server": "Shopinbos is having a problem right now. Wait a minute and try again, or tap Help.",
+  "error.aiAllowance": "You've used today's free AI. It resets tomorrow.",
   "error.notReady": "This part of Shopinbos isn't ready in the app yet. Tap Help and we'll sort it out.",
   // Verification (components/VerificationScreen.tsx)
   "verify.title": "Verification",
