@@ -95,7 +95,6 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "detail.ref": "Ref: {ref}",
   "detail.status": "Status",
   "method.paystack": "Paystack",
-  "method.korapay": "Korapay",
   "method.transfer": "Bank transfer",
   "method.cash": "Cash",
   "method.pos": "POS or card",
@@ -297,6 +296,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "list.pages": "Order pages",
   "inv.pages": "Invoice pages",
   "inv.allOrders": "All your orders",
+  "method.korapay": "Card or bank (online)",
 };
 
 export default pcm;

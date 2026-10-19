@@ -122,7 +122,7 @@ ALTER TABLE "NotificationSetting" ENABLE ROW LEVEL SECURITY;
 --   '*/5 * * * *',
 --   $$
 --   select net.http_get(
---     url := 'https://shopinbos-app.vercel.app/api/cron/push-receipts',
+--     url := 'https://app.shopinbos.com/api/cron/push-receipts',
 --     headers := jsonb_build_object(
 --       'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'cron_secret')
 --     ),

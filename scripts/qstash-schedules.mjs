@@ -3,8 +3,8 @@
 // Supabase pg_cron jobs that used to call them. Safe to run again: each schedule has a fixed id, so a re-run
 // updates it in place.
 //
-//   QSTASH_TOKEN=... node scripts/qstash-schedules.mjs https://shopinbos-app.vercel.app            # create / update
-//   QSTASH_TOKEN=... node scripts/qstash-schedules.mjs https://shopinbos-app.vercel.app --paused   # create paused
+//   QSTASH_TOKEN=... node scripts/qstash-schedules.mjs https://app.shopinbos.com            # create / update
+//   QSTASH_TOKEN=... node scripts/qstash-schedules.mjs https://app.shopinbos.com --paused   # create paused
 //   QSTASH_TOKEN=... node scripts/qstash-schedules.mjs --list
 //   QSTASH_TOKEN=... node scripts/qstash-schedules.mjs --resume | --pause | --delete
 //
@@ -61,7 +61,7 @@ async function main() {
   }
 
   const base = args.find((arg) => !arg.startsWith("--"))?.replace(/\/+$/, "");
-  if (!base || !/^https:\/\//.test(base)) throw new Error("Pass the app's https base URL, e.g. https://shopinbos-app.vercel.app");
+  if (!base || !/^https:\/\//.test(base)) throw new Error("Pass the app's https base URL, e.g. https://app.shopinbos.com");
   const paused = args.includes("--paused");
 
   for (const job of JOBS) {

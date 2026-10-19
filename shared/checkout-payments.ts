@@ -148,14 +148,15 @@ export function payOnDeliveryBlock(settings: CheckoutPaymentSettings, context: C
 
 const OPTION_COPY: Record<CheckoutPaymentMethod, Omit<CheckoutPaymentOption, "key">> = {
   paystack: { label: "Card, bank or USSD", hint: "Pay securely with Paystack" },
-  korapay: { label: "Card or bank", hint: "Pay securely with Korapay" },
+  korapay: { label: "Card or bank", hint: "Card, transfer or your bank app" },
   transfer: { label: "Bank transfer", hint: "We show you the account after you place the order" },
   pay_on_delivery: { label: "Pay on delivery", hint: "Pay the rider in cash or by transfer" },
 };
 
 /**
  * Buyer-facing payment options, always in the order Paystack, Korapay, bank transfer, pay on delivery.
- * Falls back to Paystack when the seller chose nothing, or nothing they chose can be offered.
+ * When the seller chose nothing, or nothing they chose can be offered, falls back to the first way to pay that
+ * works (card, then the second card checkout, then bank transfer), and to Paystack only when none does.
  */
 export function checkoutPaymentOptions(settings: CheckoutPaymentSettings, context: CheckoutPaymentContext = {}): CheckoutPaymentOption[] {
   const methods = settings.methods;
@@ -166,7 +167,7 @@ export function checkoutPaymentOptions(settings: CheckoutPaymentSettings, contex
     if (methods.transfer && settings.transferReady) keys.push("transfer");
     if (methods.cod && !payOnDeliveryBlock(settings, context)) keys.push("pay_on_delivery");
   }
-  if (keys.length === 0) keys.push("paystack");
+  if (keys.length === 0) keys.push(settings.paystackReady ? "paystack" : settings.korapayReady ? "korapay" : settings.transferReady ? "transfer" : "paystack");
   return keys.map((key) => ({ key, ...OPTION_COPY[key] }));
 }
 
@@ -180,7 +181,7 @@ export function normalizeCheckoutMethod(value: string | undefined | null): Check
 export function paymentChoiceText(method: CheckoutPaymentMethod) {
   if (method === "transfer") return "They'll pay by bank transfer; check your account, then mark the order as paid.";
   if (method === "pay_on_delivery") return "They'll pay on delivery, in cash or by transfer to the rider.";
-  if (method === "korapay") return "They're paying by card or bank through Korapay.";
+  if (method === "korapay") return "They're paying online by card or bank.";
   return "They're paying by card, bank or USSD through Paystack.";
 }
 

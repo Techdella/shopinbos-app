@@ -97,7 +97,7 @@ ALTER TABLE "ProductNewsRecipient" ENABLE ROW LEVEL SECURITY;
 --   '0 6 * * 1',
 --   $$
 --   select net.http_get(
---     url := 'https://shopinbos-app.vercel.app/api/cron/weekly-summary',
+--     url := 'https://app.shopinbos.com/api/cron/weekly-summary',
 --     headers := jsonb_build_object(
 --       'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'cron_secret')
 --     ),
@@ -115,7 +115,7 @@ ALTER TABLE "ProductNewsRecipient" ENABLE ROW LEVEL SECURITY;
 --   '20,40 6-9 * * 1',
 --   $$
 --   select net.http_get(
---     url := 'https://shopinbos-app.vercel.app/api/cron/weekly-summary',
+--     url := 'https://app.shopinbos.com/api/cron/weekly-summary',
 --     headers := jsonb_build_object(
 --       'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'cron_secret')
 --     ),
@@ -132,7 +132,7 @@ ALTER TABLE "ProductNewsRecipient" ENABLE ROW LEVEL SECURITY;
 --   '*/10 * * * *',
 --   $$
 --   select net.http_get(
---     url := 'https://shopinbos-app.vercel.app/api/cron/product-news',
+--     url := 'https://app.shopinbos.com/api/cron/product-news',
 --     headers := jsonb_build_object(
 --       'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'cron_secret')
 --     ),

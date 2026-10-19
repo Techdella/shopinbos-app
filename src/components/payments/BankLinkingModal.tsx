@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useEffect } from "react";
 import { linkBankAccount } from "@/app/actions/payments";
+import { checkWalletAccountAction, walletBankNamesAction } from "@/app/actions/wallet";
 import { Icon } from "@/components/ui/Icon";
 import { useT } from "@/components/i18n/I18nProvider";
 
@@ -12,10 +13,12 @@ interface BankLinkingModalProps {
   onSuccess?: () => void;
   initialBankName?: string;
   initialAccountNumber?: string;
+  /** Kept for older callers: the name now always comes from the bank's own records. */
   initialAccountName?: string;
 }
 
-const NIGERIAN_BANKS = [
+// The bank picker shows this short list until the full list (every bank and fintech payments settle to) arrives.
+const COMMON_BANKS = [
   "Access Bank",
   "Citibank Nigeria",
   "Ecobank Nigeria",
@@ -41,7 +44,11 @@ const NIGERIAN_BANKS = [
   "Zenith Bank",
 ];
 
+type Lookup = { key: string; status: "resolved" | "not_found" | "unavailable"; name: string | null };
 
+// "Add your bank" for sellers (Money page), suppliers and delivery partners (payouts). The account is looked up as
+// soon as the 10 digits are in, so the person confirms the name the bank has instead of typing one; saving also sets
+// up their Shopinbos Wallet, which is what lets customers pay them by card.
 export function BankLinkingModal({
   isOpen,
   onClose,
@@ -49,26 +56,50 @@ export function BankLinkingModal({
   onSuccess,
   initialBankName = "",
   initialAccountNumber = "",
-  initialAccountName = "",
 }: BankLinkingModalProps) {
   const t = useT("payments", "common");
   const [isPending, startTransition] = useTransition();
+  const [banks, setBanks] = useState<string[]>(COMMON_BANKS);
   const [bankName, setBankName] = useState(initialBankName);
   const [accountNumber, setAccountNumber] = useState(initialAccountNumber);
-  const [accountName, setAccountName] = useState(initialAccountName);
+  const [lookup, setLookup] = useState<Lookup | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const lookupKey = bankName && accountNumber.length === 10 ? `${bankName}:${accountNumber}` : "";
 
   useEffect(() => {
     if (isOpen) {
       setBankName(initialBankName);
       const digits = initialAccountNumber.replace(/\D/g, "");
       setAccountNumber(digits.length === 10 ? digits : "");
-      setAccountName(initialAccountName);
+      setLookup(null);
       setError(null);
     }
-  }, [isOpen, initialBankName, initialAccountNumber, initialAccountName]);
+  }, [isOpen, initialBankName, initialAccountNumber]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    let alive = true;
+    void walletBankNamesAction().then((names) => {
+      if (alive && names.length) setBanks(names);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!lookupKey) return;
+    let alive = true;
+    void checkWalletAccountAction({ bankName, accountNumber }).then((result) => {
+      if (alive) setLookup({ key: lookupKey, status: result.status, name: result.status === "resolved" ? result.accountName : null });
+    });
+    return () => {
+      alive = false;
+    };
+  }, [lookupKey, bankName, accountNumber]);
 
   if (!isOpen) return null;
+  const shown = lookup && lookup.key === lookupKey ? lookup : null;
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -78,14 +109,15 @@ export function BankLinkingModal({
       setError(t("bm.selectBank"));
       return;
     }
-    if (!accountNumber || accountNumber.length !== 10) {
+    if (accountNumber.length !== 10) {
       setError(t("bm.tenDigits"));
       return;
     }
-    if (!accountName.trim()) {
-      setError(t("bm.enterName"));
+    if (!shown?.name) {
+      setError(shown?.status === "not_found" ? t("bm.notFound") : t("bm.unavailable"));
       return;
     }
+    const accountName = shown.name;
 
     startTransition(async () => {
       const result = await linkBankAccount(role, bankName, accountNumber, accountName);
@@ -138,7 +170,7 @@ export function BankLinkingModal({
               disabled={isPending}
             >
               <option value="">{t("bm.chooseBank")}</option>
-              {NIGERIAN_BANKS.map((bank) => (
+              {(bankName && !banks.includes(bankName) ? [bankName, ...banks] : banks).map((bank) => (
                 <option key={bank} value={bank}>
                   {bank}
                 </option>
@@ -162,18 +194,17 @@ export function BankLinkingModal({
             />
           </div>
 
-          {/* Account Name */}
-          <div className="field">
-            <label className="label">{t("bm.accountName")}</label>
-            <input
-              type="text"
-              className="inp w-full"
-              placeholder={t("bm.accountNamePlaceholder")}
-              value={accountName}
-              onChange={(e) => setAccountName(e.target.value)}
-              disabled={isPending}
-            />
-          </div>
+          {/* Whose account it is, from the bank */}
+          {lookupKey && !shown ? <p className="m-0 text-[13px] text-[var(--ink-600)]" aria-live="polite">{t("bm.lookingUp")}</p> : null}
+          {shown?.name ? (
+            <div className="rounded-lg border border-[var(--ink-100)] bg-[var(--teal-50)] px-4 py-3" aria-live="polite">
+              <div className="text-[12px] text-[var(--ink-600)]">{t("bm.accountName")}</div>
+              <div className="text-[15px] font-semibold text-[var(--ink-900)]">{shown.name}</div>
+            </div>
+          ) : null}
+          {shown && !shown.name ? (
+            <p className="m-0 text-[12.5px] text-[var(--color-coral)]" aria-live="polite">{shown.status === "not_found" ? t("bm.notFound") : t("bm.unavailable")}</p>
+          ) : null}
 
           {/* Error Message */}
           {error && (
@@ -194,10 +225,10 @@ export function BankLinkingModal({
             </button>
             <button 
               type="submit" 
-              disabled={isPending} 
+              disabled={isPending || !shown?.name} 
               className="dbtn dBtn-mint dBtn-sm flex items-center gap-1.5"
             >
-              {isPending ? t("bm.saving") : <>{t("bm.save")} <Icon name="check" size={12} /></>}
+              {isPending ? t("bm.saving") : <>{shown?.name ? t("bm.confirm") : t("bm.save")} <Icon name="check" size={12} /></>}
             </button>
           </div>
         </form>

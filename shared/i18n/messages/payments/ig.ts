@@ -284,6 +284,20 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "sm.credits": "Kredit AI 100 kwa ọnwa",
   "po.allTime": "Site na mbido",
   "po.pages": "Peeji payouts",
+  "bm.confirm": "Ee, kwụọ m ebe a",
+  "bm.lookingUp": "Anyị na-elele akaụntụ ahụ…",
+  "bm.notFound": "Nọmba akaụntụ ahụ adịghị na bank a. Lelee nọmba na bank ahụ.",
+  "bm.unavailable": "Anyị enweghị ike ilele akaụntụ a ugbu a. Nwaa ọzọ n'otu nkeji.",
+  "methods.setup.title": "Nata ego site na kaadị na nnyefe ego",
+  "methods.setup.body": "Tinye akaụntụ bank ego gị ga-abanye. Anyị ga-elele aha ahụ na bank gị, hazie wallet gị, ịkwụ ụgwọ kaadị na nnyefe ego ga-amalite. Shopinbos anaghị ejide ego gị.",
+  "methods.setup.cta": "Tinye akaụntụ bank gị",
+  "methods.state.needs_bank": "Tinye akaụntụ bank gị iji gbanwuo nke a",
+  "methods.state.bank_review": "Anyị na-elele akaụntụ bank gị. Nke a ga-amalite ozugbo akwadoro ya.",
+  "methods.state.bank_failed": "Enweghị ike ịhazi akaụntụ bank gị. Nwaa akaụntụ ọzọ",
+  "methods.state.paused": "Ndị otu Shopinbos akwụsịla ya. Kpọtụrụ support.",
+  "methods.state.needs_team": "Ọ ga-amalite n'ime otu ụbọchị, ozugbo anyị jikọrọ bank gị na ya",
+  "methods.state.unavailable": "Ọ na-abịa n'oge na-adịghị anya. Ndị ahịa nwere ike ịkwụ site na nnyefe ego ma ọ bụ mgbe ebutere.",
+  "methods.state.needs_whatsapp": "Tinye nọmba WhatsApp gị na Chat settings iji gbanwuo nke a",
 };
 
 export default ig;

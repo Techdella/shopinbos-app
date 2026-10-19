@@ -99,7 +99,7 @@ export function BankForm({ banks, current }: { banks: string[]; current: { bankN
       setHolder({
         key: lookupKey,
         name: result.status === "resolved" ? result.accountName : null,
-        note: result.status === "not_found" ? "That account number doesn't exist at this bank." : result.status === "unavailable" ? "We couldn't look up this account just now. You can still save it." : null,
+        note: result.status === "not_found" ? "That account number doesn't exist at this bank." : result.status === "unavailable" ? "We couldn't look up this account just now. Try again in a minute." : null,
       });
     });
     return () => {
@@ -144,7 +144,7 @@ export function BankForm({ banks, current }: { banks: string[]; current: { bankN
       {shown?.note ? <Notice tone={shown.name ? "info" : "error"}>{shown.note}</Notice> : null}
       {outcome ? <Notice tone={outcome.tone}>{outcome.text}</Notice> : null}
       <div>
-        <button type="submit" className={buttonClass("ink")} disabled={pending || !lookupKey || Boolean(shown && !shown.name && shown.note?.startsWith("That account"))}>
+        <button type="submit" className={buttonClass("ink")} disabled={pending || !lookupKey || !shown?.name}>
           {pending ? "Setting up…" : shown?.name ? "Yes, pay me here" : current ? "Change account" : "Save account"}
         </button>
       </div>

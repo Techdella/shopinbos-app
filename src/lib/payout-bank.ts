@@ -2,6 +2,7 @@ import "server-only";
 
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
+import { resolveKorapayBankAccount } from "@/lib/korapay";
 
 // Paystack payout-bank helpers, shared by the payments server actions (web) and /api/app/payout-bank (mobile).
 
@@ -164,7 +165,7 @@ export type ResolvedAccount =
   | { status: "resolved"; accountName: string }
   /** Paystack doesn't know this number at this bank. */
   | { status: "not_found" }
-  /** Paystack isn't set up here or didn't answer: the seller types the name instead. */
+  /** Neither Paystack nor Korapay could look it up just now. */
   | { status: "unavailable" };
 
 /**
@@ -190,4 +191,24 @@ export async function resolvePaystackAccount(bankName: string, accountNumber: st
   } catch {
     return { status: "unavailable" };
   }
+}
+
+/**
+ * The name on a bank account for every "add your bank" form: Paystack's lookup, else Korapay's when Paystack isn't set
+ * up or doesn't answer (Paystack's lookup has daily limits and outages). A number Paystack says doesn't exist is
+ * final; Korapay is only asked when Paystack couldn't say.
+ */
+export async function resolveBankAccount(bankName: string, accountNumber: string): Promise<ResolvedAccount> {
+  const digits = accountNumber.replace(/\D/g, "");
+  if (digits.length !== 10) return { status: "not_found" };
+  const paystack = await resolvePaystackAccount(bankName, digits);
+  if (paystack.status !== "unavailable") return paystack;
+  const bankCode = PAYSTACK_BANK_CODES[bankName] ?? (await settlementBanks())[bankName];
+  if (!bankCode) return paystack;
+  const korapay = await resolveKorapayBankAccount(bankCode, digits);
+  if (!korapay) {
+    console.error(`[payout-bank] couldn't look up an account at ${bankName}: Paystack and Korapay gave no answer`);
+    return paystack;
+  }
+  return "accountName" in korapay ? { status: "resolved", accountName: korapay.accountName } : { status: "not_found" };
 }

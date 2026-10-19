@@ -29,7 +29,7 @@ CREATE INDEX IF NOT EXISTS "InboxChannel_email_provider_idx"
 --   '*/5 * * * *',
 --   $$
 --   select net.http_get(
---     url := 'https://shopinbos-app.vercel.app/api/cron/gmail-sync',
+--     url := 'https://app.shopinbos.com/api/cron/gmail-sync',
 --     headers := jsonb_build_object(
 --       'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'cron_secret')
 --     ),
@@ -52,7 +52,7 @@ BEGIN
       '*/5 * * * *',
       $job$
       select net.http_get(
-        url := 'https://shopinbos-app.vercel.app/api/cron/gmail-sync',
+        url := 'https://app.shopinbos.com/api/cron/gmail-sync',
         headers := jsonb_build_object(
           'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'cron_secret')
         ),

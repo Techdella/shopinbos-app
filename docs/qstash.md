@@ -39,7 +39,7 @@ pay-as-you-go (a few cents a day at this volume).
 1. In Vercel, set `QSTASH_CURRENT_SIGNING_KEY` and `QSTASH_NEXT_SIGNING_KEY`. Copy them from
    console.upstash.com → QStash, us-east-1. Then deploy.
 2. Create the schedules:
-   `QSTASH_TOKEN=... node scripts/qstash-schedules.mjs https://shopinbos-app.vercel.app`
+   `QSTASH_TOKEN=... node scripts/qstash-schedules.mjs https://app.shopinbos.com`
 3. Watch a few runs in console.upstash.com → QStash → Logs. Every call should return 200.
 4. Switch off the pg_cron jobs QStash now runs. Run this in the Supabase SQL editor:
 

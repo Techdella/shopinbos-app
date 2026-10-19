@@ -8,7 +8,7 @@ import { korapayCheckoutReady, verifyKorapayIdentity, korapayIdentityReady } fro
 import { verifyYouverifyIdentity, youverifyReady } from "@/lib/youverify";
 import { approveIdentityDocFromWallet } from "@/lib/kyb/identity-doc.server";
 import { createPaystackSubaccount, listPaystackSettlements, updatePaystackSubaccount } from "@/lib/paystack";
-import { resolvePaystackAccount, settlementBanks, type ResolvedAccount } from "@/lib/payout-bank";
+import { linkSellerPayoutBank, resolveBankAccount, settlementBanks, type ResolvedAccount } from "@/lib/payout-bank";
 import { companyNamesMatch } from "@/lib/kyb/cac";
 import { groupDropshipLines, type DropshipLink } from "@/lib/supplier-orders/pure";
 import {
@@ -200,11 +200,11 @@ export async function walletBankNames() {
   return Object.keys(await settlementBanks()).sort((a, b) => a.localeCompare(b));
 }
 
-/** Looks up the name on an account before it's saved, so the person sees whose account it is (Paystack's lookup). */
+/** Looks up the name on an account before it's saved, so the person sees whose account it is (Paystack's lookup, else Korapay's). */
 export async function checkWalletAccount(input: { bankName: string; accountNumber: string }): Promise<ResolvedAccount> {
   const digits = input.accountNumber.replace(/\D/g, "");
   if (digits.length !== 10 || !(await settlementBanks())[input.bankName]) return { status: "not_found" };
-  return resolvePaystackAccount(input.bankName, digits);
+  return resolveBankAccount(input.bankName, digits);
 }
 
 /**
@@ -219,7 +219,7 @@ export async function linkWalletBank(user: { id: string; role: WalletRole }, inp
   const accountNumber = input.accountNumber.replace(/\D/g, "");
   if (!bankCode) return { ok: false, error: "Choose your bank from the list." };
   if (accountNumber.length !== 10) return { ok: false, error: "Enter your 10-digit account number." };
-  const resolved = await resolvePaystackAccount(input.bankName, accountNumber);
+  const resolved = await resolveBankAccount(input.bankName, accountNumber);
   if (resolved.status === "not_found") return { ok: false, error: "That account number doesn't exist at this bank." };
   if (resolved.status !== "resolved") return { ok: false, error: "We couldn't check this account just now. Try again in a few minutes." };
 
@@ -227,6 +227,11 @@ export async function linkWalletBank(user: { id: string; role: WalletRole }, inp
     where: { id: wallet.id },
     data: { bankCode, bankName: input.bankName, accountNumber, accountName: resolved.accountName, nameCheck: null },
   });
+  if (user.role === "seller") {
+    // The same checked account is the one bank-transfer buyers are shown at checkout (the Money page's payout bank).
+    const payout = await linkSellerPayoutBank(user.id, input.bankName, accountNumber, resolved.accountName).catch(() => ({ success: false }));
+    if (!payout.success) console.error(`[wallet] couldn't save the payout bank for seller ${user.id}`);
+  }
   return openSubaccount(saved, (await accountIsTheirs(saved, resolved.accountName)) ? "auto" : null);
 }
 

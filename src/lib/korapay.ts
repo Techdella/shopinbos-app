@@ -167,6 +167,24 @@ export async function korapayIdentityPost(path: string, body: Record<string, unk
   return { status: httpStatus, json: json as unknown };
 }
 
+/**
+ * The name on a Nigerian bank account (POST /misc/banks/resolve, free), the second opinion when Paystack's lookup
+ * doesn't answer. Null when Korapay isn't set up, doesn't know the bank code or the account: the caller decides.
+ */
+export async function resolveKorapayBankAccount(bankCode: string, accountNumber: string): Promise<{ accountName: string } | { notFound: true } | null> {
+  if (!secret()) return null;
+  try {
+    const { httpStatus, json } = await call("/misc/banks/resolve", { method: "POST", body: { bank: bankCode, account: accountNumber, currency: "NGN" }, timeoutMs: 10_000 });
+    const name = text(json?.data?.account_name);
+    if (httpStatus >= 200 && httpStatus < 300 && json?.status === true && name) return { accountName: name };
+    // Korapay answers 400 with "invalid account" for a number its bank doesn't have; other refusals tell us nothing.
+    if (httpStatus === 400 && /invalid account|account (number )?(is )?(invalid|not found)|could not resolve/i.test(json?.message ?? "")) return { notFound: true };
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export type KorapayIdentityHealth =
   | { state: "not_set" }
   | { state: "ok"; environment: "test" | "live"; balance: number | null }

@@ -27,7 +27,6 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "po.emptyFilter": "Nothing dey here. Tap All to see the rest.",
   "po.note": "Shopinbos never dey show each bank transfer here. Check your bank or Paystack statement to match payments.",
   "method.paystack": "Paystack",
-  "method.korapay": "Korapay",
   "method.transfer": "Bank transfer",
   "method.cash": "Cash",
   "method.pos": "POS or card",
@@ -165,6 +164,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "w.lookingUp": "We dey check the account…",
   "w.payMeHere": "Yes, pay me here",
   "w.noSuchAccount": "That account number no dey for this bank.",
+  "method.korapay": "Card or bank (online)",
 };
 
 export default pcm;

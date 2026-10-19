@@ -284,6 +284,20 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "sm.credits": "100 AI credits every month",
   "po.allTime": "From beginning",
   "po.pages": "Payout pages",
+  "bm.confirm": "Yes, pay me here",
+  "bm.lookingUp": "We dey check the account…",
+  "bm.notFound": "That account number no dey for this bank. Check the number and the bank.",
+  "bm.unavailable": "We no fit check this account now. Try again in one minute.",
+  "methods.setup.title": "Collect money by card and transfer",
+  "methods.setup.body": "Add the bank account where your money go land. We go check the name with your bank, set up your wallet, and card and transfer payments go start. Shopinbos no dey hold your money.",
+  "methods.setup.cta": "Add your bank account",
+  "methods.state.needs_bank": "Add your bank account to on this one",
+  "methods.state.bank_review": "We dey check your bank account. This one go start once we approve am.",
+  "methods.state.bank_failed": "Your bank account no work. Try another account",
+  "methods.state.paused": "Shopinbos team don pause am. Contact support.",
+  "methods.state.needs_team": "E go start within one day, once we connect your bank to am",
+  "methods.state.unavailable": "E dey come soon. Customers fit pay by transfer or on delivery for now.",
+  "methods.state.needs_whatsapp": "Add your WhatsApp number for Chat settings to on this one",
 };
 
 export default pcm;

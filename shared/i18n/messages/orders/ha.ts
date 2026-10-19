@@ -95,7 +95,6 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "detail.ref": "Lamba: {ref}",
   "detail.status": "Matsayi",
   "method.paystack": "Paystack",
-  "method.korapay": "Korapay",
   "method.transfer": "Bank transfer",
   "method.cash": "Kuɗi hannu",
   "method.pos": "POS ko kati",
@@ -297,6 +296,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "list.pages": "Shafukan orders",
   "inv.pages": "Shafukan invoices",
   "inv.allOrders": "Duk orders ɗinka",
+  "method.korapay": "Kati ko banki (online)",
 };
 
 export default ha;

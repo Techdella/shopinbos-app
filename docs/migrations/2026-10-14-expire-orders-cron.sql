@@ -13,7 +13,7 @@
 --   '*/5 * * * *',
 --   $$
 --   select net.http_get(
---     url := 'https://shopinbos-app.vercel.app/api/cron/expire-orders',
+--     url := 'https://app.shopinbos.com/api/cron/expire-orders',
 --     headers := jsonb_build_object(
 --       'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'cron_secret')
 --     ),

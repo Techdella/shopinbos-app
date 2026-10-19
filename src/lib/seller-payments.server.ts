@@ -2,12 +2,14 @@ import "server-only";
 
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
-import { readTransferWindowHours } from "@shared/checkout-payments";
+import { paystackSecretReady, readTransferAccount, readTransferWindowHours } from "@shared/checkout-payments";
+import { korapayCheckoutReady } from "@/lib/korapay";
 import type { PaymentMethodKey } from "@shared/onboarding";
 import {
   cleanPaymentMethods,
   isTransferWindowChoice,
   PAID_STATUSES,
+  paymentMethodStates,
   paymentMethodsProblem,
   readPayoutBankSummary,
   readShopPaymentMethods,
@@ -122,4 +124,21 @@ export async function sellerMoneyOverview(store: { id: string; brandSettings: un
     bank: readPayoutBankSummary(store?.brandSettings),
     paymentBadges: sellerPaymentBadges(store?.brandSettings),
   };
+}
+
+/** Whether each way to pay reaches customers yet (shared/seller-payments.ts paymentMethodStates), for the Money page. */
+export async function sellerPaymentStates(userId: string, store: { id: string; brandSettings: unknown } | null) {
+  const [wallet, chat] = await Promise.all([
+    db.wallet.findUnique({ where: { userId }, select: { accountNumber: true, subaccountStatus: true, status: true, korapaySplitAccount: true } }),
+    store ? db.liveChatConfig.findUnique({ where: { storeId: store.id }, select: { whatsappNumber: true } }).catch(() => null) : null,
+  ]);
+  return paymentMethodStates({
+    cardKeys: paystackSecretReady(process.env.PAYSTACK_SECRET_KEY),
+    secondCheckout: korapayCheckoutReady(),
+    wallet: wallet
+      ? { hasBank: Boolean(wallet.accountNumber), settlement: wallet.subaccountStatus, frozen: wallet.status === "frozen", secondCheckoutAccount: Boolean(wallet.korapaySplitAccount) }
+      : null,
+    transferAccount: readTransferAccount(store?.brandSettings) !== null,
+    whatsapp: Boolean(chat?.whatsappNumber?.replace(/\D/g, "")),
+  });
 }

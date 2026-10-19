@@ -35,7 +35,7 @@ export interface ChoiceSetting {
 export type PriceSetting = NumberSetting | ChoiceSetting;
 
 export const PRICE_GROUPS = {
-  store_fee: { title: "Fee on store sales", sub: "Shopinbos's cut of each card or Korapay order, taken in the checkout split. Not charged on delivery." },
+  store_fee: { title: "Fee on store sales", sub: "Shopinbos's cut of each card or online bank order, taken in the checkout split. Not charged on delivery." },
   launch: { title: "Store launch fee", sub: "One-time fee to publish a store. Sellers can pay a deposit now and the rest by month end." },
   credits: { title: "AI credits", sub: "Credit packs sellers and suppliers buy, credits new accounts start with, and what each request costs." },
   ads: { title: "Ad campaigns", sub: "Setup fee when the Shopinbos team runs a campaign. Ad spend is paid to Meta / TikTok, not to us." },

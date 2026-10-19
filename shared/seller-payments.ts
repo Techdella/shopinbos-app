@@ -69,6 +69,62 @@ export function cleanAccountNumber(text: string): string | null {
 
 // ─── Money in ────────────────────────────────────────────────────────────────
 
+/**
+ * Whether each way to pay actually reaches customers, for the Money page. A switched-on method that can't work yet
+ * says why, so a seller never thinks customers can pay by card when checkout can't offer it:
+ *   live           customers see it at checkout (when it's on)
+ *   needs_bank     no bank account yet: card, the second card checkout and bank transfer all need one
+ *   bank_review    the team is checking a bank account that isn't in the owner's or business's name
+ *   bank_failed    the payment processor refused the account
+ *   paused         the team paused the wallet
+ *   needs_team     the bank is fine; the team still has to connect it to the second card checkout
+ *   unavailable    payments aren't switched on for Shopinbos yet (keys missing)
+ *   needs_whatsapp no WhatsApp number on the store, so there's nowhere to finish the order
+ *   hidden         not offered at all (the second card checkout is off for Shopinbos)
+ */
+export type PaymentMethodState = "live" | "needs_bank" | "bank_review" | "bank_failed" | "paused" | "needs_team" | "unavailable" | "needs_whatsapp" | "hidden";
+
+export interface PaymentReadinessInput {
+  /** Paystack keys are set for Shopinbos. */
+  cardKeys: boolean;
+  /** Korapay checkout with Split Payments is on for Shopinbos. */
+  secondCheckout: boolean;
+  /** The seller's wallet, or null before they've added a bank. */
+  wallet: { hasBank: boolean; settlement: string; frozen: boolean; secondCheckoutAccount: boolean } | null;
+  /** The bank-transfer account can be shown to buyers (full number known). */
+  transferAccount: boolean;
+  /** The store has a WhatsApp number. */
+  whatsapp: boolean;
+}
+
+export function paymentMethodStates(input: PaymentReadinessInput): Record<PaymentMethodKey, PaymentMethodState> {
+  const wallet = input.wallet;
+  const walletState: PaymentMethodState = !wallet?.hasBank
+    ? "needs_bank"
+    : wallet.frozen
+      ? "paused"
+      : wallet.settlement === "active"
+        ? "live"
+        : wallet.settlement === "failed"
+          ? "bank_failed"
+          : "bank_review";
+  const card: PaymentMethodState = walletState !== "live" ? walletState : input.cardKeys ? "live" : "unavailable";
+  const second: PaymentMethodState = !input.secondCheckout ? "hidden" : walletState !== "live" ? walletState : wallet!.secondCheckoutAccount ? "live" : "needs_team";
+  return {
+    card,
+    korapay: second,
+    transfer: input.transferAccount ? "live" : "needs_bank",
+    cod: "live",
+    wa: input.whatsapp ? "live" : "needs_whatsapp",
+  };
+}
+
+/** The order message for "Finish on WhatsApp" at checkout: the bag, so the seller can take it from there. */
+export function whatsappOrderMessage(storeName: string, lines: Array<{ name: string; quantity: number; variant?: string }>, total: string): string {
+  const items = lines.slice(0, 20).map((line) => `• ${line.quantity} × ${line.name}${line.variant ? ` (${line.variant})` : ""}`);
+  return [`Hi ${storeName}, I'd like to order:`, ...items, `Total: ${total}`, "How can I pay?"].join("\n");
+}
+
 export const PAID_STATUSES = ["paid", "processing", "packed", "shipped", "delivered"] as const;
 export const WAITING_STATUSES = ["pending", "awaiting_payment"] as const;
 export const REFUNDED_STATUSES = ["refunded", "partially_refunded"] as const;

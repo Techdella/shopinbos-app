@@ -11,7 +11,8 @@ import { readLinkCode, readOrderChannel, useCampaignAttribution } from "@/hooks/
 import { readRememberedStoreVisitor, rememberStoreVisitor, useStoreVisitor } from "@/hooks/useStoreVisitor";
 import { getPublicStorefrontPath } from "@/lib/domains/storefront";
 import { checkoutLegalLinks, legalPagePath } from "@/lib/legal/pages";
-import { formatStoreMoney, freeDeliveryEverywhereOver, readShopperInfo } from "@/lib/storefront/shopper-info";
+import { formatStoreMoney, freeDeliveryEverywhereOver, readShopperInfo, whatsappLink } from "@/lib/storefront/shopper-info";
+import { whatsappOrderMessage } from "@shared/seller-payments";
 import { discountAmount } from "@/lib/discounts";
 import { PaystackCheckoutButton } from "@/components/payments/PaystackCheckout";
 import { KorapayFrame } from "@/components/payments/KorapayFrame";
@@ -653,6 +654,10 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
       onSaveOnDevice={setSaveOnDevice}
     />
   );
+  // "Finish on WhatsApp" (Money page): a chat with the store, the bag already written out.
+  const whatsappOrderHref = commerce.payments.methods?.wa && info.whatsappNumber && cart.items.length && !createdOrder
+    ? whatsappLink(info.whatsappNumber, whatsappOrderMessage(store.name, cart.items, formatStoreMoney(totals.total, store.currency)))
+    : null;
   const paymentFields = (
     <PaymentFields
       theme={theme}
@@ -664,6 +669,7 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
       riderPhone={stepped ? <TextField theme={theme} id="co-phone" label="Phone number for the rider" type="tel" inputMode="tel" value={details.phone} onChange={(v) => set("phone", v)} error={errors.phone} autoComplete="tel" /> : null}
       total={totals.total}
       currency={store.currency}
+      whatsappOrderHref={whatsappOrderHref}
     />
   );
   const showNote = settings.enableNotes && layout.orderNote;

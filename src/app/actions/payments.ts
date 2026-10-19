@@ -13,7 +13,7 @@ import { ensureSupplierOrdersSafely } from "@/lib/supplier-orders/service.server
 import { settlePaymentLinkForOrder } from "@/lib/payment-links/service.server";
 import { recordOrderShares } from "@/lib/wallet/wallet.server";
 import { refreshKorapayOrderPayment } from "@/lib/commerce/korapay-orders.server";
-import { createPaystackTransferRecipient, linkSellerPayoutBank, maskAccountNumber, settlementBanks } from "@/lib/payout-bank";
+import { createPaystackTransferRecipient, maskAccountNumber, settlementBanks } from "@/lib/payout-bank";
 import { linkWalletBank } from "@/lib/wallet/wallet.server";
 
 interface PaystackTransaction {
@@ -200,19 +200,21 @@ export async function linkBankAccount(
 
     // Card payments are split straight to the bank of the business's Shopinbos Wallet (src/lib/wallet), so every
     // "add your bank" form sets that up too; the Paystack transfer recipient below is kept for the older screens.
+    // The wallet looks the account up, and its name (not what was typed) is the one saved everywhere.
     if (role === "seller" || role === "supplier" || role === "logistics_partner") {
       if (user.role !== role) return { success: false, error: "Sign in to this account first." };
       const wallet = await linkWalletBank({ id: user.id, role }, { bankName, accountNumber });
       if (!wallet.ok) return { success: false, error: wallet.error };
+      const saved = await db.wallet.findUnique({ where: { userId: user.id }, select: { accountName: true } });
+      if (saved?.accountName) accountName = saved.accountName;
       revalidatePath("/home/wallet");
+      revalidatePath("/home/payments");
       revalidatePath("/supplier/wallet");
       revalidatePath("/logistics/wallet");
     }
 
-    if (role === "seller") {
-      const result = await linkSellerPayoutBank(user.id, bankName, accountNumber, accountName);
-      if (!result.success) return result;
-    } else if (role === "supplier") {
+    // A seller's payout bank was saved with the wallet (linkWalletBank), from the looked-up name.
+    if (role === "supplier") {
       return linkSupplierPaystackRecipient(bankName, accountNumber, accountName);
     } else if (role === "logistics_partner") {
       const partner = await db.logisticsPartner.findUnique({ where: { userId: user.id } });

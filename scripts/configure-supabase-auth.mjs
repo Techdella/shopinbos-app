@@ -2,7 +2,7 @@
 
 // ─── Configure Supabase Auth SMTP, settings and email templates via the Management API ────────────────
 // Usage:
-//   SUPABASE_ACCESS_TOKEN=sbp_xxx APP_URL=https://shopinbos-app.vercel.app RESEND_API_KEY=re_xxx \
+//   SUPABASE_ACCESS_TOKEN=sbp_xxx APP_URL=https://app.shopinbos.com RESEND_API_KEY=re_xxx \
 //     node scripts/configure-supabase-auth.mjs [--dry-run]
 //   SUPABASE_ACCESS_TOKEN=sbp_xxx node scripts/configure-supabase-auth.mjs --templates-only [--dry-run]
 //
@@ -10,7 +10,7 @@
 //   1. Custom SMTP (Resend) for reliable auth email delivery (needs RESEND_API_KEY)
 //   2. SITE_URL plus the redirect allow-list (web callback and the mobile app's shopinbos:// scheme). APP_URL is
 //      required: there is deliberately no default, because the old one (app.shopinbos.com) doesn't serve the app.
-//      Production today is https://shopinbos-app.vercel.app.
+//      Production today is https://app.shopinbos.com.
 //   3. Email provider enabled
 //   4. Optional: Google sign-in   (GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET)
 //   5. Optional: phone codes by SMS through the app's own Termii / Africa's Talking / Sendchamp account, via
@@ -85,7 +85,7 @@ async function main() {
     const rawAppUrl = process.env.APP_URL?.trim();
     if (!rawAppUrl || !/^https?:\/\//.test(rawAppUrl)) {
       console.error("❌ APP_URL not set. It becomes Supabase's SITE_URL (where auth links land), so there is no default.");
-      console.error("   Production is https://shopinbos-app.vercel.app:  APP_URL=https://shopinbos-app.vercel.app node scripts/configure-supabase-auth.mjs");
+      console.error("   Production is https://app.shopinbos.com:  APP_URL=https://app.shopinbos.com node scripts/configure-supabase-auth.mjs");
       console.error("   To update only the email templates: node scripts/configure-supabase-auth.mjs --templates-only");
       process.exit(1);
     }

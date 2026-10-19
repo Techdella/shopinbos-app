@@ -95,7 +95,6 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "detail.ref": "Ntụaka: {ref}",
   "detail.status": "Ọnọdụ",
   "method.paystack": "Paystack",
-  "method.korapay": "Korapay",
   "method.transfer": "Bank transfer",
   "method.cash": "Ego n'aka",
   "method.pos": "POS ma ọ bụ kaadị",
@@ -297,6 +296,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "list.pages": "Peeji orders",
   "inv.pages": "Peeji invoices",
   "inv.allOrders": "Orders gị niile",
+  "method.korapay": "Kaadị ma ọ bụ bank (online)",
 };
 
 export default ig;
