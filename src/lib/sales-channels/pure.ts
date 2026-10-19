@@ -60,7 +60,8 @@ export function platformConfigured(platform: LivePlatform, env: Env = process.en
   if (!key) return false;
   switch (platform) {
     case "meta":
-      return set(env.META_APP_ID) && set(env.META_APP_SECRET) && set(env.META_CATALOG_CONFIG_ID);
+      // META_CATALOG_CONFIG_ID is optional: without it the sign-in asks for META_LOGIN_SCOPES directly.
+      return set(env.META_APP_ID) && set(env.META_APP_SECRET);
     case "whatsapp":
       return set(env.META_APP_ID) && set(env.META_APP_SECRET) && set(env.META_CONFIG_ID);
     case "google":
@@ -140,6 +141,18 @@ export const GOOGLE_CONTENT_SCOPE = "https://www.googleapis.com/auth/content";
 /** "Connect Google" asks once for everything (src/lib/google/oauth.ts): shopping, reviews, search, visitor stats. */
 export const GOOGLE_SCOPE = GOOGLE_CONNECT_SCOPES.join(" ");
 
+/** What "Connect Facebook & Instagram" asks for when no Login for Business configuration is set. */
+export const META_LOGIN_SCOPES = [
+  "business_management",
+  "catalog_management",
+  "pages_show_list",
+  "pages_read_engagement",
+  "pages_messaging",
+  "pages_manage_metadata",
+  "instagram_basic",
+  "instagram_manage_messages",
+] as const;
+
 export function redirectUri(origin: string, platform: OAuthPlatform) {
   return `${origin.replace(/\/+$/, "")}/api/app/sales-channels/${platform}/callback`;
 }
@@ -147,6 +160,11 @@ export function redirectUri(origin: string, platform: OAuthPlatform) {
 export function authorizeUrl(platform: OAuthPlatform, options: { origin: string; state: string; env?: Env; graphVersion?: string }): string {
   const env = options.env ?? process.env;
   const redirect_uri = redirectUri(options.origin, platform);
+  if (platform === "meta" && !set(env.META_CATALOG_CONFIG_ID)) {
+    // Classic Facebook Login: no configuration to get wrong; asks for every permission by name.
+    const params = new URLSearchParams({ client_id: env.META_APP_ID ?? "", redirect_uri, state: options.state, response_type: "code", scope: META_LOGIN_SCOPES.join(",") });
+    return `https://www.facebook.com/${options.graphVersion ?? "v21.0"}/dialog/oauth?${params}`;
+  }
   if (platform === "meta") {
     // Facebook Login for Business: the configuration (META_CATALOG_CONFIG_ID) holds the permissions and the token
     // type. One sign-in covers the catalog (catalog_management, business_management) and the seller's Page and

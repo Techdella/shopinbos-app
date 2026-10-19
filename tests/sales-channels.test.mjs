@@ -32,7 +32,8 @@ const FULL = {
 test("each platform connects only when its app keys and the encryption key are set", () => {
   for (const platform of sc.LIVE_PLATFORMS) assert.equal(sc.platformConfigured(platform, FULL), true, platform);
   for (const platform of sc.LIVE_PLATFORMS) assert.equal(sc.platformConfigured(platform, { ...FULL, INBOX_ENCRYPTION_KEY: "" }), false, `${platform} without a key`);
-  assert.equal(sc.platformConfigured("meta", { ...FULL, META_CATALOG_CONFIG_ID: "" }), false, "Facebook needs its catalog configuration");
+  assert.equal(sc.platformConfigured("meta", { ...FULL, META_CATALOG_CONFIG_ID: "" }), true, "the Login for Business configuration is optional");
+  assert.equal(sc.platformConfigured("meta", { ...FULL, META_APP_SECRET: "" }), false);
   assert.equal(sc.platformConfigured("whatsapp", { ...FULL, META_CATALOG_CONFIG_ID: "" }), true, "WhatsApp uses the Embedded Signup configuration");
   assert.equal(sc.platformConfigured("whatsapp", { ...FULL, META_CONFIG_ID: " " }), false);
   assert.equal(sc.platformConfigured("google", { ...FULL, GOOGLE_MERCHANT_CLIENT_SECRET: undefined }), false);
@@ -129,6 +130,11 @@ test("sign-in URLs carry the state and the registered redirect URI", () => {
   assert.equal(meta.searchParams.get("config_id"), "cat-config");
   assert.equal(meta.searchParams.get("response_type"), "code");
   assert.equal(meta.searchParams.get("redirect_uri"), "https://app.shopinbos.com/api/app/sales-channels/meta/callback");
+  assert.equal(meta.searchParams.get("scope"), null, "a configuration carries its own permissions");
+  const classic = new URL(sc.authorizeUrl("meta", { origin, state: "st", env: { ...FULL, META_CATALOG_CONFIG_ID: "" } }));
+  assert.equal(classic.searchParams.get("config_id"), null);
+  assert.equal(classic.searchParams.get("scope"), sc.META_LOGIN_SCOPES.join(","));
+  assert.equal(classic.searchParams.get("response_type"), "code");
 
   const tiktok = new URL(sc.authorizeUrl("tiktok", { origin, state: "st", env: FULL }));
   assert.equal(tiktok.origin + tiktok.pathname, "https://business-api.tiktok.com/portal/auth");
