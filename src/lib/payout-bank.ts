@@ -68,6 +68,7 @@ export async function createPaystackTransferRecipient(input: {
 
   const response = await fetch("https://api.paystack.co/transferrecipient", {
     method: "POST",
+    signal: AbortSignal.timeout(10_000),
     headers: {
       Authorization: `Bearer ${secret}`,
       "Content-Type": "application/json",
@@ -116,6 +117,9 @@ export async function linkSellerPayoutBank(userId: string, bankName: string, acc
     accountNumber: cleanAccountNumber,
     accountName: accountName.trim(),
   });
+  // A refused or unreachable Paystack never replaces a transfer account that works (the full number buyers are shown
+  // comes from a verified recipient).
+  if (recipient.status !== "verified") return { success: false, error: "Paystack couldn't register this account for bank transfers" };
   brandSettings.payoutBank = {
     bankName,
     accountNumberMask: maskAccountNumber(cleanAccountNumber),
@@ -211,4 +215,49 @@ export async function resolveBankAccount(bankName: string, accountNumber: string
     return paystack;
   }
   return "accountName" in korapay ? { status: "resolved", accountName: korapay.accountName } : { status: "not_found" };
+}
+
+/**
+ * Saves a looked-up bank account as the business's payout bank in every place its role keeps one, so choosing a bank
+ * once (Wallet page, Money page, payouts page, launch setup, phone app) updates it everywhere:
+ *   seller             the store's payout bank (shown to bank-transfer buyers, Money page)
+ *   supplier           SupplierPayoutAccount (supplier payouts)
+ *   logistics_partner  LogisticsPayoutAccount (partner earnings)
+ * The wallet itself (card payments) is saved by linkWalletBank, which calls this. Never throws.
+ */
+export async function syncPayoutBank(user: { id: string; role: string }, bankName: string, accountNumber: string, accountName: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (user.role === "seller") return await linkSellerPayoutBank(user.id, bankName, accountNumber, accountName);
+    const digits = accountNumber.replace(/\D/g, "");
+    if (!bankName || digits.length !== 10 || !accountName.trim()) return { success: false, error: "Choose a bank and enter a 10 digit account number." };
+    const bankCode = PAYSTACK_BANK_CODES[bankName] ?? (await settlementBanks())[bankName];
+    const recipient = await createPaystackTransferRecipient({ bankName, bankCode, accountNumber: digits, accountName: accountName.trim() });
+    // A refused or unreachable Paystack never replaces a payout bank that works.
+    if (recipient.status !== "verified") return { success: false, error: "Paystack couldn't register this account for payouts" };
+    const common = {
+      bankName,
+      accountNumberMask: maskAccountNumber(digits),
+      accountName: accountName.trim(),
+      verificationStatus: recipient.status,
+      providerResponse: recipient.providerResponse as Prisma.InputJsonValue,
+    };
+    if (user.role === "supplier") {
+      const supplier = await db.supplier.findUnique({ where: { userId: user.id }, select: { id: true } });
+      if (!supplier) return { success: false, error: "Supplier not found" };
+      const data = { ...common, bankCode, paystackRecipientCode: recipient.recipientCode, paystackRecipientId: recipient.recipientId };
+      await db.supplierPayoutAccount.upsert({ where: { supplierId: supplier.id }, create: { supplierId: supplier.id, ...data }, update: data });
+      return { success: true };
+    }
+    if (user.role === "logistics_partner") {
+      const partner = await db.logisticsPartner.findUnique({ where: { userId: user.id }, select: { id: true } });
+      if (!partner) return { success: false, error: "Logistics partner not found" };
+      const data = { ...common, recipientCode: recipient.recipientCode, recipientId: recipient.recipientId };
+      await db.logisticsPayoutAccount.upsert({ where: { logisticsPartnerId: partner.id }, create: { logisticsPartnerId: partner.id, ...data }, update: data });
+      return { success: true };
+    }
+    return { success: false, error: "This account has no payout bank." };
+  } catch (error) {
+    console.error("[payout-bank] couldn't save the payout bank", error instanceof Error ? error.message : error);
+    return { success: false, error: "Couldn't save the payout bank." };
+  }
 }

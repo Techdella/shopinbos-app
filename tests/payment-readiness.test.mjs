@@ -57,7 +57,10 @@ test("every add-your-bank form looks the account up and saves the bank's own nam
   assert.match(read("src/components/builder/LaunchSetup.tsx"), /<BankLinkingModal/);
   const wallet = read("src/lib/wallet/wallet.server.ts");
   assert.match(wallet, /const resolved = await resolveBankAccount\(/);
-  assert.match(wallet, /linkSellerPayoutBank\(user\.id, input\.bankName, accountNumber, resolved\.accountName\)/);
+  // One bank everywhere, and only once the account is live (never while it waits for the team's review).
+  const live = wallet.indexOf('subaccountStatus: "active", subaccountError: null');
+  assert.ok(live > 0 && wallet.indexOf("syncPayoutBank(", live) > live, "the payout bank follows the wallet once it's live");
+  assert.doesNotMatch(read("src/app/actions/payments.ts"), /createPaystackTransferRecipient|supplierPayoutAccount\.upsert/, "no second, unchecked writer");
   const bank = read("src/lib/payout-bank.ts");
   assert.match(bank, /export async function resolveBankAccount/);
   assert.match(bank, /resolveKorapayBankAccount\(bankCode, digits\)/, "Korapay's lookup when Paystack can't answer");

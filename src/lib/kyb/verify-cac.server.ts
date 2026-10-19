@@ -160,11 +160,19 @@ export async function runCacCheck(
   await model.update({ where: { id: entity.id }, data: { onboardingState: { ...state, cacChecks: [...attempts, now] } } });
   const attemptsLeft = CAC_DAILY_ATTEMPTS - attempts.length - 1;
 
-  const lookup = korapayIdentityReady()
-    ? await lookupKorapayCac(parsed.number, companyType)
-    : youverifyReady()
-      ? await lookupYouverifyCac(parsed.number, companyType)
-      : await lookupCac(parsed.number, companyType);
+  // Korapay first; a provider that's unavailable (not set up, refusing, down) hands over to the next one.
+  let lookup: LookupResult = { ok: false, reason: "unavailable" };
+  let provider = cacProvider();
+  for (const [name, ready, run] of [
+    ["korapay", korapayIdentityReady(), lookupKorapayCac],
+    ["youverify", youverifyReady(), lookupYouverifyCac],
+    ["dojah", dojahReady(), lookupCac],
+  ] as const) {
+    if (!ready) continue;
+    lookup = await run(parsed.number, companyType);
+    provider = name;
+    if (lookup.ok || lookup.reason === "busy") break;
+  }
   if (!lookup.ok) {
     return {
       ok: false,
@@ -186,7 +194,7 @@ export async function runCacCheck(
 
   const registry: RegistryCheck = {
     source: "cac",
-    provider: cacProvider(),
+    provider,
     rcNumber: record.rcNumber || parsed.number,
     companyType,
     enteredName,

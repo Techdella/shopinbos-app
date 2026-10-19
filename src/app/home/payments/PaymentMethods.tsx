@@ -34,7 +34,8 @@ export function PaymentMethods({ initial, states, transferWindow }: {
   const [error, setError] = useState<string | null>(null);
   const [bankOpen, setBankOpen] = useState(false);
   const [pending, startTransition] = useTransition();
-  const needsBank = states.card === "needs_bank";
+  // No bank anywhere yet (an older store may have a transfer account without a wallet bank: it keeps its rows).
+  const needsBank = states.card === "needs_bank" && states.transfer === "needs_bank";
   const shown = PAYMENT_METHODS.filter((method) => states[method.key] !== "hidden" && !(needsBank && NEEDS_BANK.has(method.key)));
 
   function changeWindow(value: string) {

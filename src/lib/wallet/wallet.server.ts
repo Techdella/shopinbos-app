@@ -8,7 +8,7 @@ import { korapayCheckoutReady, verifyKorapayIdentity, korapayIdentityReady } fro
 import { verifyYouverifyIdentity, youverifyReady } from "@/lib/youverify";
 import { approveIdentityDocFromWallet } from "@/lib/kyb/identity-doc.server";
 import { createPaystackSubaccount, listPaystackSettlements, updatePaystackSubaccount } from "@/lib/paystack";
-import { linkSellerPayoutBank, resolveBankAccount, settlementBanks, type ResolvedAccount } from "@/lib/payout-bank";
+import { resolveBankAccount, settlementBanks, syncPayoutBank, type ResolvedAccount } from "@/lib/payout-bank";
 import { companyNamesMatch } from "@/lib/kyb/cac";
 import { groupDropshipLines, type DropshipLink } from "@/lib/supplier-orders/pure";
 import {
@@ -70,8 +70,12 @@ export function identityChecksReady() {
   return korapayIdentityReady() || youverifyReady();
 }
 
-function verifyIdentity(input: { type: "bvn" | "nin"; id: string; firstName: string; lastName: string; dateOfBirth: string }) {
-  return korapayIdentityReady() ? verifyKorapayIdentity(input) : verifyYouverifyIdentity(input);
+async function verifyIdentity(input: { type: "bvn" | "nin"; id: string; firstName: string; lastName: string; dateOfBirth: string }) {
+  if (!korapayIdentityReady()) return verifyYouverifyIdentity(input);
+  const result = await verifyKorapayIdentity(input);
+  // Korapay refused for a reason that's ours (Identity not enabled, no balance, down): Youverify, when it's set up.
+  if (!result.ok && !result.notFound && youverifyReady()) return verifyYouverifyIdentity(input);
+  return result;
 }
 
 /**
@@ -174,6 +178,14 @@ async function openSubaccount(wallet: WalletRow, nameCheck: "auto" | "approved" 
       where: { id: wallet.id },
       data: { nameCheck, subaccountCode: subaccount?.code ?? wallet.subaccountCode, subaccountStatus: "active", subaccountError: null },
     });
+    // One bank everywhere: once the account is live (in the owner's or business's name, or approved by the team), it
+    // also becomes the role's payout bank (a seller's bank-transfer account, a supplier's or partner's payouts),
+    // whichever screen it was chosen on. Never before: an account under review isn't paid out to or shown to buyers.
+    const payout = await syncPayoutBank({ id: wallet.userId, role: wallet.role }, wallet.bankName ?? "", wallet.accountNumber!, wallet.accountName ?? "");
+    if (!payout.success) {
+      console.error(`[wallet] couldn't save the payout bank for wallet ${wallet.id}: ${payout.error}`);
+      return { ok: false, error: `Card payments now go to this account, but we couldn't save it as your payout bank yet (${payout.error}). Save it again in a minute.` };
+    }
     return { ok: true, message: "Done. Payments now go straight to this account." };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Paystack didn't accept this account.";
@@ -227,11 +239,6 @@ export async function linkWalletBank(user: { id: string; role: WalletRole }, inp
     where: { id: wallet.id },
     data: { bankCode, bankName: input.bankName, accountNumber, accountName: resolved.accountName, nameCheck: null },
   });
-  if (user.role === "seller") {
-    // The same checked account is the one bank-transfer buyers are shown at checkout (the Money page's payout bank).
-    const payout = await linkSellerPayoutBank(user.id, input.bankName, accountNumber, resolved.accountName).catch(() => ({ success: false }));
-    if (!payout.success) console.error(`[wallet] couldn't save the payout bank for seller ${user.id}`);
-  }
   return openSubaccount(saved, (await accountIsTheirs(saved, resolved.accountName)) ? "auto" : null);
 }
 

@@ -53,7 +53,7 @@ pay-as-you-go (a few cents a day at this volume).
      'send-scheduled-campaigns', 'run-marketing', 'send-unread-message-emails', 'expire-unpaid-orders',
      'verification-reminders', 'whatsapp-catalog-sync', 'weekly-summary', 'weekly-summary-continue',
      'product-news', 'supplier-acceptance', 'partner-payins', 'push-receipts',
-     'seasonal-campaigns', 'gmail-sync', 'lead-growth', 'sales-channels', 'domain-renewals'
+     'seasonal-campaigns', 'gmail-sync', 'lead-growth', 'sales-channels', 'sales-channels-sync', 'domain-renewals'
    );
    ```
 

@@ -85,6 +85,6 @@ test("the Wallet falls back to Youverify when Korapay isn't set up, sends the ke
   assert.match(client, /headers: \{ token: key/);
   assert.doesNotMatch(client, /Authorization:/);
   const wallet = readFileSync(new URL("../src/lib/wallet/wallet.server.ts", import.meta.url), "utf8");
-  assert.match(wallet, /korapayIdentityReady\(\) \? verifyKorapayIdentity\(input\) : verifyYouverifyIdentity\(input\)/);
+  assert.match(wallet, /if \(!korapayIdentityReady\(\)\) return verifyYouverifyIdentity\(input\);/);
   assert.match(wallet, /approveIdentityDocFromWallet/);
 });

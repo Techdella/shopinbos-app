@@ -7,7 +7,6 @@ import { db } from "@/lib/db/client";
 import { billingEmail } from "@/lib/auth/billing-email";
 import { revalidatePath } from "next/cache";
 import { getCurrentAppUser } from "@/lib/server-auth";
-import type { Prisma } from "@prisma/client";
 import { creditCampaignConversion } from "@/lib/campaigns/send";
 import { notifyOrderCustomer } from "@/lib/notifications/customer-messages";
 import { recoverExpiredOrderPayment } from "@/lib/commerce/order-expiry.server";
@@ -15,7 +14,6 @@ import { ensureSupplierOrdersSafely } from "@/lib/supplier-orders/service.server
 import { settlePaymentLinkForOrder } from "@/lib/payment-links/service.server";
 import { recordOrderShares } from "@/lib/wallet/wallet.server";
 import { refreshKorapayOrderPayment } from "@/lib/commerce/korapay-orders.server";
-import { createPaystackTransferRecipient, maskAccountNumber, settlementBanks } from "@/lib/payout-bank";
 import { linkWalletBank } from "@/lib/wallet/wallet.server";
 
 interface PaystackTransaction {
@@ -185,141 +183,29 @@ export async function updateOrderPayment(
   }
 }
 
+/**
+ * "Add your bank" for sellers, suppliers and delivery partners. One save updates the bank everywhere: the wallet (card
+ * payments) and the role's payout bank (linkWalletBank → syncPayoutBank), under the name the bank has for the account.
+ * The typed account name is ignored (kept in the signature for older callers).
+ */
 export async function linkBankAccount(
   role: string,
   bankName: string,
   accountNumber: string,
-  accountName: string,
+  _accountName?: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const user = await getCurrentAppUser();
-    if (!user) {
-      return { success: false, error: "Not authenticated" };
-    }
-
-    // Card payments are split straight to the bank of the business's Shopinbos Wallet (src/lib/wallet), so every
-    // "add your bank" form sets that up too; the Paystack transfer recipient below is kept for the older screens.
-    // The wallet looks the account up, and its name (not what was typed) is the one saved everywhere.
-    if (role === "seller" || role === "supplier" || role === "logistics_partner") {
-      if (user.role !== role) return { success: false, error: "Sign in to this account first." };
-      const wallet = await linkWalletBank({ id: user.id, role }, { bankName, accountNumber });
-      if (!wallet.ok) return { success: false, error: wallet.error };
-      const saved = await db.wallet.findUnique({ where: { userId: user.id }, select: { accountName: true } });
-      if (saved?.accountName) accountName = saved.accountName;
-      revalidatePath("/home/wallet");
-      revalidatePath("/home/payments");
-      revalidatePath("/supplier/wallet");
-      revalidatePath("/logistics/wallet");
-    }
-
-    // A seller's payout bank was saved with the wallet (linkWalletBank), from the looked-up name.
-    if (role === "supplier") {
-      return linkSupplierPaystackRecipient(bankName, accountNumber, accountName);
-    } else if (role === "logistics_partner") {
-      const partner = await db.logisticsPartner.findUnique({ where: { userId: user.id } });
-      if (!partner) return { success: false, error: "Logistics partner not found" };
-      const cleanAccountNumber = accountNumber.replace(/\D/g, "");
-      if (!bankName || cleanAccountNumber.length !== 10 || !accountName.trim()) {
-        return { success: false, error: "Choose a bank, enter a 10 digit account number, and add the account name." };
-      }
-      const recipient = await createPaystackTransferRecipient({
-        bankName,
-        bankCode: (await settlementBanks())[bankName],
-        accountNumber: cleanAccountNumber,
-        accountName: accountName.trim(),
-      });
-      await db.logisticsPayoutAccount.upsert({
-        where: { logisticsPartnerId: partner.id },
-        create: {
-          logisticsPartnerId: partner.id,
-          bankName,
-          accountNumberMask: maskAccountNumber(cleanAccountNumber),
-          accountName: accountName.trim(),
-          recipientCode: recipient.recipientCode,
-          recipientId: recipient.recipientId,
-          verificationStatus: recipient.status,
-          providerResponse: recipient.providerResponse as Prisma.InputJsonValue,
-        },
-        update: {
-          bankName,
-          accountNumberMask: maskAccountNumber(cleanAccountNumber),
-          accountName: accountName.trim(),
-          recipientCode: recipient.recipientCode,
-          recipientId: recipient.recipientId,
-          verificationStatus: recipient.status,
-          providerResponse: recipient.providerResponse as Prisma.InputJsonValue,
-        },
-      });
-    } else {
-      return { success: false, error: "Invalid role for bank account linking" };
-    }
-
-    revalidatePath("/home/payments");
-    revalidatePath("/supplier/payouts");
-    revalidatePath("/logistics/payouts");
+    if (!user) return { success: false, error: "Not authenticated" };
+    if (role !== "seller" && role !== "supplier" && role !== "logistics_partner") return { success: false, error: "Invalid role for bank account linking" };
+    if (user.role !== role) return { success: false, error: "Sign in to this account first." };
+    const wallet = await linkWalletBank({ id: user.id, role }, { bankName, accountNumber });
+    if (!wallet.ok) return { success: false, error: wallet.error };
+    for (const path of ["/home/wallet", "/home/payments", "/home/payouts", "/supplier/wallet", "/supplier/payouts", "/supplier/settings", "/logistics/wallet", "/logistics/payouts", "/logistics/earnings"]) revalidatePath(path);
     return { success: true };
   } catch (e) {
-    return { success: false, error: String(e) };
-  }
-}
-
-export async function linkSupplierPaystackRecipient(
-  bankName: string,
-  accountNumber: string,
-  accountName: string,
-): Promise<{ success: boolean; error?: string; status?: string }> {
-  try {
-    const user = await getCurrentAppUser();
-    if (!user || user.role !== "supplier") {
-      return { success: false, error: "Not authenticated as a supplier" };
-    }
-
-    const supplier = await db.supplier.findUnique({ where: { userId: user.id } });
-    if (!supplier) return { success: false, error: "Supplier not found" };
-
-    const cleanAccountNumber = accountNumber.replace(/\D/g, "");
-    if (!bankName || cleanAccountNumber.length !== 10 || !accountName.trim()) {
-      return { success: false, error: "Choose a bank, enter a 10 digit account number, and add the account name." };
-    }
-
-    const bankCode = (await settlementBanks())[bankName];
-    const recipient = await createPaystackTransferRecipient({
-      bankName,
-      bankCode,
-      accountNumber: cleanAccountNumber,
-      accountName: accountName.trim(),
-    });
-
-    await db.supplierPayoutAccount.upsert({
-      where: { supplierId: supplier.id },
-      create: {
-        supplierId: supplier.id,
-        bankName,
-        bankCode,
-        accountNumberMask: maskAccountNumber(cleanAccountNumber),
-        accountName: accountName.trim(),
-        paystackRecipientCode: recipient.recipientCode,
-        paystackRecipientId: recipient.recipientId,
-        verificationStatus: recipient.status,
-        providerResponse: recipient.providerResponse as Prisma.InputJsonValue,
-      },
-      update: {
-        bankName,
-        bankCode,
-        accountNumberMask: maskAccountNumber(cleanAccountNumber),
-        accountName: accountName.trim(),
-        paystackRecipientCode: recipient.recipientCode,
-        paystackRecipientId: recipient.recipientId,
-        verificationStatus: recipient.status,
-        providerResponse: recipient.providerResponse as Prisma.InputJsonValue,
-      },
-    });
-
-    revalidatePath("/supplier/payouts");
-    revalidatePath("/supplier/settings");
-    return { success: true, status: recipient.status };
-  } catch (e) {
-    return { success: false, error: String(e) };
+    console.error("[payments] linking a bank failed", e instanceof Error ? e.message : e);
+    return { success: false, error: "Couldn't save this bank account. Try again." };
   }
 }
 
