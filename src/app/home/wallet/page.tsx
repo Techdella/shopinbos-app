@@ -26,6 +26,9 @@ export default async function SellerWalletPage() {
       ) : null}
       <div className="mb-5"><CashToReceive rows={cash} /></div>
       <WalletPanel view={view} role="seller" ownerName={user.name} orderHref={(orderId) => `/home/orders/${orderId}`} />
+      <p className="m-0 mt-5 rounded-[18px] border border-app-line bg-white px-4 py-3 text-[14px] leading-[1.5]">
+        Not registered with CAC yet? <a href="/home/register-business" className="font-bold underline underline-offset-4">Register your business name</a> without leaving Shopinbos.
+      </p>
     </SellerPage>
   );
 }

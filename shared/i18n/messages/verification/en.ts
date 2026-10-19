@@ -162,6 +162,7 @@ const en = {
   "step.submitted": "Verification submitted",
   "step.review": "Shopinbos review",
   "step.approved": "Verification approved",
+  "cac.register": "No CAC number yet? Register your business name here",
 } satisfies Record<string, string>;
 
 export default en;

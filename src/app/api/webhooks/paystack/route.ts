@@ -9,6 +9,8 @@ import { db } from "@/lib/db/client";
 import crypto from "crypto";
 import { completeStoreLaunchPayment } from "@/lib/store-launch-billing";
 import { DOMAIN_REFERENCE_PREFIX, completeDomainPayment } from "@/lib/domains/billing.server";
+import { completeRegistrationPayment } from "@/lib/business-registration/service.server";
+import { REGISTRATION_REFERENCE_PREFIX } from "@shared/business-registration";
 import { PAYABLE_ORDER_STATUSES, retailChargeProblem } from "@/lib/commerce/paystack-charge";
 import { recoverExpiredOrderPayment } from "@/lib/commerce/order-expiry.server";
 import { applyRefundEvent } from "@/lib/commerce/refunds.server";
@@ -181,6 +183,13 @@ export async function POST(req: NextRequest) {
         await completeDomainPayment(ref).catch((error) => {
           console.error("Domain payment completion failed:", error);
         });
+      }
+      // Business name registrations with CAC: verified the same way, then filed with CAC (never before).
+      if (ref.startsWith(REGISTRATION_REFERENCE_PREFIX)) {
+        await completeRegistrationPayment(ref).catch((error) => {
+          console.error("Business registration payment completion failed:", error);
+        });
+        return NextResponse.json({ received: true });
       }
       // Inline payments carry an amount the buyer's browser chose, so check it against the order before
       // marking it paid. Only a pending order moves, so a retried or replayed event can't undo a later status.

@@ -41,6 +41,7 @@ export const PRICE_GROUPS = {
   ads: { title: "Ad campaigns", sub: "Setup fee when the Shopinbos team runs a campaign. Ad spend is paid to Meta / TikTok, not to us." },
   domains: { title: "Domains", sub: "Price = registrar's USD price × exchange rate + markup, rounded up to the next ₦500." },
   delivery: { title: "Delivery partners", sub: "Shown to delivery partners on their billing page. Not charged on bookings yet." },
+  business: { title: "Business registration", sub: "What a business pays to register its business name with CAC through Shopinbos. CAC's fee is paid from the Shopinbos VAS wallet, so keep this above it." },
 } as const;
 export type PriceGroup = keyof typeof PRICE_GROUPS;
 
@@ -98,6 +99,8 @@ export const PRICE_SETTINGS = {
   "domains.usd_rate": { kind: "number", group: "domains", label: "Exchange rate", unit: "naira_per_usd", default: 1_650, env: "DOMAIN_USD_NGN_RATE", min: 100, max: 100_000 },
   "domains.markup": naira("domains", "Markup per domain", 3_000, { env: "DOMAIN_MARKUP_NGN" }),
   "domains.max_usd": { kind: "number", group: "domains", label: "Most we'll pay the registrar", unit: "usd", default: 20, env: "DOMAIN_PURCHASE_MAX_USD", min: 1, max: 1_000, hint: "Pricier domains aren't offered." },
+
+  "business.bn_registration": naira("business", "Business name registration", 25_000, { min: 1_000, hint: "Includes CAC's filing fee." }),
 
   "delivery.fee_rate": { kind: "number", group: "delivery", label: "Fee on each delivery", unit: "percent", default: 1.5, min: 0, max: 30 },
   "delivery.fee_bearer": {

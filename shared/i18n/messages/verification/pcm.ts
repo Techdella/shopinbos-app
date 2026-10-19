@@ -154,6 +154,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "step.submitted": "Verification don submit",
   "step.review": "Shopinbos review",
   "step.approved": "Verification don approve",
+  "cac.register": "You never get CAC number? Register your business name here",
 };
 
 export default pcm;

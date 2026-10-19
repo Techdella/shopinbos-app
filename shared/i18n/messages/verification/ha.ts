@@ -154,6 +154,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "step.submitted": "An tura verification",
   "step.review": "Dubawar Shopinbos",
   "step.approved": "An amince da verification",
+  "cac.register": "Babu lambar CAC tukuna? Yi rajistar sunan kasuwancinka a nan",
 };
 
 export default ha;
