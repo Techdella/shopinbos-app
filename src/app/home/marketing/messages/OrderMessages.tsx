@@ -1,5 +1,6 @@
 "use client";
 
+import { SMS_ENABLED } from "@/lib/features";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardHead } from "@/components/app-kit";
@@ -68,7 +69,7 @@ export function OrderMessages({ initial, channels, templates, currency }: { init
           <ChannelHelp label="WhatsApp" howTo={t("om.waHow")} href={channels.whatsapp.connectHref} linkLabel={channels.whatsapp.connectLabel} />
         </Notice>
       ) : null}
-      {!smsReady ? (
+      {SMS_ENABLED && !smsReady ? (
         <Notice tone="info">
           <ChannelHelp label="SMS" howTo={t("om.smsHow")} href={channels.sms.connectHref} linkLabel={channels.sms.connectLabel} />
         </Notice>
@@ -89,7 +90,7 @@ export function OrderMessages({ initial, channels, templates, currency }: { init
         return (
           <Card key={event.key} className="grid gap-4 p-5">
             <CardHead title={eventLabel(event.key, event.label)} sub={t.dynamic(`om.event.${event.key}.sub`, EVENT_COPY[event.key]?.sub ?? event.sub)} />
-            <div className="grid gap-4 lg:grid-cols-2">
+            <div className={SMS_ENABLED ? "grid gap-4 lg:grid-cols-2" : "grid gap-4"}>
               <div className="grid content-start gap-3">
                 <label className="flex items-center justify-between gap-3 text-[14px] font-bold">
                   <span>WhatsApp</span>
@@ -121,6 +122,7 @@ export function OrderMessages({ initial, channels, templates, currency }: { init
                   </>
                 ) : null}
               </div>
+              {SMS_ENABLED && (
               <div className="grid content-start gap-3">
                 <label className="flex items-center justify-between gap-3 text-[14px] font-bold">
                   <span>SMS</span>
@@ -142,11 +144,13 @@ export function OrderMessages({ initial, channels, templates, currency }: { init
                   </>
                 ) : null}
               </div>
+              )}
             </div>
           </Card>
         );
       })}
 
+      {SMS_ENABLED && (
       <AdvancedFold label={t("om.smsSettings")} hint={t("om.smsSettingsHint")}>
         <div className="grid gap-4 md:grid-cols-2">
           <Field label={t("editor.senderName")} htmlFor="sms-sender" hint={t("om.senderHint")}>
@@ -157,6 +161,7 @@ export function OrderMessages({ initial, channels, templates, currency }: { init
           </Field>
         </div>
       </AdvancedFold>
+      )}
 
       <div className="flex flex-wrap gap-2">
         <PillButton size="md" busy={busy} onClick={() => void save()}>{t("save")}</PillButton>

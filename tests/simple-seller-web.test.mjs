@@ -21,21 +21,27 @@ test("nothing technical for sellers: no technical-details folds, no pasted keys 
   assert.match(connect, /Buy a new one/);
   assert.match(connect, /\.\.\.\(configured \?/, "buying only shows when the purchase flow is on");
   assert.match(connect, /I already have one/);
-  assert.match(connect, /\.\.\.\(entriReady \?/, "a domain bought elsewhere is offered only when it connects in one click");
-  // A domain bought elsewhere: "Connect" (Entri logs in where it was bought and adds the records) and "Check now".
-  assert.match(ownership, /<EntriConnect/);
-  assert.match(ownership, /t\("pend\.connect", \{ domain \}\)[\s\S]*t\("pend\.checkNow"\)/);
+  assert.doesNotMatch(connect, /choice\.team|"team"/, "one choice for a domain you already have");
+  // A domain bought elsewhere: for now "Ask us to connect it" and "Check now"; no DNS records, no "send the steps".
+  assert.match(ownership, /<SetupHelpRequest/);
+  assert.match(ownership, /t\("pend\.askUs"\)[\s\S]*t\("pend\.checkNow"\)/);
 
-  // No "Ask us to connect it" anywhere a seller connects something: everything connects by itself.
+  // Everything else a seller connects, connects itself: no "Ask us to connect it" outside the domain screens.
   for (const file of [
-    "src/app/home/domain/DomainConnect.tsx",
-    "src/components/domains/DomainOwnership.tsx",
     "src/app/home/inbox/channels/ChannelsClient.tsx",
-    "src/app/home/inbox/email/EmailSetupClient.tsx",
     "src/app/home/marketing/messages/OrderMessages.tsx",
     "src/app/home/connections/page.tsx",
     "src/app/channels/page.tsx",
   ]) assert.doesNotMatch(read(file), /SetupHelpRequest|askUs|askTeam/, file);
+
+  // SMS and web phone calls are switched off for now, behind one switch each.
+  const features = read("src/lib/features.ts");
+  assert.match(features, /export const SMS_ENABLED = false;/);
+  assert.match(features, /export const WEB_CALLS_ENABLED = false;/);
+  assert.match(read("src/app/home/inbox/channels/ChannelsClient.tsx"), /\.\.\.\(SMS_ENABLED \? \(\["sms"\] as const\) : \[\]\), \.\.\.\(WEB_CALLS_ENABLED \? \(\["voice"\] as const\) : \[\]\)/);
+  assert.match(read("src/app/home/messages/InboxThread.tsx"), /\{WEB_CALLS_ENABLED && \(\n\s+<button type="button" onClick=\{\(\) => setShowCall/);
+  assert.match(read("src/app/home/automations/[id]/FlowEditor.tsx"), /\.\.\.\(SMS_ENABLED \? \(\["send_sms"\] as const\) : \[\]\)/);
+  assert.match(read("src/app/home/marketing/campaigns/[id]/CampaignEditor.tsx"), /value !== "sms" \|\| SMS_ENABLED \|\| draft\.channel === "sms"/);
   assert.doesNotMatch(ownership, /RecordList|whatsappShareUrl|pend\.sendWa|pend\.copy/);
   assert.match(ownership, /<Pill tone="success" dot>\{t\("own\.connected"\)\}<\/Pill>/);
 

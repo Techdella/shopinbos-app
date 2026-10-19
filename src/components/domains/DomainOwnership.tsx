@@ -4,10 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { Card, Pill } from "@/components/app-kit";
 import { FieldLabel, Notice, PillButton, Segmented, TextInput } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
-import { EntriConnect } from "./EntriConnect";
+import { SetupHelpRequest } from "@/components/support/SetupHelpRequest";
 import { Fold } from "@/components/simple/Fold";
 import { dayLabel } from "@/lib/conversations/pure";
-import type { DnsRecord, DomainSettingsState, ServeAs, VerifyCheck } from "@/lib/domains/verification";
+import type { DomainSettingsState, ServeAs, VerifyCheck } from "@/lib/domains/verification";
 import { BoughtDomainPanel } from "./BoughtDomain";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import { formatDate, type Locale } from "@shared/i18n";
@@ -93,6 +93,7 @@ export function DomainOwnership({
   const [removing, setRemoving] = useState<"live" | "pending" | null>(null);
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [changing, setChanging] = useState(false);
+  const [askTeam, setAskTeam] = useState(false);
   const autoChecked = useRef(false);
 
   useEffect(() => {
@@ -225,7 +226,8 @@ export function DomainOwnership({
         check={check}
         verifyError={verifyError}
         removing={removing === "pending"}
-        records={pending.records}
+        askTeam={askTeam}
+        onAskTeam={() => setAskTeam(true)}
         onVerify={() => void verify()}
         onRemove={() => void remove("pending")}
       />}
@@ -282,7 +284,8 @@ function PendingCard({
   check,
   verifyError,
   removing,
-  records,
+  askTeam,
+  onAskTeam,
   onVerify,
   onRemove,
 }: {
@@ -292,7 +295,8 @@ function PendingCard({
   check: VerifyCheck | null;
   verifyError: string | null;
   removing: boolean;
-  records: DnsRecord[];
+  askTeam: boolean;
+  onAskTeam: () => void;
   onVerify: () => void;
   onRemove: () => void;
 }) {
@@ -317,19 +321,12 @@ function PendingCard({
         {live ? ` ${t("pend.liveKeeps", { domain: live })}` : ` ${t("pend.freeKeeps")}`}
       </p>
 
-      {/* One click: Entri logs in to where the domain was bought and adds our records there. */}
-      <div className="mt-4 grid gap-2 sm:flex sm:flex-wrap sm:items-start">
-        <EntriConnect
-          domain={domain}
-          records={records.map((record) => ({ type: record.type, host: record.label, value: record.value }))}
-          label={t("pend.connect", { domain })}
-          failedText={t("pend.connectFailed")}
-          onDone={(success) => {
-            if (success) onVerify();
-          }}
-        />
-        <PillButton size="md" tone="white" busy={verifying} onClick={onVerify}>{t("pend.checkNow")}</PillButton>
-      </div>
+      {!askTeam && (
+        <div className="mt-4 grid gap-2 sm:flex sm:flex-wrap sm:items-center">
+          <PillButton size="lg" onClick={onAskTeam}>{t("pend.askUs")}</PillButton>
+          <PillButton size="md" tone="white" busy={verifying} onClick={onVerify}>{t("pend.checkNow")}</PillButton>
+        </div>
+      )}
 
       {plain && <div className="mt-3"><Notice tone="info">{plain}</Notice></div>}
       {verifyError && <div className="mt-3"><Notice>{verifyError}</Notice></div>}
@@ -340,6 +337,16 @@ function PendingCard({
         </button>
       </div>
 
+      {askTeam && (
+        <SetupHelpRequest
+          className="mt-3"
+          title={t("pend.teamTitle", { domain })}
+          description={t("pend.teamDesc")}
+          feature="custom_domain"
+          softwareQuestion={t("pend.whereBought")}
+          softwarePlaceholder={t("pend.wherePlaceholder")}
+        />
+      )}
 
     </Card>
   );

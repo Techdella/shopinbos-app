@@ -62,7 +62,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "hint.noEmail": "Ha ahapụghị email, ya mere ị nweghị ike ịzaghachi ebe a.",
   "hint.them": "ha",
   "hint.caller": "onye kpọrọ",
-  "hint.connectSms": "Jikọọ SMS ka i zitere ndị kpọrọ ozi, ma ọ bụ kpọọ ha.",
+  "hint.connectSms": "Kpọọ ha azụ site na app Shopinbos na ekwentị gị.",
   "hint.tiktok": "TikTok ekweghị ka apps zaghachi ugbu a. Zaghachi n'app TikTok.",
   "hint.sentOn": "A na-eziga ya na {channel}.",
   "hint.notConnected": "Ejikọghị {channel}, ya mere enweghị ike iziga nzaghachi.",
@@ -806,10 +806,6 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "ch.helpTitle": "Jikọọ {title}",
   "ch.helpDesc": "Anyị ga-ejikọ {title} n'inbox gị maka gị ma zitere gị ozi mgbe ọ na-arụ ọrụ.",
   "ch.askUs": "Rịọ anyị ka anyị jikọọ ya",
-  "email.domain.connect": "Jikọọ {domain}",
-  "email.domain.connectFailed": "Njikọ emeghe ugbu a. Nwaa ọzọ n'otu nkeji.",
-  "email.domain.entriBlurb": "Ziga site na adreesị na {domain}. Họrọ adreesị ahụ, wee pịa Connect ma banye ebe ị zụtara domain ahụ. Anyị ga-etinye ihe niile maka gị.",
-  "email.domain.next": "Gaa n'ihu",
 };
 
 export default ig;

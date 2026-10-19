@@ -1,5 +1,6 @@
 "use client";
 
+import { SMS_ENABLED, WEB_CALLS_ENABLED } from "@/lib/features";
 import { confirmDialog } from "@/components/ui/dialogs";
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
@@ -27,7 +28,8 @@ const FALLBACK: Record<KeyChannel, { title: string; blurb: string }> = {
 };
 
 /** Phone and bot channels, folded under "More ways customers can reach you". */
-const MORE: KeyChannel[] = ["sms", "voice", "telegram"];
+// SMS and phone calls are switched off on the web for now (src/lib/features.ts).
+const MORE: KeyChannel[] = [...(SMS_ENABLED ? (["sms"] as const) : []), ...(WEB_CALLS_ENABLED ? (["voice"] as const) : []), "telegram"];
 
 // Each channel (simplicity rules, section 8A): a plain status and one action, "Ask us to set it up".
 function ChannelCard({ view, onChange, extra }: { view: ChannelView; onChange: (view: ChannelView) => void; extra?: ReactNode }) {

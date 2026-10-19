@@ -17,9 +17,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "choice.buy": "Zụta nke ọhụrụ",
   "choice.buyDesc": "Chọọ aha ma kwụọ ụgwọ. Anyị ga-ahazi ya maka gị.",
   "choice.own": "Enweelarị m otu",
-  "choice.ownDesc": "Pịnye ya, pịa Connect, wee banye ebe ị zụtara ya. Anyị ga-etinye ihe niile maka gị.",
-  "choice.team": "Rịọ otu Shopinbos ka ha mee ya",
-  "choice.teamDesc": "Anyị ga-ahazi ya na gị, n'efu.",
+  "choice.ownDesc": "Pịnye ya, ndị otu Shopinbos ga-ejikọ ya na gị, n'efu.",
   "where.summary": "Ị nwebeghị? Ebe ị ga-azụta ya",
   "where.intro": "Zụta otu n'aka ụlọ ọrụ dị n'okpuru, wee lọghachi họrọ \"Enweelarị m otu\".",
   "err.reach": "Anyị enweghị ike iru Shopinbos. Lelee njikọ gị ma nwaa ọzọ.",
@@ -62,7 +60,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "pend.checking": "Anyị na-elele…",
   "pend.waiting": "Na-eche",
   "pend.title": "Anyị na-eche ka ejikọọ domain gị",
-  "pend.sub": "Pịa Connect wee banye ebe ị zụtara ya. Anyị ga-etinye ihe niile maka gị, ụlọ ahịa gị ga-emepe ebe ahụ ozugbo ọ rụrụ ọrụ.",
+  "pend.sub": "Pịa n'okpuru, ndị otu Shopinbos ga-ejikọ ya na gị. Anyị ga-anọgide na-elele, ụlọ ahịa gị ga-emepe ebe ahụ ozugbo ọ rụrụ ọrụ.",
   "pend.liveKeeps": "{domain} ga-anọgide na-arụ ọrụ n'oge a.",
   "pend.freeKeeps": "Adreesị gị n'efu ga-anọgide na-arụ ọrụ n'oge a.",
   "pend.sendWa": "Zipu usoro ndị ahụ na WhatsApp",
@@ -222,9 +220,6 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "free.notFree": "Atụmatụ gị anaghị ekpuchi domain n'efu ugbu a. Ọ na-efu {price} maka afọ 1. Lelee ya, wee kwụọ ụgwọ.",
   "pend.askUs": "Gwa anyị ka anyị jikọọ ya",
   "pend.checkNow": "Lelee ugbu a",
-  "choice.soon": "Iji domain nke gị na-abịa n'oge na-adịghị anya. Adreesị gị n'efu na-arụ ọrụ ugbu a.",
-  "pend.connect": "Jikọọ {domain}",
-  "pend.connectFailed": "Njikọ emeghe ugbu a. Nwaa ọzọ n'otu nkeji.",
 };
 
 export default ig;

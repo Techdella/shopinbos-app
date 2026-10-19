@@ -17,9 +17,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "choice.buy": "Sayi sabo",
   "choice.buyDesc": "Nemi suna ka biya. Za mu shirya maka.",
   "choice.own": "Ina da ɗaya tun da",
-  "choice.ownDesc": "Rubuta shi, taɓa Connect, ka shiga inda ka saya. Za mu ƙara komai maka.",
-  "choice.team": "Ka roƙi ƙungiyar Shopinbos ta yi",
-  "choice.teamDesc": "Za mu shirya shi tare da kai, kyauta.",
+  "choice.ownDesc": "Rubuta shi kuma ƙungiyar Shopinbos za ta haɗa shi tare da kai, kyauta.",
   "where.summary": "Ba ka da ɗaya tukuna? Inda za ka saya",
   "where.intro": "Saya ɗaya daga kamfani a ƙasa, sannan ka dawo ka zaɓi \"Ina da ɗaya tun da\".",
   "err.reach": "Ba mu iya isa Shopinbos ba. Duba haɗin intanet ɗinka ka sake gwadawa.",
@@ -62,7 +60,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "pend.checking": "Ana dubawa…",
   "pend.waiting": "Ana jira",
   "pend.title": "Ana jiran a haɗa domain ɗinka",
-  "pend.sub": "Taɓa Connect ka shiga inda ka saya. Za mu ƙara komai maka, kuma shagonka zai buɗe a can da zarar ya yi aiki.",
+  "pend.sub": "Taɓa ƙasa kuma ƙungiyar Shopinbos za ta haɗa shi tare da kai. Za mu ci gaba da dubawa, kuma shagonka zai buɗe a can da zarar ya yi aiki.",
   "pend.liveKeeps": "{domain} zai ci gaba da aiki a halin yanzu.",
   "pend.freeKeeps": "Adireshinka kyauta zai ci gaba da aiki a halin yanzu.",
   "pend.sendWa": "Tura matakan a WhatsApp",
@@ -222,9 +220,6 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "free.notFree": "Tsarinka bai ƙunshi domain kyauta yanzu ba. Kuɗinsa {price} na shekara 1. Duba shi, sannan ka biya.",
   "pend.askUs": "Nemi mu haɗa shi",
   "pend.checkNow": "Duba yanzu",
-  "choice.soon": "Amfani da domain ɗinka yana zuwa nan ba da daɗewa ba. Adireshinka na kyauta yana aiki kafin nan.",
-  "pend.connect": "Haɗa {domain}",
-  "pend.connectFailed": "Haɗawa bai buɗe yanzu ba. Sake gwadawa nan da minti ɗaya.",
 };
 
 export default ha;

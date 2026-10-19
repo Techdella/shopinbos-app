@@ -62,7 +62,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "hint.noEmail": "Dem no leave email, so you no fit reply here.",
   "hint.them": "dem",
   "hint.caller": "the person wey call",
-  "hint.connectSms": "Connect SMS to text people wey call back, or call dem.",
+  "hint.connectSms": "Call dem back from the Shopinbos app for your phone.",
   "hint.tiktok": "TikTok never allow apps to reply yet. Reply for the TikTok app.",
   "hint.sentOn": "E go send for {channel}.",
   "hint.notConnected": "{channel} never connect, so replies no fit send.",
@@ -806,10 +806,6 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "ch.helpTitle": "Connect {title}",
   "ch.helpDesc": "We go connect {title} to your inbox for you and message you when e dey work.",
   "ch.askUs": "Ask us make we connect am",
-  "email.domain.connect": "Connect {domain}",
-  "email.domain.connectFailed": "Connect no open just now. Try again in one minute.",
-  "email.domain.entriBlurb": "Send from address for {domain}. Pick the address, then tap Connect and log in where you buy the domain. We go add everything for you.",
-  "email.domain.next": "Continue",
 };
 
 export default pcm;

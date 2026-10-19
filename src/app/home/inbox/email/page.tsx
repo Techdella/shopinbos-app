@@ -1,4 +1,3 @@
-import { entriConfigured } from "@/lib/entri/server";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { PillLink } from "@/components/app-kit";
@@ -34,7 +33,7 @@ export default async function InboxEmailPage({ searchParams }: { searchParams?: 
       sub={t("email.sub")}
       actions={<PillLink href="/home/messages" icon="chat" tone="ink">{t("ch.openInbox")}</PillLink>}
     >
-      <EmailSetupClient initial={view} gmailResult={gmail} entriReady={entriConfigured()} />
+      <EmailSetupClient initial={view} gmailResult={gmail} />
     </SellerPage>
   );
 }

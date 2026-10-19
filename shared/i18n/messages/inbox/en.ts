@@ -65,7 +65,7 @@ const en = {
   "hint.noEmail": "They didn't leave an email, so you can't reply here.",
   "hint.them": "them",
   "hint.caller": "the caller",
-  "hint.connectSms": "Connect SMS to text callers back, or call them.",
+  "hint.connectSms": "Call them back from the Shopinbos app on your phone.",
   "hint.tiktok": "TikTok doesn't let apps reply yet. Reply in the TikTok app.",
   "hint.sentOn": "Sent on {channel}.",
   "hint.notConnected": "{channel} isn't connected, so replies can't be sent.",
@@ -821,10 +821,6 @@ const en = {
   "ch.helpTitle": "Connect {title}",
   "ch.helpDesc": "We'll connect {title} to your inbox for you and message you when it's working.",
   "ch.askUs": "Ask us to connect it",
-  "email.domain.connect": "Connect {domain}",
-  "email.domain.connectFailed": "Connecting didn't open just now. Try again in a minute.",
-  "email.domain.entriBlurb": "Send from an address on {domain}. Pick the address, then tap Connect and log in where you bought the domain. We add everything for you.",
-  "email.domain.next": "Continue",
 } satisfies Record<string, string>;
 
 export default en;

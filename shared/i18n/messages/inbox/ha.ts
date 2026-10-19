@@ -62,7 +62,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "hint.noEmail": "Ba su bar email ba, don haka ba za ka iya amsa a nan ba.",
   "hint.them": "su",
   "hint.caller": "wanda ya kira",
-  "hint.connectSms": "Haɗa SMS don aika saƙo ga masu kira, ko ka kira su.",
+  "hint.connectSms": "Kira su daga app ɗin Shopinbos a wayarka.",
   "hint.tiktok": "TikTok ba ta bari apps su amsa ba tukuna. Amsa a app na TikTok.",
   "hint.sentOn": "Ana aikawa ta {channel}.",
   "hint.notConnected": "Ba a haɗa {channel} ba, don haka ba za a iya aika amsoshi ba.",
@@ -806,10 +806,6 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "ch.helpTitle": "Haɗa {title}",
   "ch.helpDesc": "Za mu haɗa {title} da inbox ɗinka kuma mu aiko maka saƙo idan yana aiki.",
   "ch.askUs": "Nemi mu haɗa shi",
-  "email.domain.connect": "Haɗa {domain}",
-  "email.domain.connectFailed": "Haɗawa bai buɗe yanzu ba. Sake gwadawa nan da minti ɗaya.",
-  "email.domain.entriBlurb": "Aika daga adireshi a {domain}. Zaɓi adireshin, sannan taɓa Connect ka shiga inda ka sayi domain ɗin. Za mu ƙara komai maka.",
-  "email.domain.next": "Ci gaba",
 };
 
 export default ha;

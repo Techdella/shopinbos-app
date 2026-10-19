@@ -62,7 +62,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "hint.noEmail": "Wọn kò fi email sílẹ̀, nítorí náà o kò lè fèsì níbí.",
   "hint.them": "wọn",
   "hint.caller": "ẹni tó pè",
-  "hint.connectSms": "So SMS pọ̀ láti kọ̀wé padà sí àwọn tó pè, tàbí pè wọ́n.",
+  "hint.connectSms": "Pè wọ́n padà láti inú app Shopinbos lórí fóònù rẹ.",
   "hint.tiktok": "TikTok kò tíì jẹ́ kí àwọn app fèsì. Fèsì nínú app TikTok.",
   "hint.sentOn": "A máa fi ránṣẹ́ lórí {channel}.",
   "hint.notConnected": "{channel} kò tíì so pọ̀, nítorí náà a kò lè fi èsì ránṣẹ́.",
@@ -806,10 +806,6 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "ch.helpTitle": "So {title} pọ̀",
   "ch.helpDesc": "A máa so {title} mọ́ inbox rẹ fún ọ, a ó sì kọ̀wé sí ọ nígbà tó bá ń ṣiṣẹ́.",
   "ch.askUs": "Ní kí a so ó pọ̀",
-  "email.domain.connect": "So {domain} pọ̀",
-  "email.domain.connectFailed": "Ìsopọ̀ kò ṣí báyìí. Gbìyànjú lẹ́ẹ̀kan sí i ní ìṣẹ́jú kan.",
-  "email.domain.entriBlurb": "Fi ránṣẹ́ láti àdírẹ́sì lórí {domain}. Yan àdírẹ́sì náà, lẹ́yìn náà tẹ Connect kí o sì wọlé síbi tí o ti ra domain náà. A ó fi gbogbo rẹ̀ kún un fún ọ.",
-  "email.domain.next": "Tẹ̀síwájú",
 };
 
 export default yo;
