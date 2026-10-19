@@ -150,7 +150,7 @@ test("wiring: pay first, verify like store launch, one buyer, Vercel never auto-
   assert.match(vercel, /expectedPrice: pricing\.renewalPrice,/);
 
   const cron = read("src/app/api/cron/domain-renewals/route.ts");
-  assert.match(cron, /cronAuthorization\(req\.headers\.get\("authorization"\), secret\)/);
+  assert.match(cron, /const denied = await cronDenied\(req\);\n  if \(denied\) return denied;/, "the cron secret or a signed QStash call");
   const sql = read("docs/migrations/2026-10-24-domain-billing.sql");
   assert.match(sql, /CREATE TABLE IF NOT EXISTS "DomainPurchase"/);
   assert.match(sql, /ALTER TABLE "DomainPurchase" ENABLE ROW LEVEL SECURITY/);

@@ -212,7 +212,7 @@ test("'Tell me when it's ready' records one row per store and platform, coming-s
 
 test("the sync cron needs the cron secret", () => {
   const cron = read("src/app/api/cron/sales-channels/route.ts");
-  assert.match(cron, /cronAuthorization\(req\.headers\.get\("authorization"\), secret\) !== "ok"/);
+  assert.match(cron, /const denied = await cronDenied\(req\);\n  if \(denied\) return denied;/, "the cron secret or a signed QStash call");
   assert.match(cron, /syncDueConnections\(\)/);
 });
 
