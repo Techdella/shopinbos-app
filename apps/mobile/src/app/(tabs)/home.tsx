@@ -22,7 +22,6 @@ import { colors } from "@/theme";
 import { PushPromptCard } from "@/components/PushPromptCard";
 import { NotificationBellButton } from "@/components/NotificationBellButton";
 import { CampaignsCard } from "@/components/CampaignsCard";
-import { VerifyYouCard } from "@/components/VerifyYouCard";
 import { useT } from "@/lib/i18n";
 
 // Seller Home (build spec 8A, "Simple app" prototype): today's sales, at most three "Do these next" items and one
@@ -113,7 +112,6 @@ export default function Home() {
           </View>
 
           {/* "Let's verify you": optional for sellers, until their ID passes the Wallet check. */}
-          <VerifyYouCard />
 
           {/* After the first sale: the moment a push matters. */}
           {data?.counts.ordersToday ? <View style={{ marginTop: 14 }}><PushPromptCard who="seller" /></View> : null}

@@ -2,13 +2,15 @@ import * as WebBrowser from "expo-web-browser";
 import { api } from "./api";
 
 // The Shopinbos Wallet (web /home/wallet, /supplier/wallet, /logistics/wallet) for sellers, suppliers and delivery
-// partners: verify an ID (BVN or NIN), add the bank Paystack settles to, then see what Paystack paid in. Shopinbos
+// partners: add the bank Paystack settles to (then a supplier's CAC or BN registration, a delivery partner's ID), then see what Paystack paid in. Shopinbos
 // never holds the money. Also the two card payments that go straight to another business's bank: a delivery
 // partner paying a seller their cash on delivery, and a seller paying a delivery fee.
 
 export type WalletRole = "seller" | "supplier" | "logistics_partner";
 
 export interface WalletView {
+  /** What this business is checked on: nothing (sellers), its CAC or BN registration (suppliers), or the owner's ID. Older servers don't send it. */
+  check?: { kind: "none" } | { kind: "business"; status: "approved" | "pending" | "rejected" | "missing"; href: string } | { kind: "id" };
   kyc: { status: string; idType: string | null; idLast4: string | null; name: string | null; verifiedAt: string | null; checksReady: boolean };
   bank: { bankName: string; accountName: string; accountEnding: string } | null;
   settlement: { status: string; error: string | null; frozen: boolean; frozenReason: string | null; korapay: boolean };

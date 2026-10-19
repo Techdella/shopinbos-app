@@ -133,7 +133,7 @@ export const DEFAULT_DELIVERY_ZONES: DeliveryZone[] = [
   { name: "Abuja and other states", fee: 3500, regions: [], priority: 2 },
 ];
 
-export type ChecklistKey = "live" | "product" | "brand" | "bank" | "wa" | "id" | "ig" | "labels";
+export type ChecklistKey = "live" | "product" | "brand" | "bank" | "wa" | "ig" | "labels";
 
 export const CHECKLIST: { key: ChecklistKey; label: string; hint: string; href: string }[] = [
   { key: "live", label: "Go live", hint: "Your shop link works", href: "/home/editor" },
@@ -141,7 +141,6 @@ export const CHECKLIST: { key: ChecklistKey; label: string; hint: string; href: 
   { key: "brand", label: "Pick your brand and look", hint: "Name, colours and template", href: "/home/brand-kit" },
   { key: "bank", label: "Add your payout bank", hint: "Card payments go straight to your bank", href: "/home/wallet" },
   { key: "wa", label: "Connect WhatsApp for Peggy", hint: "Peggy drafts replies for you", href: "/home/social/whatsapp" },
-  { key: "id", label: "Verify your ID", hint: "NIN or BVN: opens card payments to your bank", href: "/home/wallet" },
   { key: "ig", label: "Connect Instagram and TikTok", hint: "Sync your catalogue and posts", href: "/home/social" },
   { key: "labels", label: "Print your first price tags", hint: "Two taps from your products", href: "/products" },
 ];

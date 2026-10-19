@@ -10,6 +10,7 @@ import { approveIdentityDocFromWallet } from "@/lib/kyb/identity-doc.server";
 import { createPaystackSubaccount, listPaystackSettlements, updatePaystackSubaccount } from "@/lib/paystack";
 import { resolveBankAccount, settlementBanks, syncPayoutBank, type ResolvedAccount } from "@/lib/payout-bank";
 import { companyNamesMatch } from "@/lib/kyb/cac";
+import { parseVerificationDocs } from "@/lib/verification-utils";
 import { groupDropshipLines, type DropshipLink } from "@/lib/supplier-orders/pure";
 import { applyDeductions, debtsToDeduct, holdPlannedDeductions, loadMoneyOwed, type MoneyOwedView } from "@/lib/money-owed/money-owed.server";
 import {
@@ -29,8 +30,9 @@ import {
   type WalletRole,
 } from "./rules";
 
-// Shopinbos Wallet, server side. A business verifies who they are (BVN or NIN through Korapay Identity), links the
-// bank Paystack should settle to, and gets a Paystack subaccount. From then on every store payment is split at
+// Shopinbos Wallet, server side. A business links the bank Paystack should settle to and gets a Paystack subaccount
+// (an account in another name waits for the team). Sellers need no ID check; a supplier's check is its business
+// registration (CAC or BN, src/lib/kyb); only a delivery partner still verifies the owner's BVN or NIN here. From then on every store payment is split at
 // checkout and Paystack settles each share straight to that bank (rules.ts). Shopinbos never holds or pays out
 // anyone's money; the wallet page shows what was split to the business and Paystack's settlements to its bank.
 
@@ -84,6 +86,7 @@ async function verifyIdentity(input: { type: "bvn" | "nin"; id: string; firstNam
  * all three must match. Up to KYC_DAILY_ATTEMPTS failed checks a day (each lookup is paid for).
  */
 export async function verifyWalletIdentity(user: { id: string; role: WalletRole }, input: KycInput): Promise<WalletResult> {
+  if (walletCheckKind(user.role) !== "id") return { ok: false, error: user.role === "supplier" ? "Suppliers don't need an ID check. Verify your business registration (CAC or BN) instead." : "Sellers don't need an ID check." };
   if (!input.consent) return { ok: false, error: "Tick the box to let us check your ID." };
   const id = cleanIdNumber(input.idNumber);
   if (!id) return { ok: false, error: `Enter your 11-digit ${input.idType === "bvn" ? "BVN" : "NIN"}.` };
@@ -243,13 +246,48 @@ export async function linkWalletBank(user: { id: string; role: WalletRole }, inp
   return openSubaccount(saved, (await accountIsTheirs(saved, resolved.accountName)) ? "auto" : null);
 }
 
+// ─── What each role is checked on ─────────────────────────────────────────────
+
+/** Sellers: nothing. Suppliers: their business registration (CAC or BN). Delivery partners: the owner's BVN or NIN. */
+export type WalletCheckKind = "none" | "business" | "id";
+
+export function walletCheckKind(role: WalletRole): WalletCheckKind {
+  return role === "seller" ? "none" : role === "supplier" ? "business" : "id";
+}
+
+export type BusinessRegistrationStatus = "approved" | "pending" | "rejected" | "missing";
+
+/** Where a supplier's CAC or BN registration stands: checked against the registry, or the certificate reviewed by the team. */
+export async function supplierRegistrationStatus(userId: string): Promise<BusinessRegistrationStatus> {
+  const supplier = await db.supplier.findUnique({ where: { userId }, select: { verificationStatus: true, verificationDocuments: true } });
+  if (!supplier) return "missing";
+  const cac = parseVerificationDocs(supplier.verificationDocuments).find((doc) => doc.type === "cac");
+  if (cac?.status === "approved" || supplier.verificationStatus === "verified") return "approved";
+  if (cac?.status === "rejected") return "rejected";
+  if (cac && ["uploaded", "submitted", "under_review"].includes(cac.status)) return "pending";
+  return "missing";
+}
+
+/** Why the team can't approve this wallet's account (or add a Korapay split account) yet, or null when it can. */
+async function walletCheckBlock(wallet: Pick<WalletRow, "userId" | "role" | "kycStatus">): Promise<string | null> {
+  const kind = walletCheckKind(wallet.role as WalletRole);
+  if (kind === "business" && (await supplierRegistrationStatus(wallet.userId)) !== "approved") return "Approve this supplier's business registration (CAC or BN) first.";
+  if (kind === "id" && wallet.kycStatus !== "verified") return "This delivery partner's ID isn't verified yet.";
+  return null;
+}
+
 // ─── Team actions ─────────────────────────────────────────────────────────────
 
-/** The team checked an account whose name isn't the owner's (e.g. their company's) and lets payments go to it. */
+/**
+ * The team checked an account whose name isn't the owner's or the business's and lets payments go to it. A seller's
+ * needs nothing else; a supplier's needs its approved business registration; a delivery partner's its verified ID.
+ */
 export async function approveWalletBank(walletId: string): Promise<WalletResult> {
   const wallet = await db.wallet.findUnique({ where: { id: walletId } });
   if (!wallet) return { ok: false, error: "Wallet not found." };
-  if (wallet.kycStatus !== "verified" || !wallet.bankCode || !wallet.accountNumber) return { ok: false, error: "This wallet has no verified ID or bank yet." };
+  if (!wallet.bankCode || !wallet.accountNumber) return { ok: false, error: "This wallet has no bank yet." };
+  const blocked = await walletCheckBlock(wallet);
+  if (blocked) return { ok: false, error: blocked };
   return openSubaccount(wallet, "approved");
 }
 
@@ -260,9 +298,13 @@ export async function approveWalletBank(walletId: string): Promise<WalletResult>
 export async function setWalletKorapaySplitAccount(walletId: string, reference: string): Promise<WalletResult> {
   const value = reference.trim();
   if (value && !/^KPY-[A-Z]+-[A-Za-z0-9]+$/.test(value)) return { ok: false, error: "Paste the split account reference from the Korapay dashboard (it starts with KPY-)." };
-  const wallet = await db.wallet.findUnique({ where: { id: walletId }, select: { id: true, kycStatus: true, subaccountStatus: true } });
+  const wallet = await db.wallet.findUnique({ where: { id: walletId }, select: { id: true, userId: true, role: true, kycStatus: true, subaccountStatus: true } });
   if (!wallet) return { ok: false, error: "Wallet not found." };
-  if (value && (wallet.kycStatus !== "verified" || wallet.subaccountStatus !== "active")) return { ok: false, error: "Finish this wallet's ID and bank checks first, so Korapay pays the same checked account." };
+  if (value) {
+    const blocked = await walletCheckBlock(wallet);
+    if (blocked) return { ok: false, error: blocked };
+    if (wallet.subaccountStatus !== "active") return { ok: false, error: "Finish this wallet's bank check first, so Korapay pays the same checked account." };
+  }
   try {
     await db.wallet.update({ where: { id: wallet.id }, data: { korapaySplitAccount: value || null } });
   } catch {
@@ -401,6 +443,11 @@ export async function recordOrderShares(orderId: string) {
 // ─── The wallet page ──────────────────────────────────────────────────────────
 
 export interface WalletView {
+  /**
+   * What this business is checked on (walletCheckKind): nothing, its business registration (with where it stands
+   * and where to do it), or the owner's ID (the kyc block below). Older phone apps read only kyc.
+   */
+  check: { kind: "none" } | { kind: "business"; status: BusinessRegistrationStatus; href: string } | { kind: "id" };
   kyc: { status: string; idType: string | null; idLast4: string | null; name: string | null; verifiedAt: string | null; checksReady: boolean };
   bank: { bankName: string; accountName: string; accountEnding: string } | null;
   settlement: { status: string; error: string | null; frozen: boolean; frozenReason: string | null; korapay: boolean };
@@ -439,8 +486,13 @@ export async function loadWalletView(user: { id: string; role: WalletRole }): Pr
   });
   const toReturn = await notSentStillOwed(user, moneyOwed);
   const name = [wallet.kycFirstName, wallet.kycMiddleName, wallet.kycLastName].filter(Boolean).join(" ") || null;
+  const kind = walletCheckKind(user.role);
+  const check: WalletView["check"] =
+    kind === "business" ? { kind, status: await supplierRegistrationStatus(user.id).catch(() => "missing" as const), href: "/supplier/verification" } : { kind };
   return {
-    kyc: { status: wallet.kycStatus, idType: wallet.kycIdType, idLast4: wallet.kycIdLast4, name, verifiedAt: wallet.kycVerifiedAt?.toISOString() ?? null, checksReady: identityChecksReady() },
+    check,
+    // Sellers and suppliers have no ID step ("not_required"; an older phone app shows its "not switched on" note).
+    kyc: kind !== "id" ? { status: "not_required", idType: null, idLast4: null, name: null, verifiedAt: null, checksReady: false } : { status: wallet.kycStatus, idType: wallet.kycIdType, idLast4: wallet.kycIdLast4, name, verifiedAt: wallet.kycVerifiedAt?.toISOString() ?? null, checksReady: identityChecksReady() },
     bank: wallet.bankName && wallet.accountName ? { bankName: wallet.bankName, accountName: wallet.accountName, accountEnding: maskAccountNumber(wallet.accountNumber) } : null,
     settlement: { status: wallet.subaccountStatus, error: wallet.subaccountError, frozen: wallet.status === "frozen", frozenReason: wallet.frozenReason, korapay: Boolean(wallet.korapaySplitAccount) && korapayCheckoutReady() },
     totals: { paidKobo: paid._sum.amountKobo ?? 0, last30Kobo: last30._sum.amountKobo ?? 0, refundedKobo: refunded._sum.amountKobo ?? 0 },

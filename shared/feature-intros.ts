@@ -741,7 +741,7 @@ export const FEATURE_INTROS: FeatureIntro[] = [
     paths: ["/home/wallet", "/supplier/wallet", "/logistics/wallet", "/wallet"],
     helpTopic: "get_paid",
     scenes: [
-      { art: "badge-verify", caption: "Verify your ID once.", sub: "Your BVN or NIN, checked against your name and date of birth.", durationMs: S, label: "BVN verified" },
+      { art: "badge-verify", caption: "Set up in minutes.", sub: "No ID check for shops. Suppliers verify their CAC or BN registration.", durationMs: S, label: "Ready" },
       { art: "money-flow", caption: "Add the bank you get paid in.", sub: "We check the name on it with Paystack.", durationMs: S, label: "GTBank •• 4821" },
       { art: "phone-store", caption: "A customer pays by card.", sub: "Paystack splits the payment: your share, and each supplier's cost.", durationMs: S, value: "₦30,000" },
       { art: "money-flow", caption: "It goes straight to your bank.", sub: "Usually the next working day. Shopinbos never holds your money.", durationMs: S, value: "₦30,000" },

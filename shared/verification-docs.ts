@@ -77,7 +77,6 @@ export const DOC_TYPE_LABELS: Record<DocType, string> = {
 
 export const SUPPLIER_DOC_TYPES: DocConfig[] = [
   { type: "cac", label: DOC_TYPE_LABELS.cac, required: true, hint: "BN or RC document accepted" },
-  { type: "identity", label: DOC_TYPE_LABELS.identity, required: true, hint: "NIN slip or NIN-backed ID" },
   { type: "product-images", label: DOC_TYPE_LABELS["product-images"], required: true, hint: "Photos of your products, combined into one PDF or a single clear image" },
   { type: "tax", label: DOC_TYPE_LABELS.tax, required: false, hint: "TIN certificate or tax document. Boosts your trust score" },
   { type: "utility", label: DOC_TYPE_LABELS.utility, required: false, hint: "For address verification. Boosts your trust score" },

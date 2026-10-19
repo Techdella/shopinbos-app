@@ -45,6 +45,8 @@ export default function Wallet() {
 function WalletBody({ data, t, reload }: { data: WalletData; t: TFn; reload: () => void }) {
   const { view, role } = data;
   const kycDone = view.kyc.status === "verified";
+  // Sellers have no check; a supplier's is its CAC or BN registration. An older server only sends kyc: the ID step.
+  const check = view.check ?? (role === "seller" ? { kind: "none" as const } : { kind: "id" as const });
   const active = view.settlement.status === "active" && !view.settlement.frozen;
 
   return (
@@ -73,7 +75,7 @@ function WalletBody({ data, t, reload }: { data: WalletData; t: TFn; reload: () 
         </View>
         {view.settlement.frozen ? <Notice>{view.settlement.frozenReason ? t("w.pausedWhy", { reason: view.settlement.frozenReason }) : t("w.pausedSupport")}</Notice> : null}
 
-        {/* Getting paid comes first (like Shopify Payments): the bank, then the ID check, which no longer gates it. */}
+        {/* Getting paid comes first (like Shopify Payments): the bank, then the supplier's or delivery partner's check. */}
         <View style={{ gap: 8, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 12 }}>
           <T weight="extrabold" style={{ fontSize: 15.5 }}>{t("w.bankStep")}{active ? " ✓" : ""}</T>
           {view.bank ? <T style={{ fontSize: 15 }}>{`${view.bank.accountName} · ${view.bank.bankName} ${view.bank.accountEnding}`}</T> : null}
@@ -82,19 +84,29 @@ function WalletBody({ data, t, reload }: { data: WalletData; t: TFn; reload: () 
           {!view.settlement.frozen ? <BankForm banks={data.banks} hasBank={Boolean(view.bank)} t={t} onDone={reload} /> : null}
         </View>
 
-        <View style={{ gap: 8, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 12 }}>
-          <T weight="extrabold" style={{ fontSize: 15.5 }}>{t("w.idStep")}{kycDone ? " ✓" : ""}</T>
-          {kycDone ? (
-            <T style={{ color: colors.inkSoft, fontSize: 15 }}>
-              {t("w.verified", { name: view.kyc.name ?? "", id: view.kyc.idType === "nin" ? "NIN" : "BVN", last4: view.kyc.idLast4 ?? "" })}
-            </T>
-          ) : (
-            <>
-              <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>{role === "seller" ? t("w.idWhySeller") : t("w.idWhyBusiness")}</T>
-              {view.kyc.checksReady ? <KycForm ownerName={data.ownerName} t={t} onDone={reload} /> : <Notice tone="info">{t("w.checksSoon")}</Notice>}
-            </>
-          )}
-        </View>
+        {check.kind === "business" ? (
+          <View style={{ gap: 8, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 12 }}>
+            <T weight="extrabold" style={{ fontSize: 15.5 }}>{t("w.businessStep")}{check.status === "approved" ? " ✓" : ""}</T>
+            <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>{t.dynamic(`w.business.${check.status}`, "")}</T>
+            {check.status !== "approved" ? (
+              <PillButton title={check.status === "pending" ? t("w.businessView") : t("w.businessGo")} size="sm" style={{ alignSelf: "flex-start" }} onPress={() => router.push("/supplier/verification")} />
+            ) : null}
+          </View>
+        ) : check.kind === "id" ? (
+          <View style={{ gap: 8, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 12 }}>
+            <T weight="extrabold" style={{ fontSize: 15.5 }}>{t("w.idStep")}{kycDone ? " ✓" : ""}</T>
+            {kycDone ? (
+              <T style={{ color: colors.inkSoft, fontSize: 15 }}>
+                {t("w.verified", { name: view.kyc.name ?? "", id: view.kyc.idType === "nin" ? "NIN" : "BVN", last4: view.kyc.idLast4 ?? "" })}
+              </T>
+            ) : (
+              <>
+                <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>{t("w.idWhyBusiness")}</T>
+                {view.kyc.checksReady ? <KycForm ownerName={data.ownerName} t={t} onDone={reload} /> : <Notice tone="info">{t("w.checksSoon")}</Notice>}
+              </>
+            )}
+          </View>
+        ) : null}
 
         <T style={{ color: colors.inkSoft, fontSize: 13.5, lineHeight: 19, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 12 }}>{view.fee ? t("w.fee", { fee: feeText(view.fee) }) : t("w.never")}</T>
       </Card>
