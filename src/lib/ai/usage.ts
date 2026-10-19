@@ -2,7 +2,7 @@ import "server-only";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db/client";
 import { checkRateLimitShared, rateLimitKey } from "@/lib/rate-limit";
-import { creditBalance, spendCredits } from "@/lib/ai/credits.server";
+import { creditBalance, liveCreditPrices, spendCredits } from "@/lib/ai/credits.server";
 import { creditCost, creditsUrlFor, outOfCreditsMessage } from "@shared/ai-credits";
 
 /** Where a seller buys AI credits. */
@@ -52,7 +52,7 @@ export async function meterAi(userId: string, kind: AiKind, units = 1): Promise<
     const limit = dailyLimit(kind, user?.aiCredits);
     if ((used._sum.units ?? 0) + units > limit) {
       // Allowance used up: bought credits pay for it (the saved card tops them up when auto top-up is on).
-      const cost = creditCost(kind, units);
+      const cost = creditCost(kind, units, (await liveCreditPrices()).costs);
       const left = await spendCredits(userId, cost).catch((error) => {
         console.error("[ai/usage] credit spend failed", error);
         return null;

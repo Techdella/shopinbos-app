@@ -5,10 +5,9 @@ import { billingEmail } from "@/lib/auth/billing-email";
 import { AppPage, PillLink } from "@/components/app-kit";
 import { supplierFrame } from "@/components/supplier/supplier-kit";
 import { getT } from "@/lib/i18n/server";
-import { creditOverview } from "@/lib/ai/credits.server";
+import { creditOverview, liveCreditPrices } from "@/lib/ai/credits.server";
 import { aiAllowanceToday } from "@/lib/ai/usage";
 import { db } from "@/lib/db/client";
-import { CREDIT_COST, CREDIT_PACKS } from "@shared/ai-credits";
 import { CreditsClient } from "@/app/home/credits/CreditsClient";
 
 export const dynamic = "force-dynamic";
@@ -30,7 +29,7 @@ export default async function SupplierCreditsPage({ searchParams }: { searchPara
     db.user.findUnique({ where: { id: user.id }, select: { aiCredits: true } }),
     searchParams,
   ]);
-  const allowance = await aiAllowanceToday(user.id, plan?.aiCredits);
+  const [allowance, prices] = await Promise.all([aiAllowanceToday(user.id, plan?.aiCredits), liveCreditPrices()]);
 
   return (
     <AppPage
@@ -41,8 +40,8 @@ export default async function SupplierCreditsPage({ searchParams }: { searchPara
     >
       <CreditsClient
         initial={overview}
-        packs={CREDIT_PACKS}
-        costs={CREDIT_COST}
+        packs={prices.packs}
+        costs={prices.costs}
         allowance={allowance}
         result={query.credits === "paid" || query.credits === "failed" || query.credits === "pending" ? query.credits : null}
         resultError={query.error?.slice(0, 300) ?? null}

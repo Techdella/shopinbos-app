@@ -40,7 +40,14 @@ export interface AdsOverview {
   requests: AdRequestRow[];
   products: AdProduct[];
   hasWhatsapp: boolean;
+  /** Live setup fees and naira minimum (missing from older servers: the built-in numbers apply). */
+  prices?: AdPrices;
   contact: { name: string; phone: string; email: string; businessName: string; website: string };
+}
+
+export interface AdPrices {
+  setup: { meta: number; tiktok: number };
+  minDailyNgn: number;
 }
 
 export const fetchAds = () => api<AdsOverview>("/api/mobile/ads");

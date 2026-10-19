@@ -23,7 +23,7 @@ import {
   type VoiceGender,
   type VoiceSource,
 } from "@shared/video-style";
-import { CREDIT_COST } from "@shared/ai-credits";
+import { CREDIT_COST, type CreditCosts } from "@shared/ai-credits";
 import { PURPOSE_DEFAULTS, type VideoConfig, type VideoPurpose } from "@shared/video-projects";
 import { loadReelImage, previewMusic, reelSupported, renderReel, type ReelResult } from "@/lib/video/render-reel";
 import { uploadFile } from "@/lib/supabase/storage";
@@ -88,6 +88,7 @@ export function VideoStudio({
   elevenLabs,
   project = null,
   purpose: startPurpose = "social",
+  costs = CREDIT_COST,
 }: {
   products: StudioProduct[];
   storeName: string;
@@ -99,6 +100,8 @@ export function VideoStudio({
   project?: { id: string; title: string; purpose: VideoPurpose; status: string; videoUrl: string | null; config: VideoConfig } | null;
   /** What a new video is for: an ad, a product or social media. */
   purpose?: VideoPurpose;
+  /** Credits a picture and a video cost (Admin › Pricing). */
+  costs?: Pick<CreditCosts, "image" | "video">;
 }) {
   const t = useT("video");
   const router = useRouter();
@@ -606,7 +609,7 @@ export function VideoStudio({
                 </button>
               ) : null}
             </div>
-            <p className="m-0 mt-2 text-[12px] text-app-ink-soft">{t("shots.cost", { credits: CREDIT_COST.image })}</p>
+            <p className="m-0 mt-2 text-[12px] text-app-ink-soft">{t("shots.cost", { credits: costs.image })}</p>
           </div>
         </section>
 
@@ -783,7 +786,7 @@ export function VideoStudio({
           <PillButton type="button" busy={step === "voicing" || step === "rendering"} disabled={busy || !photos.length} onClick={() => void make()}>
             {result ? t("makeAgain") : t("make")}
           </PillButton>
-          <p className="m-0 text-center text-[12px] text-app-ink-soft">{t("cost", { credits: CREDIT_COST.video })}</p>
+          <p className="m-0 text-center text-[12px] text-app-ink-soft">{t("cost", { credits: costs.video })}</p>
           {!result && savedUrl ? (
             <div className="grid gap-2 rounded-[16px] bg-app-canvas p-3">
               <p className="m-0 text-[13px] font-bold">{t("savedVersion")}</p>

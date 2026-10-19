@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { withSeller } from "@/lib/auth/middleware";
 import { db } from "@/lib/db/client";
 import { publishStoreDraft, StorePublishError } from "@/lib/store-publishing";
-import { STORE_LAUNCH_DEPOSIT_NGN, STORE_LAUNCH_TOTAL_NGN } from "@/lib/store-launch-billing";
+import { storeLaunchPrices } from "@/lib/store-launch-billing";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,13 +25,14 @@ export const POST = withSeller(async (_req: NextRequest, { user }) => {
       || launchBilling?.status === "deposit_paid";
 
     if (!hasLaunchAccess) {
+      const prices = await storeLaunchPrices();
       return NextResponse.json(
         {
           error: {
             code: "STORE_LAUNCH_PAYMENT_REQUIRED",
             message: "Choose a billing option before taking your store live.",
           },
-          billing: { total: STORE_LAUNCH_TOTAL_NGN, deposit: STORE_LAUNCH_DEPOSIT_NGN },
+          billing: { total: prices.totalNgn, deposit: prices.depositNgn },
         },
         { status: 402 },
       );

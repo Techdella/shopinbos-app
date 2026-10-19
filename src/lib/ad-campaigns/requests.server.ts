@@ -8,7 +8,9 @@ import { html } from "@/lib/email/shell";
 import { sendEmail } from "@/lib/notifications/resend";
 import { supportInbox } from "@/lib/support/email.server";
 import { appOrigin } from "@/lib/ads";
-import { AD_REQUEST_STATUS_LABEL, AD_SETUP_FEES, AD_SETUP_REFERENCE_PREFIX, type AdRequestInput, type AdRequestStatus } from "@shared/ad-campaigns";
+import { getPriceBook } from "@/lib/pricing/price-book.server";
+import { adSetupFees } from "@shared/platform-pricing";
+import { AD_REQUEST_STATUS_LABEL, AD_SETUP_REFERENCE_PREFIX, type AdRequestInput, type AdRequestStatus } from "@shared/ad-campaigns";
 
 // "Shopinbos runs it for me": the seller shares their details for a TikTok or Meta campaign, pays the setup fee
 // with Paystack, and the team works it at /admin/ad-requests. Ad spend itself is paid to TikTok or Meta.
@@ -18,7 +20,7 @@ export class AdRequestError extends Error {}
 const PLATFORM_NAME = { tiktok: "TikTok", meta: "Facebook & Instagram" } as const;
 
 export async function createAdRequest(input: { user: { id: string; email: string | null }; storeId: string; request: AdRequestInput; returnTo: string }) {
-  const fee = AD_SETUP_FEES[input.request.platform];
+  const fee = adSetupFees(await getPriceBook())[input.request.platform];
   const reference = `${AD_SETUP_REFERENCE_PREFIX}${crypto.randomUUID()}`;
   const { campaignId, ...details } = input.request;
   const campaign = campaignId ? await db.adCampaign.findFirst({ where: { id: campaignId, storeId: input.storeId }, select: { id: true } }) : null;

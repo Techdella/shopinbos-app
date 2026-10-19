@@ -6,7 +6,9 @@ import { CampaignError, launchCampaign, saveCampaignDraft, writeAdCopy } from "@
 import { MetaAdsError, metaAdsStatus, setMetaCampaignActive, syncMetaCampaign } from "@/lib/ad-campaigns/meta.server";
 import { createAdRequest } from "@/lib/ad-campaigns/requests.server";
 import { naira } from "@shared/onboarding";
-import { AD_REQUEST_STATUS_LABEL, AD_SETUP_FEES, campaignTotal, type AdCreative, type AdRequestStatus } from "@shared/ad-campaigns";
+import { getPriceBook } from "@/lib/pricing/price-book.server";
+import { adSetupFees } from "@shared/platform-pricing";
+import { AD_REQUEST_STATUS_LABEL, campaignTotal, type AdCreative, type AdRequestStatus } from "@shared/ad-campaigns";
 import type { PeggyToolInput } from "./pure";
 import { findProduct, ToolError, type PeggyToolContext, type ToolOutput } from "./tools";
 
@@ -97,7 +99,7 @@ async function createCampaign(ctx: PeggyToolContext, input: PeggyToolInput<"ads_
         ? meta?.status === "connected"
           ? "Launch it with ads_launch_campaign once the seller has checked it (that's when Meta starts charging)."
           : "Meta ads aren't connected yet: the seller connects at /home/ads, then it can be launched."
-        : `The Shopinbos team runs it after the ${naira(AD_SETUP_FEES[input.platform ?? "meta"])} setup fee: use ads_request_help with this campaign.`;
+        : `The Shopinbos team runs it after the ${naira(adSetupFees(await getPriceBook())[input.platform ?? "meta"])} setup fee: use ads_request_help with this campaign.`;
     const summary = `Saved the draft campaign "${saved.name}": ${withPhoto.length} product${withPhoto.length === 1 ? "" : "s"}, ${creatives.length} ad${creatives.length === 1 ? "" : "s"}, ${money(dailyBudget, currency)}/day for ${days} days (up to ${money(campaignTotal(dailyBudget, days), currency)}). Nothing is spent yet.`;
     return { content: `${summary} Ads: ${creatives.map((c) => `"${c.headline}"`).join(", ")}. Campaign id: ${saved.id}. ${next}`, action: { summary, href: ADS_HREF } };
   } catch (error) {
@@ -154,7 +156,7 @@ async function requestHelp(ctx: PeggyToolContext, input: PeggyToolInput<"ads_req
   const phone = user?.phone ?? ctx.userPhone;
   if (!phone) throw new ToolError("The team needs a phone number to call the seller. Ask for their WhatsApp number and add it to their profile first.");
   const campaign = input.campaign ? await findCampaign(ctx, input.campaign) : null;
-  const fee = AD_SETUP_FEES[input.platform];
+  const fee = adSetupFees(await getPriceBook())[input.platform];
   try {
     const result = await createAdRequest({
       user: { id: ctx.userId, email: user?.email ?? null },

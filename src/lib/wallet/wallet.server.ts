@@ -2,6 +2,8 @@ import "server-only";
 import { createHmac } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
+import { getPriceBook } from "@/lib/pricing/price-book.server";
+import { storeFeeConfig } from "@shared/platform-pricing";
 import { korapayCheckoutReady, verifyKorapayIdentity, korapayIdentityReady } from "@/lib/korapay";
 import { verifyYouverifyIdentity, youverifyReady } from "@/lib/youverify";
 import { approveIdentityDocFromWallet } from "@/lib/kyb/identity-doc.server";
@@ -297,10 +299,10 @@ export async function storeTakesKorapay(storeId: string) {
  * Korapay split account), plus each dropship supplier with one for their wholesale cost. Null when the seller's
  * wallet can't take payments through that gateway.
  */
-/** Shopinbos's fee on store sales: the active PlatformFeeConfig, or none when there isn't one. */
+/** Shopinbos's fee on store sales (Admin › Pricing), or none when neither a rate nor a minimum is set. */
 export async function platformFee(): Promise<PlatformFee | null> {
-  const row = await db.platformFeeConfig.findFirst({ where: { active: true }, orderBy: { updatedAt: "desc" }, select: { rate: true, minFee: true, maxFee: true } });
-  return row ? { rate: row.rate, minFee: row.minFee, maxFee: row.maxFee } : null;
+  const fee = storeFeeConfig(await getPriceBook());
+  return fee.rate > 0 || fee.minFee > 0 ? fee : null;
 }
 
 export async function splitPlanForOrder(

@@ -4,7 +4,7 @@
 // Shopinbos never holds anyone's money. A store payment is split by the gateway at checkout: the seller's share goes
 // to the seller's Paystack subaccount (or Korapay split account), each dropship supplier's cost to the supplier's,
 // and the gateway settles every share straight to that business's own bank. Shopinbos's own share is its fee on the
-// sale (PlatformFeeConfig; none when no fee is set).
+// sale (Admin › Pricing, shared/platform-pricing.ts; none when no fee is set).
 
 export const WALLET_ROLES = ["seller", "supplier", "logistics_partner"] as const;
 export type WalletRole = (typeof WALLET_ROLES)[number];
@@ -85,7 +85,7 @@ export interface SupplierShareInput {
   costKobo: number;
 }
 
-/** Shopinbos's fee on store sales (PlatformFeeConfig): a percentage of what the seller sells, within min / max (naira; 0 = none). */
+/** Shopinbos's fee on store sales (Admin › Pricing): a percentage of what the seller sells, within min / max (naira; 0 = none). */
 export interface PlatformFee {
   rate: number;
   minFee: number;

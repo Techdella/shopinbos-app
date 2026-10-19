@@ -6,7 +6,8 @@ import { db } from "@/lib/db/client";
 import { billingEmail } from "@/lib/auth/billing-email";
 import { chargePaystackAuthorization, initializePaystackTransaction, verifyPaystackTransaction } from "@/lib/paystack";
 import { readSavedAuthorization, savedAuthorization } from "@/lib/domains/billing-pure";
-import { CREDIT_PACKS, CREDIT_REFERENCE_PREFIX, WELCOME_CREDITS, creditPack, packKobo, planCreditGrant, shouldAutoTopUp } from "@shared/ai-credits";
+import { CREDIT_REFERENCE_PREFIX, DEFAULT_AUTO_PACK, creditCosts, creditPack, creditPacksFrom, packKobo, planCreditGrant, shouldAutoTopUp } from "@shared/ai-credits";
+import { getPriceBook } from "@/lib/pricing/price-book.server";
 
 // Buying AI credits and spending them (rules in shared/ai-credits.ts).
 //
@@ -16,6 +17,12 @@ import { CREDIT_PACKS, CREDIT_REFERENCE_PREFIX, WELCOME_CREDITS, creditPack, pac
 //   the balance can't cover a request (at most AUTO_TOP_UP_PER_DAY times a day).
 
 export class CreditError extends Error {}
+
+/** Today's packs, per-request costs and welcome credits (Admin › Pricing). */
+export async function liveCreditPrices() {
+  const book = await getPriceBook();
+  return { packs: creditPacksFrom(book), costs: creditCosts(book), welcome: book["credits.welcome"] };
+}
 
 export interface CreditOverview {
   balance: number;
@@ -31,7 +38,10 @@ export interface CreditOverview {
  */
 export async function ensureCreditAccount(userId: string) {
   try {
-    return await db.aiCreditAccount.upsert({ where: { userId }, create: { userId, balance: WELCOME_CREDITS }, update: {} });
+    const existing = await db.aiCreditAccount.findUnique({ where: { userId } });
+    if (existing) return existing;
+    const { welcome } = await liveCreditPrices();
+    return await db.aiCreditAccount.upsert({ where: { userId }, create: { userId, balance: welcome }, update: {} });
   } catch (error) {
     // Two first requests at once: the other one opened the account.
     if ((error as { code?: string }).code === "P2002") return db.aiCreditAccount.findUniqueOrThrow({ where: { userId } });
@@ -83,7 +93,7 @@ export async function grantPlanCredits(userId: string, planCode: string | null |
 
 /** Starts a Paystack checkout for a pack; returns the page to send the seller to. */
 export async function startCreditCheckout(input: { user: { id: string; email: string | null }; packId: string; autoTopUp: boolean; origin: string; returnTo: string }) {
-  const pack = creditPack(input.packId);
+  const pack = creditPack(input.packId, (await liveCreditPrices()).packs);
   if (!pack) throw new CreditError("Choose one of the credit packs.");
   const reference = `${CREDIT_REFERENCE_PREFIX}${crypto.randomUUID()}`;
   await db.aiCreditPurchase.create({ data: { reference, userId: input.user.id, packId: pack.id, credits: pack.credits, amountKobo: packKobo(pack), saveCard: input.autoTopUp } });
@@ -134,14 +144,14 @@ export async function completeCreditPurchase(reference: string): Promise<"paid" 
     throw new CreditError("That payment doesn't match this credit purchase. Contact support if you were charged.");
   }
   const card = row.saveCard ? savedAuthorization(verified.authorization, customer) : null;
-  await ensureCreditAccount(row.userId);
+  const opened = await ensureCreditAccount(row.userId);
   await db.$transaction(async (tx) => {
     const moved = await tx.aiCreditPurchase.updateMany({ where: { reference, status: "pending" }, data: { status: "paid", paidAt: new Date(), error: null } });
     if (moved.count !== 1) return;
     const remember = card?.reusable ? { authorization: asJson(card), autoTopUp: true, autoPackId: row.packId } : {};
     await tx.aiCreditAccount.upsert({
       where: { userId: row.userId },
-      create: { userId: row.userId, balance: WELCOME_CREDITS + row.credits, ...remember },
+      create: { userId: row.userId, balance: opened.balance + row.credits, ...remember },
       update: { balance: { increment: row.credits }, ...remember },
     });
   });
@@ -150,15 +160,15 @@ export async function completeCreditPurchase(reference: string): Promise<"paid" 
 
 /** Turns auto top-up on or off, or changes its pack. Turning it on needs a card saved from a purchase. */
 export async function setAutoTopUp(userId: string, input: { enabled: boolean; packId?: string | null }) {
-  const account = await db.aiCreditAccount.findUnique({ where: { userId } });
-  const pack = input.packId === undefined ? creditPack(account?.autoPackId) ?? CREDIT_PACKS[1] : creditPack(input.packId);
+  const [account, { packs }] = await Promise.all([db.aiCreditAccount.findUnique({ where: { userId } }), liveCreditPrices()]);
+  const pack = input.packId === undefined ? creditPack(account?.autoPackId, packs) ?? creditPack(DEFAULT_AUTO_PACK, packs) : creditPack(input.packId, packs);
   if (!pack) throw new CreditError("Choose one of the credit packs.");
   if (input.enabled && !readSavedAuthorization(account?.authorization)) {
     throw new CreditError("Buy a pack with “Top me up automatically” ticked first, so we can save your card.");
   }
   return db.aiCreditAccount.upsert({
     where: { userId },
-    create: { userId, balance: WELCOME_CREDITS, autoTopUp: false, autoPackId: pack.id },
+    create: { userId, balance: (await liveCreditPrices()).welcome, autoTopUp: false, autoPackId: pack.id },
     update: { autoTopUp: input.enabled, autoPackId: pack.id },
   });
 }
@@ -171,18 +181,19 @@ export async function forgetCreditCard(userId: string) {
 /** Charges the saved card for the auto top-up pack. True when the credits went in. */
 async function autoTopUp(userId: string, need: number): Promise<boolean> {
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  const [account, autoChargesToday, user] = await Promise.all([
+  const [account, autoChargesToday, user, { packs }] = await Promise.all([
     db.aiCreditAccount.findUnique({ where: { userId } }),
     db.aiCreditPurchase.count({ where: { userId, auto: true, createdAt: { gte: since } } }),
     db.user.findUnique({ where: { id: userId }, select: { id: true, email: true } }),
+    liveCreditPrices(),
   ]);
   const card = readSavedAuthorization(account?.authorization);
   if (!account || !card || !user) return false;
-  if (!shouldAutoTopUp({ autoTopUp: account.autoTopUp, hasCard: card.reusable, packId: account.autoPackId, need, balance: account.balance, autoChargesToday })) return false;
+  if (!shouldAutoTopUp({ autoTopUp: account.autoTopUp, hasCard: card.reusable, packId: account.autoPackId, need, balance: account.balance, autoChargesToday, packs })) return false;
   // Two requests landing together must not charge twice: one automatic charge a minute at most.
   const recent = await db.aiCreditPurchase.count({ where: { userId, auto: true, createdAt: { gte: new Date(Date.now() - 60_000) } } });
   if (recent > 0) return false;
-  const pack = creditPack(account.autoPackId)!;
+  const pack = creditPack(account.autoPackId, packs)!;
   const reference = `${CREDIT_REFERENCE_PREFIX}auto-${crypto.randomUUID()}`;
   await db.aiCreditPurchase.create({ data: { reference, userId, packId: pack.id, credits: pack.credits, amountKobo: packKobo(pack), auto: true } });
   try {

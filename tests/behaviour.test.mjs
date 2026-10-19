@@ -3338,7 +3338,7 @@ test("Ad campaigns: validation, Meta payloads, insights and statuses", async () 
   const creative = { productId: "p1", kind: "image", mediaUrl: "https://x.supabase.co/storage/v1/object/public/p.jpg", headline: "Soft tote", primaryText: "Order now.", cta: "SHOP_NOW" };
   const base = { name: "Totes", mode: "meta", objective: "traffic", productIds: ["p1"], audience: { countries: ["NG"], states: ["Lagos"], ageMin: 18, ageMax: 40, gender: "women", interests: ["fashion"] }, creatives: [creative], dailyBudget: 5000, currency: "NGN", startAt: "2026-11-01", days: 7 };
   assert.equal(a.CampaignInputSchema.safeParse(base).success, true);
-  assert.match(a.CampaignInputSchema.safeParse({ ...base, dailyBudget: 300 }).error.issues[0].message, /smallest daily budget/);
+  assert.match(a.CampaignInputSchema.safeParse({ ...base, dailyBudget: 50 }).error.issues[0].message, /smallest daily budget/);
   assert.match(a.CampaignInputSchema.safeParse({ ...base, audience: { ...base.audience, ageMin: 50, ageMax: 30 } }).error.issues[0].message, /oldest age/);
   assert.equal(a.CampaignInputSchema.safeParse({ ...base, productIds: [] }).success, false);
 

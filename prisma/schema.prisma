@@ -204,6 +204,7 @@ model User {
   @@index([email])
   @@index([supabaseId])
   @@index([role])
+  platformSettingChanges PlatformSettingChange[] @relation("PlatformSettingChanges")
 }
 
 // ─── Store ────────────────────────────────────────────────────────────────────
@@ -3792,4 +3793,28 @@ model MetaDataDeletionRequest {
   completedAt      DateTime?
 
   @@index([metaUserHash])
+}
+
+// Platform-wide settings an admin changes without a deploy. Prices live under "price.<key>" (Admin › Pricing,
+// shared/platform-pricing.ts); unset keys use the registry's defaults.
+model PlatformSetting {
+  key         String   @id
+  value       Json
+  updatedById String?
+  updatedAt   DateTime @updatedAt
+}
+
+// Every change to a PlatformSetting: who, when, from what to what, and why.
+model PlatformSettingChange {
+  id          String   @id @default(cuid())
+  key         String
+  before      Json?
+  after       Json
+  note        String?
+  changedById String?
+  changedBy   User?    @relation("PlatformSettingChanges", fields: [changedById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+
+  @@index([key, createdAt])
+  @@index([createdAt])
 }

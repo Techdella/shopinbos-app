@@ -4,6 +4,8 @@ import { db } from "@/lib/db/client";
 import { getSellerAds, sellerWhatsapp } from "@/lib/ads";
 import { metaAdsStatus, syncMetaCampaign } from "@/lib/ad-campaigns/meta.server";
 import { buildStorefrontUrl } from "@/lib/domains/storefront";
+import { getPriceBook } from "@/lib/pricing/price-book.server";
+import { adPrices } from "@shared/platform-pricing";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -24,7 +26,7 @@ export const GET = withSeller(async (_req, { user }) => {
   await Promise.all(stale.map((campaign) => syncMetaCampaign(campaign).catch(() => null)));
 
   const me = await db.user.findUnique({ where: { id: user.id }, select: { name: true, phone: true, email: true } });
-  const [ads, meta, requests, products, whatsapp] = await Promise.all([
+  const [ads, meta, requests, products, whatsapp, book] = await Promise.all([
     getSellerAds(store.id),
     metaAdsStatus(store.id),
     db.adServiceRequest.findMany({ where: { storeId: store.id }, orderBy: { createdAt: "desc" }, take: 20 }).catch(() => []),
@@ -35,6 +37,7 @@ export const GET = withSeller(async (_req, { user }) => {
       select: { id: true, name: true, retailPrice: true, images: true },
     }),
     sellerWhatsapp(store.id, me?.phone ?? null),
+    getPriceBook(),
   ]);
 
   const campaigns = ads.filter((ad) => ad.mode !== "manual").map((ad) => {
@@ -86,6 +89,8 @@ export const GET = withSeller(async (_req, { user }) => {
     requests: requests.map((row) => ({ id: row.id, platform: row.platform, status: row.status, businessName: row.businessName, setupFee: row.setupFee, createdAt: row.createdAt.toISOString(), paid: Boolean(row.paidAt), campaignId: row.campaignId })),
     products: products.map((product) => ({ id: product.id, name: product.name, price: Number(product.retailPrice) || 0, image: product.images[0] ?? null })),
     hasWhatsapp: Boolean(whatsapp),
+    /** Setup fees and the naira minimum from Admin › Pricing (older app builds use their built-in numbers). */
+    prices: adPrices(book),
     contact: { name: me?.name ?? "", phone: me?.phone ?? "", email: me?.email ?? user.email ?? "", businessName: store.name, website: buildStorefrontUrl(store, "/") },
   });
 });

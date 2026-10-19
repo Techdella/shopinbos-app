@@ -12,6 +12,7 @@ import {
 } from "@/lib/paystack";
 import { naira } from "@shared/onboarding";
 import { freeDomainEligible } from "@/lib/seller-plan";
+import { getPriceBook } from "@/lib/pricing/price-book.server";
 import { domainOrdersOf } from "./orders";
 import { markPurchasedDomainVerified, releaseStoreDomain } from "./ownership.server";
 import { normalizeDomain } from "./storefront";
@@ -29,7 +30,6 @@ import {
 import {
   addOneYear,
   daysLeft,
-  domainPricingConfig,
   dueReminder,
   expiryDecision,
   latestBoughtPerDomain,
@@ -41,6 +41,7 @@ import {
   shouldAutoCharge,
   storeHasDomainPurchase,
   withinMaxUsd,
+  type DomainPricingConfig,
   type DomainPurchaseKind,
   type SavedAuthorization,
 } from "./billing-pure";
@@ -76,13 +77,14 @@ export function domainPurchaseEnabled() {
   return process.env.DOMAIN_PURCHASE_ENABLED === "true";
 }
 
-export function domainPricing() {
-  return domainPricingConfig(process.env);
+/** Exchange rate, markup and USD cap from Admin › Pricing (defaults: the old DOMAIN_* environment variables). */
+export async function domainPricing(): Promise<DomainPricingConfig> {
+  const book = await getPriceBook();
+  return { usdNgnRate: book["domains.usd_rate"], markupNgn: book["domains.markup"], maxUsd: book["domains.max_usd"] };
 }
 
 /** Naira prices for a search result (null when we don't sell it: no price, or above DOMAIN_PURCHASE_MAX_USD). */
-export function nairaQuote(purchaseUsd: number | null | undefined, renewalUsd: number | null | undefined) {
-  const config = domainPricing();
+export function nairaQuote(purchaseUsd: number | null | undefined, renewalUsd: number | null | undefined, config: DomainPricingConfig) {
   if (!withinMaxUsd(purchaseUsd, config)) return { priceNgn: null, renewalNgn: null };
   return { priceNgn: nairaPriceForUsd(purchaseUsd, config), renewalNgn: nairaPriceForUsd(renewalUsd ?? purchaseUsd, config) };
 }
@@ -90,7 +92,7 @@ export function nairaQuote(purchaseUsd: number | null | undefined, renewalUsd: n
 /** The registrar's price right now (USD) and what the seller pays. Throws DomainBillingError when we don't sell it. */
 export async function quoteDomain(rawDomain: string, kind: DomainPurchaseKind) {
   const domain = normalizeDomain(rawDomain);
-  const config = domainPricing();
+  const config = await domainPricing();
   const price = await getDomainPriceOnVercel(domain, 1);
   const costUsd = kind === "new" ? price.purchasePrice : price.renewalPrice;
   if (!withinMaxUsd(costUsd, config)) {
