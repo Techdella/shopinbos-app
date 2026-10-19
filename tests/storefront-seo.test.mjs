@@ -433,15 +433,13 @@ test("llms.txt: summary, key pages, products with price and stock, policies and 
 
 // ─── Head ────────────────────────────────────────────────────────────────────
 
-test("verification meta for search consoles, from the store's integrations (pasted tags work too)", () => {
-  assert.deepEqual(head.storeVerificationMeta({}), {});
-  assert.deepEqual(head.storeVerificationMeta(null), {});
-  assert.deepEqual(head.storeVerificationMeta({ gaSiteVerification: '<meta name="google-site-verification" content="abcDEF_123-xyz" />' }), { verification: { google: "abcDEF_123-xyz" } });
-  assert.deepEqual(
-    head.storeVerificationMeta({ googleSiteVerification: "g-token", bingSiteVerification: "B1NG", pinterestVerification: "p1nt", facebookDomainVerification: "fbtoken", yandexVerification: "y4ndex" }),
-    { verification: { google: "g-token", yandex: "y4ndex", other: { "msvalidate.01": "B1NG", "p:domain_verify": "p1nt", "facebook-domain-verification": "fbtoken" } } },
-  );
-  assert.deepEqual(head.storeVerificationMeta({ gaSiteVerification: '"><script>alert(1)</script>' }), {}, "anything that isn't a token is dropped");
+test("the store head carries only Google's verification meta (set by Connect Google), never other codes", async () => {
+  const integ = await import("../src/lib/storefront/integrations.ts");
+  const verification = (integrations) => integ.storeVerificationMetadata(integ.readIntegrations({ integrations }));
+  assert.deepEqual(verification({}), {});
+  assert.deepEqual(verification({ gaSiteVerification: '<meta name="google-site-verification" content="abcDEF_123-xyzABCdef0987654321" />' }), { verification: { google: "abcDEF_123-xyzABCdef0987654321" } });
+  assert.deepEqual(verification({ bingSiteVerification: "0123456789ABCDEF0123456789ABCDEF", facebookDomainVerification: "fbtokenfbtokenfbtoken12", pinterestSiteVerification: "0123456789abcdef0123456789abcdef" }), {}, "Bing, Meta and Pinterest codes are gone");
+  assert.deepEqual(verification({ gaSiteVerification: '"><script>alert(1)</script>' }), {}, "anything that isn't a token is dropped");
   const meta = head.storeHeadMetadata({ name: "Ada's" }, "https://app.shopinbos.com/s/adas");
   assert.equal(meta.metadataBase.toString(), "https://app.shopinbos.com/");
 });

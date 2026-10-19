@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { readStoredConsent } from "@/lib/storefront/consent-browser";
 
 // Store traffic for /home/analytics/traffic: one small POST per page opened (its path, and the shop search on /shop),
 // the session's landing details once (referrer host only, ?ref / utm tags), and how long each page stayed visible.
@@ -111,8 +110,8 @@ export function StoreTrafficBeacon({ slug }: { slug: string }) {
           };
     }
     if (limited) body.limited = true;
-    // Unique and new visitors: only for shoppers who didn't opt out (DNT / GPC, or "no" to analytics on the banner).
-    if (local && !limited && readStoredConsent(slug)?.analytics !== false) {
+    // Unique and new visitors: only for shoppers who didn't opt out (DNT / GPC).
+    if (local && !limited) {
       const dayKey = `sib-trf-day:${slug}`;
       const today = lagosDay();
       if (local.getItem(dayKey) !== today) {

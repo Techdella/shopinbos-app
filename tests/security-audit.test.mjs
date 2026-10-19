@@ -16,7 +16,7 @@ const { retailChargeProblem } = await import("../src/lib/commerce/paystack-charg
 const { cronAuthorization } = await import("../src/lib/auth/cron.ts");
 const { isPrivateAddress, urlShapeProblem } = await import("../src/lib/security/ssrf.ts");
 const { uploadContentProblem, svgProblem, SNIFF_BYTES } = await import("../src/lib/security/upload-sniff.ts");
-const { scriptSafeJson, gaMeasurementId } = await import("../src/lib/security/html.ts");
+const { scriptSafeJson, googleSiteVerification } = await import("../src/lib/security/html.ts");
 const { verificationFileAllowed, verificationFileHref } = await import("../src/lib/security/private-files.ts");
 const { publicBrandSettings } = await import("../shared/public-brand-settings.ts");
 const routing = require(path.join(ROOT, "src/lib/intent-routing.js"));
@@ -183,24 +183,20 @@ test("verification documents open only for their owner or an admin", () => {
 
 // ─── XSS ──────────────────────────────────────────────────────────────────────
 
-test("JSON-LD can't close its <script> and the GA ID can't inject script", () => {
+test("JSON-LD can't close its <script> and the Search Console code can't inject markup", () => {
   const out = scriptSafeJson({ name: '</script><script>alert(1)</script>', note: "a & b \u2028" });
   assert.doesNotMatch(out, /<\/script/i);
   assert.doesNotMatch(out, /[<>&\u2028]/);
   assert.deepEqual(JSON.parse(out), { name: '</script><script>alert(1)</script>', note: "a & b \u2028" });
-  assert.equal(gaMeasurementId("G-ABC123XYZ"), "G-ABC123XYZ");
-  assert.equal(gaMeasurementId(" g-abc123 "), "G-ABC123");
-  for (const bad of ["G-1');alert(document.cookie);//", "UA-12345-1", "", null, 42, "G-"]) assert.equal(gaMeasurementId(bad), "", String(bad));
-  // The storefront's JSON-LD lives in the shared route renderer (page.tsx and [collection] use it). The seller's
-  // Tag Manager / pixels load from the storefront layout, built only from validated IDs
-  // (src/lib/storefront/integrations.ts; tests/store-traffic.test.mjs covers the validators and the scripts).
+  for (const bad of ['"><script>alert(1)</script>', "", null, 42]) assert.equal(googleSiteVerification(bad), "", String(bad));
+  // The storefront's JSON-LD lives in the shared route renderer (page.tsx and [collection] use it). Stores load no
+  // outside tracking tags (src/lib/storefront/integrations.ts).
   const page = read("src/app/s/[slug]/storefront-route.tsx");
   assert.match(page, /__html: scriptSafeJson\(item\)/);
-  assert.doesNotMatch(page, /googletagmanager/, "GA moved to the layout, so it isn't loaded twice");
+  assert.doesNotMatch(page, /googletagmanager/);
   const integrations = read("src/lib/storefront/integrations.ts");
-  assert.match(integrations, /gtmContainerId,\n  metaPixelId,/);
-  assert.doesNotMatch(integrations, /gtag\/js/, "stores never load Google Analytics");
-  assert.match(read("src/app/s/[slug]/layout.tsx"), /<StoreTrackingTags integrations=\{integrations\} slug=\{slug\} consent=\{consent\}/);
+  assert.doesNotMatch(integrations, /googletagmanager\.com|fbevents\.js|analytics\.tiktok\.com/, "stores never load tracking tags");
+  assert.doesNotMatch(read("src/app/s/[slug]/layout.tsx"), /StoreTrackingTags/);
   assert.match(read("src/app/s/[slug]/product/[productId]/ProductPageView.tsx"), /__html: scriptSafeJson\(/);
   assert.doesNotMatch(read("src/app/actions/workspace.ts"), /googleAnalyticsId/, "sellers can't save a Google Analytics ID");
   // Every JSON-LD script in the app goes through an escaping helper.

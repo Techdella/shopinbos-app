@@ -4,19 +4,15 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
-import { Card, CardHead, Pill, TextLink } from "@/components/app-kit";
-import { FIELD_HELP, FIELD_INPUT, FIELD_LABEL, SUBMIT_ACCENT } from "@/components/seller-settings/fields";
+import { Card, Pill, TextLink } from "@/components/app-kit";
 import { buttonClass } from "@/components/growth/kit";
 import { Icon } from "@/components/ui/Icon";
 import { PlatformLogo } from "@/components/channels/PlatformLogo";
-import { readIntegrations } from "@/lib/storefront/integrations";
-import { BANNER_MESSAGE_MAX, bannerText, hasThirdPartyTags, readCookieBanner, tagCategories } from "@/lib/storefront/consent";
-import { legalLinks } from "@/lib/legal/pages";
 import { googleOverview } from "@/lib/google/connect.server";
 import { channelCards } from "@/lib/sales-channels/server";
 import { COMING_SOON_PLATFORMS, PLATFORM_NAME, isOAuthPlatform, platformConfigured } from "@/lib/sales-channels/pure";
 import { emailRow, googleConfigured as gmailConfigured, readEmailSettings } from "@/lib/email-channel/server";
-import { disconnectGoogleAction, finishGoogleSetupAction, saveCookieNotice } from "@/app/actions/connections";
+import { disconnectGoogleAction, finishGoogleSetupAction } from "@/app/actions/connections";
 import { ConnectAccounts } from "@/app/channels/ConnectAccounts";
 import { SoonCard } from "@/app/channels/ChannelClient";
 import { getT } from "@/lib/i18n/server";
@@ -25,9 +21,8 @@ import type { MessageKey } from "@shared/i18n/catalog";
 
 // Connections: every account the store connects, on one page, each with what it does in plain words and one
 // button. WhatsApp, Facebook & Instagram (src/app/channels/ConnectAccounts.tsx); Google, one sign-in for free
-// listings, reviews, search and visitor stats (src/lib/google/connect.server.ts), plus Gmail; what's coming soon;
-// and the cookie notice. Nothing to paste: IDs (Analytics, pixel, Search Console code) are found by the sign-ins.
-// IDs saved earlier from the old form still work on the store (src/lib/storefront/integrations.ts).
+// listings, reviews and search (src/lib/google/connect.server.ts), plus Gmail; and what's coming soon. Nothing to
+// paste, and stores load no tracking tags, so there's no cookie notice to set up.
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -77,11 +72,6 @@ export default async function ConnectionsPage({ searchParams }: { searchParams: 
 
   const done = isOAuthPlatform(params.connected) && !params.problem ? PLATFORM_NAME[params.connected] : null;
   const failed = isOAuthPlatform(params.problem) ? PLATFORM_NAME[params.problem] : null;
-
-  const cookieBanner = readCookieBanner(store.brandSettings);
-  const needsBanner = hasThirdPartyTags(tagCategories(readIntegrations(store.brandSettings)));
-  const policies = legalLinks(store.brandSettings);
-  const policyValue = cookieBanner.policy === "auto" || cookieBanner.policy === "none" || policies.some((page) => page.key === cookieBanner.policy) ? cookieBanner.policy : "auto";
 
   const off = <span className="text-app-ink-soft">{t("cx.off")}</span>;
   const on = (text?: string | null) => <span className="font-semibold text-app-success">{text ? `✓ ${text}` : `✓ ${t("cx.on")}`}</span>;
@@ -173,51 +163,6 @@ export default async function ConnectionsPage({ searchParams }: { searchParams: 
           </ul>
         </section>
 
-        <form action={saveCookieNotice} id="cookies" className="scroll-mt-24">
-          <Card className="min-w-0 p-5">
-            <CardHead
-              title={t("conn.cookie.title")}
-              sub={t("cx.cookie.sub")}
-              action={<Pill tone={needsBanner && cookieBanner.enabled ? "success" : "muted"} dot>{!needsBanner ? t("conn.cookie.notNeeded") : cookieBanner.enabled ? t("conn.cookie.on") : t("conn.cookie.off")}</Pill>}
-            />
-            <input type="hidden" name="cookieBannerForm" value="1" />
-            {!needsBanner && <p className="mb-0 mt-3 rounded-[14px] bg-app-canvas px-4 py-3 text-[13.5px] leading-[1.5] text-app-ink-soft">{t("cx.cookie.noTags")}</p>}
-            <div className="mt-4 grid gap-5 lg:grid-cols-2">
-              <div className="min-w-0">
-                <label className="flex items-start gap-3 text-[14px] font-bold">
-                  <input type="checkbox" name="cookieBannerEnabled" defaultChecked={cookieBanner.enabled} className="mt-0.5 h-5 w-5 shrink-0" aria-describedby="cookieBannerEnabled-help" />
-                  <span>{t("conn.cookie.enabled")}</span>
-                </label>
-                <p id="cookieBannerEnabled-help" className={FIELD_HELP}>{t("cx.cookie.help")}</p>
-                <p className={FIELD_HELP}>{t("conn.cookie.footer")}</p>
-              </div>
-              <div className="min-w-0">
-                <label htmlFor="cookieBannerMessage" className={FIELD_LABEL}>{t("conn.cookie.message")}</label>
-                <textarea
-                  id="cookieBannerMessage"
-                  name="cookieBannerMessage"
-                  rows={3}
-                  maxLength={BANNER_MESSAGE_MAX}
-                  defaultValue={cookieBanner.message}
-                  placeholder={bannerText("body")}
-                  className={`${FIELD_INPUT} min-h-[88px] py-2`}
-                  aria-describedby="cookieBannerMessage-help"
-                />
-                <p id="cookieBannerMessage-help" className={FIELD_HELP}>{t("conn.cookie.messageHelp", { max: BANNER_MESSAGE_MAX, standard: bannerText("body") })}</p>
-                <label htmlFor="cookieBannerPolicy" className={`${FIELD_LABEL} mt-4 block`}>{t("conn.cookie.policy")}</label>
-                <select id="cookieBannerPolicy" name="cookieBannerPolicy" defaultValue={policyValue} className={FIELD_INPUT} aria-describedby="cookieBannerPolicy-help">
-                  <option value="auto">{t("conn.cookie.policyAuto")}</option>
-                  {policies.map((page) => <option key={page.key} value={page.key}>{page.title}</option>)}
-                  <option value="none">{t("conn.cookie.policyNone")}</option>
-                </select>
-                <p id="cookieBannerPolicy-help" className={FIELD_HELP}>
-                  {policies.length ? t("conn.cookie.policyHelp") : <>{t("conn.cookie.noPolicy")} <TextLink href="/home/legal">{t("conn.cookie.writePolicy")}</TextLink></>}
-                </p>
-              </div>
-            </div>
-            <div className="mt-4"><button className={SUBMIT_ACCENT} type="submit">{t("conn.save")}</button></div>
-          </Card>
-        </form>
       </div>
     </SellerPage>
   );

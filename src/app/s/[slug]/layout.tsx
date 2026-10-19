@@ -13,11 +13,9 @@ import { loadStoreBrand } from "@/lib/storefront/public-store.server";
 import { loadStorefrontCampaigns } from "@/lib/store-campaigns/storefront.server";
 import { CampaignLayer } from "@/components/storefront/campaign/CampaignLayer";
 import { Suspense } from "react";
-import { StoreTrackingTags } from "@/components/storefront/StoreTrackingTags";
 import { StoreTrafficBeacon } from "@/components/storefront/StoreTrafficBeacon";
-import { liveStoreIntegrations } from "@/lib/storefront/tracking.server";
+import { storeIsLive } from "@/lib/storefront/tracking.server";
 import { isPreviewPath } from "@/lib/storefront/integrations";
-import { storeConsentConfig } from "@/lib/storefront/consent-config";
 
 // Every storefront page gets the store's chat box (it hides itself in the builder preview and when the
 // seller hasn't turned live chat on), and the store's name and colours for its 404 and error pages.
@@ -48,25 +46,20 @@ export default async function StorefrontLayout({ children, params }: { children:
   const basePath = getStorefrontBasePathForHost(host, slug);
   // Seasonal campaigns: one small query; stores with no live campaign render exactly as before.
   const campaigns = brand?.active ? await loadStorefrontCampaigns(brand.id) : null;
-  // Store traffic and the seller's own tags (Settings › Connections): live stores only, never the owner's preview.
+  // Store traffic (first-party, no outside tags): live stores only, never the owner's preview.
   const preview = isPreviewPath(requestHeaders.get("x-shopinbos-path"));
-  const integrations = preview ? null : await liveStoreIntegrations(brand);
-  // The cookie banner, when the store has third-party tags and the seller kept it on (Settings › Connections).
-  const consent = integrations && brand ? storeConsentConfig(brand.slug, integrations, brand.brandSettings) : null;
+  const counted = preview ? false : await storeIsLive(brand);
   const value = brand
-    ? { name: brand.name, logoUrl: campaigns?.logoUrl ?? brand.logoUrl, logoVariants: (brand.brandSettings as Record<string, unknown> | null)?.logoVariants, basePath, theme: resolveShopperTheme(brand.brandSettings), slug: brand.slug, showBadge: brand.showBadge, paymentBadges: brand.paymentBadges, cookieSettings: Boolean(consent) }
+    ? { name: brand.name, logoUrl: campaigns?.logoUrl ?? brand.logoUrl, logoVariants: (brand.brandSettings as Record<string, unknown> | null)?.logoVariants, basePath, theme: resolveShopperTheme(brand.brandSettings), slug: brand.slug, showBadge: brand.showBadge, paymentBadges: brand.paymentBadges }
     : null;
   return (
     <StoreBrandProvider value={value}>
       {campaigns ? <CampaignLayer view={campaigns.view} slug={slug} basePath={basePath}>{children}</CampaignLayer> : children}
       <LiveChatWidget slug={slug} />
-      {integrations && (
-        <>
-          <StoreTrackingTags integrations={integrations} slug={slug} consent={consent} currency={brand?.currency ?? "NGN"} />
-          <Suspense fallback={null}>
-            <StoreTrafficBeacon slug={slug} />
-          </Suspense>
-        </>
+      {counted && (
+        <Suspense fallback={null}>
+          <StoreTrafficBeacon slug={slug} />
+        </Suspense>
       )}
     </StoreBrandProvider>
   );

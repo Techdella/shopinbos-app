@@ -5,8 +5,7 @@ import { mergeBrandSettings, parseBrandSettings } from "@/lib/workspace";
 import { INTEGRATION_VALIDATORS, type IntegrationKey } from "./integrations";
 
 /**
- * Saves one connection found for the seller by a sign-in (the Google Analytics ID, the Search Console code, the
- * Meta pixel), so nobody pastes IDs. Validated like everything else; `onlyIfEmpty` never replaces one already set.
+ * Saves one connection found for the seller by a sign-in (the Search Console code), so nobody pastes IDs. Validated like everything else; `onlyIfEmpty` never replaces one already set.
  */
 export async function setStoreIntegration(storeId: string, key: IntegrationKey, value: string, options: { onlyIfEmpty?: boolean } = {}) {
   const clean = INTEGRATION_VALIDATORS[key](value);

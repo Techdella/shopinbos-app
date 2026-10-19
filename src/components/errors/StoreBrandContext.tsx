@@ -23,8 +23,6 @@ export interface StoreBrandValue {
   showBadge?: boolean;
   /** The payment logos the seller chose (or the defaults from their payment methods). */
   paymentBadges?: PaymentBadgeKey[];
-  /** The store shows the cookie banner, so its footers offer "Cookie settings" to open it again. */
-  cookieSettings?: boolean;
 }
 
 const StoreBrandContext = createContext<StoreBrandValue | null>(null);

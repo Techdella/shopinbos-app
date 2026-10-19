@@ -40,36 +40,6 @@ export function storeHeadMetadata(brand: { name: string; logoUrl?: string | null
   };
 }
 
-/** A verification token as the seller pasted it: the bare code, or the whole <meta … content="…"> tag. */
-export function verificationToken(raw: unknown) {
-  if (typeof raw !== "string") return "";
-  const value = raw.trim();
-  const fromTag = value.match(/content\s*=\s*["']([^"']+)["']/i)?.[1] ?? value;
-  const token = fromTag.trim();
-  return /^[A-Za-z0-9_\-:.=+/]{4,200}$/.test(token) ? token : "";
-}
-
-/**
- * Site-ownership meta tags for search consoles and ad platforms, from the store's integrations settings
- * (brandSettings.integrations): Google Search Console (gaSiteVerification or googleSiteVerification), Bing
- * (bingSiteVerification), Yandex (yandexVerification), Pinterest (pinterestVerification) and Meta
- * (facebookDomainVerification). Spread into the home page's metadata; unknown or malformed values are skipped.
- */
-export function storeVerificationMeta(integrations: unknown): Pick<Metadata, "verification"> {
-  const i = integrations && typeof integrations === "object" && !Array.isArray(integrations) ? (integrations as Record<string, unknown>) : {};
-  const google = verificationToken(i.googleSiteVerification) || verificationToken(i.gaSiteVerification);
-  const yandex = verificationToken(i.yandexVerification);
-  const other: Record<string, string> = {};
-  const bing = verificationToken(i.bingSiteVerification);
-  if (bing) other["msvalidate.01"] = bing;
-  const pinterest = verificationToken(i.pinterestVerification);
-  if (pinterest) other["p:domain_verify"] = pinterest;
-  const facebook = verificationToken(i.facebookDomainVerification);
-  if (facebook) other["facebook-domain-verification"] = facebook;
-  if (!google && !yandex && !Object.keys(other).length) return {};
-  return { verification: { ...(google ? { google } : {}), ...(yandex ? { yandex } : {}), ...(Object.keys(other).length ? { other } : {}) } };
-}
-
 /** Settings → SEO for the store's home page: title, description, keywords and link-preview picture. */
 export function storeSeoSettings(brandSettings: Record<string, unknown> | null | undefined) {
   const seo = brandSettings?.seo && typeof brandSettings.seo === "object" ? (brandSettings.seo as Record<string, unknown>) : {};

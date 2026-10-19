@@ -7,7 +7,7 @@ import { credentialKey, decryptJson, encryptJson } from "@/lib/inbox/crypto";
 import { buildStoreFeed, feedUrl } from "@/lib/social/server";
 import { createCatalog, disconnectCatalog, ensureCatalogRow, itemCounts, listCatalogs, selectCatalog, syncCatalog } from "@/lib/whatsapp-catalog/server";
 import { ChannelError, GRAPH_VERSION, PROVIDERS, type ProviderContext, type StoreRef } from "./providers";
-import { connectMetaInbox, disconnectMetaInbox, pickMetaPixel } from "./meta-inbox.server";
+import { connectMetaInbox, disconnectMetaInbox } from "./meta-inbox.server";
 import { connectGoogleEverything, disconnectGoogleEverything } from "@/lib/google/connect.server";
 import {
   authorizeUrl,
@@ -82,15 +82,9 @@ export async function finishConnect(storeId: string, platform: OAuthPlatform, co
     const store = await loadStore(storeId);
     if (store) await connectMetaInbox(store, exchanged.tokens.token);
   }
-  // One Google sign-in: reviews, search and visitor stats too (src/lib/google/connect.server.ts).
+  // One Google sign-in: reviews and search too (src/lib/google/connect.server.ts).
   if (platform === "google") await connectGoogleEverything(storeId, tokens, exchanged.expiresAt);
-  const outcome = await syncPlatform(storeId, platform);
-  // The Facebook pixel for the store's visitor and ads stats, from the business the catalog uses.
-  if (platform === "meta") {
-    const row = await findRow(storeId, platform);
-    if (row?.accountId) await pickMetaPixel(storeId, row.accountId, exchanged.tokens.token);
-  }
-  return outcome;
+  return syncPlatform(storeId, platform);
 }
 
 async function feedKey(storeId: string) {

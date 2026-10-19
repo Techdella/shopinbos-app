@@ -81,7 +81,7 @@ export function useCart(storeSlug: string) {
   const add = useCallback((item: Omit<CartItem, "quantity"> & { quantity?: number }) => {
     setItems((prev) => mergeLines(prev, [{ ...item, quantity: item.quantity ?? 1 }]));
     // Add-to-bag count for the store funnel in /home/analytics (and AddToCart for the tags the shopper agreed to).
-    trackStoreEvent(storeSlug, "add_to_cart", item.productId, { items: [{ id: item.productId, name: item.name, price: item.price, quantity: item.quantity ?? 1 }] });
+    trackStoreEvent(storeSlug, "add_to_cart", item.productId);
   }, [setItems, storeSlug]);
 
   const remove = useCallback((productId: string, variant?: string) => {

@@ -6,7 +6,6 @@ import type React from "react";
 import Link from "next/link";
 import { Icon } from "@/components/ui/Icon";
 import { useCart } from "@/hooks/useCart";
-import { useStorePurchase } from "@/lib/analytics/storefront-events";
 import { getPublicStorefrontPath } from "@/lib/domains/storefront";
 import { formatStoreMoney } from "@/lib/storefront/shopper-info";
 import { ItemThumb, Panel, ShopperShell } from "@/components/storefront/shopper/ShopperShell";
@@ -83,9 +82,6 @@ export function OrderConfirmation({ order, store, storeBasePath, transfer = null
   useEffect(() => {
     if (isPaid || method !== "paystack") clearCart();
   }, [clearCart, isPaid, method]);
-
-  // Purchase for the seller's tags (once per order): paid, or a pay-on-delivery order just placed.
-  useStorePurchase(store.slug, (isPaid || (method === "pay_on_delivery" && isOpen)) && order.status !== "cancelled" ? order : null);
 
   const partly = customerProgress(order);
   const headline = order.status === "cancelled" ? "Order cancelled" : isPaid ? `Thank you, ${firstName}` : method === "paystack" ? "Waiting for payment" : `Thank you, ${firstName}`;

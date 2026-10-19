@@ -62,7 +62,7 @@ export function ProductDetailClient({
   const cart = useCart(store.slug);
   useCampaignAttribution(store.slug);
   useStoreVisitBeacon(store.slug);
-  useStoreProductView(store.slug, product.id, { id: product.id, name: product.name, price: product.retailPrice, currency: store.currency });
+  useStoreProductView(store.slug, product.id);
   const wishlist = useWishlist(store.slug);
   const cartSettings = readCartSettings(store.brandSettings);
   const t = look.tokens;
