@@ -7,7 +7,6 @@ import { Icon } from "@/components/ui/Icon";
 import { supplierFrame } from "@/components/supplier/supplier-kit";
 import { VerificationDocUploader } from "@/components/verification/VerificationDocUploader";
 import { CacInstantCheck } from "@/components/verification/CacInstantCheck";
-import { WalletIdHint } from "@/components/verification/WalletIdHint";
 import { TrustScoreBreakdown } from "@/components/verification/TrustScoreBreakdown";
 import { VerificationBadge } from "@/components/verification/VerificationBadge";
 import { deleteVerificationFile, uploadVerificationFile } from "@/components/verification/upload-client";
@@ -201,7 +200,6 @@ export default function SupplierVerificationPage() {
                 cacDoc={documents.find((d) => d.type === "cac")}
                 onVerified={(doc) => { setDocuments((current) => [...current.filter((d) => d.type !== "cac"), doc]); fetchData(); }}
               />
-              <div className="mt-4"><WalletIdHint identityDoc={documents.find((d) => d.type === "identity")} walletHref="/supplier/wallet" /></div>
               <div className="mt-4">
                 <VerificationDocUploader
                   role="supplier"

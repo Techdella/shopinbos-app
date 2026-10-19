@@ -143,7 +143,7 @@ function sib_seed_legal_core(): array {
    [
     "What we collect",
     [
-     "Account details: your name, phone number, email, business name and, for payouts, your bank details and BVN verification result.",
+     "Account details: your name, phone number, email, business name and, for payouts, your bank details. For suppliers, your business registration (CAC or BN); for delivery partners, the result of the owner's ID check.",
      "Shop details: products, prices, orders, messages with customers and delivery addresses.",
      "Device and usage details: the app version, device type, approximate location and the pages you use, to keep Shopinbos secure and working well."
     ],

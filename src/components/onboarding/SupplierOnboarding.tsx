@@ -6,7 +6,6 @@ import { FieldLabel, Mascot, Notice, PillButton, ProgressBars, TextInput, Wordma
 import { Icon } from "@/components/ui/Icon";
 import { VerificationDocUploader } from "@/components/verification/VerificationDocUploader";
 import { CacInstantCheck } from "@/components/verification/CacInstantCheck";
-import { VerifyIdCard, type IdCheckState } from "@/components/verification/VerifyIdCard";
 import { deleteVerificationFile, uploadVerificationFile } from "@/components/verification/upload-client";
 import intentRouting from "@/lib/intent-routing";
 import { useT } from "@/components/i18n/I18nProvider";
@@ -30,7 +29,6 @@ interface InitialUser {
 
 interface SupplierOnboardingProps {
   /** The owner's Shopinbos Wallet ID check: passing it approves the ID document. */
-  idCheck?: IdCheckState;
   initialUser?: InitialUser | null;
   initialSupplier?: {
     businessName: string | null;
@@ -56,7 +54,7 @@ const categoryOptions = [
   "Other",
 ];
 
-export function SupplierOnboarding({ idCheck, initialUser, initialSupplier }: SupplierOnboardingProps) {
+export function SupplierOnboarding({ initialUser, initialSupplier }: SupplierOnboardingProps) {
   const t = useT("onboarding", "common");
   const tDocs = useT("verification");
   const router = useRouter();
@@ -289,19 +287,6 @@ export function SupplierOnboarding({ idCheck, initialUser, initialSupplier }: Su
                 </div>
               )}
 
-              <div className="mt-6">
-                <VerifyIdCard
-                  state={idCheck ?? { verified: false, checksReady: false }}
-                  ownerName={initialUser?.name ?? ""}
-                  onVerified={() => {
-                    // The ID document was just approved from the check: show it.
-                    void fetch("/api/supplier/onboarding", { cache: "no-store" })
-                      .then((res) => (res.ok ? res.json() : null))
-                      .then((body) => { if (body?.data?.verificationDocuments) setDocuments(normalizeVerificationDocs(body.data.verificationDocuments)); })
-                      .catch(() => null);
-                  }}
-                />
-              </div>
 
               <div className="mt-4">
                 <CacInstantCheck

@@ -4,6 +4,7 @@ import { adminFrame, formatDate, withParams } from "@/components/admin/AdminKit"
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { maskAccountNumber } from "@/lib/wallet/rules";
+import { supplierRegistrationStatus, type BusinessRegistrationStatus } from "@/lib/wallet/wallet.server";
 import { WalletActions } from "./WalletActions";
 import { youverifyHealth, type YouverifyHealth } from "@/lib/youverify";
 import { korapayIdentityHealth, korapayIdentityReady, type KorapayIdentityHealth } from "@/lib/korapay";
@@ -24,6 +25,14 @@ const STATUS: Record<string, { label: string; tone: Tone }> = {
   review: { label: "Check the account", tone: "warning" },
   active: { label: "Receiving payments", tone: "success" },
   failed: { label: "Paystack refused", tone: "danger" },
+};
+
+/** A supplier's CAC or BN registration (its wallet check). */
+const REGISTRATION: Record<BusinessRegistrationStatus, { label: string; tone: Tone }> = {
+  approved: { label: "CAC/BN verified", tone: "success" },
+  pending: { label: "CAC/BN to review", tone: "warning" },
+  rejected: { label: "CAC/BN rejected", tone: "danger" },
+  missing: { label: "No CAC/BN yet", tone: "muted" },
 };
 
 const ROLE: Record<string, string> = { seller: "Seller", supplier: "Supplier", logistics_partner: "Delivery partner" };
@@ -52,6 +61,11 @@ export default async function AdminWalletsPage({ searchParams }: { searchParams?
     korapay ? korapayIdentityHealth() : youverifyHealth(),
   ]);
   const shared = new Set(counts.filter((row) => row._count._all > 1).map((row) => row.kycIdHash));
+  // A supplier's check is its business registration (CAC or BN); sellers have none; delivery partners verify their ID.
+  const supplierIds = wallets.filter((wallet) => wallet.role === "supplier").map((wallet) => wallet.userId);
+  const registrations = new Map(
+    await Promise.all(supplierIds.map(async (userId) => [userId, await supplierRegistrationStatus(userId).catch(() => "missing" as const)] as const)),
+  );
 
   return (
     <AppPage frame={adminFrame(user)} title="Wallets" sub="Where each business's card payments are settled. Shopinbos holds no money.">
@@ -69,7 +83,7 @@ export default async function AdminWalletsPage({ searchParams }: { searchParams?
             <thead className="text-[12px] uppercase tracking-[0.06em] text-app-ink-soft">
               <tr>
                 <th className="px-4 py-3">Business</th>
-                <th className="px-4 py-3">ID</th>
+                <th className="px-4 py-3">Check</th>
                 <th className="px-4 py-3">Bank</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3" />
@@ -86,7 +100,11 @@ export default async function AdminWalletsPage({ searchParams }: { searchParams?
                       <div className="text-app-ink-soft">{ROLE[wallet.role] ?? wallet.role} · {wallet.user.email}</div>
                     </td>
                     <td className="px-4 py-3">
-                      {wallet.kycStatus === "verified" ? (
+                      {wallet.role === "seller" ? (
+                        <span className="text-app-ink-soft">None needed</span>
+                      ) : wallet.role === "supplier" ? (
+                        <Pill tone={REGISTRATION[registrations.get(wallet.userId) ?? "missing"]!.tone}>{REGISTRATION[registrations.get(wallet.userId) ?? "missing"]!.label}</Pill>
+                      ) : wallet.kycStatus === "verified" ? (
                         <>
                           <div>{kycName}</div>
                           <div className="text-app-ink-soft">{wallet.kycIdType?.toUpperCase()} …{wallet.kycIdLast4} · {formatDate(wallet.kycVerifiedAt)}</div>
@@ -101,7 +119,13 @@ export default async function AdminWalletsPage({ searchParams }: { searchParams?
                         <>
                           <div>{wallet.accountName}</div>
                           <div className="text-app-ink-soft">{wallet.bankName} {maskAccountNumber(wallet.accountNumber)}</div>
-                          {wallet.nameCheck === "review" ? <div className="mt-1 text-[12.5px] text-app-ink-soft">Not the name on the ID: check it belongs to {kycName || "the owner"}.</div> : null}
+                          {wallet.nameCheck === "review" ? (
+                            <div className="mt-1 text-[12.5px] text-app-ink-soft">
+                              {wallet.role === "logistics_partner"
+                                ? `Not the name on the ID: check it belongs to ${kycName || "the owner"}.`
+                                : `Not the owner's or the business's name: check it belongs to ${wallet.user.name || "the owner"}${wallet.role === "supplier" ? " or the registered business" : ""}.`}
+                            </div>
+                          ) : null}
                         </>
                       ) : (
                         <span className="text-app-ink-soft">None</span>

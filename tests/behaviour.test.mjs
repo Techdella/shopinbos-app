@@ -422,7 +422,9 @@ test("verification documents: one shared type list, real files only, old onboard
     assert.ok(docs.isDocType(config.type), config.type);
     assert.equal(config.label, docs.DOC_TYPE_LABELS[config.type]);
   }
-  assert.deepEqual(docs.SUPPLIER_DOC_TYPES.filter((c) => c.required).map((c) => c.type), ["cac", "identity", "product-images"]);
+  // A supplier is checked on its business registration (CAC or BN), not the owner's NIN.
+  assert.deepEqual(docs.SUPPLIER_DOC_TYPES.filter((c) => c.required).map((c) => c.type), ["cac", "product-images"]);
+  assert.equal(docs.SUPPLIER_DOC_TYPES.some((c) => c.type === "identity"), false);
   assert.deepEqual(docs.LOGISTICS_DOC_TYPES.filter((c) => c.required).map((c) => c.type), ["cac", "insurance"]);
   assert.equal(docs.docTypesForRole("logistics_partner"), docs.LOGISTICS_DOC_TYPES);
 

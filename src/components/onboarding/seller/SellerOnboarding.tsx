@@ -3,7 +3,6 @@
 import { useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
-import { VerifyIdCard } from "@/components/verification/VerifyIdCard";
 import { BackButton, cx, Mascot, MicIcon, Notice, PillButton, ProgressBars, TextInput, Wordmark } from "@/components/app-ui";
 import intentRouting from "@/lib/intent-routing";
 import {
@@ -29,8 +28,8 @@ import { askRex, buildStore, finishOnboarding, saveMemory, saveStoreName, transc
 
 const { extractIntentParams, getContinuationPath } = intentRouting;
 
-type Step = "chat" | "brand" | "verify";
-const STEPS: Step[] = ["chat", "brand", "verify"];
+type Step = "chat" | "brand";
+const STEPS: Step[] = ["chat", "brand"];
 
 interface ChatTurn {
   from: "rex" | "me";
@@ -53,9 +52,7 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
   const memory = initialStatus.memory;
   const name = firstName(status.ownerName) || t("seller.thereName");
 
-  // "Verify you" (the Wallet ID check) comes after the shop is built, only while it's still to do; it can be skipped.
-  const offerVerify = Boolean(status.idCheck?.checksReady && !status.idCheck.verified);
-  const [step, setStep] = useState<Step>(memory?.screen === "verify" && offerVerify ? "verify" : memory?.screen === "brand" && memory.businessDescription ? "brand" : "chat");
+  const [step, setStep] = useState<Step>(memory?.screen === "brand" && memory.businessDescription ? "brand" : "chat");
   const [error, setError] = useState<string | null>(null);
 
   // Chat. The language chips set both the language Rex chats in and the app language (shared/i18n), so a
@@ -92,7 +89,6 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
   const resolvedName = shopName.trim() || nameIdeas[0] || t("seller.defaultShopName", { name });
 
   const [busy, setBusy] = useState(false);
-  const [idVerified, setIdVerified] = useState(false);
 
   function go(next: Step) {
     setError(null);
@@ -200,11 +196,6 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
         (text) => setBuildNote(text.slice(-120)),
       );
       setBuildNote(t("seller.ready"));
-      if (offerVerify) {
-        setBusy(false);
-        go("verify");
-        return;
-      }
       await finish();
     } catch (brandError) {
       setError(brandError instanceof Error ? brandError.message : t("seller.cantSaveName"));
@@ -218,8 +209,7 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
     <div className="sticky top-0 z-20 -mx-[18px] mb-5 flex items-center gap-4 bg-app-canvas/90 px-[18px] py-3 backdrop-blur">
       <BackButton
         onClick={() => {
-          if (step === "verify" && !busy) go("brand");
-          else if (step === "brand" && !busy) go("chat");
+          if (step === "brand" && !busy) go("chat");
           else if (step === "chat") router.push("/home/start");
         }}
       />
@@ -409,26 +399,6 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
             {errorBox}
             {busy && buildNote && <p className="mb-3 text-center text-[13px] text-app-ink-soft" aria-live="polite">{buildNote}</p>}
             <PillButton className="w-full" busy={busy} onClick={() => void confirmBrand()}>{busy ? t("seller.building") : t("seller.build")}</PillButton>
-          </>,
-        )}
-      </>
-    );
-  }
-
-  if (step === "verify") {
-    body = (
-      <>
-        <h1 className="m-0 text-[28px] font-extrabold leading-[1.15] tracking-[-0.6px]">Let&apos;s verify you</h1>
-        <p className="mb-0 mt-2 text-[15px] leading-[1.5] text-app-ink-soft">
-          Your shop is ready. Verify your ID so customers can pay you by card, straight to your bank, and get a verified badge. It takes a minute, or do it any time from your Wallet.
-        </p>
-        <div className="mt-5">
-          <VerifyIdCard state={{ verified: false, checksReady: true }} ownerName={status.ownerName} onVerified={() => setIdVerified(true)} />
-        </div>
-        {footer(
-          <>
-            {errorBox}
-            <PillButton className="w-full" tone={idVerified ? "ink" : "white"} busy={busy} onClick={() => void exit()}>{idVerified ? t("continue") : "Skip for now"}</PillButton>
           </>,
         )}
       </>
