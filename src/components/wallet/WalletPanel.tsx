@@ -1,7 +1,6 @@
 import { Card, CardHead, EmptyState, ListCard, ListRow, Pill, SplitLayout, StatGrid, StatTile } from "@/components/app-kit";
 import { Notice } from "@/components/app-ui";
-import { PAYSTACK_BANK_CODES } from "@/lib/payout-bank";
-import type { WalletView } from "@/lib/wallet/wallet.server";
+import { walletBankNames, type WalletView } from "@/lib/wallet/wallet.server";
 import type { WalletRole } from "@/lib/wallet/rules";
 import { BankForm, KycForm } from "./WalletForms";
 
@@ -26,43 +25,48 @@ function SettlementStatus({ view }: { view: WalletView }) {
   return <Pill tone="muted" dot>Not set up</Pill>;
 }
 
-export function WalletPanel({ view, role, ownerName, orderHref }: { view: WalletView; role: WalletRole; ownerName: string; orderHref?: (orderId: string) => string }) {
+export async function WalletPanel({ view, role, ownerName, orderHref }: { view: WalletView; role: WalletRole; ownerName: string; orderHref?: (orderId: string) => string }) {
   const words = ROLE_WORDS[role];
   const [firstName = "", ...rest] = ownerName.trim().split(/\s+/);
   const kycDone = view.kyc.status === "verified";
-  const banks = Object.keys(PAYSTACK_BANK_CODES).sort((a, b) => a.localeCompare(b));
+  const banks = await walletBankNames();
 
   const setup = (
     <Card className="grid gap-5 p-5">
-      <CardHead title="Set up your wallet" sub="Two steps. Then money from your sales goes straight to your bank." action={<SettlementStatus view={view} />} />
+      <CardHead title="Get paid" sub="Add the bank your money goes to. Card payments start as soon as it's set." action={<SettlementStatus view={view} />} />
       {view.settlement.frozen ? <Notice tone="error">Your wallet is paused{view.settlement.frozenReason ? `: ${view.settlement.frozenReason}` : ""}. Contact support to sort it out.</Notice> : null}
       <section className="grid gap-3 border-t border-app-line pt-4">
-        <h3 className="m-0 text-[15px] font-extrabold">1. Verify your ID {kycDone ? <span className="ml-1 align-middle"><Pill tone="success">Done</Pill></span> : null}</h3>
-        {kycDone ? (
-          <p className="m-0 text-[14px] text-app-ink-soft">
-            {view.kyc.name} · {view.kyc.idType === "nin" ? "NIN" : "BVN"} ending {view.kyc.idLast4} · verified {day(view.kyc.verifiedAt)}
-          </p>
-        ) : view.kyc.checksReady ? (
-          <KycForm defaultName={{ firstName, lastName: rest.join(" ") }} />
-        ) : (
-          <Notice tone="info">ID checks are being switched on. Check back soon.</Notice>
-        )}
-      </section>
-      <section className="grid gap-3 border-t border-app-line pt-4">
-        <h3 className="m-0 text-[15px] font-extrabold">2. Add the bank you get paid in</h3>
+        <h3 className="m-0 text-[15px] font-extrabold">1. Where should we send your money? {view.settlement.status === "active" ? <span className="ml-1 align-middle"><Pill tone="success">Done</Pill></span> : null}</h3>
         {view.bank ? (
           <p className="m-0 text-[14px]">
             <strong>{view.bank.accountName}</strong> · {view.bank.bankName} {view.bank.accountEnding}
           </p>
         ) : null}
-        {view.settlement.status === "review" ? <Notice tone="info">This account isn&apos;t in the name on your ID, so our team is checking it (usually within a day). Payments start once it&apos;s approved.</Notice> : null}
+        {view.settlement.status === "review" ? <Notice tone="info">This account isn&apos;t in your name or your business&apos;s, so our team is checking it (usually within a day). Verifying your ID below can approve it at once if the name matches.</Notice> : null}
         {view.settlement.status === "failed" && view.settlement.error ? <Notice tone="error">Paystack couldn&apos;t set up this account: {view.settlement.error}. Check the details or try another account.</Notice> : null}
-        {kycDone && !view.settlement.frozen ? <BankForm banks={banks} current={view.bank} /> : !kycDone ? <p className="m-0 text-[13.5px] text-app-ink-soft">Verify your ID first.</p> : null}
+        {!view.settlement.frozen ? <BankForm banks={banks} current={view.bank} /> : null}
         {view.settlement.status === "active" ? (
           <p className="m-0 text-[13px] text-app-ink-soft">
             Paystack: on. Korapay: {view.settlement.korapay ? "on" : "our team is setting it up for this account"}.
           </p>
         ) : null}
+      </section>
+      <section className="grid gap-3 border-t border-app-line pt-4">
+        <h3 className="m-0 text-[15px] font-extrabold">2. Verify your ID {kycDone ? <span className="ml-1 align-middle"><Pill tone="success">Done</Pill></span> : null}</h3>
+        {kycDone ? (
+          <p className="m-0 text-[14px] text-app-ink-soft">
+            {view.kyc.name} · {view.kyc.idType === "nin" ? "NIN" : "BVN"} ending {view.kyc.idLast4} · verified {day(view.kyc.verifiedAt)}
+          </p>
+        ) : (
+          <>
+            <p className="m-0 text-[13.5px] leading-[1.45] text-app-ink-soft">
+              {role === "seller"
+                ? "Earns your shop a verified badge and approves an account in your name straight away. You can do it any time."
+                : "Needed to get verified on Shopinbos. It also approves your ID document, so you don't upload one."}
+            </p>
+            {view.kyc.checksReady ? <KycForm defaultName={{ firstName, lastName: rest.join(" ") }} /> : <Notice tone="info">ID checks are being switched on. Check back soon.</Notice>}
+          </>
+        )}
       </section>
       <p className="m-0 border-t border-app-line pt-4 text-[12.5px] leading-[1.5] text-app-ink-soft">
         Shopinbos never holds your money. When {words.who} pay by card or Korapay, the payment is split at checkout and your share settles

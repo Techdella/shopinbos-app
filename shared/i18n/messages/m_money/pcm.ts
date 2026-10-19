@@ -116,7 +116,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "w.step2": "2. Add the bank wey dem go pay you enter",
   "w.verified": "{name} · {id} wey end with {last4} · don verify",
   "w.checksSoon": "We dey switch on ID checks. Check back soon.",
-  "w.review": "This account no dey the name for your ID, so our team dey check am (usually inside one day). Payments go start once dem approve am.",
+  "w.review": "This account no dey your name or your business name, so our team dey check am (usually inside one day). If you verify your ID and the name match, e go approve sharp sharp.",
   "w.failed": "Paystack no fit set up this account: {reason}. Check the details or try another account.",
   "w.idFirst": "Verify your ID first.",
   "w.never": "Shopinbos no dey ever hold your money. When person pay by card, the payment dey split for checkout and your share go enter this bank straight, usually the next working day. Paystack fee dey comot from your share; Shopinbos no dey take anything.",
@@ -155,6 +155,15 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "w.verifySub": "Check your NIN or BVN for one minute so customers fit pay you by card, straight enter your bank.",
   "w.verifyNow": "Verify now",
   "w.later": "Later",
+  "w.getPaid": "Collect your money",
+  "w.bankStep": "1. Where we go send your money?",
+  "w.idStep": "2. Verify your ID",
+  "w.idWhySeller": "E go give your shop verified badge and approve account wey dey your name sharp sharp. Do am any time.",
+  "w.idWhyBusiness": "You need am to get verified for Shopinbos. E go also approve your ID document, so you no need upload am.",
+  "w.accountName": "Account name",
+  "w.lookingUp": "We dey check the account…",
+  "w.payMeHere": "Yes, pay me here",
+  "w.noSuchAccount": "That account number no dey for this bank.",
 };
 
 export default pcm;

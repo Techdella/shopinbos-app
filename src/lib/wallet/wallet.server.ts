@@ -6,7 +6,8 @@ import { korapayCheckoutReady, verifyKorapayIdentity, korapayIdentityReady } fro
 import { verifyYouverifyIdentity, youverifyReady } from "@/lib/youverify";
 import { approveIdentityDocFromWallet } from "@/lib/kyb/identity-doc.server";
 import { createPaystackSubaccount, listPaystackSettlements, updatePaystackSubaccount } from "@/lib/paystack";
-import { PAYSTACK_BANK_CODES, resolvePaystackAccount } from "@/lib/payout-bank";
+import { resolvePaystackAccount, settlementBanks, type ResolvedAccount } from "@/lib/payout-bank";
+import { companyNamesMatch } from "@/lib/kyb/cac";
 import { groupDropshipLines, type DropshipLink } from "@/lib/supplier-orders/pure";
 import {
   accountNameMatches,
@@ -134,7 +135,7 @@ export async function verifyWalletIdentity(user: { id: string; role: WalletRole 
   // A bank linked before KYC (or waiting) can now be checked against the verified name.
   const refreshed = await findWallet(user.id);
   if (refreshed?.bankCode && refreshed.accountNumber && refreshed.accountName && refreshed.subaccountStatus !== "active") {
-    await openSubaccount(refreshed, accountNameMatches(refreshed.accountName, { firstName: refreshed.kycFirstName, lastName: refreshed.kycLastName }) ? "auto" : null);
+    await openSubaccount(refreshed, (await accountIsTheirs(refreshed, refreshed.accountName)) ? "auto" : null);
   }
   return { ok: true, message: "Your ID is verified." };
 }
@@ -158,7 +159,7 @@ async function businessName(wallet: Pick<WalletRow, "userId" | "role">) {
 async function openSubaccount(wallet: WalletRow, nameCheck: "auto" | "approved" | null): Promise<WalletResult> {
   if (!nameCheck) {
     await db.wallet.update({ where: { id: wallet.id }, data: { nameCheck: "review", subaccountStatus: "review", subaccountError: null } });
-    return { ok: true, message: "This account isn't in the name on your ID, so our team will check it (usually within a day). We'll tell you when payments start going to it." };
+    return { ok: true, message: "This account isn't in your name or your business's name, so our team will check it (usually within a day). We'll tell you when payments start going to it." };
   }
   const business = await businessName(wallet);
   try {
@@ -178,14 +179,39 @@ async function openSubaccount(wallet: WalletRow, nameCheck: "auto" | "approved" 
 }
 
 /**
- * Saves the bank Paystack settles to. Paystack's lookup gives the account name; it must be the verified person's
- * name, else the team reviews it before any payment is split to it. KYC comes first.
+ * Whose account this is: the name on the verified ID when there is one, else the owner's name on their account, or
+ * the business's name (a company or "ventures" account). Every Nigerian bank account is BVN-linked, so paying the
+ * named holder of an account in the owner's or business's name is paying them; anything else waits for the team.
+ */
+async function accountIsTheirs(wallet: WalletRow, accountName: string) {
+  if (wallet.kycStatus === "verified" && accountNameMatches(accountName, { firstName: wallet.kycFirstName, lastName: wallet.kycLastName })) return true;
+  const business = await businessName(wallet);
+  const [first = "", ...rest] = business.ownerName.trim().split(/\s+/);
+  const ownerMatches = wallet.kycStatus !== "verified" && rest.length > 0 && accountNameMatches(accountName, { firstName: first, lastName: rest.join(" ") });
+  return ownerMatches || companyNamesMatch(business.name, accountName);
+}
+
+/** The bank picker's list: every bank and fintech Paystack settles to. */
+export async function walletBankNames() {
+  return Object.keys(await settlementBanks()).sort((a, b) => a.localeCompare(b));
+}
+
+/** Looks up the name on an account before it's saved, so the person sees whose account it is (Paystack's lookup). */
+export async function checkWalletAccount(input: { bankName: string; accountNumber: string }): Promise<ResolvedAccount> {
+  const digits = input.accountNumber.replace(/\D/g, "");
+  if (digits.length !== 10 || !(await settlementBanks())[input.bankName]) return { status: "not_found" };
+  return resolvePaystackAccount(input.bankName, digits);
+}
+
+/**
+ * Saves the bank Paystack settles to: the first thing a business sets up, no ID check needed first (like Shopify
+ * Payments, getting paid comes first and verification follows). Paystack's lookup gives the account name; an account
+ * in the owner's or business's name opens card payments straight away, any other waits for the team.
  */
 export async function linkWalletBank(user: { id: string; role: WalletRole }, input: { bankName: string; accountNumber: string }): Promise<WalletResult> {
   const wallet = await ensureWallet(user);
   if (wallet.status === "frozen") return { ok: false, error: "Your wallet is paused. Contact support." };
-  if (wallet.kycStatus !== "verified") return { ok: false, error: "Verify your ID first." };
-  const bankCode = PAYSTACK_BANK_CODES[input.bankName];
+  const bankCode = (await settlementBanks())[input.bankName];
   const accountNumber = input.accountNumber.replace(/\D/g, "");
   if (!bankCode) return { ok: false, error: "Choose your bank from the list." };
   if (accountNumber.length !== 10) return { ok: false, error: "Enter your 10-digit account number." };
@@ -197,8 +223,7 @@ export async function linkWalletBank(user: { id: string; role: WalletRole }, inp
     where: { id: wallet.id },
     data: { bankCode, bankName: input.bankName, accountNumber, accountName: resolved.accountName, nameCheck: null },
   });
-  const matches = accountNameMatches(resolved.accountName, { firstName: saved.kycFirstName, lastName: saved.kycLastName });
-  return openSubaccount(saved, matches ? "auto" : null);
+  return openSubaccount(saved, (await accountIsTheirs(saved, resolved.accountName)) ? "auto" : null);
 }
 
 // ─── Team actions ─────────────────────────────────────────────────────────────

@@ -3,8 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getCurrentAppUser } from "@/lib/server-auth";
+import { checkRateLimitShared, rateLimitKey } from "@/lib/rate-limit";
 import { isWalletRole } from "@/lib/wallet/rules";
-import { approveWalletBank, linkWalletBank, setWalletFrozen, setWalletKorapaySplitAccount, verifyWalletIdentity, type WalletResult } from "@/lib/wallet/wallet.server";
+import { approveWalletBank, checkWalletAccount, linkWalletBank, setWalletFrozen, setWalletKorapaySplitAccount, verifyWalletIdentity, type WalletResult } from "@/lib/wallet/wallet.server";
 
 // Shopinbos Wallet actions for sellers, suppliers and delivery partners (their own wallet), and the team's
 // review/pause actions. Money never moves here: these set up where Paystack settles each business's share.
@@ -48,6 +49,16 @@ export async function linkWalletBankAction(input: z.infer<typeof BankSchema>): P
   const result = await linkWalletBank(owner, parsed.data);
   refresh();
   return result;
+}
+
+/** The name on an account before it's saved (Paystack's lookup), limited so it can't be used to look up strangers' accounts in bulk. */
+export async function checkWalletAccountAction(input: z.infer<typeof BankSchema>) {
+  const user = await getCurrentAppUser();
+  if (!walletOwner(user) || !user) return { status: "unavailable" as const };
+  const parsed = BankSchema.safeParse(input);
+  if (!parsed.success) return { status: "not_found" as const };
+  if (!(await checkRateLimitShared(rateLimitKey("wallet-account-check", user.id), { maxRequests: 10, windowMs: 60_000 })).allowed) return { status: "unavailable" as const };
+  return checkWalletAccount(parsed.data);
 }
 
 export async function approveWalletBankAction(walletId: string): Promise<WalletResult> {

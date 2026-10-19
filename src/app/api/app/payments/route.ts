@@ -5,7 +5,7 @@ import { db } from "@/lib/db/client";
 import { TRANSFER_WINDOW_CHOICES } from "@shared/checkout-payments";
 import type { PaymentsSettingsError } from "@shared/seller-payments";
 import { saveSellerPaymentBadges, saveSellerPaymentMethods, saveSellerTransferWindow, sellerMoneyOverview } from "@/lib/seller-payments.server";
-import { SELLER_PAYOUT_BANKS } from "@/lib/payout-bank";
+import { walletBankNames } from "@/lib/wallet/wallet.server";
 import { PaymentsPatchSchema } from "@/lib/seller-settings-rules";
 
 export const dynamic = "force-dynamic";
@@ -31,7 +31,7 @@ async function overview(userId: string) {
     methods,
     transferWindow: { ...transferWindow, choices: [...TRANSFER_WINDOW_CHOICES] },
     bank,
-    banks: SELLER_PAYOUT_BANKS,
+    banks: await walletBankNames(),
     paymentBadges,
     money: {
       moneyIn: summary.moneyIn,

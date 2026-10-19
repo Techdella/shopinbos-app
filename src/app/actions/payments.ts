@@ -13,7 +13,8 @@ import { ensureSupplierOrdersSafely } from "@/lib/supplier-orders/service.server
 import { settlePaymentLinkForOrder } from "@/lib/payment-links/service.server";
 import { recordOrderShares } from "@/lib/wallet/wallet.server";
 import { refreshKorapayOrderPayment } from "@/lib/commerce/korapay-orders.server";
-import { createPaystackTransferRecipient, linkSellerPayoutBank, maskAccountNumber, PAYSTACK_BANK_CODES } from "@/lib/payout-bank";
+import { createPaystackTransferRecipient, linkSellerPayoutBank, maskAccountNumber, settlementBanks } from "@/lib/payout-bank";
+import { linkWalletBank } from "@/lib/wallet/wallet.server";
 
 interface PaystackTransaction {
   amount: number;
@@ -197,6 +198,17 @@ export async function linkBankAccount(
       return { success: false, error: "Not authenticated" };
     }
 
+    // Card payments are split straight to the bank of the business's Shopinbos Wallet (src/lib/wallet), so every
+    // "add your bank" form sets that up too; the Paystack transfer recipient below is kept for the older screens.
+    if (role === "seller" || role === "supplier" || role === "logistics_partner") {
+      if (user.role !== role) return { success: false, error: "Sign in to this account first." };
+      const wallet = await linkWalletBank({ id: user.id, role }, { bankName, accountNumber });
+      if (!wallet.ok) return { success: false, error: wallet.error };
+      revalidatePath("/home/wallet");
+      revalidatePath("/supplier/wallet");
+      revalidatePath("/logistics/wallet");
+    }
+
     if (role === "seller") {
       const result = await linkSellerPayoutBank(user.id, bankName, accountNumber, accountName);
       if (!result.success) return result;
@@ -211,7 +223,7 @@ export async function linkBankAccount(
       }
       const recipient = await createPaystackTransferRecipient({
         bankName,
-        bankCode: PAYSTACK_BANK_CODES[bankName],
+        bankCode: (await settlementBanks())[bankName],
         accountNumber: cleanAccountNumber,
         accountName: accountName.trim(),
       });
@@ -269,7 +281,7 @@ export async function linkSupplierPaystackRecipient(
       return { success: false, error: "Choose a bank, enter a 10 digit account number, and add the account name." };
     }
 
-    const bankCode = PAYSTACK_BANK_CODES[bankName];
+    const bankCode = (await settlementBanks())[bankName];
     const recipient = await createPaystackTransferRecipient({
       bankName,
       bankCode,

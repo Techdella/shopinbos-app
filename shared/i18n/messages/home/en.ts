@@ -213,6 +213,7 @@ const en = {
   "activity.pages": "Activity pages",
   "step.Connect WhatsApp, Facebook & Instagram": "Connect WhatsApp, Facebook & Instagram",
   "step.One tap each. Customers' messages come to your inbox and your products show there.": "One tap each. Customers' messages come to your inbox and your products show there.",
+  "step.Card payments go straight to your bank once you add it.": "Card payments go straight to your bank once you add it.",
 } satisfies Record<string, string>;
 
 export default en;

@@ -42,6 +42,10 @@ export const verifyWalletId = (input: { idType: "bvn" | "nin"; idNumber: string;
 export const linkWalletBank = (input: { bankName: string; accountNumber: string }) =>
   api<{ ok: true; message?: string }>("/api/mobile/wallet/bank", { method: "POST", json: input });
 
+/** The name on an account before it's saved (Paystack's lookup). */
+export const checkWalletAccount = (input: { bankName: string; accountNumber: string }) =>
+  api<{ status: "resolved"; accountName: string } | { status: "not_found" } | { status: "unavailable" }>("/api/mobile/wallet/check-account", { method: "POST", json: input });
+
 export const confirmCashReceived = (partnerId: string) => api<{ settled: number }>("/api/mobile/wallet/cash-received", { method: "POST", json: { partnerId } });
 
 export interface SellerCash {

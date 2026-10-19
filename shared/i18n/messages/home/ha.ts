@@ -215,6 +215,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "activity.pages": "Shafukan ayyuka",
   "step.Connect WhatsApp, Facebook & Instagram": "Haɗa WhatsApp, Facebook da Instagram",
   "step.One tap each. Customers' messages come to your inbox and your products show there.": "Taɓawa ɗaya kowanne. Saƙonnin kwastomomi za su zo inbox ɗinka kuma kayayyakinka za su bayyana a can.",
+  "step.Card payments go straight to your bank once you add it.": "Kuɗin kati za su tafi kai tsaye zuwa bankinka da zarar ka saka shi.",
 };
 
 export default ha;

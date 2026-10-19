@@ -215,6 +215,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "activity.pages": "Peeji ihe mere",
   "step.Connect WhatsApp, Facebook & Instagram": "Jikọọ WhatsApp, Facebook na Instagram",
   "step.One tap each. Customers' messages come to your inbox and your products show there.": "Otu mpị maka nke ọ bụla. Ozi ndị ahịa ga-abata n'inbox gị, ngwaahịa gị ga-egosikwa ebe ahụ.",
+  "step.Card payments go straight to your bank once you add it.": "Ego kaadị ga-aga ozugbo n'ụlọ akụ gị ozugbo ị tinyere ya.",
 };
 
 export default ig;

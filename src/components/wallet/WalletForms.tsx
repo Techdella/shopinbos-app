@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Notice } from "@/components/app-ui";
 import { buttonClass, checkClass, inputClass, selectClass } from "@/components/growth/kit";
-import { linkWalletBankAction, verifyWalletIdentityAction } from "@/app/actions/wallet";
+import { checkWalletAccountAction, linkWalletBankAction, verifyWalletIdentityAction } from "@/app/actions/wallet";
 
 // The two steps of setting up a Shopinbos Wallet: verify your ID (BVN or NIN), then add the bank Paystack pays you in.
 
@@ -86,12 +86,33 @@ export function BankForm({ banks, current }: { banks: string[]; current: { bankN
   const [accountNumber, setAccountNumber] = useState("");
   const [outcome, setOutcome] = useState<Outcome>(null);
   const [pending, startTransition] = useTransition();
+  // Whose account it is, looked up as soon as the 10 digits are in (like Shopify showing the bank before saving).
+  const [holder, setHolder] = useState<{ key: string; name: string | null; note: string | null } | null>(null);
+  const digits = accountNumber.replace(/\D/g, "");
+  const lookupKey = bankName && digits.length === 10 ? `${bankName}:${digits}` : "";
+
+  useEffect(() => {
+    if (!lookupKey) return;
+    let alive = true;
+    void checkWalletAccountAction({ bankName, accountNumber: digits }).then((result) => {
+      if (!alive) return;
+      setHolder({
+        key: lookupKey,
+        name: result.status === "resolved" ? result.accountName : null,
+        note: result.status === "not_found" ? "That account number doesn't exist at this bank." : result.status === "unavailable" ? "We couldn't look up this account just now. You can still save it." : null,
+      });
+    });
+    return () => {
+      alive = false;
+    };
+  }, [lookupKey, bankName, digits]);
+  const shown = holder && holder.key === lookupKey ? holder : null;
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
     setOutcome(null);
     startTransition(async () => {
-      const result = await linkWalletBankAction({ bankName, accountNumber });
+      const result = await linkWalletBankAction({ bankName, accountNumber: digits });
       if (result.ok) {
         setOutcome({ tone: "success", text: result.message ?? "Saved." });
         setAccountNumber("");
@@ -110,12 +131,22 @@ export function BankForm({ banks, current }: { banks: string[]; current: { bankN
           {banks.map((bank) => <option key={bank} value={bank}>{bank}</option>)}
         </select>
       </Field>
-      <Field label="Account number" htmlFor="wallet-account" hint="We check the name on it with Paystack. It should be your name as on your ID, or your business's.">
+      <Field label="Account number" htmlFor="wallet-account" hint="10 digits. In your name or your business's name: card payments start straight away.">
         <input id="wallet-account" className={inputClass} inputMode="numeric" autoComplete="off" maxLength={12} value={accountNumber} onChange={(event) => setAccountNumber(event.target.value)} disabled={pending} required />
       </Field>
+      {lookupKey && !shown ? <p className="m-0 text-[13.5px] text-app-ink-soft" aria-live="polite">Looking up the account…</p> : null}
+      {shown?.name ? (
+        <div className="rounded-[14px] border border-app-line bg-app-canvas px-4 py-3" aria-live="polite">
+          <div className="text-[12.5px] text-app-ink-soft">Account name</div>
+          <div className="text-[15px] font-extrabold">{shown.name}</div>
+        </div>
+      ) : null}
+      {shown?.note ? <Notice tone={shown.name ? "info" : "error"}>{shown.note}</Notice> : null}
       {outcome ? <Notice tone={outcome.tone}>{outcome.text}</Notice> : null}
       <div>
-        <button type="submit" className={buttonClass("ink")} disabled={pending}>{pending ? "Checking with Paystack…" : current ? "Change account" : "Save account"}</button>
+        <button type="submit" className={buttonClass("ink")} disabled={pending || !lookupKey || Boolean(shown && !shown.name && shown.note?.startsWith("That account"))}>
+          {pending ? "Setting up…" : shown?.name ? "Yes, pay me here" : current ? "Change account" : "Save account"}
+        </button>
       </div>
     </form>
   );

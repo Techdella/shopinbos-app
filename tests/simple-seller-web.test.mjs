@@ -59,7 +59,7 @@ test("nothing technical for sellers: no technical-details folds, no pasted keys 
   assert.match(socialCopy, /"card\.connect": "Connect"/);
   assert.match(socialCopy, /"soon\.notify": "Tell me when it's ready"/);
   const catalog = read("src/app/home/inbox/whatsapp-catalog/WhatsAppCatalogClient.tsx");
-  assert.match(catalog, /<SetupHelpRequest/);
+  assert.match(catalog, /runEmbeddedSignup/, "the catalog connects WhatsApp itself, with one button");
   assert.doesNotMatch(catalog, /<CopyRow|rotate_token|catalog_management<\/b>/);
   assert.match(catalog, /plainMetaError/);
 });
