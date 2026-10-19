@@ -28,11 +28,14 @@ CREATE INDEX IF NOT EXISTS "SellerLogisticsInvite_sellerId_status_idx" ON "Selle
 CREATE INDEX IF NOT EXISTS "SellerLogisticsInvite_logisticsPartnerId_idx" ON "SellerLogisticsInvite"("logisticsPartnerId");
 ALTER TABLE "SellerLogisticsInvite" ENABLE ROW LEVEL SECURITY;
 
--- Removing the delivery network APIs (Kwik, Fez, Sendstack, Sendbox, Shipbubble), applied on production 2026-10-18:
--- the sync cron, the hidden network partner rows, and the columns and tables only they used.
+-- Removing the delivery network APIs (Kwik, Fez, Sendstack, Sendbox, Shipbubble).
+-- Done on production 2026-10-19: the carrier-sync cron is unscheduled, and the two hidden network partner rows
+-- (carrier_kwik, carrier_shipbubble) are suspended and rejected, so they can never be listed or booked.
+-- Still to run (optional cleanup; nothing reads these any more). Run it AFTER this code is deployed:
 --
--- select cron.unschedule('carrier-sync') where exists (select 1 from cron.job where jobname = 'carrier-sync');
--- delete from "LogisticsPartner" where carrier is not null;
+-- delete from "DeliveryQuoteRequest" where "logisticsPartnerId" in ('carrier_kwik', 'carrier_shipbubble');
+-- delete from "Notification" where "userId" in ('carrier_kwik_user', 'carrier_shipbubble_user');
+-- delete from "LogisticsPartner" where id in ('carrier_kwik', 'carrier_shipbubble');
 -- delete from "User" where "supabaseId" like 'carrier:%';
 -- drop table if exists "DeliveryNetworkAccount";
 -- drop table if exists "DeliveryNetworkCheckout";
