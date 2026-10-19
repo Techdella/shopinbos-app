@@ -3,14 +3,16 @@
 import { useState } from "react";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import { formatDate, formatNumber } from "@shared/i18n";
+import { useAppSession } from "@/components/billing/useAppSession";
 
 export function StoreLaunchBalanceCard({ balanceDue, dueAt }: { balanceDue: number; dueAt?: string | null }) {
   const t = useT("payments");
   const locale = useLocale();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const inApp = useAppSession();
 
-  if (balanceDue <= 0) return null;
+  if (balanceDue <= 0 || inApp) return null;
   const dueLabel = dueAt
     ? formatDate(dueAt, locale, { dateStyle: "long" })
     : t("lb.endOfMonth");

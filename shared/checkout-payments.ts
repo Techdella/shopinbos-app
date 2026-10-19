@@ -155,8 +155,7 @@ const OPTION_COPY: Record<CheckoutPaymentMethod, Omit<CheckoutPaymentOption, "ke
 
 /**
  * Buyer-facing payment options, always in the order Paystack, Korapay, bank transfer, pay on delivery.
- * When the seller chose nothing, or nothing they chose can be offered, falls back to the first way to pay that
- * works (card, then the second card checkout, then bank transfer), and to Paystack only when none does.
+ * A store that never chose gets card when its wallet takes cards; when nothing works the list is empty.
  */
 export function checkoutPaymentOptions(settings: CheckoutPaymentSettings, context: CheckoutPaymentContext = {}): CheckoutPaymentOption[] {
   const methods = settings.methods;
@@ -167,8 +166,18 @@ export function checkoutPaymentOptions(settings: CheckoutPaymentSettings, contex
     if (methods.transfer && settings.transferReady) keys.push("transfer");
     if (methods.cod && !payOnDeliveryBlock(settings, context)) keys.push("pay_on_delivery");
   }
-  if (keys.length === 0) keys.push(settings.paystackReady ? "paystack" : settings.korapayReady ? "korapay" : settings.transferReady ? "transfer" : "paystack");
+  // Never offer a way to pay that can't work: a store that never chose its methods gets card only when its wallet
+  // takes cards; otherwise the list is empty and checkout says so (noWayToPayText) instead of failing at payment.
+  if (keys.length === 0 && !methods && settings.paystackReady) keys.push("paystack");
   return keys.map((key) => ({ key, ...OPTION_COPY[key] }));
+}
+
+/** What checkout says when no way to pay works for this order (why pay on delivery is out, when it is). */
+export function noWayToPayText(settings: CheckoutPaymentSettings, context: CheckoutPaymentContext = {}): string {
+  const cod = settings.methods?.cod ? payOnDeliveryBlock(settings, context) : null;
+  return cod
+    ? `${cod} The store can't take other payments here yet, so message the store to order.`
+    : "This store can't take payments here yet. Message the store to order.";
 }
 
 /** Maps the checkout body's paymentMethod (older clients send "redirect" or "inline", both Paystack). */

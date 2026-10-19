@@ -110,6 +110,10 @@ const en = {
   "pay.payFull": "Pay {amount}",
   "pay.payPart": "Pay {now} now, {rest} by month end",
   "pay.paystackNote": "Paystack handles the payment. Shopinbos never sees your card.",
+  "pay.readyTitle": "{name} is ready",
+  "pay.readyEmailed": "It goes live once it's launched. We've emailed {email} the next steps.",
+  "pay.readyLater": "It goes live once it's launched.",
+  "pay.readyNext": "Continue",
   // Your shop is live (app/onboarding/live.tsx)
   "live.copied": "Link copied",
   "live.isLive": "Your shop is live",

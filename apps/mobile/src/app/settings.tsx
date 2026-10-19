@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
+import * as WebBrowser from "expo-web-browser";
 import type { IdentityImageKind } from "@shared/identity-images";
 import { LanguageRow } from "@/components/LanguagePicker";
 import { TipsRow } from "@/components/learn/TipsRow";
@@ -12,6 +13,7 @@ import { Card, Field, Label, LinkButton, Notice, PillButton, T } from "@/compone
 import { fetchIdentity, removeIdentityImage, uploadIdentityImage, type Identity } from "@/lib/identity";
 import { fetchProfile, saveProfile, type MeFields, type SellerProfile, type ShopFields } from "@/lib/seller-settings";
 import { changedFields } from "@/lib/settings-pure";
+import { PRIVACY_URL, TERMS_URL } from "@/lib/support";
 import { useLoad } from "@/lib/useLoad";
 import { openWeb } from "@/lib/web";
 import { useT } from "@/lib/i18n";
@@ -53,6 +55,7 @@ export default function Settings() {
 
 function SettingsForm({ initial, identity }: { initial: SellerProfile; identity: Identity | null }) {
   const t = useT("m_settings", "m_products", "common");
+  const tUi = useT("m_ui");
   const [saved, setSaved] = useState(initial);
   const [shop, setShop] = useState<ShopForm>(shopForm(initial));
   const [me, setMe] = useState<MeForm>(meForm(initial));
@@ -219,6 +222,11 @@ function SettingsForm({ initial, identity }: { initial: SellerProfile; identity:
         <LinkRow icon="bell" label={t("set.notifications")} hint={t("set.notificationsHint")} onPress={() => router.push("/notifications/settings")} />
         <LinkRow icon="help" label={t("set.help")} hint={t("set.helpHint")} onPress={() => router.push("/help")} />
         <LinkRow icon="globe" label={t("set.more")} hint={t("set.moreHint")} onPress={() => void openWeb("/home/settings")} right={<AppIcon name="share" size={18} color={colors.inkSoft} />} />
+      </Card>
+
+      <Card style={{ paddingVertical: 2 }}>
+        <LinkRow first icon="doc" label={tUi("more.terms")} onPress={() => void WebBrowser.openBrowserAsync(TERMS_URL)} />
+        <LinkRow icon="doc" label={tUi("more.privacy")} hint={tUi("more.privacyHint")} onPress={() => void WebBrowser.openBrowserAsync(PRIVACY_URL)} />
       </Card>
     </Screen>
   );

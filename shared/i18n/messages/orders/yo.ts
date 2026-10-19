@@ -63,6 +63,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "detail.tracking": "Ìtọpinpin",
   "detail.sentOn": "a fi ránṣẹ́ ní {date}",
   "detail.declined": "Wọ́n kọ̀ ọ́: {reason}.",
+  "detail.reportProblem": "Ròyìn ìṣòro kan",
   "detail.customer": "Oníbàárà",
   "detail.name": "Orúkọ",
   "detail.email": "Email",

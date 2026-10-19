@@ -63,6 +63,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "detail.tracking": "Bibiya",
   "detail.sentOn": "an tura {date}",
   "detail.declined": "An ƙi: {reason}.",
+  "detail.reportProblem": "Kai rahoton matsala",
   "detail.customer": "Kwastoma",
   "detail.name": "Suna",
   "detail.email": "Email",

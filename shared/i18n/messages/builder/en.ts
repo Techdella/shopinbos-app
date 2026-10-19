@@ -211,6 +211,7 @@ const en = {
   "ps.addedLabel": "{name} added",
   "ps.addLabel": "Add {name}",
   "ps.added": "Added",
+  "ps.checkFirst": "Call and check the supplier first",
   "ps.add": "Add",
   "ps.back": "Back",
   "ps.saved": "Saved",

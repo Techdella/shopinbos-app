@@ -5,6 +5,7 @@ import { getSellerWorkspace } from "@/lib/workspace";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { PillLink } from "@/components/app-kit";
 import { getT } from "@/lib/i18n/server";
+import { isAppSession } from "@/lib/app-session.server";
 import { creditOverview, liveCreditPrices } from "@/lib/ai/credits.server";
 import { aiAllowanceToday } from "@/lib/ai/usage";
 import { db } from "@/lib/db/client";
@@ -32,6 +33,8 @@ export default async function CreditsPage({ searchParams }: { searchParams: Prom
   ]);
   const [allowance, prices] = await Promise.all([aiAllowanceToday(user.id, plan?.aiCredits), liveCreditPrices()]);
 
+  const inApp = await isAppSession();
+
   return (
     <SellerPage
       user={user}
@@ -40,15 +43,21 @@ export default async function CreditsPage({ searchParams }: { searchParams: Prom
       sub={t("cr.sub")}
       actions={<PillLink href="/home/settings?tab=Billing" icon="arrowLeft">{t("cr.billing")}</PillLink>}
     >
-      <PromoBanner role="seller" className="mb-5" />
-      <CreditsClient
-        initial={overview}
-        packs={prices.packs}
-        costs={prices.costs}
-        allowance={allowance}
-        result={query.credits === "paid" || query.credits === "failed" || query.credits === "pending" ? query.credits : null}
-        resultError={query.error?.slice(0, 300) ?? null}
-      />
+      {inApp ? (
+        <p className="m-0 text-[14px] leading-[1.5]">{t("app.billingOff")}</p>
+      ) : (
+        <>
+          <PromoBanner role="seller" className="mb-5" />
+          <CreditsClient
+            initial={overview}
+            packs={prices.packs}
+            costs={prices.costs}
+            allowance={allowance}
+            result={query.credits === "paid" || query.credits === "failed" || query.credits === "pending" ? query.credits : null}
+            resultError={query.error?.slice(0, 300) ?? null}
+          />
+        </>
+      )}
     </SellerPage>
   );
 }

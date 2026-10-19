@@ -61,6 +61,7 @@ const en = {
   "detail.tracking": "Tracking",
   "detail.sentOn": "sent {date}",
   "detail.declined": "Declined: {reason}.",
+  "detail.reportProblem": "Report a problem",
   "detail.customer": "Customer",
   "detail.name": "Name",
   "detail.email": "Email",

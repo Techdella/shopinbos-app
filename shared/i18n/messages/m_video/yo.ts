@@ -28,7 +28,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "photos.adding": "Ó ń fi kún un…",
   "photos.allow": "Gba Shopinbos láàyè láti lo fọ́tò rẹ nínú ètò fóònù rẹ, lẹ́yìn náà gbìyànjú lẹ́ẹ̀kan sí i.",
   "photos.problem": "Fọ́tò yẹn kò gòkè. Gbìyànjú òmíràn.",
-  "shots.credits": "O ti lo àwọn àwòrán ọ̀fẹ́ ti òní. Ra credits lórí wẹ́ẹ̀bù láti ṣe àwọn shot míì.",
+  "shots.credits": "O ti lo àwọn àwòrán ọ̀fẹ́ ti òní. Wàá rí míì gbà lọ́la.",
   "shots.done": "{count, plural, other {Àwọn shot # rẹ ti ṣetán}}.",
   "words.language": "Èdè",
   "words.write": "Jẹ́ kí Rex kọ àwọn ọ̀rọ̀",

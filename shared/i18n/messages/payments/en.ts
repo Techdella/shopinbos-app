@@ -232,11 +232,17 @@ const en = {
   // Payment logos and the 'Built with Shopinbos' badge (shared/payment-badges.ts, src/lib/store-badges.ts).
   "err.badges": "Choose from the listed payment logos.",
   "badges.title": "Payment logos on your store",
-  "badges.sub": "Tap a logo to show or hide it. Shoppers see them at the bottom of your store and at checkout.",
+  "badges.sub": "Tap a logo to show or hide it. Shoppers see them at the bottom of your store and at checkout. Only the ways your store takes payment can be shown.",
   "badges.preview": "How shoppers see it",
   "badges.none": "No logos will show on your store.",
   "badges.reset": "Use my payment methods",
   "badges.saved": "Saved",
+  "badges.block.not_supported": "Shopinbos checkout doesn't take these yet, so your store can't show them.",
+  "badges.block.turn_on_cod": "turn on pay on delivery above to show it.",
+  "badges.block.transfer_bank": "add the bank account customers pay into to show it.",
+  "badges.block.turn_on_transfer": "turn on bank transfer above to show it.",
+  "badges.block.wallet": "set up your Shopinbos Wallet so customers can pay you by card, then you can show these.",
+  "badges.block.turn_on_card": "turn on card payments above to show these.",
   "badge.transfer": "Bank transfer",
   "badge.cod": "Pay on delivery",
   "plan.noBadge": "Turn off the 'Built with Shopinbos' badge on your store",
@@ -296,6 +302,10 @@ const en = {
   "sm.credits": "{count} AI credits every month",
   "po.allTime": "All time",
   "po.pages": "Payout pages",
+  "app.launchTitle": "Your shop is ready",
+  "app.launchBody": "It goes live once it's launched. Launching isn't available in the Shopinbos app.",
+  "app.ok": "OK",
+  "app.billingOff": "Plans, billing and AI credits aren't available in the Shopinbos app.",
 } satisfies Record<string, string>;
 
 export default en;

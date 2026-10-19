@@ -17,6 +17,7 @@ import { applyRefundEvent } from "@/lib/commerce/refunds.server";
 import { afterRetailOrderPaid } from "@/lib/commerce/order-paid.server";
 import { SELLER_PAYIN_PREFIX, confirmSellerPayIn } from "@/lib/logistics/seller-payins.server";
 import { DELIVERY_FEE_PREFIX, confirmDeliveryFeePayment } from "@/lib/logistics/delivery-fee-payments.server";
+import { DEBT_PAYMENT_PREFIX, confirmDebtPayment } from "@/lib/money-owed/money-owed.server";
 import { PAID_RETAIL_STATUSES } from "@/lib/supplier-orders/pure";
 import { isDedicatedCharge } from "@/lib/logistics/payin-rules";
 import { handleDedicatedAccountAssign, handleDedicatedAccountCharge } from "@/lib/logistics/payins.server";
@@ -147,6 +148,14 @@ export async function POST(req: NextRequest) {
     const result = await confirmDeliveryFeePayment(event.data.reference).catch((error) => ({ ok: false as const, error: String(error), retry: true }));
     if (!result.ok && result.retry) return new NextResponse("Retry later", { status: 500 });
     if (!result.ok) console.warn(`[paystack webhook] delivery fee ${event.data.reference} not applied: ${result.error}`);
+    return new NextResponse("OK", { status: 200 });
+  }
+
+  // ── Money one business owed another, paid in the app (split to the creditor's own bank) ──
+  if (eventType === "charge.success" && typeof event.data?.reference === "string" && event.data.reference.startsWith(DEBT_PAYMENT_PREFIX)) {
+    const result = await confirmDebtPayment(event.data.reference).catch((error) => ({ ok: false as const, error: String(error), retry: true }));
+    if (!result.ok && result.retry) return new NextResponse("Retry later", { status: 500 });
+    if (!result.ok) console.warn(`[paystack webhook] debt payment ${event.data.reference} not applied: ${result.error}`);
     return new NextResponse("OK", { status: 200 });
   }
 

@@ -63,6 +63,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "detail.tracking": "Tracking",
   "detail.sentOn": "sent {date}",
   "detail.declined": "Dem decline am: {reason}.",
+  "detail.reportProblem": "Report problem",
   "detail.customer": "Customer",
   "detail.name": "Name",
   "detail.email": "Email",

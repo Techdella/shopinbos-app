@@ -6,6 +6,8 @@ import { upgradeSellerToGrowth, upgradeSellerToMax } from "@/app/actions/payment
 import { useToast } from "@/components/ui/Toast";
 import { cx } from "@/components/app-ui/cx";
 import { useT } from "@/components/i18n/I18nProvider";
+import { AppBillingNotice } from "@/components/billing/AppBillingNotice";
+import { useAppSession } from "@/components/billing/useAppSession";
 import { annualSaving, type PlanOfferView } from "@shared/plan-catalog";
 
 interface SellerBillingSectionProps {
@@ -43,7 +45,13 @@ const PLANS = [
   },
 ] as const;
 
-export function SellerBillingSection({ userEmail, userName, aiCredits, creditBalance, productCount = 0, offers }: SellerBillingSectionProps) {
+/** Hidden on pages the phone app opened (app store rules; see src/lib/app-session.ts). */
+export function SellerBillingSection(props: SellerBillingSectionProps) {
+  const inApp = useAppSession();
+  return inApp ? <AppBillingNotice /> : <SellerBillingSectionInner {...props} />;
+}
+
+function SellerBillingSectionInner({ userEmail, userName, aiCredits, creditBalance, productCount = 0, offers }: SellerBillingSectionProps) {
   const t = useT("payments");
   const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
   const [isPending, startTransition] = useTransition();

@@ -203,7 +203,7 @@ function Studio({ products, project, startPurpose, startProduct }: { products: S
           return current.look === "cutout" && !REEL_TEMPLATES.find((item) => item.id === current.template)?.cutout ? withTemplate(next, "float", purpose) : next;
         });
       }
-      if (answer.creditsNeeded) setNotice({ tone: "error", text: answer.message ?? t("shots.credits") });
+      if (answer.creditsNeeded) setNotice({ tone: "error", text: t("shots.credits") });
       else if (result.made < result.total) setNotice({ tone: result.made ? "info" : "error", text: result.made ? t("shotsSome", { made: result.made, total: result.total }) : result.firstProblem ?? t("err.shots") });
       else setNotice({ tone: "success", text: t("shots.done", { count: result.made }) });
     } catch (error) {

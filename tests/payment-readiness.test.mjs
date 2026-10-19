@@ -43,11 +43,13 @@ test("Finish on WhatsApp writes out the bag and the total", () => {
   assert.match(read("src/app/s/[slug]/checkout/CheckoutClient.tsx"), /commerce\.payments\.methods\?\.wa && info\.whatsappNumber/);
 });
 
-test("checkout falls back to a way to pay that works, not to a card checkout that can't open", () => {
+test("checkout never offers a way to pay that can't work, nor one the seller switched off", () => {
   const settings = { methods: { card: true, transfer: false }, paystackReady: false, korapayReady: false, transferReady: true, codLimit: null, zones: [] };
-  assert.deepEqual(pay.checkoutPaymentOptions(settings).map((option) => option.key), ["transfer"]);
-  assert.deepEqual(pay.checkoutPaymentOptions({ ...settings, transferReady: false }).map((option) => option.key), ["paystack"]);
+  assert.deepEqual(pay.checkoutPaymentOptions(settings).map((option) => option.key), [], "transfer is off and card can't work: checkout explains instead");
   assert.deepEqual(pay.checkoutPaymentOptions({ ...settings, paystackReady: true }).map((option) => option.key), ["paystack"]);
+  // A store that never chose gets card only when its wallet takes cards.
+  assert.deepEqual(pay.checkoutPaymentOptions({ ...settings, methods: null }).map((option) => option.key), []);
+  assert.deepEqual(pay.checkoutPaymentOptions({ ...settings, methods: null, paystackReady: true }).map((option) => option.key), ["paystack"]);
 });
 
 test("every add-your-bank form looks the account up and saves the bank's own name for it", () => {

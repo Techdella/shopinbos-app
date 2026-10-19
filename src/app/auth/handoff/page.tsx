@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { handoffNextPath, readHandoffToken } from "@/lib/auth/handoff";
+import { APP_SESSION_COOKIE, APP_SESSION_MAX_AGE } from "@/lib/app-session";
 import { useT } from "@/components/i18n/I18nProvider";
 
 // The mobile app opens web-only tools through here so the seller isn't asked to log in again.
@@ -22,6 +23,9 @@ export default function HandoffPage() {
     const token = readHandoffToken(window.location.hash);
     // Drop the token from the address bar and history straight away.
     window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
+
+    // Only the phone app comes through here: mark the session so purchase screens hide (src/lib/app-session.ts).
+    document.cookie = `${APP_SESSION_COOKIE}=1; Max-Age=${APP_SESSION_MAX_AGE}; Path=/; SameSite=Lax; Secure`;
 
     const supabase = getSupabaseBrowserClient();
     if (!token || !supabase) {

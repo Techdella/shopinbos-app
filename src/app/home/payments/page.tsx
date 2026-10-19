@@ -131,7 +131,7 @@ export default async function SellerPaymentsPage() {
               )}
             </Card>
             <PaymentMethods initial={savedMethods} states={methodStates} transferWindow={transferWindow} />
-            {store ? <PaymentLogos initial={paymentBadges.selected} defaults={paymentBadges.defaults} /> : null}
+            {store ? <PaymentLogos initial={paymentBadges.selected} defaults={paymentBadges.defaults} available={paymentBadges.available} blocked={paymentBadges.blocked} /> : null}
             <AssistantNote>
               {t("money.note")}
             </AssistantNote>

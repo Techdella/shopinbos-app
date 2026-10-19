@@ -220,11 +220,17 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   // Payment logos and the 'Built with Shopinbos' badge (shared/payment-badges.ts, src/lib/store-badges.ts).
   "err.badges": "Zaɓi daga cikin tambarin biyan kuɗi da aka lissafa.",
   "badges.title": "Tambarin biyan kuɗi a shagonka",
-  "badges.sub": "Taɓa tambari don nuna shi ko ɓoye shi. Kwastomomi za su gan su a ƙasan shagonka da wajen checkout.",
+  "badges.sub": "Danna logo don nuna ko ɓoye shi. Shoppers za su gan su a ƙasan shagonka da wajen checkout. Hanyoyin da shagonka ke karɓar kuɗi kawai za ka iya nunawa.",
   "badges.preview": "Yadda kwastomomi za su gani",
   "badges.none": "Babu tambarin da zai bayyana a shagonka.",
   "badges.reset": "Yi amfani da hanyoyin biyana",
   "badges.saved": "An ajiye",
+  "badges.block.not_supported": "checkout na Shopinbos ba ya karɓar waɗannan tukuna, don haka shagonka ba zai iya nuna su ba.",
+  "badges.block.turn_on_cod": "kunna pay on delivery a sama don nuna shi.",
+  "badges.block.transfer_bank": "saka bank account da customers za su biya ciki don nuna shi.",
+  "badges.block.turn_on_transfer": "kunna bank transfer a sama don nuna shi.",
+  "badges.block.wallet": "shirya Shopinbos Wallet ɗinka don customers su iya biyan ka da kati, sannan za ka iya nuna su.",
+  "badges.block.turn_on_card": "kunna biyan kuɗi da kati a sama don nuna su.",
   "badge.transfer": "Bank transfer",
   "badge.cod": "Biya idan an kawo",
   "plan.noBadge": "Za ka iya kashe alamar 'Built with Shopinbos' a shagonka",
@@ -298,6 +304,10 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "methods.state.needs_team": "Zai fara cikin kwana ɗaya, da zarar mun haɗa bankinka da shi",
   "methods.state.unavailable": "Yana zuwa nan ba da daɗewa ba. Abokan ciniki za su iya biya ta tura kuɗi ko idan an kawo.",
   "methods.state.needs_whatsapp": "Ƙara lambar WhatsApp ɗinka a Chat settings don kunna wannan",
+  "app.launchTitle": "Shagonka ya shirya",
+  "app.launchBody": "Zai fara aiki da zarar an launch shi. Ba za ka iya launch shi a cikin app ɗin Shopinbos ba.",
+  "app.ok": "To",
+  "app.billingOff": "Plans, billing da AI credits ba sa cikin app ɗin Shopinbos.",
 };
 
 export default ha;

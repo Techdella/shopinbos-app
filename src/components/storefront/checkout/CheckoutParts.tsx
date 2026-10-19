@@ -291,6 +291,7 @@ export function PaymentFields({
   options,
   method,
   onSelect,
+  unavailable,
   errors,
   riderPhone,
   total,
@@ -301,6 +302,8 @@ export function PaymentFields({
   options: CheckoutPaymentOption[];
   method: CheckoutPaymentMethod;
   onSelect: (method: CheckoutPaymentMethod) => void;
+  /** Set when no way to pay works for this order: what to tell the shopper instead of the choices. */
+  unavailable?: string | null;
   errors: FieldErrors;
   /** The rider's phone field for pay on delivery (Steps, where the contact fields aren't on screen); null to skip it. */
   riderPhone: React.ReactNode | null;
@@ -328,6 +331,7 @@ export function PaymentFields({
           ))}
         </div>
       </fieldset>
+      {unavailable ? <p role="alert" className="text-[14px]" style={{ color: ERROR }}>{unavailable}</p> : null}
       {errors.paymentMethod ? <p role="alert" className="text-[13px]" style={{ color: ERROR }}>{errors.paymentMethod}</p> : null}
       {method === "pay_on_delivery" ? (
         <div className="grid gap-2">

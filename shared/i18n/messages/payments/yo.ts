@@ -220,11 +220,17 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   // Payment logos and the 'Built with Shopinbos' badge (shared/payment-badges.ts, src/lib/store-badges.ts).
   "err.badges": "Yan lára àwọn logo ìsanwó tó wà nínú àkójọ.",
   "badges.title": "Àwọn logo ìsanwó lórí ṣọ́ọ̀bù rẹ",
-  "badges.sub": "Tẹ logo kan láti fi hàn tàbí láti fi pamọ́. Oníbàárà máa rí wọn nísàlẹ̀ ṣọ́ọ̀bù rẹ àti níbi checkout.",
+  "badges.sub": "Tẹ logo kan láti fi hàn tàbí fi pamọ́. Àwọn shopper á rí wọn nísàlẹ̀ ilé ìtajà rẹ àti ní checkout. Àwọn ọ̀nà tí ilé ìtajà rẹ ń gbà gba owó nìkan lo lè fi hàn.",
   "badges.preview": "Bí oníbàárà ṣe máa rí i",
   "badges.none": "Kò sí logo tó máa hàn lórí ṣọ́ọ̀bù rẹ.",
   "badges.reset": "Lo àwọn ọ̀nà ìsanwó mi",
   "badges.saved": "A ti fi pamọ́",
+  "badges.block.not_supported": "checkout Shopinbos kò tíì gba àwọn wọ̀nyí, nítorí náà ilé ìtajà rẹ kò lè fi wọ́n hàn.",
+  "badges.block.turn_on_cod": "tan pay on delivery lókè láti fi hàn.",
+  "badges.block.transfer_bank": "fi account bánkì tí àwọn customer máa san sí kún un láti fi hàn.",
+  "badges.block.turn_on_transfer": "tan bank transfer lókè láti fi hàn.",
+  "badges.block.wallet": "ṣètò Shopinbos Wallet rẹ kí àwọn customer lè fi káàdì san owó fún ọ, lẹ́yìn náà o lè fi wọ̀nyí hàn.",
+  "badges.block.turn_on_card": "tan ìsanwó káàdì lókè láti fi wọ̀nyí hàn.",
   "badge.transfer": "Bank transfer",
   "badge.cod": "Sanwó nígbà tí ọjà bá dé",
   "plan.noBadge": "O lè pa àmì 'Built with Shopinbos' lórí ilé ìtajà rẹ",
@@ -298,6 +304,10 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "methods.state.needs_team": "Á bẹ̀rẹ̀ láàárín ọjọ́ kan, nígbà tí a bá so báńkì rẹ mọ́ ọn",
   "methods.state.unavailable": "Ó ń bọ̀ láìpẹ́. Àwọn oníbàárà lè sanwó nípasẹ̀ ìfiránṣẹ́ tàbí nígbà tí ẹrù bá dé.",
   "methods.state.needs_whatsapp": "Fi nọ́mbà WhatsApp rẹ kún un nínú Chat settings láti tan èyí",
+  "app.launchTitle": "Ṣọ́ọ̀bù rẹ ti ṣetán",
+  "app.launchBody": "Yóò wà láàyè ní kété tí wọ́n bá ti launch rẹ̀. O kò lè launch rẹ̀ nínú app Shopinbos.",
+  "app.ok": "Ó dáa",
+  "app.billingOff": "Plans, billing àti AI credits kò sí nínú app Shopinbos.",
 };
 
 export default yo;

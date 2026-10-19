@@ -7,6 +7,7 @@ import { cx } from "@/components/app-ui/cx";
 import { Icon } from "@/components/ui/Icon";
 import { naira, saleBreakdown, supplierLine, type FindProduct } from "@/lib/marketplace/find";
 import { SampleNotice } from "./SampleNotice";
+import { SupplierTrustBadges } from "./SupplierTrust";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import { formatMoney } from "@shared/i18n";
 
@@ -103,6 +104,7 @@ export function ProductGrid({ products, addedIds, chips, notified, emptyText }: 
                     <Link href={href} className="text-app-ink no-underline hover:underline">{product.name}</Link>
                   </h3>
                   <p className="mb-0 mt-1 text-[12px] leading-[1.4] text-app-ink-soft sm:text-[12.5px]">{supplierLine(product)}</p>
+                  {!product.sample ? <div className="mt-1.5"><SupplierTrustBadges supplier={product.supplier} compact /></div> : null}
                   <div className="mt-2 flex flex-wrap items-baseline justify-between gap-x-2 text-[13px] sm:text-[14px]">
                     <span>{t("grid.cost")} <strong className="font-extrabold">{money(product.cost)}</strong></span>
                     <span>{t("grid.sell")} <strong className="font-extrabold">{money(product.price)}</strong></span>
@@ -111,6 +113,11 @@ export function ProductGrid({ products, addedIds, chips, notified, emptyText }: 
                   <div className="mt-auto pt-3">
                     {isAdded ? (
                       <p className="m-0 flex min-h-[40px] items-center justify-center gap-1.5 text-[14px] font-extrabold text-app-success"><Icon name="check" size={16} /> {t("grid.addedToStore")}</p>
+                    ) : !product.sample && product.dropship && !product.supplier.agreed ? (
+                      // Dropship from a supplier the seller hasn't agreed with yet: call, check the stock and agree first.
+                      <Link href={`${href}#before-you-list`} className="inline-flex min-h-[40px] w-full items-center justify-center rounded-full border border-app-ink bg-white px-3 text-center text-[13px] font-extrabold text-app-ink no-underline sm:min-h-[42px]">
+                        {t("trust.checkFirst")}
+                      </Link>
                     ) : (
                       <div className="flex flex-col gap-2 min-[520px]:flex-row">
                         <button
