@@ -1363,13 +1363,13 @@ test("Start here checklist is built from real shop state, honours skips, and onl
   const setup = await import("../src/lib/setup/checklist.ts");
   const empty = {
     lookChosen: false, products: 0, productsWithPhotos: 0, paymentMethodsOn: 0, activeDeliveryZones: 0,
-    payoutBank: false, live: false, shared: false, customDomain: false, subscribers: 0, campaignsSent: 0,
+    payoutBank: false, live: false, socialsConnected: 0, shared: false, customDomain: false, subscribers: 0, campaignsSent: 0,
   };
   const none = { skipped: [], dismissed: false, sharedAt: null };
 
   const fresh = setup.buildSetupChecklist(empty, none);
   assert.deepEqual(fresh.steps.map((step) => step.key), [...setup.SETUP_STEP_KEYS]);
-  assert.equal(fresh.total, 8, "domain and audience are optional");
+  assert.equal(fresh.total, 9, "domain and audience are optional");
   assert.equal(fresh.done, 1, "the shop itself exists");
   assert.equal(fresh.complete, false);
   assert.equal(fresh.showStart, true);
@@ -1393,13 +1393,14 @@ test("Start here checklist is built from real shop state, honours skips, and onl
   assert.equal(doneAfterSkip.steps.find((step) => step.key === "look").done, true);
 
   // Every required step done → complete even with optional ones open; Start here hides.
-  const all = { ...empty, lookChosen: true, productsWithPhotos: 1, products: 1, paymentMethodsOn: 2, activeDeliveryZones: 1, payoutBank: true, live: true, shared: true };
+  const all = { ...empty, lookChosen: true, productsWithPhotos: 1, products: 1, paymentMethodsOn: 2, activeDeliveryZones: 1, payoutBank: true, live: true, socialsConnected: 2, shared: true };
   const finished = setup.buildSetupChecklist(all, none);
   assert.equal(finished.complete, true);
   assert.equal(finished.percent, 100);
   assert.equal(finished.showStart, false);
   assert.equal(finished.next.key, "domain", "optional steps are offered once the required ones are done");
   assert.match(finished.steps.find((step) => step.key === "payments").hint, /2 ways to pay are on/);
+  assert.equal(finished.steps.find((step) => step.key === "socials").action.href, "/home/connections", "connect once on Connections");
 
   // Dismissing hides Start here without completing it.
   const dismissed = setup.buildSetupChecklist(empty, { ...none, dismissed: true });

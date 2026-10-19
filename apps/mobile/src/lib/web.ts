@@ -51,6 +51,7 @@ const APP_SCREENS: Record<string, string> = {
   "/home/shipping": "/delivery",
   "/home/settings": "/settings",
   "/channels": "/channels",
+  "/home/connections": "/channels",
   "/home/marketing/subscribers": "/marketing/subscribers",
   "/home/payment-links": "/payment-links",
   "/home/social/link-in-bio": "/link-in-bio",

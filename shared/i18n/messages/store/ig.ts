@@ -536,6 +536,9 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "cart.pages": "Peeji carts a hapụrụ",
   "forms.allTime": "Site na mbido",
   "forms.pages": "Peeji ozi fọm",
+  "seo.googleTitle": "Google",
+  "seo.googleSub": "Ndepụta n'efu, reviews Google gị, ọchụchọ Google na ọnụ ọgụgụ ndị ọbịa: otu mbanye na peeji Connections ga-edozi ha niile.",
+  "seo.googleOpen": "Jikọọ Google",
 };
 
 export default ig;

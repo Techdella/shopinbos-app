@@ -62,7 +62,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "pend.checking": "Anyị na-elele…",
   "pend.waiting": "Na-eche",
   "pend.title": "Anyị na-eche ka ejikọọ domain gị",
-  "pend.sub": "Zigara onye hazirila ya usoro ndị ahụ. Anyị ga-anọgide na-elele, ụlọ ahịa gị ga-emepe ebe ahụ ozugbo ọ rụrụ ọrụ.",
+  "pend.sub": "Pịa n'okpuru, ndị otu Shopinbos ga-ejikọ ya na gị. Anyị ga-anọgide na-elele, ụlọ ahịa gị ga-emepe ebe ahụ ozugbo ọ rụrụ ọrụ.",
   "pend.liveKeeps": "{domain} ga-anọgide na-arụ ọrụ n'oge a.",
   "pend.freeKeeps": "Adreesị gị n'efu ga-anọgide na-arụ ọrụ n'oge a.",
   "pend.sendWa": "Zipu usoro ndị ahụ na WhatsApp",
@@ -220,6 +220,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "free.renewsCard": "Ọ na-emegharị n'efu site na atụmatụ afọ gị",
   "free.failed": "Anyị enweghị ike inweta {domain} maka gị. Anaghị ana gị ego ọ bụla. Họrọ aha ọzọ, ma ọ bụ pịa Enyemaka.",
   "free.notFree": "Atụmatụ gị anaghị ekpuchi domain n'efu ugbu a. Ọ na-efu {price} maka afọ 1. Lelee ya, wee kwụọ ụgwọ.",
+  "pend.askUs": "Gwa anyị ka anyị jikọọ ya",
+  "pend.checkNow": "Lelee ugbu a",
 };
 
 export default ig;

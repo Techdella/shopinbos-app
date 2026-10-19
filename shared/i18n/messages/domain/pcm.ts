@@ -62,7 +62,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "pend.checking": "We dey check…",
   "pend.waiting": "Dey wait",
   "pend.title": "We dey wait make your domain connect",
-  "pend.sub": "Send the steps to the person wey set am up. We go dey check and your shop go open there the moment e work.",
+  "pend.sub": "Tap below and Shopinbos team go connect am with you. We go dey check, and your shop go open there the moment e work.",
   "pend.liveKeeps": "{domain} go still dey work meanwhile.",
   "pend.freeKeeps": "Your free address go still dey work meanwhile.",
   "pend.sendWa": "Send the steps for WhatsApp",
@@ -220,6 +220,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "free.renewsCard": "E dey renew free with your yearly plan",
   "free.failed": "We no fit get {domain} for you. We no charge you anything. Pick another name, or tap Help.",
   "free.notFree": "Your plan no cover free domain now. E cost {price} for 1 year. Check am, then pay.",
+  "pend.askUs": "Ask us make we connect am",
+  "pend.checkNow": "Check am now",
 };
 
 export default pcm;

@@ -1,16 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withSeller } from "@/lib/auth/middleware";
 import { db } from "@/lib/db/client";
-import { appResultUrl, appReturnCookieName, appReturnUrl, isOAuthPlatform, nonceCookieName, STATE_MAX_AGE_MS } from "@/lib/sales-channels/pure";
+import { appResultUrl, appReturnCookieName, appReturnUrl, isOAuthPlatform, nonceCookieName, returnCookieName, safeReturnPath, STATE_MAX_AGE_MS } from "@/lib/sales-channels/pure";
 import { startConnect } from "@/lib/sales-channels/server";
 
 export const dynamic = "force-dynamic";
 
 // GET: the "Connect" button on /channels. Sends the seller to the platform's sign-in with a signed state, and puts
 // the state's nonce in an httpOnly cookie so the callback only finishes in the browser that started it.
-// From the phone app (?app=shopinbos://channels) the callback returns to the app instead of /channels.
+// From the phone app (?app=shopinbos://channels) the callback returns to the app instead of /channels; from Inbox →
+// Channels or Start here (?next=/home/inbox/channels) it returns to that page.
 export const GET = withSeller(async (req: NextRequest, { user, params }) => {
-  const back = new URL("/channels", req.url);
+  const next = safeReturnPath(req.nextUrl.searchParams.get("next"));
+  const back = new URL(next ?? "/channels", req.url);
   const platform = params.platform;
   if (!isOAuthPlatform(platform)) return NextResponse.redirect(back);
   const app = appReturnUrl(req.nextUrl.searchParams.get("app"));
@@ -31,5 +33,7 @@ export const GET = withSeller(async (req: NextRequest, { user, params }) => {
   // Set or cleared every time, so a web Connect after an app one still ends on /channels.
   if (app) response.cookies.set(appReturnCookieName(platform), app, { httpOnly: true, secure, sameSite: "lax", path, maxAge: Math.floor(STATE_MAX_AGE_MS / 1000) });
   else response.cookies.set(appReturnCookieName(platform), "", { path, maxAge: 0 });
+  if (next) response.cookies.set(returnCookieName(platform), next, { httpOnly: true, secure, sameSite: "lax", path, maxAge: Math.floor(STATE_MAX_AGE_MS / 1000) });
+  else response.cookies.set(returnCookieName(platform), "", { path, maxAge: 0 });
   return response;
 });

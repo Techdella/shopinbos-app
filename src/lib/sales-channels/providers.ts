@@ -1,6 +1,7 @@
 import "server-only";
 
 import { GRAPH_VERSION } from "@/lib/inbox/channels/types";
+import { googleClient } from "@/lib/google/oauth";
 import { debugToken, graph, graphBase } from "@/lib/whatsapp-catalog/graph";
 import { grantedTargets } from "@/lib/whatsapp-catalog/pure";
 import { pushMetaCatalog } from "@/lib/social/server";
@@ -172,7 +173,7 @@ async function googleToken(body: Record<string, string>): Promise<Exchanged & { 
   const res = await fetch(GOOGLE_TOKEN_URL, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ client_id: process.env.GOOGLE_MERCHANT_CLIENT_ID ?? "", client_secret: process.env.GOOGLE_MERCHANT_CLIENT_SECRET ?? "", ...body }),
+    body: new URLSearchParams({ client_id: googleClient("merchant").id, client_secret: googleClient("merchant").secret, ...body }),
     signal: AbortSignal.timeout(15_000),
   }).catch(() => null);
   if (!res) throw new ChannelError("Couldn't reach Google. Try again.");

@@ -536,6 +536,9 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "cart.pages": "Àwọn ojú-ewé cart tí wọ́n fi sílẹ̀",
   "forms.allTime": "Láti ìbẹ̀rẹ̀",
   "forms.pages": "Àwọn ojú-ewé ìfiránṣẹ́ fọ́ọ̀mù",
+  "seo.googleTitle": "Google",
+  "seo.googleSub": "Ìpolówó ọ̀fẹ́, àwọn review Google rẹ, ìwákiri Google àti ìṣirò àwọn àlejò: wíwọlé kan lórí ojú-ìwé Connections á ṣètò gbogbo wọn.",
+  "seo.googleOpen": "So Google pọ̀",
 };
 
 export default yo;

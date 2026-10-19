@@ -3,13 +3,13 @@
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
-import { mergeBrandSettings, parseBrandSettings } from "@/lib/workspace";
-import { parseIntegrationsForm } from "@/lib/storefront/integrations";
+import { mergeBrandSettings } from "@/lib/workspace";
 import { parseCookieBannerForm } from "@/lib/storefront/consent";
-import { chooseSearchConsoleSite, disconnectSearchConsole } from "@/lib/search-console/google.server";
+import { finishGoogleSetup } from "@/lib/google/connect.server";
+import { disconnectPlatform } from "@/lib/sales-channels/server";
 
-// Settings › Connections (/home/connections). Only the signed-in seller's own store is changed; every ID is checked
-// against its exact format (src/lib/security/html.ts) and a malformed one is refused with the field named.
+// Connections (/home/connections). Only the signed-in seller's own store is changed. Accounts connect by signing
+// in (src/lib/google/connect.server.ts, src/lib/sales-channels); nothing here takes pasted IDs.
 
 async function sellerAndStore() {
   const user = await requireRole(["seller"], "/login");
@@ -18,35 +18,23 @@ async function sellerAndStore() {
   return store;
 }
 
-export async function saveConnections(formData: FormData) {
+/** The cookie notice shoppers see before visitor-stats tags load (src/lib/storefront/consent.ts). */
+export async function saveCookieNotice(formData: FormData) {
   const store = await sellerAndStore();
-  const { values, invalid } = parseIntegrationsForm((name) => formData.get(name));
-  const current = parseBrandSettings(store.brandSettings).integrations;
-  const others = current && typeof current === "object" && !Array.isArray(current) ? (current as Record<string, unknown>) : {};
-  // The valid ones are saved; a malformed one keeps its previous value and the page names it.
-  const valid = Object.fromEntries(Object.entries(values).filter(([key]) => !(invalid as string[]).includes(key)));
-  // The cookie banner shoppers see before the tags load (src/lib/storefront/consent.ts): on/off, message, policy link.
   const cookieBanner = parseCookieBannerForm((name) => formData.get(name));
-  await db.store.update({
-    where: { id: store.id },
-    data: { brandSettings: mergeBrandSettings(store.brandSettings, { integrations: { ...others, ...valid }, ...(cookieBanner ? { cookieBanner: { ...cookieBanner } } : {}) }) },
-  });
-  redirect(invalid.length ? `/home/connections?invalid=${encodeURIComponent(invalid.join(","))}` : "/home/connections?saved=1");
+  if (cookieBanner) await db.store.update({ where: { id: store.id }, data: { brandSettings: mergeBrandSettings(store.brandSettings, { cookieBanner: { ...cookieBanner } }) } });
+  redirect("/home/connections?saved=1#cookies");
 }
 
-export async function chooseSearchConsoleProperty(formData: FormData) {
+/** "Finish setting up" on the Google card: reviews, search and visitor stats again (e.g. once the shop is live). */
+export async function finishGoogleSetupAction() {
   const store = await sellerAndStore();
-  const siteUrl = String(formData.get("siteUrl") ?? "");
-  try {
-    await chooseSearchConsoleSite(store.id, siteUrl);
-  } catch {
-    redirect("/home/connections?google=bad_site#search-console");
-  }
-  redirect("/home/connections?google=connected#search-console");
+  await finishGoogleSetup(store.id);
+  redirect("/home/connections?finished=google#google");
 }
 
-export async function disconnectSearchConsoleAction() {
+export async function disconnectGoogleAction() {
   const store = await sellerAndStore();
-  await disconnectSearchConsole(store.id);
-  redirect("/home/connections?google=disconnected#search-console");
+  await disconnectPlatform(store.id, "google");
+  redirect("/home/connections#google");
 }

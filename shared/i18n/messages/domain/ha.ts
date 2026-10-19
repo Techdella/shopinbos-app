@@ -62,7 +62,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "pend.checking": "Ana dubawa…",
   "pend.waiting": "Ana jira",
   "pend.title": "Ana jiran a haɗa domain ɗinka",
-  "pend.sub": "Tura matakan ga wanda ya shirya shi. Za mu ci gaba da dubawa kuma shagonka zai buɗe a can da zarar ya yi aiki.",
+  "pend.sub": "Taɓa ƙasa kuma ƙungiyar Shopinbos za ta haɗa shi tare da kai. Za mu ci gaba da dubawa, kuma shagonka zai buɗe a can da zarar ya yi aiki.",
   "pend.liveKeeps": "{domain} zai ci gaba da aiki a halin yanzu.",
   "pend.freeKeeps": "Adireshinka kyauta zai ci gaba da aiki a halin yanzu.",
   "pend.sendWa": "Tura matakan a WhatsApp",
@@ -220,6 +220,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "free.renewsCard": "Ana sabunta shi kyauta da tsarinka na shekara",
   "free.failed": "Ba mu iya samo maka {domain} ba. Ba a caje ka komai ba. Zaɓi wani suna, ko danna Taimako.",
   "free.notFree": "Tsarinka bai ƙunshi domain kyauta yanzu ba. Kuɗinsa {price} na shekara 1. Duba shi, sannan ka biya.",
+  "pend.askUs": "Nemi mu haɗa shi",
+  "pend.checkNow": "Duba yanzu",
 };
 
 export default ha;

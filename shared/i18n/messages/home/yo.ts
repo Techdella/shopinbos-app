@@ -213,6 +213,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "health.again": "Tún un ṣírò",
   "health.failed": "A kò lè ṣírò àmì rẹ. Gbìyànjú lẹ́ẹ̀kan sí i.",
   "activity.pages": "Àwọn ojú-ewé ìṣẹ̀lẹ̀",
+  "step.Connect WhatsApp, Facebook & Instagram": "So WhatsApp, Facebook àti Instagram pọ̀",
+  "step.One tap each. Customers' messages come to your inbox and your products show there.": "Títẹ̀ kan fún ọ̀kọ̀ọ̀kan. Àwọn ìfiránṣẹ́ oníbàárà máa wá sí inbox rẹ, àwọn ọjà rẹ á sì hàn níbẹ̀.",
   "step.Card payments go straight to your bank once you add it.": "Owó káàdì yóò lọ tààrà sí báńkì rẹ nígbà tí o bá fi kún un.",
 };
 

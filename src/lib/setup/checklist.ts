@@ -5,7 +5,7 @@
 /** Session cookie set by Start here: Home sends new sellers to Start here once per visit until setup is done or dismissed. */
 export const START_SEEN_COOKIE = "sib_start_seen";
 
-export const SETUP_STEP_KEYS = ["store", "look", "products", "payments", "delivery", "payout", "live", "share", "domain", "audience"] as const;
+export const SETUP_STEP_KEYS = ["store", "look", "products", "payments", "delivery", "payout", "live", "socials", "share", "domain", "audience"] as const;
 export type SetupStepKey = (typeof SETUP_STEP_KEYS)[number];
 
 /** Facts read from the database. Every step's "done" comes from these, never from a tick box. */
@@ -20,6 +20,8 @@ export interface SetupFacts {
   activeDeliveryZones: number;
   payoutBank: boolean;
   live: boolean;
+  /** WhatsApp, Facebook Page and Instagram accounts connected (/channels): connect once, used everywhere. */
+  socialsConnected: number;
   /** The seller shared their link from Start here or the store hub, or a shopper has ordered online. */
   shared: boolean;
   customDomain: boolean;
@@ -221,6 +223,18 @@ export function buildSetupChecklist(facts: SetupFacts, choices: SetupChoices): S
       optional: false,
       done: facts.live,
       action: { kind: "inline", label: "Go live" },
+      helper: null,
+    },
+    {
+      key: "socials",
+      title: "Connect WhatsApp, Facebook & Instagram",
+      hint:
+        facts.socialsConnected > 0
+          ? `${plural(facts.socialsConnected, "account")} connected. Messages come to your inbox and your products show there.`
+          : "One tap each. Customers' messages come to your inbox and your products show there.",
+      optional: false,
+      done: facts.socialsConnected > 0,
+      action: { kind: "link", label: "Connect", href: "/home/connections" },
       helper: null,
     },
     {

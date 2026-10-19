@@ -32,7 +32,8 @@ const FULL = {
 test("each platform connects only when its app keys and the encryption key are set", () => {
   for (const platform of sc.LIVE_PLATFORMS) assert.equal(sc.platformConfigured(platform, FULL), true, platform);
   for (const platform of sc.LIVE_PLATFORMS) assert.equal(sc.platformConfigured(platform, { ...FULL, INBOX_ENCRYPTION_KEY: "" }), false, `${platform} without a key`);
-  assert.equal(sc.platformConfigured("meta", { ...FULL, META_CATALOG_CONFIG_ID: "" }), false, "Facebook needs its catalog configuration");
+  assert.equal(sc.platformConfigured("meta", { ...FULL, META_CATALOG_CONFIG_ID: "" }), true, "the Login for Business configuration is optional");
+  assert.equal(sc.platformConfigured("meta", { ...FULL, META_APP_SECRET: "" }), false);
   assert.equal(sc.platformConfigured("whatsapp", { ...FULL, META_CATALOG_CONFIG_ID: "" }), true, "WhatsApp uses the Embedded Signup configuration");
   assert.equal(sc.platformConfigured("whatsapp", { ...FULL, META_CONFIG_ID: " " }), false);
   assert.equal(sc.platformConfigured("google", { ...FULL, GOOGLE_MERCHANT_CLIENT_SECRET: undefined }), false);
@@ -118,7 +119,7 @@ test("sign-in URLs carry the state and the registered redirect URI", () => {
   const origin = "https://app.shopinbos.com";
   const google = new URL(sc.authorizeUrl("google", { origin, state: "st", env: FULL }));
   assert.equal(google.origin + google.pathname, "https://accounts.google.com/o/oauth2/v2/auth");
-  assert.equal(google.searchParams.get("scope"), "https://www.googleapis.com/auth/content");
+  assert.equal(google.searchParams.get("scope"), sc.GOOGLE_SCOPE, "one Google sign-in asks for everything Google");
   assert.equal(google.searchParams.get("access_type"), "offline");
   assert.equal(google.searchParams.get("redirect_uri"), "https://app.shopinbos.com/api/app/sales-channels/google/callback");
   assert.equal(google.searchParams.get("state"), "st");
@@ -129,6 +130,11 @@ test("sign-in URLs carry the state and the registered redirect URI", () => {
   assert.equal(meta.searchParams.get("config_id"), "cat-config");
   assert.equal(meta.searchParams.get("response_type"), "code");
   assert.equal(meta.searchParams.get("redirect_uri"), "https://app.shopinbos.com/api/app/sales-channels/meta/callback");
+  assert.equal(meta.searchParams.get("scope"), null, "a configuration carries its own permissions");
+  const classic = new URL(sc.authorizeUrl("meta", { origin, state: "st", env: { ...FULL, META_CATALOG_CONFIG_ID: "" } }));
+  assert.equal(classic.searchParams.get("config_id"), null);
+  assert.equal(classic.searchParams.get("scope"), sc.META_LOGIN_SCOPES.join(","));
+  assert.equal(classic.searchParams.get("response_type"), "code");
 
   const tiktok = new URL(sc.authorizeUrl("tiktok", { origin, state: "st", env: FULL }));
   assert.equal(tiktok.origin + tiktok.pathname, "https://business-api.tiktok.com/portal/auth");
@@ -208,4 +214,60 @@ test("the sync cron needs the cron secret", () => {
   const cron = read("src/app/api/cron/sales-channels/route.ts");
   assert.match(cron, /cronAuthorization\(req\.headers\.get\("authorization"\), secret\) !== "ok"/);
   assert.match(cron, /syncDueConnections\(\)/);
+});
+
+test("Connect returns to the page it started on, and only to our own pages", () => {
+  for (const path of ["/channels", "/home/inbox/channels", "/home/start"]) assert.equal(sc.safeReturnPath(path), path);
+  for (const bad of ["https://evil.example/channels", "//evil.example", "/channels/../admin", "/home", "", null, undefined]) assert.equal(sc.safeReturnPath(bad), null, String(bad));
+  const connect = read("src/app/api/app/sales-channels/[platform]/connect/route.ts");
+  assert.match(connect, /safeReturnPath\(req\.nextUrl\.searchParams\.get\("next"\)\)/);
+  assert.match(connect, /returnCookieName\(platform\), next, \{ httpOnly: true/);
+  const callback = read("src/app/api/app/sales-channels/[platform]/callback/route.ts");
+  assert.match(callback, /safeReturnPath\(req\.cookies\.get\(returnCookieName\(platform\)\)\?\.value\) \?\? "\/channels"/);
+});
+
+test("TikTok is coming soon in Nigeria: its card hides unless a store linked it before", () => {
+  assert.equal(sc.COMING_SOON_PLATFORMS[0], "tiktok");
+  assert.ok(sc.PAUSED_PLATFORMS.includes("tiktok"));
+  assert.equal(sc.channelActionAllowed("tiktok", "notify"), true, "Tell me when it's ready works for TikTok");
+  const server = read("src/lib/sales-channels/server.ts");
+  assert.match(server, /!PAUSED_PLATFORMS\.includes\(card\.platform\) \|\| Boolean\(byPlatform\.get\(card\.platform\)\?\.tokenEnc\)/);
+});
+
+test("one Facebook sign-in also connects the Page and Instagram inboxes, and Disconnect turns off only those", () => {
+  const server = read("src/lib/sales-channels/server.ts");
+  assert.match(server, /if \(platform === "meta"\) \{\n\s+const store = await loadStore\(storeId\);\n\s+if \(store\) await connectMetaInbox\(store, exchanged\.tokens\.token\);/);
+  assert.match(server, /if \(platform === "meta"\) await disconnectMetaInbox\(storeId\);/);
+  const inbox = read("src/lib/sales-channels/meta-inbox.server.ts");
+  assert.match(inbox, /connectChannel\(store, channel, \{ pageAccessToken: page\.token \}\)/);
+  assert.match(inbox, /via === VIA_FACEBOOK_LOGIN\) await disconnectChannel/);
+  assert.doesNotMatch(inbox, /console\.[a-z]+\([^)]*token/i, "tokens never reach a log line");
+});
+
+test("Connect Google: one client and one set of scopes for shopping, reviews, search and visitor stats", async () => {
+  const g = await import("../src/lib/google/oauth.ts");
+  assert.deepEqual([...g.GOOGLE_CONNECT_SCOPES], [
+    "openid",
+    "email",
+    "https://www.googleapis.com/auth/content",
+    "https://www.googleapis.com/auth/business.manage",
+    "https://www.googleapis.com/auth/webmasters",
+    "https://www.googleapis.com/auth/siteverification",
+    "https://www.googleapis.com/auth/analytics.edit",
+  ]);
+  assert.ok(!g.GOOGLE_CONNECT_SCOPES.some((scope) => scope.includes("gmail")), "Gmail asks separately, from the email card");
+  const shared = { GOOGLE_CLIENT_ID: "shared", GOOGLE_CLIENT_SECRET: "s", GOOGLE_MERCHANT_CLIENT_ID: "old", GOOGLE_MERCHANT_CLIENT_SECRET: "o" };
+  for (const feature of ["merchant", "business", "searchConsole"]) assert.deepEqual(g.googleClient(feature, shared), { id: "shared", secret: "s" }, feature);
+  assert.deepEqual(g.googleClient("merchant", { GOOGLE_MERCHANT_CLIENT_ID: "old", GOOGLE_MERCHANT_CLIENT_SECRET: "o" }), { id: "old", secret: "o" }, "older clients still work alone");
+  assert.deepEqual(g.googleClient("business", { GOOGLE_BUSINESS_CLIENT_ID: "b", GOOGLE_BUSINESS_CLIENT_SECRET: "bs" }), { id: "b", secret: "bs" });
+  assert.equal(sc.platformConfigured("google", { INBOX_ENCRYPTION_KEY: KEY, GOOGLE_CLIENT_ID: "x", GOOGLE_CLIENT_SECRET: "y" }), true, "the shared client is enough");
+  const server = read("src/lib/sales-channels/server.ts");
+  assert.match(server, /if \(platform === "google"\) await connectGoogleEverything\(storeId, tokens, exchanged\.expiresAt\);/);
+  assert.match(server, /if \(platform === "google"\) await disconnectGoogleEverything\(storeId\);/);
+  const connect = read("src/lib/google/connect.server.ts");
+  assert.match(connect, /"https:\/\/www\.googleapis\.com\/siteVerification\/v1"/);
+  assert.match(connect, /\$\{VERIFY_API\}\/token`, \{ body: \{ site, verificationMethod: "META" \} \}/);
+  assert.match(connect, /setStoreIntegration\(store\.id, "gaSiteVerification", code\)/);
+  assert.match(connect, /setStoreIntegration\(store\.id, "googleAnalyticsId", measurementId, \{ onlyIfEmpty: true \}\)/);
+  assert.doesNotMatch(connect, /console\.[a-z]+\([^)]*token/i, "tokens never reach a log line");
 });

@@ -213,6 +213,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "health.again": "Work am out again",
   "health.failed": "We no fit work out your score. Try again.",
   "activity.pages": "Activity pages",
+  "step.Connect WhatsApp, Facebook & Instagram": "Connect WhatsApp, Facebook & Instagram",
+  "step.One tap each. Customers' messages come to your inbox and your products show there.": "One tap each. Customers' messages go land for your inbox and your products go show there.",
   "step.Card payments go straight to your bank once you add it.": "Card payments go enter your bank straight once you add am.",
 };
 
