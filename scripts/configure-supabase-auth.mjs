@@ -13,6 +13,7 @@
 //      Production today is https://shopinbos-app.vercel.app.
 //   3. Email provider enabled
 //   4. Optional: Google sign-in   (GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET)
+//      Sign in with Apple for the iPhone app (client ID com.shopinbos.app; APPLE_CLIENT_IDS to change it, comma-separated)
 //   5. Optional: phone codes by SMS through the app's own Termii / Africa's Talking / Sendchamp account, via
 //      Supabase's "Send SMS" auth hook ({APP_URL}/api/webhooks/supabase-sms). Needs SUPABASE_SEND_SMS_HOOK_SECRET
 //      ("v1,whsec_<base64>", any 32+ random bytes; the same value goes in the app's env) and SMS_PROVIDER keys.
@@ -136,6 +137,15 @@ async function main() {
       console.log("   Google sign-in: enabling");
     }
 
+    // Sign in with Apple from the iPhone app is native: Supabase only checks Apple's ID token against these client
+    // IDs (the app's bundle ID). No secret is needed for that; APPLE_SECRET (a signed client-secret JWT) adds web sign-in.
+    Object.assign(authConfigBody, {
+      external_apple_enabled: true,
+      external_apple_client_id: process.env.APPLE_CLIENT_IDS || "com.shopinbos.app",
+      ...(process.env.APPLE_SECRET ? { external_apple_secret: process.env.APPLE_SECRET } : {}),
+    });
+    console.log("   Apple sign-in: enabling");
+
     if (process.env.SUPABASE_SEND_SMS_HOOK_SECRET) {
       Object.assign(authConfigBody, {
         external_phone_enabled: true,
@@ -158,7 +168,7 @@ async function main() {
   if (current?.site_url) {
     console.log(`   Current SITE_URL: ${current.site_url}${/app\.shopinbos\.com/.test(current.site_url) ? "   ⚠️  app.shopinbos.com doesn't serve the app; template logos load from SITE_URL" : ""}`);
   }
-  const SECRET_FIELDS = new Set(["smtp_pass", "external_google_secret", "hook_send_sms_secrets"]);
+  const SECRET_FIELDS = new Set(["smtp_pass", "external_google_secret", "external_apple_secret", "hook_send_sms_secrets"]);
   const changes = Object.entries(authConfigBody).filter(([key, value]) => !current || SECRET_FIELDS.has(key) || current[key] !== value);
   console.log(`\n▪ ${changes.length} field(s) to set:`);
   for (const [key, value] of changes) {
@@ -202,6 +212,7 @@ async function main() {
     console.log(`   site_url:     ${cfg.site_url}`);
     console.log(`   uri_allow_list: ${cfg.uri_allow_list}`);
     console.log(`   google enabled: ${cfg.external_google_enabled}`);
+    console.log(`   apple enabled:  ${cfg.external_apple_enabled} (${cfg.external_apple_client_id ?? "no client ID"})`);
     console.log(`   phone enabled:  ${cfg.external_phone_enabled} (${cfg.sms_provider ?? "no provider"})`);
   }
   console.log("\n✅ Done. Send yourself a sign-in code to check the new email.\n");

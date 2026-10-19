@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, View } from "react-native";
 import { router } from "expo-router";
+import * as AppleAuthentication from "expo-apple-authentication";
 import * as WebBrowser from "expo-web-browser";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { DEFAULT_DIAL_COUNTRY, DIAL_COUNTRIES, isValidEmail, toE164, type DialCountry } from "@shared/phone";
-import { explainSignupConflict, fetchWhatsAppCodes, sendCode, signInWithGoogle, signInWithPassword, signOutNow, syncAccount, type CodeTarget } from "@/lib/auth";
+import { appleSignInAvailable, explainSignupConflict, fetchWhatsAppCodes, sendCode, signInWithApple, signInWithGoogle, signInWithPassword, signOutNow, syncAccount, type CodeTarget } from "@/lib/auth";
 import { BackButton, Field, Label, LinkButton, Notice, PhoneField, PillButton, Segmented, T } from "@/components/ui";
 import { AppIcon } from "@/components/icons";
 import { MascotVideo } from "@/components/MascotVideo";
@@ -47,9 +48,12 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
   const role = initialRole;
   // Phone codes go on WhatsApp when the server has it on (GET /api/auth/otp), else SMS; null while asking.
   const [whatsapp, setWhatsapp] = useState<boolean | null>(null);
+  // Sign in with Apple: iPhone only (see appleSignInAvailable).
+  const [apple, setApple] = useState(false);
   useEffect(() => {
     let live = true;
     void fetchWhatsAppCodes().then((value) => live && setWhatsapp(value));
+    void appleSignInAvailable().then((value) => live && setApple(value));
     return () => {
       live = false;
     };
@@ -62,13 +66,13 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [busy, setBusy] = useState<null | "send" | "google">(null);
+  const [busy, setBusy] = useState<null | "send" | "google" | "apple">(null);
   const [error, setError] = useState<string | null>(null);
 
   const usingPassword = mode === "login" && method === "email" && emailMode === "password";
 
-  async function finish(signedUp: boolean, phoneNumber?: string) {
-    const actual = await syncAccount({ fullName: name.trim() || undefined, phone: phoneNumber, signup: signedUp, role });
+  async function finish(signedUp: boolean, phoneNumber?: string, fullName?: string) {
+    const actual = await syncAccount({ fullName: name.trim() || fullName || undefined, phone: phoneNumber, signup: signedUp, role });
     await rememberSignedInRole(actual);
     // Google sign-up with an email that already has another kind of account: nothing changed; say so plainly.
     if (signedUp && actual && actual !== role && (await explainSignupConflict(actual, role, "email")) === "different") {
@@ -109,6 +113,19 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
       router.push({ pathname: "/verify", params: { target: JSON.stringify(target), mode, name: name.trim(), role, channel } });
     } catch (sendError) {
       setError(sendError instanceof Error ? sendError.message : t("form.sendFailed"));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function signInApple() {
+    setError(null);
+    setBusy("apple");
+    try {
+      const result = await signInWithApple();
+      if (result?.session) await finish(mode === "signup", undefined, result.fullName);
+    } catch (appleError) {
+      setError(appleError instanceof Error ? appleError.message : t("form.appleFailed"));
     } finally {
       setBusy(null);
     }
@@ -216,6 +233,15 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
             <T weight="bold" style={{ color: colors.inkFaint, fontSize: 12, letterSpacing: 1.4 }}>{t("form.or")}</T>
             <View style={{ flex: 1, height: 1, backgroundColor: colors.line }} />
           </View>
+          {apple && (
+            <AppleAuthentication.AppleAuthenticationButton
+              buttonType={mode === "signup" ? AppleAuthentication.AppleAuthenticationButtonType.SIGN_UP : AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+              buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+              cornerRadius={999}
+              style={{ height: 50, marginBottom: 10, opacity: busy ? 0.6 : 1 }}
+              onPress={() => !busy && void signInApple()}
+            />
+          )}
           <PillButton tone="white" size="md" busy={busy === "google"} disabled={Boolean(busy)} onPress={() => void google()}>
             <GoogleMark />
             <T weight="bold" style={{ fontSize: 15 }}>{t("form.google")}</T>
