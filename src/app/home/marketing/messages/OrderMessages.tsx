@@ -8,7 +8,7 @@ import { Notice, PillButton, Toggle } from "@/components/app-ui";
 import { Field, inputClass, selectClass, textareaClass } from "@/components/growth/kit";
 import type { ChannelStatus } from "@/lib/marketing/channels";
 import type { MessagingSettings } from "@/lib/marketing/messaging-settings";
-import { CUSTOMER_EVENTS, type CustomerEvent, type CustomerEventSetting } from "@/lib/marketing/text-channels";
+import { CUSTOMER_EVENTS, ORDER_MESSAGE_PRESETS, type CustomerEvent, type CustomerEventSetting } from "@/lib/marketing/text-channels";
 import { api, errorText } from "../_kit/client";
 import { ChannelHelp, SmsCounter, TemplateStatusPill, WhatsAppBubble, useTemplateStatusLabel, type TemplateOption } from "../_kit/text";
 import { useT } from "@/components/i18n/I18nProvider";
@@ -39,6 +39,26 @@ export function OrderMessages({ initial, channels, templates, currency }: { init
   const eventLabel = (key: string, fallback: string) => t.dynamic(`om.event.${key}.label`, EVENT_COPY[key]?.label ?? fallback);
   const waReady = Boolean(channels.whatsapp.templates);
   const smsReady = channels.sms.ready;
+  // The ready-made order templates on the seller's WhatsApp account (submitted by themselves on connect).
+  const orderTemplates = ORDER_MESSAGE_PRESETS.map((key) => templates.find((tpl) => tpl.preset === key && ["APPROVED", "PENDING", "IN_APPEAL"].includes(tpl.status)) ?? null);
+  const needsSetup = waReady && orderTemplates.some((tpl) => !tpl);
+  const waitingForMeta = waReady && !needsSetup && orderTemplates.some((tpl) => tpl?.status !== "APPROVED");
+
+  async function setUpWhatsApp() {
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const result = await api<{ settings: MessagingSettings }>("/api/app/marketing/messaging", "POST", { action: "setup_whatsapp" });
+      setSettings(result.settings);
+      setNotice(t("om.waSetupDone"));
+      router.refresh();
+    } catch (setupError) {
+      setError(errorText(setupError));
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function save() {
     setBusy(true);
@@ -67,6 +87,24 @@ export function OrderMessages({ initial, channels, templates, currency }: { init
       {!waReady ? (
         <Notice tone="info">
           <ChannelHelp label="WhatsApp" howTo={t("om.waHow")} href={channels.whatsapp.connectHref} linkLabel={channels.whatsapp.connectLabel} />
+        </Notice>
+      ) : null}
+      {needsSetup ? (
+        <Card className="grid gap-3 p-5">
+          <CardHead title={t("om.waSetupTitle")} sub={t("om.waSetupBody")} />
+          <div>
+            <PillButton size="md" busy={busy} onClick={() => void setUpWhatsApp()}>{t("om.waSetupButton")}</PillButton>
+          </div>
+        </Card>
+      ) : null}
+      {waitingForMeta ? (
+        <Notice tone="info">
+          <span className="grid gap-2">
+            <span>{t("om.waWaiting")}</span>
+            <span>
+              <PillButton size="sm" tone="ghost" busy={busy} onClick={() => void setUpWhatsApp()}>{t("om.waCheckAgain")}</PillButton>
+            </span>
+          </span>
         </Notice>
       ) : null}
       {SMS_ENABLED && !smsReady ? (
