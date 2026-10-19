@@ -168,13 +168,14 @@ export function Segmented<V extends string>({ options, value, onChange }: { opti
   );
 }
 
-export function Chip({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) {
+export function Chip({ label, on, onPress, disabled }: { label: string; on: boolean; onPress: () => void; disabled?: boolean }) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityState={{ selected: on }}
+      accessibilityState={{ selected: on, disabled: !!disabled }}
       onPress={onPress}
-      style={{ borderRadius: radii.pill, paddingHorizontal: 16, paddingVertical: 10, backgroundColor: on ? colors.ink : colors.surface, borderWidth: 1, borderColor: on ? colors.ink : colors.line }}
+      disabled={disabled}
+      style={{ borderRadius: radii.pill, paddingHorizontal: 16, paddingVertical: 10, backgroundColor: on ? colors.ink : colors.surface, borderWidth: 1, borderColor: on ? colors.ink : colors.line, borderStyle: disabled ? "dashed" : "solid", opacity: disabled ? 0.45 : 1 }}
     >
       <T weight="bold" style={{ color: on ? "#FFFFFF" : colors.ink, fontSize: 15 }}>{label}</T>
     </Pressable>
