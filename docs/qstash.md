@@ -23,6 +23,7 @@ Defined in `scripts/qstash-schedules.mjs` (cron times are UTC):
 | shopinbos-whatsapp-catalog              | /api/cron/whatsapp-catalog           | `*/15 * * * *`    |
 | shopinbos-partner-payins                | /api/cron/partner-payins             | `*/15 * * * *`    |
 | shopinbos-verification-reminders        | /api/cron/verification-reminders     | `17 * * * *`      |
+| shopinbos-lifecycle-emails              | /api/cron/lifecycle                  | `23 * * * *`      |
 | shopinbos-seasonal-campaigns            | /api/cron/seasonal-campaigns         | `*/5 * * * *`     |
 | shopinbos-gmail-sync                    | /api/cron/gmail-sync                 | `*/5 * * * *`     |
 | shopinbos-lead-growth                   | /api/cron/lead-growth                | `*/10 * * * *`    |
@@ -54,7 +55,7 @@ pay-as-you-go (a few cents a day at this volume).
      'send-scheduled-campaigns', 'run-marketing', 'send-unread-message-emails', 'expire-unpaid-orders',
      'verification-reminders', 'whatsapp-catalog-sync', 'weekly-summary', 'weekly-summary-continue',
      'product-news', 'supplier-acceptance', 'partner-payins', 'push-receipts',
-     'seasonal-campaigns', 'gmail-sync', 'lead-growth', 'sales-channels', 'sales-channels-sync', 'domain-renewals'
+     'lifecycle-emails', 'seasonal-campaigns', 'gmail-sync', 'lead-growth', 'sales-channels', 'sales-channels-sync', 'domain-renewals'
    );
    ```
 
