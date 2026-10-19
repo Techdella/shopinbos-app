@@ -3,7 +3,8 @@
 //
 // Shopinbos never holds anyone's money. A store payment is split by the gateway at checkout: the seller's share goes
 // to the seller's Paystack subaccount (or Korapay split account), each dropship supplier's cost to the supplier's,
-// and the gateway settles every share straight to that business's own bank. Shopinbos's own share is zero.
+// and the gateway settles every share straight to that business's own bank. Shopinbos's own share is its fee on the
+// sale (PlatformFeeConfig; none when no fee is set).
 
 export const WALLET_ROLES = ["seller", "supplier", "logistics_partner"] as const;
 export type WalletRole = (typeof WALLET_ROLES)[number];
@@ -84,6 +85,25 @@ export interface SupplierShareInput {
   costKobo: number;
 }
 
+/** Shopinbos's fee on store sales (PlatformFeeConfig): a percentage of what the seller sells, within min / max (naira; 0 = none). */
+export interface PlatformFee {
+  rate: number;
+  minFee: number;
+  maxFee: number;
+}
+
+/** Paystack won't settle a share smaller than this, so the fee always leaves the seller at least ₦100. */
+export const MIN_SELLER_KOBO = 10_000;
+
+/** The fee in kobo on `baseKobo` (the order less delivery): rate %, raised to minFee and capped at maxFee and the base. */
+export function platformFeeKobo(baseKobo: number, fee: PlatformFee | null) {
+  if (!fee || !(baseKobo > 0) || !(fee.rate > 0 || fee.minFee > 0)) return 0;
+  let value = (baseKobo * Math.max(0, fee.rate)) / 100;
+  if (fee.minFee > 0) value = Math.max(value, fee.minFee * 100);
+  if (fee.maxFee > 0) value = Math.min(value, fee.maxFee * 100);
+  return Math.round(Math.min(value, baseKobo));
+}
+
 export interface PaymentSplitPlan {
   version: 1;
   /** Which gateway splits it (older plans: Paystack). The account fields are that gateway's references. */
@@ -96,14 +116,17 @@ export interface PaymentSplitPlan {
   suppliers: Array<{ supplierId: string; subaccount: string; kobo: number }>;
   /** Suppliers without a wallet: their cost stays in the seller's share and the seller pays them. */
   sellerSettles: Array<{ supplierId: string; kobo: number }>;
+  /** Shopinbos's fee: what no business's share covers, so the gateway leaves it in Shopinbos's balance (older plans: 0). */
+  platformKobo?: number;
 }
 
 /**
- * The split for a paid order. Suppliers with an active subaccount get exactly their cost; the seller gets the rest.
- * When the suppliers' costs come to more than the total (a product priced below cost), nobody is paid in the split
- * but the seller, and the seller settles the suppliers, so a split never asks Paystack for more than was paid.
+ * The split for a paid order. Suppliers with an active subaccount get exactly their cost; Shopinbos keeps its fee
+ * (platformKobo, lowered so the seller keeps at least MIN_SELLER_KOBO); the seller gets the rest. When the
+ * suppliers' costs come to more than the total (a product priced below cost), nobody is paid in the split but the
+ * seller, there's no fee, and the seller settles the suppliers, so a split never asks Paystack for more than was paid.
  */
-export function buildSplitPlan(input: { totalKobo: number; sellerSubaccount: string; suppliers: SupplierShareInput[]; gateway?: SplitGateway }): PaymentSplitPlan {
+export function buildSplitPlan(input: { totalKobo: number; sellerSubaccount: string; suppliers: SupplierShareInput[]; gateway?: SplitGateway; platformKobo?: number }): PaymentSplitPlan {
   const total = Math.max(0, Math.round(input.totalKobo));
   const gateway = input.gateway ?? "paystack";
   const owed = input.suppliers.filter((supplier) => supplier.costKobo > 0).map((supplier) => ({ ...supplier, costKobo: Math.round(supplier.costKobo) }));
@@ -112,26 +135,29 @@ export function buildSplitPlan(input: { totalKobo: number; sellerSubaccount: str
   if (directTotal > total) {
     return { version: 1, gateway, totalKobo: total, sellerSubaccount: input.sellerSubaccount, sellerKobo: total, suppliers: [], sellerSettles: owed.map(({ supplierId, costKobo }) => ({ supplierId, kobo: costKobo })) };
   }
+  const available = total - directTotal;
+  const platformKobo = Math.max(0, Math.min(Math.round(input.platformKobo ?? 0), available - MIN_SELLER_KOBO));
   return {
     version: 1,
     gateway,
     totalKobo: total,
     sellerSubaccount: input.sellerSubaccount,
-    sellerKobo: total - directTotal,
+    sellerKobo: available - platformKobo,
+    platformKobo,
     suppliers: direct.map((supplier) => ({ supplierId: supplier.supplierId, subaccount: supplier.subaccount!, kobo: supplier.costKobo })),
     sellerSettles: owed.filter((supplier) => !supplier.subaccount).map(({ supplierId, costKobo }) => ({ supplierId, kobo: costKobo })),
   };
 }
 
 /**
- * What goes into Paystack's transaction initialize so Shopinbos's own share is zero. One business: the seller's
- * subaccount with a zero flat charge for the main account, and the seller bears Paystack's fee. Several: a
- * dynamic flat split whose shares add up to the whole amount (so nothing is left for the main account), each
- * business bearing its share of the fee.
+ * What goes into Paystack's transaction initialize so Shopinbos keeps only its fee. One business: the seller's
+ * subaccount with the fee as the main account's flat charge, and the seller bears Paystack's fee. Several: a
+ * dynamic flat split whose shares add up to the whole amount less the fee (that remainder stays with the main
+ * account), each business bearing its share of Paystack's fee.
  */
 export function paystackSplitParams(plan: PaymentSplitPlan): Record<string, unknown> {
   if (!plan.suppliers.length) {
-    return { subaccount: plan.sellerSubaccount, transaction_charge: 0, bearer: "subaccount" };
+    return { subaccount: plan.sellerSubaccount, transaction_charge: plan.platformKobo ?? 0, bearer: "subaccount" };
   }
   return {
     split: {
@@ -150,7 +176,8 @@ const naira = (kobo: number) => (Math.round(kobo) / 100).toFixed(2);
 
 /**
  * What goes into Korapay's charge initialize (Split Payments, dynamic rule): flat naira amounts to each business's
- * Korapay split account, adding up to the whole amount, so nothing is left in the Shopinbos balance.
+ * Korapay split account, adding up to the whole amount less Shopinbos's fee, which is all that's left in the
+ * Shopinbos balance.
  */
 export function korapaySplitParams(plan: PaymentSplitPlan): Record<string, unknown> {
   return {

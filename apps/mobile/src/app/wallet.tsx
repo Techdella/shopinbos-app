@@ -94,7 +94,7 @@ function WalletBody({ data, t, reload }: { data: WalletData; t: TFn; reload: () 
           )}
         </View>
 
-        <T style={{ color: colors.inkSoft, fontSize: 13.5, lineHeight: 19, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 12 }}>{t("w.never")}</T>
+        <T style={{ color: colors.inkSoft, fontSize: 13.5, lineHeight: 19, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 12 }}>{view.fee ? t("w.fee", { fee: feeText(view.fee) }) : t("w.never")}</T>
       </Card>
 
       {view.toReturn.length ? (
@@ -330,4 +330,11 @@ function CashToReceiveCard({ rows, t, onDone }: { rows: WalletData["cashToReceiv
       {error ? <Notice>{error}</Notice> : null}
     </Card>
   );
+}
+
+/** "1.5%", "1.5% (min ₦100, max ₦2,000)". */
+function feeText(fee: { rate: number; minFee: number; maxFee: number }) {
+  const amount = (value: number) => `₦${value.toLocaleString("en-NG")}`;
+  const limits = [fee.minFee > 0 ? `min ${amount(fee.minFee)}` : null, fee.maxFee > 0 ? `max ${amount(fee.maxFee)}` : null].filter(Boolean);
+  return `${fee.rate}%${limits.length ? ` (${limits.join(", ")})` : ""}`;
 }
