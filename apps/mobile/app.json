@@ -14,7 +14,8 @@
         "NSCameraUsageDescription": "Take photos of your products, and proof of delivery photos.",
         "NSPhotoLibraryUsageDescription": "Choose product photos so Rex can list them in your shop.",
         "ITSAppUsesNonExemptEncryption": false
-      }
+      },
+      "usesAppleSignIn": true
     },
     "android": {
       "package": "com.shopinbos.app",
@@ -100,7 +101,8 @@
           "defaultChannel": "orders"
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      "expo-apple-authentication"
     ],
     "extra": {
       "router": {},
