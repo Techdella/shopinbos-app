@@ -1,5 +1,7 @@
 # Translations to review (money owed, wallet, dropship safety)
 
+Reviewers: use the live page https://claude.ai/artifact/F3SNJp2aQHTXKGafML9qd9 (mark each line Correct or suggest a fix; answers are saved and applied to the app). This file is the same list, for reference.
+
 Every string added in this change, in all five languages. The Pidgin, Yorùbá, Hausa and Igbo text was drafted by Claude and still needs a native speaker: fix it in `shared/i18n/messages/<namespace>/<language>.ts`, keep every `{placeholder}` and plural exactly, and remove the file's `// Draft: needs native-speaker review` line once the whole file is checked (see `shared/i18n/README.md`).
 
 ## builder (1)
