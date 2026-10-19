@@ -1,5 +1,7 @@
 // The seller's paid plan as Paystack reports it (src/app/api/webhooks/paystack/route.ts records it on User), and the
-// "free domain with an annual plan" rule. No imports, so tests/seller-plan.test.mjs runs it directly.
+// "free domain with an annual plan" rule. Only a relative import, so tests/seller-plan.test.mjs runs it directly.
+
+import { PLAN_TIERS, planTierOf, planVersion } from "../../shared/plan-catalog.ts";
 //
 // A domain is free only for sellers on an ANNUAL Growth or Pro plan that is active and paid up. The owner never
 // pays for a domain year the seller hasn't paid for: a free renewal also needs the plan paid past the date the
@@ -8,24 +10,21 @@
 export type PlanInterval = "monthly" | "annual";
 export type PlanStatus = "active" | "non_renewing" | "cancelled";
 
-/** Paystack plan code → billing interval (the same codes as PLAN_CREDITS in the Paystack webhook). */
-export const PLAN_INTERVALS: Readonly<Record<string, PlanInterval>> = {
-  PLN_8ou289e71czicvm: "monthly", // Seller Growth
-  PLN_2gph11w3yd0250y: "monthly", // Seller Pro
-  PLN_q78304vgj7p35o6: "monthly", // Supplier Max
-  PLN_q1k3ssxpx7rxxuz: "annual", // Seller Growth Annual
-  PLN_9gma70ofldhbj4r: "annual", // Seller Pro Annual
-  PLN_0a6z6ns429ohli1: "annual", // Supplier Max Annual
-};
-
-/** The highest seller plan (Seller Pro, monthly and annual): the only one that can hide "Built with Shopinbos". */
-export const TOP_SELLER_PLANS: readonly string[] = ["PLN_2gph11w3yd0250y", "PLN_9gma70ofldhbj4r"];
-
-/** The seller plans that come with a free domain. */
-export const SELLER_ANNUAL_PLANS: readonly string[] = ["PLN_q1k3ssxpx7rxxuz", "PLN_9gma70ofldhbj4r"];
-
+/** A plan code's billing interval: built-in codes and those created from Admin › Pricing › Plans (shared/plan-catalog.ts). */
 export function planInterval(code: string | null | undefined): PlanInterval | null {
-  return code && Object.prototype.hasOwnProperty.call(PLAN_INTERVALS, code) ? PLAN_INTERVALS[code]! : null;
+  return planVersion(code)?.billing ?? null;
+}
+
+/** The highest seller plan (Seller Pro, monthly or annual, at any price): the only one that can hide "Built with Shopinbos". */
+export function isTopSellerPlan(code: string | null | undefined) {
+  const tier = planTierOf(code);
+  return Boolean(tier && PLAN_TIERS[tier].hideBadge);
+}
+
+/** The seller plans that come with a free domain: annual Growth or Pro, at any price. */
+export function isFreeDomainPlan(code: string | null | undefined) {
+  const version = planVersion(code);
+  return Boolean(version && version.billing === "annual" && PLAN_TIERS[version.tier].freeDomainAnnual);
 }
 
 export interface SellerPlanState {
@@ -48,7 +47,7 @@ function time(value: Date | string | null | undefined) {
 export function freeDomainEligible(user: SellerPlanState | null | undefined, now: Date, renewalStartsAt?: Date | string | null): boolean {
   if (!user) return false;
   if (user.planInterval !== "annual" || user.planStatus !== "active") return false;
-  if (!user.planCode || !SELLER_ANNUAL_PLANS.includes(user.planCode)) return false;
+  if (!isFreeDomainPlan(user.planCode)) return false;
   const paidUntil = time(user.planPaidUntil);
   if (paidUntil === null || paidUntil <= now.getTime()) return false;
   if (renewalStartsAt !== undefined) {

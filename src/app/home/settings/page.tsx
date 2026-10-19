@@ -8,6 +8,7 @@ import { userLinks } from "@/lib/email/compliance.server";
 import { PageToast } from "@/components/PageToast";
 import { LanguageSettingsCard } from "@/components/i18n/LanguagePicker";
 import { SecuritySettings } from "@/components/auth/SecuritySettings";
+import { planOffers } from "@/lib/plans/catalog.server";
 import { SellerBillingSection } from "@/components/payments/SellerBillingSection";
 import { StoreLaunchBalanceCard } from "@/components/billing/StoreLaunchBalanceCard";
 import { PeggyPreferencesForm } from "@/components/settings/PeggyPreferencesForm";
@@ -293,6 +294,7 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
                   aiCredits={aiCredits}
                   creditBalance={credits}
                   productCount={productCount}
+                  offers={await planOffers()}
                 />
                 {store && <SupplierSwitchCard settings={switchSettings(await db.store.findUnique({ where: { id: store.id }, select: { autoSwitchSupplier: true, switchCostRule: true, switchMaxIncreasePct: true, switchMinMarginPct: true } }))} />}
               </>

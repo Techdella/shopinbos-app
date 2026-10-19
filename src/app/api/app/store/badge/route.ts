@@ -4,6 +4,7 @@ import type { Prisma } from "@prisma/client";
 import { withSeller } from "@/lib/auth/middleware";
 import { apiError, ok } from "@/lib/api/response";
 import { db } from "@/lib/db/client";
+import { getPlanCatalog } from "@/lib/plans/catalog.server";
 import { canHideShopinbosBadge, readHideShopinbosBadge } from "@/lib/store-badges";
 import { mergeBrandSettings } from "@/lib/workspace";
 
@@ -15,6 +16,7 @@ export const dynamic = "force-dynamic";
 // GET → { hidden, shown, canHide }   PATCH { hidden: boolean } → the same.
 
 async function load(userId: string) {
+  await getPlanCatalog(); // plans created from admin count for the badge rule
   const [user, store] = await Promise.all([
     db.user.findUnique({ where: { id: userId }, select: { planCode: true, planStatus: true, planPaidUntil: true } }),
     db.store.findUnique({ where: { userId }, select: { id: true, brandSettings: true } }),

@@ -206,6 +206,7 @@ model User {
   @@index([role])
   platformSettingChanges PlatformSettingChange[] @relation("PlatformSettingChanges")
   pricePromotions        PricePromotion[]        @relation("PricePromotions")
+  planVersionsCreated    SubscriptionPlanVersion[] @relation("PlanVersionsCreated")
 }
 
 // ─── Store ────────────────────────────────────────────────────────────────────
@@ -3848,4 +3849,21 @@ model PricePromotion {
 
   @@index([status, startsAt])
   @@index([endsAt])
+}
+
+// Every Paystack plan code Shopinbos sells or has sold (Admin › Pricing › Plans, shared/plan-catalog.ts). A new
+// price creates a new Paystack plan and a new row marked current; older rows stay so people subscribed at an older
+// price keep their tier's perks and credits. Migration: docs/migrations/2026-11-11-subscription-plans.sql.
+model SubscriptionPlanVersion {
+  code        String    @id // Paystack plan_code
+  tier        String // seller_growth | seller_pro | supplier_max
+  billing     String // monthly | annual
+  amountNgn   Int? // null: an old code we honour but never sold here
+  current     Boolean   @default(false)
+  createdById String?
+  createdBy   User?     @relation("PlanVersionsCreated", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now())
+  retiredAt   DateTime?
+
+  @@index([tier, billing, current])
 }

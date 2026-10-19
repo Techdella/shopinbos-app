@@ -1,6 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { db } from "@/lib/db/client";
+import { getPlanCatalog } from "@/lib/plans/catalog.server";
 import { getCurrentAppUser } from "@/lib/server-auth";
 import { publicBrandSettings } from "@shared/public-brand-settings";
 import { readPaymentBadges, type PaymentBadgeKey } from "@shared/payment-badges";
@@ -118,6 +119,7 @@ async function shapePublicStore(row: StoreRow) {
   }));
   // Delivery promises, pay-on-delivery, WhatsApp, collections and review highlights for the storefront chrome.
   const shopper = await loadShopperInfo(store.id, store.brandSettings, storeProducts);
+  await getPlanCatalog(); // plans created from admin count for the badge rule
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- brand settings are free-form JSON each renderer reads its own way
   const brandSettings = (publicBrandSettings(store.brandSettings) ?? {}) as Record<string, any>;
   const payload = { ...store, brandSettings, storeProducts, shopper, ...storeBadges(owner, store.brandSettings) };
@@ -162,6 +164,7 @@ export const loadStoreBrand = cache(async (slug: string): Promise<StoreBrand | n
     .findUnique({ where: { slug }, select: { id: true, status: true, name: true, slug: true, logoUrl: true, customDomain: true, currency: true, brandSettings: true, user: { select: { planCode: true, planStatus: true, planPaidUntil: true } } } })
     .catch(() => null);
   if (!store) return null;
+  await getPlanCatalog(); // plans created from admin count for the badge rule
   return {
     id: store.id,
     active: store.status === "active",
