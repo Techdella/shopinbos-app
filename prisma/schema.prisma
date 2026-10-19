@@ -205,6 +205,8 @@ model User {
   @@index([supabaseId])
   @@index([role])
   platformSettingChanges PlatformSettingChange[] @relation("PlatformSettingChanges")
+  debtsOwed              BusinessDebt[]          @relation("DebtDebtor")
+  debtsOwedTo            BusinessDebt[]          @relation("DebtCreditor")
 }
 
 // ─── Store ────────────────────────────────────────────────────────────────────
@@ -572,6 +574,9 @@ model Supplier {
   acceptHoursWholesale Int?
   /// New orders that ran out of time without an answer (src/lib/supplier-orders/acceptance.server.ts).
   missedOrders       Int                @default(0)
+  /// What this supplier takes back and how (shown to sellers before they list a product). Empty: the minimum in the
+  /// Supplier terms applies (wrong, damaged or not-as-described items).
+  returnPolicy       String?
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
@@ -3762,6 +3767,76 @@ model WalletEntry {
 
   @@index([walletId, createdAt])
   @@index([orderId])
+}
+
+// ─── Money owed between businesses ────────────────────────────────────────────
+// Money one business owes another (or Shopinbos) when something goes wrong in a flow Shopinbos facilitates: a
+// dropship order paid at checkout but never sent, goods that came back wrong or damaged, a parcel lost in transit,
+// a chargeback the gateway took from Shopinbos. Shopinbos never holds it (src/lib/money-owed): the business that
+// owes pays in the app (Paystack, split straight to the other business's bank), the business owed confirms it was
+// paid outside the app, or once it is overdue part of the debtor's share of later sales is split to them instead.
+
+model BusinessDebt {
+  id               String    @id @default(cuid())
+  /// What it is for, once: notsent:<supplierOrderId> (automatic) · claim:<id> (raised by the business owed) ·
+  /// admin:<id> (the team recorded it) · overpaid:<payment reference> (paid twice: the other way round).
+  sourceKey        String    @unique
+  debtorUserId     String
+  /// Null: Shopinbos is owed (a chargeback taken from Shopinbos's balance).
+  creditorUserId   String?
+  /// not_sent | wrong_item | damaged | not_as_described | short_delivery | lost_in_transit | damaged_in_transit |
+  /// chargeback | overpaid | other
+  reason           String
+  amountKobo       Int
+  paidKobo         Int       @default(0)
+  /// claimed (waiting for the debtor to accept, or the team) · disputed (the debtor said no: the team decides) ·
+  /// open (owed) · paid · rejected (the claim was dropped) · waived (the team cancelled what was left)
+  status           String    @default("open")
+  details          String?
+  response         String?
+  decisionNote     String?
+  decidedByUserId  String?
+  decidedAt        DateTime?
+  retailOrderId    String?
+  supplierOrderId  String?
+  wholesaleOrderId String?
+  bookingId        String?
+  /// Pay by then; after it, later sales pay it off and the team sees it as overdue.
+  dueAt            DateTime?
+  remindedAt       DateTime?
+  createdByUserId  String?
+  paidAt           DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  debtor   User                  @relation("DebtDebtor", fields: [debtorUserId], references: [id], onDelete: Cascade)
+  creditor User?                 @relation("DebtCreditor", fields: [creditorUserId], references: [id], onDelete: SetNull)
+  payments BusinessDebtPayment[]
+
+  @@index([debtorUserId, status])
+  @@index([creditorUserId, status])
+  @@index([status, dueAt])
+}
+
+/// Each payment towards a BusinessDebt. Deductions are planned when a checkout starts (they hold that part of the
+/// debt for a while) and applied once the order is paid; planned ones whose order never paid count for nothing.
+model BusinessDebtPayment {
+  id            String   @id @default(cuid())
+  debtId        String
+  /// paystack (paid in the app) | deduction (split from a later sale) | confirmed (the business owed says it got it)
+  method        String
+  amountKobo    Int
+  /// owepay-… (Paystack reference) · deduct:<orderId>:<debtId> · confirm:<debtId>:<time>
+  reference     String   @unique
+  retailOrderId String?
+  /// planned | applied | void
+  status        String   @default("applied")
+  createdAt     DateTime @default(now())
+
+  debt BusinessDebt @relation(fields: [debtId], references: [id], onDelete: Cascade)
+
+  @@index([debtId, status])
+  @@index([retailOrderId])
 }
 
 // Who connected a store through our Meta app (Facebook Login: WhatsApp Embedded Signup, catalog, ads; pasted tokens

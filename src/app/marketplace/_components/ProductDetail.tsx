@@ -376,6 +376,11 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
               </div>
             </div>
           </section>
+          <section className={cx(CARD, "grid gap-1.5 p-4")}>
+            <h2 className="m-0 text-[14.5px] font-extrabold">{t("pd.returns", { name: supplier.name })}</h2>
+            <p className="m-0 whitespace-pre-line text-[13.5px] leading-[1.5]">{supplier.returnPolicy || t("pd.returnsDefault", { name: supplier.name })}</p>
+            <p className="m-0 text-[12.5px] leading-[1.5] text-app-ink-soft">{t("pd.returnsNote")}</p>
+          </section>
         </div>
         <div className="grid min-w-0 gap-4 lg:col-start-1">
           <section className={cx(CARD, "p-4 sm:p-5")}>

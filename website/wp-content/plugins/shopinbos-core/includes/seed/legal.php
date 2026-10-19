@@ -33,7 +33,7 @@ function sib_seed_legal_core(): array {
   "These terms are the agreement between you and Shopinbos when you use our app and website to sell.",
   [
    "You own your shop, your products and your customers.",
-   "You pay the plan you choose. Payouts go to your bank every Friday.",
+   "You pay the plan you choose. Your customers’ card payments go straight to your bank.",
    "Rex and Peggy help, but you decide what gets published or sent.",
    "You can leave any time and take your data with you."
   ],
@@ -66,10 +66,11 @@ function sib_seed_legal_core(): array {
     "Fees and payouts",
     [
      "You pay the plan you choose on our Pricing page, plus the payment and delivery fees shown there. We tell you at least 30 days before any fee changes.",
-     "Payments are processed by Paystack. Your balance is paid to your bank every Friday, or when you withdraw. For dropship orders, your share is held until 48 hours after delivery in case of returns.",
-     "If we see signs of fraud or a payment dispute, we may hold the money involved while we check. We will tell you why and how long it should take."
+     "Card and bank payments are processed by Paystack (or Korapay), which splits each payment at checkout: your share is settled straight to your bank, usually the next working day, and each dropship supplier’s cost straight to theirs. Shopinbos never holds your money.",
+     "Refunds, returns and disputes with your own customers are between you and them, under your return policy and our minimum standard. Money owed between you and a supplier or delivery partner is handled in your Shopinbos Wallet, under the Supplier terms and Delivery partner terms.",
+     "If a customer’s bank reverses a card payment (a chargeback) and Paystack takes it from Shopinbos, you owe it back to us. Until it is paid, part of your later sales pays it off. If we see signs of fraud, we may pause card payments to your store while we check, and tell you why."
     ],
-    "You get paid every Friday. We tell you before prices change, and if we ever need to hold money."
+    "Paid straight to your bank. We never hold your money."
    ],
    [
     "Rex, Peggy and other AI features",
@@ -210,9 +211,10 @@ function sib_seed_legal_core(): array {
    [
     "Reporting a problem",
     [
-     "Report a problem within 48 hours of delivery using the link in your receipt or by replying on WhatsApp. Add a photo of the item and the packaging. The seller has 24 hours to respond before we step in."
+     "Report a problem within 48 hours of delivery using the link in your receipt or by replying on WhatsApp. Add a photo of the item and the packaging.",
+     "Your payment went to the shop, not to Shopinbos, so refunds come from the shop. If a shop doesn’t answer within 2 days, tell us: we can’t refund you ourselves, but we can pause shops that don’t meet our minimum standard."
     ],
-    "Report within 48 hours with a photo."
+    "Report within 48 hours with a photo. Refunds come from the shop."
    ],
    [
     "Pay on delivery",
@@ -231,7 +233,7 @@ function sib_seed_legal_core(): array {
    [
     "Dropship orders",
     [
-     "Some products are shipped directly by a supplier. Returns go back to the supplier, using a free return label the seller sends you. You do not pay for returning a wrong or damaged item."
+     "Some products are shipped directly by a supplier. The shop you bought from arranges the return with them. You do not pay for returning a wrong or damaged item."
     ],
     "Free returns for wrong or damaged dropship items."
    ],
@@ -347,9 +349,10 @@ function sib_seed_legal_core(): array {
   "Supplier terms",
   "Extra terms for businesses that list products for Shopinbos shops to sell. These apply together with our Terms of service.",
   [
-   "Listing is free. We keep 5% of each sale.",
-   "Ship dropship orders within 3 days, with the shop’s label.",
-   "You are paid after delivery and the 48-hour return window."
+   "Your cost on every paid dropship order goes straight to your bank. Shopinbos never holds it.",
+   "Accept or decline orders on time, and ship within 3 days under the shop’s name.",
+   "You take back wrong, damaged or not-as-described items and pay the shop back.",
+   "Paid for an order you didn’t send? Pay it back within 3 days, or it comes out of your next orders."
   ],
   [
    [
@@ -362,28 +365,49 @@ function sib_seed_legal_core(): array {
    [
     "Listing products",
     [
-     "Keep your prices, stock and photos up to date. If stock runs out, mark it in the portal straight away so shops stop selling it."
+     "Keep your prices, stock and photos up to date. If stock runs out, mark it in the portal straight away so shops stop selling it.",
+     "Write your return policy on your profile. Shops see it before they list your products. It can be more generous than the minimum in these terms, never less."
     ],
-    "Keep stock accurate."
+    "Keep stock accurate, and say what you take back."
    ],
    [
     "Shipping dropship orders",
     [
-     "Accept or decline each order within 24 hours. Ship within 3 days using the shop’s label and no marketing of your own inside the parcel."
+     "Accept or decline each order in the time shown in the portal. Ship within 3 days using the shop’s label and no marketing of your own inside the parcel."
     ],
     "Ship fast, under the shop’s name."
    ],
    [
-    "Fees and payment",
+    "How you are paid",
     [
-     "Listing is free. Shopinbos keeps 5% of each sale. Your share is paid to your bank every Friday after delivery and the 48-hour return window."
+     "When a shopper pays by card or bank, Paystack splits the payment at checkout and settles your cost straight to your bank, on Paystack’s schedule (usually the next working day). Shopinbos never holds your money, and you see every payment in your Shopinbos Wallet.",
+     "Listing is free. Any fee Shopinbos charges is shown in the app before it applies to you.",
+     "If a shop hasn’t got a Shopinbos Wallet, or the shopper pays on delivery, the shop pays you directly."
     ],
-    "5% per sale, paid Fridays."
+    "Paid straight to your bank. We never hold it."
    ],
    [
-    "Returns and quality",
+    "Orders you were paid for but didn’t send",
     [
-     "You accept returns for wrong, damaged or not-as-described items. If too many orders are returned or late, we may pause your listings while we work with you to fix it."
+     "If you were paid for a dropship order at checkout and then decline it, miss the time to accept it, or it is cancelled before you send it, you owe the shop what you were paid. It shows in your Shopinbos Wallet, where you can pay it back.",
+     "Pay it within 3 days. After that, until it is paid, up to half of your cost on each later order goes to the shop instead, straight to their bank."
+    ],
+    "Pay it back within 3 days."
+   ],
+   [
+    "Returns and claims",
+    [
+     "You take back items that are wrong, damaged, faulty, not as described, or fewer than ordered, and you pay the shop back what they paid you for them. You collect them, or pay for them to be sent back.",
+     "A shop can claim in the app within 7 days of delivery. You can accept the claim or say why it isn’t right. If you don’t agree, our team decides using what the app recorded (the order, tracking, dates and messages) and what you both send us. Either of you can ask for the decision to be reviewed by writing to legal@shopinbos.com.",
+     "An accepted or upheld claim is due within 3 days. After that it comes out of your later orders in the same way.",
+     "Returns because a shopper changed their mind are between the shop and the shopper, unless your own return policy offers to take them."
+    ],
+    "Your goods, your responsibility. We decide disputes."
+   ],
+   [
+    "Quality",
+    [
+     "If too many of your orders are returned, late or not sent, we may pause your listings while we work with you to fix it. If you keep not paying back what you owe, we may pause your account."
     ],
     "Quality keeps your listings live."
    ]
@@ -395,9 +419,10 @@ function sib_seed_legal_core(): array {
   "Delivery partner terms",
   "Extra terms for delivery companies and riders who take jobs from Shopinbos shops. These apply together with our Terms of service.",
   [
-   "Joining is free. We keep 8% of each delivery fee.",
-   "Cash from pay on delivery is paid in by 6pm the same day.",
-   "Lost or damaged parcels are covered by your goods-in-transit insurance."
+   "Delivery fees paid in the app go straight to your bank. Shopinbos never holds them.",
+   "Cash from pay on delivery belongs to the shop: pass it on by 6pm the same day.",
+   "You are responsible for parcels from pickup until delivery.",
+   "A refused or failed delivery that isn’t your fault is still paid."
   ],
   [
    [
@@ -417,23 +442,34 @@ function sib_seed_legal_core(): array {
    [
     "Pay on delivery",
     [
-     "Collect payment only with the buyer’s 4-digit code. Pay all cash into your Shopinbos virtual account by 6pm the same day."
+     "Collect payment only with the buyer’s 4-digit code. The cash belongs to the shop that sold the order, never to you or to Shopinbos.",
+     "Pass it to the shop by 6pm the same day (6pm the next day for cash collected after 6pm): pay it in the app, which sends it straight to the shop’s bank, or hand it over and the shop confirms it. Partners who are late are paused from new pay-on-delivery jobs until it is paid."
     ],
-    "Code first, cash in by 6pm."
+    "Code first. The shop’s cash, passed on by 6pm."
    ],
    [
-    "Fees and payment",
+    "How you are paid",
     [
-     "Joining is free. Shopinbos keeps 8% of each delivery fee. Payouts go to your company bank account weekly, with a statement for every job."
+     "When a shop pays your delivery fee in the app, Paystack settles it straight to your bank on its usual schedule. Shopinbos never holds it. Shops that don’t pay in the app pay you directly.",
+     "Joining is free. Any fee Shopinbos charges is shown in the app before it applies to you."
     ],
-    "8% per job, paid weekly."
+    "Paid straight to your bank."
+   ],
+   [
+    "Refused and failed deliveries",
+    [
+     "If the buyer refuses the parcel, isn’t there or can’t be reached, record it in the app and bring the parcel back to where you picked it up. The shop pays the delivery fee for the attempt and the return trip, as agreed in the quote. Whether the buyer gets their money back is between the shop and the buyer."
+    ],
+    "Not your fault: you are still paid."
    ],
    [
     "Lost or damaged parcels",
     [
-     "You are responsible for parcels from pickup until delivery. Claims are paid through your goods-in-transit insurance, and we help you with the paperwork."
+     "You are responsible for a parcel from pickup until the buyer gives the delivery code. If it is lost or damaged in that time, you owe the shop what the goods were worth on the order. Your goods-in-transit insurance is there to cover this, and we help you with the paperwork.",
+     "The shop claims in the app within 7 days. You can accept the claim or say why it isn’t right. If you don’t agree, our team decides using what the app recorded (pickup time, rider location, delivery code, photos) and what you both send us. Either of you can ask for the decision to be reviewed by writing to legal@shopinbos.com.",
+     "An accepted or upheld claim is due within 3 days. After that, until it is paid, up to half of each delivery fee paid to you in the app goes to the shop instead, straight to their bank."
     ],
-    "Your insurance covers losses."
+    "From pickup to the code, the parcel is yours to protect."
    ]
   ],
   "legal@shopinbos.com"

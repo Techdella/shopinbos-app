@@ -22,6 +22,8 @@ export interface FindSupplier {
   /** Share of orders delivered on time, when we know it. */
   onTimePct: number | null;
   verified: boolean;
+  /** What the supplier takes back (their own words), or null: the minimum in the Supplier terms applies. */
+  returnPolicy?: string | null;
 }
 
 export interface FindProduct {
@@ -162,7 +164,7 @@ export interface SupplierProductRow {
   processingTime: string | null;
   trendScore: number;
   category: { name: string } | null;
-  supplier: { id: string; userId: string; slug: string; displayName: string; city: string; rating: number; ratingCount: number; verificationStatus: string };
+  supplier: { id: string; userId: string; slug: string; displayName: string; city: string; rating: number; ratingCount: number; verificationStatus: string; returnPolicy?: string | null };
 }
 
 export function parsePricingTiers(value: unknown): FindPricingTier[] {
@@ -195,6 +197,7 @@ export function toFindProduct(row: SupplierProductRow): FindProduct {
       rating: row.supplier.ratingCount > 0 ? row.supplier.rating : null,
       onTimePct: null,
       verified: row.supplier.verificationStatus === "verified",
+      returnPolicy: row.supplier.returnPolicy?.trim() || null,
     },
     cost: row.wholesalePrice,
     price: row.suggestedRetailPrice,

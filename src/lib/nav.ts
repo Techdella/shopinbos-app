@@ -389,6 +389,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
         },
         { id: "logistics-partners", label: "Logistics", icon: "truck", href: "/admin/logistics-partners", core: true },
         { id: "wallets", label: "Wallets", icon: "coin", href: "/admin/wallets" },
+        { id: "money-owed", label: "Money owed", icon: "coin", href: "/admin/money-owed" },
         { id: "pricing", label: "Pricing", icon: "percent", href: "/admin/pricing" },
         {
           id: "marketplace", label: "Marketplace", icon: "monitor", href: "/admin/marketplace",

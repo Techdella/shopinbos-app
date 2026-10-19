@@ -322,6 +322,7 @@ export async function updateSupplierProfile(formData: FormData) {
   const description = String(formData.get("description") || "").trim();
   const whatsappNumber = String(formData.get("whatsappNumber") || "").trim();
   const website = String(formData.get("website") || "").trim();
+  const returnPolicy = String(formData.get("returnPolicy") || "").trim().slice(0, 1500);
 
   await db.user.update({
     where: { id: user.id },
@@ -339,6 +340,8 @@ export async function updateSupplierProfile(formData: FormData) {
       description: description || undefined,
       whatsappNumber: whatsappNumber || undefined,
       website: website || undefined,
+      // Emptied on purpose: the minimum in the Supplier terms applies again.
+      returnPolicy: formData.has("returnPolicy") ? returnPolicy || null : undefined,
     },
   });
 

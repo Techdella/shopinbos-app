@@ -11,6 +11,7 @@ import { createPaystackSubaccount, listPaystackSettlements, updatePaystackSubacc
 import { resolvePaystackAccount, settlementBanks, type ResolvedAccount } from "@/lib/payout-bank";
 import { companyNamesMatch } from "@/lib/kyb/cac";
 import { groupDropshipLines, type DropshipLink } from "@/lib/supplier-orders/pure";
+import { applyDeductions, debtsToDeduct, holdPlannedDeductions, loadMoneyOwed, type MoneyOwedView } from "@/lib/money-owed/money-owed.server";
 import {
   accountNameMatches,
   adultDateOfBirth,
@@ -312,6 +313,8 @@ export async function splitPlanForOrder(
   gateway: SplitGateway = "paystack",
   /** The order's delivery fee: Shopinbos's fee is on what the seller sells, not on delivery. */
   shippingNaira = 0,
+  /** The order being paid: overdue money its businesses owe is taken from their shares and held for it. */
+  orderId?: string,
 ): Promise<PaymentSplitPlan | null> {
   const store = await db.store.findUnique({ where: { id: storeId }, select: { userId: true } });
   if (!store) return null;
@@ -342,13 +345,19 @@ export async function splitPlanForOrder(
   const subaccountBySupplier = new Map(suppliers.map((supplier) => [supplier.id, accountOf(wallets.find((wallet) => wallet.userId === supplier.userId))]));
   const totalKobo = Math.round(totalNaira * 100);
   const fee = await platformFee();
-  return buildSplitPlan({
+  // Overdue money owed by the seller or a supplier paid in this split goes to whoever it's owed to (src/lib/money-owed).
+  const debtors = new Map<string, string>([[store.userId, "seller"]]);
+  for (const supplier of suppliers) if (subaccountBySupplier.get(supplier.id)) debtors.set(supplier.userId, supplier.id);
+  const plan = buildSplitPlan({
     gateway,
     totalKobo,
     platformKobo: platformFeeKobo(Math.max(0, totalKobo - Math.round(Math.max(0, shippingNaira) * 100)), fee),
     sellerSubaccount: sellerAccount,
     suppliers: groups.map((group) => ({ supplierId: group.supplierId, subaccount: subaccountBySupplier.get(group.supplierId) ?? null, costKobo: Math.round(group.costTotal * 100) })),
+    debts: orderId ? await debtsToDeduct(debtors, gateway) : [],
   });
+  if (orderId) await holdPlannedDeductions(orderId, plan.deductions ?? []);
+  return plan;
 }
 
 /** Writes each business's share of a paid order to its statement, once (unique references). Never throws. */
@@ -370,6 +379,8 @@ export async function recordOrderShares(orderId: string) {
       }
     }
     if (rows.length) await db.walletEntry.createMany({ data: rows, skipDuplicates: true });
+    // What the split took from the shares for money owed is now paid (once per order and debt).
+    if (plan.deductions?.length) await applyDeductions({ key: order.id, deductions: plan.deductions, label: `order ${order.orderNumber}`, paystackReference: order.paystackRef, retailOrderId: order.id });
   } catch (error) {
     console.error(`[wallet] could not record the shares of order ${orderId}`, error);
   }
@@ -388,10 +399,13 @@ export interface WalletView {
   /** Supplier orders whose supplier has no wallet: the seller pays them. */
   sellerSettles: Array<{ orderId: string; orderNumber: string; amountKobo: number }>;
   /**
-   * Dropship shares Paystack paid to a supplier who then declined, missed or cancelled the order: the supplier
-   * returns them to the shop. For a seller, who owes them back; for a supplier, which shops to pay back.
+   * Dropship shares Paystack paid to a supplier who then declined, missed or cancelled the order, still not paid
+   * back: for a seller, who owes them; for a supplier, which shops to pay back (the phone app shows these; the web
+   * shows everything owed in `owed`).
    */
   toReturn: Array<{ orderId: string; orderNumber: string; otherParty: string; amountKobo: number }>;
+  /** Money owed between this business and others (src/lib/money-owed), and the orders a seller can claim on. */
+  owed: MoneyOwedView;
   /** Sellers: Shopinbos's fee on their store sales (null = none). Suppliers and delivery partners pay none. */
   fee: PlatformFee | null;
 }
@@ -407,7 +421,11 @@ export async function loadWalletView(user: { id: string; role: WalletRole }): Pr
     wallet.subaccountCode ? listPaystackSettlements(wallet.subaccountCode).catch(() => []) : Promise.resolve([]),
     user.role === "seller" ? sellerOwedSuppliers(user.id) : Promise.resolve([]),
   ]);
-  const toReturn = user.role === "seller" || user.role === "supplier" ? await paidButNotSent(user).catch(() => []) : [];
+  const moneyOwed = await loadMoneyOwed(user).catch((error) => {
+    console.error(`[wallet] could not load money owed for ${user.id}`, error);
+    return { iOwe: [], owedToMe: [], claimable: [] } satisfies MoneyOwedView;
+  });
+  const toReturn = await notSentStillOwed(user, moneyOwed);
   const name = [wallet.kycFirstName, wallet.kycMiddleName, wallet.kycLastName].filter(Boolean).join(" ") || null;
   return {
     kyc: { status: wallet.kycStatus, idType: wallet.kycIdType, idLast4: wallet.kycIdLast4, name, verifiedAt: wallet.kycVerifiedAt?.toISOString() ?? null, checksReady: identityChecksReady() },
@@ -418,37 +436,18 @@ export async function loadWalletView(user: { id: string; role: WalletRole }): Pr
     settlements: settlements.map((row) => ({ id: row.id, status: row.status, amountKobo: row.totalAmount, date: row.settlementDate })),
     sellerSettles: owed,
     toReturn,
+    owed: moneyOwed,
     fee: user.role === "seller" ? await platformFee().catch(() => null) : null,
   };
 }
 
-const NOT_SENT = ["rejected", "expired", "cancelled"];
-
-/**
- * Supplier shares of split orders whose supplier order ended without being sent (declined, missed the deadline, or
- * cancelled), so the supplier holds money for goods they didn't send. Shown to both sides; Shopinbos never held it.
- */
-async function paidButNotSent(user: { id: string; role: WalletRole }) {
-  const supplier = user.role === "supplier" ? await db.supplier.findUnique({ where: { userId: user.id }, select: { id: true } }) : null;
-  const rows = await db.supplierOrder.findMany({
-    where: {
-      status: { in: NOT_SENT },
-      ...(supplier ? { supplierId: supplier.id } : { sellerId: user.id }),
-      retailOrder: { paymentSplit: { not: Prisma.DbNull }, paystackStatus: "success" },
-    },
-    orderBy: { createdAt: "desc" },
-    take: 50,
-    select: {
-      supplierId: true,
-      retailOrder: { select: { id: true, orderNumber: true, paymentSplit: true, store: { select: { name: true } } } },
-      supplier: { select: { displayName: true } },
-    },
-  });
-  return rows.flatMap((row) => {
-    const share = readSplitPlan(row.retailOrder.paymentSplit)?.suppliers.find((item) => item.supplierId === row.supplierId);
-    if (!share) return [];
-    return [{ orderId: row.retailOrder.id, orderNumber: row.retailOrder.orderNumber, otherParty: supplier ? row.retailOrder.store.name : row.supplier.displayName, amountKobo: share.kobo }];
-  });
+/** Not-sent dropship shares still owed, in the shape the phone app reads (one row per order). */
+async function notSentStillOwed(user: { id: string; role: WalletRole }, owed: MoneyOwedView): Promise<WalletView["toReturn"]> {
+  if (user.role === "logistics_partner") return [];
+  const rows = (user.role === "supplier" ? owed.iOwe : owed.owedToMe).filter((debt) => debt.reason === "not_sent" && debt.status === "open" && debt.remainingKobo > 0 && debt.orderId);
+  if (!rows.length) return [];
+  const orders = await db.retailOrder.findMany({ where: { id: { in: rows.map((row) => row.orderId!) } }, select: { id: true, orderNumber: true } }).catch(() => []);
+  return rows.map((row) => ({ orderId: row.orderId!, orderNumber: orders.find((order) => order.id === row.orderId)?.orderNumber ?? "", otherParty: row.otherParty, amountKobo: row.remainingKobo }));
 }
 
 /** Recent card orders where a dropship supplier had no wallet, so their cost went to the seller to pass on. */

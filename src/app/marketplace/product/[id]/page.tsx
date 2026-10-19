@@ -15,7 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("ws.findProducts") };
 }
 
-const supplierSelect = { id: true, userId: true, slug: true, displayName: true, city: true, rating: true, ratingCount: true, verificationStatus: true } as const;
+const supplierSelect = { id: true, userId: true, slug: true, displayName: true, city: true, rating: true, ratingCount: true, verificationStatus: true, returnPolicy: true } as const;
 
 export default async function MarketplaceProductPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: rawId } = await params;

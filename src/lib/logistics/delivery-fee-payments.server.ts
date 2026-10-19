@@ -5,11 +5,14 @@ import { appBase } from "@/lib/email/compliance.server";
 import { initializePaystackTransaction, verifyPaystackTransaction } from "@/lib/paystack";
 import { paystackSecretReady } from "@shared/checkout-payments";
 import { createNotification } from "@/lib/notifications/create";
+import { buildSplitPlan, paystackSplitParams } from "@/lib/wallet/rules";
+import { applyDeductions, debtsToDeduct, holdPlannedDeductions, readDeductions } from "@/lib/money-owed/money-owed.server";
 
 // A seller pays a delivery partner's fee by card in Shopinbos. Paystack splits it all to the partner's Shopinbos
 // Wallet subaccount (src/lib/wallet), so it settles straight to the partner's bank; Shopinbos takes nothing and
 // never holds it. The transaction is started here with the booking in its metadata, and only Paystack's verified
-// reply marks the fee paid (the popup and the webhook both call confirm; the booking is updated once).
+// reply marks the fee paid (the popup and the webhook both call confirm; the booking is updated once). When the
+// partner has overdue money owed (src/lib/money-owed), part of the fee is split to whoever it's owed to instead.
 
 /** Paystack references for delivery-fee payments, so the webhook can tell them from store orders. */
 export const DELIVERY_FEE_PREFIX = "delpay-";
@@ -47,15 +50,21 @@ export async function startDeliveryFeePayment(seller: { id: string; email: strin
   const wallet = await db.wallet.findFirst({ where: { userId: booking.logisticsPartner.userId, status: "active", subaccountStatus: "active" }, select: { subaccountCode: true } });
   if (!wallet?.subaccountCode) return { ok: false, error: `${booking.logisticsPartner.displayName} hasn't set up their Shopinbos Wallet yet, so pay them directly.` };
   const reference = `${DELIVERY_FEE_PREFIX}${randomBytes(9).toString("hex")}`;
+  // The partner's subaccount gets it all (Shopinbos's charge is zero and the partner bears Paystack's fee), less
+  // any overdue money the partner owes, which goes to the business it's owed to.
+  const amountKobo = Math.round(booking.deliveryFee * 100);
+  const debts = await debtsToDeduct(new Map([[booking.logisticsPartner.userId, "seller"]]), "paystack");
+  const plan = buildSplitPlan({ totalKobo: amountKobo, sellerSubaccount: wallet.subaccountCode, suppliers: [], debts });
+  const deductions = plan.deductions ?? [];
+  await holdPlannedDeductions(`delivery:${booking.id}`, deductions, null);
   try {
     const started = await initializePaystackTransaction({
       email: seller.email || "deliveries@shopinbos.com",
-      amountKobo: Math.round(booking.deliveryFee * 100),
+      amountKobo,
       reference,
       callbackUrl: `${appBase()}/home/logistics`,
-      metadata: { kind: "delivery_fee", bookingId: booking.id, sellerId: seller.id, partnerId: booking.logisticsPartnerId },
-      // The partner's subaccount gets it all; Shopinbos's charge is zero and the partner bears Paystack's fee.
-      split: { subaccount: wallet.subaccountCode, transaction_charge: 0, bearer: "subaccount" },
+      metadata: { kind: "delivery_fee", bookingId: booking.id, sellerId: seller.id, partnerId: booking.logisticsPartnerId, ...(deductions.length ? { deductions } : {}) },
+      split: paystackSplitParams(plan),
     });
     if (!started.access_code) return { ok: false, error: "Paystack couldn't start this payment. Try again." };
     return { ok: true, accessCode: started.access_code, reference: started.reference ?? reference, authorizationUrl: started.authorization_url ?? null };
@@ -120,11 +129,14 @@ export async function confirmDeliveryFeePayment(reference: string, expectedSelle
 
   const wallet = await db.wallet.findUnique({ where: { userId: booking.logisticsPartner.userId }, select: { id: true } });
   const label = booking.trackingCode ? `Delivery ${booking.trackingCode}` : `Delivery to ${booking.destination}`;
+  const deductions = readDeductions(meta.deductions);
+  const deductedKobo = deductions.reduce((sum, row) => sum + row.kobo, 0);
+  if (deductions.length) await applyDeductions({ key: `delivery:${booking.id}`, deductions, label: `the delivery fee for ${booking.trackingCode ?? booking.destination}`, paystackReference: reference, retailOrderId: null });
   if (wallet) {
     await db.walletEntry
-      .createMany({ data: [{ walletId: wallet.id, reference: `delivery:${booking.id}`, kind: "delivery_fee", amountKobo: paidKobo, description: label, paystackReference: reference }], skipDuplicates: true })
+      .createMany({ data: [{ walletId: wallet.id, reference: `delivery:${booking.id}`, kind: "delivery_fee", amountKobo: paidKobo - deductedKobo, description: label, paystackReference: reference }], skipDuplicates: true })
       .catch((error) => console.error(`[delivery fees] could not record booking ${booking.id} on the partner's wallet`, error));
   }
-  await createNotification({ userId: booking.logisticsPartner.userId, type: "order", priority: "info", title: "Delivery fee paid", description: `${label} was paid by card: ₦${(paidKobo / 100).toLocaleString("en-NG")}. It goes straight to your bank.`, link: "/logistics/wallet", event: "payin.received" }).catch(() => null);
+  await createNotification({ userId: booking.logisticsPartner.userId, type: "order", priority: "info", title: "Delivery fee paid", description: `${label} was paid by card: ₦${((paidKobo - deductedKobo) / 100).toLocaleString("en-NG")}${deductedKobo ? " after what you owe" : ""}. It goes straight to your bank.`, link: "/logistics/wallet", event: "payin.received" }).catch(() => null);
   return { ok: true, fresh: true };
 }

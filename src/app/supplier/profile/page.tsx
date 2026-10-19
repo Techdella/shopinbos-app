@@ -148,6 +148,11 @@ export default async function SupplierProfilePage({ searchParams }: PageProps) {
                         <VoiceInputButton targetId="description" context="a description of a supplier business" className="mt-2" />
                         <div className={hintClass}>{t("profile.aboutHint")}</div>
                       </div>
+                      <div>
+                        <label htmlFor="returnPolicy" className={labelClass}>{t("profile.returns")}</label>
+                        <textarea id="returnPolicy" className={textareaClass} name="returnPolicy" rows={4} maxLength={1500} defaultValue={supplier.returnPolicy ?? ""} placeholder={t("profile.returnsPlaceholder")} />
+                        <div className={hintClass}>{t("profile.returnsHint")}</div>
+                      </div>
                     </div>
                   </Card>
 

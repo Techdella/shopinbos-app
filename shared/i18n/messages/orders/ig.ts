@@ -63,6 +63,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "detail.tracking": "Nsochi",
   "detail.sentOn": "ezigara {date}",
   "detail.declined": "Ajụrụ ya: {reason}.",
+  "detail.reportProblem": "Kọọ nsogbu",
   "detail.customer": "Onye ahịa",
   "detail.name": "Aha",
   "detail.email": "Email",
