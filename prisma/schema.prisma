@@ -4230,3 +4230,41 @@ model SubscriptionPlanVersion {
 
   @@index([tier, billing, current])
 }
+
+// ─── Social posts (Marketing > Social posts) ────────────────────────────────
+// A post the seller plans on the calendar: one picture or video (a Rex design, a reel, a library or product photo),
+// prepared at the size the channels want (renderedUrl), one caption, the channels it goes to and when. Facebook
+// and Instagram post by themselves through the Page connected on the Social posts page; WhatsApp, TikTok and X
+// can't be posted to for the seller, so at the time the post is "ready" and they post it in one tap.
+// /api/cron/social-posts posts the due ones (src/lib/social-posts). docs/migrations/2026-11-16-social-posts.sql.
+model SocialPost {
+  id          String    @id @default(cuid())
+  storeId     String
+  userId      String
+  caption     String    @default("")
+  /// The picked picture or video as chosen; renderedUrl is the copy at the post's size (JPEG for pictures).
+  mediaUrl    String?
+  mediaKind   String? // image | video
+  renderedUrl String?
+  /// Where the media came from, for the "Rex designs" filters: rex | reel | library | product | upload
+  mediaSource String?
+  /// square | portrait | story | landscape (src/lib/social-posts/pure.ts POST_FORMATS)
+  format      String    @default("square")
+  /// cover (crop to fill) | fit (whole picture on a blurred backdrop)
+  fit         String    @default("cover")
+  /// facebook | instagram | whatsapp | tiktok | x
+  channels    String[]  @default([])
+  productId   String?
+  link        String?
+  /// draft | scheduled | publishing | posted | partial | failed
+  status      String    @default("draft")
+  scheduledAt DateTime?
+  postedAt    DateTime?
+  /// { [channel]: { status: posted | ready | shared | failed | waiting, id?, url?, error?, container?, at? } }
+  results     Json      @default("{}")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([storeId, scheduledAt])
+  @@index([status, scheduledAt])
+}
