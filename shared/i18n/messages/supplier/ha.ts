@@ -289,7 +289,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "orders.youGet": "Za ka samu",
   "orders.each": "{amount} kowane",
   "orders.noAddress": "Babu adireshin delivery",
-  "orders.noPayment": "Shopinbos ba ta karɓar kuɗi a nan: tabbatar da shi, tura wa mai sayarwa invoice ɗinka, kuma za su biya ka kai tsaye.",
+  "orders.noPayment": "Da zarar ka tabbatar, mai siyarwa zai iya biya a cikin Shopinbos da kati (kai tsaye zuwa bankinka) ko ya biya ka kai tsaye da invoice ɗinka.",
   "orders.searchPlaceholder": "Nemi ta mai sayarwa, kaya, adireshi…",
   "orders.title": "Oda",
   "orders.sub": "{fresh} sababbi · {toPack} don ɗaurewa · {sent} an tura. Idan shago ya sayar da kayanka, za ka ɗaure shi da label na shagon kuma rider zai karɓa.",

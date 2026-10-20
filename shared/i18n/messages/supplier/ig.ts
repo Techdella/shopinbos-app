@@ -289,7 +289,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "orders.youGet": "Ị ga-enweta",
   "orders.each": "{amount} nke ọ bụla",
   "orders.noAddress": "Enweghị adreesị delivery",
-  "orders.noPayment": "Shopinbos anaghị anara ego ebe a: kwado ya, ziga onye na-ere ahịa invoice gị, ha ga-akwụ gị ozugbo.",
+  "orders.noPayment": "Ozugbo ị kwadoro ya, onye na-ere ahịa nwere ike ịkwụ n'ime Shopinbos site na kaadị (ozugbo n'ụlọ akụ gị) ma ọ bụ kwụọ gị ozugbo site na invoice gị.",
   "orders.searchPlaceholder": "Chọọ site na onye na-ere ahịa, ngwaahịa, adreesị…",
   "orders.title": "Orders",
   "orders.sub": "{fresh} ọhụrụ · {toPack} ka a kwakọọ · {sent} e zigala. Mgbe ụlọ ahịa rere ngwaahịa gị, ị ga-akwakọ ya site na label ụlọ ahịa ahụ, rider ga-abịa bulie ya.",

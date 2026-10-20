@@ -961,6 +961,8 @@ model WholesaleOrder {
   stockReserved     Int         @default(0) // supplier stock taken when placed (0: none tracked, e.g. older orders)
   stockReleasedAt   DateTime?   // given back once (declined or cancelled)
   paidOutAt         DateTime?   // the supplier confirmed they were paid
+  paidAt            DateTime?   // the seller paid in Shopinbos by card (split straight to the supplier's wallet)
+  paymentRef        String?     @unique // that Paystack reference (whpay-…)
   acceptBy          DateTime?   // the supplier must accept by then, or it is cancelled (expiredAt set)
   acceptReminderAt  DateTime?   // "1 hour left" reminder sent
   expiredAt         DateTime?   // ran out of time without an answer (status cancelled)

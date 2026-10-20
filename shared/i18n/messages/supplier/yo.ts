@@ -289,7 +289,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "orders.youGet": "O máa gbà",
   "orders.each": "{amount} ọ̀kọ̀ọ̀kan",
   "orders.noAddress": "Kò sí àdírẹ́sì delivery",
-  "orders.noPayment": "Shopinbos kò gba owó níbí: jẹ́rìí rẹ̀, fi invoice rẹ ránṣẹ́ sí olùtajà, wọ́n á sì san owó fún ọ tààrà.",
+  "orders.noPayment": "Nígbà tí o bá fìdí rẹ̀ múlẹ̀, olùtajà lè san nínú Shopinbos pẹ̀lú káàdì (tààrà sí báǹkì rẹ) tàbí san fún ọ tààrà pẹ̀lú invoice rẹ.",
   "orders.searchPlaceholder": "Wá nípasẹ̀ olùtajà, ọjà, àdírẹ́sì…",
   "orders.title": "Àwọn order",
   "orders.sub": "{fresh} tuntun · {toPack} láti dì · {sent} ti lọ. Tí ṣọ́ọ̀bù bá ta ọjà rẹ, o máa dì í pẹ̀lú label ṣọ́ọ̀bù náà, rider á sì wá gbé e.",
