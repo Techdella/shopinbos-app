@@ -24,7 +24,7 @@ export function tipsOn(prefs: Pick<AppPreferences, "tips"> | null | undefined): 
   return prefs?.tips !== false;
 }
 
-export const MAX_INTROS_SEEN = 60;
+export const MAX_INTROS_SEEN = 100;
 const INTRO_KEY = /^[a-z0-9-]{1,40}$/;
 
 function parseIntros(raw: unknown): string[] {
