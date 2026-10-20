@@ -36,7 +36,6 @@ export type PriceSetting = NumberSetting | ChoiceSetting;
 
 export const PRICE_GROUPS = {
   store_fee: { title: "Fee on store sales", sub: "Shopinbos's cut of each card or online bank order, taken in the checkout split. Not charged on delivery." },
-  launch: { title: "Store launch fee", sub: "One-time fee to publish a store. Sellers can pay a deposit now and the rest by month end." },
   credits: { title: "AI credits", sub: "Credit packs sellers and suppliers buy, credits new accounts start with, and what each request costs." },
   ads: { title: "Ad campaigns", sub: "Setup fee when the Shopinbos team runs a campaign. Ad spend is paid to Meta / TikTok, not to us." },
   domains: { title: "Domains", sub: "Price = registrar's USD price × exchange rate + markup, rounded up to the next ₦500." },
@@ -74,9 +73,6 @@ export const PRICE_SETTINGS = {
   "store_fee.rate": { kind: "number", group: "store_fee", label: "Fee on each sale", unit: "percent", default: 0, min: 0, max: 30, hint: "Percent of the order, not counting delivery." },
   "store_fee.min": naira("store_fee", "Smallest fee per order", 0, { hint: "0 = no minimum." }),
   "store_fee.max": naira("store_fee", "Largest fee per order", 0, { hint: "0 = no maximum." }),
-
-  "launch.price": naira("launch", "Launch fee", 8_000, { env: "STORE_LAUNCH_PRICE_NGN", min: 100 }),
-  "launch.deposit": naira("launch", "Deposit (pay the rest later)", 4_000, { env: "STORE_LAUNCH_DEPOSIT_NGN", min: 100, hint: "Never more than the launch fee." }),
 
   "credits.small.credits": credits("Quick top-up: credits", 60, { min: 1 }),
   "credits.small.naira": naira("credits", "Quick top-up: price", 2_000, { min: 100 }),
@@ -150,7 +146,7 @@ export function defaultPrice(key: PriceKey, env: Record<string, string | undefin
 
 /**
  * The full price book: saved values where they're valid, defaults for the rest. `overrides` (a promotion's prices,
- * phase 2) win over saved values. Cross-field rules are applied last (the deposit never exceeds the launch fee).
+ * phase 2) win over saved values.
  */
 export function resolvePriceBook(
   saved: Partial<Record<string, unknown>>,
@@ -163,7 +159,6 @@ export function resolvePriceBook(
     const stored = key in saved ? cleanPriceValue(key, saved[key]) : null;
     book[key] = override ?? stored ?? defaultPrice(key, env);
   }
-  book["launch.deposit"] = Math.min(book["launch.deposit"] as number, book["launch.price"] as number);
   return book as PriceBook;
 }
 

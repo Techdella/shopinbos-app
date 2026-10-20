@@ -46,7 +46,7 @@ async function liveFacts() {
   const dropship = await db.supplierProduct.count({ where: { status: "published", dropshipAvailable: true } }).catch(() => 0);
   const lines: string[] = ["LIVE NUMBERS (from the app today; quote these exactly):"];
   if (book) {
-    lines.push(`- Store launch fee (one time, to publish a store): ${naira(book["launch.price"])}. A seller can pay a ${naira(book["launch.deposit"])} deposit now and the rest by the end of the month.`);
+    lines.push("- Publishing a store is free on every plan, the free Starter plan included. There is no launch fee.");
     lines.push(
       book["store_fee.rate"] > 0
         ? `- Fee on store sales paid by card or online bank transfer: ${book["store_fee.rate"]}% of the order (not on delivery)${book["store_fee.min"] ? `, at least ${naira(book["store_fee.min"])}` : ""}${book["store_fee.max"] ? `, at most ${naira(book["store_fee.max"])}` : ""}.`

@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { cx, Mascot, Spinner } from "@/components/app-ui";
 import { Icon, type IconName } from "@/components/ui/Icon";
-import { StoreLaunchBillingModal } from "@/components/billing/StoreLaunchBillingModal";
 import { ThemeLibrary, type ThemeSwitchedResult } from "@/components/builder/ThemeLibrary";
 import { TemplateStorefrontSurface, type SurfaceStore } from "@/components/storefront/TemplateStorefrontSurface";
 import {
@@ -1031,7 +1030,6 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
 
       {toast}
       {leavePrompt}
-      <StoreLaunchBillingModal open={Boolean(b.launchPricing)} pricing={b.launchPricing} onClose={b.clearLaunchPricing} />
     </div>
   );
 }

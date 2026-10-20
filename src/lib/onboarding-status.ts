@@ -3,7 +3,6 @@ import "server-only";
 import { db } from "@/lib/db/client";
 import { buildStorefrontUrl } from "@/lib/domains/storefront";
 import { parseOnboardingMemory } from "@/lib/onboarding-memory";
-import { storeLaunchPrices } from "@/lib/store-launch-billing";
 import { CHECKLIST, type ChecklistKey } from "@shared/onboarding";
 
 // What the redesigned seller onboarding (web and mobile) needs to render: the store, its link,
@@ -37,7 +36,6 @@ export async function getSellerOnboardingStatus(userId: string) {
 
   const settings = record(store.brandSettings);
   const editor = record(settings.editor);
-  const launchBilling = record(settings.launchBilling);
   const manual = record(record(settings.setup).checklist);
   const channels = Array.isArray(settings.connectedChannels) ? settings.connectedChannels : [];
   // Store.status defaults to "active", so it alone doesn't mean the seller has launched.
@@ -66,10 +64,6 @@ export async function getSellerOnboardingStatus(userId: string) {
     /** True once the seller has left onboarding for the dashboard (finished or skipped). */
     finished: store.firstDashboardVisitComplete,
     memory: parseOnboardingMemory(settings.onboardingMemory) ?? null,
-    launch: {
-      status: typeof launchBilling.status === "string" ? launchBilling.status : "unpaid",
-      ...(await storeLaunchPrices()),
-    },
     productCount: store._count.storeProducts,
     /** The Shopinbos Wallet ID check (NIN or BVN): optional for sellers, offered in onboarding and the top bar. */
     checklist: CHECKLIST.map((item) => ({ ...item, done: done[item.key], manual: MANUAL_CHECKLIST_KEYS.includes(item.key) })),

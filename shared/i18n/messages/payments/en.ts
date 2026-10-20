@@ -215,18 +215,6 @@ const en = {
   "lb.due": "Your deposit launched the store. The rest is due by {date}.",
   "lb.opening": "Opening Paystack…",
   "lb.pay": "Pay remaining balance",
-  "lm.openFailed": "We couldn't open the payment page. Check your connection and try again.",
-  "lm.full": "Pay in full",
-  "lm.now": "{amount} now",
-  "lm.fullBody": "Clear the complete store launch fee today.",
-  "lm.part": "Pay a fraction now",
-  "lm.partBody": "Launch now, then pay the remaining {amount} by the end of the month.",
-  "lm.eyebrow": "Store launch billing",
-  "lm.title": "Choose how to pay",
-  "lm.closeAria": "Close billing",
-  "lm.sub": "Your store goes live only after Paystack verifies this payment.",
-  "lm.continue": "Continue with {amount}",
-  "lm.secure": "Payment is processed securely by Paystack. Shopinbos never receives your card details.",
   // Annual Growth and Pro include a free domain (src/lib/seller-plan.ts).
   "plan.freeDomain": "Free domain for a year",
   // Payment logos and the 'Built with Shopinbos' badge (shared/payment-badges.ts, src/lib/store-badges.ts).
@@ -302,9 +290,6 @@ const en = {
   "sm.credits": "{count} AI credits every month",
   "po.allTime": "All time",
   "po.pages": "Payout pages",
-  "app.launchTitle": "Your shop is ready",
-  "app.launchBody": "It goes live once it's launched. Launching isn't available in the Shopinbos app.",
-  "app.ok": "OK",
   "app.billingOff": "Plans, billing and AI credits aren't available in the Shopinbos app.",
 } satisfies Record<string, string>;
 

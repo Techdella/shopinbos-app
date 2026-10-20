@@ -2,7 +2,6 @@
 
 import type { StoreEditorSnapshot } from "@/lib/store-templates";
 import type { RexVersionSummary } from "@/lib/ai/rex/studio-versions";
-import type { StoreLaunchPricing } from "@/components/billing/StoreLaunchBillingModal";
 import type { StudioChange } from "./types";
 import type { RexCard } from "@/lib/ai/rex/cards";
 
@@ -65,14 +64,12 @@ export async function restoreVersion(id: string) {
 
 export type PublishResult =
   | { ok: true }
-  | { ok: false; billing: StoreLaunchPricing }
   | { ok: false; message: string; blockers: string[] };
 
 /** Same publish path as the advanced builder. */
 export async function publishDraft(): Promise<PublishResult> {
   const response = await fetch("/api/store/editor/publish", { method: "POST" });
-  const body = (await response.json().catch(() => null)) as { billing?: StoreLaunchPricing; error?: { message?: string; blockers?: string[] } } | null;
-  if (response.status === 402 && body?.billing) return { ok: false, billing: body.billing };
+  const body = (await response.json().catch(() => null)) as { error?: { message?: string; blockers?: string[] } } | null;
   if (!response.ok) return { ok: false, message: body?.error?.message ?? "Couldn't publish. Try again.", blockers: body?.error?.blockers ?? [] };
   return { ok: true };
 }

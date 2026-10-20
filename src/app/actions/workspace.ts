@@ -261,7 +261,7 @@ export async function saveBrandSettingsJson(formData: FormData) {
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return { success: false, error: "Invalid settings JSON" };
     // Keys only the server writes (launch payment state, verified payout bank, invites) can't come from here:
-    // otherwise {"launchBilling":{"status":"paid"}} would publish a store without paying.
+    // otherwise a seller could forge payment state, a verified bank or invites.
     for (const key of SERVER_OWNED_BRAND_KEYS) delete (parsed as Record<string, unknown>)[key];
     const current = parseBrandSettings(store.brandSettings);
     const merged = mergeBrandSettings(current, parsed);

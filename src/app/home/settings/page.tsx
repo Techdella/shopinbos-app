@@ -10,7 +10,6 @@ import { LanguageSettingsCard } from "@/components/i18n/LanguagePicker";
 import { SecuritySettings } from "@/components/auth/SecuritySettings";
 import { planOffers } from "@/lib/plans/catalog.server";
 import { SellerBillingSection } from "@/components/payments/SellerBillingSection";
-import { StoreLaunchBalanceCard } from "@/components/billing/StoreLaunchBalanceCard";
 import { PeggyPreferencesForm } from "@/components/settings/PeggyPreferencesForm";
 import { RexPreferencesForm } from "@/components/settings/RexPreferencesForm";
 import { parseRexPreferences } from "@shared/rex-preferences";
@@ -71,9 +70,6 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
   const credits = await creditBalance(user.id);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const brandSettings = (store?.brandSettings ?? {}) as Record<string, any>;
-  const launchBilling = brandSettings.launchBilling && typeof brandSettings.launchBilling === "object"
-    ? brandSettings.launchBilling as { balanceDue?: number; dueAt?: string | null }
-    : null;
   const peggyPrefs = brandSettings.peggyPreferences ?? {};
   const savedCommStyle = peggyPrefs.communicationStyle ?? "Friendly";
   const savedDailyBrief = peggyPrefs.dailyBrief ?? "Morning only";
@@ -285,7 +281,6 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
             )}
             {activeTab === "Billing" && !inApp && (
               <>
-                <StoreLaunchBalanceCard balanceDue={Number(launchBilling?.balanceDue ?? 0)} dueAt={launchBilling?.dueAt} />
                 <Card className="p-5">
                   <CardHead
                     title={tPay("cr.title")}

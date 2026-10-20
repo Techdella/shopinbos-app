@@ -15,8 +15,7 @@ const mobileAds = await import("../apps/mobile/src/lib/ads-pure.ts");
 
 test("the defaults are today's prices", () => {
   const book = pricing.resolvePriceBook({});
-  assert.equal(book["launch.price"], 8000);
-  assert.equal(book["launch.deposit"], 4000);
+  assert.equal("launch.price" in book, false, "there is no store launch fee");
   assert.deepEqual(
     pricing.creditPackPrices(book).map(({ id, credits, naira }) => ({ id, credits, naira })),
     credits.CREDIT_PACKS.map(({ id, credits, naira }) => ({ id, credits, naira })),
@@ -33,41 +32,38 @@ test("the defaults are today's prices", () => {
 });
 
 test("the old environment variables still set the defaults", () => {
-  const env = { STORE_LAUNCH_PRICE_NGN: "10000", STORE_LAUNCH_DEPOSIT_NGN: "5000", DOMAIN_USD_NGN_RATE: "1500", DOMAIN_MARKUP_NGN: "0", DOMAIN_PURCHASE_MAX_USD: "35" };
+  const env = { DOMAIN_USD_NGN_RATE: "1500", DOMAIN_MARKUP_NGN: "0", DOMAIN_PURCHASE_MAX_USD: "35" };
   const book = pricing.resolvePriceBook({}, env);
-  assert.equal(book["launch.price"], 10000);
-  assert.equal(book["launch.deposit"], 5000);
   assert.deepEqual({ usdNgnRate: book["domains.usd_rate"], markupNgn: book["domains.markup"], maxUsd: book["domains.max_usd"] }, domains.domainPricingConfig(env));
   // A bad variable falls back to the built-in number.
-  assert.equal(pricing.resolvePriceBook({}, { STORE_LAUNCH_PRICE_NGN: "abc" })["launch.price"], 8000);
+  assert.equal(pricing.resolvePriceBook({}, { DOMAIN_USD_NGN_RATE: "abc" })["domains.usd_rate"], domains.domainPricingConfig({}).usdNgnRate);
   // A saved value beats the variable.
-  assert.equal(pricing.resolvePriceBook({ "launch.price": 12000 }, env)["launch.price"], 12000);
+  assert.equal(pricing.resolvePriceBook({ "domains.usd_rate": 1700 }, env)["domains.usd_rate"], 1700);
 });
 
 test("saved values are checked against each setting", () => {
   assert.equal(pricing.cleanPriceValue("store_fee.rate", "1.5"), 1.5);
   assert.equal(pricing.cleanPriceValue("store_fee.rate", "31"), null, "the fee can't be more than 30%");
   assert.equal(pricing.cleanPriceValue("store_fee.rate", "-1"), null);
-  assert.equal(pricing.cleanPriceValue("launch.price", "₦8,500"), 8500, "naira signs and commas are fine");
-  assert.equal(pricing.cleanPriceValue("launch.price", "8500.5"), null, "naira prices are whole");
-  assert.equal(pricing.cleanPriceValue("launch.price", "50"), null, "below the smallest launch fee");
+  assert.equal(pricing.cleanPriceValue("ads.min_daily_budget", "₦8,500"), 8500, "naira signs and commas are fine");
+  assert.equal(pricing.cleanPriceValue("ads.min_daily_budget", "8500.5"), null, "naira prices are whole");
+  assert.equal(pricing.cleanPriceValue("ads.min_daily_budget", "50"), null, "below the smallest daily budget");
   assert.equal(pricing.cleanPriceValue("credits.cost.image", "0"), null, "a request always costs at least a credit");
   assert.equal(pricing.cleanPriceValue("credits.welcome", "0"), 0, "new accounts can start with none");
-  assert.equal(pricing.cleanPriceValue("launch.price", ""), null);
+  assert.equal(pricing.cleanPriceValue("ads.min_daily_budget", ""), null);
   assert.equal(pricing.cleanPriceValue("delivery.fee_bearer", "logistics_partner"), "logistics_partner");
   assert.equal(pricing.cleanPriceValue("delivery.fee_bearer", "everyone"), null);
-  assert.equal(pricing.isPriceKey("launch.price"), true);
+  assert.equal(pricing.isPriceKey("ads.min_daily_budget"), true);
+  assert.equal(pricing.isPriceKey("launch.price"), false);
   assert.equal(pricing.isPriceKey("toString"), false);
   // An invalid saved value is ignored rather than breaking checkout.
-  assert.equal(pricing.resolvePriceBook({ "launch.price": "lots" })["launch.price"], 8000);
+  assert.equal(pricing.resolvePriceBook({ "ads.min_daily_budget": "lots" })["ads.min_daily_budget"], 1000);
 });
 
-test("promotions override saved prices, and the deposit never exceeds the fee", () => {
-  const book = pricing.resolvePriceBook({ "launch.price": 8000 }, {}, { "launch.price": 5000 });
-  assert.equal(book["launch.price"], 5000);
-  assert.equal(book["launch.deposit"], 4000);
-  const cheaper = pricing.resolvePriceBook({ "launch.price": 3000, "launch.deposit": 4000 });
-  assert.equal(cheaper["launch.deposit"], 3000);
+test("promotions override saved prices", () => {
+  const book = pricing.resolvePriceBook({ "ads.setup.meta": 20000 }, {}, { "ads.setup.meta": 15000 });
+  assert.equal(book["ads.setup.meta"], 15000);
+  assert.equal(book["ads.setup.tiktok"], 30000);
 });
 
 test("live credit packs keep their labels", () => {
@@ -96,8 +92,6 @@ test("ad minimums: the schema allows the lowest admin setting, the phone uses th
 test("every price reader uses the price book", () => {
   assert.match(read("src/lib/wallet/wallet.server.ts"), /storeFeeConfig\(await getPriceBook\(\)\)/);
   assert.doesNotMatch(read("src/lib/wallet/wallet.server.ts"), /platformFeeConfig/);
-  assert.match(read("src/lib/store-launch-billing.ts"), /getPriceBook/);
-  assert.doesNotMatch(read("src/lib/store-launch-billing.ts"), /process\.env\.STORE_LAUNCH/);
   assert.match(read("src/lib/ai/credits.server.ts"), /creditPacksFrom\(book\)/);
   assert.match(read("src/lib/ai/usage.ts"), /liveCreditPrices\(\)\)\.costs/);
   assert.match(read("src/lib/ad-campaigns/requests.server.ts"), /adSetupFees\(await getPriceBook\(\)\)/);

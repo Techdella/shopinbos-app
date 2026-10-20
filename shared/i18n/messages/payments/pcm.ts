@@ -203,18 +203,6 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "lb.due": "Your deposit don launch the store. You go pay the rest by {date}.",
   "lb.opening": "We dey open Paystack…",
   "lb.pay": "Pay the balance wey remain",
-  "lm.openFailed": "We no fit open the payment page. Check your connection and try again.",
-  "lm.full": "Pay everything",
-  "lm.now": "{amount} now",
-  "lm.fullBody": "Clear the full store launch fee today.",
-  "lm.part": "Pay part now",
-  "lm.partBody": "Launch now, then pay the {amount} wey remain before month end.",
-  "lm.eyebrow": "Store launch billing",
-  "lm.title": "Choose how to pay",
-  "lm.closeAria": "Close billing",
-  "lm.sub": "Your store go live only after Paystack verify this payment.",
-  "lm.continue": "Continue with {amount}",
-  "lm.secure": "Na Paystack dey process the payment safely. Shopinbos no dey ever see your card details.",
   // Annual Growth and Pro include a free domain (src/lib/seller-plan.ts).
   "plan.freeDomain": "Free domain for one year",
   // Payment logos and the 'Built with Shopinbos' badge (shared/payment-badges.ts, src/lib/store-badges.ts).
@@ -304,9 +292,6 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "methods.state.needs_team": "E go start within one day, once we connect your bank to am",
   "methods.state.unavailable": "E dey come soon. Customers fit pay by transfer or on delivery for now.",
   "methods.state.needs_whatsapp": "Add your WhatsApp number for Chat settings to on this one",
-  "app.launchTitle": "Your shop don ready",
-  "app.launchBody": "E go dey live once dem launch am. You no fit launch am inside the Shopinbos app.",
-  "app.ok": "OK",
   "app.billingOff": "Plans, billing and AI credits no dey inside the Shopinbos app.",
 };
 

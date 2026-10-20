@@ -85,9 +85,6 @@ export function promotionProblem(input: PromoInput, base: PriceBook, now = new D
   const keys = Object.keys(input.prices) as PriceKey[];
   if (!keys.length) return "Change at least one price.";
   if (keys.every((key) => input.prices[key] === base[key])) return "Every price is the same as today's. Change at least one.";
-  const price = (input.prices["launch.price"] ?? base["launch.price"]) as number;
-  const deposit = (input.prices["launch.deposit"] ?? base["launch.deposit"]) as number;
-  if (input.prices["launch.deposit"] !== undefined && deposit > price) return "The deposit can't be more than the launch fee.";
   return null;
 }
 
@@ -146,7 +143,7 @@ export function suggestedAudience(keys: readonly string[]): PromoAudience[] {
   return [...out];
 }
 
-/** "Launch fee: ₦8,000 → ₦5,000" lines, for the email and the notice. */
+/** "Ad campaigns, setup fee: ₦20,000 → ₦15,000" lines, for the email and the notice. */
 export function changeLines(changes: PromoChange[]) {
   return changes.map((change) => `${PRICE_GROUPS[change.group].title}, ${change.label.charAt(0).toLowerCase()}${change.label.slice(1)}: ${change.from} → ${change.to}`);
 }

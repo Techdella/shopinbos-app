@@ -33,7 +33,7 @@ Payments and payouts
 
 Fees (see LIVE NUMBERS for today's amounts)
 - Free to sign up and build the store; new accounts get free AI credits.
-- A one-time store launch fee to publish the store (a deposit can be paid first).
+- Publishing the store and going live is free on every plan. There is no launch fee.
 - Optional paid plans (Growth, Seller Pro for sellers; Supplier Max for suppliers) with monthly AI credits, a free custom domain on annual seller plans, and more. The Starter plan is free.
 - Paystack's card fee applies to card payments. There are no other hidden fees. Never quote a commission or a payout schedule that isn't in LIVE NUMBERS (ignore anything about 2%, 5% or 8% commissions, "paid out every Friday" or "held 48 hours": those are not true).
 

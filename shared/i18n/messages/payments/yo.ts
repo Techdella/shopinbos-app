@@ -203,18 +203,6 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "lb.due": "Ìsanwó àkọ́kọ́ rẹ ti ṣí store náà. Èyí tó kù yóò di dandan ní {date}.",
   "lb.opening": "À ń ṣí Paystack…",
   "lb.pay": "San iye tó kù",
-  "lm.openFailed": "A kò lè ṣí ojú-ìwé ìsanwó. Ṣàyẹ̀wò ìsopọ̀ rẹ kí o sì gbìyànjú lẹ́ẹ̀kan sí i.",
-  "lm.full": "San gbogbo rẹ̀",
-  "lm.now": "{amount} báyìí",
-  "lm.fullBody": "San gbogbo owó ìfilọ́lẹ̀ store lónìí.",
-  "lm.part": "San apá kan báyìí",
-  "lm.partBody": "Ṣí i báyìí, lẹ́yìn náà san {amount} tó kù kí oṣù tó parí.",
-  "lm.eyebrow": "Ìsanwó ìfilọ́lẹ̀ store",
-  "lm.title": "Yan bí o ṣe máa sanwó",
-  "lm.closeAria": "Pa ìsanwó dé",
-  "lm.sub": "Store rẹ yóò lọ live lẹ́yìn tí Paystack bá jẹ́rìísí ìsanwó yìí nìkan.",
-  "lm.continue": "Tẹ̀síwájú pẹ̀lú {amount}",
-  "lm.secure": "Paystack ló ń ṣe ìsanwó láìléwu. Shopinbos kì í gba àlàyé káàdì rẹ rárá.",
   // Annual Growth and Pro include a free domain (src/lib/seller-plan.ts).
   "plan.freeDomain": "Domain ọ̀fẹ́ fún ọdún kan",
   // Payment logos and the 'Built with Shopinbos' badge (shared/payment-badges.ts, src/lib/store-badges.ts).
@@ -304,9 +292,6 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "methods.state.needs_team": "Á bẹ̀rẹ̀ láàárín ọjọ́ kan, nígbà tí a bá so báńkì rẹ mọ́ ọn",
   "methods.state.unavailable": "Ó ń bọ̀ láìpẹ́. Àwọn oníbàárà lè sanwó nípasẹ̀ ìfiránṣẹ́ tàbí nígbà tí ẹrù bá dé.",
   "methods.state.needs_whatsapp": "Fi nọ́mbà WhatsApp rẹ kún un nínú Chat settings láti tan èyí",
-  "app.launchTitle": "Ṣọ́ọ̀bù rẹ ti ṣetán",
-  "app.launchBody": "Yóò wà láàyè ní kété tí wọ́n bá ti launch rẹ̀. O kò lè launch rẹ̀ nínú app Shopinbos.",
-  "app.ok": "Ó dáa",
   "app.billingOff": "Plans, billing àti AI credits kò sí nínú app Shopinbos.",
 };
 

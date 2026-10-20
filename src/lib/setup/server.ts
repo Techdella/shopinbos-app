@@ -3,7 +3,6 @@ import "server-only";
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { buildStorefrontUrl } from "@/lib/domains/storefront";
-import { storeLaunchPrices } from "@/lib/store-launch-billing";
 import { mergePreferences, parsePreferences } from "@shared/preferences";
 import { DEFAULT_PAYMENT_METHODS, type PaymentMethodKey } from "@shared/onboarding";
 import { toggleableItems } from "@/lib/nav";
@@ -103,7 +102,6 @@ export async function getSetupOverview(userId: string) {
       regions: zone.regions,
       fee: Number(record(Array.isArray(zone.rates) ? zone.rates[0] : null).price ?? 0) || 0,
     })),
-    launch: await storeLaunchPrices(),
   };
 }
 

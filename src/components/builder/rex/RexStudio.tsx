@@ -5,7 +5,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { DeviceToggle, Mascot, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { useT } from "@/components/i18n/I18nProvider";
-import { StoreLaunchBillingModal, type StoreLaunchPricing } from "@/components/billing/StoreLaunchBillingModal";
 import type { StoreEditorSnapshot } from "@/lib/store-templates";
 import { themeLibraryEntry } from "@/lib/store-templates/theme-library";
 import { computeStoreHealth, draftHealthFacts, rexSuggestionChips, type StorePageKey, type StorePageStatus } from "@/lib/store-health";
@@ -77,7 +76,6 @@ export function RexStudio(props: RexStudioProps) {
   const [publishing, setPublishing] = useState(false);
   const [live, setLive] = useState(props.live);
   const [unpublished, setUnpublished] = useState(props.hasUnpublishedChanges);
-  const [pricing, setPricing] = useState<StoreLaunchPricing | null>(null);
   const [toast, setToast] = useState<{ text: string; href?: string } | null>(null);
   const [isPhone, setIsPhone] = useState(false);
   const toolsRef = useRef<HTMLDivElement>(null);
@@ -126,11 +124,11 @@ export function RexStudio(props: RexStudioProps) {
     if (!previewOpen) return;
     closePreviewRef.current?.focus({ preventScroll: true });
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !panelOpen && !pricing) setPreviewOpen(false);
+      if (event.key === "Escape" && !panelOpen) setPreviewOpen(false);
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [previewOpen, panelOpen, pricing]);
+  }, [previewOpen, panelOpen]);
 
   const facts = useMemo(() => ({ ...props.healthFacts, draft: draftHealthFacts(draft) }), [props.healthFacts, draft]);
   const health = useMemo(() => computeStoreHealth(facts), [facts]);
@@ -304,8 +302,6 @@ export function RexStudio(props: RexStudioProps) {
         setLive(true);
         setUnpublished(false);
         setToast({ text: t("rex.st.published", { host: props.storeHost }), href: props.storeUrl });
-      } else if ("billing" in result) {
-        setPricing(result.billing);
       } else {
         setToast({ text: result.message });
         if (result.blockers.some((blocker) => /title and meta description/i.test(blocker))) {
@@ -557,7 +553,6 @@ export function RexStudio(props: RexStudioProps) {
         </div>
       ) : null}
 
-      <StoreLaunchBillingModal open={Boolean(pricing)} pricing={pricing} onClose={() => setPricing(null)} />
     </div>
   );
 }

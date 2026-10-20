@@ -203,18 +203,6 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "lb.due": "Ajiyarka ta ƙaddamar da store. Sauran ya kamata a biya kafin {date}.",
   "lb.opening": "Ana buɗe Paystack…",
   "lb.pay": "Biya ragowar kuɗi",
-  "lm.openFailed": "Ba mu iya buɗe shafin biya ba. Duba haɗin intanet ɗinka ka sake gwadawa.",
-  "lm.full": "Biya gaba ɗaya",
-  "lm.now": "{amount} yanzu",
-  "lm.fullBody": "Biya cikakken kuɗin ƙaddamar da store yau.",
-  "lm.part": "Biya wani ɓangare yanzu",
-  "lm.partBody": "Ƙaddamar yanzu, sannan ka biya ragowar {amount} kafin ƙarshen wata.",
-  "lm.eyebrow": "Biyan ƙaddamar da store",
-  "lm.title": "Zaɓi yadda za ka biya",
-  "lm.closeAria": "Rufe biyan kuɗi",
-  "lm.sub": "Store ɗinka zai fara aiki ne kawai bayan Paystack ya tabbatar da wannan biya.",
-  "lm.continue": "Ci gaba da {amount}",
-  "lm.secure": "Paystack ne ke sarrafa biyan lafiya. Shopinbos ba ya taɓa karɓar bayanan katinka.",
   // Annual Growth and Pro include a free domain (src/lib/seller-plan.ts).
   "plan.freeDomain": "Domain kyauta na shekara ɗaya",
   // Payment logos and the 'Built with Shopinbos' badge (shared/payment-badges.ts, src/lib/store-badges.ts).
@@ -304,9 +292,6 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "methods.state.needs_team": "Zai fara cikin kwana ɗaya, da zarar mun haɗa bankinka da shi",
   "methods.state.unavailable": "Yana zuwa nan ba da daɗewa ba. Abokan ciniki za su iya biya ta tura kuɗi ko idan an kawo.",
   "methods.state.needs_whatsapp": "Ƙara lambar WhatsApp ɗinka a Chat settings don kunna wannan",
-  "app.launchTitle": "Shagonka ya shirya",
-  "app.launchBody": "Zai fara aiki da zarar an launch shi. Ba za ka iya launch shi a cikin app ɗin Shopinbos ba.",
-  "app.ok": "To",
   "app.billingOff": "Plans, billing da AI credits ba sa cikin app ɗin Shopinbos.",
 };
 

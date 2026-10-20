@@ -203,18 +203,6 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "lb.due": "Ego mbụ i tinyere malitere store. A ga-akwụ nke fọdụrụ tupu {date}.",
   "lb.opening": "Anyị na-emepe Paystack…",
   "lb.pay": "Kwụọ ego fọdụrụ",
-  "lm.openFailed": "Anyị enweghị ike imepe peeji ịkwụ ụgwọ. Lelee njikọ gị ma nwaa ọzọ.",
-  "lm.full": "Kwụọ ya niile",
-  "lm.now": "{amount} ugbu a",
-  "lm.fullBody": "Kwụchaa ụgwọ mmalite store niile taa.",
-  "lm.part": "Kwụọ akụkụ ugbu a",
-  "lm.partBody": "Malite ugbu a, wee kwụọ {amount} fọdụrụ tupu njedebe ọnwa.",
-  "lm.eyebrow": "Ịkwụ ụgwọ mmalite store",
-  "lm.title": "Họrọ otú ị ga-esi kwụọ",
-  "lm.closeAria": "Mechie ịkwụ ụgwọ",
-  "lm.sub": "Store gị ga-aga live naanị mgbe Paystack kwadoro ịkwụ ụgwọ a.",
-  "lm.continue": "Gaa n'ihu na {amount}",
-  "lm.secure": "Paystack na-ahazi ịkwụ ụgwọ n'udo. Shopinbos anaghị anata nkọwa kaadị gị.",
   // Annual Growth and Pro include a free domain (src/lib/seller-plan.ts).
   "plan.freeDomain": "Domain n'efu maka otu afọ",
   // Payment logos and the 'Built with Shopinbos' badge (shared/payment-badges.ts, src/lib/store-badges.ts).
@@ -304,9 +292,6 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "methods.state.needs_team": "Ọ ga-amalite n'ime otu ụbọchị, ozugbo anyị jikọrọ bank gị na ya",
   "methods.state.unavailable": "Ọ na-abịa n'oge na-adịghị anya. Ndị ahịa nwere ike ịkwụ site na nnyefe ego ma ọ bụ mgbe ebutere.",
   "methods.state.needs_whatsapp": "Tinye nọmba WhatsApp gị na Chat settings iji gbanwuo nke a",
-  "app.launchTitle": "Ụlọ ahịa gị adịla njikere",
-  "app.launchBody": "Ọ ga-amalite ozugbo e launch ya. Ị nweghị ike ịlaunch ya n'ime app Shopinbos.",
-  "app.ok": "Ọ dị mma",
   "app.billingOff": "Plans, billing na AI credits adịghị n'ime app Shopinbos.",
 };
 
