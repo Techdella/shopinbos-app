@@ -6,8 +6,10 @@ import { previewLeadAudience, sendLeadTest } from "@/app/actions/admin-lead-grow
 import { Notice, PillButton, Segmented, TextInput, cx } from "@/components/app-ui";
 import { Field, checkClass, selectClass, textareaClass } from "@/components/growth/kit";
 import { html, platformEmail, type PlatformLegal } from "@/lib/email/shell";
-import { WHATSAPP_TEMPLATES, templatePreviewText, whatsappTemplate } from "@/lib/lead-growth/whatsapp-content";
-import { CHANNEL_LABELS, LEAD_CHANNELS, LEAD_ROLES, ROLE_LABELS, personalise, smsParts, type LeadAudienceType, type LeadChannel, type LeadRole } from "@/lib/lead-growth/pure";
+import { WHATSAPP_TEMPLATES, templateImageUrl, templatePreviewText, whatsappTemplate } from "@/lib/lead-growth/whatsapp-content";
+import { LAUNCH_BANNERS, banner } from "@/lib/lead-growth/launch-sequences";
+import { formatWhatsApp, whatsappChatUrl } from "@/lib/support-contact";
+import { CHANNEL_LABELS, LEAD_CHANNELS, LEAD_ROLES, ROLE_LABELS, leadEmailBodyHtml, personalise, smsParts, type LeadAudienceType, type LeadChannel, type LeadRole } from "@/lib/lead-growth/pure";
 
 // Pieces shared by the lead campaign and lead automation editors (/admin/lead-campaigns): who it reaches (with a
 // live count per channel), the message for one channel, its preview and a test send.
@@ -20,6 +22,8 @@ export type MessageDraft = {
   ctaUrl: string;
   waTemplate: string;
   waLanguage: string;
+  /** Banner image URL ("" for none). */
+  imageUrl: string;
 };
 
 export type Readiness = Record<LeadChannel, boolean>;
@@ -35,6 +39,7 @@ export function draftToContent(draft: MessageDraft) {
     ctaUrl: draft.channel === "email" ? draft.ctaUrl : null,
     waTemplate: draft.channel === "whatsapp" ? draft.waTemplate : null,
     waLanguage: draft.channel === "whatsapp" ? draft.waLanguage : null,
+    imageUrl: draft.imageUrl || null,
   };
 }
 
@@ -192,6 +197,20 @@ export function MessageEditor({ value, onChange, readiness, idPrefix }: { value:
       >
         <textarea id={`${idPrefix}-body`} className={textareaClass} rows={value.channel === "email" ? 9 : 5} maxLength={5000} value={value.body} onChange={(e) => set({ body: e.target.value })} />
       </Field>
+      {!(value.channel === "whatsapp" && whatsappTemplate(value.waTemplate)) && (
+        <Field label="Image" hint={value.channel === "email" ? "Shown under the heading. Pick a Shopinbos banner or paste an image link." : "Only used by templates that have an image header."}>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" aria-pressed={!value.imageUrl} onClick={() => set({ imageUrl: "" })} className={cx("grid h-[58px] w-[100px] place-items-center rounded-[10px] border text-[12px] font-bold", !value.imageUrl ? "border-app-ink" : "border-app-line")}>No image</button>
+            {LAUNCH_BANNERS.map((name) => (
+              <button key={name} type="button" aria-pressed={value.imageUrl === banner(name)} aria-label={name} title={name} onClick={() => set({ imageUrl: banner(name) })} className={cx("overflow-hidden rounded-[10px] border-2", value.imageUrl === banner(name) ? "border-app-ink" : "border-transparent")}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={`/brand/launch/${name}.jpg`} alt="" width={100} height={52} className="block h-[52px] w-[100px] object-cover" />
+              </button>
+            ))}
+          </div>
+          <TextInput className="mt-2" aria-label="Image link" value={value.imageUrl} maxLength={500} placeholder="https://…/banner.jpg" onChange={(e) => set({ imageUrl: e.target.value.trim() })} />
+        </Field>
+      )}
       {value.channel === "email" && (
         <div className="grid gap-4 md:grid-cols-2">
           <Field label="Button text" htmlFor={`${idPrefix}-cta`}>
@@ -216,7 +235,7 @@ export function MessagePreview({ value, legal, appUrl }: { value: MessageDraft; 
       appUrl,
       kind: "lifecycle",
       heading: subject,
-      bodyHtml: html.text(personalise(value.body || "Your message", vars)),
+      bodyHtml: leadEmailBodyHtml({ body: personalise(value.body || "Your message", vars), imageUrl: value.imageUrl || null, whatsappUrl: whatsappChatUrl(), whatsappLabel: formatWhatsApp() }),
       cta: { label: value.ctaLabel || "Create your free store", url: value.ctaUrl || signup },
       reason: "you left your details on shopinbos.com",
       legal,
@@ -237,6 +256,7 @@ export function MessagePreview({ value, legal, appUrl }: { value: MessageDraft; 
     );
   }
   const known = value.channel === "whatsapp" ? whatsappTemplate(value.waTemplate) : null;
+  const headerImage = known ? templateImageUrl(known) : value.channel === "whatsapp" ? value.imageUrl : "";
   const text = known
     ? personalise(templatePreviewText(known), vars).replace("[opt-out link]", "https://…/opt-out")
     : value.channel === "whatsapp" && value.waTemplate
@@ -245,6 +265,10 @@ export function MessagePreview({ value, legal, appUrl }: { value: MessageDraft; 
   return (
     <div className="rounded-[18px] border border-app-line bg-[#ECE5DD] p-4">
       <div className="max-w-[340px] whitespace-pre-line rounded-[14px] rounded-tl-[4px] bg-white px-3.5 py-2.5 text-[14px] shadow-sm">
+        {headerImage && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={headerImage.replace(/^https:\/\/app\.shopinbos\.com/, "")} alt="" className="-mx-1.5 -mt-0.5 mb-2 block w-[calc(100%+12px)] max-w-none rounded-[10px]" />
+        )}
         {text}
         {known && <span className="mt-2 block rounded-[10px] border border-app-line px-3 py-1.5 text-center font-bold text-[#00A5F4]">{known.button.text}</span>}
         {!(value.channel === "whatsapp" && value.waTemplate) && (
