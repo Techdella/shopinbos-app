@@ -5,7 +5,8 @@ import { ok, okList, apiError, parsePagination } from "@/lib/api/response";
 import { invalidatePublicMarketplaceCache } from "@/lib/api/cache";
 import { SupplierProductCreateSchema } from "@/lib/schemas";
 import { isOnboardingComplete } from "@/lib/role-queries";
-import { SUPPLIER_FREE_PRODUCT_LIMIT, isProPlan, supplierProductLimitMessage } from "@/lib/plan-limits";
+import { supplierPlanLimits, supplierProductLimitMessage } from "@/lib/plan-limits";
+import { atLimit } from "@shared/plans";
 import { slugify } from "@/lib/workspace";
 import type { AuthUser } from "@/lib/auth/types";
 import { notifyProductForReview } from "@/lib/notifications/events.server";
@@ -66,8 +67,9 @@ export const POST = withSupplier(async (req: NextRequest, { user }: { user: Auth
     db.user.findUnique({ where: { id: user.id }, select: { aiCredits: true } }),
     db.supplierProduct.count({ where: { supplierId: supplier.id } }),
   ]);
-  if (!isProPlan(dbUser ?? {}) && productCount >= SUPPLIER_FREE_PRODUCT_LIMIT) {
-    return apiError("PLAN_LIMIT", supplierProductLimitMessage(), 402);
+  const listings = supplierPlanLimits(dbUser ?? {}).listings;
+  if (atLimit(productCount, listings)) {
+    return apiError("PLAN_LIMIT", supplierProductLimitMessage(listings), 402);
   }
 
   const category = await db.category.findUnique({ where: { id: parsed.data.categoryId } });

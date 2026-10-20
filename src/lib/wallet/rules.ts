@@ -83,6 +83,14 @@ export interface SupplierShareInput {
   subaccount: string | null;
   /** What the order owes this supplier for its dropship lines (wholesale cost × quantity), in kobo. */
   costKobo: number;
+  /** Shopinbos's marketplace commission on those lines (shared/plans.ts, by the supplier's plan), in kobo. */
+  commissionKobo?: number;
+}
+
+/** The supplier's commission on a marketplace order: `pct` of the wholesale value, never more than it. */
+export function supplierCommissionKobo(costKobo: number, pct: number) {
+  if (!(costKobo > 0) || !(pct > 0)) return 0;
+  return Math.min(Math.round(costKobo), Math.round((costKobo * pct) / 100));
 }
 
 /** Shopinbos's fee on store sales (Admin › Pricing): a percentage of what the seller sells, within min / max (naira; 0 = none). */
@@ -113,7 +121,7 @@ export interface PaymentSplitPlan {
   /** What the gateway settles to the seller: the total less the suppliers paid in the split. */
   sellerKobo: number;
   /** Suppliers the gateway pays directly in this split. */
-  suppliers: Array<{ supplierId: string; subaccount: string; kobo: number }>;
+  suppliers: Array<{ supplierId: string; subaccount: string; kobo: number; commissionKobo?: number }>;
   /** Suppliers without a wallet: their cost stays in the seller's share and the seller pays them. */
   sellerSettles: Array<{ supplierId: string; kobo: number }>;
   /** Shopinbos's fee: what no business's share covers, so the gateway leaves it in Shopinbos's balance (older plans: 0). */
@@ -169,8 +177,9 @@ function takeDebts(shares: Map<string, number>, debts: DebtToDeduct[]) {
 }
 
 /**
- * The split for a paid order. Suppliers with an active subaccount get exactly their cost; Shopinbos keeps its fee
- * (platformKobo, lowered so the seller keeps at least MIN_SELLER_KOBO); the seller gets the rest. When the
+ * The split for a paid order. Suppliers with an active subaccount get their cost less Shopinbos's commission;
+ * Shopinbos keeps its fee (platformKobo, lowered so the seller keeps at least MIN_SELLER_KOBO) and the commissions;
+ * the seller gets the rest. Suppliers without an account are paid by the seller, so no commission is taken there. When the
  * suppliers' costs come to more than the total (a product priced below cost), nobody is paid in the split but the
  * seller, there's no fee, and the seller settles the suppliers, so a split never asks Paystack for more than was paid.
  */
@@ -185,9 +194,11 @@ export function buildSplitPlan(input: { totalKobo: number; sellerSubaccount: str
   }
   const available = total - directTotal;
   const feeKobo = Math.max(0, Math.min(Math.round(input.platformKobo ?? 0), available - MIN_SELLER_KOBO));
-  const shares = new Map<string, number>([["seller", available - feeKobo], ...direct.map((supplier) => [supplier.supplierId, supplier.costKobo] as [string, number])]);
+  const commission = new Map(direct.map((supplier) => [supplier.supplierId, Math.max(0, Math.min(supplier.costKobo, Math.round(supplier.commissionKobo ?? 0)))]));
+  const commissions = [...commission.values()].reduce((sum, kobo) => sum + kobo, 0);
+  const shares = new Map<string, number>([["seller", available - feeKobo], ...direct.map((supplier) => [supplier.supplierId, supplier.costKobo - commission.get(supplier.supplierId)!] as [string, number])]);
   const deductions = takeDebts(shares, input.debts ?? []);
-  const toShopinbos = deductions.filter((deduction) => deduction.to === null).reduce((sum, deduction) => sum + deduction.kobo, 0);
+  const toShopinbos = deductions.filter((deduction) => deduction.to === null).reduce((sum, deduction) => sum + deduction.kobo, 0) + commissions;
   return {
     version: 1,
     gateway,
@@ -195,7 +206,7 @@ export function buildSplitPlan(input: { totalKobo: number; sellerSubaccount: str
     sellerSubaccount: input.sellerSubaccount,
     sellerKobo: shares.get("seller")!,
     platformKobo: feeKobo + toShopinbos,
-    suppliers: direct.map((supplier) => ({ supplierId: supplier.supplierId, subaccount: supplier.subaccount!, kobo: shares.get(supplier.supplierId)! })),
+    suppliers: direct.map((supplier) => ({ supplierId: supplier.supplierId, subaccount: supplier.subaccount!, kobo: shares.get(supplier.supplierId)!, ...(commission.get(supplier.supplierId) ? { commissionKobo: commission.get(supplier.supplierId)! } : {}) })),
     sellerSettles: owed.filter((supplier) => !supplier.subaccount).map(({ supplierId, costKobo }) => ({ supplierId, kobo: costKobo })),
     ...(deductions.length ? { deductions } : {}),
   };

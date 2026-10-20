@@ -134,3 +134,36 @@ test("the fee never takes the seller below ₦100, and there's none when supplie
   const old = rules.buildSplitPlan({ totalKobo: 1_000_000, sellerSubaccount: "ACCT_seller", suppliers: [] });
   assert.equal(rules.paystackSplitParams(old).transaction_charge, 0, "no fee asked for: unchanged");
 });
+
+test("October 2026 fees: the supplier's commission comes off their share and stays with Shopinbos", async () => {
+  const rules = await import("../src/lib/wallet/rules.ts");
+  assert.equal(rules.supplierCommissionKobo(1_400_000, 6), 84_000, "6% of ₦14,000 is ₦840");
+  assert.equal(rules.supplierCommissionKobo(0, 6), 0);
+  assert.equal(rules.supplierCommissionKobo(100, 200), 100, "never more than the wholesale value");
+  // The worked example: ₦20,000 dropship sale, ₦14,000 wholesale, supplier on Free (6%); the seller's fee is
+  // waived on dropship lines, so only the supplier's commission is taken.
+  const plan = rules.buildSplitPlan({
+    totalKobo: 2_000_000,
+    sellerSubaccount: "ACCT_seller",
+    platformKobo: 0,
+    suppliers: [{ supplierId: "sup1", subaccount: "ACCT_sup", costKobo: 1_400_000, commissionKobo: 84_000 }],
+  });
+  assert.equal(plan.suppliers[0].kobo, 1_316_000, "supplier nets ₦13,160");
+  assert.equal(plan.suppliers[0].commissionKobo, 84_000);
+  assert.equal(plan.sellerKobo, 600_000, "the seller keeps the ₦6,000 margin");
+  assert.equal(plan.platformKobo, 84_000, "Shopinbos keeps the commission");
+  assert.equal(plan.sellerKobo + plan.suppliers[0].kobo + plan.platformKobo, 2_000_000, "every kobo is accounted for");
+  // A supplier without a wallet is paid by the seller: no commission can be taken in the split.
+  const settles = rules.buildSplitPlan({ totalKobo: 2_000_000, sellerSubaccount: "ACCT_seller", suppliers: [{ supplierId: "sup1", subaccount: null, costKobo: 1_400_000, commissionKobo: 84_000 }] });
+  assert.equal(settles.platformKobo, 0);
+  assert.deepEqual(settles.sellerSettles, [{ supplierId: "sup1", kobo: 1_400_000 }]);
+});
+
+test("the seller's fee follows their plan and skips delivery and dropship lines", () => {
+  const server = readFileSync(new URL("../src/lib/wallet/wallet.server.ts", import.meta.url), "utf8");
+  assert.match(server, /storeFeeConfig\(prices, planKeyFor\("seller", seller\?\.aiCredits\)\)/);
+  assert.match(server, /totalKobo - Math\.round\(Math\.max\(0, shippingNaira\) \* 100\) - dropshipKobo/);
+  assert.match(server, /supplierCommissionPct\(book, planKeyFor\("supplier"/);
+  const delivery = readFileSync(new URL("../src/lib/logistics/delivery-fee-payments.server.ts", import.meta.url), "utf8");
+  assert.match(delivery, /jobFee\.effectiveRate/, "the job fee is 0 until switched on");
+});

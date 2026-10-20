@@ -194,7 +194,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "products.searchPlaceholder": "Chọọ ngwaahịa…",
   "products.title": "Ngwaahịa",
   "products.subPro": "Supplier Max · ngwaahịa na-enweghị oke",
-  "products.subFree": "Ngwaahịa {count} n'ime 50 na free plan. Mee draft na nzuzo, wee ziga ngwaahịa zuru ezu maka nyocha marketplace.",
+  "products.subFree": "Ngwaahịa {count} n'ime {limit} na plan gị. Mee draft na nzuzo, wee ziga ngwaahịa zuru ezu maka nyocha marketplace.",
   "products.filter.all": "Niile",
   "products.filter.live": "Live",
   "products.filter.review": "A na-enyocha",
@@ -596,6 +596,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "agr.back": "Laghachi",
   "agr.accept": "Nabata nkwekọrịta ahụ",
   "agr.decline": "Jụ",
+  "profile.usageListings": "Ndepụta ngwaahịa",
 };
 
 export default ig;

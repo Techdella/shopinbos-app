@@ -1,7 +1,8 @@
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
-import { ensureSupplierAccess, getSupplierForUser, isProPlan } from "@/lib/role-queries";
+import { ensureSupplierAccess, getSupplierForUser } from "@/lib/role-queries";
+import { supplierPlanLimits } from "@/lib/plan-limits";
 import { AppPage, AssistantNote, EmptyState, FilterChips, ListCard, ListRow, Pill, PillLink, SearchForm, Thumb } from "@/components/app-kit";
 import { cx } from "@/components/app-ui/cx";
 import { PRODUCT_STATUS, money, statusOf, supplierFrame } from "@/components/supplier/supplier-kit";
@@ -71,14 +72,15 @@ export default async function SupplierProductsPage({ searchParams }: PageProps) 
     ]),
     db.user.findUnique({ where: { id: user.id }, select: { aiCredits: true } }),
   ]);
-  const isPro = isProPlan(dbUser ?? {});
+  const listingLimit = supplierPlanLimits(dbUser ?? {}).listings;
+  const isPro = listingLimit === null;
   const [total, ...filterCounts] = counts;
 
   return (
     <AppPage
       frame={supplierFrame(user, supplier, { searchPlaceholder: t("products.searchPlaceholder") })}
       title={t("products.title")}
-      sub={isPro ? t("products.subPro") : t("products.subFree", { count: Math.min(total, 50) })}
+      sub={isPro ? t("products.subPro") : t("products.subFree", { count: Math.min(total, listingLimit ?? total), limit: listingLimit ?? total })}
       actions={<PillLink href="/supplier/products/new" tone="accent" icon="plus">{t("dashboard.addProduct")}</PillLink>}
       toolbar={
         <>
@@ -92,7 +94,7 @@ export default async function SupplierProductsPage({ searchParams }: PageProps) 
         </>
       }
     >
-      {!isPro && total >= 50 && (
+      {listingLimit !== null && total >= listingLimit && (
         <div className="mb-4">
           <AssistantNote who="rex" action={<PillLink href="/supplier/profile?tab=Billing%20%26%20Plan" tone="ink" size="sm">{t("products.seePlans")}</PillLink>}>
             {t("products.limitReached")}

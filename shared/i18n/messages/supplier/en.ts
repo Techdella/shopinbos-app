@@ -201,7 +201,7 @@ const en = {
   "products.searchPlaceholder": "Search products…",
   "products.title": "Products",
   "products.subPro": "Supplier Max · unlimited products",
-  "products.subFree": "{count} of 50 products on the free plan. Draft privately, then send complete products to marketplace review.",
+  "products.subFree": "{count} of {limit} products on your plan. Draft privately, then send complete products to marketplace review.",
   "products.filter.all": "All",
   "products.filter.live": "Live",
   "products.filter.review": "In review",
@@ -614,6 +614,7 @@ const en = {
   "agr.back": "Back",
   "agr.accept": "Accept the agreement",
   "agr.decline": "Decline",
+  "profile.usageListings": "Product listings",
 } satisfies Record<string, string>;
 
 export default en;

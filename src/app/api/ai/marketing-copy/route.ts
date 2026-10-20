@@ -27,7 +27,7 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
     return NextResponse.json({ data: generateFallback(body.type), demo: true, aiOff: true, notice: AI_OFF_NOTICE });
   }
 
-  const limited = await meterAi(user.id, "text");
+  const limited = await meterAi(user.id, "text", 1, "caption");
   if (limited) return limited;
 
   const storeName = String(body.storeName ?? "your store").slice(0, 120);

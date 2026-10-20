@@ -194,7 +194,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "products.searchPlaceholder": "Wá àwọn ọjà…",
   "products.title": "Àwọn ọjà",
   "products.subPro": "Supplier Max · ọjà láìní òpin",
-  "products.subFree": "Ọjà {count} nínú 50 lórí free plan. Ṣe draft ní ìkọ̀kọ̀, lẹ́yìn náà fi àwọn ọjà tó pé ránṣẹ́ fún àyẹ̀wò marketplace.",
+  "products.subFree": "Ọjà {count} nínú {limit} lórí plan rẹ. Ṣe draft ní ìkọ̀kọ̀, lẹ́yìn náà fi àwọn ọjà tó pé ránṣẹ́ fún àyẹ̀wò marketplace.",
   "products.filter.all": "Gbogbo",
   "products.filter.live": "Live",
   "products.filter.review": "À ń ṣàyẹ̀wò",
@@ -596,6 +596,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "agr.back": "Padà",
   "agr.accept": "Gba àdéhùn náà",
   "agr.decline": "Kọ̀ ọ́",
+  "profile.usageListings": "Àkójọ ọjà",
 };
 
 export default yo;

@@ -2428,13 +2428,32 @@ model AiUsage {
 // card saved from a credit purchase is charged for autoPackId again when the balance can't cover a request.
 model AiCreditAccount {
   userId        String   @id
+  // Bought, bonus and refunded credits (the sum of the live AiCreditLot rows; each lot lasts 12 months).
   balance       Int      @default(0)
+  // The plan's monthly credits: refilled (not added to) at the start of each month, never carried over.
+  planCredits   Int      @default(0)
+  planPeriod    String? // "2026-10": the month planCredits were last filled for
+  planKey       String? // the plan they were filled for (an upgrade mid-month tops them up)
   autoTopUp     Boolean  @default(false)
   autoPackId    String?
   // Reusable Paystack card from a credit purchase the seller allowed to save (shape: domains/billing-pure).
   authorization Json?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+// Bought, bonus and refunded AI credits, each lasting 12 months. Spending takes the soonest to expire first; the
+// account's balance is the sum of the remaining credits of lots that haven't expired.
+model AiCreditLot {
+  id        String   @id @default(cuid())
+  userId    String
+  credits   Int // remaining
+  source    String // purchase | welcome | refund | legacy | grant
+  reference String? // the purchase reference, for purchases
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId, expiresAt])
 }
 
 // One row per credit pack checkout or automatic top-up; a reference is credited once (status pending → paid).

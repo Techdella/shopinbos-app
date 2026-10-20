@@ -7,13 +7,14 @@ import { db } from "@/lib/db/client";
 import type { Prisma } from "@prisma/client";
 import { invalidatePublicMarketplaceCache } from "@/lib/api/cache";
 import { requireRole } from "@/lib/server-auth";
-import { isOnboardingComplete, isProPlan } from "@/lib/role-queries";
+import { isOnboardingComplete } from "@/lib/role-queries";
+import { coverageStateCount, logisticsPlanLimits } from "@/lib/plan-limits";
+import { atLimit } from "@shared/plans";
 import { replyToQuote } from "@/lib/logistics/quotes";
 import { getPublicEnv } from "@/lib/env";
 import { assignRider, transitionJob } from "@/lib/logistics/jobs";
 import { newRiderToken } from "@/lib/logistics/rider-token";
 import { toE164 } from "@shared/phone";
-import { LOGISTICS_FREE_ROUTE_LIMIT, LOGISTICS_FREE_TEAM_MEMBER_LIMIT } from "@/lib/plan-limits";
 import {
   BookingStatusUpdateSchema,
   LogisticsCoverageUpdateSchema,
@@ -80,9 +81,11 @@ function assertVerifiedLogistics(partner: { verificationStatus: string; onboardi
   if (partner.verificationStatus !== "verified") redirect("/logistics/profile?verification=pending");
 }
 
-async function assertLogisticsPlanAllowsRoutes(userId: string, zoneCount: number) {
+/** `stateCount`: the distinct states the partner's coverage would span (coverageStateCount). */
+async function assertLogisticsPlanAllowsRoutes(userId: string, stateCount: number) {
   const dbUser = await db.user.findUnique({ where: { id: userId }, select: { aiCredits: true } });
-  if (!isProPlan(dbUser ?? {}) && zoneCount > LOGISTICS_FREE_ROUTE_LIMIT) {
+  const limit = logisticsPlanLimits(dbUser ?? {}).coverageStates;
+  if (limit !== null && stateCount > limit) {
     redirect("/logistics/profile?tab=Billing%20%26%20Plan&limit=routes");
   }
 }
@@ -93,7 +96,7 @@ async function assertLogisticsPlanAllowsTeamMember(userId: string, partnerId: st
     db.logisticsTeamMember.count({ where: { logisticsPartnerId: partnerId, status: "active" } }),
   ]);
 
-  if (!isProPlan(dbUser ?? {}) && teamMemberCount >= LOGISTICS_FREE_TEAM_MEMBER_LIMIT) {
+  if (atLimit(teamMemberCount, logisticsPlanLimits(dbUser ?? {}).teamMembers)) {
     redirect("/logistics/profile?tab=Billing%20%26%20Plan&limit=team");
   }
 }
@@ -304,7 +307,7 @@ export async function updateLogisticsCoverage(formData: FormData) {
   if (!parsed.success) {
     redirect(`/logistics/coverage?error=${encodeURIComponent(parsed.error.issues[0]?.message ?? "Check your coverage areas and rates, then save again.")}`);
   }
-  await assertLogisticsPlanAllowsRoutes(user.id, parsed.data.coverageZones.length);
+  await assertLogisticsPlanAllowsRoutes(user.id, coverageStateCount(parsed.data.coverageZones, parsed.data.coverageMap));
 
   await db.logisticsPartner.update({
     where: { id: partner.id },
@@ -426,7 +429,7 @@ export async function updateLogisticsProfile(formData: FormData) {
   const basePrice = Number(formData.get("basePrice") || partner.basePrice || 0);
   const estimatedSpeed = String(formData.get("estimatedSpeed") || "").trim();
   const whatsappNumber = String(formData.get("whatsappNumber") || "").trim();
-  await assertLogisticsPlanAllowsRoutes(user.id, coverageZones.length || partner.coverageZones.length);
+  await assertLogisticsPlanAllowsRoutes(user.id, coverageStateCount(coverageZones.length ? coverageZones : partner.coverageZones));
 
   // Parse service hours
   const hours: Array<{ day: string; open: string; close: string; cutoff: string; active: boolean }> = [];

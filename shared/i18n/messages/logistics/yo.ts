@@ -495,6 +495,13 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "jobErrors.checkQuote": "Ṣàyẹ̀wò àlàyé quote náà.",
   "kit.to": " sí ",
   "jobs.pages": "Àwọn ojú-ewé iṣẹ́",
+  "fees.subOn": "Shopinbos ń gba {rate}% nínú owó ìfijiṣẹ́ kọ̀ọ̀kan nínú app lórí plan rẹ, láti ìpín rẹ. Plan tí a ń sanwó fún máa dín in kù.",
+  "fees.subOff": "Kò sí owó iṣẹ́ báyìí: o máa gba gbogbo owó ìfijiṣẹ́. Nígbà tí ó bá bẹ̀rẹ̀, yóò jẹ́ {rate}% lórí plan rẹ.",
+  "fees.offNow": "0% báyìí ({rate}% lẹ́yìn náà)",
+  "fees.usageStates": "Àwọn ìpínlẹ̀ tí o bò",
+  "fees.usageTeam": "Ọmọ ẹgbẹ́",
+  "coverage.noLimit": "Plan rẹ bo gbogbo orílẹ̀-èdè.",
+  "coverage.stateLimit": "Plan rẹ bo ìpínlẹ̀ tó {limit}.",
 };
 
 export default yo;

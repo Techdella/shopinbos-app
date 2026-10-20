@@ -2678,12 +2678,19 @@ test("Rex's progress names the job and never finishes before the answer", async 
 
 test("AI credits: packs, costs and an auto top-up that can't run away", async () => {
   const c = await import("../shared/ai-credits.ts");
-  assert.equal(c.creditPack("medium").credits, 200);
+  assert.deepEqual(c.CREDIT_PACKS.map((pack) => [pack.id, pack.credits, pack.naira]), [["small", 200, 2000], ["medium", 550, 5000], ["large", 1200, 10000], ["business", 3200, 25000]]);
   assert.equal(c.creditPack("nope"), null);
   assert.equal(c.packKobo(c.creditPack("small")), 200_000);
-  assert.equal(c.creditCost("image"), 5);
+  assert.equal(c.creditCost("image"), 10);
   assert.equal(c.creditCost("text", 3), 3);
-  assert.ok(c.creditCost("build") > c.creditCost("image"), "a store build costs more than a picture");
+  assert.equal(c.creditCost("build"), 20, "AI store setup");
+  // The pricing table's actions.
+  assert.equal(c.creditCost("product_copy"), 2);
+  assert.equal(c.creditCost("bg_remove"), 3);
+  assert.equal(c.creditCost("photo"), 10);
+  assert.equal(c.creditCost("bulk_description", 4), 4, "per product");
+  assert.equal(c.creditCost("rate_card"), 10);
+  assert.equal(c.creditCost("caption", 1, { ...c.DEFAULT_COSTS, caption: 3 }), 3, "admin prices win");
   const base = { autoTopUp: true, hasCard: true, packId: "medium", need: 5, balance: 2, autoChargesToday: 0 };
   assert.equal(c.shouldAutoTopUp(base), true);
   assert.equal(c.shouldAutoTopUp({ ...base, balance: 10 }), false, "enough credits already");
@@ -2691,8 +2698,8 @@ test("AI credits: packs, costs and an auto top-up that can't run away", async ()
   assert.equal(c.shouldAutoTopUp({ ...base, hasCard: false }), false);
   assert.equal(c.shouldAutoTopUp({ ...base, autoChargesToday: c.AUTO_TOP_UP_PER_DAY }), false, "capped per day");
   assert.equal(c.shouldAutoTopUp({ ...base, packId: "small", need: 500 }), false, "a pack that can't cover it isn't bought");
-  assert.match(c.outOfCreditsMessage("8 images", 5, 0), /Buy AI credits to carry on/);
-  assert.doesNotMatch(c.outOfCreditsMessage("8 images", 5, 0), /\/home\/credits/);
+  assert.match(c.outOfCreditsMessage(5, 0), /This needs 5 AI credits and you have 0\. Top up/);
+  assert.doesNotMatch(c.outOfCreditsMessage(5, 0), /\/home\/credits/);
 });
 
 test("Rex and Peggy chats save with a title from the seller's first words, within limits", async () => {
@@ -2709,14 +2716,17 @@ test("Rex and Peggy chats save with a title from the seller's first words, withi
   assert.equal(weird.ok && weird.save.id, null, "odd ids start a new chat");
 });
 
-test("Plans put their AI credits into the same balance Rex and Peggy spend", async () => {
+test("Plans' monthly AI credits refill each month and never pile up; bought credits last 12 months", async () => {
   const c = await import("../shared/ai-credits.ts");
-  assert.equal(c.WELCOME_CREDITS, 5, "Starter: 5 AI credits to get started");
-  assert.equal(c.planCreditGrant("PLN_8ou289e71czicvm").credits, 50, "Growth monthly");
-  assert.equal(c.planCreditGrant("PLN_2gph11w3yd0250y").credits, 200, "Pro monthly");
-  assert.equal(c.planCreditGrant("PLN_q1k3ssxpx7rxxuz").credits, 600, "Growth annual: twelve months up front");
-  assert.equal(c.planCreditGrant("PLN_unknown"), null);
-  assert.equal(c.planCreditGrant(null), null);
+  assert.equal(c.WELCOME_CREDITS, 50, "signup bonus for every new account");
+  assert.equal(c.CREDIT_LIFETIME_MONTHS, 12);
+  assert.equal(c.creditPeriod(new Date("2026-10-31T23:30:00Z")), "2026-10");
+  const growth = { key: "seller_growth", monthly: 500 };
+  assert.deepEqual(c.planFill({ period: null, key: null, credits: 0 }, growth, "2026-10"), { period: "2026-10", key: "seller_growth", credits: 500 }, "first read fills");
+  assert.deepEqual(c.planFill({ period: "2026-10", key: "seller_growth", credits: 120 }, growth, "2026-10"), { period: "2026-10", key: "seller_growth", credits: 120 }, "same month: what's left stays");
+  assert.deepEqual(c.planFill({ period: "2026-10", key: "seller_growth", credits: 120 }, growth, "2026-11"), { period: "2026-11", key: "seller_growth", credits: 500 }, "new month: refilled, not added");
+  assert.equal(c.planFill({ period: "2026-10", key: "seller_free", credits: 3 }, growth, "2026-10").credits, 500, "an upgrade mid-month gets the new plan's credits");
+  assert.equal(c.planFill({ period: "2026-10", key: "seller_growth", credits: 400 }, { key: "seller_free", monthly: 20 }, "2026-10").credits, 20, "a plan that ends drops to the free plan's credits");
 });
 
 test("product CSV import reads loose headers, photo links and uploaded photo names", async () => {
@@ -3078,7 +3088,7 @@ test("Suppliers buy and are pointed to AI credits in their own portal", async ()
   const c = await import("../shared/ai-credits.ts");
   assert.equal(c.creditsUrlFor("supplier"), "/supplier/credits");
   assert.equal(c.creditsUrlFor("seller"), "/home/credits");
-  assert.equal(c.planCreditGrant("PLN_q78304vgj7p35o6").credits, 100, "Supplier Max monthly");
+  assert.equal(c.creditsUrlFor("logistics_partner"), "/logistics/credits");
 });
 
 test("Logo prompts carry the seller's notes and inspiration, and never copy another brand", async () => {

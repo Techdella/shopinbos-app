@@ -1,6 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db/client";
-import { aiAllowanceToday, meterAiCharged, refundAi } from "@/lib/ai/usage";
+import { meterAiCharged, refundAi } from "@/lib/ai/usage";
 import { creditBalance, liveCreditPrices } from "@/lib/ai/credits.server";
 import { getOpenAIClient } from "@/lib/ai/client";
 import { generateImage } from "@/lib/ai/images";
@@ -19,16 +19,12 @@ import type { StoreEditorSnapshot } from "@/lib/store-templates";
 const SAMPLE_TAG = "rex-sample";
 
 export async function buildBudget(userId: string): Promise<BuildBudget> {
-  const user = await db.user.findUnique({ where: { id: userId }, select: { aiCredits: true } });
-  const [allowance, balance, prices] = await Promise.all([aiAllowanceToday(userId, user?.aiCredits), creditBalance(userId), liveCreditPrices()]);
-  const leftOf = (kind: "build" | "text" | "image") => {
-    const row = allowance?.find((entry) => entry.kind === kind);
-    return row ? Math.max(0, row.limit - row.used) : 0;
-  };
+  // Every AI use costs credits now (the plan's monthly credits come first, inside the balance), so nothing is free.
+  const [balance, prices] = await Promise.all([creditBalance(userId), liveCreditPrices()]);
   return {
-    left: { build: leftOf("build"), text: leftOf("text"), image: leftOf("image") },
+    left: { build: 0, text: 0, image: 0 },
     balance,
-    costs: { build: prices.costs.build, text: prices.costs.text, image: prices.costs.image },
+    costs: { build: prices.costs.build, text: prices.costs.text, image: prices.costs.photo ?? prices.costs.image },
   };
 }
 
@@ -195,7 +191,7 @@ export async function addBuildPhotos(userId: string, maxPhotos: number, mode: Bu
   const batches: Array<{ units: number; credits: number }> = [];
   for (const units of [free, jobs.length - free]) {
     if (units <= 0) continue;
-    const metered = await meterAiCharged(userId, "image", units);
+    const metered = await meterAiCharged(userId, "image", units, "photo");
     if (metered.blocked) break;
     batches.push({ units, credits: metered.credits });
   }

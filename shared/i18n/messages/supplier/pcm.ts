@@ -194,7 +194,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "products.searchPlaceholder": "Search products…",
   "products.title": "Products",
   "products.subPro": "Supplier Max · products no get limit",
-  "products.subFree": "{count} of 50 products for free plan. Draft am quietly, then send complete products go marketplace review.",
+  "products.subFree": "{count} of {limit} products for your plan. Draft am quietly, then send complete products go marketplace review.",
   "products.filter.all": "All",
   "products.filter.live": "Live",
   "products.filter.review": "Dem dey review",
@@ -596,6 +596,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "agr.back": "Go back",
   "agr.accept": "Accept the agreement",
   "agr.decline": "Decline",
+  "profile.usageListings": "Product listings",
 };
 
 export default pcm;

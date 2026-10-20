@@ -10,7 +10,7 @@ const promos = await import("../shared/price-promotions.ts");
 const pricing = await import("../shared/platform-pricing.ts");
 
 const at = (iso) => new Date(iso);
-const base = pricing.resolvePriceBook({ "store_fee.rate": 1.5 });
+const base = pricing.resolvePriceBook({ "store_fee.growth": 1.5 });
 const blackFriday = { id: "bf", name: "Black Friday", status: "scheduled", startsAt: at("2026-11-27T00:00:00+01:00"), endsAt: at("2026-12-01T00:00:00+01:00"), prices: { "ads.setup.meta": 15000, "ads.setup.tiktok": 25000 } };
 
 test("a promotion is upcoming, live, then ended; cancelled stays cancelled", () => {
@@ -23,15 +23,15 @@ test("a promotion is upcoming, live, then ended; cancelled stays cancelled", () 
 test("live promotions override the price book, then prices go back by themselves", () => {
   const during = promos.livePromotionOverrides([blackFriday], at("2026-11-28T12:00:00+01:00"));
   assert.deepEqual(during, { "ads.setup.meta": 15000, "ads.setup.tiktok": 25000 });
-  const book = pricing.resolvePriceBook({ "store_fee.rate": 1.5 }, {}, during);
+  const book = pricing.resolvePriceBook({ "store_fee.growth": 1.5 }, {}, during);
   assert.equal(book["ads.setup.meta"], 15000);
-  assert.equal(book["store_fee.rate"], 1.5, "prices it doesn't touch stay");
+  assert.equal(book["store_fee.growth"], 1.5, "prices it doesn't touch stay");
   assert.deepEqual(promos.livePromotionOverrides([blackFriday], at("2026-12-02T00:00:00+01:00")), {});
   // Overlapping on the same price: the one that started last wins.
   const flash = { ...blackFriday, id: "flash", startsAt: at("2026-11-28T00:00:00+01:00"), prices: { "ads.setup.meta": 10000 } };
   assert.equal(promos.livePromotionOverrides([flash, blackFriday], at("2026-11-28T12:00:00+01:00"))["ads.setup.meta"], 10000);
   // Junk in stored prices is dropped, never applied.
-  assert.deepEqual(promos.readPromoPrices({ "ads.setup.meta": -5, nonsense: 1, "store_fee.rate": "2" }), { "store_fee.rate": 2 });
+  assert.deepEqual(promos.readPromoPrices({ "ads.setup.meta": -5, nonsense: 1, "store_fee.growth": "2" }), { "store_fee.growth": 2 });
 });
 
 test("the cache runs out when a promotion starts or ends", () => {
@@ -65,14 +65,16 @@ test("two promotions can't change the same price at the same time", () => {
 });
 
 test("what people see: old and new prices, who it's for, Lagos times", () => {
-  const changes = promos.promotionChanges({ "ads.setup.meta": 15000, "credits.medium.credits": 300, "delivery.fee_bearer": "logistics_partner" }, base);
+  const changes = promos.promotionChanges({ "ads.setup.meta": 15000, "credits.medium.credits": 700, "delivery.enabled": "on" }, base);
   assert.deepEqual(changes.map((c) => [c.key, c.from, c.to, c.direction]), [
     ["ads.setup.meta", "₦20,000", "₦15,000", "drop"],
-    ["credits.medium.credits", "200 credits", "300 credits", "rise"],
-    ["delivery.fee_bearer", "The seller", "The delivery partner", "change"],
+    ["credits.medium.credits", "550 credits", "700 credits", "rise"],
+    ["delivery.enabled", "Off (0%)", "On", "change"],
   ]);
   assert.deepEqual(promos.suggestedAudience(["ads.setup.meta"]), ["seller"]);
-  assert.deepEqual(promos.suggestedAudience(["credits.small.naira", "delivery.fee_rate"]).sort(), ["logistics_partner", "seller", "supplier"]);
+  assert.deepEqual(promos.suggestedAudience(["supplier_fee.plus", "boosts.supplier_week"]), ["supplier"]);
+  assert.deepEqual(promos.suggestedAudience(["boosts.logistics_state_week"]), ["logistics_partner"]);
+  assert.deepEqual(promos.suggestedAudience(["credits.small.naira", "delivery.plus"]).sort(), ["logistics_partner", "seller", "supplier"]);
   assert.match(promos.announcementBody({ headline: "BF", message: "Big savings", startsAt: blackFriday.startsAt, endsAt: blackFriday.endsAt }, changes), /Big savings[\s\S]*- Ad campaigns, setup fee: Facebook & Instagram: ₦20,000 → ₦15,000[\s\S]*Lagos time/);
   assert.equal(promos.fromLagosInput("2026-11-27T00:00").toISOString(), "2026-11-26T23:00:00.000Z");
   assert.equal(promos.toLagosInput(at("2026-11-26T23:00:00Z")), "2026-11-27T00:00");

@@ -5,8 +5,9 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db/client";
 import { invalidatePublicMarketplaceCache } from "@/lib/api/cache";
 import { requireRole } from "@/lib/server-auth";
-import { isOnboardingComplete, isProPlan } from "@/lib/role-queries";
-import { SUPPLIER_FREE_PRODUCT_LIMIT } from "@/lib/plan-limits";
+import { isOnboardingComplete } from "@/lib/role-queries";
+import { supplierPlanLimits } from "@/lib/plan-limits";
+import { atLimit } from "@shared/plans";
 import { OrderStatusUpdateSchema, QuoteResponseSchema, SupplierProductCreateSchema } from "@/lib/schemas";
 import { slugify } from "@/lib/workspace";
 import { z } from "zod";
@@ -120,7 +121,7 @@ export async function createSupplierProduct(formData: FormData) {
     db.user.findUnique({ where: { id: user.id }, select: { aiCredits: true } }),
     db.supplierProduct.count({ where: { supplierId: supplier.id } }),
   ]);
-  if (!isProPlan(dbUser ?? {}) && productCount >= SUPPLIER_FREE_PRODUCT_LIMIT) {
+  if (atLimit(productCount, supplierPlanLimits(dbUser ?? {}).listings)) {
     redirect("/supplier/profile?tab=Billing%20%26%20Plan&limit=products");
   }
 
@@ -425,8 +426,7 @@ export async function addSupplierTeamMember(formData: FormData) {
     db.supplierTeamMember.count({ where: { supplierId: supplier.id, status: "active" } }),
   ]);
 
-  const { SUPPLIER_FREE_TEAM_MEMBER_LIMIT } = await import("@/lib/plan-limits");
-  if (!isProPlan(dbUser ?? {}) && teamMemberCount >= SUPPLIER_FREE_TEAM_MEMBER_LIMIT) {
+  if (atLimit(teamMemberCount, supplierPlanLimits(dbUser ?? {}).teamMembers)) {
     redirect("/supplier/profile?tab=Billing%20%26%20Plan&limit=team");
   }
 

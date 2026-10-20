@@ -194,7 +194,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "products.searchPlaceholder": "Nemi kayayyaki…",
   "products.title": "Kayayyaki",
   "products.subPro": "Supplier Max · kayayyaki marasa iyaka",
-  "products.subFree": "Kaya {count} cikin 50 a free plan. Yi draft a ɓoye, sannan ka tura cikakkun kayayyaki zuwa dubawar marketplace.",
+  "products.subFree": "Kaya {count} cikin {limit} a tsarinka. Yi draft a ɓoye, sannan ka tura cikakkun kayayyaki zuwa dubawar marketplace.",
   "products.filter.all": "Duka",
   "products.filter.live": "Live",
   "products.filter.review": "Ana dubawa",
@@ -596,6 +596,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "agr.back": "Koma baya",
   "agr.accept": "Amince da yarjejeniyar",
   "agr.decline": "Ƙi",
+  "profile.usageListings": "Jerin kayayyaki",
 };
 
 export default ha;

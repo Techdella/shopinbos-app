@@ -495,6 +495,13 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "jobErrors.checkQuote": "Lelee nkọwa quote ahụ.",
   "kit.to": " gaa ",
   "jobs.pages": "Peeji ọrụ",
+  "fees.subOn": "Shopinbos na-ewere {rate}% n'ụgwọ nnyefe ọ bụla n'ime app n'atụmatụ gị, site n'òkè gị. Atụmatụ a na-akwụ ụgwọ ga-ebelata ya.",
+  "fees.subOff": "Enweghị ụgwọ ọrụ ugbu a: ị ga-ejide ụgwọ nnyefe niile. Mgbe ọ malitere, ọ ga-abụ {rate}% n'atụmatụ gị.",
+  "fees.offNow": "0% ugbu a ({rate}% ma emechaa)",
+  "fees.usageStates": "Steeti ị kpuchiri",
+  "fees.usageTeam": "Ndị otu",
+  "coverage.noLimit": "Atụmatụ gị kpuchiri mba niile.",
+  "coverage.stateLimit": "Atụmatụ gị kpuchiri steeti ruo {limit}.",
 };
 
 export default ig;

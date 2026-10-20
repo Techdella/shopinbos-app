@@ -45,7 +45,7 @@ export const POST = withSeller(async (req, { user }) => {
   const price = naira(product.retailPrice);
   const room = captionRoom(channel, link);
 
-  const limited = await meterAi(user.id, "text");
+  const limited = await meterAi(user.id, "text", 1, "caption");
   if (limited) return limited;
 
   const label = SHARE_CHANNELS.find((item) => item.key === channel)!.label;

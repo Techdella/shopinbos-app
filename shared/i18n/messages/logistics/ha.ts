@@ -495,6 +495,13 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "jobErrors.checkQuote": "Duba bayanan quote.",
   "kit.to": " zuwa ",
   "jobs.pages": "Shafukan ayyuka",
+  "fees.subOn": "Shopinbos yana ɗaukar {rate}% na kowane kuɗin isarwa a cikin app a tsarinka, daga kasonka. Tsarin da ake biya zai rage shi.",
+  "fees.subOff": "Babu kuɗin aiki yanzu: za ka riƙe duk kuɗin isarwa. Idan ya fara, zai zama {rate}% a tsarinka.",
+  "fees.offNow": "0% yanzu ({rate}% daga baya)",
+  "fees.usageStates": "Jihohin da kake rufewa",
+  "fees.usageTeam": "Membobin ƙungiya",
+  "coverage.noLimit": "Tsarinka yana rufe duk ƙasa.",
+  "coverage.stateLimit": "Tsarinka yana rufe jihohi har {limit}.",
 };
 
 export default ha;

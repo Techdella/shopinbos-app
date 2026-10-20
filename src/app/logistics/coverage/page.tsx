@@ -3,7 +3,8 @@ import { requireRole } from "@/lib/server-auth";
 import { ensureLogisticsAccess, getLogisticsPartnerForUser } from "@/lib/role-queries";
 import { updateLogisticsCoverage } from "@/app/actions/logistics";
 import { Card, CardHead, EmptyState, ListCard, ListRow, Pill, PillLink } from "@/components/app-kit";
-import { LOGISTICS_FREE_ROUTE_LIMIT } from "@/lib/plan-limits";
+import { logisticsPlanLimits } from "@/lib/plan-limits";
+import { db } from "@/lib/db/client";
 import { ActionNotice, PartnerPage, SubmitButton, inputClass, labelClass, naira, textareaClass } from "@/components/logistics/kit";
 import { coverageDepot, coverageZoneRows } from "@/components/logistics/coverage";
 import { getT } from "@/lib/i18n/server";
@@ -15,6 +16,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function LogisticsCoveragePage({ searchParams }: { searchParams: Promise<{ saved?: string; error?: string }> }) {
   const user = await requireRole(["logistics_partner"], "/logistics/login");
+  const coverageLimit = logisticsPlanLimits((await db.user.findUnique({ where: { id: user.id }, select: { aiCredits: true } })) ?? {}).coverageStates;
   const partner = await getLogisticsPartnerForUser(user);
   ensureLogisticsAccess(partner);
   const { saved, error } = await searchParams;
@@ -72,7 +74,7 @@ export default async function LogisticsCoveragePage({ searchParams }: { searchPa
         </div>
 
         <Card className="h-fit p-5">
-          <CardHead title={t("coverage.edit")} sub={t("coverage.starterLimit", { limit: LOGISTICS_FREE_ROUTE_LIMIT })} />
+          <CardHead title={t("coverage.edit")} sub={coverageLimit === null ? t("coverage.noLimit") : t("coverage.stateLimit", { limit: coverageLimit })} />
           <form action={updateLogisticsCoverage} className="mt-4 grid gap-3">
             <div>
               <label htmlFor="coverageZones" className={labelClass}>{t("coverage.areas")}</label>

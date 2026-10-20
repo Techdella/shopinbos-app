@@ -3,8 +3,9 @@ import { addLogisticsTeamMember, revokeRiderLink, updateLogisticsTeamMemberStatu
 import { Card, CardHead, EmptyState, FilterChips, ListCard, Pill, PillLink, StatGrid, StatTile } from "@/components/app-kit";
 import { Notice } from "@/components/app-ui";
 import { db } from "@/lib/db/client";
-import { LOGISTICS_FREE_TEAM_MEMBER_LIMIT } from "@/lib/plan-limits";
-import { ensureLogisticsAccess, getLogisticsPartnerForUser, isProPlan } from "@/lib/role-queries";
+import { logisticsPlanLimits, planName } from "@/lib/plan-limits";
+import { atLimit } from "@shared/plans";
+import { ensureLogisticsAccess, getLogisticsPartnerForUser } from "@/lib/role-queries";
 import { requireRole } from "@/lib/server-auth";
 import { ActionNotice, PartnerPage, SubmitButton, bookingNet, inputClass, labelClass, lagosDate, lagosStartOfToday, naira, timeAgo, type LogisticsT } from "@/components/logistics/kit";
 import { getT } from "@/lib/i18n/server";
@@ -76,8 +77,9 @@ export default async function LogisticsCouriersPage({ searchParams }: { searchPa
   const active = teamMembers.filter((member) => member.status === "active");
   const riders = teamMembers.filter((member) => member.role === "rider");
   const presence = riderPresence(riders, now);
-  const proPlan = isProPlan(dbUser ?? {});
-  const atStarterLimit = !proPlan && active.length >= LOGISTICS_FREE_TEAM_MEMBER_LIMIT;
+  const teamLimit = logisticsPlanLimits(dbUser ?? {}).teamMembers;
+  const proPlan = teamLimit === null;
+  const atStarterLimit = atLimit(active.length, teamLimit);
   const shown = role === "rider" ? riders : role === "staff" ? teamMembers.filter((member) => member.role !== "rider") : teamMembers;
   const filterKey = role === "rider" || role === "staff" ? role : "all";
 
@@ -94,7 +96,7 @@ export default async function LogisticsCouriersPage({ searchParams }: { searchPa
         <StatTile tone="card" label={t("today.ridersOutNow")} value={presence.out} hint={t("riders.offlineActive", { offline: presence.offline, total: presence.total })} />
         <StatTile tone="card" label={t("riders.wholeTeam")} value={teamMembers.length} hint={t("riders.activeCount", { count: active.length })} />
         <StatTile tone="card" label={t("riders.vehicles")} value={partner.vehicleTypes.length} hint={partner.vehicleTypes.join(", ") || t("riders.vehiclesHint")} />
-        <StatTile tone="card" label={t("riders.plan")} value={proPlan ? "Pro" : "Starter"} hint={proPlan ? t("riders.noLimit") : t("riders.activePeople", { count: Math.min(active.length, LOGISTICS_FREE_TEAM_MEMBER_LIMIT), limit: LOGISTICS_FREE_TEAM_MEMBER_LIMIT })} />
+        <StatTile tone="card" label={t("riders.plan")} value={planName({ ...dbUser, role: "logistics_partner" })} hint={proPlan ? t("riders.noLimit") : t("riders.activePeople", { count: Math.min(active.length, teamLimit ?? 0), limit: teamLimit ?? 0 })} />
       </StatGrid>
 
       <div className="grid gap-5 xl:[grid-template-columns:minmax(0,1fr)_400px]">
@@ -189,7 +191,7 @@ export default async function LogisticsCouriersPage({ searchParams }: { searchPa
             </div>
             {atStarterLimit && (
               <Notice tone="info">
-                {t("riders.starterLimit", { limit: LOGISTICS_FREE_TEAM_MEMBER_LIMIT })}
+                {t("riders.starterLimit", { limit: teamLimit ?? 0 })}
               </Notice>
             )}
             <SubmitButton disabled={atStarterLimit}>{t("riders.sendInvite")}</SubmitButton>

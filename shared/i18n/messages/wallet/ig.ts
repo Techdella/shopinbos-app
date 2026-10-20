@@ -39,7 +39,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "setup.who.supplier": "ụlọ ahịa na-ere ngwaahịa gị",
   "setup.who.logistics_partner": "ụlọ ahịa ị na-eme delivery maka ha",
   "setup.never": "Shopinbos anaghị ejide ego gị. Mgbe {who} jiri kaadị ma ọ bụ Korapay kwụọ ụgwọ, a na-ekewa ego ahụ na checkout, òkè gị na-abanye n'ụlọ akụ a ozugbo, na-abụkarị n'ụbọchị ọrụ na-esote. Ego Paystack na-esi n'òkè gị (na Korapay, ọ bụ customer na-akwụ ya). Shopinbos anaghị anata ihe ọ bụla.",
-  "setup.neverFee": "Shopinbos anaghị ejide ego gị. Mgbe {who} jiri kaadị ma ọ bụ Korapay kwụọ ụgwọ, a na-ekewa ego ahụ na checkout, òkè gị na-abanye n'ụlọ akụ a ozugbo, na-abụkarị n'ụbọchị ọrụ na-esote. Ego Paystack na-esi n'òkè gị (na Korapay, ọ bụ customer na-akwụ ya), otu a kwa ego Shopinbos nke {fee} n'ire ọ bụla (ọ bụghị na delivery).",
+  "setup.neverFee": "Shopinbos anaghị ejide ego gị. Mgbe {who} kwụrụ site na kaadị ma ọ bụ Korapay, a na-ekewa ụgwọ ahụ n'oge ịkwụ ụgwọ, òkè gị na-abanye n'ụlọ akụ a ozugbo, na-abụkarị ụbọchị ọrụ na-esote. Ụgwọ Paystack na-esi n'òkè gị (na Korapay, onye ahịa na-akwụ ya), ya na ụgwọ Shopinbos nke {fee} n'ire ere ọ bụla maka atụmatụ gị (ọ bụghị na nnyefe, ọ bụghịkwa na ngwaahịa dropship: kọmịshọn onye na-ebunye na-ekpuchi ha).",
   "fee.limits": "{rate}% (opekata mpe {min}, kacha {max})",
   "fee.min": "{rate}% (opekata mpe {min})",
   "fee.max": "{rate}% (kacha {max})",
@@ -156,6 +156,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "claim.chooseOrder": "Họrọ order nke a metụtara.",
   "claim.none": "Enweghị order nso nso a site n'aka supplier ma ọ bụ delivery partner ị nwere ike ịrịọ maka ya. Ị nwere ike ịrịọ n'ime ụbọchị {days} mgbe delivery gasịrị.",
   "claim.sent": "E zigala arịrịọ ahụ.",
+  "setup.neverCommission": "Shopinbos anaghị ejide ego gị. Mgbe {who} kwụrụ site na kaadị ma ọ bụ Korapay maka ngwaahịa gị, òkè gị na-abanye n'ụlọ akụ a ozugbo, na-abụkarị ụbọchị ọrụ na-esote. Kọmịshọn Shopinbos nke {pct}% nke uru nnukwu ahịa na-esi n'ọda ahịa ọ bụla maka atụmatụ gị, ya na òkè gị n'ụgwọ Paystack.",
 };
 
 export default ig;

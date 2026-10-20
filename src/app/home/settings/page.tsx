@@ -9,7 +9,9 @@ import { PageToast } from "@/components/PageToast";
 import { LanguageSettingsCard } from "@/components/i18n/LanguagePicker";
 import { SecuritySettings } from "@/components/auth/SecuritySettings";
 import { planOffers } from "@/lib/plans/catalog.server";
-import { SellerBillingSection } from "@/components/payments/SellerBillingSection";
+import { PlanPicker } from "@/components/payments/PlanPicker";
+import { planOf } from "@/lib/plan-limits";
+import { sellerLimits } from "@shared/plans";
 import { PeggyPreferencesForm } from "@/components/settings/PeggyPreferencesForm";
 import { RexPreferencesForm } from "@/components/settings/RexPreferencesForm";
 import { parseRexPreferences } from "@shared/rex-preferences";
@@ -288,13 +290,15 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
                     action={<PillLink href="/home/credits" size="sm" tone="ink" icon="sparkle">{tPay("cr.buy")}</PillLink>}
                   />
                 </Card>
-                <SellerBillingSection
+                <PlanPicker
+                  role="seller"
+                  current={planOf({ role: "seller", aiCredits })}
+                  offers={await planOffers()}
                   userEmail={billingEmail(user)}
                   userName={user.name}
-                  aiCredits={aiCredits}
                   creditBalance={credits}
-                  productCount={productCount}
-                  offers={await planOffers()}
+                  creditsHref="/home/credits"
+                  usage={[{ label: tPay("bill.products"), used: productCount, limit: sellerLimits(planOf({ role: "seller", aiCredits })).products }]}
                 />
                 {store && <SupplierSwitchCard settings={switchSettings(await db.store.findUnique({ where: { id: store.id }, select: { autoSwitchSupplier: true, switchCostRule: true, switchMaxIncreasePct: true, switchMinMarginPct: true } }))} />}
               </>

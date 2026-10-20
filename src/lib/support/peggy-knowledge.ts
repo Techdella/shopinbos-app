@@ -34,7 +34,7 @@ Payments and payouts
 Fees (see LIVE NUMBERS for today's amounts)
 - Free to sign up and build the store; new accounts get free AI credits.
 - Publishing the store and going live is free on every plan. There is no launch fee.
-- Optional paid plans (Growth, Seller Pro for sellers; Supplier Max for suppliers) with monthly AI credits, a free custom domain on annual seller plans, and more. The Starter plan is free.
+- Sellers: Free (₦0, 3% fee on online sales, 20 products, 20 AI credits a month), Starter (₦6,000/month, 2%, 200 products, own domain, 150 credits), Growth (₦18,000/month, 1%, unlimited products, 500 credits, pay on delivery, exceptions inbox), Pro (₦40,000/month, 0.5%, 1,500 credits, priority support). Yearly plans are ten months' price (two months free) and include a free domain. Suppliers and delivery partners join and get verified free; Supplier Plus ₦10,000 and Pro ₦30,000, Logistics Plus ₦8,000 and Pro ₦25,000 a month lower their commission or job fee. LIVE NUMBERS has today's exact fees.
 - Paystack's card fee applies to card payments. There are no other hidden fees. Never quote a commission or a payout schedule that isn't in LIVE NUMBERS (ignore anything about 2%, 5% or 8% commissions, "paid out every Friday" or "held 48 hours": those are not true).
 
 Sellers who already have a website or social pages

@@ -44,9 +44,9 @@ test("photos that fail are given back, and rebuilds always make a fresh banner a
   const usage = read("src/lib/ai/usage.ts");
   assert.match(usage, /export async function refundAi\(/);
   assert.match(usage, /units: -Math\.round\(units\)/, "the allowance comes back as a negative usage row");
-  assert.match(usage, /balance: \{ increment: Math\.round\(credits\) \}/, "bought credits go back on the balance");
+  assert.match(usage, /addCredits\(userId, credits, "refund"\)/, "credits go back as a 12-month lot");
   const build = read("src/lib/ai/rex/full-build.server.ts");
-  assert.match(build, /meterAiCharged\(userId, "image", units\)/);
+  assert.match(build, /meterAiCharged\(userId, "image", units, "photo"\)/);
   assert.match(build, /await refundAi\(userId, "image", units, credits\)/);
   assert.doesNotMatch(build, /needsPhoto|isOwnImageUrl/, "existing banner and story pictures are not kept on a rebuild");
   assert.match(build, /mode === "quick" \? products\.slice\(0, 1\)/);

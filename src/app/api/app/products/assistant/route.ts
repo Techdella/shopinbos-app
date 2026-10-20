@@ -16,7 +16,7 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
   const parsed = ProductAssistantRequestSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return apiError("BAD_REQUEST", parsed.error.issues[0]?.message ?? "Tell Peggy what to change.");
 
-  const limited = await meterAi(user.id, "text");
+  const limited = await meterAi(user.id, "text", 1, "product_copy");
   if (limited) return limited;
 
   const reply = await suggestProductChanges(parsed.data);
