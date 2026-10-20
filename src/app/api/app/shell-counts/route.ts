@@ -3,6 +3,7 @@ import { ok } from "@/lib/api/response";
 import { db } from "@/lib/db/client";
 import { parsePreferences } from "@shared/preferences";
 import { getIdentity } from "@/lib/identity";
+import { adminNavIds } from "@/lib/admin-team/pure";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,7 @@ export const GET = withAuth(async (_req, { user }) => {
     db.message
       .count({ where: { read: false, senderId: { not: user.id }, conversation: { OR: [{ participant1Id: user.id }, { participant2Id: user.id }] } } })
       .catch(() => 0),
-    db.user.findUnique({ where: { id: user.id }, select: { preferences: true } }).catch(() => null),
+    db.user.findUnique({ where: { id: user.id }, select: { preferences: true, adminRole: true } }).catch(() => null),
     getIdentity(user).catch(() => null),
   ]);
 
@@ -27,5 +28,7 @@ export const GET = withAuth(async (_req, { user }) => {
   }
 
   // Menu choices, walkthrough state and the person's photo/logo ride along so the shell needs one request per page load.
-  return ok({ notifications, inbox, orders, preferences: parsePreferences(prefsRow?.preferences), identity });
+  // Admins: the menu items their team role opens (null: all of them).
+  const adminNav = user.role === "admin" ? adminNavIds(prefsRow?.adminRole) : null;
+  return ok({ notifications, inbox, orders, preferences: parsePreferences(prefsRow?.preferences), identity, adminNav });
 });

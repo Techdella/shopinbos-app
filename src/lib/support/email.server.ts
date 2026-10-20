@@ -59,3 +59,17 @@ export function agentReplyEmail(input: { name: string; number: number; body: str
     serviceNote: `Reply to this email to answer ${formatTicketNumber(input.number)}. Please keep the ticket number in the subject.`,
   }).html;
 }
+
+/** The first email of a conversation the team started from Admin › Inbox › New conversation. */
+export function newConversationEmail(input: { name: string; number: number; subject: string; body: string; agentName: string }) {
+  const agent = input.agentName.trim().split(/\s+/)[0] || "The Shopinbos team";
+  return buildPlatformEmail({
+    kind: "transactional",
+    eyebrow: `${formatTicketNumber(input.number)} · ${agent} from Shopinbos`,
+    heading: input.subject,
+    preheader: input.body.slice(0, 140),
+    bodyHtml: html.text(input.body),
+    reason: "the Shopinbos team is getting in touch with you",
+    serviceNote: `Reply to this email and it reaches ${agent} and the Shopinbos team. Please keep ${formatTicketNumber(input.number)} in the subject.`,
+  }).html;
+}

@@ -7,6 +7,7 @@ import { apiError } from "@/lib/api/response";
 import { e164FromSupabase } from "@/lib/auth/app-user";
 import { asAccountRole } from "@/lib/auth/role-rules";
 import { recordActivity } from "@/lib/platform-analytics/activity.server";
+import { adminCanOpen } from "@/lib/admin-team/pure";
 
 // ─── Verify a raw access token via Supabase Admin client ─────────────────────
 
@@ -149,6 +150,11 @@ export function withAuth(handler: Handler, allowedRoles?: Role[]) {
 
     if (allowedRoles && !allowedRoles.includes(user.role)) {
       return apiError("FORBIDDEN", `Role '${user.role}' cannot access this resource`, 403);
+    }
+    // Admin › Team roles: an admin API route is only for the roles whose section it belongs to.
+    if (user.role === "admin" && req.nextUrl.pathname.startsWith("/api/admin")) {
+      const member = await db.user.findUnique({ where: { id: user.id }, select: { adminRole: true } }).catch(() => null);
+      if (!adminCanOpen(member?.adminRole, req.nextUrl.pathname)) return apiError("FORBIDDEN", "Your admin role can't open this.", 403);
     }
 
     // Next.js 16 passes route params as a Promise; resolve once so handlers can read params.id directly.

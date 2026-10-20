@@ -7,7 +7,7 @@ import { requireRole } from "@/lib/server-auth";
 
 export const dynamic = "force-dynamic";
 
-type Search = { status?: string; priority?: string; topic?: string; portal?: string; assignee?: string; q?: string; page?: string };
+type Search = { status?: string; priority?: string; topic?: string; portal?: string; channel?: string; assignee?: string; q?: string; page?: string };
 
 const STATUS_CHIPS = [
   { value: "active", label: "Open and waiting" },
@@ -24,7 +24,7 @@ export default async function AdminSupportPage(props: { searchParams?: Promise<S
 
   if (!(await supportReady())) {
     return (
-      <AppPage frame={frame} title="Support" sub="Tickets from the Stuck? form, in-app chat and the support inbox.">
+      <AppPage frame={frame} title="Inbox" sub="Email, WhatsApp, in-app chat and the Stuck? form.">
         <EmptyState icon="chat" title="Support needs a quick database update">
           Run docs/migrations/2026-10-12-support.sql on the Supabase database. Until then the Stuck? form emails {process.env.SUPPORT_INBOX?.trim() || "support@shopinbos.com"} and the in-app chat offers WhatsApp and email.
         </EmptyState>
@@ -34,7 +34,7 @@ export default async function AdminSupportPage(props: { searchParams?: Promise<S
 
   const search = (await props.searchParams) ?? {};
   const status = STATUS_CHIPS.some((chip) => chip.value === search.status) ? search.status! : "active";
-  const filters = { status, priority: search.priority || undefined, topic: search.topic || undefined, portal: search.portal || undefined, assignee: search.assignee || undefined, q: search.q?.trim() || undefined };
+  const filters = { status, priority: search.priority || undefined, topic: search.topic || undefined, portal: search.portal || undefined, channel: search.channel || undefined, assignee: search.assignee || undefined, q: search.q?.trim() || undefined };
   const page = Math.max(1, Number(search.page) || 1);
   const [queue, stats] = await Promise.all([supportQueue(user.id, { ...filters, page }), supportStats()]);
   const now = Date.now();
@@ -67,12 +67,13 @@ export default async function AdminSupportPage(props: { searchParams?: Promise<S
   return (
     <AppPage
       frame={frame}
-      title="Support"
-      sub="Every request from sellers, suppliers and delivery partners: the Stuck? form, in-app chat and emails to support@."
+      title="Inbox"
+      sub="Every conversation in one place: WhatsApp to our number, emails to support@, in-app chat and the Stuck? form."
       actions={
         <>
+          <PillLink href="/admin/support/new" tone="ink" icon="plus">New conversation</PillLink>
           <PillLink href="/admin/support/macros" icon="list">Saved replies</PillLink>
-          <PillLink href={withParams("/admin/support", { assignee: "me" })} tone="ink" icon="user">My tickets · {queue.counts.mine}</PillLink>
+          <PillLink href={withParams("/admin/support", { assignee: "me" })} icon="user">My tickets · {queue.counts.mine}</PillLink>
         </>
       }
     >

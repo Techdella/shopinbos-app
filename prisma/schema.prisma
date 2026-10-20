@@ -159,6 +159,9 @@ model User {
   email              String?            @unique
   phone              String?
   role               Role
+  /// Admins only: what they can open in the admin portal (src/lib/admin-team/pure.ts). owner | admin | support |
+  /// growth | operations | finance, or disabled for a removed team member. Null is an owner (admins from before roles).
+  adminRole          String?
   country            String?
   city               String?
   avatarUrl          String?

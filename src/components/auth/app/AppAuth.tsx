@@ -243,7 +243,9 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
   const [info, setInfo] = useState<string | null>(
     params.get("reason") === "expired"
       ? t("info.expired")
-      : params.get("signedOut") === "all"
+      : params.get("reason") === "removed" && isAdmin
+        ? "You're no longer on the Shopinbos admin team. Ask an owner if that's a mistake."
+        : params.get("signedOut") === "all"
         ? t("info.signedOutAll")
         : null,
   );

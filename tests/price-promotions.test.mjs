@@ -90,7 +90,7 @@ test("wiring: the book applies promotions, saves clear the cache, the cron sends
   assert.match(server, /overlappingPromotions/);
   assert.match(read("src/app/api/cron/product-news/route.ts"), /runPromotionNotices/);
   assert.match(read("shared/notifications.ts"), /"pricing\.promotion": \{ category: "marketing" \}/);
-  assert.match(read("src/app/actions/pricing.ts"), /export async function savePromotion[\s\S]*requireRole\(\["admin"\]/);
+  assert.match(read("src/app/actions/pricing.ts"), /export async function savePromotion[\s\S]*requireAdminSection\("money"\)/);
   assert.match(read("src/app/admin/pricing/promotions/page.tsx"), /requireRole\(\["admin"\]/);
   for (const page of ["src/app/home/page.tsx", "src/app/supplier/dashboard/page.tsx", "src/app/logistics/dashboard/page.tsx", "src/app/home/credits/page.tsx"]) assert.match(read(page), /<PromoBanner role=/, page);
   const sql = read("docs/migrations/2026-11-10-price-promotions.sql");

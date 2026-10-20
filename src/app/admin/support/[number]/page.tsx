@@ -40,14 +40,14 @@ export default async function AdminSupportTicketPage(props: { params: Promise<{ 
           <SlaBadge ticket={ticket} now={now} />
           <span>
             {topicLabel(ticket.topic)} · {PORTAL_LABEL[ticket.portal as SupportPortal] ?? ticket.portal} · opened {relativeTime(ticket.createdAt, now)}
-            {ticket.source === "email" ? " by email" : ticket.source === "web" ? " from the Stuck? form" : " in the app"}
+            {ticket.source === "email" ? " by email" : ticket.source === "web" ? " from the Stuck? form" : ticket.source === "whatsapp" ? " on WhatsApp" : " in the app"}
           </span>
         </span>
       }
-      actions={<PillLink href="/admin/support" icon="arrowLeft">Queue</PillLink>}
+      actions={<PillLink href="/admin/support" icon="arrowLeft">Inbox</PillLink>}
     >
       <TicketWorkspace
-        ticket={{ id: ticket.id, number: ticket.number, name: ticket.name, email: ticket.email, phone: ticket.phone, subject: ticket.subject, topic: ticket.topic, status: ticket.status, priority: ticket.priority, assigneeId: ticket.assigneeId }}
+        ticket={{ id: ticket.id, number: ticket.number, name: ticket.name, email: ticket.email, phone: ticket.phone, subject: ticket.subject, topic: ticket.topic, status: ticket.status, priority: ticket.priority, assigneeId: ticket.assigneeId, source: ticket.source, lastUserMessageAt: ticket.lastUserMessageAt?.toISOString() ?? null }}
         messages={messages}
         transcript={data.transcript}
         macros={macros}

@@ -1,9 +1,9 @@
 "use server";
 
+import { requireAdminSection } from "@/lib/admin-team/service.server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db/client";
-import { requireRole } from "@/lib/server-auth";
 import { assignPayInToPartner } from "@/lib/logistics/payins.server";
 import { ensurePayInAccount } from "@/lib/logistics/paystack-dva";
 import { markPayInSettled, recordTeamPayIn, unpausePartner } from "@/lib/logistics/payin-admin.server";
@@ -21,7 +21,7 @@ function withNotice(path: string, key: "saved" | "error", message: string) {
 }
 
 export async function assignUnmatchedPayIn(formData: FormData) {
-  const admin = await requireRole(["admin"], "/admin/login");
+  const admin = await requireAdminSection("money");
   const back = safeReturn(formData.get("returnTo"), "/admin/logistics-partners");
   const payInId = String(formData.get("payInId") ?? "").slice(0, 64);
   const partnerId = String(formData.get("partnerId") ?? "").slice(0, 64);
@@ -35,7 +35,7 @@ export async function assignUnmatchedPayIn(formData: FormData) {
 }
 
 export async function setUpPayInAccount(formData: FormData) {
-  await requireRole(["admin"], "/admin/login");
+  await requireAdminSection("money");
   const partnerId = String(formData.get("partnerId") ?? "").slice(0, 64);
   const back = `/admin/logistics-partners/${partnerId}`;
   // Clear the back-off so the next attempt runs now.
@@ -54,7 +54,7 @@ function partnerBack(formData: FormData, partnerId: string) {
 }
 
 export async function markLatePayInSettled(formData: FormData) {
-  const admin = await requireRole(["admin"], "/admin/login");
+  const admin = await requireAdminSection("money");
   const partnerId = String(formData.get("partnerId") ?? "").slice(0, 64);
   const back = partnerBack(formData, partnerId);
   const reason = String(formData.get("reason") ?? "");
@@ -65,7 +65,7 @@ export async function markLatePayInSettled(formData: FormData) {
 }
 
 export async function unpauseLatePartner(formData: FormData) {
-  const admin = await requireRole(["admin"], "/admin/login");
+  const admin = await requireAdminSection("money");
   const partnerId = String(formData.get("partnerId") ?? "").slice(0, 64);
   const back = partnerBack(formData, partnerId);
   const result = await unpausePartner({ partnerId, adminUserId: admin.id, reason: String(formData.get("reason") ?? "") });
@@ -75,7 +75,7 @@ export async function unpauseLatePartner(formData: FormData) {
 }
 
 export async function recordPartnerPayInByTeam(formData: FormData) {
-  const admin = await requireRole(["admin"], "/admin/login");
+  const admin = await requireAdminSection("money");
   const partnerId = String(formData.get("partnerId") ?? "").slice(0, 64);
   const back = partnerBack(formData, partnerId);
   const amount = Number(String(formData.get("amount") ?? "").replace(/[₦,\s]/g, ""));

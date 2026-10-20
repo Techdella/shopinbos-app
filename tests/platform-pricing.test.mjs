@@ -118,7 +118,7 @@ test("delivery partners see the platform fee but can't change it", () => {
 test("Admin › Pricing: admin only, saves with history, in the nav", () => {
   assert.ok(existsSync(new URL("../src/app/admin/pricing/page.tsx", import.meta.url)));
   assert.match(read("src/app/admin/pricing/page.tsx"), /requireRole\(\["admin"\]/);
-  assert.match(read("src/app/actions/pricing.ts"), /requireRole\(\["admin"\]/);
+  assert.match(read("src/app/actions/pricing.ts"), /requireAdminSection\("money"\)/);
   const server = read("src/lib/pricing/price-book.server.ts");
   assert.match(server, /\$transaction/);
   assert.match(server, /platformSettingChange\.createMany/);

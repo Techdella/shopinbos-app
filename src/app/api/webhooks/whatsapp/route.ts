@@ -5,6 +5,8 @@ import { metaVerifyHandshake } from "@/lib/inbox/webhooks";
 import { marketingInboundHook, marketingStatusHook } from "@/lib/marketing/webhook-hooks";
 import { parseTemplateStatusUpdates } from "@/lib/marketing/text-channels";
 import { applyTemplateStatusUpdates } from "@/lib/marketing/whatsapp-templates.server";
+import { ingestSupportWhatsApp } from "@/lib/support/service.server";
+import { inboxSignatureOk, isInboxWhatsAppNumber } from "@/lib/support/whatsapp.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,6 +16,7 @@ export const dynamic = "force-dynamic";
 // GET is Meta's verify handshake; POST is signed with X-Hub-Signature-256 (the app secret): the platform's
 // META_APP_SECRET (Embedded Signup, or sellers on Shopinbos's app) or the seller's own app secret. Each phone
 // number's messages and receipts are only processed when the signature checks out for that number's store.
+// Messages to Shopinbos's own number (WHATSAPP_LEADS_PHONE_NUMBER_ID) go to the admin inbox instead.
 
 export function GET(req: NextRequest) {
   return metaVerifyHandshake(req, ["whatsapp"]);
@@ -36,6 +39,17 @@ export async function POST(req: NextRequest) {
 
   const accounts = new Set([...messages.map((m) => m.accountId), ...statuses.map((s) => s.accountId ?? ""), ...errors.map((e) => e.accountId)].filter(Boolean));
   for (const accountId of accounts) {
+    // Shopinbos's own number (lead messages, +1 711-695-1381): messages become admin inbox conversations.
+    if (isInboxWhatsAppNumber(accountId)) {
+      if (!inboxSignatureOk(raw, signature)) continue;
+      anyVerified = true;
+      for (const message of messages.filter((m) => m.accountId === accountId)) {
+        await ingestSupportWhatsApp({ phone: message.contactPhone ?? message.threadId, name: message.contactName ?? null, text: message.text, messageId: message.externalId, attachments: message.attachments.map((a) => ({ mediaId: a.mediaId ?? null, name: a.name ?? null, contentType: a.contentType ?? null })) }).catch((error) =>
+          console.error("[webhooks/whatsapp] inbox ingest failed", error),
+        );
+      }
+      continue;
+    }
     const channel = await findChannelByAccount("whatsapp", accountId);
     if (!channel) continue;
     if (!platformOk && !verifyMetaSignature(raw, signature, channel.credentials.appSecret)) continue;
