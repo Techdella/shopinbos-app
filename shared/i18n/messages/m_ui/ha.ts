@@ -103,6 +103,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "keypad.clear": "Share",
   "stepper.less": "Rage {label} ɗaya",
   "stepper.more": "Ƙara {label} ɗaya",
+  "chat.keepTitle": "Ka bar shi a Shopinbos",
+  "chat.keepBody": "Ayyukan da aka biya a wajen app ba a bin diddiginsu, ba za a iya kai ƙararsu ba kuma ba sa ƙirguwa a rating. Ku amince da farashi a nan ka tura shi a matsayin private rate.",
 };
 
 export default ha;

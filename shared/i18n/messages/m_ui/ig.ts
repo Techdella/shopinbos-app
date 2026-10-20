@@ -103,6 +103,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "keypad.clear": "Kpochapụ",
   "stepper.less": "Belata {label} otu",
   "stepper.more": "Tinyekwuo {label} otu",
+  "chat.keepTitle": "Debe ya na Shopinbos",
+  "chat.keepBody": "Ọrụ a kwụrụ ụgwọ ya na mpụga app anaghị esochi ya, a gaghị akọ akụkọ ya, ọ dịghịkwa agụ na rating. Kwekọrịta ọnụahịa ebe a ma ziga ya dịka private rate.",
 };
 
 export default ig;

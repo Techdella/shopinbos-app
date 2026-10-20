@@ -103,6 +103,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "keypad.clear": "Pa gbogbo rẹ̀ rẹ́",
   "stepper.less": "Dín {label} kù ní ọ̀kan",
   "stepper.more": "Fi {label} kún ní ọ̀kan",
+  "chat.keepTitle": "Jẹ́ kó wà lórí Shopinbos",
+  "chat.keepBody": "Iṣẹ́ tí wọ́n sanwó rẹ̀ lóde app kì í ṣe àtẹ̀lé, a kò lè fi ẹjọ́ sùn nípa rẹ̀, kò sì ní kà sí rating. Ẹ fohùn ṣọ̀kan lórí iye owó níbí kí o fi ránṣẹ́ bí private rate.",
 };
 
 export default yo;

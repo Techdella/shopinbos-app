@@ -106,6 +106,8 @@ const en = {
   "keypad.clear": "Clear",
   "stepper.less": "One less {label}",
   "stepper.more": "One more {label}",
+  "chat.keepTitle": "Keep it on Shopinbos",
+  "chat.keepBody": "Jobs paid outside the app aren’t tracked, can’t be reported and don’t count toward ratings. Agree a price here and send it as a private rate.",
 } satisfies Record<string, string>;
 
 export default en;
