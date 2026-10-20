@@ -13,6 +13,7 @@ import { getPublicEnv } from "@/lib/env";
 import { assignRider, transitionJob } from "@/lib/logistics/jobs";
 import { newRiderToken } from "@/lib/logistics/rider-token";
 import { toE164 } from "@shared/phone";
+import { TEAM_ROLES, riderPlaceholderEmail, type TeamRole } from "@/lib/logistics/team";
 import { LOGISTICS_FREE_ROUTE_LIMIT, LOGISTICS_FREE_TEAM_MEMBER_LIMIT } from "@/lib/plan-limits";
 import {
   BookingStatusUpdateSchema,
@@ -84,17 +85,6 @@ async function assertLogisticsPlanAllowsRoutes(userId: string, zoneCount: number
   const dbUser = await db.user.findUnique({ where: { id: userId }, select: { aiCredits: true } });
   if (!isProPlan(dbUser ?? {}) && zoneCount > LOGISTICS_FREE_ROUTE_LIMIT) {
     redirect("/logistics/profile?tab=Billing%20%26%20Plan&limit=routes");
-  }
-}
-
-async function assertLogisticsPlanAllowsTeamMember(userId: string, partnerId: string) {
-  const [dbUser, teamMemberCount] = await Promise.all([
-    db.user.findUnique({ where: { id: userId }, select: { aiCredits: true } }),
-    db.logisticsTeamMember.count({ where: { logisticsPartnerId: partnerId, status: "active" } }),
-  ]);
-
-  if (!isProPlan(dbUser ?? {}) && teamMemberCount >= LOGISTICS_FREE_TEAM_MEMBER_LIMIT) {
-    redirect("/logistics/profile?tab=Billing%20%26%20Plan&limit=team");
   }
 }
 
@@ -343,73 +333,109 @@ export async function updateLogisticsPricing(formData: FormData) {
   redirect("/logistics/pricing?saved=1");
 }
 
+const COURIERS = "/logistics/couriers";
+
+function couriersError(message: string): never {
+  redirect(`${COURIERS}?error=${encodeURIComponent(message)}`);
+}
+
+/**
+ * The Riders page can't add or reactivate people until the company is checked. Say so on the page, instead of
+ * the silent jump to the profile page assertVerifiedLogistics does.
+ */
+function assertTeamUnlocked(partner: { verificationStatus: string; onboardingState: unknown }) {
+  if (!isOnboardingComplete(partner)) redirect("/logistics/onboarding");
+  if (partner.verificationStatus !== "verified") {
+    couriersError("You can add riders once your company is checked. Finish verification on your profile first.");
+  }
+}
+
+/** Starter plan: one more active person allowed? If not, send them to Billing to move to Pro. */
+async function assertTeamHasRoom(userId: string, partnerId: string) {
+  const [dbUser, teamMemberCount] = await Promise.all([
+    db.user.findUnique({ where: { id: userId }, select: { aiCredits: true } }),
+    db.logisticsTeamMember.count({ where: { logisticsPartnerId: partnerId, status: "active" } }),
+  ]);
+  if (!isProPlan(dbUser ?? {}) && teamMemberCount >= LOGISTICS_FREE_TEAM_MEMBER_LIMIT) {
+    redirect("/logistics/profile?tab=Billing%20%26%20Plan&limit=team");
+  }
+}
+
+/**
+ * Add a rider or office staff. Riders need a name and a WhatsApp number (no email: they use their private Riders
+ * app link, made from their row). Office staff need an email. Same rules as POST /api/mobile/logistics/riders.
+ */
 export async function addLogisticsTeamMember(formData: FormData) {
   const { user, partner } = await getLogisticsActor();
-  assertVerifiedLogistics(partner);
-  await assertLogisticsPlanAllowsTeamMember(user.id, partner.id);
+  assertTeamUnlocked(partner);
 
-  const name = String(formData.get("name") || "").trim();
-  const email = String(formData.get("email") || "").trim().toLowerCase();
-  const phone = String(formData.get("phone") || "").trim();
-  const role = String(formData.get("role") || "dispatcher").trim() || "dispatcher";
+  const name = String(formData.get("name") || "").trim().slice(0, 80);
+  const roleRaw = String(formData.get("role") || "rider").trim();
+  const role: TeamRole = (TEAM_ROLES as readonly string[]).includes(roleRaw) ? (roleRaw as TeamRole) : "rider";
+  const phoneRaw = String(formData.get("phone") || "").trim();
+  const phone = phoneRaw ? toE164(phoneRaw) : null;
+  let email = String(formData.get("email") || "").trim().toLowerCase();
 
-  if (name.length < 2 || !email.includes("@")) {
-    redirect(`/logistics/couriers?error=${encodeURIComponent("Add their name and an email address like name@example.com.")}`);
+  if (name.length < 2) couriersError("Type their name.");
+  if (phoneRaw && !phone) couriersError("That phone number doesn't look right. Use the number they use on WhatsApp, like 0803 123 4567.");
+  if (role === "rider") {
+    if (!phone) couriersError("Add the rider's WhatsApp number. That's where you send their Riders app link.");
+    if (!email) email = riderPlaceholderEmail(phone);
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) couriersError("Add their email address, like name@example.com.");
+
+  const where = { logisticsPartnerId_email: { logisticsPartnerId: partner.id, email } };
+  // A rider added once by email and once by number is still one person: match on the number too.
+  const existing =
+    (await db.logisticsTeamMember.findUnique({ where, select: { id: true, status: true } })) ??
+    (phone && role === "rider"
+      ? await db.logisticsTeamMember.findFirst({ where: { logisticsPartnerId: partner.id, role: "rider", phone }, select: { id: true, status: true } })
+      : null);
+  // People who are already active don't count again.
+  if (existing?.status !== "active") await assertTeamHasRoom(user.id, partner.id);
+
+  const data = { name, phone: phone ?? undefined, role, status: "active" };
+  if (existing) {
+    await db.logisticsTeamMember.update({ where: { id: existing.id }, data });
+  } else {
+    await db.logisticsTeamMember.create({ data: { ...data, logisticsPartnerId: partner.id, email } });
   }
 
-  await db.logisticsTeamMember.upsert({
-    where: {
-      logisticsPartnerId_email: {
-        logisticsPartnerId: partner.id,
-        email,
-      },
-    },
-    create: {
-      logisticsPartnerId: partner.id,
-      name,
-      email,
-      phone: phone || undefined,
-      role,
-      status: "active",
-    },
-    update: {
-      name,
-      phone: phone || undefined,
-      role,
-      status: "active",
-    },
-  });
-
-  revalidatePath("/logistics/couriers");
+  revalidatePath(COURIERS);
   revalidatePath("/logistics/profile");
-  redirect("/logistics/couriers?saved=1");
+  revalidatePath("/logistics/dashboard");
+  redirect(`${COURIERS}?saved=${role === "rider" ? "rider" : "1"}`);
 }
 
 export async function updateLogisticsTeamMemberStatus(formData: FormData) {
-  const { partner } = await getLogisticsActor();
-  assertVerifiedLogistics(partner);
+  const { user, partner } = await getLogisticsActor();
+  assertTeamUnlocked(partner);
 
   const teamMemberId = String(formData.get("teamMemberId") || "");
   const status = String(formData.get("status") || "inactive");
   if (!["active", "inactive"].includes(status)) {
-    redirect(`/logistics/couriers?error=${encodeURIComponent("Something went wrong with that button. Refresh the page and try again.")}`);
+    couriersError("Something went wrong with that button. Refresh the page and try again.");
   }
 
   const teamMember = await db.logisticsTeamMember.findFirst({
     where: { id: teamMemberId, logisticsPartnerId: partner.id },
-    select: { id: true },
+    select: { id: true, status: true },
   });
 
-  if (!teamMember) redirect(`/logistics/couriers?error=${encodeURIComponent("We couldn't find that person. Refresh the page.")}`);
+  if (!teamMember) couriersError("We couldn't find that person. Refresh the page.");
+  // Reactivating counts towards the Starter limit just like adding someone.
+  if (status === "active" && teamMember.status !== "active") await assertTeamHasRoom(user.id, partner.id);
 
   await db.logisticsTeamMember.update({
     where: { id: teamMember.id },
-    data: { status },
+    // A deactivated rider is off the road: drop them offline so dispatch stops offering them.
+    data: status === "active" ? { status } : { status, online: false },
   });
 
-  revalidatePath("/logistics/couriers");
+  revalidatePath(COURIERS);
   revalidatePath("/logistics/profile");
-  redirect("/logistics/couriers?saved=1");
+  revalidatePath("/logistics/dashboard");
+  redirect(`${COURIERS}?saved=1`);
 }
 
 export async function updateLogisticsProfile(formData: FormData) {

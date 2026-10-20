@@ -10,6 +10,7 @@ import { LOGISTICS_FREE_TEAM_MEMBER_LIMIT } from "@/lib/plan-limits";
 import { isOnboardingComplete, isProPlan } from "@/lib/role-queries";
 import { toE164 } from "@shared/phone";
 import { riderWhereWords } from "@shared/delivery-geo";
+import { riderPlaceholderEmail } from "@/lib/logistics/team";
 import { partnerForUser } from "../_shared";
 
 export const dynamic = "force-dynamic";
@@ -79,7 +80,7 @@ export const POST = withLogistics(async (req: NextRequest, { user }) => {
   if (!phone) return apiError("BAD_REQUEST", "That WhatsApp number doesn't look right. Use the number they use on WhatsApp, like 0803 123 4567.");
 
   const digits = phone.replace(/\D/g, "");
-  const email = `wa${digits}@riders.shopinbos.app`;
+  const email = riderPlaceholderEmail(phone);
   const [dbUser, activeCount, existing] = await Promise.all([
     db.user.findUnique({ where: { id: user.id }, select: { aiCredits: true } }),
     db.logisticsTeamMember.count({ where: { logisticsPartnerId: partner.id, status: "active" } }),

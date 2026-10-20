@@ -12,6 +12,7 @@ import { RiderLinkButton } from "@/components/logistics/RiderLinkButton";
 import { riderPresence } from "@/components/logistics/dispatch";
 import { riderWhereWords } from "@shared/delivery-geo";
 import { isRiderOut } from "@/lib/logistics/job-rules";
+import { isRiderPlaceholderEmail } from "@/lib/logistics/team";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -78,6 +79,9 @@ export default async function LogisticsCouriersPage({ searchParams }: { searchPa
   const presence = riderPresence(riders, now);
   const proPlan = isProPlan(dbUser ?? {});
   const atStarterLimit = !proPlan && active.length >= LOGISTICS_FREE_TEAM_MEMBER_LIMIT;
+  // Adding and reactivating people waits for the company check (the actions say the same).
+  const unverified = partner.verificationStatus !== "verified";
+  const formLocked = atStarterLimit || unverified;
   const shown = role === "rider" ? riders : role === "staff" ? teamMembers.filter((member) => member.role !== "rider") : teamMembers;
   const filterKey = role === "rider" || role === "staff" ? role : "all";
 
@@ -88,7 +92,7 @@ export default async function LogisticsCouriersPage({ searchParams }: { searchPa
       sub={t("riders.sub")}
       actions={<PillLink href="#add-rider" icon="plus">{t("today.addRider")}</PillLink>}
     >
-      <ActionNotice saved={saved} error={error} savedText={t("riders.updated")} />
+      <ActionNotice saved={saved} error={error} savedText={saved === "rider" ? t("riders.riderAdded") : t("riders.updated")} />
 
       <StatGrid className="mb-5">
         <StatTile tone="card" label={t("today.ridersOutNow")} value={presence.out} hint={t("riders.offlineActive", { offline: presence.offline, total: presence.total })} />
@@ -119,7 +123,7 @@ export default async function LogisticsCouriersPage({ searchParams }: { searchPa
                     <span aria-hidden className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-app-canvas text-[15px] font-extrabold">{initials(member.name)}</span>
                     <div className="min-w-0 flex-1 basis-[180px]">
                       <div className="truncate text-[15px] font-extrabold">{member.name}</div>
-                      <div className="truncate text-[15px] text-app-ink-soft">{[member.email, member.phone].filter(Boolean).join(" · ")}</div>
+                      <div className="truncate text-[15px] text-app-ink-soft">{[isRiderPlaceholderEmail(member.email) ? null : member.email, member.phone].filter(Boolean).join(" · ")}</div>
                       {member.role === "rider" && member.lastLocationAt && (
                         <div className="truncate text-[15px] text-app-ink-soft">{riderWhereWords({ lat: member.lastLat, lng: member.lastLng, locationAt: member.lastLocationAt }, now)}</div>
                       )}
@@ -165,34 +169,41 @@ export default async function LogisticsCouriersPage({ searchParams }: { searchPa
 
         <Card className="h-fit p-5">
           <div id="add-rider" className="scroll-mt-24" />
-          <CardHead title={t("riders.addSomeone")} sub={t("riders.addSub")} />
+          <CardHead title={t("riders.addSomeone")} sub={t("riders.addHelp")} />
+          {unverified && (
+            <div className="mt-4">
+              <Notice tone="info">
+                {t("riders.verifyFirst")} <a href="/logistics/profile" className="font-bold underline">{t("riders.verifyLink")}</a>
+              </Notice>
+            </div>
+          )}
           <form action={addLogisticsTeamMember} className="mt-4 grid gap-3">
             <div>
               <label htmlFor="member-name" className={labelClass}>{t("riders.name")}</label>
-              <input id="member-name" name="name" required autoComplete="off" placeholder="Musa Bello" disabled={atStarterLimit} className={inputClass} />
+              <input id="member-name" name="name" required minLength={2} maxLength={80} autoComplete="off" placeholder="Musa Bello" disabled={formLocked} className={inputClass} />
             </div>
             <div>
-              <label htmlFor="member-email" className={labelClass}>{t("riders.email")}</label>
-              <input id="member-email" name="email" type="email" required placeholder="musa@example.com" disabled={atStarterLimit} className={inputClass} />
+              <label htmlFor="member-role" className={labelClass}>{t("riders.roleLabel")}</label>
+              <select id="member-role" name="role" defaultValue="rider" disabled={formLocked} className={inputClass}>
+                {ROLES.map((item) => <option key={item.value} value={item.value}>{roleLabel(item.value)}</option>)}
+              </select>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-              <div>
-                <label htmlFor="member-phone" className={labelClass}>{t("riders.phone")}</label>
-                <input id="member-phone" name="phone" type="tel" placeholder="+234…" disabled={atStarterLimit} className={inputClass} />
-              </div>
-              <div>
-                <label htmlFor="member-role" className={labelClass}>{t("riders.roleLabel")}</label>
-                <select id="member-role" name="role" defaultValue="rider" disabled={atStarterLimit} className={inputClass}>
-                  {ROLES.map((item) => <option key={item.value} value={item.value}>{roleLabel(item.value)}</option>)}
-                </select>
-              </div>
+            <div>
+              <label htmlFor="member-phone" className={labelClass}>{t("riders.whatsapp")}</label>
+              <input id="member-phone" name="phone" type="tel" inputMode="tel" autoComplete="off" placeholder="0803 123 4567" disabled={formLocked} className={inputClass} />
+              <p className="m-0 mt-1 text-[13px] text-app-ink-soft">{t("riders.whatsappHint")}</p>
+            </div>
+            <div>
+              <label htmlFor="member-email" className={labelClass}>{t("riders.emailOptional")}</label>
+              <input id="member-email" name="email" type="email" autoComplete="off" placeholder="musa@example.com" disabled={formLocked} className={inputClass} />
+              <p className="m-0 mt-1 text-[13px] text-app-ink-soft">{t("riders.emailHint")}</p>
             </div>
             {atStarterLimit && (
               <Notice tone="info">
                 {t("riders.starterLimit", { limit: LOGISTICS_FREE_TEAM_MEMBER_LIMIT })}
               </Notice>
             )}
-            <SubmitButton disabled={atStarterLimit}>{t("riders.sendInvite")}</SubmitButton>
+            <SubmitButton disabled={formLocked}>{t("riders.addButton")}</SubmitButton>
           </form>
         </Card>
       </div>
