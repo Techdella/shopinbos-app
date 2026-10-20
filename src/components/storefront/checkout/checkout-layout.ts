@@ -84,6 +84,10 @@ export const CHECKOUT_THEME_DEFAULTS: Record<string, ThemeDefault> = {
   danfo: { layout: "steps", summaryPosition: "right", header: "logo" },
   turare: { layout: "minimal", summaryPosition: "right", header: "logo" },
   oko: { layout: "stacked", summaryPosition: "right", header: "nav" },
+  aaro: { layout: "two-column", summaryPosition: "right", header: "logo" },
+  highlife: { layout: "steps", summaryPosition: "right", header: "nav" },
+  oba: { layout: "minimal", summaryPosition: "right", header: "logo" },
+  gbedu: { layout: "steps", summaryPosition: "right", header: "logo" },
 };
 
 const FALLBACK_THEME: ThemeDefault = { layout: "two-column", summaryPosition: "right", header: "logo" };

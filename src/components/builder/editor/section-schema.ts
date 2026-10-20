@@ -353,6 +353,10 @@ export const HERO_LAYOUT_BY_THEME: Record<string, string> = {
   danfo: "danfo-garage",
   turare: "turare-glow",
   oko: "oko-field",
+  aaro: "aaro-banner",
+  highlife: "highlife-ticker",
+  oba: "oba-cinema",
+  gbedu: "gbedu-impact",
 };
 
 const HERO_LAYOUTS: ChoiceOption[] = [
@@ -364,6 +368,7 @@ const HERO_LAYOUTS: ChoiceOption[] = [
   { value: "ile-calm", label: "Calm", hint: "Quiet layout with lots of space." },
   { value: "plug-spotlight", label: "Spotlight", hint: "One product photo on a plain background." },
   { value: "stride-loud", label: "Loud", hint: "Very big heading over the photo." },
+  { value: "aaro-banner", label: "Image banner", hint: "Full-width photo, heading and button in the middle." },
 ];
 
 /** Hero layouts that use more than one picture (the rest use the first). */

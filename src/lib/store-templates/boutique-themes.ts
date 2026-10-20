@@ -9,11 +9,13 @@ import type { StoreTemplateManifest, TemplateBlockNode, TemplatePageSeed, Templa
 
 export type BoutiqueThemeId =
   | "breeze" | "noir" | "plain" | "adire" | "pantry" | "ile" | "plug" | "stride"
-  | "ewa" | "suku" | "asoebi" | "agbada" | "ileke" | "ounje" | "chinchin" | "oja" | "omo" | "iwe" | "owambe" | "danfo" | "turare" | "oko";
+  | "ewa" | "suku" | "asoebi" | "agbada" | "ileke" | "ounje" | "chinchin" | "oja" | "omo" | "iwe" | "owambe" | "danfo" | "turare" | "oko"
+  | "aaro" | "highlife" | "oba" | "gbedu";
 
 export const BOUTIQUE_THEME_IDS: readonly BoutiqueThemeId[] = [
   "breeze", "noir", "plain", "adire", "pantry", "ile", "plug", "stride",
   "ewa", "suku", "asoebi", "agbada", "ileke", "ounje", "chinchin", "oja", "omo", "iwe", "owambe", "danfo", "turare", "oko",
+  "aaro", "highlife", "oba", "gbedu",
 ];
 
 export function isBoutiqueTheme(templateId: string | null | undefined): templateId is BoutiqueThemeId {
@@ -161,6 +163,12 @@ export const BOUTIQUE_THEME_TOKENS: Record<BoutiqueThemeId, ThemeTokenSet> = {
   danfo: { heroBg: "#111111", heroText: "#FFFFFF", accent: "#FFC400", ctaBg: "#FFC400", ctaText: "#111111", paperBg: "#F5F5F2", cardBg: "#FFFFFF", ink: "#111111", muted: "#5C5C57", border: "#E2E2DC", headingStyle: "grotesk", radius: "sharp" },
   turare: { heroBg: "#1B1420", heroText: "#F7EFE3", accent: "#C9A46A", ctaBg: "#C9A46A", ctaText: "#1B1420", paperBg: "#FBF7F1", cardBg: "#F1E8DC", ink: "#1B1420", muted: "#6E6170", border: "#E5DACB", headingStyle: "serif", radius: "soft" },
   oko: { heroBg: "#2F5D2A", heroText: "#FFFBEF", accent: "#E0A526", ctaBg: "#2F5D2A", ctaText: "#FFFBEF", paperBg: "#FBF8EF", cardBg: "#EEF0DD", ink: "#1F2B1A", muted: "#5E6650", border: "#E0E2CB", headingStyle: "grotesk", radius: "rounded" },
+  // Themes after the big storefront theme stores' best sellers: a photo-first minimal one (basic), a retro one
+  // with a ticker (premium), quiet luxury and a loud dark one (platinum).
+  aaro: { heroBg: "#121212", heroText: "#FFFFFF", accent: "#121212", ctaBg: "#121212", ctaText: "#FFFFFF", paperBg: "#FFFFFF", cardBg: "#F3F3F3", ink: "#121212", muted: "#5C5C5C", border: "#E5E5E5", headingStyle: "grotesk", radius: "sharp" },
+  highlife: { heroBg: "#2B2D7C", heroText: "#FFF6E5", accent: "#E4572E", ctaBg: "#E4572E", ctaText: "#FFFFFF", paperBg: "#F6EFE3", cardBg: "#EDE3D1", ink: "#1E1B4B", muted: "#5D5873", border: "#E0D3BC", headingStyle: "grotesk", radius: "rounded" },
+  oba: { heroBg: "#1C1C1C", heroText: "#FBF9F6", accent: "#9C7C4F", ctaBg: "#1C1C1C", ctaText: "#FBF9F6", paperBg: "#FBF9F6", cardBg: "#F1EDE6", ink: "#1C1C1C", muted: "#737068", border: "#E5DFD5", headingStyle: "serif", radius: "sharp" },
+  gbedu: { heroBg: "#0B0B0F", heroText: "#F5F5F7", accent: "#8B5CF6", ctaBg: "#F5F5F7", ctaText: "#0B0B0F", paperBg: "#0B0B0F", cardBg: "#17171F", ink: "#F5F5F7", muted: "#A1A1AA", border: "#26262E", headingStyle: "grotesk", radius: "soft" },
 };
 
 const NAV = ["home", "products", "about", "contact"];
@@ -219,6 +227,10 @@ const HERO_SEEDS: Record<BoutiqueThemeId, { layout: string; eyebrow: string; tit
   danfo: { layout: "danfo-garage", eyebrow: "Parts and accessories", title: "Keep your car moving", primaryCta: "Find a part" },
   turare: { layout: "turare-glow", eyebrow: "Signature scents", title: "A scent people remember", primaryCta: "Shop fragrance" },
   oko: { layout: "oko-field", eyebrow: "Fresh from the farm", title: "Straight from our farm to you", primaryCta: "Shop produce" },
+  aaro: { layout: "aaro-banner", eyebrow: "", title: "Browse our latest products", primaryCta: "Shop all" },
+  highlife: { layout: "highlife-ticker", eyebrow: "Fresh drop", title: "Good vibes, made to wear", primaryCta: "Shop the drop" },
+  oba: { layout: "oba-cinema", eyebrow: "New collection", title: "Crafted to be kept", primaryCta: "Discover" },
+  gbedu: { layout: "gbedu-impact", eyebrow: "Just dropped", title: "Turn it all the way up", primaryCta: "Shop now" },
 };
 
 function hero(theme: BoutiqueThemeId): TemplateSectionNode {
@@ -233,6 +245,7 @@ const CATEGORY_LAYOUT: Record<BoutiqueThemeId, "chips" | "boutique-tiles" | "bou
   ewa: "boutique-circles", suku: "boutique-tiles", asoebi: "boutique-tiles", agbada: "boutique-tiles", ileke: "boutique-circles",
   ounje: "chips", chinchin: "boutique-circles", oja: "chips", omo: "boutique-circles", iwe: "chips", owambe: "boutique-tiles",
   danfo: "chips", turare: "boutique-circles", oko: "boutique-tiles",
+  aaro: "boutique-tiles", highlife: "boutique-circles", oba: "boutique-tiles", gbedu: "boutique-tiles",
 };
 
 function categories(theme: BoutiqueThemeId, title = "Shop by category") {
@@ -256,6 +269,7 @@ function payday() {
 const STORY_LAYOUT: Partial<Record<BoutiqueThemeId, string>> = {
   noir: "noir-split", adire: "editorial", ile: "editorial", ewa: "editorial", asoebi: "editorial", agbada: "editorial", ileke: "editorial",
   iwe: "editorial", turare: "noir-split", oko: "editorial",
+  highlife: "banner", oba: "editorial", gbedu: "noir-split",
 };
 
 const STORY_COPY: Partial<Record<BoutiqueThemeId, { eyebrow: string; title: string }>> = {
@@ -266,6 +280,9 @@ const STORY_COPY: Partial<Record<BoutiqueThemeId, { eyebrow: string; title: stri
   iwe: { eyebrow: "Our shop", title: "Books we love to share" },
   turare: { eyebrow: "The house", title: "Scents made to linger" },
   oko: { eyebrow: "Our farm", title: "Grown with care" },
+  highlife: { eyebrow: "Our story", title: "Made for the good times" },
+  oba: { eyebrow: "The house", title: "Made slowly, by hand" },
+  gbedu: { eyebrow: "The sound", title: "Built loud, made to last" },
 };
 
 function story(theme: BoutiqueThemeId) {
@@ -285,6 +302,7 @@ const FAQ_KIND: Partial<Record<BoutiqueThemeId, FaqKind>> = {
   // The first eight themes keep their original questions, so drafts made on them still compare equal to their seeds.
   ounje: "food", chinchin: "food", oja: "general", oko: "food", danfo: "auto", owambe: "rental", iwe: "general",
   ewa: "general", turare: "general", ileke: "general",
+  aaro: "general", highlife: "general", oba: "general", gbedu: "general",
 };
 
 function faq(theme?: BoutiqueThemeId) {
@@ -320,6 +338,7 @@ const HEADER_LAYOUT: Record<BoutiqueThemeId, HeaderLayout> = {
   breeze: "split", noir: "split", plain: "centered", adire: "split", pantry: "split", ile: "centered", plug: "split", stride: "bold",
   ewa: "centered", suku: "split", asoebi: "centered", agbada: "centered", ileke: "centered", ounje: "split", chinchin: "centered",
   oja: "split", omo: "split", iwe: "centered", owambe: "centered", danfo: "bold", turare: "centered", oko: "split",
+  aaro: "split", highlife: "bold", oba: "centered", gbedu: "split",
 };
 
 const CART_LABEL: Partial<Record<BoutiqueThemeId, string>> = { ounje: "My order", chinchin: "My order", oja: "My basket", oko: "My basket" };
@@ -379,6 +398,14 @@ function homeSections(theme: BoutiqueThemeId): TemplateSectionNode[] {
       return [hero("turare"), bestSellers("carousel", "Signature scents"), story("turare"), categories("turare", "Shop by family"), reviews(), newsletter({ title: "New scents, first", body: "Launches and restocks of the favourites." })];
     case "oko":
       return [hero("oko"), categories("oko", "From the farm"), bestSellers("tiles", "Fresh this week"), story("oko"), faq("oko"), newsletter({ title: "What's fresh this week", body: "Harvest updates and bulk prices, weekly." })];
+    case "aaro":
+      return [hero("aaro"), bestSellers("tiles", "Featured products", "View all"), categories("aaro", "Collections"), story("aaro"), faq("aaro"), newsletter({ title: "Subscribe to our emails", body: "Be the first to know about new collections and offers." })];
+    case "highlife":
+      return [hero("highlife"), categories("highlife", "Shop by vibe"), bestSellers("carousel", "Hot right now"), story("highlife"), reviews("Love notes"), faq("highlife"), newsletter({ title: "Join the club", body: "Drops, restocks and members-only deals." })];
+    case "oba":
+      return [hero("oba"), bestSellers("carousel", "The collection", "Discover all"), story("oba"), categories("oba", "Explore"), reviews("In their words"), newsletter({ title: "Private previews", body: "New collections, before anyone else." })];
+    case "gbedu":
+      return [hero("gbedu"), bestSellers("carousel", "Turn it up"), categories("gbedu", "Shop the range"), story("gbedu"), reviews("Heard it here"), faq("gbedu"), newsletter({ title: "Get on the list", body: "Drops sell out fast. Hear first." })];
     default:
       return [hero("breeze"), categories("breeze"), bestSellers("carousel"), reviews(), newsletter()];
   }
@@ -407,11 +434,16 @@ const PRODUCT_LAYOUT: Record<BoutiqueThemeId, string> = {
   danfo: "spec-sheet",
   turare: "editorial-gallery",
   oko: "stacked",
+  aaro: "boutique-gallery",
+  highlife: "wide-gallery",
+  oba: "editorial-gallery",
+  gbedu: "wide-gallery",
 };
 
 const RELATED_TITLE: Partial<Record<BoutiqueThemeId, string>> = {
   pantry: "Goes well with", ounje: "Add to your order", chinchin: "Goes well with", oja: "You may also need", danfo: "Often bought with",
   iwe: "Readers also picked", owambe: "Complete the setup", ewa: "Complete the routine", oko: "Also fresh",
+  aaro: "You may also like", oba: "Complete the look", gbedu: "Pairs well with",
 };
 
 /**
@@ -688,6 +720,50 @@ const DEFINITIONS: Array<{ id: BoutiqueThemeId; name: string; description: strin
       "Mention weights, crates and bulk prices only as the seller sets them",
     ],
   },
+  {
+    id: "aaro",
+    name: "Àárọ̀",
+    description: "Clean and photo-first: a full-width picture banner with a centred headline, featured products in a tidy grid, collection tiles, a short story and simple questions. Free with every store.",
+    tags: ["minimal", "any", "clean", "photo-first", "basic", "2026"],
+    aiHints: [
+      "Àárọ̀ (id aaro, Yoruba for morning): white page, black ink, plain sans headings, square buttons, lots of white space",
+      "Home order: full-width image banner (centred headline and button), featured products grid, collections, story, questions, newsletter",
+      "Let the photos do the work: keep headlines short and plain",
+    ],
+  },
+  {
+    id: "highlife",
+    name: "Highlife",
+    description: "Retro and colourful: a split banner with a sticker badge and a scrolling ticker, round category picks, a hot-right-now carousel, a colour-block story and real reviews.",
+    tags: ["retro", "colourful", "lifestyle", "ticker", "streetwear", "premium", "2026"],
+    aiHints: [
+      "Highlife (the West African dance music): warm cream page, indigo ink, vermilion accent, bold grotesk headings, pill buttons",
+      "Home order: ticker banner (headline beside a framed photo, then a scrolling ribbon), shop by vibe circles, hot right now carousel, colour-block story, reviews, questions, newsletter",
+      "Playful, upbeat copy; the ticker repeats the eyebrow, so keep it to two or three words",
+    ],
+  },
+  {
+    id: "oba",
+    name: "Ọba",
+    description: "Quiet luxury: a full-screen photo with a fine serif headline and an underlined link, the collection in a slow carousel, an editorial house story, collection tiles and reviews.",
+    tags: ["luxury", "premium", "editorial", "serif", "fashion", "jewellery", "platinum", "2026"],
+    aiHints: [
+      "Ọba (id oba, Yoruba for king): ivory page, near-black ink, bronze accent, light serif headings, letter-spaced uppercase menu, square corners",
+      "Home order: full-screen cinema hero (headline low and centred, underlined 'Discover' link), collection carousel, house story, explore tiles, reviews, private previews newsletter",
+      "Say less: short, calm headlines; never use exclamation marks or discount talk in the hero",
+    ],
+  },
+  {
+    id: "gbedu",
+    name: "Gbẹ̀du",
+    description: "Dark and loud: a giant uppercase headline with a glowing gradient over the photo, a scrolling marquee, a turn-it-up carousel, range tiles, a split story and reviews.",
+    tags: ["dark", "bold", "tech", "audio", "streetwear", "gradient", "marquee", "platinum", "2026"],
+    aiHints: [
+      "Gbẹ̀du (id gbedu, the Yoruba royal drum; Naija for a hard-hitting beat): near-black page, violet-to-pink gradient accent, heavy uppercase grotesk headings, white pill buttons",
+      "Home order: impact hero (huge headline, gradient glow, marquee strip), turn it up carousel, shop the range tiles, split story, reviews, questions, newsletter",
+      "Short, punchy headlines of 2 to 5 words read best at this size",
+    ],
+  },
 ];
 
 const MANIFEST_SHAPE: Record<BoutiqueThemeId, Pick<StoreTemplateManifest, "category" | "layoutFamily">> = {
@@ -713,6 +789,10 @@ const MANIFEST_SHAPE: Record<BoutiqueThemeId, Pick<StoreTemplateManifest, "categ
   danfo: { category: "general", layoutFamily: "electronics-grid" },
   turare: { category: "beauty", layoutFamily: "editorial-boutique" },
   oko: { category: "food", layoutFamily: "food-market" },
+  aaro: { category: "minimal", layoutFamily: "minimal-showcase" },
+  highlife: { category: "fashion", layoutFamily: "fashion-runway" },
+  oba: { category: "fashion", layoutFamily: "editorial-boutique" },
+  gbedu: { category: "electronics", layoutFamily: "electronics-grid" },
 };
 
 export const BOUTIQUE_TEMPLATE_MANIFESTS: StoreTemplateManifest[] = DEFINITIONS.map((definition) => ({

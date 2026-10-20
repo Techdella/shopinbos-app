@@ -665,6 +665,103 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       );
     }
 
+    // ─── Àárọ̀, Highlife, Ọba and Gbẹ̀du: after the theme stores' best sellers (photo-first, retro, luxury, loud) ──
+    // The ticker ribbon is decoration (the same words as the eyebrow or button), so screen readers skip it.
+    const ticker = (words: string, style: React.CSSProperties, mark = "✦") => (
+      <div aria-hidden className="bq-ticker py-3" style={style}>
+        <div className="bq-ticker-track">
+          {[0, 1].map((half) => (
+            <span key={half} className="inline-flex">
+              {Array.from({ length: 8 }, (_, i) => (
+                <span key={i} className="inline-flex items-center gap-5 px-5 text-[15px] font-extrabold uppercase" style={{ letterSpacing: "0.04em" }}>
+                  {words}
+                  <span style={{ opacity: 0.8 }}>{mark}</span>
+                </span>
+              ))}
+            </span>
+          ))}
+        </div>
+      </div>
+    );
+
+    if (layout === "aaro-banner") {
+      return (
+        <section aria-labelledby={headingId}>
+          <div className="bq-hero bq-media" style={{ borderRadius: 0, margin: 0, background: image ? look.placeholder : t.heroBg }}>
+            {img}
+            <div className="absolute inset-0" style={{ background: image ? "rgba(0,0,0,.32)" : "transparent" }} />
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-6 text-center text-white">
+              {eyebrow ? <p className="text-[13px]" style={{ letterSpacing: "0.08em" }}>{eyebrow}</p> : null}
+              <h1 id={headingId} className="bq-h max-w-[16ch]" style={{ ...look.headingStyle, fontSize: "clamp(34px, 5.5cqi, 64px)", lineHeight: 1.08 }}>{title}</h1>
+              {body ? <p className="max-w-[520px] text-[15.5px] opacity-90">{body}</p> : null}
+              <button type="button" className="bq-btn mt-1" style={{ background: "#fff", color: "#121212", border: "1px solid #fff", borderRadius: look.buttonRadius }} onClick={() => go(action)}>{cta}</button>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    if (layout === "highlife-ticker") {
+      return (
+        <section aria-labelledby={headingId} style={{ color: t.ink }}>
+          <div className="bq-wrap grid gap-10 py-10 @3xl:grid-cols-[1fr_1fr] @3xl:items-center @3xl:py-16">
+            <div className="relative flex flex-col items-start gap-5">
+              {eyebrow ? (
+                <p className="inline-flex -rotate-3 items-center rounded-full px-4 py-1.5 text-[13px] font-extrabold uppercase" style={{ background: "#F6D27A", color: t.ink, border: `2px solid ${t.ink}`, letterSpacing: "0.06em" }}>{eyebrow}</p>
+              ) : null}
+              <h1 id={headingId} className="bq-h max-w-[12ch]" style={{ ...look.headingStyle, fontSize: "clamp(44px, 7.4cqi, 104px)", lineHeight: 0.92 }}>{title}</h1>
+              {body ? <p className="max-w-[460px] text-[16px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
+              {ctaButton()}
+            </div>
+            <div className="relative mx-auto w-full max-w-[560px]">
+              <div aria-hidden className="absolute inset-0 translate-x-3 translate-y-3" style={{ background: t.heroBg, borderRadius: look.cardRadius + 8 }} />
+              <div className="bq-media relative" style={{ aspectRatio: "5 / 4", borderRadius: look.cardRadius + 8, border: `2px solid ${t.ink}` }}>{img}</div>
+              <span aria-hidden className="absolute -right-2 -top-4 grid h-20 w-20 rotate-12 place-items-center rounded-full text-[30px] leading-none" style={{ background: t.accent, color: "#fff", border: `2px solid ${t.ink}` }}>✦</span>
+            </div>
+          </div>
+          {ticker(eyebrow || cta, { background: t.heroBg, color: t.heroText, borderBlock: `2px solid ${t.ink}` })}
+        </section>
+      );
+    }
+
+    if (layout === "oba-cinema") {
+      return (
+        <section aria-labelledby={headingId}>
+          <div className="bq-media aspect-[4/5] @3xl:aspect-[16/8]" style={{ background: image ? look.placeholder : t.heroBg }}>
+            {img}
+            <div className="absolute inset-0" style={{ background: image ? "linear-gradient(to top, rgba(0,0,0,.55), rgba(0,0,0,0) 55%)" : "transparent" }} />
+            <div className="bq-wrap absolute inset-x-0 bottom-0 flex flex-col items-center gap-4 pb-12 text-center @3xl:pb-16" style={{ color: t.heroText }}>
+              {eyebrow ? <p className="text-[11.5px] uppercase" style={{ fontFamily: look.eyebrowFont, letterSpacing: "0.3em" }}>{eyebrow}</p> : null}
+              <h1 id={headingId} className="bq-h max-w-[18ch]" style={{ ...look.headingStyle, fontSize: "clamp(38px, 6.6cqi, 92px)", lineHeight: 1.02 }}>{title}</h1>
+              {body ? <p className="max-w-[520px] text-[15px] leading-7 opacity-90">{body}</p> : null}
+              <button type="button" className="mt-2 cursor-pointer border-0 border-b bg-transparent px-0 pb-1.5 text-[12px] font-semibold uppercase" style={{ color: "inherit", borderColor: "currentColor", letterSpacing: "0.22em" }} onClick={() => go(action)}>{cta}</button>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    if (layout === "gbedu-impact") {
+      const glow = `linear-gradient(90deg, ${t.accent}, #EC4899)`;
+      return (
+        <section aria-labelledby={headingId} style={{ background: t.heroBg, color: t.heroText }}>
+          <div className="bq-hero bq-media" style={{ borderRadius: 0, margin: 0, background: t.heroBg }}>
+            {img}
+            <div className="absolute inset-0" style={{ background: `radial-gradient(circle at 80% 20%, ${t.accent}55, transparent 50%), linear-gradient(to top, ${t.heroBg} 4%, rgba(11,11,15,.55) 45%, rgba(11,11,15,.15))` }} />
+            <div className="bq-wrap absolute inset-x-0 bottom-0 flex flex-col items-start gap-4 pb-8 @3xl:pb-12">
+              {eyebrow ? <p className="rounded-full px-3.5 py-1 text-[12px] font-extrabold uppercase" style={{ background: glow, color: "#fff", letterSpacing: "0.14em" }}>{eyebrow}</p> : null}
+              <h1 id={headingId} className="bq-h max-w-[14ch]" style={{ ...look.headingStyle, fontSize: "clamp(48px, 10.5cqi, 156px)", lineHeight: 0.86 }}>
+                <span style={{ background: `linear-gradient(100deg, ${t.heroText} 35%, ${t.accent} 70%, #EC4899)`, WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>{title}</span>
+              </h1>
+              {body ? <p className="max-w-[480px] text-[15.5px] opacity-85">{body}</p> : null}
+              {ctaButton()}
+            </div>
+          </div>
+          {ticker(eyebrow || cta, { background: glow, color: "#FFFFFF" }, "●")}
+        </section>
+      );
+    }
+
     if (layout === "adire-banner") {
       return (
         <section aria-labelledby={headingId}>

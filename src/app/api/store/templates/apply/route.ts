@@ -15,6 +15,8 @@ import {
   type StoreBrandSettingsLike,
 } from "@/lib/store-templates";
 import { seedDefaultAbandonedCartAutomation } from "@/lib/automations/defaults";
+import { checkThemeSwitch } from "@/lib/theme-access";
+import { loadSellerThemeTier } from "@/lib/theme-access.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -159,6 +161,12 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
   const previousDraft = resolveDraftSnapshot(currentSettings, null);
   const published = resolvePublishedSnapshot(currentSettings, null);
   const previousManifest = previousDraft ? getTemplateManifest(previousDraft.templateId) : null;
+
+  // Premium and platinum themes need a paid plan; re-applying the theme the store already has is always fine.
+  const access = checkThemeSwitch(manifest.id, await loadSellerThemeTier(user.id), previousDraft?.templateId ?? published?.templateId);
+  if (!access.ok) {
+    return NextResponse.json({ error: { code: "UPGRADE_REQUIRED", message: access.message, tier: access.tier } }, { status: 403 });
+  }
 
   // Switching keeps the seller's own copy, images, picked products, hidden sections and extra pages. Products,
   // prices and orders live in their own tables and never change here.

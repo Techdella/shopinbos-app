@@ -326,6 +326,54 @@ export const DEMO_CATALOGUES: Record<ThemeLibraryId, DemoCatalogue> = {
       p("Red palm oil, 5L", 11000, "Oils", "bottle", "Unbleached, from our own palms.", "#C2410C"),
     ],
   },
+  aaro: {
+    storeName: "Àárọ̀ Goods", city: "Abuja", industry: "everyday essentials", description: "Simple, well-made things for every day.",
+    heroArt: ["shirt", "bag", "cup"], mains: ["#121212", "#9CA3AF", "#C2B59B"],
+    products: [
+      p("Heavyweight cotton tee", 9500, "Clothing", "shirt", "Boxy fit in thick, soft cotton.", "#F5F5F5"),
+      p("Canvas tote bag", 7500, "Bags", "bag", "Natural canvas with a deep inside pocket.", "#C2B59B"),
+      p("Stoneware mug", 6000, "Home", "cup", "Hand-glazed, holds a big cup of tea.", "#9CA3AF"),
+      p("White low-top sneakers", 32000, "Shoes", "sneaker", "Clean leather sneakers that go with everything.", "#F5F5F5", 38000),
+      p("Linen notebook", 4500, "Stationery", "notebook", "A5, lined pages, linen cover.", "#C2B59B"),
+      p("Classic sunglasses", 14000, "Accessories", "watch", "Black frames with UV protection.", "#121212"),
+    ],
+  },
+  highlife: {
+    storeName: "Highlife Supply", city: "Lagos", industry: "lifestyle", description: "Colourful everyday pieces with a retro Lagos groove.",
+    heroArt: ["shirt", "cap", "bag"], mains: ["#E4572E", "#2B2D7C", "#F2C14E"],
+    products: [
+      p("Groove graphic tee", 14500, "Tees", "shirt", "Soft cotton tee with a retro print.", "#E4572E"),
+      p("Bucket hat", 9000, "Hats", "cap", "Reversible, one side bold print.", "#2B2D7C"),
+      p("Vinyl record, highlife classics", 18000, "Music", "speaker", "A pressing of golden-era highlife hits.", "#111111"),
+      p("Retro round sunglasses", 12000, "Accessories", "watch", "Tinted lenses, gold-tone frames.", "#B45309"),
+      p("Colour-block tote", 11000, "Bags", "bag", "Heavy canvas in three bright panels.", "#F2C14E", 13500),
+      p("Striped crew socks, 3 pairs", 6500, "Socks", "onesie", "Cushioned socks in three colourways.", "#2B2D7C"),
+    ],
+  },
+  oba: {
+    storeName: "Ọba Atelier", city: "Lagos", industry: "luxury", description: "Pieces made slowly, by hand, to be kept.",
+    heroArt: ["dress", "bag", "bracelet"], mains: ["#1C1C1C", "#9C7C4F", "#E5DFD5"],
+    products: [
+      p("Gold-plated cuff", 85000, "Jewellery", "bracelet", "Hand-hammered brass cuff with 18k gold plating.", "#9C7C4F"),
+      p("Silk twill scarf", 48000, "Accessories", "fabric-fold", "Hand-rolled edges, printed in-house.", "#7C2D12"),
+      p("Leather loafers", 120000, "Shoes", "heel", "Calf leather, hand-stitched, leather sole.", "#3A2A1A"),
+      p("Structured top-handle bag", 165000, "Bags", "bag", "Smooth leather with brushed gold hardware.", "#1C1C1C"),
+      p("Pearl drop earrings", 62000, "Jewellery", "earrings", "Freshwater pearls on gold-filled hooks.", "#E5DFD5"),
+      p("Tailored wool coat", 210000, "Clothing", "robe", "Single-breasted, fully lined.", "#6B6258"),
+    ],
+  },
+  gbedu: {
+    storeName: "Gbẹ̀du Sound", city: "Lagos", industry: "audio and streetwear", description: "Loud sound and louder fits for people who turn it up.",
+    heroArt: ["headphones", "speaker", "sneaker"], mains: ["#8B5CF6", "#EC4899", "#111111"],
+    products: [
+      p("Wireless headphones", 145000, "Audio", "headphones", "Noise cancelling, 40 hours of play.", "#111111", 165000),
+      p("Portable speaker", 68000, "Audio", "speaker", "Waterproof, deep bass, 20 hours.", "#8B5CF6"),
+      p("True wireless earbuds", 52000, "Audio", "headphones", "Compact case with fast charging.", "#F5F5F7"),
+      p("Heavyweight hoodie", 38000, "Apparel", "shirt", "Oversized fit, brushed fleece inside.", "#111111"),
+      p("High-top sneakers", 78000, "Footwear", "sneaker", "Padded collar, grippy sole.", "#EC4899"),
+      p("Game controller", 42000, "Gaming", "powerbank", "Wireless, works with phones and consoles.", "#1F2937"),
+    ],
+  },
 };
 
 /** The fields of a storefront product the theme renderer reads (structurally a ShopperProduct). */

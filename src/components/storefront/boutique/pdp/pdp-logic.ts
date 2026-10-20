@@ -175,6 +175,10 @@ export const PDP_THEME_DEFAULTS: Record<string, ThemeDefault> = {
   danfo: { layout: "compact", gallery: "thumbs-left", details: "tabs" },
   turare: { layout: "gallery-stack", gallery: "thumbs-bottom", details: "accordion" },
   oko: { layout: "compact", gallery: "slider", details: "accordion" },
+  aaro: { layout: "classic", gallery: "thumbs-bottom", details: "accordion" },
+  highlife: { layout: "editorial", gallery: "slider", details: "tabs" },
+  oba: { layout: "gallery-stack", gallery: "thumbs-left", details: "accordion" },
+  gbedu: { layout: "editorial", gallery: "thumbs-bottom", details: "tabs" },
 };
 
 const FALLBACK_THEME: ThemeDefault = { layout: "classic", gallery: "thumbs-bottom", details: "accordion" };

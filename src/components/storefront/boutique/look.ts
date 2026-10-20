@@ -534,6 +534,112 @@ function themeLook(id: BoutiqueThemeId, tokens: ThemeTokenSet): LookOverrides {
         pdp: "stacked",
         defaultHero: "oko-field",
       };
+    case "aaro":
+      return {
+        ...base,
+        logoFont: SANS,
+        logoStyle: { fontWeight: 600, letterSpacing: "-0.01em" },
+        headingFont: SANS,
+        headingStyle: { fontWeight: 500, letterSpacing: "-0.015em" },
+        buttonRadius: 0,
+        cardRadius: 0,
+        secondaryButton: { background: "transparent", color: tokens.ink, border: `1px solid ${tokens.ink}` },
+        softButton: { background: "transparent", color: tokens.ink, border: `1px solid ${tokens.ink}` },
+        announcement: { background: tokens.heroBg, color: tokens.heroText, fontSize: 12.5, letterSpacing: "0.04em" },
+        navStyle: { fontSize: 14.5, color: tokens.muted },
+        placeholder: "#F1F1F1",
+        headerBg: "rgba(255,255,255,.98)",
+        footerBg: "#FFFFFF",
+        newsletterBg: tokens.cardBg,
+        storyBg: tokens.cardBg,
+        countBg: tokens.ink,
+        heartActive: tokens.ink,
+        tileRatio: "3 / 4",
+        defaultHero: "aaro-banner",
+      };
+    case "highlife":
+      return {
+        ...base,
+        logoFont: GROTESK,
+        logoStyle: { fontWeight: 800, letterSpacing: "-0.04em", textTransform: "uppercase" },
+        headingFont: GROTESK,
+        headingStyle: { fontWeight: 800, letterSpacing: "-0.035em" },
+        buttonRadius: 999,
+        cardRadius: 20,
+        primaryButton: { background: tokens.ctaBg, color: tokens.ctaText, border: `2px solid ${tokens.ink}`, boxShadow: `3px 3px 0 ${tokens.ink}` },
+        secondaryButton: { background: tokens.paperBg, color: tokens.ink, border: `2px solid ${tokens.ink}` },
+        solidButton: { background: tokens.ink, color: tokens.paperBg, border: `2px solid ${tokens.ink}` },
+        softButton: { background: "transparent", color: tokens.ink, border: `2px solid ${tokens.ink}` },
+        announcement: { background: tokens.accent, color: "#FFFFFF", fontSize: 12.5, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" },
+        navStyle: { fontSize: 14, fontWeight: 700 },
+        placeholder: "#E8DCC6",
+        headerBg: "rgba(246,239,227,.97)",
+        footerBg: tokens.cardBg,
+        newsletterBg: tokens.cardBg,
+        // Colour-block story: sunny mustard, still dark enough text on it to read.
+        storyBg: "#F6D27A",
+        countBg: tokens.accent,
+        tileBorder: `2px solid ${tokens.ink}`,
+        tileRatio: "4 / 5",
+        pdp: "wide",
+        defaultHero: "highlife-ticker",
+      };
+    case "oba":
+      return {
+        ...base,
+        logoFont: SERIF,
+        logoStyle: { fontWeight: 400, letterSpacing: "0.22em", textTransform: "uppercase" },
+        headingFont: SERIF,
+        headingStyle: { fontWeight: 300, letterSpacing: "-0.01em" },
+        eyebrowFont: SANS,
+        buttonRadius: 0,
+        cardRadius: 0,
+        primaryButton: { background: tokens.ctaBg, color: tokens.ctaText, border: `1px solid ${tokens.ctaBg}`, letterSpacing: "0.16em", textTransform: "uppercase", fontSize: 12 },
+        secondaryButton: { background: "transparent", color: tokens.ink, border: `1px solid ${tokens.ink}`, letterSpacing: "0.16em", textTransform: "uppercase", fontSize: 12 },
+        solidButton: { background: tokens.ctaBg, color: tokens.ctaText, border: `1px solid ${tokens.ctaBg}`, letterSpacing: "0.16em", textTransform: "uppercase", fontSize: 12 },
+        softButton: { background: "transparent", color: tokens.ink, border: `1px solid ${tokens.border}`, letterSpacing: "0.16em", textTransform: "uppercase", fontSize: 12 },
+        announcement: { background: tokens.cardBg, color: tokens.ink, fontSize: 11, letterSpacing: "0.22em", textTransform: "uppercase" },
+        navStyle: { fontSize: 11.5, letterSpacing: "0.2em", textTransform: "uppercase" },
+        placeholder: "#ECE6DC",
+        headerBg: "rgba(251,249,246,.97)",
+        footerBg: tokens.paperBg,
+        newsletterBg: tokens.cardBg,
+        storyBg: tokens.paperBg,
+        countBg: tokens.ink,
+        heartActive: tokens.accent,
+        tileRatio: "2 / 3",
+        pdp: "left",
+        centredHeader: true,
+        defaultHero: "oba-cinema",
+      };
+    case "gbedu":
+      return {
+        ...base,
+        logoFont: GROTESK,
+        logoStyle: { fontWeight: 800, letterSpacing: "-0.03em", textTransform: "uppercase" },
+        headingFont: GROTESK,
+        headingStyle: { fontWeight: 800, letterSpacing: "-0.04em", textTransform: "uppercase" },
+        buttonRadius: 999,
+        cardRadius: 18,
+        primaryButton: { background: tokens.ctaBg, color: tokens.ctaText, border: `1.5px solid ${tokens.ctaBg}` },
+        secondaryButton: { background: "transparent", color: tokens.ink, border: `1.5px solid ${tokens.border}` },
+        solidButton: { background: `linear-gradient(90deg, ${tokens.accent}, #EC4899)`, color: "#FFFFFF", border: "1.5px solid transparent" },
+        softButton: { background: "transparent", color: tokens.ink, border: `1.5px solid ${tokens.border}` },
+        announcement: { background: `linear-gradient(90deg, ${tokens.accent}, #EC4899)`, color: "#FFFFFF", fontSize: 12, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase" },
+        navStyle: { fontSize: 13, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" },
+        placeholder: "#1C1C24",
+        dark: true,
+        raised: tokens.cardBg,
+        headerBg: "rgba(11,11,15,.9)",
+        footerBg: "#07070A",
+        newsletterBg: tokens.cardBg,
+        storyBg: tokens.cardBg,
+        countBg: tokens.accent,
+        tileBorder: `1px solid ${tokens.border}`,
+        tileRatio: "1 / 1",
+        pdp: "wide",
+        defaultHero: "gbedu-impact",
+      };
     default:
       return base;
   }
@@ -722,5 +828,10 @@ export const BOUTIQUE_CSS = `
 @container bq (min-width: 1100px){
   .bq-shop-grid[data-cols="5"]{grid-template-columns:repeat(5,minmax(0,1fr))}
 }
-@media (prefers-reduced-motion: reduce){.bq *{scroll-behavior:auto !important;transition:none !important}}
+/* Ticker ribbons (Highlife, Gbẹ̀du): two copies of the words slide left forever; still when motion is reduced. */
+.bq-ticker{overflow:hidden;white-space:nowrap}
+.bq-ticker-track{display:inline-flex;animation:bq-ticker 28s linear infinite}
+.bq-ticker-track > *{flex:0 0 auto}
+@keyframes bq-ticker{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@media (prefers-reduced-motion: reduce){.bq *{scroll-behavior:auto !important;transition:none !important}.bq-ticker-track{animation:none}}
 `;
