@@ -22,6 +22,7 @@ export async function loadCommerceContext(slug: string): Promise<CommerceContext
     where: { slug },
     select: {
       id: true,
+      userId: true,
       brandSettings: true,
       checkoutConfig: { select: { requirePhone: true, enableNotes: true, enableGiftNote: true, enableCoupon: true, enableUpsells: true, enableTrustBadges: true, upsellProducts: true } },
     },
@@ -34,6 +35,8 @@ export async function loadCommerceContext(slug: string): Promise<CommerceContext
       })
     : [];
   const flatRate = Number(record(record(store?.brandSettings).shippingConfig).flatRate ?? 0);
+  // Delivery partners at checkout (the seller's Delivery settings): the pages then use the server's quote for delivery.
+  const deliverySettings = store ? await db.deliverySettings.findUnique({ where: { userId: store.userId }, select: { checkoutMode: true } }) : null;
   return {
     // Card needs Paystack keys and the seller's wallet (payments settle straight to the seller's bank).
     payments: checkoutPaymentSettings(store?.brandSettings, zones, paystackSecretReady(process.env.PAYSTACK_SECRET_KEY) && Boolean(store && (await storeTakesCards(store.id))), Boolean(store && (await storeTakesKorapay(store.id)))),
@@ -41,6 +44,7 @@ export async function loadCommerceContext(slug: string): Promise<CommerceContext
     flatRate: Number.isFinite(flatRate) ? flatRate : 0,
     cart: readCartSettings(store?.brandSettings),
     checkout: readCheckoutSettings(store?.checkoutConfig ?? null),
+    deliveryMode: deliverySettings?.checkoutMode === "partners" ? "partners" : "zones",
   };
 }
 

@@ -88,6 +88,7 @@ import {
   whatsappHelpHref,
 } from "@/components/storefront/checkout/checkout-layout";
 import type { CheckoutDesign } from "@/components/storefront/checkout/checkout-theme";
+import { PartnerDeliveryChoices, isPartnerOption, partnerDeliveryProblem, partnerPaymentOptions, readQuotedDelivery, type QuotedDelivery } from "@/components/storefront/checkout/PartnerDelivery";
 import { TransferInstructions, type TransferDetails } from "../order/[orderId]/TransferInstructions";
 import { readGameConfig } from "@/lib/gamification/logic";
 import { RewardProgress } from "@/components/storefront/gamification/RewardProgress";
@@ -95,7 +96,8 @@ import { PointsAtCheckout, WonCodeBanner } from "@/components/storefront/gamific
 
 // The checkout in the layout the seller chose in the store builder (checkout page settings, read from the published
 // snapshot): Two columns, One page, Steps (contact → delivery → payment) or Minimal. Guest checkout (no account),
-// details saved on this device when the shopper agrees, delivery options from the seller's zones, the seller's payment
+// details saved on this device when the shopper agrees, delivery options from the seller's zones (or, with delivery
+// partners at checkout, the options the server quotes for the address: PartnerDelivery.tsx), the seller's payment
 // methods (Paystack, bank transfer, pay on delivery), totals quoted by the server, and the bag saved for reminders once
 // we can reach the shopper. In the owner's preview of a store that isn't live, everything works but nothing is quoted
 // by the server, saved for reminders, charged or ordered.
@@ -125,6 +127,8 @@ interface Quote {
   codeError: string | null;
   /** Loyalty points the server took off (inside totals). */
   points?: { points: number; amount: number; balance: number; max: number } | null;
+  /** The delivery options for the address (delivery partners' options when `partners`). */
+  delivery?: unknown;
 }
 
 const EMPTY_DETAILS: CheckoutDetails = { name: "", email: "", phone: "", street: "", city: "", state: "", country: "", landmark: "" };
@@ -172,6 +176,8 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
   const [checkingCode, setCheckingCode] = useState(false);
   const [quote, setQuote] = useState<{ key: string; value: Quote } | null>(null);
   const [quoteError, setQuoteError] = useState<string | null>(null);
+  // Delivery partners at checkout: the options the server quoted, for the bag and address in `key`.
+  const [market, setMarket] = useState<{ key: string; value: QuotedDelivery | null } | null>(null);
   // Loyalty points the shopper chose to use (Marketing > Rewards); the server's quote decides what applies.
   const game = useMemo(() => readGameConfig((store.brandSettings as Record<string, unknown> | null | undefined)?.gamification ?? {}), [store.brandSettings]);
   const [usePoints, setUsePoints] = useState(0);
@@ -183,21 +189,37 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
 
   // ─── Money (estimate first, then the server's quote for the same inputs) ───
   const address = { city: details.city, state: details.state };
-  const deliveryChoice = deliveryOptionsFor(commerce.zones, commerce.flatRate, address, cart.subtotal);
+  // Delivery partners at checkout: the options come from the server's quote for this bag and address (refreshed,
+  // debounced, as the state or area changes); the store's zones aren't used.
+  const partners = commerce.deliveryMode === "partners";
+  const hasAddress = Boolean(details.city.trim() || details.state.trim());
+  const marketKey = JSON.stringify([cart.items.map((line) => [line.productId, line.variant ?? "", line.quantity]), details.city, details.state]);
+  const liveMarket = partners && market && market.key === marketKey ? market : null;
+  const marketPending = partners && !preview && hasAddress && !liveMarket;
+  const marketDelivery = liveMarket?.value ?? null;
+  const deliveryChoice = partners
+    ? { covered: marketDelivery?.covered ?? true, options: marketDelivery?.options ?? [] }
+    : deliveryOptionsFor(commerce.zones, commerce.flatRate, address, cart.subtotal);
   const delivery = chooseDelivery(deliveryChoice, deliveryOptionId);
+  const marketOption = partners ? marketDelivery?.options.find((option) => option.id === delivery.option?.id) ?? null : null;
+  // What stops the order with delivery partners: no address yet, still checking, or nothing covers the address.
+  const marketProblem = partners && !preview ? partnerDeliveryProblem({ hasAddress, pending: marketPending, delivery: marketDelivery }) : null;
   const code = settings.enableCoupon ? applied : null;
   const estimate = orderTotals({
     subtotal: cart.subtotal,
     shippingFee: delivery.fee,
     discount: code ? { type: code.type, amount: discountAmount(code, cart.items, delivery.fee) } : null,
   });
-  const quoteKey = JSON.stringify([cart.items.map((line) => [line.productId, line.variant ?? "", line.quantity]), details.city, details.state, delivery.option?.id ?? null, code?.code ?? "", isEmail(details.email) ? details.email.trim().toLowerCase() : "", usePoints, usePoints ? details.phone.trim() : ""]);
+  const quoteKey = JSON.stringify([cart.items.map((line) => [line.productId, line.variant ?? "", line.quantity]), details.city, details.state, partners ? deliveryOptionId : delivery.option?.id ?? null, code?.code ?? "", isEmail(details.email) ? details.email.trim().toLowerCase() : "", usePoints, usePoints ? details.phone.trim() : ""]);
   const liveQuote = quote && quote.key === quoteKey ? quote.value : null;
   const totals = liveQuote?.totals ?? estimate;
 
+  // With delivery partners, pay on delivery goes with the chosen option (partnerPaymentOptions, as the checkout API).
   const paymentOptions = useMemo(
-    () => checkoutPaymentOptions(commerce.payments, { city: details.city, state: details.state, total: totals.total }),
-    [commerce.payments, details.city, details.state, totals.total],
+    () => partners
+      ? partnerPaymentOptions(commerce.payments, { city: details.city, state: details.state, total: totals.total }, marketOption)
+      : checkoutPaymentOptions(commerce.payments, { city: details.city, state: details.state, total: totals.total }),
+    [partners, marketOption, commerce.payments, details.city, details.state, totals.total],
   );
   // Keep the shopper's pick while it is still on offer (an address or total change can rule pay on delivery out).
   // No way to pay that works for this order: nothing is placed, and the shopper is told to message the store.
@@ -206,8 +228,9 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
   const isPaystack = paymentMethod === "paystack";
 
   const rules: CheckoutRules = {
-    requirePhone: settings.requirePhone,
-    requireState: regions.length > 0,
+    // Delivery partners need a phone for the rider and a state to find who covers the address.
+    requirePhone: settings.requirePhone || partners,
+    requireState: partners || regions.length > 0,
     deliveryOptionIds: deliveryChoice.options.map((option) => option.id),
     paymentMethods: paymentOptions.map((option) => option.key),
   };
@@ -237,7 +260,7 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
     // On Steps, a returning shopper with their details saved starts at the first step that still needs something.
     if (stepped && Object.keys(saved).length > 0 && searchParams.get("step") !== "contact") {
       const nextRegions = regionsFor(next.country);
-      const nextChoice = deliveryOptionsFor(commerce.zones, commerce.flatRate, next, cart.subtotal);
+      const nextChoice = partners ? { covered: true, options: [] } : deliveryOptionsFor(commerce.zones, commerce.flatRate, next, cart.subtotal);
       const start = resumeStepIndex(next, { ...rules, requireState: nextRegions.length > 0, deliveryOptionIds: nextChoice.options.map((option) => option.id) }, {
         deliveryOptionId: nextChoice.options[0]?.id ?? null,
         paymentMethod: paymentOptions[0]?.key,
@@ -251,8 +274,9 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
   // ─── Server quote once the address is known ────────────────────────────────
   useEffect(() => {
     if (preview || !cart.loaded || cart.items.length === 0 || createdOrder || (stepped && stepIndex < 1)) return;
-    if (commerce.zones.length > 0 && !details.city && !details.state) return;
+    if ((commerce.zones.length > 0 || partners) && !details.city && !details.state) return;
     const key = quoteKey;
+    const deliveryKey = marketKey;
     const controller = new AbortController();
     const timer = window.setTimeout(() => {
       fetch(`/api/public/store/${encodeURIComponent(store.slug)}/checkout/quote`, {
@@ -262,7 +286,7 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
         body: JSON.stringify({
           items: cart.items.map((line) => ({ productId: line.productId, quantity: line.quantity, variant: line.variant, variantId: line.variantId })),
           address: { city: details.city, state: details.state },
-          deliveryOptionId: delivery.option?.id,
+          deliveryOptionId: (partners ? deliveryOptionId : delivery.option?.id) ?? undefined,
           discountCode: code?.code,
           buyerEmail: isEmail(details.email) ? details.email.trim() : undefined,
           ...(usePoints > 0 ? { redeemPoints: usePoints, buyerPhone: details.phone.trim() || undefined } : {}),
@@ -272,10 +296,12 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
           const json = await res.json().catch(() => null);
           if (!res.ok) {
             setQuoteError(json?.error?.message ?? null);
+            if (partners) setMarket({ key: deliveryKey, value: null });
             return;
           }
           setQuoteError(null);
           setQuote({ key, value: json.data as Quote });
+          if (partners) setMarket({ key: deliveryKey, value: readQuotedDelivery(json.data?.delivery) });
         })
         .catch(() => {});
     }, 350);
@@ -357,6 +383,7 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
   function next() {
     if (!step) return;
     const found = stepErrors(step, details, rules, choice);
+    if (step === "delivery" && marketProblem && !found.deliveryOption) found.deliveryOption = marketProblem;
     if (Object.keys(found).length) {
       showErrors(found);
       return;
@@ -385,6 +412,13 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
         showErrors(found);
         return;
       }
+    }
+    // Delivery partners: the checkout API refuses an address no option covers, so say why here first.
+    if (marketProblem) {
+      const deliveryStep = steps.indexOf("delivery");
+      if (stepped && deliveryStep >= 0 && deliveryStep !== stepIndex) goTo(deliveryStep);
+      showErrors({ deliveryOption: marketProblem });
+      return;
     }
     setErrorNote("");
     persist();
@@ -549,7 +583,8 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
   const deliveryKnown = !stepped || stepIndex >= 1 || commerce.zones.length === 0;
 
   const giftNames = Object.fromEntries(store.storeProducts.map((product) => [product.id, product.name]));
-  const deliveryOver = !game.progress.enabled || game.progress.freeDelivery ? freeDeliveryEverywhereOver(info.delivery) : null;
+  // The zones' free-delivery threshold doesn't apply to delivery partners' fees.
+  const deliveryOver = partners ? null : !game.progress.enabled || game.progress.freeDelivery ? freeDeliveryEverywhereOver(info.delivery) : null;
   const rewardsBar = !createdOrder ? (
     <RewardProgress
       compact
@@ -585,7 +620,9 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
   const returnsPolicy = policies.find((link) => link.key === "refund-policy");
   const summaryData = {
     trustBadges: checkoutTrustBadges(info, store.currency),
-    deliveryEstimate: deliveryEstimateText(info, deliveryKnown && (details.city || details.state || commerce.zones.length === 0) ? delivery.option : null),
+    deliveryEstimate: partners
+      ? (marketOption?.estimatedDays ? deliveryEstimateText({ delivery: [] }, marketOption) : null)
+      : deliveryEstimateText(info, deliveryKnown && (details.city || details.state || commerce.zones.length === 0) ? delivery.option : null),
     secureText: secureCheckoutText(info.paymentLabels),
     returnsHref: returnsPolicy ? getPublicStorefrontPath(storeBasePath, legalPagePath(returnsPolicy.key)) : null,
     whatsappHref: whatsappHelpHref(info.whatsappNumber, store.name),
@@ -612,9 +649,9 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
         {settings.enableCoupon && !createdOrder ? <WonCodeBanner storeSlug={store.slug} appliedCode={applied?.code} onApply={(value) => void applyCode(value)} colors={{ ink: theme.ink, border: theme.border, card: theme.paper, muted: theme.muted }} currency={store.currency} /> : null}
         {pointsBox}
       </>}
-      deliveryKnown={deliveryKnown && (commerce.zones.length === 0 || Boolean(details.city || details.state))}
+      deliveryKnown={partners ? Boolean(marketOption) : deliveryKnown && (commerce.zones.length === 0 || Boolean(details.city || details.state))}
       deliveryCovered={deliveryChoice.covered}
-      deliveryPending={stepped ? "Next step" : "Add your address"}
+      deliveryPending={partners && hasAddress && !preview ? (marketPending ? "Checking…" : "Not available") : stepped ? "Next step" : "Add your address"}
       discountLabel={liveQuote?.discount ? (liveQuote.discount.automatic ? liveQuote.discount.label : `Discount (${liveQuote.discount.code})`) : code ? `Discount (${code.code})` : "Discount"}
       coupon={settings.enableCoupon && !createdOrder ? (
         <CodeForm
@@ -637,7 +674,7 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
   );
 
   // ─── Form parts ─────────────────────────────────────────────────────────────
-  const contactFields = <ContactFields theme={theme} details={details} errors={errors} set={set} requirePhone={settings.requirePhone} />;
+  const contactFields = <ContactFields theme={theme} details={details} errors={errors} set={set} requirePhone={rules.requirePhone} />;
   const deliveryFields = (
     <DeliveryFields
       theme={theme}
@@ -655,6 +692,22 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
       currency={store.currency}
       saveOnDevice={saveOnDevice}
       onSaveOnDevice={setSaveOnDevice}
+      stateRequired={partners}
+      partnerChoices={partners ? (
+        <PartnerDeliveryChoices
+          theme={theme}
+          delivery={marketDelivery}
+          pending={marketPending}
+          hasAddress={hasAddress}
+          selectedOptionId={delivery.option?.id ?? null}
+          onSelect={(id) => {
+            setDeliveryOptionId(id);
+            if (errors.deliveryOption) setErrors((prev) => ({ ...prev, deliveryOption: undefined }));
+          }}
+          currency={store.currency}
+          preview={preview}
+        />
+      ) : null}
     />
   );
   // "Finish on WhatsApp" (Money page): a chat with the store, the bag already written out.
@@ -800,9 +853,13 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
     </>
   );
 
+  // A partner's doorstep option names the partner (or the seller's label) as shown at checkout.
+  const optionName = marketOption && isPartnerOption(marketOption) && marketOption.kind !== "pickup_point" && marketOption.kind !== "multi" && marketOption.detail
+    ? `${marketOption.name} (${marketOption.detail})`
+    : delivery.option?.name ?? "";
   const deliveryLine = delivery.option
-    ? `${delivery.option.name} · ${totals.shippingFee - totals.deliveryDiscount > 0 ? formatStoreMoney(totals.shippingFee - totals.deliveryDiscount, store.currency) : "Free"}${delivery.option.estimatedDays ? ` · ${delivery.option.estimatedDays}` : ""}`
-    : deliveryChoice.covered ? "Free delivery" : "The store will confirm delivery with you";
+    ? `${optionName} · ${totals.shippingFee - totals.deliveryDiscount > 0 ? formatStoreMoney(totals.shippingFee - totals.deliveryDiscount, store.currency) : "Free"}${delivery.option.estimatedDays ? ` · ${delivery.option.estimatedDays}` : ""}`
+    : partners ? marketProblem ?? "" : deliveryChoice.covered ? "Free delivery" : "The store will confirm delivery with you";
 
   const form = stepped && step ? (
     <form

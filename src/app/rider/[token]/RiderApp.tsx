@@ -5,12 +5,14 @@ import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
 import { Notice, PillButton, Segmented, cx } from "@/components/app-ui";
 import { naira } from "@shared/onboarding";
-import { markDelivered, markFailed, setRiderOnline, startRun, type RiderActionResult } from "./actions";
+import { markDelivered, markFailed, markStage, setRiderOnline, startRun, type RiderActionResult } from "./actions";
 import { useT } from "@/components/i18n/I18nProvider";
 
 export interface RiderDrop {
   id: string;
   status: string;
+  /** Logistics marketplace: the parcel goes to a pickup point, where the customer collects it. */
+  toPickupPoint?: boolean;
   address: string;
   area: string;
   buyerName: string | null;
@@ -212,7 +214,8 @@ function DropRow({ token, drop, index }: { token: string; drop: RiderDrop; index
   const [other, setOther] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const onTheRoad = drop.status === "picked_up" || drop.status === "in_transit";
+  const onTheRoad = drop.status === "picked_up" || drop.status === "in_transit" || drop.status === "out_for_delivery";
+  const canGoOut = !drop.toPickupPoint && (drop.status === "picked_up" || drop.status === "in_transit");
   const waNumber = drop.buyerPhone?.replace(/\D/g, "");
 
   function run(action: () => Promise<RiderActionResult>) {
@@ -279,8 +282,17 @@ function DropRow({ token, drop, index }: { token: string; drop: RiderDrop; index
         <p className="m-0 mt-2.5 text-[13px] text-app-ink-soft">{t("drop.acceptFirst")}</p>
       ) : mode === "idle" ? (
         <div className="mt-3 grid grid-cols-2 gap-2">
+          {canGoOut && (
+            <PillButton tone="white" size="md" className="col-span-2" busy={pending} onClick={() => run(() => markStage(token, { jobId: drop.id, to: "out_for_delivery" }))}>
+              {t.dynamic("drop.outForDelivery", "On my way to the customer")}
+            </PillButton>
+          )}
           <PillButton tone="white" size="md" onClick={() => { setError(null); setMode("fail"); }}>{t("drop.couldnt")}</PillButton>
-          <PillButton tone="ink" size="md" onClick={() => { setError(null); setMode("deliver"); }}>{t("drop.delivered")}</PillButton>
+          {drop.toPickupPoint ? (
+            <PillButton tone="ink" size="md" busy={pending} onClick={() => run(() => markStage(token, { jobId: drop.id, to: "at_pickup_point" }))}>{t.dynamic("drop.atPickupPoint", "Left at pickup point")}</PillButton>
+          ) : (
+            <PillButton tone="ink" size="md" onClick={() => { setError(null); setMode("deliver"); }}>{t("drop.delivered")}</PillButton>
+          )}
         </div>
       ) : mode === "deliver" ? (
         <form onSubmit={submitDelivered} className="mt-3 grid gap-3">

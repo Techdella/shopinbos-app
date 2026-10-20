@@ -40,6 +40,14 @@ export default async function LogisticsPricingPage({ searchParams }: { searchPar
     >
       <ActionNotice saved={saved} error={error} savedText={t("pricing.saved")} />
 
+      <Card className="mb-5 flex flex-wrap items-center justify-between gap-3 p-5">
+        <div className="min-w-0">
+          <h2 className="m-0 text-[17px] font-extrabold">Your rate card</h2>
+          <p className="m-0 mt-0.5 text-[15px] text-app-ink-soft">Set prices by route, service and parcel size. Shops&apos; customers see them at checkout, and your starting price below follows the card.</p>
+        </div>
+        <PillLink href="/logistics/rates" tone="ink" icon="coin">Open rate card</PillLink>
+      </Card>
+
       <div className="grid gap-5 xl:[grid-template-columns:minmax(0,1fr)_420px]">
         <div className="grid min-w-0 content-start gap-5">
           <Card className="p-5">

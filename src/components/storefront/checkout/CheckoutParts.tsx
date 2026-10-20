@@ -212,6 +212,8 @@ export function DeliveryFields({
   currency,
   saveOnDevice,
   onSaveOnDevice,
+  partnerChoices = null,
+  stateRequired = false,
 }: {
   theme: ShopperTheme;
   details: CheckoutDetails;
@@ -229,6 +231,10 @@ export function DeliveryFields({
   /** Null hides the "save my details" box (builder preview). */
   saveOnDevice: boolean | null;
   onSaveOnDevice?: (on: boolean) => void;
+  /** Delivery partners at checkout: their options (PartnerDeliveryChoices) replace the store's zones. */
+  partnerChoices?: React.ReactNode | null;
+  /** A state must be given even when the country has no list (delivery partners match on it). */
+  stateRequired?: boolean;
 }) {
   return (
     <div className="grid gap-4">
@@ -237,7 +243,7 @@ export function DeliveryFields({
         {regions.length ? (
           <SelectField theme={theme} id="co-state" label="State" value={details.state} onChange={(v) => set("state", v)} error={errors.state} autoComplete="address-level1" options={regions} placeholder="Choose your state" />
         ) : (
-          <TextField theme={theme} id="co-state" label="State or region (optional)" value={details.state} onChange={(v) => set("state", v)} error={errors.state} autoComplete="address-level1" />
+          <TextField theme={theme} id="co-state" label={stateRequired ? "State or region" : "State or region (optional)"} value={details.state} onChange={(v) => set("state", v)} error={errors.state} autoComplete="address-level1" />
         )}
         <TextField theme={theme} id="co-city" label="Area or city" value={details.city} onChange={(v) => set("city", v)} error={errors.city} autoComplete="address-level2" list="co-areas" hint="For example Lekki, Ikeja or Wuse." />
         <datalist id="co-areas">
@@ -249,7 +255,9 @@ export function DeliveryFields({
 
       <fieldset className="m-0 mt-1 min-w-0 border-0 p-0">
         <legend className="mb-2 p-0 text-[15px] font-semibold">Delivery option</legend>
-        {!details.city && !details.state && hasZones ? (
+        {partnerChoices ? (
+          partnerChoices
+        ) : !details.city && !details.state && hasZones ? (
           <p className="text-[14px]" style={{ color: theme.muted }}>Enter your state and area to see delivery options.</p>
         ) : !choice.covered ? (
           <p className="rounded-[14px] px-4 py-3 text-[14px]" style={{ background: theme.paper }}>

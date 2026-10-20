@@ -62,12 +62,12 @@ export default async function RiderPage({ params }: { params: Promise<{ token: s
   const startOfToday = lagosStartOfToday();
   const [active, doneToday, cashJobs] = await Promise.all([
     db.deliveryBooking.findMany({
-      where: { riderId: rider.id, logisticsPartnerId: rider.partnerId, status: { in: ["confirmed", "picked_up", "in_transit"] } },
+      where: { riderId: rider.id, logisticsPartnerId: rider.partnerId, status: { in: ["confirmed", "picked_up", "in_transit", "out_for_delivery"] } },
       orderBy: { createdAt: "asc" },
       take: 60,
       select: {
         id: true, status: true, sellerId: true, orderId: true, pickupLocation: true, destination: true, packageDetails: true,
-        deliveryFee: true, platformFee: true, netAmount: true, codAmount: true, pickupWindowStart: true, pickupWindowEnd: true,
+        deliveryFee: true, platformFee: true, netAmount: true, codAmount: true, pickupWindowStart: true, pickupWindowEnd: true, service: true,
         seller: { select: { name: true, store: { select: { name: true } } } },
       },
     }),
@@ -106,6 +106,7 @@ export default async function RiderPage({ params }: { params: Promise<{ token: s
     run.drops.push({
       id: job.id,
       status: job.status,
+      toPickupPoint: job.service === "pickup_point",
       address: lines.length ? lines.join(", ") : job.destination,
       area: job.destination,
       buyerName: order?.buyerName ?? null,

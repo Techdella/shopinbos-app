@@ -4,10 +4,11 @@ import { requireRole } from "@/lib/server-auth";
 import { ensureLogisticsAccess, getLogisticsPartnerForUser } from "@/lib/role-queries";
 import { VerificationChecklist } from "@/components/verification/VerificationChecklist";
 import { LOGISTICS_DOC_TYPES } from "@shared/verification-docs";
-import { respondToDeliveryQuote, updateDeliveryBookingStatus } from "@/app/actions/logistics";
+import { respondToDeliveryQuote } from "@/app/actions/logistics";
 import { Card, CardHead, ListCard, ListRow, Pill, PillLink, StageDot, StatGrid, StatTile, TextLink } from "@/components/app-kit";
 import { Icon } from "@/components/ui/Icon";
 import { AcceptAssignForm, riderPresence, riderSelect } from "@/components/logistics/dispatch";
+import { DeclineJobForm, MarketJobFacts } from "@/components/logistics/market";
 import { withOpenJobs } from "@/lib/logistics/dispatch-riders";
 import { ensurePickupCoords } from "@/lib/logistics/geocode";
 import { owedAfterCredit, payInDue } from "@/lib/logistics/payin-rules";
@@ -68,6 +69,7 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
     status: true, trackingCode: true, estimatedDelivery: true, createdAt: true, packageDetails: true, codAmount: true,
     pickupLat: true, pickupLng: true, pickupGeoSource: true, pickupGeocodedAt: true,
     pickupWindowStart: true, pickupWindowEnd: true,
+    service: true, sizeBand: true, pickupPointId: true, shipmentKey: true, readyAt: true, acceptBy: true, feePaidAt: true,
     seller: { select: { name: true } }, rider: { select: { name: true } },
   } as const;
 
@@ -97,6 +99,10 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
   // Closest rider first in "Accept and assign": riders' open jobs and the new jobs' pickup coordinates.
   const [riders, pickupGeo, overdue] = await Promise.all([withOpenJobs(partner.id, ridersBase), ensurePickupCoords(newBookings, partner.country), payInOverdueView(partner.id, now)]);
 
+  const pointIds = [...new Set(newBookings.map((job) => job.pickupPointId).filter((id): id is string => Boolean(id)))];
+  const pointNames = new Map(
+    (pointIds.length ? await db.logisticsPickupPoint.findMany({ where: { id: { in: pointIds }, logisticsPartnerId: partner.id }, select: { id: true, name: true } }) : []).map((point) => [point.id, point.name]),
+  );
   const orderIds = [...newBookings, ...activeJobs, ...deliveredToday].map((booking) => booking.orderId).filter((id): id is string => Boolean(id));
   const orders: CodOrder[] = orderIds.length
     ? await db.retailOrder.findMany({ where: { id: { in: orderIds } }, select: { id: true, orderNumber: true, total: true, status: true, paymentMethod: true } })
@@ -229,13 +235,9 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
                   </p>
                 </div>
                 {collect > 0 && <div className="mt-3"><Pill tone="warning">{t("today.collect", { amount: naira(collect) })}</Pill></div>}
-                <div className="mt-4 flex flex-wrap items-center gap-2">
-                  <form action={updateDeliveryBookingStatus}>
-                    <input type="hidden" name="bookingId" value={job.id} />
-                    <input type="hidden" name="status" value="cancelled" />
-                    <input type="hidden" name="returnTo" value={RETURN} />
-                    <SubmitButton tone="white" size="sm" aria-label={t("today.declineJobAria", { job: jobId(job.id) })}>{t("today.decline")}</SubmitButton>
-                  </form>
+                <div className="mt-3 empty:hidden"><MarketJobFacts job={job} pointName={job.pickupPointId ? pointNames.get(job.pickupPointId) : null} now={now} t={t} /></div>
+                <div className="mt-4 flex flex-wrap items-start gap-2">
+                  <DeclineJobForm bookingId={job.id} returnTo={RETURN} />
                   <AcceptAssignForm bookingId={job.id} riders={activeRiders} returnTo={RETURN} className="flex-1" pickup={pickupGeo.get(job.id)} />
                 </div>
               </Card>

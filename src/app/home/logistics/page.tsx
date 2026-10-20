@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireRole } from "@/lib/server-auth";
 import { getSellerWorkspace } from "@/lib/workspace";
 import { db } from "@/lib/db/client";
@@ -10,6 +11,8 @@ import { payableDeliveryFees } from "@/lib/logistics/delivery-fee-payments.serve
 import { messagesHref } from "@/lib/conversations/pure";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { formatDate, formatMoney } from "@shared/i18n";
+import { exceptionsFor } from "@/lib/delivery-market/jobs.server";
+import { deliverySettingsFor } from "@/lib/delivery-market/market.server";
 
 export const dynamic = "force-dynamic";
 
@@ -68,7 +71,12 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
     db.deliveryBooking.findMany({ where: { sellerId: user.id }, include: { logisticsPartner: { select: { displayName: true } } }, orderBy: { createdAt: "desc" }, take: 8 }),
   ]);
 
-  const payable = await payableDeliveryFees(recentBookings.map((b) => b.id));
+  const [payable, exceptions, deliverySettings, connectedCount] = await Promise.all([
+    payableDeliveryFees(recentBookings.map((b) => b.id)),
+    exceptionsFor(user.id),
+    deliverySettingsFor(user.id),
+    db.deliveryConnection.count({ where: { ownerUserId: user.id, status: "active" } }),
+  ]);
   const allVerified = filter === "all"
     ? partners
     : await db.logisticsPartner.findMany({ where: { status: "active", verificationStatus: "verified" }, orderBy: { displayName: "asc" }, take: 100 });
@@ -89,6 +97,22 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
       }
     >
       <div className="grid gap-5">
+        {/* Logistics marketplace: delivery settings, connected partners and deliveries that need the shop. */}
+        <nav aria-label="Delivery partners" className="grid gap-3 sm:grid-cols-3">
+          <Link href="/home/logistics/settings" className="grid gap-0.5 rounded-[18px] border border-app-line bg-white px-4 py-3.5 text-app-ink no-underline hover:border-app-line-strong">
+            <span className="text-[14.5px] font-extrabold">Delivery settings</span>
+            <span className="text-[13px] text-app-ink-soft">{deliverySettings.checkoutMode === "partners" ? "Checkout shows your partners' options" : "Checkout uses your own zones"}</span>
+          </Link>
+          <Link href="/home/logistics/partners" className="grid gap-0.5 rounded-[18px] border border-app-line bg-white px-4 py-3.5 text-app-ink no-underline hover:border-app-line-strong">
+            <span className="text-[14.5px] font-extrabold">My partners · Find partners</span>
+            <span className="text-[13px] text-app-ink-soft">{connectedCount === 0 ? "No partners connected yet" : `${connectedCount} connected`}</span>
+          </Link>
+          <Link href="/home/logistics/exceptions" className="grid gap-0.5 rounded-[18px] border border-app-line bg-white px-4 py-3.5 text-app-ink no-underline hover:border-app-line-strong">
+            <span className="flex items-center gap-2 text-[14.5px] font-extrabold">Exceptions {exceptions.length > 0 && <Pill tone="danger">{exceptions.length}</Pill>}</span>
+            <span className="text-[13px] text-app-ink-soft">{exceptions.length === 0 ? "Nothing needs you" : "Deliveries that need you"}</span>
+          </Link>
+        </nav>
+
         <StatGrid>
           <StatTile tone="card" label={t("lg.onTheWay")} value={activeCount} />
           <StatTile tone="card" label={t("lg.delivered")} value={deliveredCount} />

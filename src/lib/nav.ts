@@ -311,9 +311,12 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
           id: "coverage", label: "Coverage and rates", icon: "pin", href: "/logistics/coverage",
           children: [
             { id: "coverage-areas", label: "Coverage", href: "/logistics/coverage" },
+            { id: "rate-card", label: "Rate card", href: "/logistics/rates" },
+            { id: "pickup-points", label: "Pickup points", href: "/logistics/pickup-points" },
             { id: "pricing", label: "Rates", href: "/logistics/pricing" },
           ],
         },
+        { id: "connections", label: "Connections", icon: "users", href: "/logistics/connections" },
         {
           id: "payouts", label: "Earnings", icon: "chart", href: "/logistics/payouts", core: true,
           children: [
@@ -389,7 +392,13 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
             { id: "supplier-pickups", label: "Pickups waiting for a rider", href: "/admin/supplier-pickups" },
           ],
         },
-        { id: "logistics-partners", label: "Logistics", icon: "truck", href: "/admin/logistics-partners", core: true },
+        {
+          id: "logistics-partners", label: "Logistics", icon: "truck", href: "/admin/logistics-partners", core: true,
+          children: [
+            { id: "logistics-partners-all", label: "Logistics partners", href: "/admin/logistics-partners" },
+            { id: "delivery-issues", label: "Delivery problems", href: "/admin/delivery-issues" },
+          ],
+        },
         { id: "wallets", label: "Wallets", icon: "coin", href: "/admin/wallets" },
         { id: "money-owed", label: "Money owed", icon: "coin", href: "/admin/money-owed" },
         {

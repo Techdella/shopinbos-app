@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { LanguageSettingsCard } from "@/components/i18n/LanguagePicker";
 import { SecuritySettings } from "@/components/auth/SecuritySettings";
 import { updateLogisticsProfile } from "@/app/actions/logistics";
+import { savePartnerBusinessDetails } from "@/app/actions/delivery-market-partner";
 import { requireRole } from "@/lib/server-auth";
 import { userLinks } from "@/lib/email/compliance.server";
 import { getLogisticsWorkspace } from "@/lib/workspace";
@@ -195,6 +196,36 @@ export default async function LogisticsProfilePage({ searchParams }: PageProps) 
               <SubmitButton>{t("company.save")}</SubmitButton>
             </div>
           </form>
+
+          <Card className="p-5">
+            <div id="business-details" className="scroll-mt-24" />
+            <CardHead title="Business details" sub="Businesses and the Shopinbos team see these when they work with you." />
+            <form action={savePartnerBusinessDetails} className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div>
+                <label htmlFor="cacNumber" className={labelClass}>CAC registration number</label>
+                <input id="cacNumber" name="cacNumber" defaultValue={partner.cacNumber ?? ""} placeholder="RC123456 or BN1234567" maxLength={20} autoCapitalize="characters" className={inputClass} />
+              </div>
+              <div>
+                <label htmlFor="contactName" className={labelClass}>Contact person</label>
+                <input id="contactName" name="contactName" defaultValue={partner.contactName ?? ""} maxLength={80} autoComplete="name" className={inputClass} />
+              </div>
+              <div>
+                <label htmlFor="contactPhone" className={labelClass}>Contact phone</label>
+                <input id="contactPhone" name="contactPhone" type="tel" defaultValue={partner.contactPhone ?? ""} maxLength={40} autoComplete="tel" placeholder="0803 412 7790" className={inputClass} />
+              </div>
+              <div>
+                <label htmlFor="contactEmail" className={labelClass}>Contact email</label>
+                <input id="contactEmail" name="contactEmail" type="email" defaultValue={partner.contactEmail ?? ""} maxLength={200} autoComplete="email" className={inputClass} />
+              </div>
+              <div className="sm:col-span-2">
+                <label htmlFor="officeAddress" className={labelClass}>Office address</label>
+                <input id="officeAddress" name="address" defaultValue={partner.address ?? ""} maxLength={200} autoComplete="street-address" placeholder="12 Herbert Macaulay Way, Yaba, Lagos" className={inputClass} />
+              </div>
+              <div className="flex justify-end sm:col-span-2">
+                <SubmitButton>Save business details</SubmitButton>
+              </div>
+            </form>
+          </Card>
         </div>
 
         <div className="grid min-w-0 content-start gap-5">
