@@ -15,7 +15,7 @@ export const GET = withSeller(async (_req: NextRequest, { user }) => {
     take: 100,
     select: {
       id: true, status: true, quantity: true, unitPrice: true, totalPrice: true, currency: true, rejectReason: true, trackingCode: true, createdAt: true, acceptBy: true,
-      paidAt: true, paidOutAt: true,
+      paidAt: true, paidOutAt: true, expiredAt: true,
       supplier: { select: { id: true, displayName: true, userId: true } },
       supplierProduct: { select: { id: true, name: true, images: true } },
     },
