@@ -103,6 +103,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "keypad.clear": "Clear",
   "stepper.less": "Remove one {label}",
   "stepper.more": "Add one {label}",
+  "chat.keepTitle": "Keep am for Shopinbos",
+  "chat.keepBody": "Jobs wey dem pay outside the app no dey tracked, you no fit report dem and dem no dey count for ratings. Agree price here and send am as private rate.",
 };
 
 export default pcm;

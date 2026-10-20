@@ -106,10 +106,10 @@ test("only admins issue, rotate and revoke partner keys", () => {
   assert.ok(existsSync(join(root, "src/app/api/v1/partner/jobs/route.ts")));
 });
 
-test("partner app: four tabs, and the Riders app speaks English, Pidgin, Yorùbá, Hausa or Igbo from one catalog", () => {
+test("partner app: four tabs (Jobs, Chats, Money, Business), and the Riders app speaks English, Pidgin, Yorùbá, Hausa or Igbo from one catalog", () => {
   const tabs = read("apps/mobile/src/app/logistics/(tabs)/_layout.tsx");
   const items = tabs.slice(tabs.indexOf("const ITEMS"), tabs.indexOf("};", tabs.indexOf("const ITEMS")));
-  assert.deepEqual([...items.matchAll(/label: "([^"]+)"/g)].map((m) => m[1]), ["Today", "Jobs", "Riders", "Money"]);
+  assert.deepEqual([...items.matchAll(/label: "([^"]+)"/g)].map((m) => m[1]), ["Jobs", "Chats", "Money", "Business"]);
 
   const strings = read("apps/mobile/src/lib/rider-strings.ts");
   assert.match(strings, /code: "pcm", label: "Pidgin"/);
