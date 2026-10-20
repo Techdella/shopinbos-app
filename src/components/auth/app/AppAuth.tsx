@@ -43,6 +43,7 @@ import {
   type SignupRole,
 } from "./auth-api";
 import "./auth-showcase.css";
+import { supportWhatsApp } from "@/lib/support-contact";
 
 const { extractIntentParams, getContinuationPath } = intentRouting;
 
@@ -831,7 +832,7 @@ function usingPasswordFor(mode: Mode, method: Method, emailMode: "code" | "passw
   return mode === "login" && method === "email" && emailMode === "password";
 }
 
-const SUPPORT_WHATSAPP = (process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP ?? "").replace(/\D/g, "");
+const SUPPORT_WHATSAPP = supportWhatsApp();
 
 /** "Need help? Chat on WhatsApp" (or "Talk to us", which opens the support panel when no WhatsApp line is set). */
 function HelpLink() {

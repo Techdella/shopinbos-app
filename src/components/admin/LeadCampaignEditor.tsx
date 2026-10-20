@@ -8,6 +8,7 @@ import { Notice, PillButton, TextInput } from "@/components/app-ui";
 import { Field } from "@/components/growth/kit";
 import type { PlatformLegal } from "@/lib/email/shell";
 import type { LeadAudienceType, LeadChannel } from "@/lib/lead-growth/pure";
+import { banner } from "@/lib/lead-growth/launch-sequences";
 import { AudiencePicker, EMPTY_AUDIENCE, MessageEditor, MessagePreview, TestSend, draftToContent, type MessageDraft, type Readiness } from "./LeadGrowthFields";
 
 // /admin/lead-campaigns/new and /[id]: a one-off email, SMS or WhatsApp message to a slice of the leads.
@@ -24,15 +25,16 @@ export type CampaignDraftInput = {
   ctaUrl: string | null;
   waTemplate: string | null;
   waLanguage: string | null;
+  imageUrl: string | null;
 };
 
 const STARTERS: Record<LeadChannel, Pick<MessageDraft, "subject" | "body">> = {
   email: {
     subject: "{{first_name}}, your online store is one click away",
-    body: "Hi {{first_name}},\n\nThanks for stopping by Shopinbos. Thousands of African businesses use it to sell online: a store built for you by Chip, our AI, products from trusted suppliers, and delivery partners in your city.\n\nIt takes about five minutes and it's free to start.",
+    body: "Hi {{first_name}},\n\nThanks for stopping by Shopinbos. Rex builds your online store with you in about five minutes, Peggy answers your customers on WhatsApp day and night, and you get a free yourshop.mybos.store address.\n\nSell your own products or ones from verified suppliers, with delivery partners in your city. It's free to start.",
   },
-  sms: { subject: "", body: "Hi {{first_name}}, your free Shopinbos store is ready to set up. Start selling online in 5 mins: {{signup_link}}" },
-  whatsapp: { subject: "", body: "Hi {{first_name}} 👋 Thanks for checking out Shopinbos! Chip, our AI, can build your online store in about 5 minutes. Start free here: {{signup_link}}" },
+  sms: { subject: "", body: "Hi {{first_name}}, claim your free yourshop.mybos.store and let Rex build your store in 5 mins: {{signup_link}}" },
+  whatsapp: { subject: "", body: "Hi {{first_name}} 👋 Thanks for checking out Shopinbos! Rex can build your online store with you in about 5 minutes, and Peggy answers your customers for you. Start free here: {{signup_link}}" },
 };
 
 export function LeadCampaignEditor({ initial, defaultChannel = "email", readiness, kinds, legal, appUrl, locked }: { initial: CampaignDraftInput | null; defaultChannel?: LeadChannel; readiness: Readiness; kinds: Array<{ key: string; label: string }>; legal: PlatformLegal; appUrl: string; locked: boolean }) {
@@ -47,6 +49,7 @@ export function LeadCampaignEditor({ initial, defaultChannel = "email", readines
     ctaUrl: initial?.ctaUrl ?? "",
     waTemplate: initial?.waTemplate ?? "",
     waLanguage: initial?.waLanguage ?? "en",
+    imageUrl: initial ? initial.imageUrl ?? "" : defaultChannel === "email" ? banner("wa-01-welcome-seller") : "",
   }));
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);

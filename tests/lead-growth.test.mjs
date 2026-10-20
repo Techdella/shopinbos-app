@@ -2,6 +2,7 @@
 // SMS parts, retention grid and which pages the product trackers may run on.
 import test from "node:test";
 import assert from "node:assert/strict";
+import { existsSync } from "node:fs";
 
 const growth = await import("../src/lib/lead-growth/pure.ts");
 const tokens = await import("../src/lib/lead-growth/tokens.ts");
@@ -140,9 +141,11 @@ test("launch sequences: every step is valid and late joiners only get what's sti
   assert.equal(early.length, 7);
   assert.equal(early[5].at, "2026-11-01T08:00");
   // A seller who joins on 30 October skips the old updates; one who joins after launch gets "we're live" first.
-  assert.deepEqual(walk(sellers, new Date("2026-10-30T10:00:00Z")).map((m) => m.subject.slice(0, 20)), ["You're in, {{first_n", "Tomorrow we open the", "Shopinbos is live. C", "{{first_name}}, your"]);
+  // (walk by step position: subjects are free to change)
+  const at = (steps, i) => steps[i].subject;
+  assert.deepEqual(walk(sellers, new Date("2026-10-30T10:00:00Z")).map((m) => m.subject), [at(sellers, 0), at(sellers, 4), at(sellers, 5), at(sellers, 6)]);
   const late = walk(sellers, new Date("2026-11-10T10:00:00Z"));
-  assert.equal(late[0].subject, "Shopinbos is live. Create your store now");
+  assert.equal(late[0].subject, at(sellers, 5));
   assert.equal(late.length, 2);
   // Suppliers and delivery partners get the sign-up link on 22 October, or straight away if they join later.
   for (const steps of [suppliers, delivery]) {
@@ -171,8 +174,10 @@ test("whatsapp: launch templates follow Meta's rules and every sequence step use
     assert.ok(!/^\s*\{\{/.test(t.body) && !/\}\}\s*[.!?]?\s*$/.test(t.body), `${t.name}: a variable can't start or end the text`);
     assert.ok(t.button.text.length <= 25, `${t.name} button text over 25 characters`);
     assert.match(t.button.url, /^https:\/\//);
-    const payload = wa.metaTemplatePayload(t);
-    assert.equal(payload.components[0].example.body_text[0].length, 2);
+    const payload = wa.metaTemplatePayload(t, "handle");
+    assert.deepEqual(payload.components[0], { type: "HEADER", format: "IMAGE", example: { header_handle: ["handle"] } });
+    assert.equal(payload.components[1].example.body_text[0].length, 2);
+    assert.ok(existsSync(`public/brand/launch/${t.image}.jpg`), `${t.name}: missing image ${t.image}`);
   }
   for (const automation of wa.WHATSAPP_AUTOMATIONS) {
     assert.equal(automation.audience.roles.length, 1);
@@ -187,7 +192,35 @@ test("whatsapp: launch templates follow Meta's rules and every sequence step use
   const suppliers = wa.WHATSAPP_AUTOMATIONS.find((a) => a.audience.roles[0] === "supplier").steps;
   // walk() reports subjects; WhatsApp steps have none, so walk them by template name.
   const byTemplate = suppliers.map((s) => ({ ...s, subject: s.waTemplate }));
-  assert.deepEqual(walk(byTemplate, new Date("2026-10-27T15:00:00Z")).map((m) => m.subject), ["sib_supplier_registration_open", "sib_supplier_finish", "sib_supplier_live"]);
-  assert.deepEqual(walk(byTemplate, new Date("2026-10-17T15:00:00Z")).map((m) => m.subject), ["sib_supplier_welcome", "sib_supplier_registration_open", "sib_supplier_finish", "sib_supplier_live"]);
+  assert.deepEqual(walk(byTemplate, new Date("2026-10-27T15:00:00Z")).map((m) => m.subject), ["shopinbos_supplier_registration_open", "shopinbos_supplier_finish", "shopinbos_supplier_live"]);
+  assert.deepEqual(walk(byTemplate, new Date("2026-10-17T15:00:00Z")).map((m) => m.subject), ["shopinbos_supplier_welcome", "shopinbos_supplier_registration_open", "shopinbos_supplier_finish", "shopinbos_supplier_live"]);
   assert.equal(wa.templatesUsed(suppliers).length, 4);
+});
+
+test("launch content: Rex and Peggy (never Chip), every banner exists, the seller sequence keeps its 7 live steps", async () => {
+  const { LAUNCH_AUTOMATIONS, WIN_CAMPAIGNS, LAUNCH_BANNERS } = await import("../src/lib/lead-growth/launch-sequences.ts");
+  const wa = await import("../src/lib/lead-growth/whatsapp-content.ts");
+  const texts = [
+    ...LAUNCH_AUTOMATIONS.flatMap((a) => a.steps.map((s) => `${s.subject} ${s.body}`)),
+    ...WIN_CAMPAIGNS.map((c) => `${c.content.subject} ${c.content.body}`),
+    ...wa.WHATSAPP_TEMPLATES.map((t) => t.body),
+  ];
+  for (const text of texts) assert.ok(!/\bChip\b/.test(text), `mentions Chip: ${text.slice(0, 60)}`);
+  assert.ok(texts.some((t) => /\bRex\b/.test(t)) && texts.some((t) => /\bPeggy\b/.test(t)));
+  const images = [...LAUNCH_AUTOMATIONS.flatMap((a) => a.steps), ...WIN_CAMPAIGNS.map((c) => c.content)].map((s) => s.imageUrl);
+  for (const url of images) {
+    assert.match(url, /^https:\/\/app\.shopinbos\.com\/brand\/launch\/[a-z0-9-]+\.jpg$/);
+    assert.ok(existsSync(`public${new URL(url).pathname}`), `missing ${url}`);
+  }
+  for (const name of LAUNCH_BANNERS) assert.ok(existsSync(`public/brand/launch/${name}.jpg`), name);
+  assert.equal(LAUNCH_AUTOMATIONS[0].steps.length, 7);
+  assert.deepEqual(LAUNCH_AUTOMATIONS[0].steps.map((s) => s.at ?? s.delayHours), [0, "2026-10-19T09:00:00+01:00", "2026-10-23T09:00:00+01:00", "2026-10-27T09:00:00+01:00", "2026-10-31T12:00:00+01:00", "2026-11-01T09:00:00+01:00", 72]);
+});
+
+test("support contact: the Shopinbos WhatsApp number by default, env overrides", async () => {
+  const contact = await import("../src/lib/support-contact.ts");
+  assert.equal(contact.supportWhatsApp(""), "17116951381");
+  assert.equal(contact.supportWhatsApp("+234 803 412 7790"), "2348034127790");
+  assert.equal(contact.formatWhatsApp("17116951381"), "+1 711-695-1381");
+  assert.equal(contact.whatsappChatUrl("Hi there", "17116951381"), "https://wa.me/17116951381?text=Hi%20there");
 });

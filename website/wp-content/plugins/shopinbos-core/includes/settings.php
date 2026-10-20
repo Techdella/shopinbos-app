@@ -34,7 +34,7 @@ function sib_settings_fields(): array {
 		'contact' => [
 			'title'  => __( 'Contact and apps', 'shopinbos' ),
 			'fields' => [
-				'whatsapp_support'     => [ __( 'Support WhatsApp number', 'shopinbos' ), '', 'text', __( 'International format without +, e.g. 2348012345678. Used by "Chat with us" buttons.', 'shopinbos' ) ],
+				'whatsapp_support'     => [ __( 'Support WhatsApp number', 'shopinbos' ), '17116951381', 'text', __( 'International format without +, e.g. 2348012345678. Used by "Chat with us" buttons.', 'shopinbos' ) ],
 				'ios_url'              => [ __( 'Shopinbos app: App Store link', 'shopinbos' ), '', 'url', __( 'Empty: the App Store badge shows “Coming soon” and opens a “tell me when it’s live” form.', 'shopinbos' ) ],
 				'android_url'          => [ __( 'Shopinbos app: Google Play link', 'shopinbos' ), '', 'url', __( 'Empty: the Google Play badge shows “Coming soon” and opens the same form.', 'shopinbos' ) ],
 				'riders_android_url'   => [ __( 'Riders app: Google Play link', 'shopinbos' ), '', 'url', '' ],

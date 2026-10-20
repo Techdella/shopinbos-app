@@ -2,15 +2,19 @@
 // (sellers, suppliers, delivery partners) that send them. Pure, unit-tested in tests/lead-growth.test.mjs.
 //
 // WhatsApp only lets a business start a chat with an approved template, so every step here is a template. Each one
-// has two variables: {{1}} the lead's first name ("there" when we don't know it) and {{2}} their personal opt-out
-// link. Meta doesn't allow a variable at the very start or end of the text, so both sit mid-sentence.
+// has an image header (the designed banners in public/brand/launch/) and two variables: {{1}} the lead's first name
+// ("there" when we don't know it) and {{2}} their personal opt-out link. Meta doesn't allow a variable at the very
+// start or end of the text, so both sit mid-sentence.
+//
+// Rex builds the seller's store; Peggy answers their customers. Templates are named shopinbos_* (an earlier text-
+// only set was sib_*; Meta keeps names per account, so new names never clash with anything already submitted).
 //
 // The sequences are lighter than email (WhatsApp is more personal): a welcome an hour after the lead comes in, the
 // moments that matter (registration opening on 22 October for partners, launch on 1 November) and one reminder.
-// They go out at 10:00 Lagos, an hour after the matching email. They come in switched off: turn them on in
-// Admin › Leads › WhatsApp once Meta has approved the templates.
+// They go out at 10:00 Lagos, an hour after the matching email. The campaign templates (Rex, products, Peggy's
+// inbox, Seller School, the season) are for one-off WhatsApp campaigns.
 
-import { LAUNCH_AT, PARTNER_REGISTRATION_AT } from "./launch-sequences.ts";
+import { LAUNCH_AT, PARTNER_REGISTRATION_AT, banner } from "./launch-sequences.ts";
 import type { LeadAudienceType, LeadRole, LeadStepType } from "./pure.ts";
 
 const APP = "https://app.shopinbos.com";
@@ -23,118 +27,247 @@ export type WhatsAppTemplate = {
   role: LeadRole;
   /** What it's for, shown in the admin list. */
   purpose: string;
-  /** Meta category. Launch updates and nudges are marketing. */
+  /** "sequence" templates are used by the launch sequences; "campaign" ones are for one-off sends. */
+  use: "sequence" | "campaign";
   category: "MARKETING" | "UTILITY";
   language: string;
+  /** Header image: a banner in public/brand/launch/ (without .jpg). */
+  image: string;
   /** Body with {{1}} (first name) and {{2}} (opt-out link). */
   body: string;
   button: { text: string; url: string };
 };
 
 const optOut = "If you'd rather not get these messages, open {{2}} to stop them.";
+const utm = (url: string, campaign: string) => `${url}${url.includes("?") ? "&" : "?"}utm_source=shopinbos_leads&utm_medium=whatsapp&utm_campaign=${campaign}`;
+const SIGNUP = `${APP}/signup`;
+const SUPPLIER_SIGNUP = `${APP}/supplier/signup`;
+const LOGISTICS_SIGNUP = `${APP}/logistics/signup`;
 
 export const WHATSAPP_TEMPLATES: WhatsAppTemplate[] = [
-  // ─── Sellers ───
+  // ─── Sellers: launch sequence ───
   {
-    name: "sib_seller_welcome",
+    name: "shopinbos_seller_welcome",
     role: "seller",
+    use: "sequence",
     purpose: "Welcome, right after joining the waitlist",
     category: "MARKETING",
     language: "en",
-    body: `Hi {{1}}, thanks for joining the Shopinbos waitlist! 🎉\n\nWe open on Sunday 1 November. Chip, our AI, will build your online store in about 5 minutes, and you can sell products from verified suppliers without holding stock.\n\nWe'll message you here the moment we're live. ${optOut}`,
+    image: "wa-01-welcome-seller",
+    body: `Hi {{1}}, welcome to Shopinbos! 🎉 You're on the list.\n\nYour free yourshop.mybos.store is coming on Sunday 1 November. Rex will build your online store with you in about 5 minutes, and Peggy will answer your customers on WhatsApp, day and night.\n\nWe'll message you here the moment we're live. ${optOut}`,
     button: { text: "See what's coming", url: SITE },
   },
   {
-    name: "sib_seller_live",
+    name: "shopinbos_seller_live",
     role: "seller",
+    use: "sequence",
     purpose: "Launch day: Shopinbos is live",
     category: "MARKETING",
     language: "en",
-    body: `Hi {{1}}, Shopinbos is live! 🚀\n\nCreate your account, tell Chip what you sell, and your online store will be ready in about 5 minutes. It's free to start.\n\n${optOut}`,
-    button: { text: "Create my store", url: `${APP}/signup?utm_source=shopinbos_leads&utm_medium=whatsapp&utm_campaign=launch` },
+    image: "wa-04-launch-live",
+    body: `Hi {{1}}, we're live! 🚀 Start free today.\n\nClaim your free yourshop.mybos.store, tell Rex what you sell, and your store will be ready in about 5 minutes.\n\n${optOut}`,
+    button: { text: "Create my store", url: utm(SIGNUP, "launch") },
   },
   {
-    name: "sib_seller_reminder",
+    name: "shopinbos_seller_claim_domain",
     role: "seller",
-    purpose: "Reminder a few days after launch",
+    use: "sequence",
+    purpose: "Reminder after launch: your free web address is waiting",
     category: "MARKETING",
     language: "en",
-    body: `Hi {{1}}, your Shopinbos store is still waiting for you.\n\nIt takes about 5 minutes to set up, and you'll have a link to share with your customers on WhatsApp and Instagram. Reply here if you'd like a hand getting started.\n\n${optOut}`,
-    button: { text: "Create my store", url: `${APP}/signup?utm_source=shopinbos_leads&utm_medium=whatsapp&utm_campaign=launch-reminder` },
+    image: "wa-05-claim-domain",
+    body: `Hi {{1}}, your free web address is still waiting.\n\nClaim your yourshop.mybos.store in a minute and Rex will build your store in about 5 more. Reply here if you'd like a hand getting started.\n\n${optOut}`,
+    button: { text: "Claim my address", url: utm(SIGNUP, "claim-domain") },
   },
-  // ─── Suppliers ───
+  // ─── Suppliers: launch sequence ───
   {
-    name: "sib_supplier_welcome",
+    name: "shopinbos_supplier_welcome",
     role: "supplier",
+    use: "sequence",
     purpose: "Welcome, right after joining as a supplier",
     category: "MARKETING",
     language: "en",
-    body: `Hi {{1}}, thanks for your interest in supplying on Shopinbos!\n\nSupplier registration opens on Thursday 22 October, ten days before we launch to sellers. We'll send you the link here that morning, so your products are ready in the marketplace on day one.\n\n${optOut}`,
+    image: "wa-02-welcome-supplier",
+    body: `Hi {{1}}, thanks for joining the Shopinbos supplier waitlist!\n\nSupplier registration opens on Thursday 22 October, ten days before we launch to sellers. We'll reach out here to set up your listing, so your products are ready in the marketplace on day one.\n\n${optOut}`,
     button: { text: "See how it works", url: SITE },
   },
   {
-    name: "sib_supplier_registration_open",
+    name: "shopinbos_supplier_registration_open",
     role: "supplier",
+    use: "sequence",
     purpose: "22 October: supplier registration is open",
     category: "MARKETING",
     language: "en",
-    body: `Hi {{1}}, supplier registration on Shopinbos is now open.\n\nCreate your account, add your business details and your products, and our team will verify you before launch on 1 November.\n\n${optOut}`,
-    button: { text: "Register as a supplier", url: `${APP}/supplier/signup?utm_source=shopinbos_leads&utm_medium=whatsapp&utm_campaign=supplier-registration` },
+    image: "wa-15-supplier-call",
+    body: `Hi {{1}}, let's get you listed! Supplier registration on Shopinbos is now open.\n\nRegister and add your products, or reply to this message to pick a time for a quick setup call with our team. We'll verify you before launch on 1 November.\n\n${optOut}`,
+    button: { text: "Register as a supplier", url: utm(SUPPLIER_SIGNUP, "supplier-registration") },
   },
   {
-    name: "sib_supplier_finish",
+    name: "shopinbos_supplier_finish",
     role: "supplier",
+    use: "sequence",
     purpose: "Reminder before launch to register and get verified",
     category: "MARKETING",
     language: "en",
-    body: `Hi {{1}}, Shopinbos opens to sellers this Sunday.\n\nSuppliers who are verified by then are the ones sellers see first. Registration takes a few minutes to start.\n\n${optOut}`,
-    button: { text: "Register as a supplier", url: `${APP}/supplier/signup?utm_source=shopinbos_leads&utm_medium=whatsapp&utm_campaign=supplier-finish` },
+    image: "wa-15-supplier-call",
+    body: `Hi {{1}}, Shopinbos opens to sellers this Sunday.\n\nSuppliers who are verified by then are the ones sellers see first. Register now, or reply here to pick a time for a quick setup call.\n\n${optOut}`,
+    button: { text: "Register as a supplier", url: utm(SUPPLIER_SIGNUP, "supplier-finish") },
   },
   {
-    name: "sib_supplier_live",
+    name: "shopinbos_supplier_live",
     role: "supplier",
+    use: "sequence",
     purpose: "Launch day: sellers are choosing products",
     category: "MARKETING",
     language: "en",
+    image: "wa-15-supplier-call",
     body: `Hi {{1}}, Shopinbos is live and sellers are choosing products for their stores today.\n\nYou can still join as a supplier: register, add your products, and they'll appear in the marketplace once you're verified.\n\n${optOut}`,
-    button: { text: "Register as a supplier", url: `${APP}/supplier/signup?utm_source=shopinbos_leads&utm_medium=whatsapp&utm_campaign=supplier-live` },
+    button: { text: "Register as a supplier", url: utm(SUPPLIER_SIGNUP, "supplier-live") },
   },
-  // ─── Delivery partners ───
+  // ─── Delivery partners: launch sequence ───
   {
-    name: "sib_delivery_welcome",
+    name: "shopinbos_delivery_welcome",
     role: "delivery",
+    use: "sequence",
     purpose: "Welcome, right after joining as a delivery partner",
     category: "MARKETING",
     language: "en",
-    body: `Hi {{1}}, thanks for your interest in delivering for Shopinbos!\n\nDelivery partner registration opens on Thursday 22 October, ten days before we launch to sellers. We'll send you the link here that morning, so you're ready to take orders from day one.\n\n${optOut}`,
+    image: "wa-03-welcome-delivery",
+    body: `Hi {{1}}, you're on the list! Thanks for joining the Shopinbos delivery partner waitlist.\n\nRegistration opens on Thursday 22 October, ten days before we launch to sellers. We'll reach out here before jobs go live in your area.\n\n${optOut}`,
     button: { text: "See how it works", url: SITE },
   },
   {
-    name: "sib_delivery_registration_open",
+    name: "shopinbos_delivery_registration_open",
     role: "delivery",
+    use: "sequence",
     purpose: "22 October: delivery partner registration is open",
     category: "MARKETING",
     language: "en",
-    body: `Hi {{1}}, delivery partner registration on Shopinbos is now open.\n\nCreate your account, set your coverage areas and prices, add your riders, and our team will verify you before launch on 1 November.\n\n${optOut}`,
-    button: { text: "Register as a partner", url: `${APP}/logistics/signup?utm_source=shopinbos_leads&utm_medium=whatsapp&utm_campaign=delivery-registration` },
+    image: "wa-16-delivery-call",
+    body: `Hi {{1}}, let's get you on the road! Delivery partner registration on Shopinbos is now open.\n\nRegister and set your areas and prices, or reply to this message to pick a time for a quick onboarding call with our team. We'll verify you before launch on 1 November.\n\n${optOut}`,
+    button: { text: "Register as a partner", url: utm(LOGISTICS_SIGNUP, "delivery-registration") },
   },
   {
-    name: "sib_delivery_finish",
+    name: "shopinbos_delivery_finish",
     role: "delivery",
+    use: "sequence",
     purpose: "Reminder before launch to register and get verified",
     category: "MARKETING",
     language: "en",
-    body: `Hi {{1}}, Shopinbos opens to sellers this Sunday.\n\nDelivery partners who are verified by then are the ones sellers can book from their first orders. Registration takes a few minutes to start.\n\n${optOut}`,
-    button: { text: "Register as a partner", url: `${APP}/logistics/signup?utm_source=shopinbos_leads&utm_medium=whatsapp&utm_campaign=delivery-finish` },
+    image: "wa-16-delivery-call",
+    body: `Hi {{1}}, Shopinbos opens to sellers this Sunday.\n\nDelivery partners who are verified by then are the ones sellers can book from their first orders. Register now, or reply here to pick a time for a quick onboarding call.\n\n${optOut}`,
+    button: { text: "Register as a partner", url: utm(LOGISTICS_SIGNUP, "delivery-finish") },
   },
   {
-    name: "sib_delivery_live",
+    name: "shopinbos_delivery_live",
     role: "delivery",
+    use: "sequence",
     purpose: "Launch day: sellers are taking orders",
     category: "MARKETING",
     language: "en",
+    image: "wa-16-delivery-call",
     body: `Hi {{1}}, Shopinbos is live and sellers are taking their first orders.\n\nYou can still join as a delivery partner: register, set your areas and prices, and sellers in your areas can book you once you're verified.\n\n${optOut}`,
-    button: { text: "Register as a partner", url: `${APP}/logistics/signup?utm_source=shopinbos_leads&utm_medium=whatsapp&utm_campaign=delivery-live` },
+    button: { text: "Register as a partner", url: utm(LOGISTICS_SIGNUP, "delivery-live") },
+  },
+  // ─── Sellers: campaigns ───
+  {
+    name: "shopinbos_seller_tell_rex",
+    role: "seller",
+    use: "campaign",
+    purpose: "Next step: tell Rex what you sell",
+    category: "MARKETING",
+    language: "en",
+    image: "wa-06-rex-build",
+    body: `Hi {{1}}, your next step: tell Rex what you sell.\n\nRex builds your store with you, from the design to the words, and you hit publish. It takes about 5 minutes.\n\n${optOut}`,
+    button: { text: "Build my store", url: utm(SIGNUP, "tell-rex") },
+  },
+  {
+    name: "shopinbos_seller_add_products",
+    role: "seller",
+    use: "campaign",
+    purpose: "Next step: add your first products",
+    category: "MARKETING",
+    language: "en",
+    image: "wa-07-add-products",
+    body: `Hi {{1}}, time to add your first products.\n\nJust the photos, prices and sizes. Rex writes the descriptions for you. No stock? Add products from verified suppliers instead.\n\n${optOut}`,
+    button: { text: "Add products", url: utm(SIGNUP, "add-products") },
+  },
+  {
+    name: "shopinbos_feature_inbox",
+    role: "seller",
+    use: "campaign",
+    purpose: "Feature drop: one inbox, Peggy answers",
+    category: "MARKETING",
+    language: "en",
+    image: "wa-08-feature-drop",
+    body: `Hi {{1}}, new on Shopinbos: one inbox for WhatsApp, Instagram, Facebook and email.\n\nPeggy answers your customers straight away from your own products and prices, and hands the chat to you when they want a person.\n\n${optOut}`,
+    button: { text: "See what's new", url: utm(SIGNUP, "feature-inbox") },
+  },
+  {
+    name: "shopinbos_seller_school",
+    role: "seller",
+    use: "campaign",
+    purpose: "Seller School: this week's lesson",
+    category: "MARKETING",
+    language: "en",
+    image: "wa-09-seller-school",
+    body: `Hi {{1}}, this week's Seller School lesson is out: price for profit.\n\nCount every cost first (the item, packaging, delivery, fees), then add your margin on top.\n\n${optOut}`,
+    button: { text: "Read the lesson", url: utm(SITE, "seller-school") },
+  },
+  {
+    name: "shopinbos_black_friday",
+    role: "seller",
+    use: "campaign",
+    purpose: "Black Friday (27 November)",
+    category: "MARKETING",
+    language: "en",
+    image: "wa-10-black-friday",
+    body: `Hi {{1}}, Black Friday is on 27 November. Get ready now.\n\nPick your hero products, set an honest discount code and book your deliveries early.\n\n${optOut}`,
+    button: { text: "Get ready", url: utm(SIGNUP, "black-friday") },
+  },
+  {
+    name: "shopinbos_cyber_monday",
+    role: "seller",
+    use: "campaign",
+    purpose: "Cyber Monday (30 November)",
+    category: "MARKETING",
+    language: "en",
+    image: "wa-11-cyber-monday",
+    body: `Hi {{1}}, Cyber Monday is your last chance of the season.\n\nOne final offer, and a reminder to the carts that didn't check out. Shopinbos can send those reminders for you.\n\n${optOut}`,
+    button: { text: "Set it up", url: utm(SIGNUP, "cyber-monday") },
+  },
+  {
+    name: "shopinbos_christmas",
+    role: "seller",
+    use: "campaign",
+    purpose: "Christmas: make your shop giftable",
+    category: "MARKETING",
+    language: "en",
+    image: "wa-12-christmas",
+    body: `Hi {{1}}, make your shop giftable this Christmas.\n\nGift sets, nice packaging and clear order-by dates help shoppers buy presents from you with confidence.\n\n${optOut}`,
+    button: { text: "Get ready", url: utm(SIGNUP, "christmas") },
+  },
+  {
+    name: "shopinbos_detty_december",
+    role: "seller",
+    use: "campaign",
+    purpose: "Detty December: owambe season",
+    category: "MARKETING",
+    language: "en",
+    image: "wa-13-detty-december",
+    body: `Hi {{1}}, owambe season don land! 🎉\n\nRun weekend flash sales, post in the evenings and book your deliveries early. Peggy will keep up with the chats.\n\n${optOut}`,
+    button: { text: "Get ready", url: utm(SIGNUP, "detty-december") },
+  },
+  {
+    name: "shopinbos_new_year",
+    role: "seller",
+    use: "campaign",
+    purpose: "New year, new shop goals",
+    category: "MARKETING",
+    language: "en",
+    image: "wa-14-new-year",
+    body: `Hi {{1}}, new year, new shop goals! Thank you for building with us. Here's to 2027.\n\nYour free yourshop.mybos.store is waiting whenever you're ready.\n\n${optOut}`,
+    button: { text: "Start my store", url: utm(SIGNUP, "new-year") },
   },
 ];
 
@@ -142,18 +275,27 @@ export function whatsappTemplate(name: string | null | undefined) {
   return WHATSAPP_TEMPLATES.find((template) => template.name === name) ?? null;
 }
 
+/** Full URL of a template's header image. */
+export function templateImageUrl(template: WhatsAppTemplate) {
+  return banner(template.image);
+}
+
 /** The template text as the admin preview and message log show it: {{first_name}} for {{1}}, the opt-out link for {{2}}. */
 export function templatePreviewText(template: WhatsAppTemplate) {
   return template.body.replace(/\{\{1\}\}/g, "{{first_name}}").replace(/\{\{2\}\}/g, "[opt-out link]");
 }
 
-/** The template in Meta's format for POST /{WABA_ID}/message_templates, with sample values. */
-export function metaTemplatePayload(template: WhatsAppTemplate) {
+/**
+ * The template in Meta's format for POST /{WABA_ID}/message_templates, with sample values. `headerHandle` is the
+ * sample image's handle from Meta's Resumable Upload API (whatsapp-meta.server.ts uploads it).
+ */
+export function metaTemplatePayload(template: WhatsAppTemplate, headerHandle: string) {
   return {
     name: template.name,
     language: template.language,
     category: template.category,
     components: [
+      { type: "HEADER", format: "IMAGE", example: { header_handle: [headerHandle] } },
       { type: "BODY", text: template.body, example: { body_text: [["Ada", "https://app.shopinbos.com/api/public/leads/opt-out?t=example"]] } },
       { type: "BUTTONS", buttons: [{ type: "URL", text: template.button.text, url: template.button.url }] },
     ],
@@ -170,6 +312,7 @@ function step(name: string, timing: { delayHours?: number; at?: string; skipAfte
     ctaUrl: null,
     waTemplate: template.name,
     waLanguage: template.language,
+    imageUrl: templateImageUrl(template),
     delayHours: timing.delayHours ?? 0,
     at: timing.at ?? null,
     skipAfter: timing.skipAfter ?? null,
@@ -187,9 +330,9 @@ export const WHATSAPP_AUTOMATIONS: Array<{ name: string; audience: LeadAudienceT
     audience: audience("seller"),
     includeExisting: true,
     steps: [
-      step("sib_seller_welcome", { delayHours: 1, skipAfter: LAUNCH_AT }),
-      step("sib_seller_live", { at: LAUNCH_10AM, skipAfter: CATCH_UP_UNTIL }),
-      step("sib_seller_reminder", { delayHours: 72 }),
+      step("shopinbos_seller_welcome", { delayHours: 1, skipAfter: LAUNCH_AT }),
+      step("shopinbos_seller_live", { at: LAUNCH_10AM, skipAfter: CATCH_UP_UNTIL }),
+      step("shopinbos_seller_claim_domain", { delayHours: 72 }),
     ],
   },
   {
@@ -197,10 +340,10 @@ export const WHATSAPP_AUTOMATIONS: Array<{ name: string; audience: LeadAudienceT
     audience: audience("supplier"),
     includeExisting: true,
     steps: [
-      step("sib_supplier_welcome", { delayHours: 1, skipAfter: PARTNER_REGISTRATION_AT }),
-      step("sib_supplier_registration_open", { at: REGISTRATION_10AM, skipAfter: CATCH_UP_UNTIL }),
-      step("sib_supplier_finish", { at: "2026-10-29T10:00:00+01:00" }),
-      step("sib_supplier_live", { at: LAUNCH_10AM }),
+      step("shopinbos_supplier_welcome", { delayHours: 1, skipAfter: PARTNER_REGISTRATION_AT }),
+      step("shopinbos_supplier_registration_open", { at: REGISTRATION_10AM, skipAfter: CATCH_UP_UNTIL }),
+      step("shopinbos_supplier_finish", { at: "2026-10-29T10:00:00+01:00" }),
+      step("shopinbos_supplier_live", { at: LAUNCH_10AM }),
     ],
   },
   {
@@ -208,10 +351,10 @@ export const WHATSAPP_AUTOMATIONS: Array<{ name: string; audience: LeadAudienceT
     audience: audience("delivery"),
     includeExisting: true,
     steps: [
-      step("sib_delivery_welcome", { delayHours: 1, skipAfter: PARTNER_REGISTRATION_AT }),
-      step("sib_delivery_registration_open", { at: REGISTRATION_10AM, skipAfter: CATCH_UP_UNTIL }),
-      step("sib_delivery_finish", { at: "2026-10-29T10:00:00+01:00" }),
-      step("sib_delivery_live", { at: LAUNCH_10AM }),
+      step("shopinbos_delivery_welcome", { delayHours: 1, skipAfter: PARTNER_REGISTRATION_AT }),
+      step("shopinbos_delivery_registration_open", { at: REGISTRATION_10AM, skipAfter: CATCH_UP_UNTIL }),
+      step("shopinbos_delivery_finish", { at: "2026-10-29T10:00:00+01:00" }),
+      step("shopinbos_delivery_live", { at: LAUNCH_10AM }),
     ],
   },
 ];
