@@ -40,6 +40,7 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
   const params = await searchParams;
   const user = await requireRole(["seller"], "/login");
   const t = await getT("shipping", "common");
+  const d = await getT("delivery");
   const locale = await getLocale();
   const fmt = (n: number) => formatMoney(Math.round(n), locale);
   const workspace = await getSellerWorkspace(user.id);
@@ -98,22 +99,22 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
     >
       <div className="grid gap-5">
         {/* Logistics marketplace: delivery settings, connected partners and deliveries that need the shop. */}
-        <nav aria-label="Delivery partners" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <nav aria-label={d("partners.title")} className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <Link href="/home/logistics/settings" className="grid gap-0.5 rounded-[18px] border border-app-line bg-white px-4 py-3.5 text-app-ink no-underline hover:border-app-line-strong">
-            <span className="text-[14.5px] font-extrabold">Delivery settings</span>
-            <span className="text-[13px] text-app-ink-soft">{deliverySettings.checkoutMode === "partners" ? "Checkout shows your partners' options" : "Checkout uses your own zones"}</span>
+            <span className="text-[14.5px] font-extrabold">{d("settings.title")}</span>
+            <span className="text-[13px] text-app-ink-soft">{deliverySettings.checkoutMode === "partners" ? d("hub.checkoutPartners") : d("hub.checkoutZones")}</span>
           </Link>
           <Link href="/home/logistics/partners" className="grid gap-0.5 rounded-[18px] border border-app-line bg-white px-4 py-3.5 text-app-ink no-underline hover:border-app-line-strong">
-            <span className="text-[14.5px] font-extrabold">My partners · Find partners</span>
-            <span className="text-[13px] text-app-ink-soft">{connectedCount === 0 ? "No partners connected yet" : `${connectedCount} connected`}</span>
+            <span className="text-[14.5px] font-extrabold">{d("hub.partners")}</span>
+            <span className="text-[13px] text-app-ink-soft">{connectedCount === 0 ? d("hub.noneConnected") : d("hub.connected", { count: connectedCount })}</span>
           </Link>
           <Link href="/home/logistics/exceptions" className="grid gap-0.5 rounded-[18px] border border-app-line bg-white px-4 py-3.5 text-app-ink no-underline hover:border-app-line-strong">
-            <span className="flex items-center gap-2 text-[14.5px] font-extrabold">Exceptions {exceptions.length > 0 && <Pill tone="danger">{exceptions.length}</Pill>}</span>
-            <span className="text-[13px] text-app-ink-soft">{exceptions.length === 0 ? "Nothing needs you" : "Deliveries that need you"}</span>
+            <span className="flex items-center gap-2 text-[14.5px] font-extrabold">{d("an.exceptions")} {exceptions.length > 0 && <Pill tone="danger">{exceptions.length}</Pill>}</span>
+            <span className="text-[13px] text-app-ink-soft">{exceptions.length === 0 ? d("exceptions.emptyTitle") : d("hub.needYou")}</span>
           </Link>
           <Link href="/home/logistics/analytics" className="grid gap-0.5 rounded-[18px] border border-app-line bg-white px-4 py-3.5 text-app-ink no-underline hover:border-app-line-strong">
-            <span className="text-[14.5px] font-extrabold">Delivery analytics</span>
-            <span className="text-[13px] text-app-ink-soft">Spend, on-time deliveries and partners compared</span>
+            <span className="text-[14.5px] font-extrabold">{d("an.title")}</span>
+            <span className="text-[13px] text-app-ink-soft">{d("hub.analyticsSub")}</span>
           </Link>
         </nav>
 

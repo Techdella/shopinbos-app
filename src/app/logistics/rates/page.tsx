@@ -8,12 +8,16 @@ import { Notice } from "@/components/app-ui";
 import { RateCardEditor } from "@/components/logistics/RateCardEditor";
 import { ActionNotice, KeyValue, PartnerPage, lagosDate, naira } from "@/components/logistics/kit";
 import { NG_REGIONS, canonicalState, cardTimeframe, startingPrice } from "@shared/delivery-market";
+import { timeframeText } from "@/components/delivery-market/words";
+import { getT } from "@/lib/i18n/server";
 
 // The partner's public rate card (logistics marketplace): the prices shops are charged at checkout, by route,
 // service and parcel size. Saving publishes a new card; orders already placed keep the price they got.
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Rate card" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT("logistics"))("market.rates.title") };
+}
 
 export default async function LogisticsRatesPage({ searchParams }: { searchParams: Promise<{ saved?: string; error?: string }> }) {
   const user = await requireRole(["logistics_partner"], "/logistics/login");
@@ -25,29 +29,30 @@ export default async function LogisticsRatesPage({ searchParams }: { searchParam
   const from = startingPrice(rows);
   const timeframe = cardTimeframe(rows);
   const defaultFrom = partner.pickupAreas[0] ?? canonicalState(partner.city) ?? "";
+  const t = await getT("logistics", "delivery", "common");
 
   return (
     <PartnerPage
       frame={{ user, partner }}
-      title="Rate card"
-      sub="Your prices by route, service and parcel size. Shops' customers see them at checkout."
+      title={t("market.rates.title")}
+      sub={t("market.rates.sub")}
       actions={
         <>
-          <PillLink href="/logistics/coverage#where-you-work" icon="pin">Where you work</PillLink>
-          <PillLink href="/logistics/pickup-points" icon="shop">Pickup points</PillLink>
+          <PillLink href="/logistics/coverage#where-you-work" icon="pin">{t("market.whereYouWork")}</PillLink>
+          <PillLink href="/logistics/pickup-points" icon="shop">{t("market.points.title")}</PillLink>
         </>
       }
     >
-      <ActionNotice saved={saved} error={error} savedText="Rate card saved. New orders use these prices." />
+      <ActionNotice saved={saved} error={error} savedText={t("market.rates.saved")} />
       <div className="mb-4">
-        <Notice tone="info">New rates apply to new orders only. Orders already placed keep the price they were given.</Notice>
+        <Notice tone="info">{t("market.rates.newOrdersOnly")}</Notice>
       </div>
 
       <div className="grid gap-5 xl:[grid-template-columns:minmax(0,1fr)_340px]">
         <Card className="min-w-0 p-5">
           <CardHead
-            title={publicCard ? "Your rates" : "Set up your rates"}
-            sub={publicCard ? `Last saved ${lagosDate(publicCard.createdAt)}.` : "Add a row for each route you carry. Start with your busiest one."}
+            title={publicCard ? t("market.rates.yourRates") : t("market.rates.setUp")}
+            sub={publicCard ? t("market.rates.lastSaved", { date: lagosDate(publicCard.createdAt, undefined, new Date(), t) }) : t("market.rates.setUpSub")}
           />
           <div className="mt-4">
             <RateCardEditor
@@ -57,43 +62,43 @@ export default async function LogisticsRatesPage({ searchParams }: { searchParam
               returnFee={publicCard?.returnFee ?? 0}
               notes={publicCard?.notes ?? ""}
               defaultFrom={defaultFrom}
-              submitLabel={publicCard ? "Save new rates" : "Publish rate card"}
+              submitLabel={publicCard ? t("market.rates.saveNew") : t("market.rates.publish")}
             />
           </div>
         </Card>
 
         <div className="grid min-w-0 content-start gap-5">
           <Card className="p-5">
-            <CardHead title="What businesses see" />
+            <CardHead title={t("market.rates.whatBusinessesSee")} />
             <div className="mt-2 divide-y divide-app-line">
-              <KeyValue label="From">{from !== null ? naira(from) : "No rates yet"}</KeyValue>
-              <KeyValue label="Delivery time">{timeframe ?? "—"}</KeyValue>
-              <KeyValue label="Rates on your card">{rows.length}</KeyValue>
-              {retiredCount > 0 && <KeyValue label="Earlier cards">{retiredCount}</KeyValue>}
+              <KeyValue label={t("market.rates.from")}>{from !== null ? naira(from) : t("market.rates.noRates")}</KeyValue>
+              <KeyValue label={t("market.rates.deliveryTime")}>{timeframeText(t, timeframe) ?? "—"}</KeyValue>
+              <KeyValue label={t("market.rates.count")}>{rows.length}</KeyValue>
+              {retiredCount > 0 && <KeyValue label={t("market.rates.earlierCards")}>{retiredCount}</KeyValue>}
             </div>
           </Card>
 
           <Card className="p-5">
-            <CardHead title="How to write places" />
+            <CardHead title={t("market.rates.howToWrite")} />
             <ul className="m-0 mt-3 grid list-none gap-2 p-0 text-[15px] leading-[1.5]">
-              <li><b>A state</b>: Lagos, Oyo, FCT (Abuja)</li>
-              <li><b>An area in a state</b>: Lagos: Ikeja, FCT: Wuse</li>
-              <li><b>A region</b>: {Object.keys(NG_REGIONS).join(", ")}</li>
-              <li><b>Everywhere</b>: Nationwide</li>
+              <li><b>{t("market.rates.aState")}</b>: Lagos, Oyo, FCT (Abuja)</li>
+              <li><b>{t("market.rates.anArea")}</b>: Lagos: Ikeja, FCT: Wuse</li>
+              <li><b>{t("market.rates.aRegion")}</b>: {Object.keys(NG_REGIONS).join(", ")}</li>
+              <li><b>{t("market.rates.everywhere")}</b>: Nationwide</li>
             </ul>
             <p className="m-0 mt-3 text-[15px] leading-[1.5] text-app-ink-soft">
-              The closest match wins: an area beats its state, a state beats its region, and a region beats Nationwide. So you can set one Nationwide price and cheaper prices for the places you know well.
+              {t("market.rates.closestWins")}
             </p>
           </Card>
 
           <Card className="p-5">
-            <CardHead title="Sizes and days" />
+            <CardHead title={t("market.rates.sizesAndDays")} />
             <ul className="m-0 mt-3 grid list-none gap-2 p-0 text-[15px] leading-[1.5] text-app-ink-soft">
-              <li><b className="text-app-ink">Small</b>: up to 2kg. <b className="text-app-ink">Medium</b>: 2 to 10kg. <b className="text-app-ink">Bulky</b>: over 10kg.</li>
-              <li>A parcel can use the price for its size or a bigger size, never a smaller one.</li>
-              <li>Days count from when the order comes in. Same-day rates are 0 days.</li>
+              <li><b className="text-app-ink">{t("market.rates.small")}</b>: {t("market.rates.smallUpTo")} <b className="text-app-ink">{t("market.rates.medium")}</b>: {t("market.rates.mediumRange")} <b className="text-app-ink">{t("market.rates.bulky")}</b>: {t("market.rates.bulkyOver")}</li>
+              <li>{t("market.rates.sizeRule")}</li>
+              <li>{t("market.rates.daysRule")}</li>
             </ul>
-            <div className="mt-3"><TextLink href="/logistics/connections">Send private rates to one business</TextLink></div>
+            <div className="mt-3"><TextLink href="/logistics/connections">{t("market.rates.sendPrivate")}</TextLink></div>
           </Card>
         </div>
       </div>

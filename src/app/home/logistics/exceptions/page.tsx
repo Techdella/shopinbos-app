@@ -6,12 +6,17 @@ import { requireRole } from "@/lib/server-auth";
 import { getSellerWorkspace } from "@/lib/workspace";
 import { messagesHref } from "@/lib/conversations/pure";
 import { exceptionsFor, reassignOptions } from "@/lib/delivery-market/jobs.server";
-import { EXCEPTION_WORDS, JOB_STATUS_WORDS, canReassign, timeframeWords, type ExceptionKind } from "@shared/delivery-market";
+import { canReassign, type ExceptionKind } from "@shared/delivery-market";
 import { markJobReadyAction, reassignJobAction } from "@/app/actions/delivery-market";
 import { FlashNotice, naira } from "@/components/delivery-market/bits";
+import { declineReasonText, exceptionLabel, jobStatusLabel, timeframeLabel } from "@/components/delivery-market/words";
+import { getT } from "@/lib/i18n/server";
+import { intlLocale } from "@shared/i18n";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Delivery exceptions" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT("delivery"))("exceptions.title") };
+}
 
 const KIND_TONE: Record<ExceptionKind, "danger" | "warning" | "info"> = {
   declined: "danger",
@@ -41,18 +46,19 @@ export default async function DeliveryExceptionsPage({ searchParams }: { searchP
   const options = new Map(
     await Promise.all(items.filter((item) => canReassign(item.kind)).map(async (item) => [item.job.id, await reassignOptions(user.id, item.job.id)] as const)),
   );
-  const date = (value: Date) => value.toLocaleString("en-NG", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+  const t = await getT("delivery");
+  const date = (value: Date) => value.toLocaleString(intlLocale(t.locale), { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
 
   return (
     <AppPage
       frame={sellerFrame(user, workspace.store)}
-      title="Delivery exceptions"
-      sub="Deliveries that need you: declined, not accepted or collected in time, failed attempts and returns."
-      actions={<PillLink href="/home/logistics" icon="arrowLeft">Logistics</PillLink>}
+      title={t("exceptions.title")}
+      sub={t("exceptions.sub")}
+      actions={<PillLink href="/home/logistics" icon="arrowLeft">{t("logistics")}</PillLink>}
     >
       <FlashNotice saved={flash.saved} error={flash.error} />
       {items.length === 0 ? (
-        <EmptyState icon="checkCircle" title="Nothing needs you">All your deliveries are on track.</EmptyState>
+        <EmptyState icon="checkCircle" title={t("exceptions.emptyTitle")}>{t("exceptions.emptyBody")}</EmptyState>
       ) : (
         <div className="grid gap-4">
           {items.map(({ job, kind, order }) => {
@@ -64,24 +70,24 @@ export default async function DeliveryExceptionsPage({ searchParams }: { searchP
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="min-w-0">
                     <div className="text-[15.5px] font-extrabold">
-                      {order ? <Link href={`/home/orders/${order.id}`} className="text-app-ink no-underline hover:underline">Order {order.orderNumber}</Link> : job.destination}
+                      {order ? <Link href={`/home/orders/${order.id}`} className="text-app-ink no-underline hover:underline">{t("exceptions.order", { number: order.orderNumber })}</Link> : job.destination}
                     </div>
                     <div className="text-[13px] text-app-ink-soft">
-                      {order ? `${order.buyerName} · ` : ""}{job.logisticsPartner.displayName} · {naira(job.deliveryFee)} · {JOB_STATUS_WORDS[job.status] ?? job.status} · {date(job.updatedAt)}
+                      {order ? `${order.buyerName} · ` : ""}{job.logisticsPartner.displayName} · {naira(job.deliveryFee)} · {jobStatusLabel(t, job.status)} · {date(job.updatedAt)}
                     </div>
                   </div>
-                  <Pill tone={KIND_TONE[kindKey]} dot>{EXCEPTION_WORDS[kindKey]}</Pill>
+                  <Pill tone={KIND_TONE[kindKey]} dot>{exceptionLabel(t, kindKey)}</Pill>
                 </div>
-                <p className="m-0 text-[14px]">{HELP[kindKey]}</p>
-                {job.declineReason && <p className="m-0 text-[13.5px]"><span className="text-app-ink-soft">Partner said: </span><span className="font-bold">{job.declineReason}</span></p>}
-                {job.failedReason && <p className="m-0 text-[13.5px]"><span className="text-app-ink-soft">What happened: </span><span className="font-bold">{job.failedReason}</span></p>}
+                <p className="m-0 text-[14px]">{t.dynamic(`exceptions.help.${kindKey}`, HELP[kindKey])}</p>
+                {job.declineReason && <p className="m-0 text-[13.5px]"><span className="text-app-ink-soft">{t("exceptions.partnerSaid")} </span><span className="font-bold">{declineReasonText(t, job.declineReason)}</span></p>}
+                {job.failedReason && <p className="m-0 text-[13.5px]"><span className="text-app-ink-soft">{t("exceptions.whatHappened")} </span><span className="font-bold">{job.failedReason}</span></p>}
 
                 {canReassign(kind) && (
                   <div className="grid gap-2 rounded-[14px] bg-app-canvas p-3.5">
-                    <div className="text-[14px] font-extrabold">Send to another partner</div>
+                    <div className="text-[14px] font-extrabold">{t("exceptions.sendToAnother")}</div>
                     {choices.length === 0 ? (
                       <p className="m-0 text-[13.5px] text-app-ink-soft">
-                        None of your other partners cover this delivery. <Link href="/home/logistics/partners#find" className="font-bold text-app-accent-ink no-underline hover:underline">Find a partner</Link>
+                        {t("exceptions.noOtherPartner")} <Link href="/home/logistics/partners#find" className="font-bold text-app-accent-ink no-underline hover:underline">{t("exceptions.findPartner")}</Link>
                       </p>
                     ) : (
                       <form action={reassignJobAction} className="grid gap-2">
@@ -92,13 +98,13 @@ export default async function DeliveryExceptionsPage({ searchParams }: { searchP
                             <input type="radio" name="connectionId" value={choice.connectionId} defaultChecked={index === 0} className={field.checkbox} />
                             <span className="font-bold">{choice.name}</span>
                             <span>{naira(choice.price)}</span>
-                            <span className="text-app-ink-soft">· {timeframeWords(choice.minDays, choice.maxDays)}</span>
+                            <span className="text-app-ink-soft">· {timeframeLabel(t, choice.minDays, choice.maxDays)}</span>
                           </label>
                         ))}
                         <p className="m-0 text-[12.5px] leading-[1.5] text-app-ink-soft">
-                          If the customer&apos;s delivery fee already went to the first partner, they owe it back to you; you pay the new partner&apos;s fee.
+                          {t("exceptions.feeNote")}
                         </p>
-                        <div><button type="submit" className={pillButton.ink}>Send to this partner</button></div>
+                        <div><button type="submit" className={pillButton.ink}>{t("exceptions.sendToThis")}</button></div>
                       </form>
                     )}
                   </div>
@@ -109,12 +115,12 @@ export default async function DeliveryExceptionsPage({ searchParams }: { searchP
                     <form action={markJobReadyAction}>
                       <input type="hidden" name="bookingId" value={job.id} />
                       <input type="hidden" name="back" value="/home/logistics/exceptions" />
-                      <button type="submit" className={pillButton.white}>Mark ready for pickup</button>
+                      <button type="submit" className={pillButton.white}>{t("markReady")}</button>
                     </form>
                   )}
-                  {job.readyAt && ["pending", "confirmed"].includes(job.status) && <Pill tone="info">Ready since {date(job.readyAt)}</Pill>}
-                  <PillLink href={messagesHref("seller", { with: job.logisticsPartner.id, context: { kind: "booking", id: job.id } })} size="sm" icon="chat">Message partner</PillLink>
-                  {order && <PillLink href={`/home/orders/${order.id}`} size="sm">View order</PillLink>}
+                  {job.readyAt && ["pending", "confirmed"].includes(job.status) && <Pill tone="info">{t("exceptions.readySince", { date: date(job.readyAt) })}</Pill>}
+                  <PillLink href={messagesHref("seller", { with: job.logisticsPartner.id, context: { kind: "booking", id: job.id } })} size="sm" icon="chat">{t("exceptions.messagePartner")}</PillLink>
+                  {order && <PillLink href={`/home/orders/${order.id}`} size="sm">{t("exceptions.viewOrder")}</PillLink>}
                 </div>
               </Card>
             );

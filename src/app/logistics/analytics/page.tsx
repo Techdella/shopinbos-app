@@ -6,7 +6,8 @@ import { Card, CardHead, StatGrid, StatTile, TextLink } from "@/components/app-k
 import { BOOKING_STATUSES, PartnerPage, StatusPill, bookingNet, lagosDate, lagosDay, lagosStartOfToday, naira } from "@/components/logistics/kit";
 import { getT } from "@/lib/i18n/server";
 import { partnerMarketAnalytics } from "@/lib/delivery-market/analytics.server";
-import { durationWords, readRangeDays, RANGE_LABELS } from "@/lib/delivery-market/analytics";
+import { readRangeDays } from "@/lib/delivery-market/analytics";
+import { durationLabel, rangeLabel } from "@/components/delivery-market/words";
 import { BreakdownCard, CountCard, IssuesCard, RangeChips, WeeklyChart, rateText } from "@/components/delivery-market/DeliveryAnalytics";
 
 export const dynamic = "force-dynamic";
@@ -32,7 +33,7 @@ export default async function LogisticsAnalyticsPage({ searchParams }: { searchP
   const user = await requireRole(["logistics_partner"], "/logistics/login");
   const partner = await getLogisticsPartnerForUser(user);
   ensureLogisticsAccess(partner);
-  const t = await getT("logistics", "common");
+  const t = await getT("logistics", "delivery", "common");
   const now = new Date();
   const dayWords = (day: Date) => lagosDate(day, { weekday: "short", day: "numeric", month: "short" }, now, t);
 
@@ -176,39 +177,39 @@ export default async function LogisticsAnalyticsPage({ searchParams }: { searchP
       <section id="marketplace" aria-labelledby="marketplace-title" className="mt-10 grid scroll-mt-4 gap-5">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div className="min-w-0">
-            <h2 id="marketplace-title" className="m-0 text-[22px] font-extrabold tracking-[-0.4px]">Marketplace jobs</h2>
-            <p className="mb-0 mt-1 text-[14px] text-app-ink-soft">Jobs shops sent you through Shopinbos · {RANGE_LABELS[rangeDays].toLowerCase()}</p>
+            <h2 id="marketplace-title" className="m-0 text-[22px] font-extrabold tracking-[-0.4px]">{t("market.an.title")}</h2>
+            <p className="mb-0 mt-1 text-[14px] text-app-ink-soft">{t("market.an.sub", { range: rangeLabel(t, rangeDays).toLowerCase() })}</p>
           </div>
           <RangeChips path="/logistics/analytics" days={rangeDays} hash="marketplace" />
         </div>
 
         {mt.offered === 0 ? (
           <Card className="p-5">
-            <p className="m-0 text-[15px] text-app-ink-soft">No marketplace jobs in this period. Shops that connect with you send jobs here when their customers pick you at checkout.</p>
+            <p className="m-0 text-[15px] text-app-ink-soft">{t("market.an.empty")}</p>
           </Card>
         ) : (
           <>
             <StatGrid>
-              <StatTile tone="card" label="Jobs offered" value={mt.offered} hint={`${mt.accepted} accepted · ${mt.declined} declined · ${mt.notAcceptedInTime} not accepted in time`} />
-              <StatTile tone="card" label="Acceptance rate" value={rateText(mt.acceptanceRate)} hint={`Usually accepted in ${durationWords(mt.medianAcceptMs)}`} />
-              <StatTile tone="card" label="Delivered" value={mt.delivered} hint={`Pickup to delivery: ${durationWords(mt.medianPickupToDeliveryMs)}`} />
-              <StatTile tone="card" label="Earned from deliveries" value={naira(mt.fees)} hint={`${naira(mt.feesPaidInApp)} paid in the app · ${naira(mt.feesNotInApp)} not`} />
-              <StatTile tone="card" label="On time" value={rateText(mt.onTimeRate)} hint={mt.timed ? `From ${mt.timed} deliveries with a promised time` : "No promised times yet"} />
-              <StatTile tone="card" label="Failed deliveries" value={rateText(mt.failedRate)} hint={`${mt.failedAttempts} failed attempts · ${mt.returned} returned`} />
-              <StatTile tone="card" label="Cancelled" value={mt.cancelled} hint="By the shop or the order" />
-              <StatTile tone="card" label="Customer problems" value={market.issueCount} hint={market.openIssues ? `${market.openIssues} still open` : "None open"} />
+              <StatTile tone="card" label={t("market.an.offered")} value={mt.offered} hint={t("market.an.offeredHint", { accepted: mt.accepted, declined: mt.declined, late: mt.notAcceptedInTime })} />
+              <StatTile tone="card" label={t("an.acceptance")} value={rateText(mt.acceptanceRate)} hint={t("market.an.acceptedIn", { time: durationLabel(t, mt.medianAcceptMs) })} />
+              <StatTile tone="card" label={t("market.an.delivered")} value={mt.delivered} hint={t("market.an.pickupToDelivery", { time: durationLabel(t, mt.medianPickupToDeliveryMs) })} />
+              <StatTile tone="card" label={t("market.an.earned")} value={naira(mt.fees)} hint={t("an.paidInApp", { paid: naira(mt.feesPaidInApp), notPaid: naira(mt.feesNotInApp) })} />
+              <StatTile tone="card" label={t("onTime")} value={rateText(mt.onTimeRate)} hint={mt.timed ? t("an.fromTimed", { count: mt.timed }) : t("an.noPromised")} />
+              <StatTile tone="card" label={t("failedDeliveries")} value={rateText(mt.failedRate)} hint={t("an.failedHint", { attempts: mt.failedAttempts, returned: mt.returned })} />
+              <StatTile tone="card" label={t("market.an.cancelled")} value={mt.cancelled} hint={t("market.an.cancelledHint")} />
+              <StatTile tone="card" label={t("an.customerProblems")} value={market.issueCount} hint={market.openIssues ? t("an.stillOpen", { count: market.openIssues }) : t("an.noneOpen")} />
             </StatGrid>
 
             <div className="grid gap-5 xl:[grid-template-columns:minmax(0,1fr)_400px]">
               <div className="grid min-w-0 content-start gap-5">
-                <WeeklyChart weeks={market.weeks} feesLabel="Earnings" />
-                <BreakdownCard title="Where you deliver" sub="Customers' states" rows={market.states} kind="state" />
+                <WeeklyChart weeks={market.weeks} title={t("an.perWeek")} feesLabel={t("market.an.earnings")} />
+                <BreakdownCard title={t("market.an.whereYouDeliver")} sub={t("market.an.customersStates")} rows={market.states} kind="state" />
               </div>
               <div className="grid min-w-0 content-start gap-5">
-                <BreakdownCard title="Services" rows={market.services} kind="service" />
-                <BreakdownCard title="Parcel sizes" rows={market.sizes} kind="size" />
-                <CountCard title="Why you declined" rows={market.declineReasons} empty="You haven't declined any jobs in this period." />
-                <IssuesCard rows={market.issues} sub="Late, not delivered or damaged, as customers told the shop" />
+                <BreakdownCard title={t("services")} rows={market.services} kind="service" />
+                <BreakdownCard title={t("an.parcelSizes")} rows={market.sizes} kind="size" />
+                <CountCard title={t("market.an.whyDeclined")} rows={market.declineReasons} empty={t("market.an.noDeclines")} />
+                <IssuesCard rows={market.issues} sub={t("market.an.issuesSub")} />
               </div>
             </div>
           </>

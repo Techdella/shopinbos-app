@@ -3,11 +3,13 @@
 import { useState } from "react";
 import { NG_STATES, formatArea, parseArea } from "@shared/delivery-market";
 import { lgasOf } from "@shared/ng-lgas";
+import { useT } from "@/components/i18n/I18nProvider";
 
 // Coverage form helper: pick a state and (optionally) one of its LGAs, then add "State" or "State: LGA" as a new line
 // in one of the coverage textareas. The textareas stay the source of truth (free text keeps working).
 
 export function AreaTokenAdder({ targets, selectClass }: { targets: { id: string; label: string }[]; selectClass: string }) {
+  const t = useT("logistics", "delivery");
   const [state, setState] = useState("");
   const [lga, setLga] = useState("");
   const lgas = lgasOf(state);
@@ -29,14 +31,14 @@ export function AreaTokenAdder({ targets, selectClass }: { targets: { id: string
 
   return (
     <div className="grid gap-2 rounded-[14px] border border-app-line bg-app-canvas p-3 lg:col-span-2">
-      <span className="text-[15px] font-bold">Add a state or LGA</span>
+      <span className="text-[15px] font-bold">{t("market.cov.addArea")}</span>
       <div className="flex flex-wrap items-center gap-2">
-        <select aria-label="State" value={state} onChange={(event) => { setState(event.target.value); setLga(""); }} className={`${selectClass} sm:max-w-[220px]`}>
-          <option value="">Pick a state</option>
-          {NG_STATES.map((name) => <option key={name} value={name}>{name === "FCT" ? "FCT (Abuja)" : name}</option>)}
+        <select aria-label={t("origin.state")} value={state} onChange={(event) => { setState(event.target.value); setLga(""); }} className={`${selectClass} sm:max-w-[220px]`}>
+          <option value="">{t("pickState")}</option>
+          {NG_STATES.map((name) => <option key={name} value={name}>{name === "FCT" ? t("fctAbuja") : name}</option>)}
         </select>
-        <select aria-label="LGA" value={lga} onChange={(event) => setLga(event.target.value)} disabled={!state} className={`${selectClass} sm:max-w-[260px]`}>
-          <option value="">Whole state</option>
+        <select aria-label={t("market.cov.lga")} value={lga} onChange={(event) => setLga(event.target.value)} disabled={!state} className={`${selectClass} sm:max-w-[260px]`}>
+          <option value="">{t("market.cov.wholeState")}</option>
           {lgas.map((name) => <option key={name} value={name}>{name}</option>)}
         </select>
         {targets.map((target) => (

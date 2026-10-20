@@ -11,9 +11,12 @@ import { Field, FlashNotice, OriginFields, SizeBandSelect } from "@/components/d
 import { MyPartners } from "@/components/delivery-market/MyPartners";
 import { FindPartners } from "@/components/delivery-market/FindPartners";
 import { originLabel, readFindFilters, type FindSearch } from "@/components/delivery-market/find-filters";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Delivery" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT("delivery"))("supplier.title") };
+}
 
 type Search = FindSearch & { saved?: string; error?: string };
 
@@ -24,6 +27,7 @@ export default async function SupplierDeliveryPage({ searchParams }: { searchPar
   const user = await requireRole(["supplier"], "/supplier/login");
   const supplier = await getSupplierForUser(user);
   const filters = readFindFilters(params);
+  const t = await getT("delivery");
   const [settings, connections, cards, found] = await Promise.all([
     deliverySettingsFor(user.id),
     connectionsForOwner(user.id),
@@ -34,25 +38,25 @@ export default async function SupplierDeliveryPage({ searchParams }: { searchPar
   return (
     <AppPage
       frame={supplierFrame(user, supplier)}
-      title="Delivery"
-      sub="When a shop sells your products by dropship, your delivery partners ship from you to the customer."
-      actions={<PillLink href="/supplier/delivery/analytics" icon="chart">Delivery analytics</PillLink>}
+      title={t("supplier.title")}
+      sub={t("supplier.sub")}
+      actions={<PillLink href="/supplier/delivery/analytics" icon="chart">{t("an.title")}</PillLink>}
     >
       <FlashNotice saved={params.saved} error={params.error} />
       <div className="grid gap-8">
         <form action={saveDeliverySettingsAction}>
           <input type="hidden" name="back" value="/supplier/delivery" />
           <Card className="p-5">
-            <CardHead title="Where I ship from" sub="Delivery partners collect from here, and price each delivery from here." />
+            <CardHead title={t("supplier.origin")} sub={t("supplier.originSub")} />
             <div className="mt-4 grid gap-4">
               <OriginFields settings={settings} />
               <div className="max-w-[420px]">
-                <Field label="Usual parcel size" hint="Used for products without a size or weight.">
+                <Field label={t("settings.usualSize")} hint={t("supplier.usualSizeHint")}>
                   <SizeBandSelect defaultValue={settings.defaultSizeBand} />
                 </Field>
               </div>
               <div className="flex justify-end">
-                <button type="submit" className={pillButton.ink}>Save</button>
+                <button type="submit" className={pillButton.ink}>{t("save")}</button>
               </div>
             </div>
           </Card>

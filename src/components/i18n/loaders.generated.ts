@@ -80,6 +80,13 @@ export const MESSAGE_LOADERS: Record<string, Record<string, Loader>> = {
     ha: () => import("@shared/i18n/messages/customers/ha.ts") as Promise<{ default: Record<string, string> }>,
     ig: () => import("@shared/i18n/messages/customers/ig.ts") as Promise<{ default: Record<string, string> }>,
   },
+  delivery: {
+    en: () => import("@shared/i18n/messages/delivery/en.ts") as Promise<{ default: Record<string, string> }>,
+    pcm: () => import("@shared/i18n/messages/delivery/pcm.ts") as Promise<{ default: Record<string, string> }>,
+    yo: () => import("@shared/i18n/messages/delivery/yo.ts") as Promise<{ default: Record<string, string> }>,
+    ha: () => import("@shared/i18n/messages/delivery/ha.ts") as Promise<{ default: Record<string, string> }>,
+    ig: () => import("@shared/i18n/messages/delivery/ig.ts") as Promise<{ default: Record<string, string> }>,
+  },
   discounts: {
     en: () => import("@shared/i18n/messages/discounts/en.ts") as Promise<{ default: Record<string, string> }>,
     pcm: () => import("@shared/i18n/messages/discounts/pcm.ts") as Promise<{ default: Record<string, string> }>,

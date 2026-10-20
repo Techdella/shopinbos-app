@@ -8,9 +8,12 @@ import { deliverySettingsFor } from "@/lib/delivery-market/market.server";
 import { saveDeliverySettingsAction } from "@/app/actions/delivery-market";
 import { Field, FlashNotice, OriginFields, SizeBandSelect } from "@/components/delivery-market/bits";
 import { SellAreaPicker } from "@/components/delivery-market/SellAreaPicker";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Delivery settings" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT("delivery"))("settings.title") };
+}
 
 type Search = { saved?: string; error?: string };
 
@@ -34,92 +37,93 @@ export default async function DeliverySettingsPage({ searchParams }: { searchPar
   const workspace = await getSellerWorkspace(user.id);
   if (!workspace) return null;
   const settings = await deliverySettingsFor(user.id);
+  const t = await getT("delivery");
 
   return (
     <AppPage
       frame={sellerFrame(user, workspace.store)}
-      title="Delivery settings"
-      sub="Where you sell, where parcels leave from, and what customers can pick at checkout."
-      actions={<PillLink href="/home/logistics" icon="arrowLeft">Logistics</PillLink>}
+      title={t("settings.title")}
+      sub={t("settings.sub")}
+      actions={<PillLink href="/home/logistics" icon="arrowLeft">{t("logistics")}</PillLink>}
     >
       <FlashNotice saved={params.saved} error={params.error} />
       <form action={saveDeliverySettingsAction} className="grid max-w-[920px] gap-5">
         <input type="hidden" name="back" value="/home/logistics/settings" />
 
         <Card className="p-5">
-          <CardHead title="Where I sell" sub="Customers outside these places can't order delivery (they can still pick up, if you allow it)." />
+          <CardHead title={t("settings.whereISell")} sub={t("settings.whereISellSub")} />
           <div className="mt-4">
             <SellAreaPicker sellArea={settings.sellArea} sellStates={settings.sellStates} />
           </div>
         </Card>
 
         <Card className="p-5">
-          <CardHead title="Where parcels leave from" sub="Delivery partners use this to collect from you and price each delivery." />
+          <CardHead title={t("settings.origin")} sub={t("settings.originSub")} />
           <div className="mt-4"><OriginFields settings={settings} /></div>
         </Card>
 
         <Card className="p-5">
-          <CardHead title="Delivery at checkout" sub="How customers get delivery prices when they buy." />
+          <CardHead title={t("settings.checkout")} sub={t("settings.checkoutSub")} />
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
-            <Choice name="checkoutMode" value="zones" checked={settings.checkoutMode !== "partners"} title="My own delivery zones" hint="You set the prices per area in Shipping, and arrange delivery yourself." />
-            <Choice name="checkoutMode" value="partners" checked={settings.checkoutMode === "partners"} title="Delivery partners" hint="Customers see doorstep and pickup-point options, with prices, from the partners you've connected." />
+            <Choice name="checkoutMode" value="zones" checked={settings.checkoutMode !== "partners"} title={t("settings.zones")} hint={t("settings.zonesHint")} />
+            <Choice name="checkoutMode" value="partners" checked={settings.checkoutMode === "partners"} title={t("partners.title")} hint={t("settings.partnersHint")} />
           </div>
           <p className="mb-0 mt-3 text-[13px] text-app-ink-soft">
-            Edit your own zones in <Link href="/home/shipping" className="font-bold text-app-accent-ink no-underline hover:underline">Shipping</Link>. Connect partners in <Link href="/home/logistics/partners" className="font-bold text-app-accent-ink no-underline hover:underline">Delivery partners</Link>.
+            {t("settings.editZonesIn")} <Link href="/home/shipping" className="font-bold text-app-accent-ink no-underline hover:underline">{t("settings.shipping")}</Link>. {t("settings.connectIn")} <Link href="/home/logistics/partners" className="font-bold text-app-accent-ink no-underline hover:underline">{t("partners.title")}</Link>.
           </p>
         </Card>
 
         <Card className="p-5">
-          <CardHead title="Pick up from me" sub="Customers collect their order from you, for free." />
+          <CardHead title={t("settings.selfPickup")} sub={t("settings.selfPickupSub")} />
           <label className="mt-4 flex items-center gap-2 text-[14.5px] font-bold">
             <input type="checkbox" name="selfPickup" defaultChecked={settings.selfPickup} className={field.checkbox} />
-            Let customers pick up from me
+            {t("settings.selfPickupLabel")}
           </label>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <div className="md:col-span-2">
-              <Field label="Pickup address">
+              <Field label={t("origin.address")}>
                 <input name="pickupAddress" defaultValue={settings.pickupAddress ?? ""} maxLength={200} className={field.input} placeholder="Shop 4, Computer Village, Ikeja" />
               </Field>
             </div>
-            <Field label="Opening hours">
-              <input name="pickupHours" defaultValue={settings.pickupHours ?? ""} maxLength={120} className={field.input} placeholder="Mon–Sat, 9am–6pm" />
+            <Field label={t("settings.hours")}>
+              <input name="pickupHours" defaultValue={settings.pickupHours ?? ""} maxLength={120} className={field.input} placeholder={t("settings.hoursPlaceholder")} />
             </Field>
-            <Field label="Instructions">
-              <input name="pickupInstructions" defaultValue={settings.pickupInstructions ?? ""} maxLength={300} className={field.input} placeholder="Call when you arrive" />
+            <Field label={t("settings.instructions")}>
+              <input name="pickupInstructions" defaultValue={settings.pickupInstructions ?? ""} maxLength={300} className={field.input} placeholder={t("settings.instructionsPlaceholder")} />
             </Field>
           </div>
         </Card>
 
         <Card className="p-5">
-          <CardHead title="When no partner covers an address" sub="For delivery partners at checkout." />
+          <CardHead title={t("settings.fallback")} sub={t("settings.fallbackSub")} />
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
-            <Choice name="fallback" value="pickup_only" checked={settings.fallback !== "flat_fee"} title="Pickup only" hint="Customers there can only pick up from you (if you allow it)." />
-            <Choice name="fallback" value="flat_fee" checked={settings.fallback === "flat_fee"} title="A flat delivery fee" hint="Customers pay this and you arrange the delivery yourself." />
+            <Choice name="fallback" value="pickup_only" checked={settings.fallback !== "flat_fee"} title={t("settings.pickupOnly")} hint={t("settings.pickupOnlyHint")} />
+            <Choice name="fallback" value="flat_fee" checked={settings.fallback === "flat_fee"} title={t("settings.flatFee")} hint={t("settings.flatFeeHint")} />
           </div>
           <div className="mt-4 max-w-[260px]">
-            <Field label="Flat fee (₦)">
+            <Field label={t("settings.flatFeeLabel")}>
               <input name="fallbackFee" inputMode="decimal" defaultValue={settings.fallbackFee > 0 ? String(settings.fallbackFee) : ""} className={field.input} placeholder="3000" />
             </Field>
           </div>
         </Card>
 
         <Card className="p-5">
-          <CardHead title="Parcels" />
+          <CardHead title={t("settings.parcels")} />
           <div className="mt-4 grid gap-4 md:grid-cols-2">
-            <Field label="Usual parcel size" hint="Used for products without a delivery size or weight.">
+            <Field label={t("settings.usualSize")} hint={t("settings.usualSizeHint")}>
               <SizeBandSelect defaultValue={settings.defaultSizeBand} />
             </Field>
-            <Field label="Who pays if a delivery attempt fails" hint="Partners may charge a fee to try again.">
+            <Field label={t("settings.failedPayer")} hint={t("settings.failedPayerHint")}>
               <select name="failedFeePayer" defaultValue={settings.failedFeePayer} className={field.select}>
-                <option value="seller">I pay</option>
-                <option value="customer">The customer pays</option>
+                <option value="seller">{t("settings.iPay")}</option>
+                <option value="customer">{t("settings.customerPays")}</option>
               </select>
             </Field>
           </div>
         </Card>
 
         <div className="flex justify-end">
-          <button type="submit" className={pillButton.ink}>Save delivery settings</button>
+          <button type="submit" className={pillButton.ink}>{t("settings.save")}</button>
         </div>
       </form>
     </AppPage>

@@ -2,23 +2,26 @@ import Link from "next/link";
 import { Card, CardHead, EmptyState, Pill, PillLink, Thumb } from "@/components/app-kit";
 import { field, pillButton } from "@/components/seller-core";
 import { messagesHref } from "@/lib/conversations/pure";
-import { OFFER_SERVICES, POD_DISCLAIMER } from "@shared/delivery-market";
+import { OFFER_SERVICES } from "@shared/delivery-market";
+import { getT } from "@/lib/i18n/server";
 import type { connectionsForOwner, privateCardsForOwner } from "@/lib/delivery-market/manage.server";
 import { endConnectionAction, respondRateCardAction, updateConnectionAction } from "@/app/actions/delivery-market";
-import { CardExtras, RateTable, serviceWord, VerifiedPill } from "./bits";
+import { CardExtras, RateTable, VerifiedPill } from "./bits";
+import { podDisclaimer, serviceLabel } from "./words";
 
 // "My delivery partners" and private rates waiting for an answer, for sellers and suppliers.
 
 type Connection = Awaited<ReturnType<typeof connectionsForOwner>>[number];
 type PrivateCard = Awaited<ReturnType<typeof privateCardsForOwner>>[number];
 
-export function PodStatus({ connection }: { connection: Pick<Connection, "partnerPod" | "logisticsPartner"> }) {
-  if (!connection.logisticsPartner.offersPayOnDelivery) return <Pill tone="muted">Partner doesn&apos;t offer pay on delivery</Pill>;
-  if (!connection.partnerPod) return <Pill tone="warning">Pay on delivery: waiting for partner</Pill>;
-  return <Pill tone="success">Partner collects cash</Pill>;
+export async function PodStatus({ connection }: { connection: Pick<Connection, "partnerPod" | "logisticsPartner"> }) {
+  const t = await getT("delivery");
+  if (!connection.logisticsPartner.offersPayOnDelivery) return <Pill tone="muted">{t("pod.partnerDoesNotOffer")}</Pill>;
+  if (!connection.partnerPod) return <Pill tone="warning">{t("pod.waitingForPartner")}</Pill>;
+  return <Pill tone="success">{t("pod.partnerCollects")}</Pill>;
 }
 
-export function MyPartners({
+export async function MyPartners({
   role,
   connections,
   cards,
@@ -35,26 +38,27 @@ export function MyPartners({
   back: string;
   findHref: string;
 }) {
+  const t = await getT("delivery");
   const pending = cards.filter((card) => card.status === "proposed");
   return (
     <section id="my-partners" className="grid scroll-mt-24 gap-4">
       {pending.length > 0 && (
         <Card className="p-5">
-          <CardHead title="Private rates for you" sub="A partner sent you their own prices. Accept them to use them for your deliveries with that partner." />
+          <CardHead title={t("mine.privateTitle")} sub={t("mine.privateSub")} />
           <div className="mt-4 grid gap-5">
             {pending.map((card) => (
               <div key={card.id} className="grid gap-3 rounded-[16px] bg-app-canvas p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <Link href={`${detailBase}/${card.logisticsPartner.slug}`} className="text-[15px] font-extrabold text-app-ink no-underline hover:underline">{card.logisticsPartner.displayName}</Link>
-                  <Pill tone="warning">Waiting for you</Pill>
+                  <Pill tone="warning">{t("mine.waitingForYou")}</Pill>
                 </div>
                 <RateTable rows={card.rows} />
                 <CardExtras card={card} />
                 <form action={respondRateCardAction} className="flex flex-wrap gap-2">
                   <input type="hidden" name="cardId" value={card.id} />
                   <input type="hidden" name="back" value={`${back}#my-partners`} />
-                  <button type="submit" name="decision" value="accept" className={pillButton.ink}>Accept these rates</button>
-                  <button type="submit" name="decision" value="decline" className={pillButton.white}>Decline</button>
+                  <button type="submit" name="decision" value="accept" className={pillButton.ink}>{t("mine.acceptRates")}</button>
+                  <button type="submit" name="decision" value="decline" className={pillButton.white}>{t("mine.decline")}</button>
                 </form>
               </div>
             ))}
@@ -64,17 +68,17 @@ export function MyPartners({
 
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="m-0 text-[17px] font-extrabold">My delivery partners</h2>
+          <h2 className="m-0 text-[17px] font-extrabold">{t("mine.title")}</h2>
           <p className="m-0 mt-0.5 text-[13px] text-app-ink-soft">
-            {role === "seller" ? "Choose what customers see at checkout for each partner." : "Partners that carry your parcels when shops sell your products by dropship."}
+            {role === "seller" ? t("mine.subSeller") : t("mine.subSupplier")}
           </p>
         </div>
-        <PillLink href={findHref} size="sm" icon="search">Find partners</PillLink>
+        <PillLink href={findHref} size="sm" icon="search">{t("find.title")}</PillLink>
       </div>
 
       {connections.length === 0 ? (
-        <EmptyState icon="truck" title="No delivery partners yet">
-          Connect a partner below. Connecting is instant, at their public rates.
+        <EmptyState icon="truck" title={t("mine.emptyTitle")}>
+          {t("mine.emptyBody")}
         </EmptyState>
       ) : (
         <div className="grid gap-4">
@@ -90,11 +94,11 @@ export function MyPartners({
                     <Link href={`${detailBase}/${partner.slug}`} className="text-[15.5px] font-extrabold text-app-ink no-underline hover:underline">{partner.displayName}</Link>
                     <div className="mt-1 flex flex-wrap gap-1.5">
                       <VerifiedPill status={partner.verificationStatus} />
-                      {accepted ? <Pill tone="info">Your private rates</Pill> : <Pill tone="muted">Public rates</Pill>}
+                      {accepted ? <Pill tone="info">{t("mine.yourPrivateRates")}</Pill> : <Pill tone="muted">{t("mine.publicRates")}</Pill>}
                       {role === "seller" && <PodStatus connection={connection} />}
                     </div>
                   </div>
-                  <PillLink href={messagesHref(role, { with: partner.userId })} size="sm" icon="chat">Chat</PillLink>
+                  <PillLink href={messagesHref(role, { with: partner.userId })} size="sm" icon="chat">{t("chat")}</PillLink>
                 </div>
 
                 {role === "seller" ? (
@@ -102,14 +106,14 @@ export function MyPartners({
                     <input type="hidden" name="connectionId" value={connection.id} />
                     <input type="hidden" name="back" value={`${back}#my-partners`} />
                     <fieldset className="m-0 grid gap-2 border-0 p-0">
-                      <legend className={field.label}>Offer customers</legend>
+                      <legend className={field.label}>{t("mine.offerCustomers")}</legend>
                       <div className="flex flex-wrap gap-4">
                         {OFFER_SERVICES.map((service) => {
                           const available = offered.includes(service);
                           return (
                             <label key={service} className={`flex items-center gap-2 text-[14px] ${available ? "" : "text-app-ink-faint"}`}>
                               <input type="checkbox" name="services" value={service} defaultChecked={connection.services.includes(service) && available} disabled={!available} className={field.checkbox} />
-                              {serviceWord(service)}{available ? "" : " (not offered by this partner)"}
+                              {serviceLabel(t, service)}{available ? "" : ` ${t("mine.notOffered")}`}
                             </label>
                           );
                         })}
@@ -117,41 +121,41 @@ export function MyPartners({
                     </fieldset>
 
                     <fieldset className="m-0 grid gap-2 border-0 p-0">
-                      <legend className={field.label}>At checkout, show</legend>
+                      <legend className={field.label}>{t("mine.atCheckoutShow")}</legend>
                       <label className="flex items-center gap-2 text-[14px]">
                         <input type="radio" name="showPartnerName" value="true" defaultChecked={connection.showPartnerName} className={field.checkbox} />
-                        The partner&apos;s name ({partner.displayName})
+                        {t("mine.partnerName", { name: partner.displayName })}
                       </label>
                       <label className="flex flex-wrap items-center gap-2 text-[14px]">
                         <input type="radio" name="showPartnerName" value="false" defaultChecked={!connection.showPartnerName} className={field.checkbox} />
-                        My own label:
-                        <input name="label" defaultValue={connection.label ?? ""} maxLength={40} placeholder="Standard delivery" className={`${field.input} h-10 w-[220px]`} aria-label="Label customers see" />
+                        {t("mine.ownLabel")}
+                        <input name="label" defaultValue={connection.label ?? ""} maxLength={40} placeholder={t("mine.ownLabelPlaceholder")} className={`${field.input} h-10 w-[220px]`} aria-label={t("mine.ownLabelAria")} />
                       </label>
                     </fieldset>
 
                     <fieldset className="m-0 grid gap-2 border-0 p-0">
-                      <legend className={field.label}>Pay on delivery</legend>
+                      <legend className={field.label}>{t("pod.title")}</legend>
                       <label className="flex items-center gap-2 text-[14px]">
                         <input type="checkbox" name="ownerPod" defaultChecked={connection.ownerPod} className={field.checkbox} />
-                        Let customers pay this partner&apos;s rider in cash
+                        {t("pod.letCustomersPay")}
                       </label>
                       {!connection.podAcceptedAt && (
                         <div className="grid gap-2 rounded-[14px] bg-app-canvas p-3.5">
-                          <p className="m-0 text-[13.5px] leading-[1.5]">{POD_DISCLAIMER}</p>
+                          <p className="m-0 text-[13.5px] leading-[1.5]">{podDisclaimer(t)}</p>
                           <label className="flex items-center gap-2 text-[13.5px] font-bold">
                             <input type="checkbox" name="acceptPodDisclaimer" className={field.checkbox} />
-                            I understand
+                            {t("pod.iUnderstand")}
                           </label>
                         </div>
                       )}
                       <p className="m-0 text-[12.5px] text-app-ink-soft">
-                        Customers only see pay on delivery when you and the partner both switch it on.
-                        {connection.ownerPod && !connection.partnerPod ? " Waiting for the partner to switch it on." : ""}
+                        {t("pod.bothOn")}
+                        {connection.ownerPod && !connection.partnerPod ? ` ${t("pod.waitingSwitchOn")}` : ""}
                       </p>
                     </fieldset>
 
                     <div className="flex flex-wrap gap-2">
-                      <button type="submit" className={pillButton.ink}>Save</button>
+                      <button type="submit" className={pillButton.ink}>{t("save")}</button>
                     </div>
                   </form>
                 ) : null}
@@ -159,7 +163,7 @@ export function MyPartners({
                 <form action={endConnectionAction} className="mt-3 flex justify-end">
                   <input type="hidden" name="connectionId" value={connection.id} />
                   <input type="hidden" name="back" value={`${back}#my-partners`} />
-                  <button type="submit" className={pillButton.danger}>Remove partner</button>
+                  <button type="submit" className={pillButton.danger}>{t("removePartner")}</button>
                 </form>
               </Card>
             );

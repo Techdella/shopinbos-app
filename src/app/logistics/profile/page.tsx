@@ -199,30 +199,30 @@ export default async function LogisticsProfilePage({ searchParams }: PageProps) 
 
           <Card className="p-5">
             <div id="business-details" className="scroll-mt-24" />
-            <CardHead title="Business details" sub="Businesses and the Shopinbos team see these when they work with you." />
+            <CardHead title={t("market.biz.title")} sub={t("market.biz.sub")} />
             <form action={savePartnerBusinessDetails} className="mt-4 grid gap-3 sm:grid-cols-2">
               <div>
-                <label htmlFor="cacNumber" className={labelClass}>CAC registration number</label>
+                <label htmlFor="cacNumber" className={labelClass}>{t("market.biz.cac")}</label>
                 <input id="cacNumber" name="cacNumber" defaultValue={partner.cacNumber ?? ""} placeholder="RC123456 or BN1234567" maxLength={20} autoCapitalize="characters" className={inputClass} />
               </div>
               <div>
-                <label htmlFor="contactName" className={labelClass}>Contact person</label>
+                <label htmlFor="contactName" className={labelClass}>{t("market.biz.contactName")}</label>
                 <input id="contactName" name="contactName" defaultValue={partner.contactName ?? ""} maxLength={80} autoComplete="name" className={inputClass} />
               </div>
               <div>
-                <label htmlFor="contactPhone" className={labelClass}>Contact phone</label>
+                <label htmlFor="contactPhone" className={labelClass}>{t("market.biz.contactPhone")}</label>
                 <input id="contactPhone" name="contactPhone" type="tel" defaultValue={partner.contactPhone ?? ""} maxLength={40} autoComplete="tel" placeholder="0803 412 7790" className={inputClass} />
               </div>
               <div>
-                <label htmlFor="contactEmail" className={labelClass}>Contact email</label>
+                <label htmlFor="contactEmail" className={labelClass}>{t("market.biz.contactEmail")}</label>
                 <input id="contactEmail" name="contactEmail" type="email" defaultValue={partner.contactEmail ?? ""} maxLength={200} autoComplete="email" className={inputClass} />
               </div>
               <div className="sm:col-span-2">
-                <label htmlFor="officeAddress" className={labelClass}>Office address</label>
+                <label htmlFor="officeAddress" className={labelClass}>{t("market.biz.address")}</label>
                 <input id="officeAddress" name="address" defaultValue={partner.address ?? ""} maxLength={200} autoComplete="street-address" placeholder="12 Herbert Macaulay Way, Yaba, Lagos" className={inputClass} />
               </div>
               <div className="flex justify-end sm:col-span-2">
-                <SubmitButton>Save business details</SubmitButton>
+                <SubmitButton>{t("market.biz.save")}</SubmitButton>
               </div>
             </form>
           </Card>

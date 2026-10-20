@@ -4,7 +4,8 @@ import { ensureLogisticsAccess, getLogisticsPartnerForUser } from "@/lib/role-qu
 import { updateLogisticsCoverage } from "@/app/actions/logistics";
 import { savePartnerMarketCoverage } from "@/app/actions/delivery-market-partner";
 import { Notice } from "@/components/app-ui";
-import { NG_REGIONS, PARTNER_SERVICES, POD_DISCLAIMER, SERVICE_LABELS } from "@shared/delivery-market";
+import { NG_REGIONS, PARTNER_SERVICES } from "@shared/delivery-market";
+import { podDisclaimer, serviceLabel } from "@/components/delivery-market/words";
 import { Card, CardHead, EmptyState, ListCard, ListRow, Pill, PillLink } from "@/components/app-kit";
 import { LOGISTICS_FREE_ROUTE_LIMIT } from "@/lib/plan-limits";
 import { ActionNotice, PartnerPage, SubmitButton, inputClass, labelClass, naira, textareaClass } from "@/components/logistics/kit";
@@ -22,7 +23,7 @@ export default async function LogisticsCoveragePage({ searchParams }: { searchPa
   const partner = await getLogisticsPartnerForUser(user);
   ensureLogisticsAccess(partner);
   const { saved, error, unknown } = await searchParams;
-  const t = await getT("logistics", "common");
+  const t = await getT("logistics", "delivery", "common");
 
   const zones = coverageZoneRows(partner);
   const depot = coverageDepot(partner) ?? partner.city ?? "";
@@ -34,57 +35,57 @@ export default async function LogisticsCoveragePage({ searchParams }: { searchPa
       sub={t("coverage.sub")}
       actions={<PillLink href="/logistics/pricing" icon="coin">{t("coverage.pricingModel")}</PillLink>}
     >
-      <ActionNotice saved={saved} error={error} savedText={saved === "market" ? "Saved. Businesses see your services and areas when they look for partners." : t("coverage.saved")} />
+      <ActionNotice saved={saved} error={error} savedText={saved === "market" ? t("market.cov.saved") : t("coverage.saved")} />
       {unknown && (
         <div className="mb-4">
-          <Notice tone="info">We didn&apos;t recognise these places, so we left them out: {unknown}. Use a state, a region, &ldquo;Nationwide&rdquo; or &ldquo;State: Area&rdquo;.</Notice>
+          <Notice tone="info">{t("market.cov.unknown", { places: unknown })}</Notice>
         </div>
       )}
 
       <Card className="mb-5 p-5">
         <div id="where-you-work" className="scroll-mt-24" />
         <CardHead
-          title="Services and where you work"
-          sub="This is what businesses see in Find partners, and what decides which checkouts you show up in."
-          action={<PillLink href="/logistics/rates" size="sm" icon="coin">Rate card</PillLink>}
+          title={t("market.cov.title")}
+          sub={t("market.cov.sub")}
+          action={<PillLink href="/logistics/rates" size="sm" icon="coin">{t("market.rates.title")}</PillLink>}
         />
         <form action={savePartnerMarketCoverage} className="mt-4 grid gap-4 lg:grid-cols-2">
           <fieldset className="m-0 min-w-0 border-0 p-0 lg:col-span-2">
-            <legend className={labelClass}>Services you offer</legend>
+            <legend className={labelClass}>{t("market.cov.services")}</legend>
             <div className="flex flex-wrap gap-2">
               {PARTNER_SERVICES.map((service) => (
                 <label key={service} className="flex min-h-[44px] items-center gap-2 rounded-full border border-app-line bg-white px-4 text-[15px] font-bold">
                   <input type="checkbox" name="services" value={service} defaultChecked={partner.services.includes(service)} className="h-5 w-5 accent-[#16141F]" />
-                  {SERVICE_LABELS[service]}
+                  {serviceLabel(t, service)}
                 </label>
               ))}
             </div>
-            <p className="mb-0 mt-1.5 text-[15px] text-app-ink-soft">Offer doorstep delivery, pickup points, or both. Tick interstate if you carry parcels from one state to another.</p>
+            <p className="mb-0 mt-1.5 text-[15px] text-app-ink-soft">{t("market.cov.servicesHint")}</p>
           </fieldset>
           <div className="min-w-0">
-            <label htmlFor="pickupAreas" className={labelClass}>Where you collect from</label>
+            <label htmlFor="pickupAreas" className={labelClass}>{t("market.cov.collectFrom")}</label>
             <textarea id="pickupAreas" name="pickupAreas" rows={4} defaultValue={partner.pickupAreas.join("\n")} placeholder={"Lagos\nOgun: Ota"} className={textareaClass} />
           </div>
           <div className="min-w-0">
-            <label htmlFor="deliveryAreas" className={labelClass}>Where you deliver to</label>
+            <label htmlFor="deliveryAreas" className={labelClass}>{t("market.cov.deliverTo")}</label>
             <textarea id="deliveryAreas" name="deliveryAreas" rows={4} defaultValue={partner.deliveryAreas.join("\n")} placeholder={"Lagos\nSouth-West\nFCT"} className={textareaClass} />
           </div>
           <p className="m-0 text-[15px] text-app-ink-soft lg:col-span-2">
-            One place per line: a state (<b>Lagos</b>), an area or LGA in a state (<b>Lagos: Ikeja</b>), a region ({Object.keys(NG_REGIONS).join(", ")}) or <b>Nationwide</b>.
+            {t("market.cov.onePerLine", { regions: Object.keys(NG_REGIONS).join(", ") })}
           </p>
           <AreaTokenAdder
             selectClass={inputClass}
-            targets={[{ id: "pickupAreas", label: "Add to collect from" }, { id: "deliveryAreas", label: "Add to deliver to" }]}
+            targets={[{ id: "pickupAreas", label: t("market.cov.addCollect") }, { id: "deliveryAreas", label: t("market.cov.addDeliver") }]}
           />
           <div className="grid gap-1.5 lg:col-span-2">
             <label className="flex min-h-[44px] items-center gap-2 text-[15px] font-bold">
               <input type="checkbox" name="offersPayOnDelivery" defaultChecked={partner.offersPayOnDelivery} className="h-5 w-5 accent-[#16141F]" />
-              We collect pay on delivery cash for shops that opt in
+              {t("market.cov.podLabel")}
             </label>
-            <p className="m-0 text-[14px] text-app-ink-soft">{POD_DISCLAIMER} You choose which businesses on Connections.</p>
+            <p className="m-0 text-[14px] text-app-ink-soft">{podDisclaimer(t)} {t("market.cov.podChoose")}</p>
           </div>
           <div className="lg:col-span-2">
-            <SubmitButton>Save services and areas</SubmitButton>
+            <SubmitButton>{t("market.cov.save")}</SubmitButton>
           </div>
         </form>
       </Card>

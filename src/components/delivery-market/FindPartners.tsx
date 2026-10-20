@@ -1,17 +1,19 @@
 import Link from "next/link";
+import { getT } from "@/lib/i18n/server";
 import { Card, CardHead, EmptyState, Pill, PillLink, Thumb } from "@/components/app-kit";
 import { field, pillButton } from "@/components/seller-core";
 import type { FindFiltersShape } from "./find-filters";
 import type { findPartners } from "@/lib/delivery-market/manage.server";
 import { connectPartnerAction } from "@/app/actions/delivery-market";
 import { NG_STATES, RATE_SERVICES } from "@shared/delivery-market";
-import { areasSummary, naira, Rating, serviceWord, VerifiedPill } from "./bits";
+import { areasSummary, naira, Rating, VerifiedPill } from "./bits";
+import { serviceLabel, timeframeText } from "./words";
 
 // "Find partners" for sellers and suppliers: filters (a GET form) and the ranked partner cards from findPartners.
 
 type Found = Awaited<ReturnType<typeof findPartners>>;
 
-export function FindPartners({
+export async function FindPartners({
   found,
   filters,
   path,
@@ -28,59 +30,60 @@ export function FindPartners({
   /** "Lagos · Ikeja", or null when the business hasn't said where it ships from. */
   originLabel: string | null;
 }) {
+  const t = await getT("delivery");
   return (
     <section id="find" className="grid scroll-mt-24 gap-4">
       <Card className="p-5">
         <CardHead
-          title="Find partners"
-          sub={originLabel ? `Partners that collect from ${originLabel} and deliver where you sell. Verified, busy and on-time partners come first.` : "Partners that deliver where you sell. Add where your parcels leave from to see who can collect from you."}
+          title={t("find.title")}
+          sub={originLabel ? t("find.subFrom", { origin: originLabel }) : t("find.sub")}
         />
         <form action={`${path}#find`} method="get" className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <label className="block min-w-0">
-            <span className={field.label}>Search</span>
-            <input name="q" defaultValue={filters.q ?? ""} placeholder="Partner name" className={field.input} />
+            <span className={field.label}>{t("find.search")}</span>
+            <input name="q" defaultValue={filters.q ?? ""} placeholder={t("find.searchPlaceholder")} className={field.input} />
           </label>
           <label className="block min-w-0">
-            <span className={field.label}>Service</span>
+            <span className={field.label}>{t("rates.service")}</span>
             <select name="service" defaultValue={filters.service ?? ""} className={field.select}>
-              <option value="">Any service</option>
-              {[...RATE_SERVICES, "interstate"].map((service) => <option key={service} value={service}>{serviceWord(service)}</option>)}
+              <option value="">{t("find.anyService")}</option>
+              {[...RATE_SERVICES, "interstate"].map((service) => <option key={service} value={service}>{serviceLabel(t, service)}</option>)}
             </select>
           </label>
           <label className="block min-w-0">
-            <span className={field.label}>Delivers to</span>
+            <span className={field.label}>{t("find.deliversTo")}</span>
             <select name="state" defaultValue={filters.state ?? ""} className={field.select}>
-              <option value="">Where I sell</option>
+              <option value="">{t("find.whereISell")}</option>
               {NG_STATES.map((state) => <option key={state} value={state}>{state}</option>)}
             </select>
           </label>
           <label className="block min-w-0">
-            <span className={field.label}>Starting price up to (₦)</span>
+            <span className={field.label}>{t("find.maxPrice")}</span>
             <input name="maxPrice" inputMode="numeric" defaultValue={filters.maxPrice ?? ""} placeholder="5000" className={field.input} />
           </label>
           <label className="block min-w-0">
-            <span className={field.label}>Rating</span>
+            <span className={field.label}>{t("find.rating")}</span>
             <select name="minRating" defaultValue={filters.minRating ? String(filters.minRating) : ""} className={field.select}>
-              <option value="">Any rating</option>
-              <option value="3">3 stars and up</option>
-              <option value="4">4 stars and up</option>
-              <option value="4.5">4.5 stars and up</option>
+              <option value="">{t("find.anyRating")}</option>
+              <option value="3">{t("find.starsUp", { stars: "3" })}</option>
+              <option value="4">{t("find.starsUp", { stars: "4" })}</option>
+              <option value="4.5">{t("find.starsUp", { stars: "4.5" })}</option>
             </select>
           </label>
           <label className="flex min-h-12 items-center gap-2 self-end text-[14px] font-bold">
             <input type="checkbox" name="pickupPoints" value="1" defaultChecked={!!filters.pickupPoints} className={field.checkbox} />
-            Has pickup points
+            {t("find.hasPickupPoints")}
           </label>
           <div className="flex flex-wrap gap-2 sm:col-span-2 lg:col-span-3">
-            <button type="submit" className={pillButton.ink}>Show partners</button>
-            <Link href={`${path}#find`} className={`${pillButton.white} no-underline`}>Clear</Link>
+            <button type="submit" className={pillButton.ink}>{t("find.show")}</button>
+            <Link href={`${path}#find`} className={`${pillButton.white} no-underline`}>{t("find.clear")}</Link>
           </div>
         </form>
       </Card>
 
       {found.rows.length === 0 ? (
-        <EmptyState icon="truck" title="No partners match yet">
-          Try fewer filters, or check where you sell and where your parcels leave from.
+        <EmptyState icon="truck" title={t("find.emptyTitle")}>
+          {t("find.emptyBody")}
         </EmptyState>
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
@@ -99,33 +102,33 @@ export function FindPartners({
                   </div>
                   {row.startingPrice !== null && (
                     <div className="shrink-0 text-right">
-                      <div className="text-[12.5px] text-app-ink-soft">from</div>
+                      <div className="text-[12.5px] text-app-ink-soft">{t("find.from")}</div>
                       <div className="text-[16px] font-extrabold">{naira(row.startingPrice)}</div>
                     </div>
                   )}
                 </div>
                 <div className="grid gap-1 text-[13.5px]">
-                  <div><span className="text-app-ink-soft">Delivers to: </span>{areasSummary(partner.deliveryAreas)}</div>
+                  <div><span className="text-app-ink-soft">{t("find.deliversToLabel")} </span>{areasSummary(partner.deliveryAreas, 4, t)}</div>
                   <div className="flex flex-wrap gap-x-3 gap-y-1">
-                    {row.timeframe && <span><span className="text-app-ink-soft">Timeframe: </span>{row.timeframe}</span>}
-                    {row.pickupPointCount > 0 && <span>{row.pickupPointCount} pickup point{row.pickupPointCount === 1 ? "" : "s"}</span>}
-                    {row.stats.completed > 0 && <span>{row.stats.completed.toLocaleString("en-NG")} deliveries on Shopinbos</span>}
-                    {row.stats.onTimeRate !== null && <span>{row.stats.onTimeRate}% on time</span>}
+                    {row.timeframe && <span><span className="text-app-ink-soft">{t("find.timeframeLabel")} </span>{timeframeText(t, row.timeframe)}</span>}
+                    {row.pickupPointCount > 0 && <span>{t("find.pickupPoints", { count: row.pickupPointCount })}</span>}
+                    {row.stats.completed > 0 && <span>{t("find.deliveriesOnShopinbos", { count: row.stats.completed })}</span>}
+                    {row.stats.onTimeRate !== null && <span>{t("find.onTimePercent", { rate: `${row.stats.onTimeRate}` })}</span>}
                   </div>
                   <div className="flex flex-wrap gap-1.5">
-                    {partner.services.map((service) => <Pill key={service} tone="muted">{serviceWord(service)}</Pill>)}
-                    {partner.offersPayOnDelivery && <Pill tone="muted">Pay on delivery</Pill>}
+                    {partner.services.map((service) => <Pill key={service} tone="muted">{serviceLabel(t, service)}</Pill>)}
+                    {partner.offersPayOnDelivery && <Pill tone="muted">{t("pod.title")}</Pill>}
                   </div>
                 </div>
                 <div className="mt-auto flex flex-wrap gap-2">
-                  <PillLink href={`${detailBase}/${partner.slug}`} size="sm">View</PillLink>
+                  <PillLink href={`${detailBase}/${partner.slug}`} size="sm">{t("find.view")}</PillLink>
                   {row.connectionId ? (
-                    <Pill tone="success">Connected</Pill>
+                    <Pill tone="success">{t("connected")}</Pill>
                   ) : (
                     <form action={connectPartnerAction}>
                       <input type="hidden" name="partnerId" value={partner.id} />
                       <input type="hidden" name="back" value={`${back}#my-partners`} />
-                      <button type="submit" className={pillButton.ink}>Connect</button>
+                      <button type="submit" className={pillButton.ink}>{t("connect")}</button>
                     </form>
                   )}
                 </div>

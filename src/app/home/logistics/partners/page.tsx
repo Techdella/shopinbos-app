@@ -9,9 +9,12 @@ import { FlashNotice } from "@/components/delivery-market/bits";
 import { MyPartners } from "@/components/delivery-market/MyPartners";
 import { FindPartners } from "@/components/delivery-market/FindPartners";
 import { originLabel, readFindFilters, type FindSearch } from "@/components/delivery-market/find-filters";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Delivery partners" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT("delivery"))("partners.title") };
+}
 
 type Search = FindSearch & { saved?: string; error?: string };
 
@@ -22,6 +25,7 @@ export default async function DeliveryPartnersPage({ searchParams }: { searchPar
   const workspace = await getSellerWorkspace(user.id);
   if (!workspace) return null;
   const filters = readFindFilters(params);
+  const t = await getT("delivery");
   const [connections, cards, found] = await Promise.all([
     connectionsForOwner(user.id),
     privateCardsForOwner(user.id),
@@ -31,20 +35,20 @@ export default async function DeliveryPartnersPage({ searchParams }: { searchPar
   return (
     <AppPage
       frame={sellerFrame(user, workspace.store)}
-      title="Delivery partners"
-      sub="Connect delivery partners and choose what your customers see at checkout."
+      title={t("partners.title")}
+      sub={t("partners.sub")}
       actions={
         <>
-          <PillLink href="/home/logistics" icon="arrowLeft">Logistics</PillLink>
-          <PillLink href="/home/logistics/settings" icon="settings">Delivery settings</PillLink>
+          <PillLink href="/home/logistics" icon="arrowLeft">{t("logistics")}</PillLink>
+          <PillLink href="/home/logistics/settings" icon="settings">{t("settings.title")}</PillLink>
         </>
       }
     >
       <FlashNotice saved={params.saved} error={params.error} />
       {found.settings.checkoutMode !== "partners" && (
         <p className="mb-5 mt-0 rounded-[16px] bg-app-canvas px-4 py-3 text-[14px] leading-[1.5]">
-          Your checkout uses your own delivery zones. To show customers your partners&apos; options, switch &quot;Delivery at checkout&quot; to delivery partners in{" "}
-          <Link href="/home/logistics/settings" className="font-bold text-app-accent-ink no-underline hover:underline">Delivery settings</Link>.
+          {t("partners.zonesNote")}{" "}
+          <Link href="/home/logistics/settings" className="font-bold text-app-accent-ink no-underline hover:underline">{t("settings.title")}</Link>.
         </p>
       )}
       <div className="grid gap-8">

@@ -3,8 +3,10 @@
 import { useActionState, useId, useRef, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { Notice } from "@/components/app-ui";
-import { NATIONWIDE, NG_REGIONS, NG_STATES, RATE_SERVICES, SIZE_BANDS, SIZE_BAND_LABELS, type RateRow } from "@shared/delivery-market";
+import { NATIONWIDE, NG_REGIONS, NG_STATES, RATE_SERVICES, SIZE_BANDS, type RateRow } from "@shared/delivery-market";
 import { lgasOf } from "@shared/ng-lgas";
+import { useT } from "@/components/i18n/I18nProvider";
+import { sizeLabel } from "@/components/delivery-market/words";
 
 // The structured rate card editor (logistics marketplace, shared/delivery-market.ts validateRateCard): one row per
 // route, service and size, with a price and a timeframe. Used for the public card (/logistics/rates) and for private
@@ -55,7 +57,7 @@ export function RateCardEditor({
   notes = "",
   ownerUserId,
   defaultFrom = "",
-  submitLabel = "Save rate card",
+  submitLabel,
 }: {
   action: RateAction;
   initialRows: Array<Partial<RateRow>>;
@@ -68,6 +70,7 @@ export function RateCardEditor({
   defaultFrom?: string;
   submitLabel?: string;
 }) {
+  const t = useT("logistics", "delivery");
   const id = useId();
   const [state, formAction, pending] = useActionState(action, { error: null });
   // Row keys are stable and the same on the server and in the browser (they're part of the inputs' ids).
@@ -112,14 +115,14 @@ export function RateCardEditor({
       </datalist>
 
       <div className="hidden grid-cols-[minmax(0,1.3fr)_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,0.55fr)_minmax(0,0.55fr)_44px] gap-2 px-1 text-[13px] font-bold text-app-ink-soft lg:grid">
-        <span>From</span>
-        <span>To</span>
-        <span>Service</span>
-        <span>Size</span>
-        <span>Price (₦)</span>
-        <span>Min days</span>
-        <span>Max days</span>
-        <span className="sr-only">Remove</span>
+        <span>{t("market.editor.from")}</span>
+        <span>{t("market.editor.to")}</span>
+        <span>{t("market.editor.service")}</span>
+        <span>{t("market.editor.size")}</span>
+        <span>{t("market.editor.price")}</span>
+        <span>{t("market.editor.minDays")}</span>
+        <span>{t("market.editor.maxDays")}</span>
+        <span className="sr-only">{t("market.editor.remove")}</span>
       </div>
 
       <ol className="m-0 grid list-none gap-3 p-0 lg:gap-2">
@@ -136,50 +139,50 @@ export function RateCardEditor({
               ].join(" ")}
             >
               <div className="col-span-2 flex items-center justify-between lg:hidden">
-                <span className="text-[14px] font-extrabold">Rate {n}</span>
+                <span className="text-[14px] font-extrabold">{t("market.editor.rateN", { n })}</span>
               </div>
               <div className="min-w-0">
-                <label htmlFor={`${rid}-from`} className={label}>From</label>
-                <input id={`${rid}-from`} list={`${id}-places`} value={row.from} onChange={(event) => update(row.key, { from: event.target.value })} placeholder="Lagos" aria-label={`Row ${n} from`} className={cell} />
+                <label htmlFor={`${rid}-from`} className={label}>{t("market.editor.from")}</label>
+                <input id={`${rid}-from`} list={`${id}-places`} value={row.from} onChange={(event) => update(row.key, { from: event.target.value })} placeholder="Lagos" aria-label={t("market.editor.rowFrom", { n })} className={cell} />
               </div>
               <div className="min-w-0">
-                <label htmlFor={`${rid}-to`} className={label}>To</label>
-                <input id={`${rid}-to`} list={`${id}-places`} value={row.to} onChange={(event) => update(row.key, { to: event.target.value })} placeholder="Lagos: Ikeja" aria-label={`Row ${n} to`} className={cell} />
+                <label htmlFor={`${rid}-to`} className={label}>{t("market.editor.to")}</label>
+                <input id={`${rid}-to`} list={`${id}-places`} value={row.to} onChange={(event) => update(row.key, { to: event.target.value })} placeholder="Lagos: Ikeja" aria-label={t("market.editor.rowTo", { n })} className={cell} />
               </div>
               <div className="min-w-0">
-                <label htmlFor={`${rid}-service`} className={label}>Service</label>
-                <select id={`${rid}-service`} value={row.service} onChange={(event) => update(row.key, { service: event.target.value })} aria-label={`Row ${n} service`} className={cell}>
-                  {RATE_SERVICES.map((service) => <option key={service} value={service}>{SERVICE_WORDS[service] ?? service}</option>)}
+                <label htmlFor={`${rid}-service`} className={label}>{t("market.editor.service")}</label>
+                <select id={`${rid}-service`} value={row.service} onChange={(event) => update(row.key, { service: event.target.value })} aria-label={t("market.editor.rowService", { n })} className={cell}>
+                  {RATE_SERVICES.map((service) => <option key={service} value={service}>{t.dynamic(`market.editor.service.${service}`, SERVICE_WORDS[service] ?? service)}</option>)}
                 </select>
               </div>
               <div className="min-w-0">
-                <label htmlFor={`${rid}-size`} className={label}>Size</label>
-                <select id={`${rid}-size`} value={row.sizeBand} onChange={(event) => update(row.key, { sizeBand: event.target.value })} aria-label={`Row ${n} size`} className={cell}>
-                  {SIZE_BANDS.map((band) => <option key={band} value={band}>{SIZE_BAND_LABELS[band]}</option>)}
+                <label htmlFor={`${rid}-size`} className={label}>{t("market.editor.size")}</label>
+                <select id={`${rid}-size`} value={row.sizeBand} onChange={(event) => update(row.key, { sizeBand: event.target.value })} aria-label={t("market.editor.rowSize", { n })} className={cell}>
+                  {SIZE_BANDS.map((band) => <option key={band} value={band}>{sizeLabel(t, band)}</option>)}
                 </select>
               </div>
               <div className="col-span-2 min-w-0 lg:col-span-1">
-                <label htmlFor={`${rid}-price`} className={label}>Price (₦)</label>
-                <input id={`${rid}-price`} value={row.price} onChange={(event) => update(row.key, { price: event.target.value })} inputMode="decimal" placeholder="2500" aria-label={`Row ${n} price in naira`} className={cell} />
+                <label htmlFor={`${rid}-price`} className={label}>{t("market.editor.price")}</label>
+                <input id={`${rid}-price`} value={row.price} onChange={(event) => update(row.key, { price: event.target.value })} inputMode="decimal" placeholder="2500" aria-label={t("market.editor.rowPrice", { n })} className={cell} />
               </div>
               <div className="min-w-0">
-                <label htmlFor={`${rid}-min`} className={label}>Min days</label>
-                <input id={`${rid}-min`} value={sameDay ? "0" : row.minDays} disabled={sameDay} onChange={(event) => update(row.key, { minDays: event.target.value.replace(/\D/g, "") })} inputMode="numeric" aria-label={`Row ${n} minimum days`} className={cell} />
+                <label htmlFor={`${rid}-min`} className={label}>{t("market.editor.minDays")}</label>
+                <input id={`${rid}-min`} value={sameDay ? "0" : row.minDays} disabled={sameDay} onChange={(event) => update(row.key, { minDays: event.target.value.replace(/\D/g, "") })} inputMode="numeric" aria-label={t("market.editor.rowMin", { n })} className={cell} />
               </div>
               <div className="min-w-0">
-                <label htmlFor={`${rid}-max`} className={label}>Max days</label>
-                <input id={`${rid}-max`} value={sameDay ? "0" : row.maxDays} disabled={sameDay} onChange={(event) => update(row.key, { maxDays: event.target.value.replace(/\D/g, "") })} inputMode="numeric" aria-label={`Row ${n} maximum days`} className={cell} />
+                <label htmlFor={`${rid}-max`} className={label}>{t("market.editor.maxDays")}</label>
+                <input id={`${rid}-max`} value={sameDay ? "0" : row.maxDays} disabled={sameDay} onChange={(event) => update(row.key, { maxDays: event.target.value.replace(/\D/g, "") })} inputMode="numeric" aria-label={t("market.editor.rowMax", { n })} className={cell} />
               </div>
               <div className="col-span-2 flex justify-end lg:col-span-1">
                 <button
                   type="button"
                   onClick={() => remove(row.key)}
                   disabled={rows.length === 1}
-                  aria-label={`Remove row ${n}`}
+                  aria-label={t("market.editor.removeRow", { n })}
                   className="inline-flex h-11 min-w-[44px] items-center justify-center gap-1.5 rounded-full px-3 text-[14px] font-bold text-app-ink-soft transition hover:bg-app-canvas hover:text-app-danger disabled:opacity-40"
                 >
                   <Icon name="x" size={16} />
-                  <span className="lg:sr-only">Remove</span>
+                  <span className="lg:sr-only">{t("market.editor.remove")}</span>
                 </button>
               </div>
             </li>
@@ -189,22 +192,22 @@ export function RateCardEditor({
 
       <div>
         <button type="button" onClick={add} className="inline-flex min-h-[40px] items-center gap-2 rounded-full border border-app-line bg-white px-4 text-[15px] font-extrabold text-app-ink transition hover:border-app-line-strong">
-          <Icon name="plus" size={16} /> Add a rate
+          <Icon name="plus" size={16} /> {t("market.editor.add")}
         </button>
       </div>
 
       <div className="grid gap-3 border-t border-app-line pt-4 sm:grid-cols-2">
         <div className="min-w-0">
-          <label htmlFor={`${id}-failed`} className="mb-1.5 block text-[15px] font-bold">Failed delivery / re-attempt fee (₦)</label>
+          <label htmlFor={`${id}-failed`} className="mb-1.5 block text-[15px] font-bold">{t("market.editor.failedFee")}</label>
           <input id={`${id}-failed`} name="failedAttemptFee" value={failed} onChange={(event) => setFailed(event.target.value)} inputMode="decimal" placeholder="0" className={cell} />
         </div>
         <div className="min-w-0">
-          <label htmlFor={`${id}-return`} className="mb-1.5 block text-[15px] font-bold">Return-to-sender fee (₦)</label>
+          <label htmlFor={`${id}-return`} className="mb-1.5 block text-[15px] font-bold">{t("market.editor.returnFee")}</label>
           <input id={`${id}-return`} name="returnFee" value={returned} onChange={(event) => setReturned(event.target.value)} inputMode="decimal" placeholder="0" className={cell} />
         </div>
         <div className="min-w-0 sm:col-span-2">
-          <label htmlFor={`${id}-notes`} className="mb-1.5 block text-[15px] font-bold">Notes for businesses (optional)</label>
-          <textarea id={`${id}-notes`} name="notes" value={note} onChange={(event) => setNote(event.target.value)} rows={3} maxLength={500} placeholder="For example: fragile items need bubble wrap. We don't carry liquids." className="w-full min-w-0 rounded-[14px] border border-app-line bg-white px-3.5 py-2.5 text-[15px] leading-[1.5] text-app-ink outline-none transition placeholder:text-app-ink-faint focus:border-app-ink" />
+          <label htmlFor={`${id}-notes`} className="mb-1.5 block text-[15px] font-bold">{t("market.editor.notes")}</label>
+          <textarea id={`${id}-notes`} name="notes" value={note} onChange={(event) => setNote(event.target.value)} rows={3} maxLength={500} placeholder={t("market.editor.notesPlaceholder")} className="w-full min-w-0 rounded-[14px] border border-app-line bg-white px-3.5 py-2.5 text-[15px] leading-[1.5] text-app-ink outline-none transition placeholder:text-app-ink-faint focus:border-app-ink" />
         </div>
       </div>
 
@@ -216,9 +219,9 @@ export function RateCardEditor({
           disabled={pending}
           className="inline-flex min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-full bg-app-ink px-5 text-[15px] font-extrabold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-55"
         >
-          {pending ? "Saving…" : submitLabel}
+          {pending ? t("market.editor.saving") : submitLabel ?? t("market.editor.save")}
         </button>
-        <span className="text-[14px] text-app-ink-soft">{rows.length} {rows.length === 1 ? "rate" : "rates"}</span>
+        <span className="text-[14px] text-app-ink-soft">{t("market.editor.rateCount", { count: rows.length })}</span>
       </div>
     </form>
   );
