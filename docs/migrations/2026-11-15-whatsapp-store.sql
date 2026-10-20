@@ -13,3 +13,5 @@ CREATE TABLE IF NOT EXISTS "WhatsAppCart" (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS "WhatsAppCart_conversationId_key" ON "WhatsAppCart"("conversationId");
 CREATE INDEX IF NOT EXISTS "WhatsAppCart_storeId_updatedAt_idx" ON "WhatsAppCart"("storeId", "updatedAt");
+-- Only the server (Prisma) reads it, like the other tables.
+ALTER TABLE "WhatsAppCart" ENABLE ROW LEVEL SECURITY;
