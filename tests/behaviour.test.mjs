@@ -1564,10 +1564,10 @@ test("Rex's rebuilds, segments, campaigns and automations become the shapes the 
   assert.equal(rex.imageSizeFor(null), "1024x1024");
 });
 
-test("Rex Studio opens chat first with the eight starter cards", async () => {
+test("Rex Studio opens chat first with the nine starter cards, building the store first", async () => {
   const starters = await import("../src/lib/ai/rex/starters.ts");
   assert.deepEqual(starters.REX_STARTERS.map((starter) => starter.title), [
-    "Edit a product photo", "Generate product images", "Make a logo", "Make a product video",
+    "Build my whole store", "Edit a product photo", "Generate product images", "Make a logo", "Make a product video",
     "Change or rebuild a section of my store", "Build a campaign", "Set up an automation", "Write product descriptions",
   ]);
   assert.equal(starters.isPreviewRequest("Show me my store"), true);

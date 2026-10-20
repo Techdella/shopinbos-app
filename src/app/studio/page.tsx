@@ -37,7 +37,8 @@ export default async function StudioPage({ searchParams }: { searchParams?: Prom
 
   const products = await db.storeProduct
     .findMany({
-      where: { storeId: store.id, status: "published" },
+      // Rex's sample products are drafts until the seller checks them, but the preview shows them so a fresh build looks whole.
+      where: { storeId: store.id, OR: [{ status: "published" }, { status: "draft", tags: { has: "rex-sample" } }] },
       orderBy: { createdAt: "desc" },
       take: 60,
       select: {

@@ -6,10 +6,12 @@ export interface RexStarter {
   title: string;
   hint: string;
   prompt: string;
-  icon: "image" | "sparkle" | "palette" | "play" | "layers" | "megaphone" | "automation" | "edit";
+  icon: "image" | "sparkle" | "palette" | "play" | "layers" | "megaphone" | "automation" | "edit" | "wand";
 }
 
 export const REX_STARTERS: readonly RexStarter[] = [
+  // Opens the build setup (business, inspiration, how much Rex does) in Rex Studio.
+  { id: "build", title: "Build my whole store", hint: "Show Rex stores you like, screenshots or a template, and he builds every page", prompt: "Build my store", icon: "wand" },
   { id: "edit-photo", title: "Edit a product photo", hint: "Brighter, white background, cut-out or a lifestyle scene", prompt: "I want to edit one of my product photos.", icon: "image" },
   { id: "product-images", title: "Generate product images", hint: "New shots and banners from a description", prompt: "Make new pictures for one of my products.", icon: "sparkle" },
   { id: "logo", title: "Make a logo", hint: "Three ideas, tap one to use it", prompt: "Make a logo for my store.", icon: "palette" },
