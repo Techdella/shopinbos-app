@@ -257,6 +257,7 @@ const SupplierOrderFormSchema = z.object({
   trackingCode: OrderStatusUpdateSchema.shape.trackingCode,
   carrier: z.string().trim().max(60).optional(),
   reason: z.string().trim().max(500).optional(),
+  deliveryCode: z.string().trim().max(8).optional(),
 });
 
 /** /supplier/orders: accept, ship (with tracking), mark delivered or decline (with a reason) one of the supplier's orders. */
@@ -276,6 +277,7 @@ export async function updateSupplierOrderStatus(formData: FormData) {
     trackingCode: text("trackingCode"),
     carrier: text("carrier"),
     reason: text("reason"),
+    deliveryCode: text("deliveryCode"),
   });
   const back = (query: Record<string, string>) => {
     const params = new URLSearchParams(query);
@@ -287,9 +289,9 @@ export async function updateSupplierOrderStatus(formData: FormData) {
     return `/supplier/orders?${params.toString()}`;
   };
   if (!parsed.success) redirect(back({ error: "Choose a valid order action." }));
-  if (parsed.data.action === "ship" && !parsed.data.trackingCode) redirect(back({ error: "Add the tracking code before you mark it shipped." }));
+  if (parsed.data.action === "ship" && !parsed.data.trackingCode && text("selfDelivery") !== "1") redirect(back({ error: "Add the tracking code before you mark it shipped." }));
 
-  const input = { supplierId: supplier.id, orderId: parsed.data.orderId, action: parsed.data.action, trackingCode: parsed.data.trackingCode, carrier: parsed.data.carrier, reason: parsed.data.reason };
+  const input = { supplierId: supplier.id, orderId: parsed.data.orderId, action: parsed.data.action, trackingCode: parsed.data.trackingCode, carrier: parsed.data.carrier, reason: parsed.data.reason, deliveryCode: parsed.data.deliveryCode };
   const result = parsed.data.kind === "dropship" ? await moveSupplierOrder(input) : await moveWholesaleOrder(input);
   if (!result.ok) redirect(back({ error: result.message }));
 

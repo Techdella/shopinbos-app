@@ -614,6 +614,8 @@ const en = {
   "agr.back": "Back",
   "agr.accept": "Accept the agreement",
   "agr.decline": "Decline",
+  "orders.selfStart": "I’m on my way to deliver it",
+  "orders.selfCode": "Customer’s 4-digit code",
 } satisfies Record<string, string>;
 
 export default en;

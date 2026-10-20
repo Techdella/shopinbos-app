@@ -7,7 +7,8 @@ import { text, withOwner } from "../_shared";
 export const dynamic = "force-dynamic";
 
 // PUT /api/mobile/delivery/settings: "Where I sell", "Where I ship from" and the business's own options. Suppliers
-// only say where they ship from and their usual parcel size; checkout choices are the shop's (as on the web).
+// say where they ship from, their usual parcel size and whether they deliver orders themselves ("I deliver myself":
+// fee and states); checkout choices are the shop's (as on the web).
 export const PUT = withOwner(async (req: NextRequest, { user }) => {
   const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
   if (!body) return apiError("BAD_REQUEST", "Fill in your delivery settings first.");
@@ -20,7 +21,14 @@ export const PUT = withOwner(async (req: NextRequest, { user }) => {
   const sellStates = Array.isArray(body.sellStates) ? body.sellStates.map((value) => text(value, 40)).filter(Boolean) : undefined;
   const input: SettingsInput =
     user.role === "supplier"
-      ? { ...where, sellArea: body.sellArea === undefined ? undefined : text(body.sellArea, 20), sellStates }
+      ? {
+          ...where,
+          sellArea: body.sellArea === undefined ? undefined : text(body.sellArea, 20),
+          sellStates,
+          selfDelivery: body.selfDelivery === undefined ? undefined : body.selfDelivery === true,
+          selfDeliveryFee: body.selfDeliveryFee === undefined ? undefined : text(body.selfDeliveryFee, 20) || "0",
+          selfDeliveryStates: Array.isArray(body.selfDeliveryStates) ? body.selfDeliveryStates.map((value) => text(value, 40)).filter(Boolean) : undefined,
+        }
       : {
           ...where,
           sellArea: body.sellArea === undefined ? undefined : text(body.sellArea, 20),

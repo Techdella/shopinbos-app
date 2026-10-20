@@ -3,6 +3,8 @@ import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { createNotification } from "@/lib/notifications/create";
 import { acceptByFor, messageSupplierPhone } from "./deadline.server";
+import { makeDeliveryCode } from "@/lib/logistics/job-rules";
+import { readDeliveryPlan, supplierSelfShipments } from "@shared/delivery-market";
 import {
   groupDropshipLines,
   plainText,
@@ -44,10 +46,14 @@ export async function ensureSupplierOrders(retailOrderId: string): Promise<{ cre
     where: { id: retailOrderId },
     select: {
       id: true, storeId: true, status: true, paymentMethod: true, items: true, deliveryAddress: true, buyerName: true, buyerPhone: true,
-      currency: true, orderNumber: true, store: { select: { userId: true, name: true } },
+      currency: true, orderNumber: true, logisticsDetails: true, store: { select: { userId: true, name: true } },
     },
   });
   if (!order || !readyForSuppliers(order)) return { created: 0 };
+  // Parcels the customer chose the supplier's own delivery for: the supplier delivers it, earns the fee and gets
+  // the customer's code on arrival (shared/delivery-market.ts selfDeliveryPart).
+  const plan = readDeliveryPlan(order.logisticsDetails);
+  const selfFee = new Map((plan ? supplierSelfShipments(plan) : []).map((part) => [part.shipmentKey.slice("supplier:".length), part.price]));
 
   const productIds = [...new Set((Array.isArray(order.items) ? order.items : []).map((item) => (item as { productId?: unknown })?.productId).filter((id): id is string => typeof id === "string"))];
   if (!productIds.length) return { created: 0 };
@@ -101,6 +107,7 @@ export async function ensureSupplierOrders(retailOrderId: string): Promise<{ cre
           recipientName: order.buyerName,
           recipientPhone: order.buyerPhone,
           acceptBy: (deadlines.get(group.supplierId) ?? acceptByFor("dropship", null, now)).acceptBy,
+          ...(selfFee.has(group.supplierId) ? { selfDelivery: true, deliveryFee: selfFee.get(group.supplierId)!, deliveryCode: makeDeliveryCode() } : {}),
         },
         select: { id: true },
       });
@@ -189,6 +196,9 @@ export async function cancelSupplierOrdersFor(retailOrderId: string) {
 
 // ─── Supplier moves a dropship order ─────────────────────────────────────────
 
+/** The carrier saved on a parcel the supplier delivers itself. */
+export const SELF_DELIVERY_CARRIER = "Supplier's own delivery";
+
 export interface MoveInput {
   supplierId: string;
   orderId: string;
@@ -196,14 +206,20 @@ export interface MoveInput {
   trackingCode?: string | null;
   carrier?: string | null;
   reason?: string | null;
+  /** The customer's 4-digit code, to mark a parcel the supplier delivers itself as delivered. */
+  deliveryCode?: string | null;
 }
 
 export async function moveSupplierOrder(input: MoveInput): Promise<ServiceResult<{ id: string; status: string }>> {
   const order = await db.supplierOrder.findFirst({
     where: { id: input.orderId, supplierId: input.supplierId },
-    select: { id: true, status: true, retailOrderId: true, storeId: true, sellerId: true, trackingCode: true, supplier: { select: { displayName: true } }, retailOrder: { select: { orderNumber: true } } },
+    select: { id: true, status: true, retailOrderId: true, storeId: true, sellerId: true, trackingCode: true, selfDelivery: true, deliveryCode: true, supplier: { select: { displayName: true } }, retailOrder: { select: { orderNumber: true } } },
   });
   if (!order) return { ok: false, code: "NOT_FOUND", message: "Order not found" };
+  // The supplier delivers this one itself: it's delivered only with the code we texted the customer.
+  if (order.selfDelivery && input.action === "deliver" && order.deliveryCode && input.deliveryCode?.trim() !== order.deliveryCode) {
+    return { ok: false, code: "BAD_REQUEST", message: input.deliveryCode?.trim() ? "That code isn't right. Ask the customer to check the text we sent them." : "Enter the 4-digit code the customer gives you." };
+  }
   if (order.status === "expired") return { ok: false, code: "CONFLICT", message: TIME_RAN_OUT };
   const next = supplierOrderStatusAfter(order.status, input.action);
   if (!next) return { ok: false, code: "CONFLICT", message: "This order has already moved on. Refresh to see where it is." };
@@ -219,6 +235,7 @@ export async function moveSupplierOrder(input: MoveInput): Promise<ServiceResult
     if (order.status === "pending") data.acceptedAt = now;
     if (trackingCode) data.trackingCode = trackingCode;
     if (input.carrier?.trim()) data.carrier = input.carrier.trim();
+    if (order.selfDelivery) data.carrier = SELF_DELIVERY_CARRIER;
   }
   if (next === "delivered") data.deliveredAt = now;
   if (next === "rejected") {
@@ -236,6 +253,10 @@ export async function moveSupplierOrder(input: MoveInput): Promise<ServiceResult
   await syncRetailOrder(order.retailOrderId, next === "shipped" ? trackingCode ?? order.trackingCode : null).catch((error) => {
     console.error(`[supplier orders] could not move store order ${order.retailOrderId}`, error);
   });
+  if (next === "shipped" && order.selfDelivery && order.deliveryCode) {
+    const { textSelfDeliveryCode } = await import("@/lib/notifications/customer-messages");
+    await textSelfDeliveryCode(order.retailOrderId, order.deliveryCode);
+  }
 
   const supplierName = plainText(order.supplier.displayName) || "Your supplier";
   const ref = order.retailOrder.orderNumber;

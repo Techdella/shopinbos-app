@@ -596,6 +596,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "agr.back": "Padà",
   "agr.accept": "Gba àdéhùn náà",
   "agr.decline": "Kọ̀ ọ́",
+  "orders.selfStart": "Mo ti n lọ fi jiṣẹ",
+  "orders.selfCode": "Kóòdù oní-nọ́mbà mẹ́rin ti oníbàárà",
 };
 
 export default yo;

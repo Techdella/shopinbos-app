@@ -255,6 +255,10 @@ export interface BookPickupInput {
 
 /** Books (or moves) the rider for a packed order. */
 export async function bookPickup(input: BookPickupInput, now = new Date()): Promise<{ ok: true; data: PickupState } | Fail> {
+  // The customer chose the supplier's own delivery for this parcel: no rider to book.
+  if (input.kind === "dropship" && (await db.supplierOrder.findFirst({ where: { id: input.orderId, supplierId: input.supplierId, selfDelivery: true }, select: { id: true } }))) {
+    return { ok: false, code: "CONFLICT", message: "You deliver this order yourself, so there's no rider to book." };
+  }
   const order = await loadOrder(input.supplierId, input.kind, input.orderId);
   if (!order) return { ok: false, code: "NOT_FOUND", message: "Order not found" };
   if (order.packable) {

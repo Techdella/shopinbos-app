@@ -596,6 +596,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "agr.back": "Koma baya",
   "agr.accept": "Amince da yarjejeniyar",
   "agr.decline": "Ƙi",
+  "orders.selfStart": "Ina kan hanya don kai shi",
+  "orders.selfCode": "Lambar abokin ciniki mai lambobi 4",
 };
 
 export default ha;

@@ -1014,6 +1014,11 @@ model SupplierOrder {
   replacesId      String?
   /// The seller pressed Undo before this supplier accepted (status cancelled).
   undoneAt        DateTime?
+  /// The supplier delivers this parcel itself (the customer chose its delivery at checkout): the fee it earns and
+  /// the 4-digit code the customer gives it on arrival.
+  selfDelivery    Boolean   @default(false)
+  deliveryFee     Float     @default(0)
+  deliveryCode    String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
@@ -1429,6 +1434,11 @@ model DeliverySettings {
   defaultSizeBand    String   @default("small")
   /// Who pays a partner's re-attempt fee after a failed delivery: seller | customer.
   failedFeePayer     String   @default("seller")
+  /// A supplier that delivers its own parcels ("I deliver myself"): offered at checkout for its dropship items.
+  selfDelivery       Boolean  @default(false)
+  selfDeliveryFee    Float    @default(0)
+  /// States it drives to; empty means the state it ships from.
+  selfDeliveryStates String[] @default([])
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 

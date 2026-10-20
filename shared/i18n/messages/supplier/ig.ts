@@ -596,6 +596,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "agr.back": "Laghachi",
   "agr.accept": "Nabata nkwekọrịta ahụ",
   "agr.decline": "Jụ",
+  "orders.selfStart": "Anọ m n’ụzọ iji nyefee ya",
+  "orders.selfCode": "Koodu ọnụọgụ anọ nke onye ahịa",
 };
 
 export default ig;

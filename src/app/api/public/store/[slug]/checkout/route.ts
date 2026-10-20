@@ -37,7 +37,7 @@ import { startKorapayCheckout } from "@/lib/commerce/korapay-orders.server";
 import { paystackSplitParams } from "@/lib/wallet/rules";
 import { initializePaystackTransaction } from "@/lib/paystack";
 import { cancelUnstartedOrder } from "@/lib/commerce/order-expiry.server";
-import { partnerShipments, planFromOption } from "@shared/delivery-market";
+import { partnerShipments, planFromOption, supplierSelfShipments } from "@shared/delivery-market";
 import { checkCheckoutPhoneToken } from "@/lib/commerce/phone-verify.server";
 
 const CHECKOUT_CORS = { methods: ["POST", "OPTIONS"], headers: ["Content-Type"] };
@@ -183,6 +183,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   }
   const deliveryPlan = market?.option ? planFromOption(market.option) : null;
   const partnerParcels = deliveryPlan ? partnerShipments(deliveryPlan) : [];
+  // A supplier delivering its own parcel texts the customer a code to give on arrival, and is paid its fee in the split.
+  const selfParcels = deliveryPlan ? supplierSelfShipments(deliveryPlan) : [];
+  if (selfParcels.length && !buyerPhone) {
+    return withCors(req, apiError("BAD_REQUEST", "Add a phone number so we can text you your delivery code."), CHECKOUT_CORS);
+  }
   if (partnerParcels.length && !buyerPhone) {
     return withCors(req, apiError("BAD_REQUEST", "Add a phone number so the delivery partner can reach you."), CHECKOUT_CORS);
   }
@@ -208,6 +213,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   const paymentSettings = checkoutPaymentSettings(store.brandSettings, shippingZones, cardsReady, await storeTakesKorapay(store.id));
   const paymentContext = { city: deliveryAddress.city, state: deliveryAddress.state, total };
   // Pay on delivery with a delivery partner is agreed per partner (both the shop and the partner opt in, spec §8).
+  if (paymentMethod === "pay_on_delivery" && selfParcels.length) {
+    return withCors(req, apiError("BAD_REQUEST", "Pay on delivery isn't available with this delivery option. Choose another way to pay."), CHECKOUT_CORS);
+  }
   const partnerPod = paymentMethod === "pay_on_delivery" && partnerParcels.length > 0;
   if (partnerPod && !deliveryPlan?.pod) {
     return withCors(req, apiError("BAD_REQUEST", "Pay on delivery isn't available with this delivery option. Choose another way to pay."), CHECKOUT_CORS);
@@ -307,9 +315,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   // (stock and discount given back) and the shopper can try again.
   // Each partner's delivery fee goes straight to the partner in the split (Shopinbos never holds it).
   const deliveryShares = partnerParcels.map((part) => ({ shipmentKey: part.shipmentKey, partnerId: part.partnerId!, naira: part.price }));
+  const selfShares = selfParcels.map((part) => ({ supplierId: part.shipmentKey.slice("supplier:".length), naira: part.price }));
   let paystackData: { authorization_url: string; access_code: string | null; reference: string } | null = null;
   if (paymentMethod === "paystack") {
-    const plan = await splitPlanForOrder(store.id, orderItems, total, "paystack", shippingFee, order.id, deliveryShares);
+    const plan = await splitPlanForOrder(store.id, orderItems, total, "paystack", shippingFee, order.id, deliveryShares, selfShares);
     try {
       if (!plan) throw new Error("the store's wallet can't take card payments");
       const started = await initializePaystackTransaction({
@@ -332,7 +341,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   // Korapay: the same, with Korapay Split Payments. The page shows Korapay's checkout in a frame on the store.
   let korapayData: { checkoutUrl: string } | null = null;
   if (paymentMethod === "korapay") {
-    const plan = await splitPlanForOrder(store.id, orderItems, total, "korapay", shippingFee, order.id, deliveryShares);
+    const plan = await splitPlanForOrder(store.id, orderItems, total, "korapay", shippingFee, order.id, deliveryShares, selfShares);
     try {
       if (!plan) throw new Error("the store's wallet can't take Korapay payments");
       korapayData = await startKorapayCheckout({ ...order, total: Number(order.total) }, store, buildStorefrontUrl(store, `/order/${order.id}`), plan);

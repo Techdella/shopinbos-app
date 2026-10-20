@@ -596,6 +596,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "agr.back": "Go back",
   "agr.accept": "Accept the agreement",
   "agr.decline": "Decline",
+  "orders.selfStart": "I don comot to deliver am",
+  "orders.selfCode": "Customer 4-digit code",
 };
 
 export default pcm;
