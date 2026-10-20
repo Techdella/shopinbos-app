@@ -14,7 +14,7 @@ export const POST = withAdmin(async (req: NextRequest, { user, params }) => {
   try {
     const body = await readBody(req);
     const fields = body?.fields ?? {};
-    const parsed = agentReplySchema.safeParse({ ...fields, internal: fields.internal === true || fields.internal === "true", status: fields.status || undefined, macroId: fields.macroId || undefined });
+    const parsed = agentReplySchema.safeParse({ ...fields, internal: fields.internal === true || fields.internal === "true", asPeggy: fields.asPeggy === true || fields.asPeggy === "true", status: fields.status || undefined, macroId: fields.macroId || undefined });
     if (!body || !parsed.success) return apiError("BAD_REQUEST", "Write a reply or attach a file.");
     const problem = filesProblem(body.files);
     if (problem) return apiError("BAD_REQUEST", problem);

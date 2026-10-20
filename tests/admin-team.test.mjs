@@ -104,3 +104,39 @@ test("inbox whatsapp: STOP replies", () => {
   assert.equal(wa.isStopMessage("Stop promotions"), true);
   assert.equal(wa.isStopMessage("please don't stop"), false);
 });
+
+const peggy = await import("../src/lib/support/peggy-pure.ts");
+const knowledge = await import("../src/lib/support/peggy-knowledge.ts");
+
+test("peggy: replies go on the conversation's own channel, formatted for it", () => {
+  assert.equal(peggy.peggyChannel("whatsapp", true), "whatsapp");
+  assert.equal(peggy.peggyChannel("web", true), "email");
+  assert.equal(peggy.peggyChannel("web", false), "app");
+  assert.match(peggy.peggyFormat("email", "Adishi Emmanuel"), /Hi Adishi,/);
+  assert.match(peggy.peggyFormat("whatsapp", ""), /greet there/);
+});
+
+test("peggy: answers by herself only when switched on, it's their turn and no person is on it", () => {
+  const now = Date.parse("2026-10-20T12:00:00Z");
+  const on = { autoReply: ["whatsapp", "web"] };
+  const theirs = [{ authorType: "user", createdAt: "2026-10-20T11:59:00Z" }];
+  assert.deepEqual(peggy.peggyMayAutoReply({ settings: on, source: "whatsapp", hasEmail: false, status: "open", messages: theirs, now }), { ok: true });
+  assert.equal(peggy.peggyMayAutoReply({ settings: { autoReply: [] }, source: "whatsapp", hasEmail: false, status: "open", messages: theirs, now }).ok, false);
+  assert.equal(peggy.peggyMayAutoReply({ settings: on, source: "email", hasEmail: true, status: "open", messages: theirs, now }).ok, false);
+  assert.equal(peggy.peggyMayAutoReply({ settings: on, source: "web", hasEmail: false, status: "open", messages: theirs, now }).ok, false);
+  const human = [...theirs, { authorType: "agent", createdAt: "2026-10-20T08:00:00Z" }];
+  assert.deepEqual(peggy.peggyMayAutoReply({ settings: on, source: "whatsapp", hasEmail: false, status: "open", messages: human, now }), { ok: false, reason: "human" });
+  const lastWasPeggy = [{ authorType: "ai", createdAt: "2026-10-20T11:59:00Z" }];
+  assert.equal(peggy.peggyMayAutoReply({ settings: on, source: "whatsapp", hasEmail: false, status: "open", messages: lastWasPeggy, now }).ok, false);
+  const busy = [...theirs, ...Array.from({ length: 4 }, () => ({ authorType: "ai", createdAt: "2026-10-20T10:00:00Z" }))];
+  assert.deepEqual(peggy.peggyMayAutoReply({ settings: on, source: "whatsapp", hasEmail: false, status: "open", messages: busy, now }), { ok: false, reason: "limit" });
+});
+
+test("peggy: her fact sheet sticks to what the app does", () => {
+  const facts = knowledge.PEGGY_FACTS;
+  for (const phrase of ["yourshop.mybos.store", "1 November 2026", "22 October 2026", "https://app.shopinbos.com/supplier/signup", "https://app.shopinbos.com/logistics/signup", "+1 711-695-1381", "support@shopinbos.com"]) assert.ok(facts.includes(phrase), phrase);
+  assert.ok(!/\bchip\b/i.test(facts));
+  assert.ok(!/shopinbos-app\.vercel\.app/.test(facts));
+  assert.match(facts, /OPay is not live/);
+  assert.match(facts, /WooCommerce[^.]*coming soon/i);
+});

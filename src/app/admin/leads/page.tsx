@@ -1,6 +1,6 @@
 import { AppPage, EmptyState, FilterChips, Pill, PillLink, SearchForm, StatTile, type Tone } from "@/components/app-kit";
 import { adminFrame, buttonClass, fieldClass, withParams } from "@/components/admin/AdminKit";
-import { addLeadManually, importLeadsCsv, setWebsiteLeadStatus } from "@/app/actions/admin-website-leads";
+import { addLeadManually, importLeadsCsv, replyToLead, setWebsiteLeadStatus } from "@/app/actions/admin-website-leads";
 import { Notice } from "@/components/app-ui";
 import { CHANNEL_LABELS, LEAD_ROLES, type LeadChannel } from "@/lib/lead-growth/pure";
 import { leadMessages } from "@/lib/lead-growth/service.server";
@@ -167,6 +167,10 @@ export default async function AdminLeadsPage(props: { searchParams?: Promise<Sea
                       </p>
                     )}
                   </div>
+                  <form action={replyToLead}>
+                    <input type="hidden" name="id" value={lead.id} />
+                    <button type="submit" className={buttonClass("ink", "sm")}>{lead.message ? "Reply" : "Message"}</button>
+                  </form>
                   <form action={setWebsiteLeadStatus} className="flex flex-wrap items-center gap-2">
                     <input type="hidden" name="id" value={lead.id} />
                     <label className="sr-only" htmlFor={`st-${lead.id}`}>Status</label>
