@@ -44,6 +44,7 @@ foreach ( [
 	'showcase',
 	'trends',
 	'join',
+	'pricing',
 	'admin-menu',
 	'schema',
 	'seo',

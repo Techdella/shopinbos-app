@@ -1,0 +1,138 @@
+{
+ "updated": "2026-10-20",
+ "audiences": {
+  "sellers": {
+   "label": "Sellers",
+   "title": "Plans for sellers",
+   "lead": "Start free. Paid plans lower your fee on every sale and unlock your own domain, more products, staff and AI credits.",
+   "signup": "signup",
+   "plans": [
+    { "key": "free", "name": "Free", "for": "For trying it out and your first orders", "month": 0, "year": 0, "fee": "3% per sale", "cta": "Start free",
+      "points": ["Store on yourname.shopinbos.com", "Up to 20 products", "Sell on WhatsApp, Instagram and TikTok", "Self-pickup and doorstep delivery at checkout", "20 AI credits a month"] },
+    { "key": "starter", "name": "Starter", "for": "For new shops getting regular orders", "month": 6000, "year": 60000, "fee": "2% per sale", "cta": "Start with Starter",
+      "points": ["Everything in Free", "Your own domain", "Up to 200 products and all themes", "Sell in up to 5 states", "Branded tracking page", "150 AI credits a month"] },
+    { "key": "growth", "name": "Growth", "for": "For shops selling every day", "month": 18000, "year": 180000, "fee": "1% per sale", "cta": "Start with Growth", "popular": true,
+      "points": ["Everything in Starter", "Unlimited products, sell nationwide", "Pay on delivery", "5 staff accounts", "200 delivery updates by SMS or WhatsApp a month", "500 AI credits a month"] },
+    { "key": "pro", "name": "Pro", "for": "For brands with a team", "month": 40000, "year": 400000, "fee": "0.5% per sale", "cta": "Start with Pro",
+      "points": ["Everything in Growth", "15 staff accounts", "Unlimited delivery partners", "1,000 delivery updates a month", "Priority support and priority imports", "1,500 AI credits a month"] }
+   ],
+   "table": [
+    { "group": "Plan" },
+    { "label": "Monthly price", "values": ["₦0", "₦6,000", "₦18,000", "₦40,000"] },
+    { "label": "Yearly price (2 months free)", "values": ["—", "₦60,000", "₦180,000", "₦400,000"] },
+    { "label": "Fee on each store sale", "values": ["3%", "2%", "1%", "0.5%"] },
+    { "label": "Products", "values": ["20", "200", "Unlimited", "Unlimited"] },
+    { "label": "Store address", "values": ["yourname.shopinbos.com", "Your own domain", "Your own domain", "Your own domain"] },
+    { "label": "Themes", "values": ["Basic", "All themes", "All, plus seasonal campaigns", "All, plus priority support"] },
+    { "label": "Staff accounts", "values": ["1", "2", "5", "15"] },
+    { "label": "AI credits a month", "values": ["20", "150", "500", "1,500"] },
+    { "group": "Delivery" },
+    { "label": "Where you can sell", "values": ["1 state", "Up to 5 states", "Nationwide", "Nationwide"] },
+    { "label": "Connected delivery partners", "values": ["1", "3", "10", "Unlimited"] },
+    { "label": "Self-pickup at checkout", "values": [true, true, true, true] },
+    { "label": "Doorstep and pickup-point delivery", "values": [true, true, true, true] },
+    { "label": "Your own negotiated delivery rates", "values": [false, true, true, true] },
+    { "label": "Branded tracking page", "values": [false, true, true, true] },
+    { "label": "Problem deliveries inbox and switching partner", "values": [false, false, true, true] },
+    { "label": "Pay on delivery", "values": [false, false, true, true] },
+    { "label": "Delivery updates by SMS or WhatsApp", "values": ["Pay as you go", "Pay as you go", "200 a month included", "1,000 a month included"] },
+    { "group": "Products from suppliers" },
+    { "label": "Browse the supplier marketplace", "values": [true, true, true, true] },
+    { "label": "Dropship products", "values": ["5", "50", "Unlimited", "Unlimited"] },
+    { "label": "Wholesale orders", "values": [true, true, true, true] },
+    { "label": "Import from China", "values": ["Browse only", true, true, "Yes, with priority"] }
+   ]
+  },
+  "suppliers": {
+   "label": "Suppliers",
+   "title": "Plans for suppliers",
+   "lead": "Joining and verification are free. You pay a small commission only when a shop sells your product, and less on a paid plan.",
+   "signup": "supplier_signup",
+   "plans": [
+    { "key": "free", "name": "Free (Verified)", "for": "For getting your products in front of shops", "month": 0, "year": 0, "fee": "6% per marketplace order", "cta": "Join free",
+      "points": ["Free verification and badge", "Up to 30 products", "Shops can dropship your products", "2 connected delivery partners", "20 AI credits a month"] },
+    { "key": "plus", "name": "Supplier Plus", "for": "For growing catalogues", "month": 10000, "year": 100000, "fee": "4% per marketplace order", "cta": "Start with Plus", "popular": true,
+      "points": ["Everything in Free", "Up to 500 products and bulk upload", "Boosted in search", "Full sales and shop analytics", "Your own delivery rates", "200 AI credits a month"] },
+    { "key": "pro", "name": "Supplier Pro", "for": "For big wholesalers and brands", "month": 30000, "year": 300000, "fee": "3% per marketplace order", "cta": "Start with Pro",
+      "points": ["Everything in Plus", "Unlimited products", "Top placement in search", "2 featured weeks a month included", "Broadcast to shops that follow you", "600 AI credits a month"] }
+   ],
+   "table": [
+    { "group": "Plan" },
+    { "label": "Monthly price", "values": ["₦0", "₦10,000", "₦30,000"] },
+    { "label": "Yearly price (2 months free)", "values": ["—", "₦100,000", "₦300,000"] },
+    { "label": "Verification and badge", "values": ["Free", true, true] },
+    { "label": "Commission on each marketplace order", "values": ["6%", "4%", "3%"] },
+    { "label": "Product listings", "values": ["30", "500", "Unlimited"] },
+    { "label": "Bulk upload (CSV)", "values": [false, true, true] },
+    { "label": "Let shops dropship your products", "values": [true, true, true] },
+    { "group": "Growth" },
+    { "label": "Sales and shop analytics", "values": ["Basic", "Full", "Full, with export"] },
+    { "label": "Search placement", "values": ["Standard", "Boosted", "Priority"] },
+    { "label": "Featured on the sellers' marketplace", "values": [false, "Pay per boost", "2 weeks a month included"] },
+    { "label": "Messaging shops", "values": [true, true, "Yes, plus broadcasts to followers"] },
+    { "group": "Delivery" },
+    { "label": "Connected delivery partners", "values": ["2", "10", "Unlimited"] },
+    { "label": "Your own negotiated delivery rates", "values": [false, true, true] },
+    { "label": "AI credits a month", "values": ["20", "200", "600"] }
+   ]
+  },
+  "delivery": {
+   "label": "Delivery partners",
+   "title": "Plans for delivery partners",
+   "lead": "Joining and verification are free. You pay a small fee only on delivery fees you earn through Shopinbos, and less on a paid plan.",
+   "signup": "partner_signup",
+   "plans": [
+    { "key": "free", "name": "Free (Verified)", "for": "For riders and new delivery companies", "month": 0, "year": 0, "fee": "5% of each delivery fee", "cta": "Join free",
+      "points": ["Free verification and badge", "Cover up to 3 states", "3 pickup points", "Public rate card and jobs dashboard", "10 AI credits a month"] },
+    { "key": "plus", "name": "Logistics Plus", "for": "For growing delivery companies", "month": 8000, "year": 80000, "fee": "3% of each delivery fee", "cta": "Start with Plus", "popular": true,
+      "points": ["Everything in Free", "Cover up to 15 states", "20 pickup points", "Private rates for your sellers", "Boosted when sellers pick a partner", "100 AI credits a month"] },
+    { "key": "pro", "name": "Logistics Pro", "for": "For national networks", "month": 25000, "year": 250000, "fee": "2% of each delivery fee", "cta": "Start with Pro",
+      "points": ["Everything in Plus", "Nationwide, unlimited pickup points", "Top of results in your areas", "Featured partner badge included", "Full analytics with export", "300 AI credits a month"] }
+   ],
+   "table": [
+    { "group": "Plan" },
+    { "label": "Monthly price", "values": ["₦0", "₦8,000", "₦25,000"] },
+    { "label": "Yearly price (2 months free)", "values": ["—", "₦80,000", "₦250,000"] },
+    { "label": "Verification and badge", "values": ["Free", true, true] },
+    { "label": "Fee on each delivery fee earned", "values": ["5%", "3%", "2%"] },
+    { "label": "Coverage", "values": ["Up to 3 states", "Up to 15 states", "Nationwide"] },
+    { "label": "Pickup points", "values": ["3", "20", "Unlimited"] },
+    { "label": "Public rate card and jobs dashboard", "values": [true, true, true] },
+    { "label": "Private rates for sellers", "values": [false, true, true] },
+    { "group": "Growth" },
+    { "label": "Performance analytics", "values": ["Basic", "Full", "Full, with export"] },
+    { "label": "Placement when sellers pick a partner", "values": ["Standard", "Boosted", "Top of results in your areas"] },
+    { "label": "Featured partner badge and spot", "values": [false, "Pay per boost", "Included"] },
+    { "label": "Sellers you can work with", "values": ["Unlimited", "Unlimited", "Unlimited"] },
+    { "label": "AI credits a month", "values": ["10", "100", "300"] }
+   ]
+  }
+ },
+ "boosts": [
+  ["Featured supplier on the sellers' marketplace home", "₦3,000 a week"],
+  ["Featured delivery partner in a state's results", "₦2,000 a week per state"],
+  ["Boosted product in supplier search", "₦1,000 a week per product"]
+ ],
+ "credit_packs": [
+  ["Small", "₦2,000", "200"],
+  ["Medium", "₦5,000", "550"],
+  ["Large", "₦10,000", "1,200"],
+  ["Business", "₦25,000", "3,200"]
+ ],
+ "credit_costs": {
+  "Sellers": [
+   ["Product title and description", "2"], ["SEO tags or meta description", "1"], ["Remove an image background", "3"], ["Enhance or create a lifestyle product photo", "10"], ["Social media caption or ad copy", "2"], ["Translate a listing (Pidgin, Yoruba, Hausa, Igbo)", "1"], ["AI store setup (theme, sections, sample copy)", "20"], ["Seasonal campaign builder", "10"], ["AI chat replies to your customers", "1 per conversation"], ["Sales insights report", "5"]
+  ],
+  "Suppliers": [
+   ["Bulk product descriptions", "1 per product"], ["Sort and tag your catalogue", "1 per 5 products"], ["Clean up or translate imported China listings", "2 per product"], ["Product photo clean-up", "3"], ["Auto-replies to shop questions", "1 per conversation"]
+  ],
+  "Delivery partners": [
+   ["Build a rate card from your price list (PDF or photo)", "10"], ["Coverage and pickup point listings", "5"], ["Auto-replies to seller chats", "1 per conversation"], ["Performance summary report", "5"]
+  ]
+ },
+ "addons": [
+  ["SMS pack", "₦4,000 per 500 SMS"],
+  ["WhatsApp message pack", "₦5,000 per 500 messages"],
+  ["Extra staff account", "₦1,000 a month per person"]
+ ]
+}

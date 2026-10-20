@@ -162,7 +162,7 @@ function sib_render_join(): string {
 
 	$faq = [
 		[ __( 'When does Shopinbos open?', 'shopinbos' ), sprintf( __( 'On %s. People on the waitlist get their sign-up link first, on WhatsApp.', 'shopinbos' ), wp_date( 'j F Y', function_exists( 'sib_launch_ts' ) ? sib_launch_ts() : time() ) ) ],
-		[ __( 'Is it free?', 'shopinbos' ), __( 'Joining the waitlist is free. Sellers can start on the free Starter plan; suppliers and delivery partners join free.', 'shopinbos' ) ],
+		[ __( 'Is it free?', 'shopinbos' ), __( 'Joining the waitlist is free. Sellers can start on the Free plan; suppliers and delivery partners join and get verified free.', 'shopinbos' ) ],
 		[ __( 'Do I need a laptop?', 'shopinbos' ), __( 'No. Everything works from your phone: the Shopinbos app on Android, and the web app on any phone.', 'shopinbos' ) ],
 		[ __( 'Who is behind Shopinbos?', 'shopinbos' ), __( 'Shopinbos is a product of Tech Della Solutions Ltd (RC 7038770), a Nigerian company in Lagos.', 'shopinbos' ) ],
 	];

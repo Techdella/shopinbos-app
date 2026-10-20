@@ -16,7 +16,7 @@ defined( 'ABSPATH' ) || exit;
 function sib_seo_map(): array {
 	return [
 		'/'                => [ 'Shopinbos: sell online in Nigeria from one app', 'Build your online store, sell on WhatsApp, Instagram and TikTok, take card, transfer and pay on delivery, book riders and get paid every Friday. Start free.', 'sell online in Nigeria' ],
-		'/pricing/'        => [ 'Pricing: online store plans in naira | Shopinbos', 'Shopinbos plans in naira, VAT included. Start free with your store, Rex, pay on delivery and WhatsApp selling, then upgrade as your shop grows.', 'online store pricing Nigeria' ],
+		'/pricing/'        => [ 'Pricing: plans in naira for sellers | Shopinbos', 'Free plan, then from ₦6,000 a month. Lower fees as you grow, payments straight to your bank. Plans for sellers, suppliers and delivery partners.', 'online store pricing Nigeria' ],
 		'/how-it-works/'   => [ 'How Shopinbos works: from first product to payout', 'See how Shopinbos works: find products, build your store with Rex, sell on WhatsApp and social media, get paid by card or on delivery, and book riders.', 'how to sell online in Nigeria' ],
 		'/about/'          => [ 'About Shopinbos: the commerce app for Nigerian shops', 'Shopinbos helps Nigerian businesses sell online and reach their customers: find products, sell everywhere, get paid and deliver, all from one app.', 'Shopinbos' ],
 		'/contact/'        => [ 'Contact Shopinbos: WhatsApp, email and support', 'Talk to a real person at Shopinbos on WhatsApp, by email or with our form. Support 8am to 8pm, in English or Pidgin, for sellers and partners.', 'Shopinbos contact' ],
