@@ -70,10 +70,19 @@ function sib_app_lead_from_form( string $kind, array $in ): void {
 		$source             = 'Contact form';
 		$payload['topic']   = $str( 'topic', 80 );
 	} elseif ( 'waitlist' === $kind ) {
-		$source             = 'Waitlist (coming soon)';
+		$intent             = $str( 'intent', 60 );
+		$source             = 'ads_landing' === $intent ? 'Waitlist (ads landing page)' : 'Waitlist (coming soon)';
 		$payload['as']      = $str( 'as', 40 );
 		$payload['sells']   = $str( 'sells', 120 );
-		$payload['intent']  = $str( 'intent', 60 );
+		$payload['intent']  = $intent;
+		// Answers from the /join/ landing page (several choices arrive as lists) and where the visitor came from.
+		foreach ( [ 'business', 'category', 'channels', 'state', 'sell_mode', 'cac', 'partner_type', 'cities', 'fleet', 'cod', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'fbclid', 'ttclid' ] as $k ) {
+			$v = $in[ $k ] ?? '';
+			$v = is_array( $v ) ? implode( ', ', array_map( 'sanitize_text_field', array_map( 'strval', $v ) ) ) : sanitize_text_field( (string) $v );
+			if ( '' !== $v ) {
+				$payload[ $k ] = mb_substr( $v, 0, 'fbclid' === $k || 'ttclid' === $k ? 255 : 160 );
+			}
+		}
 	} elseif ( 'investor' === $kind ) {
 		$source         = 'Investor relations';
 		$payload['org'] = $str( 'org', 160 );

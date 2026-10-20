@@ -111,6 +111,18 @@ class Sib_CLI {
 		$this->store_templates();
 		$this->tools();
 		$this->integration_pages();
+		// Waitlist landing page for ads: /join/ → /lp/join/.
+		$join = get_page_by_path( 'join', OBJECT, 'sib_landing' );
+		if ( $join ) {
+			$this->refresh_post( $join, 'Join the Shopinbos waitlist', "<!-- wp:shopinbos/join /-->\n", 'Get in first when Shopinbos opens on 1 November. Sellers, suppliers and delivery partners: join the waitlist in a minute.' );
+		} else {
+			$id = wp_insert_post( [ 'post_type' => 'sib_landing', 'post_status' => 'publish', 'post_name' => 'join', 'post_title' => 'Join the Shopinbos waitlist', 'post_content' => "<!-- wp:shopinbos/join /-->\n", 'post_excerpt' => 'Get in first when Shopinbos opens on 1 November. Sellers, suppliers and delivery partners: join the waitlist in a minute.' ] );
+			if ( $id && ! is_wp_error( $id ) ) {
+				update_post_meta( $id, '_sib_seed_src', md5( "<!-- wp:shopinbos/join /-->\n" ) );
+				$this->fingerprint( $id );
+				WP_CLI::log( 'Created the waitlist landing page /lp/join/ (short link /join/)' );
+			}
+		}
 		if ( ! get_posts( [ 'post_type' => 'sib_showcase', 'post_status' => 'any', 'numberposts' => 1, 'fields' => 'ids' ] ) ) {
 			$r  = sib_showcase_rexi();
 			$id = wp_insert_post( [ 'post_type' => 'sib_showcase', 'post_status' => 'publish', 'post_title' => $r['name'], 'post_excerpt' => $r['about'] ] );

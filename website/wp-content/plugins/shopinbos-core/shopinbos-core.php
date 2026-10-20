@@ -43,6 +43,7 @@ foreach ( [
 	'media',
 	'showcase',
 	'trends',
+	'join',
 	'admin-menu',
 	'schema',
 	'seo',
