@@ -36,6 +36,16 @@ function revalidateAdminPaths(...paths: string[]) {
   }
 }
 
+/**
+ * Approve / Reject with followUp: straight on to Admin › Inbox › New conversation with the approval or "not yet"
+ * message ready for that business (Skip goes back where the decision was made).
+ */
+function followUpMessage(formData: FormData, userId: string, status: string, fallback: string) {
+  if (formData.get("followUp") !== "1" || (status !== "verified" && status !== "rejected")) return;
+  const params = new URLSearchParams({ to: `user:${userId}`, preset: status === "verified" ? "approved" : "rejected", back: getRedirectPath(formData, fallback) });
+  redirect(`/admin/support/new?${params}`);
+}
+
 async function requireAdmin() {
   return requireAdminSection("partners");
 }
@@ -70,6 +80,7 @@ export async function updateSupplierVerification(formData: FormData) {
     await notifyVerificationDecision({ userId: supplier.userId, status: parsed.data.status, portal: "supplier" });
     invalidatePublicMarketplaceCache({ supplierSlug: supplier.slug });
     revalidateAdminPaths("/admin/suppliers", "/admin/marketplace");
+    followUpMessage(formData, supplier.userId, parsed.data.status, "/admin/suppliers");
   }
 
   redirect(getRedirectPath(formData, "/admin/suppliers"));
@@ -104,6 +115,7 @@ export async function updateLogisticsVerification(formData: FormData) {
     await notifyVerificationDecision({ userId: partner.userId, status: parsed.data.status, portal: "logistics" });
     invalidatePublicMarketplaceCache({ logisticsSlug: partner.slug });
     revalidateAdminPaths("/admin/logistics-partners", "/admin/marketplace");
+    followUpMessage(formData, partner.userId, parsed.data.status, "/admin/logistics-partners");
   }
 
   redirect(getRedirectPath(formData, "/admin/logistics-partners"));

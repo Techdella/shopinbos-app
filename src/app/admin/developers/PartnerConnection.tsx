@@ -6,8 +6,8 @@ import { FieldLabel, Notice, PillButton, TextInput, cx } from "@/components/app-
 import { Icon } from "@/components/ui/Icon";
 import { addWebhookAction, createApiKeyAction, removeWebhookAction, revokeApiKeyAction, rotateApiKeyAction, sendTestWebhookAction } from "@/app/actions/partner-api";
 
-// Admin only: API keys and webhooks for a partner's own dispatch software (moved here from the partner portal,
-// which now only has a "Connect your system" request form). Secrets are shown once, right after they're made.
+// Admin › Developers: API keys and webhooks for a partner's own dispatch software (the partner portal only has a
+// "Connect your system" request form). Secrets are shown once, right after they're made.
 
 export interface KeyRow { id: string; name: string; prefix: string; created: string; lastUsed: string | null; revoked: boolean }
 export interface HookRow { id: string; url: string; events: string[]; active: boolean; lastStatus: number | null; lastDelivered: string | null }

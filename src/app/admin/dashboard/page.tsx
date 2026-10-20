@@ -137,6 +137,7 @@ export default async function AdminDashboardPage() {
                   </div>
                   <DecisionButtons
                     action={updateSupplierVerification}
+                    followUp
                     fields={{ supplierId: supplier.id, trustScore: String(supplier.trustScore), redirectTo: "/admin/dashboard" }}
                     approve="verified"
                     reject="rejected"
@@ -171,6 +172,7 @@ export default async function AdminDashboardPage() {
                   </div>
                   <DecisionButtons
                     action={updateLogisticsVerification}
+                    followUp
                     fields={{ logisticsPartnerId: partner.id, reliabilityScore: String(partner.reliabilityScore), redirectTo: "/admin/dashboard" }}
                     approve="verified"
                     reject="rejected"

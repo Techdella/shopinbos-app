@@ -28,14 +28,19 @@ export const GET = withAdmin(async (req, { user }) => {
   }
 });
 
+const who = { name: z.string().max(120).default(""), userId: z.string().max(60).nullish(), leadId: z.string().max(60).nullish(), business: z.string().max(160).nullish() };
 const startSchema = z.discriminatedUnion("channel", [
-  z.object({ channel: z.literal("email"), name: z.string().max(120).default(""), email: z.string().max(200), subject: z.string().max(160), message: z.string().max(5000) }),
-  z.object({ channel: z.literal("whatsapp"), name: z.string().max(120).default(""), phone: z.string().max(40), template: z.string().max(80), note: z.string().max(900).optional() }),
+  z.object({ ...who, channel: z.literal("email"), email: z.string().max(200), subject: z.string().max(160), message: z.string().max(5000) }),
+  z.object({ ...who, channel: z.literal("whatsapp"), phone: z.string().max(40), template: z.string().max(80).nullish(), note: z.string().max(900).optional(), text: z.string().max(4000).optional() }),
+  z.object({ ...who, channel: z.literal("app"), subject: z.string().max(160), message: z.string().max(5000) }),
 ]);
 
-// POST /api/admin/support/tickets: the team starts a conversation.
+// POST /api/admin/support/tickets: the team starts a conversation, optionally with someone picked from the list
+// (userId / leadId, business).
 //   { channel: "email", name, email, subject, message }
-//   { channel: "whatsapp", name, phone, template, note? }   (a team template; joins an open WhatsApp conversation)
+//   { channel: "app", userId, subject, message }             (their in-app support chat, with a notification)
+//   { channel: "whatsapp", name, phone, template, note? }     (a template; joins an open WhatsApp conversation)
+//   { channel: "whatsapp", name, phone, text }               (free text, inside WhatsApp's 24-hour window)
 export const POST = withAdmin(async (req, { user }) => {
   try {
     const parsed = startSchema.safeParse(await req.json().catch(() => null));

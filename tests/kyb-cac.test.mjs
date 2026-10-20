@@ -162,8 +162,10 @@ test("the CAC check never silently greys out: it says what's missing and asks fo
   assert.match(client, /const canCheck = !missing && !busy;/, "the type isn't needed to press the button");
   assert.match(client, /if \(!effectiveType\) \{\s*setResult\(\{ tone: "error", text: t\("cac\.needType"\) \}\);/);
   assert.match(client, /\{missing && \(name \|\| number\) \?/, "what's missing shows under the button");
-  const admin = readFileSync("src/app/admin/wallets/page.tsx", "utf8");
+  // The setup details are on Admin › Developers; Wallets says whether checks work.
+  const admin = readFileSync("src/app/admin/developers/page.tsx", "utf8");
   assert.match(admin, /<CacChecksStatus providers=\{cacProviders\(\)\} \/>/, "the team sees which CAC lookups are on");
+  assert.match(readFileSync("src/app/admin/wallets/page.tsx", "utf8"), /cacProviders\(\)\.length > 0/, "Wallets says whether CAC checks work");
 });
 
 test("a VAS key rejected (401) on one environment is tried once on the other, and stray quotes are dropped", () => {

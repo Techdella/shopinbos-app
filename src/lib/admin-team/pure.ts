@@ -4,7 +4,7 @@
 // set of sections, and each section is a list of /admin pages and /api/admin routes. src/proxy.ts checks pages,
 // src/lib/auth/middleware.ts checks the API, and the sidebar hides what a role can't open. Owners manage the team.
 
-export const ADMIN_ROLES = ["owner", "admin", "support", "growth", "operations", "finance"] as const;
+export const ADMIN_ROLES = ["owner", "admin", "support", "growth", "operations", "finance", "developer"] as const;
 export type AdminRole = (typeof ADMIN_ROLES)[number];
 
 /** A removed team member: signed out and kept out until an owner adds them back. */
@@ -17,6 +17,7 @@ export const ADMIN_ROLE_LABEL: Record<AdminRole, string> = {
   growth: "Growth",
   operations: "Operations",
   finance: "Finance",
+  developer: "Developer",
 };
 
 export const ADMIN_ROLE_HELP: Record<AdminRole, string> = {
@@ -26,17 +27,19 @@ export const ADMIN_ROLE_HELP: Record<AdminRole, string> = {
   growth: "Inbox, leads, campaigns, WhatsApp, analytics, product news, help videos and requests.",
   operations: "Inbox, suppliers, logistics, catalog, marketplace, orders and requests.",
   finance: "Wallets, money owed, pricing and analytics.",
+  developer: "The Developers page: delivery partners' software connections, API docs and service setup.",
 };
 
-export type AdminSection = "today" | "inbox" | "leads" | "analytics" | "content" | "requests" | "partners" | "money" | "settings" | "team";
+export type AdminSection = "today" | "inbox" | "leads" | "analytics" | "content" | "requests" | "partners" | "money" | "settings" | "team" | "developers";
 
 const ROLE_SECTIONS: Record<AdminRole, AdminSection[]> = {
-  owner: ["today", "inbox", "leads", "analytics", "content", "requests", "partners", "money", "settings", "team"],
-  admin: ["today", "inbox", "leads", "analytics", "content", "requests", "partners", "money", "settings"],
+  owner: ["today", "inbox", "leads", "analytics", "content", "requests", "partners", "money", "settings", "team", "developers"],
+  admin: ["today", "inbox", "leads", "analytics", "content", "requests", "partners", "money", "settings", "developers"],
   support: ["today", "inbox", "leads", "settings"],
   growth: ["today", "inbox", "leads", "analytics", "content", "requests", "settings"],
   operations: ["today", "inbox", "partners", "requests", "settings"],
   finance: ["today", "money", "analytics", "settings"],
+  developer: ["today", "settings", "developers"],
 };
 
 // First path segment after /admin (or /api/admin) → section. Anything not listed is for owners and admins only.
@@ -66,12 +69,13 @@ const SEGMENT_SECTION: Record<string, AdminSection> = {
   orders: "partners",
   "domain-partners": "partners",
   domains: "partners",
-  "ai-check": "settings",
+  "ai-check": "developers",
   wallets: "money",
   "money-owed": "money",
   pricing: "money",
   settings: "settings",
   team: "team",
+  developers: "developers",
 };
 
 // Nav item id (src/lib/nav.ts) → section, for the sidebar.
@@ -93,6 +97,7 @@ const NAV_SECTION: Record<string, AdminSection> = {
   pricing: "money",
   settings: "settings",
   team: "team",
+  developers: "developers",
 };
 
 /** The stored value as a role: unknown or empty means owner (admins from before roles existed). */

@@ -6,14 +6,9 @@ import { AdminDocumentViewer } from "@/components/verification/AdminDocumentView
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { parseVerificationDocs } from "@/lib/verification-utils";
-import { ApiKeysPanel, WebhooksPanel } from "./PartnerConnection";
 import { PartnerPayInsPanel } from "../PayInsPanels";
 import { PartnerLatePayInPanel } from "../LatePayInsPanels";
 import { ridersHolding } from "@/lib/logistics/payin-standing.server";
-
-function adminWhen(date: Date | null) {
-  return date ? formatDate(date) : null;
-}
 
 export default async function AdminLogisticsDetailPage(props: { params: Promise<{ id: string }>; searchParams?: Promise<{ saved?: string; error?: string }> }) {
   const user = await requireRole(["admin"], "/admin/login");
@@ -24,6 +19,7 @@ export default async function AdminLogisticsDetailPage(props: { params: Promise<
   const partner = await db.logisticsPartner.findUnique({
     where: { id },
     select: {
+      userId: true,
       id: true,
       displayName: true,
       companyName: true,
@@ -53,20 +49,7 @@ export default async function AdminLogisticsDetailPage(props: { params: Promise<
 
   const docs = parseVerificationDocs(partner.verificationDocuments);
 
-  // Connection keys for the partner's own dispatch software. Partners ask for this through "Connect your
-  // system" (a setup support ticket); only admins issue, rotate and revoke keys.
-  const [keys, hooks, payInAccount, payIns, remittances, lateEvents, riders] = await Promise.all([
-    db.partnerApiKey.findMany({
-      where: { logisticsPartnerId: partner.id },
-      orderBy: [{ revokedAt: { sort: "desc", nulls: "first" } }, { createdAt: "desc" }],
-      take: 20,
-      select: { id: true, name: true, prefix: true, createdAt: true, lastUsedAt: true, revokedAt: true },
-    }),
-    db.partnerWebhook.findMany({
-      where: { logisticsPartnerId: partner.id },
-      orderBy: { createdAt: "desc" },
-      select: { id: true, url: true, events: true, active: true, lastStatus: true, lastDeliveredAt: true },
-    }),
+  const [payInAccount, payIns, remittances, lateEvents, riders] = await Promise.all([
     db.partnerPayInAccount.findUnique({
       where: { logisticsPartnerId: partner.id },
       select: { status: true, accountNumber: true, accountName: true, bankName: true, customerCode: true, lastError: true, updatedAt: true },
@@ -106,9 +89,11 @@ export default async function AdminLogisticsDetailPage(props: { params: Promise<
       actions={
         <>
           <PillLink href="/admin/logistics-partners" icon="arrowLeft">All partners</PillLink>
+          <PillLink href={`/admin/support/new?to=user:${partner.userId}`} icon="chat">Message</PillLink>
           {partner.verificationStatus !== "verified" && (
             <DecisionButtons
               action={updateLogisticsVerification}
+              followUp
               fields={{ logisticsPartnerId: partner.id, reliabilityScore: String(partner.reliabilityScore ?? 0), redirectTo: `/admin/logistics-partners/${partner.id}` }}
               approve="verified"
               reject="rejected"
@@ -151,30 +136,6 @@ export default async function AdminLogisticsDetailPage(props: { params: Promise<
 
       <PartnerLatePayInPanel partner={partner} riders={riders} events={lateEvents} now={new Date()} />
 
-      <section id="connection" aria-labelledby="connection-title" className="mt-6 scroll-mt-6">
-        <h2 id="connection-title" className="m-0 text-[20px] font-extrabold">Dispatch software connection (admin only)</h2>
-        <p className="mb-3 mt-1 max-w-[760px] text-[14.5px] text-app-ink-soft">
-          For partners who asked the team to connect their own software (support tickets with topic &quot;Set something up for me&quot;). The partner never sees this section. A new key is shown once; after that only its first characters are shown.
-        </p>
-        <div className="grid gap-5 xl:grid-cols-2">
-          <ApiKeysPanel
-            partnerId={partner.id}
-            canCreate={partner.verificationStatus === "verified"}
-            keys={keys.map((key) => ({
-              id: key.id,
-              name: key.name,
-              prefix: key.prefix,
-              created: formatDate(key.createdAt),
-              lastUsed: adminWhen(key.lastUsedAt),
-              revoked: Boolean(key.revokedAt),
-            }))}
-          />
-          <WebhooksPanel
-            partnerId={partner.id}
-            hooks={hooks.map((hook) => ({ id: hook.id, url: hook.url, events: hook.events, active: hook.active, lastStatus: hook.lastStatus, lastDelivered: adminWhen(hook.lastDeliveredAt) }))}
-          />
-        </div>
-      </section>
     </AppPage>
   );
 }
