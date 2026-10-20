@@ -580,36 +580,6 @@ export async function closeStore(formData: FormData) {
   redirect("/home?storeClosed=1");
 }
 
-export async function inviteTeamMember(formData: FormData) {
-  const user = await getSellerUserOrThrow();
-  const email = String(formData.get("email") || "").trim().toLowerCase();
-
-  if (!email || !email.includes("@")) {
-    redirect("/home/settings?tab=Team&error=Invalid+email+address");
-  }
-
-  // Team invite sends an email — store the pending invite in brandSettings
-  const store = await db.store.findUnique({ where: { userId: user.id } });
-  if (!store) redirect("/builder?firstRun=1");
-
-  const current = parseBrandSettings(store.brandSettings);
-  const pendingInvites: string[] = (current as any).pendingInvites ?? [];
-  if (!pendingInvites.includes(email)) {
-    pendingInvites.push(email);
-  }
-
-  await db.store.update({
-    where: { id: store.id },
-    data: {
-      brandSettings: mergeBrandSettings(store.brandSettings, {
-        pendingInvites,
-      } as any),
-    },
-  });
-
-  redirect("/home/settings?tab=Team&invited=1");
-}
-
 export async function saveStoreTaxSettings(formData: FormData) {
   const user = await getSellerUserOrThrow();
   const store = await db.store.findUnique({ where: { userId: user.id } });

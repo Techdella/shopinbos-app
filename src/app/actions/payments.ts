@@ -197,6 +197,7 @@ export async function linkBankAccount(
   try {
     const user = await getCurrentAppUser();
     if (!user) return { success: false, error: "Not authenticated" };
+    if (user.staff) return { success: false, error: "Only the store owner can change the bank account." };
     if (role !== "seller" && role !== "supplier" && role !== "logistics_partner") return { success: false, error: "Invalid role for bank account linking" };
     if (user.role !== role) return { success: false, error: "Sign in to this account first." };
     const wallet = await linkWalletBank({ id: user.id, role }, { bankName, accountNumber });
@@ -270,6 +271,7 @@ export async function subscribeToPlan(reference: string, tier: string): Promise<
   if (typeof reference !== "string" || !reference || !isPlanTier(tier)) return { success: false, error: "Choose a plan." };
   const user = await getCurrentAppUser();
   if (!user) return { success: false, error: "Not authenticated" };
+  if (user.staff) return { success: false, error: "Only the store owner can change the plan." };
   if (PLAN_TIERS[tier].role !== user.role) return { success: false, error: "That plan is for a different kind of account." };
   return applyPlanUpgrade(reference, tier, PLAN_PATHS[user.role] ?? []);
 }

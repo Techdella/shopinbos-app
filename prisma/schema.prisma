@@ -1099,6 +1099,8 @@ model LogisticsPartner {
   /// Late pay-ins (lib/logistics/payin-deadline.ts): paused from new pay-when-it-arrives (COD) jobs only. Set and
   /// cleared by the system (cron + pay-in matching) or the team, never by the partner's "Taking new jobs" switch.
   codPaused          Boolean            @default(false)
+  /// The partner takes pay-on-delivery jobs (collects cash at the door). Their own choice, unlike codPaused.
+  acceptsCod         Boolean            @default(true)
   /// The missed pay-in deadline (6pm Lagos) of the oldest cash still owed, while the partner is late.
   payInOverdueSince  DateTime?
   /// Cash past its deadline and grace, still owed after credit.
@@ -2454,6 +2456,119 @@ model AiCreditLot {
   createdAt DateTime @default(now())
 
   @@index([userId, expiresAt])
+}
+
+// ─── Plan add-ons, boosts and team (October 2026 pricing, shared/plans.ts) ──────────────────────────────────────
+// docs/migrations/2026-11-16-plan-extras.sql
+
+// Add-ons and boosts bought through Paystack, credited once by reference (src/lib/plans/extras.server.ts). Staff
+// seats and boosts run from startsAt to endsAt; message packs add to MessageBalance. `included` rows are a plan's
+// own featured weeks (no payment).
+model PlanExtraPurchase {
+  reference  String    @id
+  userId     String
+  kind       String // staff_seat | sms_pack | whatsapp_pack | supplier_boost | logistics_boost | product_boost
+  quantity   Int       @default(1) // seats or packs; weeks for boosts
+  targetId   String? // product_boost: SupplierProduct.id; logistics_boost: the state
+  amountKobo Int
+  status     String    @default("pending") // pending | paid | failed
+  included   Boolean   @default(false)
+  startsAt   DateTime?
+  endsAt     DateTime?
+  error      String?
+  createdAt  DateTime  @default(now())
+  paidAt     DateTime?
+
+  @@index([userId, kind, status])
+  @@index([kind, status, endsAt])
+}
+
+// Messages Shopinbos sends for a seller through its own SMS/WhatsApp providers (src/lib/plans/messages.server.ts):
+// the plan's monthly messages used this month (`period` YYYY-MM, SMS and WhatsApp together), then pack messages.
+model MessageBalance {
+  userId    String   @id
+  sms       Int      @default(0)
+  whatsapp  Int      @default(0)
+  period    String?
+  used      Int      @default(0)
+  updatedAt DateTime @updatedAt
+}
+
+// People a seller lets into their store (Settings › Team). They sign in with their own account and work in the
+// owner's store; money settings, billing and the team stay with the owner (src/lib/staff/staff.server.ts).
+model StoreStaff {
+  id           String    @id @default(cuid())
+  storeId      String
+  ownerId      String
+  email        String
+  name         String
+  memberUserId String?
+  status       String    @default("invited") // invited | active | removed
+  token        String    @unique
+  invitedAt    DateTime  @default(now())
+  acceptedAt   DateTime?
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([storeId, email])
+  @@index([memberUserId, status])
+  @@index([ownerId])
+}
+
+// Where a delivery partner's customers can drop off or collect parcels (plan limits: shared/plans.ts pickupPoints).
+model LogisticsPickupPoint {
+  id                 String   @id @default(cuid())
+  logisticsPartnerId String
+  name               String
+  address            String
+  city               String
+  state              String
+  phone              String?
+  hours              String?
+  active             Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([logisticsPartnerId])
+  @@index([state])
+}
+
+// A delivery partner's own price for one seller or supplier (partner on Plus and up; the customer's plan must
+// include private rate cards to use it). Shown on the partner's page and used as the fee when they book.
+model PrivateRateCard {
+  id                 String   @id @default(cuid())
+  logisticsPartnerId String
+  customerUserId     String
+  label              String
+  price              Int // naira per delivery
+  states             String[] @default([]) // empty: everywhere the partner covers
+  notes              String?
+  active             Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([logisticsPartnerId, customerUserId])
+  @@index([customerUserId])
+}
+
+// Sellers following a supplier; suppliers on Pro can send them updates (SupplierBroadcast).
+model SupplierFollow {
+  supplierId String
+  userId     String
+  createdAt  DateTime @default(now())
+
+  @@id([supplierId, userId])
+  @@index([userId])
+}
+
+model SupplierBroadcast {
+  id         String   @id @default(cuid())
+  supplierId String
+  title      String
+  body       String
+  recipients Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  @@index([supplierId, createdAt])
 }
 
 // One row per credit pack checkout or automatic top-up; a reference is credited once (status pending → paid).

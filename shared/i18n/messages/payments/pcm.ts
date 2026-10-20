@@ -401,6 +401,16 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "an.full": "Download these numbers as spreadsheet with Pro plan.",
   "an.download": "Download as spreadsheet (CSV)",
   "an.seePlans": "See plans",
+  "ex.failed": "Payment no fit start. Try again.",
+  "ex.opening": "Dey open Paystack…",
+  "msg.title": "SMS and WhatsApp messages",
+  "msg.included": "{used} of the {included} messages wey your plan get dis month don use. After dat, messages go come from your packs.",
+  "msg.none": "Your plan no get messages wey Shopinbos dey send. Buy pack, or upgrade go Growth to get 200 every month.",
+  "msg.smsLeft": "SMS for packs",
+  "msg.waLeft": "WhatsApp for packs",
+  "msg.buySms": "{count} SMS ({price})",
+  "msg.buyWa": "{count} WhatsApp ({price})",
+  "msg.own": "Messages wey you send through your own SMS provider or WhatsApp number no dey count.",
 };
 
 export default pcm;

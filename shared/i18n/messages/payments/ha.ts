@@ -401,6 +401,16 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "an.full": "Sauke waɗannan lambobi a matsayin spreadsheet da tsarin Pro.",
   "an.download": "Sauke a matsayin spreadsheet (CSV)",
   "an.seePlans": "Duba tsare-tsare",
+  "ex.failed": "Ba a iya fara biyan ba. Sake gwadawa.",
+  "ex.opening": "Ana buɗe Paystack…",
+  "msg.title": "Saƙonnin SMS da WhatsApp",
+  "msg.included": "An yi amfani da {used} cikin saƙonni {included} da tsarinka ke da su a wannan watan. Bayan haka, saƙonni za su fito daga fakitinka.",
+  "msg.none": "Tsarinka ba shi da saƙonnin da Shopinbos ke aikawa. Sayi fakiti, ko haɓaka zuwa Growth don samun 200 a wata.",
+  "msg.smsLeft": "SMS a fakiti",
+  "msg.waLeft": "WhatsApp a fakiti",
+  "msg.buySms": "SMS {count} ({price})",
+  "msg.buyWa": "WhatsApp {count} ({price})",
+  "msg.own": "Ba a ƙidaya saƙonnin da aka aika ta mai samar da SMS ɗinka ko lambar WhatsApp ɗinka ba.",
 };
 
 export default ha;

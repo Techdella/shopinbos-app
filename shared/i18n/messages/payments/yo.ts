@@ -401,6 +401,16 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "an.full": "Gba àwọn nọ́mbà wọ̀nyí sílẹ̀ bíi spreadsheet pẹ̀lú plan Pro.",
   "an.download": "Gbà á sílẹ̀ bíi spreadsheet (CSV)",
   "an.seePlans": "Wo àwọn plan",
+  "ex.failed": "A kò lè bẹ̀rẹ̀ ìsanwó náà. Gbìyànjú lẹ́ẹ̀kan sí i.",
+  "ex.opening": "À ń ṣí Paystack…",
+  "msg.title": "Ìfiránṣẹ́ SMS àti WhatsApp",
+  "msg.included": "A ti lo {used} nínú ìfiránṣẹ́ {included} tí plan rẹ ní lóṣù yìí. Lẹ́yìn ìyẹn, ìfiránṣẹ́ máa wá láti inú pack rẹ.",
+  "msg.none": "Plan rẹ kò ní ìfiránṣẹ́ tí Shopinbos ń fi ránṣẹ́. Ra pack kan, tàbí gbé e ga sí Growth fún 200 lóṣooṣù.",
+  "msg.smsLeft": "SMS nínú pack",
+  "msg.waLeft": "WhatsApp nínú pack",
+  "msg.buySms": "SMS {count} ({price})",
+  "msg.buyWa": "WhatsApp {count} ({price})",
+  "msg.own": "A kò ka ìfiránṣẹ́ tí o fi ránṣẹ́ láti ọ̀dọ̀ olùpèsè SMS tìrẹ tàbí nọ́mbà WhatsApp tìrẹ.",
 };
 
 export default yo;

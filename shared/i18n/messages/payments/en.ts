@@ -399,6 +399,16 @@ const en = {
   "an.full": "Download these numbers as a spreadsheet with the Pro plan.",
   "an.download": "Download as spreadsheet (CSV)",
   "an.seePlans": "See plans",
+  "ex.failed": "Couldn't start the payment. Try again.",
+  "ex.opening": "Opening Paystack…",
+  "msg.title": "SMS and WhatsApp messages",
+  "msg.included": "{used} of the {included} messages your plan includes this month are used. After that, messages come from your packs.",
+  "msg.none": "Your plan doesn't include messages sent by Shopinbos. Buy a pack, or upgrade to Growth for 200 a month.",
+  "msg.smsLeft": "SMS in packs",
+  "msg.waLeft": "WhatsApp in packs",
+  "msg.buySms": "{count} SMS ({price})",
+  "msg.buyWa": "{count} WhatsApp ({price})",
+  "msg.own": "Messages sent through your own connected SMS provider or WhatsApp number aren't counted.",
 } satisfies Record<string, string>;
 
 export default en;

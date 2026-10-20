@@ -401,6 +401,16 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "an.full": "Budata ọnụọgụ ndị a dị ka spreadsheet na atụmatụ Pro.",
   "an.download": "Budata dị ka spreadsheet (CSV)",
   "an.seePlans": "Hụ atụmatụ",
+  "ex.failed": "Enweghị ike ịmalite ịkwụ ụgwọ ahụ. Nwaa ọzọ.",
+  "ex.opening": "Na-emepe Paystack…",
+  "msg.title": "Ozi SMS na WhatsApp",
+  "msg.included": "Ejirila {used} n'ime ozi {included} atụmatụ gị nwere n'ọnwa a. Mgbe nke ahụ gasịrị, ozi ga-esi na ngwugwu gị.",
+  "msg.none": "Atụmatụ gị enweghị ozi Shopinbos na-eziga. Zụta ngwugwu, ma ọ bụ kwalite gaa Growth maka 200 kwa ọnwa.",
+  "msg.smsLeft": "SMS na ngwugwu",
+  "msg.waLeft": "WhatsApp na ngwugwu",
+  "msg.buySms": "SMS {count} ({price})",
+  "msg.buyWa": "WhatsApp {count} ({price})",
+  "msg.own": "Anaghị agụ ozi e zigara site na onye na-enye SMS gị ma ọ bụ nọmba WhatsApp gị.",
 };
 
 export default ig;
