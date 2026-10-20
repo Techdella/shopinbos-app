@@ -880,13 +880,19 @@ export function offPlatformSignals(text: string): OffPlatformSignal[] {
   return found;
 }
 
+// Says only what's true today. Once the terms of service ban off-platform payments for jobs arranged here (spec
+// §7.3, waiting on legal), it can add "and are against our terms".
 export const OFF_PLATFORM_WARNING =
-  "Keep jobs and payments in Shopinbos. In-app jobs are paid automatically, tracked, and count towards ratings. Payments arranged outside the app aren't protected and are against our terms.";
+  "Keep jobs and payments in Shopinbos. In-app jobs are paid automatically, tracked, and count towards your rating. Payments arranged outside the app aren't protected by Shopinbos.";
 
 // ─── Pay on delivery (spec §8) ───────────────────────────────────────────────
 
 export const POD_DISCLAIMER =
   "Pay on delivery is an arrangement between you and your logistics partner. Cash is collected by the partner, and settlement is between you and them. Shopinbos does not handle, hold or guarantee pay-on-delivery funds.";
+
+/** The same arrangement as the partner sees it (coverage and connections pages). */
+export const POD_DISCLAIMER_PARTNER =
+  "Pay on delivery is an arrangement between you and the shop. Your rider collects the cash from the customer, and you settle it with the shop directly. Shopinbos does not handle, hold or guarantee pay-on-delivery funds.";
 
 // ─── Decline reasons ─────────────────────────────────────────────────────────
 

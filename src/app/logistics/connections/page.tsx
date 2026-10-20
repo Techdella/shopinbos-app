@@ -16,7 +16,7 @@ import { RateCardEditor } from "@/components/logistics/RateCardEditor";
 import { ActionNotice, PartnerPage, SubmitButton, lagosDate, naira } from "@/components/logistics/kit";
 import { messagesHref } from "@/lib/conversations/pure";
 import { readRateRows, startingPrice } from "@shared/delivery-market";
-import { podDisclaimer } from "@/components/delivery-market/words";
+import { podDisclaimerPartner } from "@/components/delivery-market/words";
 import { getT } from "@/lib/i18n/server";
 
 // Businesses (shops and suppliers) that added this partner as a delivery partner: since when, what their customers
@@ -165,7 +165,7 @@ export default async function LogisticsConnectionsPage({ searchParams }: { searc
       {partner.offersPayOnDelivery && connections.length > 0 && (
         <Card className="mt-5 p-5">
           <CardHead title={t("market.conn.aboutPod")} />
-          <p className="m-0 mt-2 text-[15px] leading-[1.5] text-app-ink-soft">{podDisclaimer(t)} {t("market.conn.aboutPodAfter")}</p>
+          <p className="m-0 mt-2 text-[15px] leading-[1.5] text-app-ink-soft">{podDisclaimerPartner(t)} {t("market.conn.aboutPodAfter")}</p>
         </Card>
       )}
     </PartnerPage>

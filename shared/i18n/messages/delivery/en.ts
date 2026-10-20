@@ -3,10 +3,10 @@
 // (shared/delivery-market.ts, read through src/components/delivery-market/words.ts with t.dynamic). English is the
 // source of truth; every key must exist in pcm.ts, yo.ts, ha.ts and ig.ts.
 //
-// LEGAL REVIEW: "pod.disclaimer" is the pay-on-delivery disclaimer (POD_DISCLAIMER in shared/delivery-market.ts).
-// Its wording is legal: every translation must say exactly the same thing (an arrangement between the business and
-// the partner; the partner collects the cash; settlement is between them; Shopinbos does not handle, hold or
-// guarantee the funds). The translations need legal review as well as native-speaker review before launch.
+// LEGAL REVIEW: "pod.disclaimer" is the pay-on-delivery disclaimer (POD_DISCLAIMER in shared/delivery-market.ts), and
+// "pod.disclaimerPartner" is the partner's side of it (POD_DISCLAIMER_PARTNER). Their wording is legal: every
+// translation must say exactly the same thing (an arrangement between the business and the partner; the partner
+// collects the cash; settlement is between them; Shopinbos does not handle, hold or guarantee the funds). The translations need legal review as well as native-speaker review before launch.
 const en = {
   // ─── Rule words (shared/delivery-market.ts) ───────────────────────────────
   "service.doorstep": "Doorstep delivery",
@@ -47,8 +47,12 @@ const en = {
   // Legal wording: needs legal review in every language (see the note at the top).
   "pod.disclaimer":
     "Pay on delivery is an arrangement between you and your logistics partner. Cash is collected by the partner, and settlement is between you and them. Shopinbos does not handle, hold or guarantee pay-on-delivery funds.",
+  // Legal wording: needs legal review in every language (see the note at the top). The partner's side of
+  // "pod.disclaimer" (POD_DISCLAIMER_PARTNER in shared/delivery-market.ts).
+  "pod.disclaimerPartner":
+    "Pay on delivery is an arrangement between you and the shop. Your rider collects the cash from the customer, and you settle it with the shop directly. Shopinbos does not handle, hold or guarantee pay-on-delivery funds.",
   "offPlatform.warning":
-    "Keep jobs and payments in Shopinbos. In-app jobs are paid automatically, tracked, and count towards ratings. Payments arranged outside the app aren't protected and are against our terms.",
+    "Keep jobs and payments in Shopinbos. In-app jobs are paid automatically, tracked, and count towards your rating. Payments arranged outside the app aren't protected by Shopinbos.",
   "time.sameDay": "Same day",
   "time.days": "{count, plural, one {# day} other {# days}}",
   "time.dayRange": "{min}–{max} days",
