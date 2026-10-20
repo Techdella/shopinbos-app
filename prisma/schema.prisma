@@ -3520,6 +3520,25 @@ model WhatsAppCatalog {
   @@index([dirty])
 }
 
+/// The WhatsApp store: a customer's cart inside their WhatsApp chat with the store (src/lib/whatsapp-store).
+/// One per conversation; emptied when Peggy sends the checkout link (the payment link keeps what was bought).
+model WhatsAppCart {
+  id             String    @id @default(cuid())
+  storeId        String
+  conversationId String    @unique
+  /// The customer's WhatsApp number (E.164).
+  phone          String
+  /// [{ productId, variantId, quantity }]
+  items          Json      @default("[]")
+  /// The latest checkout link made from this cart.
+  paymentLinkId  String?
+  checkedOutAt   DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([storeId, updatedAt])
+}
+
 model WhatsAppCatalogItem {
   id        String    @id @default(cuid())
   storeId   String

@@ -18,6 +18,7 @@ const en = {
   "inbox-chat": "Live chat",
   "inbox-auto-replies": "Auto-replies",
   "inbox-chatbot": "Peggy chatbot",
+  "inbox-whatsapp-store": "WhatsApp store",
   "inbox-whatsapp-catalog": "WhatsApp catalog",
   "inbox-notifications": "Notifications",
   "products-all": "All products",

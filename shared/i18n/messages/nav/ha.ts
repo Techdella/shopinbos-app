@@ -17,6 +17,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "inbox-chat": "Live chat",
   "inbox-auto-replies": "Auto-replies",
   "inbox-chatbot": "Peggy chatbot",
+  "inbox-whatsapp-store": "Shagon WhatsApp",
   "inbox-whatsapp-catalog": "WhatsApp catalog",
   "inbox-notifications": "Sanarwa",
   "products-all": "Duk kayayyaki",

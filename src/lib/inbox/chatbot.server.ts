@@ -12,6 +12,9 @@ import { storeUrl } from "@/lib/marketing/brand";
 import { buildButtons, buildProductList, customerTextForModel, describeOrders, detectWhatsAppIntent, interactiveSummary, REPLY_IDS, type WhatsAppInteractive } from "./whatsapp-bot";
 import { createCustomerChatLink } from "@/lib/payment-links/service.server";
 import { normalizeVariants } from "@shared/product-variants";
+import { detectStoreIntent, STORE_IDS } from "@/lib/whatsapp-store/pure";
+import { catalogProductList, saleProducts, whatsappStoreAnswer } from "@/lib/whatsapp-store/server";
+import type { WhatsAppCartOrder } from "./pure";
 
 // Peggy as the storefront's shopping assistant on live chat. She answers only from what the shop has told us
 // (products and prices, delivery zones, published returns/delivery pages, the seller's FAQs), never invents
@@ -146,7 +149,7 @@ export interface WhatsAppBotReply {
   body: string;
   interactive: WhatsAppInteractive | null;
   handoff: boolean;
-  source: "greeting" | "list" | "product" | "order" | "order_status" | "handoff" | ChatbotAnswer["source"];
+  source: "greeting" | "list" | "product" | "order" | "order_status" | "handoff" | "cart" | "checkout" | ChatbotAnswer["source"];
   /** "collect" ordering: the product the customer wants, for the seller's note and notification. */
   orderRequest?: { productId: string; name: string; price: string } | null;
 }
@@ -164,13 +167,26 @@ export async function whatsappBotAnswer(
   bot: ChatbotSettings,
   rules: AutoReplyRules,
   thread: ChatTurn[],
-  ctx: { replyId: string | null; phone: string | null; firstMessage: boolean; conversationId?: string | null },
+  ctx: { replyId: string | null; phone: string | null; firstMessage: boolean; conversationId?: string | null; contactName?: string | null; order?: WhatsAppCartOrder | null },
 ): Promise<WhatsAppBotReply> {
   const wa = bot.whatsapp;
   const last = [...thread].reverse().find((turn) => turn.from === "shopper")?.body ?? "";
   const intent = detectWhatsAppIntent({ text: last, replyId: ctx.replyId, handoffKeywords: bot.handoff.keywords, features: wa });
-  const store = await db.store.findUnique({ where: { id: storeId }, select: { name: true, slug: true, customDomain: true } });
+  const store = await db.store.findUnique({ where: { id: storeId }, select: { name: true, slug: true, customDomain: true, currency: true } });
   if (!store) return { body: bot.handoff.message, interactive: null, handoff: true, source: "handoff" };
+
+  // The WhatsApp store: cart taps, "cart"/"checkout", a cart sent from the catalog, and "Order on WhatsApp" all
+  // go to the in-chat cart (src/lib/whatsapp-store).
+  const cartMode = wa.ordering === "cart" && Boolean(ctx.conversationId && ctx.phone);
+  if (cartMode) {
+    const action = ctx.order
+      ? { kind: "catalog_cart" as const, order: ctx.order }
+      : detectStoreIntent({ text: last, replyId: ctx.replyId }) ?? (intent.kind === "order" ? { kind: "add" as const, productId: intent.productId, variantId: null } : null);
+    if (action) {
+      const reply = await whatsappStoreAnswer({ storeId, conversationId: ctx.conversationId!, phone: ctx.phone!, contactName: ctx.contactName ?? null, currency: store.currency, action });
+      return reply;
+    }
+  }
   const menu = [
     ...(wa.productList ? [{ id: REPLY_IDS.menu, title: "See products" }] : []),
     ...(wa.orderStatus ? [{ id: REPLY_IDS.status, title: "My order" }] : []),
@@ -186,6 +202,10 @@ export async function whatsappBotAnswer(
   }
 
   if (intent.kind === "catalogue") {
+    // With the store's catalog synced and WhatsApp's cart on, customers browse it natively.
+    const native = cartMode ? await catalogProductList(storeId, store.name).catch(() => null) : null;
+    // The text is what the inbox shows and what goes out if WhatsApp refuses the catalog message.
+    if (native) return { body: `${native.body.text}\n\nOr browse online: ${storeUrl(store, "/")}`, interactive: native, handoff: false, source: "list" };
     const where = { storeId, status: "published" };
     const [products, total] = await Promise.all([
       db.storeProduct.findMany({ where, orderBy: [{ soldStock: "desc" }, { createdAt: "desc" }], take: 30, select: { id: true, name: true, retailPrice: true, currency: true, currentStock: true } }),
@@ -217,6 +237,19 @@ export async function whatsappBotAnswer(
       }
       const body = `Great choice! To order ${product.name} (${price}), reply with how many you want and your delivery area. Someone from the shop will confirm the total, delivery and how to pay.`;
       return { body, interactive: null, handoff: false, source: "order", orderRequest: { productId: product.id, name: product.name, price } };
+    }
+
+    if (cartMode) {
+      const sale = (await saleProducts(storeId, [product.id])).get(product.id);
+      const canBuy = Boolean(sale && !sale.soldOut);
+      const about = product.description ? product.description.replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim().slice(0, 300) : "";
+      const body = `*${product.name}*\n${price}${sale && sale.options.length > 1 ? " and up" : ""} · ${canBuy ? "In stock" : "Sold out"}${about ? `\n\n${about}` : ""}`;
+      const buttons = [
+        ...(canBuy ? [{ id: `${STORE_IDS.add}${product.id}`, title: "Add to cart" }] : []),
+        { id: STORE_IDS.cart, title: "View cart" },
+        { id: REPLY_IDS.menu, title: "See more products" },
+      ];
+      return { body, interactive: buildButtons(body, buttons, { imageUrl: product.images[0] ?? null }), handoff: false, source: "product" };
     }
 
     const about = product.description ? product.description.replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim().slice(0, 300) : "";

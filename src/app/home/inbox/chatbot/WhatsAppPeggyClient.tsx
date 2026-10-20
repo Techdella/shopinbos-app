@@ -184,12 +184,13 @@ export function WhatsAppPeggyClient({
           <div className="grid gap-1.5">
             <span className="text-[13.5px] font-bold">{t("wa.wantsBuy")}</span>
             <Segmented
-              options={[{ value: "link", label: t("wa.sendLink") }, { value: "collect", label: t("wa.takeOrder") }, { value: "off", label: t("ch.off") }]}
+              options={[{ value: "cart", label: t("wa.cart") }, { value: "link", label: t("wa.sendLink") }, { value: "collect", label: t("wa.takeOrder") }, { value: "off", label: t("ch.off") }]}
               value={wa.ordering}
               onChange={(ordering) => setWa({ ordering })}
               className="border border-app-line"
             />
           </div>
+          {wa.ordering === "cart" ? <Link href="/home/inbox/whatsapp-store" className="text-[13px] font-bold underline">{t("ws.title")}</Link> : null}
           <Switch label={t("wa.orderStatus")} sub={t("wa.orderStatusSub")} on={wa.orderStatus} onChange={(on) => setWa({ orderStatus: on })} />
           <div className="grid gap-1.5">
             <span className="text-[13.5px] font-bold">{t("bot.whenAnswers")}</span>

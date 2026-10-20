@@ -138,7 +138,7 @@ test("answer gate: modes, test number, hand-off, hours, quiet period, window and
 test("WhatsApp settings normalise with safe defaults", () => {
   assert.deepEqual(assistant.normaliseChatbot(null).whatsapp, assistant.DEFAULT_CHATBOT.whatsapp);
   const w = assistant.normaliseWhatsAppBot({ mode: "live", testNumber: "234 801-234-5678", productList: false, ordering: "collect", orderStatus: false, greeting: "  Hi!  ", when: "outside_hours", quietMinutes: 9999 });
-  assert.deepEqual(w, { mode: "live", testNumber: "+2348012345678", productList: false, ordering: "collect", orderStatus: false, greeting: "Hi!", when: "outside_hours", quietMinutes: 240 });
+  assert.deepEqual(w, { mode: "live", testNumber: "+2348012345678", productList: false, ordering: "collect", orderStatus: false, greeting: "Hi!", when: "outside_hours", quietMinutes: 240, confirmations: true });
   const bad = assistant.normaliseWhatsAppBot({ mode: "everyone", testNumber: "call me", ordering: "free", quietMinutes: "x" });
   assert.equal(bad.mode, "off");
   assert.equal(bad.testNumber, "");

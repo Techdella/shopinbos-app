@@ -16,6 +16,7 @@ import {
   linkPayBlock,
   linkStatus,
   linkTitle,
+  MAX_LINK_ITEMS,
   newLinkCode,
   PAY_BLOCK_MESSAGE,
   readLinkItems,
@@ -267,6 +268,8 @@ export async function settlePaymentLinkForOrder(orderId: string) {
         ...(link.oneTime && link.status !== "cancelled" ? { status: "paid" } : {}),
       },
     });
+    // A link Peggy sent in a WhatsApp chat: the order's confirmation goes back into that chat (once per stage).
+    if (link.channel === "whatsapp" && link.conversationId) await import("@/lib/whatsapp-store/server").then((store) => store.confirmWhatsAppOrder(order.id));
   } catch (error) {
     console.error(`[payment links] could not settle the link for order ${orderId}`, error);
   }
@@ -367,6 +370,68 @@ export async function createCustomerChatLink(input: {
     };
   } catch (error) {
     console.error("[payment links] chat link failed", error);
+    return { ok: false, reason: "error" };
+  }
+}
+
+export type CartLinkResult =
+  | { ok: true; url: string; linkId: string; total: number; expiresAt: Date; payOnDeliveryOnly: boolean }
+  | { ok: false; reason: "rate_limited" | "store_busy" | "no_payment" | "not_published" | "error" };
+
+/**
+ * The WhatsApp store's checkout: one one-time link for everything in the customer's chat cart (up to
+ * MAX_LINK_ITEMS products, each line's option already chosen). Same rules as createCustomerChatLink: the store's
+ * own published products at database prices, 24 hours, the same per-conversation and per-store hourly limits.
+ */
+export async function createCustomerCartLink(input: {
+  storeId: string;
+  items: Array<{ productId: string; variantId: string | null; quantity: number }>;
+  conversationId: string;
+  customerRef: string;
+  customerName?: string | null;
+}): Promise<CartLinkResult> {
+  try {
+    const hourAgo = new Date(Date.now() - 3_600_000);
+    const [recentForConversation, recentForStore, store, readiness] = await Promise.all([
+      db.paymentLink.count({ where: { storeId: input.storeId, conversationId: input.conversationId, createdBy: "peggy_customer", createdAt: { gte: hourAgo } } }),
+      db.paymentLink.count({ where: { storeId: input.storeId, createdBy: "peggy_customer", createdAt: { gte: hourAgo } } }),
+      db.store.findUnique({ where: { id: input.storeId }, select: LINK_STORE_SELECT }),
+      paymentReadiness(input.storeId),
+    ]);
+    const problem = customerLinkProblem({ productFound: Boolean(store) && input.items.length > 0, published: true, recentForConversation, recentForStore });
+    if (problem === "rate_limited" || problem === "store_busy") return { ok: false, reason: problem };
+    if (problem) return { ok: false, reason: "not_published" };
+    if (!readiness.ready) return { ok: false, reason: "no_payment" };
+    const items = input.items.slice(0, MAX_LINK_ITEMS);
+    const single = items.length === 1;
+    const created = await createPaymentLink(
+      store!,
+      {
+        items: items.map((item) => ({ productId: item.productId, variantId: item.variantId, quantity: item.quantity })),
+        title: null,
+        note: null,
+        customAmount: null,
+        oneTime: true,
+        expiry: "24h",
+        // The cart's quantities are what's bought.
+        maxQuantity: single ? items[0].quantity : 1,
+        buyerName: input.customerName?.slice(0, 120) ?? null,
+        buyerPhone: input.customerRef,
+        buyerEmail: null,
+      },
+      { createdBy: "peggy_customer", conversationId: input.conversationId, customerRef: input.customerRef, channel: "whatsapp" },
+    );
+    if (!created.ok) return { ok: false, reason: "not_published" };
+    return {
+      ok: true,
+      url: created.url,
+      linkId: created.link.id,
+      total: created.total,
+      expiresAt: created.link.expiresAt ?? new Date(Date.now() + CUSTOMER_LINK_LIMITS.expiryHours * 3_600_000),
+      payOnDeliveryOnly: !readiness.card && !readiness.korapay && !readiness.transfer,
+    };
+  } catch (error) {
+    console.error("[payment links] cart link failed", error);
     return { ok: false, reason: "error" };
   }
 }
