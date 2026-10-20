@@ -213,6 +213,13 @@ export interface InboundMessage {
   timestamp: Date;
   /** WhatsApp: the id of the button or list row the customer tapped (ours, e.g. "p:<productId>"). */
   replyId?: string | null;
+  /** WhatsApp: a cart sent from the store's catalog (retailer ids are store product ids). */
+  order?: WhatsAppCartOrder | null;
+}
+
+export interface WhatsAppCartOrder {
+  catalogId: string;
+  items: Array<{ productId: string; quantity: number; price: number | null; currency: string | null }>;
 }
 
 export interface StatusUpdate {
@@ -254,6 +261,7 @@ export function parseWhatsAppWebhook(payload: unknown): { messages: InboundMessa
         const attachments: InboundAttachment[] = [];
         let text = "";
         let replyId: string | null = null;
+        let order: WhatsAppCartOrder | null = null;
         if (type === "text") text = str(asRecord(m.text).body);
         else if (type === "button") {
           // A quick-reply button on a template message.
@@ -271,6 +279,17 @@ export function parseWhatsAppWebhook(payload: unknown): { messages: InboundMessa
           const media = asRecord(m[type]);
           attachments.push({ type, mediaId: str(media.id) || null, name: str(media.filename) || null, contentType: str(media.mime_type) || null });
           text = str(media.caption);
+        } else if (type === "order") {
+          // The customer sent their WhatsApp cart from the catalog.
+          const o = asRecord(m.order);
+          const items = asArray(o.product_items)
+            .map((raw) => asRecord(raw))
+            .map((item) => ({ productId: str(item.product_retailer_id).slice(0, 64), quantity: Math.floor(Number(item.quantity)), price: Number.isFinite(Number(item.item_price)) ? Number(item.item_price) : null, currency: str(item.currency) || null }))
+            .filter((item) => item.productId && item.quantity > 0)
+            .slice(0, 30);
+          const count = items.reduce((sum, item) => sum + item.quantity, 0);
+          text = `Sent a cart: ${count} item${count === 1 ? "" : "s"}${str(o.text) ? `. ${str(o.text)}` : ""}`;
+          if (items.length) order = { catalogId: str(o.catalog_id), items };
         } else if (type === "reaction") {
           text = `Reacted ${str(asRecord(m.reaction).emoji)}`;
         }
@@ -285,6 +304,7 @@ export function parseWhatsAppWebhook(payload: unknown): { messages: InboundMessa
           attachments,
           timestamp: fromUnixSeconds(m.timestamp),
           replyId,
+          ...(order ? { order } : {}),
         });
       }
       for (const raw of asArray(value.statuses)) {

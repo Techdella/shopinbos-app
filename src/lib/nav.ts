@@ -63,6 +63,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
             { id: "inbox-chat", label: "Live chat", href: "/home/marketing/chat" },
             { id: "inbox-auto-replies", label: "Auto-replies", href: "/home/inbox/auto-replies" },
             { id: "inbox-chatbot", label: "Peggy chatbot", href: "/home/inbox/chatbot" },
+            { id: "inbox-whatsapp-store", label: "WhatsApp store", href: "/home/inbox/whatsapp-store" },
             { id: "inbox-whatsapp-catalog", label: "WhatsApp catalog", href: "/home/inbox/whatsapp-catalog" },
             { id: "inbox-notifications", label: "Notifications", href: "/home/notifications" },
           ],

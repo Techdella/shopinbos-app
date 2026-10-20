@@ -13,7 +13,7 @@ import { sendTelegram } from "./channels/telegram";
 import { sendSmsReply } from "./channels/sms";
 import type { SendResult } from "./channels/types";
 import { markWhatsAppRead, sendWhatsApp, TOKEN_ERROR } from "./channels/whatsapp";
-import { CHANNELS, isSellerOnline, previewText, storeThreadWhere, type InboundAttachment, type InboxChannelKey } from "./pure";
+import { CHANNELS, isSellerOnline, previewText, storeThreadWhere, type InboundAttachment, type InboxChannelKey, type WhatsAppCartOrder } from "./pure";
 import { AUTO_REPLY_COOLDOWN_MS, chatbotOnDuty, decideAutoReply } from "./assistant";
 import { loadAutomation } from "./automation.server";
 import { chatbotAnswer, whatsappBotAnswer } from "./chatbot.server";
@@ -468,7 +468,7 @@ async function maybeAutoReply(conversationId: string) {
  * within hourly limits. Taps on her lists and buttons come back as reply ids. Returns false when she stays quiet.
  */
 async function maybeWhatsAppBot(
-  conversation: { id: string; storeId: string; externalThreadId: string; tags: string[]; lastInboundAt: Date | null },
+  conversation: { id: string; storeId: string; externalThreadId: string; tags: string[]; lastInboundAt: Date | null; contactName: string | null },
   automation: Awaited<ReturnType<typeof loadAutomation>>,
   sellerOnline: boolean,
   lastInbound: { body: string; externalId: string | null; meta: Prisma.JsonValue },
@@ -496,12 +496,16 @@ async function maybeWhatsAppBot(
   if (!connected) return false;
 
   const history = await db.inboxMessage.findMany({ where: { ...storeThreadWhere(conversation.storeId, conversation.id), status: { not: "failed" } }, orderBy: { createdAt: "desc" }, take: 12, select: { direction: true, body: true } });
-  const replyId = (lastInbound.meta as { replyId?: unknown } | null)?.replyId;
+  const inboundMeta = (lastInbound.meta ?? {}) as { replyId?: unknown; order?: unknown };
+  const replyId = inboundMeta.replyId;
+  const order = inboundMeta.order && typeof inboundMeta.order === "object" ? (inboundMeta.order as WhatsAppCartOrder) : null;
   const reply = await whatsappBotAnswer(conversation.storeId, bot, rules, history.reverse().map((m) => ({ from: m.direction === "inbound" ? "shopper" : "shop", body: m.body })), {
     replyId: typeof replyId === "string" ? replyId : null,
     phone: conversation.externalThreadId,
     firstMessage: earlierOutbound === 0,
     conversationId: conversation.id,
+    contactName: conversation.contactName,
+    order: order && Array.isArray(order.items) ? order : null,
   });
   void markWhatsAppRead(connected.credentials, lastInbound.externalId).catch(() => null);
 

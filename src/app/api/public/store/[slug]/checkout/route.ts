@@ -30,6 +30,7 @@ import { checkoutPaymentDueAt } from "@/lib/commerce/order-expiry.server";
 import { ensureSupplierOrdersSafely } from "@/lib/supplier-orders/service.server";
 import { notifyNewOrder, notifyStockAfterSale } from "@/lib/notifications/events.server";
 import { linkCheckout, settlePaymentLinkForOrder } from "@/lib/payment-links/service.server";
+import { confirmWhatsAppOrder } from "@/lib/whatsapp-store/server";
 import { isLinkCode, linkOrderChannel } from "@/lib/payment-links/pure";
 import { splitPlanForOrder, storeTakesCards, storeTakesKorapay } from "@/lib/wallet/wallet.server";
 import { startKorapayCheckout } from "@/lib/commerce/korapay-orders.server";
@@ -376,6 +377,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     notifyNewOrder({ sellerId: store.userId, orderId: order.id, orderNumber: order.orderNumber, description: sellerDescription, paymentMethod }),
     notifyStockAfterSale(store.id, priced.stockHolds.filter((hold) => hold.source === "store").map((hold) => hold.productId)),
     notifyOrderCustomer(order.id, "order_confirmed"), // WhatsApp/SMS order confirmation, if switched on
+    // Ordered from a WhatsApp chat by bank transfer: "we've got your order" in that chat (paid orders hear on payment).
+    paymentMethod === "transfer" && link?.link.channel === "whatsapp" && link.link.conversationId ? confirmWhatsAppOrder(order.id) : null,
     triggerAutomations("order_placed", {
       storeId: store.id,
       storeName: store.name,

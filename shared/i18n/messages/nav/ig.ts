@@ -17,6 +17,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "inbox-chat": "Live chat",
   "inbox-auto-replies": "Auto-replies",
   "inbox-chatbot": "Peggy chatbot",
+  "inbox-whatsapp-store": "Ụlọ ahịa WhatsApp",
   "inbox-whatsapp-catalog": "WhatsApp catalog",
   "inbox-notifications": "Notifications",
   "products-all": "Ngwaahịa niile",

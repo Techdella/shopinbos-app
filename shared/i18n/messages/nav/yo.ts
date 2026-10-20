@@ -17,6 +17,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "inbox-chat": "Live chat",
   "inbox-auto-replies": "Auto-replies",
   "inbox-chatbot": "Peggy chatbot",
+  "inbox-whatsapp-store": "Ilé ìtajà WhatsApp",
   "inbox-whatsapp-catalog": "WhatsApp catalog",
   "inbox-notifications": "Notifications",
   "products-all": "Gbogbo ọjà",
