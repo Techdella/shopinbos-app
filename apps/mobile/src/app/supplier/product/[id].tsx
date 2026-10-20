@@ -1,34 +1,42 @@
-import { useState } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { ScrollView, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { Image } from "expo-image";
 import { naira } from "@shared/onboarding";
-import { AppIcon } from "@/components/icons";
+import { Heading, List, Pill, Row, Stepper, Sub, Tile } from "@/components/design";
 import { ErrorState, LoadingBlock } from "@/components/kit";
-import { TonePill } from "@/components/partner";
 import { Screen } from "@/components/Screen";
-import { Card, Field, Label, LinkButton, Notice, PillButton, T } from "@/components/ui";
+import { Field, Label, LinkButton, Notice, PillButton, T } from "@/components/ui";
 import { useT } from "@/lib/i18n";
-import { parseAmount, parseCount, productStage } from "@/lib/partner-pure";
+import { parseAmount, productStage } from "@/lib/partner-pure";
 import { fetchSupplierProduct, quickEditProduct } from "@/lib/supplier";
+import { bestWholesale, LOW_STOCK } from "@/lib/supplier-pure";
 import { useLoad } from "@/lib/useLoad";
 import { openWeb } from "@/lib/web";
-import { colors, radii } from "@/theme";
+import { colors } from "@/theme";
 
-// Quick edits for one supplier product: stock (saves straight away, no new review), wholesale and suggested
-// retail price (a live product goes back for review), and publish / hide. Everything else is on the web.
+// One supplier product ("Simple app, end to end" supplier prototype): the photo, name and price to shops, "In stock"
+// with − / + (saved a moment after the last tap; no new review), and rows for the wholesale price (tap to change the
+// price; a live product goes back for review) and dropship. Below: show it to shops or hide it, and the web editor
+// for photos, price tiers and regions.
+
+const SAVE_AFTER_MS = 700;
 
 export default function SupplierProductScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const t = useT("m_supplier", "m_partner");
   const product = useLoad(() => fetchSupplierProduct(String(id)), String(id));
   const data = product.data;
-  // Edits start from what's saved; null = untouched.
-  const [stock, setStock] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
   const [wholesale, setWholesale] = useState<string | null>(null);
   const [retail, setRetail] = useState<string | null>(null);
   const [busy, setBusy] = useState<"save" | "publish" | null>(null);
   const [notice, setNotice] = useState<{ tone: "error" | "success"; text: string } | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (timer.current) clearTimeout(timer.current);
+  }, []);
 
   if (!data) {
     return (
@@ -39,22 +47,29 @@ export default function SupplierProductScreen() {
     );
   }
 
-  const stockText = stock ?? String(data.stockQuantity);
-  const stockValue = parseCount(stockText);
   const stage = productStage(data.status, t);
   const hidden = ["draft", "unpublished", "rejected"].includes(data.status);
+  const deal = bestWholesale(data);
+  const stock = data.stockQuantity;
 
-  function bump(delta: number) {
-    setStock(String(Math.max(0, (stockValue ?? 0) + delta)));
+  function changeStock(next: number) {
+    if (!data) return;
+    product.setData({ ...data, stockQuantity: next });
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      timer.current = null;
+      quickEditProduct(data.id, { stockQuantity: next })
+        .then(() => setNotice(null))
+        .catch((saveError) => {
+          setNotice({ tone: "error", text: saveError instanceof Error ? saveError.message : t("product.saveFailed") });
+          void product.reload();
+        });
+    }, SAVE_AFTER_MS);
   }
 
-  async function save() {
+  async function savePrices() {
     if (!data) return;
-    const patch: { stockQuantity?: number; wholesalePrice?: number; suggestedRetailPrice?: number } = {};
-    if (stock !== null) {
-      if (stockValue === null) return setNotice({ tone: "error", text: t("product.stockWhole") });
-      patch.stockQuantity = stockValue;
-    }
+    const patch: { wholesalePrice?: number; suggestedRetailPrice?: number } = {};
     if (wholesale !== null) {
       const value = parseAmount(wholesale);
       if (!value) return setNotice({ tone: "error", text: t("product.needWholesale") });
@@ -65,15 +80,18 @@ export default function SupplierProductScreen() {
       if (!value) return setNotice({ tone: "error", text: t("product.needRetail") });
       patch.suggestedRetailPrice = value;
     }
-    if (!Object.keys(patch).length) return setNotice({ tone: "success", text: t("product.nothingChanged") });
+    if (!Object.keys(patch).length) {
+      setEditing(false);
+      return setNotice({ tone: "success", text: t("product.nothingChanged") });
+    }
     setBusy("save");
     setNotice(null);
     try {
       const saved = await quickEditProduct(data.id, patch);
       product.setData({ ...data, ...saved });
-      setStock(null);
       setWholesale(null);
       setRetail(null);
+      setEditing(false);
       setNotice({ tone: "success", text: saved.status === "pending_review" && data.status === "published" ? t("product.savedReview") : t("product.saved") });
     } catch (saveError) {
       setNotice({ tone: "error", text: saveError instanceof Error ? saveError.message : t("product.saveFailed") });
@@ -99,61 +117,69 @@ export default function SupplierProductScreen() {
 
   return (
     <Screen
-      title={data.name}
+      title={t("product.title")}
       refreshing={product.refreshing}
       onRefresh={() => void product.refresh()}
-      footer={<PillButton title={t("product.save")} busy={busy === "save"} disabled={Boolean(busy) || (stock === null && wholesale === null && retail === null)} onPress={() => void save()} />}
+      footer={editing ? <PillButton title={t("product.save")} tone="accent" busy={busy === "save"} disabled={Boolean(busy)} onPress={() => void savePrices()} /> : undefined}
     >
-      {data.images.length ? (
+      {data.images.length > 1 ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-          {data.images.map((uri) => <Image key={uri} source={{ uri }} style={{ width: 120, height: 120, borderRadius: 16, backgroundColor: colors.surface }} contentFit="cover" accessibilityLabel={data.name} />)}
+          {data.images.map((uri) => <Image key={uri} source={{ uri }} style={{ width: 280, height: 240, borderRadius: 24, backgroundColor: colors.grayTint }} contentFit="cover" accessibilityLabel={data.name} />)}
         </ScrollView>
+      ) : data.images[0] ? (
+        <Image source={{ uri: data.images[0] }} style={{ width: "100%", height: 240, borderRadius: 24, backgroundColor: colors.grayTint }} contentFit="cover" accessibilityLabel={data.name} />
       ) : null}
-      <View style={{ flexDirection: "row", gap: 8 }}>
-        <TonePill tone={stage.tone} label={stage.label} />
-        {data._count?.storeProducts ? <TonePill tone="muted" label={t("shopsSellIt", { count: data._count.storeProducts })} /> : null}
+
+      <View style={{ gap: 6 }}>
+        <Heading>{data.name}</Heading>
+        <Sub>{t("products.toShops", { price: naira(data.wholesalePrice) })}</Sub>
+        {data.status === "published" ? null : <Pill label={stage.label} tone={data.status === "pending_review" ? "warn" : "gray"} />}
       </View>
       {notice ? <Notice tone={notice.tone}>{notice.text}</Notice> : null}
 
-      <Card style={{ gap: 10 }}>
-        <Label>{t("product.stock")}</Label>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-          <Pressable accessibilityRole="button" accessibilityLabel={t("product.oneLess")} onPress={() => bump(-1)} style={{ width: 54, height: 54, borderRadius: 27, backgroundColor: colors.canvas, alignItems: "center", justifyContent: "center" }}>
-            <T weight="extrabold" style={{ fontSize: 22 }}>−</T>
-          </Pressable>
-          <Field value={stockText} onChangeText={(text) => setStock(text.replace(/[^\d]/g, ""))} keyboardType="number-pad" accessibilityLabel={t("unitsInStock")} style={{ flex: 1, textAlign: "center", fontSize: 20 }} />
-          <Pressable accessibilityRole="button" accessibilityLabel={t("product.oneMore")} onPress={() => bump(1)} style={{ width: 54, height: 54, borderRadius: 27, backgroundColor: colors.canvas, alignItems: "center", justifyContent: "center" }}>
-            <AppIcon name="plus" size={22} strokeWidth={2.4} />
-          </Pressable>
+      <View style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 18, flexDirection: "row", alignItems: "center", gap: 12 }}>
+        <View style={{ flex: 1, gap: 3 }}>
+          <T weight="bold" style={{ fontSize: 16 }}>{t("product.inStockTitle")}</T>
+          <T style={{ fontSize: 14, color: stock <= LOW_STOCK ? colors.warnInk : colors.inkSoft }}>{stock <= LOW_STOCK ? t("products.runningLow", { count: stock }) : t("products.inStock", { count: stock })}</T>
         </View>
-        <View style={{ flexDirection: "row", gap: 8 }}>
-          {[10, 50, 100].map((amount) => (
-            <Pressable key={amount} accessibilityRole="button" accessibilityLabel={t("product.addN", { count: amount })} onPress={() => bump(amount)} style={{ flex: 1, minHeight: 38, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.line, alignItems: "center", justifyContent: "center" }}>
-              <T weight="bold">+{amount}</T>
-            </Pressable>
-          ))}
-        </View>
-      </Card>
+        <Stepper value={stock} onChange={changeStock} label={t("unitsInStock")} max={10_000_000} />
+      </View>
 
-      <Card style={{ gap: 12 }}>
-        <View>
-          <Label>{t("product.wholesalePerUnit")}</Label>
-          <Field value={wholesale ?? String(data.wholesalePrice)} onChangeText={setWholesale} keyboardType="decimal-pad" accessibilityLabel={t("product.wholesale")} />
-        </View>
-        <View>
-          <Label>{t("product.retail")}</Label>
-          <Field value={retail ?? String(data.suggestedRetailPrice)} onChangeText={setRetail} keyboardType="decimal-pad" accessibilityLabel={t("suggestedRetail")} />
-          <T style={{ color: colors.inkSoft, fontSize: 15, marginTop: 6, lineHeight: 21 }}>{t("product.now", { wholesale: naira(data.wholesalePrice), retail: naira(data.suggestedRetailPrice) })}</T>
-        </View>
-      </Card>
+      <List>
+        <Row
+          lead={<Tile icon="coin" tone="gray" />}
+          title={t("product.wholesale")}
+          sub={t("product.eachFor", { price: naira(deal.price), count: deal.minQty })}
+          onPress={() => setEditing((open) => !open)}
+        />
+        <Row
+          lead={<Tile icon="truck" tone="gray" />}
+          title={t("kind.dropship")}
+          sub={data.dropshipAvailable ? t("product.dropshipOn") : t("product.dropshipOff")}
+          onPress={() => void openWeb(`/supplier/products/${data.id}/edit`)}
+        />
+      </List>
 
-      <Card style={{ gap: 10 }}>
-        <T weight="extrabold" style={{ fontSize: 15 }}>{hidden ? t("product.notListed") : data.status === "pending_review" ? t("product.inReview") : t("product.listed")}</T>
-        <T style={{ color: colors.inkSoft, lineHeight: 20 }}>
-          {hidden ? t("product.showHint") : t("product.hideHint")}
-        </T>
+      {editing ? (
+        <View style={{ gap: 12 }}>
+          <View>
+            <Label>{t("product.wholesalePerUnit")}</Label>
+            <Field value={wholesale ?? String(data.wholesalePrice)} onChangeText={setWholesale} keyboardType="decimal-pad" accessibilityLabel={t("product.wholesale")} />
+          </View>
+          <View>
+            <Label>{t("product.retail")}</Label>
+            <Field value={retail ?? String(data.suggestedRetailPrice)} onChangeText={setRetail} keyboardType="decimal-pad" accessibilityLabel={t("suggestedRetail")} />
+            <T style={{ color: colors.inkSoft, fontSize: 14, marginTop: 6, lineHeight: 20 }}>{t("product.now", { wholesale: naira(data.wholesalePrice), retail: naira(data.suggestedRetailPrice) })}</T>
+          </View>
+          <LinkButton title={t("product.tiersOnWeb")} color={colors.inkSoft} onPress={() => void openWeb("/supplier/wholesale")} />
+        </View>
+      ) : null}
+
+      <View style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 18, gap: 10 }}>
+        <T weight="bold" style={{ fontSize: 16 }}>{hidden ? t("product.notListed") : data.status === "pending_review" ? t("product.inReview") : t("product.listed")}</T>
+        <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>{hidden ? t("product.showHint") : t("product.hideHint")}</T>
         <PillButton title={hidden ? t("showToShops") : t("product.hide")} tone="white" size="md" busy={busy === "publish"} disabled={Boolean(busy)} onPress={() => void publish(hidden)} />
-      </Card>
+      </View>
 
       <LinkButton title={t("product.editOnWeb")} color={colors.inkSoft} onPress={() => void openWeb(`/supplier/products/${data.id}/edit`)} />
     </Screen>

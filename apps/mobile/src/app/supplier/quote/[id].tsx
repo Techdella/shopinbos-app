@@ -2,21 +2,23 @@ import { useState } from "react";
 import { Alert, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { naira } from "@shared/onboarding";
-import { AppIcon } from "@/components/icons";
+import { Small } from "@/components/design";
 import { ChipRow, ErrorState, LoadingBlock } from "@/components/kit";
-import { Thumb } from "@/components/partner";
 import { Screen } from "@/components/Screen";
-import { Card, Chip, Field, LinkButton, Notice, PillButton, T } from "@/components/ui";
+import { DoneView, FieldLabel, NoteCard, Pic } from "@/components/SupplierKit";
+import { Chip, Field, LinkButton, Notice, PillButton, T } from "@/components/ui";
+import { VoiceInput } from "@/components/VoiceInput";
+import { AppIcon } from "@/components/icons";
 import { useT } from "@/lib/i18n";
 import { parseAmount, parseCount } from "@/lib/partner-pure";
 import { fetchQuote, replyToQuote } from "@/lib/supplier";
 import { quoteRequestStage, countWord, READY_CHOICES } from "@/lib/supplier-pure";
 import { useLoad } from "@/lib/useLoad";
-import { colors } from "@/theme";
-import { VoiceInput } from "@/components/VoiceInput";
+import { colors, fonts } from "@/theme";
 
-// A quote request from a shop (build spec 8A): "Adaeze Studio wants 50 pieces". The supplier types a price for each
-// and picks when it can be ready, then "Send my quote". Same API as before (respond with a price, or decline).
+// A price (quote) request from a shop ("Simple app, end to end" supplier prototype): "50 pieces of Unisex runners"
+// from the shop, what they wrote, your price for each one (your normal price under it), when it's ready to send,
+// then "Send my price" and "Price sent". Same API as before (respond with a price, or decline).
 // Screen words are in the app language (m_supplier "quote.*"); the "It can be ready in 3 days." line sent to the shop
 // with the quote stays in English (READY_CHOICES), since the shop may read another language.
 
@@ -27,7 +29,7 @@ export default function QuoteRequestScreen() {
   const t = useT("m_supplier", "m_partner", "common");
   const quote = useLoad(() => fetchQuote(String(id)), String(id));
   const [price, setPrice] = useState("");
-  const [ready, setReady] = useState<ReadyKey>("3days");
+  const [ready, setReady] = useState<ReadyKey>("week");
   const [moq, setMoq] = useState("");
   const [note, setNote] = useState("");
   const [more, setMore] = useState(false);
@@ -78,7 +80,7 @@ export default function QuoteRequestScreen() {
 
   if (!data) {
     return (
-      <Screen title={t("quote.title")} refreshing={quote.refreshing} onRefresh={() => void quote.refresh()}>
+      <Screen title={t("quote.priceRequest")} refreshing={quote.refreshing} onRefresh={() => void quote.refresh()}>
         {quote.loading ? <LoadingBlock /> : null}
         {quote.error ? <ErrorState message={quote.error} onRetry={() => void quote.reload()} /> : null}
       </Screen>
@@ -87,14 +89,11 @@ export default function QuoteRequestScreen() {
 
   if (sent) {
     return (
-      <Screen title={t("quote.sent")} footer={<PillButton title={t("done")} onPress={() => (router.canGoBack() ? router.back() : router.replace("/supplier/orders"))} />}>
-        <Card style={{ alignItems: "center", gap: 12, paddingVertical: 28 }}>
-          <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: colors.successTint, alignItems: "center", justifyContent: "center" }}>
-            <AppIcon name="check" size={36} color={colors.success} strokeWidth={2.6} />
-          </View>
-          <T style={{ fontSize: 16, lineHeight: 23, textAlign: "center" }}>{t("quote.sentBody", { shop, pieces: countWord(data.quantity, t) })}</T>
-        </Card>
-      </Screen>
+      <DoneView
+        title={t("quote.priceSent")}
+        sub={t("quote.priceSentBody", { shop })}
+        footer={<PillButton title={t("done")} onPress={() => router.replace({ pathname: "/supplier/orders", params: { view: "prices" } })} />}
+      />
     );
   }
 
@@ -103,44 +102,48 @@ export default function QuoteRequestScreen() {
 
   return (
     <Screen
-      title={t("wants", { shop, pieces: countWord(data.quantity, t) })}
-      sub={t("quote.sub", { product: data.product.name, destination: data.destination })}
+      title={t("quote.priceRequest")}
       refreshing={quote.refreshing}
       onRefresh={() => void quote.refresh()}
       footer={
         pending ? (
-          <View style={{ gap: 4 }}>
-            <PillButton title={t("quote.send")} busy={busy === "respond"} disabled={Boolean(busy)} onPress={() => void send()} />
+          <>
+            <PillButton tone="accent" busy={busy === "respond"} disabled={Boolean(busy)} onPress={() => void send()} accessibilityLabel={t("quote.sendPrice")}>
+              <AppIcon name="send" size={20} color={colors.ink} />
+              <T weight="extrabold" style={{ fontSize: 17, color: colors.ink }}>{t("quote.sendPrice")}</T>
+            </PillButton>
             <LinkButton title={t("cantThisOne")} color={colors.inkSoft} onPress={cant} />
-          </View>
+          </>
         ) : null
       }
     >
       {error ? <Notice>{error}</Notice> : null}
-      <Card style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-        <Thumb uri={data.product.image} size={56} />
-        <View style={{ flex: 1, gap: 2 }}>
-          <T weight="extrabold" style={{ fontSize: 16 }} numberOfLines={2}>{data.product.name}</T>
-          <T style={{ color: colors.inkSoft, fontSize: 15 }}>{t("quote.yourWholesale", { price: naira(data.product.wholesalePrice), stock: data.product.stock })}</T>
+      <View style={{ flexDirection: "row", gap: 14, alignItems: "center" }}>
+        <Pic uri={data.product.image} size={72} radius={18} />
+        <View style={{ flex: 1, gap: 3 }}>
+          <T weight="extrabold" style={{ fontSize: 20, lineHeight: 25 }} numberOfLines={3}>{t("quote.piecesOf", { pieces: countWord(data.quantity, t), product: data.product.name })}</T>
+          <T style={{ fontSize: 14, color: colors.inkSoft }}>{t("quote.fromLine", { shop, destination: data.destination })}</T>
         </View>
-      </Card>
+      </View>
       {data.notes ? (
-        <Card>
-          <T style={{ color: colors.inkSoft, fontSize: 15, marginBottom: 4 }}>{t("quote.shopSays")}</T>
-          <T style={{ fontSize: 15, lineHeight: 22 }}>{data.notes}</T>
-        </Card>
+        <NoteCard tone="gray">
+          <T style={{ fontSize: 16, lineHeight: 24 }}>“{data.notes}”</T>
+        </NoteCard>
       ) : null}
 
       {pending ? (
         <>
-          <T weight="extrabold" style={{ fontSize: 22, marginTop: 6 }}>{t("quote.yourPrice")}</T>
-          <Field value={price} onChangeText={setPrice} keyboardType="decimal-pad" placeholder={`₦${data.product.wholesalePrice.toLocaleString("en-NG")}`} accessibilityLabel={t("quote.yourPriceLabel")} style={{ fontSize: 20, height: 58 }} />
-          {unit ? <T style={{ fontSize: 15 }}>{t("quote.totalFor", { pieces: countWord(data.quantity, t) })} <T weight="extrabold" style={{ fontSize: 15 }}>{naira(unit * data.quantity)}</T></T> : null}
+          <View>
+            <FieldLabel>{t("quote.pricePer")}</FieldLabel>
+            <Field value={price} onChangeText={setPrice} keyboardType="decimal-pad" placeholder={data.product.wholesalePrice.toLocaleString("en-NG")} accessibilityLabel={t("quote.yourPriceLabel")} style={{ fontSize: 26, height: 70, fontFamily: fonts.display }} />
+            <Small style={{ marginTop: 8 }}>{t("quote.normalPrice", { price: naira(data.product.wholesalePrice) })}</Small>
+            {unit ? <Small>{t("quote.totalFor", { pieces: countWord(data.quantity, t) })} {naira(unit * data.quantity)}</Small> : null}
+          </View>
 
-          <T weight="extrabold" style={{ fontSize: 22, marginTop: 6 }}>{t("quote.whenReady")}</T>
-          <ChipRow>{READY_CHOICES.map((choice) => <Chip key={choice.key} label={t(`ready.${choice.key}`)} on={ready === choice.key} onPress={() => setReady(choice.key)} />)}</ChipRow>
-
-          <Notice tone="info">{t("quote.escrow")}</Notice>
+          <View>
+            <FieldLabel>{t("quote.readyIn")}</FieldLabel>
+            <ChipRow>{READY_CHOICES.map((choice) => <Chip key={choice.key} label={t(`ready.${choice.key}`)} on={ready === choice.key} onPress={() => setReady(choice.key)} />)}</ChipRow>
+          </View>
 
           {more ? (
             <View style={{ gap: 10 }}>
@@ -155,11 +158,10 @@ export default function QuoteRequestScreen() {
           )}
         </>
       ) : (
-        <Card style={{ gap: 6 }}>
-          <T weight="extrabold" style={{ fontSize: 17 }}>{data.status === "rejected" ? t("quote.saidCant") : t("quote.saidPrice", { price: data.quotedPrice ? naira(data.quotedPrice) : t("quote.aPrice") })}</T>
+        <NoteCard tone={data.status === "rejected" ? "gray" : "ok"} title={data.status === "rejected" ? t("quote.saidCant") : t("quote.saidPrice", { price: data.quotedPrice ? naira(data.quotedPrice) : t("quote.aPrice") })}>
           <T style={{ color: colors.inkSoft, fontSize: 15 }}>{quoteRequestStage(data.status, t)}</T>
           {data.reply ? <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21 }}>{data.reply}</T> : null}
-        </Card>
+        </NoteCard>
       )}
 
       <LinkButton title={t("messageShop", { shop })} onPress={() => router.push({ pathname: "/supplier/chat/[id]", params: { id: data.seller.userId, name: shop } })} />

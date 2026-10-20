@@ -1,90 +1,111 @@
+import { useEffect } from "react";
 import { Pressable, View } from "react-native";
 import { router } from "expo-router";
 import { naira } from "@shared/onboarding";
-import { HelpButton } from "@/components/Help";
-import { AppIcon, type AppIconName } from "@/components/icons";
-import { ErrorState, LoadingBlock } from "@/components/kit";
-import { PartnerHeader, PartnerScroll } from "@/components/partner";
-import { Card, T } from "@/components/ui";
-import { MAX_DO_NEXT } from "@/lib/home-pure";
+import { DarkCard, Eyebrow, List, Row, Sub, Tile } from "@/components/design";
+import { AppIcon } from "@/components/icons";
+import { ErrorState, LoadingBlock, Picture } from "@/components/kit";
+import { NotificationBellButton } from "@/components/NotificationBellButton";
+import { PushPromptCard } from "@/components/PushPromptCard";
+import { ChatTile } from "@/components/SupplierKit";
+import { TabScreen } from "@/components/TabScreen";
+import { T } from "@/components/ui";
 import { useT } from "@/lib/i18n";
 import { verificationStage } from "@/lib/partner-pure";
-import { fetchSupplierOverview } from "@/lib/supplier";
-import { countWord } from "@/lib/supplier-pure";
+import { fetchSupplierOrders, fetchSupplierOverview, fetchUnreadMessages, type SupplierOrder } from "@/lib/supplier";
+import { countWord, greetingKey, supplierOrderGroup } from "@/lib/supplier-pure";
 import { useLoad } from "@/lib/useLoad";
-import { colors, radii } from "@/theme";
-import { PushPromptCard } from "@/components/PushPromptCard";
-import { NotificationBellButton } from "@/components/NotificationBellButton";
+import { colors } from "@/theme";
 
-// Supplier Home (build spec 8A, "Simple supplier app"): the money shops have earned you, at most three "Do these
-// next" items, and nothing else. Numbers from /api/mobile/supplier/overview.
+// Supplier Home ("Simple app, end to end" supplier prototype): who you are and the gear to Account, the dark
+// "Coming to your bank" card (money shops paid that's waiting for delivery to be confirmed), and a "To do" list:
+// new orders, new messages, price requests, low stock, and finishing the set-up. A new supplier is sent to the
+// set-up wizard (/supplier/setup) once per launch until it's done.
 
-type Next = { key: string; icon: AppIconName; title: string; hint: string; go: () => void };
+let setupShown = false;
+
+type Todo = { key: string; lead: React.ReactNode; title: string; sub: string; go: () => void };
 
 export default function SupplierHome() {
   const t = useT("m_supplier", "m_partner", "common");
-  const overview = useLoad(fetchSupplierOverview);
-  const data = overview.data;
-  const verification = data ? verificationStage(data.supplier.verificationStatus, t) : null;
+  const loaded = useLoad(async () => {
+    const [overview, open, unread] = await Promise.all([
+      fetchSupplierOverview(),
+      fetchSupplierOrders("open").catch(() => null),
+      fetchUnreadMessages().catch(() => 0),
+    ]);
+    const orders: SupplierOrder[] = open ? [...open.dropship, ...open.wholesale] : [];
+    return { overview, fresh: orders.filter((order) => supplierOrderGroup(order) === "new").length, unread };
+  });
+  const data = loaded.data;
+  const overview = data?.overview;
+  const onboarded = overview?.supplier.onboarded ?? true;
 
-  const next: Next[] = [];
-  if (data) {
-    if (data.supplier.verificationStatus !== "verified" || !data.supplier.onboarded) {
-      next.push({ key: "verify", icon: "shield", title: data.supplier.onboarded ? verification!.label : t("home.finish"), hint: data.supplier.onboarded ? verification!.hint : t("home.finishHint"), go: () => router.push("/supplier/verification") });
+  useEffect(() => {
+    if (overview && !onboarded && !setupShown) {
+      setupShown = true;
+      router.push("/supplier/setup");
     }
-    if (data.counts.toPack) next.push({ key: "pack", icon: "box", title: t("home.pack", { count: data.counts.toPack }), hint: t("home.packHint"), go: () => router.push("/supplier/orders") });
-    if (data.counts.wholesale) next.push({ key: "wholesale", icon: "bag", title: t("home.wholesale", { count: data.counts.wholesale }), hint: t("home.openOrders"), go: () => router.push("/supplier/orders") });
-    const request = data.quotes[0];
-    if (request) next.push({ key: "request", icon: "tag", title: t("home.request", { shop: request.seller, pieces: countWord(request.quantity, t) }), hint: t("home.requestHint"), go: () => router.push({ pathname: "/supplier/quote/[id]", params: { id: request.id } }) });
-    const low = data.lowStock[0];
-    if (low) next.push({ key: "low", icon: "box", title: low.stock === 0 ? t("home.out", { name: low.name }) : t("home.low", { name: low.name }), hint: low.stock === 0 ? t("home.outHint") : t("home.lowHint", { count: low.stock }), go: () => router.push({ pathname: "/supplier/product/[id]", params: { id: low.id } }) });
+  }, [overview, onboarded]);
+
+  const todo: Todo[] = [];
+  if (data && overview) {
+    if (data.fresh) todo.push({ key: "new", lead: <Tile icon="box" tone="peach" />, title: t("home.newOrders", { count: data.fresh }), sub: t("home.newOrdersSub"), go: () => router.push({ pathname: "/supplier/orders", params: { view: "new" } }) });
+    if (data.unread) todo.push({ key: "chat", lead: <ChatTile />, title: t("home.newMessages", { count: data.unread }), sub: t("home.newMessagesSub"), go: () => router.push("/supplier/messages") });
+    for (const quote of overview.quotes) {
+      todo.push({ key: `quote-${quote.id}`, lead: <Tile icon="tag" tone="blue" />, title: t("home.priceRequest", { pieces: countWord(quote.quantity, t) }), sub: t("home.priceRequestSub", { shop: quote.seller }), go: () => router.push({ pathname: "/supplier/quote/[id]", params: { id: quote.id } }) });
+    }
+    for (const product of overview.lowStock) {
+      todo.push({ key: `low-${product.id}`, lead: <Tile icon="box" tone="warn" />, title: t("home.runningLow", { name: product.name }), sub: t("home.left", { count: product.stock }), go: () => router.push({ pathname: "/supplier/product/[id]", params: { id: product.id } }) });
+    }
+    if (!overview.supplier.onboarded) {
+      todo.push({ key: "setup", lead: <Tile icon="store" tone="mint" />, title: t("home.finish"), sub: t("home.finishHint"), go: () => router.push("/supplier/setup") });
+    } else if (overview.supplier.verificationStatus !== "verified") {
+      const stage = verificationStage(overview.supplier.verificationStatus, t);
+      todo.push({ key: "verify", lead: <Tile icon="shield" tone="mint" />, title: stage.label, sub: stage.hint, go: () => router.push("/supplier/verification") });
+    }
+    if (!overview.bank) todo.push({ key: "bank", lead: <Tile icon="wallet" tone="ok" />, title: t("home.addBank"), sub: t("home.addBankSub"), go: () => router.push({ pathname: "/supplier/setup", params: { edit: "bank" } }) });
   }
 
+  const name = overview?.supplier.name ?? t("home.yourBusiness");
+  const header = (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 46 }}>
+      <Picture uri={overview?.supplier.logoUrl} name={name} size={44} shape="square" />
+      <View style={{ flex: 1 }}>
+        <T weight="semibold" style={{ fontSize: 13, color: colors.inkSoft }}>{t(greetingKey(new Date().getHours()))}</T>
+        <T weight="extrabold" style={{ fontSize: 17 }} numberOfLines={1}>{name}</T>
+      </View>
+      <NotificationBellButton />
+      <Pressable accessibilityRole="button" accessibilityLabel={t("home.account")} onPress={() => router.push("/supplier/account")} hitSlop={6} style={({ pressed }) => ({ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surface, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.8 : 1 })}>
+        <AppIcon name="settings" size={21} />
+      </Pressable>
+    </View>
+  );
+
   return (
-    <PartnerScroll refreshing={overview.refreshing} onRefresh={() => void overview.refresh()}>
-      <PartnerHeader eyebrow={data?.firstName ? t("home.greeting", { name: data.firstName }) : "Shopinbos"} name={data?.supplier.name ?? t("home.yourBusiness")} logoUrl={data?.supplier.logoUrl} right={<View style={{ flexDirection: "row", gap: 6 }}><NotificationBellButton /><HelpButton /></View>} />
+    <TabScreen header={header} refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
       <PushPromptCard who="supplier" when={Boolean(data)} />
+      {loaded.loading && !data ? <LoadingBlock label={t("loading")} /> : null}
+      {loaded.error && !data ? <ErrorState message={loaded.error} onRetry={() => void loaded.reload()} /> : null}
 
-      {overview.loading && !data ? <LoadingBlock label={t("loading")} /> : null}
-      {overview.error && !data ? <ErrorState message={overview.error} onRetry={() => void overview.reload()} /> : null}
-
-      {data ? (
+      {data && overview ? (
         <>
-          <Pressable accessibilityRole="button" onPress={() => router.push("/supplier/money")}>
-            <Card style={{ gap: 4 }}>
-              <T style={{ color: colors.inkSoft, fontSize: 15 }}>{t("earned")}</T>
-              <T weight="extrabold" style={{ fontSize: 34, letterSpacing: -0.8 }} accessibilityRole="header">{naira(data.earned)}</T>
-              <T style={{ color: colors.inkSoft, fontSize: 15 }}>{t("home.earnedFrom")}</T>
-            </Card>
-          </Pressable>
+          <DarkCard eyebrow={t("home.coming")} amount={naira(overview.owed ?? 0)} line={t("home.afterConfirm")} onPress={() => router.push("/supplier/money")} />
 
-          <T weight="extrabold" style={{ fontSize: 19, marginTop: 4 }} accessibilityRole="header">{t("home.doNext")}</T>
-          {next.length ? (
-            <View style={{ gap: 8 }} testID="do-next">
-              {next.slice(0, MAX_DO_NEXT).map((item) => (
-                <Pressable key={item.key} accessibilityRole="button" onPress={item.go} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.surface, borderRadius: radii.card, padding: 14, opacity: pressed ? 0.85 : 1 })}>
-                  <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: colors.peach, alignItems: "center", justifyContent: "center" }}>
-                    <AppIcon name={item.icon} size={20} color={colors.accentInk} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <T weight="extrabold" style={{ fontSize: 16 }} numberOfLines={2}>{item.title}</T>
-                    <T style={{ color: colors.inkSoft, fontSize: 15 }} numberOfLines={2}>{item.hint}</T>
-                  </View>
-                  <AppIcon name="chevron" size={18} color={colors.inkSoft} />
-                </Pressable>
-              ))}
-            </View>
-          ) : (
-            <Card><T style={{ fontSize: 15, lineHeight: 22 }}>{t("home.nothing")}</T></Card>
-          )}
-
-          <Pressable accessibilityRole="button" onPress={() => router.push("/supplier/messages")} style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 8 }}>
-            <AppIcon name="chat" size={20} />
-            <T weight="bold" style={{ fontSize: 15, flex: 1 }}>{t("messagesWithShops")}</T>
-            <AppIcon name="chevron" size={18} color={colors.inkSoft} />
-          </Pressable>
+          <View style={{ gap: 10 }} testID="do-next">
+            <Eyebrow>{t("home.todo")}</Eyebrow>
+            {todo.length ? (
+              <List>
+                {todo.map((item) => <Row key={item.key} lead={item.lead} title={item.title} sub={item.sub} onPress={item.go} />)}
+              </List>
+            ) : (
+              <View style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 18 }}>
+                <Sub>{t("home.caughtUp")}</Sub>
+              </View>
+            )}
+          </View>
         </>
       ) : null}
-    </PartnerScroll>
+    </TabScreen>
   );
 }
