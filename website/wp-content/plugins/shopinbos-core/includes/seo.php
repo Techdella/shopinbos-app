@@ -37,7 +37,7 @@ add_filter( 'wp_robots', function ( $robots ) {
 $sib_v = fn( string $k ) => fn( $value ) => ( $v = sib_virtual() ) && isset( $v[ $k ] ) ? $v[ $k ] : $value;
 add_filter( 'rank_math/frontend/canonical', $sib_v( 'canonical' ) );
 add_filter( 'rank_math/frontend/description', $sib_v( 'description' ) );
-add_filter( 'rank_math/frontend/title', fn( $t ) => ( $v = sib_virtual() ) ? $v['title'] . ' | Shopinbos' : $t );
+add_filter( 'rank_math/frontend/title', fn( $t ) => ( $v = sib_virtual() ) ? sib_virtual_title( $v['title'] ) : $t );
 add_filter( 'rank_math/frontend/robots', function ( $r ) {
 	if ( sib_is_noindex() ) {
 		$r['index'] = 'noindex';
@@ -46,7 +46,7 @@ add_filter( 'rank_math/frontend/robots', function ( $r ) {
 } );
 add_filter( 'wpseo_canonical', $sib_v( 'canonical' ) );
 add_filter( 'wpseo_metadesc', $sib_v( 'description' ) );
-add_filter( 'wpseo_title', fn( $t ) => ( $v = sib_virtual() ) ? $v['title'] . ' | Shopinbos' : $t );
+add_filter( 'wpseo_title', fn( $t ) => ( $v = sib_virtual() ) ? sib_virtual_title( $v['title'] ) : $t );
 add_filter( 'wpseo_robots', fn( $r ) => sib_is_noindex() ? 'noindex, follow' : $r );
 unset( $sib_v );
 
@@ -54,6 +54,9 @@ unset( $sib_v );
 function sib_meta_description(): string {
 	if ( $v = sib_virtual() ) {
 		return (string) $v['description'];
+	}
+	if ( function_exists( 'sib_seo_current' ) && ( $c = sib_seo_current() ) && ! empty( $c[1] ) ) {
+		return (string) $c[1];
 	}
 	if ( is_singular() ) {
 		$post = get_queried_object();
@@ -78,8 +81,12 @@ add_action( 'wp_head', function () {
 	$url   = $v ? ( $v['canonical'] ?? '' ) : ( is_singular() ? get_permalink() : '' );
 	$image = $v['image'] ?? ( is_singular() && has_post_thumbnail() ? get_the_post_thumbnail_url( null, 'large' ) : '' );
 	$image = $image ?: sib_absolute( sib_img( 'og-default.jpg' ) );
-	if ( ( $k = sib_seo_context() ) && ! $v ) {
-		[ $title, $desc ] = sib_seo_defaults()[ $k ];
+	if ( ! $v && ( $c = sib_seo_current() ) ) {
+		[ $title, $desc ] = $c;
+	}
+	if ( ! $v && ! $url && ! is_404() ) {
+		$url = home_url( trailingslashit( (string) wp_parse_url( add_query_arg( [] ), PHP_URL_PATH ) ) );
+		echo '<link rel="canonical" href="' . esc_url( $url ) . "\">\n"; // archives: core prints canonicals for singular pages only
 	}
 	if ( $desc ) {
 		echo '<meta name="description" content="' . esc_attr( $desc ) . "\">\n";
@@ -105,7 +112,14 @@ add_action( 'wp_head', function () {
 
 /* Without an SEO plugin, use the same hub titles. */
 add_filter( 'pre_get_document_title', function ( $t ) {
-	return ! sib_seo_plugin() && ( $k = sib_seo_context() ) && ! sib_virtual() ? sib_seo_defaults()[ $k ][0] : $t;
+	if ( sib_seo_plugin() ) {
+		return $t;
+	}
+	if ( $v = sib_virtual() ) {
+		return sib_virtual_title( $v['title'] );
+	}
+	$c = sib_seo_current();
+	return $c ? $c[0] : $t;
 }, 20 );
 
 /* English for Nigeria. */
@@ -142,31 +156,45 @@ function sib_seo_context(): string {
 	return '';
 }
 
-add_filter( 'wpseo_title', function ( $t ) {
-	$k = sib_seo_context();
-	if ( $k && ( ! is_singular() || ! get_post_meta( get_queried_object_id(), '_yoast_wpseo_title', true ) ) ) {
-		return sib_seo_defaults()[ $k ][0];
+/** True when a person (not setup) has typed this page's own title or description into Yoast or Rank Math. */
+function sib_seo_own( string $field ): bool {
+	if ( ! is_singular() ) {
+		return false;
 	}
-	return $t;
-}, 20 );
+	$id  = get_queried_object_id();
+	$key = 'title' === $field ? [ '_yoast_wpseo_title', 'rank_math_title' ] : [ '_yoast_wpseo_metadesc', 'rank_math_description' ];
+	foreach ( $key as $k ) {
+		$v = (string) get_post_meta( $id, $k, true );
+		if ( '' !== $v && ! str_contains( $v, '%%' ) && ! str_contains( $v, '%title%' ) ) {
+			return true;
+		}
+	}
+	return false;
+}
 
-add_filter( 'wpseo_metadesc', function ( $d ) {
-	if ( $d ) {
+$sib_title = function ( $t ) {
+	if ( sib_virtual() || sib_seo_own( 'title' ) ) {
+		return $t;
+	}
+	$c = sib_seo_current();
+	return $c ? $c[0] : $t;
+};
+$sib_desc = function ( $d ) {
+	if ( sib_virtual() || sib_seo_own( 'desc' ) ) {
 		return $d;
 	}
-	if ( $k = sib_seo_context() ) {
-		return sib_seo_defaults()[ $k ][1];
-	}
-	if ( is_singular() || is_category() || is_tax() ) {
-		return sib_meta_description();
-	}
-	return $d;
-}, 20 );
-add_filter( 'wpseo_opengraph_desc', fn( $d ) => $d ?: apply_filters( 'wpseo_metadesc', '' ), 20 );
-add_filter( 'wpseo_opengraph_title', function ( $t ) {
-	$k = sib_seo_context();
-	return $k ? sib_seo_defaults()[ $k ][0] : $t;
-}, 20 );
+	$c = sib_seo_current();
+	return $c && ! empty( $c[1] ) ? $c[1] : $d;
+};
+add_filter( 'wpseo_title', $sib_title, 20 );
+add_filter( 'wpseo_opengraph_title', $sib_title, 20 );
+add_filter( 'wpseo_twitter_title', $sib_title, 20 );
+add_filter( 'wpseo_metadesc', $sib_desc, 20 );
+add_filter( 'wpseo_opengraph_desc', $sib_desc, 20 );
+add_filter( 'wpseo_twitter_description', $sib_desc, 20 );
+add_filter( 'rank_math/frontend/title', $sib_title, 20 );
+add_filter( 'rank_math/frontend/description', $sib_desc, 20 );
+unset( $sib_title, $sib_desc );
 add_filter( 'wpseo_locale', fn() => 'en_NG' );
 
 /* A branded share image wherever the page has none of its own. */

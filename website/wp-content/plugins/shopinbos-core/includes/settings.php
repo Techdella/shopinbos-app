@@ -21,8 +21,8 @@ function sib_settings_fields(): array {
 		'launch' => [
 			'title'  => __( 'Launch', 'shopinbos' ),
 			'fields' => [
-				'app_live'      => [ __( 'The web app is live', 'shopinbos' ), '0', 'checkbox', __( 'Off: every “Start your shop” and “Log in” button goes to the Coming soon page with a waitlist form. Tick it on launch day to send people to the app.', 'shopinbos' ) ],
-				'site_coming_soon' => [ __( 'Show only the Coming soon page to visitors', 'shopinbos' ), '0', 'checkbox', __( 'Hides the whole website behind the Coming soon page (logged-in editors still see everything). Leave off to keep the site and blog visible to Google.', 'shopinbos' ) ],
+				'launch_date'   => [ __( 'Launch date', 'shopinbos' ), '2026-11-01', 'text', __( 'YYYY-MM-DD. Until midnight (Lagos time) on this date, sign-up buttons open the waitlist pop-up and /go/ links land on /waitlist/. From then on they go straight to the app, automatically. Log-in links always go to the app.', 'shopinbos' ) ],
+				'app_live'      => [ __( 'Go live now', 'shopinbos' ), '0', 'checkbox', __( 'Switch to the app before the launch date. Leave unticked to switch automatically on the launch date.', 'shopinbos' ) ],
 			],
 		],
 		'popups' => [
@@ -45,16 +45,16 @@ function sib_settings_fields(): array {
 		'pricing' => [
 			'title'  => __( 'Plan prices', 'shopinbos' ),
 			'fields' => [
-				'price_start_month' => [ __( 'Starter, monthly', 'shopinbos' ), 'Free', 'text', __( 'Shown as typed, e.g. ₦7,500. Use [sib_price key="price_grow_month"] in any text to show it.', 'shopinbos' ) ],
-				'price_start_year'  => [ __( 'Starter, yearly', 'shopinbos' ), 'Free', 'text', '' ],
-				'price_grow_month'  => [ __( 'Growth, monthly', 'shopinbos' ), '₦7,500', 'text', '' ],
-				'price_grow_year'   => [ __( 'Growth, yearly', 'shopinbos' ), '₦75,000', 'text', '' ],
-				'price_pro_month'   => [ __( 'Pro, monthly', 'shopinbos' ), '₦25,000', 'text', '' ],
-				'price_pro_year'    => [ __( 'Pro, yearly', 'shopinbos' ), '₦250,000', 'text', '' ],
-				'starter_products'  => [ __( 'Starter product limit', 'shopinbos' ), '50', 'text', '' ],
-				'fee_commission'    => [ __( 'Commission on Starter sales', 'shopinbos' ), '2%', 'text', __( 'Growth and Pro pay no commission.', 'shopinbos' ) ],
-				'fee_supplier'      => [ __( 'Supplier fee per sale', 'shopinbos' ), '5%', 'text', '' ],
-				'fee_partner'       => [ __( 'Delivery partner fee per job', 'shopinbos' ), '8%', 'text', '' ],
+				'price_start_month' => [ __( 'Starter, monthly', 'shopinbos' ), '₦6,000', 'text', __( 'Shown as typed, e.g. ₦6,000. Use [sib_price key="price_grow_month"] in any text to show it.', 'shopinbos' ) ],
+				'price_start_year'  => [ __( 'Starter, yearly', 'shopinbos' ), '₦60,000', 'text', '' ],
+				'price_grow_month'  => [ __( 'Growth, monthly', 'shopinbos' ), '₦18,000', 'text', '' ],
+				'price_grow_year'   => [ __( 'Growth, yearly', 'shopinbos' ), '₦180,000', 'text', '' ],
+				'price_pro_month'   => [ __( 'Pro, monthly', 'shopinbos' ), '₦40,000', 'text', '' ],
+				'price_pro_year'    => [ __( 'Pro, yearly', 'shopinbos' ), '₦400,000', 'text', '' ],
+				'starter_products'  => [ __( 'Free plan product limit', 'shopinbos' ), '20', 'text', '' ],
+				'fee_commission'    => [ __( 'Fee on Free plan sales', 'shopinbos' ), '3%', 'text', __( 'Starter 2%, Growth 1%, Pro 0.5%.', 'shopinbos' ) ],
+				'fee_supplier'      => [ __( 'Supplier commission (free plan)', 'shopinbos' ), '6%', 'text', '' ],
+				'fee_partner'       => [ __( 'Delivery partner fee (free plan)', 'shopinbos' ), '5%', 'text', '' ],
 				'fee_broadcast'     => [ __( 'Broadcast fee per message', 'shopinbos' ), '₦3', 'text', __( 'On top of Meta’s message price.', 'shopinbos' ) ],
 				'fee_video'         => [ __( 'Product video price', 'shopinbos' ), '₦1,000', 'text', '' ],
 			],

@@ -5,7 +5,7 @@
  * Categories: shopinbos-content
  * Description: Honest side-by-side table. Link to the other product's pricing page and date the comparison.
  */
-$rows = [ [ 'Price per month', 'Free to start', 'Their price (link to their pricing page)' ], [ 'Pay on delivery with codes', 'Yes', '' ], [ 'WhatsApp selling', 'Catalogue, inbox and payment links', '' ], [ 'Dropship from Nigerian suppliers', 'Yes', '' ], [ 'Where they are better', '', 'Be fair: name what they do well' ] ];
+$rows = [ [ 'Price per month', 'Free to start', 'Their price (link to their pricing page)' ], [ 'Pay on delivery with codes', 'Yes, on Growth and Pro', '' ], [ 'WhatsApp selling', 'Catalogue, inbox and payment links', '' ], [ 'Dropship from Nigerian suppliers', 'Yes', '' ], [ 'Where they are better', '', 'Be fair: name what they do well' ] ];
 $body = '';
 foreach ( $rows as [ $a, $b, $c ] ) {
 	$body .= "<tr><td>{$a}</td><td>{$b}</td><td>{$c}</td></tr>";

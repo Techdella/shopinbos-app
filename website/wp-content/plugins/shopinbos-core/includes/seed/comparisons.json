@@ -18,7 +18,7 @@
    "You already run Shopify happily"
   ],
   "rows": [
-   "Price | Free plan, then from ₦7,500 a month | Paid plans after a free trial, billed in US dollars | us",
+   "Price | Free plan (3% per sale), or from ₦6,000 a month with fees down to 0.5% per sale | Paid plans after a free trial, billed in US dollars | us",
    "Payments in Nigeria | Cards, transfer and USSD built in, through Paystack | Through a payment app such as Paystack | us",
    "Pay on delivery | Built in, with rider codes and same-day cash | Manual cash on delivery option | us",
    "Local riders at checkout | Built in for Lagos, Abuja, Ibadan, Port Harcourt | Through third-party apps | us",
@@ -63,7 +63,7 @@
    "You need a very custom checkout"
   ],
   "rows": [
-   "Price | Free plan, then from ₦7,500 a month | Free plugin, plus hosting, domain and paid extensions | us",
+   "Price | Free plan (3% per sale), or from ₦6,000 a month with fees down to 0.5% per sale | Free plugin, plus hosting, domain and paid extensions | us",
    "Setup | Tell Rex what you sell, ready in minutes | Install WordPress, a theme and plugins | us",
    "Payments in Nigeria | Built in, through Paystack | Paystack and Flutterwave plugins available | tie",
    "Pay on delivery | With rider codes and same-day cash | Cash on delivery option built in | us",
@@ -107,7 +107,7 @@
    "You prefer a tool many Nigerian sellers already know"
   ],
   "rows": [
-   "Price | Free Starter plan for up to 50 products, then from ₦7,500 a month | Subscription plans, check Bumpa’s pricing page for current prices | tie",
+   "Price | Free plan for up to 20 products (3% per sale), then from ₦6,000 a month with fees down to 0.5% | Subscription plans, check Bumpa’s pricing page for current prices | tie",
    "Store setup | Rex builds your store from a chat in about 5 minutes | Website builder with ready-made designs | us",
    "Walk-in and offline sales | Built mainly for selling online | Known for recording shop and online sales in one place | them",
    "Business records and reports | Orders, stock and simple numbers | A strong focus on records, stock and reports | them",
@@ -120,7 +120,7 @@
   "steps": [
    "Download or copy your product list from Bumpa into a spreadsheet",
    "Upload it in Shopinbos, Rex maps the fields",
-   "Point your domain to Shopinbos or use yourname.shopinbos.com",
+   "Point your domain to Shopinbos or use yourname.mybos.store",
    "Turn on pay on delivery and riders"
   ],
   "kws": [
@@ -133,7 +133,7 @@
   "faq": [
    "Is Bumpa good for Nigerian businesses? | Yes, many Nigerian small businesses use Bumpa, especially to keep records of stock and sales. If you mainly sell online and want pay on delivery with riders built in, compare both before you choose.",
    "Can I move from Bumpa to Shopinbos? | Yes. Put your products in a spreadsheet, upload it, and Rex maps the fields. You can also start fresh by telling Rex what you sell.",
-   "Is Shopinbos cheaper than Bumpa? | Shopinbos has a free Starter plan for up to 50 products, and paid plans from ₦7,500 a month. Check Bumpa’s pricing page for their current plans and compare what each one includes."
+   "Is Shopinbos cheaper than Bumpa? | Shopinbos has a free plan for up to 20 products, and paid plans from ₦6,000 a month. Check Bumpa’s pricing page for their current plans and compare what each one includes."
   ]
  },
  {
@@ -156,14 +156,14 @@
   ],
   "rows": [
    "Best for | Physical products sold in Nigeria | Digital products, courses and creators | tie",
-   "Price | Free Starter plan, then from ₦7,500 a month | Free to start, with a fee taken from sales, check Selar’s pricing page | tie",
+   "Price | Free plan (3% per sale), or from ₦6,000 a month with fees down to 0.5% per sale | Free to start, with a fee taken from sales, check Selar’s pricing page | tie",
    "Digital products and courses | Not our main focus | Built for it, with instant delivery of files | them",
    "Selling abroad | Nigeria first | Accepts payments in several currencies | them",
    "Pay on delivery | Built in, with 4-digit rider codes and same-day cash | Built mainly for paying upfront | us",
    "Delivery | Riders booked from the order, interstate through partner companies | You arrange delivery of physical items yourself | us",
    "Find stock to sell | Checked Nigerian suppliers, dropship or wholesale | Not offered as a main feature | us",
    "Selling on WhatsApp, Instagram and TikTok | One product list and one inbox for all channels | Share your product links on any channel | us",
-   "Store and domain | Store at yourname.shopinbos.com, your own domain on paid plans | Store page for your products, check their current domain options | tie"
+   "Store and domain | Store at yourname.mybos.store, your own domain on paid plans | Store page for your products, check their current domain options | tie"
   ],
   "steps": [
    "List the physical products you sell on Selar",
@@ -203,7 +203,7 @@
    "You already have a Wix site you are happy with"
   ],
   "rows": [
-   "Price | Free Starter plan, then from ₦7,500 a month, in naira with VAT included | Selling online needs a paid plan, usually priced in US dollars, check Wix’s pricing page | us",
+   "Price | Free plan (3% per sale), or from ₦6,000 a month with fees down to 0.5% per sale, in naira | Selling online needs a paid plan, usually priced in US dollars, check Wix’s pricing page | us",
    "Payments in Nigeria | Cards, transfer and USSD built in, through Paystack | Check which payment providers Wix supports in Nigeria | us",
    "Pay on delivery | Built in, with rider codes and same-day cash | Manual offline payment options | us",
    "Local riders at checkout | Built in for Lagos, Abuja, Ibadan and Port Harcourt | Shipping settings, you arrange local delivery | us",
@@ -251,7 +251,7 @@
    "Your customers always pay before you deliver"
   ],
   "rows": [
-   "Price | Free Starter plan, then from ₦7,500 a month | No separate plan to pay for, Paystack transaction fees apply | them",
+   "Price | Free plan (3% per sale), or from ₦6,000 a month with fees down to 0.5% per sale | No separate plan to pay for, Paystack transaction fees apply | them",
    "Payment fees | 1.5% + ₦100, ₦100 waived under ₦2,500, capped at ₦2,000 | Paystack’s standard fees, check their pricing page | tie",
    "Payment methods | Card, bank transfer and USSD, through Paystack | Paystack’s payment methods | tie",
    "Setup | Rex builds your store from a chat in about 5 minutes | Quick to set up inside your Paystack dashboard | tie",
@@ -299,7 +299,7 @@
    "You sell branded items people search for by name"
   ],
   "rows": [
-   "Cost | Free Starter plan, then from ₦7,500 a month, plus payment fees | Commission on each sale and other seller fees, check Jumia’s seller pages | tie",
+   "Cost | Free plan (3% per sale), or from ₦6,000 a month with fees down to 0.5% per sale, plus payment fees | Commission on each sale and other seller fees, check Jumia’s seller pages | tie",
    "Ready shoppers | You bring your own buyers from WhatsApp, Instagram, TikTok and Google | A large number of shoppers already browse the site | them",
    "Buyer trust | You build it with reviews, Status and good service | A well-known name many buyers already trust | them",
    "Delivery reach | Riders in Lagos, Abuja, Ibadan and Port Harcourt, interstate through partner companies | Jumia’s own delivery network across Nigeria | them",
@@ -307,7 +307,7 @@
    "Your brand | Your own store, name and domain | Your shop sits beside other sellers of similar items | us",
    "Pricing | You set prices, discounts and bundles | You set prices, next to competing listings on the same page | us",
    "Selling on social media | One product list and one inbox for WhatsApp, Instagram and TikTok | Built for selling on the marketplace | us",
-   "Payouts | Paid to your bank every Friday, withdraw early any time | Paid on Jumia’s schedule, check their seller terms | tie"
+   "Payouts | Paid straight to your bank, usually the next working day | Paid on Jumia’s schedule, check their seller terms | tie"
   ],
   "steps": [
    "Keep your Jumia shop running while you start",
@@ -347,7 +347,7 @@
    "You don’t want another app yet"
   ],
   "rows": [
-   "Cost | Free Starter plan, then from ₦7,500 a month | Free to use | them",
+   "Cost | Free plan (3% per sale), or from ₦6,000 a month with fees down to 0.5% per sale | Free to use | them",
    "Being discovered | Your store link works on every channel and on Google | Reels, Explore and hashtags can bring new people | them",
    "Taking orders | Customers order and pay in your store, day or night | Usually by DM, one chat at a time | us",
    "Payments | Card, bank transfer and USSD at checkout | Usually bank transfer, then you check the alert | us",

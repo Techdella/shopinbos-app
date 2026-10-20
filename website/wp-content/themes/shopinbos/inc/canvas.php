@@ -104,12 +104,19 @@ function sib_canvas_part( string $part ): string {
 			? '<a class="row cv-b" href="' . esc_url( $url ) . '" style="gap:8px">' . esc_html( $name ) . '</a>'
 			: '<button type="button" class="row cv-b" data-cv="pop.openApp" data-platform="' . $m[2] . '" style="gap:8px">' . esc_html( $name ) . ' <span class="tag" style="background:rgba(255,255,255,.12);color:#C9C6D3;min-height:20px;font-size:10.5px">' . esc_html__( 'Coming soon', 'shopinbos' ) . '</span></button>';
 	}, $html );
+	// Before launch the top bar announces the launch date; cached copies swap back in the browser after launch.
+	if ( 'header' === $part && function_exists( 'sib_app_live' ) && ! sib_app_live() && preg_match( '#<div class="wrap row"[^>]*><span class="tag"[^>]*>Free PDF</span>.*?</a>#s', $html, $m ) ) {
+		$pre  = '<div class="wrap row" data-prelaunch style="justify-content:center;gap:10px;min-height:38px;flex-wrap:wrap;text-align:center"><span class="tag" style="background:#FF6A2B;color:#fff;min-height:22px">' . esc_html__( 'Nov 1', 'shopinbos' ) . '</span><span>' . esc_html__( 'Shopinbos opens on November 1. Sellers, suppliers and riders: get in first.', 'shopinbos' ) . '</span>'
+			. '<a class="lnk cv-b" href="' . esc_url( home_url( '/waitlist/' ) ) . '" style="color:#FFB18F;font-size:13px">' . esc_html__( 'Join the waitlist', 'shopinbos' ) . sib_theme_icon( 'arrow', 16 ) . '</a>';
+		$post = preg_replace( '#^<div class="wrap row"#', '<div class="wrap row" data-postlaunch hidden', $m[0] );
+		$html = str_replace( $m[0], $pre . '</div>' . $post, $html );
+	}
 	if ( 'footer' === $part ) {
 		$html = str_replace( '<a class="cv-b" href="/about/">About us</a>', '<a class="cv-b" href="/about/">About us</a><a class="cv-b" href="' . esc_url( home_url( '/investors/' ) ) . '">' . esc_html__( 'Investors', 'shopinbos' ) . '</a>', $html );
 		$html = str_replace( '<a class="cv-b" href="/legal/seller-rules/">Seller rules</a>', '<a class="cv-b" href="/legal/seller-rules/">Seller rules</a><a class="cv-b" href="' . esc_url( home_url( '/legal/data-protection/' ) ) . '">' . esc_html__( 'Data protection', 'shopinbos' ) . '</a><a class="cv-b" href="' . esc_url( home_url( '/legal/' ) ) . '">' . esc_html__( 'All policies', 'shopinbos' ) . '</a>', $html );
 	}
 	if ( 'popups' === $part && function_exists( 'sib_app_notify_popup' ) ) {
-		$html = preg_replace( '/<\/div>\s*$/', sib_app_notify_popup() . '</div>', $html, 1 );
+		$html = preg_replace( '/<\/div>\s*$/', sib_app_notify_popup() . ( function_exists( 'sib_waitlist_popup' ) ? sib_waitlist_popup() : '' ) . '</div>', $html, 1 );
 	}
 	if ( 'popups' === $part && function_exists( 'sib_popup_contact_mode' ) ) {
 		$html = sib_popup_contact_mode( $html );

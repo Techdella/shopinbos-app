@@ -28,13 +28,13 @@ function sib_seed_help_articles(): array {
 	return [
 		[ 'how-pay-on-delivery-works', 'How pay on delivery works, step by step', 'delivery-and-pay-on-delivery', 'Customers pay the rider when the parcel arrives, confirmed with a 4-digit code.',
 			$p( 'Pay on delivery lets customers pay the rider when the parcel arrives. Shopinbos gives each order a 4-digit code, so the rider can only mark it delivered when the customer is happy.' )
-			. $b( 'callout', [ 'kind' => 'note', 'title' => 'Who can use it', 'text' => 'All plans, for orders up to ₦50,000, in Lagos, Abuja, Ibadan and Port Harcourt. More cities are coming.' ] )
+			. $b( 'callout', [ 'kind' => 'note', 'title' => 'Who can use it', 'text' => 'Shops on the Growth and Pro plans, for orders up to ₦50,000, in Lagos, Abuja, Ibadan and Port Harcourt. Your delivery partner must also accept pay on delivery. More cities are coming.' ] )
 			. $h( 'Turn on pay on delivery' )
 			. $b( 'steps', [ 'title' => 'In the Shopinbos app', 'items' => "Open Settings, then Payments | Tap the gear at the bottom of your Home screen.\nSwitch on Pay on delivery | Choose the most a customer can order with pay on delivery, up to ₦50,000.\nPick your riders | Choose Shopinbos Riders or the delivery companies you trust.\nSave | Your checkout now shows “Pay when it arrives”." ] )
 			. $h( 'What happens on delivery day' )
 			. $b( 'checklist', [ 'title' => 'The rider will', 'items' => "Call the customer before arriving\nLet the customer check the item\nAsk for the 4-digit code\nCollect cash or a transfer, then confirm in the app" ] )
 			. $b( 'callout', [ 'kind' => 'warn', 'title' => 'Never share the code yourself', 'text' => 'Only the customer should give the code to the rider. If you share it, the order can be marked delivered before the customer has the item.' ] )
-			. $b( 'faq', [ 'title' => 'Common questions', 'items' => "When does the cash reach my balance? | Riders pay cash in by 6pm the same day. It shows in your balance that evening and is paid out on Friday.\nWhat if the customer refuses the parcel? | The rider brings it back to you. You only pay the return delivery fee, and the order is marked “Refused”." ] ) ],
+			. $b( 'faq', [ 'title' => 'Common questions', 'items' => "When do I get the cash? | The cash belongs to you, not the rider or Shopinbos. Riders pass it on by 6pm the same day: they pay it in the app, which sends it straight to your bank, or hand it to you and you confirm it.\nWhat if the customer refuses the parcel? | The rider brings it back to you. You only pay the return delivery fee, and the order is marked “Refused”." ] ) ],
 
 		[ 'create-your-shop', 'Create your shop in 5 minutes', 'getting-started', 'Sign up with your phone, tell Rex what you sell and share your link.',
 			$p( 'You can have a working shop, with payments and delivery, in about five minutes from your phone.' )
@@ -53,8 +53,8 @@ function sib_seed_help_articles(): array {
 			. $b( 'faq', [ 'title' => 'Common questions', 'items' => "Is there a minimum payout? | No. Whatever is in your balance on Friday is paid out.\nWhere do I change my bank account? | Settings, then Payouts. For your safety, we confirm the change with a code." ] ) ],
 
 		[ 'connect-your-own-domain', 'Connect your own domain name', 'store-and-design', 'Use a domain you own, like yourshop.com, with free SSL.',
-			$p( 'Your store works at yourname.shopinbos.com for free. On a paid plan you can also use a domain you own, like yourshop.com.ng.' )
-			. $b( 'steps', [ 'title' => 'In the Shopinbos app', 'items' => "Open Store, then Domain | You will see your free shopinbos.com address.\nTap Connect a domain | Type the domain you own.\nAdd the records we show you | Copy them into your domain company’s settings (for example Whogohost or Namecheap).\nWait for the green tick | Usually within an hour. Your free SSL is set up for you." ] )
+			$p( 'Your store works at yourname.mybos.store for free. On a paid plan you can also use a domain you own, like yourshop.com.ng.' )
+			. $b( 'steps', [ 'title' => 'In the Shopinbos app', 'items' => "Open Store, then Domain | You will see your free mybos.store address.\nTap Connect a domain | Type the domain you own.\nAdd the records we show you | Copy them into your domain company’s settings (for example Whogohost or Namecheap).\nWait for the green tick | Usually within an hour. Your free SSL is set up for you." ] )
 			. $b( 'callout', [ 'kind' => 'note', 'title' => 'Don’t have a domain yet?', 'text' => 'You can buy one from inside the app and it connects by itself.' ] ) ],
 
 		[ 'add-your-whatsapp-business-catalogue', 'Add your WhatsApp Business catalogue', 'whatsapp-and-social', 'Show your Shopinbos products in your WhatsApp catalogue, kept in sync.',

@@ -75,13 +75,13 @@ function sib_seed_blog_posts(): array {
 		. $p( 'Cash collected by riders shows in your Shopinbos balance the same evening. Your balance is paid to your bank every Friday, or you can withdraw any time.' )
 		. $b( 'stats', [ 'title' => 'Pay on delivery on Shopinbos', 'items' => "4 digits | Code only the buyer sees\n6pm | Riders pay in cash the same evening\nFriday | Your balance paid to your bank", 'foot' => 'Payout times can move on public holidays. Check the app for your next payout date.', 'tone' => 'teal' ] )
 		. $b( 'faq', [ 'items' => "Does pay on delivery cost extra on Shopinbos? | There is no payment fee on cash paid to the rider. You pay the delivery price you agreed with the rider or partner.\nWhat if the rider loses the cash? | Delivery partners on Shopinbos are responsible for the cash they collect. Report it in the app and we follow it up with the partner.\nCan I turn pay on delivery off for some products? | Yes. You can switch it on or off per product, or only allow it in some areas." ] )
-		. $b( 'cta-inline', [ 'title' => 'Take pay on delivery with codes', 'text' => 'Free on every plan. Riders pay in the same evening, and you get paid every Friday.', 'linkLabel' => 'How pay on delivery works', 'linkUrl' => '/delivery/' ] );
+		. $b( 'cta-inline', [ 'title' => 'Take pay on delivery with codes', 'text' => 'Included on the Growth and Pro plans. Riders pass the cash on by 6pm the same day.', 'linkLabel' => 'How pay on delivery works', 'linkUrl' => '/delivery/' ] );
 
 	$drop = $p( 'Dropshipping means you sell a product you don’t hold. When a customer orders, the supplier packs it with your label and a rider delivers it. You never buy stock up front.' )
 		. $p( 'It is a good way to start, but you should know exactly what you keep. Here are real numbers on one product: a ₦28,000 tote bag.' )
 		. $h( '1. Where the ₦28,000 goes' )
 		. $p( 'Say the supplier’s price to you is ₦17,500. You choose your own selling price, here ₦28,000. The buyer pays for delivery separately.' )
-		. $b( 'stats', [ 'title' => 'One ₦28,000 tote bag, paid by card (Starter plan)', 'items' => "₦17,500 | Supplier price\n₦520 | Paystack fee (1.5% + ₦100)\n₦560 | Shopinbos commission (2% on Starter)\n₦9,420 | What you keep", 'foot' => 'Example numbers. Paystack fees are capped at ₦2,000 per payment. Growth and Pro plans pay no commission, so you would keep ₦9,980.' ] )
+		. $b( 'stats', [ 'title' => 'One ₦28,000 tote bag, paid by card (Starter plan)', 'items' => "₦17,500 | Supplier price\n₦520 | Paystack fee (1.5% + ₦100)\n₦560 | Shopinbos fee (2% on Starter)\n₦9,420 | What you keep", 'foot' => 'Example numbers. Paystack fees are capped at ₦2,000 per payment. On Growth the fee is 1% (₦280), so you would keep ₦9,700.' ] )
 		. $p( 'The supplier is paid their price after delivery. Your share is held for 48 hours after delivery in case of a return, then joins your balance for Friday’s payout.' )
 		. $h( '2. What you risk' )
 		. $p( 'You don’t risk money on stock. You risk your name. If the supplier is slow or the item is not what the photo showed, the customer blames you.' )

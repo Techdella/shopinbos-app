@@ -331,3 +331,29 @@ body .wp-block-post-content>*{margin-block:0}
 .sib .wp-block-post-content:not(.prose)>.fold,.sib .wp-block-post-content:not(.prose)>.ctaband{margin-top:-48px}
 @media (max-width:640px){.sib .wp-block-post-content:not(.prose)>.fold{margin-top:-32px}}
 .navlink.is-on{color:#16141F!important;border-bottom-color:#FF6A2B!important}
+
+/* Phones: every section fits the screen and stacks (including the canvas sections' inline layouts) */
+@media (max-width: 760px) {
+	.sib [style*="display: grid"] > *, .sib [style*="display:grid"] > *, .g2 > *, .g3 > *, .g4 > * { min-width: 0; }
+	.sib pre { max-width: 100%; overflow-x: auto; }
+	.help-art-grid { grid-template-columns: minmax(0, 1fr) !important; gap: 24px; }
+	.help-art-grid > :first-child:not(.help-art-main) { order: 2; }
+	.seg.docs { flex-wrap: nowrap; overflow-x: auto; max-width: 100%; justify-content: flex-start; scrollbar-width: none; }
+	.seg.docs::-webkit-scrollbar { display: none; }
+	.seg.docs .segb { flex: none; white-space: nowrap; }
+	.ctab2[style*="1.15fr"] { grid-template-columns: 1fr !important; padding: 36px 24px 0 !important; border-radius: 32px !important; }
+	.ctab2[style*="1.15fr"] > :last-child { max-width: 300px; margin: 0 auto; }
+	[style*="grid-template-columns: 1.2fr 1fr 1fr"] { grid-template-columns: 1fr !important; }
+	nav.wrapflex:has(> .chip), .row.wrapflex > nav:has(> .chip) { flex-wrap: nowrap; overflow-x: auto; max-width: 100%; scrollbar-width: none; padding-bottom: 2px; }
+	nav.wrapflex:has(> .chip)::-webkit-scrollbar { display: none; }
+	nav.wrapflex > .chip { flex: none; }
+}
+@media (max-width: 640px) {
+	.sib h1.h1, .sib h1.wp-block-heading.h1, .sib .h1, .sib h1.disp[style*="font-size"] { font-size: clamp(32px, 10vw, 42px) !important; line-height: 1.06; overflow-wrap: break-word; hyphens: auto; }
+	.sib .hbig { font-size: clamp(34px, 10.5vw, 42px) !important; }
+	.g4:has(> .card), .g4:has(> a.card), .g4:has(> .fcol) { grid-template-columns: minmax(0, 1fr); }
+	.g3:has(> .pcard) { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+	.g3:has(> .pcard) .pcard span[style*="font-size: 15px"] { font-size: 14px !important; }
+	.tag { max-width: 100%; white-space: normal; text-align: left; }
+	.g4 > a.card > :first-child[style*="aspect-ratio"] { aspect-ratio: auto !important; height: 190px; }
+}
