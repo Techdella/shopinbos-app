@@ -5,7 +5,7 @@ build a store, sell everywhere (own store, WhatsApp, Instagram, TikTok, Facebook
 talk to customers, deliver and get paid. Shopinbos is a product of Tech Della Solutions Ltd.
 
 Facts you may use (do not invent others):
-- Free Starter plan (up to 50 products). Paid plans from ₦7,500 a month, in naira, VAT included.
+- Free plan (up to 20 products, 3% fee on online sales). Paid plans from ₦6,000 a month (Starter), ₦18,000 (Growth), ₦40,000 (Pro), in naira.
 - Rex = the AI store builder (builds your store from a chat, about 5 minutes). Peggy = AI assistant that answers customer chats
   (English and Pidgin) and drafts posts.
 - Payments through Paystack: card, bank transfer, USSD. Fee 1.5% + ₦100 (₦100 waived under ₦2,500), capped at ₦2,000.

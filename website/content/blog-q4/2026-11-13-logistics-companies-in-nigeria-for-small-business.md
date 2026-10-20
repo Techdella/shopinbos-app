@@ -185,4 +185,4 @@ Can I offer pay on delivery with a logistics company? | Many do. Ask how cash is
 
 The best logistics companies in Nigeria for small business are the ones that fit your products, your customers' locations and how you handle money. Ask clear questions, run a small trial, and keep reviewing. Your delivery partner is part of your customer experience.
 
-If you'd like to book riders from your orders and show delivery prices at checkout, you can try it on the free Shopinbos Starter plan.
+If you'd like to book riders from your orders and show delivery prices at checkout, you can try it on the free Shopinbos plan.

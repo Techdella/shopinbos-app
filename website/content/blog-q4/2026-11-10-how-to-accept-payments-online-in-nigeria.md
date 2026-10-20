@@ -188,4 +188,4 @@ How do I avoid fake payment alerts? | Never dispatch based on an SMS or screensh
 
 Learning how to accept payments online in Nigeria comes down to three things: give buyers the options they trust, tie every payment to an order, and know when the money reaches your bank. Start with a checkout link and pay on delivery for new customers, then build from there.
 
-You can set this up free on the Shopinbos Starter plan, which covers up to 50 products. Check the [pricing page](/pricing/) when you're ready to grow.
+You can set this up free on the Shopinbos Free plan, which covers up to 20 products. Check the [pricing page](/pricing/) when you're ready to grow.
