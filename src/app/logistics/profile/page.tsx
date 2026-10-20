@@ -88,8 +88,8 @@ export default async function LogisticsProfilePage({ searchParams }: PageProps) 
             <CoverImageUpload currentBanner={partner.bannerUrl ?? null} displayName={partner.displayName} city={partner.city ?? ""} />
             <div className="-mt-9 flex flex-wrap items-end gap-4 px-5 pb-5">
               <LogoUploadForm currentLogo={partner.logoUrl ?? null} displayName={partner.displayName} />
+              {/* The name is already on the cover; only the hint sits here, below the cover's edge. */}
               <div className="min-w-0 pb-1">
-                <div className="truncate text-[17px] font-extrabold">{partner.displayName}</div>
                 <div className="text-[15px] text-app-ink-soft">{t("company.logoCoverHint")}</div>
               </div>
             </div>

@@ -93,8 +93,28 @@ export function openAiVoice(gender: VoiceGender, model: "expressive" | "basic") 
   return gender === "male" ? "onyx" : "nova";
 }
 
-const ACCENT: Record<string, string> = {
-  english: "Speak English with a warm, natural Nigerian accent, like a friendly Lagos shop owner talking to a customer.",
+/** Accents a seller can pick for an English voiceover. Pidgin, Yorùbá and Hausa voices keep their native accent. */
+export const VOICE_ACCENTS = [
+  { id: "nigerian", name: "Nigerian", people: "Nigerian", direction: "a warm, natural Nigerian accent, like a friendly Lagos shop owner talking to a customer" },
+  { id: "ghanaian", name: "Ghanaian", people: "Ghanaian", direction: "a warm, natural Ghanaian accent, like a friendly Accra trader talking to a customer" },
+  { id: "kenyan", name: "Kenyan", people: "Kenyan", direction: "a clear, natural Kenyan accent, like a friendly Nairobi shop owner" },
+  { id: "south_african", name: "South African", people: "South African", direction: "a natural South African accent, like a friendly Johannesburg shop owner" },
+  { id: "cameroonian", name: "Cameroonian", people: "Cameroonian", direction: "a natural anglophone Cameroonian accent, like a friendly Douala trader" },
+  { id: "british", name: "British", people: "British", direction: "a friendly, modern London accent" },
+  { id: "american", name: "American", people: "American", direction: "a friendly, natural American accent" },
+] as const;
+export type VoiceAccent = (typeof VOICE_ACCENTS)[number]["id"];
+
+export function isVoiceAccent(value: unknown): value is VoiceAccent {
+  return typeof value === "string" && VOICE_ACCENTS.some((accent) => accent.id === value);
+}
+
+/** Only English voiceovers take a picked accent; the other languages are spoken with their native one. */
+export function accentApplies(language: string) {
+  return language === "english";
+}
+
+const NATIVE: Record<string, string> = {
   pidgin: "Speak Nigerian Pidgin with a relaxed, playful Lagos accent.",
   yoruba: "Speak Yorùbá with a native Nigerian accent and the correct tones.",
   hausa: "Speak Hausa with a native northern Nigerian accent.",
@@ -102,9 +122,13 @@ const ACCENT: Record<string, string> = {
 };
 
 /** How the voice should sound (OpenAI's expressive voices follow this). */
-export function voiceDirection(language: string, gender: VoiceGender) {
-  const who = gender === "male" ? "A confident, friendly Nigerian man" : "A warm, upbeat Nigerian woman";
-  return `${who} doing a short product ad for social media. ${ACCENT[language] ?? ACCENT.english} Lively but natural pace, clear words, a smile in the voice, no American or British accent.`;
+export function voiceDirection(language: string, gender: VoiceGender, accent: VoiceAccent = "nigerian") {
+  const native = NATIVE[language];
+  const picked = VOICE_ACCENTS.find((item) => item.id === (native ? "nigerian" : accent)) ?? VOICE_ACCENTS[0];
+  const who = gender === "male" ? `A confident, friendly ${picked.people} man` : `A warm, upbeat ${picked.people} woman`;
+  const how = native ?? `Speak English with ${picked.direction}.`;
+  const avoid = picked.id === "british" || picked.id === "american" ? "" : " No American or British accent.";
+  return `${who} doing a short product ad for social media. ${how} Lively but natural pace, clear words, a smile in the voice.${avoid}`;
 }
 
 // ─── Music ─────────────────────────────────────────────────────────────────────
@@ -116,6 +140,13 @@ export const MUSIC_MOODS = [
   { id: "upbeat", name: "Upbeat pop", bpm: 120 },
   { id: "chill", name: "Chill", bpm: 88 },
   { id: "luxury", name: "Luxury", bpm: 76 },
+  { id: "highlife", name: "Highlife", bpm: 116 },
+  { id: "afrohouse", name: "Afro house", bpm: 122 },
+  { id: "hiphop", name: "Hip-hop", bpm: 90 },
+  { id: "rnb", name: "Afro R&B", bpm: 96 },
+  { id: "lofi", name: "Lo-fi", bpm: 80 },
+  { id: "party", name: "Owambe party", bpm: 128 },
+  { id: "cinematic", name: "Cinematic", bpm: 70 },
 ] as const;
 export type MusicMood = (typeof MUSIC_MOODS)[number]["id"];
 

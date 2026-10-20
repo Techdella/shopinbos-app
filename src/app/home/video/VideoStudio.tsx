@@ -13,13 +13,17 @@ import {
   REEL_SHOT_LOOKS,
   REEL_TEMPLATE_CREDIT,
   REEL_TEMPLATES,
+  VOICE_ACCENTS,
+  accentApplies,
   defaultMood,
   isMusicMood,
+  isVoiceAccent,
   isReelTemplate,
   type MusicMood,
   type ReelBrand,
   type ReelShotLook,
   type ReelTemplateId,
+  type VoiceAccent,
   type VoiceGender,
   type VoiceSource,
 } from "@shared/video-style";
@@ -120,6 +124,7 @@ export function VideoStudio({
   const [look, setLook] = useState<ReelShotLook>(() => ((REEL_SHOT_LOOKS as readonly string[]).includes(saved?.look ?? "") ? (saved!.look as ReelShotLook) : "cutout"));
   const [voiceSource, setVoiceSource] = useState<VoiceSource>(() => (saved?.voiceSource === "rex" || saved?.voiceSource === "elevenlabs" || saved?.voiceSource === "none" ? saved.voiceSource : "rex"));
   const [gender, setGender] = useState<VoiceGender>(saved?.gender === "male" ? "male" : "female");
+  const [accent, setAccent] = useState<VoiceAccent>(isVoiceAccent(saved?.accent) ? (saved!.accent as VoiceAccent) : "nigerian");
   const [projectId, setProjectId] = useState<string | null>(project?.id ?? null);
   const [title, setTitle] = useState(project?.title ?? "");
   const [savedUrl, setSavedUrl] = useState<string | null>(project?.videoUrl ?? null);
@@ -182,7 +187,8 @@ export function VideoStudio({
     return Array.from({ length: Math.max(1, photos.length) }, (_, i) => base.captions[i] ?? base.captions[i % base.captions.length] ?? "");
   }, [script, name, price, language, photos.length]);
   const current = script ?? { ...fallbackScript(name || storeName, price, language, photos.length), ...(purpose === "product" ? {} : { cta: defaults.cta }) };
-  const voiceKey = `${voiceSource}|${gender}|${language}|${current.voiceover}`;
+  const spokenAccent: VoiceAccent = accentApplies(language) ? accent : "nigerian";
+  const voiceKey = `${voiceSource}|${gender}|${spokenAccent}|${language}|${current.voiceover}`;
 
   // The preview follows the voice's length once it is known, so captions change where the voice does.
   useEffect(() => {
@@ -200,8 +206,8 @@ export function VideoStudio({
 
   // Drafts save themselves: the project is created the first time there is something to keep, then updated.
   const config: VideoConfig = useMemo(
-    () => ({ template, photos: photos.map((photo) => photo.src).filter((src) => !src.startsWith("blob:")), name, price, language, script, voiceSource, gender, music: music === "upload" ? "none" : music, musicVolume, look }),
-    [template, photos, name, price, language, script, voiceSource, gender, music, musicVolume, look],
+    () => ({ template, photos: photos.map((photo) => photo.src).filter((src) => !src.startsWith("blob:")), name, price, language, script, voiceSource, gender, accent, music: music === "upload" ? "none" : music, musicVolume, look }),
+    [template, photos, name, price, language, script, voiceSource, gender, accent, music, musicVolume, look],
   );
   const configKey = JSON.stringify(config);
   const lastSaved = useRef(saved ? JSON.stringify({ ...config }) : "");
@@ -348,7 +354,7 @@ export function VideoStudio({
     if (!current.voiceover.trim()) return null;
     const cached = voiceCache.current.get(voiceKey);
     if (cached) return cached;
-    const response = await postJson("/api/ai/voiceover", { text: current.voiceover, language, gender, provider: voiceSource === "elevenlabs" ? "elevenlabs" : "rex" });
+    const response = await postJson("/api/ai/voiceover", { text: current.voiceover, language, gender, accent: spokenAccent, provider: voiceSource === "elevenlabs" ? "elevenlabs" : "rex" });
     if (!response.ok) throw await errorFrom(response, t("noVoice"));
     const audio = await response.arrayBuffer();
     voiceCache.current.set(voiceKey, audio);
@@ -702,7 +708,23 @@ export function VideoStudio({
           {voiceSource === "rex" || voiceSource === "elevenlabs" ? (
             <div className="mt-3 grid gap-2">
               <Segmented options={[{ value: "female", label: t("voice.female") }, { value: "male", label: t("voice.male") }]} value={gender} onChange={(value) => setGender(value as VoiceGender)} />
-              <p className="m-0 text-[12.5px] text-app-ink-soft">{voiceSource === "elevenlabs" ? t("voice.elevenHint") : t("voice.rexHint")}</p>
+              {accentApplies(language) ? (
+                <>
+                  <h3 className="m-0 mt-1 text-[14px] font-bold">{t("voice.accent")}</h3>
+                  <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t("voice.accent")}>
+                    {VOICE_ACCENTS.map((option) => (
+                      <button key={option.id} type="button" role="radio" aria-checked={accent === option.id} onClick={() => setAccent(option.id)} className={cx(chip, accent === option.id ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white")}>
+                        {t.dynamic(`accent.${option.id}`, option.name)}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              ) : null}
+              <p className="m-0 text-[12.5px] text-app-ink-soft">
+                {accentApplies(language)
+                  ? t(voiceSource === "elevenlabs" ? "voice.studioAccentHint" : "voice.rexAccentHint", { accent: t.dynamic(`accent.${accent}`, VOICE_ACCENTS.find((option) => option.id === accent)?.name ?? "") })
+                  : voiceSource === "elevenlabs" ? t("voice.elevenHint") : t("voice.rexHint")}
+              </p>
               <button type="button" disabled={busy && step !== "voicing"} onClick={() => void hearVoice()} className={cx(chip, "w-fit border-app-line bg-white")}>
                 {step === "voicing" ? <Spinner className="h-4 w-4" /> : <Icon name={playing === "voice" ? "pause" : "play"} size={14} />} {playing === "voice" ? t("stop") : t("voice.hear")}
               </button>

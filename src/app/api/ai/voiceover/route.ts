@@ -4,9 +4,9 @@ import { withSeller } from "@/lib/auth/middleware";
 import { apiError } from "@/lib/api/response";
 import { getOpenAIClient } from "@/lib/ai/client";
 import { meterAi } from "@/lib/ai/usage";
-import { elevenLabsReady, elevenLabsSpeech } from "@/lib/ai/elevenlabs.server";
+import { elevenLabsReady, elevenLabsSpeech, elevenLabsVoiceId } from "@/lib/ai/elevenlabs.server";
 import { VIDEO_LANGUAGES } from "@shared/video";
-import { VOICE_GENDERS, openAiVoice, voiceDirection, type VoiceGender } from "@shared/video-style";
+import { VOICE_ACCENTS, VOICE_GENDERS, accentApplies, openAiVoice, voiceDirection, type VoiceAccent, type VoiceGender } from "@shared/video-style";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,17 +20,18 @@ const Schema = z.object({
   language: z.enum(LANGUAGE_KEYS),
   gender: z.enum(VOICE_GENDERS).optional().default("female"),
   provider: z.enum(["rex", "elevenlabs"]).optional().default("rex"),
+  accent: z.enum(VOICE_ACCENTS.map((accent) => accent.id) as [VoiceAccent, ...VoiceAccent[]]).optional().default("nigerian"),
 });
 
 const audio = (bytes: Buffer, voice: string) =>
   new NextResponse(new Uint8Array(bytes), { headers: { "Content-Type": "audio/mpeg", "Cache-Control": "no-store", "X-Voice": voice } });
 
-/** OpenAI speech: the expressive model with a Nigerian accent, then the basic voices if that fails. */
-async function openAiSpeech(text: string, language: string, gender: VoiceGender) {
+/** OpenAI speech: the expressive model in the picked accent, then the basic voices if that fails. */
+async function openAiSpeech(text: string, language: string, gender: VoiceGender, accent: VoiceAccent) {
   const openai = getOpenAIClient();
   if (!openai) return null;
   const attempts = [
-    { model: EXPRESSIVE_MODEL, voice: openAiVoice(gender, "expressive"), instructions: voiceDirection(language, gender) },
+    { model: EXPRESSIVE_MODEL, voice: openAiVoice(gender, "expressive"), instructions: voiceDirection(language, gender, accent) },
     { model: "tts-1-hd", voice: openAiVoice(gender, "basic") },
     { model: "tts-1", voice: openAiVoice(gender, "basic") },
   ];
@@ -50,21 +51,24 @@ async function openAiSpeech(text: string, language: string, gender: VoiceGender)
 }
 
 // Video studio voiceover: returns an MP3 the browser mixes into the reel. provider "elevenlabs" uses the
-// account's ElevenLabs voices when set up (falling back to Rex's voice); gender picks a female or male voice,
-// both with a Nigerian accent.
+// account's ElevenLabs voices when set up (falling back to Rex's voice); gender picks a female or male voice and
+// accent the accent of an English voiceover (Nigerian unless the seller picks another).
 export const POST = withSeller(async (req, { user }) => {
   const parsed = Schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return apiError("BAD_REQUEST", parsed.error.issues[0]?.message ?? "Check the script");
   const { text, language, gender, provider } = parsed.data;
+  const accent: VoiceAccent = accentApplies(language) ? parsed.data.accent : "nigerian";
+  // An accent with no studio voice of its own is spoken by Rex's voice, which can do any accent.
+  const studio = elevenLabsReady() && Boolean(elevenLabsVoiceId(gender, accent));
 
   if (!getOpenAIClient() && !elevenLabsReady()) return apiError("SERVICE_UNAVAILABLE", "Voiceovers aren't switched on yet. Record your own voice, or make the reel with music and captions.", 503);
 
   const limited = await meterAi(user.id, "voice");
   if (limited) return limited;
 
-  if (provider === "elevenlabs" && elevenLabsReady()) {
+  if (provider === "elevenlabs" && studio) {
     try {
-      const bytes = await elevenLabsSpeech(text, gender);
+      const bytes = await elevenLabsSpeech(text, gender, accent);
       return audio(bytes, `elevenlabs:${gender}`);
     } catch (error) {
       console.error("[voiceover] elevenlabs failed, trying Rex's voice", error instanceof Error ? error.message : error);
@@ -72,14 +76,14 @@ export const POST = withSeller(async (req, { user }) => {
   }
 
   try {
-    const result = await openAiSpeech(text, language, gender);
+    const result = await openAiSpeech(text, language, gender, accent);
     if (result) return audio(result.bytes, result.voice);
   } catch (error) {
     console.error("[voiceover] all voices failed", error);
   }
-  if (provider !== "elevenlabs" && elevenLabsReady()) {
+  if (provider !== "elevenlabs" && studio) {
     try {
-      return audio(await elevenLabsSpeech(text, gender), `elevenlabs:${gender}`);
+      return audio(await elevenLabsSpeech(text, gender, accent), `elevenlabs:${gender}`);
     } catch (error) {
       console.error("[voiceover] elevenlabs fallback failed", error instanceof Error ? error.message : error);
     }

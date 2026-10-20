@@ -184,7 +184,7 @@ export const REX_TOOL_SPECS = {
         shots: z.enum(["original", "cutout", "studio", "brand"]).nullable().describe("original = use the photos as they are; cutout = remove backgrounds (best for float, bold, pop); studio = clean studio backdrop in the brand colour; brand = branded ad shots with the logo; null for original"),
         photos: z.array(z.string().trim().max(2000).regex(HTTPS_URL)).max(6).nullable().describe("Pictures to use instead of the product's own photos: ones you just made in this chat or the seller attached; null for the product's photos"),
         voice: z.enum(VOICE_GENDERS).nullable().describe("female or male voice (both Nigerian accent); null for female"),
-        music: z.enum(MUSIC_MOODS.map((mood) => mood.id) as [string, ...string[]]).nullable().describe("afrobeats, amapiano, upbeat, chill or luxury background music; null to match the template"),
+        music: z.enum(MUSIC_MOODS.map((mood) => mood.id) as [string, ...string[]]).nullable().describe(`${MUSIC_MOODS.map((mood) => mood.id).join(", ")} background music; null to match the template`),
       })
       .strict(),
   },

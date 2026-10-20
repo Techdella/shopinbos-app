@@ -34,6 +34,7 @@ export const VideoConfigSchema = z
     script: z.object({ captions: z.array(z.string().max(80)).max(6), voiceover: z.string().max(600), cta: z.string().max(60) }).nullable().optional(),
     voiceSource: z.string().max(20).optional(),
     gender: z.string().max(10).optional(),
+    accent: z.string().max(20).optional(),
     music: z.string().max(20).optional(),
     musicVolume: z.number().min(0).max(1).optional(),
     look: z.string().max(20).optional(),
