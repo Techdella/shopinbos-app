@@ -10,6 +10,10 @@ import { ApiKeysPanel, WebhooksPanel } from "./PartnerConnection";
 import { PartnerPayInsPanel } from "../PayInsPanels";
 import { PartnerLatePayInPanel } from "../LatePayInsPanels";
 import { ridersHolding } from "@/lib/logistics/payin-standing.server";
+import { connectionsForPartner, rateCardsForPartner, statsForPartners } from "@/lib/delivery-market/manage.server";
+import { adminIssueRows } from "../../delivery-issues/issues.server";
+import { IssueList } from "../../delivery-issues/IssueList";
+import { MarketplacePanel } from "./MarketplacePanel";
 
 function adminWhen(date: Date | null) {
   return date ? formatDate(date) : null;
@@ -44,6 +48,15 @@ export default async function AdminLogisticsDetailPage(props: { params: Promise<
       payInReviewAt: true,
       payInPauseWaived: true,
       payInStrikes: true,
+      address: true,
+      cacNumber: true,
+      contactName: true,
+      contactPhone: true,
+      contactEmail: true,
+      services: true,
+      pickupAreas: true,
+      deliveryAreas: true,
+      offersPayOnDelivery: true,
       createdAt: true,
       updatedAt: true,
     },
@@ -93,6 +106,22 @@ export default async function AdminLogisticsDetailPage(props: { params: Promise<
     ridersHolding(partner.id),
   ]);
 
+  // Logistics marketplace: rate cards, pickup points, connected businesses, in-app stats and customers' problems.
+  const [rateCards, pickupPoints, connections, privateCards, stats, openIssues] = await Promise.all([
+    rateCardsForPartner(partner.id),
+    db.logisticsPickupPoint.findMany({
+      where: { logisticsPartnerId: partner.id, active: true },
+      orderBy: [{ state: "asc" }, { name: "asc" }],
+      select: { id: true, name: true, address: true, state: true, area: true, hours: true, phone: true },
+    }),
+    connectionsForPartner(partner.id),
+    db.logisticsRateCard.groupBy({ by: ["status"], where: { logisticsPartnerId: partner.id, ownerUserId: { not: null }, status: { in: ["proposed", "accepted"] } }, _count: { _all: true } }),
+    statsForPartners([partner.id]).then((map) => map.get(partner.id) ?? { completed: 0, onTimeRate: null, failedRate: null }),
+    adminIssueRows({ logisticsPartnerId: partner.id, status: "open" }, 20),
+  ]);
+  const privateCount = (status: string) => privateCards.find((row) => row.status === status)?._count._all ?? 0;
+  const backHere = `/admin/logistics-partners/${partner.id}`;
+
   return (
     <AppPage
       frame={adminFrame(user, "Search logistics partners")}
@@ -120,7 +149,7 @@ export default async function AdminLogisticsDetailPage(props: { params: Promise<
     >
       <section aria-label="Partner summary" className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-3 2xl:grid-cols-6">
         <StatTile tone="card" label="Verification" value={<VerificationPill status={partner.verificationStatus} />} />
-        <StatTile tone="card" label="Account" value={<Pill tone={partner.status === "active" ? (partner.codPaused ? "warning" : "success") : "danger"} dot>{partner.status === "active" ? (partner.codPaused ? "Active · prepaid only" : "Active") : partner.status}</Pill>} />
+        <StatTile tone="card" label="Account" value={<Pill tone={partner.status === "active" ? (partner.codPaused ? "warning" : "success") : partner.status === "paused" ? "warning" : "danger"} dot>{partner.status === "active" ? (partner.codPaused ? "Active · prepaid only" : "Active") : partner.status === "paused" ? "Paused by partner" : partner.status}</Pill>} />
         <StatTile tone="card" label="Reliability score" value={`${partner.reliabilityScore ?? 0}/100`} />
         <StatTile tone="card" label="Base price" value={partner.basePrice ? formatMoney(partner.basePrice) : "-"} />
         <StatTile tone="card" label="Documents" value={docs.length} />
@@ -140,6 +169,28 @@ export default async function AdminLogisticsDetailPage(props: { params: Promise<
         verificationStatus={partner.verificationStatus}
         trustScore={partner.reliabilityScore ?? 0}
       />
+
+      <MarketplacePanel
+        partner={partner}
+        rateCard={rateCards.publicCard ? { rows: rateCards.publicCard.rows, failedAttemptFee: rateCards.publicCard.failedAttemptFee, returnFee: rateCards.publicCard.returnFee, notes: rateCards.publicCard.notes, createdAt: rateCards.publicCard.createdAt } : null}
+        retiredCount={rateCards.retiredCount}
+        pickupPoints={pickupPoints}
+        connections={connections.map((row) => ({ id: row.id, businessName: row.businessName, role: row.ownerRole, since: row.createdAt, services: row.services, pod: row.ownerPod && row.partnerPod, privateCards: row.privateCards.length }))}
+        privateCards={{ proposed: privateCount("proposed"), accepted: privateCount("accepted") }}
+        stats={stats}
+      />
+
+      <section id="issues" aria-labelledby="issues-title" className="mt-6 scroll-mt-6">
+        <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+          <h2 id="issues-title" className="m-0 text-[20px] font-extrabold">Open delivery problems</h2>
+          <PillLink href={`/admin/delivery-issues?partner=${partner.id}`} size="sm">All problems for this partner</PillLink>
+        </div>
+        {openIssues.length ? (
+          <IssueList rows={openIssues} returnTo={backHere} showPartner={false} />
+        ) : (
+          <p className="m-0 rounded-[18px] border border-app-line bg-white px-4 py-3.5 text-[14px] text-app-ink-soft">No open problems from customers.</p>
+        )}
+      </section>
 
       <PartnerPayInsPanel
         partnerId={partner.id}

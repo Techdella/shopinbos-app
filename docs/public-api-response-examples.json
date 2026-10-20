@@ -136,7 +136,14 @@
           "estimatedSpeed": "Same day in Lagos",
           "rating": 4.7,
           "ratingCount": 84,
-          "reliabilityScore": 93
+          "reliabilityScore": 93,
+          "services": ["doorstep", "pickup_point", "same_day", "interstate"],
+          "pickupAreas": ["Lagos", "Ogun"],
+          "deliveryAreas": ["South-West", "FCT", "Rivers"],
+          "offersPayOnDelivery": true,
+          "startingPrice": 2500,
+          "timeframe": "Same day – 3 days",
+          "pickupPointCount": 2
         }
       ],
       "pagination": {
@@ -146,6 +153,56 @@
         "totalPages": 1,
         "hasNextPage": false,
         "hasPreviousPage": false
+      }
+    },
+    "detail": {
+      "data": {
+        "id": "log_swiftlane",
+        "companyName": "SwiftLane Logistics",
+        "displayName": "SwiftLane Logistics",
+        "slug": "swiftlane-logistics",
+        "description": "Same-day and interstate delivery partner for marketplace sellers.",
+        "logoUrl": "https://cdn.shopinbos.com/logistics/swiftlane.png",
+        "country": "Nigeria",
+        "city": "Lagos",
+        "coverageZones": ["Ikeja", "Lekki", "Victoria Island", "Surulere"],
+        "vehicleTypes": ["Bike", "Van"],
+        "deliveryTypes": ["Same-day", "Next-day", "Interstate"],
+        "pricingModel": "distance_based",
+        "basePrice": 2500,
+        "estimatedSpeed": "Same day – 3 days",
+        "rating": 4.7,
+        "ratingCount": 84,
+        "reliabilityScore": 93,
+        "createdAt": "2026-03-02T09:00:00.000Z",
+        "services": ["doorstep", "pickup_point", "same_day", "interstate"],
+        "pickupAreas": ["Lagos", "Ogun"],
+        "deliveryAreas": ["South-West", "FCT", "Rivers"],
+        "offersPayOnDelivery": true,
+        "startingPrice": 2500,
+        "timeframe": "Same day – 3 days",
+        "pickupPointCount": 2,
+        "rateCard": {
+          "rows": [
+            { "id": "r1", "from": "Lagos", "to": "Lagos", "service": "same_day", "sizeBand": "small", "price": 2500, "minDays": 0, "maxDays": 0 },
+            { "id": "r2", "from": "Lagos", "to": "Lagos", "service": "doorstep", "sizeBand": "medium", "price": 3500, "minDays": 1, "maxDays": 1 },
+            { "id": "r3", "from": "Lagos", "to": "Lagos", "service": "pickup_point", "sizeBand": "small", "price": 2800, "minDays": 1, "maxDays": 2 },
+            { "id": "r4", "from": "Lagos", "to": "South-West", "service": "doorstep", "sizeBand": "small", "price": 4500, "minDays": 1, "maxDays": 2 },
+            { "id": "r5", "from": "Lagos", "to": "FCT", "service": "doorstep", "sizeBand": "small", "price": 6500, "minDays": 2, "maxDays": 3 }
+          ],
+          "failedAttemptFee": 1000,
+          "returnFee": 2000,
+          "notes": "Bulky parcels over 10kg are priced on request."
+        },
+        "pickupPoints": [
+          { "name": "Yaba hub", "address": "12 Herbert Macaulay Way", "state": "Lagos", "area": "Yaba", "hours": "Mon–Sat, 8am–7pm" },
+          { "name": "Lekki hub", "address": "4 Admiralty Way", "state": "Lagos", "area": "Lekki", "hours": "Mon–Sat, 9am–6pm" }
+        ],
+        "stats": {
+          "completed": 412,
+          "onTimeRate": 94,
+          "failedRate": 3
+        }
       }
     }
   },

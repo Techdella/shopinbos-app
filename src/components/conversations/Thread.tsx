@@ -13,6 +13,7 @@ import {
   groupByDay,
   lastSeenId,
   mergeMessages,
+  offPlatformNote,
   quickReplies,
   type AttachmentRef,
   type ContextRef,
@@ -300,6 +301,8 @@ export function Thread({
   const replies = quickReplies(role, partner.role).map((reply, index) => t.dynamic(`qr.${pair}.${index}`, reply));
   const profile = profileHref(role, partner);
   const canSend = Boolean(text.trim() || staged.some((file) => file.status === "ready") || context);
+  // Chats with a delivery partner: a gentle, non-blocking note while the draft shares contact or payment details.
+  const draftNote = offPlatformNote(text, [role, partner.role]);
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col bg-white">
@@ -365,7 +368,7 @@ export function Thread({
               </div>
               <div className="grid gap-1.5">
                 {group.items.map((message) => (
-                  <Bubble key={message.id} message={message} role={role} seen={message.id === seenId} onRetry={() => retry(message)} onDiscard={() => discard(message)} />
+                  <Bubble key={message.id} message={message} role={role} partnerRole={partner.role} seen={message.id === seenId} onRetry={() => retry(message)} onDiscard={() => discard(message)} />
                 ))}
               </div>
             </section>
@@ -426,6 +429,8 @@ export function Thread({
             )}
           </div>
         )}
+
+        {draftNote && <OffAppNote note={draftNote} className="mb-2" />}
 
         {composerError && <p role="alert" className="m-0 mb-2 text-[12.5px] font-semibold text-app-danger">{composerError}</p>}
 
@@ -528,10 +533,21 @@ export function Thread({
   );
 }
 
-function Bubble({ message, role, seen, onRetry, onDiscard }: { message: LocalMessage; role: PartnerRole; seen: boolean; onRetry: () => void; onDiscard: () => void }) {
+/** The friendly "keep it in Shopinbos" note: shown, never blocking. */
+function OffAppNote({ note, className }: { note: string; className?: string }) {
+  return (
+    <p className={cx("m-0 flex max-w-[85%] items-start gap-1.5 rounded-[12px] bg-app-peach/60 px-2.5 py-1.5 text-[12px] leading-[1.4] text-app-ink sm:max-w-[75%]", className)}>
+      <Icon name="info" size={13} className="mt-[2px] shrink-0" />
+      <span>{note}</span>
+    </p>
+  );
+}
+
+function Bubble({ message, role, partnerRole, seen, onRetry, onDiscard }: { message: LocalMessage; role: PartnerRole; partnerRole: PartnerRole; seen: boolean; onRetry: () => void; onDiscard: () => void }) {
   const t = useT("inbox", "common");
   const locale = useLocale();
   const mine = message.mine;
+  const note = message.warning ?? offPlatformNote(message.text, [role, partnerRole]);
   return (
     <div className={cx("flex flex-col", mine ? "items-end" : "items-start")}>
       <div
@@ -549,6 +565,7 @@ function Bubble({ message, role, seen, onRetry, onDiscard }: { message: LocalMes
           {message.status === "sending" ? t("msg.sending") : formatClock(message.createdAt, locale)}
         </div>
       </div>
+      {note && <OffAppNote note={note} className="mt-1" />}
       {message.status === "failed" && (
         <div className="mt-1 flex items-center gap-2 text-[12px]">
           <span className="font-semibold text-app-danger">{message.error ?? t("pt.notSent")}</span>

@@ -347,12 +347,21 @@ export async function savePickupPoint(partnerId: string, pointId: string | null,
     if ((await db.logisticsPickupPoint.count({ where: { logisticsPartnerId: partnerId, active: true } })) >= 200) return { ok: false, error: "You can have up to 200 pickup points." };
     await db.logisticsPickupPoint.create({ data: { logisticsPartnerId: partnerId, ...data } });
   }
+  await refreshPartnerListing(partnerId);
   return { ok: true };
+}
+
+/** The website's partner listing shows pickup points: drop its cached copy. */
+async function refreshPartnerListing(partnerId: string) {
+  const partner = await db.logisticsPartner.findUnique({ where: { id: partnerId }, select: { slug: true } });
+  invalidatePublicMarketplaceCache({ logisticsSlug: partner?.slug });
 }
 
 export async function removePickupPoint(partnerId: string, pointId: string): Promise<Result> {
   const moved = await db.logisticsPickupPoint.updateMany({ where: { id: pointId, logisticsPartnerId: partnerId, active: true }, data: { active: false } });
-  return moved.count === 1 ? { ok: true } : { ok: false, error: "That pickup point is already removed." };
+  if (moved.count !== 1) return { ok: false, error: "That pickup point is already removed." };
+  await refreshPartnerListing(partnerId);
+  return { ok: true };
 }
 
 // ─── Stats and finding partners ──────────────────────────────────────────────

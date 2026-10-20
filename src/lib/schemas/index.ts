@@ -8,6 +8,7 @@ import {
   VariantRowSchema,
   VariantRowsSchema,
 } from "../../../shared/product-variants-schema.ts";
+import { PARTNER_SERVICES, SIZE_BANDS } from "../../../shared/delivery-market.ts";
 
 // Request bodies come from JSON, so free-form objects are valid Prisma Json input.
 const jsonObject = () => z.record(z.string(), z.unknown()) as unknown as z.ZodType<Prisma.InputJsonObject>;
@@ -21,7 +22,11 @@ export const ProductStatusSchema = z.enum(["draft", "pending_review", "published
 export const FulfillmentTypeSchema = z.enum(["merchant_fulfilled", "dropship", "wholesale_stocked"]);
 export const OrderStatusSchema = z.enum(["pending", "confirmed", "processing", "shipped", "delivered", "cancelled", "refunded"]);
 export const QuoteStatusSchema = z.enum(["pending", "responded", "accepted", "rejected", "expired"]);
-export const BookingStatusSchema = z.enum(["pending", "confirmed", "picked_up", "in_transit", "delivered", "failed", "cancelled"]);
+export const BookingStatusSchema = z.enum([
+  "pending", "confirmed", "picked_up", "in_transit", "delivered", "failed", "cancelled",
+  // Logistics marketplace (src/lib/logistics/job-rules.ts JOB_STATUSES).
+  "declined", "out_for_delivery", "at_pickup_point", "returning", "returned",
+]);
 
 // ─── New Commerce Enums ──────────────────────────────────────────────────────────
 
@@ -218,6 +223,8 @@ export const StoreProductCreateSchema = z.object({
   currency: z.string().length(3).default("NGN"),
   weight: z.number().positive().optional(),
   weightUnit: z.string().default("kg"),
+  // Delivery size for partner rates (shared/delivery-market.ts); null = from the weight.
+  sizeBand: z.enum(SIZE_BANDS).nullable().optional(),
   dimensions: z.object({
     length: z.number().positive(),
     width: z.number().positive(),
@@ -662,6 +669,10 @@ export const PublicLogisticsQuerySchema = z.object({
   q: z.string().max(200).optional(),
   /** "true": only partners taking pay-when-it-arrives (cash) jobs now, skipping those paused for a late pay-in. */
   cod: z.enum(["true", "false", "1", "0"]).optional(),
+  /** Logistics marketplace: only partners offering this service (doorstep | pickup_point | same_day | interstate). */
+  service: z.enum(PARTNER_SERVICES).optional(),
+  /** Logistics marketplace: only partners delivering to this state (its name, "lagos state", "Abuja", a big city). */
+  state: z.string().max(60).optional(),
 });
 
 // ─── Notification Enums ────────────────────────────────────────────────────────

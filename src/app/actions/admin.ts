@@ -75,6 +75,16 @@ export async function updateSupplierVerification(formData: FormData) {
   redirect(getRedirectPath(formData, "/admin/suppliers"));
 }
 
+/**
+ * A logistics partner's account status after a verification decision. Suspending suspends (they leave checkout at
+ * once; jobs they already have carry on). Any other decision only lifts a suspension: a partner who paused
+ * "Taking new jobs" themselves stays paused.
+ */
+function partnerStatusAfter(current: string, verification: z.infer<typeof VerificationStatusSchema>) {
+  if (verification === "suspended") return "suspended";
+  return current === "suspended" ? "active" : current;
+}
+
 export async function updateLogisticsVerification(formData: FormData) {
   await requireAdmin();
   const logisticsPartnerId = formData.get("logisticsPartnerId");
@@ -90,15 +100,18 @@ export async function updateLogisticsVerification(formData: FormData) {
 
   const parsedScore = z.coerce.number().int().min(0).max(100).safeParse(typeof reliabilityScore === "string" && reliabilityScore.trim() ? reliabilityScore : undefined);
 
-  const partner = await db.logisticsPartner.update({
-    where: { id: parsed.data.logisticsPartnerId },
-    data: {
-      verificationStatus: parsed.data.status,
-      status: parsed.data.status === "suspended" ? "suspended" : "active",
-      ...(parsedScore.success ? { reliabilityScore: parsedScore.data } : {}),
-    },
-    select: { slug: true, userId: true },
-  }).catch(() => null);
+  const current = await db.logisticsPartner.findUnique({ where: { id: parsed.data.logisticsPartnerId }, select: { status: true } });
+  const partner = current
+    ? await db.logisticsPartner.update({
+        where: { id: parsed.data.logisticsPartnerId },
+        data: {
+          verificationStatus: parsed.data.status,
+          status: partnerStatusAfter(current.status, parsed.data.status),
+          ...(parsedScore.success ? { reliabilityScore: parsedScore.data } : {}),
+        },
+        select: { slug: true, userId: true },
+      }).catch(() => null)
+    : null;
 
   if (partner) {
     await notifyVerificationDecision({ userId: partner.userId, status: parsed.data.status, portal: "logistics" });
@@ -339,13 +352,14 @@ export async function bulkUpdateLogisticsVerification(formData: FormData) {
   const parsedStatus = VerificationStatusSchema.safeParse(status);
   if (ids.length === 0 || !parsedStatus.success) redirect(getRedirectPath(formData, "/admin/logistics-partners"));
 
-  await db.logisticsPartner.updateMany({
-    where: { id: { in: ids } },
-    data: {
-      verificationStatus: parsedStatus.data,
-      status: parsedStatus.data === "suspended" ? "suspended" : "active",
-    },
-  }).catch(() => null);
+  // Suspending takes them out of checkout at once; any other decision only lifts a suspension (a partner who
+  // paused "Taking new jobs" themselves stays paused).
+  await db.$transaction([
+    db.logisticsPartner.updateMany({ where: { id: { in: ids } }, data: { verificationStatus: parsedStatus.data } }),
+    parsedStatus.data === "suspended"
+      ? db.logisticsPartner.updateMany({ where: { id: { in: ids } }, data: { status: "suspended" } })
+      : db.logisticsPartner.updateMany({ where: { id: { in: ids }, status: "suspended" }, data: { status: "active" } }),
+  ]).catch(() => null);
 
   const updated = await db.logisticsPartner.findMany({
     where: { id: { in: ids } },
@@ -359,4 +373,16 @@ export async function bulkUpdateLogisticsVerification(formData: FormData) {
 
   revalidateAdminPaths("/admin/logistics-partners", "/admin/marketplace");
   redirect(getRedirectPath(formData, "/admin/logistics-partners"));
+}
+
+/** The team marks a customer's delivery problem resolved (from /admin/delivery-issues or a partner's page). */
+export async function resolveDeliveryIssueAdmin(formData: FormData) {
+  await requireAdmin();
+  const back = getRedirectPath(formData, "/admin/delivery-issues");
+  const issueId = String(formData.get("issueId") || "").trim();
+  const join = back.includes("?") ? "&" : "?";
+  if (!issueId) redirect(`${back}${join}error=${encodeURIComponent("Pick a problem to resolve.")}`);
+  const moved = await db.deliveryIssue.updateMany({ where: { id: issueId, status: "open" }, data: { status: "resolved", resolvedAt: new Date() } });
+  revalidateAdminPaths("/admin/delivery-issues", "/admin/logistics-partners");
+  redirect(`${back}${join}${moved.count === 1 ? `saved=${encodeURIComponent("Marked resolved.")}` : `error=${encodeURIComponent("That problem is already resolved.")}`}`);
 }
