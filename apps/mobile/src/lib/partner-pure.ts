@@ -85,6 +85,12 @@ const JOB_STAGE: Record<string, { label: string; tone: Tone }> = {
   delivered: { label: "Delivered", tone: "success" },
   failed: { label: "Delivery failed", tone: "danger" },
   cancelled: { label: "Cancelled", tone: "muted" },
+  // Logistics marketplace (shared/delivery-market.ts).
+  declined: { label: "Declined", tone: "muted" },
+  out_for_delivery: { label: "Out for delivery", tone: "info" },
+  at_pickup_point: { label: "At pickup point", tone: "info" },
+  returning: { label: "Returning to the shop", tone: "warning" },
+  returned: { label: "Returned", tone: "muted" },
 };
 
 export function jobStage(status: string, t?: Say) {
@@ -93,17 +99,22 @@ export function jobStage(status: string, t?: Say) {
 }
 
 /** The next step button(s) on a job the partner has accepted, in pipeline order (same moves as job-rules.ts). */
-export function jobNextSteps(status: string, t?: Say): Array<{ to: "picked_up" | "in_transit" | "delivered" | "confirmed"; label: string }> {
-  const step = (to: "picked_up" | "in_transit" | "delivered" | "confirmed", label: string) => ({ to, label: say(t, `step.${to}`, label) });
+export type JobStep = "picked_up" | "in_transit" | "out_for_delivery" | "delivered" | "confirmed" | "returning" | "returned";
+
+export function jobNextSteps(status: string, t?: Say): Array<{ to: JobStep; label: string }> {
+  const step = (to: JobStep, label: string) => ({ to, label: say(t, `step.${to}`, label) });
   if (status === "confirmed") return [step("picked_up", "Picked up")];
   if (status === "picked_up") return [step("in_transit", "On the way"), step("delivered", "Delivered")];
-  if (status === "in_transit") return [step("delivered", "Delivered")];
-  if (status === "failed") return [step("confirmed", "Try again")];
+  if (status === "in_transit") return [step("out_for_delivery", "Out for delivery"), step("delivered", "Delivered")];
+  if (status === "out_for_delivery") return [step("delivered", "Delivered")];
+  if (status === "at_pickup_point") return [step("delivered", "Collected")];
+  if (status === "failed") return [step("confirmed", "Try again"), step("returning", "Return to shop")];
+  if (status === "returning") return [step("returned", "Returned")];
   return [];
 }
 
 export function canFail(status: string) {
-  return status === "confirmed" || status === "picked_up" || status === "in_transit";
+  return status === "confirmed" || status === "picked_up" || status === "in_transit" || status === "out_for_delivery";
 }
 
 export const FAIL_REASONS = ["Customer didn't pick up calls", "Customer not at the address", "Customer refused the parcel", "Wrong or incomplete address", "Customer couldn't pay"];

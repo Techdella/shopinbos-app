@@ -62,7 +62,7 @@ test("rider links: full URL, app link or bare token", () => {
 
 test("job pipeline steps match the server's job rules", async () => {
   const jobRules = await import("../src/lib/logistics/job-rules.ts").catch(() => null);
-  for (const status of ["pending", "confirmed", "picked_up", "in_transit", "delivered", "failed", "cancelled"]) {
+  for (const status of ["pending", "confirmed", "picked_up", "in_transit", "out_for_delivery", "at_pickup_point", "delivered", "failed", "returning", "returned", "declined", "cancelled"]) {
     for (const step of pure.jobNextSteps(status)) {
       if (jobRules) assert.ok(jobRules.canMove(status, step.to), `${status} → ${step.to}`);
     }

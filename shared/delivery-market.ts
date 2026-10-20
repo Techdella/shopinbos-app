@@ -692,6 +692,12 @@ export function readDeliveryPlan(logisticsDetails: unknown): DeliveryPlan | null
   return plan.version === 1 && Array.isArray(plan.shipments) ? (plan as DeliveryPlan) : null;
 }
 
+/** The plan inside RetailOrder.logisticsDetails, to keep when the seller replaces the rest (how it's sent). */
+export function keptDeliveryPlan(logisticsDetails: unknown): { delivery?: unknown } {
+  const delivery = logisticsDetails && typeof logisticsDetails === "object" ? (logisticsDetails as Record<string, unknown>).delivery : undefined;
+  return delivery ? { delivery } : {};
+}
+
 /** The parcels a partner carries (not self pickup or the seller's own fallback delivery). */
 export const partnerShipments = (plan: DeliveryPlan) => plan.shipments.filter((part) => !!part.partnerId && !!part.connectionId);
 

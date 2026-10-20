@@ -19,7 +19,7 @@ import { colors } from "@/theme";
 // Delivery (web /home/shipping and /home/logistics): the shop's delivery areas and fees (ShippingZone: add, edit,
 // turn on or off, delete) and its latest courier bookings. Booking a courier and asking for quotes stay on the web.
 
-const BOOKING_TONE: Record<string, keyof typeof TONE_COLORS> = { pending: "warning", confirmed: "accent", picked_up: "accent", in_transit: "accent", delivered: "success", failed: "danger", cancelled: "muted" };
+const BOOKING_TONE: Record<string, keyof typeof TONE_COLORS> = { pending: "warning", confirmed: "accent", picked_up: "accent", in_transit: "accent", delivered: "success", failed: "danger", cancelled: "muted", declined: "muted", out_for_delivery: "accent", at_pickup_point: "accent", returning: "warning", returned: "muted" };
 
 function feeWords(rate: Zone["rates"][number] | undefined, t: ReturnType<typeof useT<["m_settings"]>>) {
   if (!rate) return t("del.noFee");

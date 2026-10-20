@@ -5,6 +5,7 @@ import { storeUrl } from "@/lib/marketing/brand";
 import { orderStatusSideEffects } from "@/lib/orders/status-effects";
 import { activeReplacement, canUndoSwitch, costChangeWords, nameWords, orderParts, retailStatusFromParts, stageFromParts, switchedMessage, type OrderPartsSummary } from "@shared/order-parts";
 import { orderLines } from "./views.server";
+import { keptDeliveryPlan } from "@shared/delivery-market";
 
 // A shop order sent in more than one parcel: one per supplier, plus the lines the seller sends from their own
 // stock. The order's status is worked out from its parts (shared/order-parts.ts) inside a transaction that locks
@@ -108,7 +109,8 @@ export async function markOwnPart(
     if (to === "delivered" && !order.ownDeliveredAt) data.ownDeliveredAt = now;
     if (extra.notes) data.notes = extra.notes;
     if (extra.trackingCode && !order.trackingCode) data.trackingCode = extra.trackingCode.slice(0, 200);
-    if (extra.logisticsType) data.logisticsDetails = { type: extra.logisticsType, ...(extra.logisticsDetails ?? {}) } as Prisma.InputJsonValue;
+    // The delivery-partner plan saved at checkout (src/lib/delivery-market) stays when the seller sets how it's sent.
+    if (extra.logisticsType) data.logisticsDetails = { ...keptDeliveryPlan(order.logisticsDetails), type: extra.logisticsType, ...(extra.logisticsDetails ?? {}) } as Prisma.InputJsonValue;
     if (Object.keys(data).length) await tx.retailOrder.updateMany({ where: { id: order.id }, data });
     return true;
   });
