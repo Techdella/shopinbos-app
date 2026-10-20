@@ -155,6 +155,9 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "step.review": "Shopinbos review",
   "step.approved": "Verification don approve",
   "cac.register": "You never get CAC number? Register your business name here",
+  "cac.needName": "Put your business name as e dey for your certificate.",
+  "cac.needNumber": "Put your BN or RC number: 4 to 10 digits, with or without RC or BN for front, e.g. RC 1234567.",
+  "cac.needType": "Choose your business type: limited company (RC) or business name (BN).",
 };
 
 export default pcm;

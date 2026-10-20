@@ -39,6 +39,16 @@ function dojahReady() {
   return Boolean(process.env.DOJAH_APP_ID?.trim() && process.env.DOJAH_SECRET_KEY?.trim());
 }
 
+/** The CAC lookups set up here, in the order they're tried (for Admin → Wallets). */
+export function cacProviders(): Array<"cac" | "korapay" | "youverify" | "dojah"> {
+  return [
+    ...(cacVasKey() ? (["cac"] as const) : []),
+    ...(korapayIdentityReady() ? (["korapay"] as const) : []),
+    ...(youverifyReady() ? (["youverify"] as const) : []),
+    ...(dojahReady() ? (["dojah"] as const) : []),
+  ];
+}
+
 export function cacCheckEnabled() {
   return Boolean(cacVasKey()) || korapayIdentityReady() || youverifyReady() || dojahReady();
 }

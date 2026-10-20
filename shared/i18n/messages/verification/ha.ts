@@ -155,6 +155,9 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "step.review": "Dubawar Shopinbos",
   "step.approved": "An amince da verification",
   "cac.register": "Babu lambar CAC tukuna? Yi rajistar sunan kasuwancinka a nan",
+  "cac.needName": "Shigar da sunan kasuwancinka kamar yadda yake a takardar shaidarka.",
+  "cac.needNumber": "Shigar da lambar BN ko RC: lambobi 4 zuwa 10, tare da RC ko BN a gaba ko babu, misali RC 1234567.",
+  "cac.needType": "Zaɓi irin kasuwancinka: kamfani mai iyaka (RC) ko sunan kasuwanci (BN).",
 };
 
 export default ha;

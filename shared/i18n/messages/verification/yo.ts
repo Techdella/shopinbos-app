@@ -155,6 +155,9 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "step.review": "Àyẹ̀wò Shopinbos",
   "step.approved": "A ti fọwọ́ sí verification",
   "cac.register": "Kò sí nọ́mbà CAC síbẹ̀? Forúkọ iṣẹ́ rẹ sílẹ̀ níbí",
+  "cac.needName": "Tẹ orúkọ iṣẹ́ rẹ bí ó ṣe wà lórí ìwé-ẹ̀rí rẹ.",
+  "cac.needNumber": "Tẹ nọ́mbà BN tàbí RC rẹ: díjítì 4 sí 10, pẹ̀lú RC tàbí BN níwájú tàbí láìsí, bí àpẹẹrẹ RC 1234567.",
+  "cac.needType": "Yan irú iṣẹ́ rẹ: ilé-iṣẹ́ limited (RC) tàbí orúkọ iṣẹ́ (BN).",
 };
 
 export default yo;

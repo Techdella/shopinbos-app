@@ -111,6 +111,9 @@ const en = {
   "cac.type.LIMITED_PARTNERSHIP": "Limited partnership (LP)",
   "cac.type.LIMITED_LIABILITY_PARTNERSHIP": "Limited liability partnership (LLP)",
   "cac.check": "Check with CAC",
+  "cac.needName": "Enter your business name as it is on your certificate.",
+  "cac.needNumber": "Enter your BN or RC number: 4 to 10 digits, with or without RC or BN in front, e.g. RC 1234567.",
+  "cac.needType": "Pick your business type: a limited company (RC) or a business name (BN).",
   // Verification pages (/supplier/verification, /logistics/verification)
   "page.title": "Verification",
   "page.loading": "Loading verification…",

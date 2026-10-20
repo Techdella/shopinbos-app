@@ -59,6 +59,12 @@ export function CacInstantCheck({ apiPath, defaultName = "", cacDoc, onVerified 
   const effectiveType = type || implied || "";
 
   async function check() {
+    // The prefix (RC, BN…) picks the type; without one, ask instead of guessing (each check is a paid lookup).
+    if (!effectiveType) {
+      setResult({ tone: "error", text: t("cac.needType") });
+      document.getElementById(`${ids}-type`)?.focus();
+      return;
+    }
     setBusy(true);
     setResult(null);
     try {
@@ -82,7 +88,9 @@ export function CacInstantCheck({ apiPath, defaultName = "", cacDoc, onVerified 
     }
   }
 
-  const canCheck = name.trim().length >= 2 && Boolean(parseCacNumber(number)) && Boolean(effectiveType) && !busy;
+  // What's still missing, said under the button instead of a silently greyed-out button.
+  const missing = name.trim().length < 2 ? t("cac.needName") : !parseCacNumber(number) ? t("cac.needNumber") : null;
+  const canCheck = !missing && !busy;
 
   return (
     <section aria-labelledby={`${ids}-title`} className="rounded-[22px] border border-app-line bg-app-canvas/60 p-4 sm:p-5">
@@ -124,6 +132,7 @@ export function CacInstantCheck({ apiPath, defaultName = "", cacDoc, onVerified 
       <PillButton tone="ink" size="md" className="mt-4 w-full sm:w-auto" onClick={check} disabled={!canCheck} busy={busy}>
         {t("cac.check")}
       </PillButton>
+      {missing && (name || number) ? <p className="mb-0 mt-2 text-[13px] text-app-ink-soft" aria-live="polite">{missing}</p> : null}
       <p className="mb-0 mt-3 text-[13px] text-app-ink-soft">
         <a href={apiPath.startsWith("/api/supplier") ? "/supplier/register-business" : "/logistics/register-business"} className="font-bold text-app-ink underline underline-offset-4">{t("cac.register")}</a>
       </p>
