@@ -8,6 +8,7 @@ import { toE164 } from "@shared/phone";
 import { RiderApp, type RiderRun } from "./RiderApp";
 import { pickupWindowText } from "@shared/supplier-pickup";
 import { getT } from "@/lib/i18n/server";
+import { payOnDeliveryOf } from "@/components/logistics/market";
 
 // Shopinbos Riders app: a phone-first page the partner shares as a private link. No account, no login.
 
@@ -111,7 +112,8 @@ export default async function RiderPage({ params }: { params: Promise<{ token: s
       area: job.destination,
       buyerName: order?.buyerName ?? null,
       buyerPhone: phone,
-      collect: job.codAmount && job.codAmount > 0 ? job.codAmount : 0,
+      // Marketplace pay on delivery is settled between the shop and the partner (no codAmount), but the rider still collects it.
+      collect: job.codAmount && job.codAmount > 0 ? job.codAmount : (payOnDeliveryOf(job.packageDetails)?.amount ?? 0),
       item: packageSummary(job.packageDetails, t),
     });
     runs.set(key, run);

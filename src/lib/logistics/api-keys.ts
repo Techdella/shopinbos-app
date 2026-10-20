@@ -1,5 +1,6 @@
 import "server-only";
 import type { NextRequest, NextResponse } from "next/server";
+import { canWorkExistingJobs } from "./job-rules";
 import { db } from "@/lib/db/client";
 import { apiError } from "@/lib/api/response";
 import { checkRateLimit } from "@/lib/rate-limit";
@@ -41,8 +42,9 @@ export async function verifyPartnerKey(authorization: string | null): Promise<Ve
   });
   if (!row || row.revokedAt) return { ok: false, status: 401, code: "UNAUTHORIZED", message: "This API key is not valid or has been revoked." };
   const partner = row.logisticsPartner;
-  // "paused" = the partner switched off "Taking new jobs"; their software still updates jobs they already have.
-  if ((partner.status !== "active" && partner.status !== "paused") || partner.verificationStatus !== "verified") {
+  // "paused" = the partner switched off "Taking new jobs"; "suspended" = the team took them out of checkout. Either
+  // way their software still updates the jobs they already have.
+  if (!["active", "paused", "suspended"].includes(partner.status) || !canWorkExistingJobs(partner)) {
     return { ok: false, status: 403, code: "FORBIDDEN", message: "Your partner account isn't active and verified yet." };
   }
 

@@ -5,7 +5,8 @@ import { transitionJob } from "@/lib/logistics/jobs";
 import { StatusBody, firstIssue, getPartnerJob, readJson } from "@/lib/logistics/partner-api";
 
 // PATCH /v1/partner/jobs/{id}/status — picked_up → in_transit → out_for_delivery (doorstep) or at_pickup_point
-// (pickup points) → delivered (with the buyer's code) or failed (with a reason); failed → returning → returned. Pay-on-delivery jobs report what was collected and how: { cod: { amount, method: "cash" | "transfer" } }.
+// (pickup points) → delivered (with the buyer's code) or failed (with a reason); failed → returning → returned.
+// Pay-on-delivery jobs report what was collected and how: { cod: { amount, method: "cash" | "transfer" } }.
 
 export const dynamic = "force-dynamic";
 

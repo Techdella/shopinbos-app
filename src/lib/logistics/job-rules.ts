@@ -42,6 +42,14 @@ export function canMove(from: string, to: string) {
   return nextStatuses(from).includes(to as JobStatus);
 }
 
+/**
+ * Can a partner keep working the jobs it already has? Verified partners, and suspended ones (spec: a suspended
+ * partner leaves checkout and discovery at once, but its existing jobs continue to completion).
+ */
+export function canWorkExistingJobs(partner: { verificationStatus: string }) {
+  return partner.verificationStatus === "verified" || partner.verificationStatus === "suspended";
+}
+
 /** 4-digit code the buyer reads to the rider. */
 export function makeDeliveryCode(random: () => number = Math.random) {
   return String(Math.floor(random() * 10000)).padStart(4, "0");

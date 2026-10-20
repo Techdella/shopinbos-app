@@ -185,7 +185,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
         {
           id: "delivery", label: "Delivery", icon: "truck", href: "/home/logistics",
           children: [
-            { id: "delivery-partners", label: "Delivery overview", href: "/home/logistics" },
+            { id: "delivery-partners", label: "Delivery partners", href: "/home/logistics" },
             { id: "delivery-my-partners", label: "My delivery partners", href: "/home/logistics/partners" },
             { id: "delivery-exceptions", label: "Delivery exceptions", href: "/home/logistics/exceptions" },
             { id: "delivery-settings", label: "Delivery settings", href: "/home/logistics/settings" },
@@ -320,7 +320,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
             { id: "pricing", label: "Rates", href: "/logistics/pricing" },
           ],
         },
-        { id: "connections", label: "Connections", icon: "users", href: "/logistics/connections" },
+        { id: "partner-connections", label: "Connections", icon: "users", href: "/logistics/connections" },
         {
           id: "payouts", label: "Earnings", icon: "chart", href: "/logistics/payouts", core: true,
           children: [

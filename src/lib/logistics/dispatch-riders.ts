@@ -7,7 +7,7 @@ export async function withOpenJobs<T extends { id: string }>(partnerId: string, 
   if (!riders.length) return [];
   const open = await db.deliveryBooking.groupBy({
     by: ["riderId"],
-    where: { logisticsPartnerId: partnerId, status: { in: ["confirmed", "picked_up", "in_transit"] }, riderId: { not: null } },
+    where: { logisticsPartnerId: partnerId, status: { in: ["confirmed", "picked_up", "in_transit", "out_for_delivery"] }, riderId: { not: null } },
     _count: { _all: true },
   });
   const openBy = new Map(open.map((row) => [row.riderId, row._count._all]));

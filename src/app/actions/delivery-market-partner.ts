@@ -1,5 +1,6 @@
 "use server";
 
+import { canWorkExistingJobs } from "@/lib/logistics/job-rules";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db/client";
@@ -47,6 +48,13 @@ async function setupActor() {
 async function verifiedActor() {
   const actor = await setupActor();
   if (actor.partner.verificationStatus !== "verified") redirect("/logistics/profile?verification=pending");
+  return actor;
+}
+
+/** Jobs it already has (decline, cash records): verified, or suspended, since existing jobs carry on. */
+async function jobActor() {
+  const actor = await setupActor();
+  if (!canWorkExistingJobs(actor.partner)) redirect("/logistics/profile?verification=pending");
   return actor;
 }
 
@@ -174,7 +182,7 @@ export async function endPartnerConnection(formData: FormData) {
 
 /** "Decline" a new job with a reason, so the shop can send it to another partner. */
 export async function declinePartnerJob(formData: FormData) {
-  const { partner } = await verifiedActor();
+  const { partner } = await jobActor();
   const to = back(formData, "/logistics/bookings");
   const picked = String(formData.get("reason") || "");
   const detail = String(formData.get("detail") || "").trim().slice(0, 240);
@@ -189,7 +197,7 @@ export async function declinePartnerJob(formData: FormData) {
 
 /** Pay on delivery: the partner says they've paid the shop the cash the rider collected (a record only). */
 export async function markCashPaidToShop(formData: FormData) {
-  const { partner } = await verifiedActor();
+  const { partner } = await jobActor();
   const to = back(formData, "/logistics/bookings");
   const result = await partnerMarksCashRemitted(partner.id, String(formData.get("bookingId") || ""));
   revalidatePath("/logistics/bookings");

@@ -5,6 +5,7 @@ import { db } from "@/lib/db/client";
 import { apiError, ok } from "@/lib/api/response";
 import { isOnboardingComplete } from "@/lib/role-queries";
 import { assignRider, transitionJob } from "@/lib/logistics/jobs";
+import { canWorkExistingJobs } from "@/lib/logistics/job-rules";
 import { JOB_SELECT, dispatchRiders, jobView, notesWithRecipient, ordersFor, partnerForUser, pickupGeoFor } from "../../_shared";
 
 export const dynamic = "force-dynamic";
@@ -52,7 +53,8 @@ export const GET = withLogistics(async (_req: NextRequest, { user, params }) => 
 export const POST = withLogistics(async (req: NextRequest, { user, params }) => {
   const partner = await partnerForUser(user.id);
   if (!partner) return apiError("NOT_FOUND", "Delivery partner profile not found", 404);
-  if (!isOnboardingComplete(partner) || partner.verificationStatus !== "verified") {
+  // Suspended partners still finish the jobs they have (they just get no new ones).
+  if (!isOnboardingComplete(partner) || !canWorkExistingJobs(partner)) {
     return apiError("VERIFICATION_REQUIRED", "Finish setting up and get verified before you take jobs.", 403);
   }
   const parsed = Body.safeParse(await req.json().catch(() => null));

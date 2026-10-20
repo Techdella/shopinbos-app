@@ -12,7 +12,7 @@ import { replyToQuote } from "@/lib/logistics/quotes";
 import { getPublicEnv } from "@/lib/env";
 import { assignRider, transitionJob } from "@/lib/logistics/jobs";
 import { newRiderToken } from "@/lib/logistics/rider-token";
-import { JOB_STATUSES } from "@/lib/logistics/job-rules";
+import { JOB_STATUSES, canWorkExistingJobs } from "@/lib/logistics/job-rules";
 import { toE164 } from "@shared/phone";
 import { LOGISTICS_FREE_ROUTE_LIMIT, LOGISTICS_FREE_TEAM_MEMBER_LIMIT } from "@/lib/plan-limits";
 import {
@@ -90,6 +90,12 @@ function assertVerifiedLogistics(partner: { verificationStatus: string; onboardi
   if (partner.verificationStatus !== "verified") redirect("/logistics/profile?verification=pending");
 }
 
+/** Moving jobs it already has: verified, or suspended (existing jobs carry on to completion). */
+function assertCanWorkJobs(partner: { verificationStatus: string; onboardingState: unknown }) {
+  if (!isOnboardingComplete(partner)) redirect("/logistics/onboarding");
+  if (!canWorkExistingJobs(partner)) redirect("/logistics/profile?verification=pending");
+}
+
 async function assertLogisticsPlanAllowsRoutes(userId: string, zoneCount: number) {
   const dbUser = await db.user.findUnique({ where: { id: userId }, select: { aiCredits: true } });
   if (!isProPlan(dbUser ?? {}) && zoneCount > LOGISTICS_FREE_ROUTE_LIMIT) {
@@ -131,7 +137,7 @@ export async function respondToDeliveryQuote(formData: FormData) {
 
 export async function updateDeliveryBookingStatus(formData: FormData) {
   const { partner } = await getLogisticsActor();
-  assertVerifiedLogistics(partner);
+  assertCanWorkJobs(partner);
   const bookingId = String(formData.get("bookingId") || "");
   const status = String(formData.get("status") || "");
   const trackingCode = String(formData.get("trackingCode") || "").trim();
@@ -206,7 +212,7 @@ function revalidateDispatch() {
 /** "Accept and assign": confirm a new job (which gives it a delivery code) and hand it to a rider in one step. */
 export async function acceptAndAssignJob(formData: FormData) {
   const { partner } = await getLogisticsActor();
-  assertVerifiedLogistics(partner);
+  assertCanWorkJobs(partner);
   const bookingId = String(formData.get("bookingId") || "");
   const riderId = String(formData.get("riderId") || "") || null;
   const back = returnPath(formData, "/logistics/bookings");
@@ -225,7 +231,7 @@ export async function acceptAndAssignJob(formData: FormData) {
 /** Give a job to a rider, move it to another rider, or take it off the rider (empty riderId). */
 export async function assignJobRider(formData: FormData) {
   const { partner } = await getLogisticsActor();
-  assertVerifiedLogistics(partner);
+  assertCanWorkJobs(partner);
   const back = returnPath(formData, "/logistics/bookings");
   const result = await assignRider({
     bookingId: String(formData.get("bookingId") || ""),
