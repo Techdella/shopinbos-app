@@ -104,7 +104,7 @@ export async function checkBusinessName(proposedName: string, lineOfBusiness: st
       type: "system",
       priority: "critical",
       title: "CAC VAS refused a business name check",
-      description: `CAC answered ${answer.status}${reason ? `: ${reason}` : ""}. ${answer.status === 401 ? "Check CAC_VAS_API_KEY (and CAC_VAS_ENV: staging keys only work on staging)." : "Top up the VAS wallet, or ask CAC to enable business name services on the account."}`,
+      description: `CAC answered ${answer.status}${reason ? `: ${reason}` : ""}. ${answer.status === 401 ? "CAC rejects the key on both production and staging: copy the API key again from vas.cac.gov.ng → Api Configuration (no quotes or spaces), update CAC_VAS_API_KEY in Vercel and redeploy." : "Top up the VAS wallet, or ask CAC to enable business name services on the account."}`,
       link: "/admin",
       dedupeKey: `bizreg-vas-namecheck:${answer.status}:${new Date().toISOString().slice(0, 13)}`,
     }).catch(() => null);
