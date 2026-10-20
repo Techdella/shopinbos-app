@@ -15,6 +15,11 @@ export type RiderSession = {
   partnerId: string;
   partnerName: string;
   partnerPhone: string | null;
+  /** Riders app on the phone: the bike's plate, the language the rider picked and their last known location. */
+  plate: string | null;
+  language: string | null;
+  lastLat: number | null;
+  lastLng: number | null;
 };
 
 export type RiderLookup = { ok: true; rider: RiderSession } | { ok: false; reason: "invalid" | "limited" };
@@ -33,7 +38,7 @@ export async function riderFromToken(token: string): Promise<RiderLookup> {
   const member = await db.logisticsTeamMember.findUnique({
     where: { riderTokenHash: hashRiderToken(token) },
     select: {
-      id: true, name: true, role: true, status: true, online: true, lastSeenAt: true, logisticsPartnerId: true,
+      id: true, name: true, role: true, status: true, online: true, lastSeenAt: true, logisticsPartnerId: true, plate: true, language: true, lastLat: true, lastLng: true,
       logisticsPartner: { select: { displayName: true, whatsappNumber: true, status: true } },
     },
   });
@@ -51,6 +56,10 @@ export async function riderFromToken(token: string): Promise<RiderLookup> {
       partnerId: member.logisticsPartnerId,
       partnerName: member.logisticsPartner.displayName,
       partnerPhone: member.logisticsPartner.whatsappNumber,
+      plate: member.plate,
+      language: member.language,
+      lastLat: member.lastLat,
+      lastLng: member.lastLng,
     },
   };
 }

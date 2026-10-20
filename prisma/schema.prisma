@@ -1194,6 +1194,10 @@ model LogisticsTeamMember {
   lastLng            Float?
   lastAccuracy       Float?
   lastLocationAt     DateTime?
+  /// Riders app (phone): the bike's number plate the partner typed when adding the rider, and the language the rider
+  /// picked (en | pcm | yo | ha | ig). Both optional.
+  plate              String?
+  language           String?
   invitedAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
 
@@ -1292,6 +1296,9 @@ model DeliveryBooking {
   failedReason       String?
   /// 4-digit code the buyer gives the rider as proof of delivery.
   deliveryCode       String?
+  /// 4-digit code the shop (or supplier) handing over the parcel gives the rider at pickup. Made when the job is
+  /// accepted (or the first time the shop's screen asks for it); the Riders app checks it before "picked up".
+  pickupCode         String?
   proofUrl           String?
   /// Pay on delivery: amount to collect, what was collected and how, and the remittance that settled it.
   codAmount          Float?

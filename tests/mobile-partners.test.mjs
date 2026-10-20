@@ -141,6 +141,6 @@ test("each partner tab group has its screens", () => {
   const app = new URL("../apps/mobile/src/app/", import.meta.url).pathname;
   for (const name of ["home", "orders", "products", "quotes", "messages", "more"]) assert.ok(existsSync(join(app, "supplier/(tabs)", `${name}.tsx`)), `supplier ${name}`);
   for (const name of ["home", "jobs", "riders", "earnings", "messages", "more"]) assert.ok(existsSync(join(app, "logistics/(tabs)", `${name}.tsx`)), `logistics ${name}`);
-  for (const name of ["index", "link", "[token]", "drop/[id]"]) assert.ok(existsSync(join(app, "rider", `${name}.tsx`)), `rider ${name}`);
+  for (const name of ["(tabs)/index", "(tabs)/earnings", "(tabs)/me", "job", "sign-in", "link", "[token]", "drop/[id]"]) assert.ok(existsSync(join(app, "rider", `${name}.tsx`)), `rider ${name}`);
   assert.match(readFileSync(join(app, "_layout.tsx"), "utf8"), /<RoleGuard \/>/);
 });

@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 
 // Riders for the delivery partner app: who is out (online in the Riders app recently), what each one is carrying
 // and has delivered today.
-// POST { name, whatsapp } adds a rider with just a name and a WhatsApp number (spec 8A) and returns their private
+// POST { name, whatsapp, plate? } adds a rider with just a name and a WhatsApp number (spec 8A) and returns their private
 // Riders app link plus a ready WhatsApp invite. Riders have no email; we store a placeholder the rider never sees.
 
 export const GET = withLogistics(async (_req: NextRequest, { user }) => {
@@ -28,7 +28,7 @@ export const GET = withLogistics(async (_req: NextRequest, { user }) => {
     db.logisticsTeamMember.findMany({
       where: { logisticsPartnerId: partner.id, role: "rider" },
       orderBy: [{ status: "asc" }, { name: "asc" }],
-      select: { id: true, name: true, phone: true, status: true, online: true, lastSeenAt: true, riderTokenHash: true, lastLat: true, lastLng: true, lastLocationAt: true },
+      select: { id: true, name: true, phone: true, status: true, online: true, lastSeenAt: true, riderTokenHash: true, lastLat: true, lastLng: true, lastLocationAt: true, plate: true },
     }),
     db.deliveryBooking.groupBy({ by: ["riderId"], where: { logisticsPartnerId: partner.id, status: { in: ["confirmed", "picked_up", "in_transit", "out_for_delivery"] }, riderId: { not: null } }, _count: { _all: true } }),
     db.deliveryBooking.findMany({
@@ -45,6 +45,7 @@ export const GET = withLogistics(async (_req: NextRequest, { user }) => {
         id: rider.id,
         name: rider.name,
         phone: rider.phone,
+        plate: rider.plate,
         active: rider.status === "active",
         out: rider.status === "active" && isRiderOut(rider, now),
         lastSeenAt: rider.lastSeenAt?.toISOString() ?? null,
@@ -72,8 +73,10 @@ export const POST = withLogistics(async (req: NextRequest, { user }) => {
   if (!isOnboardingComplete(partner) || partner.verificationStatus !== "verified") {
     return apiError("FORBIDDEN", "You can add riders once your company is checked. Finish verification first.", 403);
   }
-  const body = (await req.json().catch(() => null)) as { name?: unknown; whatsapp?: unknown } | null;
+  const body = (await req.json().catch(() => null)) as { name?: unknown; whatsapp?: unknown; plate?: unknown } | null;
   const name = String(body?.name ?? "").trim().slice(0, 80);
+  // The bike's number plate (optional), shown on the rider's Me tab: "LSR 482 KJ".
+  const plate = typeof body?.plate === "string" ? body.plate.trim().replace(/\s+/g, " ").toUpperCase().slice(0, 20) || null : undefined;
   const phone = toE164(String(body?.whatsapp ?? ""));
   if (name.length < 2) return apiError("BAD_REQUEST", "Type the rider's name.");
   if (!phone) return apiError("BAD_REQUEST", "That WhatsApp number doesn't look right. Use the number they use on WhatsApp, like 0803 123 4567.");
@@ -92,8 +95,8 @@ export const POST = withLogistics(async (req: NextRequest, { user }) => {
   const { token, hash } = newRiderToken();
   const member = await db.logisticsTeamMember.upsert({
     where: { logisticsPartnerId_email: { logisticsPartnerId: partner.id, email } },
-    create: { logisticsPartnerId: partner.id, name, email, phone, role: "rider", status: "active", riderTokenHash: hash },
-    update: { name, phone, role: "rider", status: "active", riderTokenHash: hash },
+    create: { logisticsPartnerId: partner.id, name, email, phone, role: "rider", status: "active", riderTokenHash: hash, plate: plate ?? null },
+    update: { name, phone, role: "rider", status: "active", riderTokenHash: hash, ...(plate !== undefined ? { plate } : {}) },
     select: { id: true, name: true },
   });
   const url = `${linkOrigin(req)}/rider/${token}`;

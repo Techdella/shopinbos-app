@@ -118,7 +118,7 @@ test("partner app: four tabs, and the Riders app speaks English, Pidgin, Yor√πb√
   assert.match(strings, /tFor\(locale, "m_rider"\)/);
   const words = read("shared/i18n/messages/m_rider/en.ts");
   for (const line of ["Take this delivery", "I have the parcel", "I'm with the customer", "I collected it", "Delivered", "Cash with you"]) assert.ok(words.includes(`"${line}"`), line);
-  const rider = read("apps/mobile/src/app/rider/index.tsx");
+  const rider = read("apps/mobile/src/app/rider/(tabs)/index.tsx");
   assert.match(rider, /minHeight: 64/);
   assert.match(rider, /useRiderStrings/);
 });
