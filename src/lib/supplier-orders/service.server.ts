@@ -148,16 +148,23 @@ export async function ensureSupplierOrders(retailOrderId: string): Promise<{ cre
 
 /** Never let a supplier-order problem break a payment webhook or checkout: log it and carry on. */
 export async function ensureSupplierOrdersSafely(retailOrderId: string) {
+  // Every place an order goes live calls this, so the shop's own parcel goes to its delivery partner here too
+  // (logistics marketplace; idempotent, never throws).
+  const deliveries = import("@/lib/delivery-market/jobs.server").then((jobs) => jobs.dispatchOrderDeliveriesSafely(retailOrderId)).catch(() => undefined);
   try {
     return await ensureSupplierOrders(retailOrderId);
   } catch (error) {
     console.error(`[supplier orders] could not create for order ${retailOrderId}`, error);
     return { created: 0 };
+  } finally {
+    await deliveries;
   }
 }
 
 /** The seller cancelled the store order: suppliers stop (anything already shipped stays as it is). */
 export async function cancelSupplierOrdersFor(retailOrderId: string) {
+  // The shop's delivery-partner jobs not yet picked up stop too.
+  await import("@/lib/delivery-market/jobs.server").then((jobs) => jobs.cancelOrderDeliveries(retailOrderId)).catch(() => undefined);
   const open = await db.supplierOrder.findMany({
     where: { retailOrderId, status: { in: ["pending", "accepted"] } },
     select: { id: true, status: true, supplier: { select: { userId: true } } },

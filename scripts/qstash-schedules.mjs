@@ -29,6 +29,7 @@ export const JOBS = [
   { id: "product-news", path: "/api/cron/product-news", cron: "*/10 * * * *" },
   { id: "whatsapp-catalog", path: "/api/cron/whatsapp-catalog", cron: "*/15 * * * *" },
   { id: "partner-payins", path: "/api/cron/partner-payins", cron: "*/15 * * * *" },
+  { id: "delivery-jobs", path: "/api/cron/delivery-jobs", cron: "*/15 * * * *" },
   { id: "verification-reminders", path: "/api/cron/verification-reminders", cron: "17 * * * *" },
   { id: "lifecycle-emails", path: "/api/cron/lifecycle", cron: "23 * * * *" },
   { id: "seasonal-campaigns", path: "/api/cron/seasonal-campaigns", cron: "*/5 * * * *" },

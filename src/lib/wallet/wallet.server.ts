@@ -267,6 +267,8 @@ export async function splitPlanForOrder(
   shippingNaira = 0,
   /** The order being paid: overdue money its businesses owe is taken from their shares and held for it. */
   orderId?: string,
+  /** Delivery-partner fees in this order (logistics marketplace): each goes to the partner's wallet when it's ready. */
+  delivery: Array<{ shipmentKey: string; partnerId: string; naira: number }> = [],
 ): Promise<PaymentSplitPlan | null> {
   const store = await db.store.findUnique({ where: { id: storeId }, select: { userId: true } });
   if (!store) return null;
@@ -300,8 +302,19 @@ export async function splitPlanForOrder(
   // Overdue money owed by the seller or a supplier paid in this split goes to whoever it's owed to (src/lib/money-owed).
   const debtors = new Map<string, string>([[store.userId, "seller"]]);
   for (const supplier of suppliers) if (subaccountBySupplier.get(supplier.id)) debtors.set(supplier.userId, supplier.id);
+  const deliveryPartners = delivery.length
+    ? await db.logisticsPartner.findMany({ where: { id: { in: [...new Set(delivery.map((share) => share.partnerId))] } }, select: { id: true, userId: true } })
+    : [];
+  const deliveryWallets = deliveryPartners.length
+    ? await db.wallet.findMany({ where: { userId: { in: deliveryPartners.map((partner) => partner.userId) }, ...ready }, select: { userId: true, subaccountCode: true, korapaySplitAccount: true } })
+    : [];
+  const deliveryAccount = (partnerId: string) => {
+    const userId = deliveryPartners.find((partner) => partner.id === partnerId)?.userId;
+    return accountOf(deliveryWallets.find((wallet) => wallet.userId === userId));
+  };
   const plan = buildSplitPlan({
     gateway,
+    delivery: delivery.map((share) => ({ shipmentKey: share.shipmentKey, partnerId: share.partnerId, subaccount: deliveryAccount(share.partnerId), kobo: Math.round(share.naira * 100) })),
     totalKobo,
     platformKobo: platformFeeKobo(Math.max(0, totalKobo - Math.round(Math.max(0, shippingNaira) * 100)), fee),
     sellerSubaccount: sellerAccount,
@@ -328,6 +341,15 @@ export async function recordOrderShares(orderId: string) {
         const userId = suppliers.find((supplier) => supplier.id === share.supplierId)?.userId;
         const wallet = wallets.find((row) => row.userId === userId);
         if (wallet) rows.push({ walletId: wallet.id, reference: `supplier:${order.id}:${share.supplierId}`, kind: "supplier_order", amountKobo: share.kobo, description: `Dropship order ${order.orderNumber}`, orderId: order.id, supplierId: share.supplierId, paystackReference: order.paystackRef ?? order.id });
+      }
+    }
+    if (plan.delivery?.length) {
+      const partners = await db.logisticsPartner.findMany({ where: { id: { in: plan.delivery.map((share) => share.partnerId) } }, select: { id: true, userId: true } });
+      const wallets = await db.wallet.findMany({ where: { userId: { in: partners.map((partner) => partner.userId) } }, select: { id: true, userId: true } });
+      for (const share of plan.delivery) {
+        const userId = partners.find((partner) => partner.id === share.partnerId)?.userId;
+        const wallet = wallets.find((row) => row.userId === userId);
+        if (wallet) rows.push({ walletId: wallet.id, reference: `orderdelivery:${order.id}:${share.shipmentKey}`, kind: "delivery_fee", amountKobo: share.kobo, description: `Delivery fee, order ${order.orderNumber}`, orderId: order.id, paystackReference: order.paystackRef ?? order.id });
       }
     }
     if (rows.length) await db.walletEntry.createMany({ data: rows, skipDuplicates: true });

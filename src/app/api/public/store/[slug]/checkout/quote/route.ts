@@ -38,7 +38,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   const { slug } = await params;
   const store = await db.store.findUnique({
     where: { slug },
-    select: { id: true, status: true, brandSettings: true, checkoutConfig: { select: { enableCoupon: true } } },
+    select: { id: true, userId: true, city: true, status: true, brandSettings: true, checkoutConfig: { select: { enableCoupon: true } } },
   });
   if (!store || store.status !== "active") return withCors(req, apiError("NOT_FOUND", "Store not found", 404), CORS);
 
@@ -63,7 +63,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     discount: priced.discount ? { code: priced.discount.code, label: priced.discount.label, automatic: priced.discount.automatic } : null,
     codeError: priced.codeError,
     points: priced.points ? { points: priced.points.points, amount: priced.points.amount, balance: priced.points.balance, max: priced.points.max } : null,
-    delivery: { covered: priced.delivery.choice.covered, optionId: priced.delivery.option?.id ?? null, options: priced.delivery.choice.options },
+    // With delivery partners (src/lib/delivery-market) the options carry their kind, detail, pickup point and
+    // whether pay on delivery is allowed; `partners` tells the page to use these options rather than its own zones.
+    delivery: {
+      covered: priced.delivery.choice.covered,
+      optionId: priced.delivery.option?.id ?? null,
+      options: priced.delivery.choice.options,
+      partners: !!priced.delivery.market,
+      reason: priced.delivery.market?.reason ?? null,
+      shipmentCount: priced.delivery.market?.shipmentCount ?? 1,
+    },
     items: priced.items.map((item) => ({ productId: item.productId, variant: item.variant ?? null, price: item.price, quantity: item.quantity })),
   }), CORS);
   res.headers.set("Cache-Control", "no-store");

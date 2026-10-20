@@ -1,16 +1,36 @@
 // Delivery job rules shared by the partner portal, the Riders app and the partner API. Pure, unit-tested.
 
-export const JOB_STATUSES = ["pending", "confirmed", "picked_up", "in_transit", "delivered", "failed", "cancelled"] as const;
+export const JOB_STATUSES = [
+  "pending",
+  "confirmed",
+  "picked_up",
+  "in_transit",
+  "delivered",
+  "failed",
+  "cancelled",
+  // Logistics marketplace (shared/delivery-market.ts, spec §9).
+  "declined",
+  "out_for_delivery",
+  "at_pickup_point",
+  "returning",
+  "returned",
+] as const;
 export type JobStatus = (typeof JOB_STATUSES)[number];
 export type JobActor = "partner" | "rider" | "api";
 
 const NEXT: Record<JobStatus, JobStatus[]> = {
-  pending: ["confirmed", "cancelled"],
+  pending: ["confirmed", "declined", "cancelled"],
   confirmed: ["picked_up", "cancelled", "failed"],
-  picked_up: ["in_transit", "delivered", "failed"],
-  in_transit: ["delivered", "failed"],
+  picked_up: ["in_transit", "out_for_delivery", "at_pickup_point", "delivered", "failed"],
+  in_transit: ["out_for_delivery", "at_pickup_point", "delivered", "failed"],
+  out_for_delivery: ["delivered", "failed"],
+  // Collected by the customer, or not collected in time and sent back.
+  at_pickup_point: ["delivered", "returning"],
   delivered: [],
-  failed: ["confirmed"], // retry
+  failed: ["confirmed", "out_for_delivery", "returning"], // retry, re-attempt, or send it back
+  returning: ["returned"],
+  returned: [],
+  declined: [], // the shop sends it to another partner (a new job)
   cancelled: [],
 };
 
@@ -36,9 +56,10 @@ export type TransitionCheck = { ok: true } | { ok: false; error: string };
  */
 export function checkTransition(
   job: { status: string; deliveryCode: string | null; codAmount: number | null },
-  input: { to: string; actor: JobActor; code?: string | null; failedReason?: string | null; codCollected?: number | null; codMethod?: string | null },
+  input: { to: string; actor: JobActor; code?: string | null; failedReason?: string | null; declineReason?: string | null; codCollected?: number | null; codMethod?: string | null },
 ): TransitionCheck {
   if (!canMove(job.status, input.to)) return { ok: false, error: "This job has already moved on, so that step isn't possible now. Refresh to see where it is." };
+  if (input.to === "declined" && !input.declineReason?.trim()) return { ok: false, error: "Say why you can't take this job, so the shop can send it to another partner." };
   if (input.to === "failed" && !input.failedReason?.trim()) return { ok: false, error: "Say why you couldn't deliver it, for example \"Customer not picking calls\"." };
   if (input.to === "delivered") {
     if (job.deliveryCode && input.actor !== "partner" && input.code?.trim() !== job.deliveryCode) {

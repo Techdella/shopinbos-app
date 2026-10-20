@@ -13,6 +13,8 @@ export type JobResult = { ok: true } | { ok: false; error: string };
 const ORDER_STATUS_FOR_JOB: Record<string, "shipped" | "delivered" | undefined> = {
   picked_up: "shipped",
   in_transit: "shipped",
+  out_for_delivery: "shipped",
+  at_pickup_point: "shipped",
   delivered: "delivered",
 };
 
@@ -25,6 +27,8 @@ export async function transitionJob(input: {
   riderId?: string;
   code?: string | null;
   failedReason?: string | null;
+  /** Why the partner can't take a new job (logistics marketplace). */
+  declineReason?: string | null;
   codCollected?: number | null;
   codMethod?: string | null;
   proofUrl?: string | null;
@@ -41,7 +45,16 @@ export async function transitionJob(input: {
   const data: Record<string, unknown> = { status: input.to };
   if (input.to === "confirmed" && !job.deliveryCode) data.deliveryCode = makeDeliveryCode();
   if (input.to === "confirmed" && job.status === "failed") data.failedReason = null;
+  if (input.to === "confirmed" && !job.acceptedAt) data.acceptedAt = now;
+  if (input.to === "declined") {
+    data.declinedAt = now;
+    data.declineReason = input.declineReason?.trim().slice(0, 300);
+  }
   if (input.to === "picked_up") data.pickedUpAt = now;
+  if (input.to === "out_for_delivery") data.outForDeliveryAt = now;
+  if (input.to === "at_pickup_point") data.atPickupPointAt = now;
+  if (input.to === "returned") data.returnedAt = now;
+  if (input.to === "failed") data.failedAttempts = { increment: 1 };
   if (input.to === "delivered") {
     data.deliveredAt = now;
     if (job.codAmount && job.codAmount > 0) {
