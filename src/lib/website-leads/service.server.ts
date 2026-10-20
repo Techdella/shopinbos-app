@@ -88,13 +88,16 @@ function findSameLead(phone: string | null, email: string | null) {
   });
 }
 
-export type LeadFilters = { kind?: string; status?: string; q?: string; page?: number };
+export type LeadFilters = { kind?: string; status?: string; role?: string; noted?: boolean; q?: string; page?: number };
 
 function where(filters: LeadFilters): Prisma.WebsiteLeadWhereInput {
   const q = filters.q?.trim();
   return {
     ...(filters.kind ? { kind: filters.kind } : {}),
     ...(filters.status && filters.status !== "all" ? { status: filters.status } : {}),
+    ...(filters.role ? { role: filters.role } : {}),
+    // "Has a note": leads the team wrote something about.
+    ...(filters.noted ? { AND: [{ note: { not: null } }, { note: { not: "" } }] } : {}),
     ...(q
       ? {
           OR: [
@@ -103,6 +106,7 @@ function where(filters: LeadFilters): Prisma.WebsiteLeadWhereInput {
             { phone: { contains: q.replace(/\s/g, "") } },
             { message: { contains: q, mode: "insensitive" } },
             { source: { contains: q, mode: "insensitive" } },
+            { note: { contains: q, mode: "insensitive" } },
           ],
         }
       : {}),
@@ -112,17 +116,20 @@ function where(filters: LeadFilters): Prisma.WebsiteLeadWhereInput {
 export function listWebsiteLeads(filters: LeadFilters, take = LEADS_PAGE_SIZE) {
   const page = Math.max(1, filters.page ?? 1);
   return guard(async () => {
-    const [rows, total, byStatus, byKind] = await Promise.all([
+    const [rows, total, byStatus, byKind, noted] = await Promise.all([
       db.websiteLead.findMany({ where: where(filters), orderBy: { createdAt: "desc" }, skip: (page - 1) * take, take }),
       db.websiteLead.count({ where: where(filters) }),
       db.websiteLead.groupBy({ by: ["status"], _count: { _all: true } }),
       db.websiteLead.groupBy({ by: ["kind"], _count: { _all: true }, where: { createdAt: { gte: new Date(Date.now() - 30 * 86_400_000) } } }),
+      db.websiteLead.count({ where: { AND: [{ note: { not: null } }, { note: { not: "" } }] } }),
     ]);
     return {
       rows,
       total,
       page,
       statusCounts: Object.fromEntries(byStatus.map((row) => [row.status, row._count._all])) as Record<string, number>,
+      allCount: byStatus.reduce((sum, row) => sum + row._count._all, 0),
+      notedCount: noted,
       kindCounts30d: Object.fromEntries(byKind.map((row) => [row.kind, row._count._all])) as Record<string, number>,
     };
   });
