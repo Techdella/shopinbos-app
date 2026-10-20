@@ -31,9 +31,10 @@ export default async function PublicLogisticsPartnerPage({ params }: { params: P
     notFound();
   }
 
-  const [bookingsCount, teamCount] = await Promise.all([
+  const [bookingsCount, teamCount, pickupPoints] = await Promise.all([
     db.deliveryBooking.count({ where: { logisticsPartnerId: partner.id, status: "delivered" } }),
     db.logisticsTeamMember.count({ where: { logisticsPartnerId: partner.id, status: "active" } }),
+    db.logisticsPickupPoint.findMany({ where: { logisticsPartnerId: partner.id, active: true }, orderBy: { createdAt: "asc" }, take: 50 }).catch(() => []),
   ]);
   const place = [partner.city, partner.country].filter(Boolean).join(", ");
   const t = await getT("logistics", "common");
@@ -122,6 +123,20 @@ export default async function PublicLogisticsPartnerPage({ params }: { params: P
                 <KeyValue label={t("partnerPage.speed")}>{partner.estimatedSpeed ?? t("partnerPage.sameDay")}</KeyValue>
               </div>
             </Card>
+            {pickupPoints.length > 0 && (
+              <Card className="p-5">
+                <CardHead title={t("pickup.title")} />
+                <ul className="m-0 mt-3 grid list-none gap-3 p-0">
+                  {pickupPoints.map((point) => (
+                    <li key={point.id} className="text-[14px]">
+                      <div className="font-extrabold">{point.name}</div>
+                      <div className="text-app-ink-soft">{point.address}, {point.city}, {point.state}</div>
+                      {point.hours || point.phone ? <div className="text-[13px] text-app-ink-soft">{[point.hours, point.phone].filter(Boolean).join(" · ")}</div> : null}
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            )}
             {partner.whatsappNumber && (
               <Card className="p-5">
                 <CardHead title={t("partnerPage.contact")} />

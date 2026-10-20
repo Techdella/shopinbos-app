@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { requireRole } from "@/lib/server-auth";
 import { ensureLogisticsAccess, getLogisticsPartnerForUser } from "@/lib/role-queries";
 import { updateLogisticsPricing } from "@/app/actions/logistics";
+import { removeRateCard, saveRateCard, setAcceptsCod } from "@/app/actions/logistics-plan";
+import { db } from "@/lib/db/client";
+import { logisticsLimits, planKeyFor } from "@shared/plans";
 import { Card, CardHead, ListCard, ListRow, PillLink, TextLink } from "@/components/app-kit";
 import { ActionNotice, KeyValue, PartnerPage, SubmitButton, inputClass, labelClass, naira } from "@/components/logistics/kit";
 import { coverageZoneRows } from "@/components/logistics/coverage";
@@ -30,6 +33,14 @@ export default async function LogisticsPricingPage({ searchParams }: { searchPar
     return found ? t.dynamic(`pricing.model.${found.value}`, found.label) : value;
   };
   const model = modelLabel(partner.pricingModel);
+  const dbUser = await db.user.findUnique({ where: { id: user.id }, select: { aiCredits: true } });
+  const limits = logisticsLimits(planKeyFor("logistics_partner", dbUser?.aiCredits));
+  const cards = limits.privateRateCards
+    ? await db.privateRateCard.findMany({ where: { logisticsPartnerId: partner.id }, orderBy: { updatedAt: "desc" }, take: 100 })
+    : [];
+  const customers = new Map(
+    (await db.user.findMany({ where: { id: { in: cards.map((card) => card.customerUserId) } }, select: { id: true, name: true, email: true } })).map((row) => [row.id, row]),
+  );
 
   return (
     <PartnerPage
@@ -72,6 +83,55 @@ export default async function LogisticsPricingPage({ searchParams }: { searchPar
               </ListCard>
             )}
           </section>
+
+          <Card className="p-5">
+            <CardHead title={t("rates.cardsTitle")} sub={limits.privateRateCards ? t("rates.cardsSub") : t("rates.cardsLocked")} />
+            {limits.privateRateCards ? (
+              <>
+                {cards.length ? (
+                  <ul className="m-0 mt-4 grid list-none gap-2 p-0">
+                    {cards.map((card) => (
+                      <li key={card.id} className="flex flex-wrap items-center gap-3 rounded-[16px] bg-app-canvas px-4 py-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-[14.5px] font-extrabold">{card.label} · {naira(card.price)}</div>
+                          <div className="truncate text-[13px] text-app-ink-soft">
+                            {customers.get(card.customerUserId)?.name ?? ""} ({customers.get(card.customerUserId)?.email ?? ""}) · {card.states.length ? card.states.join(", ") : t("rates.everywhere")}
+                          </div>
+                        </div>
+                        <form action={removeRateCard}>
+                          <input type="hidden" name="id" value={card.id} />
+                          <SubmitButton tone="white" size="sm">{t("rates.remove")}</SubmitButton>
+                        </form>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+                <form action={saveRateCard} className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label htmlFor="rc-email" className={labelClass}>{t("rates.email")}</label>
+                    <input id="rc-email" name="email" type="email" required className={inputClass} />
+                  </div>
+                  <div>
+                    <label htmlFor="rc-price" className={labelClass}>{t("rates.price")}</label>
+                    <input id="rc-price" name="price" type="number" min="1" step="1" inputMode="numeric" required className={inputClass} />
+                  </div>
+                  <div>
+                    <label htmlFor="rc-label" className={labelClass}>{t("rates.label")}</label>
+                    <input id="rc-label" name="label" maxLength={80} placeholder={t("rates.labelPlaceholder")} className={inputClass} />
+                  </div>
+                  <div>
+                    <label htmlFor="rc-states" className={labelClass}>{t("rates.states")}</label>
+                    <input id="rc-states" name="states" maxLength={400} placeholder="Lagos, Ogun" className={inputClass} />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <SubmitButton>{t("rates.save")}</SubmitButton>
+                  </div>
+                </form>
+              </>
+            ) : (
+              <div className="mt-4"><PillLink href="/logistics/billing" tone="ink" size="sm">{t("rates.seePlans")}</PillLink></div>
+            )}
+          </Card>
         </div>
 
         <Card className="h-fit p-5">
@@ -92,6 +152,17 @@ export default async function LogisticsPricingPage({ searchParams }: { searchPar
               <input id="estimatedSpeed" name="estimatedSpeed" maxLength={80} defaultValue={partner.estimatedSpeed ?? ""} placeholder={t("pricing.speedPlaceholder")} className={inputClass} />
             </div>
             <SubmitButton>{t("pricing.save")}</SubmitButton>
+          </form>
+        </Card>
+
+        <Card className="h-fit p-5 xl:col-start-2">
+          <CardHead title={t("rates.codTitle")} sub={t("rates.codSub")} />
+          <form action={setAcceptsCod} className="mt-4 grid gap-3">
+            <label className="flex items-center gap-3 text-[15px] font-bold">
+              <input type="checkbox" name="acceptsCod" defaultChecked={partner.acceptsCod} className="h-5 w-5" />
+              {t("rates.codLabel")}
+            </label>
+            <SubmitButton tone="white">{t("pricing.save")}</SubmitButton>
           </form>
         </Card>
       </div>

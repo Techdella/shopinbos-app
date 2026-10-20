@@ -1,4 +1,5 @@
 import { updateSupplierProfile } from "@/app/actions/supplier";
+import { BoostsCard } from "@/components/plans/BoostsCard";
 import { creditBalance } from "@/lib/ai/credits.server";
 import { billingEmail } from "@/lib/auth/billing-email";
 import { redirect } from "next/navigation";
@@ -89,6 +90,7 @@ export default async function SupplierProfilePage({ searchParams }: PageProps) {
         )}
 
         {billing ? (
+          <div className="grid gap-5">
           <PlanPicker
             role="supplier"
             current={planOf({ role: "supplier", aiCredits })}
@@ -99,6 +101,8 @@ export default async function SupplierProfilePage({ searchParams }: PageProps) {
             creditsHref="/supplier/credits"
             usage={[{ label: t("profile.usageListings"), used: workspace.metrics.productCount, limit: supplierLimits(planOf({ role: "supplier", aiCredits })).listings }]}
           />
+          <BoostsCard userId={user.id} role="supplier" />
+          </div>
         ) : (
           <SplitLayout
             main={

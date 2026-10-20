@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { BoostsCard } from "@/components/plans/BoostsCard";
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { ensureLogisticsAccess, getLogisticsPartnerForUser } from "@/lib/role-queries";
@@ -123,6 +124,10 @@ export default async function LogisticsBillingPage() {
             { label: t("fees.usageTeam"), used: teamCount, limit: limits.teamMembers },
           ]}
         />
+      </div>
+
+      <div className="mt-6">
+        <BoostsCard userId={user.id} role="logistics_partner" />
       </div>
     </PartnerPage>
   );

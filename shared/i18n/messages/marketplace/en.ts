@@ -339,6 +339,7 @@ const en = {
   "trust.agree": "I've called {name}, seen the stock, and I accept the Dropship agreement",
   "trust.sending": "Sending…",
   "trust.send": "Send the agreement to {name}",
+  "featured": "Featured",
 } satisfies Record<string, string>;
 
 export default en;

@@ -411,6 +411,23 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "msg.buySms": "{count} SMS ({price})",
   "msg.buyWa": "{count} WhatsApp ({price})",
   "msg.own": "Messages wey you send through your own SMS provider or WhatsApp number no dey count.",
+  "bo.title": "Make dem feature you",
+  "bo.supplierSub": "Show first for sellers' marketplace for one week at a time ({price} every week).",
+  "bo.productSub": "Put one product first for sellers' product search ({price} every week).",
+  "bo.partnerSub": "Show first when sellers dey find delivery for one state ({price} every week for each state).",
+  "bo.weeks": "{count, plural, one {# week} other {# weeks}}",
+  "bo.state": "State",
+  "bo.product": "Product",
+  "bo.buy": "Pay {price}",
+  "bo.running": "E dey run now",
+  "bo.until": "till {date}",
+  "bo.included": "{count, plural, one {Your plan get # featured week every month.} other {Your plan get # featured weeks every month.}}",
+  "bo.left": "{count, plural, one {# remain dis month} other {# remain dis month}}",
+  "bo.useWeek": "Start one included week",
+  "bo.started": "Your featured week don start.",
+  "bo.badge": "Your plan get the featured badge for your listing.",
+  "bo.kind.supplier_boost": "Featured supplier",
+  "bo.kind.product_boost": "Boosted product",
 };
 
 export default pcm;

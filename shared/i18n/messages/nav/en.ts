@@ -227,6 +227,7 @@ const en = {
   "credits.pack.large": "Power pack",
   "credits.badge.medium": "Most popular",
   "credits.badge.large": "Best value",
+  "logistics.pickup-points": "Pickup points",
 } satisfies Record<string, string>;
 
 export default en;

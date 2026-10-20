@@ -341,6 +341,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "trust.agree": "Akpọọla m {name}, ahụla m ngwa ahụ, ma anabatara m Dropship agreement",
   "trust.sending": "Ọ na-aga…",
   "trust.send": "Zipu nkwekọrịta ahụ nye {name}",
+  "featured": "Ewepụtara",
 };
 
 export default ig;

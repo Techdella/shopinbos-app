@@ -411,6 +411,23 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "msg.buySms": "SMS {count} ({price})",
   "msg.buyWa": "WhatsApp {count} ({price})",
   "msg.own": "Ba a ƙidaya saƙonnin da aka aika ta mai samar da SMS ɗinka ko lambar WhatsApp ɗinka ba.",
+  "bo.title": "A fito da kai",
+  "bo.supplierSub": "Fito farko a kasuwar masu sayarwa na mako ɗaya a lokaci guda ({price} a mako).",
+  "bo.productSub": "Sa kaya ɗaya farko a binciken kayan masu sayarwa ({price} a mako).",
+  "bo.partnerSub": "Fito farko idan masu sayarwa suna neman isarwa a jiha ({price} a mako ga kowace jiha).",
+  "bo.weeks": "{count, plural, one {mako #} other {makonni #}}",
+  "bo.state": "Jiha",
+  "bo.product": "Kaya",
+  "bo.buy": "Biya {price}",
+  "bo.running": "Yana gudana yanzu",
+  "bo.until": "har zuwa {date}",
+  "bo.included": "{count, plural, one {Tsarinka yana da makon fitarwa # kowane wata.} other {Tsarinka yana da makonni # na fitarwa kowane wata.}}",
+  "bo.left": "{count, plural, one {# ya rage a wannan watan} other {# sun rage a wannan watan}}",
+  "bo.useWeek": "Fara mako da ke cikin tsari",
+  "bo.started": "Makon fitarwarka ya fara.",
+  "bo.badge": "Tsarinka yana da alamar fitacce a jerinka.",
+  "bo.kind.supplier_boost": "Fitaccen mai kawo kaya",
+  "bo.kind.product_boost": "Kayan da aka haɓaka",
 };
 
 export default ha;

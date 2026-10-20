@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { boostedProductIds, markFeatured } from "@/lib/plans/extras.server";
 import { PRODUCT_PLAN_FIRST } from "@/lib/plans/placement";
 import { db } from "@/lib/db/client";
 import { cachedPublic, publicCacheKey, PUBLIC_LIST_TTL_S } from "@/lib/api/public-cache";
@@ -82,7 +83,8 @@ export async function GET(req: NextRequest) {
       db.supplierProduct.count({ where }),
       db.supplierProduct.findMany({ where, select, orderBy, skip, take: limit }),
     ]);
-    return { total, products };
+    // Products boosted this week lead the default sort (src/lib/plans/extras.server.ts).
+    return { total, products: sort === "trending" ? markFeatured(products, await boostedProductIds()) : products };
   });
 
   return withCors(req, okList(products, { page, limit, total }), { cacheControl: PUBLIC_LIST_CACHE });

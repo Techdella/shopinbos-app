@@ -184,3 +184,24 @@ export async function useIncludedFeaturedWeek(userId: string) {
     data: { reference: `${EXTRA_REFERENCE_PREFIX}included-${crypto.randomUUID()}`, userId, kind: "supplier_boost", quantity: 1, amountKobo: 0, included: true, status: "paid", paidAt: new Date(), ...window },
   });
 }
+
+/** Supplier.id of the suppliers featured right now (for lists that don't carry the user id). */
+export async function featuredSupplierIds() {
+  const userIds = await featuredSupplierUserIds();
+  if (!userIds.length) return [];
+  return (await db.supplier.findMany({ where: { userId: { in: userIds } }, select: { id: true } })).map((row) => row.id);
+}
+
+/** LogisticsPartner.id of the partners featured right now (in `state` when given). */
+export async function featuredPartnerIds(state?: string | null) {
+  const userIds = await featuredPartnerUserIds(state);
+  if (!userIds.length) return [];
+  return (await db.logisticsPartner.findMany({ where: { userId: { in: userIds } }, select: { id: true } })).map((row) => row.id);
+}
+
+/** Marks the featured rows and moves them to the front of this page of results. */
+export function markFeatured<T extends { id: string }>(rows: T[], ids: readonly string[]): Array<T & { featured: boolean }> {
+  const featured = new Set(ids);
+  const marked = rows.map((row) => ({ ...row, featured: featured.has(row.id) }));
+  return [...marked.filter((row) => row.featured), ...marked.filter((row) => !row.featured)];
+}

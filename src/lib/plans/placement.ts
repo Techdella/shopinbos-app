@@ -8,3 +8,8 @@ import type { Prisma } from "@prisma/client";
 export const SUPPLIER_PLAN_FIRST: Prisma.SupplierOrderByWithRelationInput = { user: { aiCredits: "desc" } };
 export const PRODUCT_PLAN_FIRST: Prisma.SupplierProductOrderByWithRelationInput = { supplier: { user: { aiCredits: "desc" } } };
 export const PARTNER_PLAN_FIRST: Prisma.LogisticsPartnerOrderByWithRelationInput = { user: { aiCredits: "desc" } };
+
+/** Featured (boosted) items first, keeping the order within each group. */
+export function featuredFirst<T extends { featured?: boolean }>(rows: readonly T[]): T[] {
+  return [...rows.filter((row) => row.featured), ...rows.filter((row) => !row.featured)];
+}

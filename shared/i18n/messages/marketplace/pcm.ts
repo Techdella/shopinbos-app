@@ -341,6 +341,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "trust.agree": "I don call {name}, I don see the stock, and I accept the Dropship agreement",
   "trust.sending": "E dey send…",
   "trust.send": "Send the agreement to {name}",
+  "featured": "Featured",
 };
 
 export default pcm;

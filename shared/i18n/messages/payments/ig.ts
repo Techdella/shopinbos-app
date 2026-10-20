@@ -411,6 +411,23 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "msg.buySms": "SMS {count} ({price})",
   "msg.buyWa": "WhatsApp {count} ({price})",
   "msg.own": "Anaghị agụ ozi e zigara site na onye na-enye SMS gị ma ọ bụ nọmba WhatsApp gị.",
+  "bo.title": "Ka e wepụta gị",
+  "bo.supplierSub": "Pụta mbụ n'ahịa ndị na-ere ere otu izu n'otu oge ({price} kwa izu).",
+  "bo.productSub": "Tinye otu ngwaahịa mbụ na nchọta ngwaahịa ndị na-ere ere ({price} kwa izu).",
+  "bo.partnerSub": "Pụta mbụ mgbe ndị na-ere ere na-achọ nnyefe na steeti ({price} kwa izu maka steeti ọ bụla).",
+  "bo.weeks": "{count, plural, one {izu #} other {izu #}}",
+  "bo.state": "Steeti",
+  "bo.product": "Ngwaahịa",
+  "bo.buy": "Kwụọ {price}",
+  "bo.running": "Na-aga ugbu a",
+  "bo.until": "ruo {date}",
+  "bo.included": "{count, plural, one {Atụmatụ gị nwere izu nwepụta # kwa ọnwa.} other {Atụmatụ gị nwere izu nwepụta # kwa ọnwa.}}",
+  "bo.left": "{count, plural, one {# fọdụrụ n'ọnwa a} other {# fọdụrụ n'ọnwa a}}",
+  "bo.useWeek": "Malite izu dị n'atụmatụ",
+  "bo.started": "Izu nwepụta gị amalitela.",
+  "bo.badge": "Atụmatụ gị nwere akara ewepụtara na ndepụta gị.",
+  "bo.kind.supplier_boost": "Onye na-ebunye ewepụtara",
+  "bo.kind.product_boost": "Ngwaahịa akwalitere",
 };
 
 export default ig;

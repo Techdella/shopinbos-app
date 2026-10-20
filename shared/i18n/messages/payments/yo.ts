@@ -411,6 +411,23 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "msg.buySms": "SMS {count} ({price})",
   "msg.buyWa": "WhatsApp {count} ({price})",
   "msg.own": "A kò ka ìfiránṣẹ́ tí o fi ránṣẹ́ láti ọ̀dọ̀ olùpèsè SMS tìrẹ tàbí nọ́mbà WhatsApp tìrẹ.",
+  "bo.title": "Jẹ́ kí a fi ọ́ hàn",
+  "bo.supplierSub": "Farahàn ní àkọ́kọ́ lórí ọjà àwọn olùtajà fún ọ̀sẹ̀ kan lẹ́ẹ̀kan ({price} lọ́sẹ̀).",
+  "bo.productSub": "Fi ọjà kan sí àkọ́kọ́ nínú ìwádìí ọjà àwọn olùtajà ({price} lọ́sẹ̀).",
+  "bo.partnerSub": "Farahàn ní àkọ́kọ́ nígbà tí àwọn olùtajà bá ń wá ìfijiṣẹ́ ní ìpínlẹ̀ kan ({price} lọ́sẹ̀ fún ìpínlẹ̀ kọ̀ọ̀kan).",
+  "bo.weeks": "{count, plural, one {ọ̀sẹ̀ #} other {ọ̀sẹ̀ #}}",
+  "bo.state": "Ìpínlẹ̀",
+  "bo.product": "Ọjà",
+  "bo.buy": "San {price}",
+  "bo.running": "Ó ń lọ báyìí",
+  "bo.until": "títí di {date}",
+  "bo.included": "{count, plural, one {Plan rẹ ní ọ̀sẹ̀ àfihàn # lóṣooṣù.} other {Plan rẹ ní ọ̀sẹ̀ àfihàn # lóṣooṣù.}}",
+  "bo.left": "{count, plural, one {# ló kù lóṣù yìí} other {# ló kù lóṣù yìí}}",
+  "bo.useWeek": "Bẹ̀rẹ̀ ọ̀sẹ̀ kan tí ó wà nínú plan",
+  "bo.started": "Ọ̀sẹ̀ àfihàn rẹ ti bẹ̀rẹ̀.",
+  "bo.badge": "Plan rẹ ní àmì àfihàn lórí àkọsílẹ̀ rẹ.",
+  "bo.kind.supplier_boost": "Olùpèsè àfihàn",
+  "bo.kind.product_boost": "Ọjà tí a gbé ga",
 };
 
 export default yo;

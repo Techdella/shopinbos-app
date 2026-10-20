@@ -341,6 +341,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "trust.agree": "Na kira {name}, na ga kayan, kuma na amince da Dropship agreement",
   "trust.sending": "Ana aikawa…",
   "trust.send": "Aika yarjejeniyar zuwa {name}",
+  "featured": "Fitacce",
 };
 
 export default ha;

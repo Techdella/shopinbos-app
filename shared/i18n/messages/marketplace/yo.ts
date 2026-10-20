@@ -341,6 +341,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "trust.agree": "Mo ti pe {name}, mo ti rí ọjà náà, mo sì gba Dropship agreement",
   "trust.sending": "Ó ń lọ…",
   "trust.send": "Fi àdéhùn náà ránṣẹ́ sí {name}",
+  "featured": "Àfihàn",
 };
 
 export default yo;

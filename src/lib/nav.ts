@@ -312,6 +312,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
           children: [
             { id: "coverage-areas", label: "Coverage", href: "/logistics/coverage" },
             { id: "pricing", label: "Rates", href: "/logistics/pricing" },
+            { id: "pickup-points", label: "Pickup points", href: "/logistics/pickup-points" },
           ],
         },
         {

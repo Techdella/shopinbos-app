@@ -409,6 +409,23 @@ const en = {
   "msg.buySms": "{count} SMS ({price})",
   "msg.buyWa": "{count} WhatsApp ({price})",
   "msg.own": "Messages sent through your own connected SMS provider or WhatsApp number aren't counted.",
+  "bo.title": "Get featured",
+  "bo.supplierSub": "Show up first on the sellers' marketplace for a week at a time ({price} a week).",
+  "bo.productSub": "Put one product first in sellers' product search ({price} a week).",
+  "bo.partnerSub": "Show up first when sellers look for delivery in a state ({price} a week per state).",
+  "bo.weeks": "{count, plural, one {# week} other {# weeks}}",
+  "bo.state": "State",
+  "bo.product": "Product",
+  "bo.buy": "Pay {price}",
+  "bo.running": "Running now",
+  "bo.until": "until {date}",
+  "bo.included": "{count, plural, one {Your plan includes # featured week each month.} other {Your plan includes # featured weeks each month.}}",
+  "bo.left": "{count, plural, one {# left this month} other {# left this month}}",
+  "bo.useWeek": "Start an included week",
+  "bo.started": "Your featured week has started.",
+  "bo.badge": "Your plan includes the featured badge on your listing.",
+  "bo.kind.supplier_boost": "Featured supplier",
+  "bo.kind.product_boost": "Boosted product",
 } satisfies Record<string, string>;
 
 export default en;
