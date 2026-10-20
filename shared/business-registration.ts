@@ -188,13 +188,17 @@ const strings = (value: unknown) => (Array.isArray(value) ? value.filter((v): v 
 export function readNameCheck(body: unknown): NameCheck | null {
   const outer = (body && typeof body === "object" ? (body as Record<string, unknown>).data : null) as Record<string, unknown> | null;
   if (!outer || typeof outer !== "object") return null;
-  const inner = (outer.data && typeof outer.data === "object" ? outer.data : {}) as Record<string, unknown>;
-  const message = typeof outer.message === "string" ? outer.message : "";
+  // Documented as { data: { message, data: {...} } }; read { data: {...} } (one level) the same way.
+  const inner = (outer.data && typeof outer.data === "object" ? outer.data : outer) as Record<string, unknown>;
+  const actionMessage = Array.isArray(inner.recommendedActions) && inner.recommendedActions.length
+    ? String((inner.recommendedActions[0] as { message?: unknown })?.message ?? "")
+    : "";
+  const message = [outer.message, inner.message, actionMessage].find((m): m is string => typeof m === "string" && /proceed/i.test(m)) ?? (typeof outer.message === "string" ? outer.message : "");
   const actions = Array.isArray(inner.recommendedActions)
     ? inner.recommendedActions.map((a) => (a && typeof a === "object" ? (a as { message?: unknown }).message : null)).filter((m): m is string => typeof m === "string" && Boolean(m.trim()))
     : [];
   return {
-    canProceed: /^PROCEED/i.test(message) && inner.success !== false,
+    canProceed: /^PROCEED/i.test(message.replace(/\s+/g, "_")) && inner.success !== false,
     complianceScore: num(inner.complianceScorePercentage),
     similarityScore: num(inner.similarityScorePercentage),
     mostSimilarName: typeof inner.mostSimilarName === "string" ? inner.mostSimilarName : null,

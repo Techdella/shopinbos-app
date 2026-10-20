@@ -100,7 +100,8 @@ export const PRICE_SETTINGS = {
   "domains.markup": naira("domains", "Markup per domain", 3_000, { env: "DOMAIN_MARKUP_NGN" }),
   "domains.max_usd": { kind: "number", group: "domains", label: "Most we'll pay the registrar", unit: "usd", default: 20, env: "DOMAIN_PURCHASE_MAX_USD", min: 1, max: 1_000, hint: "Pricier domains aren't offered." },
 
-  "business.bn_registration": naira("business", "Business name registration", 25_000, { min: 1_000, hint: "Includes CAC's filing fee." }),
+  // CAC charges ₦27,000 per business name filing (VAS pricing, October 2026) and Paystack takes ~1.5% + ₦100.
+  "business.bn_registration": naira("business", "Business name registration", 32_000, { min: 28_000, hint: "CAC charges ₦27,000 per filing from the VAS wallet, and Paystack's fee comes off this. Keep it above both." }),
 
   "delivery.fee_rate": { kind: "number", group: "delivery", label: "Fee on each delivery", unit: "percent", default: 1.5, min: 0, max: 30 },
   "delivery.fee_bearer": {

@@ -80,13 +80,37 @@ export async function checkBusinessName(proposedName: string, lineOfBusiness: st
   if (!cacVasReady()) throw new RegistrationError("disabled", "Business registration isn't switched on yet.", 503);
   const name = proposedName.trim().replace(/\s+/g, " ").slice(0, 120);
   if (name.split(" ").length < 2) throw new RegistrationError("invalid", "Use at least two words, e.g. \"Ada Fabrics Ventures\".");
-  const { status, json } = await cacVasCall("/api/vas/engine/pre/bn-compliance?advanceCheck=true", { body: { proposedName: name, lineOfBusiness: lineOfBusiness.trim() || "General Merchandise" } });
-  const check = status >= 200 && status < 300 ? readNameCheck(json) : null;
-  if (!check) {
-    console.error("[business registration] name check failed", status, cacVasError(json));
-    throw new RegistrationError("unavailable", "We couldn't check the name with CAC just now. Try again in a minute.", 503);
+  const body = { proposedName: name, lineOfBusiness: lineOfBusiness.trim() || "General Merchandise" };
+  let answer: { status: number; json: unknown };
+  try {
+    // The advanced check (₦50 from the VAS wallet) also compares against similar names; the basic one is free.
+    answer = await cacVasCall("/api/vas/engine/pre/bn-compliance?advanceCheck=true", { body, timeoutMs: 20_000 });
+    if (answer.status === 403 || answer.status === 402) {
+      console.error("[business registration] advanced name check refused, using the basic one:", answer.status, cacVasError(answer.json));
+      answer = await cacVasCall("/api/vas/engine/pre/bn-compliance", { body, timeoutMs: 20_000 });
+    }
+  } catch (error) {
+    console.error("[business registration] name check: CAC didn't answer", error instanceof Error ? error.message : error);
+    throw new RegistrationError("unavailable", "CAC isn't answering just now. Try again in a minute.", 503);
   }
-  return check;
+  const check = answer.status >= 200 && answer.status < 300 ? readNameCheck(answer.json) : null;
+  if (check) return check;
+  const reason = cacVasError(answer.json);
+  // Full answer in the logs (search "[business registration]"), so the team sees exactly what CAC said.
+  console.error("[business registration] name check failed", answer.status, reason, JSON.stringify(answer.json ?? null).slice(0, 800));
+  if (answer.status === 401 || answer.status === 403 || answer.status === 402) {
+    await notifyAdmins({
+      event: "account.update",
+      type: "system",
+      priority: "critical",
+      title: "CAC VAS refused a business name check",
+      description: `CAC answered ${answer.status}${reason ? `: ${reason}` : ""}. ${answer.status === 401 ? "Check CAC_VAS_API_KEY (and CAC_VAS_ENV: staging keys only work on staging)." : "Top up the VAS wallet, or ask CAC to enable business name services on the account."}`,
+      link: "/admin",
+      dedupeKey: `bizreg-vas-namecheck:${answer.status}:${new Date().toISOString().slice(0, 13)}`,
+    }).catch(() => null);
+    throw new RegistrationError("unavailable", "Business name checks are paused while we sort out our CAC account. Try again later; our team has been told.", 503);
+  }
+  throw new RegistrationError("unavailable", "We couldn't check the name with CAC just now. Try again in a minute.", 503);
 }
 
 async function dataUrl(file: Blob) {

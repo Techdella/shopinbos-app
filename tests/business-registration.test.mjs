@@ -124,3 +124,21 @@ test("money safety: no second filing, refunds only for CAC's own refusal, mismat
   const callback = read("src/app/api/billing/business-registration/callback/route.ts");
   assert.match(callback, /row\.status === "refunded" \|\| row\.status === "refund_failed"/, "a charged person is never told nothing was charged");
 });
+
+test("the name check falls back to CAC's free check, tells the team when the account is refused, and reads both answer shapes", () => {
+  const service = read("src/lib/business-registration/service.server.ts");
+  assert.match(service, /if \(answer\.status === 403 \|\| answer\.status === 402\) \{[\s\S]*?bn-compliance", \{ body/, "falls back to the free basic check");
+  assert.match(service, /title: "CAC VAS refused a business name check"/);
+  // Documented nesting, and a single level.
+  assert.equal(br.readNameCheck({ data: { message: "PROCEED_TO_FILING", data: { success: true } } }).canProceed, true);
+  assert.equal(br.readNameCheck({ data: { recommendedActions: [{ message: "Proceed to filing" }], complianceScorePercentage: 100, success: true } }).canProceed, true);
+});
+
+test("registration is never priced below what CAC charges, and CAC's webhook only triggers a status read", async () => {
+  const pricing = await import("../shared/platform-pricing.ts");
+  const setting = pricing.PRICE_SETTINGS["business.bn_registration"];
+  assert.ok(setting.min >= 27_500 && setting.default >= setting.min, "CAC takes ₦27,000 per filing");
+  const hook = read("src/app/api/webhooks/cac-vas/route.ts");
+  assert.match(hook, /await refreshRegistration\(row\)/, "the status always comes from CAC's API, never the payload");
+  assert.doesNotMatch(hook, /status: "approved"/);
+});

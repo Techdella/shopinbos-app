@@ -27,11 +27,11 @@ import {
   type CacRecord,
 } from "./cac";
 
-// Instant CAC check for suppliers and delivery partners (see ./cac.ts for the rules). CAC's own VAS Validation API
-// when CAC_VAS_API_KEY is set (CAC_VAS_ENV=staging for its test registry), else Korapay Identity when
-// KORAPAY_SECRET_KEY is set (src/lib/korapay.ts), else Youverify (YOUVERIFY_SECRET_KEY, src/lib/youverify.ts), else
-// Dojah (DOJAH_APP_ID + DOJAH_SECRET_KEY; DOJAH_ENV=sandbox uses Dojah's test registry). Without any the check is off
-// and the page keeps asking for the certificate.
+// Instant CAC check for suppliers and delivery partners (see ./cac.ts for the rules). Tried in order, each one set up
+// handing over to the next when it can't answer: Korapay Identity (KORAPAY_SECRET_KEY, src/lib/korapay.ts), CAC's own
+// VAS Validation API (CAC_VAS_API_KEY; ₦7,500 a check, so second), Youverify (YOUVERIFY_SECRET_KEY), Dojah
+// (DOJAH_APP_ID + DOJAH_SECRET_KEY; DOJAH_ENV=sandbox uses Dojah's test registry). Without any the check is off and
+// the page keeps asking for the certificate.
 
 const LOOKUP_TIMEOUT_MS = 15_000;
 
@@ -42,8 +42,8 @@ function dojahReady() {
 /** The CAC lookups set up here, in the order they're tried (for Admin → Wallets). */
 export function cacProviders(): Array<"cac" | "korapay" | "youverify" | "dojah"> {
   return [
-    ...(cacVasKey() ? (["cac"] as const) : []),
     ...(korapayIdentityReady() ? (["korapay"] as const) : []),
+    ...(cacVasKey() ? (["cac"] as const) : []),
     ...(youverifyReady() ? (["youverify"] as const) : []),
     ...(dojahReady() ? (["dojah"] as const) : []),
   ];
@@ -206,8 +206,9 @@ export async function runCacCheck(
   let lookup: LookupResult = { ok: false, reason: "unavailable" };
   let provider = cacProvider();
   for (const [name, ready, run] of [
-    ["cac", Boolean(cacVasKey()), lookupCacVas],
+    // Korapay first: CAC's own premium lookup costs ₦7,500 a check from the VAS wallet (October 2026 pricing).
     ["korapay", korapayIdentityReady(), lookupKorapayCac],
+    ["cac", Boolean(cacVasKey()), lookupCacVas],
     ["youverify", youverifyReady(), lookupYouverifyCac],
     ["dojah", dojahReady(), lookupCac],
   ] as const) {
