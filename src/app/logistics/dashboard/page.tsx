@@ -148,10 +148,14 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
                 {riders.length === 0 ? t("today.noRiders") : t("today.ridersOut", { out: presence.out, offline: presence.offline })}
               </h2>
               <p className="m-0 mt-0.5 text-[15px] text-app-ink-soft">
-                {riders.length === 0 ? t("today.addRidersHint") : t("today.ridersOnlineHint")}
+                {riders.length === 0 ? (partner.verificationStatus === "verified" ? t("today.addRidersHint") : t("riders.verifyFirst")) : t("today.ridersOnlineHint")}
               </p>
             </div>
-            <PillLink href="/logistics/couriers" size="sm">{riders.length === 0 ? t("today.addRider") : t("today.seeRiders")}</PillLink>
+            {riders.length === 0 && partner.verificationStatus !== "verified" ? (
+              <PillLink href="/logistics/verification" size="sm">{t("riders.verifyLink")}</PillLink>
+            ) : (
+              <PillLink href="/logistics/couriers" size="sm">{riders.length === 0 ? t("today.addRider") : t("today.seeRiders")}</PillLink>
+            )}
             {outNow.length > 0 && (
               <ul className="m-0 grid w-full list-none gap-0 p-0" aria-label={t("today.ridersOutNow")}>
                 {outNow.slice(0, 8).map((rider) => (

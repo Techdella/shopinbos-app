@@ -90,9 +90,19 @@ export default async function LogisticsCouriersPage({ searchParams }: { searchPa
       frame={{ user, partner }}
       title={t("riders.title")}
       sub={t("riders.sub")}
-      actions={<PillLink href="#add-rider" icon="plus">{t("today.addRider")}</PillLink>}
+      actions={partner.verificationStatus === "verified"
+        ? <PillLink href="#add-rider" icon="plus">{t("today.addRider")}</PillLink>
+        : <PillLink href="/logistics/verification" icon="file">{t("riders.verifyLink")}</PillLink>}
     >
       <ActionNotice saved={saved} error={error} savedText={saved === "rider" ? t("riders.riderAdded") : t("riders.updated")} />
+      {partner.verificationStatus !== "verified" && !error && (
+        <div className="mb-4">
+          <Notice tone="info">
+            <b>{partner.verificationStatus === "rejected" ? t("riders.verifyRejected") : t("riders.verifyPending")}</b>{" "}
+            {t("riders.verifyFirst")} <a href="/logistics/verification" className="font-bold underline">{t("riders.verifyLink")}</a>
+          </Notice>
+        </div>
+      )}
 
       <StatGrid className="mb-5">
         <StatTile tone="card" label={t("today.ridersOutNow")} value={presence.out} hint={t("riders.offlineActive", { offline: presence.offline, total: presence.total })} />
@@ -170,13 +180,6 @@ export default async function LogisticsCouriersPage({ searchParams }: { searchPa
         <Card className="h-fit p-5">
           <div id="add-rider" className="scroll-mt-24" />
           <CardHead title={t("riders.addSomeone")} sub={t("riders.addHelp")} />
-          {unverified && (
-            <div className="mt-4">
-              <Notice tone="info">
-                {t("riders.verifyFirst")} <a href="/logistics/profile" className="font-bold underline">{t("riders.verifyLink")}</a>
-              </Notice>
-            </div>
-          )}
           <form action={addLogisticsTeamMember} className="mt-4 grid gap-3">
             <div>
               <label htmlFor="member-name" className={labelClass}>{t("riders.name")}</label>

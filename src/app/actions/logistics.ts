@@ -13,7 +13,7 @@ import { getPublicEnv } from "@/lib/env";
 import { assignRider, transitionJob } from "@/lib/logistics/jobs";
 import { newRiderToken } from "@/lib/logistics/rider-token";
 import { toE164 } from "@shared/phone";
-import { TEAM_ROLES, riderPlaceholderEmail, type TeamRole } from "@/lib/logistics/team";
+import { TEAM_NEEDS_VERIFICATION, TEAM_ROLES, riderPlaceholderEmail, type TeamRole } from "@/lib/logistics/team";
 import { LOGISTICS_FREE_ROUTE_LIMIT, LOGISTICS_FREE_TEAM_MEMBER_LIMIT } from "@/lib/plan-limits";
 import {
   BookingStatusUpdateSchema,
@@ -346,7 +346,7 @@ function couriersError(message: string): never {
 function assertTeamUnlocked(partner: { verificationStatus: string; onboardingState: unknown }) {
   if (!isOnboardingComplete(partner)) redirect("/logistics/onboarding");
   if (partner.verificationStatus !== "verified") {
-    couriersError("You can add riders once your company is checked. Finish verification on your profile first.");
+    couriersError(TEAM_NEEDS_VERIFICATION);
   }
 }
 

@@ -121,7 +121,9 @@ export interface RiderRow {
   where?: string;
 }
 
-export const fetchRiders = () => api<{ riders: RiderRow[] }>("/api/mobile/logistics/riders");
+/** canAddRiders is false until the Shopinbos team verifies the company; addRidersBlockedReason says so in words. */
+export const fetchRiders = () =>
+  api<{ riders: RiderRow[]; canAddRiders?: boolean; addRidersBlockedReason?: string | null }>("/api/mobile/logistics/riders");
 
 /** Add a rider with just a name and WhatsApp number. Returns their Riders app link and a ready WhatsApp invite. */
 export const addRider = (input: { name: string; whatsapp: string }) =>

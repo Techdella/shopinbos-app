@@ -17,3 +17,10 @@ export function riderPlaceholderEmail(phoneE164: string) {
 export function isRiderPlaceholderEmail(email: string | null | undefined) {
   return Boolean(email?.endsWith(RIDER_EMAIL_DOMAIN));
 }
+
+/**
+ * Riders and staff can only be added once the Shopinbos team has verified the company (Admin → Logistics partners).
+ * Same words on the Riders page, the dashboard, the phone app and Admin, so nobody is left guessing.
+ */
+export const TEAM_NEEDS_VERIFICATION =
+  "You can add riders once the Shopinbos team has verified your company. Upload your documents on the Verification page and we'll check them.";

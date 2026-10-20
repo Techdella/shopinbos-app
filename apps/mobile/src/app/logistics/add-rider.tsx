@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Linking, View } from "react-native";
 import { router } from "expo-router";
 import { AppIcon } from "@/components/icons";
 import { Screen } from "@/components/Screen";
 import { Field, Label, Notice, PillButton, T } from "@/components/ui";
 import { useT } from "@/lib/i18n";
-import { addRider } from "@/lib/logistics";
+import { addRider, fetchRiders } from "@/lib/logistics";
 import { colors, radii } from "@/theme";
 
 // Add a rider (spec 8A): only a name and a WhatsApp number. We make their private Riders app link and open
@@ -18,6 +18,14 @@ export default function AddRider() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [invite, setInvite] = useState<{ name: string; inviteUrl: string } | null>(null);
+  // Riders can only be added once the Shopinbos team has verified the company: say so before they type.
+  const [blocked, setBlocked] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchRiders()
+      .then((result) => setBlocked(result.canAddRiders === false ? result.addRidersBlockedReason ?? null : null))
+      .catch(() => setBlocked(null));
+  }, []);
 
   async function send() {
     setError(null);
@@ -52,7 +60,8 @@ export default function AddRider() {
   }
 
   return (
-    <Screen title={t("riders.add")} sub={t("addRider.sub")} footer={<PillButton title={t("addRider.send")} busy={busy} onPress={() => void send()} />}>
+    <Screen title={t("riders.add")} sub={t("addRider.sub")} footer={<PillButton title={t("addRider.send")} busy={busy} disabled={Boolean(blocked)} onPress={() => void send()} />}>
+      {blocked ? <Notice tone="info">{blocked}</Notice> : null}
       <View>
         <Label>{t("addRider.name")}</Label>
         <Field value={name} onChangeText={setName} placeholder="Musa Bello" autoCapitalize="words" autoComplete="name" accessibilityLabel={t("addRider.name")} />

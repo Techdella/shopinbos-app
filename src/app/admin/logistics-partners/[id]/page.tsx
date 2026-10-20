@@ -119,7 +119,7 @@ export default async function AdminLogisticsDetailPage(props: { params: Promise<
       }
     >
       <section aria-label="Partner summary" className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-3 2xl:grid-cols-6">
-        <StatTile tone="card" label="Verification" value={<VerificationPill status={partner.verificationStatus} />} />
+        <StatTile tone="card" label="Verification" value={<VerificationPill status={partner.verificationStatus} />} hint={partner.verificationStatus === "verified" ? undefined : "Can't add riders until verified"} />
         <StatTile tone="card" label="Account" value={<Pill tone={partner.status === "active" ? (partner.codPaused ? "warning" : "success") : "danger"} dot>{partner.status === "active" ? (partner.codPaused ? "Active · prepaid only" : "Active") : partner.status}</Pill>} />
         <StatTile tone="card" label="Reliability score" value={`${partner.reliabilityScore ?? 0}/100`} />
         <StatTile tone="card" label="Base price" value={partner.basePrice ? formatMoney(partner.basePrice) : "-"} />

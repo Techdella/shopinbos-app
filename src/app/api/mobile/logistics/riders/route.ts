@@ -10,7 +10,7 @@ import { LOGISTICS_FREE_TEAM_MEMBER_LIMIT } from "@/lib/plan-limits";
 import { isOnboardingComplete, isProPlan } from "@/lib/role-queries";
 import { toE164 } from "@shared/phone";
 import { riderWhereWords } from "@shared/delivery-geo";
-import { riderPlaceholderEmail } from "@/lib/logistics/team";
+import { TEAM_NEEDS_VERIFICATION, riderPlaceholderEmail } from "@/lib/logistics/team";
 import { partnerForUser } from "../_shared";
 
 export const dynamic = "force-dynamic";
@@ -39,7 +39,11 @@ export const GET = withLogistics(async (_req: NextRequest, { user }) => {
   ]);
 
   const openBy = new Map(open.map((row) => [row.riderId, row._count._all]));
+  // The app shows the "verify first" note up front instead of waiting for POST to fail.
+  const canAddRiders = isOnboardingComplete(partner) && partner.verificationStatus === "verified";
   return ok({
+    canAddRiders,
+    addRidersBlockedReason: canAddRiders ? null : TEAM_NEEDS_VERIFICATION,
     riders: riders.map((rider) => {
       const done = doneToday.filter((job) => job.riderId === rider.id);
       return {
@@ -71,7 +75,7 @@ export const POST = withLogistics(async (req: NextRequest, { user }) => {
   const partner = await partnerForUser(user.id);
   if (!partner) return apiError("NOT_FOUND", "We couldn't find your company. Log out and in again.", 404);
   if (!isOnboardingComplete(partner) || partner.verificationStatus !== "verified") {
-    return apiError("FORBIDDEN", "You can add riders once your company is checked. Finish verification first.", 403);
+    return apiError("VERIFICATION_REQUIRED", TEAM_NEEDS_VERIFICATION, 403);
   }
   const body = (await req.json().catch(() => null)) as { name?: unknown; whatsapp?: unknown } | null;
   const name = String(body?.name ?? "").trim().slice(0, 80);

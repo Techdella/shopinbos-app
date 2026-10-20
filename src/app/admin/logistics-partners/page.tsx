@@ -177,6 +177,9 @@ export default async function AdminLogisticsPartnersPage(props: { searchParams?:
                   <div className="flex flex-wrap items-center gap-2">
                     <PillLink href={`/admin/logistics-partners/${row.id}`} size="sm" icon="file">Documents</PillLink>
                     {row.verificationStatus !== "verified" && (
+                      <span className="text-[13px] text-app-ink-soft">Can&apos;t add riders until verified</span>
+                    )}
+                    {row.verificationStatus !== "verified" && (
                       <DecisionButtons
                         action={updateLogisticsVerification}
                         fields={{ logisticsPartnerId: row.id, reliabilityScore: String(row.reliabilityScore), redirectTo: backTo }}
