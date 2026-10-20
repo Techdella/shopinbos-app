@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Pressable, View } from "react-native";
+import { Linking, Pressable, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { Image } from "expo-image";
 import { Bubble, ChatScreen, Composer } from "@/components/ChatScreen";
@@ -8,13 +8,15 @@ import { Chip, Notice, T } from "@/components/ui";
 import { fetchThread, sendInboxMessage, setConversationStatus, type InboxMessage } from "@/lib/inbox";
 import { channelLabel, NO_REPLY_CHANNELS, repliesByEmail, replySubject, shortTime } from "@/lib/inbox-pure";
 import { AppIcon } from "@/components/icons";
+import { callLink } from "@/lib/customers-pure";
 import { useLoad } from "@/lib/useLoad";
 import { formatDate } from "@shared/i18n";
 import { useLocale, useT } from "@/lib/i18n";
 import { colors, radii } from "@/theme";
 
 // One customer conversation (web /home/messages?c=…): the messages, a reply on the conversation's own channel
-// (or a private note), and Done / Snooze.
+// (or a private note), Done / Snooze, and Call: when we have the customer's number, it opens the phone's own dialer
+// (calls aren't made from the web app).
 
 // Labels are m_chats keys.
 const SNOOZE: Array<{ label: "thread.snooze.1h" | "thread.snooze.3h" | "thread.snooze.tomorrow" | "thread.snooze.week"; hours: number }> = [
@@ -54,6 +56,7 @@ export default function InboxThread() {
   const byEmail = conversation ? repliesByEmail(conversation.channel) : false;
   const subjectOut = byEmail ? replySubject(conversation?.subject) : null;
   const channelName = conversation ? channelLabel(conversation.channel, t) : "";
+  const call = callLink(conversation?.contactPhone);
 
   async function send() {
     const body = draft.trim();
@@ -100,6 +103,17 @@ export default function InboxThread() {
           </T>
         </View>
       </View>
+      {call ? (
+        <Pressable
+          onPress={() => void Linking.openURL(call).catch(() => setError(t("thread.callFailed")))}
+          accessibilityRole="button"
+          accessibilityLabel={t("thread.call", { name: conversation?.name ?? t("thread.conversation") })}
+          hitSlop={8}
+          style={({ pressed }) => ({ width: 44, height: 44, borderRadius: radii.pill, alignItems: "center", justifyContent: "center", backgroundColor: pressed ? colors.mintTint : colors.surface, borderWidth: 1, borderColor: colors.line })}
+        >
+          <AppIcon name="phone" size={20} color={colors.forest} />
+        </Pressable>
+      ) : null}
     </>
   );
 

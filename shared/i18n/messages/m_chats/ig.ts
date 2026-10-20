@@ -136,6 +136,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "thread.emailPlaceholder": "Dee azịza email gị",
   "thread.emailGoesAs": "Ọ ga-apụ dị ka email: {subject}",
   "thread.emailGoes": "Ọ ga-apụ dị ka email nye onye ahịa",
+  "thread.call": "Kpọọ {name}",
+  "thread.callFailed": "Ekwentị a enweghị ike ịkpọ oku.",
 };
 
 export default ig;

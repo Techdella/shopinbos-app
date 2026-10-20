@@ -140,6 +140,8 @@ const en = {
   "thread.emailPlaceholder": "Write your email reply",
   "thread.emailGoesAs": "Goes out as an email: {subject}",
   "thread.emailGoes": "Goes out as an email to the customer",
+  "thread.call": "Call {name}",
+  "thread.callFailed": "This phone can't make calls.",
 } satisfies Record<string, string>;
 
 export default en;
