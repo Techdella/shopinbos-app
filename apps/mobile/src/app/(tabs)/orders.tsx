@@ -1,41 +1,44 @@
-import { useCallback, useState } from "react";
-import { Pressable, View } from "react-native";
-import { Image } from "expo-image";
-import { naira } from "@shared/onboarding";
-import { EmptyState } from "@/components/kit";
-import { Chip, Notice, PillButton, T } from "@/components/ui";
-import { TabScreen } from "@/components/TabScreen";
-import { fetchOrders, TONE_COLORS, type OrderRow } from "@/lib/dashboard";
+import { useCallback, useMemo, useState } from "react";
+import { ScrollView, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
+import { naira } from "@shared/onboarding";
+import { List, Row, Seg, Sub } from "@/components/design";
+import { EmptyState } from "@/components/kit";
+import { Thumb } from "@/components/seller/bits";
+import { Notice, PillButton } from "@/components/ui";
+import { TabScreen } from "@/components/TabScreen";
+import { fetchOrders, type OrderRow } from "@/lib/dashboard";
+import { fetchDeliveryHub } from "@/lib/delivery";
+import { ORDER_GROUPS, orderGroup, type OrderGroup } from "@/lib/delivery-pure";
 import { capitalise, friendlyDay } from "@/lib/friendly";
-import { colors } from "@/theme";
 import { PushPromptCard } from "@/components/PushPromptCard";
 import { useT } from "@/lib/i18n";
+import { colors } from "@/theme";
 
-// Labels are m_orders keys.
-const FILTERS = [
-  { key: "", label: "list.filter.all" },
-  { key: "paid", label: "list.filter.toSend" },
-  { key: "awaiting_payment", label: "list.filter.notPaid" },
-  { key: "shipped", label: "list.filter.onTheWay" },
-  { key: "delivered", label: "list.filter.delivered" },
-] as const;
+// Orders ("Seller app" prototype `on.orders`): three chips with counts (Needs action, On the way, Done) over one
+// card of rows: picture, "customer · total", "item · where it is". A delivery a partner declined (or didn't take
+// in time) puts its order under Needs action.
+
+type Listed = OrderRow & { createdAt: string; status: string };
 
 export default function Orders() {
   const t = useT("m_orders", "m_ui", "nav");
-  const [filter, setFilter] = useState("");
-  const [orders, setOrders] = useState<(OrderRow & { createdAt: string })[] | null>(null);
+  const [group, setGroup] = useState<OrderGroup>("need");
+  const [orders, setOrders] = useState<Listed[] | null>(null);
+  const [problems, setProblems] = useState<Map<string, string>>(new Map());
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      setOrders((await fetchOrders(filter || undefined)).map((order) => ({ ...order.row, createdAt: order.createdAt })));
+      const [list, hub] = await Promise.all([fetchOrders(), fetchDeliveryHub().catch(() => null)]);
+      setOrders(list.map((order) => ({ ...order.row, createdAt: order.createdAt, status: order.status ?? "paid" })));
+      setProblems(new Map((hub?.exceptions ?? []).flatMap((entry) => (entry.order ? [[entry.order.id, entry.job.partner.displayName] as [string, string]] : []))));
       setError(null);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : t("list.loadFailed"));
     }
-  }, [filter]);
+  }, [t]);
 
   // Reload when coming back from an order or a recorded sale.
   useFocusEffect(
@@ -44,48 +47,49 @@ export default function Orders() {
     }, [load]),
   );
 
+  const grouped = useMemo(() => {
+    const out: Record<OrderGroup, Listed[]> = { need: [], way: [], done: [] };
+    for (const order of orders ?? []) out[orderGroup(order.status, problems.has(order.id))].push(order);
+    return out;
+  }, [orders, problems]);
+  const shown = grouped[group];
+
   return (
     <TabScreen title={t("tab.orders")} refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }}>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
-        {FILTERS.map((item) => <Chip key={item.key} label={t(item.label)} on={filter === item.key} onPress={() => setFilter(item.key)} />)}
-      </View>
-      {error && <Notice>{error}</Notice>}
-      {orders?.length ? <View style={{ marginBottom: 14 }}><PushPromptCard who="seller" /></View> : null}
-      {orders && !orders.length && (
-        filter ? (
-          <EmptyState icon="bag" title={t("list.nothingTitle")}>{t("list.nothingBody")}</EmptyState>
-        ) : (
-          <EmptyState icon="bag" title={t("list.emptyTitle")} action={<PillButton title={t("list.recordSale")} size="md" onPress={() => router.push("/record-sale")} />}>
-            {t("list.emptyBody")}
-          </EmptyState>
-        )
-      )}
-      <View style={{ gap: 10 }}>
-        {orders?.map((order) => (
-          <Pressable key={order.id} accessibilityRole="button" onPress={() => router.push({ pathname: "/order/[id]", params: { id: order.id } })} style={{ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.surface, borderRadius: 18, padding: 12 }}>
-            {order.image ? (
-              <Image source={{ uri: order.image }} style={{ width: 48, height: 48, borderRadius: 12 }} contentFit="cover" />
-            ) : (
-              <View style={{ width: 48, height: 48, borderRadius: 12, backgroundColor: colors.canvas, alignItems: "center", justifyContent: "center" }}>
-                <T weight="extrabold">{order.buyer.charAt(0).toUpperCase()}</T>
-              </View>
-            )}
-            <View style={{ flex: 1, gap: 2 }}>
-              <T weight="extrabold" style={{ fontSize: 15 }} numberOfLines={1}>{order.buyer}</T>
-              <T style={{ color: colors.inkSoft, fontSize: 14 }} numberOfLines={1}>{order.summary} · {capitalise(friendlyDay(order.createdAt, new Date(), t))}</T>
-              <View style={{ flexDirection: "row", gap: 6, marginTop: 4 }}>
-                <View style={{ backgroundColor: TONE_COLORS[order.stage.tone].bg, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 }}>
-                  <T weight="bold" style={{ fontSize: 14, color: TONE_COLORS[order.stage.tone].fg }}>{order.stage.label}</T>
-                </View>
-                <View style={{ backgroundColor: TONE_COLORS[order.payment.tone].bg, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 }}>
-                  <T weight="bold" style={{ fontSize: 14, color: TONE_COLORS[order.payment.tone].fg }}>{order.payment.label}</T>
-                </View>
-              </View>
-            </View>
-            <T weight="extrabold" style={{ fontSize: 15 }}>{naira(order.total)}</T>
-          </Pressable>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 20 }} style={{ marginHorizontal: -20, flexGrow: 0 }}>
+        {ORDER_GROUPS.map((key) => (
+          <Seg key={key} label={`${t(`list.group.${key}`)} ${orders ? grouped[key].length : ""}`.trim()} on={group === key} onPress={() => setGroup(key)} />
         ))}
-      </View>
+      </ScrollView>
+      {error && <Notice>{error}</Notice>}
+      {orders?.length ? <PushPromptCard who="seller" /> : null}
+      {orders && !orders.length ? (
+        <EmptyState icon="bag" title={t("list.emptyTitle")} action={<PillButton title={t("list.recordSale")} size="md" onPress={() => router.push("/record-sale")} />}>
+          {t("list.emptyBody")}
+        </EmptyState>
+      ) : null}
+      {orders?.length && !shown.length ? (
+        <View style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 20 }}>
+          <Sub>{t("list.nothingTitle")}</Sub>
+        </View>
+      ) : null}
+      {shown.length ? (
+        <List>
+          {shown.map((order) => {
+            const declinedBy = problems.get(order.id);
+            const where = declinedBy ? t("list.partnerProblem", { name: declinedBy }) : order.stage.label;
+            return (
+              <Row
+                key={order.id}
+                lead={<Thumb uri={order.image} fallback={order.buyer} />}
+                title={`${order.buyer} · ${naira(order.total)}`}
+                sub={`${order.summary} · ${where} · ${capitalise(friendlyDay(order.createdAt, new Date(), t))}`}
+                onPress={() => router.push({ pathname: "/order/[id]", params: { id: order.id } })}
+              />
+            );
+          })}
+        </List>
+      ) : null}
     </TabScreen>
   );
 }
