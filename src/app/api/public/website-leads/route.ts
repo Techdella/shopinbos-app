@@ -4,6 +4,7 @@ import { checkLeadSignature, WebsiteLeadInput } from "@/lib/website-leads/pure";
 import { LeadsNotReady, saveWebsiteLead } from "@/lib/website-leads/service.server";
 import { enrolLeads, matchLeadsToExistingUsers, runDueSteps } from "@/lib/lead-growth/service.server";
 import { trackServerEvent } from "@/lib/platform-analytics/track.server";
+import { conversationFromLead } from "@/lib/support/service.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,11 +30,13 @@ export async function POST(req: NextRequest) {
   try {
     const lead = await saveWebsiteLead(parsed.data);
     // After the reply: put the lead into any active automation and send a "welcome now" step straight away,
-    // and tell the analytics tools a lead came in. Errors here never fail the website's post.
+    // open an inbox conversation for a question, and tell the analytics tools a lead came in. Errors here never fail the website's post.
     after(async () => {
       await matchLeadsToExistingUsers({ leadId: lead.id })
         .then(() => enrolLeads({ leadId: lead.id }))
         .then(() => runDueSteps(Date.now() + 20_000)).catch((error) => console.warn("[website leads] automation", error));
+      // A question in the form (contact form) goes to Admin › Inbox to be answered.
+      await conversationFromLead(lead.id).catch((error) => console.warn("[website leads] inbox", error));
       const utm = parsed.data.payload;
       await trackServerEvent({
         event: "lead_captured",

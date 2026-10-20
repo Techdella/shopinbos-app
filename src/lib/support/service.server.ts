@@ -38,6 +38,10 @@ import {
 } from "./pure";
 import { agentReplyEmail, newConversationEmail, newTicketEmail, receivedEmail, replyAddressFor, supportInbox } from "./email.server";
 import { downloadInboxMedia, sendInboxTemplate, sendInboxText } from "./whatsapp.server";
+import { queuePeggyAutoReply } from "./peggy.server";
+
+/** The agent id Peggy's own auto-replies use (not a user). */
+export const PEGGY_ID = "peggy";
 import { isStopMessage, renderTeamTemplate, teamTemplate, teamTemplateProblem, whatsappPhone, whatsappWindowOpen } from "./whatsapp-pure";
 
 // Live support: tickets, threads, notifications and the admin desk's queries. Everything degrades when
@@ -719,7 +723,11 @@ async function lastSignInAt(supabaseId: string): Promise<Date | null> {
 }
 
 /** An agent's reply (emailed and shown in-app) or internal note, optionally setting the status at the same time. */
-export async function agentReply(agent: Viewer, ticketId: string, input: { message: string; internal: boolean; status?: SupportStatus; macroId?: string; files: File[] }) {
+/**
+ * `asPeggy`: the reply is Peggy's (her draft, sent by someone on the team, or her own auto-reply when the agent is
+ * { id: "peggy" }). It shows and is signed as Peggy; an auto-reply assigns nobody.
+ */
+export async function agentReply(agent: Viewer, ticketId: string, input: { message: string; internal: boolean; status?: SupportStatus; macroId?: string; files: File[]; asPeggy?: boolean }) {
   await requireReady();
   const ticket = await db.supportTicket.findUnique({ where: { id: ticketId } });
   if (!ticket) throw new SupportError("NOT_FOUND", "Ticket not found.");
@@ -743,9 +751,9 @@ export async function agentReply(agent: Viewer, ticketId: string, input: { messa
   const message = await db.supportMessage.create({
     data: {
       ticketId: ticket.id,
-      authorType: "agent",
-      authorId: agent.id,
-      authorName: agent.name,
+      authorType: input.asPeggy && !input.internal ? "ai" : "agent",
+      authorId: agent.id === PEGGY_ID ? null : agent.id,
+      authorName: input.asPeggy && !input.internal ? "Peggy" : agent.name,
       body,
       internal: input.internal,
       attachments: attachments as unknown as Prisma.InputJsonValue,
@@ -771,12 +779,17 @@ export async function agentReply(agent: Viewer, ticketId: string, input: { messa
       lastAgentMessageAt: now,
       agentReadAt: now,
       firstRespondedAt: ticket.firstRespondedAt ?? now,
-      assigneeId: ticket.assigneeId ?? agent.id,
+      assigneeId: ticket.assigneeId ?? (agent.id === PEGGY_ID ? null : agent.id),
       ...statusChange(ticket.status, status, now),
     },
   });
-  const delivered = onWhatsApp ? ("whatsapp" as const) : await deliverAgentReply(ticket, body || "Sent you a file.", agent.name).catch(() => "none" as const);
+  const delivered = onWhatsApp ? ("whatsapp" as const) : await deliverAgentReply(ticket, body || "Sent you a file.", input.asPeggy ? "Peggy" : agent.name).catch(() => "none" as const);
   return { messageId: message.id, delivered };
+}
+
+/** A team note from the system (Peggy's held-back drafts and her notes). */
+export async function addInternalNote(ticketId: string, body: string) {
+  await db.supportMessage.create({ data: { ticketId, authorType: "agent", authorId: null, authorName: "Peggy", body: sanitizeText(body), internal: true } });
 }
 
 function statusChange(from: string, to: SupportStatus, now: Date): Prisma.SupportTicketUpdateInput {
@@ -913,13 +926,14 @@ async function ingestSupportEmailOnce(email: InboundSupportEmail) {
       const owner = [ticket.email, account?.email].some((address) => address?.toLowerCase() === from);
       if (owner) {
         await recordUserMessage(ticket, { body, files: [], authorId: ticket.userId, authorName: email.fromName ?? ticket.name, channel: "email", externalId: email.messageId });
+        queuePeggyAutoReply(ticket.id);
         return "reply";
       }
     }
   }
 
   const matched = await db.user.findUnique({ where: { email: from }, select: { id: true, role: true, name: true } }).catch(() => null);
-  await openTicket({
+  const opened = await openTicket({
     userId: null,
     name: email.fromName || matched?.name || from,
     email: from,
@@ -932,6 +946,7 @@ async function ingestSupportEmailOnce(email: InboundSupportEmail) {
     externalId: email.messageId,
     meta: { matchedUserId: matched?.id ?? null, matchedRole: matched?.role ?? null },
   });
+  queuePeggyAutoReply(opened.id);
   return "ticket";
 }
 
@@ -976,10 +991,11 @@ export async function ingestSupportWhatsApp(input: {
     const existing = await db.supportTicket.findFirst({ where: { source: "whatsapp", phone, status: { not: "closed" } }, orderBy: { lastMessageAt: "desc" } });
     if (existing) {
       await recordUserMessage(existing, { body, files, authorId: existing.userId, authorName: input.name || existing.name, channel: "whatsapp", externalId: input.messageId });
+      queuePeggyAutoReply(existing.id);
       return "reply";
     }
     const matched = await db.user.findFirst({ where: { phone: { endsWith: phone.slice(-10) } }, select: { id: true, role: true, name: true } }).catch(() => null);
-    await openTicket({
+    const ticket = await openTicket({
       userId: null,
       name: input.name || matched?.name || lead?.name || phone,
       email: null,
@@ -993,6 +1009,7 @@ export async function ingestSupportWhatsApp(input: {
       externalId: input.messageId,
       meta: { matchedUserId: matched?.id ?? null, matchedRole: matched?.role ?? null, leadId: lead?.id ?? null },
     });
+    queuePeggyAutoReply(ticket.id);
     return "ticket";
   } catch (error) {
     if (input.messageId && isUniqueViolation(error)) return "duplicate";
@@ -1112,4 +1129,49 @@ async function agentTicket(
     data: { ticketId: ticket.id, authorType: "agent", authorId: agent.id, authorName: agent.name, body: input.body, channel: input.channel, externalId: input.externalId },
   });
   return ticket;
+}
+
+// ─── Website leads ────────────────────────────────────────────────────────────
+
+/**
+ * A website form with a question (contact form, "talk to us") becomes an inbox conversation, so the team (or
+ * Peggy) answers it like any other. Replies go by email, or WhatsApp from the conversation. One per lead.
+ */
+export async function conversationFromLead(leadId: string): Promise<number | null> {
+  if (!(await supportReady())) return null;
+  const lead = await db.websiteLead.findUnique({ where: { id: leadId } });
+  if (!lead?.message?.trim()) return null;
+  const existing = await db.supportTicket.findFirst({ where: { meta: { path: ["leadId"], equals: lead.id } }, select: { number: true } });
+  if (existing) return existing.number;
+  const email = lead.email?.trim().toLowerCase() || null;
+  const phone = whatsappPhone(lead.phone);
+  const matched = email
+    ? await db.user.findUnique({ where: { email }, select: { id: true, role: true } }).catch(() => null)
+    : phone
+      ? await db.user.findFirst({ where: { phone: { endsWith: phone.slice(-10) } }, select: { id: true, role: true } }).catch(() => null)
+      : null;
+  try {
+    const ticket = await openTicket({
+      userId: null,
+      name: lead.name?.trim() || email || phone || "Website visitor",
+      email,
+      phone,
+      portal: "public",
+      topic: "other",
+      message: lead.message,
+      source: "web",
+      path: lead.pageUrl ?? undefined,
+      externalId: `lead:${lead.id}`,
+      meta: { leadId: lead.id, leadKind: lead.kind, leadRole: lead.role, matchedUserId: matched?.id ?? null, matchedRole: matched?.role ?? null },
+    });
+    queuePeggyAutoReply(ticket.id);
+    return ticket.number;
+  } catch (error) {
+    // Two runs for the same lead: the unique externalId stops the second.
+    if (isUniqueViolation(error)) {
+      const again = await db.supportTicket.findFirst({ where: { meta: { path: ["leadId"], equals: lead.id } }, select: { number: true } });
+      return again?.number ?? null;
+    }
+    throw error;
+  }
 }

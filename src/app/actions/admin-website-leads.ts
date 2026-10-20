@@ -8,6 +8,8 @@ import { redirect } from "next/navigation";
 import { WebsiteLeadInput } from "@/lib/website-leads/pure";
 import { saveWebsiteLead, updateWebsiteLead } from "@/lib/website-leads/service.server";
 import { matchLeadsToExistingUsers } from "@/lib/lead-growth/service.server";
+import { db } from "@/lib/db/client";
+import { conversationFromLead } from "@/lib/support/service.server";
 
 // Admin: mark a website lead as contacted, signed up or closed, and keep a short note.
 export async function setWebsiteLeadStatus(formData: FormData) {
@@ -92,4 +94,16 @@ export async function importLeadsCsv(formData: FormData) {
   await matchLeadsToExistingUsers({ days: 1 }).catch(() => 0);
   revalidatePath("/admin/leads");
   redirect(`/admin/leads?imported=${added}&skipped=${skipped}`);
+}
+
+/** Admin: answer a lead. A question from the website opens (or reopens) its inbox conversation; otherwise a new one. */
+export async function replyToLead(formData: FormData) {
+  await requireAdminSection("inbox");
+  const id = field(formData, "id");
+  const lead = id ? await db.websiteLead.findUnique({ where: { id }, select: { id: true, name: true, email: true, phone: true } }) : null;
+  if (!lead) redirect("/admin/leads?error=Lead+not+found.");
+  const number = await conversationFromLead(lead.id);
+  if (number) redirect(`/admin/support/${number}`);
+  const params = new URLSearchParams({ channel: lead.email ? "email" : "whatsapp", name: lead.name ?? "", email: lead.email ?? "", phone: lead.phone ?? "" });
+  redirect(`/admin/support/new?${params}`);
 }
