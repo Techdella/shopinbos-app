@@ -179,6 +179,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   }
   const deliveryPlan = market?.option ? planFromOption(market.option) : null;
   const partnerParcels = deliveryPlan ? partnerShipments(deliveryPlan) : [];
+  if (partnerParcels.length && !buyerPhone) {
+    return withCors(req, apiError("BAD_REQUEST", "Add a phone number so the delivery partner can reach you."), CHECKOUT_CORS);
+  }
 
   // Only the ways to pay this seller turned on (and that can work right now) are accepted.
   const paystackSecret = process.env.PAYSTACK_SECRET_KEY;
