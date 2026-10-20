@@ -125,7 +125,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "w.review": "Wannan account ba a sunanka ko sunan kasuwancinka yake ba, don haka ƙungiyarmu tana duba shi (yawanci cikin kwana ɗaya). Za mu sanar da kai idan kuɗi suka fara shiga cikinsa.",
   "w.failed": "Paystack bai iya saita wannan asusun ba: {reason}. Duba bayanan ko gwada wani asusu.",
   "w.idFirst": "Fara tabbatar da ID ɗinka.",
-  "w.never": "Shopinbos ba ya riƙe kuɗinka. Idan wani ya biya da kati, ana raba kuɗin a wurin biya kuma rabonka yana zuwa wannan banki kai tsaye, yawanci ranar aiki ta gaba. Kuɗin Paystack yana fita daga rabonka; Shopinbos ba ya karɓar komai.",
+  "w.never": "Shopinbos ba ya riƙe kuɗinka. Idan wani ya biya da kati, ana raba kuɗin a wurin biya kuma rabonka yana zuwa wannan banki kai tsaye, yawanci ranar aiki ta gaba. Kuɗin Paystack yana fita daga rabonka; Shopinbos ba ya karɓar komai. Babu abin da za a cire.",
   "w.fee": "Shopinbos ba ya riƙe kuɗinka. Idan wani ya biya da kati, ana raba kuɗin a wurin biya kuma rabonka yana zuwa wannan banki kai tsaye, yawanci ranar aiki ta gaba. Kuɗin Paystack yana fita daga rabonka; Kuɗin Shopinbos na {fee} a kan kowace sayarwa (ba a kan isarwa ba) shi ma yana fita daga ciki.",
   "w.payBack": "Mayar wa waɗannan shaguna kuɗinsu",
   "w.payBackSub": "An biya ka don waɗannan dropship orders a wurin biya amma ba ka tura su ba. Mayar da kuɗin ga shagon.",

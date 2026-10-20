@@ -125,7 +125,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "w.review": "Account yìí kò sí ní orúkọ rẹ tàbí orúkọ business rẹ, nítorí náà ẹgbẹ́ wa ń ṣàyẹ̀wò rẹ̀ (nígbà gbogbo láàárín ọjọ́ kan). A ó sọ fún ọ nígbà tí owó bá bẹ̀rẹ̀ sí í lọ sínú rẹ̀.",
   "w.failed": "Paystack kò lè ṣètò àkáǹtì yìí: {reason}. Ṣàyẹ̀wò àwọn àlàyé tàbí gbìyànjú àkáǹtì mìíràn.",
   "w.idFirst": "Kọ́kọ́ jẹ́rìí ìdánimọ̀ rẹ.",
-  "w.never": "Shopinbos kì í dì owó rẹ mú. Nígbà tí ẹnìkan bá san pẹ̀lú káàdì, a pín owó náà níbi isanwó, ìpín rẹ sì ń lọ tààrà sí báńkì yìí, nígbà gbogbo ní ọjọ́ iṣẹ́ tó tẹ̀lé e. Owó Paystack ń jáde láti inú ìpín rẹ; Shopinbos kò gba nǹkan kan.",
+  "w.never": "Shopinbos kì í dì owó rẹ mú. Nígbà tí ẹnìkan bá san pẹ̀lú káàdì, a pín owó náà níbi isanwó, ìpín rẹ sì ń lọ tààrà sí báńkì yìí, nígbà gbogbo ní ọjọ́ iṣẹ́ tó tẹ̀lé e. Owó Paystack ń jáde láti inú ìpín rẹ; Shopinbos kò gba nǹkan kan. Kò sí nǹkan láti yọ.",
   "w.fee": "Shopinbos kì í dì owó rẹ mú. Nígbà tí ẹnìkan bá san pẹ̀lú káàdì, a pín owó náà níbi isanwó, ìpín rẹ sì ń lọ tààrà sí báńkì yìí, nígbà gbogbo ní ọjọ́ iṣẹ́ tó tẹ̀lé e. Owó Paystack ń jáde láti inú ìpín rẹ; Owó Shopinbos ti {fee} lórí títà kọ̀ọ̀kan (kì í ṣe lórí ìfiránṣẹ́) náà ń jáde láti inú rẹ̀.",
   "w.payBack": "San owó padà fún àwọn ṣọ́ọ̀bù yìí",
   "w.payBackSub": "Wọ́n san fún ọ fún àwọn order dropship yìí níbi isanwó ṣùgbọ́n o kò fi wọ́n ránṣẹ́. Dá owó náà padà sí ṣọ́ọ̀bù náà.",

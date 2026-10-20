@@ -125,7 +125,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "w.review": "Account a anọghị n'aha gị ma ọ bụ aha azụmahịa gị, ya mere ndị otu anyị na-enyocha ya (na-abụkarị n'ime otu ụbọchị). Anyị ga-agwa gị mgbe ego malitere ịbanye n'ime ya.",
   "w.failed": "Paystack enweghị ike ịhazi akaụntụ a: {reason}. Lelee nkọwa ma ọ bụ nwalee akaụntụ ọzọ.",
   "w.idFirst": "Buru ụzọ kwado ID gị.",
-  "w.never": "Shopinbos anaghị ejide ego gị. Mgbe mmadụ kwụrụ site na kaadị, a na-ekewa ego ahụ n'oge ịkwụ ụgwọ, òkè gị na-agakwa ozugbo n'ụlọ akụ a, na-abụkarị n'ụbọchị ọrụ na-esote. Ụgwọ Paystack na-esi n'òkè gị apụ; Shopinbos anaghị ewere ihe ọ bụla.",
+  "w.never": "Shopinbos anaghị ejide ego gị. Mgbe mmadụ kwụrụ site na kaadị, a na-ekewa ego ahụ n'oge ịkwụ ụgwọ, òkè gị na-agakwa ozugbo n'ụlọ akụ a, na-abụkarị n'ụbọchị ọrụ na-esote. Ụgwọ Paystack na-esi n'òkè gị apụ; Shopinbos anaghị ewere ihe ọ bụla. Ọ dịghị ihe ị ga-ewepụta.",
   "w.fee": "Shopinbos anaghị ejide ego gị. Mgbe mmadụ kwụrụ site na kaadị, a na-ekewa ego ahụ n'oge ịkwụ ụgwọ, òkè gị na-agakwa ozugbo n'ụlọ akụ a, na-abụkarị n'ụbọchị ọrụ na-esote. Ụgwọ Paystack na-esi n'òkè gị apụ; Ụgwọ Shopinbos nke {fee} n'ire ọ bụla (ọ bụghị n'ibuga) na-esikwa na ya apụ.",
   "w.payBack": "Kwụghachi ụlọ ahịa ndị a",
   "w.payBackSub": "A kwụrụ gị maka dropship orders ndị a n'oge ịkwụ ụgwọ mana i zipụghị ha. Bufeghachi ego ahụ n'ụlọ ahịa ahụ.",
