@@ -65,6 +65,15 @@ POD is off by default. It is allowed per connection only when the seller opts in
 
 **Get legal review of all "Shopinbos is just the software" wording before launch.**
 
+## Verified phone at checkout
+
+When the chosen delivery option books a delivery partner, the customer verifies their phone with a 6-digit code before the order goes in (checkout page and payment links, `src/components/storefront/checkout/PhoneCheck.tsx`).
+- `POST /api/public/store/[slug]/checkout/phone-code` sends the code ("<store>: your delivery phone code is 123456", WhatsApp first when WhatsApp codes are set up, else SMS) and returns a signed `challenge`. `GET` says whether the store asks at all.
+- `POST /api/public/store/[slug]/checkout/phone-verify` checks the code and returns a `phoneToken` (24 hours) for that phone and store. The checkout API refuses a partner-delivery order without a valid token for the buyer phone.
+- No table: both are HMAC-signed (`src/lib/commerce/phone-verify.ts`) with `CHECKOUT_PHONE_SECRET`, else `JWT_SECRET`, else the service role key. Production refuses without one.
+- Limits: 3 codes per phone per 10 minutes and 8 a day, 10 per IP per 10 minutes, 5 tries per code.
+- With no SMS or WhatsApp code provider set up (local dev, staging), the check is skipped and logged once.
+
 ## Release steps
 
 1. Back up the database, then run `docs/migrations/2026-11-14-logistics-marketplace.sql` in the Supabase SQL editor. It is additive and safe to re-run. Run it before deploying.
@@ -74,5 +83,4 @@ POD is off by default. It is allowed per connection only when the seller opts in
 ## Not built yet (later phases)
 
 - SMS/WhatsApp messages at each delivery stage. The existing order messages still fire.
-- Verified customer phone numbers at checkout (OTP). Today the phone is required, not verified.
 - Partner and seller delivery analytics.
