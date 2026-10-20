@@ -6,8 +6,10 @@ import { requireRole } from "@/lib/server-auth";
 import { maskAccountNumber } from "@/lib/wallet/rules";
 import { businessRegistrationStatus, type BusinessRegistrationStatus } from "@/lib/wallet/wallet.server";
 import { WalletActions } from "./WalletActions";
-import { youverifyHealth, type YouverifyHealth } from "@/lib/youverify";
-import { korapayIdentityHealth, korapayIdentityReady, type KorapayIdentityHealth } from "@/lib/korapay";
+import { youverifyHealth } from "@/lib/youverify";
+import { korapayIdentityHealth, korapayIdentityReady } from "@/lib/korapay";
+import { adminRoleOf } from "@/lib/admin-team/service.server";
+import { canUseSection } from "@/lib/admin-team/pure";
 import { cacProviders } from "@/lib/kyb/verify-cac.server";
 
 export const dynamic = "force-dynamic";
@@ -47,6 +49,7 @@ const FILTERS = [
 
 export default async function AdminWalletsPage({ searchParams }: { searchParams?: Promise<{ status?: string }> }) {
   const user = await requireRole(["admin"], "/admin/login");
+  const canSeeDevelopers = canUseSection(await adminRoleOf(user.id), "developers");
   const filter = (await searchParams)?.status ?? "";
   const where = filter === "frozen" ? { status: "frozen" } : filter ? { subaccountStatus: filter } : {};
   // ID and CAC checks run through Korapay Identity when its key is set, else Youverify.
@@ -72,8 +75,7 @@ export default async function AdminWalletsPage({ searchParams }: { searchParams?
 
   return (
     <AppPage frame={adminFrame(user)} title="Wallets" sub="Where each business's card payments are settled. Shopinbos holds no money.">
-      {korapay ? <KorapayChecksStatus health={idChecks as KorapayIdentityHealth} /> : <IdChecksStatus health={idChecks as YouverifyHealth} />}
-      <CacChecksStatus providers={cacProviders()} />
+      <ChecksSummary working={idChecks.state === "ok" && cacProviders().length > 0} developer={canSeeDevelopers} />
       <div className="mb-4 flex flex-wrap gap-2">
         {FILTERS.map((option) => (
           <Link key={option.id} href={withParams("/admin/wallets", { status: option.id || undefined })} className={`rounded-full border px-3.5 py-1.5 text-[13px] font-bold no-underline ${filter === option.id ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white text-app-ink"}`}>
@@ -162,69 +164,14 @@ export default async function AdminWalletsPage({ searchParams }: { searchParams?
   );
 }
 
-const CAC_PROVIDER_NAMES = { cac: "CAC's own VAS API", korapay: "Korapay Identity", youverify: "Youverify", dojah: "Dojah" } as const;
-
-/**
- * Which CAC lookups the instant CAC check (suppliers and delivery partners) can use, in the order it tries them. A
- * provider that refuses (no balance, not enabled, key rejected) hands over to the next; when they all refuse, people
- * are asked to upload their certificate and the reason is in the Vercel logs as "[kyb/cac]".
- */
-function CacChecksStatus({ providers }: { providers: Array<keyof typeof CAC_PROVIDER_NAMES> }) {
+/** Whether ID and CAC checks work. The setup details (keys, providers, balances) are on Admin › Developers. */
+function ChecksSummary({ working, developer }: { working: boolean; developer: boolean }) {
   return (
     <Card className="mb-4 flex flex-wrap items-center gap-3 p-4">
-      <Pill tone={providers.length ? "success" : "danger"} dot>{providers.length ? "CAC checks: on" : "CAC checks: off"}</Pill>
-      <span className="min-w-0 flex-1 basis-[280px] text-[13.5px] leading-[1.45]">
-        {providers.length
-          ? `Tried in this order: ${providers.map((name) => CAC_PROVIDER_NAMES[name]).join(", then ")}. One that refuses (no balance, service not enabled) hands over to the next.`
-          : "No CAC lookup is set up, so suppliers and delivery partners must upload their certificate. Add CAC_VAS_API_KEY (vas.cac.gov.ng) in Vercel, then redeploy."}
-        <span className="block text-[12.5px] text-app-ink-soft">If checks fail, search the Vercel logs for "[kyb/cac]" to see each provider's answer.</span>
-      </span>
-    </Card>
-  );
-}
-
-/** Whether Korapay Identity's key works and what's in the balance the checks are paid from, so the team can fix the setup. */
-function KorapayChecksStatus({ health }: { health: KorapayIdentityHealth }) {
-  const words: Record<KorapayIdentityHealth["state"], { tone: Tone; text: string }> = {
-    ok: { tone: "success", text: "Korapay Identity runs the ID (BVN/NIN) and CAC checks. Each live check is paid from the Korapay NGN balance. If checks still fail, make sure Identity is enabled in the Korapay dashboard (Identity → request access)." },
-    not_set: { tone: "danger", text: "No ID checks are set up: add KORAPAY_SECRET_KEY in Vercel, then redeploy." },
-    key_rejected: { tone: "danger", text: "Korapay rejects the key. Copy the secret key again from the Korapay dashboard (Settings → API Configuration), update KORAPAY_SECRET_KEY in Vercel and redeploy." },
-    unreachable: { tone: "warning", text: "Korapay couldn't be reached just now. Refresh in a minute." },
-    other: { tone: "warning", text: "Korapay answered with an unexpected error." },
-  };
-  const shown = words[health.state];
-  const naira = health.state === "ok" && health.balance !== null ? `₦${health.balance.toLocaleString("en-NG", { maximumFractionDigits: 2 })}` : null;
-  const detail = health.state === "ok" ? (naira ? `Available balance: ${naira}` : "") : "status" in health || "message" in health ? [("status" in health && health.status) ? `HTTP ${health.status}` : "", "message" in health && health.message ? health.message : ""].filter(Boolean).join(" · ") : "";
-  return (
-    <Card className="mb-4 flex flex-wrap items-center gap-3 p-4">
-      <Pill tone={health.state === "ok" && health.balance === 0 ? "warning" : shown.tone} dot>{health.state === "ok" ? `ID checks: Korapay (${health.environment})` : "ID checks"}</Pill>
-      <span className="min-w-0 flex-1 basis-[280px] text-[13.5px] leading-[1.45]">
-        {shown.text}
-        {detail ? <span className="block text-[12.5px] text-app-ink-soft">{health.state === "ok" ? detail : `Korapay said: ${detail}`}</span> : null}
-      </span>
-    </Card>
-  );
-}
-
-/** Why ID checks work or don't (Youverify answers a free request with the key), so the team can fix the setup. */
-function IdChecksStatus({ health }: { health: YouverifyHealth }) {
-  const words: Record<YouverifyHealth["state"], { tone: Tone; text: string }> = {
-    ok: { tone: "success", text: "Youverify is connected. ID and CAC checks run through it." },
-    not_set: { tone: "danger", text: "No ID checks are set up: add KORAPAY_SECRET_KEY in Vercel (Korapay Identity runs ID and CAC checks), then redeploy. Until then people see “ID checks are being switched on”." },
-    key_rejected: { tone: "danger", text: "Youverify rejects the key (401) on both sandbox and live. Copy the secret key again from cowork.youverify.co → Settings → API Keys (not the public merchant key), update YOUVERIFY_SECRET_KEY in Vercel and redeploy." },
-    no_balance: { tone: "danger", text: "Youverify says the account has no funds (402). Top up the Youverify wallet or plan." },
-    plan_limit: { tone: "danger", text: "Youverify refuses on plan grounds (403). Ask Youverify to enable NIN, BVN and business checks for this account." },
-    unreachable: { tone: "warning", text: "Youverify couldn't be reached just now. Refresh in a minute." },
-    other: { tone: "warning", text: "Youverify answered with an unexpected error." },
-  };
-  const shown = words[health.state];
-  const detail = "status" in health || "message" in health ? [("status" in health && health.status) ? `HTTP ${health.status}` : "", "message" in health && health.message ? health.message : ""].filter(Boolean).join(" · ") : "";
-  return (
-    <Card className="mb-4 flex flex-wrap items-center gap-3 p-4">
-      <Pill tone={shown.tone} dot>{health.state === "ok" ? `ID checks: on (${health.environment})` : "ID checks"}</Pill>
-      <span className="min-w-0 flex-1 basis-[280px] text-[13.5px] leading-[1.45]">
-        {shown.text}
-        {detail ? <span className="block text-[12.5px] text-app-ink-soft">Youverify said: {detail}</span> : null}
+      <Pill tone={working ? "success" : "warning"} dot>{working ? "ID and CAC checks: working" : "ID and CAC checks: need attention"}</Pill>
+      <span className="min-w-0 flex-1 basis-[240px] text-[13.5px] text-app-ink-soft">
+        {working ? "Businesses can verify their ID and CAC from their Wallet page." : "Some businesses may be asked to upload documents instead."}{" "}
+        {developer ? <Link href="/admin/developers#checks" className="font-bold text-app-ink underline">Setup details</Link> : !working ? "A developer on the team can fix it." : null}
       </span>
     </Card>
   );

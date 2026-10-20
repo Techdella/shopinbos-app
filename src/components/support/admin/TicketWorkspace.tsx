@@ -47,6 +47,8 @@ export interface DeskMessage {
   channel: string;
   attachments: Array<{ name: string; type: string; size: number; url: string }>;
   createdAt: string;
+  deliveryStatus?: string | null;
+  deliveryError?: string | null;
 }
 
 export interface DeskMacro {
@@ -158,8 +160,14 @@ function ThreadItem({ message, customer, now }: { message: DeskMessage; customer
           {relativeTime(message.createdAt, now)}
           {message.channel === "email" ? " · by email" : message.channel === "web" ? " · Stuck? form" : message.channel === "whatsapp" ? " · WhatsApp" : ""}
         </span>
+        {!fromCustomer && message.deliveryStatus && (
+          <span className={cx("rounded-full px-2 py-0.5 text-[11px] font-bold", message.deliveryStatus === "failed" ? "bg-app-danger-tint text-app-danger" : message.deliveryStatus === "read" ? "bg-app-success-tint text-app-success" : "bg-app-canvas text-app-ink-soft")}>
+            {message.deliveryStatus === "read" ? "✓✓ Read" : message.deliveryStatus === "delivered" ? "✓✓ Delivered" : message.deliveryStatus === "failed" ? "Not delivered" : "✓ Sent"}
+          </span>
+        )}
       </div>
       {message.body && <div className="whitespace-pre-wrap break-words text-[14.5px] leading-[1.55] text-app-ink">{message.body}</div>}
+      {message.deliveryStatus === "failed" && message.deliveryError && <p className="m-0 mt-1.5 text-[12.5px] font-semibold text-app-danger">WhatsApp: {message.deliveryError}</p>}
       {message.attachments.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-2">
           {message.attachments.map((file) =>

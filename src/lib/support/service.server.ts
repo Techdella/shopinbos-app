@@ -37,12 +37,12 @@ import {
   type SupportTopic,
 } from "./pure";
 import { agentReplyEmail, newConversationEmail, newTicketEmail, receivedEmail, replyAddressFor, supportInbox } from "./email.server";
-import { downloadInboxMedia, sendInboxTemplate, sendInboxText } from "./whatsapp.server";
+import { downloadInboxMedia, findTeamTemplate, sendInboxTemplate, sendInboxText } from "./whatsapp.server";
 import { queuePeggyAutoReply } from "./peggy.server";
 
 /** The agent id Peggy's own auto-replies use (not a user). */
 export const PEGGY_ID = "peggy";
-import { isStopMessage, renderTeamTemplate, teamTemplate, teamTemplateProblem, whatsappPhone, whatsappWindowOpen } from "./whatsapp-pure";
+import { isStopMessage, renderTeamTemplate, teamTemplateProblem, whatsappPhone, whatsappWindowOpen } from "./whatsapp-pure";
 
 // Live support: tickets, threads, notifications and the admin desk's queries. Everything degrades when
 // docs/migrations/2026-10-12-support.sql hasn't run yet (supportReady() is false): see each caller.
@@ -126,9 +126,12 @@ export interface MessageView {
   channel: string;
   attachments: Array<{ name: string; type: string; size: number; url: string }>;
   createdAt: Date;
+  /** WhatsApp messages the team sent: sent | delivered | read | failed. */
+  deliveryStatus?: string | null;
+  deliveryError?: string | null;
 }
 
-function messageView(number: number, row: { id: string; authorType: string; authorName: string | null; body: string; internal: boolean; channel: string; attachments: unknown; createdAt: Date }): MessageView {
+function messageView(number: number, row: { id: string; authorType: string; authorName: string | null; body: string; internal: boolean; channel: string; attachments: unknown; createdAt: Date; deliveryStatus?: string | null; deliveryError?: string | null }): MessageView {
   return {
     id: row.id,
     authorType: row.authorType as AuthorType,
@@ -138,6 +141,8 @@ function messageView(number: number, row: { id: string; authorType: string; auth
     channel: row.channel,
     attachments: asAttachments(row.attachments).map((file, index) => ({ name: file.name, type: file.type, size: file.size, url: `/api/support/tickets/${number}/files/${row.id}/${index}` })),
     createdAt: row.createdAt,
+    deliveryStatus: row.deliveryStatus ?? null,
+    deliveryError: row.deliveryError ?? null,
   };
 }
 
@@ -759,6 +764,7 @@ export async function agentReply(agent: Viewer, ticketId: string, input: { messa
       attachments: attachments as unknown as Prisma.InputJsonValue,
       channel: onWhatsApp ? "whatsapp" : "app",
       externalId: waMessageId,
+      deliveryStatus: onWhatsApp ? "sent" : null,
     },
   });
   if (input.macroId) await db.supportMacro.update({ where: { id: input.macroId }, data: { usageCount: { increment: 1 } } }).catch(() => null);
@@ -1019,19 +1025,66 @@ export async function ingestSupportWhatsApp(input: {
 
 // ─── Starting conversations ───────────────────────────────────────────────────
 
+type StartBase = {
+  name: string;
+  /** Chosen from the people list: the account (they also see it in their app) or the lead. */
+  userId?: string | null;
+  leadId?: string | null;
+  business?: string | null;
+};
+
 export type StartConversation =
-  | { channel: "email"; name: string; email: string; subject: string; message: string }
-  | { channel: "whatsapp"; name: string; phone: string; template: string; note?: string };
+  | (StartBase & { channel: "email"; email: string; subject: string; message: string })
+  | (StartBase & { channel: "whatsapp"; phone: string; template?: string | null; note?: string; text?: string })
+  | (StartBase & { channel: "app"; subject: string; message: string });
+
+/** The account a conversation is about, when the team picked one (never an admin). */
+async function chosenAccount(userId: string | null | undefined) {
+  if (!userId) return null;
+  const user = await db.user.findUnique({ where: { id: userId }, select: { id: true, role: true, name: true, email: true, phone: true } }).catch(() => null);
+  return user && user.role !== "admin" ? user : null;
+}
+
+async function notifyInApp(ticket: { number: number; userId: string | null; portal: string }, body: string, agentName: string) {
+  if (!ticket.userId) return;
+  const link = ticketLinkFor(ticket.portal, ticket.number).replace(appBase(), "");
+  await createNotification({
+    userId: ticket.userId,
+    type: "system",
+    priority: "info",
+    title: `${agentName.split(" ")[0] || "Shopinbos"} from Shopinbos sent you a message`,
+    description: preview(body, 160),
+    link,
+    actionLabel: "Read it",
+    actionUrl: link,
+    metadata: { supportTicket: ticket.number },
+    event: "support.reply",
+  }).catch(() => null);
+}
 
 /**
- * The team writes first: an email (replies thread back by the ticket number), or a WhatsApp template (WhatsApp
- * only lets a business start a chat with an approved one; replies come back through the webhook). A WhatsApp
- * message to someone with an open conversation goes into that one.
+ * The team writes first: an email (replies thread back by the ticket number), an in-app message (their support
+ * chat, with a notification), or WhatsApp. WhatsApp only lets a business start a chat with an approved template;
+ * inside the 24 hours after their last message the team can write freely. A WhatsApp message to someone with an
+ * open conversation goes into that one.
  */
 export async function startConversation(agent: Viewer, input: StartConversation) {
   await requireReady();
   const now = new Date();
-  const name = input.name.trim().slice(0, 120);
+  const account = await chosenAccount(input.userId);
+  const name = (input.name.trim() || account?.name || "").slice(0, 120);
+  const meta = (extra: Record<string, unknown>) => ({ matchedUserId: account?.id ?? extra.matchedUserId ?? null, matchedRole: account?.role ?? extra.matchedRole ?? null, leadId: input.leadId ?? null, startedBy: agent.id });
+
+  if (input.channel === "app") {
+    if (!account) throw new SupportError("BAD_REQUEST", "Choose someone with a Shopinbos account for an in-app message.");
+    const subject = input.subject.trim().slice(0, 160);
+    const body = sanitizeText(input.message);
+    if (!subject) throw new SupportError("BAD_REQUEST", "Add a subject.");
+    if (!body) throw new SupportError("BAD_REQUEST", "Write the message.");
+    const ticket = await agentTicket(agent, { userId: account.id, name: name || account.name, email: account.email, phone: account.phone, portal: portalOf(account.role), subject, source: "app", body, channel: "app", externalId: null, meta: meta({}) });
+    await notifyInApp(ticket, body, agent.name);
+    return { number: ticket.number, delivered: true };
+  }
 
   if (input.channel === "email") {
     const email = input.email.trim().toLowerCase();
@@ -1041,18 +1094,20 @@ export async function startConversation(agent: Viewer, input: StartConversation)
     if (!subject) throw new SupportError("BAD_REQUEST", "Add a subject.");
     if (!body) throw new SupportError("BAD_REQUEST", "Write the message.");
     if (!isEmailConfigured()) throw new SupportError("BAD_REQUEST", "Email isn't set up (RESEND_API_KEY).");
-    const matched = await db.user.findUnique({ where: { email }, select: { id: true, role: true, name: true } }).catch(() => null);
+    const matched = account ?? (await db.user.findUnique({ where: { email }, select: { id: true, role: true, name: true } }).catch(() => null));
     const ticket = await agentTicket(agent, {
+      // Picked from the list: it's in their app too. Typed by hand: only matched for the side panel.
+      userId: account?.id ?? null,
       name: name || matched?.name || email,
       email,
-      phone: null,
+      phone: account?.phone ?? null,
       portal: portalOf(matched?.role),
       subject,
       source: "email",
       body,
       channel: "email",
       externalId: null,
-      meta: { matchedUserId: matched?.id ?? null, matchedRole: matched?.role ?? null, startedBy: agent.id },
+      meta: meta({ matchedUserId: matched?.id ?? null, matchedRole: matched?.role ?? null }),
     });
     const sent = await sendEmail({
       to: [email],
@@ -1061,24 +1116,39 @@ export async function startConversation(agent: Viewer, input: StartConversation)
       replyTo: replyAddressFor(ticket.number),
     }).catch(() => ({ success: false }));
     if (!sent.success) await systemNote(ticket.id, "The email didn't send. Check the address and reply again.", agent);
+    await notifyInApp(ticket, body, agent.name);
     return { number: ticket.number, delivered: sent.success };
   }
 
   const phone = whatsappPhone(input.phone);
   if (!phone) throw new SupportError("BAD_REQUEST", "Enter a WhatsApp number with its country code, like +234 803 412 7790.");
-  const template = teamTemplate(input.template);
-  if (!template) throw new SupportError("BAD_REQUEST", "Pick a message template.");
-  const matched = await db.user.findFirst({ where: { phone: { endsWith: phone.slice(-10) } }, select: { id: true, role: true, name: true } }).catch(() => null);
+  const matched = account ?? (await db.user.findFirst({ where: { phone: { endsWith: phone.slice(-10) } }, select: { id: true, role: true, name: true } }).catch(() => null));
   const open = await db.supportTicket.findFirst({ where: { source: "whatsapp", phone, status: { not: "closed" } }, orderBy: { lastMessageAt: "desc" } });
-  const values = { name: name || open?.name || matched?.name || null, agent: agent.name, note: input.note ?? null };
-  const problem = teamTemplateProblem(template, values);
-  if (problem) throw new SupportError("BAD_REQUEST", problem);
-  const sent = await sendInboxTemplate(phone, template, values);
-  if (!sent.ok) throw new SupportError("BAD_REQUEST", `WhatsApp didn't take it: ${sent.error}`);
-  const body = renderTeamTemplate(template, values);
+  const values = { name: name || open?.name || matched?.name || null, agent: agent.name, note: input.note ?? null, business: input.business ?? null };
+
+  let body: string;
+  let sentId: string | null;
+  const freeText = sanitizeText(input.text ?? "");
+  if (!input.template && freeText) {
+    // A direct message: only inside WhatsApp's 24-hour window.
+    if (!open || !whatsappWindowOpen(open.lastUserMessageAt, now.getTime())) throw new SupportError("BAD_REQUEST", "They haven't messaged in the last 24 hours, so WhatsApp needs a template to start. Pick one.");
+    const sent = await sendInboxText(phone, freeText);
+    if (!sent.ok) throw new SupportError("BAD_REQUEST", `WhatsApp didn't take it: ${sent.error}`);
+    body = freeText;
+    sentId = sent.id;
+  } else {
+    const template = await findTeamTemplate(input.template);
+    if (!template) throw new SupportError("BAD_REQUEST", "Pick a message template.");
+    const problem = teamTemplateProblem(template, values);
+    if (problem) throw new SupportError("BAD_REQUEST", problem);
+    const sent = await sendInboxTemplate(phone, template, values);
+    if (!sent.ok) throw new SupportError("BAD_REQUEST", `WhatsApp didn't take it: ${sent.error}`);
+    body = renderTeamTemplate(template, values);
+    sentId = sent.id;
+  }
 
   if (open) {
-    await db.supportMessage.create({ data: { ticketId: open.id, authorType: "agent", authorId: agent.id, authorName: agent.name, body, channel: "whatsapp", externalId: sent.id } });
+    await db.supportMessage.create({ data: { ticketId: open.id, authorType: "agent", authorId: agent.id, authorName: agent.name, body, channel: "whatsapp", externalId: sentId, deliveryStatus: "sent" } });
     await db.supportTicket.update({
       where: { id: open.id },
       data: { lastMessageAt: now, lastAgentMessageAt: now, agentReadAt: now, firstRespondedAt: open.firstRespondedAt ?? now, assigneeId: open.assigneeId ?? agent.id, ...statusChange(open.status, "pending", now) },
@@ -1086,28 +1156,38 @@ export async function startConversation(agent: Viewer, input: StartConversation)
     return { number: open.number, delivered: true };
   }
   const ticket = await agentTicket(agent, {
+    userId: null,
     name: values.name || phone,
-    email: null,
+    email: account?.email ?? null,
     phone,
     portal: portalOf(matched?.role),
     subject: `WhatsApp with ${values.name || phone}`,
     source: "whatsapp",
     body,
     channel: "whatsapp",
-    externalId: sent.id,
-    meta: { matchedUserId: matched?.id ?? null, matchedRole: matched?.role ?? null, startedBy: agent.id },
+    externalId: sentId,
+    meta: meta({ matchedUserId: matched?.id ?? null, matchedRole: matched?.role ?? null }),
   });
   return { number: ticket.number, delivered: true };
+}
+
+/** Is there an open WhatsApp conversation with this number whose 24-hour window is open (direct messages allowed)? */
+export async function whatsappWindowFor(rawPhone: string) {
+  const phone = whatsappPhone(rawPhone);
+  if (!phone) return { open: false, number: null as number | null };
+  const ticket = await db.supportTicket.findFirst({ where: { source: "whatsapp", phone, status: { not: "closed" } }, orderBy: { lastMessageAt: "desc" }, select: { number: true, lastUserMessageAt: true } }).catch(() => null);
+  return { open: Boolean(ticket && whatsappWindowOpen(ticket.lastUserMessageAt)), number: ticket?.number ?? null };
 }
 
 /** A conversation the team opened: waiting on the customer, assigned to whoever wrote first. */
 async function agentTicket(
   agent: Viewer,
-  input: { name: string; email: string | null; phone: string | null; portal: SupportPortal; subject: string; source: "email" | "whatsapp"; body: string; channel: string; externalId: string | null; meta: Record<string, unknown> },
+  input: { userId: string | null; name: string; email: string | null; phone: string | null; portal: SupportPortal; subject: string; source: "email" | "whatsapp" | "app"; body: string; channel: string; externalId: string | null; meta: Record<string, unknown> },
 ) {
   const now = new Date();
   const ticket = await db.supportTicket.create({
     data: {
+      userId: input.userId,
       name: input.name.slice(0, 120) || "Someone",
       email: input.email,
       phone: input.phone,
@@ -1126,7 +1206,7 @@ async function agentTicket(
     },
   });
   await db.supportMessage.create({
-    data: { ticketId: ticket.id, authorType: "agent", authorId: agent.id, authorName: agent.name, body: input.body, channel: input.channel, externalId: input.externalId },
+    data: { ticketId: ticket.id, authorType: "agent", authorId: agent.id, authorName: agent.name, body: input.body, channel: input.channel, externalId: input.externalId, deliveryStatus: input.channel === "whatsapp" ? "sent" : null },
   });
   return ticket;
 }
@@ -1174,4 +1254,17 @@ export async function conversationFromLead(leadId: string): Promise<number | nul
     }
     throw error;
   }
+}
+
+/**
+ * What WhatsApp reports about a message the team sent (/api/webhooks/whatsapp): sent → delivered → read, or
+ * failed with Meta's reason. Never goes backwards (a late "delivered" after "read" is ignored).
+ */
+export async function updateSupportDelivery(externalId: string, status: string, error?: string | null) {
+  if (!externalId || !["sent", "delivered", "read", "failed"].includes(status)) return;
+  const message = await db.supportMessage.findUnique({ where: { externalId }, select: { id: true, deliveryStatus: true } }).catch(() => null);
+  if (!message) return;
+  const rank = { sent: 1, delivered: 2, read: 3, failed: 4 } as Record<string, number>;
+  if ((rank[message.deliveryStatus ?? ""] ?? 0) >= rank[status]! && status !== "failed") return;
+  await db.supportMessage.update({ where: { id: message.id }, data: { deliveryStatus: status, deliveryError: status === "failed" ? (error || "WhatsApp couldn't deliver it.").slice(0, 300) : null } });
 }

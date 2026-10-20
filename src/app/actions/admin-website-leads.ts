@@ -104,6 +104,5 @@ export async function replyToLead(formData: FormData) {
   if (!lead) redirect("/admin/leads?error=Lead+not+found.");
   const number = await conversationFromLead(lead.id);
   if (number) redirect(`/admin/support/${number}`);
-  const params = new URLSearchParams({ channel: lead.email ? "email" : "whatsapp", name: lead.name ?? "", email: lead.email ?? "", phone: lead.phone ?? "" });
-  redirect(`/admin/support/new?${params}`);
+  redirect(`/admin/support/new?to=lead:${lead.id}`);
 }

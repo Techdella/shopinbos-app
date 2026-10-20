@@ -16,6 +16,7 @@ export default async function AdminSupplierDetailPage(props: { params: Promise<{
   const supplier = await db.supplier.findUnique({
     where: { id },
     select: {
+      userId: true,
       id: true,
       displayName: true,
       businessName: true,
@@ -53,9 +54,11 @@ export default async function AdminSupplierDetailPage(props: { params: Promise<{
       actions={
         <>
           <PillLink href="/admin/suppliers" icon="arrowLeft">All suppliers</PillLink>
+          <PillLink href={`/admin/support/new?to=user:${supplier.userId}`} icon="chat">Message</PillLink>
           {supplier.verificationStatus !== "verified" && (
             <DecisionButtons
               action={updateSupplierVerification}
+              followUp
               fields={{ supplierId: supplier.id, trustScore: String(supplier.trustScore ?? 0), redirectTo: `/admin/suppliers/${supplier.id}` }}
               approve="verified"
               reject="rejected"

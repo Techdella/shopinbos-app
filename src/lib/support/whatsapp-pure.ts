@@ -8,13 +8,15 @@
 
 export const WHATSAPP_WINDOW_HOURS = 24;
 
-export type TeamTemplateParam = "first_name" | "agent" | "note";
+export type TeamTemplateParam = "first_name" | "agent" | "note" | "business";
 
 export type TeamTemplate = {
   /** Meta template name: lower case, digits and _. */
   name: string;
   /** What it's for, in the composer's picker. */
   purpose: string;
+  /** Written by the team in Admin › Inbox › WhatsApp templates (the others are built in). */
+  custom?: boolean;
   category: "UTILITY" | "MARKETING";
   language: string;
   /** Body with {{1}}, {{2}}… in the order of `params`. */
@@ -34,6 +36,24 @@ export const TEAM_TEMPLATES: TeamTemplate[] = [
     sample: ["Ada", "Tolu", "Your supplier account is approved, so you can add your products now."],
   },
   {
+    name: "shopinbos_account_approved",
+    purpose: "Approval: their business is verified",
+    category: "UTILITY",
+    language: "en",
+    body: "Hi {{1}}, good news: {{2}} is now verified on Shopinbos. {{3}}\n\nIf you need help getting set up, reply to this message and the team will help you.",
+    params: ["first_name", "business", "note"],
+    sample: ["Ada", "Ada's Logistics", "Sellers can now find you and book your deliveries."],
+  },
+  {
+    name: "shopinbos_account_update",
+    purpose: "Verification update (not approved yet, what's needed)",
+    category: "UTILITY",
+    language: "en",
+    body: "Hi {{1}}, an update on the Shopinbos verification for {{2}}: {{3}}\n\nReply to this message if you have any questions and the team will help.",
+    params: ["first_name", "business", "note"],
+    sample: ["Ada", "Ada Supplies", "we couldn't read the CAC certificate you uploaded, please upload a clearer copy"],
+  },
+  {
     name: "shopinbos_team_reconnect",
     purpose: "Pick up an earlier conversation",
     category: "UTILITY",
@@ -48,7 +68,7 @@ export function teamTemplate(name: string | null | undefined) {
   return TEAM_TEMPLATES.find((template) => template.name === name) ?? null;
 }
 
-export type TeamTemplateValues = { name: string | null; agent: string; note?: string | null };
+export type TeamTemplateValues = { name: string | null; agent: string; note?: string | null; business?: string | null };
 
 const firstName = (name: string | null | undefined) => name?.trim().split(/\s+/)[0] || "there";
 
@@ -59,7 +79,9 @@ export function templateVariable(value: string) {
 
 export function teamTemplateParams(template: TeamTemplate, values: TeamTemplateValues): string[] {
   return template.params.map((param) =>
-    templateVariable(param === "first_name" ? firstName(values.name) : param === "agent" ? firstName(values.agent) : values.note ?? ""),
+    templateVariable(
+      param === "first_name" ? firstName(values.name) : param === "agent" ? firstName(values.agent) : param === "business" ? values.business?.trim() || values.name?.trim() || "your business" : values.note ?? "",
+    ),
   );
 }
 
@@ -114,4 +136,84 @@ export function whatsappPhone(raw: string | null | undefined) {
 /** "STOP", "Stop.", "unsubscribe": the person wants no more marketing on WhatsApp. */
 export function isStopMessage(text: string) {
   return /^\s*(stop|unsubscribe|stop promotions|opt out|optout)\s*[.!]?\s*$/i.test(text);
+}
+
+// ─── Templates the team writes (Admin › Inbox › WhatsApp templates) ───────────
+
+/** What the team types in a template, and what each one becomes. */
+export const TEMPLATE_PLACEHOLDERS: Array<{ key: string; param: TeamTemplateParam; label: string; sample: string }> = [
+  { key: "first_name", param: "first_name", label: "Their first name", sample: "Ada" },
+  { key: "business", param: "business", label: "Their business name", sample: "Ada Supplies" },
+  { key: "agent", param: "agent", label: "Your first name", sample: "Tolu" },
+  { key: "message", param: "note", label: "A message you write when sending", sample: "Your account is ready, so you can start now." },
+];
+
+export type TemplateDraft = { name: string; purpose: string; category: string; body: string };
+
+/** Meta's template name: lower case letters, digits and _, starting shopinbos_. */
+export function templateName(raw: string) {
+  const slug = raw.toLowerCase().trim().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 60);
+  if (!slug) return "";
+  return slug.startsWith("shopinbos_") ? slug : `shopinbos_${slug}`;
+}
+
+/**
+ * The team's text ("Hi {{first_name}}, …{{message}}…") as a template Meta accepts: placeholders become {{1}},
+ * {{2}}… in order, each used once. Refuses what Meta would reject: unknown placeholders, one at the very start or
+ * end, two side by side, or text over 1,024 characters.
+ */
+export function templateFromDraft(draft: TemplateDraft): { ok: true; template: TeamTemplate } | { ok: false; error: string } {
+  const name = templateName(draft.name);
+  if (!name || name === "shopinbos_") return { ok: false, error: "Give it a name, like supplier welcome." };
+  if (TEAM_TEMPLATES.some((t) => t.name === name)) return { ok: false, error: "That name is a built-in template. Pick another." };
+  const purpose = draft.purpose.trim().slice(0, 120);
+  if (!purpose) return { ok: false, error: "Say what it's for, so the team picks the right one." };
+  const category = draft.category === "MARKETING" ? "MARKETING" : "UTILITY";
+  const text = draft.body.replace(/\r\n/g, "\n").trim();
+  if (!text) return { ok: false, error: "Write the message." };
+  if (text.length > 1024) return { ok: false, error: "Keep it under 1,024 characters (WhatsApp's limit)." };
+  const params: TeamTemplateParam[] = [];
+  let unknown: string | null = null;
+  const body = text.replace(/\{\{\s*([a-z_]+)\s*\}\}/gi, (match, key: string) => {
+    const placeholder = TEMPLATE_PLACEHOLDERS.find((p) => p.key === key.toLowerCase());
+    if (!placeholder) {
+      unknown = match;
+      return match;
+    }
+    params.push(placeholder.param);
+    return `{{${params.length}}}`;
+  });
+  if (unknown) return { ok: false, error: `${unknown} isn't something we can fill in. Use ${TEMPLATE_PLACEHOLDERS.map((p) => `{{${p.key}}}`).join(", ")}.` };
+  if (/\{\{(?!\d+\}\})/.test(body)) return { ok: false, error: "Check the {{ }}: each one needs a name inside, like {{first_name}}." };
+  if (/^\s*\{\{\d+\}\}/.test(body) || /\{\{\d+\}\}\s*[.!?]?\s*$/.test(body)) return { ok: false, error: "WhatsApp doesn't allow a {{ }} at the very start or end. Add a word before or after it." };
+  if (/\{\{\d+\}\}\s*\{\{\d+\}\}/.test(body)) return { ok: false, error: "Put some words between two {{ }}." };
+  const sample = params.map((param) => TEMPLATE_PLACEHOLDERS.find((p) => p.param === param)!.sample);
+  return { ok: true, template: { name, purpose, category, language: "en", body, params, sample, custom: true } };
+}
+
+/** A custom template read back from storage, or null when it no longer passes the rules. */
+export function readCustomTemplate(value: unknown): TeamTemplate | null {
+  if (!value || typeof value !== "object") return null;
+  const row = value as Record<string, unknown>;
+  if (typeof row.name !== "string" || typeof row.body !== "string" || !Array.isArray(row.params)) return null;
+  const params = row.params.filter((p): p is TeamTemplateParam => ["first_name", "agent", "note", "business"].includes(String(p)));
+  return {
+    name: row.name,
+    purpose: typeof row.purpose === "string" ? row.purpose : row.name,
+    category: row.category === "MARKETING" ? "MARKETING" : "UTILITY",
+    language: typeof row.language === "string" ? row.language : "en",
+    body: row.body,
+    params,
+    sample: Array.isArray(row.sample) ? row.sample.map(String) : [],
+    custom: true,
+  };
+}
+
+/** The template body as the team wrote it ({{1}} back to {{first_name}}), for showing and editing. */
+export function templateText(template: TeamTemplate) {
+  return template.body.replace(/\{\{(\d+)\}\}/g, (match, index: string) => {
+    const param = template.params[Number(index) - 1];
+    const placeholder = TEMPLATE_PLACEHOLDERS.find((p) => p.param === param);
+    return placeholder ? `{{${placeholder.key}}}` : match;
+  });
 }

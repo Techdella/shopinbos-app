@@ -109,14 +109,17 @@ export function DecisionButtons({
   approve,
   reject,
   subject,
+  followUp = false,
 }: {
   action: (formData: FormData) => Promise<void>;
   fields: Record<string, string>;
   approve: string;
   reject: string;
   subject: string;
+  /** After deciding, open Admin › Inbox › New conversation with the approval or "not yet" message to send. */
+  followUp?: boolean;
 }) {
-  const hidden = Object.entries(fields).map(([name, value]) => <input key={name} type="hidden" name={name} value={value} />);
+  const hidden = Object.entries({ ...fields, ...(followUp ? { followUp: "1" } : {}) }).map(([name, value]) => <input key={name} type="hidden" name={name} value={value} />);
   return (
     <div className="flex shrink-0 items-center gap-2">
       <form action={action}>

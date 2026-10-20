@@ -3,7 +3,62 @@ import "server-only";
 import { graph } from "@/lib/whatsapp-catalog/graph";
 import { metaTemplates, metaWhatsAppConfig, sendMetaTemplate, sendMetaText, type MetaSendResult } from "@/lib/lead-growth/whatsapp-meta.server";
 import { verifyMetaSignature } from "@/lib/inbox/pure";
-import { TEAM_TEMPLATES, metaTeamTemplatePayload, teamTemplateParams, type TeamTemplate, type TeamTemplateValues } from "./whatsapp-pure";
+import { db } from "@/lib/db/client";
+import { TEAM_TEMPLATES, metaTeamTemplatePayload, readCustomTemplate, teamTemplateParams, type TeamTemplate, type TeamTemplateValues } from "./whatsapp-pure";
+
+// Templates the team writes in Admin › Inbox › WhatsApp templates, kept in PlatformSetting.
+const CUSTOM_KEY = "inbox.whatsapp_templates";
+
+export async function customTemplates(): Promise<TeamTemplate[]> {
+  const row = await db.platformSetting.findUnique({ where: { key: CUSTOM_KEY } }).catch(() => null);
+  return (Array.isArray(row?.value) ? row.value : []).map(readCustomTemplate).filter((t): t is TeamTemplate => t !== null);
+}
+
+/** Built-in templates first, then the team's own. */
+export async function allTeamTemplates(): Promise<TeamTemplate[]> {
+  return [...TEAM_TEMPLATES, ...(await customTemplates())];
+}
+
+export async function findTeamTemplate(name: string | null | undefined) {
+  return (await allTeamTemplates()).find((t) => t.name === name) ?? null;
+}
+
+async function writeCustom(list: TeamTemplate[], userId: string) {
+  const value = list.map(({ custom: _custom, ...rest }) => rest);
+  await db.platformSetting.upsert({ where: { key: CUSTOM_KEY }, create: { key: CUSTOM_KEY, value, updatedById: userId }, update: { value, updatedById: userId } });
+}
+
+/** Saves a new template and sends it to Meta for approval. */
+export async function addCustomTemplate(template: TeamTemplate, userId: string): Promise<{ ok: true; status: string } | { ok: false; error: string }> {
+  const list = await customTemplates();
+  if (list.some((t) => t.name === template.name)) return { ok: false, error: "A template with that name already exists. Pick another name." };
+  const submitted = await submitTeamTemplate(template);
+  if (!submitted.ok) return submitted;
+  await writeCustom([...list, template], userId);
+  return submitted;
+}
+
+/** Removes a team template here and on Meta. */
+export async function deleteCustomTemplate(name: string, userId: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const list = await customTemplates();
+  if (!list.some((t) => t.name === name)) return { ok: false, error: "Only templates the team wrote can be deleted." };
+  const config = inboxWhatsAppConfig();
+  if (config?.wabaId) {
+    const result = await graph(`${config.wabaId}/message_templates`, config.token, { method: "DELETE", query: { name }, timeoutMs: 15_000 });
+    // Never submitted (or already gone on Meta): still remove it here.
+    if (!result.ok && !/does not exist|not found/i.test(result.error.message)) return { ok: false, error: `Meta: ${result.error.message}` };
+  }
+  await writeCustom(list.filter((t) => t.name !== name), userId);
+  return { ok: true };
+}
+
+/** Sends one template to Meta for approval. */
+export async function submitTeamTemplate(template: TeamTemplate): Promise<{ ok: true; status: string } | { ok: false; error: string }> {
+  const config = inboxWhatsAppConfig();
+  if (!config?.wabaId) return { ok: false, error: "Connect the WhatsApp number first (WHATSAPP_LEADS_TOKEN, WHATSAPP_LEADS_PHONE_NUMBER_ID, WHATSAPP_LEADS_WABA_ID)." };
+  const result = await graph(`${config.wabaId}/message_templates`, config.token, { body: metaTeamTemplatePayload(template), timeoutMs: 20_000 });
+  return result.ok ? { ok: true, status: String(result.json.status ?? "PENDING") } : { ok: false, error: result.error.message };
+}
 
 // Shopinbos's own WhatsApp number in the admin inbox (Admin › Inbox). It is the number the lead sequences send
 // from (WHATSAPP_LEADS_*, src/lib/lead-growth/whatsapp-meta.server.ts): replies to those messages, and anyone who
@@ -60,14 +115,15 @@ export async function downloadInboxMedia(mediaId: string, name: string | null, c
 export type InboxWhatsAppStatus = {
   connected: boolean;
   wabaSubscribed: boolean | null;
-  templates: Array<{ name: string; purpose: string; status: string | null; reason: string | null }>;
+  templates: Array<{ name: string; purpose: string; status: string | null; reason: string | null; custom: boolean }>;
   error: string | null;
 };
 
 /** For Admin › Leads › WhatsApp: is the inbox receiving, and are the team's templates approved? */
 export async function inboxWhatsAppStatus(): Promise<InboxWhatsAppStatus> {
   const config = inboxWhatsAppConfig();
-  if (!config) return { connected: false, wabaSubscribed: null, templates: TEAM_TEMPLATES.map((t) => ({ name: t.name, purpose: t.purpose, status: null, reason: null })), error: null };
+  const all = await allTeamTemplates();
+  if (!config) return { connected: false, wabaSubscribed: null, templates: all.map((t) => ({ name: t.name, purpose: t.purpose, status: null, reason: null, custom: Boolean(t.custom) })), error: null };
   const [subscribed, listed] = await Promise.all([
     config.wabaId ? graph(`${config.wabaId}/subscribed_apps`, config.token, { timeoutMs: 10_000 }).catch(() => null) : Promise.resolve(null),
     metaTemplates(config).catch(() => null),
@@ -76,9 +132,9 @@ export async function inboxWhatsAppStatus(): Promise<InboxWhatsAppStatus> {
   return {
     connected: true,
     wabaSubscribed: subscribed?.ok ? ((subscribed.json.data as unknown[] | undefined)?.length ?? 0) > 0 : null,
-    templates: TEAM_TEMPLATES.map((t) => {
+    templates: all.map((t) => {
       const found = statuses.find((s) => s.name === t.name && s.language === t.language);
-      return { name: t.name, purpose: t.purpose, status: found?.status ?? null, reason: found?.reason ?? null };
+      return { name: t.name, purpose: t.purpose, status: found?.status ?? null, reason: found?.reason ?? null, custom: Boolean(t.custom) };
     }),
     error: listed && !listed.ok ? listed.error : null,
   };
@@ -102,10 +158,10 @@ export async function submitTeamTemplates(): Promise<{ submitted: number; failur
   const have = new Set(existing.templates.map((t) => `${t.name}:${t.language}`));
   const failures: string[] = [];
   let submitted = 0;
-  for (const template of TEAM_TEMPLATES.filter((t) => !have.has(`${t.name}:${t.language}`))) {
-    const result = await graph(`${config.wabaId}/message_templates`, config.token, { body: metaTeamTemplatePayload(template), timeoutMs: 20_000 });
+  for (const template of (await allTeamTemplates()).filter((t) => !have.has(`${t.name}:${t.language}`))) {
+    const result = await submitTeamTemplate(template);
     if (result.ok) submitted += 1;
-    else failures.push(`${template.name}: ${result.error.message}`);
+    else failures.push(`${template.name}: ${result.error}`);
   }
   return { submitted, failures };
 }

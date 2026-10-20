@@ -358,6 +358,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
           children: [
             { id: "support-queue", label: "All conversations", href: "/admin/support" },
             { id: "support-new", label: "New conversation", href: "/admin/support/new" },
+            { id: "support-templates", label: "WhatsApp templates", href: "/admin/support/templates" },
             { id: "support-macros", label: "Saved replies", href: "/admin/support/macros" },
           ],
         },
@@ -416,6 +417,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
       pinBottom: true,
       items: [
         { id: "team", label: "Team", icon: "users", href: "/admin/team", core: true },
+        { id: "developers", label: "Developers", icon: "code", href: "/admin/developers", core: true },
         { id: "settings", label: "Settings", icon: "settings", href: "/admin/settings", core: true },
       ],
     },

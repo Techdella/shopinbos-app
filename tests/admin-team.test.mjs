@@ -140,3 +140,42 @@ test("peggy: her fact sheet sticks to what the app does", () => {
   assert.match(facts, /OPay is not live/);
   assert.match(facts, /WooCommerce[^.]*coming soon/i);
 });
+
+const presets = await import("../src/lib/support/presets.ts");
+
+test("decision messages: approval and 'not yet' read right, with or without a reason", () => {
+  const ok = presets.decisionPreset("approved", { name: "Ada Obi", business: "Ada Logistics", role: "logistics_partner", agent: "Tolu Bello" });
+  assert.match(presets.fillReason(ok.message, ""), /^Hi Ada,\n\nCongratulations: Ada Logistics is now verified on Shopinbos\. Sellers can now find you in the Shopinbos logistics marketplace/);
+  assert.ok(!presets.fillReason(ok.message, "").includes("{{reason}}"));
+  assert.ok(!/\n\n\n/.test(presets.fillReason(ok.message, "")));
+  assert.equal(ok.template, "shopinbos_account_approved");
+  const no = presets.decisionPreset("rejected", { name: "Ada", business: "Ada Supplies", role: "supplier", agent: "Tolu" });
+  assert.equal(no.needsReason, true);
+  assert.match(presets.fillReason(no.message, "the CAC certificate is unreadable"), /because the CAC certificate is unreadable\.\n\nOnce that's sorted/);
+  assert.ok(wa.TEAM_TEMPLATES.some((t) => t.name === no.template));
+});
+
+test("whatsapp templates the team writes: placeholders, names and Meta's rules", () => {
+  const made = wa.templateFromDraft({ name: "Supplier Welcome!", purpose: "Welcome", category: "UTILITY", body: "Hi {{first_name}}, welcome {{business}}. {{message}}\n\nThanks!" });
+  assert.ok(made.ok);
+  assert.equal(made.template.name, "shopinbos_supplier_welcome");
+  assert.equal(made.template.body, "Hi {{1}}, welcome {{2}}. {{3}}\n\nThanks!");
+  assert.deepEqual(made.template.params, ["first_name", "business", "note"]);
+  assert.equal(wa.templateText(made.template), "Hi {{first_name}}, welcome {{business}}. {{message}}\n\nThanks!");
+  assert.deepEqual(wa.teamTemplateParams(made.template, { name: "ada", agent: "T", note: "Go", business: "Ada Co" }), ["ada", "Ada Co", "Go"]);
+  assert.equal(wa.templateFromDraft({ name: "x", purpose: "p", category: "UTILITY", body: "{{first_name}} hi" }).ok, false);
+  assert.equal(wa.templateFromDraft({ name: "x", purpose: "p", category: "UTILITY", body: "hi {{first_name}}" }).ok, false);
+  assert.equal(wa.templateFromDraft({ name: "x", purpose: "p", category: "UTILITY", body: "hi {{first_name}} {{agent}} ok" }).ok, false);
+  assert.equal(wa.templateFromDraft({ name: "x", purpose: "p", category: "UTILITY", body: "hi {{phone}} ok" }).ok, false);
+  assert.equal(wa.templateFromDraft({ name: "shopinbos_account_approved", purpose: "p", category: "UTILITY", body: "hi there" }).ok, false);
+  assert.ok(wa.readCustomTemplate({ ...made.template, custom: undefined }).custom);
+});
+
+test("admin team: developers have their own page, kept off the others", () => {
+  assert.equal(team.adminCanOpen("developer", "/admin/developers"), true);
+  assert.equal(team.adminCanOpen("developer", "/admin/suppliers"), false);
+  assert.equal(team.adminCanOpen("admin", "/admin/developers"), true);
+  assert.equal(team.adminCanOpen("support", "/admin/developers"), false);
+  assert.equal(team.adminCanOpen("operations", "/admin/developers"), false);
+  assert.equal(team.adminCanOpen("support", "/api/admin/ai-check"), false);
+});

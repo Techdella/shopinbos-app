@@ -8,7 +8,8 @@ import { z } from "zod";
 import { LeadAudience, LeadMessageContent, LeadStep } from "@/lib/lead-growth/pure";
 import { WHATSAPP_TEMPLATES, whatsappTemplate } from "@/lib/lead-growth/whatsapp-content";
 import { metaTemplates, metaWhatsAppConfig, submitMetaTemplate } from "@/lib/lead-growth/whatsapp-meta.server";
-import { connectInboxWebhook, submitTeamTemplates } from "@/lib/support/whatsapp.server";
+import { addCustomTemplate, connectInboxWebhook, deleteCustomTemplate, findTeamTemplate, submitTeamTemplate, submitTeamTemplates } from "@/lib/support/whatsapp.server";
+import { templateFromDraft } from "@/lib/support/whatsapp-pure";
 import {
   LeadGrowthNotReady,
   addLaunchContent,
@@ -235,4 +236,43 @@ export async function submitInboxTemplates() {
   revalidatePath(WA_PATH);
   if (result.failures.length) waBack({ error: result.failures.join(" · ").slice(0, 600) });
   waBack({ submitted: String(result.submitted) });
+}
+
+// ─── Admin › Inbox › WhatsApp templates ───────────────────────────────────────
+
+const TEMPLATES_PATH = "/admin/support/templates";
+
+function templatesBack(params: Record<string, string>): never {
+  redirect(`${TEMPLATES_PATH}?${new URLSearchParams(params)}`);
+}
+
+/** Admin: a new WhatsApp template the team wrote, saved and sent to Meta for approval. */
+export async function createInboxTemplate(formData: FormData) {
+  const user = await requireAdminSection("inbox");
+  const draft = { name: String(formData.get("name") ?? ""), purpose: String(formData.get("purpose") ?? ""), category: String(formData.get("category") ?? "UTILITY"), body: String(formData.get("body") ?? "") };
+  const built = templateFromDraft(draft);
+  if (!built.ok) templatesBack({ error: built.error, ...draft });
+  const result = await addCustomTemplate(built.template, user.id);
+  revalidatePath(TEMPLATES_PATH);
+  if (!result.ok) templatesBack({ error: `Meta: ${result.error}`, ...draft });
+  templatesBack({ added: built.template.name });
+}
+
+/** Admin: send one template (built-in or the team's) to Meta again, e.g. after a rejection was fixed. */
+export async function resubmitInboxTemplate(formData: FormData) {
+  await requireAdminSection("inbox");
+  const template = await findTeamTemplate(String(formData.get("name") ?? ""));
+  if (!template) templatesBack({ error: "Template not found." });
+  const result = await submitTeamTemplate(template);
+  revalidatePath(TEMPLATES_PATH);
+  if (!result.ok) templatesBack({ error: `Meta: ${result.error}` });
+  templatesBack({ submitted: template.name });
+}
+
+export async function deleteInboxTemplate(formData: FormData) {
+  const user = await requireAdminSection("inbox");
+  const result = await deleteCustomTemplate(String(formData.get("name") ?? ""), user.id);
+  revalidatePath(TEMPLATES_PATH);
+  if (!result.ok) templatesBack({ error: result.error });
+  templatesBack({ deleted: "1" });
 }
