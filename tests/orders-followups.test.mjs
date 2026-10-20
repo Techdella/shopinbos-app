@@ -234,7 +234,7 @@ test("supplier earned, owed and paid count wholesale and dropship alike", () => 
   ]);
   assert.deepEqual(money, { earned: 10000, paid: 3000, owed: 7000, earnedCount: 2, paidCount: 1, owedCount: 1 });
   const server = read("src/lib/supplier-orders/money.server.ts");
-  assert.match(server, /db\.supplierOrder\.aggregate\(\{ where: dropshipWhere, _sum: \{ costTotal: true \}/);
+  assert.match(server, /db\.supplierOrder\.aggregate\(\{ where: dropshipWhere, _sum: \{ costTotal: true, deliveryFee: true \}/, "a parcel the supplier delivered itself earns its fee too");
   assert.match(server, /db\.supplierOrder\.count\(\{ where: \{ supplierId, status: \{ in: \[\.\.\.DROPSHIP_TO_SHIP\] \} \} \}\)/);
   const dashboard = read("src/app/supplier/dashboard/page.tsx");
   assert.match(dashboard, /<VerificationChecklist/, "the verification checklist stays at the top");
