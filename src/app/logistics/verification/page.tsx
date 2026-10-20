@@ -7,7 +7,6 @@ import { Notice, PillButton, Spinner } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { VerificationDocUploader } from "@/components/verification/VerificationDocUploader";
 import { CacInstantCheck } from "@/components/verification/CacInstantCheck";
-import { WalletIdHint } from "@/components/verification/WalletIdHint";
 import { VerificationProgress } from "@/components/verification/VerificationProgress";
 import { TrustScoreBreakdown } from "@/components/verification/TrustScoreBreakdown";
 import { VerificationBadge } from "@/components/verification/VerificationBadge";
@@ -212,7 +211,6 @@ export default function LogisticsVerificationPage() {
                 cacDoc={documents.find((d) => d.type === "cac")}
                 onVerified={(doc) => { setDocuments((current) => [...current.filter((d) => d.type !== "cac"), doc]); fetchData(); }}
               />
-              <div className="mt-4"><WalletIdHint identityDoc={documents.find((d) => d.type === "identity")} walletHref="/logistics/wallet" /></div>
               <div className="mt-4">
                 <VerificationDocUploader
                   role="logistics_partner"

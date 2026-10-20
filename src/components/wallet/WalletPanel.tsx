@@ -4,11 +4,11 @@ import { Notice } from "@/components/app-ui";
 import { getT } from "@/lib/i18n/server";
 import { walletBankNames, type WalletView } from "@/lib/wallet/wallet.server";
 import type { WalletRole } from "@/lib/wallet/rules";
-import { BankForm, KycForm } from "./WalletForms";
+import { BankForm } from "./WalletForms";
 import { MoneyOwedPanel } from "./MoneyOwedPanel";
 
 // The Shopinbos Wallet page body, the same for sellers, suppliers and delivery partners: set up (the bank, then a
-// supplier's business registration or a delivery partner's ID; sellers have no check),
+// supplier's or delivery partner's business registration, CAC or BN; sellers have no check),
 // then the statement of what customers paid them and Paystack's settlements to their bank. Shopinbos never holds
 // the money: Paystack splits each payment at checkout and settles each share straight to the business's bank.
 // Words in shared/i18n/messages/wallet.
@@ -37,8 +37,6 @@ function feeText(fee: { rate: number; minFee: number; maxFee: number }, t: Walle
 
 export async function WalletPanel({ view, role, ownerName, orderHref }: { view: WalletView; role: WalletRole; ownerName: string; orderHref?: (orderId: string) => string }) {
   const t = await getT("wallet");
-  const [firstName = "", ...rest] = ownerName.trim().split(/\s+/);
-  const kycDone = view.kyc.status === "verified";
   const banks = await walletBankNames();
   const done = <span className="ml-1 align-middle"><Pill tone="success">{t("setup.done")}</Pill></span>;
   const who = t.dynamic(`setup.who.${role}`, "");
@@ -70,20 +68,6 @@ export async function WalletPanel({ view, role, ownerName, orderHref }: { view: 
               {view.check.status === "pending" ? t("setup.businessView") : t("setup.businessGo")}
             </Link>
           ) : null}
-        </section>
-      ) : view.check.kind === "id" ? (
-        <section className="grid gap-3 border-t border-app-line pt-4">
-          <h3 className="m-0 text-[15px] font-extrabold">{t("setup.idStep")} {kycDone ? done : null}</h3>
-          {kycDone ? (
-            <p className="m-0 text-[14px] text-app-ink-soft">
-              {t("setup.verified", { name: view.kyc.name ?? "", id: view.kyc.idType === "nin" ? "NIN" : "BVN", last4: view.kyc.idLast4 ?? "", date: day(view.kyc.verifiedAt) })}
-            </p>
-          ) : (
-            <>
-              <p className="m-0 text-[13.5px] leading-[1.45] text-app-ink-soft">{t("setup.idWhyBusiness")}</p>
-              {view.kyc.checksReady ? <KycForm defaultName={{ firstName, lastName: rest.join(" ") }} /> : <Notice tone="info">{t("setup.checksSoon")}</Notice>}
-            </>
-          )}
         </section>
       ) : null}
       <p className="m-0 border-t border-app-line pt-4 text-[12.5px] leading-[1.5] text-app-ink-soft">

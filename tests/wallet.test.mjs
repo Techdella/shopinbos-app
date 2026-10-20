@@ -89,9 +89,8 @@ test("checkout: card only with the seller's wallet, split started on the server,
   assert.match(read("src/lib/commerce/order-paid.server.ts"), /recordOrderShares\(orderId\)/);
   // Each subaccount keeps the main account's share at zero.
   assert.match(read("src/lib/paystack.ts"), /percentage_charge: 0,/);
-  // KYC keeps only the last 4 digits and a keyed hash.
-  const wallet = read("src/lib/wallet/wallet.server.ts");
-  assert.match(wallet, /kycIdLast4: id\.slice\(-4\)/);
+  // No ID check runs any more (tests/wallet-checks.test.mjs), and no full ID number is ever stored.
+  assert.doesNotMatch(read("src/lib/wallet/wallet.server.ts"), /kycIdHash: |kycIdLast4: id/);
   assert.doesNotMatch(read("prisma/schema.prisma"), /kycIdNumber|bvnNumber/);
   assert.match(read("next.config.ts"), /frame-src https:\/\/js\.paystack\.co https:\/\/checkout\.paystack\.com/);
 });

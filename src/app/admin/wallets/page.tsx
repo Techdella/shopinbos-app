@@ -4,14 +4,14 @@ import { adminFrame, formatDate, withParams } from "@/components/admin/AdminKit"
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { maskAccountNumber } from "@/lib/wallet/rules";
-import { supplierRegistrationStatus, type BusinessRegistrationStatus } from "@/lib/wallet/wallet.server";
+import { businessRegistrationStatus, type BusinessRegistrationStatus } from "@/lib/wallet/wallet.server";
 import { WalletActions } from "./WalletActions";
 import { youverifyHealth, type YouverifyHealth } from "@/lib/youverify";
 import { korapayIdentityHealth, korapayIdentityReady, type KorapayIdentityHealth } from "@/lib/korapay";
 
 export const dynamic = "force-dynamic";
 
-// Shopinbos Wallets: each business's KYC, settlement bank and Paystack subaccount. Shopinbos holds no money, so
+// Shopinbos Wallets: each business's check (none for sellers, CAC or BN for the others), settlement bank and Paystack subaccount. Shopinbos holds no money, so
 // there are no balances here: the team approves bank accounts whose name isn't the verified owner's (e.g. a
 // company account: check it belongs to them), and pauses a wallet (its Paystack subaccount is switched off and
 // checkout stops splitting to it) if something looks wrong. Several wallets sharing one ID are flagged.
@@ -61,10 +61,12 @@ export default async function AdminWalletsPage({ searchParams }: { searchParams?
     korapay ? korapayIdentityHealth() : youverifyHealth(),
   ]);
   const shared = new Set(counts.filter((row) => row._count._all > 1).map((row) => row.kycIdHash));
-  // A supplier's check is its business registration (CAC or BN); sellers have none; delivery partners verify their ID.
-  const supplierIds = wallets.filter((wallet) => wallet.role === "supplier").map((wallet) => wallet.userId);
+  // A supplier's or delivery partner's check is its business registration (CAC or BN); sellers have none.
+  const businesses = wallets.filter((wallet) => wallet.role === "supplier" || wallet.role === "logistics_partner");
   const registrations = new Map(
-    await Promise.all(supplierIds.map(async (userId) => [userId, await supplierRegistrationStatus(userId).catch(() => "missing" as const)] as const)),
+    await Promise.all(
+      businesses.map(async (wallet) => [wallet.userId, await businessRegistrationStatus(wallet.userId, wallet.role as "supplier" | "logistics_partner").catch(() => "missing" as const)] as const),
+    ),
   );
 
   return (
@@ -102,17 +104,17 @@ export default async function AdminWalletsPage({ searchParams }: { searchParams?
                     <td className="px-4 py-3">
                       {wallet.role === "seller" ? (
                         <span className="text-app-ink-soft">None needed</span>
-                      ) : wallet.role === "supplier" ? (
+                      ) : (
                         <Pill tone={REGISTRATION[registrations.get(wallet.userId) ?? "missing"]!.tone}>{REGISTRATION[registrations.get(wallet.userId) ?? "missing"]!.label}</Pill>
-                      ) : wallet.kycStatus === "verified" ? (
+                      )}
+                      {/* An ID verified before ID checks were removed: still shown, with several wallets on one ID flagged. */}
+                      {wallet.kycStatus === "verified" ? (
                         <>
-                          <div>{kycName}</div>
+                          <div className="mt-1">{kycName}</div>
                           <div className="text-app-ink-soft">{wallet.kycIdType?.toUpperCase()} …{wallet.kycIdLast4} · {formatDate(wallet.kycVerifiedAt)}</div>
                           {wallet.kycIdHash && shared.has(wallet.kycIdHash) ? <Pill tone="warning">ID on several wallets</Pill> : null}
                         </>
-                      ) : (
-                        <span className="text-app-ink-soft">Not verified</span>
-                      )}
+                      ) : null}
                     </td>
                     <td className="px-4 py-3">
                       {wallet.accountName ? (
@@ -121,9 +123,7 @@ export default async function AdminWalletsPage({ searchParams }: { searchParams?
                           <div className="text-app-ink-soft">{wallet.bankName} {maskAccountNumber(wallet.accountNumber)}</div>
                           {wallet.nameCheck === "review" ? (
                             <div className="mt-1 text-[12.5px] text-app-ink-soft">
-                              {wallet.role === "logistics_partner"
-                                ? `Not the name on the ID: check it belongs to ${kycName || "the owner"}.`
-                                : `Not the owner's or the business's name: check it belongs to ${wallet.user.name || "the owner"}${wallet.role === "supplier" ? " or the registered business" : ""}.`}
+                              {`Not the owner's or the business's name: check it belongs to ${kycName || wallet.user.name || "the owner"}${wallet.role === "seller" ? "" : " or the registered business"}.`}
                             </div>
                           ) : null}
                         </>

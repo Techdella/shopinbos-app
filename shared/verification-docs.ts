@@ -88,7 +88,6 @@ export const LOGISTICS_DOC_TYPES: DocConfig[] = [
   { type: "cac", label: DOC_TYPE_LABELS.cac, required: true, hint: "BN or RC document accepted" },
   { type: "insurance", label: DOC_TYPE_LABELS.insurance, required: true, hint: "Required for fleet operations" },
   { type: "utility", label: DOC_TYPE_LABELS.utility, required: false, hint: "For address verification" },
-  { type: "identity", label: DOC_TYPE_LABELS.identity, required: false, hint: "NIN slip or NIN-backed ID" },
   { type: "fleet", label: DOC_TYPE_LABELS.fleet, required: false, hint: "Vehicle registration, road worthiness" },
 ];
 
