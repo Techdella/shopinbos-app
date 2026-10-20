@@ -107,6 +107,10 @@ export function riderStringsFor(locale: Locale): RiderT {
 /** Failure reasons go to the company and the shop in English, whatever language the rider uses. */
 export const RIDER_REASONS_EN: readonly string[] = riderStringsFor("en").reasons;
 
+/** "Need help?" reasons (m_rider help.0–3): shown in the rider's language, sent to the company in English. */
+export const RIDER_HELP_KEYS = ["help.0", "help.1", "help.2", "help.3"] as const;
+export const RIDER_HELP_EN: readonly string[] = RIDER_HELP_KEYS.map((key) => tFor("en", "m_rider")(key));
+
 function isRiderLang(value: string): value is RiderLang {
   return RIDER_LANGS.some((lang) => lang.code === value);
 }
@@ -118,5 +122,7 @@ export function useRiderStrings() {
   const lang: RiderLang = isRiderLang(locale) ? locale : "en";
   const setLang = useCallback((next: RiderLang) => void setLocale(next), [setLocale]);
   const t = useMemo(() => riderStringsFor(lang), [lang]);
-  return { lang, setLang, t };
+  // Every other m_rider line, by key: say("take"), say("youEarn", { amount }).
+  const say = useMemo(() => tFor(lang, "m_rider"), [lang]);
+  return { lang, setLang, t, say };
 }

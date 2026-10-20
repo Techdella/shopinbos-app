@@ -7,12 +7,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { DEFAULT_DIAL_COUNTRY, DIAL_COUNTRIES, isValidEmail, toE164, type DialCountry } from "@shared/phone";
 import { appleSignInAvailable, explainSignupConflict, fetchWhatsAppCodes, sendCode, signInWithApple, signInWithGoogle, signInWithPassword, signOutNow, syncAccount, type CodeTarget } from "@/lib/auth";
-import { BackButton, Field, Label, LinkButton, Notice, PhoneField, PillButton, Segmented, T } from "@/components/ui";
+import { BackButton, Field, Label, LinkButton, Notice, PillButton, T } from "@/components/ui";
+import { Sub, Title } from "@/components/design";
+import { ChoiceRow, Sheet } from "@/components/Sheet";
 import { AppIcon } from "@/components/icons";
-import { MascotVideo } from "@/components/MascotVideo";
 import { ROLE_ICON, type SignupRole } from "@/lib/partner-pure";
 import { rememberSignedInRole } from "@/lib/role";
-import { colors } from "@/theme";
+import { colors, fonts } from "@/theme";
 import { HelpButton } from "@/components/Help";
 import { LanguageButton } from "@/components/LanguagePicker";
 import { useT } from "@/lib/i18n";
@@ -34,10 +35,10 @@ function GoogleMark() {
   );
 }
 
-/** Back to the three "What do you do?" cards on Welcome. */
+/** Back to the "What do you want to do?" cards on Welcome. */
 function changeRole() {
   if (router.canGoBack()) router.back();
-  else router.replace("/welcome");
+  else router.replace({ pathname: "/welcome", params: { step: "role" } });
 }
 
 export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller" }: { mode: Mode; initialMethod?: Method; initialRole?: SignupRole }) {
@@ -144,68 +145,81 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
     }
   }
 
+  // Email, Google and Apple sit behind "Other ways to sign in" (the phone and a WhatsApp code come first). They stay
+  // one tap away: Sign in with Apple must be offered wherever Google is (App Store rule).
+  const [others, setOthers] = useState(false);
+
+  /** Closes the sheet first: the Google and Apple sign-in windows can't open over it. */
+  function fromSheet(run: () => void) {
+    setOthers(false);
+    setTimeout(run, 350);
+  }
+
   const primary = usingPassword
     ? t("form.logIn")
-    : method === "phone" && whatsapp
-      ? t("form.whatsappCode")
-      : mode === "signup" ? t("form.sendCode") : method === "phone" ? t("form.smsCode") : t("form.emailCode");
+    : method === "phone" ? t("form.sendCode") : t("form.emailCode");
+  const heading = method === "phone" ? t("phone.title") : t("email.title");
+  const sub = method === "phone"
+    ? whatsapp === false ? t("phone.subSms") : t("phone.subWhatsapp")
+    : usingPassword ? t("email.subPassword") : t("email.sub");
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 10, paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+        <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 24, gap: 20 }} keyboardShouldPersistTaps="handled">
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
             <BackButton onPress={() => (router.canGoBack() ? router.back() : router.replace("/welcome"))} />
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <LinkButton title={mode === "signup" ? t("form.logIn") : t("form.createShop")} onPress={() => router.replace(mode === "signup" ? "/login" : "/welcome")} />
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <LanguageButton />
               <HelpButton />
             </View>
           </View>
-          {/* Returning sellers: Peggy waves hello (Prototype 10, "Welcome back"). */}
-          {mode === "login" && <MascotVideo clip="peggy-hello" size={132} decorative fadeTo={colors.canvas} style={{ marginTop: -12, marginBottom: 6, marginLeft: -10 }} />}
           {mode === "signup" && (
-            // The chosen role, always in sight: "Supplier · Not a supplier? Change".
-            <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: 12, marginBottom: 10 }}>
+            // The chosen role, always in sight: "Sign up as a supplier · Not a supplier? Change".
+            <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: 10, marginBottom: -8 }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: colors.peach, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 }}>
-                <AppIcon name={ROLE_ICON[role]} size={16} color={colors.accentInk} />
-                <T weight="bold" style={{ fontSize: 13.5 }}>{t(`card.${role}.title`)}</T>
+                <AppIcon name={ROLE_ICON[role]} size={15} color={colors.accentInk} />
+                <T weight="bold" style={{ fontSize: 13, color: colors.accentInk }}>{t(`as.${role}`)}</T>
               </View>
-              <LinkButton title={t(`change.${role}`)} onPress={changeRole} style={{ minHeight: 44 }} />
+              <LinkButton title={t(`change.${role}`)} color={colors.inkSoft} onPress={changeRole} style={{ minHeight: 44 }} />
             </View>
           )}
-          <T weight="extrabold" style={{ fontSize: 30, letterSpacing: -0.6, lineHeight: 33 }} accessibilityRole="header">
-            {mode === "signup" ? t(`as.${role}`) : t("form.welcomeBack")}
-          </T>
-          {mode === "signup" && role === "logistics_partner" && (
-            <Pressable accessibilityRole="link" onPress={() => router.push("/rider/link")} hitSlop={6} style={{ marginTop: 10 }}>
-              <T weight="bold" style={{ color: colors.inkSoft, fontSize: 13 }}>{t("form.riderHint")}</T>
-            </Pressable>
-          )}
-          {mode === "login" && <T style={{ color: colors.inkSoft, marginTop: 8, lineHeight: 21 }}>{t("form.loginSub")} {t("form.loginRoles")}</T>}
-          <View style={{ marginTop: 22, marginBottom: 22 }}>
-            <Segmented value={method} onChange={(value) => { setError(null); setMethod(value); }} options={[{ value: "phone", label: t("form.phone") }, { value: "email", label: t("form.email") }]} />
+          <View style={{ gap: 12 }}>
+            <Title>{heading}</Title>
+            <Sub>{sub}</Sub>
           </View>
           {mode === "signup" && (
-            <View style={{ marginBottom: 18 }}>
+            <View>
               <Label>{t("form.name")}</Label>
-              <Field placeholder="Adaeze Okafor" autoComplete="name" textContentType="name" value={name} onChangeText={setName} />
+              <Field placeholder="Adaeze Okafor" autoComplete="name" textContentType="name" value={name} onChangeText={setName} style={{ height: 58, fontSize: 18 }} />
             </View>
           )}
           {method === "phone" ? (
-            <>
-              <Label>{t("form.phoneNumber")}</Label>
-              <PhoneField country={country} onCountryPress={() => setPicking(true)} value={phone} onChangeText={setPhone} />
-              <T style={{ color: colors.inkSoft, fontSize: 13, marginTop: 12, lineHeight: 19 }}>
-                {whatsapp ? t("form.whatsappHint") : t("form.smsHint")}
-              </T>
-            </>
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${t("form.country")}: ${country.name} ${country.dial}`}
+                onPress={() => setPicking(true)}
+                style={{ width: 96, height: 58, borderRadius: 16, borderWidth: 1.5, borderColor: colors.line, backgroundColor: colors.surface, alignItems: "center", justifyContent: "center" }}
+              >
+                <T weight="bold" style={{ fontSize: 18 }}>{country.dial}</T>
+              </Pressable>
+              <Field
+                accessibilityLabel={t("form.phoneNumber")}
+                keyboardType="phone-pad"
+                textContentType="telephoneNumber"
+                autoComplete="tel"
+                placeholder={country.example}
+                value={phone}
+                onChangeText={setPhone}
+                style={{ flex: 1, height: 58, borderWidth: 1.5, fontSize: 20, fontFamily: fonts.bold }}
+              />
+            </View>
           ) : (
-            <>
-              <Label>{t("form.email")}</Label>
-              <Field placeholder="you@yourshop.com" keyboardType="email-address" autoCapitalize="none" autoComplete="email" textContentType="emailAddress" value={email} onChangeText={setEmail} />
+            <View style={{ gap: 18 }}>
+              <Field accessibilityLabel={t("form.email")} placeholder="you@yourshop.com" keyboardType="email-address" autoCapitalize="none" autoComplete="email" textContentType="emailAddress" value={email} onChangeText={setEmail} style={{ height: 58, borderWidth: 1.5, fontSize: 18 }} />
               {usingPassword && (
-                <View style={{ marginTop: 18 }}>
+                <View>
                   <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
                     <Label>{t("form.password")}</Label>
                     <Pressable onPress={() => router.push("/forgot")} hitSlop={8}><T weight="bold" style={{ color: colors.inkSoft, fontSize: 13 }}>{t("form.forgot")}</T></Pressable>
@@ -213,59 +227,48 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
                   <Field placeholder={t("form.passwordPlaceholder")} secureTextEntry autoComplete="current-password" textContentType="password" value={password} onChangeText={setPassword} />
                 </View>
               )}
-            </>
+              {mode === "login" && <LinkButton title={emailMode === "code" ? t("form.usePassword") : t("form.useCode")} color={colors.inkSoft} onPress={() => setEmailMode(emailMode === "code" ? "password" : "code")} />}
+            </View>
           )}
-          {error && <View style={{ marginTop: 18 }}><Notice>{error}</Notice></View>}
-          <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "center", columnGap: 18, marginTop: 10 }}>
-            {method === "phone" ? (
-              <>
-                <LinkButton title={t("form.useEmail")} color={colors.inkSoft} onPress={() => setMethod("email")} />
-              </>
-            ) : (
-              <>
-                <LinkButton title={t("form.usePhone")} color={colors.inkSoft} onPress={() => setMethod("phone")} />
-                {mode === "login" && <LinkButton title={emailMode === "code" ? t("form.usePassword") : t("form.useCode")} color={colors.inkSoft} onPress={() => setEmailMode(emailMode === "code" ? "password" : "code")} />}
-              </>
-            )}
-          </View>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginVertical: 14 }}>
-            <View style={{ flex: 1, height: 1, backgroundColor: colors.line }} />
-            <T weight="bold" style={{ color: colors.inkFaint, fontSize: 12, letterSpacing: 1.4 }}>{t("form.or")}</T>
-            <View style={{ flex: 1, height: 1, backgroundColor: colors.line }} />
-          </View>
-          {apple && (
-            <AppleAuthentication.AppleAuthenticationButton
-              buttonType={mode === "signup" ? AppleAuthentication.AppleAuthenticationButtonType.SIGN_UP : AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-              buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-              cornerRadius={999}
-              style={{ height: 50, marginBottom: 10, opacity: busy ? 0.6 : 1 }}
-              onPress={() => !busy && void signInApple()}
-            />
-          )}
-          <PillButton tone="white" size="md" busy={busy === "google"} disabled={Boolean(busy)} onPress={() => void google()}>
-            <GoogleMark />
-            <T weight="bold" style={{ fontSize: 15 }}>{t("form.google")}</T>
-          </PillButton>
+          {error && <Notice>{error}</Notice>}
+          <LinkButton title={t("other.link")} color={colors.inkSoft} onPress={() => setOthers(true)} testID="other-ways" />
         </ScrollView>
-        <View style={{ paddingHorizontal: 22, paddingBottom: 12, paddingTop: 8 }}>
+        <View style={{ paddingHorizontal: 20, paddingBottom: 12, paddingTop: 10, gap: 10 }}>
           {mode === "signup" && (
-            <>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 6 }}>
-                <AppIcon name="shield" size={14} color={colors.inkSoft} />
-                <T style={{ flex: 1, fontSize: 12, color: colors.inkSoft, lineHeight: 18 }}>{t("form.noPassword")}</T>
-              </View>
-              <T style={{ fontSize: 12, color: colors.inkSoft, lineHeight: 18, marginBottom: 12 }}>
-                {tLegal("terms.before")}{" "}
-                <T style={legalLink} onPress={() => void WebBrowser.openBrowserAsync(TERMS_URL)}>{tLegal("terms.terms")}</T>{" "}
-                {tLegal("terms.and")}{" "}
-                <T style={legalLink} onPress={() => void WebBrowser.openBrowserAsync(PRIVACY_URL)}>{tLegal("terms.privacy")}</T>
-                {tLegal("terms.after")}
-              </T>
-            </>
+            <T style={{ fontSize: 12, color: colors.inkSoft, lineHeight: 18 }}>
+              {tLegal("terms.before")}{" "}
+              <T style={legalLink} onPress={() => void WebBrowser.openBrowserAsync(TERMS_URL)}>{tLegal("terms.terms")}</T>{" "}
+              {tLegal("terms.and")}{" "}
+              <T style={legalLink} onPress={() => void WebBrowser.openBrowserAsync(PRIVACY_URL)}>{tLegal("terms.privacy")}</T>
+              {tLegal("terms.after")}
+            </T>
           )}
-          <PillButton title={primary} busy={busy === "send"} disabled={Boolean(busy)} onPress={() => void submit()} />
+          <PillButton tone="accent" busy={busy === "send"} disabled={Boolean(busy)} onPress={() => void submit()}>
+            {method === "phone" && whatsapp ? <AppIcon name="chat" size={20} color={colors.ink} /> : null}
+            <T weight="extrabold" style={{ color: colors.ink, fontSize: 17 }}>{primary}</T>
+          </PillButton>
         </View>
       </KeyboardAvoidingView>
+      <Sheet visible={others} onClose={() => setOthers(false)} title={t("other.link")}>
+        {method === "phone" ? (
+          <ChoiceRow icon="mail" title={t("form.useEmail")} sub={t("other.emailSub")} onPress={() => { setOthers(false); setError(null); setMethod("email"); }} />
+        ) : (
+          <ChoiceRow icon="phone" title={t("form.usePhone")} sub={t("other.phoneSub")} onPress={() => { setOthers(false); setError(null); setMethod("phone"); }} />
+        )}
+        {apple && (
+          <AppleAuthentication.AppleAuthenticationButton
+            buttonType={mode === "signup" ? AppleAuthentication.AppleAuthenticationButtonType.SIGN_UP : AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+            buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+            cornerRadius={999}
+            style={{ height: 52, opacity: busy ? 0.6 : 1 }}
+            onPress={() => !busy && fromSheet(() => void signInApple())}
+          />
+        )}
+        <PillButton tone="white" size="md" busy={busy === "google"} disabled={Boolean(busy)} onPress={() => fromSheet(() => void google())}>
+          <GoogleMark />
+          <T weight="bold" style={{ fontSize: 15 }}>{t("form.google")}</T>
+        </PillButton>
+      </Sheet>
       <Modal visible={picking} transparent animationType="slide" onRequestClose={() => setPicking(false)}>
         <Pressable style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "flex-end" }} onPress={() => setPicking(false)}>
           <View style={{ backgroundColor: colors.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 22, paddingBottom: 36 }}>

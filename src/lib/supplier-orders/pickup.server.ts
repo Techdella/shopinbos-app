@@ -4,6 +4,7 @@ import { db } from "@/lib/db/client";
 import { addressLines } from "@/lib/labels";
 import { createNotification } from "@/lib/notifications/create";
 import { cancelUnassignedDeliveryJob, createDeliveryJob, moveDeliveryJobWindow } from "@/lib/logistics/booking.server";
+import { ensurePickupCode } from "@/lib/logistics/jobs";
 import { payWhenItArrivesWhere } from "@/lib/logistics/payin-deadline";
 import {
   buildPickupJob,
@@ -134,7 +135,7 @@ async function loadPickup(kind: SupplierOrderKind, orderId: string) {
   const job = pickup?.deliveryBookingId
     ? await db.deliveryBooking.findUnique({
         where: { id: pickup.deliveryBookingId },
-        select: { id: true, status: true, riderId: true, rider: { select: { name: true } }, logisticsPartner: { select: { displayName: true } } },
+        select: { id: true, status: true, riderId: true, pickupCode: true, deliveryCode: true, rider: { select: { name: true } }, logisticsPartner: { select: { displayName: true } } },
       })
     : null;
   return { pickup, job };
@@ -168,6 +169,8 @@ export async function pickupState(supplierId: string, kind: SupplierOrderKind, o
           partner: job?.logisticsPartner.displayName ?? null,
           rider: job?.rider?.name ?? null,
           jobStatus: job?.status ?? null,
+          // The code the supplier gives the rider at pickup, while the job waits for them (Riders app).
+          pickupCode: job ? await ensurePickupCode(job).catch(() => null) : null,
           changeable: pickupChangeable(open, job),
           ...pickupMessage(open, job ? { status: job.status, riderName: job.rider?.name ?? null } : null, now),
         }

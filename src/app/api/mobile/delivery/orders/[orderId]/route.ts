@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { withSeller } from "@/lib/auth/middleware";
 import { apiError, ok } from "@/lib/api/response";
 import { db } from "@/lib/db/client";
+import { ensurePickupCode } from "@/lib/logistics/jobs";
 import { canReassign, deliveryTimeline, jobException, partnerShipments, readDeliveryPlan } from "@shared/delivery-market";
 
 export const dynamic = "force-dynamic";
@@ -25,6 +26,8 @@ export const GET = withSeller(async (_req: NextRequest, { user, params }) => {
     include: { logisticsPartner: { select: { id: true, slug: true, displayName: true, userId: true } }, rider: { select: { name: true } } },
   });
   const now = new Date();
+  // The code the shop gives the rider at pickup, while the job waits for them (made now for older jobs).
+  const pickupCodes = new Map(await Promise.all(jobs.map(async (job) => [job.id, await ensurePickupCode(job).catch(() => null)] as const)));
   const parcels = parts.map((part) => {
     // The live job for this parcel: the one the plan points at, else the latest not yet replaced.
     const job = jobs.find((entry) => entry.id === part.bookingId) ?? jobs.filter((entry) => (entry.shipmentKey ?? "own") === part.shipmentKey && !entry.replacedById).pop() ?? null;
@@ -43,6 +46,7 @@ export const GET = withSeller(async (_req: NextRequest, { user, params }) => {
             status: job.status,
             readyAt: job.readyAt,
             deliveryCode: job.deliveryCode,
+            pickupCode: pickupCodes.get(job.id) ?? null,
             declineReason: job.declineReason,
             failedReason: job.failedReason,
             rider: job.rider?.name ?? null,
