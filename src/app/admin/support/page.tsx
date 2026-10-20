@@ -1,6 +1,9 @@
 import { AppPage, EmptyState, FilterChips, PillLink, SearchForm, StatTile } from "@/components/app-kit";
 import { adminFrame, withParams } from "@/components/admin/AdminKit";
 import { SupportFilters, SupportQueue, type DeskRow } from "@/components/support/admin/SupportQueue";
+import { PeggyAutoReply } from "@/components/support/admin/PeggyAutoReply";
+import { aiConfigured } from "@/lib/ai/client";
+import { peggySettings } from "@/lib/support/peggy.server";
 import { formatMinutes } from "@/lib/support/pure";
 import { QUEUE_PAGE_SIZE, supportQueue, supportReady, supportStats } from "@/lib/support/service.server";
 import { requireRole } from "@/lib/server-auth";
@@ -36,7 +39,7 @@ export default async function AdminSupportPage(props: { searchParams?: Promise<S
   const status = STATUS_CHIPS.some((chip) => chip.value === search.status) ? search.status! : "active";
   const filters = { status, priority: search.priority || undefined, topic: search.topic || undefined, portal: search.portal || undefined, channel: search.channel || undefined, assignee: search.assignee || undefined, q: search.q?.trim() || undefined };
   const page = Math.max(1, Number(search.page) || 1);
-  const [queue, stats] = await Promise.all([supportQueue(user.id, { ...filters, page }), supportStats()]);
+  const [queue, stats, peggy] = await Promise.all([supportQueue(user.id, { ...filters, page }), supportStats(), peggySettings()]);
   const now = Date.now();
 
   const keep = { ...filters, status: status === "active" ? undefined : status };
@@ -77,6 +80,8 @@ export default async function AdminSupportPage(props: { searchParams?: Promise<S
         </>
       }
     >
+      <PeggyAutoReply initial={peggy.autoReply} aiReady={aiConfigured()} />
+
       <section aria-label="Support today" className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-3 2xl:grid-cols-6">
         <StatTile tone="card" label="Open" value={stats.open} hint={`${queue.counts.unassigned} unassigned`} />
         <StatTile tone="card" label="Overdue first reply" value={<span className={stats.overdue ? "text-app-danger" : undefined}>{stats.overdue}</span>} hint="Past the SLA with no reply" />

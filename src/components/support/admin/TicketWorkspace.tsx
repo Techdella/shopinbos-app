@@ -47,6 +47,8 @@ export interface DeskMessage {
   channel: string;
   attachments: Array<{ name: string; type: string; size: number; url: string }>;
   createdAt: string;
+  deliveryStatus?: string | null;
+  deliveryError?: string | null;
 }
 
 export interface DeskMacro {
@@ -158,8 +160,14 @@ function ThreadItem({ message, customer, now }: { message: DeskMessage; customer
           {relativeTime(message.createdAt, now)}
           {message.channel === "email" ? " · by email" : message.channel === "web" ? " · Stuck? form" : message.channel === "whatsapp" ? " · WhatsApp" : ""}
         </span>
+        {!fromCustomer && message.deliveryStatus && (
+          <span className={cx("rounded-full px-2 py-0.5 text-[11px] font-bold", message.deliveryStatus === "failed" ? "bg-app-danger-tint text-app-danger" : message.deliveryStatus === "read" ? "bg-app-success-tint text-app-success" : "bg-app-canvas text-app-ink-soft")}>
+            {message.deliveryStatus === "read" ? "✓✓ Read" : message.deliveryStatus === "delivered" ? "✓✓ Delivered" : message.deliveryStatus === "failed" ? "Not delivered" : "✓ Sent"}
+          </span>
+        )}
       </div>
       {message.body && <div className="whitespace-pre-wrap break-words text-[14.5px] leading-[1.55] text-app-ink">{message.body}</div>}
+      {message.deliveryStatus === "failed" && message.deliveryError && <p className="m-0 mt-1.5 text-[12.5px] font-semibold text-app-danger">WhatsApp: {message.deliveryError}</p>}
       {message.attachments.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-2">
           {message.attachments.map((file) =>
@@ -190,7 +198,26 @@ function Composer({ ticket, macros, me, now }: { ticket: DeskTicket; macros: Des
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, startTransition] = useTransition();
+  const [asPeggy, setAsPeggy] = useState(false);
+  const [peggyAsk, setPeggyAsk] = useState("");
+  const [peggyNote, setPeggyNote] = useState<{ text: string; warn: boolean } | null>(null);
+  const [drafting, startDrafting] = useTransition();
   const draftKey = `support-draft-${ticket.number}`;
+
+  // Peggy writes the reply from the whole conversation and what Shopinbos offers today; the team reads and sends.
+  const draftWithPeggy = () =>
+    startDrafting(async () => {
+      setError(null);
+      setPeggyNote(null);
+      const response = await fetch(`/api/admin/support/tickets/${ticket.id}/peggy`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ instruction: peggyAsk.trim() || undefined }) }).catch(() => null);
+      const json = (await response?.json().catch(() => null)) as { data?: { reply: string; needsHuman: boolean; note: string }; error?: { message?: string } } | null;
+      if (!response?.ok || !json?.data) return setError(json?.error?.message ?? "Peggy couldn't write a reply just now. Try again.");
+      setMode("reply");
+      setText(json.data.reply);
+      setAsPeggy(true);
+      setMacroId(null);
+      if (json.data.needsHuman || json.data.note) setPeggyNote({ text: json.data.needsHuman ? `Peggy thinks a person should check this${json.data.note ? `: ${json.data.note}` : "."}` : json.data.note, warn: json.data.needsHuman });
+    });
 
   // Unsent drafts survive the 15-second refresh and a page reload.
   useEffect(() => {
@@ -241,6 +268,7 @@ function Composer({ ticket, macros, me, now }: { ticket: DeskTicket; macros: Des
       form.set("internal", mode === "note" ? "true" : "false");
       if (mode === "reply" && after) form.set("status", after);
       if (macroId) form.set("macroId", macroId);
+      if (mode === "reply" && asPeggy) form.set("asPeggy", "true");
       for (const file of files) form.append("files", file);
       const response = await fetch(`/api/admin/support/tickets/${ticket.id}/messages`, { method: "POST", body: form }).catch(() => null);
       const json = (await response?.json().catch(() => null)) as { data?: { delivered?: string }; error?: { message?: string } } | null;
@@ -265,6 +293,9 @@ function Composer({ ticket, macros, me, now }: { ticket: DeskTicket; macros: Des
       setText("");
       setFiles([]);
       setMacroId(null);
+      setAsPeggy(false);
+      setPeggyNote(null);
+      setPeggyAsk("");
       router.refresh();
     });
   };
@@ -307,6 +338,33 @@ function Composer({ ticket, macros, me, now }: { ticket: DeskTicket; macros: Des
         )}
       </div>
       <div className="p-4 sm:p-5">
+        {mode === "reply" && (
+          <div className="mb-3 flex flex-wrap items-center gap-2 rounded-[16px] bg-[#EEF7F5] p-2.5">
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-app-forest text-[13px] font-extrabold text-white" aria-hidden>P</span>
+            <label className="sr-only" htmlFor="peggy-ask">What should Peggy say? (optional)</label>
+            <input
+              id="peggy-ask"
+              value={peggyAsk}
+              maxLength={600}
+              onChange={(e) => setPeggyAsk(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  draftWithPeggy();
+                }
+              }}
+              placeholder="Tell Peggy anything to include (optional), e.g. offer a setup call"
+              className="min-h-[38px] min-w-0 flex-1 basis-[220px] rounded-full border border-app-line bg-white px-3.5 text-[13.5px] outline-none placeholder:text-app-ink-faint focus:border-app-ink"
+            />
+            <button type="button" onClick={draftWithPeggy} disabled={drafting} className="inline-flex min-h-[38px] items-center gap-1.5 rounded-full bg-app-forest px-4 text-[13px] font-extrabold text-white hover:brightness-110 disabled:opacity-60">
+              {drafting ? <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-r-transparent" /> : <Icon name="sparkle" size={14} />}
+              {drafting ? "Peggy is writing…" : text.trim() && asPeggy ? "Rewrite with Peggy" : "Draft with Peggy"}
+            </button>
+          </div>
+        )}
+        {peggyNote && mode === "reply" && (
+          <p className={cx("m-0 mb-3 rounded-[14px] px-4 py-2.5 text-[13px] font-semibold", peggyNote.warn ? "bg-[#FFF8E6] text-[#8A5A00]" : "bg-app-canvas text-app-ink-soft")}>{peggyNote.text}</p>
+        )}
         {onWhatsApp && mode === "reply" && !windowOpen && (
           <p className="m-0 mb-3 rounded-[14px] bg-app-canvas px-4 py-2.5 text-[13.5px] leading-[1.5] text-app-ink">
             WhatsApp only allows free replies within 24 hours of their last message.{" "}
@@ -348,6 +406,9 @@ function Composer({ ticket, macros, me, now }: { ticket: DeskTicket; macros: Des
           <span className="flex-1" />
           {mode === "reply" && (
             <>
+              <label className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-app-ink-soft">
+                <input type="checkbox" checked={asPeggy} onChange={(e) => setAsPeggy(e.target.checked)} className="h-4 w-4 accent-[#16141F]" /> Send as Peggy
+              </label>
               <label className="text-[13px] font-semibold text-app-ink-soft" htmlFor="desk-after">Then set</label>
               <select id="desk-after" className={deskSelect} value={after} onChange={(e) => setAfter(e.target.value as SupportStatus | "")}>
                 <option value="pending">Waiting on customer</option>

@@ -117,6 +117,13 @@ export async function notify(input: NotifyInput): Promise<NotifyResult> {
     metadata: (input.metadata ?? {}) as Prisma.InputJsonValue,
   };
 
+  // Already sent (a retry, or the same alert twice in its window): return it without asking the database to refuse a
+  // duplicate, which Prisma would log as an error. The unique index below still settles two at the same moment.
+  if (key) {
+    const existing = await db.notification.findFirst({ where: { userId: input.userId, dedupeKey: key } }).catch(() => null);
+    if (existing) return { notification: existing, duplicate: true };
+  }
+
   let notification: NotifyResult["notification"];
   try {
     notification = await db.notification.create({ data: { ...base, event: input.event ?? null, category, dedupeKey: key } });

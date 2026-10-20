@@ -152,6 +152,7 @@ export default async function AdminSuppliersPage(props: { searchParams?: Promise
                     {row.verificationStatus !== "verified" && (
                       <DecisionButtons
                         action={updateSupplierVerification}
+                        followUp
                         fields={{ supplierId: row.id, trustScore: String(row.trustScore), redirectTo: backTo }}
                         approve="verified"
                         reject="rejected"

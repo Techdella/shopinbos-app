@@ -104,3 +104,78 @@ test("inbox whatsapp: STOP replies", () => {
   assert.equal(wa.isStopMessage("Stop promotions"), true);
   assert.equal(wa.isStopMessage("please don't stop"), false);
 });
+
+const peggy = await import("../src/lib/support/peggy-pure.ts");
+const knowledge = await import("../src/lib/support/peggy-knowledge.ts");
+
+test("peggy: replies go on the conversation's own channel, formatted for it", () => {
+  assert.equal(peggy.peggyChannel("whatsapp", true), "whatsapp");
+  assert.equal(peggy.peggyChannel("web", true), "email");
+  assert.equal(peggy.peggyChannel("web", false), "app");
+  assert.match(peggy.peggyFormat("email", "Adishi Emmanuel"), /Hi Adishi,/);
+  assert.match(peggy.peggyFormat("whatsapp", ""), /greet there/);
+});
+
+test("peggy: answers by herself only when switched on, it's their turn and no person is on it", () => {
+  const now = Date.parse("2026-10-20T12:00:00Z");
+  const on = { autoReply: ["whatsapp", "web"] };
+  const theirs = [{ authorType: "user", createdAt: "2026-10-20T11:59:00Z" }];
+  assert.deepEqual(peggy.peggyMayAutoReply({ settings: on, source: "whatsapp", hasEmail: false, status: "open", messages: theirs, now }), { ok: true });
+  assert.equal(peggy.peggyMayAutoReply({ settings: { autoReply: [] }, source: "whatsapp", hasEmail: false, status: "open", messages: theirs, now }).ok, false);
+  assert.equal(peggy.peggyMayAutoReply({ settings: on, source: "email", hasEmail: true, status: "open", messages: theirs, now }).ok, false);
+  assert.equal(peggy.peggyMayAutoReply({ settings: on, source: "web", hasEmail: false, status: "open", messages: theirs, now }).ok, false);
+  const human = [...theirs, { authorType: "agent", createdAt: "2026-10-20T08:00:00Z" }];
+  assert.deepEqual(peggy.peggyMayAutoReply({ settings: on, source: "whatsapp", hasEmail: false, status: "open", messages: human, now }), { ok: false, reason: "human" });
+  const lastWasPeggy = [{ authorType: "ai", createdAt: "2026-10-20T11:59:00Z" }];
+  assert.equal(peggy.peggyMayAutoReply({ settings: on, source: "whatsapp", hasEmail: false, status: "open", messages: lastWasPeggy, now }).ok, false);
+  const busy = [...theirs, ...Array.from({ length: 4 }, () => ({ authorType: "ai", createdAt: "2026-10-20T10:00:00Z" }))];
+  assert.deepEqual(peggy.peggyMayAutoReply({ settings: on, source: "whatsapp", hasEmail: false, status: "open", messages: busy, now }), { ok: false, reason: "limit" });
+});
+
+test("peggy: her fact sheet sticks to what the app does", () => {
+  const facts = knowledge.PEGGY_FACTS;
+  for (const phrase of ["yourshop.mybos.store", "1 November 2026", "22 October 2026", "https://app.shopinbos.com/supplier/signup", "https://app.shopinbos.com/logistics/signup", "+1 711-695-1381", "support@shopinbos.com"]) assert.ok(facts.includes(phrase), phrase);
+  assert.ok(!/\bchip\b/i.test(facts));
+  assert.ok(!/shopinbos-app\.vercel\.app/.test(facts));
+  assert.match(facts, /OPay is not live/);
+  assert.match(facts, /WooCommerce[^.]*coming soon/i);
+});
+
+const presets = await import("../src/lib/support/presets.ts");
+
+test("decision messages: approval and 'not yet' read right, with or without a reason", () => {
+  const ok = presets.decisionPreset("approved", { name: "Ada Obi", business: "Ada Logistics", role: "logistics_partner", agent: "Tolu Bello" });
+  assert.match(presets.fillReason(ok.message, ""), /^Hi Ada,\n\nCongratulations: Ada Logistics is now verified on Shopinbos\. Sellers can now find you in the Shopinbos logistics marketplace/);
+  assert.ok(!presets.fillReason(ok.message, "").includes("{{reason}}"));
+  assert.ok(!/\n\n\n/.test(presets.fillReason(ok.message, "")));
+  assert.equal(ok.template, "shopinbos_account_approved");
+  const no = presets.decisionPreset("rejected", { name: "Ada", business: "Ada Supplies", role: "supplier", agent: "Tolu" });
+  assert.equal(no.needsReason, true);
+  assert.match(presets.fillReason(no.message, "the CAC certificate is unreadable"), /because the CAC certificate is unreadable\.\n\nOnce that's sorted/);
+  assert.ok(wa.TEAM_TEMPLATES.some((t) => t.name === no.template));
+});
+
+test("whatsapp templates the team writes: placeholders, names and Meta's rules", () => {
+  const made = wa.templateFromDraft({ name: "Supplier Welcome!", purpose: "Welcome", category: "UTILITY", body: "Hi {{first_name}}, welcome {{business}}. {{message}}\n\nThanks!" });
+  assert.ok(made.ok);
+  assert.equal(made.template.name, "shopinbos_supplier_welcome");
+  assert.equal(made.template.body, "Hi {{1}}, welcome {{2}}. {{3}}\n\nThanks!");
+  assert.deepEqual(made.template.params, ["first_name", "business", "note"]);
+  assert.equal(wa.templateText(made.template), "Hi {{first_name}}, welcome {{business}}. {{message}}\n\nThanks!");
+  assert.deepEqual(wa.teamTemplateParams(made.template, { name: "ada", agent: "T", note: "Go", business: "Ada Co" }), ["ada", "Ada Co", "Go"]);
+  assert.equal(wa.templateFromDraft({ name: "x", purpose: "p", category: "UTILITY", body: "{{first_name}} hi" }).ok, false);
+  assert.equal(wa.templateFromDraft({ name: "x", purpose: "p", category: "UTILITY", body: "hi {{first_name}}" }).ok, false);
+  assert.equal(wa.templateFromDraft({ name: "x", purpose: "p", category: "UTILITY", body: "hi {{first_name}} {{agent}} ok" }).ok, false);
+  assert.equal(wa.templateFromDraft({ name: "x", purpose: "p", category: "UTILITY", body: "hi {{phone}} ok" }).ok, false);
+  assert.equal(wa.templateFromDraft({ name: "shopinbos_account_approved", purpose: "p", category: "UTILITY", body: "hi there" }).ok, false);
+  assert.ok(wa.readCustomTemplate({ ...made.template, custom: undefined }).custom);
+});
+
+test("admin team: developers have their own page, kept off the others", () => {
+  assert.equal(team.adminCanOpen("developer", "/admin/developers"), true);
+  assert.equal(team.adminCanOpen("developer", "/admin/suppliers"), false);
+  assert.equal(team.adminCanOpen("admin", "/admin/developers"), true);
+  assert.equal(team.adminCanOpen("support", "/admin/developers"), false);
+  assert.equal(team.adminCanOpen("operations", "/admin/developers"), false);
+  assert.equal(team.adminCanOpen("support", "/api/admin/ai-check"), false);
+});

@@ -224,6 +224,8 @@ export const agentReplySchema = z.object({
   /** Status to set with the reply (Zendesk-style "Submit as solved"). */
   status: z.enum(STATUSES).optional(),
   macroId: z.string().max(64).optional(),
+  /** Peggy's draft, sent as Peggy (Admin › Inbox). */
+  asPeggy: z.boolean().default(false),
 });
 
 export const ticketUpdateSchema = z

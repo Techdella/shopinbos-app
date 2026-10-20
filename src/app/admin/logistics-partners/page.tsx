@@ -201,6 +201,7 @@ export default async function AdminLogisticsPartnersPage(props: { searchParams?:
                     {row.verificationStatus !== "verified" && (
                       <DecisionButtons
                         action={updateLogisticsVerification}
+                        followUp
                         fields={{ logisticsPartnerId: row.id, reliabilityScore: String(row.reliabilityScore), redirectTo: backTo }}
                         approve="verified"
                         reject="rejected"

@@ -5,7 +5,7 @@ import { metaVerifyHandshake } from "@/lib/inbox/webhooks";
 import { marketingInboundHook, marketingStatusHook } from "@/lib/marketing/webhook-hooks";
 import { parseTemplateStatusUpdates } from "@/lib/marketing/text-channels";
 import { applyTemplateStatusUpdates } from "@/lib/marketing/whatsapp-templates.server";
-import { ingestSupportWhatsApp } from "@/lib/support/service.server";
+import { ingestSupportWhatsApp, updateSupportDelivery } from "@/lib/support/service.server";
 import { inboxSignatureOk, isInboxWhatsAppNumber } from "@/lib/support/whatsapp.server";
 
 export const runtime = "nodejs";
@@ -47,6 +47,9 @@ export async function POST(req: NextRequest) {
         await ingestSupportWhatsApp({ phone: message.contactPhone ?? message.threadId, name: message.contactName ?? null, text: message.text, messageId: message.externalId, attachments: message.attachments.map((a) => ({ mediaId: a.mediaId ?? null, name: a.name ?? null, contentType: a.contentType ?? null })) }).catch((error) =>
           console.error("[webhooks/whatsapp] inbox ingest failed", error),
         );
+      }
+      for (const status of statuses.filter((s) => s.accountId === accountId)) {
+        await updateSupportDelivery(status.externalId, status.status, status.error).catch((error) => console.error("[webhooks/whatsapp] inbox status failed", error));
       }
       continue;
     }

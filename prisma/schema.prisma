@@ -3401,6 +3401,9 @@ model SupportMessage {
   attachments Json     @default("[]") // [{ path, name, type, size }] under support/<ticketId>/ in storage
   channel     String   @default("app") // app | web | email
   externalId  String?  @unique // inbound email Message-ID, so a webhook retry can't add it twice
+  // WhatsApp messages the team sent: what Meta reported (sent | delivered | read | failed) and why it failed.
+  deliveryStatus String?
+  deliveryError  String?
   createdAt   DateTime @default(now())
 
   ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
