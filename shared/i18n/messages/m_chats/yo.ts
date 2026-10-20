@@ -136,6 +136,9 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "thread.emailPlaceholder": "Kọ èsì email rẹ",
   "thread.emailGoesAs": "Yóò jáde bí email: {subject}",
   "thread.emailGoes": "Yóò jáde bí email sí oníbàárà",
+  "list.newCount": "{count} tuntun",
+  "list.allAnswered": "A ti dáhùn gbogbo rẹ̀",
+  "list.allHere": "WhatsApp, Instagram, Facebook àti ṣọ́ọ̀bù rẹ, gbogbo rẹ̀ wà níbí.",
 };
 
 export default yo;

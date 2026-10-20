@@ -53,13 +53,20 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "dropship.nothing": "Ọ dịghị ihe ebe a ugbu a. Pịa \"Niile\" ka ị hụ ihe niile.",
   "dropship.findMore": "Chọọ ngwaahịa ọzọ",
   "list.loadFailed": "Ngwaahịa abataghị. Lelee network gị, wee nwaa ọzọ.",
-  "list.title": "Ngwaahịa m",
+  "list.title": "Ngwaahịa",
   "list.empty": "Enweghị ngwaahịa ka ugbu a. Pịa \"Tinye ngwaahịa\", see foto, Rex ga-ede ndị fọdụrụ.",
   "list.soldOut": "Ọ gwụla",
   "list.left": "{count} fọdụrụ",
   "cat.all": "Niile",
   "cat.chip": "{name} ({count})",
   "cat.empty": "Enweghị ngwaahịa na {name} ka ọ dị ugbu a.",
+  "list.runningLow": "{count} fọdụrụ · ọ na-agwụ",
+  "list.stockHint": "Pịa + ma ọ bụ − mgbe ị rere ma ọ bụ tinyekwuo ngwaahịa. Peggy ga-agwa gị mgbe ihe na-agwụ.",
+  "list.stockFailed": "Ọnụ ọgụgụ ngwaahịa ọhụrụ echekwaghị. Lelee network gị ma nwaa ọzọ.",
+  "view.title": "Ngwaahịa",
+  "view.inStock": "Ihe dị",
+  "view.share": "Kesaa ngwaahịa a",
+  "view.editDetails": "Dezie nkọwa",
 };
 
 export default ig;

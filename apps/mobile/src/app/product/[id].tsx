@@ -1,4 +1,4 @@
-import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, ScrollView, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { Image } from "expo-image";
@@ -20,6 +20,7 @@ import {
 } from "@shared/product-edit";
 import { PRODUCT_TYPES, productTypeDef, type ProductTypeKey } from "@shared/product-types";
 import type { ProductVariant } from "@shared/product-variants";
+import { Eyebrow, Heading, Stepper, Sub } from "@/components/design";
 import { AppIcon } from "@/components/icons";
 import { ErrorState, LoadingBlock } from "@/components/kit";
 import { Screen } from "@/components/Screen";
@@ -51,6 +52,8 @@ import {
   type VersionState,
 } from "@/lib/product-more-pure";
 import { archiveProduct, createCategory, fetchAllCategories, fetchEditProduct, fetchStoreCategories, saveProduct, uploadProductPhoto, type EditProduct } from "@/lib/products";
+import { fetchSetup } from "@/lib/setup";
+import { shareText } from "@/lib/share";
 import { openWeb } from "@/lib/web";
 import { useT } from "@/lib/i18n";
 import { colors, radii } from "@/theme";
@@ -200,6 +203,17 @@ export default function EditProductScreen() {
   const [categoryQ, setCategoryQ] = useState("");
   const [newCategory, setNewCategory] = useState("");
   const [creating, setCreating] = useState(false);
+  // The shop's link, for Share this product (its page is <shop link>/product/<id>).
+  const [storeUrl, setStoreUrl] = useState<string | null>(null);
+  const stockTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    void fetchSetup()
+      .then((overview) => setStoreUrl(overview.store.url))
+      .catch(() => null);
+    return () => {
+      if (stockTimer.current) clearTimeout(stockTimer.current);
+    };
+  }, []);
 
   const load = useCallback(async () => {
     try {
@@ -413,10 +427,26 @@ export default function EditProductScreen() {
   const margin = marginPercent(typedPrice, parseNaira(more.costPrice));
   const presetOptions = type.options.filter((preset) => !versionState.options.some((option) => option.name.toLowerCase() === preset.name.toLowerCase()));
 
+  // The prototype's product page on top: the photo, name and price, the stock with − and + (saved a moment after
+  // the last tap), and Share this product. The full editor follows under "Edit details".
+  const stepStock = countsStock && !countedVersions.length;
+  const stockNow = parseWholeNumber(form.stock) ?? product.currentStock;
+  const shareUrl = storeUrl && isLive(product) ? `${storeUrl.replace(/\/$/, "")}/product/${product.id}` : null;
+
+  function bumpStock(next: number) {
+    edit({ stock: String(next) });
+    if (stockTimer.current) clearTimeout(stockTimer.current);
+    stockTimer.current = setTimeout(() => {
+      stockTimer.current = null;
+      saveProduct(product!.id, { currentStock: next })
+        .then(() => setProduct((current) => (current ? { ...current, currentStock: next } : current)))
+        .catch((e) => setError(e instanceof Error ? e.message : t("edit.saveFailed")));
+    }, 700);
+  }
+
   return (
     <Screen
-      title={product.name}
-      sub={t("edit.title")}
+      title={t("view.title")}
       refreshing={refreshing}
       onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }}
       footer={
@@ -426,6 +456,30 @@ export default function EditProductScreen() {
         </View>
       }
     >
+      {form.images[0] ? <Image source={{ uri: form.images[0] }} style={{ width: "100%", height: 260, borderRadius: 24 }} contentFit="cover" transition={150} accessibilityIgnoresInvertColors /> : null}
+      <View style={{ gap: 4 }}>
+        <Heading>{form.name.trim() || product.name}</Heading>
+        {typedPrice ? <Sub>{naira(typedPrice)}</Sub> : null}
+      </View>
+      {stepStock ? (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 20 }}>
+          <View style={{ flex: 1, gap: 3 }}>
+            <T weight="bold" style={{ fontSize: 16 }}>{t("view.inStock")}</T>
+            <T style={{ fontSize: 14, color: stockNow <= (parseWholeNumber(form.lowStock) ?? 0) ? colors.accentInk : colors.inkSoft }}>
+              {stockNow <= 0 ? t("list.soldOut") : stockNow <= (parseWholeNumber(form.lowStock) ?? 0) ? t("list.runningLow", { count: stockNow }) : t("drafts.inStock", { count: stockNow })}
+            </T>
+          </View>
+          <Stepper value={stockNow} label={t("edit.stock")} onChange={bumpStock} />
+        </View>
+      ) : null}
+      {shareUrl ? (
+        <PillButton tone="white" accessibilityLabel={t("view.share")} onPress={() => void shareText(`${form.name.trim() || product.name} ${shareUrl}`)}>
+          <AppIcon name="share" size={20} color={colors.ink} />
+          <T weight="extrabold" style={{ fontSize: 17 }}>{t("view.share")}</T>
+        </PillButton>
+      ) : null}
+      <Eyebrow>{t("view.editDetails")}</Eyebrow>
+
       {/* Dropship: who sends it and what each sale leaves (live as the price changes). */}
       {dropship && sale ? (
         <Card style={{ gap: 6 }}>

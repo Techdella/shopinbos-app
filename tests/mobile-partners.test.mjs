@@ -31,6 +31,12 @@ test("wrong-role screens can't be visited", () => {
     ["supplier", "/home", false],
     ["supplier", "/find", false],
     ["supplier", "/logistics/home", false],
+    // The Delivery hub is shared by sellers and suppliers (same /api/mobile/delivery routes).
+    ["supplier", "/delivery", true],
+    ["supplier", "/delivery/partner/swift", true],
+    ["supplier", "/deliveryx", false],
+    ["seller", "/delivery/find", true],
+    ["logistics_partner", "/delivery", false],
     ["logistics_partner", "/logistics/riders", true],
     ["logistics_partner", "/supplier/home", false],
     ["logistics_partner", "/chats", false],

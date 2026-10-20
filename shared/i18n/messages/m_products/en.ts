@@ -55,13 +55,20 @@ const en = {
   "dropship.findMore": "Find more products",
   // My products (app/(tabs)/products.tsx)
   "list.loadFailed": "Couldn't load products. Check your connection and try again.",
-  "list.title": "My products",
+  "list.title": "Products",
   "list.empty": "No products yet. Tap \"Add a product\", take a photo, and Rex writes the rest.",
   "list.soldOut": "Sold out",
   "list.left": "{count} left",
   "cat.all": "All",
   "cat.chip": "{name} ({count})",
   "cat.empty": "No products in {name} yet.",
+  "list.runningLow": "{count} left · running low",
+  "list.stockHint": "Tap + or − when you sell or restock. Peggy tells you when something runs low.",
+  "list.stockFailed": "The new stock count didn't save. Check your connection and try again.",
+  "view.title": "Product",
+  "view.inStock": "In stock",
+  "view.share": "Share this product",
+  "view.editDetails": "Edit details",
 } satisfies Record<string, string>;
 
 export default en;

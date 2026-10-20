@@ -33,26 +33,28 @@ test("seller tab bar: exactly Home, Orders, Chats, My shop, with the + in the mi
   for (const name of ["home", "orders", "chats", "shop", "products", "more"]) assert.ok(existsSync(join(root, "app/(tabs)", `${name}.tsx`)), name);
 });
 
-test("the + sheet: Add a product, Record a sale, Get more customers, Share my shop", () => {
+test("the + sheet: Add a product, Record a sale, Send a pay link", () => {
   const sheet = read("components/CreateSheet.tsx");
-  // The four titles are m_home catalog keys, shown in the app language.
-  assert.match(sheet, /CREATE_ACTIONS = \["create\.addProduct", "create\.recordSale", "create\.customers", "create\.share"\] as const/);
+  // The three titles are m_home catalog keys, shown in the app language ("Seller app" prototype sh.create).
+  assert.match(sheet, /CREATE_ACTIONS = \["create\.addProduct", "create\.recordSale", "create\.payLink"\] as const/);
   const words = readFileSync(join(root, "../../../shared/i18n/messages/m_home/en.ts"), "utf8");
-  for (const [key, title] of [["addProduct", "Add a product"], ["recordSale", "Record a sale"], ["customers", "Get more customers"], ["share", "Share my shop"]]) assert.ok(words.includes(`"create.${key}": "${title}"`), title);
-  for (const index of [0, 1, 2, 3]) assert.match(sheet, new RegExp(`title=\\{t\\(CREATE_ACTIONS\\[${index}\\]\\)\\}`));
-  for (const path of ["/add-products", "/record-sale", "/marketing"]) assert.match(sheet, new RegExp(`go\\("${path}"\\)`));
-  assert.match(sheet, /shareShop\(\)/);
+  for (const [key, title] of [["addProduct", "Add a product"], ["recordSale", "Record a sale"], ["payLink", "Send a pay link"]]) assert.ok(words.includes(`"create.${key}": "${title}"`), title);
+  for (const index of [0, 1, 2]) assert.match(sheet, new RegExp(`title=\\{t\\(CREATE_ACTIONS\\[${index}\\]\\)\\}`));
+  for (const path of ["/add-products", "/record-sale", "/payment-links/new"]) assert.match(sheet, new RegExp(`go\\("${path}"\\)`));
 });
 
-test("My shop groups everything else by goal: Sell; Get paid and deliver; Grow", () => {
+test("My shop groups everything else by goal: Sell; Money and delivery; Look; You", () => {
   const shop = read("app/(tabs)/shop.tsx");
   const titles = [...shop.matchAll(/title: "([^"]+)",\n\s+links:/g)].map((match) => match[1]);
-  assert.deepEqual(titles.slice(0, 3), ["Sell", "Get paid and deliver", "Grow"]);
+  assert.deepEqual(titles, ["Sell", "Money and delivery", "Look", "You"]);
   // The domain opens the web domain page, which connects in one tap (buy, or Entri for one bought elsewhere): no
   // records and no "Ask us". Sell everywhere opens the one-tap connect page.
   assert.match(shop, /web:\/home\/domain/, "Domain opens the self-serve domain page");
   // Sell everywhere, payments, delivery and settings are app screens now (no browser).
   for (const id of ["channels", "payments", "delivery", "settings"]) assert.match(shop, new RegExp(`path: "app:/${id}"`));
+  // Getting more customers and sharing the shop left the + sheet; they stay one tap away.
+  assert.match(shop, /id: "marketing"[^\n]+path: "app:\/marketing"/);
+  assert.match(shop, /shareShop\(\)/);
   assert.doesNotMatch(shop, /ask-us|\/home\/inbox\/channels|developer|api-keys/);
 });
 

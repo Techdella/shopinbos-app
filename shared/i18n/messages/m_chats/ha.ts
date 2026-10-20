@@ -136,6 +136,9 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "thread.emailPlaceholder": "Rubuta amsar email ɗinka",
   "thread.emailGoesAs": "Zai fita a matsayin email: {subject}",
   "thread.emailGoes": "Zai fita a matsayin email zuwa ga kwastoma",
+  "list.newCount": "{count} sababbi",
+  "list.allAnswered": "An amsa duka",
+  "list.allHere": "WhatsApp, Instagram, Facebook da shagonka, duk suna nan.",
 };
 
 export default ha;

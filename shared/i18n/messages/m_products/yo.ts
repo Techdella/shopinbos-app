@@ -53,13 +53,20 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "dropship.nothing": "Kò sí nǹkan níbí báyìí. Tẹ \"Gbogbo\" láti rí gbogbo rẹ̀.",
   "dropship.findMore": "Wá ọjà síi",
   "list.loadFailed": "Àwọn ọjà kò ṣí. Ṣàyẹ̀wò network rẹ, kí o sì tún gbìyànjú.",
-  "list.title": "Àwọn ọjà mi",
+  "list.title": "Àwọn ọjà",
   "list.empty": "Kò sí ọjà síbẹ̀. Tẹ \"Fi ọjà kún un\", ya fọ́tò, Rex yóò sì kọ ìyókù.",
   "list.soldOut": "Ó ti tán",
   "list.left": "{count} ló kù",
   "cat.all": "Gbogbo rẹ̀",
   "cat.chip": "{name} ({count})",
   "cat.empty": "Kò sí ọjà nínú {name} síbẹ̀.",
+  "list.runningLow": "{count} ló kù · ó ń tán",
+  "list.stockHint": "Tẹ + tàbí − nígbà tí o bá tà tàbí kó ọjà kún un. Peggy á sọ fún ọ tí nǹkan bá ń tán.",
+  "list.stockFailed": "Iye ọjà tuntun kò fi pamọ́. Ṣàyẹ̀wò network rẹ kí o tún gbìyànjú.",
+  "view.title": "Ọjà",
+  "view.inStock": "Ohun tó wà",
+  "view.share": "Pín ọjà yìí",
+  "view.editDetails": "Ṣàtúnṣe àlàyé",
 };
 
 export default yo;
