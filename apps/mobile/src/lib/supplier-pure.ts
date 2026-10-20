@@ -94,3 +94,93 @@ export function waitingLabel(iso: string | null | undefined, now = Date.now(), t
   const days = Math.round(hours / 24);
   return say(t, "waiting.days", `Waiting ${days} day${days === 1 ? "" : "s"}`, { count: days });
 }
+
+// ─── "Simple app, end to end" supplier screens (E2E-Supplier prototype) ─────────────────────────────────────────
+
+/** Orders tab segments: New, In progress (accepted, packing or waiting for the rider), Sent, and Prices (requests). */
+export type SupplierOrderSegment = "new" | "pack" | "sent" | "prices";
+
+export const ORDER_ROW_STATUS: Record<string, string> = {
+  "row.new": "New",
+  "row.packing": "Packing",
+  "row.waiting": "Waiting for pickup",
+  "row.onItsWay": "On its way",
+  "row.self": "You’re delivering",
+};
+
+/** The short status at the end of an order row: New, Packing, Waiting for pickup, On its way, or the stage. */
+export function orderRowStatus(order: OrderLike & { selfDelivery?: boolean; packed?: boolean }, t?: Say) {
+  const group = supplierOrderGroup(order);
+  // The supplier delivers it: once it's on the way (or packed for it), "You're delivering".
+  if (order.selfDelivery && ((group === "pack" && order.packed) || (group === "sent" && order.next.includes("delivered")))) return say(t, "row.self", ORDER_ROW_STATUS["row.self"]);
+  const key = group === "new" ? "row.new" : group === "pack" ? (order.next.includes("packed") || order.selfDelivery ? "row.packing" : "row.waiting") : order.status === "shipped" ? "row.onItsWay" : null;
+  return key ? say(t, key, ORDER_ROW_STATUS[key]) : supplierOrderStage(order.status, t);
+}
+
+/** "What do you supply?" in the set-up (saved in English as the business's categories; shown in the app language). */
+export const SUPPLY_CATEGORIES = ["Shoes and bags", "Fashion and fabric", "Hair and beauty", "Phones and gadgets", "Home", "Food"] as const;
+
+/** "City" chips in the set-up; the server turns a city into its state (Aba → Abia, Abuja → FCT). */
+export const SETUP_CITIES = ["Aba", "Lagos", "Kano", "Onitsha", "Ibadan", "Abuja"] as const;
+
+/** States to pick for "Selected states": the label, and the state name the server stores. */
+export const SELL_STATES: readonly { label: string; value: string }[] = [
+  { label: "Lagos", value: "Lagos" },
+  { label: "Ogun", value: "Ogun" },
+  { label: "Oyo", value: "Oyo" },
+  { label: "Abuja (FCT)", value: "FCT" },
+  { label: "Kano", value: "Kano" },
+  { label: "Kaduna", value: "Kaduna" },
+  { label: "Rivers", value: "Rivers" },
+  { label: "Enugu", value: "Enugu" },
+  { label: "Anambra", value: "Anambra" },
+  { label: "Abia", value: "Abia" },
+  { label: "Edo", value: "Edo" },
+  { label: "Delta", value: "Delta" },
+];
+
+/** "Where do you sell?" choices; the keys are the delivery settings' sellArea values. Words in m_supplier "where.<key>". */
+export const SELL_AREAS = ["one_state", "selected", "nationwide"] as const;
+export type SellAreaKey = (typeof SELL_AREAS)[number];
+
+/** The banks most suppliers use, as short chips; each finds its full name in the wallet's bank list. */
+export const POPULAR_BANKS: readonly { label: string; match: RegExp }[] = [
+  { label: "Access Bank", match: /^access bank/i },
+  { label: "GTBank", match: /guaranty trust|gtbank/i },
+  { label: "Opay", match: /opay|paycom/i },
+  { label: "Moniepoint", match: /moniepoint/i },
+  { label: "Zenith Bank", match: /^zenith/i },
+  { label: "First Bank", match: /^first bank/i },
+];
+
+/** The popular banks this server can pay into, with the wallet's own name for each. */
+export function popularBanks(names: readonly string[]) {
+  const out: { label: string; name: string }[] = [];
+  for (const bank of POPULAR_BANKS) {
+    const name = names.find((entry) => bank.match.test(entry));
+    if (name) out.push({ label: bank.label, name });
+  }
+  return out;
+}
+
+/** "Good morning" before 12, "Good afternoon" before 5pm, then "Good evening". */
+export function greetingKey(hour: number) {
+  return hour < 12 ? "home.morning" : hour < 17 ? "home.afternoon" : "home.evening";
+}
+
+/** Two letters for a business without a logo: "Aba Leatherworks" → "AL". */
+export function initialsOf(name: string) {
+  const words = name.replace(/[^\p{L}\p{N}\s]/gu, " ").split(/\s+/).filter(Boolean);
+  return ((words[0]?.[0] ?? "") + (words[1]?.[0] ?? "")).toUpperCase() || "?";
+}
+
+/** The best wholesale deal on a product: its cheapest price tier, else the plain price from the minimum order. */
+export function bestWholesale(product: { wholesalePrice: number; moq: number; pricingTiers?: readonly { minQty: number; price: number }[] | null }) {
+  const tiers = (product.pricingTiers ?? []).filter((tier) => tier.minQty > 0 && tier.price > 0);
+  if (!tiers.length) return { price: product.wholesalePrice, minQty: Math.max(1, product.moq) };
+  const cheapest = tiers.reduce((best, tier) => (tier.price < best.price ? tier : best));
+  return { price: cheapest.price, minQty: cheapest.minQty };
+}
+
+/** Five or fewer left is "running low". */
+export const LOW_STOCK = 5;
