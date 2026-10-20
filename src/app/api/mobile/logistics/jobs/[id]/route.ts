@@ -12,17 +12,17 @@ export const dynamic = "force-dynamic";
 // One delivery job in the partner app. GET → the job and the active riders. POST moves it, with the same rules
 // as the web dispatch console (src/app/actions/logistics.ts → transitionJob / assignRider):
 //   { action: "accept", riderId? }       new request → accepted (gets the buyer's delivery code), optionally assigned
-//   { action: "decline" }                new request → cancelled
+//   { action: "decline", reason? }       new request → declined, with why (the shop can send it to another partner)
 //   { action: "assign", riderId | null } give the job to a rider, or take it off them
 //   { action: "status", to, code?, recipientName?, codCollected?, codMethod?, failedReason? }
 
 const Body = z.discriminatedUnion("action", [
   z.object({ action: z.literal("accept"), riderId: z.string().max(64).nullish() }),
-  z.object({ action: z.literal("decline") }),
+  z.object({ action: z.literal("decline"), reason: z.string().trim().max(300).nullish() }),
   z.object({ action: z.literal("assign"), riderId: z.string().max(64).nullable() }),
   z.object({
     action: z.literal("status"),
-    to: z.enum(["confirmed", "picked_up", "in_transit", "delivered", "failed"]),
+    to: z.enum(["confirmed", "picked_up", "in_transit", "out_for_delivery", "at_pickup_point", "delivered", "failed", "returning", "returned"]),
     code: z.string().max(12).nullish(),
     recipientName: z.string().max(80).nullish(),
     codCollected: z.number().min(0).nullish(),
@@ -69,7 +69,8 @@ export const POST = withLogistics(async (req: NextRequest, { user, params }) => 
       if (!assigned.ok) return apiError("CONFLICT", `Accepted, but ${assigned.error.charAt(0).toLowerCase()}${assigned.error.slice(1)}`, 409);
     }
   } else if (input.action === "decline") {
-    const declined = await transitionJob({ ...base, to: "cancelled" });
+    // Older app versions send no reason; the shop still sees that the partner said no.
+    const declined = await transitionJob({ ...base, to: "declined", declineReason: input.reason?.trim() || "Declined in the partner app" });
     if (!declined.ok) return apiError("CONFLICT", declined.error, 409);
   } else if (input.action === "assign") {
     const assigned = await assignRider({ bookingId, partnerId: partner.id, riderId: input.riderId });

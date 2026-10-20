@@ -86,7 +86,7 @@ export const WEBHOOK_RETRY_DELAYS_MS = [2_000, 10_000, 30_000];
 
 // ─── Job shape partners see ──────────────────────────────────────────────────
 
-const BUYER_VISIBLE = new Set(["confirmed", "picked_up", "in_transit", "delivered", "failed"]);
+const BUYER_VISIBLE = new Set(["confirmed", "picked_up", "in_transit", "out_for_delivery", "at_pickup_point", "delivered", "failed"]);
 
 export interface PartnerJobSource {
   id: string;

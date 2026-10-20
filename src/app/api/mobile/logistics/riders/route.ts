@@ -30,7 +30,7 @@ export const GET = withLogistics(async (_req: NextRequest, { user }) => {
       orderBy: [{ status: "asc" }, { name: "asc" }],
       select: { id: true, name: true, phone: true, status: true, online: true, lastSeenAt: true, riderTokenHash: true, lastLat: true, lastLng: true, lastLocationAt: true },
     }),
-    db.deliveryBooking.groupBy({ by: ["riderId"], where: { logisticsPartnerId: partner.id, status: { in: ["confirmed", "picked_up", "in_transit"] }, riderId: { not: null } }, _count: { _all: true } }),
+    db.deliveryBooking.groupBy({ by: ["riderId"], where: { logisticsPartnerId: partner.id, status: { in: ["confirmed", "picked_up", "in_transit", "out_for_delivery"] }, riderId: { not: null } }, _count: { _all: true } }),
     db.deliveryBooking.findMany({
       where: { logisticsPartnerId: partner.id, status: "delivered", deliveredAt: { gte: lagosStartOfToday(now) }, riderId: { not: null } },
       select: { riderId: true, deliveryFee: true, platformFee: true, netAmount: true },

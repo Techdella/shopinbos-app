@@ -12,8 +12,8 @@ export const dynamic = "force-dynamic";
 
 const VIEWS: Record<string, BookingStatus[]> = {
   new: ["pending"],
-  active: ["confirmed", "picked_up", "in_transit"],
-  done: ["delivered", "cancelled"],
+  active: ["confirmed", "picked_up", "in_transit", "out_for_delivery", "at_pickup_point", "returning"],
+  done: ["delivered", "returned", "declined", "cancelled"],
   issues: ["failed"],
 };
 
