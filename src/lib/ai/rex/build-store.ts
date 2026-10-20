@@ -5,7 +5,7 @@ import type { AuthUser } from "@/lib/auth/types";
 import { DEFAULT_STORE_CONFIG, getOpenAIClient, type StoreConfig } from "@/lib/ai/client";
 import { aiText, firstJsonObject, type ChatTurn } from "@/lib/ai/text";
 import { generateImage } from "@/lib/ai/images";
-import { meterAi } from "@/lib/ai/usage";
+import { meterAiCharged, refundAi } from "@/lib/ai/usage";
 import { buildStoreJsonSystemPrompt, type BrandContext, type TemplateContext } from "@/lib/ai/rex/prompts";
 import { hasInspiration, inspirationImages, type Inspiration } from "@/lib/ai/rex/inspiration";
 import { isLibraryTheme } from "@/lib/store-templates/theme-library";
@@ -365,25 +365,32 @@ export async function buildStore(input: BuildStoreInput): Promise<BuildStoreResu
       );
       const jobs: Array<Promise<void>> = [];
       const stamp = Date.now();
-      if (!(await meterAi(user.id, "image"))) {
+      // A picture the image service fails to make is given back (allowance and any credits it took).
+      const giveBack = (credits: number) => async (error: unknown) => {
+        await refundAi(user.id, "image", 1, credits);
+        throw error;
+      };
+      const heroMeter = await meterAiCharged(user.id, "image");
+      if (!heroMeter.blocked) {
         jobs.push(
           generateImage({
             prompt: `${heroImagePrompt ?? `A bright, premium lifestyle photo for the online store "${config.name}": ${config.heroSubline}`}. Wide banner composition with calm space on one side. No text, words, letters or logos.`,
             size: "1536x1024",
             path: `generated/${user.id}/rex-hero-${stamp}`,
-          }).then((url) => { images.hero = url; }),
+          }).then((url) => { images.hero = url; }, giveBack(heroMeter.credits)),
         );
       } else {
         notes.push("Hero image skipped: today's image limit is used up.");
       }
       if (wantProduct && firstProduct) {
-        if (!(await meterAi(user.id, "image"))) {
+        const productMeter = await meterAiCharged(user.id, "image");
+        if (!productMeter.blocked) {
           jobs.push(
             generateImage({
               prompt: `${productImagePrompt ?? `Clean studio product photo of ${firstProduct.name} (${firstProduct.subtitle}) for an online store`}. Soft natural light, plain light background. No text or logos.`,
               size: "1024x1024",
               path: `generated/${user.id}/rex-product-${stamp}`,
-            }).then((url) => { images.product = url; }),
+            }).then((url) => { images.product = url; }, giveBack(productMeter.credits)),
           );
         } else {
           notes.push("Product image skipped: today's image limit is used up.");

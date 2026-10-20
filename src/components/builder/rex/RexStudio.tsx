@@ -276,7 +276,7 @@ export function RexStudio(props: RexStudioProps) {
       ...(mode === "full"
         ? [{ key: "pages", label: t("rex.bp.pages"), state: (plan.pages ? "pending" : "skipped") as BuildStepState, note: plan.pages ? undefined : t("rex.bp.noAllowance") }]
         : []),
-      ...(mode === "full" && plan.photos > 0 ? [{ key: "photos", label: t("rex.bp.photos", { count: plan.photos }), state: "pending" as BuildStepState }] : []),
+      ...(plan.photos > 0 ? [{ key: "photos", label: t("rex.bp.photos", { count: plan.photos }), state: "pending" as BuildStepState }] : []),
       { key: "check", label: t("rex.bp.check"), state: "pending" },
     ];
     const mark = (key: string, state: BuildStepState, note?: string) =>
@@ -335,11 +335,11 @@ export function RexStudio(props: RexStudioProps) {
         creditsChanged();
       }
 
-      // 3. Photos: banner, story and sample products, as many as the plan covers.
-      if (mode === "full" && plan.photos > 0) {
+      // 3. Photos: banner, story and sample products, as many as the plan covers (quick: banner and one product).
+      if (plan.photos > 0) {
         mark("photos", "active");
         try {
-          const photos = await makeBuildPhotos(plan.photos);
+          const photos = await makeBuildPhotos(plan.photos, mode);
           if (photos.edit?.draft) takeDraft(photos.edit.draft, photos.edit.versions);
           if (photos.edit?.version) version = photos.edit.version;
           if (photos.made) changes.push(t("rex.bs.photosMade", { count: photos.made }));

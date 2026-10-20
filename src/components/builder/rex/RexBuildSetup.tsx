@@ -341,9 +341,9 @@ export function RexBuildSetup({ initialBrief, initialScreenshots = [], initialLi
                       <Notice>{t("rex.bs.noBuilds")}</Notice>
                       <BuyCreditsButton label={t("rex.ch.buyCredits")} />
                     </div>
-                  ) : plans.full.photosShort > 0 && mode === "full" ? (
+                  ) : plans[mode].photosShort > 0 ? (
                     <div className="mt-2 flex flex-wrap items-center gap-2 text-[13px] text-app-ink-soft">
-                      {t("rex.bs.short", { count: plans.full.photosShort })}
+                      {t("rex.bs.short", { count: plans[mode].photosShort })}
                       <BuyCreditsButton variant="link" label={t("rex.ch.buyCredits")} />
                     </div>
                   ) : null}
@@ -411,7 +411,7 @@ function ModeCard({ mode, selected, plan, plans, onSelect }: { mode: BuildMode; 
       ? t("rex.bs.costCredits", { count: plan.credits })
       : t("rex.bs.costFree");
   const body = mode === "quick"
-    ? t("rex.bs.quickBody")
+    ? plan.photos > 0 ? t("rex.bs.quickBody", { count: plan.photos }) : t("rex.bs.quickBodyNoPhotos")
     : !plans.imagesOn
       ? t("rex.bs.fullBodyNoPhotos")
       : t("rex.bs.fullBody", { count: plan.photos });

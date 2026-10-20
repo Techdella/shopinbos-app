@@ -1,9 +1,9 @@
 import "server-only";
 import { db } from "@/lib/db/client";
-import { aiAllowanceToday, meterAi } from "@/lib/ai/usage";
+import { aiAllowanceToday, meterAiCharged, refundAi } from "@/lib/ai/usage";
 import { creditBalance, liveCreditPrices } from "@/lib/ai/credits.server";
 import { getOpenAIClient } from "@/lib/ai/client";
-import { generateImage, isOwnImageUrl } from "@/lib/ai/images";
+import { generateImage } from "@/lib/ai/images";
 import { planBuild, photoSlotsFor, type BuildBudget, type BuildMode, type BuildPlan } from "@/lib/ai/rex/build-plan";
 import { inspirationPrompt, type Inspiration } from "@/lib/ai/rex/inspiration";
 import { applyStudioPlan, loadStudioStore, runStudioEdit, type StudioEditResult } from "@/lib/ai/rex/studio-edit.server";
@@ -96,16 +96,16 @@ interface PhotoJob {
 
 const NO_TEXT = "No text, words, letters, logos or watermarks.";
 
-function needsPhoto(section: { items?: Array<Record<string, unknown>> }) {
-  const url = section.items?.[0]?.imageUrl;
-  return typeof url !== "string" || !isOwnImageUrl(url);
-}
-
-function photoJobs(draft: StoreEditorSnapshot, context: { name: string; about: string; heroPrompt: string | null; storyPrompt: string | null }, products: Array<{ id: string; name: string; description: string | null }>) {
+/**
+ * What to photograph. The banner and story picture are always made fresh, so a rebuilt or restyled store never
+ * keeps the old look's pictures (the previous ones stay in the draft's versions, so undo brings them back).
+ * A quick build makes the banner and the first product only.
+ */
+function photoJobs(draft: StoreEditorSnapshot, context: { name: string; about: string; heroPrompt: string | null; storyPrompt: string | null }, products: Array<{ id: string; name: string; description: string | null }>, mode: BuildMode) {
   const jobs: PhotoJob[] = [];
   const home = draft.pages.find((page) => page.pageType === "home");
   const hero = home?.sections.find((section) => section.kind === "hero-split" && section.visible !== false);
-  if (home && hero && needsPhoto(hero)) {
+  if (home && hero) {
     jobs.push({
       key: "hero",
       prompt: `${context.heroPrompt ?? `A bright, premium lifestyle photo for the online store "${context.name}": ${context.about}`}. Wide banner composition with calm space on one side. ${NO_TEXT}`,
@@ -116,7 +116,7 @@ function photoJobs(draft: StoreEditorSnapshot, context: { name: string; about: s
   }
   const storyPage = [home, draft.pages.find((page) => page.pageType === "about")].find((page) => page?.sections.some((section) => (section.kind === "story-split" || section.kind === "about-section") && section.visible !== false));
   const story = storyPage?.sections.find((section) => (section.kind === "story-split" || section.kind === "about-section") && section.visible !== false);
-  if (storyPage && story && needsPhoto(story)) {
+  if (mode === "full" && storyPage && story) {
     jobs.push({
       key: "story",
       prompt: `${context.storyPrompt ?? `A warm, real-feeling photo behind the scenes of "${context.name}" (${context.about}): hands at work, the workshop or the products being prepared, African setting`}. ${NO_TEXT}`,
@@ -125,7 +125,7 @@ function photoJobs(draft: StoreEditorSnapshot, context: { name: string; about: s
       label: "Made the story photo",
     });
   }
-  for (const product of products) {
+  for (const product of mode === "quick" ? products.slice(0, 1) : products) {
     const name = product.name.replace(/\s*\(sample\)\s*$/i, "");
     const detail = product.description?.split(". Sample product")[0]?.trim();
     jobs.push({
@@ -157,9 +157,10 @@ export interface PhotosResult {
 
 /**
  * The photo pass: banner, story and sample-product photos, as many as `maxPhotos`, the allowance and the credits
- * allow (re-planned here, never trusted from the browser). Free photos are metered first, then the paid ones.
+ * allow (re-planned here, never trusted from the browser). Free photos are metered first, then the paid ones, and
+ * a photo the image service fails to make is given back (allowance and credits).
  */
-export async function addBuildPhotos(userId: string, maxPhotos: number): Promise<PhotosResult> {
+export async function addBuildPhotos(userId: string, maxPhotos: number, mode: BuildMode = "full"): Promise<PhotosResult> {
   const notes: string[] = [];
   const store = await loadStudioStore(userId);
   if (!store) return { made: 0, skipped: 0, changes: [], notes: ["Set up your store first."], edit: null };
@@ -178,23 +179,28 @@ export async function addBuildPhotos(userId: string, maxPhotos: number): Promise
     take: 6,
     select: { id: true, name: true, description: true },
   });
-  const all = photoJobs(draft, { name: store.name, about: store.description ?? "", heroPrompt: text(plan.heroImagePrompt), storyPrompt: text(plan.storyImagePrompt) }, samples);
+  const all = photoJobs(draft, { name: store.name, about: store.description ?? "", heroPrompt: text(plan.heroImagePrompt), storyPrompt: text(plan.storyImagePrompt) }, samples, mode);
 
   const budget = await buildBudget(userId);
-  const affordable = planBuild({ ...budget, left: { ...budget.left, build: 1, text: 1 } }, "full", all.length);
+  const affordable = planBuild({ ...budget, left: { ...budget.left, build: 1, text: 1 } }, mode, all.length);
   const jobs = all.slice(0, Math.max(0, Math.min(maxPhotos, affordable.photos)));
   const skipped = all.length - jobs.length;
   if (!jobs.length) {
     return { made: 0, skipped, changes: [], notes: skipped ? ["Photos were skipped: today's picture allowance and your AI credits are used up."] : [], edit: null };
   }
 
-  // Free photos, then paid ones (a single metered call for all would charge credits for the free ones too).
+  // Free photos, then paid ones (a single metered call for all would charge credits for the free ones too). Each
+  // batch remembers what it cost, so failed photos can be given back.
   const free = Math.min(jobs.length, affordable.freePhotos);
-  let allowed = 0;
-  if (free > 0 && !(await meterAi(userId, "image", free))) allowed += free;
-  if (jobs.length - free > 0 && !(await meterAi(userId, "image", jobs.length - free))) allowed += jobs.length - free;
-  const run = jobs.slice(0, allowed);
-  if (allowed < jobs.length) notes.push("Some photos were skipped: today's picture allowance and your AI credits ran out.");
+  const batches: Array<{ units: number; credits: number }> = [];
+  for (const units of [free, jobs.length - free]) {
+    if (units <= 0) continue;
+    const metered = await meterAiCharged(userId, "image", units);
+    if (metered.blocked) break;
+    batches.push({ units, credits: metered.credits });
+  }
+  const run = jobs.slice(0, batches.reduce((sum, batch) => sum + batch.units, 0));
+  if (run.length < jobs.length) notes.push("Some photos were skipped: today's picture allowance and your AI credits ran out.");
 
   const stamp = Date.now();
   const results = await inBatches(
@@ -219,7 +225,23 @@ export async function addBuildPhotos(userId: string, maxPhotos: number): Promise
       ops.push({ action: "update", page: job.apply.page, kind: job.apply.kind, sectionId: job.apply.sectionId, imageUrl: result.value, summary: job.label });
     }
   }
-  if (made < run.length) notes.push(`${run.length - made} photo${run.length - made === 1 ? "" : "s"} couldn't be made just now; those spots use colour blocks.`);
+  const failed = run.length - made;
+  if (failed > 0) {
+    // Give the failed photos back, the paid ones first (they cost the seller credits).
+    let left = failed;
+    let refunded = 0;
+    for (const batch of [...batches].reverse()) {
+      const units = Math.min(left, batch.units);
+      if (units <= 0) break;
+      const credits = Math.round((batch.credits / batch.units) * units);
+      await refundAi(userId, "image", units, credits);
+      refunded += credits;
+      left -= units;
+    }
+    notes.push(
+      `${failed} photo${failed === 1 ? "" : "s"} couldn't be made just now, so those spots use colour blocks.${refunded ? ` Your ${refunded} AI credit${refunded === 1 ? " was" : "s were"} given back.` : " Your picture allowance was given back."}`,
+    );
+  }
 
   let edit: StudioEditResult | null = null;
   const parsed = ops.length ? parseRexStudioPlan({ reply: "", ops }) : null;

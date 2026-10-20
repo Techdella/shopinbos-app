@@ -1,7 +1,8 @@
 // How much of a store Rex builds for what the seller has: today's free allowance first, then bought AI credits.
 // A full build is one store design, one pass that writes every page (and its search title), and a photo for the
 // banner, each product and the story section, as many as the allowance and credits cover. A quick build is the
-// design alone. Pure, unit-tested in tests/rex-full-build.test.mjs; the numbers come from src/lib/ai/usage.ts.
+// design with a banner and one product photo. Pure, unit-tested in tests/rex-full-build.test.mjs; the numbers come
+// from src/lib/ai/usage.ts.
 
 export type BuildMode = "full" | "quick";
 
@@ -31,6 +32,8 @@ export interface BuildPlan {
 
 /** Banner + story picture + up to six product photos. */
 export const MAX_BUILD_PHOTOS = 8;
+/** A quick build's photos: the banner and the first product. */
+export const QUICK_BUILD_PHOTOS = 2;
 
 export function photoSlotsFor(productsWithoutPhotos: number) {
   return Math.min(MAX_BUILD_PHOTOS, 2 + Math.max(0, Math.min(6, productsWithoutPhotos)));
@@ -56,10 +59,9 @@ export function planBuild(budget: BuildBudget, mode: BuildMode, photoSlots: numb
 
   const none: BuildPlan = { mode, canBuild: false, pages: false, photos: 0, freePhotos: 0, photosShort: 0, credits: 0 };
   if (!take("build")) return none;
-  if (mode === "quick") return { ...none, canBuild: true, credits };
 
-  const pages = take("text");
-  const slots = Math.max(0, Math.min(MAX_BUILD_PHOTOS, photoSlots));
+  const pages = mode === "full" && take("text");
+  const slots = Math.max(0, Math.min(mode === "quick" ? QUICK_BUILD_PHOTOS : MAX_BUILD_PHOTOS, photoSlots));
   const freePhotos = Math.min(slots, Math.max(0, left.image));
   const paidPhotos = budget.costs.image > 0 ? Math.min(slots - freePhotos, Math.floor(balance / budget.costs.image)) : slots - freePhotos;
   credits += paidPhotos * budget.costs.image;

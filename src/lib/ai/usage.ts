@@ -38,6 +38,35 @@ const KIND_WORD: Record<AiKind, string> = { text: "AI requests", image: "images"
  * Recording happens up front so parallel requests can't all slip under the limit.
  */
 export async function meterAi(userId: string, kind: AiKind, units = 1): Promise<NextResponse | null> {
+  return (await meterAiCharged(userId, kind, units)).blocked;
+}
+
+/**
+ * meterAi, also saying how many bought credits it took (0 when the free allowance covered it), so a job that
+ * then fails can be given back with refundAi.
+ */
+export async function meterAiCharged(userId: string, kind: AiKind, units = 1): Promise<{ blocked: NextResponse | null; credits: number }> {
+  let credits = 0;
+  const blocked = await meterOnce(userId, kind, units, (cost) => {
+    credits = cost;
+  });
+  return { blocked, credits: blocked ? 0 : credits };
+}
+
+/**
+ * Gives back uses that failed after metering (an image the service couldn't make): the allowance (a negative
+ * usage row) and any bought credits they took. Never fails the caller.
+ */
+export async function refundAi(userId: string, kind: AiKind, units: number, credits: number) {
+  try {
+    if (units > 0) await db.aiUsage.create({ data: { userId, kind, units: -Math.round(units) } });
+    if (credits > 0) await db.aiCreditAccount.update({ where: { userId }, data: { balance: { increment: Math.round(credits) } } });
+  } catch (error) {
+    console.error("[ai/usage] refund failed", error);
+  }
+}
+
+async function meterOnce(userId: string, kind: AiKind, units: number, charged: (cost: number) => void): Promise<NextResponse | null> {
   // Bursts across every server instance (shared, fails open); the daily allowance below is counted in AiUsage.
   const burst = await checkRateLimitShared(rateLimitKey(`ai:${kind}`, userId), { maxRequests: kind === "text" ? 20 : kind === "speech" ? 12 : 6, windowMs: 60_000 });
   if (!burst.allowed) {
@@ -57,6 +86,7 @@ export async function meterAi(userId: string, kind: AiKind, units = 1): Promise<
         console.error("[ai/usage] credit spend failed", error);
         return null;
       });
+      if (left !== null) charged(cost);
       if (left === null) {
         const balance = await creditBalance(userId);
         return NextResponse.json(

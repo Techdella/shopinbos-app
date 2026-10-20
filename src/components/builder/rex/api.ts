@@ -93,9 +93,9 @@ export async function writeEveryPage(inspiration: Inspiration | null): Promise<S
   return ((await response.json()) as { data: StudioChange }).data;
 }
 
-/** Full build, last step: banner, story and sample-product photos. */
-export async function makeBuildPhotos(maxPhotos: number) {
-  const response = await fetch("/api/ai/build-store/photos", json({ maxPhotos }));
+/** Last build step: banner, story and sample-product photos (quick: the banner and the first product). */
+export async function makeBuildPhotos(maxPhotos: number, mode: "full" | "quick" = "full") {
+  const response = await fetch("/api/ai/build-store/photos", json({ maxPhotos, mode }));
   if (!response.ok) throw new Error(await readError(response, "Rex couldn't make the photos. Your store is saved."));
   return ((await response.json()) as { data: { made: number; skipped: number; changes: string[]; notes: string[]; edit: StudioChange | null } }).data;
 }

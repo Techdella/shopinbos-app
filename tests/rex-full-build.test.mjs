@@ -30,10 +30,28 @@ test("a full build uses the free allowance first, then credits, for as many phot
   assert.equal(paid.credits, 15 + 1 + 15);
 });
 
-test("no allowance and too few credits means no build; a quick build is the design alone", () => {
+test("no allowance and too few credits means no build; a quick build is the design, a banner and a product photo", () => {
   assert.equal(plan.planBuild({ left: { build: 0, text: 5, image: 5 }, balance: 10, costs }, "full", 8).canBuild, false);
-  const quick = plan.planBuild({ left: { build: 1, text: 0, image: 0 }, balance: 0, costs }, "quick", 8);
-  assert.deepEqual(quick, { mode: "quick", canBuild: true, pages: false, photos: 0, freePhotos: 0, photosShort: 0, credits: 0 });
+  const quick = plan.planBuild({ left: { build: 1, text: 9, image: 8 }, balance: 0, costs }, "quick", 8);
+  assert.deepEqual(quick, { mode: "quick", canBuild: true, pages: false, photos: 2, freePhotos: 2, photosShort: 0, credits: 0 });
+  const broke = plan.planBuild({ left: { build: 1, text: 0, image: 0 }, balance: 5, costs }, "quick", 8);
+  assert.equal(broke.photos, 1, "one paid photo, the other spot a colour block");
+  assert.equal(broke.photosShort, 1);
+  assert.equal(broke.credits, 5);
+});
+
+test("photos that fail are given back, and rebuilds always make a fresh banner and story picture", () => {
+  const usage = read("src/lib/ai/usage.ts");
+  assert.match(usage, /export async function refundAi\(/);
+  assert.match(usage, /units: -Math\.round\(units\)/, "the allowance comes back as a negative usage row");
+  assert.match(usage, /balance: \{ increment: Math\.round\(credits\) \}/, "bought credits go back on the balance");
+  const build = read("src/lib/ai/rex/full-build.server.ts");
+  assert.match(build, /meterAiCharged\(userId, "image", units\)/);
+  assert.match(build, /await refundAi\(userId, "image", units, credits\)/);
+  assert.doesNotMatch(build, /needsPhoto|isOwnImageUrl/, "existing banner and story pictures are not kept on a rebuild");
+  assert.match(build, /mode === "quick" \? products\.slice\(0, 1\)/);
+  assert.match(read("src/lib/ai/rex/build-store.ts"), /giveBack\(heroMeter\.credits\)/);
+  assert.match(read("src/components/builder/rex/RexStudio.tsx"), /makeBuildPhotos\(plan\.photos, mode\)/);
 });
 
 test("photo spots: banner and story plus up to six products", () => {
@@ -110,7 +128,7 @@ test("the build steps: setup before building, real steps, credits checked on the
   const studio = read("src/components/builder/rex/RexStudio.tsx");
   assert.match(studio, /if \(BUILD_REQUEST\.test\(request\) \|\| phrasedBuild\) \{[\s\S]{0,400}setSetup\(/, "a typed build request opens the setup");
   assert.match(studio, /writeEveryPage\(/);
-  assert.match(studio, /makeBuildPhotos\(plan\.photos\)/);
+  assert.match(studio, /makeBuildPhotos\(plan\.photos, mode\)/);
   assert.match(read("src/lib/ai/rex/full-build.server.ts"), /planBuild\(\{ \.\.\.budget/, "the photo step re-plans instead of trusting the browser");
   assert.match(read("src/lib/ai/rex/inspiration.server.ts"), /safeFetch\(/);
   assert.match(read("src/app/api/ai/build-store/route.ts"), /inspiration: InspirationSchema/);
