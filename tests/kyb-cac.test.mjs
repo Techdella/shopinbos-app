@@ -149,7 +149,7 @@ test("CAC's own VAS answer becomes a record: people's names in two parts, roles 
 
 test("the CAC registry's own API goes first when its key is set, with the key kept on the server", () => {
   const server = readFileSync("src/lib/kyb/verify-cac.server.ts", "utf8");
-  assert.match(server, /\["cac", Boolean\(cacVasKey\(\)\), lookupCacVas\],\s*\["korapay"/);
+  assert.match(server, /\["korapay", korapayIdentityReady\(\), lookupKorapayCac\],\s*\["cac", Boolean\(cacVasKey\(\)\), lookupCacVas\]/, "CAC's ₦7,500 premium lookup after Korapay");
   const vas = readFileSync("src/lib/cac-vas.server.ts", "utf8");
   assert.match(vas, /^import "server-only";/);
   assert.match(vas, /headers: \{ X_API_KEY: key/);
