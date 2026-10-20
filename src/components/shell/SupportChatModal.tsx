@@ -12,8 +12,9 @@ import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import type { TFunction } from "@shared/i18n";
 import type { KeysOf } from "@shared/i18n/catalog";
+import { supportWhatsApp } from "@/lib/support-contact";
 
-const SUPPORT_WHATSAPP = (process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP ?? "").replace(/\D/g, "");
+const SUPPORT_WHATSAPP = supportWhatsApp();
 
 // The in-app help panel (all portals): Peggy answers how-to questions first when AI is on, "Talk to a person"
 // opens a ticket with the support team straight away, and replies arrive here live (polled), by email and in

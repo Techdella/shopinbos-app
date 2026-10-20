@@ -1,6 +1,7 @@
 // Lead growth (Admin › Lead campaigns): who a campaign or automation reaches, what each message says and the
 // sign-up link with its UTM tags. Pure and browser-safe (the editors use it); signed opt-out links are in ./tokens.ts.
 import { z } from "zod";
+import { EMAIL_COLORS, escapeHtml, html, safeHref } from "../email/shell.ts";
 
 export const LEAD_CHANNELS = ["email", "sms", "whatsapp"] as const;
 export type LeadChannel = (typeof LEAD_CHANNELS)[number];
@@ -60,6 +61,8 @@ const MessageFields = z.object({
   ctaUrl: z.string().trim().url("The button link must be a full https:// address.").max(500).optional().nullable().or(z.literal("")).transform((v) => v || null),
   waTemplate: z.string().trim().regex(/^[a-z0-9_]*$/, "WhatsApp template names are lower case letters, numbers and _.").max(120).optional().nullable().transform((v) => v || null),
   waLanguage: optionalText(12),
+  /** A banner shown under the email's heading (1200×628, e.g. /brand/launch/…). WhatsApp templates carry their own. */
+  imageUrl: z.string().trim().url("The image must be a full https:// address.").max(500).optional().nullable().or(z.literal("")).transform((v) => v || null),
 });
 
 const emailNeedsSubject = (v: { channel: LeadChannel; subject: string | null }) => v.channel !== "email" || Boolean(v.subject);
@@ -178,4 +181,13 @@ export function percent(part: number, whole: number) {
   if (!whole) return "–";
   const value = (part / whole) * 100;
   return `${value >= 10 || value === 0 ? value.toFixed(0) : value.toFixed(1)}%`;
+}
+
+/** The email body: the banner (if any), the text, and a line to reach us on WhatsApp. Shared by send and preview. */
+export function leadEmailBodyHtml(input: { body: string; imageUrl?: string | null; imageAlt?: string; whatsappUrl: string; whatsappLabel: string }) {
+  const image = input.imageUrl
+    ? `<img src="${safeHref(input.imageUrl)}" width="536" alt="${escapeHtml(input.imageAlt ?? "")}" style="display:block;width:100%;max-width:536px;height:auto;margin:0 0 20px;border:0;border-radius:16px">`
+    : "";
+  const chat = `<p class="sib-muted" style="margin:6px 0 0;font-size:13px;color:${EMAIL_COLORS.muted}">Questions? <a href="${safeHref(input.whatsappUrl)}" class="sib-link" style="color:${EMAIL_COLORS.teal};font-weight:600">Chat with us on WhatsApp</a> (${escapeHtml(input.whatsappLabel)}).</p>`;
+  return `${image}${html.text(input.body)}${chat}`;
 }

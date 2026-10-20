@@ -8,6 +8,7 @@ import { Notice, PillButton, TextInput, cx } from "@/components/app-ui";
 import { Field, checkClass, selectClass } from "@/components/growth/kit";
 import type { PlatformLegal } from "@/lib/email/shell";
 import { CHANNEL_LABELS, type LeadAudienceType, type LeadStepType } from "@/lib/lead-growth/pure";
+import { banner } from "@/lib/lead-growth/launch-sequences";
 import { AudiencePicker, EMPTY_AUDIENCE, MessageEditor, MessagePreview, TestSend, draftToContent, type MessageDraft, type Readiness } from "./LeadGrowthFields";
 
 // /admin/lead-campaigns/automations/new and /[id]: a sequence each new lead walks through (welcome straight away,
@@ -41,19 +42,20 @@ const DEFAULT_STEPS: StepDraft[] = [
     delayHours: 0,
     channel: "email",
     subject: "Welcome to Shopinbos, {{first_name}}",
-    body: "Hi {{first_name}},\n\nThanks for signing up on shopinbos.com. When you're ready, Chip (our AI) will build your online store in about five minutes: your products, your prices, your brand.\n\nNo website skills needed, and it's free to start.",
+    body: "Hi {{first_name}},\n\nThanks for signing up on shopinbos.com. When you're ready, Rex will build your online store with you in about five minutes: your products, your prices, your brand. Peggy will answer your customers on WhatsApp while you sell.\n\nNo website skills needed, and it's free to start.",
     ctaLabel: "Build my store",
     ctaUrl: "",
     waTemplate: "",
     waLanguage: "en",
+    imageUrl: banner("wa-01-welcome-seller"),
     at: "",
     skipAfter: "",
   },
-  { delayHours: 48, at: "", skipAfter: "", channel: "email", subject: "Need a hand, {{first_name}}?", body: "Hi {{first_name}},\n\nJust checking in. If you'd like help setting up your store, reply to this email and someone from the team will walk you through it.", ctaLabel: "Build my store", ctaUrl: "", waTemplate: "", waLanguage: "en" },
+  { delayHours: 48, at: "", skipAfter: "", channel: "email", subject: "Need a hand, {{first_name}}?", body: "Hi {{first_name}},\n\nJust checking in. If you'd like help setting up your store, reply to this email and someone from the team will walk you through it.", ctaLabel: "Build my store", ctaUrl: "", waTemplate: "", waLanguage: "en", imageUrl: banner("wa-06-rex-build") },
 ];
 
 function toDraft(step: LeadStepType): StepDraft {
-  return { delayHours: step.delayHours, at: toLagosInput(step.at), skipAfter: toLagosInput(step.skipAfter), channel: step.channel, subject: step.subject ?? "", body: step.body, ctaLabel: step.ctaLabel ?? "", ctaUrl: step.ctaUrl ?? "", waTemplate: step.waTemplate ?? "", waLanguage: step.waLanguage ?? "en" };
+  return { delayHours: step.delayHours, at: toLagosInput(step.at), skipAfter: toLagosInput(step.skipAfter), channel: step.channel, subject: step.subject ?? "", body: step.body, ctaLabel: step.ctaLabel ?? "", ctaUrl: step.ctaUrl ?? "", waTemplate: step.waTemplate ?? "", waLanguage: step.waLanguage ?? "en", imageUrl: step.imageUrl ?? "" };
 }
 
 export function LeadAutomationEditor({ initial, readiness, kinds, legal, appUrl }: { initial: AutomationDraftInput | null; readiness: Readiness; kinds: Array<{ key: string; label: string }>; legal: PlatformLegal; appUrl: string }) {

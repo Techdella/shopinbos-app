@@ -469,6 +469,7 @@ model LeadCampaign {
   ctaUrl      String?
   waTemplate  String? // approved WhatsApp template name; without one the body goes as plain text
   waLanguage  String?
+  imageUrl    String? // banner: under the email heading, or the WhatsApp template's image header
   scheduledAt DateTime?
   startedAt   DateTime?
   finishedAt  DateTime?

@@ -87,7 +87,7 @@ export default async function LeadCampaignPage(props: { params: Promise<{ id: st
       )}
 
       <LeadCampaignEditor
-        initial={{ id: campaign.id, name: campaign.name, audience: readAudience(campaign.audience), channel: campaign.channel as LeadChannel, subject: campaign.subject, body: campaign.body, ctaLabel: campaign.ctaLabel, ctaUrl: campaign.ctaUrl, waTemplate: campaign.waTemplate, waLanguage: campaign.waLanguage }}
+        initial={{ id: campaign.id, name: campaign.name, audience: readAudience(campaign.audience), channel: campaign.channel as LeadChannel, subject: campaign.subject, body: campaign.body, ctaLabel: campaign.ctaLabel, ctaUrl: campaign.ctaUrl, waTemplate: campaign.waTemplate, waLanguage: campaign.waLanguage, imageUrl: campaign.imageUrl }}
         readiness={ready}
         kinds={LEAD_KIND_OPTIONS}
         legal={platformLegal()}

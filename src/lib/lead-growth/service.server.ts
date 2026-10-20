@@ -99,6 +99,7 @@ function campaignData(input: CampaignInput) {
     ctaUrl: input.ctaUrl,
     waTemplate: input.channel === "whatsapp" ? input.waTemplate : null,
     waLanguage: input.channel === "whatsapp" ? input.waLanguage : null,
+    imageUrl: input.imageUrl,
   };
 }
 
@@ -146,8 +147,8 @@ export function listCampaigns() {
   });
 }
 
-function asContent(row: { channel: string; subject: string | null; body: string; ctaLabel: string | null; ctaUrl: string | null; waTemplate: string | null; waLanguage: string | null }): LeadMessageContentType {
-  return { channel: row.channel as LeadChannel, subject: row.subject, body: row.body, ctaLabel: row.ctaLabel, ctaUrl: row.ctaUrl, waTemplate: row.waTemplate, waLanguage: row.waLanguage };
+function asContent(row: { channel: string; subject: string | null; body: string; ctaLabel: string | null; ctaUrl: string | null; waTemplate: string | null; waLanguage: string | null; imageUrl: string | null }): LeadMessageContentType {
+  return { channel: row.channel as LeadChannel, subject: row.subject, body: row.body, ctaLabel: row.ctaLabel, ctaUrl: row.ctaUrl, waTemplate: row.waTemplate, waLanguage: row.waLanguage, imageUrl: row.imageUrl };
 }
 
 const BATCH = 50;

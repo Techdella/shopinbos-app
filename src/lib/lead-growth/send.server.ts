@@ -8,6 +8,7 @@ import { sendPlatformSms } from "@/lib/sms";
 import {
   firstName,
   leadAddress,
+  leadEmailBodyHtml,
   personalise,
   signupLink,
   textOptOutLine,
@@ -17,7 +18,8 @@ import {
   type LeadMessageContentType,
 } from "./pure";
 import { optOutUrl } from "./tokens";
-import { whatsappTemplate } from "./whatsapp-content";
+import { formatWhatsApp, whatsappChatUrl } from "@/lib/support-contact";
+import { templateImageUrl, whatsappTemplate } from "./whatsapp-content";
 import { metaWhatsAppConfig, sendMetaTemplate, sendMetaText } from "./whatsapp-meta.server";
 
 // One message to one lead, on email, SMS or WhatsApp, from Shopinbos's own accounts (Resend, the platform SMS
@@ -48,7 +50,7 @@ export function leadEmail(lead: LeadForMessage, content: LeadMessageContentType,
     kind: "lifecycle",
     heading: subject,
     preheader: body.split("\n")[0]?.slice(0, 120) ?? null,
-    bodyHtml: html.text(body),
+    bodyHtml: leadEmailBodyHtml({ body, imageUrl: content.imageUrl, imageAlt: subject, whatsappUrl: whatsappChatUrl("Hi Shopinbos, I have a question"), whatsappLabel: formatWhatsApp() }),
     cta: { label: content.ctaLabel || "Create your free store", url: cta },
     reason: "you left your details on shopinbos.com",
     legal: platformLegal(),
@@ -85,9 +87,12 @@ export async function sendToLead(lead: LeadForMessage, content: LeadMessageConte
       const first = firstName(lead.name) || "there";
       // The launch templates (whatsapp-content.ts) take the first name and the opt-out link; any other approved
       // template takes the first name as its only variable.
-      const params = whatsappTemplate(content.waTemplate) ? [first, links(lead, content, context).optOut] : [first];
+      const known = whatsappTemplate(content.waTemplate);
+      const params = known ? [first, links(lead, content, context).optOut] : [first];
+      // Our launch templates have an image header; another approved template gets the step's image if it has one.
+      const headerImage = known ? templateImageUrl(known) : content.imageUrl;
       const sent = content.waTemplate
-        ? await sendMetaTemplate(meta, { to, template: content.waTemplate, language: content.waLanguage ?? "en", params })
+        ? await sendMetaTemplate(meta, { to, template: content.waTemplate, language: content.waLanguage ?? "en", params, headerImage })
         : await sendMetaText(meta, { to, text: leadText(lead, content, context) });
       return sent.ok ? { status: "sent", to, providerId: sent.id } : { status: "failed", to, error: sent.error };
     }
