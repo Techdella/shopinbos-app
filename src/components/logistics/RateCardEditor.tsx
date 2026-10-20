@@ -4,6 +4,7 @@ import { useActionState, useId, useRef, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { Notice } from "@/components/app-ui";
 import { NATIONWIDE, NG_REGIONS, NG_STATES, RATE_SERVICES, SIZE_BANDS, SIZE_BAND_LABELS, type RateRow } from "@shared/delivery-market";
+import { lgasOf } from "@shared/ng-lgas";
 
 // The structured rate card editor (logistics marketplace, shared/delivery-market.ts validateRateCard): one row per
 // route, service and size, with a price and a timeframe. Used for the public card (/logistics/rates) and for private
@@ -24,6 +25,9 @@ interface EditRow {
   minDays: string;
   maxDays: string;
 }
+
+/** "Lagos: Eti-Osa" for every LGA, offered after the states so a partner can price one LGA (free text still works). */
+const LGA_PLACES = NG_STATES.flatMap((state) => lgasOf(state).map((lga) => `${state}: ${lga}`));
 
 const SERVICE_WORDS: Record<string, string> = { doorstep: "Doorstep", pickup_point: "Pickup point", same_day: "Same-day" };
 
@@ -104,6 +108,7 @@ export function RateCardEditor({
         <option value={NATIONWIDE} />
         {Object.keys(NG_REGIONS).map((region) => <option key={region} value={region} />)}
         {NG_STATES.map((name) => <option key={name} value={name} />)}
+        {LGA_PLACES.map((place) => <option key={place} value={place} />)}
       </datalist>
 
       <div className="hidden grid-cols-[minmax(0,1.3fr)_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,0.55fr)_minmax(0,0.55fr)_44px] gap-2 px-1 text-[13px] font-bold text-app-ink-soft lg:grid">

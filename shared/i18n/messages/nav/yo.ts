@@ -84,6 +84,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "delivery-partners": "Àwọn alábàáṣiṣẹ́ delivery",
   "delivery-my-partners": "Àwọn alábàáṣiṣẹ́ delivery mi",
   "delivery-exceptions": "Delivery tó ní ìṣòro",
+  "delivery-analytics": "Ìtúpalẹ̀ delivery",
   "delivery-settings": "Ètò delivery",
   shipping: "Owó delivery",
   "reports-sales": "Títà àti àbẹ̀wò",

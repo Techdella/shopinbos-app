@@ -43,6 +43,25 @@ test("areas: tokens parse, format and score from most to least specific", () => 
   assert.deepEqual(m.cleanServices("Doorstep, pickup points, Same-day, teleport"), ["doorstep", "pickup_point", "same_day"]);
 });
 
+test("areas: an area token matches a place in the same LGA, not just by text", () => {
+  const lekki = { state: "Lagos", area: "Lekki Phase 1" };
+  assert.equal(m.areaScore("Lagos: Eti-Osa", lekki), 4);
+  assert.equal(m.areaScore("Lagos: eti osa", lekki), 4);
+  assert.equal(m.areaScore("Lagos: Lekki", lekki), 4);
+  assert.equal(m.areaScore("Lagos: Lekki", { state: "Lagos", area: "Lekki" }), 4);
+  assert.equal(m.areaScore("Lagos: Lekki", { state: "Lagos", area: "Victoria Island" }), 4);
+  assert.equal(m.areaScore("Lagos: Ibeju-Lekki", lekki), -1);
+  assert.equal(m.areaScore("Lagos: Eti-Osa", { state: "Lagos", area: "Ikeja GRA" }), -1);
+  assert.equal(m.areaScore("Lagos: Isolo", { state: "Lagos", area: "Okota" }), 4);
+  assert.equal(m.areaScore("FCT: AMAC", m.placeOf({ city: "Wuse 2", state: "FCT" })), 4);
+  assert.equal(m.areaScore("FCT: Municipal Area Council", { state: "FCT", area: "Kubwa" }), -1);
+  assert.equal(m.areaScore("FCT: Bwari", { state: "FCT", area: "Kubwa" }), 4);
+  assert.equal(m.areaScore("Rivers: Port Harcourt", m.placeOf({ city: "GRA Phase 2", state: "Rivers" })), 4);
+  assert.equal(m.areaScore("Oyo: Eti-Osa", lekki), -1);
+  assert.equal(m.areaScore("Lagos: Eti-Osa", { state: "Lagos", area: null }), -1);
+  assert.equal(m.coverScore(["Lagos: Eti-Osa", "Ogun"], { state: "Lagos", area: "Ajah" }), 4);
+});
+
 test("size bands: product band, then weight, then the shop default; a parcel takes the bigger of largest item and total weight", () => {
   assert.equal(m.itemBand({ sizeBand: "bulky", weight: 1, quantity: 1 }), "bulky");
   assert.equal(m.itemBand({ weight: 500, weightUnit: "g", quantity: 1 }), "small");

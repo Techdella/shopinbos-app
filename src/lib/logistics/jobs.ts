@@ -18,6 +18,9 @@ const ORDER_STATUS_FOR_JOB: Record<string, "shipped" | "delivered" | undefined> 
   delivered: "delivered",
 };
 
+/** Job steps that send the buyer a delivery update (src/lib/notifications/delivery-messages.ts deliveryEventFor). */
+const DELIVERY_STAGE_MESSAGES = new Set(["confirmed", "out_for_delivery", "at_pickup_point", "failed", "returning"]);
+
 export async function transitionJob(input: {
   bookingId: string;
   partnerId: string;
@@ -88,6 +91,11 @@ export async function transitionJob(input: {
   void emitPartnerEvent(input.partnerId, input.to === "cancelled" ? "job.cancelled" : "job.updated", { id: job.id, status: input.to, actor: input.actor }).catch(() => undefined);
   // The seller hears about pickups, deliveries, problems and cash collected; the rider about a cancelled job.
   await notifyJobMoved({ bookingId: job.id, to: input.to, actor: input.actor, codCollected: input.codCollected });
+  // The buyer: WhatsApp/SMS at the delivery stages the seller switched on (booked, out for delivery with the code,
+  // at the pickup point, a problem). Delivered is the order's own message, sent above through updateOrderStatus.
+  if (job.orderId && DELIVERY_STAGE_MESSAGES.has(input.to)) {
+    await import("@/lib/notifications/customer-messages").then((messages) => messages.notifyDeliveryStage(job.id, input.to)).catch(() => undefined);
+  }
   // Supplier pickups: the supplier's order follows the rider (sent when picked up, delivered when dropped off).
   await import("@/lib/supplier-orders/pickup.server").then((pickup) => pickup.onDeliveryJobMoved(job.id, input.to)).catch(() => undefined);
   return { ok: true };

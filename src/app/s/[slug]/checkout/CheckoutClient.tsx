@@ -88,7 +88,8 @@ import {
   whatsappHelpHref,
 } from "@/components/storefront/checkout/checkout-layout";
 import type { CheckoutDesign } from "@/components/storefront/checkout/checkout-theme";
-import { PartnerDeliveryChoices, isPartnerOption, partnerDeliveryProblem, partnerPaymentOptions, readQuotedDelivery, type QuotedDelivery } from "@/components/storefront/checkout/PartnerDelivery";
+import { PartnerDeliveryChoices, hasPartnerParcels, isPartnerOption, partnerDeliveryProblem, partnerPaymentOptions, readQuotedDelivery, type QuotedDelivery } from "@/components/storefront/checkout/PartnerDelivery";
+import { PhoneCheck, usePhoneCheck } from "@/components/storefront/checkout/PhoneCheck";
 import { TransferInstructions, type TransferDetails } from "../order/[orderId]/TransferInstructions";
 import { readGameConfig } from "@/lib/gamification/logic";
 import { RewardProgress } from "@/components/storefront/gamification/RewardProgress";
@@ -204,6 +205,9 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
   const marketOption = partners ? marketDelivery?.options.find((option) => option.id === delivery.option?.id) ?? null : null;
   // What stops the order with delivery partners: no address yet, still checking, or nothing covers the address.
   const marketProblem = partners && !preview ? partnerDeliveryProblem({ hasAddress, pending: marketPending, delivery: marketDelivery }) : null;
+  // A delivery partner's rider needs a verified phone (spec §6.1): a code by WhatsApp/SMS, then the order carries
+  // the phoneToken (PhoneCheck.tsx). Only when the chosen option books a partner.
+  const phoneCheck = usePhoneCheck({ storeSlug: store.slug, phone: details.phone, enabled: partners && !preview, needed: hasPartnerParcels(marketOption) });
   const code = settings.enableCoupon ? applied : null;
   const estimate = orderTotals({
     subtotal: cart.subtotal,
@@ -388,10 +392,19 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
       showErrors(found);
       return;
     }
+    if (step === "delivery" && phoneCheck.blocker) return blockOnPhone(phoneCheck.blocker);
     persist();
     const target = Math.min(stepIndex + 1, steps.length - 1);
     setReached((prev) => Math.max(prev, target));
     goTo(target);
+  }
+
+  /** The phone isn't verified yet: say so in the phone box (on the delivery step) and move focus there. */
+  function blockOnPhone(message: string) {
+    const deliveryStep = steps.indexOf("delivery");
+    if (stepped && deliveryStep >= 0 && deliveryStep !== stepIndex) goTo(deliveryStep);
+    phoneCheck.showError(message);
+    window.requestAnimationFrame(() => document.getElementById("co-phone-check")?.focus());
   }
 
   async function placeOrder() {
@@ -420,6 +433,8 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
       showErrors({ deliveryOption: marketProblem });
       return;
     }
+    // Delivery partners: no order until the phone took its code (the checkout API checks the token too).
+    if (phoneCheck.blocker) return blockOnPhone(phoneCheck.blocker);
     setErrorNote("");
     persist();
     setSubmitting(true);
@@ -451,10 +466,16 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
           channel: readOrderChannel(store.slug) ?? undefined,
           affiliateCode: readLinkCode("aff", store.slug) ?? undefined,
           adCode: readLinkCode("ad", store.slug) ?? undefined,
+          phoneToken: phoneCheck.phoneToken,
         }),
       });
 
       const data = await res.json().catch(() => null);
+      if (data?.error?.code === "PHONE_NOT_VERIFIED") {
+        // The server didn't take the token (expired, or another number): ask for a new code.
+        phoneCheck.forget();
+        return blockOnPhone(data.error.message ?? "Verify your phone number so the delivery partner can reach you.");
+      }
       if (!res.ok || !data?.data?.order) {
         setError(data?.error?.message ?? "Something went wrong. Please try again.");
         // One page: the message (out of stock, price changed…) shows at the top of the form.
@@ -693,7 +714,7 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
       saveOnDevice={saveOnDevice}
       onSaveOnDevice={setSaveOnDevice}
       stateRequired={partners}
-      partnerChoices={partners ? (
+      partnerChoices={partners ? (<>
         <PartnerDeliveryChoices
           theme={theme}
           delivery={marketDelivery}
@@ -707,7 +728,8 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
           currency={store.currency}
           preview={preview}
         />
-      ) : null}
+        <PhoneCheck theme={theme} check={phoneCheck} />
+      </>) : null}
     />
   );
   // "Finish on WhatsApp" (Money page): a chat with the store, the bag already written out.

@@ -8,7 +8,7 @@ import { Notice, PillButton, Toggle } from "@/components/app-ui";
 import { Field, inputClass, selectClass, textareaClass } from "@/components/growth/kit";
 import type { ChannelStatus } from "@/lib/marketing/channels";
 import type { MessagingSettings } from "@/lib/marketing/messaging-settings";
-import { CUSTOMER_EVENTS, ORDER_MESSAGE_PRESETS, type CustomerEvent, type CustomerEventSetting } from "@/lib/marketing/text-channels";
+import { CUSTOMER_EVENTS, DELIVERY_MESSAGE_PRESETS, ORDER_MESSAGE_PRESETS, type CustomerEvent, type CustomerEventSetting } from "@/lib/marketing/text-channels";
 import { api, errorText } from "../_kit/client";
 import { ChannelHelp, SmsCounter, TemplateStatusPill, WhatsAppBubble, useTemplateStatusLabel, type TemplateOption } from "../_kit/text";
 import { useT } from "@/components/i18n/I18nProvider";
@@ -23,6 +23,15 @@ const SMS_DETAILS: Array<{ token: string; label: MessageKey<"marketing"> }> = [
   { token: "{{order_total}}", label: "om.detail.orderTotal" },
   { token: "{{tracking_link}}", label: "om.detail.tracking" },
   { token: "{{cart_url}}", label: "om.detail.cart" },
+];
+
+// Extra details for the delivery partner updates (Logistics marketplace). Plain English for now.
+const DELIVERY_SMS_DETAILS: Array<{ token: string; label: string }> = [
+  { token: "{{delivery_partner}}", label: "Delivery company" },
+  { token: "{{delivery_code}}", label: "Delivery code" },
+  { token: "{{pickup_point}}", label: "Pickup point" },
+  { token: "{{delivery_problem}}", label: "What went wrong" },
+  { token: "{{order_url}}", label: "Link to their order" },
 ];
 
 type Template = TemplateOption & { preset: string | null };
@@ -40,7 +49,7 @@ export function OrderMessages({ initial, channels, templates, currency }: { init
   const waReady = Boolean(channels.whatsapp.templates);
   const smsReady = channels.sms.ready;
   // The ready-made order templates on the seller's WhatsApp account (submitted by themselves on connect).
-  const orderTemplates = ORDER_MESSAGE_PRESETS.map((key) => templates.find((tpl) => tpl.preset === key && ["APPROVED", "PENDING", "IN_APPEAL"].includes(tpl.status)) ?? null);
+  const orderTemplates = [...ORDER_MESSAGE_PRESETS, ...DELIVERY_MESSAGE_PRESETS].map((key) => templates.find((tpl) => tpl.preset === key && ["APPROVED", "PENDING", "IN_APPEAL"].includes(tpl.status)) ?? null);
   const needsSetup = waReady && orderTemplates.some((tpl) => !tpl);
   const waitingForMeta = waReady && !needsSetup && orderTemplates.some((tpl) => tpl?.status !== "APPROVED");
 
@@ -120,13 +129,27 @@ export function OrderMessages({ initial, channels, templates, currency }: { init
         </p>
       </Card>
 
-      {CUSTOMER_EVENTS.map((event) => {
+      {CUSTOMER_EVENTS.map((event, index) => {
         const s = settings.transactional[event.key];
+        const firstDelivery = event.group === "delivery" && CUSTOMER_EVENTS[index - 1]?.group !== "delivery";
+        const smsDetails = [
+          ...SMS_DETAILS.filter((d) => event.group !== "delivery" || d.token !== "{{cart_url}}").map((d) => ({ token: d.token, label: t(d.label) })),
+          ...(event.group === "delivery" ? DELIVERY_SMS_DETAILS : []),
+        ];
         const auto = templates.find((tpl) => tpl.preset === event.preset && tpl.status === "APPROVED");
         const chosen = templates.find((tpl) => tpl.id === s.templateId) ?? null;
         const shown = chosen ?? auto ?? null;
         return (
-          <Card key={event.key} className="grid gap-4 p-5">
+          <div key={event.key} className="grid gap-5">
+          {firstDelivery ? (
+            <Card className="grid gap-2 p-5">
+              <CardHead title="Delivery partner updates" />
+              <p className="m-0 text-[14px] leading-[1.55] text-app-ink-soft">
+                For orders your delivery partners carry. Your customer hears when the delivery is booked, gets the delivery code when the rider is on the way (or the pickup point&apos;s address and hours), and hears if a delivery doesn&apos;t go through. We show your delivery partner&apos;s name only if you show it at checkout. Delivered uses the Delivered message above.
+              </p>
+            </Card>
+          ) : null}
+          <Card className="grid gap-4 p-5">
             <CardHead title={eventLabel(event.key, event.label)} sub={t.dynamic(`om.event.${event.key}.sub`, EVENT_COPY[event.key]?.sub ?? event.sub)} />
             <div className={SMS_ENABLED ? "grid gap-4 lg:grid-cols-2" : "grid gap-4"}>
               <div className="grid content-start gap-3">
@@ -172,9 +195,9 @@ export function OrderMessages({ initial, channels, templates, currency }: { init
                       <textarea id={`sms-${event.key}`} rows={3} className={textareaClass} value={s.smsText} maxLength={480} onChange={(e) => setEvent(event.key, { smsText: e.target.value })} />
                     </Field>
                     <div className="flex flex-wrap gap-1.5" role="group" aria-label={t("wa.addDetail")}>
-                      {SMS_DETAILS.map((d) => (
+                      {smsDetails.map((d) => (
                         <button key={d.token} type="button" className="min-h-[36px] rounded-full border border-app-line bg-white px-3 text-[13px] font-bold" onClick={() => setEvent(event.key, { smsText: `${s.smsText}${s.smsText && !/\s$/.test(s.smsText) ? " " : ""}${d.token}`.slice(0, 480) })}>
-                          + {t(d.label)}
+                          + {d.label}
                         </button>
                       ))}
                     </div>
@@ -185,6 +208,7 @@ export function OrderMessages({ initial, channels, templates, currency }: { init
               )}
             </div>
           </Card>
+          </div>
         );
       })}
 

@@ -18,7 +18,8 @@ import { resolveShopperTheme, type ShopperTheme } from "@/components/storefront/
 import type { ShopperCommerce, ShopperStore } from "@/components/storefront/shopper/types";
 import { TransferInstructions, type TransferDetails } from "../../order/[orderId]/TransferInstructions";
 import type { PublicPayLink } from "@/lib/payment-links/public.server";
-import { PartnerDeliveryChoices, partnerDeliveryProblem, partnerPaymentOptions, readQuotedDelivery, type QuotedDelivery } from "@/components/storefront/checkout/PartnerDelivery";
+import { PartnerDeliveryChoices, hasPartnerParcels, partnerDeliveryProblem, partnerPaymentOptions, readQuotedDelivery, type QuotedDelivery } from "@/components/storefront/checkout/PartnerDelivery";
+import { PhoneCheck, usePhoneCheck } from "@/components/storefront/checkout/PhoneCheck";
 
 // The page a customer opens from a payment link in WhatsApp, Instagram or TikTok: what they're paying for, a size or
 // colour if the seller left it open, how many (when allowed), delivery from the store's zones (or the delivery partners'
@@ -169,6 +170,8 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
   const delivery = chooseDelivery(deliveryChoice, deliveryOptionId);
   const marketOption = partners ? marketDelivery?.options.find((option) => option.id === delivery.option?.id) ?? null : null;
   const marketProblem = partners && !preview ? partnerDeliveryProblem({ hasAddress, pending: marketPending, delivery: marketDelivery }) : null;
+  // A delivery partner's rider needs a verified phone (spec §6.1): same check as checkout (PhoneCheck.tsx).
+  const phoneCheck = usePhoneCheck({ storeSlug: store.slug, phone: details.phone, enabled: partners && !preview, needed: hasPartnerParcels(marketOption) });
   const estimate = orderTotals({ subtotal: itemsTotal, shippingFee: delivery.fee });
   const quoteKey = JSON.stringify([optionId, quantity, details.city, details.state, partners ? deliveryOptionId : delivery.option?.id ?? null]);
   const totals = quote && quote.key === quoteKey ? quote.totals : estimate;
@@ -232,6 +235,12 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
     return found;
   }
 
+  /** The phone isn't verified yet: say so in the phone box and move focus there. */
+  function blockOnPhone(message: string) {
+    phoneCheck.showError(message);
+    window.requestAnimationFrame(() => document.getElementById("pay-phone-check")?.focus());
+  }
+
   async function pay() {
     setError(null);
     if (preview) return setError("This is your preview. Customers pay here once the store is live.");
@@ -243,6 +252,8 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
       window.requestAnimationFrame(() => document.getElementById(`pay-${first}`)?.focus());
       return;
     }
+    // Delivery partners: no order until the phone took its code (the checkout API checks the token too).
+    if (phoneCheck.blocker) return blockOnPhone(phoneCheck.blocker);
     saveDetails(store.slug, { name: details.name.trim(), phone: details.phone.trim(), email: details.email.trim(), street: details.street.trim(), city: details.city.trim(), state: details.state.trim(), country: details.country.trim(), landmark: details.landmark.trim() });
     setSubmitting(true);
     try {
@@ -261,9 +272,15 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
           deliveryOptionId: delivery.option?.id,
           paymentMethod,
           channel: ref ?? undefined,
+          phoneToken: phoneCheck.phoneToken,
         }),
       });
       const json = await res.json().catch(() => null);
+      if (json?.error?.code === "PHONE_NOT_VERIFIED") {
+        // The server didn't take the token (expired, or another number): ask for a new code.
+        phoneCheck.forget();
+        return blockOnPhone(json.error.message ?? "Verify your phone number so the delivery partner can reach you.");
+      }
       if (!res.ok || !json?.data?.order) {
         setError(json?.error?.message ?? "Something went wrong. Please try again.");
         return;
@@ -441,6 +458,7 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
                   id="pay-delivery"
                 />
                 {errors.delivery && marketDelivery?.covered !== false ? <span className="block text-[13px]" style={{ color: "#C2412D" }}>{errors.delivery}</span> : null}
+                <PhoneCheck theme={theme} check={phoneCheck} id="pay-phone-check" />
               </>
             ) : deliveryChoice.options.length > 1 ? (
               <div className="grid gap-2" role="radiogroup" aria-label="Delivery option">

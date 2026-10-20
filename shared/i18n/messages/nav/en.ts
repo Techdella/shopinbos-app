@@ -86,6 +86,7 @@ const en = {
   "delivery-partners": "Delivery partners",
   "delivery-my-partners": "My delivery partners",
   "delivery-exceptions": "Delivery exceptions",
+  "delivery-analytics": "Delivery analytics",
   "delivery-settings": "Delivery settings",
   shipping: "Shipping rates",
   "reports-sales": "Sales and visits",

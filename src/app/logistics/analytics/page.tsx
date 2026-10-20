@@ -5,6 +5,9 @@ import { ensureLogisticsAccess, getLogisticsPartnerForUser } from "@/lib/role-qu
 import { Card, CardHead, StatGrid, StatTile, TextLink } from "@/components/app-kit";
 import { BOOKING_STATUSES, PartnerPage, StatusPill, bookingNet, lagosDate, lagosDay, lagosStartOfToday, naira } from "@/components/logistics/kit";
 import { getT } from "@/lib/i18n/server";
+import { partnerMarketAnalytics } from "@/lib/delivery-market/analytics.server";
+import { durationWords, readRangeDays, RANGE_LABELS } from "@/lib/delivery-market/analytics";
+import { BreakdownCard, CountCard, IssuesCard, RangeChips, WeeklyChart, rateText } from "@/components/delivery-market/DeliveryAnalytics";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -24,7 +27,8 @@ function topBy<T>(rows: T[], key: (row: T) => string, value: (row: T) => number,
   return [...totals.entries()].map(([name, entry]) => ({ name, ...entry })).sort((a, b) => b.value - a.value || b.count - a.count).slice(0, limit);
 }
 
-export default async function LogisticsAnalyticsPage() {
+export default async function LogisticsAnalyticsPage({ searchParams }: { searchParams: Promise<{ range?: string }> }) {
+  const rangeDays = readRangeDays((await searchParams).range);
   const user = await requireRole(["logistics_partner"], "/logistics/login");
   const partner = await getLogisticsPartnerForUser(user);
   ensureLogisticsAccess(partner);
@@ -34,7 +38,7 @@ export default async function LogisticsAnalyticsPage() {
 
   const startOfToday = lagosStartOfToday();
   const since = new Date(startOfToday.getTime() - 29 * DAY);
-  const bookings = await db.deliveryBooking.findMany({
+  const [bookings, market] = await Promise.all([db.deliveryBooking.findMany({
     where: { logisticsPartnerId: partner.id, createdAt: { gte: since } },
     orderBy: { createdAt: "desc" },
     take: 2000,
@@ -42,7 +46,8 @@ export default async function LogisticsAnalyticsPage() {
       id: true, destination: true, deliveryFee: true, platformFee: true, netAmount: true, status: true,
       createdAt: true, deliveredAt: true, estimatedDelivery: true, seller: { select: { name: true } },
     },
-  });
+  }), partnerMarketAnalytics(partner.id, rangeDays, now)]);
+  const mt = market.totals;
 
   const delivered = bookings.filter((booking) => booking.status === "delivered");
   const finished = bookings.filter((booking) => ["delivered", "failed", "cancelled"].includes(booking.status));
@@ -166,6 +171,49 @@ export default async function LogisticsAnalyticsPage() {
           </Card>
         </div>
       </div>
+
+      {/* Logistics marketplace jobs: offered through shops' connections, accepted or declined, and how they went. */}
+      <section id="marketplace" aria-labelledby="marketplace-title" className="mt-10 grid scroll-mt-4 gap-5">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div className="min-w-0">
+            <h2 id="marketplace-title" className="m-0 text-[22px] font-extrabold tracking-[-0.4px]">Marketplace jobs</h2>
+            <p className="mb-0 mt-1 text-[14px] text-app-ink-soft">Jobs shops sent you through Shopinbos · {RANGE_LABELS[rangeDays].toLowerCase()}</p>
+          </div>
+          <RangeChips path="/logistics/analytics" days={rangeDays} hash="marketplace" />
+        </div>
+
+        {mt.offered === 0 ? (
+          <Card className="p-5">
+            <p className="m-0 text-[15px] text-app-ink-soft">No marketplace jobs in this period. Shops that connect with you send jobs here when their customers pick you at checkout.</p>
+          </Card>
+        ) : (
+          <>
+            <StatGrid>
+              <StatTile tone="card" label="Jobs offered" value={mt.offered} hint={`${mt.accepted} accepted · ${mt.declined} declined · ${mt.notAcceptedInTime} not accepted in time`} />
+              <StatTile tone="card" label="Acceptance rate" value={rateText(mt.acceptanceRate)} hint={`Usually accepted in ${durationWords(mt.medianAcceptMs)}`} />
+              <StatTile tone="card" label="Delivered" value={mt.delivered} hint={`Pickup to delivery: ${durationWords(mt.medianPickupToDeliveryMs)}`} />
+              <StatTile tone="card" label="Earned from deliveries" value={naira(mt.fees)} hint={`${naira(mt.feesPaidInApp)} paid in the app · ${naira(mt.feesNotInApp)} not`} />
+              <StatTile tone="card" label="On time" value={rateText(mt.onTimeRate)} hint={mt.timed ? `From ${mt.timed} deliveries with a promised time` : "No promised times yet"} />
+              <StatTile tone="card" label="Failed deliveries" value={rateText(mt.failedRate)} hint={`${mt.failedAttempts} failed attempts · ${mt.returned} returned`} />
+              <StatTile tone="card" label="Cancelled" value={mt.cancelled} hint="By the shop or the order" />
+              <StatTile tone="card" label="Customer problems" value={market.issueCount} hint={market.openIssues ? `${market.openIssues} still open` : "None open"} />
+            </StatGrid>
+
+            <div className="grid gap-5 xl:[grid-template-columns:minmax(0,1fr)_400px]">
+              <div className="grid min-w-0 content-start gap-5">
+                <WeeklyChart weeks={market.weeks} feesLabel="Earnings" />
+                <BreakdownCard title="Where you deliver" sub="Customers' states" rows={market.states} kind="state" />
+              </div>
+              <div className="grid min-w-0 content-start gap-5">
+                <BreakdownCard title="Services" rows={market.services} kind="service" />
+                <BreakdownCard title="Parcel sizes" rows={market.sizes} kind="size" />
+                <CountCard title="Why you declined" rows={market.declineReasons} empty="You haven't declined any jobs in this period." />
+                <IssuesCard rows={market.issues} sub="Late, not delivered or damaged, as customers told the shop" />
+              </div>
+            </div>
+          </>
+        )}
+      </section>
     </PartnerPage>
   );
 }

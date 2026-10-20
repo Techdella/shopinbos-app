@@ -8,6 +8,7 @@ import { Notice } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { ActionNotice, PartnerPage, SubmitButton, inputClass, labelClass } from "@/components/logistics/kit";
 import { NG_STATES, canonicalState } from "@shared/delivery-market";
+import { LgaAreaInput } from "@/components/delivery-market/LgaAreaInput";
 
 // The partner's pickup points (logistics marketplace): places customers collect parcels from. Shops that offer
 // pickup points show the ones in the customer's state at checkout.
@@ -51,7 +52,7 @@ function PointForm({ point, defaultState, submitLabel }: { point: PointFields; d
       </div>
       <div>
         <label htmlFor={`area-${key}`} className={labelClass}>Area or LGA</label>
-        <input id={`area-${key}`} name="area" maxLength={80} defaultValue={point.area ?? ""} placeholder="Yaba" className={inputClass} />
+        <LgaAreaInput id={`area-${key}`} name="area" stateName="state" initialState={point.state || defaultState} maxLength={80} defaultValue={point.area ?? ""} placeholder="Yaba" className={inputClass} />
       </div>
       <div>
         <label htmlFor={`hours-${key}`} className={labelClass}>Opening hours</label>

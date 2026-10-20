@@ -84,10 +84,10 @@ export async function channelUsedFor(phone: string): Promise<CodeChannel> {
   return reportedChannel(note?.used);
 }
 
-async function sendWhatsAppCode(config: WhatsAppCodeConfig, phone: string, otp: string) {
+async function sendWhatsAppCode(config: WhatsAppCodeConfig, phone: string, otp: string, message?: string) {
   const request =
     config.provider === "termii"
-      ? termiiWhatsAppRequest(config, phone, otp)
+      ? termiiWhatsAppRequest(config, phone, otp, message)
       : config.provider === "sendchamp"
         ? sendchampWhatsAppRequest(config, phone, otp)
         : metaWhatsAppRequest(config, phone, otp);
@@ -126,6 +126,32 @@ export async function deliverSignInCode(phone: string, otp: string, env: Record<
       await noteUsed(key, "sms");
       return { ok: true, channel: "sms" };
     }
+    errors.push(`sms: ${sms.error}`);
+  }
+  return { ok: false, error: errors.join("; ") || "No way to send the code." };
+}
+
+/**
+ * Other one-time codes (the checkout phone check, src/lib/commerce/phone-verify.server.ts): WhatsApp first when
+ * WhatsApp codes are set up and SMS isn't asked for, then platform SMS, both with the caller's message (WhatsApp
+ * templates on Sendchamp and Meta carry only the code). No channel note: there is no Supabase hook in between.
+ */
+export async function deliverCode(
+  input: { phone: string; otp: string; message: string; via?: CodeChannel },
+  env: Record<string, string | undefined> = process.env,
+): Promise<CodeDelivery> {
+  const whatsapp = whatsappCodeConfig(env);
+  const errors: string[] = [];
+  for (const channel of deliveryPlan(input.via === "sms" ? "sms" : "whatsapp", Boolean(whatsapp))) {
+    if (channel === "whatsapp" && whatsapp) {
+      const sent = await sendWhatsAppCode(whatsapp, input.phone, input.otp, input.message);
+      if (sent.ok) return { ok: true, channel: "whatsapp" };
+      errors.push(`whatsapp (${whatsapp.provider}): ${sent.error}`);
+      console.warn("[otp] WhatsApp code failed, falling back to SMS", sent.error);
+      continue;
+    }
+    const sms = await sendPlatformSms({ to: [input.phone], body: input.message });
+    if (sms.ok) return { ok: true, channel: "sms" };
     errors.push(`sms: ${sms.error}`);
   }
   return { ok: false, error: errors.join("; ") || "No way to send the code." };

@@ -137,12 +137,15 @@ export const CODE_CHANNEL_TTL_MS = 10 * 60 * 1000;
 
 const digits = (value: string) => value.replace(/[^\d]/g, "");
 
-/** Termii POST {base}/api/sms/send on the WhatsApp channel. */
-export function termiiWhatsAppRequest(config: WhatsAppCodeConfig, phone: string, otp: string) {
+/**
+ * Termii POST {base}/api/sms/send on the WhatsApp channel. A plain message, so other codes (the checkout phone check)
+ * can pass their own wording; Sendchamp and Meta send the approved template, which carries only the code.
+ */
+export function termiiWhatsAppRequest(config: WhatsAppCodeConfig, phone: string, otp: string, message: string = signInCodeMessage(otp)) {
   const base = (config.baseUrl || "https://v3.api.termii.com").replace(/\/+$/, "");
   return {
     url: `${base}/api/sms/send`,
-    body: { api_key: config.apiKey, to: digits(phone), from: config.sender, sms: signInCodeMessage(otp), type: "plain", channel: "whatsapp" },
+    body: { api_key: config.apiKey, to: digits(phone), from: config.sender, sms: message, type: "plain", channel: "whatsapp" },
   };
 }
 

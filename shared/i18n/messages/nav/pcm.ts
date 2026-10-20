@@ -84,6 +84,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "delivery-partners": "Delivery partners",
   "delivery-my-partners": "My delivery partners",
   "delivery-exceptions": "Delivery wey get wahala",
+  "delivery-analytics": "How delivery dey go",
   "delivery-settings": "Delivery settings",
   shipping: "Delivery prices",
   "reports-sales": "Sales and visits",

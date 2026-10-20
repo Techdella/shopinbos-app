@@ -1,8 +1,8 @@
 // Logistics marketplace rules (docs: the "Shopinbos Logistics Marketplace" spec): where partners go, structured rate
 // cards, size bands, the delivery options a customer sees at checkout, the one status list every partner uses, the
 // seller's exceptions, partner stats and ranking, and the gentle chat warnings about taking jobs off the app.
-// Shared by the web app, the server and the mobile app. Pure (no imports), unit-tested in
-// tests/delivery-market.test.mjs.
+// Shared by the web app, the server and the mobile app. Pure (its only import is the LGA list in ./ng-lgas.ts),
+// unit-tested in tests/delivery-market.test.mjs.
 //
 // Decisions taken for v1 (spec §11), each in one place here so they're easy to change:
 //   1. Connecting is instant on a partner's public rates (CONNECT_NEEDS_APPROVAL); private rates need the shop to accept.
@@ -12,6 +12,8 @@
 //   5. Partner name at checkout: the seller's choice per partner (DeliveryConnection.showPartnerName).
 //   6. Shopinbos commission on delivery fees: none (DELIVERY_COMMISSION_RATE).
 //   7. Coverage: states, regions and nationwide, with optional "State: Area" tokens for LGAs/cities.
+
+import { lgaOfArea } from "./ng-lgas.ts";
 
 export const CONNECT_NEEDS_APPROVAL = false;
 export const DROPSHIP_SHIPPER = "supplier" as const;
@@ -156,7 +158,9 @@ export function cleanAreas(input: unknown): { areas: string[]; unknown: string[]
 
 /**
  * How well an area token matches a place: 4 the exact area, 3 the state, 2 the region, 1 nationwide, -1 no match.
- * A place with no known state only matches "Nationwide".
+ * An area token matches when its text is inside the place's area, or when both resolve to the same LGA
+ * ("Lagos: Eti-Osa" covers "Lekki Phase 1"; "Lagos: Lekki" covers "Victoria Island"). A place with no known state
+ * only matches "Nationwide".
  */
 export function areaScore(token: AreaToken | string | null, place: Place): number {
   const parsed = typeof token === "string" ? parseArea(token) : token;
@@ -165,8 +169,10 @@ export function areaScore(token: AreaToken | string | null, place: Place): numbe
   if (!place.state) return -1;
   if (parsed.kind === "region") return NG_REGIONS[parsed.region]?.includes(place.state) ? 2 : -1;
   if (parsed.kind === "state") return parsed.state === place.state ? 3 : -1;
-  if (parsed.state !== place.state) return -1;
-  return place.area && words(place.area).includes(words(parsed.area)) ? 4 : -1;
+  if (parsed.state !== place.state || !place.area) return -1;
+  if (words(place.area).includes(words(parsed.area))) return 4;
+  const lga = lgaOfArea(parsed.state, parsed.area);
+  return lga && lga === lgaOfArea(place.state, place.area) ? 4 : -1;
 }
 
 /** The best score of any token in the list (an empty list covers nothing). */

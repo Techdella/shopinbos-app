@@ -39,6 +39,13 @@ export function readQuotedDelivery(value: unknown): QuotedDelivery | null {
 /** A partner carries it (not the seller's own pickup or the seller's fallback delivery). */
 export const isPartnerOption = (option: Pick<MarketOption, "kind">) => option.kind !== "self_pickup" && option.kind !== "fallback";
 
+/**
+ * The option books at least one delivery partner job (same test as the checkout API's partnerShipments): then the
+ * shopper verifies their phone with a code (PhoneCheck.tsx) before the order goes in.
+ */
+export const hasPartnerParcels = (option: Pick<MarketOption, "parts"> | null | undefined) =>
+  Array.isArray(option?.parts) && option.parts.some((part) => !!part.partnerId && !!part.connectionId);
+
 const POD_OPTION = checkoutPaymentOptions({ methods: { cod: true }, paystackReady: false, korapayReady: false, transferReady: false, codLimit: null, zones: [] })[0]!;
 
 /**

@@ -84,6 +84,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "delivery-partners": "Ndị mmekọ delivery",
   "delivery-my-partners": "Ndị mmekọ delivery m",
   "delivery-exceptions": "Delivery nwere nsogbu",
+  "delivery-analytics": "Nyocha delivery",
   "delivery-settings": "Ntọala delivery",
   shipping: "Ego delivery",
   "reports-sales": "Ire na nleta",

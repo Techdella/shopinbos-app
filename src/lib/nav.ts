@@ -188,6 +188,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
             { id: "delivery-partners", label: "Delivery partners", href: "/home/logistics" },
             { id: "delivery-my-partners", label: "My delivery partners", href: "/home/logistics/partners" },
             { id: "delivery-exceptions", label: "Delivery exceptions", href: "/home/logistics/exceptions" },
+            { id: "delivery-analytics", label: "Delivery analytics", href: "/home/logistics/analytics" },
             { id: "delivery-settings", label: "Delivery settings", href: "/home/logistics/settings" },
             { id: "shipping", label: "Shipping rates", href: "/home/shipping" },
           ],

@@ -98,7 +98,7 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
     >
       <div className="grid gap-5">
         {/* Logistics marketplace: delivery settings, connected partners and deliveries that need the shop. */}
-        <nav aria-label="Delivery partners" className="grid gap-3 sm:grid-cols-3">
+        <nav aria-label="Delivery partners" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <Link href="/home/logistics/settings" className="grid gap-0.5 rounded-[18px] border border-app-line bg-white px-4 py-3.5 text-app-ink no-underline hover:border-app-line-strong">
             <span className="text-[14.5px] font-extrabold">Delivery settings</span>
             <span className="text-[13px] text-app-ink-soft">{deliverySettings.checkoutMode === "partners" ? "Checkout shows your partners' options" : "Checkout uses your own zones"}</span>
@@ -110,6 +110,10 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
           <Link href="/home/logistics/exceptions" className="grid gap-0.5 rounded-[18px] border border-app-line bg-white px-4 py-3.5 text-app-ink no-underline hover:border-app-line-strong">
             <span className="flex items-center gap-2 text-[14.5px] font-extrabold">Exceptions {exceptions.length > 0 && <Pill tone="danger">{exceptions.length}</Pill>}</span>
             <span className="text-[13px] text-app-ink-soft">{exceptions.length === 0 ? "Nothing needs you" : "Deliveries that need you"}</span>
+          </Link>
+          <Link href="/home/logistics/analytics" className="grid gap-0.5 rounded-[18px] border border-app-line bg-white px-4 py-3.5 text-app-ink no-underline hover:border-app-line-strong">
+            <span className="text-[14.5px] font-extrabold">Delivery analytics</span>
+            <span className="text-[13px] text-app-ink-soft">Spend, on-time deliveries and partners compared</span>
           </Link>
         </nav>
 

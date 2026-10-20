@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Notice } from "@/components/app-ui";
 import { Pill } from "@/components/app-kit";
 import { field } from "@/components/seller-core";
+import { LgaAreaInput } from "./LgaAreaInput";
 import {
   NG_STATES,
   SERVICE_LABELS,
@@ -134,8 +135,8 @@ export function OriginFields({ settings }: { settings: { originState: string | n
       <Field label="State">
         <StateSelect name="originState" defaultValue={settings.originState} />
       </Field>
-      <Field label="Area or city" hint="For example Ikeja, Yaba or Wuse.">
-        <input name="originArea" defaultValue={settings.originArea ?? ""} className={field.input} maxLength={80} placeholder="Ikeja" />
+      <Field label="Area or LGA" hint="For example Ikeja, Yaba or Wuse. Pick from the list or type your own.">
+        <LgaAreaInput name="originArea" stateName="originState" initialState={settings.originState} defaultValue={settings.originArea ?? ""} className={field.input} maxLength={80} placeholder="Ikeja" />
       </Field>
       <div className="md:col-span-2">
         <Field label="Pickup address" hint="Where riders collect your parcels.">

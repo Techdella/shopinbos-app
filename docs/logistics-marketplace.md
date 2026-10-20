@@ -55,7 +55,7 @@ Each decision is a constant or a single function in `shared/delivery-market.ts`,
 4. **Payout timing:** instant split at payment.
 5. **Partner name** at checkout is the seller's choice, per partner.
 6. **Commission:** none on delivery fees. Shopinbos's platform fee is only on what the seller sells.
-7. **Coverage:** states, regions and nationwide, plus optional `State: Area` tokens for LGAs or cities.
+7. **Coverage:** states, regions and nationwide, plus optional `State: Area` tokens for LGAs or cities. An area token matches an address when its text is inside the address's area, or when both resolve to the same LGA (`shared/ng-lgas.ts`: all 774 LGAs plus common area names, so `Lagos: Eti-Osa` covers "Lekki Phase 1"). Area fields suggest the state's LGAs but still accept free text.
 
 ## Pay on delivery
 
@@ -75,5 +75,4 @@ POD is off by default. It is allowed per connection only when the seller opts in
 
 - SMS/WhatsApp messages at each delivery stage. The existing order messages still fire.
 - Verified customer phone numbers at checkout (OTP). Today the phone is required, not verified.
-- LGA data lists (areas are free text).
 - Partner and seller delivery analytics.

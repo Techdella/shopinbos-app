@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { AppPage, Card, CardHead } from "@/components/app-kit";
+import { AppPage, Card, CardHead, PillLink } from "@/components/app-kit";
 import { pillButton } from "@/components/seller-core";
 import { supplierFrame } from "@/components/supplier/supplier-kit";
 import { requireRole } from "@/lib/server-auth";
@@ -36,6 +36,7 @@ export default async function SupplierDeliveryPage({ searchParams }: { searchPar
       frame={supplierFrame(user, supplier)}
       title="Delivery"
       sub="When a shop sells your products by dropship, your delivery partners ship from you to the customer."
+      actions={<PillLink href="/supplier/delivery/analytics" icon="chart">Delivery analytics</PillLink>}
     >
       <FlashNotice saved={params.saved} error={params.error} />
       <div className="grid gap-8">

@@ -9,6 +9,7 @@ import { Card, CardHead, EmptyState, ListCard, ListRow, Pill, PillLink } from "@
 import { LOGISTICS_FREE_ROUTE_LIMIT } from "@/lib/plan-limits";
 import { ActionNotice, PartnerPage, SubmitButton, inputClass, labelClass, naira, textareaClass } from "@/components/logistics/kit";
 import { coverageDepot, coverageZoneRows } from "@/components/logistics/coverage";
+import { AreaTokenAdder } from "@/components/logistics/AreaTokenAdder";
 import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
@@ -69,8 +70,12 @@ export default async function LogisticsCoveragePage({ searchParams }: { searchPa
             <textarea id="deliveryAreas" name="deliveryAreas" rows={4} defaultValue={partner.deliveryAreas.join("\n")} placeholder={"Lagos\nSouth-West\nFCT"} className={textareaClass} />
           </div>
           <p className="m-0 text-[15px] text-app-ink-soft lg:col-span-2">
-            One place per line: a state (<b>Lagos</b>), an area in a state (<b>Lagos: Ikeja</b>), a region ({Object.keys(NG_REGIONS).join(", ")}) or <b>Nationwide</b>.
+            One place per line: a state (<b>Lagos</b>), an area or LGA in a state (<b>Lagos: Ikeja</b>), a region ({Object.keys(NG_REGIONS).join(", ")}) or <b>Nationwide</b>.
           </p>
+          <AreaTokenAdder
+            selectClass={inputClass}
+            targets={[{ id: "pickupAreas", label: "Add to collect from" }, { id: "deliveryAreas", label: "Add to deliver to" }]}
+          />
           <div className="grid gap-1.5 lg:col-span-2">
             <label className="flex min-h-[44px] items-center gap-2 text-[15px] font-bold">
               <input type="checkbox" name="offersPayOnDelivery" defaultChecked={partner.offersPayOnDelivery} className="h-5 w-5 accent-[#16141F]" />

@@ -84,6 +84,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "delivery-partners": "Abokan delivery",
   "delivery-my-partners": "Abokan delivery na",
   "delivery-exceptions": "Delivery masu matsala",
+  "delivery-analytics": "Nazarin delivery",
   "delivery-settings": "Saitunan delivery",
   shipping: "Kuɗin delivery",
   "reports-sales": "Sayarwa da ziyara",
