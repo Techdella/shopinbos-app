@@ -58,7 +58,7 @@ export default function Orders() {
     <TabScreen title={t("tab.orders")} refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 20 }} style={{ marginHorizontal: -20, flexGrow: 0 }}>
         {ORDER_GROUPS.map((key) => (
-          <Seg key={key} label={`${t(`list.group.${key}`)} ${orders ? grouped[key].length : ""}`.trim()} on={group === key} onPress={() => setGroup(key)} />
+          <Seg key={key} label={t(`list.group.${key}`)} count={orders ? grouped[key].length : undefined} on={group === key} onPress={() => setGroup(key)} />
         ))}
       </ScrollView>
       {error && <Notice>{error}</Notice>}
