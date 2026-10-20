@@ -165,3 +165,10 @@ test("the CAC check never silently greys out: it says what's missing and asks fo
   const admin = readFileSync("src/app/admin/wallets/page.tsx", "utf8");
   assert.match(admin, /<CacChecksStatus providers=\{cacProviders\(\)\} \/>/, "the team sees which CAC lookups are on");
 });
+
+test("a VAS key rejected (401) on one environment is tried once on the other, and stray quotes are dropped", () => {
+  const vas = readFileSync("src/lib/cac-vas.server.ts", "utf8");
+  assert.match(vas, /if \(result\.status === 401 && !pinned && !detectedBase\) \{/);
+  assert.match(vas, /const other = first === PRODUCTION \? STAGING : PRODUCTION;/);
+  assert.match(vas, /replace\(\/\^\["'\]\+\|\["'\]\+\$\/g, ""\)/);
+});
