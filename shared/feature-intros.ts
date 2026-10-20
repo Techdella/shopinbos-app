@@ -997,5 +997,5 @@ export function withIntroSeen(seen: readonly string[] | null | undefined, key: s
   return [...(seen ?? []).filter((item) => item !== key), key].slice(-MAX_INTROS_SEEN);
 }
 
-export const MAX_INTROS_SEEN = 60;
+export const MAX_INTROS_SEEN = 100;
 export const INTRO_KEY_PATTERN = /^[a-z0-9-]{1,40}$/;
