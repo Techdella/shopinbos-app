@@ -23,4 +23,9 @@ export interface ShopperCommerce {
   flatRate: number;
   cart: CartSettings;
   checkout: CheckoutSettings;
+  /**
+   * How delivery is priced: the store's own zones (above), or options from the seller's connected delivery partners
+   * (Logistics marketplace), which only the server can work out (the checkout quote). Missing means zones.
+   */
+  deliveryMode?: "zones" | "partners";
 }

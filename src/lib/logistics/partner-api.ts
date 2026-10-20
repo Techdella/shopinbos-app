@@ -43,7 +43,7 @@ export const AcceptBody = z.object({ riderId: z.string().min(1).max(64).optional
 
 export const StatusBody = z
   .object({
-    status: z.enum(["picked_up", "in_transit", "delivered", "failed"]),
+    status: z.enum(["picked_up", "in_transit", "out_for_delivery", "at_pickup_point", "delivered", "failed", "returning", "returned"]),
     code: z.string().regex(/^\d{4}$/, "code must be the buyer's 4-digit code").optional(),
     reason: z.string().trim().min(1).max(300).optional(),
     cod: z.object({ amount: z.number().nonnegative().max(100_000_000), method: z.enum(["cash", "transfer"]) }).optional(),

@@ -12,6 +12,7 @@ import { replyToQuote } from "@/lib/logistics/quotes";
 import { getPublicEnv } from "@/lib/env";
 import { assignRider, transitionJob } from "@/lib/logistics/jobs";
 import { newRiderToken } from "@/lib/logistics/rider-token";
+import { JOB_STATUSES, canWorkExistingJobs } from "@/lib/logistics/job-rules";
 import { toE164 } from "@shared/phone";
 import { LOGISTICS_FREE_ROUTE_LIMIT, LOGISTICS_FREE_TEAM_MEMBER_LIMIT } from "@/lib/plan-limits";
 import {
@@ -20,7 +21,7 @@ import {
   LogisticsPricingUpdateSchema,
 } from "@/lib/schemas";
 
-const bookingStatuses = ["pending", "confirmed", "picked_up", "in_transit", "delivered", "failed", "cancelled"] as const;
+const bookingStatuses: readonly string[] = JOB_STATUSES;
 
 function splitList(value: FormDataEntryValue | null) {
   return String(value || "")
@@ -34,7 +35,13 @@ function parsePositiveNumber(value: FormDataEntryValue | null) {
   return Number.isFinite(amount) ? amount : 0;
 }
 
-function parseCoverageRows(value: FormDataEntryValue | null, fallbackZones: string[], fallbackBasePrice: number) {
+/**
+ * Coverage rows typed as "Area|Service|Price|Demand". Each zone also needs a country and region
+ * (LogisticsCoverageZoneSchema): the partner's country, and their city (else the area itself), within one state.
+ */
+function parseCoverageRows(value: FormDataEntryValue | null, fallbackZones: string[], fallbackBasePrice: number, place: { country: string; city: string }) {
+  const country = place.country.trim().slice(0, 60) || "Nigeria";
+  const regionFor = (name: string) => (place.city.trim() || name).slice(0, 80);
   const rows = String(value || "")
     .split("\n")
     .map((line) => line.trim())
@@ -46,16 +53,19 @@ function parseCoverageRows(value: FormDataEntryValue | null, fallbackZones: stri
 
       return {
         name,
+        country,
+        region: regionFor(name),
+        scope: "intrastate" as const,
         service: serviceRaw || "Same-day",
         basePrice: parsePositiveNumber(priceRaw || String(fallbackBasePrice)),
         active: true,
         ...(demandRaw ? { demandSignal: demandRaw } : {}),
       };
     })
-    .filter((zone): zone is { name: string; service: string; basePrice: number; active: boolean; demandSignal?: string } => Boolean(zone));
+    .filter((zone): zone is NonNullable<typeof zone> => Boolean(zone));
 
   if (rows.length > 0) return rows;
-  return fallbackZones.map((name) => ({ name, service: "Same-day", basePrice: fallbackBasePrice, active: true }));
+  return fallbackZones.map((name) => ({ name, country, region: regionFor(name), scope: "intrastate" as const, service: "Same-day", basePrice: fallbackBasePrice, active: true }));
 }
 
 /** Where to send the partner after a dispatch action: a /logistics page they came from, or the fallback. */
@@ -78,6 +88,12 @@ async function getLogisticsActor() {
 function assertVerifiedLogistics(partner: { verificationStatus: string; onboardingState: unknown }) {
   if (!isOnboardingComplete(partner)) redirect("/logistics/onboarding");
   if (partner.verificationStatus !== "verified") redirect("/logistics/profile?verification=pending");
+}
+
+/** Moving jobs it already has: verified, or suspended (existing jobs carry on to completion). */
+function assertCanWorkJobs(partner: { verificationStatus: string; onboardingState: unknown }) {
+  if (!isOnboardingComplete(partner)) redirect("/logistics/onboarding");
+  if (!canWorkExistingJobs(partner)) redirect("/logistics/profile?verification=pending");
 }
 
 async function assertLogisticsPlanAllowsRoutes(userId: string, zoneCount: number) {
@@ -121,7 +137,7 @@ export async function respondToDeliveryQuote(formData: FormData) {
 
 export async function updateDeliveryBookingStatus(formData: FormData) {
   const { partner } = await getLogisticsActor();
-  assertVerifiedLogistics(partner);
+  assertCanWorkJobs(partner);
   const bookingId = String(formData.get("bookingId") || "");
   const status = String(formData.get("status") || "");
   const trackingCode = String(formData.get("trackingCode") || "").trim();
@@ -137,7 +153,7 @@ export async function updateDeliveryBookingStatus(formData: FormData) {
     estimatedDelivery: estimatedDeliveryRaw || undefined,
   });
 
-  if (!parsed.success || !bookingStatuses.includes(status as never)) {
+  if (!parsed.success || !bookingStatuses.includes(status)) {
     redirect(`${back}?error=${encodeURIComponent("Pick a status from the list, then update the job again.")}`);
   }
 
@@ -159,6 +175,7 @@ export async function updateDeliveryBookingStatus(formData: FormData) {
       to: status,
       actor: "partner",
       failedReason: failedReason || null,
+      declineReason: String(formData.get("declineReason") || "").trim() || null,
       codCollected: codCollectedRaw ? parsePositiveNumber(codCollectedRaw) : null,
       codMethod: codMethod || null,
     });
@@ -195,7 +212,7 @@ function revalidateDispatch() {
 /** "Accept and assign": confirm a new job (which gives it a delivery code) and hand it to a rider in one step. */
 export async function acceptAndAssignJob(formData: FormData) {
   const { partner } = await getLogisticsActor();
-  assertVerifiedLogistics(partner);
+  assertCanWorkJobs(partner);
   const bookingId = String(formData.get("bookingId") || "");
   const riderId = String(formData.get("riderId") || "") || null;
   const back = returnPath(formData, "/logistics/bookings");
@@ -214,7 +231,7 @@ export async function acceptAndAssignJob(formData: FormData) {
 /** Give a job to a rider, move it to another rider, or take it off the rider (empty riderId). */
 export async function assignJobRider(formData: FormData) {
   const { partner } = await getLogisticsActor();
-  assertVerifiedLogistics(partner);
+  assertCanWorkJobs(partner);
   const back = returnPath(formData, "/logistics/bookings");
   const result = await assignRider({
     bookingId: String(formData.get("bookingId") || ""),
@@ -290,7 +307,7 @@ export async function updateLogisticsCoverage(formData: FormData) {
   const deliveryTypes = splitList(formData.get("deliveryTypes"));
   const depot = String(formData.get("depot") || "").trim();
   const coverageMap = {
-    zones: parseCoverageRows(formData.get("coverageRows"), coverageZones, partner.basePrice),
+    zones: parseCoverageRows(formData.get("coverageRows"), coverageZones, partner.basePrice, { country: partner.country, city: partner.city }),
     ...(depot ? { depot } : {}),
     updatedBy: "portal" as const,
   };

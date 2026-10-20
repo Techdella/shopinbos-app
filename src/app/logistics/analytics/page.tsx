@@ -5,6 +5,10 @@ import { ensureLogisticsAccess, getLogisticsPartnerForUser } from "@/lib/role-qu
 import { Card, CardHead, StatGrid, StatTile, TextLink } from "@/components/app-kit";
 import { BOOKING_STATUSES, PartnerPage, StatusPill, bookingNet, lagosDate, lagosDay, lagosStartOfToday, naira } from "@/components/logistics/kit";
 import { getT } from "@/lib/i18n/server";
+import { partnerMarketAnalytics } from "@/lib/delivery-market/analytics.server";
+import { readRangeDays } from "@/lib/delivery-market/analytics";
+import { durationLabel, rangeLabel } from "@/components/delivery-market/words";
+import { BreakdownCard, CountCard, IssuesCard, RangeChips, WeeklyChart, rateText } from "@/components/delivery-market/DeliveryAnalytics";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -24,17 +28,18 @@ function topBy<T>(rows: T[], key: (row: T) => string, value: (row: T) => number,
   return [...totals.entries()].map(([name, entry]) => ({ name, ...entry })).sort((a, b) => b.value - a.value || b.count - a.count).slice(0, limit);
 }
 
-export default async function LogisticsAnalyticsPage() {
+export default async function LogisticsAnalyticsPage({ searchParams }: { searchParams: Promise<{ range?: string }> }) {
+  const rangeDays = readRangeDays((await searchParams).range);
   const user = await requireRole(["logistics_partner"], "/logistics/login");
   const partner = await getLogisticsPartnerForUser(user);
   ensureLogisticsAccess(partner);
-  const t = await getT("logistics", "common");
+  const t = await getT("logistics", "delivery", "common");
   const now = new Date();
   const dayWords = (day: Date) => lagosDate(day, { weekday: "short", day: "numeric", month: "short" }, now, t);
 
   const startOfToday = lagosStartOfToday();
   const since = new Date(startOfToday.getTime() - 29 * DAY);
-  const bookings = await db.deliveryBooking.findMany({
+  const [bookings, market] = await Promise.all([db.deliveryBooking.findMany({
     where: { logisticsPartnerId: partner.id, createdAt: { gte: since } },
     orderBy: { createdAt: "desc" },
     take: 2000,
@@ -42,7 +47,8 @@ export default async function LogisticsAnalyticsPage() {
       id: true, destination: true, deliveryFee: true, platformFee: true, netAmount: true, status: true,
       createdAt: true, deliveredAt: true, estimatedDelivery: true, seller: { select: { name: true } },
     },
-  });
+  }), partnerMarketAnalytics(partner.id, rangeDays, now)]);
+  const mt = market.totals;
 
   const delivered = bookings.filter((booking) => booking.status === "delivered");
   const finished = bookings.filter((booking) => ["delivered", "failed", "cancelled"].includes(booking.status));
@@ -166,6 +172,49 @@ export default async function LogisticsAnalyticsPage() {
           </Card>
         </div>
       </div>
+
+      {/* Logistics marketplace jobs: offered through shops' connections, accepted or declined, and how they went. */}
+      <section id="marketplace" aria-labelledby="marketplace-title" className="mt-10 grid scroll-mt-4 gap-5">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div className="min-w-0">
+            <h2 id="marketplace-title" className="m-0 text-[22px] font-extrabold tracking-[-0.4px]">{t("market.an.title")}</h2>
+            <p className="mb-0 mt-1 text-[14px] text-app-ink-soft">{t("market.an.sub", { range: rangeLabel(t, rangeDays).toLowerCase() })}</p>
+          </div>
+          <RangeChips path="/logistics/analytics" days={rangeDays} hash="marketplace" />
+        </div>
+
+        {mt.offered === 0 ? (
+          <Card className="p-5">
+            <p className="m-0 text-[15px] text-app-ink-soft">{t("market.an.empty")}</p>
+          </Card>
+        ) : (
+          <>
+            <StatGrid>
+              <StatTile tone="card" label={t("market.an.offered")} value={mt.offered} hint={t("market.an.offeredHint", { accepted: mt.accepted, declined: mt.declined, late: mt.notAcceptedInTime })} />
+              <StatTile tone="card" label={t("an.acceptance")} value={rateText(mt.acceptanceRate)} hint={t("market.an.acceptedIn", { time: durationLabel(t, mt.medianAcceptMs) })} />
+              <StatTile tone="card" label={t("market.an.delivered")} value={mt.delivered} hint={t("market.an.pickupToDelivery", { time: durationLabel(t, mt.medianPickupToDeliveryMs) })} />
+              <StatTile tone="card" label={t("market.an.earned")} value={naira(mt.fees)} hint={t("an.paidInApp", { paid: naira(mt.feesPaidInApp), notPaid: naira(mt.feesNotInApp) })} />
+              <StatTile tone="card" label={t("onTime")} value={rateText(mt.onTimeRate)} hint={mt.timed ? t("an.fromTimed", { count: mt.timed }) : t("an.noPromised")} />
+              <StatTile tone="card" label={t("failedDeliveries")} value={rateText(mt.failedRate)} hint={t("an.failedHint", { attempts: mt.failedAttempts, returned: mt.returned })} />
+              <StatTile tone="card" label={t("market.an.cancelled")} value={mt.cancelled} hint={t("market.an.cancelledHint")} />
+              <StatTile tone="card" label={t("an.customerProblems")} value={market.issueCount} hint={market.openIssues ? t("an.stillOpen", { count: market.openIssues }) : t("an.noneOpen")} />
+            </StatGrid>
+
+            <div className="grid gap-5 xl:[grid-template-columns:minmax(0,1fr)_400px]">
+              <div className="grid min-w-0 content-start gap-5">
+                <WeeklyChart weeks={market.weeks} title={t("an.perWeek")} feesLabel={t("market.an.earnings")} />
+                <BreakdownCard title={t("market.an.whereYouDeliver")} sub={t("market.an.customersStates")} rows={market.states} kind="state" />
+              </div>
+              <div className="grid min-w-0 content-start gap-5">
+                <BreakdownCard title={t("services")} rows={market.services} kind="service" />
+                <BreakdownCard title={t("an.parcelSizes")} rows={market.sizes} kind="size" />
+                <CountCard title={t("market.an.whyDeclined")} rows={market.declineReasons} empty={t("market.an.noDeclines")} />
+                <IssuesCard rows={market.issues} sub={t("market.an.issuesSub")} />
+              </div>
+            </div>
+          </>
+        )}
+      </section>
     </PartnerPage>
   );
 }

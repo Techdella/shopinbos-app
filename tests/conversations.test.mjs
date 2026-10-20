@@ -145,3 +145,13 @@ test("migration is additive, idempotent and turns RLS on", () => {
   assert.match(sql, /ALTER TABLE "MessageDetail" ENABLE ROW LEVEL SECURITY/);
   for (const index of sql.match(/CREATE (UNIQUE )?INDEX[^\n]*/g) ?? []) assert.match(index, /IF NOT EXISTS/);
 });
+
+test("off-app note: only in chats with a delivery partner, never a block", () => {
+  const partnerChat = ["seller", "logistics_partner"];
+  assert.match(m.offPlatformNote("Call me on 08031234567", partnerChat) ?? "", /Keep jobs and payments in Shopinbos/);
+  assert.ok(m.offPlatformNote("Just pay me directly, transfer to my account", partnerChat));
+  assert.ok(m.offPlatformNote("email me at ade@example.com", ["logistics_partner", "supplier"]));
+  assert.equal(m.offPlatformNote("The rider is on the way.", partnerChat), null);
+  assert.equal(m.offPlatformNote("Call me on 08031234567", ["seller", "supplier"]), null);
+  assert.equal(m.offPlatformNote("", partnerChat), null);
+});

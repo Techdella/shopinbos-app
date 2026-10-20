@@ -9,8 +9,8 @@ import type { RiderSession } from "./rider-session";
 //   - a short trail per job the rider is carrying (RiderLocationPoint), deleted 7 days after delivery.
 // Locations are only taken while the rider is online or on a job, and are never sent to shops or customers.
 
-export const ACTIVE_JOB_STATUSES = ["confirmed", "picked_up", "in_transit"] as const;
-const TRAIL_STATUSES = ["picked_up", "in_transit"];
+export const ACTIVE_JOB_STATUSES = ["confirmed", "picked_up", "in_transit", "out_for_delivery"] as const;
+const TRAIL_STATUSES = ["picked_up", "in_transit", "out_for_delivery"];
 const TRAIL_KEEP_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_POINT_AGE_MS = 12 * 60 * 60 * 1000;
 const MAX_FUTURE_MS = 5 * 60 * 1000;

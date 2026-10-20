@@ -201,6 +201,11 @@ export const TEMPLATE_VARIABLES = {
   cart_items: { label: "Cart items", sample: "Adire kaftan × 1" },
   product_name: { label: "Product name", sample: "Adire kaftan" },
   product_link: { label: "Product link", sample: "https://adire.shopinbos.com/product/kaftan" },
+  // Delivery partner updates (src/lib/notifications/delivery-messages.ts): only filled for those order messages.
+  delivery_code: { label: "Delivery code", sample: "4821" },
+  delivery_partner: { label: "Delivery company", sample: "Standard delivery" },
+  pickup_point: { label: "Pickup point", sample: "Ikeja Hub, 12 Allen Avenue, Ikeja (open Mon-Sat 9am-6pm)" },
+  delivery_problem: { label: "Delivery problem", sample: "the delivery didn't go through today because the rider couldn't reach you on the phone" },
 } as const;
 
 export type TemplateVariable = keyof typeof TEMPLATE_VARIABLES;
@@ -367,7 +372,7 @@ export function renderTemplateText(content: TemplateContent, params: string[]) {
 // ─── Ready-made templates ─────────────────────────────────────────────────────
 
 export interface TemplatePreset {
-  key: "order_confirmation" | "order_shipped" | "order_delivered" | "abandoned_cart" | "back_in_stock" | "promo";
+  key: "order_confirmation" | "order_shipped" | "order_delivered" | "abandoned_cart" | "back_in_stock" | "promo" | DeliveryPresetKey;
   title: string;
   description: string;
   name: string;
@@ -435,8 +440,56 @@ export const TEMPLATE_PRESETS: TemplatePreset[] = [
   },
 ];
 
+export type DeliveryPresetKey = "delivery_booked" | "delivery_out" | "delivery_at_point" | "delivery_problem";
+
+/**
+ * Delivery partner updates (Logistics marketplace, spec §6.3): utility templates for the order messages sent as a
+ * partner's job moves. Kept apart from TEMPLATE_PRESETS (the gallery on Marketing › WhatsApp, also used by
+ * campaigns and flows) because they need delivery details only an order with a partner job has. They are
+ * submitted with the order templates (src/lib/marketing/order-messages-setup.server.ts) in our own wording:
+ * Meta's Template Library has nothing with a delivery code or pickup point to fill.
+ */
+export const DELIVERY_TEMPLATE_PRESETS: TemplatePreset[] = [
+  {
+    key: "delivery_booked",
+    title: "Delivery booked",
+    description: "Sent when your delivery partner accepts the order.",
+    name: "delivery_booked",
+    category: "UTILITY",
+    content: { header: { format: "TEXT", text: "Delivery booked" }, body: "Hi {{1}}, your order {{2}} from {{3}} is booked for delivery ({{4}}). We'll message you when it's on the way. Your order page has your delivery details: {{5}} and you can reply here if you need help.", buttons: [] },
+    variables: ["first_name", "order_number", "store_name", "delivery_partner", "order_link"],
+  },
+  {
+    key: "delivery_out",
+    title: "Out for delivery",
+    description: "Sent when the rider is on the way to the customer, with the delivery code.",
+    name: "delivery_out",
+    category: "UTILITY",
+    content: { header: { format: "TEXT", text: "Out for delivery" }, body: "Hi {{1}}, your order {{2}} from {{3}} is out for delivery ({{4}}). Give the rider this delivery code when you receive your parcel: {{5}}. Follow it here: {{6}} and reply if you need help.", buttons: [] },
+    variables: ["first_name", "order_number", "store_name", "delivery_partner", "delivery_code", "order_link"],
+  },
+  {
+    key: "delivery_at_point",
+    title: "Ready at the pickup point",
+    description: "Sent when the order reaches the pickup point, with where to collect it and the delivery code.",
+    name: "delivery_at_pickup_point",
+    category: "UTILITY",
+    content: { header: { format: "TEXT", text: "Ready to collect" }, body: "Hi {{1}}, your order {{2}} from {{3}} is ready to collect at {{4}}. Show this delivery code when you collect it: {{5}}. Details: {{6}} and reply if you need help.", buttons: [] },
+    variables: ["first_name", "order_number", "store_name", "pickup_point", "delivery_code", "order_link"],
+  },
+  {
+    key: "delivery_problem",
+    title: "Delivery problem",
+    description: "Sent when a delivery attempt fails or the order is being returned.",
+    name: "delivery_problem",
+    category: "UTILITY",
+    content: { header: { format: "NONE" }, body: "Hi {{1}}, an update on your order {{2}} from {{3}}: {{4}}. We'll contact you about what happens next. Your order: {{5}} and you can reply here.", buttons: [] },
+    variables: ["first_name", "order_number", "store_name", "delivery_problem", "order_link"],
+  },
+];
+
 export function presetTemplate(key: string) {
-  return TEMPLATE_PRESETS.find((preset) => preset.key === key) ?? null;
+  return TEMPLATE_PRESETS.find((preset) => preset.key === key) ?? DELIVERY_TEMPLATE_PRESETS.find((preset) => preset.key === key) ?? null;
 }
 
 /** Turns a free-text name into a valid Meta template name ("Order shipped!" → "order_shipped"). */
@@ -451,14 +504,28 @@ export function templateName(value: string) {
 
 // ─── Order messages (transactional) ───────────────────────────────────────────
 
-export type CustomerEvent = "order_confirmed" | "payment_received" | "order_shipped" | "order_delivered" | "abandoned_cart";
+export type CustomerEvent =
+  | "order_confirmed"
+  | "payment_received"
+  | "order_shipped"
+  | "order_delivered"
+  | "abandoned_cart"
+  // Delivery partner updates (Logistics marketplace): sent from transitionJob (src/lib/logistics/jobs.ts).
+  | "delivery_accepted"
+  | "delivery_out"
+  | "delivery_at_point"
+  | "delivery_problem";
 
-export const CUSTOMER_EVENTS: Array<{ key: CustomerEvent; label: string; sub: string; preset: TemplatePreset["key"]; sms: string }> = [
+export const CUSTOMER_EVENTS: Array<{ key: CustomerEvent; label: string; sub: string; preset: TemplatePreset["key"]; sms: string; group?: "delivery" }> = [
   { key: "order_confirmed", label: "Order confirmed", sub: "Right after checkout", preset: "order_confirmation", sms: "{{store}}: thanks {{name}}! Order {{order_number}} ({{order_total}}) is confirmed. We'll text you when it ships." },
   { key: "payment_received", label: "Payment received", sub: "When payment is confirmed or you mark it paid", preset: "order_confirmation", sms: "{{store}}: payment received for order {{order_number}} ({{order_total}}). Thank you, {{name}}!" },
   { key: "order_shipped", label: "Shipped (with tracking)", sub: "When you mark the order shipped", preset: "order_shipped", sms: "{{store}}: order {{order_number}} is on its way. Tracking: {{tracking_code}} {{tracking_link}}" },
   { key: "order_delivered", label: "Delivered", sub: "When the order is marked delivered", preset: "order_delivered", sms: "{{store}}: order {{order_number}} has been delivered. Enjoy, {{name}}! Reply if anything isn't right." },
   { key: "abandoned_cart", label: "Abandoned cart", sub: "One reminder, an hour after someone leaves checkout with their phone", preset: "abandoned_cart", sms: "{{store}}: hi {{name}}, your cart is saved: {{cart_url}} Reply STOP to opt out." },
+  { key: "delivery_accepted", group: "delivery", label: "Delivery booked", sub: "When your delivery partner accepts the order", preset: "delivery_booked", sms: "{{store}}: order {{order_number}} is booked for delivery ({{delivery_partner}}). We'll text you when it's on the way. {{order_url}}" },
+  { key: "delivery_out", group: "delivery", label: "Out for delivery (with delivery code)", sub: "When the rider is on the way to your customer", preset: "delivery_out", sms: "{{store}}: order {{order_number}} is out for delivery ({{delivery_partner}}). Give the rider this code when you get it: {{delivery_code}} {{order_url}}" },
+  { key: "delivery_at_point", group: "delivery", label: "Ready at the pickup point", sub: "When the order reaches the pickup point the customer chose", preset: "delivery_at_point", sms: "{{store}}: order {{order_number}} is ready to collect at {{pickup_point}}. Show code {{delivery_code}} to collect it. {{order_url}}" },
+  { key: "delivery_problem", group: "delivery", label: "Delivery problem", sub: "When a delivery attempt fails, or the order is being returned", preset: "delivery_problem", sms: "{{store}}: order {{order_number}}: {{delivery_problem}}. We'll contact you about what happens next. {{order_url}}" },
 ];
 
 export interface CustomerEventSetting {
@@ -517,6 +584,13 @@ export function customerEventFor(statusOrEvent: string): CustomerEvent | null {
  */
 export const ORDER_MESSAGE_PRESETS = ["order_confirmation", "order_shipped", "order_delivered"] as const satisfies ReadonlyArray<TemplatePreset["key"]>;
 export const ORDER_MESSAGE_EVENTS_ON: CustomerEvent[] = ["order_confirmed", "order_shipped", "order_delivered"];
+
+/**
+ * The delivery partner updates set up alongside them (our own wording, no Template Library), and switched on for
+ * WhatsApp the first time their templates are set up. They only ever fire for orders a delivery partner carries.
+ */
+export const DELIVERY_MESSAGE_PRESETS = ["delivery_booked", "delivery_out", "delivery_at_point", "delivery_problem"] as const satisfies ReadonlyArray<DeliveryPresetKey>;
+export const DELIVERY_MESSAGE_EVENTS_ON: CustomerEvent[] = ["delivery_accepted", "delivery_out", "delivery_at_point", "delivery_problem"];
 
 export interface TemplateStatusUpdate {
   wabaId: string;

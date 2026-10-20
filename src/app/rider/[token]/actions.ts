@@ -89,3 +89,17 @@ export async function markFailed(token: string, input: { jobId: string; reason: 
     failedReason: String(input?.reason ?? "").slice(0, 300),
   }));
 }
+
+/** On the way to the customer (doorstep), or left at the pickup point for the customer to collect. */
+export async function markStage(token: string, input: { jobId: string; to: "out_for_delivery" | "at_pickup_point" }): Promise<RiderActionResult> {
+  const session = await rider(token);
+  if (!session.ok) return session;
+  const to = input?.to === "at_pickup_point" ? "at_pickup_point" : "out_for_delivery";
+  return inRiderWords(await transitionJob({
+    bookingId: String(input?.jobId ?? ""),
+    partnerId: session.rider.partnerId,
+    to,
+    actor: "rider",
+    riderId: session.rider.id,
+  }));
+}

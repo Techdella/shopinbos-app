@@ -76,7 +76,18 @@ export const MessagingSettingsSchema = z.object({
   smsSenderId: z.string().trim().max(11).nullable().optional(),
   smsCostPerSegment: z.number().min(0).max(1_000_000).nullable().optional(),
   transactional: z
-    .object({ order_confirmed: EventSettingSchema, payment_received: EventSettingSchema, order_shipped: EventSettingSchema, order_delivered: EventSettingSchema, abandoned_cart: EventSettingSchema })
+    .object({
+      order_confirmed: EventSettingSchema,
+      payment_received: EventSettingSchema,
+      order_shipped: EventSettingSchema,
+      order_delivered: EventSettingSchema,
+      abandoned_cart: EventSettingSchema,
+      // Delivery partner updates (Logistics marketplace).
+      delivery_accepted: EventSettingSchema,
+      delivery_out: EventSettingSchema,
+      delivery_at_point: EventSettingSchema,
+      delivery_problem: EventSettingSchema,
+    })
     .partial()
     .optional(),
 });

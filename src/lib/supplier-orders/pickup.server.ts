@@ -216,6 +216,15 @@ async function tellAdmins(order: PickupOrder, window: { start: Date; end: Date }
 }
 
 async function pickPartner(order: PickupOrder) {
+  // Logistics marketplace: the partner the customer's delivery option booked for this supplier's parcel (spec §5.8).
+  const planned = order.retailOrderId ? await import("@/lib/delivery-market/jobs.server").then((jobs) => jobs.plannedSupplierShipment(order.retailOrderId!, order.supplier.id)).catch(() => null) : null;
+  if (planned?.partnerId) {
+    const partner = await db.logisticsPartner.findFirst({
+      where: { id: planned.partnerId, status: "active", verificationStatus: "verified" },
+      select: { id: true, city: true, coverageZones: true, status: true, verificationStatus: true, reliabilityScore: true, rating: true, basePrice: true },
+    });
+    if (partner) return { ...partner, planned };
+  }
   const [store, partners] = await Promise.all([
     order.storeId ? db.store.findUnique({ where: { id: order.storeId }, select: { brandSettings: true } }) : null,
     db.logisticsPartner.findMany({
@@ -313,11 +322,17 @@ export async function bookPickup(input: BookPickupInput, now = new Date()): Prom
     items: order.items,
     collect: order.collect,
     window,
-    deliveryFee: order.shippingFee > 0 ? order.shippingFee : partner.basePrice,
+    deliveryFee: "planned" in partner && partner.planned ? partner.planned.price : order.shippingFee > 0 ? order.shippingFee : partner.basePrice,
     retailOrderId: order.retailOrderId,
   });
   try {
+    const planned = "planned" in partner ? partner.planned : null;
     const booking = await createDeliveryJob({ sellerId: order.sellerId, logisticsPartnerId: partner.id, currency: order.currency, ...payload });
+    if (planned && order.retailOrderId) {
+      // Priced and (when the partner's wallet was ready) paid at checkout.
+      await db.deliveryBooking.update({ where: { id: booking.id }, data: { service: planned.service === "pickup_point" ? "pickup_point" : "doorstep", sizeBand: planned.sizeBand, rateCardId: planned.rateCardId, feePaidAt: planned.feePaid ? new Date() : null } }).catch(() => null);
+      await import("@/lib/delivery-market/jobs.server").then((jobs) => jobs.linkSupplierShipment(order.retailOrderId!, order.supplier.id, booking.id)).catch(() => undefined);
+    }
     await db.supplierPickup.update({ where: { id: pickupId }, data: { deliveryBookingId: booking.id, logisticsPartnerId: partner.id } });
   } catch (error) {
     await db.supplierPickup.update({ where: { id: pickupId }, data: { status: "cancelled" } }).catch(() => null);

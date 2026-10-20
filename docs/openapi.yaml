@@ -302,6 +302,21 @@ paths:
         - name: q
           in: query
           schema: { type: string, maxLength: 200 }
+        - name: cod
+          in: query
+          description: "true: only partners taking pay-when-it-arrives (cash) jobs right now."
+          schema: { type: string, enum: ["true", "false", "1", "0"] }
+        - name: service
+          in: query
+          description: Only partners offering this service.
+          schema: { type: string, enum: [doorstep, pickup_point, same_day, interstate] }
+        - name: state
+          in: query
+          description: >
+            Only partners delivering to the whole of this Nigerian state (their delivery areas include
+            Nationwide, the state's region, or the state). Accepts names like "Lagos", "lagos state", "Abuja"/"FCT".
+            An unknown state returns 400.
+          schema: { type: string, maxLength: 60, example: Lagos }
       responses:
         "200":
           $ref: "#/components/responses/LogisticsList"
@@ -310,7 +325,7 @@ paths:
     get:
       tags: [Logistics]
       summary: Search verified active logistics partners
-      description: Alias of /api/public/logistics/partners using the q filter.
+      description: Alias of /api/public/logistics/partners using the q filter (the service and state filters work here too).
       parameters:
         - $ref: "#/components/parameters/Page"
         - $ref: "#/components/parameters/Limit"
@@ -318,6 +333,12 @@ paths:
           in: query
           required: true
           schema: { type: string, maxLength: 200 }
+        - name: service
+          in: query
+          schema: { type: string, enum: [doorstep, pickup_point, same_day, interstate] }
+        - name: state
+          in: query
+          schema: { type: string, maxLength: 60 }
       responses:
         "200":
           $ref: "#/components/responses/LogisticsList"
@@ -346,7 +367,7 @@ paths:
                 required: [data]
                 properties:
                   data:
-                    $ref: "#/components/schemas/LogisticsPartner"
+                    $ref: "#/components/schemas/LogisticsPartnerDetail"
         "404":
           $ref: "#/components/responses/Error"
 
@@ -587,6 +608,75 @@ components:
         rating: { type: number }
         ratingCount: { type: integer }
         reliabilityScore: { type: integer }
+        services:
+          type: array
+          description: What the partner offers.
+          items: { type: string, enum: [doorstep, pickup_point, same_day, interstate] }
+        pickupAreas:
+          type: array
+          description: 'Where they collect parcels from. States, regions (e.g. South-West), "Nationwide" or "State: Area".'
+          items: { type: string }
+        deliveryAreas:
+          type: array
+          description: Where they deliver to, in the same format as pickupAreas.
+          items: { type: string }
+        offersPayOnDelivery: { type: boolean }
+        startingPrice:
+          type: [number, "null"]
+          description: "Lowest price on the active public rate card (NGN), else basePrice; null when unknown."
+        timeframe:
+          type: [string, "null"]
+          description: 'Shortest to longest timeframe on the active public rate card (e.g. "Same day – 3 days"), else estimatedSpeed.'
+        pickupPointCount: { type: integer }
+    LogisticsPartnerDetail:
+      allOf:
+        - $ref: "#/components/schemas/LogisticsPartner"
+        - type: object
+          properties:
+            rateCard:
+              description: The active public rate card, or null when the partner hasn't published one.
+              oneOf:
+                - type: "null"
+                - $ref: "#/components/schemas/LogisticsRateCard"
+            pickupPoints:
+              type: array
+              items: { $ref: "#/components/schemas/LogisticsPickupPoint" }
+            stats:
+              $ref: "#/components/schemas/LogisticsPartnerStats"
+    LogisticsRateCard:
+      type: object
+      properties:
+        rows:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              from: { type: string, description: 'Origin area (state, region, Nationwide or "State: Area").' }
+              to: { type: string, description: "Destination area." }
+              service: { type: string, enum: [doorstep, pickup_point, same_day] }
+              sizeBand: { type: string, enum: [small, medium, bulky], description: "small up to 2kg, medium 2-10kg, bulky over 10kg" }
+              price: { type: number, description: "NGN" }
+              minDays: { type: integer }
+              maxDays: { type: integer, description: "0 means the same day." }
+        failedAttemptFee: { type: number }
+        returnFee: { type: number }
+        notes: { type: [string, "null"] }
+    LogisticsPickupPoint:
+      type: object
+      properties:
+        name: { type: string }
+        address: { type: string }
+        state: { type: string }
+        area: { type: [string, "null"] }
+        hours: { type: [string, "null"] }
+    LogisticsPartnerStats:
+      type: object
+      description: In-app delivery stats over the last 12 months. Rates are null until the partner has finished 5 jobs.
+      properties:
+        completed: { type: integer }
+        onTimeRate: { type: [integer, "null"], description: "0-100" }
+        failedRate: { type: [integer, "null"], description: "0-100" }
     Category:
       type: object
       additionalProperties: true

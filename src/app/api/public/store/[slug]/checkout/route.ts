@@ -36,6 +36,8 @@ import { startKorapayCheckout } from "@/lib/commerce/korapay-orders.server";
 import { paystackSplitParams } from "@/lib/wallet/rules";
 import { initializePaystackTransaction } from "@/lib/paystack";
 import { cancelUnstartedOrder } from "@/lib/commerce/order-expiry.server";
+import { partnerShipments, planFromOption } from "@shared/delivery-market";
+import { checkCheckoutPhoneToken } from "@/lib/commerce/phone-verify.server";
 
 const CHECKOUT_CORS = { methods: ["POST", "OPTIONS"], headers: ["Content-Type"] };
 
@@ -83,6 +85,8 @@ const CheckoutSchema = z.object({
   paymentLinkCode: z.string().max(24).optional(),
   linkVariantId: z.string().max(80).optional(),
   linkQuantity: z.number().int().min(1).max(99).optional(),
+  // Proof the buyer's phone took a code (checkout/phone-code → phone-verify), needed with a delivery partner.
+  phoneToken: z.string().max(2000).optional(),
 });
 
 function generateOrderNumber(): string {
@@ -101,6 +105,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       userId: true,
       name: true,
       slug: true,
+      city: true,
       customDomain: true,
       logoUrl: true,
       currency: true,
@@ -169,6 +174,24 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   const usedDiscountId = priced.discount?.kind === "discount" ? priced.discount.id : null;
   const usedCouponId = priced.discount?.kind === "coupon" ? priced.discount.id : null;
   const deliveryOption = priced.delivery.option;
+  // Delivery partners at checkout (src/lib/delivery-market): an address no partner covers can't be ordered to, and
+  // the chosen option's parcels are saved on the order so each becomes a partner job once the order is live.
+  const market = priced.delivery.market;
+  if (market && !market.option) {
+    return withCors(req, apiError("BAD_REQUEST", market.reason ?? "No delivery is available to this address yet."), CHECKOUT_CORS);
+  }
+  const deliveryPlan = market?.option ? planFromOption(market.option) : null;
+  const partnerParcels = deliveryPlan ? partnerShipments(deliveryPlan) : [];
+  if (partnerParcels.length && !buyerPhone) {
+    return withCors(req, apiError("BAD_REQUEST", "Add a phone number so the delivery partner can reach you."), CHECKOUT_CORS);
+  }
+  // Spec §6.1: a partner's rider needs a verified phone, so the order carries a phoneToken for this exact number and
+  // store (src/lib/commerce/phone-verify.ts). Skipped, logged once, when no SMS or WhatsApp code provider is set up
+  // (local dev, staging), so those still take partner orders; production has SMS keys, so it is always checked.
+  if (partnerParcels.length) {
+    const phoneCheck = checkCheckoutPhoneToken({ storeId: store.id, buyerPhone, phoneToken: parsed.data.phoneToken });
+    if (!phoneCheck.ok) return withCors(req, apiError("PHONE_NOT_VERIFIED", phoneCheck.message), CHECKOUT_CORS);
+  }
 
   // Only the ways to pay this seller turned on (and that can work right now) are accepted.
   const paystackSecret = process.env.PAYSTACK_SECRET_KEY;
@@ -183,7 +206,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   // Korapay too, only when every naira can be split to the businesses' own Korapay split accounts.
   const paymentSettings = checkoutPaymentSettings(store.brandSettings, shippingZones, cardsReady, await storeTakesKorapay(store.id));
   const paymentContext = { city: deliveryAddress.city, state: deliveryAddress.state, total };
-  if (!checkoutPaymentOptions(paymentSettings, paymentContext).some((option) => option.key === paymentMethod)) {
+  // Pay on delivery with a delivery partner is agreed per partner (both the shop and the partner opt in, spec §8).
+  const partnerPod = paymentMethod === "pay_on_delivery" && partnerParcels.length > 0;
+  if (partnerPod && !deliveryPlan?.pod) {
+    return withCors(req, apiError("BAD_REQUEST", "Pay on delivery isn't available with this delivery option. Choose another way to pay."), CHECKOUT_CORS);
+  }
+  if (!partnerPod && !checkoutPaymentOptions(paymentSettings, paymentContext).some((option) => option.key === paymentMethod)) {
     const reason = paymentMethod === "pay_on_delivery" && paymentSettings.methods?.cod ? payOnDeliveryBlock(paymentSettings, paymentContext) : null;
     return withCors(req, apiError("BAD_REQUEST", reason ?? "This store doesn't take that payment method. Choose another way to pay."), CHECKOUT_CORS);
   }
@@ -253,6 +281,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
           notes: orderNotes(settings, notes, giftMessage),
           // Null keeps meaning "Paystack checkout" for older readers; transfer and pay on delivery wait as pending.
           paymentMethod: paymentMethod === "paystack" ? null : paymentMethod,
+          ...(deliveryPlan ? { logisticsDetails: { type: partnerParcels.length ? "network" : "pickup", delivery: JSON.parse(JSON.stringify(deliveryPlan)) } } : {}),
           status: "pending",
           // What was really taken (versions of products that keep selling at 0 may give less than asked).
           stockHold: JSON.parse(JSON.stringify(stockHolds)),
@@ -275,9 +304,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   // bank (src/lib/wallet). The browser opens it in Paystack's popup with the access code (or follows the URL), so it
   // can't change the amount or who is paid. If Paystack can't start it, the order is cancelled straight away
   // (stock and discount given back) and the shopper can try again.
+  // Each partner's delivery fee goes straight to the partner in the split (Shopinbos never holds it).
+  const deliveryShares = partnerParcels.map((part) => ({ shipmentKey: part.shipmentKey, partnerId: part.partnerId!, naira: part.price }));
   let paystackData: { authorization_url: string; access_code: string | null; reference: string } | null = null;
   if (paymentMethod === "paystack") {
-    const plan = await splitPlanForOrder(store.id, orderItems, total, "paystack", shippingFee, order.id);
+    const plan = await splitPlanForOrder(store.id, orderItems, total, "paystack", shippingFee, order.id, deliveryShares);
     try {
       if (!plan) throw new Error("the store's wallet can't take card payments");
       const started = await initializePaystackTransaction({
@@ -300,7 +331,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   // Korapay: the same, with Korapay Split Payments. The page shows Korapay's checkout in a frame on the store.
   let korapayData: { checkoutUrl: string } | null = null;
   if (paymentMethod === "korapay") {
-    const plan = await splitPlanForOrder(store.id, orderItems, total, "korapay", shippingFee, order.id);
+    const plan = await splitPlanForOrder(store.id, orderItems, total, "korapay", shippingFee, order.id, deliveryShares);
     try {
       if (!plan) throw new Error("the store's wallet can't take Korapay payments");
       korapayData = await startKorapayCheckout({ ...order, total: Number(order.total) }, store, buildStorefrontUrl(store, `/order/${order.id}`), plan);

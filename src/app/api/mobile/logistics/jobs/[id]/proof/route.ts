@@ -16,7 +16,7 @@ export const POST = withLogistics(async (req: NextRequest, { user, params }) => 
   if (!partner) return apiError("NOT_FOUND", "Delivery partner profile not found", 404);
   const job = await db.deliveryBooking.findFirst({ where: { id: String(params.id), logisticsPartnerId: partner.id }, select: { id: true, status: true } });
   if (!job) return apiError("NOT_FOUND", "Job not found", 404);
-  if (!["confirmed", "picked_up", "in_transit", "delivered"].includes(job.status)) return apiError("CONFLICT", "This job isn't out for delivery.", 409);
+  if (!["confirmed", "picked_up", "in_transit", "out_for_delivery", "at_pickup_point", "delivered"].includes(job.status)) return apiError("CONFLICT", "This job isn't out for delivery.", 409);
 
   const checked = proofFile(await req.formData().catch(() => null));
   if (!checked.ok) return apiError("BAD_REQUEST", checked.error);

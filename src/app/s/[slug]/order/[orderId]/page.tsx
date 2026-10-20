@@ -57,6 +57,7 @@ export default async function OrderPage({ params, searchParams }: Props) {
       storeBasePath={storeBasePath}
       transfer={next.transfer}
       deliveryCode={next.deliveryCode}
+      delivery={next.delivery ? JSON.parse(JSON.stringify(next.delivery)) : null}
       rewards={rewards ? JSON.parse(JSON.stringify(rewards)) : null}
     />
   );

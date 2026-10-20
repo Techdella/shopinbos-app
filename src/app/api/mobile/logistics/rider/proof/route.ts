@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     ? await db.deliveryBooking.findFirst({ where: { id: jobId, riderId: session.rider.id, logisticsPartnerId: session.rider.partnerId }, select: { id: true, status: true } })
     : null;
   if (!job) return apiError("NOT_FOUND", "This job isn't assigned to you.", 404);
-  if (!["confirmed", "picked_up", "in_transit"].includes(job.status)) return apiError("CONFLICT", "This drop is already closed.", 409);
+  if (!["confirmed", "picked_up", "in_transit", "out_for_delivery"].includes(job.status)) return apiError("CONFLICT", "This drop is already closed.", 409);
 
   const checked = proofFile(form);
   if (!checked.ok) return apiError("BAD_REQUEST", checked.error);

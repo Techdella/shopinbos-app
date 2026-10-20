@@ -13,8 +13,13 @@ export type JobResult = { ok: true } | { ok: false; error: string };
 const ORDER_STATUS_FOR_JOB: Record<string, "shipped" | "delivered" | undefined> = {
   picked_up: "shipped",
   in_transit: "shipped",
+  out_for_delivery: "shipped",
+  at_pickup_point: "shipped",
   delivered: "delivered",
 };
+
+/** Job steps that send the buyer a delivery update (src/lib/notifications/delivery-messages.ts deliveryEventFor). */
+const DELIVERY_STAGE_MESSAGES = new Set(["confirmed", "out_for_delivery", "at_pickup_point", "failed", "returning"]);
 
 export async function transitionJob(input: {
   bookingId: string;
@@ -25,6 +30,8 @@ export async function transitionJob(input: {
   riderId?: string;
   code?: string | null;
   failedReason?: string | null;
+  /** Why the partner can't take a new job (logistics marketplace). */
+  declineReason?: string | null;
   codCollected?: number | null;
   codMethod?: string | null;
   proofUrl?: string | null;
@@ -41,7 +48,16 @@ export async function transitionJob(input: {
   const data: Record<string, unknown> = { status: input.to };
   if (input.to === "confirmed" && !job.deliveryCode) data.deliveryCode = makeDeliveryCode();
   if (input.to === "confirmed" && job.status === "failed") data.failedReason = null;
+  if (input.to === "confirmed" && !job.acceptedAt) data.acceptedAt = now;
+  if (input.to === "declined") {
+    data.declinedAt = now;
+    data.declineReason = input.declineReason?.trim().slice(0, 300);
+  }
   if (input.to === "picked_up") data.pickedUpAt = now;
+  if (input.to === "out_for_delivery") data.outForDeliveryAt = now;
+  if (input.to === "at_pickup_point") data.atPickupPointAt = now;
+  if (input.to === "returned") data.returnedAt = now;
+  if (input.to === "failed") data.failedAttempts = { increment: 1 };
   if (input.to === "delivered") {
     data.deliveredAt = now;
     if (job.codAmount && job.codAmount > 0) {
@@ -75,6 +91,11 @@ export async function transitionJob(input: {
   void emitPartnerEvent(input.partnerId, input.to === "cancelled" ? "job.cancelled" : "job.updated", { id: job.id, status: input.to, actor: input.actor }).catch(() => undefined);
   // The seller hears about pickups, deliveries, problems and cash collected; the rider about a cancelled job.
   await notifyJobMoved({ bookingId: job.id, to: input.to, actor: input.actor, codCollected: input.codCollected });
+  // The buyer: WhatsApp/SMS at the delivery stages the seller switched on (booked, out for delivery with the code,
+  // at the pickup point, a problem). Delivered is the order's own message, sent above through updateOrderStatus.
+  if (job.orderId && DELIVERY_STAGE_MESSAGES.has(input.to)) {
+    await import("@/lib/notifications/customer-messages").then((messages) => messages.notifyDeliveryStage(job.id, input.to)).catch(() => undefined);
+  }
   // Supplier pickups: the supplier's order follows the rider (sent when picked up, delivered when dropped off).
   await import("@/lib/supplier-orders/pickup.server").then((pickup) => pickup.onDeliveryJobMoved(job.id, input.to)).catch(() => undefined);
   return { ok: true };

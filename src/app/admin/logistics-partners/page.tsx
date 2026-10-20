@@ -21,6 +21,7 @@ import { requireRole } from "@/lib/server-auth";
 import { UnmatchedPayIns } from "./PayInsPanels";
 import { LatePayIns } from "./LatePayInsPanels";
 import { latePayInRows } from "@/lib/logistics/payin-standing.server";
+import { SERVICE_LABELS, type PartnerService } from "@shared/delivery-market";
 
 const verificationStatuses: readonly string[] = VERIFICATION_STATUSES;
 
@@ -63,6 +64,10 @@ export default async function AdminLogisticsPartnersPage(props: { searchParams?:
         coverageZones: true,
         deliveryTypes: true,
         onboardingState: true,
+        services: true,
+        deliveryAreas: true,
+        cacNumber: true,
+        offersPayOnDelivery: true,
         updatedAt: true,
       },
     }),
@@ -81,6 +86,10 @@ export default async function AdminLogisticsPartnersPage(props: { searchParams?:
     // Partners late paying in customers' cash (lib/logistics/payin-deadline.ts).
     latePayInRows(),
   ]);
+  // Customers' open delivery problems per partner (logistics marketplace), and the total for the link.
+  const openIssues = await db.deliveryIssue.groupBy({ by: ["logisticsPartnerId"], where: { status: "open", logisticsPartnerId: { in: partners.map((row) => row.id) } }, _count: { _all: true } });
+  const openIssuesTotal = await db.deliveryIssue.count({ where: { status: "open" } });
+  const issuesFor = (id: string) => openIssues.find((row) => row.logisticsPartnerId === id)?._count._all ?? 0;
 
   const countFor = (status: string) => byStatus.find((row) => row.verificationStatus === status)?._count._all ?? 0;
   const selectedIds = partners.map((s) => s.id);
@@ -128,6 +137,13 @@ export default async function AdminLogisticsPartnersPage(props: { searchParams?:
         ]}
       />
 
+      {openIssuesTotal > 0 && (
+        <p className="mb-4 flex flex-wrap items-center gap-2 rounded-[18px] border border-app-line bg-white px-4 py-3 text-[14px]">
+          <span className="font-bold">{openIssuesTotal} open delivery problem{openIssuesTotal === 1 ? "" : "s"} from customers.</span>
+          <Link href="/admin/delivery-issues" className="font-extrabold text-app-accent-ink no-underline hover:underline">See delivery problems</Link>
+        </p>
+      )}
+
       {partners.length === 0 ? (
         <EmptyState icon="truck" title={statusFilter || searchQuery ? "No partners match" : "No logistics partners yet"} action={statusFilter || searchQuery ? <PillLink href="/admin/logistics-partners">Clear filters</PillLink> : undefined}>
           {statusFilter || searchQuery ? "Try another filter or search word." : "Delivery partners show up here as soon as they sign up."}
@@ -166,13 +182,19 @@ export default async function AdminLogisticsPartnersPage(props: { searchParams?:
                   </div>
                   <div className="flex flex-wrap items-center gap-1.5">
                     <VerificationPill status={row.verificationStatus} />
-                    {row.status !== "active" && <Pill tone="danger">{row.status === "suspended" ? "Account suspended" : row.status}</Pill>}
+                    {row.status !== "active" && <Pill tone={row.status === "paused" ? "warning" : "danger"}>{row.status === "suspended" ? "Account suspended" : row.status === "paused" ? "Paused by partner" : row.status}</Pill>}
+                    {issuesFor(row.id) > 0 && <Pill tone="warning">{issuesFor(row.id)} open problem{issuesFor(row.id) === 1 ? "" : "s"}</Pill>}
                     <OnboardingPill status={onboardingSubmitted(row.onboardingState) ? "submitted" : "draft"} />
                   </div>
                   <div className="w-full text-[13px] text-app-ink-soft sm:w-auto lg:w-[200px] lg:shrink-0 lg:text-right">
                     {row.coverageZones.length} zones · from {formatMoney(row.basePrice)}
                     <div className="truncate">reliability {row.reliabilityScore} · {row.deliveryTypes.join(", ") || "no delivery types"}</div>
-                    <div>Updated {formatDate(row.updatedAt)}</div>
+                    <div className="truncate">
+                      {row.services.length ? row.services.map((service) => SERVICE_LABELS[service as PartnerService] ?? service).join(", ") : "No services set"}
+                      {row.deliveryAreas.length ? ` · delivers to ${row.deliveryAreas.length} area${row.deliveryAreas.length === 1 ? "" : "s"}` : ""}
+                      {row.offersPayOnDelivery ? " · POD" : ""}
+                    </div>
+                    <div>{row.cacNumber ? `CAC ${row.cacNumber} · ` : ""}Updated {formatDate(row.updatedAt)}</div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <PillLink href={`/admin/logistics-partners/${row.id}`} size="sm" icon="file">Documents</PillLink>

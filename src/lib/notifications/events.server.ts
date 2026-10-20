@@ -194,7 +194,7 @@ export function notifyJobMoved(input: { bookingId: string; to: string; actor: st
   return safely("job moved", async () => {
     const job = await db.deliveryBooking.findUnique({
       where: { id: input.bookingId },
-      select: { id: true, sellerId: true, orderId: true, riderId: true, destination: true, codAmount: true, currency: true, failedReason: true, logisticsPartner: { select: { displayName: true } } },
+      select: { id: true, sellerId: true, orderId: true, riderId: true, destination: true, codAmount: true, currency: true, failedReason: true, declineReason: true, logisticsPartner: { select: { displayName: true } } },
     });
     if (!job) return;
     const partner = short(job.logisticsPartner.displayName, 40) || "The delivery company";
@@ -207,10 +207,16 @@ export function notifyJobMoved(input: { bookingId: string; to: string; actor: st
       delivered: { title: `${what.charAt(0).toUpperCase()}${what.slice(1)} was delivered`, description: `${partner} dropped it off.`, priority: "success" },
       failed: { title: `Delivery problem with ${what}`, description: job.failedReason ? `${partner}: "${short(job.failedReason, 140)}". Call your customer, then ask for another try.` : `${partner} couldn't deliver it. Call your customer, then ask for another try.`, priority: "critical" },
       cancelled: input.actor === "shop" ? undefined : { title: `${partner} cancelled ${what}`, description: "Book another delivery company for it.", priority: "warning" },
+      // Logistics marketplace steps (shared/delivery-market.ts).
+      declined: { title: `${partner} declined ${what}`, description: `${job.declineReason ? `"${short(job.declineReason, 120)}". ` : ""}Send it to another of your delivery partners.`, priority: "critical" },
+      out_for_delivery: { title: `${what.charAt(0).toUpperCase()}${what.slice(1)} is out for delivery`, description: `${partner} is taking it to your customer now.`, priority: "info" },
+      at_pickup_point: { title: `${what.charAt(0).toUpperCase()}${what.slice(1)} is at the pickup point`, description: "Your customer can collect it now.", priority: "info" },
+      returning: { title: `${what.charAt(0).toUpperCase()}${what.slice(1)} is coming back to you`, description: `${partner} is returning it. Their return fee applies.`, priority: "warning" },
+      returned: { title: `${what.charAt(0).toUpperCase()}${what.slice(1)} was returned`, description: `${partner} brought it back.`, priority: "info" },
     };
     const note = words[input.to];
     if (note && input.actor !== "shop") {
-      await notify({ userId: job.sellerId, event: "delivery.update", type: "logistics", priority: note.priority, title: note.title, description: note.description, link, metadata: { bookingId: job.id, status: input.to }, dedupeKey: `delivery.${input.to}:${job.id}`, email: input.to === "failed" });
+      await notify({ userId: job.sellerId, event: "delivery.update", type: "logistics", priority: note.priority, title: note.title, description: note.description, link, metadata: { bookingId: job.id, status: input.to }, dedupeKey: `delivery.${input.to}:${job.id}`, email: input.to === "failed" || input.to === "declined" });
     }
     // Paid at the door: money in for the seller.
     if (input.to === "delivered" && job.codAmount && (input.codCollected ?? 0) > 0) {

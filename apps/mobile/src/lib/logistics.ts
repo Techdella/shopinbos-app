@@ -94,7 +94,7 @@ export type JobAction =
   | { action: "accept"; riderId?: string | null }
   | { action: "decline" }
   | { action: "assign"; riderId: string | null }
-  | { action: "status"; to: "confirmed" | "picked_up" | "in_transit" | "delivered" | "failed"; code?: string | null; recipientName?: string | null; codCollected?: number | null; codMethod?: "cash" | "transfer" | null; failedReason?: string | null };
+  | { action: "status"; to: "confirmed" | "picked_up" | "in_transit" | "out_for_delivery" | "delivered" | "failed" | "returning" | "returned"; code?: string | null; recipientName?: string | null; codCollected?: number | null; codMethod?: "cash" | "transfer" | null; failedReason?: string | null };
 
 export const moveJob = (id: string, body: JobAction) => api<{ job: Job | null }>(`/api/mobile/logistics/jobs/${encodeURIComponent(id)}`, { method: "POST", json: body });
 

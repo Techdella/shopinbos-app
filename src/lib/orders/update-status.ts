@@ -7,6 +7,7 @@ import { statusWhenMarkedPaid } from "@shared/sales";
 import { recoverExpiredOrderPayment, releaseOrderDiscount, releaseOrderStock } from "@/lib/commerce/order-expiry.server";
 import { cancelSupplierOrdersFor, ensureSupplierOrdersSafely } from "@/lib/supplier-orders/service.server";
 import { settlePaymentLinkForOrder } from "@/lib/payment-links/service.server";
+import { keptDeliveryPlan } from "@shared/delivery-market";
 
 // Changing a retail order's status: PATCH /api/app/orders/[id] (web + mobile) and Peggy's mark_order tool
 // share these rules so an order moves the same way whoever moves it.
@@ -64,7 +65,8 @@ export async function updateOrderStatus(
   }
   if (input.notes) updateData.notes = input.notes;
   if (input.trackingCode) updateData.trackingCode = input.trackingCode;
-  if (input.logisticsType) updateData.logisticsDetails = { type: input.logisticsType, ...(input.logisticsDetails || {}) };
+  // Keeps the delivery-partner plan saved at checkout (src/lib/delivery-market) when the seller sets how it's sent.
+  if (input.logisticsType) updateData.logisticsDetails = { ...keptDeliveryPlan(order.logisticsDetails), type: input.logisticsType, ...(input.logisticsDetails || {}) };
   if (input.status === "shipped") updateData.shippedAt = new Date();
   if (input.status === "delivered") updateData.deliveredAt = new Date();
 

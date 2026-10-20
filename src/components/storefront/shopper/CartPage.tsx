@@ -130,12 +130,15 @@ export function CartPage({ store, basePath, commerce, preview = false }: { store
     setPlace({ state: saved.state ?? "", city: saved.city ?? "" });
   }, [store.slug]);
   const hasZones = commerce.zones.length > 0;
+  // Delivery partners at checkout: their fees depend on the address, the parcel and who covers it, so the bag
+  // doesn't guess (the store's zones would show the wrong price); checkout quotes them for the address.
+  const partners = commerce.deliveryMode === "partners";
   const placeKnown = Boolean(place.state || place.city);
   const choice = deliveryOptionsFor(commerce.zones, commerce.flatRate, place, cart.subtotal);
-  const delivery = !hasZones || placeKnown ? chooseDelivery(choice) : null;
+  const delivery = partners ? null : !hasZones || placeKnown ? chooseDelivery(choice) : null;
   const summarised = useMemo(() => summariseDeliveryZones(commerce.zones.map((zone) => ({ name: zone.name ?? "", regions: zone.regions, rates: zone.rates }))), [commerce.zones]);
   const zoneHere = placeKnown ? matchZone(summarised, place.city, place.state) : null;
-  const freeOver = zoneHere ? (zoneHere.alwaysFree ? null : zoneHere.freeOver) : freeDeliveryEverywhereOver(info.delivery);
+  const freeOver = partners ? null : zoneHere ? (zoneHere.alwaysFree ? null : zoneHere.freeOver) : freeDeliveryEverywhereOver(info.delivery);
   // Free delivery and the seller's reward tiers on one bar (Marketing > Rewards).
   const game = useMemo(() => readGameConfig((store.brandSettings as Record<string, unknown> | null | undefined)?.gamification ?? {}), [store.brandSettings]);
   const rewardTiers = game.progress.enabled ? game.progress.tiers : [];
@@ -306,7 +309,9 @@ export function CartPage({ store, basePath, commerce, preview = false }: { store
                 </div>
               ) : null}
 
-              <DeliveryEstimate
+              {partners ? (
+                <p className="flex items-center gap-2 text-[14px]"><Icon name="truck" size={15} /> Delivery calculated at checkout</p>
+              ) : <DeliveryEstimate
                 theme={theme}
                 regions={regions}
                 place={place}
@@ -318,7 +323,7 @@ export function CartPage({ store, basePath, commerce, preview = false }: { store
                 covered={choice.covered}
                 option={delivery?.option ?? null}
                 currency={store.currency}
-              />
+              />}
 
               <dl className="grid gap-2 border-t pt-4 text-[14.5px]" style={{ borderColor: theme.border }}>
                 <Row label="Subtotal" value={<Money amount={totals.subtotal} currency={store.currency} />} />

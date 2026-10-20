@@ -41,7 +41,7 @@ export async function ordersFor(jobs: Array<{ orderId: string | null }>) {
 
 /** One job as the app shows it. Buyer contact details only travel while the job is open. */
 export function jobView(job: JobRow, order?: OrderRow, pickupGeo?: LatLng | null) {
-  const open = ["confirmed", "picked_up", "in_transit"].includes(job.status);
+  const open = ["confirmed", "picked_up", "in_transit", "out_for_delivery"].includes(job.status);
   const lines = order ? addressLines(order.deliveryAddress) : [];
   const pkg = packageInfo(job.packageDetails);
   return {
@@ -107,7 +107,7 @@ export function proofFile(form: FormData | null): { ok: true; file: File } | { o
  * missing ones per call. See lib/logistics/geocode.ts.
  */
 export async function pickupGeoFor(jobs: Array<JobRow>, country?: string | null) {
-  const open = jobs.filter((job) => ["pending", "confirmed", "picked_up", "in_transit"].includes(job.status));
+  const open = jobs.filter((job) => ["pending", "confirmed", "picked_up", "in_transit", "out_for_delivery"].includes(job.status));
   return ensurePickupCoords(open, country).catch(() => new Map<string, LatLng>());
 }
 
@@ -126,7 +126,7 @@ export async function dispatchRiders(partnerId: string, now = new Date()) {
       orderBy: { name: "asc" },
       select: { id: true, name: true, online: true, lastSeenAt: true, lastLat: true, lastLng: true, lastLocationAt: true },
     }),
-    db.deliveryBooking.groupBy({ by: ["riderId"], where: { logisticsPartnerId: partnerId, status: { in: ["confirmed", "picked_up", "in_transit"] }, riderId: { not: null } }, _count: { _all: true } }),
+    db.deliveryBooking.groupBy({ by: ["riderId"], where: { logisticsPartnerId: partnerId, status: { in: ["confirmed", "picked_up", "in_transit", "out_for_delivery"] }, riderId: { not: null } }, _count: { _all: true } }),
   ]);
   const openBy = new Map(open.map((row) => [row.riderId, row._count._all]));
   return riders

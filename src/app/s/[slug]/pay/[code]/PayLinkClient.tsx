@@ -18,10 +18,12 @@ import { resolveShopperTheme, type ShopperTheme } from "@/components/storefront/
 import type { ShopperCommerce, ShopperStore } from "@/components/storefront/shopper/types";
 import { TransferInstructions, type TransferDetails } from "../../order/[orderId]/TransferInstructions";
 import type { PublicPayLink } from "@/lib/payment-links/public.server";
+import { PartnerDeliveryChoices, hasPartnerParcels, partnerDeliveryProblem, partnerPaymentOptions, readQuotedDelivery, type QuotedDelivery } from "@/components/storefront/checkout/PartnerDelivery";
+import { PhoneCheck, usePhoneCheck } from "@/components/storefront/checkout/PhoneCheck";
 
 // The page a customer opens from a payment link in WhatsApp, Instagram or TikTok: what they're paying for, a size or
-// colour if the seller left it open, how many (when allowed), delivery from the store's zones and the store's ways to
-// pay. Totals come from the server (the same quote checkout charges); paying goes through the normal checkout.
+// colour if the seller left it open, how many (when allowed), delivery from the store's zones (or the delivery partners'
+// options the server quotes for the address, when the seller uses delivery partners) and the store's ways to pay. Totals come from the server (the same quote checkout charges); paying goes through the normal checkout.
 // Storefront pages are in English, like the rest of the store.
 
 interface Props {
@@ -43,7 +45,7 @@ interface Details {
   landmark: string;
 }
 
-type Errors = Partial<Record<keyof Details | "option", string>>;
+type Errors = Partial<Record<keyof Details | "option" | "delivery", string>>;
 
 export function PayLinkClient({ store, storeBasePath, commerce, preview = false, link }: Props) {
   const router = useRouter();
@@ -122,6 +124,8 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
   const [chosenMethod, setChosenMethod] = useState<CheckoutPaymentMethod | null>(null);
   const [quote, setQuote] = useState<{ key: string; totals: OrderTotals } | null>(null);
   const [quoteError, setQuoteError] = useState<string | null>(null);
+  // Delivery partners: the options the server quoted for the choices and address in `key`.
+  const [market, setMarket] = useState<{ key: string; value: QuotedDelivery | null } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [transfer, setTransfer] = useState<{ orderId: string; details: TransferDetails } | null>(null);
@@ -154,34 +158,55 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
   const unitPrice = chosenOption?.price ?? single?.price ?? 0;
   const itemsTotal = link.customAmount ?? (single ? unitPrice * quantity : link.items.reduce((sum, item) => sum + item.price * item.quantity, 0));
   const address = { city: details.city, state: details.state };
-  const deliveryChoice = deliveryOptionsFor(commerce.zones, commerce.flatRate, address, itemsTotal);
+  const partners = commerce.deliveryMode === "partners";
+  const hasAddress = Boolean(details.city.trim() || details.state.trim());
+  const marketKey = JSON.stringify([optionId, quantity, details.city, details.state]);
+  const liveMarket = partners && market && market.key === marketKey ? market : null;
+  const marketPending = partners && !preview && hasAddress && !liveMarket;
+  const marketDelivery = liveMarket?.value ?? null;
+  const deliveryChoice = partners
+    ? { covered: marketDelivery?.covered ?? true, options: marketDelivery?.options ?? [] }
+    : deliveryOptionsFor(commerce.zones, commerce.flatRate, address, itemsTotal);
   const delivery = chooseDelivery(deliveryChoice, deliveryOptionId);
+  const marketOption = partners ? marketDelivery?.options.find((option) => option.id === delivery.option?.id) ?? null : null;
+  const marketProblem = partners && !preview ? partnerDeliveryProblem({ hasAddress, pending: marketPending, delivery: marketDelivery }) : null;
+  // A delivery partner's rider needs a verified phone (spec §6.1): same check as checkout (PhoneCheck.tsx).
+  const phoneCheck = usePhoneCheck({ storeSlug: store.slug, phone: details.phone, enabled: partners && !preview, needed: hasPartnerParcels(marketOption) });
   const estimate = orderTotals({ subtotal: itemsTotal, shippingFee: delivery.fee });
-  const quoteKey = JSON.stringify([optionId, quantity, details.city, details.state, delivery.option?.id ?? null]);
+  const quoteKey = JSON.stringify([optionId, quantity, details.city, details.state, partners ? deliveryOptionId : delivery.option?.id ?? null]);
   const totals = quote && quote.key === quoteKey ? quote.totals : estimate;
 
-  const paymentOptions = useMemo(() => checkoutPaymentOptions(commerce.payments, { city: details.city, state: details.state, total: totals.total }), [commerce.payments, details.city, details.state, totals.total]);
+  const paymentOptions = useMemo(() => {
+    const context = { city: details.city, state: details.state, total: totals.total };
+    // With delivery partners, pay on delivery goes with the chosen option (as the checkout API checks it).
+    return partners ? partnerPaymentOptions(commerce.payments, context, marketOption) : checkoutPaymentOptions(commerce.payments, context);
+  }, [partners, marketOption, commerce.payments, details.city, details.state, totals.total]);
   const noWayToPay = paymentOptions.length === 0 ? noWayToPayText(commerce.payments, { city: details.city, state: details.state, total: totals.total }) : null;
   const paymentMethod: CheckoutPaymentMethod = paymentOptions.some((option) => option.key === chosenMethod) ? chosenMethod! : paymentOptions[0]?.key ?? "transfer";
 
   // The server's totals for the same choices (delivery, options, agreed amount): what checkout will charge.
   useEffect(() => {
     if (preview || unavailable || (needsOption && !optionId)) return;
-    if (commerce.zones.length > 0 && !details.city && !details.state) return;
+    if ((commerce.zones.length > 0 || partners) && !details.city && !details.state) return;
     const key = quoteKey;
+    const deliveryKey = marketKey;
     const controller = new AbortController();
     const timer = window.setTimeout(() => {
       fetch(`/api/public/store/${encodeURIComponent(store.slug)}/checkout/quote`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         signal: controller.signal,
-        body: JSON.stringify({ paymentLinkCode: link.code, linkVariantId: optionId ?? undefined, linkQuantity: link.buyerSetsQuantity ? quantity : undefined, address, deliveryOptionId: delivery.option?.id }),
+        body: JSON.stringify({ paymentLinkCode: link.code, linkVariantId: optionId ?? undefined, linkQuantity: link.buyerSetsQuantity ? quantity : undefined, address, deliveryOptionId: (partners ? deliveryOptionId : delivery.option?.id) ?? undefined }),
       })
         .then(async (res) => {
           const json = await res.json().catch(() => null);
-          if (!res.ok) return setQuoteError(json?.error?.message ?? null);
+          if (!res.ok) {
+            if (partners) setMarket({ key: deliveryKey, value: null });
+            return setQuoteError(json?.error?.message ?? null);
+          }
           setQuoteError(null);
           setQuote({ key, totals: json.data.totals as OrderTotals });
+          if (partners) setMarket({ key: deliveryKey, value: readQuotedDelivery(json.data?.delivery) });
         })
         .catch(() => {});
     }, 300);
@@ -205,8 +230,15 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
     if (details.email.trim() ? !isEmail(details.email) : (paymentMethod === "paystack" || paymentMethod === "korapay")) found.email = details.email.trim() ? "Enter a valid email." : "Add your email to pay by card. We send the receipt there.";
     if (!details.street.trim()) found.street = "Enter your street address.";
     if (!details.city.trim()) found.city = "Enter your area or city.";
-    if (regions.length > 0 && !details.state.trim()) found.state = "Choose your state.";
+    if ((regions.length > 0 || partners) && !details.state.trim()) found.state = "Choose your state.";
+    if (marketProblem && !found.city && !found.state) found.delivery = marketProblem;
     return found;
+  }
+
+  /** The phone isn't verified yet: say so in the phone box and move focus there. */
+  function blockOnPhone(message: string) {
+    phoneCheck.showError(message);
+    window.requestAnimationFrame(() => document.getElementById("pay-phone-check")?.focus());
   }
 
   async function pay() {
@@ -220,6 +252,8 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
       window.requestAnimationFrame(() => document.getElementById(`pay-${first}`)?.focus());
       return;
     }
+    // Delivery partners: no order until the phone took its code (the checkout API checks the token too).
+    if (phoneCheck.blocker) return blockOnPhone(phoneCheck.blocker);
     saveDetails(store.slug, { name: details.name.trim(), phone: details.phone.trim(), email: details.email.trim(), street: details.street.trim(), city: details.city.trim(), state: details.state.trim(), country: details.country.trim(), landmark: details.landmark.trim() });
     setSubmitting(true);
     try {
@@ -238,9 +272,15 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
           deliveryOptionId: delivery.option?.id,
           paymentMethod,
           channel: ref ?? undefined,
+          phoneToken: phoneCheck.phoneToken,
         }),
       });
       const json = await res.json().catch(() => null);
+      if (json?.error?.code === "PHONE_NOT_VERIFIED") {
+        // The server didn't take the token (expired, or another number): ask for a new code.
+        phoneCheck.forget();
+        return blockOnPhone(json.error.message ?? "Verify your phone number so the delivery partner can reach you.");
+      }
       if (!res.ok || !json?.data?.order) {
         setError(json?.error?.message ?? "Something went wrong. Please try again.");
         return;
@@ -398,9 +438,29 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
                 </select>
                 {errors.state ? <span className="mt-1 block text-[13px]" style={{ color: "#C2412D" }}>{errors.state}</span> : null}
               </label>
-            ) : null}
+            ) : partners ? field("state", "State", { autoComplete: "address-level1" }) : null}
             {field("landmark", "Landmark (optional)")}
-            {deliveryChoice.options.length > 1 ? (
+            {partners ? (
+              <>
+                <PartnerDeliveryChoices
+                  theme={theme}
+                  delivery={marketDelivery}
+                  pending={marketPending}
+                  hasAddress={hasAddress}
+                  selectedOptionId={delivery.option?.id ?? null}
+                  onSelect={(id) => {
+                    setDeliveryOptionId(id);
+                    setErrors((prev) => ({ ...prev, delivery: undefined }));
+                  }}
+                  currency={store.currency}
+                  preview={preview}
+                  name="delivery"
+                  id="pay-delivery"
+                />
+                {errors.delivery && marketDelivery?.covered !== false ? <span className="block text-[13px]" style={{ color: "#C2412D" }}>{errors.delivery}</span> : null}
+                <PhoneCheck theme={theme} check={phoneCheck} id="pay-phone-check" />
+              </>
+            ) : deliveryChoice.options.length > 1 ? (
               <div className="grid gap-2" role="radiogroup" aria-label="Delivery option">
                 {deliveryChoice.options.map((option) => (
                   <label key={option.id} className="flex min-h-12 cursor-pointer items-center gap-3 rounded-[14px] border px-4" style={{ borderColor: delivery.option?.id === option.id ? theme.ink : theme.border }}>
@@ -411,7 +471,7 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
                 ))}
               </div>
             ) : null}
-            {!deliveryChoice.covered && (details.city || details.state) ? <p className="text-[14px]" style={{ color: theme.muted }}>The store will confirm delivery to this address with you.</p> : null}
+            {!partners && !deliveryChoice.covered && (details.city || details.state) ? <p className="text-[14px]" style={{ color: theme.muted }}>The store will confirm delivery to this address with you.</p> : null}
           </Panel>
 
           <Panel theme={theme} className="grid gap-3 p-5">
@@ -430,7 +490,7 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
             {noWayToPay && !error ? <p role="alert" className="text-[14px]" style={{ color: "#C2412D" }}>{noWayToPay}</p> : null}
             <dl className="mt-1 grid gap-1.5 text-[15px]">
               <div className="flex justify-between"><dt>Items</dt><dd>{money(totals.subtotal)}</dd></div>
-              <div className="flex justify-between"><dt>Delivery</dt><dd>{totals.shippingFee ? money(totals.shippingFee) : "Free"}</dd></div>
+              <div className="flex justify-between"><dt>Delivery</dt><dd>{partners && !marketOption ? <span style={{ color: theme.muted }}>{marketPending ? "Checking…" : hasAddress ? "Not available" : "Add your address"}</span> : totals.shippingFee ? money(totals.shippingFee) : "Free"}</dd></div>
               {totals.discountAmount ? <div className="flex justify-between"><dt>Discount</dt><dd>−{money(totals.discountAmount)}</dd></div> : null}
               <div className="flex justify-between border-t pt-2 text-[18px] font-semibold" style={{ borderColor: theme.border }}><dt>Total</dt><dd>{money(totals.total)}</dd></div>
             </dl>

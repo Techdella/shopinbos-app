@@ -22,6 +22,7 @@ Defined in `scripts/qstash-schedules.mjs` (cron times are UTC):
 | shopinbos-product-news                  | /api/cron/product-news               | `*/10 * * * *`    |
 | shopinbos-whatsapp-catalog              | /api/cron/whatsapp-catalog           | `*/15 * * * *`    |
 | shopinbos-partner-payins                | /api/cron/partner-payins             | `*/15 * * * *`    |
+| shopinbos-delivery-jobs                 | /api/cron/delivery-jobs              | `*/15 * * * *`    |
 | shopinbos-verification-reminders        | /api/cron/verification-reminders     | `17 * * * *`      |
 | shopinbos-lifecycle-emails              | /api/cron/lifecycle                  | `23 * * * *`      |
 | shopinbos-seasonal-campaigns            | /api/cron/seasonal-campaigns         | `*/5 * * * *`     |

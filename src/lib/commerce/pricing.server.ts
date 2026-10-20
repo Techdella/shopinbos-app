@@ -9,6 +9,8 @@ import { buildStockHolds, isDropshipProduct, stockShortfallDetails, stockShortfa
 import { normalizeVariants, resolveLineVariant } from "@shared/product-variants";
 import { maybeExpireUnpaidOrders } from "@/lib/commerce/order-expiry.server";
 import { spreadAgreedAmount } from "@/lib/payment-links/pure";
+import { marketChoiceForStore } from "@/lib/delivery-market/market.server";
+import { chooseMarketOption, type MarketOption } from "@shared/delivery-market";
 import {
   chooseDelivery,
   deliveryOptionsFor,
@@ -48,7 +50,11 @@ export interface AppliedDiscount {
 export interface PricedOrder {
   ok: true;
   items: PricedItem[];
-  delivery: { choice: DeliveryChoice; option: DeliveryOption | null };
+  /**
+   * The delivery choice. With delivery partners at checkout (src/lib/delivery-market), `market` is set: the options
+   * are the partners' (each carrying the parcels it books), and `reason` says why nothing covers the address.
+   */
+  delivery: { choice: DeliveryChoice; option: DeliveryOption | null; market: { option: MarketOption | null; reason: string | null; shipmentCount: number } | null };
   discount: AppliedDiscount | null;
   /** Why the typed code did not apply, in words for the shopper. */
   codeError: string | null;
@@ -60,7 +66,8 @@ export interface PricedOrder {
 }
 
 export interface PricingInput {
-  store: { id: string; brandSettings: unknown };
+  /** userId and city: needed for delivery partners at checkout (without them, the store's own zones price delivery). */
+  store: { id: string; brandSettings: unknown; userId?: string; city?: string | null };
   items: Array<{ productId: string; quantity: number; variant?: string | null; variantId?: string | null }>;
   address: { city?: string; state?: string };
   deliveryOptionId?: string | null;
@@ -193,8 +200,24 @@ export async function priceOrder(input: PricingInput): Promise<PricedOrder | { o
     select: { name: true, regions: true, rates: true },
   });
   const flatRate = Number(record(record(input.store.brandSettings).shippingConfig).flatRate ?? 0) || 0;
-  const choice = deliveryOptionsFor(zones, flatRate, input.address, subtotal);
-  const { option, fee } = chooseDelivery(choice, input.deliveryOptionId);
+  // Delivery partners at checkout (the seller switched it on): their options replace the store's own zones.
+  const market = input.store.userId
+    ? await marketChoiceForStore({ id: input.store.id, userId: input.store.userId, city: input.store.city ?? null }, items.map((item) => ({ productId: item.productId, quantity: item.quantity })), input.address)
+    : null;
+  let choice: DeliveryChoice;
+  let option: DeliveryOption | null;
+  let fee: number;
+  let marketPick: { option: MarketOption | null; reason: string | null; shipmentCount: number } | null = null;
+  if (market) {
+    const picked = chooseMarketOption(market.choice, input.deliveryOptionId);
+    choice = { covered: market.choice.covered, options: market.choice.options };
+    option = picked.option;
+    fee = picked.fee;
+    marketPick = { option: picked.option, reason: market.choice.reason, shipmentCount: market.choice.shipmentCount };
+  } else {
+    choice = deliveryOptionsFor(zones, flatRate, input.address, subtotal);
+    ({ option, fee } = chooseDelivery(choice, input.deliveryOptionId));
+  }
 
   const lines: DiscountLine[] = items.map((item) => ({ productId: item.productId, price: item.price, quantity: item.quantity }));
   let applied: AppliedDiscount | null = null;
@@ -255,7 +278,7 @@ export async function priceOrder(input: PricingInput): Promise<PricedOrder | { o
   return {
     ok: true,
     items,
-    delivery: { choice, option },
+    delivery: { choice, option, market: marketPick },
     discount: applied,
     codeError,
     points,

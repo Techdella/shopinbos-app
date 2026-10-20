@@ -6,7 +6,7 @@ import { addressLines } from "@/lib/labels";
 import { cashToPayIn } from "@/lib/logistics/job-rules";
 import { riderFromToken } from "@/lib/logistics/rider-session";
 import { bookingNet, lagosStartOfToday, packageSummary } from "@/components/logistics/kit";
-import { markDelivered, markFailed, setRiderOnline, startRun } from "@/app/rider/[token]/actions";
+import { markDelivered, markFailed, markStage, setRiderOnline, startRun } from "@/app/rider/[token]/actions";
 import { toE164 } from "@shared/phone";
 import { pickupWindowText } from "@shared/supplier-pickup";
 import { notesWithRecipient } from "../_shared";
@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
   const where = { riderId: rider.id, logisticsPartnerId: rider.partnerId };
   const [active, doneToday, cashJobs] = await Promise.all([
     db.deliveryBooking.findMany({
-      where: { ...where, status: { in: ["confirmed", "picked_up", "in_transit"] } },
+      where: { ...where, status: { in: ["confirmed", "picked_up", "in_transit", "out_for_delivery"] } },
       orderBy: { createdAt: "asc" },
       take: 60,
       select: {
@@ -97,6 +97,8 @@ const Body = z.discriminatedUnion("action", [
     codMethod: z.enum(["cash", "transfer"]).nullish(),
   }),
   z.object({ action: z.literal("failed"), jobId: z.string().max(64), reason: z.string().min(1).max(300) }),
+  // Logistics marketplace: on the way to the customer, or left at the pickup point.
+  z.object({ action: z.literal("stage"), jobId: z.string().max(64), to: z.enum(["out_for_delivery", "at_pickup_point"]) }),
 ]);
 
 export async function POST(req: NextRequest) {
@@ -110,6 +112,7 @@ export async function POST(req: NextRequest) {
     input.action === "online" ? await setRiderOnline(token, input.online)
     : input.action === "start_run" ? await startRun(token, input.jobIds)
     : input.action === "failed" ? await markFailed(token, { jobId: input.jobId, reason: input.reason })
+    : input.action === "stage" ? await markStage(token, { jobId: input.jobId, to: input.to })
     : await markDelivered(token, { jobId: input.jobId, code: input.code, codCollected: input.codCollected ?? null, codMethod: input.codMethod ?? null });
   if (!result.ok) return apiError(result.error === LINK_ERROR ? "UNAUTHORIZED" : "CONFLICT", result.error, result.error === LINK_ERROR ? 401 : 409);
 

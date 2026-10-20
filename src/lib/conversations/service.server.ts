@@ -20,6 +20,7 @@ import {
   formatMoney,
   messagePreview,
   messagesHref,
+  offPlatformNote,
   orderedPair,
   roleLabel,
   sendMessageSchema,
@@ -267,10 +268,18 @@ function fileUrl(conversationId: string, messageId: string, index: number) {
   return `/api/conversations/${conversationId}/files/${messageId}/${index}`;
 }
 
+/** Both people's roles, so chats with a delivery partner get the off-app note (pure.ts offPlatformNote). */
+async function chatRoles(viewer: Viewer, otherId: string): Promise<string[]> {
+  if (viewer.role === "logistics_partner") return [viewer.role];
+  const other = await db.user.findUnique({ where: { id: otherId }, select: { role: true } }).catch(() => null);
+  return [viewer.role, String(other?.role ?? "")];
+}
+
 async function toThreadMessages(
   viewer: Viewer,
   conversationId: string,
   rows: Array<{ id: string; text: string; senderId: string; createdAt: Date; read: boolean }>,
+  roles: string[] = [viewer.role],
 ): Promise<ThreadMessage[]> {
   const details = new Map<string, { attachments: AttachmentRef[]; context: ContextSnapshot | null; readAt: Date | null }>();
   if (rows.length && (await detailsReady())) {
@@ -290,6 +299,7 @@ async function toThreadMessages(
       readAt: detail?.readAt?.toISOString() ?? null,
       attachments: (detail?.attachments ?? []).map((file, index) => ({ name: file.name, type: file.type, size: file.size, url: fileUrl(conversationId, row.id, index) })),
       context: detail?.context ?? null,
+      warning: offPlatformNote(row.text, roles),
     };
   });
 }
@@ -325,8 +335,9 @@ export async function getThread(viewer: Viewer, ref: string, options: { after?: 
   }
 
   await markRead(viewer, access);
+  const roles = await chatRoles(viewer, access.otherId);
   const [messages, seen, summary] = await Promise.all([
-    toThreadMessages(viewer, access.id, rows),
+    toThreadMessages(viewer, access.id, rows, roles),
     db.message.findFirst({ where: { ...base, senderId: viewer.id, read: true }, orderBy: { createdAt: "desc" }, select: { createdAt: true } }),
     options.after ? Promise.resolve(null) : summaryFor(viewer, access.id, access.otherId),
   ]);
@@ -372,6 +383,10 @@ export async function markRead(viewer: Viewer, access: { ids: string[] }) {
 
 // ─── Sending ──────────────────────────────────────────────────────────────────
 
+/**
+ * Sends a message. Never blocked for sharing contact or payment details: in a chat with a delivery partner the
+ * result (and the thread) carries `warning`, a gentle note to keep jobs and payments in Shopinbos.
+ */
 export async function sendPartnerMessage(viewer: Viewer, ref: string, raw: unknown): Promise<ThreadMessage & { conversationId: string }> {
   if (!checkRateLimit(`partner-msg:${viewer.id}`, SEND_LIMIT).allowed) {
     throw new ConversationError("RATE_LIMITED", "You're sending messages very fast. Wait a moment and try again.");
@@ -414,7 +429,7 @@ export async function sendPartnerMessage(viewer: Viewer, ref: string, raw: unkno
     console.error("Partner message notification failed:", error);
   });
 
-  const [threadMessage] = await toThreadMessages(viewer, access.id, [message]);
+  const [threadMessage] = await toThreadMessages(viewer, access.id, [message], await chatRoles(viewer, access.otherId));
   return { ...threadMessage, conversationId: access.id };
 }
 

@@ -52,6 +52,7 @@ export default async function CustomDomainOrderPage({ params, searchParams }: Pr
       storeBasePath={storeBasePath}
       transfer={next.transfer}
       deliveryCode={next.deliveryCode}
+      delivery={next.delivery ? JSON.parse(JSON.stringify(next.delivery)) : null}
     />
   );
 }

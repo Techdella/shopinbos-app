@@ -63,6 +63,7 @@ const SEGMENT_SECTION: Record<string, AdminSection> = {
   "supplier-pickups": "partners",
   logistics: "partners",
   "logistics-partners": "partners",
+  "delivery-issues": "partners",
   catalog: "partners",
   categories: "partners",
   marketplace: "partners",

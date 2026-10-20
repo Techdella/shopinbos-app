@@ -18,6 +18,7 @@ import intros from "./messages/intros/index.ts";
 import introTitles from "./messages/introTitles/index.ts";
 import supplier from "./messages/supplier/index.ts";
 import logistics from "./messages/logistics/index.ts";
+import delivery from "./messages/delivery/index.ts";
 import rider from "./messages/rider/index.ts";
 import m_supplier from "./messages/m_supplier/index.ts";
 import m_partner from "./messages/m_partner/index.ts";
@@ -102,6 +103,7 @@ export const CATALOGS = {
   introTitles,
   supplier,
   logistics,
+  delivery,
   rider,
   m_supplier,
   m_partner,

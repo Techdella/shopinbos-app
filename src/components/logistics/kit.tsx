@@ -64,18 +64,31 @@ export async function ActionNotice({ saved, error, savedText }: { saved?: string
   return null;
 }
 
-export type BookingStatusValue = "pending" | "confirmed" | "picked_up" | "in_transit" | "delivered" | "failed" | "cancelled";
+export type BookingStatusValue =
+  | "pending" | "confirmed" | "picked_up" | "in_transit" | "delivered" | "failed" | "cancelled"
+  // Logistics marketplace (src/lib/logistics/job-rules.ts).
+  | "declined" | "out_for_delivery" | "at_pickup_point" | "returning" | "returned";
 
-export const BOOKING_STATUSES: BookingStatusValue[] = ["pending", "confirmed", "picked_up", "in_transit", "delivered", "failed", "cancelled"];
-export const ACTIVE_STATUSES: BookingStatusValue[] = ["confirmed", "picked_up", "in_transit"];
+export const BOOKING_STATUSES: BookingStatusValue[] = [
+  "pending", "confirmed", "picked_up", "in_transit", "out_for_delivery", "at_pickup_point", "delivered", "failed", "returning", "returned", "declined", "cancelled",
+];
+/** Jobs a partner is carrying now (accepted and not finished). */
+export const ACTIVE_STATUSES: BookingStatusValue[] = ["confirmed", "picked_up", "in_transit", "out_for_delivery", "at_pickup_point", "returning"];
+/** Jobs a rider has on the road (the Riders app and "who's carrying what"). */
+export const ON_ROAD_STATUSES: BookingStatusValue[] = ["confirmed", "picked_up", "in_transit", "out_for_delivery"];
 
 const STAGE: Record<string, { label: string; tone: Tone }> = {
   pending: { label: "New request", tone: "accent" },
   confirmed: { label: "Accepted, waiting for pickup", tone: "warning" },
   picked_up: { label: "Picked up", tone: "info" },
   in_transit: { label: "Picked up, on the way", tone: "info" },
+  out_for_delivery: { label: "Out for delivery", tone: "info" },
+  at_pickup_point: { label: "At pickup point", tone: "info" },
   delivered: { label: "Delivered", tone: "success" },
   failed: { label: "Delivery failed", tone: "danger" },
+  returning: { label: "Returning to sender", tone: "warning" },
+  returned: { label: "Returned", tone: "muted" },
+  declined: { label: "Declined", tone: "muted" },
   cancelled: { label: "Cancelled", tone: "muted" },
 };
 

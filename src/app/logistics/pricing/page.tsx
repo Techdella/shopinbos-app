@@ -40,6 +40,14 @@ export default async function LogisticsPricingPage({ searchParams }: { searchPar
     >
       <ActionNotice saved={saved} error={error} savedText={t("pricing.saved")} />
 
+      <Card className="mb-5 flex flex-wrap items-center justify-between gap-3 p-5">
+        <div className="min-w-0">
+          <h2 className="m-0 text-[17px] font-extrabold">{t("market.pricing.title")}</h2>
+          <p className="m-0 mt-0.5 text-[15px] text-app-ink-soft">{t("market.pricing.body")}</p>
+        </div>
+        <PillLink href="/logistics/rates" tone="ink" icon="coin">{t("market.pricing.open")}</PillLink>
+      </Card>
+
       <div className="grid gap-5 xl:[grid-template-columns:minmax(0,1fr)_420px]">
         <div className="grid min-w-0 content-start gap-5">
           <Card className="p-5">

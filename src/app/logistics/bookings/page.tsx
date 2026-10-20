@@ -10,12 +10,14 @@ import { EmptyState, FilterChips, ListCard, PillLink, SearchForm } from "@/compo
 import { messagesHref } from "@/lib/conversations/pure";
 import { Icon } from "@/components/ui/Icon";
 import { AcceptAssignForm, ReassignForm, riderSelect } from "@/components/logistics/dispatch";
+import { CashToShop, DeclineJobForm, MarketJobFacts } from "@/components/logistics/market";
 import { withOpenJobs } from "@/lib/logistics/dispatch-riders";
 import { ensurePickupCoords } from "@/lib/logistics/geocode";
 import { nextStatuses } from "@/lib/logistics/job-rules";
 import { pickupWindowText } from "@shared/supplier-pickup";
 import {
   ACTIVE_STATUSES,
+  ON_ROAD_STATUSES,
   ActionNotice,
   PartnerPage,
   Route,
@@ -43,7 +45,8 @@ const FILTERS: Array<{ key: string; label: string; statuses?: BookingStatusValue
   { key: "all", label: "All" },
   { key: "new", label: "New", statuses: ["pending"] },
   { key: "active", label: "Active", statuses: ACTIVE_STATUSES },
-  { key: "issues", label: "Failed or cancelled", statuses: ["failed", "cancelled"] },
+  { key: "issues", label: "Failed or cancelled", statuses: ["failed", "returned", "cancelled"] },
+  { key: "declined", label: "Declined", statuses: ["declined"] },
   { key: "delivered", label: "Delivered", statuses: ["delivered"] },
 ];
 
@@ -92,6 +95,9 @@ export default async function LogisticsBookingsPage({ searchParams }: { searchPa
         estimatedDelivery: true, createdAt: true, packageDetails: true, notes: true, failedReason: true,
         codAmount: true, codCollected: true, codMethod: true, riderId: true, sellerId: true,
         pickupLat: true, pickupLng: true, pickupGeoSource: true, pickupGeocodedAt: true,
+        // Logistics marketplace details (shown when present).
+        service: true, sizeBand: true, pickupPointId: true, shipmentKey: true, readyAt: true, acceptBy: true, feePaidAt: true,
+        declineReason: true, codRemittedAt: true, codConfirmedAt: true,
         seller: { select: { name: true } }, rider: { select: { name: true } },
       },
     }),
@@ -99,10 +105,14 @@ export default async function LogisticsBookingsPage({ searchParams }: { searchPa
     db.logisticsTeamMember.findMany({ where: { logisticsPartnerId: partner.id, role: "rider", status: "active" }, orderBy: { name: "asc" }, select: riderSelect }),
   ]);
   const RETURN = "/logistics/bookings";
+  const now = new Date();
+  const pointIds = [...new Set(bookings.map((job) => job.pickupPointId).filter((id): id is string => Boolean(id)))];
+  const points = pointIds.length ? await db.logisticsPickupPoint.findMany({ where: { id: { in: pointIds }, logisticsPartnerId: partner.id }, select: { id: true, name: true } }) : [];
+  const pointName = new Map(points.map((point) => [point.id, point.name]));
   // Closest rider first: pickup coordinates for jobs that need a rider (geocoded once, stored on the job).
   const [riders, pickupGeo] = await Promise.all([
     withOpenJobs(partner.id, ridersBase),
-    ensurePickupCoords(bookings.filter((job) => ["pending", "confirmed", "picked_up", "in_transit"].includes(job.status)), partner.country),
+    ensurePickupCoords(bookings.filter((job) => ["pending", ...ON_ROAD_STATUSES].includes(job.status as BookingStatusValue)), partner.country),
   ]);
 
   const countOf = (statuses?: BookingStatusValue[]) =>
@@ -141,7 +151,7 @@ export default async function LogisticsBookingsPage({ searchParams }: { searchPa
                     </div>
                   </div>
                   <div className="shrink-0"><StatusPill status={job.status} /></div>
-                  <div className={`w-full min-w-0 truncate text-[15px] sm:w-[130px] ${job.rider || !["confirmed", "picked_up", "in_transit"].includes(job.status) ? "text-app-ink-soft" : "font-bold text-app-accent-ink"}`}>
+                  <div className={`w-full min-w-0 truncate text-[15px] sm:w-[130px] ${job.rider || !ON_ROAD_STATUSES.includes(job.status as BookingStatusValue) ? "text-app-ink-soft" : "font-bold text-app-accent-ink"}`}>
                     {job.rider?.name ?? (job.status === "pending" ? t("jobs.notAccepted") : t("dispatch.noRider"))}
                   </div>
                   <div className="hidden w-[120px] shrink-0 text-[15px] text-app-ink-soft lg:block">
@@ -157,6 +167,7 @@ export default async function LogisticsBookingsPage({ searchParams }: { searchPa
                   <div className="mb-3">
                     <PillLink href={messagesHref("logistics_partner", { with: job.sellerId, context: { kind: "booking", id: job.id } })} size="sm" icon="chat">{t("jobs.message", { name: job.seller.name })}</PillLink>
                   </div>
+                  <div className="mb-3 empty:hidden"><MarketJobFacts job={job} pointName={job.pickupPointId ? pointName.get(job.pickupPointId) : null} now={now} t={t} /></div>
                   {job.notes && <p className="m-0 mb-3 text-[15px] text-app-ink-soft">{t("jobs.sellerNote", { note: job.notes })}</p>}
                   {job.status === "failed" && job.failedReason && <p className="m-0 mb-3 text-[15px] font-bold text-app-danger">{t("jobs.failedReason", { reason: job.failedReason })}</p>}
                   {job.codAmount ? (
@@ -166,18 +177,14 @@ export default async function LogisticsBookingsPage({ searchParams }: { searchPa
                     </p>
                   ) : null}
                   {job.status === "pending" ? (
-                    <div className="flex flex-wrap items-center gap-2">
-                      <form action={updateDeliveryBookingStatus}>
-                        <input type="hidden" name="bookingId" value={job.id} />
-                        <input type="hidden" name="status" value="cancelled" />
-                        <input type="hidden" name="returnTo" value={RETURN} />
-                        <SubmitButton tone="white" size="sm" aria-label={t("today.declineJobAria", { job: jobId(job.id) })}>{t("today.decline")}</SubmitButton>
-                      </form>
+                    <div className="flex flex-wrap items-start gap-2">
+                      <DeclineJobForm bookingId={job.id} returnTo={RETURN} />
                       <AcceptAssignForm bookingId={job.id} riders={riders} returnTo={RETURN} className="flex-1 sm:max-w-[520px]" pickup={pickupGeo.get(job.id)} />
                     </div>
                   ) : (
                     <div className="grid gap-4">
-                      {!["delivered", "cancelled"].includes(job.status) && (
+                      <CashToShop job={job} returnTo={RETURN} />
+                      {!["delivered", "cancelled", "declined", "returned"].includes(job.status) && (
                         <div className="sm:max-w-[520px]">
                           <ReassignForm bookingId={job.id} riderId={job.riderId} riderName={job.rider?.name} riders={riders} returnTo={RETURN} pickup={pickupGeo.get(job.id)} />
                         </div>
@@ -202,11 +209,14 @@ type JobForForm = {
   trackingCode: string | null;
   estimatedDelivery: Date | null;
   codAmount: number | null;
+  /** Marketplace jobs: doorstep jobs go out for delivery, pickup-point jobs wait at the point. */
+  service?: string | null;
 };
 
 /** Stage first; tracking code and delivery time are folded away. Only the moves the job rules allow are offered, plus what an undelivered or cash-on-delivery job needs. */
 function JobUpdateForm({ job, t }: { job: JobForForm; t: LogisticsT }) {
-  const options = [job.status, ...nextStatuses(job.status)];
+  const skip = job.service === "pickup_point" ? "out_for_delivery" : job.service ? "at_pickup_point" : null;
+  const options = [job.status, ...nextStatuses(job.status).filter((status) => status !== skip)];
   const canFail = options.includes("failed") && job.status !== "failed";
   const canDeliver = options.includes("delivered") && job.status !== "delivered";
   const needsCash = canDeliver && (job.codAmount ?? 0) > 0;

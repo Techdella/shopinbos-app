@@ -11,6 +11,7 @@ import { Icon } from "@/components/ui/Icon";
 import { formatStoreMoney } from "@/lib/storefront/shopper-info";
 import { lineKey, type CartLine, type CheckoutDetails, type DeliveryChoice, type DeliveryOption, type FieldErrors, type OrderTotals } from "@shared/cart-checkout";
 import type { CheckoutPaymentMethod, CheckoutPaymentOption } from "@shared/checkout-payments";
+import { areaSuggestions as lgaSuggestions } from "@shared/ng-lgas";
 import type { AppliedCode } from "@/components/storefront/shopper/checkout-storage";
 import { ItemThumb, Money, Panel, SecondaryButton, fieldClass } from "@/components/storefront/shopper/ShopperShell";
 import type { ShopperTheme } from "@/components/storefront/shopper/theme";
@@ -212,6 +213,8 @@ export function DeliveryFields({
   currency,
   saveOnDevice,
   onSaveOnDevice,
+  partnerChoices = null,
+  stateRequired = false,
 }: {
   theme: ShopperTheme;
   details: CheckoutDetails;
@@ -229,7 +232,14 @@ export function DeliveryFields({
   /** Null hides the "save my details" box (builder preview). */
   saveOnDevice: boolean | null;
   onSaveOnDevice?: (on: boolean) => void;
+  /** Delivery partners at checkout: their options (PartnerDeliveryChoices) replace the store's zones. */
+  partnerChoices?: React.ReactNode | null;
+  /** A state must be given even when the country has no list (delivery partners match on it). */
+  stateRequired?: boolean;
 }) {
+  // The store's own zone areas first, then the chosen Nigerian state's LGAs and well-known areas (free text still works).
+  const nigeria = !details.country || /nigeria/i.test(details.country);
+  const areaOptions = [...new Set([...areaSuggestions, ...(nigeria ? lgaSuggestions(details.state) : [])])];
   return (
     <div className="grid gap-4">
       <TextField theme={theme} id="co-street" label="Street address" value={details.street} onChange={(v) => set("street", v)} error={errors.street} autoComplete="street-address" hint="House number, street and estate." />
@@ -237,11 +247,11 @@ export function DeliveryFields({
         {regions.length ? (
           <SelectField theme={theme} id="co-state" label="State" value={details.state} onChange={(v) => set("state", v)} error={errors.state} autoComplete="address-level1" options={regions} placeholder="Choose your state" />
         ) : (
-          <TextField theme={theme} id="co-state" label="State or region (optional)" value={details.state} onChange={(v) => set("state", v)} error={errors.state} autoComplete="address-level1" />
+          <TextField theme={theme} id="co-state" label={stateRequired ? "State or region" : "State or region (optional)"} value={details.state} onChange={(v) => set("state", v)} error={errors.state} autoComplete="address-level1" />
         )}
         <TextField theme={theme} id="co-city" label="Area or city" value={details.city} onChange={(v) => set("city", v)} error={errors.city} autoComplete="address-level2" list="co-areas" hint="For example Lekki, Ikeja or Wuse." />
         <datalist id="co-areas">
-          {areaSuggestions.map((region) => <option key={region} value={region} />)}
+          {areaOptions.map((region) => <option key={region} value={region} />)}
         </datalist>
         <TextField theme={theme} id="co-landmark" label="Nearest landmark (optional)" value={details.landmark} onChange={(v) => set("landmark", v)} autoComplete="off" hint="Helps the rider find you." />
         <SelectField theme={theme} id="co-country" label="Country" value={details.country} onChange={onCountry} autoComplete="country-name" options={countries} />
@@ -249,7 +259,9 @@ export function DeliveryFields({
 
       <fieldset className="m-0 mt-1 min-w-0 border-0 p-0">
         <legend className="mb-2 p-0 text-[15px] font-semibold">Delivery option</legend>
-        {!details.city && !details.state && hasZones ? (
+        {partnerChoices ? (
+          partnerChoices
+        ) : !details.city && !details.state && hasZones ? (
           <p className="text-[14px]" style={{ color: theme.muted }}>Enter your state and area to see delivery options.</p>
         ) : !choice.covered ? (
           <p className="rounded-[14px] px-4 py-3 text-[14px]" style={{ background: theme.paper }}>
