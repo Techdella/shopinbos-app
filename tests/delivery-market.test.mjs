@@ -49,7 +49,7 @@ test("areas: an area token matches a place in the same LGA, not just by text", (
   assert.equal(m.areaScore("Lagos: eti osa", lekki), 4);
   assert.equal(m.areaScore("Lagos: Lekki", lekki), 4);
   assert.equal(m.areaScore("Lagos: Lekki", { state: "Lagos", area: "Lekki" }), 4);
-  assert.equal(m.areaScore("Lagos: Lekki", { state: "Lagos", area: "Victoria Island" }), 4);
+  assert.equal(m.areaScore("Lagos: Lekki", { state: "Lagos", area: "Victoria Island" }), -1, "an area token covers that area only, not its neighbours in the same LGA");
   assert.equal(m.areaScore("Lagos: Ibeju-Lekki", lekki), -1);
   assert.equal(m.areaScore("Lagos: Eti-Osa", { state: "Lagos", area: "Ikeja GRA" }), -1);
   assert.equal(m.areaScore("Lagos: Isolo", { state: "Lagos", area: "Okota" }), 4);

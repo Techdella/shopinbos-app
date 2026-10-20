@@ -13,7 +13,7 @@
 //   6. Shopinbos commission on delivery fees: none (DELIVERY_COMMISSION_RATE).
 //   7. Coverage: states, regions and nationwide, with optional "State: Area" tokens for LGAs/cities.
 
-import { lgaOfArea } from "./ng-lgas.ts";
+import { findLga, lgaOfArea } from "./ng-lgas.ts";
 
 export const CONNECT_NEEDS_APPROVAL = false;
 export const DROPSHIP_SHIPPER = "supplier" as const;
@@ -171,7 +171,9 @@ export function areaScore(token: AreaToken | string | null, place: Place): numbe
   if (parsed.kind === "state") return parsed.state === place.state ? 3 : -1;
   if (parsed.state !== place.state || !place.area) return -1;
   if (words(place.area).includes(words(parsed.area))) return 4;
-  const lga = lgaOfArea(parsed.state, parsed.area);
+  // A token that names a whole LGA ("Lagos: Eti-Osa") covers every area in it ("Lekki Phase 1"). A token naming an
+  // area inside one ("Lagos: Lekki") covers only that area, never its neighbours in the same LGA.
+  const lga = findLga(parsed.state, parsed.area);
   return lga && lga === lgaOfArea(place.state, place.area) ? 4 : -1;
 }
 

@@ -57,6 +57,17 @@ Each decision is a constant or a single function in `shared/delivery-market.ts`,
 6. **Commission:** none on delivery fees. Shopinbos's platform fee is only on what the seller sells.
 7. **Coverage:** states, regions and nationwide, plus optional `State: Area` tokens for LGAs or cities. An area token matches an address when its text is inside the address's area, or when both resolve to the same LGA (`shared/ng-lgas.ts`: all 774 LGAs plus common area names, so `Lagos: Eti-Osa` covers "Lekki Phase 1"). Area fields suggest the state's LGAs but still accept free text.
 
+## Delivery updates to the buyer (spec §6.3)
+
+WhatsApp/SMS order messages the seller turns on per channel in Marketing › Order messages (off by default; WhatsApp setup switches them on the first time it makes their templates):
+- **Delivery booked** when the partner accepts (link to the order page, which shows the delivery code).
+- **Out for delivery** with the 4-digit delivery code to give the rider.
+- **Ready at the pickup point** with the point's name, address, hours and the code.
+- **Delivery problem** for a failed attempt (the rider's reason in plain words) or a return ("We'll contact you").
+- **Delivered** is the order's own message, sent when the job moves the order to delivered.
+
+`transitionJob` calls `notifyDeliveryStage` (`src/lib/notifications/customer-messages.ts`) after saving the job, for jobs on a store order. The partner's name shows only when the seller shows it at checkout. Each message goes once per job step and channel: keyed by the job (a job handed to another partner messages again) and, for out for delivery and failures, the attempt number. Pure rules: `src/lib/notifications/delivery-messages.ts`, `tests/delivery-messages.test.mjs`. WhatsApp templates: `DELIVERY_TEMPLATE_PRESETS` in `src/lib/marketing/text-channels.ts`, submitted with the order templates.
+
 ## Pay on delivery
 
 POD is off by default. It is allowed per connection only when the seller opts in (accepting the disclaimer), the partner opts in for that connection, and the partner offers it at all. Cash is settled between the seller and the partner. Shopinbos never collects it, so these jobs don't use the existing Shopinbos pay-in flow (`codAmount` stays empty).
@@ -80,7 +91,14 @@ When the chosen delivery option books a delivery partner, the customer verifies 
 2. Deploy.
 3. Add the QStash schedule: `QSTASH_TOKEN=... node scripts/qstash-schedules.mjs https://app.shopinbos.com`.
 
-## Not built yet (later phases)
+## Delivery analytics
 
-- SMS/WhatsApp messages at each delivery stage. The existing order messages still fire.
-- Partner and seller delivery analytics.
+- Partners: a "Marketplace jobs" section on /logistics/analytics (acceptance, time to accept, on-time and failed
+  rates, weekly deliveries and fees, states, services, sizes, decline reasons, customer problems).
+- Sellers: /home/logistics/analytics (spend, deliveries, exceptions, per-partner comparison). Suppliers:
+  /supplier/delivery/analytics. Sums are pure and tested: src/lib/delivery-market/analytics.ts.
+
+## Known limits
+
+- An area token such as "Lagos: Lekki" covers that area only; naming the LGA ("Lagos: Eti-Osa") covers all of it.
+- WhatsApp delivery templates carry the delivery code; Meta may decline or recategorise them as non-utility.
