@@ -86,7 +86,8 @@ export function PillButton({
   ...props
 }: { title?: string; tone?: Tone; size?: "lg" | "md" | "sm"; busy?: boolean; style?: StyleProp<ViewStyle>; children?: ReactNode } & Omit<PressableProps, "style" | "children">) {
   const bg = tone === "ink" ? colors.ink : tone === "accent" ? colors.accent : tone === "forest" ? colors.forest : colors.surface;
-  const fg = tone === "white" ? colors.ink : "#FFFFFF";
+  // Orange buttons carry ink text, as in the prototype (white on orange fails contrast).
+  const fg = tone === "white" || tone === "accent" ? colors.ink : "#FFFFFF";
   // lg is the one main button per screen: full width, 56 tall (build spec 8A).
   const height = size === "lg" ? 56 : size === "md" ? 50 : 44;
   const off = disabled || busy;
@@ -97,7 +98,7 @@ export function PillButton({
       disabled={off}
       style={({ pressed }) => [
         { minHeight: height, borderRadius: radii.pill, backgroundColor: bg, alignItems: "center", justifyContent: "center", paddingHorizontal: size === "sm" ? 16 : 22, flexDirection: "row", gap: 8 },
-        tone === "white" && { borderWidth: 1, borderColor: colors.line },
+        tone === "white" && { borderWidth: 1.5, borderColor: colors.line },
         (pressed || off) && { opacity: off ? 0.55 : 0.85 },
         style,
       ]}
@@ -233,8 +234,8 @@ export function Notice({ tone = "error", children }: { tone?: "error" | "info" |
 
 export function Toggle({ on, onChange, label }: { on: boolean; onChange: (on: boolean) => void; label: string }) {
   return (
-    <Pressable accessibilityRole="switch" accessibilityLabel={label} accessibilityState={{ checked: on }} onPress={() => onChange(!on)} hitSlop={6} style={{ width: 52, height: 30, borderRadius: 15, backgroundColor: on ? colors.ink : colors.toggleOff, justifyContent: "center" }}>
-      <View style={{ position: "absolute", left: on ? 25 : 3, width: 24, height: 24, borderRadius: 12, backgroundColor: "#FFFFFF" }} />
+    <Pressable accessibilityRole="switch" accessibilityLabel={label} accessibilityState={{ checked: on }} onPress={() => onChange(!on)} hitSlop={6} style={{ width: 52, height: 32, borderRadius: 16, backgroundColor: on ? colors.success : colors.toggleOff, justifyContent: "center" }}>
+      <View style={{ position: "absolute", left: on ? 23 : 3, width: 26, height: 26, borderRadius: 13, backgroundColor: "#FFFFFF" }} />
     </Pressable>
   );
 }

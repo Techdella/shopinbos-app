@@ -49,8 +49,8 @@ export default function OrderInvoice() {
       onRefresh={() => void loaded.refresh()}
       footer={
         <PillButton onPress={share} tone="accent" accessibilityLabel={t("inv.share")}>
-          <AppIcon name="share" size={20} color="#FFFFFF" />
-          <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 17 }}>{t("inv.share")}</T>
+          <AppIcon name="share" size={20} color={colors.ink} />
+          <T weight="extrabold" style={{ color: colors.ink, fontSize: 17 }}>{t("inv.share")}</T>
         </PillButton>
       }
     >

@@ -98,6 +98,11 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   saveFailed: "Bai ajiye ba. Duba network ɗinka, sannan ka sake gwadawa.",
   loadFailed: "Bai buɗe ba. Ja ƙasa don sake gwadawa.",
   shopLoadFailed: "Shagonka bai buɗe ba.",
+  "keypad.entered": "An shigar da lambobi {count} cikin {total}",
+  "keypad.delete": "Goge",
+  "keypad.clear": "Share",
+  "stepper.less": "Rage {label} ɗaya",
+  "stepper.more": "Ƙara {label} ɗaya",
 };
 
 export default ha;

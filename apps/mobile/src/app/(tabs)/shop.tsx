@@ -127,8 +127,8 @@ export default function MyShop() {
           {store.url ? (
             <>
               <PillButton testID="share-shop" title={t("share")} tone="accent" onPress={() => void share()}>
-                <AppIcon name="share" size={20} color="#FFFFFF" />
-                <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 16 }}>{t("share")}</T>
+                <AppIcon name="share" size={20} color={colors.ink} />
+                <T weight="extrabold" style={{ color: colors.ink, fontSize: 16 }}>{t("share")}</T>
               </PillButton>
               <LinkButton title={t("see")} onPress={() => void openShop(store.url!)} />
             </>

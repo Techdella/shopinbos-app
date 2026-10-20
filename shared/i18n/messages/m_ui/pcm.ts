@@ -98,6 +98,11 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   saveFailed: "E no save. Check your network, then try again.",
   loadFailed: "E no load. Pull down make you try again.",
   shopLoadFailed: "Your shop no load.",
+  "keypad.entered": "{count} of {total} numbers don enter",
+  "keypad.delete": "Delete",
+  "keypad.clear": "Clear",
+  "stepper.less": "Remove one {label}",
+  "stepper.more": "Add one {label}",
 };
 
 export default pcm;

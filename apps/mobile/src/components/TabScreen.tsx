@@ -1,19 +1,22 @@
 import type { ReactNode } from "react";
 import { RefreshControl, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Title } from "@/components/design";
 import { HelpButton } from "@/components/Help";
-import { T } from "@/components/ui";
 import { colors } from "@/theme";
 
-/** Shared frame for the list tabs: big title, Help (or another action), pull to refresh, room for the tab bar. */
-export function TabScreen({ title, action, children, refreshing = false, onRefresh }: { title: string; action?: ReactNode; children: ReactNode; refreshing?: boolean; onRefresh?: () => void }) {
+/** Frame for a tab root ("Simple app, end to end" prototype `.scr`): a big Bricolage title (or a custom header row),
+ * Help or another action, pull to refresh, 20px gaps and room for the tab bar. */
+export function TabScreen({ title, header, action, children, refreshing = false, onRefresh }: { title?: string; header?: ReactNode; action?: ReactNode; children: ReactNode; refreshing?: boolean; onRefresh?: () => void }) {
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colors.canvas }}>
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 120 }} refreshControl={onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} /> : undefined}>
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16, minHeight: 46 }}>
-          <T weight="extrabold" style={{ fontSize: 30, letterSpacing: -0.6 }} accessibilityRole="header">{title}</T>
-          {action ?? <HelpButton />}
-        </View>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 140, gap: 20 }} refreshControl={onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} /> : undefined}>
+        {header ?? (
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12, minHeight: 46 }}>
+            <Title style={{ flex: 1 }}>{title}</Title>
+            {action ?? <HelpButton />}
+          </View>
+        )}
         {children}
       </ScrollView>
     </SafeAreaView>

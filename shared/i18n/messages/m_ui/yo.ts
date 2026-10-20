@@ -98,6 +98,11 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   saveFailed: "Kò fi pamọ́. Ṣàyẹ̀wò network rẹ, kí o sì tún gbìyànjú.",
   loadFailed: "Kò ṣí. Fà á sílẹ̀ láti tún gbìyànjú.",
   shopLoadFailed: "Ṣọ́ọ̀bù rẹ kò ṣí.",
+  "keypad.entered": "Nọ́mbà {count} nínú {total} ti wọlé",
+  "keypad.delete": "Paarẹ́",
+  "keypad.clear": "Pa gbogbo rẹ̀ rẹ́",
+  "stepper.less": "Dín {label} kù ní ọ̀kan",
+  "stepper.more": "Fi {label} kún ní ọ̀kan",
 };
 
 export default yo;

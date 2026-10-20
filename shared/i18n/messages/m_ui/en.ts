@@ -101,6 +101,11 @@ const en = {
   saveFailed: "That didn't save. Check your connection and try again.",
   loadFailed: "Couldn't load this. Pull down to try again.",
   shopLoadFailed: "Couldn't load your shop.",
+  "keypad.entered": "{count} of {total} numbers entered",
+  "keypad.delete": "Delete",
+  "keypad.clear": "Clear",
+  "stepper.less": "One less {label}",
+  "stepper.more": "One more {label}",
 } satisfies Record<string, string>;
 
 export default en;

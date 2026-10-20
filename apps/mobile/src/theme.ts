@@ -9,4 +9,7 @@ export const fonts = {
   semibold: "PlusJakartaSans_600SemiBold",
   bold: "PlusJakartaSans_700Bold",
   extrabold: "PlusJakartaSans_800ExtraBold",
+  /** Bricolage Grotesque: big titles, headings and numbers (the 2026 "Simple app, end to end" prototype). */
+  display: "BricolageGrotesque_800ExtraBold",
+  displayBold: "BricolageGrotesque_700Bold",
 } as const;
