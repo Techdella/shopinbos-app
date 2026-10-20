@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Modal, Pressable, ScrollView, TextInput, View } from "react-native";
 import { router } from "expo-router";
 import { DEFAULT_DELIVERY_ZONES, DEFAULT_PAYMENT_METHODS, PAYMENT_METHODS, type DeliveryZone, type PaymentMethodKey } from "@shared/onboarding";
+import { Title } from "@/components/design";
 import { Card, Field, Label, Notice, PillButton, T, Toggle } from "@/components/ui";
 import { OnboardingFrame } from "@/components/OnboardingFrame";
 import { useOnboarding } from "@/components/OnboardingContext";
@@ -88,9 +89,9 @@ export default function Payments() {
         </>
       }
     >
-      <T weight="extrabold" style={{ fontSize: 30, letterSpacing: -0.6, lineHeight: 33 }} accessibilityRole="header">{t("pay.title")}</T>
-      <T weight="bold" style={{ fontSize: 15, marginTop: 22, marginBottom: 10 }}>{t("pay.how")}</T>
-      <Card style={{ paddingVertical: 4 }}>
+      <Title>{t("pay.title")}</Title>
+      <T weight="bold" style={{ fontSize: 14, color: colors.inkSoft, marginTop: 24, marginBottom: 10 }}>{t("pay.how")}</T>
+      <Card style={{ paddingVertical: 4, paddingHorizontal: 16, borderRadius: 24, borderWidth: 1, borderColor: colors.line }}>
         {PAYMENT_METHODS.map((method, index) => (
           <View key={method.key} style={{ flexDirection: "row", alignItems: "center", gap: 16, paddingVertical: 13, borderTopWidth: index ? 1 : 0, borderTopColor: colors.line }}>
             <View style={{ flex: 1 }}>
@@ -101,8 +102,8 @@ export default function Payments() {
           </View>
         ))}
       </Card>
-      <T weight="bold" style={{ fontSize: 15, marginTop: 22, marginBottom: 10 }}>{t("pay.payouts")}</T>
-      <Card>
+      <T weight="bold" style={{ fontSize: 14, color: colors.inkSoft, marginTop: 24, marginBottom: 10 }}>{t("pay.payouts")}</T>
+      <Card style={{ padding: 20, borderRadius: 24, borderWidth: 1, borderColor: colors.line }}>
         {bankLinked ? (
           <T weight="bold" style={{ color: colors.success, fontSize: 15 }}>{t("pay.bankAdded")}</T>
         ) : (
@@ -115,8 +116,8 @@ export default function Payments() {
           </>
         )}
       </Card>
-      <T weight="bold" style={{ fontSize: 15, marginTop: 22, marginBottom: 10 }}>{t("pay.delivery")}</T>
-      <Card style={{ paddingVertical: 4 }}>
+      <T weight="bold" style={{ fontSize: 14, color: colors.inkSoft, marginTop: 24, marginBottom: 10 }}>{t("pay.delivery")}</T>
+      <Card style={{ paddingVertical: 4, paddingHorizontal: 16, borderRadius: 24, borderWidth: 1, borderColor: colors.line }}>
         {zones.map((zone, index) => (
           <View key={zone.name} style={{ flexDirection: "row", alignItems: "center", paddingVertical: 15, borderTopWidth: index ? 1 : 0, borderTopColor: colors.line }}>
             <T style={{ flex: 1, fontSize: 15 }}>{zone.name}</T>
