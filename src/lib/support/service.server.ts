@@ -36,7 +36,9 @@ import {
   type SupportStatus,
   type SupportTopic,
 } from "./pure";
-import { agentReplyEmail, newTicketEmail, receivedEmail, replyAddressFor, supportInbox } from "./email.server";
+import { agentReplyEmail, newConversationEmail, newTicketEmail, receivedEmail, replyAddressFor, supportInbox } from "./email.server";
+import { downloadInboxMedia, sendInboxTemplate, sendInboxText } from "./whatsapp.server";
+import { isStopMessage, renderTeamTemplate, teamTemplate, teamTemplateProblem, whatsappPhone, whatsappWindowOpen } from "./whatsapp-pure";
 
 // Live support: tickets, threads, notifications and the admin desk's queries. Everything degrades when
 // docs/migrations/2026-10-12-support.sql hasn't run yet (supportReady() is false): see each caller.
@@ -159,7 +161,7 @@ interface NewTicket {
   topic: SupportTopic;
   subject?: string;
   message: string;
-  source: "app" | "web" | "email";
+  source: "app" | "web" | "email" | "whatsapp";
   path?: string;
   meta?: Record<string, unknown>;
   files?: File[];
@@ -384,7 +386,7 @@ export async function addUserMessage(viewer: Viewer, number: number, text: strin
 
 async function recordUserMessage(
   ticket: { id: string; number: number; status: string; assigneeId: string | null; subject: string; name: string; email: string | null; phone: string | null; portal: string; topic: string },
-  input: { body: string; files: File[]; authorId: string | null; authorName: string; channel: "app" | "email"; externalId?: string | null },
+  input: { body: string; files: File[]; authorId: string | null; authorName: string; channel: "app" | "email" | "whatsapp"; externalId?: string | null },
 ) {
   const now = new Date();
   const attachments = input.files.length ? await storeFiles(ticket.id, input.files) : [];
@@ -420,7 +422,8 @@ export async function rateTicket(viewer: Viewer, number: number, rating: number,
 // ─── Notifications ────────────────────────────────────────────────────────────
 
 async function adminUsers() {
-  return db.user.findMany({ where: { role: "admin" }, select: { id: true, name: true, email: true }, orderBy: { name: "asc" }, take: 50 });
+  // Removed team members (Admin › Team) don't get tickets.
+  return db.user.findMany({ where: { role: "admin", OR: [{ adminRole: null }, { adminRole: { not: "disabled" } }] }, select: { id: true, name: true, email: true }, orderBy: { name: "asc" }, take: 50 });
 }
 
 /**
@@ -507,6 +510,7 @@ export interface QueueFilters {
   priority?: string;
   topic?: string;
   portal?: string;
+  channel?: string; // app | web | email | whatsapp (where the conversation started)
   assignee?: string; // me | none | <userId>
   q?: string;
   page?: number;
@@ -522,6 +526,7 @@ function queueWhere(filters: QueueFilters, agentId: string): Prisma.SupportTicke
   if (filters.priority) where.priority = filters.priority;
   if (filters.topic) where.topic = filters.topic;
   if (filters.portal) where.portal = filters.portal;
+  if (filters.channel) where.source = filters.channel;
   if (filters.assignee === "me") where.assigneeId = agentId;
   else if (filters.assignee === "none") where.assigneeId = null;
   else if (filters.assignee) where.assigneeId = filters.assignee;
@@ -721,6 +726,19 @@ export async function agentReply(agent: Viewer, ticketId: string, input: { messa
   const body = sanitizeText(input.message);
   if (!body && !input.files.length) throw new SupportError("BAD_REQUEST", "Write a reply or attach a file.");
   const now = new Date();
+  // WhatsApp conversations: the reply goes out on WhatsApp first, so a refusal (window closed) saves nothing.
+  const onWhatsApp = !input.internal && ticket.source === "whatsapp";
+  let waMessageId: string | null = null;
+  if (onWhatsApp) {
+    if (input.files.length) throw new SupportError("BAD_REQUEST", "Files can't be sent on WhatsApp from the inbox yet. Send a link, or ask them to email.");
+    if (!ticket.phone) throw new SupportError("BAD_REQUEST", "This conversation has no phone number.");
+    if (!whatsappWindowOpen(ticket.lastUserMessageAt, now.getTime())) {
+      throw new SupportError("BAD_REQUEST", "WhatsApp's 24-hour reply window has closed. Send a template below to restart the chat.");
+    }
+    const sent = await sendInboxText(ticket.phone, body);
+    if (!sent.ok) throw new SupportError("BAD_REQUEST", `WhatsApp didn't take it: ${sent.error}`);
+    waMessageId = sent.id;
+  }
   const attachments = input.files.length ? await storeFiles(ticket.id, input.files) : [];
   const message = await db.supportMessage.create({
     data: {
@@ -731,7 +749,8 @@ export async function agentReply(agent: Viewer, ticketId: string, input: { messa
       body,
       internal: input.internal,
       attachments: attachments as unknown as Prisma.InputJsonValue,
-      channel: "app",
+      channel: onWhatsApp ? "whatsapp" : "app",
+      externalId: waMessageId,
     },
   });
   if (input.macroId) await db.supportMacro.update({ where: { id: input.macroId }, data: { usageCount: { increment: 1 } } }).catch(() => null);
@@ -756,7 +775,7 @@ export async function agentReply(agent: Viewer, ticketId: string, input: { messa
       ...statusChange(ticket.status, status, now),
     },
   });
-  const delivered = await deliverAgentReply(ticket, body || "Sent you a file.", agent.name).catch(() => "none" as const);
+  const delivered = onWhatsApp ? ("whatsapp" as const) : await deliverAgentReply(ticket, body || "Sent you a file.", agent.name).catch(() => "none" as const);
   return { messageId: message.id, delivered };
 }
 
@@ -795,7 +814,7 @@ export async function updateTicket(agent: Viewer, ticketId: string, patch: { sta
     const assigneeId = patch.assigneeId === "me" ? agent.id : patch.assigneeId;
     if (assigneeId !== ticket.assigneeId) {
       if (assigneeId) {
-        const assignee = await db.user.findFirst({ where: { id: assigneeId, role: "admin" }, select: { name: true } });
+        const assignee = await db.user.findFirst({ where: { id: assigneeId, role: "admin", OR: [{ adminRole: null }, { adminRole: { not: "disabled" } }] }, select: { name: true } });
         if (!assignee) throw new SupportError("BAD_REQUEST", "Tickets can only be assigned to admins.");
         notes.push(`Assigned to ${assignee.name}`);
       } else {
@@ -914,4 +933,183 @@ async function ingestSupportEmailOnce(email: InboundSupportEmail) {
     meta: { matchedUserId: matched?.id ?? null, matchedRole: matched?.role ?? null },
   });
   return "ticket";
+}
+
+// ─── WhatsApp ─────────────────────────────────────────────────────────────────
+
+/**
+ * A WhatsApp message to Shopinbos's own number (/api/webhooks/whatsapp). It joins the person's open conversation,
+ * or a solved one (which reopens it); otherwise it starts a new one. Photos and files are copied from Meta.
+ */
+export async function ingestSupportWhatsApp(input: {
+  phone: string;
+  name: string | null;
+  text: string;
+  messageId: string | null;
+  attachments: Array<{ mediaId: string | null; name: string | null; contentType: string | null }>;
+}) {
+  if (!(await supportReady())) return "not-ready";
+  const phone = whatsappPhone(input.phone);
+  if (!phone) return "no-phone";
+  if (input.messageId) {
+    const seen = await db.supportMessage.findUnique({ where: { externalId: input.messageId }, select: { id: true } });
+    if (seen) return "duplicate";
+  }
+  const files: File[] = [];
+  let skipped = 0;
+  for (const attachment of input.attachments.slice(0, MAX_ATTACHMENTS)) {
+    const file = attachment.mediaId ? await downloadInboxMedia(attachment.mediaId, attachment.name, attachment.contentType).catch(() => null) : null;
+    if (file && !attachmentProblem(file)) files.push(file);
+    else skipped += 1;
+  }
+  const note = skipped ? `\n\n(${skipped} file${skipped === 1 ? "" : "s"} couldn't be copied: open WhatsApp to see ${skipped === 1 ? "it" : "them"})` : "";
+  const body = sanitizeText(`${input.text || (files.length ? "" : "(empty message)")}${note}`);
+
+  // STOP: no more lead messages on WhatsApp. The conversation itself still comes in, so the team sees it.
+  const lead = await db.websiteLead.findFirst({ where: { phone: { endsWith: phone.slice(-10) } }, orderBy: { createdAt: "desc" }, select: { id: true, name: true } }).catch(() => null);
+  if (lead && isStopMessage(input.text)) {
+    const { optOutLead } = await import("@/lib/lead-growth/service.server");
+    await optOutLead(lead.id, "whatsapp").catch(() => null);
+  }
+
+  try {
+    const existing = await db.supportTicket.findFirst({ where: { source: "whatsapp", phone, status: { not: "closed" } }, orderBy: { lastMessageAt: "desc" } });
+    if (existing) {
+      await recordUserMessage(existing, { body, files, authorId: existing.userId, authorName: input.name || existing.name, channel: "whatsapp", externalId: input.messageId });
+      return "reply";
+    }
+    const matched = await db.user.findFirst({ where: { phone: { endsWith: phone.slice(-10) } }, select: { id: true, role: true, name: true } }).catch(() => null);
+    await openTicket({
+      userId: null,
+      name: input.name || matched?.name || lead?.name || phone,
+      email: null,
+      phone,
+      portal: portalOf(matched?.role),
+      topic: "other",
+      subject: `WhatsApp from ${input.name || matched?.name || phone}`,
+      message: body,
+      files,
+      source: "whatsapp",
+      externalId: input.messageId,
+      meta: { matchedUserId: matched?.id ?? null, matchedRole: matched?.role ?? null, leadId: lead?.id ?? null },
+    });
+    return "ticket";
+  } catch (error) {
+    if (input.messageId && isUniqueViolation(error)) return "duplicate";
+    throw error;
+  }
+}
+
+// ─── Starting conversations ───────────────────────────────────────────────────
+
+export type StartConversation =
+  | { channel: "email"; name: string; email: string; subject: string; message: string }
+  | { channel: "whatsapp"; name: string; phone: string; template: string; note?: string };
+
+/**
+ * The team writes first: an email (replies thread back by the ticket number), or a WhatsApp template (WhatsApp
+ * only lets a business start a chat with an approved one; replies come back through the webhook). A WhatsApp
+ * message to someone with an open conversation goes into that one.
+ */
+export async function startConversation(agent: Viewer, input: StartConversation) {
+  await requireReady();
+  const now = new Date();
+  const name = input.name.trim().slice(0, 120);
+
+  if (input.channel === "email") {
+    const email = input.email.trim().toLowerCase();
+    const subject = input.subject.trim().slice(0, 160);
+    const body = sanitizeText(input.message);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new SupportError("BAD_REQUEST", "Enter a valid email.");
+    if (!subject) throw new SupportError("BAD_REQUEST", "Add a subject.");
+    if (!body) throw new SupportError("BAD_REQUEST", "Write the message.");
+    if (!isEmailConfigured()) throw new SupportError("BAD_REQUEST", "Email isn't set up (RESEND_API_KEY).");
+    const matched = await db.user.findUnique({ where: { email }, select: { id: true, role: true, name: true } }).catch(() => null);
+    const ticket = await agentTicket(agent, {
+      name: name || matched?.name || email,
+      email,
+      phone: null,
+      portal: portalOf(matched?.role),
+      subject,
+      source: "email",
+      body,
+      channel: "email",
+      externalId: null,
+      meta: { matchedUserId: matched?.id ?? null, matchedRole: matched?.role ?? null, startedBy: agent.id },
+    });
+    const sent = await sendEmail({
+      to: [email],
+      subject: `[${formatTicketNumber(ticket.number)}] ${subject}`,
+      html: newConversationEmail({ name: ticket.name, number: ticket.number, subject, body, agentName: agent.name }),
+      replyTo: replyAddressFor(ticket.number),
+    }).catch(() => ({ success: false }));
+    if (!sent.success) await systemNote(ticket.id, "The email didn't send. Check the address and reply again.", agent);
+    return { number: ticket.number, delivered: sent.success };
+  }
+
+  const phone = whatsappPhone(input.phone);
+  if (!phone) throw new SupportError("BAD_REQUEST", "Enter a WhatsApp number with its country code, like +234 803 412 7790.");
+  const template = teamTemplate(input.template);
+  if (!template) throw new SupportError("BAD_REQUEST", "Pick a message template.");
+  const matched = await db.user.findFirst({ where: { phone: { endsWith: phone.slice(-10) } }, select: { id: true, role: true, name: true } }).catch(() => null);
+  const open = await db.supportTicket.findFirst({ where: { source: "whatsapp", phone, status: { not: "closed" } }, orderBy: { lastMessageAt: "desc" } });
+  const values = { name: name || open?.name || matched?.name || null, agent: agent.name, note: input.note ?? null };
+  const problem = teamTemplateProblem(template, values);
+  if (problem) throw new SupportError("BAD_REQUEST", problem);
+  const sent = await sendInboxTemplate(phone, template, values);
+  if (!sent.ok) throw new SupportError("BAD_REQUEST", `WhatsApp didn't take it: ${sent.error}`);
+  const body = renderTeamTemplate(template, values);
+
+  if (open) {
+    await db.supportMessage.create({ data: { ticketId: open.id, authorType: "agent", authorId: agent.id, authorName: agent.name, body, channel: "whatsapp", externalId: sent.id } });
+    await db.supportTicket.update({
+      where: { id: open.id },
+      data: { lastMessageAt: now, lastAgentMessageAt: now, agentReadAt: now, firstRespondedAt: open.firstRespondedAt ?? now, assigneeId: open.assigneeId ?? agent.id, ...statusChange(open.status, "pending", now) },
+    });
+    return { number: open.number, delivered: true };
+  }
+  const ticket = await agentTicket(agent, {
+    name: values.name || phone,
+    email: null,
+    phone,
+    portal: portalOf(matched?.role),
+    subject: `WhatsApp with ${values.name || phone}`,
+    source: "whatsapp",
+    body,
+    channel: "whatsapp",
+    externalId: sent.id,
+    meta: { matchedUserId: matched?.id ?? null, matchedRole: matched?.role ?? null, startedBy: agent.id },
+  });
+  return { number: ticket.number, delivered: true };
+}
+
+/** A conversation the team opened: waiting on the customer, assigned to whoever wrote first. */
+async function agentTicket(
+  agent: Viewer,
+  input: { name: string; email: string | null; phone: string | null; portal: SupportPortal; subject: string; source: "email" | "whatsapp"; body: string; channel: string; externalId: string | null; meta: Record<string, unknown> },
+) {
+  const now = new Date();
+  const ticket = await db.supportTicket.create({
+    data: {
+      name: input.name.slice(0, 120) || "Someone",
+      email: input.email,
+      phone: input.phone,
+      portal: input.portal,
+      topic: "other",
+      subject: input.subject.slice(0, 160),
+      status: "pending",
+      priority: "normal",
+      source: input.source,
+      assigneeId: agent.id,
+      firstRespondedAt: now,
+      lastMessageAt: now,
+      lastAgentMessageAt: now,
+      agentReadAt: now,
+      meta: input.meta as Prisma.InputJsonValue,
+    },
+  });
+  await db.supportMessage.create({
+    data: { ticketId: ticket.id, authorType: "agent", authorId: agent.id, authorName: agent.name, body: input.body, channel: input.channel, externalId: input.externalId },
+  });
+  return ticket;
 }

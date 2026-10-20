@@ -1,17 +1,17 @@
 "use server";
 
+import { requireAdminSection } from "@/lib/admin-team/service.server";
 import { createHash, randomUUID } from "node:crypto";
 import Papa from "papaparse";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireRole } from "@/lib/server-auth";
 import { WebsiteLeadInput } from "@/lib/website-leads/pure";
 import { saveWebsiteLead, updateWebsiteLead } from "@/lib/website-leads/service.server";
 import { matchLeadsToExistingUsers } from "@/lib/lead-growth/service.server";
 
 // Admin: mark a website lead as contacted, signed up or closed, and keep a short note.
 export async function setWebsiteLeadStatus(formData: FormData) {
-  await requireRole(["admin"], "/admin/login");
+  await requireAdminSection("leads");
   const id = String(formData.get("id") ?? "").slice(0, 64);
   const status = String(formData.get("status") ?? "");
   const note = formData.has("note") ? String(formData.get("note") ?? "").trim() : undefined;
@@ -33,7 +33,7 @@ function roleFromText(text: string) {
 
 /** Admin: a lead from anywhere else (an event, a call, Instagram DMs), added by hand. */
 export async function addLeadManually(formData: FormData) {
-  await requireRole(["admin"], "/admin/login");
+  await requireAdminSection("leads");
   const parsed = WebsiteLeadInput.safeParse({
     id: `admin-${randomUUID()}`,
     kind: "manual",
@@ -57,7 +57,7 @@ export async function addLeadManually(formData: FormData) {
  * phone, source, consent (yes/true/1). The same email or phone imported twice is one lead.
  */
 export async function importLeadsCsv(formData: FormData) {
-  await requireRole(["admin"], "/admin/login");
+  await requireAdminSection("leads");
   const file = formData.get("file");
   if (!(file instanceof File) || !file.size) redirect("/admin/leads?error=Choose+a+CSV+file.");
   if (file.size > 2_000_000) redirect("/admin/leads?error=That+file+is+over+2+MB.");

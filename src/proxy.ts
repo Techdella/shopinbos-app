@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { db } from "@/lib/db/client";
+import { DISABLED_ADMIN_ROLE, adminCanOpen, adminHome, asAdminRole } from "@/lib/admin-team/pure";
 import { alignRoleMetadata, appUserInputFromSupabaseUser, ensureAppUserForSupabaseUser } from "@/lib/auth/app-user";
 import { metadataNeedsAlign, roleToRepair } from "@/lib/auth/role-rules";
 import { csrfRejection } from "@/lib/auth/csrf";
@@ -257,6 +258,15 @@ export async function proxy(request: NextRequest) {
   }
   if (matchesRoute(pathname, ["/admin"]) && appUser.role !== "admin") {
     return redirectTo(getRoleHome(appUser.role));
+  }
+  // Admin › Team roles: each role opens only its sections; a removed team member is signed out.
+  if (matchesRoute(pathname, ["/admin"]) && appUser.role === "admin") {
+    const member = await db.user.findUnique({ where: { id: appUser.id }, select: { adminRole: true } }).catch(() => null);
+    if (asAdminRole(member?.adminRole) === DISABLED_ADMIN_ROLE) {
+      await supabase.auth.signOut({ scope: "local" }).catch(() => null);
+      return redirectTo("/admin/login?reason=removed");
+    }
+    if (!adminCanOpen(member?.adminRole, pathname)) return redirectTo(adminHome(member?.adminRole));
   }
   // Seller-only areas (/home, /products, /marketplace, /studio…): other roles go to their own portal.
   const allowedRoles = isApi ? null : rolesForPath(pathname);

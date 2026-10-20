@@ -140,8 +140,10 @@ export function Sidebar({ role = "seller", storeName, storeSlug, storeInitial, s
   const initial = storeInitial ?? displayStore.charAt(0).toUpperCase();
 
   const hidden = new Set(prefs?.hiddenNav ?? []);
+  // Admin › Team roles: only the sections this admin can open.
+  const allowed = role === "admin" && counts?.adminNav ? new Set(counts.adminNav) : null;
   const visibleGroups = groups
-    .map((group) => ({ ...group, items: group.items.filter((item) => item.core || !hidden.has(item.id)) }))
+    .map((group) => ({ ...group, items: group.items.filter((item) => (item.core || !hidden.has(item.id)) && (!allowed || allowed.has(item.id))) }))
     .filter((group) => group.items.length > 0);
 
   // Flyout submenu (desktop, hover or keyboard focus), like Shopify and HubSpot. It's position: fixed so the

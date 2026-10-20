@@ -11,6 +11,8 @@ export interface ShellCounts {
   identity?: ShellIdentity | null;
   /** Sellers: the Shopinbos Wallet ID check (null for other roles). */
   idCheck?: { verified: boolean; checksReady: boolean } | null;
+  /** Admins: the menu item ids their team role opens (null or missing: all). */
+  adminNav?: string[] | null;
 }
 
 export interface ShellIdentity {

@@ -13,9 +13,9 @@ import {
   TOPICS,
   attachmentProblem,
   fillMacro,
-  formatTicketNumber,
   type SupportStatus,
 } from "@/lib/support/pure";
+import { whatsappWindowHoursLeft, whatsappWindowOpen } from "@/lib/support/whatsapp-pure";
 import { deskSelect, relativeTime } from "./ui";
 
 // One ticket in the support desk: the full thread (with internal notes and the customer's Peggy chat),
@@ -32,6 +32,10 @@ export interface DeskTicket {
   status: string;
   priority: string;
   assigneeId: string | null;
+  /** Where it started: app | web | email | whatsapp. WhatsApp conversations are answered on WhatsApp. */
+  source: string;
+  /** Their last message, for WhatsApp's 24-hour reply window. */
+  lastUserMessageAt: string | null;
 }
 
 export interface DeskMessage {
@@ -116,7 +120,7 @@ export function TicketWorkspace({
           </ol>
           <div ref={endRef} />
         </section>
-        <Composer ticket={ticket} macros={macros} me={me} />
+        <Composer ticket={ticket} macros={macros} me={me} now={now} />
       </div>
       <div className="grid min-w-0 content-start gap-4">
         <Properties ticket={ticket} me={me} admins={admins} />
@@ -152,7 +156,7 @@ function ThreadItem({ message, customer, now }: { message: DeskMessage; customer
         ) : null}
         <span className="text-app-ink-faint">
           {relativeTime(message.createdAt, now)}
-          {message.channel === "email" ? " · by email" : message.channel === "web" ? " · Stuck? form" : ""}
+          {message.channel === "email" ? " · by email" : message.channel === "web" ? " · Stuck? form" : message.channel === "whatsapp" ? " · WhatsApp" : ""}
         </span>
       </div>
       {message.body && <div className="whitespace-pre-wrap break-words text-[14.5px] leading-[1.55] text-app-ink">{message.body}</div>}
@@ -176,7 +180,7 @@ function ThreadItem({ message, customer, now }: { message: DeskMessage; customer
   );
 }
 
-function Composer({ ticket, macros, me }: { ticket: DeskTicket; macros: DeskMacro[]; me: { id: string; name: string } }) {
+function Composer({ ticket, macros, me, now }: { ticket: DeskTicket; macros: DeskMacro[]; me: { id: string; name: string }; now: number }) {
   const router = useRouter();
   const [mode, setMode] = useState<"reply" | "note">("reply");
   const [text, setText] = useState("");
@@ -248,7 +252,9 @@ function Composer({ ticket, macros, me }: { ticket: DeskTicket; macros: DeskMacr
       setNotice(
         mode === "note"
           ? "Note added."
-          : delivered === "email"
+          : delivered === "whatsapp"
+            ? "Sent on WhatsApp."
+            : delivered === "email"
             ? "Sent. They'll see it in the app and by email."
             : delivered === "sms"
               ? "Sent by SMS. Follow up on WhatsApp if it's urgent."
@@ -263,7 +269,9 @@ function Composer({ ticket, macros, me }: { ticket: DeskTicket; macros: DeskMacr
     });
   };
 
-  const phoneDigits = ticket.phone?.replace(/\D/g, "") ?? "";
+  const onWhatsApp = ticket.source === "whatsapp";
+  const windowOpen = whatsappWindowOpen(ticket.lastUserMessageAt, now);
+  const templateHref = `/admin/support/new?${new URLSearchParams({ channel: "whatsapp", phone: ticket.phone ?? "", name: ticket.name })}`;
 
   return (
     <section aria-label="Reply" className={cx("rounded-[22px] border bg-white", mode === "note" ? "border-[#F2D59B]" : "border-app-line")}>
@@ -287,18 +295,24 @@ function Composer({ ticket, macros, me }: { ticket: DeskTicket; macros: DeskMacr
           <option value="">Saved replies…</option>
           {macros.map((macro) => <option key={macro.id} value={macro.id}>{macro.title}</option>)}
         </select>
-        {phoneDigits && (
-          <a
-            href={`https://wa.me/${phoneDigits}?text=${encodeURIComponent(`Hi ${ticket.name.split(" ")[0]}, this is ${me.name.split(" ")[0]} from Shopinbos support about ${formatTicketNumber(ticket.number)}.`)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="ml-auto inline-flex min-h-[36px] items-center gap-1.5 rounded-full border border-app-line px-3 text-[13px] font-bold text-app-ink no-underline hover:border-app-line-strong"
-          >
-            <Icon name="whatsapp" size={14} /> WhatsApp
+        {ticket.phone && !onWhatsApp && (
+          <a href={templateHref} className="ml-auto inline-flex min-h-[36px] items-center gap-1.5 rounded-full border border-app-line px-3 text-[13px] font-bold text-app-ink no-underline hover:border-app-line-strong">
+            <Icon name="whatsapp" size={14} /> Message on WhatsApp
           </a>
+        )}
+        {onWhatsApp && (
+          <span className={cx("ml-auto inline-flex min-h-[32px] items-center gap-1.5 rounded-full px-3 text-[12.5px] font-bold", windowOpen ? "bg-app-success-tint text-app-success" : "bg-app-canvas text-app-ink-soft")}>
+            <Icon name="whatsapp" size={13} /> {windowOpen ? `Reply window: ${whatsappWindowHoursLeft(ticket.lastUserMessageAt, now)}h left` : "Reply window closed"}
+          </span>
         )}
       </div>
       <div className="p-4 sm:p-5">
+        {onWhatsApp && mode === "reply" && !windowOpen && (
+          <p className="m-0 mb-3 rounded-[14px] bg-app-canvas px-4 py-2.5 text-[13.5px] leading-[1.5] text-app-ink">
+            WhatsApp only allows free replies within 24 hours of their last message.{" "}
+            <a href={templateHref} className="font-bold text-app-ink underline">Send a template</a> to restart the chat; it joins this conversation.
+          </p>
+        )}
         <label className="sr-only" htmlFor="desk-reply">{mode === "reply" ? "Reply" : "Internal note"}</label>
         <textarea
           id="desk-reply"
@@ -309,7 +323,7 @@ function Composer({ ticket, macros, me }: { ticket: DeskTicket; macros: DeskMacr
           }}
           rows={6}
           maxLength={5000}
-          placeholder={mode === "reply" ? `Reply to ${ticket.name.split(" ")[0]}. It shows in their app and goes by email.` : "Only the team sees notes."}
+          placeholder={mode === "reply" ? (onWhatsApp ? `Reply to ${ticket.name.split(" ")[0]} on WhatsApp.` : `Reply to ${ticket.name.split(" ")[0]}. It shows in their app and goes by email.`) : "Only the team sees notes."}
           className={cx("w-full resize-y rounded-[16px] border px-4 py-3 text-[15px] leading-[1.55] outline-none placeholder:text-app-ink-faint focus:border-app-ink", mode === "note" ? "border-[#F2D59B] bg-[#FFFCF3]" : "border-app-line bg-white")}
         />
         {files.length > 0 && (
@@ -327,10 +341,10 @@ function Composer({ ticket, macros, me }: { ticket: DeskTicket; macros: DeskMacr
         {error && <p role="alert" className="m-0 mt-3 rounded-[14px] bg-app-danger-tint px-4 py-2.5 text-[13.5px] font-semibold text-app-danger">{error}</p>}
         {notice && <p role="status" className="m-0 mt-3 rounded-[14px] bg-app-success-tint px-4 py-2.5 text-[13.5px] font-semibold text-app-success">{notice}</p>}
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <label className="inline-flex min-h-[40px] cursor-pointer items-center gap-1.5 rounded-full border border-dashed border-app-line-strong px-3.5 text-[13px] font-bold hover:bg-app-canvas focus-within:ring-2 focus-within:ring-app-ink/30">
+          {!(onWhatsApp && mode === "reply") && <label className="inline-flex min-h-[40px] cursor-pointer items-center gap-1.5 rounded-full border border-dashed border-app-line-strong px-3.5 text-[13px] font-bold hover:bg-app-canvas focus-within:ring-2 focus-within:ring-app-ink/30">
             <Icon name="paperclip" size={14} /> Attach
             <input type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif,application/pdf" className="sr-only" onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
-          </label>
+          </label>}
           <span className="flex-1" />
           {mode === "reply" && (
             <>

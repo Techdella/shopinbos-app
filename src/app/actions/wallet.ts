@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getCurrentAppUser } from "@/lib/server-auth";
+import { currentAdminCan } from "@/lib/admin-team/service.server";
 import { db } from "@/lib/db/client";
 import { checkRateLimitShared, rateLimitKey } from "@/lib/rate-limit";
 import { isWalletRole } from "@/lib/wallet/rules";
@@ -58,21 +59,21 @@ export async function myWalletBankAction(): Promise<{ bankName: string; accountN
 }
 
 export async function approveWalletBankAction(walletId: string): Promise<WalletResult> {
-  if ((await getCurrentAppUser())?.role !== "admin") return { ok: false, error: "Only the Shopinbos team can do this." };
+  if (!(await currentAdminCan("money"))) return { ok: false, error: "Only the Shopinbos team can do this." };
   const result = await approveWalletBank(walletId);
   refresh();
   return result;
 }
 
 export async function setWalletFrozenAction(walletId: string, frozen: boolean, reason?: string): Promise<WalletResult> {
-  if ((await getCurrentAppUser())?.role !== "admin") return { ok: false, error: "Only the Shopinbos team can do this." };
+  if (!(await currentAdminCan("money"))) return { ok: false, error: "Only the Shopinbos team can do this." };
   const result = await setWalletFrozen(walletId, frozen, reason);
   refresh();
   return result;
 }
 
 export async function setWalletKorapaySplitAccountAction(walletId: string, reference: string): Promise<WalletResult> {
-  if ((await getCurrentAppUser())?.role !== "admin") return { ok: false, error: "Only the Shopinbos team can do this." };
+  if (!(await currentAdminCan("money"))) return { ok: false, error: "Only the Shopinbos team can do this." };
   const result = await setWalletKorapaySplitAccount(walletId, reference.slice(0, 60));
   refresh();
   return result;

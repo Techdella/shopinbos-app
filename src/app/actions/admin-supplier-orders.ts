@@ -1,9 +1,9 @@
 "use server";
 
+import { requireAdminSection } from "@/lib/admin-team/service.server";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireRole } from "@/lib/server-auth";
 import { db } from "@/lib/db/client";
 import { assignPickupPartner } from "@/lib/supplier-orders/pickup.server";
 
@@ -13,7 +13,7 @@ import { assignPickupPartner } from "@/lib/supplier-orders/pickup.server";
 const Hours = z.union([z.literal(""), z.coerce.number().int().min(1).max(168)]);
 
 export async function setSupplierAcceptHours(formData: FormData) {
-  await requireRole(["admin"], "/admin/login");
+  await requireAdminSection("partners");
   const supplierId = String(formData.get("supplierId") ?? "");
   const back = `/admin/suppliers/${encodeURIComponent(supplierId)}`;
   const dropship = Hours.safeParse(String(formData.get("acceptHoursDropship") ?? "").trim());
@@ -28,7 +28,7 @@ export async function setSupplierAcceptHours(formData: FormData) {
 }
 
 export async function bookSupplierPickup(formData: FormData) {
-  await requireRole(["admin"], "/admin/login");
+  await requireAdminSection("partners");
   const pickupId = String(formData.get("pickupId") ?? "");
   const partnerId = String(formData.get("partnerId") ?? "");
   if (!pickupId || !partnerId) redirect(`/admin/supplier-pickups?error=${encodeURIComponent("Pick a delivery company.")}`);

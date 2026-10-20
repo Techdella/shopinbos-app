@@ -1,11 +1,11 @@
 "use server";
 
+import { requireAdminSection } from "@/lib/admin-team/service.server";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { invalidatePublicMarketplaceCache } from "@/lib/api/cache";
 import { db } from "@/lib/db/client";
-import { requireRole } from "@/lib/server-auth";
 import { notifyProductDecision, notifyVerificationDecision } from "@/lib/notifications/events.server";
 
 const VerificationStatusSchema = z.enum(["unverified", "pending", "verified", "rejected", "suspended"]);
@@ -37,7 +37,7 @@ function revalidateAdminPaths(...paths: string[]) {
 }
 
 async function requireAdmin() {
-  return requireRole(["admin"], "/admin/login");
+  return requireAdminSection("partners");
 }
 
 export async function updateSupplierVerification(formData: FormData) {

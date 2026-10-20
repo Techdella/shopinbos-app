@@ -2,12 +2,13 @@ import Link from "next/link";
 import { AppPage, Card, CardHead, EmptyState, Pill, PillLink, StatTile, type Tone } from "@/components/app-kit";
 import { Notice } from "@/components/app-ui";
 import { adminFrame, buttonClass } from "@/components/admin/AdminKit";
-import { addWhatsAppSequences, submitWhatsAppTemplates, toggleLeadAutomation } from "@/app/actions/admin-lead-growth";
+import { addWhatsAppSequences, connectWhatsAppInbox, submitInboxTemplates, submitWhatsAppTemplates, toggleLeadAutomation } from "@/app/actions/admin-lead-growth";
 import { ROLE_LABELS, type LeadRole } from "@/lib/lead-growth/pure";
 import { LeadGrowthNotReady, listAutomations, whatsappOverview } from "@/lib/lead-growth/service.server";
 import { WHATSAPP_AUTOMATIONS, WHATSAPP_TEMPLATES, templatePreviewText, templatesUsed } from "@/lib/lead-growth/whatsapp-content";
 import { metaPhoneInfo, metaTemplates, metaWhatsAppConfig, type MetaTemplateStatus } from "@/lib/lead-growth/whatsapp-meta.server";
 import { requireRole } from "@/lib/server-auth";
+import { inboxWhatsAppStatus } from "@/lib/support/whatsapp.server";
 import { GrowthNotReady, lagosTime } from "../_shared";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +23,7 @@ const MSG_TONE: Record<string, Tone> = { sent: "success", failed: "danger", skip
 
 const mask = (phone: string) => (phone.length > 6 ? `${phone.slice(0, 4)}•••${phone.slice(-3)}` : phone || "-");
 
-type Search = { error?: string; submitted?: string };
+type Search = { error?: string; submitted?: string; connected?: string };
 
 export default async function LeadWhatsAppPage(props: { searchParams?: Promise<Search> }) {
   const user = await requireRole(["admin"], "/admin/login");
@@ -43,7 +44,7 @@ export default async function LeadWhatsAppPage(props: { searchParams?: Promise<S
       </AppPage>
     );
   }
-  const [phone, metaList] = config ? await Promise.all([metaPhoneInfo(config), metaTemplates(config)]) : [null, null];
+  const [phone, metaList, inbox] = config ? await Promise.all([metaPhoneInfo(config), metaTemplates(config), inboxWhatsAppStatus().catch(() => null)]) : [null, null, null];
   const onMeta = new Map<string, MetaTemplateStatus>((metaList?.ok ? metaList.templates : []).map((t) => [`${t.name}:${t.language}`, t]));
   const statusOf = (name: string, language: string) => onMeta.get(`${name}:${language}`) ?? null;
   const approved = (name: string) => WHATSAPP_TEMPLATES.some((t) => t.name === name && statusOf(t.name, t.language)?.status === "APPROVED");
@@ -65,6 +66,7 @@ export default async function LeadWhatsAppPage(props: { searchParams?: Promise<S
       }
     >
       {search.error && <div className="mb-4"><Notice>{search.error}</Notice></div>}
+      {search.connected && <div className="mb-4"><Notice tone="success">Connected. Messages to the number now arrive in Admin › Inbox.</Notice></div>}
       {search.submitted && <div className="mb-4"><Notice tone="success">Sent {search.submitted} template{search.submitted === "1" ? "" : "s"} to Meta for review. Approval usually takes minutes, sometimes up to a day.</Notice></div>}
 
       <section aria-label="Reach" className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
@@ -99,6 +101,48 @@ export default async function LeadWhatsAppPage(props: { searchParams?: Promise<S
           <Notice>Meta didn't accept the number's details: {phone?.ok === false ? phone.error : "unknown error"}. Check the token and phone number ID.</Notice>
         )}
       </Card>
+
+      {config && inbox && (
+        <Card className="mb-5 p-5">
+          <CardHead
+            title="Inbox: replies and new chats"
+            sub="Replies to your lead messages, and anyone who messages the number, arrive in Admin › Inbox. The team answers there and can start chats with these templates."
+            action={<PillLink href="/admin/support?channel=whatsapp" size="sm" icon="chat">Open the inbox</PillLink>}
+          />
+          <div className="flex flex-wrap items-center gap-2 text-[14px]">
+            {inbox.wabaSubscribed ? (
+              <Pill tone="success" dot>Receiving messages</Pill>
+            ) : (
+              <>
+                <Pill tone="warning" dot>{inbox.wabaSubscribed === false ? "Not receiving messages yet" : "Couldn't check (add WHATSAPP_LEADS_WABA_ID)"}</Pill>
+                {config.wabaId && (
+                  <form action={connectWhatsAppInbox}>
+                    <button type="submit" className={buttonClass("ink", "sm")}>Connect to the inbox</button>
+                  </form>
+                )}
+              </>
+            )}
+          </div>
+          <p className="mb-0 mt-2 text-[12.5px] text-app-ink-soft">
+            The Meta app&apos;s WhatsApp webhook must point at <span className="font-mono">https://app.shopinbos.com/api/webhooks/whatsapp</span> with the &quot;messages&quot; field on, signed with META_APP_SECRET (or WHATSAPP_LEADS_APP_SECRET).
+          </p>
+          <ul className="m-0 mt-3 grid list-none gap-2 p-0">
+            {inbox.templates.map((t) => (
+              <li key={t.name} className="flex flex-wrap items-center gap-2 text-[13.5px]">
+                <span className="font-mono text-[12.5px]">{t.name}</span>
+                <span className="text-app-ink-soft">{t.purpose}</span>
+                <Pill tone={t.status ? STATUS_TONE[t.status] ?? "muted" : "muted"}>{t.status ? t.status.toLowerCase() : "not submitted"}</Pill>
+                {t.reason && <span className="text-app-danger">{t.reason}</span>}
+              </li>
+            ))}
+          </ul>
+          {config.wabaId && inbox.templates.some((t) => !t.status) && (
+            <form action={submitInboxTemplates} className="mt-3">
+              <button type="submit" className={buttonClass("ink", "sm")}>Submit the inbox templates to Meta</button>
+            </form>
+          )}
+        </Card>
+      )}
 
       <Card className="mb-5 p-5">
         <CardHead

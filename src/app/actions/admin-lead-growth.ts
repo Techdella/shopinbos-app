@@ -1,13 +1,14 @@
 "use server";
 
+import { requireAdminSection } from "@/lib/admin-team/service.server";
 import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { requireRole } from "@/lib/server-auth";
 import { LeadAudience, LeadMessageContent, LeadStep } from "@/lib/lead-growth/pure";
 import { WHATSAPP_TEMPLATES, whatsappTemplate } from "@/lib/lead-growth/whatsapp-content";
 import { metaTemplates, metaWhatsAppConfig, submitMetaTemplate } from "@/lib/lead-growth/whatsapp-meta.server";
+import { connectInboxWebhook, submitTeamTemplates } from "@/lib/support/whatsapp.server";
 import {
   LeadGrowthNotReady,
   addLaunchContent,
@@ -49,7 +50,7 @@ const CampaignForm = z.object({
 });
 
 export async function saveLeadCampaign(input: unknown): Promise<Result> {
-  const admin = await requireRole(["admin"], "/admin/login");
+  const admin = await requireAdminSection("leads");
   try {
     const form = CampaignForm.parse(input);
     const data = { ...form.content, name: form.name, audience: form.audience };
@@ -68,7 +69,7 @@ export async function saveLeadCampaign(input: unknown): Promise<Result> {
 }
 
 export async function previewLeadAudience(input: unknown) {
-  await requireRole(["admin"], "/admin/login");
+  await requireAdminSection("leads");
   try {
     return { ok: true as const, counts: await countAudience(LeadAudience.parse(input ?? {})) };
   } catch (error) {
@@ -79,7 +80,7 @@ export async function previewLeadAudience(input: unknown) {
 const TestForm = z.object({ name: z.string().max(120).default("Test"), content: LeadMessageContent, to: z.string().trim().min(5, "Enter where to send the test.").max(190), testName: z.string().trim().max(60).optional() });
 
 export async function sendLeadTest(input: unknown): Promise<Result> {
-  await requireRole(["admin"], "/admin/login");
+  await requireAdminSection("leads");
   try {
     const form = TestForm.parse(input);
     const outcome = await sendTestMessage(form.content, { name: form.name }, form.to, form.testName || "Ada");
@@ -95,7 +96,7 @@ function formId(formData: FormData) {
 
 /** Send now: mark it due and start sending after the response; the cron finishes anything left. */
 export async function sendLeadCampaignNow(formData: FormData) {
-  await requireRole(["admin"], "/admin/login");
+  await requireAdminSection("leads");
   const id = formId(formData);
   if (!id) return;
   await scheduleCampaign(id, new Date());
@@ -104,7 +105,7 @@ export async function sendLeadCampaignNow(formData: FormData) {
 }
 
 export async function scheduleLeadCampaign(formData: FormData) {
-  await requireRole(["admin"], "/admin/login");
+  await requireAdminSection("leads");
   const id = formId(formData);
   // datetime-local is Lagos time (UTC+1, no daylight saving).
   const local = String(formData.get("at") ?? "");
@@ -115,14 +116,14 @@ export async function scheduleLeadCampaign(formData: FormData) {
 }
 
 export async function cancelLeadCampaign(formData: FormData) {
-  await requireRole(["admin"], "/admin/login");
+  await requireAdminSection("leads");
   const id = formId(formData);
   if (id) await cancelCampaign(id);
   revalidatePath(PATH);
 }
 
 export async function deleteLeadCampaign(formData: FormData) {
-  await requireRole(["admin"], "/admin/login");
+  await requireAdminSection("leads");
   const id = formId(formData);
   if (id) await deleteCampaign(id);
   revalidatePath(PATH);
@@ -139,7 +140,7 @@ const AutomationForm = z.object({
 });
 
 export async function saveLeadAutomation(input: unknown): Promise<Result> {
-  await requireRole(["admin"], "/admin/login");
+  await requireAdminSection("leads");
   try {
     const form = AutomationForm.parse(input);
     const data = { name: form.name, audience: form.audience, steps: form.steps, includeExisting: form.includeExisting };
@@ -152,7 +153,7 @@ export async function saveLeadAutomation(input: unknown): Promise<Result> {
 }
 
 export async function toggleLeadAutomation(formData: FormData) {
-  await requireRole(["admin"], "/admin/login");
+  await requireAdminSection("leads");
   const id = formId(formData);
   if (!id) return;
   const active = formData.get("active") === "1";
@@ -162,7 +163,7 @@ export async function toggleLeadAutomation(formData: FormData) {
 }
 
 export async function deleteLeadAutomation(formData: FormData) {
-  await requireRole(["admin"], "/admin/login");
+  await requireAdminSection("leads");
   const id = formId(formData);
   if (id) await deleteAutomation(id);
   revalidatePath(PATH);
@@ -171,7 +172,7 @@ export async function deleteLeadAutomation(formData: FormData) {
 
 /** Admin: load the launch sequences and win campaign drafts that aren't there yet. */
 export async function addLaunchSequences() {
-  const admin = await requireRole(["admin"], "/admin/login");
+  const admin = await requireAdminSection("leads");
   await addLaunchContent(admin.id);
   revalidatePath(PATH);
 }
@@ -186,7 +187,7 @@ function waBack(params: Record<string, string>): never {
 
 /** Admin: the WhatsApp launch sequences, switched off. */
 export async function addWhatsAppSequences() {
-  await requireRole(["admin"], "/admin/login");
+  await requireAdminSection("leads");
   await addWhatsAppContent();
   revalidatePath(WA_PATH);
   revalidatePath(PATH);
@@ -194,7 +195,7 @@ export async function addWhatsAppSequences() {
 
 /** Admin: send one launch template (or every one Meta doesn't have yet) to Meta for approval. */
 export async function submitWhatsAppTemplates(formData: FormData) {
-  await requireRole(["admin"], "/admin/login");
+  await requireAdminSection("leads");
   const config = metaWhatsAppConfig();
   if (!config) waBack({ error: "Connect the WhatsApp number first." });
   const name = String(formData.get("name") ?? "");
@@ -210,7 +211,28 @@ export async function submitWhatsAppTemplates(formData: FormData) {
     const result = await submitMetaTemplate(config, template);
     if (!result.ok) failures.push(`${template.name}: ${result.error}`);
   }
+  // "Submit all" also sends the inbox's own templates (follow-up, reconnect).
+  const team = name ? { submitted: 0, failures: [] as string[] } : await submitTeamTemplates();
+  failures.push(...team.failures);
   revalidatePath(WA_PATH);
   if (failures.length) waBack({ error: failures.join(" · ").slice(0, 600) });
-  waBack({ submitted: String(wanted.length) });
+  waBack({ submitted: String(wanted.length + team.submitted) });
+}
+
+/** Admin: subscribe the WhatsApp Business Account to the app, so messages to the number reach the inbox. */
+export async function connectWhatsAppInbox() {
+  await requireAdminSection("inbox");
+  const result = await connectInboxWebhook();
+  revalidatePath(WA_PATH);
+  if (!result.ok) waBack({ error: `Meta: ${result.error}` });
+  waBack({ connected: "1" });
+}
+
+/** Admin: send the inbox's own templates (follow-up, reconnect) to Meta for approval. */
+export async function submitInboxTemplates() {
+  await requireAdminSection("inbox");
+  const result = await submitTeamTemplates();
+  revalidatePath(WA_PATH);
+  if (result.failures.length) waBack({ error: result.failures.join(" · ").slice(0, 600) });
+  waBack({ submitted: String(result.submitted) });
 }

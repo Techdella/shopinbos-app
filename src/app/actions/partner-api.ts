@@ -1,8 +1,8 @@
 "use server";
 
+import { requireAdminSection } from "@/lib/admin-team/service.server";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db/client";
-import { requireRole } from "@/lib/server-auth";
 import { createPartnerApiKey, revokePartnerApiKey } from "@/lib/logistics/api-keys";
 import { PARTNER_EVENTS, generateWebhookSecret, isAllowedWebhookUrl } from "@/lib/logistics/partner-api-core";
 import { sendTestEvent } from "@/lib/logistics/webhooks";
@@ -23,7 +23,7 @@ async function adminPartner(partnerId: string) {
 const page = (partnerId: string) => `/admin/logistics-partners/${partnerId}`;
 
 export async function createApiKeyAction(partnerId: string, name: string): Promise<{ ok: true; key: string; prefix: string } | Fail> {
-  await requireRole(["admin"], "/admin/login");
+  await requireAdminSection("partners");
   const partner = await adminPartner(partnerId);
   if (!partner) return { ok: false, error: "Partner not found." };
   if (partner.verificationStatus !== "verified") return { ok: false, error: "Verify this partner first. Keys only work for verified partners." };
@@ -37,7 +37,7 @@ export async function createApiKeyAction(partnerId: string, name: string): Promi
 
 /** Rotate: issue a new key with the same name, then revoke the old one. The new key is shown once. */
 export async function rotateApiKeyAction(partnerId: string, keyId: string): Promise<{ ok: true; key: string; prefix: string } | Fail> {
-  await requireRole(["admin"], "/admin/login");
+  await requireAdminSection("partners");
   const partner = await adminPartner(partnerId);
   if (!partner) return { ok: false, error: "Partner not found." };
   if (partner.verificationStatus !== "verified") return { ok: false, error: "Verify this partner first. Keys only work for verified partners." };
@@ -51,7 +51,7 @@ export async function rotateApiKeyAction(partnerId: string, keyId: string): Prom
 }
 
 export async function revokeApiKeyAction(partnerId: string, keyId: string): Promise<{ ok: true } | Fail> {
-  await requireRole(["admin"], "/admin/login");
+  await requireAdminSection("partners");
   const partner = await adminPartner(partnerId);
   if (!partner) return { ok: false, error: "Partner not found." };
   if (!(await revokePartnerApiKey(partner.id, String(keyId)))) return { ok: false, error: "That key was not found or is already revoked." };
@@ -60,7 +60,7 @@ export async function revokeApiKeyAction(partnerId: string, keyId: string): Prom
 }
 
 export async function addWebhookAction(partnerId: string, input: { url: string; events: string[] }): Promise<{ ok: true; secret: string } | Fail> {
-  await requireRole(["admin"], "/admin/login");
+  await requireAdminSection("partners");
   const partner = await adminPartner(partnerId);
   if (!partner) return { ok: false, error: "Partner not found." };
   const url = String(input?.url ?? "").trim();
@@ -80,7 +80,7 @@ export async function addWebhookAction(partnerId: string, input: { url: string; 
 }
 
 export async function removeWebhookAction(partnerId: string, webhookId: string): Promise<{ ok: true } | Fail> {
-  await requireRole(["admin"], "/admin/login");
+  await requireAdminSection("partners");
   const partner = await adminPartner(partnerId);
   if (!partner) return { ok: false, error: "Partner not found." };
   const removed = await db.partnerWebhook.deleteMany({ where: { id: String(webhookId), logisticsPartnerId: partner.id } });
@@ -90,7 +90,7 @@ export async function removeWebhookAction(partnerId: string, webhookId: string):
 }
 
 export async function sendTestWebhookAction(partnerId: string, webhookId: string): Promise<{ ok: true; delivered: boolean; status: number } | Fail> {
-  await requireRole(["admin"], "/admin/login");
+  await requireAdminSection("partners");
   const partner = await adminPartner(partnerId);
   if (!partner) return { ok: false, error: "Partner not found." };
   const result = await sendTestEvent(partner.id, String(webhookId));

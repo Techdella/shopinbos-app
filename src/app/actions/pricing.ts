@@ -1,8 +1,8 @@
 "use server";
 
+import { requireAdminSection } from "@/lib/admin-team/service.server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireRole } from "@/lib/server-auth";
 import { savePrices } from "@/lib/pricing/price-book.server";
 import { cancelPromotion, createPromotion, PromotionError, updatePromotion } from "@/lib/pricing/promotions.server";
 import { cleanPriceValue, PRICE_KEYS, PRICE_SETTINGS } from "@shared/platform-pricing";
@@ -12,7 +12,7 @@ import { PLAN_TIER_KEYS, type PlanTier } from "@shared/plan-catalog";
 
 /** Admin › Pricing: saves one section's prices (fields are named by price key) with an optional note. */
 export async function savePricing(formData: FormData) {
-  const user = await requireRole(["admin"], "/admin/login");
+  const user = await requireAdminSection("money");
   const input: Record<string, unknown> = {};
   for (const key of PRICE_KEYS) {
     const value = formData.get(key);
@@ -59,7 +59,7 @@ export interface PromoFormState {
 
 /** Admin › Pricing › Promotions: creates a promotion, or edits one that hasn't started (`id`). */
 export async function savePromotion(previous: PromoFormState, formData: FormData): Promise<PromoFormState> {
-  const user = await requireRole(["admin"], "/admin/login");
+  const user = await requireAdminSection("money");
   const id = String(formData.get("id") ?? "") || null;
   try {
     const input = promoInput(formData);
@@ -77,7 +77,7 @@ export async function savePromotion(previous: PromoFormState, formData: FormData
 
 /** Cancels an upcoming promotion, or ends a live one now. */
 export async function endPromotion(formData: FormData) {
-  await requireRole(["admin"], "/admin/login");
+  await requireAdminSection("money");
   const promo = await cancelPromotion(String(formData.get("id") ?? ""));
   revalidatePath("/admin/pricing/promotions");
   redirect(`/admin/pricing/promotions?${new URLSearchParams({ saved: promo.status === "cancelled" ? "Promotion cancelled." : "Promotion ended: prices are back to normal." }).toString()}`);
@@ -85,7 +85,7 @@ export async function endPromotion(formData: FormData) {
 
 /** Admin › Pricing › Plans: a tier's prices (a new price creates a new Paystack plan) and monthly AI credits. */
 export async function savePlan(formData: FormData) {
-  const user = await requireRole(["admin"], "/admin/login");
+  const user = await requireAdminSection("money");
   const tier = String(formData.get("tier") ?? "");
   if (!PLAN_TIER_KEYS.includes(tier as PlanTier)) redirect("/admin/pricing/plans");
   let message: string;

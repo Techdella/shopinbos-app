@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { cx } from "@/components/app-ui/cx";
+import { Icon } from "@/components/ui/Icon";
 import { PORTAL_LABEL, PRIORITIES, PRIORITY_LABEL, TOPICS, formatTicketNumber, topicLabel, type SupportPortal } from "@/lib/support/pure";
 import { PriorityPill, SlaBadge, StatusPill, deskSelect, relativeTime } from "./ui";
 
@@ -31,7 +32,10 @@ export interface DeskRow {
   lastFromCustomer: boolean;
 }
 
-type Filters = { status?: string; priority?: string; topic?: string; portal?: string; assignee?: string; q?: string };
+type Filters = { status?: string; priority?: string; topic?: string; portal?: string; channel?: string; assignee?: string; q?: string };
+
+/** Where a conversation started, as the queue and the thread say it. */
+export const CHANNEL_LABEL: Record<string, string> = { whatsapp: "WhatsApp", email: "Email", app: "In-app chat", web: "Web form" };
 
 export function SupportFilters({ filters, admins, meId }: { filters: Filters; admins: Array<{ id: string; name: string }>; meId: string }) {
   const router = useRouter();
@@ -43,6 +47,11 @@ export function SupportFilters({ filters, admins, meId }: { filters: Filters; ad
   };
   return (
     <div className="flex flex-wrap items-center gap-2">
+      <label className="sr-only" htmlFor="desk-channel">Channel</label>
+      <select id="desk-channel" className={deskSelect} value={filters.channel ?? ""} onChange={(e) => set("channel", e.target.value)}>
+        <option value="">Every channel</option>
+        {Object.entries(CHANNEL_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+      </select>
       <label className="sr-only" htmlFor="desk-priority">Priority</label>
       <select id="desk-priority" className={deskSelect} value={filters.priority ?? ""} onChange={(e) => set("priority", e.target.value)}>
         <option value="">Any priority</option>
@@ -150,6 +159,8 @@ export function SupportQueue({ rows, now }: { rows: DeskRow[]; now: number }) {
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-2">
                     {row.unread && <span className="h-2 w-2 shrink-0 rounded-full bg-app-accent" aria-label="New customer message" />}
+                    {row.source === "whatsapp" && <Icon name="whatsapp" size={14} className="shrink-0 text-app-success" aria-label="WhatsApp" />}
+                    {row.source === "email" && <Icon name="mail" size={14} className="shrink-0 text-app-ink-soft" aria-label="Email" />}
                     <span className={cx("truncate text-[14.5px]", row.unread ? "font-extrabold" : "font-bold")}>{row.subject}</span>
                   </span>
                   <span className="mt-0.5 block truncate text-[13px] text-app-ink-soft">
@@ -158,7 +169,7 @@ export function SupportQueue({ rows, now }: { rows: DeskRow[]; now: number }) {
                 </span>
                 <span className="min-w-0 text-[13px] md:w-[150px]">
                   <span className="block truncate font-bold">{row.name}</span>
-                  <span className="block truncate text-app-ink-soft">{PORTAL_LABEL[row.portal as SupportPortal] ?? row.portal}{row.source === "email" ? " · email" : row.source === "web" ? " · web form" : ""}</span>
+                  <span className="block truncate text-app-ink-soft">{PORTAL_LABEL[row.portal as SupportPortal] ?? row.portal}{row.source === "app" ? "" : ` · ${CHANNEL_LABEL[row.source] ?? row.source}`}</span>
                 </span>
                 <span className="flex flex-wrap items-center gap-1.5 md:w-[210px]">
                   <StatusPill status={row.status} />

@@ -72,7 +72,7 @@ test("wiring: no plan code or price is hard-coded outside the catalog", () => {
   assert.ok(server.indexOf("createPaystackPlan(") < server.indexOf("db.$transaction("), "the Paystack plan exists before it's saved");
   assert.match(server, /registerPlanVersions\(catalog\.versions\)/);
   assert.match(read("src/app/actions/payments.ts"), /version\.tier !== upgrade/);
-  assert.match(read("src/app/actions/pricing.ts"), /export async function savePlan[\s\S]*requireRole\(\["admin"\]/);
+  assert.match(read("src/app/actions/pricing.ts"), /export async function savePlan[\s\S]*requireAdminSection\("money"\)/);
   assert.match(read("src/lib/paystack.ts"), /\/plan`/);
   const sql = read("docs/migrations/2026-11-11-subscription-plans.sql");
   for (const v of catalog.BUILTIN_PLAN_VERSIONS) assert.match(sql, new RegExp(v.code));
