@@ -42,6 +42,9 @@ export interface ProductItem {
   images: string[];
   retailPrice: number;
   currentStock: number;
+  /** "seller" = the seller's own stock (counted here); dropship stock is the supplier's. */
+  inventoryType?: string;
+  lowStockThreshold?: number;
   status: string;
   category?: { id: string; name: string } | null;
 }
