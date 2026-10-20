@@ -394,6 +394,11 @@ const en = {
   "cr.kind.rate_card": "Build a rate card from your price list (PDF or photo)",
   "cr.kind.coverage_listing": "Coverage and pickup point listings",
   "cr.kind.performance_report": "Performance summary report",
+  "err.codNeedsPlan": "Pay on delivery comes with the Growth plan and up. Upgrade in Settings › Billing to turn it on.",
+  "an.basic": "Your plan shows the headline numbers. The full charts (by day, week, stage and best sellers) come with Plus, and spreadsheet downloads with Pro.",
+  "an.full": "Download these numbers as a spreadsheet with the Pro plan.",
+  "an.download": "Download as spreadsheet (CSV)",
+  "an.seePlans": "See plans",
 } satisfies Record<string, string>;
 
 export default en;

@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { productLimitProblem } from "@/lib/plans/gates.server";
 import { db } from "@/lib/db/client";
 import { getCurrentAppUser } from "@/lib/server-auth";
 import { mergeBrandSettings, parseBrandSettings, slugify } from "@/lib/workspace";
@@ -123,6 +124,10 @@ export async function addMarketplaceProduct(formData: FormData) {
     supplierProduct.supplier.verificationStatus !== "verified"
   ) {
     return;
+  }
+  // The plan's product and dropship limits (shared/plans.ts): the billing tab says which plan lifts them.
+  if (await productLimitProblem(user.id, store.id, 1, supplierProduct.dropshipAvailable)) {
+    redirect("/home/settings?tab=Billing&limit=products");
   }
 
   await db.storeProduct.create({

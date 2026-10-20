@@ -1,4 +1,5 @@
 import "server-only";
+import { themeProblem } from "@/lib/plans/gates.server";
 import type { CreditAction } from "@shared/ai-credits";
 
 import type { Prisma } from "@prisma/client";
@@ -377,6 +378,8 @@ async function switchThemeTool(ctx: RexToolContext, input: RexToolInput<"switch_
   const store = await studioStore(ctx);
   if (!getTemplateManifest(input.themeId)) throw new RexToolError(`The ${input.themeId} theme isn't available.`);
   if (studioDraft(store).draft.templateId === input.themeId) return { content: `The draft already uses the ${themeNameFor(input.themeId)} theme; nothing changed.` };
+  const planProblem = await themeProblem(ctx.userId, input.themeId);
+  if (planProblem) throw new RexToolError(`${planProblem} Tell the seller and offer one of the basic themes.`);
   const plan = parseRexStudioPlan({ reply: "", theme: input.themeId });
   if (!plan) throw new RexToolError("Couldn't switch the theme.");
   const result = await applyStudioPlan(store, plan, `Switched to ${themeNameFor(input.themeId)}`);

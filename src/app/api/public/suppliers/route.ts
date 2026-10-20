@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { SUPPLIER_PLAN_FIRST } from "@/lib/plans/placement";
 import { db } from "@/lib/db/client";
 import { cachedPublic, publicCacheKey, PUBLIC_LIST_TTL_S } from "@/lib/api/public-cache";
 import { PUBLIC_LIST_CACHE, withCors, handleOptions } from "@/lib/api/cors";
@@ -35,7 +36,7 @@ function supplierOrderBy(sort: "trust_score" | "rating" | "newest" | "name") {
     case "name":
       return { displayName: "asc" as const };
     default:
-      return { trustScore: "desc" as const };
+      return [SUPPLIER_PLAN_FIRST, { trustScore: "desc" as const }];
   }
 }
 

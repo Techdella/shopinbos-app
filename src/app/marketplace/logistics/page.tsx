@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { PARTNER_PLAN_FIRST } from "@/lib/plans/placement";
 import Link from "next/link";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { AssistantNote, EmptyState, FilterChips, Pill, PillLink } from "@/components/app-kit";
@@ -73,7 +74,7 @@ export default async function MarketplaceLogisticsPage({ searchParams }: PagePro
 
   const rawPartners = await safeQuery(() => db.logisticsPartner.findMany({
     where,
-    orderBy: [{ reliabilityScore: "desc" }, { createdAt: "desc" }],
+    orderBy: [PARTNER_PLAN_FIRST, { reliabilityScore: "desc" }, { createdAt: "desc" }],
     take: 50,
     select: {
       id: true, slug: true, displayName: true, description: true,

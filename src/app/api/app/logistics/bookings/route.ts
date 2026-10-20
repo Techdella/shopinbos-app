@@ -1,4 +1,5 @@
 import { ownPartCollect } from "@shared/cod-split";
+import { deliveryPartnerProblem } from "@/lib/plans/gates.server";
 import { NextRequest } from "next/server";
 import { withSeller } from "@/lib/auth/middleware";
 import { db } from "@/lib/db/client";
@@ -58,6 +59,8 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
   if (partner.user.debtPausedAt && !(await db.deliveryBooking.count({ where: { sellerId: user.id, logisticsPartnerId: partner.id } }))) {
     return apiError("NOT_AVAILABLE", "This delivery partner isn't taking new shops right now. Choose another one.", 409);
   }
+  const planProblem = await deliveryPartnerProblem(user.id, partner.id);
+  if (planProblem) return apiError("PLAN_LIMIT", planProblem, 402);
 
   // Unpaid (pay-on-delivery) orders: the rider collects at the door. When suppliers send some of the lines, this
   // parcel collects only the seller's own lines' share, so the customer never pays the total twice.

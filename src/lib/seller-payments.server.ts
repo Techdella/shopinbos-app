@@ -1,4 +1,5 @@
 import "server-only";
+import { payOnDeliveryAllowed } from "@/lib/plans/gates.server";
 
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
@@ -43,6 +44,8 @@ export async function saveSellerPaymentMethods(userId: string, methods: Partial<
   const store = await storeSettings(userId);
   if (!store) return { error: "noStore" };
   const paymentConfig = record(store.settings.paymentConfig);
+  // Pay on delivery comes with Growth and up; a store that already offers it keeps it after a downgrade.
+  if (clean.cod && record(paymentConfig.methods).cod !== true && !(await payOnDeliveryAllowed(userId))) return { error: "codNeedsPlan" };
   await db.store.update({
     where: { id: store.id },
     data: { brandSettings: { ...store.settings, paymentConfig: { ...paymentConfig, methods: clean } } as Prisma.InputJsonValue },

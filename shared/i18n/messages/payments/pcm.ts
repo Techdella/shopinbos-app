@@ -396,6 +396,11 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "cr.kind.rate_card": "Build rate card from your price list (PDF or photo)",
   "cr.kind.coverage_listing": "Coverage and pickup point listings",
   "cr.kind.performance_report": "Performance summary report",
+  "err.codNeedsPlan": "Pay on delivery dey come with Growth plan go up. Upgrade for Settings › Billing make you fit on am.",
+  "an.basic": "Your plan dey show the main numbers. The full charts (by day, week, stage and best sellers) dey come with Plus, and spreadsheet download with Pro.",
+  "an.full": "Download these numbers as spreadsheet with Pro plan.",
+  "an.download": "Download as spreadsheet (CSV)",
+  "an.seePlans": "See plans",
 };
 
 export default pcm;

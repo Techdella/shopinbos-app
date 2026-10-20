@@ -1,4 +1,5 @@
 import "server-only";
+import { themeProblem } from "@/lib/plans/gates.server";
 import { db } from "@/lib/db/client";
 import { meterAiCharged, refundAi } from "@/lib/ai/usage";
 import { creditBalance, liveCreditPrices } from "@/lib/ai/credits.server";
@@ -52,6 +53,8 @@ export async function planFor(userId: string, mode: BuildMode): Promise<{ plan: 
  */
 export async function switchDraftTheme(userId: string, themeId: string) {
   if (!isLibraryTheme(themeId)) return false;
+  // A theme the plan doesn't include stays a no-op: Rex builds on the current theme instead.
+  if (await themeProblem(userId, themeId)) return false;
   const store = await loadStudioStore(userId);
   if (!store) return false;
   const { draft } = studioDraft(store);

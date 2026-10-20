@@ -1,4 +1,5 @@
 import "server-only";
+import { seasonalCampaignProblem } from "@/lib/plans/gates.server";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { PAID_ORDER_STATUSES } from "@/lib/insights";
@@ -137,6 +138,12 @@ export interface SellerStore {
   userId: string;
 }
 
+/** New campaigns come with Growth and up (shared/plans.ts); ones already made keep running after a downgrade. */
+async function requireCampaignPlan(store: SellerStore) {
+  const problem = await seasonalCampaignProblem(store.userId);
+  if (problem) throw new CampaignError(problem, 402);
+}
+
 export async function sellerStoreFor(userId: string): Promise<SellerStore | null> {
   return db.store.findUnique({ where: { userId }, select: { id: true, name: true, slug: true, customDomain: true, brandSettings: true, userId: true } });
 }
@@ -233,6 +240,7 @@ async function createPopupForm(storeId: string, campaign: { id: string; name: st
 }
 
 export async function createCampaign(store: SellerStore, input: { preset?: string; name?: string }, t: Translate, now = new Date()): Promise<CampaignDetail> {
+  await requireCampaignPlan(store);
   const entry = campaignPreset(input.preset ?? "blank");
   const zone = DEFAULT_CAMPAIGN_TIME_ZONE;
   const dates = entry ? suggestedPresetDates(entry.id, zone, now.getTime()) : null;
@@ -268,6 +276,7 @@ export async function createCampaign(store: SellerStore, input: { preset?: strin
 }
 
 export async function duplicateCampaign(store: SellerStore, id: string, t: Translate): Promise<CampaignDetail> {
+  await requireCampaignPlan(store);
   const row = await findOwn(store, id);
   const copy = await db.storeCampaign.create({
     data: {

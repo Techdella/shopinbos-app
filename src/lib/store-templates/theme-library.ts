@@ -177,6 +177,9 @@ export const THEME_LIBRARY: readonly ThemeLibraryEntry[] = [
 
 export const THEME_LIBRARY_IDS: readonly ThemeLibraryId[] = THEME_LIBRARY.map((item) => item.id);
 
+/** The themes on the Free plan (shared/plans.ts "basic"): one for each main kind of shop. Paid plans have them all. */
+export const BASIC_THEME_IDS: readonly string[] = ["plain", "breeze", "pantry", "ile", "plug", "ewa"];
+
 export function isLibraryTheme(id: string | null | undefined): id is ThemeLibraryId {
   return typeof id === "string" && (THEME_LIBRARY_IDS as readonly string[]).includes(id);
 }

@@ -1,4 +1,5 @@
 import { VISIBLE_SUPPLIER, nearbyForSeller } from "@/lib/marketplace/agreements.server";
+import { PRODUCT_PLAN_FIRST } from "@/lib/plans/placement";
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/server-auth";
 import { safeQuery } from "@/lib/workspace";
@@ -62,7 +63,7 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
         supplier: { select: { id: true, userId: true, slug: true, displayName: true, city: true, address: true, rating: true, ratingCount: true, verificationStatus: true } },
         category: { select: { name: true } },
       },
-      orderBy: [{ trendScore: "desc" }, { createdAt: "desc" }],
+      orderBy: [PRODUCT_PLAN_FIRST, { trendScore: "desc" }, { createdAt: "desc" }],
       take: 300,
     }), []),
     safeQuery(() => db.storeProduct.findMany({ where: { storeId: store.id, supplierProductId: { not: null } }, select: { supplierProductId: true } }), []),

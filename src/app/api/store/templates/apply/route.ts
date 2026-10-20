@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { themeProblem } from "@/lib/plans/gates.server";
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { withSeller } from "@/lib/auth/middleware";
@@ -127,6 +128,8 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
   if (!manifest) {
     return NextResponse.json({ error: { code: "NOT_FOUND", message: "Template not found" } }, { status: 404 });
   }
+  const planProblem = await themeProblem(user.id, templateId);
+  if (planProblem) return NextResponse.json({ error: { code: "PLAN_LIMIT", message: planProblem } }, { status: 402 });
 
   const store = await db.store.findUnique({
     where: { userId: user.id },

@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { SUPPLIER_PLAN_FIRST } from "@/lib/plans/placement";
 import Link from "next/link";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { AssistantNote, EmptyState, FilterChips, Pill, PillLink } from "@/components/app-kit";
@@ -65,7 +66,7 @@ export default async function MarketplaceSuppliersPage({ searchParams }: PagePro
 
   const rawSuppliers = await safeQuery(() => db.supplier.findMany({
     where,
-    orderBy: [{ trustScore: "desc" }, { createdAt: "desc" }],
+    orderBy: [SUPPLIER_PLAN_FIRST, { trustScore: "desc" }, { createdAt: "desc" }],
     take: 300,
     select: {
       id: true, slug: true, displayName: true, description: true,

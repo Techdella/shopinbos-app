@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { customDomainProblem } from "@/lib/plans/gates.server";
 import { z } from "zod";
 import { withSeller } from "@/lib/auth/middleware";
 import { db } from "@/lib/db/client";
@@ -66,6 +67,8 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
 
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true } });
   if (!store) return failure("store_not_found", "Create your store before purchasing a domain.", 404);
+  const planProblem = await customDomainProblem(user.id);
+  if (planProblem) return failure("plan_limit", planProblem, 402);
 
   const purchases = await db.domainPurchase.findMany({ where: { storeId: store.id }, select: { id: true, kind: true, status: true } });
   if (storeHasDomainPurchase(purchases)) {

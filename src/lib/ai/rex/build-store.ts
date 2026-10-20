@@ -9,6 +9,7 @@ import { meterAiCharged, refundAi } from "@/lib/ai/usage";
 import { buildStoreJsonSystemPrompt, type BrandContext, type TemplateContext } from "@/lib/ai/rex/prompts";
 import { hasInspiration, inspirationImages, type Inspiration } from "@/lib/ai/rex/inspiration";
 import { isLibraryTheme } from "@/lib/store-templates/theme-library";
+import { productsLeft } from "@/lib/plans/gates.server";
 import { currencyFromPrice, parsePrice, validateStoreConfig } from "@/lib/ai/rex/store-config";
 import {
   createBlankEditorSnapshot,
@@ -214,7 +215,9 @@ export async function createSampleProducts(args: {
   // The builder's empty-state placeholders ("Product One", ₦0) are never turned into products.
   const placeholders = new Set(DEFAULT_STORE_CONFIG.products.map((product) => product.name.toLowerCase()));
   const real = args.products.filter((product) => product.name.trim() && !placeholders.has(product.name.trim().toLowerCase()));
-  for (const product of real.slice(0, 6)) {
+  // Never past the plan's product limit (shared/plans.ts).
+  const room = await productsLeft(args.userId, args.storeId);
+  for (const product of real.slice(0, Math.min(6, room ?? 6))) {
     const row = await db.storeProduct.create({
       data: {
         storeId: args.storeId,

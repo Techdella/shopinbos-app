@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { PRODUCT_PLAN_FIRST } from "@/lib/plans/placement";
 import { db } from "@/lib/db/client";
 import { cachedPublic, publicCacheKey, PUBLIC_LIST_TTL_S } from "@/lib/api/public-cache";
 import { PUBLIC_LIST_CACHE, withCors, handleOptions } from "@/lib/api/cors";
@@ -57,7 +58,7 @@ export async function GET(req: NextRequest) {
 
   const { page, limit, sort, category, country, minPrice, maxPrice, dropship, q } = parsed.data;
   const skip = (page - 1) * limit;
-  const orderBy = sortToOrderBy(sort);
+  const orderBy = sort === "trending" ? [PRODUCT_PLAN_FIRST, sortToOrderBy(sort)] : sortToOrderBy(sort);
   const wholesalePrice = {
     ...(minPrice !== undefined ? { gte: minPrice } : {}),
     ...(maxPrice !== undefined ? { lte: maxPrice } : {}),

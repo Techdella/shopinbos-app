@@ -1,4 +1,5 @@
 import "server-only";
+import { PARTNER_PLAN_FIRST, PRODUCT_PLAN_FIRST, SUPPLIER_PLAN_FIRST } from "@/lib/plans/placement";
 
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
@@ -280,7 +281,7 @@ export async function getSellerWorkspace(userId: string) {
               supplier: true,
               category: true,
             },
-            orderBy: [{ trendScore: "desc" }, { createdAt: "desc" }],
+            orderBy: [PRODUCT_PLAN_FIRST, { trendScore: "desc" }, { createdAt: "desc" }],
             take: 8,
           }),
         [],
@@ -329,7 +330,7 @@ export async function getSellerWorkspace(userId: string) {
               status: "active",
               verificationStatus: "verified",
             },
-            orderBy: [{ trustScore: "desc" }, { rating: "desc" }],
+            orderBy: [SUPPLIER_PLAN_FIRST, { trustScore: "desc" }, { rating: "desc" }],
             take: 6,
           }),
         [],
@@ -341,7 +342,7 @@ export async function getSellerWorkspace(userId: string) {
               status: "active",
               verificationStatus: "verified",
             },
-            orderBy: [{ reliabilityScore: "desc" }, { rating: "desc" }],
+            orderBy: [PARTNER_PLAN_FIRST, { reliabilityScore: "desc" }, { rating: "desc" }],
             take: 6,
           }),
         [],

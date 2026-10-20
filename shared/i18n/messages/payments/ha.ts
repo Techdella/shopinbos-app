@@ -396,6 +396,11 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "cr.kind.rate_card": "Gina katin farashi daga jerin farashinka (PDF ko hoto)",
   "cr.kind.coverage_listing": "Jerin yankuna da wuraren karɓa",
   "cr.kind.performance_report": "Rahoton taƙaitaccen aiki",
+  "err.codNeedsPlan": "Biya a lokacin isarwa yana zuwa da tsarin Growth zuwa sama. Haɓaka a Settings › Billing don kunna shi.",
+  "an.basic": "Tsarinka yana nuna manyan lambobi. Cikakkun jadawali (ta rana, mako, mataki da mafi sayarwa) suna zuwa da Plus, saukar da spreadsheet kuma da Pro.",
+  "an.full": "Sauke waɗannan lambobi a matsayin spreadsheet da tsarin Pro.",
+  "an.download": "Sauke a matsayin spreadsheet (CSV)",
+  "an.seePlans": "Duba tsare-tsare",
 };
 
 export default ha;

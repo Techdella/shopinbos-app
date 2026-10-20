@@ -396,6 +396,11 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "cr.kind.rate_card": "Ṣe rate card láti inú àkójọ iye rẹ (PDF tàbí fọ́tò)",
   "cr.kind.coverage_listing": "Àkójọ agbègbè àti ibi gbígbà",
   "cr.kind.performance_report": "Ìjábọ̀ àkópọ̀ iṣẹ́",
+  "err.codNeedsPlan": "Sísan nígbà ìfijiṣẹ́ wà pẹ̀lú plan Growth sókè. Gbé plan rẹ ga ní Settings › Billing láti tàn án.",
+  "an.basic": "Plan rẹ ń fi àwọn nọ́mbà pàtàkì hàn. Àwọn chart kíkún (lójoojúmọ́, lọ́sọ̀ọ̀sẹ̀, ìpele àti àwọn tó tà jù) wà pẹ̀lú Plus, ìgbàsílẹ̀ spreadsheet sì wà pẹ̀lú Pro.",
+  "an.full": "Gba àwọn nọ́mbà wọ̀nyí sílẹ̀ bíi spreadsheet pẹ̀lú plan Pro.",
+  "an.download": "Gbà á sílẹ̀ bíi spreadsheet (CSV)",
+  "an.seePlans": "Wo àwọn plan",
 };
 
 export default yo;

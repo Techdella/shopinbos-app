@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { productLimitProblem, productsLeft } from "@/lib/plans/gates.server";
 import Papa from "papaparse";
 import { z } from "zod";
 import type { Prisma } from "@prisma/client";
@@ -81,6 +82,9 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
   const storeCurrency = store.currency || "NGN";
   const otherCurrencies = new Set<string>();
   const categories = new Map<string, string | null>();
+  // The plan's product limit (shared/plans.ts): rows past it are skipped and listed.
+  const room = await productsLeft(user.id, store.id);
+  if (room === 0) return apiError("PLAN_LIMIT", (await productLimitProblem(user.id, store.id)) ?? "Your plan's product limit is reached.", 402);
 
   for (let i = 0; i < rows.length; i++) {
     const rowLabel = `Row ${i + 2}`;
@@ -102,6 +106,10 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
       categoryId = category?.id ?? null;
     }
 
+    if (room !== null && imported >= room) {
+      errors.push(`${rowLabel}: skipped, your plan's product limit is reached. Upgrade to import the rest.`);
+      continue;
+    }
     try {
       await db.storeProduct.create({
         data: {
