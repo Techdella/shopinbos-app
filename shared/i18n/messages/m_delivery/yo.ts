@@ -111,6 +111,13 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "rate.accept": "Gba owó tuntun náà",
   "rate.notNow": "Kì í ṣe báyìí",
   "rate.declining": "Ó ń kọ̀ ọ́…",
+  "self.title": "Èmi fúnra mi ni mo ń fi jiṣẹ́",
+  "self.sub": "Àwọn oníbàárà tó wà nítòsí lè yan ìfijiṣẹ́ tìrẹ. Owó ìfijiṣẹ́ jẹ́ tìrẹ.",
+  "self.on": "{amount} fún ọjà kọ̀ọ̀kan · {place}",
+  "self.yourState": "ìpínlẹ̀ rẹ",
+  "self.edit": "Yí owó ìfijiṣẹ́ tìrẹ padà",
+  "self.feeTitle": "Owó ìfijiṣẹ́ rẹ",
+  "self.feeSub": "Ohun tí oníbàárà ní ìpínlẹ̀ tí o ti ń fi ránṣẹ́ máa san nígbà tí o bá fi ọjà wọn jiṣẹ́ fúnra rẹ. A ó san án fún ọ pẹ̀lú ọjà náà, oníbàárà yóò sì fún ọ ní kóòdù oní-nọ́mbà mẹ́rin nígbà tó bá dé.",
 };
 
 export default yo;

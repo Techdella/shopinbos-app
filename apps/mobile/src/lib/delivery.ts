@@ -33,6 +33,10 @@ export interface DeliverySettings {
   fallbackFee: number;
   defaultSizeBand: string;
   failedFeePayer: string;
+  /** Suppliers: "I deliver myself", its fee and the states it drives to (empty: the state it ships from). */
+  selfDelivery?: boolean;
+  selfDeliveryFee?: number;
+  selfDeliveryStates?: string[];
 }
 
 export interface PartnerLite {
@@ -80,7 +84,7 @@ export interface DeliveryHub {
 
 export const fetchDeliveryHub = () => api<DeliveryHub>("/api/mobile/delivery");
 
-export type SettingsPatch = Partial<Pick<DeliverySettings, "sellArea" | "sellStates" | "originState" | "originArea" | "originAddress" | "defaultSizeBand" | "checkoutMode" | "selfPickup" | "pickupAddress" | "pickupHours" | "pickupInstructions" | "fallback" | "failedFeePayer">> & { fallbackFee?: number | string };
+export type SettingsPatch = Partial<Pick<DeliverySettings, "sellArea" | "sellStates" | "originState" | "originArea" | "originAddress" | "defaultSizeBand" | "checkoutMode" | "selfPickup" | "pickupAddress" | "pickupHours" | "pickupInstructions" | "fallback" | "failedFeePayer">> & { fallbackFee?: number | string; selfDelivery?: boolean; selfDeliveryFee?: number | string };
 
 export const saveDeliverySettings = (patch: SettingsPatch) => api<{ settings: DeliverySettings }>("/api/mobile/delivery/settings", { method: "PUT", json: patch });
 

@@ -111,6 +111,13 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "rate.accept": "Accept the new price",
   "rate.notNow": "No be now",
   "rate.declining": "E dey decline…",
+  "self.title": "I dey deliver by myself",
+  "self.sub": "Customers wey dey near you fit choose your own delivery. The fee na your own.",
+  "self.on": "{amount} for each order · {place}",
+  "self.yourState": "your state",
+  "self.edit": "Change your own delivery fee",
+  "self.feeTitle": "Your delivery fee",
+  "self.feeSub": "Wetin customer for the state wey you dey send from go pay when you deliver their order by yourself. Dem go pay you with the order, and the customer go give you 4-digit code when e reach.",
 };
 
 export default pcm;

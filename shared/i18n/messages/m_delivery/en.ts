@@ -112,6 +112,13 @@ const en = {
   "rate.accept": "Accept the new rate",
   "rate.notNow": "Not now",
   "rate.declining": "Declining…",
+  "self.title": "I deliver myself",
+  "self.sub": "Customers near you can choose your own delivery. You keep the fee.",
+  "self.on": "{amount} per order · {place}",
+  "self.yourState": "your state",
+  "self.edit": "Change your own delivery fee",
+  "self.feeTitle": "Your delivery fee",
+  "self.feeSub": "What a customer in the state you ship from pays when you deliver their order yourself. It's paid to you with the order, and the customer gives you a 4-digit code when it arrives.",
 } satisfies Record<string, string>;
 
 export default en;

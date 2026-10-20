@@ -19,21 +19,29 @@ import { colors } from "@/theme";
 // Delivery (the "Seller app" prototype's dvHub) for sellers and suppliers: where I sell, my delivery partners (and
 // private rates waiting for me), Find delivery partners, and my own options. Sellers also choose what customers see
 // when no partner covers an address, pick up from them, and which prices checkout uses (their own delivery prices,
-// app/delivery/zones.tsx, or their partners'). Suppliers only say where they ship from and their usual parcel size;
-// the settings route ignores the rest for them.
+// app/delivery/zones.tsx, or their partners'). Suppliers say where they ship from, their usual parcel size and
+// whether they deliver orders themselves ("I deliver myself", with a fee); the settings route ignores the rest.
 
 export default function DeliveryHubScreen() {
   const t = useT("m_delivery", "delivery", "common");
   const hub = useLoad(fetchDeliveryHub);
   const [note, setNote] = useState<string | null>(null);
-  const [sheet, setSheet] = useState<"pickup" | "fee" | null>(null);
+  const [sheet, setSheet] = useState<"pickup" | "fee" | "self" | null>(null);
   const data = hub.data;
 
   /** Saves at once and shows the change straight away; puts it back if the server says no. */
   async function save(patch: SettingsPatch) {
     if (!data) return false;
     const before = data;
-    hub.setData({ ...data, settings: { ...data.settings, ...patch, fallbackFee: patch.fallbackFee === undefined ? data.settings.fallbackFee : Number(patch.fallbackFee) } });
+    hub.setData({
+      ...data,
+      settings: {
+        ...data.settings,
+        ...patch,
+        fallbackFee: patch.fallbackFee === undefined ? data.settings.fallbackFee : Number(patch.fallbackFee),
+        selfDeliveryFee: patch.selfDeliveryFee === undefined ? data.settings.selfDeliveryFee : Number(patch.selfDeliveryFee),
+      },
+    });
     setNote(null);
     try {
       const saved = await saveDeliverySettings(patch);
@@ -136,6 +144,25 @@ export default function DeliveryHubScreen() {
                   </View>
                 </View>
               ) : null}
+              {!seller ? (
+                <Row
+                  title={t("self.title")}
+                  sub={settings.selfDelivery && settings.selfDeliveryFee ? t("self.on", { amount: naira(settings.selfDeliveryFee), place: origin ?? t("self.yourState") }) : t("self.sub")}
+                  onPress={() => setSheet("self")}
+                  chevron={false}
+                  accessibilityLabel={t("self.edit")}
+                  right={
+                    <Toggle
+                      on={Boolean(settings.selfDelivery)}
+                      label={t("self.title")}
+                      onChange={(on) => {
+                        if (on && !settings.selfDeliveryFee) setSheet("self");
+                        else void save({ selfDelivery: on });
+                      }}
+                    />
+                  }
+                />
+              ) : null}
               <View style={{ paddingBottom: 14 }}>
                 <Row title={t("hub.size")} sub={t("hub.sizeSub")} />
                 <View style={{ paddingHorizontal: 16 }}>
@@ -168,6 +195,18 @@ export default function DeliveryHubScreen() {
               onClose={() => setSheet(null)}
               onSave={async (patch) => {
                 if (await save(patch)) setSheet(null);
+              }}
+            />
+          ) : null}
+          {!seller ? (
+            <FeeSheet
+              visible={sheet === "self"}
+              fee={settings.selfDeliveryFee ?? 0}
+              title={t("self.feeTitle")}
+              sub={t("self.feeSub")}
+              onClose={() => setSheet(null)}
+              onSave={async (fee) => {
+                if (await save({ selfDelivery: true, selfDeliveryFee: fee })) setSheet(null);
               }}
             />
           ) : null}
@@ -233,14 +272,14 @@ function PickupSheet({ visible, settings, onClose, onSave }: { visible: boolean;
 }
 
 /** The flat fee customers pay when none of the shop's partners covers their address. */
-function FeeSheet({ visible, fee, onClose, onSave }: { visible: boolean; fee: number; onClose: () => void; onSave: (fee: number) => Promise<void> }) {
+function FeeSheet({ visible, fee, title, sub, onClose, onSave }: { visible: boolean; fee: number; title?: string; sub?: string; onClose: () => void; onSave: (fee: number) => Promise<void> }) {
   const t = useT("m_delivery", "common");
   const [text, setText] = useState(fee ? String(fee) : "");
   const [busy, setBusy] = useState(false);
   const amount = Number(text.replace(/[^\d.]/g, ""));
   return (
-    <Sheet visible={visible} onClose={onClose} title={t("fee.title")}>
-      <Small style={{ fontSize: 15, lineHeight: 21 }}>{t("fee.sub")}</Small>
+    <Sheet visible={visible} onClose={onClose} title={title ?? t("fee.title")}>
+      <Small style={{ fontSize: 15, lineHeight: 21 }}>{sub ?? t("fee.sub")}</Small>
       <View>
         <Label>{t("fee.label")}</Label>
         <Field value={text} onChangeText={(value) => setText(value.replace(/[^\d.,]/g, ""))} keyboardType="number-pad" placeholder="3000" accessibilityLabel={t("fee.label")} />

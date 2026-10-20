@@ -111,6 +111,13 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "rate.accept": "Nabata ọnụahịa ọhụrụ ahụ",
   "rate.notNow": "Ọ bụghị ugbu a",
   "rate.declining": "Ọ na-ajụ…",
+  "self.title": "Mụ onwe m na-ebuga ya",
+  "self.sub": "Ndị ahịa nọ nso nwere ike ịhọrọ nnyefe gị. Ego ya bụ nke gị.",
+  "self.on": "{amount} n’otu ọda ọ bụla · {place}",
+  "self.yourState": "steeti gị",
+  "self.edit": "Gbanwee ego nnyefe gị",
+  "self.feeTitle": "Ego nnyefe gị",
+  "self.feeSub": "Ihe onye ahịa nọ na steeti ị si ezipu na-akwụ mgbe i jiri aka gị buga ọda ya. A na-akwụ gị ya na ọda ahụ, onye ahịa ga-enye gị koodu ọnụọgụ anọ mgbe o rutere.",
 };
 
 export default ig;

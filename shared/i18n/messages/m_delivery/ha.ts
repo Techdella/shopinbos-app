@@ -111,6 +111,13 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "rate.accept": "Karɓi sabon farashin",
   "rate.notNow": "Ba yanzu ba",
   "rate.declining": "Ana ƙi…",
+  "self.title": "Ni da kaina nake kai kaya",
+  "self.sub": "Abokan ciniki na kusa za su iya zaɓar isar da kai. Kuɗin naka ne.",
+  "self.on": "{amount} kowane oda · {place}",
+  "self.yourState": "jiharka",
+  "self.edit": "Canza kuɗin isar da kanka",
+  "self.feeTitle": "Kuɗin isar da kai",
+  "self.feeSub": "Abin da abokin ciniki a jihar da kake aikawa daga ita zai biya idan ka kai odarsa da kanka. Ana biyanka tare da odar, kuma abokin ciniki zai ba ka lamba mai lambobi 4 idan ya iso.",
 };
 
 export default ha;
