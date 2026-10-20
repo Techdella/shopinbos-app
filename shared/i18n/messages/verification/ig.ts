@@ -155,6 +155,9 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "step.review": "Nyocha Shopinbos",
   "step.approved": "E kwadoro verification",
   "cac.register": "Enweghị nọmba CAC ka? Debanye aha azụmahịa gị ebe a",
+  "cac.needName": "Tinye aha azụmahịa gị dịka ọ dị na asambodo gị.",
+  "cac.needNumber": "Tinye nọmba BN ma ọ bụ RC gị: ọnụọgụ 4 ruo 10, ya na RC ma ọ bụ BN n'ihu ma ọ bụ na-enweghị ya, dịka RC 1234567.",
+  "cac.needType": "Họrọ ụdị azụmahịa gị: ụlọ ọrụ limited (RC) ma ọ bụ aha azụmahịa (BN).",
 };
 
 export default ig;

@@ -8,6 +8,7 @@ import { businessRegistrationStatus, type BusinessRegistrationStatus } from "@/l
 import { WalletActions } from "./WalletActions";
 import { youverifyHealth, type YouverifyHealth } from "@/lib/youverify";
 import { korapayIdentityHealth, korapayIdentityReady, type KorapayIdentityHealth } from "@/lib/korapay";
+import { cacProviders } from "@/lib/kyb/verify-cac.server";
 
 export const dynamic = "force-dynamic";
 
@@ -72,6 +73,7 @@ export default async function AdminWalletsPage({ searchParams }: { searchParams?
   return (
     <AppPage frame={adminFrame(user)} title="Wallets" sub="Where each business's card payments are settled. Shopinbos holds no money.">
       {korapay ? <KorapayChecksStatus health={idChecks as KorapayIdentityHealth} /> : <IdChecksStatus health={idChecks as YouverifyHealth} />}
+      <CacChecksStatus providers={cacProviders()} />
       <div className="mb-4 flex flex-wrap gap-2">
         {FILTERS.map((option) => (
           <Link key={option.id} href={withParams("/admin/wallets", { status: option.id || undefined })} className={`rounded-full border px-3.5 py-1.5 text-[13px] font-bold no-underline ${filter === option.id ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white text-app-ink"}`}>
@@ -157,6 +159,27 @@ export default async function AdminWalletsPage({ searchParams }: { searchParams?
         <EmptyState icon="coin" title="No wallets here">Businesses set up their wallet from their Wallet page.</EmptyState>
       )}
     </AppPage>
+  );
+}
+
+const CAC_PROVIDER_NAMES = { cac: "CAC's own VAS API", korapay: "Korapay Identity", youverify: "Youverify", dojah: "Dojah" } as const;
+
+/**
+ * Which CAC lookups the instant CAC check (suppliers and delivery partners) can use, in the order it tries them. A
+ * provider that refuses (no balance, not enabled, key rejected) hands over to the next; when they all refuse, people
+ * are asked to upload their certificate and the reason is in the Vercel logs as "[kyb/cac]".
+ */
+function CacChecksStatus({ providers }: { providers: Array<keyof typeof CAC_PROVIDER_NAMES> }) {
+  return (
+    <Card className="mb-4 flex flex-wrap items-center gap-3 p-4">
+      <Pill tone={providers.length ? "success" : "danger"} dot>{providers.length ? "CAC checks: on" : "CAC checks: off"}</Pill>
+      <span className="min-w-0 flex-1 basis-[280px] text-[13.5px] leading-[1.45]">
+        {providers.length
+          ? `Tried in this order: ${providers.map((name) => CAC_PROVIDER_NAMES[name]).join(", then ")}. One that refuses (no balance, service not enabled) hands over to the next.`
+          : "No CAC lookup is set up, so suppliers and delivery partners must upload their certificate. Add CAC_VAS_API_KEY (vas.cac.gov.ng) in Vercel, then redeploy."}
+        <span className="block text-[12.5px] text-app-ink-soft">If checks fail, search the Vercel logs for "[kyb/cac]" to see each provider's answer.</span>
+      </span>
+    </Card>
   );
 }
 

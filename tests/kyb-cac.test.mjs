@@ -156,3 +156,12 @@ test("the CAC registry's own API goes first when its key is set, with the key ke
   assert.match(vas, /vasapp\.cac\.gov\.ng/);
   assert.doesNotMatch(readFileSync("src/components/verification/CacInstantCheck.tsx", "utf8"), /CAC_VAS/);
 });
+
+test("the CAC check never silently greys out: it says what's missing and asks for the type instead of guessing", () => {
+  const client = readFileSync("src/components/verification/CacInstantCheck.tsx", "utf8");
+  assert.match(client, /const canCheck = !missing && !busy;/, "the type isn't needed to press the button");
+  assert.match(client, /if \(!effectiveType\) \{\s*setResult\(\{ tone: "error", text: t\("cac\.needType"\) \}\);/);
+  assert.match(client, /\{missing && \(name \|\| number\) \?/, "what's missing shows under the button");
+  const admin = readFileSync("src/app/admin/wallets/page.tsx", "utf8");
+  assert.match(admin, /<CacChecksStatus providers=\{cacProviders\(\)\} \/>/, "the team sees which CAC lookups are on");
+});
