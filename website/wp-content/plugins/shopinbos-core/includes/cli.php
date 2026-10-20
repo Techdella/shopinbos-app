@@ -58,7 +58,7 @@ class Sib_CLI {
 			WP_CLI::log( "Scheduled {$made} trend reports" );
 		}
 		$this->refresh_page( 'trending', 'Trending TikTok products to sell in Nigeria', "<!-- wp:shopinbos/trend-feed /-->\n\n<!-- wp:shopinbos/canvas {\"part\":\"trending-05\"} /-->\n\n<!-- wp:shopinbos/canvas {\"part\":\"trending-06\"} /-->\n", 'page-canvas', 'Products trending on TikTok that Nigerian sellers can stock, updated every morning, with naira prices, where to get stock, video ideas and suppliers on Shopinbos.' );
-		$this->refresh_page( 'pricing', 'Pricing', "<!-- wp:shopinbos/pricing /-->\n\n<!-- wp:shopinbos/canvas {\"part\":\"pricing-03\"} /-->\n", 'page-canvas', 'Shopinbos plans in naira for sellers, suppliers and delivery partners. Start free; payments go straight to your bank. Every plan has your store, Rex, pay on delivery and riders.' );
+		$this->refresh_page( 'pricing', 'Pricing', "<!-- wp:shopinbos/pricing /-->\n\n<!-- wp:shopinbos/canvas {\"part\":\"pricing-03\"} /-->\n", 'page-canvas', 'Shopinbos plans in naira for sellers, suppliers and delivery partners. Start free; payments go straight to your bank. Every plan has your store, Rex and riders; pay on delivery on Growth and Pro.' );
 		$this->refresh_page( 'about', 'About Shopinbos', $this->pattern( 'shopinbos/page-about' ), 'page-canvas', 'We make it easy to sell online and reach your customers: find products, sell everywhere, run your store, talk to customers and get paid.' );
 		$this->refresh_page( 'investors', 'Investor relations', "<!-- wp:shopinbos/investors-page /-->\n", 'page-canvas', 'Shopinbos is building the commerce operating system for African businesses. Company facts, business model and investor enquiries.' );
 		$this->refresh_page( 'contact', 'Contact us', "<!-- wp:shopinbos/contact-page /-->\n", 'page-canvas', 'Talk to a real person at Shopinbos on WhatsApp, by email or with the form. 8am to 8pm, in English or Pidgin.' );
@@ -141,6 +141,7 @@ class Sib_CLI {
 		flush_rewrite_rules();
 		sib_build_sitemap();
 		$this->seo_meta();
+		$this->text_fixes();
 		[ $webp, $alts ] = sib_media_optimise();
 		WP_CLI::log( "Images: {$webp} WebP copies made, {$alts} alt texts filled in" );
 		WP_CLI::success( 'Shopinbos is set up. Front page: ' . get_permalink( $home ) );
@@ -305,6 +306,46 @@ class Sib_CLI {
 	 * Rank Math's fields so the team sees and edits them there. Fields a person has changed are left alone:
 	 * we only fill empty ones, or ones still holding what setup wrote last time.
 	 */
+	/**
+	 * Correct facts that changed (prices, the mybos.store address) in content already on the site, such as blog
+	 * posts that setup only creates once. Only these exact phrases change, so edits people made are kept.
+	 */
+	private function text_fixes(): void {
+		global $wpdb;
+		$fixes = (array) json_decode( (string) file_get_contents( SIB_CORE_DIR . '/includes/seed/text-fixes.json' ), true );
+		$fixes[] = [ '#\\b(yourname|adaezestudio|pluggadgets|mamateepantry|kemibeautyhub|funmicrowns|adaeze)\\.shopinbos\\.com#', '$1.mybos.store', true ];
+		$done  = 0;
+		$ids   = $wpdb->get_col( "SELECT ID FROM {$wpdb->posts} WHERE post_status IN ('publish','future','draft') AND post_type NOT IN ('revision','attachment','nav_menu_item') AND (post_content LIKE '%shopinbos.com%' OR post_content LIKE '%₦7,500%' OR post_content LIKE '%50 products%' OR post_content LIKE '%Starter plan%' OR post_content LIKE '%every Friday%' OR post_content LIKE '%pay on delivery built in%' OR post_content LIKE '%pay on delivery and rider booking%' OR post_content LIKE '%commission (2%')" ); // phpcs:ignore
+		foreach ( $ids as $id ) {
+			$post = get_post( (int) $id );
+			$new  = $post->post_content;
+			foreach ( $fixes as $f ) {
+				$new = ! empty( $f[2] ) ? preg_replace( $f[0], $f[1], $new ) : str_replace( $f[0], $f[1], $new );
+			}
+			if ( $new !== $post->post_content ) {
+				$was_seed = $this->replaceable( $post );
+				$wpdb->update( $wpdb->posts, [ 'post_content' => $new ], [ 'ID' => $post->ID ] );
+				clean_post_cache( $post->ID );
+				if ( $was_seed ) {
+					$this->fingerprint( $post->ID );
+				}
+				$done++;
+			}
+		}
+		// Gist stories keep their text in meta.
+		foreach ( get_posts( [ 'post_type' => 'sib_gist', 'post_status' => [ 'publish', 'future' ], 'numberposts' => -1 ] ) as $g ) {
+			$meta = get_post_meta( $g->ID, 'sib_gist', true );
+			$json = wp_json_encode( $meta, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
+			$new  = preg_replace( '#\\b(yourname|[a-z]+)\\.shopinbos\\.com#', '$1.mybos.store', str_replace( [ 'a free shopinbos.com link' ], [ 'a free mybos.store link' ], (string) $json ) );
+			$new  = str_replace( 'app.mybos.store', 'app.shopinbos.com', $new );
+			if ( $new !== $json ) {
+				update_post_meta( $g->ID, 'sib_gist', json_decode( $new, true ) );
+				$done++;
+			}
+		}
+		WP_CLI::log( "Text fixes (prices, store address): {$done} items updated" );
+	}
+
 	private function seo_meta(): void {
 		$types = array_merge( [ 'page', 'post' ], array_keys( sib_content_types() ), [ 'sib_lesson' ] );
 		$ids   = get_posts( [ 'post_type' => $types, 'post_status' => [ 'publish', 'future' ], 'numberposts' => -1, 'fields' => 'ids' ] );
@@ -425,7 +466,7 @@ class Sib_CLI {
 				[ 'Do I need the WhatsApp Business app? | Yes, use a WhatsApp Business number. It is free to download from the Play Store or App Store.', 'Will my customers know a bot is replying? | Peggy replies in your shop’s name and hands over to you whenever a customer asks for a person.', 'Can I send broadcasts? | Yes, to customers who saved your number or agreed to hear from you. Shopinbos keeps track of opt-outs.' ] ],
 			'tiktok-shop' => [ 'TikTok Shop', 'TikTok + Shopinbos: sell in videos and lives', 'Turn TikTok views into orders: link products in your videos and lives, send buyers to your Shopinbos store and keep orders, stock and delivery in one app.', 'Sell in videos and lives',
 				[ 'Add your Shopinbos store link to your TikTok bio and video captions.', 'Product links in your posts open straight to checkout with card, transfer or pay on delivery.', 'Orders from TikTok land in the same app as WhatsApp and Instagram, with stock kept in sync.', 'Peggy can write captions and hooks for your next video.' ],
-				[ 'Add your store link | Put yourname.shopinbos.com in your TikTok bio.', 'Post product videos | Show the product in use and put the price in the caption.', 'Apply for TikTok Shop | Where TikTok Shop is available, apply from the Sales channels page in the app.' ],
+				[ 'Add your store link | Put yourname.mybos.store in your TikTok bio.', 'Post product videos | Show the product in use and put the price in the caption.', 'Apply for TikTok Shop | Where TikTok Shop is available, apply from the Sales channels page in the app.' ],
 				[ 'Is TikTok Shop available in Nigeria? | TikTok Shop is rolling out by country. Until it is open to you, sell with your Shopinbos store link in your bio and captions.', 'Do I need many followers? | No. Short, clear videos of the product in use can sell from your first posts.', 'Where do TikTok orders show? | In your Shopinbos orders, with the other channels, so you pack and deliver them the same way.' ] ],
 		];
 		foreach ( $pages as $slug => [ $name, $h1, $lead, $excerpt, $points, $steps, $faq ] ) {
@@ -888,7 +929,7 @@ class Sib_CLI {
 		$tools = [
 			[ 'profit-margin-calculator', 'Profit margin calculator', 'profit-margin', 'See what you really keep from a sale after the product, delivery, packaging and payment fees.',
 				$h( 'How to use it' ) . $this->text_page( 'Type your selling price and what the product costs you. Add delivery if you offer free delivery, and any packaging. The calculator takes off the Paystack fee for card and transfer payments.' )
-				. $h( 'Questions' ) . $faq( [ [ 'What is a good profit margin for a small shop?', 'It depends on what you sell, but many fashion and beauty shops aim for 30% to 50% after all costs. If yours is under 20%, look at your delivery and packaging costs first.' ], [ 'Does pay on delivery cost a fee?', 'Not on Shopinbos. Cash or transfer to the rider has no extra payment fee.' ] ] ) ],
+				. $h( 'Questions' ) . $faq( [ [ 'What is a good profit margin for a small shop?', 'It depends on what you sell, but many fashion and beauty shops aim for 30% to 50% after all costs. If yours is under 20%, look at your delivery and packaging costs first.' ], [ 'Does pay on delivery cost a fee?', 'No extra payment fee. Pay on delivery is on the Growth and Pro plans, and cash or transfer to the rider costs nothing on top of delivery.' ] ] ) ],
 			[ 'selling-price-calculator', 'Selling price calculator', 'selling-price', 'Pick the profit margin you want and get the price to charge, with payment fees included.',
 				$h( 'How to use it' ) . $this->text_page( 'Enter your cost and the margin you want. The price is rounded up to the next ₦100 so it looks clean on your store.' )
 				. $h( 'Questions' ) . $faq( [ [ 'What is the difference between margin and markup?', 'Margin is profit as a share of the selling price. Markup is profit as a share of the cost. A 50% margin is a 100% markup.' ] ] ) ],

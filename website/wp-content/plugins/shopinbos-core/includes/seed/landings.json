@@ -3,10 +3,10 @@
   "type": "sib_feature",
   "slug": "storefront",
   "title": "Storefront builder",
-  "excerpt": "Tell Rex what you sell and get a real store at yourname.shopinbos.com, with naira prices, Paystack, pay on delivery and riders already set up.",
+  "excerpt": "Tell Rex what you sell and get a real store at yourname.mybos.store, with naira prices, Paystack, pay on delivery and riders already set up.",
   "eyebrow": "Online store builder",
   "h1": "Create an online store in Nigeria, free, in 5 minutes",
-  "sub": "Tell Rex what you sell and get a real store at yourname.shopinbos.com, with naira prices, Paystack, pay on delivery and riders already set up.",
+  "sub": "Tell Rex what you sell and get a real store at yourname.mybos.store, with naira prices, Paystack, pay on delivery and riders already set up.",
   "img": "person-hero.webp",
   "bg": "#FFEDE4",
   "fit": "contain",
@@ -33,7 +33,7 @@
   "rows": [
    [
     "Your store, your brand",
-    "Pick a template, your colours and logo. Use yourname.shopinbos.com free, or connect a domain you own.",
+    "Pick a template, your colours and logo. Use yourname.mybos.store free, or connect a domain you own.",
     [
      "20+ templates made for Nigerian shops",
      "Your own domain with free SSL",
@@ -350,7 +350,7 @@
    ],
    [
     "Pay on delivery with codes",
-    "Customers pay the rider when the parcel arrives. A 4-digit code proves it was delivered, and the cash reaches your balance the same evening.",
+    "Customers pay the rider when the parcel arrives. A 4-digit code proves it was delivered, and the rider passes the cash on to you by 6pm. On the Growth and Pro plans.",
     [
      "4-digit delivery code",
      "Cash or transfer to the rider",
@@ -362,7 +362,7 @@
   "faq": [
    [
     "What does it cost?",
-    "Card, transfer and USSD payments cost 1.5% + ₦100 through Paystack, capped at ₦2,000. Pay on delivery has no extra payment fee."
+    "Card, transfer and USSD payments cost 1.5% + ₦100 through Paystack, capped at ₦2,000. Pay on delivery (on the Growth and Pro plans) has no extra payment fee."
    ],
    [
     "When do I get paid?",
@@ -460,11 +460,11 @@
    ],
    [
     "Can customers pay the rider by transfer?",
-    "Yes. They can pay cash or transfer to the rider’s Shopinbos account."
+    "Yes. They can pay the rider cash or by transfer, and the money is passed on to you the same day."
    ],
    [
-    "Is there an extra fee?",
-    "No. You pay the normal delivery fee only."
+    "Which plans include pay on delivery?",
+    "Growth and Pro. There is no extra payment fee: you pay the normal delivery fee only. On Free and Starter, customers pay by card, transfer or USSD at checkout."
    ]
   ],
   "seo": [
@@ -692,10 +692,10 @@
   "type": "sib_feature",
   "slug": "pay-on-delivery",
   "title": "Pay on delivery",
-  "excerpt": "Customers pay the rider when the parcel arrives. A 4-digit code proves it was delivered, and the cash reaches your balance the same evening.",
+  "excerpt": "Customers pay the rider when the parcel arrives. A 4-digit code proves it was delivered, and the rider passes the cash on to you by 6pm. On the Growth and Pro plans.",
   "eyebrow": "Pay on delivery",
   "h1": "Pay on delivery for your online store, without the wahala",
-  "sub": "Customers pay the rider when the parcel arrives. A 4-digit code proves it was delivered, and the cash reaches your balance the same evening.",
+  "sub": "Customers pay the rider when the parcel arrives. A 4-digit code proves it was delivered, and the rider passes the cash on to you by 6pm. On the Growth and Pro plans.",
   "img": "person-food.webp",
   "bg": "#FDF0D5",
   "fit": "cover",
@@ -716,7 +716,7 @@
    ],
    [
     "Cash comes back the same day",
-    "Riders pay in by 6pm, and it shows in your balance that evening."
+    "Riders pass the cash on by 6pm, paid straight to your bank in the app."
    ]
   ],
   "rows": [
@@ -752,16 +752,16 @@
    ],
    [
     "Can customers pay the rider by transfer?",
-    "Yes. They can pay cash or transfer to the rider’s Shopinbos account."
+    "Yes. They can pay the rider cash or by transfer, and the money is passed on to you the same day."
    ],
    [
-    "Is there an extra fee?",
-    "No. You pay the normal delivery fee only."
+    "Which plans include pay on delivery?",
+    "Growth and Pro. There is no extra payment fee: you pay the normal delivery fee only. On Free and Starter, customers pay by card, transfer or USSD at checkout."
    ]
   ],
   "seo": [
    "Pay on delivery, also called cash on delivery, is how many Nigerians prefer to buy from shops they don’t know yet. It builds trust, but it can bring problems: fake orders, refused parcels and cash that goes missing.",
-   "Shopinbos solves these with delivery codes, rider tracking and same-day cash remittance, so you can offer pay on delivery with confidence."
+   "Shopinbos solves these with delivery codes, rider tracking and same-day cash handover, so you can offer pay on delivery with confidence. It is included on the Growth and Pro plans."
   ],
   "rel": [
    [

@@ -25,7 +25,7 @@ foreach ( [ [ 'Your store', 'Live', 'tag-ok' ], [ 'WhatsApp catalogue', 'Synced'
 }
 $channels .= '</div>';
 $paid = '<div class="mock-white"><div class="row between"><b>Order SB-1047</b><span class="tag tag-ok">Delivered</span></div>' . $tick( 'Kemi paid ₦21,000 by transfer' ) . $tick( 'Rider picked it up at 11:40' ) . $tick( 'Delivered with code 4 8 2 1' )
-	. '<div style="background:#F6F5F9;border-radius:16px;padding:12px 14px"><div style="font-size:12.5px;color:#6B6779;font-weight:600">Paying to your bank on Friday</div><div class="disp" style="font-size:30px">₦146,200</div></div></div>';
+	. '<div style="background:#F6F5F9;border-radius:16px;padding:12px 14px"><div style="font-size:12.5px;color:#6B6779;font-weight:600">Paid to your bank this week</div><div class="disp" style="font-size:30px">₦146,200</div></div></div>';
 
 echo sib_block_group_open( 'fold bg-mist', 'section' ) . sib_block_group_open( 'wrap fold-in' );
 echo sib_block_group_open( 'col mw-720', 'div' ) . sib_block_p( 'How it works', 'eyebrow' ) . sib_block_h( 2, 'From “I want to sell” to your first order, in one evening' ) . sib_block_group_close();

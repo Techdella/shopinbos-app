@@ -247,7 +247,7 @@
     "type": "tip",
     "eyebrow": "",
     "headline": "Your store in 5 minutes",
-    "text": "On Sunday, tell Rex what you sell. He builds your store with your colours and a free shopinbos.com link.",
+    "text": "On Sunday, tell Rex what you sell. He builds your store with your colours and a free mybos.store link.",
     "items": [],
     "number": "",
     "do": "",
@@ -303,7 +303,7 @@
     "headline": "What you get, free",
     "text": "",
     "items": [
-     "Your own store at yourname.shopinbos.com",
+     "Your own store at yourname.mybos.store",
      "Rex, who builds it with you",
      "Peggy, who answers your customers",
      "Pay on delivery and Friday payouts"

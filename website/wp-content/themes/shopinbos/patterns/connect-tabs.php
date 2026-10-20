@@ -7,7 +7,7 @@
  */
 $groups = [
 	'sell'  => [ 'Sell on', [
-		[ 'Your Shopinbos store', 'Your own site on yourname.shopinbos.com or your domain', 'Built in' ],
+		[ 'Your Shopinbos store', 'Your own site on yourname.mybos.store or your domain', 'Built in' ],
 		[ 'WhatsApp Business', 'Catalogue, chats, payment links and order updates', 'Connect' ],
 		[ 'Instagram Shop', 'Tag products in posts and reels, answer DMs', 'Connect' ],
 		[ 'Facebook Shop', 'Your catalogue on your Page, Messenger in the inbox', 'Connect' ],

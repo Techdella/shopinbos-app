@@ -136,12 +136,12 @@ function sib_render_pricing(): string {
 
 	// Questions.
 	$faq = [
-		[ __( 'Is the Free plan really free?', 'shopinbos' ), __( 'Yes. Sellers can sell up to 20 products on yourname.shopinbos.com with no monthly price; a 3% fee applies to each store sale. Suppliers and delivery partners join and get verified free, and pay only when they earn through Shopinbos.', 'shopinbos' ) ],
+		[ __( 'Is the Free plan really free?', 'shopinbos' ), __( 'Yes. Sellers can sell up to 20 products on yourname.mybos.store with no monthly price; a 3% fee applies to each store sale. Suppliers and delivery partners join and get verified free, and pay only when they earn through Shopinbos.', 'shopinbos' ) ],
 		[ __( 'Does Shopinbos hold my money?', 'shopinbos' ), __( 'No. Paystack splits every card, transfer and USSD payment at checkout, so each business’s share goes straight to its own bank, usually the next working day.', 'shopinbos' ) ],
 		[ __( 'Can I change plans later?', 'shopinbos' ), __( 'Yes. Upgrade or downgrade any time in the app. A lower fee starts on your next sale after you upgrade.', 'shopinbos' ) ],
 		[ __( 'What does yearly billing save?', 'shopinbos' ), __( 'Two months. You pay for 10 months and get 12.', 'shopinbos' ) ],
 		[ __( 'Is VAT included?', 'shopinbos' ), __( 'Prices are in naira and do not include VAT. VAT is added where it applies, and shown before you pay.', 'shopinbos' ) ],
-		[ __( 'Can I use my own domain?', 'shopinbos' ), __( 'Yes, on Starter, Growth and Pro. The Free plan uses yourname.shopinbos.com.', 'shopinbos' ) ],
+		[ __( 'Can I use my own domain?', 'shopinbos' ), __( 'Yes, on Starter, Growth and Pro. The Free plan uses yourname.mybos.store.', 'shopinbos' ) ],
 	];
 	$out .= '<section class="pr-faq"><div class="wrap pr-narrow"><h2 class="disp pr-h2 pr-center">' . esc_html__( 'Pricing questions', 'shopinbos' ) . '</h2><div class="faq">';
 	foreach ( $faq as [ $q, $a ] ) {

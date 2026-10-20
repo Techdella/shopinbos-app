@@ -8,7 +8,7 @@
    "signup": "signup",
    "plans": [
     { "key": "free", "name": "Free", "for": "For trying it out and your first orders", "month": 0, "year": 0, "fee": "3% per sale", "cta": "Start free",
-      "points": ["Store on yourname.shopinbos.com", "Up to 20 products", "Sell on WhatsApp, Instagram and TikTok", "Self-pickup and doorstep delivery at checkout", "20 AI credits a month"] },
+      "points": ["Store on yourname.mybos.store", "Up to 20 products", "Sell on WhatsApp, Instagram and TikTok", "Self-pickup and doorstep delivery at checkout", "20 AI credits a month"] },
     { "key": "starter", "name": "Starter", "for": "For new shops getting regular orders", "month": 6000, "year": 60000, "fee": "2% per sale", "cta": "Start with Starter",
       "points": ["Everything in Free", "Your own domain", "Up to 200 products and all themes", "Sell in up to 5 states", "Branded tracking page", "150 AI credits a month"] },
     { "key": "growth", "name": "Growth", "for": "For shops selling every day", "month": 18000, "year": 180000, "fee": "1% per sale", "cta": "Start with Growth", "popular": true,
@@ -22,7 +22,7 @@
     { "label": "Yearly price (2 months free)", "values": ["—", "₦60,000", "₦180,000", "₦400,000"] },
     { "label": "Fee on each store sale", "values": ["3%", "2%", "1%", "0.5%"] },
     { "label": "Products", "values": ["20", "200", "Unlimited", "Unlimited"] },
-    { "label": "Store address", "values": ["yourname.shopinbos.com", "Your own domain", "Your own domain", "Your own domain"] },
+    { "label": "Store address", "values": ["yourname.mybos.store", "Your own domain", "Your own domain", "Your own domain"] },
     { "label": "Themes", "values": ["Basic", "All themes", "All, plus seasonal campaigns", "All, plus priority support"] },
     { "label": "Staff accounts", "values": ["1", "2", "5", "15"] },
     { "label": "AI credits a month", "values": ["20", "150", "500", "1,500"] },

@@ -48,7 +48,7 @@ function sib_render_investors_page(): string {
 	// What we're building.
 	$out .= '<section class="cv" style="padding:72px 0;background:#F6F5F9"><div class="wrap">' . $h2( __( 'What we’re building', 'shopinbos' ), __( 'One app that runs the whole business', 'shopinbos' ), __( 'Shopinbos connects three sides that need each other: sellers, the suppliers who stock them and the delivery companies who reach their customers.', 'shopinbos' ) )
 		. '<div class="g4">'
-		. $card( 'store', '#FFF1E8', '#C2410C', __( 'Store builder', 'shopinbos' ), __( 'Rex, our AI builder, sets up a seller’s store from a short chat, with a free shopinbos.com address.', 'shopinbos' ) )
+		. $card( 'store', '#FFF1E8', '#C2410C', __( 'Store builder', 'shopinbos' ), __( 'Rex, our AI builder, sets up a seller’s store from a short chat, with a free mybos.store address.', 'shopinbos' ) )
 		. $card( 'chat', '#E2F5EA', '#16794A', __( 'AI shop assistant', 'shopinbos' ), __( 'Peggy answers customers, follows up and sends offers, in English or Pidgin.', 'shopinbos' ) )
 		. $card( 'box', '#FFF7D6', '#8A5A00', __( 'Supplier marketplace', 'shopinbos' ), __( 'Find stock lets sellers add checked Nigerian suppliers’ products and dropship or buy wholesale.', 'shopinbos' ) )
 		. $card( 'truck', '#E3EEFD', '#1F5FBF', __( 'Payments and delivery', 'shopinbos' ), __( 'Card, transfer and pay on delivery, riders booked from the order, and payouts every Friday.', 'shopinbos' ) )

@@ -27,7 +27,7 @@ $go = sib_theme_go( '', [ 'place' => 'hero' ] );
 	<button class="btn btn-acc" type="submit">Start your shop<?php echo sib_theme_icon( 'arrow', 16 ); ?></button>
 </form>
 <div class="row" style="gap:18px;flex-wrap:wrap;justify-content:center;font-size:13.5px;color:#6B6779;font-weight:600">
-	<span class="tick">Free shopinbos.com address</span><span class="tick">Go live before adding a bank</span><span class="tick">iPhone, Android and web</span>
+	<span class="tick">Free mybos.store address</span><span class="tick">Go live before adding a bank</span><span class="tick">iPhone, Android and web</span>
 </div>
 <!-- /wp:html --></div>
 <!-- /wp:group -->
@@ -37,7 +37,7 @@ $go = sib_theme_go( '', [ 'place' => 'hero' ] );
 	<div class="bento" role="img" aria-label="Examples of what Shopinbos does: a live store, a Peggy reply on WhatsApp, a paid order, a delivery code, and weekly sales">
 		<div class="tile c2 r2" style="padding:0;min-height:460px">
 			<img src="<?php echo sib_theme_img( 'store-hero.webp' ); ?>" alt="" width="560" height="746" fetchpriority="high" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
-			<div style="position:absolute;left:18px;right:18px;top:18px;display:flex;justify-content:space-between;align-items:center;gap:8px;background:rgba(255,255,255,0.92);border-radius:999px;padding:8px 8px 8px 18px;backdrop-filter:blur(8px)"><b class="brandfont" style="font-size:18px">Adaeze Studio</b><span class="tag tag-ok">Live · adaeze.shopinbos.com</span></div>
+			<div style="position:absolute;left:18px;right:18px;top:18px;display:flex;justify-content:space-between;align-items:center;gap:8px;background:rgba(255,255,255,0.92);border-radius:999px;padding:8px 8px 8px 18px;backdrop-filter:blur(8px)"><b class="brandfont" style="font-size:18px">Adaeze Studio</b><span class="tag tag-ok">Live · adaeze.mybos.store</span></div>
 			<div style="position:absolute;left:18px;bottom:18px;background:#fff;border-radius:20px;padding:12px;display:flex;gap:12px;align-items:center;width:270px;max-width:calc(100% - 36px)"><img src="<?php echo sib_theme_img( 'camel-coat.webp' ); ?>" alt="" width="56" height="56" loading="lazy" style="width:56px;height:56px;border-radius:12px;object-fit:cover"><div style="flex:1"><b style="font-size:14px">Camel wrap coat</b><div style="font-size:13px;color:#6B6779">₦38,500 · 3 left</div></div><span style="width:36px;height:36px;border-radius:999px;background:#16141F;display:flex;align-items:center;justify-content:center"><?php echo sib_theme_icon( 'bag', 16, '#FFFFFF' ); ?></span></div>
 		</div>
 		<div class="tile c2 min0 bg-forest">
