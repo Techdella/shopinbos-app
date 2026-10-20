@@ -646,8 +646,8 @@ export const FEATURE_INTROS: FeatureIntro[] = [
     key: "seo",
     term: "seo",
     title: "SEO and content",
-    roles: ["seller", "supplier", "logistics_partner"],
-    paths: ["/home/seo", "/home/cms", "/supplier/cms", "/logistics/cms"],
+    roles: ["seller"],
+    paths: ["/home/seo", "/home/cms"],
     scenes: [
       { art: "search-rank", caption: "SEO helps people find you on Google.", sub: "When someone searches “ankara gown Abuja”, you want to be near the top.", durationMs: S, label: "ankara gown abuja" },
       { art: "search-rank", caption: "Name things the way people search.", sub: "“Red lace gown, size 12” is found. “Item 23” never is.", durationMs: S, label: "red lace gown size 12" },
