@@ -185,6 +185,8 @@ Status: built and verified locally (tsc clean, 124 unit tests, production build,
 
 ### Gap fixes (2026-10-21)
 
+- [x] Applied to the live database (2026-10-21): `2026-11-18-rider-pay.sql`, `2026-11-18-partner-webhook-queue.sql`.
+- [ ] After deploy: `node scripts/qstash-schedules.mjs` (adds the partner-webhooks job).
 - [x] Checkout: pay on delivery with a delivery partner also needs the seller's own pay-on-delivery switch and cap; onboarding no longer wipes Korapay; the builder preview shows the seller's real methods.
 - [x] Segments: the legacy `/api/store/segments` API goes through the same rules as the app; the customer list filters by segment (`/home/customers?segment=<id>`, "See people" on each segment); segment counts refresh when segments are listed.
 - [x] Store editor: the unreachable old editor (Design/Layout tabs said "coming soon") is removed; `/home/editor` links go to the builder, whose theme panel edits colours, type and buttons.
