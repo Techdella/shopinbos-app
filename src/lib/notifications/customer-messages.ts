@@ -1,4 +1,5 @@
 import "server-only";
+import { brandedTrackingFor } from "@/lib/plans/gates.server";
 
 import { db } from "@/lib/db/client";
 import { MARKETING_STORE_SELECT, storeUrl } from "@/lib/marketing/brand";
@@ -112,13 +113,16 @@ export async function notifyOrderCustomer(orderId: string, status: string) {
     const settings = await getMessagingSettings(order.storeId);
     const setting = settings.transactional[event];
     if (!setting.whatsapp && !setting.sms) return [];
-    const store = await db.store.findUnique({ where: { id: order.storeId }, select: MARKETING_STORE_SELECT });
+    const store = await db.store.findUnique({ where: { id: order.storeId }, select: { ...MARKETING_STORE_SELECT, userId: true } });
     if (!store) return [];
 
     const details = order.logisticsDetails && typeof order.logisticsDetails === "object" ? (order.logisticsDetails as Record<string, unknown>) : {};
     const orderLink = storeUrl(store, `/order/${order.id}`);
     const trackingCode = order.trackingCode || (typeof details.trackingCode === "string" ? details.trackingCode : "") || order.orderNumber;
-    const trackingLink = typeof details.trackingUrl === "string" && /^https:\/\//.test(details.trackingUrl) ? details.trackingUrl : orderLink;
+    // Branded tracking (Starter and up) keeps customers on the store's own order page; otherwise the delivery
+    // partner's tracking page is used when they gave one.
+    const branded = await brandedTrackingFor(store.userId).catch(() => false);
+    const trackingLink = !branded && typeof details.trackingUrl === "string" && /^https:\/\//.test(details.trackingUrl) ? details.trackingUrl : orderLink;
     const total = money(Number(order.total) || 0, order.currency);
     const first = firstName(order.buyerName) || "there";
     const recipient: Recipient = {

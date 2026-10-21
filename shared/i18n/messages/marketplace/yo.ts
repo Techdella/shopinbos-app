@@ -342,6 +342,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "trust.sending": "Ó ń lọ…",
   "trust.send": "Fi àdéhùn náà ránṣẹ́ sí {name}",
   "featured": "Àfihàn",
+  "pub.follow": "Tẹ̀lé",
+  "pub.following": "O ń tẹ̀lé",
 };
 
 export default yo;

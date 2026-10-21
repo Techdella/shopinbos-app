@@ -126,6 +126,21 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "qf.submit": "Rịọ quote",
   "qf.bookFailed": "Enweghị ike ịkpọ nke ahụ. Nwaa ọzọ.",
   "qf.bookAtPrice": "Kpọọ n'ọnụahịa a",
+  "ex.title": "Nsogbu nnyefe",
+  "ex.sub": "Nnyefe dara ada, nọ n'azụ oge, ma ọ bụ a nabataghị mgbe otu ụbọchị gachara. Nyefee otu n'aka onye mmekọ ọzọ site na otu mpịakọ.",
+  "ex.back": "Nnyefe niile",
+  "ex.seePlans": "Hụ atụmatụ",
+  "ex.locked": "Igbe nsogbu nnyefe bịara na atụmatụ Growth: hụ nnyefe niile dara ada ma ọ bụ nọ n'azụ oge n'otu ebe ma bufee ya n'aka onye mmekọ ọzọ.",
+  "ex.moved": "Emechaala. Nnyefe ahụ agaala n'aka onye mmekọ ọhụrụ.",
+  "ex.noneTitle": "Enweghị nsogbu nnyefe",
+  "ex.none": "Ọ dịghị ihe dara ada ma ọ bụ nọ n'azụ oge n'ime ụbọchị 30 gara aga.",
+  "ex.reason.failed": "Dara ada",
+  "ex.reason.late": "Nọ n'azụ oge",
+  "ex.reason.not_accepted": "A nabataghị ya",
+  "ex.choose": "Họrọ onye mmekọ ọzọ",
+  "ex.reassign": "Bufee nnyefe",
+  "ex.contact": "Zitere onye mmekọ nnyefe ozi",
+  "ex.onTheWay": "Onye na-ebu ngwongwo ewerela ya, ya mere enweghị ike ibufe ya. Kpọtụrụ onye mmekọ nnyefe.",
 };
 
 export default ig;

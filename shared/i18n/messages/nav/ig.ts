@@ -227,6 +227,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "credits.badge.large": "Uru kachasị mma",
   media: "Mgbasa",
   "logistics.pickup-points": "Ebe nnara ngwongwo",
+  "supplier.products-import": "Bulite CSV",
+  "supplier.followers": "Ndị na-eso",
 };
 
 export default ig;

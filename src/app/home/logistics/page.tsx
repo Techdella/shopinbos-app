@@ -84,6 +84,7 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
       sub={t("lg.sub")}
       actions={
         <>
+          <PillLink href="/home/logistics/exceptions" icon="flag">{t("ex.title")}</PillLink>
           <PillLink href="/marketplace?type=logistics" icon="truck">{t("lg.findPartners")}</PillLink>
           <PillLink href="/home/logistics?intent=book_delivery#quote" tone="accent" icon="plus">{t("lg.book")}</PillLink>
         </>

@@ -47,6 +47,8 @@ export interface ChatbotSettings {
   handoff: { keywords: string[]; message: string };
   /** Always, or only outside business hours (or while you're away when hours are off). */
   when: "always" | "outside_hours";
+  /** Most AI-written replies a month (live chat and WhatsApp together; each costs credits). 0 = no cap. */
+  monthlyCap: number;
   /** Peggy on the seller's WhatsApp Business number (separate switch; name, tone, FAQs and sources are shared). */
   whatsapp: WhatsAppBotSettings;
 }
@@ -93,6 +95,7 @@ export const DEFAULT_CHATBOT: ChatbotSettings = {
   faqs: [],
   handoff: { keywords: [], message: DEFAULT_HANDOFF_MESSAGE },
   when: "always",
+  monthlyCap: 300,
   whatsapp: { mode: "off", testNumber: "", productList: true, ordering: "link", orderStatus: true, greeting: "", when: "always", quietMinutes: 30 },
 };
 
@@ -154,6 +157,11 @@ export function normaliseAutoReply(raw: unknown): AutoReplyRules {
   };
 }
 
+function monthlyCapOf(value: unknown) {
+  const n = Number(value);
+  return value === undefined || value === null || value === "" || !Number.isFinite(n) ? DEFAULT_CHATBOT.monthlyCap : Math.min(100_000, Math.max(0, Math.round(n)));
+}
+
 export function normaliseChatbot(raw: unknown): ChatbotSettings {
   const c = rec(raw);
   const sources = rec(c.sources);
@@ -175,6 +183,7 @@ export function normaliseChatbot(raw: unknown): ChatbotSettings {
       .filter((faq) => faq.q && faq.a),
     handoff: { keywords: cleanKeywords(handoff.keywords), message: text(handoff.message, DEFAULT_HANDOFF_MESSAGE, 400).trim() || DEFAULT_HANDOFF_MESSAGE },
     when: c.when === "outside_hours" ? "outside_hours" : "always",
+    monthlyCap: monthlyCapOf(c.monthlyCap),
     whatsapp: normaliseWhatsAppBot(c.whatsapp),
   };
 }

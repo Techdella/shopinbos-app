@@ -126,6 +126,21 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "qf.submit": "Ask for quote",
   "qf.bookFailed": "We no fit book am. Try again.",
   "qf.bookAtPrice": "Book for this price",
+  "ex.title": "Delivery wahala",
+  "ex.sub": "Deliveries wey fail, wey late, or wey nobody accept after one day. Give am to another partner with one tap.",
+  "ex.back": "All deliveries",
+  "ex.seePlans": "See plans",
+  "ex.locked": "Delivery exceptions inbox dey come with Growth plan: see every delivery wey fail or late for one place and move am go another partner.",
+  "ex.moved": "E don do. The delivery don go to the new partner.",
+  "ex.noneTitle": "No delivery wahala",
+  "ex.none": "Nothing fail or late for the last 30 days.",
+  "ex.reason.failed": "E fail",
+  "ex.reason.late": "E late",
+  "ex.reason.not_accepted": "Dem never accept",
+  "ex.choose": "Choose another partner",
+  "ex.reassign": "Move delivery",
+  "ex.contact": "Message the delivery partner",
+  "ex.onTheWay": "Rider don carry am, so e no fit move. Contact the delivery partner.",
 };
 
 export default pcm;

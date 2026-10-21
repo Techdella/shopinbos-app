@@ -227,6 +227,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "credits.badge.large": "Mafi araha",
   media: "Hotuna",
   "logistics.pickup-points": "Wuraren karɓa",
+  "supplier.products-import": "Ɗora CSV",
+  "supplier.followers": "Mabiya",
 };
 
 export default ha;

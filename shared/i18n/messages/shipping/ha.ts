@@ -126,6 +126,21 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "qf.submit": "Nemi quote",
   "qf.bookFailed": "Ba a iya yin booking ba. Sake gwadawa.",
   "qf.bookAtPrice": "Yi booking a wannan farashi",
+  "ex.title": "Matsalolin isarwa",
+  "ex.sub": "Isarwar da ta gaza, ta makara, ko ba a karɓa ba bayan kwana ɗaya. Miƙa ɗaya ga wani abokin hulɗa da taɓawa ɗaya.",
+  "ex.back": "Duk isarwa",
+  "ex.seePlans": "Duba tsare-tsare",
+  "ex.locked": "Akwatin matsalolin isarwa yana zuwa da tsarin Growth: duba duk isarwar da ta gaza ko ta makara a wuri ɗaya ka matsar da ita zuwa wani abokin hulɗa.",
+  "ex.moved": "An gama. Isarwar ta tafi wurin sabon abokin hulɗa.",
+  "ex.noneTitle": "Babu matsalolin isarwa",
+  "ex.none": "Babu abin da ya gaza ko ya makara a kwanaki 30 da suka gabata.",
+  "ex.reason.failed": "Ta gaza",
+  "ex.reason.late": "Ta makara",
+  "ex.reason.not_accepted": "Ba a karɓa ba",
+  "ex.choose": "Zaɓi wani abokin hulɗa",
+  "ex.reassign": "Matsar da isarwa",
+  "ex.contact": "Aika saƙo ga abokin isarwa",
+  "ex.onTheWay": "Direba ya ɗauka, don haka ba za a iya matsar da ita ba. Tuntuɓi abokin isarwa.",
 };
 
 export default ha;

@@ -126,6 +126,21 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "qf.submit": "Béèrè quote",
   "qf.bookFailed": "A kò lè book ìyẹn. Gbìyànjú lẹ́ẹ̀kan sí i.",
   "qf.bookAtPrice": "Book ní iye owó yìí",
+  "ex.title": "Ìṣòro ìfijiṣẹ́",
+  "ex.sub": "Àwọn ìfijiṣẹ́ tó kùnà, tó pẹ́, tàbí tí a kò gbà lẹ́yìn ọjọ́ kan. Fi ọ̀kan lé alábàáṣiṣẹ́ mìíràn lọ́wọ́ pẹ̀lú títẹ̀ kan.",
+  "ex.back": "Gbogbo ìfijiṣẹ́",
+  "ex.seePlans": "Wo àwọn plan",
+  "ex.locked": "Àpótí ìṣòro ìfijiṣẹ́ wà pẹ̀lú plan Growth: wo gbogbo ìfijiṣẹ́ tó kùnà tàbí tó pẹ́ ní ibì kan, kí o sì gbé e lọ sọ́dọ̀ alábàáṣiṣẹ́ mìíràn.",
+  "ex.moved": "Ó ti parí. Ìfijiṣẹ́ náà ti lọ sọ́dọ̀ alábàáṣiṣẹ́ tuntun.",
+  "ex.noneTitle": "Kò sí ìṣòro ìfijiṣẹ́",
+  "ex.none": "Kò sí ohun tó kùnà tàbí tó pẹ́ láàárín ọgbọ̀n ọjọ́ sẹ́yìn.",
+  "ex.reason.failed": "Ó kùnà",
+  "ex.reason.late": "Ó pẹ́",
+  "ex.reason.not_accepted": "A kò tíì gbà á",
+  "ex.choose": "Yan alábàáṣiṣẹ́ mìíràn",
+  "ex.reassign": "Gbé ìfijiṣẹ́ lọ",
+  "ex.contact": "Fi ìfiránṣẹ́ ránṣẹ́ sí alábàáṣiṣẹ́ ìfijiṣẹ́",
+  "ex.onTheWay": "Ẹni tó ń gbé ẹrù ti gbà á, nítorí náà kò ṣeé gbé lọ. Kàn sí alábàáṣiṣẹ́ ìfijiṣẹ́.",
 };
 
 export default yo;

@@ -81,7 +81,12 @@ export default async function SupplierProductsPage({ searchParams }: PageProps) 
       frame={supplierFrame(user, supplier, { searchPlaceholder: t("products.searchPlaceholder") })}
       title={t("products.title")}
       sub={isPro ? t("products.subPro") : t("products.subFree", { count: Math.min(total, listingLimit ?? total), limit: listingLimit ?? total })}
-      actions={<PillLink href="/supplier/products/new" tone="accent" icon="plus">{t("dashboard.addProduct")}</PillLink>}
+      actions={
+        <>
+          <PillLink href="/supplier/products/import" icon="upload">{t("imp.button")}</PillLink>
+          <PillLink href="/supplier/products/new" tone="accent" icon="plus">{t("dashboard.addProduct")}</PillLink>
+        </>
+      }
       toolbar={
         <>
           <FilterChips

@@ -1,4 +1,5 @@
 import "server-only";
+import { brandedTrackingFor } from "@/lib/plans/gates.server";
 
 import { db } from "@/lib/db/client";
 import { readTransferAccount } from "@shared/checkout-payments";
@@ -16,7 +17,7 @@ const UNPAID = ["pending", "awaiting_payment"];
 export async function loadOrderNextSteps(
   order: { id: string; orderNumber: string; total: number; status: string; paymentMethod: string | null; createdAt: Date; paymentDueAt?: Date | null },
   store: { userId: string; brandSettings: unknown },
-): Promise<{ transfer: TransferDetails | null; deliveryCode: string | null; brandSettings: { palette?: Record<string, string>; themeTokens?: Record<string, unknown> } }> {
+): Promise<{ transfer: TransferDetails | null; deliveryCode: string | null; brandedTracking: boolean; brandSettings: { palette?: Record<string, string>; themeTokens?: Record<string, unknown> } }> {
   const account = order.paymentMethod === "transfer" && UNPAID.includes(order.status) ? readTransferAccount(store.brandSettings) : null;
   const booking = await db.deliveryBooking.findFirst({
     where: { orderId: order.id, sellerId: store.userId, deliveryCode: { not: null }, status: { notIn: ["cancelled", "delivered", "failed"] } },
@@ -33,6 +34,8 @@ export async function loadOrderNextSteps(
     // The real deadline: what checkout saved, or for older orders the window from when it was placed.
     transfer: account ? { ...account, amount: order.total, reference: order.orderNumber, payBy: orderPaymentDeadline(order, paymentWindows())?.toISOString() ?? null } : null,
     deliveryCode: booking?.deliveryCode ?? null,
+    // Starter and up: tracking with only the store's name on it (shared/plans.ts brandedTracking).
+    brandedTracking: await brandedTrackingFor(store.userId).catch(() => false),
     brandSettings: { ...(palette ? { palette } : {}), ...(tokens ? { themeTokens: tokens } : {}) },
   };
 }

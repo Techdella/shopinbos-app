@@ -143,6 +143,11 @@ export async function seasonalCampaignProblem(userId: string): Promise<string | 
   return `Seasonal campaigns come with the ${upgradeTo((next) => next.themes === "all_seasonal") ?? "Growth"} plan.`;
 }
 
+/** Order tracking pages and messages carry only the store's name (no Shopinbos mark, no partner's own page). */
+export async function brandedTrackingFor(userId: string) {
+  return (await sellerPlan(userId)).limits.brandedTracking;
+}
+
 export async function chinaImportProblem(userId: string): Promise<string | null> {
   const { limits } = await sellerPlan(userId);
   if (limits.chinaImport !== "browse") return null;

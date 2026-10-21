@@ -1,5 +1,5 @@
-import { addonPrices, boostPrices, type PriceBook } from "./platform-pricing";
-import type { PlanRole } from "./plans";
+import { addonPrices, boostPrices, type PriceBook } from "./platform-pricing.ts";
+import type { PlanRole } from "./plans.ts";
 
 // Add-ons and boosts people buy on top of their plan (the October 2026 pricing): extra staff seats and SMS/WhatsApp
 // packs for sellers, featured weeks for suppliers, their products and delivery partners. Prices come from Admin ›

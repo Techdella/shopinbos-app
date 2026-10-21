@@ -124,6 +124,21 @@ const en = {
   "qf.submit": "Ask for a quote",
   "qf.bookFailed": "Couldn't book that. Try again.",
   "qf.bookAtPrice": "Book at this price",
+  "ex.title": "Delivery problems",
+  "ex.sub": "Deliveries that failed, are late, or haven't been accepted after a day. Hand one to another partner in a tap.",
+  "ex.back": "All deliveries",
+  "ex.seePlans": "See plans",
+  "ex.locked": "The delivery exceptions inbox comes with the Growth plan: see every failed or late delivery in one place and move it to another partner.",
+  "ex.moved": "Done. The delivery went to the new partner.",
+  "ex.noneTitle": "No delivery problems",
+  "ex.none": "Nothing has failed or run late in the last 30 days.",
+  "ex.reason.failed": "Failed",
+  "ex.reason.late": "Late",
+  "ex.reason.not_accepted": "Not accepted",
+  "ex.choose": "Choose another partner",
+  "ex.reassign": "Move delivery",
+  "ex.contact": "Message the delivery partner",
+  "ex.onTheWay": "A rider has it, so it can't be moved. Contact the delivery partner.",
 } satisfies Record<string, string>;
 
 export default en;

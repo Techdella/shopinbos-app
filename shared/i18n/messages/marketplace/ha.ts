@@ -342,6 +342,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "trust.sending": "Ana aikawa…",
   "trust.send": "Aika yarjejeniyar zuwa {name}",
   "featured": "Fitacce",
+  "pub.follow": "Bi",
+  "pub.following": "Kana bi",
 };
 
 export default ha;

@@ -806,6 +806,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "ch.helpTitle": "Connect {title}",
   "ch.helpDesc": "We go connect {title} to your inbox for you and message you when e dey work.",
   "ch.askUs": "Ask us make we connect am",
+  "bot.monthlyCap": "Highest AI replies every month",
+  "bot.monthlyCapHelp": "Every reply wey Peggy write with AI dey use your AI credits (live chat and WhatsApp together). When she reach dis number, or your credits finish, your away message and quick replies go answer instead. 0 mean no limit.",
 };
 
 export default pcm;

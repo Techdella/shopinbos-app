@@ -342,6 +342,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "trust.sending": "E dey send…",
   "trust.send": "Send the agreement to {name}",
   "featured": "Featured",
+  "pub.follow": "Follow",
+  "pub.following": "You dey follow",
 };
 
 export default pcm;

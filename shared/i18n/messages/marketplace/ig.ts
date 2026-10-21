@@ -342,6 +342,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "trust.sending": "Ọ na-aga…",
   "trust.send": "Zipu nkwekọrịta ahụ nye {name}",
   "featured": "Ewepụtara",
+  "pub.follow": "Soro",
+  "pub.following": "Ị na-eso",
 };
 
 export default ig;

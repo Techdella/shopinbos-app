@@ -227,6 +227,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "credits.badge.large": "Iye tó dára jù",
   media: "Àwọn àwòrán",
   "logistics.pickup-points": "Ibi gbígba ẹrù",
+  "supplier.products-import": "Gbé CSV sókè",
+  "supplier.followers": "Àwọn olùtẹ̀lé",
 };
 
 export default yo;

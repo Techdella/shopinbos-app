@@ -340,6 +340,8 @@ const en = {
   "trust.sending": "Sending…",
   "trust.send": "Send the agreement to {name}",
   "featured": "Featured",
+  "pub.follow": "Follow",
+  "pub.following": "Following",
 } satisfies Record<string, string>;
 
 export default en;

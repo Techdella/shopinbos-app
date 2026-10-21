@@ -806,6 +806,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "ch.helpTitle": "Haɗa {title}",
   "ch.helpDesc": "Za mu haɗa {title} da inbox ɗinka kuma mu aiko maka saƙo idan yana aiki.",
   "ch.askUs": "Nemi mu haɗa shi",
+  "bot.monthlyCap": "Mafi yawan amsoshin AI a wata",
+  "bot.monthlyCapHelp": "Kowace amsa da Peggy ta rubuta da AI tana amfani da kiredit ɗinka na AI (live chat da WhatsApp tare). Idan ta kai wannan adadin, ko kiredit ɗinka ya ƙare, saƙon rashin kasancewa da amsoshi masu sauri za su amsa a maimakon haka. 0 yana nufin babu iyaka.",
 };
 
 export default ha;

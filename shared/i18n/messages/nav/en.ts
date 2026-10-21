@@ -228,6 +228,8 @@ const en = {
   "credits.badge.medium": "Most popular",
   "credits.badge.large": "Best value",
   "logistics.pickup-points": "Pickup points",
+  "supplier.products-import": "Upload CSV",
+  "supplier.followers": "Followers",
 } satisfies Record<string, string>;
 
 export default en;
