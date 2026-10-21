@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
-import { EmptyState, PillLink } from "@/components/app-kit";
+import { AssistantNote, EmptyState, PillLink } from "@/components/app-kit";
+import { TipsGate } from "../_components/TipsGate";
 import { requireRole } from "@/lib/server-auth";
 import { safeQuery } from "@/lib/workspace";
 import { db } from "@/lib/db/client";
@@ -66,9 +67,14 @@ export default async function SellerWholesaleOrdersPage({ searchParams }: { sear
       user={user}
       store={storeSummary(store)}
       title={t("ws.title")}
-      sub={t("ws.sub")}
+      sub={t("ws.lead")}
       actions={<PillLink href="/marketplace" icon="search">{t("ws.findProducts")}</PillLink>}
     >
+      <div className="mb-4">
+        <TipsGate>
+          <AssistantNote who="peggy">{t("ws.tip")}</AssistantNote>
+        </TipsGate>
+      </div>
       {payment && (
         <p role={payment.ok ? "status" : "alert"} className={`mb-4 rounded-[16px] px-4 py-3 text-[14px] font-bold ${payment.ok ? "bg-app-success-tint text-app-success" : "bg-app-danger-tint text-app-danger"}`}>
           {payment.ok ? t("ws.paidNotice") : payment.error}
