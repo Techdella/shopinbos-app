@@ -89,6 +89,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "acc.noInstagram": "Etinyebeghị Instagram. N'app Instagram, gbanwee ya ka ọ bụrụ business account ma jikọọ ya na Facebook Page gị, wee pịa",
   "card.confirmMeta": "Kwụsịkọọ {name}? Ozi ọhụrụ na mmelite ngwaahịa ga-akwụsị ebe ahụ. Mkparịta ụka gị ochie ga-anọgide.",
   "card.needs.metaProducts": "Ozi na-arụ ọrụ. Iji gosi ngwaahịa gị na Facebook na Instagram kwa, mepụta business account n'efu, wee pịa n'okpuru.",
+  "card.needs.waProducts": "Ozi na-arụ ọrụ. Iji gosi ngwaahịa gị n'ime WhatsApp kwa, Facebook ka ga-ekwe ka Shopinbos jikwaa catalog gị. Anyị ga-agbanye ya ozugbo o kwere; pịa n'okpuru ka ị nwaa ọzọ.",
   "connectedOk": "Ejikọọla {name}. Ọ na-arụ ọrụ ugbu a n'ebe niile na Shopinbos: inbox gị, ngwaahịa gị na Social posts.",
   "soon.postTiktok": "Biputa na TikTok",
   "post.yours": "Accounts gị:",
