@@ -251,26 +251,22 @@ function ImageInput({ label, value, onChange }: { label: string; value: MediaVal
   const t = useT("cms");
   const tm = useT("media");
   const [libraryOpen, setLibraryOpen] = useState(false);
-  const upload = useUpload("image/jpeg,image/png,image/webp,image/gif", ([file]) => onChange({ url: file.url, alt: value?.alt ?? "" }));
   return (
     <div className="flex flex-wrap items-start gap-3">
-      {upload.element}
-      {value?.url ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={value.url} alt="" className="h-[110px] w-[150px] rounded-[14px] border border-app-line object-cover" />
-      ) : (
-        <button type="button" onClick={upload.open} className="grid h-[110px] w-[150px] place-items-center rounded-[14px] border border-dashed border-app-line-strong bg-app-canvas text-[13px] font-bold text-app-ink-soft">
-          {upload.busy ? <Spinner /> : <span className="grid place-items-center gap-1"><Icon name="upload" size={18} /> {t("ed.upload")}</span>}
-        </button>
-      )}
+      <button type="button" onClick={() => setLibraryOpen(true)} aria-label={value?.url ? t("ed.replace") : tm("field.choose")} className="grid h-[110px] w-[150px] place-items-center overflow-hidden rounded-[14px] border border-dashed border-app-line-strong bg-app-canvas text-[13px] font-bold text-app-ink-soft">
+        {value?.url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={value.url} alt="" className="h-full w-full object-cover" />
+        ) : (
+          <span className="grid place-items-center gap-1"><Icon name="image" size={18} /> {t("fi.addMedia")}</span>
+        )}
+      </button>
       <div className="grid min-w-0 flex-1 basis-[220px] gap-2">
         <input aria-label={t("fi.describe", { label })} className={input} placeholder={t("fi.describePh")} value={value?.alt ?? ""} maxLength={300} disabled={!value?.url} onChange={(e) => onChange({ ...value, alt: e.target.value })} />
         <div className="flex flex-wrap gap-2">
-          {value?.url && <button type="button" className={small} onClick={upload.open} disabled={upload.busy}>{upload.busy ? <Spinner className="h-4 w-4" /> : <Icon name="refresh" size={14} />} {t("ed.replace")}</button>}
-          <button type="button" className={small} onClick={() => setLibraryOpen(true)}><Icon name="grid" size={14} /> {tm("field.choose")}</button>
+          <button type="button" className={small} onClick={() => setLibraryOpen(true)}><Icon name={value?.url ? "refresh" : "grid"} size={14} /> {value?.url ? t("ed.replace") : tm("field.choose")}</button>
           {value?.url && <button type="button" className={small} onClick={() => onChange(undefined)}><Icon name="trash" size={14} /> {t("ed.remove")}</button>}
         </div>
-        {upload.error && <p className="m-0 text-[13px] text-app-danger" role="alert">{upload.error}</p>}
       </div>
       <MediaLibraryDialog open={libraryOpen} onClose={() => setLibraryOpen(false)} onSelect={([asset]) => asset && onChange({ url: asset.url, alt: asset.alt || value?.alt || "" })} />
     </div>
@@ -281,7 +277,6 @@ function GalleryInput({ label, value, onChange }: { label: string; value: MediaV
   const t = useT("cms");
   const tm = useT("media");
   const [libraryOpen, setLibraryOpen] = useState(false);
-  const upload = useUpload("image/jpeg,image/png,image/webp,image/gif", (files) => onChange([...value, ...files.map((file) => ({ url: file.url, alt: "" }))].slice(0, 60)), true);
   const move = (index: number, by: number) => {
     const next = [...value];
     const target = index + by;
@@ -291,7 +286,6 @@ function GalleryInput({ label, value, onChange }: { label: string; value: MediaV
   };
   return (
     <div className="grid gap-3">
-      {upload.element}
       {value.length > 0 && (
         <ul className="m-0 grid list-none grid-cols-2 gap-3 p-0 sm:grid-cols-3 xl:grid-cols-4">
           {value.map((photo, index) => (
@@ -309,11 +303,7 @@ function GalleryInput({ label, value, onChange }: { label: string; value: MediaV
         </ul>
       )}
       <div>
-        <div className="flex flex-wrap gap-2">
-          <button type="button" className={small} onClick={upload.open} disabled={upload.busy}>{upload.busy ? <Spinner className="h-4 w-4" /> : <Icon name="upload" size={14} />} {t("fi.addPictures")}</button>
-          <button type="button" className={small} onClick={() => setLibraryOpen(true)}><Icon name="grid" size={14} /> {tm("field.choose")}</button>
-        </div>
-        {upload.error && <p className="m-0 mt-1.5 text-[13px] text-app-danger" role="alert">{upload.error}</p>}
+        <button type="button" className={small} onClick={() => setLibraryOpen(true)}><Icon name="plus" size={14} /> {t("fi.addPictures")}</button>
       </div>
       <MediaLibraryDialog open={libraryOpen} multiple onClose={() => setLibraryOpen(false)} onSelect={(assets) => onChange([...value, ...assets.filter((asset) => !value.some((photo) => photo.url === asset.url)).map((asset) => ({ url: asset.url, alt: asset.alt ?? "" }))].slice(0, 60))} />
     </div>
@@ -323,18 +313,18 @@ function GalleryInput({ label, value, onChange }: { label: string; value: MediaV
 function VideoInput({ label, value, onChange, id }: { label: string; value: unknown; onChange: (value: unknown) => void; id: string }) {
   const t = useT("cms");
   const url = typeof value === "string" ? value : ((value as { url?: string } | undefined)?.url ?? "");
-  const upload = useUpload("video/mp4,video/webm", ([file]) => onChange({ url: file.url }));
+  const tm = useT("media");
+  const [libraryOpen, setLibraryOpen] = useState(false);
   return (
     <div className="grid gap-2">
-      {upload.element}
       <div className="flex flex-wrap gap-2">
         <label htmlFor={`${id}-video`} className="sr-only">{t("fi.link", { label })}</label>
         <input id={`${id}-video`} className={cx(input, "min-w-0 flex-1 basis-[240px]")} placeholder={t("fi.videoPh")} value={url} onChange={(e) => onChange(e.target.value ? { url: e.target.value } : undefined)} />
-        <button type="button" className={cx(small, "min-h-[44px]")} onClick={upload.open} disabled={upload.busy}>{upload.busy ? <Spinner className="h-4 w-4" /> : <Icon name="upload" size={14} />} {t("fi.uploadVideo")}</button>
+        <button type="button" className={cx(small, "min-h-[44px]")} onClick={() => setLibraryOpen(true)}><Icon name="play" size={14} /> {tm("field.choose")}</button>
         {url && <button type="button" aria-label={t("fi.removeVideo")} className="grid h-11 w-11 place-items-center rounded-full text-app-danger hover:bg-app-danger-tint" onClick={() => onChange(undefined)}><Icon name="trash" size={15} /></button>}
       </div>
       <p className="m-0 text-[12.5px] text-app-ink-soft">{t("fi.videoHelp")}</p>
-      {upload.error && <p className="m-0 text-[13px] text-app-danger" role="alert">{upload.error}</p>}
+      <MediaLibraryDialog open={libraryOpen} accept="any" initialKind="video" title={t("fi.chooseVideo")} onClose={() => setLibraryOpen(false)} onSelect={([asset]) => asset?.kind === "video" && onChange({ url: asset.url })} />
     </div>
   );
 }

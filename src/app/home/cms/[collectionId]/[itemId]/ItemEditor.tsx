@@ -3,10 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
-import { Notice, PillButton, Segmented, Spinner, cx } from "@/components/app-ui";
+import { Notice, PillButton, Segmented, cx } from "@/components/app-ui";
 import { Pill } from "@/components/app-kit";
 import { SeoTab } from "@/components/seo/SeoTab";
-import { uploadCmsFile } from "@/components/cms/pickers";
 import { MediaLibraryDialog } from "@/components/media/MediaLibraryDialog";
 import { mainRichField, slugError, slugify, type CmsField, type RichValue } from "@/lib/cms/fields";
 import { docImages, firstParagraphText, plainText, summarize } from "@/lib/cms/richtext";
@@ -66,7 +65,6 @@ export function ItemEditor(props: {
   const [busy, setBusy] = useState<"" | "draft" | "publish">("");
   const [notice, setNotice] = useState<{ tone: "error" | "success" | "info"; text: string } | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [uploading, setUploading] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const tm = useT("media");
   const saved = useRef(JSON.stringify({ item: props.item, seo: normalizeSeo(props.item.seo) }));
@@ -153,19 +151,6 @@ export function ItemEditor(props: {
       setNotice({ tone: "error", text: t("ed.network") });
     } finally {
       setBusy("");
-    }
-  }
-
-  async function uploadFeatured(file: File | undefined) {
-    if (!file) return;
-    setUploading(true);
-    try {
-      const uploaded = await uploadCmsFile(file);
-      set({ featuredImage: uploaded.url });
-    } catch (e) {
-      setNotice({ tone: "error", text: e instanceof Error ? e.message : t("ed.uploadError") });
-    } finally {
-      setUploading(false);
     }
   }
 
@@ -298,19 +283,17 @@ export function ItemEditor(props: {
         <section className="grid content-start gap-3 rounded-[22px] border border-app-line bg-white p-4 sm:p-6">
           <h2 className="m-0 text-[16px] font-extrabold">{t("ed.featured")}</h2>
           <p className="m-0 text-[13px] text-app-ink-soft">{t("ed.featuredHelp", { label })}</p>
-          {item.featuredImage ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={item.featuredImage} alt="" className="aspect-[16/9] w-full rounded-[16px] border border-app-line object-cover" />
-          ) : (
-            <div className="grid aspect-[16/9] w-full place-items-center rounded-[16px] border border-dashed border-app-line-strong bg-app-canvas text-[13.5px] text-app-ink-soft">{t("ed.noPicture")}</div>
-          )}
+          <button type="button" onClick={() => setLibraryOpen(true)} aria-label={item.featuredImage ? t("ed.replace") : tm("field.choose")} className="block w-full overflow-hidden rounded-[16px] p-0">
+            {item.featuredImage ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={item.featuredImage} alt="" className="aspect-[16/9] w-full rounded-[16px] border border-app-line object-cover" />
+            ) : (
+              <span className="grid aspect-[16/9] w-full place-items-center rounded-[16px] border border-dashed border-app-line-strong bg-app-canvas text-[13.5px] text-app-ink-soft">{t("ed.noPicture")}</span>
+            )}
+          </button>
           <div className="flex flex-wrap gap-2">
-            <label className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full border border-app-line bg-white px-4 text-[13.5px] font-bold hover:border-app-line-strong focus-within:border-app-ink">
-              {uploading ? <Spinner className="h-4 w-4" /> : <Icon name="upload" size={15} />} {item.featuredImage ? t("ed.replace") : t("ed.upload")}
-              <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="sr-only" onChange={(e) => void uploadFeatured(e.target.files?.[0])} />
-            </label>
             <button type="button" onClick={() => setLibraryOpen(true)} className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-app-line bg-white px-4 text-[13.5px] font-bold hover:border-app-line-strong">
-              <Icon name="grid" size={15} /> {tm("field.choose")}
+              <Icon name={item.featuredImage ? "refresh" : "grid"} size={15} /> {item.featuredImage ? t("ed.replace") : tm("field.choose")}
             </button>
             {item.featuredImage && <button type="button" onClick={() => set({ featuredImage: null })} className="inline-flex min-h-[44px] items-center gap-2 rounded-full px-4 text-[13.5px] font-bold text-app-danger hover:bg-app-danger-tint"><Icon name="trash" size={15} /> {t("ed.remove")}</button>}
           </div>
