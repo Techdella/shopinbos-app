@@ -188,6 +188,7 @@ Status: built and verified locally (tsc clean, 124 unit tests, production build,
 - [x] Checkout: pay on delivery with a delivery partner also needs the seller's own pay-on-delivery switch and cap; onboarding no longer wipes Korapay; the builder preview shows the seller's real methods.
 - [x] Segments: the legacy `/api/store/segments` API goes through the same rules as the app; the customer list filters by segment (`/home/customers?segment=<id>`, "See people" on each segment); segment counts refresh when segments are listed.
 - [x] Store editor: the unreachable old editor (Design/Layout tabs said "coming soon") is removed; `/home/editor` links go to the builder, whose theme panel edits colours, type and buttons.
+- [x] Builder Theme settings for the 2026 themes: font pairing (Typography), button shape (Buttons), and a store-wide Layout view (page width and product photo shape; classic templates pick the store layout). Saved as optional theme tokens, so stores that pick nothing look as before.
 - [ ] Not tested yet: Rex and Peggy with live AI keys, Safari and Firefox, and a native speaker's check of the Yorùbá and Hausa text (including the new rider-pay and segment strings).
 
 ## Current Todos
