@@ -18,7 +18,7 @@ import {
   versionsOf,
   type StudioStore,
 } from "@/lib/ai/rex/studio.server";
-import type { StoreEditorSnapshot } from "@/lib/store-templates";
+import { isBoutiqueTheme, type StoreEditorSnapshot } from "@/lib/store-templates";
 import { formatStoreMoney } from "@/lib/storefront/shopper-info";
 import { checkThemeSwitch } from "@/lib/theme-access";
 import { loadSellerThemeAccess } from "@/lib/theme-access.server";
@@ -68,7 +68,8 @@ async function designerPrompt(store: StudioStore, draft: StoreEditorSnapshot, im
     theme: { id: draft.templateId, name: themeNameFor(draft.templateId, draft.templateName) },
     themes: studioThemes(draft.templateId, await loadSellerThemeAccess(store.userId)),
     allowedKinds: allowedKindsFor(draft.templateId),
-    draft: summariseDraftForRex(draft),
+    boutique: isBoutiqueTheme(draft.templateId),
+    draft: summariseDraftForRex(draft, isBoutiqueTheme(draft.templateId)),
     products: products.map((product) => ({ name: product.name, price: formatStoreMoney(product.retailPrice, product.currency), hasPhoto: product.images.some(Boolean) })),
     facts: [
       `${facts.products} published products`,

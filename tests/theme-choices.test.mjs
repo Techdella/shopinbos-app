@@ -69,3 +69,61 @@ test("new builder words exist in every language", async () => {
     }
   }
 });
+
+// ─── Rex sets the same choices ─────────────────────────────────────────────────
+
+const rexPlan = await import("../src/lib/ai/rex/studio-plan.ts");
+const rexPure = await import("../src/lib/ai/rex/agent-pure.ts");
+
+function snapshot(templateId) {
+  const page = { id: "home", pageType: "home", title: "Home", slug: "home", sections: [] };
+  return { templateId, templateName: templateId, layoutFamily: "minimal-showcase", themeTokens: { ...tokens }, pages: [page], updatedAt: "2026-10-01T10:00:00.000Z" };
+}
+const context = (boutique) => ({
+  storeName: "Ada",
+  themeSnapshot: () => null,
+  themeName: () => null,
+  createSection: () => null,
+  allowedKinds: () => [],
+  reviewItems: [],
+  isBoutique: () => boutique,
+  now: "2026-10-21T12:00:00.000Z",
+});
+
+test("Rex plans take the 2026 theme choices, and drop the ones that don't fit", () => {
+  const plan = rexPlan.parseRexStudioPlan({ reply: "", tokens: { fontPair: "bold", buttonShape: "pill", pageWidth: "wide", productRatio: "square", headingStyle: "serif", radius: "soft" }, layout: "food-market" });
+  assert.deepEqual(plan.tokens, { fontPair: "bold", buttonShape: "pill", pageWidth: "wide", productRatio: "square", headingStyle: "serif", radius: "soft" });
+  assert.equal(plan.layout, "food-market");
+  assert.equal(rexPlan.parseRexStudioPlan({ reply: "", tokens: { fontPair: "comic" }, layout: "space-age" }).tokens, null, "unknown values are dropped");
+
+  const boutique = rexPlan.applyRexStudioPlan(snapshot("breeze"), plan, context(true));
+  assert.equal(boutique.snapshot.themeTokens.fontPair, "bold");
+  assert.equal(boutique.snapshot.themeTokens.productRatio, "square");
+  assert.equal(boutique.snapshot.layoutFamily, "minimal-showcase", "2026 themes have no store layout to pick");
+
+  const classic = rexPlan.applyRexStudioPlan(snapshot("aurora"), plan, context(false));
+  assert.equal(classic.snapshot.themeTokens.fontPair, undefined, "classic themes don't get choices they never read");
+  assert.equal(classic.snapshot.themeTokens.radius, "soft");
+  assert.equal(classic.snapshot.layoutFamily, "food-market");
+  assert.ok(classic.changes.includes("Changed the store layout to Food market"));
+});
+
+test("Rex sees the current choices for the theme it is working on", () => {
+  const draft = { ...snapshot("breeze"), themeTokens: { ...tokens, fontPair: "clean" } };
+  assert.deepEqual(rexPlan.summariseDraftForRex(draft, true).style, { fontPair: "clean", buttonShape: "theme", pageWidth: "standard", productRatio: "theme" });
+  assert.deepEqual(rexPlan.summariseDraftForRex(draft, false).style, { corners: "rounded", layout: "minimal-showcase" });
+});
+
+test("Rex's set_theme_style tool takes the choices and nothing else", () => {
+  const all = { fontPair: null, buttonShape: null, pageWidth: null, productRatio: null, headingStyle: null, corners: null, layout: null };
+  assert.equal(rexPure.parseRexToolInput("set_theme_style", { ...all, fontPair: "classic", buttonShape: "square" }).ok, true);
+  assert.equal(rexPure.parseRexToolInput("set_theme_style", { ...all, layout: "marketplace-grid", corners: "sharp" }).ok, true);
+  assert.equal(rexPure.parseRexToolInput("set_theme_style", { ...all, fontPair: "comic" }).ok, false);
+  assert.equal(rexPure.parseRexToolInput("set_theme_style", { ...all, storeId: "other" }).ok, false);
+  assert.equal(rexPure.isRexWriteTool("set_theme_style"), true);
+  const tools = read("src/lib/ai/rex/tools.ts");
+  assert.match(tools, /set_theme_style: setThemeStyle/);
+  assert.match(read("src/lib/ai/rex/agent.ts"), /set_theme_style for the store-wide look/);
+  assert.match(read("src/lib/ai/rex/prompts.ts"), /"fontPair": "theme"\|"classic"\|"modern"\|"clean"\|"bold"/);
+  assert.match(read("src/lib/ai/rex/studio.server.ts"), /isBoutique: isBoutiqueTheme/);
+});

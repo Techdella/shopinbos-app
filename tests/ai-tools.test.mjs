@@ -545,6 +545,7 @@ const REX_VALID = {
   edit_store_section: { instruction: "Rewrite the banner in Pidgin", page: "home" },
   rebuild_section: { page: "about", section: "our story", direction: null },
   switch_theme: { themeId: "noir" },
+  set_theme_style: { fontPair: "bold", buttonShape: "pill", pageWidth: null, productRatio: null, headingStyle: null, corners: null, layout: null },
   write_product_copy: { product: "Ankara tote", brief: null },
   create_segment: { name: "Repeat buyers", description: null, minOrders: 2, minSpent: null, tag: null },
   create_campaign: { name: "Payday", subject: "Payday treats", message: "Hello! Our payday sale starts today with new totes.", audience: "all", segment: null, type: null },
