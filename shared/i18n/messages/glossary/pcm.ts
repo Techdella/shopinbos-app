@@ -196,6 +196,10 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "seasonal-campaigns.example": "Black Friday: gold colours, countdown and “BF Deal” badge from Friday reach Sunday night.",
   "wallet.short": "Na where card payment for you dey settle: straight enter your own bank, Shopinbos no dey hold your money.",
   "wallet.example": "Customer pay ₦30,000: your ₦30,000 (minus Paystack fee) go land your GTBank next working day.",
+  "credits.short": "Wetin AI actions dey use for Shopinbos: your plan dey give you some every month, and you fit buy more.",
+  "credits.example": "Rex make three new pictures of your handbag; small credits comot from your monthly ones.",
+  "business-registration.short": "To register your business name with CAC, make e official and you get BN number.",
+  "business-registration.example": "Register “Ada's Fabrics” with CAC from Shopinbos and download the certificate here.",
 };
 
 export default pcm;

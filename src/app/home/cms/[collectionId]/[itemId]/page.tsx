@@ -11,6 +11,7 @@ import { collectionMenuState } from "@/lib/cms/menu.server";
 import { ItemEditor, type EditorItem } from "./ItemEditor";
 import { formatDate } from "@shared/i18n";
 import { getLocale, getT } from "@/lib/i18n/server";
+import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,7 @@ export default async function CmsItemPage({ params, searchParams }: { params: Pr
   const { collectionId, itemId } = await params;
   const sp = await searchParams;
   const user = await requireRole(["seller"], "/login");
+  const tipT = await getT("tips");
   const t = await getT("cms");
   const locale = await getLocale();
   const workspace = await getSellerWorkspace(user.id);
@@ -58,6 +60,7 @@ export default async function CmsItemPage({ params, searchParams }: { params: Pr
       sub={`${collection.name} · ${row ? t("item.lastSaved", { date: formatDate(row.updatedAt, locale, { dateStyle: "medium", timeStyle: "short" }) }) : t("item.notSaved")}`}
       actions={<PillLink href={`/home/cms/${collection.id}`} icon="arrowLeft">{t("item.all", { label: collection.itemLabel.toLowerCase() })}</PillLink>}
     >
+      <PageTip className="mb-5">{tipT("cms.item")}</PageTip>
       <ItemEditor
         collection={{ id: collection.id, name: collection.name, slug: collection.slug, itemLabel: collection.itemLabel, template: collection.template, isPublished: collection.isPublished, itemLayout: settings.itemLayout, layout: settings.layout, description: collection.description, setupDone: settings.setupDone }}
         menu={menu}

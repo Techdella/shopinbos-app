@@ -13,6 +13,7 @@ import { navigationDraft, navigationOf } from "@/lib/store-navigation.server";
 import { navigationFingerprint } from "@/lib/storefront/store-navigation";
 import { publicBrandSettings } from "@shared/public-brand-settings";
 import { NavigationEditor } from "./NavigationEditor";
+import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,7 @@ type NavPageProps = { searchParams?: Promise<{ saved?: string; conflict?: string
 export default async function NavigationSettingsPage({ searchParams }: NavPageProps) {
   const params = await searchParams;
   const user = await requireRole(["seller"], "/login");
+  const tipT = await getT("tips");
   const t = await getT("store");
   const workspace = await getSellerWorkspace(user.id);
   if (!workspace?.store) redirect("/onboarding?role=seller");
@@ -69,6 +71,7 @@ export default async function NavigationSettingsPage({ searchParams }: NavPagePr
     >
       <PageToast />
       <div className="grid gap-5">
+        <PageTip>{tipT("navigation")}</PageTip>
         {params?.saved && <Notice tone="success">{t("nav.saved")}</Notice>}
         {params?.conflict && <Notice tone="error">{t("nav.conflict")}</Notice>}
         {params?.error && <Notice tone="error">{t("nav.error")}</Notice>}

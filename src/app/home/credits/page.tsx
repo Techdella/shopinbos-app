@@ -10,6 +10,7 @@ import { creditOverview, liveCreditPrices } from "@/lib/ai/credits.server";
 import { db } from "@/lib/db/client";
 import { CreditsClient } from "./CreditsClient";
 import { PromoBanner } from "@/components/pricing/PromoBanner";
+import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,7 @@ export default async function CreditsPage({ searchParams }: { searchParams: Prom
   const current = await getCurrentAppUser();
   if (current?.role === "supplier") redirect("/supplier/credits");
   const user = await requireRole(["seller"], "/login");
+  const tipT = await getT("tips");
   const [t, workspace, overview, plan, query] = await Promise.all([
     getT("payments"),
     getSellerWorkspace(user.id),
@@ -46,6 +48,7 @@ export default async function CreditsPage({ searchParams }: { searchParams: Prom
         <p className="m-0 text-[14px] leading-[1.5]">{t("app.billingOff")}</p>
       ) : (
         <>
+          <PageTip className="mb-5">{tipT("credits")}</PageTip>
           <PromoBanner role="seller" className="mb-5" />
           <CreditsClient
             initial={overview}

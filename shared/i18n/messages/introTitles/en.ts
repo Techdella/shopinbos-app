@@ -47,6 +47,8 @@ const en = {
   "supplier-orders.title": "Orders and fulfilment",
   "supplier-quotes.title": "Quote requests",
   "wallet.title": "Shopinbos Wallet",
+  "credits.title": "AI credits",
+  "business-registration.title": "Register your business",
   "supplier-payouts.title": "Earnings and payouts",
   "supplier-home.title": "Your Today dashboard",
   "supplier-delivery.title": "Delivery for dropship orders",

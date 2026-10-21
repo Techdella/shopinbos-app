@@ -7,6 +7,7 @@ import { loadWalletView } from "@/lib/wallet/wallet.server";
 import { cashOwedToSeller } from "@/lib/logistics/seller-payins.server";
 import { CashToReceive } from "@/components/wallet/CashToReceive";
 import { getT } from "@/lib/i18n/server";
+import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -15,6 +16,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function SellerWalletPage() {
   const user = await requireRole(["seller"], "/login");
+  const tipT = await getT("tips");
   const t = await getT("wallet");
   const [store, view, cash] = await Promise.all([
     db.store.findUnique({ where: { userId: user.id }, select: { name: true, slug: true, logoUrl: true } }),
@@ -23,6 +25,7 @@ export default async function SellerWalletPage() {
   ]);
   return (
     <SellerPage user={user} store={storeSummary(store)} title={t("page.title")} sub={t("page.subSeller")}>
+      <PageTip className="mb-5">{tipT("wallet")}</PageTip>
       {view.settlement.status !== "active" ? (
         <p className="m-0 mb-5 rounded-[18px] border border-app-line bg-white px-4 py-3 text-[14px] leading-[1.5]">
           {t("page.sellerNotReady")}

@@ -8,6 +8,7 @@ import { getLocale, getT } from "@/lib/i18n/server";
 import { formatNumber } from "@shared/i18n";
 import { pageSlice } from "@/lib/pagination";
 import { Pagination } from "@/components/seller/Pagination";
+import { PageTip } from "@/components/learn/PageTip";
 
 const PAGE_SIZE = 50;
 
@@ -27,6 +28,7 @@ function stockStatus(current: number, threshold: number): { label: "inv.out" | "
 export default async function InventoryPage({ searchParams }: { searchParams?: Promise<{ page?: string }> }) {
   const { page: rawPage } = (await searchParams) ?? {};
   const user = await requireRole(["seller"], "/login");
+  const tipT = await getT("tips");
   const t = await getT("products", "common");
   const locale = await getLocale();
   const num = (value: number) => formatNumber(value, locale);
@@ -84,6 +86,7 @@ export default async function InventoryPage({ searchParams }: { searchParams?: P
         </>
       }
     >
+      <PageTip className="mb-5">{tipT("inventory")}</PageTip>
       <StatGrid className="mb-5">
         <StatTile tone="card" label={t("inv.products")} value={num(totalProducts)} />
         <StatTile tone="card" label={t("inv.units")} value={num(totalUnits)} hint={t("inv.ownStock")} />

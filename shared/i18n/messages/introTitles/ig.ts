@@ -69,6 +69,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "media.title": "Mgbasa",
   "seasonal-campaigns.title": "Campaigns oge ememe",
   "wallet.title": "Shopinbos Wallet",
+  "credits.title": "AI credits",
+  "business-registration.title": "Debanye azụmahịa gị",
 };
 
 export default ig;

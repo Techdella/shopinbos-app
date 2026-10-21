@@ -6,6 +6,7 @@ import { getSellerWorkspace } from "@/lib/workspace";
 import { listCollections } from "@/lib/cms/server";
 import { getT } from "@/lib/i18n/server";
 import { PlanClient } from "./PlanClient";
+import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,7 @@ export async function generateMetadata() {
 // becomes a draft (a collection item, or a social post draft) with one tap.
 export default async function ContentPlanPage() {
   const user = await requireRole(["seller"], "/login");
+  const tipT = await getT("tips");
   const t = await getT("cms");
   const workspace = await getSellerWorkspace(user.id);
   const store = workspace?.store ?? null;
@@ -36,6 +38,7 @@ export default async function ContentPlanPage() {
         </>
       }
     >
+      <PageTip className="mb-5">{tipT("cms.plan")}</PageTip>
       <PlanClient storeId={store.id} collections={collections.map((collection) => ({ id: collection.id, name: collection.name, itemLabel: collection.itemLabel }))} />
     </SellerPage>
   );

@@ -8,11 +8,13 @@ import { ShareReview } from "../_components/ShareReview";
 import { WidgetPreview } from "../_components/WidgetPreview";
 import { ReviewTabs, SourcePill, Stars, reviewsContext } from "../_components/shared";
 import { getT } from "@/lib/i18n/server";
+import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
 
 export default async function ShareReviewsPage() {
   const { user, store } = await reviewsContext();
+  const tipT = await getT("tips");
   const t = await getT("reviews");
   const published = publicReviews(await loadReviews(store.id, { approvedOnly: true, take: 500 }));
   const summary = summarizeReviews(published);
@@ -30,6 +32,7 @@ export default async function ShareReviewsPage() {
       actions={<PillLink href={urls.wall} icon="globe">{t("shareP.openWall")}</PillLink>}
     >
       <ReviewTabs active="/home/reviews/share" />
+      <PageTip className="mb-5">{tipT("reviews.share")}</PageTip>
       <SplitLayout
         sideWidth="460px"
         main={

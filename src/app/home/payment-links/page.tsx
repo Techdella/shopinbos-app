@@ -7,6 +7,7 @@ import { getT } from "@/lib/i18n/server";
 import { linkProductView } from "@/lib/payment-links/pure";
 import { isLinkStatusFilter, LINK_STORE_SELECT, pagePaymentLinks, paymentReadiness } from "@/lib/payment-links/service.server";
 import { PaymentLinksManager } from "./PaymentLinksManager";
+import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,7 @@ export default async function PaymentLinksPage({ searchParams }: { searchParams?
   const params = (await searchParams) ?? {};
   const status = isLinkStatusFilter(params.status) ? params.status : null;
   const user = await requireRole(["seller"], "/login");
+  const tipT = await getT("tips");
   const t = await getT("paylinks");
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { ...LINK_STORE_SELECT, logoUrl: true } });
   if (!store) redirect("/builder?firstRun=1");
@@ -30,6 +32,7 @@ export default async function PaymentLinksPage({ searchParams }: { searchParams?
 
   return (
     <SellerPage user={user} store={storeSummary(store)} title={t("list.title")} sub={t("list.sub")}>
+      <PageTip className="mb-5">{tipT("paymentLinks")}</PageTip>
       <PaymentLinksManager links={list.links} filter={status ?? "all"} paging={list.window} storeHasLinks={list.storeHasLinks} ready={readiness.ready} storeName={store.name} catalog={products.map(linkProductView)} />
     </SellerPage>
   );
