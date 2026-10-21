@@ -2,20 +2,24 @@ import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { router } from "expo-router";
 import { ChipRow, EmptyState, ErrorState, LoadingBlock } from "@/components/kit";
+import { Seg } from "@/components/design";
 import { AppIcon, type AppIconName } from "@/components/icons";
 import { PushPromptCard } from "@/components/PushPromptCard";
 import { Screen } from "@/components/Screen";
-import { Chip, LinkButton, PillButton, T } from "@/components/ui";
+import { LinkButton, PillButton, T } from "@/components/ui";
 import { fetchNotifications, markNotificationsRead, openNotificationTarget, setUnreadCount, type AppNotification } from "@/lib/notifications";
 import { useRole } from "@/lib/role";
 import { useLoad } from "@/lib/useLoad";
-import { categoriesFor, categoryLabel, groupByDay, type NotifyCategory } from "@shared/notifications";
+import { groupByDay, type NotifyCategory } from "@shared/notifications";
+import { notificationFilters } from "@/lib/familiar-pure";
 import { formatDate, type Locale } from "@shared/i18n";
 import { useLocale, useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 
-// Notifications (web /home/notifications): the same list as the bell on the web, by category, grouped Today /
-// Yesterday / Earlier, pull to refresh, tap to open the order, chat, job or payout it's about.
+// Notifications (web /home/notifications): the same list as the bell on the web, with the "Familiar app" prototype's
+// filter chips (sellers and suppliers All / Orders / Money / Rex and Peggy, delivery partners All / Jobs / Money /
+// Peggy; lib/familiar-pure notificationFilters maps each to the bell's category), grouped Today / Earlier, Mark all
+// read, pull to refresh, tap to open the order, chat, job, payout or post it's about.
 
 const ICON: Record<NotifyCategory, AppIconName> = {
   orders: "bag",
@@ -28,12 +32,6 @@ const ICON: Record<NotifyCategory, AppIconName> = {
 };
 
 type Words = ReturnType<typeof useT<["m_notifications", "common"]>>;
-
-/** Category name in the app language (delivery partners say "Jobs", admins "Needs review"). */
-function categoryWords(t: Words, key: NotifyCategory, role: string | null | undefined) {
-  const own = key === "orders" && role === "logistics_partner" ? "category.orders.logistics" : key === "account" && role === "admin" ? "category.account.admin" : `category.${key}`;
-  return t.dynamic(own, categoryLabel(key, role));
-}
 
 /** "Just now", "5m ago", "3h ago", "Yesterday", "4d ago", then the date (like timeAgo in shared/notifications). */
 function ago(t: Words, value: string, locale: Locale, now = new Date()) {
@@ -48,7 +46,7 @@ function ago(t: Words, value: string, locale: Locale, now = new Date()) {
   return formatDate(value, locale, { day: "numeric", month: "short" });
 }
 
-const GROUP: Record<string, "time.today" | "time.yesterday" | "time.earlier"> = { Today: "time.today", Yesterday: "time.yesterday", Earlier: "time.earlier" };
+const FILTER_KEY = { all: "nf.all", orders: "nf.orders", jobs: "nf.jobs", money: "nf.money", ai: "nf.ai", peggy: "nf.peggy" } as const;
 
 const TILE: Record<AppNotification["priority"], { bg: string; fg: string }> = {
   critical: { bg: colors.dangerTint, fg: colors.danger },
@@ -59,6 +57,7 @@ const TILE: Record<AppNotification["priority"], { bg: string; fg: string }> = {
 
 export default function Notifications() {
   const t = useT("m_notifications", "common");
+  const words = useT("m_familiar");
   const locale = useLocale();
   const { role } = useRole();
   const [tab, setTab] = useState("all");
@@ -73,9 +72,12 @@ export default function Notifications() {
 
   const items = [...(feed.data?.items ?? []), ...(more?.items ?? [])];
   const hasNext = more ? more.hasNext : Boolean(feed.data?.hasNextPage);
-  const groups = groupByDay(items);
+  // Today and Earlier (yesterday joins Earlier, as in the prototype).
+  const byDay = groupByDay(items);
+  const earlier = byDay.filter((group) => group.label !== "Today").flatMap((group) => group.items);
+  const groups = [...byDay.filter((group) => group.label === "Today").map((group) => ({ key: "today", title: t("time.today"), items: group.items })), ...(earlier.length ? [{ key: "earlier", title: t("time.earlier"), items: earlier }] : [])];
   const unreadHere = items.filter((item) => !item.read).length;
-  const tabs = [{ key: "all", label: t("feed.all") }, { key: "unread", label: t("feed.unread") }, ...categoriesFor(role ?? "seller").map((category) => ({ key: category.key, label: categoryWords(t, category.key, role) }))];
+  const tabs = notificationFilters(role).map((filter) => ({ key: filter.tab, label: words(FILTER_KEY[filter.key]) }));
 
   const markLocal = (match: (item: AppNotification) => boolean) => {
     if (feed.data) feed.setData({ ...feed.data, items: feed.data.items.map((item) => (match(item) ? { ...item, read: true } : item)) });
@@ -118,7 +120,7 @@ export default function Notifications() {
       </View>
 
       <ChipRow>
-        {tabs.map((option) => <Chip key={option.key} label={option.label} on={tab === option.key} onPress={() => setTab(option.key)} />)}
+        {tabs.map((option) => <Seg key={option.key} label={option.label} on={tab === option.key} onPress={() => setTab(option.key)} />)}
       </ChipRow>
 
       {feed.loading && !feed.data ? <LoadingBlock label={t("feed.loading")} /> : null}
@@ -130,8 +132,8 @@ export default function Notifications() {
       ) : null}
 
       {groups.map((group) => (
-        <View key={group.label} style={{ gap: 8 }}>
-          <T weight="extrabold" style={{ fontSize: 13, letterSpacing: 0.8, color: colors.inkSoft, textTransform: "uppercase", marginTop: 4 }} accessibilityRole="header">{t(GROUP[group.label] ?? "time.earlier")}</T>
+        <View key={group.key} style={{ gap: 8 }}>
+          <T weight="extrabold" style={{ fontSize: 13, letterSpacing: 0.8, color: colors.inkSoft, textTransform: "uppercase", marginTop: 4 }} accessibilityRole="header">{group.title}</T>
           {group.items.map((item) => {
             const tile = TILE[item.priority] ?? TILE.info;
             return (
