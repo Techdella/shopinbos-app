@@ -431,7 +431,7 @@ const en = {
   "biz.payoutNone": "Not set up yet",
   "biz.profile": "See your profile as sellers see it",
   "biz.help": "Help",
-  "conn.title": "Businesses you work with",
+  "conn.title": "Your businesses",
   "conn.sub": "Sellers and suppliers connect with you straight away and can offer you at checkout at your public prices.",
   "conn.none": "No businesses yet",
   "conn.noneBody": "When a seller or supplier in your areas connects with you, they show up here.",

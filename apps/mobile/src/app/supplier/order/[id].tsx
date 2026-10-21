@@ -274,6 +274,7 @@ export default function SupplierOrderScreen() {
 
       <View style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
         <Pill label={orderKindLabel(data.kind, t)} tone={dropship ? "org" : "teal"} />
+        {data.kind === "wholesale" && data.paidAt ? <Pill label={t("order.paidInApp")} tone="ok" icon="check" /> : null}
         <Small style={{ flex: 1 }}>{dropship ? t("order.kindNoteDropship") : t("order.kindNoteWholesale")}</Small>
       </View>
 

@@ -418,7 +418,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "biz.payoutNone": "You never set am up",
   "biz.profile": "See your profile as sellers dey see am",
   "biz.help": "Help",
-  "conn.title": "Businesses wey you dey work with",
+  "conn.title": "Your businesses",
   "conn.sub": "Sellers and suppliers dey connect with you sharp sharp, dem fit show you for checkout with your public prices.",
   "conn.none": "No business yet",
   "conn.noneBody": "When seller or supplier for your area connect with you, dem go show here.",

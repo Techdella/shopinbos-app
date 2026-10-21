@@ -477,6 +477,7 @@ const en = {
   "code.sub": "The 4 digits we sent them on WhatsApp",
   "code.wrong": "That code doesn’t match. Check and try again.",
   "code.handedOver": "Handed over",
+  "order.paidInApp": "Paid in Shopinbos",
 } satisfies Record<string, string>;
 
 export default en;

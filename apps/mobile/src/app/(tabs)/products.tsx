@@ -144,10 +144,14 @@ export default function Products() {
                 key={product.id}
                 lead={<Thumb uri={product.images[0]} fallback={product.name} />}
                 title={product.name}
-                sub={<T style={{ fontSize: 14, lineHeight: 19, color: low && own ? colors.accentInk : colors.inkSoft }}>{words}</T>}
+                sub={
+                  // The stepper sits under the name and price, so both get the row's full width.
+                  <View style={{ gap: 8 }}>
+                    <T style={{ fontSize: 14, lineHeight: 19, color: low && own ? colors.accentInk : colors.inkSoft }}>{words}</T>
+                    {own ? <Stepper value={product.currentStock} label={product.name} onChange={(next) => setStock(product, next)} /> : null}
+                  </View>
+                }
                 accessibilityLabel={`${product.name}. ${words}`}
-                chevron={!own}
-                right={own ? <Stepper value={product.currentStock} label={product.name} onChange={(next) => setStock(product, next)} /> : undefined}
                 onPress={() => router.push({ pathname: "/product/[id]", params: { id: product.id } })}
               />
             );

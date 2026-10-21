@@ -185,7 +185,7 @@ export default function Home() {
           </View>
           <IconButton icon="share" label={t("share.label")} onPress={() => void share()} testID="home-share" />
           <NotificationBellButton />
-          <HelpButton />
+          <HelpButton compact />
         </View>
       }
     >

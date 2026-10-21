@@ -466,6 +466,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "code.sub": "Nọ́ńbà mẹ́rin tí a fi ránṣẹ́ sí wọn lórí WhatsApp",
   "code.wrong": "Kóòdù yẹn kò bá a mu. Ṣàyẹ̀wò kí o tún gbìyànjú.",
   "code.handedOver": "Mo ti fà á lé e lọ́wọ́",
+  "order.paidInApp": "Wọ́n ti sanwó ní Shopinbos",
 };
 
 export default yo;

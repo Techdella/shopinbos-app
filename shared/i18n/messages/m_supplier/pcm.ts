@@ -466,6 +466,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "code.sub": "The 4 numbers wey we send dem for WhatsApp",
   "code.wrong": "That code no match. Check am and try again.",
   "code.handedOver": "I don give am",
+  "order.paidInApp": "Dem don pay for Shopinbos",
 };
 
 export default pcm;

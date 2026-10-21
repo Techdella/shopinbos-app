@@ -466,6 +466,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "code.sub": "Lambobi 4 da muka aika musu a WhatsApp",
   "code.wrong": "Wannan lambar ba ta dace ba. Duba ka sake gwadawa.",
   "code.handedOver": "Na miƙa",
+  "order.paidInApp": "An biya a Shopinbos",
 };
 
 export default ha;

@@ -77,6 +77,8 @@ export interface WholesaleOrder {
   packed?: boolean;
   /** The rider booked for it: "Pick up 12–4pm today", or still finding one. */
   pickup?: { status: string; text: string | null } | null;
+  /** The shop paid by card in Shopinbos (straight to the supplier's bank). */
+  paidAt?: string | null;
   createdAt: string;
 }
 

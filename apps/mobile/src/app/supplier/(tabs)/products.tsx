@@ -30,7 +30,7 @@ export default function SupplierProducts() {
   const products = useLoad(fetchSupplierProducts);
   const [error, setError] = useState<string | null>(null);
   const [q, setQ] = useState("");
-  const stockLine = (stock: number) => (stock <= LOW_STOCK ? t("products.runningLow", { count: stock }) : t("products.inStock", { count: stock }));
+  const stockLine = (stock: number) => (stock <= 0 ? t("products.soldOut") : stock <= LOW_STOCK ? t("products.runningLow", { count: stock }) : t("products.inStock", { count: stock }));
   const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
 
   useEffect(() => {

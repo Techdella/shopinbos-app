@@ -466,6 +466,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "code.sub": "Nọmba 4 anyị zigaara ha na WhatsApp",
   "code.wrong": "Koodu ahụ adabaghị. Lelee ma nwaa ọzọ.",
   "code.handedOver": "Enyefeela m ya",
+  "order.paidInApp": "Akwụọla ụgwọ na Shopinbos",
 };
 
 export default ig;
