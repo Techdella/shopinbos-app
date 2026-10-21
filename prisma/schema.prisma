@@ -3914,6 +3914,15 @@ model PaymentLink {
   buyerName      String?
   buyerPhone     String?
   buyerEmail     String?
+  /// Saved delivery (optional, src/lib/payment-links/pure.ts LinkDeliverySchema): the customer's address, and either
+  /// a delivery fee the seller agreed (0 = free) or one of the store's delivery options. With both, the pay page is
+  /// one tap and checkout uses exactly this address and delivery.
+  deliveryStreet   String?
+  deliveryCity     String?
+  deliveryState    String?
+  deliveryLandmark String?
+  deliveryFee      Float?
+  deliveryOptionId String?
   /// One-time links close once paid; reusable ones (link in bio) keep selling.
   oneTime        Boolean   @default(true)
   /// How many the buyer may choose on a single-product link.

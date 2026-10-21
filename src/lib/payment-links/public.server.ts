@@ -6,7 +6,7 @@ import { db } from "@/lib/db/client";
 import { buildStorefrontUrl } from "@/lib/domains/storefront";
 import { formatStoreMoney } from "@/lib/storefront/shopper-info";
 import { normalizeVariants, variantPrice } from "@shared/product-variants";
-import { buyerSetsQuantity, isLinkCode, linkStatus, linkTitle, readLinkItems, type PaymentLinkStatus } from "./pure";
+import { buyerSetsQuantity, isLinkCode, linkStatus, linkTitle, payInOneTap, readLinkDelivery, readLinkItems, type LinkDelivery, type PaymentLinkStatus } from "./pure";
 
 // What the public pay page (/pay/<code>) may show: the link's products with their current public price, photos and
 // options, the agreed amount, prefilled buyer details, and, once a one-time link is paid, a short order summary.
@@ -47,6 +47,10 @@ export interface PublicPayLink {
   buyerSetsQuantity: boolean;
   expiresAt: string | null;
   prefill: { name: string; phone: string; email: string };
+  /** Delivery the seller saved (the customer's own address, and the fee or option), or null. */
+  delivery: LinkDelivery | null;
+  /** The one-tap page: address and delivery saved, nothing left to pick (payInOneTap). */
+  oneTap: boolean;
   paidOrder: { id: string; orderNumber: string; total: number; currency: string; paymentMethod: string | null; items: Array<{ name: string; quantity: number; price: number }> } | null;
 }
 
@@ -80,6 +84,7 @@ export const loadPublicPayLink = cache(async (slug: string, code: string): Promi
   });
 
   const status = linkStatus(link);
+  const delivery = readLinkDelivery(link);
   let paidOrder: PublicPayLink["paidOrder"] = null;
   if (status === "paid" && link.orderId) {
     const order = await db.retailOrder.findFirst({ where: { id: link.orderId, storeId: link.storeId }, select: { id: true, orderNumber: true, total: true, currency: true, paymentMethod: true, items: true } });
@@ -109,6 +114,8 @@ export const loadPublicPayLink = cache(async (slug: string, code: string): Promi
     buyerSetsQuantity: buyerSetsQuantity({ items: saved, maxQuantity: link.maxQuantity, customAmount: link.customAmount }),
     expiresAt: link.expiresAt?.toISOString() ?? null,
     prefill: { name: link.buyerName ?? "", phone: link.buyerPhone ?? "", email: link.buyerEmail ?? "" },
+    delivery,
+    oneTap: payInOneTap({ delivery, items }),
     paidOrder,
   };
 });

@@ -7,7 +7,9 @@ import { priceOrder } from "@/lib/commerce/pricing.server";
 import { readCheckoutSettings } from "@shared/cart-checkout";
 import { overPublicLimit } from "@/lib/rate-limit";
 import { linkCheckout } from "@/lib/payment-links/service.server";
-import { isLinkCode } from "@/lib/payment-links/pure";
+import { isLinkCode, linkCheckoutDelivery } from "@/lib/payment-links/pure";
+import { withPointDistances } from "@/lib/delivery-market/point-distance.server";
+import type { MarketOption } from "@shared/delivery-market";
 
 // The totals the checkout API will charge for this bag, address, delivery option and code, so the checkout
 // page shows exactly that (automatic discounts, buy X get Y and product-scoped codes included). Nothing is saved.
@@ -38,7 +40,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   const { slug } = await params;
   const store = await db.store.findUnique({
     where: { slug },
-    select: { id: true, userId: true, city: true, status: true, brandSettings: true, checkoutConfig: { select: { enableCoupon: true } } },
+    select: { id: true, userId: true, city: true, country: true, status: true, brandSettings: true, checkoutConfig: { select: { enableCoupon: true } } },
   });
   if (!store || store.status !== "active") return withCors(req, apiError("NOT_FOUND", "Store not found", 404), CORS);
 
@@ -47,16 +49,23 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
 
   const { redeemPoints, buyerPhone, paymentLinkCode, linkVariantId, linkQuantity, ...rest } = parsed.data;
   let priced;
+  // The address delivery was priced for (a payment link's saved one, else the page's).
+  let quotedAddress: { city?: string; state?: string } = rest.address;
   if (paymentLinkCode !== undefined) {
     if (!isLinkCode(paymentLinkCode)) return withCors(req, apiError("NOT_FOUND", "This payment link doesn't exist.", 404), CORS);
     const link = await linkCheckout(store.id, paymentLinkCode, { variantId: linkVariantId, quantity: linkQuantity });
     if (!link.ok) return withCors(req, apiError("BAD_REQUEST", link.message), CORS);
-    priced = await priceOrder({ store, items: link.lines, address: rest.address, deliveryOptionId: rest.deliveryOptionId, settings: readCheckoutSettings(store.checkoutConfig), agreedItemsTotal: link.agreedItemsTotal });
+    // Saved delivery on the link: its address and agreed fee (or option), whatever the page sends.
+    const delivery = linkCheckoutDelivery(link.delivery, { address: rest.address, deliveryOptionId: rest.deliveryOptionId });
+    quotedAddress = delivery.address;
+    priced = await priceOrder({ store, items: link.lines, address: delivery.address, deliveryOptionId: delivery.deliveryOptionId, settings: readCheckoutSettings(store.checkoutConfig), agreedItemsTotal: link.agreedItemsTotal, agreedDeliveryFee: delivery.agreedDeliveryFee });
   } else {
     if (!rest.items.length) return withCors(req, apiError("BAD_REQUEST", "Your bag is empty."), CORS);
     priced = await priceOrder({ store, ...rest, settings: readCheckoutSettings(store.checkoutConfig), loyalty: redeemPoints ? { points: redeemPoints, phone: buyerPhone } : null });
   }
   if (!priced.ok) return withCors(req, apiError("BAD_REQUEST", priced.message), CORS);
+  // Delivery partners: how far each pickup point is from the customer's area, when it can be placed quickly.
+  const options = priced.delivery.market ? await withPointDistances(priced.delivery.choice.options as MarketOption[], quotedAddress, store.country) : priced.delivery.choice.options;
 
   const res = withCors(req, ok({
     totals: priced.totals,
@@ -68,7 +77,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     delivery: {
       covered: priced.delivery.choice.covered,
       optionId: priced.delivery.option?.id ?? null,
-      options: priced.delivery.choice.options,
+      options,
       partners: !!priced.delivery.market,
       reason: priced.delivery.market?.reason ?? null,
       shipmentCount: priced.delivery.market?.shipmentCount ?? 1,

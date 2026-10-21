@@ -154,6 +154,22 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "block.noCollections": "Mee collection mbụ na Products, wee Collections.",
   "list.pages": "Peeji payment links",
   "list.noneHere": "Enweghị payment link nwere ọnọdụ a.",
+  "block.shop": "Bọtịnụ Zụta ugbu a",
+  "block.arrivals": "Ngwaahịa ọhụrụ",
+  "block.track": "Soro ọda m",
+  "block.shopHint": "Bọtịnụ buru ibu na-eduga na ibe mbụ ụlọ ahịa gị.",
+  "block.arrivalsHint": "Ngwaahịa gị 4 kachasị ọhụrụ n'ụdị grid. Ọ na-emelite onwe ya.",
+  "block.trackHint": "Ndị ahịa na-ede nọmba ọda ha na email ma ọ bụ ekwentị iji hụ ọda ha.",
+  "dialog.delivery": "Nnyefe: adreesị + ego",
+  "dialog.deliveryHint": "Chekwaa adreesị onye ahịa na ego nnyefe. Ha ga-ahụ naanị otu bọtịnụ Kwụọ ụgwọ, ọ dịghị ihe ha ga-ede.",
+  "dialog.deliveryStreet": "Adreesị okporo ụzọ onye ahịa",
+  "dialog.deliveryCity": "Mpaghara ma ọ bụ obodo",
+  "dialog.deliveryState": "Steeti",
+  "dialog.deliveryPickState": "Họrọ steeti",
+  "dialog.deliveryLandmark": "Ihe ama (nhọrọ)",
+  "dialog.deliveryFee": "Ego nnyefe (₦)",
+  "dialog.deliveryFeeHint": "Hapụ ya efu ma ọ bụ 0 maka nnyefe n'efu. A na-agbakwunye ya na ihe onye ahịa ga-akwụ.",
+  "dialog.deliveryIncomplete": "Tinye okporo ụzọ, mpaghara na steeti maka nnyefe, na ego dịka nọmba. Ma ọ bụ gbanyụọ nnyefe.",
 };
 
 export default ig;

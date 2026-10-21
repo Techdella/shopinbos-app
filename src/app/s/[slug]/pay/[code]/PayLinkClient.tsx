@@ -18,6 +18,7 @@ import { resolveShopperTheme, type ShopperTheme } from "@/components/storefront/
 import type { ShopperCommerce, ShopperStore } from "@/components/storefront/shopper/types";
 import { TransferInstructions, type TransferDetails } from "../../order/[orderId]/TransferInstructions";
 import type { PublicPayLink } from "@/lib/payment-links/public.server";
+import { linkDeliveryLine, oneTapMethod } from "@/lib/payment-links/pure";
 import { PartnerDeliveryChoices, hasPartnerParcels, partnerDeliveryProblem, partnerPaymentOptions, readQuotedDelivery, type QuotedDelivery } from "@/components/storefront/checkout/PartnerDelivery";
 import { PhoneCheck, usePhoneCheck } from "@/components/storefront/checkout/PhoneCheck";
 
@@ -70,7 +71,7 @@ function Closed({ theme, link, storeName, storeHome, storeBasePath, money }: { t
       <Panel theme={theme} className="p-6 text-center">
         <span className="mx-auto grid h-14 w-14 place-items-center rounded-full" style={{ background: theme.cta, color: theme.ctaText }}><Icon name="check" size={26} /></span>
         <h1 className="mt-4 text-[26px] font-semibold" style={{ fontFamily: theme.heading }}>{onDelivery ? "Order placed. Thank you!" : "Paid. Thank you!"}</h1>
-        <p className="mt-1.5 text-[15px]" style={{ color: theme.muted }}>{onDelivery ? `${storeName} has your order. Pay the rider when it arrives.` : `${storeName} has your payment and will send your order.`}</p>
+        <p className="mt-1.5 text-[15px]" style={{ color: theme.muted }}>{onDelivery ? `${storeName} has your order. Pay the rider when it arrives.` : `${storeName} has your order. We'll send updates and a tracking link by SMS and WhatsApp.`}</p>
         {order ? (
           <div className="mt-5 text-left">
             <p className="text-[13px] font-semibold uppercase tracking-wide" style={{ color: theme.muted }}>Order {order.orderNumber}</p>
@@ -86,7 +87,9 @@ function Closed({ theme, link, storeName, storeHome, storeBasePath, money }: { t
               <span>Total</span>
               <span>{money(order.total)}</span>
             </div>
-            <Link href={getPublicStorefrontPath(storeBasePath, `/order/${order.id}`)} className="mt-4 inline-block text-[15px] font-semibold underline underline-offset-4">View your order</Link>
+            <Link href={getPublicStorefrontPath(storeBasePath, `/order/${order.id}`)} className="mt-5 flex min-h-12 w-full items-center justify-center rounded-full px-6 text-[15px] font-semibold" style={{ background: theme.cta, color: theme.ctaText, borderRadius: theme.buttonRadius }}>
+              Track my order
+            </Link>
           </div>
         ) : null}
       </Panel>
@@ -118,7 +121,13 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
   const needsOption = Boolean(single && single.options.length > 0);
   const [optionId, setOptionId] = useState<string | null>(single && single.options.length === 1 ? single.options[0].id : null);
   const [quantity, setQuantity] = useState(single ? single.quantity : 1);
-  const [details, setDetails] = useState<Details>({ name: link.prefill.name, phone: link.prefill.phone, email: link.prefill.email, street: "", city: "", state: "", country: countryName(store.country), landmark: "" });
+  // The address the seller saved on the link fills the form (and is all the short page uses).
+  const saved = link.delivery;
+  const [details, setDetails] = useState<Details>({ name: link.prefill.name, phone: link.prefill.phone, email: link.prefill.email, street: saved?.street ?? "", city: saved?.city ?? "", state: saved?.state ?? "", country: countryName(store.country), landmark: saved?.landmark ?? "" });
+  // Saved address and delivery: "{shop} is asking you to pay ₦X", the item, the delivery line and one Pay button.
+  const simple = link.oneTap;
+  // The customer details the short page still asks for: only what the seller didn't fill in.
+  const [ask] = useState(() => ({ name: !link.prefill.name.trim(), phone: !link.prefill.phone.trim(), email: !link.prefill.email.trim() }));
   const [errors, setErrors] = useState<Errors>({});
   const [deliveryOptionId, setDeliveryOptionId] = useState<string | null>(null);
   const [chosenMethod, setChosenMethod] = useState<CheckoutPaymentMethod | null>(null);
@@ -136,29 +145,29 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
 
   // Saved details from an earlier checkout on this device fill what the link didn't; ?ref= says which app sent them.
   useEffect(() => {
-    const saved = readSavedDetails(store.slug);
+    const device = readSavedDetails(store.slug);
     setDetails((prev) => ({
       ...prev,
-      name: prev.name || saved.name || "",
-      phone: prev.phone || saved.phone || "",
-      email: prev.email || saved.email || "",
-      street: saved.street || "",
-      city: saved.city || "",
-      state: saved.state || "",
-      country: saved.country || prev.country,
-      landmark: saved.landmark || "",
+      name: prev.name || device.name || "",
+      phone: prev.phone || device.phone || "",
+      email: prev.email || device.email || "",
+      // The seller's saved address wins over one remembered on this device.
+      ...(link.delivery
+        ? {}
+        : { street: device.street || "", city: device.city || "", state: device.state || "", country: device.country || prev.country, landmark: device.landmark || "" }),
     }));
     try {
       const params = new URLSearchParams(window.location.search);
       setRef(channelFromRef(params.get("ref") ?? params.get("utm_source")));
     } catch {}
-  }, [store.slug]);
+  }, [store.slug, link.delivery]);
 
   const chosenOption = single?.options.find((option) => option.id === optionId) ?? null;
   const unitPrice = chosenOption?.price ?? single?.price ?? 0;
   const itemsTotal = link.customAmount ?? (single ? unitPrice * quantity : link.items.reduce((sum, item) => sum + item.price * item.quantity, 0));
   const address = { city: details.city, state: details.state };
-  const partners = commerce.deliveryMode === "partners";
+  // A fee the seller agreed on the link replaces the delivery partners (the server prices it the same way).
+  const partners = commerce.deliveryMode === "partners" && !(simple && saved?.fee !== null && saved?.fee !== undefined);
   const hasAddress = Boolean(details.city.trim() || details.state.trim());
   const marketKey = JSON.stringify([optionId, quantity, details.city, details.state]);
   const liveMarket = partners && market && market.key === marketKey ? market : null;
@@ -172,7 +181,7 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
   const marketProblem = partners && !preview ? partnerDeliveryProblem({ hasAddress, pending: marketPending, delivery: marketDelivery }) : null;
   // A delivery partner's rider needs a verified phone (spec §6.1): same check as checkout (PhoneCheck.tsx).
   const phoneCheck = usePhoneCheck({ storeSlug: store.slug, phone: details.phone, enabled: partners && !preview, needed: hasPartnerParcels(marketOption) });
-  const estimate = orderTotals({ subtotal: itemsTotal, shippingFee: delivery.fee });
+  const estimate = orderTotals({ subtotal: itemsTotal, shippingFee: simple && saved?.fee != null ? saved.fee : delivery.fee });
   const quoteKey = JSON.stringify([optionId, quantity, details.city, details.state, partners ? deliveryOptionId : delivery.option?.id ?? null]);
   const totals = quote && quote.key === quoteKey ? quote.totals : estimate;
 
@@ -182,7 +191,10 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
     return partners ? partnerPaymentOptions(commerce.payments, context, marketOption) : checkoutPaymentOptions(commerce.payments, context);
   }, [partners, marketOption, commerce.payments, details.city, details.state, totals.total]);
   const noWayToPay = paymentOptions.length === 0 ? noWayToPayText(commerce.payments, { city: details.city, state: details.state, total: totals.total }) : null;
-  const paymentMethod: CheckoutPaymentMethod = paymentOptions.some((option) => option.key === chosenMethod) ? chosenMethod! : paymentOptions[0]?.key ?? "transfer";
+  // The short page has one Pay button: the best way to pay the store offers (card first).
+  const paymentMethod: CheckoutPaymentMethod = simple
+    ? oneTapMethod(paymentOptions.map((option) => option.key)) ?? "transfer"
+    : paymentOptions.some((option) => option.key === chosenMethod) ? chosenMethod! : paymentOptions[0]?.key ?? "transfer";
 
   // The server's totals for the same choices (delivery, options, agreed amount): what checkout will charge.
   useEffect(() => {
@@ -201,12 +213,13 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
         .then(async (res) => {
           const json = await res.json().catch(() => null);
           if (!res.ok) {
-            if (partners) setMarket({ key: deliveryKey, value: null });
+            if (partners || simple) setMarket({ key: deliveryKey, value: null });
             return setQuoteError(json?.error?.message ?? null);
           }
           setQuoteError(null);
           setQuote({ key, totals: json.data.totals as OrderTotals });
-          if (partners) setMarket({ key: deliveryKey, value: readQuotedDelivery(json.data?.delivery) });
+          // The short page reads the quoted option too (the seller's saved option's name and price).
+          if (partners || simple) setMarket({ key: deliveryKey, value: readQuotedDelivery(json.data?.delivery) });
         })
         .catch(() => {});
     }, 300);
@@ -334,12 +347,96 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
     return <KorapayFrame orderId={korapay.orderId} checkoutUrl={korapay.checkoutUrl} onPaid={done} onClose={done} />;
   }
 
+  if (simple && saved && !transfer) {
+    const quoted = market && market.key === marketKey ? market.value : null;
+    const quotedOption = quoted?.options.find((option) => option.id === (quoted.optionId ?? delivery.option?.id)) ?? null;
+    const line = linkDeliveryLine(saved, saved.fee === null ? quotedOption : null);
+    const cardLike = paymentMethod === "paystack" || paymentMethod === "korapay";
+    const short = (key: "name" | "phone" | "email", label: string, props: React.InputHTMLAttributes<HTMLInputElement> = {}) => (
+      <label className="block text-[14px] font-medium">
+        {label}
+        <input id={`pay-${key}`} value={details[key]} onChange={(event) => set(key, event.target.value)} aria-invalid={Boolean(errors[key])} className={fieldClass} style={{ borderColor: errors[key] ? "#C2412D" : theme.border }} {...props} />
+        {errors[key] ? <span className="mt-1 block text-[13px]" style={{ color: "#C2412D" }}>{errors[key]}</span> : null}
+      </label>
+    );
+    const askName = ask.name || Boolean(errors.name);
+    const askPhone = ask.phone || Boolean(errors.phone);
+    const askEmail = (ask.email && cardLike) || Boolean(errors.email);
+    return (
+      <div className="grid gap-4">
+        <Panel theme={theme} className="p-5 text-center">
+          <p className="text-[15px]" style={{ color: theme.muted }}>{store.name} is asking you to pay</p>
+          <p className="mt-1 text-[34px] font-semibold leading-tight tabular-nums" style={{ fontFamily: theme.heading }}>{money(totals.total)}</p>
+          {link.note ? <p className="mt-2 whitespace-pre-line text-[14.5px]" style={{ color: theme.muted }}>{link.note}</p> : null}
+        </Panel>
+        <Panel theme={theme} className="grid gap-4 p-5">
+          <ul className="m-0 grid list-none gap-3 p-0">
+            {link.items.map((item) => (
+              <li key={`${item.productId}:${item.variantId ?? ""}`} className="flex items-center gap-3">
+                <ItemThumb theme={theme} src={(single && chosenOption?.imageUrl) || item.images[0]} alt={item.name} size={56} />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[15px] font-semibold">{item.name}</span>
+                  <span className="block text-[13px]" style={{ color: theme.muted }}>{[item.variant ?? (single ? chosenOption?.name : null), `${single ? quantity : item.quantity} ${(single ? quantity : item.quantity) === 1 ? "piece" : "pieces"}`].filter(Boolean).join(" · ")}</span>
+                </span>
+                {link.customAmount == null ? <span className="shrink-0 text-[15px] font-semibold tabular-nums">{money((single ? unitPrice * quantity : item.price * item.quantity))}</span> : null}
+              </li>
+            ))}
+          </ul>
+          {needsOption && single ? (
+            <fieldset>
+              <legend className="text-[14px] font-medium">Choose an option</legend>
+              <div className="mt-2 flex flex-wrap gap-2" id="pay-option" tabIndex={-1}>
+                {single.options.map((option) => (
+                  <button key={option.id} type="button" disabled={!option.available} aria-pressed={optionId === option.id} onClick={() => { setOptionId(option.id); setErrors((prev) => ({ ...prev, option: undefined })); }} className="min-h-11 rounded-full border px-4 text-[14px] font-medium disabled:opacity-40" style={{ borderColor: optionId === option.id ? theme.ink : theme.border, background: optionId === option.id ? theme.ink : theme.surface, color: optionId === option.id ? theme.paper : theme.ink }}>
+                    {option.name}{option.price !== single.price ? ` · ${money(option.price)}` : ""}
+                  </button>
+                ))}
+              </div>
+              {errors.option ? <span className="mt-1 block text-[13px]" style={{ color: "#C2412D" }}>{errors.option}</span> : null}
+            </fieldset>
+          ) : null}
+          {single && link.buyerSetsQuantity ? (
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-[14px] font-medium">How many</span>
+              <QuantityStepper theme={theme} value={quantity} max={link.maxQuantity} label={single.name} onChange={(next) => setQuantity(Math.min(Math.max(1, next), link.maxQuantity))} />
+            </div>
+          ) : null}
+          <div className="flex items-start gap-3 border-t pt-4" style={{ borderColor: theme.border }}>
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full" style={{ background: theme.paper }}><Icon name="truck" size={18} /></span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[15px] font-semibold">Delivery</span>
+              <span className="block text-[14px]" style={{ color: theme.muted }}>{line}</span>
+            </span>
+          </div>
+          {partners ? <PhoneCheck theme={theme} check={phoneCheck} id="pay-phone-check" /> : null}
+          {errors.delivery ? <span className="block text-[13px]" style={{ color: "#C2412D" }}>{errors.delivery}</span> : null}
+        </Panel>
+        {askName || askPhone || askEmail ? (
+          <Panel theme={theme} className="grid gap-3 p-5">
+            {askName ? short("name", "Full name", { autoComplete: "name" }) : null}
+            {askPhone ? short("phone", "Phone (WhatsApp)", { type: "tel", autoComplete: "tel", inputMode: "tel" }) : null}
+            {askEmail ? short("email", "Email (for your receipt)", { type: "email", autoComplete: "email" }) : null}
+          </Panel>
+        ) : null}
+        {noWayToPay && !error ? <p role="alert" className="text-[14px]" style={{ color: "#C2412D" }}>{noWayToPay}</p> : null}
+        {quoteError ? <p role="alert" className="text-[14px]" style={{ color: "#C2412D" }}>{quoteError}</p> : null}
+        {error ? <p role="alert" className="text-[14px]" style={{ color: "#C2412D" }}>{error}</p> : null}
+        <PrimaryButton theme={theme} type="button" onClick={pay} disabled={submitting || Boolean(noWayToPay)} className="w-full">
+          <Icon name="lock" size={16} /> {submitting ? "Please wait…" : paymentMethod === "pay_on_delivery" ? "Place order" : `Pay ${money(totals.total)}`}
+        </PrimaryButton>
+        <p className="text-center text-[13px]" style={{ color: theme.muted }}>
+          {paymentMethod === "pay_on_delivery" ? `You pay ${money(totals.total)} when it arrives. You'll get a tracking link.` : "Secure payment. You'll get a receipt and a tracking link."}
+        </p>
+      </div>
+    );
+  }
+
   if (transfer) {
     return (
       <div className="grid gap-5">
         <h1 className="text-[26px] font-semibold" style={{ fontFamily: theme.heading }}>Your order is placed</h1>
         <TransferInstructions orderId={transfer.orderId} currency={store.currency} details={transfer.details} ctaBg={theme.cta} ctaText={theme.ctaText} />
-        <Link href={getPublicStorefrontPath(storeBasePath, `/order/${transfer.orderId}`)} className="justify-self-center py-2 text-[15px] font-semibold underline underline-offset-4">View your order</Link>
+        <Link href={getPublicStorefrontPath(storeBasePath, `/order/${transfer.orderId}`)} className="justify-self-center py-2 text-[15px] font-semibold underline underline-offset-4">Track my order</Link>
       </div>
     );
   }
@@ -456,6 +553,8 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
                   preview={preview}
                   name="delivery"
                   id="pay-delivery"
+                  area={[details.city.trim(), details.state.trim()].filter(Boolean).join(", ") || null}
+                  storePayOnDelivery={checkoutPaymentOptions(commerce.payments, { city: details.city, state: details.state, total: totals.total }).some((option) => option.key === "pay_on_delivery")}
                 />
                 {errors.delivery && marketDelivery?.covered !== false ? <span className="block text-[13px]" style={{ color: "#C2412D" }}>{errors.delivery}</span> : null}
                 <PhoneCheck theme={theme} check={phoneCheck} id="pay-phone-check" />

@@ -7,7 +7,7 @@ import { buildStorefrontUrl } from "@/lib/domains/storefront";
 import { createPaymentLink, LINK_STORE_SELECT, paymentLinkUrl, type LinkStore } from "@/lib/payment-links/service.server";
 import { linkPayBlock, readLinkItems } from "@/lib/payment-links/pure";
 import { sellerWhatsapp } from "@/lib/ads";
-import { BioPageSchema, bioIssueTarget, defaultBioBlocks, readBioBlocks, readBioTheme, socialUrl, SOCIAL_KEYS, SOCIAL_LABEL, whatsappChatUrl, type BioBlock, type BioPageInput, type BioProblemField, type BioTheme, type SocialKey } from "./pure";
+import { ARRIVALS_COUNT, BioPageSchema, bioBlockLabel, bioIssueTarget, defaultBioBlocks, readBioBlocks, readBioTheme, socialUrl, SOCIAL_KEYS, SOCIAL_LABEL, whatsappChatUrl, type BioBlock, type BioPageInput, type BioProblemField, type BioTheme, type SocialKey } from "./pure";
 
 // The store's link in bio page on the server: loading it for the editor and the public page, saving it (products
 // and collections must be the store's own; "Buy now" blocks get a reusable payment link), and counting taps.
@@ -59,7 +59,7 @@ export async function loadSellerBio(store: { id: string; name: string; slug: str
 /** A refusal, pointing at the block (and field) it is about when there is one, so the editor can mark it. */
 export type SaveBioResult = { ok: true; page: SellerBioPage } | { ok: false; message: string; blockIndex?: number; field?: BioProblemField };
 
-const BLOCK_WORDS: Record<string, string> = { product: "Product", collection: "Collection", link: "Custom link", socials: "Social icons", whatsapp: "WhatsApp button", signup: "Email sign-up", text: "Text" };
+const BLOCK_WORDS: Record<string, string> = { product: "Product", collection: "Collection", link: "Custom link", socials: "Social icons", whatsapp: "WhatsApp button", signup: "Email sign-up", text: "Text", shop: "Shop now button", arrivals: "New arrivals", track: "Track my order" };
 
 /** "Block 2 (Custom link): Enter a full web address…" for a refusal about one block. */
 function blockMessage(raw: unknown, index: number, message: string) {
@@ -140,7 +140,16 @@ export type PublicBioBlock =
   | { id: string; type: "socials"; links: Array<{ key: SocialKey; label: string; href: string }> }
   | { id: string; type: "whatsapp"; label: string; href: string }
   | { id: string; type: "signup"; title: string; buttonLabel: string }
-  | { id: string; type: "text"; text: string };
+  | { id: string; type: "text"; text: string }
+  /** "Shop now": the page's main button, to the store's home. */
+  | { id: string; type: "shop"; label: string; href: string }
+  /** "New arrivals": up to 4 of the newest published products, as a 2×2 grid. */
+  | { id: string; type: "arrivals"; label: string; products: Array<{ id: string; name: string; price: number; image: string | null; href: string }> }
+  /**
+   * "Track my order": a lookup form (order number + email or phone, the store's orders/lookup API); `orderHref` is
+   * the store's order page address without the id, which the lookup returns.
+   */
+  | { id: string; type: "track"; label: string; orderHref: string };
 
 export interface PublicBioPage {
   title: string;
@@ -173,9 +182,12 @@ export const loadPublicBio = cache(async (slug: string): Promise<PublicBioPage |
   const blocks = store.bioPage ? readBioBlocks(store.bioPage.blocks) : await bioDefaultBlocks(store.id);
   const productIds = blocks.flatMap((block) => (block.type === "product" ? [block.productId] : []));
   const collectionIds = blocks.flatMap((block) => (block.type === "collection" ? [block.collectionId] : []));
-  const [products, collections] = await Promise.all([
+  const wantsArrivals = blocks.some((block) => block.type === "arrivals");
+  const [products, collections, arrivals] = await Promise.all([
     productIds.length ? db.storeProduct.findMany({ where: { storeId: store.id, id: { in: productIds }, status: "published" }, select: { id: true, name: true, images: true, retailPrice: true } }) : [],
     collectionIds.length ? db.collection.findMany({ where: { storeId: store.id, id: { in: collectionIds } }, select: { id: true, name: true, slug: true } }) : [],
+    // "New arrivals": the newest published products (only public details).
+    wantsArrivals ? db.storeProduct.findMany({ where: { storeId: store.id, status: "published" }, orderBy: { createdAt: "desc" }, take: ARRIVALS_COUNT, select: { id: true, name: true, images: true, retailPrice: true } }) : [],
   ]);
   const productById = new Map(products.map((product) => [product.id, product]));
   const collectionById = new Map(collections.map((collection) => [collection.id, collection]));
@@ -212,6 +224,19 @@ export const loadPublicBio = cache(async (slug: string): Promise<PublicBioPage |
       out.push({ id: block.id, type: "signup", title: block.title || "Get our news and offers", buttonLabel: block.buttonLabel || "Sign up" });
     } else if (block.type === "text") {
       out.push({ id: block.id, type: "text", text: block.text });
+    } else if (block.type === "shop") {
+      out.push({ id: block.id, type: "shop", label: bioBlockLabel(block), href: buildStorefrontUrl(store) });
+    } else if (block.type === "arrivals") {
+      if (arrivals.length) {
+        out.push({
+          id: block.id,
+          type: "arrivals",
+          label: bioBlockLabel(block),
+          products: arrivals.map((product) => ({ id: product.id, name: product.name, price: Number(product.retailPrice) || 0, image: product.images[0] ?? null, href: buildStorefrontUrl(store, `/product/${product.id}`) })),
+        });
+      }
+    } else if (block.type === "track") {
+      out.push({ id: block.id, type: "track", label: bioBlockLabel(block), orderHref: buildStorefrontUrl(store, "/order") });
     }
   }
   return {

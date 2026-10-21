@@ -5,6 +5,7 @@
 // them out (rate cards, coverage, pickup points), so the bag, checkout and payment-link pages show these instead of
 // the store's zones. Also: which ways to pay go with the chosen option (pay on delivery is agreed per partner).
 
+import { useEffect, useId, useRef, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { formatStoreMoney } from "@/lib/storefront/shopper-info";
 import type { ShopperTheme } from "@/components/storefront/shopper/theme";
@@ -87,7 +88,16 @@ export function PartnerDeliveryChoices({
   preview = false,
   name = "deliveryOption",
   id = "co-deliveryOption",
+  area = null,
+  storePayOnDelivery,
 }: {
+  /** "Wuse 2, Abuja": shown as "To Wuse 2, Abuja" above the options. */
+  area?: string | null;
+  /**
+   * Whether the store's own rules allow pay on delivery here (for pickup from the seller and the seller's fallback
+   * delivery). With it, "Pay on delivery isn't offered for this order." shows when no option allows it.
+   */
+  storePayOnDelivery?: boolean;
   theme: ShopperTheme;
   delivery: QuotedDelivery | null;
   pending: boolean;
@@ -121,19 +131,145 @@ export function PartnerDeliveryChoices({
   }
   const selected = selectedOptionId && delivery.options.some((option) => option.id === selectedOptionId) ? selectedOptionId : delivery.options[0]!.id;
   const main = delivery.options.filter((option) => option.kind !== "pickup_point");
-  const points = delivery.options.filter((option) => option.kind === "pickup_point");
+  const points = sortPointsByDistance(delivery.options.filter((option) => option.kind === "pickup_point"));
   const card = (option: MarketOption) => <OptionCard key={option.id} theme={theme} option={option} name={name} checked={selected === option.id} onSelect={() => onSelect(option.id)} currency={currency} />;
+  const podOffered = payOnDeliveryOffered(delivery.options, storePayOnDelivery);
   return (
     <div className="grid gap-2.5" id={id} tabIndex={-1}>
+      {area ? <p className="m-0 text-[14px] font-semibold">To {area}</p> : null}
       {delivery.reason ? <p className="m-0 text-[13.5px]" style={{ color: theme.muted }}>{delivery.reason}</p> : null}
       {main.map(card)}
-      {points.length ? (
-        <div className="mt-1 grid gap-2.5">
-          <h3 className="m-0 flex items-center gap-2 text-[14px] font-semibold"><Icon name="pin" size={15} /> Pickup point</h3>
-          <p className="m-0 text-[13px]" style={{ color: theme.muted }}>Collect your order from a pickup point near you.</p>
-          {points.map(card)}
-        </div>
+      {points.length ? <PickupPointCard theme={theme} points={points} name={name} selectedOptionId={selected} onSelect={onSelect} currency={currency} /> : null}
+      {podOffered ? null : <p className="m-0 text-[13px]" style={{ color: theme.muted }}>Pay on delivery isn&apos;t offered for this order.</p>}
+    </div>
+  );
+}
+
+/** Pickup points nearest first when the distance is known (the rest keep their order, after). */
+export function sortPointsByDistance<T extends Pick<MarketOption, "distanceKm">>(points: T[]): T[] {
+  return points
+    .map((point, index) => ({ point, index }))
+    .sort((a, b) => (a.point.distanceKm ?? Infinity) - (b.point.distanceKm ?? Infinity) || a.index - b.index)
+    .map(({ point }) => point);
+}
+
+/**
+ * Whether any option lets the customer pay on delivery: a partner option when it allows it, pickup from the seller
+ * or the seller's own delivery when the store's rules do (unknown counts as yes, so the line never shows wrongly).
+ */
+export function payOnDeliveryOffered(options: Array<Pick<MarketOption, "kind" | "pod">>, storePayOnDelivery?: boolean) {
+  return options.some((option) => (isPartnerOption(option) ? option.pod : storePayOnDelivery !== false));
+}
+
+const kmText = (km: number | null | undefined) => (typeof km === "number" && Number.isFinite(km) ? `${km} km` : null);
+
+/**
+ * All the pickup points as one choice: the chosen point (or the nearest) with its distance, address and hours, and
+ * "Change pickup point", which opens a sheet listing every point (name · distance, address, hours).
+ */
+function PickupPointCard({ theme, points, name, selectedOptionId, onSelect, currency }: { theme: ShopperTheme; points: MarketOption[]; name: string; selectedOptionId: string; onSelect: (id: string) => void; currency: string }) {
+  const [open, setOpen] = useState(false);
+  const chosen = points.find((point) => point.id === selectedOptionId) ?? null;
+  const shown = chosen ?? points[0]!;
+  const checked = Boolean(chosen);
+  const point = shown.point;
+  const distance = kmText(shown.distanceKm);
+  return (
+    <div className="grid gap-2 rounded-[16px] border-2 px-4 py-3" style={{ borderColor: checked ? theme.ink : theme.border, background: theme.surface }}>
+      <label className="flex cursor-pointer items-start gap-3">
+        <input type="radio" name={name} checked={checked} onChange={() => onSelect(shown.id)} className="mt-0.5 h-5 w-5 shrink-0" style={{ accentColor: theme.ink }} />
+        <span className="min-w-0 flex-1">
+          <span className="block text-[15px] font-semibold">Pickup point</span>
+          <span className="block text-[13px] leading-5" style={{ color: theme.muted }}>
+            {[point?.name ?? shown.name, distance ? `${distance} away` : null, shown.estimatedDays].filter(Boolean).join(" · ")}
+          </span>
+          {point?.address ? <span className="block text-[13px] leading-5" style={{ color: theme.muted }}>{point.address}</span> : null}
+          {point?.hours ? <span className="block text-[13px] leading-5" style={{ color: theme.muted }}>Open {point.hours}</span> : null}
+          {shown.pod ? (
+            <span className="mt-1.5 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[12px] font-semibold" style={{ background: theme.paper, color: theme.ink }}>
+              <Icon name="check" size={11} /> Pay on delivery available
+            </span>
+          ) : null}
+        </span>
+        <span className="shrink-0 text-[14.5px] font-semibold tabular-nums">{shown.price > 0 ? formatStoreMoney(shown.price, currency) : "Free"}</span>
+      </label>
+      {points.length > 1 ? (
+        <button type="button" onClick={() => setOpen(true)} aria-haspopup="dialog" className="justify-self-start py-1 text-[14px] font-semibold underline underline-offset-4">
+          Change pickup point
+        </button>
       ) : null}
+      {open ? (
+        <PointSheet
+          theme={theme}
+          points={points}
+          selectedOptionId={selectedOptionId}
+          currency={currency}
+          onPick={(id) => {
+            onSelect(id);
+            setOpen(false);
+          }}
+          onClose={() => setOpen(false)}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function PointSheet({ theme, points, selectedOptionId, currency, onPick, onClose }: { theme: ShopperTheme; points: MarketOption[]; selectedOptionId: string; currency: string; onPick: (id: string) => void; onClose: () => void }) {
+  const titleId = useId();
+  const panel = useRef<HTMLDivElement>(null);
+  const close = useRef(onClose);
+  useEffect(() => {
+    close.current = onClose;
+  }, [onClose]);
+  // Focus moves into the sheet (the chosen point) and back to "Change pickup point" after; Escape closes it.
+  useEffect(() => {
+    const before = document.activeElement as HTMLElement | null;
+    panel.current?.querySelector<HTMLElement>("[data-autofocus]")?.focus();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") close.current();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      before?.focus?.();
+    };
+  }, []);
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+      <button type="button" aria-label="Close" onClick={onClose} className="absolute inset-0 h-full w-full cursor-default" style={{ background: "rgba(0,0,0,0.4)" }} />
+      <div ref={panel} role="dialog" aria-modal="true" aria-labelledby={titleId} className="relative max-h-[85vh] w-full max-w-[520px] overflow-y-auto rounded-t-[24px] p-5 sm:rounded-[24px]" style={{ background: theme.surface, color: theme.ink }}>
+        <div className="flex items-center justify-between gap-3">
+          <h2 id={titleId} className="m-0 text-[18px] font-semibold" style={{ fontFamily: theme.heading }}>Pickup points near you</h2>
+          <button type="button" onClick={onClose} aria-label="Close" className="grid h-11 w-11 place-items-center rounded-full" style={{ background: theme.paper }}><Icon name="x" size={16} /></button>
+        </div>
+        <ul className="m-0 mt-4 grid list-none gap-2.5 p-0">
+          {points.map((option, index) => {
+            const on = option.id === selectedOptionId;
+            const distance = kmText(option.distanceKm);
+            return (
+              <li key={option.id}>
+                <button
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => onPick(option.id)}
+                  {...(on || (index === 0 && !points.some((entry) => entry.id === selectedOptionId)) ? { "data-autofocus": "" } : {})}
+                  className="flex w-full items-start gap-3 rounded-[16px] border-2 px-4 py-3 text-left"
+                  style={{ borderColor: on ? theme.ink : theme.border, background: theme.surface, color: theme.ink }}
+                >
+                  <Icon name="pin" size={16} className="mt-0.5 shrink-0" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[15px] font-semibold">{[option.point?.name ?? option.name, distance].filter(Boolean).join(" · ")}</span>
+                    {option.point?.address ? <span className="block text-[13px] leading-5" style={{ color: theme.muted }}>{option.point.address}</span> : null}
+                    {option.point?.hours ? <span className="block text-[13px] leading-5" style={{ color: theme.muted }}>Open {option.point.hours}</span> : null}
+                  </span>
+                  <span className="shrink-0 text-[14px] font-semibold tabular-nums">{option.price > 0 ? formatStoreMoney(option.price, currency) : "Free"}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
     </div>
   );
 }

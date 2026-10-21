@@ -78,10 +78,41 @@ const WhatsappBlock = z
 const SignupBlock = z.object({ id, type: z.literal("signup"), title: label(120).optional(), buttonLabel: label(40).optional() }).strict();
 const TextBlock = z.object({ id, type: z.literal("text"), text: z.string().trim().min(1, "Write the text, or remove the block.").max(500) }).strict();
 
-export const BioBlockSchema = z.discriminatedUnion("type", [ProductBlock, CollectionBlock, LinkBlock, SocialsBlock, WhatsappBlock, SignupBlock, TextBlock]);
+/** The big "Shop now" button: opens the store's home page, styled as the page's main button. */
+const ShopBlock = z.object({ id, type: z.literal("shop"), label: label(40).optional() }).strict();
+/** "New arrivals": the store's newest published products as a 2×2 grid (picked by the server when the page loads). */
+const ArrivalsBlock = z.object({ id, type: z.literal("arrivals"), label: label(40).optional() }).strict();
+/** "Track my order": the store's order lookup (order number + email or phone), then the order's own page. */
+const TrackBlock = z.object({ id, type: z.literal("track"), label: label(40).optional() }).strict();
+
+export const BioBlockSchema = z.discriminatedUnion("type", [ProductBlock, CollectionBlock, LinkBlock, SocialsBlock, WhatsappBlock, SignupBlock, TextBlock, ShopBlock, ArrivalsBlock, TrackBlock]);
 export type BioBlock = z.infer<typeof BioBlockSchema>;
 export type BioBlockType = BioBlock["type"];
-export const BIO_BLOCK_TYPES: BioBlockType[] = ["product", "collection", "link", "socials", "whatsapp", "signup", "text"];
+export const BIO_BLOCK_TYPES: BioBlockType[] = ["product", "collection", "link", "socials", "whatsapp", "signup", "text", "shop", "arrivals", "track"];
+
+/** How many products the "New arrivals" grid shows (2×2). */
+export const ARRIVALS_COUNT = 4;
+
+/** The words a shop, arrivals or track block shows when the seller left its label empty. */
+export const BIO_BLOCK_DEFAULT_LABEL = { shop: "Shop now", arrivals: "New arrivals", track: "Track my order" } as const;
+
+/** A shop, arrivals or track block's words: the seller's label, else the default for its type. */
+export function bioBlockLabel(block: { type: "shop" | "arrivals" | "track"; label?: string }) {
+  return block.label?.trim() || BIO_BLOCK_DEFAULT_LABEL[block.type];
+}
+
+/**
+ * The products "New arrivals" shows: published ones only, newest first, at most ARRIVALS_COUNT (ties keep the order
+ * they came in).
+ */
+export function newestProducts<T extends { status?: string | null; createdAt: Date | string }>(products: readonly T[], count = ARRIVALS_COUNT): T[] {
+  return products
+    .map((product, index) => ({ product, index, at: new Date(product.createdAt).getTime() || 0 }))
+    .filter(({ product }) => product.status === undefined || product.status === "published")
+    .sort((a, b) => b.at - a.at || a.index - b.index)
+    .slice(0, Math.max(0, count))
+    .map(({ product }) => product);
+}
 
 export const BIO_PRESETS = {
   classic: { label: "Classic", background: "#FAF7F1", text: "#16141F", button: "#16141F", buttonText: "#FFFFFF" },
@@ -197,8 +228,11 @@ export function newBlockId(random = Math.random) {
  * A starter page (also what Peggy builds): the shop's top products as cards (the first one a featured "Buy now"),
  * a WhatsApp button and the socials the seller has.
  */
-export function starterBlocks(input: { productIds: string[]; whatsapp?: string | null; socials?: Partial<Record<SocialKey, string>>; buyNow?: boolean; signup?: boolean }, random = Math.random): BioBlock[] {
+export function starterBlocks(input: { productIds: string[]; whatsapp?: string | null; socials?: Partial<Record<SocialKey, string>>; buyNow?: boolean; signup?: boolean; shopButtons?: boolean }, random = Math.random): BioBlock[] {
   const blocks: BioBlock[] = [];
+  // The editor's starter (shopButtons): "Shop now" and "New arrivals" on top, "Track my order" last, like the default page.
+  const shopButtons = Boolean(input.shopButtons && input.productIds.length);
+  if (shopButtons) blocks.push({ id: newBlockId(random), type: "shop" }, { id: newBlockId(random), type: "arrivals" });
   input.productIds.slice(0, 12).forEach((productId, index) => {
     blocks.push({ id: newBlockId(random), type: "product", productId, action: input.buyNow !== false && index === 0 ? "pay" : "page", featured: index === 0 });
   });
@@ -206,6 +240,7 @@ export function starterBlocks(input: { productIds: string[]; whatsapp?: string |
   const socials = Object.fromEntries(Object.entries(input.socials ?? {}).filter(([, value]) => value && String(value).trim())) as Partial<Record<SocialKey, string>>;
   if (Object.keys(socials).length) blocks.push({ id: newBlockId(random), type: "socials", links: socials });
   if (input.signup) blocks.push({ id: newBlockId(random), type: "signup", title: "Get our new arrivals first" });
+  if (shopButtons) blocks.push({ id: newBlockId(random), type: "track" });
   return blocks;
 }
 
@@ -263,12 +298,17 @@ export function bioIssueTarget(path: readonly PropertyKey[]): { index: number; f
 }
 
 /**
- * What a live store's /links shows before the seller has saved a page of their own: their top products (the first
- * as a big card) and a WhatsApp button when the shop has a number. Fixed ids, so the editor and the page agree.
+ * What a live store's /links shows before the seller has saved a page of their own (and what the editor opens
+ * with): "Shop now", the "New arrivals" grid, their top 3 products (the first as a big card), a WhatsApp button when
+ * the shop has a number, and "Track my order". A shop with no products yet gets only the WhatsApp button. Fixed ids,
+ * so the editor and the page agree.
  */
 export function defaultBioBlocks(input: { productIds: string[]; whatsapp?: string | null }): BioBlock[] {
-  const blocks: BioBlock[] = input.productIds.slice(0, 6).map((productId, index) => ({ id: `auto-product-${index + 1}`, type: "product", productId, action: "page", featured: index === 0 }));
+  const sells = input.productIds.length > 0;
+  const blocks: BioBlock[] = sells ? [{ id: "auto-shop", type: "shop" }, { id: "auto-arrivals", type: "arrivals" }] : [];
+  blocks.push(...input.productIds.slice(0, 3).map((productId, index): BioBlock => ({ id: `auto-product-${index + 1}`, type: "product", productId, action: "page", featured: index === 0 })));
   const phone = input.whatsapp?.trim();
   if (phone && digits(phone).length >= 7) blocks.push({ id: "auto-whatsapp", type: "whatsapp", phone: phone.startsWith("+") ? phone : `+${digits(phone)}`, label: "Chat with us on WhatsApp" });
+  if (sells) blocks.push({ id: "auto-track", type: "track" });
   return blocks;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import type { StorefrontShopperInfo } from "@/lib/storefront/shopper-info";
+import type { StoreSellerCard, StorefrontShopperInfo } from "@/lib/storefront/shopper-info";
 import type { ShopperProduct } from "../shopper/catalog";
 import type { BoutiqueLook } from "./look";
 import { BoutiquePdp } from "./pdp/BoutiquePdp";
@@ -75,6 +75,8 @@ export interface BoutiqueProductViewProps {
   catalog?: ShopperProduct[];
   /** Builder-only note above the page (e.g. "Sample product"). */
   notice?: string;
+  /** The seller card (live pages): name, "{city} · delivers …", Chat on WhatsApp, and the delivery partners hint. */
+  seller?: StoreSellerCard | null;
 }
 
 /** The 2026 themes' product page (live route and builder preview). Layout and blocks come from `settings`. */

@@ -163,6 +163,7 @@ export function ProductPageView({ data, storeBasePath, canonical }: { data: Prod
           reviewCount={data.reviewCount}
           catalog={data.catalog}
           shopper={data.shopper}
+          seller={data.seller}
           storeBasePath={storeBasePath}
         />
       </>
@@ -190,6 +191,7 @@ export function ProductPageView({ data, storeBasePath, canonical }: { data: Prod
         catalog={data.catalog}
         related={data.related}
         shopper={data.shopper}
+        seller={data.seller}
         settings={pdpSettings}
         look={look}
         buyNowOnly={classicBuyNowOnly(cartConfig)}

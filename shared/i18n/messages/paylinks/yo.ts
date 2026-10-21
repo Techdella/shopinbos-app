@@ -154,6 +154,22 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "block.noCollections": "Ṣe collection kan ná nínú Products, lẹ́yìn náà Collections.",
   "list.pages": "Àwọn ojú-ewé payment link",
   "list.noneHere": "Kò sí payment link kankan pẹ̀lú ipò yìí.",
+  "block.shop": "Bọ́tìnnì Rajà báyìí",
+  "block.arrivals": "Àwọn ọjà tuntun",
+  "block.track": "Tọpa ọjà mi",
+  "block.shopHint": "Bọ́tìnnì ńlá sí ojú-ìwé àkọ́kọ́ ṣọ́ọ̀bù rẹ.",
+  "block.arrivalsHint": "Àwọn ọjà 4 tuntun rẹ jùlọ nínú àwòrán. Ó máa ń ṣe àtúnṣe fúnra rẹ̀.",
+  "block.trackHint": "Àwọn oníbàárà máa tẹ nọ́mbà ọjà wọn àti ímeèlì tàbí fóònù láti rí ọjà wọn.",
+  "dialog.delivery": "Ìfijíṣẹ́: àdírẹ́sì + owó",
+  "dialog.deliveryHint": "Fi àdírẹ́sì oníbàárà àti owó ìfijíṣẹ́ pamọ́. Bọ́tìnnì Sanwó kan ṣoṣo ni wọ́n máa rí, kò sí nǹkan láti kọ.",
+  "dialog.deliveryStreet": "Àdírẹ́sì òpópónà oníbàárà",
+  "dialog.deliveryCity": "Agbègbè tàbí ìlú",
+  "dialog.deliveryState": "Ìpínlẹ̀",
+  "dialog.deliveryPickState": "Yan ìpínlẹ̀",
+  "dialog.deliveryLandmark": "Àmì ibi (kò pọn dandan)",
+  "dialog.deliveryFee": "Owó ìfijíṣẹ́ (₦)",
+  "dialog.deliveryFeeHint": "Fi sílẹ̀ ní òfo tàbí 0 fún ìfijíṣẹ́ ọ̀fẹ́. A máa fi kún ohun tí oníbàárà máa san.",
+  "dialog.deliveryIncomplete": "Fi òpópónà, agbègbè àti ìpínlẹ̀ kún fún ìfijíṣẹ́, àti owó ní nọ́mbà. Tàbí pa ìfijíṣẹ́.",
 };
 
 export default yo;
