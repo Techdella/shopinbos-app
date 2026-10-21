@@ -25,6 +25,7 @@ import m_partner from "./messages/m_partner/index.ts";
 import m_rider from "./messages/m_rider/index.ts";
 import m_ui from "./messages/m_ui/index.ts";
 import m_home from "./messages/m_home/index.ts";
+import m_delivery from "./messages/m_delivery/index.ts";
 import m_orders from "./messages/m_orders/index.ts";
 import m_products from "./messages/m_products/index.ts";
 import m_find from "./messages/m_find/index.ts";
@@ -55,6 +56,7 @@ import emailBuilder from "./messages/emailBuilder/index.ts";
 import automations from "./messages/automations/index.ts";
 import inbox from "./messages/inbox/index.ts";
 import social from "./messages/social/index.ts";
+import socialPosts from "./messages/socialPosts/index.ts";
 import ads from "./messages/ads/index.ts";
 import packaging from "./messages/packaging/index.ts";
 import video from "./messages/video/index.ts";
@@ -110,6 +112,7 @@ export const CATALOGS = {
   m_rider,
   m_ui,
   m_home,
+  m_delivery,
   m_orders,
   m_products,
   m_find,
@@ -140,6 +143,7 @@ export const CATALOGS = {
   automations,
   inbox,
   social,
+  socialPosts,
   ads,
   packaging,
   video,

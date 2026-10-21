@@ -35,13 +35,15 @@ export interface ChoiceSetting {
 export type PriceSetting = NumberSetting | ChoiceSetting;
 
 export const PRICE_GROUPS = {
-  store_fee: { title: "Fee on store sales", sub: "Shopinbos's cut of each card or online bank order, taken in the checkout split. Not charged on delivery." },
-  launch: { title: "Store launch fee", sub: "One-time fee to publish a store. Sellers can pay a deposit now and the rest by month end." },
-  credits: { title: "AI credits", sub: "Credit packs sellers and suppliers buy, credits new accounts start with, and what each request costs." },
+  store_fee: { title: "Fee on store sales", sub: "Shopinbos's cut of each card or online bank order, by the seller's plan, taken in the checkout split. Not charged on delivery or on dropship items (the supplier's commission covers those)." },
+  supplier_fee: { title: "Supplier commission", sub: "Shopinbos's commission on each marketplace order (of the wholesale value), by the supplier's plan, taken from the supplier's share in the checkout split." },
+  delivery: { title: "Logistics job fee", sub: "Shopinbos's fee on each in-app delivery job (of the delivery fee), by the partner's plan, taken from the partner's share. Off until switched on." },
+  credits: { title: "AI credits", sub: "Credit packs anyone can buy (they last 12 months), credits new accounts start with, and what each AI action costs. Plans' monthly credits are in Plans." },
+  boosts: { title: "Featured placement and boosts", sub: "Pay-per-use visibility for suppliers and delivery partners, bought by the week. Pro plans include some featured time." },
+  addons: { title: "Add-ons", sub: "SMS and WhatsApp message packs and extra staff seats for sellers." },
   ads: { title: "Ad campaigns", sub: "Setup fee when the Shopinbos team runs a campaign. Ad spend is paid to Meta / TikTok, not to us." },
   domains: { title: "Domains", sub: "Price = registrar's USD price × exchange rate + markup, rounded up to the next ₦500." },
-  delivery: { title: "Delivery partners", sub: "Shown to delivery partners on their billing page. Not charged on bookings yet." },
-  themes: { title: "Store themes", sub: "One-time price to unlock a single premium or platinum theme without changing plan. Growth includes premium themes and Seller Pro includes all of them." },
+  themes: { title: "Store themes", sub: "One-time price to unlock a single premium or platinum theme without changing plan. Starter includes premium themes; Growth and Seller Pro include all of them." },
   business: { title: "Business registration", sub: "What a business pays to register its business name with CAC through Shopinbos. CAC's fee is paid from the Shopinbos VAS wallet, so keep this above it." },
 } as const;
 export type PriceGroup = keyof typeof PRICE_GROUPS;
@@ -57,6 +59,16 @@ const naira = (group: PriceGroup, label: string, value: number, extra: Partial<N
   integer: true,
   ...extra,
 });
+const pct = (group: PriceGroup, label: string, value: number, extra: Partial<NumberSetting> = {}): NumberSetting => ({
+  kind: "number",
+  group,
+  label,
+  unit: "percent",
+  default: value,
+  min: 0,
+  max: 30,
+  ...extra,
+});
 const credits = (label: string, value: number, extra: Partial<NumberSetting> = {}): NumberSetting => ({
   kind: "number",
   group: "credits",
@@ -70,28 +82,75 @@ const credits = (label: string, value: number, extra: Partial<NumberSetting> = {
 });
 
 export const PRICE_SETTINGS = {
-  // The store-sales fee (src/lib/wallet/rules.ts platformFeeKobo). Defaults to none: the migration copies the live
-  // PlatformFeeConfig values in.
-  "store_fee.rate": { kind: "number", group: "store_fee", label: "Fee on each sale", unit: "percent", default: 0, min: 0, max: 30, hint: "Percent of the order, not counting delivery." },
+  // The store-sales fee (src/lib/wallet/rules.ts platformFeeKobo), by the seller's plan (shared/plans.ts).
+  "store_fee.free": pct("store_fee", "Free plan", 3, { hint: "Percent of the order, not counting delivery." }),
+  "store_fee.starter": pct("store_fee", "Starter plan", 2),
+  "store_fee.growth": pct("store_fee", "Growth plan", 1),
+  "store_fee.pro": pct("store_fee", "Pro plan", 0.5),
   "store_fee.min": naira("store_fee", "Smallest fee per order", 0, { hint: "0 = no minimum." }),
   "store_fee.max": naira("store_fee", "Largest fee per order", 0, { hint: "0 = no maximum." }),
 
-  "launch.price": naira("launch", "Launch fee", 8_000, { env: "STORE_LAUNCH_PRICE_NGN", min: 100 }),
-  "launch.deposit": naira("launch", "Deposit (pay the rest later)", 4_000, { env: "STORE_LAUNCH_DEPOSIT_NGN", min: 100, hint: "Never more than the launch fee." }),
+  "supplier_fee.free": pct("supplier_fee", "Free (Verified)", 6, { hint: "Percent of the wholesale value of each marketplace order." }),
+  "supplier_fee.plus": pct("supplier_fee", "Supplier Plus", 4),
+  "supplier_fee.pro": pct("supplier_fee", "Supplier Pro", 3),
 
-  "credits.small.credits": credits("Quick top-up: credits", 60, { min: 1 }),
-  "credits.small.naira": naira("credits", "Quick top-up: price", 2_000, { min: 100 }),
-  "credits.medium.credits": credits("Business pack: credits", 200, { min: 1 }),
-  "credits.medium.naira": naira("credits", "Business pack: price", 5_500, { min: 100 }),
-  "credits.large.credits": credits("Power pack: credits", 600, { min: 1 }),
-  "credits.large.naira": naira("credits", "Power pack: price", 14_500, { min: 100 }),
-  "credits.welcome": credits("Credits a new account starts with", 5),
-  "credits.cost.text": credits("Cost: writing / chat message", 1, { min: 1 }),
-  "credits.cost.speech": credits("Cost: voiceover", 1, { min: 1 }),
-  "credits.cost.voice": credits("Cost: voice note to Peggy / Rex", 2, { min: 1 }),
-  "credits.cost.image": credits("Cost: picture", 5, { min: 1 }),
-  "credits.cost.build": credits("Cost: building a store", 15, { min: 1 }),
+  "delivery.enabled": {
+    kind: "choice",
+    group: "delivery",
+    label: "Charge the job fee",
+    hint: "Off at launch to grow the delivery network. Partners see what it would be either way.",
+    default: "off",
+    choices: [
+      { value: "off", label: "Off (0%)" },
+      { value: "on", label: "On" },
+    ],
+  },
+  "delivery.free": pct("delivery", "Free (Verified)", 5, { hint: "Percent of the delivery fee." }),
+  "delivery.plus": pct("delivery", "Logistics Plus", 3),
+  "delivery.pro": pct("delivery", "Logistics Pro", 2),
+
+  "credits.small.credits": credits("Small pack: credits", 200, { min: 1 }),
+  "credits.small.naira": naira("credits", "Small pack: price", 2_000, { min: 100 }),
+  "credits.medium.credits": credits("Medium pack: credits", 550, { min: 1 }),
+  "credits.medium.naira": naira("credits", "Medium pack: price", 5_000, { min: 100 }),
+  "credits.large.credits": credits("Large pack: credits", 1_200, { min: 1 }),
+  "credits.large.naira": naira("credits", "Large pack: price", 10_000, { min: 100 }),
+  "credits.business.credits": credits("Business pack: credits", 3_200, { min: 1 }),
+  "credits.business.naira": naira("credits", "Business pack: price", 25_000, { min: 100 }),
+  "credits.welcome": credits("Signup bonus for every new account", 50),
+  // What each kind of request costs when it isn't one of the actions below.
+  "credits.cost.text": credits("Cost: other writing / chat message", 1, { min: 1 }),
+  "credits.cost.speech": credits("Cost: voice typing", 1, { min: 1 }),
+  "credits.cost.voice": credits("Cost: voiceover", 2, { min: 1 }),
+  "credits.cost.image": credits("Cost: other picture", 10, { min: 1 }),
+  "credits.cost.build": credits("Cost: AI store setup (theme, sections, sample copy)", 20, { min: 1 }),
   "credits.cost.video": credits("Cost: video", 10, { min: 1 }),
+  // Actions (shared/ai-credits.ts CREDIT_ACTIONS): each button shows its cost before it's used.
+  "credits.cost.product_copy": credits("Cost: product title + description", 2, { min: 1 }),
+  "credits.cost.seo": credits("Cost: SEO tags / meta description", 1, { min: 1 }),
+  "credits.cost.bg_remove": credits("Cost: remove image background", 3, { min: 1 }),
+  "credits.cost.photo": credits("Cost: enhance or generate a lifestyle product photo", 10, { min: 1 }),
+  "credits.cost.caption": credits("Cost: social caption or ad copy", 2, { min: 1 }),
+  "credits.cost.translate": credits("Cost: translate a listing", 1, { min: 1 }),
+  "credits.cost.campaign": credits("Cost: seasonal campaign builder", 10, { min: 1 }),
+  "credits.cost.chat_reply": credits("Cost: AI customer chat reply (per conversation)", 1, { min: 1 }),
+  "credits.cost.insights": credits("Cost: sales insights report", 5, { min: 1 }),
+  "credits.cost.bulk_description": credits("Cost (suppliers): bulk product description, per product", 1, { min: 1 }),
+  "credits.cost.auto_tag": credits("Cost (suppliers): categorise and tag, per 5 products", 1, { min: 1 }),
+  "credits.cost.import_cleanup": credits("Cost (suppliers): clean up / translate an imported listing, per product", 2, { min: 1 }),
+  "credits.cost.photo_cleanup": credits("Cost (suppliers): product photo cleanup", 3, { min: 1 }),
+  "credits.cost.inquiry_reply": credits("Cost (suppliers): buyer inquiry auto-reply (per conversation)", 1, { min: 1 }),
+  "credits.cost.rate_card": credits("Cost (logistics): build a rate card from a price list", 10, { min: 1 }),
+  "credits.cost.coverage_listing": credits("Cost (logistics): coverage and pickup point listings", 5, { min: 1 }),
+  "credits.cost.performance_report": credits("Cost (logistics): performance summary report", 5, { min: 1 }),
+
+  "boosts.supplier_week": naira("boosts", "Featured supplier on the sellers' marketplace home, per week", 3_000, { min: 100 }),
+  "boosts.logistics_state_week": naira("boosts", "Featured delivery partner in a state's results, per week per state", 2_000, { min: 100 }),
+  "boosts.product_week": naira("boosts", "Boosted product in supplier search, per week per product", 1_000, { min: 100 }),
+
+  "addons.sms_pack": naira("addons", "SMS pack (500 messages)", 4_000, { min: 100 }),
+  "addons.whatsapp_pack": naira("addons", "WhatsApp pack (500 messages)", 5_000, { min: 100 }),
+  "addons.staff_seat": naira("addons", "Extra staff seat, per month", 1_000, { min: 100 }),
 
   "ads.setup.meta": naira("ads", "Setup fee: Facebook & Instagram", 20_000),
   "ads.setup.tiktok": naira("ads", "Setup fee: TikTok", 30_000),
@@ -107,18 +166,6 @@ export const PRICE_SETTINGS = {
   // CAC charges ₦27,000 per business name filing (VAS pricing, October 2026) and Paystack takes ~1.5% + ₦100.
   "business.bn_registration": naira("business", "Business name registration", 32_000, { min: 28_000, hint: "CAC charges ₦27,000 per filing from the VAS wallet, and Paystack's fee comes off this. Keep it above both." }),
 
-  "delivery.fee_rate": { kind: "number", group: "delivery", label: "Fee on each delivery", unit: "percent", default: 1.5, min: 0, max: 30 },
-  "delivery.fee_bearer": {
-    kind: "choice",
-    group: "delivery",
-    label: "Who pays it",
-    default: "seller",
-    choices: [
-      { value: "seller", label: "The seller" },
-      { value: "supplier", label: "The supplier" },
-      { value: "logistics_partner", label: "The delivery partner" },
-    ],
-  },
 } as const satisfies Record<string, PriceSetting>;
 
 export type PriceKey = keyof typeof PRICE_SETTINGS;
@@ -154,7 +201,7 @@ export function defaultPrice(key: PriceKey, env: Record<string, string | undefin
 
 /**
  * The full price book: saved values where they're valid, defaults for the rest. `overrides` (a promotion's prices,
- * phase 2) win over saved values. Cross-field rules are applied last (the deposit never exceeds the launch fee).
+ * phase 2) win over saved values.
  */
 export function resolvePriceBook(
   saved: Partial<Record<string, unknown>>,
@@ -167,31 +214,28 @@ export function resolvePriceBook(
     const stored = key in saved ? cleanPriceValue(key, saved[key]) : null;
     book[key] = override ?? stored ?? defaultPrice(key, env);
   }
-  book["launch.deposit"] = Math.min(book["launch.deposit"] as number, book["launch.price"] as number);
   return book as PriceBook;
 }
 
 // ─── Reading the book ─────────────────────────────────────────────────────────
 
+export const CREDIT_PACK_IDS = ["small", "medium", "large", "business"] as const;
+
 export interface CreditPackPrice {
-  id: "small" | "medium" | "large";
+  id: (typeof CREDIT_PACK_IDS)[number];
   credits: number;
   naira: number;
 }
 
 export function creditPackPrices(book: PriceBook): CreditPackPrice[] {
-  return (["small", "medium", "large"] as const).map((id) => ({ id, credits: book[`credits.${id}.credits`], naira: book[`credits.${id}.naira`] }));
+  return CREDIT_PACK_IDS.map((id) => ({ id, credits: book[`credits.${id}.credits`], naira: book[`credits.${id}.naira`] }));
 }
 
-export function creditCosts(book: PriceBook) {
-  return {
-    text: book["credits.cost.text"],
-    speech: book["credits.cost.speech"],
-    voice: book["credits.cost.voice"],
-    image: book["credits.cost.image"],
-    build: book["credits.cost.build"],
-    video: book["credits.cost.video"],
-  };
+/** Every `credits.cost.*` setting as { kind or action: credits }. */
+export function creditCosts(book: PriceBook): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const key of PRICE_KEYS) if (key.startsWith("credits.cost.")) out[key.slice("credits.cost.".length)] = book[key] as number;
+  return out;
 }
 
 export function adSetupFees(book: PriceBook) {
@@ -203,8 +247,35 @@ export function adPrices(book: PriceBook) {
   return { setup: adSetupFees(book), minDailyNgn: book["ads.min_daily_budget"] };
 }
 
-export function storeFeeConfig(book: PriceBook) {
-  return { rate: book["store_fee.rate"], minFee: book["store_fee.min"], maxFee: book["store_fee.max"] };
+const PLAN_SUFFIX = { seller_free: "free", seller_starter: "starter", seller_growth: "growth", seller_pro: "pro", supplier_free: "free", supplier_plus: "plus", supplier_pro: "pro", logistics_free: "free", logistics_plus: "plus", logistics_pro: "pro" } as const;
+
+/** The store-sales fee for a seller's plan (shared/plans.ts keys), with the per-order floor and cap. */
+export function storeFeeConfig(book: PriceBook, plan: keyof typeof PLAN_SUFFIX = "seller_free") {
+  const suffix = PLAN_SUFFIX[plan] as "free" | "starter" | "growth" | "pro";
+  const rate = plan.startsWith("seller_") ? (book[`store_fee.${suffix}`] as number) : (book["store_fee.free"] as number);
+  return { rate, minFee: book["store_fee.min"], maxFee: book["store_fee.max"] };
+}
+
+/** The supplier's commission on marketplace orders for their plan. */
+export function supplierCommissionPct(book: PriceBook, plan: keyof typeof PLAN_SUFFIX = "supplier_free") {
+  const suffix = plan.startsWith("supplier_") ? (PLAN_SUFFIX[plan] as "free" | "plus" | "pro") : "free";
+  return book[`supplier_fee.${suffix}`] as number;
+}
+
+/** The logistics job fee for a partner's plan: what it would be, and whether it is charged now. */
+export function logisticsJobFee(book: PriceBook, plan: keyof typeof PLAN_SUFFIX = "logistics_free") {
+  const suffix = plan.startsWith("logistics_") ? (PLAN_SUFFIX[plan] as "free" | "plus" | "pro") : "free";
+  const rate = book[`delivery.${suffix}`] as number;
+  const charged = book["delivery.enabled"] === "on";
+  return { rate, charged, effectiveRate: charged ? rate : 0 };
+}
+
+export function boostPrices(book: PriceBook) {
+  return { supplierWeek: book["boosts.supplier_week"] as number, logisticsStateWeek: book["boosts.logistics_state_week"] as number, productWeek: book["boosts.product_week"] as number };
+}
+
+export function addonPrices(book: PriceBook) {
+  return { smsPack: book["addons.sms_pack"] as number, whatsappPack: book["addons.whatsapp_pack"] as number, staffSeat: book["addons.staff_seat"] as number };
 }
 
 /** How a setting's value reads ("₦8,000", "1.5%", "60 credits", "$20", "₦1,650 per $1"). */

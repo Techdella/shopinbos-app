@@ -5,8 +5,11 @@ import type { AuthUser } from "@/lib/auth/types";
 import { DEFAULT_STORE_CONFIG, getOpenAIClient, type StoreConfig } from "@/lib/ai/client";
 import { aiText, firstJsonObject, type ChatTurn } from "@/lib/ai/text";
 import { generateImage } from "@/lib/ai/images";
-import { meterAi } from "@/lib/ai/usage";
+import { meterAiCharged, refundAi } from "@/lib/ai/usage";
 import { buildStoreJsonSystemPrompt, type BrandContext, type TemplateContext } from "@/lib/ai/rex/prompts";
+import { hasInspiration, inspirationImages, type Inspiration } from "@/lib/ai/rex/inspiration";
+import { isLibraryTheme } from "@/lib/store-templates/theme-library";
+import { productsLeft } from "@/lib/plans/gates.server";
 import { currencyFromPrice, parsePrice, validateStoreConfig } from "@/lib/ai/rex/store-config";
 import {
   createBlankEditorSnapshot,
@@ -212,7 +215,9 @@ export async function createSampleProducts(args: {
   // The builder's empty-state placeholders ("Product One", ₦0) are never turned into products.
   const placeholders = new Set(DEFAULT_STORE_CONFIG.products.map((product) => product.name.toLowerCase()));
   const real = args.products.filter((product) => product.name.trim() && !placeholders.has(product.name.trim().toLowerCase()));
-  for (const product of real.slice(0, 6)) {
+  // Never past the plan's product limit (shared/plans.ts).
+  const room = await productsLeft(args.userId, args.storeId);
+  for (const product of real.slice(0, Math.min(6, room ?? 6))) {
     const row = await db.storeProduct.create({
       data: {
         storeId: args.storeId,
@@ -246,6 +251,13 @@ export interface BuildStoreInput {
   /** Generate a hero banner and a product image (needs an OpenAI key). Default true. */
   generateImages?: boolean;
   source?: string;
+  /** Stores, screenshots, a theme and a note the seller gave as inspiration (Rex Studio's build setup). */
+  inspiration?: Inspiration | null;
+  /**
+   * Moves the draft onto a library theme before the design is written into it: the seller's pick, or the one Rex
+   * chose from their inspiration. Passed in by the route so this module doesn't import the Studio's.
+   */
+  switchTheme?: (themeId: string) => Promise<boolean>;
 }
 
 export interface BuildStoreResult {
@@ -260,6 +272,8 @@ export interface BuildStoreResult {
   products: Array<{ id: string; name: string; retailPrice: number; currency: string; imageUrl: string | null }>;
   images: { hero: string | null; product: string | null };
   notes: string[];
+  /** The theme the build moved the draft onto, when it switched. */
+  themeId: string | null;
 }
 
 async function currentConfigFor(userId: string): Promise<StoreConfig | null> {
@@ -276,13 +290,24 @@ async function designStore(input: BuildStoreInput, currentStore: StoreConfig | n
   if (!messages.length && !input.brief?.trim()) {
     throw new BuildStoreError("Tell Rex about the business first: what you sell and who it's for.", "BAD_REQUEST", 400);
   }
-  const reply = await aiText({
-    system: buildStoreJsonSystemPrompt({ brandContext: input.brandContext, templateContext: input.templateContext, currentStore }),
+  const images = inspirationImages(input.inspiration);
+  const ask = (withImages: boolean) => aiText({
+    system: buildStoreJsonSystemPrompt({
+      brandContext: input.brandContext,
+      templateContext: input.templateContext,
+      currentStore,
+      inspiration: input.inspiration,
+      // Rex picks a theme only from inspiration, and only when the seller didn't pick one.
+      chooseTheme: hasInspiration(input.inspiration) && !input.inspiration?.themeId,
+    }),
+    ...(withImages && images.length ? { images } : {}),
     ...(messages.length
       ? { messages: input.brief?.trim() ? [...messages, { role: "user" as const, content: `Build brief: ${input.brief.trim()}` }] : messages }
       : { prompt: input.brief!.trim() }),
     maxTokens: 16000,
   });
+  // A picture the AI can't open (a store's share picture behind a block) fails the whole call: try once without.
+  const reply = (await ask(true)) ?? (images.length ? await ask(false) : null);
   if (!reply) {
     throw new BuildStoreError("Rex's AI isn't available right now (no working OpenAI or Anthropic key). Nothing was changed.", "AI_UNAVAILABLE", 503);
   }
@@ -295,6 +320,8 @@ async function designStore(input: BuildStoreInput, currentStore: StoreConfig | n
     provider: reply.provider,
     heroImagePrompt: typeof raw.heroImagePrompt === "string" ? raw.heroImagePrompt.slice(0, 600) : null,
     productImagePrompt: typeof raw.productImagePrompt === "string" ? raw.productImagePrompt.slice(0, 600) : null,
+    storyImagePrompt: typeof raw.storyImagePrompt === "string" ? raw.storyImagePrompt.slice(0, 600) : null,
+    themeId: typeof raw.themeId === "string" && isLibraryTheme(raw.themeId.trim()) ? raw.themeId.trim() : null,
   };
 }
 
@@ -307,14 +334,19 @@ export async function buildStore(input: BuildStoreInput): Promise<BuildStoreResu
   let provider: BuildStoreResult["provider"] = null;
   let heroImagePrompt: string | null = null;
   let productImagePrompt: string | null = null;
+  let storyImagePrompt: string | null = null;
+  let chosenTheme: string | null = input.inspiration?.themeId && isLibraryTheme(input.inspiration.themeId) ? input.inspiration.themeId : null;
   if (input.storeConfig) {
     const validated = validateStoreConfig(input.storeConfig, currentStore);
     if (!validated.ok) throw new BuildStoreError(validated.error, "CONFIG_INVALID", 400);
     config = validated.config;
   } else {
     const designed = await designStore(input, currentStore);
-    ({ config, provider, heroImagePrompt, productImagePrompt } = designed);
+    ({ config, provider, heroImagePrompt, productImagePrompt, storyImagePrompt } = designed);
+    chosenTheme ??= designed.themeId;
   }
+  let themeId: string | null = null;
+  if (chosenTheme && input.switchTheme && (await input.switchTheme(chosenTheme))) themeId = chosenTheme;
 
   // Sample products: only for a store with no products, or when the seller asked for them.
   const existingStore = await db.store.findUnique({ where: { userId: user.id }, select: { id: true } });
@@ -336,25 +368,32 @@ export async function buildStore(input: BuildStoreInput): Promise<BuildStoreResu
       );
       const jobs: Array<Promise<void>> = [];
       const stamp = Date.now();
-      if (!(await meterAi(user.id, "image"))) {
+      // A picture the image service fails to make is given back (allowance and any credits it took).
+      const giveBack = (credits: number) => async (error: unknown) => {
+        await refundAi(user.id, "image", 1, credits);
+        throw error;
+      };
+      const heroMeter = await meterAiCharged(user.id, "image");
+      if (!heroMeter.blocked) {
         jobs.push(
           generateImage({
             prompt: `${heroImagePrompt ?? `A bright, premium lifestyle photo for the online store "${config.name}": ${config.heroSubline}`}. Wide banner composition with calm space on one side. No text, words, letters or logos.`,
             size: "1536x1024",
             path: `generated/${user.id}/rex-hero-${stamp}`,
-          }).then((url) => { images.hero = url; }),
+          }).then((url) => { images.hero = url; }, giveBack(heroMeter.credits)),
         );
       } else {
         notes.push("Hero image skipped: today's image limit is used up.");
       }
       if (wantProduct && firstProduct) {
-        if (!(await meterAi(user.id, "image"))) {
+        const productMeter = await meterAiCharged(user.id, "image");
+        if (!productMeter.blocked) {
           jobs.push(
             generateImage({
               prompt: `${productImagePrompt ?? `Clean studio product photo of ${firstProduct.name} (${firstProduct.subtitle}) for an online store`}. Soft natural light, plain light background. No text or logos.`,
               size: "1024x1024",
               path: `generated/${user.id}/rex-product-${stamp}`,
-            }).then((url) => { images.product = url; }),
+            }).then((url) => { images.product = url; }, giveBack(productMeter.credits)),
           );
         } else {
           notes.push("Product image skipped: today's image limit is used up.");
@@ -373,7 +412,14 @@ export async function buildStore(input: BuildStoreInput): Promise<BuildStoreResu
     }
   }
 
-  const written = await writeStoreDraft({ user, config, source: input.source ?? "rex-build", heroImageUrl: images.hero });
+  const written = await writeStoreDraft({
+    user,
+    config,
+    source: input.source ?? "rex-build",
+    heroImageUrl: images.hero,
+    // The photo step of a full build (src/lib/ai/rex/full-build.server.ts) reads these.
+    plan: { heroImagePrompt, productImagePrompt, storyImagePrompt },
+  });
   if (written.store.live) notes.push("Your store is live, so these changes are saved as a draft. Shoppers see them only after you publish.");
 
   const products = createSamples ? await createSampleProducts({ storeId: written.store.id, userId: user.id, products: config.products, currency: written.store.currency }) : [];
@@ -392,5 +438,6 @@ export async function buildStore(input: BuildStoreInput): Promise<BuildStoreResu
     products,
     images,
     notes,
+    themeId,
   };
 }

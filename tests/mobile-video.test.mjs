@@ -138,8 +138,8 @@ test("the app's screens, links and Rex card use the phone studio", () => {
   assert.doesNotMatch(rex, /openWeb\("\/home\/video/);
   assert.match(rex, /startVideoFromRex/);
   const shop = read("apps/mobile/src/app/(tabs)/shop.tsx");
-  const grow = shop.slice(shop.indexOf('key: "grow"'), shop.indexOf('key: "settings"'));
-  assert.match(grow, /id: "video", label: "Video studio", icon: "play", path: "app:\/video"/);
+  const look = shop.slice(shop.indexOf('key: "look"'), shop.indexOf('key: "you"'));
+  assert.match(look, /id: "video", label: "Video studio", icon: "play", path: "app:\/video"/);
   // The studio says plainly that the last step is on the web, and nothing on the phone asks with window dialogs.
   const studio = read("apps/mobile/src/app/video/studio.tsx");
   assert.match(studio, /t\("finish\.button"\)/);

@@ -276,7 +276,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "ch.manageForms": "Manage forms",
   "ch.tiktok": "TikTok messages",
   "ch.notAvailable": "E dey come soon",
-  "ch.tiktokBody": "TikTok never open for Nigerian sellers yet. For now, reply for TikTok app and put your WhatsApp or shop link for your bio. You fit still post for TikTok from Sell everywhere → Post & share.",
+  "ch.tiktokBody": "TikTok never open for Nigerian sellers yet. For now, reply for TikTok app and put your WhatsApp or shop link for your bio. You fit still post for TikTok from Marketing → Social posts.",
   "ch.connectYours": "Connect your channels",
   "ch.connectedCount": "{count} don connect",
   "ch.toConnect": "Channels to connect",
@@ -780,7 +780,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "email.card.blurb": "Email customers from your own address or Gmail, and see their replies here.",
   "email.card.manage": "Manage email",
   "email.card.connect": "Connect email",
-  "ch.connectOnce": "Connect once and e go work everywhere for Shopinbos: your inbox, Peggy, your products and Post & share.",
+  "ch.connectOnce": "Connect once and e go work everywhere for Shopinbos: your inbox, Peggy, your products and Social posts.",
   "ch.more": "More ways wey customers fit reach you",
   "ch.moreHint": "{count, plural, =0 {SMS, phone calls and Telegram. Tap one and we go set am up for you.} one {# don connect} other {# don connect}}",
   "cat.connectOnce": "One tap: log in with Facebook and pick your WhatsApp number.",
@@ -861,6 +861,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "ch.helpTitle": "Connect {title}",
   "ch.helpDesc": "We go connect {title} to your inbox for you and message you when e dey work.",
   "ch.askUs": "Ask us make we connect am",
+  "bot.monthlyCap": "Highest AI replies every month",
+  "bot.monthlyCapHelp": "Every reply wey Peggy write with AI dey use your AI credits (live chat and WhatsApp together). When she reach dis number, or your credits finish, your away message and quick replies go answer instead. 0 mean no limit.",
 };
 
 export default pcm;

@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { productLimitProblem } from "@/lib/plans/gates.server";
 import { db } from "@/lib/db/client";
 import { getCurrentAppUser } from "@/lib/server-auth";
 import { mergeBrandSettings, parseBrandSettings, slugify } from "@/lib/workspace";
@@ -123,6 +124,10 @@ export async function addMarketplaceProduct(formData: FormData) {
     supplierProduct.supplier.verificationStatus !== "verified"
   ) {
     return;
+  }
+  // The plan's product and dropship limits (shared/plans.ts): the billing tab says which plan lifts them.
+  if (await productLimitProblem(user.id, store.id, 1, supplierProduct.dropshipAvailable)) {
+    redirect("/home/settings?tab=Billing&limit=products");
   }
 
   await db.storeProduct.create({
@@ -261,7 +266,7 @@ export async function saveBrandSettingsJson(formData: FormData) {
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return { success: false, error: "Invalid settings JSON" };
     // Keys only the server writes (launch payment state, verified payout bank, invites) can't come from here:
-    // otherwise {"launchBilling":{"status":"paid"}} would publish a store without paying.
+    // otherwise a seller could forge payment state, a verified bank or invites.
     for (const key of SERVER_OWNED_BRAND_KEYS) delete (parsed as Record<string, unknown>)[key];
     const current = parseBrandSettings(store.brandSettings);
     const merged = mergeBrandSettings(current, parsed);
@@ -573,36 +578,6 @@ export async function closeStore(formData: FormData) {
   });
 
   redirect("/home?storeClosed=1");
-}
-
-export async function inviteTeamMember(formData: FormData) {
-  const user = await getSellerUserOrThrow();
-  const email = String(formData.get("email") || "").trim().toLowerCase();
-
-  if (!email || !email.includes("@")) {
-    redirect("/home/settings?tab=Team&error=Invalid+email+address");
-  }
-
-  // Team invite sends an email — store the pending invite in brandSettings
-  const store = await db.store.findUnique({ where: { userId: user.id } });
-  if (!store) redirect("/builder?firstRun=1");
-
-  const current = parseBrandSettings(store.brandSettings);
-  const pendingInvites: string[] = (current as any).pendingInvites ?? [];
-  if (!pendingInvites.includes(email)) {
-    pendingInvites.push(email);
-  }
-
-  await db.store.update({
-    where: { id: store.id },
-    data: {
-      brandSettings: mergeBrandSettings(store.brandSettings, {
-        pendingInvites,
-      } as any),
-    },
-  });
-
-  redirect("/home/settings?tab=Team&invited=1");
 }
 
 export async function saveStoreTaxSettings(formData: FormData) {

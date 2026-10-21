@@ -1,6 +1,6 @@
 import { Redirect } from "expo-router";
 
-// The supplier "More" tab moved into Money (build spec 8A: tabs Home, Orders, Products, Money). Kept for old links.
+// The supplier "More" tab's rows are on Account now (the gear on Home). Kept for old links and notifications.
 export default function SupplierMoreRedirect() {
-  return <Redirect href="/supplier/money" />;
+  return <Redirect href="/supplier/account" />;
 }

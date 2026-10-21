@@ -6,11 +6,14 @@ import { initializePaystackTransaction, verifyPaystackTransaction } from "@/lib/
 import { paystackSecretReady } from "@shared/checkout-payments";
 import { createNotification } from "@/lib/notifications/create";
 import { buildSplitPlan, paystackSplitParams } from "@/lib/wallet/rules";
+import { getPriceBook } from "@/lib/pricing/price-book.server";
+import { logisticsJobFee } from "@shared/platform-pricing";
+import { planOfUser } from "@/lib/plan-limits";
 import { applyDeductions, debtsToDeduct, holdPlannedDeductions, readDeductions } from "@/lib/money-owed/money-owed.server";
 
 // A seller pays a delivery partner's fee by card in Shopinbos. Paystack splits it all to the partner's Shopinbos
-// Wallet subaccount (src/lib/wallet), so it settles straight to the partner's bank; Shopinbos takes nothing and
-// never holds it. The transaction is started here with the booking in its metadata, and only Paystack's verified
+// Wallet subaccount (src/lib/wallet), so it settles straight to the partner's bank; Shopinbos keeps only the job fee
+// for the partner's plan (shared/plans.ts; 0% until it is switched on in Admin › Pricing) and never holds the rest. The transaction is started here with the booking in its metadata, and only Paystack's verified
 // reply marks the fee paid (the popup and the webhook both call confirm; the booking is updated once). When the
 // partner has overdue money owed (src/lib/money-owed), part of the fee is split to whoever it's owed to instead.
 
@@ -50,11 +53,12 @@ export async function startDeliveryFeePayment(seller: { id: string; email: strin
   const wallet = await db.wallet.findFirst({ where: { userId: booking.logisticsPartner.userId, status: "active", subaccountStatus: "active" }, select: { subaccountCode: true } });
   if (!wallet?.subaccountCode) return { ok: false, error: `${booking.logisticsPartner.displayName} hasn't set up their Shopinbos Wallet yet, so pay them directly.` };
   const reference = `${DELIVERY_FEE_PREFIX}${randomBytes(9).toString("hex")}`;
-  // The partner's subaccount gets it all (Shopinbos's charge is zero and the partner bears Paystack's fee), less
-  // any overdue money the partner owes, which goes to the business it's owed to.
+  // The partner's subaccount gets it all less the job fee (the partner bears Paystack's fee), and less any overdue
+  // money the partner owes, which goes to the business it's owed to.
   const amountKobo = Math.round(booking.deliveryFee * 100);
+  const jobFee = logisticsJobFee(await getPriceBook(), await planOfUser(booking.logisticsPartner.userId));
   const debts = await debtsToDeduct(new Map([[booking.logisticsPartner.userId, "seller"]]), "paystack");
-  const plan = buildSplitPlan({ totalKobo: amountKobo, sellerSubaccount: wallet.subaccountCode, suppliers: [], debts });
+  const plan = buildSplitPlan({ totalKobo: amountKobo, sellerSubaccount: wallet.subaccountCode, suppliers: [], debts, platformKobo: Math.round((amountKobo * jobFee.effectiveRate) / 100) });
   const deductions = plan.deductions ?? [];
   await holdPlannedDeductions(`delivery:${booking.id}`, deductions, null);
   try {
@@ -63,7 +67,7 @@ export async function startDeliveryFeePayment(seller: { id: string; email: strin
       amountKobo,
       reference,
       callbackUrl: `${appBase()}/home/logistics`,
-      metadata: { kind: "delivery_fee", bookingId: booking.id, sellerId: seller.id, partnerId: booking.logisticsPartnerId, ...(deductions.length ? { deductions } : {}) },
+      metadata: { kind: "delivery_fee", bookingId: booking.id, sellerId: seller.id, partnerId: booking.logisticsPartnerId, jobFeeKobo: plan.sellerKobo < amountKobo ? amountKobo - plan.sellerKobo - deductions.reduce((sum, d) => sum + d.kobo, 0) : 0, ...(deductions.length ? { deductions } : {}) },
       split: paystackSplitParams(plan),
     });
     if (!started.access_code) return { ok: false, error: "Paystack couldn't start this payment. Try again." };
@@ -118,7 +122,12 @@ export async function confirmDeliveryFeePayment(reference: string, expectedSelle
     return { ok: false, error: "The amount paid is less than the delivery fee." };
   }
 
-  const moved = await db.deliveryBooking.updateMany({ where: { id: booking.id, feePaidAt: null }, data: { feePaidAt: new Date(), feePaymentRef: reference } });
+  // What Shopinbos kept (the job fee for the partner's plan, set when the payment started) goes on the booking.
+  const jobFeeNaira = Math.max(0, Math.round(Number(meta.jobFeeKobo) || 0)) / 100;
+  const moved = await db.deliveryBooking.updateMany({
+    where: { id: booking.id, feePaidAt: null },
+    data: { feePaidAt: new Date(), feePaymentRef: reference, platformFee: jobFeeNaira, netAmount: Math.max(0, booking.deliveryFee - jobFeeNaira), feeBearer: "logistics_partner" },
+  });
   if (moved.count !== 1) {
     // Already paid: by this payment (raced with the other caller) or by another one, which the seller should get back.
     const now = await db.deliveryBooking.findUnique({ where: { id: booking.id }, select: { feePaymentRef: true } });

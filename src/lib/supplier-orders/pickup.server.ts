@@ -1,9 +1,11 @@
 import { supplierPartCollect } from "@shared/cod-split";
+import { supplierPartnerIds } from "@/lib/suppliers/partners.server";
 import "server-only";
 import { db } from "@/lib/db/client";
 import { addressLines } from "@/lib/labels";
 import { createNotification } from "@/lib/notifications/create";
 import { cancelUnassignedDeliveryJob, createDeliveryJob, moveDeliveryJobWindow } from "@/lib/logistics/booking.server";
+import { ensurePickupCode } from "@/lib/logistics/jobs";
 import { payWhenItArrivesWhere } from "@/lib/logistics/payin-deadline";
 import {
   buildPickupJob,
@@ -134,7 +136,7 @@ async function loadPickup(kind: SupplierOrderKind, orderId: string) {
   const job = pickup?.deliveryBookingId
     ? await db.deliveryBooking.findUnique({
         where: { id: pickup.deliveryBookingId },
-        select: { id: true, status: true, riderId: true, rider: { select: { name: true } }, logisticsPartner: { select: { displayName: true } } },
+        select: { id: true, status: true, riderId: true, pickupCode: true, deliveryCode: true, rider: { select: { name: true } }, logisticsPartner: { select: { displayName: true } } },
       })
     : null;
   return { pickup, job };
@@ -168,6 +170,8 @@ export async function pickupState(supplierId: string, kind: SupplierOrderKind, o
           partner: job?.logisticsPartner.displayName ?? null,
           rider: job?.rider?.name ?? null,
           jobStatus: job?.status ?? null,
+          // The code the supplier gives the rider at pickup, while the job waits for them (Riders app).
+          pickupCode: job ? await ensurePickupCode(job).catch(() => null) : null,
           changeable: pickupChangeable(open, job),
           ...pickupMessage(open, job ? { status: job.status, riderName: job.rider?.name ?? null } : null, now),
         }
@@ -225,7 +229,7 @@ async function pickPartner(order: PickupOrder) {
     });
     if (partner) return { ...partner, planned };
   }
-  const [store, partners] = await Promise.all([
+  const [store, partners, connections] = await Promise.all([
     order.storeId ? db.store.findUnique({ where: { id: order.storeId }, select: { brandSettings: true } }) : null,
     db.logisticsPartner.findMany({
       // Pay-when-it-arrives parcels skip partners paused for a late cash pay-in (lib/logistics/payin-deadline.ts).
@@ -233,11 +237,13 @@ async function pickPartner(order: PickupOrder) {
       select: { id: true, city: true, coverageZones: true, status: true, verificationStatus: true, reliabilityScore: true, rating: true, basePrice: true },
       take: 500,
     }),
+    supplierPartnerIds(order.supplier.userId),
   ]);
   const settings = store?.brandSettings && typeof store.brandSettings === "object" ? (store.brandSettings as { logistics?: { preferredPartnerId?: unknown } }) : {};
   const preferredId = typeof settings.logistics?.preferredPartnerId === "string" ? settings.logistics.preferredPartnerId : null;
   const choice = choosePickupPartner({
     preferredId,
+    supplierPartnerIds: connections,
     defaultId: process.env.SHOPINBOS_DEFAULT_DELIVERY_PARTNER_ID?.trim() || null,
     partners: partners.map((partner) => ({ ...partner, verificationStatus: String(partner.verificationStatus) })),
     area: { city: order.supplier.city },
@@ -255,6 +261,10 @@ export interface BookPickupInput {
 
 /** Books (or moves) the rider for a packed order. */
 export async function bookPickup(input: BookPickupInput, now = new Date()): Promise<{ ok: true; data: PickupState } | Fail> {
+  // The customer chose the supplier's own delivery for this parcel: no rider to book.
+  if (input.kind === "dropship" && (await db.supplierOrder.findFirst({ where: { id: input.orderId, supplierId: input.supplierId, selfDelivery: true }, select: { id: true } }))) {
+    return { ok: false, code: "CONFLICT", message: "You deliver this order yourself, so there's no rider to book." };
+  }
   const order = await loadOrder(input.supplierId, input.kind, input.orderId);
   if (!order) return { ok: false, code: "NOT_FOUND", message: "Order not found" };
   if (order.packable) {

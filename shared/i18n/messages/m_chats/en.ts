@@ -140,6 +140,9 @@ const en = {
   "thread.emailPlaceholder": "Write your email reply",
   "thread.emailGoesAs": "Goes out as an email: {subject}",
   "thread.emailGoes": "Goes out as an email to the customer",
+  "list.newCount": "{count} new",
+  "list.allAnswered": "All answered",
+  "list.allHere": "WhatsApp, Instagram, Facebook and your shop, all here.",
 } satisfies Record<string, string>;
 
 export default en;

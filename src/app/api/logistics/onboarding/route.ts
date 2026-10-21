@@ -5,7 +5,7 @@ import { db } from "@/lib/db/client";
 import { invalidatePublicMarketplaceCache } from "@/lib/api/cache";
 import { ok, apiError } from "@/lib/api/response";
 import { LogisticsOnboardingSchema } from "@/lib/schemas";
-import { LOGISTICS_FREE_ROUTE_LIMIT, isProPlan, logisticsRouteLimitMessage } from "@/lib/plan-limits";
+import { coverageStateCount, logisticsCoverageLimitMessage, logisticsPlanLimits } from "@/lib/plan-limits";
 import type { AuthUser } from "@/lib/auth/types";
 
 export const GET = withLogistics(async (_req: NextRequest, { user }: { user: AuthUser }) => {
@@ -46,8 +46,9 @@ export const PATCH = withLogistics(async (req: NextRequest, { user }: { user: Au
   }
 
   const dbUser = await db.user.findUnique({ where: { id: user.id }, select: { aiCredits: true } });
-  if (!isProPlan(dbUser ?? {}) && parsed.data.coverageZones.length > LOGISTICS_FREE_ROUTE_LIMIT) {
-    return apiError("PLAN_LIMIT", logisticsRouteLimitMessage(), 402);
+  const coverageLimit = logisticsPlanLimits(dbUser ?? {}).coverageStates;
+  if (coverageLimit !== null && coverageStateCount(parsed.data.coverageZones, parsed.data.coverageMap) > coverageLimit) {
+    return apiError("PLAN_LIMIT", logisticsCoverageLimitMessage(coverageLimit), 402);
   }
 
   const now = new Date().toISOString();

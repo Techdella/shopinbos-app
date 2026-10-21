@@ -155,7 +155,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "pd.optional": "(kò pọn dandan)",
   "pd.notePh": "Ìwọ̀n, àwọ̀, ọjọ́ ìfijiṣẹ́",
   "pd.noPay": "O kò sanwó lórí Shopinbos.",
-  "pd.noPayBody": "{name} yóò jẹ́rìísí order náà, yóò sì fi invoice ránṣẹ́ sí ọ; ìwọ yóò san fún wọn tààrà.",
+  "pd.noPayBody": "{name} yóò fìdí order múlẹ̀. Lẹ́yìn náà san nínú Shopinbos pẹ̀lú káàdì (yóò lọ tààrà sí báǹkì wọn), tàbí san fún wọn tààrà pẹ̀lú invoice wọn.",
   "pd.sent": "A ti fi order ránṣẹ́. {name} yóò jẹ́rìísí i, yóò sì fi invoice wọn ránṣẹ́.",
   "pd.addressError": "Tẹ àdírẹ́sì ìfijiṣẹ́ kíkún fún order yìí.",
   "pd.placeError": "A kò lè fi order sílẹ̀. Tún gbìyànjú.",
@@ -197,7 +197,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "ws.note.yourReason": "Ìdí rẹ: {reason}",
   "ws.note.declined": "Wọ́n kọ̀ ọ́: {reason}",
   "ws.title": "Àwọn order wholesale",
-  "ws.sub": "Ọjà tí o rà lọ́wọ́ àwọn olùpèsè. O lè fagilé order títí olùpèsè yóò fi bẹ̀rẹ̀ sí dì í; wọn yóò fi invoice ránṣẹ́ sí ọ, ìwọ yóò sì san fún wọn tààrà.",
+  "ws.sub": "Ọjà tí o rà lọ́dọ̀ àwọn supplier. O lè fagi lé order títí supplier yóò fi bẹ̀rẹ̀ sí í dì í. Nígbà tí wọ́n bá gbà á, san níbí pẹ̀lú káàdì, yóò sì lọ tààrà sí báǹkì wọn, tàbí san fún wọn tààrà.",
   "ws.findProducts": "Wá ọjà",
   "ws.empty": "Kò sí order wholesale síbẹ̀",
   "ws.emptySub": "Rà ọjà lọ́wọ́ olùpèsè tí a ti fìdí wọn múlẹ̀ ní iye wholesale wọn. Àwọn order rẹ àti ìlọsíwájú wọn yóò hàn níbí.",
@@ -341,6 +341,14 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "trust.agree": "Mo ti pe {name}, mo ti rí ọjà náà, mo sì gba Dropship agreement",
   "trust.sending": "Ó ń lọ…",
   "trust.send": "Fi àdéhùn náà ránṣẹ́ sí {name}",
+  "featured": "Àfihàn",
+  "pub.follow": "Tẹ̀lé",
+  "pub.following": "O ń tẹ̀lé",
+  "ws.pay": "San {total}",
+  "ws.payLabel": "San fún order {ref} pẹ̀lú káàdì",
+  "ws.payError": "Ìsanwó kò bẹ̀rẹ̀. Tún gbìyànjú.",
+  "ws.paidInApp": "Ti san nínú Shopinbos",
+  "ws.paidNotice": "Ó ti san. Ó ń lọ tààrà sí báǹkì supplier.",
 };
 
 export default yo;

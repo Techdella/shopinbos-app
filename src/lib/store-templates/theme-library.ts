@@ -22,8 +22,8 @@ export type ThemeLibraryId =
   | "irorun";
 
 /**
- * Which plan a theme needs: basic themes come with every store (the free Starter plan), premium ones with Growth
- * and up, platinum ones only with Seller Pro. A store keeps the theme it already has when its plan changes; the
+ * Which plan a theme needs: basic themes come with every store (the Free plan), premium ones with Starter and up,
+ * platinum ones with Growth and Seller Pro. A store keeps the theme it already has when its plan changes; the
  * tier only decides which themes it can switch to (src/lib/theme-access.ts).
  */
 export type ThemeTier = "basic" | "premium" | "platinum";
@@ -482,6 +482,9 @@ export const THEME_LIBRARY: readonly ThemeLibraryEntry[] = [
 ];
 
 export const THEME_LIBRARY_IDS: readonly ThemeLibraryId[] = THEME_LIBRARY.map((item) => item.id);
+
+/** The themes on the Free plan (shared/plans.ts "basic"): one for each main kind of shop. Paid plans have them all. */
+export const BASIC_THEME_IDS: readonly string[] = ["plain", "breeze", "pantry", "ile", "plug", "ewa"];
 
 export function isLibraryTheme(id: string | null | undefined): id is ThemeLibraryId {
   return typeof id === "string" && (THEME_LIBRARY_IDS as readonly string[]).includes(id);

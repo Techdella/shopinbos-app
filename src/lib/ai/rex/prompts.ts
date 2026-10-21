@@ -1,6 +1,8 @@
 import "server-only";
 import { CHIP_SYSTEM_PROMPT, DEFAULT_STORE_CONFIG, type StoreConfig } from "@/lib/ai/client";
 import { getTemplateManifest, summarizeTemplateForAi } from "@/lib/store-templates";
+import { THEME_LIBRARY, themeLibraryEntry } from "@/lib/store-templates/theme-library";
+import { inspirationPrompt, type Inspiration } from "@/lib/ai/rex/inspiration";
 
 // System prompts shared by the streaming store builder (/api/ai/store-builder) and the one-shot
 // "build my store" path (/api/ai/build-store).
@@ -115,13 +117,22 @@ export function storeBuilderSystemPrompt(args: {
   return `${CHIP_SYSTEM_PROMPT}${brandLines(args.brandContext)}${templateLines(args.templateContext)}${currentStoreLines(args.currentStore)}${docs}\n\n${BUILD_RULES}\n\n${STORE_BUILDER_OUTPUT_CONTRACT}`;
 }
 
+/** The library themes Rex may move a store onto when building from the seller's inspiration. */
+function themeChoiceLines() {
+  return `\n\nThemes you can build on (pick the one whose layout and mood best match the inspiration and the business, and return its id as "themeId"):\n${THEME_LIBRARY.map((theme) => `- "${theme.id}" ${theme.name}: ${theme.blurb} (${theme.industries.slice(0, 4).join(", ")})`).join("\n")}`;
+}
+
 /** System prompt for the one-shot build: JSON only. */
 export function buildStoreJsonSystemPrompt(args: {
   brandContext?: BrandContext | null;
   templateContext?: TemplateContext | null;
   currentStore?: StoreConfig | null;
+  inspiration?: Inspiration | null;
+  /** Let Rex pick the library theme ("themeId") that suits the inspiration. */
+  chooseTheme?: boolean;
 }) {
-  return `You are Rex, the AI store builder for Shopinbos, building a complete online store for an African business from the seller's brief and conversation.${brandLines(args.brandContext)}${templateLines(args.templateContext)}${currentStoreLines(args.currentStore)}
+  const themeName = args.inspiration?.themeId ? themeLibraryEntry(args.inspiration.themeId)?.name ?? null : null;
+  return `You are Rex, the AI store builder for Shopinbos, building a complete online store for an African business from the seller's brief and conversation.${brandLines(args.brandContext)}${templateLines(args.templateContext)}${currentStoreLines(args.currentStore)}${inspirationPrompt(args.inspiration, themeName)}${args.chooseTheme ? themeChoiceLines() : ""}
 
 ${BUILD_RULES}
 
@@ -132,7 +143,9 @@ Reply with ONE JSON object only (no prose, no Markdown), with exactly these keys
  "products": [{"name": string, "subtitle": string, "price": "₦12,500", "color": "#RRGGBB"}],
  "changed": string[],
  "heroImagePrompt": "one sentence describing a photo (no words or logos in it) that suits the hero banner",
- "productImagePrompt": "one sentence describing a clean studio photo of the first product"}
+ "productImagePrompt": "one sentence describing a clean studio photo of the first product",
+ "storyImagePrompt": "one sentence describing a warm, real-feeling photo for the store's story section (people, place or craft, no words or logos)"${args.chooseTheme ? `,
+ "themeId": "one theme id from the list above"` : ""}}
 
 Use the seller's real business, products and location. Prices use the local currency symbol (₦ for Nigeria, GH₵ for Ghana, KSh for Kenya). heroBg/heroText and ctaBg/ctaText must contrast strongly; paperBg is a soft off-white.`;
 }

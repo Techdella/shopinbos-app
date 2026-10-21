@@ -2,16 +2,17 @@ import { useEffect, useState } from "react";
 import { Modal, Pressable, ScrollView, TextInput, View } from "react-native";
 import { router } from "expo-router";
 import { DEFAULT_DELIVERY_ZONES, DEFAULT_PAYMENT_METHODS, PAYMENT_METHODS, type DeliveryZone, type PaymentMethodKey } from "@shared/onboarding";
+import { Title } from "@/components/design";
 import { Card, Field, Label, Notice, PillButton, T, Toggle } from "@/components/ui";
 import { OnboardingFrame } from "@/components/OnboardingFrame";
 import { useOnboarding } from "@/components/OnboardingContext";
-import { emailLaunchSteps, fetchPayoutBank, linkPayoutBank, savePayments } from "@/lib/onboarding";
+import { fetchPayoutBank, linkPayoutBank, publishStore, savePayments } from "@/lib/onboarding";
 import { useT } from "@/lib/i18n";
 import { colors, fonts } from "@/theme";
 
 export default function Payments() {
   const t = useT("m_onboarding");
-  const { status, waitForBuild, startBuild } = useOnboarding();
+  const { status, refresh, waitForBuild, startBuild } = useOnboarding();
   const [methods, setMethods] = useState<Record<PaymentMethodKey, boolean>>(DEFAULT_PAYMENT_METHODS);
   const [zones, setZones] = useState<DeliveryZone[]>(DEFAULT_DELIVERY_ZONES);
   const [banks, setBanks] = useState<string[]>([]);
@@ -20,9 +21,6 @@ export default function Payments() {
   const [bankName, setBankName] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
   const [accountName, setAccountName] = useState("");
-  // Not live yet: the phone app can't take the launch fee (app store rules), so we email the next steps instead.
-  const [launchOpen, setLaunchOpen] = useState(false);
-  const [emailedTo, setEmailedTo] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -57,13 +55,13 @@ export default function Payments() {
       await savePayments(methods, zones);
       setNote(t("pay.finishing"));
       await (status?.memory?.storeName ? waitForBuild() : startBuild(status?.store.name ?? "My Shop"));
-      setNote(null);
-      if (status?.store.live) router.replace("/onboarding/live");
-      else {
-        const sent = await emailLaunchSteps().catch(() => null);
-        setEmailedTo(sent?.emailed ? sent.email : null);
-        setLaunchOpen(true);
+      // Going live is free on every plan, so the shop is published right here.
+      if (!status?.store.live) {
+        await publishStore();
+        await refresh();
       }
+      setNote(null);
+      router.replace("/onboarding/live");
     } catch (liveError) {
       setError(liveError instanceof Error ? liveError.message : t("pay.saveFailed"));
     } finally {
@@ -72,25 +70,20 @@ export default function Payments() {
     }
   }
 
-  function next() {
-    setLaunchOpen(false);
-    router.replace("/onboarding/checklist");
-  }
-
   return (
     <OnboardingFrame
       step="payments"
       footer={
         <>
-          {error && !launchOpen && <View style={{ marginBottom: 10 }}><Notice>{error}</Notice></View>}
+          {error && <View style={{ marginBottom: 10 }}><Notice>{error}</Notice></View>}
           {note && <T style={{ textAlign: "center", color: colors.inkSoft, marginBottom: 8 }}>{note}</T>}
           <PillButton title={t("pay.goLive")} busy={busy} onPress={() => void goLive()} />
         </>
       }
     >
-      <T weight="extrabold" style={{ fontSize: 30, letterSpacing: -0.6, lineHeight: 33 }} accessibilityRole="header">{t("pay.title")}</T>
-      <T weight="bold" style={{ fontSize: 15, marginTop: 22, marginBottom: 10 }}>{t("pay.how")}</T>
-      <Card style={{ paddingVertical: 4 }}>
+      <Title>{t("pay.title")}</Title>
+      <T weight="bold" style={{ fontSize: 14, color: colors.inkSoft, marginTop: 24, marginBottom: 10 }}>{t("pay.how")}</T>
+      <Card style={{ paddingVertical: 4, paddingHorizontal: 16, borderRadius: 24, borderWidth: 1, borderColor: colors.line }}>
         {PAYMENT_METHODS.map((method, index) => (
           <View key={method.key} style={{ flexDirection: "row", alignItems: "center", gap: 16, paddingVertical: 13, borderTopWidth: index ? 1 : 0, borderTopColor: colors.line }}>
             <View style={{ flex: 1 }}>
@@ -101,8 +94,8 @@ export default function Payments() {
           </View>
         ))}
       </Card>
-      <T weight="bold" style={{ fontSize: 15, marginTop: 22, marginBottom: 10 }}>{t("pay.payouts")}</T>
-      <Card>
+      <T weight="bold" style={{ fontSize: 14, color: colors.inkSoft, marginTop: 24, marginBottom: 10 }}>{t("pay.payouts")}</T>
+      <Card style={{ padding: 20, borderRadius: 24, borderWidth: 1, borderColor: colors.line }}>
         {bankLinked ? (
           <T weight="bold" style={{ color: colors.success, fontSize: 15 }}>{t("pay.bankAdded")}</T>
         ) : (
@@ -115,8 +108,8 @@ export default function Payments() {
           </>
         )}
       </Card>
-      <T weight="bold" style={{ fontSize: 15, marginTop: 22, marginBottom: 10 }}>{t("pay.delivery")}</T>
-      <Card style={{ paddingVertical: 4 }}>
+      <T weight="bold" style={{ fontSize: 14, color: colors.inkSoft, marginTop: 24, marginBottom: 10 }}>{t("pay.delivery")}</T>
+      <Card style={{ paddingVertical: 4, paddingHorizontal: 16, borderRadius: 24, borderWidth: 1, borderColor: colors.line }}>
         {zones.map((zone, index) => (
           <View key={zone.name} style={{ flexDirection: "row", alignItems: "center", paddingVertical: 15, borderTopWidth: index ? 1 : 0, borderTopColor: colors.line }}>
             <T style={{ flex: 1, fontSize: 15 }}>{zone.name}</T>
@@ -156,18 +149,6 @@ export default function Payments() {
             </View>
             {error && <View style={{ marginTop: 12 }}><Notice>{error}</Notice></View>}
             <PillButton title={t("pay.saveBank")} busy={busy} style={{ marginTop: 18 }} disabled={!bankName || accountNumber.replace(/\D/g, "").length !== 10 || !accountName.trim()} onPress={() => void addBank()} />
-          </Pressable>
-        </Pressable>
-      </Modal>
-
-      <Modal visible={launchOpen} transparent animationType="slide" onRequestClose={next}>
-        <Pressable style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "flex-end" }} onPress={next}>
-          <Pressable style={{ backgroundColor: colors.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 36 }} onPress={() => undefined}>
-            <T weight="extrabold" style={{ fontSize: 24, letterSpacing: -0.4 }}>{t("pay.readyTitle", { name: status?.store.name ?? "" })}</T>
-            <T style={{ color: colors.inkSoft, marginTop: 8, marginBottom: 18, lineHeight: 21 }}>
-              {emailedTo ? t("pay.readyEmailed", { email: emailedTo }) : t("pay.readyLater")}
-            </T>
-            <PillButton title={t("pay.readyNext")} onPress={next} />
           </Pressable>
         </Pressable>
       </Modal>

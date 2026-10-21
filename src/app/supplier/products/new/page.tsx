@@ -2,13 +2,15 @@ import { db } from "@/lib/db/client";
 import { creditBalance } from "@/lib/ai/credits.server";
 import { billingEmail } from "@/lib/auth/billing-email";
 import { requireRole } from "@/lib/server-auth";
-import { ensureSupplierAccess, getSupplierForUser, isProPlan } from "@/lib/role-queries";
+import { ensureSupplierAccess, getSupplierForUser } from "@/lib/role-queries";
+import { planOf, supplierPlanLimits } from "@/lib/plan-limits";
+import { atLimit } from "@shared/plans";
 import { AppPage, AssistantNote, Card } from "@/components/app-kit";
 import { supplierFrame } from "@/components/supplier/supplier-kit";
 import { createSupplierProduct } from "@/app/actions/supplier";
 import { SupplierProductForm } from "@/components/supplier/SupplierProductForm";
 import { planOffers } from "@/lib/plans/catalog.server";
-import { PlanUpgradeSection } from "@/components/payments/PlanUpgradeSection";
+import { PlanPicker } from "@/components/payments/PlanPicker";
 import { getT } from "@/lib/i18n/server";
 
 export default async function NewSupplierProductPage({
@@ -33,7 +35,7 @@ export default async function NewSupplierProductPage({
   ]);
 
   const aiCredits = dbUser?.aiCredits ?? 5;
-  const atStarterLimit = !isProPlan({ aiCredits }) && productCount >= 50;
+  const atStarterLimit = atLimit(productCount, supplierPlanLimits({ aiCredits }).listings);
 
   return (
     <AppPage
@@ -49,7 +51,7 @@ export default async function NewSupplierProductPage({
               {t("newProduct.limitBody", { count: productCount })}
             </p>
           </Card>
-          <PlanUpgradeSection userEmail={billingEmail(user)} userName={user.name} aiCredits={aiCredits} creditBalance={await creditBalance(user.id)} offer={(await planOffers()).supplierMax} />
+          <PlanPicker role="supplier" current={planOf({ role: "supplier", aiCredits })} offers={await planOffers()} userEmail={billingEmail(user)} userName={user.name} creditBalance={await creditBalance(user.id)} creditsHref="/supplier/credits" />
         </div>
       ) : (
         <>

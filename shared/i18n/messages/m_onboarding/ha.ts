@@ -100,14 +100,9 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "pay.asAtBank": "Kamar yadda yake a bankinka",
   "pay.saveBank": "Ajiye banki",
   "pay.putLive": "Sa {name} a kan intanet",
-  "pay.launchFee": "Kuɗin ƙaddamarwa sau ɗaya. Shagonka zai buɗe da zarar Paystack ya ce ka biya.",
   "pay.payFull": "Biya {amount}",
   "pay.payPart": "Biya {now} yanzu, {rest} kafin ƙarshen wata",
   "pay.paystackNote": "Paystack ne ke kula da biyan. Shopinbos ba ya ganin katinka.",
-  "pay.readyTitle": "{name} ya shirya",
-  "pay.readyEmailed": "Zai fara aiki da zarar an launch shi. Mun aika matakai na gaba zuwa {email}.",
-  "pay.readyLater": "Zai fara aiki da zarar an launch shi.",
-  "pay.readyNext": "Ci gaba",
   "live.copied": "An kwafa link",
   "live.isLive": "Shagonka yana kan intanet",
   "live.open": "{name} ya buɗe",
@@ -150,6 +145,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "method.card.hint": "Kati da USSD, kuɗin suna shiga bankinka kai tsaye",
   "method.korapay.label": "Biya ta banki",
   "method.korapay.hint": "Wurin biya na biyu mai tsaro: kati, tura kuɗi ko app na banki",
+  "frame.step": "{current} cikin {total}",
 };
 
 export default ha;

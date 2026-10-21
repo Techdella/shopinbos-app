@@ -8,7 +8,8 @@ import { userLinks } from "@/lib/email/compliance.server";
 import { getLogisticsWorkspace } from "@/lib/workspace";
 import { Card, CardHead, Pill, PillLink, TextLink } from "@/components/app-kit";
 import { Notice } from "@/components/app-ui";
-import { logisticsRouteLimitMessage } from "@/lib/plan-limits";
+import { logisticsCoverageLimitMessage, logisticsPlanLimits } from "@/lib/plan-limits";
+import { db as planDb } from "@/lib/db/client";
 import { KeyValue, PartnerPage, SubmitButton, inputClass, labelClass, naira, textareaClass } from "@/components/logistics/kit";
 import { LogoUploadForm } from "./LogoUploadForm";
 import { IdentityImageUploader } from "@/components/profile/IdentityImageUploader";
@@ -58,7 +59,7 @@ export default async function LogisticsProfilePage({ searchParams }: PageProps) 
   const isVerified = partner.verificationStatus === "verified";
   const limitMessage =
     params.limit === "routes"
-      ? logisticsRouteLimitMessage()
+      ? logisticsCoverageLimitMessage(logisticsPlanLimits((await planDb.user.findUnique({ where: { id: user.id }, select: { aiCredits: true } })) ?? {}).coverageStates)
       : params.limit === "team"
         ? t("company.teamLimit")
         : null;

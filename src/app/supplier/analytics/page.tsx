@@ -1,4 +1,7 @@
 import { requireRole } from "@/lib/server-auth";
+import { supplierLimits } from "@shared/plans";
+import { planOfUser } from "@/lib/plan-limits";
+import { AnalyticsPlanNote } from "@/components/plans/AnalyticsPlanNote";
 import { ensureSupplierAccess, getSupplierForUser } from "@/lib/role-queries";
 import { db } from "@/lib/db/client";
 import { AppPage, Card, CardHead, EmptyState, SplitLayout, StatGrid, StatTile } from "@/components/app-kit";
@@ -33,6 +36,7 @@ export default async function SupplierAnalyticsPage() {
   const supplier = await getSupplierForUser(user);
   ensureSupplierAccess(supplier);
   const t = await getT("supplier", "common");
+  const analytics = supplierLimits(await planOfUser(user.id)).analytics;
   const lagosLabel = new Intl.DateTimeFormat(t.locale === "en" ? "en-GB" : intlLocale(t.locale), { timeZone: "Africa/Lagos", day: "numeric", month: "short" });
 
   const [orders, products, quoteCounts] = await Promise.all([
@@ -110,7 +114,9 @@ export default async function SupplierAnalyticsPage() {
         <StatTile tone="card" label={t("analytics.fulfilmentRate")} value={`${fulfillmentRate}%`} hint={t("analytics.ofOrders", { done: fulfilled.length, total: orders.length })} />
       </StatGrid>
 
-      {orders.length === 0 ? (
+      <AnalyticsPlanNote level={analytics} billingHref="/supplier/profile?tab=Billing%20%26%20Plan" exportHref="/api/supplier/analytics/export" />
+
+      {analytics === "basic" ? null : orders.length === 0 ? (
         <EmptyState icon="chart" title={t("analytics.emptyTitle")}>
           {t("analytics.emptyBody")}
         </EmptyState>

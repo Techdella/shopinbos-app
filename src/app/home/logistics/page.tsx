@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireRole } from "@/lib/server-auth";
+import { PARTNER_PLAN_FIRST } from "@/lib/plans/placement";
 import { getSellerWorkspace } from "@/lib/workspace";
 import { db } from "@/lib/db/client";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
@@ -61,7 +62,7 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
         ...(filter === "same_day" ? { deliveryTypes: { has: "same_day" } } : {}),
         ...(filter === "nationwide" ? { coverageZones: { hasSome: ["Nationwide", "nationwide"] } } : {}),
       },
-      orderBy: [{ reliabilityScore: "desc" }, { rating: "desc" }],
+      orderBy: [PARTNER_PLAN_FIRST, { reliabilityScore: "desc" }, { rating: "desc" }],
       take: 30,
     }),
     db.deliveryQuoteRequest.count({ where: { sellerId: user.id } }),

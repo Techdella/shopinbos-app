@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import { logisticsLimits } from "@shared/plans";
+import { planOfUser } from "@/lib/plan-limits";
+import { AnalyticsPlanNote } from "@/components/plans/AnalyticsPlanNote";
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { ensureLogisticsAccess, getLogisticsPartnerForUser } from "@/lib/role-queries";
@@ -34,6 +37,7 @@ export default async function LogisticsAnalyticsPage({ searchParams }: { searchP
   const partner = await getLogisticsPartnerForUser(user);
   ensureLogisticsAccess(partner);
   const t = await getT("logistics", "delivery", "common");
+  const analytics = logisticsLimits(await planOfUser(user.id)).analytics;
   const now = new Date();
   const dayWords = (day: Date) => lagosDate(day, { weekday: "short", day: "numeric", month: "short" }, now, t);
 
@@ -81,6 +85,9 @@ export default async function LogisticsAnalyticsPage({ searchParams }: { searchP
         <StatTile tone="card" label={t("performance.onTime")} value={onTime === null ? "—" : `${onTime}%`} hint={onTime === null ? t("performance.onTimeHint") : t("performance.promised", { count: timed.length })} />
       </StatGrid>
 
+      <AnalyticsPlanNote level={analytics} billingHref="/logistics/billing" exportHref="/api/logistics/analytics/export" />
+
+      {analytics === "basic" ? null : (
       <div className="grid gap-5 xl:[grid-template-columns:minmax(0,1fr)_400px]">
         <div className="grid min-w-0 content-start gap-5">
           <Card className="p-5">
@@ -172,8 +179,10 @@ export default async function LogisticsAnalyticsPage({ searchParams }: { searchP
           </Card>
         </div>
       </div>
+      )}
 
       {/* Logistics marketplace jobs: offered through shops' connections, accepted or declined, and how they went. */}
+      {analytics === "basic" ? null : (
       <section id="marketplace" aria-labelledby="marketplace-title" className="mt-10 grid scroll-mt-4 gap-5">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div className="min-w-0">
@@ -215,6 +224,7 @@ export default async function LogisticsAnalyticsPage({ searchParams }: { searchP
           </>
         )}
       </section>
+      )}
     </PartnerPage>
   );
 }

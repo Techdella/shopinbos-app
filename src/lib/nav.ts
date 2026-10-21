@@ -161,6 +161,15 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
             { id: "marketing-analytics", label: "Marketing reports", href: "/home/marketing/analytics" },
           ],
         },
+        {
+          id: "social-posts", label: "Social posts", icon: "calendar", href: "/home/marketing/social",
+          children: [
+            { id: "social-calendar", label: "Calendar", href: "/home/marketing/social" },
+            { id: "social-new", label: "Create post", href: "/home/marketing/social/new" },
+            { id: "social-designs", label: "Rex designs", href: "/home/marketing/social/designs" },
+            { id: "social-accounts", label: "Accounts", href: "/home/marketing/social/accounts" },
+          ],
+        },
         { id: "ads", label: "Ads", icon: "rocket", href: "/home/ads" },
         { id: "video", label: "Video studio", icon: "play", href: "/home/video", tag: "AI" },
         { id: "discounts", label: "Discounts", icon: "percent", href: "/home/discounts" },
@@ -251,6 +260,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
           children: [
             { id: "products-all", label: "All products", href: "/supplier/products" },
             { id: "products-new", label: "Add product", href: "/supplier/products/new" },
+            { id: "products-import", label: "Upload CSV", href: "/supplier/products/import" },
           ],
         },
         { id: "inbox", label: "Inbox", icon: "message", href: "/supplier/inbox" },
@@ -265,6 +275,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
           children: [
             { id: "buyers-all", label: "Shops selling your products", href: "/supplier/buyers" },
             { id: "agreements", label: "Dropship agreements", href: "/supplier/agreements" },
+            { id: "followers", label: "Followers", href: "/supplier/followers" },
             { id: "reviews", label: "Reviews", href: "/supplier/reviews" },
           ],
         },

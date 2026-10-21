@@ -100,14 +100,9 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "pay.asAtBank": "Dị ka ọ dị n'ụlọ akụ gị",
   "pay.saveBank": "Chekwaa ụlọ akụ",
   "pay.putLive": "Tinye {name} n'ịntanetị",
-  "pay.launchFee": "Ụgwọ mmalite otu ugboro. Ụlọ ahịa gị ga-emeghe ozugbo Paystack kwuru na ị kwụọla.",
   "pay.payFull": "Kwụọ {amount}",
   "pay.payPart": "Kwụọ {now} ugbu a, {rest} tupu ngwụcha ọnwa",
   "pay.paystackNote": "Paystack na-elekọta ịkwụ ụgwọ. Shopinbos anaghị ahụ kaadị gị.",
-  "pay.readyTitle": "{name} adịla njikere",
-  "pay.readyEmailed": "Ọ ga-amalite ozugbo e launch ya. Anyị ezigala nzọụkwụ ndị ọzọ na {email}.",
-  "pay.readyLater": "Ọ ga-amalite ozugbo e launch ya.",
-  "pay.readyNext": "Gaa n'ihu",
   "live.copied": "Edetuola link",
   "live.isLive": "Ụlọ ahịa gị nọ n'ịntanetị",
   "live.open": "{name} emepela",
@@ -150,6 +145,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "method.card.hint": "Kaadị na USSD, ego na-abanye na bank gị ozugbo",
   "method.korapay.label": "Kwụọ site na bank",
   "method.korapay.hint": "Ebe ịkwụ ụgwọ nke abụọ echekwara: kaadị, nnyefe ego ma ọ bụ app bank",
+  "frame.step": "{current} n'ime {total}",
 };
 
 export default ig;

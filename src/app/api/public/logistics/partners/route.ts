@@ -1,4 +1,6 @@
 import { NextRequest } from "next/server";
+import { featuredPartnerIds, markFeatured } from "@/lib/plans/extras.server";
+import { PARTNER_PLAN_FIRST } from "@/lib/plans/placement";
 import { db } from "@/lib/db/client";
 import { cachedPublic, publicCacheKey, PUBLIC_LIST_TTL_S } from "@/lib/api/public-cache";
 import { PUBLIC_LIST_CACHE, withCors, handleOptions } from "@/lib/api/cors";
@@ -41,7 +43,7 @@ function logisticsOrderBy(sort: "reliability" | "rating" | "newest" | "price_low
     case "price_high":
       return { basePrice: "desc" as const };
     default:
-      return { reliabilityScore: "desc" as const };
+      return [PARTNER_PLAN_FIRST, { reliabilityScore: "desc" as const }];
   }
 }
 
@@ -97,7 +99,8 @@ export async function GET(req: NextRequest) {
         take: limit,
       }),
     ]);
-    return { total, partners: partners.map(withMarketFields) };
+    const shaped = partners.map(withMarketFields);
+    return { total, partners: sort === "reliability" ? markFeatured(shaped, await featuredPartnerIds(parsed.data.zone ?? null)) : shaped };
   });
 
   return withCors(req, okList(partners, { page, limit, total }), { cacheControl: PUBLIC_LIST_CACHE });

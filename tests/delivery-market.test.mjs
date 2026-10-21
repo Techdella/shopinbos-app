@@ -334,3 +334,28 @@ test("payments: each partner's delivery fee is split straight to the partner; Sh
   const tooBig = rules.buildSplitPlan({ totalKobo: 200_000, sellerSubaccount: "ACCT_seller", suppliers: [], delivery: [{ shipmentKey: "own", partnerId: "p1", subaccount: "ACCT_p1", kobo: 195_000 }] });
   assert.equal(tooBig.delivery, undefined, "never leaves the seller under the minimum share");
 });
+
+test("checkout: a supplier that delivers itself is offered where it drives to, and its fee goes to it", () => {
+  const supplierShip = (over = {}) => ({ key: "supplier:s1", origin: { state: "Abia", area: "Aba" }, sizeBand: "small", connections: [], selfDelivery: { fee: 1500, states: [] }, ...over });
+  const near = m.buildMarketChoice({ settings: settings(), shipments: [supplierShip()], destination: { state: "Abia", area: "Umuahia" } });
+  assert.deepEqual(near.options.map((option) => [option.id, option.price, option.kind, option.pod, option.parts[0].service]), [["o:supplier:s1", 1500, "doorstep", false, "supplier_self"]]);
+  assert.equal(near.options[0].detail, "Standard delivery", "the customer never sees the supplier");
+  assert.equal(m.buildMarketChoice({ settings: settings(), shipments: [supplierShip()], destination: { state: "Lagos", area: null } }).covered, false, "its own state only by default");
+  const wider = m.buildMarketChoice({ settings: settings(), shipments: [supplierShip({ selfDelivery: { fee: 2500, states: ["Imo", "Abia"] } })], destination: { state: "Imo", area: "Owerri" } });
+  assert.equal(wider.options[0].price, 2500);
+  assert.equal(wider.options[0].estimatedDays, "2–5 days");
+  assert.equal(m.buildMarketChoice({ settings: settings(), shipments: [supplierShip({ key: "own" })], destination: { state: "Abia", area: null } }).covered, false, "only a supplier's parcel");
+  assert.equal(m.buildMarketChoice({ settings: settings(), shipments: [supplierShip({ selfDelivery: { fee: 0, states: [] } })], destination: { state: "Abia", area: null } }).covered, false, "needs a fee");
+  // Several parcels: the supplier's own delivery when it's cheaper than (or there's no) partner.
+  const multi = m.buildMarketChoice({
+    settings: settings(),
+    shipments: [{ key: "own", origin: lagosOrigin, sizeBand: "medium", connections: [connection("a")] }, supplierShip({ origin: lagosOrigin })],
+    destination: { state: "Lagos", area: "Yaba" },
+  });
+  assert.deepEqual(multi.options[0].parts.map((part) => [part.shipmentKey, part.service, part.price]), [["own", "doorstep", 2500], ["supplier:s1", "supplier_self", 1500]]);
+  assert.equal(multi.options[0].price, 4000);
+  assert.equal(multi.options[0].pod, false);
+  const plan = m.planFromOption(multi.options[0]);
+  assert.deepEqual(m.supplierSelfShipments(plan).map((part) => part.shipmentKey), ["supplier:s1"]);
+  assert.deepEqual(m.partnerShipments(plan).map((part) => part.shipmentKey), ["own"], "no partner job for the supplier's own delivery");
+});

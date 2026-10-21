@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { productLimitProblem } from "@/lib/plans/gates.server";
 import { withSeller } from "@/lib/auth/middleware";
 import { db } from "@/lib/db/client";
 import { ok, okList, apiError, parsePagination } from "@/lib/api/response";
@@ -14,6 +15,8 @@ export const GET = withSeller(async (req: NextRequest, { user }: { user: AuthUse
 
   const store = await db.store.findUnique({ where: { userId: user.id } });
   if (!store) return apiError("NOT_FOUND", "Store not found. Complete onboarding first.", 404);
+  const planLimit = await productLimitProblem(user.id, store.id);
+  if (planLimit) return apiError("PLAN_LIMIT", planLimit, 402);
 
   const [total, products] = await Promise.all([
     db.storeProduct.count({ where: { storeId: store.id } }),

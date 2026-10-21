@@ -1,4 +1,5 @@
 import "server-only";
+import { brandedTrackingFor } from "@/lib/plans/gates.server";
 
 import { db } from "@/lib/db/client";
 import { MARKETING_STORE_SELECT, storeUrl } from "@/lib/marketing/brand";
@@ -113,13 +114,16 @@ export async function notifyOrderCustomer(orderId: string, status: string) {
     const settings = await getMessagingSettings(order.storeId);
     const setting = settings.transactional[event];
     if (!setting.whatsapp && !setting.sms) return [];
-    const store = await db.store.findUnique({ where: { id: order.storeId }, select: MARKETING_STORE_SELECT });
+    const store = await db.store.findUnique({ where: { id: order.storeId }, select: { ...MARKETING_STORE_SELECT, userId: true } });
     if (!store) return [];
 
     const details = order.logisticsDetails && typeof order.logisticsDetails === "object" ? (order.logisticsDetails as Record<string, unknown>) : {};
     const orderLink = storeUrl(store, `/order/${order.id}`);
     const trackingCode = order.trackingCode || (typeof details.trackingCode === "string" ? details.trackingCode : "") || order.orderNumber;
-    const trackingLink = typeof details.trackingUrl === "string" && /^https:\/\//.test(details.trackingUrl) ? details.trackingUrl : orderLink;
+    // Branded tracking (Starter and up) keeps customers on the store's own order page; otherwise the delivery
+    // partner's tracking page is used when they gave one.
+    const branded = await brandedTrackingFor(store.userId).catch(() => false);
+    const trackingLink = !branded && typeof details.trackingUrl === "string" && /^https:\/\//.test(details.trackingUrl) ? details.trackingUrl : orderLink;
     const total = money(Number(order.total) || 0, order.currency);
     const first = firstName(order.buyerName) || "there";
     const recipient: Recipient = {
@@ -233,6 +237,41 @@ export async function notifyOrderCustomerPartlySent(orderId: string) {
     return [{ channel: "sms" as const, ok: outcome.ok }];
   } catch (error) {
     console.error(`[customer messages] partly sent for order ${orderId} failed`, error);
+    return [];
+  }
+}
+
+/** The SMS with the code for a parcel the supplier delivers itself (the shop's name; the supplier stays unseen). */
+export const SELF_DELIVERY_SMS = "{{store}}: your order {{order_number}} is on its way. When it arrives, give this code to the person delivering it: {{delivery_code}}. {{order_url}}";
+
+/**
+ * The customer's delivery code by SMS, once per parcel, when a supplier sets off to deliver its own parcel
+ * (src/lib/supplier-orders/service.server.ts). Sent whatever the shop's order message settings: without it the
+ * parcel can't be marked delivered. Never after STOP. The code is also on the customer's order page. Never throws.
+ */
+export async function textSelfDeliveryCode(orderId: string, code: string) {
+  try {
+    const order = await db.retailOrder.findUnique({ where: { id: orderId }, select: { id: true, storeId: true, orderNumber: true, buyerName: true, buyerPhone: true } });
+    const phone = normalizePhone(order?.buyerPhone);
+    if (!order || !phone) return [];
+    const store = await db.store.findUnique({ where: { id: order.storeId }, select: MARKETING_STORE_SELECT });
+    if (!store) return [];
+    const recipient = { event: "order_self_delivery" as CustomerEvent, refId: `${order.id}:${code}`, phone, name: order.buyerName, values: {}, smsVars: {} } satisfies Recipient;
+    const id = await claim(store.id, recipient, "sms");
+    if (!id) return [];
+    const allowed = mayText({ channel: "sms", phone, purpose: "transactional", consent: true, optOuts: await loadOptOuts(store.id) });
+    if (!allowed.ok) {
+      await finish(id, { ok: false, error: allowed.reason, skipped: true });
+      return [{ channel: "sms" as const, ok: false, error: allowed.reason }];
+    }
+    const settings = await getMessagingSettings(order.storeId);
+    const body = fillVariables(SELF_DELIVERY_SMS, { store: store.name, order_number: order.orderNumber, delivery_code: code, order_url: storeUrl(store, `/order/${order.id}`) } as unknown as FlowVariables, "text").replace(/\s{2,}/g, " ").trim();
+    const send = await textSender(store, { senderId: settings.smsSenderId });
+    const outcome = await send.sms(phone, body).catch((error): SendOutcome => ({ ok: false, error: String(error) }));
+    await finish(id, outcome);
+    return [{ channel: "sms" as const, ok: outcome.ok }];
+  } catch (error) {
+    console.error(`[customer messages] self-delivery code for order ${orderId} failed`, error);
     return [];
   }
 }

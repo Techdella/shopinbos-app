@@ -2,7 +2,8 @@ import "server-only";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { getPriceBook } from "@/lib/pricing/price-book.server";
-import { storeFeeConfig } from "@shared/platform-pricing";
+import { storeFeeConfig, supplierCommissionPct } from "@shared/platform-pricing";
+import { planKeyFor } from "@shared/plans";
 import { korapayCheckoutReady } from "@/lib/korapay";
 import { createPaystackSubaccount, listPaystackSettlements, updatePaystackSubaccount } from "@/lib/paystack";
 import { resolveBankAccount, settlementBanks, syncPayoutBank, type ResolvedAccount } from "@/lib/payout-bank";
@@ -16,6 +17,7 @@ import {
   maskAccountNumber,
   platformFeeKobo,
   readSplitPlan,
+  supplierCommissionKobo,
   type PaymentSplitPlan,
   type PlatformFee,
   type SplitGateway,
@@ -252,10 +254,21 @@ export async function storeTakesKorapay(storeId: string) {
  * Korapay split account), plus each dropship supplier with one for their wholesale cost. Null when the seller's
  * wallet can't take payments through that gateway.
  */
-/** Shopinbos's fee on store sales (Admin › Pricing), or none when neither a rate nor a minimum is set. */
-export async function platformFee(): Promise<PlatformFee | null> {
-  const fee = storeFeeConfig(await getPriceBook());
+/**
+ * Shopinbos's fee on a seller's store sales: the rate for their plan (shared/plans.ts, Admin › Pricing), or none
+ * when neither a rate nor a minimum is set.
+ */
+export async function platformFee(sellerUserId?: string, book?: Awaited<ReturnType<typeof getPriceBook>>): Promise<PlatformFee | null> {
+  const prices = book ?? (await getPriceBook());
+  const seller = sellerUserId ? await db.user.findUnique({ where: { id: sellerUserId }, select: { aiCredits: true } }) : null;
+  const fee = storeFeeConfig(prices, planKeyFor("seller", seller?.aiCredits));
   return fee.rate > 0 || fee.minFee > 0 ? fee : null;
+}
+
+/** A supplier's commission on marketplace orders for their plan (percent). */
+async function supplierCommission(userId: string) {
+  const user = await db.user.findUnique({ where: { id: userId }, select: { aiCredits: true } });
+  return supplierCommissionPct(await getPriceBook(), planKeyFor("supplier", user?.aiCredits));
 }
 
 export async function splitPlanForOrder(
@@ -269,6 +282,8 @@ export async function splitPlanForOrder(
   orderId?: string,
   /** Delivery-partner fees in this order (logistics marketplace): each goes to the partner's wallet when it's ready. */
   delivery: Array<{ shipmentKey: string; partnerId: string; naira: number }> = [],
+  /** Delivery fees of suppliers that deliver their own parcels: added to that supplier's share. */
+  supplierDelivery: Array<{ supplierId: string; naira: number }> = [],
 ): Promise<PaymentSplitPlan | null> {
   const store = await db.store.findUnique({ where: { id: storeId }, select: { userId: true } });
   if (!store) return null;
@@ -282,7 +297,7 @@ export async function splitPlanForOrder(
   const products = productIds.length
     ? await db.storeProduct.findMany({
         where: { storeId, id: { in: productIds }, fulfillmentType: "dropship", supplierProductId: { not: null } },
-        select: { id: true, supplierProduct: { select: { id: true, supplierId: true, wholesalePrice: true } } },
+        select: { id: true, retailPrice: true, supplierProduct: { select: { id: true, supplierId: true, wholesalePrice: true } } },
       })
     : [];
   const links = new Map<string, DropshipLink>();
@@ -291,14 +306,23 @@ export async function splitPlanForOrder(
   }
   const { groups } = groupDropshipLines(items, links);
   const suppliers = groups.length
-    ? await db.supplier.findMany({ where: { id: { in: groups.map((group) => group.supplierId) } }, select: { id: true, userId: true } })
+    ? await db.supplier.findMany({ where: { id: { in: groups.map((group) => group.supplierId) } }, select: { id: true, userId: true, user: { select: { aiCredits: true } } } })
     : [];
   const wallets = suppliers.length
     ? await db.wallet.findMany({ where: { userId: { in: suppliers.map((supplier) => supplier.userId) }, ...ready }, select: { userId: true, subaccountCode: true, korapaySplitAccount: true } })
     : [];
   const subaccountBySupplier = new Map(suppliers.map((supplier) => [supplier.id, accountOf(wallets.find((wallet) => wallet.userId === supplier.userId))]));
   const totalKobo = Math.round(totalNaira * 100);
-  const fee = await platformFee();
+  const book = await getPriceBook();
+  const fee = await platformFee(store.userId, book);
+  // Dropship lines pay the supplier's commission instead of the seller's fee (October 2026 pricing).
+  const retailOf = new Map(products.map((product) => [product.id, product.retailPrice]));
+  const dropshipKobo = (Array.isArray(items) ? items : []).reduce((sum: number, item) => {
+    const line = item as { productId?: unknown; quantity?: unknown };
+    const price = typeof line.productId === "string" ? retailOf.get(line.productId) : undefined;
+    return price === undefined ? sum : sum + Math.round(price * 100) * Math.max(1, Math.floor(Number(line.quantity) || 1));
+  }, 0);
+  const commissionPctOf = new Map(suppliers.map((supplier) => [supplier.id, supplierCommissionPct(book, planKeyFor("supplier", supplier.user?.aiCredits))]));
   // Overdue money owed by the seller or a supplier paid in this split goes to whoever it's owed to (src/lib/money-owed).
   const debtors = new Map<string, string>([[store.userId, "seller"]]);
   for (const supplier of suppliers) if (subaccountBySupplier.get(supplier.id)) debtors.set(supplier.userId, supplier.id);
@@ -316,9 +340,19 @@ export async function splitPlanForOrder(
     gateway,
     delivery: delivery.map((share) => ({ shipmentKey: share.shipmentKey, partnerId: share.partnerId, subaccount: deliveryAccount(share.partnerId), kobo: Math.round(share.naira * 100) })),
     totalKobo,
-    platformKobo: platformFeeKobo(Math.max(0, totalKobo - Math.round(Math.max(0, shippingNaira) * 100)), fee),
+    platformKobo: platformFeeKobo(Math.max(0, totalKobo - Math.round(Math.max(0, shippingNaira) * 100) - dropshipKobo), fee),
     sellerSubaccount: sellerAccount,
-    suppliers: groups.map((group) => ({ supplierId: group.supplierId, subaccount: subaccountBySupplier.get(group.supplierId) ?? null, costKobo: Math.round(group.costTotal * 100) })),
+    suppliers: groups.map((group) => {
+      const goodsKobo = Math.round(group.costTotal * 100);
+      // The supplier's own delivery fee (they deliver it themselves) is theirs in full; the commission is on the goods only.
+      const deliveryKobo = Math.round(supplierDelivery.filter((share) => share.supplierId === group.supplierId).reduce((sum, share) => sum + share.naira, 0) * 100);
+      return {
+        supplierId: group.supplierId,
+        subaccount: subaccountBySupplier.get(group.supplierId) ?? null,
+        costKobo: goodsKobo + deliveryKobo,
+        commissionKobo: supplierCommissionKobo(goodsKobo, commissionPctOf.get(group.supplierId) ?? 0),
+      };
+    }),
     debts: orderId ? await debtsToDeduct(debtors, gateway) : [],
   });
   if (orderId) await holdPlannedDeductions(orderId, plan.deductions ?? []);
@@ -387,6 +421,8 @@ export interface WalletView {
   owed: MoneyOwedView;
   /** Sellers: Shopinbos's fee on their store sales (null = none). Suppliers and delivery partners pay none. */
   fee: PlatformFee | null;
+  /** Suppliers: Shopinbos's commission on marketplace orders for their plan (percent). */
+  commissionPct: number | null;
 }
 
 export async function loadWalletView(user: { id: string; role: WalletRole }): Promise<WalletView> {
@@ -425,7 +461,8 @@ export async function loadWalletView(user: { id: string; role: WalletRole }): Pr
     sellerSettles: owed,
     toReturn,
     owed: moneyOwed,
-    fee: user.role === "seller" ? await platformFee().catch(() => null) : null,
+    fee: user.role === "seller" ? await platformFee(user.id).catch(() => null) : null,
+    commissionPct: user.role === "supplier" ? await supplierCommission(user.id).catch(() => null) : null,
   };
 }
 

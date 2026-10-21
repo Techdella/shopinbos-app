@@ -85,9 +85,6 @@ export function promotionProblem(input: PromoInput, base: PriceBook, now = new D
   const keys = Object.keys(input.prices) as PriceKey[];
   if (!keys.length) return "Change at least one price.";
   if (keys.every((key) => input.prices[key] === base[key])) return "Every price is the same as today's. Change at least one.";
-  const price = (input.prices["launch.price"] ?? base["launch.price"]) as number;
-  const deposit = (input.prices["launch.deposit"] ?? base["launch.deposit"]) as number;
-  if (input.prices["launch.deposit"] !== undefined && deposit > price) return "The deposit can't be more than the launch fee.";
   return null;
 }
 
@@ -140,13 +137,15 @@ export function suggestedAudience(keys: readonly string[]): PromoAudience[] {
     if (group === "credits") {
       out.add("seller");
       out.add("supplier");
-    } else if (group === "delivery") out.add("logistics_partner");
+      out.add("logistics_partner");
+    } else if (group === "delivery" || key === "boosts.logistics_state_week") out.add("logistics_partner");
+    else if (group === "supplier_fee" || key === "boosts.supplier_week" || key === "boosts.product_week") out.add("supplier");
     else out.add("seller");
   }
   return [...out];
 }
 
-/** "Launch fee: ₦8,000 → ₦5,000" lines, for the email and the notice. */
+/** "Ad campaigns, setup fee: ₦20,000 → ₦15,000" lines, for the email and the notice. */
 export function changeLines(changes: PromoChange[]) {
   return changes.map((change) => `${PRICE_GROUPS[change.group].title}, ${change.label.charAt(0).toLowerCase()}${change.label.slice(1)}: ${change.from} → ${change.to}`);
 }

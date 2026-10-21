@@ -1,3 +1,5 @@
+import { completeExtraPurchase } from "@/lib/plans/extras.server";
+import { EXTRA_REFERENCE_PREFIX } from "@shared/plan-extras";
 import { completeCreditPurchase, grantPlanCredits } from "@/lib/ai/credits.server";
 import { CREDIT_REFERENCE_PREFIX } from "@shared/ai-credits";
 import { THEME_REFERENCE_PREFIX } from "@shared/theme-purchase";
@@ -19,6 +21,7 @@ import { applyRefundEvent } from "@/lib/commerce/refunds.server";
 import { afterRetailOrderPaid } from "@/lib/commerce/order-paid.server";
 import { SELLER_PAYIN_PREFIX, confirmSellerPayIn } from "@/lib/logistics/seller-payins.server";
 import { DELIVERY_FEE_PREFIX, confirmDeliveryFeePayment } from "@/lib/logistics/delivery-fee-payments.server";
+import { WHOLESALE_PAY_PREFIX, confirmWholesalePayment } from "@/lib/supplier-orders/wholesale-payments.server";
 import { DEBT_PAYMENT_PREFIX, confirmDebtPayment } from "@/lib/money-owed/money-owed.server";
 import { PAID_RETAIL_STATUSES } from "@/lib/supplier-orders/pure";
 import { isDedicatedCharge } from "@/lib/logistics/payin-rules";
@@ -153,6 +156,14 @@ export async function POST(req: NextRequest) {
     return new NextResponse("OK", { status: 200 });
   }
 
+  // ── A wholesale order a seller paid by card (split to the supplier's own bank) ──
+  if (eventType === "charge.success" && typeof event.data?.reference === "string" && event.data.reference.startsWith(WHOLESALE_PAY_PREFIX)) {
+    const result = await confirmWholesalePayment(event.data.reference).catch((error) => ({ ok: false as const, error: String(error), retry: true }));
+    if (!result.ok && result.retry) return new NextResponse("Retry later", { status: 500 });
+    if (!result.ok) console.warn(`[paystack webhook] wholesale payment ${event.data.reference} not applied: ${result.error}`);
+    return new NextResponse("OK", { status: 200 });
+  }
+
   // ── Money one business owed another, paid in the app (split to the creditor's own bank) ──
   if (eventType === "charge.success" && typeof event.data?.reference === "string" && event.data.reference.startsWith(DEBT_PAYMENT_PREFIX)) {
     const result = await confirmDebtPayment(event.data.reference).catch((error) => ({ ok: false as const, error: String(error), retry: true }));
@@ -180,6 +191,12 @@ export async function POST(req: NextRequest) {
       if (ref.startsWith(THEME_REFERENCE_PREFIX)) {
         await completeThemePurchase(ref).catch((error) => {
           console.error("Theme purchase completion failed:", error);
+        });
+        return NextResponse.json({ received: true });
+      }
+      if (ref.startsWith(EXTRA_REFERENCE_PREFIX)) {
+        await completeExtraPurchase(ref).catch((error) => {
+          console.error("Plan add-on purchase completion failed:", error);
         });
         return NextResponse.json({ received: true });
       }

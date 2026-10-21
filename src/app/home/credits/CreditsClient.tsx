@@ -6,10 +6,13 @@ import { Card, CardHead } from "@/components/app-kit";
 import { Icon } from "@/components/ui/Icon";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import { formatNumber } from "@shared/i18n";
-import { nairaPerCredit, type CreditPack } from "@shared/ai-credits";
+import { COSTS_BY_ROLE, nairaPerCredit, type CreditPack } from "@shared/ai-credits";
 
 interface Overview {
   balance: number;
+  planCredits?: number;
+  bought?: number;
+  nextExpiry?: { credits: number; at: string } | null;
   autoTopUp: boolean;
   autoPackId: string | null;
   card: { brand: string | null; last4: string | null } | null;
@@ -27,19 +30,19 @@ export function CreditsClient({
   initial,
   packs,
   costs,
-  allowance,
   result,
   resultError,
   returnTo = "/home/credits",
+  role = "seller",
 }: {
   initial: Overview;
   packs: CreditPack[];
   costs: Record<string, number>;
-  allowance: Array<{ kind: string; label: string; used: number; limit: number }> | null;
   result: "paid" | "failed" | "pending" | null;
   resultError: string | null;
   /** The page Paystack brings the buyer back to (this page). */
   returnTo?: string;
+  role?: keyof typeof COSTS_BY_ROLE;
 }) {
   const t = useT("payments");
   const locale = useLocale();
@@ -108,6 +111,12 @@ export function CreditsClient({
             <div className="min-w-0 flex-1">
               <p className="m-0 text-[12.5px] font-bold uppercase tracking-[0.14em] text-white/60">{t("cr.balance")}</p>
               <p className="m-0 mt-1 text-[40px] font-extrabold leading-none tracking-[-0.03em]">{formatNumber(overview.balance, locale)}</p>
+              {overview.planCredits !== undefined ? (
+                <p className="m-0 mt-2 text-[13px] font-bold text-white/80">
+                  {t("cr.split", { plan: formatNumber(overview.planCredits, locale), bought: formatNumber(overview.bought ?? 0, locale) })}
+                  {overview.nextExpiry ? ` · ${t("cr.expires", { credits: formatNumber(overview.nextExpiry.credits, locale), date: new Date(overview.nextExpiry.at).toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" }) })}` : ""}
+                </p>
+              ) : null}
               <p className="m-0 mt-2 max-w-[460px] text-[13.5px] leading-[1.5] text-white/75">
                 {overview.autoTopUp ? t("cr.autoOnLine", { pack: packName(overview.autoPackId)?.credits ?? "" }) : out ? t("cr.outLine") : low ? t("cr.lowLine") : t("cr.okLine")}
               </p>
@@ -175,32 +184,10 @@ export function CreditsClient({
       </div>
 
       <div className="grid min-w-0 content-start gap-5">
-        {allowance ? (
-          <Card className={card}>
-            <CardHead title={t("cr.today")} sub={t("cr.howSub")} />
-            <ul className="m-0 mt-4 grid list-none gap-3 p-0 text-[13.5px]">
-              {allowance.map((row) => {
-                const full = row.used >= row.limit;
-                return (
-                  <li key={row.kind}>
-                    <div className="flex justify-between gap-3">
-                      <span>{t.dynamic(`cr.kind.${row.kind}`, row.label)}</span>
-                      <span className={cx("font-mono tabular-nums", full ? "font-bold text-app-danger" : "text-app-ink-soft")}>{row.used} / {row.limit}</span>
-                    </div>
-                    <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-app-canvas">
-                      <div className={cx("h-full rounded-full", full ? "bg-app-danger" : "bg-app-ink")} style={{ width: `${Math.min(100, Math.round((row.used / Math.max(1, row.limit)) * 100))}%` }} />
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          </Card>
-        ) : null}
-
         <Card className={card}>
           <CardHead title={t("cr.how")} />
           <ul className="m-0 mt-3 grid list-none gap-0 p-0 text-[13.5px]">
-            {Object.entries(costs).map(([kind, cost]) => (
+            {COSTS_BY_ROLE[role].filter((kind) => kind in costs).map((kind) => [kind, costs[kind]] as const).map(([kind, cost]) => (
               <li key={kind} className="flex items-center justify-between gap-3 border-t border-app-line py-2.5 first:border-t-0">
                 <span>{t.dynamic(`cr.kind.${kind}`, kind)}</span>
                 <span className="shrink-0 rounded-full bg-app-canvas px-2.5 py-0.5 font-bold">{t("cr.cost", { count: cost })}</span>

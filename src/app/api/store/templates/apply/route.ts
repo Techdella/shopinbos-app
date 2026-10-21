@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { themeProblem } from "@/lib/plans/gates.server";
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { withSeller } from "@/lib/auth/middleware";
@@ -15,8 +16,6 @@ import {
   type StoreBrandSettingsLike,
 } from "@/lib/store-templates";
 import { seedDefaultAbandonedCartAutomation } from "@/lib/automations/defaults";
-import { checkThemeSwitch } from "@/lib/theme-access";
-import { loadSellerThemeAccess } from "@/lib/theme-access.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -162,11 +161,11 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
   const published = resolvePublishedSnapshot(currentSettings, null);
   const previousManifest = previousDraft ? getTemplateManifest(previousDraft.templateId) : null;
 
-  // Premium and platinum themes need a paid plan; re-applying the theme the store already has is always fine.
-  const themeAccess = await loadSellerThemeAccess(user.id);
-  const access = checkThemeSwitch(manifest.id, themeAccess.tier, previousDraft?.templateId ?? published?.templateId, themeAccess.owned);
-  if (!access.ok) {
-    return NextResponse.json({ error: { code: "UPGRADE_REQUIRED", message: access.message, tier: access.tier } }, { status: 403 });
+  // Premium and platinum themes need a plan that includes them or a one-off purchase; re-applying the theme the
+  // store already has is always fine.
+  const themeRefusal = await themeProblem(user.id, manifest.id, previousDraft?.templateId ?? published?.templateId);
+  if (themeRefusal) {
+    return NextResponse.json({ error: { code: "UPGRADE_REQUIRED", message: themeRefusal } }, { status: 403 });
   }
 
   // Switching keeps the seller's own copy, images, picked products, hidden sections and extra pages. Products,

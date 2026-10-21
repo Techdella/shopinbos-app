@@ -25,7 +25,7 @@ What Shopinbos is: an AI commerce platform for African businesses. Sellers build
 
 Where things are (seller app):
 - Home dashboard: /home. Orders: /home/orders. Products: /products. Store pages: /home/pages. Blog/CMS: /home/cms. Brand kit: /home/brand-kit. Settings (store, payments, payouts, shipping): /home/settings.
-- Your store hub: /home/store. Build or redesign the store by chatting with Rex: Rex Studio at /studio. Advanced builder (sections, pages, themes): /seller/store/builder. Templates: /builder/templates. Publishing happens from Rex Studio or the advanced builder with "Publish"; the first launch has a one-time launch fee.
+- Your store hub: /home/store. Build or redesign the store by chatting with Rex: Rex Studio at /studio. "Build my whole store" there asks about the business, takes inspiration (links to stores the seller likes, screenshots, or a ready-made template) and builds every page with photos, using the free allowance first and then AI credits. Advanced builder (sections, pages, themes): /seller/store/builder. Templates: /builder/templates. Publishing happens from Rex Studio or the advanced builder with "Publish"; it is free, there is no launch fee.
 - Supplier marketplace (find products to sell, request quotes): /marketplace and /marketplace/suppliers. Logistics marketplace (find and book couriers): /marketplace/logistics; a seller's bookings are under /home/logistics. Payouts: /home/payouts. Shipping zones: /home/shipping. Customers: /home/customers. Marketing: /home/marketing.
 - Suppliers use /supplier (dashboard, products, orders, quote requests). Logistics partners use /logistics (dashboard, bookings, quotes, couriers).
 

@@ -14,7 +14,9 @@ import { localWholesaleStage } from "./wholesaleStage";
 
 // The seller's wholesale orders (/marketplace/wholesale): every order they placed with a supplier, its stage, and
 // "Cancel order" while the supplier hasn't started packing (PATCH /api/app/wholesale/[id] { action: "cancel" }).
-// The server gives the reserved stock back once and tells the supplier; a repeat answers 409.
+// The server gives the reserved stock back once and tells the supplier; a repeat answers 409. Once the supplier
+// accepts, "Pay ₦X" pays by card, split straight to the supplier's bank (PATCH … { action: "pay" } → Paystack →
+// back to this page, which confirms the payment).
 
 export interface SellerWholesaleRow {
   id: string;
@@ -30,6 +32,10 @@ export interface SellerWholesaleRow {
   placed: string;
   supplier: { name: string; slug: string | null };
   product: { id: string; name: string; image: string | null };
+  /** Paid by card in Shopinbos (straight to the supplier's bank). */
+  paid: boolean;
+  /** Accepted by the supplier, not paid yet, and the supplier takes card payments. */
+  canPay: boolean;
 }
 
 function money(amount: number, currency: string, locale: Locale) {
@@ -51,6 +57,8 @@ export function WholesaleOrders({ initial }: { initial: SellerWholesaleRow[] }) 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [paying, setPaying] = useState<string | null>(null);
+  const [payError, setPayError] = useState<string | null>(null);
 
   function openCancel(row: SellerWholesaleRow) {
     setCancelling(row);
@@ -63,6 +71,25 @@ export function WholesaleOrders({ initial }: { initial: SellerWholesaleRow[] }) 
     if (busy) return;
     setCancelling(null);
     setError(null);
+  }
+
+  async function pay(row: SellerWholesaleRow) {
+    setPaying(row.id);
+    setNotice(null);
+    setPayError(null);
+    try {
+      const response = await fetch(`/api/app/wholesale/${encodeURIComponent(row.id)}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "pay" }) });
+      const json = (await response.json().catch(() => null)) as { data?: { authorizationUrl?: string | null }; error?: { message?: string } } | null;
+      if (!response.ok || !json?.data?.authorizationUrl) {
+        setPayError(json?.error?.message ?? t("ws.payError"));
+        setPaying(null);
+        return;
+      }
+      window.location.assign(json.data.authorizationUrl);
+    } catch {
+      setPayError(t("ws.offline"));
+      setPaying(null);
+    }
   }
 
   async function confirmCancel() {
@@ -96,6 +123,7 @@ export function WholesaleOrders({ initial }: { initial: SellerWholesaleRow[] }) 
   return (
     <div className="grid gap-4">
       {notice && <Notice tone="success">{notice}</Notice>}
+      {payError && <Notice tone="error">{payError}</Notice>}
       <Card className="overflow-hidden">
         <div className="hidden border-b border-app-line px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.12em] text-app-ink-soft lg:grid lg:grid-cols-[minmax(0,2.4fr)_minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.5fr)_150px] lg:gap-4">
           <span>{t("ws.col.product")}</span>
@@ -139,8 +167,14 @@ export function WholesaleOrders({ initial }: { initial: SellerWholesaleRow[] }) 
                   <Pill tone={stage.tone} dot>{stage.label}</Pill>
                   {row.trackingCode && <span className="max-w-full truncate text-[12.5px] text-app-ink-soft">{t("pd.tracking", { code: row.trackingCode })}</span>}
                   {stage.note && <span className={cx("max-w-full break-words text-[12.5px]", stage.tone === "danger" ? "text-app-danger" : "text-app-ink-soft")}>{stage.note}</span>}
+                  {row.paid && <Pill tone="success">{t("ws.paidInApp")}</Pill>}
                 </div>
-                <div className="flex lg:justify-end">
+                <div className="flex flex-wrap gap-2 lg:justify-end">
+                  {row.canPay && (
+                    <PillButton tone="accent" size="sm" busy={paying === row.id} disabled={paying !== null} onClick={() => void pay(row)} aria-label={t("ws.payLabel", { ref: row.ref })}>
+                      {t("ws.pay", { total: money(row.totalPrice, row.currency, locale) })}
+                    </PillButton>
+                  )}
                   {canCancel && (
                     <PillButton tone="white" size="sm" onClick={() => openCancel(row)} aria-label={t("ws.cancelLabel", { ref: row.ref })}>
                       {t("ws.cancelOrder")}

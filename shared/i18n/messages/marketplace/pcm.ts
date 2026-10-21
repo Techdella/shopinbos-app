@@ -155,7 +155,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "pd.optional": "(optional)",
   "pd.notePh": "Sizes, colours, delivery days",
   "pd.noPay": "You no dey pay on Shopinbos.",
-  "pd.noPayBody": "{name} go confirm the order and send you invoice; you go pay them direct.",
+  "pd.noPayBody": "{name} go confirm the order. Then pay inside Shopinbos with card (e go enter dem bank straight), or pay dem directly with their invoice.",
   "pd.sent": "Order don send. {name} go confirm am and send their invoice.",
   "pd.addressError": "Put the full delivery address for this order.",
   "pd.placeError": "We no fit place the order. Try again.",
@@ -197,7 +197,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "ws.note.yourReason": "Your reason: {reason}",
   "ws.note.declined": "Declined: {reason}",
   "ws.title": "Wholesale orders",
-  "ws.sub": "Stock wey you buy from suppliers. You fit cancel order until supplier start to pack am; dem go send you invoice and you go pay them direct.",
+  "ws.sub": "Stock wey you buy from suppliers. You fit cancel order until supplier start to pack am. Once dem accept, pay here with card and e go enter dem bank straight, or pay dem directly.",
   "ws.findProducts": "Find products",
   "ws.empty": "No wholesale orders yet",
   "ws.emptySub": "Buy stock from verified supplier at their wholesale price. Your orders and how dem dey go go show here.",
@@ -341,6 +341,14 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "trust.agree": "I don call {name}, I don see the stock, and I accept the Dropship agreement",
   "trust.sending": "E dey send…",
   "trust.send": "Send the agreement to {name}",
+  "featured": "Featured",
+  "pub.follow": "Follow",
+  "pub.following": "You dey follow",
+  "ws.pay": "Pay {total}",
+  "ws.payLabel": "Pay for order {ref} with card",
+  "ws.payError": "Payment no gree start. Try again.",
+  "ws.paidInApp": "Don pay inside Shopinbos",
+  "ws.paidNotice": "E don pay. E go enter supplier bank straight.",
 };
 
 export default pcm;

@@ -495,6 +495,13 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "jobErrors.checkQuote": "Lelee nkọwa quote ahụ.",
   "kit.to": " gaa ",
   "jobs.pages": "Peeji ọrụ",
+  "fees.subOn": "Shopinbos na-ewere {rate}% n'ụgwọ nnyefe ọ bụla n'ime app n'atụmatụ gị, site n'òkè gị. Atụmatụ a na-akwụ ụgwọ ga-ebelata ya.",
+  "fees.subOff": "Enweghị ụgwọ ọrụ ugbu a: ị ga-ejide ụgwọ nnyefe niile. Mgbe ọ malitere, ọ ga-abụ {rate}% n'atụmatụ gị.",
+  "fees.offNow": "0% ugbu a ({rate}% ma emechaa)",
+  "fees.usageStates": "Steeti ị kpuchiri",
+  "fees.usageTeam": "Ndị otu",
+  "coverage.noLimit": "Atụmatụ gị kpuchiri mba niile.",
+  "coverage.stateLimit": "Atụmatụ gị kpuchiri steeti ruo {limit}.",
   // Logistics marketplace
   "stage.out_for_delivery": "Ọ pụọla maka delivery",
   "stage.at_pickup_point": "Ọ nọ n'ebe pickup",
@@ -525,7 +532,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "market.rates.anArea": "Otu mpaghara n'ime steeti",
   "market.rates.aRegion": "Otu mpaghara mba",
   "market.rates.everywhere": "Ebe niile",
-  "market.rates.closestWins": "Nke kacha nso na-emeri: mpaghara karịrị steeti ya, steeti karịrị mpaghara mba ya, mpaghara mba karịkwa Nationwide. Ya mere ị nwere ike idowe otu ọnụahịa Nationwide na ọnụahịa dị ọnụ ala maka ebe ị maara nke ọma.",
+  "market.rates.closestWins": "Nke kacha dabara na-emeri: mpaghara karịrị steeti ya, steeti karịrị mpaghara mba ya, mpaghara mba karịkwa Nationwide. Ya mere ị nwere ike idowe otu ọnụahịa Nationwide na ọnụahịa dị ọnụ ala maka ebe ị maara nke ọma.",
   "market.rates.sizesAndDays": "Nha na ụbọchị",
   "market.rates.small": "Obere",
   "market.rates.smallUpTo": "ruo 2kg.",
@@ -686,8 +693,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "market.decline.submit": "Jụ ọrụ ahụ",
   "market.cash.confirmed": "Ụlọ ahịa kwadoro na ego {amount} ahụ eruola ha aka.",
   "market.cash.marked": "Ị gosiri na ị kwụọla ụlọ ahịa {amount}. A na-eche ka ha kwado ya.",
-  "market.cash.payShop": "Kwụọ ụlọ ahịa {amount} rider natara, wee:",
-  "market.cash.mark": "Gosi na ego eruola ụlọ ahịa",
+  "market.cash.payShop": "Kwụọ ụlọ ahịa {amount} rider gị natara, wee:",
+  "market.cash.mark": "Gosi na ị kwụọla ụlọ ahịa cash ahụ",
 };
 
 export default ig;

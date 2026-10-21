@@ -100,14 +100,9 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "pay.asAtBank": "Bí ó ṣe wà ní bank rẹ",
   "pay.saveBank": "Fi bank pamọ́",
   "pay.putLive": "Gbé {name} jáde",
-  "pay.launchFee": "Owó ìfilọ́lẹ̀ lẹ́ẹ̀kan ṣoṣo. Ṣọ́ọ̀bù rẹ yóò ṣí ní kété tí Paystack bá sọ pé o ti sanwó.",
   "pay.payFull": "San {amount}",
   "pay.payPart": "San {now} báyìí, {rest} ní òpin oṣù",
   "pay.paystackNote": "Paystack ló ń bójú tó ìsanwó. Shopinbos kò rí káàdì rẹ rí.",
-  "pay.readyTitle": "{name} ti ṣetán",
-  "pay.readyEmailed": "Yóò wà láàyè ní kété tí wọ́n bá ti launch rẹ̀. A ti fi àwọn ìgbésẹ̀ tó kàn ránṣẹ́ sí {email}.",
-  "pay.readyLater": "Yóò wà láàyè ní kété tí wọ́n bá ti launch rẹ̀.",
-  "pay.readyNext": "Tẹ̀síwájú",
   "live.copied": "A ti da link kọ",
   "live.isLive": "Ṣọ́ọ̀bù rẹ ti jáde",
   "live.open": "{name} ti ṣí",
@@ -150,6 +145,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "method.card.hint": "Káàdì àti USSD, owó máa wọ báńkì rẹ tààrà",
   "method.korapay.label": "Sanwó láti báńkì",
   "method.korapay.hint": "Ibi ìsanwó kejì tó ní ààbò: káàdì, ìfiránṣẹ́ owó tàbí app báńkì",
+  "frame.step": "{current} nínú {total}",
 };
 
 export default yo;

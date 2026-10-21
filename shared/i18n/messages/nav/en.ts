@@ -57,6 +57,11 @@ const en = {
   "studio-images": "Images",
   "studio-logo": "Logo",
   marketing: "Overview",
+  "social-posts": "Social posts",
+  "social-calendar": "Calendar",
+  "social-new": "Create post",
+  "social-designs": "Rex designs",
+  "social-accounts": "Accounts",
   ads: "Ads",
   video: "Video studio",
   discounts: "Discounts",
@@ -236,6 +241,8 @@ const en = {
   "credits.pack.large": "Power pack",
   "credits.badge.medium": "Most popular",
   "credits.badge.large": "Best value",
+  "supplier.products-import": "Upload CSV",
+  "supplier.followers": "Followers",
 } satisfies Record<string, string>;
 
 export default en;

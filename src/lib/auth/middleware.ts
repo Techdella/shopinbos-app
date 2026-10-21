@@ -8,6 +8,7 @@ import { e164FromSupabase } from "@/lib/auth/app-user";
 import { asAccountRole } from "@/lib/auth/role-rules";
 import { recordActivity } from "@/lib/platform-analytics/activity.server";
 import { adminCanOpen } from "@/lib/admin-team/pure";
+import { OWNER_ONLY_API, actingUser, isOwnerOnlyPath } from "@/lib/staff/acting.server";
 
 // ─── Verify a raw access token via Supabase Admin client ─────────────────────
 
@@ -147,6 +148,9 @@ export function withAuth(handler: Handler, allowedRoles?: Role[]) {
 
     if (!user) return apiError("UNAUTHORIZED", "Could not resolve user — check your database connection", 401);
     recordActivity(user);
+    // A seller's staff member works in the owner's store (src/lib/staff/staff.server.ts).
+    const acting: AuthUser = await actingUser(user as AuthUser, (id) => db.user.findUnique({ where: { id }, select: { id: true, supabaseId: true, email: true, role: true, name: true, city: true, country: true } }));
+    if (acting.staff && isOwnerOnlyPath(req.nextUrl.pathname, OWNER_ONLY_API)) return apiError("FORBIDDEN", "Only the store owner can do this.", 403);
 
     if (allowedRoles && !allowedRoles.includes(user.role)) {
       return apiError("FORBIDDEN", `Role '${user.role}' cannot access this resource`, 403);
@@ -158,7 +162,7 @@ export function withAuth(handler: Handler, allowedRoles?: Role[]) {
     }
 
     // Next.js 16 passes route params as a Promise; resolve once so handlers can read params.id directly.
-    return handler(req, { user, params: (await params) ?? {} });
+    return handler(req, { user: acting, params: (await params) ?? {} });
   };
 }
 

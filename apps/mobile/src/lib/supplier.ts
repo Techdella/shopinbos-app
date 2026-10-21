@@ -15,6 +15,10 @@ export interface SupplierOverview {
   quotes: Array<{ id: string; quantity: number; destination: string; seller: string; product: string; image: string | null; createdAt: string }>;
   lowStock: Array<{ id: string; name: string; stock: number; image: string | null }>;
   earned: number;
+  /** On its way to the bank: the shop paid, waiting for delivery to be confirmed. */
+  owed: number;
+  /** Already paid out to the bank. */
+  paid: number;
   bank: { bankName: string; account: string; ready: boolean } | null;
 }
 
@@ -41,6 +45,10 @@ export interface DropshipOrder {
   packed?: boolean;
   /** The rider booked for it: "Pick up 12–4pm today", or still finding one. */
   pickup?: { status: string; text: string | null } | null;
+  /** The supplier delivers it themselves (no rider to book): "handed_over" = on my way, "delivered" needs the customer's code. */
+  selfDelivery?: boolean;
+  /** What the supplier gets for delivering it themselves. */
+  deliveryFee?: number;
   createdAt: string;
 }
 
@@ -84,6 +92,10 @@ export const fetchSupplierOrder = (kind: SupplierOrder["kind"], id: string) => a
 export const moveSupplierOrder = (kind: SupplierOrder["kind"], id: string, action: OrderAction, trackingCode?: string, reason?: string) =>
   api<SupplierOrder>(`/api/mobile/supplier/orders/${encodeURIComponent(id)}`, { method: "PATCH", json: { kind, action, trackingCode: trackingCode?.trim() || undefined, reason: reason?.trim() || undefined } });
 
+/** "Handed over" on an order the supplier delivers: the customer's 4-digit code (a wrong one answers 400). */
+export const deliverWithCode = (id: string, code: string) =>
+  api<SupplierOrder>(`/api/mobile/supplier/orders/${encodeURIComponent(id)}`, { method: "PATCH", json: { kind: "dropship", action: "delivered", code } });
+
 export interface SupplierProduct {
   id: string;
   name: string;
@@ -95,6 +107,9 @@ export interface SupplierProduct {
   moq: number;
   stockQuantity: number;
   dropshipAvailable: boolean;
+  bulkOrderAvailable?: boolean;
+  /** Wholesale price tiers: cheaper for bigger orders. */
+  pricingTiers?: { minQty: number; maxQty?: number; price: number }[];
   status: string;
   category: { id: string; name: string } | null;
   _count?: { storeProducts: number; quoteRequests: number };
@@ -121,6 +136,7 @@ export interface NewSupplierProduct {
   bulkOrderAvailable: boolean;
   deliveryRegions: string[];
   processingTime?: string;
+  pricingTiers?: { minQty: number; price: number }[];
   status: "draft" | "pending_review";
 }
 
@@ -197,7 +213,20 @@ export interface PickupView {
   preselected: string;
   customDays: { day: string; label: string }[];
   customHours: number[];
-  pickup: null | { status: string; text: string | null; address: string; slotKey: string; partner: string | null; rider: string | null; jobStatus: string | null; changeable: boolean; title: string; body: string };
+  pickup: null | {
+    status: string;
+    text: string | null;
+    address: string;
+    slotKey: string;
+    partner: string | null;
+    rider: string | null;
+    jobStatus: string | null;
+    changeable: boolean;
+    title: string;
+    body: string;
+    /** The code the rider gives before the parcel is handed over (newer servers send it). */
+    pickupCode?: string | null;
+  };
 }
 
 const pickupPath = (kind: SupplierOrder["kind"], id: string) => `/api/supplier/orders/${encodeURIComponent(id)}/pickup?kind=${kind}`;
@@ -210,3 +239,43 @@ export const bookPickup = (kind: SupplierOrder["kind"], id: string, choice: { sl
   api<PickupView>(pickupPath(kind, id), { method: "POST", json: { intent: "book", kind, ...choice } });
 
 export const cancelPickup = (kind: SupplierOrder["kind"], id: string) => api<PickupView>(pickupPath(kind, id), { method: "DELETE" });
+
+/** Unread chat messages (shops and delivery partners), for Home's to-do list. */
+export const fetchUnreadMessages = () => api<{ unread: number }>("/api/conversations/unread").then((body) => body.unread ?? 0);
+
+/** The set-up answers so far (the web's /supplier/onboarding uses the same route). */
+export interface SupplierSetup {
+  businessName: string;
+  displayName: string;
+  city: string | null;
+  address: string | null;
+  categories: string[];
+  verificationStatus: string;
+}
+
+export const fetchSupplierSetup = () => api<SupplierSetup>("/api/supplier/onboarding");
+
+/** Saves set-up answers. `docsLater` opens the app while the documents wait (the account stays unverified). */
+export const saveSupplierSetup = (input: { businessName?: string; displayName?: string; city?: string; address?: string; categories?: string[]; docsLater?: boolean }) =>
+  api<unknown>("/api/supplier/onboarding", { method: "PATCH", json: input });
+
+/** Changes the business once it's set up (PATCH /api/supplier/profile: no change to the verification status). */
+export const saveSupplierProfile = (input: { businessName?: string; displayName?: string; city?: string; address?: string; categories?: string[] }) =>
+  api<unknown>("/api/supplier/profile", { method: "PATCH", json: input });
+
+/** Where the business sells and ships from (the Delivery hub's settings: GET /api/mobile/delivery, PUT …/settings). */
+export interface DeliveryWhere {
+  sellArea: string;
+  sellStates: string[];
+  originState: string | null;
+  originArea: string | null;
+  originAddress: string | null;
+  /** Suppliers: "I deliver myself" (newer servers), its fee and states (empty = the state it ships from). */
+  selfDelivery?: boolean;
+  selfDeliveryFee?: number | string;
+  selfDeliveryStates?: string[];
+}
+
+export const fetchDeliveryWhere = () => api<{ settings: DeliveryWhere }>("/api/mobile/delivery").then((body) => body.settings);
+
+export const saveDeliveryWhere = (input: Partial<DeliveryWhere>) => api<{ settings: DeliveryWhere }>("/api/mobile/delivery/settings", { method: "PUT", json: input });

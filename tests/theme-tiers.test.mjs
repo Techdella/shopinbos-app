@@ -8,11 +8,18 @@ import { readFileSync } from "node:fs";
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 const lib = await import("../src/lib/store-templates/theme-library.ts");
 const access = await import("../src/lib/theme-access.ts");
-const { BUILTIN_PLAN_VERSIONS } = await import("../shared/plan-catalog.ts");
+const { BUILTIN_PLAN_VERSIONS, registerPlanVersions } = await import("../shared/plan-catalog.ts");
+
+// Seller Pro has no built-in Paystack code (it is created from admin), so register one like the server does.
+const ADMIN_VERSIONS = [
+  { code: "PLN_test_pro_monthly", tier: "seller_pro", billing: "monthly", amountNgn: 40_000, current: true },
+  { code: "PLN_test_pro_annual", tier: "seller_pro", billing: "annual", amountNgn: 400_000, current: true },
+];
+registerPlanVersions(ADMIN_VERSIONS);
 
 const DAY = 86_400_000;
 const NOW = new Date("2026-10-20T09:00:00Z");
-const code = (tier, billing = "monthly") => BUILTIN_PLAN_VERSIONS.find((version) => version.tier === tier && version.billing === billing && version.current).code;
+const code = (tier, billing = "monthly") => [...BUILTIN_PLAN_VERSIONS, ...ADMIN_VERSIONS].find((version) => version.tier === tier && version.billing === billing && version.current).code;
 const paid = (tier, extra = {}) => ({ planCode: code(tier), planStatus: "active", planPaidUntil: new Date(NOW.getTime() + 10 * DAY), ...extra });
 
 test("every theme has a tier, and each tier has themes across shop types", () => {
@@ -41,14 +48,15 @@ test("tiers include the ones below them", () => {
 test("a seller's theme tier follows their paid plan", () => {
   assert.equal(access.sellerThemeTier(null, NOW), "basic");
   assert.equal(access.sellerThemeTier({ planCode: null, planStatus: null, planPaidUntil: null }, NOW), "basic");
-  assert.equal(access.sellerThemeTier(paid("seller_growth"), NOW), "premium");
+  assert.equal(access.sellerThemeTier(paid("seller_starter"), NOW), "premium");
+  assert.equal(access.sellerThemeTier(paid("seller_growth"), NOW), "platinum");
   assert.equal(access.sellerThemeTier(paid("seller_pro"), NOW), "platinum");
   assert.equal(access.sellerThemeTier({ ...paid("seller_pro"), planCode: code("seller_pro", "annual") }, NOW), "platinum");
   // A cancelled plan keeps its perks until the paid time runs out; then it's back to basic.
   assert.equal(access.sellerThemeTier(paid("seller_pro", { planStatus: "cancelled" }), NOW), "platinum");
   assert.equal(access.sellerThemeTier(paid("seller_pro", { planPaidUntil: new Date(NOW.getTime() - DAY) }), NOW), "basic");
   // Supplier plans and unknown codes unlock nothing on a store.
-  assert.equal(access.sellerThemeTier(paid("supplier_max"), NOW), "basic");
+  assert.equal(access.sellerThemeTier(paid("supplier_pro"), NOW), "basic");
   assert.equal(access.sellerThemeTier({ ...paid("seller_pro"), planCode: "PLN_unknown" }, NOW), "basic");
 });
 
@@ -57,8 +65,8 @@ test("switching is checked; staying on the current theme never is", () => {
   const refused = access.checkThemeSwitch("oba", "basic", "plain");
   assert.equal(refused.ok, false);
   assert.equal(refused.tier, "platinum");
-  assert.equal(refused.message, "Ọba is a platinum theme. Buy it once in the theme gallery, or upgrade to Seller Pro, to use it.");
-  assert.match(access.checkThemeSwitch("ewa", "basic").message, /upgrade to Growth/);
+  assert.equal(refused.message, "Ọba is a platinum theme. Buy it once in the theme gallery, or upgrade to Growth, to use it.");
+  assert.match(access.checkThemeSwitch("ewa", "basic").message, /upgrade to Starter/);
   assert.ok(access.checkThemeSwitch("ewa", "premium").ok);
   assert.equal(access.checkThemeSwitch("gbedu", "premium").ok, false);
   assert.ok(access.checkThemeSwitch("gbedu", "platinum").ok);
@@ -68,13 +76,15 @@ test("switching is checked; staying on the current theme never is", () => {
 
 test("every path that switches themes checks the plan", () => {
   const apply = read("src/app/api/store/templates/apply/route.ts");
-  assert.match(apply, /const themeAccess = await loadSellerThemeAccess\(user\.id\);\s+const access = checkThemeSwitch\(manifest\.id, themeAccess\.tier, [^)]+, themeAccess\.owned\)/);
+  assert.match(apply, /themeProblem\(user\.id, manifest\.id, previousDraft\?\.templateId \?\? published\?\.templateId\)/);
+  // The plan gate Rex's full build, the apply route and the switch tool share goes through the same tier check.
+  assert.match(read("src/lib/plans/gates.server.ts"), /const access = await loadSellerThemeAccess\(userId\);\s+return checkThemeSwitch\(themeId, access\.tier, currentThemeId, access\.owned\)\.message;/);
   assert.match(apply, /UPGRADE_REQUIRED/);
   const editor = read("src/app/api/store/editor/route.ts");
   assert.match(editor, /nextThemeId !== draft\?\.templateId/);
   assert.match(editor, /checkThemeSwitch\(nextThemeId, themeAccess\.tier, draft\?\.templateId, themeAccess\.owned\)/);
   const tools = read("src/lib/ai/rex/tools.ts");
-  assert.match(tools, /checkThemeSwitch\(input\.themeId, themeAccess\.tier, currentId, themeAccess\.owned\)/);
+  assert.match(tools, /themeProblem\(ctx\.userId, input\.themeId, currentId\)/);
   const studio = read("src/lib/ai/rex/studio-edit.server.ts");
   assert.match(studio, /if \(plan\.theme\) \{\s+const themeAccess = await loadSellerThemeAccess\(store\.userId\);\s+const access = checkThemeSwitch\(plan\.theme, themeAccess\.tier, draft\.templateId, themeAccess\.owned\)/);
   assert.match(studio, /studioThemes\(draft\.templateId, await loadSellerThemeAccess\(store\.userId\)\)/);

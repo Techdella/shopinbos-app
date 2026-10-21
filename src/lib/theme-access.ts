@@ -1,5 +1,5 @@
-// Which storefront themes a seller may switch to, by plan: basic themes come with every store (Starter, free),
-// premium themes with Growth, platinum themes with Seller Pro (the tiers in shared/plan-catalog.ts). On any plan a
+// Which storefront themes a seller may switch to, by plan: basic themes come with every store (Free), premium themes
+// with Starter, platinum themes with Growth and Seller Pro (the tiers in shared/plan-catalog.ts). On any plan a
 // seller can also buy one theme outright (shared/theme-purchase.ts) and use it from then on. A store keeps the theme
 // it already has when its plan lapses or changes; only switching to another theme is checked (the apply route, the
 // editor and Rex). Only relative imports, so tests/theme-tiers.test.mjs loads it directly.
@@ -11,18 +11,19 @@ import { THEME_TIERS, themeLibraryEntry, themeTier, tierIncludes, type ThemeTier
 
 /** The theme tier each seller plan unlocks (supplier plans unlock nothing on a store). */
 const TIER_BY_PLAN: Partial<Record<PlanTier, ThemeTier>> = {
-  seller_growth: "premium",
+  seller_starter: "premium",
+  seller_growth: "platinum",
   seller_pro: "platinum",
 };
 
 /** The plan that unlocks each tier, as the gallery names it. */
 export const TIER_PLAN_LABEL: Record<ThemeTier, string> = {
-  basic: "Starter",
-  premium: "Growth",
-  platinum: "Seller Pro",
+  basic: "Free",
+  premium: "Starter",
+  platinum: "Growth",
 };
 
-/** The highest theme tier the seller's plan includes: basic unless they have paid time left on Growth or Pro. */
+/** The highest theme tier the seller's plan includes: basic unless they have paid time left on Starter, Growth or Pro. */
 export function sellerThemeTier(user: Pick<SellerPlanState, "planCode" | "planStatus" | "planPaidUntil"> | null | undefined, now: Date): ThemeTier {
   if (!user || !hasPaidPlanTime(user, now)) return "basic";
   const plan = planTierOf(user.planCode);

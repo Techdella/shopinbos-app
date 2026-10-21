@@ -155,7 +155,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "pd.optional": "(ọ bụghị iwu)",
   "pd.notePh": "Nha, agba, ụbọchị nnyefe",
   "pd.noPay": "Ị naghị akwụ ụgwọ na Shopinbos.",
-  "pd.noPayBody": "{name} ga-akwado order ahụ ma zitere gị invoice; ị ga-akwụ ha ozugbo.",
+  "pd.noPayBody": "{name} ga-akwado order ahụ. Emesịa kwụọ n'ime Shopinbos site na kaadị (ọ ga-aga ozugbo n'ụlọ akụ ha), ma ọ bụ kwụọ ha ozugbo site na invoice ha.",
   "pd.sent": "Ezitela order. {name} ga-akwado ya ma zipu invoice ha.",
   "pd.addressError": "Tinye adreesị nnyefe zuru oke maka order a.",
   "pd.placeError": "Enweghị ike itinye order ahụ. Nwaa ọzọ.",
@@ -197,7 +197,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "ws.note.yourReason": "Ihe kpatara gị: {reason}",
   "ws.note.declined": "Ajụrụ ya: {reason}",
   "ws.title": "Orders wholesale",
-  "ws.sub": "Ngwaahịa ị zụtara n'aka ndị na-ebunye. Ị nwere ike ịkagbu order ruo mgbe onye na-ebunye malitere ịkwakọ ya; ha ga-ezitere gị invoice, ị ga-akwụ ha ozugbo.",
+  "ws.sub": "Ngwaahịa ị zụtara n'aka suppliers. Ị nwere ike kagbuo order ruo mgbe supplier malitere ịkwakọ ya. Ozugbo ha nabatara ya, jiri kaadị kwụọ ebe a, ọ ga-aga ozugbo n'ụlọ akụ ha, ma ọ bụ kwụọ ha ozugbo.",
   "ws.findProducts": "Chọta ngwaahịa",
   "ws.empty": "Enweghị orders wholesale ugbu a",
   "ws.emptySub": "Zụta ngwaahịa n'aka onye na-ebunye akwadoro n'ọnụahịa wholesale ha. Orders gị na ọganihu ha ga-egosi ebe a.",
@@ -341,6 +341,14 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "trust.agree": "Akpọọla m {name}, ahụla m ngwa ahụ, ma anabatara m Dropship agreement",
   "trust.sending": "Ọ na-aga…",
   "trust.send": "Zipu nkwekọrịta ahụ nye {name}",
+  "featured": "Ewepụtara",
+  "pub.follow": "Soro",
+  "pub.following": "Ị na-eso",
+  "ws.pay": "Kwụọ {total}",
+  "ws.payLabel": "Jiri kaadị kwụọ ụgwọ order {ref}",
+  "ws.payError": "Ịkwụ ụgwọ amaliteghị. Nwaa ọzọ.",
+  "ws.paidInApp": "Akwụọla n'ime Shopinbos",
+  "ws.paidNotice": "Akwụọla. Ọ na-aga ozugbo n'ụlọ akụ supplier.",
 };
 
 export default ig;

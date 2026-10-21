@@ -961,6 +961,8 @@ model WholesaleOrder {
   stockReserved     Int         @default(0) // supplier stock taken when placed (0: none tracked, e.g. older orders)
   stockReleasedAt   DateTime?   // given back once (declined or cancelled)
   paidOutAt         DateTime?   // the supplier confirmed they were paid
+  paidAt            DateTime?   // the seller paid in Shopinbos by card (split straight to the supplier's wallet)
+  paymentRef        String?     @unique // that Paystack reference (whpay-…)
   acceptBy          DateTime?   // the supplier must accept by then, or it is cancelled (expiredAt set)
   acceptReminderAt  DateTime?   // "1 hour left" reminder sent
   expiredAt         DateTime?   // ran out of time without an answer (status cancelled)
@@ -1012,6 +1014,11 @@ model SupplierOrder {
   replacesId      String?
   /// The seller pressed Undo before this supplier accepted (status cancelled).
   undoneAt        DateTime?
+  /// The supplier delivers this parcel itself (the customer chose its delivery at checkout): the fee it earns and
+  /// the 4-digit code the customer gives it on arrival.
+  selfDelivery    Boolean   @default(false)
+  deliveryFee     Float     @default(0)
+  deliveryCode    String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
@@ -1194,6 +1201,10 @@ model LogisticsTeamMember {
   lastLng            Float?
   lastAccuracy       Float?
   lastLocationAt     DateTime?
+  /// Riders app (phone): the bike's number plate the partner typed when adding the rider, and the language the rider
+  /// picked (en | pcm | yo | ha | ig). Both optional.
+  plate              String?
+  language           String?
   invitedAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
 
@@ -1292,6 +1303,9 @@ model DeliveryBooking {
   failedReason       String?
   /// 4-digit code the buyer gives the rider as proof of delivery.
   deliveryCode       String?
+  /// 4-digit code the shop (or supplier) handing over the parcel gives the rider at pickup. Made when the job is
+  /// accepted (or the first time the shop's screen asks for it); the Riders app checks it before "picked up".
+  pickupCode         String?
   proofUrl           String?
   /// Pay on delivery: amount to collect, what was collected and how, and the remittance that settled it.
   codAmount          Float?
@@ -1427,6 +1441,11 @@ model DeliverySettings {
   defaultSizeBand    String   @default("small")
   /// Who pays a partner's re-attempt fee after a failed delivery: seller | customer.
   failedFeePayer     String   @default("seller")
+  /// A supplier that delivers its own parcels ("I deliver myself"): offered at checkout for its dropship items.
+  selfDelivery       Boolean  @default(false)
+  selfDeliveryFee    Float    @default(0)
+  /// States it drives to; empty means the state it ships from.
+  selfDeliveryStates String[] @default([])
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
@@ -2616,13 +2635,109 @@ model AiUsage {
 // card saved from a credit purchase is charged for autoPackId again when the balance can't cover a request.
 model AiCreditAccount {
   userId        String   @id
+  // Bought, bonus and refunded credits (the sum of the live AiCreditLot rows; each lot lasts 12 months).
   balance       Int      @default(0)
+  // The plan's monthly credits: refilled (not added to) at the start of each month, never carried over.
+  planCredits   Int      @default(0)
+  planPeriod    String? // "2026-10": the month planCredits were last filled for
+  planKey       String? // the plan they were filled for (an upgrade mid-month tops them up)
   autoTopUp     Boolean  @default(false)
   autoPackId    String?
   // Reusable Paystack card from a credit purchase the seller allowed to save (shape: domains/billing-pure).
   authorization Json?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+// Bought, bonus and refunded AI credits, each lasting 12 months. Spending takes the soonest to expire first; the
+// account's balance is the sum of the remaining credits of lots that haven't expired.
+model AiCreditLot {
+  id        String   @id @default(cuid())
+  userId    String
+  credits   Int // remaining
+  source    String // purchase | welcome | refund | legacy | grant
+  reference String? // the purchase reference, for purchases
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId, expiresAt])
+}
+
+// ─── Plan add-ons, boosts and team (October 2026 pricing, shared/plans.ts) ──────────────────────────────────────
+// docs/migrations/2026-11-16-plan-extras.sql
+
+// Add-ons and boosts bought through Paystack, credited once by reference (src/lib/plans/extras.server.ts). Staff
+// seats and boosts run from startsAt to endsAt; message packs add to MessageBalance. `included` rows are a plan's
+// own featured weeks (no payment).
+model PlanExtraPurchase {
+  reference  String    @id
+  userId     String
+  kind       String // staff_seat | sms_pack | whatsapp_pack | supplier_boost | logistics_boost | product_boost
+  quantity   Int       @default(1) // seats or packs; weeks for boosts
+  targetId   String? // product_boost: SupplierProduct.id; logistics_boost: the state
+  amountKobo Int
+  status     String    @default("pending") // pending | paid | failed
+  included   Boolean   @default(false)
+  startsAt   DateTime?
+  endsAt     DateTime?
+  error      String?
+  createdAt  DateTime  @default(now())
+  paidAt     DateTime?
+
+  @@index([userId, kind, status])
+  @@index([kind, status, endsAt])
+}
+
+// Messages Shopinbos sends for a seller through its own SMS/WhatsApp providers (src/lib/plans/messages.server.ts):
+// the plan's monthly messages used this month (`period` YYYY-MM, SMS and WhatsApp together), then pack messages.
+model MessageBalance {
+  userId    String   @id
+  sms       Int      @default(0)
+  whatsapp  Int      @default(0)
+  period    String?
+  used      Int      @default(0)
+  updatedAt DateTime @updatedAt
+}
+
+// People a seller lets into their store (Settings › Team). They sign in with their own account and work in the
+// owner's store; money settings, billing and the team stay with the owner (src/lib/staff/staff.server.ts).
+model StoreStaff {
+  id           String    @id @default(cuid())
+  storeId      String
+  ownerId      String
+  email        String
+  name         String
+  memberUserId String?
+  status       String    @default("invited") // invited | active | removed
+  token        String    @unique
+  invitedAt    DateTime  @default(now())
+  acceptedAt   DateTime?
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([storeId, email])
+  @@index([memberUserId, status])
+  @@index([ownerId])
+}
+
+// Sellers following a supplier; suppliers on Pro can send them updates (SupplierBroadcast).
+model SupplierFollow {
+  supplierId String
+  userId     String
+  createdAt  DateTime @default(now())
+
+  @@id([supplierId, userId])
+  @@index([userId])
+}
+
+model SupplierBroadcast {
+  id         String   @id @default(cuid())
+  supplierId String
+  title      String
+  body       String
+  recipients Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  @@index([supplierId, createdAt])
 }
 
 // One row per credit pack checkout or automatic top-up; a reference is credited once (status pending → paid).
@@ -4245,4 +4360,42 @@ model SubscriptionPlanVersion {
   retiredAt   DateTime?
 
   @@index([tier, billing, current])
+}
+
+// ─── Social posts (Marketing > Social posts) ────────────────────────────────
+// A post the seller plans on the calendar: one picture or video (a Rex design, a reel, a library or product photo),
+// prepared at the size the channels want (renderedUrl), one caption, the channels it goes to and when. Facebook
+// and Instagram post by themselves through the Page connected on the Social posts page; WhatsApp, TikTok and X
+// can't be posted to for the seller, so at the time the post is "ready" and they post it in one tap.
+// /api/cron/social-posts posts the due ones (src/lib/social-posts). docs/migrations/2026-11-16-social-posts.sql.
+model SocialPost {
+  id          String    @id @default(cuid())
+  storeId     String
+  userId      String
+  caption     String    @default("")
+  /// The picked picture or video as chosen; renderedUrl is the copy at the post's size (JPEG for pictures).
+  mediaUrl    String?
+  mediaKind   String? // image | video
+  renderedUrl String?
+  /// Where the media came from, for the "Rex designs" filters: rex | reel | library | product | upload
+  mediaSource String?
+  /// square | portrait | story | landscape (src/lib/social-posts/pure.ts POST_FORMATS)
+  format      String    @default("square")
+  /// cover (crop to fill) | fit (whole picture on a blurred backdrop)
+  fit         String    @default("cover")
+  /// facebook | instagram | whatsapp | tiktok | x
+  channels    String[]  @default([])
+  productId   String?
+  link        String?
+  /// draft | scheduled | publishing | posted | partial | failed
+  status      String    @default("draft")
+  scheduledAt DateTime?
+  postedAt    DateTime?
+  /// { [channel]: { status: posted | ready | shared | failed | waiting, id?, url?, error?, container?, at? } }
+  results     Json      @default("{}")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([storeId, scheduledAt])
+  @@index([status, scheduledAt])
 }

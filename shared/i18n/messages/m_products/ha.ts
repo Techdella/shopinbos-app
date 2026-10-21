@@ -53,13 +53,20 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "dropship.nothing": "Babu komai a nan yanzu. Taɓa \"Duka\" don ganin komai.",
   "dropship.findMore": "Nemo ƙarin kaya",
   "list.loadFailed": "Kaya ba su buɗe ba. Duba network ɗinka, sannan ka sake gwadawa.",
-  "list.title": "Kayana",
+  "list.title": "Kayayyaki",
   "list.empty": "Babu kaya tukuna. Taɓa \"Ƙara kaya\", ɗauki hoto, Rex zai rubuta sauran.",
   "list.soldOut": "Ya ƙare",
   "list.left": "{count} suka rage",
   "cat.all": "Duka",
   "cat.chip": "{name} ({count})",
   "cat.empty": "Babu kaya a {name} tukuna.",
+  "list.runningLow": "Saura {count} · yana ƙarewa",
+  "list.stockHint": "Taɓa + ko − idan ka sayar ko ka ƙara kaya. Peggy za ta gaya maka idan wani abu yana ƙarewa.",
+  "list.stockFailed": "Sabon adadin kaya bai ajiye ba. Duba network ɗinka ka sake gwadawa.",
+  "view.title": "Kaya",
+  "view.inStock": "Abin da ke akwai",
+  "view.share": "Raba wannan kaya",
+  "view.editDetails": "Gyara bayanai",
 };
 
 export default ha;

@@ -7,10 +7,17 @@ import { getPlanCatalog } from "@/lib/plans/catalog.server";
 import { billingEmail } from "@/lib/auth/billing-email";
 import { chargePaystackAuthorization, initializePaystackTransaction, verifyPaystackTransaction } from "@/lib/paystack";
 import { readSavedAuthorization, savedAuthorization } from "@/lib/domains/billing-pure";
-import { CREDIT_REFERENCE_PREFIX, DEFAULT_AUTO_PACK, creditCosts, creditPack, creditPacksFrom, packKobo, planCreditGrant, shouldAutoTopUp } from "@shared/ai-credits";
+import { CREDIT_LIFETIME_MONTHS, CREDIT_REFERENCE_PREFIX, DEFAULT_AUTO_PACK, creditCosts, creditPack, creditPacksFrom, creditPeriod, packKobo, planFill, shouldAutoTopUp } from "@shared/ai-credits";
+import { planKeyFor, monthlyCreditsFor, type PlanKey } from "@shared/plans";
+import { isPlanTier } from "@shared/plan-catalog";
 import { getPriceBook } from "@/lib/pricing/price-book.server";
 
 // Buying AI credits and spending them (rules in shared/ai-credits.ts).
+//
+//   Two pots. The plan's monthly credits (planCredits) are refilled at the start of each month and never carried
+//   over; bought, welcome and refunded credits are lots (AiCreditLot) that last 12 months each, and `balance` is
+//   their total. Spending takes the plan's credits first, then the lot that expires soonest. Every read or spend goes
+//   through `settle` inside a transaction holding the account row, so two requests can't spend the same credit.
 //
 //   checkout → Paystack → completeCreditPurchase (callback or webhook, either order, any number of times):
 //   verified like the other Paystack payments, then ONE caller moves the row pending → paid and adds the credits.
@@ -26,23 +33,39 @@ export async function liveCreditPrices() {
 }
 
 export interface CreditOverview {
+  /** Everything spendable: the plan's monthly credits plus bought credits. */
   balance: number;
+  /** This month's plan credits left (reset at the start of next month). */
+  planCredits: number;
+  /** Bought, welcome and refunded credits, and when the next ones expire. */
+  bought: number;
+  nextExpiry: { credits: number; at: string } | null;
   autoTopUp: boolean;
   autoPackId: string | null;
   card: { brand: string | null; last4: string | null } | null;
   purchases: Array<{ reference: string; packId: string; credits: number; naira: number; status: string; auto: boolean; createdAt: string }>;
 }
 
+const addMonths = (date: Date, months: number) => {
+  const next = new Date(date);
+  next.setUTCMonth(next.getUTCMonth() + months);
+  return next;
+};
+
 /**
- * The seller's credit account, opened on first use with the welcome credits. Every balance read and write goes
- * through here, so a new account never shows 0 on one screen and 5 on another.
+ * The account, opened on first use with the welcome credits (a 12-month lot). Every balance read and write goes
+ * through here or `settle`, so a new account never shows 0 on one screen and 50 on another.
  */
 export async function ensureCreditAccount(userId: string) {
   try {
     const existing = await db.aiCreditAccount.findUnique({ where: { userId } });
     if (existing) return existing;
     const { welcome } = await liveCreditPrices();
-    return await db.aiCreditAccount.upsert({ where: { userId }, create: { userId, balance: welcome }, update: {} });
+    return await db.$transaction(async (tx) => {
+      const account = await tx.aiCreditAccount.create({ data: { userId, balance: welcome } });
+      if (welcome > 0) await tx.aiCreditLot.create({ data: { userId, credits: welcome, source: "welcome", expiresAt: addMonths(new Date(), CREDIT_LIFETIME_MONTHS) } });
+      return account;
+    });
   } catch (error) {
     // Two first requests at once: the other one opened the account.
     if ((error as { code?: string }).code === "P2002") return db.aiCreditAccount.findUniqueOrThrow({ where: { userId } });
@@ -50,14 +73,57 @@ export async function ensureCreditAccount(userId: string) {
   }
 }
 
+/** The plan a user's monthly credits are for, and how many it includes (Admin › Pricing › Plans for paid ones). */
+async function planCreditsFor(userId: string): Promise<{ key: PlanKey; monthly: number }> {
+  const user = await db.user.findUnique({ where: { id: userId }, select: { role: true, aiCredits: true } });
+  const key = planKeyFor(user?.role, user?.aiCredits);
+  const monthly = isPlanTier(key) ? (await getPlanCatalog()).creditsPerMonth[key] ?? monthlyCreditsFor(key) : monthlyCreditsFor(key);
+  return { key, monthly };
+}
+
+type Tx = Prisma.TransactionClient;
+
+/**
+ * Brings the account up to date inside `tx`, holding its row: expired lots go to zero, a balance from before lots
+ * existed becomes a 12-month lot, and the plan's credits are refilled for a new month (or topped up after an
+ * upgrade). Returns the account as it is now.
+ */
+async function settle(tx: Tx, userId: string, plan: { key: PlanKey; monthly: number }, now = new Date()) {
+  await tx.$queryRaw`SELECT "userId" FROM "AiCreditAccount" WHERE "userId" = ${userId} FOR UPDATE`;
+  const account = await tx.aiCreditAccount.findUniqueOrThrow({ where: { userId } });
+  await tx.aiCreditLot.updateMany({ where: { userId, credits: { gt: 0 }, expiresAt: { lte: now } }, data: { credits: 0 } });
+  const live = await tx.aiCreditLot.aggregate({ where: { userId, credits: { gt: 0 } }, _sum: { credits: true } });
+  let lots = live._sum.credits ?? 0;
+  if (account.balance > lots && !(await tx.aiCreditLot.count({ where: { userId, source: "legacy" } }))) {
+    // Credits bought before they expired: they get the full 12 months from today.
+    await tx.aiCreditLot.create({ data: { userId, credits: account.balance - lots, source: "legacy", expiresAt: addMonths(now, CREDIT_LIFETIME_MONTHS) } });
+    lots = account.balance;
+  }
+  const fill = planFill({ period: account.planPeriod, key: account.planKey, credits: account.planCredits }, plan, creditPeriod(now));
+  const changed = lots !== account.balance || fill.credits !== account.planCredits || fill.period !== account.planPeriod || fill.key !== account.planKey;
+  if (!changed) return account;
+  return tx.aiCreditAccount.update({ where: { userId }, data: { balance: lots, planCredits: fill.credits, planPeriod: fill.period, planKey: fill.key } });
+}
+
+/** Settles the account in its own transaction and returns it. */
+async function settled(userId: string) {
+  await ensureCreditAccount(userId);
+  const plan = await planCreditsFor(userId);
+  return db.$transaction((tx) => settle(tx, userId, plan));
+}
+
 export async function creditOverview(userId: string): Promise<CreditOverview> {
-  const [account, purchases] = await Promise.all([
-    ensureCreditAccount(userId),
+  const [account, purchases, next] = await Promise.all([
+    settled(userId),
     db.aiCreditPurchase.findMany({ where: { userId, status: { not: "pending" } }, orderBy: { createdAt: "desc" }, take: 12 }),
+    db.aiCreditLot.findFirst({ where: { userId, credits: { gt: 0 }, expiresAt: { gt: new Date() } }, orderBy: { expiresAt: "asc" } }),
   ]);
   const card = readSavedAuthorization(account?.authorization);
   return {
-    balance: account?.balance ?? 0,
+    balance: account.planCredits + account.balance,
+    planCredits: account.planCredits,
+    bought: account.balance,
+    nextExpiry: next ? { credits: next.credits, at: next.expiresAt.toISOString() } : null,
     autoTopUp: Boolean(account?.autoTopUp && card),
     autoPackId: account?.autoPackId ?? null,
     card: card ? { brand: card.brand, last4: card.last4 } : null,
@@ -65,31 +131,48 @@ export async function creditOverview(userId: string): Promise<CreditOverview> {
   };
 }
 
+/** Everything spendable: this month's plan credits plus bought credits. */
 export async function creditBalance(userId: string) {
-  const account = await ensureCreditAccount(userId).catch(() => null);
-  return account?.balance ?? 0;
+  const account = await settled(userId).catch(() => null);
+  return account ? account.planCredits + account.balance : 0;
+}
+
+/** Adds bought, bonus or refunded credits as a 12-month lot. */
+export async function addCredits(userId: string, credits: number, source: "purchase" | "refund" | "grant", reference?: string, tx?: Tx) {
+  const amount = Math.round(credits);
+  if (amount <= 0) return;
+  const run = async (client: Tx) => {
+    await client.aiCreditLot.create({ data: { userId, credits: amount, source, reference: reference ?? null, expiresAt: addMonths(new Date(), CREDIT_LIFETIME_MONTHS) } });
+    await client.aiCreditAccount.update({ where: { userId }, data: { balance: { increment: amount } } });
+  };
+  if (tx) return run(tx);
+  await ensureCreditAccount(userId);
+  await db.$transaction(run);
 }
 
 /**
- * Adds a paid plan's credits to the balance, once per Paystack reference (plan upgrade payment or renewal
- * invoice). Returns the credits added (0 when this reference was already counted or the plan has none).
+ * A paid plan payment (upgrade or renewal invoice): the plan's monthly credits are filled now, once per Paystack
+ * reference. They refill each month after that and never pile up. Returns the plan credits now available.
  */
 export async function grantPlanCredits(userId: string, planCode: string | null | undefined, reference: string) {
-  const grant = planCreditGrant(planCode, (await getPlanCatalog()).creditsPerMonth);
-  if (!grant) return 0;
+  if (!planCode) return 0;
   await ensureCreditAccount(userId);
   try {
-    await db.$transaction([
-      db.aiCreditPurchase.create({
-        data: { reference: `${CREDIT_REFERENCE_PREFIX}plan-${reference}`, userId, packId: `plan:${planCode}`, credits: grant.credits, amountKobo: 0, status: "paid", paidAt: new Date() },
-      }),
-      db.aiCreditAccount.update({ where: { userId }, data: { balance: { increment: grant.credits } } }),
-    ]);
-    return grant.credits;
+    await db.aiCreditPurchase.create({
+      data: { reference: `${CREDIT_REFERENCE_PREFIX}plan-${reference}`, userId, packId: `plan:${planCode}`, credits: 0, amountKobo: 0, status: "paid", paidAt: new Date() },
+    });
   } catch (error) {
     if ((error as { code?: string }).code === "P2002") return 0;
     throw error;
   }
+  const plan = await planCreditsFor(userId);
+  const account = await db.$transaction(async (tx) => {
+    const now = await settle(tx, userId, plan);
+    // A renewal paid mid-month tops the plan's credits back up to the month's amount.
+    if (now.planCredits >= plan.monthly) return now;
+    return tx.aiCreditAccount.update({ where: { userId }, data: { planCredits: plan.monthly } });
+  });
+  return account.planCredits;
 }
 
 /** Starts a Paystack checkout for a pack; returns the page to send the seller to. */
@@ -145,16 +228,13 @@ export async function completeCreditPurchase(reference: string): Promise<"paid" 
     throw new CreditError("That payment doesn't match this credit purchase. Contact support if you were charged.");
   }
   const card = row.saveCard ? savedAuthorization(verified.authorization, customer) : null;
-  const opened = await ensureCreditAccount(row.userId);
+  await ensureCreditAccount(row.userId);
   await db.$transaction(async (tx) => {
     const moved = await tx.aiCreditPurchase.updateMany({ where: { reference, status: "pending" }, data: { status: "paid", paidAt: new Date(), error: null } });
     if (moved.count !== 1) return;
     const remember = card?.reusable ? { authorization: asJson(card), autoTopUp: true, autoPackId: row.packId } : {};
-    await tx.aiCreditAccount.upsert({
-      where: { userId: row.userId },
-      create: { userId: row.userId, balance: opened.balance + row.credits, ...remember },
-      update: { balance: { increment: row.credits }, ...remember },
-    });
+    if (Object.keys(remember).length) await tx.aiCreditAccount.update({ where: { userId: row.userId }, data: remember });
+    await addCredits(row.userId, row.credits, "purchase", reference, tx);
   });
   return "paid";
 }
@@ -167,11 +247,8 @@ export async function setAutoTopUp(userId: string, input: { enabled: boolean; pa
   if (input.enabled && !readSavedAuthorization(account?.authorization)) {
     throw new CreditError("Buy a pack with “Top me up automatically” ticked first, so we can save your card.");
   }
-  return db.aiCreditAccount.upsert({
-    where: { userId },
-    create: { userId, balance: (await liveCreditPrices()).welcome, autoTopUp: false, autoPackId: pack.id },
-    update: { autoTopUp: input.enabled, autoPackId: pack.id },
-  });
+  await ensureCreditAccount(userId);
+  return db.aiCreditAccount.update({ where: { userId }, data: { autoTopUp: input.enabled, autoPackId: pack.id } });
 }
 
 /** Removes the saved card (auto top-up goes off). */
@@ -180,7 +257,7 @@ export async function forgetCreditCard(userId: string) {
 }
 
 /** Charges the saved card for the auto top-up pack. True when the credits went in. */
-async function autoTopUp(userId: string, need: number): Promise<boolean> {
+async function autoTopUp(userId: string, need: number, have: number): Promise<boolean> {
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const [account, autoChargesToday, user, { packs }] = await Promise.all([
     db.aiCreditAccount.findUnique({ where: { userId } }),
@@ -190,7 +267,7 @@ async function autoTopUp(userId: string, need: number): Promise<boolean> {
   ]);
   const card = readSavedAuthorization(account?.authorization);
   if (!account || !card || !user) return false;
-  if (!shouldAutoTopUp({ autoTopUp: account.autoTopUp, hasCard: card.reusable, packId: account.autoPackId, need, balance: account.balance, autoChargesToday, packs })) return false;
+  if (!shouldAutoTopUp({ autoTopUp: account.autoTopUp, hasCard: card.reusable, packId: account.autoPackId, need, balance: have, autoChargesToday, packs })) return false;
   // Two requests landing together must not charge twice: one automatic charge a minute at most.
   const recent = await db.aiCreditPurchase.count({ where: { userId, auto: true, createdAt: { gte: new Date(Date.now() - 60_000) } } });
   if (recent > 0) return false;
@@ -220,14 +297,37 @@ async function autoTopUp(userId: string, need: number): Promise<boolean> {
 }
 
 /**
- * Takes `cost` credits when the balance covers it, topping up from the saved card first when auto top-up is on.
- * Returns the balance left, or null when there weren't enough credits.
+ * Takes `cost` credits when the plan's credits and bought credits cover it (plan credits first, then the lot that
+ * expires soonest), topping up from the saved card first when auto top-up is on. Returns what's left, or null when
+ * there weren't enough credits. Never goes below zero.
  */
 export async function spendCredits(userId: string, cost: number): Promise<number | null> {
+  const amount = Math.max(0, Math.round(cost));
   await ensureCreditAccount(userId);
-  const take = () => db.aiCreditAccount.updateMany({ where: { userId, balance: { gte: cost } }, data: { balance: { decrement: cost } } });
-  let taken = await take();
-  if (taken.count !== 1 && (await autoTopUp(userId, cost))) taken = await take();
-  if (taken.count !== 1) return null;
-  return creditBalance(userId);
+  const plan = await planCreditsFor(userId);
+  const take = () =>
+    db.$transaction(async (tx) => {
+      const account = await settle(tx, userId, plan);
+      if (account.planCredits + account.balance < amount) return null;
+      const fromPlan = Math.min(account.planCredits, amount);
+      let rest = amount - fromPlan;
+      const lots = rest > 0 ? await tx.aiCreditLot.findMany({ where: { userId, credits: { gt: 0 }, expiresAt: { gt: new Date() } }, orderBy: { expiresAt: "asc" } }) : [];
+      for (const lot of lots) {
+        if (rest <= 0) break;
+        const used = Math.min(lot.credits, rest);
+        await tx.aiCreditLot.update({ where: { id: lot.id }, data: { credits: { decrement: used } } });
+        rest -= used;
+      }
+      const after = await tx.aiCreditAccount.update({
+        where: { userId },
+        data: { planCredits: { decrement: fromPlan }, balance: { decrement: amount - fromPlan } },
+      });
+      return after.planCredits + after.balance;
+    });
+  let left = await take();
+  if (left === null) {
+    const have = await creditBalance(userId);
+    if (await autoTopUp(userId, amount, have)) left = await take();
+  }
+  return left;
 }

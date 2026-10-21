@@ -276,7 +276,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "ch.manageForms": "Sarrafa foms",
   "ch.tiktok": "Saƙonnin TikTok",
   "ch.notAvailable": "Yana zuwa nan ba da daɗewa ba",
-  "ch.tiktokBody": "TikTok bai buɗe wa masu sayarwa a Najeriya ba tukuna. Yanzu, ka amsa a app ɗin TikTok ka saka WhatsApp ko link ɗin shagonka a bio ɗinka. Har yanzu kana iya post zuwa TikTok daga Sell everywhere → Post & share.",
+  "ch.tiktokBody": "TikTok bai buɗe wa masu sayarwa a Najeriya ba tukuna. Yanzu, ka amsa a app ɗin TikTok ka saka WhatsApp ko link ɗin shagonka a bio ɗinka. Har yanzu kana iya post zuwa TikTok daga Marketing → Social posts.",
   "ch.connectYours": "Haɗa channels ɗinka",
   "ch.connectedCount": "{count} an haɗa",
   "ch.toConnect": "Channels don haɗawa",
@@ -780,7 +780,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "email.card.blurb": "Aika email ga kwastomomi daga adireshinka ko Gmail, kuma ka ga amsoshinsu a nan.",
   "email.card.manage": "Sarrafa email",
   "email.card.connect": "Haɗa email",
-  "ch.connectOnce": "Haɗa sau ɗaya kuma zai yi aiki a ko'ina a Shopinbos: inbox ɗinka, Peggy, kayayyakinka da Post & share.",
+  "ch.connectOnce": "Haɗa sau ɗaya kuma zai yi aiki a ko'ina a Shopinbos: inbox ɗinka, Peggy, kayayyakinka da Social posts.",
   "ch.more": "Ƙarin hanyoyin da kwastomomi za su same ka",
   "ch.moreHint": "{count, plural, =0 {SMS, kiran waya da Telegram. Taɓa ɗaya za mu saita maka.} one {# an haɗa} other {# an haɗa}}",
   "cat.connectOnce": "Taɓawa ɗaya: shiga da Facebook ka zaɓi lambar WhatsApp ɗinka.",
@@ -861,6 +861,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "ch.helpTitle": "Haɗa {title}",
   "ch.helpDesc": "Za mu haɗa {title} da inbox ɗinka kuma mu aiko maka saƙo idan yana aiki.",
   "ch.askUs": "Nemi mu haɗa shi",
+  "bot.monthlyCap": "Mafi yawan amsoshin AI a wata",
+  "bot.monthlyCapHelp": "Kowace amsa da Peggy ta rubuta da AI tana amfani da kiredit ɗinka na AI (live chat da WhatsApp tare). Idan ta kai wannan adadin, ko kiredit ɗinka ya ƙare, saƙon rashin kasancewa da amsoshi masu sauri za su amsa a maimakon haka. 0 yana nufin babu iyaka.",
 };
 
 export default ha;

@@ -400,10 +400,10 @@ export interface ClaimInput {
 /** Who a claim is against and what the order was worth, after checking the claimant is the seller on it. */
 async function claimSubject(sellerId: string, target: ClaimTarget, targetId: string) {
   if (target === "supplier_order") {
-    const row = await db.supplierOrder.findFirst({ where: { id: targetId, sellerId }, select: { id: true, status: true, costTotal: true, shippedAt: true, deliveredAt: true, retailOrderId: true, supplier: { select: { userId: true } }, retailOrder: { select: { orderNumber: true } } } });
+    const row = await db.supplierOrder.findFirst({ where: { id: targetId, sellerId }, select: { id: true, status: true, costTotal: true, deliveryFee: true, shippedAt: true, deliveredAt: true, retailOrderId: true, supplier: { select: { userId: true } }, retailOrder: { select: { orderNumber: true } } } });
     if (!row) return null;
     if (!["shipped", "delivered"].includes(row.status)) return { error: "You can claim once the supplier has sent it." };
-    return { debtorUserId: row.supplier.userId, maxKobo: Math.round(row.costTotal * 100), deliveredAt: row.deliveredAt, label: `order ${row.retailOrder.orderNumber}`, links: { supplierOrderId: row.id, retailOrderId: row.retailOrderId } };
+    return { debtorUserId: row.supplier.userId, maxKobo: Math.round((row.costTotal + row.deliveryFee) * 100), deliveredAt: row.deliveredAt, label: `order ${row.retailOrder.orderNumber}`, links: { supplierOrderId: row.id, retailOrderId: row.retailOrderId } };
   }
   if (target === "wholesale_order") {
     const row = await db.wholesaleOrder.findFirst({ where: { id: targetId, sellerId }, select: { id: true, status: true, totalPrice: true, deliveredAt: true, supplier: { select: { userId: true } } } });
@@ -714,7 +714,7 @@ export async function loadMoneyOwed(user: { id: string; role: string }, now = ne
 async function claimableOrders(sellerId: string, now: Date): Promise<ClaimableOrder[]> {
   const since = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
   const [supplierOrders, wholesale, bookings, claimed] = await Promise.all([
-    db.supplierOrder.findMany({ where: { sellerId, status: { in: ["shipped", "delivered"] }, updatedAt: { gte: since } }, orderBy: { updatedAt: "desc" }, take: 30, select: { id: true, costTotal: true, deliveredAt: true, supplier: { select: { displayName: true } }, retailOrder: { select: { orderNumber: true } } } }),
+    db.supplierOrder.findMany({ where: { sellerId, status: { in: ["shipped", "delivered"] }, updatedAt: { gte: since } }, orderBy: { updatedAt: "desc" }, take: 30, select: { id: true, costTotal: true, deliveryFee: true, deliveredAt: true, supplier: { select: { displayName: true } }, retailOrder: { select: { orderNumber: true } } } }),
     db.wholesaleOrder.findMany({ where: { sellerId, status: { in: ["shipped", "delivered"] }, updatedAt: { gte: since } }, orderBy: { updatedAt: "desc" }, take: 20, select: { id: true, totalPrice: true, quantity: true, deliveredAt: true, supplier: { select: { displayName: true } }, supplierProduct: { select: { name: true } } } }),
     db.deliveryBooking.findMany({ where: { sellerId, status: { in: ["picked_up", "in_transit", "delivered", "failed"] }, updatedAt: { gte: since } }, orderBy: { updatedAt: "desc" }, take: 30, select: { id: true, orderId: true, codAmount: true, trackingCode: true, deliveredAt: true, logisticsPartner: { select: { displayName: true } } } }),
     db.businessDebt.findMany({ where: { creditorUserId: sellerId, sourceKey: { startsWith: "claim:" }, createdAt: { gte: new Date(since.getTime() - 30 * 24 * 60 * 60 * 1000) } }, select: { sourceKey: true } }),
@@ -726,7 +726,7 @@ async function claimableOrders(sellerId: string, now: Date): Promise<ClaimableOr
   // Claims close CLAIM_WITHIN_DAYS after delivery (not delivered yet, or a failed delivery: still open).
   const inTime = (deliveredAt: Date | null) => !deliveredAt || now.getTime() - deliveredAt.getTime() <= CLAIM_WITHIN_DAYS * 24 * 60 * 60 * 1000;
   const out: ClaimableOrder[] = [];
-  for (const row of supplierOrders.filter((item) => inTime(item.deliveredAt))) out.push({ target: "supplier_order", id: row.id, label: `Order ${row.retailOrder.orderNumber} (dropship)`, party: row.supplier.displayName, maxKobo: Math.round(row.costTotal * 100) });
+  for (const row of supplierOrders.filter((item) => inTime(item.deliveredAt))) out.push({ target: "supplier_order", id: row.id, label: `Order ${row.retailOrder.orderNumber} (dropship)`, party: row.supplier.displayName, maxKobo: Math.round((row.costTotal + row.deliveryFee) * 100) });
   for (const row of wholesale.filter((item) => inTime(item.deliveredAt))) out.push({ target: "wholesale_order", id: row.id, label: `Wholesale: ${row.quantity} × ${row.supplierProduct.name}`, party: row.supplier.displayName, maxKobo: Math.round(row.totalPrice * 100) });
   for (const row of bookings.filter((item) => inTime(item.deliveredAt))) {
     const order = orders.find((item) => item.id === row.orderId);

@@ -1,5 +1,5 @@
 // Draft: needs native-speaker review
-// "pod.disclaimer" is legal wording: it also needs legal review (see the note in en.ts).
+// "pod.disclaimer" and "pod.disclaimerPartner" are legal wording: they also need legal review (see the note in en.ts).
 import type en from "./en.ts";
 
 const pcm: Partial<Record<keyof typeof en, string>> = {
@@ -18,7 +18,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "status.out_for_delivery": "E don comot for delivery",
   "status.at_pickup_point": "E dey for pickup point",
   "status.delivered": "E don land",
-  "status.failed": "Delivery no work",
+  "status.failed": "Delivery try no work",
   "status.returning": "E dey go back to sender",
   "status.returned": "E don go back",
   "status.cancelled": "Dem don cancel am",
@@ -40,8 +40,10 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "decline.none": "Dem no talk why",
   "pod.disclaimer":
     "Pay on delivery na arrangement between you and your logistics partner. Na the partner dey collect the cash, and settlement na between you and dem. Shopinbos no dey handle, hold or guarantee pay-on-delivery money.",
+  "pod.disclaimerPartner":
+    "Pay on delivery na arrangement between you and the shop. Na your rider dey collect the cash from the customer, and na you go settle am with the shop direct. Shopinbos no dey handle, hold or guarantee pay-on-delivery money.",
   "offPlatform.warning":
-    "Keep your jobs and payments inside Shopinbos. Jobs wey dey inside the app dey pay automatically, we dey track dem, and dem dey count for ratings. Payment wey una arrange outside the app no get protection, and e dey against our terms.",
+    "Keep jobs and payments inside Shopinbos. Payment for jobs inside the app dey happen automatically, we dey track dem, and dem dey count for your rating. Shopinbos no dey protect payment wey una arrange outside the app.",
   "time.sameDay": "Same day",
   "time.days": "{count, plural, one {# day} other {# days}}",
   "time.dayRange": "{min}–{max} days",
@@ -64,7 +66,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "timeline.outForDelivery": "E don comot for delivery",
   "sellArea.one_state": "One state",
   "sellArea.one_stateHint": "Na only customers for one state fit order.",
-  "sellArea.selected": "Some states",
+  "sellArea.selected": "States wey you pick",
   "sellArea.selectedHint": "Pick the states wey you dey deliver to.",
   "sellArea.nationwide": "Nationwide",
   "sellArea.nationwideHint": "Anywhere wey your delivery partners fit reach.",
@@ -74,7 +76,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "flash.settingsSaved": "Delivery settings don save.",
   "flash.partnerAdded": "Partner don add. Na their public rates go price your deliveries with dem now.",
   "flash.partnerSaved": "Partner settings don save.",
-  "flash.partnerRemoved": "Partner don comot. Jobs wey you don already send dem go still continue.",
+  "flash.partnerRemoved": "You don remove the partner. Jobs wey you don already send dem go still continue.",
   "flash.ratesAccepted": "You don accept the private rates. New orders go use dem.",
   "flash.ratesDeclined": "You no gree the private rates. Their public rates still dey work.",
   "flash.markedReady": "E don mark ready. Your partner know say dem fit come collect am.",
@@ -118,7 +120,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "pod.partnerDoesNotOffer": "Partner no dey do pay on delivery",
   "pod.waitingForPartner": "Pay on delivery: we dey wait for partner",
   "pod.partnerCollects": "Partner dey collect cash",
-  "pod.letCustomersPay": "Make customers fit pay this partner rider cash",
+  "pod.letCustomersPay": "Make customers fit pay this partner rider with cash",
   "pod.iUnderstand": "I don understand",
   "pod.bothOn": "Customers go only see pay on delivery when you and the partner don both on am.",
   "pod.waitingSwitchOn": "We dey wait make the partner on am.",
@@ -144,7 +146,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "mine.ownLabelAria": "The name wey customers go see",
 
   "find.title": "Find partners",
-  "find.subFrom": "Partners wey dey collect from {origin} and dey deliver where you dey sell. Verified, busy and on-time partners dey first.",
+  "find.subFrom": "Partners wey dey collect from {origin} and dey deliver where you dey sell. Verified, busy and on-time partners dey show first.",
   "find.sub": "Partners wey dey deliver where you dey sell. Add where your parcels dey comot from so you go see who fit collect from you.",
   "find.search": "Search",
   "find.searchPlaceholder": "Partner name",
@@ -170,7 +172,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
 
   "detail.metaTitle": "Delivery partner",
   "detail.sub": "Rates, where dem dey cover, pickup points and reviews.",
-  "detail.notEnough": "Deliveries never reach to show this",
+  "detail.notEnough": "Deliveries never plenty reach yet",
   "detail.cacRegistered": "CAC registered",
   "detail.deliveriesOnShopinbos": "Deliveries for Shopinbos",
   "detail.privateTitle": "Your private rates",
@@ -245,7 +247,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "exceptions.help.declined": "Send am to another one of your partners.",
   "exceptions.help.not_accepted": "The partner never accept am on time. You fit wait, or send am to another partner.",
   "exceptions.help.late_pickup": "The partner never collect am on time. You fit send am to another partner.",
-  "exceptions.help.failed_attempt": "Talk to your customer and the partner make dem try again.",
+  "exceptions.help.failed_attempt": "Talk to your customer and the partner about how to try am again.",
   "exceptions.help.address_problem": "Check the address with your customer, then tell the partner.",
   "exceptions.help.returning": "The parcel dey come back to you.",
   "exceptions.partnerSaid": "Partner talk say:",
@@ -253,7 +255,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "exceptions.sendToAnother": "Send am to another partner",
   "exceptions.noOtherPartner": "None of your other partners dey cover this delivery.",
   "exceptions.findPartner": "Find partner",
-  "exceptions.feeNote": "If the customer delivery fee don already go to the first partner, dem go return am give you; na you go pay the new partner fee.",
+  "exceptions.feeNote": "If the customer delivery fee don already go to the first partner, that partner owe you the money; na you go pay the new partner fee.",
   "exceptions.sendToThis": "Send am to this partner",
   "exceptions.readySince": "E don ready since {date}",
   "exceptions.messagePartner": "Message partner",
@@ -291,7 +293,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "an.issuesSubSupplier": "Wetin customers report about your parcels",
   "an.parcelSizes": "Parcel sizes",
   "an.whyDeclined": "Why partners no gree",
-  "an.noDeclines": "No partner reject any delivery for this period.",
+  "an.noDeclines": "No partner no gree take any delivery for this period.",
   "an.perWeek": "Deliveries every week",
   "an.weekDescribe": "Week of {week}: {delivered} don land, {fees}",
   "an.weekDescribeOnTime": "Week of {week}: {delivered} don land, {rate}% on time, {fees}",
@@ -317,10 +319,10 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "an.colPartner": "Partner",
   "an.colJobs": "Jobs",
   "an.colDelivered": "Don land",
-  "an.colFailed": "No work",
+  "an.colFailed": "Fail",
   "an.colDeclined": "Dem no gree",
   "an.colAverageFee": "Average fee",
-  "an.notConnected": "No connect",
+  "an.notConnected": "You never connect",
   "an.late": "{count} late",
 
   "plan.title": "Delivery",
@@ -341,7 +343,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "plan.goesWhenPaid": "E go go meet the partner once dem pay for the order.",
   "plan.goesWhenPaidPod": "E go go meet the partner once dem pay for the order (or once dem place am, for pay on delivery).",
   "plan.payFrom": "Pay this fee from",
-  "plan.sortItOut": "Settle am",
+  "plan.sortItOut": "Sort am out",
   "plan.readySince": "E don ready for pickup since {date}.",
   "plan.cashPaidOn": "Partner talk say dem pay you the cash on {date}.",
   "plan.cashNotYet": "The partner never talk say dem don pay you the cash.",

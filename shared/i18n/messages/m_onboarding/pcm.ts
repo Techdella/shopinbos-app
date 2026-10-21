@@ -100,14 +100,9 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "pay.asAtBank": "As e dey for your bank",
   "pay.saveBank": "Save bank",
   "pay.putLive": "Put {name} live",
-  "pay.launchFee": "Na one-time launch fee. Your shop go open as Paystack talk say you don pay.",
   "pay.payFull": "Pay {amount}",
   "pay.payPart": "Pay {now} now, {rest} before month end",
   "pay.paystackNote": "Na Paystack dey handle the payment. Shopinbos no dey see your card.",
-  "pay.readyTitle": "{name} don ready",
-  "pay.readyEmailed": "E go dey live once dem launch am. We don send the next steps to {email}.",
-  "pay.readyLater": "E go dey live once dem launch am.",
-  "pay.readyNext": "Continue",
   "live.copied": "Link don copy",
   "live.isLive": "Your shop don live",
   "live.open": "{name} don open",
@@ -150,6 +145,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "method.card.hint": "Debit card and USSD, the money go enter your bank straight",
   "method.korapay.label": "Pay with bank",
   "method.korapay.hint": "Second secure checkout: card, transfer or bank app",
+  "frame.step": "{current} of {total}",
 };
 
 export default pcm;

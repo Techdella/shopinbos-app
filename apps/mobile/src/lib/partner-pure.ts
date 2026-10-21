@@ -16,6 +16,8 @@ export function homeFor(role: AppRole | null | undefined): string {
 const PUBLIC = ["/", "/welcome", "/login", "/signup", "/verify", "/forgot", "/web-only"];
 /** Help (a person on WhatsApp, the chat with the team), "Ask us to set it up" and Notifications are for every role. */
 const SHARED = ["/help", "/ask-us", "/notifications"];
+/** Screens sellers and suppliers share: the Delivery hub (both connect delivery partners, same API). */
+const OWNER_SHARED = ["/delivery"];
 
 /** Which part of the app a path belongs to. Everything outside the partner areas is the seller app. */
 export function areaOf(pathname: string): Area {
@@ -37,6 +39,8 @@ const AREA_ROLE: Record<"seller" | "supplier" | "logistics", AppRole> = { seller
 export function canVisit(role: AppRole | null | undefined, pathname: string): boolean {
   const area = areaOf(pathname);
   if (area === "public" || area === "rider") return true;
+  const path = (pathname.split(/[?#]/)[0] || "/").replace(/\/+$/, "") || "/";
+  if (role === "supplier" && OWNER_SHARED.some((shared) => path === shared || path.startsWith(`${shared}/`))) return true;
   if (area === "admin") return role === "admin";
   return Boolean(role) && AREA_ROLE[area] === role;
 }

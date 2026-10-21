@@ -248,7 +248,7 @@ function AccountLine({ text }: { text: string }) {
 }
 
 /** A platform we can't connect yet: greyed, "Coming soon", and "Tell me when it's ready" (saved per store). */
-export function SoonCard({ platform, name, noted }: { platform: ComingSoonPlatform; name: string; noted: boolean }) {
+export function SoonCard({ platform, name, noted, line }: { platform: ComingSoonPlatform; name: string; noted: boolean; line?: string }) {
   const t = useT("social");
   const [done, setDone] = useState(noted);
   const [pending, startTransition] = useTransition();
@@ -261,8 +261,9 @@ export function SoonCard({ platform, name, noted }: { platform: ComingSoonPlatfo
           <span className="mt-0.5 inline-flex whitespace-nowrap rounded-full bg-app-canvas px-2 py-0.5 text-[11px] font-bold text-app-ink-soft">{t("card.soon")}</span>
         </div>
       </div>
+      {line && <p className="m-0 text-[13px] leading-[1.45] text-app-ink-soft">{line}</p>}
       {platform === "tiktok" && (
-        <a href="/channels?tab=post&to=tiktok" className={buttonClass("ink", "sm", "mt-auto w-full px-2.5 text-[12.5px] leading-tight")}>{t("soon.postTiktok")}</a>
+        <a href="/home/marketing/social/new?to=tiktok" className={buttonClass("ink", "sm", "mt-auto w-full px-2.5 text-[12.5px] leading-tight")}>{t("soon.postTiktok")}</a>
       )}
       {done ? (
         <p className="m-0 mt-auto flex min-h-[40px] items-center gap-1.5 text-[13px] font-bold text-app-success" role="status">

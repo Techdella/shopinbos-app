@@ -127,6 +127,20 @@ export function ChatbotClient({ initial, hoursOn, ready, aiAvailable, widgetOn, 
             <Segmented options={[{ value: "always", label: t("bot.always") }, { value: "outside_hours", label: hoursOn ? t("bot.outsideHours") : t("bot.whenAway") }]} value={bot.when} onChange={(when) => setBot((b) => ({ ...b, when }))} className="border border-app-line" />
             <span className="text-[12.5px] text-app-ink-soft">{hoursOn ? t("bot.usesHours") : <>{t("bot.setHours")} <Link href="/home/inbox/auto-replies" className="font-bold text-app-ink">{t("autoReplies")}</Link> {t("bot.setHoursAfter")}</>} {t("bot.quiet")}</span>
           </div>
+          <label className="grid gap-1 text-[13.5px] font-bold">
+            {t("bot.monthlyCap")}
+            <input
+              type="number"
+              min={0}
+              max={100000}
+              step={1}
+              inputMode="numeric"
+              value={bot.monthlyCap}
+              onChange={(e) => setBot((b) => ({ ...b, monthlyCap: Math.max(0, Math.min(100_000, Math.round(Number(e.target.value) || 0))) }))}
+              className={input}
+            />
+            <span className="text-[12.5px] font-normal text-app-ink-soft">{t("bot.monthlyCapHelp")}</span>
+          </label>
         </Card>
 
         <Card className="grid gap-3 p-5">

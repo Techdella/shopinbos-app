@@ -4,7 +4,9 @@ import { withSeller } from "@/lib/auth/middleware";
 import { ImageUnavailableError, isOwnImageUrl, MAX_REFERENCES, normaliseImageSize } from "@/lib/ai/images";
 import { loadSellerBrandContext } from "@/lib/ai/brand-context.server";
 import { makeBrandImage } from "@/lib/ai/brand-image.server";
-import { aiAllowanceToday, meterAi } from "@/lib/ai/usage";
+import { aiAllowanceToday, meterAiCharged, refundAi } from "@/lib/ai/usage";
+
+const ACTION = "photo" as const;
 import { db } from "@/lib/db/client";
 import { CREATIVE_PLACEMENT_INFO, creativePrompt, isCreativeConcept, isCreativePlacement } from "@shared/creatives";
 
@@ -34,8 +36,10 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
   if (typed.length > 2000) return NextResponse.json({ error: { code: "too_long", message: "Keep the description under 2,000 characters." } }, { status: 400 });
   const references = Array.isArray(body.referenceUrls) ? body.referenceUrls.filter((url): url is string => typeof url === "string" && isOwnImageUrl(url)).slice(0, MAX_REFERENCES) : [];
 
-  const limited = await meterAi(user.id, "image");
-  if (limited) return limited;
+  const metered = await meterAiCharged(user.id, "image", 1, ACTION);
+  if (metered.blocked) return metered.blocked;
+  // A failed picture is given back (the credits and the day's cap).
+  const giveBack = () => refundAi(user.id, "image", 1, metered.credits);
 
   const size = normaliseImageSize(body.size);
   try {
@@ -62,6 +66,7 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
       creditsRemaining: credits,
     });
   } catch (error) {
+    await giveBack();
     const status = error instanceof ImageUnavailableError ? 503 : 500;
     const message = error instanceof Error ? error.message : "Image generation failed";
     return NextResponse.json({ error: { code: "generation_failed", message } }, { status });

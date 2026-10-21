@@ -53,13 +53,20 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "dropship.nothing": "Nothing dey here now. Tap \"All\" make you see everything.",
   "dropship.findMore": "Find more products",
   "list.loadFailed": "Products no load. Check your network, then try again.",
-  "list.title": "My products",
+  "list.title": "Products",
   "list.empty": "No product yet. Tap \"Add product\", snap photo, Rex go write the rest.",
   "list.soldOut": "E don finish",
   "list.left": "{count} remain",
   "cat.all": "All",
   "cat.chip": "{name} ({count})",
   "cat.empty": "No product dey {name} yet.",
+  "list.runningLow": "{count} remain · e dey finish",
+  "list.stockHint": "Tap + or − when you sell or add more stock. Peggy go tell you when something dey finish.",
+  "list.stockFailed": "The new stock number no save. Check your network come try again.",
+  "view.title": "Product",
+  "view.inStock": "Wetin remain",
+  "view.share": "Share this product",
+  "view.editDetails": "Change details",
 };
 
 export default pcm;

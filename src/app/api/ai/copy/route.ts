@@ -37,7 +37,7 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
       { status: 503 },
     );
   }
-  const limited = await meterAi(user.id, "text");
+  const limited = await meterAi(user.id, "text", 1, /description|title/i.test(parsed.data.field) ? "product_copy" : /caption|post|ad\b/i.test(parsed.data.field) ? "caption" : undefined);
   if (limited) return limited;
 
   const { field, instructions, context, maxWords } = parsed.data;

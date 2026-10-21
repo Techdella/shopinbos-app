@@ -6,6 +6,7 @@ import {
   JOB_STATUS_WORDS,
   OFF_PLATFORM_WARNING,
   POD_DISCLAIMER,
+  POD_DISCLAIMER_PARTNER,
   SERVICE_LABELS,
   SIZE_BAND_LABELS,
   timeframeWords,
@@ -58,6 +59,9 @@ export function declineReasonText(t: DeliveryWords, text: string) {
 }
 
 export const podDisclaimer = (t: DeliveryWords) => t.dynamic("pod.disclaimer", POD_DISCLAIMER);
+
+/** What a delivery partner reads (the shop's version says "your logistics partner"). */
+export const podDisclaimerPartner = (t: DeliveryWords) => t.dynamic("pod.disclaimerPartner", POD_DISCLAIMER_PARTNER);
 
 export const offPlatformWarning = (t: DeliveryWords) => t.dynamic("offPlatform.warning", OFF_PLATFORM_WARNING);
 

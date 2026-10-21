@@ -6,19 +6,10 @@ import type { Prisma } from "@prisma/client";
 import { verifyPaystackTransaction } from "@/lib/paystack";
 import { publishStoreDraft } from "@/lib/store-publishing";
 import { mergeBrandSettings } from "@/lib/workspace";
-import { getPriceBook } from "@/lib/pricing/price-book.server";
 
+// There is no store launch fee any more: publishing is free. This only settles Paystack checkouts that sellers
+// started before the fee was removed, so a payment that still comes in publishes the store as promised.
 export type StoreLaunchPaymentOption = "full" | "installment" | "balance";
-
-/** The launch fee and deposit in naira, from Admin › Pricing (the deposit is never more than the fee). */
-export async function storeLaunchPrices() {
-  const book = await getPriceBook();
-  return { totalNgn: book["launch.price"], depositNgn: book["launch.deposit"] };
-}
-
-export function installmentDueAt(from = new Date()) {
-  return new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth() + 1, 0, 22, 59, 59));
-}
 
 export async function ensureStoreLaunchPaymentsTable() {
   await db.$executeRawUnsafe(`

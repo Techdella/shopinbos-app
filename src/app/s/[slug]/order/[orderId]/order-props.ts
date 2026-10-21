@@ -1,4 +1,5 @@
 import "server-only";
+import { brandedTrackingFor } from "@/lib/plans/gates.server";
 
 import { db } from "@/lib/db/client";
 import { readTransferAccount } from "@shared/checkout-payments";
@@ -93,14 +94,16 @@ const UNPAID = ["pending", "awaiting_payment"];
 export async function loadOrderNextSteps(
   order: { id: string; orderNumber: string; total: number; status: string; paymentMethod: string | null; createdAt: Date; paymentDueAt?: Date | null; deliveredAt?: Date | null; logisticsDetails?: unknown; deliveryAddress?: unknown },
   store: { userId: string; brandSettings: unknown },
-): Promise<{ transfer: TransferDetails | null; deliveryCode: string | null; delivery: OrderDeliveryView | null; brandSettings: { palette?: Record<string, string>; themeTokens?: Record<string, unknown> } }> {
+): Promise<{ transfer: TransferDetails | null; deliveryCode: string | null; delivery: OrderDeliveryView | null; brandedTracking: boolean; brandSettings: { palette?: Record<string, string>; themeTokens?: Record<string, unknown> } }> {
   const account = order.paymentMethod === "transfer" && UNPAID.includes(order.status) ? readTransferAccount(store.brandSettings) : null;
-  const [booking, delivery] = await Promise.all([
+  const [booking, selfParcel, delivery] = await Promise.all([
     db.deliveryBooking.findFirst({
       where: { orderId: order.id, sellerId: store.userId, replacedById: null, deliveryCode: { not: null }, status: { notIn: ["cancelled", "delivered", "failed"] } },
       orderBy: { createdAt: "desc" },
       select: { deliveryCode: true },
     }),
+    // A parcel the supplier delivers itself (shown as the shop's delivery): its code, once it's on its way.
+    db.supplierOrder.findFirst({ where: { retailOrderId: order.id, selfDelivery: true, status: "shipped", deliveryCode: { not: null } }, select: { deliveryCode: true } }),
     // Never blocks the order page.
     loadDelivery(order, store.userId).catch((error) => {
       console.error(`[order page] delivery for ${order.id}`, error);
@@ -116,8 +119,10 @@ export async function loadOrderNextSteps(
   return {
     // The real deadline: what checkout saved, or for older orders the window from when it was placed.
     transfer: account ? { ...account, amount: order.total, reference: order.orderNumber, payBy: orderPaymentDeadline(order, paymentWindows())?.toISOString() ?? null } : null,
-    deliveryCode: booking?.deliveryCode ?? null,
+    deliveryCode: booking?.deliveryCode ?? selfParcel?.deliveryCode ?? null,
     delivery,
+    // Starter and up: tracking with only the store's name on it (shared/plans.ts brandedTracking).
+    brandedTracking: await brandedTrackingFor(store.userId).catch(() => false),
     brandSettings: { ...(palette ? { palette } : {}), ...(tokens ? { themeTokens: tokens } : {}) },
   };
 }

@@ -276,7 +276,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "ch.manageForms": "Jikwaa fọm",
   "ch.tiktok": "Ozi TikTok",
   "ch.notAvailable": "Ọ na-abịa n'oge na-adịghị anya",
-  "ch.tiktokBody": "TikTok emepebeghị maka ndị na-ere ahịa na Naịjirịa. Ugbu a, zaa n'app TikTok ma tinye WhatsApp ma ọ bụ link ụlọ ahịa gị na bio gị. Ị ka nwere ike post na TikTok site na Sell everywhere → Post & share.",
+  "ch.tiktokBody": "TikTok emepebeghị maka ndị na-ere ahịa na Naịjirịa. Ugbu a, zaa n'app TikTok ma tinye WhatsApp ma ọ bụ link ụlọ ahịa gị na bio gị. Ị ka nwere ike post na TikTok site na Marketing → Social posts.",
   "ch.connectYours": "Jikọọ channels gị",
   "ch.connectedCount": "{count} ejikọọla",
   "ch.toConnect": "Channels ijikọ",
@@ -780,7 +780,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "email.card.blurb": "Zigara ndị ahịa email site n'adreesị nke gị ma ọ bụ Gmail, ma hụ azịza ha ebe a.",
   "email.card.manage": "Jikwaa email",
   "email.card.connect": "Jikọọ email",
-  "ch.connectOnce": "Jikọọ otu ugboro, ọ ga-arụ ọrụ n'ebe niile na Shopinbos: inbox gị, Peggy, ngwaahịa gị na Post & share.",
+  "ch.connectOnce": "Jikọọ otu ugboro, ọ ga-arụ ọrụ n'ebe niile na Shopinbos: inbox gị, Peggy, ngwaahịa gị na Social posts.",
   "ch.more": "Ụzọ ndị ọzọ ndị ahịa ga-esi nweta gị",
   "ch.moreHint": "{count, plural, =0 {SMS, oku ekwentị na Telegram. Pịa otu, anyị ga-edozi ya maka gị.} one {# ejikọọla} other {# ejikọọla}}",
   "cat.connectOnce": "Otu mpị: banye na Facebook ma họrọ nọmba WhatsApp gị.",
@@ -861,6 +861,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "ch.helpTitle": "Jikọọ {title}",
   "ch.helpDesc": "Anyị ga-ejikọ {title} n'inbox gị maka gị ma zitere gị ozi mgbe ọ na-arụ ọrụ.",
   "ch.askUs": "Rịọ anyị ka anyị jikọọ ya",
+  "bot.monthlyCap": "Azịza AI kachasị n'ọnwa",
+  "bot.monthlyCapHelp": "Azịza ọ bụla Peggy ji AI dee na-eji kredit AI gị (live chat na WhatsApp ọnụ). Mgbe o ruru ọnụọgụ a, ma ọ bụ kredit gị agwụ, ozi ịnọghị gị na azịza ngwa ngwa ga-aza kama. 0 pụtara enweghị oke.",
 };
 
 export default ig;

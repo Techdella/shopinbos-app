@@ -6,14 +6,17 @@ import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { PillLink } from "@/components/app-kit";
 import { buildStorefrontOrigin } from "@/lib/domains/storefront";
 import { readFields } from "@/lib/cms/fields";
+import { collectionSettings } from "@/lib/cms/server";
+import { collectionMenuState } from "@/lib/cms/menu.server";
 import { ItemEditor, type EditorItem } from "./ItemEditor";
 import { formatDate } from "@shared/i18n";
 import { getLocale, getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
-export default async function CmsItemPage({ params }: { params: Promise<{ collectionId: string; itemId: string }> }) {
+export default async function CmsItemPage({ params, searchParams }: { params: Promise<{ collectionId: string; itemId: string }>; searchParams: Promise<{ setup?: string }> }) {
   const { collectionId, itemId } = await params;
+  const sp = await searchParams;
   const user = await requireRole(["seller"], "/login");
   const t = await getT("cms");
   const locale = await getLocale();
@@ -26,6 +29,8 @@ export default async function CmsItemPage({ params }: { params: Promise<{ collec
   const isNew = itemId === "new";
   const row = isNew ? null : await db.cmsItem.findFirst({ where: { id: itemId, collectionId: collection.id } });
   if (!isNew && !row) notFound();
+  const settings = collectionSettings(collection.settings);
+  const menu = await collectionMenuState(user.id, collection);
   const others = await db.cmsCollection.findMany({ where: { storeId: store.id }, select: { id: true, name: true } });
 
   const item: EditorItem = row
@@ -54,7 +59,9 @@ export default async function CmsItemPage({ params }: { params: Promise<{ collec
       actions={<PillLink href={`/home/cms/${collection.id}`} icon="arrowLeft">{t("item.all", { label: collection.itemLabel.toLowerCase() })}</PillLink>}
     >
       <ItemEditor
-        collection={{ id: collection.id, name: collection.name, slug: collection.slug, itemLabel: collection.itemLabel, template: collection.template, isPublished: collection.isPublished }}
+        collection={{ id: collection.id, name: collection.name, slug: collection.slug, itemLabel: collection.itemLabel, template: collection.template, isPublished: collection.isPublished, itemLayout: settings.itemLayout, layout: settings.layout, description: collection.description, setupDone: settings.setupDone }}
+        menu={menu}
+        setup={sp.setup === "1" && !isNew && !settings.setupDone}
         fields={readFields(collection.fields)}
         item={JSON.parse(JSON.stringify(item))}
         storeOrigin={buildStorefrontOrigin({ slug: store.slug, customDomain: store.customDomain ?? null })}
