@@ -3,10 +3,10 @@ import { View } from "react-native";
 import { router } from "expo-router";
 import * as Clipboard from "expo-clipboard";
 import { naira } from "@shared/onboarding";
-import { BigNumber, Eyebrow, List, Row, Small, Tile } from "@/components/design";
+import { DarkCard, Eyebrow, List, Row, Small, Tile } from "@/components/design";
 import { ErrorState, LoadingBlock } from "@/components/kit";
 import { PayInOverdueCard } from "@/components/PayInOverdueCard";
-import { CardButton, StatCard } from "@/components/PartnerKit";
+import { CardButton } from "@/components/PartnerKit";
 import { TabScreen } from "@/components/TabScreen";
 import { Card, PillButton, T } from "@/components/ui";
 import { useT } from "@/lib/i18n";
@@ -17,10 +17,22 @@ import { fetchSellersCash } from "@/lib/wallet";
 import { openWeb } from "@/lib/web";
 import { colors } from "@/theme";
 
-// Money ("Delivery partner app" prototype `money`): what you earned this week on a dark card (the API has no
-// "still coming" total, so the card shows this week's earnings), where delivery fees go, "Pay-on-delivery cash" to
-// settle with each seller, then what was paid to your bank. Partners that still pay cash in to their own pay-in
-// account see it here with Copy (transfers to it are matched automatically), plus today / week / month.
+// Money ("Familiar app" prototype F-Delivery `money`): a dark card with what you earned this week (delivery fees go
+// straight to your bank at checkout, so there is no balance, no withdraw and no PIN; the API has no "still coming"
+// total, so the card says "Earned this week"), today and the last 30 days, the payout account with Change, the
+// pay-on-delivery cash to settle with each seller, and Recent. Partners that still pay cash in to their own pay-in
+// account see it here with Copy (transfers to it are matched automatically).
+
+/** A tinted number card (prototype `.grid2` `.c-butter` / `.c-mint`). */
+function TintStat({ bg, label, value, line }: { bg: string; label: string; value: string; line?: string }) {
+  return (
+    <View style={{ flex: 1, backgroundColor: bg, borderRadius: 22, padding: 16, gap: 4 }} accessible accessibilityLabel={[label, value, line].filter(Boolean).join(", ")}>
+      <T weight="semibold" style={{ fontSize: 13, color: colors.inkSoft }}>{label}</T>
+      <T weight="extrabold" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: 20 }}>{value}</T>
+      {line ? <T weight="semibold" style={{ fontSize: 12.5, color: colors.inkSoft }}>{line}</T> : null}
+    </View>
+  );
+}
 
 export default function LogisticsEarnings() {
   const t = useT("m_partner", "common");
@@ -43,6 +55,8 @@ export default function LogisticsEarnings() {
     void cash.reload();
   }
 
+  const bank = data?.bank ? `${data.bank.bankName} ${data.bank.account}` : null;
+
   return (
     <TabScreen title={t("money.title")} refreshing={earnings.refreshing} onRefresh={refresh}>
       {earnings.loading && !data ? <LoadingBlock /> : null}
@@ -51,12 +65,24 @@ export default function LogisticsEarnings() {
         <>
           {data.overdue ? <PayInOverdueCard overdue={data.overdue} onChecked={() => void earnings.reload()} /> : null}
 
-          <View style={{ backgroundColor: colors.forest, borderRadius: 24, padding: 20, gap: 12 }} accessible accessibilityLabel={`${t("moneyCard.week")} ${naira(data.week.amount)}`}>
-            <Small style={{ color: "#BFE6DD" }}>{t("moneyCard.week")}</Small>
-            <BigNumber color="#FFFFFF">{naira(data.week.amount)}</BigNumber>
-            <Small style={{ color: "#BFE6DD" }}>{t("moneyCard.line", { count: data.week.jobs })}</Small>
+          <DarkCard eyebrow={t("moneyCard.week")} amount={naira(data.week.amount)} line={t("moneyCard.line", { count: data.week.jobs })} />
+
+          <View style={{ flexDirection: "row", gap: 10 }}>
+            <TintStat bg="#FFF1C9" label={t("money.earnedToday")} value={naira(data.today.amount)} line={t("money.jobs", { count: data.today.jobs })} />
+            <TintStat bg={colors.mintTint} label={t("money.month")} value={naira(data.month.amount)} line={t("money.jobs", { count: data.month.jobs })} />
           </View>
-          <Small style={{ marginTop: -6 }}>{data.bank ? t("moneyCard.noteBank", { bank: `${data.bank.bankName} ${data.bank.account}` }) : t("moneyCard.note")}</Small>
+
+          <List>
+            <Row
+              lead={<Tile icon="wallet" tone="mint" />}
+              title={bank ?? t("biz.payoutNone")}
+              sub={data.bank?.accountName ?? t("money.noBank")}
+              accessibilityLabel={bank ? t("fam.money.bankLabel", { bank }) : t("money.addBank")}
+              onPress={() => router.push("/logistics/wallet")}
+              right={<T weight="bold" style={{ fontSize: 14, color: colors.forest, textDecorationLine: "underline" }}>{bank ? t("money.change") : t("money.addBank")}</T>}
+            />
+          </List>
+          <Small style={{ marginTop: -8 }}>{bank ? t("moneyCard.noteBank", { bank }) : t("moneyCard.note")}</Small>
 
           <CardButton
             icon="coin"
@@ -88,18 +114,13 @@ export default function LogisticsEarnings() {
             </Card>
           ) : null}
 
-          <View style={{ flexDirection: "row", gap: 10 }}>
-            <StatCard value={naira(data.today.amount)} label={t("money.earnedToday")} />
-            <StatCard value={naira(data.month.amount)} label={t("money.month")} />
-          </View>
-
-          <Eyebrow>{t("money.paidToBank")}</Eyebrow>
+          <Eyebrow>{t("fam.money.recent")}</Eyebrow>
           {data.recent.length ? (
             <List>
               {data.recent.map((row) => (
                 <Row
                   key={row.id}
-                  lead={<Tile icon="check" tone="ok" />}
+                  lead={<Tile icon="wallet" tone="mint" />}
                   title={`${row.ref} · ${shortPlace(row.from)} → ${shortPlace(row.to)}`}
                   sub={[row.rider, dayWord(row.deliveredAt, undefined, t)].filter(Boolean).join(" · ")}
                   right={<T weight="bold" style={{ color: colors.success }}>{`+${naira(row.amount)}`}</T>}
@@ -127,10 +148,6 @@ export default function LogisticsEarnings() {
               </List>
             </>
           ) : null}
-
-          <List>
-            <Row lead={<Tile icon="wallet" tone="gray" />} title={t("money.wallet")} sub={t("money.walletHint")} onPress={() => router.push("/logistics/wallet")} />
-          </List>
         </>
       ) : null}
     </TabScreen>
