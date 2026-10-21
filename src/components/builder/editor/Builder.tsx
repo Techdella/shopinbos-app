@@ -69,6 +69,7 @@ import { RexPanel, type RexTopic } from "./RexPanel";
 
 /** The preview id for a change Rex shows before the seller applies it. */
 const REX_PREVIEW = "rex";
+const REX_HINT_KEY = "builder-rex-hint-closed";
 import { sectionSchema } from "./section-schema";
 import { SectionsPanel } from "./SectionsPanel";
 import { ThemeSettingsPanel, type ThemeView } from "./ThemeSettingsPanel";
@@ -137,6 +138,22 @@ export function Builder({
   const [preview, setPreview] = useState<{ id: string; name: string; snapshot: StoreEditorSnapshot } | null>(null);
   const [panel, setPanel] = useState<Panel | null>(initialRexOpen || initialRexTopic ? "rex" : "sections");
   const [rexTopic, setRexTopic] = useState<RexTopic>(initialRexTopic ?? "page");
+  const [rexHintClosed, setRexHintClosed] = useState(true);
+  useEffect(() => {
+    try {
+      setRexHintClosed(window.localStorage.getItem(REX_HINT_KEY) === "1");
+    } catch {
+      setRexHintClosed(false);
+    }
+  }, []);
+  const closeRexHint = useCallback(() => {
+    setRexHintClosed(true);
+    try {
+      window.localStorage.setItem(REX_HINT_KEY, "1");
+    } catch {
+      /* private mode: it shows again next time */
+    }
+  }, []);
   const [themeView, setThemeView] = useState<ThemeView | null>(null);
   const [insertTab, setInsertTab] = useState<"section" | "element">("section");
   const [insertTarget, setInsertTarget] = useState<{ group: SectionGroup; beforeId: string | null }>({ group: "template", beforeId: null });
@@ -896,6 +913,20 @@ export function Builder({
     </div>
   ) : null;
 
+  // "Rex is here to help": over the page until the seller closes it (remembered in this browser) or opens Rex.
+  const rexHint = editing && panel !== "rex" && !rexHintClosed ? (
+    <div className="flex flex-wrap items-center gap-2 border-b border-app-line bg-app-mint/60 px-4 py-2 text-[13px] text-app-ink">
+      <Mascot name="rex" className="h-7 w-7 shrink-0" alt="" />
+      <p className="m-0 min-w-0 flex-1 basis-[220px]"><strong>{tx("Rex is here to help.")}</strong> {tx("Ask him to change any section, design your menu with pictures and colours, or make something new. You see it on the page first and only pay credits to apply it.")}</p>
+      {phone ? (
+        <a href="/studio" className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-app-ink px-3.5 font-semibold text-white no-underline">{tx("Ask Rex")}</a>
+      ) : (
+        <button type="button" onClick={() => setPanel("rex")} className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-app-ink px-3.5 font-semibold text-white">{tx("Ask Rex")}</button>
+      )}
+      <button type="button" onClick={closeRexHint} aria-label={tx("Close")} className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/60"><Icon name="x" size={14} /></button>
+    </div>
+  ) : null;
+
   const insertSlot = canvasInsert?.type === "slot" ? slots?.find((slot) => slot.key === canvasInsert.slotKey) ?? null : null;
   const columnSection = canvasInsert?.type === "column" ? sections.find((section) => section.id === canvasInsert.sectionId) ?? null : null;
   const canvasInserter = canvasOverlay && (insertSlot || columnSection) && canvasInsert ? {
@@ -994,6 +1025,7 @@ export function Builder({
         <div className="relative flex min-h-0 flex-1 flex-col">
           {storePreviewBar}
           {previewBar}
+          {rexHint}
           {phoneNote ? (
             <div className="flex items-start gap-2 border-b border-app-line bg-app-mint px-3 py-2 text-[12.5px] leading-5 text-app-forest">
               <Icon name="monitor" size={15} className="mt-0.5 shrink-0" />
@@ -1049,9 +1081,10 @@ export function Builder({
                 aria-pressed={panel === "rex"}
                 aria-label={tx("Ask Rex")}
                 title={tx("Ask Rex")}
-                className={cx("mt-auto grid h-10 w-10 place-items-center rounded-[12px] bg-app-mint transition hover:brightness-95", panel === "rex" && "ring-2 ring-[#2F66F6]")}
+                className={cx("mt-auto grid w-10 place-items-center gap-0.5 rounded-[12px] bg-app-mint py-1 transition hover:brightness-95", panel === "rex" && "ring-2 ring-[#2F66F6]")}
               >
                 <Mascot name="rex" className="h-7 w-7" alt="" />
+                <span className="text-[10px] font-extrabold leading-none text-app-ink">Rex</span>
               </button>
             </nav>
           ) : null}
@@ -1059,6 +1092,7 @@ export function Builder({
           <main className="flex min-h-0 min-w-0 flex-1 flex-col" aria-label={tx("Page preview")}>
             {storePreviewBar}
             {previewBar}
+            {rexHint}
             <div className="min-h-0 flex-1">{canvas}</div>
           </main>
           {inspector && inspectorOpen ? (

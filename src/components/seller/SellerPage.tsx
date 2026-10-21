@@ -3,6 +3,7 @@ import { AppFrame } from "@/components/shell/AppFrame";
 import { cx } from "@/components/app-ui/cx";
 import { HelpButton } from "@/components/simple/HelpButton";
 import { LearnPill } from "@/components/learn/FeatureIntroHost";
+import { RexHelpStrip } from "@/components/learn/RexHelpStrip";
 import { TitleTerm } from "@/components/learn/Term";
 import type { requireRole } from "@/lib/server-auth";
 
@@ -56,6 +57,7 @@ export function SellerPage({
             <HelpButton />
           </div>
         </header>
+        <RexHelpStrip className="mb-5" />
         {children}
       </div>
     </AppFrame>
