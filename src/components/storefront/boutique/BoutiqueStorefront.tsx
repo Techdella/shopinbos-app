@@ -2174,9 +2174,11 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       return (
         <section aria-labelledby={headingId} className="relative overflow-hidden" style={{ background: t.heroBg, color: t.heroText }}>
           <div className="bq-media inset-0" style={{ position: "absolute", borderRadius: 0, background: t.heroBg }}>{picture(shots[at], true)}</div>
-          <div aria-hidden className="absolute inset-0" style={{ background: shots.length ? "linear-gradient(90deg, rgba(236,236,236,.92), rgba(236,236,236,.55) 40%, rgba(236,236,236,0) 62%)" : "transparent" }} />
+          {/* Phones: an even wash over the whole photo; wider screens: a fade behind the words on the left. */}
+          <div aria-hidden className="absolute inset-0 @3xl:hidden" style={{ background: shots.length ? "rgba(236,236,236,.78)" : "transparent" }} />
+          <div aria-hidden className="absolute inset-0 hidden @3xl:block" style={{ background: shots.length ? "linear-gradient(90deg, rgba(236,236,236,.92), rgba(236,236,236,.55) 40%, rgba(236,236,236,0) 62%)" : "transparent" }} />
           <div className="bq-wrap relative">
-            <div className="flex min-h-[420px] flex-col items-start justify-center gap-4 px-8 py-16 @3xl:min-h-[580px] @3xl:px-0">
+            <div className="flex min-h-[420px] flex-col items-start justify-center gap-4 px-10 py-16 @3xl:min-h-[580px] @3xl:px-0">
               {eyebrow ? <p className="m-0 text-[13px] font-semibold uppercase" style={{ letterSpacing: "0.14em", color: t.muted }}>{eyebrow}</p> : null}
               <h1 id={headingId} className="m-0 max-w-[9ch]" style={{ fontFamily: look.headingFont, fontWeight: 800, fontSize: "clamp(44px, 6.4cqi, 88px)", lineHeight: 0.98, letterSpacing: "-0.03em" }}>{title}</h1>
               {body ? <p className="m-0 max-w-[400px] text-[15px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
