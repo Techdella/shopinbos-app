@@ -39,28 +39,51 @@ export function TrustBadges({ ctx }: { ctx: BlockContext }) {
     .filter((badge) => (badge.title || badge.body) && (!badge.missing || ctx.editor));
   if (!badges.length) return ctx.editorHint("Add badges in the panel on the right.");
   const cards = settings.style === "cards";
+  // Centred tiles with the icon above the words: on light panels ("tiles", Èso) or on the ink colour ("dark", Ẹ̀rín).
+  const tiles = settings.style === "tiles" || settings.style === "dark";
+  const dark = settings.style === "dark";
   const title = str(copy.title);
+  if (settings.style === "strip") {
+    // Three (or more) coloured blocks edge to edge under the header, the promise centred in each (Rẹ̀wà).
+    const fills = ["#A3A3A3", t.accent, "#333333", t.ink];
+    return (
+      <section aria-label={title || "Why shop with us"}>
+        <ul className="m-0 grid list-none p-0 @3xl:grid-flow-col @3xl:auto-cols-fr">
+          {badges.map((badge, i) => (
+            <li key={badge.key} className="flex flex-col items-center justify-center gap-0.5 px-4 py-4 text-center text-white" style={{ background: fills[i % fills.length], opacity: badge.missing ? 0.6 : 1 }}>
+              {badge.title ? <span className="text-[13.5px] font-bold">{badge.title}</span> : null}
+              {badge.body ? <span className="text-[12px] opacity-85">{badge.body}</span> : null}
+              {badge.missing ? <span className="text-[11.5px] opacity-80">Fills in from your settings. Hidden from shoppers until set up.</span> : null}
+            </li>
+          ))}
+        </ul>
+      </section>
+    );
+  }
   return (
     <section aria-labelledby={title ? headingId : undefined} aria-label={title ? undefined : "Why shop with us"} className="bq-wrap py-8">
-      {title ? <h2 id={headingId} className="bq-h mb-5 text-center text-[24px]" style={look.headingStyle}>{title}</h2> : null}
-      <ul className="m-0 grid list-none gap-3 p-0" style={{ gridTemplateColumns: `repeat(auto-fit, minmax(${cards ? 200 : 160}px, 1fr))` }}>
+      {title ? <h2 id={headingId} className={`bq-h text-center ${tiles ? "mb-8 text-[30px] @3xl:text-[38px]" : "mb-5 text-[24px]"}`} style={look.headingStyle}>{title}</h2> : null}
+      <ul className="m-0 grid list-none gap-3 p-0" style={{ gridTemplateColumns: `repeat(auto-fit, minmax(${tiles ? 210 : cards ? 200 : 160}px, 1fr))`, gap: tiles ? 20 : undefined }}>
         {badges.map((badge) => {
           const content = (
             <>
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full" style={{ background: `${t.accent}1F`, color: t.ink }} aria-hidden><Icon name={badge.icon} size={20} /></span>
+              <span className={`grid shrink-0 place-items-center rounded-full ${tiles ? "h-16 w-16" : "h-11 w-11"}`} style={dark ? { border: `2px solid ${t.paperBg}`, color: t.paperBg } : tiles ? { background: t.accent, color: look.onAccent } : { background: `${t.accent}1F`, color: t.ink }} aria-hidden><Icon name={badge.icon} size={tiles ? 26 : 20} /></span>
               <span className="min-w-0">
-                {badge.title ? <span className="block text-[14.5px] font-semibold">{badge.title}</span> : null}
-                {badge.body ? <span className="mt-0.5 block text-[13px] leading-5" style={{ color: t.muted }}>{badge.body}</span> : null}
-                {badge.missing ? <span className="mt-0.5 block text-[12px]" style={{ color: t.muted }}>Fills in from your settings. Hidden from shoppers until set up.</span> : null}
+                {badge.title ? <span className={`block font-semibold ${tiles ? "text-[16px]" : "text-[14.5px]"}`}>{badge.title}</span> : null}
+                {badge.body ? <span className="mt-0.5 block text-[13px] leading-5" style={{ color: dark ? t.paperBg : t.muted, opacity: dark ? 0.8 : 1 }}>{badge.body}</span> : null}
+                {badge.missing ? <span className="mt-0.5 block text-[12px]" style={{ color: dark ? t.paperBg : t.muted, opacity: dark ? 0.75 : 1 }}>Fills in from your settings. Hidden from shoppers until set up.</span> : null}
               </span>
             </>
           );
-          const style = { color: t.ink, ...(cards ? { background: look.raised, borderRadius: look.cardRadius, padding: 18 } : { padding: "6px 0" }) };
+          const style = tiles
+            ? { color: dark ? t.paperBg : t.ink, background: dark ? t.ink : look.raised, borderRadius: look.cardRadius, padding: "30px 20px" }
+            : { color: t.ink, ...(cards ? { background: look.raised, borderRadius: look.cardRadius, padding: 18 } : { padding: "6px 0" }) };
+          const layout = tiles ? "flex-col justify-center gap-4 text-center" : `items-center gap-3 ${cards ? "" : "@3xl:justify-center"}`;
           return (
-            <li key={badge.key} className={cards ? "" : "@3xl:justify-center"} style={{ display: "flex" }}>
+            <li key={badge.key} className={cards || tiles ? "" : "@3xl:justify-center"} style={{ display: "flex" }}>
               {badge.whatsapp && shopper.whatsappNumber && ctx.live
-                ? <a href={whatsappLink(shopper.whatsappNumber, `Hi ${store.name}`)} target="_blank" rel="noopener noreferrer" className={`flex w-full items-center gap-3 ${cards ? "" : "@3xl:justify-center"}`} style={style}>{content}</a>
-                : <div className={`flex w-full items-center gap-3 ${cards ? "" : "@3xl:justify-center"}`} style={{ ...style, opacity: badge.missing ? 0.55 : 1 }}>{content}</div>}
+                ? <a href={whatsappLink(shopper.whatsappNumber, `Hi ${store.name}`)} target="_blank" rel="noopener noreferrer" className={`flex w-full items-center ${layout}`} style={style}>{content}</a>
+                : <div className={`flex w-full items-center ${layout}`} style={{ ...style, opacity: badge.missing ? 0.55 : 1 }}>{content}</div>}
             </li>
           );
         })}

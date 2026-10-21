@@ -314,6 +314,7 @@ const en = {
   "plans.f.seller.customDomain": "Your own custom domain",
   "plans.f.seller.subdomain": "Shopinbos web address (yourshop.shopinbos.com)",
   "plans.f.seller.themes_basic": "Basic themes",
+  "plans.f.seller.themes_premium": "Basic + premium themes",
   "plans.f.seller.themes_all": "All themes",
   "plans.f.seller.themes_all_seasonal": "All themes + seasonal campaigns",
   "plans.f.seller.staff": "{count, plural, one {# staff account} other {# staff accounts}}",

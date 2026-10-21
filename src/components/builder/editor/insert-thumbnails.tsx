@@ -97,6 +97,7 @@ const SECTION_THUMBS: Record<string, React.ReactNode> = {
   "announcement-bar": <><B x={0} y={0} w={80} h={9} o={0.8} r={0} /><T x={24} y={3.2} w={32} o={1} /><B x={4} y={14} w={72} h={32} o={0.08} /></>,
   "header": <><B x={0} y={14} w={80} h={16} o={0.1} r={0} /><B x={5} y={19} w={12} h={6} o={0.7} /><T x={30} y={21} w={7} /><T x={40} y={21} w={7} /><T x={50} y={21} w={7} /><C cx={72} cy={22} r={2.6} o={0.7} /></>,
   "hero-split": <><Img x={3} y={4} w={74} h={42} r={3} /><Heading x={0} y={16} w={36} center /><T x={26} y={23} w={28} /><P x={33} y={30} /></>,
+  "page-header": <><B x={0} y={10} w={80} h={28} o={0.14} r={0} /><Heading x={6} y={17} w={28} /><T x={6} y={25} w={18} o={0.4} /><Img x={56} y={14} w={18} h={20} r={2} /></>,
   "payday-countdown": <><B x={0} y={8} w={80} h={34} o={0.85} r={3} />{[0, 1, 2, 3].map((i) => <rect key={i} x={30 + i * 9} y={18} width={7} height={9} rx={1.5} fill="#fff" opacity={0.85} />)}<rect x={6} y={18} width={18} height={3} rx={1.5} fill="#fff" opacity={0.7} /><rect x={6} y={24} width={12} height={2.4} rx={1.2} fill="#fff" opacity={0.45} /><rect x={68} y={20} width={8} height={5} rx={2.5} fill="#fff" opacity={0.9} /></>,
   "promo-banner": <><B x={4} y={8} w={72} h={34} o={0.22} r={4} /><Heading x={0} y={16} w={34} center /><T x={28} y={23} w={24} /><P x={33} y={30} /></>,
   "trust-strip": <>{[0, 1, 2, 3].map((i) => <g key={i}><C cx={12 + i * 19} cy={20} r={4} o={0.55} /><T x={6 + i * 19} y={28} w={12} /></g>)}</>,

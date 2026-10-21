@@ -17,7 +17,7 @@ export interface SellerLimits {
   transactionFeePct: number;
   products: number | null;
   customDomain: boolean;
-  themes: "basic" | "all" | "all_seasonal";
+  themes: "basic" | "premium" | "all" | "all_seasonal";
   staff: number;
   aiCreditsMonthly: number;
   /** States the seller can sell and deliver to. */
@@ -72,7 +72,7 @@ export const SELLER_PLANS: Record<SellerPlanKey, SellerLimits> = {
     chinaImport: "browse", prioritySupport: false, hideBadge: false,
   },
   seller_starter: {
-    transactionFeePct: 2, products: 200, customDomain: true, themes: "all", staff: 2, aiCreditsMonthly: 150, sellingStates: 5, logisticsPartners: 3,
+    transactionFeePct: 2, products: 200, customDomain: true, themes: "premium", staff: 2, aiCreditsMonthly: 150, sellingStates: 5, logisticsPartners: 3,
     privateRateCards: true, brandedTracking: true, exceptionsInbox: false, payOnDelivery: false, messagesIncluded: 0, dropshipProducts: 50,
     chinaImport: "full", prioritySupport: false, hideBadge: false,
   },

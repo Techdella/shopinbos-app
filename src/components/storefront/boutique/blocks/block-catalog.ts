@@ -382,7 +382,7 @@ export const STORE_BLOCKS: StoreBlockMeta[] = [
       ],
     }),
     schema: () => [
-      { fields: [text("title", "Heading", { help: "Optional." }), seg("style", "Style", [{ value: "row", label: "Row" }, { value: "cards", label: "Cards" }], "row")] },
+      { fields: [text("title", "Heading", { help: "Optional." }), select("style", "Style", [{ value: "row", label: "Row" }, { value: "cards", label: "Cards" }, { value: "tiles", label: "Tiles, icon on top" }, { value: "dark", label: "Dark tiles" }, { value: "strip", label: "Colour strip" }], "row")] },
       { title: "Badges", fields: [
         repeater({
           id: "badges",
