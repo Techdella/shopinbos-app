@@ -128,8 +128,6 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
   if (!manifest) {
     return NextResponse.json({ error: { code: "NOT_FOUND", message: "Template not found" } }, { status: 404 });
   }
-  const planProblem = await themeProblem(user.id, templateId);
-  if (planProblem) return NextResponse.json({ error: { code: "PLAN_LIMIT", message: planProblem } }, { status: 402 });
 
   const store = await db.store.findUnique({
     where: { userId: user.id },
@@ -162,6 +160,13 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
   const previousDraft = resolveDraftSnapshot(currentSettings, null);
   const published = resolvePublishedSnapshot(currentSettings, null);
   const previousManifest = previousDraft ? getTemplateManifest(previousDraft.templateId) : null;
+
+  // Premium and platinum themes need a plan that includes them or a one-off purchase; re-applying the theme the
+  // store already has is always fine.
+  const themeRefusal = await themeProblem(user.id, manifest.id, previousDraft?.templateId ?? published?.templateId);
+  if (themeRefusal) {
+    return NextResponse.json({ error: { code: "UPGRADE_REQUIRED", message: themeRefusal } }, { status: 403 });
+  }
 
   // Switching keeps the seller's own copy, images, picked products, hidden sections and extra pages. Products,
   // prices and orders live in their own tables and never change here.

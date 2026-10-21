@@ -9,7 +9,8 @@ import {
   type PlanKey,
   type SellerLimits,
 } from "@shared/plans";
-import { BASIC_THEME_IDS, isLibraryTheme } from "@/lib/store-templates/theme-library";
+import { checkThemeSwitch } from "@/lib/theme-access";
+import { loadSellerThemeAccess } from "@/lib/theme-access.server";
 
 // What a seller's plan lets them do (shared/plans.ts), checked where they do it: adding products, dropship, custom
 // domains, themes, the states they sell in, delivery partners, pay on delivery, seasonal campaigns and imports.
@@ -66,15 +67,13 @@ export async function customDomainProblem(userId: string): Promise<string | null
   return `Your own domain comes with the ${upgradeTo((next) => next.customDomain) ?? "Starter"} plan. Your store stays on its Shopinbos address until then.`;
 }
 
-/** Library themes on the Free plan are the basic ones; every paid plan has them all. */
-export function themeAllowed(limits: SellerLimits, themeId: string) {
-  return limits.themes !== "basic" || !isLibraryTheme(themeId) || BASIC_THEME_IDS.includes(themeId);
-}
-
-export async function themeProblem(userId: string, themeId: string): Promise<string | null> {
-  const { limits } = await sellerPlan(userId);
-  if (themeAllowed(limits, themeId)) return null;
-  return `That theme comes with the ${upgradeTo((next) => next.themes !== "basic") ?? "Starter"} plan. The Free plan includes the basic themes.`;
+/**
+ * Switching to a theme: its tier must come with the plan (Free basic, Starter premium, Growth and Pro platinum; see
+ * src/lib/theme-access.ts) or the seller bought it. The theme the store already has (`currentThemeId`) always passes.
+ */
+export async function themeProblem(userId: string, themeId: string, currentThemeId?: string | null): Promise<string | null> {
+  const access = await loadSellerThemeAccess(userId);
+  return checkThemeSwitch(themeId, access.tier, currentThemeId, access.owned).message;
 }
 
 /**

@@ -129,10 +129,19 @@ export interface ThemePreviewDialogProps {
   isCurrent: boolean;
   busy: boolean;
   onUse: () => void;
+  /** Set when the seller's plan doesn't include this theme: the plan that does, shown with an Upgrade link. */
+  lockedPlan?: string | null;
+  /** "₦2,000" when the locked theme can be bought on its own; shows Buy with "or upgrade" beside it. */
+  buyPrice?: string | null;
+  buying?: boolean;
+  onBuy?: () => void;
 }
 
+/** Where sellers pick a plan (Settings > Billing). */
+export const UPGRADE_HREF = "/home/settings?tab=Billing";
+
 /** Larger live preview: desktop or phone, home or product page, sample or own products. */
-export function ThemePreviewDialog({ themeId, onClose, own, useOwn, onUseOwnChange, isCurrent, busy, onUse }: ThemePreviewDialogProps) {
+export function ThemePreviewDialog({ themeId, onClose, own, useOwn, onUseOwnChange, isCurrent, busy, onUse, lockedPlan, buyPrice, buying, onBuy }: ThemePreviewDialogProps) {
   const t = useT("builder");
   const theme = themeLibraryEntry(themeId);
   const [device, setDevice] = useState<"desktop" | "mobile">(() => (typeof window !== "undefined" && window.innerWidth < 760 ? "mobile" : "desktop"));
@@ -216,6 +225,15 @@ export function ThemePreviewDialog({ themeId, onClose, own, useOwn, onUseOwnChan
           <div className="flex items-center gap-2">
             {isCurrent ? (
               <span className="px-2 text-[14px] font-extrabold">{t("tp.current")}</span>
+            ) : lockedPlan && buyPrice && onBuy ? (
+              <>
+                <a href={UPGRADE_HREF} className="hidden px-1 text-[13px] font-semibold text-app-ink-soft underline underline-offset-2 sm:inline">{t("tp.orUpgrade", { plan: lockedPlan })}</a>
+                <PillButton tone="ink" size="sm" busy={buying} disabled={buying} onClick={onBuy}>{t("tl.buy", { price: buyPrice })}</PillButton>
+              </>
+            ) : lockedPlan ? (
+              <a href={UPGRADE_HREF} className="inline-flex min-h-[38px] items-center gap-1.5 rounded-full bg-app-ink px-4 text-[13px] font-bold text-white no-underline hover:bg-black">
+                <Icon name="lock" size={14} /> {t("tp.upgradeTo", { plan: lockedPlan })}
+              </a>
             ) : (
               <PillButton tone="ink" size="sm" busy={busy} disabled={busy} onClick={onUse}>{t("tl.useName", { name: theme.name })}</PillButton>
             )}

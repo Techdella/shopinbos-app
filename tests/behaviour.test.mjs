@@ -815,14 +815,18 @@ function seedSnapshot(id) {
   return JSON.parse(JSON.stringify({ templateId: manifest.id, templateName: manifest.name, layoutFamily: manifest.layoutFamily, themeTokens: manifest.themeTokens, pages: manifest.seedPages, updatedAt: "" }));
 }
 
-const ALL_THEME_IDS = ["breeze", "noir", "plain", "adire", "pantry", "ile", "plug", "stride", "ewa", "suku", "asoebi", "agbada", "ileke", "ounje", "chinchin", "oja", "omo", "iwe", "owambe", "danfo", "turare", "oko"];
+const ALL_THEME_IDS = ["breeze", "noir", "plain", "adire", "pantry", "ile", "plug", "stride", "ewa", "suku", "asoebi", "agbada", "ileke", "ounje", "chinchin", "oja", "omo", "iwe", "owambe", "danfo", "turare", "oko", "aaro", "highlife", "oba", "gbedu",
+  "omalicha", "zuma", "oku", "ihe", "kasuwa", "nkata", "uwa", "sarauniya", "zinariya",
+  "irawo", "asa", "mmiri", "uzo", "rawa", "fitila", "oso", "shakara",
+  "aga", "itura", "gele", "imani", "itanna",
+  "littafi", "itan", "awo", "kyau", "keke", "ahia", "ado", "wuta", "ike", "ewu", "erin", "apere", "bata", "ogba", "eso", "osan", "ijokoo", "ite", "kujera", "tufafi", "rewa", "igbese", "ola", "okunrin", "salubata", "efo", "aluko", "aja", "dara", "ife", "irorun"];
 
 test("theme library lists every 2026 theme, each a real boutique theme with its own pages, tokens and layouts", () => {
   assert.deepEqual(themeLib.THEME_LIBRARY.map((theme) => theme.id), ALL_THEME_IDS, "ids are stable and in order");
   assert.equal(new Set(themeLib.THEME_LIBRARY.map((theme) => theme.id)).size, ALL_THEME_IDS.length, "unique ids");
   assert.equal(new Set(themeLib.THEME_LIBRARY.map((theme) => theme.slug)).size, ALL_THEME_IDS.length, "unique slugs");
   assert.deepEqual([...boutique.BOUTIQUE_THEME_IDS], ALL_THEME_IDS, "every library theme renders with the boutique renderer");
-  assert.deepEqual(themeLib.THEME_LIBRARY.filter((theme) => theme.isNew).length, 14, "the industry themes are marked new");
+  assert.deepEqual(themeLib.THEME_LIBRARY.filter((theme) => theme.isNew).length, 71, "the industry themes and the newest themes are marked new");
   const tokenKeys = Object.keys(boutique.BOUTIQUE_THEME_TOKENS.breeze).sort();
   for (const theme of themeLib.THEME_LIBRARY) {
     assert.ok(boutique.isBoutiqueTheme(theme.id), `${theme.id} renders with the boutique renderer`);
@@ -838,7 +842,7 @@ test("theme library lists every 2026 theme, each a real boutique theme with its 
     const product = manifest.seedPages.find((page) => page.pageType === "product");
     assert.ok(home.sections.some((section) => section.kind === "hero-split"), `${theme.id} home has a hero`);
     assert.ok(home.sections.some((section) => section.kind === "featured-products"), `${theme.id} home shows products`);
-    assert.ok(["split", "centered", "bold"].includes(home.sections.find((section) => section.kind === "header").settings.layout), `${theme.id} has a header layout`);
+    assert.ok(["split", "centered", "bold", "sidebar", "market", "market-dark"].includes(home.sections.find((section) => section.kind === "header").settings.layout), `${theme.id} has a header layout`);
     assert.ok(product.sections.some((section) => section.kind === "product-detail" && section.settings.layout), `${theme.id} has a product page layout`);
     assert.doesNotMatch(JSON.stringify(manifest), /unsplash|pexels|https?:\/\//, `${theme.id} seeds carry no stock photos`);
     assert.doesNotMatch(JSON.stringify(manifest.seedPages), /"answer":"[^"]+"|"quote":"[^"]+"/, `${theme.id} seeds invent no answers or reviews`);
@@ -863,12 +867,107 @@ test("theme library lists every 2026 theme, each a real boutique theme with its 
   assert.equal(boutique.BOUTIQUE_TEMPLATE_MANIFESTS.find((entry) => entry.id === "breeze").seedPages[0].seo.metaTitle, "Breeze");
 });
 
+test("live stores show the theme's stock photos until the seller uploads their own", async () => {
+  const photos = await import("../src/lib/store-templates/demo-photos.ts");
+  const url = /^https:\/\/images\.unsplash\.com\/photo-\d{10,13}-[0-9a-f]{12}\?auto=format&fit=crop&w=\d+&h=\d+&q=\d+$/;
+  for (const id of ALL_THEME_IDS) {
+    const stock = photos.themeStockImages(id);
+    assert.ok(stock, `${id} has stock photos`);
+    assert.match(stock.hero, url);
+    assert.match(stock.story, /&w=1000&h=1250&/, `${id} story photo is 4:5`);
+    assert.ok(stock.extras.length >= 3, `${id} has extra pictures for multi-photo banners`);
+    for (const extra of stock.extras) assert.match(extra, url);
+  }
+  assert.match(photos.themeStockImages("zinariya").hero, /&w=1200&h=1500&/, "tall banner frames get a 4:5 photo");
+  assert.equal(photos.themeStockImages("not-a-theme"), null);
+  assert.equal(photos.themeStockImages(null), null);
+  // Filled in when the page is drawn, never saved: seeds stay free of photo URLs, and an upload or the switch wins.
+  for (const manifest of boutique.BOUTIQUE_TEMPLATE_MANIFESTS) assert.doesNotMatch(JSON.stringify(manifest.seedPages), /unsplash/);
+  const renderer = readFileSync(new URL("../src/components/storefront/boutique/BoutiqueStorefront.tsx", import.meta.url), "utf8");
+  assert.match(renderer, /const stock = section\.settings\?\.stockImage === false \? null : stockImages;/);
+  assert.match(renderer, /const banner = uploaded\.length \? uploaded : stock \? \[stock\.hero\] : fromProducts;/);
+  assert.match(renderer, /itemImages\(section\)\[0\] \?\? stockStory \?\?/);
+  const schema = readFileSync(new URL("../src/components/builder/editor/section-schema.ts", import.meta.url), "utf8");
+  assert.match(schema, /id: "stockImage",\s+type: "toggle"/);
+  // The storefront's content security policy lets the photos load.
+  assert.match(readFileSync(new URL("../next.config.ts", import.meta.url), "utf8"), /img-src[^`]*https:\/\/images\.unsplash\.com/);
+});
+
+test("the Igbo and Hausa themes design their inner pages, not just the home page", async () => {
+  const { STORE_BLOCK_KINDS } = await import("../src/components/storefront/boutique/blocks/block-catalog.ts");
+  const designed = ["omalicha", "zuma", "oku", "ihe", "kasuwa", "nkata", "uwa", "sarauniya", "zinariya", "irawo", "asa", "mmiri", "uzo", "rawa", "fitila", "oso", "shakara", "aga", "itura", "gele", "imani", "itanna", "littafi", "itan", "awo", "kyau", "keke", "ahia", "ado", "wuta", "ike", "ewu", "erin", "apere", "bata", "ogba", "eso", "osan", "ijokoo", "ite", "kujera", "tufafi", "rewa", "igbese", "ola", "okunrin", "salubata", "efo", "aluko", "aja", "dara", "ife", "irorun"];
+  const shopLooks = new Set();
+  for (const id of designed) {
+    const pages = Object.fromEntries(seedSnapshot(id).pages.map((page) => [page.pageType, page]));
+    const body = (type) => pages[type].sections.filter((section) => !["announcement-bar", "header", "footer"].includes(section.kind));
+    const shop = body("products").find((section) => section.kind === "featured-products").settings;
+    shopLooks.add(JSON.stringify({ shopLayout: shop.shopLayout, shopView: shop.shopView, filterPlacement: shop.filterPlacement, columns: shop.columns }));
+    assert.ok(body("about").length >= 2, `${id} about page has more than the story`);
+    assert.ok(body("about").some((section) => section.kind === "story-split"), `${id} about page keeps the story`);
+    const faq = body("faq")[0];
+    assert.ok(faq.settings.layout || faq.settings.faqStyle, `${id} FAQ page has its own look`);
+    for (const type of ["home", "about", "product", "cart", "wishlist"]) {
+      for (const section of body(type)) {
+        if (STORE_BLOCK_KINDS.includes(section.kind)) assert.equal(section.blocks[0].type, "copy", `${id} ${type} ${section.kind} is a real block`);
+      }
+    }
+    const home = body("home");
+    assert.equal(new Set(home.map((section) => section.id)).size, home.length, `${id} home section ids are unique`);
+  }
+  assert.ok(shopLooks.size >= 9, "the shop pages differ between themes");
+  // The shared layouts the newest themes use are drawn by the renderer and offered in the editor.
+  const renderer = readFileSync(new URL("../src/components/storefront/boutique/BoutiqueStorefront.tsx", import.meta.url), "utf8");
+  const schema = readFileSync(new URL("../src/components/builder/editor/section-schema.ts", import.meta.url), "utf8");
+  for (const layout of ["spotlight", "lookbook", "boutique-stack", "boutique-mosaic", "overlap", "category-tabs", "lists", "boutique-cards", "boutique-words", "sidebar", "feature", "showcase", "boutique-labels", "boutique-bordered", "framed", "quote", "by-category", "mini", "boutique-diagonal", "boutique-counts", "boutique-promo", "promo", "boutique-duo", "boutique-captioned", "band", "boutique-trio", "panel", "collage", "intro", "per-category", "boutique-halves", "boutique-exclusive", "boutique-staggered", "boutique-panels", "overlay", "deal", "boutique-center", "boutique-lookbook", "boutique-overlap", "boutique-shopbar", "word", "boutique-bold"]) {
+    assert.match(renderer, new RegExp(`"${layout}"`), `${layout} is rendered`);
+    assert.match(schema, new RegExp(`value: "${layout}"`), `${layout} is offered in the editor`);
+  }
+  // Inner-page title banners (Ìtura, Gèlè, Imani) sit at the top of the shop, about, contact, FAQ and bag pages.
+  for (const [id, style] of [["itura", "tinted"], ["gele", "simple"], ["imani", "photo"]]) {
+    for (const page of seedSnapshot(id).pages.filter((entry) => ["products", "about", "contact", "faq", "cart"].includes(entry.pageType))) {
+      const first = page.sections.find((section) => !["announcement-bar", "header"].includes(section.kind));
+      assert.equal(first.kind, "page-header", `${id} ${page.pageType} starts with a title banner`);
+      assert.equal(first.settings.layout, style);
+    }
+  }
+  assert.match(renderer, /case "page-header":\s+return pageHeader\(section\);/);
+  assert.match(readFileSync(new URL("../src/components/builder/editor/editor-logic.ts", import.meta.url), "utf8"), /kind: "page-header", label: "Page title banner"/);
+  // Àga's sidebar menu and Imani's category bar.
+  const header = (id) => seedSnapshot(id).pages[0].sections.find((section) => section.kind === "header").settings;
+  assert.equal(header("aga").layout, "sidebar");
+  assert.equal(header("imani").categoryBar, true);
+  assert.equal(header("breeze").categoryBar, undefined, "older themes keep their header");
+  const chrome = readFileSync(new URL("../src/components/storefront/boutique/BoutiqueChrome.tsx", import.meta.url), "utf8");
+  assert.match(chrome, /className="bq-sidebar"/);
+  assert.match(chrome, /aria-label="Shop by category"/);
+  // The search-bar headers (Ahịa, Wuta, Ike, Ẹ̀wù), light and dark.
+  assert.equal(header("wuta").layout, "market");
+  assert.equal(header("ike").layout, "market-dark");
+  assert.match(chrome, /layout === "market" \? "light" : layout === "market-dark" \? "dark"/);
+  assert.match(schema, /value: "market", label: "Search bar"/);
+  assert.match(schema, /value: "market-dark", label: "Search bar, dark"/);
+  // The older themes keep the inner pages they were seeded with.
+  const breeze = Object.fromEntries(seedSnapshot("breeze").pages.map((page) => [page.pageType, page]));
+  assert.deepEqual(breeze.products.sections.find((section) => section.kind === "featured-products").settings, { layout: "grid", source: "all", filters: true });
+  assert.deepEqual(breeze.about.sections.filter((section) => section.kind !== "header" && section.kind !== "footer" && section.kind !== "announcement-bar").map((section) => section.kind), ["story-split"]);
+});
+
 test("Nigerian theme names keep their diacritics and match searches without them", () => {
   const names = Object.fromEntries(themeLib.THEME_LIBRARY.map((theme) => [theme.id, theme.name]));
   assert.deepEqual(names, {
     breeze: "Afẹ́fẹ́", noir: "Dúdú", plain: "Jẹ́jẹ́", adire: "Adire", pantry: "Mama Put", ile: "Ilé", plug: "Plug", stride: "Waka",
     ewa: "Ẹwà", suku: "Ṣùkú", asoebi: "Aṣọ Ẹbí", agbada: "Agbada", ileke: "Ìlẹ̀kẹ̀", ounje: "Oúnjẹ", chinchin: "Chin Chin", oja: "Ọjà",
     omo: "Ọmọ", iwe: "Ìwé", owambe: "Owambe", danfo: "Danfo", turare: "Turare", oko: "Oko",
+    aaro: "Àárọ̀", highlife: "Highlife", oba: "Ọba", gbedu: "Gbẹ̀du",
+    omalicha: "Ọmalịcha", zuma: "Zuma", oku: "Ọkụ", ihe: "Ìhè", kasuwa: "Kasuwa", nkata: "Nkata", uwa: "Ụwa", sarauniya: "Sarauniya", zinariya: "Zinariya",
+    irawo: "Ìràwọ̀", asa: "Àṣà", mmiri: "Mmiri", uzo: "Ụzọ", rawa: "Rawa", fitila: "Fitila", oso: "Ọ̀ṣọ́", shakara: "Shakara",
+    aga: "Àga", itura: "Ìtura", gele: "Gèlè", imani: "Imani", itanna: "Ìtànná",
+    littafi: "Littafi", itan: "Ìtàn", awo: "Àwọ̀", kyau: "Kyau", keke: "Keke",
+    ahia: "Ahịa", ado: "Àdó", wuta: "Wuta", ike: "Ike", ewu: "Ẹ̀wù",
+    erin: "Ẹ̀rín", apere: "Apẹ̀rẹ̀", bata: "Bàtà", ogba: "Ọgbà", eso: "Èso",
+    osan: "Ọsàn", ijokoo: "Ìjókòó", ite: "Ìtẹ́", kujera: "Kujera", tufafi: "Tufafi",
+    rewa: "Rẹ̀wà", igbese: "Ìgbésẹ̀", ola: "Ọlá", okunrin: "Ọkùnrin", salubata: "Sálúbàtà",
+    efo: "Ẹ̀fọ́", aluko: "Àlùkò", aja: "Ajá", dara: "Dára", ife: "Ìfẹ́", irorun: "Ìrọ̀rùn",
   });
   for (const theme of themeLib.THEME_LIBRARY) assert.equal(theme.name, theme.name.normalize("NFC"), `${theme.id} name is NFC`);
   assert.match(names.breeze, /\u1EB9\u0301/, "ẹ́ is ẹ with a combining acute");
@@ -876,7 +975,7 @@ test("Nigerian theme names keep their diacritics and match searches without them
   assert.equal(themeLib.foldText("Aṣọ Ẹbí"), "aso ebi");
   assert.equal(themeLib.themeLibraryEntry("asoebi").slug, "aso-ebi");
   assert.equal(themeLib.themeLibraryEntry("ileke").slug, "ileke");
-  for (const [query, id] of [["afefe", "breeze"], ["Afẹ́fẹ́", "breeze"], ["dudu", "noir"], ["jeje", "plain"], ["aso ebi", "asoebi"], ["ileke", "ileke"], ["ounje", "ounje"], ["oja", "oja"], ["iwe", "iwe"], ["suku", "suku"], ["ewa", "ewa"]]) {
+  for (const [query, id] of [["afefe", "breeze"], ["Afẹ́fẹ́", "breeze"], ["aaro", "aaro"], ["oba", "oba"], ["gbedu", "gbedu"], ["omalicha", "omalicha"], ["Ụwa", "uwa"], ["oku", "oku"], ["ihe", "ihe"], ["kasuwa", "kasuwa"], ["zinariya", "zinariya"], ["irawo", "irawo"], ["Àṣà", "asa"], ["uzo", "uzo"], ["oso", "oso"], ["shakara", "shakara"], ["aga", "aga"], ["Ìtura", "itura"], ["gele", "gele"], ["imani", "imani"], ["itanna", "itanna"], ["littafi", "littafi"], ["itan", "itan"], ["awo", "awo"], ["kyau", "kyau"], ["keke", "keke"], ["ahia", "ahia"], ["Àdó", "ado"], ["wuta", "wuta"], ["ike", "ike"], ["Ẹ̀wù", "ewu"], ["erin", "erin"], ["apere", "apere"], ["Bàtà", "bata"], ["ogba", "ogba"], ["Èso", "eso"], ["osan", "osan"], ["Ìjókòó", "ijokoo"], ["ite", "ite"], ["kujera", "kujera"], ["tufafi", "tufafi"], ["rewa", "rewa"], ["Ìgbésẹ̀", "igbese"], ["ola", "ola"], ["okunrin", "okunrin"], ["salubata", "salubata"], ["Ẹ̀fọ́", "efo"], ["aluko", "aluko"], ["aja", "aja"], ["dara", "dara"], ["Ìfẹ́", "ife"], ["irorun", "irorun"], ["dudu", "noir"], ["jeje", "plain"], ["aso ebi", "asoebi"], ["ileke", "ileke"], ["ounje", "ounje"], ["oja", "oja"], ["iwe", "iwe"], ["suku", "suku"], ["ewa", "ewa"]]) {
     assert.ok(themeLib.searchThemes(query).some((theme) => theme.id === id), `"${query}" finds ${id}`);
   }
   assert.deepEqual(themeLib.searchThemes("wigs").map((theme) => theme.id), ["suku"]);
@@ -889,14 +988,21 @@ test("Nigerian theme names keep their diacritics and match searches without them
 });
 
 test("theme category chips only show categories that have themes", () => {
-  assert.deepEqual(themeLib.themeCategoryChips().map((chip) => chip.label), ["All", "Fashion", "Beauty", "Food", "Home", "Gadgets", "Kids", "Books", "Events", "Auto", "Groceries", "Jewellery", "Agro"]);
+  assert.deepEqual(themeLib.themeCategoryChips().map((chip) => chip.label), ["All", "Fashion", "Beauty", "Food", "Home", "Gadgets", "Kids", "Books", "Events", "Auto", "Groceries", "Jewellery", "Agro", "Pets"]);
   const subset = themeLib.THEME_LIBRARY.filter((theme) => theme.id === "breeze" || theme.id === "pantry" || theme.id === "plain");
   assert.deepEqual(themeLib.themeCategoryChips(subset).map((chip) => chip.id), ["all", "fashion", "food"]);
-  assert.deepEqual(themeLib.filterThemes("fashion").map((theme) => theme.id), ["breeze", "noir", "adire", "stride", "asoebi", "agbada"]);
-  assert.deepEqual(themeLib.filterThemes("beauty").map((theme) => theme.id), ["ewa", "suku", "turare"]);
-  assert.deepEqual(themeLib.filterThemes("jewellery").map((theme) => theme.id), ["noir", "ileke"]);
-  assert.deepEqual(themeLib.filterThemes("food").map((theme) => theme.id), ["pantry", "ounje", "chinchin"]);
-  for (const chip of ["kids", "books", "events", "auto", "groceries", "agro"]) assert.equal(themeLib.filterThemes(chip).length, 1, chip);
+  assert.deepEqual(themeLib.filterThemes("fashion").map((theme) => theme.id), ["breeze", "noir", "adire", "stride", "asoebi", "agbada", "aaro", "highlife", "oba", "gbedu", "oku", "nkata", "uwa", "sarauniya", "uzo", "rawa", "oso", "shakara", "gele", "imani", "itanna", "awo", "kyau", "ado", "ewu", "erin", "bata", "tufafi", "rewa", "igbese", "ola", "okunrin", "salubata", "aluko", "dara", "ife", "irorun"]);
+  assert.deepEqual(themeLib.filterThemes("beauty").map((theme) => theme.id), ["ewa", "suku", "turare", "highlife", "oba", "omalicha", "irawo", "gele"]);
+  assert.deepEqual(themeLib.filterThemes("jewellery").map((theme) => theme.id), ["noir", "ileke", "oba", "zinariya", "oso", "ola"]);
+  assert.deepEqual(themeLib.filterThemes("food").map((theme) => theme.id), ["pantry", "ounje", "chinchin", "asa", "mmiri", "apere", "eso", "osan", "efo"]);
+  assert.deepEqual(themeLib.filterThemes("agro").map((theme) => theme.id), ["oko", "ogba", "eso", "efo"]);
+  assert.deepEqual(themeLib.filterThemes("kids").map((theme) => theme.id), ["omo", "ewu", "tufafi"]);
+  assert.deepEqual(themeLib.filterThemes("gadgets").map((theme) => theme.id), ["plug", "gbedu", "kasuwa", "keke", "ahia", "wuta", "ike"]);
+  assert.deepEqual(themeLib.filterThemes("auto").map((theme) => theme.id), ["danfo", "keke"]);
+  assert.deepEqual(themeLib.filterThemes("events").map((theme) => theme.id), ["owambe", "rawa"]);
+  assert.deepEqual(themeLib.filterThemes("books").map((theme) => theme.id), ["iwe", "uwa", "littafi", "itan"]);
+  assert.deepEqual(themeLib.filterThemes("groceries").map((theme) => theme.id), ["oja", "kasuwa", "apere", "ogba", "eso", "osan", "efo"]);
+  assert.equal(themeLib.filterThemes("home").filter((theme) => theme.id === "aga" || theme.id === "itura").length, 2);
   assert.equal(themeLib.filterThemes("all").length, ALL_THEME_IDS.length);
   assert.equal(themeLib.chipForStoreCategory("Hair & wigs"), "beauty");
   assert.equal(themeLib.chipForStoreCategory("Other"), "all");
@@ -1059,9 +1165,62 @@ test("Rex's fallback pick follows what the store sells, for every industry", () 
     ["Car parts and accessories", "danfo"],
     ["Perfumes and body mists", "turare"],
     ["Farm produce and poultry", "oko"],
+    ["Couture and bridal atelier", "oba"],
+    ["Streetwear and audio gear", "gbedu"],
+    ["Vintage merch and graphic tees", "highlife"],
+    ["Gym wear and football jerseys", "oku"],
+    ["Paintings and art prints", "ihe"],
+    ["Handmade pottery and woven baskets", "zuma"],
+    ["Bridal and occasion wear for women", "sarauniya"],
+    ["Department store, wholesale", "kasuwa"],
+    ["A curated concept store", "uwa"],
+    ["Diamond engagement rings and 18k gold", "zinariya"],
+    ["Bath, body care and aromatherapy", "omalicha"],
+    ["Bottled water and fruit juice", "mmiri"],
+    ["Chandeliers and pendant lights", "fitila"],
+    ["Traditional spices like iru and uziza", "asa"],
+    ["One product: our flagship product", "irawo"],
+    ["Clubwear and festival outfits", "rawa"],
+    ["Limited drops and snapbacks", "shakara"],
+    ["Travel luggage and camping gear", "uzo"],
+    ["A ready-to-wear fashion label", "oso"],
+    ["Sofas, chairs and dining tables", "aga"],
+    ["Poufs and ottomans for lounge comfort", "itura"],
+    ["Headwraps and turbans", "gele"],
+    ["Clothes for men and women, department store", "imani"],
+    ["Sneakerhead trainers", "itanna"],
+    ["Bicycles and cycling gear", "keke"],
+    ["Poetry and literary fiction", "itan"],
+    ["Storybooks and picture books", "littafi"],
+    ["Home appliances: fridges, freezers and generators", "wuta"],
+    ["Printers, monitors and PC parts", "ike"],
+    ["A variety store with general merchandise", "ahia"],
+    ["Matching family outfits", "ewu"],
+    ["Smart casual clothing for men", "ado"],
+    ["Hoodies and sweatshirts", "erin"],
+    ["Cold-pressed bottles", "apere"],
+    ["Cobbler and shoemaker", "bata"],
+    ["Greengrocer", "ogba"],
+    ["Veggie box delivery", "eso"],
+    ["Fruit baskets and fruit vendor", "osan"],
+    ["Furniture showroom", "ijokoo"],
+    ["Styling studio", "ite"],
+    ["Workspace setups", "kujera"],
+    ["Family clothing", "tufafi"],
+    ["Trendy outfits", "rewa"],
+    ["Basketball gear and hoops", "igbese"],
+    ["His and hers", "ola"],
+    ["Male fashion", "okunrin"],
+    ["Mules and flip flops", "salubata"],
+    ["Leafy greens and veggies", "efo"],
+    ["Fashion lookbook", "aluko"],
+    ["Pet shop and pet food", "aja"],
+    ["Everyday fashion", "dara"],
+    ["Swimwear and bikinis", "ife"],
+    ["Basics and loungewear", "irorun"],
   ];
   for (const [storeCategory, themeId] of cases) assert.equal(themeLib.pickThemeByRules({ storeCategory }).themeId, themeId, storeCategory);
-  for (const id of ALL_THEME_IDS.filter((id) => id !== "plain" && id !== "adire")) assert.ok(cases.some(([, themeId]) => themeId === id), `${id} has a rule`);
+  for (const id of ALL_THEME_IDS.filter((id) => id !== "plain" && id !== "adire" && id !== "aaro" && id !== "nkata" && id !== "awo" && id !== "kyau")) assert.ok(cases.some(([, themeId]) => themeId === id), `${id} has a rule`);
   assert.equal(themeLib.pickThemeByRules({ storeCategory: "Fashion", productNames: ["Ankara wrap dress"] }).themeId, "adire");
   assert.equal(themeLib.pickThemeByRules({ productNames: ["Bluetooth speaker", "Power bank 20000mAh"] }).themeId, "plug");
   assert.equal(themeLib.pickThemeByRules({ productNames: ["Swiss voile lace", "Gele headtie", "George wrapper"] }).themeId, "asoebi");
@@ -3067,7 +3226,8 @@ test("builder: product section fields follow the layout, and every layout offere
   assert.ok(!ids({ layout: "grid", shopView: "list" }).includes("columns"), "lists have no column count");
 
   // Each layout value offered for a 2026 theme section is handled by BoutiqueStorefront (defaults fall through).
-  const boutique = readFileSync(new URL("../src/components/storefront/boutique/BoutiqueStorefront.tsx", import.meta.url), "utf8");
+  // The renderer and its header (BoutiqueChrome draws the header layouts).
+  const boutique = readFileSync(new URL("../src/components/storefront/boutique/BoutiqueStorefront.tsx", import.meta.url), "utf8") + readFileSync(new URL("../src/components/storefront/boutique/BoutiqueChrome.tsx", import.meta.url), "utf8");
   const defaults = new Set(["carousel", "boutique-tiles", "boutique", "accordion", "centered", "split"]);
   for (const kind of ["featured-products", "category-grid", "story-split", "faq", "contact-form", "testimonials", "header"]) {
     const layout = schema.allFields(schema.sectionSchema(kind, "boutique", "breeze")).find((field) => field.id === "layout");

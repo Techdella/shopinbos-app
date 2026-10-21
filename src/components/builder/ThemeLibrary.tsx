@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type React from "react";
 import { AssistantNote } from "@/components/app-kit";
 import { Notice, PillButton, Toggle, cx } from "@/components/app-ui";
@@ -11,16 +11,22 @@ import { BOUTIQUE_FONT_CLASS, BQ_GROTESK, BQ_SANS, BQ_SERIF } from "@/components
 import { ownPreviewProducts } from "@/lib/store-templates/demo-catalogue";
 import {
   THEME_LIBRARY,
+  THEME_TIERS,
   chipForStoreCategory,
   filterThemes,
+  filterThemesByTier,
   searchThemes,
   themeCategoryChips,
   themeLibraryEntry,
   themeMeaningLine,
+  tierIncludes,
   type ThemeChipId,
   type ThemeLibraryEntry,
+  type ThemeTier,
 } from "@/lib/store-templates/theme-library";
-import { ThemePreviewDialog, ThemeThumbnail } from "./theme-preview/ThemePreview";
+import { TIER_PLAN_LABEL } from "@/lib/theme-access";
+import { formatThemePrice } from "@shared/theme-purchase";
+import { ThemePreviewDialog, ThemeThumbnail, UPGRADE_HREF } from "./theme-preview/ThemePreview";
 import type { PreviewOwnStore } from "./theme-preview/preview-store";
 import { Mascot } from "@/components/brand/Mascot";
 import { useT } from "@/components/i18n/I18nProvider";
@@ -54,9 +60,30 @@ export type ThemeLibraryProps = {
   ownStore?: PreviewOwnStore | null;
   /** Optional: a theme to open in preview straight away (e.g. "Use this template" on shopinbos.com). */
   initialPreviewId?: string | null;
+  /**
+   * What the seller may use (plan tier, bought themes, the price of one theme per tier); loaded from
+   * /api/store/templates/access when not given.
+   */
+  sellerAccess?: ThemeAccessInfo;
+};
+
+/** Tier chips on the cards: free (basic) themes quiet, paid ones stand out. */
+const TIER_BADGE: Record<ThemeTier, string> = {
+  basic: "bg-white/95 text-app-ink",
+  premium: "bg-[#F2A93B] text-[#0E2A38]",
+  platinum: "bg-[#6B4F8A] text-white",
 };
 
 export const THEME_SWITCHED_EVENT = "shopinbos:theme-switched";
+
+export interface ThemeAccessInfo {
+  tier: ThemeTier;
+  owned: string[];
+  prices: { premium: number; platinum: number };
+}
+
+/** Where the gallery lives; Paystack sends the seller back here after buying a theme. */
+const GALLERY_PATH = "/builder/templates";
 
 type RexPick = { themeId: string; reason: string; source: "rex" | "rules"; note?: string };
 
@@ -65,7 +92,7 @@ function nameFont(theme: ThemeLibraryEntry): React.CSSProperties {
   return { fontFamily: family, fontWeight: Math.max(500, theme.preview.nameWeight), fontStyle: theme.preview.nameItalic ? "italic" : undefined, letterSpacing: theme.preview.nameFont === "sans" ? "-0.02em" : "-0.01em" };
 }
 
-export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, initialCategory, nextPath, onSwitched, ownStore, initialPreviewId }: ThemeLibraryProps) {
+export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, initialCategory, nextPath, onSwitched, ownStore, initialPreviewId, sellerAccess }: ThemeLibraryProps) {
   const router = useRouter();
   const t = useT("builder");
   const meaningLine = (theme: ThemeLibraryEntry) => themeMeaningLine({ name: theme.name, meaning: t.dynamic(`theme.${theme.id}.meaning`, theme.meaning) });
@@ -75,6 +102,66 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
     return chips.some((chip) => chip.id === wanted) ? wanted : "all";
   });
   const [query, setQuery] = useState("");
+  const [tierFilter, setTierFilter] = useState<"all" | ThemeTier>("all");
+  const [loadedAccess, setLoadedAccess] = useState<ThemeAccessInfo | null>(null);
+  useEffect(() => {
+    if (sellerAccess) return;
+    let cancelled = false;
+    fetch("/api/store/templates/access")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((json: { data?: Partial<ThemeAccessInfo> } | null) => {
+        const data = json?.data;
+        if (cancelled || !data?.tier || !(THEME_TIERS as readonly string[]).includes(data.tier) || !data.prices) return;
+        setLoadedAccess({ tier: data.tier, owned: Array.isArray(data.owned) ? data.owned : [], prices: data.prices });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [sellerAccess]);
+  const access = sellerAccess ?? loadedAccess;
+  // Until the plan is known everything shows as usable; the server checks again on switch.
+  const allowedTier: ThemeTier = access?.tier ?? "platinum";
+  const owned = access?.owned ?? [];
+  const lockedPlan = (theme: ThemeLibraryEntry | null) => (theme && theme.id !== current && !tierIncludes(allowedTier, theme.tier) && !owned.includes(theme.id) ? TIER_PLAN_LABEL[theme.tier] : null);
+  /** "₦2,000" for a theme that's locked and can be bought, else null. */
+  const buyPrice = (theme: ThemeLibraryEntry | null) => (theme && lockedPlan(theme) && access && theme.tier !== "basic" ? formatThemePrice(access.prices[theme.tier]) : null);
+  const [buyingId, setBuyingId] = useState<string | null>(null);
+  // Back from Paystack: ?theme=paid|pending|failed&themeId=…
+  const [bought, setBought] = useState<{ status: "paid" | "pending" | "failed"; themeId: string | null } | null>(null);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const status = params.get("theme");
+    if (status !== "paid" && status !== "pending" && status !== "failed") return;
+    setBought({ status, themeId: params.get("themeId") });
+    params.delete("theme");
+    params.delete("themeId");
+    const query = params.toString();
+    window.history.replaceState(null, "", `${window.location.pathname}${query ? `?${query}` : ""}`);
+  }, []);
+
+  async function buyTheme(id: string) {
+    setBuyingId(id);
+    setError(null);
+    try {
+      const returnTo = nextPath ? `${GALLERY_PATH}?next=${encodeURIComponent(nextPath)}` : GALLERY_PATH;
+      const response = await fetch("/api/store/templates/purchase", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ themeId: id, returnTo }),
+      });
+      const json = (await response.json().catch(() => null)) as { data?: { authorizationUrl?: string }; error?: { message?: string } } | null;
+      if (!response.ok || !json?.data?.authorizationUrl) {
+        setError({ message: json?.error?.message ?? t("tl.err.buy"), upgrade: false });
+        setBuyingId(null);
+        return;
+      }
+      window.location.assign(json.data.authorizationUrl);
+    } catch {
+      setError({ message: t("tl.err.buy"), upgrade: false });
+      setBuyingId(null);
+    }
+  }
   const [previewId, setPreviewId] = useState<string | null>(initialPreviewId ?? null);
   // "Show with my products": only when the store has enough products with photos to fill a page.
   const own = useMemo<PreviewOwnStore | null>(() => {
@@ -85,11 +172,11 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
   const thumbOwn = useOwn ? own : null;
   const [current, setCurrent] = useState<string | null>(currentThemeId);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; upgrade: boolean } | null>(null);
   const [switched, setSwitched] = useState<ThemeSwitchedResult | null>(null);
   const [pick, setPick] = useState<RexPick | null>(null);
   const [picking, setPicking] = useState(false);
-  const themes = searchThemes(query, filterThemes(category));
+  const themes = searchThemes(query, filterThemesByTier(tierFilter, filterThemes(category)));
 
   async function applyTheme(id: string) {
     setBusyId(id);
@@ -102,10 +189,10 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
       });
       const json = (await response.json().catch(() => null)) as {
         data?: { template?: { templateId: string; templateName: string }; storeSlug?: string; draftOnly?: boolean; draft?: unknown };
-        error?: { message?: string };
+        error?: { code?: string; message?: string };
       } | null;
       if (!response.ok || !json?.data) {
-        setError(json?.error?.message ?? t("tl.err.switch"));
+        setError({ message: json?.error?.message ?? t("tl.err.switch"), upgrade: json?.error?.code === "UPGRADE_REQUIRED" });
         return;
       }
       const result: ThemeSwitchedResult = {
@@ -126,7 +213,7 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
       setSwitched(result);
       router.refresh();
     } catch {
-      setError(t("tl.err.switchNet"));
+      setError({ message: t("tl.err.switchNet"), upgrade: false });
     } finally {
       setBusyId(null);
     }
@@ -139,13 +226,13 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
       const response = await fetch("/api/store/templates/recommend", { method: "POST" });
       const json = (await response.json().catch(() => null)) as { data?: RexPick; error?: { message?: string } } | null;
       if (!response.ok || !json?.data) {
-        setError(json?.error?.message ?? t("tl.err.pick"));
+        setError({ message: json?.error?.message ?? t("tl.err.pick"), upgrade: false });
         return;
       }
       setPick(json.data);
       setCategory("all");
     } catch {
-      setError(t("tl.err.pickNet"));
+      setError({ message: t("tl.err.pickNet"), upgrade: false });
     } finally {
       setPicking(false);
     }
@@ -210,8 +297,43 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
         })}
       </div>
 
+      <div className="-mt-2 mb-5 flex flex-wrap items-center gap-2" role="group" aria-label={t("tl.tierFilter")}>
+        {(["all", ...THEME_TIERS] as const).map((tier) => {
+          const active = tierFilter === tier;
+          return (
+            <button
+              key={tier}
+              type="button"
+              aria-pressed={active}
+              onClick={() => setTierFilter(tier)}
+              className={cx(
+                "inline-flex min-h-[34px] items-center gap-1.5 rounded-full px-3.5 text-[13px] font-bold",
+                active ? "bg-app-ink text-white" : "bg-transparent text-app-ink-soft hover:text-app-ink",
+              )}
+            >
+              {tier === "all" ? t("tl.tierAll") : t(`tl.tier.${tier}`)}
+              {tier !== "all" && !tierIncludes(allowedTier, tier) ? <Icon name="lock" size={12} /> : null}
+            </button>
+          );
+        })}
+      </div>
+
       <div className="mb-5 grid gap-3 empty:hidden">
-        {error ? <Notice tone="error">{error}</Notice> : null}
+        {bought ? (
+          <Notice tone={bought.status === "paid" ? "success" : bought.status === "pending" ? "info" : "error"}>
+            {bought.status === "paid"
+              ? t("tl.bought", { name: themeLibraryEntry(bought.themeId)?.name ?? t("tl.theTheme") })
+              : bought.status === "pending"
+                ? t("tl.buyPending", { name: themeLibraryEntry(bought.themeId)?.name ?? t("tl.theTheme") })
+                : t("tl.buyFailed")}
+          </Notice>
+        ) : null}
+        {error ? (
+          <Notice tone="error">
+            {error.message}
+            {error.upgrade ? <> <a href={UPGRADE_HREF} className="font-bold underline underline-offset-4">{t("tl.upgrade")}</a></> : null}
+          </Notice>
+        ) : null}
         {switched ? (
           <div role="status" className="flex flex-wrap items-center gap-3 rounded-[18px] bg-app-success-tint px-4 py-3">
             <p className="m-0 min-w-0 flex-1 text-[14.5px] font-medium leading-6 text-app-ink">
@@ -245,6 +367,17 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
             action={
               picked.id === current ? (
                 <span className="text-[13.5px] font-bold">{t("tl.already")}</span>
+              ) : lockedPlan(picked) ? (
+                <div className="flex flex-wrap gap-2">
+                  <PillButton tone="white" size="sm" onClick={() => setPreviewId(picked.id)}>{t("tl.preview")}</PillButton>
+                  {buyPrice(picked) ? (
+                    <PillButton tone="ink" size="sm" busy={buyingId === picked.id} disabled={Boolean(buyingId)} onClick={() => void buyTheme(picked.id)}>{t("tl.buy", { price: buyPrice(picked)! })}</PillButton>
+                  ) : (
+                    <a href={UPGRADE_HREF} className="inline-flex min-h-[38px] items-center gap-1.5 rounded-full bg-app-ink px-4 text-[13px] font-bold text-white no-underline hover:bg-black">
+                      <Icon name="lock" size={14} /> {t("tp.upgradeTo", { plan: lockedPlan(picked)! })}
+                    </a>
+                  )}
+                </div>
               ) : (
                 <div className="flex flex-wrap gap-2">
                   <PillButton tone="white" size="sm" onClick={() => setPreviewId(picked.id)}>{t("tl.preview")}</PillButton>
@@ -263,6 +396,9 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
         {themes.map((theme) => {
           const isCurrent = theme.id === current;
           const isPicked = pick?.themeId === theme.id && !isCurrent;
+          const needs = lockedPlan(theme);
+          const price = buyPrice(theme);
+          const isOwned = owned.includes(theme.id) && !tierIncludes(allowedTier, theme.tier);
           return (
             <li key={theme.id} className="min-w-0">
               <article aria-labelledby={`theme-${theme.id}`} className={cx("rounded-[24px]", isPicked && "outline outline-2 outline-offset-4 outline-app-ink")}>
@@ -281,8 +417,13 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
                     className="absolute inset-0 z-[1] block h-full w-full cursor-pointer rounded-[22px] border-0 bg-transparent p-0 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-[-3px] focus-visible:outline-app-ink"
                   />
                   <span className="pointer-events-none absolute left-3 top-3 z-[2] flex flex-wrap gap-1.5">
+                    <span className={cx("inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold shadow-sm", TIER_BADGE[theme.tier])}>
+                      {needs ? <Icon name="lock" size={11} /> : null}
+                      {t(`tl.tier.${theme.tier}`)}
+                    </span>
                     {theme.isNew ? <span className="rounded-full bg-app-accent px-2.5 py-1 text-[11px] font-bold text-white shadow-sm">{t("tl.new")}</span> : null}
                     {isCurrent ? <span className="rounded-full bg-app-ink px-2.5 py-1 text-[11px] font-bold text-white shadow-sm">{t("tl.current")}</span> : null}
+                    {isOwned ? <span className="rounded-full bg-app-success-tint px-2.5 py-1 text-[11px] font-bold text-app-ink shadow-sm">{t("tl.owned")}</span> : null}
                   </span>
                   <span aria-hidden className="pointer-events-none absolute bottom-3 right-3 z-[2] inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-[12.5px] font-bold text-app-ink opacity-0 shadow-sm transition group-hover:opacity-100 group-focus-within:opacity-100">
                     <Icon name="eye" size={14} /> {t("tl.preview")}
@@ -296,11 +437,25 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
                     </h3>
                     <p className="m-0 mt-0.5 text-[12.5px] font-semibold text-app-ink-soft">{meaningLine(theme)}</p>
                     <p className="m-0 mt-1 text-[13px] leading-[1.45] text-app-ink-soft">{t.dynamic(`theme.${theme.id}.blurb`, theme.blurb)}</p>
+                    {needs ? (
+                      <p className="m-0 mt-1 text-[12.5px] font-bold text-app-ink">
+                        {price ? t("tl.buyOrPlan", { price, plan: needs }) : t("tl.needsPlan", { plan: needs })}{" "}
+                        <a href={UPGRADE_HREF} className="font-semibold text-app-ink-soft underline underline-offset-2">{t("tl.seePlans")}</a>
+                      </p>
+                    ) : null}
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-2 min-[420px]:flex-row min-[420px]:items-center">
                     <PillButton tone="white" size="sm" onClick={() => setPreviewId(theme.id)} aria-label={t("tl.previewName", { name: theme.name })}>{t("tl.preview")}</PillButton>
                     {isCurrent ? (
                       mode === "builder" && onCustomize ? <PillButton tone="ink" size="sm" onClick={onCustomize}>{t("tl.customize")}</PillButton> : null
+                    ) : needs && price ? (
+                      <PillButton tone="ink" size="sm" busy={buyingId === theme.id} disabled={Boolean(buyingId)} onClick={() => void buyTheme(theme.id)} aria-label={t("tl.buyName", { name: theme.name, price })}>
+                        {t("tl.buy", { price })}
+                      </PillButton>
+                    ) : needs ? (
+                      <a href={UPGRADE_HREF} title={t("tl.needsPlan", { plan: needs })} aria-label={t("tl.lockedNote", { name: theme.name, plan: needs })} className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full bg-app-ink px-3.5 text-[13px] font-bold text-white no-underline hover:bg-black">
+                        <Icon name="lock" size={13} /> {t("tl.upgrade")}
+                      </a>
                     ) : (
                       <PillButton tone="ink" size="sm" busy={busyId === theme.id} disabled={Boolean(busyId)} onClick={() => void applyTheme(theme.id)} aria-label={t("tl.useName", { name: theme.name })}>
                         {mode === "page" ? t("tl.useThis") : t("tl.use")}
@@ -330,6 +485,10 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
           useOwn={useOwn}
           onUseOwnChange={setUseOwn}
           isCurrent={previewId === current}
+          lockedPlan={lockedPlan(themeLibraryEntry(previewId))}
+          buyPrice={buyPrice(themeLibraryEntry(previewId))}
+          buying={buyingId === previewId}
+          onBuy={() => void buyTheme(previewId)}
           busy={busyId === previewId}
           onUse={() => {
             const id = previewId;
