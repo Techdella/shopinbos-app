@@ -1,23 +1,36 @@
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Linking, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import { Image } from "expo-image";
 import { naira } from "@shared/onboarding";
 import { CHANNEL_LABEL, type OrderChannel } from "@shared/channels";
 import { PAYMENT_METHOD_LABEL } from "@shared/sales";
+import { Banner, List, Pill, Row, Small, Tile, Timeline, type PillTone, type TimelineStep } from "@/components/design";
+import { AppIcon } from "@/components/icons";
 import { Card, LinkButton, Notice, PillButton, Segmented, T } from "@/components/ui";
 import { capitalise, friendlyTime } from "@/lib/friendly";
 import { Screen } from "@/components/Screen";
 import { ChoiceRow, Sheet } from "@/components/Sheet";
-import { TONE_COLORS } from "@/lib/dashboard";
+import { Thumb } from "@/components/seller/bits";
+import { TONE_COLORS, type Tone } from "@/lib/dashboard";
+import { fetchOrderDelivery, fetchReassignOptions, jobAction, type OrderDelivery, type Parcel, type ReassignOption } from "@/lib/delivery";
+import { daysWords, ownTimeline, timelineStates, timelineWordKey, whatsappNumber } from "@/lib/delivery-pure";
 import { cancelAndRefund, fetchOrder, undoSupplierSwitch, updateOrder, type OrderDetail, type OrderPart, type OrderParts } from "@/lib/orders";
 import { openWeb } from "@/lib/web";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 
+// One order ("Seller app" prototype `on.order`): the item, customer, total and when; Paid / Pay on delivery and
+// where it is; what needs the seller (a partner declined → send it to another partner; ready → the partner is
+// coming, hand it over for the code); how it's delivered, the customer and Call or WhatsApp; the timeline; and one
+// main button for the next step. Delivery comes from GET /api/mobile/delivery/orders/[id] (the logistics
+// marketplace); orders without a partner keep the older steps (mark paid, get a rider, sent it myself, delivered).
+// Supplier parcels, switching or refunding when a supplier didn't accept, the label, items and cancelling stay.
+
 type PaidWith = "transfer" | "cash" | "pos";
 
-function Badge({ label, tone }: OrderDetail["row"]["stage"]) {
+const PILL_TONE: Record<Tone, PillTone> = { accent: "org", success: "ok", warning: "warn", muted: "gray", danger: "org" };
+
+function Badge({ label, tone }: { label: string; tone: keyof typeof TONE_COLORS }) {
   return (
     <View style={{ backgroundColor: TONE_COLORS[tone].bg, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 }}>
       <T weight="bold" style={{ fontSize: 14, color: TONE_COLORS[tone].fg }}>{label}</T>
@@ -25,7 +38,7 @@ function Badge({ label, tone }: OrderDetail["row"]["stage"]) {
   );
 }
 
-function Row({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+function Line({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
   return (
     <View style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 3 }}>
       <T style={{ color: strong ? colors.ink : colors.inkSoft }} weight={strong ? "extrabold" : "regular"}>{label}</T>
@@ -36,12 +49,12 @@ function Row({ label, value, strong }: { label: string; value: string; strong?: 
 
 const PART_TONE: Record<OrderPart["state"], keyof typeof TONE_COLORS> = { waiting: "muted", preparing: "warning", sent: "accent", delivered: "success", problem: "danger" };
 
-/** "2 of 3 parcels sent" and where each parcel is. */
+/** "2 of 3 parcels sent" and where each supplier parcel is. */
 function Parcels({ parts }: { parts: OrderParts }) {
   const t = useT("m_orders");
   return (
-    <Card style={{ gap: 8 }}>
-      <T weight="extrabold" style={{ fontSize: 22 }}>{parts.line ?? t("order.sentBySupplier")}</T>
+    <Card style={{ gap: 8, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 20 }}>
+      <T weight="extrabold" style={{ fontSize: 20 }}>{parts.line ?? t("order.sentBySupplier")}</T>
       {parts.parts.map((part) => (
         <View key={part.key} style={{ gap: 4, paddingVertical: 6, borderTopWidth: 1, borderTopColor: colors.line }}>
           <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
@@ -56,31 +69,32 @@ function Parcels({ parts }: { parts: OrderParts }) {
   );
 }
 
-/** wa.me wants the number in international form without "+"; Nigerian local numbers start with 0. */
-function whatsappNumber(phone: string) {
-  const digits = phone.replace(/\D/g, "");
-  return digits.startsWith("0") ? `234${digits.slice(1)}` : digits;
-}
+const CLOSED = ["delivered", "cancelled", "refunded", "returned", "partially_refunded"];
 
 export default function OrderScreen() {
-  const t = useT("m_orders", "m_ui", "common");
+  const t = useT("m_orders", "delivery", "m_ui", "common");
   const { id } = useLocalSearchParams<{ id: string }>();
   const [order, setOrder] = useState<OrderDetail | null>(null);
+  const [delivery, setDelivery] = useState<OrderDelivery | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [paidWith, setPaidWith] = useState<PaidWith>("transfer");
   const [refreshing, setRefreshing] = useState(false);
   const [confirmRefund, setConfirmRefund] = useState(false);
+  const [contact, setContact] = useState(false);
+  const [reassign, setReassign] = useState<Parcel | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
-      setOrder(await fetchOrder(id));
+      const [next, plan] = await Promise.all([fetchOrder(id), fetchOrderDelivery(id).catch(() => null)]);
+      setOrder(next);
+      setDelivery(plan);
       setError(null);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : t("order.loadFailed"));
     }
-  }, [id]);
+  }, [id, t]);
 
   useEffect(() => {
     void load();
@@ -91,8 +105,24 @@ export default function OrderScreen() {
     setError(null);
     try {
       setOrder(await updateOrder(id, { status, ...extra }));
+      void fetchOrderDelivery(id).then(setDelivery).catch(() => null);
     } catch (updateError) {
       setError(updateError instanceof Error ? updateError.message : t("saveFailed"));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  /** A delivery job: it's packed (the partner can collect it), or the shop got the pay-on-delivery cash. */
+  async function onJob(jobId: string, action: "ready" | "cash_received") {
+    setBusy(action);
+    setError(null);
+    try {
+      await jobAction(jobId, { action });
+      setSaved(action === "ready" ? t("flash.markedReady") : t("flash.cashConfirmed"));
+      await load();
+    } catch (jobError) {
+      setError(jobError instanceof Error ? jobError.message : t("saveFailed"));
     } finally {
       setBusy(null);
     }
@@ -147,42 +177,131 @@ export default function OrderScreen() {
   const parts = order.parts ?? null;
   const ownPart = parts?.parts.find((part) => part.kind === "own") ?? null;
   const sellerSends = !parts || ownPart?.state === "waiting";
-  const toSend = ["paid", "processing", "packed"].includes(order.status) && sellerSends;
+  // The logistics marketplace: parcels a connected partner carries, or the customer picks up from the shop.
+  const plan = delivery?.plan ?? null;
+  const parcels = (delivery?.parcels ?? []).filter((parcel) => parcel.partner);
+  const partnerPlan = parcels.length > 0;
+  const selfPickup = plan?.kind === "self_pickup";
+  const toSend = ["paid", "processing", "packed"].includes(order.status) && sellerSends && !partnerPlan && !selfPickup;
   const deciding = parts?.problems.find((problem) => problem.needsChoice && problem.status === "expired") ?? null;
   const switches = parts?.problems.filter((problem) => problem.switched) ?? [];
   const address = order.deliveryAddress && order.deliveryAddress.street ? [order.deliveryAddress.street, order.deliveryAddress.city, order.deliveryAddress.state].filter(Boolean).join(", ") : null;
   const phone = order.buyerPhone;
   const firstName = order.buyerName.split(" ")[0];
   const reminder = t("order.reminder", { name: firstName, number: order.orderNumber, total: naira(order.total) });
+  const first = order.items[0];
+  const item = first ? (order.items.length > 1 ? t("order2.itemMore", { name: first.name, count: order.items.length - 1 }) : first.name) : order.row.summary;
 
-  // One main button at the bottom: the next thing to do with this order (build spec 8A). Everything else is a link.
+  const needsPartner = parcels.find((parcel) => parcel.canReassign && parcel.job) ?? null;
+  const toReady = parcels.find((parcel) => parcel.job?.status === "confirmed" && !parcel.job.readyAt) ?? null;
+  const cashToConfirm = plan?.pod ? parcels.find((parcel) => parcel.job?.codRemittedAt && !parcel.job.codConfirmedAt) ?? null : null;
+  const live = !CLOSED.includes(order.status);
+
+  // Where it is: a partner problem first, then the partner's status, else the order's own stage.
+  const lead = parcels[0];
+  const statusWords = needsPartner
+    ? t("order2.needsPartner")
+    : lead?.job
+      ? t.dynamic(`status.${lead.job.status}`, lead.job.status.replace(/_/g, " "))
+      : order.row.stage.label;
+
+  // The timeline: each partner parcel's steps, the plan's own steps (pick up / the shop's delivery), else the order's.
+  const timelines: Array<{ key: string; title: string | null; steps: TimelineStep[] }> = partnerPlan
+    ? parcels.map((parcel) => ({
+        key: parcel.shipmentKey,
+        title: parcels.length > 1 ? parcel.partner?.name ?? null : null,
+        steps: timelineStates(parcel.timeline).map((step) => ({ label: t.dynamic(timelineWordKey(step.key, plan?.kind ?? null, parcel.service), step.label), at: step.at ? capitalise(friendlyTime(step.at, new Date(), t)) : null, state: step.state })),
+      }))
+    : delivery?.timeline?.length
+      ? [{ key: "plan", title: null, steps: timelineStates(delivery.timeline).map((step) => ({ label: t.dynamic(timelineWordKey(step.key, plan?.kind ?? null, null), step.label), at: step.at ? capitalise(friendlyTime(step.at, new Date(), t)) : null, state: step.state })) }]
+      : [{ key: "own", title: null, steps: timelineStates(ownTimeline(order)).map((step) => ({ label: t(`tl.${step.key as "placed" | "paid" | "sent" | "delivered"}`), at: step.at ? capitalise(friendlyTime(step.at, new Date(), t)) : null, state: step.state })) }];
+
+  // One main button at the bottom: the next thing to do with this order. Everything else is a link.
   const footer = deciding ? null : unpaid ? (
     <PillButton title={t("order.markPaid")} busy={busy === "paid"} onPress={() => void change("paid", { paymentMethod: paidWith })} />
+  ) : needsPartner ? (
+    <PillButton tone="accent" accessibilityLabel={t("order2.sendAnother")} onPress={() => setReassign(needsPartner)}>
+      <AppIcon name="truck" size={20} color={colors.ink} />
+      <T weight="extrabold" style={{ fontSize: 17 }}>{t("order2.sendAnother")}</T>
+    </PillButton>
+  ) : toReady?.job ? (
+    <PillButton tone="accent" busy={busy === "ready"} accessibilityLabel={t("order2.packed")} onPress={() => void onJob(toReady.job!.id, "ready")}>
+      <AppIcon name="box" size={20} color={colors.ink} />
+      <T weight="extrabold" style={{ fontSize: 17 }}>{t("order2.packed")}</T>
+    </PillButton>
+  ) : selfPickup && live ? (
+    order.status === "packed" ? (
+      <PillButton busy={busy === "delivered"} accessibilityLabel={t("order2.collected")} onPress={() => void change("delivered")}>
+        <AppIcon name="check" size={20} color="#FFFFFF" />
+        <T weight="extrabold" style={{ fontSize: 17, color: "#FFFFFF" }}>{t("order2.collected")}</T>
+      </PillButton>
+    ) : (
+      <PillButton tone="accent" busy={busy === "packed"} accessibilityLabel={t("order2.readyTell")} onPress={() => void change("packed")}>
+        <AppIcon name="check" size={20} color={colors.ink} />
+        <T weight="extrabold" style={{ fontSize: 17 }}>{t("order2.readyTell")}</T>
+      </PillButton>
+    )
   ) : toSend ? (
     <PillButton title={t("order.getRider")} onPress={() => void openWeb(`/home/orders/${order.id}`)} />
-  ) : order.status === "shipped" && (!ownPart || ownPart.state !== "delivered") ? (
+  ) : order.status === "shipped" && !partnerPlan && (!ownPart || ownPart.state !== "delivered") ? (
     <PillButton title={t("order.delivered")} busy={busy === "delivered"} onPress={() => void change("delivered")} />
   ) : null;
 
   return (
-    <Screen
-      title={order.buyerName}
-      sub={`${order.orderNumber} · ${capitalise(friendlyTime(order.createdAt, new Date(), t))}`}
-      refreshing={refreshing}
-      onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }}
-      footer={footer}
-    >
+    <Screen title={order.orderNumber} refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} footer={footer}>
+      {/* The item, who and how much */}
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+        <Thumb uri={first?.image} size={72} radius={18} fallback={order.buyerName} />
+        <View style={{ flex: 1, gap: 3 }}>
+          <T weight="bold" style={{ fontSize: 20, lineHeight: 25 }} numberOfLines={2} accessibilityRole="header">{item}</T>
+          <T style={{ fontSize: 14, lineHeight: 19, color: colors.inkSoft }}>{`${order.buyerName} · ${naira(order.total)} · ${capitalise(friendlyTime(order.createdAt, new Date(), t))}`}</T>
+        </View>
+      </View>
       <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
-        <Badge {...order.row.stage} />
-        <Badge {...order.row.payment} />
+        <Pill label={plan?.pod ? t("order2.pod") : order.row.payment.label} tone={plan?.pod ? "warn" : PILL_TONE[order.row.payment.tone]} />
+        <Pill label={statusWords} tone="gray" />
       </View>
       {error && <Notice>{error}</Notice>}
       {saved && !error && <Notice tone="success">{saved}</Notice>}
 
+      {/* Partner deliveries that need the shop: declined, not taken in time, or a failed attempt / return. */}
+      {parcels.map((parcel) => {
+        const name = parcel.partner?.name ?? "";
+        if (parcel.exception === "declined") {
+          return (
+            <Banner key={`x-${parcel.shipmentKey}`} tone="warn" title={t("order2.declinedTitle", { name })}>
+              {t("order2.declinedBody", { reason: parcel.job?.declineReason || t("decline.none") })}
+            </Banner>
+          );
+        }
+        if (parcel.exception) {
+          return (
+            <Banner key={`x-${parcel.shipmentKey}`} tone="warn" title={t.dynamic(`exception.${parcel.exception}`, parcel.exception)}>
+              {parcel.canReassign ? t("order2.reassignBody") : parcel.job?.failedReason || t.dynamic(`exception.${parcel.exception}`, parcel.exception)}
+            </Banner>
+          );
+        }
+        if (parcel.job?.status === "confirmed" && parcel.job.readyAt) {
+          const code = parcel.job.pickupCode;
+          return (
+            <Banner key={`r-${parcel.shipmentKey}`} tone="mint" title={t("order2.comingTitle", { name })}>
+              {code ? (
+                <T style={{ fontSize: 15, lineHeight: 21, color: colors.forest }}>
+                  {t("order2.handover")} <T weight="extrabold" style={{ fontSize: 17, color: colors.forest, letterSpacing: 1 }}>{code}</T>
+                </T>
+              ) : (
+                <T style={{ fontSize: 15, lineHeight: 21, color: colors.forest }}>{t("order2.handoverNoCode")}</T>
+              )}
+            </Banner>
+          );
+        }
+        return null;
+      })}
+
       {/* A supplier didn't accept in time: we sent it to someone else (Undo until they accept)… */}
       {switches.map((problem) => (
-        <Card key={problem.supplierOrderId} style={{ gap: 6 }}>
-          <T weight="extrabold" style={{ fontSize: 22 }}>{t("order.notAccepted", { name: problem.supplierName })}</T>
+        <Card key={problem.supplierOrderId} style={{ gap: 6, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 20 }}>
+          <T weight="extrabold" style={{ fontSize: 20 }}>{t("order.notAccepted", { name: problem.supplierName })}</T>
           <T style={{ fontSize: 15, lineHeight: 22 }}>{t("order.sentTo", { name: problem.switched!.toName })} {problem.switched!.costWords}</T>
           <T style={{ color: colors.inkSoft, fontSize: 15 }}>{problem.items}</T>
           {problem.switched!.canUndo ? (
@@ -195,99 +314,195 @@ export default function OrderScreen() {
 
       {/* …or the seller chooses: find another supplier, or cancel and refund the customer. */}
       {deciding && (
-        <Card style={{ gap: 10 }}>
-          <T weight="extrabold" style={{ fontSize: 22 }}>{t("order.notAccepted", { name: deciding.supplierName })}</T>
+        <Card style={{ gap: 10, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 20 }}>
+          <T weight="extrabold" style={{ fontSize: 20 }}>{t("order.notAccepted", { name: deciding.supplierName })}</T>
           <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 22 }}>{t("order.decide", { items: deciding.items })}</T>
-          <ChoiceRow
-            icon="search"
-            title={t("order.findAnother")}
-            sub={t("order.findAnotherSub")}
-            tint={colors.successTint}
-            onPress={() => router.push({ pathname: "/find", params: { q: deciding.searchQuery } })}
-          />
-          {parts?.canCancelAndRefund && (
-            <ChoiceRow icon="wallet" title={t("order.refund")} sub={t("order.refundSub")} onPress={() => setConfirmRefund(true)} />
-          )}
+          <ChoiceRow icon="search" title={t("order.findAnother")} sub={t("order.findAnotherSub")} tint={colors.successTint} onPress={() => router.push({ pathname: "/find", params: { q: deciding.searchQuery } })} />
+          {parts?.canCancelAndRefund && <ChoiceRow icon="wallet" title={t("order.refund")} sub={t("order.refundSub")} onPress={() => setConfirmRefund(true)} />}
         </Card>
       )}
 
-      {parts && parts.parts.length > 0 && <Parcels parts={parts} />}
+      {/* How it's delivered, the customer, and how to reach them */}
+      <List>
+        {partnerPlan ? (
+          parcels.map((parcel) => (
+            <Row
+              key={parcel.shipmentKey}
+              lead={<Tile icon="truck" tone="mint" />}
+              title={`${t.dynamic(`service.${parcel.service}`, parcel.service)} · ${parcel.fee ? naira(parcel.fee) : t("order.free")}`}
+              sub={[parcel.partner?.name, parcel.job?.rider ? t("order2.rider", { name: parcel.job.rider }) : null].filter(Boolean).join(" · ")}
+            />
+          ))
+        ) : (
+          <Row
+            lead={<Tile icon="truck" tone="mint" />}
+            title={`${selfPickup ? t("order2.howPickup") : t("order.delivery")} · ${order.shippingFee ? naira(order.shippingFee) : t("order.free")}`}
+            sub={selfPickup ? t("order2.pickupSub") : order.trackingCode ? t("order.riderCode", { code: order.trackingCode }) : undefined}
+          />
+        )}
+        <Row lead={<Tile icon="pin" tone="gray" />} title={order.buyerName} sub={[selfPickup ? null : address ?? t("order2.noAddress"), order.buyerEmail || null, order.notes ? t("order.note", { note: order.notes }) : null].filter(Boolean).join("\n") || undefined} />
+        {phone ? <Row lead={<Tile icon="phone" tone="gray" />} title={t("order2.callOrWhatsApp")} sub={phone} onPress={() => setContact(true)} /> : null}
+      </List>
 
-      {/* What to do now */}
+      {plan?.pod ? <Small>{t("order2.podNote")}</Small> : null}
+      {cashToConfirm?.job ? (
+        <PillButton tone="white" busy={busy === "cash_received"} title={t("order2.gotCash", { name: cashToConfirm.partner?.name ?? "" })} onPress={() => void onJob(cashToConfirm.job!.id, "cash_received")} />
+      ) : null}
+
+      {/* What to do now (orders without a delivery partner) */}
       {unpaid && (
-        <Card style={{ gap: 10 }}>
-          <T weight="extrabold" style={{ fontSize: 22 }}>{t("order.howPaid")}</T>
+        <Card style={{ gap: 10, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 20 }}>
+          <T weight="extrabold" style={{ fontSize: 20 }}>{t("order.howPaid")}</T>
           <Segmented<PaidWith> options={[{ value: "transfer", label: t("order.paidTransfer") }, { value: "cash", label: t("order.paidCash") }, { value: "pos", label: t("order.paidPos") }]} value={paidWith} onChange={setPaidWith} />
           {phone && <LinkButton title={t("order.remind")} color={colors.forest} onPress={() => void Linking.openURL(`https://wa.me/${whatsappNumber(phone)}?text=${encodeURIComponent(reminder)}`)} />}
         </Card>
       )}
       {toSend && (
-        <Card style={{ gap: 6 }}>
-          <T weight="extrabold" style={{ fontSize: 22 }}>{t("order.send")}</T>
+        <Card style={{ gap: 6, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 20 }}>
+          <T weight="extrabold" style={{ fontSize: 20 }}>{t("order.send")}</T>
           <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 22 }}>{t("order.sendBody", { name: firstName })}</T>
           <LinkButton title={busy === "shipped" ? t("saving") : t("order.sentMyself")} onPress={() => void change("shipped", { logisticsType: "personal" })} />
           <LinkButton title={t("order.printLabel")} color={colors.inkSoft} onPress={() => router.push({ pathname: "/order/label", params: { id: order.id } })} />
         </Card>
       )}
-      {order.status === "shipped" && (
-        <Card style={{ gap: 6 }}>
-          <T weight="extrabold" style={{ fontSize: 22 }}>{t("order.onTheWay")}</T>
+      {order.status === "shipped" && !partnerPlan && (
+        <Card style={{ gap: 6, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 20 }}>
+          <T weight="extrabold" style={{ fontSize: 20 }}>{t("order.onTheWay")}</T>
           {order.trackingCode ? <T style={{ color: colors.inkSoft, fontSize: 15 }}>{t("order.riderCode", { code: order.trackingCode })}</T> : null}
           <T style={{ color: colors.inkSoft, fontSize: 15 }}>{t("order.tapWhen", { name: firstName })}</T>
         </Card>
       )}
-      {/* Items */}
-      <Card style={{ gap: 4 }}>
-        {order.items.map((item, index) => (
-          <View key={`${item.name}-${index}`} style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 6 }}>
-            {item.image ? (
-              <Image source={{ uri: item.image }} style={{ width: 48, height: 48, borderRadius: 12 }} contentFit="cover" />
-            ) : (
-              <View style={{ width: 48, height: 48, borderRadius: 12, backgroundColor: colors.canvas }} />
-            )}
+
+      {parts && parts.parts.length > 0 && <Parcels parts={parts} />}
+
+      {timelines.map((timeline) => (
+        <View key={timeline.key} style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 20, gap: 12 }}>
+          {timeline.title ? <T weight="bold" style={{ fontSize: 16 }}>{timeline.title}</T> : null}
+          <Timeline steps={timeline.steps} />
+        </View>
+      ))}
+
+      {/* Items and totals */}
+      <Card style={{ gap: 4, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 20 }}>
+        {order.items.map((line, index) => (
+          <View key={`${line.name}-${index}`} style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 6 }}>
+            <Thumb uri={line.image} size={48} radius={12} />
             <View style={{ flex: 1 }}>
-              <T weight="bold" numberOfLines={2}>{item.name}</T>
-              <T style={{ color: colors.inkSoft, fontSize: 14 }}>{item.quantity} × {naira(item.price)}</T>
+              <T weight="bold" numberOfLines={2}>{line.name}</T>
+              <T style={{ color: colors.inkSoft, fontSize: 14 }}>{line.quantity} × {naira(line.price)}</T>
             </View>
-            <T weight="extrabold">{naira(item.price * item.quantity)}</T>
+            <T weight="extrabold">{naira(line.price * line.quantity)}</T>
           </View>
         ))}
         <View style={{ height: 1, backgroundColor: colors.line, marginVertical: 8 }} />
-        <Row label={t("order.items")} value={naira(order.subtotal)} />
-        {order.discountAmount ? <Row label={t("order.discount")} value={`−${naira(order.discountAmount)}`} /> : null}
-        <Row label={t("order.delivery")} value={order.shippingFee ? naira(order.shippingFee) : t("order.free")} />
-        <Row label={t("order.total")} value={naira(order.total)} strong />
+        <Line label={t("order.items")} value={naira(order.subtotal)} />
+        {order.discountAmount ? <Line label={t("order.discount")} value={`−${naira(order.discountAmount)}`} /> : null}
+        <Line label={t("order.delivery")} value={order.shippingFee ? naira(order.shippingFee) : t("order.free")} />
+        <Line label={t("order.total")} value={naira(order.total)} strong />
         {(order.paymentMethod || order.channel) && (
           <T style={{ color: colors.inkSoft, fontSize: 14, marginTop: 6 }}>
             {[order.paymentMethod && t("order.payment", { method: t.dynamic(`order.method.${order.paymentMethod}`, PAYMENT_METHOD_LABEL[order.paymentMethod] ?? order.paymentMethod) }), order.channel && t("order.from", { channel: t.dynamic(`order.channel.${order.channel}`, CHANNEL_LABEL[order.channel as OrderChannel] ?? order.channel) })].filter(Boolean).join(" · ")}
           </T>
         )}
+        {!toSend && live && !unpaid ? <LinkButton title={t("order.printLabel")} color={colors.inkSoft} onPress={() => router.push({ pathname: "/order/label", params: { id: order.id } })} /> : null}
       </Card>
 
-      {/* Customer */}
-      <Card style={{ gap: 6 }}>
-        <T weight="extrabold" style={{ fontSize: 16 }}>{t("order.customer")}</T>
-        {phone ? <T>{phone}</T> : null}
-        {order.buyerEmail ? <T>{order.buyerEmail}</T> : null}
-        {address ? <T style={{ color: colors.inkSoft }}>{address}</T> : null}
-        {order.notes ? <T style={{ color: colors.inkSoft }}>{t("order.note", { note: order.notes })}</T> : null}
-        {phone && (
-          <View style={{ flexDirection: "row", gap: 16, marginTop: 2 }}>
-            <LinkButton title={t("order.whatsapp")} color={colors.forest} onPress={() => void Linking.openURL(`https://wa.me/${whatsappNumber(phone)}`)} />
-            <LinkButton title={t("order.call")} onPress={() => void Linking.openURL(`tel:${phone.replace(/[^\d+]/g, "")}`)} />
-          </View>
-        )}
-      </Card>
+      {(unpaid || toSend || (selfPickup && live)) && !deciding && <LinkButton title={busy === "cancelled" ? t("order.cancelling") : t("order.cancelThis")} color={colors.danger} onPress={confirmCancel} />}
 
       <Sheet visible={confirmRefund} onClose={() => setConfirmRefund(false)} title={t("order.refundTitle")}>
-        <T style={{ fontSize: 15, lineHeight: 22, color: colors.inkSoft }}>
-          {t("order.refundBody", { name: firstName, total: naira(order.total) })}
-        </T>
+        <T style={{ fontSize: 15, lineHeight: 22, color: colors.inkSoft }}>{t("order.refundBody", { name: firstName, total: naira(order.total) })}</T>
         <PillButton title={t("order.refundYes")} busy={busy === "refund"} onPress={() => void refund()} />
         <LinkButton title={t("order.keepOrder")} onPress={() => setConfirmRefund(false)} />
       </Sheet>
 
-      {(unpaid || toSend) && !deciding && <LinkButton title={busy === "cancelled" ? t("order.cancelling") : t("order.cancelThis")} color={colors.danger} onPress={confirmCancel} />}
+      {phone ? (
+        <Sheet visible={contact} onClose={() => setContact(false)} title={t("order2.callOrWhatsApp")}>
+          <ChoiceRow icon="chat" title={t("order.whatsapp")} sub={phone} tint={colors.successTint} iconColor={colors.success} onPress={() => { setContact(false); void Linking.openURL(`https://wa.me/${whatsappNumber(phone)}`); }} />
+          <ChoiceRow icon="phone" title={t("order.call")} sub={phone} onPress={() => { setContact(false); void Linking.openURL(`tel:${phone.replace(/[^\d+]/g, "")}`); }} />
+        </Sheet>
+      ) : null}
+
+      <ReassignSheet
+        parcel={reassign}
+        city={order.deliveryAddress?.city || order.deliveryAddress?.state || ""}
+        onClose={() => setReassign(null)}
+        onDone={async () => {
+          setReassign(null);
+          setSaved(t("flash.reassigned"));
+          await load();
+        }}
+      />
     </Screen>
+  );
+}
+
+/** "Send to another partner": connected partners who cover this address, cheapest first. */
+function ReassignSheet({ parcel, city, onClose, onDone }: { parcel: Parcel | null; city: string; onClose: () => void; onDone: () => Promise<void> }) {
+  const t = useT("m_orders", "delivery", "m_ui", "common");
+  const [options, setOptions] = useState<ReassignOption[] | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const jobId = parcel?.job?.id ?? null;
+
+  useEffect(() => {
+    if (!jobId) return;
+    let alive = true;
+    setOptions(null);
+    setError(null);
+    fetchReassignOptions(jobId)
+      .then((answer) => alive && setOptions(answer.options))
+      .catch((loadError) => alive && setError(loadError instanceof Error ? loadError.message : t("saveFailed")));
+    return () => {
+      alive = false;
+    };
+  }, [jobId, t]);
+
+  async function pick(option: ReassignOption) {
+    if (!jobId) return;
+    setBusy(option.connectionId);
+    setError(null);
+    try {
+      await jobAction(jobId, { action: "reassign", connectionId: option.connectionId });
+      await onDone();
+    } catch (pickError) {
+      setError(pickError instanceof Error ? pickError.message : t("saveFailed"));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <Sheet visible={!!parcel} onClose={onClose} title={t("order2.sendAnother")}>
+      <T style={{ fontSize: 15, lineHeight: 22, color: colors.inkSoft }}>{city ? t("order2.reassignSub", { city }) : t("order2.reassignSubAny")} {t("order2.reassignPay")}</T>
+      {error ? <Notice>{error}</Notice> : null}
+      {options === null && !error ? <T style={{ color: colors.inkSoft }}>{t("loading")}</T> : null}
+      {options && options.length ? (
+        <List>
+          {options.map((option) => (
+            <Row
+              key={option.connectionId}
+              lead={<Tile icon="truck" tone="mint" />}
+              title={option.name}
+              sub={busy === option.connectionId ? t("order2.sending") : daysWords(option.minDays, option.maxDays, t)}
+              right={<T weight="extrabold" style={{ fontSize: 17 }}>{naira(option.price)}</T>}
+              onPress={busy ? undefined : () => void pick(option)}
+            />
+          ))}
+        </List>
+      ) : null}
+      {options && !options.length ? (
+        <>
+          <T style={{ fontSize: 15, lineHeight: 22 }}>{t("order2.reassignNone")}</T>
+          <PillButton
+            title={t("order2.findPartner")}
+            tone="white"
+            onPress={() => {
+              onClose();
+              router.push("/delivery/find");
+            }}
+          />
+        </>
+      ) : null}
+    </Sheet>
   );
 }

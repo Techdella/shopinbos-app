@@ -1,5 +1,5 @@
 import type { VerificationDoc } from "@shared/verification-docs";
-import { api } from "./api";
+import { api, apiBody } from "./api";
 
 // The delivery partner (dispatch) side of the app: /api/mobile/logistics/** on the web backend, made for the app
 // with the same job rules as the web dispatch console, plus /api/logistics/me (the portal's own API).
@@ -92,9 +92,10 @@ export const fetchJob = (id: string) => api<{ job: Job; riders: DispatchRider[] 
 
 export type JobAction =
   | { action: "accept"; riderId?: string | null }
-  | { action: "decline" }
+  | { action: "decline"; reason?: string | null }
+  | { action: "cash_paid" }
   | { action: "assign"; riderId: string | null }
-  | { action: "status"; to: "confirmed" | "picked_up" | "in_transit" | "delivered" | "failed"; code?: string | null; recipientName?: string | null; codCollected?: number | null; codMethod?: "cash" | "transfer" | null; failedReason?: string | null };
+  | { action: "status"; to: "confirmed" | "picked_up" | "in_transit" | "out_for_delivery" | "at_pickup_point" | "delivered" | "failed" | "returning" | "returned"; code?: string | null; recipientName?: string | null; codCollected?: number | null; codMethod?: "cash" | "transfer" | null; failedReason?: string | null };
 
 export const moveJob = (id: string, body: JobAction) => api<{ job: Job | null }>(`/api/mobile/logistics/jobs/${encodeURIComponent(id)}`, { method: "POST", json: body });
 
@@ -123,8 +124,9 @@ export interface RiderRow {
 
 export const fetchRiders = () => api<{ riders: RiderRow[] }>("/api/mobile/logistics/riders");
 
-/** Add a rider with just a name and WhatsApp number. Returns their Riders app link and a ready WhatsApp invite. */
-export const addRider = (input: { name: string; whatsapp: string }) =>
+/** Add a rider: name, WhatsApp number and the bike or van plate (servers that don't keep plates ignore it). Returns
+ * their Riders app link and a ready WhatsApp invite. */
+export const addRider = (input: { name: string; whatsapp: string; plate?: string }) =>
   api<{ id: string; name: string; url: string; whatsapp: string; inviteUrl: string }>("/api/mobile/logistics/riders", { method: "POST", json: input });
 
 /** The "Taking new jobs" switch. */
@@ -162,8 +164,154 @@ export const checkPayInsAgain = () =>
   api<{ cleared: boolean; matched: number; owed: number; overdue: number; paused: boolean; message: string }>("/api/mobile/logistics/payins/check", { method: "POST", json: {} });
 
 export interface LogisticsMe {
-  partner: { displayName: string; companyName: string; verificationStatus: string; verificationDocuments: VerificationDoc[]; trustScore: number };
+  partner: { displayName: string; companyName: string; verificationStatus: string; verificationDocuments: VerificationDoc[]; trustScore: number; city?: string | null; logoUrl?: string | null };
   user: { name: string; email: string | null } | null;
 }
 
 export const fetchLogisticsMe = () => api<LogisticsMe>("/api/logistics/me");
+
+// ─── Logistics marketplace (Business tab and set-up): /api/mobile/logistics/market/** ────────────────────────────
+
+export type RateService = "doorstep" | "pickup_point" | "same_day";
+export type SizeBand = "small" | "medium" | "bulky";
+
+export interface MarketRateRow {
+  id: string;
+  from: string;
+  to: string;
+  service: RateService;
+  sizeBand: SizeBand;
+  price: number;
+  minDays: number;
+  maxDays: number;
+}
+
+export interface MarketRateCard {
+  id: string;
+  rows: MarketRateRow[];
+  failedAttemptFee: number;
+  returnFee: number;
+  notes: string | null;
+  createdAt: string;
+}
+
+export interface PickupPoint {
+  id: string;
+  name: string;
+  address: string;
+  state: string;
+  area: string | null;
+  hours: string | null;
+  phone: string | null;
+  lat: number | null;
+  lng: number | null;
+}
+
+export interface MarketConnectionRow {
+  id: string;
+  ownerUserId: string;
+  ownerRole: string;
+  businessName: string;
+  ownerPod: boolean;
+  partnerPod: boolean;
+  createdAt: string;
+  privateCards?: unknown;
+}
+
+export interface MarketData {
+  partner: {
+    id: string;
+    slug: string;
+    name: string;
+    companyName: string | null;
+    cacNumber: string | null;
+    contactName: string | null;
+    contactPhone: string | null;
+    contactEmail: string | null;
+    address: string | null;
+    verificationStatus: string;
+    rating: number;
+    ratingCount: number;
+    services: string[];
+    pickupAreas: string[];
+    deliveryAreas: string[];
+    offersPayOnDelivery: boolean;
+  };
+  rateCard: MarketRateCard | null;
+  pickupPoints: PickupPoint[];
+  connections: MarketConnectionRow[];
+  /** In-app stats; the rates are null with too few deliveries to say. */
+  stats: { completed: number; onTimeRate: number | null; failedRate: number | null } | null;
+}
+
+export const fetchMarket = () => api<MarketData>("/api/mobile/logistics/market");
+
+export interface RateCardBody {
+  rows: Array<Omit<MarketRateRow, "id"> & { id?: string }>;
+  failedAttemptFee: number;
+  returnFee: number;
+  notes: string;
+}
+
+export const saveCoverage = (input: { services: string[]; pickupAreas: string[]; deliveryAreas: string[]; offersPayOnDelivery: boolean }) =>
+  api<{ saved: true; unknown: string[] }>("/api/mobile/logistics/market", { method: "PUT", json: { section: "coverage", ...input } });
+
+export const saveBusiness = (input: { companyName: string; cacNumber: string; contactName: string; contactPhone: string; contactEmail: string; address: string }) =>
+  api<{ saved: true }>("/api/mobile/logistics/market", { method: "PUT", json: { section: "business", ...input } });
+
+/** Publishes a new public rate card (new prices apply to new orders only). */
+export const saveRateCard = (input: RateCardBody) => api<{ saved: true }>("/api/mobile/logistics/market", { method: "PUT", json: { section: "rates", ...input } });
+
+export type PickupPointInput = { name: string; address: string; state: string; area: string; hours: string; phone: string; lat?: number | null; lng?: number | null };
+
+export const addPickupPoint = (input: PickupPointInput) => api<{ saved: true }>("/api/mobile/logistics/market/pickup-points", { method: "POST", json: input });
+export const editPickupPoint = (id: string, input: PickupPointInput) =>
+  api<{ saved: true }>(`/api/mobile/logistics/market/pickup-points/${encodeURIComponent(id)}`, { method: "PATCH", json: input });
+export const removePickupPoint = (id: string) => api<{ removed: true }>(`/api/mobile/logistics/market/pickup-points/${encodeURIComponent(id)}`, { method: "DELETE" });
+
+/** "Send them a private rate": only that business sees it; it replaces the public price for them once they accept. */
+export const sendPrivateRate = (input: RateCardBody & { ownerUserId: string }) =>
+  api<{ sent: true }>("/api/mobile/logistics/market/private-rates", { method: "POST", json: input });
+
+/** The partner's side of pay on delivery for one connected business (it shows at checkout when both sides say yes). */
+export const setConnectionPod = (id: string, pod: boolean) =>
+  api<{ pod: boolean }>(`/api/mobile/logistics/market/connections/${encodeURIComponent(id)}`, { method: "PATCH", json: { pod } });
+export const endMarketConnection = (id: string) => api<{ ended: true }>(`/api/mobile/logistics/market/connections/${encodeURIComponent(id)}`, { method: "DELETE" });
+
+// ─── Set-up: the portal's own onboarding and verification routes ─────────────────────────────────────────────────
+
+export interface LogisticsOnboarding {
+  displayName: string | null;
+  companyName: string | null;
+  city: string | null;
+  coverageZones: string[];
+  vehicleTypes: string[];
+  deliveryTypes: string[];
+  basePrice: number;
+  verificationStatus: string;
+}
+
+export const fetchOnboarding = () => api<LogisticsOnboarding>("/api/logistics/onboarding");
+
+/** Marks set-up done (the same call as the web set-up), so coverage, rates and pickup points can be saved. */
+export const finishOnboarding = (input: { displayName?: string; coverageZones: string[]; vehicleTypes: string[]; deliveryTypes: string[]; basePrice: number }) =>
+  api<unknown>("/api/logistics/onboarding", { method: "PATCH", json: { ...input, pricingModel: "fixed", completed: true } });
+
+/** Upload one verification document (a photo) for the company, with the existing document types. */
+export async function uploadVerificationDoc(docType: string, file: { uri: string; mimeType?: string | null; fileName?: string | null }) {
+  const form = new FormData();
+  const type = file.mimeType ?? "image/jpeg";
+  const ext = type === "application/pdf" ? "pdf" : type.split("/")[1] === "jpeg" ? "jpg" : (type.split("/")[1] ?? "jpg");
+  form.append("docType", docType);
+  form.append("file", { uri: file.uri, name: file.fileName ?? `${docType}.${ext}`, type } as unknown as Blob);
+  const result = await apiBody<{ success?: boolean; error?: string }>("/api/logistics/verification/upload", { method: "POST", body: form });
+  if (result.success === false) throw new Error(result.error || "");
+  return result;
+}
+
+/** Send the uploaded documents to the Shopinbos team to check. */
+export async function submitVerification() {
+  const result = await apiBody<{ success?: boolean; error?: string }>("/api/logistics/verification/submit", { method: "POST", json: {} });
+  if (result.success === false) throw new Error(result.error || "");
+  return result;
+}

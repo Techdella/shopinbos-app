@@ -53,6 +53,7 @@ export default async function CustomDomainOrderPage({ params, searchParams }: Pr
       transfer={next.transfer}
       deliveryCode={next.deliveryCode}
       brandedTracking={next.brandedTracking}
+      delivery={next.delivery ? JSON.parse(JSON.stringify(next.delivery)) : null}
     />
   );
 }

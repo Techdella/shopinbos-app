@@ -1,5 +1,4 @@
 import { ownPartCollect } from "@shared/cod-split";
-import { privateRateFor } from "@/lib/plans/rate-cards.server";
 import { deliveryPartnerProblem } from "@/lib/plans/gates.server";
 import { NextRequest } from "next/server";
 import { withSeller } from "@/lib/auth/middleware";
@@ -78,10 +77,8 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
     return apiError("CONFLICT", "This delivery company can't take jobs where the customer pays when it arrives right now. Pick another delivery company.", 409);
   }
 
-  // The partner's private price for this seller, when they have one and the seller's plan includes it.
-  const privateRate = await privateRateFor(user.id, partner.id, parsed.data.destination);
   const booking = await db.deliveryBooking.create({
-    data: { sellerId: user.id, ...parsed.data, ...(privateRate !== null ? { deliveryFee: privateRate } : {}), codAmount },
+    data: { sellerId: user.id, ...parsed.data, codAmount },
   });
   void emitPartnerEvent(partner.id, "job.offered", partnerJob(booking)).catch(() => undefined);
   await notifyJobOffered({ bookingId: booking.id, logisticsPartnerId: partner.id });

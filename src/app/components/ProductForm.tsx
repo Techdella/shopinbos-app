@@ -30,6 +30,7 @@ import { RelatedPicker, type RelatedOption } from "@/app/components/product-form
 import { ProductPeggy, type ProductPeggyHandle } from "@/app/components/product-form/ProductPeggy";
 import { isProductTypeKey, readProductDetails, type ProductTypeKey } from "@shared/product-types";
 import { normalizeVariants, readVariantOptions, serializeVariants, totalVariantStock, type ProductVariant, type VariantOption } from "@shared/product-variants";
+import { SIZE_BANDS, SIZE_BAND_LABELS, isSizeBand } from "@shared/delivery-market";
 import { applySuggestion, type AssistantFormState, type SuggestionInput } from "@shared/product-assistant";
 
 interface Category {
@@ -60,6 +61,8 @@ interface Product {
   compareAtPrice: number | null;
   weight: number | null;
   weightUnit: string;
+  /** Delivery size for partner rates: small | medium | bulky, or null to work it out from the weight. */
+  sizeBand?: string | null;
   dimensions: unknown;
   fulfillmentType: string;
   status: string;
@@ -197,6 +200,7 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
   const [lowStockThreshold, setLowStockThreshold] = useState(product?.lowStockThreshold?.toString() ?? "10");
   const [weight, setWeight] = useState(product?.weight?.toString() ?? "");
   const [weightUnit, setWeightUnit] = useState(product?.weightUnit ?? "kg");
+  const [sizeBand, setSizeBand] = useState<string>(product?.sizeBand && isSizeBand(product.sizeBand) ? product.sizeBand : "");
   const [sku, setSku] = useState(product?.sku ?? "");
   const [barcode, setBarcode] = useState(product?.barcode ?? "");
   const [fulfillmentType, setFulfillmentType] = useState(product?.fulfillmentType ?? "merchant_fulfilled");
@@ -385,6 +389,8 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
       compareAtPrice: compareAtPrice ? parseFloat(compareAtPrice) : undefined,
       weight: weight ? parseFloat(weight) : undefined,
       weightUnit,
+      // Empty = work it out from the weight (or the shop's usual parcel size).
+      sizeBand: sizeBand || null,
       fulfillmentType,
       status,
       visibility,
@@ -757,6 +763,14 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
                         </select>
                       </div>
                     </div>
+                  </Field>
+                  <Field label="Delivery size" hint="Delivery partners price by size. Auto works it out from the weight.">
+                    <select value={sizeBand} onChange={(e) => setSizeBand(e.target.value)} className={field.select}>
+                      <option value="">Auto (from weight)</option>
+                      {SIZE_BANDS.map((band) => (
+                        <option key={band} value={band}>{SIZE_BAND_LABELS[band]}</option>
+                      ))}
+                    </select>
                   </Field>
                   <Field label="SKU">
                     <input value={sku} onChange={(e) => setSku(e.target.value)} className={field.input} placeholder="LTH-TOTE-001" />

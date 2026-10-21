@@ -10,6 +10,7 @@ import { loadOptOuts } from "@/lib/marketing/opt-outs";
 import { normalizePhone } from "@/lib/marketing/segment-rules";
 import { CUSTOMER_EVENTS, customerEventFor, mayText, type CustomerEvent, type CustomerEventSetting, type OptOutLookup, type TextChannel, type VariableValues } from "@/lib/marketing/text-channels";
 import { refreshTemplateStatus, resolvePresetTemplate, resolveTemplate, sendTemplate } from "@/lib/marketing/whatsapp-templates.server";
+import { deliveryEventFor, deliveryMessage } from "./delivery-messages";
 
 // Order and cart messages to a store's customers by WhatsApp and/or SMS, as the seller switched on in
 // Marketing › Order messages (StoreMessagingSettings.transactional). Order code calls one function,
@@ -142,6 +143,67 @@ export async function notifyOrderCustomer(orderId: string, status: string) {
   }
 }
 
+/**
+ * Delivery partner updates to the buyer (Logistics marketplace, spec §6.3), as the seller switched them on in
+ * Marketing › Order messages: booked (the partner accepted), out for delivery (with the delivery code), ready at
+ * the pickup point (where, hours and the code) and delivery problems (a failed attempt in plain words, or a
+ * return). transitionJob (src/lib/logistics/jobs.ts) calls it after it saves a job's new status. Only jobs on a
+ * store order; never for a job another partner took over. Same rules as notifyOrderCustomer: the buyer's
+ * checkout phone only, never after STOP, once per job step per channel (src/lib/notifications/delivery-messages.ts
+ * has the dedupe keys). "Delivered" is the order's own message, sent when the job moves the order to delivered.
+ * Never throws.
+ */
+export async function notifyDeliveryStage(bookingId: string, to: string) {
+  try {
+    if (!deliveryEventFor(to)) return [];
+    const job = await db.deliveryBooking.findUnique({
+      where: { id: bookingId },
+      select: { id: true, orderId: true, status: true, replacedById: true, deliveryCode: true, service: true, pickupPointId: true, connectionId: true, failedReason: true, failedAttempts: true, logisticsPartner: { select: { displayName: true } } },
+    });
+    // Moved on again before we got here (or handed to another partner): that step speaks for itself.
+    if (!job?.orderId || job.replacedById || job.status !== to) return [];
+    const order = await db.retailOrder.findUnique({ where: { id: job.orderId }, select: { id: true, storeId: true, orderNumber: true, buyerName: true, buyerPhone: true, status: true } });
+    const phone = normalizePhone(order?.buyerPhone);
+    if (!order || !phone || order.status === "cancelled") return [];
+    const event = deliveryEventFor(to)!;
+    const settings = await getMessagingSettings(order.storeId);
+    const setting = settings.transactional[event];
+    if (!setting.whatsapp && !setting.sms) return [];
+    const store = await db.store.findUnique({ where: { id: order.storeId }, select: MARKETING_STORE_SELECT });
+    if (!store) return [];
+
+    const connection = job.connectionId
+      ? await db.deliveryConnection.findUnique({ where: { id: job.connectionId }, select: { showPartnerName: true, label: true } })
+      : null;
+    const point = to === "at_pickup_point" && job.pickupPointId
+      ? await db.logisticsPickupPoint.findUnique({ where: { id: job.pickupPointId }, select: { name: true, address: true, area: true, hours: true } })
+      : null;
+    const message = deliveryMessage({
+      status: to,
+      bookingId: job.id,
+      failedAttempts: job.failedAttempts,
+      failedReason: job.failedReason,
+      deliveryCode: job.deliveryCode,
+      service: job.service,
+      connection: connection ? { ...connection, partnerName: job.logisticsPartner.displayName } : null,
+      point,
+      buyerName: order.buyerName,
+      storeName: store.name,
+      orderNumber: order.orderNumber,
+      orderLink: storeUrl(store, `/order/${order.id}`),
+      storeLink: storeUrl(store),
+    });
+    if (!message) return [];
+    const recipient: Recipient = { event: message.event, refId: message.refId, phone, name: order.buyerName, values: message.values, smsVars: message.smsVars };
+    let cached: TextSender | null = null;
+    const sender = async () => (cached ??= await textSender(store, { senderId: settings.smsSenderId }));
+    return await deliver(store, setting, recipient, await loadOptOuts(store.id), sender);
+  } catch (error) {
+    console.error(`[customer messages] delivery ${to} for job ${bookingId} failed`, error);
+    return [];
+  }
+}
+
 /** The SMS for a shop order sent in more than one parcel, when the first parcel leaves. */
 export const PARTLY_SENT_SMS = "{{store}}: part of your order {{order_number}} is on its way. We'll text you when the rest is sent. {{order_url}}";
 
@@ -175,6 +237,41 @@ export async function notifyOrderCustomerPartlySent(orderId: string) {
     return [{ channel: "sms" as const, ok: outcome.ok }];
   } catch (error) {
     console.error(`[customer messages] partly sent for order ${orderId} failed`, error);
+    return [];
+  }
+}
+
+/** The SMS with the code for a parcel the supplier delivers itself (the shop's name; the supplier stays unseen). */
+export const SELF_DELIVERY_SMS = "{{store}}: your order {{order_number}} is on its way. When it arrives, give this code to the person delivering it: {{delivery_code}}. {{order_url}}";
+
+/**
+ * The customer's delivery code by SMS, once per parcel, when a supplier sets off to deliver its own parcel
+ * (src/lib/supplier-orders/service.server.ts). Sent whatever the shop's order message settings: without it the
+ * parcel can't be marked delivered. Never after STOP. The code is also on the customer's order page. Never throws.
+ */
+export async function textSelfDeliveryCode(orderId: string, code: string) {
+  try {
+    const order = await db.retailOrder.findUnique({ where: { id: orderId }, select: { id: true, storeId: true, orderNumber: true, buyerName: true, buyerPhone: true } });
+    const phone = normalizePhone(order?.buyerPhone);
+    if (!order || !phone) return [];
+    const store = await db.store.findUnique({ where: { id: order.storeId }, select: MARKETING_STORE_SELECT });
+    if (!store) return [];
+    const recipient = { event: "order_self_delivery" as CustomerEvent, refId: `${order.id}:${code}`, phone, name: order.buyerName, values: {}, smsVars: {} } satisfies Recipient;
+    const id = await claim(store.id, recipient, "sms");
+    if (!id) return [];
+    const allowed = mayText({ channel: "sms", phone, purpose: "transactional", consent: true, optOuts: await loadOptOuts(store.id) });
+    if (!allowed.ok) {
+      await finish(id, { ok: false, error: allowed.reason, skipped: true });
+      return [{ channel: "sms" as const, ok: false, error: allowed.reason }];
+    }
+    const settings = await getMessagingSettings(order.storeId);
+    const body = fillVariables(SELF_DELIVERY_SMS, { store: store.name, order_number: order.orderNumber, delivery_code: code, order_url: storeUrl(store, `/order/${order.id}`) } as unknown as FlowVariables, "text").replace(/\s{2,}/g, " ").trim();
+    const send = await textSender(store, { senderId: settings.smsSenderId });
+    const outcome = await send.sms(phone, body).catch((error): SendOutcome => ({ ok: false, error: String(error) }));
+    await finish(id, outcome);
+    return [{ channel: "sms" as const, ok: outcome.ok }];
+  } catch (error) {
+    console.error(`[customer messages] self-delivery code for order ${orderId} failed`, error);
     return [];
   }
 }

@@ -60,14 +60,14 @@ export type DropshipOrderView = ReturnType<typeof appDropshipView>;
 
 export const WHOLESALE_SELECT = {
   id: true, sellerId: true, quantity: true, unitPrice: true, totalPrice: true, currency: true, deliveryAddress: true, notes: true,
-  status: true, trackingCode: true, rejectReason: true, createdAt: true, acceptBy: true,
+  status: true, trackingCode: true, rejectReason: true, createdAt: true, acceptBy: true, paidAt: true,
   seller: { select: { name: true, phone: true, store: { select: { name: true } } } },
   supplierProduct: { select: { id: true, name: true, images: true } },
 } as const;
 
 type WholesaleRow = {
   id: string; sellerId: string; quantity: number; unitPrice: number; totalPrice: number; currency: string; deliveryAddress: string; notes: string | null;
-  status: string; trackingCode: string | null; rejectReason: string | null; createdAt: Date; acceptBy: Date | null;
+  status: string; trackingCode: string | null; rejectReason: string | null; createdAt: Date; acceptBy: Date | null; paidAt: Date | null;
   seller: { name: string; phone: string | null; store: { name: string } | null };
   supplierProduct: { id: string; name: string; images: string[] };
 };
@@ -93,6 +93,8 @@ export function wholesaleView(order: WholesaleRow) {
     trackingCode: order.trackingCode,
     rejectReason: order.rejectReason,
     acceptBy: order.acceptBy?.toISOString() ?? null,
+    // The shop paid by card in Shopinbos: the money went straight to the supplier's bank.
+    paidAt: order.paidAt?.toISOString() ?? null,
     packed: order.status === "processing",
     pickup: null as { status: string; text: string | null } | null,
     createdAt: order.createdAt.toISOString(),

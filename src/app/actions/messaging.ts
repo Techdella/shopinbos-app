@@ -3,6 +3,16 @@
 import { db } from "@/lib/db/client";
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/server-auth";
+import { offPlatformNote } from "@/lib/conversations/pure";
+
+/** Roles of both people in a conversation, for the gentle off-app note in chats with a delivery partner. */
+async function participantRoles(conversationId: string) {
+  const row = await db.conversation.findUnique({
+    where: { id: conversationId },
+    select: { participant1: { select: { role: true } }, participant2: { select: { role: true } } },
+  });
+  return [String(row?.participant1.role ?? ""), String(row?.participant2.role ?? "")];
+}
 
 export async function sendMessage(formData: FormData) {
   const user = await requireRole(["logistics_partner", "seller", "supplier"], "/login");
@@ -58,7 +68,9 @@ export async function sendMessage(formData: FormData) {
   revalidatePath("/home/messages");
   revalidatePath("/supplier/inbox");
   revalidatePath("/home/inbox");
-  return { success: true, conversationId: convId };
+  // Never blocked: a message sharing contact or payment details with a delivery partner just carries a gentle note.
+  const warning = offPlatformNote(text, await participantRoles(convId)) ?? undefined;
+  return { success: true, conversationId: convId, warning };
 }
 
 export async function getConversations(userId: string) {
@@ -98,9 +110,11 @@ export async function getMessages(conversationId: string) {
     orderBy: { createdAt: "asc" },
     select: { id: true, text: true, senderId: true, read: true, createdAt: true },
   });
+  const roles = await participantRoles(conversationId);
   return messages.map((message) => ({
     ...message,
     createdAt: message.createdAt.toISOString(),
+    warning: offPlatformNote(message.text, roles),
   }));
 }
 

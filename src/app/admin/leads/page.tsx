@@ -10,7 +10,7 @@ import { requireRole } from "@/lib/server-auth";
 
 export const dynamic = "force-dynamic";
 
-type Search = { kind?: string; status?: string; q?: string; page?: string; added?: string; imported?: string; skipped?: string; error?: string };
+type Search = { kind?: string; status?: string; role?: string; noted?: string; q?: string; page?: string; added?: string; imported?: string; skipped?: string; error?: string; saved?: string; savedStatus?: string };
 
 const ROLE_NAMES = { seller: "Seller", supplier: "Supplier", delivery: "Delivery partner" } as const;
 
@@ -30,14 +30,17 @@ export default async function AdminLeadsPage(props: { searchParams?: Promise<Sea
   const user = await requireRole(["admin"], "/admin/login");
   const frame = adminFrame(user, "Search leads");
   const search = (await props.searchParams) ?? {};
-  const status = search.status && ([...LEAD_STATUSES, "all"] as string[]).includes(search.status) ? search.status : "new";
+  // Everyone by default: messaged leads move to "Contacted" by themselves, so a "New" default hid most of them.
+  const status = search.status && ([...LEAD_STATUSES, "all"] as string[]).includes(search.status) ? search.status : "all";
   const kind = search.kind && KIND_LABELS[search.kind] ? search.kind : undefined;
+  const role = search.role && search.role in ROLE_NAMES ? search.role : undefined;
+  const noted = search.noted === "1";
   const q = search.q?.trim() || undefined;
   const page = Math.max(1, Number(search.page) || 1);
 
   let data: Awaited<ReturnType<typeof listWebsiteLeads>>;
   try {
-    data = await listWebsiteLeads({ kind, status, q, page });
+    data = await listWebsiteLeads({ kind, status, role, noted, q, page });
   } catch (error) {
     if (!(error instanceof LeadsNotReady)) throw error;
     return (
@@ -49,7 +52,11 @@ export default async function AdminLeadsPage(props: { searchParams?: Promise<Sea
     );
   }
 
-  const keep = { kind, q, status: status === "new" ? undefined : status };
+  const keep = { kind, q, role, noted: noted ? "1" : undefined, status: status === "all" ? undefined : status };
+  // The view a Save returns to (the lead may move to another status tab; the notice says where).
+  const here = `?${new URLSearchParams(Object.entries({ ...keep, page: page > 1 ? String(page) : undefined }).filter((entry): entry is [string, string] => Boolean(entry[1])))}`;
+  const savedLead = search.saved ? data.rows.find((lead) => lead.id === search.saved) : null;
+  const savedStatus = search.savedStatus && (LEAD_STATUSES as readonly string[]).includes(search.savedStatus) ? (search.savedStatus as LeadStatus) : null;
   // Messages each lead on this page got from lead campaigns and automations (none before the lead-growth migration).
   const history = await leadMessages(data.rows.map((lead) => lead.id)).catch(() => []);
   const sentTo = (leadId: string) => history.filter((m) => m.leadId === leadId);
@@ -64,12 +71,26 @@ export default async function AdminLeadsPage(props: { searchParams?: Promise<Sea
       actions={
         <>
           <PillLink href="/admin/lead-campaigns" icon="megaphone">Campaigns</PillLink>
-          <PillLink href={withParams("/api/admin/website-leads/export", { kind, q, status })} icon="download">Download CSV</PillLink>
+          <PillLink href={withParams("/api/admin/website-leads/export", { kind, q, status, role, noted: noted ? "1" : undefined })} icon="download">Download CSV</PillLink>
         </>
       }
     >
       {search.error && <div className="mb-4"><Notice>{search.error}</Notice></div>}
       {search.added && <div className="mb-4"><Notice tone="success">Lead added.</Notice></div>}
+      {search.saved && (
+        <div className="mb-4">
+          <Notice tone="success">
+            Saved{savedStatus ? `: the lead is in ${STATUS_LABELS[savedStatus]}` : ""}.{" "}
+            {savedLead ? (
+              <a href={`#lead-${savedLead.id}`} className="font-bold underline">Show it</a>
+            ) : (
+              <a href={withParams("/admin/leads", { status: savedStatus ?? undefined, q: undefined })} className="font-bold underline">It moved out of this view: open {savedStatus ? STATUS_LABELS[savedStatus] : "it"}</a>
+            )}
+            {" · "}
+            <a href={withParams("/admin/leads", { noted: "1" })} className="font-bold underline">All leads with notes</a>
+          </Notice>
+        </div>
+      )}
       {search.imported && <div className="mb-4"><Notice tone="success">Imported {search.imported} leads{Number(search.skipped) ? `; ${search.skipped} rows had no usable email or phone and were skipped` : ""}.</Notice></div>}
 
       <details className="mb-5 rounded-[20px] border border-app-line bg-white p-4 md:p-5">
@@ -112,15 +133,24 @@ export default async function AdminLeadsPage(props: { searchParams?: Promise<Sea
 
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <FilterChips
-          items={[...LEAD_STATUSES, "all" as const].map((value) => ({
-            label: value === "all" ? "All" : STATUS_LABELS[value as LeadStatus],
-            href: withParams("/admin/leads", { ...keep, status: value === "new" ? undefined : value }),
-            count: value === "all" ? undefined : data.statusCounts[value] ?? 0,
-            active: status === value,
-          }))}
+          items={[
+            ...["all" as const, ...LEAD_STATUSES].map((value) => ({
+              label: value === "all" ? "All" : STATUS_LABELS[value as LeadStatus],
+              href: withParams("/admin/leads", { ...keep, noted: undefined, status: value === "all" ? undefined : value }),
+              count: value === "all" ? data.allCount : data.statusCounts[value] ?? 0,
+              active: status === value && !noted,
+            })),
+            { label: "Has a note", href: withParams("/admin/leads", { ...keep, status: undefined, noted: "1" }), count: data.notedCount, active: noted },
+          ]}
         />
-        <SearchForm action="/admin/leads" defaultValue={q} placeholder="Name, email, phone or message" keep={{ kind, status: keep.status }} />
+        <SearchForm action="/admin/leads" defaultValue={q} placeholder="Name, email, phone, message or note" keep={{ kind, role, status: keep.status, noted: keep.noted }} />
       </div>
+      <FilterChips
+        className="mb-3"
+        items={[{ label: "Everyone", href: withParams("/admin/leads", { ...keep, role: undefined }), active: !role }].concat(
+          Object.entries(ROLE_NAMES).map(([key, label]) => ({ label: `${label}s`, href: withParams("/admin/leads", { ...keep, role: key }), active: role === key })),
+        )}
+      />
       <FilterChips
         className="mb-5"
         items={[{ label: "Every form", href: withParams("/admin/leads", { ...keep, kind: undefined }), active: !kind }].concat(
@@ -129,8 +159,8 @@ export default async function AdminLeadsPage(props: { searchParams?: Promise<Sea
       />
 
       {data.rows.length === 0 ? (
-        <EmptyState icon="list" title={q || kind || status !== "new" ? "No leads match" : "No new leads"}>
-          {q || kind || status !== "new" ? "Try another filter." : "New sign-ups from the website show up here as they come in."}
+        <EmptyState icon="list" title={q || kind || role || noted || status !== "all" ? "No leads match" : "No leads yet"}>
+          {q || kind || role || noted || status !== "all" ? "Try another filter, or All." : "Sign-ups from the website show up here as they come in."}
         </EmptyState>
       ) : (
         <ul className="m-0 flex list-none flex-col gap-3 p-0">
@@ -138,7 +168,7 @@ export default async function AdminLeadsPage(props: { searchParams?: Promise<Sea
             const extra = lead.payload && typeof lead.payload === "object" && !Array.isArray(lead.payload) ? (lead.payload as Record<string, unknown>) : {};
             const details = Object.entries(extra).filter(([, v]) => v !== null && v !== "" && typeof v !== "object");
             return (
-              <li key={lead.id} className="rounded-[20px] border border-app-line bg-white p-4 md:p-5">
+              <li key={lead.id} id={`lead-${lead.id}`} className={`scroll-mt-6 rounded-[20px] border bg-white p-4 md:p-5 ${lead.id === search.saved ? "border-app-ink ring-2 ring-app-ink/15" : "border-app-line"}`}>
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
@@ -158,6 +188,11 @@ export default async function AdminLeadsPage(props: { searchParams?: Promise<Sea
                       {lead.pageUrl && <a className="underline" href={lead.pageUrl} target="_blank" rel="noreferrer">Page</a>}
                     </div>
                     {lead.message && <p className="mb-0 mt-2 whitespace-pre-line text-[14px]">{lead.message}</p>}
+                    {lead.note && (
+                      <p className="mb-0 mt-2 whitespace-pre-line rounded-[12px] border border-[#F2D59B] bg-[#FFF8E6] px-3 py-2 text-[13.5px]">
+                        <b>Team note:</b> {lead.note}
+                      </p>
+                    )}
                     {details.length > 0 && (
                       <p className="mb-0 mt-2 text-[13px] text-app-ink-soft">{details.map(([k, v]) => `${k}: ${String(v)}`).join(" · ")}</p>
                     )}
@@ -173,12 +208,13 @@ export default async function AdminLeadsPage(props: { searchParams?: Promise<Sea
                   </form>
                   <form action={setWebsiteLeadStatus} className="flex flex-wrap items-center gap-2">
                     <input type="hidden" name="id" value={lead.id} />
+                    <input type="hidden" name="back" value={here} />
                     <label className="sr-only" htmlFor={`st-${lead.id}`}>Status</label>
                     <select id={`st-${lead.id}`} name="status" defaultValue={lead.status} className={`${fieldClass} !min-h-[40px] !w-auto`}>
                       {LEAD_STATUSES.map((value) => <option key={value} value={value}>{STATUS_LABELS[value]}</option>)}
                     </select>
                     <label className="sr-only" htmlFor={`nt-${lead.id}`}>Note</label>
-                    <input id={`nt-${lead.id}`} name="note" defaultValue={lead.note ?? ""} placeholder="Note" className={`${fieldClass} !min-h-[40px] !w-[200px]`} />
+                    <input id={`nt-${lead.id}`} name="note" defaultValue={lead.note ?? ""} placeholder={lead.note ? "Edit the note" : "Add a note"} maxLength={2000} className={`${fieldClass} !min-h-[40px] !w-[220px]`} />
                     <button type="submit" className={buttonClass("ink", "sm")}>Save</button>
                   </form>
                 </div>

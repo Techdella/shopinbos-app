@@ -89,15 +89,14 @@ test("wiring: staff, packs, boosts, rate cards, pickup points, exceptions, follo
   assert.match(read("src/app/marketplace/suppliers/page.tsx"), /isFeatured\(b\) - isFeatured\(a\)/);
   assert.match(read("src/app/api/public/products/route.ts"), /markFeatured\(products, await boostedProductIds\(\)\)/);
 
-  assert.match(read("src/app/api/app/logistics/bookings/route.ts"), /privateRateFor\(user\.id, partner\.id/);
-  assert.match(read("src/lib/plans/rate-cards.server.ts"), /customerMayUse/);
-  assert.match(read("src/lib/logistics/payin-deadline.ts"), /partner\.acceptsCod !== false/);
-  assert.match(read("src/app/actions/logistics-plan.ts"), /count >= limits\.pickupPoints/);
-
-  const exceptions = read("src/lib/logistics/exceptions.server.ts");
-  assert.match(exceptions, /booking\.feePaidAt \|\| \(booking\.codCollected \?\? 0\) > 0/, "never moves a paid job");
-  assert.match(exceptions, /deliveryPartnerProblem\(sellerId, partner\.id\)/);
-  assert.match(read("src/app/actions/delivery-exceptions.ts"), /limits\.exceptionsInbox/);
+  // The logistics marketplace (src/lib/delivery-market/manage.server.ts) carries the plan limits.
+  const manage = read("src/lib/delivery-market/manage.server.ts");
+  for (const fn of ["connectionLimitProblem(owner.id", "sellAreaProblem(userId", "payOnDeliveryProblem(ownerId)", "proposePrivateRatesProblem(", "acceptPrivateRatesProblem(ownerUserId)", "pickupPointLimitProblem(partnerId)"]) {
+    assert.ok(manage.includes(fn), fn);
+  }
+  const market = read("src/lib/plans/market.server.ts");
+  assert.match(market, /active\.some\(\(row\) => row\.logisticsPartnerId === partnerId\) \|\| active\.length < limit/, "reconnecting an existing partner is fine");
+  assert.match(market, /if \(nationwideNow\) return null;/, "a store already nationwide keeps it");
 
   assert.match(read("src/app/actions/supplier.ts"), /if \(!limits\.bulkUpload\)/);
   assert.match(read("src/lib/suppliers/follow.server.ts"), /\.broadcast\) throw new FollowError/);
@@ -108,11 +107,11 @@ test("wiring: staff, packs, boosts, rate cards, pickup points, exceptions, follo
   assert.match(read("src/lib/inbox/chatbot-budget.server.ts"), /bot\.monthlyCap > 0 && \(await aiBotRepliesThisMonth/);
 
   const sql = read("docs/migrations/2026-11-16-plan-extras.sql");
-  for (const table of ["PlanExtraPurchase", "MessageBalance", "StoreStaff", "LogisticsPickupPoint", "PrivateRateCard", "SupplierFollow", "SupplierBroadcast"]) {
+  for (const table of ["PlanExtraPurchase", "MessageBalance", "StoreStaff", "SupplierFollow", "SupplierBroadcast"]) {
     assert.match(sql, new RegExp(`CREATE TABLE IF NOT EXISTS "${table}"`), table);
     assert.match(sql, new RegExp(`ALTER TABLE "${table}" ENABLE ROW LEVEL SECURITY`), table);
   }
-  assert.match(sql, /"acceptsCod" BOOLEAN NOT NULL DEFAULT true/);
+  assert.match(read("docs/migrations/2026-11-17-plan-extras-cleanup.sql"), /DROP TABLE IF EXISTS "PrivateRateCard"/);
 });
 
 test("supplier pickups: the shop's partner, then the supplier's preferred, then the supplier's best, then default", () => {
@@ -130,8 +129,6 @@ test("wiring: supplier delivery partner limit", () => {
   const plans = read("shared/plans.ts");
   assert.match(plans, /supplier_free: \{[^}]*logisticsPartners: 2/);
   assert.match(plans, /supplier_plus: \{[^}]*logisticsPartners: 10/);
-  const partners = read("src/lib/suppliers/partners.server.ts");
-  assert.match(partners, /limit !== null && count >= limit/);
+  assert.match(read("src/lib/suppliers/partners.server.ts"), /where: \{ ownerUserId: supplierUserId, ownerRole: "supplier", status: "active" \}/);
   assert.match(read("src/lib/supplier-orders/pickup.server.ts"), /supplierPartnerIds: connections/);
-  assert.match(read("docs/migrations/2026-11-16-plan-extras.sql"), /CREATE TABLE IF NOT EXISTS "SupplierLogisticsConnection"/);
 });

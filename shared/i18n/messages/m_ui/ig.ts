@@ -98,6 +98,13 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   saveFailed: "Echekwaghị ya. Lelee network gị, wee nwaa ọzọ.",
   loadFailed: "Ọ bataghị. Dọda ala ka ị nwaa ọzọ.",
   shopLoadFailed: "Ụlọ ahịa gị abataghị.",
+  "keypad.entered": "Etinyela nọmba {count} n'ime {total}",
+  "keypad.delete": "Hichapụ",
+  "keypad.clear": "Kpochapụ",
+  "stepper.less": "Belata {label} otu",
+  "stepper.more": "Tinyekwuo {label} otu",
+  "chat.keepTitle": "Debe ya na Shopinbos",
+  "chat.keepBody": "Ọrụ a kwụrụ ụgwọ ya na mpụga app anaghị esochi ya, a gaghị akọ akụkọ ya, ọ dịghịkwa agụ na rating. Kwekọrịta ọnụahịa ebe a ma ziga ya dịka private rate.",
 };
 
 export default ig;

@@ -3,11 +3,13 @@ import { z } from "zod";
 import { db } from "@/lib/db/client";
 import { apiError, ok } from "@/lib/api/response";
 import { addressLines } from "@/lib/labels";
-import { cashToPayIn } from "@/lib/logistics/job-rules";
+import { cashToPayIn, WRONG_PICKUP_CODE } from "@/lib/logistics/job-rules";
+import { askForHelp, checkDeliveryCode, RIDER_LANGUAGES, riderWeek, saveRiderLanguage, skipJob } from "@/lib/logistics/rider-app.server";
 import { riderFromToken } from "@/lib/logistics/rider-session";
 import { bookingNet, lagosStartOfToday, packageSummary } from "@/components/logistics/kit";
-import { markDelivered, markFailed, setRiderOnline, startRun } from "@/app/rider/[token]/actions";
+import { markDelivered, markFailed, markStage, setRiderOnline, startRun } from "@/app/rider/[token]/actions";
 import { toE164 } from "@shared/phone";
+import { areaFromText, haversineMeters } from "@shared/delivery-geo";
 import { pickupWindowText } from "@shared/supplier-pickup";
 import { notesWithRecipient } from "../_shared";
 
@@ -15,9 +17,16 @@ export const dynamic = "force-dynamic";
 
 // The Riders app inside the mobile app. Riders have no account: the private link their dispatcher shares is the
 // credential, sent as the X-Rider-Token header. Same data and actions as the web Riders app (/rider/[token]).
-//   GET  → rider, today's earnings, drops done, cash in hand and the runs (one per pickup) with their drops
-//   POST { action: "online", online } | { action: "start_run", jobIds } | { action: "delivered", jobId, code, recipientName?, codCollected?, codMethod? }
-//        | { action: "failed", jobId, reason }
+//   GET  → rider (with bike plate and language), today's earnings, drops done, cash in hand, this week's earnings
+//          and deliveries, and the runs (one per pickup) with their drops (each says whether it has a pickup code)
+//   POST { action: "online", online } | { action: "start_run", jobIds, codes? } | { action: "delivered", jobId, code, recipientName?, codCollected?, codMethod? }
+//        | { action: "failed", jobId, reason } | { action: "stage", jobId, to }
+//        | { action: "skip", jobId }            hand back a job not picked up yet (the partner is told)
+//        | { action: "help", jobId, reason }    tell the partner what's wrong; the job keeps its status
+//        | { action: "check_code", jobId, code } is the customer's code right? (before taking the cash)
+//        | { action: "language", language }   en | pcm | yo | ha | ig
+// start_run with codes: { [jobId]: "1234" } checks the pickup code the shop gave the rider; a wrong one answers
+// 409 WRONG_PICKUP_CODE.
 
 const LINK_ERROR = "This link no longer works. Ask your dispatcher for a new one.";
 
@@ -32,19 +41,21 @@ export async function GET(req: NextRequest) {
 
   const rider = session.rider;
   const where = { riderId: rider.id, logisticsPartnerId: rider.partnerId };
-  const [active, doneToday, cashJobs] = await Promise.all([
+  const [active, doneToday, cashJobs, week] = await Promise.all([
     db.deliveryBooking.findMany({
-      where: { ...where, status: { in: ["confirmed", "picked_up", "in_transit"] } },
+      where: { ...where, status: { in: ["confirmed", "picked_up", "in_transit", "out_for_delivery"] } },
       orderBy: { createdAt: "asc" },
       take: 60,
       select: {
         id: true, status: true, sellerId: true, orderId: true, pickupLocation: true, destination: true, packageDetails: true,
         deliveryFee: true, platformFee: true, netAmount: true, codAmount: true, proofUrl: true, pickupWindowStart: true, pickupWindowEnd: true,
-        seller: { select: { name: true, store: { select: { name: true } } } },
+        pickupCode: true, pickupLat: true, pickupLng: true,
+        seller: { select: { name: true, phone: true, store: { select: { name: true } } } },
       },
     }),
     db.deliveryBooking.findMany({ where: { ...where, status: "delivered", deliveredAt: { gte: lagosStartOfToday() } }, select: { deliveryFee: true, platformFee: true, netAmount: true } }),
     db.deliveryBooking.findMany({ where: { ...where, codMethod: "cash", remittanceId: null, codCollected: { not: null } }, select: { codCollected: true, codMethod: true, remittanceId: true } }),
+    riderWeek(rider),
   ]);
 
   const orderIds = active.map((job) => job.orderId).filter((id): id is string => Boolean(id));
@@ -52,12 +63,19 @@ export async function GET(req: NextRequest) {
   const orderById = new Map(orders.map((order) => [order.id, order]));
 
   // One run per pickup (same shop and address), like the web Riders app.
-  const runs = new Map<string, { key: string; pickupName: string; pickupAddress: string; pickupWindow: string | null; fees: number; drops: unknown[] }>();
+  const runs = new Map<string, { key: string; pickupName: string; pickupAddress: string; pickupWindow: string | null; pickupKm: number | null; pickupArea: string | null; pickupPhone: string | null; fees: number; drops: unknown[] }>();
+  const here = rider.lastLat !== null && rider.lastLng !== null ? { lat: rider.lastLat, lng: rider.lastLng } : null;
   for (const job of active) {
     const key = `${job.sellerId}|${job.pickupLocation.trim().toLowerCase()}`;
     // Supplier pickups carry a time: "Pick up 12–4pm today" (the run shows the first one).
     const pickupWindow = pickupWindowText(job.pickupWindowStart, job.pickupWindowEnd);
-    const run = runs.get(key) ?? { key, pickupName: job.seller.store?.name ?? job.seller.name, pickupAddress: job.pickupLocation, pickupWindow, fees: 0, drops: [] };
+    // "1.2 km from you": straight line from the rider's last known spot, when both are known.
+    const pickupKm = here && job.pickupLat !== null && job.pickupLng !== null ? Math.round(haversineMeters(here, { lat: job.pickupLat, lng: job.pickupLng }) / 100) / 10 : null;
+    const run = runs.get(key) ?? { key, pickupName: job.seller.store?.name ?? job.seller.name, pickupAddress: job.pickupLocation, pickupWindow, pickupKm,
+      // "Yaba → Lekki": the known area of the pickup and of the drop, when the address names one.
+      pickupArea: areaFromText(job.pickupLocation)?.name ?? null,
+      pickupPhone: job.seller.phone ? toE164(job.seller.phone) : null,
+      fees: 0, drops: [] };
     if (!run.pickupWindow && pickupWindow) run.pickupWindow = pickupWindow;
     const order = job.orderId ? orderById.get(job.orderId) : undefined;
     const lines = order ? addressLines(order.deliveryAddress) : [];
@@ -67,27 +85,33 @@ export async function GET(req: NextRequest) {
       status: job.status,
       address: lines.length ? lines.join(", ") : job.destination,
       area: job.destination,
+      areaShort: areaFromText(job.destination)?.name ?? null,
       buyerName: order?.buyerName ?? null,
       buyerPhone: order?.buyerPhone ? toE164(order.buyerPhone) : null,
       collect: job.codAmount && job.codAmount > 0 ? job.codAmount : 0,
+      // What this one drop pays (the run's fees add these up).
+      fee: bookingNet(job),
       item: packageSummary(job.packageDetails),
       hasProof: Boolean(job.proofUrl),
+      // The shop has a pickup code to give the rider (never the code itself).
+      hasPickupCode: Boolean(job.pickupCode),
     });
     runs.set(key, run);
   }
 
   return ok({
-    rider: { name: rider.name, partnerName: rider.partnerName, partnerPhone: rider.partnerPhone, online: rider.online },
+    rider: { id: rider.id, name: rider.name, partnerName: rider.partnerName, partnerPhone: rider.partnerPhone, online: rider.online, plate: rider.plate, language: rider.language },
     earnedToday: doneToday.reduce((sum, job) => sum + bookingNet(job), 0),
     dropsDone: doneToday.length,
     cashInHand: cashToPayIn(cashJobs),
+    week,
     runs: [...runs.values()],
   });
 }
 
 const Body = z.discriminatedUnion("action", [
   z.object({ action: z.literal("online"), online: z.boolean() }),
-  z.object({ action: z.literal("start_run"), jobIds: z.array(z.string().max(64)).min(1).max(50) }),
+  z.object({ action: z.literal("start_run"), jobIds: z.array(z.string().max(64)).min(1).max(50), codes: z.record(z.string().max(64), z.string().max(12)).optional() }),
   z.object({
     action: z.literal("delivered"),
     jobId: z.string().max(64),
@@ -97,6 +121,13 @@ const Body = z.discriminatedUnion("action", [
     codMethod: z.enum(["cash", "transfer"]).nullish(),
   }),
   z.object({ action: z.literal("failed"), jobId: z.string().max(64), reason: z.string().min(1).max(300) }),
+  // Logistics marketplace: on the way to the customer, or left at the pickup point.
+  z.object({ action: z.literal("stage"), jobId: z.string().max(64), to: z.enum(["out_for_delivery", "at_pickup_point"]) }),
+  // Riders app on the phone.
+  z.object({ action: z.literal("skip"), jobId: z.string().max(64) }),
+  z.object({ action: z.literal("help"), jobId: z.string().max(64), reason: z.string().trim().min(1).max(200) }),
+  z.object({ action: z.literal("check_code"), jobId: z.string().max(64), code: z.string().max(12) }),
+  z.object({ action: z.literal("language"), language: z.enum(RIDER_LANGUAGES) }),
 ]);
 
 export async function POST(req: NextRequest) {
@@ -105,13 +136,32 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return apiError("BAD_REQUEST", parsed.error.issues[0]?.message ?? "Check the details and try again.");
   const input = parsed.data;
 
+  if (input.action === "skip" || input.action === "help" || input.action === "check_code" || input.action === "language") {
+    const session = await riderFromToken(token);
+    if (!session.ok) return apiError(session.reason === "limited" ? "RATE_LIMITED" : "UNAUTHORIZED", session.reason === "limited" ? "Too many tries. Wait a minute and try again." : LINK_ERROR, session.reason === "limited" ? 429 : 401);
+    if (input.action === "language") {
+      await saveRiderLanguage(session.rider, input.language);
+      return ok({ done: true });
+    }
+    const step =
+      input.action === "skip" ? await skipJob(session.rider, input.jobId)
+      : input.action === "help" ? await askForHelp(session.rider, input.jobId, input.reason)
+      : await checkDeliveryCode(session.rider, input.jobId, input.code);
+    if (!step.ok) return apiError(step.code, step.error, step.code === "NOT_FOUND" ? 404 : step.code === "RATE_LIMITED" ? 429 : 409);
+    return ok({ done: true });
+  }
+
   // The web Riders app's actions re-check the token and only touch jobs assigned to this rider.
   const result =
     input.action === "online" ? await setRiderOnline(token, input.online)
-    : input.action === "start_run" ? await startRun(token, input.jobIds)
+    : input.action === "start_run" ? await startRun(token, input.jobIds, input.codes ?? null)
     : input.action === "failed" ? await markFailed(token, { jobId: input.jobId, reason: input.reason })
+    : input.action === "stage" ? await markStage(token, { jobId: input.jobId, to: input.to })
     : await markDelivered(token, { jobId: input.jobId, code: input.code, codCollected: input.codCollected ?? null, codMethod: input.codMethod ?? null });
-  if (!result.ok) return apiError(result.error === LINK_ERROR ? "UNAUTHORIZED" : "CONFLICT", result.error, result.error === LINK_ERROR ? 401 : 409);
+  if (!result.ok) {
+    if (result.error === WRONG_PICKUP_CODE) return apiError("WRONG_PICKUP_CODE", result.error, 409);
+    return apiError(result.error === LINK_ERROR ? "UNAUTHORIZED" : "CONFLICT", result.error, result.error === LINK_ERROR ? 401 : 409);
+  }
 
   if (input.action === "delivered" && input.recipientName?.trim()) {
     const session = await riderFromToken(token);

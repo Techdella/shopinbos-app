@@ -119,6 +119,12 @@ enum BookingStatus {
   delivered
   failed
   cancelled
+  /// Logistics marketplace (shared/delivery-market.ts): the partner said no, with a reason.
+  declined
+  out_for_delivery
+  at_pickup_point
+  returning
+  returned
 }
 
 enum ShippingType {
@@ -218,6 +224,9 @@ model User {
   /// can't list new supplier products or place wholesale orders. What they already have keeps working, so their
   /// sales keep paying it off. Cleared by the cron once nothing is long overdue.
   debtPausedAt           DateTime?
+  deliverySettings       DeliverySettings?
+  deliveryConnections    DeliveryConnection[]
+  privateRateCards       LogisticsRateCard[]
 }
 
 // ─── Store ────────────────────────────────────────────────────────────────────
@@ -769,6 +778,8 @@ model StoreProduct {
   weight            Float?
   weightUnit        String          @default("kg")
   dimensions        Json?           // { length, width, height, unit }
+  // Delivery size band (shared/delivery-market.ts): small | medium | bulky. Null: from the weight, else the store's default.
+  sizeBand          String?
   fulfillmentType   FulfillmentType @default(merchant_fulfilled)
   status            String          @default("draft")
   visibility        ProductVisibility @default(hidden)
@@ -950,6 +961,8 @@ model WholesaleOrder {
   stockReserved     Int         @default(0) // supplier stock taken when placed (0: none tracked, e.g. older orders)
   stockReleasedAt   DateTime?   // given back once (declined or cancelled)
   paidOutAt         DateTime?   // the supplier confirmed they were paid
+  paidAt            DateTime?   // the seller paid in Shopinbos by card (split straight to the supplier's wallet)
+  paymentRef        String?     @unique // that Paystack reference (whpay-…)
   acceptBy          DateTime?   // the supplier must accept by then, or it is cancelled (expiredAt set)
   acceptReminderAt  DateTime?   // "1 hour left" reminder sent
   expiredAt         DateTime?   // ran out of time without an answer (status cancelled)
@@ -1001,6 +1014,11 @@ model SupplierOrder {
   replacesId      String?
   /// The seller pressed Undo before this supplier accepted (status cancelled).
   undoneAt        DateTime?
+  /// The supplier delivers this parcel itself (the customer chose its delivery at checkout): the fee it earns and
+  /// the 4-digit code the customer gives it on arrival.
+  selfDelivery    Boolean   @default(false)
+  deliveryFee     Float     @default(0)
+  deliveryCode    String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
@@ -1099,8 +1117,6 @@ model LogisticsPartner {
   /// Late pay-ins (lib/logistics/payin-deadline.ts): paused from new pay-when-it-arrives (COD) jobs only. Set and
   /// cleared by the system (cron + pay-in matching) or the team, never by the partner's "Taking new jobs" switch.
   codPaused          Boolean            @default(false)
-  /// The partner takes pay-on-delivery jobs (collects cash at the door). Their own choice, unlike codPaused.
-  acceptsCod         Boolean            @default(true)
   /// The missed pay-in deadline (6pm Lagos) of the oldest cash still owed, while the partner is late.
   payInOverdueSince  DateTime?
   /// Cash past its deadline and grace, still owed after credit.
@@ -1113,10 +1129,26 @@ model LogisticsPartner {
   payInPauseWaived   Boolean            @default(false)
   /// Late days counted against the partner (each also lowers reliabilityScore).
   payInStrikes       Int                @default(0)
+  /// Logistics marketplace (shared/delivery-market.ts): business details sellers and the team see.
+  cacNumber          String?
+  contactName        String?
+  contactPhone       String?
+  contactEmail       String?
+  /// doorstep | pickup_point | same_day | interstate
+  services           String[]           @default([])
+  /// Where they collect from and where they deliver to: states, "Lagos: Ikeja" areas, regions or "Nationwide".
+  pickupAreas        String[]           @default([])
+  deliveryAreas      String[]           @default([])
+  /// The partner collects pay-on-delivery cash for shops that also opt in, per connection.
+  offersPayOnDelivery Boolean           @default(false)
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
   user           User                   @relation(fields: [userId], references: [id])
+  rateCards      LogisticsRateCard[]
+  pickupPoints   LogisticsPickupPoint[]
+  connections    DeliveryConnection[]
+  deliveryIssues DeliveryIssue[]
   quoteRequests  DeliveryQuoteRequest[]
   bookings       DeliveryBooking[]
   teamMembers    LogisticsTeamMember[]
@@ -1169,6 +1201,10 @@ model LogisticsTeamMember {
   lastLng            Float?
   lastAccuracy       Float?
   lastLocationAt     DateTime?
+  /// Riders app (phone): the bike's number plate the partner typed when adding the rider, and the language the rider
+  /// picked (en | pcm | yo | ha | ig). Both optional.
+  plate              String?
+  language           String?
   invitedAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
 
@@ -1267,6 +1303,9 @@ model DeliveryBooking {
   failedReason       String?
   /// 4-digit code the buyer gives the rider as proof of delivery.
   deliveryCode       String?
+  /// 4-digit code the shop (or supplier) handing over the parcel gives the rider at pickup. Made when the job is
+  /// accepted (or the first time the shop's screen asks for it); the Riders app checks it before "picked up".
+  pickupCode         String?
   proofUrl           String?
   /// Pay on delivery: amount to collect, what was collected and how, and the remittance that settled it.
   codAmount          Float?
@@ -1285,6 +1324,31 @@ model DeliveryBooking {
   pickupLng          Float?
   pickupGeoSource    String?
   pickupGeocodedAt   DateTime?
+  /// Logistics marketplace jobs (src/lib/delivery-market): doorstep | pickup_point, the parcel's size band, the
+  /// pickup point, the connection and rate card it was priced from (the fee is kept, so later rate changes never
+  /// touch it), and which part of the order it carries: own | supplier:<supplierId>.
+  service            String?
+  sizeBand           String?
+  pickupPointId      String?
+  connectionId       String?
+  rateCardId         String?
+  shipmentKey        String?
+  /// Accept by then, or the job goes to the shop's exceptions to send to another partner.
+  acceptBy           DateTime?
+  acceptedAt         DateTime?
+  declinedAt         DateTime?
+  declineReason      String?
+  /// The shop marked the parcel packed and ready for the rider.
+  readyAt            DateTime?
+  outForDeliveryAt   DateTime?
+  atPickupPointAt    DateTime?
+  returnedAt         DateTime?
+  failedAttempts     Int           @default(0)
+  /// The job that took over after this one was declined or ran late.
+  replacedById       String?
+  /// Pay on delivery agreed between the shop and the partner: a record only (Shopinbos never holds the cash).
+  codRemittedAt      DateTime?
+  codConfirmedAt     DateTime?
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
 
@@ -1300,6 +1364,147 @@ model DeliveryBooking {
   @@index([trackingCode])
   @@index([status])
   @@index([riderId])
+  @@index([orderId])
+  @@index([status, acceptBy])
+}
+
+// ─── Logistics marketplace ───────────────────────────────────────────────────
+// Partners publish where they go, rate cards and pickup points; sellers and suppliers connect to partners; checkout
+// prices delivery from the connected partners' cards and each paid order becomes a job (shared/delivery-market.ts,
+// src/lib/delivery-market). docs/migrations/2026-11-14-logistics-marketplace.sql.
+
+/// A partner's rate card. ownerUserId null: the public card (one active at a time; older ones are kept as retired).
+/// Set: a private card for one seller or supplier, used for them only once they accept it.
+model LogisticsRateCard {
+  id                 String    @id @default(cuid())
+  logisticsPartnerId String
+  ownerUserId        String?
+  /// public: active | retired · private: proposed | accepted | declined | withdrawn | retired
+  status             String    @default("active")
+  /// [{ id, from, to, service, sizeBand, price, minDays, maxDays }] (shared/delivery-market.ts RateRow)
+  rows               Json      @default("[]")
+  failedAttemptFee   Float     @default(0)
+  returnFee          Float     @default(0)
+  notes              String?
+  respondedAt        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  logisticsPartner LogisticsPartner @relation(fields: [logisticsPartnerId], references: [id], onDelete: Cascade)
+  owner            User?            @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+
+  @@index([logisticsPartnerId, status])
+  @@index([ownerUserId, status])
+}
+
+model LogisticsPickupPoint {
+  id                 String   @id @default(cuid())
+  logisticsPartnerId String
+  name               String
+  address            String
+  state              String
+  area               String?
+  hours              String?
+  phone              String?
+  lat                Float?
+  lng                Float?
+  active             Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  logisticsPartner LogisticsPartner @relation(fields: [logisticsPartnerId], references: [id], onDelete: Cascade)
+
+  @@index([logisticsPartnerId, active])
+  @@index([state])
+}
+
+/// Where a seller sells (or a supplier ships from) and how delivery shows at checkout.
+model DeliverySettings {
+  userId             String   @id
+  /// zones: the store's own delivery zones (as before) · partners: options from connected delivery partners.
+  checkoutMode       String   @default("zones")
+  /// one_state | selected | nationwide
+  sellArea           String   @default("nationwide")
+  sellStates         String[] @default([])
+  /// Where parcels leave from (a supplier's "Where I ship from").
+  originState        String?
+  originArea         String?
+  originAddress      String?
+  selfPickup         Boolean  @default(false)
+  pickupAddress      String?
+  pickupHours        String?
+  pickupInstructions String?
+  /// When no connected partner covers an address: pickup_only | flat_fee.
+  fallback           String   @default("pickup_only")
+  fallbackFee        Float    @default(0)
+  /// small | medium | bulky, for products without a size band or weight.
+  defaultSizeBand    String   @default("small")
+  /// Who pays a partner's re-attempt fee after a failed delivery: seller | customer.
+  failedFeePayer     String   @default("seller")
+  /// A supplier that delivers its own parcels ("I deliver myself"): offered at checkout for its dropship items.
+  selfDelivery       Boolean  @default(false)
+  selfDeliveryFee    Float    @default(0)
+  /// States it drives to; empty means the state it ships from.
+  selfDeliveryStates String[] @default([])
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// A seller's or supplier's delivery partner ("My delivery partners"). Connecting is instant on public rates.
+model DeliveryConnection {
+  id                 String    @id @default(cuid())
+  ownerUserId        String
+  /// seller | supplier
+  ownerRole          String
+  logisticsPartnerId String
+  /// active | ended
+  status             String    @default("active")
+  /// owner | partner | admin
+  endedBy            String?
+  /// What customers can pick for this partner: doorstep | pickup_point
+  services           String[]  @default(["doorstep", "pickup_point"])
+  /// False: customers see `label` (e.g. "Standard delivery") instead of the partner's name.
+  showPartnerName    Boolean   @default(true)
+  label              String?
+  /// Pay on delivery only when both sides opt in (and the shop accepted the disclaimer).
+  ownerPod           Boolean   @default(false)
+  partnerPod         Boolean   @default(false)
+  podAcceptedAt      DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  endedAt            DateTime?
+
+  owner            User             @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  logisticsPartner LogisticsPartner @relation(fields: [logisticsPartnerId], references: [id], onDelete: Cascade)
+
+  @@unique([ownerUserId, logisticsPartnerId])
+  @@index([logisticsPartnerId, status])
+}
+
+/// A customer's report about a delivery (late, not delivered, damaged, wrong item), seen by the shop, the partner
+/// where relevant, and the team.
+model DeliveryIssue {
+  id                 String    @id @default(cuid())
+  retailOrderId      String
+  storeId            String
+  bookingId          String?
+  logisticsPartnerId String?
+  /// late | not_delivered | damaged | wrong_item
+  kind               String
+  message            String?
+  reporterName       String?
+  /// open | resolved
+  status             String    @default("open")
+  resolvedAt         DateTime?
+  createdAt          DateTime  @default(now())
+
+  logisticsPartner LogisticsPartner? @relation(fields: [logisticsPartnerId], references: [id], onDelete: SetNull)
+
+  @@index([storeId, status])
+  @@index([logisticsPartnerId, createdAt])
+  @@index([retailOrderId])
 }
 
 // ─── Shipping Zone ────────────────────────────────────────────────────────────
@@ -2514,54 +2719,6 @@ model StoreStaff {
   @@index([ownerId])
 }
 
-// Where a delivery partner's customers can drop off or collect parcels (plan limits: shared/plans.ts pickupPoints).
-model LogisticsPickupPoint {
-  id                 String   @id @default(cuid())
-  logisticsPartnerId String
-  name               String
-  address            String
-  city               String
-  state              String
-  phone              String?
-  hours              String?
-  active             Boolean  @default(true)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-
-  @@index([logisticsPartnerId])
-  @@index([state])
-}
-
-// A delivery partner's own price for one seller or supplier (partner on Plus and up; the customer's plan must
-// include private rate cards to use it). Shown on the partner's page and used as the fee when they book.
-model PrivateRateCard {
-  id                 String   @id @default(cuid())
-  logisticsPartnerId String
-  customerUserId     String
-  label              String
-  price              Int // naira per delivery
-  states             String[] @default([]) // empty: everywhere the partner covers
-  notes              String?
-  active             Boolean  @default(true)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-
-  @@unique([logisticsPartnerId, customerUserId])
-  @@index([customerUserId])
-}
-
-// Delivery partners a supplier works with (Supplier › Delivery partners; Free 2, Plus 10, Pro unlimited). Their
-// pickups go to these first, the preferred one before the rest (shared/supplier-pickup.ts choosePickupPartner).
-model SupplierLogisticsConnection {
-  supplierId         String
-  logisticsPartnerId String
-  preferred          Boolean  @default(false)
-  createdAt          DateTime @default(now())
-
-  @@id([supplierId, logisticsPartnerId])
-  @@index([logisticsPartnerId])
-}
-
 // Sellers following a supplier; suppliers on Pro can send them updates (SupplierBroadcast).
 model SupplierFollow {
   supplierId String
@@ -3476,6 +3633,25 @@ model WhatsAppCatalog {
   updatedAt            DateTime  @updatedAt
 
   @@index([dirty])
+}
+
+/// The WhatsApp store: a customer's cart inside their WhatsApp chat with the store (src/lib/whatsapp-store).
+/// One per conversation; emptied when Peggy sends the checkout link (the payment link keeps what was bought).
+model WhatsAppCart {
+  id             String    @id @default(cuid())
+  storeId        String
+  conversationId String    @unique
+  /// The customer's WhatsApp number (E.164).
+  phone          String
+  /// [{ productId, variantId, quantity }]
+  items          Json      @default("[]")
+  /// The latest checkout link made from this cart.
+  paymentLinkId  String?
+  checkedOutAt   DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([storeId, updatedAt])
 }
 
 model WhatsAppCatalogItem {

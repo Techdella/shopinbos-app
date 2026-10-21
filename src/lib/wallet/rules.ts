@@ -93,6 +93,16 @@ export function supplierCommissionKobo(costKobo: number, pct: number) {
   return Math.min(Math.round(costKobo), Math.round((costKobo * pct) / 100));
 }
 
+/** A delivery partner paid its delivery fee in the order's split (src/lib/delivery-market). */
+export interface DeliveryShareInput {
+  /** The parcel the fee is for: own | supplier:<supplierId>. */
+  shipmentKey: string;
+  partnerId: string;
+  /** The partner's account on this gateway, or null if none (the fee then stays with the seller, who pays the partner). */
+  subaccount: string | null;
+  kobo: number;
+}
+
 /** Shopinbos's fee on store sales (Admin › Pricing): a percentage of what the seller sells, within min / max (naira; 0 = none). */
 export interface PlatformFee {
   rate: number;
@@ -124,6 +134,11 @@ export interface PaymentSplitPlan {
   suppliers: Array<{ supplierId: string; subaccount: string; kobo: number; commissionKobo?: number }>;
   /** Suppliers without a wallet: their cost stays in the seller's share and the seller pays them. */
   sellerSettles: Array<{ supplierId: string; kobo: number }>;
+  /**
+   * Delivery partners paid their delivery fee straight from this payment (logistics marketplace; Shopinbos takes no
+   * commission on it). A fee not here stays in the seller's share (older plans: none).
+   */
+  delivery?: Array<{ shipmentKey: string; partnerId: string; subaccount: string; kobo: number }>;
   /** Shopinbos's fee: what no business's share covers, so the gateway leaves it in Shopinbos's balance (older plans: 0). */
   platformKobo?: number;
   /**
@@ -183,9 +198,18 @@ function takeDebts(shares: Map<string, number>, debts: DebtToDeduct[]) {
  * suppliers' costs come to more than the total (a product priced below cost), nobody is paid in the split but the
  * seller, there's no fee, and the seller settles the suppliers, so a split never asks Paystack for more than was paid.
  */
-export function buildSplitPlan(input: { totalKobo: number; sellerSubaccount: string; suppliers: SupplierShareInput[]; gateway?: SplitGateway; platformKobo?: number; debts?: DebtToDeduct[] }): PaymentSplitPlan {
-  const total = Math.max(0, Math.round(input.totalKobo));
+export function buildSplitPlan(input: { totalKobo: number; sellerSubaccount: string; suppliers: SupplierShareInput[]; gateway?: SplitGateway; platformKobo?: number; debts?: DebtToDeduct[]; delivery?: DeliveryShareInput[] }): PaymentSplitPlan {
   const gateway = input.gateway ?? "paystack";
+  // Delivery fees go to their partners first (each at least what the gateway will settle); the rest is split as before.
+  const delivery = (input.delivery ?? [])
+    .filter((share): share is DeliveryShareInput & { subaccount: string } => !!share.subaccount && Math.round(share.kobo) >= MIN_SELLER_KOBO)
+    .map((share) => ({ shipmentKey: share.shipmentKey, partnerId: share.partnerId, subaccount: share.subaccount, kobo: Math.round(share.kobo) }));
+  const deliveryKobo = delivery.reduce((sum, share) => sum + share.kobo, 0);
+  if (delivery.length && deliveryKobo + MIN_SELLER_KOBO <= Math.round(input.totalKobo)) {
+    const rest = buildSplitPlan({ ...input, totalKobo: Math.round(input.totalKobo) - deliveryKobo, delivery: [] });
+    return { ...rest, totalKobo: Math.max(0, Math.round(input.totalKobo)), delivery };
+  }
+  const total = Math.max(0, Math.round(input.totalKobo));
   const owed = input.suppliers.filter((supplier) => supplier.costKobo > 0).map((supplier) => ({ ...supplier, costKobo: Math.round(supplier.costKobo) }));
   const direct = owed.filter((supplier) => supplier.subaccount);
   const directTotal = direct.reduce((sum, supplier) => sum + supplier.costKobo, 0);
@@ -221,6 +245,7 @@ export function splitShares(plan: PaymentSplitPlan): Array<{ account: string; ko
   const add = (account: string, kobo: number) => shares.set(account, (shares.get(account) ?? 0) + kobo);
   add(plan.sellerSubaccount, plan.sellerKobo);
   for (const supplier of plan.suppliers) add(supplier.subaccount, supplier.kobo);
+  for (const share of plan.delivery ?? []) add(share.subaccount, share.kobo);
   for (const deduction of plan.deductions ?? []) if (deduction.to) add(deduction.to, deduction.kobo);
   return [...shares].map(([account, kobo]) => ({ account, kobo }));
 }

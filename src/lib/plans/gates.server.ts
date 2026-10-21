@@ -101,17 +101,21 @@ export async function sellingStatesProblem(userId: string, storeId: string, area
   return null;
 }
 
-/** Delivery partners a seller works with: the preferred one and those booked or quoted in the last 90 days. */
+/**
+ * Delivery partners a seller works with: their connections ("My delivery partners"), the preferred one, and those
+ * booked or quoted in the last 90 days.
+ */
 async function connectedPartners(userId: string, withPreferred = true) {
   const since = new Date(Date.now() - 90 * 86_400_000);
-  const [bookings, quotes, store] = await Promise.all([
+  const [connections, bookings, quotes, store] = await Promise.all([
+    db.deliveryConnection.findMany({ where: { ownerUserId: userId, status: "active" }, select: { logisticsPartnerId: true } }).catch(() => []),
     db.deliveryBooking.findMany({ where: { sellerId: userId, createdAt: { gte: since } }, select: { logisticsPartnerId: true }, distinct: ["logisticsPartnerId"] }),
     db.deliveryQuoteRequest.findMany({ where: { sellerId: userId, createdAt: { gte: since } }, select: { logisticsPartnerId: true }, distinct: ["logisticsPartnerId"] }).catch(() => []),
     db.store.findUnique({ where: { userId }, select: { brandSettings: true } }),
   ]);
   const settings = (store?.brandSettings && typeof store.brandSettings === "object" ? store.brandSettings : {}) as Record<string, unknown>;
   const logistics = (settings.logistics && typeof settings.logistics === "object" ? settings.logistics : {}) as Record<string, unknown>;
-  const ids = new Set<string>([...bookings.map((row) => row.logisticsPartnerId), ...quotes.map((row) => row.logisticsPartnerId)].filter(Boolean));
+  const ids = new Set<string>([...connections, ...bookings, ...quotes].map((row) => row.logisticsPartnerId).filter(Boolean));
   if (withPreferred && typeof logistics.preferredPartnerId === "string") ids.add(logistics.preferredPartnerId);
   return ids;
 }

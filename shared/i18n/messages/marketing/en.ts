@@ -805,7 +805,7 @@ const en = {
   "om.automatic": "Automatic",
   "om.noApproved": "No approved template yet, so nothing goes out on WhatsApp.",
   "om.waSetupTitle": "Send order updates on WhatsApp",
-  "om.waSetupBody": "We'll add ready-made messages to your WhatsApp: order confirmed, on its way (with tracking) and delivered. Most are approved by Meta straight away; the rest within minutes. Then every order gets them by itself.",
+  "om.waSetupBody": "We'll add ready-made messages to your WhatsApp: order confirmed, on its way (with tracking), delivery updates from your delivery partners and delivered. Most are approved by Meta straight away; the rest within minutes. Then every order gets them by itself.",
   "om.waSetupButton": "Set up WhatsApp order messages",
   "om.waSetupDone": "Done. Meta is checking your order messages; they start going out as soon as they're approved.",
   "om.waCheckAgain": "Check again",

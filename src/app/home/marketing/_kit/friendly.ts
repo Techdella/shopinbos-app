@@ -91,4 +91,9 @@ export const EVENT_COPY: Record<string, { label: string; sub: string }> = {
   order_partly_shipped: { label: "Part of the order on its way", sub: "When the first parcel of an order sent in parts leaves (with the On its way SMS)" },
   order_delivered: { label: "Delivered", sub: "When the order is marked delivered" },
   abandoned_cart: { label: "Customers who didn't finish paying", sub: "One reminder, an hour after someone leaves without paying" },
+  // Delivery partner updates (Logistics marketplace).
+  delivery_accepted: { label: "Delivery booked", sub: "When your delivery partner accepts the order" },
+  delivery_out: { label: "Out for delivery (with the delivery code)", sub: "When the rider is on the way, with the code to give the rider" },
+  delivery_at_point: { label: "Ready at the pickup point", sub: "When it reaches the pickup point they chose: where it is, the hours and the code" },
+  delivery_problem: { label: "Delivery problem", sub: "When a delivery doesn't go through (with the rider's reason), or it's coming back to you" },
 };

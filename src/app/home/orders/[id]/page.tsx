@@ -17,6 +17,8 @@ import { customerKey } from "@/lib/customers/pure";
 import { Notice } from "@/components/app-ui";
 import { cancelAndRefundExpiredOrder, undoSupplierSwitchAction } from "./supplier-actions";
 import { sellerPartsView } from "@/lib/supplier-orders/parts.server";
+import { readDeliveryPlan } from "@shared/delivery-market";
+import { DeliveryPlanCard } from "./DeliveryPlanCard";
 
 type OrderItem = { name?: string; title?: string; quantity?: number; price?: number; image?: string | null; variant?: string; productId?: string };
 
@@ -100,6 +102,8 @@ export default async function OrderDetailPage({ params, searchParams }: { params
   const paymentLabel = t.dynamic(`pay.${row.payment.label}`, row.payment.label);
   const discount = Number(order.discountAmount ?? 0);
   const needsRider = row.stage.label === "Needs a rider";
+  // Delivery booked through the shop's delivery partners at checkout (shared/delivery-market.ts).
+  const plan = readDeliveryPlan(order.logisticsDetails);
 
   return (
     <AppPage
@@ -234,6 +238,8 @@ export default async function OrderDetailPage({ params, searchParams }: { params
               </Card></div>
             )}
 
+            {plan && <DeliveryPlanCard order={order} plan={plan} sellerId={user.id} flash={parts ? undefined : flash} />}
+
             <div className="grid gap-5 lg:grid-cols-2">
               {/* Customer */}
               <Card className="p-5">
@@ -315,7 +321,7 @@ export default async function OrderDetailPage({ params, searchParams }: { params
                       {order.deliveredAt && <div>{t("detail.deliveredOn", { date: formatDate(order.deliveredAt, locale) })}</div>}
                     </div>
                   )}
-                  {needsRider && (
+                  {needsRider && !plan?.shipments.some((part) => part.partnerId) && (
                     <div>
                       <PillLink href="/home/logistics" size="sm" icon="truck">{t("detail.findPartner")}</PillLink>
                     </div>

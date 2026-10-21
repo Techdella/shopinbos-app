@@ -5,6 +5,7 @@ import { db } from "@/lib/db/client";
 import { addressLines } from "@/lib/labels";
 import { createNotification } from "@/lib/notifications/create";
 import { cancelUnassignedDeliveryJob, createDeliveryJob, moveDeliveryJobWindow } from "@/lib/logistics/booking.server";
+import { ensurePickupCode } from "@/lib/logistics/jobs";
 import { payWhenItArrivesWhere } from "@/lib/logistics/payin-deadline";
 import {
   buildPickupJob,
@@ -135,7 +136,7 @@ async function loadPickup(kind: SupplierOrderKind, orderId: string) {
   const job = pickup?.deliveryBookingId
     ? await db.deliveryBooking.findUnique({
         where: { id: pickup.deliveryBookingId },
-        select: { id: true, status: true, riderId: true, rider: { select: { name: true } }, logisticsPartner: { select: { displayName: true } } },
+        select: { id: true, status: true, riderId: true, pickupCode: true, deliveryCode: true, rider: { select: { name: true } }, logisticsPartner: { select: { displayName: true } } },
       })
     : null;
   return { pickup, job };
@@ -169,6 +170,8 @@ export async function pickupState(supplierId: string, kind: SupplierOrderKind, o
           partner: job?.logisticsPartner.displayName ?? null,
           rider: job?.rider?.name ?? null,
           jobStatus: job?.status ?? null,
+          // The code the supplier gives the rider at pickup, while the job waits for them (Riders app).
+          pickupCode: job ? await ensurePickupCode(job).catch(() => null) : null,
           changeable: pickupChangeable(open, job),
           ...pickupMessage(open, job ? { status: job.status, riderName: job.rider?.name ?? null } : null, now),
         }
@@ -217,6 +220,15 @@ async function tellAdmins(order: PickupOrder, window: { start: Date; end: Date }
 }
 
 async function pickPartner(order: PickupOrder) {
+  // Logistics marketplace: the partner the customer's delivery option booked for this supplier's parcel (spec §5.8).
+  const planned = order.retailOrderId ? await import("@/lib/delivery-market/jobs.server").then((jobs) => jobs.plannedSupplierShipment(order.retailOrderId!, order.supplier.id)).catch(() => null) : null;
+  if (planned?.partnerId) {
+    const partner = await db.logisticsPartner.findFirst({
+      where: { id: planned.partnerId, status: "active", verificationStatus: "verified" },
+      select: { id: true, city: true, coverageZones: true, status: true, verificationStatus: true, reliabilityScore: true, rating: true, basePrice: true },
+    });
+    if (partner) return { ...partner, planned };
+  }
   const [store, partners, connections] = await Promise.all([
     order.storeId ? db.store.findUnique({ where: { id: order.storeId }, select: { brandSettings: true } }) : null,
     db.logisticsPartner.findMany({
@@ -225,7 +237,7 @@ async function pickPartner(order: PickupOrder) {
       select: { id: true, city: true, coverageZones: true, status: true, verificationStatus: true, reliabilityScore: true, rating: true, basePrice: true },
       take: 500,
     }),
-    supplierPartnerIds(order.supplier.id),
+    supplierPartnerIds(order.supplier.userId),
   ]);
   const settings = store?.brandSettings && typeof store.brandSettings === "object" ? (store.brandSettings as { logistics?: { preferredPartnerId?: unknown } }) : {};
   const preferredId = typeof settings.logistics?.preferredPartnerId === "string" ? settings.logistics.preferredPartnerId : null;
@@ -249,6 +261,10 @@ export interface BookPickupInput {
 
 /** Books (or moves) the rider for a packed order. */
 export async function bookPickup(input: BookPickupInput, now = new Date()): Promise<{ ok: true; data: PickupState } | Fail> {
+  // The customer chose the supplier's own delivery for this parcel: no rider to book.
+  if (input.kind === "dropship" && (await db.supplierOrder.findFirst({ where: { id: input.orderId, supplierId: input.supplierId, selfDelivery: true }, select: { id: true } }))) {
+    return { ok: false, code: "CONFLICT", message: "You deliver this order yourself, so there's no rider to book." };
+  }
   const order = await loadOrder(input.supplierId, input.kind, input.orderId);
   if (!order) return { ok: false, code: "NOT_FOUND", message: "Order not found" };
   if (order.packable) {
@@ -316,11 +332,17 @@ export async function bookPickup(input: BookPickupInput, now = new Date()): Prom
     items: order.items,
     collect: order.collect,
     window,
-    deliveryFee: order.shippingFee > 0 ? order.shippingFee : partner.basePrice,
+    deliveryFee: "planned" in partner && partner.planned ? partner.planned.price : order.shippingFee > 0 ? order.shippingFee : partner.basePrice,
     retailOrderId: order.retailOrderId,
   });
   try {
+    const planned = "planned" in partner ? partner.planned : null;
     const booking = await createDeliveryJob({ sellerId: order.sellerId, logisticsPartnerId: partner.id, currency: order.currency, ...payload });
+    if (planned && order.retailOrderId) {
+      // Priced and (when the partner's wallet was ready) paid at checkout.
+      await db.deliveryBooking.update({ where: { id: booking.id }, data: { service: planned.service === "pickup_point" ? "pickup_point" : "doorstep", sizeBand: planned.sizeBand, rateCardId: planned.rateCardId, feePaidAt: planned.feePaid ? new Date() : null } }).catch(() => null);
+      await import("@/lib/delivery-market/jobs.server").then((jobs) => jobs.linkSupplierShipment(order.retailOrderId!, order.supplier.id, booking.id)).catch(() => undefined);
+    }
     await db.supplierPickup.update({ where: { id: pickupId }, data: { deliveryBookingId: booking.id, logisticsPartnerId: partner.id } });
   } catch (error) {
     await db.supplierPickup.update({ where: { id: pickupId }, data: { status: "cancelled" } }).catch(() => null);

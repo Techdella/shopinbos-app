@@ -135,7 +135,7 @@ test("wired in: checkout holds deductions, a paid order applies them, the webhoo
   assert.match(wallet, /holdPlannedDeductions\(orderId, plan\.deductions/);
   assert.match(wallet, /applyDeductions\(\{ key: order\.id/);
   const checkout = read("src/app/api/public/store/[slug]/checkout/route.ts");
-  assert.equal((checkout.match(/shippingFee, order\.id\)/g) ?? []).length, 2, "both gateways pass the order");
+  assert.equal((checkout.match(/shippingFee, order\.id, deliveryShares, selfShares\)/g) ?? []).length, 2, "both gateways pass the order (and its delivery-partner and supplier self-delivery fees)");
   const webhook = read("src/app/api/webhooks/paystack/route.ts");
   assert.match(webhook, /startsWith\(DEBT_PAYMENT_PREFIX\)/);
   const server = read("src/lib/money-owed/money-owed.server.ts");

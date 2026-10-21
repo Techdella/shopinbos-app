@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireRole } from "@/lib/server-auth";
 import { PARTNER_PLAN_FIRST } from "@/lib/plans/placement";
 import { getSellerWorkspace } from "@/lib/workspace";
@@ -11,6 +12,8 @@ import { payableDeliveryFees } from "@/lib/logistics/delivery-fee-payments.serve
 import { messagesHref } from "@/lib/conversations/pure";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { formatDate, formatMoney } from "@shared/i18n";
+import { exceptionsFor } from "@/lib/delivery-market/jobs.server";
+import { deliverySettingsFor } from "@/lib/delivery-market/market.server";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +41,7 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
   const params = await searchParams;
   const user = await requireRole(["seller"], "/login");
   const t = await getT("shipping", "common");
+  const d = await getT("delivery");
   const locale = await getLocale();
   const fmt = (n: number) => formatMoney(Math.round(n), locale);
   const workspace = await getSellerWorkspace(user.id);
@@ -69,7 +73,12 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
     db.deliveryBooking.findMany({ where: { sellerId: user.id }, include: { logisticsPartner: { select: { displayName: true } } }, orderBy: { createdAt: "desc" }, take: 8 }),
   ]);
 
-  const payable = await payableDeliveryFees(recentBookings.map((b) => b.id));
+  const [payable, exceptions, deliverySettings, connectedCount] = await Promise.all([
+    payableDeliveryFees(recentBookings.map((b) => b.id)),
+    exceptionsFor(user.id),
+    deliverySettingsFor(user.id),
+    db.deliveryConnection.count({ where: { ownerUserId: user.id, status: "active" } }),
+  ]);
   const allVerified = filter === "all"
     ? partners
     : await db.logisticsPartner.findMany({ where: { status: "active", verificationStatus: "verified" }, orderBy: { displayName: "asc" }, take: 100 });
@@ -84,13 +93,32 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
       sub={t("lg.sub")}
       actions={
         <>
-          <PillLink href="/home/logistics/exceptions" icon="flag">{t("ex.title")}</PillLink>
           <PillLink href="/marketplace?type=logistics" icon="truck">{t("lg.findPartners")}</PillLink>
           <PillLink href="/home/logistics?intent=book_delivery#quote" tone="accent" icon="plus">{t("lg.book")}</PillLink>
         </>
       }
     >
       <div className="grid gap-5">
+        {/* Logistics marketplace: delivery settings, connected partners and deliveries that need the shop. */}
+        <nav aria-label={d("partners.title")} className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <Link href="/home/logistics/settings" className="grid gap-0.5 rounded-[18px] border border-app-line bg-white px-4 py-3.5 text-app-ink no-underline hover:border-app-line-strong">
+            <span className="text-[14.5px] font-extrabold">{d("settings.title")}</span>
+            <span className="text-[13px] text-app-ink-soft">{deliverySettings.checkoutMode === "partners" ? d("hub.checkoutPartners") : d("hub.checkoutZones")}</span>
+          </Link>
+          <Link href="/home/logistics/partners" className="grid gap-0.5 rounded-[18px] border border-app-line bg-white px-4 py-3.5 text-app-ink no-underline hover:border-app-line-strong">
+            <span className="text-[14.5px] font-extrabold">{d("hub.partners")}</span>
+            <span className="text-[13px] text-app-ink-soft">{connectedCount === 0 ? d("hub.noneConnected") : d("hub.connected", { count: connectedCount })}</span>
+          </Link>
+          <Link href="/home/logistics/exceptions" className="grid gap-0.5 rounded-[18px] border border-app-line bg-white px-4 py-3.5 text-app-ink no-underline hover:border-app-line-strong">
+            <span className="flex items-center gap-2 text-[14.5px] font-extrabold">{d("an.exceptions")} {exceptions.length > 0 && <Pill tone="danger">{exceptions.length}</Pill>}</span>
+            <span className="text-[13px] text-app-ink-soft">{exceptions.length === 0 ? d("exceptions.emptyTitle") : d("hub.needYou")}</span>
+          </Link>
+          <Link href="/home/logistics/analytics" className="grid gap-0.5 rounded-[18px] border border-app-line bg-white px-4 py-3.5 text-app-ink no-underline hover:border-app-line-strong">
+            <span className="text-[14.5px] font-extrabold">{d("an.title")}</span>
+            <span className="text-[13px] text-app-ink-soft">{d("hub.analyticsSub")}</span>
+          </Link>
+        </nav>
+
         <StatGrid>
           <StatTile tone="card" label={t("lg.onTheWay")} value={activeCount} />
           <StatTile tone="card" label={t("lg.delivered")} value={deliveredCount} />

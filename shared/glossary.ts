@@ -43,7 +43,7 @@ export const GLOSSARY: GlossaryEntry[] = [
   { key: "inbox", term: "Inbox", short: "All your customer chats from WhatsApp, Instagram, live chat and forms in one list.", example: "Reply to Tunde’s Instagram DM and Bisi’s WhatsApp from the same screen.", aliases: ["chats", "messages", "conversations", "all conversations"], introKey: "inbox" },
   { key: "live-chat", term: "Live chat", short: "A chat bubble on your shop so visitors can ask questions while they browse.", example: "“Do you have this in size 42?” answered before they leave.", aliases: ["chat widget"], introKey: "inbox" },
   { key: "auto-replies", term: "Auto-replies", short: "Answers that send themselves to common questions, even at night.", example: "Someone asks “Do you deliver to Ibadan?” at 11pm and gets your delivery fees at once.", aliases: ["auto-reply", "auto reply", "away message", "quick replies"], introKey: "automations" },
-  { key: "chatbot", term: "Chatbot", short: "Peggy answers customer chats for you using your products, prices and policies.", example: "Peggy tells a buyer the red bag is ₦18,500 and sends the checkout link.", aliases: ["bot", "peggy chatbot"], introKey: "inbox" },
+  { key: "chatbot", term: "Chatbot", short: "Peggy answers customer chats for you using your products, prices and policies.", example: "Peggy tells a buyer the red bag is ₦18,500 and sends the checkout link.", aliases: ["bot", "peggy chatbot"], introKey: "chatbot" },
   { key: "whatsapp-catalog", term: "WhatsApp catalog", short: "Your products shown inside WhatsApp so buyers can browse without leaving the chat.", example: "A customer taps your catalog and picks two jars of shea butter.", aliases: ["catalog", "catalogue", "products on whatsapp"], introKey: "channels" },
   { key: "notifications", term: "Notifications", short: "Alerts about new orders, messages and things that need you.", example: "“New order: ₦24,000 from Kemi in Yaba.”", aliases: ["notification", "alerts"], introKey: "notifications" },
 
@@ -87,7 +87,7 @@ export const GLOSSARY: GlossaryEntry[] = [
   { key: "media", term: "Media library", short: "Every picture and video in your shop, kept in one place to name, describe and use again.", example: "Pick last month’s Ankara photo for a new banner instead of uploading it again.", aliases: ["my media", "alt text", "pictures and videos"], introKey: "media" },
   { key: "studio", term: "Rex Studio", short: "Rex, the AI designer, makes product photos, logos and posts for you.", example: "Turn a phone photo of a cake into a clean white-background picture.", aliases: ["rex studio", "studio"], introKey: "rex-studio" },
   { key: "domain", term: "Domain", short: "Your shop’s own web address that people type to find you.", example: "mamaputkitchen.com instead of a long link.", aliases: ["domains", "web address", "custom domain", "url"], introKey: "domain" },
-  { key: "payment-links", term: "Payment links", short: "A link you send in a chat so a customer can pay for exact products and pick delivery.", example: "Tolu asks for the red bag on WhatsApp. You send a link, she pays ₦18,000 by card.", aliases: ["payment link", "pay link", "checkout link"] },
+  { key: "payment-links", term: "Payment links", short: "A link you send in a chat so a customer can pay for exact products and pick delivery.", example: "Tolu asks for the red bag on WhatsApp. You send a link, she pays ₦18,000 by card.", aliases: ["payment link", "pay link", "checkout link"], introKey: "payment-links" },
   { key: "link-in-bio", term: "Link in bio", short: "One page with your products, Buy now buttons and WhatsApp, for your Instagram or TikTok bio.", example: "Your TikTok bio says adafabrics.shopinbos.com/links. Fans tap it and buy.", aliases: ["bio link", "linktree", "links page"] },
   { key: "checkout", term: "Checkout", short: "The page where a buyer enters their address and pays.", example: "Kemi adds her Yaba address, picks bank transfer and pays ₦24,000.", aliases: ["payment page", "check out"], introKey: "abandoned-carts" },
   { key: "abandoned-carts", term: "Abandoned carts", short: "Carts people filled but left before paying, so you can remind them.", example: "Bola added two wigs at 10pm and left. A reminder brings her back.", aliases: ["abandoned cart", "abandoned checkout", "cart and wishlist", "cart", "wishlist"], introKey: "abandoned-carts" },
@@ -111,6 +111,14 @@ export const GLOSSARY: GlossaryEntry[] = [
 
   // ── Delivery ──
   { key: "fulfilment", term: "Fulfilment", short: "Everything after an order: packing, sending and getting it to the customer.", example: "Pack the shoes, print the label, hand to the rider: order fulfilled.", aliases: ["fulfillment", "fulfil", "fulfill", "fulfilled"], introKey: "supplier-orders" },
+  { key: "whatsapp-store", term: "WhatsApp store", short: "Customers browse, add to cart and pay inside your WhatsApp chat. The orders land in Shopinbos.", example: "You post your WhatsApp store link on status. Chidi taps it, adds two shirts to his cart and pays ₦24,000.", aliases: ["whatsapp shop", "shop on whatsapp", "whatsapp cart"], introKey: "whatsapp-store" },
+  { key: "delivery-zones", term: "Delivery zones", short: "Areas you deliver to yourself, each with its own delivery fee.", example: "Lagos Mainland ₦2,000, Lekki ₦3,500, and free over ₦50,000.", aliases: ["delivery zone", "shipping zones", "zones"], introKey: "shipping-rates" },
+  { key: "delivery-exceptions", term: "Delivery exceptions", short: "Deliveries that need you: declined, not accepted in time, late, failed or being returned.", example: "No partner accepted Bisi’s parcel in 4 hours, so you send it to another partner.", aliases: ["delivery exception", "delivery problems"], introKey: "delivery" },
+  { key: "rate-card", term: "Rate card", short: "A delivery partner’s prices by route, service and parcel size, shown at checkout.", example: "Ikeja to Lekki, doorstep, small parcel: ₦2,500, delivered in 1–2 days.", aliases: ["rate cards"], introKey: "partner-rate-card" },
+  { key: "pickup-points", term: "Pickup points", short: "Places where customers collect their parcels instead of a doorstep delivery.", example: "Ada collects her order at the Yaba hub after work and pays ₦1,200 instead of ₦2,500.", aliases: ["pickup point", "pick-up point", "pick-up points", "collection point"], introKey: "partner-pickup-points" },
+  { key: "private-rates", term: "Private rates", short: "Special delivery prices a partner gives one business, used once that business accepts them.", example: "SwiftBike gives Ada Fabrics ₦2,000 instead of ₦2,500 for every Lagos delivery.", aliases: ["private rate"], introKey: "partner-connections" },
+  { key: "connected-businesses", term: "Connected businesses", short: "Shops and suppliers that added you as their delivery partner. Their orders come to you as jobs.", example: "Ada Fabrics connects you, and her Lekki orders arrive as jobs for your riders.", aliases: [], introKey: "partner-connections" },
+  { key: "dropship-agreement", term: "Dropship agreement", short: "The rules a supplier and a shop both accept before the shop lists the supplier’s products.", example: "Shea Naturals agrees to ship in 3 days under the shop’s name and refund in 3 days if not sent.", aliases: ["dropship agreements"], introKey: "supplier-agreements" },
   { key: "logistics", term: "Logistics", short: "Delivery companies and riders who move parcels from you to your customers.", example: "A Lagos bike company picks up in Ikeja and delivers in Lekki the same day.", aliases: ["delivery", "delivery partners", "delivery companies", "shipping", "dispatch"], introKey: "delivery" },
   { key: "shipping-rates", term: "Shipping rates", short: "What you charge buyers for delivery, by area or by weight.", example: "₦2,000 within Lagos Mainland, ₦3,500 to the Island, ₦5,000 outside Lagos.", aliases: ["shipping rate", "delivery fees", "delivery fee"], introKey: "shipping-rates" },
   { key: "jobs", term: "Jobs", short: "Delivery requests from shops that your company can accept and complete.", example: "Pick up 3 parcels in Yaba, drop off in Surulere, Ikeja and Ajah.", aliases: ["job", "bookings", "delivery jobs"], introKey: "partner-jobs" },
@@ -168,7 +176,7 @@ export type GlossaryRole = "seller" | "supplier" | "logistics_partner";
 
 const SHARED_NAV: Record<string, string> = {
   inbox: "inbox", "inbox-messages": "inbox", "inbox-partners": "inbox", "inbox-forms": "forms", "inbox-chat": "live-chat",
-  "inbox-auto-replies": "auto-replies", "inbox-chatbot": "chatbot", "inbox-whatsapp-catalog": "whatsapp-catalog", "inbox-notifications": "notifications",
+  "inbox-auto-replies": "auto-replies", "inbox-chatbot": "chatbot", "inbox-whatsapp-store": "whatsapp-store", "inbox-whatsapp-catalog": "whatsapp-catalog", "inbox-notifications": "notifications",
   reviews: "reviews", verification: "verification", cms: "content", analytics: "analytics", payouts: "payouts", wallet: "wallet",
 };
 
@@ -185,18 +193,19 @@ export const NAV_TERMS: Record<GlossaryRole, Record<string, string>> = {
     marketing: "campaigns", "marketing-overview": "campaigns", campaigns: "campaigns", "seasonal-campaigns": "seasonal-campaigns", automations: "automations", "email-templates": "templates", "mkt-forms": "forms", "mkt-rewards": "rewards", "marketing-analytics": "analytics",
     ads: "ads", video: "video-studio", discounts: "discounts", affiliates: "affiliates", "sell-everywhere": "channels",
     money: "payments", payments: "payments", invoices: "invoices", taxes: "taxes",
-    delivery: "logistics", "delivery-partners": "logistics", shipping: "shipping-rates", labels: "labels",
+    delivery: "logistics", "delivery-partners": "logistics", "delivery-my-partners": "logistics", "delivery-exceptions": "delivery-exceptions", "delivery-analytics": "analytics", "delivery-settings": "delivery-zones", shipping: "shipping-rates", labels: "labels",
     reports: "analytics", "reports-sales": "analytics", "reports-traffic": "analytics", connections: "integrations", health: "store-health", activity: "activity",
   },
   supplier: {
     ...SHARED_NAV,
     orders: "fulfilment", "dropship-orders": "dropship", "wholesale-orders": "wholesale", "quote-requests": "quote-requests",
-    products: "white-label", buyers: "buyers", "buyers-all": "buyers",
+    products: "white-label", buyers: "buyers", "buyers-all": "buyers", delivery: "logistics", agreements: "dropship-agreement",
   },
   logistics_partner: {
     ...SHARED_NAV,
     bookings: "jobs", "jobs-all": "jobs", quotes: "quote-requests", couriers: "riders", cash: "cod",
     coverage: "coverage", "coverage-areas": "coverage", pricing: "delivery-rates", earnings: "payouts", billing: "fees", performance: "analytics", connect: "integrations",
+    "rate-card": "rate-card", "pickup-points": "pickup-points", "partner-connections": "connected-businesses",
   },
 };
 

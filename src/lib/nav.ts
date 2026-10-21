@@ -63,6 +63,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
             { id: "inbox-chat", label: "Live chat", href: "/home/marketing/chat" },
             { id: "inbox-auto-replies", label: "Auto-replies", href: "/home/inbox/auto-replies" },
             { id: "inbox-chatbot", label: "Peggy chatbot", href: "/home/inbox/chatbot" },
+            { id: "inbox-whatsapp-store", label: "WhatsApp store", href: "/home/inbox/whatsapp-store" },
             { id: "inbox-whatsapp-catalog", label: "WhatsApp catalog", href: "/home/inbox/whatsapp-catalog" },
             { id: "inbox-notifications", label: "Notifications", href: "/home/notifications" },
           ],
@@ -186,6 +187,10 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
           id: "delivery", label: "Delivery", icon: "truck", href: "/home/logistics",
           children: [
             { id: "delivery-partners", label: "Delivery partners", href: "/home/logistics" },
+            { id: "delivery-my-partners", label: "My delivery partners", href: "/home/logistics/partners" },
+            { id: "delivery-exceptions", label: "Delivery exceptions", href: "/home/logistics/exceptions" },
+            { id: "delivery-analytics", label: "Delivery analytics", href: "/home/logistics/analytics" },
+            { id: "delivery-settings", label: "Delivery settings", href: "/home/logistics/settings" },
             { id: "shipping", label: "Shipping rates", href: "/home/shipping" },
           ],
         },
@@ -237,10 +242,10 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
           children: [
             { id: "dropship-orders", label: "Dropship orders", href: "/supplier/orders" },
             { id: "wholesale-orders", label: "Wholesale orders", href: "/supplier/wholesale" },
-            { id: "delivery-partners", label: "Delivery partners", href: "/supplier/delivery-partners" },
           ],
         },
         { id: "quote-requests", label: "Quote requests", icon: "chat", href: "/supplier/quote-requests" },
+        { id: "delivery", label: "Delivery", icon: "truck", href: "/supplier/delivery" },
         {
           id: "products", label: "Products", icon: "bag", href: "/supplier/products", core: true,
           children: [
@@ -268,7 +273,6 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
         { id: "payouts", label: "Earnings", icon: "bank", href: "/supplier/payouts", core: true },
         { id: "wallet", label: "Wallet", icon: "coin", href: "/supplier/wallet" },
         { id: "analytics", label: "Performance", icon: "chart", href: "/supplier/analytics" },
-        { id: "cms", label: "Blog", icon: "edit", href: "/supplier/cms" },
       ],
     },
     {
@@ -314,10 +318,12 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
           id: "coverage", label: "Coverage and rates", icon: "pin", href: "/logistics/coverage",
           children: [
             { id: "coverage-areas", label: "Coverage", href: "/logistics/coverage" },
-            { id: "pricing", label: "Rates", href: "/logistics/pricing" },
+            { id: "rate-card", label: "Rate card", href: "/logistics/rates" },
             { id: "pickup-points", label: "Pickup points", href: "/logistics/pickup-points" },
+            { id: "pricing", label: "Rates", href: "/logistics/pricing" },
           ],
         },
+        { id: "partner-connections", label: "Connections", icon: "users", href: "/logistics/connections" },
         {
           id: "payouts", label: "Earnings", icon: "chart", href: "/logistics/payouts", core: true,
           children: [
@@ -345,7 +351,6 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
           children: [
             { id: "company", label: "Company profile", href: "/logistics/profile" },
             { id: "verification", label: "Verification", href: "/logistics/verification" },
-            { id: "cms", label: "Blog", href: "/logistics/cms" },
             { id: "customise", label: "Customise your menu", href: "/logistics/features" },
           ],
         },
@@ -394,7 +399,13 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
             { id: "supplier-pickups", label: "Pickups waiting for a rider", href: "/admin/supplier-pickups" },
           ],
         },
-        { id: "logistics-partners", label: "Logistics", icon: "truck", href: "/admin/logistics-partners", core: true },
+        {
+          id: "logistics-partners", label: "Logistics", icon: "truck", href: "/admin/logistics-partners", core: true,
+          children: [
+            { id: "logistics-partners-all", label: "Logistics partners", href: "/admin/logistics-partners" },
+            { id: "delivery-issues", label: "Delivery problems", href: "/admin/delivery-issues" },
+          ],
+        },
         { id: "wallets", label: "Wallets", icon: "coin", href: "/admin/wallets" },
         { id: "money-owed", label: "Money owed", icon: "coin", href: "/admin/money-owed" },
         {

@@ -10,7 +10,7 @@ import { MascotVideo } from "@/components/MascotVideo";
 import { useOnboarding } from "@/components/OnboardingContext";
 import { API_URL } from "@/lib/api";
 import { useT } from "@/lib/i18n";
-import { colors, radii } from "@/theme";
+import { colors, fonts, radii } from "@/theme";
 import * as WebBrowser from "expo-web-browser";
 import { HelpButton } from "@/components/Help";
 
@@ -40,11 +40,11 @@ export default function Live() {
           <View style={{ backgroundColor: colors.successTint, borderRadius: radii.pill, paddingHorizontal: 14, paddingVertical: 6 }}>
             <T weight="bold" style={{ color: colors.success }}>{live ? t("live.isLive") : t("loading.almost")}</T>
           </View>
-          <T weight="extrabold" style={{ fontSize: 32, lineHeight: 34, letterSpacing: -0.8, textAlign: "center", marginTop: 12, marginBottom: 14 }} accessibilityRole="header">
+          <T style={{ fontFamily: fonts.display, fontSize: 32, lineHeight: 35, letterSpacing: -0.8, textAlign: "center", marginTop: 12, marginBottom: 14 }} accessibilityRole="header">
             {live ? t("live.open", { name: status.store.name }) : t("live.nearlyOpen", { name: status.store.name })}
           </T>
         </View>
-        <View style={{ backgroundColor: colors.surface, borderRadius: 24, overflow: "hidden" }}>
+        <View style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, overflow: "hidden" }}>
           {/* Shop ready: Rex's double thumbs-up in a spotlight that fades into the shop's colour (Prototype 10). */}
           <View style={{ height: 190, backgroundColor: palette.swatches[1], alignItems: "center", justifyContent: "center" }}>
             <MascotVideo clip="rex-thumbs" size={178} decorative fadeTo={palette.swatches[1]} />
@@ -63,12 +63,12 @@ export default function Live() {
             { label: t("live.instagramBio"), onPress: () => void copy(t("live.copiedInstagram"), withChannelRef(url, "instagram")) },
             { label: t("live.qrPoster"), onPress: () => setQr(true) },
           ].map((item) => (
-            <Pressable key={item.label} accessibilityRole="button" onPress={item.onPress} style={{ flex: 1, minHeight: 84, backgroundColor: colors.surface, borderRadius: radii.card, alignItems: "center", justifyContent: "center", padding: 10 }}>
+            <Pressable key={item.label} accessibilityRole="button" onPress={item.onPress} style={{ flex: 1, minHeight: 84, backgroundColor: colors.surface, borderRadius: 20, borderWidth: 1, borderColor: colors.line, alignItems: "center", justifyContent: "center", padding: 10 }}>
               <T weight="bold" style={{ fontSize: 14, textAlign: "center" }}>{item.label}</T>
             </Pressable>
           ))}
         </View>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 12, backgroundColor: colors.mintTint, borderRadius: radii.card, paddingVertical: 8, paddingLeft: 6, paddingRight: 16 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 12, backgroundColor: colors.mintTint, borderRadius: 24, paddingVertical: 8, paddingLeft: 6, paddingRight: 16 }}>
           {/* The transparent sticker: Peggy waves (animated WebP at 96 px and up). */}
           <Mascot who="peggy" mood="wave" size={96} label="" style={{ marginVertical: -6 }} />
           <View style={{ flex: 1 }}>
@@ -77,7 +77,7 @@ export default function Live() {
           </View>
         </View>
         <View style={{ flex: 1 }} />
-        <PillButton title={t("live.connectWhatsApp")} onPress={() => void WebBrowser.openBrowserAsync(`${API_URL}/home/social/whatsapp`)} />
+        <PillButton title={t("live.connectWhatsApp")} tone="accent" onPress={() => void WebBrowser.openBrowserAsync(`${API_URL}/home/social/whatsapp`)} />
         <LinkButton title={t("live.goToShop")} style={{ marginTop: 4, marginBottom: 6 }} onPress={() => router.push("/onboarding/checklist")} />
       </SafeAreaView>
       {toast && (

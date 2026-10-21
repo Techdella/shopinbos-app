@@ -22,10 +22,31 @@ export interface DeliveryJobInput {
   notes?: string | null;
   pickupWindowStart?: Date | null;
   pickupWindowEnd?: Date | null;
+  /** Logistics marketplace jobs (src/lib/delivery-market/jobs.server.ts). */
+  marketplace?: {
+    service: string;
+    sizeBand: string;
+    pickupPointId: string | null;
+    connectionId: string | null;
+    rateCardId: string | null;
+    shipmentKey: string;
+    acceptBy: Date;
+    estimatedDelivery: Date | null;
+    /** The fee was paid to the partner in the customer's payment. */
+    feePaidAt: Date | null;
+  };
 }
 
-export async function createDeliveryJob(input: DeliveryJobInput) {
-  const booking = await db.deliveryBooking.create({
+export async function createDeliveryJob(input: DeliveryJobInput, client: Prisma.TransactionClient = db) {
+  const booking = await saveDeliveryJob(input, client);
+  await announceDeliveryJob(booking);
+  return booking;
+}
+
+/** Saves the job only (inside a transaction, say); call announceDeliveryJob once it's committed. */
+export function saveDeliveryJob(input: DeliveryJobInput, client: Prisma.TransactionClient = db) {
+  const market = input.marketplace;
+  return client.deliveryBooking.create({
     data: {
       sellerId: input.sellerId,
       logisticsPartnerId: input.logisticsPartnerId,
@@ -39,11 +60,27 @@ export async function createDeliveryJob(input: DeliveryJobInput) {
       notes: input.notes ?? null,
       pickupWindowStart: input.pickupWindowStart ?? null,
       pickupWindowEnd: input.pickupWindowEnd ?? null,
+      ...(market
+        ? {
+            service: market.service,
+            sizeBand: market.sizeBand,
+            pickupPointId: market.pickupPointId,
+            connectionId: market.connectionId,
+            rateCardId: market.rateCardId,
+            shipmentKey: market.shipmentKey,
+            acceptBy: market.acceptBy,
+            estimatedDelivery: market.estimatedDelivery,
+            feePaidAt: market.feePaidAt,
+          }
+        : {}),
     },
   });
+}
+
+/** Offers a saved job to the partner's systems and tells the partner. */
+export async function announceDeliveryJob(booking: { id: string; logisticsPartnerId: string } & Parameters<typeof partnerJob>[0]) {
   void emitPartnerEvent(booking.logisticsPartnerId, "job.offered", partnerJob(booking)).catch(() => undefined);
   await notifyJobOffered({ bookingId: booking.id, logisticsPartnerId: booking.logisticsPartnerId });
-  return booking;
 }
 
 /**

@@ -61,7 +61,7 @@ test("the server starts the split charge, the frame only shows it, and only Kora
   const wallet = read("src/lib/wallet/wallet.server.ts");
   assert.match(wallet, /korapaySplitAccount: \{ not: null \}/);
   const checkout = read("src/app/api/public/store/[slug]/checkout/route.ts");
-  assert.match(checkout, /splitPlanForOrder\(store\.id, orderItems, total, "korapay", shippingFee, order\.id\)/);
+  assert.match(checkout, /splitPlanForOrder\(store\.id, orderItems, total, "korapay", shippingFee, order\.id, deliveryShares, selfShares\)/);
   const orders = read("src/lib/commerce/korapay-orders.server.ts");
   assert.match(orders, /queryKorapayCharge\(order\.id\)/);
   assert.match(orders, /if \(order\.paymentMethod !== "korapay"\) return "rejected";/);

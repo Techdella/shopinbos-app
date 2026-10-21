@@ -1,10 +1,14 @@
 import { useState } from "react";
-import { Pressable, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
+import { offPlatformSignals } from "@shared/delivery-market";
 import { Bubble, ChatScreen, Composer } from "@/components/ChatScreen";
+import { List, Pill, Row, Small, Sub, Title } from "@/components/design";
+import { HelpButton } from "@/components/Help";
+import { AppIcon } from "@/components/icons";
 import { EmptyState, ErrorState, Initials, LoadingBlock } from "@/components/kit";
 import { TabScreen } from "@/components/TabScreen";
-import { Field, Notice, T } from "@/components/ui";
+import { Field, Notice, PillButton, T } from "@/components/ui";
 import { shortTime } from "@/lib/inbox-pure";
 import { fetchChatContacts, ROLE_LABEL } from "@/lib/partner-chat";
 import { fetchPartnerMessages, sendPartnerMessage } from "@/lib/partners";
@@ -13,75 +17,101 @@ import { useLoad } from "@/lib/useLoad";
 import { openWeb } from "@/lib/web";
 import { colors } from "@/theme";
 
-// Messages tab and conversation screen for the supplier and delivery partner apps: chats with the shops they
-// work with (and each other), the same threads as the web portal's inbox.
+// Chats for the supplier and delivery partner apps ("Delivery partner app" prototype `chats` and `thread`): the
+// shops and suppliers they work with, the same threads as the web portal's inbox. In a thread everyone sees "Keep it
+// on Shopinbos" when a message (or what they're typing) looks like moving the job off the app (shared
+// offPlatformSignals). Delivery partners also get quick replies before their first message and "Send them a private
+// rate" when they're talking to a seller or supplier.
 
 type Base = "/supplier" | "/logistics";
+
+const AVATAR: Record<string, { bg: string; fg: string }> = {
+  seller: { bg: colors.peach, fg: colors.accentInk },
+  supplier: { bg: colors.blueTint, fg: colors.blueInk },
+  logistics_partner: { bg: colors.mintTint, fg: colors.forest },
+};
 
 export function MessagesTab({ base, webPath }: { base: Base; webPath: string }) {
   const t = useT("m_partner");
   const contacts = useLoad(fetchChatContacts);
   const [q, setQ] = useState("");
+  const partner = base === "/logistics";
   const list = (contacts.data ?? []).filter((contact) => !q.trim() || `${contact.name} ${contact.lastMessage ?? ""}`.toLowerCase().includes(q.trim().toLowerCase()));
+  const unread = (contacts.data ?? []).filter((contact) => contact.unread > 0).length;
+
+  const header = (
+    <View style={{ gap: 8 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 46 }}>
+        <Title style={{ flex: 1 }}>{partner ? t("chats.title") : t("chat.title")}</Title>
+        {contacts.data ? <Pill tone="teal" label={unread ? t("chats.new", { count: unread }) : t("chats.allRead")} /> : null}
+        <HelpButton />
+      </View>
+      {partner ? <Sub>{t("chats.sub")}</Sub> : null}
+    </View>
+  );
 
   return (
-    <TabScreen title={t("chat.title")} refreshing={contacts.refreshing} onRefresh={() => void contacts.refresh()}>
-      <Field value={q} onChangeText={setQ} placeholder={t("chat.search")} returnKeyType="search" accessibilityLabel={t("chat.searchLabel")} style={{ height: 48, marginBottom: 14 }} />
-      <View style={{ gap: 8 }}>
-        {contacts.loading && !contacts.data ? <LoadingBlock label={t("chat.loading")} /> : null}
-        {contacts.error && !contacts.data ? <ErrorState message={contacts.error} onRetry={() => void contacts.reload()} web={{ label: t("openOnWeb"), onPress: () => void openWeb(webPath) }} /> : null}
-        {contacts.data && !list.length ? (
-          <EmptyState icon="chat" title={contacts.data.length ? t("chat.noMatch") : t("chat.none")}>
-            {contacts.data.length ? t("chat.tryName") : t("chat.noneBody")}
-          </EmptyState>
-        ) : null}
-        {list.map((contact) => (
-          <Pressable
-            key={contact.id}
-            accessibilityRole="button"
-            accessibilityLabel={contact.unread ? t("chat.unread", { name: contact.name, count: contact.unread }) : contact.name}
-            onPress={() => router.push({ pathname: `${base}/chat/[id]` as never, params: { id: contact.id, name: contact.name } })}
-            style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.surface, borderRadius: 18, padding: 12, opacity: pressed ? 0.8 : 1 })}
-          >
-            <Initials name={contact.name} bg={contact.role === "seller" ? colors.peach : colors.mintTint} fg={contact.role === "seller" ? colors.accentInk : colors.forest} />
-            <View style={{ flex: 1, gap: 2 }}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                <T weight={contact.unread ? "extrabold" : "bold"} style={{ flex: 1, fontSize: 15 }} numberOfLines={1}>{contact.name}</T>
-                {contact.lastMessageAt ? <T style={{ color: colors.inkSoft, fontSize: 12 }}>{shortTime(contact.lastMessageAt)}</T> : null}
-              </View>
-              <T style={{ color: contact.unread ? colors.ink : colors.inkSoft, fontSize: 13 }} numberOfLines={1}>{contact.lastMessage || t("chat.none")}</T>
-              <T weight="semibold" style={{ fontSize: 11.5, color: colors.inkSoft }}>{t.dynamic(`chat.role.${contact.role}`, ROLE_LABEL[contact.role] ?? t("chat.role.other"))}</T>
-            </View>
-            {contact.unread ? (
-              <View style={{ minWidth: 22, height: 22, borderRadius: 11, paddingHorizontal: 6, backgroundColor: colors.accent, alignItems: "center", justifyContent: "center" }}>
-                <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 12 }}>{String(contact.unread)}</T>
-              </View>
-            ) : null}
-          </Pressable>
-        ))}
-      </View>
+    <TabScreen header={header} refreshing={contacts.refreshing} onRefresh={() => void contacts.refresh()}>
+      {(contacts.data?.length ?? 0) > 6 ? <Field value={q} onChangeText={setQ} placeholder={t("chat.search")} returnKeyType="search" accessibilityLabel={t("chat.searchLabel")} style={{ height: 48 }} /> : null}
+      {contacts.loading && !contacts.data ? <LoadingBlock label={t("chat.loading")} /> : null}
+      {contacts.error && !contacts.data ? <ErrorState message={contacts.error} onRetry={() => void contacts.reload()} web={{ label: t("openOnWeb"), onPress: () => void openWeb(webPath) }} /> : null}
+      {contacts.data && !list.length ? (
+        <EmptyState icon="chat" title={contacts.data.length ? t("chat.noMatch") : t("chat.none")}>
+          {contacts.data.length ? t("chat.tryName") : t("chat.noneBody")}
+        </EmptyState>
+      ) : null}
+      {list.length ? (
+        <List>
+          {list.map((contact) => {
+            const tone = AVATAR[contact.role] ?? AVATAR.logistics_partner;
+            const role = t.dynamic(`chat.role.${contact.role}`, ROLE_LABEL[contact.role] ?? t("chat.role.other"));
+            return (
+              <Row
+                key={contact.id}
+                accessibilityLabel={contact.unread ? t("chat.unread", { name: contact.name, count: contact.unread }) : `${contact.name}, ${role}`}
+                lead={<Initials name={contact.name} bg={tone.bg} fg={tone.fg} />}
+                title={contact.name}
+                sub={`${contact.lastMessage || t("chat.none")}${contact.lastMessageAt ? ` · ${shortTime(contact.lastMessageAt)}` : ""}`}
+                right={contact.unread ? <View accessibilityLabel={t("chats.newDot")} style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: colors.accent }} /> : undefined}
+                chevron={false}
+                onPress={() => router.push({ pathname: `${base}/chat/[id]` as never, params: { id: contact.id, name: contact.name, role: contact.role } })}
+              />
+            );
+          })}
+        </List>
+      ) : null}
     </TabScreen>
   );
 }
 
-/** One conversation (?name= is shown while the messages load). */
+/** Quick replies a delivery partner can send before their first message in a thread (m_partner "quick.<n>"). */
+const QUICK = ["quick.0", "quick.1", "quick.2"] as const;
+
+/** One conversation (?name= is shown while the messages load, ?role= is the other side's role). */
 export function ConversationScreen({ webPath }: { webPath: string }) {
-  const { id, name } = useLocalSearchParams<{ id: string; name?: string }>();
+  const { id, name, role } = useLocalSearchParams<{ id: string; name?: string; role?: string }>();
   const t = useT("m_partner");
+  const tu = useT("m_ui");
   const messages = useLoad(() => fetchPartnerMessages(String(id)), String(id));
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const title = name || t("chat.conversation");
+  const partner = webPath.startsWith("/logistics");
+  // A job's "Message the shop" opens this without a role: that's the seller.
+  const otherRole = role || (partner ? "seller" : "");
+  const canRate = partner && (otherRole === "seller" || otherRole === "supplier");
+  const list = messages.data ?? [];
+  const sentAny = list.some((message) => message.mine);
+  const warn = offPlatformSignals(draft).length > 0 || list.some((message) => offPlatformSignals(message.text).length > 0);
 
-  async function send() {
-    const text = draft.trim();
+  async function send(text = draft.trim()) {
     if (!text || sending) return;
     setSending(true);
     setError(null);
     try {
       const sent = await sendPartnerMessage(String(id), text);
-      setDraft("");
+      if (text === draft.trim()) setDraft("");
       messages.setData([...(messages.data ?? []), sent]);
     } catch (sendError) {
       setError(sendError instanceof Error ? sendError.message : t("chat.sendFailed"));
@@ -90,28 +120,70 @@ export function ConversationScreen({ webPath }: { webPath: string }) {
     }
   }
 
+  const quick = partner && messages.data && !sentAny ? (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: 8 }}>
+      {QUICK.map((key) => (
+        <Pressable
+          key={key}
+          accessibilityRole="button"
+          disabled={sending}
+          onPress={() => void send(t(key))}
+          style={({ pressed }) => ({ minHeight: 44, paddingHorizontal: 13, borderRadius: 999, borderWidth: 1.5, borderColor: colors.line, backgroundColor: colors.surface, justifyContent: "center", opacity: pressed || sending ? 0.7 : 1 })}
+        >
+          <T weight="bold" style={{ fontSize: 15 }}>{t(key)}</T>
+        </Pressable>
+      ))}
+    </ScrollView>
+  ) : null;
+
   return (
     <ChatScreen
       header={
         <>
-          <Initials name={title} size={40} />
+          <Initials name={title} size={40} bg={(AVATAR[otherRole] ?? AVATAR.logistics_partner).bg} fg={(AVATAR[otherRole] ?? AVATAR.logistics_partner).fg} />
           <View style={{ flex: 1 }}>
             <T weight="extrabold" style={{ fontSize: 16 }} numberOfLines={1}>{title}</T>
-            <T style={{ color: colors.inkSoft, fontSize: 12.5 }}>{t("chat.onShopinbos")}</T>
+            <T style={{ color: colors.inkSoft, fontSize: 12.5 }}>{otherRole ? t.dynamic(`chat.role.${otherRole}`, ROLE_LABEL[otherRole] ?? t("chat.role.other")) : t("chat.onShopinbos")}</T>
           </View>
         </>
       }
       refreshing={messages.refreshing}
       onRefresh={() => void messages.refresh()}
-      scrollKey={messages.data?.length}
-      composer={<Composer value={draft} onChange={setDraft} onSend={() => void send()} busy={sending} placeholder={t("chat.messageTo", { name: title })} above={error ? <Notice>{error}</Notice> : null} />}
+      scrollKey={`${list.length}-${warn ? 1 : 0}`}
+      composer={
+        <Composer
+          value={draft}
+          onChange={setDraft}
+          onSend={() => void send()}
+          busy={sending}
+          placeholder={t("chat.messageTo", { name: title })}
+          above={
+            <>
+              {quick}
+              {error ? <Notice>{error}</Notice> : null}
+            </>
+          }
+        />
+      }
     >
       {messages.loading && !messages.data ? <LoadingBlock /> : null}
       {messages.error && !messages.data ? <ErrorState message={messages.error} onRetry={() => void messages.reload()} web={{ label: t("openOnWeb"), onPress: () => void openWeb(webPath) }} /> : null}
-      {messages.data && !messages.data.length ? <T style={{ color: colors.inkSoft, textAlign: "center" }}>{t("chat.empty")}</T> : null}
-      {messages.data?.map((message) => (
+      {messages.data && !messages.data.length ? <Small style={{ textAlign: "center" }}>{t("chat.empty")}</Small> : null}
+      {list.map((message) => (
         <Bubble key={message.id} mine={message.mine} meta={shortTime(message.createdAt)}>{message.text}</Bubble>
       ))}
+      {warn ? (
+        <View accessibilityRole="alert" style={{ backgroundColor: colors.warnTint, borderRadius: 24, padding: 20, gap: 8, marginTop: 4 }}>
+          <T weight="extrabold" style={{ fontSize: 16 }}>{tu("chat.keepTitle")}</T>
+          <T style={{ fontSize: 16, lineHeight: 24, color: colors.warnInk }}>{tu("chat.keepBody")}</T>
+        </View>
+      ) : null}
+      {canRate ? (
+        <PillButton tone="white" onPress={() => router.push({ pathname: "/logistics/private-rate", params: { ownerUserId: String(id), name: title } })}>
+          <AppIcon name="tag" size={20} />
+          <T weight="extrabold" style={{ fontSize: 17 }}>{t("chat.privateRate")}</T>
+        </PillButton>
+      ) : null}
     </ChatScreen>
   );
 }

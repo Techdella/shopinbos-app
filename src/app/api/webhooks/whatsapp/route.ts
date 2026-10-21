@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
         channel: "whatsapp",
         threadId: message.threadId,
         contact: { name: message.contactName, phone: message.contactPhone },
-        message: { body: message.text, externalId: message.externalId, attachments: message.attachments, createdAt: message.timestamp, ...(message.replyId ? { meta: { replyId: message.replyId } } : {}) },
+        message: { body: message.text, externalId: message.externalId, attachments: message.attachments, createdAt: message.timestamp, ...(message.replyId || message.order ? { meta: { ...(message.replyId ? { replyId: message.replyId } : {}), ...(message.order ? { order: message.order } : {}) } } : {}) },
       }).catch(async (error) => {
         console.error("[webhooks/whatsapp] ingest failed", error);
         await markChannelError(channel.row.id, "A message couldn't be saved. We'll keep trying on the next one.");

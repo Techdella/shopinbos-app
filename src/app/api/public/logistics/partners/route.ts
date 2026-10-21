@@ -7,6 +7,7 @@ import { PUBLIC_LIST_CACHE, withCors, handleOptions } from "@/lib/api/cors";
 import { okList, apiError } from "@/lib/api/response";
 import { PublicLogisticsQuerySchema } from "@/lib/schemas";
 import { payWhenItArrivesWhere } from "@/lib/logistics/payin-deadline";
+import { PUBLIC_MARKET_SELECT, deliveryTokensForState, withMarketFields } from "@/lib/api/public-logistics";
 
 const select = {
   id: true,
@@ -27,6 +28,8 @@ const select = {
   ratingCount: true,
   reliabilityScore: true,
   createdAt: true,
+  // Logistics marketplace: services, coverage, pay on delivery, rate card "from" price, pickup points.
+  ...PUBLIC_MARKET_SELECT,
 } as const;
 
 function logisticsOrderBy(sort: "reliability" | "rating" | "newest" | "price_low" | "price_high") {
@@ -56,8 +59,13 @@ export async function GET(req: NextRequest) {
     return withCors(req, apiError("BAD_REQUEST", parsed.error.issues[0]?.message ?? "Invalid query"));
   }
 
-  const { page, limit, sort, country, city, zone, vehicleType, q, cod } = parsed.data;
+  const { page, limit, sort, country, city, zone, vehicleType, q, cod, service, state } = parsed.data;
   const skip = (page - 1) * limit;
+  // ?state=Lagos: partners whose delivery areas cover the whole state (Nationwide, its region, or the state).
+  const stateTokens = state ? deliveryTokensForState(state) : null;
+  if (state && !stateTokens) {
+    return withCors(req, apiError("BAD_REQUEST", `We don't know the state "${state}". Use a Nigerian state name, e.g. Lagos or FCT.`));
+  }
 
   const where = {
     status: "active" as const,
@@ -70,6 +78,8 @@ export async function GET(req: NextRequest) {
     ...(city ? { city: { contains: city, mode: "insensitive" as const } } : {}),
     ...(zone ? { coverageZones: { has: zone } } : {}),
     ...(vehicleType ? { vehicleTypes: { has: vehicleType } } : {}),
+    ...(service ? { services: { has: service } } : {}),
+    ...(stateTokens ? { deliveryAreas: { hasSome: stateTokens } } : {}),
     ...(q ? {
       OR: [
         { companyName: { contains: q, mode: "insensitive" as const } },
@@ -89,7 +99,8 @@ export async function GET(req: NextRequest) {
         take: limit,
       }),
     ]);
-    return { total, partners: sort === "reliability" ? markFeatured(partners, await featuredPartnerIds(parsed.data.zone ?? null)) : partners };
+    const shaped = partners.map(withMarketFields);
+    return { total, partners: sort === "reliability" ? markFeatured(shaped, await featuredPartnerIds(parsed.data.zone ?? null)) : shaped };
   });
 
   return withCors(req, okList(partners, { page, limit, total }), { cacheControl: PUBLIC_LIST_CACHE });

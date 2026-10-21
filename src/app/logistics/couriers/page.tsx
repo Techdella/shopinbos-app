@@ -55,7 +55,7 @@ export default async function LogisticsCouriersPage({ searchParams }: { searchPa
         logisticsPartnerId: partner.id,
         riderId: { not: null },
         OR: [
-          { status: { in: ["confirmed", "picked_up", "in_transit"] } },
+          { status: { in: ["confirmed", "picked_up", "in_transit", "out_for_delivery"] } },
           { status: "delivered", deliveredAt: { gte: startOfToday } },
           { codMethod: "cash", remittanceId: null, codCollected: { gt: 0 } },
         ],
@@ -66,7 +66,7 @@ export default async function LogisticsCouriersPage({ searchParams }: { searchPa
   const workByRider = new Map<string, { open: number; delivered: number; fees: number; cash: number }>();
   for (const job of riderJobs) {
     const work = workByRider.get(job.riderId!) ?? { open: 0, delivered: 0, fees: 0, cash: 0 };
-    if (["confirmed", "picked_up", "in_transit"].includes(job.status)) work.open += 1;
+    if (["confirmed", "picked_up", "in_transit", "out_for_delivery"].includes(job.status)) work.open += 1;
     if (job.status === "delivered" && job.deliveredAt && job.deliveredAt >= startOfToday) {
       work.delivered += 1;
       work.fees += bookingNet(job);

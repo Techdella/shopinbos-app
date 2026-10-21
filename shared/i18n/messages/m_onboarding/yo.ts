@@ -145,6 +145,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "method.card.hint": "Káàdì àti USSD, owó máa wọ báńkì rẹ tààrà",
   "method.korapay.label": "Sanwó láti báńkì",
   "method.korapay.hint": "Ibi ìsanwó kejì tó ní ààbò: káàdì, ìfiránṣẹ́ owó tàbí app báńkì",
+  "frame.step": "{current} nínú {total}",
 };
 
 export default yo;

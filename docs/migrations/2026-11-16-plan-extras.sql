@@ -1,7 +1,7 @@
 -- October 2026 pricing, part 2 (shared/plans.ts): add-ons and boosts bought through Paystack, SMS/WhatsApp pack
--- balances, seller staff, delivery partners' pickup points, private rate cards and pay-on-delivery choice,
--- sellers following suppliers, and the delivery partners each supplier works with. Run once in Supabase (SQL
--- editor); every statement is safe to re-run.
+-- balances, seller staff, and sellers following suppliers. (Pickup points, private rate cards, connections and pay
+-- on delivery are the logistics marketplace's: docs/migrations/2026-11-14-logistics-marketplace.sql.) Run once in
+-- Supabase (SQL editor); every statement is safe to re-run.
 CREATE TABLE IF NOT EXISTS "PlanExtraPurchase" (
   "reference" TEXT PRIMARY KEY,
   "userId" TEXT NOT NULL,
@@ -47,39 +47,6 @@ CREATE UNIQUE INDEX IF NOT EXISTS "StoreStaff_storeId_email_key" ON "StoreStaff"
 CREATE INDEX IF NOT EXISTS "StoreStaff_memberUserId_status_idx" ON "StoreStaff" ("memberUserId", "status");
 CREATE INDEX IF NOT EXISTS "StoreStaff_ownerId_idx" ON "StoreStaff" ("ownerId");
 
-CREATE TABLE IF NOT EXISTS "LogisticsPickupPoint" (
-  "id" TEXT PRIMARY KEY,
-  "logisticsPartnerId" TEXT NOT NULL,
-  "name" TEXT NOT NULL,
-  "address" TEXT NOT NULL,
-  "city" TEXT NOT NULL,
-  "state" TEXT NOT NULL,
-  "phone" TEXT,
-  "hours" TEXT,
-  "active" BOOLEAN NOT NULL DEFAULT true,
-  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
--- An earlier, unused LogisticsPickupPoint table (with area/lat/lng and no city) exists in some databases: add city.
-ALTER TABLE "LogisticsPickupPoint" ADD COLUMN IF NOT EXISTS "city" TEXT NOT NULL DEFAULT '';
-CREATE INDEX IF NOT EXISTS "LogisticsPickupPoint_logisticsPartnerId_idx" ON "LogisticsPickupPoint" ("logisticsPartnerId");
-CREATE INDEX IF NOT EXISTS "LogisticsPickupPoint_state_idx" ON "LogisticsPickupPoint" ("state");
-
-CREATE TABLE IF NOT EXISTS "PrivateRateCard" (
-  "id" TEXT PRIMARY KEY,
-  "logisticsPartnerId" TEXT NOT NULL,
-  "customerUserId" TEXT NOT NULL,
-  "label" TEXT NOT NULL,
-  "price" INTEGER NOT NULL,
-  "states" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
-  "notes" TEXT,
-  "active" BOOLEAN NOT NULL DEFAULT true,
-  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-CREATE UNIQUE INDEX IF NOT EXISTS "PrivateRateCard_logisticsPartnerId_customerUserId_key" ON "PrivateRateCard" ("logisticsPartnerId", "customerUserId");
-CREATE INDEX IF NOT EXISTS "PrivateRateCard_customerUserId_idx" ON "PrivateRateCard" ("customerUserId");
-
 CREATE TABLE IF NOT EXISTS "SupplierFollow" (
   "supplierId" TEXT NOT NULL,
   "userId" TEXT NOT NULL,
@@ -98,23 +65,9 @@ CREATE TABLE IF NOT EXISTS "SupplierBroadcast" (
 );
 CREATE INDEX IF NOT EXISTS "SupplierBroadcast_supplierId_createdAt_idx" ON "SupplierBroadcast" ("supplierId", "createdAt");
 
-CREATE TABLE IF NOT EXISTS "SupplierLogisticsConnection" (
-  "supplierId" TEXT NOT NULL,
-  "logisticsPartnerId" TEXT NOT NULL,
-  "preferred" BOOLEAN NOT NULL DEFAULT false,
-  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY ("supplierId", "logisticsPartnerId")
-);
-CREATE INDEX IF NOT EXISTS "SupplierLogisticsConnection_logisticsPartnerId_idx" ON "SupplierLogisticsConnection" ("logisticsPartnerId");
-
-ALTER TABLE "LogisticsPartner" ADD COLUMN IF NOT EXISTS "acceptsCod" BOOLEAN NOT NULL DEFAULT true;
-
 -- The app reaches these through Prisma (service role); nothing is exposed to the public API.
 ALTER TABLE "PlanExtraPurchase" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "MessageBalance" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "StoreStaff" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "LogisticsPickupPoint" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "PrivateRateCard" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "SupplierFollow" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "SupplierBroadcast" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "SupplierLogisticsConnection" ENABLE ROW LEVEL SECURITY;

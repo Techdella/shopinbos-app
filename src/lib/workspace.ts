@@ -494,7 +494,7 @@ export async function getLogisticsWorkspace(userId: string) {
   }
 
   const partner = user.logisticsPartner;
-  const activeBookingStatuses = ["pending", "confirmed", "picked_up", "in_transit"] as const;
+  const activeBookingStatuses = ["pending", "confirmed", "picked_up", "in_transit", "out_for_delivery", "at_pickup_point", "returning"] as const;
 
   const [quoteRequests, bookings, pendingQuoteCount, activeBookingCount, deliveredBookingCount, revenue] =
     await Promise.all([

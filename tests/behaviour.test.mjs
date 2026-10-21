@@ -639,7 +639,7 @@ test("partner job payload hides the buyer until accepted and never includes an e
 
 test("delivery jobs: allowed moves, delivery code, failure reason and cash on delivery", async () => {
   const rules = await import("../src/lib/logistics/job-rules.ts");
-  assert.deepEqual(rules.nextStatuses("pending"), ["confirmed", "cancelled"]);
+  assert.deepEqual(rules.nextStatuses("pending"), ["confirmed", "declined", "cancelled"], "a partner can decline a new job (logistics marketplace)");
   assert.deepEqual(rules.nextStatuses("delivered"), []);
   assert.deepEqual(rules.nextStatuses("nonsense"), []);
   assert.ok(rules.nextStatuses("failed").includes("confirmed"), "failed jobs can be retried");

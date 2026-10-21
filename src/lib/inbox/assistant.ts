@@ -60,8 +60,11 @@ export interface WhatsAppBotSettings {
   testNumber: string;
   /** "What do you sell?" gets a WhatsApp list of products with prices. */
   productList: boolean;
-  /** After a shopper picks a product: off, send the store link to buy, or collect the order for the seller. */
-  ordering: "off" | "link" | "collect";
+  /**
+   * After a shopper picks a product: off, send the store link to buy, collect the order for the seller, or the
+   * WhatsApp store (an in-chat cart and one checkout link for everything in it; src/lib/whatsapp-store).
+   */
+  ordering: "off" | "link" | "collect" | "cart";
   /** "Where is my order?" looks up orders placed with the same WhatsApp number. */
   orderStatus: boolean;
   /** First-message greeting on WhatsApp; empty uses the chatbot greeting. */
@@ -69,6 +72,8 @@ export interface WhatsAppBotSettings {
   when: "always" | "outside_hours";
   /** Peggy stays quiet on a chat for this long after the seller replies by hand. */
   quietMinutes: number;
+  /** Orders placed from a WhatsApp chat get their confirmation (placed, then paid) back in that chat. */
+  confirmations: boolean;
 }
 
 export const DEFAULT_AWAY_MESSAGE = "Thanks for your message! We're away right now and will reply as soon as we're back.";
@@ -96,7 +101,7 @@ export const DEFAULT_CHATBOT: ChatbotSettings = {
   handoff: { keywords: [], message: DEFAULT_HANDOFF_MESSAGE },
   when: "always",
   monthlyCap: 300,
-  whatsapp: { mode: "off", testNumber: "", productList: true, ordering: "link", orderStatus: true, greeting: "", when: "always", quietMinutes: 30 },
+  whatsapp: { mode: "off", testNumber: "", productList: true, ordering: "link", orderStatus: true, greeting: "", when: "always", quietMinutes: 30, confirmations: true },
 };
 
 /** Ready-made keyword replies the settings page offers ("price", "delivery", "account number"). */
@@ -197,11 +202,12 @@ export function normaliseWhatsAppBot(raw: unknown): WhatsAppBotSettings {
     mode: w.mode === "test" || w.mode === "live" ? w.mode : "off",
     testNumber: /^\+?\d{7,15}$/.test(phone) ? (phone.startsWith("+") ? phone : `+${phone}`) : "",
     productList: bool(w.productList, d.productList),
-    ordering: w.ordering === "off" || w.ordering === "collect" ? w.ordering : "link",
+    ordering: w.ordering === "off" || w.ordering === "collect" || w.ordering === "cart" ? w.ordering : "link",
     orderStatus: bool(w.orderStatus, d.orderStatus),
     greeting: text(w.greeting, "", 300).trim(),
     when: w.when === "outside_hours" ? "outside_hours" : "always",
     quietMinutes: Number.isFinite(quiet) ? Math.min(240, Math.max(5, Math.round(quiet))) : d.quietMinutes,
+    confirmations: bool(w.confirmations, d.confirmations),
   };
 }
 

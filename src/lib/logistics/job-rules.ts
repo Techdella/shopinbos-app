@@ -1,16 +1,36 @@
 // Delivery job rules shared by the partner portal, the Riders app and the partner API. Pure, unit-tested.
 
-export const JOB_STATUSES = ["pending", "confirmed", "picked_up", "in_transit", "delivered", "failed", "cancelled"] as const;
+export const JOB_STATUSES = [
+  "pending",
+  "confirmed",
+  "picked_up",
+  "in_transit",
+  "delivered",
+  "failed",
+  "cancelled",
+  // Logistics marketplace (shared/delivery-market.ts, spec §9).
+  "declined",
+  "out_for_delivery",
+  "at_pickup_point",
+  "returning",
+  "returned",
+] as const;
 export type JobStatus = (typeof JOB_STATUSES)[number];
 export type JobActor = "partner" | "rider" | "api";
 
 const NEXT: Record<JobStatus, JobStatus[]> = {
-  pending: ["confirmed", "cancelled"],
+  pending: ["confirmed", "declined", "cancelled"],
   confirmed: ["picked_up", "cancelled", "failed"],
-  picked_up: ["in_transit", "delivered", "failed"],
-  in_transit: ["delivered", "failed"],
+  picked_up: ["in_transit", "out_for_delivery", "at_pickup_point", "delivered", "failed"],
+  in_transit: ["out_for_delivery", "at_pickup_point", "delivered", "failed"],
+  out_for_delivery: ["delivered", "failed"],
+  // Collected by the customer, or not collected in time and sent back.
+  at_pickup_point: ["delivered", "returning"],
   delivered: [],
-  failed: ["confirmed"], // retry
+  failed: ["confirmed", "out_for_delivery", "returning"], // retry, re-attempt, or send it back
+  returning: ["returned"],
+  returned: [],
+  declined: [], // the shop sends it to another partner (a new job)
   cancelled: [],
 };
 
@@ -22,9 +42,57 @@ export function canMove(from: string, to: string) {
   return nextStatuses(from).includes(to as JobStatus);
 }
 
+/**
+ * Can a partner keep working the jobs it already has? Verified partners, and suspended ones (spec: a suspended
+ * partner leaves checkout and discovery at once, but its existing jobs continue to completion).
+ */
+export function canWorkExistingJobs(partner: { verificationStatus: string }) {
+  return partner.verificationStatus === "verified" || partner.verificationStatus === "suspended";
+}
+
 /** 4-digit code the buyer reads to the rider. */
 export function makeDeliveryCode(random: () => number = Math.random) {
   return String(Math.floor(random() * 10000)).padStart(4, "0");
+}
+
+/**
+ * 4-digit code the shop (or supplier) gives the rider at pickup. Never the same as the job's delivery code, so a
+ * rider can't mix the two up.
+ */
+export function makePickupCode(deliveryCode: string | null | undefined, random: () => number = Math.random) {
+  for (let tries = 0; tries < 10; tries += 1) {
+    const code = makeDeliveryCode(random);
+    if (code !== deliveryCode) return code;
+  }
+  // The random source keeps repeating the delivery code: step to the next number.
+  return String((Number(deliveryCode ?? "0") + 1) % 10000).padStart(4, "0");
+}
+
+/**
+ * The pickup code the rider typed for one job: "none" when the job has no pickup code (accepted before codes
+ * existed and no shop screen made one yet; the pickup isn't blocked), "ok" when it matches, "wrong" otherwise.
+ */
+export function pickupCodeCheck(job: { pickupCode: string | null }, typed: string | null | undefined): "none" | "ok" | "wrong" {
+  if (!job.pickupCode) return "none";
+  return String(typed ?? "").trim() === job.pickupCode ? "ok" : "wrong";
+}
+
+/** startRun's error when a pickup code doesn't match (the phone app shows its own words for it, by this text). */
+export const WRONG_PICKUP_CODE = "That pickup code doesn't match. Check it with the shop and try again.";
+
+/** A rider may skip (hand back) a job the partner gave them until they have picked the parcel up. */
+export function riderCanSkip(job: { status: string }) {
+  return job.status === "confirmed";
+}
+
+const LAGOS_OFFSET_MS = 60 * 60 * 1000; // Africa/Lagos is UTC+1 all year (no daylight saving).
+
+/** Start of this week for rider earnings: Monday 00:00 in Lagos, as a UTC instant. */
+export function riderWeekStart(now = new Date()) {
+  const lagos = new Date(now.getTime() + LAGOS_OFFSET_MS);
+  const sinceMonday = (lagos.getUTCDay() + 6) % 7;
+  const monday = Date.UTC(lagos.getUTCFullYear(), lagos.getUTCMonth(), lagos.getUTCDate() - sinceMonday);
+  return new Date(monday - LAGOS_OFFSET_MS);
 }
 
 export type TransitionCheck = { ok: true } | { ok: false; error: string };
@@ -36,9 +104,10 @@ export type TransitionCheck = { ok: true } | { ok: false; error: string };
  */
 export function checkTransition(
   job: { status: string; deliveryCode: string | null; codAmount: number | null },
-  input: { to: string; actor: JobActor; code?: string | null; failedReason?: string | null; codCollected?: number | null; codMethod?: string | null },
+  input: { to: string; actor: JobActor; code?: string | null; failedReason?: string | null; declineReason?: string | null; codCollected?: number | null; codMethod?: string | null },
 ): TransitionCheck {
   if (!canMove(job.status, input.to)) return { ok: false, error: "This job has already moved on, so that step isn't possible now. Refresh to see where it is." };
+  if (input.to === "declined" && !input.declineReason?.trim()) return { ok: false, error: "Say why you can't take this job, so the shop can send it to another partner." };
   if (input.to === "failed" && !input.failedReason?.trim()) return { ok: false, error: "Say why you couldn't deliver it, for example \"Customer not picking calls\"." };
   if (input.to === "delivered") {
     if (job.deliveryCode && input.actor !== "partner" && input.code?.trim() !== job.deliveryCode) {

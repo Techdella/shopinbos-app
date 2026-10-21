@@ -155,7 +155,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "pd.optional": "(ba dole ba)",
   "pd.notePh": "Girma, launuka, ranakun isarwa",
   "pd.noPay": "Ba ka biya a Shopinbos.",
-  "pd.noPayBody": "{name} zai tabbatar da order ya aiko maka invoice; za ka biya su kai tsaye.",
+  "pd.noPayBody": "{name} zai tabbatar da order. Sannan ka biya a cikin Shopinbos da kati (zai shiga bankinsu kai tsaye), ko ka biya su kai tsaye da invoice ɗinsu.",
   "pd.sent": "An tura order. {name} zai tabbatar da shi ya aiko da invoice ɗinsa.",
   "pd.addressError": "Shigar da cikakken adireshin isarwa don wannan order.",
   "pd.placeError": "Ba a iya sanya order ba. Sake gwadawa.",
@@ -197,7 +197,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "ws.note.yourReason": "Dalilinka: {reason}",
   "ws.note.declined": "An ƙi: {reason}",
   "ws.title": "Orders na wholesale",
-  "ws.sub": "Kayan da ka saya daga masu kawo kaya. Za ka iya soke order har sai mai kawo kaya ya fara naɗewa; za su aiko maka invoice kuma za ka biya su kai tsaye.",
+  "ws.sub": "Kayan da ka saya daga suppliers. Za ka iya soke order har sai supplier ya fara ɗaure shi. Da zarar sun karɓa, biya a nan da kati kuma zai shiga bankinsu kai tsaye, ko ka biya su kai tsaye.",
   "ws.findProducts": "Nemo kayayyaki",
   "ws.empty": "Babu orders na wholesale tukuna",
   "ws.emptySub": "Saya kaya daga mai kawo kaya da aka tabbatar a farashin wholesale ɗinsa. Orders ɗinka da ci gabansu za su bayyana a nan.",
@@ -344,6 +344,11 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "featured": "Fitacce",
   "pub.follow": "Bi",
   "pub.following": "Kana bi",
+  "ws.pay": "Biya {total}",
+  "ws.payLabel": "Biya order {ref} da kati",
+  "ws.payError": "Biyan bai fara ba. Sake gwadawa.",
+  "ws.paidInApp": "An biya a cikin Shopinbos",
+  "ws.paidNotice": "An biya. Zai shiga bankin supplier kai tsaye.",
 };
 
 export default ha;

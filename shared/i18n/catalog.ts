@@ -18,12 +18,14 @@ import intros from "./messages/intros/index.ts";
 import introTitles from "./messages/introTitles/index.ts";
 import supplier from "./messages/supplier/index.ts";
 import logistics from "./messages/logistics/index.ts";
+import delivery from "./messages/delivery/index.ts";
 import rider from "./messages/rider/index.ts";
 import m_supplier from "./messages/m_supplier/index.ts";
 import m_partner from "./messages/m_partner/index.ts";
 import m_rider from "./messages/m_rider/index.ts";
 import m_ui from "./messages/m_ui/index.ts";
 import m_home from "./messages/m_home/index.ts";
+import m_delivery from "./messages/m_delivery/index.ts";
 import m_orders from "./messages/m_orders/index.ts";
 import m_products from "./messages/m_products/index.ts";
 import m_find from "./messages/m_find/index.ts";
@@ -102,12 +104,14 @@ export const CATALOGS = {
   introTitles,
   supplier,
   logistics,
+  delivery,
   rider,
   m_supplier,
   m_partner,
   m_rider,
   m_ui,
   m_home,
+  m_delivery,
   m_orders,
   m_products,
   m_find,

@@ -153,7 +153,7 @@ const en = {
   "pd.optional": "(optional)",
   "pd.notePh": "Sizes, colours, delivery days",
   "pd.noPay": "You don't pay on Shopinbos.",
-  "pd.noPayBody": "{name} confirms the order and sends you an invoice; you pay them directly.",
+  "pd.noPayBody": "{name} confirms the order. Then pay in Shopinbos by card (it goes straight to their bank), or pay them directly against their invoice.",
   "pd.sent": "Order sent. {name} will confirm it and send their invoice.",
   "pd.addressError": "Enter the full delivery address for this order.",
   "pd.placeError": "Couldn't place the order. Try again.",
@@ -195,7 +195,7 @@ const en = {
   "ws.note.yourReason": "Your reason: {reason}",
   "ws.note.declined": "Declined: {reason}",
   "ws.title": "Wholesale orders",
-  "ws.sub": "Stock you bought from suppliers. You can cancel an order until the supplier starts packing it; they send you an invoice and you pay them directly.",
+  "ws.sub": "Stock you bought from suppliers. You can cancel an order until the supplier starts packing it. Once they accept, pay here by card and it goes straight to their bank, or pay them directly.",
   "ws.findProducts": "Find products",
   "ws.empty": "No wholesale orders yet",
   "ws.emptySub": "Buy stock from a verified supplier at their wholesale price. Your orders and their progress show up here.",
@@ -342,6 +342,11 @@ const en = {
   "featured": "Featured",
   "pub.follow": "Follow",
   "pub.following": "Following",
+  "ws.pay": "Pay {total}",
+  "ws.payLabel": "Pay for order {ref} by card",
+  "ws.payError": "Couldn't start the payment. Try again.",
+  "ws.paidInApp": "Paid in Shopinbos",
+  "ws.paidNotice": "Paid. It goes straight to the supplier's bank.",
 } satisfies Record<string, string>;
 
 export default en;

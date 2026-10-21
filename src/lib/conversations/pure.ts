@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { OFF_PLATFORM_WARNING, offPlatformSignals } from "../../../shared/delivery-market.ts";
 
 // Partner messages (seller ↔ supplier ↔ delivery partner): rules and helpers with no database or React,
 // shared by the API, the Messages drawer, the full pages and tests (Node strips the types natively).
@@ -49,6 +50,8 @@ export interface ThreadMessage {
   readAt: string | null;
   attachments: ThreadAttachment[];
   context: ContextSnapshot | null;
+  /** A gentle note when the text looks like taking a delivery job off the app (chats with a delivery partner). */
+  warning?: string | null;
 }
 
 // ─── Who can talk to whom ─────────────────────────────────────────────────────
@@ -252,6 +255,17 @@ export function shouldEmailUnread(message: { createdAt: Date; read: boolean; ema
   if (message.read || message.emailedAt) return false;
   const age = now.getTime() - message.createdAt.getTime();
   return age >= delayMinutes * 60_000 && age <= 3 * 86_400_000;
+}
+
+// ─── Off-app guardrail ────────────────────────────────────────────────────────
+
+/**
+ * The gentle in-chat note (never a block) when a message in a chat with a delivery partner shares a phone number,
+ * bank account, email, or asks to be paid directly (shared/delivery-market.ts offPlatformSignals). Null otherwise.
+ */
+export function offPlatformNote(text: string | null | undefined, roles: ReadonlyArray<string | null | undefined>): string | null {
+  if (!text || !roles.includes("logistics_partner")) return null;
+  return offPlatformSignals(text).length ? OFF_PLATFORM_WARNING : null;
 }
 
 // ─── Quick replies ────────────────────────────────────────────────────────────

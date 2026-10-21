@@ -7,6 +7,8 @@ import { whatsappError, whatsappGraphBase } from "@/lib/inbox/channels/whatsapp"
 import { storeUrl } from "./brand";
 import { getMessagingSettings, updateMessagingSettings } from "./messaging-settings";
 import {
+  DELIVERY_MESSAGE_EVENTS_ON,
+  DELIVERY_MESSAGE_PRESETS,
   LIBRARY_USECASES,
   ORDER_MESSAGE_EVENTS_ON,
   ORDER_MESSAGE_PRESETS,
@@ -28,6 +30,10 @@ import { draftFromPreset, submitWhatsAppTemplate, syncWhatsAppTemplates, wabaAcc
 // on Marketing › Order messages, and src/lib/notifications/customer-messages.ts re-checks a pending template
 // with Meta before each send, so the first order after approval goes out. Running it again is safe: templates
 // already approved or waiting are left alone, and the seller's own on/off choices are only set the first time.
+// The delivery partner updates (booked, out for delivery with the code, at the pickup point, a problem) go in with
+// them in our own wording (no library template has a delivery code); a store set up before they existed gets them
+// the next time this runs (the "Set up" card on Marketing › Order messages comes back until they're there), and
+// their events are switched on the first time their own templates are made.
 
 const LIVE = new Set(["APPROVED", "PENDING", "IN_APPEAL"]);
 
@@ -45,13 +51,15 @@ export async function setUpWhatsAppOrderMessages(storeId: string): Promise<Order
   const store = await db.store.findUnique({ where: { id: storeId }, select: { slug: true, customDomain: true } });
   if (!store) return { ok: false, error: "Store not found", templates: [], switchedOn: [] };
   const before = await db.whatsAppTemplate.count({ where: { storeId, preset: { in: [...ORDER_MESSAGE_PRESETS] } } });
+  const deliveryBefore = await db.whatsAppTemplate.count({ where: { storeId, preset: { in: [...DELIVERY_MESSAGE_PRESETS] } } });
   // Templates already on the WhatsApp account (made earlier, or before a reconnect) come in first, so we reuse
   // them instead of submitting a second copy Meta would refuse as a duplicate name.
   await syncWhatsAppTemplates(storeId).catch(() => null);
 
   const templates: OrderMessagesSetup["templates"] = [];
-  for (const key of ORDER_MESSAGE_PRESETS) {
+  for (const key of [...ORDER_MESSAGE_PRESETS, ...DELIVERY_MESSAGE_PRESETS]) {
     const preset = presetTemplate(key)!;
+    const libraryKey = (ORDER_MESSAGE_PRESETS as readonly string[]).includes(key) ? (key as (typeof ORDER_MESSAGE_PRESETS)[number]) : null;
     // A copy synced from Meta with exactly our wording becomes the ready-made one (it has no mapping yet).
     const adopt = await db.whatsAppTemplate.findFirst({ where: { storeId, preset: null, name: preset.name, language: "en" } });
     if (adopt && readTemplateContent(adopt.components).body === preset.content.body) {
@@ -60,8 +68,8 @@ export async function setUpWhatsAppOrderMessages(storeId: string): Promise<Order
     const rows = await db.whatsAppTemplate.findMany({ where: { storeId, preset: key }, orderBy: { updatedAt: "desc" } });
     const live = rows.find((row) => row.status === "APPROVED") ?? rows.find((row) => LIVE.has(row.status));
     // Not approved yet: a library template is (instantly). A pending one of ours stays as a fallback.
-    if (live?.status !== "APPROVED") {
-      const library = await createFromLibrary(storeId, access.access, key, store).catch((error) => {
+    if (libraryKey && live?.status !== "APPROVED") {
+      const library = await createFromLibrary(storeId, access.access, libraryKey, store).catch((error) => {
         console.warn(`[whatsapp] template library for ${key}: ${error instanceof Error ? error.message : String(error)}`);
         return null;
       });
@@ -89,10 +97,11 @@ export async function setUpWhatsAppOrderMessages(storeId: string): Promise<Order
 
   // First time only: switch the order events on for WhatsApp. Later runs keep whatever the seller chose.
   const switchedOn: CustomerEvent[] = [];
-  if (before === 0) {
+  const events = [...(before === 0 ? ORDER_MESSAGE_EVENTS_ON : []), ...(deliveryBefore === 0 ? DELIVERY_MESSAGE_EVENTS_ON : [])];
+  if (events.length) {
     const current = (await getMessagingSettings(storeId)).transactional;
     const patch: Partial<Record<CustomerEvent, Partial<CustomerEventSetting>>> = {};
-    for (const event of ORDER_MESSAGE_EVENTS_ON) {
+    for (const event of events) {
       if (current[event].whatsapp) continue;
       patch[event] = { whatsapp: true };
       switchedOn.push(event);

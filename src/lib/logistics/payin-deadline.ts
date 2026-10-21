@@ -213,15 +213,14 @@ export function planPayInStanding(input: { partnerId: string; standing: PayInSta
  * Can this partner be offered a new job? Active ("Taking new jobs") and verified, and for cash-on-delivery
  * jobs, not paused for a late pay-in. Prepaid jobs ignore the late pause.
  */
-export function canOfferJob(partner: { status: string; verificationStatus: string; codPaused?: boolean | null; acceptsCod?: boolean | null }, job: { cod: boolean }) {
+export function canOfferJob(partner: { status: string; verificationStatus: string; codPaused?: boolean | null }, job: { cod: boolean }) {
   if (partner.status !== "active" || partner.verificationStatus !== "verified") return false;
-  // Cash jobs: not while paused for a late pay-in, and only for partners who take pay-on-delivery jobs.
-  return job.cod ? !partner.codPaused && partner.acceptsCod !== false : true;
+  return job.cod ? !partner.codPaused : true;
 }
 
 /** Prisma where-fragment for partner lists: skip partners paused for a late pay-in when the job is cash-on-delivery. */
-export function payWhenItArrivesWhere(cod: boolean): { codPaused?: false; acceptsCod?: true } {
-  return cod ? { codPaused: false, acceptsCod: true } : {};
+export function payWhenItArrivesWhere(cod: boolean): { codPaused?: false } {
+  return cod ? { codPaused: false } : {};
 }
 
 // ─── Words ────────────────────────────────────────────────────────────────────

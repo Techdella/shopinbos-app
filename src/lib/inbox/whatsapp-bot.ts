@@ -41,7 +41,7 @@ export function wantsHumanOnWhatsApp(message: string, extra: string[] = []) {
   return wantsHuman(message, [...WHATSAPP_HANDOFF_WORDS, ...extra]);
 }
 
-const CATALOGUE = ["what do you sell", "what do you have", "what you sell", "what you have", "what s available", "whats available", "catalogue", "catalog", "menu", "price list", "pricelist", "see products", "all products", "list of products", "show me products", "show me what", "your items", "wetin you get", "wetin una dey sell", "wetin una get"];
+const CATALOGUE = ["what do you sell", "see your products", "like to shop", "what do you have", "what you sell", "what you have", "what s available", "whats available", "catalogue", "catalog", "menu", "price list", "pricelist", "see products", "all products", "list of products", "show me products", "show me what", "your items", "wetin you get", "wetin una dey sell", "wetin una get"];
 const ORDER_STATUS = ["my order", "order status", "where is my order", "track my", "tracking", "has my order", "delivered yet", "my package", "my delivery", "when will i get", "when will my"];
 const GREETINGS = ["hi", "hello", "hey", "hiya", "good morning", "good afternoon", "good evening", "morning", "evening", "how far", "hello there", "hi there", "start"];
 
@@ -110,6 +110,22 @@ export type WhatsAppInteractive =
       body: { text: string };
       footer?: { text: string };
       action: { buttons: Array<{ type: "reply"; reply: { id: string; title: string } }> };
+    }
+  | {
+      /** One button that opens a link (the WhatsApp store's "Pay now"). */
+      type: "cta_url";
+      header?: { type: "text"; text: string };
+      body: { text: string };
+      footer?: { text: string };
+      action: { name: "cta_url"; parameters: { display_text: string; url: string } };
+    }
+  | {
+      /** Products from the store's synced Meta catalog, with WhatsApp's own cart (src/lib/whatsapp-catalog). */
+      type: "product_list";
+      header: { type: "text"; text: string };
+      body: { text: string };
+      footer?: { text: string };
+      action: { catalog_id: string; sections: Array<{ title: string; product_items: Array<{ product_retailer_id: string }> }> };
     };
 
 /** Cut to Meta's length, ending with an ellipsis when something was cut. */
@@ -179,8 +195,13 @@ export function interactiveSummary(interactive: WhatsAppInteractive) {
   if (interactive.type === "list") {
     for (const section of interactive.action.sections) for (const row of section.rows) lines.push(`• ${row.title}${row.description ? ` (${row.description})` : ""}`);
     lines.push(`[List button: ${interactive.action.button}]`);
-  } else {
+  } else if (interactive.type === "button") {
     lines.push(interactive.action.buttons.map((b) => `[${b.reply.title}]`).join(" "));
+  } else if (interactive.type === "cta_url") {
+    lines.push(`[${interactive.action.parameters.display_text}: ${interactive.action.parameters.url}]`);
+  } else {
+    const count = interactive.action.sections.reduce((sum, section) => sum + section.product_items.length, 0);
+    lines.push(`[Catalog: ${count} product${count === 1 ? "" : "s"}, with the WhatsApp cart]`);
   }
   return lines.filter(Boolean).join("\n");
 }
