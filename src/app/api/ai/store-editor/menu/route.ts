@@ -6,7 +6,7 @@ import { aiConfigured } from "@/lib/ai/client";
 import { aiText, firstJsonObject } from "@/lib/ai/text";
 import { aiCost, meterAiPreview } from "@/lib/ai/usage";
 import { liveItemWhere } from "@/lib/cms/fields";
-import { MENU_STYLES, MOBILE_MENU_STYLES } from "@/lib/storefront/menu";
+import { MENU_STYLES, MOBILE_MENU_STYLES, readMenuColors } from "@/lib/storefront/menu";
 import { catalogImages, cleanMenuDesign, headerMenuStyle, type MenuCatalog } from "@/lib/storefront/menu-design";
 import { isBoutiqueTheme } from "@/lib/store-templates";
 import { navigationDraft, navigationOf } from "@/lib/store-navigation.server";
@@ -21,7 +21,7 @@ export const maxDuration = 60;
 const Body = z.object({
   messages: z.array(z.object({ role: z.enum(["user", "rex"]), text: z.string().max(4000) })).min(1).max(20),
   /** The menus as the builder has them now (may be unsaved, or Rex's last preview). */
-  current: z.object({ main: z.array(z.unknown()).max(60), footer: z.array(z.unknown()).max(60), menuStyle: z.string().max(20), mobileStyle: z.string().max(20) }).optional(),
+  current: z.object({ main: z.array(z.unknown()).max(60), footer: z.array(z.unknown()).max(60), menuStyle: z.string().max(20), mobileStyle: z.string().max(20), colors: z.record(z.string(), z.string().max(20)).optional() }).optional(),
 });
 
 export const POST = withSeller(async (req: NextRequest, { user }) => {
@@ -52,7 +52,8 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
     content: collections.flatMap((collection) => [{ ref: collection.slug, name: collection.name }, ...collection.items.map((item) => ({ ref: `${collection.slug}/${item.slug}`, name: item.title }))]),
   };
   const currentStyle = headerMenuStyle(draft, isBoutiqueTheme(draft?.templateId) ? "classic" : "caps");
-  const current = parsed.data.current ?? { main: nav.main, footer: nav.footer, menuStyle: currentStyle, mobileStyle: nav.mobileStyle };
+  const header = (draft?.pages ?? []).flatMap((page) => page.sections ?? []).find((section) => section?.kind === "header");
+  const current = parsed.data.current ?? { main: nav.main, footer: nav.footer, menuStyle: currentStyle, mobileStyle: nav.mobileStyle, colors: readMenuColors(header?.settings) ?? {} };
   const images = [...catalogImages(catalog).keys()];
 
   const system = `You are Rex, designing the menus for ${store.name}, an online shop on Shopinbos. You can lay out the header menu (with one level of dropdowns), the footer links, the menu style and the phone menu, and put pictures on items.
@@ -64,9 +65,10 @@ Items can only point at what the store has:
 - kind "product", ref a product id: ${catalog.products.map((p) => `${p.id} (${p.name})`).join(", ") || "none"}
 - kind "content", ref a content path: ${catalog.content.map((c) => `${c.ref} (${c.name})`).join(", ") || "none"}
 - kind "link", url an https address or a /path, with a label
+Colours: the menu can have its own colours over the theme's, as #rrggbb: "text" (the menu words), "accent" (current page and hover), "bar" (a band behind the menu on computers), "panel" (dropdowns, mega menu and phone menu background), "panelText" (words in those). Set "colors" only when the seller asks about colours or a themed look; make sure words contrast with what's behind them. "colors": "theme" goes back to the theme's colours; leave "colors" out to keep the current ones.
 Pictures: set "image" to one of these keys (category or product pictures): ${images.join(", ") || "none available"}.
 Keep labels short (1-3 words), plain and in the shop's voice. 4-7 top-level items is usually right. Never invent pages or products.
-Reply with JSON only: {"reply": "one or two friendly sentences on what you made and why", "menuStyle": "...", "mobileStyle": "...", "main": [{"label": "...", "kind": "...", "ref": "...", "url": "...", "image": "...", "children": [...]}], "footer": [...] or null to leave it}`;
+Reply with JSON only: {"reply": "one or two friendly sentences on what you made and why", "menuStyle": "...", "mobileStyle": "...", "colors": {"text": "#...", ...} (optional), "main": [{"label": "...", "kind": "...", "ref": "...", "url": "...", "image": "...", "children": [...]}], "footer": [...] or null to leave it}`;
 
   const prompt = [
     `The menus now: ${JSON.stringify(current).slice(0, 6000)}`,

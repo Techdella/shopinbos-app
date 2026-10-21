@@ -3,7 +3,7 @@
 // snapshot with that design written in, and the section changes to save once the seller applies it.
 // Unit-tested in tests/rex-menu-design.test.mjs (relative imports carry .ts).
 
-import { MENU_STYLES, MOBILE_MENU_STYLES, isContentRef, menuStyleOf, mobileMenuStyleOf, readMenu, safeMenuUrl, type MenuItem, type MenuStyle, type MobileMenuStyle } from "./menu.ts";
+import { MENU_COLOR_KEYS, MENU_COLOR_SETTINGS, MENU_STYLES, MOBILE_MENU_STYLES, isContentRef, menuStyleOf, mobileMenuStyleOf, readMenu, safeMenuUrl, type MenuColorSet, type MenuItem, type MenuStyle, type MobileMenuStyle } from "./menu.ts";
 import { flattenMenu, writeNavigation, type StoreNavigation } from "./store-navigation.ts";
 import type { StoreEditorPatchOp, StoreEditorSnapshot } from "../store-templates/types";
 
@@ -13,6 +13,8 @@ export interface MenuDesign {
   footer: MenuItem[] | null;
   menuStyle: MenuStyle;
   mobileStyle: MobileMenuStyle;
+  /** The menu's own colours: undefined keeps the current ones, {} goes back to the theme's. */
+  colors?: MenuColorSet;
 }
 
 /** What the store has, for Rex's prompt and for checking its answer. */
@@ -85,7 +87,20 @@ export function cleanMenuDesign(raw: unknown, catalog: MenuCatalog, current: { m
     footer: footerItems && footerItems.length ? flattenMenu(readMenu({ menu: footerItems })) : null,
     menuStyle: MENU_STYLES.some((style) => style.value === answer.menuStyle) ? menuStyleOf(answer.menuStyle) : current.menuStyle,
     mobileStyle: MOBILE_MENU_STYLES.some((style) => style.value === answer.mobileStyle) ? mobileMenuStyleOf(answer.mobileStyle) : current.mobileStyle,
+    ...menuColorsFrom(answer.colors),
   };
+}
+
+/** Rex's colours: "theme" (or {}) goes back to the theme's; an object sets those it names as #rrggbb. */
+function menuColorsFrom(raw: unknown): { colors?: MenuColorSet } {
+  if (raw === "theme") return { colors: {} };
+  if (!raw || typeof raw !== "object") return {};
+  const colors: MenuColorSet = {};
+  for (const key of MENU_COLOR_KEYS) {
+    const value = (raw as Record<string, unknown>)[key];
+    if (typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value.trim())) colors[key] = value.trim().toLowerCase();
+  }
+  return { colors };
 }
 
 /** The snapshot with the design written into every header and footer (they are one shared chrome). */
@@ -95,9 +110,20 @@ export function withMenuDesign(snapshot: StoreEditorSnapshot, design: MenuDesign
     ...written,
     pages: written.pages.map((page) => ({
       ...page,
-      sections: page.sections.map((section) => (section.kind === "header" ? { ...section, settings: { ...(section.settings ?? {}), menuStyle: design.menuStyle } } : section)),
+      sections: page.sections.map((section) => (section.kind === "header" ? { ...section, settings: withColorSettings({ ...(section.settings ?? {}), menuStyle: design.menuStyle }, design.colors) } : section)),
     })),
   };
+}
+
+/** Header settings with the menu colours written in (the whole set is replaced; absent ones use the theme's). */
+function withColorSettings(settings: Record<string, unknown>, colors: MenuColorSet | undefined) {
+  if (!colors) return settings;
+  const next = { ...settings };
+  for (const key of MENU_COLOR_KEYS) {
+    if (colors[key]) next[MENU_COLOR_SETTINGS[key]] = colors[key];
+    else delete next[MENU_COLOR_SETTINGS[key]];
+  }
+  return next;
 }
 
 /** The current header menu style, as the storefront reads it. */

@@ -105,3 +105,36 @@ test("the seller's photo shows on their messages to Rex", () => {
   assert.match(read("src/components/builder/rex/RexChat.tsx"), /<SellerAvatar \{\.\.\.you\} \/>/);
   assert.match(read("src/components/builder/editor/RexPanel.tsx"), /props\.you\?\.avatarUrl/);
 });
+
+test("the menu can have its own colours over the theme's, set by the seller or by Rex", async () => {
+  const menu = await import("../src/lib/storefront/menu.ts");
+  const colors = menu.readMenuColors({ menuTextColor: "#FFFFFF", menuBarColor: "#0e2a38", menuAccentColor: "red", menuPanelColor: "#111111" });
+  assert.deepEqual(colors, { text: "#ffffff", bar: "#0e2a38", panel: "#111111" });
+  assert.equal(menu.readMenuColors({ menuStyle: "mega" }), null);
+  const base = { ink: "#222222", muted: "#777777", accent: "#ff6600", accentText: "#ffffff", panel: "#ffffff", panelInk: "#222222", border: "#eeeeee" };
+  const merged = menu.withMenuColors(base, colors);
+  assert.equal(merged.ink, "#ffffff");
+  assert.equal(merged.bar, "#0e2a38");
+  assert.equal(merged.ownText, true);
+  assert.equal(merged.accent, "#ff6600", "colours it doesn't set stay the theme's");
+  assert.equal(menu.withMenuColors(base, null), base);
+  assert.equal(menu.readableOn("#ffffff"), "#111111");
+  assert.equal(menu.readableOn("#0e2a38"), "#ffffff");
+
+  const snapshot = { templateId: "x", templateName: "X", themeTokens: {}, updatedAt: "", pages: [{ pageType: "home", title: "Home", sections: [{ id: "h", kind: "header", name: "Header", visible: true, settings: { menuStyle: "classic", menuBarColor: "#000000" }, blocks: [] }] }] };
+  const themed = d.cleanMenuDesign({ main: [{ label: "Home", kind: "page", ref: "home" }], colors: { text: "#FAF7F1", panel: "#0E2A38", accent: "nope" } }, catalog, { menuStyle: "classic", mobileStyle: "drawer" });
+  assert.deepEqual(themed.colors, { text: "#faf7f1", panel: "#0e2a38" });
+  const settings = d.withMenuDesign(snapshot, themed, nav.readNavigation(snapshot)).pages[0].sections[0].settings;
+  assert.equal(settings.menuTextColor, "#faf7f1");
+  assert.equal(settings.menuPanelColor, "#0e2a38");
+  assert.equal(settings.menuBarColor, undefined, "Rex's colours replace the set");
+  const back = d.cleanMenuDesign({ main: [{ label: "Home", kind: "page", ref: "home" }], colors: "theme" }, catalog, { menuStyle: "classic", mobileStyle: "drawer" });
+  assert.equal(d.withMenuDesign(snapshot, back, nav.readNavigation(snapshot)).pages[0].sections[0].settings.menuBarColor, undefined);
+  const keep = d.cleanMenuDesign({ main: [{ label: "Home", kind: "page", ref: "home" }] }, catalog, { menuStyle: "classic", mobileStyle: "drawer" });
+  assert.equal(d.withMenuDesign(snapshot, keep, nav.readNavigation(snapshot)).pages[0].sections[0].settings.menuBarColor, "#000000");
+
+  for (const path of ["src/components/storefront/TemplateStorefrontSurface.tsx", "src/components/storefront/boutique/BoutiqueStorefront.tsx", "src/components/storefront/boutique/BoutiquePageFrame.tsx", "src/components/storefront/boutique/BoutiqueProductPage.tsx"]) {
+    assert.match(read(path), /readMenuColors\(/, path);
+  }
+  assert.match(read("src/components/builder/editor/section-schema.ts"), /title: "Menu colours"/);
+});

@@ -48,7 +48,7 @@ export interface RexPanelProps {
 }
 
 const PAGE_SUGGESTIONS = ["Write a shorter banner heading", "Make the colours warmer", "Add a questions section"];
-const MENU_SUGGESTIONS = ["Make a mega menu with pictures", "Simple menu: Shop, Blog, About, Contact", "Put my categories under Shop", "Pill style menu, bottom sheet on phones"];
+const MENU_SUGGESTIONS = ["Make a mega menu with pictures", "Give my menu its own colours", "Put my categories under Shop", "Pill style menu, bottom sheet on phones"];
 
 /** Rex inside the builder. Rex's changes show on the page as a free preview; applying one costs credits. */
 export function RexPanel(props: RexPanelProps) {
@@ -118,7 +118,7 @@ export function RexPanel(props: RexPanelProps) {
       body: JSON.stringify({
         messages: history.slice(1).slice(-12).map((entry) => ({ role: entry.role === "you" ? "user" : "rex", text: entry.text })),
         current: shown
-          ? { main: shown.main, footer: shown.footer ?? nav.footer, menuStyle: shown.menuStyle, mobileStyle: shown.mobileStyle }
+          ? { main: shown.main, footer: shown.footer ?? nav.footer, menuStyle: shown.menuStyle, mobileStyle: shown.mobileStyle, ...(shown.colors ? { colors: shown.colors } : {}) }
           : { main: nav.main, footer: nav.footer, menuStyle: headerMenuStyle(draft, isBoutiqueTheme(draft.templateId) ? "classic" : "caps"), mobileStyle: nav.mobileStyle },
       }),
     });
