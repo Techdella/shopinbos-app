@@ -10,8 +10,8 @@ export const runtime = "nodejs";
 
 const MAX_LIMIT = 50;
 
-// GET /api/app/customers?page=&limit=&q=&show=all|new|returning|vip|whatsapp&sort=recent|spent|orders
-// One page of the seller's customers, the same list (search, filter, sort, grouping) as /home/customers, with the
+// GET /api/app/customers?page=&limit=&q=&show=all|new|returning|vip|whatsapp&sort=recent|spent|orders&segment=<id>
+// One page of the seller's customers, the same list (search, filter, saved segment, sort, grouping) as /home/customers, with the
 // numbers for the filter chips. Each customer's `key` opens them with GET /api/app/customers/profile?key=.
 export const GET = withSeller(async (req: NextRequest, { user }) => {
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, currency: true } });

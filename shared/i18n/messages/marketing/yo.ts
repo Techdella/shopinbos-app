@@ -367,6 +367,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "seg.peopleCount": "Ènìyàn {count}",
   "seg.noRules": "Kò sí òfin síbẹ̀. Ṣàtúnṣe rẹ̀ láti fi díẹ̀ kún un.",
   "seg.messageThem": "Kọ̀wé sí wọn",
+  "seg.seePeople": "Wo àwọn ènìyàn náà",
   "seg.emptyTitle": "Kò sí segment síbẹ̀",
   "seg.emptyAction": "Bẹ̀rẹ̀ pẹ̀lú àwọn tó máa ń padà wá rà",
   "seg.emptyBody": "Segment jẹ́ ẹgbẹ́ tí a fi pamọ́, bíi “ná ju ₦50,000 lọ” tàbí “ra aṣọ Ankara”. Lò ó fún campaigns, automations àti discounts.",

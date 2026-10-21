@@ -5,6 +5,10 @@ import { ok, okList, apiError, parsePagination } from "@/lib/api/response";
 import { parseBody } from "@/lib/api/validate";
 import { CustomerSegmentCreateSchema } from "@/lib/schemas";
 import type { AuthUser } from "@/lib/auth/types";
+import { MarketingError, createSegment } from "@/lib/marketing/segments";
+
+// Legacy segments API. Writes go through src/lib/marketing/segments.ts (rules normalised, live count cached)
+// so these segments behave like the ones made on /home/marketing/segments.
 
 export const GET = withSeller(async (req: NextRequest, { user }: { user: AuthUser }) => {
   const { page, limit, skip } = parsePagination(req.nextUrl.searchParams);
@@ -32,12 +36,11 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
   const store = await db.store.findUnique({ where: { userId: user.id } });
   if (!store) return apiError("NOT_FOUND", "Store not found", 404);
 
-  const segment = await db.customerSegment.create({
-    data: {
-      storeId: store.id,
-      ...parsed.data,
-    },
-  });
-
-  return ok(segment, 201);
+  try {
+    const segment = await createSegment(store.id, parsed.data);
+    return ok(segment, 201);
+  } catch (error) {
+    if (error instanceof MarketingError) return apiError("BAD_REQUEST", error.message, 400);
+    throw error;
+  }
 });

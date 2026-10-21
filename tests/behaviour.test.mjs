@@ -717,6 +717,7 @@ test("storefront shopper info only promises what the seller's settings offer", a
   assert.equal(info.readPaymentChoices({}).payOnDelivery, false, "pay on delivery needs the seller to turn it on");
   assert.equal(info.readPaymentChoices({ paymentConfig: { methods: { cod: true, card: true } } }).payOnDelivery, true);
   assert.equal(info.readPaymentChoices({ paymentConfig: { methods: { cod: true }, codLimit: 0 } }).payOnDeliveryLimit, null);
+  assert.deepEqual(info.readPaymentChoices({ paymentConfig: { methods: { korapay: true, transfer: true } } }).labels, ["Card", "Transfer"], "Korapay takes cards; USSD only with Paystack");
   assert.equal(info.whatsappDigits("0803 412 7790"), "2348034127790");
   assert.equal(info.whatsappDigits("+44 20 7946 0958"), "442079460958");
   assert.equal(info.whatsappDigits("call me"), null);
@@ -2346,6 +2347,33 @@ test("segment rules: legacy JSON reads as rules, contacts match all/any, phones 
   assert.equal(seg.normalizePhone("12"), null);
   assert.equal(seg.normalizeEmail(" Ada@X.com "), "ada@x.com");
   assert.equal(seg.normalizeEmail("nope"), null);
+});
+
+test("segment counts: every segment from one list of contacts, only changed counts are written back", async () => {
+  const seg = await import("../src/lib/marketing/segment-rules.ts");
+  const now = new Date("2026-10-11T12:00:00Z");
+  const base = {
+    email: null, phone: null, name: null, subscriberId: null, status: "active", source: "popup", tags: [], location: "", orders: 0, spent: 0,
+    firstOrderAt: null, lastOrderAt: null, joinedAt: null, productIds: [], birthday: null, smsOk: false, whatsappOk: false,
+  };
+  const contacts = [
+    { ...base, email: "ada@x.com", orders: 3, spent: 60000, location: "Lagos" },
+    { ...base, email: "bola@x.com", orders: 1, spent: 5000, location: "Abuja" },
+    { ...base, phone: "+2348030000000", status: "customer", orders: 2, spent: 20000, location: "Lagos" },
+  ];
+  const segments = [
+    { id: "repeat", rules: { match: "all", conditions: [{ field: "orders", op: "gte", value: 2 }] } },
+    { id: "lagos", rules: { match: "all", conditions: [{ field: "location", op: "contains", value: "lagos" }] } },
+    { id: "big", rules: { match: "any", conditions: [{ field: "spent", op: "gte", value: 50000 }, { field: "subscribed", op: "is_false" }] } },
+  ];
+  const counts = seg.countSegments(contacts, segments, now);
+  assert.deepEqual(counts, { repeat: 2, lagos: 2, big: 2 });
+  assert.deepEqual(seg.countSegments([], segments, now), { repeat: 0, lagos: 0, big: 0 });
+  assert.deepEqual(
+    seg.staleSegmentCounts([{ id: "repeat", count: 2 }, { id: "lagos", count: 7 }, { id: "big", count: 0 }, { id: "gone", count: 3 }], counts),
+    [{ id: "lagos", count: 2 }, { id: "big", count: 2 }],
+    "unchanged and uncounted segments are left alone",
+  );
 });
 
 test("automation flows: legacy rules become steps, bad steps are dropped, variables are escaped in HTML", async () => {
