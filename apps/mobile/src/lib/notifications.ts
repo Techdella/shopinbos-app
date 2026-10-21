@@ -55,8 +55,10 @@ export const sendTestNotification = () => api<{ sent: boolean; devices: number }
 
 /** Opens what a notification is about: the app's own screen when there is one, else that page of the website. */
 export function openNotificationTarget(target: { route?: string | null; url?: string | null }) {
-  if (target.route) return router.push(target.route as never);
-  const route = appRouteFor(target.url);
+  // app:/posts/<id> (the "Time to post" reminder) may come as the link or as the push's route.
+  const own = target.route?.startsWith("app:") ? target.route : null;
+  if (target.route && !own) return router.push(target.route as never);
+  const route = appRouteFor(own ?? target.url);
   if (route) return router.push((route.params ? { pathname: route.pathname, params: route.params } : route.pathname) as never);
   // Anything else the app has its own screen for (payouts, campaigns, reviews…) opens there; only the rest goes to the web.
   const path = target.url?.replace(/^https?:\/\/[^/]+/i, "") ?? "";

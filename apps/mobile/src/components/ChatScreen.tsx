@@ -20,6 +20,7 @@ export function ChatScreen({
   onRefresh,
   scrollKey,
   help = true,
+  backTo = "/chats",
 }: {
   header: ReactNode;
   children: ReactNode;
@@ -30,6 +31,8 @@ export function ChatScreen({
   scrollKey?: string | number;
   /** Help in the header (build spec 8A). */
   help?: boolean;
+  /** Where Back goes when there is nothing to go back to (a deep link or a push). */
+  backTo?: string;
 }) {
   const scroll = useRef<ScrollView>(null);
   useEffect(() => {
@@ -41,7 +44,7 @@ export function ChatScreen({
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 10 }}>
-          <BackButton onPress={() => (router.canGoBack() ? router.back() : router.replace("/chats"))} />
+          <BackButton onPress={() => (router.canGoBack() ? router.back() : router.replace(backTo as never))} />
           {header}
           {help ? <HelpButton /> : null}
         </View>
