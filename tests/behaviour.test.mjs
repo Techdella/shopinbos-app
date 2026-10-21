@@ -815,14 +815,15 @@ function seedSnapshot(id) {
   return JSON.parse(JSON.stringify({ templateId: manifest.id, templateName: manifest.name, layoutFamily: manifest.layoutFamily, themeTokens: manifest.themeTokens, pages: manifest.seedPages, updatedAt: "" }));
 }
 
-const ALL_THEME_IDS = ["breeze", "noir", "plain", "adire", "pantry", "ile", "plug", "stride", "ewa", "suku", "asoebi", "agbada", "ileke", "ounje", "chinchin", "oja", "omo", "iwe", "owambe", "danfo", "turare", "oko", "aaro", "highlife", "oba", "gbedu"];
+const ALL_THEME_IDS = ["breeze", "noir", "plain", "adire", "pantry", "ile", "plug", "stride", "ewa", "suku", "asoebi", "agbada", "ileke", "ounje", "chinchin", "oja", "omo", "iwe", "owambe", "danfo", "turare", "oko", "aaro", "highlife", "oba", "gbedu",
+  "omalicha", "zuma", "oku", "ihe", "kasuwa", "nkata", "uwa", "sarauniya", "zinariya"];
 
 test("theme library lists every 2026 theme, each a real boutique theme with its own pages, tokens and layouts", () => {
   assert.deepEqual(themeLib.THEME_LIBRARY.map((theme) => theme.id), ALL_THEME_IDS, "ids are stable and in order");
   assert.equal(new Set(themeLib.THEME_LIBRARY.map((theme) => theme.id)).size, ALL_THEME_IDS.length, "unique ids");
   assert.equal(new Set(themeLib.THEME_LIBRARY.map((theme) => theme.slug)).size, ALL_THEME_IDS.length, "unique slugs");
   assert.deepEqual([...boutique.BOUTIQUE_THEME_IDS], ALL_THEME_IDS, "every library theme renders with the boutique renderer");
-  assert.deepEqual(themeLib.THEME_LIBRARY.filter((theme) => theme.isNew).length, 18, "the industry themes and the newest themes are marked new");
+  assert.deepEqual(themeLib.THEME_LIBRARY.filter((theme) => theme.isNew).length, 27, "the industry themes and the newest themes are marked new");
   const tokenKeys = Object.keys(boutique.BOUTIQUE_THEME_TOKENS.breeze).sort();
   for (const theme of themeLib.THEME_LIBRARY) {
     assert.ok(boutique.isBoutiqueTheme(theme.id), `${theme.id} renders with the boutique renderer`);
@@ -863,6 +864,34 @@ test("theme library lists every 2026 theme, each a real boutique theme with its 
   assert.equal(boutique.BOUTIQUE_TEMPLATE_MANIFESTS.find((entry) => entry.id === "breeze").seedPages[0].seo.metaTitle, "Breeze");
 });
 
+test("the Igbo and Hausa themes design their inner pages, not just the home page", async () => {
+  const { STORE_BLOCK_KINDS } = await import("../src/components/storefront/boutique/blocks/block-catalog.ts");
+  const designed = ["omalicha", "zuma", "oku", "ihe", "kasuwa", "nkata", "uwa", "sarauniya", "zinariya"];
+  const shopLooks = new Set();
+  for (const id of designed) {
+    const pages = Object.fromEntries(seedSnapshot(id).pages.map((page) => [page.pageType, page]));
+    const body = (type) => pages[type].sections.filter((section) => !["announcement-bar", "header", "footer"].includes(section.kind));
+    const shop = body("products")[0].settings;
+    shopLooks.add(JSON.stringify({ shopLayout: shop.shopLayout, shopView: shop.shopView, filterPlacement: shop.filterPlacement, columns: shop.columns }));
+    assert.ok(body("about").length >= 2, `${id} about page has more than the story`);
+    assert.ok(body("about").some((section) => section.kind === "story-split"), `${id} about page keeps the story`);
+    const faq = body("faq")[0];
+    assert.ok(faq.settings.layout || faq.settings.faqStyle, `${id} FAQ page has its own look`);
+    for (const type of ["home", "about", "product", "cart", "wishlist"]) {
+      for (const section of body(type)) {
+        if (STORE_BLOCK_KINDS.includes(section.kind)) assert.equal(section.blocks[0].type, "copy", `${id} ${type} ${section.kind} is a real block`);
+      }
+    }
+    const home = body("home");
+    assert.equal(new Set(home.map((section) => section.id)).size, home.length, `${id} home section ids are unique`);
+  }
+  assert.ok(shopLooks.size >= 7, "the shop pages differ between themes");
+  // The older themes keep the inner pages they were seeded with.
+  const breeze = Object.fromEntries(seedSnapshot("breeze").pages.map((page) => [page.pageType, page]));
+  assert.deepEqual(breeze.products.sections.find((section) => section.kind === "featured-products").settings, { layout: "grid", source: "all", filters: true });
+  assert.deepEqual(breeze.about.sections.filter((section) => section.kind !== "header" && section.kind !== "footer" && section.kind !== "announcement-bar").map((section) => section.kind), ["story-split"]);
+});
+
 test("Nigerian theme names keep their diacritics and match searches without them", () => {
   const names = Object.fromEntries(themeLib.THEME_LIBRARY.map((theme) => [theme.id, theme.name]));
   assert.deepEqual(names, {
@@ -870,6 +899,7 @@ test("Nigerian theme names keep their diacritics and match searches without them
     ewa: "Ẹwà", suku: "Ṣùkú", asoebi: "Aṣọ Ẹbí", agbada: "Agbada", ileke: "Ìlẹ̀kẹ̀", ounje: "Oúnjẹ", chinchin: "Chin Chin", oja: "Ọjà",
     omo: "Ọmọ", iwe: "Ìwé", owambe: "Owambe", danfo: "Danfo", turare: "Turare", oko: "Oko",
     aaro: "Àárọ̀", highlife: "Highlife", oba: "Ọba", gbedu: "Gbẹ̀du",
+    omalicha: "Ọmalịcha", zuma: "Zuma", oku: "Ọkụ", ihe: "Ìhè", kasuwa: "Kasuwa", nkata: "Nkata", uwa: "Ụwa", sarauniya: "Sarauniya", zinariya: "Zinariya",
   });
   for (const theme of themeLib.THEME_LIBRARY) assert.equal(theme.name, theme.name.normalize("NFC"), `${theme.id} name is NFC`);
   assert.match(names.breeze, /\u1EB9\u0301/, "ẹ́ is ẹ with a combining acute");
@@ -877,7 +907,7 @@ test("Nigerian theme names keep their diacritics and match searches without them
   assert.equal(themeLib.foldText("Aṣọ Ẹbí"), "aso ebi");
   assert.equal(themeLib.themeLibraryEntry("asoebi").slug, "aso-ebi");
   assert.equal(themeLib.themeLibraryEntry("ileke").slug, "ileke");
-  for (const [query, id] of [["afefe", "breeze"], ["Afẹ́fẹ́", "breeze"], ["aaro", "aaro"], ["oba", "oba"], ["gbedu", "gbedu"], ["dudu", "noir"], ["jeje", "plain"], ["aso ebi", "asoebi"], ["ileke", "ileke"], ["ounje", "ounje"], ["oja", "oja"], ["iwe", "iwe"], ["suku", "suku"], ["ewa", "ewa"]]) {
+  for (const [query, id] of [["afefe", "breeze"], ["Afẹ́fẹ́", "breeze"], ["aaro", "aaro"], ["oba", "oba"], ["gbedu", "gbedu"], ["omalicha", "omalicha"], ["Ụwa", "uwa"], ["oku", "oku"], ["ihe", "ihe"], ["kasuwa", "kasuwa"], ["zinariya", "zinariya"], ["dudu", "noir"], ["jeje", "plain"], ["aso ebi", "asoebi"], ["ileke", "ileke"], ["ounje", "ounje"], ["oja", "oja"], ["iwe", "iwe"], ["suku", "suku"], ["ewa", "ewa"]]) {
     assert.ok(themeLib.searchThemes(query).some((theme) => theme.id === id), `"${query}" finds ${id}`);
   }
   assert.deepEqual(themeLib.searchThemes("wigs").map((theme) => theme.id), ["suku"]);
@@ -893,11 +923,13 @@ test("theme category chips only show categories that have themes", () => {
   assert.deepEqual(themeLib.themeCategoryChips().map((chip) => chip.label), ["All", "Fashion", "Beauty", "Food", "Home", "Gadgets", "Kids", "Books", "Events", "Auto", "Groceries", "Jewellery", "Agro"]);
   const subset = themeLib.THEME_LIBRARY.filter((theme) => theme.id === "breeze" || theme.id === "pantry" || theme.id === "plain");
   assert.deepEqual(themeLib.themeCategoryChips(subset).map((chip) => chip.id), ["all", "fashion", "food"]);
-  assert.deepEqual(themeLib.filterThemes("fashion").map((theme) => theme.id), ["breeze", "noir", "adire", "stride", "asoebi", "agbada", "aaro", "highlife", "oba", "gbedu"]);
-  assert.deepEqual(themeLib.filterThemes("beauty").map((theme) => theme.id), ["ewa", "suku", "turare", "highlife", "oba"]);
-  assert.deepEqual(themeLib.filterThemes("jewellery").map((theme) => theme.id), ["noir", "ileke", "oba"]);
+  assert.deepEqual(themeLib.filterThemes("fashion").map((theme) => theme.id), ["breeze", "noir", "adire", "stride", "asoebi", "agbada", "aaro", "highlife", "oba", "gbedu", "oku", "nkata", "uwa", "sarauniya"]);
+  assert.deepEqual(themeLib.filterThemes("beauty").map((theme) => theme.id), ["ewa", "suku", "turare", "highlife", "oba", "omalicha"]);
+  assert.deepEqual(themeLib.filterThemes("jewellery").map((theme) => theme.id), ["noir", "ileke", "oba", "zinariya"]);
   assert.deepEqual(themeLib.filterThemes("food").map((theme) => theme.id), ["pantry", "ounje", "chinchin"]);
-  for (const chip of ["kids", "books", "events", "auto", "groceries", "agro"]) assert.equal(themeLib.filterThemes(chip).length, 1, chip);
+  for (const chip of ["kids", "events", "auto", "agro"]) assert.equal(themeLib.filterThemes(chip).length, 1, chip);
+  assert.deepEqual(themeLib.filterThemes("books").map((theme) => theme.id), ["iwe", "uwa"]);
+  assert.deepEqual(themeLib.filterThemes("groceries").map((theme) => theme.id), ["oja", "kasuwa"]);
   assert.equal(themeLib.filterThemes("all").length, ALL_THEME_IDS.length);
   assert.equal(themeLib.chipForStoreCategory("Hair & wigs"), "beauty");
   assert.equal(themeLib.chipForStoreCategory("Other"), "all");
@@ -1063,9 +1095,17 @@ test("Rex's fallback pick follows what the store sells, for every industry", () 
     ["Couture and bridal atelier", "oba"],
     ["Streetwear and audio gear", "gbedu"],
     ["Vintage merch and graphic tees", "highlife"],
+    ["Gym wear and football jerseys", "oku"],
+    ["Paintings and art prints", "ihe"],
+    ["Handmade pottery and woven baskets", "zuma"],
+    ["Bridal and occasion wear for women", "sarauniya"],
+    ["Department store, wholesale", "kasuwa"],
+    ["A curated concept store", "uwa"],
+    ["Diamond engagement rings and 18k gold", "zinariya"],
+    ["Bath, body care and aromatherapy", "omalicha"],
   ];
   for (const [storeCategory, themeId] of cases) assert.equal(themeLib.pickThemeByRules({ storeCategory }).themeId, themeId, storeCategory);
-  for (const id of ALL_THEME_IDS.filter((id) => id !== "plain" && id !== "adire" && id !== "aaro")) assert.ok(cases.some(([, themeId]) => themeId === id), `${id} has a rule`);
+  for (const id of ALL_THEME_IDS.filter((id) => id !== "plain" && id !== "adire" && id !== "aaro" && id !== "nkata")) assert.ok(cases.some(([, themeId]) => themeId === id), `${id} has a rule`);
   assert.equal(themeLib.pickThemeByRules({ storeCategory: "Fashion", productNames: ["Ankara wrap dress"] }).themeId, "adire");
   assert.equal(themeLib.pickThemeByRules({ productNames: ["Bluetooth speaker", "Power bank 20000mAh"] }).themeId, "plug");
   assert.equal(themeLib.pickThemeByRules({ productNames: ["Swiss voile lace", "Gele headtie", "George wrapper"] }).themeId, "asoebi");

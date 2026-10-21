@@ -357,6 +357,15 @@ export const HERO_LAYOUT_BY_THEME: Record<string, string> = {
   highlife: "highlife-ticker",
   oba: "oba-cinema",
   gbedu: "gbedu-impact",
+  omalicha: "omalicha-card",
+  zuma: "zuma-collage",
+  oku: "oku-diagonal",
+  ihe: "ihe-gallery",
+  kasuwa: "kasuwa-mosaic",
+  nkata: "nkata-frame",
+  uwa: "uwa-cover",
+  sarauniya: "sarauniya-duo",
+  zinariya: "zinariya-arch",
 };
 
 const HERO_LAYOUTS: ChoiceOption[] = [
@@ -369,10 +378,12 @@ const HERO_LAYOUTS: ChoiceOption[] = [
   { value: "plug-spotlight", label: "Spotlight", hint: "One product photo on a plain background." },
   { value: "stride-loud", label: "Loud", hint: "Very big heading over the photo." },
   { value: "aaro-banner", label: "Image banner", hint: "Full-width photo, heading and button in the middle." },
+  { value: "omalicha-card", label: "Floating card", hint: "Rounded photo with the words in a white card over it." },
+  { value: "nkata-frame", label: "Framed box", hint: "Full-width photo with the words in a framed box in the middle." },
 ];
 
 /** Hero layouts that use more than one picture (the rest use the first). */
-const HERO_PICTURE_COUNT: Record<string, number> = { "asoebi-collage": 3, "iwe-shelf": 4 };
+const HERO_PICTURE_COUNT: Record<string, number> = { "asoebi-collage": 3, "iwe-shelf": 4, "zuma-collage": 2, "ihe-gallery": 3, "sarauniya-duo": 2 };
 /** Layouts that don't show the eyebrow. */
 const HERO_NO_EYEBROW = ["breeze-banner"];
 

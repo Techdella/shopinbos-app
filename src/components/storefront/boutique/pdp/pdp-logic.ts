@@ -179,6 +179,15 @@ export const PDP_THEME_DEFAULTS: Record<string, ThemeDefault> = {
   highlife: { layout: "editorial", gallery: "slider", details: "tabs" },
   oba: { layout: "gallery-stack", gallery: "thumbs-left", details: "accordion" },
   gbedu: { layout: "editorial", gallery: "thumbs-bottom", details: "tabs" },
+  omalicha: { layout: "classic", gallery: "thumbs-bottom", details: "accordion" },
+  zuma: { layout: "gallery-stack", gallery: "thumbs-bottom", details: "accordion" },
+  oku: { layout: "editorial", gallery: "slider", details: "tabs" },
+  ihe: { layout: "gallery-stack", gallery: "thumbs-left", details: "accordion" },
+  kasuwa: { layout: "compact", gallery: "thumbs-left", details: "tabs" },
+  nkata: { layout: "classic", gallery: "thumbs-left", details: "accordion" },
+  uwa: { layout: "gallery-stack", gallery: "thumbs-bottom", details: "tabs" },
+  sarauniya: { layout: "editorial", gallery: "thumbs-bottom", details: "accordion" },
+  zinariya: { layout: "gallery-stack", gallery: "thumbs-left", details: "accordion" },
 };
 
 const FALLBACK_THEME: ThemeDefault = { layout: "classic", gallery: "thumbs-bottom", details: "accordion" };

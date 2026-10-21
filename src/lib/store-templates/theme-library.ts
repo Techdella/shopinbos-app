@@ -9,7 +9,8 @@ import type { StoreEditorSnapshot, TemplatePageSeed, TemplateSectionNode } from 
 export type ThemeLibraryId =
   | "breeze" | "noir" | "plain" | "adire" | "pantry" | "ile" | "plug" | "stride"
   | "ewa" | "suku" | "asoebi" | "agbada" | "ileke" | "ounje" | "chinchin" | "oja" | "omo" | "iwe" | "owambe" | "danfo" | "turare" | "oko"
-  | "aaro" | "highlife" | "oba" | "gbedu";
+  | "aaro" | "highlife" | "oba" | "gbedu"
+  | "omalicha" | "zuma" | "oku" | "ihe" | "kasuwa" | "nkata" | "uwa" | "sarauniya" | "zinariya";
 
 /**
  * Which plan a theme needs: basic themes come with every store (the free Starter plan), premium ones with Growth
@@ -204,6 +205,51 @@ export const THEME_LIBRARY: readonly ThemeLibraryEntry[] = [
     industries: ["audio", "tech", "streetwear", "sneakers", "gaming", "music"], blurb: "Dark and loud: giant headlines, glowing gradients. For bold tech and streetwear", isNew: true, tier: "platinum",
     preview: { bg: "#0B0B0F", ink: "#F5F5F7", line: "#26262E", accent: "#8B5CF6", nameFont: "grotesk", nameWeight: 800, dark: true },
   }),
+  entry({
+    id: "omalicha", name: "Ọmalịcha", meaning: "Igbo for beautiful", categories: ["beauty"], categoryLabel: "Beauty and wellness",
+    industries: ["beauty", "skincare", "wellness", "body care", "self-care"], blurb: "Soft and pastel, headline in a floating card. For beauty and wellness", isNew: true, tier: "basic",
+    preview: { bg: "#F7ECF4", ink: "#3A2341", line: "#EEDDEA", accent: "#B3477D", nameFont: "grotesk", nameWeight: 600, dark: false },
+  }),
+  entry({
+    id: "zuma", name: "Zuma", meaning: "Hausa for honey", categories: ["home", "any"], categoryLabel: "Handmade",
+    industries: ["handmade", "crafts", "artisan", "pottery", "candles", "leather goods"], blurb: "Warm and handmade, with a maker's letter. For crafts and artisans", isNew: true, tier: "basic",
+    preview: { bg: "#F2E8D8", ink: "#3B2A1A", line: "#E6D8C3", accent: "#B8792C", nameFont: "serif", nameWeight: 600, dark: false },
+  }),
+  entry({
+    id: "oku", name: "Ọkụ", meaning: "Igbo for fire", categories: ["fashion"], categoryLabel: "Sport and activewear",
+    industries: ["sportswear", "activewear", "fitness", "gym", "football", "running"], blurb: "Fast and slanted, black and lime. For sport and activewear", isNew: true, tier: "basic",
+    preview: { bg: "#0F0F0F", ink: "#FFFFFF", line: "#2A2A2A", accent: "#D4FF3A", nameFont: "grotesk", nameWeight: 800, nameItalic: true, dark: true },
+  }),
+  entry({
+    id: "ihe", name: "Ìhè", meaning: "Igbo for light", categories: ["home", "any"], categoryLabel: "Art and prints",
+    industries: ["art", "prints", "paintings", "photography", "gallery", "objects"], blurb: "A quiet gallery wall with lots of space. For art, prints and objects", isNew: true, tier: "basic",
+    preview: { bg: "#F5F3EF", ink: "#1A1A1A", line: "#E7E4DE", accent: "#C2410C", nameFont: "serif", nameWeight: 400, dark: false },
+  }),
+  entry({
+    id: "kasuwa", name: "Kasuwa", meaning: "Hausa for market", categories: ["groceries", "gadgets", "any"], categoryLabel: "Big catalogues",
+    industries: ["general store", "supermarket", "electronics", "wholesale", "big catalogue", "department store"], blurb: "Promo mosaic, departments and a full filters column. For big catalogues", isNew: true, tier: "premium",
+    preview: { bg: "#E8EEF8", ink: "#0F1B33", line: "#DDE3EE", accent: "#0B3B8C", nameFont: "grotesk", nameWeight: 800, dark: false },
+  }),
+  entry({
+    id: "nkata", name: "Nkata", meaning: "Igbo for basket, and for a good conversation", categories: ["fashion", "home"], categoryLabel: "Classic",
+    industries: ["fashion", "homeware", "accessories", "classic", "family store"], blurb: "Classic and balanced, with a framed banner. Works for most shops", isNew: true, tier: "premium",
+    preview: { bg: "#F4F1EC", ink: "#22292F", line: "#E3DFD8", accent: "#A3684A", nameFont: "serif", nameWeight: 500, dark: false },
+  }),
+  entry({
+    id: "uwa", name: "Ụwa", meaning: "Igbo for world", categories: ["fashion", "books"], categoryLabel: "Magazine",
+    industries: ["lifestyle", "fashion", "editorial", "concept store", "journal"], blurb: "A magazine cover and an 'in this issue' list. For editorial brands", isNew: true, tier: "premium",
+    preview: { bg: "#F0EBE1", ink: "#111111", line: "#E2DCD0", accent: "#D7263D", nameFont: "serif", nameWeight: 700, nameItalic: true, dark: false },
+  }),
+  entry({
+    id: "sarauniya", name: "Sarauniya", meaning: "Hausa for queen", categories: ["fashion"], categoryLabel: "Womenswear",
+    industries: ["womenswear", "fashion house", "designer", "occasion wear", "bridal"], blurb: "Two photos side by side, headline across the seam. For fashion houses", isNew: true, tier: "platinum",
+    preview: { bg: "#EDE7DF", ink: "#1A1A1A", line: "#E0D9CF", accent: "#C9A27E", nameFont: "serif", nameWeight: 500, dark: false },
+  }),
+  entry({
+    id: "zinariya", name: "Zinariya", meaning: "Hausa for gold", categories: ["jewellery"], categoryLabel: "Fine jewellery",
+    industries: ["fine jewellery", "gold", "diamonds", "bridal jewellery", "watches"], blurb: "Gold on deep emerald, an arched frame. For fine jewellery", isNew: true, tier: "platinum",
+    preview: { bg: "#0F2E26", ink: "#F5ECD7", line: "#2A4A40", accent: "#C9A24A", nameFont: "serif", nameWeight: 500, dark: true },
+  }),
 ];
 
 export const THEME_LIBRARY_IDS: readonly ThemeLibraryId[] = THEME_LIBRARY.map((item) => item.id);
@@ -315,6 +361,15 @@ const THEME_RULES: Array<{ themeId: ThemeLibraryId; industry: string; words: str
   { themeId: "pantry", industry: "food and drinks", words: ["food", "drink", "juice", "zobo", "kunu", "tigernut", "smoothie", "spice", "seasoning", "sauce", "pepper sauce", "honey", "tea", "coffee", "wine", "palm wine", "yoghurt", "yogurt", "small chops", "chops", "condiment"] },
   { themeId: "ile", industry: "home and living", words: ["home", "decor", "furniture", "living", "candle", "bedding", "interior", "homeware", "rug", "cushion", "vase", "lamp", "kitchenware", "cookware", "curtain", "throw pillow", "duvet", "bedsheet", "diffuser", "wall art"] },
   { themeId: "plug", industry: "gadgets", words: ["gadget", "phone", "iphone", "android", "electronic", "electronics", "tech", "laptop", "charger", "earbud", "earpod", "airpod", "headphone", "speaker", "power bank", "smartwatch", "console", "playstation", "camera", "tablet", "ipad", "phone accessories", "solar"] },
+  // Newer themes: after the industry rules, so on a tie the older, more specific theme still wins.
+  { themeId: "zinariya", industry: "fine jewellery", words: ["gold jewellery", "gold jewelry", "diamond", "diamonds", "engagement ring", "wedding band", "18k", "karat", "carat", "goldsmith"] },
+  { themeId: "oku", industry: "sport and activewear", words: ["sportswear", "activewear", "gym", "gym wear", "fitness", "jersey", "football", "running", "athleisure", "workout", "training"] },
+  { themeId: "ihe", industry: "art and prints", words: ["art", "artwork", "painting", "art print", "poster", "photography", "gallery", "sculpture", "illustration"] },
+  { themeId: "zuma", industry: "handmade crafts", words: ["handmade", "hand made", "craft", "crafts", "artisan", "pottery", "ceramic", "woven", "weaving", "basket", "leatherwork", "macrame"] },
+  { themeId: "sarauniya", industry: "womenswear", words: ["womenswear", "women's wear", "womens wear", "women's clothing", "occasion wear", "bridal", "bridal wear", "evening wear"] },
+  { themeId: "kasuwa", industry: "big catalogue", words: ["department store", "wholesale", "wholesaler", "distributor", "big catalogue", "everything store", "one-stop shop", "one stop shop"] },
+  { themeId: "uwa", industry: "editorial lifestyle", words: ["concept store", "magazine", "zine", "curated"] },
+  { themeId: "omalicha", industry: "wellness", words: ["self-care", "self care", "bath", "body care", "essential oil", "aromatherapy"] },
   { themeId: "breeze", industry: "fashion", words: ["fashion", "clothing", "clothes", "cloth", "wear", "dress", "gown", "top", "shirt", "t-shirt", "trouser", "jean", "apparel", "boutique", "bag", "handbag", "outfit", "skirt", "jumpsuit", "thrift", "okrika", "ankara", "abaya", "hijab", "kimono", "two-piece", "co-ord"] },
 ];
 

@@ -88,6 +88,15 @@ export const CHECKOUT_THEME_DEFAULTS: Record<string, ThemeDefault> = {
   highlife: { layout: "steps", summaryPosition: "right", header: "nav" },
   oba: { layout: "minimal", summaryPosition: "right", header: "logo" },
   gbedu: { layout: "steps", summaryPosition: "right", header: "logo" },
+  omalicha: { layout: "two-column", summaryPosition: "right", header: "nav" },
+  zuma: { layout: "stacked", summaryPosition: "right", header: "nav" },
+  oku: { layout: "steps", summaryPosition: "right", header: "nav" },
+  ihe: { layout: "minimal", summaryPosition: "right", header: "logo" },
+  kasuwa: { layout: "steps", summaryPosition: "right", header: "nav" },
+  nkata: { layout: "two-column", summaryPosition: "left", header: "logo" },
+  uwa: { layout: "two-column", summaryPosition: "left", header: "nav" },
+  sarauniya: { layout: "minimal", summaryPosition: "right", header: "logo" },
+  zinariya: { layout: "minimal", summaryPosition: "right", header: "logo" },
 };
 
 const FALLBACK_THEME: ThemeDefault = { layout: "two-column", summaryPosition: "right", header: "logo" };

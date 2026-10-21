@@ -81,7 +81,7 @@ function needsPhoto(value: { product: string | null; imageUrl: string | null }, 
 
 export const REX_SECTION_PAGES = ["home", "products", "product", "categories", "about", "contact", "faq", "blog"] as const;
 // Keep in step with BOUTIQUE_THEME_IDS (src/lib/store-templates/boutique-themes.ts); a test checks they match.
-export const REX_THEME_IDS = ["breeze", "noir", "plain", "adire", "pantry", "ile", "plug", "stride", "ewa", "suku", "asoebi", "agbada", "ileke", "ounje", "chinchin", "oja", "omo", "iwe", "owambe", "danfo", "turare", "oko", "aaro", "highlife", "oba", "gbedu"] as const;
+export const REX_THEME_IDS = ["breeze", "noir", "plain", "adire", "pantry", "ile", "plug", "stride", "ewa", "suku", "asoebi", "agbada", "ileke", "ounje", "chinchin", "oja", "omo", "iwe", "owambe", "danfo", "turare", "oko", "aaro", "highlife", "oba", "gbedu", "omalicha", "zuma", "oku", "ihe", "kasuwa", "nkata", "uwa", "sarauniya", "zinariya"] as const;
 export const REX_VIDEO_LANGUAGES = ["english", "pidgin", "yoruba", "hausa"] as const;
 export const REX_AUTOMATION_KINDS = ["welcome", "abandoned_checkout", "post_purchase", "review_request", "win_back", "birthday", "order_shipped", "order_delivered"] as const;
 export const REX_CAMPAIGN_AUDIENCES = ["all", "subscribers", "repeat_buyers", "top_spenders", "segment"] as const;

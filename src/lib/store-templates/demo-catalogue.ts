@@ -374,6 +374,118 @@ export const DEMO_CATALOGUES: Record<ThemeLibraryId, DemoCatalogue> = {
       p("Game controller", 42000, "Gaming", "powerbank", "Wireless, works with phones and consoles.", "#1F2937"),
     ],
   },
+  omalicha: {
+    storeName: "Ọmalịcha Skin", city: "Enugu", industry: "beauty and wellness", description: "Gentle skincare and body care made for our sun.",
+    heroArt: ["jar", "dropper", "tube"], mains: ["#B3477D", "#F3E3F0", "#3A2341"],
+    products: [
+      p("Hydrating face serum, 30ml", 12500, "Serums", "dropper", "Hyaluronic acid and aloe for thirsty skin. Morning and night.", "#F3E3F0"),
+      p("Whipped shea body butter", 8500, "Body", "jar", "Raw shea and cocoa butter, whipped light. Lasts all day.", "#F5E6C8"),
+      p("Gentle foaming cleanser", 7800, "Cleansers", "tube", "Low-foam, soap-free, leaves skin soft not tight.", "#FFFFFF"),
+      p("Vitamin C glow cream", 14000, "Moisturisers", "jar", "Brightens dark spots with steady use.", "#F59E0B", 16500),
+      p("Black soap bar", 3500, "Body", "soap", "Plantain-ash African black soap, made in small batches.", "#3A2341"),
+      p("Mineral sunscreen SPF 50", 11000, "Sun care", "tube", "No white cast on deep skin tones.", "#FDE68A"),
+    ],
+  },
+  zuma: {
+    storeName: "Zuma Workshop", city: "Kano", industry: "handmade crafts", description: "Pottery, leather and woven pieces, made by hand in Kano.",
+    heroArt: ["vase", "basket", "bag"], mains: ["#B8792C", "#3B2A1A", "#8C5E30"],
+    products: [
+      p("Hand-thrown clay vase", 18000, "Pottery", "vase", "Wheel-thrown terracotta with a matte glaze.", "#B45309"),
+      p("Woven raffia basket", 12500, "Baskets", "basket", "Hand-woven raffia with leather handles.", "#C8A15A"),
+      p("Kano leather tote", 32000, "Leather", "bag", "Vegetable-tanned goat leather, hand-stitched.", "#8C5E30"),
+      p("Beeswax candle, set of 2", 9000, "Candles", "candle", "Pure beeswax, cotton wick, honey scent.", "#F2C14E"),
+      p("Ceramic serving bowl", 15000, "Pottery", "bowl", "Speckled glaze, food safe.", "#E7DCCB"),
+      p("Hand-dyed throw cushion", 14500, "Textiles", "cushion", "Indigo-dyed cotton with a hidden zip.", "#1E3A8A"),
+    ],
+  },
+  oku: {
+    storeName: "Ọkụ Athletics", city: "Lagos", industry: "sport and activewear", description: "Kit for runners, ballers and early-morning gym people.",
+    heroArt: ["sneaker", "shirt", "bottle"], mains: ["#0F0F0F", "#D4FF3A", "#9CA3AF"],
+    products: [
+      p("Running shoes", 58000, "Footwear", "sneaker", "Light, cushioned and grippy on wet roads.", "#0F0F0F", 65000),
+      p("Training tee", 12000, "Tops", "shirt", "Quick-dry fabric that doesn't cling.", "#D4FF3A"),
+      p("Football jersey", 18500, "Football", "shirt", "Breathable mesh, slim fit.", "#16A34A"),
+      p("Gym duffel bag", 22000, "Bags", "bag", "Shoe pocket and wet compartment.", "#111111"),
+      p("Steel water bottle, 1L", 9500, "Accessories", "bottle", "Keeps water cold for 24 hours.", "#9CA3AF"),
+      p("Running shorts", 11000, "Bottoms", "trousers", "Built-in liner and a zip pocket.", "#1F2937"),
+    ],
+  },
+  ihe: {
+    storeName: "Ìhè Gallery", city: "Lagos", industry: "art and prints", description: "Original works and prints by artists from across Nigeria.",
+    heroArt: ["vase", "lamp", "book"], mains: ["#C2410C", "#1A1A1A", "#D6D3CE"],
+    products: [
+      p("Harmattan, giclée print", 45000, "Prints", "book", "Archival print on cotton rag, 50 × 70 cm.", "#D6D3CE"),
+      p("Market women, oil on canvas", 380000, "Originals", "book", "Original oil painting, 90 × 120 cm.", "#C2410C"),
+      p("Lagos at dusk, photograph", 65000, "Photography", "book", "Signed photographic print, 40 × 60 cm.", "#1A1A1A"),
+      p("Abstract no. 7, print", 38000, "Prints", "book", "Limited edition of 50, 50 × 50 cm.", "#2563EB"),
+      p("Stoneware sculpture", 120000, "Objects", "vase", "Hand-built stoneware, 35 cm tall.", "#78716C"),
+      p("Portrait study, charcoal", 95000, "Originals", "book", "Charcoal on paper, framed, 40 × 50 cm.", "#44403C"),
+    ],
+  },
+  kasuwa: {
+    storeName: "Kasuwa Mega Store", city: "Kaduna", industry: "big catalogue", description: "Electronics, home, kitchen and groceries, all in one cart.",
+    heroArt: ["phone", "pot", "sack"], mains: ["#0B3B8C", "#FFB800", "#111827"],
+    products: [
+      p("Smartphone, 128GB", 185000, "Phones", "phone", "6.6\" screen, dual SIM, 5000mAh battery.", "#111827", 199000),
+      p("Bluetooth earbuds", 15500, "Electronics", "headphones", "20 hours with the case.", "#F5F5F5"),
+      p("Electric kettle, 1.7L", 14000, "Kitchen", "pot", "Auto shut-off, stainless steel.", "#9CA3AF"),
+      p("Non-stick pot set", 38000, "Kitchen", "pot", "Three pots with glass lids.", "#111827"),
+      p("Long grain rice, 25kg", 52000, "Groceries", "sack", "Stone-free, parboiled.", "#F5F5F4"),
+      p("Power bank, 20000mAh", 18000, "Electronics", "powerbank", "Charges two phones at once.", "#0B3B8C"),
+      p("Standing fan, 18\"", 42000, "Home", "lamp", "Three speeds and a timer.", "#FFFFFF"),
+      p("Bedsheet set, 6 by 6", 21000, "Home", "cushion", "Cotton blend, four pillowcases.", "#93C5FD"),
+      p("Vegetable oil, 5L", 16500, "Groceries", "bottle", "Pure soya oil.", "#FBBF24"),
+      p("Laptop backpack", 19500, "Bags", "bag", "Fits 15.6\" laptops, USB port.", "#1F2937"),
+    ],
+  },
+  nkata: {
+    storeName: "Nkata & Co.", city: "Owerri", industry: "classic fashion and home", description: "Everyday pieces made well, for the wardrobe and the home.",
+    heroArt: ["shirt", "bag", "vase"], mains: ["#2F3E46", "#A3684A", "#E7DFD3"],
+    products: [
+      p("Oxford cotton shirt", 18500, "Shirts", "shirt", "Crisp cotton, button-down collar.", "#93C5FD"),
+      p("Leather crossbody bag", 34000, "Bags", "bag", "Adjustable strap, three pockets.", "#A3684A"),
+      p("Linen trousers", 21000, "Trousers", "trousers", "Relaxed fit, drawstring waist.", "#E7DFD3"),
+      p("Woven straw hat", 9500, "Accessories", "cap", "Wide brim for the sun.", "#C8A15A"),
+      p("Ceramic table lamp", 28000, "Home", "lamp", "Linen shade, warm light.", "#F5F5F4"),
+      p("Knit cardigan", 24500, "Knitwear", "robe", "Soft cotton knit with wooden buttons.", "#2F3E46"),
+    ],
+  },
+  uwa: {
+    storeName: "Ụwa Edit", city: "Lagos", industry: "editorial lifestyle", description: "A monthly edit of fashion, objects and good reads.",
+    heroArt: ["dress", "book", "vase"], mains: ["#D7263D", "#111111", "#E2DCD0"],
+    products: [
+      p("Pleated wrap dress", 36000, "Fashion", "dress", "The dress of the season, in rust.", "#B45309"),
+      p("The Lagos cookbook", 15000, "Books", "book", "Recipes from home kitchens across the city.", "#D7263D"),
+      p("Hand-painted vase", 22000, "Objects", "vase", "Each one painted by hand, no two alike.", "#1E3A8A"),
+      p("Leather sandals", 26000, "Fashion", "sandal", "Flat, strappy, made in Aba.", "#8C5E30"),
+      p("Linen tote", 9500, "Fashion", "bag", "Big enough for the market and a book.", "#E2DCD0"),
+      p("Scented candle", 12000, "Objects", "candle", "Vetiver and lemongrass.", "#111111"),
+    ],
+  },
+  sarauniya: {
+    storeName: "Sarauniya", city: "Abuja", industry: "womenswear", description: "Occasion and everyday womenswear, designed in Abuja.",
+    heroArt: ["dress", "heel", "bag"], mains: ["#1A1A1A", "#C9A27E", "#7F1D1D"],
+    products: [
+      p("Silk slip dress", 68000, "Dresses", "dress", "Bias-cut silk with adjustable straps.", "#C9A27E"),
+      p("Tailored blazer", 75000, "Tailoring", "robe", "Single-breasted, fully lined.", "#1A1A1A"),
+      p("Wide-leg trousers", 42000, "Tailoring", "trousers", "High waist, pressed crease.", "#E7E0D6"),
+      p("Embellished evening gown", 165000, "Occasion", "dress", "Hand-beaded bodice, floor length.", "#7F1D1D", 190000),
+      p("Strappy heeled sandals", 48000, "Shoes", "heel", "8cm block heel, padded sole.", "#1A1A1A"),
+      p("Mini top-handle bag", 55000, "Bags", "bag", "Smooth leather, gold clasp.", "#C9A27E"),
+    ],
+  },
+  zinariya: {
+    storeName: "Zinariya Jewellers", city: "Kano", industry: "fine jewellery", description: "Gold and gemstone jewellery made at our bench in Kano.",
+    heroArt: ["ring", "necklace", "earrings"], mains: ["#C9A24A", "#0F2E26", "#F5ECD7"],
+    products: [
+      p("18k gold signet ring", 285000, "Rings", "ring", "Solid 18k gold, made to your size.", "#C9A24A"),
+      p("Diamond stud earrings", 420000, "Earrings", "earrings", "0.5ct total, set in white gold.", "#E5E7EB"),
+      p("Gold chain necklace, 45cm", 310000, "Necklaces", "necklace", "18k gold rope chain.", "#C9A24A"),
+      p("Emerald drop pendant", 365000, "Necklaces", "necklace", "Natural emerald on an 18k gold chain.", "#047857"),
+      p("Gold bangle", 240000, "Bracelets", "bracelet", "Polished 18k gold, hinged clasp.", "#C9A24A"),
+      p("Pearl and gold earrings", 165000, "Earrings", "earrings", "Freshwater pearls with gold hooks.", "#F5ECD7"),
+    ],
+  },
 };
 
 /** The fields of a storefront product the theme renderer reads (structurally a ShopperProduct). */
@@ -426,7 +538,7 @@ export function demoProducts(themeId: string, colours: DemoThemeColours): DemoSh
 }
 
 /** Themes whose hero frames its picture tall (an arch, an oval, a circle): their sample banner is one object, 4:5. */
-const TALL_HERO_THEMES = new Set(["ewa", "suku", "agbada", "chinchin", "ounje", "omo", "turare"]);
+const TALL_HERO_THEMES = new Set(["ewa", "suku", "agbada", "chinchin", "ounje", "omo", "turare", "zinariya"]);
 
 /** Sample banner (16:9, or 4:5 for tall hero frames) and story (4:5) pictures for a theme: photos, or drawn scenes. */
 export function demoBanners(themeId: string, colours: DemoThemeColours) {
