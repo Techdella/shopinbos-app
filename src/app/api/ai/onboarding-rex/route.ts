@@ -138,7 +138,8 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
     }
     const response = await anthropic.messages.create({
       model: PEGGY_CLAUDE_MODEL,
-      max_tokens: 8000,
+      // Thinking counts against this too: room for it and a full reply.
+      max_tokens: 16000,
       system,
       output_config: { effort: "low" },
       messages: [{ role: "user", content }],

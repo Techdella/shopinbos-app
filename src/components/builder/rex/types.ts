@@ -6,6 +6,8 @@ import type { RexCard } from "@/lib/ai/rex/cards";
 
 export interface RexStudioProps {
   firstName: string;
+  /** The seller's profile photo, beside their messages (else their initial). */
+  avatarUrl?: string | null;
   /** `?prompt=` from a link (e.g. "Rebrand my store" on Your store): prefilled in the composer. */
   initialPrompt: string;
   /** `?preview=1`: open with the store preview showing. */

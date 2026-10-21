@@ -397,6 +397,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "cr.kind.rate_card": "Wuo kaadị ọnụahịa site na ndepụta ọnụahịa gị (PDF ma ọ bụ foto)",
   "cr.kind.coverage_listing": "Ndepụta mpaghara na ebe nnata",
   "cr.kind.performance_report": "Akụkọ nchịkọta arụmọrụ",
+  "cr.kind.store_design": "Atụmatụ Rex etinyere n'ihe nrụpụta ụlọ ahịa",
   "err.codNeedsPlan": "Ịkwụ ụgwọ mgbe e nyefere bịara na atụmatụ Growth gaa elu. Kwalite na Settings › Billing iji gbanye ya.",
   "an.basic": "Atụmatụ gị na-egosi ọnụọgụ ndị bụ isi. Chaatị zuru ezu (kwa ụbọchị, izu, ọkwa na ndị kacha ere) bịara na Plus, ibudata spreadsheet bịara na Pro.",
   "an.full": "Budata ọnụọgụ ndị a dị ka spreadsheet na atụmatụ Pro.",

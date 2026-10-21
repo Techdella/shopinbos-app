@@ -23,7 +23,7 @@ import {
 import { bestSellers, productCategories, relatedProducts, searchProducts, soldOutLabel, type ShopperProduct } from "../shopper/catalog";
 import { ShopperBottomNav, type ShopperSheet } from "../shopper/ShopperBottomNav";
 import { resolveMenu, type MenuContext } from "../StoreMenu";
-import { menuStyleOf, mobileMenuStyleOf, readMenu } from "@/lib/storefront/menu";
+import { menuStyleOf, readMenuColors, mobileMenuStyleOf, readMenu } from "@/lib/storefront/menu";
 import { readFooterMenu, readMobileMenu } from "@/lib/storefront/store-navigation";
 import { AnnouncementBar, BoutiqueFooter, chromeLinksFromMenu, BoutiqueHeader, marketHeaderOf, SectionTitle, type ChromeHref, type ChromeLink } from "./BoutiqueChrome";
 import { BoutiqueProductView, type BoutiqueProductDetail } from "./BoutiqueProductView";
@@ -4349,6 +4349,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           look={look}
           menu={menu}
           menuStyle={menuStyleOf(headerSection.settings?.menuStyle)}
+        menuColors={readMenuColors(headerSection.settings)}
           mobileMenu={mobileMenuStyleOf(headerSection.settings?.mobileMenu)}
           mobileItems={mobileMenuItems}
           mobileExtra={live ? [{ id: "track", label: "Track an order", onSelect: () => setSheet("account"), children: [] }] : undefined}

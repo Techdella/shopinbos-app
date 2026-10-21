@@ -473,6 +473,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "ba.uploadDark": "Gbé ti dúdú sókè",
   "ba.useAuto": "Lo ti aládàáṣe",
   "nav.builder": "Ṣàtúnṣe nínú store builder",
+  "nav.editWithRex": "Ṣàtúnṣe pẹ̀lú Rex",
   "nav.live": "Tí o bá fi pamọ́, àwọn mẹ́nù store rẹ tó wà láàyè á yí padà lẹ́sẹ̀kẹsẹ̀. Àwọn àyípadà mìíràn tí o kò tíì tẹ̀jáde nínú store builder á wà gẹ́gẹ́ bí àkọsílẹ̀.",
   "nav.liveDraft": "A kò tíì tẹ àtẹ̀jáde store rẹ. Àwọn oníbàárà á rí àwọn mẹ́nù tí o fi pamọ́ nígbà tí o bá tẹ̀ ẹ́ jáde.",
   "nav.builderDraft": "Store builder ní àwọn àyípadà mẹ́nù tí o kò tíì tẹ̀jáde. A fi wọ́n hàn nísàlẹ̀; tí o bá fi pamọ́ níbí, wọ́n á wà láàyè.",

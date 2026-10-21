@@ -471,6 +471,7 @@ const en = {
   "ba.uploadDark": "Upload for dark",
   "ba.useAuto": "Use automatic",
   "nav.builder": "Edit in the store builder",
+  "nav.editWithRex": "Edit with Rex",
   "nav.live": "Saving updates the menus on your live store straight away. Other changes you haven't published in the store builder stay drafts.",
   "nav.liveDraft": "Your store isn't published yet. Saved menus show to shoppers once you publish it.",
   "nav.builderDraft": "The store builder has menu changes you haven't published. They're shown below; saving here puts them live.",

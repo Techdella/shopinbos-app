@@ -18,7 +18,7 @@ import { freeDeliveryEverywhereOver, type StorefrontShopperInfo } from "@/lib/st
 import type { ShopperProduct } from "../shopper/catalog";
 import { ShopperBottomNav, type ShopperSheet } from "../shopper/ShopperBottomNav";
 import { resolveMenu, type MenuContext } from "../StoreMenu";
-import { menuStyleOf, mobileMenuStyleOf, readMenu } from "@/lib/storefront/menu";
+import { menuStyleOf, readMenuColors, mobileMenuStyleOf, readMenu } from "@/lib/storefront/menu";
 import { readFooterMenu, readMobileMenu } from "@/lib/storefront/store-navigation";
 import { AnnouncementBar, BoutiqueFooter, chromeLinksFromMenu, BoutiqueHeader, marketHeaderOf, type ChromeLink } from "./BoutiqueChrome";
 import { BOUTIQUE_FONT_CLASS } from "./fonts";
@@ -116,6 +116,7 @@ export function BoutiquePageFrame({ themeId, snapshot, store, catalog, shopper, 
         look={look}
         menu={menu}
         menuStyle={menuStyleOf(headerSection?.settings?.menuStyle)}
+        menuColors={readMenuColors(headerSection?.settings)}
         mobileMenu={mobileMenuStyleOf(headerSection?.settings?.mobileMenu)}
         mobileItems={mobileMenuItems}
         mobileExtra={[{ id: "track", label: "Track an order", onSelect: () => setSheet("account"), children: [] }]}

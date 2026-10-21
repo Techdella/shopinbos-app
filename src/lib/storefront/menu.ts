@@ -19,6 +19,8 @@ export interface MenuItem {
   newTab?: boolean;
   /** Sub-items: the dropdown under this item. One level deep. */
   children?: MenuItem[];
+  /** A picture for the item (https), shown in the mega menu and the phone sheet. Else the category's or product's. */
+  image?: string;
 }
 
 /** How the menu looks on computers. */
@@ -38,6 +40,65 @@ export const MOBILE_MENU_STYLES = [
   { value: "sheet", label: "Bottom sheet", hint: "Rises from the bottom, easy to reach" },
 ] as const;
 export type MobileMenuStyle = (typeof MOBILE_MENU_STYLES)[number]["value"];
+
+/**
+ * The menu's own colours (header settings `menuColors`), over the theme's. Any can be left out to keep the theme's:
+ * text = the menu words, accent = the current page and hover line, bar = a band behind the menu on computers,
+ * panel / panelText = dropdowns, the mega menu, and the phone drawer or sheet.
+ */
+export interface MenuColorSet {
+  text?: string;
+  accent?: string;
+  bar?: string;
+  panel?: string;
+  panelText?: string;
+}
+export const MENU_COLOR_KEYS = ["text", "accent", "bar", "panel", "panelText"] as const;
+/** Where each colour is saved on the header's settings (flat keys, so the builder's colour fields can edit them). */
+export const MENU_COLOR_SETTINGS: Record<(typeof MENU_COLOR_KEYS)[number], string> = {
+  text: "menuTextColor",
+  accent: "menuAccentColor",
+  bar: "menuBarColor",
+  panel: "menuPanelColor",
+  panelText: "menuPanelTextColor",
+};
+
+const HEX = /^#[0-9a-f]{6}$/i;
+
+/** The menu colours saved on the header's settings, kept to real #rrggbb values; null when none are set. */
+export function readMenuColors(settings: unknown): MenuColorSet | null {
+  if (!settings || typeof settings !== "object") return null;
+  const out: MenuColorSet = {};
+  for (const key of MENU_COLOR_KEYS) {
+    const value = (settings as Record<string, unknown>)[MENU_COLOR_SETTINGS[key]];
+    if (typeof value === "string" && HEX.test(value.trim())) out[key] = value.trim().toLowerCase();
+  }
+  return Object.keys(out).length ? out : null;
+}
+
+/** The theme's menu colours with the seller's (or Rex's) own on top. */
+export function withMenuColors<T extends { ink: string; accent: string; accentText: string; panel: string; panelInk: string; muted: string }>(base: T, custom: MenuColorSet | null | undefined): T & { bar?: string; ownText?: boolean } {
+  if (!custom) return base;
+  const panelInk = custom.panelText ?? base.panelInk;
+  return {
+    ...base,
+    ink: custom.text ?? base.ink,
+    accent: custom.accent ?? base.accent,
+    accentText: custom.accent ? readableOn(custom.accent) : base.accentText,
+    panel: custom.panel ?? base.panel,
+    panelInk,
+    muted: custom.panelText ? `color-mix(in srgb, ${panelInk} 70%, transparent)` : base.muted,
+    ...(custom.bar ? { bar: custom.bar } : {}),
+    ...(custom.text ? { ownText: true } : {}),
+  };
+}
+
+/** Black or white, whichever reads better on a colour. */
+export function readableOn(hex: string) {
+  const n = parseInt(hex.slice(1), 16);
+  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.6 ? "#111111" : "#ffffff";
+}
 
 export function menuStyleOf(value: unknown): MenuStyle {
   return MENU_STYLES.some((entry) => entry.value === value) ? (value as MenuStyle) : "classic";
@@ -121,6 +182,7 @@ function cleanItem(raw: unknown, depth: number): MenuItem | null {
     if (!ref || (kind === "content" && !isContentRef(ref))) return null;
     item.ref = kind === "page" ? normalizePage(ref) : ref;
   }
+  if (typeof entry.image === "string" && /^https:\/\/[^\s"'<>]+$/.test(entry.image) && entry.image.length <= 2000) item.image = entry.image;
   if (depth === 0 && Array.isArray(entry.children)) {
     const children = entry.children.map((child) => cleanItem(child, 1)).filter((child): child is MenuItem => Boolean(child));
     if (children.length) item.children = children;

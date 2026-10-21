@@ -569,6 +569,7 @@ export function RexStudio(props: RexStudioProps) {
           className={cx("flex min-h-0 min-w-0 flex-col bg-white", previewOpen ? "w-full lg:w-[420px] lg:shrink-0 lg:border-r lg:border-app-line xl:w-[460px] 2xl:w-[520px]" : "w-full")}
         >
           <RexChat
+            you={{ name: props.firstName, avatarUrl: props.avatarUrl ?? null }}
             messages={messages}
             busy={busy !== null}
             busyLabel={busyLabel}

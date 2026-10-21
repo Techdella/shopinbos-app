@@ -473,6 +473,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "ba.uploadDark": "Bulite nke ọchịchịrị",
   "ba.useAuto": "Jiri nke akpaka",
   "nav.builder": "Dezie ya na store builder",
+  "nav.editWithRex": "Dezie ya na Rex",
   "nav.live": "Mgbe ị chekwara, menu ụlọ ahịa gị dị ndụ ga-agbanwe ozugbo. Mgbanwe ndị ọzọ ị na-ebipụtabeghị na store builder ga-anọgide dị ka draft.",
   "nav.liveDraft": "E bipụtabeghị ụlọ ahịa gị. Ndị na-azụ ahịa ga-ahụ menu ị chekwara ozugbo ị bipụtara ya.",
   "nav.builderDraft": "Store builder nwere mgbanwe menu ị na-ebipụtabeghị. E gosiri ha n'okpuru; ichekwa ebe a ga-eme ka ha dị ndụ.",

@@ -45,7 +45,12 @@ export interface MenuContext {
 
 /** Turns the saved menu into links, dropping pages, categories and products the store doesn't have. */
 export function resolveMenu(menu: MenuItem[], ctx: MenuContext): ShownMenuItem[] {
+  // The seller's (or Rex's) own picture for an item wins over the category's or product's.
   const one = (item: MenuItem): ShownMenuItem | null => {
+    const shown = base(item);
+    return shown && item.image ? { ...shown, image: item.image } : shown;
+  };
+  const base = (item: MenuItem): ShownMenuItem | null => {
     const custom = item.label.trim();
     if (item.kind === "page") {
       const page = item.ref ?? "";
@@ -94,6 +99,10 @@ export interface MenuColors {
   panel: string;
   panelInk: string;
   border: string;
+  /** The menu's own colours: a band behind the menu on computers (the words use `ink`, set in the menu's colours). */
+  bar?: string;
+  /** Set when the menu has its own text colour, so the bar colours its words instead of the header. */
+  ownText?: boolean;
 }
 
 /** Ordinary clicks switch page in place; Ctrl/⌘/Shift/middle clicks and new-tab links keep the browser's behaviour. */
@@ -164,7 +173,18 @@ export function StoreMenuBar({ items, style, colors, className, font, label = "M
   const mega = style === "mega";
   const close = () => setOpen(null);
   return (
-    <nav ref={ref} aria-label={label} className={className} style={{ alignItems: "center", gap: style === "pills" ? 4 : style === "caps" ? 22 : 24, ...font }}>
+    <nav
+      ref={ref}
+      aria-label={label}
+      className={className}
+      style={{
+        alignItems: "center",
+        gap: style === "pills" ? 4 : style === "caps" ? 22 : 24,
+        ...font,
+        ...(colors.ownText ? { color: colors.ink } : null),
+        ...(colors.bar ? { background: colors.bar, borderRadius: 999, padding: "4px 14px" } : null),
+      }}
+    >
       <style>{`.smenu-underline::after{content:"";position:absolute;left:4px;right:4px;bottom:2px;height:2px;border-radius:2px;background:var(--smenu-line);transform:scaleX(var(--smenu-scale,0));transform-origin:left;transition:transform .2s}.smenu-underline:hover::after{transform:scaleX(1)}@media (prefers-reduced-motion:reduce){.smenu-underline::after{transition:none}}`}</style>
       {items.map((item) => {
         const look = topStyle(style, colors, Boolean(item.current), open === item.id);

@@ -72,7 +72,8 @@ export default async function NavigationSettingsPage({ searchParams }: NavPagePr
       actions={
         <>
           <PillLink href="/home/pages" icon="document">{t("nav.pages")}</PillLink>
-          <PillLink href="/builder" icon="palette" tone="ink">{t("nav.builder")}</PillLink>
+          <PillLink href="/seller/store/builder?rex=menu" icon="sparkle">{t("nav.editWithRex")}</PillLink>
+          <PillLink href="/seller/store/builder?focus=header" icon="palette" tone="ink">{t("nav.builder")}</PillLink>
         </>
       }
     >
