@@ -26,6 +26,7 @@ import m_rider from "./messages/m_rider/index.ts";
 import m_ui from "./messages/m_ui/index.ts";
 import m_home from "./messages/m_home/index.ts";
 import m_delivery from "./messages/m_delivery/index.ts";
+import m_familiar from "./messages/m_familiar/index.ts";
 import m_orders from "./messages/m_orders/index.ts";
 import m_products from "./messages/m_products/index.ts";
 import m_find from "./messages/m_find/index.ts";
@@ -112,6 +113,7 @@ export const CATALOGS = {
   m_ui,
   m_home,
   m_delivery,
+  m_familiar,
   m_orders,
   m_products,
   m_find,

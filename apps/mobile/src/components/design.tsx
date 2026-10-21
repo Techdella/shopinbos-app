@@ -39,7 +39,7 @@ export function Eyebrow({ children, style }: { children: ReactNode; style?: Styl
   return <T weight="extrabold" style={[{ fontSize: 13, letterSpacing: 0.8, textTransform: "uppercase", color: colors.inkSoft }, style]}>{children}</T>;
 }
 
-export type TileTone = "peach" | "mint" | "warn" | "gray" | "blue" | "ok" | "ink";
+export type TileTone = "peach" | "mint" | "warn" | "gray" | "blue" | "ok" | "ink" | "lime" | "butter" | "lilac" | "sky";
 export const TILE: Record<TileTone, { bg: string; fg: string }> = {
   peach: { bg: colors.peach, fg: colors.accentInk },
   mint: { bg: colors.mintTint, fg: colors.forest },
@@ -48,6 +48,11 @@ export const TILE: Record<TileTone, { bg: string; fg: string }> = {
   blue: { bg: colors.blueTint, fg: colors.blueInk },
   ok: { bg: colors.successTint, fg: colors.success },
   ink: { bg: colors.ink, fg: "#FFFFFF" },
+  // Quick-action tints ("Familiar app" prototype `.c-lime` / `.c-butter` / `.c-lilac` / `.c-sky`), ink icons on them.
+  lime: { bg: "#E2F5A0", fg: colors.ink },
+  butter: { bg: "#FFEBA3", fg: colors.ink },
+  lilac: { bg: "#E4DDFF", fg: colors.ink },
+  sky: { bg: "#CFE7F7", fg: colors.ink },
 };
 
 /** A tinted rounded square holding an icon (`.tile`, 44px, radius 14). */
