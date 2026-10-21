@@ -4,7 +4,7 @@ import { db } from "@/lib/db/client";
 import { withCors, handleOptions } from "@/lib/api/cors";
 import { ok, created, apiError } from "@/lib/api/response";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { publicName, publicReviews, sourceLabel, summarizeReviews } from "@/lib/reviews/pure";
+import { publicName, publicReviews, publicSourceLabel, safeReviewerPhoto, summarizeReviews } from "@/lib/reviews/pure";
 import { resolveReviewLink, saveOrderReviews } from "@/lib/reviews/public";
 import { loadReviews } from "@/lib/reviews/server";
 
@@ -89,7 +89,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
 export async function GET(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const productId = req.nextUrl.searchParams.get("productId");
-  const store = await db.store.findUnique({ where: { slug }, select: { id: true, status: true } });
+  const store = await db.store.findUnique({ where: { slug }, select: { id: true, name: true, status: true } });
   if (!store || store.status !== "active") return withCors(req, apiError("NOT_FOUND", "Store not found", 404), CORS);
 
   const items = publicReviews(await loadReviews(store.id, { approvedOnly: true, productId, take: 200 })).filter((item) => !productId || item.kind === "store");
@@ -103,7 +103,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
     body: item.body,
     images: item.images,
     source: item.source,
-    sourceLabel: sourceLabel(item.source),
+    sourceLabel: publicSourceLabel(item.source, store.name),
+    buyerPhoto: safeReviewerPhoto(item.authorPhotoUrl),
     verifiedBuyer: item.verifiedBuyer,
     featured: item.featured,
     sellerReply: item.reply ?? "",
