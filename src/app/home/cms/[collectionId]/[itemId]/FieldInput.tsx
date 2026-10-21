@@ -50,7 +50,7 @@ function useUpload(accept: string, onDone: (files: Array<{ url: string; name: st
   return { element, open: () => ref.current?.click(), busy, error };
 }
 
-export function FieldInput({ field, value, onChange, error, collections }: { field: CmsField; value: unknown; onChange: (value: unknown) => void; error?: string; collections?: Array<{ id: string; name: string }> }) {
+export function FieldInput({ field, value, onChange, error, collections, rex }: { field: CmsField; value: unknown; onChange: (value: unknown) => void; error?: string; collections?: Array<{ id: string; name: string }>; rex?: { title: string; collection: string } }) {
   const t = useT("cms");
   const id = useId();
   const labelId = `${id}-label`;
@@ -61,17 +61,17 @@ export function FieldInput({ field, value, onChange, error, collections }: { fie
         {field.required && <span className="ml-1 text-[12.5px] font-bold text-app-ink-soft">{t("fi.needed")}</span>}
         {field.help && <span className="block text-[12.5px] font-normal text-app-ink-soft">{field.help}</span>}
       </div>
-      <Control field={field} value={value} onChange={onChange} id={id} collections={collections} />
+      <Control field={field} value={value} onChange={onChange} id={id} collections={collections} rex={rex} />
       {error && <p className="m-0 text-[13px] font-medium text-app-danger" role="alert">{error}</p>}
     </div>
   );
 }
 
-function Control({ field, value, onChange, id, collections }: { field: CmsField; value: unknown; onChange: (value: unknown) => void; id: string; collections?: Array<{ id: string; name: string }> }) {
+function Control({ field, value, onChange, id, collections, rex }: { field: CmsField; value: unknown; onChange: (value: unknown) => void; id: string; collections?: Array<{ id: string; name: string }>; rex?: { title: string; collection: string } }) {
   const t = useT("cms");
   switch (field.type) {
     case "richText":
-      return <RichTextEditor label={field.label} value={((value as { json?: RichDoc } | undefined)?.json) ?? null} onChange={(json) => onChange({ json, html: "" })} />;
+      return <RichTextEditor label={field.label} value={((value as { json?: RichDoc } | undefined)?.json) ?? null} onChange={(json) => onChange({ json, html: "" })} rex={rex} />;
     case "text":
       return <textarea aria-label={field.label} rows={2} className={cx(input, "resize-y py-2.5 leading-6")} value={(value as string) ?? ""} maxLength={5000} onChange={(e) => onChange(e.target.value)} />;
     case "number":

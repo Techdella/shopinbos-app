@@ -95,6 +95,7 @@ export const ROUTE_NAMESPACES: ReadonlyArray<readonly [string, readonly string[]
   ["/home/cms/[collectionId]", ["auth","cms","common","glossary","help","introTitles","learn","media","nav","notifications","rex","seo","settings","shell","support","tour","ui","verification"]],
   ["/home/cms/[collectionId]/[itemId]", ["auth","cms","common","glossary","help","introTitles","learn","media","nav","notifications","rex","seo","settings","shell","support","tour","ui","verification"]],
   ["/home/cms/blog", ["common","nav","ui"]],
+  ["/home/cms/plan", ["auth","cms","common","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
   ["/home/collections", ["auth","common","glossary","help","introTitles","learn","media","nav","notifications","products","rex","settings","shell","support","tour","ui","verification"]],
   ["/home/collections/[id]", ["auth","common","glossary","help","introTitles","learn","media","nav","notifications","products","rex","seo","settings","shell","support","tour","ui","verification"]],
   ["/home/commerce/cart", ["auth","common","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","store","support","tour","ui","verification"]],

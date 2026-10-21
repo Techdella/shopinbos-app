@@ -10,6 +10,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "noStore.body": "Posts dey link to your shop, so you need shop before you plan dem.",
   "act.create": "Create post",
   "act.designs": "Rex designs",
+  "act.plan": "Plan with Rex",
   "nav.calendar": "Calendar",
   "nav.queue": "Queue",
   "nav.posted": "Don post",

@@ -109,7 +109,11 @@ type DialogState =
   | { kind: "button"; href: string; label: string; variant: "solid" | "outline"; editing: boolean }
   | { kind: "product" }
   | { kind: "markdown"; text: string }
+  | { kind: "rex"; task: RexTask; instruction: string; busy: boolean }
   | null;
+
+type RexTask = "write" | "continue" | "improve" | "shorten" | "expand";
+const REX_REWRITES: RexTask[] = ["improve", "shorten", "expand"];
 
 const field = "min-h-[44px] w-full rounded-[14px] border border-app-line bg-white px-3.5 text-[14.5px] outline-none focus:border-app-ink";
 
@@ -136,7 +140,20 @@ function ToolButton({ icon, label, onClick, active, disabled, children }: { icon
 
 const Sep = () => <span aria-hidden className="mx-0.5 h-6 w-px shrink-0 bg-app-line" />;
 
-export function RichTextEditor({ value, onChange, label, placeholder: placeholderProp }: { value: RichDoc | null; onChange: (doc: RichDoc) => void; label: string; placeholder?: string }) {
+export function RichTextEditor({
+  value,
+  onChange,
+  label,
+  placeholder: placeholderProp,
+  rex,
+}: {
+  value: RichDoc | null;
+  onChange: (doc: RichDoc) => void;
+  label: string;
+  placeholder?: string;
+  /** Shows "Ask Rex" in the toolbar: what the piece is, for Rex's prompt. */
+  rex?: { title: string; collection: string };
+}) {
   const t = useT("cms");
   const placeholder = placeholderProp ?? t("rte.placeholder");
   const [dialog, setDialog] = useState<DialogState>(null);
@@ -267,6 +284,37 @@ export function RichTextEditor({ value, onChange, label, placeholder: placeholde
     else setDialog({ kind: "image", src: asset.url, alt: asset.alt ?? asset.title ?? asset.name?.replace(/\.[a-z0-9]+$/i, "").replace(/[-_]+/g, " ") ?? "", caption: "", editing: false });
   }
 
+  function selectedText() {
+    const { from, to } = editor!.state.selection;
+    return from === to ? "" : editor!.state.doc.textBetween(from, to, "\n\n");
+  }
+
+  async function askRex() {
+    if (dialog?.kind !== "rex" || !editor || !rex) return;
+    const { from, to } = editor.state.selection;
+    const selection = selectedText();
+    const rewrite = REX_REWRITES.includes(dialog.task);
+    if (rewrite && !selection) return setError(t("rex.selectFirst"));
+    setDialog({ ...dialog, busy: true });
+    setError("");
+    try {
+      const res = await fetch("/api/app/cms/assist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ task: dialog.task, instruction: dialog.instruction, selection, before: editor.state.doc.textBetween(0, from, "\n\n").slice(-3000), title: rex.title, collection: rex.collection }),
+      });
+      const json = (await res.json().catch(() => null)) as { data?: { markdown: string }; error?: { message?: string } } | null;
+      if (!res.ok || !json?.data) throw new Error(json?.error?.message ?? t("rex.failed"));
+      const content = markdownToDoc(json.data.markdown).content as JSONContent[];
+      if (rewrite) editor.chain().focus().insertContentAt({ from, to }, content).run();
+      else editor.chain().focus().insertContentAt(to, content).run();
+      setDialog(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t("rex.failed"));
+      setDialog((current) => (current?.kind === "rex" ? { ...current, busy: false } : current));
+    }
+  }
+
   function applyDialog() {
     if (!dialog || !editor) return;
     switch (dialog.kind) {
@@ -385,6 +433,11 @@ export function RichTextEditor({ value, onChange, label, placeholder: placeholde
         <ToolButton label={t("rte.addProduct")} icon="bag" onClick={() => setDialog({ kind: "product" })} />
         <Sep />
         <ToolButton label={t("rte.importMd")} icon="download" onClick={() => setDialog({ kind: "markdown", text: "" })} />
+        {rex && (
+          <ToolButton label={t("rex.ask")} icon="sparkle" onClick={() => setDialog({ kind: "rex", task: selectedText() ? "improve" : editor.state.doc.textContent.trim() ? "continue" : "write", instruction: "", busy: false })}>
+            <span className="hidden sm:inline">{t("rex.ask")}</span>
+          </ToolButton>
+        )}
         <ToolButton label={t("rte.undo")} icon="undo" disabled={!state.canUndo} onClick={() => chain().undo().run()} />
         <ToolButton label={t("rte.redo")} icon="refresh" disabled={!state.canRedo} onClick={() => chain().redo().run()} />
       </div>
@@ -513,6 +566,29 @@ export function RichTextEditor({ value, onChange, label, placeholder: placeholde
           onClose={() => setDialog(null)}
           onPick={([row]) => row && insertBlock({ type: "productCard", attrs: { productId: row.id, name: row.name, image: row.image } })}
         />
+      )}
+      {dialog?.kind === "rex" && (
+        <Modal
+          title={t("rex.ask")}
+          onClose={() => !dialog.busy && setDialog(null)}
+          footer={<PillButton tone="ink" size="sm" busy={dialog.busy} onClick={() => void askRex()}>{REX_REWRITES.includes(dialog.task) ? t("rex.rewrite") : t("rex.write")}</PillButton>}
+        >
+          <fieldset className="m-0 border-0 p-0">
+            <legend className="mb-1.5 text-[13.5px] font-bold">{t("rex.what")}</legend>
+            <div className="grid gap-1.5">
+              {(["write", "continue", "improve", "shorten", "expand"] as const).map((task) => (
+                <label key={task} className="flex min-h-[40px] items-center gap-2 rounded-[12px] border border-app-line px-3 text-[14px]">
+                  <input type="radio" name={`${labelId}-rex`} checked={dialog.task === task} onChange={() => setDialog({ ...dialog, task })} /> {t(`rex.task.${task}`)}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          {REX_REWRITES.includes(dialog.task) && !selectedText() && <p className="m-0 mt-2 text-[12.5px] text-app-danger">{t("rex.selectFirst")}</p>}
+          <label className="mb-1.5 mt-3 block text-[13.5px] font-bold" htmlFor={`${labelId}-rexi`}>{dialog.task === "write" ? t("rex.aboutWhat") : t("rex.anyNotes")}</label>
+          <textarea id={`${labelId}-rexi`} rows={3} maxLength={1500} className="w-full rounded-[14px] border border-app-line p-3 text-[14.5px] outline-none focus:border-app-ink" placeholder={t("rex.instructionPh")} value={dialog.instruction} onChange={(e) => setDialog({ ...dialog, instruction: e.target.value })} />
+          {error && <p className="m-0 mt-2 text-[13px] text-app-danger" role="alert">{error}</p>}
+          <p className="m-0 mt-2 text-[12px] text-app-ink-soft">{t("rex.review")}</p>
+        </Modal>
       )}
       {dialog?.kind === "markdown" && (
         <Modal title={t("rte.importMd")} wide onClose={() => setDialog(null)} footer={<PillButton tone="ink" size="sm" disabled={!dialog.text.trim()} onClick={applyDialog}>{t("rte.insert")}</PillButton>}>

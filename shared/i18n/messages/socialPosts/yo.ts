@@ -10,6 +10,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "noStore.body": "Àwọn post máa ń ní link sí ṣọ́ọ̀bù rẹ, nítorí náà o nílò ṣọ́ọ̀bù kí o tó ṣètò wọn.",
   "act.create": "Ṣe post",
   "act.designs": "Àwọn design Rex",
+  "act.plan": "Ṣètò pẹ̀lú Rex",
   "nav.calendar": "Kàlẹ́ńdà",
   "nav.queue": "Queue",
   "nav.posted": "Èyí tí a ti post",

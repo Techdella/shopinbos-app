@@ -10,6 +10,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "noStore.body": "Posts na-eji link gaa n'ụlọ ahịa gị, ya mere ị chọrọ ụlọ ahịa tupu ị hazie ha.",
   "act.create": "Mepụta post",
   "act.designs": "Ihe Rex mere",
+  "act.plan": "Hazie ya na Rex",
   // Sub-menu
   "nav.calendar": "Kalenda",
   "nav.queue": "Queue",
