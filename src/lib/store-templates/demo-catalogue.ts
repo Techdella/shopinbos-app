@@ -486,6 +486,102 @@ export const DEMO_CATALOGUES: Record<ThemeLibraryId, DemoCatalogue> = {
       p("Pearl and gold earrings", 165000, "Earrings", "earrings", "Freshwater pearls with gold hooks.", "#F5ECD7"),
     ],
   },
+  irawo: {
+    storeName: "Ìràwọ̀ Audio", city: "Lagos", industry: "one-product brand", description: "One pair of headphones, made properly, with everything you need to go with them.",
+    heroArt: ["headphones", "speaker", "bag"], mains: ["#FF5A36", "#2B1B17", "#FFE8D6"],
+    products: [
+      p("Ìràwọ̀ wireless headphones", 89000, "Headphones", "headphones", "40-hour battery, noise cancelling, folds flat.", "#2B1B17", 99000),
+      p("Carry case", 9500, "Accessories", "bag", "Hard shell case with a cable pocket.", "#FF5A36"),
+      p("Replacement ear cushions", 7500, "Accessories", "headphones", "Memory foam, clip on in seconds.", "#2B1B17"),
+      p("Braided charging cable", 4500, "Accessories", "powerbank", "USB-C, 1.5m, won't tangle.", "#FFE8D6"),
+      p("Headphone stand", 12000, "Accessories", "lamp", "Weighted walnut base.", "#8C5E30"),
+      p("Gift box edition", 98000, "Headphones", "headphones", "Headphones, case and cable in a gift box.", "#FF5A36"),
+    ],
+  },
+  asa: {
+    storeName: "Àṣà Kitchen", city: "Ìbàdàn", industry: "heritage food", description: "Spices, oils and pastes made the way our grandmothers made them.",
+    heroArt: ["jar", "bowl", "sack"], mains: ["#9E3B22", "#2E2A1F", "#C8A15A"],
+    products: [
+      p("Ata gígẹ̀ pepper mix", 4500, "Spices", "jar", "Dried pepper ground with crayfish and onion.", "#9E3B22"),
+      p("Iru (locust beans), 250g", 3500, "Condiments", "jar", "Fermented the traditional way.", "#4A3B2A"),
+      p("Ofada stew base", 6500, "Pastes", "jar", "Green pepper and palm oil base, ready to cook.", "#3F6212"),
+      p("Red palm oil, 1L", 5500, "Oils", "bottle", "Unbleached, from Ọ̀yọ́ palms.", "#C2410C"),
+      p("Ẹ̀gúsí, ground, 500g", 5000, "Seeds", "sack", "Peeled and ground melon seeds.", "#E7DCC0"),
+      p("Ògì (pap), 1kg", 3000, "Grains", "sack", "Fermented corn, smooth and fresh.", "#F5F5F4"),
+    ],
+  },
+  mmiri: {
+    storeName: "Mmiri Drinks", city: "Port Harcourt", industry: "drinks", description: "Cold-pressed juices and zobo, made fresh every morning.",
+    heroArt: ["bottle", "cup", "bottle"], mains: ["#FFD23F", "#0B6BCB", "#DC2626"],
+    products: [
+      p("Zobo, 50cl", 1500, "Zobo", "bottle", "Hibiscus with ginger and pineapple.", "#7F1D1D"),
+      p("Orange juice, 1L", 3500, "Juice", "bottle", "Cold-pressed, no added sugar.", "#F59E0B"),
+      p("Pineapple ginger, 50cl", 1800, "Juice", "bottle", "Sweet and fiery.", "#FACC15"),
+      p("Tigernut drink (kunu aya), 50cl", 2000, "Kunu", "bottle", "Creamy tigernut with dates.", "#E7DCC0"),
+      p("Watermelon cooler, 1L", 3200, "Juice", "bottle", "Watermelon and mint.", "#F87171"),
+      p("Party pack, 12 bottles", 16500, "Packs", "basket", "Mix any flavours for events.", "#0B6BCB", 19000),
+    ],
+  },
+  uzo: {
+    storeName: "Ụzọ Supply", city: "Abuja", industry: "travel and outdoor", description: "Bags and gear made for the road ahead.",
+    heroArt: ["bag", "bottle", "cap"], mains: ["#3D5A40", "#1C1B18", "#C2B59B"],
+    products: [
+      p("Waxed canvas backpack", 48000, "Bags", "bag", "Water-resistant canvas, leather straps, laptop sleeve.", "#3D5A40"),
+      p("Weekender duffel", 56000, "Bags", "bag", "Fits three days of clothes, with a shoe pocket.", "#8C5E30"),
+      p("Insulated bottle", 11000, "Gear", "bottle", "Cold for 24 hours, hot for 12.", "#1C1B18"),
+      p("Packable rain jacket", 38000, "Clothing", "robe", "Folds into its own pocket.", "#C2B59B"),
+      p("Canvas cap", 8500, "Clothing", "cap", "Washed cotton, adjustable strap.", "#3D5A40"),
+      p("Travel organiser pouch", 9500, "Gear", "bag", "Passport, cards, cables, all in one place.", "#1C1B18"),
+    ],
+  },
+  rawa: {
+    storeName: "Rawa Party Co.", city: "Lagos", industry: "party wear", description: "Loud outfits and accessories for every owambe, club night and birthday.",
+    heroArt: ["dress", "earrings", "heel"], mains: ["#FF3D7F", "#FFE14D", "#151515"],
+    products: [
+      p("Sequin mini dress", 42000, "Dresses", "dress", "Silver sequins, stretch lining.", "#C0C0C0"),
+      p("Hot pink co-ord set", 36000, "Sets", "shirt", "Cropped jacket and wide trousers.", "#FF3D7F"),
+      p("Statement hoop earrings", 9500, "Accessories", "earrings", "Oversized gold-tone hoops.", "#FFE14D"),
+      p("Platform heels", 32000, "Shoes", "heel", "Comfy platform, dance-all-night height.", "#151515"),
+      p("Feather boa", 7500, "Accessories", "fabric-fold", "Soft feathers, 1.8m long.", "#FF3D7F"),
+      p("Glitter clutch", 14500, "Bags", "bag", "Chain strap, fits a phone and lipstick.", "#FFE14D"),
+    ],
+  },
+  fitila: {
+    storeName: "Fitila Home", city: "Lagos", industry: "home and lighting", description: "Lamps, lights and furniture that make a room glow.",
+    heroArt: ["lamp", "chair", "vase"], mains: ["#E8A33D", "#2A2420", "#F0E9DE"],
+    products: [
+      p("Rattan pendant light", 38000, "Lighting", "lamp", "Hand-woven rattan shade, 45cm.", "#C8A15A"),
+      p("Brass table lamp", 46000, "Lighting", "lamp", "Brushed brass with a linen shade.", "#E8A33D"),
+      p("Velvet accent chair", 165000, "Furniture", "chair", "Deep green velvet, solid wood legs.", "#14532D"),
+      p("Ceramic floor vase", 28000, "Decor", "vase", "Matte glaze, 60cm tall.", "#F0E9DE"),
+      p("Arc floor lamp", 72000, "Lighting", "lamp", "Marble base, adjustable arm.", "#2A2420"),
+      p("Linen cushion set", 18000, "Textiles", "cushion", "Two cushions with feather inners.", "#C2B59B"),
+    ],
+  },
+  oso: {
+    storeName: "Ọ̀ṣọ́ Studio", city: "Lagos", industry: "fashion label", description: "Ready-to-wear with a love for details, cut in Lagos.",
+    heroArt: ["dress", "bag", "earrings"], mains: ["#B23A48", "#141414", "#F2EDE6"],
+    products: [
+      p("Draped midi dress", 58000, "Dresses", "dress", "Fluid crepe with a draped neckline.", "#B23A48"),
+      p("Oversized linen shirt", 32000, "Shirts", "shirt", "Dropped shoulders, mother-of-pearl buttons.", "#F2EDE6"),
+      p("Pleated wide trousers", 38000, "Trousers", "trousers", "High waist, deep pleats.", "#141414"),
+      p("Sculptural earrings", 16500, "Accessories", "earrings", "Hand-shaped brass.", "#C8A96A"),
+      p("Mini bucket bag", 45000, "Bags", "bag", "Smooth leather, drawstring top.", "#7F1D1D"),
+      p("Knit vest", 26000, "Knitwear", "shirt", "Fine cotton knit, V-neck.", "#C2B59B"),
+    ],
+  },
+  shakara: {
+    storeName: "Shakara Wear", city: "Lagos", industry: "streetwear", description: "Numbered drops from Lagos. No restocks, no dulling.",
+    heroArt: ["shirt", "cap", "sneaker"], mains: ["#FF4F00", "#0A0A0A", "#E4E4DD"],
+    products: [
+      p("Drop 01 graphic tee", 18000, "Tees", "shirt", "Heavy cotton, puff print.", "#0A0A0A"),
+      p("Cargo trousers", 32000, "Bottoms", "trousers", "Six pockets, adjustable hems.", "#4B5320"),
+      p("Snapback cap", 12000, "Headwear", "cap", "Embroidered logo, flat brim.", "#FF4F00"),
+      p("Oversized hoodie", 36000, "Tops", "shirt", "Brushed fleece, boxy fit.", "#E4E4DD"),
+      p("Chunky sneakers", 68000, "Footwear", "sneaker", "Thick sole, mesh panels.", "#F5F5F4", 75000),
+      p("Crossbody sling bag", 15000, "Bags", "bag", "Water-resistant, reflective strap.", "#0A0A0A"),
+    ],
+  },
 };
 
 /** The fields of a storefront product the theme renderer reads (structurally a ShopperProduct). */
@@ -538,7 +634,7 @@ export function demoProducts(themeId: string, colours: DemoThemeColours): DemoSh
 }
 
 /** Themes whose hero frames its picture tall (an arch, an oval, a circle): their sample banner is one object, 4:5. */
-const TALL_HERO_THEMES = new Set(["ewa", "suku", "agbada", "chinchin", "ounje", "omo", "turare", "zinariya"]);
+const TALL_HERO_THEMES = new Set(["ewa", "suku", "agbada", "chinchin", "ounje", "omo", "turare", "zinariya", "asa", "mmiri", "shakara"]);
 
 /** Sample banner (16:9, or 4:5 for tall hero frames) and story (4:5) pictures for a theme: photos, or drawn scenes. */
 export function demoBanners(themeId: string, colours: DemoThemeColours) {

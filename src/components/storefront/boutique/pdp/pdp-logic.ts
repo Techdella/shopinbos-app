@@ -188,6 +188,14 @@ export const PDP_THEME_DEFAULTS: Record<string, ThemeDefault> = {
   uwa: { layout: "gallery-stack", gallery: "thumbs-bottom", details: "tabs" },
   sarauniya: { layout: "editorial", gallery: "thumbs-bottom", details: "accordion" },
   zinariya: { layout: "gallery-stack", gallery: "thumbs-left", details: "accordion" },
+  irawo: { layout: "editorial", gallery: "slider", details: "accordion" },
+  asa: { layout: "compact", gallery: "thumbs-bottom", details: "accordion" },
+  mmiri: { layout: "compact", gallery: "slider", details: "accordion" },
+  uzo: { layout: "gallery-stack", gallery: "thumbs-bottom", details: "tabs" },
+  rawa: { layout: "editorial", gallery: "slider", details: "tabs" },
+  fitila: { layout: "gallery-stack", gallery: "thumbs-left", details: "accordion" },
+  oso: { layout: "gallery-stack", gallery: "thumbs-left", details: "accordion" },
+  shakara: { layout: "editorial", gallery: "thumbs-bottom", details: "tabs" },
 };
 
 const FALLBACK_THEME: ThemeDefault = { layout: "classic", gallery: "thumbs-bottom", details: "accordion" };

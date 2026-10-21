@@ -97,6 +97,14 @@ export const CHECKOUT_THEME_DEFAULTS: Record<string, ThemeDefault> = {
   uwa: { layout: "two-column", summaryPosition: "left", header: "nav" },
   sarauniya: { layout: "minimal", summaryPosition: "right", header: "logo" },
   zinariya: { layout: "minimal", summaryPosition: "right", header: "logo" },
+  irawo: { layout: "minimal", summaryPosition: "right", header: "logo" },
+  asa: { layout: "stacked", summaryPosition: "right", header: "nav" },
+  mmiri: { layout: "stacked", summaryPosition: "right", header: "nav" },
+  uzo: { layout: "two-column", summaryPosition: "left", header: "logo" },
+  rawa: { layout: "steps", summaryPosition: "right", header: "nav" },
+  fitila: { layout: "two-column", summaryPosition: "left", header: "nav" },
+  oso: { layout: "minimal", summaryPosition: "right", header: "logo" },
+  shakara: { layout: "steps", summaryPosition: "right", header: "logo" },
 };
 
 const FALLBACK_THEME: ThemeDefault = { layout: "two-column", summaryPosition: "right", header: "logo" };

@@ -366,6 +366,14 @@ export const HERO_LAYOUT_BY_THEME: Record<string, string> = {
   uwa: "uwa-cover",
   sarauniya: "sarauniya-duo",
   zinariya: "zinariya-arch",
+  irawo: "irawo-product",
+  asa: "asa-stamp",
+  mmiri: "mmiri-wave",
+  uzo: "uzo-sticky",
+  rawa: "rawa-fan",
+  fitila: "fitila-room",
+  oso: "oso-bento",
+  shakara: "shakara-poster",
 };
 
 const HERO_LAYOUTS: ChoiceOption[] = [
@@ -383,7 +391,7 @@ const HERO_LAYOUTS: ChoiceOption[] = [
 ];
 
 /** Hero layouts that use more than one picture (the rest use the first). */
-const HERO_PICTURE_COUNT: Record<string, number> = { "asoebi-collage": 3, "iwe-shelf": 4, "zuma-collage": 2, "ihe-gallery": 3, "sarauniya-duo": 2 };
+const HERO_PICTURE_COUNT: Record<string, number> = { "asoebi-collage": 3, "iwe-shelf": 4, "zuma-collage": 2, "ihe-gallery": 3, "sarauniya-duo": 2, "uzo-sticky": 3, "rawa-fan": 3, "oso-bento": 3 };
 /** Layouts that don't show the eyebrow. */
 const HERO_NO_EYEBROW = ["breeze-banner"];
 
@@ -471,6 +479,8 @@ function boutiqueSchema(kind: string, themeId: string): SectionSchema {
             { value: "tiles", label: "Tiles" },
             { value: "dense", label: "Compact grid" },
             { value: "menu", label: "Menu list" },
+            { value: "spotlight", label: "Spotlight (one big, four small)" },
+            { value: "lookbook", label: "Lookbook (big alternating rows)" },
             { value: "grid", label: "Full shop grid" },
           ] },
           text("title", "Heading"),
@@ -519,7 +529,7 @@ function boutiqueSchema(kind: string, themeId: string): SectionSchema {
     case "category-list":
       return plain([{ fields: [
         text("title", "Heading"),
-        { id: "layout", type: "segmented", label: "Layout", target: setting("layout"), fallback: themeId === "plug" ? "chips" : "boutique-tiles", options: [{ value: "boutique-tiles", label: "Tiles" }, { value: "boutique-circles", label: "Circles" }, { value: "chips", label: "Chips" }] },
+        { id: "layout", type: "select", label: "Layout", target: setting("layout"), fallback: themeId === "plug" ? "chips" : "boutique-tiles", options: [{ value: "boutique-tiles", label: "Tiles" }, { value: "boutique-circles", label: "Circles" }, { value: "chips", label: "Chips" }, { value: "boutique-stack", label: "Banners" }, { value: "boutique-mosaic", label: "Mosaic" }] },
         { id: "note", type: "note", label: "Tiles come from your collections, or your product categories when you have no collections." },
       ] }]);
     case "testimonials":
@@ -539,8 +549,9 @@ function boutiqueSchema(kind: string, themeId: string): SectionSchema {
             { value: "editorial", label: "Editorial", hint: "Tall picture, large heading." },
             { value: "banner", label: "Wide picture", hint: "Picture across the page, words below." },
             { value: "centered", label: "Words only", hint: "A centred statement, no picture." },
+            { value: "overlap", label: "Overlap", hint: "Wide picture with the words on a card over its edge." },
           ] },
-          { id: "imagePosition", type: "segmented", label: "Picture side", target: setting("imagePosition"), fallback: "left", options: IMAGE_SIDE, help: "On phones the picture is always on top.", when: layoutIs(["boutique", "editorial"], storyFallback) },
+          { id: "imagePosition", type: "segmented", label: "Picture side", target: setting("imagePosition"), fallback: "left", options: IMAGE_SIDE, help: "On phones the picture is always on top.", when: layoutIs(["boutique", "editorial", "overlap"], storyFallback) },
           { id: "media", type: "media", label: "Image", max: 1, help: "No image yet? A product photo is used.", when: layoutNot(["centered"], storyFallback) },
         ] },
         { title: "Content", fields: [text("eyebrow", "Eyebrow"), area("title", "Heading"), area("body", "Text", { help: "Leave empty to use your store description." }), text("primaryCta", "Button label")] },

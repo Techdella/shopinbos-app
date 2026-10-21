@@ -10,7 +10,8 @@ export type ThemeLibraryId =
   | "breeze" | "noir" | "plain" | "adire" | "pantry" | "ile" | "plug" | "stride"
   | "ewa" | "suku" | "asoebi" | "agbada" | "ileke" | "ounje" | "chinchin" | "oja" | "omo" | "iwe" | "owambe" | "danfo" | "turare" | "oko"
   | "aaro" | "highlife" | "oba" | "gbedu"
-  | "omalicha" | "zuma" | "oku" | "ihe" | "kasuwa" | "nkata" | "uwa" | "sarauniya" | "zinariya";
+  | "omalicha" | "zuma" | "oku" | "ihe" | "kasuwa" | "nkata" | "uwa" | "sarauniya" | "zinariya"
+  | "irawo" | "asa" | "mmiri" | "uzo" | "rawa" | "fitila" | "oso" | "shakara";
 
 /**
  * Which plan a theme needs: basic themes come with every store (the free Starter plan), premium ones with Growth
@@ -250,6 +251,46 @@ export const THEME_LIBRARY: readonly ThemeLibraryEntry[] = [
     industries: ["fine jewellery", "gold", "diamonds", "bridal jewellery", "watches"], blurb: "Gold on deep emerald, an arched frame. For fine jewellery", isNew: true, tier: "platinum",
     preview: { bg: "#0F2E26", ink: "#F5ECD7", line: "#2A4A40", accent: "#C9A24A", nameFont: "serif", nameWeight: 500, dark: true },
   }),
+  entry({
+    id: "irawo", name: "Ìràwọ̀", meaning: "Yoruba for star", categories: ["any", "beauty"], categoryLabel: "One-product brands",
+    industries: ["single product", "brand", "hero product", "gadget brand", "beauty brand"], blurb: "Your star product, big, with its real name and price. For one-product brands", isNew: true, tier: "basic",
+    preview: { bg: "#FFE8D6", ink: "#2B1B17", line: "#F3DDCB", accent: "#FF5A36", nameFont: "grotesk", nameWeight: 800, dark: false },
+  }),
+  entry({
+    id: "asa", name: "Àṣà", meaning: "Yoruba for culture and tradition", categories: ["food", "home"], categoryLabel: "Heritage food and craft",
+    industries: ["spices", "traditional food", "heritage", "condiments", "local crafts"], blurb: "A heritage stamp and range banners. For traditional food and craft", isNew: true, tier: "basic",
+    preview: { bg: "#EFE3CF", ink: "#2E2A1F", line: "#E3D5BD", accent: "#9E3B22", nameFont: "serif", nameWeight: 700, dark: false },
+  }),
+  entry({
+    id: "mmiri", name: "Mmiri", meaning: "Igbo for water", categories: ["food"], categoryLabel: "Drinks",
+    industries: ["drinks", "juice", "water", "beverages", "smoothies", "zobo"], blurb: "Blue waves and a sunny bottle. For drinks and juice brands", isNew: true, tier: "basic",
+    preview: { bg: "#DCEBFF", ink: "#0B2545", line: "#CFE0F5", accent: "#0B6BCB", nameFont: "grotesk", nameWeight: 800, dark: false },
+  }),
+  entry({
+    id: "uzo", name: "Ụzọ", meaning: "Igbo for road or path", categories: ["fashion", "home"], categoryLabel: "Editorial",
+    industries: ["travel gear", "outdoor", "fashion", "bags", "editorial"], blurb: "Words pinned while pictures scroll, and a lookbook. For brands with a story", isNew: true, tier: "premium",
+    preview: { bg: "#ECEAE3", ink: "#1C1B18", line: "#DEDBD2", accent: "#3D5A40", nameFont: "grotesk", nameWeight: 600, dark: false },
+  }),
+  entry({
+    id: "rawa", name: "Rawa", meaning: "Hausa for dance", categories: ["fashion", "events"], categoryLabel: "Party and playful",
+    industries: ["party wear", "accessories", "costume", "colourful fashion", "nightlife"], blurb: "Hot pink, fanned photo cards and a ticker. For playful brands", isNew: true, tier: "premium",
+    preview: { bg: "#FF3D7F", ink: "#FFFFFF", line: "#FF7AA8", accent: "#FFE14D", nameFont: "grotesk", nameWeight: 800, dark: false },
+  }),
+  entry({
+    id: "fitila", name: "Fitila", meaning: "Hausa for lamp", categories: ["home"], categoryLabel: "Home and lighting",
+    industries: ["lighting", "lamps", "furniture", "interiors", "home decor"], blurb: "A room photo with glowing product pins. For home and lighting", isNew: true, tier: "premium",
+    preview: { bg: "#2A2420", ink: "#F5EFE6", line: "#43392F", accent: "#E8A33D", nameFont: "serif", nameWeight: 500, dark: true },
+  }),
+  entry({
+    id: "oso", name: "Ọ̀ṣọ́", meaning: "Yoruba for adornment", categories: ["fashion", "jewellery"], categoryLabel: "Fashion editorial",
+    industries: ["fashion", "accessories", "designer", "ready to wear", "editorial"], blurb: "A bento grid of looks and a lookbook. For fashion labels", isNew: true, tier: "platinum",
+    preview: { bg: "#F2EDE6", ink: "#141414", line: "#E6E0D8", accent: "#B23A48", nameFont: "serif", nameWeight: 500, dark: false },
+  }),
+  entry({
+    id: "shakara", name: "Shakara", meaning: "Naija for swagger and showing off", categories: ["fashion"], categoryLabel: "Streetwear",
+    industries: ["streetwear", "drops", "sneakers", "caps", "urban fashion"], blurb: "A street poster with numbered drops. For streetwear labels", isNew: true, tier: "platinum",
+    preview: { bg: "#0A0A0A", ink: "#F1F1EC", line: "#2A2A2A", accent: "#FF4F00", nameFont: "grotesk", nameWeight: 800, dark: true },
+  }),
 ];
 
 export const THEME_LIBRARY_IDS: readonly ThemeLibraryId[] = THEME_LIBRARY.map((item) => item.id);
@@ -369,6 +410,14 @@ const THEME_RULES: Array<{ themeId: ThemeLibraryId; industry: string; words: str
   { themeId: "sarauniya", industry: "womenswear", words: ["womenswear", "women's wear", "womens wear", "women's clothing", "occasion wear", "bridal", "bridal wear", "evening wear"] },
   { themeId: "kasuwa", industry: "big catalogue", words: ["department store", "wholesale", "wholesaler", "distributor", "big catalogue", "everything store", "one-stop shop", "one stop shop"] },
   { themeId: "uwa", industry: "editorial lifestyle", words: ["concept store", "magazine", "zine", "curated"] },
+  { themeId: "mmiri", industry: "drinks", words: ["juice", "bottled water", "table water", "drinks brand", "beverage brand", "smoothie", "fruit juice", "sachet water"] },
+  { themeId: "fitila", industry: "home and lighting", words: ["lighting", "lamp", "lamps", "chandelier", "light fitting", "pendant light", "bulb"] },
+  { themeId: "asa", industry: "heritage food and craft", words: ["traditional", "heritage", "local spices", "native", "indigenous", "ogiri", "iru", "dawadawa", "uziza", "ehuru"] },
+  { themeId: "irawo", industry: "one-product brand", words: ["single product", "one product", "our product", "flagship product"] },
+  { themeId: "rawa", industry: "party wear", words: ["party wear", "clubwear", "club wear", "costume", "festival", "nightlife", "glitter"] },
+  { themeId: "shakara", industry: "streetwear drops", words: ["drop", "drops", "limited drop", "hype", "street", "urban wear", "cap", "snapback"] },
+  { themeId: "uzo", industry: "travel and outdoor", words: ["travel", "luggage", "outdoor", "camping", "hiking", "adventure", "suitcase"] },
+  { themeId: "oso", industry: "fashion label", words: ["fashion label", "ready to wear", "ready-to-wear", "rtw", "label", "collection drop"] },
   { themeId: "omalicha", industry: "wellness", words: ["self-care", "self care", "bath", "body care", "essential oil", "aromatherapy"] },
   { themeId: "breeze", industry: "fashion", words: ["fashion", "clothing", "clothes", "cloth", "wear", "dress", "gown", "top", "shirt", "t-shirt", "trouser", "jean", "apparel", "boutique", "bag", "handbag", "outfit", "skirt", "jumpsuit", "thrift", "okrika", "ankara", "abaya", "hijab", "kimono", "two-piece", "co-ord"] },
 ];
