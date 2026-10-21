@@ -137,7 +137,9 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
       logoUrl: true,
       currency: true,
       brandSettings: true,
+      // The seller's own and dropshipped products alike; archived ones never fill a section.
       storeProducts: {
+        where: { status: { not: "archived" } },
         orderBy: { createdAt: "desc" },
         take: 8,
         select: {
