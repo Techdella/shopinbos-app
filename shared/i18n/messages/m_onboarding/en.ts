@@ -136,6 +136,8 @@ const en = {
   "checklist.brand.hint": "Name, colours and template",
   "checklist.bank.label": "Add your payout bank",
   "checklist.bank.hint": "Card payments go straight to your bank",
+  "checklist.delivery.label": "Choose a delivery company",
+  "checklist.delivery.hint": "They pick up parcels and take them to your customers",
   "checklist.wa.label": "Connect WhatsApp for Peggy",
   "checklist.wa.hint": "Peggy drafts replies for you",
   "checklist.id.label": "Verify your ID",

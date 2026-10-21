@@ -60,6 +60,8 @@ export async function getSetupOverview(userId: string) {
     db.inboxChannel.count({ where: { storeId: store.id, channel: { in: ["whatsapp", "messenger", "instagram"] }, status: "connected" } }),
   ]);
 
+  // Delivery companies the seller connected (logistics marketplace). Tolerates a database without the table yet.
+  const deliveryPartners = await db.deliveryConnection.count({ where: { ownerUserId: userId, status: "active" } }).catch(() => 0);
   const wallet = await db.wallet.findUnique({ where: { userId }, select: { subaccountStatus: true } }).catch(() => null);
   const settings = record(store.brandSettings);
   const editor = record(settings.editor);
@@ -75,6 +77,7 @@ export async function getSetupOverview(userId: string) {
     productsWithPhotos,
     paymentMethodsOn: methods ? Object.values(methods).filter(Boolean).length : 0,
     activeDeliveryZones: zones.length,
+    deliveryPartners,
     // The Shopinbos Wallet bank (card payments split straight to it); an old payout bank still counts.
     payoutBank: Boolean(bank.paystackRecipientCode || bank.accountNumberMask) || ["active", "review"].includes(wallet?.subaccountStatus ?? ""),
     live,

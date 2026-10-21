@@ -133,13 +133,15 @@ export const DEFAULT_DELIVERY_ZONES: DeliveryZone[] = [
   { name: "Abuja and other states", fee: 3500, regions: [], priority: 2 },
 ];
 
-export type ChecklistKey = "live" | "product" | "brand" | "bank" | "wa" | "ig" | "labels";
+export type ChecklistKey = "live" | "product" | "brand" | "bank" | "delivery" | "wa" | "ig" | "labels";
 
 export const CHECKLIST: { key: ChecklistKey; label: string; hint: string; href: string }[] = [
   { key: "live", label: "Go live", hint: "Your shop link works", href: "/home/editor" },
   { key: "product", label: "Add your first products", hint: "One is enough to start", href: "/products" },
   { key: "brand", label: "Pick your brand and look", hint: "Name, colours and template", href: "/home/brand-kit" },
   { key: "bank", label: "Add your payout bank", hint: "Card payments go straight to your bank", href: "/home/wallet" },
+  // Optional on Start here too ("Choose a delivery company"): connects a logistics marketplace partner.
+  { key: "delivery", label: "Choose a delivery company", hint: "They pick up parcels and take them to your customers", href: "/home/start?step=partners" },
   { key: "wa", label: "Connect WhatsApp for Peggy", hint: "Peggy drafts replies for you", href: "/home/social/whatsapp" },
   { key: "ig", label: "Connect Instagram and TikTok", hint: "Sync your catalogue and posts", href: "/home/social" },
   { key: "labels", label: "Print your first price tags", hint: "Two taps from your products", href: "/products" },
