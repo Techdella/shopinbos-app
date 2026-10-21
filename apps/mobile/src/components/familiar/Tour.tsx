@@ -1,5 +1,6 @@
 import { useEffect, useState, type RefObject } from "react";
 import { Modal, Pressable, useWindowDimensions, View } from "react-native";
+import Svg, { Path } from "react-native-svg";
 import { Mascot, PillButton, T } from "@/components/ui";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
@@ -13,6 +14,12 @@ export type TourStep = { key: string; title: string; body: string; target?: RefO
 type Rect = { x: number; y: number; width: number; height: number };
 
 const DIM = "rgba(22,20,31,0.66)";
+
+/** An SVG path for a rounded rectangle (the tour's cut-out). */
+function roundedRect({ x, y, width: w, height: h }: Rect, radius: number) {
+  const r = Math.max(0, Math.min(radius, w / 2, h / 2));
+  return `M${x + r} ${y}H${x + w - r}A${r} ${r} 0 0 1 ${x + w} ${y + r}V${y + h - r}A${r} ${r} 0 0 1 ${x + w - r} ${y + h}H${x + r}A${r} ${r} 0 0 1 ${x} ${y + h - r}V${y + r}A${r} ${r} 0 0 1 ${x + r} ${y}Z`;
+}
 const PAD = 8;
 
 export function Tour({ steps, visible, onDone }: { steps: TourStep[]; visible: boolean; onDone: () => void }) {
@@ -45,13 +52,12 @@ export function Tour({ steps, visible, onDone }: { steps: TourStep[]; visible: b
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={finish} statusBarTranslucent>
-      {/* Four dim panels round the cut-out (no native mask needed). */}
+      {/* One dim layer with a rounded hole round the target (even-odd fill), plus a white ring on its edge. */}
       {rect ? (
         <>
-          <View style={{ position: "absolute", left: 0, right: 0, top: 0, height: Math.max(0, rect.y), backgroundColor: DIM }} />
-          <View style={{ position: "absolute", left: 0, right: 0, top: rect.y + rect.height, bottom: 0, backgroundColor: DIM }} />
-          <View style={{ position: "absolute", left: 0, width: Math.max(0, rect.x), top: rect.y, height: rect.height, backgroundColor: DIM }} />
-          <View style={{ position: "absolute", left: rect.x + rect.width, right: 0, top: rect.y, height: rect.height, backgroundColor: DIM }} />
+          <Svg width={width} height={height} style={{ position: "absolute", left: 0, top: 0 }} pointerEvents="none">
+            <Path fill={DIM} fillRule="evenodd" d={`M0 0H${width}V${height}H0Z ${roundedRect(rect, Math.min(30, rect.height / 2))}`} />
+          </Svg>
           <View pointerEvents="none" style={{ position: "absolute", left: rect.x, top: rect.y, width: rect.width, height: rect.height, borderRadius: Math.min(30, rect.height / 2), borderWidth: 2, borderColor: "#FFFFFF" }} />
         </>
       ) : (

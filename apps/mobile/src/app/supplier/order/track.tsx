@@ -6,6 +6,7 @@ import { Screen } from "@/components/Screen";
 import { AppIcon } from "@/components/icons";
 import { PillButton, T } from "@/components/ui";
 import { fetchSupplierTrack } from "@/lib/familiar";
+import { capitalise, friendlyTime } from "@/lib/friendly";
 import { useT } from "@/lib/i18n";
 import { openSupportWhatsApp } from "@/lib/support";
 import { useLoad } from "@/lib/useLoad";
@@ -19,7 +20,7 @@ import { colors } from "@/theme";
 
 export default function SupplierTrack() {
   const { id, kind, shop, ref } = useLocalSearchParams<{ id: string; kind?: string; shop?: string; ref?: string }>();
-  const t = useT("m_supplier", "common");
+  const t = useT("m_supplier", "delivery", "m_ui", "common");
   const orderKind = kind === "wholesale" ? "wholesale" : "dropship";
   const track = useLoad(() => fetchSupplierTrack(String(id), orderKind), `${orderKind}:${id}`);
   const data = track.data;
@@ -51,7 +52,7 @@ export default function SupplierTrack() {
         <>
           <View style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 18, gap: 10 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-              <Pill label={data.status} tone="org" />
+              <Pill label={t.dynamic(`status.${data.status}`, data.status.replace(/_/g, " "))} tone="org" />
               {ref ? <T style={{ fontSize: 13, color: colors.inkSoft }}>{ref}</T> : null}
             </View>
             <T weight="extrabold" style={{ fontSize: 19, lineHeight: 24 }}>{data.title}</T>
@@ -62,12 +63,12 @@ export default function SupplierTrack() {
               <T weight="semibold" style={{ fontSize: 15, flexShrink: 1 }} numberOfLines={1}>{data.to}</T>
               <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: colors.accent }} />
             </View>
-            {data.partner || data.eta ? <T style={{ fontSize: 14, color: colors.inkSoft }}>{[data.partner?.name, data.eta].filter(Boolean).join(" · ")}</T> : null}
+            {data.partner || data.eta ? <T style={{ fontSize: 14, color: colors.inkSoft }}>{[data.partner?.name, data.eta ? capitalise(friendlyTime(data.eta, new Date(), t)) : null].filter(Boolean).join(" · ")}</T> : null}
           </View>
 
           {data.timeline.length ? (
             <View style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 18 }}>
-              <Timeline steps={data.timeline} />
+              <Timeline steps={data.timeline.map((step) => ({ ...step, at: step.at ? capitalise(friendlyTime(step.at, new Date(), t)) : null }))} />
             </View>
           ) : null}
 

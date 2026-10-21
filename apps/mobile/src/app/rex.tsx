@@ -229,12 +229,13 @@ export default function Rex() {
       header={
         <>
           <Mascot name="rex" size={40} />
-          <View style={{ flex: 1 }}>
-            <T weight="extrabold" style={{ fontSize: 16 }}>{t("askRex")}</T>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <T weight="extrabold" style={{ fontSize: 16 }} numberOfLines={1}>{t("askRex")}</T>
             <T style={{ color: colors.inkSoft, fontSize: 14 }} numberOfLines={1}>{t("line")}</T>
           </View>
-          <Pressable accessibilityRole="button" accessibilityLabel={t("openWeb")} onPress={() => void openWeb("/studio")} hitSlop={6} style={{ height: 38, borderRadius: radii.pill, paddingHorizontal: 12, justifyContent: "center", backgroundColor: colors.surface }}>
-            <T weight="bold" style={{ fontSize: 14 }}>{t("previewButton")}</T>
+          {/* A round icon (not a word) so "Ask Rex" and its line keep the header's width. */}
+          <Pressable accessibilityRole="button" accessibilityLabel={`${t("previewButton")}: ${t("openWeb")}`} onPress={() => void openWeb("/studio")} hitSlop={6} style={{ width: 44, height: 44, borderRadius: radii.pill, alignItems: "center", justifyContent: "center", backgroundColor: colors.surface }}>
+            <AppIcon name="globe" size={20} />
           </Pressable>
         </>
       }

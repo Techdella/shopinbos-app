@@ -27,6 +27,7 @@ export function StatusRow({
   onNew,
   onOpenMine,
   onOpen,
+  showMine = true,
 }: {
   authors: StatusAuthor[];
   myName: string;
@@ -36,10 +37,13 @@ export function StatusRow({
   onNew: () => void;
   onOpenMine?: () => void;
   onOpen: (index: number) => void;
+  /** Leave out "Your status" (a row that only shows other businesses, like Discover's suppliers). */
+  showMine?: boolean;
 }) {
   const t = useT("m_familiar");
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 14, paddingHorizontal: 20 }} style={{ marginHorizontal: -20 }}>
+      {showMine ? (
       <Pressable accessibilityRole="button" accessibilityLabel={hasMine ? t("status.yoursOpen") : t("status.add")} onPress={hasMine && onOpenMine ? onOpenMine : onNew} style={{ width: 68, alignItems: "center", gap: 6 }}>
         <View>
           <Ring dashed={!hasMine}>
@@ -51,6 +55,7 @@ export function StatusRow({
         </View>
         <T weight="semibold" numberOfLines={1} style={{ fontSize: 12, color: colors.inkSoft }}>{t("status.yours")}</T>
       </Pressable>
+      ) : null}
       {authors.map((author, index) => (
         <Pressable key={author.userId} accessibilityRole="button" accessibilityLabel={t("status.openOf", { name: author.name })} onPress={() => onOpen(index)} style={{ width: 68, alignItems: "center", gap: 6 }}>
           <Ring seen={author.seen}>

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Modal, Pressable, StatusBar, View } from "react-native";
 import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Initials } from "@/components/kit";
 import { AppIcon } from "@/components/icons";
@@ -87,6 +88,9 @@ export function StoryViewer({
   if (!author || !post) return null;
   const like = likes[post.id] ?? { likes: post.likes, liked: post.liked };
   const tone = TILE[post.tone] ?? TILE.ink;
+  const photo = Boolean(post.imageUrl);
+  // Words and controls: white over a photo, the tone's ink on a plain coloured post.
+  const ink = photo ? "#FFFFFF" : tone.fg;
 
   async function toggleLike() {
     const nextLiked = !like.liked;
@@ -101,27 +105,31 @@ export function StoryViewer({
 
   return (
     <Modal visible={visible} animationType="fade" onRequestClose={onClose} statusBarTranslucent>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle={photo ? "light-content" : "dark-content"} />
       <View style={{ flex: 1, backgroundColor: post.imageUrl ? "#000" : tone.bg }}>
         {post.imageUrl ? <Image source={{ uri: post.imageUrl }} style={{ position: "absolute", inset: 0 }} contentFit="cover" accessibilityIgnoresInvertColors /> : null}
-        {/* Shades keep the white words readable on any photo. */}
-        <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: 0, height: 160, backgroundColor: "rgba(0,0,0,0.35)" }} />
-        <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: "55%", backgroundColor: post.imageUrl ? "rgba(0,0,0,0.45)" : "transparent" }} />
+        {/* Soft shades keep the white words readable on a photo; a text-only post uses its own ink colour instead. */}
+        {photo ? (
+          <>
+            <LinearGradient pointerEvents="none" colors={["rgba(0,0,0,0.45)", "rgba(0,0,0,0)"]} style={{ position: "absolute", left: 0, right: 0, top: 0, height: 180 }} />
+            <LinearGradient pointerEvents="none" colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.6)"]} style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: "55%" }} />
+          </>
+        ) : null}
 
         <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 12, gap: 12 }}>
           <View style={{ flexDirection: "row", gap: 4 }}>
             {author.posts.map((entry, index) => (
-              <View key={entry.id} style={{ flex: 1, height: 3, borderRadius: 2, backgroundColor: index <= postIndex ? "#FFFFFF" : "rgba(255,255,255,0.35)" }} />
+              <View key={entry.id} style={{ flex: 1, height: 3, borderRadius: 2, backgroundColor: index <= postIndex ? ink : photo ? "rgba(255,255,255,0.35)" : "rgba(22,20,31,0.18)" }} />
             ))}
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
             <Initials name={author.name} size={38} />
             <View style={{ flex: 1, minWidth: 0 }}>
-              <T weight="bold" numberOfLines={1} style={{ color: "#FFFFFF", fontSize: 15 }}>{author.name}</T>
-              <T numberOfLines={1} style={{ color: "#E6E3EE", fontSize: 13 }}>{`${t(ROLE_KEY[author.role])} · ${ago(post.createdAt, t)}`}</T>
+              <T weight="bold" numberOfLines={1} style={{ color: ink, fontSize: 15 }}>{author.name}</T>
+              <T numberOfLines={1} style={{ color: ink, opacity: 0.85, fontSize: 13 }}>{`${t(ROLE_KEY[author.role])} · ${ago(post.createdAt, t)}`}</T>
             </View>
             <Pressable accessibilityRole="button" accessibilityLabel={t("close")} onPress={onClose} hitSlop={8} style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
-              <AppIcon name="x" size={26} color="#FFFFFF" />
+              <AppIcon name="x" size={26} color={ink} />
             </Pressable>
           </View>
         </View>
@@ -134,17 +142,17 @@ export function StoryViewer({
 
         <View style={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 18, gap: 14 }}>
           <View style={{ gap: 6 }}>
-            <T style={{ fontFamily: fonts.display, fontSize: 28, lineHeight: 32, color: post.imageUrl ? "#FFFFFF" : tone.fg }}>{post.headline}</T>
-            {post.caption ? <T style={{ fontSize: 15, lineHeight: 21, color: post.imageUrl ? "#FFFFFF" : tone.fg }}>{post.caption}</T> : null}
-            {post.product ? <T weight="bold" style={{ fontSize: 15, color: post.imageUrl ? "#FFFFFF" : tone.fg }}>{`${post.product.name} · ₦${Math.round(post.product.price).toLocaleString("en-NG")}`}</T> : null}
+            <T style={{ fontFamily: fonts.display, fontSize: 28, lineHeight: 32, color: ink }}>{post.headline}</T>
+            {post.caption ? <T style={{ fontSize: 15, lineHeight: 21, color: ink }}>{post.caption}</T> : null}
+            {post.product ? <T weight="bold" style={{ fontSize: 15, color: ink }}>{`${post.product.name} · ₦${Math.round(post.product.price).toLocaleString("en-NG")}`}</T> : null}
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
             {own ? (
-              <T weight="semibold" style={{ color: "#FFFFFF", fontSize: 14 }}>{t("status.views", { count: post.views })}</T>
+              <T weight="semibold" style={{ color: ink, fontSize: 14 }}>{t("status.views", { count: post.views })}</T>
             ) : (
-              <Pressable accessibilityRole="button" accessibilityLabel={like.liked ? t("unlike") : t("like")} accessibilityState={{ selected: like.liked }} onPress={() => void toggleLike()} style={{ minWidth: 56, height: 52, borderRadius: 26, backgroundColor: "rgba(255,255,255,0.18)", flexDirection: "row", gap: 6, alignItems: "center", justifyContent: "center", paddingHorizontal: 14 }}>
-                <AppIcon name="star" size={20} color={like.liked ? colors.accent : "#FFFFFF"} />
-                <T weight="bold" style={{ color: "#FFFFFF" }}>{String(like.likes)}</T>
+              <Pressable accessibilityRole="button" accessibilityLabel={like.liked ? t("unlike") : t("like")} accessibilityState={{ selected: like.liked }} onPress={() => void toggleLike()} style={{ minWidth: 56, height: 52, borderRadius: 26, backgroundColor: photo ? "rgba(255,255,255,0.22)" : "rgba(22,20,31,0.1)", flexDirection: "row", gap: 6, alignItems: "center", justifyContent: "center", paddingHorizontal: 14 }}>
+                <AppIcon name="star" size={20} color={like.liked ? colors.accent : ink} />
+                <T weight="bold" style={{ color: ink }}>{String(like.likes)}</T>
               </Pressable>
             )}
             {!own && post.cta && onCta ? (

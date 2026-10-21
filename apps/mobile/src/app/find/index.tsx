@@ -208,7 +208,7 @@ export default function FindProducts() {
   );
 
   const statusRow = suppliers.length ? (
-    <StatusRow authors={suppliers} myName={t("swipe.you")} myPicture={null} hasMine={(status.data?.mine.posts.length ?? 0) > 0} onNew={() => router.push("/status/new" as never)} onOpen={(at) => setStory(at)} />
+    <StatusRow authors={suppliers} showMine={false} myName="" myPicture={null} onNew={() => router.push("/status/new" as never)} onOpen={(at) => setStory(at)} />
   ) : null;
   const storyViewer = story !== null ? <StoryViewer authors={suppliers} start={story} visible onClose={() => setStory(null)} onCta={openStatusCta} /> : null;
 

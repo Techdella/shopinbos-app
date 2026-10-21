@@ -145,7 +145,8 @@ export default function MyShop() {
         <View style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 20, gap: 14 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
             <Picture uri={latestPicture(changedPictures, "logoUrl", store.logoUrl)} name={store.name} size={64} shape="square" />
-            <View style={{ flex: 1 }} />
+            {/* The two buttons wrap under each other on narrow phones instead of running off the screen. */}
+            <View style={{ flex: 1, minWidth: 0, flexDirection: "row", flexWrap: "wrap", justifyContent: "flex-end", gap: 8 }}>
             <PillButton testID="edit-look" tone="white" size="sm" accessibilityLabel={t("card.editLook")} onPress={() => router.push("/templates" as never)}>
               <AppIcon name="sparkle" size={16} />
               <T weight="bold" style={{ fontSize: 15 }}>{t("card.editLook")}</T>
@@ -156,6 +157,7 @@ export default function MyShop() {
                 <T weight="bold" style={{ color: "#FFFFFF", fontSize: 15 }}>{t("share")}</T>
               </PillButton>
             ) : null}
+            </View>
           </View>
           <View style={{ gap: 2 }}>
             <Title size={26}>{store.name}</Title>
