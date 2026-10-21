@@ -215,8 +215,10 @@ test("business address: read from brand settings, required for marketing", () =>
 });
 
 test("every server sender goes through the shell; marketing sends check preferences and the address", () => {
-  // Any file that sends an email builds it with a shell builder.
-  const BUILDERS = /buildPlatformEmail|sendPlatformEmail|storeEmail|wrapEmail|orderConfirmationEmail|refundEmail|reviewRequestEmail|invoiceEmail|inboxReplyEmail|renderEmailPreview|previewCampaignHtml|emailBodyHtml|newTicketEmail|receivedEmail|agentReplyEmail|securityEmailHtml/;
+  // Any file that sends an email builds it with a shell builder. platformEmail( is the shell's own Shopinbos builder,
+  // used directly where the reader has no account (website leads), so buildPlatformEmail's user links can't apply;
+  // leadEmail( is that lead email (checked below), which the lead batches send.
+  const BUILDERS = /buildPlatformEmail|\bplatformEmail\(|\bleadEmail\(|sendPlatformEmail|storeEmail|wrapEmail|orderConfirmationEmail|refundEmail|reviewRequestEmail|invoiceEmail|inboxReplyEmail|renderEmailPreview|previewCampaignHtml|emailBodyHtml|newTicketEmail|receivedEmail|agentReplyEmail|securityEmailHtml/;
   const files = [];
   const walk = (dir) => {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -232,6 +234,13 @@ test("every server sender goes through the shell; marketing sends check preferen
   });
   assert.ok(senders.length >= 10, `found the senders (${senders.length})`);
   for (const file of senders) assert.match(readFileSync(file, "utf8"), BUILDERS, `${file} builds its email with the shell`);
+
+  // Lead emails go to people without an account: lifecycle mail with the legal footer, the lead's own opt-out link
+  // as the unsubscribe link, and one-click List-Unsubscribe headers.
+  const leads = read("src/lib/lead-growth/send.server.ts");
+  assert.match(leads, /platformEmail\(\{[\s\S]*kind: "lifecycle"[\s\S]*legal: platformLegal\(\)[\s\S]*unsubscribeUrl: optOut/);
+  assert.match(leads, /headers: lead\.id === FAKE_LEAD_ID \? undefined : listUnsubscribeHeaders\(optOut\)/);
+  assert.match(leads, /sendEmail\(\{ to: \[to\], subject: email\.subject, html: email\.html, headers: email\.headers \}\)/, "sends the built email as is");
 
   const campaigns = read("src/lib/campaigns/send.ts");
   assert.match(campaigns, /MISSING_ADDRESS_MESSAGE/, "campaigns need a business address");

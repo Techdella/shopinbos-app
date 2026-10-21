@@ -622,7 +622,7 @@ const en = {
   "supplier-buyers.2.caption": "See how each shop is doing.",
   "supplier-buyers.2.sub": "Glow by Amaka sold 86 jars this month. Abuja Beauty sold 12.",
   "supplier-buyers.3.caption": "Talk to them directly.",
-  "supplier-buyers.3.sub": "Tell your best shops about a new scent before anyone else.",
+  "supplier-buyers.3.sub": "Followers hear first: tell them about a new scent before anyone else.",
   "supplier-buyers.4.caption": "Dropship or wholesale.",
   "supplier-buyers.4.sub": "Some sell without stock, some buy in bulk. Both show here.",
   "supplier-buyers.5.caption": "Help your best buyers grow.",

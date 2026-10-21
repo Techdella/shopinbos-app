@@ -893,11 +893,11 @@ export const FEATURE_INTROS: FeatureIntro[] = [
     term: "buyers",
     title: "Buyers",
     roles: ["supplier"],
-    paths: ["/supplier/buyers"],
+    paths: ["/supplier/buyers", "/supplier/followers"],
     scenes: [
       { art: "store-card", caption: "Buyers are the shops selling your products.", sub: "Every shop that added your shea butter, or bought it in bulk.", durationMs: S, label: "Glow by Amaka" },
       { art: "customer-cards", caption: "See how each shop is doing.", sub: "Glow by Amaka sold 86 jars this month. Abuja Beauty sold 12.", durationMs: S, label: "Glow by Amaka", chips: ["Dropship", "Abuja"], value: "86 sold" },
-      { art: "chat-bubbles", caption: "Talk to them directly.", sub: "Tell your best shops about a new scent before anyone else.", durationMs: S, label: "New: coconut scent!" },
+      { art: "chat-bubbles", caption: "Talk to them directly.", sub: "Followers hear first: tell them about a new scent before anyone else.", durationMs: S, label: "New: coconut scent!" },
       { art: "dots-sort", caption: "Dropship or wholesale.", sub: "Some sell without stock, some buy in bulk. Both show here.", durationMs: S, chips: ["Dropship", "Wholesale"] },
       { art: "chart-grow", caption: "Help your best buyers grow.", sub: "Good photos and fast shipping help them sell more, and that means more for you.", durationMs: S },
     ],

@@ -598,7 +598,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "supplier-buyers.2.caption": "See how each shop dey do.",
   "supplier-buyers.2.sub": "Glow by Amaka sell 86 jars this month. Abuja Beauty sell 12.",
   "supplier-buyers.3.caption": "Talk to dem direct.",
-  "supplier-buyers.3.sub": "Tell your best shops about new scent before anybody else.",
+  "supplier-buyers.3.sub": "Your followers go hear first: tell dem about new scent before anybody else.",
   "supplier-buyers.4.caption": "Dropship or wholesale.",
   "supplier-buyers.4.sub": "Some dey sell without stock, some dey buy for bulk. Both dey show here.",
   "supplier-buyers.5.caption": "Help your best buyers grow.",

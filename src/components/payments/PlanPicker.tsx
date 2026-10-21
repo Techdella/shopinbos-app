@@ -8,7 +8,7 @@ import { cx } from "@/components/app-ui/cx";
 import { useT } from "@/components/i18n/I18nProvider";
 import { AppBillingNotice } from "@/components/billing/AppBillingNotice";
 import { useAppSession } from "@/components/billing/useAppSession";
-import { annualSaving, isPlanTier, type PlanOfferView, type PlanTier } from "@shared/plan-catalog";
+import { PLAN_TIERS, annualSaving, isPlanTier, type PlanOfferView, type PlanTier } from "@shared/plan-catalog";
 import { PLANS_BY_ROLE, planFeatureLines, type PlanKey, type PlanRole } from "@shared/plans";
 
 // The plan cards for sellers, suppliers and delivery partners: what each plan includes (shared/plans.ts), today's
@@ -114,7 +114,7 @@ function PlanPickerInner({ role, current, offers, userEmail, userName, usage = [
                       </span>
                     </li>
                   ))}
-                  {tier && billing === "annual" && role === "seller" ? (
+                  {tier && billing === "annual" && offer?.annual && PLAN_TIERS[tier].freeDomainAnnual ? (
                     <li className="flex gap-2 font-bold text-app-ink"><span aria-hidden className="text-app-success">✓</span>{t("plan.freeDomain")}</li>
                   ) : null}
                 </ul>
