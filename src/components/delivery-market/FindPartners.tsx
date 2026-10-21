@@ -8,6 +8,7 @@ import { connectPartnerAction } from "@/app/actions/delivery-market";
 import { NG_STATES, RATE_SERVICES } from "@shared/delivery-market";
 import { areasSummary, naira, Rating, VerifiedPill } from "./bits";
 import { serviceLabel, timeframeText } from "./words";
+import { Term } from "@/components/learn/Term";
 
 // "Find partners" for sellers and suppliers: filters (a GET form) and the ranked partner cards from findPartners.
 
@@ -72,7 +73,7 @@ export async function FindPartners({
           </label>
           <label className="flex min-h-12 items-center gap-2 self-end text-[14px] font-bold">
             <input type="checkbox" name="pickupPoints" value="1" defaultChecked={!!filters.pickupPoints} className={field.checkbox} />
-            {t("find.hasPickupPoints")}
+            <Term k="pickup-points">{t("find.hasPickupPoints")}</Term>
           </label>
           <div className="flex flex-wrap gap-2 sm:col-span-2 lg:col-span-3">
             <button type="submit" className={pillButton.ink}>{t("find.show")}</button>

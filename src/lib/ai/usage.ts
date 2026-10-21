@@ -52,6 +52,14 @@ export async function meterAiCharged(userId: string, kind: AiKind, units = 1, ac
   return { blocked, credits: blocked ? 0 : credits };
 }
 
+/**
+ * For previews that are free to look at (Rex showing a design before the seller applies it): the burst limit and
+ * the daily safety cap still apply and the use is counted, but no credits are taken.
+ */
+export async function meterAiPreview(userId: string, kind: AiKind, units = 1): Promise<NextResponse | null> {
+  return meterOnce(userId, kind, units, undefined, () => undefined, { free: true });
+}
+
 /** What a kind or action costs right now (Admin › Pricing), for buttons that show it before use. */
 export async function aiCost(kind: AiKind, units = 1, action?: CreditAction) {
   return creditCost(action ?? kind, units, (await liveCreditPrices()).costs);
@@ -70,7 +78,7 @@ export async function refundAi(userId: string, kind: AiKind, units: number, cred
   }
 }
 
-async function meterOnce(userId: string, kind: AiKind, units: number, action: CreditAction | undefined, charged: (cost: number) => void): Promise<NextResponse | null> {
+async function meterOnce(userId: string, kind: AiKind, units: number, action: CreditAction | undefined, charged: (cost: number) => void, options: { free?: boolean } = {}): Promise<NextResponse | null> {
   // Bursts across every server instance (shared, fails open); the daily cap below is counted in AiUsage.
   const burst = await checkRateLimitShared(rateLimitKey(`ai:${kind}`, userId), { maxRequests: kind === "text" ? 20 : kind === "speech" ? 12 : 8, windowMs: 60_000 });
   if (!burst.allowed) {
@@ -88,6 +96,10 @@ async function meterOnce(userId: string, kind: AiKind, units: number, action: Cr
         { error: { code: "AI_DAILY_CAP", message: `That's today's limit of ${limit} ${KIND_WORD[kind]}, a safety cap so nothing runs away with your credits. It resets within 24 hours.` } },
         { status: 429 },
       );
+    }
+    if (options.free) {
+      await db.aiUsage.create({ data: { userId, kind, units } });
+      return null;
     }
     const cost = creditCost(action ?? kind, units, (await liveCreditPrices()).costs);
     const left = await spendCredits(userId, cost).catch((error) => {

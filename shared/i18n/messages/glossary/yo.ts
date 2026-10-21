@@ -112,12 +112,12 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "activity.example": "“Peggy dín owó àpò pupa kù sí ₦16,000 ní aago 2:14 ọ̀sán.”",
   "payments.short": "Owó tí àwọn oníbàárà ń san fún ọ, lórí card, bank transfer, USSD tàbí owó lórí delivery.",
   "payments.example": "₦18,000 lórí transfer láti ọ̀dọ̀ Chidi, ₦9,500 owó lórí delivery láti ọ̀dọ̀ Halima.",
-  "payouts.short": "Owó tí Shopinbos ń fi ránṣẹ́ láti inú títà rẹ sí àkáǹtì bánkì rẹ.",
+  "payouts.short": "Owó láti inú ọjà rẹ tí a fi ránṣẹ́ tààrà sí àkáǹtì báńkì rẹ.",
   "payouts.example": "₦64,000 tí o tà ní ọjọ́ Ajé yóò wọ GTBank rẹ ní ọjọ́ Ìṣẹ́gun.",
   "settlement.short": "Ìgbà tí owó rẹ bá ti mọ́, tí a sì gbé e lọ sí bánkì rẹ.",
   "settlement.example": "Owó card máa ń settle ní ọjọ́ iṣẹ́ tó tẹ̀lé e.",
-  "escrow.short": "Owó tí a fi pamọ́ láàrin títí order yóò fi dé, lẹ́yìn náà a ó tú u sílẹ̀.",
-  "escrow.example": "Olùrà san ₦30,000; a ó tú u sílẹ̀ fún ọ ní kété tí ó bá gba páálí rẹ̀.",
+  "escrow.short": "Owó tí a dì mú ní àárín títí ọjà fi dé. Shopinbos kì í ṣe èyí: ìpín kọ̀ọ̀kan ń lọ tààrà sí báńkì olówó rẹ̀.",
+  "escrow.example": "Oníbàárà san ₦30,000: ìpín rẹ àti ti supplier á wọ báńkì yín, ní ọjọ́ iṣẹ́ tó tẹ̀lé e ní ọ̀pọ̀ ìgbà.",
   "invoices.short": "Ìwé owó pẹ̀lú logo rẹ tó sọ fún oníbàárà iye tí ó jẹ àti bí yóò ṣe sanwó.",
   "invoices.example": "Invoice #014 fún páálí 20, ọjọ́ Ẹtì ni ọjọ́ ìsanwó.",
   "taxes.short": "VAT àti owó-orí míì tí a fi kún owó ọjà tàbí tí a yà sọ́tọ̀ láti inú títà.",
@@ -200,6 +200,10 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "seasonal-campaigns.example": "Black Friday: àwọ̀ gold, countdown àti badge “BF Deal” láti Ẹtì títí di alẹ́ Àìkú.",
   "wallet.short": "Ibi tí owó káàdì rẹ ń lọ: tààrà sí báńkì tìrẹ, Shopinbos kì í di owó rẹ mú.",
   "wallet.example": "Oníbàárà san ₦30,000: ₦30,000 rẹ (láìsí owó Paystack) wọ GTBank rẹ ní ọjọ́ iṣẹ́ tó tẹ̀lé e.",
+  "credits.short": "Ohun tí iṣẹ́ AI ń lò ní Shopinbos: plan rẹ ń fún ọ ní díẹ̀ lóṣooṣù, o sì lè ra sí i.",
+  "credits.example": "Rex ṣe àwòrán tuntun mẹ́ta ti handbag rẹ; credits díẹ̀ yọ kúrò nínú tòṣooṣù rẹ.",
+  "business-registration.short": "Fífi orúkọ iṣẹ́ rẹ sílẹ̀ ní CAC, kí ó di ti òfin kí o sì gba BN number.",
+  "business-registration.example": "Fi “Ada's Fabrics” sílẹ̀ ní CAC láti Shopinbos kí o sì download certificate níbí.",
 };
 
 export default yo;

@@ -8,6 +8,7 @@ import { requireRole } from "@/lib/server-auth";
 import { ChannelsClient } from "./ChannelsClient";
 import { ConnectAccounts } from "@/app/channels/ConnectAccounts";
 import { getT } from "@/lib/i18n/server";
+import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -17,6 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function InboxChannelsPage() {
   const user = await requireRole(["seller"], "/login");
+  const tipT = await getT("tips");
   const t = await getT("inbox");
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true } });
   if (!store) redirect("/builder?firstRun=1");
@@ -36,6 +38,7 @@ export default async function InboxChannelsPage() {
       sub={t("ch.sub")}
       actions={<PillLink href="/home/messages" icon="chat" tone="ink">{t("ch.openInbox")}</PillLink>}
     >
+      <PageTip className="mb-5">{tipT("inbox.channels")}</PageTip>
       <section aria-labelledby="connect-yours" className="mb-6 grid gap-3">
         <h2 id="connect-yours" className="m-0 text-[17px] font-extrabold">{t("ch.connectYours")}</h2>
         <p className="m-0 text-[14px] text-app-ink-soft">{t("ch.connectOnce")}</p>

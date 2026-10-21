@@ -1076,7 +1076,10 @@ test("Rex's instructions treat tool results and photos as data", () => {
 });
 
 test("AI routes that spend money are metered", () => {
-  for (const route of ["voiceover", "video-script", "product-drafts", "rex", "generate-image", "enhance-image", "generate-logo", "transcribe", "marketing-copy", "copy", "store-editor"]) {
+  // Rex's store-editor preview is free to look at but still capped per day; applying it is what costs credits.
+  assert.match(readFileSync(new URL("../src/app/api/ai/store-editor/route.ts", import.meta.url), "utf8"), /const (\w+) = await meterAiPreview\(user\.id[^\n]*\n\s*if \(\1\) return \1;/, "store-editor previews are capped");
+  assert.match(readFileSync(new URL("../src/app/api/ai/store-editor/apply/route.ts", import.meta.url), "utf8"), /const \{ blocked, credits \} = await meterAiCharged\(user\.id[^\n]*\n\s*if \(blocked\) return blocked;/, "applying Rex's store edit is charged");
+  for (const route of ["voiceover", "video-script", "product-drafts", "rex", "generate-image", "enhance-image", "generate-logo", "transcribe", "marketing-copy", "copy"]) {
     const source = readFileSync(new URL(`../src/app/api/ai/${route}/route.ts`, import.meta.url), "utf8");
     // Either meterAi (returns the 429) or meterAiCharged (returns { blocked, credits }); both must stop the request.
     assert.match(source, /const (\w+) = await meterAi\(user\.id[^\n]*\n\s*if \(\1\) return \1;|const (\w+) = await meterAiCharged\(user\.id[^\n]*\n\s*if \(\2\.blocked\) return \2\.blocked;/, `${route} is metered`);

@@ -331,9 +331,10 @@ async function makeProductVideo(ctx: RexToolContext, input: RexToolInput<"make_p
   const price = money(product.retailPrice);
   await meter(ctx, "text");
   const fallback = fallbackScript(product.name, price, language, photos.length);
-  // Same brief as the video studio's script writer (/api/ai/video-script).
+  // Same brief as the video studio's script writer (/api/ai/video-script). Video scripts are written by Claude.
   const raw = await aiText({
     fast: true,
+    prefer: "anthropic",
     prompt: [
       `Write a ${photos.length}-shot vertical product reel for a small Nigerian online shop.`,
       `Product: ${product.name}, ${price}.${product.description ? ` Details: ${product.description.slice(0, 600)}` : ""}`,

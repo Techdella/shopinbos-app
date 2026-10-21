@@ -12,6 +12,7 @@ import { ChatHistoryMenu, useChatAutosave } from "@/components/ai/ChatHistory";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import { formatNumber } from "@shared/i18n";
 import type { MessageKey } from "@shared/i18n/catalog";
+import { ChatText } from "@/components/chat/ChatText";
 
 interface PeggyAction {
   tool: string;
@@ -97,7 +98,9 @@ export function PeggyChat({ greeting, initialAsk, suggestions, stats }: { greeti
   }, [initialAsk, router]);
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    // Only the conversation scrolls (scrollIntoView would move the whole page too).
+    const list = endRef.current?.closest<HTMLElement>(".overflow-y-auto");
+    if (list) list.scrollTo({ top: list.scrollHeight, behavior: "smooth" });
   }, [turns, busy]);
 
   async function send(text: string) {
@@ -268,12 +271,13 @@ function Bubble({ role, content, failed }: { role: "user" | "assistant"; content
   return (
     <div
       className={cx(
-        "max-w-[88%] whitespace-pre-wrap break-words px-4 py-3 text-[14.5px] leading-[1.5] sm:max-w-[80%]",
+        "max-w-[88%] break-words px-4 py-3 text-[14.5px] leading-[1.5] sm:max-w-[80%]",
+        role === "user" && "whitespace-pre-wrap",
         role === "user" ? "self-end rounded-[18px] rounded-br-[6px] bg-app-ink text-white" : "self-start rounded-[18px] rounded-tl-[6px] bg-app-mint text-app-ink",
         failed && "bg-app-danger-tint text-app-danger",
       )}
     >
-      {role === "assistant" ? <LinkedText text={content} /> : content}
+      {role === "assistant" ? <ChatText text={content} renderText={(part) => <LinkedText text={part} />} /> : content}
     </div>
   );
 }

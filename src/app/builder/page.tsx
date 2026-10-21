@@ -29,6 +29,7 @@ export default async function BuilderPage({
   return (
     <ChipBuilder
       userName={user.name}
+      userAvatarUrl={user.avatarUrl ?? null}
       selectedTemplate={workspace.settings.template ? {
         templateId: workspace.settings.template.templateId,
         templateName: workspace.settings.template.templateName,

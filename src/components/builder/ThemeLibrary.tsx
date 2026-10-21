@@ -26,7 +26,7 @@ import {
 } from "@/lib/store-templates/theme-library";
 import { TIER_PLAN_LABEL } from "@/lib/theme-access";
 import { formatThemePrice } from "@shared/theme-purchase";
-import { ThemePreviewDialog, ThemeThumbnail, UPGRADE_HREF } from "./theme-preview/ThemePreview";
+import { TIER_BADGE, ThemePreviewDialog, ThemeThumbnail, UPGRADE_HREF } from "./theme-preview/ThemePreview";
 import type { PreviewOwnStore } from "./theme-preview/preview-store";
 import { Mascot } from "@/components/brand/Mascot";
 import { useT } from "@/components/i18n/I18nProvider";
@@ -65,13 +65,6 @@ export type ThemeLibraryProps = {
    * /api/store/templates/access when not given.
    */
   sellerAccess?: ThemeAccessInfo;
-};
-
-/** Tier chips on the cards: free (basic) themes quiet, paid ones stand out. */
-const TIER_BADGE: Record<ThemeTier, string> = {
-  basic: "bg-white/95 text-app-ink",
-  premium: "bg-[#F2A93B] text-[#0E2A38]",
-  platinum: "bg-[#6B4F8A] text-white",
 };
 
 export const THEME_SWITCHED_EVENT = "shopinbos:theme-switched";
@@ -326,6 +319,14 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
               : bought.status === "pending"
                 ? t("tl.buyPending", { name: themeLibraryEntry(bought.themeId)?.name ?? t("tl.theTheme") })
                 : t("tl.buyFailed")}
+            {bought.status === "paid" && bought.themeId && themeLibraryEntry(bought.themeId) && bought.themeId !== current ? (
+              <>
+                {" "}
+                <PillButton tone="ink" size="sm" busy={busyId === bought.themeId} disabled={Boolean(busyId)} onClick={() => void applyTheme(bought.themeId!)}>
+                  {t("tl.useName", { name: themeLibraryEntry(bought.themeId)!.name })}
+                </PillButton>
+              </>
+            ) : null}
           </Notice>
         ) : null}
         {error ? (
@@ -423,11 +424,33 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
                     </span>
                     {theme.isNew ? <span className="rounded-full bg-app-accent px-2.5 py-1 text-[11px] font-bold text-white shadow-sm">{t("tl.new")}</span> : null}
                     {isCurrent ? <span className="rounded-full bg-app-ink px-2.5 py-1 text-[11px] font-bold text-white shadow-sm">{t("tl.current")}</span> : null}
-                    {isOwned ? <span className="rounded-full bg-app-success-tint px-2.5 py-1 text-[11px] font-bold text-app-ink shadow-sm">{t("tl.owned")}</span> : null}
+                    {isOwned ? <span className="inline-flex items-center gap-1 rounded-full bg-app-success-tint px-2.5 py-1 text-[11px] font-bold text-app-ink shadow-sm"><Icon name="check" size={11} />{t("tl.owned")}</span> : null}
                   </span>
-                  <span aria-hidden className="pointer-events-none absolute bottom-3 right-3 z-[2] inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-[12.5px] font-bold text-app-ink opacity-0 shadow-sm transition group-hover:opacity-100 group-focus-within:opacity-100">
-                    <Icon name="eye" size={14} /> {t("tl.preview")}
-                  </span>
+                  {needs ? (
+                    <span aria-hidden className="pointer-events-none absolute right-3 top-3 z-[2] grid h-8 w-8 place-items-center rounded-full bg-app-ink/85 text-white shadow-sm transition group-hover:opacity-0">
+                      <Icon name="lock" size={15} />
+                    </span>
+                  ) : null}
+                  {needs && price ? (
+                    // Hover (or keyboard focus): the price to unlock it, and a click buys it. Phones use the Buy button below.
+                    <div className="pointer-events-none absolute inset-0 z-[2] flex flex-col items-center justify-center gap-2.5 bg-[rgba(14,42,56,.62)] p-4 text-center opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100">
+                      <span className="grid h-11 w-11 place-items-center rounded-full bg-white text-app-ink shadow-sm"><Icon name="lock" size={19} /></span>
+                      <button
+                        type="button"
+                        tabIndex={-1}
+                        disabled={Boolean(buyingId)}
+                        onClick={() => void buyTheme(theme.id)}
+                        className="pointer-events-none inline-flex min-h-[40px] items-center rounded-full border-0 bg-white px-4 text-[13.5px] font-bold text-app-ink shadow-sm hover:bg-app-canvas group-hover:pointer-events-auto disabled:opacity-60"
+                      >
+                        {buyingId === theme.id ? t("tl.unlocking") : t("tl.unlockFor", { price })}
+                      </button>
+                      <span className="text-[12px] font-semibold text-white/90">{t("tl.unlockHint", { plan: needs })}</span>
+                    </div>
+                  ) : (
+                    <span aria-hidden className="pointer-events-none absolute bottom-3 right-3 z-[2] inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-[12.5px] font-bold text-app-ink opacity-0 shadow-sm transition group-hover:opacity-100 group-focus-within:opacity-100">
+                      <Icon name="eye" size={14} /> {t("tl.preview")}
+                    </span>
+                  )}
                 </div>
                 <div className="mt-3 flex items-start justify-between gap-3">
                   <div className="min-w-0">

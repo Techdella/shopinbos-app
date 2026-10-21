@@ -8,6 +8,7 @@ import { SettingsForm } from "../_components/SettingsForm";
 import { ReviewTabs, reviewsContext } from "../_components/shared";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { formatDate } from "@shared/i18n";
+import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,7 @@ const STATUS_TONE = { sent: "info", opened: "warning", completed: "success", fai
 
 export default async function RequestReviewsPage() {
   const { user, store } = await reviewsContext();
+  const tipT = await getT("tips");
   const t = await getT("reviews");
   const locale = await getLocale();
   const CHANNEL_LABEL: Record<string, string> = { email: t("req.email"), sms: "SMS", whatsapp: "WhatsApp", link: t("ask.yourWhatsApp") };
@@ -48,6 +50,7 @@ export default async function RequestReviewsPage() {
       actions={<PillLink href="/home/reviews" icon="arrowLeft">{t("tabs.all")}</PillLink>}
     >
       <ReviewTabs active="/home/reviews/request" />
+      <PageTip className="mb-5">{tipT("reviews.request")}</PageTip>
       {!ready.links ? (
         <div className="mb-5 rounded-[18px] bg-app-danger-tint px-4 py-3 text-[14px] text-app-danger">{t("ask.noLinks")}</div>
       ) : null}

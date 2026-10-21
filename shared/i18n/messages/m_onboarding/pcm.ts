@@ -128,6 +128,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "checklist.brand.hint": "Name, colours and template",
   "checklist.bank.label": "Add your payout bank",
   "checklist.bank.hint": "Card payments dey enter your bank straight",
+  "checklist.delivery.label": "Choose delivery company",
+  "checklist.delivery.hint": "Dem go pick parcel from you carry am go give your customers",
   "checklist.wa.label": "Connect WhatsApp for Peggy",
   "checklist.wa.hint": "Peggy go draft replies for you",
   "checklist.id.label": "Verify your ID",

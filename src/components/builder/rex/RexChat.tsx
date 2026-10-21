@@ -14,6 +14,7 @@ import type { RexJob } from "@shared/rex-progress";
 import { RexCardView, type RexCardHandlers } from "./RexCards";
 import type { ChatMessage } from "./types";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
+import { ChatText } from "@/components/chat/ChatText";
 
 const MAX_PHOTOS = 6;
 
@@ -25,6 +26,15 @@ function RexAvatar({ mood = "idle" }: { mood?: "idle" | "thinking" }) {
  * The Rex Studio conversation. Wide (preview closed) it reads like Peggy's page: a centred column with the
  * starter cards; narrow (preview open beside it) it is a side chat.
  */
+function SellerAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | null }) {
+  return avatarUrl ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={avatarUrl} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
+  ) : (
+    <span aria-hidden className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-app-peach text-[13px] font-extrabold text-app-accent-ink">{(name.trim().charAt(0) || "Y").toUpperCase()}</span>
+  );
+}
+
 export function RexChat({
   messages,
   busy,
@@ -40,7 +50,10 @@ export function RexChat({
   onOpenPreview,
   undoingId,
   attachRequest,
+  you,
 }: {
+  /** The seller, for the photo (or initial) beside their messages. */
+  you?: { name: string; avatarUrl: string | null };
   messages: ChatMessage[];
   busy: boolean;
   busyLabel: string;
@@ -202,7 +215,10 @@ export function RexChat({
                     ))}
                   </div>
                 ) : null}
-                <p className="m-0 max-w-[88%] whitespace-pre-wrap break-words rounded-[18px] rounded-br-[6px] bg-app-ink px-4 py-2.5 text-[14.5px] leading-[1.45] text-white sm:max-w-[75%]">{message.text}</p>
+                <div className="flex max-w-full items-end justify-end gap-2">
+                  <p className="m-0 max-w-[88%] whitespace-pre-wrap break-words rounded-[18px] rounded-br-[6px] bg-app-ink px-4 py-2.5 text-[14.5px] leading-[1.45] text-white sm:max-w-[75%]">{message.text}</p>
+                  {you ? <SellerAvatar {...you} /> : null}
+                </div>
               </div>
             ) : (
               <div key={message.id} className="flex gap-2.5">
@@ -225,7 +241,7 @@ export function RexChat({
                           ))}
                         </ul>
                       ) : null}
-                      <p className="m-0 whitespace-pre-wrap break-words">{message.text}</p>
+                      <ChatText text={message.text} />
                       {message.version ? (
                         <div className="mt-3 flex flex-wrap items-center gap-3">
                           <span className="rounded-full bg-app-canvas px-2.5 py-1 text-[12px] font-bold">{t("rex.versionCap", { n: message.version.n })}</span>

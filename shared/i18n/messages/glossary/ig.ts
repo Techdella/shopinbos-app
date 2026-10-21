@@ -112,12 +112,12 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "activity.example": "“Peggy belatara ọnụahịa akpa uhie ahụ ruo ₦16,000 n'elekere 2:14 ehihie.”",
   "payments.short": "Ego ndị ahịa na-akwụ gị, site na card, bank transfer, USSD ma ọ bụ ego n'oge delivery.",
   "payments.example": "₦18,000 site na transfer si n'aka Chidi, ₦9,500 ego n'oge delivery si n'aka Halima.",
-  "payouts.short": "Ego Shopinbos na-ezite site n'ire gị banye n'akaụntụ bank gị.",
+  "payouts.short": "Ego si n'ahịa gị a na-etinye ozugbo n'akaụntụ ụlọ akụ gị.",
   "payouts.example": "₦64,000 i rere na Mọnde ga-abanye na GTBank gị na Tuzde.",
   "settlement.short": "Oge ego gị dị njikere ma e bufee ya n'ụlọ akụ gị.",
   "settlement.example": "Ụgwọ card na-settle n'ụbọchị ọrụ na-esote.",
-  "escrow.short": "Ego e chekwara nke ọma n'etiti ruo mgbe order ruru, mgbe ahụ a hapụ ya.",
-  "escrow.example": "Onye na-azụ kwụrụ ₦30,000; a ga-ahapụrụ gị ya ozugbo ọ natara ngwugwu ya.",
+  "escrow.short": "Ego a na-ejide n'etiti ruo mgbe e nyefere ya. Shopinbos anaghị eme nke a: òkè ọ bụla na-aga n'ụlọ akụ onye nwe ya.",
+  "escrow.example": "Onye ahịa kwụrụ ₦30,000: òkè gị na nke supplier na-abanye n'ụlọ akụ unu, ọtụtụ mgbe n'ụbọchị ọrụ na-esote.",
   "invoices.short": "Akwụkwọ ụgwọ nwere logo gị na-egosi onye ahịa ego ole ọ ji na otú ọ ga-esi kwụọ.",
   "invoices.example": "Invoice #014 maka kartọn 20, a ga-akwụ ya na Fraịdee.",
   "taxes.short": "VAT na ụtụ isi ndị ọzọ a na-agbakwunye n'ọnụahịa ma ọ bụ a na-edebe site n'ire.",
@@ -200,6 +200,10 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "seasonal-campaigns.example": "Black Friday: agba gold, countdown na badge “BF Deal” site na Fraịdee ruo abalị Sọnde.",
   "wallet.short": "Ebe a na-akwụ gị ego kaadị: ozugbo n'ụlọ akụ gị, Shopinbos anaghị ejide ego gị.",
   "wallet.example": "Onye ahịa kwụrụ ₦30,000: ₦30,000 gị (wepụ ụgwọ Paystack) ga-abata na GTBank gị n'ụbọchị ọrụ na-esote.",
+  "credits.short": "Ihe ọrụ AI na-eji na Shopinbos: plan gị na-enye gị ụfọdụ kwa ọnwa, ị nwekwara ike ịzụtakwu.",
+  "credits.example": "Rex mere foto ọhụrụ atọ nke handbag gị; credits ole na ole si na nke ọnwa gị pụọ.",
+  "business-registration.short": "Ịdebanye aha azụmahịa gị na CAC, ka ọ bụrụ nke iwu ma nweta BN number.",
+  "business-registration.example": "Debanye “Ada's Fabrics” na CAC site na Shopinbos ma download certificate ebe a.",
 };
 
 export default ig;

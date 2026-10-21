@@ -32,6 +32,7 @@ export async function getSellerOnboardingStatus(userId: string) {
     },
   });
   if (!store) return null;
+  const deliveryPartners = await db.deliveryConnection.count({ where: { ownerUserId: userId, status: "active" } }).catch(() => 0);
   const walletBank = Boolean(await db.wallet.findFirst({ where: { userId, subaccountStatus: { in: ["active", "review"] } }, select: { id: true } }));
 
   const settings = record(store.brandSettings);
@@ -46,6 +47,7 @@ export async function getSellerOnboardingStatus(userId: string) {
     product: store._count.storeProducts > 0,
     brand: Boolean(editor.draft || editor.published || settings.template),
     bank: Boolean(record(settings.payoutBank).paystackRecipientCode || record(settings.payoutBank).accountNumberMask) || walletBank,
+    delivery: deliveryPartners > 0,
     wa: channels.includes("whatsapp") || manual.wa === true,
     ig: channels.includes("instagram") || channels.includes("tiktok") || manual.ig === true,
     labels: manual.labels === true,

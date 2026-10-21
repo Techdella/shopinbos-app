@@ -66,7 +66,10 @@ import {
 import { InsertPanel } from "./InsertPanel";
 import { Inspector, type SectionAction } from "./Inspector";
 import { PagePicker } from "./PagePicker";
-import { RexPanel } from "./RexPanel";
+import { RexPanel, type RexTopic } from "./RexPanel";
+
+/** The preview id for a change Rex shows before the seller applies it. */
+const REX_PREVIEW = "rex";
 import { sectionSchema } from "./section-schema";
 import { SectionsPanel } from "./SectionsPanel";
 import { ThemeSettingsPanel, type ThemeView } from "./ThemeSettingsPanel";
@@ -108,7 +111,20 @@ function isTyping(target: EventTarget | null) {
   return element.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(element.tagName);
 }
 
-export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }) {
+export function Builder({
+  initialRexOpen = false,
+  initialRexTopic = null,
+  initialFocus = null,
+  you = null,
+}: {
+  initialRexOpen?: boolean;
+  /** Opens Rex on this (e.g. "menu" from Home › Menus). */
+  initialRexTopic?: RexTopic | null;
+  /** Selects this part of the store when the builder opens (e.g. "header" for the menus). */
+  initialFocus?: "header" | "footer" | null;
+  /** The seller, for their messages to Rex. */
+  you?: { name: string; avatarUrl: string | null } | null;
+}) {
   const router = useRouter();
   const { t, tx } = useEditorT();
   const b = useBuilder();
@@ -120,7 +136,8 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
 
   const [view, setView] = useState<"editor" | "themes">("editor");
   const [preview, setPreview] = useState<{ id: string; name: string; snapshot: StoreEditorSnapshot } | null>(null);
-  const [panel, setPanel] = useState<Panel | null>(initialRexOpen ? "rex" : "sections");
+  const [panel, setPanel] = useState<Panel | null>(initialRexOpen || initialRexTopic ? "rex" : "sections");
+  const [rexTopic, setRexTopic] = useState<RexTopic>(initialRexTopic ?? "page");
   const [themeView, setThemeView] = useState<ThemeView | null>(null);
   const [insertTab, setInsertTab] = useState<"section" | "element">("section");
   const [insertTarget, setInsertTarget] = useState<{ group: SectionGroup; beforeId: string | null }>({ group: "template", beforeId: null });
@@ -182,6 +199,19 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
   useEffect(() => {
     if (draft && !draft.pages.some((candidate) => candidate.pageType === pageType)) setEntryId(draft.pages[0]?.pageType ?? "home");
   }, [draft, pageType]);
+
+  // Opened from another screen to work on one part (Home › Menus → the header): select it once the draft is in.
+  const focused = useRef(false);
+  useEffect(() => {
+    if (focused.current || !initialFocus || !draft) return;
+    const target = sections.find((section) => section.kind === initialFocus);
+    if (!target) return;
+    focused.current = true;
+    setSelectedId(target.id);
+    setInspectorTab("settings");
+    setScrollToken((token) => token + 1);
+    if (initialFocus === "header" && !initialRexTopic) setFocusField("menu");
+  }, [initialFocus, initialRexTopic, draft, sections]);
 
   // ── Edits ────────────────────────────────────────────────────────────────
 
@@ -774,7 +804,9 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
     />
   );
 
-  const leftPanel = !draft || !editing ? null : panel === "sections" ? sectionsPanel
+  // Rex's own preview keeps its panel open (that's where it's applied or thrown away).
+  const rexPreviewing = preview?.id === REX_PREVIEW;
+  const leftPanel = !draft || (!editing && !(rexPreviewing && panel === "rex")) ? null : panel === "sections" ? sectionsPanel
     : panel === "insert" ? (
       <InsertPanel
         ref={insertSearchRef}
@@ -803,9 +835,15 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
         pageType={pageType}
         selectedSectionId={selectedId}
         selectedName={selected?.name ?? null}
+        draft={draft}
+        topic={rexTopic}
+        onTopic={setRexTopic}
+        previewing={rexPreviewing}
+        onPreview={(next, name) => setPreview(next ? { id: REX_PREVIEW, name, snapshot: next } : null)}
         applyOps={b.applyOps}
         onApplied={() => b.showToast(tx("Rex's change is on the page"), "ok", { label: tx("Undo"), run: b.undo })}
-        onClose={() => setPanel("sections")}
+        onClose={() => { if (rexPreviewing) setPreview(null); setPanel("sections"); }}
+        you={you}
       />
     ) : null;
 
@@ -850,7 +888,12 @@ export function Builder({ initialRexOpen = false }: { initialRexOpen?: boolean }
     </div>
   ) : null;
 
-  const previewBar = preview ? (
+  const previewBar = preview?.id === REX_PREVIEW ? (
+    <div className="flex flex-wrap items-center gap-2 border-b border-app-line bg-app-peach px-4 py-2 text-[13.5px] text-app-ink">
+      <span className="min-w-0 flex-1"><strong>{t("edk.previewing", { name: preview.name })}</strong> {tx("Shoppers see nothing until you apply it in the Rex panel.")}</span>
+      <button type="button" onClick={() => setPreview(null)} className="min-h-9 rounded-full bg-app-ink px-3 font-semibold text-white">{tx("Discard")}</button>
+    </div>
+  ) : preview ? (
     <div className="flex flex-wrap items-center gap-2 border-b border-app-line bg-app-peach px-4 py-2 text-[13.5px] text-app-ink">
       <span className="min-w-0 flex-1"><strong>{t("edk.previewing", { name: preview.name })}</strong> {tx("Your products show in it; nothing changes until you use it.")}</span>
       <button type="button" onClick={() => setView("themes")} className="min-h-9 rounded-full border border-app-line bg-white px-3 font-semibold">{tx("Back to themes")}</button>

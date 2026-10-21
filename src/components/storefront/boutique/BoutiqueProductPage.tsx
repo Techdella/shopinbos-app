@@ -17,7 +17,7 @@ import { freeDeliveryEverywhereOver, type StorefrontShopperInfo } from "@/lib/st
 import { relatedProducts, type ShopperProduct } from "../shopper/catalog";
 import { ShopperBottomNav, type ShopperSheet } from "../shopper/ShopperBottomNav";
 import { resolveMenu, type MenuContext } from "../StoreMenu";
-import { menuStyleOf, mobileMenuStyleOf, readMenu } from "@/lib/storefront/menu";
+import { menuStyleOf, readMenuColors, mobileMenuStyleOf, readMenu } from "@/lib/storefront/menu";
 import { readFooterMenu, readMobileMenu } from "@/lib/storefront/store-navigation";
 import { AnnouncementBar, BoutiqueFooter, chromeLinksFromMenu, BoutiqueHeader, marketHeaderOf, type ChromeLink } from "./BoutiqueChrome";
 import { legalLinks, legalPagePath } from "@/lib/legal/pages";
@@ -99,6 +99,7 @@ export function BoutiqueProductPage({ themeId, snapshot, store, product, reviews
     goCategory: (slug) => router.push(pageHref("products", new URLSearchParams({ category: slug }))),
     products: catalog,
     productHref: (id) => getPublicStorefrontPath(storeBasePath, `/product/${id}`),
+    storeHref: (path) => getPublicStorefrontPath(storeBasePath, path),
     goProduct: (id) => router.push(getPublicStorefrontPath(storeBasePath, `/product/${id}`)),
   };
   const menu = resolveMenu(readMenu(headerCopy), menuCtx);
@@ -137,6 +138,7 @@ export function BoutiqueProductPage({ themeId, snapshot, store, product, reviews
         look={look}
         menu={menu}
         menuStyle={menuStyleOf(headerSection?.settings?.menuStyle)}
+        menuColors={readMenuColors(headerSection?.settings)}
         mobileMenu={mobileMenuStyleOf(headerSection?.settings?.mobileMenu)}
         mobileItems={mobileMenuItems}
         mobileExtra={[{ id: "track", label: "Track an order", onSelect: () => setSheet("account"), children: [] }]}

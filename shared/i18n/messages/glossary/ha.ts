@@ -112,12 +112,12 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "activity.example": "“Peggy ta rage farashin jakar ja zuwa ₦16,000 da ƙarfe 2:14 na rana.”",
   "payments.short": "Kuɗin da kwastomomi ke biyan ka, ta card, bank transfer, USSD ko kuɗi a lokacin delivery.",
   "payments.example": "₦18,000 ta transfer daga Chidi, ₦9,500 kuɗi a lokacin delivery daga Halima.",
-  "payouts.short": "Kuɗin da Shopinbos ke aikawa daga sayarwarka zuwa asusun bankinka.",
+  "payouts.short": "Kuɗi daga cinikinka da ake tura kai tsaye zuwa asusun bankinka.",
   "payouts.example": "₦64,000 na sayarwar Litinin zai shiga GTBank ɗinka ranar Talata.",
   "settlement.short": "Lokacin da kuɗinka ya tabbata kuma aka tura shi bankinka.",
   "settlement.example": "Kuɗin card yana settle a rana ta aiki ta gaba.",
-  "escrow.short": "Kuɗin da aka riƙe lafiya a tsakiya har sai order ya isa, sannan a sake shi.",
-  "escrow.example": "Mai saye ya biya ₦30,000; za a sake maka da zarar ya karɓi kunshin.",
+  "escrow.short": "Kuɗin da ake riƙewa a tsakiya har sai an isar. Shopinbos ba ta yin haka: kowane kaso yana zuwa bankin mai shi.",
+  "escrow.example": "Abokin ciniki ya biya ₦30,000: kasonka da na supplier suna zuwa bankunanku, yawanci a ranar aiki ta gaba.",
   "invoices.short": "Takardar kuɗi mai logo ɗinka da ke faɗa wa kwastoma abin da yake bin ka da yadda zai biya.",
   "invoices.example": "Invoice #014 na kwali 20, a biya ranar Juma'a.",
   "taxes.short": "VAT da sauran haraji da ake ƙarawa a farashi ko ake ware daga sayarwa.",
@@ -200,6 +200,10 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "seasonal-campaigns.example": "Black Friday: launin gold, ƙidayar lokaci da badge “BF Deal” daga Juma'a zuwa daren Lahadi.",
   "wallet.short": "Inda ake biyan kuɗin kati naka: kai tsaye zuwa bankinka, Shopinbos ba ya riƙe kuɗinka.",
   "wallet.example": "Abokin ciniki ya biya ₦30,000: ₦30,000 naka (ban da kuɗin Paystack) zai shiga GTBank ɗinka a ranar aiki ta gaba.",
+  "credits.short": "Abin da ayyukan AI ke amfani da shi a Shopinbos: plan ɗinka yana ba ka wasu kowane wata, kuma za ka iya saya.",
+  "credits.example": "Rex ya yi sababbin hotuna uku na jakarka; an cire ƴan credits daga na wata-wata.",
+  "business-registration.short": "Yi wa sunan kasuwancinka rajista a CAC, don ya zama na hukuma ka sami BN number.",
+  "business-registration.example": "Yi wa “Ada's Fabrics” rajista a CAC daga Shopinbos ka download certificate a nan.",
 };
 
 export default ha;

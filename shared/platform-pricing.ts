@@ -143,6 +143,7 @@ export const PRICE_SETTINGS = {
   "credits.cost.rate_card": credits("Cost (logistics): build a rate card from a price list", 10, { min: 1 }),
   "credits.cost.coverage_listing": credits("Cost (logistics): coverage and pickup point listings", 5, { min: 1 }),
   "credits.cost.performance_report": credits("Cost (logistics): performance summary report", 5, { min: 1 }),
+  "credits.cost.store_design": credits("Cost: apply a Rex design in the store builder (menu, section, layout)", 3, { min: 1 }),
 
   "boosts.supplier_week": naira("boosts", "Featured supplier on the sellers' marketplace home, per week", 3_000, { min: 100 }),
   "boosts.logistics_state_week": naira("boosts", "Featured delivery partner in a state's results, per week per state", 2_000, { min: 100 }),

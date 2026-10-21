@@ -9,6 +9,7 @@ import { isOwnImageUrl } from "@/lib/ai/images";
 import { Composer } from "../_kit/Composer";
 import { composerData } from "../_kit/composer-data.server";
 import type { ComposerPost, PickMedia } from "../_kit/types";
+import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -21,6 +22,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function NewSocialPostPage({ searchParams }: { searchParams: Promise<{ date?: string; image?: string; video?: string; product?: string; to?: string; from?: string }> }) {
   const user = await requireRole(["seller"], "/login");
+  const tipT = await getT("tips");
   const t = await getT("socialPosts", "common");
   const query = await searchParams;
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true, customDomain: true } });
@@ -75,6 +77,7 @@ export default async function NewSocialPostPage({ searchParams }: { searchParams
 
   return (
     <SellerPage user={user} store={storeSummary(store)} title={t("new.title")} sub={t("new.sub")} actions={<PillLink href="/home/marketing/social" icon="arrowLeft">{t("back")}</PillLink>}>
+      <PageTip className="mb-5">{tipT("social.new")}</PageTip>
       <Composer post={post} products={data.products} media={data.media} accounts={data.accounts} queueNext={data.queueNext} storeName={store.name} />
     </SellerPage>
   );

@@ -49,7 +49,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "search.logo.label": "Logo Studio",
   "search.logo.desc": "Yi logo da AI",
   "search.images.label": "Image Generator",
-  "search.images.desc": "Yi hotuna da DALL-E",
+  "search.images.desc": "Hotunan Rex, an yi su da OpenAI",
 
   "loading.checkingOrders": "Ana duba sababbin orders",
   "loading.briefReady": "Ana shirya brief ɗinka",

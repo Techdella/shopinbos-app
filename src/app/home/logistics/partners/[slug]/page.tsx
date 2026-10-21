@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { AppPage, PillLink } from "@/components/app-kit";
+import { AppPage, AssistantNote, PillLink } from "@/components/app-kit";
 import { sellerFrame } from "@/components/seller-core";
 import { requireRole } from "@/lib/server-auth";
 import { getSellerWorkspace } from "@/lib/workspace";
 import { partnerDetail } from "@/lib/delivery-market/manage.server";
 import { FlashNotice } from "@/components/delivery-market/bits";
 import { PartnerDetail } from "@/components/delivery-market/PartnerDetail";
+import { DeliveryTip } from "@/components/delivery-market/DeliveryTip";
 import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
@@ -32,6 +33,9 @@ export default async function SellerPartnerDetailPage({ params, searchParams }: 
       actions={<PillLink href="/home/logistics/partners" icon="arrowLeft">{t("partners.title")}</PillLink>}
     >
       <FlashNotice saved={flash.saved} error={flash.error} />
+      <DeliveryTip>
+        <div className="mb-5"><AssistantNote who="peggy">{t("detail.tip")}</AssistantNote></div>
+      </DeliveryTip>
       <PartnerDetail detail={detail} role="seller" back={`/home/logistics/partners/${detail.partner.slug}`} />
     </AppPage>
   );

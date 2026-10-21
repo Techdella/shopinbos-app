@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import { addSupplierProductToStore, messageSupplier, requestSupplierQuote, toggleSavedProduct } from "@/app/actions/sourcing";
 import { cx } from "@/components/app-ui/cx";
 import { Icon } from "@/components/ui/Icon";
@@ -16,6 +16,7 @@ import { BeforeYouList, type ListingInfo } from "./BeforeYouList";
 import { SupplierTrustBadges } from "./SupplierTrust";
 import { formatMoney, formatNumber } from "@shared/i18n";
 import { localWholesaleStage } from "./wholesaleStage";
+import { Term } from "@/components/learn/Term";
 
 const CARD = "rounded-[20px] border border-app-line bg-white";
 
@@ -30,7 +31,7 @@ export interface MyWholesaleOrder {
 }
 
 /** Product page in Find products: price it, see the money on each sale, add it, or buy wholesale. */
-export function ProductDetail({ product, added: addedAtStart, saved: savedAtStart, notified, defaultAddress = "", wholesaleOrders = [], listing }: { product: FindProduct; added: boolean; saved: boolean; notified: boolean; defaultAddress?: string; wholesaleOrders?: MyWholesaleOrder[]; listing?: ListingInfo }) {
+export function ProductDetail({ product, added: addedAtStart, saved: savedAtStart, notified, defaultAddress = "", wholesaleOrders = [], listing, tip }: { product: FindProduct; added: boolean; saved: boolean; notified: boolean; defaultAddress?: string; wholesaleOrders?: MyWholesaleOrder[]; listing?: ListingInfo; /** Peggy's tip under the title (rendered by the page, hidden when tips are off). */ tip?: ReactNode }) {
   const router = useRouter();
   const t = useT("marketplace");
   const locale = useLocale();
@@ -160,6 +161,8 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
         </div>
       </header>
 
+      {tip}
+
       {product.sample && (
         <p className="m-0 flex flex-wrap items-center gap-2 rounded-[14px] border border-dashed border-app-line-strong bg-white px-3.5 py-2.5 text-[13.5px] text-app-ink-soft">
           <span className="rounded-full bg-[#FDF0D5] px-2.5 py-0.5 text-[12px] font-extrabold text-[#8A5A00]">{t("pd.sampleBadge")}</span>
@@ -217,6 +220,12 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
               );
             })}
           </div>
+          <p className="m-0 px-2 text-[13px] leading-[1.5] text-app-ink-soft">
+            <strong className="font-extrabold text-app-ink">
+              <Term k={mode === "dropship" ? "dropship" : "wholesale"}>{mode === "dropship" ? t("pd.mode.dropship") : t("pd.mode.wholesale")}</Term>:
+            </strong>{" "}
+            {mode === "dropship" ? t("pd.modeHelp.dropship") : t("pd.modeHelp.wholesale")}
+          </p>
 
           {mode === "dropship" ? (
             <>

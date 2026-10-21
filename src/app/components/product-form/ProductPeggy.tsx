@@ -7,6 +7,7 @@ import { Icon } from "@/components/ui/Icon";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { useT } from "@/components/i18n/I18nProvider";
 import type { AssistantFormState, SuggestionInput } from "@shared/product-assistant";
+import { ChatText } from "@/components/chat/ChatText";
 
 // Peggy docked on the add / edit product page. She opens by herself once per browser session per page kind (new or
 // edit) with a short greeting, and can be closed to a small "Ask Peggy" button. The seller tells her sizes, colours
@@ -217,7 +218,7 @@ export const ProductPeggy = forwardRef<ProductPeggyHandle, Props>(function Produ
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={turn.photo} alt="" className="mb-1.5 h-20 w-20 rounded-[10px] object-cover" />
                 ) : null}
-                {turn.content}
+                {turn.role === "assistant" ? <ChatText text={turn.content} /> : turn.content}
               </Bubble>
               {turn.suggestion && turn.changes?.length ? (
                 <div className="self-stretch rounded-[16px] border border-app-line bg-white p-3">
@@ -303,7 +304,8 @@ function Bubble({ role, failed, children }: { role: "user" | "assistant"; failed
   return (
     <div
       className={cx(
-        "max-w-[90%] whitespace-pre-wrap break-words px-3.5 py-2.5 text-[14px] leading-[1.45]",
+        "max-w-[90%] break-words px-3.5 py-2.5 text-[14px] leading-[1.45]",
+        role === "user" && "whitespace-pre-wrap",
         role === "user" ? "self-end rounded-[16px] rounded-br-[6px] bg-app-ink text-white" : "self-start rounded-[16px] rounded-tl-[6px] bg-app-mint text-app-ink",
         failed && "bg-app-danger-tint text-app-danger",
       )}

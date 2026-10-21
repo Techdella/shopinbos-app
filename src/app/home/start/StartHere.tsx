@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Mascot, Notice, PillButton, Toggle } from "@/components/app-ui";
+import { AssistantNote } from "@/components/app-kit";
 import { cx } from "@/components/app-ui/cx";
 import { Icon } from "@/components/ui/Icon";
 import { withChannelRef } from "@shared/channels";
@@ -12,7 +13,7 @@ import { formatNumber } from "@shared/i18n";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import { DELIVERY_CITY_PRESETS, ELSEWHERE_AREA, START_SEEN_COOKIE, type SetupStep, type SetupStepKey } from "@/lib/setup/checklist";
 import type { SetupOverview } from "@/lib/setup/server";
-import { chooseSetupStep, saveDeliveryPicks, savePaymentChoices } from "./actions";
+import { chooseSetupStep, connectDeliveryCompany, saveDeliveryPicks, savePaymentChoices, setCheckoutPartners } from "./actions";
 import { StartHelpers } from "./StartHelpers";
 
 interface Props {
@@ -22,6 +23,25 @@ interface Props {
   launchError?: string | null;
   /** A checklist step to open first (from ?step=). */
   openStep?: string | null;
+  /** "Choose a delivery company": a few verified companies for the shop's area (page.tsx, from findPartners). */
+  deliveryCompanies?: DeliveryCompanies;
+}
+
+export interface DeliveryCompanies {
+  /** Checkout offers the shop's delivery companies (logistics settings checkoutMode "partners"). */
+  atCheckout: boolean;
+  options: Array<{
+    id: string;
+    slug: string;
+    name: string;
+    logoUrl: string | null;
+    /** "Lagos, Ogun, Oyo and 2 more". */
+    areas: string;
+    startingPrice: number | null;
+    rating: number | null;
+    ratingCount: number;
+    connected: boolean;
+  }>;
 }
 
 type StartT = ReturnType<typeof useT<["home", "common"]>>;
@@ -31,7 +51,7 @@ function stepText(t: StartT, text: string) {
   return t.dynamic(`step.${text}`, text);
 }
 
-export function StartHere({ firstName, overview, launchResult, launchError, openStep }: Props) {
+export function StartHere({ firstName, overview, launchResult, launchError, openStep, deliveryCompanies }: Props) {
   const t = useT("home", "common");
   const router = useRouter();
   const { checklist, store } = overview;
@@ -149,6 +169,7 @@ export function StartHere({ firstName, overview, launchResult, launchError, open
                 <StepPanel
                   step={step}
                   overview={overview}
+                  deliveryCompanies={deliveryCompanies}
                   onDone={(message) => {
                     setOpen(null);
                     setToast(message);
@@ -265,18 +286,21 @@ function StepRow({
 function StepPanel({
   step,
   overview,
+  deliveryCompanies,
   onDone,
   onShared,
   onError,
 }: {
   step: SetupStep;
   overview: SetupOverview;
+  deliveryCompanies?: DeliveryCompanies;
   onDone: (message: string) => void;
   onShared: (message: string) => void;
   onError: (message: string | null) => void;
 }) {
   if (step.key === "payments") return <PaymentsPanel initial={overview.payments} payoutBank={overview.facts.payoutBank} onDone={onDone} />;
   if (step.key === "delivery") return <DeliveryPanel zones={overview.zones} onDone={onDone} />;
+  if (step.key === "partners") return <PartnersPanel companies={deliveryCompanies ?? { atCheckout: false, options: [] }} hasZones={overview.zones.length > 0} onDone={onDone} />;
   if (step.key === "live") return <LivePanel live={overview.facts.live} onDone={onDone} onError={onError} />;
   if (step.key === "share") return <SharePanel name={overview.store.name} url={overview.store.url} onShared={onShared} />;
   return null;
@@ -423,6 +447,95 @@ function DeliveryPanel({ zones, onDone }: { zones: SetupOverview["zones"]; onDon
       >
         {t("start.del.save")}
       </PillButton>
+    </div>
+  );
+}
+
+/**
+ * "Choose a delivery company": a few verified delivery companies for the shop's area, one tap to use one (the
+ * same connection as /home/logistics/partners) and whether checkout offers it. Plain words for a first-timer.
+ */
+function PartnersPanel({ companies, hasZones, onDone }: { companies: DeliveryCompanies; hasZones: boolean; onDone: (message: string) => void }) {
+  const t = useT("home", "common");
+  const locale = useLocale();
+  // New sellers without their own delivery fees get checkout pricing from the company straight away.
+  const [atCheckout, setAtCheckout] = useState(companies.atCheckout || !hasZones);
+  const [error, setError] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  const anyConnected = companies.options.some((option) => option.connected);
+
+  function connect(id: string) {
+    setError(null);
+    setBusyId(id);
+    startTransition(async () => {
+      const result = await connectDeliveryCompany(id, atCheckout);
+      setBusyId(null);
+      if (result.error) setError(result.error);
+      else onDone(t("start.partners.connected"));
+    });
+  }
+
+  function changeCheckout(on: boolean) {
+    setAtCheckout(on);
+    // Before a company is chosen the choice is saved with it; afterwards it saves straight away.
+    if (!anyConnected) return;
+    setError(null);
+    startTransition(async () => {
+      const result = await setCheckoutPartners(on);
+      if (result.error) {
+        setAtCheckout(!on);
+        setError(result.error);
+      }
+    });
+  }
+
+  return (
+    <div>
+      <p className="m-0 text-[14px] leading-[1.5]">{t("start.partners.intro")}</p>
+      <div className="mt-3">
+        <AssistantNote who="peggy">{t("start.partners.tip")}</AssistantNote>
+      </div>
+      {companies.options.length === 0 ? (
+        <p className="mb-0 mt-3 rounded-[16px] bg-white px-4 py-3 text-[14px] leading-[1.5] text-app-ink-soft">{t("start.partners.none")}</p>
+      ) : (
+        <ul className="m-0 mt-3 list-none divide-y divide-app-line rounded-[16px] bg-white p-0 px-4">
+          {companies.options.map((option) => (
+            <li key={option.id} className="flex flex-wrap items-center gap-3 py-3">
+              {option.logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={option.logoUrl} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
+              ) : (
+                <span aria-hidden className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-app-canvas text-[15px] font-extrabold">{option.name.charAt(0).toUpperCase()}</span>
+              )}
+              <div className="min-w-0 flex-1">
+                <Link href={`/home/logistics/partners/${option.slug}`} className="text-[14.5px] font-extrabold text-app-ink no-underline hover:underline">{option.name}</Link>
+                <div className="text-[13px] leading-[1.4] text-app-ink-soft">{t("start.partners.deliversTo", { areas: option.areas })}</div>
+                <div className="flex flex-wrap gap-x-3 text-[13px] leading-[1.4] text-app-ink-soft">
+                  {option.startingPrice !== null && <span className="font-bold text-app-ink">{t("start.partners.from", { price: `₦${formatNumber(Math.round(option.startingPrice), locale)}` })}</span>}
+                  {option.rating !== null && <span>{t("start.partners.rating", { rating: option.rating.toFixed(1), count: option.ratingCount })}</span>}
+                </div>
+              </div>
+              {option.connected ? (
+                <span className="rounded-full bg-app-success-tint px-3 py-1 text-[13px] font-bold text-app-success">{t("start.partners.inUse")}</span>
+              ) : (
+                <PillButton size="sm" busy={pending && busyId === option.id} disabled={pending} onClick={() => connect(option.id)}>{t("start.partners.use")}</PillButton>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      <label className="mt-3 flex items-start gap-3 rounded-[16px] bg-white px-4 py-3">
+        <input type="checkbox" checked={atCheckout} disabled={pending} onChange={(event) => changeCheckout(event.target.checked)} className="mt-1 h-4 w-4 shrink-0 accent-app-ink" />
+        <span className="min-w-0 flex-1">
+          <span className="block text-[14.5px] font-semibold">{t("start.partners.atCheckout")}</span>
+          <span className="block text-[12.5px] leading-[1.4] text-app-ink-soft">{t("start.partners.atCheckoutHint")}</span>
+        </span>
+      </label>
+      {error && <div className="mt-3"><Notice>{error}</Notice></div>}
+      <Link href="/home/logistics/partners" className="mt-3 inline-flex min-h-[40px] items-center gap-1.5 text-[14px] font-bold text-app-ink no-underline hover:underline">
+        {t("start.partners.seeAll")} <Icon name="arrow" size={14} />
+      </Link>
     </div>
   );
 }

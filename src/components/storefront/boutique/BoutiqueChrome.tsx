@@ -1,5 +1,6 @@
 "use client";
 
+import { withMenuColors, type MenuColorSet } from "@/lib/storefront/menu";
 import type React from "react";
 import { Icon } from "@/components/ui/Icon";
 import type { StorefrontShopperInfo } from "@/lib/storefront/shopper-info";
@@ -87,6 +88,7 @@ export function BoutiqueHeader({
   look,
   menu,
   menuStyle = "classic",
+  menuColors: ownMenuColors = null,
   mobileMenu = "drawer",
   mobileItems,
   mobileExtra,
@@ -110,6 +112,8 @@ export function BoutiqueHeader({
   /** The main menu, resolved (StoreMenu resolveMenu). */
   menu: ShownMenuItem[];
   menuStyle?: MenuStyle;
+  /** The menu's own colours (header settings `menuColors`), over the theme's. */
+  menuColors?: MenuColorSet | null;
   mobileMenu?: MobileMenuStyle;
   /** The phone menu's own items, resolved; absent: the phone shows the main menu. */
   mobileItems?: ShownMenuItem[];
@@ -141,7 +145,7 @@ export function BoutiqueHeader({
   categoryBar?: ShownMenuItem[] | null;
 }) {
   const t = look.tokens;
-  const menuColors: MenuColors = { ink: bold ? t.paperBg : t.ink, muted: t.muted, accent: t.accent, accentText: look.onAccent, panel: look.dark ? look.raised : "#fff", panelInk: t.ink, border: t.border };
+  const menuColors: MenuColors = withMenuColors({ ink: bold ? t.paperBg : t.ink, muted: t.muted, accent: t.accent, accentText: look.onAccent, panel: look.dark ? look.raised : "#fff", panelInk: t.ink, border: t.border }, ownMenuColors);
   const nav = <StoreMenuBar items={menu} style={menuStyle} colors={menuColors} className="bq-nav-desktop" font={look.navStyle} />;
   const burger = (
     <StoreMenuButton

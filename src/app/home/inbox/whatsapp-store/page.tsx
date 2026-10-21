@@ -7,6 +7,7 @@ import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { whatsappStoreView } from "@/lib/whatsapp-store/server";
 import { WhatsAppStoreClient } from "./WhatsAppStoreClient";
+import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -16,6 +17,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function WhatsAppStorePage() {
   const user = await requireRole(["seller"], "/login");
+  const tipT = await getT("tips");
   const t = await getT("inbox");
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true } });
   if (!store) redirect("/builder?firstRun=1");
@@ -34,6 +36,7 @@ export default async function WhatsAppStorePage() {
         </>
       }
     >
+      <PageTip className="mb-5">{tipT("inbox.whatsappStore")}</PageTip>
       <WhatsAppStoreClient initial={view} storeName={store.name} />
     </SellerPage>
   );

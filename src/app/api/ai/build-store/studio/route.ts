@@ -7,7 +7,7 @@ import { loadStudioStore, runStudioEdit } from "@/lib/ai/rex/studio-edit.server"
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 // POST /api/ai/build-store/studio: one direct store-design edit. Rex replies with a JSON plan that is applied
 // to the editor DRAFT only, recorded as a new version (v1 is the store before Rex's first change), and returned

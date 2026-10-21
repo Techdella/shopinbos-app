@@ -112,12 +112,12 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "activity.example": "“Peggy reduce the price of the red bag to ₦16,000 for 2:14pm.”",
   "payments.short": "Money wey customers dey pay you, by card, bank transfer, USSD or cash on delivery.",
   "payments.example": "₦18,000 by transfer from Chidi, ₦9,500 cash on delivery from Halima.",
-  "payouts.short": "Money wey Shopinbos dey send from your sales enter your bank account.",
+  "payouts.short": "Money from your sales wey dem settle straight for your bank account.",
   "payouts.example": "Monday ₦64,000 sales go land for your GTBank on Tuesday.",
   "settlement.short": "The time wey your money don clear and dem don move am to your bank.",
   "settlement.example": "Card payments dey settle the next working day.",
-  "escrow.short": "Money wey dey safe for middle until the order reach, then dem release am.",
-  "escrow.example": "Buyer pay ₦30,000; dem go release am to you once e collect the parcel.",
+  "escrow.short": "Money wey dem hold for middle until delivery. Shopinbos no dey do am: each share go straight to the owner bank.",
+  "escrow.example": "Customer pay ₦30,000: your share and the supplier own go land for una own bank, usually the next working day.",
   "invoices.short": "Bill wey get your logo, wey tell customer how much e owe and how to pay.",
   "invoices.example": "Invoice #014 for 20 cartons, make dem pay by Friday.",
   "taxes.short": "VAT and other tax wey you add to price or keep aside from sales.",
@@ -200,6 +200,10 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "seasonal-campaigns.example": "Black Friday: gold colours, countdown and “BF Deal” badge from Friday reach Sunday night.",
   "wallet.short": "Na where card payment for you dey settle: straight enter your own bank, Shopinbos no dey hold your money.",
   "wallet.example": "Customer pay ₦30,000: your ₦30,000 (minus Paystack fee) go land your GTBank next working day.",
+  "credits.short": "Wetin AI actions dey use for Shopinbos: your plan dey give you some every month, and you fit buy more.",
+  "credits.example": "Rex make three new pictures of your handbag; small credits comot from your monthly ones.",
+  "business-registration.short": "To register your business name with CAC, make e official and you get BN number.",
+  "business-registration.example": "Register “Ada's Fabrics” with CAC from Shopinbos and download the certificate here.",
 };
 
 export default pcm;

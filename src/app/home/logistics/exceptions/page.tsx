@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AppPage, Card, EmptyState, Pill, PillLink } from "@/components/app-kit";
+import { AppPage, AssistantNote, Card, EmptyState, Pill, PillLink } from "@/components/app-kit";
 import { field, pillButton, sellerFrame } from "@/components/seller-core";
 import { requireRole } from "@/lib/server-auth";
 import { getSellerWorkspace } from "@/lib/workspace";
@@ -10,6 +10,7 @@ import { canReassign, type ExceptionKind } from "@shared/delivery-market";
 import { markJobReadyAction, reassignJobAction } from "@/app/actions/delivery-market";
 import { FlashNotice, naira } from "@/components/delivery-market/bits";
 import { declineReasonText, exceptionLabel, jobStatusLabel, timeframeLabel } from "@/components/delivery-market/words";
+import { DeliveryTip } from "@/components/delivery-market/DeliveryTip";
 import { getT } from "@/lib/i18n/server";
 import { intlLocale } from "@shared/i18n";
 
@@ -28,11 +29,11 @@ const KIND_TONE: Record<ExceptionKind, "danger" | "warning" | "info"> = {
 };
 
 const HELP: Record<ExceptionKind, string> = {
-  declined: "Send it to another of your partners.",
-  not_accepted: "The partner hasn't accepted in time. You can wait, or send it to another partner.",
-  late_pickup: "The partner hasn't collected it in time. You can send it to another partner.",
-  failed_attempt: "Talk to your customer and the partner about trying again.",
-  address_problem: "Check the address with your customer, then tell the partner.",
+  declined: "The partner said no. Send it to another of your partners.",
+  not_accepted: "The partner hasn't said yes in time. You can wait, or send it to another partner.",
+  late_pickup: "The partner hasn't come to collect it in time. You can send it to another partner.",
+  failed_attempt: "The rider couldn't deliver it. Talk to your customer and the partner about trying again.",
+  address_problem: "The rider couldn't find the address. Check it with your customer, then tell the partner.",
   returning: "The parcel is coming back to you.",
 };
 
@@ -57,6 +58,9 @@ export default async function DeliveryExceptionsPage({ searchParams }: { searchP
       actions={<PillLink href="/home/logistics" icon="arrowLeft">{t("logistics")}</PillLink>}
     >
       <FlashNotice saved={flash.saved} error={flash.error} />
+      <DeliveryTip>
+        <div className="mb-5"><AssistantNote who="peggy">{t("exceptions.tip")}</AssistantNote></div>
+      </DeliveryTip>
       {items.length === 0 ? (
         <EmptyState icon="checkCircle" title={t("exceptions.emptyTitle")}>{t("exceptions.emptyBody")}</EmptyState>
       ) : (

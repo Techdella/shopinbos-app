@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { withSeller } from "@/lib/auth/middleware";
 import { aiConfigured } from "@/lib/ai/client";
 import { aiText, firstJsonObject } from "@/lib/ai/text";
-import { meterAi } from "@/lib/ai/usage";
+import { aiCost, meterAiPreview } from "@/lib/ai/usage";
 import { createSectionFromLibrary, guessPageType, summarizeTemplateForAi, type StoreBrandSettingsLike } from "@/lib/store-templates";
 
 export const runtime = "nodejs";
@@ -135,7 +135,9 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
     });
   }
 
-  const limited = await meterAi(user.id, "text");
+  // Rex's edit is a preview in the builder: free to look at (daily cap only). Applying it costs credits
+  // (/api/ai/store-editor/apply).
+  const limited = await meterAiPreview(user.id, "text");
   if (limited) return limited;
 
   const templateSummary = body?.templateId ? summarizeTemplateForAi(body.templateId) : null;
@@ -143,6 +145,7 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
 Return only valid JSON with this shape:
 {"ops":[{"op":"update-section","pageType":"home","sectionId":"hero","changes":{"blocks":[{"id":"hero-copy","type":"copy","content":{"title":"...","body":"..."}}]}}]}
 
+You are not limited to what the template has: you can create new sections and layouts by adding library sections with your own copy and items, change theme colours and fonts with op update-theme ({"op":"update-theme","changes":{...}}), reorder, show or hide sections.
 You may also add production ecommerce sections using op add-section. Good section kinds include:
 hero-split, featured-products, filters-toolbar, category-list, product-detail, cart-summary, checkout-form, wishlist-grid, promo-banner, newsletter, story-split, text-columns, faq, contact-form.
 For full-store requests, recreate the selected template's visual language as editable Shopinbos blocks: header/logo/nav, hero, categories, products, product detail, wishlist, cart, checkout, blog, contact form, newsletter, FAQ, reviews, and footer.
@@ -179,5 +182,5 @@ ${prompt}`;
   if (!parsed || !Array.isArray(parsed.ops) || !parsed.ops.length) {
     return NextResponse.json({ error: { code: "AI_FORMAT", message: "Rex's edit came back in a format that couldn't be applied. Nothing was changed; try rephrasing." } }, { status: 502 });
   }
-  return NextResponse.json({ data: { ops: parsed.ops, reply: describeOps(parsed.ops) } });
+  return NextResponse.json({ data: { ops: parsed.ops, reply: describeOps(parsed.ops), applyCost: await aiCost("text", 1, "store_design") } });
 });
