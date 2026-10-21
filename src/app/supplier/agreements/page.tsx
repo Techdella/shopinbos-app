@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { requireRole } from "@/lib/server-auth";
 import { ensureSupplierAccess, getSupplierForUser } from "@/lib/role-queries";
 import { AppPage, Card, EmptyState } from "@/components/app-kit";
@@ -18,7 +19,7 @@ export default async function SupplierAgreementsPage() {
   const user = await requireRole(["supplier"], "/supplier/login");
   const supplier = await getSupplierForUser(user);
   ensureSupplierAccess(supplier);
-  const t = await getT("supplier", "marketplace");
+  const t = await getT("supplier", "marketplace", "contracts");
   const rows = await agreementsForSupplier(supplier!.id);
   return (
     <AppPage frame={supplierFrame(user, supplier)} title={t("agr.title")} sub={t("agr.sub")}>
@@ -43,7 +44,8 @@ export default async function SupplierAgreementsPage() {
                   </div>
                   {row.sellerNote ? <p className="m-0 whitespace-pre-line text-[13.5px]">&ldquo;{row.sellerNote}&rdquo;</p> : null}
                   {row.supplierNote ? <p className="m-0 text-[13px] text-app-ink-soft">{t("agr.youSaid", { note: row.supplierNote })}</p> : null}
-                  {row.status === "requested" ? <AgreementAnswer agreementId={row.id} shopName={row.shopName} /> : null}
+                  {row.status === "requested" ? <AgreementAnswer agreementId={row.id} shopName={row.shopName} contractId={row.contractId} /> : null}
+                  {row.status !== "requested" && row.contractId ? <Link href={`/supplier/contracts/${row.contractId}`} className="text-[13.5px] font-extrabold text-app-ink">{t("agr.openContract")} ›</Link> : null}
                 </Card>
               </li>
             ))}

@@ -50,7 +50,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "detail.item": "Ihe",
   "detail.parcels": "Ngwugwu",
   "detail.sentBySupplier": "Supplier zitere ya",
-  "detail.dropshipSub": "Ngwaahịa dropship na-esi n'aka supplier gaa ozugbo n'aka onye ahịa gị, n'aha ụlọ ahịa gị.",
+  "detail.dropshipSub": "Ngwaahịa dropship na-esi n'aka supplier gaa ozugbo n'aka onye ahịa gị, dịka order si n'ụlọ ahịa gị.",
   "detail.waitingFor": "Anyị na-eche ka {name} nabata. Ị ga-ahọrọ onwe gị?",
   "detail.undo": "Weghachi",
   "detail.accepted": "{name} anabatala ya.",

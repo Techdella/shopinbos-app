@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Linking, Pressable, View } from "react-native";
 import { AGREEMENT_POINTS, type StockCheck } from "@shared/supplier-trust";
+import { cleanSignedName, dropshipDocument } from "@shared/contracts";
 import { Badge } from "@/components/kit";
 import { Card, Field, Notice, PillButton, T, Toggle } from "@/components/ui";
 import { sendAgreement, type FindProduct, type Listing } from "@/lib/marketplace";
@@ -68,9 +69,27 @@ function Check({ on, onChange, label }: { on: boolean; onChange: (on: boolean) =
   );
 }
 
+/** The full Dropship agreement (shared/contracts.ts), in English like the web. */
+function AgreementText({ doc }: { doc: ReturnType<typeof dropshipDocument> }) {
+  return (
+    <View style={{ gap: 10, backgroundColor: colors.surface, borderRadius: radii.card, padding: 12 }}>
+      <T weight="extrabold" style={{ fontSize: 16 }}>{doc.title}</T>
+      <T style={{ fontSize: 13.5 }}>{`${doc.partyA.name} (${doc.partyA.label}) · ${doc.partyB.name} (${doc.partyB.label})`}</T>
+      {doc.sections.map((section, index) => (
+        <View key={section.heading} style={{ gap: 4 }}>
+          <T weight="bold" style={{ fontSize: 14 }}>{`${index + 1}. ${section.heading}`}</T>
+          {section.paragraphs.map((paragraph, at) => <T key={at} style={{ fontSize: 13.5, lineHeight: 19 }}>{paragraph}</T>)}
+        </View>
+      ))}
+    </View>
+  );
+}
+
 /** The call, the stock check and the agreement, until both sides have agreed (then the seller can list). */
 export function BeforeYouList({ product, listing, onSent }: { product: FindProduct; listing: Listing; onSent: () => void }) {
-  const t = useT("marketplace");
+  const t = useT("marketplace", "contracts");
+  const [signedName, setSignedName] = useState("");
+  const [reading, setReading] = useState(false);
   const name = product.supplier.name;
   const [called, setCalled] = useState(false);
   const [stockCheck, setStockCheck] = useState<StockCheck | null>(null);
@@ -86,7 +105,7 @@ export function BeforeYouList({ product, listing, onSent }: { product: FindProdu
     setBusy(true);
     setError(null);
     try {
-      const result = await sendAgreement({ supplierId: product.supplier.id, called, stockCheck, agreed, note: note.trim() || undefined });
+      const result = await sendAgreement({ supplierId: product.supplier.id, called, stockCheck, agreed, note: note.trim() || undefined, signedName });
       setSent(result.message);
       onSent();
     } catch (failure) {
@@ -143,10 +162,14 @@ export function BeforeYouList({ product, listing, onSent }: { product: FindProdu
           <Step n={3} title={t("trust.step.agree")}>
             {Array.from({ length: AGREEMENT_POINTS }, (_, index) => <T key={index} style={{ fontSize: 13.5, lineHeight: 19 }}>{`• ${t.dynamic(`trust.point.${index}`, "")}`}</T>)}
             <Field value={note} onChangeText={setNote} placeholder={t("trust.notePh")} maxLength={600} multiline />
-            <Check on={agreed} onChange={setAgreed} label={t("trust.agree", { name })} />
+            <PillButton title={reading ? t("cancel") : t("sign.read")} tone="white" size="sm" onPress={() => setReading((on) => !on)} />
+            {reading ? <AgreementText doc={dropshipDocument({ shop: { name: listing.shopName ?? "Your shop", city: listing.shopCity }, supplier: { name, city: product.supplier.city, address: listing.address }, stockCheck: stockCheck ?? "visit", sellerNote: note, returnPolicy: product.supplier.returnPolicy, date: new Date() })} /> : null}
+            <Check on={agreed} onChange={setAgreed} label={`${t("trust.agree", { name })}. ${t("sign.confirm")}`} />
+            <Field value={signedName} onChangeText={setSignedName} placeholder={t("sign.ph")} maxLength={80} autoComplete="name" accessibilityLabel={t("sign.label")} />
+            <T style={{ color: colors.inkSoft, fontSize: 12.5, lineHeight: 17 }}>{t("sign.help")}</T>
           </Step>
           {error ? <Notice>{error}</Notice> : null}
-          <PillButton title={busy ? t("trust.sending") : t("trust.send", { name })} size="md" tone="accent" busy={busy} disabled={!called || !stockCheck || !agreed} onPress={() => void send()} />
+          <PillButton title={busy ? t("trust.sending") : t("trust.send", { name })} size="md" tone="accent" busy={busy} disabled={!called || !stockCheck || !agreed || !cleanSignedName(signedName)} onPress={() => void send()} />
         </>
       )}
     </Card>

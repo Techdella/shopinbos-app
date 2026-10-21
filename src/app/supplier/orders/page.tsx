@@ -16,7 +16,7 @@ import { AcceptCountdown } from "@/components/supplier/AcceptCountdown";
 
 export const dynamic = "force-dynamic";
 
-// The supplier's orders: dropship orders (shops' store orders they ship in the shop's name, SupplierOrder) and
+// The supplier's orders: dropship orders (shops' store orders they send straight to the shop's customer, SupplierOrder) and
 // wholesale orders (shops buying stock, WholesaleOrder). Accept, ship with a tracking code, mark delivered or
 // decline with a reason (src/app/actions/supplier.ts → src/lib/supplier-orders).
 // Orders are grouped New, To pack and Sent; each new order shows "You get ₦X" and one big Accept.

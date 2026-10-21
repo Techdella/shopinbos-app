@@ -135,6 +135,9 @@ export interface Listing {
   address: string | null;
   /** Why the supplier declined. */
   supplierNote: string | null;
+  /** For the Dropship agreement preview (older servers leave them out). */
+  shopName?: string | null;
+  shopCity?: string | null;
 }
 
 export async function fetchFindProduct(slug: string) {
@@ -142,8 +145,8 @@ export async function fetchFindProduct(slug: string) {
   return { product: toFindProduct(row), listing: row.listing };
 }
 
-/** The seller called the supplier, checked the stock and accepts the Dropship agreement: it goes to the supplier. */
-export const sendAgreement = (input: { supplierId: string; called: boolean; stockCheck: "visit" | "video"; agreed: boolean; note?: string }) =>
+/** The seller called the supplier, checked the stock and signs the Dropship agreement with their name: it goes to the supplier. */
+export const sendAgreement = (input: { supplierId: string; called: boolean; stockCheck: "visit" | "video"; agreed: boolean; note?: string; signedName?: string }) =>
   api<{ message: string }>("/api/mobile/marketplace/agreement", { method: "POST", json: input });
 
 export interface FindContext {

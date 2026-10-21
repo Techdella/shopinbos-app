@@ -55,7 +55,7 @@ function hourWindow(hour: number) {
   return `${word(hour)} – ${word(hour + 2)}`;
 }
 
-/** The shop's label (`.label`): who it's from (the shop, never the supplier), who it's to, the order number. */
+/** The shop's delivery label (`.label`): which shop's order it is, who it's to, the order number. */
 function ShopLabel({ order }: { order: DropshipOrder }) {
   return (
     <View accessibilityLabel={`Label: ${labelLines(order).join(". ")}`} style={{ backgroundColor: colors.surface, borderWidth: 2, borderColor: colors.ink, borderStyle: "dashed", borderRadius: radii.card, padding: 18, gap: 4 }}>

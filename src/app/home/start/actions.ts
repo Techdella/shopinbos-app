@@ -85,7 +85,7 @@ export async function connectDeliveryCompany(partnerId: string, atCheckout: bool
     if (!id) throw new SetupError("Pick a delivery company.");
     const planProblem = await deliveryPartnerProblem(user.id, id);
     if (planProblem) throw new SetupError(planProblem);
-    const connected = await connectPartner({ id: user.id, role: user.role }, id);
+    const connected = await connectPartner({ id: user.id, role: user.role, name: user.name }, id);
     if (!connected.ok) throw new SetupError(connected.error);
     if (atCheckout) await setCheckoutMode(user.id, true);
     revalidatePath("/home/logistics");

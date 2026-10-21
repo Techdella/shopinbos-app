@@ -74,7 +74,7 @@ export const GLOSSARY: GlossaryEntry[] = [
   { key: "dropship", term: "Dropship", short: "Sell a supplier’s product without buying stock first; they send it to your customer.", example: "You sell a ₦15,000 bag, the supplier in Kano ships it, you keep the difference.", aliases: ["dropshipping", "drop ship", "sell without stock"], introKey: "dropship" },
   { key: "wholesale", term: "Wholesale", short: "Buying many pieces at once from a supplier at a lower price per piece.", example: "200 phone cases at ₦900 each instead of ₦2,000 one by one.", aliases: ["bulk", "bulk orders", "wholesale orders", "bulk buying"], introKey: "wholesale" },
   { key: "quote-requests", term: "Quote requests", short: "Asking a supplier for their best price on a quantity before you buy.", example: "“What’s your price for 100 cartons of noodles, delivered to Onitsha?”", aliases: ["quote request", "quote", "quotes", "price requests", "price request", "rfq"], introKey: "wholesale" },
-  { key: "white-label", term: "White label", short: "A supplier’s product sold under your own brand name and packaging.", example: "Plain body butter from a Lagos factory, sold as “Glow by Amaka”.", aliases: ["white-label", "private label", "own brand"], introKey: "supplier-products" },
+  { key: "white-label", term: "White label", short: "A supplier’s product sold under your own brand name and packaging.", example: "Plain body butter from a Lagos factory, sold as “Glow by Amaka”.", aliases: ["white-label", "private label", "own brand"] },
 
   // ── Store ──
   { key: "store-settings", term: "Store settings", short: "Your shop’s name, contact details, address and opening hours, and your own login.", example: "Change your opening hours to 9am–7pm and they update on your shop and receipts.", aliases: ["shop settings"], introKey: "store-settings" },
@@ -120,7 +120,8 @@ export const GLOSSARY: GlossaryEntry[] = [
   { key: "pickup-points", term: "Pickup points", short: "Places where customers collect their parcels instead of a doorstep delivery.", example: "Ada collects her order at the Yaba hub after work and pays ₦1,200 instead of ₦2,500.", aliases: ["pickup point", "pick-up point", "pick-up points", "collection point"], introKey: "partner-pickup-points" },
   { key: "private-rates", term: "Private rates", short: "Special delivery prices a partner gives one business, used once that business accepts them.", example: "SwiftBike gives Ada Fabrics ₦2,000 instead of ₦2,500 for every Lagos delivery.", aliases: ["private rate"], introKey: "partner-connections" },
   { key: "connected-businesses", term: "Connected businesses", short: "Shops and suppliers that added you as their delivery partner. Their orders come to you as jobs.", example: "Ada Fabrics connects you, and her Lekki orders arrive as jobs for your riders.", aliases: [], introKey: "partner-connections" },
-  { key: "dropship-agreement", term: "Dropship agreement", short: "The rules a supplier and a shop both accept before the shop lists the supplier’s products.", example: "Shea Naturals agrees to ship in 3 days under the shop’s name and refund in 3 days if not sent.", aliases: ["dropship agreements"], introKey: "supplier-agreements" },
+  { key: "dropship-agreement", term: "Dropship agreement", short: "The rules a supplier and a shop both accept before the shop lists the supplier’s products.", example: "Shea Naturals agrees to ship in 3 days, never sell to the shop’s customers directly, and refund in 3 days if not sent.", aliases: ["dropship agreements"], introKey: "supplier-agreements" },
+  { key: "contracts", term: "Contracts", short: "Agreements you and another business signed in the app. Each of you keeps a copy.", example: "Your Dropship agreement with Shea Naturals, signed by you both, with its fingerprint and history.", aliases: ["contract", "signed agreements", "documents"], introKey: "contracts" },
   { key: "logistics", term: "Logistics", short: "Delivery companies and riders who move parcels from you to your customers.", example: "A Lagos bike company picks up in Ikeja and delivers in Lekki the same day.", aliases: ["delivery", "delivery partners", "delivery companies", "shipping", "dispatch"], introKey: "delivery" },
   { key: "shipping-rates", term: "Shipping rates", short: "What you charge buyers for delivery, by area or by weight.", example: "₦2,000 within Lagos Mainland, ₦3,500 to the Island, ₦5,000 outside Lagos.", aliases: ["shipping rate", "delivery fees", "delivery fee"], introKey: "shipping-rates" },
   { key: "jobs", term: "Jobs", short: "Delivery requests from shops that your company can accept and complete.", example: "Pick up 3 parcels in Yaba, drop off in Surulere, Ikeja and Ajah.", aliases: ["job", "bookings", "delivery jobs"], introKey: "partner-jobs" },
@@ -180,6 +181,7 @@ const SHARED_NAV: Record<string, string> = {
   inbox: "inbox", "inbox-messages": "inbox", "inbox-partners": "inbox", "inbox-forms": "forms", "inbox-chat": "live-chat",
   "inbox-auto-replies": "auto-replies", "inbox-chatbot": "chatbot", "inbox-whatsapp-store": "whatsapp-store", "inbox-whatsapp-catalog": "whatsapp-catalog", "inbox-notifications": "notifications",
   reviews: "reviews", verification: "verification", cms: "content", analytics: "analytics", payouts: "payouts", wallet: "wallet",
+  contracts: "contracts",
 };
 
 export const NAV_TERMS: Record<GlossaryRole, Record<string, string>> = {
@@ -201,7 +203,7 @@ export const NAV_TERMS: Record<GlossaryRole, Record<string, string>> = {
   supplier: {
     ...SHARED_NAV,
     orders: "fulfilment", "dropship-orders": "dropship", "wholesale-orders": "wholesale", "quote-requests": "quote-requests",
-    products: "white-label", buyers: "buyers", "buyers-all": "buyers", delivery: "logistics", agreements: "dropship-agreement",
+    products: "dropship", buyers: "buyers", "buyers-all": "buyers", delivery: "logistics", agreements: "dropship-agreement",
     "products-import": "imports",
   },
   logistics_partner: {

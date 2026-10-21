@@ -2,6 +2,8 @@ import "server-only";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { createNotification } from "@/lib/notifications/create";
+import { SIGN_NAME_ERROR, SignError, declineDropshipContract, signErrorMessage, signDropshipAsShop, signDropshipAsSupplier } from "@/lib/contracts/contracts.server";
+import { cleanSignedName } from "@shared/contracts";
 import { AGREEMENT_VERSION, isStockCheck, nearness, sellerHasPlace, supplierRisk, type Nearness, type RiskLevel, type RiskReason } from "@shared/supplier-trust";
 
 // Who sellers can dropship from, and the checks before they list (shared/supplier-trust.ts has the rules):
@@ -120,10 +122,12 @@ export async function listingCheck(sellerId: string, supplierId: string): Promis
 export type AgreementResult = { ok: true; message: string } | { ok: false; error: string };
 
 /** The seller called the supplier, checked the stock and agrees: the agreement goes to the supplier to accept. */
-export async function requestAgreement(seller: { id: string }, input: { supplierId: string; called: boolean; stockCheck: string; agreed: boolean; note?: string }): Promise<AgreementResult> {
+export async function requestAgreement(seller: { id: string; name?: string | null }, input: { supplierId: string; called: boolean; stockCheck: string; agreed: boolean; note?: string; signedName?: string }): Promise<AgreementResult> {
   if (!input.called) return { ok: false, error: "Call the supplier first, so you know who you're working with." };
   if (!isStockCheck(input.stockCheck)) return { ok: false, error: "Say how you checked the stock: a visit or a video call." };
   if (!input.agreed) return { ok: false, error: "Tick the box to accept the Dropship agreement." };
+  // The web asks for a typed name; phone apps from before written contracts sign with the account name.
+  if (input.signedName !== undefined && !cleanSignedName(input.signedName)) return { ok: false, error: SIGN_NAME_ERROR };
   const supplier = await db.supplier.findFirst({ where: { id: input.supplierId, ...VISIBLE_SUPPLIER }, select: { id: true, userId: true, displayName: true, city: true, address: true } });
   if (!supplier) return { ok: false, error: "This supplier isn't taking new shops right now." };
   const place = await sellerPlace(seller.id);
@@ -133,32 +137,52 @@ export async function requestAgreement(seller: { id: string }, input: { supplier
   if (existing?.status === "active") return { ok: true, message: "You already have an agreement with this supplier." };
   const now = new Date();
   const data = { status: "requested", version: AGREEMENT_VERSION, stockCheck: input.stockCheck, calledAt: now, sellerAgreedAt: now, sellerNote: input.note?.trim().slice(0, 600) || null, supplierAgreedAt: null, supplierNote: null, declinedAt: null };
-  await db.supplierAgreement.upsert({ where: { sellerId_supplierId: { sellerId: seller.id, supplierId: supplier.id } }, create: { sellerId: seller.id, supplierId: supplier.id, ...data }, update: data });
+  // The agreement request and the shop's signed copy of the Dropship agreement are saved together.
+  const signed = await db.$transaction(async (tx) => {
+    const row = await tx.supplierAgreement.upsert({ where: { sellerId_supplierId: { sellerId: seller.id, supplierId: supplier.id } }, create: { sellerId: seller.id, supplierId: supplier.id, ...data }, update: data, select: { id: true } });
+    const contract = await signDropshipAsShop(tx, { agreementId: row.id, sellerId: seller.id, supplierId: supplier.id, stockCheck: input.stockCheck, sellerNote: data.sellerNote, signer: { userId: seller.id, typedName: input.signedName, accountName: seller.name } });
+    if (!contract.ok) throw new SignError(contract.error);
+    return { id: contract.data.contractId };
+  }).catch((error: unknown) => ({ error: signErrorMessage(error) }));
+  if ("error" in signed) return { ok: false, error: signed.error };
   const shop = await db.store.findUnique({ where: { userId: seller.id }, select: { name: true } });
   await createNotification({
     userId: supplier.userId,
     type: "dropshipping",
     priority: "warning",
     title: `${shop?.name ?? "A shop"} wants to sell your products`,
-    description: "They called you and checked your stock. Accept the Dropship agreement so they can list your products.",
+    description: "They called you, checked your stock and signed the Dropship agreement. Read it and sign so they can list your products.",
     link: "/supplier/agreements",
     event: "agreement.requested",
   }).catch(() => null);
-  return { ok: true, message: `Sent to ${supplier.displayName}. You can list their products once they accept.` };
+  return { ok: true, message: `Signed and sent to ${supplier.displayName}. You can list their products once they sign too. Your copy is under Contracts.` };
 }
 
 /** The supplier accepts the agreement (the shop can list their products) or declines it, saying why. */
-export async function answerAgreement(supplierUser: { id: string }, agreementId: string, accept: boolean, note?: string): Promise<AgreementResult> {
+export async function answerAgreement(supplierUser: { id: string; name?: string | null }, agreementId: string, accept: boolean, note?: string, signedName?: string): Promise<AgreementResult> {
   const supplier = await db.supplier.findUnique({ where: { userId: supplierUser.id }, select: { id: true, displayName: true } });
   if (!supplier) return { ok: false, error: "Finish setting up your supplier account first." };
   const text = note?.trim().slice(0, 600) ?? "";
   if (!accept && text.length < 5) return { ok: false, error: "Say why, so the shop knows what to fix." };
+  if (accept && signedName !== undefined && !cleanSignedName(signedName)) return { ok: false, error: SIGN_NAME_ERROR };
   const now = new Date();
-  const moved = await db.supplierAgreement.updateMany({
-    where: { id: agreementId, supplierId: supplier.id, status: "requested" },
-    data: accept ? { status: "active", supplierAgreedAt: now, supplierNote: null, version: AGREEMENT_VERSION } : { status: "declined", declinedAt: now, supplierNote: text },
-  });
-  if (!moved.count) return { ok: false, error: "This request has already been answered." };
+  // Accepting signs the shop's copy of the Dropship agreement; declining declines it. Both in one go.
+  const answered = await db.$transaction(async (tx) => {
+    const moved = await tx.supplierAgreement.updateMany({
+      where: { id: agreementId, supplierId: supplier.id, status: "requested" },
+      data: accept ? { status: "active", supplierAgreedAt: now, supplierNote: null, version: AGREEMENT_VERSION } : { status: "declined", declinedAt: now, supplierNote: text },
+    });
+    if (!moved.count) return false;
+    if (accept) {
+      const signed = await signDropshipAsSupplier(tx, { agreementId, supplierUserId: supplierUser.id, signer: { userId: supplierUser.id, typedName: signedName, accountName: supplierUser.name } });
+      if (!signed.ok) throw new SignError(signed.error);
+    } else {
+      await declineDropshipContract(tx, { agreementId, supplierUserId: supplierUser.id, note: text });
+    }
+    return true;
+  }).catch((error: unknown) => signErrorMessage(error));
+  if (typeof answered === "string") return { ok: false, error: answered };
+  if (!answered) return { ok: false, error: "This request has already been answered." };
   const row = await db.supplierAgreement.findUnique({ where: { id: agreementId }, select: { sellerId: true } });
   if (row) {
     await createNotification({
@@ -166,12 +190,12 @@ export async function answerAgreement(supplierUser: { id: string }, agreementId:
       type: "dropshipping",
       priority: accept ? "info" : "warning",
       title: accept ? `${supplier.displayName} accepted your Dropship agreement` : `${supplier.displayName} declined your Dropship agreement`,
-      description: accept ? "You can now list their products in your store." : `They said: "${text}".`,
+      description: accept ? "You both signed. You can now list their products in your store, and your copy is under Contracts." : `They said: "${text}".`,
       link: "/marketplace",
       event: "agreement.answered",
     }).catch(() => null);
   }
-  return { ok: true, message: accept ? "Accepted. The shop can now list your products." : "Declined. We've told the shop why." };
+  return { ok: true, message: accept ? "Signed. The shop can now list your products, and your copy is under Contracts." : "Declined. We've told the shop why." };
 }
 
 export interface SupplierAgreementRow {
@@ -185,6 +209,9 @@ export interface SupplierAgreementRow {
   supplierNote: string | null;
   createdAt: string;
   products: number;
+  /** The latest written Dropship agreement for this request (to read and sign), and its status. */
+  contractId: string | null;
+  contractStatus: string | null;
 }
 
 /** The shops that asked to dropship this supplier's products (requests first). */
@@ -197,6 +224,9 @@ export async function agreementsForSupplier(supplierId: string): Promise<Supplie
   });
   const listed = rows.length
     ? await db.dropshipRelationship.groupBy({ by: ["sellerId"], where: { supplierId, sellerId: { in: rows.map((row) => row.sellerId) } }, _count: { _all: true } })
+    : [];
+  const contracts = rows.length
+    ? await db.contract.findMany({ where: { supplierAgreementId: { in: rows.map((row) => row.id) } }, orderBy: { createdAt: "desc" }, select: { id: true, supplierAgreementId: true, status: true } })
     : [];
   const order = (status: string) => (status === "requested" ? 0 : status === "active" ? 1 : 2);
   return rows
@@ -211,6 +241,8 @@ export async function agreementsForSupplier(supplierId: string): Promise<Supplie
       supplierNote: row.supplierNote,
       createdAt: row.createdAt.toISOString(),
       products: listed.find((item) => item.sellerId === row.sellerId)?._count._all ?? 0,
+      contractId: contracts.find((item) => item.supplierAgreementId === row.id)?.id ?? null,
+      contractStatus: contracts.find((item) => item.supplierAgreementId === row.id)?.status ?? null,
     }))
     .sort((a, b) => order(a.status) - order(b.status));
 }

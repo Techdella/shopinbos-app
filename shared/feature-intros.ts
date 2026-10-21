@@ -753,8 +753,8 @@ export const FEATURE_INTROS: FeatureIntro[] = [
   // ─── Suppliers ───
   {
     key: "supplier-products",
-    term: "white-label",
-    title: "Your products and white label",
+    term: "dropship",
+    title: "Your products and dropship",
     roles: ["supplier"],
     paths: ["/supplier/products", "/supplier/product"],
     helpTopic: "supplier_products",
@@ -762,7 +762,7 @@ export const FEATURE_INTROS: FeatureIntro[] = [
     scenes: [
       { art: "product-stock", caption: "List once, sell through many shops.", sub: "Add your product with photos, price and stock.", durationMs: S, label: "Shea body butter", value: "500" },
       { art: "store-card", caption: "Shops add it to their stores.", sub: "Sellers across Nigeria put your product in front of their customers.", durationMs: S, label: "14 shops" },
-      { art: "theme-swap", caption: "White label: their brand, your product.", sub: "Allow it, and a shop can sell your butter as “Glow by Amaka”.", durationMs: S, chips: ["Your label", "Their label"] },
+      { art: "supplier-ship", caption: "Dropship: their price, your product.", sub: "A shop sells your butter at its own price, and you send it to their customer just as it is.", durationMs: S },
       { art: "product-stock", caption: "Keep stock and variants right.", sub: "Sizes and scents each have stock. Shops can’t oversell.", durationMs: S, chips: ["250ml", "500ml"], value: "120" },
       { art: "chart-grow", caption: "More shops, more orders.", sub: "Good photos and honest stock win more sellers.", durationMs: S },
     ],
@@ -887,6 +887,20 @@ export const FEATURE_INTROS: FeatureIntro[] = [
     ],
   },
   {
+    key: "contracts",
+    term: "contracts",
+    title: "Contracts",
+    roles: ["seller", "supplier", "logistics_partner"],
+    paths: ["/home/contracts", "/supplier/contracts", "/logistics/contracts"],
+    scenes: [
+      { art: "invoice-paper", caption: "Every agreement, in writing.", sub: "Dropship and delivery agreements you sign with other businesses land here.", durationMs: S, label: "Dropship agreement" },
+      { art: "badge-verify", caption: "Sign with your name.", sub: "Read it, type your full name and confirm. The other side signs the same copy.", durationMs: S, label: "Signed" },
+      { art: "dots-sort", caption: "Private to the two of you.", sub: "Shopinbos can only open it if one of you raises a dispute, and you're both told.", durationMs: S, chips: ["Sealed", "Dispute"] },
+      { art: "chat-bubbles", caption: "Something wrong? Raise a dispute.", sub: "Try to settle it first. If you can't, the team can open the contract to help decide.", durationMs: S },
+      { art: "receipt", caption: "Print it or save a PDF.", sub: "Each copy shows both signatures and a fingerprint, so no one can change it.", durationMs: S },
+    ],
+  },
+  {
     key: "supplier-agreements",
     term: "dropship-agreement",
     title: "Dropship agreements",
@@ -895,7 +909,7 @@ export const FEATURE_INTROS: FeatureIntro[] = [
     cta: { label: "See requests", href: "/supplier/agreements" },
     scenes: [
       { art: "store-card", caption: "Shops ask to sell your products.", sub: "Each request shows the shop, its city and phone, and how it checked your stock.", durationMs: S, label: "Ada Fabrics, Lagos" },
-      { art: "invoice-paper", caption: "You both agree to the same rules.", sub: "Keep stock and prices right, ship in 3 days under the shop’s name, never sell to its customers.", durationMs: S, label: "Dropship agreement" },
+      { art: "invoice-paper", caption: "You both agree to the same rules.", sub: "Keep stock and prices right, ship in 3 days, never sell to the shop’s customers directly.", durationMs: S, label: "Dropship agreement" },
       { art: "money-flow", caption: "Money splits straight to each bank.", sub: "Card payments split at checkout. Refund in 3 days if an order isn’t sent.", durationMs: S, value: "₦15,000" },
       { art: "badge-verify", caption: "Only accept shops you know.", sub: "Accept only if the shop really called you or saw your stock on a video call.", durationMs: S, label: "Saw your stock" },
       { art: "dots-sort", caption: "Accept or decline with a reason.", sub: "Like “we only deliver in Lagos”. Accepted shops can list your products at once.", durationMs: S, chips: ["Accept", "Decline"] },
