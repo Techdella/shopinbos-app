@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { withSeller } from "@/lib/auth/middleware";
 import { apiError, ok } from "@/lib/api/response";
-import { firstJsonObject, generateText } from "@/lib/ai/text";
+import { aiText, firstJsonObject } from "@/lib/ai/text";
 import { meterAi } from "@/lib/ai/usage";
 import { MAX_PHOTOS, VIDEO_LANGUAGES, fallbackScript, normaliseScript } from "@shared/video";
 
@@ -36,15 +36,18 @@ export const POST = withSeller(async (req, { user }) => {
   const limited = await meterAi(user.id, "text");
   if (limited) return limited;
 
-  const raw = await generateText(
-    [
+  // Video scripts are written by Claude (pictures for the shots are made with OpenAI, in reel-shots).
+  const raw = (await aiText({
+    fast: true,
+    prefer: "anthropic",
+    prompt: [
       `Write a ${photos}-shot vertical product reel for a small Nigerian online shop.`,
       `Product: ${name}${price ? `, ${price}` : ""}.${description ? ` Details: ${description}` : ""}`,
       `Language: ${LANGUAGE_NOTE[language]}`,
       `Return JSON only: {"captions": [${photos} on-screen lines, max 6 words each, one per photo], "voiceover": "2-3 short sentences, under 40 words, ends by telling viewers to tap the link", "cta": "end card line, max 5 words"}.`,
       "No emojis, no hashtags, no prices other than the one given, no claims you can't know (materials, origin) unless in the details.",
     ].join("\n"),
-  );
+  }))?.text ?? null;
   const script = normaliseScript(firstJsonObject(raw), fallback, photos);
   return ok({ ...script, drafted: Boolean(raw) });
 });

@@ -14,6 +14,7 @@ import type { RexJob } from "@shared/rex-progress";
 import { RexCardView, type RexCardHandlers } from "./RexCards";
 import type { ChatMessage } from "./types";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
+import { ChatText } from "@/components/chat/ChatText";
 
 const MAX_PHOTOS = 6;
 
@@ -240,7 +241,7 @@ export function RexChat({
                           ))}
                         </ul>
                       ) : null}
-                      <p className="m-0 whitespace-pre-wrap break-words">{message.text}</p>
+                      <ChatText text={message.text} />
                       {message.version ? (
                         <div className="mt-3 flex flex-wrap items-center gap-3">
                           <span className="rounded-full bg-app-canvas px-2.5 py-1 text-[12px] font-bold">{t("rex.versionCap", { n: message.version.n })}</span>

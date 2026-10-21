@@ -10,6 +10,7 @@ import { isBoutiqueTheme } from "@/lib/store-templates/boutique-themes";
 import { PanelHeading } from "./ui";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { useEditorT } from "./i18n";
+import { ChatText } from "@/components/chat/ChatText";
 
 interface Message {
   role: "rex" | "you";
@@ -198,7 +199,7 @@ export function RexPanel(props: RexPanelProps) {
       <div ref={listRef} className="min-h-0 flex-1 space-y-2 overflow-y-auto px-4 pb-3" aria-live="polite">
         {messages.map((message, index) =>
           message.role === "rex" ? (
-            <div key={index} className="max-w-[88%] rounded-[16px] bg-app-peach px-3 py-2 text-[13.5px] leading-5 text-app-ink">{message.text}</div>
+            <div key={index} className="max-w-[88%] rounded-[16px] bg-app-peach px-3 py-2 text-[13.5px] leading-5 text-app-ink"><ChatText text={message.text} /></div>
           ) : (
             <div key={index} className="flex items-end justify-end gap-2">
               <div className="max-w-[80%] rounded-[16px] bg-app-ink px-3 py-2 text-[13.5px] leading-5 text-white">{message.text}</div>
