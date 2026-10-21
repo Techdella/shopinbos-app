@@ -3308,6 +3308,52 @@ test("Style book colours become readable store colours; brand marks fall back to
   assert.equal(a.readBrandAssets({ logoUrl: logo, brandSettings: { logoIcon: "javascript:x" } }).icon, null);
 });
 
+test("Rex's style book is tidied before it's checked, and a really incomplete one is still refused", async () => {
+  const bb = await import("../shared/brand-book.ts");
+  assert.equal(bb.normaliseHex("#abc"), "#AABBCC");
+  assert.equal(bb.normaliseHex("0e2a38"), "#0E2A38");
+  assert.equal(bb.normaliseHex("#0E2A38FF"), "#0E2A38", "alpha dropped");
+  assert.equal(bb.normaliseHex("rgb(14, 42, 56)"), "#0E2A38");
+  const many = (n, text) => Array.from({ length: n }, (_, i) => `${text} ${i + 1}`);
+  const raw = {
+    paletteName: "Lagos Sunset Market Palette For Every Season Of The Year",
+    tagline: "Good things, well made",
+    mission: "We sell handmade bags.",
+    colors: { primary: "#e2541b", secondary: "0E2A38", accent: "#fa3", background: "#FAF7F1", surface: "#FFFFFF", text: "rgb(22,20,31)" },
+    colourNotes: many(7, "Use the primary for buttons"),
+    typography: { headings: "Fraunces", body: "Inter", style: "Sans-Serif", note: "Headings big." },
+    voice: { summary: "Warm and direct.", traits: many(6, "warm"), wordsWeUse: ["handmade", "a phrase that is far too long to be a word we use often"], wordsWeAvoid: ["cheap"], sampleCaption: "New bags in." },
+    logoRules: "- Keep clear space\n- Never stretch it",
+    photoStyle: ["Natural light"],
+    dos: ["Smile"],
+    donts: ["Shout"],
+  };
+  const tidied = bb.tidyBrandBook(raw);
+  const parsed = bb.BrandBookSchema.safeParse(tidied);
+  assert.ok(parsed.success, JSON.stringify(parsed.error?.issues));
+  assert.equal(parsed.data.colours.accent, "#FFAA33");
+  assert.equal(parsed.data.typography.style, "grotesk", "sans-serif is grotesk");
+  assert.equal(parsed.data.colourNotes.length, 4);
+  assert.deepEqual(parsed.data.logoRules, ["Keep clear space", "Never stretch it"]);
+  assert.ok(parsed.data.paletteName.length <= 40);
+  assert.equal(bb.tidyBrandBook({ ...raw, typography: { ...raw.typography, style: "Serif" } }).typography.style, "serif");
+  const missing = bb.tidyBrandBook({ ...raw, voice: undefined, dos: [] });
+  assert.equal(bb.BrandBookSchema.safeParse(missing).success, false);
+  assert.ok(bb.brandBookProblems(missing).some((path) => path.startsWith("voice")));
+});
+
+test("Saved chats group by day like a chat app's sidebar", async () => {
+  const h = await import("../shared/ai-chats.ts");
+  const now = new Date(2026, 9, 21, 15, 0);
+  const at = (days, hours = 0) => new Date(2026, 9, 21 - days, 12 + hours).toISOString();
+  assert.equal(h.aiChatGroup(at(0), now), "today");
+  assert.equal(h.aiChatGroup(at(1), now), "yesterday");
+  assert.equal(h.aiChatGroup(at(5), now), "week");
+  assert.equal(h.aiChatGroup(at(20), now), "month");
+  assert.equal(h.aiChatGroup(at(90), now), "older");
+  assert.deepEqual([...h.AI_CHAT_GROUPS], ["today", "yesterday", "week", "month", "older"]);
+});
+
 test("Rex's creations are labelled by what he made", async () => {
   const m = await import("../shared/media.ts");
   assert.equal(m.aiCreationKind("logos/user_123456/logo-1.webp"), "logo");

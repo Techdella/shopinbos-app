@@ -116,6 +116,11 @@ export function GlobalTopBar({
         </button>
         {(role === "seller" || role === "supplier") && <CreditsBadge manageHref={role === "supplier" ? "/supplier/credits" : "/home/credits"} />}
         {role === "seller" && (
+          <Link href="/studio" className="hidden h-[42px] items-center gap-2 rounded-full border border-app-line bg-white pl-1.5 pr-4 text-[14px] font-extrabold text-app-ink no-underline hover:border-app-line-strong lg:flex">
+            <Mascot name="rex" className="h-8 w-8" alt="" /> {t("shell.askRex")}
+          </Link>
+        )}
+        {role === "seller" && (
           <Link href="/peggy" data-tour="ask-peggy" className="hidden h-[42px] items-center gap-2 rounded-full border border-app-line bg-white pl-1.5 pr-4 text-[14px] font-extrabold text-app-ink no-underline hover:border-app-line-strong sm:flex">
             <Mascot name="peggy" className="h-8 w-8" alt="" /> {t("shell.askPeggy")}
           </Link>

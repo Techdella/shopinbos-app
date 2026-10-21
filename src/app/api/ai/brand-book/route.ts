@@ -6,7 +6,8 @@ import { meterAi } from "@/lib/ai/usage";
 import { BrandBookError, draftBrandBook, saveBrandBook } from "@/lib/ai/brand-book.server";
 
 export const runtime = "nodejs";
-export const maxDuration = 120;
+// Up to two model calls (a retry when the first book comes back incomplete).
+export const maxDuration = 300;
 
 // Rex writes (or rewrites) the store's brand style book: POST { direction? }. Saved on the store; the colours are
 // only applied to the store when the seller taps "Use these colours" on the style book page.

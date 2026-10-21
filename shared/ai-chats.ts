@@ -40,3 +40,19 @@ export function parseAiChatSave(body: unknown): { ok: true; save: AiChatSave } |
   const id = typeof input.id === "string" && /^[\w-]{1,40}$/.test(input.id) ? input.id : null;
   return { ok: true, save: { id, assistant: input.assistant, messages: input.messages } };
 }
+
+/** The day buckets of the chat sidebar, newest first. */
+export const AI_CHAT_GROUPS = ["today", "yesterday", "week", "month", "older"] as const;
+export type AiChatGroup = (typeof AI_CHAT_GROUPS)[number];
+
+/** Which bucket a chat last touched at `iso` falls in, counted from the start of today (local time). */
+export function aiChatGroup(iso: string, now = new Date()): AiChatGroup {
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const at = new Date(iso).getTime();
+  const day = 24 * 60 * 60 * 1000;
+  if (at >= start) return "today";
+  if (at >= start - day) return "yesterday";
+  if (at >= start - 7 * day) return "week";
+  if (at >= start - 30 * day) return "month";
+  return "older";
+}

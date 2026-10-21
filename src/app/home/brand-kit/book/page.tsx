@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/server-auth";
 import { db } from "@/lib/db/client";
@@ -7,7 +6,7 @@ import { buildStorefrontUrl } from "@/lib/domains/storefront";
 import { getT } from "@/lib/i18n/server";
 import { readBrandAssets } from "@shared/brand-assets";
 import { readBrandBook, readableOn } from "@shared/brand-book";
-import { BookActions } from "./BookActions";
+import { BookWorkspace } from "./BookWorkspace";
 
 // The brand style book (Brand kit > Style book): what Rex wrote for the store, laid out to print on A4 or save as a
 // PDF for designers and printers. Colours, type, voice, logo and photo rules, do's and don'ts.
@@ -40,6 +39,7 @@ export default async function BrandBookPage() {
         ["text", book.colours.text],
       ] as const)
     : [];
+  const updatedLabel = book?.updatedAt ? new Date(book.updatedAt).toLocaleDateString("en-NG", { day: "numeric", month: "long", year: "numeric" }) : null;
   const fontLink = book
     ? `https://fonts.googleapis.com/css2?family=${encodeURIComponent(book.typography.headings)}:wght@500;700&family=${encodeURIComponent(book.typography.body)}:wght@400;600&display=swap`
     : null;
@@ -53,20 +53,8 @@ export default async function BrandBookPage() {
         @media print { .no-print { display: none !important; } .sheet { box-shadow: none !important; border: 0 !important; } .page-break { break-before: page; } }
       `}</style>
 
-      <div className="no-print sticky top-0 z-10 border-b border-app-line bg-white px-4 py-3 sm:px-6">
-        <div className="mx-auto flex max-w-[210mm] flex-wrap items-center justify-between gap-3">
-          <Link href="/home/brand-kit" className="text-[14px] font-extrabold text-app-ink no-underline">{t("sheet.back")}</Link>
-          <BookActions hasBook={Boolean(book)} colours={book?.colours ?? null} headingStyle={book?.typography.style ?? null} />
-        </div>
-      </div>
-
-      <div className="px-4 py-6 sm:px-6 print:p-0">
-        {!book ? (
-          <article className="mx-auto w-full max-w-[210mm] rounded-[22px] border border-dashed border-app-line-strong bg-white p-10 text-center">
-            <h1 className="m-0 text-[24px] font-extrabold">{t("book.emptyTitle")}</h1>
-            <p className="mx-auto mb-0 mt-2 max-w-[460px] text-[14.5px] leading-[1.55] text-app-ink-soft">{t("book.emptyBody")}</p>
-          </article>
-        ) : (
+      <BookWorkspace book={book ? { colours: book.colours, typography: book.typography } : null} updatedLabel={updatedLabel}>
+        {book ? (
           <article className="sheet mx-auto w-full max-w-[210mm] rounded-[22px] border border-app-line bg-white p-6 sm:p-10 print:rounded-none print:p-0" style={{ printColorAdjust: "exact", WebkitPrintColorAdjust: "exact" }}>
             <header className="flex flex-wrap items-center justify-between gap-4 rounded-[18px] p-6" style={{ background: book.colours.secondary, color: readableOn(book.colours.secondary) }}>
               <div className="min-w-0">
@@ -171,11 +159,11 @@ export default async function BrandBookPage() {
             </Section>
 
             <p className="m-0 mt-8 border-t border-app-line pt-4 text-[12px] text-app-ink-soft">
-              {store.name} · {host}{book.updatedAt ? ` · ${new Date(book.updatedAt).toLocaleDateString("en-NG", { day: "numeric", month: "long", year: "numeric" })}` : ""}
+              {store.name} · {host}{updatedLabel ? ` · ${updatedLabel}` : ""}
             </p>
           </article>
-        )}
-      </div>
+        ) : null}
+      </BookWorkspace>
     </div>
   );
 }

@@ -1,14 +1,11 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useState,
-  useCallback,
-  type ReactNode,
-} from "react";
-import { AssistantRexDrawer } from "./AssistantRexDrawer";
+import { createContext, useCallback, useContext, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { ChipDrawer } from "@/components/chip/ChipDrawer";
+
+// "Ask Rex" from anywhere in the app. Rex has one chat (Rex Studio, /studio, with saved history), so opening him
+// goes there, with the message (if any) ready in the chat box, instead of a separate drawer chat.
 
 interface RexDrawerContextValue {
   isOpen: boolean;
@@ -24,28 +21,20 @@ export function useRexDrawer() {
   return ctx;
 }
 
+/** The Rex Studio link for a message to put in the chat box. */
+export function rexChatHref(message?: string) {
+  const text = message?.trim();
+  return text ? `/studio?prompt=${encodeURIComponent(text.slice(0, 2000))}` : "/studio";
+}
+
 export function RexDrawerProvider({ children, chipMessage }: { children: ReactNode; chipMessage?: string }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [initialMessage, setInitialMessage] = useState<string | undefined>();
-
-  const openDrawer = useCallback((msg?: string) => {
-    setInitialMessage(msg);
-    setIsOpen(true);
-  }, []);
-
-  const closeDrawer = useCallback(() => {
-    setIsOpen(false);
-    setInitialMessage(undefined);
-  }, []);
+  const router = useRouter();
+  const openDrawer = useCallback((message?: string) => router.push(rexChatHref(message)), [router]);
+  const closeDrawer = useCallback(() => {}, []);
 
   return (
-    <RexDrawerContext.Provider value={{ isOpen, openDrawer, closeDrawer }}>
+    <RexDrawerContext.Provider value={{ isOpen: false, openDrawer, closeDrawer }}>
       {children}
-      <AssistantRexDrawer
-        isOpen={isOpen}
-        onClose={closeDrawer}
-        initialMessage={initialMessage}
-      />
       <ChipDrawer message={chipMessage} />
     </RexDrawerContext.Provider>
   );

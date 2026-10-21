@@ -131,9 +131,9 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
           ],
         },
         {
-          id: "rex-studio", label: "Rex Studio", icon: "sparkle", href: "/studio", tag: "AI",
+          id: "rex-studio", label: "Ask Rex", icon: "sparkle", href: "/studio", tag: "AI",
           children: [
-            { id: "studio-home", label: "Studio", href: "/studio" },
+            { id: "studio-home", label: "Chat", href: "/studio" },
             { id: "studio-images", label: "Images", href: "/studio/images" },
             { id: "studio-logo", label: "Logo", href: "/studio/logo" },
           ],

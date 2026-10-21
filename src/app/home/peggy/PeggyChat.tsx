@@ -8,7 +8,8 @@ import { Mascot } from "@/components/app-ui";
 import { cx } from "@/components/app-ui/cx";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
-import { ChatHistoryMenu, useChatAutosave } from "@/components/ai/ChatHistory";
+import { useChatAutosave } from "@/components/ai/ChatHistory";
+import { ChatSidebar, ChatSidebarButton } from "@/components/ai/ChatSidebar";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import { formatNumber } from "@shared/i18n";
 import type { MessageKey } from "@shared/i18n/catalog";
@@ -70,7 +71,8 @@ export function PeggyChat({ greeting, initialAsk, suggestions, stats }: { greeti
   const [draft, setDraft] = useState(initialAsk);
   const [busy, setBusy] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
-  const { chatId, adopt } = useChatAutosave("peggy", turns, !busy, turns.some((turn) => turn.role === "user"));
+  const [chatsOpen, setChatsOpen] = useState(false);
+  const { chatId, adopt, savedCount } = useChatAutosave("peggy", turns, !busy, turns.some((turn) => turn.role === "user"));
 
   function openChat(chat: { id: string; messages: unknown[] }) {
     const loaded = chat.messages.filter(
@@ -136,107 +138,120 @@ export function PeggyChat({ greeting, initialAsk, suggestions, stats }: { greeti
   }
 
   return (
-    <div className="grid h-full min-h-0 w-full gap-5 px-4 py-4 font-app text-app-ink sm:px-6 sm:py-6 xl:grid-cols-[minmax(0,1fr)_360px] xl:px-8 2xl:px-10">
+    <div className="grid h-full min-h-0 w-full gap-5 px-4 py-4 font-app text-app-ink sm:px-6 sm:py-6 2xl:grid-cols-[minmax(0,1fr)_340px] xl:px-8 2xl:px-10">
       {/* Conversation */}
-      <section className="flex min-h-0 flex-col overflow-hidden rounded-[22px] border border-app-line bg-white">
-        <header className="flex items-center gap-3 bg-app-mint px-4 py-3 sm:px-5">
-          <Mascot name="peggy" className="h-11 w-11" alt="Peggy" />
-          <div className="min-w-0 flex-1">
-            <h1 className="m-0 text-[17px] font-extrabold">Peggy</h1>
-            <div className="truncate text-[13px] text-app-ink-soft">{t("sub")}</div>
-          </div>
-          <ChatHistoryMenu assistant="peggy" currentId={chatId} onOpen={openChat} onNew={newChat} tone="plain" />
-          {turns.length > 0 && (
-            <button
-              type="button"
-              onClick={newChat}
-              disabled={busy}
-              className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full border border-app-line bg-white px-3.5 text-[13px] font-extrabold text-app-ink hover:border-app-line-strong disabled:opacity-50"
-            >
-              <Icon name="plus" size={13} /> {t("newChat")}
-            </button>
-          )}
-        </header>
+      <section className="flex min-h-0 overflow-hidden rounded-[22px] border border-app-line bg-white">
+        <ChatSidebar
+          assistant="peggy"
+          currentId={chatId}
+          refreshKey={savedCount}
+          onOpen={openChat}
+          onNew={newChat}
+          mobileOpen={chatsOpen}
+          onMobileOpen={() => setChatsOpen(true)}
+          onMobileClose={() => setChatsOpen(false)}
+          busy={busy}
+        />
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <header className="flex items-center gap-3 bg-app-mint px-4 py-3 sm:px-5">
+            <ChatSidebarButton onClick={() => setChatsOpen(true)} className="-ml-2 hover:bg-white/60" />
+            <Mascot name="peggy" className="h-11 w-11" alt="Peggy" />
+            <div className="min-w-0 flex-1">
+              <h1 className="m-0 text-[17px] font-extrabold">Peggy</h1>
+              <div className="truncate text-[13px] text-app-ink-soft">{t("sub")}</div>
+            </div>
+            {turns.length > 0 && (
+              <button
+                type="button"
+                onClick={newChat}
+                disabled={busy}
+                className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full border border-app-line bg-white px-3.5 text-[13px] font-extrabold text-app-ink hover:border-app-line-strong disabled:opacity-50"
+              >
+                <Icon name="plus" size={13} /> {t("newChat")}
+              </button>
+            )}
+          </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-5" aria-live="polite">
-          <div className="mx-auto flex max-w-[760px] flex-col gap-3">
-            <Bubble role="assistant" content={greeting} />
-            {turns.length === 0 && (
-              <div className="flex flex-wrap gap-2 pt-1">
-                {suggestions.map((suggestion) => (
-                  <button
-                    key={suggestion}
-                    type="button"
-                    onClick={() => void send(suggestion)}
-                    disabled={busy}
-                    className="min-h-[40px] rounded-full border border-app-line bg-white px-4 text-left text-[13.5px] font-bold text-app-ink hover:border-app-line-strong disabled:opacity-50"
-                  >
-                    {suggestion}
-                  </button>
-                ))}
-              </div>
-            )}
-            {turns.map((turn, index) => (
-              <div key={index} className="flex flex-col gap-2">
-                <Bubble role={turn.role} content={turn.content} failed={turn.failed} />
-                {turn.buyCredits ? <BuyCreditsButton className="self-start" label={t("buyCredits")} /> : null}
-                {turn.actions?.map((action, actionIndex) => <ActionCard key={actionIndex} action={action} />)}
-              </div>
-            ))}
-            {busy && (
-              <div className="flex items-center gap-2 self-start rounded-[18px] rounded-tl-[6px] bg-app-mint px-4 py-3 text-[14px] text-app-ink-soft">
-                <span className="inline-flex gap-1" aria-hidden>
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-app-ink-soft" />
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-app-ink-soft [animation-delay:150ms]" />
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-app-ink-soft [animation-delay:300ms]" />
-                </span>
-                {t("working")}
-              </div>
-            )}
-            <div ref={endRef} />
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-5" aria-live="polite">
+            <div className="mx-auto flex max-w-[760px] flex-col gap-3">
+              <Bubble role="assistant" content={greeting} />
+              {turns.length === 0 && (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {suggestions.map((suggestion) => (
+                    <button
+                      key={suggestion}
+                      type="button"
+                      onClick={() => void send(suggestion)}
+                      disabled={busy}
+                      className="min-h-[40px] rounded-full border border-app-line bg-white px-4 text-left text-[13.5px] font-bold text-app-ink hover:border-app-line-strong disabled:opacity-50"
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {turns.map((turn, index) => (
+                <div key={index} className="flex flex-col gap-2">
+                  <Bubble role={turn.role} content={turn.content} failed={turn.failed} />
+                  {turn.buyCredits ? <BuyCreditsButton className="self-start" label={t("buyCredits")} /> : null}
+                  {turn.actions?.map((action, actionIndex) => <ActionCard key={actionIndex} action={action} />)}
+                </div>
+              ))}
+              {busy && (
+                <div className="flex items-center gap-2 self-start rounded-[18px] rounded-tl-[6px] bg-app-mint px-4 py-3 text-[14px] text-app-ink-soft">
+                  <span className="inline-flex gap-1" aria-hidden>
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-app-ink-soft" />
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-app-ink-soft [animation-delay:150ms]" />
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-app-ink-soft [animation-delay:300ms]" />
+                  </span>
+                  {t("working")}
+                </div>
+              )}
+              <div ref={endRef} />
+            </div>
           </div>
+
+          <form
+            className="border-t border-app-line px-3 py-3 sm:px-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void send(draft);
+            }}
+          >
+            <div className="mx-auto flex max-w-[760px] items-end gap-2">
+              <label htmlFor="peggy-input" className="sr-only">{t("metaTitle")}</label>
+              <textarea
+                id="peggy-input"
+                ref={inputRef}
+                rows={1}
+                value={draft}
+                maxLength={MAX_CHARS}
+                onChange={(event) => setDraft(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && !event.shiftKey) {
+                    event.preventDefault();
+                    void send(draft);
+                  }
+                }}
+                placeholder={t("placeholder")}
+                className="max-h-[160px] min-h-[48px] flex-1 resize-none rounded-[24px] border border-app-line bg-app-canvas px-5 py-3 text-[15px] leading-[1.4] text-app-ink outline-none placeholder:text-app-ink-faint focus:border-app-line-strong field-sizing-content"
+              />
+              <VoiceInputButton variant="icon" value={draft} onChange={setDraft} maxLength={MAX_CHARS} context="a request for Peggy" disabled={busy} />
+              <button
+                type="submit"
+                disabled={!draft.trim() || busy}
+                aria-label={t("send")}
+                className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-app-ink text-white disabled:opacity-40"
+              >
+                <Icon name="arrowUp" size={18} />
+              </button>
+            </div>
+          </form>
         </div>
-
-        <form
-          className="border-t border-app-line px-3 py-3 sm:px-4"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void send(draft);
-          }}
-        >
-          <div className="mx-auto flex max-w-[760px] items-end gap-2">
-            <label htmlFor="peggy-input" className="sr-only">{t("metaTitle")}</label>
-            <textarea
-              id="peggy-input"
-              ref={inputRef}
-              rows={1}
-              value={draft}
-              maxLength={MAX_CHARS}
-              onChange={(event) => setDraft(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" && !event.shiftKey) {
-                  event.preventDefault();
-                  void send(draft);
-                }
-              }}
-              placeholder={t("placeholder")}
-              className="max-h-[160px] min-h-[48px] flex-1 resize-none rounded-[24px] border border-app-line bg-app-canvas px-5 py-3 text-[15px] leading-[1.4] text-app-ink outline-none placeholder:text-app-ink-faint focus:border-app-line-strong field-sizing-content"
-            />
-            <VoiceInputButton variant="icon" value={draft} onChange={setDraft} maxLength={MAX_CHARS} context="a request for Peggy" disabled={busy} />
-            <button
-              type="submit"
-              disabled={!draft.trim() || busy}
-              aria-label={t("send")}
-              className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-app-ink text-white disabled:opacity-40"
-            >
-              <Icon name="arrowUp" size={18} />
-            </button>
-          </div>
-        </form>
       </section>
 
       {/* Today + what she can do (wide screens) */}
-      <aside className="hidden min-h-0 flex-col gap-4 overflow-y-auto xl:flex">
+      <aside className="hidden min-h-0 flex-col gap-4 overflow-y-auto 2xl:flex">
         <section className="rounded-[22px] bg-app-mint p-5">
           <h2 className="m-0 text-[15px] font-extrabold">{t("today")}</h2>
           <div className="mt-3 grid grid-cols-2 gap-2">

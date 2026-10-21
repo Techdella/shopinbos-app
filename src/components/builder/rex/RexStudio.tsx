@@ -18,7 +18,8 @@ import { RexBuildSetup, type BuildSetup } from "./RexBuildSetup";
 import { RexBuildProgress, type BuildStep, type BuildStepState } from "./RexBuildProgress";
 import { RexChat } from "./RexChat";
 import { guessRexJob, type RexJob } from "@shared/rex-progress";
-import { ChatHistoryMenu, useChatAutosave } from "@/components/ai/ChatHistory";
+import { useChatAutosave } from "@/components/ai/ChatHistory";
+import { ChatSidebar, ChatSidebarButton } from "@/components/ai/ChatSidebar";
 import { CreditsBadge, creditsChanged, isCreditsError } from "@/components/credits/CreditsBadge";
 import { RexPreview } from "./RexPreview";
 import { RexSidePanel } from "./RexSidePanel";
@@ -81,7 +82,7 @@ export function RexStudio(props: RexStudioProps) {
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
   const [previewOpen, setPreviewOpen] = useState(props.openPreview);
   const [panelOpen, setPanelOpen] = useState(false);
-  const [toolsOpen, setToolsOpen] = useState(false);
+  const [chatsOpen, setChatsOpen] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [live, setLive] = useState(props.live);
   const [unpublished, setUnpublished] = useState(props.hasUnpublishedChanges);
@@ -91,7 +92,6 @@ export function RexStudio(props: RexStudioProps) {
   const [setup, setSetup] = useState<{ screenshots: string[]; links: string[]; note: string } | null>(null);
   const [buildSteps, setBuildSteps] = useState<BuildStep[] | null>(null);
   const router = useRouter();
-  const toolsRef = useRef<HTMLDivElement>(null);
   const closePreviewRef = useRef<HTMLButtonElement>(null);
 
   // Phones always preview at phone width (the desktop toggle is hidden there).
@@ -119,19 +119,6 @@ export function RexStudio(props: RexStudioProps) {
     return () => window.clearTimeout(timer);
   }, [toast]);
 
-  useEffect(() => {
-    if (!toolsOpen) return;
-    const close = (event: MouseEvent | KeyboardEvent) => {
-      if (event instanceof KeyboardEvent ? event.key === "Escape" : !toolsRef.current?.contains(event.target as Node)) setToolsOpen(false);
-    };
-    document.addEventListener("mousedown", close);
-    document.addEventListener("keydown", close);
-    return () => {
-      document.removeEventListener("mousedown", close);
-      document.removeEventListener("keydown", close);
-    };
-  }, [toolsOpen]);
-
   // Escape closes the preview (it covers the chat on phones); focus moves to its close button when it opens.
   useEffect(() => {
     if (!previewOpen) return;
@@ -151,7 +138,7 @@ export function RexStudio(props: RexStudioProps) {
   const chips = useMemo(() => rexSuggestionChips(facts, { hasDraft: draftSaved, exclude: lastSeller ? [lastSeller] : [] }), [facts, draftSaved, lastSeller]);
   const themeName = themeLibraryEntry(draft.templateId)?.name ?? (draft.templateId === props.initialDraft.templateId ? props.themeName : draft.templateName);
   const busyLabel = busy === "build" ? t("rex.st.building") : t("rex.st.working");
-  const { chatId, adopt } = useChatAutosave("rex", messages, busy === null, messages.some((message) => message.role === "seller"));
+  const { chatId, adopt, savedCount } = useChatAutosave("rex", messages, busy === null, messages.some((message) => message.role === "seller"));
 
   /** Reopens a saved chat (Rex carries on from it; undo buttons of old versions still work). */
   function openChat(chat: { id: string; messages: unknown[] }) {
@@ -497,6 +484,7 @@ export function RexStudio(props: RexStudioProps) {
     <div className="fixed inset-0 flex flex-col bg-app-canvas font-app text-app-ink">
       <header className="shrink-0 border-b border-app-line bg-white">
         <div className="flex min-h-[64px] items-center gap-2 px-3 sm:gap-3 sm:px-4">
+          <ChatSidebarButton onClick={() => setChatsOpen(true)} />
           <Link href="/home/store" aria-label={t("rex.st.exit")} className="grid h-10 w-10 shrink-0 place-items-center rounded-full hover:bg-app-canvas">
             <Icon name="arrowLeft" size={18} />
           </Link>
@@ -510,40 +498,6 @@ export function RexStudio(props: RexStudioProps) {
 
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             <CreditsBadge compact />
-            <ChatHistoryMenu assistant="rex" currentId={chatId} onOpen={openChat} onNew={newChat} creations onUseCreation={(url) => setAttachRequest({ url, n: Date.now() })} />
-            <div ref={toolsRef} className="relative hidden sm:block">
-              <button
-                type="button"
-                aria-expanded={toolsOpen}
-                aria-haspopup="menu"
-                onClick={() => setToolsOpen((open) => !open)}
-                className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full px-3 text-[13.5px] font-bold hover:bg-app-canvas"
-              >
-                <Icon name="wand" size={16} />
-                <span className="hidden xl:inline">{t("rex.st.tools")}</span>
-                <span className="sr-only xl:hidden">{t("rex.st.tools")}</span>
-                <Icon name="chevDown" size={14} />
-              </button>
-              {toolsOpen ? (
-                <div role="menu" className="absolute right-0 top-full z-30 mt-2 max-h-[calc(100dvh-140px)] w-[240px] max-w-[calc(100vw-24px)] overflow-y-auto rounded-[18px] border border-app-line bg-white p-1.5 shadow-[0_18px_50px_rgba(22,20,31,0.14)]">
-                  <Link role="menuitem" href="/studio/images" className="flex min-h-[44px] items-center gap-2.5 rounded-[12px] px-3 text-[14px] font-bold hover:bg-app-canvas">
-                    <Icon name="image" size={16} /> {t("rex.makeImages")}
-                  </Link>
-                  <Link role="menuitem" href="/studio/logo" className="flex min-h-[44px] items-center gap-2.5 rounded-[12px] px-3 text-[14px] font-bold hover:bg-app-canvas">
-                    <Icon name="palette" size={16} /> {t("rex.makeLogo")}
-                  </Link>
-                  <Link role="menuitem" href="/home/video" className="flex min-h-[44px] items-center gap-2.5 rounded-[12px] px-3 text-[14px] font-bold hover:bg-app-canvas">
-                    <Icon name="play" size={16} /> {t("rex.videoStudio")}
-                  </Link>
-                  <Link role="menuitem" href="/home/brand-kit" className="flex min-h-[44px] items-center gap-2.5 rounded-[12px] px-3 text-[14px] font-bold hover:bg-app-canvas">
-                    <Icon name="tag" size={16} /> {t("rex.brandKit")}
-                  </Link>
-                  <Link role="menuitem" href="/seller/store/builder" className="flex min-h-[44px] items-center gap-2.5 rounded-[12px] px-3 text-[14px] font-bold hover:bg-app-canvas">
-                    <Icon name="monitor" size={16} /> {t("rex.openBuilder")}
-                  </Link>
-                </div>
-              ) : null}
-            </div>
             <button
               type="button"
               onClick={() => setPreviewOpen((open) => !open)}
@@ -564,6 +518,19 @@ export function RexStudio(props: RexStudioProps) {
       </header>
 
       <div className="flex min-h-0 flex-1">
+        <ChatSidebar
+          assistant="rex"
+          currentId={chatId}
+          refreshKey={savedCount}
+          onOpen={openChat}
+          onNew={newChat}
+          onUseCreation={(url) => setAttachRequest({ url, n: Date.now() })}
+          mobileOpen={chatsOpen}
+          onMobileOpen={() => setChatsOpen(true)}
+          onMobileClose={() => setChatsOpen(false)}
+          busy={busy !== null}
+          railOnly={previewOpen}
+        />
         <section
           aria-label={t("rex.chatWith")}
           className={cx("flex min-h-0 min-w-0 flex-col bg-white", previewOpen ? "w-full lg:w-[420px] lg:shrink-0 lg:border-r lg:border-app-line xl:w-[460px] 2xl:w-[520px]" : "w-full")}
