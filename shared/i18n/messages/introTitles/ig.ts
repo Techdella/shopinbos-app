@@ -52,6 +52,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "supplier-home.title": "Dashboard Today gị",
   "supplier-delivery.title": "Delivery maka dropship orders",
   "supplier-agreements.title": "Dropship agreements",
+  "supplier-followers.title": "Ndị na-eso gị",
   "supplier-wholesale.title": "Wholesale orders",
   "supplier-buyers.title": "Buyers",
   "partner-home.title": "Dashboard Today gị",
