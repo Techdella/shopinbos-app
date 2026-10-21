@@ -86,6 +86,7 @@ export const POST = withSupplier(async (req: NextRequest, { user, params }) => {
   // Only a still-pending request is answered, so two replies at once can't both win.
   const updated = await db.supplierQuoteRequest.updateMany({ where: { id: String(params.id), supplierId: supplier.id, status: "pending" }, data });
   if (updated.count === 0) return apiError("CONFLICT", "This request has already been answered.", 409);
+  if (data.status === "responded") void import("@/lib/rewards/rewards.server").then((rewards) => rewards.recordRewardEvent({ userId: user.id, kind: "quote_sent", ref: String(params.id) })).catch(() => undefined);
   await notifySupplierQuoteAnswered(String(params.id));
   const quote = await findQuote(supplier.id, String(params.id));
   return ok(quote ? view(quote) : null);

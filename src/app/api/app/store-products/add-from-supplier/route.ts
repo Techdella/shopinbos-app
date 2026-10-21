@@ -55,6 +55,7 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
       status: "published",
     },
   });
+  void import("@/lib/rewards/rewards.server").then((rewards) => rewards.recordRewardEvent({ userId: user.id, kind: "product_added", ref: storeProduct.id })).catch(() => undefined);
 
   if (fulfillmentType === "dropship") {
     await db.dropshipRelationship.create({
