@@ -13,7 +13,8 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
 const Body = z.object({
-  productId: z.string().min(1).max(64),
+  /** Optional: without one, Peggy writes about the shop and the seller's angle (a brand post, a Rex design). */
+  productId: z.string().min(1).max(64).nullable().optional(),
   channel: z.enum(SHARE_CHANNEL_KEYS),
   /** Optional angle from the seller ("new arrival", "only 3 left", "weekend sale"). */
   angle: z.string().trim().max(200).optional(),
@@ -27,13 +28,15 @@ const STYLE: Record<(typeof SHARE_CHANNEL_KEYS)[number], string> = {
   tiktok: "a TikTok caption: one short hook line, then 3-5 hashtags. No links.",
 };
 
-// Peggy writes a caption for one product and one app; the seller edits it before posting. Nothing is posted here.
+// Peggy writes a caption for one product (or, without one, the seller's angle) and one app; the seller edits it
+// before posting. Nothing is posted here.
 export const POST = withSeller(async (req, { user }) => {
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, customDomain: true } });
   if (!store) return apiError("NOT_FOUND", "Store not found", 404);
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return apiError("BAD_REQUEST", parsed.error.issues[0]?.message ?? "Pick a product and an app");
   const { productId, channel, angle } = parsed.data;
+  if (!productId) return brandCaption(user.id, store.name, channel, angle);
 
   const product = await db.storeProduct.findFirst({
     where: { id: productId, storeId: store.id },
@@ -65,3 +68,19 @@ export const POST = withSeller(async (req, { user }) => {
   const caption = fitCaption(result?.text.replace(/^["“]|["”]$/g, "").trim() || fallbackCaption({ name: product.name, price, storeName: store.name }, channel), room);
   return ok({ caption, link, channel, label, ai: Boolean(result) });
 });
+
+/** A post that isn't about one product: the seller's angle ("we're open on Sunday", "new Ankara collection"). */
+async function brandCaption(userId: string, storeName: string, channel: (typeof SHARE_CHANNEL_KEYS)[number], angle: string | undefined) {
+  if (!angle) return apiError("BAD_REQUEST", "Pick a product or say what the post is about");
+  const limit = SHARE_CHANNELS.find((item) => item.key === channel)!.limit;
+  const limited = await meterAi(userId, "text");
+  if (limited) return limited;
+  const label = SHARE_CHANNELS.find((item) => item.key === channel)!.label;
+  const result = await aiText({
+    fast: true,
+    system: `You are Peggy, writing social posts for ${storeName}, a small online shop in Nigeria. Warm, confident Nigerian English. Never invent prices, discounts, materials, sizes or delivery times the seller didn't give.`,
+    prompt: `Write ${STYLE[channel]}\nKeep it under ${Math.min(limit, 600)} characters.\nWhat the post is about: ${angle}\nReturn only the caption.`,
+  });
+  const caption = fitCaption(result?.text.replace(/^["“]|["”]$/g, "").trim() || `${angle} — ${storeName}`, limit);
+  return ok({ caption, link: null, channel, label, ai: Boolean(result) });
+}

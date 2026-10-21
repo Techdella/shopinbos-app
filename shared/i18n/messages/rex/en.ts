@@ -20,6 +20,7 @@ const en = {
   "logo.sub": "Tell Rex about your brand and pick from three logo ideas.",
   "images.title": "Images",
   "images.sub": "Ask Rex for product photos, banners and brand pictures.",
+  "images.backSocial": "Back to your post",
   "logo.failed": "Failed to generate logos",
   "logo.saveFailed": "Couldn't save that logo to your store. Try again.",
   "logo.brand": "Your brand",

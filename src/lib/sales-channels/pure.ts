@@ -21,6 +21,9 @@ export type OAuthPlatform = (typeof OAUTH_PLATFORMS)[number];
 export const COMING_SOON_PLATFORMS = ["tiktok", "pinterest", "snapchat", "amazon", "jumia", "konga", "jiji", "ebay", "etsy", "shopify"] as const;
 export type ComingSoonPlatform = (typeof COMING_SOON_PLATFORMS)[number];
 
+/** The marketplaces Nigerian sellers sell on, shown on Sell everywhere (all coming soon for now). */
+export const MARKETPLACE_PLATFORMS = ["jumia", "konga", "jiji", "amazon", "ebay", "etsy"] as const satisfies readonly ComingSoonPlatform[];
+
 export const PLATFORM_NAME: Record<LivePlatform | ComingSoonPlatform, string> = {
   whatsapp: "WhatsApp",
   meta: "Facebook & Instagram",
@@ -151,6 +154,9 @@ export const META_LOGIN_SCOPES = [
   "pages_manage_metadata",
   "instagram_basic",
   "instagram_manage_messages",
+  // Social posts (Marketing > Social posts) post to the Page and Instagram for the seller.
+  "pages_manage_posts",
+  "instagram_content_publish",
 ] as const;
 
 export function redirectUri(origin: string, platform: OAuthPlatform) {
@@ -169,7 +175,8 @@ export function authorizeUrl(platform: OAuthPlatform, options: { origin: string;
     // Facebook Login for Business: the configuration (META_CATALOG_CONFIG_ID) holds the permissions and the token
     // type. One sign-in covers the catalog (catalog_management, business_management) and the seller's Page and
     // Instagram messages (pages_show_list, pages_messaging, pages_manage_metadata, instagram_basic,
-    // instagram_manage_messages), so "Connect Facebook & Instagram" turns on both. See .env.local.example.
+    // instagram_manage_messages), and posting for Social posts (pages_manage_posts, instagram_content_publish),
+    // so "Connect Facebook & Instagram" turns on all of it. See .env.local.example.
     const params = new URLSearchParams({
       client_id: env.META_APP_ID ?? "",
       redirect_uri,
@@ -351,7 +358,7 @@ export function appReturnUrl(value: string | null | undefined): string | null {
 // "Connect" can start from /channels, Inbox → Channels or Start here; the callback sends the seller back to the
 // page they started on (?next=, kept in an httpOnly cookie). Only these pages are accepted.
 
-export const RETURN_PATHS = ["/channels", "/home/connections", "/home/inbox/channels", "/home/start", "/home/reviews/sources", "/home/analytics/traffic"] as const;
+export const RETURN_PATHS = ["/channels", "/home/marketing/social/accounts", "/home/connections", "/home/inbox/channels", "/home/start", "/home/reviews/sources", "/home/analytics/traffic"] as const;
 
 export const returnCookieName = (platform: OAuthPlatform) => `sib_sc_next_${platform}`;
 

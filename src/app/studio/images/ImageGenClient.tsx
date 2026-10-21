@@ -46,7 +46,7 @@ interface Reference {
 
 // Rex Studio "Make image": the seller's brand kit (logo, colours) goes into every picture unless they turn it
 // off, photos or a video they add are references, and the ideas come from their own products.
-export function ImageGenClient({ storeName: _storeName, brand, ideas }: { storeName: string; brand: ImageBrand | null; ideas: string[] }) {
+export function ImageGenClient({ storeName: _storeName, brand, ideas, initialSize }: { storeName: string; brand: ImageBrand | null; ideas: string[]; initialSize?: "1024x1024" | "1792x1024" | "1024x1792" }) {
   const t = useT("rex");
   const media = useMediaLibrary();
   const [prompt, setPrompt] = useState("");
@@ -55,7 +55,7 @@ export function ImageGenClient({ storeName: _storeName, brand, ideas }: { storeN
   const [headline, setHeadline] = useState("");
   const [subline, setSubline] = useState("");
   const [cta, setCta] = useState("");
-  const [size, setSize] = useState<"1024x1024" | "1792x1024" | "1024x1792">("1024x1024");
+  const [size, setSize] = useState<"1024x1024" | "1792x1024" | "1024x1792">(initialSize ?? "1024x1024");
   const [style, setStyle] = useState<"vivid" | "natural">("vivid");
   const [useLogo, setUseLogo] = useState(false);
   const [logoTouched, setLogoTouched] = useState(false);
