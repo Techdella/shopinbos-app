@@ -269,7 +269,7 @@ test("supplier portal has payout recipients, public profiles, and message prefer
   assert.match(suppliersPage, /export async function generateMetadata/);
   assert.match(suppliersPage, /supplier\.verificationStatus === "verified"/);
   assert.match(suppliersPage, /robots: supplier\.verificationStatus === "verified" \? undefined : \{ index: false/);
-  assert.match(suppliersPage, /Request quote/);
+  assert.match(suppliersPage, /Ask for a price/);
   assert.match(marketplaceSuppliers, /href=\{`\/suppliers\/\$\{s\.slug\}`\}/);
   assert.match(marketplaceSuppliers, /<ChatButton contactId=\{s\.id\}/);
 });
@@ -431,7 +431,7 @@ test("inner portal pages use the mockup-style operational shell", () => {
 
   assert.match(logistics, /Book riders/);
   assert.match(logistics, /Delivery partners/);
-  assert.match(logistics, /Quote requests/);
+  assert.match(logistics, /Prices you asked for/);
   assert.match(logistics, /QuoteRequestForm/);
 });
 

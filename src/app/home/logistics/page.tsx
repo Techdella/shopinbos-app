@@ -14,6 +14,7 @@ import { getLocale, getT } from "@/lib/i18n/server";
 import { formatDate, formatMoney } from "@shared/i18n";
 import { exceptionsFor } from "@/lib/delivery-market/jobs.server";
 import { deliverySettingsFor } from "@/lib/delivery-market/market.server";
+import { DeliveryTip } from "@/components/delivery-market/DeliveryTip";
 
 export const dynamic = "force-dynamic";
 
@@ -99,6 +100,10 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
       }
     >
       <div className="grid gap-5">
+        <DeliveryTip>
+          <AssistantNote who="peggy" action={<PillLink href="/home/logistics/settings" size="sm" tone="ink">{d("settings.title")}</PillLink>}>{t("lg.tip")}</AssistantNote>
+        </DeliveryTip>
+
         {/* Logistics marketplace: delivery settings, connected partners and deliveries that need the shop. */}
         <nav aria-label={d("partners.title")} className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <Link href="/home/logistics/settings" className="grid gap-0.5 rounded-[18px] border border-app-line bg-white px-4 py-3.5 text-app-ink no-underline hover:border-app-line-strong">
@@ -223,7 +228,6 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
               )}
             </Card>
 
-            <AssistantNote who="peggy">{t("lg.peggy")}</AssistantNote>
           </aside>
         </div>
       </div>

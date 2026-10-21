@@ -6,6 +6,7 @@ import { connectPartnerAction, endConnectionAction, respondRateCardAction } from
 import { CardExtras, RateTable, Rating, VerifiedPill, areasSummary } from "./bits";
 import { serviceLabel } from "./words";
 import { getT } from "@/lib/i18n/server";
+import { Term } from "@/components/learn/Term";
 
 // A delivery partner's page for sellers and suppliers (spec §5.3): rates, coverage, pickup points, reviews and
 // in-app stats, with Chat and Connect / Remove.
@@ -140,7 +141,7 @@ export async function PartnerDetail({ detail, role, back }: { detail: Detail; ro
               </dl>
             </Card>
             <Card className="p-5">
-              <CardHead title={t("pickupPoints")} sub={partner.pickupPoints.length ? t("detail.pointsSub") : undefined} />
+              <CardHead title={<Term k="pickup-points">{t("pickupPoints")}</Term>} sub={partner.pickupPoints.length ? t("detail.pointsSub") : undefined} />
               {partner.pickupPoints.length === 0 ? (
                 <p className="mb-0 mt-3 text-[14px] text-app-ink-soft">{t("detail.noPoints")}</p>
               ) : (
