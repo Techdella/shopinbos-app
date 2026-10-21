@@ -230,8 +230,8 @@ export const FEATURE_INTROS: FeatureIntro[] = [
     cta: { label: "Add your bank account", href: "/home/payouts" },
     scenes: [
       { art: "phone-store", caption: "A customer pays you.", sub: "By card, bank transfer, USSD or cash on delivery.", durationMs: S, value: "₦24,000" },
-      { art: "money-flow", caption: "Payments collect in your balance.", sub: "Every sale shows up in Money, with who paid and how.", durationMs: S, value: "₦64,000" },
-      { art: "cash-collect", caption: "Escrow keeps everyone safe.", sub: "Some money waits in the middle until the parcel is delivered, then it’s released.", durationMs: S, label: "Held till delivered" },
+      { art: "money-flow", caption: "Every payment shows in Money.", sub: "Every sale shows up in Money, with who paid and how.", durationMs: S, value: "₦64,000" },
+      { art: "cash-collect", caption: "It’s split the moment they pay.", sub: "Your share goes to your bank and each supplier’s to theirs. Shopinbos never holds your money.", durationMs: S, label: "Split at checkout" },
       { art: "money-flow", caption: "A payout sends it to your bank.", sub: "Settlement is when it clears, usually the next working day.", durationMs: S, label: "GTBank •• 4821", value: "₦64,000" },
       { art: "chart-grow", caption: "Add your bank once.", sub: "Then every payout lands on its own. You’ll get a message each time.", durationMs: S },
     ],
@@ -849,7 +849,7 @@ export const FEATURE_INTROS: FeatureIntro[] = [
     helpTopic: "get_paid",
     scenes: [
       { art: "phone-store", caption: "Every order earns you money.", sub: "Your price for each piece, for every shop that sells it.", durationMs: S, value: "₦9,000" },
-      { art: "cash-collect", caption: "Escrow holds it until delivered.", sub: "That protects you and the buyer. Once delivered, it’s released.", durationMs: S, label: "Held till delivered" },
+      { art: "cash-collect", caption: "Your price is split off at checkout.", sub: "When the customer pays, your share goes straight to your bank. Shopinbos never holds it.", durationMs: S, label: "Split at checkout" },
       { art: "money-flow", caption: "Payouts go to your bank.", sub: "Settled money is sent to the bank account you added.", durationMs: S, label: "Access •• 1093", value: "₦186,000" },
       { art: "chart-grow", caption: "See every naira.", sub: "Fees, orders and payouts, line by line.", durationMs: S },
       { art: "chat-bubbles", caption: "Get a message each time.", sub: "“₦186,000 is on its way to your bank.”", durationMs: S, label: "₦186,000 sent" },
@@ -911,7 +911,7 @@ export const FEATURE_INTROS: FeatureIntro[] = [
     scenes: [
       { art: "product-stock", caption: "Wholesale orders are big orders.", sub: "A shop buys 200 jars of shea butter at your bulk price, to keep as its own stock.", durationMs: S, label: "Shea butter", value: "200" },
       { art: "quote-tags", caption: "Bulk prices drop with quantity.", sub: "₦2,500 each for under 50, ₦2,200 from 50, ₦2,000 from 200.", durationMs: S, chips: ["₦2,500", "₦2,200", "₦2,000"] },
-      { art: "money-flow", caption: "Paid before you pack.", sub: "The shop pays upfront through Shopinbos. It’s held in escrow until delivery.", durationMs: S, label: "Held till delivered", value: "₦400,000" },
+      { art: "money-flow", caption: "Paid before you pack.", sub: "Once you accept, the shop pays by card and it goes straight to your bank. Shopinbos never holds it.", durationMs: S, label: "Paid to your bank", value: "₦400,000" },
       { art: "supplier-ship", caption: "Pack it, then book delivery.", sub: "Big orders can go by van or with a long-distance partner. You choose.", durationMs: S, label: "Kano → Onitsha" },
       { art: "chart-grow", caption: "Repeat bulk buyers are gold.", sub: "Deliver well and the same shop orders again every month.", durationMs: S, value: "3 repeat shops" },
     ],
