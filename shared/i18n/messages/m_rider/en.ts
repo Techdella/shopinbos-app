@@ -163,6 +163,19 @@ const en = {
   "noPhone": "No phone number for this one.",
   "signIn.openLink": "Open my link",
   "signIn.linkHint": "Use the number your company added you with. Got a link from them? You can open it instead.",
+  "map.me": "Map showing where you are",
+  "map.route": "Map of the pickup and drop-off. Tap to open in maps.",
+  "pickup.order": "Ask for order {order}. They'll check your code.",
+  "pickup.orderNoCode": "Ask for order {order}. Check the parcel before you leave.",
+  "earn.byDay": "Deliveries by day",
+  "earn.todayCount": "Today: {count}",
+  "wk.0": "Mon",
+  "wk.1": "Tue",
+  "wk.2": "Wed",
+  "wk.3": "Thu",
+  "wk.4": "Fri",
+  "wk.5": "Sat",
+  "wk.6": "Sun",
 } satisfies Record<string, string>;
 
 export default en;
