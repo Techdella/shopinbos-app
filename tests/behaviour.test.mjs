@@ -865,6 +865,32 @@ test("theme library lists every 2026 theme, each a real boutique theme with its 
   assert.equal(boutique.BOUTIQUE_TEMPLATE_MANIFESTS.find((entry) => entry.id === "breeze").seedPages[0].seo.metaTitle, "Breeze");
 });
 
+test("live stores show the theme's stock photos until the seller uploads their own", async () => {
+  const photos = await import("../src/lib/store-templates/demo-photos.ts");
+  const url = /^https:\/\/images\.unsplash\.com\/photo-\d{10,13}-[0-9a-f]{12}\?auto=format&fit=crop&w=\d+&h=\d+&q=\d+$/;
+  for (const id of ALL_THEME_IDS) {
+    const stock = photos.themeStockImages(id);
+    assert.ok(stock, `${id} has stock photos`);
+    assert.match(stock.hero, url);
+    assert.match(stock.story, /&w=1000&h=1250&/, `${id} story photo is 4:5`);
+    assert.ok(stock.extras.length >= 3, `${id} has extra pictures for multi-photo banners`);
+    for (const extra of stock.extras) assert.match(extra, url);
+  }
+  assert.match(photos.themeStockImages("zinariya").hero, /&w=1200&h=1500&/, "tall banner frames get a 4:5 photo");
+  assert.equal(photos.themeStockImages("not-a-theme"), null);
+  assert.equal(photos.themeStockImages(null), null);
+  // Filled in when the page is drawn, never saved: seeds stay free of photo URLs, and an upload or the switch wins.
+  for (const manifest of boutique.BOUTIQUE_TEMPLATE_MANIFESTS) assert.doesNotMatch(JSON.stringify(manifest.seedPages), /unsplash/);
+  const renderer = readFileSync(new URL("../src/components/storefront/boutique/BoutiqueStorefront.tsx", import.meta.url), "utf8");
+  assert.match(renderer, /const stock = section\.settings\?\.stockImage === false \? null : stockImages;/);
+  assert.match(renderer, /const banner = uploaded\.length \? uploaded : stock \? \[stock\.hero\] : fromProducts;/);
+  assert.match(renderer, /itemImages\(section\)\[0\] \?\? stockStory \?\?/);
+  const schema = readFileSync(new URL("../src/components/builder/editor/section-schema.ts", import.meta.url), "utf8");
+  assert.match(schema, /id: "stockImage",\s+type: "toggle"/);
+  // The storefront's content security policy lets the photos load.
+  assert.match(readFileSync(new URL("../next.config.ts", import.meta.url), "utf8"), /img-src[^`]*https:\/\/images\.unsplash\.com/);
+});
+
 test("the Igbo and Hausa themes design their inner pages, not just the home page", async () => {
   const { STORE_BLOCK_KINDS } = await import("../src/components/storefront/boutique/blocks/block-catalog.ts");
   const designed = ["omalicha", "zuma", "oku", "ihe", "kasuwa", "nkata", "uwa", "sarauniya", "zinariya", "irawo", "asa", "mmiri", "uzo", "rawa", "fitila", "oso", "shakara"];

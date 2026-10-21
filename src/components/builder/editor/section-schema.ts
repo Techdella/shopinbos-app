@@ -390,6 +390,19 @@ const HERO_LAYOUTS: ChoiceOption[] = [
   { value: "nkata-frame", label: "Framed box", hint: "Full-width photo with the words in a framed box in the middle." },
 ];
 
+/**
+ * Banners and story pictures show the theme's stock photo until the seller uploads their own; this turns that off
+ * (product photos are used instead). Stock photos are never saved into the store.
+ */
+const STOCK_IMAGE_TOGGLE: SchemaField = {
+  id: "stockImage",
+  type: "toggle",
+  label: "Use the theme's stock photo until I upload mine",
+  target: setting("stockImage"),
+  fallback: true,
+  help: "Off: your product photos fill this space instead.",
+};
+
 /** Hero layouts that use more than one picture (the rest use the first). */
 const HERO_PICTURE_COUNT: Record<string, number> = { "asoebi-collage": 3, "iwe-shelf": 4, "zuma-collage": 2, "ihe-gallery": 3, "sarauniya-duo": 2, "uzo-sticky": 3, "rawa-fan": 3, "oso-bento": 3 };
 /** Layouts that don't show the eyebrow. */
@@ -449,7 +462,8 @@ function boutiqueSchema(kind: string, themeId: string): SectionSchema {
       return plain([
         { fields: [{ id: "layout", type: "cards", label: "Layout", target: setting("layout"), fallback: heroDefault, options: heroLayoutOptions(themeId) }] },
         { fields: [
-          { id: "media", type: "media", label: "Image", max: 1, help: "No image yet? A product photo is used.", when: layoutNot(singleLayouts, heroDefault) },
+          { id: "media", type: "media", label: "Image", max: 1, help: "No image yet? The theme's stock photo is used.", when: layoutNot(singleLayouts, heroDefault) },
+          STOCK_IMAGE_TOGGLE,
           ...single.map((layout): SchemaField => ({ id: `media-${layout}`, type: "media", label: "Images", max: HERO_PICTURE_COUNT[layout]!, help: "Empty spaces are filled with your product photos.", when: layoutIs([layout], heroDefault) })),
           ...slideFields(heroDefault),
         ] },
@@ -552,7 +566,8 @@ function boutiqueSchema(kind: string, themeId: string): SectionSchema {
             { value: "overlap", label: "Overlap", hint: "Wide picture with the words on a card over its edge." },
           ] },
           { id: "imagePosition", type: "segmented", label: "Picture side", target: setting("imagePosition"), fallback: "left", options: IMAGE_SIDE, help: "On phones the picture is always on top.", when: layoutIs(["boutique", "editorial", "overlap"], storyFallback) },
-          { id: "media", type: "media", label: "Image", max: 1, help: "No image yet? A product photo is used.", when: layoutNot(["centered"], storyFallback) },
+          { id: "media", type: "media", label: "Image", max: 1, help: "No image yet? The theme's stock photo is used.", when: layoutNot(["centered"], storyFallback) },
+          { ...STOCK_IMAGE_TOGGLE, when: layoutNot(["centered"], storyFallback) },
         ] },
         { title: "Content", fields: [text("eyebrow", "Eyebrow"), area("title", "Heading"), area("body", "Text", { help: "Leave empty to use your store description." }), text("primaryCta", "Button label")] },
       ]);

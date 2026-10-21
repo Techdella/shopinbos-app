@@ -38,6 +38,7 @@ import { useShopQuery } from "../shopper/useShopQuery";
 import { GameSection } from "../gamification/GameSection";
 import { HeroSlider, slideAlign } from "../HeroSlider";
 import { readHeroSlides, readProductLimit, readSlideLink, readSlideTiming, type HeroSlide, type SlideLink } from "@/lib/store-templates/section-content";
+import { themeStockImages } from "@/lib/store-templates/demo-photos";
 import { isShopGridSection, readOptionalProductLimit, readProductCardOptions, readShopGridOptions } from "@/lib/store-templates/section-content";
 import type { GameSectionKind } from "@/lib/gamification/logic";
 import { isStoreBlock, StoreBlock, type BlockContext } from "./blocks/registry";
@@ -242,6 +243,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
   const headerLayout = text(headerSection?.settings?.layout);
   const pageTypes = new Set(snapshot.pages.map((entry) => entry.pageType as string));
   const categories = useMemo(() => productCategories(products), [products]);
+  const stockImages = useMemo(() => themeStockImages(themeId), [themeId]);
   const wished = props.wishlistProductIds;
 
   const productHref = (id: string) => (live ? getPublicStorefrontPath(basePath, `/product/${id}`) : undefined);
@@ -355,8 +357,13 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     const layout = text(section.settings?.layout) || look.defaultHero;
     const uploaded = itemImages(section);
     const fromProducts = products.map((product) => product.images[0]).filter(Boolean) as string[];
-    const slides = (uploaded.length ? uploaded : fromProducts).slice(0, 3);
+    // Until the seller uploads a banner, the theme's stock photo fills it (unless they turned that off). Extra
+    // picture slots (collages, bento grids) take the seller's product photos first, then more stock.
+    const stock = section.settings?.stockImage === false ? null : stockImages;
+    const banner = uploaded.length ? uploaded : stock ? [stock.hero] : fromProducts;
+    const slides = banner.slice(0, 3);
     const image = slides[0];
+    const pool = [...new Set([...banner, ...fromProducts, ...(stock && !uploaded.length ? [stock.story, ...stock.extras] : [])])];
     const title = text(copy.title) || store.name;
     const body = text(copy.body) || (layout === "plain-slides" ? "" : text(store.description));
     const cta = text(copy.primaryCta) || "Shop now";
@@ -427,7 +434,6 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
 
     if (layout === "asoebi-collage") {
       // Uploaded banners first, then product photos, so the collage is full with a single upload.
-      const pool = [...new Set([...uploaded, ...fromProducts])];
       const tiles = [0, 1, 2].map((i) => pool[i] ?? null);
       return (
         <section aria-labelledby={headingId} style={{ background: t.heroBg, color: t.heroText }}>
@@ -763,8 +769,6 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     }
 
     // ─── Ọmalịcha, Zuma, Ọkụ, Ìhè, Kasuwa, Nkata, Ụwa, Sarauniya, Zinariya ───────────────────────────
-    // Pictures beyond the first: uploaded banners, then product photos (so one upload still fills a collage).
-    const pool = [...new Set([...uploaded, ...fromProducts])];
     const picture = (src: string | undefined, eager = false) => (src ? <img src={src} alt="" width={900} height={1125} loading={eager ? "eager" : "lazy"} decoding="async" /> : null);
     // A product link that works live (a real page) and in the builder (opens the product preview).
     const productLink = (product: ShopperProduct, className: string, children: React.ReactNode, style?: React.CSSProperties) => {
@@ -1338,7 +1342,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       const own = readHeroSlides(section);
       const sliderSlides: HeroSlide[] = own.length
         ? own
-        : (fromProducts.length ? fromProducts.slice(0, 3) : [""]).map((src) => ({
+        : (slides.length ? slides : [""]).map((src) => ({
             mediaUrl: src,
             mediaType: src ? "image" : "none",
             alt: "",
@@ -1897,7 +1901,9 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
 
   function story(section: TemplateSectionNode) {
     const copy = copyOf(section);
-    const image = itemImages(section)[0] ?? products[1]?.images[0] ?? products[0]?.images[0];
+    // The seller's own picture, else the theme's stock story photo (unless turned off), else a product photo.
+    const stockStory = section.settings?.stockImage === false ? undefined : stockImages?.story;
+    const image = itemImages(section)[0] ?? stockStory ?? products[1]?.images[0] ?? products[0]?.images[0];
     const body = text(copy.body) || text(store.description);
     const headingId = `${uid}-${section.id}`;
     const onAbout = current === "about";

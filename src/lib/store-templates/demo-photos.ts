@@ -2,6 +2,10 @@
 // plus a homepage banner and an "our story" picture per theme, people first. Unsplash's licence allows this use and
 // asks that images be loaded from images.unsplash.com rather than copied, so only the ids live here. Each one was
 // checked by eye against the product it stands for. Pure data, so tests can load this file directly.
+//
+// Live stores use the banner and story photos too, as stock pictures until the seller uploads their own
+// (themeStockImages below). They are filled in when the page is drawn, never saved into the store's draft, so an
+// upload replaces them at once. Products never get stock photos: shoppers only see the seller's own.
 
 export interface DemoThemePhotos {
   hero: string;
@@ -15,6 +19,30 @@ export const UNSPLASH_ORIGIN = "https://images.unsplash.com";
 /** A cropped, compressed Unsplash URL for a photo id ("1505421031134-e57263cae630"). */
 export function unsplashUrl(id: string, width: number, height: number) {
   return `${UNSPLASH_ORIGIN}/photo-${id}?auto=format&fit=crop&w=${width}&h=${height}&q=72`;
+}
+
+/** Themes whose banner frames its picture tall (an arch, an oval, a circle): their banner photo is cropped 4:5. */
+export const TALL_HERO_THEMES = new Set(["ewa", "suku", "agbada", "chinchin", "ounje", "omo", "turare", "zinariya", "asa", "mmiri", "shakara"]);
+
+export interface ThemeStockImages {
+  /** Homepage banner, 16:9 (4:5 for tall banner frames). */
+  hero: string;
+  /** "Our story" picture, 4:5. */
+  story: string;
+  /** More pictures for banners that show several (collages, bento grids, fanned cards), 4:5. */
+  extras: string[];
+}
+
+/** A theme's stock pictures for a store that hasn't uploaded its own yet, or null when the theme has none. */
+export function themeStockImages(themeId: string | null | undefined): ThemeStockImages | null {
+  const photos = themeId ? DEMO_PHOTOS[themeId] : undefined;
+  if (!photos) return null;
+  const tall = TALL_HERO_THEMES.has(themeId!);
+  return {
+    hero: tall ? unsplashUrl(photos.hero, 1200, 1500) : unsplashUrl(photos.hero, 1920, 1080),
+    story: unsplashUrl(photos.story, 1000, 1250),
+    extras: photos.products.slice(0, 3).map((id) => unsplashUrl(id, 900, 1125)),
+  };
 }
 
 export const DEMO_PHOTOS: Record<string, DemoThemePhotos> = {

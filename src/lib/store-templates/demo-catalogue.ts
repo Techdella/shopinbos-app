@@ -6,7 +6,7 @@
 
 import type { ThemeLibraryId } from "./theme-library";
 import { demoProductArt, demoSceneArt, type DemoArtKind } from "./demo-art.ts";
-import { DEMO_PHOTOS, unsplashUrl } from "./demo-photos.ts";
+import { DEMO_PHOTOS, TALL_HERO_THEMES, unsplashUrl } from "./demo-photos.ts";
 
 export interface DemoProductSeed {
   name: string;
@@ -632,9 +632,6 @@ export function demoProducts(themeId: string, colours: DemoThemeColours): DemoSh
     };
   });
 }
-
-/** Themes whose hero frames its picture tall (an arch, an oval, a circle): their sample banner is one object, 4:5. */
-const TALL_HERO_THEMES = new Set(["ewa", "suku", "agbada", "chinchin", "ounje", "omo", "turare", "zinariya", "asa", "mmiri", "shakara"]);
 
 /** Sample banner (16:9, or 4:5 for tall hero frames) and story (4:5) pictures for a theme: photos, or drawn scenes. */
 export function demoBanners(themeId: string, colours: DemoThemeColours) {

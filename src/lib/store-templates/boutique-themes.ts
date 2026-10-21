@@ -2,8 +2,10 @@
 // Aṣọ Ẹbí, Agbada, Ìlẹ̀kẹ̀, Oúnjẹ, Chin Chin, Ọjà, Ọmọ, Ìwé, Owambe, Danfo, Turare, Oko). Ids are the stable English/ASCII
 // ones ("breeze", "pantry"…); display names live in theme-library.ts. They are ordinary template manifests (so
 // /builder/templates, the editor and Rex can pick them), rendered by the boutique storefront renderer
-// (src/components/storefront/boutique). Seeds carry no stock photos and no invented reviews or offers:
-// imagery comes from the seller's products or uploads, proof from real reviews, promises from settings.
+// (src/components/storefront/boutique). Seeds carry no stock photos and no invented reviews or offers: banners and
+// story pictures show the theme's stock photos while the page is drawn, until the seller uploads their own
+// (themeStockImages in demo-photos.ts); products only ever show the seller's photos, proof comes from real reviews,
+// promises from settings.
 
 import type { StoreTemplateManifest, TemplateBlockNode, TemplatePageSeed, TemplateSectionNode, ThemeTokenSet } from "./types";
 import { newStoreBlockSection } from "../../components/storefront/boutique/blocks/block-catalog.ts";
