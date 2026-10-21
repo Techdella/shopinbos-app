@@ -92,13 +92,18 @@ test("Connect your system is a request to the team, on the web and in the app", 
 
 test("only admins issue, rotate and revoke partner keys", () => {
   const actions = read("src/app/actions/partner-api.ts");
-  assert.match(actions, /requireRole\(\["admin"\]/);
-  assert.doesNotMatch(actions, /requireRole\(\["logistics_partner"\]/);
-  for (const name of ["createApiKeyAction", "rotateApiKeyAction", "revokeApiKeyAction"]) assert.match(actions, new RegExp(`export async function ${name}`));
+  // requireAdminSection is requireRole(["admin"]) plus the admin team member's section check.
+  assert.match(read("src/lib/admin-team/service.server.ts"), /export async function requireAdminSection\([^)]*\)[^\n]*\{\n\s*const user = await requireRole\(\["admin"\]/);
+  assert.doesNotMatch(actions, /requireRole\(\["logistics_partner"\]|getLogisticsActor|requirePartner/);
+  const exported = [...actions.matchAll(/export async function (\w+)\([^)]*\)[^\n]*\{\n\s*(.*)/g)];
+  for (const name of ["createApiKeyAction", "rotateApiKeyAction", "revokeApiKeyAction"]) assert.ok(exported.some((m) => m[1] === name), name);
+  for (const [, name, first] of exported) assert.match(first, /^await requireAdminSection\("developers"\);/, name);
 
-  const page = read("src/app/admin/logistics-partners/[id]/page.tsx");
+  // Keys and webhooks are managed from Admin › Developers.
+  const page = read("src/app/admin/developers/page.tsx");
+  assert.match(page, /const user = await requireAdminSection\("developers"\);/);
   assert.match(page, /ApiKeysPanel/);
-  const panel = read("src/app/admin/logistics-partners/[id]/PartnerConnection.tsx");
+  const panel = read("src/app/admin/developers/PartnerConnection.tsx");
   assert.match(panel, /rotateApiKeyAction/);
   assert.match(panel, /shown once/i);
   assert.match(panel, /key\.prefix\}…/);

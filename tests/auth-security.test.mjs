@@ -45,6 +45,9 @@ const PUBLIC_PAGES = [
   /^\/email\/preferences\//, // email preference center: the signed token is the credential
   /^\/email\/preferences\//, // email preference center, the signed token is the credential
   /^\/rider\/\[token\]$/, // rider job link, the token is the credential
+  /^\/delete-account$/, // account deletion request page Google Play requires; opens a rate-limited support ticket
+  /^\/meta-data-deletion$/, // Meta data-deletion status page; the 12-character confirmation code is the credential
+  /^\/team\/join$/, // staff invite link; shows sign-in links, joins only for a signed-in user with the invite token
 ];
 
 test("every portal page needs a session and the right role (proxy table or requireRole)", () => {
@@ -64,6 +67,10 @@ test("every portal page needs a session and the right role (proxy table or requi
     if (!roles) unprotected.push(`${route} (not in PROTECTED_AREAS)`);
   }
   assert.deepEqual(unprotected, []);
+  // The public team invite page only joins a store as the signed-in person whose email the invite names.
+  const join = read("src/app/team/join/page.tsx");
+  assert.match(join, /const user = await getCurrentAppUser\(\);[\s\S]*if \(user && token\) \{[\s\S]*acceptStaffInvite\(/);
+  assert.match(read("src/lib/staff/staff.server.ts"), /if \(member\.email\?\.toLowerCase\(\) !== invite\.email\) throw new StaffError/);
 });
 
 test("route table: most specific prefix wins and public pages stay open", () => {
