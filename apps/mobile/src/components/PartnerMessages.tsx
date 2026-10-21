@@ -87,8 +87,10 @@ export function MessagesTab({ base, webPath }: { base: Base; webPath: string }) 
 /** Quick replies a delivery partner can send before their first message in a thread (m_partner "quick.<n>"). */
 const QUICK = ["quick.0", "quick.1", "quick.2"] as const;
 
-/** One conversation (?name= is shown while the messages load, ?role= is the other side's role). */
-export function ConversationScreen({ webPath }: { webPath: string }) {
+/** One conversation (?name= is shown while the messages load, ?role= is the other side's role). `quickReplies`
+ * (already translated, for the other side's role) are offered before your first message; delivery partners keep
+ * their own set. */
+export function ConversationScreen({ webPath, quickReplies }: { webPath: string; quickReplies?: (role: string) => string[] }) {
   const { id, name, role } = useLocalSearchParams<{ id: string; name?: string; role?: string }>();
   const t = useT("m_partner");
   const tu = useT("m_ui");
@@ -120,17 +122,18 @@ export function ConversationScreen({ webPath }: { webPath: string }) {
     }
   }
 
-  const quick = partner && messages.data && !sentAny ? (
+  const replies = partner ? QUICK.map((key) => t(key)) : (quickReplies?.(otherRole) ?? []);
+  const quick = replies.length && messages.data && !sentAny ? (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: 8 }}>
-      {QUICK.map((key) => (
+      {replies.map((reply) => (
         <Pressable
-          key={key}
+          key={reply}
           accessibilityRole="button"
           disabled={sending}
-          onPress={() => void send(t(key))}
+          onPress={() => void send(reply)}
           style={({ pressed }) => ({ minHeight: 44, paddingHorizontal: 13, borderRadius: 999, borderWidth: 1.5, borderColor: colors.line, backgroundColor: colors.surface, justifyContent: "center", opacity: pressed || sending ? 0.7 : 1 })}
         >
-          <T weight="bold" style={{ fontSize: 15 }}>{t(key)}</T>
+          <T weight="bold" style={{ fontSize: 15 }}>{reply}</T>
         </Pressable>
       ))}
     </ScrollView>
