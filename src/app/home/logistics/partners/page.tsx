@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AppPage, PillLink } from "@/components/app-kit";
+import { AppPage, AssistantNote, PillLink } from "@/components/app-kit";
 import { sellerFrame } from "@/components/seller-core";
 import { requireRole } from "@/lib/server-auth";
 import { getSellerWorkspace } from "@/lib/workspace";
@@ -9,6 +9,7 @@ import { FlashNotice } from "@/components/delivery-market/bits";
 import { MyPartners } from "@/components/delivery-market/MyPartners";
 import { FindPartners } from "@/components/delivery-market/FindPartners";
 import { originLabel, readFindFilters, type FindSearch } from "@/components/delivery-market/find-filters";
+import { DeliveryTip } from "@/components/delivery-market/DeliveryTip";
 import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
@@ -45,6 +46,9 @@ export default async function DeliveryPartnersPage({ searchParams }: { searchPar
       }
     >
       <FlashNotice saved={params.saved} error={params.error} />
+      <DeliveryTip>
+        <div className="mb-5"><AssistantNote who="peggy">{t("partners.tip")}</AssistantNote></div>
+      </DeliveryTip>
       {found.settings.checkoutMode !== "partners" && (
         <p className="mb-5 mt-0 rounded-[16px] bg-app-canvas px-4 py-3 text-[14px] leading-[1.5]">
           {t("partners.zonesNote")}{" "}

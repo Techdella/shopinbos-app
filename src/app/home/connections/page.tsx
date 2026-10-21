@@ -22,6 +22,7 @@ import { SoonCard } from "@/app/channels/ChannelClient";
 import { getT } from "@/lib/i18n/server";
 import type { TFunction } from "@shared/i18n";
 import type { MessageKey } from "@shared/i18n/catalog";
+import { PageTip } from "@/components/learn/PageTip";
 
 // Connections: every account the store connects, on one page, each with what it does in plain words and one
 // button. WhatsApp, Facebook & Instagram (src/app/channels/ConnectAccounts.tsx); Google, one sign-in for free
@@ -74,6 +75,7 @@ const external = (href: string, label: string) => (
 
 export default async function ConnectionsPage({ searchParams }: { searchParams: Search }) {
   const user = await requireRole(["seller"], "/login");
+  const tipT = await getT("tips");
   const t: ConnT = await getT("traffic", "social", "common");
   const params = await searchParams;
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true, brandSettings: true, customDomain: true } });
@@ -107,6 +109,7 @@ export default async function ConnectionsPage({ searchParams }: { searchParams: 
   return (
     <SellerPage user={user} store={storeSummary(store)} title={t("conn.title")} sub={t("conn.sub")}>
       <div className="grid gap-6">
+        <PageTip>{tipT("connections")}</PageTip>
         {done && <p role="status" className="m-0 rounded-[14px] bg-app-mint px-4 py-3 text-[14px] font-semibold">{t("connectedOk", { name: done })}</p>}
         {failed && <p role="status" className="m-0 rounded-[14px] bg-app-danger-tint px-4 py-3 text-[14px] text-app-danger">{t("problem", { name: failed })}</p>}
         {params.finished && <p role="status" className="m-0 rounded-[14px] bg-app-mint px-4 py-3 text-[14px] font-semibold">{t("cx.finished")}</p>}

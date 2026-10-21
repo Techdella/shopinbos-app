@@ -8,6 +8,7 @@ import { getLocale, getT } from "@/lib/i18n/server";
 import { formatDate, type Locale } from "@shared/i18n";
 import { pageWindow } from "@/lib/pagination";
 import { Pagination } from "@/components/seller/Pagination";
+import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -61,6 +62,7 @@ export default async function ActivityFeedPage({ searchParams }: { searchParams?
   const params = await searchParams;
   const filter = (TYPES as readonly string[]).includes(params?.type ?? "") ? params!.type! : "";
   const user = await requireRole(["seller"], "/login");
+  const tipT = await getT("tips");
   const t = await getT("home", "common");
   const locale = await getLocale();
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true } });
@@ -88,6 +90,7 @@ export default async function ActivityFeedPage({ searchParams }: { searchParams?
   return (
     <SellerPage user={user} store={storeSummary(store)} title={t("activity.title")} sub={t("activity.sub")}>
       <div className="grid gap-5">
+        <PageTip>{tipT("activity")}</PageTip>
         <FilterChips
           items={[
             { label: t("activity.all"), href: "/home/activity", active: !filter },

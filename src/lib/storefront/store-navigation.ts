@@ -94,7 +94,7 @@ export function readNavigation(snapshot: StoreEditorSnapshot | null | undefined,
 /** A comparable fingerprint of the menus, to notice the builder saving them while this page was open. */
 export function navigationFingerprint(nav: StoreNavigation): string {
   // Fixed key order, so the same menus always give the same text however their objects were built.
-  const canon = (menu: MenuItem[]): unknown[] => menu.map((item) => [item.id, item.kind, item.ref ?? null, item.url ?? null, item.label, Boolean(item.newTab), canon(item.children ?? [])]);
+  const canon = (menu: MenuItem[]): unknown[] => menu.map((item) => [item.id, item.kind, item.ref ?? null, item.url ?? null, item.label, Boolean(item.newTab), item.image ?? null, canon(item.children ?? [])]);
   return JSON.stringify([canon(nav.main), nav.mobileSource, canon(nav.mobile), nav.mobileStyle, canon(nav.footer)]);
 }
 

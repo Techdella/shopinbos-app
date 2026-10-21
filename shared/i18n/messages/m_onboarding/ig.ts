@@ -128,6 +128,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "checklist.brand.hint": "Aha, agba na template",
   "checklist.bank.label": "Tinye ụlọ akụ payout gị",
   "checklist.bank.hint": "Ego kaadị na-aga ozugbo n'ụlọ akụ gị",
+  "checklist.delivery.label": "Họrọ ụlọ ọrụ delivery",
+  "checklist.delivery.hint": "Ha na-anara gị parcel buru ya gaa nye customers gị",
   "checklist.wa.label": "Jikọọ WhatsApp maka Peggy",
   "checklist.wa.hint": "Peggy na-edere gị azịza",
   "checklist.id.label": "Kwenye ID gị",

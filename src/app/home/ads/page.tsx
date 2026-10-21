@@ -13,6 +13,7 @@ import { Notice } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { isOwnImageUrl } from "@/lib/ai/images";
 import { getT } from "@/lib/i18n/server";
+import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -23,6 +24,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function AdsPage({ searchParams }: { searchParams: Promise<{ image?: string; product?: string; meta?: string; setup?: string; done?: string }> }) {
   const query = await searchParams;
   const user = await requireRole(["seller"], "/login");
+  const tipT = await getT("tips");
   const t = await getT("ads");
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true } });
   // Running Meta campaigns pull fresh numbers when they're more than 15 minutes old.
@@ -68,6 +70,7 @@ export default async function AdsPage({ searchParams }: { searchParams: Promise<
       sub={t("c.homeSub")}
     >
       <div className="grid gap-5">
+        <PageTip>{tipT("ads")}</PageTip>
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-[22px] bg-app-ink p-5 text-white">
           <div>
             <h2 className="m-0 text-[19px] font-extrabold">{t("c.startTitle")}</h2>

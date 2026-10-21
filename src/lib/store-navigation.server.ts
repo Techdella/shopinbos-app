@@ -13,7 +13,7 @@ import {
   type StoreBrandSettingsLike,
   type StoreEditorSnapshot,
 } from "@/lib/store-templates";
-import { MENU_PAGE_LABELS, type MenuItem } from "@/lib/storefront/menu";
+import { MENU_PAGE_LABELS, contentRefName, type MenuItem } from "@/lib/storefront/menu";
 import {
   menuLabels,
   navigationFingerprint,
@@ -52,6 +52,7 @@ function pageName(item: MenuItem, names: { categories: Map<string, string>; prod
   if (item.kind === "page") return MENU_PAGE_LABELS[item.ref ?? ""] ?? "";
   if (item.kind === "category") return names.categories.get(item.ref ?? "") ?? "";
   if (item.kind === "product") return names.products.get(item.ref ?? "") ?? "";
+  if (item.kind === "content") return contentRefName(item.ref ?? "");
   return "";
 }
 

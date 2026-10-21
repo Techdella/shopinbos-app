@@ -5,7 +5,7 @@
 /** Session cookie set by Start here: Home sends new sellers to Start here once per visit until setup is done or dismissed. */
 export const START_SEEN_COOKIE = "sib_start_seen";
 
-export const SETUP_STEP_KEYS = ["store", "look", "products", "payments", "delivery", "payout", "live", "socials", "share", "domain", "audience"] as const;
+export const SETUP_STEP_KEYS = ["store", "look", "products", "payments", "delivery", "partners", "payout", "live", "socials", "share", "domain", "audience"] as const;
 export type SetupStepKey = (typeof SETUP_STEP_KEYS)[number];
 
 /** Facts read from the database. Every step's "done" comes from these, never from a tick box. */
@@ -18,6 +18,8 @@ export interface SetupFacts {
   /** The seller saved their payment choices (Money page, onboarding, Start here or Peggy) with at least one on. */
   paymentMethodsOn: number;
   activeDeliveryZones: number;
+  /** Delivery companies (logistics marketplace partners) the seller has connected and not removed. */
+  deliveryPartners: number;
   payoutBank: boolean;
   live: boolean;
   /** WhatsApp, Facebook Page and Instagram accounts connected (/channels): connect once, used everywhere. */
@@ -205,6 +207,20 @@ export function buildSetupChecklist(facts: SetupFacts, choices: SetupChoices): S
       done: facts.activeDeliveryZones > 0,
       action: { kind: "inline", label: "Pick cities" },
       helper: { who: "peggy", prompt: "Set delivery to ₦2,000 in Lagos and ₦4,000 everywhere else." },
+    },
+    {
+      // Optional: a delivery company (logistics marketplace partner) picks parcels up and delivers them. Done once
+      // the seller has connected one (an active DeliveryConnection), from Start here or /home/logistics/partners.
+      key: "partners",
+      title: "Choose a delivery company",
+      hint:
+        (facts.deliveryPartners ?? 0) > 0
+          ? "Your delivery company is ready to pick up your orders."
+          : "Optional. A delivery company picks up parcels from you and takes them to your customers.",
+      optional: true,
+      done: (facts.deliveryPartners ?? 0) > 0,
+      action: { kind: "inline", label: "Choose a company" },
+      helper: null,
     },
     {
       key: "payout",

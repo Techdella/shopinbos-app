@@ -15,7 +15,7 @@ import { getPublicStorefrontPath } from "@/lib/domains/storefront";
 import { legalLinks, legalPagePath } from "@/lib/legal/pages";
 import { BoutiqueStorefront } from "@/components/storefront/boutique/BoutiqueStorefront";
 import { StoreMenuBar, StoreMenuButton, resolveMenu, type MenuContext, type ShownMenuItem } from "./StoreMenu";
-import { menuPageKeys, menuStyleOf, mobileMenuStyleOf, readMenu } from "@/lib/storefront/menu";
+import { menuPageKeys, menuStyleOf, mobileMenuStyleOf, readMenu, readMenuColors, withMenuColors } from "@/lib/storefront/menu";
 import { readFooterMenu, readMobileMenu } from "@/lib/storefront/store-navigation";
 import { StoreBrandMark } from "@/components/storefront/StoreBrandMark";
 import { GameSection } from "@/components/storefront/gamification/GameSection";
@@ -1016,6 +1016,7 @@ function ClassicTemplateSurface({
     goCategory: (slug) => navigateCategory({ slug }),
     products: store.storeProducts,
     productHref: liveHref ? (id) => getPublicStorefrontPath(storeBasePath ?? "", `/product/${encodeURIComponent(id)}`) : undefined,
+    storeHref: liveHref ? (path) => getPublicStorefrontPath(storeBasePath ?? "", path) : undefined,
     goProduct: (id) => openProductPage(id),
     current: currentPage,
     categoriesUnderShop: categoryNavLayout === "simple",
@@ -1027,7 +1028,7 @@ function ClassicTemplateSurface({
   // The footer links the seller picked; without them the footer lists the main menu's pages (navLinks).
   const savedFooterMenu = readFooterMenu(footer?.blocks.find((entry) => entry.type === "copy")?.content);
   const shownFooterMenu = savedFooterMenu ? resolveMenu(savedFooterMenu, { ...menuCtx, categoriesUnderShop: false }) : null;
-  const menuColors = { ink: theme.ink, muted: theme.muted, accent: theme.accent, accentText: theme.ctaText, panel: theme.paperBg, panelInk: theme.ink, border: theme.border };
+  const menuColors = withMenuColors({ ink: theme.ink, muted: theme.muted, accent: theme.accent, accentText: theme.ctaText, panel: theme.paperBg, panelInk: theme.ink, border: theme.border }, readMenuColors(header?.settings));
   const headerFeatures = {
     search: header?.settings?.search !== false,
     wishlist: header?.settings?.wishlist !== false,

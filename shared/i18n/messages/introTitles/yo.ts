@@ -52,6 +52,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "supplier-home.title": "Dashboard Today rẹ",
   "supplier-delivery.title": "Delivery fún dropship orders",
   "supplier-agreements.title": "Dropship agreements",
+  "supplier-followers.title": "Àwọn tó ń tẹ̀lé ọ",
   "supplier-wholesale.title": "Wholesale orders",
   "supplier-buyers.title": "Buyers",
   "partner-home.title": "Dashboard Today rẹ",
@@ -69,6 +70,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "media.title": "Àwọn àwòrán",
   "seasonal-campaigns.title": "Campaigns ìgbà ọdún",
   "wallet.title": "Shopinbos Wallet",
+  "credits.title": "AI credits",
+  "business-registration.title": "Fi iṣẹ́ rẹ sílẹ̀",
 };
 
 export default yo;

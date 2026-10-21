@@ -14,6 +14,7 @@ import { readStoreLook, toHex6 } from "@/app/home/store/look";
 import { readBrandAssets } from "@shared/brand-assets";
 import { guessProductType, isPackFormat, isPackStyle, isProductType } from "@shared/packaging";
 import { PackagingStudio } from "./PackagingStudio";
+import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -24,6 +25,7 @@ export async function generateMetadata(): Promise<Metadata> {
 // Packaging designer. ?design=<id> opens a saved design; Rex opens it prefilled with ?product=&style=&format=&type=.
 export default async function PackagingPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const user = await requireRole(["seller"], "/login");
+  const tipT = await getT("tips");
   const t = await getT("packaging");
   const query = await searchParams;
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, customDomain: true, logoUrl: true, brandSettings: true, status: true } });
@@ -56,6 +58,7 @@ export default async function PackagingPage({ searchParams }: { searchParams: Pr
       sub={t("sub")}
       actions={<PillLink href="/home/labels" icon="grid">{t("allDesigns")}</PillLink>}
     >
+      <PageTip className="mb-5">{tipT("labels.packaging")}</PageTip>
       <PackagingStudio
         aiReady={aiConfigured()}
         brand={{

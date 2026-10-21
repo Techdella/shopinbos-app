@@ -7,7 +7,8 @@ import { flattenMenu, navigationFingerprint } from "@/lib/storefront/store-navig
 import { navigationDraft, navigationOf, saveStoreNavigation } from "@/lib/store-navigation.server";
 
 // Putting a CMS collection (the Blog, a Recipe book…) in the store's header or footer menu, through the same
-// saver as Home › Navigation. Menu links are used as written, so the link is the collection's full web address.
+// saver as Home › Navigation. The item is a "content" link (the collection's path), which each storefront theme
+// turns into the right address; older full-address links to the collection still count as "in the menu".
 
 export type MenuPlacement = "header" | "footer" | "both";
 
@@ -22,7 +23,9 @@ export function collectionMenuUrl(store: Store, collection: Collection) {
 export function menuHasCollection(menu: MenuItem[], store: Store, collection: Collection) {
   const url = collectionMenuUrl(store, collection);
   const matches = new Set([url, `${url}/`, `/${collection.slug}`, `/${collection.slug}/`]);
-  return flattenMenu(menu).some((item) => (item.kind === "page" ? collection.slug === "blog" && item.ref === "blog" : item.kind === "link" && matches.has(item.url ?? "")));
+  return flattenMenu(menu).some((item) =>
+    item.kind === "content" ? item.ref === collection.slug : item.kind === "page" ? collection.slug === "blog" && item.ref === "blog" : item.kind === "link" && matches.has(item.url ?? ""),
+  );
 }
 
 async function readStore(userId: string) {
@@ -43,7 +46,7 @@ export async function addCollectionToMenu(userId: string, collection: Collection
     const store = await readStore(userId);
     if (!store) return "missing" as const;
     const nav = navigationOf(navigationDraft(store.brandSettings, store.name));
-    const item = { kind: "link" as const, url: collectionMenuUrl(store, collection), label: collection.name };
+    const item = { kind: "content" as const, ref: collection.slug, label: collection.name };
     const next = { ...nav };
     if (placement !== "footer" && !menuHasCollection(nav.main, store, collection)) next.main = addMenuItems(nav.main, [item]);
     if (placement !== "header" && !menuHasCollection(nav.footer, store, collection)) next.footer = addMenuItems(nav.footer, [item]);

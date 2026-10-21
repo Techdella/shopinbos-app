@@ -9,6 +9,7 @@ import { DesignsHub, type HubDesign } from "./DesignsHub";
 import { listDesigns } from "@/lib/packaging/designs.server";
 import { isMissingTable } from "@/lib/rate-limit-core";
 import { getT } from "@/lib/i18n/server";
+import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -18,6 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function LabelsPage({ searchParams }: { searchParams: Promise<{ orders?: string }> }) {
   const user = await requireRole(["seller"], "/login");
+  const tipT = await getT("tips");
   const t = await getT("orders");
   const { orders: requested } = await searchParams;
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true } });
@@ -70,6 +72,7 @@ export default async function LabelsPage({ searchParams }: { searchParams: Promi
   return (
     <SellerPage user={user} store={storeSummary(store)} title={tp("hub.title")} sub={tp("hub.sub")}>
       <div className="grid gap-8">
+        <PageTip>{tipT("labels")}</PageTip>
         {/* Coming from Orders with labels picked: the shipping labels come first. */}
         {preselected.length ? null : <DesignsHub designs={designs} migrationNeeded={migrationNeeded} />}
         <section id="shipping" className="grid gap-3">

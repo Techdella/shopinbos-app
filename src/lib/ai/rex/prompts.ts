@@ -30,7 +30,7 @@ export interface TemplateContext {
   aiHints?: string[];
 }
 
-export const STORE_BUILDER_OUTPUT_CONTRACT = `Return a short conversational reply first, then end with exactly these two machine-readable blocks:
+export const STORE_BUILDER_OUTPUT_CONTRACT = `Return a short conversational reply first (under 120 words: what you built and the one or two things to tell you next; don't list every section, the preview shows them), then end with exactly these two machine-readable blocks:
 
 <store_config>
 {
@@ -51,7 +51,7 @@ export const STORE_BUILDER_OUTPUT_CONTRACT = `Return a short conversational repl
   "fontStyle": "fraunces",
   "navLinks": ["Products", "About", "FAQ", "Contact"],
   "products": [
-    {"name": "Product name", "subtitle": "Short descriptor", "price": "NGN 2500", "color": "#2E7E78"}
+    {"name": "Product name", "subtitle": "Short descriptor", "price": "₦2,500", "color": "#2E7E78"}
   ],
   "changed": ["name", "palette", "hero", "products"]
 }
@@ -114,7 +114,10 @@ export function storeBuilderSystemPrompt(args: {
   docNames?: string[];
 }) {
   const docs = args.docNames?.length ? `\n\nDocuments the seller attached (names only; you cannot read their contents): ${args.docNames.join(", ")}` : "";
-  return `${CHIP_SYSTEM_PROMPT}${brandLines(args.brandContext)}${templateLines(args.templateContext)}${currentStoreLines(args.currentStore)}${docs}\n\n${BUILD_RULES}\n\n${STORE_BUILDER_OUTPUT_CONTRACT}`;
+  // CHIP_SYSTEM_PROMPT carries its own (older) output example; the contract below is the one to follow, so the
+  // model doesn't get two different formats.
+  const base = CHIP_SYSTEM_PROMPT.replace(/Your response MUST end with exactly this format[\s\S]*?<\/chips>\s*/, "");
+  return `${base}${brandLines(args.brandContext)}${templateLines(args.templateContext)}${currentStoreLines(args.currentStore)}${docs}\n\n${BUILD_RULES}\n\n${STORE_BUILDER_OUTPUT_CONTRACT}`;
 }
 
 /** The library themes Rex may move a store onto when building from the seller's inspiration. */

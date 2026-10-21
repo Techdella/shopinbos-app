@@ -11,6 +11,7 @@ import { customerStats, listCustomers } from "@/lib/customers/queries.server";
 import { CUSTOMERS_PAGE_SIZE, CUSTOMER_FILTERS, CUSTOMER_SORTS, customerBadge, customerListHref, parseCustomerListQuery, type CustomerListQuery } from "@/lib/customers/pure";
 import { CustomerDrawer, CustomerRowLink } from "./CustomerDrawer";
 import { Pagination } from "@/components/seller/Pagination";
+import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,7 @@ function lastOrder(date: Date, locale: Locale, onDate: (date: string) => string)
 
 export default async function SellerCustomersPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const user = await requireRole(["seller"], "/login");
+  const tipT = await getT("tips");
   const t = await getT("customers", "orders", "common");
   const locale = await getLocale();
   const num = (value: number) => formatNumber(value, locale);
@@ -54,6 +56,7 @@ export default async function SellerCustomersPage({ searchParams }: { searchPara
       title={t("title")}
       sub={stats?.customers ? t("sub", { count: stats.customers, repeat: stats.returning }) : t("subEmpty")}
     >
+      <PageTip className="mb-5">{tipT("customers")}</PageTip>
       <StatGrid className="mb-5">
         <StatTile tone="card" label={t("stat.customers")} value={num(stats?.customers ?? 0)} hint={t("stat.allTime")} />
         <StatTile tone="card" label={t("stat.repeat")} value={num(stats?.returning ?? 0)} hint={t("stat.repeatHint")} />

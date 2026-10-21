@@ -7,6 +7,7 @@ import { nextPayday } from "@shared/affiliates";
 import { AffiliatesManager } from "./AffiliatesManager";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { formatDate } from "@shared/i18n";
+import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -16,6 +17,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function AffiliatesPage() {
   const user = await requireRole(["seller"], "/login");
+  const tipT = await getT("tips");
   const t = await getT("affiliates");
   const locale = await getLocale();
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, customDomain: true, logoUrl: true } });
@@ -29,6 +31,7 @@ export default async function AffiliatesPage() {
       title={t("title")}
       sub={t("sub")}
     >
+      <PageTip className="mb-5">{tipT("affiliates")}</PageTip>
       <AffiliatesManager
         storeName={store?.name ?? t("myShop")}
         payday={payday}

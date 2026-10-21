@@ -10,6 +10,7 @@ import { Icon } from "@/components/ui/Icon";
 import { IMPORT_STEPS, importProgress, importStatusLabel, importStepIndex, parseSourcing, type ImportRequest } from "@/lib/marketplace/find";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { formatDate, formatMoney, formatNumber, type Locale } from "@shared/i18n";
+import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -40,6 +41,7 @@ function statusText(item: ImportRequest, t: ImportsT) {
 export default async function ImportsPage({ searchParams }: { searchParams?: Promise<{ requested?: string }> }) {
   const params = (await searchParams) ?? {};
   const user = await requireRole(["seller"], "/login");
+  const tipT = await getT("tips");
   const t = await getT("products", "common");
   const locale = await getLocale();
   const naira = (amount: number) => formatMoney(Math.round(amount), locale);
@@ -57,6 +59,7 @@ export default async function ImportsPage({ searchParams }: { searchParams?: Pro
       sub={t("imp.sub")}
     >
       <div className="grid gap-4">
+        <PageTip>{tipT("imports")}</PageTip>
         {params.requested && (
           <p role="status" className="m-0 flex flex-wrap items-center gap-2 rounded-[16px] bg-app-success-tint px-4 py-3 text-[14.5px] font-extrabold text-app-success">
             <Icon name="check" size={17} /> {t("imp.requestSent", { ref: params.requested })}

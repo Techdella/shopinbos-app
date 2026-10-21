@@ -304,7 +304,11 @@ async function designStore(input: BuildStoreInput, currentStore: StoreConfig | n
     ...(messages.length
       ? { messages: input.brief?.trim() ? [...messages, { role: "user" as const, content: `Build brief: ${input.brief.trim()}` }] : messages }
       : { prompt: input.brief!.trim() }),
-    maxTokens: 16000,
+    // A whole store is a long answer and Claude thinks first: give it room and time (the route allows 300s).
+    // Store building runs on Claude; OpenAI only steps in when Claude isn't available.
+    maxTokens: 32000,
+    timeoutMs: 240_000,
+    prefer: "anthropic",
   });
   // A picture the AI can't open (a store's share picture behind a block) fails the whole call: try once without.
   const reply = (await ask(true)) ?? (images.length ? await ask(false) : null);

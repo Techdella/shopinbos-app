@@ -9,9 +9,9 @@ import { useT } from "@/components/i18n/I18nProvider";
 // oneState and sellStates (read by saveDeliverySettingsAction).
 
 const WORDS: Record<SellArea, { label: string; hint: string }> = {
-  one_state: { label: "One state", hint: "Only customers in one state can order." },
-  selected: { label: "Selected states", hint: "Pick the states you deliver to." },
-  nationwide: { label: "Nationwide", hint: "Anywhere your delivery partners reach." },
+  one_state: { label: "Only my state", hint: "Only customers in your state can get delivery." },
+  selected: { label: "Some states", hint: "Tick the states you deliver to." },
+  nationwide: { label: "All of Nigeria", hint: "Anywhere your delivery partners can reach." },
 };
 
 export function SellAreaPicker({ sellArea, sellStates }: { sellArea: string; sellStates: string[] }) {

@@ -99,15 +99,17 @@ export const GLOSSARY: GlossaryEntry[] = [
 
   // ── Money ──
   { key: "payments", term: "Payments", short: "Money customers pay you, by card, bank transfer, USSD or cash on delivery.", example: "₦18,000 by transfer from Chidi, ₦9,500 cash on delivery from Halima.", aliases: ["payment"], introKey: "payouts" },
-  { key: "payouts", term: "Payouts", short: "Money Shopinbos sends from your sales into your bank account.", example: "Monday’s ₦64,000 in sales lands in your GTBank on Tuesday.", aliases: ["payout", "money sent to your bank", "earnings", "withdrawals"], introKey: "payouts" },
+  { key: "payouts", term: "Payouts", short: "Money from your sales, settled straight into your bank account.", example: "Monday’s ₦64,000 in sales lands in your GTBank on Tuesday.", aliases: ["payout", "money sent to your bank", "earnings", "withdrawals"], introKey: "payouts" },
   { key: "wallet", term: "Shopinbos Wallet", short: "Where card payments for you are settled: straight to your own bank, never held by Shopinbos.", example: "A customer pays ₦30,000: your ₦30,000 (less Paystack’s fee) lands in your GTBank the next working day.", aliases: ["wallet", "business wallet"], introKey: "wallet" },
   { key: "settlement", term: "Settlement", short: "The moment your money is cleared and moved to your bank.", example: "Card payments settle the next working day.", aliases: ["settlements", "settled"], introKey: "payouts" },
-  { key: "escrow", term: "Escrow", short: "Money held safely in the middle until the order is delivered, then released.", example: "The buyer pays ₦30,000; it’s released to you once they get the parcel.", aliases: ["held money", "on hold"], introKey: "payouts" },
+  { key: "escrow", term: "Escrow", short: "Money held in the middle until delivery. Shopinbos doesn’t do this: each share goes straight to its owner’s bank.", example: "A customer pays ₦30,000: your share and the supplier’s settle to your own banks, usually the next working day.", aliases: ["held money", "on hold"], introKey: "payouts" },
   { key: "invoices", term: "Invoices", short: "A bill with your logo that tells a customer what they owe and how to pay.", example: "Invoice #014 for 20 cartons, due Friday.", aliases: ["invoice", "invoicing"], introKey: "invoices" },
   { key: "taxes", term: "Taxes", short: "VAT and other taxes added to prices or set aside from sales.", example: "7.5% VAT shown at checkout for buyers who need a receipt.", aliases: ["tax", "vat", "taxes and vat"], introKey: "taxes" },
   { key: "cod", term: "COD", short: "Cash on delivery: the buyer pays the rider when the parcel arrives.", example: "The rider collects ₦12,000 cash at the door in Surulere.", aliases: ["cash on delivery", "pay on delivery", "cash collected", "pay on arrival"], introKey: "partner-cash" },
   { key: "pay-ins", term: "Pay-ins", short: "Cash your riders collected that your company sends back to Shopinbos for the seller.", example: "Riders collected ₦85,000 today; pay it in by tomorrow 6pm.", aliases: ["pay-in", "pay in", "remittance"], introKey: "partner-cash" },
   { key: "fees", term: "Fees", short: "What Shopinbos charges per order or job, shown before you agree.", example: "₦150 per delivery job, taken from the payout.", aliases: ["fee", "billing", "commission fee"] },
+  { key: "credits", term: "AI credits", short: "What AI actions use up in Shopinbos: your plan gives you some each month, and you can buy more.", example: "Rex makes three new pictures of your handbag; a few credits come off your monthly ones.", aliases: ["credits", "ai credit", "auto top-up"], introKey: "credits" },
+  { key: "business-registration", term: "Business registration", short: "Getting your business name registered with CAC, so it's official and you get a BN number.", example: "Register “Ada's Fabrics” with CAC from Shopinbos and download the certificate here.", aliases: ["register your business", "business name registration", "cac registration", "bn number"], introKey: "business-registration" },
 
   // ── Delivery ──
   { key: "fulfilment", term: "Fulfilment", short: "Everything after an order: packing, sending and getting it to the customer.", example: "Pack the shoes, print the label, hand to the rider: order fulfilled.", aliases: ["fulfillment", "fulfil", "fulfill", "fulfilled"], introKey: "supplier-orders" },
@@ -200,6 +202,7 @@ export const NAV_TERMS: Record<GlossaryRole, Record<string, string>> = {
     ...SHARED_NAV,
     orders: "fulfilment", "dropship-orders": "dropship", "wholesale-orders": "wholesale", "quote-requests": "quote-requests",
     products: "white-label", buyers: "buyers", "buyers-all": "buyers", delivery: "logistics", agreements: "dropship-agreement",
+    "products-import": "imports",
   },
   logistics_partner: {
     ...SHARED_NAV,
@@ -214,6 +217,7 @@ export const PLAIN_NAV = new Set([
   "start", "home", "dashboard", "products-all", "products-new",
   "settings", "settings-store", "settings-main", "profile", "company", "notification-prefs", "customise", "team",
   "labels-designs", "labels-packaging", "labels-studio", "labels-request", "labels-orders", "packaging-requests", "print-orders",
+  "social-posts", "social-calendar", "social-new", "social-designs", "social-accounts", "followers",
 ]);
 
 /** The glossary entry for a sidebar item, or null for plain words and unknown ids. */

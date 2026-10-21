@@ -136,7 +136,7 @@ export async function runStudioEdit(
   }
   while (turns.length && turns[0].role === "assistant") turns.shift();
 
-  const reply = await aiText({ system, messages: turns, maxTokens: 12000 });
+  const reply = await aiText({ system, messages: turns, maxTokens: 24000, timeoutMs: 110_000, prefer: "anthropic" });
   if (!reply) return null;
 
   const plan = parseRexStudioPlan(firstJsonObject(reply.text));

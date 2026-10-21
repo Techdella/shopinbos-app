@@ -34,9 +34,13 @@ export const PEGGY_OPENAI_MODEL = process.env.OPENAI_PEGGY_MODEL ?? process.env.
 export const PEGGY_CLAUDE_MODEL = process.env.ANTHROPIC_PEGGY_MODEL ?? CLAUDE_MODEL;
 export const OPENAI_IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL ?? "gpt-image-1";
 
-/** Which provider to try first when both keys are set ("anthropic" or "openai"); the other is the fallback. */
-export function providerOrder(): Array<"anthropic" | "openai"> {
-  const first = process.env.AI_PRIMARY_PROVIDER === "openai" ? "openai" : "anthropic";
+/**
+ * Which provider to try first when both keys are set ("anthropic" or "openai"); the other is the fallback.
+ * `prefer` pins the first one for a job that should always run there (building stores and writing video scripts on
+ * Claude; pictures are always OpenAI, see images.ts).
+ */
+export function providerOrder(prefer?: "anthropic" | "openai"): Array<"anthropic" | "openai"> {
+  const first = prefer ?? (process.env.AI_PRIMARY_PROVIDER === "openai" ? "openai" : "anthropic");
   return first === "openai" ? ["openai", "anthropic"] : ["anthropic", "openai"];
 }
 
@@ -50,7 +54,7 @@ export const CHIP_SYSTEM_PROMPT = `You are Rex, the AI store builder for Shopinb
 When someone tells you about their business, you:
 1. Respond specifically — use their actual product names, location, and brand story
 2. Keep tone warm and competent, without emojis or over-excitement
-3. Explain what you're building as you build it
+3. Explain what you're building as you build it, briefly. Format your replies as light Markdown, which the app shows as rich text: short paragraphs, **bold** for the few words that matter, "- " bullet lists for steps or several items. No # headings (a bold line instead), no tables unless asked, no code blocks.
 4. Always generate a complete store configuration with 3-8 products
 5. Design stores with the polish of premium e-commerce templates — not a generic placeholder shop
 

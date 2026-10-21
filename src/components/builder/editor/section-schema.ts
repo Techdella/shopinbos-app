@@ -116,6 +116,14 @@ const MENU_FIELDS = (fallback: string[], styleFallback: string): FieldGroup[] =>
     { id: "menuStyle", type: "cards", label: "On computers", target: setting("menuStyle"), fallback: styleFallback, thumbs: "menu", options: MENU_STYLES.map((entry) => ({ value: entry.value, label: entry.label, hint: entry.hint })) },
     { id: "mobileMenu", type: "cards", label: "On phones (the ☰ button)", target: setting("mobileMenu"), fallback: "drawer", thumbs: "menu", options: MOBILE_MENU_STYLES.map((entry) => ({ value: entry.value, label: entry.label, hint: entry.hint })) },
   ] },
+  // The menu's own colours, over the theme's (empty: the theme's). Rex can set them too.
+  { title: "Menu colours", fields: [
+    { id: "menuTextColor", type: "color", label: "Menu words", target: setting("menuTextColor"), help: "Leave empty to use your theme's colours." },
+    { id: "menuAccentColor", type: "color", label: "Current page and hover", target: setting("menuAccentColor") },
+    { id: "menuBarColor", type: "color", label: "Band behind the menu", target: setting("menuBarColor") },
+    { id: "menuPanelColor", type: "color", label: "Dropdowns and phone menu", target: setting("menuPanelColor") },
+    { id: "menuPanelTextColor", type: "color", label: "Words in dropdowns", target: setting("menuPanelTextColor") },
+  ] },
   // The phone menu's items: the main menu (default) or its own list (also on Home > Navigation).
   { title: "Phone menu", fields: [
     { id: "mobileMenuSource", type: "segmented", label: "Phone menu items", target: setting("mobileMenuSource"), fallback: "main", options: [{ value: "main", label: "Use the main menu" }, { value: "custom", label: "Own phone menu" }] },

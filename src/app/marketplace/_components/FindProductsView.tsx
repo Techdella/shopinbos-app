@@ -6,14 +6,16 @@ import { IMPORT_HOW_IT_WORKS, type FindProduct, type PeggyInsight, type TrendIde
 import { ProductGrid } from "./ProductGrid";
 import { Mascot } from "@/components/brand/Mascot";
 import { getT } from "@/lib/i18n/server";
+import { Term } from "@/components/learn/Term";
+import { TipsGate } from "./TipsGate";
 
 export type FindTab = "nigeria" | "china" | "trending";
 
-const PROMISES = [
-  { icon: "box", key: "stock" },
-  { icon: "tag", key: "label" },
-  { icon: "shield", key: "paid" },
-] as const satisfies ReadonlyArray<{ icon: IconName; key: string }>;
+// Dropship vs buy in bulk, explained on the page (each word opens its glossary tooltip).
+const WAYS = [
+  { icon: "truck", key: "dropship", term: "dropship" },
+  { icon: "box", key: "bulk", term: "wholesale" },
+] as const satisfies ReadonlyArray<{ icon: IconName; key: string; term: string }>;
 
 type MarketT = Awaited<ReturnType<typeof getT<["marketplace"]>>>;
 
@@ -90,7 +92,7 @@ export async function FindProductsView({ tab, country, q, cat, categories, produ
 
       {tab === "nigeria" && (
         <>
-          <div className="grid gap-3 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]">
+          <TipsGate>
             <div className="flex items-start gap-3 rounded-[18px] bg-app-peach px-4 py-3.5">
               <Mascot who="peggy" size={36} />
               <p className="m-0 min-w-0 text-[14px] leading-[1.5]">
@@ -102,18 +104,23 @@ export async function FindProductsView({ tab, country, q, cat, categories, produ
                 {tip.body}
               </p>
             </div>
-            <ul className="m-0 grid list-none grid-cols-3 gap-2 rounded-[18px] border border-app-line bg-white p-3 sm:gap-3 sm:px-4">
-              {PROMISES.map((promise) => (
-                <li key={promise.key} className="flex min-w-0 flex-col items-start gap-1.5 sm:flex-row sm:items-center sm:gap-2.5">
-                  <Icon name={promise.icon} size={17} className="shrink-0 text-app-ink" />
-                  <span className="min-w-0">
-                    <span className="block text-[12.5px] font-extrabold leading-tight sm:text-[13px]">{t(`find.promise.${promise.key}`)}</span>
-                    <span className="block text-[12px] leading-tight text-app-ink-soft">{t(`find.promise.${promise.key}Sub`)}</span>
+          </TipsGate>
+
+          {/* The two ways to sell a supplier's product, in plain words (glossary: dropship, wholesale). */}
+          <section aria-labelledby="ways-to-sell" className="rounded-[18px] border border-app-line bg-white p-4">
+            <h2 id="ways-to-sell" className="m-0 text-[14.5px] font-extrabold">{t("find.ways.title")}</h2>
+            <ul className="m-0 mt-2.5 grid list-none gap-3 p-0 sm:grid-cols-2">
+              {WAYS.map((way) => (
+                <li key={way.key} className="flex min-w-0 items-start gap-2.5">
+                  <Icon name={way.icon} size={18} className="mt-0.5 shrink-0 text-app-ink" />
+                  <span className="min-w-0 text-[13.5px] leading-[1.5]">
+                    <strong className="font-extrabold"><Term k={way.term}>{t(`find.ways.${way.key}`)}</Term>:</strong>{" "}
+                    <span className="text-app-ink-soft">{t(`find.ways.${way.key}Body`)}</span>
                   </span>
                 </li>
               ))}
             </ul>
-          </div>
+          </section>
 
           {nearby ? (
             <div className={cx("flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[16px] px-4 py-3", nearby.hasPlace ? "border border-app-line bg-white" : "bg-[#FDF0D5]")}>
@@ -157,7 +164,7 @@ export async function FindProductsView({ tab, country, q, cat, categories, produ
           {/* Importing goes through trusted middlemen; it isn't open to sellers yet. */}
           <section className="rounded-[22px] border border-app-line bg-white p-5 sm:p-6">
             <span className="inline-flex rounded-full bg-app-peach px-3 py-1 text-[12px] font-extrabold uppercase tracking-[0.08em]">{t("find.comingSoon")}</span>
-            <h2 className="m-0 mt-3 text-[20px] font-extrabold tracking-[-0.01em]">{t("find.china.title")}</h2>
+            <h2 className="m-0 mt-3 text-[20px] font-extrabold tracking-[-0.01em]"><Term k="sourcing-imports">{t("find.china.title")}</Term></h2>
             <p className="m-0 mt-2 max-w-[560px] text-[14.5px] leading-[1.55] text-app-ink-soft">
               {t("find.china.body", { country })}
             </p>

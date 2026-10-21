@@ -50,7 +50,7 @@ const en = {
   "search.logo.label": "Logo Studio",
   "search.logo.desc": "AI logo generation",
   "search.images.label": "Image Generator",
-  "search.images.desc": "DALL-E image creation",
+  "search.images.desc": "Pictures by Rex, made with OpenAI",
 
   // Loading screen (AppLoading)
   "loading.checkingOrders": "Checking new orders",

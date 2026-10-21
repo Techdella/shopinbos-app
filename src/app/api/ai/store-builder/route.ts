@@ -18,7 +18,8 @@ import { validateStoreConfig } from "@/lib/ai/rex/store-config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 120;
+// A full store design on Claude (thinking, the reply, then the whole config) can take a few minutes.
+export const maxDuration = 300;
 
 // Rex's streaming store builder. NDJSON events:
 //   {type:"status", stage, message}  progress (thinking / writing / design / switching provider)
@@ -121,7 +122,8 @@ async function streamAnthropic(system: string, turns: ApiChatMessage[], onDelta:
   if (!client) throw new ProviderError("Claude isn't configured", "NOT_CONFIGURED");
   const stream = client.messages.stream({
     model: CHIP_MODEL,
-    max_tokens: 16000,
+    // Claude's thinking counts against this too: 16k ran out partway through the store design. Streaming allows more.
+    max_tokens: 64000,
     system,
     output_config: { effort: "medium" },
     messages: toAnthropicMessages(turns),
@@ -141,7 +143,7 @@ async function streamOpenAI(system: string, turns: ApiChatMessage[], onDelta: (t
     model: REX_OPENAI_MODEL,
     instructions: system,
     input: toOpenAIInput(turns),
-    max_output_tokens: 8000,
+    max_output_tokens: 16000,
     stream: true,
   });
   for await (const event of stream) {
@@ -154,7 +156,8 @@ async function streamOpenAI(system: string, turns: ApiChatMessage[], onDelta: (t
 }
 
 function available(): Provider[] {
-  return providerOrder().filter((provider) => (provider === "anthropic" ? getAnthropicClient() : getOpenAIClient()));
+  // Store building runs on Claude; OpenAI only steps in when Claude isn't configured or fails before replying.
+  return providerOrder("anthropic").filter((provider) => (provider === "anthropic" ? getAnthropicClient() : getOpenAIClient()));
 }
 
 export const POST = withSeller(async (req: NextRequest, { user }) => {

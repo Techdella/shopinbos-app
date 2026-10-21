@@ -49,7 +49,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "search.logo.label": "Logo Studio",
   "search.logo.desc": "Mee logo site na AI",
   "search.images.label": "Image Generator",
-  "search.images.desc": "Mee foto site na DALL-E",
+  "search.images.desc": "Foto Rex, ejiri OpenAI mee",
 
   "loading.checkingOrders": "Anyị na-elele orders ọhụrụ",
   "loading.briefReady": "Anyị na-akwado brief gị",

@@ -49,7 +49,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "search.logo.label": "Logo Studio",
   "search.logo.desc": "Make logo with AI",
   "search.images.label": "Image Generator",
-  "search.images.desc": "Make pictures with DALL-E",
+  "search.images.desc": "Rex dey make pictures with OpenAI",
 
   "loading.checkingOrders": "Dey check new orders",
   "loading.briefReady": "Dey prepare your brief",

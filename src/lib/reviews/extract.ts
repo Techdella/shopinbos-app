@@ -9,7 +9,7 @@ import { normalizeExtracted, type ExtractedReview } from "./pure";
 // with whichever vision model is configured. The seller checks and edits the result before it is saved.
 
 const PROMPT = `This is a screenshot of a customer's message or review about a small shop.
-Read it and return JSON only: {"authorName": string (the customer's name or handle as shown, "" if not visible), "rating": integer 1-5 or null (only if stars or a score are visible), "text": string (the customer's words exactly as written, without the shop's replies, timestamps or UI labels), "date": string ISO date or "" if not visible, "source": one of "whatsapp","instagram","facebook","tiktok","x","google","jumia","konga","other"}.
+Read it and return JSON only: {"authorName": string (the customer's name or handle as shown, "" if not visible), "rating": integer 1-5 or null (only if stars or a score are visible), "text": string (the customer's words exactly as written, without the shop's replies, timestamps or UI labels), "date": string ISO date or "" if not visible, "source": one of "whatsapp","instagram","facebook","tiktok","x","google","marketplace","other"}.
 Never invent words, names or ratings that are not in the image. If there are several customer messages, join only that customer's messages with a newline.`;
 
 export type ImageMediaType = "image/jpeg" | "image/png" | "image/webp";

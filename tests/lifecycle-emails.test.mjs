@@ -8,7 +8,7 @@ const setup = await import("../src/lib/setup/checklist.ts");
 const DAY = 24 * 60 * 60 * 1000;
 const created = new Date("2026-10-01T09:00:00Z");
 const at = (days, hours = 0) => created.getTime() + days * DAY + hours * 3600_000;
-const facts = { lookChosen: true, products: 2, productsWithPhotos: 0, paymentMethodsOn: 1, activeDeliveryZones: 0, payoutBank: false, live: false, socialsConnected: 0, shared: false, customDomain: false, subscribers: 0, campaignsSent: 0 };
+const facts = { lookChosen: true, products: 2, productsWithPhotos: 0, paymentMethodsOn: 1, activeDeliveryZones: 0, deliveryPartners: 0, payoutBank: false, live: false, socialsConnected: 0, shared: false, customDomain: false, subscribers: 0, campaignsSent: 0 };
 const choices = { skipped: [], dismissed: false, sharedAt: null };
 
 test("nudges go out on days 1, 3, 7 and 14, one at a time, a day apart at least", () => {
