@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
 export default function SocialChannelRedirect() {
-  redirect("/channels#tiktok");
+  redirect("/home/marketing/social/new?to=tiktok");
 }

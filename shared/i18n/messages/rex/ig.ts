@@ -19,6 +19,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "logo.sub": "Gwa Rex gbasara brand gị ma họrọ n'ime echiche logo atọ.",
   "images.title": "Foto",
   "images.sub": "Rịọ Rex maka foto ngwaahịa, banners na foto brand.",
+  "images.backSocial": "Laghachi na post gị",
   "logo.failed": "Anyị enweghị ike ịme logos ahụ",
   "logo.saveFailed": "Anyị enweghị ike ichekwa logo ahụ n'ụlọ ahịa gị. Nwaa ọzọ.",
   "logo.brand": "Brand gị",

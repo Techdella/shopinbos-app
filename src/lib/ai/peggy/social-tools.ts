@@ -110,7 +110,7 @@ async function socialWritePost(ctx: PeggyToolContext, input: PeggyToolInput<"soc
   const post = postText(input.channel, caption, link);
   const summary = `Wrote a ${spec.label} post for ${product.name}. Nothing was posted.`;
   await db.activityEvent
-    .create({ data: { storeId: ctx.store.id, userId: ctx.userId, type: "marketing", title: `Peggy wrote a ${spec.label} post`, description: post.slice(0, 500), metadata: { source: "peggy", tool: "social_write_post", link: "/channels" } as Prisma.InputJsonValue } })
+    .create({ data: { storeId: ctx.store.id, userId: ctx.userId, type: "marketing", title: `Peggy wrote a ${spec.label} post`, description: post.slice(0, 500), metadata: { source: "peggy", tool: "social_write_post", link: "/home/marketing/social/new" } as Prisma.InputJsonValue } })
     .catch((error) => console.error("[peggy] activity log failed", error));
   return {
     content: [
@@ -120,7 +120,7 @@ async function socialWritePost(ctx: PeggyToolContext, input: PeggyToolInput<"soc
       // Feed links carry the store's private key, so they stay on /channels rather than in the chat transcript.
       "Catalog feeds for listing every product on Google, Facebook/Instagram, TikTok and WhatsApp: copy the private links and setup steps on /channels.",
     ].join("\n"),
-    action: { summary, href: "/channels" },
+    action: { summary, href: "/home/marketing/social/new" },
   };
 }
 

@@ -19,6 +19,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "logo.sub": "Sọ fún Rex nípa brand rẹ kí o sì yan láàárín èrò logo mẹ́ta.",
   "images.title": "Àwọn àwòrán",
   "images.sub": "Bèrè lọ́wọ́ Rex fún fọ́tò ọjà, banner àti àwòrán brand.",
+  "images.backSocial": "Padà sí post rẹ",
   "logo.failed": "A kò lè ṣe àwọn logo náà",
   "logo.saveFailed": "A kò lè fi logo yẹn pamọ́ sí ṣọ́ọ̀bù rẹ. Tún gbìyànjú.",
   "logo.brand": "Brand rẹ",
