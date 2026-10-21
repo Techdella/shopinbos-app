@@ -40,6 +40,18 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "card.health": "Store health {score}/100",
   "card.fix": "Fix am",
   "card.openPreview": "Open the preview",
+  "askRex": "Ask Rex",
+  "line": "I dey build and change your shop",
+  "hello2": "How far, na me be Rex. I dey build and change your shop. Wetin you need?",
+  "suggest.1": "Make my shop look more classy",
+  "suggest.2": "Add ₦2,000 delivery fee for Lagos",
+  "suggest.3": "Make 20% off banner for weekend",
+  "more": "Other things Rex fit do",
+  "credits.count": "{count} credits",
+  "credits.topUp": "Top up",
+  "credits.topUpLabel": "Top up credits: we go email you how",
+  "credits.emailed": "We don email you how to top up for the website.",
+  "credits.emailFailed": "We no fit send the email now. Try again small time.",
 };
 
 export default pcm;

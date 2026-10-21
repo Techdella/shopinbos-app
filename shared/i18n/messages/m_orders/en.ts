@@ -149,6 +149,21 @@ const en = {
   "tl.paid": "Paid",
   "tl.sent": "Sent",
   "tl.delivered": "Delivered",
+  "track.title": "Track",
+  "track.from": "From",
+  "track.to": "To",
+  "track.fromTo": "From {from} to {to}",
+  "track.yourShop": "Your shop",
+  "track.pickup": "Picked up from you",
+  "track.eta": "{days} (partner’s estimate)",
+  "track.call": "Call {name}",
+  "track.share": "Share tracking with {name}",
+  "track.shareMessage": "Hi {name}, your order is on its way. Follow it here: {url}",
+  "track.problem": "Report a problem",
+  "track.messagePartner": "Message {name}",
+  "track.messagePartnerSub": "Late, damaged or lost: tell your delivery partner",
+  "track.getHelp": "Get help from Shopinbos",
+  "track.getHelpSub": "A person or Peggy helps you sort it out",
 } satisfies Record<string, string>;
 
 export default en;

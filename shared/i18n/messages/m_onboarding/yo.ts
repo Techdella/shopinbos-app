@@ -151,6 +151,9 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "method.korapay.label": "Sanwó láti báńkì",
   "method.korapay.hint": "Ibi ìsanwó kejì tó ní ààbò: káàdì, ìfiránṣẹ́ owó tàbí app báńkì",
   "frame.step": "{current} nínú {total}",
+  "live.statusFirst": "Kọ́kọ́ pín in sórí WhatsApp Status rẹ. Ibẹ̀ ni àwọn oníbàárà rẹ wà.",
+  "live.shareWhatsApp": "Pín sórí WhatsApp",
+  "live.opening": "À ń ṣí ṣọ́ọ̀bù rẹ…",
 };
 
 export default yo;

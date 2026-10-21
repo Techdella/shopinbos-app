@@ -172,6 +172,15 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "w.payMeHere": "Ee, biya ni a nan",
   "w.noSuchAccount": "Wannan lambar asusun ba ta wanzu a wannan banki.",
   "method.korapay": "Kati ko banki (online)",
+  "w.money": "Kuɗi",
+  "w.coming": "Yana zuwa bankinka",
+  "w.comingDay": "Kuɗi na gaba zuwa bankinka: {day}",
+  "w.comingSoon": "Yana kan hanya zuwa bankinka",
+  "w.comingNone": "Babu komai a hanya yanzu. Biyan kati yana zuwa kai tsaye bankinka.",
+  "w.thisWeek": "Wannan makon",
+  "w.weekLine": "{amount} · ciniki {count}",
+  "w.last30Line": "Kwanaki 30 da suka wuce: {amount}",
+  "w.recent": "Na baya-bayan nan",
 };
 
 export default ha;

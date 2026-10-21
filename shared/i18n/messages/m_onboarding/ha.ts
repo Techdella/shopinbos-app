@@ -151,6 +151,9 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "method.korapay.label": "Biya ta banki",
   "method.korapay.hint": "Wurin biya na biyu mai tsaro: kati, tura kuɗi ko app na banki",
   "frame.step": "{current} cikin {total}",
+  "live.statusFirst": "Fara raba shi a WhatsApp Status ɗinka. A can ne kwastomominka suke.",
+  "live.shareWhatsApp": "Raba a WhatsApp",
+  "live.opening": "Ana buɗe shagonka…",
 };
 
 export default ha;

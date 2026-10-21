@@ -40,6 +40,18 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "card.health": "Ahụike store {score}/100",
   "card.fix": "Dozie ya",
   "card.openPreview": "Mepee nlele",
+  "askRex": "Jụọ Rex",
+  "line": "M na-ewu ụlọ ahịa gị ma na-agbanwe ya",
+  "hello2": "Ndewo, abụ m Rex. M na-ewu ụlọ ahịa gị ma na-agbanwe ya. Gịnị ka ị chọrọ?",
+  "suggest.1": "Mee ka ụlọ ahịa m dị ka nke dị oke ọnụ",
+  "suggest.2": "Tinye ụgwọ mbuga ₦2,000 maka Lagos",
+  "suggest.3": "Mee banner mbelata 20% maka njedebe izu",
+  "more": "Ihe ndị ọzọ Rex nwere ike ime",
+  "credits.count": "Kredit {count}",
+  "credits.topUp": "Tinye ọzọ",
+  "credits.topUpLabel": "Tinye kredit: anyị ga-ezitere gị email otu esi eme ya",
+  "credits.emailed": "Anyị ezitere gị email otu ị ga-esi tinye ọzọ na weebụsaịtị.",
+  "credits.emailFailed": "Anyị enweghị ike izipu email ugbu a. Nwaa ọzọ n'oge na-adịghị anya.",
 };
 
 export default ig;

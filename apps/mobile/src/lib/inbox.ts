@@ -59,6 +59,9 @@ export interface InboxThread {
 
 export const fetchInbox = () => api<InboxListItem[]>("/api/app/inbox/conversations");
 
+/** Peggy drafts a reply for this conversation (POST …/suggest → { text }). Nothing is sent until the seller sends it. */
+export const suggestReply = (id: string) => api<{ text: string }>(`/api/app/inbox/conversations/${encodeURIComponent(id)}/suggest`, { method: "POST", json: {} });
+
 export const fetchThread = (id: string) => api<InboxThread>(`/api/app/inbox/conversations/${encodeURIComponent(id)}`);
 
 /** Reply on the conversation's own channel, or add a private note. */

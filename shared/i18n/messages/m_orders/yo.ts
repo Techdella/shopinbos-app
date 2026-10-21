@@ -148,6 +148,21 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "tl.paid": "A ti san",
   "tl.sent": "A ti fi ránṣẹ́",
   "tl.delivered": "Ó ti dé",
+  "track.title": "Tọpinpin",
+  "track.from": "Láti",
+  "track.to": "Sí",
+  "track.fromTo": "Láti {from} sí {to}",
+  "track.yourShop": "Ṣọ́ọ̀bù rẹ",
+  "track.pickup": "Wọ́n máa gbà á lọ́dọ̀ rẹ",
+  "track.eta": "{days} (ìṣirò alábàáṣiṣẹ́)",
+  "track.call": "Pe {name}",
+  "track.share": "Pín ìtọpinpin pẹ̀lú {name}",
+  "track.shareMessage": "Báwo {name}, ọjà rẹ ti ń bọ̀. Tọpinpin rẹ̀ níbí: {url}",
+  "track.problem": "Jábọ̀ ìṣòro kan",
+  "track.messagePartner": "Fi ọ̀rọ̀ ránṣẹ́ sí {name}",
+  "track.messagePartnerSub": "Ó pẹ́, ó bàjẹ́ tàbí ó sọnù: sọ fún alábàáṣiṣẹ́ ìfiránṣẹ́ rẹ",
+  "track.getHelp": "Gba ìrànlọ́wọ́ láti Shopinbos",
+  "track.getHelpSub": "Ènìyàn kan tàbí Peggy máa ràn ọ́ lọ́wọ́ láti yanjú rẹ̀",
 };
 
 export default yo;

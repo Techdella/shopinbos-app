@@ -139,6 +139,13 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "list.newCount": "{count} tuntun",
   "list.allAnswered": "A ti dáhùn gbogbo rẹ̀",
   "list.allHere": "WhatsApp, Instagram, Facebook àti ṣọ́ọ̀bù rẹ, gbogbo rẹ̀ wà níbí.",
+  "filter.all": "Gbogbo",
+  "filter.whatsapp": "WhatsApp",
+  "filter.instagram": "Instagram",
+  "filter.facebook": "Facebook",
+  "thread.peggyWrote": "Peggy ti kọ èsì kan",
+  "thread.peggySend": "Fi ránṣẹ́",
+  "thread.peggyEdit": "Ṣàtúnṣe",
 };
 
 export default yo;

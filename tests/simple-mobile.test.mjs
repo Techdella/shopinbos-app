@@ -41,6 +41,9 @@ test("the + sheet: Add a product, Record a sale, Send a pay link", () => {
   for (const [key, title] of [["addProduct", "Add a product"], ["recordSale", "Record a sale"], ["payLink", "Send a pay link"]]) assert.ok(words.includes(`"create.${key}": "${title}"`), title);
   for (const index of [0, 1, 2]) assert.match(sheet, new RegExp(`title=\\{t\\(CREATE_ACTIONS\\[${index}\\]\\)\\}`));
   for (const path of ["/add-products", "/record-sale", "/payment-links/new"]) assert.match(sheet, new RegExp(`go\\("${path}"\\)`));
+  // "Familiar app": Make a post or reel with Rex comes first.
+  assert.ok(sheet.indexOf('go("/create")') < sheet.indexOf('go("/add-products")'), "Make a post first");
+  assert.ok(words.includes('"create.post": "Make a post or reel"'));
 });
 
 test("My shop groups everything else by goal: Sell; Money and delivery; Look; You", () => {
@@ -66,8 +69,11 @@ test("Home shows at most three 'Do these next' items", () => {
   assert.deepEqual(home.doNextItems(null, null), []);
   const screen = read("app/(tabs)/home.tsx");
   assert.match(screen, /doNextItems\(/);
-  // Day-one Home: no week chart, quick-action grid, checklist or best-seller carousel.
+  // Home: no week chart, big quick-action grid or best-seller carousel; "Needs you" shows three at most. The
+  // "Familiar app" four round shortcuts and the four-step "Get your shop ready" list replace the old ones.
   assert.doesNotMatch(screen, /const ACTIONS|Selling fast|This week ·|Finish setting up|imports on the way/i);
+  assert.match(screen, /todos\.slice\(0, NEEDS_MAX\)/);
+  assert.match(screen, /const NEEDS_MAX = 3;/);
   assert.ok(home.peggyLine({ chatsToday: 2, ordersToday: 1 }).startsWith("Peggy"));
 });
 

@@ -1,28 +1,34 @@
 import { useMemo, useState } from "react";
-import { Pressable, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 import { router } from "expo-router";
 import { Image } from "expo-image";
 import { AppIcon } from "@/components/icons";
-import { List, Pill, Row, Sub, Tile, Title } from "@/components/design";
+import { List, Pill, Row, Seg, Sub, Tile, Title } from "@/components/design";
 import { HelpButton } from "@/components/Help";
-import { ChipRow, EmptyState, ErrorState, Initials, LoadingBlock } from "@/components/kit";
+import { EmptyState, ErrorState, Initials, LoadingBlock } from "@/components/kit";
 import { TabScreen } from "@/components/TabScreen";
-import { Chip, Field, Mascot, PillButton, Segmented, T } from "@/components/ui";
+import { Field, Mascot, PillButton, T } from "@/components/ui";
 import { fetchInbox, type InboxListItem } from "@/lib/inbox";
-import { channelLabel, channelsInUse, filterInbox, repliesByEmail, shortTime, type InboxView } from "@/lib/inbox-pure";
+import { channelLabel, filterInbox, repliesByEmail, shortTime, type InboxView } from "@/lib/inbox-pure";
 import { useLoad } from "@/lib/useLoad";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 
-// Chats ("Seller app" prototype `on.chats`, restyled): the all-in-one inbox (web /home/messages): every customer conversation (WhatsApp, Instagram, email, live
-// chat, contact form…) and the seller's supplier and delivery-partner chats, in one list.
+// Chats ("Familiar app" prototype `on.chats`): the all-in-one inbox (web /home/messages): every customer
+// conversation (WhatsApp, Instagram, Facebook, email, live chat, contact form…) and the seller's supplier and
+// delivery-partner chats, in one list. Filters All / Unread / WhatsApp / Instagram / Facebook (then Later and Done,
+// so nothing is lost), each row with its channel.
 
-// Labels are m_chats keys.
-const VIEWS: Array<{ value: InboxView; label: "view.open" | "view.unread" | "view.snoozed" | "view.closed" }> = [
-  { value: "open", label: "view.open" },
-  { value: "unread", label: "view.unread" },
-  { value: "snoozed", label: "view.snoozed" },
-  { value: "closed", label: "view.closed" },
+// Labels are m_chats keys. "All" is every open conversation; Facebook is the Messenger channel.
+type Filter = "all" | "unread" | "whatsapp" | "instagram" | "facebook" | "later" | "done";
+const FILTERS: Array<{ key: Filter; label: "filter.all" | "view.unread" | "filter.whatsapp" | "filter.instagram" | "filter.facebook" | "view.snoozed" | "view.closed"; view: InboxView; channel: string }> = [
+  { key: "all", label: "filter.all", view: "open", channel: "" },
+  { key: "unread", label: "view.unread", view: "unread", channel: "" },
+  { key: "whatsapp", label: "filter.whatsapp", view: "open", channel: "whatsapp" },
+  { key: "instagram", label: "filter.instagram", view: "open", channel: "instagram" },
+  { key: "facebook", label: "filter.facebook", view: "open", channel: "messenger" },
+  { key: "later", label: "view.snoozed", view: "snoozed", channel: "" },
+  { key: "done", label: "view.closed", view: "closed", channel: "" },
 ];
 
 function open(item: InboxListItem) {
@@ -36,12 +42,11 @@ function open(item: InboxListItem) {
 export default function Chats() {
   const t = useT("m_chats", "m_ui", "nav");
   const inbox = useLoad(fetchInbox);
-  const [view, setView] = useState<InboxView>("open");
-  const [channel, setChannel] = useState("");
+  const [filter, setFilter] = useState<Filter>("all");
   const [q, setQ] = useState("");
   const items = inbox.data;
-  const channels = useMemo(() => channelsInUse(items ?? []), [items]);
-  const shown = useMemo(() => filterInbox(items ?? [], { view, channel, q }), [items, view, channel, q]);
+  const picked = FILTERS.find((entry) => entry.key === filter) ?? FILTERS[0];
+  const shown = useMemo(() => filterInbox(items ?? [], { view: picked.view, channel: picked.channel, q }), [items, picked, q]);
   const unread = (items ?? []).filter((item) => item.unread > 0 && item.status !== "closed").length;
 
   return (
@@ -68,18 +73,13 @@ export default function Chats() {
         <AppIcon name="chevron" size={18} color={colors.inkSoft} />
       </Pressable>
 
-      <Segmented options={VIEWS.map((option) => ({ ...option, label: option.value === "unread" && unread ? t("view.unreadCount", { count: unread }) : t(option.label) }))} value={view} onChange={setView} />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20 }} contentContainerStyle={{ gap: 8, paddingHorizontal: 20 }}>
+        {FILTERS.map((entry) => (
+          <Seg key={entry.key} label={t(entry.label)} count={entry.key === "unread" && unread ? unread : undefined} on={filter === entry.key} onPress={() => setFilter(entry.key)} />
+        ))}
+      </ScrollView>
 
       <Field value={q} onChangeText={setQ} placeholder={t("list.search")} returnKeyType="search" accessibilityLabel={t("list.searchLabel")} style={{ height: 52, borderRadius: 16, borderWidth: 1.5 }} />
-
-      {channels.length > 1 ? (
-        <View>
-          <ChipRow>
-            <Chip label={t("partners.all")} on={channel === ""} onPress={() => setChannel("")} />
-            {channels.map((key) => <Chip key={key} label={channelLabel(key, t)} on={channel === key} onPress={() => setChannel(channel === key ? "" : key)} />)}
-          </ChipRow>
-        </View>
-      ) : null}
 
       <View style={{ gap: 8 }}>
         {inbox.loading && !items ? <LoadingBlock label={t("list.loading")} /> : null}

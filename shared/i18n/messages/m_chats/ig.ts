@@ -139,6 +139,13 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "list.newCount": "{count} ọhụrụ",
   "list.allAnswered": "Azaala ha niile",
   "list.allHere": "WhatsApp, Instagram, Facebook na ụlọ ahịa gị, ha niile nọ ebe a.",
+  "filter.all": "Niile",
+  "filter.whatsapp": "WhatsApp",
+  "filter.instagram": "Instagram",
+  "filter.facebook": "Facebook",
+  "thread.peggyWrote": "Peggy dere nzaghachi",
+  "thread.peggySend": "Zipu",
+  "thread.peggyEdit": "Dezie",
 };
 
 export default ig;
