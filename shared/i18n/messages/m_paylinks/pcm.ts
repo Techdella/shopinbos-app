@@ -152,6 +152,13 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "create.deliveryFeeHint": "Leave am empty or put 0 for free delivery.",
   "problem.deliveryAddress": "Add the customer street, area and state, or off the delivery.",
   "problem.deliveryFee": "Type the delivery fee as number, like 2500.",
+  "block.shop": "Shop now button",
+  "block.shopSub": "E dey open your shop",
+  "block.arrivals": "New things wey land",
+  "block.arrivalsSub": "Your 4 newest products",
+  "block.track": "Track my order",
+  "block.trackSub": "Customers fit find their order",
+  "block.other": "Block",
 };
 
 export default pcm;

@@ -152,6 +152,13 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "create.deliveryFeeHint": "Fi sílẹ̀ ní òfo tàbí 0 fún ìfijíṣẹ́ ọ̀fẹ́.",
   "problem.deliveryAddress": "Fi òpópónà, agbègbè àti ìpínlẹ̀ oníbàárà kún, tàbí pa ìfijíṣẹ́.",
   "problem.deliveryFee": "Tẹ owó ìfijíṣẹ́ ní nọ́mbà, bíi 2500.",
+  "block.shop": "Bọ́tìnì Ra nísinsìnyí",
+  "block.shopSub": "Ó ń ṣí ṣọ́ọ̀bù rẹ",
+  "block.arrivals": "Àwọn ọjà tuntun",
+  "block.arrivalsSub": "Ọjà tuntun rẹ mẹ́rin",
+  "block.track": "Tọpinpin ọjà mi",
+  "block.trackSub": "Àwọn oníbàárà máa rí ọjà wọn",
+  "block.other": "Apá kan",
 };
 
 export default yo;

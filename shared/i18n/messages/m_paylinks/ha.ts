@@ -152,6 +152,13 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "create.deliveryFeeHint": "Bar shi babu komai ko 0 don isarwa kyauta.",
   "problem.deliveryAddress": "Ƙara titin abokin ciniki, unguwa da jiha, ko kashe isarwa.",
   "problem.deliveryFee": "Rubuta kuɗin isarwa a matsayin lamba, kamar 2500.",
+  "block.shop": "Maɓallin Saya yanzu",
+  "block.shopSub": "Yana buɗe shagonka",
+  "block.arrivals": "Sabbin kaya",
+  "block.arrivalsSub": "Sabbin kayanka 4",
+  "block.track": "Bibiyar odata",
+  "block.trackSub": "Abokan ciniki za su sami odarsu",
+  "block.other": "Sashe",
 };
 
 export default ha;

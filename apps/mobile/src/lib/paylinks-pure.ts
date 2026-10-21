@@ -183,7 +183,11 @@ export type BioBlock =
   | { id: string; type: "socials"; links: Record<string, string | undefined> }
   | { id: string; type: "whatsapp"; phone: string; label?: string; message?: string }
   | { id: string; type: "signup"; title?: string; buttonLabel?: string }
-  | { id: string; type: "text"; text: string };
+  | { id: string; type: "text"; text: string }
+  // Added on the web (src/lib/bio/pure.ts): "Shop now", the newest products grid and "Track my order".
+  | { id: string; type: "shop"; label?: string }
+  | { id: string; type: "arrivals"; label?: string }
+  | { id: string; type: "track"; label?: string };
 
 /** GET /api/app/bio (SellerBioPage on the server). */
 export interface BioPage {

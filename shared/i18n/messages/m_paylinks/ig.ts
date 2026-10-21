@@ -152,6 +152,13 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "create.deliveryFeeHint": "Hapụ ya efu ma ọ bụ 0 maka nnyefe n'efu.",
   "problem.deliveryAddress": "Tinye okporo ụzọ, mpaghara na steeti onye ahịa, ma ọ bụ gbanyụọ nnyefe.",
   "problem.deliveryFee": "Dee ego nnyefe dịka nọmba, dịka 2500.",
+  "block.shop": "Bọtịnụ Zụta ugbu a",
+  "block.shopSub": "Ọ na-emepe ụlọ ahịa gị",
+  "block.arrivals": "Ngwaahịa ọhụrụ",
+  "block.arrivalsSub": "Ngwaahịa ọhụrụ gị anọ",
+  "block.track": "Soro ọda m",
+  "block.trackSub": "Ndị ahịa ga-achọta ọda ha",
+  "block.other": "Akụkụ",
 };
 
 export default ig;
