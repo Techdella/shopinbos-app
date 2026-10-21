@@ -99,6 +99,7 @@ export function BoutiqueProductPage({ themeId, snapshot, store, product, reviews
     goCategory: (slug) => router.push(pageHref("products", new URLSearchParams({ category: slug }))),
     products: catalog,
     productHref: (id) => getPublicStorefrontPath(storeBasePath, `/product/${id}`),
+    storeHref: (path) => getPublicStorefrontPath(storeBasePath, path),
     goProduct: (id) => router.push(getPublicStorefrontPath(storeBasePath, `/product/${id}`)),
   };
   const menu = resolveMenu(readMenu(headerCopy), menuCtx);

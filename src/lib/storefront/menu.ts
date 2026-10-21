@@ -3,12 +3,13 @@
 // Older stores only have `navLinks` (a list of page names); readMenu turns those into menu items, so nothing changes
 // for them until they edit the menu.
 
-export type MenuItemKind = "page" | "category" | "product" | "link";
+export type MenuItemKind = "page" | "category" | "product" | "content" | "link";
 
 export interface MenuItem {
   id: string;
   kind: MenuItemKind;
-  /** The page type (page), category slug (category) or product id (product). */
+  /** The page type (page), category slug (category), product id (product), or a content path (content):
+   * a collection ("blog") or one of its items ("blog/how-to-choose-a-lamp"). */
   ref?: string;
   /** Web address, for "link" items. */
   url?: string;
@@ -91,11 +92,23 @@ export function safeMenuUrl(raw: unknown): string | null {
   }
 }
 
+/** A CMS collection slug, optionally followed by an item slug: "blog" or "blog/how-to-choose-a-lamp". */
+export function isContentRef(ref: string) {
+  return /^[a-z0-9]+(?:-[a-z0-9]+)*(?:\/[a-z0-9]+(?:-[a-z0-9]+)*)?$/.test(ref) && ref.length <= 170;
+}
+
+/** A readable name from a content path, for a content link the seller didn't name ("size-guide" → "Size guide"). */
+export function contentRefName(ref: string) {
+  const last = ref.split("/").pop() ?? ref;
+  const words = last.replace(/-/g, " ");
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
 function cleanItem(raw: unknown, depth: number): MenuItem | null {
   if (!raw || typeof raw !== "object") return null;
   const entry = raw as Record<string, unknown>;
   const kind = entry.kind;
-  if (kind !== "page" && kind !== "category" && kind !== "product" && kind !== "link") return null;
+  if (kind !== "page" && kind !== "category" && kind !== "product" && kind !== "content" && kind !== "link") return null;
   const label = typeof entry.label === "string" ? entry.label.slice(0, MAX_LABEL) : "";
   const item: MenuItem = { id: typeof entry.id === "string" && entry.id ? entry.id : newMenuItemId(), kind, label };
   if (kind === "link") {
@@ -105,7 +118,7 @@ function cleanItem(raw: unknown, depth: number): MenuItem | null {
     if (entry.newTab === true) item.newTab = true;
   } else {
     const ref = typeof entry.ref === "string" ? entry.ref.trim() : "";
-    if (!ref) return null;
+    if (!ref || (kind === "content" && !isContentRef(ref))) return null;
     item.ref = kind === "page" ? normalizePage(ref) : ref;
   }
   if (depth === 0 && Array.isArray(entry.children)) {

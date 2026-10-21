@@ -8,6 +8,7 @@ import {
   MENU_PAGE_LABELS,
   addMenuItems,
   canIndentMenuItem,
+  contentRefName,
   countMenuItems,
   indentMenuItem,
   moveMenuItem,
@@ -28,7 +29,7 @@ import { inputClass } from "./ui";
 
 type Source = "pages" | "categories" | "products" | "link";
 
-const KIND_LABEL: Record<MenuItem["kind"], string> = { page: "Page", category: "Category", product: "Product", link: "Custom link" };
+const KIND_LABEL: Record<MenuItem["kind"], string> = { page: "Page", category: "Category", product: "Product", content: "Content", link: "Custom link" };
 
 /** `flat`: one level only (footer links): no dropdowns. */
 export function MenuField({ value, onChange, pageTypes, products, flat = false }: { value: MenuItem[]; onChange: (menu: MenuItem[]) => void; pageTypes: string[]; products: BuilderProduct[]; flat?: boolean }) {
@@ -62,6 +63,7 @@ export function MenuField({ value, onChange, pageTypes, products, flat = false }
     if (item.kind === "page") return MENU_PAGE_LABELS[item.ref ?? ""] ?? item.ref ?? "";
     if (item.kind === "category") return categories.find((entry) => entry.key === item.ref)?.label ?? item.ref ?? "";
     if (item.kind === "product") return products.find((entry) => entry.id === item.ref)?.name ?? tx("Removed product");
+    if (item.kind === "content") return contentRefName(item.ref ?? "");
     return item.url ?? "";
   };
   const originalName = (item: MenuItem) => nameOf({ ...item, label: "" });

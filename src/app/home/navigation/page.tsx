@@ -13,6 +13,7 @@ import { navigationDraft, navigationOf } from "@/lib/store-navigation.server";
 import { navigationFingerprint } from "@/lib/storefront/store-navigation";
 import { publicBrandSettings } from "@shared/public-brand-settings";
 import { NavigationEditor } from "./NavigationEditor";
+import { liveItemWhere } from "@/lib/cms/fields";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +48,12 @@ export default async function NavigationSettingsPage({ searchParams }: NavPagePr
     take: 300,
   });
   const categories = [...new Map(products.filter((product) => product.category).map((product) => [product.category!.slug, { slug: product.category!.slug, name: product.category!.name }])).values()];
+  // Content (CMS) collections and their live items, so the menu can link to the Blog or a single post.
+  const collections = await db.cmsCollection.findMany({
+    where: { storeId: store.id },
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+    select: { name: true, slug: true, isPublished: true, items: { where: liveItemWhere(), orderBy: { updatedAt: "desc" }, take: 40, select: { slug: true, title: true } } },
+  });
   const pageTypes = [...new Set((draft?.pages ?? []).map((page) => String(page.pageType)))];
   const logoText = (() => {
     const header = (draft?.pages ?? []).flatMap((page) => page.sections ?? []).find((section) => section?.kind === "header");
@@ -85,6 +92,7 @@ export default async function NavigationSettingsPage({ searchParams }: NavPagePr
             pageTypes={pageTypes}
             categories={categories}
             products={products.map((product) => ({ id: product.id, name: product.name }))}
+            content={collections}
             store={{ name: store.name, logoUrl: store.logoUrl ?? null, brandSettings: { ...(publicBrandSettings(store.brandSettings) as Record<string, unknown> | null ?? {}), editor: undefined } }}
             logoText={logoText}
           />

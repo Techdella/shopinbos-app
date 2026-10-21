@@ -61,3 +61,27 @@ test("store links in the CMS screens use the store's own address, not /s/<slug> 
     assert.doesNotMatch(read(path), /`\/s\/\$\{/, path);
   }
 });
+
+test("menus can hold content links: a collection or one of its posts, by path", async () => {
+  const menu = await import("../src/lib/storefront/menu.ts");
+  const items = menu.readMenu({ menu: [
+    { id: "a", kind: "content", ref: "blog", label: "Blog" },
+    { id: "b", kind: "content", ref: "blog/how-to-choose-a-lamp-in-2026", label: "" },
+    { id: "c", kind: "content", ref: "../admin", label: "Bad" },
+    { id: "d", kind: "content", ref: "Blog Posts", label: "Bad" },
+  ] });
+  assert.deepEqual(items.map((item) => item.ref), ["blog", "blog/how-to-choose-a-lamp-in-2026"]);
+  assert.equal(menu.contentRefName("size-guide"), "Size guide");
+  assert.equal(menu.contentRefName("blog/how-to-choose-a-lamp"), "How to choose a lamp");
+});
+
+test("every storefront theme links content menu items to the store's own path", () => {
+  assert.match(read("src/components/storefront/StoreMenu.tsx"), /item\.kind === "content"[\s\S]*ctx\.storeHref\?\.\(`\/\$\{item\.ref\}`\)/);
+  for (const path of ["src/components/storefront/boutique/BoutiquePageFrame.tsx", "src/components/storefront/boutique/BoutiqueStorefront.tsx", "src/components/storefront/boutique/BoutiqueProductPage.tsx", "src/components/storefront/TemplateStorefrontSurface.tsx"]) {
+    assert.match(read(path), /storeHref: /, path);
+  }
+  const editor = read("src/app/home/navigation/NavigationEditor.tsx");
+  assert.match(editor, /nav\.group\.content/);
+  assert.match(editor, /nav\.addContent/);
+  assert.match(read("src/lib/cms/menu.server.ts"), /kind: "content" as const, ref: collection\.slug/);
+});
