@@ -60,6 +60,8 @@ CREATE TABLE IF NOT EXISTS "LogisticsPickupPoint" (
   "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+-- An earlier, unused LogisticsPickupPoint table (with area/lat/lng and no city) exists in some databases: add city.
+ALTER TABLE "LogisticsPickupPoint" ADD COLUMN IF NOT EXISTS "city" TEXT NOT NULL DEFAULT '';
 CREATE INDEX IF NOT EXISTS "LogisticsPickupPoint_logisticsPartnerId_idx" ON "LogisticsPickupPoint" ("logisticsPartnerId");
 CREATE INDEX IF NOT EXISTS "LogisticsPickupPoint_state_idx" ON "LogisticsPickupPoint" ("state");
 
