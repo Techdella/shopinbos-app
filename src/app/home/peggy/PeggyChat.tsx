@@ -29,6 +29,8 @@ interface Turn {
   failed?: boolean;
   /** Show "Buy credits" under it (the allowance and credits ran out). */
   buyCredits?: boolean;
+  /** Replies Peggy expects next, shown as buttons under her latest answer. */
+  suggestions?: string[];
 }
 
 interface Stats {
@@ -38,6 +40,7 @@ interface Stats {
   unpaid: number;
   lowStock: number;
   unread: number;
+  drafts: number;
 }
 
 const MAX_TURNS = 20;
@@ -52,7 +55,18 @@ const ACTION_ICON: Record<string, IconName> = {
   draft_broadcast: "send",
   draft_ad: "megaphone",
   write_copy: "sparkle",
+  request_delivery_quote: "truck",
+  connect_delivery_partner: "truck",
 };
+
+/** What needs the seller today, each a tap away from Peggy doing it. */
+const NEEDS: { stat: keyof Stats; icon: IconName; label: MessageKey<"peggy">; cta: MessageKey<"peggy">; ask: MessageKey<"peggy"> }[] = [
+  { stat: "toSend", icon: "truck", label: "need.toSend", cta: "need.toSendCta", ask: "need.toSendAsk" },
+  { stat: "unpaid", icon: "card", label: "need.unpaid", cta: "need.unpaidCta", ask: "need.unpaidAsk" },
+  { stat: "lowStock", icon: "box", label: "need.lowStock", cta: "need.lowStockCta", ask: "need.lowStockAsk" },
+  { stat: "unread", icon: "chat", label: "need.unread", cta: "need.unreadCta", ask: "need.unreadAsk" },
+  { stat: "drafts", icon: "edit", label: "need.drafts", cta: "need.draftsCta", ask: "need.draftsAsk" },
+];
 
 const CAN_DO: { icon: IconName; text: MessageKey<"peggy"> }[] = [
   { icon: "chart", text: "can.data" },
@@ -67,6 +81,7 @@ const CAN_DO: { icon: IconName; text: MessageKey<"peggy"> }[] = [
 export function PeggyChat({ greeting, initialAsk, suggestions, stats }: { greeting: string; initialAsk: string; suggestions: string[]; stats: Stats }) {
   const router = useRouter();
   const t = useT("peggy");
+  const locale = useLocale();
   const [turns, setTurns] = useState<Turn[]>([]);
   const [draft, setDraft] = useState(initialAsk);
   const [busy, setBusy] = useState(false);
@@ -122,10 +137,10 @@ export function PeggyChat({ greeting, initialAsk, suggestions, stats }: { greeti
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages }),
       });
-      const body = (await response.json().catch(() => null)) as { data?: { text: string; actions?: PeggyAction[] }; error?: { code?: string; message?: string } } | null;
+      const body = (await response.json().catch(() => null)) as { data?: { text: string; actions?: PeggyAction[]; suggestions?: string[] }; error?: { code?: string; message?: string } } | null;
       if (!response.ok || !body?.data) throw Object.assign(new Error(body?.error?.message ?? t("err.answer")), { code: body?.error?.code });
       const data = body.data;
-      setTurns((current) => [...current, { role: "assistant", content: data.text, actions: data.actions ?? [] }]);
+      setTurns((current) => [...current, { role: "assistant", content: data.text, actions: data.actions ?? [], suggestions: data.suggestions ?? [] }]);
       // Her changes show up on the other pages straight away.
       if (data.actions?.length) router.refresh();
     } catch (error) {
@@ -137,10 +152,13 @@ export function PeggyChat({ greeting, initialAsk, suggestions, stats }: { greeti
     }
   }
 
+  const needs = NEEDS.filter((need) => Number(stats[need.stat]) > 0);
+  const last = turns[turns.length - 1];
+  const nextReplies = !busy && last?.role === "assistant" && !last.failed ? last.suggestions ?? [] : [];
+
   return (
-    <div className="grid h-full min-h-0 w-full gap-5 px-4 py-4 font-app text-app-ink sm:px-6 sm:py-6 2xl:grid-cols-[minmax(0,1fr)_340px] xl:px-8 2xl:px-10">
-      {/* Conversation */}
-      <section className="flex min-h-0 overflow-hidden rounded-[22px] border border-app-line bg-white">
+    <div className="h-full min-h-0 w-full px-4 py-4 font-app text-app-ink sm:px-6 sm:py-6 xl:px-8 2xl:px-10">
+      <section className="flex h-full min-h-0 overflow-hidden rounded-[22px] border border-app-line bg-white">
         <ChatSidebar
           assistant="peggy"
           currentId={chatId}
@@ -153,42 +171,97 @@ export function PeggyChat({ greeting, initialAsk, suggestions, stats }: { greeti
           busy={busy}
         />
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-          <header className="flex items-center gap-3 bg-app-mint px-4 py-3 sm:px-5">
-            <ChatSidebarButton onClick={() => setChatsOpen(true)} className="-ml-2 hover:bg-white/60" />
-            <Mascot name="peggy" className="h-11 w-11" alt="Peggy" />
-            <div className="min-w-0 flex-1">
-              <h1 className="m-0 text-[17px] font-extrabold">Peggy</h1>
-              <div className="truncate text-[13px] text-app-ink-soft">{t("sub")}</div>
+          <header className="shrink-0 border-b border-app-line bg-app-mint/60">
+            <div className="flex items-center gap-3 px-4 pb-2 pt-3 sm:px-5">
+              <ChatSidebarButton onClick={() => setChatsOpen(true)} className="-ml-2 hover:bg-white/60" />
+              <Mascot name="peggy" className="h-10 w-10" alt="Peggy" />
+              <div className="min-w-0 flex-1">
+                <h1 className="m-0 text-[17px] font-extrabold leading-tight">Peggy</h1>
+                <div className="truncate text-[13px] text-app-ink-soft">{t("sub")}</div>
+              </div>
+              {turns.length > 0 && (
+                <button
+                  type="button"
+                  onClick={newChat}
+                  disabled={busy}
+                  className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full border border-app-line bg-white px-3.5 text-[13px] font-extrabold text-app-ink hover:border-app-line-strong disabled:opacity-50"
+                >
+                  <Icon name="plus" size={13} /> <span className="hidden sm:inline">{t("newChat")}</span>
+                </button>
+              )}
             </div>
-            {turns.length > 0 && (
-              <button
-                type="button"
-                onClick={newChat}
-                disabled={busy}
-                className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full border border-app-line bg-white px-3.5 text-[13px] font-extrabold text-app-ink hover:border-app-line-strong disabled:opacity-50"
-              >
-                <Icon name="plus" size={13} /> {t("newChat")}
-              </button>
-            )}
+            {/* Today's numbers, always in view */}
+            <ul aria-label={t("today")} className="m-0 flex list-none gap-2 overflow-x-auto px-4 pb-3 sm:px-5 [scrollbar-width:none]">
+              <Stat label={t("stat.today")} value={stats.today} />
+              <Stat label={t("stat.week")} value={stats.week} />
+              <Stat label={t("stat.toSend")} value={stats.toSend} href="/home/orders" alert={stats.toSend > 0} />
+              <Stat label={t("stat.unpaid")} value={stats.unpaid} href="/home/orders" alert={stats.unpaid > 0} />
+              <Stat label={t("stat.lowStock")} value={stats.lowStock} href="/products" alert={stats.lowStock > 0} />
+              <Stat label={t("stat.unread")} value={stats.unread} href="/home/messages" alert={stats.unread > 0} />
+            </ul>
           </header>
 
           <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-5" aria-live="polite">
             <div className="mx-auto flex max-w-[760px] flex-col gap-3">
               <Bubble role="assistant" content={greeting} />
               {turns.length === 0 && (
-                <div className="flex flex-wrap gap-2 pt-1">
-                  {suggestions.map((suggestion) => (
-                    <button
-                      key={suggestion}
-                      type="button"
-                      onClick={() => void send(suggestion)}
-                      disabled={busy}
-                      className="min-h-[40px] rounded-full border border-app-line bg-white px-4 text-left text-[13.5px] font-bold text-app-ink hover:border-app-line-strong disabled:opacity-50"
-                    >
-                      {suggestion}
-                    </button>
-                  ))}
-                </div>
+                <>
+                  {needs.length > 0 && (
+                    <section aria-labelledby="peggy-needs" className="pt-1">
+                      <h2 id="peggy-needs" className="m-0 mb-2 text-[12px] font-extrabold uppercase tracking-[0.12em] text-app-ink-soft">{t("need.title")}</h2>
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        {needs.map((need) => (
+                          <button
+                            key={need.stat}
+                            type="button"
+                            onClick={() => void send(t(need.ask))}
+                            disabled={busy}
+                            className="group flex items-center gap-3 rounded-[16px] border border-app-line bg-white px-3.5 py-3 text-left text-app-ink hover:border-app-line-strong hover:shadow-sm disabled:opacity-50"
+                          >
+                            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[12px] bg-app-mint"><Icon name={need.icon} size={17} /></span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block text-[13px] text-app-ink-soft">
+                                <span className="text-[18px] font-extrabold text-app-ink">{formatNumber(Number(stats[need.stat]), locale)}</span> {t(need.label)}
+                              </span>
+                              <span className="block text-[13.5px] font-extrabold">{t(need.cta)}</span>
+                            </span>
+                            <Icon name="chevRight" size={16} className="shrink-0 text-app-ink-soft transition group-hover:translate-x-0.5" />
+                          </button>
+                        ))}
+                      </div>
+                    </section>
+                  )}
+                  <section aria-labelledby="peggy-ask" className="pt-2">
+                    <h2 id="peggy-ask" className="m-0 mb-2 text-[12px] font-extrabold uppercase tracking-[0.12em] text-app-ink-soft">{t("orAsk")}</h2>
+                    <div className="flex flex-wrap gap-2">
+                      {suggestions.map((suggestion) => (
+                        <button
+                          key={suggestion}
+                          type="button"
+                          onClick={() => void send(suggestion)}
+                          disabled={busy}
+                          className="min-h-[38px] rounded-full border border-app-line bg-white px-4 text-left text-[13.5px] font-bold text-app-ink hover:border-app-line-strong disabled:opacity-50"
+                        >
+                          {suggestion}
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                  <details className="group mt-2 rounded-[16px] border border-app-line bg-app-canvas/50 px-4 py-3">
+                    <summary className="cursor-pointer list-none text-[13.5px] font-extrabold [&::-webkit-details-marker]:hidden">
+                      <span className="inline-flex items-center gap-2"><Icon name="sparkle" size={14} /> {t("canTitle")} <Icon name="chevDown" size={14} className="transition group-open:rotate-180" /></span>
+                    </summary>
+                    <ul className="m-0 mt-3 grid list-none gap-2.5 p-0 sm:grid-cols-2">
+                      {CAN_DO.map((item) => (
+                        <li key={item.text} className="flex items-start gap-2.5 text-[13px] leading-[1.4]">
+                          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-[9px] bg-white"><Icon name={item.icon} size={14} /></span>
+                          <span className="pt-1">{t(item.text)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="mb-0 mt-3 text-[12.5px] text-app-ink-soft">{t("neverAlone")}</p>
+                  </details>
+                </>
               )}
               {turns.map((turn, index) => (
                 <div key={index} className="flex flex-col gap-2">
@@ -197,6 +270,20 @@ export function PeggyChat({ greeting, initialAsk, suggestions, stats }: { greeti
                   {turn.actions?.map((action, actionIndex) => <ActionCard key={actionIndex} action={action} />)}
                 </div>
               ))}
+              {nextReplies.length > 0 && (
+                <div className="flex flex-wrap gap-2 pl-1" aria-label={t("nextReplies")}>
+                  {nextReplies.map((reply) => (
+                    <button
+                      key={reply}
+                      type="button"
+                      onClick={() => void send(reply)}
+                      className="min-h-[36px] rounded-full border border-app-ink/15 bg-white px-3.5 text-left text-[13px] font-bold text-app-ink hover:border-app-ink"
+                    >
+                      {reply}
+                    </button>
+                  ))}
+                </div>
+              )}
               {busy && (
                 <div className="flex items-center gap-2 self-start rounded-[18px] rounded-tl-[6px] bg-app-mint px-4 py-3 text-[14px] text-app-ink-soft">
                   <span className="inline-flex gap-1" aria-hidden>
@@ -212,7 +299,7 @@ export function PeggyChat({ greeting, initialAsk, suggestions, stats }: { greeti
           </div>
 
           <form
-            className="border-t border-app-line px-3 py-3 sm:px-4"
+            className="shrink-0 border-t border-app-line px-3 py-3 sm:px-4"
             onSubmit={(event) => {
               event.preventDefault();
               void send(draft);
@@ -249,35 +336,6 @@ export function PeggyChat({ greeting, initialAsk, suggestions, stats }: { greeti
           </form>
         </div>
       </section>
-
-      {/* Today + what she can do (wide screens) */}
-      <aside className="hidden min-h-0 flex-col gap-4 overflow-y-auto 2xl:flex">
-        <section className="rounded-[22px] bg-app-mint p-5">
-          <h2 className="m-0 text-[15px] font-extrabold">{t("today")}</h2>
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <Stat label={t("stat.today")} value={stats.today} />
-            <Stat label={t("stat.week")} value={stats.week} />
-            <Stat label={t("stat.toSend")} value={stats.toSend} href="/home/orders" />
-            <Stat label={t("stat.unpaid")} value={stats.unpaid} href="/home/orders" />
-            <Stat label={t("stat.lowStock")} value={stats.lowStock} href="/products" />
-            <Stat label={t("stat.unread")} value={stats.unread} href="/home/messages" />
-          </div>
-        </section>
-        <section className="rounded-[22px] border border-app-line bg-white p-5">
-          <h2 className="m-0 text-[15px] font-extrabold">{t("canTitle")}</h2>
-          <ul className="m-0 mt-3 grid list-none gap-3 p-0">
-            {CAN_DO.map((item) => (
-              <li key={item.text} className="flex items-start gap-3 text-[13.5px] leading-[1.4]">
-                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[10px] bg-app-canvas">
-                  <Icon name={item.icon} size={15} />
-                </span>
-                <span className="pt-1.5">{t(item.text)}</span>
-              </li>
-            ))}
-          </ul>
-          <p className="mb-0 mt-4 text-[12.5px] text-app-ink-soft">{t("neverAlone")}</p>
-        </section>
-      </aside>
     </div>
   );
 }
@@ -354,19 +412,24 @@ function ActionCard({ action }: { action: PeggyAction }) {
   );
 }
 
-function Stat({ label, value, href }: { label: string; value: string | number; href?: string }) {
+function Stat({ label, value, href, alert = false }: { label: string; value: string | number; href?: string; alert?: boolean }) {
   const locale = useLocale();
   const inner = (
     <>
-      <div className="text-[12px] text-app-ink-soft">{label}</div>
-      <div className="mt-0.5 truncate text-[20px] font-extrabold leading-tight tracking-[-0.3px]">{typeof value === "number" ? formatNumber(value, locale) : value}</div>
+      <span className="block whitespace-nowrap text-[11.5px] text-app-ink-soft">{label}</span>
+      <span className={cx("block whitespace-nowrap text-[16px] font-extrabold leading-tight tracking-[-0.2px]", alert && "text-app-accent")}>{typeof value === "number" ? formatNumber(value, locale) : value}</span>
     </>
   );
-  return href ? (
-    <Link href={href} className="rounded-[14px] bg-white px-3 py-2.5 text-app-ink no-underline hover:shadow-sm">
-      {inner}
-    </Link>
-  ) : (
-    <div className="rounded-[14px] bg-white px-3 py-2.5">{inner}</div>
+  const className = "block min-w-[104px] rounded-[12px] bg-white px-3 py-2 text-app-ink no-underline";
+  return (
+    <li className="shrink-0">
+      {href ? (
+        <Link href={href} className={cx(className, "hover:shadow-sm")}>
+          {inner}
+        </Link>
+      ) : (
+        <div className={className}>{inner}</div>
+      )}
+    </li>
   );
 }

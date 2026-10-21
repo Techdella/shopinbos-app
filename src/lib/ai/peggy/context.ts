@@ -238,7 +238,13 @@ export function greetingFor(name: string, snapshot: SellerSnapshot) {
   if (snapshot.products.drafts > 0) urgent.push(`${plural(snapshot.products.drafts, "draft product")} not yet published`);
 
   if (urgent.length > 0) {
-    return `Hi ${firstName}. ${snapshot.sales.today} sold today in ${storeName}. Here is what needs you:\n\n${urgent.map((item, i) => `${i + 1}. ${item}`).join("\n")}\n\nI can look things up and do the work: mark orders paid or shipped, change prices and stock, make discount codes, and draft blog posts, broadcasts and ads.`;
+    const offer =
+      snapshot.orders.toSend > 0
+        ? `Shall we start with the ${plural(snapshot.orders.toSend, "order")} to send? Tell me your delivery budget and I'll find a delivery company that covers where each customer is.`
+        : snapshot.orders.awaitingPayment > 0
+          ? "Shall we start with the unpaid orders? I can make a payment link or a friendly reminder for each customer."
+          : "Pick one below and I'll do the work with you.";
+    return `Hi ${firstName}. ${snapshot.sales.today} sold today in ${storeName}. Here is what needs you:\n\n${urgent.map((item, i) => `${i + 1}. ${item}`).join("\n")}\n\n${offer}`;
   }
   if (snapshot.products.total === 0) {
     return `Hi ${firstName}. ${storeName} is set up but has no products yet. Add your first product, and I can write its description, price it and help you sell it.`;

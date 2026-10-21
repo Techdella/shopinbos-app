@@ -10,7 +10,8 @@ export const maxDuration = 120;
 
 // Peggy, the seller's shop assistant, for the web Peggy page and the mobile app (cookie or Bearer auth).
 // Body: { messages: [{ role: "user" | "assistant", content }] } (the whole conversation, newest last) or
-// { message }. Reply: { data: { text, actions: [{ tool, summary, href? }] } }.
+// { message }. Reply: { data: { text, actions: [{ tool, summary, href? }], suggestions: string[] } } (suggestions:
+// short replies the seller may send next, to show as buttons).
 export const POST = withSeller(async (req: NextRequest, { user }) => {
   const parsed = parsePeggyBody(await req.json().catch(() => null));
   if (!parsed.ok) return apiError("BAD_REQUEST", parsed.error);
@@ -20,5 +21,5 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
 
   const result = await runPeggy({ id: user.id, phone: user.phone ?? null }, parsed.turns);
   if ("error" in result) return apiError("UNAVAILABLE", result.error, 503);
-  return ok({ text: result.text, actions: result.actions });
+  return ok({ text: result.text, actions: result.actions, suggestions: result.suggestions });
 });

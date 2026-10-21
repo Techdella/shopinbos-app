@@ -24,6 +24,7 @@ import { LEGAL_TOOL_RUNNERS } from "./legal-tools";
 import { PRODUCTS_TOOL_RUNNERS } from "./products-tools";
 import { CATALOG_TOOL_RUNNERS } from "./catalog-tools";
 import { PAYLINKS_TOOL_RUNNERS } from "./paylinks-tools";
+import { DELIVERY_TOOL_RUNNERS } from "./delivery-tools";
 import { saveMarkdownPost } from "@/lib/cms/server";
 import {
   aggregateCustomers,
@@ -89,7 +90,7 @@ async function meterExtra(ctx: PeggyToolContext) {
   if (await meterAi(ctx.userId, "text")) throw new ToolError("The seller is out of AI credits (or hit today's safety cap). Tell them to top up on the AI credits page, or that their plan's credits refill at the start of next month.");
 }
 
-async function findOrder(ctx: PeggyToolContext, orderNumber: string) {
+export async function findOrder(ctx: PeggyToolContext, orderNumber: string) {
   const wanted = orderNumber.trim().replace(/^#/, "");
   const order = await db.retailOrder.findFirst({ where: { storeId: ctx.store.id, orderNumber: { equals: wanted, mode: "insensitive" } } });
   if (!order) throw new ToolError(`No order ${wanted} in this shop. Use list_orders to see order numbers.`);
@@ -152,7 +153,9 @@ async function listOrders(ctx: PeggyToolContext, input: PeggyToolInput<"list_ord
       count: orders.length,
       orders: orders.map((order) => {
         const row = orderRow({ ...order, total: Number(order.total) });
-        return { orderNumber: order.orderNumber, buyer: row.buyer, items: row.summary, stage: row.stage.label, payment: row.payment.label, total: money(row.total), placed: dateOnly(order.createdAt), link: `/home/orders/${order.id}` };
+        const address = (order.deliveryAddress ?? {}) as { city?: unknown; state?: unknown };
+        const deliverTo = [address.city, address.state].filter((part): part is string => typeof part === "string" && part.trim() !== "").join(", ") || null;
+        return { orderNumber: order.orderNumber, buyer: row.buyer, items: row.summary, stage: row.stage.label, payment: row.payment.label, total: money(row.total), deliverTo, placed: dateOnly(order.createdAt), link: `/home/orders/${order.id}` };
       }),
     }),
   };
@@ -492,6 +495,7 @@ export const PEGGY_TOOL_RUNNERS: { [N in PeggyToolName]: Runner<N> } = {
   ...PRODUCTS_TOOL_RUNNERS,
   ...CATALOG_TOOL_RUNNERS,
   ...PAYLINKS_TOOL_RUNNERS,
+  ...DELIVERY_TOOL_RUNNERS,
 };
 
 export const isWriteTool = (name: string) => name in PEGGY_TOOL_SPECS && PEGGY_TOOL_SPECS[name as PeggyToolName].write;

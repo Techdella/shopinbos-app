@@ -3342,6 +3342,34 @@ test("Rex's style book is tidied before it's checked, and a really incomplete on
   assert.ok(bb.brandBookProblems(missing).some((path) => path.startsWith("voice")));
 });
 
+test("Peggy's Next: line becomes quick-reply buttons and leaves her text", async () => {
+  const { splitNextSteps } = await import("../src/lib/ai/peggy/pure.ts");
+  const reply = splitNextSteps("You have **2 orders** to send.\n\nNext: Yes, find a delivery company | My budget is ₦3,000 | Not now");
+  assert.equal(reply.text, "You have **2 orders** to send.");
+  assert.deepEqual(reply.suggestions, ["Yes, find a delivery company", "My budget is ₦3,000", "Not now"]);
+  assert.deepEqual(splitNextSteps("**Next:** \"Show me\" | Show me | A | B").suggestions, ["Show me", "A", "B"], "bold, quotes and repeats are cleaned, three at most");
+  const plain = splitNextSteps("Next week looks busy.\nPlan ahead.");
+  assert.equal(plain.text, "Next week looks busy.\nPlan ahead.", "only a last Next: line counts");
+  assert.deepEqual(plain.suggestions, []);
+});
+
+test("Peggy keeps delivery matches within the seller's budget, or shows the cheapest when none fit", async () => {
+  const { pickDeliveryMatches } = await import("../src/lib/ai/peggy/delivery-specs.ts");
+  const rows = [
+    { name: "Fast Lagos", price: 4500, priced: true, score: 90 },
+    { name: "Kwik", price: 2500, priced: true, score: 80 },
+    { name: "Gig", price: 3000, priced: false, score: 95 },
+    { name: "Slow", price: 9000, priced: true, score: 10 },
+  ];
+  assert.deepEqual(pickDeliveryMatches(rows, null, 3).matches.map((row) => row.name), ["Gig", "Fast Lagos", "Kwik"], "best first");
+  const budget = pickDeliveryMatches(rows, 3000, 3);
+  assert.equal(budget.withinBudget, true);
+  assert.deepEqual(budget.matches.map((row) => row.name), ["Gig", "Kwik"]);
+  const tight = pickDeliveryMatches(rows, 1000, 2);
+  assert.equal(tight.withinBudget, false);
+  assert.deepEqual(tight.matches.map((row) => row.name), ["Kwik", "Gig"], "cheapest when nothing fits");
+});
+
 test("Saved chats group by day like a chat app's sidebar", async () => {
   const h = await import("../shared/ai-chats.ts");
   const now = new Date(2026, 9, 21, 15, 0);
