@@ -3,7 +3,7 @@ import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { RegisterBusiness } from "@/components/business-registration/RegisterBusiness";
-import { registrationPageData } from "@/lib/business-registration/page-data.server";
+import { hideRegistrationPageWhenOff, registrationPageData } from "@/lib/business-registration/page-data.server";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Register your business" };
@@ -15,6 +15,7 @@ export default async function SellerRegisterBusinessPage({ searchParams }: { sea
     registrationPageData({ ...user, role: "seller" }),
     searchParams,
   ]);
+  hideRegistrationPageWhenOff(data, "seller");
   return (
     <SellerPage user={user} store={storeSummary(store)} title="Register your business" sub="Get your business name registered with CAC without leaving Shopinbos.">
       <RegisterBusiness {...data} result={params?.registration ?? null} />
