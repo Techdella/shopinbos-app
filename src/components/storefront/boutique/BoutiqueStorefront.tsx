@@ -1883,7 +1883,10 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       const fromCategories = (shopper.collections.length
         ? shopper.collections.map((collection) => ({ key: collection.id, name: collection.name, image: collection.imageUrl ?? products.find((entry) => collection.productIds.includes(entry.id))?.images[0], onSelect: () => shopCollection(collection.id) }))
         : categories.map((category) => ({ key: category.slug, name: category.name, image: category.imageUrl ?? undefined, onSelect: () => shopCategory(category.slug) })));
-      const tiles = [...fromCategories, ...pool.slice(1).map((src, i) => ({ key: `pic-${i}`, name: "", image: src, onSelect: () => go("products") }))].slice(0, 4);
+      // Spare tiles take stock pictures first, then product photos the category tiles don't already show.
+      const shown = new Set([image, ...fromCategories.map((tile) => tile.image)]);
+      const spare = [...new Set([...(stock && !uploaded.length ? [stock.story, ...stock.extras] : []), ...uploaded.slice(1), ...fromProducts])].filter((src) => !shown.has(src));
+      const tiles = [...fromCategories, ...spare.map((src, i) => ({ key: `pic-${i}`, name: "", image: src, onSelect: () => go("products") }))].slice(0, 4);
       return (
         <section aria-labelledby={headingId} className="bq-wrap pt-5">
           <div className="grid gap-4 @3xl:grid-cols-2">
@@ -3178,7 +3181,9 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       // A wide picture with the words on a dark panel over its left side (Ìjókòó); phones stack them.
       return (
         <section aria-labelledby={headingId} className="relative overflow-hidden" style={{ background: t.ink, color: "#FFFFFF" }}>
-          <div className="bq-media w-full @3xl:absolute @3xl:inset-0" style={{ borderRadius: 0, aspectRatio: "16 / 9", minHeight: 220 }}>{image ? <img src={image} alt="" width={1600} height={900} loading="lazy" /> : null}</div>
+          <div className="@3xl:absolute @3xl:inset-0">
+            <div className="bq-media aspect-video w-full @3xl:aspect-auto @3xl:h-full" style={{ borderRadius: 0, minHeight: 220 }}>{image ? <img src={image} alt="" width={1600} height={900} loading="lazy" /> : null}</div>
+          </div>
           <div className="relative flex flex-col items-start gap-4 px-6 py-10 @3xl:min-h-[440px] @3xl:w-[44%] @3xl:justify-center @3xl:px-14" style={{ background: "rgba(43,43,43,.86)" }}>
             {text(copy.eyebrow) ? <p className="m-0 text-[12px] font-semibold uppercase" style={{ letterSpacing: "0.18em", color: t.accent }}>{text(copy.eyebrow)}</p> : null}
             <h2 id={headingId} className="bq-h m-0 text-[28px] @3xl:text-[36px]" style={{ ...look.headingStyle, lineHeight: 1.12 }}>{text(copy.title) || store.name}</h2>
