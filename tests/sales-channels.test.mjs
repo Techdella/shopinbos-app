@@ -61,6 +61,9 @@ test("cards: Connect when configured, Coming soon when not, never a broken flow"
   assert.deepEqual(wa({ whatsappConnected: false }), { kind: "reauth" });
   assert.deepEqual(wa({ catalog: { catalogId: "c1", lastSyncAt: null, lastSyncStatus: null, syncing: false } }), { kind: "syncing" });
   assert.deepEqual(wa({ catalog: { catalogId: "c1", lastSyncAt: new Date(), lastSyncStatus: "error", syncing: false } }), { kind: "error" });
+  const noPermission = { catalogId: null, lastSyncAt: null, lastSyncStatus: null, syncing: false, permissionMissing: true };
+  assert.deepEqual(wa({ catalog: noPermission }), { kind: "needs_account" }, "number connected, catalog permissions missing: say so, not Connect");
+  assert.deepEqual(wa({ catalog: noPermission, whatsappConnected: false }), { kind: "connect" });
 });
 
 test("the page lists live platforms in the order Nigerian sellers use them, then coming soon", () => {

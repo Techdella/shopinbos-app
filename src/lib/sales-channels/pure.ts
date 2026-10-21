@@ -312,11 +312,16 @@ export interface WhatsAppCatalogLike {
   lastSyncAt: Date | null;
   lastSyncStatus: string | null;
   syncing: boolean;
+  /** The number's token lacks catalog_management / business_management (WhatsAppCatalog.permissionState "missing"). */
+  permissionMissing?: boolean;
 }
 
 /** The WhatsApp card, from the WhatsApp catalog (src/lib/whatsapp-catalog) and whether WhatsApp is connected. */
 export function whatsappCardState(options: { signupConfigured: boolean; whatsappConnected: boolean; catalog: WhatsAppCatalogLike | null; synced: number }): CardState {
   const { catalog } = options;
+  // The number is connected (messages work) but Meta didn't grant the catalog permissions: say what's left
+  // rather than "Connect" again.
+  if (!catalog?.catalogId && options.whatsappConnected && catalog?.permissionMissing) return { kind: "needs_account" };
   if (!catalog?.catalogId) return options.signupConfigured || options.whatsappConnected ? { kind: "connect" } : { kind: "soon" };
   if (!options.whatsappConnected) return { kind: "reauth" };
   if (catalog.syncing || !catalog.lastSyncAt) return { kind: "syncing" };
