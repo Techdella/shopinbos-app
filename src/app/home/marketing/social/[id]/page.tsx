@@ -16,6 +16,7 @@ import { PostActionButton } from "../_kit/PostButtons";
 import { STATUS_TONE } from "../_kit/PostList";
 import { shareProps } from "../_kit/share.server";
 import type { ComposerPost } from "../_kit/types";
+import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -29,6 +30,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function SocialPostPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireRole(["seller"], "/login");
+  const tipT = await getT("tips");
   const t = await getT("socialPosts", "common");
   const locale = await getLocale();
   const { id } = await params;
@@ -57,6 +59,7 @@ export default async function SocialPostPage({ params }: { params: Promise<{ id:
     };
     return (
       <SellerPage user={user} store={storeSummary(store)} title={post.status === "draft" ? t("post.draft") : t("post.edit")} actions={back}>
+        <PageTip className="mb-5">{tipT("social.post")}</PageTip>
         <Composer post={editing} products={data.products} media={data.media} accounts={data.accounts} queueNext={data.queueNext} storeName={store.name} />
       </SellerPage>
     );
@@ -82,6 +85,7 @@ export default async function SocialPostPage({ params }: { params: Promise<{ id:
         </div>
       }
     >
+      <PageTip className="mb-5">{tipT("social.post")}</PageTip>
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
         <Card className="p-5">
           <CardHead title={t("post.where")} action={<Pill tone={STATUS_TONE[status]}>{t(`status.${status}`)}</Pill>} />

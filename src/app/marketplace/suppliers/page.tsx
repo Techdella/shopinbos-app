@@ -13,6 +13,7 @@ import { redirect } from "next/navigation";
 import { MarketplaceChatWrapper } from "@/components/marketplace/MarketplaceChatWrapper";
 import { ChatButton } from "@/components/marketplace/ChatButton";
 import { getT } from "@/lib/i18n/server";
+import { TipsGate } from "../_components/TipsGate";
 import { VISIBLE_SUPPLIER, nearness, sellerHasPlace, supplierTrust } from "@/lib/marketplace/agreements.server";
 
 export const dynamic = "force-dynamic";
@@ -118,6 +119,12 @@ export default async function MarketplaceSuppliersPage({ searchParams }: PagePro
             ]}
           />
 
+          <TipsGate>
+            <AssistantNote who="peggy">
+              {t("sup.peggy", { place: `${store.city ? `${store.city}, ` : ""}${store.country ?? ""}` })}
+            </AssistantNote>
+          </TipsGate>
+
           <form method="GET" action="/marketplace/suppliers" role="search" className="flex flex-wrap items-center gap-2">
             <label className="flex min-h-[44px] w-full items-center gap-2 rounded-full border border-app-line bg-white px-4 sm:w-[300px]">
               <Icon name="search" size={16} className="shrink-0 text-app-ink-soft" />
@@ -128,22 +135,26 @@ export default async function MarketplaceSuppliersPage({ searchParams }: PagePro
               <option value="">{t("sup.allCategories")}</option>
               {allCategories.map((cat) => <option key={cat} value={cat}>{cat}</option>)}
             </select>
-            <select name="country" aria-label={t("sup.country")} defaultValue={params?.country ?? ""} className={selectClass}>
-              <option value="">{t("sup.allCountries")}</option>
-              {allCountries.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-            <select name="near" aria-label={t("sup.sort")} defaultValue={params?.near ?? ""} className={selectClass}>
-              <option value="">{t("sup.best")}</option>
-              <option value="city">{t("sup.sameCity")}</option>
-              <option value="country">{t("sup.sameCountry")}</option>
-            </select>
+            {/* Rarely used: tucked away, open when one of them is set. */}
+            <details open={Boolean(params?.country || params?.near)} className="group w-full sm:w-auto">
+              <summary className="inline-flex min-h-[44px] cursor-pointer list-none items-center gap-1.5 rounded-full border border-app-line bg-white px-4 text-[14px] font-extrabold text-app-ink hover:border-app-line-strong [&::-webkit-details-marker]:hidden">
+                {t("sup.moreFilters")} <Icon name="chevron" size={14} className="rotate-90 transition group-open:-rotate-90" />
+              </summary>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <select name="country" aria-label={t("sup.country")} defaultValue={params?.country ?? ""} className={selectClass}>
+                  <option value="">{t("sup.allCountries")}</option>
+                  {allCountries.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+                <select name="near" aria-label={t("sup.sort")} defaultValue={params?.near ?? ""} className={selectClass}>
+                  <option value="">{t("sup.best")}</option>
+                  <option value="city">{t("sup.sameCity")}</option>
+                  <option value="country">{t("sup.sameCountry")}</option>
+                </select>
+              </div>
+            </details>
             <button type="submit" className="inline-flex min-h-[44px] items-center rounded-full bg-app-ink px-5 text-[14px] font-extrabold text-white hover:bg-black">{t("sup.filter")}</button>
             {filtered && <Link href="/marketplace/suppliers" className="px-2 text-[14px] font-extrabold text-app-accent-ink no-underline hover:underline">{t("sup.clear")}</Link>}
           </form>
-
-          <AssistantNote who="peggy">
-            {t("sup.peggy", { place: `${store.city ? `${store.city}, ` : ""}${store.country ?? ""}` })}
-          </AssistantNote>
 
           {!hasPlace ? (
             <AssistantNote who="peggy" action={<PillLink href="/home/settings" tone="ink" size="sm">{t("trust.addCityBtn")}</PillLink>}>{t("trust.addCity")}</AssistantNote>
@@ -194,7 +205,7 @@ export default async function MarketplaceSuppliersPage({ searchParams }: PagePro
                       </div>
                     )}
                     <div className="mt-auto grid grid-cols-2 gap-2 pt-4 sm:grid-cols-3">
-                      <PillLink href={`/suppliers/${s.slug}`} size="sm" className="min-h-[40px]">{t("sup.profile", { count: s._count.products })}</PillLink>
+                      <PillLink href={`/suppliers/${s.slug}`} size="sm" className="min-h-[40px]">{t("sup.profile")}</PillLink>
                       <ChatButton contactId={s.id} />
                       <PillLink href={`/marketplace?supplier=${s.slug}`} size="sm" tone="ink" className="col-span-2 min-h-[40px] sm:col-span-1">{t("sup.theirProducts")}</PillLink>
                     </div>

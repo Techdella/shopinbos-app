@@ -10,6 +10,7 @@ import { useT } from "@/components/i18n/I18nProvider";
 import { AGREEMENT_POINTS, type StockCheck } from "@shared/supplier-trust";
 import type { FindSupplier } from "@/lib/marketplace/find";
 import { SupplierRiskDetails } from "./SupplierTrust";
+import { Term } from "@/components/learn/Term";
 
 // Before a seller lists a supplier's products to dropship: call the supplier, see the stock yourself (a visit or a
 // video call), and accept the Dropship agreement, which then goes to the supplier to accept. Only then can the
@@ -102,7 +103,7 @@ export function BeforeYouList({ supplier, listing }: { supplier: FindSupplier; l
               </div>
             </li>
             <li className="grid gap-2 rounded-[14px] bg-app-canvas p-3">
-              <span className="text-[14px] font-extrabold">3. {t("trust.step.agree")}</span>
+              <span className="text-[14px] font-extrabold">3. <Term k="dropship-agreement">{t("trust.step.agree")}</Term></span>
               <ul className="m-0 grid list-disc gap-1 pl-5 text-[13px] leading-[1.45]">
                 {Array.from({ length: AGREEMENT_POINTS }, (_, index) => <li key={index}>{t.dynamic(`trust.point.${index}`, "")}</li>)}
               </ul>

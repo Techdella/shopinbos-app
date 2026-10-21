@@ -151,19 +151,10 @@ export function ShippingZoneForm({ zone, currency }: { zone?: ShippingZoneFormVa
     <form onSubmit={submit} className="grid gap-4">
       <section className={card}>
         <h2 className="m-0 text-[17px] font-extrabold">{t("form.zone")}</h2>
-        <div className="mt-3 grid gap-3 md:grid-cols-[minmax(0,1fr)_200px]">
-          <div className="min-w-0">
-            <FieldLabel htmlFor="zone-name">{t("form.zoneName")}</FieldLabel>
-            <TextInput id="zone-name" required maxLength={120} placeholder={t("form.zoneNamePlaceholder")} value={name} onChange={(event) => setName(event.target.value)} autoComplete="off" />
-          </div>
-          <div className="min-w-0">
-            <FieldLabel htmlFor="zone-order">{t("form.checkOrder")}</FieldLabel>
-            <TextInput id="zone-order" inputMode="numeric" value={sortOrder} onChange={(event) => setSortOrder(event.target.value.replace(/[^\d-]/g, ""))} aria-describedby="zone-order-hint" />
-          </div>
+        <div className="mt-3 min-w-0 max-w-[520px]">
+          <FieldLabel htmlFor="zone-name">{t("form.zoneName")}</FieldLabel>
+          <TextInput id="zone-name" required maxLength={120} placeholder={t("form.zoneNamePlaceholder")} value={name} onChange={(event) => setName(event.target.value)} autoComplete="off" />
         </div>
-        <p id="zone-order-hint" className="mb-0 mt-2 text-[13px] leading-5 text-app-ink-soft">
-          {t("form.checkOrderHint")}
-        </p>
         <div className="mt-4 flex items-center justify-between gap-3 rounded-[16px] bg-app-canvas px-4 py-3">
           <div className="min-w-0">
             <div className="text-[14.5px] font-bold">{t("form.useAtCheckout")}</div>
@@ -171,6 +162,19 @@ export function ShippingZoneForm({ zone, currency }: { zone?: ShippingZoneFormVa
           </div>
           <Toggle on={active} onChange={setActive} label={t("form.useAtCheckout")} />
         </div>
+        {/* Rarely needed: only matters when one address could match two places. */}
+        <details className="group mt-3" open={(zone?.sortOrder ?? 0) !== 0}>
+          <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 text-[13.5px] font-bold text-app-accent-ink [&::-webkit-details-marker]:hidden">
+            <span aria-hidden className="transition-transform group-open:rotate-90">›</span> {t("form.moreOptions")}
+          </summary>
+          <div className="mt-3 max-w-[260px]">
+            <FieldLabel htmlFor="zone-order">{t("form.checkOrder")}</FieldLabel>
+            <TextInput id="zone-order" inputMode="numeric" value={sortOrder} onChange={(event) => setSortOrder(event.target.value.replace(/[^\d-]/g, ""))} aria-describedby="zone-order-hint" />
+          </div>
+          <p id="zone-order-hint" className="mb-0 mt-2 text-[13px] leading-5 text-app-ink-soft">
+            {t("form.checkOrderHint")}
+          </p>
+        </details>
       </section>
 
       <section className={card}>

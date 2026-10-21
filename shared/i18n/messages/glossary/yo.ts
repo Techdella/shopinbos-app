@@ -196,6 +196,10 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "seasonal-campaigns.example": "Black Friday: àwọ̀ gold, countdown àti badge “BF Deal” láti Ẹtì títí di alẹ́ Àìkú.",
   "wallet.short": "Ibi tí owó káàdì rẹ ń lọ: tààrà sí báńkì tìrẹ, Shopinbos kì í di owó rẹ mú.",
   "wallet.example": "Oníbàárà san ₦30,000: ₦30,000 rẹ (láìsí owó Paystack) wọ GTBank rẹ ní ọjọ́ iṣẹ́ tó tẹ̀lé e.",
+  "credits.short": "Ohun tí iṣẹ́ AI ń lò ní Shopinbos: plan rẹ ń fún ọ ní díẹ̀ lóṣooṣù, o sì lè ra sí i.",
+  "credits.example": "Rex ṣe àwòrán tuntun mẹ́ta ti handbag rẹ; credits díẹ̀ yọ kúrò nínú tòṣooṣù rẹ.",
+  "business-registration.short": "Fífi orúkọ iṣẹ́ rẹ sílẹ̀ ní CAC, kí ó di ti òfin kí o sì gba BN number.",
+  "business-registration.example": "Fi “Ada's Fabrics” sílẹ̀ ní CAC láti Shopinbos kí o sì download certificate níbí.",
 };
 
 export default yo;

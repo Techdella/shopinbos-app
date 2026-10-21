@@ -12,6 +12,7 @@ import { requireRole } from "@/lib/server-auth";
 import { ChatbotClient } from "./ChatbotClient";
 import { WhatsAppPeggyClient } from "./WhatsAppPeggyClient";
 import { getT } from "@/lib/i18n/server";
+import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -24,6 +25,7 @@ const tabClass = (active: boolean) =>
 
 export default async function ChatbotPage({ searchParams }: { searchParams: Promise<{ tab?: string | string[] }> }) {
   const user = await requireRole(["seller"], "/login");
+  const tipT = await getT("tips");
   const t = await getT("inbox");
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true } });
   if (!store) redirect("/builder?firstRun=1");
@@ -62,6 +64,7 @@ export default async function ChatbotPage({ searchParams }: { searchParams: Prom
         }
       >
         {tabs}
+        <PageTip className="mb-5">{tipT("inbox.chatbot")}</PageTip>
         <WhatsAppPeggyClient
           initialBot={automation.chatbot}
           initialView={view}
@@ -90,6 +93,7 @@ export default async function ChatbotPage({ searchParams }: { searchParams: Prom
       }
     >
       {tabs}
+      <PageTip className="mb-5">{tipT("inbox.chatbot")}</PageTip>
       <ChatbotClient initial={automation.chatbot} hoursOn={automation.autoReply.hours.enabled} ready={automation.ready} aiAvailable={hasAiProvider()} widgetOn={Boolean(liveChat) && liveChat?.mode !== "whatsapp"} storeName={store.name} />
     </SellerPage>
   );

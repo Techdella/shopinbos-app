@@ -8,6 +8,7 @@ import type { connectionsForOwner, privateCardsForOwner } from "@/lib/delivery-m
 import { endConnectionAction, respondRateCardAction, updateConnectionAction } from "@/app/actions/delivery-market";
 import { CardExtras, RateTable, VerifiedPill } from "./bits";
 import { podDisclaimer, serviceLabel } from "./words";
+import { Term } from "@/components/learn/Term";
 
 // "My delivery partners" and private rates waiting for an answer, for sellers and suppliers.
 
@@ -44,7 +45,7 @@ export async function MyPartners({
     <section id="my-partners" className="grid scroll-mt-24 gap-4">
       {pending.length > 0 && (
         <Card className="p-5">
-          <CardHead title={t("mine.privateTitle")} sub={t("mine.privateSub")} />
+          <CardHead title={<Term k="private-rates">{t("mine.privateTitle")}</Term>} sub={t("mine.privateSub")} />
           <div className="mt-4 grid gap-5">
             {pending.map((card) => (
               <div key={card.id} className="grid gap-3 rounded-[16px] bg-app-canvas p-4">
@@ -134,7 +135,7 @@ export async function MyPartners({
                     </fieldset>
 
                     <fieldset className="m-0 grid gap-2 border-0 p-0">
-                      <legend className={field.label}>{t("pod.title")}</legend>
+                      <legend className={field.label}><Term k="cod">{t("pod.title")}</Term></legend>
                       <label className="flex items-center gap-2 text-[14px]">
                         <input type="checkbox" name="ownerPod" defaultChecked={connection.ownerPod} className={field.checkbox} />
                         {t("pod.letCustomersPay")}

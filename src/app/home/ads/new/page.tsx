@@ -10,6 +10,7 @@ import { getPriceBook } from "@/lib/pricing/price-book.server";
 import { adPrices } from "@shared/platform-pricing";
 import { CampaignWizard } from "./CampaignWizard";
 import { PromoBanner } from "@/components/pricing/PromoBanner";
+import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -21,6 +22,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function NewCampaignPage({ searchParams }: { searchParams: Promise<{ video?: string; product?: string }> }) {
   const query = await searchParams;
   const user = await requireRole(["seller"], "/login");
+  const tipT = await getT("tips");
   const t = await getT("ads");
   const prices = adPrices(await getPriceBook());
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, customDomain: true, logoUrl: true } });
@@ -42,6 +44,7 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
 
   return (
     <SellerPage user={user} store={storeSummary(store)} title={t("c.title")} sub={t("c.sub")}>
+      <PageTip className="mb-5">{tipT("ads.new")}</PageTip>
       <PromoBanner role="seller" className="mb-5" />
       <CampaignWizard
         products={products.map((product) => ({ id: product.id, name: product.name, price: product.retailPrice, image: product.images[0] ?? null }))}

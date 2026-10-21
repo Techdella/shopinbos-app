@@ -10,6 +10,7 @@ import { SoonCard } from "@/app/channels/ChannelClient";
 import { ConnectAccounts } from "@/app/channels/ConnectAccounts";
 import { ChannelBadge } from "../_kit/ChannelBadge";
 import { SocialNav } from "../_kit/SocialNav";
+import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -25,6 +26,7 @@ const SOON = ["pinterest", "snapchat"] as const;
 
 export default async function SocialAccountsPage({ searchParams }: { searchParams: Promise<{ problem?: string; connected?: string }> }) {
   const user = await requireRole(["seller"], "/login");
+  const tipT = await getT("tips");
   const t = await getT("socialPosts", "common");
   const query = await searchParams;
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true } });
@@ -41,6 +43,7 @@ export default async function SocialAccountsPage({ searchParams }: { searchParam
     <SellerPage user={user} store={storeSummary(store)} title={t("accounts.title")} sub={t("accounts.sub")}>
       <SocialNav active="accounts" />
       <div className="grid gap-6">
+        <PageTip>{tipT("social.accounts")}</PageTip>
         {query.problem === "meta" && <p role="status" className="m-0 rounded-[14px] bg-app-danger-tint px-4 py-3 text-[14px] text-app-danger">{t("accounts.problem")}</p>}
         {query.connected === "meta" && <p role="status" className="m-0 rounded-[14px] bg-app-mint px-4 py-3 text-[14px] font-semibold">{t("accounts.connected")}</p>}
 

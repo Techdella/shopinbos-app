@@ -1,6 +1,7 @@
 import { randomBytes } from "crypto";
 import { z } from "zod";
 import { db } from "@/lib/db/client";
+import { ensureSupplierOrdersSafely } from "@/lib/supplier-orders/service.server";
 import { RECORDED_SALE_CHANNELS } from "@shared/channels";
 import { SALE_DELIVERY_KEYS, SALE_PAYMENT_KEYS, saleStatus, saleTotals, type SaleLine } from "@shared/sales";
 
@@ -59,7 +60,7 @@ export async function recordSale(storeId: string, input: RecordSaleInput) {
   const { status, paymentMethod, delivered } = saleStatus(input.payment, input.delivery);
   const now = new Date();
 
-  return db.$transaction(async (tx) => {
+  const order = await db.$transaction(async (tx) => {
     for (const line of lines) {
       if (!line.productId) continue;
       // The sale already happened, so it's recorded even if the stock count was off; stock stops at 0.
@@ -92,4 +93,8 @@ export async function recordSale(storeId: string, input: RecordSaleInput) {
       },
     });
   });
+  // Dropship items in a sale to deliver go to their supplier straight away, the same as a storefront order (paid, or
+  // pay on delivery). Handed over in person means the seller already had it, so nothing is sent.
+  if (input.delivery === "deliver") await ensureSupplierOrdersSafely(order.id);
+  return order;
 }

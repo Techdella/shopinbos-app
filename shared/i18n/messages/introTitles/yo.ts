@@ -69,6 +69,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "media.title": "Àwọn àwòrán",
   "seasonal-campaigns.title": "Campaigns ìgbà ọdún",
   "wallet.title": "Shopinbos Wallet",
+  "credits.title": "AI credits",
+  "business-registration.title": "Fi iṣẹ́ rẹ sílẹ̀",
 };
 
 export default yo;

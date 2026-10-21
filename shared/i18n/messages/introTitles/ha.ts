@@ -69,6 +69,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "media.title": "Hotuna",
   "seasonal-campaigns.title": "Campaigns na lokacin biki",
   "wallet.title": "Shopinbos Wallet",
+  "credits.title": "AI credits",
+  "business-registration.title": "Yi wa kasuwancinka rajista",
 };
 
 export default ha;

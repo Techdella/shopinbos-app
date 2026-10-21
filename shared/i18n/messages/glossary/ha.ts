@@ -196,6 +196,10 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "seasonal-campaigns.example": "Black Friday: launin gold, ƙidayar lokaci da badge “BF Deal” daga Juma'a zuwa daren Lahadi.",
   "wallet.short": "Inda ake biyan kuɗin kati naka: kai tsaye zuwa bankinka, Shopinbos ba ya riƙe kuɗinka.",
   "wallet.example": "Abokin ciniki ya biya ₦30,000: ₦30,000 naka (ban da kuɗin Paystack) zai shiga GTBank ɗinka a ranar aiki ta gaba.",
+  "credits.short": "Abin da ayyukan AI ke amfani da shi a Shopinbos: plan ɗinka yana ba ka wasu kowane wata, kuma za ka iya saya.",
+  "credits.example": "Rex ya yi sababbin hotuna uku na jakarka; an cire ƴan credits daga na wata-wata.",
+  "business-registration.short": "Yi wa sunan kasuwancinka rajista a CAC, don ya zama na hukuma ka sami BN number.",
+  "business-registration.example": "Yi wa “Ada's Fabrics” rajista a CAC daga Shopinbos ka download certificate a nan.",
 };
 
 export default ha;

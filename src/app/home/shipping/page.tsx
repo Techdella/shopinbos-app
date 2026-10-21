@@ -2,7 +2,8 @@ import { requireRole } from "@/lib/server-auth";
 import { getSellerWorkspace } from "@/lib/workspace";
 import { db } from "@/lib/db/client";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
-import { CardHead, EmptyState, ListCard, ListRow, Pill, PillLink, TextLink, Thumb } from "@/components/app-kit";
+import { AssistantNote, CardHead, EmptyState, ListCard, ListRow, Pill, PillLink, TextLink, Thumb } from "@/components/app-kit";
+import { DeliveryTip } from "@/components/delivery-market/DeliveryTip";
 import { Icon } from "@/components/ui/Icon";
 import { getT } from "@/lib/i18n/server";
 
@@ -65,8 +66,15 @@ export default async function ShippingPage() {
       actions={<PillLink href="/home/shipping/new" tone="accent" icon="plus">{t("zones.add")}</PillLink>}
     >
       <div className="grid gap-6">
+        <DeliveryTip>
+          <AssistantNote who="peggy">{t("tip.list")}</AssistantNote>
+        </DeliveryTip>
+
         <section className="grid gap-3">
-          <h2 className="m-0 text-[17px] font-extrabold">{t("zones.yours")}</h2>
+          <div>
+            <h2 className="m-0 text-[17px] font-extrabold">{t("zones.yours")}</h2>
+            <p className="m-0 mt-0.5 text-[13px] text-app-ink-soft">{t("zones.yoursSub")}</p>
+          </div>
           {shippingZones.length === 0 ? (
             <EmptyState icon="pin" title={t("zones.empty")} action={<PillLink href="/home/shipping/new" tone="ink" icon="plus">{t("zones.create")}</PillLink>}>
               {t("zones.emptySub")}
@@ -109,7 +117,7 @@ export default async function ShippingPage() {
 
         {logisticsPartners.length > 0 && (
           <section className="grid gap-3">
-            <CardHead title={t("partners.title")} action={<TextLink href="/home/logistics">{t("partners.seeAll")}</TextLink>} />
+            <CardHead title={t("partners.title")} sub={t("partners.sub")} action={<TextLink href="/home/logistics">{t("partners.seeAll")}</TextLink>} />
             <ul className="m-0 grid list-none gap-3 p-0 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
               {logisticsPartners.map((partner) => {
                 const zones = (partner.coverageZones ?? []) as string[];
