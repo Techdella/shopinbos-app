@@ -43,6 +43,23 @@ export function TrustBadges({ ctx }: { ctx: BlockContext }) {
   const tiles = settings.style === "tiles" || settings.style === "dark";
   const dark = settings.style === "dark";
   const title = str(copy.title);
+  if (settings.style === "strip") {
+    // Three (or more) coloured blocks edge to edge under the header, the promise centred in each (Rẹ̀wà).
+    const fills = ["#A3A3A3", t.accent, "#333333", t.ink];
+    return (
+      <section aria-label={title || "Why shop with us"}>
+        <ul className="m-0 grid list-none p-0 @3xl:grid-flow-col @3xl:auto-cols-fr">
+          {badges.map((badge, i) => (
+            <li key={badge.key} className="flex flex-col items-center justify-center gap-0.5 px-4 py-4 text-center text-white" style={{ background: fills[i % fills.length], opacity: badge.missing ? 0.6 : 1 }}>
+              {badge.title ? <span className="text-[13.5px] font-bold">{badge.title}</span> : null}
+              {badge.body ? <span className="text-[12px] opacity-85">{badge.body}</span> : null}
+              {badge.missing ? <span className="text-[11.5px] opacity-80">Fills in from your settings. Hidden from shoppers until set up.</span> : null}
+            </li>
+          ))}
+        </ul>
+      </section>
+    );
+  }
   return (
     <section aria-labelledby={title ? headingId : undefined} aria-label={title ? undefined : "Why shop with us"} className="bq-wrap py-8">
       {title ? <h2 id={headingId} className={`bq-h text-center ${tiles ? "mb-8 text-[30px] @3xl:text-[38px]" : "mb-5 text-[24px]"}`} style={look.headingStyle}>{title}</h2> : null}

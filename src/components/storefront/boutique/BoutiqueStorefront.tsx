@@ -202,6 +202,37 @@ function Countdown({ settings, look, copy, onShop, editor, say }: { settings: un
   );
 }
 
+/** The sale-window countdown inside "deal" product sections: days, hours, minutes and seconds in square boxes. */
+function DealTimer({ settings, look, editor, say }: { settings: unknown; look: BoutiqueLook; editor: boolean; say: EditorText }) {
+  const [now, setNow] = useState<Date | null>(null);
+  useEffect(() => {
+    setNow(new Date());
+    const timer = window.setInterval(() => setNow(new Date()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const config = readPaydaySettings(settings);
+  const window_ = now ? paydayWindow(now, config) : null;
+  const target = window_ ? (window_.phase === "live" ? window_.end : window_.start) : null;
+  const parts = now && target ? countdownParts(target, now) : null;
+  const status = window_ ? (window_.phase === "live" ? `Ends ${lagosDayLabel(paydayLastDay(window_), "weekday")}` : `Starts ${lagosDayLabel(window_.start, "short")}`) : "";
+  const t = look.tokens;
+  const units: Array<[string, number | null]> = [["Days", parts?.days ?? null], ["Hours", parts?.hours ?? null], ["Min", parts?.minutes ?? null], ["Sec", parts?.seconds ?? null]];
+  return (
+    <div className="mt-1">
+      <div className="flex gap-2.5" role="timer" aria-label={parts ? `${window_?.phase === "live" ? "Ends" : "Starts"} in ${parts.days} days ${parts.hours} hours` : "Countdown"}>
+        {units.map(([label, value]) => (
+          <div key={label} className="text-center" aria-hidden>
+            <div className="grid h-14 min-w-14 place-items-center border-2 px-2 text-[24px] font-semibold tabular-nums" style={{ borderColor: t.ink, borderRadius: Math.min(look.cardRadius, 8) }}>{value === null ? "--" : String(value).padStart(2, "0")}</div>
+            <div className="mt-1 text-[10.5px] uppercase tracking-[0.14em]" style={{ color: t.muted }}>{label}</div>
+          </div>
+        ))}
+      </div>
+      {status ? <p className="m-0 mt-2 text-[13px]" style={{ color: t.muted }}>{status}</p> : null}
+      {editor ? <p className="m-0 mt-1 text-[12px]" style={{ color: t.muted, opacity: 0.8 }}>{paydayNote(config, say)}</p> : null}
+    </div>
+  );
+}
+
 export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
   const { themeId, store, snapshot, mode } = props;
   const live = mode === "live";
@@ -1919,6 +1950,112 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       );
     }
 
+    // ─── Inspiration batch 6: Rẹ̀wà, Ìgbésẹ̀, Ọlá, Ọkùnrin, Sálúbàtà ────────────────────────────────
+    if (layout === "rewa-trends") {
+      const shots = pool.slice(0, 3);
+      const at = shots.length ? heroIndex % shots.length : 0;
+      return (
+        <section aria-labelledby={headingId} className="relative overflow-hidden" style={{ background: t.heroBg, color: "#FFFFFF" }}>
+          <div className="bq-media inset-0" style={{ position: "absolute", borderRadius: 0, background: t.heroBg }}>{picture(shots[at], true)}</div>
+          <div aria-hidden className="absolute inset-0" style={{ background: shots.length ? "linear-gradient(90deg, rgba(0,0,0,.5), rgba(0,0,0,.15) 60%)" : "transparent" }} />
+          <div className="bq-wrap relative flex min-h-[440px] flex-col items-start justify-end gap-4 pb-14 pt-24 @3xl:min-h-[600px]">
+            {eyebrow ? <p className="m-0 text-[12px] font-semibold" style={{ letterSpacing: "0.04em" }}>* {eyebrow}</p> : null}
+            <h1 id={headingId} className="bq-h m-0 max-w-[14ch] uppercase" style={{ ...look.headingStyle, fontWeight: 800, fontSize: "clamp(40px, 6.4cqi, 88px)", lineHeight: 0.98 }}>{title}</h1>
+            {body ? <p className="m-0 max-w-[460px] text-[15px] opacity-90">{body}</p> : null}
+            <button type="button" className="bq-btn mt-1" style={{ background: "transparent", color: "#FFFFFF", border: "2px solid #FFFFFF", textTransform: "uppercase", fontSize: 12.5, fontWeight: 700 }} onClick={() => go(action)}>{cta}</button>
+          </div>
+          {shots.length > 1 ? (
+            <div className="absolute left-4 top-1/2 flex -translate-y-1/2 flex-col gap-2">
+              {shots.map((_, i) => <button key={i} type="button" aria-label={`Picture ${i + 1}`} aria-pressed={i === at} onClick={() => setHeroIndex(i)} className="h-2.5 w-2.5 cursor-pointer rounded-full border-0 p-0" style={{ background: i === at ? t.accent : "#FFFFFF" }} />)}
+            </div>
+          ) : null}
+        </section>
+      );
+    }
+
+    if (layout === "igbese-stripes") {
+      return (
+        <section aria-labelledby={headingId} className="relative overflow-hidden" style={{ background: t.paperBg, color: t.ink }}>
+          <div aria-hidden className="absolute inset-y-0 right-0 hidden w-[58%] @3xl:block" style={{ background: `linear-gradient(135deg, #FFC400, ${t.accent})`, clipPath: "polygon(22% 0, 100% 0, 100% 100%, 0 100%)" }} />
+          <div aria-hidden className="absolute inset-y-0 right-0 hidden w-[58%] @3xl:block" style={{ backgroundImage: "repeating-linear-gradient(120deg, transparent 0 70px, rgba(255,255,255,.85) 70px 86px, transparent 86px 170px)", clipPath: "polygon(22% 0, 100% 0, 100% 100%, 0 100%)", opacity: 0.6 }} />
+          <div className="bq-wrap relative grid items-center gap-8 py-12 @3xl:grid-cols-[1fr_1.2fr] @3xl:py-20">
+            <div className="flex flex-col items-start gap-4">
+              {eyebrow ? <p className="m-0 text-[13px] font-bold uppercase" style={{ color: t.accent, letterSpacing: "0.12em" }}>{eyebrow}</p> : null}
+              <h1 id={headingId} className="bq-h m-0 max-w-[12ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 4.8cqi, 62px)", lineHeight: 1.06 }}>{title}</h1>
+              {body ? <p className="m-0 max-w-[420px] text-[15px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
+              <button type="button" onClick={() => go(action)} className="mt-1 inline-flex cursor-pointer items-center gap-3 border-0 bg-transparent p-0 text-[13px] font-bold uppercase" style={{ color: t.ink, letterSpacing: "0.06em" }}>
+                <span aria-hidden className="grid h-11 w-11 place-items-center rounded-full" style={{ background: t.accent, color: t.ctaText }}><Icon name="chevRight" size={18} /></span>
+                {cta}
+              </button>
+            </div>
+            <div className="bq-media aspect-[4/3]" style={{ background: "transparent", borderRadius: look.cardRadius + 6, boxShadow: "0 30px 60px rgba(0,0,0,.18)" }}>{img}</div>
+          </div>
+        </section>
+      );
+    }
+
+    if (layout === "ola-duo") {
+      // The heading over two photos labelled with the first two categories ("For her" and "For him" in the template).
+      const second = !uploaded.length && stock ? stock.story : pool[1];
+      const labels = categories.slice(0, 2);
+      const half = (src: string | undefined, i: number) => {
+        const category = labels[i];
+        return (
+          <button key={i} type="button" onClick={() => (category ? shopCategory(category.slug) : go(action))} className="group relative block aspect-[4/5] cursor-pointer overflow-hidden border-0 p-0 @3xl:aspect-[5/6]" style={{ background: look.placeholder }}>
+            <span className="bq-media inset-0 block" style={{ position: "absolute", borderRadius: 0 }}>{src ? <img src={src} alt="" width={800} height={960} loading="eager" className="transition duration-700 group-hover:scale-[1.04]" /> : null}</span>
+            <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 px-7 py-2.5 text-[13px] font-semibold" style={{ background: "#FFFFFF", color: "#222" }}>{category?.name ?? cta}</span>
+          </button>
+        );
+      };
+      return (
+        <section aria-labelledby={headingId} className="relative overflow-hidden" style={{ background: t.paperBg, color: t.ink }}>
+          <div className="bq-wrap relative py-12 text-center @3xl:py-16">
+            {eyebrow ? <p className="m-0 text-[17px] @3xl:text-[20px]" style={{ color: t.muted }}>{eyebrow}</p> : null}
+            <h1 id={headingId} className="bq-h m-0 mt-2" style={{ ...look.headingStyle, fontSize: "clamp(32px, 4.4cqi, 54px)", lineHeight: 1.1 }}>{title}</h1>
+            {body ? <p className="mx-auto mt-3 max-w-[520px] text-[15px]" style={{ color: t.muted }}>{body}</p> : null}
+            <div className="mt-8 grid grid-cols-2 gap-0">{half(image, 0)}{half(second, 1)}</div>
+          </div>
+        </section>
+      );
+    }
+
+    if (layout === "okunrin-circle") {
+      return (
+        <section aria-labelledby={headingId} className="relative overflow-hidden" style={{ background: t.heroBg, color: t.ink }}>
+          <div className="bq-wrap grid items-center gap-8 pt-10 @3xl:grid-cols-2 @3xl:pt-0">
+            <div className="flex flex-col items-start gap-4 @3xl:py-24">
+              {eyebrow ? <p className="m-0 text-[12.5px] font-bold uppercase" style={{ color: t.accent, letterSpacing: "0.18em" }}>{eyebrow}</p> : null}
+              <h1 id={headingId} className="bq-h m-0 max-w-[13ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 4.6cqi, 58px)", lineHeight: 1.1 }}>{title}</h1>
+              {body ? <p className="m-0 max-w-[400px] text-[15px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
+              <button type="button" className="bq-btn mt-2" style={{ ...look.primaryButton, textTransform: "uppercase", letterSpacing: "0.12em", fontSize: 12.5, fontWeight: 700 }} onClick={() => go(action)}>{cta} <span aria-hidden className="ml-2">→</span></button>
+            </div>
+            <div className="relative mx-auto w-full max-w-[520px] self-end">
+              <div aria-hidden className="absolute left-[8%] top-[6%] aspect-square w-[78%] rounded-full" style={{ background: "#F6D9D2" }} />
+              <div aria-hidden className="absolute right-0 top-[4%] h-28 w-36" style={{ backgroundImage: "radial-gradient(#FFFFFF 2.5px, transparent 2.5px)", backgroundSize: "14px 14px" }} />
+              <div aria-hidden className="absolute bottom-[12%] left-0 h-24 w-28" style={{ backgroundImage: `radial-gradient(${t.ink}33 2px, transparent 2px)`, backgroundSize: "14px 14px" }} />
+              <div className="bq-media relative mx-auto aspect-[4/5] w-[78%]" style={{ background: "transparent", borderRadius: "999px 999px 0 0" }}>{img}</div>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    if (layout === "salubata-cutout") {
+      return (
+        <section aria-labelledby={headingId} className="relative overflow-hidden" style={{ background: t.heroBg, color: t.heroText }}>
+          <div className="bq-wrap grid items-center gap-8 py-12 @3xl:grid-cols-[1fr_1.15fr] @3xl:py-16">
+            <div className="flex flex-col items-start gap-4">
+              {eyebrow ? <p className="m-0 px-2.5 py-1 text-[12px] font-semibold uppercase" style={{ background: "#111111", color: t.heroBg, letterSpacing: "0.14em" }}>#{eyebrow}</p> : null}
+              <h1 id={headingId} className="bq-h m-0 max-w-[14ch] uppercase" style={{ ...look.headingStyle, fontWeight: 300, fontSize: "clamp(34px, 4.4cqi, 56px)", lineHeight: 1.1 }}>{title}</h1>
+              {body ? <p className="m-0 max-w-[420px] text-[15px] leading-7" style={{ opacity: 0.8 }}>{body}</p> : null}
+              <div className="mt-1">{ctaButton()}</div>
+            </div>
+            <div className="bq-media aspect-[4/3]" style={{ background: "transparent", borderRadius: 0 }}>{img}</div>
+          </div>
+        </section>
+      );
+    }
+
     if (layout === "adire-banner") {
       return (
         <section aria-labelledby={headingId}>
@@ -2177,6 +2314,110 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       : categories.map((category) => ({ key: category.slug, name: category.name, image: category.imageUrl, count: category.count, onSelect: () => shopCategory(category.slug) }));
     if (!tiles.length) return editorHint("Category tiles appear once your products have categories or you create collections.");
     const headingId = `${uid}-${section.id}`;
+    if (section.settings?.layout === "boutique-halves") {
+      // Two tall photos, half the page each, the name in huge bold letters with an outline button (Rẹ̀wà).
+      return (
+        <section aria-labelledby={headingId}>
+          <h2 id={headingId} className="sr-only">{text(copy.title) || "Collections"}</h2>
+          <div className="grid @3xl:grid-cols-2">
+            {tiles.slice(0, 2).map((tile) => (
+              <button key={tile.key} type="button" onClick={tile.onSelect} className="group relative block min-h-[340px] cursor-pointer overflow-hidden border-0 p-0 text-left @3xl:min-h-[480px]" style={{ background: look.placeholder }}>
+                <span className="bq-media inset-0 block" style={{ position: "absolute", borderRadius: 0 }}>{tile.image ? <img src={tile.image} alt="" width={900} height={900} loading="lazy" className="transition duration-700 group-hover:scale-[1.04]" /> : null}</span>
+                <span aria-hidden className="absolute inset-0" style={{ background: "linear-gradient(90deg, rgba(0,0,0,.45), rgba(0,0,0,.05))" }} />
+                <span className="absolute inset-0 flex flex-col items-start justify-center gap-4 p-8 text-white @3xl:p-12">
+                  <span className="text-[12px] font-semibold uppercase" style={{ letterSpacing: "0.14em" }}>{tile.count} {tile.count === 1 ? "product" : "products"}</span>
+                  <span className="max-w-[10ch] uppercase leading-[0.95]" style={{ fontFamily: look.headingFont, fontWeight: 800, fontSize: "clamp(40px, 5.6cqi, 76px)" }}>{tile.name}</span>
+                  <span className="border-2 border-white px-6 py-2.5 text-[12.5px] font-bold uppercase transition group-hover:bg-white group-hover:text-black">Shop now</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
+      );
+    }
+    if (section.settings?.layout === "boutique-exclusive") {
+      // A words card and a big photo on top, three labelled photos below (Ọlá).
+      const [big, ...small] = tiles;
+      const photo = (tile: (typeof tiles)[number], className: string) => (
+        <button key={tile.key} type="button" onClick={tile.onSelect} className={`group relative block cursor-pointer overflow-hidden border-0 p-0 ${className}`} style={{ background: look.placeholder, borderRadius: look.cardRadius }}>
+          <span className="bq-media inset-0 block" style={{ position: "absolute", borderRadius: 0 }}>{tile.image ? <img src={tile.image} alt="" width={800} height={600} loading="lazy" className="transition duration-700 group-hover:scale-[1.05]" /> : null}</span>
+          <span aria-hidden className="absolute inset-0" style={{ background: "linear-gradient(0deg, rgba(0,0,0,.5), rgba(0,0,0,0) 45%)" }} />
+          <span className="absolute bottom-4 left-4 text-[14px] font-semibold text-white">{tile.name} →</span>
+        </button>
+      );
+      return (
+        <section aria-labelledby={headingId} className="bq-wrap pt-12">
+          <div className="grid gap-3 @3xl:grid-cols-3">
+            <div className="flex flex-col items-start justify-center gap-3 p-8" style={{ background: "#E9E9E9", borderRadius: look.cardRadius }}>
+              <p className="m-0 text-[13px] font-semibold" style={{ color: t.muted }}>Exclusive collection</p>
+              <h2 id={headingId} className="bq-h m-0 text-[28px]" style={look.headingStyle}>{text(copy.title) || "Be exclusive"}</h2>
+              {text(store.description) ? <p className="m-0 text-[13.5px] leading-6" style={{ color: t.muted }}>{text(store.description)}</p> : null}
+              <button type="button" className="bq-btn mt-2" style={look.primaryButton} onClick={() => go("products")}>Explore</button>
+            </div>
+            {big ? photo(big, "min-h-[280px] @3xl:col-span-2") : null}
+            {small.slice(0, 3).map((tile) => photo(tile, "aspect-[4/3]"))}
+          </div>
+        </section>
+      );
+    }
+    if (section.settings?.layout === "boutique-staggered") {
+      // Three collections staggered down the page, each a photo with its name and a "Shop now" underline (Ọkùnrin).
+      const item = (tile: (typeof tiles)[number], i: number) => (
+        <button key={tile.key} type="button" onClick={tile.onSelect} className={`group flex cursor-pointer gap-6 border-0 bg-transparent p-0 text-left ${i === 1 ? "flex-col-reverse items-start @3xl:col-span-5 @3xl:col-start-1 @3xl:-mt-28" : "items-center @3xl:col-span-7"} ${i === 0 ? "@3xl:col-start-6" : ""} ${i === 2 ? "@3xl:col-start-6 @3xl:-mt-16" : ""}`} style={{ color: t.ink }}>
+          <span className={`flex flex-col gap-3 ${i === 1 ? "" : "order-first w-[40%]"}`}>
+            <span className="bq-h text-[26px] leading-tight @3xl:text-[30px]" style={look.headingStyle}>{tile.name}</span>
+            <span className="w-max border-b-2 pb-1 text-[12.5px] font-bold uppercase tracking-[0.16em]" style={{ borderColor: t.ink }}>Shop now</span>
+          </span>
+          <span className="bq-media block aspect-square flex-1" style={{ background: look.placeholder, borderRadius: look.cardRadius, minWidth: 0, width: i === 1 ? "100%" : undefined }}>{tile.image ? <img src={tile.image} alt="" width={600} height={600} loading="lazy" className="transition duration-700 group-hover:scale-[1.04]" /> : null}</span>
+        </button>
+      );
+      return (
+        <section aria-labelledby={headingId} className="bq-wrap py-14">
+          <h2 id={headingId} className="sr-only">{text(copy.title) || "Collections"}</h2>
+          <div className="grid gap-10 @3xl:grid-cols-12">{tiles.slice(0, 3).map(item)}</div>
+        </section>
+      );
+    }
+    if (section.settings?.layout === "boutique-panels") {
+      // A tall photo beside colour-block panels: blue with a photo, white with the words, orange with a photo (Sálúbàtà).
+      const [first, second, third] = tiles;
+      const colour = (tile: (typeof tiles)[number] | undefined, bg: string) => tile ? (
+        <button type="button" onClick={tile.onSelect} className="group relative grid min-h-[220px] cursor-pointer grid-cols-2 items-center overflow-hidden border-0 p-0 text-left" style={{ background: bg, color: "#FFFFFF" }}>
+          <span className="flex flex-col gap-2 p-6">
+            <span className="text-[11.5px] font-semibold uppercase" style={{ letterSpacing: "0.16em", opacity: 0.85 }}>{tile.count} {tile.count === 1 ? "product" : "products"}</span>
+            <span className="bq-h text-[22px] leading-tight" style={look.headingStyle}>{tile.name}</span>
+            <span className="mt-1 w-max rounded-full bg-black px-4 py-1.5 text-[12px] font-semibold">Shop now</span>
+          </span>
+          <span className="bq-media block h-full" style={{ background: "transparent", borderRadius: 0 }}>{tile.image ? <img src={tile.image} alt="" width={400} height={400} loading="lazy" className="transition duration-700 group-hover:scale-[1.05]" /> : null}</span>
+        </button>
+      ) : null;
+      return (
+        <section aria-labelledby={headingId} className="bq-wrap pt-12">
+          <div className="grid gap-0 @3xl:grid-cols-[1fr_2fr]">
+            {first ? (
+              <button type="button" onClick={first.onSelect} className="group relative block min-h-[320px] cursor-pointer overflow-hidden border-0 p-0" style={{ background: look.placeholder }}>
+                <span className="bq-media inset-0 block" style={{ position: "absolute", borderRadius: 0 }}>{first.image ? <img src={first.image} alt="" width={600} height={800} loading="lazy" className="transition duration-700 group-hover:scale-[1.05]" /> : null}</span>
+                <span aria-hidden className="absolute inset-0" style={{ background: "linear-gradient(0deg, rgba(0,0,0,.55), rgba(0,0,0,0) 55%)" }} />
+                <span className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-2 p-6 text-center text-white">
+                  <span className="bq-h text-[24px]" style={look.headingStyle}>{first.name}</span>
+                  <span className="rounded-full bg-black px-4 py-1.5 text-[12px] font-semibold">Shop now</span>
+                </span>
+              </button>
+            ) : null}
+            <div className="grid @xl:grid-cols-2">
+              {colour(second, "#1A8FE3")}
+              <div className="flex min-h-[220px] flex-col items-center justify-center gap-3 p-8 text-center" style={{ background: "#FFFFFF", color: t.ink }}>
+                <p className="m-0 text-[11.5px] font-semibold uppercase" style={{ letterSpacing: "0.16em", color: t.muted }}>{store.name}</p>
+                <h2 id={headingId} className="bq-h m-0 text-[26px]" style={look.headingStyle}>{text(copy.title) || "Collections"}</h2>
+                <button type="button" className="bq-btn" style={look.primaryButton} onClick={() => go("products")}>Shop all</button>
+              </div>
+              {colour(third, "#F7941D")}
+              {colour(tiles[3], "#2B2B2B")}
+            </div>
+          </div>
+        </section>
+      );
+    }
     if (section.settings?.layout === "boutique-trio") {
       // Three cards: two narrow ones with the picture above the name, a wide one in the middle with words and a button (Ìjókòó).
       const [left, middle, right] = tiles;
@@ -2507,6 +2748,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     if (railLayout === "mini") return miniCards(section, list, headingId);
     if (railLayout === "intro") return introProducts(section, list, headingId);
     if (railLayout === "per-category") return perCategory(section, headingId);
+    if (railLayout === "overlay") return overlayTiles(section, list, headingId);
+    if (railLayout === "deal") return dealSection(section, list, headingId);
     const scroll = (direction: number) => {
       const rail = railRefs.current[section.id];
       if (rail) rail.scrollBy({ left: direction * rail.clientWidth * 0.9, behavior: "smooth" });
@@ -2810,6 +3053,60 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
                 <span aria-hidden className="absolute -bottom-4 left-1/2 grid h-9 w-9 -translate-x-1/2 place-items-center rounded-full opacity-0 transition group-hover:opacity-100" style={{ background: t.ink, color: "#FFFFFF" }}>+</span>
               </>
             ), { color: t.ink }))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  /** "On the photo" (Ọlá): tall photos with the name and price over a dark fade at the bottom. */
+  function overlayTiles(section: TemplateSectionNode, list: ShopperProduct[], headingId: string) {
+    const copy = copyOf(section);
+    return (
+      <section aria-labelledby={headingId} className="bq-wrap py-12">
+        <h2 id={headingId} className="bq-h mb-8 text-center text-[26px] @3xl:text-[30px]" style={look.headingStyle}>{text(copy.title) || "New arrivals"}</h2>
+        <div className="grid grid-cols-2 gap-3 @3xl:grid-cols-4">
+          {list.slice(0, 4).map((product) => linkToProduct(product, "group relative block aspect-[3/4] overflow-hidden border-0 p-0", (
+            <>
+              <span className="bq-media inset-0 block" style={{ position: "absolute", borderRadius: 0 }}>{product.images[0] ? <img src={product.images[0]} alt="" width={500} height={670} loading="lazy" className="transition duration-700 group-hover:scale-[1.05]" /> : null}</span>
+              <span aria-hidden className="absolute inset-0" style={{ background: "linear-gradient(0deg, rgba(0,0,0,.7), rgba(0,0,0,0) 50%)" }} />
+              <span className="absolute inset-x-0 bottom-0 flex flex-col gap-1 p-4 text-left text-white">
+                <span className="text-[16px] font-semibold leading-tight">{product.name}</span>
+                {product.category?.name ? <span className="text-[12.5px] opacity-80">{product.category.name}</span> : null}
+                <span className="text-[14px] font-semibold" style={{ color: "#FFD28A" }}>{formatStoreMoney(product.retailPrice, product.currency)}</span>
+              </span>
+            </>
+          ), { background: look.placeholder, borderRadius: look.cardRadius }))}
+        </div>
+      </section>
+    );
+  }
+
+  /**
+   * "Deal" (Ìgbésẹ̀, Ọkùnrin, Sálúbàtà): one product large beside a countdown. The countdown is the seller's own sale
+   * window (the Payday countdown settings on this section), so it never shows a deadline the store didn't set.
+   */
+  function dealSection(section: TemplateSectionNode, list: ShopperProduct[], headingId: string) {
+    const copy = copyOf(section);
+    const product = list[0];
+    if (!product) return null;
+    const saving = product.compareAtPrice && product.compareAtPrice > product.retailPrice ? Math.round((1 - product.retailPrice / product.compareAtPrice) * 100) : null;
+    return (
+      <section aria-labelledby={headingId} style={{ background: look.storyBg, color: t.ink }}>
+        <div className="bq-wrap grid items-center gap-8 py-12 @3xl:grid-cols-2 @3xl:py-16">
+          <div className="relative">
+            {linkToProduct(product, "bq-media block aspect-[4/3] w-full border-0 p-0", product.images[0] ? <img src={product.images[0]} alt="" width={800} height={600} loading="lazy" /> : null, { borderRadius: look.cardRadius, background: look.placeholder })}
+            {saving ? <span className="absolute -right-2 -top-3 grid h-20 w-20 place-items-center rounded-full text-center text-[13px] font-bold leading-tight" style={{ background: t.ink, color: "#FFFFFF" }}>Save<br />{saving}%</span> : null}
+          </div>
+          <div className="flex flex-col items-start gap-3">
+            <p className="m-0 text-[12.5px] font-bold uppercase" style={{ color: t.accent, letterSpacing: "0.16em" }}>{text(copy.title) || "Deal of the week"}</p>
+            <h2 id={headingId} className="bq-h m-0 text-[30px] leading-tight @3xl:text-[38px]" style={look.headingStyle}>{product.name}</h2>
+            <p className="m-0 text-[20px] font-semibold">
+              {formatStoreMoney(product.retailPrice, product.currency)}
+              {saving ? <s className="ml-3 text-[16px] font-normal" style={{ color: t.muted }}>{formatStoreMoney(product.compareAtPrice!, product.currency)}</s> : null}
+            </p>
+            <DealTimer settings={section.settings} look={look} editor={!live && !props.demo} say={say} />
+            {linkToProduct(product, "bq-btn mt-2 border-0", <>{text(copy.cta) || "Shop now"}</>, look.primaryButton)}
           </div>
         </div>
       </section>
@@ -3184,7 +3481,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="@3xl:absolute @3xl:inset-0">
             <div className="bq-media aspect-video w-full @3xl:aspect-auto @3xl:h-full" style={{ borderRadius: 0, minHeight: 220 }}>{image ? <img src={image} alt="" width={1600} height={900} loading="lazy" /> : null}</div>
           </div>
-          <div className="relative flex flex-col items-start gap-4 px-6 py-10 @3xl:min-h-[440px] @3xl:w-[44%] @3xl:justify-center @3xl:px-14" style={{ background: "rgba(43,43,43,.86)" }}>
+          <div className={`relative flex flex-col items-start gap-4 px-6 py-10 @3xl:min-h-[440px] @3xl:w-[44%] @3xl:justify-center @3xl:px-14 ${pictureRight ? "@3xl:ml-auto" : ""}`} style={{ background: "rgba(43,43,43,.86)" }}>
             {text(copy.eyebrow) ? <p className="m-0 text-[12px] font-semibold uppercase" style={{ letterSpacing: "0.18em", color: t.accent }}>{text(copy.eyebrow)}</p> : null}
             <h2 id={headingId} className="bq-h m-0 text-[28px] @3xl:text-[36px]" style={{ ...look.headingStyle, lineHeight: 1.12 }}>{text(copy.title) || store.name}</h2>
             {body ? <p className="m-0 whitespace-pre-line text-[14.5px] leading-7 opacity-85">{body}</p> : null}

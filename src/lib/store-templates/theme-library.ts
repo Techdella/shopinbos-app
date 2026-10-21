@@ -16,7 +16,8 @@ export type ThemeLibraryId =
   | "littafi" | "itan" | "awo" | "kyau" | "keke"
   | "ahia" | "ado" | "wuta" | "ike" | "ewu"
   | "erin" | "apere" | "bata" | "ogba" | "eso"
-  | "osan" | "ijokoo" | "ite" | "kujera" | "tufafi";
+  | "osan" | "ijokoo" | "ite" | "kujera" | "tufafi"
+  | "rewa" | "igbese" | "ola" | "okunrin" | "salubata";
 
 /**
  * Which plan a theme needs: basic themes come with every store (the free Starter plan), premium ones with Growth
@@ -421,6 +422,31 @@ export const THEME_LIBRARY: readonly ThemeLibraryEntry[] = [
     industries: ["family fashion", "menswear", "womenswear", "kids clothing", "accessories"], blurb: "Monochrome, a photo mosaic and the latest for each category. For fashion stores", isNew: true, tier: "premium",
     preview: { bg: "#2A2A2A", ink: "#FFFFFF", line: "#3A3A3A", accent: "#FFFFFF", nameFont: "grotesk", nameWeight: 800, dark: true },
   }),
+  entry({
+    id: "rewa", name: "Rẹ̀wà", meaning: "Yoruba for to be beautiful", categories: ["fashion"], categoryLabel: "Fashion",
+    industries: ["fashion", "womenswear", "bags", "dresses", "accessories"], blurb: "Charcoal and hot pink, a promise strip and two big half-width collections. For fashion stores", isNew: true, tier: "premium",
+    preview: { bg: "#2B2B2B", ink: "#FFFFFF", line: "#3B3B3B", accent: "#E8074A", nameFont: "grotesk", nameWeight: 800, dark: true },
+  }),
+  entry({
+    id: "igbese", name: "Ìgbésẹ̀", meaning: "Yoruba for step", categories: ["fashion"], categoryLabel: "Shoes",
+    industries: ["sneakers", "shoes", "sportswear", "trainers", "streetwear"], blurb: "Orange stripes, a photo mosaic and a deal countdown. For sneaker stores", isNew: true, tier: "basic",
+    preview: { bg: "#FFFFFF", ink: "#222222", line: "#F1F1F5", accent: "#FF7A00", nameFont: "grotesk", nameWeight: 800, dark: false },
+  }),
+  entry({
+    id: "ola", name: "Ọlá", meaning: "Yoruba for honour and wealth", categories: ["fashion", "jewellery"], categoryLabel: "Fashion",
+    industries: ["fashion", "accessories", "watches", "jewellery", "bags"], blurb: "Soft grey and refined, For her and For him photos and new arrivals on photos. For fashion houses", isNew: true, tier: "platinum",
+    preview: { bg: "#F4F4F4", ink: "#222222", line: "#E4E4E4", accent: "#C9741C", nameFont: "grotesk", nameWeight: 700, dark: false },
+  }),
+  entry({
+    id: "okunrin", name: "Ọkùnrin", meaning: "Yoruba for man", categories: ["fashion"], categoryLabel: "Menswear",
+    industries: ["menswear", "fashion", "shoes", "bags", "accessories"], blurb: "Cream and calm, a model in a circle and staggered collections. For menswear stores", isNew: true, tier: "premium",
+    preview: { bg: "#F3F2EE", ink: "#111111", line: "#E6E4DE", accent: "#E53637", nameFont: "grotesk", nameWeight: 800, dark: false },
+  }),
+  entry({
+    id: "salubata", name: "Sálúbàtà", meaning: "Yoruba for sandals and slippers", categories: ["fashion"], categoryLabel: "Shoes",
+    industries: ["shoes", "sandals", "slippers", "boots", "heels"], blurb: "Khaki and black, colour-block collections and a deal of the month. For shoe shops", isNew: true, tier: "basic",
+    preview: { bg: "#DBCC8F", ink: "#111111", line: "#CDBD7C", accent: "#111111", nameFont: "grotesk", nameWeight: 600, dark: false },
+  }),
 ];
 
 export const THEME_LIBRARY_IDS: readonly ThemeLibraryId[] = THEME_LIBRARY.map((item) => item.id);
@@ -553,6 +579,11 @@ const THEME_RULES: Array<{ themeId: ThemeLibraryId; industry: string; words: str
   { themeId: "itanna", industry: "sneakers", words: ["sneaker store", "sneakerhead", "kicks", "trainers"] },
   { themeId: "gele", industry: "fashion and accessories", words: ["gele", "headtie", "head tie", "headwrap", "head wrap", "turban"] },
   { themeId: "itura", industry: "home and lifestyle", words: ["comfort", "lounge", "lifestyle store", "home goods", "ottoman", "pouf"] },
+  { themeId: "igbese", industry: "sneakers", words: ["sneaker plug", "sneaker reseller", "runners club", "basketball gear", "hoops"] },
+  { themeId: "salubata", industry: "shoes", words: ["mules", "flip flops", "clogs", "palm slippers"] },
+  { themeId: "okunrin", industry: "menswear", words: ["men's fashion store", "male fashion", "men's outfits"] },
+  { themeId: "ola", industry: "fashion", words: ["for her and for him", "his and hers", "fashion house"] },
+  { themeId: "rewa", industry: "fashion", words: ["fashion trends", "trendy outfits", "designer bags"] },
   { themeId: "osan", industry: "fruit", words: ["fruit basket", "fruit baskets", "fruit vendor", "fruit stand"] },
   { themeId: "ijokoo", industry: "furniture", words: ["showroom", "furniture showroom", "armchair", "dining table"] },
   { themeId: "ite", industry: "interiors", words: ["interior designer", "styling studio", "property staging", "staging"] },

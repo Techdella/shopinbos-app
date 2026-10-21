@@ -20,7 +20,8 @@ export type BoutiqueThemeId =
   | "littafi" | "itan" | "awo" | "kyau" | "keke"
   | "ahia" | "ado" | "wuta" | "ike" | "ewu"
   | "erin" | "apere" | "bata" | "ogba" | "eso"
-  | "osan" | "ijokoo" | "ite" | "kujera" | "tufafi";
+  | "osan" | "ijokoo" | "ite" | "kujera" | "tufafi"
+  | "rewa" | "igbese" | "ola" | "okunrin" | "salubata";
 
 export const BOUTIQUE_THEME_IDS: readonly BoutiqueThemeId[] = [
   "breeze", "noir", "plain", "adire", "pantry", "ile", "plug", "stride",
@@ -33,6 +34,7 @@ export const BOUTIQUE_THEME_IDS: readonly BoutiqueThemeId[] = [
   "ahia", "ado", "wuta", "ike", "ewu",
   "erin", "apere", "bata", "ogba", "eso",
   "osan", "ijokoo", "ite", "kujera", "tufafi",
+  "rewa", "igbese", "ola", "okunrin", "salubata",
 ];
 
 export function isBoutiqueTheme(templateId: string | null | undefined): templateId is BoutiqueThemeId {
@@ -241,6 +243,13 @@ export const BOUTIQUE_THEME_TOKENS: Record<BoutiqueThemeId, ThemeTokenSet> = {
   ite: { heroBg: "#3B5D50", heroText: "#FFFFFF", accent: "#F9BF29", ctaBg: "#F9BF29", ctaText: "#2F2F2F", paperBg: "#EFF2F1", cardBg: "#DCE5E4", ink: "#2F2F2F", muted: "#5F6664", border: "#DCE5E4", headingStyle: "grotesk", radius: "rounded" },
   kujera: { heroBg: "#F3F1EE", heroText: "#111111", accent: "#B86A22", ctaBg: "#111111", ctaText: "#FFFFFF", paperBg: "#FFFFFF", cardBg: "#EEECEA", ink: "#111111", muted: "#6B6B6B", border: "#E8E6E3", headingStyle: "grotesk", radius: "sharp" },
   tufafi: { heroBg: "#2A2A2A", heroText: "#FFFFFF", accent: "#2A2A2A", ctaBg: "#2A2A2A", ctaText: "#FFFFFF", paperBg: "#FFFFFF", cardBg: "#F7F7F7", ink: "#2A2A2A", muted: "#757575", border: "#EEEEEE", headingStyle: "grotesk", radius: "sharp" },
+  // Inspiration batch 6: a pink-accent fashion house, an orange sneaker store, a refined fashion editorial, a cream
+  // menswear store and a khaki shoe shop.
+  rewa: { heroBg: "#2B2B2B", heroText: "#FFFFFF", accent: "#E8074A", ctaBg: "#E8074A", ctaText: "#FFFFFF", paperBg: "#FFFFFF", cardBg: "#F5F5F5", ink: "#232323", muted: "#6B6B6B", border: "#EBEBEB", headingStyle: "grotesk", radius: "sharp" },
+  igbese: { heroBg: "#FFFFFF", heroText: "#222222", accent: "#FF7A00", ctaBg: "#FF7A00", ctaText: "#1A1A1A", paperBg: "#FFFFFF", cardBg: "#F3F4F8", ink: "#222222", muted: "#6F6F78", border: "#EAEAF0", headingStyle: "grotesk", radius: "rounded" },
+  ola: { heroBg: "#F4F4F4", heroText: "#222222", accent: "#C9741C", ctaBg: "#222222", ctaText: "#FFFFFF", paperBg: "#F4F4F4", cardBg: "#FFFFFF", ink: "#222222", muted: "#6B6B6B", border: "#E7E7E7", headingStyle: "grotesk", radius: "sharp" },
+  okunrin: { heroBg: "#F3F2EE", heroText: "#111111", accent: "#E53637", ctaBg: "#111111", ctaText: "#FFFFFF", paperBg: "#FFFFFF", cardBg: "#F3F2EE", ink: "#111111", muted: "#6F6F6F", border: "#EBEBEB", headingStyle: "grotesk", radius: "sharp" },
+  salubata: { heroBg: "#DBCC8F", heroText: "#111111", accent: "#7A6A28", ctaBg: "#111111", ctaText: "#FFFFFF", paperBg: "#FFFFFF", cardBg: "#F8F9FA", ink: "#111111", muted: "#666666", border: "#EEEEEE", headingStyle: "grotesk", radius: "sharp" },
   keke: { heroBg: "#2B5061", heroText: "#FFFFFF", accent: "#F7BE74", ctaBg: "#F7BE74", ctaText: "#1B2B33", paperBg: "#FFFFFF", cardBg: "#F2F5F6", ink: "#1B2B33", muted: "#5F6F77", border: "#E1E6E8", headingStyle: "grotesk", radius: "sharp" },
   gbedu: { heroBg: "#0B0B0F", heroText: "#F5F5F7", accent: "#8B5CF6", ctaBg: "#F5F5F7", ctaText: "#0B0B0F", paperBg: "#0B0B0F", cardBg: "#17171F", ink: "#F5F5F7", muted: "#A1A1AA", border: "#26262E", headingStyle: "grotesk", radius: "soft" },
 };
@@ -275,7 +284,7 @@ function newsletter(copy: { title?: string; body?: string; layout?: "split" } = 
  * Product rows on the home page: a carousel, a 4-up grid, a dense 6-up catalogue (Ọjà, Danfo), a menu list (Oúnjẹ),
  * one big product beside four (spotlight) or big alternating rows (lookbook).
  */
-type RailLayout = "carousel" | "tiles" | "dense" | "menu" | "spotlight" | "lookbook" | "category-tabs" | "lists" | "feature" | "showcase" | "by-category" | "mini" | "intro" | "per-category";
+type RailLayout = "carousel" | "tiles" | "dense" | "menu" | "spotlight" | "lookbook" | "category-tabs" | "lists" | "feature" | "showcase" | "by-category" | "mini" | "intro" | "per-category" | "overlay" | "deal";
 
 /** `extra`: card options (quickAdd, showRating, hoverImage) or layout options (listColumns). */
 function bestSellers(layout: RailLayout, title = "Best sellers", cta = "Shop all", id = "featured-products", extra: Record<string, unknown> = {}) {
@@ -350,6 +359,11 @@ const HERO_SEEDS: Record<BoutiqueThemeId, { layout: string; eyebrow: string; tit
   ite: { layout: "ite-green", eyebrow: "", title: "Modern interior design studio", primaryCta: "Shop now" },
   kujera: { layout: "kujera-slides", eyebrow: "New in", title: "Comfort for every room", primaryCta: "View details" },
   tufafi: { layout: "tufafi-mosaic", eyebrow: "", title: "Style for the whole family", primaryCta: "Shop now" },
+  rewa: { layout: "rewa-trends", eyebrow: "New this season", title: "Fashion trends", primaryCta: "Shop now" },
+  igbese: { layout: "igbese-stripes", eyebrow: "Just landed", title: "The new collection", primaryCta: "Shop now" },
+  ola: { layout: "ola-duo", eyebrow: "With an outstanding style, only for you", title: "Exclusively designed for you", primaryCta: "Shop now" },
+  okunrin: { layout: "okunrin-circle", eyebrow: "New collection", title: "Fall and winter collection", primaryCta: "Shop now" },
+  salubata: { layout: "salubata-cutout", eyebrow: "New arrival", title: "New shoes, winter collection", primaryCta: "Discover now" },
   eso: { layout: "eso-search", eyebrow: "Fresh produce", title: "Fresh veggies and fruit, delivered", primaryCta: "Search" },
 };
 
@@ -359,7 +373,7 @@ function hero(theme: BoutiqueThemeId): TemplateSectionNode {
 }
 
 /** Category row look: round picks, wide tiles, compact chips (dense catalogues and menus), full-width banners or a mosaic. */
-type CategoryLayout = "chips" | "boutique-tiles" | "boutique-circles" | "boutique-stack" | "boutique-mosaic" | "boutique-cards" | "boutique-words" | "boutique-labels" | "boutique-bordered" | "boutique-diagonal" | "boutique-counts" | "boutique-promo" | "boutique-duo" | "boutique-captioned" | "boutique-trio";
+type CategoryLayout = "chips" | "boutique-tiles" | "boutique-circles" | "boutique-stack" | "boutique-mosaic" | "boutique-cards" | "boutique-words" | "boutique-labels" | "boutique-bordered" | "boutique-diagonal" | "boutique-counts" | "boutique-promo" | "boutique-duo" | "boutique-captioned" | "boutique-trio" | "boutique-halves" | "boutique-exclusive" | "boutique-staggered" | "boutique-panels";
 
 const CATEGORY_LAYOUT: Record<BoutiqueThemeId, CategoryLayout> = {
   breeze: "boutique-tiles", noir: "boutique-circles", plain: "boutique-circles", adire: "boutique-circles", pantry: "boutique-circles",
@@ -377,6 +391,7 @@ const CATEGORY_LAYOUT: Record<BoutiqueThemeId, CategoryLayout> = {
   ahia: "boutique-circles", ado: "boutique-tiles", wuta: "boutique-promo", ike: "boutique-diagonal", ewu: "boutique-counts",
   erin: "boutique-tiles", apere: "boutique-cards", bata: "boutique-duo", ogba: "boutique-captioned", eso: "boutique-labels",
   osan: "boutique-circles", ijokoo: "boutique-trio", ite: "boutique-tiles", kujera: "boutique-tiles", tufafi: "boutique-labels",
+  rewa: "boutique-halves", igbese: "boutique-mosaic", ola: "boutique-exclusive", okunrin: "boutique-staggered", salubata: "boutique-panels",
 };
 
 function categories(theme: BoutiqueThemeId, title = "Shop by category", id = "categories", layout: CategoryLayout = CATEGORY_LAYOUT[theme]) {
@@ -408,6 +423,7 @@ const STORY_LAYOUT: Partial<Record<BoutiqueThemeId, string>> = {
   ahia: "centered", ado: "promo", wuta: "promo", ike: "banner", ewu: "editorial",
   erin: "editorial", apere: "editorial", bata: "centered", ogba: "banner", eso: "band",
   osan: "editorial", ijokoo: "panel", ite: "collage", kujera: "centered", tufafi: "collage",
+  rewa: "panel", igbese: "promo", ola: "banner", okunrin: "editorial", salubata: "framed",
 };
 
 const STORY_COPY: Partial<Record<BoutiqueThemeId, { eyebrow: string; title: string }>> = {
@@ -463,10 +479,15 @@ const STORY_COPY: Partial<Record<BoutiqueThemeId, { eyebrow: string; title: stri
   ite: { eyebrow: "Our studio", title: "We help you make a modern home" },
   kujera: { eyebrow: "", title: "Made for the way you live and work" },
   tufafi: { eyebrow: "Explore", title: "Something for everyone in the family" },
+  rewa: { eyebrow: "Just in", title: "The everyday edit" },
+  igbese: { eyebrow: "New season", title: "Built to move" },
+  ola: { eyebrow: "Collection", title: "Urban stories" },
+  okunrin: { eyebrow: "Our story", title: "Clothes for the modern man" },
+  salubata: { eyebrow: "Our story", title: "Shoes for every walk of life" },
 };
 
 /** Story pictures on the right (the rest keep the picture left). */
-const STORY_PICTURE_RIGHT: Partial<Record<BoutiqueThemeId, true>> = { sarauniya: true, uzo: true, oso: true };
+const STORY_PICTURE_RIGHT: Partial<Record<BoutiqueThemeId, true>> = { sarauniya: true, uzo: true, oso: true, rewa: true };
 
 function story(theme: BoutiqueThemeId, own?: { id: string; eyebrow: string; title: string; pictureRight?: boolean }) {
   const copy = own ?? STORY_COPY[theme] ?? { eyebrow: "Our studio", title: "Made with care" };
@@ -506,6 +527,7 @@ const FAQ_KIND: Partial<Record<BoutiqueThemeId, FaqKind>> = {
   ahia: "general", ado: "fit", wuta: "general", ike: "general", ewu: "fit",
   erin: "fit", apere: "food", bata: "fit", ogba: "food", eso: "food",
   osan: "food", ijokoo: "general", ite: "general", kujera: "general", tufafi: "fit",
+  rewa: "fit", igbese: "fit", ola: "fit", okunrin: "fit", salubata: "fit",
 };
 
 function faq(theme?: BoutiqueThemeId) {
@@ -549,6 +571,7 @@ const HEADER_LAYOUT: Record<BoutiqueThemeId, HeaderLayout> = {
   ahia: "market-dark", ado: "split", wuta: "market", ike: "market-dark", ewu: "market",
   erin: "split", apere: "market", bata: "split", ogba: "centered", eso: "split",
   osan: "split", ijokoo: "split", ite: "split", kujera: "split", tufafi: "split",
+  rewa: "centered", igbese: "split", ola: "split", okunrin: "split", salubata: "split",
 };
 
 /** Themes with a dark strip of categories under the header (Imani, Wuta). */
@@ -1019,6 +1042,57 @@ function homeSections(theme: BoutiqueThemeId): TemplateSectionNode[] {
         readyBlock("ugc-grid", "ugc", { copy: { title: "Social media", body: "Tag us to be featured." } }),
         newsletter({ title: "Subscribe to our newsletter", body: "New arrivals for the whole family." }),
       ];
+    case "rewa":
+      return [
+        hero("rewa"),
+        trustStrip(),
+        categories("rewa", "Collections"),
+        bestSellers("category-tabs", "New arrivals"),
+        story("rewa"),
+        reviews("Testimonials"),
+        newsletter({ title: "Subscribe to our newsletter", body: "New arrivals and offers, once a week." }),
+      ];
+    case "igbese":
+      return [
+        hero("igbese"),
+        trustCards(),
+        categories("igbese", "Shop by category"),
+        bestSellers("tiles", "Latest products", "Shop all", "featured-products", { quickAdd: true }),
+        deal("Exclusive hot deal"),
+        bestSellers("lists", "Deals of the week", "Shop all", "lists"),
+        newsletter({ title: "Newsletter", body: "New drops and restocks, straight to you." }),
+      ];
+    case "ola":
+      return [
+        hero("ola"),
+        bestSellers("tiles", "Best deals", "View all"),
+        categories("ola", "Be exclusive"),
+        bestSellers("overlay", "Check out new arrivals", "View all", "new-arrivals"),
+        bestSellers("category-tabs", "Shop by category", "View all", "by-category"),
+        story("ola"),
+        bestSellers("carousel", "Best sellers", "View all", "best-sellers"),
+        newsletter({ title: "Join the list", body: "New collections and private offers." }),
+      ];
+    case "okunrin":
+      return [
+        hero("okunrin"),
+        categories("okunrin", "Collections"),
+        bestSellers("category-tabs", "Best sellers"),
+        deal("Deal of the week"),
+        story("okunrin"),
+        readyBlock("ugc-grid", "ugc", { copy: { title: "Instagram", body: "Tag us to be featured." } }),
+        newsletter({ title: "Newsletter", body: "Be the first to know about new arrivals and offers." }),
+      ];
+    case "salubata":
+      return [
+        hero("salubata"),
+        trustTiles("tiles"),
+        bestSellers("tiles", "New shoes arrival"),
+        categories("salubata", "Collections"),
+        deal("Deal of the month"),
+        reviews("Our satisfied customers say"),
+        readyBlock("ugc-grid", "ugc", { copy: { title: "Follow us on Instagram", body: "Tag us in your pair." } }),
+      ];
     default:
       return [hero("breeze"), categories("breeze"), bestSellers("carousel"), reviews(), newsletter()];
   }
@@ -1093,6 +1167,11 @@ const PRODUCT_LAYOUT: Record<BoutiqueThemeId, string> = {
   ite: "boutique-gallery",
   kujera: "boutique-gallery",
   tufafi: "boutique-gallery",
+  rewa: "boutique-gallery",
+  igbese: "boutique-gallery",
+  ola: "boutique-gallery",
+  okunrin: "boutique-gallery",
+  salubata: "boutique-gallery",
 };
 
 const RELATED_TITLE: Partial<Record<BoutiqueThemeId, string>> = {
@@ -1108,6 +1187,7 @@ const RELATED_TITLE: Partial<Record<BoutiqueThemeId, string>> = {
   ahia: "See more like this", ado: "Related products", wuta: "Related products", ike: "Related products", ewu: "You may also like",
   erin: "Related products", apere: "Related products", bata: "Related products", ogba: "Related products", eso: "Related products",
   osan: "Related products", ijokoo: "Related products", ite: "Related products", kujera: "Related products", tufafi: "Related products",
+  rewa: "Related products", igbese: "Related products", ola: "Related products", okunrin: "Related products", salubata: "Related products",
 };
 
 /**
@@ -1135,12 +1215,63 @@ function pageHeader(style: InnerPages["pageHeader"]): TemplateSectionNode[] {
 
 const trustRow = () => readyBlock("trust-badges", "trust", { settings: { style: "row" } });
 const trustCards = () => readyBlock("trust-badges", "trust", { settings: { style: "cards" } });
+/** The seller's sale window (Payday countdown settings) for "deal" product sections. */
+const DEAL_WINDOW = { paydayRule: "day-of-month", paydayDay: 25, weekendToFriday: true, saleEnds: "sunday", saleDays: 3 };
+const deal = (title: string) => bestSellers("deal", title, "Shop now", "deal", DEAL_WINDOW);
+/** Three coloured blocks under the header with the store's promises (Rẹ̀wà). */
+const trustStrip = () => readyBlock("trust-badges", "trust", { settings: { style: "strip" } });
+
 /** Centred badges with the icon above: "dark" on the ink colour (Ẹ̀rín), "tiles" on light panels (Èso). */
 const trustTiles = (style: "dark" | "tiles", title = "") => readyBlock("trust-badges", "trust", { copy: { title }, settings: { style } });
 const alsoLike = (title = "You may also like") => readyBlock("also-like", "also-like", { copy: { title } });
 const recentlyViewed = (title = "Recently viewed") => readyBlock("recently-viewed", "recently-viewed", { copy: { title } });
 
 const INNER_PAGES: Partial<Record<BoutiqueThemeId, () => InnerPages>> = {
+  rewa: () => ({
+    pageHeader: "photo",
+    shop: { filterPlacement: "top", columns: "3" },
+    product: [trustRow(), alsoLike("You may also like")],
+    about: [story("rewa"), trustStrip(), reviews("Testimonials")],
+    contactLayout: "split",
+    faq: { faqStyle: "plus" },
+    cart: [alsoLike("Complete the look")],
+  }),
+  igbese: () => ({
+    pageHeader: "tinted",
+    shop: { filterPlacement: "sidebar", columns: "3" },
+    product: [trustRow(), alsoLike("You may also like"), recentlyViewed()],
+    about: [story("igbese"), trustCards()],
+    contactLayout: "split",
+    faq: { layout: "two-column", faqStyle: "chevron", searchable: true },
+    cart: [alsoLike("Add socks or laces")],
+  }),
+  ola: () => ({
+    pageHeader: "simple",
+    shop: { shopLayout: "chips", columns: "4" },
+    product: [alsoLike("You may also like"), recentlyViewed()],
+    about: [story("ola"), trustCards()],
+    contactLayout: "split",
+    faq: { faqStyle: "numbered" },
+    cart: [alsoLike("Complete the look")],
+  }),
+  okunrin: () => ({
+    pageHeader: "tinted",
+    shop: { filterPlacement: "sidebar", columns: "3" },
+    product: [alsoLike("You may also like")],
+    about: [story("okunrin"), trustCards()],
+    contactLayout: "split",
+    faq: { faqStyle: "chevron", searchable: true },
+    cart: [alsoLike("Complete the look")],
+  }),
+  salubata: () => ({
+    pageHeader: "tinted",
+    shop: { filterPlacement: "sidebar", columns: "4" },
+    product: [trustRow(), alsoLike("You may also like")],
+    about: [story("salubata"), trustTiles("tiles"), reviews("Our satisfied customers say")],
+    contactLayout: "split",
+    faq: { faqStyle: "plus" },
+    cart: [alsoLike("Add another pair")],
+  }),
   osan: () => ({
     pageHeader: "photo",
     shop: { filterPlacement: "top", columns: "3" },
@@ -2296,6 +2427,61 @@ const DEFINITIONS: Array<{ id: BoutiqueThemeId; name: string; description: strin
       "Works best with three or four categories such as women, men, kids and accessories",
     ],
   },
+  {
+    id: "rewa",
+    name: "Rẹ̀wà",
+    description: "Bold fashion in charcoal and hot pink: a spaced centred logo, three colour blocks with your promises, a full photo banner, two half-width collection photos with huge words, new arrivals with tabs and a photo with a side panel.",
+    tags: ["fashion", "pink", "bold", "halves", "panel", "premium", "2026"],
+    aiHints: [
+      "Rẹ̀wà (Yoruba for to be beautiful): white page, charcoal, hot pink accent, square corners, centred logo",
+      "Home order: photo hero, promise strip, two half-width collections, new arrivals with tabs, side-panel story, testimonials, newsletter",
+      "Collection names show very large; keep them to one or two words",
+    ],
+  },
+  {
+    id: "igbese",
+    name: "Ìgbésẹ̀",
+    description: "A sneaker store in orange: a banner with diagonal orange stripes and the shoe large, service cards, a photo mosaic of categories, latest products with quick add, a deal with your sale countdown and deal lists.",
+    tags: ["shoes", "sneakers", "orange", "stripes", "deal", "basic", "2026"],
+    aiHints: [
+      "Ìgbésẹ̀ (Yoruba for step): white page, orange stripes, rounded cards, grotesk headings",
+      "Home order: stripe hero, service cards, category mosaic, latest products, deal countdown, deal lists, newsletter",
+      "Sneaker photos on plain backgrounds work best in the banner",
+    ],
+  },
+  {
+    id: "ola",
+    name: "Ọlá",
+    description: "A refined fashion editorial on soft grey: a centred heading over For her and For him photos, best deals, an exclusive collection block, tall new-arrival tiles with words on the photo, shop by category tabs and a wide story.",
+    tags: ["fashion", "editorial", "grey", "overlay", "exclusive", "platinum", "2026"],
+    aiHints: [
+      "Ọlá (Yoruba for honour and wealth): soft grey page, white cards, charcoal buttons, amber prices, square corners",
+      "Home order: duo hero, best deals, exclusive block, new arrivals on photos, category tabs, wide story, best sellers, newsletter",
+      "The two hero photos come from your first two categories (for example women and men)",
+    ],
+  },
+  {
+    id: "okunrin",
+    name: "Ọkùnrin",
+    description: "Cream menswear: the model in a soft pink circle with dot patterns, staggered collection blocks, best sellers with tabs, a deal of the week with your sale countdown and an Instagram grid.",
+    tags: ["fashion", "menswear", "cream", "staggered", "deal", "premium", "2026"],
+    aiHints: [
+      "Ọkùnrin (Yoruba for man): white page, warm cream panels, black buttons, red accent, square corners",
+      "Home order: circle hero, staggered collections, best sellers with tabs, deal of the week, story, Instagram, newsletter",
+      "A portrait photo of one model works best in the circle",
+    ],
+  },
+  {
+    id: "salubata",
+    name: "Sálúbàtà",
+    description: "A khaki shoe shop: the shoe large on a khaki banner with a black New arrival tag, service tiles, new shoes, colour-block collection panels, a deal of the month band with your sale countdown, reviews and an Instagram strip.",
+    tags: ["shoes", "khaki", "colour blocks", "deal", "minimal", "basic", "2026"],
+    aiHints: [
+      "Sálúbàtà (Yoruba for sandals and slippers): white page, khaki banner and deal band, black buttons, square corners",
+      "Home order: cut-out hero, service tiles, new shoes, collection panels, deal of the month, reviews, Instagram",
+      "Shoe photos on plain backgrounds suit the banner and the deal",
+    ],
+  },
 ];
 
 const MANIFEST_SHAPE: Record<BoutiqueThemeId, Pick<StoreTemplateManifest, "category" | "layoutFamily">> = {
@@ -2367,6 +2553,11 @@ const MANIFEST_SHAPE: Record<BoutiqueThemeId, Pick<StoreTemplateManifest, "categ
   ite: { category: "furniture", layoutFamily: "home-living" },
   kujera: { category: "furniture", layoutFamily: "home-living" },
   tufafi: { category: "fashion", layoutFamily: "marketplace-grid" },
+  rewa: { category: "fashion", layoutFamily: "fashion-runway" },
+  igbese: { category: "fashion", layoutFamily: "fashion-runway" },
+  ola: { category: "fashion", layoutFamily: "editorial-boutique" },
+  okunrin: { category: "fashion", layoutFamily: "minimal-showcase" },
+  salubata: { category: "fashion", layoutFamily: "minimal-showcase" },
 };
 
 export const BOUTIQUE_TEMPLATE_MANIFESTS: StoreTemplateManifest[] = DEFINITIONS.map((definition) => ({
