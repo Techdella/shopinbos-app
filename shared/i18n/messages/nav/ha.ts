@@ -229,6 +229,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "logistics.pickup-points": "Wuraren karɓa",
   "supplier.products-import": "Ɗora CSV",
   "supplier.followers": "Mabiya",
+  "supplier.delivery-partners": "Abokan isarwa",
 };
 
 export default ha;

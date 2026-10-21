@@ -229,6 +229,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "logistics.pickup-points": "Ibi gbígba ẹrù",
   "supplier.products-import": "Gbé CSV sókè",
   "supplier.followers": "Àwọn olùtẹ̀lé",
+  "supplier.delivery-partners": "Alábàáṣiṣẹ́ ìfijiṣẹ́",
 };
 
 export default yo;

@@ -230,6 +230,7 @@ const en = {
   "logistics.pickup-points": "Pickup points",
   "supplier.products-import": "Upload CSV",
   "supplier.followers": "Followers",
+  "supplier.delivery-partners": "Delivery partners",
 } satisfies Record<string, string>;
 
 export default en;

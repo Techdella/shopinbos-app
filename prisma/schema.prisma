@@ -2550,6 +2550,18 @@ model PrivateRateCard {
   @@index([customerUserId])
 }
 
+// Delivery partners a supplier works with (Supplier › Delivery partners; Free 2, Plus 10, Pro unlimited). Their
+// pickups go to these first, the preferred one before the rest (shared/supplier-pickup.ts choosePickupPartner).
+model SupplierLogisticsConnection {
+  supplierId         String
+  logisticsPartnerId String
+  preferred          Boolean  @default(false)
+  createdAt          DateTime @default(now())
+
+  @@id([supplierId, logisticsPartnerId])
+  @@index([logisticsPartnerId])
+}
+
 // Sellers following a supplier; suppliers on Pro can send them updates (SupplierBroadcast).
 model SupplierFollow {
   supplierId String

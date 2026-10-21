@@ -1,6 +1,7 @@
 -- October 2026 pricing, part 2 (shared/plans.ts): add-ons and boosts bought through Paystack, SMS/WhatsApp pack
--- balances, seller staff, delivery partners' pickup points, private rate cards and pay-on-delivery choice, and
--- sellers following suppliers. Run once in Supabase (SQL editor); every statement is safe to re-run.
+-- balances, seller staff, delivery partners' pickup points, private rate cards and pay-on-delivery choice,
+-- sellers following suppliers, and the delivery partners each supplier works with. Run once in Supabase (SQL
+-- editor); every statement is safe to re-run.
 CREATE TABLE IF NOT EXISTS "PlanExtraPurchase" (
   "reference" TEXT PRIMARY KEY,
   "userId" TEXT NOT NULL,
@@ -95,6 +96,15 @@ CREATE TABLE IF NOT EXISTS "SupplierBroadcast" (
 );
 CREATE INDEX IF NOT EXISTS "SupplierBroadcast_supplierId_createdAt_idx" ON "SupplierBroadcast" ("supplierId", "createdAt");
 
+CREATE TABLE IF NOT EXISTS "SupplierLogisticsConnection" (
+  "supplierId" TEXT NOT NULL,
+  "logisticsPartnerId" TEXT NOT NULL,
+  "preferred" BOOLEAN NOT NULL DEFAULT false,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY ("supplierId", "logisticsPartnerId")
+);
+CREATE INDEX IF NOT EXISTS "SupplierLogisticsConnection_logisticsPartnerId_idx" ON "SupplierLogisticsConnection" ("logisticsPartnerId");
+
 ALTER TABLE "LogisticsPartner" ADD COLUMN IF NOT EXISTS "acceptsCod" BOOLEAN NOT NULL DEFAULT true;
 
 -- The app reaches these through Prisma (service role); nothing is exposed to the public API.
@@ -105,3 +115,4 @@ ALTER TABLE "LogisticsPickupPoint" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "PrivateRateCard" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "SupplierFollow" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "SupplierBroadcast" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "SupplierLogisticsConnection" ENABLE ROW LEVEL SECURITY;

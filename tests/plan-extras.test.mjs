@@ -9,6 +9,7 @@ const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf
 const extras = await import("../shared/plan-extras.ts");
 const pricing = await import("../shared/platform-pricing.ts");
 const supplierImport = await import("../shared/supplier-import.ts");
+const pickup = await import("../shared/supplier-pickup.ts");
 
 const book = pricing.resolvePriceBook({}, {});
 
@@ -112,4 +113,25 @@ test("wiring: staff, packs, boosts, rate cards, pickup points, exceptions, follo
     assert.match(sql, new RegExp(`ALTER TABLE "${table}" ENABLE ROW LEVEL SECURITY`), table);
   }
   assert.match(sql, /"acceptsCod" BOOLEAN NOT NULL DEFAULT true/);
+});
+
+test("supplier pickups: the shop's partner, then the supplier's preferred, then the supplier's best, then default", () => {
+  const p = (id, city, reliabilityScore = 50) => ({ id, city, coverageZones: [], status: "active", verificationStatus: "verified", reliabilityScore });
+  const partners = [p("shop", "Lagos"), p("sup-pref", "Lagos", 10), p("sup-a", "Lagos", 60), p("sup-b", "Lagos", 90), p("sup-abuja", "Abuja", 99), p("default", "Lagos")];
+  const area = { city: "Lagos" };
+  const choose = (input) => pickup.choosePickupPartner({ partners, area, defaultId: "default", ...input });
+  assert.deepEqual(choose({ preferredId: "shop", supplierPartnerIds: ["sup-pref"] }), { id: "shop", why: "shop" });
+  assert.deepEqual(choose({ supplierPartnerIds: ["sup-pref", "sup-a", "sup-b"] }), { id: "sup-pref", why: "supplier" });
+  assert.deepEqual(choose({ supplierPartnerIds: ["sup-abuja", "sup-a", "sup-b"] }), { id: "sup-b", why: "supplier" }, "preferred doesn't cover Lagos: most reliable connected one that does");
+  assert.deepEqual(choose({ supplierPartnerIds: ["sup-abuja"] }), { id: "default", why: "default" });
+});
+
+test("wiring: supplier delivery partner limit", () => {
+  const plans = read("shared/plans.ts");
+  assert.match(plans, /supplier_free: \{[^}]*logisticsPartners: 2/);
+  assert.match(plans, /supplier_plus: \{[^}]*logisticsPartners: 10/);
+  const partners = read("src/lib/suppliers/partners.server.ts");
+  assert.match(partners, /limit !== null && count >= limit/);
+  assert.match(read("src/lib/supplier-orders/pickup.server.ts"), /supplierPartnerIds: connections/);
+  assert.match(read("docs/migrations/2026-11-16-plan-extras.sql"), /CREATE TABLE IF NOT EXISTS "SupplierLogisticsConnection"/);
 });

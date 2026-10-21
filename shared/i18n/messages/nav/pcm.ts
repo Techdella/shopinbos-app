@@ -229,6 +229,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "logistics.pickup-points": "Pickup points",
   "supplier.products-import": "Upload CSV",
   "supplier.followers": "Followers",
+  "supplier.delivery-partners": "Delivery partners",
 };
 
 export default pcm;

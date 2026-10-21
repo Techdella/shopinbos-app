@@ -229,6 +229,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "logistics.pickup-points": "Ebe nnara ngwongwo",
   "supplier.products-import": "Bulite CSV",
   "supplier.followers": "Ndị na-eso",
+  "supplier.delivery-partners": "Ndị mmekọ nnyefe",
 };
 
 export default ig;

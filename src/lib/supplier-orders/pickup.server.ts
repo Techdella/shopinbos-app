@@ -1,4 +1,5 @@
 import { supplierPartCollect } from "@shared/cod-split";
+import { supplierPartnerIds } from "@/lib/suppliers/partners.server";
 import "server-only";
 import { db } from "@/lib/db/client";
 import { addressLines } from "@/lib/labels";
@@ -216,7 +217,7 @@ async function tellAdmins(order: PickupOrder, window: { start: Date; end: Date }
 }
 
 async function pickPartner(order: PickupOrder) {
-  const [store, partners] = await Promise.all([
+  const [store, partners, connections] = await Promise.all([
     order.storeId ? db.store.findUnique({ where: { id: order.storeId }, select: { brandSettings: true } }) : null,
     db.logisticsPartner.findMany({
       // Pay-when-it-arrives parcels skip partners paused for a late cash pay-in (lib/logistics/payin-deadline.ts).
@@ -224,11 +225,13 @@ async function pickPartner(order: PickupOrder) {
       select: { id: true, city: true, coverageZones: true, status: true, verificationStatus: true, reliabilityScore: true, rating: true, basePrice: true },
       take: 500,
     }),
+    supplierPartnerIds(order.supplier.id),
   ]);
   const settings = store?.brandSettings && typeof store.brandSettings === "object" ? (store.brandSettings as { logistics?: { preferredPartnerId?: unknown } }) : {};
   const preferredId = typeof settings.logistics?.preferredPartnerId === "string" ? settings.logistics.preferredPartnerId : null;
   const choice = choosePickupPartner({
     preferredId,
+    supplierPartnerIds: connections,
     defaultId: process.env.SHOPINBOS_DEFAULT_DELIVERY_PARTNER_ID?.trim() || null,
     partners: partners.map((partner) => ({ ...partner, verificationStatus: String(partner.verificationStatus) })),
     area: { city: order.supplier.city },
