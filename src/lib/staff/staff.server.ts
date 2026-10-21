@@ -22,7 +22,7 @@ export async function staffSeats(ownerId: string) {
   const [owner, extra, used] = await Promise.all([
     db.user.findUnique({ where: { id: ownerId }, select: { aiCredits: true } }),
     extraStaffSeats(ownerId),
-    db.storeStaff.count({ where: { ownerId, status: { in: ["invited", "active"] } } }),
+    db.storeStaff.count({ where: { ownerId, status: { in: ["invited", "active"] } } }).catch(() => 0),
   ]);
   const included = sellerLimits(planKeyFor("seller", owner?.aiCredits)).staff;
   // The owner takes one of the plan's seats.
@@ -30,7 +30,7 @@ export async function staffSeats(ownerId: string) {
 }
 
 export async function listStaff(ownerId: string) {
-  return db.storeStaff.findMany({ where: { ownerId, status: { in: ["invited", "active"] } }, orderBy: { invitedAt: "asc" } });
+  return db.storeStaff.findMany({ where: { ownerId, status: { in: ["invited", "active"] } }, orderBy: { invitedAt: "asc" } }).catch(() => []);
 }
 
 export async function inviteStaff(owner: AuthUser, input: { name: string; email: string }) {

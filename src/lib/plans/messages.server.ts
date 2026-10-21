@@ -9,7 +9,7 @@ import { messagesLeft } from "@shared/plan-extras";
 // (shared/plan-extras.ts), one per message. With neither, the message isn't sent and the reason is recorded.
 
 export type MessageChannel = "sms" | "whatsapp";
-export type MessageSpend = { ok: true; from: "plan" | "pack" } | { ok: false; error: string };
+export type MessageSpend = { ok: true; from: "plan" | "pack" | "unmetered" } | { ok: false; error: string };
 
 const period = (now = new Date()) => now.toISOString().slice(0, 7);
 
@@ -20,6 +20,16 @@ async function ownerOf(storeId: string) {
 
 /** Takes one message for `storeId` (plan first, then the channel's pack). Conditional updates keep it race-safe. */
 export async function spendPlatformMessage(storeId: string, channel: MessageChannel): Promise<MessageSpend> {
+  try {
+    return await spend(storeId, channel);
+  } catch (error) {
+    // Before docs/migrations/2026-11-16-plan-extras.sql has run there's no MessageBalance table: don't stop messages.
+    console.error("[messages] couldn't count the message; sending anyway", error);
+    return { ok: true, from: "unmetered" };
+  }
+}
+
+async function spend(storeId: string, channel: MessageChannel): Promise<MessageSpend> {
   const owner = await ownerOf(storeId).catch(() => null);
   if (!owner) return { ok: false, error: "Store not found" };
   const now = period();
@@ -41,7 +51,7 @@ export async function spendPlatformMessage(storeId: string, channel: MessageChan
 
 /** Gives a message back when the provider didn't send it. */
 export async function returnPlatformMessage(storeId: string, channel: MessageChannel, spend: MessageSpend) {
-  if (!spend.ok) return;
+  if (!spend.ok || spend.from === "unmetered") return;
   const owner = await ownerOf(storeId).catch(() => null);
   if (!owner) return;
   await db.messageBalance
@@ -53,7 +63,7 @@ export async function returnPlatformMessage(storeId: string, channel: MessageCha
 export async function messageAllowance(userId: string) {
   const [user, balance] = await Promise.all([
     db.user.findUnique({ where: { id: userId }, select: { aiCredits: true } }),
-    db.messageBalance.findUnique({ where: { userId } }),
+    db.messageBalance.findUnique({ where: { userId } }).catch(() => null),
   ]);
   const included = sellerLimits(planKeyFor("seller", user?.aiCredits)).messagesIncluded;
   const used = balance?.period === period() ? balance.used : 0;

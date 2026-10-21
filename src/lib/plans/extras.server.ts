@@ -128,7 +128,7 @@ const running = (now = new Date()) => ({ status: "paid", startsAt: { lte: now },
 
 /** Extra staff seats a seller has paid for this month. */
 export async function extraStaffSeats(userId: string) {
-  const rows = await db.planExtraPurchase.findMany({ where: { userId, kind: "staff_seat", ...running() }, select: { quantity: true } });
+  const rows = await db.planExtraPurchase.findMany({ where: { userId, kind: "staff_seat", ...running() }, select: { quantity: true } }).catch(() => []);
   return rows.reduce((sum, row) => sum + row.quantity, 0);
 }
 
@@ -158,7 +158,7 @@ export async function myExtras(userId: string) {
     where: { userId, status: "paid", OR: [{ endsAt: null }, { endsAt: { gt: new Date() } }] },
     orderBy: { paidAt: "desc" },
     take: 30,
-  });
+  }).catch(() => []);
 }
 
 // ─── Supplier Pro's included featured weeks ──────────────────────────────────
@@ -171,7 +171,7 @@ export async function includedFeaturedWeeksLeft(userId: string, now = new Date()
   const user = await db.user.findUnique({ where: { id: userId }, select: { role: true, aiCredits: true } });
   const included = user?.role === "supplier" ? supplierLimits(planKeyFor("supplier", user.aiCredits)).featuredWeeksIncluded : 0;
   if (!included) return { included: 0, left: 0 };
-  const used = await db.planExtraPurchase.count({ where: { userId, kind: "supplier_boost", included: true, createdAt: { gte: monthStart(now) } } });
+  const used = await db.planExtraPurchase.count({ where: { userId, kind: "supplier_boost", included: true, createdAt: { gte: monthStart(now) } } }).catch(() => included);
   return { included, left: Math.max(0, included - used) };
 }
 
