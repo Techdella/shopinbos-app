@@ -95,3 +95,39 @@ export function groupByDay<T extends { deliveredAt: string }>(items: T[], now = 
   }
   return (["today", "yesterday", "earlier"] as const).filter((group) => groups[group].length).map((group) => ({ group, items: groups[group] }));
 }
+
+/**
+ * Deliveries per Lagos day this week, Monday to Sunday (Earnings "Deliveries by day"), and which bar is today.
+ * Days that haven't come yet count 0.
+ */
+export function weekBars<T extends { deliveredAt: string }>(items: T[], now = new Date()): { counts: number[]; today: number } {
+  const today = (new Date(now.getTime() + LAGOS_OFFSET_MS).getUTCDay() + 6) % 7; // Monday = 0
+  const monday = lagosDay(new Date(now.getTime() - today * 24 * 60 * 60 * 1000));
+  const counts = [0, 0, 0, 0, 0, 0, 0];
+  for (const item of items) {
+    const day = lagosDay(item.deliveredAt);
+    const index = Math.round((Date.parse(`${day}T00:00:00Z`) - Date.parse(`${monday}T00:00:00Z`)) / (24 * 60 * 60 * 1000));
+    if (index >= 0 && index < 7) counts[index] += 1;
+  }
+  return { counts, today };
+}
+
+export interface MapPoint {
+  lat: number;
+  lng: number;
+}
+
+/** A map region that shows every point with some room around it (one point: a few streets around it). */
+export function regionFor(points: (MapPoint | null | undefined)[]) {
+  const shown = points.filter((point): point is MapPoint => Boolean(point) && Number.isFinite(point!.lat) && Number.isFinite(point!.lng));
+  if (!shown.length) return null;
+  const lats = shown.map((point) => point.lat);
+  const lngs = shown.map((point) => point.lng);
+  const [minLat, maxLat, minLng, maxLng] = [Math.min(...lats), Math.max(...lats), Math.min(...lngs), Math.max(...lngs)];
+  return {
+    latitude: (minLat + maxLat) / 2,
+    longitude: (minLng + maxLng) / 2,
+    latitudeDelta: Math.max((maxLat - minLat) * 1.7, 0.012),
+    longitudeDelta: Math.max((maxLng - minLng) * 1.7, 0.012),
+  };
+}

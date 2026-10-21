@@ -18,14 +18,19 @@ export function RiderBadge({ label, size = 44 }: { label: string; size?: number 
   );
 }
 
-/** The map box (`.map`): a soft green panel with a pin. Tapping it opens the address in the phone's maps. */
-export function MapBox({ address, label }: { address: string; label: string }) {
+/**
+ * The map box (`.map`): a soft green panel with a pin, used where there's no real map (web, or an Android build
+ * without a Google Maps key; see components/RiderMap). With an address, tapping it opens the phone's maps.
+ * `children` sit on top (the online switch on Today).
+ */
+export function MapBox({ address, label, height = 150, children }: { address?: string | null; label: string; height?: number; children?: ReactNode }) {
   return (
     <Pressable
-      accessibilityRole="link"
+      accessibilityRole={address ? "link" : undefined}
       accessibilityLabel={label}
-      onPress={() => void Linking.openURL(mapUrl(address))}
-      style={({ pressed }) => ({ height: 150, borderRadius: 20, backgroundColor: "#E9EEE8", borderWidth: 1, borderColor: colors.line, overflow: "hidden", alignItems: "center", justifyContent: "center", opacity: pressed ? 0.85 : 1 })}
+      disabled={!address}
+      onPress={() => { if (address) void Linking.openURL(mapUrl(address)); }}
+      style={({ pressed }) => ({ height, borderRadius: 22, backgroundColor: "#E9EEE8", borderWidth: 1, borderColor: colors.line, overflow: "hidden", alignItems: "center", justifyContent: "center", opacity: pressed ? 0.85 : 1 })}
     >
       {/* Two faint roads, so the panel reads as a map. */}
       <View style={{ position: "absolute", left: -20, right: -20, top: 64, height: 14, backgroundColor: "#FFFFFF", opacity: 0.7, transform: [{ rotate: "-8deg" }] }} />
@@ -33,8 +38,25 @@ export function MapBox({ address, label }: { address: string; label: string }) {
       <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.forest, alignItems: "center", justifyContent: "center" }}>
         <AppIcon name="pin" size={22} color="#FFFFFF" />
       </View>
+      {children}
     </Pressable>
   );
+}
+
+/** Where the map's overlay card sits: the bottom of the map, 12px in (`.map > .card` on Today). */
+export const MAP_OVERLAY = { position: "absolute", left: 12, right: 12, bottom: 12 } as const;
+
+/** The pins on the rider's map: orange pickup with a white ring, teal drop-off, and the rider's own teal dot with a halo. */
+export function MapPin({ kind }: { kind: "pickup" | "drop" | "me" }) {
+  if (kind === "me") {
+    return (
+      <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: "rgba(12,74,68,0.15)", alignItems: "center", justifyContent: "center" }}>
+        <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: colors.forest, borderWidth: 3, borderColor: "#FFFFFF" }} />
+      </View>
+    );
+  }
+  const pickup = kind === "pickup";
+  return <View style={{ width: pickup ? 24 : 20, height: pickup ? 24 : 20, borderRadius: 12, backgroundColor: pickup ? colors.accent : colors.forest, borderWidth: pickup ? 3 : 2, borderColor: "#FFFFFF" }} />;
 }
 
 /** A big tinted square with an icon, centred above a title (`.tile` 104px on Payment). */

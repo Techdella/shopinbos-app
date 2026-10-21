@@ -7,12 +7,13 @@ import { HelpButton } from "@/components/Help";
 import { AppIcon } from "@/components/icons";
 import { ErrorState, LoadingBlock } from "@/components/kit";
 import { PushPromptCard } from "@/components/PushPromptCard";
-import { CardTitle, RiderBadge } from "@/components/RiderKit";
+import { CardTitle, MAP_OVERLAY, RiderBadge } from "@/components/RiderKit";
+import { RiderMap } from "@/components/RiderMap";
 import { Sheet } from "@/components/Sheet";
 import { TabScreen } from "@/components/TabScreen";
 import { Notice, PillButton, T, Toggle } from "@/components/ui";
 import { fetchRider, forgetRiderToken, markJobTaken, riderAction, riderWelcomed, takenJobs, type RiderDrop, type RiderRun } from "@/lib/rider";
-import { useRiderLocation } from "@/lib/rider-location";
+import { useOwnPosition, useRiderLocation } from "@/lib/rider-location";
 import { activeJob, initials, routeLine, waitingOffer } from "@/lib/rider-pure";
 import { useRiderStrings } from "@/lib/rider-strings";
 import { useLoad } from "@/lib/useLoad";
@@ -33,6 +34,8 @@ export default function RiderToday() {
   const data = rider.data;
   // Location only while online or carrying a delivery, and only with the rider's yes (lib/rider-location.ts).
   const location = useRiderLocation(Boolean(data && (data.rider.online || data.runs.length > 0)));
+  // The rider's own dot on the map: on this phone only, once location is allowed (asked above, never here).
+  const here = useOwnPosition(location.state === "on" || location.state === "idle");
   const welcomed = useRef(false);
   const opened = useRef(false);
 
@@ -107,14 +110,16 @@ export default function RiderToday() {
         <>
           <PushPromptCard who="rider" when />
 
-          {/* Online switch (`.card.pad` + `.toggle`). */}
-          <View style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 20, minHeight: 64, flexDirection: "row", alignItems: "center", gap: 14 }}>
-            <View style={{ flex: 1, gap: 3 }}>
-              <T weight="bold" style={{ fontSize: 20 }}>{data.rider.online ? t.online : t.offline}</T>
-              <T style={{ fontSize: 14, color: colors.inkSoft }}>{data.rider.online ? say("onlineSub", { company }) : say("offlineSub")}</T>
+          {/* The map (210px, only the rider's own spot, read on this phone) with the online switch on it. */}
+          <RiderMap me={here} height={210} label={say("map.me")}>
+            <View style={{ ...MAP_OVERLAY, backgroundColor: colors.surface, borderRadius: 18, borderWidth: 1, borderColor: colors.line, paddingVertical: 12, paddingHorizontal: 14, minHeight: 64, flexDirection: "row", alignItems: "center", gap: 14 }}>
+              <View style={{ flex: 1, gap: 2 }}>
+                <T weight="bold" style={{ fontSize: 16 }}>{data.rider.online ? t.online : t.offline}</T>
+                <T style={{ fontSize: 13, color: colors.inkSoft }} numberOfLines={2}>{data.rider.online ? say("onlineSub", { company }) : say("offlineSub")}</T>
+              </View>
+              <Toggle on={data.rider.online} label={data.rider.online ? t.online : t.offline} onChange={(on) => { if (busy !== "online") void act("online", () => riderAction({ action: "online", online: on })); }} />
             </View>
-            <Toggle on={data.rider.online} label={data.rider.online ? t.online : t.offline} onChange={(on) => { if (busy !== "online") void act("online", () => riderAction({ action: "online", online: on })); }} />
-          </View>
+          </RiderMap>
 
           {location.state === "ask" ? (
             <Banner title={t.locAskT} tone="mint" icon="pin">

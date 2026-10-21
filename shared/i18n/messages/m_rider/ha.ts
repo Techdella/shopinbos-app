@@ -161,6 +161,19 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "noPhone": "Babu lambar waya don wannan.",
   "signIn.openLink": "Buɗe link ɗina",
   "signIn.linkHint": "Yi amfani da lambar da kamfaninka ya saka ka da ita. Sun turo maka link? Za ka iya buɗe shi maimakon haka.",
+  "map.me": "Taswira mai nuna inda kake",
+  "map.route": "Taswirar wurin ɗauka da wurin kai kaya. Taɓa don buɗe a taswira.",
+  "pickup.order": "Nemi oda {order}. Za su duba lambarka.",
+  "pickup.orderNoCode": "Nemi oda {order}. Duba kayan kafin ka tafi.",
+  "earn.byDay": "Isar da kaya a kowace rana",
+  "earn.todayCount": "Yau: {count}",
+  "wk.0": "Lit",
+  "wk.1": "Tal",
+  "wk.2": "Lar",
+  "wk.3": "Alh",
+  "wk.4": "Jum",
+  "wk.5": "Asa",
+  "wk.6": "Lah",
 };
 
 export default ha;

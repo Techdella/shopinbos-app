@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "@/lib/db/client";
 import { apiError, ok } from "@/lib/api/response";
 import { addressLines } from "@/lib/labels";
+import { ensurePickupCoords, geocodeAddress, PICKUP_GEO_SELECT } from "@/lib/logistics/geocode";
 import { cashToPayIn, WRONG_PICKUP_CODE } from "@/lib/logistics/job-rules";
 import { askForHelp, checkDeliveryCode, RIDER_LANGUAGES, riderWeek, saveRiderLanguage, skipJob } from "@/lib/logistics/rider-app.server";
 import { riderFromToken } from "@/lib/logistics/rider-session";
@@ -49,7 +50,7 @@ export async function GET(req: NextRequest) {
       select: {
         id: true, status: true, sellerId: true, orderId: true, pickupLocation: true, destination: true, packageDetails: true,
         deliveryFee: true, platformFee: true, netAmount: true, codAmount: true, proofUrl: true, pickupWindowStart: true, pickupWindowEnd: true,
-        pickupCode: true, pickupLat: true, pickupLng: true,
+        pickupCode: true, ...PICKUP_GEO_SELECT,
         seller: { select: { name: true, phone: true, store: { select: { name: true } } } },
       },
     }),
@@ -59,11 +60,29 @@ export async function GET(req: NextRequest) {
   ]);
 
   const orderIds = active.map((job) => job.orderId).filter((id): id is string => Boolean(id));
-  const orders = orderIds.length ? await db.retailOrder.findMany({ where: { id: { in: orderIds } }, select: { id: true, buyerName: true, buyerPhone: true, deliveryAddress: true } }) : [];
+  const orders = orderIds.length ? await db.retailOrder.findMany({ where: { id: { in: orderIds } }, select: { id: true, orderNumber: true, buyerName: true, buyerPhone: true, deliveryAddress: true } }) : [];
   const orderById = new Map(orders.map((order) => [order.id, order]));
 
+  // The rider's map: pickup and drop-off pins for the job in hand (the one being carried, else the next to pick up).
+  // Only that job, and at most a couple of seconds' wait: lookups are cached (GeocodeCache, and the pickup on the
+  // booking), so after the first load this is a database read. The rider's own spot comes from the phone.
+  const mapJob = active.find((job) => job.status !== "confirmed") ?? active[0];
+  const dropAddressOf = (job: (typeof active)[number]) => {
+    const order = job.orderId ? orderById.get(job.orderId) : undefined;
+    const lines = order ? addressLines(order.deliveryAddress) : [];
+    return lines.length ? lines.join(", ") : job.destination;
+  };
+  const noCoords = new Map<string, { lat: number; lng: number }>();
+  const [pickupCoords, dropCoords] = mapJob
+    ? await Promise.all([
+        withinMs(ensurePickupCoords([mapJob], null, 1), 2500, noCoords),
+        // The centre of an area isn't a place to ride to: only a real match goes on the map.
+        withinMs(geocodeAddress(dropAddressOf(mapJob)).then((found) => (found && found.source !== "area" ? found : null)), 2500, null),
+      ])
+    : [noCoords, null];
+
   // One run per pickup (same shop and address), like the web Riders app.
-  const runs = new Map<string, { key: string; pickupName: string; pickupAddress: string; pickupWindow: string | null; pickupKm: number | null; pickupArea: string | null; pickupPhone: string | null; fees: number; drops: unknown[] }>();
+  const runs = new Map<string, { key: string; pickupName: string; pickupAddress: string; pickupWindow: string | null; pickupKm: number | null; pickupArea: string | null; pickupPhone: string | null; pickupLat: number | null; pickupLng: number | null; fees: number; drops: unknown[] }>();
   const here = rider.lastLat !== null && rider.lastLng !== null ? { lat: rider.lastLat, lng: rider.lastLng } : null;
   for (const job of active) {
     const key = `${job.sellerId}|${job.pickupLocation.trim().toLowerCase()}`;
@@ -75,15 +94,20 @@ export async function GET(req: NextRequest) {
       // "Yaba → Lekki": the known area of the pickup and of the drop, when the address names one.
       pickupArea: areaFromText(job.pickupLocation)?.name ?? null,
       pickupPhone: job.seller.phone ? toE164(job.seller.phone) : null,
+      pickupLat: null, pickupLng: null,
       fees: 0, drops: [] };
+    const pickupAt = pickupCoords.get(job.id) ?? (job.pickupLat !== null && job.pickupLng !== null ? { lat: job.pickupLat, lng: job.pickupLng } : null);
+    if (run.pickupLat === null && pickupAt) {
+      run.pickupLat = pickupAt.lat;
+      run.pickupLng = pickupAt.lng;
+    }
     if (!run.pickupWindow && pickupWindow) run.pickupWindow = pickupWindow;
     const order = job.orderId ? orderById.get(job.orderId) : undefined;
-    const lines = order ? addressLines(order.deliveryAddress) : [];
     run.fees += bookingNet(job);
     run.drops.push({
       id: job.id,
       status: job.status,
-      address: lines.length ? lines.join(", ") : job.destination,
+      address: dropAddressOf(job),
       area: job.destination,
       areaShort: areaFromText(job.destination)?.name ?? null,
       buyerName: order?.buyerName ?? null,
@@ -95,6 +119,11 @@ export async function GET(req: NextRequest) {
       hasProof: Boolean(job.proofUrl),
       // The shop has a pickup code to give the rider (never the code itself).
       hasPickupCode: Boolean(job.pickupCode),
+      // "Ask for order SB-2041" at pickup.
+      orderNumber: order?.orderNumber ?? null,
+      // The drop-off pin, for the job in hand only.
+      dropLat: job.id === mapJob?.id ? (dropCoords?.lat ?? null) : null,
+      dropLng: job.id === mapJob?.id ? (dropCoords?.lng ?? null) : null,
     });
     runs.set(key, run);
   }
@@ -107,6 +136,15 @@ export async function GET(req: NextRequest) {
     week,
     runs: [...runs.values()],
   });
+}
+
+/** The work's answer, or `fallback` if it takes longer than `ms` or fails (a slow lookup carries on and fills its cache). */
+function withinMs<T>(work: Promise<T>, ms: number, fallback: T): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<T>((resolve) => {
+    timer = setTimeout(() => resolve(fallback), ms);
+  });
+  return Promise.race([work.catch(() => fallback), late]).finally(() => clearTimeout(timer));
 }
 
 const Body = z.discriminatedUnion("action", [

@@ -88,6 +88,11 @@ export interface RiderDrop {
   areaShort?: string | null;
   /** The shop has a 4-digit pickup code to give the rider (the app never gets the code itself). */
   hasPickupCode?: boolean;
+  /** "SB-2041": the shop's order number, to ask for at pickup. null for bookings without a shop order. */
+  orderNumber?: string | null;
+  /** Where the drop-off is, when the address could be placed on the map (only for the job in hand). */
+  dropLat?: number | null;
+  dropLng?: number | null;
 }
 
 export interface RiderRun {
@@ -102,6 +107,9 @@ export interface RiderRun {
   pickupArea?: string | null;
   /** The shop's phone (E.164), for "Call" at pickup. */
   pickupPhone?: string | null;
+  /** Where the pickup is, for the map (null until the address has been placed). */
+  pickupLat?: number | null;
+  pickupLng?: number | null;
   fees: number;
   drops: RiderDrop[];
 }

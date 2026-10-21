@@ -161,6 +161,19 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "noPhone": "No phone number for this one.",
   "signIn.openLink": "Open my link",
   "signIn.linkHint": "Use the number wey your company take add you. Dem send you link? You fit open am instead.",
+  "map.me": "Map wey show where you dey",
+  "map.route": "Map of where to pick up and where to drop. Tap am to open for maps.",
+  "pickup.order": "Ask for order {order}. Dem go check your code.",
+  "pickup.orderNoCode": "Ask for order {order}. Check the parcel before you comot.",
+  "earn.byDay": "Deliveries for each day",
+  "earn.todayCount": "Today: {count}",
+  "wk.0": "Mon",
+  "wk.1": "Tue",
+  "wk.2": "Wed",
+  "wk.3": "Thu",
+  "wk.4": "Fri",
+  "wk.5": "Sat",
+  "wk.6": "Sun",
 };
 
 export default pcm;

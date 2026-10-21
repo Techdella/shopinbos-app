@@ -160,3 +160,36 @@ export function useRiderLocation(active: boolean) {
   // Not online and no delivery: nothing to show and nothing reported, whatever was decided before.
   return { state: active ? state : ("idle" as LocationState), allow, notNow, openSettings };
 }
+
+/**
+ * The rider's own spot for their map, read on this phone only (nothing is sent: reporting is useRiderLocation's
+ * job). Only when the rider already said yes to location; it never asks. null until there's a reading.
+ */
+export function useOwnPosition(enabled = true) {
+  const [here, setHere] = useState<{ lat: number; lng: number } | null>(null);
+  useEffect(() => {
+    if (!enabled) return;
+    let watch: Location.LocationSubscription | null = null;
+    let cancelled = false;
+    const take = (reading: Location.LocationObject | null) => {
+      if (reading && !cancelled) setHere({ lat: reading.coords.latitude, lng: reading.coords.longitude });
+    };
+    void (async () => {
+      try {
+        const permission = await Location.getForegroundPermissionsAsync();
+        if (!permission.granted || cancelled) return;
+        take(await Location.getLastKnownPositionAsync().catch(() => null));
+        const subscription = await Location.watchPositionAsync({ accuracy: Location.Accuracy.Balanced, timeInterval: 30_000, distanceInterval: 50 }, take);
+        if (cancelled) subscription.remove();
+        else watch = subscription;
+      } catch {
+        // Location off or unavailable: the map just doesn't show the rider.
+      }
+    })();
+    return () => {
+      cancelled = true;
+      watch?.remove();
+    };
+  }, [enabled]);
+  return here;
+}

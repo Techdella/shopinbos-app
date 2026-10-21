@@ -86,6 +86,45 @@ test("this week's deliveries group under Today, Yesterday and Earlier, in Lagos 
   assert.deepEqual(pure.groupByDay([], now), []);
 });
 
+test("Riders app Earnings: deliveries by day, Monday to Sunday in Lagos time, worked out on the phone", () => {
+  const now = new Date("2026-10-21T10:00:00Z"); // Wednesday
+  const bars = pure.weekBars(
+    [
+      { deliveredAt: "2026-10-19T08:00:00Z" }, // Monday
+      { deliveredAt: "2026-10-18T23:30:00Z" }, // 00:30 Monday in Lagos
+      { deliveredAt: "2026-10-21T08:15:00Z" },
+      { deliveredAt: "2026-10-20T23:30:00Z" }, // 00:30 Wednesday in Lagos
+      { deliveredAt: "2026-10-12T12:00:00Z" }, // last week: left out
+    ],
+    now,
+  );
+  assert.deepEqual(bars, { counts: [2, 0, 2, 0, 0, 0, 0], today: 2 });
+  assert.equal(pure.weekBars([], new Date("2026-10-25T22:30:00Z")).today, 6, "Sunday night in Lagos");
+  assert.equal(pure.weekBars([], new Date("2026-10-25T23:30:00Z")).today, 0, "already Monday in Lagos");
+});
+
+test("Riders app map: a region that shows every pin, and only the rider's own phone knows where they are", () => {
+  assert.equal(pure.regionFor([null, undefined]), null);
+  const one = pure.regionFor([{ lat: 6.5, lng: 3.4 }]);
+  assert.equal(one.latitude, 6.5);
+  assert.ok(one.latitudeDelta > 0);
+  const two = pure.regionFor([{ lat: 6.5, lng: 3.3 }, null, { lat: 6.6, lng: 3.5 }]);
+  assert.ok(Math.abs(two.latitude - 6.55) < 1e-9 && Math.abs(two.longitude - 3.4) < 1e-9);
+  assert.ok(two.latitudeDelta > 0.1 && two.longitudeDelta > 0.2, "room around both pins");
+  // The route sends pickup and drop-off pins and the order number, never the rider's stored spot.
+  const route = read("src/app/api/mobile/logistics/rider/route.ts");
+  assert.match(route, /orderNumber: order\?\.orderNumber \?\? null/);
+  assert.match(route, /dropLat: job\.id === mapJob\?\.id/);
+  const payload = route.slice(route.indexOf("return ok({"), route.indexOf("const Body"));
+  assert.doesNotMatch(payload, /lastLat|lastLng/);
+  // Android without a Google Maps key falls back to the plain panel instead of crashing.
+  const config = read("apps/mobile/app.config.js");
+  assert.match(config, /process\.env\.GOOGLE_MAPS_ANDROID_API_KEY/);
+  assert.match(config, /mapsAvailable: Boolean\(androidMapsKey\)/);
+  const map = read("apps/mobile/src/components/RiderMap.native.tsx");
+  assert.match(map, /if \(!mapsAvailable \|\| !region\) return <MapBox/);
+});
+
 test("rider routes: pickup codes are made on accept, checked at pickup, and shown to the business handing over", () => {
   const jobs = read("src/lib/logistics/jobs.ts");
   assert.match(jobs, /input\.to === "confirmed" && !job\.pickupCode\) data\.pickupCode = makePickupCode/);
