@@ -189,26 +189,29 @@ export function Keypad({ value, length, onChange }: { value: string; length: num
           </View>
         ))}
       </View>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
-        {keys.map((key) => (
-          <Pressable
-            key={key}
-            accessibilityRole="button"
-            accessibilityLabel={key === "del" ? t("keypad.delete") : key === "clr" ? t("keypad.clear") : key}
-            onPress={() => press(key)}
-            style={({ pressed }) => ({ width: "31.5%", minHeight: 58, borderRadius: 18, backgroundColor: pressed ? colors.grayTint : colors.surface, alignItems: "center", justifyContent: "center" })}
-          >
-            {key === "del" ? (
-              <Svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke={colors.ink} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                <Path d="M9 5h11v14H9l-6-7z" />
-                <Path d="M13 9.5l5 5M18 9.5l-5 5" />
-              </Svg>
-            ) : (
-              <T weight="bold" style={{ fontSize: key === "clr" ? 16 : 24 }}>{key === "clr" ? t("keypad.clear") : key}</T>
-            )}
-          </Pressable>
-        ))}
-      </View>
+      {/* Rows of three equal keys (a percentage width plus gaps can tip over 100% and wrap to two columns). */}
+      {[0, 3, 6, 9].map((start) => (
+        <View key={start} style={{ flexDirection: "row", gap: 10, marginTop: start ? -8 : 0 }}>
+          {keys.slice(start, start + 3).map((key) => (
+            <Pressable
+              key={key}
+              accessibilityRole="button"
+              accessibilityLabel={key === "del" ? t("keypad.delete") : key === "clr" ? t("keypad.clear") : key}
+              onPress={() => press(key)}
+              style={({ pressed }) => ({ flex: 1, minHeight: 58, borderRadius: 18, backgroundColor: pressed ? colors.grayTint : colors.surface, alignItems: "center", justifyContent: "center" })}
+            >
+              {key === "del" ? (
+                <Svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke={colors.ink} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <Path d="M9 5h11v14H9l-6-7z" />
+                  <Path d="M13 9.5l5 5M18 9.5l-5 5" />
+                </Svg>
+              ) : (
+                <T weight="bold" style={{ fontSize: key === "clr" ? 16 : 24 }}>{key === "clr" ? t("keypad.clear") : key}</T>
+              )}
+            </Pressable>
+          ))}
+        </View>
+      ))}
     </View>
   );
 }

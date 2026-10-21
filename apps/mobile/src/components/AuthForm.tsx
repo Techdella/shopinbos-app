@@ -212,7 +212,7 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
                 placeholder={country.example}
                 value={phone}
                 onChangeText={setPhone}
-                style={{ flex: 1, height: 58, borderWidth: 1.5, fontSize: 20, fontFamily: fonts.bold }}
+                style={{ flex: 1, minWidth: 0, height: 58, borderWidth: 1.5, fontSize: 20, fontFamily: fonts.bold }}
               />
             </View>
           ) : (
