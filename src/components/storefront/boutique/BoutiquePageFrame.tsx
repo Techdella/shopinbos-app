@@ -20,7 +20,7 @@ import { ShopperBottomNav, type ShopperSheet } from "../shopper/ShopperBottomNav
 import { resolveMenu, type MenuContext } from "../StoreMenu";
 import { menuStyleOf, mobileMenuStyleOf, readMenu } from "@/lib/storefront/menu";
 import { readFooterMenu, readMobileMenu } from "@/lib/storefront/store-navigation";
-import { AnnouncementBar, BoutiqueFooter, chromeLinksFromMenu, BoutiqueHeader, type ChromeLink } from "./BoutiqueChrome";
+import { AnnouncementBar, BoutiqueFooter, chromeLinksFromMenu, BoutiqueHeader, marketHeaderOf, type ChromeLink } from "./BoutiqueChrome";
 import { BOUTIQUE_FONT_CLASS } from "./fonts";
 import { shopperCopy } from "@shared/placeholder-copy";
 import { BOUTIQUE_CSS, boutiqueLook, lookVars, navColors } from "./look";
@@ -128,6 +128,7 @@ export function BoutiquePageFrame({ themeId, snapshot, store, catalog, shopper, 
         centred={headerLayout === "centered" || (headerLayout !== "split" && headerLayout !== "bold" && headerLayout !== "sidebar" && look.centredHeader)}
         bold={headerLayout === "bold"}
         sidebar={headerLayout === "sidebar"}
+        market={marketHeaderOf(headerLayout)}
       />
       </div>
       <div className={headerLayout === "sidebar" ? "bq-shell-main" : "contents"}>

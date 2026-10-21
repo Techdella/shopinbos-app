@@ -13,7 +13,8 @@ export type ThemeLibraryId =
   | "omalicha" | "zuma" | "oku" | "ihe" | "kasuwa" | "nkata" | "uwa" | "sarauniya" | "zinariya"
   | "irawo" | "asa" | "mmiri" | "uzo" | "rawa" | "fitila" | "oso" | "shakara"
   | "aga" | "itura" | "gele" | "imani" | "itanna"
-  | "littafi" | "itan" | "awo" | "kyau" | "keke";
+  | "littafi" | "itan" | "awo" | "kyau" | "keke"
+  | "ahia" | "ado" | "wuta" | "ike" | "ewu";
 
 /**
  * Which plan a theme needs: basic themes come with every store (the free Starter plan), premium ones with Growth
@@ -343,6 +344,31 @@ export const THEME_LIBRARY: readonly ThemeLibraryEntry[] = [
     industries: ["bicycles", "bikes", "scooters", "cycling", "sport equipment"], blurb: "A slanted banner and products on angled panels. For bikes and sport gear", isNew: true, tier: "premium",
     preview: { bg: "#2B5061", ink: "#FFFFFF", line: "#3E6676", accent: "#F7BE74", nameFont: "grotesk", nameWeight: 800, dark: true },
   }),
+  entry({
+    id: "ahia", name: "Ahịa", meaning: "Igbo for market", categories: ["any", "gadgets"], categoryLabel: "Marketplace",
+    industries: ["general store", "variety store", "fashion and gadgets", "accessories", "multi-category"], blurb: "A search-first header, a yellow banner and a row per category. For shops that sell a bit of everything", isNew: true, tier: "basic",
+    preview: { bg: "#F9C21B", ink: "#1F1F1F", line: "#E8B30F", accent: "#262626", nameFont: "grotesk", nameWeight: 800, dark: false },
+  }),
+  entry({
+    id: "ado", name: "Àdó", meaning: "Hausa for adornment", categories: ["fashion"], categoryLabel: "Fashion",
+    industries: ["menswear", "fashion", "sneakers", "watches", "bags"], blurb: "Green and sharp, a promo panel and one new product shown large. For fashion stores", isNew: true, tier: "premium",
+    preview: { bg: "#2A4F9E", ink: "#FFFFFF", line: "#3B62B3", accent: "#71CD14", nameFont: "grotesk", nameWeight: 800, dark: true },
+  }),
+  entry({
+    id: "wuta", name: "Wuta", meaning: "Hausa for fire and power", categories: ["gadgets"], categoryLabel: "Electronics",
+    industries: ["electronics", "gadgets", "phones", "appliances", "cameras"], blurb: "Orange, a search header and a product card beside the banner. For gadget stores", isNew: true, tier: "basic",
+    preview: { bg: "#F4F4F4", ink: "#222222", line: "#E6E6E6", accent: "#F28B00", nameFont: "grotesk", nameWeight: 800, dark: false },
+  }),
+  entry({
+    id: "ike", name: "Ike", meaning: "Igbo for strength and power", categories: ["gadgets"], categoryLabel: "Electronics",
+    industries: ["electronics", "laptops", "phones", "cameras", "accessories"], blurb: "Navy and red, diagonal collection tiles and top-selling lists. For electronics stores", isNew: true, tier: "platinum",
+    preview: { bg: "#15161D", ink: "#FFFFFF", line: "#2B2D42", accent: "#D10024", nameFont: "grotesk", nameWeight: 800, dark: true },
+  }),
+  entry({
+    id: "ewu", name: "Ẹ̀wù", meaning: "Yoruba for garment", categories: ["fashion", "kids"], categoryLabel: "Family fashion",
+    industries: ["family fashion", "womenswear", "menswear", "kids clothing", "bags and shoes"], blurb: "Lavender, a category menu beside the banner and category cards with counts. For fashion stores", isNew: true, tier: "premium",
+    preview: { bg: "#EDF1FF", ink: "#1C1C1C", line: "#DDE3F7", accent: "#D19C97", nameFont: "grotesk", nameWeight: 700, dark: false },
+  }),
 ];
 
 export const THEME_LIBRARY_IDS: readonly ThemeLibraryId[] = THEME_LIBRARY.map((item) => item.id);
@@ -475,6 +501,11 @@ const THEME_RULES: Array<{ themeId: ThemeLibraryId; industry: string; words: str
   { themeId: "itanna", industry: "sneakers", words: ["sneaker store", "sneakerhead", "kicks", "trainers"] },
   { themeId: "gele", industry: "fashion and accessories", words: ["gele", "headtie", "head tie", "headwrap", "head wrap", "turban"] },
   { themeId: "itura", industry: "home and lifestyle", words: ["comfort", "lounge", "lifestyle store", "home goods", "ottoman", "pouf"] },
+  { themeId: "wuta", industry: "electronics", words: ["appliance", "home appliance", "fridge", "freezer", "air conditioner", "generator", "inverter", "television", "blender"] },
+  { themeId: "ike", industry: "electronics", words: ["computer village", "computer store", "pc parts", "gaming pc", "monitor", "printer", "computer accessories"] },
+  { themeId: "ahia", industry: "general store", words: ["variety store", "general merchandise", "a bit of everything", "multi-category", "online mall"] },
+  { themeId: "ewu", industry: "family fashion", words: ["family wear", "family outfits", "matching outfits", "mummy and me", "daddy and me"] },
+  { themeId: "ado", industry: "fashion", words: ["urban wear", "smart casual", "streetwear", "street wear", "casual wear"] },
   { themeId: "keke", industry: "bicycles", words: ["bicycle", "bike", "bikes", "cycling", "cyclist", "scooter", "e-bike", "bmx", "keke napep"] },
   { themeId: "itan", industry: "literary books", words: ["literary", "literature", "poetry", "rare book", "first edition", "publisher", "publishing"] },
   { themeId: "littafi", industry: "bookshop", words: ["children's books", "kids books", "storybook", "picture book", "comics bookshop"] },

@@ -384,6 +384,11 @@ export const HERO_LAYOUT_BY_THEME: Record<string, string> = {
   awo: "awo-banner",
   kyau: "kyau-season",
   keke: "keke-slant",
+  ahia: "ahia-yellow",
+  ado: "ado-model",
+  wuta: "wuta-deal",
+  ike: "ike-deal",
+  ewu: "ewu-menu",
 };
 
 const HERO_LAYOUTS: ChoiceOption[] = [
@@ -414,7 +419,7 @@ const STOCK_IMAGE_TOGGLE: SchemaField = {
 };
 
 /** Hero layouts that use more than one picture (the rest use the first). */
-const HERO_PICTURE_COUNT: Record<string, number> = { "asoebi-collage": 3, "iwe-shelf": 4, "zuma-collage": 2, "ihe-gallery": 3, "sarauniya-duo": 2, "uzo-sticky": 3, "rawa-fan": 3, "oso-bento": 3, "itura-cutout": 3, "imani-split": 2, "littafi-gradient": 3, "itan-cover": 3 };
+const HERO_PICTURE_COUNT: Record<string, number> = { "asoebi-collage": 3, "iwe-shelf": 4, "zuma-collage": 2, "ihe-gallery": 3, "sarauniya-duo": 2, "uzo-sticky": 3, "rawa-fan": 3, "oso-bento": 3, "itura-cutout": 3, "imani-split": 2, "littafi-gradient": 3, "itan-cover": 3, "ike-deal": 2, "ewu-menu": 3 };
 /** Layouts that don't show the eyebrow. */
 const HERO_NO_EYEBROW = ["breeze-banner"];
 
@@ -454,7 +459,7 @@ function boutiqueSchema(kind: string, themeId: string): SectionSchema {
           sharedNote("header"),
           text("logoText", "Shop name", { help: "Leave empty to use your store name." }),
           text("cartLabel", "Bag label", { placeholder: "My bag" }),
-          { id: "layout", type: "segmented", label: "Logo position", target: setting("layout"), fallback: themeId === "plain" ? "centered" : "split", options: [{ value: "split", label: "Left" }, { value: "centered", label: "Centre" }, { value: "bold", label: "Bold" }, { value: "sidebar", label: "Sidebar" }], help: "Sidebar puts the logo and menu in a column on the left on computers." },
+          { id: "layout", type: "select", label: "Layout", target: setting("layout"), fallback: themeId === "plain" ? "centered" : "split", options: [{ value: "split", label: "Logo left" }, { value: "centered", label: "Logo centred" }, { value: "bold", label: "Bold bar" }, { value: "sidebar", label: "Sidebar" }, { value: "market", label: "Search bar" }, { value: "market-dark", label: "Search bar, dark" }], help: "Sidebar puts the logo and menu in a column on the left on computers. Search bar shows a wide search box with the menu on a row below." },
           { id: "categoryBar", type: "toggle", label: "Category bar under the header", target: setting("categoryBar"), fallback: false, help: "A dark strip with your product categories." },
         ] },
         ...MENU_FIELDS(["home", "products", "about", "contact"], "classic"),
@@ -517,6 +522,8 @@ function boutiqueSchema(kind: string, themeId: string): SectionSchema {
             { value: "lists", label: "Product lists (new, best sellers, on sale)" },
             { value: "feature", label: "Feature (one product, large)" },
             { value: "showcase", label: "Showcase (angled colour panels)" },
+            { value: "by-category", label: "By category (a row per category)" },
+            { value: "mini", label: "Mini cards (small picture beside the name)" },
             { value: "grid", label: "Full shop grid" },
           ] },
           text("title", "Heading"),
@@ -566,7 +573,7 @@ function boutiqueSchema(kind: string, themeId: string): SectionSchema {
     case "category-list":
       return plain([{ fields: [
         text("title", "Heading"),
-        { id: "layout", type: "select", label: "Layout", target: setting("layout"), fallback: themeId === "plug" ? "chips" : "boutique-tiles", options: [{ value: "boutique-tiles", label: "Tiles" }, { value: "boutique-circles", label: "Circles" }, { value: "chips", label: "Chips" }, { value: "boutique-stack", label: "Banners" }, { value: "boutique-mosaic", label: "Mosaic" }, { value: "boutique-cards", label: "Tinted cards" }, { value: "boutique-words", label: "Big words" }, { value: "boutique-labels", label: "Labels" }, { value: "boutique-bordered", label: "Bordered cards" }] },
+        { id: "layout", type: "select", label: "Layout", target: setting("layout"), fallback: themeId === "plug" ? "chips" : "boutique-tiles", options: [{ value: "boutique-tiles", label: "Tiles" }, { value: "boutique-circles", label: "Circles" }, { value: "chips", label: "Chips" }, { value: "boutique-stack", label: "Banners" }, { value: "boutique-mosaic", label: "Mosaic" }, { value: "boutique-cards", label: "Tinted cards" }, { value: "boutique-words", label: "Big words" }, { value: "boutique-labels", label: "Labels" }, { value: "boutique-bordered", label: "Bordered cards" }, { value: "boutique-diagonal", label: "Diagonal tiles" }, { value: "boutique-counts", label: "Cards with product counts" }, { value: "boutique-promo", label: "Promo panels" }] },
         { id: "note", type: "note", label: "Tiles come from your collections, or your product categories when you have no collections." },
       ] }]);
     case "testimonials":
@@ -589,8 +596,9 @@ function boutiqueSchema(kind: string, themeId: string): SectionSchema {
             { value: "overlap", label: "Overlap", hint: "Wide picture with the words on a card over its edge." },
             { value: "framed", label: "Framed", hint: "Picture in an offset frame, words beside it." },
             { value: "quote", label: "Quote", hint: "The text as a large quotation; the heading is who said it." },
+            { value: "promo", label: "Promo panel", hint: "Picture on a grey panel, a big centred heading and button beside it." },
           ] },
-          { id: "imagePosition", type: "segmented", label: "Picture side", target: setting("imagePosition"), fallback: "left", options: IMAGE_SIDE, help: "On phones the picture is always on top.", when: layoutIs(["boutique", "editorial", "overlap", "framed"], storyFallback) },
+          { id: "imagePosition", type: "segmented", label: "Picture side", target: setting("imagePosition"), fallback: "left", options: IMAGE_SIDE, help: "On phones the picture is always on top.", when: layoutIs(["boutique", "editorial", "overlap", "framed", "promo"], storyFallback) },
           { id: "media", type: "media", label: "Image", max: 1, help: "No image yet? The theme's stock photo is used.", when: layoutNot(["centered", "quote"], storyFallback) },
           { ...STOCK_IMAGE_TOGGLE, when: layoutNot(["centered", "quote"], storyFallback) },
         ] },

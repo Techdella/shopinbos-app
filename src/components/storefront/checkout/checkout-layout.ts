@@ -115,6 +115,11 @@ export const CHECKOUT_THEME_DEFAULTS: Record<string, ThemeDefault> = {
   awo: { layout: "two-column", summaryPosition: "right", header: "nav" },
   kyau: { layout: "two-column", summaryPosition: "right", header: "nav" },
   keke: { layout: "steps", summaryPosition: "right", header: "logo" },
+  ahia: { layout: "two-column", summaryPosition: "right", header: "nav" },
+  ado: { layout: "two-column", summaryPosition: "right", header: "nav" },
+  wuta: { layout: "two-column", summaryPosition: "right", header: "nav" },
+  ike: { layout: "steps", summaryPosition: "right", header: "nav" },
+  ewu: { layout: "two-column", summaryPosition: "right", header: "nav" },
 };
 
 const FALLBACK_THEME: ThemeDefault = { layout: "two-column", summaryPosition: "right", header: "logo" };

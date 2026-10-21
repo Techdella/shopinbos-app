@@ -19,7 +19,7 @@ import { ShopperBottomNav, type ShopperSheet } from "../shopper/ShopperBottomNav
 import { resolveMenu, type MenuContext } from "../StoreMenu";
 import { menuStyleOf, mobileMenuStyleOf, readMenu } from "@/lib/storefront/menu";
 import { readFooterMenu, readMobileMenu } from "@/lib/storefront/store-navigation";
-import { AnnouncementBar, BoutiqueFooter, chromeLinksFromMenu, BoutiqueHeader, type ChromeLink } from "./BoutiqueChrome";
+import { AnnouncementBar, BoutiqueFooter, chromeLinksFromMenu, BoutiqueHeader, marketHeaderOf, type ChromeLink } from "./BoutiqueChrome";
 import { legalLinks, legalPagePath } from "@/lib/legal/pages";
 import { BoutiqueProductView, type AddToBagInput, type BoutiqueProductDetail, type ProductReviewEntry } from "./BoutiqueProductView";
 import { BOUTIQUE_FONT_CLASS } from "./fonts";
@@ -149,6 +149,7 @@ export function BoutiqueProductPage({ themeId, snapshot, store, product, reviews
         cartLabel={cartLabel}
         centred={headerLayout === "centered" || (headerLayout !== "split" && headerLayout !== "bold" && look.centredHeader)}
         bold={headerLayout === "bold"}
+        market={marketHeaderOf(headerLayout)}
       />
       <main id="bq-main" className="bq-page" tabIndex={-1}>
         <BoutiqueProductView

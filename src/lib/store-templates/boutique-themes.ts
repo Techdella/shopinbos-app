@@ -17,7 +17,8 @@ export type BoutiqueThemeId =
   | "omalicha" | "zuma" | "oku" | "ihe" | "kasuwa" | "nkata" | "uwa" | "sarauniya" | "zinariya"
   | "irawo" | "asa" | "mmiri" | "uzo" | "rawa" | "fitila" | "oso" | "shakara"
   | "aga" | "itura" | "gele" | "imani" | "itanna"
-  | "littafi" | "itan" | "awo" | "kyau" | "keke";
+  | "littafi" | "itan" | "awo" | "kyau" | "keke"
+  | "ahia" | "ado" | "wuta" | "ike" | "ewu";
 
 export const BOUTIQUE_THEME_IDS: readonly BoutiqueThemeId[] = [
   "breeze", "noir", "plain", "adire", "pantry", "ile", "plug", "stride",
@@ -27,6 +28,7 @@ export const BOUTIQUE_THEME_IDS: readonly BoutiqueThemeId[] = [
   "irawo", "asa", "mmiri", "uzo", "rawa", "fitila", "oso", "shakara",
   "aga", "itura", "gele", "imani", "itanna",
   "littafi", "itan", "awo", "kyau", "keke",
+  "ahia", "ado", "wuta", "ike", "ewu",
 ];
 
 export function isBoutiqueTheme(templateId: string | null | undefined): templateId is BoutiqueThemeId {
@@ -214,13 +216,20 @@ export const BOUTIQUE_THEME_TOKENS: Record<BoutiqueThemeId, ThemeTokenSet> = {
   itan: { heroBg: "#EFEEE8", heroText: "#2F2F2F", accent: "#9C7A54", ctaBg: "#2F2F2F", ctaText: "#F3F2EC", paperBg: "#F3F2EC", cardBg: "#E9E7DE", ink: "#2F2F2F", muted: "#74706A", border: "#E0DDD3", headingStyle: "serif", radius: "sharp" },
   awo: { heroBg: "#F4F4F4", heroText: "#1E1E27", accent: "#FE4C50", ctaBg: "#FE4C50", ctaText: "#FFFFFF", paperBg: "#FFFFFF", cardBg: "#F7F7F7", ink: "#1E1E27", muted: "#6E6E73", border: "#EBEBEB", headingStyle: "grotesk", radius: "sharp" },
   kyau: { heroBg: "#E9ECF2", heroText: "#222222", accent: "#717FE0", ctaBg: "#717FE0", ctaText: "#FFFFFF", paperBg: "#FFFFFF", cardBg: "#F3F3F3", ink: "#222222", muted: "#808080", border: "#E6E6E6", headingStyle: "grotesk", radius: "rounded" },
+  // Inspiration batch 3: a yellow market, a green menswear store, an orange gadget store, a red-and-navy electronics
+  // store and a lavender family fashion store.
+  ahia: { heroBg: "#F9C21B", heroText: "#1F1F1F", accent: "#E8590C", ctaBg: "#262626", ctaText: "#FFFFFF", paperBg: "#FFFFFF", cardBg: "#F7F7F7", ink: "#262626", muted: "#666666", border: "#ECECEC", headingStyle: "grotesk", radius: "soft" },
+  ado: { heroBg: "#2A4F9E", heroText: "#FFFFFF", accent: "#71CD14", ctaBg: "#71CD14", ctaText: "#14250A", paperBg: "#FFFFFF", cardBg: "#F2F2F2", ink: "#222222", muted: "#6F6F6F", border: "#EEEEEE", headingStyle: "grotesk", radius: "sharp" },
+  wuta: { heroBg: "#F4F4F4", heroText: "#222222", accent: "#F28B00", ctaBg: "#F28B00", ctaText: "#1A1A1A", paperBg: "#FFFFFF", cardBg: "#F5F5F5", ink: "#222222", muted: "#6E6E6E", border: "#E6E6E6", headingStyle: "grotesk", radius: "rounded" },
+  ike: { heroBg: "#E4E7ED", heroText: "#2B2D42", accent: "#D10024", ctaBg: "#D10024", ctaText: "#FFFFFF", paperBg: "#FFFFFF", cardBg: "#F6F7F9", ink: "#2B2D42", muted: "#6B7488", border: "#E4E7ED", headingStyle: "grotesk", radius: "soft" },
+  ewu: { heroBg: "#EDF1FF", heroText: "#1C1C1C", accent: "#D19C97", ctaBg: "#D19C97", ctaText: "#1C1C1C", paperBg: "#FFFFFF", cardBg: "#EDF1FF", ink: "#1C1C1C", muted: "#6C757D", border: "#E3E7F5", headingStyle: "grotesk", radius: "sharp" },
   keke: { heroBg: "#2B5061", heroText: "#FFFFFF", accent: "#F7BE74", ctaBg: "#F7BE74", ctaText: "#1B2B33", paperBg: "#FFFFFF", cardBg: "#F2F5F6", ink: "#1B2B33", muted: "#5F6F77", border: "#E1E6E8", headingStyle: "grotesk", radius: "sharp" },
   gbedu: { heroBg: "#0B0B0F", heroText: "#F5F5F7", accent: "#8B5CF6", ctaBg: "#F5F5F7", ctaText: "#0B0B0F", paperBg: "#0B0B0F", cardBg: "#17171F", ink: "#F5F5F7", muted: "#A1A1AA", border: "#26262E", headingStyle: "grotesk", radius: "soft" },
 };
 
 const NAV = ["home", "products", "about", "contact"];
 
-type HeaderLayout = "split" | "centered" | "bold" | "sidebar";
+type HeaderLayout = "split" | "centered" | "bold" | "sidebar" | "market" | "market-dark";
 
 function announcement() {
   // Empty text: the storefront derives the bar from shipping zones and payment settings, or hides it.
@@ -248,7 +257,7 @@ function newsletter(copy: { title?: string; body?: string } = {}) {
  * Product rows on the home page: a carousel, a 4-up grid, a dense 6-up catalogue (Ọjà, Danfo), a menu list (Oúnjẹ),
  * one big product beside four (spotlight) or big alternating rows (lookbook).
  */
-type RailLayout = "carousel" | "tiles" | "dense" | "menu" | "spotlight" | "lookbook" | "category-tabs" | "lists" | "feature" | "showcase";
+type RailLayout = "carousel" | "tiles" | "dense" | "menu" | "spotlight" | "lookbook" | "category-tabs" | "lists" | "feature" | "showcase" | "by-category" | "mini";
 
 /** `extra`: card options (quickAdd, showRating, hoverImage) or layout options (listColumns). */
 function bestSellers(layout: RailLayout, title = "Best sellers", cta = "Shop all", id = "featured-products", extra: Record<string, unknown> = {}) {
@@ -309,6 +318,11 @@ const HERO_SEEDS: Record<BoutiqueThemeId, { layout: string; eyebrow: string; tit
   awo: { layout: "awo-banner", eyebrow: "New season", title: "New arrivals are here", primaryCta: "Shop now" },
   kyau: { layout: "kyau-season", eyebrow: "The new collection", title: "New season", primaryCta: "Shop now" },
   keke: { layout: "keke-slant", eyebrow: "Best seller", title: "Ride further, ride better", primaryCta: "Shop now" },
+  ahia: { layout: "ahia-yellow", eyebrow: "", title: "Get started on your favourite shopping", primaryCta: "Buy now" },
+  ado: { layout: "ado-model", eyebrow: "New collection", title: "Show your personal style", primaryCta: "View collection" },
+  wuta: { layout: "wuta-deal", eyebrow: "This week's pick", title: "The latest gadgets, delivered", primaryCta: "Shop now" },
+  ike: { layout: "ike-deal", eyebrow: "New this week", title: "Fresh stock just landed", primaryCta: "Shop now" },
+  ewu: { layout: "ewu-menu", eyebrow: "New collection", title: "Fashionable dresses", primaryCta: "Shop now" },
 };
 
 function hero(theme: BoutiqueThemeId): TemplateSectionNode {
@@ -317,7 +331,9 @@ function hero(theme: BoutiqueThemeId): TemplateSectionNode {
 }
 
 /** Category row look: round picks, wide tiles, compact chips (dense catalogues and menus), full-width banners or a mosaic. */
-const CATEGORY_LAYOUT: Record<BoutiqueThemeId, "chips" | "boutique-tiles" | "boutique-circles" | "boutique-stack" | "boutique-mosaic" | "boutique-cards" | "boutique-words" | "boutique-labels" | "boutique-bordered"> = {
+type CategoryLayout = "chips" | "boutique-tiles" | "boutique-circles" | "boutique-stack" | "boutique-mosaic" | "boutique-cards" | "boutique-words" | "boutique-labels" | "boutique-bordered" | "boutique-diagonal" | "boutique-counts" | "boutique-promo";
+
+const CATEGORY_LAYOUT: Record<BoutiqueThemeId, CategoryLayout> = {
   breeze: "boutique-tiles", noir: "boutique-circles", plain: "boutique-circles", adire: "boutique-circles", pantry: "boutique-circles",
   ile: "boutique-tiles", plug: "chips", stride: "boutique-tiles",
   ewa: "boutique-circles", suku: "boutique-tiles", asoebi: "boutique-tiles", agbada: "boutique-tiles", ileke: "boutique-circles",
@@ -330,10 +346,11 @@ const CATEGORY_LAYOUT: Record<BoutiqueThemeId, "chips" | "boutique-tiles" | "bou
   fitila: "boutique-stack", oso: "boutique-mosaic", shakara: "boutique-stack",
   aga: "chips", itura: "boutique-cards", gele: "boutique-mosaic", imani: "boutique-words", itanna: "chips",
   littafi: "boutique-tiles", itan: "chips", awo: "boutique-labels", kyau: "boutique-bordered", keke: "boutique-cards",
+  ahia: "boutique-circles", ado: "boutique-tiles", wuta: "boutique-promo", ike: "boutique-diagonal", ewu: "boutique-counts",
 };
 
-function categories(theme: BoutiqueThemeId, title = "Shop by category") {
-  return section("categories", "category-grid", "Shop by Category", { title }, { settings: { layout: CATEGORY_LAYOUT[theme], source: "store-categories" } });
+function categories(theme: BoutiqueThemeId, title = "Shop by category", id = "categories", layout: CategoryLayout = CATEGORY_LAYOUT[theme]) {
+  return section(id, "category-grid", "Shop by Category", { title }, { settings: { layout, source: "store-categories" } });
 }
 
 function reviews(title = "What customers say") {
@@ -358,6 +375,7 @@ const STORY_LAYOUT: Partial<Record<BoutiqueThemeId, string>> = {
   irawo: "overlap", asa: "editorial", mmiri: "centered", uzo: "overlap", rawa: "banner", fitila: "overlap", oso: "overlap", shakara: "banner",
   aga: "boutique", itura: "overlap", gele: "banner", imani: "banner", itanna: "centered",
   littafi: "centered", itan: "quote", awo: "editorial", kyau: "framed", keke: "banner",
+  ahia: "centered", ado: "promo", wuta: "promo", ike: "banner", ewu: "editorial",
 };
 
 const STORY_COPY: Partial<Record<BoutiqueThemeId, { eyebrow: string; title: string }>> = {
@@ -398,6 +416,11 @@ const STORY_COPY: Partial<Record<BoutiqueThemeId, { eyebrow: string; title: stri
   awo: { eyebrow: "Our story", title: "Colour for every day" },
   kyau: { eyebrow: "Our story", title: "Made with care, worn with pride" },
   keke: { eyebrow: "About our store", title: "Bikes for every road" },
+  ahia: { eyebrow: "About us", title: "Everything you need, one market" },
+  ado: { eyebrow: "The new season", title: "Dress the part" },
+  wuta: { eyebrow: "Why shop with us", title: "Genuine gadgets, honest prices" },
+  ike: { eyebrow: "Our promise", title: "Tech that keeps up with you" },
+  ewu: { eyebrow: "Our story", title: "Clothes for the whole family" },
 };
 
 /** Story pictures on the right (the rest keep the picture left). */
@@ -409,7 +432,8 @@ function story(theme: BoutiqueThemeId, own?: { id: string; eyebrow: string; titl
     own?.id ?? "story",
     "story-split",
     "Our Story",
-    { eyebrow: copy.eyebrow, title: copy.title, body: "", primaryCta: "Our story" },
+    // A promo panel's button opens the shop.
+    { eyebrow: copy.eyebrow, title: copy.title, body: "", primaryCta: STORY_LAYOUT[theme] === "promo" && !own ? "Shop now" : "Our story" },
     { settings: { layout: STORY_LAYOUT[theme] ?? "boutique", ...(STORY_PICTURE_RIGHT[theme] || own?.pictureRight ? { imagePosition: "right" } : {}) }, items: [] },
   );
 }
@@ -437,6 +461,7 @@ const FAQ_KIND: Partial<Record<BoutiqueThemeId, FaqKind>> = {
   irawo: "general", asa: "food", mmiri: "food", uzo: "general", rawa: "general", fitila: "general", oso: "fit", shakara: "fit",
   aga: "general", itura: "general", gele: "fit", imani: "general", itanna: "fit",
   littafi: "general", itan: "general", awo: "fit", kyau: "fit", keke: "general",
+  ahia: "general", ado: "fit", wuta: "general", ike: "general", ewu: "fit",
 };
 
 function faq(theme?: BoutiqueThemeId) {
@@ -477,10 +502,11 @@ const HEADER_LAYOUT: Record<BoutiqueThemeId, HeaderLayout> = {
   irawo: "split", asa: "centered", mmiri: "split", uzo: "split", rawa: "bold", fitila: "centered", oso: "centered", shakara: "bold",
   aga: "sidebar", itura: "split", gele: "split", imani: "split", itanna: "split",
   littafi: "split", itan: "centered", awo: "split", kyau: "split", keke: "split",
+  ahia: "market-dark", ado: "split", wuta: "market", ike: "market-dark", ewu: "market",
 };
 
-/** Themes with a dark strip of categories under the header (Imani). */
-const CATEGORY_BAR: Partial<Record<BoutiqueThemeId, true>> = { imani: true };
+/** Themes with a dark strip of categories under the header (Imani, Wuta). */
+const CATEGORY_BAR: Partial<Record<BoutiqueThemeId, true>> = { imani: true, wuta: true };
 
 const CART_LABEL: Partial<Record<BoutiqueThemeId, string>> = { ounje: "My order", chinchin: "My order", oja: "My basket", oko: "My basket", kasuwa: "My cart", nkata: "My basket" };
 
@@ -805,6 +831,54 @@ function homeSections(theme: BoutiqueThemeId): TemplateSectionNode[] {
         reviews("What riders say"),
         newsletter({ title: "Ride with us", body: "New models and service tips, monthly." }),
       ];
+    case "ahia":
+      return [
+        hero("ahia"),
+        bestSellers("by-category", "Shop the market", "See more"),
+        trustRow(),
+        bestSellers("tiles", "Today's picks", "Shop all", "todays-picks"),
+        newsletter({ title: "Hear about new stock first", body: "New arrivals and offers, once a week." }),
+      ];
+    case "ado":
+      return [
+        hero("ado"),
+        trustCards(),
+        bestSellers("tiles", "Featured products", "Shop all"),
+        story("ado"),
+        bestSellers("spotlight", "New products", "Shop all", "new-products"),
+        bestSellers("tiles", "Inspired products", "Shop all", "inspired", { limit: 8 }),
+        reviews("What customers say"),
+        newsletter({ title: "Newsletter", body: "New arrivals and members-only offers." }),
+      ];
+    case "wuta":
+      return [
+        hero("wuta"),
+        trustRow(),
+        categories("wuta", "Shop by category"),
+        bestSellers("category-tabs", "Our products"),
+        bestSellers("mini", "Best sellers", "Shop all", "best-sellers"),
+        reviews("What customers say"),
+        newsletter({ title: "Get the latest deals", body: "New gadgets and restocks in your inbox." }),
+      ];
+    case "ike":
+      return [
+        hero("ike"),
+        categories("ike", "Collections"),
+        bestSellers("category-tabs", "New products"),
+        payday(),
+        bestSellers("lists", "Top selling", "View all", "top-selling"),
+        newsletter({ title: "Sign up for the newsletter", body: "New stock, price drops and restocks." }),
+      ];
+    case "ewu":
+      return [
+        hero("ewu"),
+        trustCards(),
+        categories("ewu", "Shop by category"),
+        categories("ewu", "Collections", "collections", "boutique-promo"),
+        bestSellers("tiles", "Trendy products"),
+        newsletter({ title: "Stay updated", body: "New arrivals for the whole family, once a week." }),
+        bestSellers("tiles", "Just arrived", "Shop all", "just-arrived"),
+      ];
     default:
       return [hero("breeze"), categories("breeze"), bestSellers("carousel"), reviews(), newsletter()];
   }
@@ -864,6 +938,11 @@ const PRODUCT_LAYOUT: Record<BoutiqueThemeId, string> = {
   awo: "boutique-gallery",
   kyau: "boutique-gallery",
   keke: "wide-gallery",
+  ahia: "boutique-gallery",
+  ado: "boutique-gallery",
+  wuta: "boutique-gallery",
+  ike: "boutique-gallery",
+  ewu: "boutique-gallery",
 };
 
 const RELATED_TITLE: Partial<Record<BoutiqueThemeId, string>> = {
@@ -876,6 +955,7 @@ const RELATED_TITLE: Partial<Record<BoutiqueThemeId, string>> = {
   fitila: "Light up the room", oso: "Complete the look", shakara: "Complete the fit",
   aga: "You may also like", itura: "Best sellers", gele: "Related products", imani: "Related products", itanna: "You might also like",
   littafi: "Readers also bought", itan: "You may also like", awo: "Related products", kyau: "Related products", keke: "More bikes",
+  ahia: "See more like this", ado: "Related products", wuta: "Related products", ike: "Related products", ewu: "You may also like",
 };
 
 /**
@@ -907,6 +987,51 @@ const alsoLike = (title = "You may also like") => readyBlock("also-like", "also-
 const recentlyViewed = (title = "Recently viewed") => readyBlock("recently-viewed", "recently-viewed", { copy: { title } });
 
 const INNER_PAGES: Partial<Record<BoutiqueThemeId, () => InnerPages>> = {
+  ahia: () => ({
+    pageHeader: "tinted",
+    shop: { filterPlacement: "top", columns: "3" },
+    product: [alsoLike("See more like this"), recentlyViewed()],
+    about: [story("ahia"), trustCards()],
+    contactLayout: "split",
+    faq: { faqStyle: "chevron", searchable: true },
+    cart: [alsoLike("Add to your basket")],
+  }),
+  ado: () => ({
+    pageHeader: "photo",
+    shop: { filterPlacement: "sidebar", columns: "3" },
+    product: [trustRow(), alsoLike("You may also like")],
+    about: [story("ado", { id: "about-story", eyebrow: "Our story", title: "Style made simple" }), trustCards()],
+    contactLayout: "split",
+    faq: { faqStyle: "plus" },
+    cart: [alsoLike("You may also like")],
+  }),
+  wuta: () => ({
+    pageHeader: "tinted",
+    shop: { filterPlacement: "sidebar", columns: "3" },
+    product: [trustRow(), alsoLike("Customers also viewed"), recentlyViewed()],
+    about: [story("wuta"), trustCards()],
+    contactLayout: "split",
+    faq: { layout: "two-column", faqStyle: "chevron", searchable: true },
+    cart: [alsoLike("Customers also bought")],
+  }),
+  ike: () => ({
+    pageHeader: "simple",
+    shop: { filterPlacement: "sidebar", columns: "3" },
+    product: [trustRow(), recentlyViewed()],
+    about: [story("ike"), trustRow()],
+    contactLayout: "split",
+    faq: { faqStyle: "numbered" },
+    cart: [alsoLike("You may also need")],
+  }),
+  ewu: () => ({
+    pageHeader: "tinted",
+    shop: { filterPlacement: "sidebar", columns: "3" },
+    product: [alsoLike("You may also like")],
+    about: [story("ewu"), trustCards()],
+    contactLayout: "split",
+    faq: { faqStyle: "chevron" },
+    cart: [alsoLike("You may also like")],
+  }),
   littafi: () => ({
     pageHeader: "simple",
     shop: { shopLayout: "filters", columns: "3" },
@@ -928,7 +1053,7 @@ const INNER_PAGES: Partial<Record<BoutiqueThemeId, () => InnerPages>> = {
   awo: () => ({
     pageHeader: "simple",
     shop: { filterPlacement: "sidebar", columns: "4" },
-    product: [trustRow(), alsoLike("Related products")],
+    product: [trustRow(), alsoLike("You may also like")],
     about: [story("awo"), trustRow()],
     contactLayout: "split",
     faq: { faqStyle: "plus" },
@@ -937,7 +1062,7 @@ const INNER_PAGES: Partial<Record<BoutiqueThemeId, () => InnerPages>> = {
   kyau: () => ({
     pageHeader: "photo",
     shop: { shopLayout: "chips", columns: "4", hoverImage: true },
-    product: [alsoLike("Related products")],
+    product: [alsoLike("You may also like")],
     about: [story("kyau"), story("kyau", { id: "mission", eyebrow: "Our mission", title: "Good clothes, fairly priced", pictureRight: true })],
     contactLayout: "split",
     faq: { faqStyle: "chevron" },
@@ -972,7 +1097,7 @@ const INNER_PAGES: Partial<Record<BoutiqueThemeId, () => InnerPages>> = {
   gele: () => ({
     pageHeader: "simple",
     shop: { filterPlacement: "sidebar", columns: "3", showRating: true },
-    product: [alsoLike("Related products"), readyBlock("ugc-grid", "ugc", { copy: { title: "Seen on you", body: "Tag us in your gèlè to be featured." }, settings: { columns: 6 } })],
+    product: [alsoLike("You may also like"), readyBlock("ugc-grid", "ugc", { copy: { title: "Seen on you", body: "Tag us in your gèlè to be featured." }, settings: { columns: 6 } })],
     about: [story("gele"), readyBlock("trust-badges", "trust", { settings: { style: "row" } })],
     contactLayout: "split",
     faq: { faqStyle: "plus" },
@@ -1762,6 +1887,61 @@ const DEFINITIONS: Array<{ id: BoutiqueThemeId; name: string; description: strin
       "Product photos on white backgrounds look best on the angled panels",
     ],
   },
+  {
+    id: "ahia",
+    name: "Ahịa",
+    description: "A bright market: a search-first header in black, a yellow-washed photo banner with a big centred headline, then each category as its own row of product cards with the price on top, a service bar and today's picks.",
+    tags: ["marketplace", "general", "yellow", "search", "by-category", "basic", "2026"],
+    aiHints: [
+      "Ahịa (Igbo for market): white page, sunflower yellow banner, black header with a wide search bar, orange accent",
+      "Home order: yellow hero, a row of products per category, service bar, today's picks, newsletter",
+      "Works best with three or more product categories; each gets its own row",
+    ],
+  },
+  {
+    id: "ado",
+    name: "Àdó",
+    description: "Sharp menswear in green: a full photo banner with the first word of the headline in green, service cards, featured products on grey, a promo panel, new products with one shown large, and a wide grid.",
+    tags: ["fashion", "menswear", "green", "promo", "spotlight", "premium", "2026"],
+    aiHints: [
+      "Àdó (Hausa for adornment): white page, grey product panels, bright green accent, grotesk headings, square corners",
+      "Home order: model hero, service cards, featured products, promo panel, new products spotlight, more products, reviews, newsletter",
+      "The promo panel uses the story text; only mention a discount when you are running one",
+    ],
+  },
+  {
+    id: "wuta",
+    name: "Wuta",
+    description: "An orange gadget store: a search header with a category strip, a banner beside a product card, a service bar, category promo cards, products with category tabs and compact best-seller cards.",
+    tags: ["electronics", "gadgets", "orange", "search", "mini cards", "basic", "2026"],
+    aiHints: [
+      "Wuta (Hausa for fire and power): white page, bright orange accent, rounded cards, search bar in the header",
+      "Home order: banner with product card, service bar, category cards, products with tabs, best sellers, reviews, newsletter",
+      "Product photos on white backgrounds look best",
+    ],
+  },
+  {
+    id: "ike",
+    name: "Ike",
+    description: "Electronics in navy and red: a dark search header, a grey deal banner with pictures at both ends, collection tiles with a red diagonal, new products with tabs, a payday countdown and top-selling lists.",
+    tags: ["electronics", "gadgets", "navy", "red", "diagonal", "platinum", "2026"],
+    aiHints: [
+      "Ike (Igbo for strength and power): white page, deep navy header, signal red accent, grotesk headings",
+      "Home order: deal banner, diagonal collection tiles, new products with tabs, payday countdown, top-selling lists, newsletter",
+      "Collection tiles come from your categories; the first three show",
+    ],
+  },
+  {
+    id: "ewu",
+    name: "Ẹ̀wù",
+    description: "Family fashion in lavender and dusty pink: a category menu beside the banner, service boxes, category cards with product counts, two collection panels, trendy products and just-arrived.",
+    tags: ["fashion", "family", "kids", "lavender", "categories", "premium", "2026"],
+    aiHints: [
+      "Ẹ̀wù (Yoruba for garment): white page, lavender panels, dusty pink accent, search bar in the header",
+      "Home order: category menu with banner, service boxes, category cards, collection panels, trendy products, newsletter, just arrived",
+      "Category cards show how many products each has",
+    ],
+  },
 ];
 
 const MANIFEST_SHAPE: Record<BoutiqueThemeId, Pick<StoreTemplateManifest, "category" | "layoutFamily">> = {
@@ -1818,6 +1998,11 @@ const MANIFEST_SHAPE: Record<BoutiqueThemeId, Pick<StoreTemplateManifest, "categ
   awo: { category: "fashion", layoutFamily: "fashion-runway" },
   kyau: { category: "fashion", layoutFamily: "minimal-showcase" },
   keke: { category: "general", layoutFamily: "electronics-grid" },
+  ahia: { category: "general", layoutFamily: "marketplace-grid" },
+  ado: { category: "fashion", layoutFamily: "fashion-runway" },
+  wuta: { category: "electronics", layoutFamily: "electronics-grid" },
+  ike: { category: "electronics", layoutFamily: "electronics-grid" },
+  ewu: { category: "fashion", layoutFamily: "marketplace-grid" },
 };
 
 export const BOUTIQUE_TEMPLATE_MANIFESTS: StoreTemplateManifest[] = DEFINITIONS.map((definition) => ({

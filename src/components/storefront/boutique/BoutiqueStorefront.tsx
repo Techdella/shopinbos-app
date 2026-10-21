@@ -25,7 +25,7 @@ import { ShopperBottomNav, type ShopperSheet } from "../shopper/ShopperBottomNav
 import { resolveMenu, type MenuContext } from "../StoreMenu";
 import { menuStyleOf, mobileMenuStyleOf, readMenu } from "@/lib/storefront/menu";
 import { readFooterMenu, readMobileMenu } from "@/lib/storefront/store-navigation";
-import { AnnouncementBar, BoutiqueFooter, chromeLinksFromMenu, BoutiqueHeader, SectionTitle, type ChromeHref, type ChromeLink } from "./BoutiqueChrome";
+import { AnnouncementBar, BoutiqueFooter, chromeLinksFromMenu, BoutiqueHeader, marketHeaderOf, SectionTitle, type ChromeHref, type ChromeLink } from "./BoutiqueChrome";
 import { BoutiqueProductView, type BoutiqueProductDetail } from "./BoutiqueProductView";
 import { pdpSettingsForSnapshot } from "./pdp/pdp-logic";
 import { samplePdpProduct } from "./pdp/sample-product";
@@ -256,6 +256,16 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     props.onNavigate("product");
   };
   const toggleWish = live ? props.onToggleWishlist : undefined;
+
+  /** A product card link: a real page on the live store, the product preview in the builder (no default button look). */
+  function linkToProduct(product: ShopperProduct, className: string, children: React.ReactNode, style?: React.CSSProperties) {
+    const href = productHref(product.id);
+    return href ? (
+      <Link key={product.id} href={href} prefetch={false} className={className} style={style}>{children}</Link>
+    ) : (
+      <button key={product.id} type="button" className={`cursor-pointer text-left ${className}`} style={{ background: "transparent", color: "inherit", font: "inherit", ...style }} onClick={live ? undefined : () => openProduct(product.id)}>{children}</button>
+    );
+  }
 
   function go(pageType: string) {
     const next = normalizePage(pageType);
@@ -1496,6 +1506,140 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       );
     }
 
+    // ─── Inspiration batch 3: Ahịa, Àdó, Wuta, Ike, Ẹ̀wù ─────────────────────────────────────────────
+    if (layout === "ahia-yellow") {
+      const shots = pool.slice(0, 3);
+      const at = shots.length ? heroIndex % shots.length : 0;
+      return (
+        <section aria-labelledby={headingId} className="relative overflow-hidden" style={{ background: t.heroBg, color: "#FFFFFF" }}>
+          <div className="bq-media inset-0" style={{ position: "absolute", borderRadius: 0, background: t.heroBg }}>{picture(shots[at], true)}</div>
+          <div aria-hidden className="absolute inset-0" style={{ background: shots.length ? `linear-gradient(180deg, ${t.heroBg}B3 0%, rgba(0,0,0,.18) 55%, ${t.paperBg} 100%)` : "transparent" }} />
+          <div className="bq-wrap relative flex min-h-[420px] flex-col items-center justify-center gap-5 px-14 pb-24 pt-16 text-center @3xl:px-24 @3xl:min-h-[540px]">
+            {eyebrow ? <p className="m-0 text-[13px] font-semibold uppercase" style={{ letterSpacing: "0.16em", textShadow: "0 1px 8px rgba(0,0,0,.35)" }}>{eyebrow}</p> : null}
+            <h1 id={headingId} className="bq-h max-w-[16ch] uppercase" style={{ ...look.headingStyle, fontSize: "clamp(34px, 5.6cqi, 72px)", lineHeight: 1.08, textShadow: "0 2px 18px rgba(0,0,0,.35)" }}>{title}</h1>
+            {body ? <p className="m-0 max-w-[520px] text-[15.5px]" style={{ textShadow: "0 1px 8px rgba(0,0,0,.4)" }}>{body}</p> : null}
+            {ctaButton(look.solidButton)}
+          </div>
+          {shots.length > 1 ? (
+            <>
+              <button type="button" aria-label="Previous picture" onClick={() => setHeroIndex((value) => (value + shots.length - 1) % shots.length)} className="absolute left-2 top-[45%] z-[2] grid h-9 w-9 @3xl:left-4 @3xl:h-12 @3xl:w-12 cursor-pointer place-items-center rounded-full border-0" style={{ background: "rgba(255,255,255,.75)", color: t.ink }}><Icon name="arrowLeft" size={18} /></button>
+              <button type="button" aria-label="Next picture" onClick={() => setHeroIndex((value) => (value + 1) % shots.length)} className="absolute right-2 top-[45%] z-[2] grid h-9 w-9 @3xl:right-4 @3xl:h-12 @3xl:w-12 cursor-pointer place-items-center rounded-full border-0" style={{ background: "rgba(255,255,255,.75)", color: t.ink }}><Icon name="chevRight" size={18} /></button>
+            </>
+          ) : null}
+        </section>
+      );
+    }
+
+    if (layout === "ado-model") {
+      const [first, ...rest] = title.split(" ");
+      return (
+        <section aria-labelledby={headingId}>
+          <div className="bq-hero bq-media" style={{ borderRadius: 0, margin: 0, background: image ? look.placeholder : t.heroBg }}>
+            {img}
+            <div className="absolute inset-0" style={{ background: image ? "linear-gradient(90deg, rgba(12,24,52,.62), rgba(12,24,52,.25) 45%, rgba(12,24,52,0) 70%)" : "transparent" }} />
+            <div className="bq-wrap absolute inset-0 flex flex-col items-start justify-center gap-4" style={{ color: "#FFFFFF" }}>
+              {eyebrow ? <p className="m-0 text-[12px] font-semibold uppercase" style={{ letterSpacing: "0.12em" }}>{eyebrow}</p> : null}
+              <h1 id={headingId} className="bq-h max-w-[11ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 5.2cqi, 68px)", lineHeight: 1.08 }}><span style={{ color: t.accent }}>{first}</span> {rest.join(" ")}</h1>
+              {body ? <p className="m-0 max-w-[400px] text-[15px] opacity-90">{body}</p> : null}
+              <div className="mt-1">{ctaButton()}</div>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    if (layout === "wuta-deal") {
+      const pick = products[0];
+      const side = pool[1] ?? pool[0];
+      return (
+        <section aria-labelledby={headingId} className="bq-wrap pt-5">
+          <div className="grid gap-4 @3xl:grid-cols-[2fr_1fr]">
+            <div className="bq-media relative min-h-[320px] @3xl:min-h-[440px]" style={{ background: image ? look.placeholder : t.heroBg, borderRadius: look.cardRadius }}>
+              {img}
+              <div className="absolute inset-0" style={{ background: image ? "linear-gradient(90deg, rgba(255,255,255,.94), rgba(255,255,255,.6) 45%, rgba(255,255,255,0) 72%)" : "transparent" }} />
+              <div className="absolute inset-0 flex flex-col items-start justify-center gap-3 p-7 @3xl:p-12" style={{ color: t.ink }}>
+                {eyebrow ? <p className="m-0 text-[13px] font-bold uppercase" style={{ color: t.accent, letterSpacing: "0.08em" }}>{eyebrow}</p> : null}
+                <h1 id={headingId} className="bq-h max-w-[12ch]" style={{ ...look.headingStyle, fontSize: "clamp(30px, 4.2cqi, 54px)", lineHeight: 1.08 }}>{title}</h1>
+                {body ? <p className="m-0 max-w-[380px] text-[15px]" style={{ color: t.muted }}>{body}</p> : null}
+                <div className="mt-1">{ctaButton()}</div>
+              </div>
+            </div>
+            <div className="flex flex-col overflow-hidden" style={{ background: t.accent, color: look.onAccent, borderRadius: look.cardRadius }}>
+              {pick ? linkToProduct(pick, "flex h-full w-full flex-col gap-3 border-0 p-6", (
+                <>
+                  <span className="text-[12px] font-bold uppercase" style={{ letterSpacing: "0.12em" }}>Featured</span>
+                  <span className="bq-media mx-auto block aspect-square w-[min(100%,240px)]" style={{ background: "rgba(255,255,255,.35)", borderRadius: look.cardRadius }}>{pick.images[0] ? <img src={pick.images[0]} alt="" width={480} height={480} loading="eager" /> : null}</span>
+                  <span className="bq-h mt-auto text-[22px] leading-tight" style={look.headingStyle}>{pick.name}</span>
+                  <span className="text-[16px] font-bold">{formatStoreMoney(pick.retailPrice, pick.currency)}{pick.compareAtPrice && pick.compareAtPrice > pick.retailPrice ? <s className="ml-2 font-normal opacity-70">{formatStoreMoney(pick.compareAtPrice, pick.currency)}</s> : null}</span>
+                  <span className="inline-flex w-max items-center rounded-full px-5 py-2.5 text-[13px] font-bold" style={{ background: "#FFFFFF", color: "#1A1A1A" }}>View product</span>
+                </>
+              ), { color: look.onAccent }) : (
+                <div className="flex h-full flex-col gap-3 p-6">
+                  <span className="bq-media block flex-1" style={{ background: "rgba(255,255,255,.35)", borderRadius: look.cardRadius, minHeight: 200 }}>{picture(side)}</span>
+                  <span className="bq-h text-[22px]" style={look.headingStyle}>{store.name}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    if (layout === "ike-deal") {
+      // The second picture: the seller's next banner or product photo, else the theme's stock story photo.
+      const left = pool[0];
+      const right = !uploaded.length && stock ? stock.story : pool[1];
+      return (
+        <section aria-labelledby={headingId} className="relative overflow-hidden" style={{ background: t.heroBg, color: t.heroText }}>
+          <div className="bq-wrap grid items-center gap-6 py-10 @3xl:grid-cols-[1fr_1.25fr_1fr] @3xl:py-14">
+            <div className="bq-media aspect-[4/3]" style={{ background: "transparent", borderRadius: look.cardRadius }}>{picture(left, true)}</div>
+            <div className="flex flex-col items-center gap-4 text-center">
+              {eyebrow ? <p className="m-0 text-[13px] font-bold uppercase" style={{ color: t.accent, letterSpacing: "0.12em" }}>{eyebrow}</p> : null}
+              <h1 id={headingId} className="bq-h max-w-[14ch] uppercase" style={{ ...look.headingStyle, fontSize: "clamp(30px, 3.8cqi, 50px)", lineHeight: 1.08 }}>{title}</h1>
+              {body ? <p className="m-0 max-w-[420px] text-[15px] uppercase" style={{ color: t.muted, letterSpacing: "0.04em" }}>{body}</p> : null}
+              <div className="mt-1">{ctaButton()}</div>
+            </div>
+            <div className="bq-media hidden aspect-[4/3] @3xl:block" style={{ background: "transparent", borderRadius: look.cardRadius }}>{picture(right)}</div>
+          </div>
+        </section>
+      );
+    }
+
+    if (layout === "ewu-menu") {
+      const shots = pool.slice(0, 3);
+      const at = shots.length ? heroIndex % shots.length : 0;
+      return (
+        <section aria-labelledby={headingId} className="bq-wrap pt-5">
+          <div className="grid gap-6 @3xl:grid-cols-[260px_1fr]">
+            <nav aria-label="Categories" className="bq-only-wide self-start border" style={{ borderColor: t.border }}>
+              <p className="m-0 flex h-[60px] items-center justify-between px-5 text-[15px] font-semibold" style={{ background: t.accent, color: t.ctaText }}>Categories <Icon name="chevDown" size={14} aria-hidden /></p>
+              <ul className="m-0 list-none p-0">
+                {(categories.length ? categories.slice(0, 9) : []).map((category) => (
+                  <li key={category.slug} className="border-t" style={{ borderColor: t.border }}>
+                    <button type="button" onClick={() => shopCategory(category.slug)} className="block w-full cursor-pointer border-0 bg-transparent px-5 py-2.5 text-left text-[14px]" style={{ color: t.ink }}>{category.name}</button>
+                  </li>
+                ))}
+                <li className="border-t" style={{ borderColor: t.border }}>
+                  <button type="button" onClick={() => go("products")} className="block w-full cursor-pointer border-0 bg-transparent px-5 py-2.5 text-left text-[14px] font-semibold" style={{ color: t.ink }}>Shop all</button>
+                </li>
+              </ul>
+            </nav>
+            <div className="bq-media relative min-h-[340px] @3xl:min-h-[430px]" style={{ background: shots.length ? look.placeholder : t.heroBg, borderRadius: look.cardRadius }}>
+              {picture(shots[at], true)}
+              <div className="absolute inset-0" style={{ background: shots.length ? "rgba(20,20,30,.38)" : "transparent" }} />
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-14 text-center" style={{ color: shots.length ? "#FFFFFF" : t.heroText }}>
+                {eyebrow ? <p className="m-0 text-[13px] font-semibold uppercase" style={{ letterSpacing: "0.14em" }}>{eyebrow}</p> : null}
+                <h1 id={headingId} className="bq-h max-w-[14ch]" style={{ ...look.headingStyle, fontSize: "clamp(32px, 4.6cqi, 58px)", lineHeight: 1.08 }}>{title}</h1>
+                {body ? <p className="m-0 max-w-[440px] text-[15px] opacity-90">{body}</p> : null}
+                {ctaButton()}
+              </div>
+              {sideArrows(shots.length, "#FFFFFF")}
+            </div>
+          </div>
+        </section>
+      );
+    }
+
     if (layout === "adire-banner") {
       return (
         <section aria-labelledby={headingId}>
@@ -1748,11 +1892,71 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           key: collection.id,
           name: collection.name,
           image: collection.imageUrl ?? products.find((product) => collection.productIds.includes(product.id))?.images[0] ?? null,
+          count: collection.productIds.length,
           onSelect: () => shopCollection(collection.id),
         }))
-      : categories.map((category) => ({ key: category.slug, name: category.name, image: category.imageUrl, onSelect: () => shopCategory(category.slug) }));
+      : categories.map((category) => ({ key: category.slug, name: category.name, image: category.imageUrl, count: category.count, onSelect: () => shopCategory(category.slug) }));
     if (!tiles.length) return editorHint("Category tiles appear once your products have categories or you create collections.");
     const headingId = `${uid}-${section.id}`;
+    if (section.settings?.layout === "boutique-diagonal") {
+      // Light tiles with the photo on the right and a slanted accent panel holding the name (Ike).
+      return (
+        <section aria-labelledby={headingId} className="bq-wrap pt-10">
+          <h2 id={headingId} className="sr-only">{text(copy.title) || "Collections"}</h2>
+          <div className="grid gap-5 @3xl:grid-cols-3">
+            {tiles.slice(0, 3).map((tile) => (
+              <button key={tile.key} type="button" onClick={tile.onSelect} className="group relative block h-[220px] cursor-pointer overflow-hidden border-0 p-0 text-left" style={{ background: t.cardBg, borderRadius: look.cardRadius }}>
+                <span className="bq-media right-0 top-0 block h-full w-[64%]" style={{ position: "absolute", background: "transparent" }}>
+                  {tile.image ? <img src={tile.image} alt="" width={500} height={440} loading="lazy" className="transition duration-500 group-hover:scale-[1.06]" /> : null}
+                </span>
+                <span aria-hidden className="absolute inset-0 transition-[clip-path] duration-300 [clip-path:polygon(0_0,62%_0,42%_100%,0_100%)] group-hover:[clip-path:polygon(0_0,72%_0,52%_100%,0_100%)]" style={{ background: t.accent, opacity: 0.94 }} />
+                <span className="absolute inset-y-0 left-0 flex w-[46%] flex-col justify-center gap-3 pl-6" style={{ color: "#FFFFFF" }}>
+                  <span className="bq-h text-[24px] leading-[1.05]" style={{ ...look.headingStyle, fontWeight: 700 }}>{tile.name}</span>
+                  <span className="text-[12.5px] font-bold uppercase" style={{ letterSpacing: "0.06em" }}>Shop now →</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
+      );
+    }
+    if (section.settings?.layout === "boutique-counts") {
+      // Bordered cards with how many products each holds, the picture and the name (Ẹ̀wù).
+      return (
+        <section aria-labelledby={headingId} className="bq-wrap pt-10">
+          <h2 id={headingId} className="bq-h mb-6 text-center text-[26px] @3xl:text-[30px]" style={look.headingStyle}>{text(copy.title) || "Shop by category"}</h2>
+          <div className="grid grid-cols-2 gap-4 @3xl:grid-cols-3 @3xl:gap-6">
+            {tiles.slice(0, 6).map((tile) => (
+              <button key={tile.key} type="button" onClick={tile.onSelect} className="group flex cursor-pointer flex-col gap-3 border p-4 text-left transition hover:shadow-md @3xl:p-6" style={{ borderColor: t.border, background: "#FFFFFF", color: t.ink, borderRadius: look.cardRadius }}>
+                <span className="self-end text-[12.5px]" style={{ color: t.muted }}>{tile.count} {tile.count === 1 ? "product" : "products"}</span>
+                <span className="bq-media block aspect-square" style={{ background: look.placeholder, borderRadius: look.cardRadius }}>{tile.image ? <img src={tile.image} alt="" width={500} height={500} loading="lazy" className="transition duration-500 group-hover:scale-[1.05]" /> : null}</span>
+                <span className="bq-h text-[17px] font-semibold" style={look.headingStyle}>{tile.name}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      );
+    }
+    if (section.settings?.layout === "boutique-promo") {
+      // Two wide panels, the name large in the accent colour beside a photo (Wuta, Ẹ̀wù).
+      return (
+        <section aria-labelledby={headingId} className="bq-wrap pt-10">
+          <h2 id={headingId} className="sr-only">{text(copy.title) || "Collections"}</h2>
+          <div className="grid gap-5 @3xl:grid-cols-2">
+            {tiles.slice(0, 2).map((tile) => (
+              <button key={tile.key} type="button" onClick={tile.onSelect} className="group grid min-h-[200px] cursor-pointer grid-cols-[1.15fr_1fr] items-center gap-3 overflow-hidden border-0 p-0 text-left" style={{ background: look.storyBg, color: t.ink, borderRadius: look.cardRadius }}>
+                <span className="flex flex-col items-start gap-2 p-6 @3xl:p-8">
+                  <span className="text-[12.5px] font-semibold uppercase" style={{ color: t.muted, letterSpacing: "0.08em" }}>{tile.count} {tile.count === 1 ? "product" : "products"}</span>
+                  <span className="bq-h text-[26px] leading-tight @3xl:text-[30px]" style={{ ...look.headingStyle, fontWeight: 700, color: t.accent }}>{tile.name}</span>
+                  <span className="mt-1 border px-4 py-2 text-[12.5px] font-semibold transition group-hover:opacity-80" style={{ borderColor: t.ink, borderRadius: look.buttonRadius }}>Shop now</span>
+                </span>
+                <span className="bq-media block h-full min-h-[200px]" style={{ background: "transparent", borderRadius: 0 }}>{tile.image ? <img src={tile.image} alt="" width={500} height={500} loading="lazy" className="transition duration-500 group-hover:scale-[1.05]" /> : null}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      );
+    }
     if (section.settings?.layout === "boutique-labels") {
       // Photo banners with the name in a white box in the middle (Àwọ̀).
       return (
@@ -1958,6 +2162,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     if (railLayout === "spotlight" || railLayout === "lookbook" || railLayout === "feature" || railLayout === "showcase") return featureLayout(section, railLayout, list, headingId);
     if (railLayout === "category-tabs") return categoryTabs(section, headingId);
     if (railLayout === "lists") return productLists(section, headingId);
+    if (railLayout === "by-category") return categoryRows(section, headingId);
+    if (railLayout === "mini") return miniCards(section, list, headingId);
     const scroll = (direction: number) => {
       const rail = railRefs.current[section.id];
       if (rail) rail.scrollBy({ left: direction * rail.clientWidth * 0.9, behavior: "smooth" });
@@ -2198,6 +2404,64 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
               <div className="grid gap-4">{column.list.map(row)}</div>
             </div>
           ))}
+        </div>
+      </section>
+    );
+  }
+
+  /**
+   * "By category" (Ahịa): a titled row of three product cards for each of the first categories, the name and price
+   * above the photo, Buy now and See more under it. A store without categories gets one row.
+   */
+  function categoryRows(section: TemplateSectionNode, headingId: string) {
+    const copy = copyOf(section);
+    const pool = sectionProducts(section);
+    const groups = categories.length
+      ? categories.slice(0, 4).map((category) => ({ key: category.slug, title: category.name, slug: category.slug as string | null, list: pool.filter((product) => product.category?.slug === category.slug).slice(0, 3) }))
+      : [{ key: "all", title: text(copy.title) || "Best sellers", slug: null, list: pool.slice(0, 6) }];
+    const card = (product: ShopperProduct, slug: string | null) => (
+      <div key={product.id} className="flex min-w-0 flex-col gap-3 p-5" style={{ background: "#FFFFFF", borderRadius: look.cardRadius, boxShadow: "0 4px 18px rgba(0,0,0,.08)" }}>
+        <div className="text-center">
+          <h4 className="bq-h m-0 truncate text-[17px] font-semibold" style={look.headingStyle}>{product.name}</h4>
+          <p className="m-0 mt-1 text-[13.5px]"><span style={{ color: t.accent }}>Price</span> {formatStoreMoney(product.retailPrice, product.currency)}</p>
+        </div>
+        {linkToProduct(product, "bq-media block aspect-square w-full border-0 p-0", product.images[0] ? <img src={product.images[0]} alt="" width={500} height={500} loading="lazy" style={{ objectFit: "contain" }} /> : null, { background: "transparent", borderRadius: look.cardRadius })}
+        <div className="flex items-center justify-between text-[13.5px] font-semibold">
+          {linkToProduct(product, "border-0 p-0", <span style={{ color: t.accent }}>Buy now</span>)}
+          <button type="button" onClick={() => (slug ? shopCategory(slug) : go("products"))} className="cursor-pointer border-0 bg-transparent p-0 text-[13.5px] font-semibold" style={{ color: t.ink }}>{text(copy.cta) || "See more"}</button>
+        </div>
+      </div>
+    );
+    return (
+      <section aria-labelledby={headingId} className="bq-wrap py-6">
+        <h2 id={headingId} className="sr-only">{text(copy.title) || "Shop by category"}</h2>
+        {groups.filter((group) => group.list.length).map((group) => (
+          <div key={group.key} className="py-6">
+            <h3 className="bq-h mb-6 text-center text-[26px] @3xl:text-[32px]" style={{ ...look.headingStyle, fontWeight: 700 }}>{group.title}</h3>
+            <div className="grid gap-5 @3xl:grid-cols-3">{group.list.map((product) => card(product, group.slug))}</div>
+          </div>
+        ))}
+      </section>
+    );
+  }
+
+  /** "Mini cards" (Wuta): small bordered cards, the photo beside the category, name and price, three across. */
+  function miniCards(section: TemplateSectionNode, list: ShopperProduct[], headingId: string) {
+    const copy = copyOf(section);
+    return (
+      <section aria-labelledby={headingId} className="bq-wrap py-10">
+        <SectionTitle look={look} id={headingId} action={<button type="button" onClick={() => go("products")} className="border-0 bg-transparent p-0 text-[14px] font-semibold underline underline-offset-4" style={{ color: t.ink, cursor: "pointer" }}>{text(copy.cta) || "Shop all"}</button>}>{text(copy.title) || "Best sellers"}</SectionTitle>
+        <div className="grid gap-4 @xl:grid-cols-2 @3xl:grid-cols-3">
+          {list.slice(0, 6).map((product) => linkToProduct(product, "flex min-w-0 items-center gap-4 border p-3", (
+            <>
+              <span className="bq-media block h-[96px] w-[96px] shrink-0" style={{ background: look.placeholder, borderRadius: Math.min(look.cardRadius, 12) }}>{product.images[0] ? <img src={product.images[0]} alt="" width={192} height={192} loading="lazy" /> : null}</span>
+              <span className="min-w-0">
+                {product.category?.name ? <span className="block truncate text-[12px]" style={{ color: t.accent }}>{product.category.name}</span> : null}
+                <span className="mt-0.5 block truncate text-[15.5px] font-semibold">{product.name}</span>
+                <span className="mt-1 block text-[14.5px] font-bold" style={{ color: t.accent }}>{formatStoreMoney(product.retailPrice, product.currency)}{product.compareAtPrice && product.compareAtPrice > product.retailPrice ? <s className="ml-2 font-normal" style={{ color: t.muted }}>{formatStoreMoney(product.compareAtPrice, product.currency)}</s> : null}</span>
+              </span>
+            </>
+          ), { borderColor: t.border, borderRadius: look.cardRadius, color: t.ink, background: "#FFFFFF" }))}
         </div>
       </section>
     );
@@ -2505,6 +2769,22 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             <div className="relative mx-auto w-full max-w-[460px] p-5">
               <div aria-hidden className="absolute inset-0 translate-x-0 translate-y-0" style={{ border: `3px solid ${t.border}` }} />
               <div className="bq-media relative -translate-x-6 -translate-y-6 aspect-[4/5]" style={{ borderRadius: look.cardRadius }}>{image ? <img src={image} alt="" width={800} height={1000} loading="lazy" /> : null}</div>
+            </div>
+          </div>
+        </section>
+      );
+    }
+    if (section.settings?.layout === "promo") {
+      // A grey panel: the picture on one side, a big centred heading and a shop button on the other (Àdó, Wuta).
+      return (
+        <section aria-labelledby={headingId} className="bq-wrap py-10">
+          <div className="grid items-center overflow-hidden @3xl:grid-cols-2" style={{ background: look.storyBg, borderRadius: look.cardRadius }}>
+            <div className={`bq-media aspect-[4/3] h-full ${pictureRight ? "@3xl:order-2" : ""}`} style={{ borderRadius: 0 }}>{image ? <img src={image} alt="" width={900} height={675} loading="lazy" /> : null}</div>
+            <div className="flex flex-col items-center gap-4 px-6 py-10 text-center @3xl:px-12">
+              {text(copy.eyebrow) ? <p className="m-0 text-[15px] uppercase" style={{ color: t.muted, letterSpacing: "0.06em" }}>{text(copy.eyebrow)}</p> : null}
+              <h2 id={headingId} className="bq-h max-w-[12ch] uppercase" style={{ ...look.headingStyle, fontWeight: 700, fontSize: "clamp(34px, 4.6cqi, 60px)", lineHeight: 1.04 }}>{text(copy.title) || store.name}</h2>
+              {body ? <p className="m-0 max-w-[420px] whitespace-pre-line text-[14.5px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
+              <button type="button" className="bq-btn mt-1" style={look.primaryButton} onClick={() => go(onAbout ? "contact" : "products")}>{onAbout ? "Get in touch" : text(copy.primaryCta) || "Shop now"}</button>
             </div>
           </div>
         </section>
@@ -2995,6 +3275,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           centred={headerLayout === "centered" || (headerLayout !== "split" && headerLayout !== "bold" && headerLayout !== "sidebar" && look.centredHeader)}
           bold={headerLayout === "bold"}
           sidebar={sidebarHeader}
+          market={marketHeaderOf(headerLayout)}
           categoryBar={headerSection.settings?.categoryBar === true ? categories.slice(0, 10).map((category) => ({ id: category.slug, label: category.name, onSelect: () => shopCategory(category.slug), children: [] })) : null}
         />
       )) : null}
