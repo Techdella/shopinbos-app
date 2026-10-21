@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { Image } from "expo-image";
 import { Bubble, ChatScreen, Composer } from "@/components/ChatScreen";
 import { ErrorState, LoadingBlock } from "@/components/kit";
-import { Chip, Notice, T } from "@/components/ui";
-import { fetchThread, sendInboxMessage, setConversationStatus, type InboxMessage } from "@/lib/inbox";
+import { Chip, Mascot, Notice, PillButton, T } from "@/components/ui";
+import { fetchThread, sendInboxMessage, setConversationStatus, suggestReply, type InboxMessage } from "@/lib/inbox";
 import { channelLabel, NO_REPLY_CHANNELS, repliesByEmail, replySubject, shortTime } from "@/lib/inbox-pure";
 import { AppIcon } from "@/components/icons";
 import { useLoad } from "@/lib/useLoad";
@@ -13,8 +13,9 @@ import { formatDate } from "@shared/i18n";
 import { useLocale, useT } from "@/lib/i18n";
 import { colors, radii } from "@/theme";
 
-// One customer conversation (web /home/messages?c=…): the messages, a reply on the conversation's own channel
-// (or a private note), and Done / Snooze.
+// One customer conversation (web /home/messages?c=…): the messages, "Peggy wrote a reply" for the newest customer
+// message (Send it as it is, or Edit it in the box), a reply on the conversation's own channel (or a private note),
+// and Done / Snooze.
 
 // Labels are m_chats keys.
 const SNOOZE: Array<{ label: "thread.snooze.1h" | "thread.snooze.3h" | "thread.snooze.tomorrow" | "thread.snooze.week"; hours: number }> = [
@@ -25,6 +26,39 @@ const SNOOZE: Array<{ label: "thread.snooze.1h" | "thread.snooze.3h" | "thread.s
 ];
 
 type Words = ReturnType<typeof useT<["m_chats", "m_ui", "common"]>>;
+
+// Peggy's drafts, per conversation and the customer message they answer, so coming back doesn't ask (and spend
+// AI credits) again. null = Peggy had nothing (no AI key, out of credits): the card stays hidden.
+const DRAFTS = new Map<string, string | null>();
+
+/** "Peggy wrote a reply" ("Familiar app" prototype `thread`): her draft for the newest customer message, with Send
+ * and Edit. Asked once per message; hidden when Peggy can't answer. */
+function usePeggyDraft(conversationId: string, lastInbound: InboxMessage | null, enabled: boolean) {
+  const cacheKey = lastInbound ? `${conversationId}:${lastInbound.id}` : null;
+  const [drafts, setDrafts] = useState<Record<string, string | null>>({});
+  const known = cacheKey ? (cacheKey in drafts ? drafts[cacheKey] : DRAFTS.get(cacheKey)) : undefined;
+  useEffect(() => {
+    if (!enabled || !cacheKey || known !== undefined) return;
+    let alive = true;
+    DRAFTS.set(cacheKey, null);
+    suggestReply(conversationId)
+      .then((answer) => answer.text?.trim() || null)
+      .catch(() => null)
+      .then((text) => {
+        DRAFTS.set(cacheKey, text);
+        if (alive) setDrafts((all) => ({ ...all, [cacheKey]: text }));
+      });
+    return () => {
+      alive = false;
+    };
+  }, [enabled, cacheKey, known, conversationId]);
+  const dismiss = () => {
+    if (!cacheKey) return;
+    DRAFTS.set(cacheKey, null);
+    setDrafts((all) => ({ ...all, [cacheKey]: null }));
+  };
+  return { draft: enabled ? known ?? null : null, dismiss };
+}
 
 function meta(message: InboxMessage, t: Words) {
   const when = shortTime(message.createdAt, new Date(), t);
@@ -54,15 +88,20 @@ export default function InboxThread() {
   const byEmail = conversation ? repliesByEmail(conversation.channel) : false;
   const subjectOut = byEmail ? replySubject(conversation?.subject) : null;
   const channelName = conversation ? channelLabel(conversation.channel, t) : "";
+  // The newest message is the customer's and nobody has answered: Peggy drafts a reply.
+  const last = data?.messages.length ? data.messages[data.messages.length - 1] : null;
+  const lastInbound = last && last.direction === "inbound" ? last : null;
+  const peggy = usePeggyDraft(String(id), lastInbound, canReply && conversation?.status !== "closed");
 
-  async function send() {
-    const body = draft.trim();
+  async function send(text = draft) {
+    const body = text.trim();
     if (!body || sending) return;
     setSending(true);
     setError(null);
     try {
-      await sendInboxMessage(String(id), body, canReply ? mode : "note");
-      setDraft("");
+      await sendInboxMessage(String(id), body, canReply ? (text === draft ? mode : "reply") : "note");
+      if (text === draft) setDraft("");
+      else peggy.dismiss();
     } catch (sendError) {
       setError(sendError instanceof Error ? sendError.message : t("thread.sendFailed"));
     } finally {
@@ -120,6 +159,29 @@ export default function InboxThread() {
             above={
               <>
                 {error ? <Notice>{error}</Notice> : null}
+                {peggy.draft && !draft.trim() ? (
+                  <View testID="peggy-draft" style={{ backgroundColor: colors.mintTint, borderRadius: 20, padding: 14, gap: 10 }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                      <Mascot name="peggy" size={30} label="" />
+                      <T weight="extrabold" style={{ flex: 1, fontSize: 15, color: colors.forest }}>{t("thread.peggyWrote")}</T>
+                    </View>
+                    <T style={{ fontSize: 15, lineHeight: 21 }}>{peggy.draft}</T>
+                    <View style={{ flexDirection: "row", gap: 8 }}>
+                      <PillButton size="sm" title={t("thread.peggySend")} busy={sending} style={{ flex: 1 }} onPress={() => void send(peggy.draft!)} />
+                      <PillButton
+                        size="sm"
+                        tone="white"
+                        title={t("thread.peggyEdit")}
+                        style={{ flex: 1 }}
+                        onPress={() => {
+                          setMode("reply");
+                          setDraft(peggy.draft!);
+                          peggy.dismiss();
+                        }}
+                      />
+                    </View>
+                  </View>
+                ) : null}
                 {byEmail && canReply && mode === "reply" ? (
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                     <AppIcon name="mail" size={14} color={colors.inkSoft} />

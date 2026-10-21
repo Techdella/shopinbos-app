@@ -143,6 +143,13 @@ const en = {
   "list.newCount": "{count} new",
   "list.allAnswered": "All answered",
   "list.allHere": "WhatsApp, Instagram, Facebook and your shop, all here.",
+  "filter.all": "All",
+  "filter.whatsapp": "WhatsApp",
+  "filter.instagram": "Instagram",
+  "filter.facebook": "Facebook",
+  "thread.peggyWrote": "Peggy wrote a reply",
+  "thread.peggySend": "Send",
+  "thread.peggyEdit": "Edit",
 } satisfies Record<string, string>;
 
 export default en;

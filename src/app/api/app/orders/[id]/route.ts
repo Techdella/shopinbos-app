@@ -5,11 +5,15 @@ import { ok, apiError } from "@/lib/api/response";
 import { orderRow } from "@/lib/dashboard/compute";
 import { OrderStatusUpdateSchema, updateOrderStatus } from "@/lib/orders/update-status";
 import { sellerPartsView } from "@/lib/supplier-orders/parts.server";
+import { storeUrl } from "@/lib/marketing/brand";
+
+// `trackingUrl`: the customer's own order page on the storefront (/order/<order id>, an unguessable cuid, never the
+// order number), which the phone's "Share tracking" sends.
 
 export const GET = withSeller(async (req, { user, params }) => {
   const { id } = await params;
 
-  const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true } });
+  const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, slug: true, customDomain: true } });
   if (!store) return apiError("NOT_FOUND", "Store not found", 404);
 
   const order = await db.retailOrder.findFirst({ where: { id, storeId: store.id } });
@@ -25,13 +29,13 @@ export const GET = withSeller(async (req, { user, params }) => {
   const parts = await sellerPartsView(order.id, store.id).catch(() => null);
 
   const row = orderRow({ ...order, total: Number(order.total) });
-  return ok({ ...order, supplierOrders, parts, row: parts?.stage ? { ...row, stage: parts.stage } : row });
+  return ok({ ...order, supplierOrders, parts, row: parts?.stage ? { ...row, stage: parts.stage } : row, trackingUrl: storeUrl(store, `/order/${order.id}`) });
 });
 
 export const PATCH = withSeller(async (req, { user, params }) => {
   const { id } = await params;
 
-  const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true } });
+  const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, customDomain: true } });
   if (!store) return apiError("NOT_FOUND", "Store not found", 404);
 
   const body = await req.json().catch(() => ({}));
@@ -47,5 +51,5 @@ export const PATCH = withSeller(async (req, { user, params }) => {
   const parts = await sellerPartsView(updated.id, store.id).catch(() => null);
 
   const row = orderRow({ ...updated, total: Number(updated.total) });
-  return ok({ ...updated, parts, row: parts?.stage ? { ...row, stage: parts.stage } : row });
+  return ok({ ...updated, parts, row: parts?.stage ? { ...row, stage: parts.stage } : row, trackingUrl: storeUrl(store, `/order/${updated.id}`) });
 });

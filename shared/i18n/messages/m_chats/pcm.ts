@@ -139,6 +139,13 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "list.newCount": "{count} new",
   "list.allAnswered": "You don answer all",
   "list.allHere": "WhatsApp, Instagram, Facebook and your shop, all of dem dey here.",
+  "filter.all": "All",
+  "filter.whatsapp": "WhatsApp",
+  "filter.instagram": "Instagram",
+  "filter.facebook": "Facebook",
+  "thread.peggyWrote": "Peggy don write reply",
+  "thread.peggySend": "Send",
+  "thread.peggyEdit": "Change am",
 };
 
 export default pcm;

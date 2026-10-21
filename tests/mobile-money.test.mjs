@@ -91,9 +91,11 @@ test("screens exist, are in My shop and Payments, open from the web paths, and u
 });
 
 test("the seller's photo shows on Home, the shop logo on My shop, and both in Settings", () => {
-  // Home follows the 2026 "Seller app" prototype: the seller's photo next to the greeting and shop name.
+  // Home follows the "Familiar app" prototype: the seller's photo in the level ring next to the greeting and shop
+  // name; it opens Rewards, or Settings on a server without Rewards.
   const home = read("apps/mobile/src/app/(tabs)/home.tsx");
-  assert.match(home, /<Picture uri=\{latestPicture\(changedPictures, "avatarUrl", data\?\.ownerAvatarUrl\)\}/);
+  assert.match(home, /const myPicture = latestPicture\(changedPictures, "avatarUrl", data\?\.ownerAvatarUrl\)/);
+  assert.match(home, /<LevelPill [^\n]*uri=\{myPicture\}/);
   assert.match(home, /router\.push\("\/settings"\)/);
   assert.match(read("apps/mobile/src/app/(tabs)/shop.tsx"), /<Picture uri=\{latestPicture\(changedPictures, "logoUrl", store\.logoUrl\)\}/);
   const settings = read("apps/mobile/src/app/settings.tsx");

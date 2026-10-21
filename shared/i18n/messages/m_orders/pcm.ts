@@ -148,6 +148,21 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "tl.paid": "Dem don pay",
   "tl.sent": "E don comot",
   "tl.delivered": "E don reach",
+  "track.title": "Track am",
+  "track.from": "From",
+  "track.to": "To",
+  "track.fromTo": "From {from} reach {to}",
+  "track.yourShop": "Your shop",
+  "track.pickup": "Dem go pick am from you",
+  "track.eta": "{days} (wetin partner talk)",
+  "track.call": "Call {name}",
+  "track.share": "Share tracking with {name}",
+  "track.shareMessage": "Hi {name}, your order don dey come. Follow am here: {url}",
+  "track.problem": "Report problem",
+  "track.messagePartner": "Message {name}",
+  "track.messagePartnerSub": "E late, e spoil or e lost: tell your delivery partner",
+  "track.getHelp": "Get help from Shopinbos",
+  "track.getHelpSub": "Person or Peggy go help you settle am",
 };
 
 export default pcm;

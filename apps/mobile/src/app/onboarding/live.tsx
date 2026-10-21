@@ -8,17 +8,21 @@ import { withChannelRef } from "@shared/channels";
 import { LinkButton, Mascot, PillButton, T, Wash } from "@/components/ui";
 import { MascotVideo } from "@/components/MascotVideo";
 import { useOnboarding } from "@/components/OnboardingContext";
-import { API_URL } from "@/lib/api";
+import { finishOnboarding } from "@/lib/onboarding";
 import { useT } from "@/lib/i18n";
 import { colors, fonts, radii } from "@/theme";
-import * as WebBrowser from "expo-web-browser";
 import { HelpButton } from "@/components/Help";
+
+// "Your shop is live!" ("Familiar app" prototype `on.live`): the link, Share on WhatsApp as the one main button
+// (Status first, that's where customers are), the Instagram bio and QR poster, and "Go to my shop", which finishes
+// onboarding and opens Home, where the first-login tour and "Get your shop ready" take over.
 
 export default function Live() {
   const t = useT("m_onboarding", "m_home");
   const { status, palette } = useOnboarding();
   const [toast, setToast] = useState<string | null>(null);
   const [qr, setQr] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   if (!status) return null;
   const url = status.store.url;
   const live = status.store.live;
@@ -27,6 +31,12 @@ export default function Live() {
     await Clipboard.setStringAsync(link);
     setToast(message);
     setTimeout(() => setToast(null), 2400);
+  }
+
+  async function goToShop() {
+    setLeaving(true);
+    await finishOnboarding(status!.store.live).catch(() => null);
+    router.replace("/home");
   }
 
   return (
@@ -59,7 +69,6 @@ export default function Live() {
         </View>
         <View style={{ flexDirection: "row", gap: 10, marginTop: 12 }}>
           {[
-            { label: t("live.whatsappStatus"), onPress: () => void Share.share({ message: t("start.shareMessage", { name: status.store.name, url: withChannelRef(url, "whatsapp") }) }) },
             { label: t("live.instagramBio"), onPress: () => void copy(t("live.copiedInstagram"), withChannelRef(url, "instagram")) },
             { label: t("live.qrPoster"), onPress: () => setQr(true) },
           ].map((item) => (
@@ -77,8 +86,9 @@ export default function Live() {
           </View>
         </View>
         <View style={{ flex: 1 }} />
-        <PillButton title={t("live.connectWhatsApp")} tone="accent" onPress={() => void WebBrowser.openBrowserAsync(`${API_URL}/home/social/whatsapp`)} />
-        <LinkButton title={t("live.goToShop")} style={{ marginTop: 4, marginBottom: 6 }} onPress={() => router.push("/onboarding/checklist")} />
+        <T style={{ color: colors.inkSoft, fontSize: 14.5, lineHeight: 20, textAlign: "center", marginBottom: 10 }}>{t("live.statusFirst")}</T>
+        <PillButton title={t("live.shareWhatsApp")} tone="accent" onPress={() => void Share.share({ message: t("start.shareMessage", { name: status.store.name, url: withChannelRef(url, "whatsapp") }) })} />
+        <LinkButton title={leaving ? t("live.opening") : t("live.goToShop")} style={{ marginTop: 4, marginBottom: 6 }} onPress={() => void goToShop()} />
       </SafeAreaView>
       {toast && (
         <View style={{ position: "absolute", bottom: 120, alignSelf: "center", backgroundColor: colors.ink, borderRadius: radii.pill, paddingHorizontal: 18, paddingVertical: 12 }}>

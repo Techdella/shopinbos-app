@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Linking, View } from "react-native";
+import { Alert, Linking, Share, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { naira } from "@shared/onboarding";
 import { CHANNEL_LABEL, type OrderChannel } from "@shared/channels";
@@ -12,7 +12,7 @@ import { Screen } from "@/components/Screen";
 import { ChoiceRow, Sheet } from "@/components/Sheet";
 import { Thumb } from "@/components/seller/bits";
 import { TONE_COLORS, type Tone } from "@/lib/dashboard";
-import { fetchOrderDelivery, fetchReassignOptions, jobAction, type OrderDelivery, type Parcel, type ReassignOption } from "@/lib/delivery";
+import { fetchOrderDelivery, fetchReassignOptions, jobAction, openPartnerChat, type OrderDelivery, type Parcel, type ReassignOption } from "@/lib/delivery";
 import { daysWords, ownTimeline, timelineStates, timelineWordKey, whatsappNumber } from "@/lib/delivery-pure";
 import { cancelAndRefund, fetchOrder, undoSupplierSwitch, updateOrder, type OrderDetail, type OrderPart, type OrderParts } from "@/lib/orders";
 import { openWeb } from "@/lib/web";
@@ -84,6 +84,7 @@ export default function OrderScreen() {
   const [contact, setContact] = useState(false);
   const [reassign, setReassign] = useState<Parcel | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
+  const [problem, setProblem] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -204,6 +205,9 @@ export default function OrderScreen() {
     : lead?.job
       ? t.dynamic(`status.${lead.job.status}`, lead.job.status.replace(/_/g, " "))
       : order.row.stage.label;
+
+  // Where it goes: the customer's town, or the shop when they pick it up.
+  const trackTo = selfPickup ? t("track.pickup") : [order.deliveryAddress?.city, order.deliveryAddress?.state].filter(Boolean).join(", ") || order.buyerName;
 
   // The timeline: each partner parcel's steps, the plan's own steps (pick up / the shop's delivery), else the order's.
   const timelines: Array<{ key: string; title: string | null; steps: TimelineStep[] }> = partnerPlan
@@ -375,12 +379,73 @@ export default function OrderScreen() {
 
       {parts && parts.parts.length > 0 && <Parcels parts={parts} />}
 
-      {timelines.map((timeline) => (
-        <View key={timeline.key} style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 20, gap: 12 }}>
-          {timeline.title ? <T weight="bold" style={{ fontSize: 16 }}>{timeline.title}</T> : null}
-          <Timeline steps={timeline.steps} />
+      {/* Track ("Familiar app" prototype `track`): where it is, from → to, the partner and their estimate, the
+          timeline, Call the partner, Report a problem and Share tracking (the customer's own order page). No map, and
+          never the rider's location. */}
+      <View testID="order-track" style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 20, gap: 14 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+          <T weight="extrabold" style={{ flex: 1, fontSize: 20 }} accessibilityRole="header">{t("track.title")}</T>
+          <Pill label={statusWords} tone={order.status === "delivered" ? "ok" : needsPartner ? "warn" : "teal"} />
         </View>
-      ))}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }} accessible accessibilityLabel={t("track.fromTo", { from: t("track.yourShop"), to: trackTo })}>
+          <View style={{ flex: 1 }}>
+            <Small>{t("track.from")}</Small>
+            <T weight="bold" numberOfLines={1}>{t("track.yourShop")}</T>
+          </View>
+          <AppIcon name="route" size={20} color={colors.inkSoft} />
+          <View style={{ flex: 1, alignItems: "flex-end" }}>
+            <Small>{t("track.to")}</Small>
+            <T weight="bold" numberOfLines={1}>{trackTo}</T>
+          </View>
+        </View>
+        {lead?.partner ? <T style={{ fontSize: 15, color: colors.inkSoft }}>{`${lead.partner.name} · ${t("track.eta", { days: daysWords(lead.minDays, lead.maxDays, t) })}`}</T> : null}
+        {timelines.map((timeline) => (
+          <View key={timeline.key} style={{ gap: 8 }}>
+            {timeline.title ? <T weight="bold" style={{ fontSize: 16 }}>{timeline.title}</T> : null}
+            <Timeline steps={timeline.steps} />
+          </View>
+        ))}
+        {lead?.partner?.phone ? (
+          <PillButton testID="track-call" tone="white" size="md" accessibilityLabel={t("track.call", { name: lead.partner.name })} onPress={() => void Linking.openURL(`tel:${lead.partner!.phone!.replace(/[^\d+]/g, "")}`)}>
+            <AppIcon name="phone" size={18} />
+            <T weight="bold" style={{ fontSize: 16 }}>{t("track.call", { name: lead.partner.name })}</T>
+          </PillButton>
+        ) : null}
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+          {order.trackingUrl ? (
+            <PillButton testID="track-share" tone="white" size="sm" accessibilityLabel={t("track.share", { name: firstName })} onPress={() => void Share.share({ message: t("track.shareMessage", { name: firstName, url: order.trackingUrl! }) }).catch(() => null)}>
+              <AppIcon name="share" size={16} />
+              <T weight="bold" style={{ fontSize: 15 }}>{t("track.share", { name: firstName })}</T>
+            </PillButton>
+          ) : null}
+          <PillButton testID="track-problem" tone="white" size="sm" title={t("track.problem")} onPress={() => setProblem(true)} />
+        </View>
+      </View>
+
+      <Sheet visible={problem} onClose={() => setProblem(false)} title={t("track.problem")}>
+        {lead?.partner ? (
+          <ChoiceRow
+            icon="chat"
+            title={t("track.messagePartner", { name: lead.partner.name })}
+            sub={t("track.messagePartnerSub")}
+            tint={colors.mintTint}
+            iconColor={colors.forest}
+            onPress={() => {
+              setProblem(false);
+              openPartnerChat("seller", lead.partner!);
+            }}
+          />
+        ) : null}
+        <ChoiceRow
+          icon="help"
+          title={t("track.getHelp")}
+          sub={t("track.getHelpSub")}
+          onPress={() => {
+            setProblem(false);
+            router.push("/help");
+          }}
+        />
+      </Sheet>
 
       {/* Items and totals */}
       <Card style={{ gap: 4, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 20 }}>
