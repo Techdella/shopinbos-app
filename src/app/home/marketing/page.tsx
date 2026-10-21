@@ -27,7 +27,7 @@ const LEGACY_TABS: Record<string, string> = {
   Automations: "/home/automations",
   "Email Templates": "/home/marketing/templates",
   "Discounts & Coupons": "/home/discounts",
-  "Social Selling": "/channels",
+  "Social Selling": "/home/marketing/social",
 };
 
 const STATUS: Record<string, { tone: Tone; label: MessageKey<"marketing"> }> = {
