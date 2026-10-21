@@ -13,7 +13,9 @@ import {
   resolveDraftSnapshot,
   switchThemeDraft,
   THEME_LIBRARY,
+  tierIncludes,
   type StoreBrandSettingsLike,
+  type ThemeTier,
   type StoreEditorSnapshot,
 } from "@/lib/store-templates";
 import { readPaymentChoices } from "@/lib/storefront/shopper-info";
@@ -28,6 +30,7 @@ import { isLiveStatus } from "@/lib/ai/rex/build-store";
 
 export const studioStoreSelect = {
   id: true,
+  userId: true,
   name: true,
   slug: true,
   status: true,
@@ -67,8 +70,9 @@ export function allowedKindsFor(themeId: string) {
   return isBoutiqueTheme(themeId) ? BOUTIQUE_SECTION_KINDS : CLASSIC_SECTION_KINDS;
 }
 
-export function studioThemes(currentId: string) {
-  const list: Array<{ id: string; name: string; description: string }> = THEME_LIBRARY.filter((theme) => getTemplateManifest(theme.id)).map((theme) => ({ id: theme.id, name: theme.name, description: theme.blurb }));
+/** The themes Rex may offer: those the seller's plan includes (`tier`), plus the one the draft already uses. */
+export function studioThemes(currentId: string, access: { tier: ThemeTier; owned?: readonly string[] } = { tier: "basic" }) {
+  const list: Array<{ id: string; name: string; description: string }> = THEME_LIBRARY.filter((theme) => getTemplateManifest(theme.id) && (theme.id === currentId || tierIncludes(access.tier, theme.tier) || access.owned?.includes(theme.id))).map((theme) => ({ id: theme.id, name: theme.name, description: theme.blurb }));
   const current = getTemplateManifest(currentId);
   if (current && !list.some((theme) => theme.id === current.id)) list.push({ id: current.id, name: current.name, description: current.description });
   return list;

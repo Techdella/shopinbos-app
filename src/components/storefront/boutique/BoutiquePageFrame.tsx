@@ -20,7 +20,7 @@ import { ShopperBottomNav, type ShopperSheet } from "../shopper/ShopperBottomNav
 import { resolveMenu, type MenuContext } from "../StoreMenu";
 import { menuStyleOf, mobileMenuStyleOf, readMenu } from "@/lib/storefront/menu";
 import { readFooterMenu, readMobileMenu } from "@/lib/storefront/store-navigation";
-import { AnnouncementBar, BoutiqueFooter, chromeLinksFromMenu, BoutiqueHeader, type ChromeLink } from "./BoutiqueChrome";
+import { AnnouncementBar, BoutiqueFooter, chromeLinksFromMenu, BoutiqueHeader, marketHeaderOf, type ChromeLink } from "./BoutiqueChrome";
 import { BOUTIQUE_FONT_CLASS } from "./fonts";
 import { shopperCopy } from "@shared/placeholder-copy";
 import { BOUTIQUE_CSS, boutiqueLook, lookVars, navColors } from "./look";
@@ -106,7 +106,9 @@ export function BoutiquePageFrame({ themeId, snapshot, store, catalog, shopper, 
     <div className={`bq ${BOUTIQUE_FONT_CLASS}`} data-floating-nav="" style={{ ...lookVars(look), minHeight: "100vh" }}>
       <style>{BOUTIQUE_CSS}</style>
       <a href="#bq-main" className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-full focus:bg-white focus:px-4 focus:py-2 focus:text-black">Skip to content</a>
-      <AnnouncementBar text={announcement} look={look} />
+      <div className={headerLayout === "sidebar" ? "bq-shell" : "contents"}>
+      {headerLayout === "sidebar" ? null : <AnnouncementBar text={announcement} look={look} />}
+      <div className={headerLayout === "sidebar" ? "bq-shell-side" : "contents"}>
       <BoutiqueHeader
         store={store}
         logoText={logoText}
@@ -123,13 +125,20 @@ export function BoutiquePageFrame({ themeId, snapshot, store, catalog, shopper, 
         cartCount={cart.count}
         wishlistCount={wishlist.productIds.length}
         cartLabel={cartLabel}
-        centred={headerLayout === "centered" || (headerLayout !== "split" && headerLayout !== "bold" && look.centredHeader)}
+        centred={headerLayout === "centered" || (headerLayout !== "split" && headerLayout !== "bold" && headerLayout !== "sidebar" && look.centredHeader)}
         bold={headerLayout === "bold"}
+        sidebar={headerLayout === "sidebar"}
+        market={marketHeaderOf(headerLayout)}
       />
+      </div>
+      <div className={headerLayout === "sidebar" ? "bq-shell-main" : "contents"}>
+      {headerLayout === "sidebar" ? <AnnouncementBar text={announcement} look={look} /> : null}
       <main id="bq-main" className="bq-page" tabIndex={-1}>
         {children}
       </main>
       {footerSection ? <BoutiqueFooter store={store} look={look} shopper={shopper} links={footerLinks} showLogo={footerSection.settings?.showLogo !== false} summary={text(copyOf(footerSection).summary)} onTrackOrder={() => setSheet("account")} legalLinks={legalLinks(store.brandSettings).map((link) => ({ key: link.key, label: link.title, href: getPublicStorefrontPath(storeBasePath, legalPagePath(link.key)) }))} /> : null}
+      </div>
+      </div>
       <ShopperBottomNav
         storeSlug={store.slug}
         storeName={store.name}

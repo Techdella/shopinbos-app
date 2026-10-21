@@ -316,6 +316,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "plans.f.seller.customDomain": "Domain nke gị",
   "plans.f.seller.subdomain": "Adreesị Shopinbos (yourshop.shopinbos.com)",
   "plans.f.seller.themes_basic": "Theme ndị bụ isi",
+  "plans.f.seller.themes_premium": "Theme ndị bụ isi + premium",
   "plans.f.seller.themes_all": "Theme niile",
   "plans.f.seller.themes_all_seasonal": "Theme niile + mkpọsa oge",
   "plans.f.seller.staff": "{count, plural, one {Akaụntụ onye ọrụ #} other {Akaụntụ ndị ọrụ #}}",
