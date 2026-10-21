@@ -1,7 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db/client";
 import { updateOrderStatus } from "@/lib/orders/update-status";
-import { checkTransition, makeDeliveryCode, type JobActor } from "./job-rules";
+import { checkTransition, makeDeliveryCode, makePickupCode, type JobActor } from "./job-rules";
 import { emitPartnerEvent } from "./webhooks";
 import { notifyJobMoved, notifyRiderAssigned } from "@/lib/notifications/events.server";
 
@@ -47,6 +47,8 @@ export async function transitionJob(input: {
   const now = new Date();
   const data: Record<string, unknown> = { status: input.to };
   if (input.to === "confirmed" && !job.deliveryCode) data.deliveryCode = makeDeliveryCode();
+  // The shop gives the rider this one at pickup (the Riders app asks for it before "picked up").
+  if (input.to === "confirmed" && !job.pickupCode) data.pickupCode = makePickupCode((data.deliveryCode as string | undefined) ?? job.deliveryCode);
   if (input.to === "confirmed" && job.status === "failed") data.failedReason = null;
   if (input.to === "confirmed" && !job.acceptedAt) data.acceptedAt = now;
   if (input.to === "declined") {
@@ -99,6 +101,19 @@ export async function transitionJob(input: {
   // Supplier pickups: the supplier's order follows the rider (sent when picked up, delivered when dropped off).
   await import("@/lib/supplier-orders/pickup.server").then((pickup) => pickup.onDeliveryJobMoved(job.id, input.to)).catch(() => undefined);
   return { ok: true };
+}
+
+/**
+ * The pickup code for a job the shop is about to hand over. Jobs accepted before pickup codes existed get one the
+ * first time the shop's screen asks (only while the job waits for the rider). null when there's nothing to show.
+ */
+export async function ensurePickupCode(job: { id: string; status: string; pickupCode: string | null; deliveryCode: string | null }): Promise<string | null> {
+  if (job.status !== "confirmed") return null;
+  if (job.pickupCode) return job.pickupCode;
+  // Only fills an empty code, so two screens loading at once end up showing the same one.
+  await db.deliveryBooking.updateMany({ where: { id: job.id, pickupCode: null }, data: { pickupCode: makePickupCode(job.deliveryCode) } });
+  const saved = await db.deliveryBooking.findUnique({ where: { id: job.id }, select: { pickupCode: true } });
+  return saved?.pickupCode ?? null;
 }
 
 export async function assignRider(input: { bookingId: string; partnerId: string; riderId: string | null }): Promise<JobResult> {

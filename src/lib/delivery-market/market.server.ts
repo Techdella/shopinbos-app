@@ -36,6 +36,9 @@ export const DEFAULT_SETTINGS: Omit<DeliverySettingsRow, "userId" | "createdAt" 
   fallbackFee: 0,
   defaultSizeBand: "small",
   failedFeePayer: "seller",
+  selfDelivery: false,
+  selfDeliveryFee: 0,
+  selfDeliveryStates: [],
 };
 
 export async function deliverySettingsFor(userId: string) {
@@ -178,6 +181,7 @@ export async function marketChoiceForStore(
       origin: originOf(own ?? DEFAULT_SETTINGS, group.supplier.city),
       sizeBand: parcelBand(group.items, own && isSizeBand(own.defaultSizeBand) ? own.defaultSizeBand : fallbackBand),
       connections: theirs.length ? theirs : shopConnections,
+      selfDelivery: own?.selfDelivery ? { fee: own.selfDeliveryFee, states: own.selfDeliveryStates } : null,
     };
   });
 

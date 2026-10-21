@@ -299,7 +299,7 @@ const en = {
   "orders.youGet": "You get",
   "orders.each": "{amount} each",
   "orders.noAddress": "No delivery address",
-  "orders.noPayment": "No payment is taken on Shopinbos: confirm it, send the seller your invoice, and they pay you directly.",
+  "orders.noPayment": "Once you confirm it, the seller can pay in Shopinbos by card (straight to your bank) or pay you directly against your invoice.",
   "orders.searchPlaceholder": "Search by seller, product, address…",
   "orders.title": "Orders",
   "orders.sub": "{fresh} new · {toPack} to pack · {sent} sent. When a shop sells your product, you pack it with the shop's label and a rider collects it.",
@@ -614,6 +614,8 @@ const en = {
   "agr.back": "Back",
   "agr.accept": "Accept the agreement",
   "agr.decline": "Decline",
+  "orders.selfStart": "I’m on my way to deliver it",
+  "orders.selfCode": "Customer’s 4-digit code",
 } satisfies Record<string, string>;
 
 export default en;

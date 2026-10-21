@@ -26,8 +26,49 @@ export function saveRiderToken(token: string) {
 export function forgetRiderToken() {
   try {
     localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(WELCOMED_KEY);
   } catch {
     // Nothing stored.
+  }
+}
+
+// First run: "{Company} added you as a rider" and the language picker, once per rider on this phone.
+const WELCOMED_KEY = "shopinbos.rider.welcomed";
+
+export function riderWelcomed(riderId: string) {
+  try {
+    return localStorage.getItem(WELCOMED_KEY) === riderId;
+  } catch {
+    return true;
+  }
+}
+
+export function markRiderWelcomed(riderId: string) {
+  try {
+    localStorage.setItem(WELCOMED_KEY, riderId);
+  } catch {
+    // Storage unavailable: the welcome shows again next time, which is harmless.
+  }
+}
+
+// "Take this job" has nothing to tell the server (the company already gave the job to this rider): the app remembers
+// it on this phone so Today shows it as the job in hand ("On a job") instead of a new one.
+const TAKEN_KEY = "shopinbos.rider.taken";
+
+export function takenJobs(): string[] {
+  try {
+    const value = JSON.parse(localStorage.getItem(TAKEN_KEY) ?? "[]") as unknown;
+    return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+export function markJobTaken(jobId: string) {
+  try {
+    localStorage.setItem(TAKEN_KEY, JSON.stringify([jobId, ...takenJobs().filter((id) => id !== jobId)].slice(0, 30)));
+  } catch {
+    // Storage unavailable: the job shows as new again, and taking it again is harmless.
   }
 }
 
@@ -39,8 +80,14 @@ export interface RiderDrop {
   buyerName: string | null;
   buyerPhone: string | null;
   collect: number;
+  /** What this drop pays. */
+  fee?: number;
   item: string;
   hasProof: boolean;
+  /** "Lekki": the known area the address names, when there is one. */
+  areaShort?: string | null;
+  /** The shop has a 4-digit pickup code to give the rider (the app never gets the code itself). */
+  hasPickupCode?: boolean;
 }
 
 export interface RiderRun {
@@ -49,15 +96,31 @@ export interface RiderRun {
   pickupAddress: string;
   /** Supplier pickups: "Pick up 12–4pm today". */
   pickupWindow?: string | null;
+  /** Straight-line km from the rider's last known spot. */
+  pickupKm?: number | null;
+  /** "Yaba": the known area of the pickup address. */
+  pickupArea?: string | null;
+  /** The shop's phone (E.164), for "Call" at pickup. */
+  pickupPhone?: string | null;
   fees: number;
   drops: RiderDrop[];
 }
 
+export interface RiderWeekDelivery {
+  id: string;
+  from: string;
+  to: string;
+  deliveredAt: string;
+  amount: number;
+}
+
 export interface RiderOverview {
-  rider: { name: string; partnerName: string; partnerPhone: string | null; online: boolean };
+  rider: { id?: string; name: string; partnerName: string; partnerPhone: string | null; online: boolean; plate?: string | null; language?: string | null };
   earnedToday: number;
   dropsDone: number;
   cashInHand: number;
+  /** This week (Monday 00:00 Lagos onwards): total earned, deliveries and the list. */
+  week?: { total: number; count: number; deliveries: RiderWeekDelivery[] };
   runs: RiderRun[];
 }
 
@@ -79,9 +142,13 @@ export const fetchRider = () => riderFetch<RiderOverview>("");
 
 export type RiderAction =
   | { action: "online"; online: boolean }
-  | { action: "start_run"; jobIds: string[] }
+  | { action: "start_run"; jobIds: string[]; codes?: Record<string, string> }
   | { action: "delivered"; jobId: string; code: string; recipientName?: string | null; codCollected?: number | null; codMethod?: "cash" | "transfer" | null }
-  | { action: "failed"; jobId: string; reason: string };
+  | { action: "failed"; jobId: string; reason: string }
+  | { action: "skip"; jobId: string }
+  | { action: "help"; jobId: string; reason: string }
+  | { action: "check_code"; jobId: string; code: string }
+  | { action: "language"; language: "en" | "pcm" | "yo" | "ha" | "ig" };
 
 export const riderAction = (body: RiderAction) =>
   riderFetch<{ done: true }>("", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -106,3 +173,31 @@ export interface RiderLocationPoint {
 /** Sends queued locations (lib/rider-location.ts). tracking: false means stop: the rider is offline with no job. */
 export const sendRiderLocations = (points: RiderLocationPoint[]) =>
   riderFetch<{ saved: number; tracking: boolean }>("/location", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ points }) });
+
+// Riders sign in with their number and a code (POST /api/mobile/rider-sign-in), as well as with the link. The answer
+// is a Riders app key, kept and sent exactly like a link's token (signing in replaces the partner's old link).
+
+export interface RiderCodeSent {
+  challenge: string;
+  channel: string;
+  expiresAt: string;
+  /** Seconds before another code can be sent. */
+  resendAfter: number;
+}
+
+async function riderSignIn<T>(body: Record<string, unknown>): Promise<T> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}/api/mobile/rider-sign-in`, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify(body) });
+  } catch {
+    throw new ApiError("We couldn't reach Shopinbos. Check your connection and try again.", 0);
+  }
+  const json = (await response.json().catch(() => null)) as { data?: T; error?: { message?: string; code?: string } } | null;
+  if (!response.ok) throw new ApiError(json?.error?.message ?? "Something went wrong. Please try again.", response.status, json?.error?.code);
+  return json?.data as T;
+}
+
+export const sendRiderSignInCode = (phone: string, via?: "whatsapp" | "sms") => riderSignIn<RiderCodeSent>({ phone, via });
+
+export const checkRiderSignInCode = (phone: string, challenge: string, code: string) =>
+  riderSignIn<{ token: string; name: string; partnerName: string }>({ phone, challenge, code });

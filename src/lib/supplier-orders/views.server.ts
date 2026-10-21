@@ -11,7 +11,7 @@ import { supplierOrderActions, supplierOrderRef, type SupplierOrderLine } from "
 export const SUPPLIER_ORDER_SELECT = {
   id: true, status: true, items: true, costTotal: true, currency: true, shippingAddress: true, recipientName: true, recipientPhone: true,
   trackingCode: true, carrier: true, rejectReason: true, acceptedAt: true, shippedAt: true, deliveredAt: true, rejectedAt: true,
-  acceptBy: true, expiredAt: true, packedAt: true,
+  acceptBy: true, expiredAt: true, packedAt: true, selfDelivery: true, deliveryFee: true,
   createdAt: true, updatedAt: true, storeId: true, sellerId: true, retailOrderId: true,
   retailOrder: { select: { orderNumber: true, status: true, paymentMethod: true, total: true, notes: true, items: true } },
 } as const satisfies Prisma.SupplierOrderSelect;
@@ -53,6 +53,10 @@ export function dropshipView(row: SupplierOrderRow, shopName: string, pickup?: P
     otherItemsInOrder: retailLines > items.length,
     items: items.map((item) => ({ ...item, lineCost: Math.round(item.unitCost * item.quantity * 100) / 100 })),
     costTotal: row.costTotal,
+    // The supplier delivers this one itself ("You deliver"): the fee it earns on top, and it's delivered with the
+    // customer's code (never sent to the supplier).
+    selfDelivery: row.selfDelivery,
+    deliveryFee: row.deliveryFee,
     currency: row.currency,
     notes: row.retailOrder.notes,
     trackingCode: row.trackingCode,

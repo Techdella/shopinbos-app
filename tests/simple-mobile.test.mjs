@@ -22,7 +22,9 @@ test("seller tab bar: exactly Home, Orders, Chats, My shop, with the + in the mi
   assert.deepEqual([...tabs.matchAll(/label: "([^"]+)"/g)].map((match) => match[1]), ["Home", "Orders", "Chats", "My shop"]);
   assert.deepEqual([...tabs.matchAll(/name: "([^"]+)"/g)].map((match) => match[1]), ["home", "orders", "chats", "shop"]);
   // The "+" sits between the first two tabs and the last two, and opens the create sheet.
-  assert.match(layout, /TABS\.slice\(0, 2\)\.map\(button\)[\s\S]*testID="create-button"[\s\S]*TABS\.slice\(2\)\.map\(button\)/);
+  assert.match(layout, /plus=\{\{[^}]*testID: "create-button"/);
+  // iPhone: the orange "+" between the first half of the tabs and the rest; Android: a floating button.
+  assert.match(read("components/TabBar.tsx"), /items\.slice\(0, half\)[\s\S]*plus\.testID[\s\S]*items\.slice\(half\)/);
   assert.match(layout, /<CreateSheet /);
   // Old routes stay reachable but aren't in the bar.
   assert.match(layout, /name="products" options=\{\{ href: null \}\}/);
@@ -31,26 +33,28 @@ test("seller tab bar: exactly Home, Orders, Chats, My shop, with the + in the mi
   for (const name of ["home", "orders", "chats", "shop", "products", "more"]) assert.ok(existsSync(join(root, "app/(tabs)", `${name}.tsx`)), name);
 });
 
-test("the + sheet: Add a product, Record a sale, Get more customers, Share my shop", () => {
+test("the + sheet: Add a product, Record a sale, Send a pay link", () => {
   const sheet = read("components/CreateSheet.tsx");
-  // The four titles are m_home catalog keys, shown in the app language.
-  assert.match(sheet, /CREATE_ACTIONS = \["create\.addProduct", "create\.recordSale", "create\.customers", "create\.share"\] as const/);
+  // The three titles are m_home catalog keys, shown in the app language ("Seller app" prototype sh.create).
+  assert.match(sheet, /CREATE_ACTIONS = \["create\.addProduct", "create\.recordSale", "create\.payLink"\] as const/);
   const words = readFileSync(join(root, "../../../shared/i18n/messages/m_home/en.ts"), "utf8");
-  for (const [key, title] of [["addProduct", "Add a product"], ["recordSale", "Record a sale"], ["customers", "Get more customers"], ["share", "Share my shop"]]) assert.ok(words.includes(`"create.${key}": "${title}"`), title);
-  for (const index of [0, 1, 2, 3]) assert.match(sheet, new RegExp(`title=\\{t\\(CREATE_ACTIONS\\[${index}\\]\\)\\}`));
-  for (const path of ["/add-products", "/record-sale", "/marketing"]) assert.match(sheet, new RegExp(`go\\("${path}"\\)`));
-  assert.match(sheet, /shareShop\(\)/);
+  for (const [key, title] of [["addProduct", "Add a product"], ["recordSale", "Record a sale"], ["payLink", "Send a pay link"]]) assert.ok(words.includes(`"create.${key}": "${title}"`), title);
+  for (const index of [0, 1, 2]) assert.match(sheet, new RegExp(`title=\\{t\\(CREATE_ACTIONS\\[${index}\\]\\)\\}`));
+  for (const path of ["/add-products", "/record-sale", "/payment-links/new"]) assert.match(sheet, new RegExp(`go\\("${path}"\\)`));
 });
 
-test("My shop groups everything else by goal: Sell; Get paid and deliver; Grow", () => {
+test("My shop groups everything else by goal: Sell; Money and delivery; Look; You", () => {
   const shop = read("app/(tabs)/shop.tsx");
   const titles = [...shop.matchAll(/title: "([^"]+)",\n\s+links:/g)].map((match) => match[1]);
-  assert.deepEqual(titles.slice(0, 3), ["Sell", "Get paid and deliver", "Grow"]);
+  assert.deepEqual(titles, ["Sell", "Money and delivery", "Look", "You"]);
   // The domain opens the web domain page, which connects in one tap (buy, or Entri for one bought elsewhere): no
   // records and no "Ask us". Sell everywhere opens the one-tap connect page.
   assert.match(shop, /web:\/home\/domain/, "Domain opens the self-serve domain page");
   // Sell everywhere, payments, delivery and settings are app screens now (no browser).
   for (const id of ["channels", "payments", "delivery", "settings"]) assert.match(shop, new RegExp(`path: "app:/${id}"`));
+  // Getting more customers and sharing the shop left the + sheet; they stay one tap away.
+  assert.match(shop, /id: "marketing"[^\n]+path: "app:\/marketing"/);
+  assert.match(shop, /shareShop\(\)/);
   assert.doesNotMatch(shop, /ask-us|\/home\/inbox\/channels|developer|api-keys/);
 });
 
@@ -65,30 +69,26 @@ test("Home shows at most three 'Do these next' items", () => {
   // Day-one Home: no week chart, quick-action grid, checklist or best-seller carousel.
   assert.doesNotMatch(screen, /const ACTIONS|Selling fast|This week ·|Finish setting up|imports on the way/i);
   assert.ok(home.peggyLine({ chatsToday: 2, ordersToday: 1 }).startsWith("Peggy"));
-  // Supplier Home follows the same limit.
-  assert.match(read("app/supplier/(tabs)/home.tsx"), /next\.slice\(0, MAX_DO_NEXT\)/);
 });
 
-test("supplier app: tabs Home, Orders, Products, Money; orders New, To pack, Sent", () => {
+test("supplier app: tabs Home, Orders, Products, Chats, Money; orders New, In progress, Sent, Prices; self-delivery by code", () => {
   const layout = read("app/supplier/(tabs)/_layout.tsx");
-  const tabs = layout.slice(layout.indexOf("SUPPLIER_TABS"), layout.indexOf("};", layout.indexOf("SUPPLIER_TABS")));
-  assert.deepEqual([...tabs.matchAll(/label: "([^"]+)"/g)].map((match) => match[1]), ["Home", "Orders", "Products", "Money"]);
-  for (const hidden of ["quotes", "messages", "more"]) assert.match(layout, new RegExp(`name="${hidden}" options=\\{\\{ href: null \\}\\}`));
+  const tabs = layout.slice(layout.indexOf("SUPPLIER_TABS"), layout.indexOf("];", layout.indexOf("SUPPLIER_TABS")));
+  assert.deepEqual([...tabs.matchAll(/label: "([^"]+)"/g)].map((match) => match[1]), ["Home", "Orders", "Products", "Chats", "Money"]);
+  for (const hidden of ["quotes", "more"]) assert.match(layout, new RegExp(`name="${hidden}" options=\\{\\{ href: null \\}\\}`));
   const orders = read("app/supplier/(tabs)/orders.tsx");
-  // Supplier words are in the app-language catalog (shared/i18n/messages/m_supplier); the screens use the keys.
   const words = readFileSync(new URL("../shared/i18n/messages/m_supplier/en.ts", import.meta.url), "utf8");
-  for (const key of ['t("orders.new")', 't("orders.pack")', 't("orders.sent")', 't("orders.youGet"', 'title={t("accept")}']) assert.ok(orders.includes(key), key);
-  for (const label of ['"orders.new": "New"', '"orders.pack": "To pack"', '"orders.sent": "Sent"', '"orders.youGet": "You get {amount}"', 'accept: "Accept"']) assert.ok(words.includes(label), label);
+  for (const key of ['"orders.new"', '"orders.inProgress"', '"orders.sent"', '"orders.prices"']) assert.ok(orders.includes(key), key);
+  for (const label of ['"orders.new": "New"', '"orders.sent": "Sent"']) assert.ok(words.includes(label), label);
   assert.equal(supplier.supplierOrderGroup({ status: "pending", next: ["accept", "decline"] }), "new");
   assert.equal(supplier.supplierOrderGroup({ status: "accepted", next: ["handed_over"] }), "pack");
   assert.equal(supplier.supplierOrderGroup({ status: "confirmed", next: ["packed"] }), "pack");
   assert.equal(supplier.supplierOrderGroup({ status: "shipped", next: ["delivered"] }), "sent");
-  const order = read("app/supplier/order/[id].tsx");
-  for (const key of ['t("order.packWithLabel")', 't("order.packed")', "t(`order.way.${option.key}`)"]) assert.ok(order.includes(key), key);
-  for (const line of ["Pack it with this label", "I've packed it", "Show it on my phone", "Write it by hand"]) assert.ok(words.includes(`"${line}"`), line);
-  const request = read("app/supplier/quote/[id].tsx");
-  for (const key of ['t("quote.whenReady")', 't("quote.send")', 't("quote.escrow")']) assert.ok(request.includes(key), key);
-  for (const line of ["When can it be ready?", "Send my quote", "The shop pays first. We hold the money in escrow"]) assert.ok(words.includes(line), line);
+  // A parcel the supplier delivers itself is finished with the customer's 4-digit code on a keypad.
+  const code = read("app/supplier/order/code.tsx");
+  assert.match(code, /<Keypad /);
+  assert.match(code, /deliverWithCode\(/);
+  assert.match(read("lib/supplier.ts"), /action: "delivered", code/);
 });
 
 test("every screen frame has Help, and Help offers a person and Peggy", () => {

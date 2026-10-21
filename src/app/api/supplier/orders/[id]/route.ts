@@ -19,6 +19,7 @@ const SupplierOrderMoveSchema = z.object({
   trackingCode: z.string().trim().max(80).optional(),
   carrier: z.string().trim().max(60).optional(),
   reason: z.string().trim().max(500).optional(),
+  deliveryCode: z.string().trim().max(8).optional(),
 });
 
 const WHOLESALE_SELECT = {
@@ -56,7 +57,7 @@ export const PATCH = withSupplier(async (req: NextRequest, { user, params }) => 
 
   const result = kind === "wholesale"
     ? await moveWholesaleOrder({ supplierId: supplier.id, orderId: id, action, trackingCode, reason })
-    : await moveSupplierOrder({ supplierId: supplier.id, orderId: id, action, trackingCode, carrier, reason });
+    : await moveSupplierOrder({ supplierId: supplier.id, orderId: id, action, trackingCode, carrier, reason, deliveryCode: parsed.data.deliveryCode });
   if (!result.ok) return apiError(result.code, result.message);
   return ok(await findOrder(supplier.id, kind, id));
 });

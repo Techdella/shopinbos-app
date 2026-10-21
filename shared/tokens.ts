@@ -23,6 +23,14 @@ export const colors = {
   danger: "#B42318",
   dangerTint: "#FDECEA",
   whatsapp: "#25D366",
+  // Pills and icon tiles from the "Simple app, end to end" prototype.
+  warnTint: "#FDF0D5",
+  warnInk: "#8A5A08",
+  grayTint: "#F0EEF5",
+  grayInk: "#4A4757",
+  blueTint: "#E3EEFD",
+  blueInk: "#1F5FBF",
+  grab: "#E6E3EE",
 } as const;
 
 /** Soft pastel wash used behind the welcome and "shop is live" screens. */

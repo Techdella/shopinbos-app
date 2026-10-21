@@ -34,7 +34,7 @@ export interface Dashboard {
 export const fetchDashboard = (init: { signal?: AbortSignal } = {}) => api<Dashboard>("/api/app/dashboard", init);
 
 export const fetchOrders = (status?: string) =>
-  api<Array<{ id: string; createdAt: string; row: OrderRow }>>(`/api/app/orders?limit=50${status ? `&status=${status}` : ""}`);
+  api<Array<{ id: string; createdAt: string; status?: string; row: OrderRow }>>(`/api/app/orders?limit=50${status ? `&status=${status}` : ""}`);
 
 export interface ProductItem {
   id: string;
@@ -42,6 +42,9 @@ export interface ProductItem {
   images: string[];
   retailPrice: number;
   currentStock: number;
+  /** "seller" = the seller's own stock (counted here); dropship stock is the supplier's. */
+  inventoryType?: string;
+  lowStockThreshold?: number;
   status: string;
   category?: { id: string; name: string } | null;
 }

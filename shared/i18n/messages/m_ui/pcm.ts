@@ -98,6 +98,13 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   saveFailed: "E no save. Check your network, then try again.",
   loadFailed: "E no load. Pull down make you try again.",
   shopLoadFailed: "Your shop no load.",
+  "keypad.entered": "{count} of {total} numbers don enter",
+  "keypad.delete": "Delete",
+  "keypad.clear": "Clear",
+  "stepper.less": "Remove one {label}",
+  "stepper.more": "Add one {label}",
+  "chat.keepTitle": "Keep am for Shopinbos",
+  "chat.keepBody": "Jobs wey dem pay outside the app no dey tracked, you no fit report dem and dem no dey count for ratings. Agree price here and send am as private rate.",
 };
 
 export default pcm;

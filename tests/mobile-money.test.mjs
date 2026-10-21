@@ -90,9 +90,9 @@ test("screens exist, are in My shop and Payments, open from the web paths, and u
   assert.doesNotMatch(CATALOGS.m_settings.en["money.invoicesHint"], /browser/);
 });
 
-test("the seller's photo and shop logo show on Home, My shop and Settings", () => {
+test("the seller's photo shows on Home, the shop logo on My shop, and both in Settings", () => {
+  // Home follows the 2026 "Seller app" prototype: the seller's photo next to the greeting and shop name.
   const home = read("apps/mobile/src/app/(tabs)/home.tsx");
-  assert.match(home, /<Picture uri=\{latestPicture\(changedPictures, "logoUrl", data\?\.store\.logoUrl\)\}/);
   assert.match(home, /<Picture uri=\{latestPicture\(changedPictures, "avatarUrl", data\?\.ownerAvatarUrl\)\}/);
   assert.match(home, /router\.push\("\/settings"\)/);
   assert.match(read("apps/mobile/src/app/(tabs)/shop.tsx"), /<Picture uri=\{latestPicture\(changedPictures, "logoUrl", store\.logoUrl\)\}/);

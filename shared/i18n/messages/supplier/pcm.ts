@@ -289,7 +289,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "orders.youGet": "You go get",
   "orders.each": "{amount} each",
   "orders.noAddress": "No delivery address",
-  "orders.noPayment": "Shopinbos no dey collect payment here: confirm am, send the seller your invoice, and dem go pay you directly.",
+  "orders.noPayment": "Once you confirm am, the seller fit pay inside Shopinbos with card (e go enter your bank straight) or pay you directly with your invoice.",
   "orders.searchPlaceholder": "Search by seller, product, address…",
   "orders.title": "Orders",
   "orders.sub": "{fresh} new · {toPack} to pack · {sent} don send. When shop sell your product, you go pack am with the shop label and rider go collect am.",
@@ -596,6 +596,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "agr.back": "Go back",
   "agr.accept": "Accept the agreement",
   "agr.decline": "Decline",
+  "orders.selfStart": "I don comot to deliver am",
+  "orders.selfCode": "Customer 4-digit code",
 };
 
 export default pcm;

@@ -435,6 +435,8 @@ export interface Shipment {
   origin: Place;
   sizeBand: SizeBand;
   connections: readonly MarketConnection[];
+  /** A supplier that delivers its own parcels: its fee and the states it drives to (empty: its own state only). */
+  selfDelivery?: { fee: number; states: readonly string[] } | null;
 }
 
 export type MarketOptionKind = "self_pickup" | "doorstep" | "same_day" | "pickup_point" | "fallback" | "multi";
@@ -444,7 +446,7 @@ export interface OptionPart {
   shipmentKey: string;
   connectionId: string | null;
   partnerId: string | null;
-  service: "doorstep" | "pickup_point" | "same_day" | "self_pickup" | "fallback";
+  service: "doorstep" | "pickup_point" | "same_day" | "self_pickup" | "fallback" | "supplier_self";
   price: number;
   rateCardId: string | null;
   pointId: string | null;
@@ -594,6 +596,10 @@ export function buildMarketChoice(input: { settings: CheckoutSettingsInput; ship
         });
       }
     }
+    const self = selfDeliveryPart(shipment, destination);
+    if (self) {
+      options.push({ id: `o:${shipment.key}`, name: "Doorstep delivery", price: self.price, estimatedDays: timeframeWords(self.minDays, self.maxDays), pickup: false, kind: "doorstep", detail: "Standard delivery", pod: false, parts: [self] });
+    }
     // Pickup points in the customer's state, nearest-named first.
     const pointOptions: Array<MarketOption & { rank: number }> = [];
     for (const connection of shipment.connections) {
@@ -625,7 +631,9 @@ export function buildMarketChoice(input: { settings: CheckoutSettingsInput; ship
     let complete = true;
     for (const shipment of shipments) {
       const quote = cheapest(shipment.connections.map((connection) => quoteFor(connection, shipment, destination, "doorstep")).filter((entry): entry is Quote => !!entry));
-      if (quote) parts.push(partFrom(shipment, quote));
+      const self = selfDeliveryPart(shipment, destination);
+      if (quote && (!self || quote.row.price <= self.price)) parts.push(partFrom(shipment, quote));
+      else if (self) parts.push(self);
       else if (shipment.key === "own" && settings.fallback === "flat_fee" && settings.fallbackFee > 0) parts.push(fallbackPart(shipment, settings.fallbackFee));
       else complete = false;
     }
@@ -668,6 +676,19 @@ export function buildMarketChoice(input: { settings: CheckoutSettingsInput; ship
   if (!options.length) return { covered: false, options, reason: "No delivery is available to this address yet. Try another address, or contact the seller.", shipmentCount };
   return { covered: true, options, reason: null, shipmentCount };
 }
+
+/** The supplier drives this parcel to the customer itself (a supplier's "I deliver myself"), when it covers the address. */
+export function selfDeliveryPart(shipment: Shipment, destination: Place): OptionPart | null {
+  const own = shipment.selfDelivery;
+  if (!own || !shipment.key.startsWith("supplier:") || !(own.fee > 0) || !destination.state) return null;
+  const states = own.states.length ? own.states.map(canonicalState) : [shipment.origin.state];
+  if (!states.includes(destination.state)) return null;
+  const local = shipment.origin.state === destination.state;
+  return { shipmentKey: shipment.key, connectionId: null, partnerId: null, service: "supplier_self", price: own.fee, rateCardId: null, pointId: null, sizeBand: shipment.sizeBand, minDays: local ? 1 : 2, maxDays: local ? 2 : 5 };
+}
+
+/** The fee each supplier earns for delivering its own parcel in this plan (added to its share of the payment). */
+export const supplierSelfShipments = (plan: DeliveryPlan) => plan.shipments.filter((part) => part.service === "supplier_self");
 
 function fallbackPart(shipment: Shipment, price: number): OptionPart {
   return { shipmentKey: shipment.key, connectionId: null, partnerId: null, service: "fallback", price, rateCardId: null, pointId: null, sizeBand: shipment.sizeBand, minDays: 0, maxDays: 0 };

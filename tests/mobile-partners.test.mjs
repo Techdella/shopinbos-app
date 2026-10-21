@@ -31,6 +31,12 @@ test("wrong-role screens can't be visited", () => {
     ["supplier", "/home", false],
     ["supplier", "/find", false],
     ["supplier", "/logistics/home", false],
+    // The Delivery hub is shared by sellers and suppliers (same /api/mobile/delivery routes).
+    ["supplier", "/delivery", true],
+    ["supplier", "/delivery/partner/swift", true],
+    ["supplier", "/deliveryx", false],
+    ["seller", "/delivery/find", true],
+    ["logistics_partner", "/delivery", false],
     ["logistics_partner", "/logistics/riders", true],
     ["logistics_partner", "/supplier/home", false],
     ["logistics_partner", "/chats", false],
@@ -141,6 +147,6 @@ test("each partner tab group has its screens", () => {
   const app = new URL("../apps/mobile/src/app/", import.meta.url).pathname;
   for (const name of ["home", "orders", "products", "quotes", "messages", "more"]) assert.ok(existsSync(join(app, "supplier/(tabs)", `${name}.tsx`)), `supplier ${name}`);
   for (const name of ["home", "jobs", "riders", "earnings", "messages", "more"]) assert.ok(existsSync(join(app, "logistics/(tabs)", `${name}.tsx`)), `logistics ${name}`);
-  for (const name of ["index", "link", "[token]", "drop/[id]"]) assert.ok(existsSync(join(app, "rider", `${name}.tsx`)), `rider ${name}`);
+  for (const name of ["(tabs)/index", "(tabs)/earnings", "(tabs)/me", "job", "sign-in", "link", "[token]", "drop/[id]"]) assert.ok(existsSync(join(app, "rider", `${name}.tsx`)), `rider ${name}`);
   assert.match(readFileSync(join(app, "_layout.tsx"), "utf8"), /<RoleGuard \/>/);
 });

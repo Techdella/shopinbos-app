@@ -150,6 +150,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "method.card.hint": "Kaadị na USSD, ego na-abanye na bank gị ozugbo",
   "method.korapay.label": "Kwụọ site na bank",
   "method.korapay.hint": "Ebe ịkwụ ụgwọ nke abụọ echekwara: kaadị, nnyefe ego ma ọ bụ app bank",
+  "frame.step": "{current} n'ime {total}",
 };
 
 export default ig;

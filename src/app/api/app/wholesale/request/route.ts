@@ -6,8 +6,9 @@ import type { AuthUser } from "@/lib/auth/types";
 import { WHOLESALE_PAYMENT_NOTE, placeWholesaleOrder } from "@/lib/supplier-orders/wholesale.server";
 
 // A seller places a wholesale order with a supplier: at least the minimum order, priced at the supplier's tier
-// for that quantity. No payment is taken here: the supplier confirms and invoices the seller, who pays them
-// directly (`payment` in the response says so). The supplier sees it in /supplier/orders.
+// for that quantity. No payment is taken here: the supplier confirms first, then the seller pays in Shopinbos by
+// card (PATCH ../[id] { action: "pay" }) or directly against the invoice (`payment` in the response says so). The
+// supplier sees it in /supplier/orders.
 
 export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUser }) => {
   const body = await req.json().catch(() => null);

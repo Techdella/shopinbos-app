@@ -150,6 +150,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "method.card.hint": "Debit card and USSD, the money go enter your bank straight",
   "method.korapay.label": "Pay with bank",
   "method.korapay.hint": "Second secure checkout: card, transfer or bank app",
+  "frame.step": "{current} of {total}",
 };
 
 export default pcm;
