@@ -19,6 +19,8 @@ export interface MenuItem {
   newTab?: boolean;
   /** Sub-items: the dropdown under this item. One level deep. */
   children?: MenuItem[];
+  /** A picture for the item (https), shown in the mega menu and the phone sheet. Else the category's or product's. */
+  image?: string;
 }
 
 /** How the menu looks on computers. */
@@ -121,6 +123,7 @@ function cleanItem(raw: unknown, depth: number): MenuItem | null {
     if (!ref || (kind === "content" && !isContentRef(ref))) return null;
     item.ref = kind === "page" ? normalizePage(ref) : ref;
   }
+  if (typeof entry.image === "string" && /^https:\/\/[^\s"'<>]+$/.test(entry.image) && entry.image.length <= 2000) item.image = entry.image;
   if (depth === 0 && Array.isArray(entry.children)) {
     const children = entry.children.map((child) => cleanItem(child, 1)).filter((child): child is MenuItem => Boolean(child));
     if (children.length) item.children = children;

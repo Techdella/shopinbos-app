@@ -473,6 +473,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "ba.uploadDark": "Upload for dark",
   "ba.useAuto": "Use automatic",
   "nav.builder": "Edit am for store builder",
+  "nav.editWithRex": "Edit with Rex",
   "nav.live": "When you save, the menus for your live store go change sharp sharp. Other changes wey you never publish for store builder go still be draft.",
   "nav.liveDraft": "Your store never publish. Buyers go see the menus wey you save once you publish am.",
   "nav.builderDraft": "Store builder get menu changes wey you never publish. We show dem for down; if you save here, dem go dey live.",

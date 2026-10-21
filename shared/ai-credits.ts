@@ -84,6 +84,8 @@ export const ACTION_COST = {
   rate_card: 10,
   coverage_listing: 5,
   performance_report: 5,
+  /** Rex designing something in the store builder (a menu, a section, a new layout): previews are free, applying it costs this. */
+  store_design: 3,
 } as const;
 export type CreditAction = keyof typeof ACTION_COST;
 export type CreditCosts = Record<string, number>;
@@ -92,7 +94,7 @@ export const DEFAULT_COSTS: CreditCosts = { ...CREDIT_COST, ...ACTION_COST };
 
 /** The prices each kind of account sees on its credits page ("build" is AI store setup). */
 export const COSTS_BY_ROLE: Record<"seller" | "supplier" | "logistics_partner", readonly string[]> = {
-  seller: ["product_copy", "seo", "bg_remove", "photo", "caption", "translate", "build", "campaign", "chat_reply", "insights", "voice", "video", "text"],
+  seller: ["product_copy", "seo", "bg_remove", "photo", "caption", "translate", "build", "store_design", "campaign", "chat_reply", "insights", "voice", "video", "text"],
   supplier: ["bulk_description", "auto_tag", "import_cleanup", "photo_cleanup", "inquiry_reply", "text"],
   logistics_partner: ["rate_card", "coverage_listing", "chat_reply", "performance_report", "text"],
 };

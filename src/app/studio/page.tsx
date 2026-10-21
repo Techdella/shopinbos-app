@@ -62,6 +62,7 @@ export default async function StudioPage({ searchParams }: { searchParams?: Prom
   return (
     <RexStudio
       firstName={firstName}
+      avatarUrl={user.avatarUrl ?? null}
       fromOnboarding={params?.onboarding === "true"}
       initialPrompt={(Array.isArray(params?.prompt) ? params.prompt[0] : params?.prompt)?.slice(0, 2000) ?? ""}
       openPreview={params?.preview === "1"}

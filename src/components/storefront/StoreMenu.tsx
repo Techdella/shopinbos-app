@@ -45,7 +45,12 @@ export interface MenuContext {
 
 /** Turns the saved menu into links, dropping pages, categories and products the store doesn't have. */
 export function resolveMenu(menu: MenuItem[], ctx: MenuContext): ShownMenuItem[] {
+  // The seller's (or Rex's) own picture for an item wins over the category's or product's.
   const one = (item: MenuItem): ShownMenuItem | null => {
+    const shown = base(item);
+    return shown && item.image ? { ...shown, image: item.image } : shown;
+  };
+  const base = (item: MenuItem): ShownMenuItem | null => {
     const custom = item.label.trim();
     if (item.kind === "page") {
       const page = item.ref ?? "";

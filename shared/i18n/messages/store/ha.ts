@@ -473,6 +473,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "ba.uploadDark": "Ɗora na duhu",
   "ba.useAuto": "Yi amfani da na atomatik",
   "nav.builder": "Gyara a store builder",
+  "nav.editWithRex": "Gyara da Rex",
   "nav.live": "Idan kun ajiye, menus na shagonku mai rai za su canza nan take. Sauran canje-canjen da ba ku buga ba a store builder za su zauna a matsayin zayyana.",
   "nav.liveDraft": "Ba a buga shagonku ba tukuna. Masu siye za su ga menus ɗin da kuka ajiye da zarar kun buga shi.",
   "nav.builderDraft": "Store builder yana da canje-canjen menu da ba ku buga ba. An nuna su a ƙasa; ajiyewa a nan zai sa su zama masu rai.",

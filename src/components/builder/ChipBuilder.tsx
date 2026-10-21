@@ -68,6 +68,8 @@ interface UploadedFile {
 
 interface ChipBuilderProps {
   userName: string;
+  /** The seller's profile photo, shown on their messages (else their initial). */
+  userAvatarUrl?: string | null;
   selectedTemplate?: {
     templateId: string;
     templateName: string;
@@ -232,7 +234,7 @@ function previewVariantFromLayout(layoutFamily?: string | null): PreviewVariant 
   return "classic";
 }
 
-export function ChipBuilder({ userName, existingStore, selectedTemplate, onboardingMemory, initialPhase }: ChipBuilderProps) {
+export function ChipBuilder({ userName, userAvatarUrl = null, existingStore, selectedTemplate, onboardingMemory, initialPhase }: ChipBuilderProps) {
   const router = useRouter();
   const t = useT("builder");
   const firstName = userName.split(" ")[0];
@@ -835,11 +837,14 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
                         )}
                       </div>
 
-                      {msg.role === "user" && (
+                      {msg.role === "user" && (userAvatarUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={userAvatarUrl} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
+                      ) : (
                         <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-app-peach text-[13px] font-extrabold text-app-accent-ink" aria-hidden>
                           {firstName[0]?.toUpperCase()}
                         </span>
-                      )}
+                      ))}
                     </div>
                   ))}
                   <div ref={messagesEndRef} />
