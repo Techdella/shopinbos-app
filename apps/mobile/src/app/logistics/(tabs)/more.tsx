@@ -1,4 +1,5 @@
-import { Linking, Pressable, View } from "react-native";
+import { useState } from "react";
+import { Alert, Linking, Pressable, View } from "react-native";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { NATIONWIDE } from "@shared/delivery-market";
@@ -10,7 +11,8 @@ import { CardButton, Initial, StatCard } from "@/components/PartnerKit";
 import { useHelpSection } from "@/components/PartnerMore";
 import { TabScreen } from "@/components/TabScreen";
 import { DeleteAccountButton } from "@/components/DeleteAccountButton";
-import { Card, LinkButton, T } from "@/components/ui";
+import { Card, LinkButton, PillButton, T } from "@/components/ui";
+import { emailTopUp, fetchCredits, fetchRewards } from "@/lib/familiar";
 import { useT } from "@/lib/i18n";
 import { fetchLogisticsOverview, fetchMarket, fetchRiders } from "@/lib/logistics";
 import { SERVICE_KEYS, stateLabel } from "@/lib/logistics-pure";
@@ -22,7 +24,8 @@ import { colors } from "@/theme";
 
 // Business ("Delivery partner app" prototype `business`): the company with its Verified pill, rating / on time /
 // failed from in-app deliveries, then Coverage, Services, Pickup points, Rate card, Riders and Payout account, the
-// profile as sellers see it and Help. Below: everything the old menu had (businesses you work with, notifications,
+// posts and Status, Rex and Peggy credits (shown; "Top up" emails how to do it on the website, never a sale in the
+// app) and Rewards, the profile as sellers see it and Help. Credits hide when their API isn't there. Below: everything the old menu had (businesses you work with, notifications,
 // verification, quotes and the company profile on the web, connecting delivery software), language, sign out and
 // delete my account.
 
@@ -39,6 +42,9 @@ export default function LogisticsBusiness() {
   const market = useLoad(fetchMarket);
   const riders = useLoad(fetchRiders);
   const wallet = useLoad(fetchWallet);
+  const credits = useLoad(fetchCredits);
+  const rewards = useLoad(fetchRewards);
+  const [toppingUp, setToppingUp] = useState(false);
   const help = useHelpSection();
   const partner = market.data?.partner;
   const stats = market.data?.stats;
@@ -61,6 +67,20 @@ export default function LogisticsBusiness() {
     void market.reload();
     void riders.reload();
     void wallet.reload();
+    void credits.reload();
+    void rewards.reload();
+  }
+
+  async function topUp() {
+    setToppingUp(true);
+    try {
+      await emailTopUp();
+      Alert.alert(t("fam.biz.credits"), t("fam.biz.topUpSent"));
+    } catch {
+      Alert.alert(t("fam.biz.credits"), t("fam.biz.topUpFailed"));
+    } finally {
+      setToppingUp(false);
+    }
   }
 
   const more: { key: string; icon: AppIconName; path: string }[] = [
@@ -105,6 +125,24 @@ export default function LogisticsBusiness() {
         <Row lead={<Tile icon="tag" />} title={t("biz.rates")} sub={market.data ? (rows ? t("biz.ratesSub", { count: rows }) : t("biz.noRates")) : undefined} onPress={() => router.push("/logistics/rates")} />
         <Row lead={<Tile icon="users" />} title={t("biz.riders")} sub={riders.data ? t("biz.ridersSub", { count: list.length, free }) : undefined} onPress={() => router.push("/logistics/team")} />
         <Row lead={<Tile icon="wallet" />} title={t("biz.payout")} sub={wallet.data ? (bank ? `${bank.bankName} ••• ${bank.accountEnding}` : t("biz.payoutNone")) : undefined} onPress={() => router.push("/logistics/payout")} />
+      </List>
+
+      <List>
+        <Row lead={<Tile icon="megaphone" tone="lilac" />} title={t("fam.biz.posts")} sub={t("fam.biz.postsSub")} onPress={() => router.push("/posts" as never)} />
+        {credits.data ? (
+          <Row
+            lead={<Tile icon="sparkle" tone="butter" />}
+            title={t("fam.biz.credits")}
+            sub={t("fam.biz.creditsSub", { count: credits.data.balance })}
+            right={<PillButton title={t("fam.biz.topUp")} size="sm" tone="white" busy={toppingUp} accessibilityLabel={t("fam.biz.topUpLabel")} onPress={() => void topUp()} />}
+          />
+        ) : null}
+        <Row
+          lead={<Tile icon="star" tone="lime" />}
+          title={t("fam.biz.rewards")}
+          sub={rewards.data ? t("fam.biz.rewardsSub", { level: rewards.data.level, points: rewards.data.points }) : t("fam.biz.rewardsPlain")}
+          onPress={() => router.push("/rewards" as never)}
+        />
       </List>
 
       <List>

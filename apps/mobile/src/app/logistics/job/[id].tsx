@@ -8,7 +8,7 @@ import { Choice, Heading, List, Row, Small, Sub, Tile, Timeline } from "@/compon
 import { AppIcon } from "@/components/icons";
 import { riderOptions } from "@/components/JobCard";
 import { ErrorState, LoadingBlock } from "@/components/kit";
-import { NoteCard } from "@/components/PartnerKit";
+import { NoteCard, shopRoleOf } from "@/components/PartnerKit";
 import { Screen } from "@/components/Screen";
 import { Sheet } from "@/components/Sheet";
 import { Card, Notice, PillButton, T } from "@/components/ui";
@@ -20,7 +20,8 @@ import { useLoad } from "@/lib/useLoad";
 import { openWeb } from "@/lib/web";
 import { colors } from "@/theme";
 
-// One delivery job ("Delivery partner app" prototype `job`): where from and to, what it is and what you get, the
+// One delivery job ("Familiar app" prototype F-Delivery `job`): from → to, the shop and whether it is a seller or a
+// supplier, pick-up and drop-off, the service and size with the pick-up deadline, what you get, the
 // pay-on-delivery, failed-attempt or returning card, the rider and a vertical timeline, and the buttons for where
 // it is: accept and pick a rider or decline (with why), move it along, confirm delivery (proof screen), report a
 // failed attempt (with what happened), try again or return it, and hand it back. Moves go through
@@ -117,17 +118,18 @@ export default function JobScreen() {
     <Screen title={current.ref} refreshing={job.refreshing} onRefresh={() => void job.refresh()} footer={footer}>
       <View style={{ gap: 4 }}>
         <Heading>{`${shortPlace(current.from)} → ${shortPlace(current.to)}`}</Heading>
-        <Sub>{`${current.shop} · ${status}`}</Sub>
+        <Sub>{t("fam.job.shopWho", { shop: current.shop, who: t.dynamic(`fam.who.${shopRoleOf(current, market.data?.connections)}`), status })}</Sub>
       </View>
       {error ? <Notice>{error}</Notice> : null}
 
       <List>
-        <Row lead={<Tile icon="box" tone="mint" />} title={t("job.pickFrom")} sub={current.pickupWindow ? `${current.from} · ${current.pickupWindow}` : current.from} />
+        <Row lead={<Tile icon="box" tone="mint" />} title={t("job.pickFrom")} sub={current.from} />
         <Row lead={<Tile icon="pin" tone="peach" />} title={point ? t("job.dropAtPoint") : t("job.deliverTo")} sub={drop} />
       </List>
 
       <List>
-        <Row lead={<Tile icon="truck" tone="gray" />} title={current.item} sub={current.pickupWindow ?? t("job.sent", { ago: timeAgo(current.createdAt, undefined, t) })} />
+        {/* Service and size, then the pick-up deadline (prototype `job.svc · job.size` over `job.by`). */}
+        <Row lead={<Tile icon="truck" tone="gray" />} title={`${point ? t("svc.pickup_point") : t("svc.doorstep")} · ${current.item}`} sub={current.pickupWindow ?? t("job.sent", { ago: timeAgo(current.createdAt, undefined, t) })} />
         <Row lead={<Tile icon="wallet" tone="ok" />} title={t("job.youGet", { fee: naira(current.fee) })} sub={t("job.paidOnConfirm")} />
       </List>
 

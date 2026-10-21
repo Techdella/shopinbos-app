@@ -3,12 +3,12 @@ import { Pressable, ScrollView, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { offPlatformSignals } from "@shared/delivery-market";
 import { Bubble, ChatScreen, Composer } from "@/components/ChatScreen";
-import { List, Pill, Row, Small, Sub, Title } from "@/components/design";
+import { List, Pill, Row, Seg, Small, Sub, Title } from "@/components/design";
 import { HelpButton } from "@/components/Help";
 import { AppIcon } from "@/components/icons";
 import { EmptyState, ErrorState, Initials, LoadingBlock } from "@/components/kit";
 import { TabScreen } from "@/components/TabScreen";
-import { Field, Notice, PillButton, T } from "@/components/ui";
+import { Card, Field, Notice, PillButton, T } from "@/components/ui";
 import { shortTime } from "@/lib/inbox-pure";
 import { fetchChatContacts, ROLE_LABEL } from "@/lib/partner-chat";
 import { fetchPartnerMessages, sendPartnerMessage } from "@/lib/partners";
@@ -31,12 +31,24 @@ const AVATAR: Record<string, { bg: string; fg: string }> = {
   logistics_partner: { bg: colors.mintTint, fg: colors.forest },
 };
 
-export function MessagesTab({ base, webPath }: { base: Base; webPath: string }) {
+/** The chips over the list when `filters` is on ("Familiar app" F-Delivery `chatFilters`). */
+type ChatFilter = "all" | "unread" | "seller" | "supplier";
+const FILTERS: { key: ChatFilter; label: string }[] = [
+  { key: "all", label: "fam.chats.all" },
+  { key: "unread", label: "fam.chats.unread" },
+  { key: "seller", label: "fam.chats.sellers" },
+  { key: "supplier", label: "fam.chats.suppliers" },
+];
+
+export function MessagesTab({ base, webPath, filters = false }: { base: Base; webPath: string; /** All / Unread / Sellers / Suppliers chips (delivery partners). */ filters?: boolean }) {
   const t = useT("m_partner");
   const contacts = useLoad(fetchChatContacts);
   const [q, setQ] = useState("");
+  const [filter, setFilter] = useState<ChatFilter>("all");
   const partner = base === "/logistics";
-  const list = (contacts.data ?? []).filter((contact) => !q.trim() || `${contact.name} ${contact.lastMessage ?? ""}`.toLowerCase().includes(q.trim().toLowerCase()));
+  const shown = (contact: { unread: number; role: string }) => !filters || filter === "all" || (filter === "unread" ? contact.unread > 0 : contact.role === filter);
+  const matches = (contacts.data ?? []).filter((contact) => !q.trim() || `${contact.name} ${contact.lastMessage ?? ""}`.toLowerCase().includes(q.trim().toLowerCase()));
+  const list = matches.filter(shown);
   const unread = (contacts.data ?? []).filter((contact) => contact.unread > 0).length;
 
   const header = (
@@ -55,7 +67,19 @@ export function MessagesTab({ base, webPath }: { base: Base; webPath: string }) 
       {(contacts.data?.length ?? 0) > 6 ? <Field value={q} onChangeText={setQ} placeholder={t("chat.search")} returnKeyType="search" accessibilityLabel={t("chat.searchLabel")} style={{ height: 48 }} /> : null}
       {contacts.loading && !contacts.data ? <LoadingBlock label={t("chat.loading")} /> : null}
       {contacts.error && !contacts.data ? <ErrorState message={contacts.error} onRetry={() => void contacts.reload()} web={{ label: t("openOnWeb"), onPress: () => void openWeb(webPath) }} /> : null}
-      {contacts.data && !list.length ? (
+      {filters && contacts.data?.length ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }} style={{ flexGrow: 0 }}>
+          {FILTERS.map((option) => (
+            <Seg key={option.key} label={t.dynamic(option.label)} on={filter === option.key} onPress={() => setFilter(option.key)} />
+          ))}
+        </ScrollView>
+      ) : null}
+      {contacts.data && matches.length && !list.length ? (
+        <Card style={{ padding: 20, borderRadius: 24, borderWidth: 1, borderColor: colors.line }}>
+          <Sub>{t("fam.chats.noneHere")}</Sub>
+        </Card>
+      ) : null}
+      {contacts.data && !matches.length ? (
         <EmptyState icon="chat" title={contacts.data.length ? t("chat.noMatch") : t("chat.none")}>
           {contacts.data.length ? t("chat.tryName") : t("chat.noneBody")}
         </EmptyState>

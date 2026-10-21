@@ -122,3 +122,23 @@ test("partner app: four tabs (Jobs, Chats, Money, Business), and the Riders app 
   assert.match(rider, /minHeight: 64/);
   assert.match(rider, /useRiderStrings/);
 });
+
+test("partner app, Familiar design: Jobs has the level ring, Peggy, Status and route cards; Money goes straight to the bank", () => {
+  const jobs = read("apps/mobile/src/app/logistics/(tabs)/jobs.tsx");
+  for (const piece of ["<LevelPill", "<PeggyButton", "<NotificationBellButton", "<StatusRow", "<Checklist", "<RouteCard", "<PushPromptCard", "<PayInOverdueCard"]) assert.ok(jobs.includes(piece), piece);
+  assert.match(jobs, /"\/rewards"/);
+  assert.match(jobs, /"\/ask-peggy"/);
+  // No pending total in the API: the dark card says what was earned this week, not "coming to your bank".
+  assert.match(jobs, /t\("fam\.sum\.week"\)/);
+  // Delivery fees settle to the partner's own bank: no balance to withdraw, no PIN, no "held by" copy (comments aside).
+  const money = read("apps/mobile/src/app/logistics/(tabs)/earnings.tsx").replace(/^\s*\/\/.*$/gm, "");
+  assert.doesNotMatch(money, /withdraw|\bpin\b|held by/i);
+  const words = read("shared/i18n/messages/m_partner/en.ts");
+  assert.doesNotMatch(words.slice(words.indexOf('"fam.')), /withdraw|held by/i);
+  // Credits are shown; "Top up" only emails how to do it on the website (no sale in the app).
+  assert.match(read("apps/mobile/src/app/logistics/(tabs)/more.tsx"), /emailTopUp\(\)/);
+  assert.match(read("apps/mobile/src/app/logistics/(tabs)/messages.tsx"), /filters/);
+  // Android: the active tab icon sits on the prototype's teal pill.
+  assert.match(read("apps/mobile/src/app/logistics/(tabs)/_layout.tsx"), /tint=\{PARTNER_TINT\}/);
+  assert.match(read("apps/mobile/src/components/PartnerKit.tsx"), /PARTNER_TINT = "#D6F0E9"/);
+});
