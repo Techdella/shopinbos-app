@@ -902,6 +902,20 @@ export const FEATURE_INTROS: FeatureIntro[] = [
     ],
   },
   {
+    key: "supplier-followers",
+    term: "marketplace",
+    title: "Followers",
+    roles: ["supplier"],
+    paths: ["/supplier/followers"],
+    scenes: [
+      { art: "customer-cards", caption: "Shops can follow you.", sub: "When a shop likes your products, it taps Follow on your page in the marketplace.", durationMs: S, value: "24 followers" },
+      { art: "send-burst", caption: "Tell them what’s new.", sub: "Send an update about new stock, price drops or restocks, and every follower gets it.", durationMs: S, label: "New stock" },
+      { art: "chat-bubbles", caption: "Keep it short and real.", sub: "“200 new Ankara prints in stock this week.” One clear update beats many small ones.", durationMs: S },
+      { art: "dots-sort", caption: "Updates come with Supplier Pro.", sub: "The page shows how many updates you have left this week.", durationMs: S, label: "Supplier Pro" },
+      { art: "chart-grow", caption: "Followers order again.", sub: "Shops that hear from you about new stock come back and restock from you.", durationMs: S, value: "3 repeat shops" },
+    ],
+  },
+  {
     key: "supplier-wholesale",
     term: "wholesale",
     title: "Wholesale orders",

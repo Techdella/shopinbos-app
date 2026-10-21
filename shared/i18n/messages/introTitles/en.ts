@@ -53,6 +53,7 @@ const en = {
   "supplier-home.title": "Your Today dashboard",
   "supplier-delivery.title": "Delivery for dropship orders",
   "supplier-agreements.title": "Dropship agreements",
+  "supplier-followers.title": "Followers",
   "supplier-wholesale.title": "Wholesale orders",
   "supplier-buyers.title": "Buyers",
   "partner-jobs.title": "Delivery jobs",

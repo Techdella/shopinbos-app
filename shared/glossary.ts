@@ -202,6 +202,7 @@ export const NAV_TERMS: Record<GlossaryRole, Record<string, string>> = {
     ...SHARED_NAV,
     orders: "fulfilment", "dropship-orders": "dropship", "wholesale-orders": "wholesale", "quote-requests": "quote-requests",
     products: "white-label", buyers: "buyers", "buyers-all": "buyers", delivery: "logistics", agreements: "dropship-agreement",
+    "products-import": "imports",
   },
   logistics_partner: {
     ...SHARED_NAV,
@@ -216,6 +217,7 @@ export const PLAIN_NAV = new Set([
   "start", "home", "dashboard", "products-all", "products-new",
   "settings", "settings-store", "settings-main", "profile", "company", "notification-prefs", "customise", "team",
   "labels-designs", "labels-packaging", "labels-studio", "labels-request", "labels-orders", "packaging-requests", "print-orders",
+  "social-posts", "social-calendar", "social-new", "social-designs", "social-accounts", "followers",
 ]);
 
 /** The glossary entry for a sidebar item, or null for plain words and unknown ids. */
