@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { cx } from "@/components/app-kit";
 import { requireRole } from "@/lib/server-auth";
 import { sellerStore } from "@/lib/reviews/server";
-import { REVIEW_SOURCES, sourceLabel, type ReviewItem, type ReviewSource } from "@/lib/reviews/pure";
+import { REVIEW_SOURCES, reviewerInitials, safeReviewerPhoto, sourceLabel, type ReviewItem, type ReviewSource } from "@/lib/reviews/pure";
 import { getT } from "@/lib/i18n/server";
 import { formatDate, type Locale, type TFunction } from "@shared/i18n";
 import type { MessageKey } from "@shared/i18n/catalog";
@@ -89,4 +89,31 @@ export function sourceOptions(t?: TFunction<MessageKey<"reviews">>) {
 export function formatDay(iso: string, locale: Locale = "en") {
   if (locale !== "en") return formatDate(iso, locale);
   return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "Africa/Lagos" });
+}
+
+/** The store's logo and name: what a review left on the store shows as its source on share cards. */
+export function StoreBadge({ store }: { store: { name: string; logoUrl: string | null } }) {
+  const logo = safeReviewerPhoto(store.logoUrl);
+  return (
+    <span className="inline-flex min-w-0 items-center gap-1.5 rounded-full bg-app-canvas py-1 pl-1 pr-2.5 text-[12px] font-bold">
+      {logo ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={logo} alt="" crossOrigin="anonymous" className="h-5 w-5 shrink-0 rounded-[6px] object-cover" />
+      ) : (
+        <span aria-hidden className="grid h-5 w-5 shrink-0 place-items-center rounded-[6px] bg-app-ink text-[10px] text-white">{reviewerInitials(store.name)}</span>
+      )}
+      <span className="truncate">{store.name}</span>
+    </span>
+  );
+}
+
+/** The reviewer's photo, or their initials in a circle. */
+export function ReviewerAvatar({ name, photoUrl, size = 32 }: { name: string; photoUrl: string | null; size?: number }) {
+  const photo = safeReviewerPhoto(photoUrl);
+  return photo ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={photo} alt="" crossOrigin="anonymous" width={size} height={size} className="shrink-0 rounded-full object-cover" style={{ width: size, height: size }} />
+  ) : (
+    <span aria-hidden className="grid shrink-0 place-items-center rounded-full bg-app-lilac font-extrabold text-app-ink" style={{ width: size, height: size, fontSize: Math.round(size * 0.38) }}>{reviewerInitials(name)}</span>
+  );
 }

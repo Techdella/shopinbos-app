@@ -4309,6 +4309,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     goCategory: shopCategory,
     products,
     productHref: (id) => (live ? getPublicStorefrontPath(basePath, `/product/${id}`) : undefined),
+    storeHref: (path) => (live ? getPublicStorefrontPath(basePath, path) : undefined),
     goProduct: openProduct,
     current,
   };

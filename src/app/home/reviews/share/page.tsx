@@ -6,7 +6,7 @@ import { ReviewCardExport } from "../ReviewCardExport";
 import { CopyField } from "../_components/CopyField";
 import { ShareReview } from "../_components/ShareReview";
 import { WidgetPreview } from "../_components/WidgetPreview";
-import { ReviewTabs, SourcePill, Stars, reviewsContext } from "../_components/shared";
+import { ReviewTabs, ReviewerAvatar, SourcePill, Stars, StoreBadge, reviewsContext } from "../_components/shared";
 import { getT } from "@/lib/i18n/server";
 import { PageTip } from "@/components/learn/PageTip";
 
@@ -42,8 +42,16 @@ export default async function ShareReviewsPage() {
               <div className="mt-4 grid gap-4">
                 <CopyField label={t("shareP.wallLink")} value={urls.wall} />
                 <div id="wall-card" className="rounded-[18px] border border-app-line bg-white p-5">
-                  <div className="text-[13px] text-app-ink-soft">{t("shareP.whatSay")}</div>
-                  <div className="text-[20px] font-extrabold">{store.name}</div>
+                  <div className="flex items-center gap-3">
+                    {store.logoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={store.logoUrl} alt="" crossOrigin="anonymous" className="h-11 w-11 shrink-0 rounded-[12px] object-cover" />
+                    ) : null}
+                    <div className="min-w-0">
+                      <div className="text-[13px] text-app-ink-soft">{t("shareP.whatSay")}</div>
+                      <div className="text-[20px] font-extrabold">{store.name}</div>
+                    </div>
+                  </div>
                   <div className="mt-2 flex items-baseline gap-2">
                     <span className="text-[40px] font-extrabold leading-none">{summary.rated ? summary.average.toFixed(1) : "–"}</span>
                     <Stars rating={summary.rated ? Math.round(summary.average) : null} size={18} />
@@ -63,9 +71,15 @@ export default async function ShareReviewsPage() {
                     return (
                       <li key={item.key} className="rounded-[18px] border border-app-line p-4">
                         <div id={`review-${item.id}`} className="rounded-[14px] bg-white p-2">
-                          <div className="flex flex-wrap items-center gap-2"><Stars rating={item.rating} /><SourcePill item={item} /></div>
+                          <div className="flex flex-wrap items-center gap-2"><Stars rating={item.rating} />{item.source === "store" ? <StoreBadge store={store} /> : <SourcePill item={item} />}</div>
                           <p className="m-0 mt-2 whitespace-pre-line text-[15px] leading-[1.55]">{(item.body || item.title).slice(0, 400)}</p>
-                          <p className="m-0 mt-2 text-[13px] font-bold">{item.authorName} <span className="font-normal text-app-ink-soft">· {store.name}</span></p>
+                          <div className="mt-3 flex items-center gap-2.5">
+                            <ReviewerAvatar name={item.authorName} photoUrl={item.authorPhotoUrl} />
+                            <p className="m-0 min-w-0 text-[13px] font-bold">
+                              {item.authorName}
+                              {item.source !== "store" ? <span className="font-normal text-app-ink-soft"> · {store.name}</span> : item.verifiedBuyer ? <span className="font-normal text-app-ink-soft"> · {t("shareP.verified")}</span> : null}
+                            </p>
+                          </div>
                         </div>
                         <div className="mt-3 grid gap-2">
                           <ShareReview cardId={`review-${item.id}`} text={text} url={urls.wall} links={shareLinks(urls.wall, text)} />

@@ -12,6 +12,7 @@ import {
   MAX_MENU_ITEMS,
   MENU_PAGE_LABELS,
   MOBILE_MENU_STYLES,
+  contentRefName,
   addMenuItems,
   canIndentMenuItem,
   countMenuItems,
@@ -31,6 +32,8 @@ import { flattenMenu, type MobileMenuSource, type StoreNavigation } from "@/lib/
 
 type Category = { slug: string; name: string };
 type Product = { id: string; name: string };
+/** A CMS collection (the Blog, a Recipe book…) and its live items, for content menu items. */
+type Content = { slug: string; name: string; isPublished: boolean; items: Array<{ slug: string; title: string }> };
 type PreviewStore = { name: string; logoUrl: string | null; brandSettings: unknown };
 
 const PAGE_KEYS = {
@@ -58,6 +61,14 @@ function storePages(pageTypes: string[]) {
   return (Object.keys(PAGE_KEYS) as Array<keyof typeof PAGE_KEYS>).filter((page) => has.has(page));
 }
 
+/** The collection's name, or the item's title, for a content path ("blog" or "blog/a-post"). */
+function contentName(content: Content[], ref: string) {
+  const [collectionSlug, itemSlug] = ref.split("/");
+  const collection = content.find((entry) => entry.slug === collectionSlug);
+  if (!itemSlug) return collection?.name ?? contentRefName(ref);
+  return collection?.items.find((entry) => entry.slug === itemSlug)?.title ?? contentRefName(ref);
+}
+
 function targetValue(item: MenuItem) {
   return item.kind === "link" ? "link" : `${item.kind}:${item.ref ?? ""}`;
 }
@@ -80,6 +91,7 @@ export function NavigationEditor({
   pageTypes,
   categories,
   products,
+  content = [],
   store,
   logoText,
 }: {
@@ -89,6 +101,7 @@ export function NavigationEditor({
   pageTypes: string[];
   categories: Category[];
   products: Product[];
+  content?: Content[];
   store: PreviewStore;
   logoText: string;
 }) {
@@ -104,9 +117,10 @@ export function NavigationEditor({
     if (item.kind === "page") return MENU_PAGE_LABELS[item.ref ?? ""] ?? item.ref ?? "";
     if (item.kind === "category") return categories.find((entry) => entry.slug === item.ref)?.name ?? item.ref ?? "";
     if (item.kind === "product") return products.find((entry) => entry.id === item.ref)?.name ?? t("nav.removed");
+    if (item.kind === "content") return contentName(content, item.ref ?? "");
     return "";
   };
-  const listProps = { pages, categories, products, nameOf };
+  const listProps = { pages, categories, products, content, nameOf };
 
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
@@ -188,6 +202,7 @@ type ListProps = {
   pages: Array<keyof typeof PAGE_KEYS>;
   categories: Category[];
   products: Product[];
+  content: Content[];
   nameOf: (item: MenuItem) => string;
 };
 
@@ -226,13 +241,32 @@ function MenuList(props: ListProps) {
         <button type="button" onClick={add} disabled={full} className="inline-flex min-h-[40px] items-center gap-2 rounded-full border border-app-line bg-white px-4 text-[13.5px] font-extrabold text-app-ink hover:border-app-line-strong disabled:opacity-50">
           <Icon name="plus" size={15} /> {t("nav.add")}
         </button>
+        {props.content.length ? (
+          <>
+            <label htmlFor={`${props.id}-add-content`} className="sr-only">{t("nav.addContent")}</label>
+            <select
+              id={`${props.id}-add-content`}
+              value=""
+              disabled={full}
+              onChange={(event) => {
+                const slug = event.target.value;
+                const collection = props.content.find((entry) => entry.slug === slug);
+                if (collection) onChange(addMenuItems(items, [{ kind: "content", ref: collection.slug, label: collection.name }]));
+              }}
+              className="min-h-[40px] rounded-full border border-app-line bg-white px-4 text-[13.5px] font-extrabold text-app-ink hover:border-app-line-strong disabled:opacity-50"
+            >
+              <option value="">{t("nav.addContent")}</option>
+              {props.content.map((collection) => <option key={collection.slug} value={collection.slug}>{collection.isPublished ? collection.name : t("nav.contentHidden", { name: collection.name })}</option>)}
+            </select>
+          </>
+        ) : null}
         {full ? <span className="text-[12.5px] text-app-ink-soft">{t("nav.full")}</span> : null}
       </div>
     </div>
   );
 }
 
-function ItemRow({ id, item, depth, index, count, items, onChange, nested, pages, categories, products, nameOf }: ListProps & { item: MenuItem; depth: 0 | 1; index: number; count: number }) {
+function ItemRow({ id, item, depth, index, count, items, onChange, nested, pages, categories, products, content, nameOf }: ListProps & { item: MenuItem; depth: 0 | 1; index: number; count: number }) {
   const t = useT("store");
   const base = `${id}-${item.id}`;
   const shownName = item.label.trim() || nameOf(item) || t("nav.item.untitled");
@@ -246,7 +280,10 @@ function ItemRow({ id, item, depth, index, count, items, onChange, nested, pages
       return;
     }
     const [kind, ...rest] = value.split(":");
-    onChange(updateMenuItem(items, item.id, { kind: kind as MenuItem["kind"], ref: rest.join(":"), url: undefined, newTab: undefined }));
+    const ref = rest.join(":");
+    // Content links take the collection's or post's name, so shoppers read it rather than the web address.
+    const label = kind === "content" && (!item.label.trim() || item.label === nameOf(item)) ? contentName(content, ref) : item.label;
+    onChange(updateMenuItem(items, item.id, { kind: kind as MenuItem["kind"], ref, label, url: undefined, newTab: undefined }));
   };
   const iconButton = (icon: "arrowUp" | "arrowDown" | "chevRight" | "arrowLeft" | "trash", label: string, action: () => void, disabled = false, danger = false) => (
     <button
@@ -287,6 +324,17 @@ function ItemRow({ id, item, depth, index, count, items, onChange, nested, pages
               </optgroup>
             ) : null}
             {item.kind === "product" && !products.some((product) => product.id === item.ref) ? <option value={targetValue(item)}>{nameOf(item)}</option> : null}
+            {content.length ? (
+              <optgroup label={t("nav.group.content")}>
+                {content.map((collection) => <option key={collection.slug} value={`content:${collection.slug}`}>{collection.isPublished ? collection.name : t("nav.contentHidden", { name: collection.name })}</option>)}
+              </optgroup>
+            ) : null}
+            {content.filter((collection) => collection.items.length).map((collection) => (
+              <optgroup key={`items-${collection.slug}`} label={t("nav.group.contentItems", { name: collection.name })}>
+                {collection.items.map((entry) => <option key={entry.slug} value={`content:${collection.slug}/${entry.slug}`}>{entry.title}</option>)}
+              </optgroup>
+            ))}
+            {item.kind === "content" && !content.some((collection) => item.ref === collection.slug || collection.items.some((entry) => item.ref === `${collection.slug}/${entry.slug}`)) ? <option value={targetValue(item)}>{nameOf(item)}</option> : null}
             <optgroup label={t("nav.group.custom")}>
               <option value="link">{t("nav.customUrl")}</option>
             </optgroup>
@@ -348,6 +396,7 @@ function Preview({ nav, pages, categories, products, store, logoText, dirty }: {
     categories,
     goCategory: () => undefined,
     products,
+    storeHref: (path) => path,
     categoriesUnderShop: underShop,
   });
   const main = resolve(nav.main, true);

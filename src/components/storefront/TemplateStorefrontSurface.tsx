@@ -1016,6 +1016,7 @@ function ClassicTemplateSurface({
     goCategory: (slug) => navigateCategory({ slug }),
     products: store.storeProducts,
     productHref: liveHref ? (id) => getPublicStorefrontPath(storeBasePath ?? "", `/product/${encodeURIComponent(id)}`) : undefined,
+    storeHref: liveHref ? (path) => getPublicStorefrontPath(storeBasePath ?? "", path) : undefined,
     goProduct: (id) => openProductPage(id),
     current: currentPage,
     categoriesUnderShop: categoryNavLayout === "simple",

@@ -21,8 +21,10 @@ export const REVIEW_SOURCES = {
 } as const;
 
 export type ReviewSource = keyof typeof REVIEW_SOURCES;
-/** Sources a seller can import into (everything except the store's own form). */
-export const IMPORT_SOURCES = (Object.keys(REVIEW_SOURCES) as ReviewSource[]).filter((source) => source !== "store");
+/** Marketplaces not offered yet (their connections are coming soon); reviews already labelled with them still show. */
+export const COMING_SOON_SOURCES: ReviewSource[] = ["jumia", "konga"];
+/** Sources a seller can import into (everything except the store's own form and the coming-soon marketplaces). */
+export const IMPORT_SOURCES = (Object.keys(REVIEW_SOURCES) as ReviewSource[]).filter((source) => source !== "store" && !COMING_SOON_SOURCES.includes(source));
 export const SOCIAL_SOURCES: ReviewSource[] = ["whatsapp", "instagram", "facebook", "tiktok", "x"];
 export const MARKETPLACE_SOURCES: ReviewSource[] = ["jumia", "konga", "marketplace"];
 
@@ -32,6 +34,23 @@ export function isReviewSource(value: unknown): value is ReviewSource {
 
 export function sourceLabel(source: string) {
   return isReviewSource(source) ? REVIEW_SOURCES[source].label : "Other";
+}
+
+/** What shoppers read for a review's source: the store's own name for reviews left on the store. */
+export function publicSourceLabel(source: string, storeName: string) {
+  return source === "store" ? storeName : sourceLabel(source);
+}
+
+/** Up to two initials for a reviewer avatar ("Desiree Sloan" → "DS", "ade" → "A"). */
+export function reviewerInitials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return "?";
+  return (parts.length === 1 ? parts[0].charAt(0) : `${parts[0].charAt(0)}${parts[parts.length - 1].charAt(0)}`).toUpperCase();
+}
+
+/** A reviewer photo the widget and share cards may load: https only. */
+export function safeReviewerPhoto(url: string | null | undefined) {
+  return typeof url === "string" && /^https:\/\/[^\s"'<>]+$/.test(url) ? url : null;
 }
 
 export type ReviewStatusValue = "approved" | "pending" | "rejected";
@@ -537,10 +556,12 @@ export function buildProductRatingsFeed(input: { storeName: string; storeUrl: st
 
 export interface WidgetPayload {
   storeName: string;
+  /** The store's logo (https), shown beside the name. */
+  storeLogo?: string | null;
   wallUrl: string;
   average: number;
   count: number;
-  reviews: Array<{ name: string; rating: number | null; text: string; source: string; date: string }>;
+  reviews: Array<{ name: string; rating: number | null; text: string; source: string; date: string; photo?: string | null }>;
 }
 
 /**
@@ -557,14 +578,16 @@ if(!host.parentNode&&s&&s.parentNode){s.parentNode.insertBefore(host,s.nextSibli
 if(host.shadowRoot)return;
 var root=host.attachShadow?host.attachShadow({mode:"open"}):host;
 function el(t,c,txt){var e=document.createElement(t);if(c)e.className=c;if(txt!=null)e.textContent=txt;return e;}
+function ini(n){var p=String(n||"").trim().split(/\\s+/);return ((p[0]||"?").charAt(0)+(p.length>1?p[p.length-1].charAt(0):"")).toUpperCase();}
 function stars(n){return n?"\\u2605\\u2605\\u2605\\u2605\\u2605".slice(0,n)+"\\u2606\\u2606\\u2606\\u2606\\u2606".slice(0,5-n):"";}
-var st=el("style");st.textContent=".w{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#16141F;border:1px solid #E6E1F0;border-radius:18px;padding:16px;background:#fff;max-width:100%;box-sizing:border-box}.h{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px;margin-bottom:12px}.a{font-size:28px;font-weight:800}.s{color:#E8A23A;letter-spacing:1px}.m{color:#6B6878;font-size:13px}.g{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}.c{border:1px solid #E6E1F0;border-radius:14px;padding:12px}.t{margin:6px 0;font-size:14px;line-height:1.5}.f{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:#6B6878}.l{display:inline-block;margin-top:12px;color:#16141F;font-weight:700;font-size:14px}";
+var st=el("style");st.textContent=".w{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#16141F;border:1px solid #E6E1F0;border-radius:18px;padding:16px;background:#fff;max-width:100%;box-sizing:border-box}.h{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px;margin-bottom:12px}.a{font-size:28px;font-weight:800}.s{color:#E8A23A;letter-spacing:1px}.m{color:#6B6878;font-size:13px}.g{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}.c{border:1px solid #E6E1F0;border-radius:14px;padding:12px}.t{margin:6px 0;font-size:14px;line-height:1.5}.f{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;color:#6B6878}.l{display:inline-block;margin-top:12px;color:#16141F;font-weight:700;font-size:14px}.lo{width:28px;height:28px;border-radius:8px;object-fit:cover;align-self:center}.p{display:flex;align-items:center;gap:8px;min-width:0}.av{width:28px;height:28px;border-radius:999px;flex-shrink:0;object-fit:cover;background:#EFEAF7;color:#16141F;font-weight:700;font-size:11px;display:inline-flex;align-items:center;justify-content:center}";
 root.appendChild(st);
 var w=el("div","w");var h=el("div","h");
+if(d.storeLogo){var lo=el("img","lo");lo.src=d.storeLogo;lo.alt="";h.appendChild(lo);}
 if(d.count){h.appendChild(el("span","a",d.average.toFixed(1)));h.appendChild(el("span","s",stars(Math.round(d.average))));h.appendChild(el("span","m",d.count+(d.count===1?" review":" reviews")+" for "+d.storeName));}
 else{h.appendChild(el("span","m","No reviews yet for "+d.storeName));}
 w.appendChild(h);var g=el("div","g");
-d.reviews.forEach(function(r){var c=el("div","c");if(r.rating)c.appendChild(el("div","s",stars(r.rating)));c.appendChild(el("p","t",r.text));var f=el("div","f");f.appendChild(el("span",null,r.name));f.appendChild(el("span",null,r.source));c.appendChild(f);g.appendChild(c);});
+d.reviews.forEach(function(r){var c=el("div","c");if(r.rating)c.appendChild(el("div","s",stars(r.rating)));c.appendChild(el("p","t",r.text));var f=el("div","f");var p=el("span","p");var av;if(r.photo){av=el("img","av");av.src=r.photo;av.alt="";}else{av=el("span","av",ini(r.name));}p.appendChild(av);p.appendChild(el("span",null,r.name));f.appendChild(p);f.appendChild(el("span",null,r.source));c.appendChild(f);g.appendChild(c);});
 w.appendChild(g);var a=el("a","l","See all reviews");a.href=d.wallUrl;a.target="_blank";a.rel="noopener";w.appendChild(a);
 root.appendChild(w);
 })();

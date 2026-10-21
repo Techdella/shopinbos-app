@@ -4,7 +4,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import type React from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "@/components/ui/Icon";
-import { MENU_PAGE_LABELS, type MenuItem, type MenuStyle, type MobileMenuStyle } from "@/lib/storefront/menu";
+import { MENU_PAGE_LABELS, contentRefName, type MenuItem, type MenuStyle, type MobileMenuStyle } from "@/lib/storefront/menu";
 import { readLogoDisplay, storeLogoView } from "@shared/store-logo";
 import { StoreBrandMark } from "./StoreBrandMark";
 
@@ -35,6 +35,8 @@ export interface MenuContext {
   products?: Array<{ id: string; name: string; images?: string[] }>;
   productHref?: (id: string) => string | undefined;
   goProduct?: (id: string) => void;
+  /** A path on the store ("/blog", "/blog/a-post") as a link, for content (CMS) menu items. */
+  storeHref?: (path: string) => string | undefined;
   /** The page shoppers are on. */
   current?: string;
   /** "Shop" with no sub-items of its own lists the store's categories (on by default). */
@@ -62,6 +64,10 @@ export function resolveMenu(menu: MenuItem[], ctx: MenuContext): ShownMenuItem[]
       if (!product) return null;
       const href = ctx.productHref?.(product.id);
       return { id: item.id, label: custom || product.name, href, onSelect: ctx.goProduct ? () => ctx.goProduct!(product.id) : undefined, image: product.images?.[0] ?? null, children: [] };
+    }
+    if (item.kind === "content") {
+      if (!item.ref) return null;
+      return { id: item.id, label: custom || contentRefName(item.ref), href: ctx.storeHref?.(`/${item.ref}`), current: ctx.current === item.ref, children: [] };
     }
     if (!item.url || !custom) return null;
     return { id: item.id, label: custom, href: item.url, newTab: item.newTab, children: [] };
