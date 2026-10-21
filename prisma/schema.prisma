@@ -227,6 +227,10 @@ model User {
   deliverySettings       DeliverySettings?
   deliveryConnections    DeliveryConnection[]
   privateRateCards       LogisticsRateCard[]
+  // Status (24-hour stories): the user's posts, and the posts they viewed and liked.
+  statusPosts            StatusPost[]
+  statusViews            StatusView[]
+  statusLikes            StatusLike[]
 }
 
 // ─── Store ────────────────────────────────────────────────────────────────────
@@ -4305,4 +4309,66 @@ model UserBadge {
   earnedAt DateTime @default(now())
 
   @@unique([userId, key])
+}
+
+// ─── Status (24-hour stories) ─────────────────────────────────────────────────
+// Short posts sellers, suppliers and delivery partners share with each other in the phone app's Status row
+// (/api/mobile/status, rules in shared/status.ts). A post lives 24 hours: reads never return it after expiresAt,
+// and /api/cron/status-purge deletes it (with its views, likes and photo) later.
+// Migration: docs/migrations/2026-11-18-status-posts.sql.
+
+model StatusPost {
+  id        String   @id @default(cuid())
+  authorId  String
+  /// The author's role when they posted: seller | supplier | logistics_partner (who sees it: shared/status.ts).
+  role      Role
+  headline  String
+  caption   String?
+  /// A photo uploaded through /api/mobile/status/upload (public bucket, status/<authorId>/).
+  imageUrl  String?
+  /// peach | mint | blue | warn | ink
+  tone      String   @default("peach")
+  /// The product the post is about, by the author's role: a supplier's own SupplierProduct (what "Add to my shop"
+  /// lists through the dropship agreement), or a seller's own StoreProduct. Not a foreign key, since it points at
+  /// one of two tables; it is checked against the author when posting and read back by role.
+  productId String?
+  /// add_product | chat | connect | see_rates | offer_delivery | view_shop (allowed per role: shared/status.ts)
+  ctaKind   String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  author User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  views  StatusView[]
+  likes  StatusLike[]
+
+  @@index([authorId, expiresAt])
+  @@index([expiresAt])
+}
+
+/// Who has seen a post (once per viewer).
+model StatusView {
+  id        String   @id @default(cuid())
+  postId    String
+  viewerId  String
+  createdAt DateTime @default(now())
+
+  post   StatusPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  viewer User       @relation(fields: [viewerId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, viewerId])
+  @@index([viewerId])
+}
+
+/// A like on a post (once per user).
+model StatusLike {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  post StatusPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([userId])
 }
