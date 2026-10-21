@@ -609,7 +609,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "supplier-buyers.2.caption": "Hụ otu ụlọ ahịa ọ bụla si eme.",
   "supplier-buyers.2.sub": "Glow by Amaka rere ite 86 n'ọnwa a. Abuja Beauty rere 12.",
   "supplier-buyers.3.caption": "Gwa ha okwu ozugbo.",
-  "supplier-buyers.3.sub": "Gwa ụlọ ahịa gị kachasị mma maka isi ọhụrụ tupu onye ọ bụla ọzọ.",
+  "supplier-buyers.3.sub": "Ndị na-eso gị na-ebu ụzọ nụ: gwa ha maka isi ọhụrụ tupu onye ọ bụla ọzọ.",
   "supplier-buyers.4.caption": "Dropship ma ọ bụ wholesale.",
   "supplier-buyers.4.sub": "Ụfọdụ na-ere n'enweghị stock, ụfọdụ na-azụ n'ọtụtụ. Ha abụọ na-apụta ebe a.",
   "supplier-buyers.5.caption": "Nyere buyers gị kachasị mma aka itolite.",

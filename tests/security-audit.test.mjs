@@ -67,10 +67,21 @@ test("cron routes need CRON_SECRET, compared in constant time", () => {
   assert.equal(cronAuthorization(null, "s3cret"), "denied");
   assert.equal(cronAuthorization("Bearer ", ""), "unconfigured");
   assert.equal(cronAuthorization("Bearer undefined", undefined), "unconfigured");
-  for (const file of ["src/app/api/cron/reviews/route.ts", "src/app/api/cron/marketing/route.ts", "src/app/api/cron/campaigns/route.ts", "src/app/api/conversations/cron/route.ts"]) {
+  // Every scheduled route goes through cronDenied (src/lib/auth/cron-request.ts): a valid QStash signature, or
+  // `Authorization: Bearer $CRON_SECRET` (Vercel Cron, pg_cron) through the constant-time cronAuthorization.
+  const gate = read("src/lib/auth/cron-request.ts");
+  assert.match(gate, /if \(cronAuthorization\(req\.headers\.get\("authorization"\), secret\) !== "ok"\) \{\s*return NextResponse\.json\([^)]*\{ status: 401 \}\);/);
+  assert.match(gate, /if \(valid\) return null;/, "a QStash signature only passes when it verifies");
+  assert.doesNotMatch(gate, /!== `Bearer \$\{secret\}`|=== `Bearer \$\{secret\}`/);
+  const cronRoutes = fs.readdirSync(path.join(ROOT, "src/app/api/cron")).map((dir) => `src/app/api/cron/${dir}/route.ts`);
+  assert.ok(cronRoutes.includes("src/app/api/cron/reviews/route.ts"));
+  for (const file of [...cronRoutes, "src/app/api/conversations/cron/route.ts"]) {
     const source = read(file);
-    assert.match(source, /cronAuthorization\(req\.headers\.get\("authorization"\), secret\) !== "ok"/, file);
-    assert.doesNotMatch(source, /!== `Bearer \$\{secret\}`/, file);
+    for (const handler of source.matchAll(/export async function (GET|POST)\([^)]*\)[^{]*\{/g)) {
+      const body = source.slice(handler.index + handler[0].length);
+      assert.match(body, /^\s*(?:\/\/[^\n]*\n\s*)*const denied = await cronDenied\(req\);\s*if \(denied\) return denied;/, `${file} ${handler[1]}`);
+    }
+    assert.doesNotMatch(source, /`Bearer \$\{/, file);
   }
 });
 
@@ -218,7 +229,7 @@ test("JSON-LD can't close its <script> and the GA ID can't inject script", () =>
 
 test("the CSP allows Meta's signup SDK narrowly and forbids framing", () => {
   const config = read("next.config.ts");
-  assert.match(config, /"script-src [^"]*https:\/\/connect\.facebook\.net"/);
+  assert.match(config, /"script-src [^"]* https:\/\/connect\.facebook\.net[ "]/);
   assert.match(config, /"frame-src [^"]*https:\/\/www\.facebook\.com https:\/\/web\.facebook\.com"/);
   assert.match(config, /"connect-src [^"]*https:\/\/graph\.facebook\.com/);
   assert.doesNotMatch(config, /\*\.facebook\.com|\*\.facebook\.net/);
@@ -286,14 +297,31 @@ test("every exported function in a \"use server\" file checks who is calling (or
   // order id plus a verified Paystack reference for that order and amount is the credential. checkKorapayPayment
   // only re-asks Korapay about an order and answers paid or not.
   const PUBLIC = new Set(["verifyPaystackPayment", "updateOrderPayment", "checkKorapayPayment"]);
-  const AUTH = /requireRole\(|requireUser\(|getCurrentAppUser\(|getSellerUserOrThrow\(|requireAdmin\(|requireSellerStore\(|getLogisticsActor\(|getSupplierActor\(|sellerAndStore\(|assertOwnSupplier\(|getSupplierForUser\(|requirePartner\(|applyPlanUpgrade\(|upgradeUserToSupplierMax\(|linkSupplierPaystackRecipient\(|getPartner\(|currentPartner\(|actor\(/;
+  // requireAdminSection (src/lib/admin-team/service.server.ts) is requireRole(["admin"]) plus the team member's
+  // section check; currentAdminCan is the same check for actions that answer with an error instead of redirecting.
+  const AUTH = /requireRole\(|requireUser\(|getCurrentAppUser\(|getSellerUserOrThrow\(|requireAdmin\(|requireAdminSection\(|currentAdminCan\(|requireSellerStore\(|getLogisticsActor\(|getSupplierActor\(|sellerAndStore\(|assertOwnSupplier\(|getSupplierForUser\(|requirePartner\(|applyPlanUpgrade\(|upgradeUserToSupplierMax\(|linkSupplierPaystackRecipient\(|getPartner\(|currentPartner\(|actor\(/;
+  const adminTeam = read("src/lib/admin-team/service.server.ts");
+  assert.match(adminTeam, /export async function requireAdminSection\([^)]*\)[^\n]*\{\n\s*const user = await requireRole\(\["admin"\]/);
+  assert.match(adminTeam, /export async function currentAdminCan\([^)]*\) \{\s*const user = await getCurrentAppUser\(\);\s*if \(user\?\.role !== "admin"\) return false;/);
   const missing = [];
   for (const entry of fs.readdirSync(path.join(ROOT, "src/app/actions"))) {
     const source = read(`src/app/actions/${entry}`);
     if (!source.startsWith('"use server"')) continue;
+    // A file's own (non-exported) helper counts as a check only when its body makes one of the checks above,
+    // directly or through another such helper (e.g. setupActor → partnerActor → requireRole).
+    const helpers = [...source.matchAll(/^(?:async )?function (\w+)\([^)]*\)[^{]*\{/gm)].map((m) => ({ name: m[1], body: source.slice(m.index).split(/\n\}/)[0] }));
+    const checks = [AUTH];
+    for (let changed = true; changed; ) {
+      changed = false;
+      for (const helper of helpers) {
+        const call = new RegExp(`(?<![\\w.])${helper.name}\\(`);
+        if (checks.some((c) => c.source === call.source)) continue;
+        if (checks.some((c) => c.test(helper.body.slice(helper.body.indexOf("{"))))) { checks.push(call); changed = true; }
+      }
+    }
     for (const match of source.matchAll(/export async function (\w+)\([^)]*\)[^{]*\{/g)) {
-      const body = source.slice(match.index, match.index + 1500).split(/\nexport /)[0];
-      if (!PUBLIC.has(match[1]) && !AUTH.test(body)) missing.push(`${entry}:${match[1]}`);
+      const body = source.slice(match.index + match[0].length, match.index + 1500).split(/\nexport /)[0];
+      if (!PUBLIC.has(match[1]) && !checks.some((c) => c.test(body))) missing.push(`${entry}:${match[1]}`);
     }
   }
   assert.deepEqual(missing, []);

@@ -1,7 +1,7 @@
 import type React from "react";
-import type { BoutiqueThemeId, StoreEditorSnapshot, ThemeTokenSet } from "@/lib/store-templates";
+import type { BoutiqueButtonShape, BoutiqueFontPair, BoutiquePageWidth, BoutiqueProductRatio, BoutiqueThemeId, StoreEditorSnapshot, ThemeTokenSet } from "@/lib/store-templates";
 import type { ShopperNavColors } from "../shopper/ShopperBottomNav";
-import { BQ_GROTESK, BQ_MONO, BQ_SANS, BQ_SERIF } from "./fonts";
+import { BQ_GROTESK, BQ_MONO, BQ_SANS, BQ_SERIF } from "./fonts.ts";
 
 const SANS = BQ_SANS;
 const SERIF = BQ_SERIF;
@@ -1942,7 +1942,38 @@ function themeLook(id: BoutiqueThemeId, tokens: ThemeTokenSet): LookOverrides {
 }
 
 export function boutiqueLook(id: BoutiqueThemeId, tokens: ThemeTokenSet): BoutiqueLook {
-  return { id, tokens, ...themeLook(id, tokens) };
+  return applyLookChoices({ id, tokens, ...themeLook(id, tokens) });
+}
+
+/** Font pairings a seller can pick in Theme settings › Typography: [headings, body]. All four faces ship with every theme. */
+export const FONT_PAIRS: Record<Exclude<BoutiqueFontPair, "theme">, [string, string]> = {
+  classic: [SERIF, SANS],
+  modern: [GROTESK, SANS],
+  clean: [SANS, SANS],
+  bold: [GROTESK, GROTESK],
+};
+
+/** Button corner radius for each shape in Theme settings › Buttons. */
+export const BUTTON_RADII: Record<Exclude<BoutiqueButtonShape, "theme">, number> = { square: 0, rounded: 10, pill: 999 };
+
+/** Product photo shapes in Theme settings › Layout. */
+export const PRODUCT_RATIOS: Record<Exclude<BoutiqueProductRatio, "theme">, string> = { portrait: "4 / 5", square: "1 / 1", landscape: "4 / 3" };
+
+/** Page widths in Theme settings › Layout (the theme's own is "standard"). */
+export const PAGE_WIDTHS: Record<BoutiquePageWidth, number> = { narrow: 1120, standard: 1320, wide: 1560 };
+
+/** The seller's own picks on top of the theme's look; anything left on "theme" (or not set) keeps the theme's own. */
+export function applyLookChoices(look: BoutiqueLook): BoutiqueLook {
+  const { fontPair, buttonShape, productRatio } = look.tokens;
+  const next = { ...look };
+  if (fontPair && fontPair !== "theme" && FONT_PAIRS[fontPair]) {
+    [next.headingFont, next.bodyFont] = FONT_PAIRS[fontPair];
+    // Headings keep the theme's weight and spacing, so the pairing changes the face, not the layout.
+    if (look.logoFont === look.headingFont) next.logoFont = next.headingFont;
+  }
+  if (buttonShape && buttonShape !== "theme" && buttonShape in BUTTON_RADII) next.buttonRadius = BUTTON_RADII[buttonShape];
+  if (productRatio && productRatio !== "theme" && PRODUCT_RATIOS[productRatio]) next.tileRatio = PRODUCT_RATIOS[productRatio];
+  return next;
 }
 
 const PDP_BY_LAYOUT: Record<string, BoutiqueLook["pdp"]> = {
@@ -1977,6 +2008,7 @@ export function lookVars(look: BoutiqueLook): React.CSSProperties {
     "--bq-button-radius": `${look.buttonRadius}px`,
     "--bq-card-radius": `${look.cardRadius}px`,
     "--bq-heading": look.headingFont,
+    "--bq-wrap": `${PAGE_WIDTHS[t.pageWidth ?? "standard"] ?? PAGE_WIDTHS.standard}px`,
     background: t.paperBg,
     color: t.ink,
     fontFamily: look.bodyFont,
@@ -2005,7 +2037,7 @@ export const BOUTIQUE_CSS = `
 .bq *{box-sizing:border-box}
 .bq a{color:inherit;text-decoration:none}
 .bq :where(a,button,input,select,textarea,summary,[tabindex]):focus-visible{outline:2px solid var(--bq-accent);outline-offset:3px}
-.bq-wrap{width:100%;max-width:1320px;margin:0 auto;padding-left:16px;padding-right:16px}
+.bq-wrap{width:100%;max-width:var(--bq-wrap,1320px);margin:0 auto;padding-left:16px;padding-right:16px}
 .bq-h{font-family:var(--bq-heading);margin:0;line-height:1.1}
 .bq-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:0 22px;border-radius:var(--bq-button-radius);font-weight:600;font-size:14.5px;cursor:pointer;transition:opacity .15s,transform .15s;white-space:nowrap}
 .bq-btn:hover{opacity:.9}

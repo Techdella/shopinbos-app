@@ -375,6 +375,7 @@ const en = {
   "seg.peopleCount": "{count} people",
   "seg.noRules": "No rules yet. Edit it to add some.",
   "seg.messageThem": "Message them",
+  "seg.seePeople": "See people",
   "seg.emptyTitle": "No segments yet",
   "seg.emptyAction": "Start with repeat buyers",
   "seg.emptyBody": "A segment is a saved group, like “spent over ₦50,000” or “bought the Ankara dress”. Use it for campaigns, automations and discounts.",

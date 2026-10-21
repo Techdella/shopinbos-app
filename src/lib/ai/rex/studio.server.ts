@@ -106,6 +106,7 @@ export async function studioApplyContext(store: StudioStore): Promise<ApplyConte
     createSection: createSectionFromLibrary,
     allowedKinds: allowedKindsFor,
     reviewItems: await approvedReviewItems(store.id),
+    isBoutique: isBoutiqueTheme,
   };
 }
 

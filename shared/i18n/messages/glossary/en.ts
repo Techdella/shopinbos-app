@@ -37,6 +37,8 @@ const en = {
   "reviews.example": "“Delivered in Ikeja same day. Fabric is lovely!” ★★★★★",
   "video-studio.short": "Rex turns your product photos into short videos for TikTok, Reels and Status.",
   "video-studio.example": "Three photos of your sneakers become a 15-second TikTok with music.",
+  "social-posts.short": "Posts for Facebook, Instagram, TikTok and WhatsApp, planned on a calendar so each goes out on time.",
+  "social-posts.example": "Plan Monday’s new-arrivals post on Friday and it goes up on Instagram at 7pm by itself.",
   "channels.short": "Connect WhatsApp, Instagram, TikTok and Facebook so orders from all of them land in one place.",
   "channels.example": "A buyer on Instagram and one on WhatsApp both show up in Orders.",
   "inbox.short": "All your customer chats from WhatsApp, Instagram, live chat and forms in one list.",
@@ -197,6 +199,8 @@ const en = {
   "api-key.example": "Paste it into your dispatch software, and keep it secret like a password.",
   "buyers.short": "The shops that sell or buy your products.",
   "buyers.example": "14 shops sell your sandals; 3 buy in bulk every month.",
+  "followers.short": "Shops that follow you to hear first about your new stock, price drops and restocks.",
+  "followers.example": "62 shops follow you, so your “200 new Ankara prints” update reaches all 62.",
   "verification.short": "Checking your ID or company papers so shops and buyers can trust you.",
   "verification.example": "Upload your CAC certificate and get a “Verified” badge.",
 } satisfies Record<string, string>;

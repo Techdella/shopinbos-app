@@ -3,7 +3,7 @@ import { marketingRoute, readBody } from "@/lib/marketing/api";
 import { createSegment, listSegments } from "@/lib/marketing/segments";
 import { SegmentSchema } from "../schemas";
 
-export const GET = marketingRoute(async ({ store }) => ok(await listSegments(store.id)));
+export const GET = marketingRoute(async ({ store }) => ok(await listSegments(store.id, { refreshCounts: true })));
 
 export const POST = marketingRoute(async ({ req, store }) => {
   const input = await readBody(req, SegmentSchema);

@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { db } from "@/lib/db/client";
 import { addressLines } from "@/lib/labels";
-import { bookingNet, lagosStartOfToday, packageSummary } from "@/components/logistics/kit";
-import { cashToPayIn } from "@/lib/logistics/job-rules";
+import { lagosStartOfToday, packageSummary } from "@/components/logistics/kit";
+import { cashToPayIn, riderAmount } from "@/lib/logistics/job-rules";
 import { riderFromToken } from "@/lib/logistics/rider-session";
 import { toE164 } from "@shared/phone";
 import { RiderApp, type RiderRun } from "./RiderApp";
@@ -74,7 +74,7 @@ export default async function RiderPage({ params }: { params: Promise<{ token: s
     }),
     db.deliveryBooking.findMany({
       where: { riderId: rider.id, logisticsPartnerId: rider.partnerId, status: "delivered", deliveredAt: { gte: startOfToday } },
-      select: { deliveryFee: true, platformFee: true, netAmount: true },
+      select: { deliveryFee: true, platformFee: true, netAmount: true, riderPay: true },
     }),
     db.deliveryBooking.findMany({
       where: { riderId: rider.id, logisticsPartnerId: rider.partnerId, codMethod: "cash", remittanceId: null, codCollected: { not: null } },
@@ -103,7 +103,7 @@ export default async function RiderPage({ params }: { params: Promise<{ token: s
     const order = job.orderId ? orderById.get(job.orderId) : undefined;
     const lines = order ? addressLines(order.deliveryAddress) : [];
     const phone = order?.buyerPhone ? toE164(order.buyerPhone) : null;
-    run.fees += bookingNet(job);
+    run.fees += riderAmount(rider, job);
     run.drops.push({
       id: job.id,
       status: job.status,
@@ -124,7 +124,8 @@ export default async function RiderPage({ params }: { params: Promise<{ token: s
       <RiderApp
         token={token}
         rider={{ name: rider.name, partnerName: rider.partnerName, online: rider.online }}
-        earnedToday={doneToday.reduce((sum, job) => sum + bookingNet(job), 0)}
+        earnedToday={doneToday.reduce((sum, job) => sum + riderAmount(rider, job), 0)}
+        paySet={Boolean(rider.payType)}
         dropsDone={doneToday.length}
         cashInHand={cashToPayIn(cashJobs)}
         runs={[...runs.values()]}

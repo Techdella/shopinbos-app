@@ -6,6 +6,8 @@
 
 import { formatStoreMoney, freeDeliveryEverywhereOver, freeDeliveryPromise, whatsappLink, type StorefrontShopperInfo } from "../../../lib/storefront/shopper-info.ts";
 import { stepErrors, type CartLine, type CheckoutDetails, type CheckoutRules, type CheckoutStep, type FieldErrors } from "../../../../shared/cart-checkout.ts";
+import { readSavedPaymentMethods } from "../../../../shared/checkout-payments.ts";
+import type { PaymentMethodKey } from "../../../../shared/onboarding.ts";
 
 export type CheckoutLayout = "two-column" | "stacked" | "steps" | "minimal";
 export type CheckoutSummaryBlock = "items" | "discount" | "delivery" | "trust" | "secure" | "returns" | "whatsapp";
@@ -487,8 +489,13 @@ export function previewBag(products: ReadonlyArray<{ id: string; name: string; i
   };
 }
 
-/** Payment methods the preview shows, from the buyer-facing labels the store's settings give (Card, Transfer…). */
-export function previewPaymentMethods(shopper: Pick<StorefrontShopperInfo, "paymentLabels" | "payOnDelivery">): { card: boolean; transfer: boolean; cod: boolean } | null {
+/**
+ * Payment methods the preview shows: the seller's saved choices (Korapay included) when the store's brandSettings are
+ * loaded, else what the buyer-facing labels the store's settings give (Card, Transfer…) can tell.
+ */
+export function previewPaymentMethods(shopper: Pick<StorefrontShopperInfo, "paymentLabels" | "payOnDelivery">, brandSettings?: unknown): Partial<Record<PaymentMethodKey, boolean>> | null {
+  const saved = readSavedPaymentMethods(brandSettings);
+  if (saved) return saved;
   const card = shopper.paymentLabels.includes("Card");
   const transfer = shopper.paymentLabels.includes("Transfer");
   const cod = shopper.payOnDelivery;

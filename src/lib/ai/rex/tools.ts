@@ -25,7 +25,7 @@ import { makeBrandImage } from "@/lib/ai/brand-image.server";
 import { getOpenAIClient } from "@/lib/ai/client";
 import { matchProducts } from "@/lib/ai/peggy/pure";
 import { computeStoreHealth } from "@/lib/store-health";
-import { getTemplateManifest } from "@/lib/store-templates";
+import { getTemplateManifest, isBoutiqueTheme } from "@/lib/store-templates";
 import { THEME_LIBRARY, tierIncludes } from "@/lib/store-templates/theme-library";
 import { TIER_PLAN_LABEL } from "@/lib/theme-access";
 import { loadSellerThemeAccess } from "@/lib/theme-access.server";
@@ -397,6 +397,49 @@ async function switchThemeTool(ctx: RexToolContext, input: RexToolInput<"switch_
   return storeOutput(ctx, result, "home");
 }
 
+const STYLE_WORDS: Record<string, Record<string, string>> = {
+  fontPair: { theme: "the theme's own fonts", classic: "serif headings with sans text", modern: "modern grotesk headings", clean: "clean sans fonts", bold: "bold grotesk fonts" },
+  buttonShape: { theme: "the theme's own buttons", square: "square buttons", rounded: "rounded buttons", pill: "pill buttons" },
+  pageWidth: { narrow: "narrow pages", standard: "standard-width pages", wide: "wide pages" },
+  productRatio: { theme: "the theme's own photo shape", portrait: "portrait product photos", square: "square product photos", landscape: "landscape product photos" },
+  headingStyle: { serif: "serif headings", grotesk: "modern headings" },
+  radius: { sharp: "sharp corners", rounded: "rounded corners", soft: "soft corners" },
+};
+
+/** "Switched to bold grotesk fonts and pill buttons": the change line the seller sees. */
+function styleSummary(picked: Record<string, unknown>, layout: string | null) {
+  const words = Object.entries(picked).map(([key, value]) => STYLE_WORDS[key]?.[String(value)]).filter(Boolean) as string[];
+  if (layout) words.push(`the ${layout.replace(/-/g, " ")} layout`);
+  const list = words.length > 1 ? `${words.slice(0, -1).join(", ")} and ${words[words.length - 1]}` : words[0] ?? "a new style";
+  return `Switched to ${list}`.slice(0, 90);
+}
+
+async function setThemeStyle(ctx: RexToolContext, input: RexToolInput<"set_theme_style">): Promise<RexToolOutput> {
+  const store = await studioStore(ctx);
+  const draft = studioDraft(store).draft;
+  const boutique = isBoutiqueTheme(draft.templateId);
+  const tokens = boutique
+    ? { fontPair: input.fontPair, buttonShape: input.buttonShape, pageWidth: input.pageWidth, productRatio: input.productRatio }
+    : { headingStyle: input.headingStyle, radius: input.corners };
+  const asked = Object.values(input).some((value) => value !== null);
+  const picked = Object.fromEntries(Object.entries(tokens).filter(([, value]) => value !== null));
+  const layout = boutique ? null : input.layout;
+  if (!Object.keys(picked).length && !layout) {
+    if (!asked) return { content: "Nothing to change: no style was given." };
+    return {
+      content: boutique
+        ? `${themeNameFor(draft.templateId)} is a 2026 theme: it takes fontPair, buttonShape, pageWidth and productRatio, not heading style, corners or a store layout. Nothing changed.`
+        : `${themeNameFor(draft.templateId)} is a classic theme: it takes headingStyle, corners and layout, not font pairing, button shape, page width or photo shape. Nothing changed.`,
+    };
+  }
+  // The token change and the layout change each get their own line (the plan adds the layout's).
+  const plan = parseRexStudioPlan({ reply: "The seller can fine-tune these in the builder's Theme settings.", tokens: picked, tokensSummary: styleSummary(picked, null), layout });
+  if (!plan) throw new RexToolError("Couldn't change the style.");
+  const result = await applyStudioPlan(store, plan, styleSummary(picked, layout));
+  if (!result.changes.length) return { content: "The draft already has those choices; nothing changed." };
+  return storeOutput(ctx, result, "home");
+}
+
 // ─── Words and marketing ─────────────────────────────────────────────────────────
 
 async function writeProductCopy(ctx: RexToolContext, input: RexToolInput<"write_product_copy">): Promise<RexToolOutput> {
@@ -706,6 +749,7 @@ export const REX_TOOL_RUNNERS: { [N in RexToolName]: Runner<N> } = {
   edit_store_section: editStoreSection,
   rebuild_section: rebuildSection,
   switch_theme: switchThemeTool,
+  set_theme_style: setThemeStyle,
   write_product_copy: writeProductCopy,
   create_segment: createSegment,
   create_campaign: createCampaign,

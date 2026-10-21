@@ -50,7 +50,21 @@ export interface ThemeTokenSet {
   border: string;
   headingStyle: "serif" | "grotesk";
   radius: "soft" | "rounded" | "sharp";
+  /**
+   * The seller's own picks for the 2026 (boutique) themes, set in the builder's Theme settings. Left out (or "theme"),
+   * the theme's own choice stays: see src/components/storefront/boutique/look.ts applyLookChoices.
+   */
+  fontPair?: BoutiqueFontPair;
+  buttonShape?: BoutiqueButtonShape;
+  /** Store-wide layout: how wide pages run and the shape of product photos, on every page. */
+  pageWidth?: BoutiquePageWidth;
+  productRatio?: BoutiqueProductRatio;
 }
+
+export type BoutiqueFontPair = "theme" | "classic" | "modern" | "clean" | "bold";
+export type BoutiqueButtonShape = "theme" | "square" | "rounded" | "pill";
+export type BoutiquePageWidth = "narrow" | "standard" | "wide";
+export type BoutiqueProductRatio = "theme" | "portrait" | "square" | "landscape";
 
 export interface BlockStyles {
   padding?: string;
