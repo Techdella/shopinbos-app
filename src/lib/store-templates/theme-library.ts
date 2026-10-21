@@ -12,7 +12,8 @@ export type ThemeLibraryId =
   | "aaro" | "highlife" | "oba" | "gbedu"
   | "omalicha" | "zuma" | "oku" | "ihe" | "kasuwa" | "nkata" | "uwa" | "sarauniya" | "zinariya"
   | "irawo" | "asa" | "mmiri" | "uzo" | "rawa" | "fitila" | "oso" | "shakara"
-  | "aga" | "itura" | "gele" | "imani" | "itanna";
+  | "aga" | "itura" | "gele" | "imani" | "itanna"
+  | "littafi" | "itan" | "awo" | "kyau" | "keke";
 
 /**
  * Which plan a theme needs: basic themes come with every store (the free Starter plan), premium ones with Growth
@@ -317,6 +318,31 @@ export const THEME_LIBRARY: readonly ThemeLibraryEntry[] = [
     industries: ["sneakers", "shoes", "minimal", "product grid", "small catalogue"], blurb: "A centred headline, then product cards with quick add. Simple and fast", isNew: true, tier: "basic",
     preview: { bg: "#FFFBEB", ink: "#262626", line: "#F5E6C4", accent: "#F59E0B", nameFont: "grotesk", nameWeight: 700, dark: false },
   }),
+  entry({
+    id: "littafi", name: "Littafi", meaning: "Hausa for book", categories: ["books"], categoryLabel: "Books and stationery",
+    industries: ["books", "bookshop", "novels", "children's books", "stationery"], blurb: "Pastel banners, best sellers and four product lists. For bookshops", isNew: true, tier: "basic",
+    preview: { bg: "#FCE7EF", ink: "#1F1F1F", line: "#F3D3DF", accent: "#F86D72", nameFont: "grotesk", nameWeight: 800, dark: false },
+  }),
+  entry({
+    id: "itan", name: "Ìtàn", meaning: "Yoruba for story and history", categories: ["books"], categoryLabel: "Literary",
+    industries: ["books", "literary fiction", "rare books", "publisher", "poetry"], blurb: "Warm beige and serif, a book of the month and a quote of the day. For literary bookshops", isNew: true, tier: "platinum",
+    preview: { bg: "#EFEEE8", ink: "#2F2F2F", line: "#E0DDD3", accent: "#9C7A54", nameFont: "serif", nameWeight: 500, dark: false },
+  }),
+  entry({
+    id: "awo", name: "Àwọ̀", meaning: "Yoruba for colour", categories: ["fashion"], categoryLabel: "Fashion",
+    industries: ["fashion", "clothing", "accessories", "menswear", "womenswear"], blurb: "Clean and red, labelled category photos and a deal countdown. For fashion stores", isNew: true, tier: "basic",
+    preview: { bg: "#F4F4F4", ink: "#1E1E27", line: "#E6E6E6", accent: "#FE4C50", nameFont: "grotesk", nameWeight: 800, dark: false },
+  }),
+  entry({
+    id: "kyau", name: "Kyau", meaning: "Hausa for beauty and goodness", categories: ["fashion"], categoryLabel: "Fashion",
+    industries: ["fashion", "clothing", "watches", "bags", "shoes"], blurb: "Soft periwinkle, bordered category cards and framed stories. For fashion stores", isNew: true, tier: "premium",
+    preview: { bg: "#E9ECF2", ink: "#222222", line: "#D9DDE8", accent: "#717FE0", nameFont: "grotesk", nameWeight: 700, dark: false },
+  }),
+  entry({
+    id: "keke", name: "Keke", meaning: "Hausa for bicycle", categories: ["auto", "gadgets"], categoryLabel: "Bikes and sport",
+    industries: ["bicycles", "bikes", "scooters", "cycling", "sport equipment"], blurb: "A slanted banner and products on angled panels. For bikes and sport gear", isNew: true, tier: "premium",
+    preview: { bg: "#2B5061", ink: "#FFFFFF", line: "#3E6676", accent: "#F7BE74", nameFont: "grotesk", nameWeight: 800, dark: true },
+  }),
 ];
 
 export const THEME_LIBRARY_IDS: readonly ThemeLibraryId[] = THEME_LIBRARY.map((item) => item.id);
@@ -449,6 +475,9 @@ const THEME_RULES: Array<{ themeId: ThemeLibraryId; industry: string; words: str
   { themeId: "itanna", industry: "sneakers", words: ["sneaker store", "sneakerhead", "kicks", "trainers"] },
   { themeId: "gele", industry: "fashion and accessories", words: ["gele", "headtie", "head tie", "headwrap", "head wrap", "turban"] },
   { themeId: "itura", industry: "home and lifestyle", words: ["comfort", "lounge", "lifestyle store", "home goods", "ottoman", "pouf"] },
+  { themeId: "keke", industry: "bicycles", words: ["bicycle", "bike", "bikes", "cycling", "cyclist", "scooter", "e-bike", "bmx", "keke napep"] },
+  { themeId: "itan", industry: "literary books", words: ["literary", "literature", "poetry", "rare book", "first edition", "publisher", "publishing"] },
+  { themeId: "littafi", industry: "bookshop", words: ["children's books", "kids books", "storybook", "picture book", "comics bookshop"] },
   { themeId: "omalicha", industry: "wellness", words: ["self-care", "self care", "bath", "body care", "essential oil", "aromatherapy"] },
   { themeId: "breeze", industry: "fashion", words: ["fashion", "clothing", "clothes", "cloth", "wear", "dress", "gown", "top", "shirt", "t-shirt", "trouser", "jean", "apparel", "boutique", "bag", "handbag", "outfit", "skirt", "jumpsuit", "thrift", "okrika", "ankara", "abaya", "hijab", "kimono", "two-piece", "co-ord"] },
 ];

@@ -642,6 +642,66 @@ export const DEMO_CATALOGUES: Record<ThemeLibraryId, DemoCatalogue> = {
       p("Sneaker care kit", 9500, "Care", "bottle", "Cleaner, brush and protector spray.", "#F59E0B"),
     ],
   },
+  littafi: {
+    storeName: "Littafi Books", city: "Kano", industry: "bookshop", description: "Novels, children's books and planners, delivered across Nigeria.",
+    heroArt: ["book", "book", "notebook"], mains: ["#F86D72", "#7DD3C7", "#1F1F1F"],
+    products: [
+      p("The Harmattan House, paperback", 9500, "Fiction", "book", "A family saga across three generations in Kaduna.", "#F2B705"),
+      p("Rain Over Ìbàdàn", 8500, "Fiction", "book", "A sharp, funny novel about four sisters.", "#F86D72", 10000),
+      p("The River Remembers, anniversary edition", 7500, "Classics", "book", "A beloved classic, with a new foreword.", "#9A3412"),
+      p("Bedtime stories for little ones", 6000, "Children", "book", "Twelve short stories with bright pictures.", "#7DD3C7"),
+      p("2026 daily planner", 7000, "Stationery", "notebook", "A page a day, hardback, ribbon marker.", "#1F1F1F"),
+      p("Poetry for quiet evenings", 5500, "Poetry", "book", "A slim collection of new Nigerian poets.", "#C4B5FD"),
+    ],
+  },
+  itan: {
+    storeName: "Ìtàn Bookhouse", city: "Lagos", industry: "literary books", description: "Literary fiction, poetry and rare finds, chosen one by one.",
+    heroArt: ["book", "book", "book"], mains: ["#9C7A54", "#2F2F2F", "#E9E7DE"],
+    products: [
+      p("The Weaver's Daughter, hardback", 14500, "Fiction", "book", "A debut novel about marriage, loss and hope.", "#9C7A54"),
+      p("A collection of Nigerian poetry", 9500, "Poetry", "book", "Fifty years of Nigerian poems in one volume.", "#2F2F2F"),
+      p("An African history, illustrated", 22000, "History", "book", "A large-format history with maps and photographs.", "#78350F"),
+      p("Essays on home and away", 11000, "Essays", "book", "Writers on leaving and coming back.", "#57534E", 13500),
+      p("First edition, signed", 85000, "Rare books", "book", "A signed first edition from our rare shelf.", "#1C1917"),
+      p("Reading journal", 6500, "Stationery", "notebook", "Log every book, with prompts and lists.", "#E9E7DE"),
+    ],
+  },
+  awo: {
+    storeName: "Àwọ̀ Fashion", city: "Lagos", industry: "fashion", description: "Everyday clothes and accessories in colours you'll wear.",
+    heroArt: ["shirt", "bag", "sneaker"], mains: ["#FE4C50", "#1E1E27", "#F2B705"],
+    products: [
+      p("Hooded parka", 42000, "Men", "robe", "Water-resistant shell with a warm lining.", "#4C1D95", 48000),
+      p("Canvas tote with leather trim", 18500, "Accessories", "bag", "Heavy canvas, leather handles.", "#3F6212"),
+      p("Chunky knit jumper", 24000, "Women", "shirt", "Soft knit in mustard yellow.", "#F2B705"),
+      p("Weekend duffel bag", 32000, "Accessories", "bag", "Water-resistant, shoe pocket.", "#6B7280"),
+      p("Suede desert boots", 36000, "Men", "sneaker", "Classic suede, crepe sole.", "#C8A15A"),
+      p("Aviator sunglasses", 14500, "Accessories", "watch", "Metal frame, UV protection.", "#1E1E27"),
+    ],
+  },
+  kyau: {
+    storeName: "Kyau Store", city: "Abuja", industry: "fashion", description: "Simple, good clothes for women and men.",
+    heroArt: ["shirt", "dress", "watch"], mains: ["#717FE0", "#222222", "#F3F3F3"],
+    products: [
+      p("White ruffle shirt", 16500, "Women", "shirt", "Crisp cotton with a soft ruffle collar.", "#FFFFFF"),
+      p("Pink tailored trousers", 21000, "Women", "trousers", "High waist, straight leg.", "#F9A8D4"),
+      p("Blue check shirt", 15000, "Men", "shirt", "Cotton poplin, button-down collar.", "#93C5FD"),
+      p("Classic trench coat", 58000, "Women", "robe", "Belted, water-resistant cotton.", "#78716C", 65000),
+      p("Minimal black watch", 32000, "Watches", "watch", "Black dial, mesh strap.", "#111111"),
+      p("Graphic print tee", 9500, "Men", "shirt", "Soft cotton with a front print.", "#F5F5F5"),
+    ],
+  },
+  keke: {
+    storeName: "Keke Cycles", city: "Abuja", industry: "bicycles", description: "Mountain, city and kids' bikes, built and serviced in our workshop.",
+    heroArt: ["tyre", "wrench", "bottle"], mains: ["#2B5061", "#F7BE74", "#1B2B33"],
+    products: [
+      p("Trail mountain bike", 285000, "Mountain", "tyre", "Front suspension, 21 speeds, disc brakes.", "#1B2B33"),
+      p("Kids' balance bike", 65000, "Kids", "tyre", "Light frame for ages 3 to 5.", "#DC2626"),
+      p("City commuter bike", 195000, "City", "tyre", "Mudguards, rack and a comfy saddle.", "#2B5061", 215000),
+      p("Fat-tyre e-bike", 680000, "Electric", "tyre", "Pedal assist, 60km range.", "#111827"),
+      p("Cycling helmet", 28000, "Gear", "cap", "Vented shell, adjustable fit.", "#F7BE74"),
+      p("Bike repair kit", 14500, "Gear", "wrench", "Multi-tool, pump and patches.", "#6B7280"),
+    ],
+  },
 };
 
 /** The fields of a storefront product the theme renderer reads (structurally a ShopperProduct). */

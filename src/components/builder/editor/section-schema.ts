@@ -379,6 +379,11 @@ export const HERO_LAYOUT_BY_THEME: Record<string, string> = {
   gele: "gele-mosaic",
   imani: "imani-split",
   itanna: "itanna-centered",
+  littafi: "littafi-gradient",
+  itan: "itan-cover",
+  awo: "awo-banner",
+  kyau: "kyau-season",
+  keke: "keke-slant",
 };
 
 const HERO_LAYOUTS: ChoiceOption[] = [
@@ -409,7 +414,7 @@ const STOCK_IMAGE_TOGGLE: SchemaField = {
 };
 
 /** Hero layouts that use more than one picture (the rest use the first). */
-const HERO_PICTURE_COUNT: Record<string, number> = { "asoebi-collage": 3, "iwe-shelf": 4, "zuma-collage": 2, "ihe-gallery": 3, "sarauniya-duo": 2, "uzo-sticky": 3, "rawa-fan": 3, "oso-bento": 3, "itura-cutout": 3, "imani-split": 2 };
+const HERO_PICTURE_COUNT: Record<string, number> = { "asoebi-collage": 3, "iwe-shelf": 4, "zuma-collage": 2, "ihe-gallery": 3, "sarauniya-duo": 2, "uzo-sticky": 3, "rawa-fan": 3, "oso-bento": 3, "itura-cutout": 3, "imani-split": 2, "littafi-gradient": 3, "itan-cover": 3 };
 /** Layouts that don't show the eyebrow. */
 const HERO_NO_EYEBROW = ["breeze-banner"];
 
@@ -509,7 +514,9 @@ function boutiqueSchema(kind: string, themeId: string): SectionSchema {
             { value: "spotlight", label: "Spotlight (one big, four small)" },
             { value: "lookbook", label: "Lookbook (big alternating rows)" },
             { value: "category-tabs", label: "Category tabs (a tab per category)" },
-            { value: "lists", label: "Three lists (new, best sellers, on sale)" },
+            { value: "lists", label: "Product lists (new, best sellers, on sale)" },
+            { value: "feature", label: "Feature (one product, large)" },
+            { value: "showcase", label: "Showcase (angled colour panels)" },
             { value: "grid", label: "Full shop grid" },
           ] },
           text("title", "Heading"),
@@ -545,6 +552,7 @@ function boutiqueSchema(kind: string, themeId: string): SectionSchema {
           { id: "products-picked", type: "products", label: "Products to show", help: "Only these show, in this order.", when: source(["picked"]) },
           // Same setting; the compact grid starts at 12, the other layouts at 8 (what the renderer shows unset).
           { id: "limit", type: "number", label: "How many products", target: setting("limit"), min: 2, max: 16, fallback: 8, when: layoutNot(["grid", "dense"], layoutFallback), help: "Only as many as your store has are shown." },
+          { id: "listColumns", type: "segmented", label: "Lists", target: setting("listColumns"), fallback: "3", when: layoutIs(["lists"], layoutFallback), options: [{ value: "3", label: "Three" }, { value: "4", label: "Four (adds Featured)" }] },
           { id: "limit-dense", type: "number", label: "How many products", target: setting("limit"), min: 2, max: 24, fallback: 12, when: layoutIs(["dense"], layoutFallback), help: "Only as many as your store has are shown." },
         ] },
         { title: "Product cards", fields: [
@@ -558,7 +566,7 @@ function boutiqueSchema(kind: string, themeId: string): SectionSchema {
     case "category-list":
       return plain([{ fields: [
         text("title", "Heading"),
-        { id: "layout", type: "select", label: "Layout", target: setting("layout"), fallback: themeId === "plug" ? "chips" : "boutique-tiles", options: [{ value: "boutique-tiles", label: "Tiles" }, { value: "boutique-circles", label: "Circles" }, { value: "chips", label: "Chips" }, { value: "boutique-stack", label: "Banners" }, { value: "boutique-mosaic", label: "Mosaic" }, { value: "boutique-cards", label: "Tinted cards" }, { value: "boutique-words", label: "Big words" }] },
+        { id: "layout", type: "select", label: "Layout", target: setting("layout"), fallback: themeId === "plug" ? "chips" : "boutique-tiles", options: [{ value: "boutique-tiles", label: "Tiles" }, { value: "boutique-circles", label: "Circles" }, { value: "chips", label: "Chips" }, { value: "boutique-stack", label: "Banners" }, { value: "boutique-mosaic", label: "Mosaic" }, { value: "boutique-cards", label: "Tinted cards" }, { value: "boutique-words", label: "Big words" }, { value: "boutique-labels", label: "Labels" }, { value: "boutique-bordered", label: "Bordered cards" }] },
         { id: "note", type: "note", label: "Tiles come from your collections, or your product categories when you have no collections." },
       ] }]);
     case "testimonials":
@@ -579,10 +587,12 @@ function boutiqueSchema(kind: string, themeId: string): SectionSchema {
             { value: "banner", label: "Wide picture", hint: "Picture across the page, words below." },
             { value: "centered", label: "Words only", hint: "A centred statement, no picture." },
             { value: "overlap", label: "Overlap", hint: "Wide picture with the words on a card over its edge." },
+            { value: "framed", label: "Framed", hint: "Picture in an offset frame, words beside it." },
+            { value: "quote", label: "Quote", hint: "The text as a large quotation; the heading is who said it." },
           ] },
-          { id: "imagePosition", type: "segmented", label: "Picture side", target: setting("imagePosition"), fallback: "left", options: IMAGE_SIDE, help: "On phones the picture is always on top.", when: layoutIs(["boutique", "editorial", "overlap"], storyFallback) },
-          { id: "media", type: "media", label: "Image", max: 1, help: "No image yet? The theme's stock photo is used.", when: layoutNot(["centered"], storyFallback) },
-          { ...STOCK_IMAGE_TOGGLE, when: layoutNot(["centered"], storyFallback) },
+          { id: "imagePosition", type: "segmented", label: "Picture side", target: setting("imagePosition"), fallback: "left", options: IMAGE_SIDE, help: "On phones the picture is always on top.", when: layoutIs(["boutique", "editorial", "overlap", "framed"], storyFallback) },
+          { id: "media", type: "media", label: "Image", max: 1, help: "No image yet? The theme's stock photo is used.", when: layoutNot(["centered", "quote"], storyFallback) },
+          { ...STOCK_IMAGE_TOGGLE, when: layoutNot(["centered", "quote"], storyFallback) },
         ] },
         { title: "Content", fields: [text("eyebrow", "Eyebrow"), area("title", "Heading"), area("body", "Text", { help: "Leave empty to use your store description." }), text("primaryCta", "Button label")] },
       ]);

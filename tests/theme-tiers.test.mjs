@@ -21,7 +21,7 @@ test("every theme has a tier, and each tier has themes across shop types", () =>
   assert.ok(byTier.basic.length >= 6, "free stores get a real choice");
   assert.ok(byTier.basic.includes("plain") && byTier.basic.includes("aaro"), "the any-shop themes are free");
   assert.ok(byTier.premium.length > 0 && byTier.platinum.length > 0);
-  assert.deepEqual(byTier.platinum, ["noir", "agbada", "turare", "oba", "gbedu", "sarauniya", "zinariya", "oso", "shakara", "aga"]);
+  assert.deepEqual(byTier.platinum, ["noir", "agbada", "turare", "oba", "gbedu", "sarauniya", "zinariya", "oso", "shakara", "aga", "itan"]);
   assert.deepEqual(byTier.basic.filter((id) => ["omalicha", "zuma", "oku", "ihe"].includes(id)), ["omalicha", "zuma", "oku", "ihe"], "the new free themes");
   assert.deepEqual(byTier.premium.filter((id) => ["kasuwa", "nkata", "uwa"].includes(id)), ["kasuwa", "nkata", "uwa"]);
   assert.equal(lib.themeLibraryEntry("highlife").tier, "premium");
