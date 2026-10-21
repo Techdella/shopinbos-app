@@ -759,6 +759,20 @@ export const DEMO_CATALOGUES: Record<ThemeLibraryId, DemoCatalogue> = {
       p("Budget smartphone", 98000, "Phones", "phone", "6.1-inch, 64GB.", "#4B5563"),
     ],
   },
+  irorun: {
+    storeName: "Ìrọ̀rùn Wear", city: "Lagos", industry: "casual wear", description: "Easy tees, shirts, hoodies, jackets and sneakers for every day.",
+    heroArt: ["shirt", "sneaker", "cap"], mains: ["#ECECEC", "#111111", "#4F8DAA"],
+    products: [
+      p("Pink oversized shirt", 14000, "Shirts", "shirt", "Relaxed fit, soft cotton.", "#F9A8D4"),
+      p("Blue cotton tee", 7500, "T-shirts", "shirt", "Everyday crew neck.", "#38BDF8"),
+      p("Yellow overshirt", 16500, "Shirts", "shirt", "Brushed twill.", "#EAB308"),
+      p("White half-sleeve tee", 6500, "T-shirts", "shirt", "Heavy cotton.", "#F9FAFB"),
+      p("Black graphic hoodie", 18000, "Hoodies", "shirt", "Brushed fleece inside.", "#111827", 21000),
+      p("Grey check coat", 32000, "Outerwear", "robe", "Wool blend.", "#9CA3AF"),
+      p("White running sneakers", 34000, "Shoes", "sneaker", "Cushioned sole.", "#F3F4F6"),
+      p("Knit beanie", 5500, "Accessories", "cap", "Warm rib knit.", "#D6D3D1"),
+    ],
+  },
   efo: {
     storeName: "Ẹ̀fọ́ Market", city: "Jos", industry: "vegetables", description: "Vegetables, fruit, juice and dried foods, fresh from local farms.",
     heroArt: ["basket", "leaf", "bottle"], mains: ["#82AE46", "#1E1E1E", "#F7F6F2"],

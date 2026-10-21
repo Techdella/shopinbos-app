@@ -2167,6 +2167,27 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       );
     }
 
+    // ─── Inspiration batch 8: Ìrọ̀rùn ────────────────────────────────────────────────────────────────
+    if (layout === "irorun-bold") {
+      const shots = pool.slice(0, 3);
+      const at = shots.length ? heroIndex % shots.length : 0;
+      return (
+        <section aria-labelledby={headingId} className="relative overflow-hidden" style={{ background: t.heroBg, color: t.heroText }}>
+          <div className="bq-media inset-0" style={{ position: "absolute", borderRadius: 0, background: t.heroBg }}>{picture(shots[at], true)}</div>
+          <div aria-hidden className="absolute inset-0" style={{ background: shots.length ? "linear-gradient(90deg, rgba(236,236,236,.92), rgba(236,236,236,.55) 40%, rgba(236,236,236,0) 62%)" : "transparent" }} />
+          <div className="bq-wrap relative">
+            <div className="flex min-h-[420px] flex-col items-start justify-center gap-4 px-8 py-16 @3xl:min-h-[580px] @3xl:px-0">
+              {eyebrow ? <p className="m-0 text-[13px] font-semibold uppercase" style={{ letterSpacing: "0.14em", color: t.muted }}>{eyebrow}</p> : null}
+              <h1 id={headingId} className="m-0 max-w-[9ch]" style={{ fontFamily: look.headingFont, fontWeight: 800, fontSize: "clamp(44px, 6.4cqi, 88px)", lineHeight: 0.98, letterSpacing: "-0.03em" }}>{title}</h1>
+              {body ? <p className="m-0 max-w-[400px] text-[15px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
+              <button type="button" className="bq-btn mt-2" style={{ background: "#FFFFFF", color: t.ink, border: "1.5px solid #FFFFFF", textTransform: "uppercase", fontSize: 12.5, fontWeight: 700, letterSpacing: "0.06em" }} onClick={() => go(action)}>{cta} <span aria-hidden className="ml-2">→</span></button>
+            </div>
+          </div>
+          {sideArrows(shots.length, t.ink)}
+        </section>
+      );
+    }
+
     if (layout === "adire-banner") {
       return (
         <section aria-labelledby={headingId}>
@@ -2425,6 +2446,30 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       : categories.map((category) => ({ key: category.slug, name: category.name, image: category.imageUrl, count: category.count, onSelect: () => shopCategory(category.slug) }));
     if (!tiles.length) return editorHint("Category tiles appear once your products have categories or you create collections.");
     const headingId = `${uid}-${section.id}`;
+    if (section.settings?.layout === "boutique-bold") {
+      // One big card and two stacked ones, the names in huge black letters with a full stop (Ìrọ̀rùn).
+      const [big, ...rest] = tiles;
+      const card = (tile: (typeof tiles)[number], large: boolean) => (
+        <button key={tile.key} type="button" onClick={tile.onSelect} className={`group relative block cursor-pointer overflow-hidden border-0 p-0 text-left ${large ? "min-h-[360px] @3xl:min-h-[520px]" : "min-h-[220px] @3xl:min-h-0"}`} style={{ background: "#ECECEC", color: t.ink, borderRadius: look.cardRadius }}>
+          <span className="bq-media inset-0 block" style={{ position: "absolute", borderRadius: 0 }}>{tile.image ? <img src={tile.image} alt="" width={large ? 900 : 600} height={large ? 900 : 400} loading="lazy" className="transition duration-700 group-hover:scale-[1.04]" /> : null}</span>
+          <span aria-hidden className="absolute inset-0" style={{ background: large ? "linear-gradient(270deg, rgba(240,240,240,.92), rgba(240,240,240,.4) 45%, rgba(240,240,240,0) 65%)" : "linear-gradient(90deg, rgba(240,240,240,.9), rgba(240,240,240,.2) 60%)" }} />
+          <span className={`absolute flex flex-col gap-2 ${large ? "right-8 top-1/2 -translate-y-1/2 items-start @3xl:right-12" : "left-6 top-1/2 -translate-y-1/2"}`}>
+            <span className="text-[11px] font-semibold uppercase" style={{ color: t.muted, letterSpacing: "0.16em" }}>{tile.count} {tile.count === 1 ? "product" : "products"}</span>
+            <span className="max-w-[8ch]" style={{ fontFamily: look.headingFont, fontWeight: 800, fontSize: large ? "clamp(40px, 5cqi, 64px)" : "clamp(28px, 3cqi, 38px)", lineHeight: 0.98, letterSpacing: "-0.03em" }}>{tile.name}.</span>
+            <span className="mt-1 text-[13px] font-semibold">Shop collection →</span>
+          </span>
+        </button>
+      );
+      return (
+        <section aria-labelledby={headingId} className="bq-wrap pt-12">
+          <h2 id={headingId} className="sr-only">{text(copy.title) || "Collections"}</h2>
+          <div className="grid gap-5 @3xl:grid-cols-[1.5fr_1fr]">
+            {big ? card(big, true) : null}
+            <div className="grid gap-5 @3xl:grid-rows-2">{rest.slice(0, 2).map((tile) => card(tile, false))}</div>
+          </div>
+        </section>
+      );
+    }
     if (section.settings?.layout === "boutique-center") {
       // Four photo tiles around a centre column with the heading, a button and a tall photo (Ẹ̀fọ́).
       const [a, b, centre, c, d] = tiles;

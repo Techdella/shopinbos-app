@@ -409,6 +409,7 @@ export const HERO_LAYOUT_BY_THEME: Record<string, string> = {
   aja: "aja-circle",
   dara: "dara-split",
   ife: "ife-split",
+  irorun: "irorun-bold",
 };
 
 const HERO_LAYOUTS: ChoiceOption[] = [
@@ -439,7 +440,7 @@ const STOCK_IMAGE_TOGGLE: SchemaField = {
 };
 
 /** Hero layouts that use more than one picture (the rest use the first). */
-const HERO_PICTURE_COUNT: Record<string, number> = { "asoebi-collage": 3, "iwe-shelf": 4, "zuma-collage": 2, "ihe-gallery": 3, "sarauniya-duo": 2, "uzo-sticky": 3, "rawa-fan": 3, "oso-bento": 3, "itura-cutout": 3, "imani-split": 2, "littafi-gradient": 3, "itan-cover": 3, "ike-deal": 2, "ewu-menu": 3, "apere-trio": 3, "ogba-slides": 3, "eso-search": 3, "ijokoo-cutout": 3, "tufafi-mosaic": 5, "ola-duo": 3, "aluko-lookbook": 3, "ife-split": 2 };
+const HERO_PICTURE_COUNT: Record<string, number> = { "asoebi-collage": 3, "iwe-shelf": 4, "zuma-collage": 2, "ihe-gallery": 3, "sarauniya-duo": 2, "uzo-sticky": 3, "rawa-fan": 3, "oso-bento": 3, "itura-cutout": 3, "imani-split": 2, "littafi-gradient": 3, "itan-cover": 3, "ike-deal": 2, "ewu-menu": 3, "apere-trio": 3, "ogba-slides": 3, "eso-search": 3, "ijokoo-cutout": 3, "tufafi-mosaic": 5, "ola-duo": 3, "aluko-lookbook": 3, "ife-split": 2, "irorun-bold": 3 };
 /** Layouts that don't show the eyebrow. */
 const HERO_NO_EYEBROW = ["breeze-banner"];
 
@@ -601,7 +602,7 @@ function boutiqueSchema(kind: string, themeId: string): SectionSchema {
     case "category-list":
       return plain([{ fields: [
         text("title", "Heading"),
-        { id: "layout", type: "select", label: "Layout", target: setting("layout"), fallback: themeId === "plug" ? "chips" : "boutique-tiles", options: [{ value: "boutique-tiles", label: "Tiles" }, { value: "boutique-circles", label: "Circles" }, { value: "chips", label: "Chips" }, { value: "boutique-stack", label: "Banners" }, { value: "boutique-mosaic", label: "Mosaic" }, { value: "boutique-cards", label: "Tinted cards" }, { value: "boutique-words", label: "Big words" }, { value: "boutique-labels", label: "Labels" }, { value: "boutique-bordered", label: "Bordered cards" }, { value: "boutique-diagonal", label: "Diagonal tiles" }, { value: "boutique-counts", label: "Cards with product counts" }, { value: "boutique-promo", label: "Promo panels" }, { value: "boutique-duo", label: "Two big photos" }, { value: "boutique-captioned", label: "Photos with a caption bar" }, { value: "boutique-trio", label: "Three cards, middle one wide" }, { value: "boutique-halves", label: "Two big halves" }, { value: "boutique-exclusive", label: "Feature block (words, big photo, three small)" }, { value: "boutique-staggered", label: "Staggered" }, { value: "boutique-panels", label: "Colour-block panels" }, { value: "boutique-center", label: "Centre column" }, { value: "boutique-lookbook", label: "Lookbook cards" }, { value: "boutique-overlap", label: "Overlapping rows" }, { value: "boutique-shopbar", label: "Photos with a Shop now bar" }] },
+        { id: "layout", type: "select", label: "Layout", target: setting("layout"), fallback: themeId === "plug" ? "chips" : "boutique-tiles", options: [{ value: "boutique-tiles", label: "Tiles" }, { value: "boutique-circles", label: "Circles" }, { value: "chips", label: "Chips" }, { value: "boutique-stack", label: "Banners" }, { value: "boutique-mosaic", label: "Mosaic" }, { value: "boutique-cards", label: "Tinted cards" }, { value: "boutique-words", label: "Big words" }, { value: "boutique-labels", label: "Labels" }, { value: "boutique-bordered", label: "Bordered cards" }, { value: "boutique-diagonal", label: "Diagonal tiles" }, { value: "boutique-counts", label: "Cards with product counts" }, { value: "boutique-promo", label: "Promo panels" }, { value: "boutique-duo", label: "Two big photos" }, { value: "boutique-captioned", label: "Photos with a caption bar" }, { value: "boutique-trio", label: "Three cards, middle one wide" }, { value: "boutique-halves", label: "Two big halves" }, { value: "boutique-exclusive", label: "Feature block (words, big photo, three small)" }, { value: "boutique-staggered", label: "Staggered" }, { value: "boutique-panels", label: "Colour-block panels" }, { value: "boutique-center", label: "Centre column" }, { value: "boutique-lookbook", label: "Lookbook cards" }, { value: "boutique-overlap", label: "Overlapping rows" }, { value: "boutique-shopbar", label: "Photos with a Shop now bar" }, { value: "boutique-bold", label: "Bold names (one big, two stacked)" }] },
         { id: "note", type: "note", label: "Tiles come from your collections, or your product categories when you have no collections." },
       ] }]);
     case "testimonials":

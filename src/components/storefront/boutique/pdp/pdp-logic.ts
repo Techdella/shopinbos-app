@@ -231,6 +231,7 @@ export const PDP_THEME_DEFAULTS: Record<string, ThemeDefault> = {
   aja: { layout: "classic", gallery: "thumbs-bottom", details: "tabs" },
   dara: { layout: "classic", gallery: "thumbs-left", details: "tabs" },
   ife: { layout: "editorial", gallery: "thumbs-left", details: "accordion" },
+  irorun: { layout: "classic", gallery: "thumbs-left", details: "tabs" },
 };
 
 const FALLBACK_THEME: ThemeDefault = { layout: "classic", gallery: "thumbs-bottom", details: "accordion" };

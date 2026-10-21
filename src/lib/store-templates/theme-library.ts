@@ -18,7 +18,8 @@ export type ThemeLibraryId =
   | "erin" | "apere" | "bata" | "ogba" | "eso"
   | "osan" | "ijokoo" | "ite" | "kujera" | "tufafi"
   | "rewa" | "igbese" | "ola" | "okunrin" | "salubata"
-  | "efo" | "aluko" | "aja" | "dara" | "ife";
+  | "efo" | "aluko" | "aja" | "dara" | "ife"
+  | "irorun";
 
 /**
  * Which plan a theme needs: basic themes come with every store (the free Starter plan), premium ones with Growth
@@ -473,6 +474,11 @@ export const THEME_LIBRARY: readonly ThemeLibraryEntry[] = [
     industries: ["boutique", "womenswear", "swimwear", "accessories", "shoes"], blurb: "Serif and taupe, photo cards with a Shop now bar and a photo newsletter. For boutiques", isNew: true, tier: "platinum",
     preview: { bg: "#2A2522", ink: "#FFFFFF", line: "#3D3632", accent: "#C5A898", nameFont: "serif", nameWeight: 500, dark: true },
   }),
+  entry({
+    id: "irorun", name: "Ìrọ̀rùn", meaning: "Yoruba for ease and comfort", categories: ["fashion"], categoryLabel: "Casual wear",
+    industries: ["casual wear", "t-shirts", "hoodies", "sneakers", "streetwear"], blurb: "Clean and bold, huge black headlines and collections with big names. For casual wear", isNew: true, tier: "basic",
+    preview: { bg: "#ECECEC", ink: "#111111", line: "#DEDEDE", accent: "#4F8DAA", nameFont: "grotesk", nameWeight: 800, dark: false },
+  }),
 ];
 
 export const THEME_LIBRARY_IDS: readonly ThemeLibraryId[] = THEME_LIBRARY.map((item) => item.id);
@@ -606,6 +612,7 @@ const THEME_RULES: Array<{ themeId: ThemeLibraryId; industry: string; words: str
   { themeId: "itanna", industry: "sneakers", words: ["sneaker store", "sneakerhead", "kicks", "trainers"] },
   { themeId: "gele", industry: "fashion and accessories", words: ["gele", "headtie", "head tie", "headwrap", "head wrap", "turban"] },
   { themeId: "itura", industry: "home and lifestyle", words: ["comfort", "lounge", "lifestyle store", "home goods", "ottoman", "pouf"] },
+  { themeId: "irorun", industry: "casual wear", words: ["basics", "plain tees", "loungewear", "casual clothing"] },
   { themeId: "aja", industry: "pets", words: ["pets", "pet shop", "pet store", "pet food", "pet supplies", "dog food", "cat food", "dog treats", "puppy", "kitten", "aquarium", "bird seed"] },
   { themeId: "efo", industry: "vegetables", words: ["vegetable seller", "veggies", "leafy greens", "ugwu seller"] },
   { themeId: "aluko", industry: "fashion", words: ["lookbook", "fashion lookbook"] },

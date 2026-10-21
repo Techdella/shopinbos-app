@@ -819,14 +819,14 @@ const ALL_THEME_IDS = ["breeze", "noir", "plain", "adire", "pantry", "ile", "plu
   "omalicha", "zuma", "oku", "ihe", "kasuwa", "nkata", "uwa", "sarauniya", "zinariya",
   "irawo", "asa", "mmiri", "uzo", "rawa", "fitila", "oso", "shakara",
   "aga", "itura", "gele", "imani", "itanna",
-  "littafi", "itan", "awo", "kyau", "keke", "ahia", "ado", "wuta", "ike", "ewu", "erin", "apere", "bata", "ogba", "eso", "osan", "ijokoo", "ite", "kujera", "tufafi", "rewa", "igbese", "ola", "okunrin", "salubata", "efo", "aluko", "aja", "dara", "ife"];
+  "littafi", "itan", "awo", "kyau", "keke", "ahia", "ado", "wuta", "ike", "ewu", "erin", "apere", "bata", "ogba", "eso", "osan", "ijokoo", "ite", "kujera", "tufafi", "rewa", "igbese", "ola", "okunrin", "salubata", "efo", "aluko", "aja", "dara", "ife", "irorun"];
 
 test("theme library lists every 2026 theme, each a real boutique theme with its own pages, tokens and layouts", () => {
   assert.deepEqual(themeLib.THEME_LIBRARY.map((theme) => theme.id), ALL_THEME_IDS, "ids are stable and in order");
   assert.equal(new Set(themeLib.THEME_LIBRARY.map((theme) => theme.id)).size, ALL_THEME_IDS.length, "unique ids");
   assert.equal(new Set(themeLib.THEME_LIBRARY.map((theme) => theme.slug)).size, ALL_THEME_IDS.length, "unique slugs");
   assert.deepEqual([...boutique.BOUTIQUE_THEME_IDS], ALL_THEME_IDS, "every library theme renders with the boutique renderer");
-  assert.deepEqual(themeLib.THEME_LIBRARY.filter((theme) => theme.isNew).length, 70, "the industry themes and the newest themes are marked new");
+  assert.deepEqual(themeLib.THEME_LIBRARY.filter((theme) => theme.isNew).length, 71, "the industry themes and the newest themes are marked new");
   const tokenKeys = Object.keys(boutique.BOUTIQUE_THEME_TOKENS.breeze).sort();
   for (const theme of themeLib.THEME_LIBRARY) {
     assert.ok(boutique.isBoutiqueTheme(theme.id), `${theme.id} renders with the boutique renderer`);
@@ -895,7 +895,7 @@ test("live stores show the theme's stock photos until the seller uploads their o
 
 test("the Igbo and Hausa themes design their inner pages, not just the home page", async () => {
   const { STORE_BLOCK_KINDS } = await import("../src/components/storefront/boutique/blocks/block-catalog.ts");
-  const designed = ["omalicha", "zuma", "oku", "ihe", "kasuwa", "nkata", "uwa", "sarauniya", "zinariya", "irawo", "asa", "mmiri", "uzo", "rawa", "fitila", "oso", "shakara", "aga", "itura", "gele", "imani", "itanna", "littafi", "itan", "awo", "kyau", "keke", "ahia", "ado", "wuta", "ike", "ewu", "erin", "apere", "bata", "ogba", "eso", "osan", "ijokoo", "ite", "kujera", "tufafi", "rewa", "igbese", "ola", "okunrin", "salubata", "efo", "aluko", "aja", "dara", "ife"];
+  const designed = ["omalicha", "zuma", "oku", "ihe", "kasuwa", "nkata", "uwa", "sarauniya", "zinariya", "irawo", "asa", "mmiri", "uzo", "rawa", "fitila", "oso", "shakara", "aga", "itura", "gele", "imani", "itanna", "littafi", "itan", "awo", "kyau", "keke", "ahia", "ado", "wuta", "ike", "ewu", "erin", "apere", "bata", "ogba", "eso", "osan", "ijokoo", "ite", "kujera", "tufafi", "rewa", "igbese", "ola", "okunrin", "salubata", "efo", "aluko", "aja", "dara", "ife", "irorun"];
   const shopLooks = new Set();
   for (const id of designed) {
     const pages = Object.fromEntries(seedSnapshot(id).pages.map((page) => [page.pageType, page]));
@@ -918,7 +918,7 @@ test("the Igbo and Hausa themes design their inner pages, not just the home page
   // The shared layouts the newest themes use are drawn by the renderer and offered in the editor.
   const renderer = readFileSync(new URL("../src/components/storefront/boutique/BoutiqueStorefront.tsx", import.meta.url), "utf8");
   const schema = readFileSync(new URL("../src/components/builder/editor/section-schema.ts", import.meta.url), "utf8");
-  for (const layout of ["spotlight", "lookbook", "boutique-stack", "boutique-mosaic", "overlap", "category-tabs", "lists", "boutique-cards", "boutique-words", "sidebar", "feature", "showcase", "boutique-labels", "boutique-bordered", "framed", "quote", "by-category", "mini", "boutique-diagonal", "boutique-counts", "boutique-promo", "promo", "boutique-duo", "boutique-captioned", "band", "boutique-trio", "panel", "collage", "intro", "per-category", "boutique-halves", "boutique-exclusive", "boutique-staggered", "boutique-panels", "overlay", "deal", "boutique-center", "boutique-lookbook", "boutique-overlap", "boutique-shopbar", "word"]) {
+  for (const layout of ["spotlight", "lookbook", "boutique-stack", "boutique-mosaic", "overlap", "category-tabs", "lists", "boutique-cards", "boutique-words", "sidebar", "feature", "showcase", "boutique-labels", "boutique-bordered", "framed", "quote", "by-category", "mini", "boutique-diagonal", "boutique-counts", "boutique-promo", "promo", "boutique-duo", "boutique-captioned", "band", "boutique-trio", "panel", "collage", "intro", "per-category", "boutique-halves", "boutique-exclusive", "boutique-staggered", "boutique-panels", "overlay", "deal", "boutique-center", "boutique-lookbook", "boutique-overlap", "boutique-shopbar", "word", "boutique-bold"]) {
     assert.match(renderer, new RegExp(`"${layout}"`), `${layout} is rendered`);
     assert.match(schema, new RegExp(`value: "${layout}"`), `${layout} is offered in the editor`);
   }
@@ -967,7 +967,7 @@ test("Nigerian theme names keep their diacritics and match searches without them
     erin: "Ẹ̀rín", apere: "Apẹ̀rẹ̀", bata: "Bàtà", ogba: "Ọgbà", eso: "Èso",
     osan: "Ọsàn", ijokoo: "Ìjókòó", ite: "Ìtẹ́", kujera: "Kujera", tufafi: "Tufafi",
     rewa: "Rẹ̀wà", igbese: "Ìgbésẹ̀", ola: "Ọlá", okunrin: "Ọkùnrin", salubata: "Sálúbàtà",
-    efo: "Ẹ̀fọ́", aluko: "Àlùkò", aja: "Ajá", dara: "Dára", ife: "Ìfẹ́",
+    efo: "Ẹ̀fọ́", aluko: "Àlùkò", aja: "Ajá", dara: "Dára", ife: "Ìfẹ́", irorun: "Ìrọ̀rùn",
   });
   for (const theme of themeLib.THEME_LIBRARY) assert.equal(theme.name, theme.name.normalize("NFC"), `${theme.id} name is NFC`);
   assert.match(names.breeze, /\u1EB9\u0301/, "ẹ́ is ẹ with a combining acute");
@@ -975,7 +975,7 @@ test("Nigerian theme names keep their diacritics and match searches without them
   assert.equal(themeLib.foldText("Aṣọ Ẹbí"), "aso ebi");
   assert.equal(themeLib.themeLibraryEntry("asoebi").slug, "aso-ebi");
   assert.equal(themeLib.themeLibraryEntry("ileke").slug, "ileke");
-  for (const [query, id] of [["afefe", "breeze"], ["Afẹ́fẹ́", "breeze"], ["aaro", "aaro"], ["oba", "oba"], ["gbedu", "gbedu"], ["omalicha", "omalicha"], ["Ụwa", "uwa"], ["oku", "oku"], ["ihe", "ihe"], ["kasuwa", "kasuwa"], ["zinariya", "zinariya"], ["irawo", "irawo"], ["Àṣà", "asa"], ["uzo", "uzo"], ["oso", "oso"], ["shakara", "shakara"], ["aga", "aga"], ["Ìtura", "itura"], ["gele", "gele"], ["imani", "imani"], ["itanna", "itanna"], ["littafi", "littafi"], ["itan", "itan"], ["awo", "awo"], ["kyau", "kyau"], ["keke", "keke"], ["ahia", "ahia"], ["Àdó", "ado"], ["wuta", "wuta"], ["ike", "ike"], ["Ẹ̀wù", "ewu"], ["erin", "erin"], ["apere", "apere"], ["Bàtà", "bata"], ["ogba", "ogba"], ["Èso", "eso"], ["osan", "osan"], ["Ìjókòó", "ijokoo"], ["ite", "ite"], ["kujera", "kujera"], ["tufafi", "tufafi"], ["rewa", "rewa"], ["Ìgbésẹ̀", "igbese"], ["ola", "ola"], ["okunrin", "okunrin"], ["salubata", "salubata"], ["Ẹ̀fọ́", "efo"], ["aluko", "aluko"], ["aja", "aja"], ["dara", "dara"], ["Ìfẹ́", "ife"], ["dudu", "noir"], ["jeje", "plain"], ["aso ebi", "asoebi"], ["ileke", "ileke"], ["ounje", "ounje"], ["oja", "oja"], ["iwe", "iwe"], ["suku", "suku"], ["ewa", "ewa"]]) {
+  for (const [query, id] of [["afefe", "breeze"], ["Afẹ́fẹ́", "breeze"], ["aaro", "aaro"], ["oba", "oba"], ["gbedu", "gbedu"], ["omalicha", "omalicha"], ["Ụwa", "uwa"], ["oku", "oku"], ["ihe", "ihe"], ["kasuwa", "kasuwa"], ["zinariya", "zinariya"], ["irawo", "irawo"], ["Àṣà", "asa"], ["uzo", "uzo"], ["oso", "oso"], ["shakara", "shakara"], ["aga", "aga"], ["Ìtura", "itura"], ["gele", "gele"], ["imani", "imani"], ["itanna", "itanna"], ["littafi", "littafi"], ["itan", "itan"], ["awo", "awo"], ["kyau", "kyau"], ["keke", "keke"], ["ahia", "ahia"], ["Àdó", "ado"], ["wuta", "wuta"], ["ike", "ike"], ["Ẹ̀wù", "ewu"], ["erin", "erin"], ["apere", "apere"], ["Bàtà", "bata"], ["ogba", "ogba"], ["Èso", "eso"], ["osan", "osan"], ["Ìjókòó", "ijokoo"], ["ite", "ite"], ["kujera", "kujera"], ["tufafi", "tufafi"], ["rewa", "rewa"], ["Ìgbésẹ̀", "igbese"], ["ola", "ola"], ["okunrin", "okunrin"], ["salubata", "salubata"], ["Ẹ̀fọ́", "efo"], ["aluko", "aluko"], ["aja", "aja"], ["dara", "dara"], ["Ìfẹ́", "ife"], ["irorun", "irorun"], ["dudu", "noir"], ["jeje", "plain"], ["aso ebi", "asoebi"], ["ileke", "ileke"], ["ounje", "ounje"], ["oja", "oja"], ["iwe", "iwe"], ["suku", "suku"], ["ewa", "ewa"]]) {
     assert.ok(themeLib.searchThemes(query).some((theme) => theme.id === id), `"${query}" finds ${id}`);
   }
   assert.deepEqual(themeLib.searchThemes("wigs").map((theme) => theme.id), ["suku"]);
@@ -991,7 +991,7 @@ test("theme category chips only show categories that have themes", () => {
   assert.deepEqual(themeLib.themeCategoryChips().map((chip) => chip.label), ["All", "Fashion", "Beauty", "Food", "Home", "Gadgets", "Kids", "Books", "Events", "Auto", "Groceries", "Jewellery", "Agro", "Pets"]);
   const subset = themeLib.THEME_LIBRARY.filter((theme) => theme.id === "breeze" || theme.id === "pantry" || theme.id === "plain");
   assert.deepEqual(themeLib.themeCategoryChips(subset).map((chip) => chip.id), ["all", "fashion", "food"]);
-  assert.deepEqual(themeLib.filterThemes("fashion").map((theme) => theme.id), ["breeze", "noir", "adire", "stride", "asoebi", "agbada", "aaro", "highlife", "oba", "gbedu", "oku", "nkata", "uwa", "sarauniya", "uzo", "rawa", "oso", "shakara", "gele", "imani", "itanna", "awo", "kyau", "ado", "ewu", "erin", "bata", "tufafi", "rewa", "igbese", "ola", "okunrin", "salubata", "aluko", "dara", "ife"]);
+  assert.deepEqual(themeLib.filterThemes("fashion").map((theme) => theme.id), ["breeze", "noir", "adire", "stride", "asoebi", "agbada", "aaro", "highlife", "oba", "gbedu", "oku", "nkata", "uwa", "sarauniya", "uzo", "rawa", "oso", "shakara", "gele", "imani", "itanna", "awo", "kyau", "ado", "ewu", "erin", "bata", "tufafi", "rewa", "igbese", "ola", "okunrin", "salubata", "aluko", "dara", "ife", "irorun"]);
   assert.deepEqual(themeLib.filterThemes("beauty").map((theme) => theme.id), ["ewa", "suku", "turare", "highlife", "oba", "omalicha", "irawo", "gele"]);
   assert.deepEqual(themeLib.filterThemes("jewellery").map((theme) => theme.id), ["noir", "ileke", "oba", "zinariya", "oso", "ola"]);
   assert.deepEqual(themeLib.filterThemes("food").map((theme) => theme.id), ["pantry", "ounje", "chinchin", "asa", "mmiri", "apere", "eso", "osan", "efo"]);
@@ -1217,6 +1217,7 @@ test("Rex's fallback pick follows what the store sells, for every industry", () 
     ["Pet shop and pet food", "aja"],
     ["Everyday fashion", "dara"],
     ["Swimwear and bikinis", "ife"],
+    ["Basics and loungewear", "irorun"],
   ];
   for (const [storeCategory, themeId] of cases) assert.equal(themeLib.pickThemeByRules({ storeCategory }).themeId, themeId, storeCategory);
   for (const id of ALL_THEME_IDS.filter((id) => id !== "plain" && id !== "adire" && id !== "aaro" && id !== "nkata" && id !== "awo" && id !== "kyau")) assert.ok(cases.some(([, themeId]) => themeId === id), `${id} has a rule`);

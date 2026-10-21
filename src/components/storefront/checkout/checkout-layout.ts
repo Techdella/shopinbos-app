@@ -140,6 +140,7 @@ export const CHECKOUT_THEME_DEFAULTS: Record<string, ThemeDefault> = {
   aja: { layout: "steps", summaryPosition: "right", header: "nav" },
   dara: { layout: "two-column", summaryPosition: "right", header: "nav" },
   ife: { layout: "minimal", summaryPosition: "right", header: "logo" },
+  irorun: { layout: "two-column", summaryPosition: "right", header: "nav" },
 };
 
 const FALLBACK_THEME: ThemeDefault = { layout: "two-column", summaryPosition: "right", header: "logo" };

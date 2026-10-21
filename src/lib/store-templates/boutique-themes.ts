@@ -22,7 +22,8 @@ export type BoutiqueThemeId =
   | "erin" | "apere" | "bata" | "ogba" | "eso"
   | "osan" | "ijokoo" | "ite" | "kujera" | "tufafi"
   | "rewa" | "igbese" | "ola" | "okunrin" | "salubata"
-  | "efo" | "aluko" | "aja" | "dara" | "ife";
+  | "efo" | "aluko" | "aja" | "dara" | "ife"
+  | "irorun";
 
 export const BOUTIQUE_THEME_IDS: readonly BoutiqueThemeId[] = [
   "breeze", "noir", "plain", "adire", "pantry", "ile", "plug", "stride",
@@ -37,6 +38,7 @@ export const BOUTIQUE_THEME_IDS: readonly BoutiqueThemeId[] = [
   "osan", "ijokoo", "ite", "kujera", "tufafi",
   "rewa", "igbese", "ola", "okunrin", "salubata",
   "efo", "aluko", "aja", "dara", "ife",
+  "irorun",
 ];
 
 export function isBoutiqueTheme(templateId: string | null | undefined): templateId is BoutiqueThemeId {
@@ -259,6 +261,8 @@ export const BOUTIQUE_THEME_TOKENS: Record<BoutiqueThemeId, ThemeTokenSet> = {
   aja: { heroBg: "#F9F3EC", heroText: "#41403E", accent: "#C88A3E", ctaBg: "#41403E", ctaText: "#FFFFFF", paperBg: "#FFFFFF", cardBg: "#F9F3EC", ink: "#41403E", muted: "#7A7672", border: "#ECE6DF", headingStyle: "grotesk", radius: "soft" },
   dara: { heroBg: "#FFFFFF", heroText: "#111111", accent: "#F96D00", ctaBg: "#F96D00", ctaText: "#1A1A1A", paperBg: "#FFFFFF", cardBg: "#F8F9FA", ink: "#111111", muted: "#6B6B6B", border: "#EEEEEE", headingStyle: "grotesk", radius: "rounded" },
   ife: { heroBg: "#2A2522", heroText: "#FFFFFF", accent: "#8E7363", ctaBg: "#2F2A27", ctaText: "#FFFFFF", paperBg: "#FFFFFF", cardBg: "#F5F1EE", ink: "#2A2522", muted: "#6E6560", border: "#E6DED8", headingStyle: "serif", radius: "sharp" },
+  // Inspiration batch 8: clean casual wear with heavy black headlines.
+  irorun: { heroBg: "#ECECEC", heroText: "#111111", accent: "#4F8DAA", ctaBg: "#111111", ctaText: "#FFFFFF", paperBg: "#FFFFFF", cardBg: "#F7F7F7", ink: "#111111", muted: "#6B6B6B", border: "#EAEAEA", headingStyle: "grotesk", radius: "sharp" },
   keke: { heroBg: "#2B5061", heroText: "#FFFFFF", accent: "#F7BE74", ctaBg: "#F7BE74", ctaText: "#1B2B33", paperBg: "#FFFFFF", cardBg: "#F2F5F6", ink: "#1B2B33", muted: "#5F6F77", border: "#E1E6E8", headingStyle: "grotesk", radius: "sharp" },
   gbedu: { heroBg: "#0B0B0F", heroText: "#F5F5F7", accent: "#8B5CF6", ctaBg: "#F5F5F7", ctaText: "#0B0B0F", paperBg: "#0B0B0F", cardBg: "#17171F", ink: "#F5F5F7", muted: "#A1A1AA", border: "#26262E", headingStyle: "grotesk", radius: "soft" },
 };
@@ -378,6 +382,7 @@ const HERO_SEEDS: Record<BoutiqueThemeId, { layout: string; eyebrow: string; tit
   aja: { layout: "aja-circle", eyebrow: "Save on pet essentials", title: "The best place for your pets", primaryCta: "Shop now" },
   dara: { layout: "dara-split", eyebrow: "Online fashion store", title: "Thoroughly modern style", primaryCta: "Shop now" },
   ife: { layout: "ife-split", eyebrow: "New in", title: "New collection", primaryCta: "Shop now" },
+  irorun: { layout: "irorun-bold", eyebrow: "", title: "Summer collection", primaryCta: "Shop it now" },
   eso: { layout: "eso-search", eyebrow: "Fresh produce", title: "Fresh veggies and fruit, delivered", primaryCta: "Search" },
 };
 
@@ -387,7 +392,7 @@ function hero(theme: BoutiqueThemeId): TemplateSectionNode {
 }
 
 /** Category row look: round picks, wide tiles, compact chips (dense catalogues and menus), full-width banners or a mosaic. */
-type CategoryLayout = "chips" | "boutique-tiles" | "boutique-circles" | "boutique-stack" | "boutique-mosaic" | "boutique-cards" | "boutique-words" | "boutique-labels" | "boutique-bordered" | "boutique-diagonal" | "boutique-counts" | "boutique-promo" | "boutique-duo" | "boutique-captioned" | "boutique-trio" | "boutique-halves" | "boutique-exclusive" | "boutique-staggered" | "boutique-panels" | "boutique-center" | "boutique-lookbook" | "boutique-overlap" | "boutique-shopbar";
+type CategoryLayout = "chips" | "boutique-tiles" | "boutique-circles" | "boutique-stack" | "boutique-mosaic" | "boutique-cards" | "boutique-words" | "boutique-labels" | "boutique-bordered" | "boutique-diagonal" | "boutique-counts" | "boutique-promo" | "boutique-duo" | "boutique-captioned" | "boutique-trio" | "boutique-halves" | "boutique-exclusive" | "boutique-staggered" | "boutique-panels" | "boutique-center" | "boutique-lookbook" | "boutique-overlap" | "boutique-shopbar" | "boutique-bold";
 
 const CATEGORY_LAYOUT: Record<BoutiqueThemeId, CategoryLayout> = {
   breeze: "boutique-tiles", noir: "boutique-circles", plain: "boutique-circles", adire: "boutique-circles", pantry: "boutique-circles",
@@ -407,6 +412,7 @@ const CATEGORY_LAYOUT: Record<BoutiqueThemeId, CategoryLayout> = {
   osan: "boutique-circles", ijokoo: "boutique-trio", ite: "boutique-tiles", kujera: "boutique-tiles", tufafi: "boutique-labels",
   rewa: "boutique-halves", igbese: "boutique-mosaic", ola: "boutique-exclusive", okunrin: "boutique-staggered", salubata: "boutique-panels",
   efo: "boutique-center", aluko: "boutique-lookbook", aja: "chips", dara: "boutique-overlap", ife: "boutique-shopbar",
+  irorun: "boutique-bold",
 };
 
 function categories(theme: BoutiqueThemeId, title = "Shop by category", id = "categories", layout: CategoryLayout = CATEGORY_LAYOUT[theme]) {
@@ -440,6 +446,7 @@ const STORY_LAYOUT: Partial<Record<BoutiqueThemeId, string>> = {
   osan: "editorial", ijokoo: "panel", ite: "collage", kujera: "centered", tufafi: "collage",
   rewa: "panel", igbese: "promo", ola: "banner", okunrin: "editorial", salubata: "framed",
   efo: "editorial", aluko: "word", aja: "promo", dara: "editorial", ife: "quote",
+  irorun: "editorial",
 };
 
 const STORY_COPY: Partial<Record<BoutiqueThemeId, { eyebrow: string; title: string }>> = {
@@ -505,6 +512,7 @@ const STORY_COPY: Partial<Record<BoutiqueThemeId, { eyebrow: string; title: stri
   aja: { eyebrow: "For happy pets", title: "Everything your pet needs" },
   dara: { eyebrow: "About us", title: "A better way to shop for clothes" },
   ife: { eyebrow: "Our promise", title: "" },
+  irorun: { eyebrow: "About us", title: "Easy clothes for every day" },
 };
 
 /** Story pictures on the right (the rest keep the picture left). */
@@ -550,6 +558,7 @@ const FAQ_KIND: Partial<Record<BoutiqueThemeId, FaqKind>> = {
   osan: "food", ijokoo: "general", ite: "general", kujera: "general", tufafi: "fit",
   rewa: "fit", igbese: "fit", ola: "fit", okunrin: "fit", salubata: "fit",
   efo: "food", aluko: "fit", aja: "general", dara: "fit", ife: "fit",
+  irorun: "fit",
 };
 
 function faq(theme?: BoutiqueThemeId) {
@@ -595,6 +604,7 @@ const HEADER_LAYOUT: Record<BoutiqueThemeId, HeaderLayout> = {
   osan: "split", ijokoo: "split", ite: "split", kujera: "split", tufafi: "split",
   rewa: "centered", igbese: "split", ola: "split", okunrin: "split", salubata: "split",
   efo: "split", aluko: "split", aja: "market", dara: "split", ife: "centered",
+  irorun: "split",
 };
 
 /** Themes with a dark strip of categories under the header (Imani, Wuta). */
@@ -1165,6 +1175,16 @@ function homeSections(theme: BoutiqueThemeId): TemplateSectionNode[] {
         story("ife"),
         newsletter({ title: "Subscribe for news and offers", body: "First look at new collections.", layout: "photo" }),
       ];
+    case "irorun":
+      return [
+        hero("irorun"),
+        bestSellers("carousel", "Featured products", "View all products"),
+        categories("irorun", "Collections"),
+        newsletter({ title: "Get first pick of new drops", body: "New arrivals and members-only offers, straight to your inbox.", layout: "split" }),
+        bestSellers("category-tabs", "Best selling products", "View all", "best-selling"),
+        reviews("What customers say"),
+        readyBlock("ugc-grid", "ugc", { copy: { title: "Shop our Instagram", body: "Tag us to be featured." } }),
+      ];
     default:
       return [hero("breeze"), categories("breeze"), bestSellers("carousel"), reviews(), newsletter()];
   }
@@ -1249,6 +1269,7 @@ const PRODUCT_LAYOUT: Record<BoutiqueThemeId, string> = {
   aja: "boutique-gallery",
   dara: "boutique-gallery",
   ife: "editorial-gallery",
+  irorun: "boutique-gallery",
 };
 
 const RELATED_TITLE: Partial<Record<BoutiqueThemeId, string>> = {
@@ -1266,6 +1287,7 @@ const RELATED_TITLE: Partial<Record<BoutiqueThemeId, string>> = {
   osan: "Related products", ijokoo: "Related products", ite: "Related products", kujera: "Related products", tufafi: "Related products",
   rewa: "Related products", igbese: "Related products", ola: "Related products", okunrin: "Related products", salubata: "Related products",
   efo: "Related products", aluko: "Related products", aja: "Related products", dara: "Related products", ife: "Related products",
+  irorun: "Related products",
 };
 
 /**
@@ -1305,6 +1327,15 @@ const alsoLike = (title = "You may also like") => readyBlock("also-like", "also-
 const recentlyViewed = (title = "Recently viewed") => readyBlock("recently-viewed", "recently-viewed", { copy: { title } });
 
 const INNER_PAGES: Partial<Record<BoutiqueThemeId, () => InnerPages>> = {
+  irorun: () => ({
+    pageHeader: "simple",
+    shop: { filterPlacement: "sidebar", columns: "4" },
+    product: [alsoLike("You may also like"), recentlyViewed()],
+    about: [story("irorun"), trustCards(), reviews("What customers say")],
+    contactLayout: "split",
+    faq: { faqStyle: "plus", searchable: true },
+    cart: [alsoLike("Complete the look")],
+  }),
   efo: () => ({
     pageHeader: "photo",
     shop: { shopLayout: "chips", columns: "4" },
@@ -2660,6 +2691,17 @@ const DEFINITIONS: Array<{ id: BoutiqueThemeId; name: string; description: strin
       "The quote uses the story text; its heading is who said it",
     ],
   },
+  {
+    id: "irorun",
+    name: "Ìrọ̀rùn",
+    description: "Clean casual wear: a light photo banner with a huge black headline, featured products, collections with big bold names, a newsletter strip, best sellers with tabs and a quote review.",
+    tags: ["fashion", "casual", "streetwear", "bold", "clean", "basic", "2026"],
+    aiHints: [
+      "Ìrọ̀rùn (Yoruba for ease and comfort): white page, light grey banner, heavy black grotesk headings, square corners",
+      "Home order: bold hero, featured products, bold-name collections, newsletter, best sellers with tabs, reviews, Instagram",
+      "Collection names show very large with a full stop; keep them to one or two words",
+    ],
+  },
 ];
 
 const MANIFEST_SHAPE: Record<BoutiqueThemeId, Pick<StoreTemplateManifest, "category" | "layoutFamily">> = {
@@ -2741,6 +2783,7 @@ const MANIFEST_SHAPE: Record<BoutiqueThemeId, Pick<StoreTemplateManifest, "categ
   aja: { category: "general", layoutFamily: "marketplace-grid" },
   dara: { category: "fashion", layoutFamily: "fashion-runway" },
   ife: { category: "fashion", layoutFamily: "editorial-boutique" },
+  irorun: { category: "fashion", layoutFamily: "fashion-runway" },
 };
 
 export const BOUTIQUE_TEMPLATE_MANIFESTS: StoreTemplateManifest[] = DEFINITIONS.map((definition) => ({

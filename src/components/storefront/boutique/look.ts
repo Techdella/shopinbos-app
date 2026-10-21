@@ -1885,6 +1885,31 @@ function themeLook(id: BoutiqueThemeId, tokens: ThemeTokenSet): LookOverrides {
         centredHeader: true,
         defaultHero: "ife-split",
       };
+    case "irorun":
+      return {
+        ...base,
+        logoFont: GROTESK,
+        logoStyle: { fontWeight: 800, letterSpacing: "-0.03em" },
+        headingFont: GROTESK,
+        headingStyle: { fontWeight: 700, letterSpacing: "-0.02em" },
+        buttonRadius: 0,
+        cardRadius: 0,
+        primaryButton: { background: tokens.ctaBg, color: tokens.ctaText, border: `1.5px solid ${tokens.ctaBg}`, textTransform: "uppercase", fontSize: 12.5, fontWeight: 700, letterSpacing: "0.06em" },
+        solidButton: { background: tokens.ctaBg, color: tokens.ctaText, border: `1.5px solid ${tokens.ctaBg}`, textTransform: "uppercase", fontSize: 12.5, fontWeight: 700, letterSpacing: "0.06em" },
+        secondaryButton: { background: "transparent", color: tokens.ink, border: `1.5px solid ${tokens.ink}`, textTransform: "uppercase", fontSize: 12.5, fontWeight: 700 },
+        softButton: { background: tokens.cardBg, color: tokens.ink, border: `1.5px solid ${tokens.border}` },
+        announcement: { background: "#F5F5F5", color: tokens.muted, fontSize: 12 },
+        navStyle: { fontSize: 14, fontWeight: 500 },
+        placeholder: "#F2F2F2",
+        headerBg: "rgba(255,255,255,.98)",
+        footerBg: "#FFFFFF",
+        newsletterBg: tokens.cardBg,
+        storyBg: tokens.cardBg,
+        countBg: tokens.ink,
+        tileBorder: `1px solid ${tokens.border}`,
+        tileRatio: "4 / 5",
+        defaultHero: "irorun-bold",
+      };
     case "keke":
       return {
         ...base,
