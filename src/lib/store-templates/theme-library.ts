@@ -612,7 +612,7 @@ const THEME_RULES: Array<{ themeId: ThemeLibraryId; industry: string; words: str
   { themeId: "itanna", industry: "sneakers", words: ["sneaker store", "sneakerhead", "kicks", "trainers"] },
   { themeId: "gele", industry: "fashion and accessories", words: ["gele", "headtie", "head tie", "headwrap", "head wrap", "turban"] },
   { themeId: "itura", industry: "home and lifestyle", words: ["comfort", "lounge", "lifestyle store", "home goods", "ottoman", "pouf"] },
-  { themeId: "irorun", industry: "casual wear", words: ["basics", "plain tees", "loungewear", "casual clothing"] },
+  { themeId: "irorun", industry: "casual wear", words: ["basics", "plain tees", "loungewear"] },
   { themeId: "aja", industry: "pets", words: ["pets", "pet shop", "pet store", "pet food", "pet supplies", "dog food", "cat food", "dog treats", "puppy", "kitten", "aquarium", "bird seed"] },
   { themeId: "efo", industry: "vegetables", words: ["vegetable seller", "veggies", "leafy greens", "ugwu seller"] },
   { themeId: "aluko", industry: "fashion", words: ["lookbook", "fashion lookbook"] },
