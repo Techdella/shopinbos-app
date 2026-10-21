@@ -3,10 +3,10 @@ import { z } from "zod";
 import { db } from "@/lib/db/client";
 import { apiError, ok } from "@/lib/api/response";
 import { addressLines } from "@/lib/labels";
-import { cashToPayIn, WRONG_PICKUP_CODE } from "@/lib/logistics/job-rules";
+import { cashToPayIn, riderAmount, WRONG_PICKUP_CODE } from "@/lib/logistics/job-rules";
 import { askForHelp, checkDeliveryCode, RIDER_LANGUAGES, riderWeek, saveRiderLanguage, skipJob } from "@/lib/logistics/rider-app.server";
 import { riderFromToken } from "@/lib/logistics/rider-session";
-import { bookingNet, lagosStartOfToday, packageSummary } from "@/components/logistics/kit";
+import { lagosStartOfToday, packageSummary } from "@/components/logistics/kit";
 import { markDelivered, markFailed, markStage, setRiderOnline, startRun } from "@/app/rider/[token]/actions";
 import { toE164 } from "@shared/phone";
 import { areaFromText, haversineMeters } from "@shared/delivery-geo";
@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
         seller: { select: { name: true, phone: true, store: { select: { name: true } } } },
       },
     }),
-    db.deliveryBooking.findMany({ where: { ...where, status: "delivered", deliveredAt: { gte: lagosStartOfToday() } }, select: { deliveryFee: true, platformFee: true, netAmount: true } }),
+    db.deliveryBooking.findMany({ where: { ...where, status: "delivered", deliveredAt: { gte: lagosStartOfToday() } }, select: { deliveryFee: true, platformFee: true, netAmount: true, riderPay: true } }),
     db.deliveryBooking.findMany({ where: { ...where, codMethod: "cash", remittanceId: null, codCollected: { not: null } }, select: { codCollected: true, codMethod: true, remittanceId: true } }),
     riderWeek(rider),
   ]);
@@ -79,7 +79,7 @@ export async function GET(req: NextRequest) {
     if (!run.pickupWindow && pickupWindow) run.pickupWindow = pickupWindow;
     const order = job.orderId ? orderById.get(job.orderId) : undefined;
     const lines = order ? addressLines(order.deliveryAddress) : [];
-    run.fees += bookingNet(job);
+    run.fees += riderAmount(rider, job);
     run.drops.push({
       id: job.id,
       status: job.status,
@@ -89,8 +89,8 @@ export async function GET(req: NextRequest) {
       buyerName: order?.buyerName ?? null,
       buyerPhone: order?.buyerPhone ? toE164(order.buyerPhone) : null,
       collect: job.codAmount && job.codAmount > 0 ? job.codAmount : 0,
-      // What this one drop pays (the run's fees add these up).
-      fee: bookingNet(job),
+      // What this one drop pays the rider once their pay is set, else its delivery fee (the run's fees add these up).
+      fee: riderAmount(rider, job),
       item: packageSummary(job.packageDetails),
       hasProof: Boolean(job.proofUrl),
       // The shop has a pickup code to give the rider (never the code itself).
@@ -101,7 +101,9 @@ export async function GET(req: NextRequest) {
 
   return ok({
     rider: { id: rider.id, name: rider.name, partnerName: rider.partnerName, partnerPhone: rider.partnerPhone, online: rider.online, plate: rider.plate, language: rider.language },
-    earnedToday: doneToday.reduce((sum, job) => sum + bookingNet(job), 0),
+    earnedToday: doneToday.reduce((sum, job) => sum + riderAmount(rider, job), 0),
+    // The partner set this rider's pay: the amounts are the rider's earnings, not delivery fees.
+    paySet: Boolean(rider.payType),
     dropsDone: doneToday.length,
     cashInHand: cashToPayIn(cashJobs),
     week,

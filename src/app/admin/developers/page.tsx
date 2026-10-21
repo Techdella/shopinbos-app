@@ -38,7 +38,24 @@ export default async function AdminDevelopersPage(props: { searchParams?: Promis
             displayName: true,
             verificationStatus: true,
             apiKeys: { orderBy: [{ revokedAt: { sort: "desc", nulls: "first" } }, { createdAt: "desc" }], take: 20, select: { id: true, name: true, prefix: true, createdAt: true, lastUsedAt: true, revokedAt: true } },
-            webhooks: { orderBy: { createdAt: "desc" }, select: { id: true, url: true, events: true, active: true, lastStatus: true, lastDeliveredAt: true } },
+            webhooks: {
+              orderBy: { createdAt: "desc" },
+              select: {
+                id: true,
+                url: true,
+                events: true,
+                active: true,
+                lastStatus: true,
+                lastDeliveredAt: true,
+                // The retry queue: events still waiting for another try, and ones given up in the last 7 days.
+                _count: {
+                  select: {
+                    deliveries: { where: { deliveredAt: null, failedAt: null, attempts: { gt: 0 } } },
+                  },
+                },
+                deliveries: { where: { failedAt: { gte: new Date(Date.now() - 7 * 24 * 3_600_000) } }, select: { id: true }, take: 100 },
+              },
+            },
           },
         })
       : Promise.resolve(null),
@@ -84,7 +101,7 @@ export default async function AdminDevelopersPage(props: { searchParams?: Promis
             />
             <WebhooksPanel
               partnerId={selected.id}
-              hooks={selected.webhooks.map((hook) => ({ id: hook.id, url: hook.url, events: hook.events, active: hook.active, lastStatus: hook.lastStatus, lastDelivered: when(hook.lastDeliveredAt) }))}
+              hooks={selected.webhooks.map((hook) => ({ id: hook.id, url: hook.url, events: hook.events, active: hook.active, lastStatus: hook.lastStatus, lastDelivered: when(hook.lastDeliveredAt), retrying: hook._count.deliveries, givenUp: hook.deliveries.length }))}
             />
           </div>
         )}

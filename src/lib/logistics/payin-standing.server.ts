@@ -3,6 +3,7 @@ import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { createNotification } from "@/lib/notifications/create";
 import { sendSms, sendWhatsAppMessage } from "@/lib/notifications/service";
+import { emitPartnerEvent } from "./webhooks";
 import {
   STRIKE_POINTS,
   lateLevel,
@@ -169,6 +170,16 @@ async function sendSteps(partner: { id: string; userId: string; displayName: str
           phoneHandled: true,
         }).catch(() => null);
         await messagePartnerPhone(partner, `Shopinbos: ${message.title.replace(/\.$/, "")}. ${message.body}`);
+      }
+      if (step.kind === "reminder" || step.kind === "overdue") {
+        // Partners on the API hear it too ("cod.reminder"): cash due before the cut-off, then late after it.
+        await emitPartnerEvent(partner.id, "cod.reminder", {
+          stage: step.kind === "reminder" ? "due" : "overdue",
+          amount: step.amount,
+          currency: "NGN",
+          dueAt: step.deadline.toISOString(),
+          payInAccount: account ? { bankName: account.bankName, accountNumber: account.accountNumber } : null,
+        });
       }
       if (step.kind === "overdue" || step.kind === "escalated" || step.kind === "review") {
         const riders = await ridersHolding(partner.id);

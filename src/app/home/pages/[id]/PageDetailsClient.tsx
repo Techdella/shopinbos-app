@@ -337,7 +337,7 @@ export function PageDetailsClient({ page: initialPage, storeId, storeSlug, store
             <a href={previewUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-app-line bg-white px-5 text-[14px] font-extrabold text-app-ink no-underline hover:border-app-line-strong">
               <Icon name="eye" size={16} /> {t("pages.preview")}
             </a>
-            <a href={`/home/editor?page=${page.id}`} className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-app-ink px-5 text-[14px] font-extrabold text-white no-underline hover:bg-black">
+            <a href={`/seller/store/builder?page=${page.id}`} className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-app-ink px-5 text-[14px] font-extrabold text-white no-underline hover:bg-black">
               <Icon name="edit" size={16} /> {t("pages.editDesign")}
             </a>
           </div>
