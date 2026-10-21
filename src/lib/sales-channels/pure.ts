@@ -166,8 +166,11 @@ export function redirectUri(origin: string, platform: OAuthPlatform) {
 export function authorizeUrl(platform: OAuthPlatform, options: { origin: string; state: string; env?: Env; graphVersion?: string }): string {
   const env = options.env ?? process.env;
   const redirect_uri = redirectUri(options.origin, platform);
-  if (platform === "meta" && !set(env.META_CATALOG_CONFIG_ID)) {
-    // Classic Facebook Login: no configuration to get wrong; asks for every permission by name.
+  // A Business app on Facebook Login for Business fails the classic scope dialog ("Sorry, something went wrong"),
+  // so without a catalog configuration the inbox's (META_INBOX_CONFIG_ID, which Business apps already have) is used.
+  const metaConfig = set(env.META_CATALOG_CONFIG_ID) ? env.META_CATALOG_CONFIG_ID! : set(env.META_INBOX_CONFIG_ID) ? env.META_INBOX_CONFIG_ID! : null;
+  if (platform === "meta" && !metaConfig) {
+    // Classic Facebook Login (a Consumer app with no configuration): asks for every permission by name.
     const params = new URLSearchParams({ client_id: env.META_APP_ID ?? "", redirect_uri, state: options.state, response_type: "code", scope: META_LOGIN_SCOPES.join(",") });
     return `https://www.facebook.com/${options.graphVersion ?? "v21.0"}/dialog/oauth?${params}`;
   }
@@ -181,7 +184,7 @@ export function authorizeUrl(platform: OAuthPlatform, options: { origin: string;
       client_id: env.META_APP_ID ?? "",
       redirect_uri,
       state: options.state,
-      config_id: env.META_CATALOG_CONFIG_ID ?? "",
+      config_id: (metaConfig ?? "").trim(),
       response_type: "code",
       override_default_response_type: "true",
     });

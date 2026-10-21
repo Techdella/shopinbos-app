@@ -134,7 +134,10 @@ test("sign-in URLs carry the state and the registered redirect URI", () => {
   assert.equal(meta.searchParams.get("response_type"), "code");
   assert.equal(meta.searchParams.get("redirect_uri"), "https://app.shopinbos.com/api/app/sales-channels/meta/callback");
   assert.equal(meta.searchParams.get("scope"), null, "a configuration carries its own permissions");
-  const classic = new URL(sc.authorizeUrl("meta", { origin, state: "st", env: { ...FULL, META_CATALOG_CONFIG_ID: "" } }));
+  const inboxConfig = new URL(sc.authorizeUrl("meta", { origin, state: "st", env: { ...FULL, META_CATALOG_CONFIG_ID: "", META_INBOX_CONFIG_ID: "inbox-config" } }));
+  assert.equal(inboxConfig.searchParams.get("config_id"), "inbox-config", "no catalog configuration: the inbox's, never the scope dialog a Business app rejects");
+  assert.equal(inboxConfig.searchParams.get("scope"), null);
+  const classic = new URL(sc.authorizeUrl("meta", { origin, state: "st", env: { ...FULL, META_CATALOG_CONFIG_ID: "", META_INBOX_CONFIG_ID: "" } }));
   assert.equal(classic.searchParams.get("config_id"), null);
   assert.equal(classic.searchParams.get("scope"), sc.META_LOGIN_SCOPES.join(","));
   assert.equal(classic.searchParams.get("response_type"), "code");
