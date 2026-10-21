@@ -7,7 +7,8 @@ import { loadShopperInfo } from "@/lib/storefront/shopper-info.server";
 import { resolveDraftSnapshot } from "@/lib/store-templates";
 import { isLibraryTheme } from "@/lib/store-templates/theme-library";
 import { getSellerWorkspace } from "@/lib/workspace";
-import { loadSellerThemeTier } from "@/lib/theme-access.server";
+import { loadSellerThemeAccess } from "@/lib/theme-access.server";
+import { themePrices } from "@/lib/themes/purchase.server";
 import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
@@ -29,7 +30,7 @@ export default async function BuilderTemplatesPage({ searchParams }: { searchPar
   // "Use this template" on shopinbos.com sends ?template=breeze through sign-up.
   const requestedTheme = params?.template;
 
-  const [workspace, sellerTier] = await Promise.all([getSellerWorkspace(user.id), loadSellerThemeTier(user.id)]);
+  const [workspace, themeAccess, prices] = await Promise.all([getSellerWorkspace(user.id), loadSellerThemeAccess(user.id), themePrices()]);
 
   if (!workspace?.store) {
     redirect("/onboarding?role=seller");
@@ -79,7 +80,7 @@ export default async function BuilderTemplatesPage({ searchParams }: { searchPar
         currentThemeId={currentThemeId}
         nextPath={firstRunNext}
         ownStore={ownStore}
-        sellerTier={sellerTier}
+        sellerAccess={{ ...themeAccess, prices }}
         // Open on the seller's category only while they're choosing their first theme; after that show all.
         initialCategory={currentThemeId ? null : workspace.settings.onboardingMemory?.category}
         initialPreviewId={isLibraryTheme(requestedTheme) ? requestedTheme : null}

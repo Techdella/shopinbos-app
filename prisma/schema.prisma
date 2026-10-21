@@ -2642,6 +2642,22 @@ model AiCreditPurchase {
   @@index([userId, createdAt])
 }
 
+// A single premium or platinum theme bought outright instead of upgrading the plan (src/lib/themes/purchase.server.ts).
+// A reference is paid once (status pending → paid); a paid row lets the seller use that theme on any plan.
+model ThemePurchase {
+  reference  String    @id
+  userId     String
+  themeId    String
+  tier       String // premium | platinum
+  amountKobo Int
+  status     String    @default("pending") // pending | paid | failed
+  error      String?
+  createdAt  DateTime  @default(now())
+  paidAt     DateTime?
+
+  @@index([userId, status])
+}
+
 // Saved Rex Studio and Peggy conversations, so a seller can pick one up again (src/lib/ai/chats.server.ts).
 // Video studio projects (/home/video): every reel the seller starts, as a draft (the studio's settings, saved as
 // they work), then saved (the recorded video in storage) and published (on a product page, in an ad, or posted).

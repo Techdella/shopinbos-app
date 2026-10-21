@@ -1,7 +1,8 @@
 // Which storefront themes a seller may switch to, by plan: basic themes come with every store (Starter, free),
-// premium themes with Growth, platinum themes with Seller Pro (the tiers in shared/plan-catalog.ts). A store
-// keeps the theme it already has when its plan lapses or changes; only switching to another theme is checked
-// (the apply route, the editor and Rex). Only relative imports, so tests/theme-tiers.test.mjs loads it directly.
+// premium themes with Growth, platinum themes with Seller Pro (the tiers in shared/plan-catalog.ts). On any plan a
+// seller can also buy one theme outright (shared/theme-purchase.ts) and use it from then on. A store keeps the theme
+// it already has when its plan lapses or changes; only switching to another theme is checked (the apply route, the
+// editor and Rex). Only relative imports, so tests/theme-tiers.test.mjs loads it directly.
 
 import { planTierOf, type PlanTier } from "../../shared/plan-catalog.ts";
 import { hasPaidPlanTime } from "./store-badges.ts";
@@ -38,13 +39,25 @@ export interface ThemeSwitchCheck {
 
 /**
  * Whether a seller on `allowed` may switch their draft from `currentThemeId` to `themeId`. Staying on the theme they
- * already have is always fine, so a store that was set up on a premium theme keeps working after a downgrade.
+ * already have is always fine, so a store that was set up on a premium theme keeps working after a downgrade, and
+ * so is a theme they bought (`owned`).
  */
-export function checkThemeSwitch(themeId: string, allowed: ThemeTier, currentThemeId?: string | null): ThemeSwitchCheck {
+export function checkThemeSwitch(themeId: string, allowed: ThemeTier, currentThemeId?: string | null, owned: readonly string[] = []): ThemeSwitchCheck {
   const tier = themeTier(themeId);
-  if (themeId === currentThemeId || tierIncludes(allowed, tier)) return { ok: true, tier, message: null };
+  if (themeId === currentThemeId || tierIncludes(allowed, tier) || owned.includes(themeId)) return { ok: true, tier, message: null };
   const name = themeLibraryEntry(themeId)?.name ?? themeId;
-  return { ok: false, tier, message: `${name} is a ${tier} theme. Upgrade to ${TIER_PLAN_LABEL[tier]} to use it.` };
+  return { ok: false, tier, message: `${name} is a ${tier} theme. Buy it once in the theme gallery, or upgrade to ${TIER_PLAN_LABEL[tier]}, to use it.` };
+}
+
+/** What the seller may use: their plan's tier and the themes they bought. */
+export interface SellerThemeAccess {
+  tier: ThemeTier;
+  owned: string[];
+}
+
+/** Whether a theme is usable without buying it or upgrading. */
+export function themeUsable(themeId: string, access: SellerThemeAccess) {
+  return tierIncludes(access.tier, themeTier(themeId)) || access.owned.includes(themeId);
 }
 
 /** The tiers a seller on `allowed` can use, lowest first. */

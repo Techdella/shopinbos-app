@@ -25,6 +25,7 @@ import {
   type ThemeTier,
 } from "@/lib/store-templates/theme-library";
 import { TIER_PLAN_LABEL } from "@/lib/theme-access";
+import { formatThemePrice } from "@shared/theme-purchase";
 import { ThemePreviewDialog, ThemeThumbnail, UPGRADE_HREF } from "./theme-preview/ThemePreview";
 import type { PreviewOwnStore } from "./theme-preview/preview-store";
 import { Mascot } from "@/components/brand/Mascot";
@@ -59,8 +60,11 @@ export type ThemeLibraryProps = {
   ownStore?: PreviewOwnStore | null;
   /** Optional: a theme to open in preview straight away (e.g. "Use this template" on shopinbos.com). */
   initialPreviewId?: string | null;
-  /** The highest theme tier the seller's plan includes; loaded from /api/store/templates/access when not given. */
-  sellerTier?: ThemeTier;
+  /**
+   * What the seller may use (plan tier, bought themes, the price of one theme per tier); loaded from
+   * /api/store/templates/access when not given.
+   */
+  sellerAccess?: ThemeAccessInfo;
 };
 
 /** Tier chips on the cards: free (basic) themes quiet, paid ones stand out. */
@@ -72,6 +76,15 @@ const TIER_BADGE: Record<ThemeTier, string> = {
 
 export const THEME_SWITCHED_EVENT = "shopinbos:theme-switched";
 
+export interface ThemeAccessInfo {
+  tier: ThemeTier;
+  owned: string[];
+  prices: { premium: number; platinum: number };
+}
+
+/** Where the gallery lives; Paystack sends the seller back here after buying a theme. */
+const GALLERY_PATH = "/builder/templates";
+
 type RexPick = { themeId: string; reason: string; source: "rex" | "rules"; note?: string };
 
 function nameFont(theme: ThemeLibraryEntry): React.CSSProperties {
@@ -79,7 +92,7 @@ function nameFont(theme: ThemeLibraryEntry): React.CSSProperties {
   return { fontFamily: family, fontWeight: Math.max(500, theme.preview.nameWeight), fontStyle: theme.preview.nameItalic ? "italic" : undefined, letterSpacing: theme.preview.nameFont === "sans" ? "-0.02em" : "-0.01em" };
 }
 
-export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, initialCategory, nextPath, onSwitched, ownStore, initialPreviewId, sellerTier }: ThemeLibraryProps) {
+export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, initialCategory, nextPath, onSwitched, ownStore, initialPreviewId, sellerAccess }: ThemeLibraryProps) {
   const router = useRouter();
   const t = useT("builder");
   const meaningLine = (theme: ThemeLibraryEntry) => themeMeaningLine({ name: theme.name, meaning: t.dynamic(`theme.${theme.id}.meaning`, theme.meaning) });
@@ -90,23 +103,65 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
   });
   const [query, setQuery] = useState("");
   const [tierFilter, setTierFilter] = useState<"all" | ThemeTier>("all");
-  const [loadedTier, setLoadedTier] = useState<ThemeTier | null>(null);
+  const [loadedAccess, setLoadedAccess] = useState<ThemeAccessInfo | null>(null);
   useEffect(() => {
-    if (sellerTier) return;
+    if (sellerAccess) return;
     let cancelled = false;
     fetch("/api/store/templates/access")
       .then((response) => (response.ok ? response.json() : null))
-      .then((json: { data?: { tier?: ThemeTier } } | null) => {
-        if (!cancelled && json?.data?.tier && (THEME_TIERS as readonly string[]).includes(json.data.tier)) setLoadedTier(json.data.tier);
+      .then((json: { data?: Partial<ThemeAccessInfo> } | null) => {
+        const data = json?.data;
+        if (cancelled || !data?.tier || !(THEME_TIERS as readonly string[]).includes(data.tier) || !data.prices) return;
+        setLoadedAccess({ tier: data.tier, owned: Array.isArray(data.owned) ? data.owned : [], prices: data.prices });
       })
       .catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, [sellerTier]);
+  }, [sellerAccess]);
+  const access = sellerAccess ?? loadedAccess;
   // Until the plan is known everything shows as usable; the server checks again on switch.
-  const allowedTier: ThemeTier = sellerTier ?? loadedTier ?? "platinum";
-  const lockedPlan = (theme: ThemeLibraryEntry | null) => (theme && theme.id !== current && !tierIncludes(allowedTier, theme.tier) ? TIER_PLAN_LABEL[theme.tier] : null);
+  const allowedTier: ThemeTier = access?.tier ?? "platinum";
+  const owned = access?.owned ?? [];
+  const lockedPlan = (theme: ThemeLibraryEntry | null) => (theme && theme.id !== current && !tierIncludes(allowedTier, theme.tier) && !owned.includes(theme.id) ? TIER_PLAN_LABEL[theme.tier] : null);
+  /** "₦2,000" for a theme that's locked and can be bought, else null. */
+  const buyPrice = (theme: ThemeLibraryEntry | null) => (theme && lockedPlan(theme) && access && theme.tier !== "basic" ? formatThemePrice(access.prices[theme.tier]) : null);
+  const [buyingId, setBuyingId] = useState<string | null>(null);
+  // Back from Paystack: ?theme=paid|pending|failed&themeId=…
+  const [bought, setBought] = useState<{ status: "paid" | "pending" | "failed"; themeId: string | null } | null>(null);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const status = params.get("theme");
+    if (status !== "paid" && status !== "pending" && status !== "failed") return;
+    setBought({ status, themeId: params.get("themeId") });
+    params.delete("theme");
+    params.delete("themeId");
+    const query = params.toString();
+    window.history.replaceState(null, "", `${window.location.pathname}${query ? `?${query}` : ""}`);
+  }, []);
+
+  async function buyTheme(id: string) {
+    setBuyingId(id);
+    setError(null);
+    try {
+      const returnTo = nextPath ? `${GALLERY_PATH}?next=${encodeURIComponent(nextPath)}` : GALLERY_PATH;
+      const response = await fetch("/api/store/templates/purchase", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ themeId: id, returnTo }),
+      });
+      const json = (await response.json().catch(() => null)) as { data?: { authorizationUrl?: string }; error?: { message?: string } } | null;
+      if (!response.ok || !json?.data?.authorizationUrl) {
+        setError({ message: json?.error?.message ?? t("tl.err.buy"), upgrade: false });
+        setBuyingId(null);
+        return;
+      }
+      window.location.assign(json.data.authorizationUrl);
+    } catch {
+      setError({ message: t("tl.err.buy"), upgrade: false });
+      setBuyingId(null);
+    }
+  }
   const [previewId, setPreviewId] = useState<string | null>(initialPreviewId ?? null);
   // "Show with my products": only when the store has enough products with photos to fill a page.
   const own = useMemo<PreviewOwnStore | null>(() => {
@@ -264,6 +319,15 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
       </div>
 
       <div className="mb-5 grid gap-3 empty:hidden">
+        {bought ? (
+          <Notice tone={bought.status === "paid" ? "success" : bought.status === "pending" ? "info" : "error"}>
+            {bought.status === "paid"
+              ? t("tl.bought", { name: themeLibraryEntry(bought.themeId)?.name ?? t("tl.theTheme") })
+              : bought.status === "pending"
+                ? t("tl.buyPending", { name: themeLibraryEntry(bought.themeId)?.name ?? t("tl.theTheme") })
+                : t("tl.buyFailed")}
+          </Notice>
+        ) : null}
         {error ? (
           <Notice tone="error">
             {error.message}
@@ -306,9 +370,13 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
               ) : lockedPlan(picked) ? (
                 <div className="flex flex-wrap gap-2">
                   <PillButton tone="white" size="sm" onClick={() => setPreviewId(picked.id)}>{t("tl.preview")}</PillButton>
-                  <a href={UPGRADE_HREF} className="inline-flex min-h-[38px] items-center gap-1.5 rounded-full bg-app-ink px-4 text-[13px] font-bold text-white no-underline hover:bg-black">
-                    <Icon name="lock" size={14} /> {t("tp.upgradeTo", { plan: lockedPlan(picked)! })}
-                  </a>
+                  {buyPrice(picked) ? (
+                    <PillButton tone="ink" size="sm" busy={buyingId === picked.id} disabled={Boolean(buyingId)} onClick={() => void buyTheme(picked.id)}>{t("tl.buy", { price: buyPrice(picked)! })}</PillButton>
+                  ) : (
+                    <a href={UPGRADE_HREF} className="inline-flex min-h-[38px] items-center gap-1.5 rounded-full bg-app-ink px-4 text-[13px] font-bold text-white no-underline hover:bg-black">
+                      <Icon name="lock" size={14} /> {t("tp.upgradeTo", { plan: lockedPlan(picked)! })}
+                    </a>
+                  )}
                 </div>
               ) : (
                 <div className="flex flex-wrap gap-2">
@@ -329,6 +397,8 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
           const isCurrent = theme.id === current;
           const isPicked = pick?.themeId === theme.id && !isCurrent;
           const needs = lockedPlan(theme);
+          const price = buyPrice(theme);
+          const isOwned = owned.includes(theme.id) && !tierIncludes(allowedTier, theme.tier);
           return (
             <li key={theme.id} className="min-w-0">
               <article aria-labelledby={`theme-${theme.id}`} className={cx("rounded-[24px]", isPicked && "outline outline-2 outline-offset-4 outline-app-ink")}>
@@ -353,6 +423,7 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
                     </span>
                     {theme.isNew ? <span className="rounded-full bg-app-accent px-2.5 py-1 text-[11px] font-bold text-white shadow-sm">{t("tl.new")}</span> : null}
                     {isCurrent ? <span className="rounded-full bg-app-ink px-2.5 py-1 text-[11px] font-bold text-white shadow-sm">{t("tl.current")}</span> : null}
+                    {isOwned ? <span className="rounded-full bg-app-success-tint px-2.5 py-1 text-[11px] font-bold text-app-ink shadow-sm">{t("tl.owned")}</span> : null}
                   </span>
                   <span aria-hidden className="pointer-events-none absolute bottom-3 right-3 z-[2] inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-[12.5px] font-bold text-app-ink opacity-0 shadow-sm transition group-hover:opacity-100 group-focus-within:opacity-100">
                     <Icon name="eye" size={14} /> {t("tl.preview")}
@@ -366,12 +437,21 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
                     </h3>
                     <p className="m-0 mt-0.5 text-[12.5px] font-semibold text-app-ink-soft">{meaningLine(theme)}</p>
                     <p className="m-0 mt-1 text-[13px] leading-[1.45] text-app-ink-soft">{t.dynamic(`theme.${theme.id}.blurb`, theme.blurb)}</p>
-                    {needs ? <p className="m-0 mt-1 text-[12.5px] font-bold text-app-ink">{t("tl.needsPlan", { plan: needs })}</p> : null}
+                    {needs ? (
+                      <p className="m-0 mt-1 text-[12.5px] font-bold text-app-ink">
+                        {price ? t("tl.buyOrPlan", { price, plan: needs }) : t("tl.needsPlan", { plan: needs })}{" "}
+                        <a href={UPGRADE_HREF} className="font-semibold text-app-ink-soft underline underline-offset-2">{t("tl.seePlans")}</a>
+                      </p>
+                    ) : null}
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-2 min-[420px]:flex-row min-[420px]:items-center">
                     <PillButton tone="white" size="sm" onClick={() => setPreviewId(theme.id)} aria-label={t("tl.previewName", { name: theme.name })}>{t("tl.preview")}</PillButton>
                     {isCurrent ? (
                       mode === "builder" && onCustomize ? <PillButton tone="ink" size="sm" onClick={onCustomize}>{t("tl.customize")}</PillButton> : null
+                    ) : needs && price ? (
+                      <PillButton tone="ink" size="sm" busy={buyingId === theme.id} disabled={Boolean(buyingId)} onClick={() => void buyTheme(theme.id)} aria-label={t("tl.buyName", { name: theme.name, price })}>
+                        {t("tl.buy", { price })}
+                      </PillButton>
                     ) : needs ? (
                       <a href={UPGRADE_HREF} title={t("tl.needsPlan", { plan: needs })} aria-label={t("tl.lockedNote", { name: theme.name, plan: needs })} className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full bg-app-ink px-3.5 text-[13px] font-bold text-white no-underline hover:bg-black">
                         <Icon name="lock" size={13} /> {t("tl.upgrade")}
@@ -406,6 +486,9 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
           onUseOwnChange={setUseOwn}
           isCurrent={previewId === current}
           lockedPlan={lockedPlan(themeLibraryEntry(previewId))}
+          buyPrice={buyPrice(themeLibraryEntry(previewId))}
+          buying={buyingId === previewId}
+          onBuy={() => void buyTheme(previewId)}
           busy={busyId === previewId}
           onUse={() => {
             const id = previewId;

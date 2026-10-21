@@ -57,8 +57,8 @@ test("switching is checked; staying on the current theme never is", () => {
   const refused = access.checkThemeSwitch("oba", "basic", "plain");
   assert.equal(refused.ok, false);
   assert.equal(refused.tier, "platinum");
-  assert.equal(refused.message, "Ọba is a platinum theme. Upgrade to Seller Pro to use it.");
-  assert.match(access.checkThemeSwitch("ewa", "basic").message, /Upgrade to Growth/);
+  assert.equal(refused.message, "Ọba is a platinum theme. Buy it once in the theme gallery, or upgrade to Seller Pro, to use it.");
+  assert.match(access.checkThemeSwitch("ewa", "basic").message, /upgrade to Growth/);
   assert.ok(access.checkThemeSwitch("ewa", "premium").ok);
   assert.equal(access.checkThemeSwitch("gbedu", "premium").ok, false);
   assert.ok(access.checkThemeSwitch("gbedu", "platinum").ok);
@@ -68,19 +68,53 @@ test("switching is checked; staying on the current theme never is", () => {
 
 test("every path that switches themes checks the plan", () => {
   const apply = read("src/app/api/store/templates/apply/route.ts");
-  assert.match(apply, /checkThemeSwitch\(manifest\.id, await loadSellerThemeTier\(user\.id\)/);
+  assert.match(apply, /const themeAccess = await loadSellerThemeAccess\(user\.id\);\s+const access = checkThemeSwitch\(manifest\.id, themeAccess\.tier, [^)]+, themeAccess\.owned\)/);
   assert.match(apply, /UPGRADE_REQUIRED/);
   const editor = read("src/app/api/store/editor/route.ts");
   assert.match(editor, /nextThemeId !== draft\?\.templateId/);
-  assert.match(editor, /checkThemeSwitch\(nextThemeId/);
+  assert.match(editor, /checkThemeSwitch\(nextThemeId, themeAccess\.tier, draft\?\.templateId, themeAccess\.owned\)/);
   const tools = read("src/lib/ai/rex/tools.ts");
-  assert.match(tools, /checkThemeSwitch\(input\.themeId/);
+  assert.match(tools, /checkThemeSwitch\(input\.themeId, themeAccess\.tier, currentId, themeAccess\.owned\)/);
   const studio = read("src/lib/ai/rex/studio-edit.server.ts");
-  assert.match(studio, /if \(plan\.theme\) \{\s+const access = checkThemeSwitch/);
-  assert.match(studio, /studioThemes\(draft\.templateId, await loadSellerThemeTier\(store\.userId\)\)/);
+  assert.match(studio, /if \(plan\.theme\) \{\s+const themeAccess = await loadSellerThemeAccess\(store\.userId\);\s+const access = checkThemeSwitch\(plan\.theme, themeAccess\.tier, draft\.templateId, themeAccess\.owned\)/);
+  assert.match(studio, /studioThemes\(draft\.templateId, await loadSellerThemeAccess\(store\.userId\)\)/);
   // The gallery shows the tier on every card and sends locked themes to Billing.
   const gallery = read("src/components/builder/ThemeLibrary.tsx");
   assert.match(gallery, /TIER_BADGE\[theme\.tier\]/);
   assert.match(gallery, /UPGRADE_HREF/);
   assert.match(read("src/components/builder/theme-preview/ThemePreview.tsx"), /export const UPGRADE_HREF = "\/home\/settings\?tab=Billing"/);
+});
+
+test("a theme bought on its own works on any plan; everyone can preview every theme", async () => {
+  // Bought themes pass the switch check whatever the plan; others stay locked.
+  assert.ok(access.checkThemeSwitch("oba", "basic", "plain", ["oba"]).ok);
+  assert.equal(access.checkThemeSwitch("gbedu", "basic", "plain", ["oba"]).ok, false);
+  assert.ok(access.themeUsable("oba", { tier: "basic", owned: ["oba"] }));
+  assert.ok(access.themeUsable("plain", { tier: "basic", owned: [] }));
+  assert.equal(access.themeUsable("ewa", { tier: "basic", owned: [] }), false);
+  // Prices live in Admin › Pricing: ₦2,000 for a premium theme and ₦3,000 for a platinum one by default.
+  const { PRICE_SETTINGS } = await import("../shared/platform-pricing.ts");
+  const purchase = await import("../shared/theme-purchase.ts");
+  assert.equal(PRICE_SETTINGS["themes.premium"].default, 2000);
+  assert.equal(PRICE_SETTINGS["themes.platinum"].default, 3000);
+  const book = { "themes.premium": 2000, "themes.platinum": 3000 };
+  assert.equal(purchase.themePriceNaira("premium", book), 2000);
+  assert.equal(purchase.themePriceNaira("platinum", book), 3000);
+  assert.equal(purchase.themePriceNaira("basic", book), null);
+  assert.equal(purchase.formatThemePrice(2000), "₦2,000");
+  // The purchase is verified with Paystack before it counts, from the callback and the webhook alike.
+  const server = read("src/lib/themes/purchase.server.ts");
+  assert.match(server, /verifyPaystackTransaction\(reference\)/);
+  assert.match(server, /metadata\.purpose !== "theme_purchase"/);
+  assert.match(server, /Number\(verified\.amount\) !== row\.amountKobo/);
+  assert.match(server, /updateMany\(\{ where: \{ reference, status: "pending" \}, data: \{ status: "paid"/);
+  const webhook = read("src/app/api/webhooks/paystack/route.ts");
+  assert.match(webhook, /ref\.startsWith\(THEME_REFERENCE_PREFIX\)\) \{\s+await completeThemePurchase\(ref\)/);
+  assert.match(read("docs/migrations/2026-11-16-theme-purchases.sql"), /CREATE TABLE IF NOT EXISTS "ThemePurchase"/);
+  // Locked cards keep Preview and offer Buy (with the plan as the other way in); bought ones show Owned.
+  const gallery = read("src/components/builder/ThemeLibrary.tsx");
+  assert.match(gallery, /onClick=\{\(\) => setPreviewId\(theme\.id\)\}/);
+  assert.match(gallery, /onClick=\{\(\) => void buyTheme\(theme\.id\)\}/);
+  assert.match(gallery, /t\("tl\.owned"\)/);
+  assert.match(read("src/components/builder/theme-preview/ThemePreview.tsx"), /t\("tl\.buy", \{ price: buyPrice \}\)/);
 });

@@ -26,7 +26,7 @@ import { computeStoreHealth } from "@/lib/store-health";
 import { getTemplateManifest } from "@/lib/store-templates";
 import { THEME_LIBRARY, tierIncludes } from "@/lib/store-templates/theme-library";
 import { TIER_PLAN_LABEL, checkThemeSwitch } from "@/lib/theme-access";
-import { loadSellerThemeTier } from "@/lib/theme-access.server";
+import { loadSellerThemeAccess } from "@/lib/theme-access.server";
 import { naira } from "@shared/onboarding";
 import { MAX_PHOTOS, fallbackScript, normaliseScript, type VideoLanguage } from "@shared/video";
 import { drawLogoOptions, LOGO_STYLES } from "@/lib/ai/rex/logo";
@@ -154,9 +154,9 @@ async function listThemes(ctx: RexToolContext): Promise<RexToolOutput> {
   const store = await loadStudioStore(ctx.userId);
   const current = store ? studioDraft(store).draft.templateId : "";
   // Cards only for themes the seller can switch to; the rest are named so Rex can mention the upgrade.
-  const tier = await loadSellerThemeTier(ctx.userId);
+  const { tier, owned } = await loadSellerThemeAccess(ctx.userId);
   const available = THEME_LIBRARY.filter((theme) => getTemplateManifest(theme.id));
-  const locked = available.filter((theme) => theme.id !== current && !tierIncludes(tier, theme.tier));
+  const locked = available.filter((theme) => theme.id !== current && !tierIncludes(tier, theme.tier) && !owned.includes(theme.id));
   const themes = available.filter((theme) => !locked.includes(theme)).map((theme) => ({
     id: theme.id,
     name: theme.name,
@@ -167,7 +167,7 @@ async function listThemes(ctx: RexToolContext): Promise<RexToolOutput> {
   return {
     content: [
       `Showing ${themes.length} themes as cards (current: ${themeNameFor(current)}). The seller can tap one to try it; it changes the draft only.`,
-      locked.length ? `Not shown, because the seller's plan doesn't include them: ${locked.map((theme) => `${theme.name} (${theme.tier}, needs ${TIER_PLAN_LABEL[theme.tier]})`).join(", ")}. Mention them only if the seller asks about more themes.` : "",
+      locked.length ? `Not shown, because the seller's plan doesn't include them and they haven't bought them: ${locked.map((theme) => `${theme.name} (${theme.tier}, comes with ${TIER_PLAN_LABEL[theme.tier]})`).join(", ")}. Mention them only if the seller asks about more themes: they can preview any of them and buy one on its own in the theme gallery (Builder > Themes) without changing plan.` : "",
     ].filter(Boolean).join(" "),
     card: { type: "themes", current, themes },
   };
@@ -379,8 +379,9 @@ async function switchThemeTool(ctx: RexToolContext, input: RexToolInput<"switch_
   if (!getTemplateManifest(input.themeId)) throw new RexToolError(`The ${input.themeId} theme isn't available.`);
   const currentId = studioDraft(store).draft.templateId;
   if (currentId === input.themeId) return { content: `The draft already uses the ${themeNameFor(input.themeId)} theme; nothing changed.` };
-  const access = checkThemeSwitch(input.themeId, await loadSellerThemeTier(ctx.userId), currentId);
-  if (!access.ok) throw new RexToolError(`${access.message} Nothing changed. Tell the seller, and that plans are in Settings > Billing.`);
+  const themeAccess = await loadSellerThemeAccess(ctx.userId);
+  const access = checkThemeSwitch(input.themeId, themeAccess.tier, currentId, themeAccess.owned);
+  if (!access.ok) throw new RexToolError(`${access.message} Nothing changed. Tell the seller they can preview it and buy it on its own in the theme gallery (Builder > Themes), or upgrade in Settings > Billing.`);
   const plan = parseRexStudioPlan({ reply: "", theme: input.themeId });
   if (!plan) throw new RexToolError("Couldn't switch the theme.");
   const result = await applyStudioPlan(store, plan, `Switched to ${themeNameFor(input.themeId)}`);

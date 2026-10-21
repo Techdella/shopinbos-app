@@ -1,5 +1,7 @@
 import { completeCreditPurchase, grantPlanCredits } from "@/lib/ai/credits.server";
 import { CREDIT_REFERENCE_PREFIX } from "@shared/ai-credits";
+import { THEME_REFERENCE_PREFIX } from "@shared/theme-purchase";
+import { completeThemePurchase } from "@/lib/themes/purchase.server";
 import { AD_SETUP_REFERENCE_PREFIX } from "@shared/ad-campaigns";
 import { completeAdSetupPayment } from "@/lib/ad-campaigns/requests.server";
 import { PRINT_ORDER_REFERENCE_PREFIX } from "@shared/print-orders";
@@ -172,6 +174,12 @@ export async function POST(req: NextRequest) {
       if (ref.startsWith(PRINT_ORDER_REFERENCE_PREFIX)) {
         await completePrintOrderPayment(ref).catch((error) => {
           console.error("Print order payment completion failed:", error);
+        });
+        return NextResponse.json({ received: true });
+      }
+      if (ref.startsWith(THEME_REFERENCE_PREFIX)) {
+        await completeThemePurchase(ref).catch((error) => {
+          console.error("Theme purchase completion failed:", error);
         });
         return NextResponse.json({ received: true });
       }

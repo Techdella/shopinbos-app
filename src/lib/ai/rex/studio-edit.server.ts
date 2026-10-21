@@ -21,7 +21,7 @@ import {
 import type { StoreEditorSnapshot } from "@/lib/store-templates";
 import { formatStoreMoney } from "@/lib/storefront/shopper-info";
 import { checkThemeSwitch } from "@/lib/theme-access";
-import { loadSellerThemeTier } from "@/lib/theme-access.server";
+import { loadSellerThemeAccess } from "@/lib/theme-access.server";
 
 // One edit to the store's DRAFT, shared by the Rex Studio chat route (/api/ai/build-store/studio) and Rex's
 // edit_store_section / rebuild_section / switch_theme tools. The store designer replies with a JSON plan
@@ -66,7 +66,7 @@ async function designerPrompt(store: StudioStore, draft: StoreEditorSnapshot, im
       languages: Array.isArray(memory.languages) ? memory.languages.filter((entry): entry is string => typeof entry === "string") : undefined,
     },
     theme: { id: draft.templateId, name: themeNameFor(draft.templateId, draft.templateName) },
-    themes: studioThemes(draft.templateId, await loadSellerThemeTier(store.userId)),
+    themes: studioThemes(draft.templateId, await loadSellerThemeAccess(store.userId)),
     allowedKinds: allowedKindsFor(draft.templateId),
     draft: summariseDraftForRex(draft),
     products: products.map((product) => ({ name: product.name, price: formatStoreMoney(product.retailPrice, product.currency), hasPhoto: product.images.some(Boolean) })),
@@ -89,7 +89,8 @@ export async function applyStudioPlan(store: StudioStore, plan: RexStudioPlan, l
   const { draft } = studioDraft(store);
   // Rex only switches to themes the seller's plan includes; the rest of the plan still applies.
   if (plan.theme) {
-    const access = checkThemeSwitch(plan.theme, await loadSellerThemeTier(store.userId), draft.templateId);
+    const themeAccess = await loadSellerThemeAccess(store.userId);
+    const access = checkThemeSwitch(plan.theme, themeAccess.tier, draft.templateId, themeAccess.owned);
     if (!access.ok) plan = { ...plan, theme: undefined, reply: [plan.reply, access.message].filter(Boolean).join(" ") };
   }
   const applied = applyRexStudioPlan(draft, plan, await studioApplyContext(store));
