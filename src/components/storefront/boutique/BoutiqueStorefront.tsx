@@ -2049,7 +2049,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
               <article key={product.id} className="grid items-center gap-6 @3xl:grid-cols-2 @3xl:gap-14">
                 <div className={`relative ${i % 2 ? "@3xl:order-2" : ""}`}>
                   <div aria-hidden className="absolute inset-y-[6%] left-[8%] right-[18%]" style={{ background: t.accent, clipPath: i % 2 ? "polygon(0 10%, 100% 0, 100% 100%, 0 90%)" : "polygon(0 0, 100% 10%, 100% 90%, 0 100%)" }} />
-                  {open(product, "relative block", (
+                  {open(product, "relative block w-full", (
                     <span className="bq-media block aspect-[4/3]" style={{ background: "transparent" }}>
                       {product.images[0] ? <img src={product.images[0]} alt={product.name} width={900} height={675} loading="lazy" decoding="async" style={{ objectFit: "contain" }} /> : null}
                     </span>
@@ -2183,9 +2183,9 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         </>
       );
       return href ? (
-        <Link key={product.id} href={href} prefetch={false} className="flex items-center gap-3">{inner}</Link>
+        <Link key={product.id} href={href} prefetch={false} className="flex w-full min-w-0 items-center gap-3">{inner}</Link>
       ) : (
-        <button key={product.id} type="button" onClick={live ? undefined : () => openProduct(product.id)} className="flex cursor-pointer items-center gap-3 border-0 bg-transparent p-0 text-left" style={{ color: t.ink }}>{inner}</button>
+        <button key={product.id} type="button" onClick={live ? undefined : () => openProduct(product.id)} className="flex w-full min-w-0 cursor-pointer items-center gap-3 border-0 bg-transparent p-0 text-left" style={{ color: t.ink }}>{inner}</button>
       );
     };
     return (
@@ -2193,7 +2193,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         <h2 id={headingId} className="sr-only">{text(copy.title) || "Shop the lists"}</h2>
         <div className={`grid gap-8 ${columns.length === 4 ? "@3xl:grid-cols-4" : "@3xl:grid-cols-3"}`}>
           {columns.map((column) => (
-            <div key={column.key}>
+            <div key={column.key} className="min-w-0">
               <h3 className="bq-h mb-4 inline-block border-b-2 pb-1 text-[15px] font-bold uppercase" style={{ borderColor: t.accent, letterSpacing: "0.06em", fontFamily: look.headingFont }}>{column.title}</h3>
               <div className="grid gap-4">{column.list.map(row)}</div>
             </div>
