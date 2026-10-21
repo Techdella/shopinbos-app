@@ -15,7 +15,8 @@ export type ThemeLibraryId =
   | "aga" | "itura" | "gele" | "imani" | "itanna"
   | "littafi" | "itan" | "awo" | "kyau" | "keke"
   | "ahia" | "ado" | "wuta" | "ike" | "ewu"
-  | "erin" | "apere" | "bata" | "ogba" | "eso";
+  | "erin" | "apere" | "bata" | "ogba" | "eso"
+  | "osan" | "ijokoo" | "ite" | "kujera" | "tufafi";
 
 /**
  * Which plan a theme needs: basic themes come with every store (the free Starter plan), premium ones with Growth
@@ -395,6 +396,31 @@ export const THEME_LIBRARY: readonly ThemeLibraryEntry[] = [
     industries: ["fruit", "vegetables", "organic food", "juice", "farm produce"], blurb: "Green and orange, a search banner and an orange story band. For fruit and veg stores", isNew: true, tier: "platinum",
     preview: { bg: "#F4F8EC", ink: "#3B4D4F", line: "#E3EDD3", accent: "#81C408", nameFont: "grotesk", nameWeight: 800, dark: false },
   }),
+  entry({
+    id: "osan", name: "Ọsàn", meaning: "Yoruba for orange", categories: ["groceries", "food"], categoryLabel: "Fresh produce",
+    industries: ["fruit", "juice", "fruit baskets", "fresh produce", "smoothies"], blurb: "Dark slate and orange, a photo banner and quick-add product cards. For fruit shops", isNew: true, tier: "basic",
+    preview: { bg: "#051922", ink: "#FFFFFF", line: "#1B3340", accent: "#F28123", nameFont: "grotesk", nameWeight: 800, dark: true },
+  }),
+  entry({
+    id: "ijokoo", name: "Ìjókòó", meaning: "Yoruba for seat", categories: ["home"], categoryLabel: "Furniture",
+    industries: ["furniture", "chairs", "sofas", "lighting", "home decor"], blurb: "A pale showroom banner, a category trio and a dark side panel. For furniture stores", isNew: true, tier: "premium",
+    preview: { bg: "#F6F7FB", ink: "#2B2B2B", line: "#E6E8F0", accent: "#E6A23C", nameFont: "grotesk", nameWeight: 700, dark: false },
+  }),
+  entry({
+    id: "ite", name: "Ìtẹ́", meaning: "Yoruba for nest", categories: ["home"], categoryLabel: "Interiors",
+    industries: ["furniture", "interior design", "sofas", "home decor", "furniture makers"], blurb: "Deep green and yellow, a photo collage and service tiles. For interior studios", isNew: true, tier: "platinum",
+    preview: { bg: "#3B5D50", ink: "#FFFFFF", line: "#4E7163", accent: "#F9BF29", nameFont: "grotesk", nameWeight: 700, dark: true },
+  }),
+  entry({
+    id: "kujera", name: "Kujera", meaning: "Hausa for chair", categories: ["home"], categoryLabel: "Furniture",
+    industries: ["furniture", "office chairs", "sofas", "lamps", "clocks"], blurb: "Black and copper, a product slider banner and warm grey cards. For furniture stores", isNew: true, tier: "basic",
+    preview: { bg: "#F3F1EE", ink: "#111111", line: "#E3E0DB", accent: "#B86A22", nameFont: "grotesk", nameWeight: 700, dark: false },
+  }),
+  entry({
+    id: "tufafi", name: "Tufafi", meaning: "Hausa for clothes", categories: ["fashion", "kids"], categoryLabel: "Family fashion",
+    industries: ["family fashion", "menswear", "womenswear", "kids clothing", "accessories"], blurb: "Monochrome, a photo mosaic and the latest for each category. For fashion stores", isNew: true, tier: "premium",
+    preview: { bg: "#2A2A2A", ink: "#FFFFFF", line: "#3A3A3A", accent: "#FFFFFF", nameFont: "grotesk", nameWeight: 800, dark: true },
+  }),
 ];
 
 export const THEME_LIBRARY_IDS: readonly ThemeLibraryId[] = THEME_LIBRARY.map((item) => item.id);
@@ -527,6 +553,11 @@ const THEME_RULES: Array<{ themeId: ThemeLibraryId; industry: string; words: str
   { themeId: "itanna", industry: "sneakers", words: ["sneaker store", "sneakerhead", "kicks", "trainers"] },
   { themeId: "gele", industry: "fashion and accessories", words: ["gele", "headtie", "head tie", "headwrap", "head wrap", "turban"] },
   { themeId: "itura", industry: "home and lifestyle", words: ["comfort", "lounge", "lifestyle store", "home goods", "ottoman", "pouf"] },
+  { themeId: "osan", industry: "fruit", words: ["fruit basket", "fruit baskets", "fruit vendor", "fruit stand"] },
+  { themeId: "ijokoo", industry: "furniture", words: ["showroom", "furniture showroom", "armchair", "dining table"] },
+  { themeId: "ite", industry: "interiors", words: ["interior designer", "styling studio", "property staging", "staging"] },
+  { themeId: "kujera", industry: "furniture", words: ["workspace", "work from home", "study desk"] },
+  { themeId: "tufafi", industry: "family fashion", words: ["men women and kids", "for the whole family", "family clothing"] },
   { themeId: "apere", industry: "groceries", words: ["cold-pressed", "cold pressed", "juice and bakery", "bakery and groceries"] },
   { themeId: "ogba", industry: "fresh produce", words: ["greengrocer", "green grocer", "salad", "herbs and spices shop"] },
   { themeId: "eso", industry: "fruit and vegetables", words: ["veggie box", "veg box", "juicing", "fruit salad"] },

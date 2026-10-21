@@ -125,6 +125,11 @@ export const CHECKOUT_THEME_DEFAULTS: Record<string, ThemeDefault> = {
   bata: { layout: "minimal", summaryPosition: "right", header: "logo" },
   ogba: { layout: "two-column", summaryPosition: "right", header: "nav" },
   eso: { layout: "steps", summaryPosition: "right", header: "nav" },
+  osan: { layout: "two-column", summaryPosition: "right", header: "nav" },
+  ijokoo: { layout: "two-column", summaryPosition: "right", header: "nav" },
+  ite: { layout: "steps", summaryPosition: "right", header: "logo" },
+  kujera: { layout: "minimal", summaryPosition: "right", header: "logo" },
+  tufafi: { layout: "two-column", summaryPosition: "right", header: "nav" },
 };
 
 const FALLBACK_THEME: ThemeDefault = { layout: "two-column", summaryPosition: "right", header: "logo" };

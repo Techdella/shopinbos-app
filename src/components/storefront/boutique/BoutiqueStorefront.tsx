@@ -1776,6 +1776,146 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       );
     }
 
+    // ─── Inspiration batch 5: Ọsàn, Ìjókòó, Ìtẹ́, Kujera, Tufafi ─────────────────────────────────────
+    if (layout === "osan-center") {
+      return (
+        <section aria-labelledby={headingId}>
+          <div className="bq-hero bq-media" style={{ borderRadius: 0, margin: 0, background: image ? look.placeholder : t.heroBg }}>
+            {img}
+            <div className="absolute inset-0" style={{ background: image ? "rgba(5,25,34,.62)" : "transparent" }} />
+            <div className="bq-wrap absolute inset-0 flex flex-col items-center justify-center gap-4 text-center" style={{ color: "#FFFFFF" }}>
+              {eyebrow ? <p className="m-0 text-[13px] font-bold uppercase" style={{ color: t.accent, letterSpacing: "0.3em" }}>{eyebrow}</p> : null}
+              <h1 id={headingId} className="bq-h m-0 max-w-[16ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 5.4cqi, 68px)", lineHeight: 1.08 }}>{title}</h1>
+              {body ? <p className="m-0 max-w-[520px] text-[15.5px] opacity-90">{body}</p> : null}
+              <div className="mt-1 flex flex-wrap justify-center gap-3">
+                {ctaButton()}
+                {pageTypes.has("contact") ? <button type="button" className="bq-btn" style={{ background: "transparent", color: "#FFFFFF", border: `1.5px solid ${t.accent}` }} onClick={() => go("contact")}>Contact us</button> : null}
+              </div>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    if (layout === "ijokoo-cutout") {
+      const shots = pool.slice(0, 3);
+      const at = shots.length ? heroIndex % shots.length : 0;
+      return (
+        <section aria-labelledby={headingId} className="relative overflow-hidden" style={{ background: t.heroBg, color: t.heroText }}>
+          <div className="bq-wrap grid items-center gap-8 py-12 @3xl:grid-cols-[1fr_1.05fr] @3xl:py-16">
+            <div className="flex flex-col items-start gap-4">
+              {eyebrow ? <p className="m-0 text-[15px]" style={{ color: t.muted }}>{eyebrow}</p> : null}
+              <h1 id={headingId} className="bq-h m-0 max-w-[14ch]" style={{ ...look.headingStyle, fontSize: "clamp(34px, 4.6cqi, 58px)", lineHeight: 1.1 }}>{title}</h1>
+              {body ? <p className="m-0 max-w-[440px] text-[15px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
+              <div className="mt-1 flex flex-wrap items-center gap-5">
+                {ctaButton()}
+                {pageTypes.has("about") ? <button type="button" onClick={() => go("about")} className="cursor-pointer border-0 bg-transparent p-0 text-[14px] font-semibold" style={{ color: t.accent }}>More info</button> : null}
+              </div>
+            </div>
+            <div className="relative">
+              <div aria-hidden className="absolute -right-6 -top-6 h-40 w-40 opacity-60" style={{ backgroundImage: `radial-gradient(${t.border} 2px, transparent 2px)`, backgroundSize: "16px 16px" }} />
+              <div className="bq-media relative aspect-[5/4]" style={{ background: "transparent", borderRadius: look.cardRadius }}>{picture(shots[at], true)}</div>
+              {shots.length > 1 ? (
+                <div className="mt-4 flex justify-center gap-2">
+                  {shots.map((_, i) => (
+                    <button key={i} type="button" aria-label={`Picture ${i + 1}`} aria-pressed={i === at} onClick={() => setHeroIndex(i)} className="h-2.5 cursor-pointer rounded-full border-0 p-0 transition-all" style={{ width: i === at ? 26 : 10, background: i === at ? t.accent : t.border }} />
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    if (layout === "ite-green") {
+      return (
+        <section aria-labelledby={headingId} className="relative" style={{ background: t.heroBg, color: t.heroText }}>
+          <div className="bq-wrap grid items-end gap-6 pt-12 @3xl:grid-cols-[1fr_1.2fr] @3xl:pt-16">
+            <div className="flex flex-col items-start gap-4 pb-10 @3xl:pb-24">
+              <h1 id={headingId} className="bq-h m-0 max-w-[13ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 4.8cqi, 60px)", lineHeight: 1.08 }}>{title}</h1>
+              {body ? <p className="m-0 max-w-[420px] text-[15px] leading-7 opacity-80">{body}</p> : null}
+              <div className="mt-1 flex flex-wrap gap-3">
+                {ctaButton()}
+                <button type="button" className="bq-btn" style={{ background: "transparent", color: "#FFFFFF", border: "1.5px solid rgba(255,255,255,.45)" }} onClick={() => go("products")}>Explore</button>
+              </div>
+            </div>
+            <div className="relative @3xl:-mb-16">
+              <div aria-hidden className="absolute right-6 top-0 h-28 w-40 opacity-70" style={{ backgroundImage: "radial-gradient(rgba(255,255,255,.35) 2px, transparent 2px)", backgroundSize: "16px 16px" }} />
+              <div className="bq-media relative aspect-[4/3]" style={{ background: "transparent", borderRadius: look.cardRadius + 6 }}>{img}</div>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    if (layout === "kujera-slides") {
+      // The first products with a photo as slides; without products the banner shows the picture and the words.
+      const slideProducts = products.filter((product) => product.images[0]).slice(0, 3);
+      const count = slideProducts.length || 1;
+      const at = heroIndex % count;
+      const product = slideProducts[at];
+      const saving = product?.compareAtPrice && product.compareAtPrice > product.retailPrice ? Math.round((1 - product.retailPrice / product.compareAtPrice) * 100) : null;
+      return (
+        <section aria-labelledby={headingId} className="relative" style={{ background: t.heroBg, color: t.heroText }}>
+          <div className="bq-wrap grid items-center gap-8 py-10 @3xl:grid-cols-[1.2fr_1fr] @3xl:py-16">
+            <div className="bq-media aspect-[4/3]" style={{ background: "transparent", borderRadius: 0 }}>{picture(product?.images[0] ?? image, true)}</div>
+            <div className="flex flex-col items-start gap-4">
+              {saving ? <p className="m-0 text-[28px] font-semibold" style={{ color: t.accent }}>{saving}% off</p> : eyebrow ? <p className="m-0 text-[13px] font-semibold uppercase" style={{ color: t.accent, letterSpacing: "0.14em" }}>{eyebrow}</p> : null}
+              <h1 id={headingId} className="bq-h m-0" style={{ ...look.headingStyle, fontSize: "clamp(32px, 4cqi, 52px)", lineHeight: 1.08 }}>{product ? product.name : title}</h1>
+              {product?.description || body ? <p className="m-0 line-clamp-3 max-w-[420px] text-[15px] leading-7" style={{ color: t.muted }}>{product?.description || body}</p> : null}
+              {product ? <p className="m-0 text-[22px] font-semibold">{formatStoreMoney(product.retailPrice, product.currency)}</p> : null}
+              {product ? linkToProduct(product, "inline-flex items-center border-0 border-b-2 pb-1 text-[15px] font-semibold", <>{cta} <span aria-hidden className="ml-2">→</span></>, { borderColor: t.ink }) : ctaButton()}
+              {slideProducts.length > 1 ? (
+                <div className="mt-3 flex gap-2">
+                  <button type="button" aria-label="Previous product" onClick={() => setHeroIndex((value) => (value + count - 1) % count)} className="grid h-11 w-11 cursor-pointer place-items-center border" style={{ borderColor: t.ink, background: "transparent", color: t.ink }}><Icon name="arrowLeft" size={18} /></button>
+                  <button type="button" aria-label="Next product" onClick={() => setHeroIndex((value) => (value + 1) % count)} className="grid h-11 w-11 cursor-pointer place-items-center border-0" style={{ background: t.ink, color: "#FFFFFF" }}><Icon name="chevRight" size={18} /></button>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    if (layout === "tufafi-mosaic") {
+      // A big picture beside four category tiles (collections, else categories; pictures fill in when there are fewer).
+      const fromCategories = (shopper.collections.length
+        ? shopper.collections.map((collection) => ({ key: collection.id, name: collection.name, image: collection.imageUrl ?? products.find((entry) => collection.productIds.includes(entry.id))?.images[0], onSelect: () => shopCollection(collection.id) }))
+        : categories.map((category) => ({ key: category.slug, name: category.name, image: category.imageUrl ?? undefined, onSelect: () => shopCategory(category.slug) })));
+      const tiles = [...fromCategories, ...pool.slice(1).map((src, i) => ({ key: `pic-${i}`, name: "", image: src, onSelect: () => go("products") }))].slice(0, 4);
+      return (
+        <section aria-labelledby={headingId} className="bq-wrap pt-5">
+          <div className="grid gap-4 @3xl:grid-cols-2">
+            <div className="bq-media relative min-h-[360px] @3xl:min-h-[520px]" style={{ background: image ? look.placeholder : t.heroBg, borderRadius: look.cardRadius }}>
+              {img}
+              <div className="absolute inset-0" style={{ background: image ? "rgba(0,0,0,.42)" : "transparent" }} />
+              <div className="absolute inset-0 flex flex-col items-start justify-center gap-4 p-8 @3xl:p-12" style={{ color: "#FFFFFF" }}>
+                {eyebrow ? <p className="m-0 text-[13px] font-semibold uppercase" style={{ letterSpacing: "0.16em" }}>{eyebrow}</p> : null}
+                <h1 id={headingId} className="bq-h m-0 max-w-[12ch]" style={{ ...look.headingStyle, fontSize: "clamp(34px, 4.4cqi, 56px)", lineHeight: 1.06 }}>{title}</h1>
+                {body ? <p className="m-0 max-w-[380px] text-[15px] italic opacity-90">{body}</p> : null}
+                <button type="button" className="bq-btn" style={{ background: "transparent", color: "#FFFFFF", border: "1.5px solid #FFFFFF" }} onClick={() => go(action)}>{cta}</button>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              {tiles.map((tile) => (
+                <button key={tile.key} type="button" onClick={tile.onSelect} className="group relative block min-h-[170px] cursor-pointer overflow-hidden border-0 p-0" style={{ background: look.placeholder, borderRadius: look.cardRadius }}>
+                  <span className="bq-media inset-0 block" style={{ position: "absolute", borderRadius: 0 }}>{tile.image ? <img src={tile.image} alt="" width={500} height={500} loading="eager" className="transition duration-500 group-hover:scale-[1.06]" /> : null}</span>
+                  <span className="absolute inset-0 transition group-hover:bg-black/55" style={{ background: tile.name ? "rgba(0,0,0,.28)" : "transparent" }} />
+                  {tile.name ? (
+                    <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-center text-white">
+                      <span className="bq-h text-[22px] font-bold" style={look.headingStyle}>{tile.name}</span>
+                      <span className="translate-y-2 border border-white px-4 py-1.5 text-[12px] font-semibold opacity-0 transition group-hover:translate-y-0 group-hover:opacity-100">Shop now</span>
+                    </span>
+                  ) : null}
+                </button>
+              ))}
+            </div>
+          </div>
+        </section>
+      );
+    }
+
     if (layout === "adire-banner") {
       return (
         <section aria-labelledby={headingId}>
@@ -2034,6 +2174,36 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       : categories.map((category) => ({ key: category.slug, name: category.name, image: category.imageUrl, count: category.count, onSelect: () => shopCategory(category.slug) }));
     if (!tiles.length) return editorHint("Category tiles appear once your products have categories or you create collections.");
     const headingId = `${uid}-${section.id}`;
+    if (section.settings?.layout === "boutique-trio") {
+      // Three cards: two narrow ones with the picture above the name, a wide one in the middle with words and a button (Ìjókòó).
+      const [left, middle, right] = tiles;
+      const side = (tile: (typeof tiles)[number] | undefined) => tile ? (
+        <button key={tile.key} type="button" onClick={tile.onSelect} className="group flex cursor-pointer flex-col items-center gap-3 border-0 p-6 text-center" style={{ background: t.cardBg, color: t.ink, borderRadius: look.cardRadius }}>
+          <span className="bq-media block aspect-square w-[70%]" style={{ background: "transparent" }}>{tile.image ? <img src={tile.image} alt="" width={400} height={400} loading="lazy" className="transition duration-500 group-hover:scale-[1.05]" style={{ objectFit: "contain" }} /> : null}</span>
+          <span className="bq-h text-[18px]" style={look.headingStyle}>{tile.name}</span>
+          <span className="text-[13px]" style={{ color: t.muted }}>{tile.count} {tile.count === 1 ? "product" : "products"}</span>
+        </button>
+      ) : null;
+      return (
+        <section aria-labelledby={headingId} className="bq-wrap pt-12">
+          <h2 id={headingId} className="sr-only">{text(copy.title) || "Shop by category"}</h2>
+          <div className="grid gap-5 @3xl:grid-cols-[1fr_1.7fr_1fr]">
+            {side(left)}
+            {middle ? (
+              <button type="button" onClick={middle.onSelect} className="group grid cursor-pointer items-center gap-4 border-0 p-6 text-left @xl:grid-cols-2" style={{ background: t.cardBg, color: t.ink, borderRadius: look.cardRadius }}>
+                <span className="bq-media block aspect-square" style={{ background: "transparent" }}>{middle.image ? <img src={middle.image} alt="" width={500} height={500} loading="lazy" className="transition duration-500 group-hover:scale-[1.05]" style={{ objectFit: "contain" }} /> : null}</span>
+                <span className="flex flex-col items-start gap-2">
+                  <span className="bq-h text-[22px]" style={look.headingStyle}>{middle.name}</span>
+                  <span className="text-[13.5px]" style={{ color: t.muted }}>{middle.count} {middle.count === 1 ? "product" : "products"} to choose from.</span>
+                  <span className="mt-2 border px-4 py-2 text-[13px] font-semibold" style={{ borderColor: t.ink }}>Discover more</span>
+                </span>
+              </button>
+            ) : null}
+            {side(right)}
+          </div>
+        </section>
+      );
+    }
     if (section.settings?.layout === "boutique-duo") {
       // Two large photos with a serif "Shop …" caption under each (Bàtà).
       return (
@@ -2332,6 +2502,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     if (railLayout === "lists") return productLists(section, headingId);
     if (railLayout === "by-category") return categoryRows(section, headingId);
     if (railLayout === "mini") return miniCards(section, list, headingId);
+    if (railLayout === "intro") return introProducts(section, list, headingId);
+    if (railLayout === "per-category") return perCategory(section, headingId);
     const scroll = (direction: number) => {
       const rail = railRefs.current[section.id];
       if (rail) rail.scrollBy({ left: direction * rail.clientWidth * 0.9, behavior: "smooth" });
@@ -2607,6 +2779,64 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div key={group.key} className="py-6">
             <h3 className="bq-h mb-6 text-center text-[26px] @3xl:text-[32px]" style={{ ...look.headingStyle, fontWeight: 700 }}>{group.title}</h3>
             <div className="grid gap-5 @3xl:grid-cols-3">{group.list.map((product) => card(product, group.slug))}</div>
+          </div>
+        ))}
+      </section>
+    );
+  }
+
+  /** "Intro" (Ìtẹ́): a heading, a line and a button beside three products on the page background, each with a + button. */
+  function introProducts(section: TemplateSectionNode, list: ShopperProduct[], headingId: string) {
+    const copy = copyOf(section);
+    const lead = text(copy.body) || text(store.description);
+    return (
+      <section aria-labelledby={headingId} className="bq-wrap py-12 @3xl:py-16">
+        <div className="grid items-start gap-8 @3xl:grid-cols-[1fr_3fr]">
+          <div className="flex flex-col items-start gap-4">
+            <h2 id={headingId} className="bq-h m-0 text-[28px] leading-tight @3xl:text-[34px]" style={look.headingStyle}>{text(copy.title) || "Best sellers"}</h2>
+            {lead ? <p className="m-0 text-[14.5px] leading-7" style={{ color: t.muted }}>{lead}</p> : null}
+            <button type="button" className="bq-btn" style={look.secondaryButton} onClick={() => go("products")}>{text(copy.cta) || "Shop all"}</button>
+          </div>
+          <div className="grid grid-cols-2 gap-6 @3xl:grid-cols-3">
+            {list.slice(0, 3).map((product) => linkToProduct(product, "group relative flex flex-col items-center gap-2 border-0 p-0 pb-8 text-center", (
+              <>
+                <span aria-hidden className="absolute inset-x-0 bottom-0 top-[30%] -z-0 translate-y-3 opacity-0 transition group-hover:translate-y-0 group-hover:opacity-100" style={{ background: t.cardBg, borderRadius: look.cardRadius }} />
+                <span className="bq-media relative block aspect-square w-full" style={{ background: "transparent" }}>{product.images[0] ? <img src={product.images[0]} alt="" width={400} height={400} loading="lazy" style={{ objectFit: "contain" }} /> : null}</span>
+                <span className="relative text-[15px] font-semibold">{product.name}</span>
+                <span className="relative text-[16px] font-bold">{formatStoreMoney(product.retailPrice, product.currency)}</span>
+                <span aria-hidden className="absolute -bottom-4 left-1/2 grid h-9 w-9 -translate-x-1/2 place-items-center rounded-full opacity-0 transition group-hover:opacity-100" style={{ background: t.ink, color: "#FFFFFF" }}>+</span>
+              </>
+            ), { color: t.ink }))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  /** "Per category" (Tufafi): a titled row of product cards for each of the first categories. */
+  function perCategory(section: TemplateSectionNode, headingId: string) {
+    const copy = copyOf(section);
+    const card = cardOptions(section);
+    const pool = sectionProducts(section);
+    const groups = categories.length
+      ? categories.slice(0, 3).map((category) => ({ key: category.slug, name: category.name, slug: category.slug as string | null, list: pool.filter((product) => product.category?.slug === category.slug).slice(0, 4) }))
+      : [{ key: "all", name: text(copy.title) || "Latest", slug: null, list: pool.slice(0, 8) }];
+    return (
+      <section aria-labelledby={headingId} className="bq-wrap py-6">
+        <h2 id={headingId} className="sr-only">{text(copy.title) || "Latest"}</h2>
+        {groups.filter((group) => group.list.length).map((group) => (
+          <div key={group.key} className="border-b py-10 last:border-b-0" style={{ borderColor: t.border }}>
+            <div className="mb-6 flex items-end justify-between gap-4">
+              <div>
+                <h3 className="bq-h m-0 text-[26px] @3xl:text-[30px]" style={{ ...look.headingStyle, fontWeight: 700 }}>{group.slug ? `${group.name}: ${(text(copy.title) || "Latest").toLowerCase()}` : group.name}</h3>
+              </div>
+              <button type="button" onClick={() => (group.slug ? shopCategory(group.slug) : go("products"))} className="cursor-pointer border-0 bg-transparent p-0 text-[14px] font-semibold underline underline-offset-4" style={{ color: t.ink }}>{text(copy.cta) || "Shop all"}</button>
+            </div>
+            <div className="bq-tiles">
+              {group.list.map((product, i) => (
+                <ProductTile key={product.id} product={product} look={look} href={productHref(product.id)} onOpen={live ? undefined : () => openProduct(product.id)} wished={wished.includes(product.id)} onToggleWishlist={toggleWish} eager={i < 2} {...card} />
+              ))}
+            </div>
           </div>
         ))}
       </section>
@@ -2939,6 +3169,45 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             <div className="relative mx-auto w-full max-w-[460px] p-5">
               <div aria-hidden className="absolute inset-0 translate-x-0 translate-y-0" style={{ border: `3px solid ${t.border}` }} />
               <div className="bq-media relative -translate-x-6 -translate-y-6 aspect-[4/5]" style={{ borderRadius: look.cardRadius }}>{image ? <img src={image} alt="" width={800} height={1000} loading="lazy" /> : null}</div>
+            </div>
+          </div>
+        </section>
+      );
+    }
+    if (section.settings?.layout === "panel") {
+      // A wide picture with the words on a dark panel over its left side (Ìjókòó); phones stack them.
+      return (
+        <section aria-labelledby={headingId} className="relative overflow-hidden" style={{ background: t.ink, color: "#FFFFFF" }}>
+          <div className="bq-media w-full @3xl:absolute @3xl:inset-0" style={{ borderRadius: 0, aspectRatio: "16 / 9", minHeight: 220 }}>{image ? <img src={image} alt="" width={1600} height={900} loading="lazy" /> : null}</div>
+          <div className="relative flex flex-col items-start gap-4 px-6 py-10 @3xl:min-h-[440px] @3xl:w-[44%] @3xl:justify-center @3xl:px-14" style={{ background: "rgba(43,43,43,.86)" }}>
+            {text(copy.eyebrow) ? <p className="m-0 text-[12px] font-semibold uppercase" style={{ letterSpacing: "0.18em", color: t.accent }}>{text(copy.eyebrow)}</p> : null}
+            <h2 id={headingId} className="bq-h m-0 text-[28px] @3xl:text-[36px]" style={{ ...look.headingStyle, lineHeight: 1.12 }}>{text(copy.title) || store.name}</h2>
+            {body ? <p className="m-0 whitespace-pre-line text-[14.5px] leading-7 opacity-85">{body}</p> : null}
+            <button type="button" className="bq-btn mt-1" style={look.primaryButton} onClick={() => go(onAbout ? "contact" : "products")}>{onAbout ? "Get in touch" : "View more"}</button>
+          </div>
+        </section>
+      );
+    }
+    if (section.settings?.layout === "collage") {
+      // Three overlapping pictures beside the words (Ìtẹ́, Tufafi): the story picture large, then more stock or product photos.
+      const extras = [...(section.settings?.stockImage === false ? [] : stockImages?.extras ?? []), ...products.map((product) => product.images[0]).filter(Boolean) as string[]].filter((src) => src !== image);
+      const [second, third] = extras;
+      return (
+        <section aria-labelledby={headingId} className="bq-wrap py-14 @3xl:py-20">
+          <div className="grid items-center gap-10 @3xl:grid-cols-2 @3xl:gap-16">
+            <div className={`relative ${pictureRight ? "@3xl:order-2" : ""}`}>
+              <div aria-hidden className="absolute -left-4 -top-6 h-28 w-28 opacity-70" style={{ backgroundImage: `radial-gradient(${t.ink}55 2px, transparent 2px)`, backgroundSize: "14px 14px" }} />
+              <div className="relative grid grid-cols-[1.4fr_1fr] gap-4">
+                <div className="bq-media row-span-2 aspect-[3/4]" style={{ borderRadius: look.cardRadius + 6 }}>{image ? <img src={image} alt="" width={700} height={930} loading="lazy" /> : null}</div>
+                <div className="bq-media aspect-square" style={{ borderRadius: look.cardRadius + 6 }}>{second ? <img src={second} alt="" width={400} height={400} loading="lazy" /> : null}</div>
+                <div className="bq-media aspect-[3/4] -ml-16 mt-6" style={{ borderRadius: look.cardRadius + 6, boxShadow: "0 18px 40px rgba(0,0,0,.18)" }}>{third ? <img src={third} alt="" width={400} height={530} loading="lazy" /> : null}</div>
+              </div>
+            </div>
+            <div className="flex flex-col items-start gap-4">
+              {eyebrow}
+              <h2 id={headingId} className="bq-h m-0 text-[30px] @3xl:text-[38px]" style={{ ...look.headingStyle, lineHeight: 1.12 }}>{text(copy.title) || store.name}</h2>
+              {body ? <p className="m-0 whitespace-pre-line text-[15px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
+              {storyButton}
             </div>
           </div>
         </section>

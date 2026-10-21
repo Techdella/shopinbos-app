@@ -216,6 +216,11 @@ export const PDP_THEME_DEFAULTS: Record<string, ThemeDefault> = {
   bata: { layout: "classic", gallery: "thumbs-left", details: "accordion" },
   ogba: { layout: "classic", gallery: "thumbs-bottom", details: "tabs" },
   eso: { layout: "classic", gallery: "thumbs-bottom", details: "tabs" },
+  osan: { layout: "classic", gallery: "thumbs-bottom", details: "tabs" },
+  ijokoo: { layout: "classic", gallery: "thumbs-left", details: "tabs" },
+  ite: { layout: "classic", gallery: "thumbs-bottom", details: "accordion" },
+  kujera: { layout: "classic", gallery: "thumbs-left", details: "tabs" },
+  tufafi: { layout: "classic", gallery: "thumbs-left", details: "tabs" },
 };
 
 const FALLBACK_THEME: ThemeDefault = { layout: "classic", gallery: "thumbs-bottom", details: "accordion" };
