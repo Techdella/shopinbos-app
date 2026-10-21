@@ -226,6 +226,11 @@ export const PDP_THEME_DEFAULTS: Record<string, ThemeDefault> = {
   ola: { layout: "gallery-stack", gallery: "thumbs-left", details: "accordion" },
   okunrin: { layout: "classic", gallery: "thumbs-left", details: "tabs" },
   salubata: { layout: "classic", gallery: "thumbs-bottom", details: "tabs" },
+  efo: { layout: "classic", gallery: "thumbs-bottom", details: "tabs" },
+  aluko: { layout: "classic", gallery: "thumbs-left", details: "tabs" },
+  aja: { layout: "classic", gallery: "thumbs-bottom", details: "tabs" },
+  dara: { layout: "classic", gallery: "thumbs-left", details: "tabs" },
+  ife: { layout: "editorial", gallery: "thumbs-left", details: "accordion" },
 };
 
 const FALLBACK_THEME: ThemeDefault = { layout: "classic", gallery: "thumbs-bottom", details: "accordion" };

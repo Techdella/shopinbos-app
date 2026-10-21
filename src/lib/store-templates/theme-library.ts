@@ -17,7 +17,8 @@ export type ThemeLibraryId =
   | "ahia" | "ado" | "wuta" | "ike" | "ewu"
   | "erin" | "apere" | "bata" | "ogba" | "eso"
   | "osan" | "ijokoo" | "ite" | "kujera" | "tufafi"
-  | "rewa" | "igbese" | "ola" | "okunrin" | "salubata";
+  | "rewa" | "igbese" | "ola" | "okunrin" | "salubata"
+  | "efo" | "aluko" | "aja" | "dara" | "ife";
 
 /**
  * Which plan a theme needs: basic themes come with every store (the free Starter plan), premium ones with Growth
@@ -30,7 +31,7 @@ export const THEME_TIERS: readonly ThemeTier[] = ["basic", "premium", "platinum"
 
 /** Category chips in the gallery (plus "any" for themes that suit every shop). */
 export type ThemeLibraryCategory =
-  | "fashion" | "beauty" | "food" | "home" | "gadgets" | "kids" | "books" | "events" | "auto" | "groceries" | "jewellery" | "agro" | "any";
+  | "fashion" | "beauty" | "food" | "home" | "gadgets" | "kids" | "books" | "events" | "auto" | "groceries" | "jewellery" | "agro" | "pets" | "any";
 
 export interface ThemeLibraryPreview {
   /** Card background, text and hairline colours (Rex's theme cards use these as swatches). */
@@ -447,6 +448,31 @@ export const THEME_LIBRARY: readonly ThemeLibraryEntry[] = [
     industries: ["shoes", "sandals", "slippers", "boots", "heels"], blurb: "Khaki and black, colour-block collections and a deal of the month. For shoe shops", isNew: true, tier: "basic",
     preview: { bg: "#DBCC8F", ink: "#111111", line: "#CDBD7C", accent: "#111111", nameFont: "grotesk", nameWeight: 600, dark: false },
   }),
+  entry({
+    id: "efo", name: "Ẹ̀fọ́", meaning: "Yoruba for vegetables", categories: ["groceries", "agro", "food"], categoryLabel: "Fresh produce",
+    industries: ["vegetables", "fruit", "juice", "dried foods", "organic food"], blurb: "Leaf green, a centre-column category grid and a deal of the day. For vegetable sellers", isNew: true, tier: "basic",
+    preview: { bg: "#1E2A12", ink: "#FFFFFF", line: "#33461F", accent: "#82AE46", nameFont: "grotesk", nameWeight: 700, dark: true },
+  }),
+  entry({
+    id: "aluko", name: "Àlùkò", meaning: "Yoruba for the violet plantain-eater bird", categories: ["fashion"], categoryLabel: "Fashion",
+    industries: ["fashion", "jewellery", "footwear", "womenswear", "lookbook"], blurb: "Slate blue, a lookbook block and a giant word over the story photo. For fashion stores", isNew: true, tier: "premium",
+    preview: { bg: "#EEF4F8", ink: "#1D1D1D", line: "#DCE6EE", accent: "#6F8BA4", nameFont: "grotesk", nameWeight: 800, dark: false },
+  }),
+  entry({
+    id: "aja", name: "Ajá", meaning: "Yoruba for dog", categories: ["pets"], categoryLabel: "Pets",
+    industries: ["pet shop", "pet food", "pet clothing", "pet accessories", "vets"], blurb: "Warm cream, a pet in a circle and pet chips. For pet shops", isNew: true, tier: "premium",
+    preview: { bg: "#F9F3EC", ink: "#41403E", line: "#EDE4D9", accent: "#C88A3E", nameFont: "grotesk", nameWeight: 600, dark: false },
+  }),
+  entry({
+    id: "dara", name: "Dára", meaning: "Yoruba for good and beautiful", categories: ["fashion"], categoryLabel: "Fashion",
+    industries: ["fashion", "womenswear", "menswear", "dresses", "jackets"], blurb: "Bright and orange, a split banner and overlapping collections. For fashion stores", isNew: true, tier: "basic",
+    preview: { bg: "#FFFFFF", ink: "#111111", line: "#F1F1F1", accent: "#F96D00", nameFont: "grotesk", nameWeight: 800, dark: false },
+  }),
+  entry({
+    id: "ife", name: "Ìfẹ́", meaning: "Yoruba for love", categories: ["fashion"], categoryLabel: "Boutique",
+    industries: ["boutique", "womenswear", "swimwear", "accessories", "shoes"], blurb: "Serif and taupe, photo cards with a Shop now bar and a photo newsletter. For boutiques", isNew: true, tier: "platinum",
+    preview: { bg: "#2A2522", ink: "#FFFFFF", line: "#3D3632", accent: "#C5A898", nameFont: "serif", nameWeight: 500, dark: true },
+  }),
 ];
 
 export const THEME_LIBRARY_IDS: readonly ThemeLibraryId[] = THEME_LIBRARY.map((item) => item.id);
@@ -515,6 +541,7 @@ export const THEME_CATEGORY_CHIPS: ReadonlyArray<{ id: ThemeChipId; label: strin
   { id: "groceries", label: "Groceries" },
   { id: "jewellery", label: "Jewellery" },
   { id: "agro", label: "Agro" },
+  { id: "pets", label: "Pets" },
 ];
 
 /** "All" plus only the chips that have at least one theme. */
@@ -579,6 +606,11 @@ const THEME_RULES: Array<{ themeId: ThemeLibraryId; industry: string; words: str
   { themeId: "itanna", industry: "sneakers", words: ["sneaker store", "sneakerhead", "kicks", "trainers"] },
   { themeId: "gele", industry: "fashion and accessories", words: ["gele", "headtie", "head tie", "headwrap", "head wrap", "turban"] },
   { themeId: "itura", industry: "home and lifestyle", words: ["comfort", "lounge", "lifestyle store", "home goods", "ottoman", "pouf"] },
+  { themeId: "aja", industry: "pets", words: ["pets", "pet shop", "pet store", "pet food", "pet supplies", "dog food", "cat food", "dog treats", "puppy", "kitten", "aquarium", "bird seed"] },
+  { themeId: "efo", industry: "vegetables", words: ["vegetable seller", "veggies", "leafy greens", "ugwu seller"] },
+  { themeId: "aluko", industry: "fashion", words: ["lookbook", "fashion lookbook"] },
+  { themeId: "ife", industry: "boutique", words: ["swimwear", "swimsuit", "bikini", "resort boutique"] },
+  { themeId: "dara", industry: "fashion", words: ["modern woman", "modern man", "everyday fashion"] },
   { themeId: "igbese", industry: "sneakers", words: ["sneaker plug", "sneaker reseller", "runners club", "basketball gear", "hoops"] },
   { themeId: "salubata", industry: "shoes", words: ["mules", "flip flops", "clogs", "palm slippers"] },
   { themeId: "okunrin", industry: "menswear", words: ["men's fashion store", "male fashion", "men's outfits"] },

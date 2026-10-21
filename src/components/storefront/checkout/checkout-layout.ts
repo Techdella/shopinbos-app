@@ -135,6 +135,11 @@ export const CHECKOUT_THEME_DEFAULTS: Record<string, ThemeDefault> = {
   ola: { layout: "minimal", summaryPosition: "right", header: "logo" },
   okunrin: { layout: "two-column", summaryPosition: "right", header: "nav" },
   salubata: { layout: "two-column", summaryPosition: "right", header: "nav" },
+  efo: { layout: "two-column", summaryPosition: "right", header: "nav" },
+  aluko: { layout: "two-column", summaryPosition: "right", header: "nav" },
+  aja: { layout: "steps", summaryPosition: "right", header: "nav" },
+  dara: { layout: "two-column", summaryPosition: "right", header: "nav" },
+  ife: { layout: "minimal", summaryPosition: "right", header: "logo" },
 };
 
 const FALLBACK_THEME: ThemeDefault = { layout: "two-column", summaryPosition: "right", header: "logo" };
