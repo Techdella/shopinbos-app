@@ -12,8 +12,9 @@ import { Placeholder } from "@tiptap/extensions";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { PillButton, Spinner, cx } from "@/components/app-ui";
 import { CMS_PROSE_CSS } from "@/components/cms/prose-css";
-import { Modal, RecordPicker, uploadCmsFile } from "@/components/cms/pickers";
+import { Modal, RecordPicker } from "@/components/cms/pickers";
 import { MediaLibraryDialog } from "@/components/media/MediaLibraryDialog";
+import type { MediaAssetView } from "@shared/media";
 import { markdownToDoc } from "@/lib/cms/markdown";
 import { youtubeEmbedUrl, type RichDoc } from "@/lib/cms/richtext";
 import { useT } from "@/components/i18n/I18nProvider";
@@ -62,6 +63,24 @@ const CmsButton = Node.create({
   },
 });
 
+// A video from the store's media (YouTube links use the youtube node instead).
+const CmsVideo = Node.create({
+  name: "video",
+  group: "block",
+  atom: true,
+  selectable: true,
+  draggable: true,
+  addAttributes() {
+    return { src: { default: "" }, title: { default: null } };
+  },
+  parseHTML() {
+    return [{ tag: "video[src]", getAttrs: (element: HTMLElement) => ({ src: element.getAttribute("src") ?? "", title: element.getAttribute("title") }) }];
+  },
+  renderHTML({ node }) {
+    return ["video", { src: node.attrs.src, title: node.attrs.title, controls: "", preload: "metadata", playsinline: "", "data-cms-video": "" }];
+  },
+});
+
 const ProductCard = Node.create({
   name: "productCard",
   group: "block",
@@ -86,10 +105,15 @@ type DialogState =
   | { kind: "link"; href: string; newTab: boolean }
   | { kind: "youtube"; url: string }
   | { kind: "image"; src: string; alt: string; caption: string; editing: boolean }
+  | { kind: "video"; src: string; caption: string; editing: boolean }
   | { kind: "button"; href: string; label: string; variant: "solid" | "outline"; editing: boolean }
   | { kind: "product" }
   | { kind: "markdown"; text: string }
+  | { kind: "rex"; task: RexTask; instruction: string; busy: boolean }
   | null;
+
+type RexTask = "write" | "continue" | "improve" | "shorten" | "expand";
+const REX_REWRITES: RexTask[] = ["improve", "shorten", "expand"];
 
 const field = "min-h-[44px] w-full rounded-[14px] border border-app-line bg-white px-3.5 text-[14.5px] outline-none focus:border-app-ink";
 
@@ -116,15 +140,26 @@ function ToolButton({ icon, label, onClick, active, disabled, children }: { icon
 
 const Sep = () => <span aria-hidden className="mx-0.5 h-6 w-px shrink-0 bg-app-line" />;
 
-export function RichTextEditor({ value, onChange, label, placeholder: placeholderProp }: { value: RichDoc | null; onChange: (doc: RichDoc) => void; label: string; placeholder?: string }) {
+export function RichTextEditor({
+  value,
+  onChange,
+  label,
+  placeholder: placeholderProp,
+  rex,
+}: {
+  value: RichDoc | null;
+  onChange: (doc: RichDoc) => void;
+  label: string;
+  placeholder?: string;
+  /** Shows "Ask Rex" in the toolbar: what the piece is, for Rex's prompt. */
+  rex?: { title: string; collection: string };
+}) {
   const t = useT("cms");
   const placeholder = placeholderProp ?? t("rte.placeholder");
   const [dialog, setDialog] = useState<DialogState>(null);
-  const [uploading, setUploading] = useState(false);
-  const [libraryOpen, setLibraryOpen] = useState(false);
-  const tm = useT("media");
+  // The media library opens for every picture or video: to add one, or to swap the selected one.
+  const [library, setLibrary] = useState<null | "insert" | "image" | "video">(null);
   const [error, setError] = useState("");
-  const fileRef = useRef<HTMLInputElement>(null);
   const labelId = useId();
   const changeRef = useRef(onChange);
   changeRef.current = onChange;
@@ -144,6 +179,7 @@ export function RichTextEditor({ value, onChange, label, placeholder: placeholde
       Placeholder.configure({ placeholder }),
       Callout,
       CmsButton,
+      CmsVideo,
       ProductCard,
     ],
     content: (value as JSONContent | null) ?? undefined,
@@ -181,6 +217,7 @@ export function RichTextEditor({ value, onChange, label, placeholder: placeholde
         callout: e.isActive("callout"),
         calloutTone: (e.getAttributes("callout").tone as string) ?? "info",
         image: e.isActive("image"),
+        video: e.isActive("video"),
         button: e.isActive("button"),
         canUndo: e.can().undo(),
         canRedo: e.can().redo(),
@@ -220,6 +257,11 @@ export function RichTextEditor({ value, onChange, label, placeholder: placeholde
   }
 
   const chain = () => editor.chain().focus();
+  // New blocks go after a selected picture/video/card instead of replacing it.
+  const insertBlock = (content: JSONContent) => {
+    const { selection } = editor.state;
+    return "node" in selection ? chain().insertContentAt(selection.to, content).run() : chain().insertContent(content).run();
+  };
 
   function switchMode(next: "visual" | "html") {
     if (next === mode || !editor) return;
@@ -229,19 +271,47 @@ export function RichTextEditor({ value, onChange, label, placeholder: placeholde
     setMode(next);
   }
 
-  async function onFile(file: File | undefined) {
-    if (!file) return;
-    setUploading(true);
+  function onLibraryPick(asset: MediaAssetView | undefined) {
+    const purpose = library;
+    if (!asset || !purpose) return;
+    setError("");
+    if (purpose === "image" || purpose === "video") {
+      if (asset.kind !== purpose) return setError(purpose === "image" ? t("rte.pickPicture") : t("rte.pickVideo"));
+      chain().updateAttributes(purpose, { src: asset.url }).run();
+      return;
+    }
+    if (asset.kind === "video") setDialog({ kind: "video", src: asset.url, caption: asset.title ?? "", editing: false });
+    else setDialog({ kind: "image", src: asset.url, alt: asset.alt ?? asset.title ?? asset.name?.replace(/\.[a-z0-9]+$/i, "").replace(/[-_]+/g, " ") ?? "", caption: "", editing: false });
+  }
+
+  function selectedText() {
+    const { from, to } = editor!.state.selection;
+    return from === to ? "" : editor!.state.doc.textBetween(from, to, "\n\n");
+  }
+
+  async function askRex() {
+    if (dialog?.kind !== "rex" || !editor || !rex) return;
+    const { from, to } = editor.state.selection;
+    const selection = selectedText();
+    const rewrite = REX_REWRITES.includes(dialog.task);
+    if (rewrite && !selection) return setError(t("rex.selectFirst"));
+    setDialog({ ...dialog, busy: true });
     setError("");
     try {
-      const uploaded = await uploadCmsFile(file);
-      if (!uploaded.type.startsWith("image/")) throw new Error(t("rte.pickPicture"));
-      setDialog({ kind: "image", src: uploaded.url, alt: file.name.replace(/\.[a-z0-9]+$/i, "").replace(/[-_]+/g, " "), caption: "", editing: false });
+      const res = await fetch("/api/app/cms/assist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ task: dialog.task, instruction: dialog.instruction, selection, before: editor.state.doc.textBetween(0, from, "\n\n").slice(-3000), title: rex.title, collection: rex.collection }),
+      });
+      const json = (await res.json().catch(() => null)) as { data?: { markdown: string }; error?: { message?: string } } | null;
+      if (!res.ok || !json?.data) throw new Error(json?.error?.message ?? t("rex.failed"));
+      const content = markdownToDoc(json.data.markdown).content as JSONContent[];
+      if (rewrite) editor.chain().focus().insertContentAt({ from, to }, content).run();
+      else editor.chain().focus().insertContentAt(to, content).run();
+      setDialog(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : t("rte.uploadFailed"));
-    } finally {
-      setUploading(false);
-      if (fileRef.current) fileRef.current.value = "";
+      setError(e instanceof Error ? e.message : t("rex.failed"));
+      setDialog((current) => (current?.kind === "rex" ? { ...current, busy: false } : current));
     }
   }
 
@@ -263,7 +333,11 @@ export function RichTextEditor({ value, onChange, label, placeholder: placeholde
         break;
       case "image":
         if (dialog.editing) chain().updateAttributes("image", { alt: dialog.alt, title: dialog.caption || null }).run();
-        else chain().setImage({ src: dialog.src, alt: dialog.alt, title: dialog.caption || undefined }).run();
+        else insertBlock({ type: "image", attrs: { src: dialog.src, alt: dialog.alt, title: dialog.caption || null } });
+        break;
+      case "video":
+        if (dialog.editing) chain().updateAttributes("video", { title: dialog.caption || null }).run();
+        else insertBlock({ type: "video", attrs: { src: dialog.src, title: dialog.caption || null } });
         break;
       case "button": {
         const href = dialog.href.trim();
@@ -342,13 +416,14 @@ export function RichTextEditor({ value, onChange, label, placeholder: placeholde
         <ToolButton label={t("rte.alignCentre")} active={state.center} onClick={() => chain().setTextAlign("center").run()}><AlignGlyph align="center" /></ToolButton>
         <ToolButton label={t("rte.alignRight")} active={state.right} onClick={() => chain().setTextAlign("right").run()}><AlignGlyph align="right" /></ToolButton>
         <Sep />
-        <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="sr-only" tabIndex={-1} aria-hidden onChange={(event) => void onFile(event.target.files?.[0])} />
-        <ToolButton label={uploading ? t("rte.uploadingPicture") : t("rte.addPicture")} icon="image" disabled={uploading} onClick={() => fileRef.current?.click()} />
-        <ToolButton label={tm("field.choose")} icon="layers" disabled={uploading} onClick={() => setLibraryOpen(true)} />
+        <ToolButton label={t("rte.addMedia")} icon="image" onClick={() => setLibrary("insert")}><span className="hidden sm:inline">{t("rte.addMedia")}</span></ToolButton>
         <MediaLibraryDialog
-          open={libraryOpen}
-          onClose={() => setLibraryOpen(false)}
-          onSelect={([asset]) => asset && setDialog({ kind: "image", src: asset.url, alt: asset.alt ?? asset.name ?? "", caption: "", editing: false })}
+          open={library !== null}
+          accept={library === "image" ? "image" : "any"}
+          initialKind={library === "video" ? "video" : undefined}
+          title={library === "video" ? t("rte.chooseVideo") : library === "image" ? t("rte.choosePicture") : t("rte.addMedia")}
+          onClose={() => setLibrary(null)}
+          onSelect={([asset]) => onLibraryPick(asset)}
         />
         <ToolButton label={t("rte.addYoutube")} icon="play" onClick={() => setDialog({ kind: "youtube", url: "" })} />
         <ToolButton label={t("rte.addTable")} icon="grid" active={state.table} onClick={() => chain().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()} />
@@ -358,11 +433,16 @@ export function RichTextEditor({ value, onChange, label, placeholder: placeholde
         <ToolButton label={t("rte.addProduct")} icon="bag" onClick={() => setDialog({ kind: "product" })} />
         <Sep />
         <ToolButton label={t("rte.importMd")} icon="download" onClick={() => setDialog({ kind: "markdown", text: "" })} />
+        {rex && (
+          <ToolButton label={t("rex.ask")} icon="sparkle" onClick={() => setDialog({ kind: "rex", task: selectedText() ? "improve" : editor.state.doc.textContent.trim() ? "continue" : "write", instruction: "", busy: false })}>
+            <span className="hidden sm:inline">{t("rex.ask")}</span>
+          </ToolButton>
+        )}
         <ToolButton label={t("rte.undo")} icon="undo" disabled={!state.canUndo} onClick={() => chain().undo().run()} />
         <ToolButton label={t("rte.redo")} icon="refresh" disabled={!state.canRedo} onClick={() => chain().redo().run()} />
       </div>
 
-      {mode === "visual" && (state.table || state.callout || state.image || state.button) && (
+      {mode === "visual" && (state.table || state.callout || state.image || state.video || state.button) && (
         <div className="flex flex-wrap items-center gap-1 border-b border-app-line bg-app-canvas px-2 py-1.5 text-[13px]">
           {state.table && (
             <>
@@ -389,8 +469,17 @@ export function RichTextEditor({ value, onChange, label, placeholder: placeholde
           {state.image && (
             <>
               <span className="px-1.5 font-bold text-app-ink-soft">{t("rte.picture")}</span>
+              <ToolButton label={t("rte.replacePicture")} onClick={() => setLibrary("image")}>{t("rte.replace")}</ToolButton>
               <ToolButton label={t("rte.editDesc")} onClick={() => setDialog({ kind: "image", src: editor.getAttributes("image").src as string, alt: (editor.getAttributes("image").alt as string) ?? "", caption: (editor.getAttributes("image").title as string) ?? "", editing: true })}>{t("rte.description")}</ToolButton>
               <ToolButton label={t("rte.removePicture")} icon="trash" onClick={() => chain().deleteSelection().run()} />
+            </>
+          )}
+          {state.video && (
+            <>
+              <span className="px-1.5 font-bold text-app-ink-soft">{t("rte.video")}</span>
+              <ToolButton label={t("rte.replaceVideo")} onClick={() => setLibrary("video")}>{t("rte.replace")}</ToolButton>
+              <ToolButton label={t("rte.editCaption")} onClick={() => setDialog({ kind: "video", src: editor.getAttributes("video").src as string, caption: (editor.getAttributes("video").title as string) ?? "", editing: true })}>{t("rte.caption")}</ToolButton>
+              <ToolButton label={t("rte.removeVideo")} icon="trash" onClick={() => chain().deleteSelection().run()} />
             </>
           )}
           {state.button && (
@@ -447,6 +536,13 @@ export function RichTextEditor({ value, onChange, label, placeholder: placeholde
           <input id={`${labelId}-cap`} className={field} value={dialog.caption} onChange={(e) => setDialog({ ...dialog, caption: e.target.value })} />
         </Modal>
       )}
+      {dialog?.kind === "video" && (
+        <Modal title={t("rte.video")} onClose={() => setDialog(null)} footer={<PillButton tone="ink" size="sm" onClick={applyDialog}>{dialog.editing ? t("rte.save") : t("rte.addVideo")}</PillButton>}>
+          <video src={dialog.src} controls preload="metadata" playsInline className="mb-3 max-h-[240px] w-full rounded-[14px] bg-black" />
+          <label className="mb-1.5 block text-[13.5px] font-bold" htmlFor={`${labelId}-vcap`}>{t("rte.caption")}</label>
+          <input id={`${labelId}-vcap`} className={field} value={dialog.caption} maxLength={300} onChange={(e) => setDialog({ ...dialog, caption: e.target.value })} />
+        </Modal>
+      )}
       {dialog?.kind === "button" && (
         <Modal title={t("rte.button")} onClose={() => setDialog(null)} footer={<PillButton tone="ink" size="sm" onClick={applyDialog}>{dialog.editing ? t("rte.save") : t("rte.addButtonBtn")}</PillButton>}>
           <label className="mb-1.5 block text-[13.5px] font-bold" htmlFor={`${labelId}-bl`}>{t("rte.buttonWords")}</label>
@@ -468,8 +564,31 @@ export function RichTextEditor({ value, onChange, label, placeholder: placeholde
           selected={[]}
           title={t("rte.addProduct")}
           onClose={() => setDialog(null)}
-          onPick={([row]) => row && chain().insertContent({ type: "productCard", attrs: { productId: row.id, name: row.name, image: row.image } }).run()}
+          onPick={([row]) => row && insertBlock({ type: "productCard", attrs: { productId: row.id, name: row.name, image: row.image } })}
         />
+      )}
+      {dialog?.kind === "rex" && (
+        <Modal
+          title={t("rex.ask")}
+          onClose={() => !dialog.busy && setDialog(null)}
+          footer={<PillButton tone="ink" size="sm" busy={dialog.busy} onClick={() => void askRex()}>{REX_REWRITES.includes(dialog.task) ? t("rex.rewrite") : t("rex.write")}</PillButton>}
+        >
+          <fieldset className="m-0 border-0 p-0">
+            <legend className="mb-1.5 text-[13.5px] font-bold">{t("rex.what")}</legend>
+            <div className="grid gap-1.5">
+              {(["write", "continue", "improve", "shorten", "expand"] as const).map((task) => (
+                <label key={task} className="flex min-h-[40px] items-center gap-2 rounded-[12px] border border-app-line px-3 text-[14px]">
+                  <input type="radio" name={`${labelId}-rex`} checked={dialog.task === task} onChange={() => setDialog({ ...dialog, task })} /> {t(`rex.task.${task}`)}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          {REX_REWRITES.includes(dialog.task) && !selectedText() && <p className="m-0 mt-2 text-[12.5px] text-app-danger">{t("rex.selectFirst")}</p>}
+          <label className="mb-1.5 mt-3 block text-[13.5px] font-bold" htmlFor={`${labelId}-rexi`}>{dialog.task === "write" ? t("rex.aboutWhat") : t("rex.anyNotes")}</label>
+          <textarea id={`${labelId}-rexi`} rows={3} maxLength={1500} className="w-full rounded-[14px] border border-app-line p-3 text-[14.5px] outline-none focus:border-app-ink" placeholder={t("rex.instructionPh")} value={dialog.instruction} onChange={(e) => setDialog({ ...dialog, instruction: e.target.value })} />
+          {error && <p className="m-0 mt-2 text-[13px] text-app-danger" role="alert">{error}</p>}
+          <p className="m-0 mt-2 text-[12px] text-app-ink-soft">{t("rex.review")}</p>
+        </Modal>
       )}
       {dialog?.kind === "markdown" && (
         <Modal title={t("rte.importMd")} wide onClose={() => setDialog(null)} footer={<PillButton tone="ink" size="sm" disabled={!dialog.text.trim()} onClick={applyDialog}>{t("rte.insert")}</PillButton>}>

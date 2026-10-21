@@ -22,6 +22,7 @@ export const CMS_PROSE_CSS = `
 .cms-prose figure{margin:1.5em 0}.cms-prose figcaption{font-size:.85em;color:var(--cms-muted,#5D5A6B);margin-top:.5em;text-align:center}
 .cms-prose .cms-embed,.cms-prose div[data-youtube-video]{position:relative;padding-top:56.25%;margin:1.5em 0;border-radius:var(--cms-radius,14px);overflow:hidden;background:#000}
 .cms-prose .cms-embed iframe,.cms-prose div[data-youtube-video] iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.cms-prose .cms-video-file video,.cms-prose video[data-cms-video]{display:block;width:100%;max-height:640px;border-radius:var(--cms-radius,14px);background:#000}
 .cms-prose .cms-table,.cms-prose .tableWrapper{overflow-x:auto;margin:1.4em 0}
 .cms-prose table{border-collapse:collapse;width:100%;font-size:.92em;table-layout:auto}
 .cms-prose th,.cms-prose td{border:1px solid var(--cms-border,#E7E4EF);padding:8px 12px;text-align:left;vertical-align:top;min-width:64px}

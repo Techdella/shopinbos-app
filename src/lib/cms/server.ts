@@ -48,6 +48,8 @@ export function collectionSettings(raw: unknown) {
     itemLayout: isItemLayout(r.itemLayout) ? r.itemLayout : ("classic" as const),
     sort: (["newest", "oldest", "title", "manual"] as const).includes(r.sort as "newest") ? (r.sort as "newest" | "oldest" | "title" | "manual") : ("newest" as const),
     legacyImported: Array.isArray(r.legacyImported) ? r.legacyImported.map(String) : [],
+    /** The seller went through (or skipped) the set-up shown after the first item. */
+    setupDone: r.setupDone === true,
   };
 }
 
@@ -123,6 +125,7 @@ export const CollectionUpdateSchema = z.object({
   fields: z.array(z.unknown()).max(40).optional(),
   layout: z.enum(LIST_LAYOUTS).optional(),
   itemLayout: z.enum(ITEM_LAYOUTS).optional(),
+  setupDone: z.boolean().optional(),
   sort: z.enum(["newest", "oldest", "title", "manual"]).optional(),
   isPublished: z.boolean().optional(),
   seo: z.record(z.string(), z.unknown()).optional(),
@@ -191,12 +194,13 @@ export async function updateCollection(storeId: string, id: string, input: z.inp
     if (!result.ok) throw new CmsError(result.error);
     data.fields = json(result.fields);
   }
-  if (parsed.layout !== undefined || parsed.itemLayout !== undefined || parsed.sort !== undefined) {
+  if (parsed.layout !== undefined || parsed.itemLayout !== undefined || parsed.sort !== undefined || parsed.setupDone !== undefined) {
     data.settings = json({
       ...rec(collection.settings),
       ...(parsed.layout ? { layout: parsed.layout } : {}),
       ...(parsed.itemLayout ? { itemLayout: parsed.itemLayout } : {}),
       ...(parsed.sort ? { sort: parsed.sort } : {}),
+      ...(parsed.setupDone !== undefined ? { setupDone: parsed.setupDone } : {}),
     });
   }
   return db.cmsCollection.update({ where: { id }, data });

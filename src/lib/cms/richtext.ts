@@ -20,7 +20,7 @@ export const EMPTY_DOC: RichDoc = { type: "doc", content: [{ type: "paragraph" }
 
 const BLOCKS = new Set([
   "paragraph", "heading", "bulletList", "orderedList", "listItem", "blockquote", "codeBlock", "horizontalRule",
-  "hardBreak", "image", "youtube", "table", "tableRow", "tableHeader", "tableCell", "callout", "button", "productCard", "text",
+  "hardBreak", "image", "video", "youtube", "table", "tableRow", "tableHeader", "tableCell", "callout", "button", "productCard", "text",
 ]);
 const MARKS = new Set(["bold", "italic", "underline", "strike", "code", "link"]);
 const ALIGN = new Set(["left", "center", "right", "justify"]);
@@ -155,6 +155,10 @@ export function sanitizeDoc(raw: unknown): RichDoc {
         const src = safeImageUrl(attrs.src);
         return src ? [{ type, attrs: { src, alt: text(attrs.alt, 300), title: text(attrs.title, 300) || null } }] : [];
       }
+      case "video": {
+        const src = safeImageUrl(attrs.src);
+        return src ? [{ type, attrs: { src, title: text(attrs.title, 300) || null } }] : [];
+      }
       case "youtube": {
         const src = youtubeEmbedUrl(attrs.src);
         return src ? [{ type, attrs: { src } }] : [];
@@ -287,6 +291,13 @@ export function renderDoc(doc: RichDoc, options: RenderOptions = {}): string {
         const caption = text(attrs.title, 300);
         const img = `<img src="${escapeHtml(src)}" alt="${escapeHtml(text(attrs.alt, 300))}" loading="lazy">`;
         return caption ? `<figure>${img}<figcaption>${escapeHtml(caption)}</figcaption></figure>` : `<figure>${img}</figure>`;
+      }
+      case "video": {
+        const src = safeImageUrl(attrs.src);
+        if (!src) return "";
+        const caption = text(attrs.title, 300);
+        const video = `<video src="${escapeHtml(src)}" controls preload="metadata" playsinline></video>`;
+        return caption ? `<figure class="cms-video-file">${video}<figcaption>${escapeHtml(caption)}</figcaption></figure>` : `<figure class="cms-video-file">${video}</figure>`;
       }
       case "youtube": {
         const src = youtubeEmbedUrl(attrs.src);

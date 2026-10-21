@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Icon } from "@/components/ui/Icon";
 import { useRouter } from "next/navigation";
 import { Notice, PillButton, Toggle, cx } from "@/components/app-ui";
 import { SeoTab } from "@/components/seo/SeoTab";
@@ -15,6 +16,15 @@ import { LayoutPicker } from "../LayoutPicker";
 // Name, web address, layout, order, visibility and the list page's SEO; deleting the collection.
 
 const input = "min-h-[44px] w-full rounded-[14px] border border-app-line bg-white px-3.5 text-[14.5px] outline-none focus:border-app-ink";
+
+export function listLayoutOptions(t: TFunction<KeysOf<["cms"]>>) {
+  return [
+    { value: "grid" as const, label: t("cs.cards"), help: t("cs.cardsHelp") },
+    { value: "list" as const, label: t("cs.list"), help: t("cs.listHelp") },
+    { value: "magazine" as const, label: t("cs.magazine"), help: t("cs.magazineHelp") },
+    { value: "compact" as const, label: t("cs.compact"), help: t("cs.compactHelp") },
+  ];
+}
 
 export function itemLayoutOptions(t: TFunction<KeysOf<["cms"]>>) {
   return [
@@ -90,12 +100,7 @@ export function CollectionSettings(props: {
             help={t("cs.layoutHelp")}
             value={layout}
             onChange={setLayout}
-            options={[
-              { value: "grid", label: t("cs.cards"), help: t("cs.cardsHelp") },
-              { value: "list", label: t("cs.list"), help: t("cs.listHelp") },
-              { value: "magazine", label: t("cs.magazine"), help: t("cs.magazineHelp") },
-              { value: "compact", label: t("cs.compact"), help: t("cs.compactHelp") },
-            ]}
+            options={listLayoutOptions(t)}
           />
         </div>
         <div className="lg:col-span-2">
@@ -140,6 +145,8 @@ export function CollectionSettings(props: {
         {slugProblem && <p className="m-0 mt-2 text-[13px] text-app-danger" role="alert">{slugProblem}</p>}
       </div>
 
+      <MenuSection collectionId={c.id} name={name || c.name} />
+
       <div className="sticky bottom-3 z-10 flex justify-end rounded-full bg-white/90 p-2 backdrop-blur">
         <PillButton tone="ink" size="md" busy={busy} disabled={Boolean(slugProblem) || !name.trim()} onClick={() => void save()}>{t("cs.save")}</PillButton>
       </div>
@@ -154,5 +161,47 @@ export function CollectionSettings(props: {
         </div>
       </section>
     </div>
+  );
+}
+
+/** Where the collection shows in the store's menus, with buttons to add it to the header or footer. */
+function MenuSection({ collectionId, name }: { collectionId: string; name: string }) {
+  const t = useT("cms");
+  const [menu, setMenu] = useState<{ header: boolean; footer: boolean } | null>(null);
+  const [busy, setBusy] = useState<"" | "header" | "footer">("");
+  const [error, setError] = useState("");
+  useEffect(() => {
+    fetch(`/api/app/cms/collections/${collectionId}/menu`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => json?.data && setMenu(json.data))
+      .catch(() => {});
+  }, [collectionId]);
+  async function add(placement: "header" | "footer") {
+    setBusy(placement);
+    setError("");
+    const res = await fetch(`/api/app/cms/collections/${collectionId}/menu`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ placement }) });
+    const json = await res.json().catch(() => null);
+    setBusy("");
+    if (!res.ok) return setError(json?.error?.message ?? t("setup.menuError"));
+    setMenu(json.data);
+  }
+  return (
+    <section className="grid gap-3 rounded-[22px] border border-app-line bg-white p-4 sm:p-6">
+      <div>
+        <h2 className="m-0 text-[16px] font-extrabold">{t("setup.step.menu")}</h2>
+        <p className="m-0 mt-1 text-[13px] text-app-ink-soft">{t("setup.whereMenu", { name })}</p>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        {(["header", "footer"] as const).map((placement) =>
+          menu?.[placement] ? (
+            <span key={placement} className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full bg-app-canvas px-4 text-[13.5px] font-bold"><Icon name="check" size={14} /> {placement === "header" ? t("setup.inHeader") : t("setup.inFooter")}</span>
+          ) : (
+            <PillButton key={placement} tone="white" size="sm" busy={busy === placement} disabled={!menu || Boolean(busy)} onClick={() => void add(placement)}>{t(`setup.add.${placement}`)}</PillButton>
+          ),
+        )}
+        <a href="/home/navigation" className="ml-auto text-[13.5px] font-bold text-app-ink underline">{t("setup.editMenus")}</a>
+      </div>
+      {error && <p className="m-0 text-[13px] text-app-danger" role="alert">{error}</p>}
+    </section>
   );
 }

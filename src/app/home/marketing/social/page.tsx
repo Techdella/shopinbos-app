@@ -79,6 +79,7 @@ export default async function SocialPostsPage({ searchParams }: { searchParams: 
       sub={t("sub")}
       actions={
         <div className="flex flex-wrap gap-2">
+          <PillLink href="/home/cms/plan" icon="calendar">{t("act.plan")}</PillLink>
           <PillLink href="/home/marketing/social/designs" icon="sparkle">{t("act.designs")}</PillLink>
           <PillLink href="/home/marketing/social/new" tone="ink" icon="plus">{t("act.create")}</PillLink>
         </div>

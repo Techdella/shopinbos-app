@@ -10,6 +10,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "noStore.body": "Posts suna da link zuwa shagonka, don haka kana buƙatar shago kafin ka tsara su.",
   "act.create": "Ƙirƙiri post",
   "act.designs": "Zane-zanen Rex",
+  "act.plan": "Tsara da Rex",
   // Sub-menu
   "nav.calendar": "Kalanda",
   "nav.queue": "Queue",

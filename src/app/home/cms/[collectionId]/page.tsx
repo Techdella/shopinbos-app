@@ -88,8 +88,9 @@ export default async function CollectionPage({ params, searchParams }: { params:
       actions={
         <>
           <PillLink href="/home/cms" icon="arrowLeft">{t("col.allContent")}</PillLink>
+          <PillLink href="/home/cms/plan" icon="calendar">{t("plan.title")}</PillLink>
           {collection.isPublished && (
-            <a href={`/s/${store.slug}/${collection.slug}`} target="_blank" rel="noreferrer" className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-app-line bg-white px-5 text-[14px] font-extrabold text-app-ink no-underline hover:border-app-line-strong">
+            <a href={`${origin}/${collection.slug}`} target="_blank" rel="noreferrer" className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-app-line bg-white px-5 text-[14px] font-extrabold text-app-ink no-underline hover:border-app-line-strong">
               <Icon name="eye" size={16} /> {t("view")}
             </a>
           )}

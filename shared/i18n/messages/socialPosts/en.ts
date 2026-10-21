@@ -10,6 +10,7 @@ const en = {
   "noStore.body": "Posts link to your shop, so you need a shop before you plan them.",
   "act.create": "Create post",
   "act.designs": "Rex designs",
+  "act.plan": "Plan with Rex",
   // Sub-menu
   "nav.calendar": "Calendar",
   "nav.queue": "Queue",
