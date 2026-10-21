@@ -4372,3 +4372,51 @@ model StatusLike {
   @@unique([postId, userId])
   @@index([userId])
 }
+
+
+// ─── Create with Rex and posts ────────────────────────────────────────────────
+// The phone app's "Make a post" (Create with Rex) and posts calendar, for sellers, suppliers and delivery partners
+// (src/app/api/mobile/create, src/app/api/mobile/posts, shared/create-with-rex.ts). Nothing is ever posted for
+// anyone: "Share now" opens the phone's share sheet, and a scheduled post gets one "Time to post" reminder
+// (src/app/api/cron/post-reminders). No relation fields on User on purpose (like AiUsage), so this section stands
+// alone. Migration: docs/migrations/2026-11-18-create-posts.sql.
+
+/// One "Make a post" request: 3 templated designs (stored in the public media bucket), each with a caption.
+model CreateJob {
+  id        String   @id @default(cuid())
+  userId    String
+  /// making | done | failed
+  status    String   @default("making")
+  /// status | reel | post | flyer
+  format    String
+  ideaId    String?
+  prompt    String?
+  productId String?
+  /// [{ id, imageUrl, caption }]
+  designs   Json     @default("[]")
+  error     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, createdAt])
+}
+
+/// A post in the calendar. status: draft | scheduled | posted. remindedAt: the "Time to post" reminder went (once).
+model ScheduledPost {
+  id          String    @id @default(cuid())
+  userId      String
+  designId    String?
+  imageUrl    String?
+  caption     String
+  /// whatsapp | instagram | facebook | tiktok
+  platforms   String[]
+  status      String    @default("draft")
+  scheduledAt DateTime?
+  postedAt    DateTime?
+  remindedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId, scheduledAt])
+  @@index([status, scheduledAt])
+}
