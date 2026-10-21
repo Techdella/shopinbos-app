@@ -11,7 +11,7 @@ import { acceptByFor, messageSupplierPhone } from "./deadline.server";
 // for the quantity). There's no payment rail for this yet: the supplier sends an invoice and the seller pays them
 // directly. Used by POST /api/app/wholesale/request and the marketplace "Buy wholesale" button.
 
-export const WHOLESALE_PAYMENT_NOTE = "No payment is taken on Shopinbos. The supplier confirms and sends you an invoice; you pay them directly.";
+export const WHOLESALE_PAYMENT_NOTE = "The supplier confirms first. Then pay in Shopinbos by card (straight to their bank), or pay them directly against their invoice.";
 
 export interface PlaceWholesaleInput {
   sellerId: string;
@@ -149,7 +149,7 @@ export async function moveWholesaleOrder(input: MoveWholesaleInput): Promise<Ser
   const supplierName = plainText(order.supplier.displayName) || "Your supplier";
   const what = `${order.quantity.toLocaleString("en-NG")} × ${plainText(order.supplierProduct.name)}`;
   const note = {
-    confirmed: { title: `${supplierName} confirmed your wholesale order`, description: `${what}. Expect their invoice; you pay them directly.`, priority: "info" as const },
+    confirmed: { title: `${supplierName} confirmed your wholesale order`, description: `${what}. Pay in Shopinbos by card (straight to their bank), or pay them against their invoice.`, priority: "info" as const },
     shipped: { title: `${supplierName} shipped your wholesale order`, description: `${what} is on its way.${trackingCode ? ` Tracking: ${plainText(trackingCode, 80)}.` : ""}`, priority: "success" as const },
     delivered: { title: "Wholesale order delivered", description: `${supplierName} marked ${what} as delivered. Add the units to your stock.`, priority: "success" as const },
     cancelled: { title: `${supplierName} declined your wholesale order`, description: `${what}: "${plainText(reason, 300)}"`, priority: "warning" as const },

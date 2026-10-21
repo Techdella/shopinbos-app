@@ -55,6 +55,46 @@ export function makeDeliveryCode(random: () => number = Math.random) {
   return String(Math.floor(random() * 10000)).padStart(4, "0");
 }
 
+/**
+ * 4-digit code the shop (or supplier) gives the rider at pickup. Never the same as the job's delivery code, so a
+ * rider can't mix the two up.
+ */
+export function makePickupCode(deliveryCode: string | null | undefined, random: () => number = Math.random) {
+  for (let tries = 0; tries < 10; tries += 1) {
+    const code = makeDeliveryCode(random);
+    if (code !== deliveryCode) return code;
+  }
+  // The random source keeps repeating the delivery code: step to the next number.
+  return String((Number(deliveryCode ?? "0") + 1) % 10000).padStart(4, "0");
+}
+
+/**
+ * The pickup code the rider typed for one job: "none" when the job has no pickup code (accepted before codes
+ * existed and no shop screen made one yet; the pickup isn't blocked), "ok" when it matches, "wrong" otherwise.
+ */
+export function pickupCodeCheck(job: { pickupCode: string | null }, typed: string | null | undefined): "none" | "ok" | "wrong" {
+  if (!job.pickupCode) return "none";
+  return String(typed ?? "").trim() === job.pickupCode ? "ok" : "wrong";
+}
+
+/** startRun's error when a pickup code doesn't match (the phone app shows its own words for it, by this text). */
+export const WRONG_PICKUP_CODE = "That pickup code doesn't match. Check it with the shop and try again.";
+
+/** A rider may skip (hand back) a job the partner gave them until they have picked the parcel up. */
+export function riderCanSkip(job: { status: string }) {
+  return job.status === "confirmed";
+}
+
+const LAGOS_OFFSET_MS = 60 * 60 * 1000; // Africa/Lagos is UTC+1 all year (no daylight saving).
+
+/** Start of this week for rider earnings: Monday 00:00 in Lagos, as a UTC instant. */
+export function riderWeekStart(now = new Date()) {
+  const lagos = new Date(now.getTime() + LAGOS_OFFSET_MS);
+  const sinceMonday = (lagos.getUTCDay() + 6) % 7;
+  const monday = Date.UTC(lagos.getUTCFullYear(), lagos.getUTCMonth(), lagos.getUTCDate() - sinceMonday);
+  return new Date(monday - LAGOS_OFFSET_MS);
+}
+
 export type TransitionCheck = { ok: true } | { ok: false; error: string };
 
 /**

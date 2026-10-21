@@ -16,8 +16,9 @@ import { openWeb } from "@/lib/web";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 
-// Delivery (web /home/shipping and /home/logistics): the shop's delivery areas and fees (ShippingZone: add, edit,
-// turn on or off, delete) and its latest courier bookings. Booking a courier and asking for quotes stay on the web.
+// My own delivery prices (web /home/shipping and /home/logistics), opened from the Delivery hub: the shop's delivery
+// areas and fees (ShippingZone: add, edit, turn on or off, delete; checkout uses them when the hub's "At checkout,
+// use" is "My own prices") and its latest courier bookings. Booking a courier and asking for quotes stay on the web.
 
 const BOOKING_TONE: Record<string, keyof typeof TONE_COLORS> = { pending: "warning", confirmed: "accent", picked_up: "accent", in_transit: "accent", delivered: "success", failed: "danger", cancelled: "muted", declined: "muted", out_for_delivery: "accent", at_pickup_point: "accent", returning: "warning", returned: "muted" };
 
@@ -29,7 +30,7 @@ function feeWords(rate: Zone["rates"][number] | undefined, t: ReturnType<typeof 
 }
 
 export default function Delivery() {
-  const t = useT("m_settings", "shipping", "common");
+  const t = useT("m_settings", "m_delivery", "shipping", "common");
   const loaded = useLoad(async () => {
     const [zones, bookings] = await Promise.all([fetchZones(), fetchBookings().catch(() => null)]);
     return { zones, bookings };
@@ -52,7 +53,7 @@ export default function Delivery() {
   }
 
   return (
-    <Screen title={t("del.title")} sub={t("del.sub")} refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
+    <Screen title={t("zones.title")} sub={t("del.sub")} refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
       {loaded.loading && !data ? <LoadingBlock /> : null}
       {loaded.error && !data ? <ErrorState message={loaded.error} onRetry={() => void loaded.reload()} web={{ label: "Open on web", onPress: () => void openWeb("/home/shipping") }} /> : null}
       {note ? <Notice>{note}</Notice> : null}

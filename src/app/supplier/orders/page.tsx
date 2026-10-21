@@ -96,7 +96,7 @@ function ShipForm({ hidden, orderId, defaultTracking, t }: { hidden: ReactNode; 
   );
 }
 
-function OrderActions({ kind, orderId, actions, defaultTracking, t }: { kind: Kind; orderId: string; actions: SupplierAction[]; defaultTracking: string; t: SupplierT }) {
+function OrderActions({ kind, orderId, actions, defaultTracking, selfDelivery = false, t }: { kind: Kind; orderId: string; actions: SupplierAction[]; defaultTracking: string; selfDelivery?: boolean; t: SupplierT }) {
   if (!actions.length) return null;
   const isNew = actions.includes("accept");
   const hidden = (
@@ -114,7 +114,14 @@ function OrderActions({ kind, orderId, actions, defaultTracking, t }: { kind: Ki
           <button type="submit" className={`${buttonClass.ink} min-h-[52px] w-full px-8 text-[16px] sm:w-auto`}><Icon name="check" size={16} /> {t("orders.accept")}</button>
         </form>
       )}
-      {actions.includes("ship") && isNew ? (
+      {actions.includes("ship") && selfDelivery && !isNew ? (
+        <form action={updateSupplierOrderStatus}>
+          {hidden}
+          <input type="hidden" name="action" value="ship" />
+          <input type="hidden" name="selfDelivery" value="1" />
+          <button type="submit" className={buttonClass.smallInk}><Icon name="truck" size={14} /> {t("orders.selfStart")}</button>
+        </form>
+      ) : actions.includes("ship") && isNew ? (
         <details className="group w-full">
           <summary className="min-h-[40px] cursor-pointer list-none py-2 text-[13.5px] font-bold text-app-ink underline underline-offset-4">{t("orders.alreadySent")}</summary>
           <ShipForm hidden={hidden} orderId={orderId} defaultTracking={defaultTracking} t={t} />
@@ -126,6 +133,12 @@ function OrderActions({ kind, orderId, actions, defaultTracking, t }: { kind: Ki
         <form action={updateSupplierOrderStatus}>
           {hidden}
           <input type="hidden" name="action" value="deliver" />
+          {selfDelivery ? (
+            <label className="mb-2 grid gap-1 text-[13px] font-bold">
+              {t("orders.selfCode")}
+              <input name="deliveryCode" required inputMode="numeric" pattern="[0-9]{4}" maxLength={4} autoComplete="one-time-code" className="min-h-[44px] w-[140px] rounded-md border border-app-line bg-white px-3 font-mono text-[18px] tracking-[0.3em]" />
+            </label>
+          ) : null}
           <button type="submit" className={buttonClass.smallInk}><Icon name="checkCircle" size={14} /> {t("orders.markDelivered")}</button>
         </form>
       )}
@@ -211,7 +224,7 @@ function DropshipRow({ order, t }: { order: DropshipView; t: SupplierT }) {
           <span className="text-[18px] font-extrabold">{money(order.costTotal, order.currency)}</span>
         </span>
       </div>
-      <OrderActions kind="dropship" orderId={order.id} actions={order.next} defaultTracking={order.trackingCode ?? ""} t={t} />
+      <OrderActions kind="dropship" orderId={order.id} actions={order.next} defaultTracking={order.trackingCode ?? ""} selfDelivery={order.selfDelivery} t={t} />
     </li>
   );
 }

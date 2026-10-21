@@ -150,6 +150,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "method.card.hint": "Kati da USSD, kuɗin suna shiga bankinka kai tsaye",
   "method.korapay.label": "Biya ta banki",
   "method.korapay.hint": "Wurin biya na biyu mai tsaro: kati, tura kuɗi ko app na banki",
+  "frame.step": "{current} cikin {total}",
 };
 
 export default ha;

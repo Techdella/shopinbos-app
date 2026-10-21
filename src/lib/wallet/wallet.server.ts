@@ -269,6 +269,8 @@ export async function splitPlanForOrder(
   orderId?: string,
   /** Delivery-partner fees in this order (logistics marketplace): each goes to the partner's wallet when it's ready. */
   delivery: Array<{ shipmentKey: string; partnerId: string; naira: number }> = [],
+  /** Delivery fees of suppliers that deliver their own parcels: added to that supplier's share. */
+  supplierDelivery: Array<{ supplierId: string; naira: number }> = [],
 ): Promise<PaymentSplitPlan | null> {
   const store = await db.store.findUnique({ where: { id: storeId }, select: { userId: true } });
   if (!store) return null;
@@ -318,7 +320,11 @@ export async function splitPlanForOrder(
     totalKobo,
     platformKobo: platformFeeKobo(Math.max(0, totalKobo - Math.round(Math.max(0, shippingNaira) * 100)), fee),
     sellerSubaccount: sellerAccount,
-    suppliers: groups.map((group) => ({ supplierId: group.supplierId, subaccount: subaccountBySupplier.get(group.supplierId) ?? null, costKobo: Math.round(group.costTotal * 100) })),
+    suppliers: groups.map((group) => ({
+      supplierId: group.supplierId,
+      subaccount: subaccountBySupplier.get(group.supplierId) ?? null,
+      costKobo: Math.round(group.costTotal * 100) + Math.round(supplierDelivery.filter((share) => share.supplierId === group.supplierId).reduce((sum, share) => sum + share.naira, 0) * 100),
+    })),
     debts: orderId ? await debtsToDeduct(debtors, gateway) : [],
   });
   if (orderId) await holdPlannedDeductions(orderId, plan.deductions ?? []);

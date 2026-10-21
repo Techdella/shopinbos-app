@@ -52,6 +52,10 @@ export interface SettingsInput {
   fallbackFee?: unknown;
   defaultSizeBand?: unknown;
   failedFeePayer?: unknown;
+  /** Suppliers: "I deliver myself", its fee and the states it drives to. */
+  selfDelivery?: unknown;
+  selfDeliveryFee?: unknown;
+  selfDeliveryStates?: unknown;
 }
 
 export async function saveDeliverySettings(userId: string, input: SettingsInput): Promise<Result> {
@@ -71,6 +75,12 @@ export async function saveDeliverySettings(userId: string, input: SettingsInput)
   const fallback = input.fallback === undefined ? current.fallback : input.fallback === "flat_fee" ? "flat_fee" : "pickup_only";
   const fee = input.fallbackFee === undefined ? current.fallbackFee : Number(String(input.fallbackFee).replace(/[₦,\s]/g, ""));
   if (fallback === "flat_fee" && !(Number.isFinite(fee) && fee > 0)) return { ok: false, error: "Type the flat delivery fee for places your partners don't cover." };
+  const selfDelivery = input.selfDelivery === undefined ? current.selfDelivery : input.selfDelivery === true || input.selfDelivery === "on" || input.selfDelivery === "true";
+  const selfFee = input.selfDeliveryFee === undefined ? current.selfDeliveryFee : Number(String(input.selfDeliveryFee).replace(/[₦,\s]/g, ""));
+  if (selfDelivery && !(Number.isFinite(selfFee) && selfFee > 0 && selfFee <= 1_000_000)) return { ok: false, error: "Type what you charge to deliver an order yourself." };
+  const selfStates = input.selfDeliveryStates === undefined
+    ? current.selfDeliveryStates
+    : [...new Set((Array.isArray(input.selfDeliveryStates) ? input.selfDeliveryStates : String(input.selfDeliveryStates ?? "").split(",")).map((state) => canonicalState(String(state))).filter((state): state is (typeof NG_STATES)[number] => !!state))];
   const defaultSizeBand = input.defaultSizeBand === undefined ? current.defaultSizeBand : String(input.defaultSizeBand);
   if (!isSizeBand(defaultSizeBand)) return { ok: false, error: "Pick the usual size of your parcels." };
   const data = {
@@ -88,6 +98,9 @@ export async function saveDeliverySettings(userId: string, input: SettingsInput)
     fallbackFee: fallback === "flat_fee" ? Math.round(fee * 100) / 100 : 0,
     defaultSizeBand,
     failedFeePayer: input.failedFeePayer === undefined ? current.failedFeePayer : input.failedFeePayer === "customer" ? "customer" : "seller",
+    selfDelivery,
+    selfDeliveryFee: selfDelivery ? Math.round(selfFee * 100) / 100 : current.selfDeliveryFee,
+    selfDeliveryStates: selfStates,
   };
   await db.deliverySettings.upsert({ where: { userId }, update: data, create: { userId, ...data } });
   return { ok: true };

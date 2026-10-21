@@ -43,9 +43,9 @@ const en = {
   // "+" sheet (components/CreateSheet.tsx)
   "create.title": "What do you want to do?",
   "create.addProduct": "Add a product",
-  "create.addProductSub": "Take a photo. Rex does the rest.",
+  "create.addProductSub": "Take a photo, Rex does the rest",
   "create.recordSale": "Record a sale",
-  "create.recordSaleSub": "Someone bought from you in person or on chat",
+  "create.recordSaleSub": "Sold in person or on WhatsApp",
   "create.customers": "Get more customers",
   "create.customersSub": "Show your products to more people",
   "create.share": "Share my shop",
@@ -71,6 +71,18 @@ const en = {
   "peggy.chatsAndOrders": "Peggy kept an eye on {chats, plural, one {# chat} other {# chats}} and {orders, plural, one {# order} other {# orders}} today.",
   "me.open": "Your photo and settings",
   "logo.label": "{name} logo",
+  "create.payLink": "Send a pay link",
+  "create.payLinkSub": "Get paid by card or transfer",
+  "sales.today": "Sales today",
+  "sales.comingDay": "{amount} coming to your bank on {day}",
+  "sales.comingTomorrow": "{amount} coming to your bank tomorrow",
+  "sales.comingSoon": "{amount} on its way to your bank",
+  "share.label": "Share your shop link",
+  "todo.title": "To do",
+  "todo.caughtUp": "You’re all caught up.",
+  "todo.ordersNeed": "{count, plural, one {# order needs you} other {# orders need you}}",
+  "todo.ordersNeedSub": "Get them ready, or pick a new partner",
+  "todo.rateSub": "Lower prices for your orders",
 } satisfies Record<string, string>;
 
 export default en;

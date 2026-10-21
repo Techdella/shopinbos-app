@@ -154,3 +154,11 @@ CREATE TABLE IF NOT EXISTS "DeliveryIssue" (
 CREATE INDEX IF NOT EXISTS "DeliveryIssue_storeId_status_idx" ON "DeliveryIssue"("storeId", "status");
 CREATE INDEX IF NOT EXISTS "DeliveryIssue_logisticsPartnerId_createdAt_idx" ON "DeliveryIssue"("logisticsPartnerId", "createdAt");
 CREATE INDEX IF NOT EXISTS "DeliveryIssue_retailOrderId_idx" ON "DeliveryIssue"("retailOrderId");
+
+-- Like every app table: row-level security on with no policies, so only the server (Prisma, service role) reads
+-- them and the public anon/authenticated API keys can't.
+ALTER TABLE "LogisticsRateCard" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "LogisticsPickupPoint" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "DeliverySettings" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "DeliveryConnection" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "DeliveryIssue" ENABLE ROW LEVEL SECURITY;

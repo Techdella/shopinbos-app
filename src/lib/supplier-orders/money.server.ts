@@ -28,11 +28,12 @@ export async function supplierEarnings(supplierId: string, options: { since?: Da
   const [wEarned, wPaid, dEarned, dPaid] = await Promise.all([
     db.wholesaleOrder.aggregate({ where: wholesaleWhere, _sum: { totalPrice: true }, _count: { _all: true } }),
     db.wholesaleOrder.aggregate({ where: { ...wholesaleWhere, paidOutAt: { not: null } }, _sum: { totalPrice: true }, _count: { _all: true } }),
-    db.supplierOrder.aggregate({ where: dropshipWhere, _sum: { costTotal: true }, _count: { _all: true } }),
-    db.supplierOrder.aggregate({ where: { ...dropshipWhere, paidOutAt: { not: null } }, _sum: { costTotal: true }, _count: { _all: true } }),
+    db.supplierOrder.aggregate({ where: dropshipWhere, _sum: { costTotal: true, deliveryFee: true }, _count: { _all: true } }),
+    db.supplierOrder.aggregate({ where: { ...dropshipWhere, paidOutAt: { not: null } }, _sum: { costTotal: true, deliveryFee: true }, _count: { _all: true } }),
   ]);
   const wholesale = { earned: wEarned._sum.totalPrice ?? 0, paid: wPaid._sum.totalPrice ?? 0 };
-  const dropship = { earned: dEarned._sum.costTotal ?? 0, paid: dPaid._sum.costTotal ?? 0 };
+  // A parcel the supplier delivered itself earns its delivery fee too.
+  const dropship = { earned: (dEarned._sum.costTotal ?? 0) + (dEarned._sum.deliveryFee ?? 0), paid: (dPaid._sum.costTotal ?? 0) + (dPaid._sum.deliveryFee ?? 0) };
   const earned = round(wholesale.earned + dropship.earned);
   const paid = round(wholesale.paid + dropship.paid);
   const earnedCount = wEarned._count._all + dEarned._count._all;

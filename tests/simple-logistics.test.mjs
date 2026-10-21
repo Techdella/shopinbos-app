@@ -106,10 +106,10 @@ test("only admins issue, rotate and revoke partner keys", () => {
   assert.ok(existsSync(join(root, "src/app/api/v1/partner/jobs/route.ts")));
 });
 
-test("partner app: four tabs, and the Riders app speaks English, Pidgin, Yorùbá, Hausa or Igbo from one catalog", () => {
+test("partner app: four tabs (Jobs, Chats, Money, Business), and the Riders app speaks English, Pidgin, Yorùbá, Hausa or Igbo from one catalog", () => {
   const tabs = read("apps/mobile/src/app/logistics/(tabs)/_layout.tsx");
   const items = tabs.slice(tabs.indexOf("const ITEMS"), tabs.indexOf("};", tabs.indexOf("const ITEMS")));
-  assert.deepEqual([...items.matchAll(/label: "([^"]+)"/g)].map((m) => m[1]), ["Today", "Jobs", "Riders", "Money"]);
+  assert.deepEqual([...items.matchAll(/label: "([^"]+)"/g)].map((m) => m[1]), ["Jobs", "Chats", "Money", "Business"]);
 
   const strings = read("apps/mobile/src/lib/rider-strings.ts");
   assert.match(strings, /code: "pcm", label: "Pidgin"/);
@@ -118,7 +118,7 @@ test("partner app: four tabs, and the Riders app speaks English, Pidgin, Yorùb�
   assert.match(strings, /tFor\(locale, "m_rider"\)/);
   const words = read("shared/i18n/messages/m_rider/en.ts");
   for (const line of ["Take this delivery", "I have the parcel", "I'm with the customer", "I collected it", "Delivered", "Cash with you"]) assert.ok(words.includes(`"${line}"`), line);
-  const rider = read("apps/mobile/src/app/rider/index.tsx");
+  const rider = read("apps/mobile/src/app/rider/(tabs)/index.tsx");
   assert.match(rider, /minHeight: 64/);
   assert.match(rider, /useRiderStrings/);
 });

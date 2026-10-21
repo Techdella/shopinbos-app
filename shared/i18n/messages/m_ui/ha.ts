@@ -98,6 +98,13 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   saveFailed: "Bai ajiye ba. Duba network ɗinka, sannan ka sake gwadawa.",
   loadFailed: "Bai buɗe ba. Ja ƙasa don sake gwadawa.",
   shopLoadFailed: "Shagonka bai buɗe ba.",
+  "keypad.entered": "An shigar da lambobi {count} cikin {total}",
+  "keypad.delete": "Goge",
+  "keypad.clear": "Share",
+  "stepper.less": "Rage {label} ɗaya",
+  "stepper.more": "Ƙara {label} ɗaya",
+  "chat.keepTitle": "Ka bar shi a Shopinbos",
+  "chat.keepBody": "Ayyukan da aka biya a wajen app ba a bin diddiginsu, ba za a iya kai ƙararsu ba kuma ba sa ƙirguwa a rating. Ku amince da farashi a nan ka tura shi a matsayin private rate.",
 };
 
 export default ha;

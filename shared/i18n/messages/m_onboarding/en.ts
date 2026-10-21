@@ -155,6 +155,7 @@ const en = {
   "welcome.sub": "Rex is getting ready to build your shop with you.",
   "welcome.progress": "Getting your shop ready",
   "welcome.start": "Start now",
+  "frame.step": "{current} of {total}",
 } satisfies Record<string, string>;
 
 export default en;

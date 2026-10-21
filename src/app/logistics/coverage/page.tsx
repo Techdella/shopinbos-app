@@ -5,7 +5,7 @@ import { updateLogisticsCoverage } from "@/app/actions/logistics";
 import { savePartnerMarketCoverage } from "@/app/actions/delivery-market-partner";
 import { Notice } from "@/components/app-ui";
 import { NG_REGIONS, PARTNER_SERVICES } from "@shared/delivery-market";
-import { podDisclaimer, serviceLabel } from "@/components/delivery-market/words";
+import { podDisclaimerPartner, serviceLabel } from "@/components/delivery-market/words";
 import { Card, CardHead, EmptyState, ListCard, ListRow, Pill, PillLink } from "@/components/app-kit";
 import { LOGISTICS_FREE_ROUTE_LIMIT } from "@/lib/plan-limits";
 import { ActionNotice, PartnerPage, SubmitButton, inputClass, labelClass, naira, textareaClass } from "@/components/logistics/kit";
@@ -82,7 +82,7 @@ export default async function LogisticsCoveragePage({ searchParams }: { searchPa
               <input type="checkbox" name="offersPayOnDelivery" defaultChecked={partner.offersPayOnDelivery} className="h-5 w-5 accent-[#16141F]" />
               {t("market.cov.podLabel")}
             </label>
-            <p className="m-0 text-[14px] text-app-ink-soft">{podDisclaimer(t)} {t("market.cov.podChoose")}</p>
+            <p className="m-0 text-[14px] text-app-ink-soft">{podDisclaimerPartner(t)} {t("market.cov.podChoose")}</p>
           </div>
           <div className="lg:col-span-2">
             <SubmitButton>{t("market.cov.save")}</SubmitButton>

@@ -184,15 +184,15 @@ test("new routes are seller-only and call the same lib as the web", () => {
   assert.doesNotMatch(read("src/app/home/payments/page.tsx"), /function readMethods|function readBank/);
 });
 
-test("the three screens exist, use the m_settings words and keep the rest on the web", () => {
+test("the three screens exist (Delivery's own prices are app/delivery/zones.tsx), use the m_settings words and keep the rest on the web", () => {
   assert.ok(NAMESPACES.includes("m_settings"));
-  for (const screen of ["payments", "delivery", "settings"]) {
+  for (const screen of ["payments", "delivery/zones", "settings"]) {
     const path = `apps/mobile/src/app/${screen}.tsx`;
     assert.ok(existsSync(new URL(`../${path}`, import.meta.url)), path);
     assert.match(read(path), /useT\("m_settings"/, path);
   }
   const english = read("shared/i18n/messages/m_settings/en.ts");
-  for (const screen of ["payments", "delivery", "settings"]) {
+  for (const screen of ["payments", "delivery/zones", "settings"]) {
     for (const [, key] of read(`apps/mobile/src/app/${screen}.tsx`).matchAll(/\bt\("((?:money|bank|del|set)\.[\w.]+)"/g)) {
       assert.ok(english.includes(`"${key}":`), `${screen}: ${key}`);
     }
@@ -203,6 +203,6 @@ test("the three screens exist, use the m_settings words and keep the rest on the
   assert.match(settings, /<LanguageRow/);
   assert.match(settings, /ImagePicker\.launchImageLibraryAsync/);
   assert.match(read("apps/mobile/src/lib/seller-settings.ts"), /\/api\/app\/me\/images/);
-  assert.match(read("apps/mobile/src/app/delivery.tsx"), /openWeb\("\/home\/logistics/, "booking a courier stays on the web");
-  assert.match(read("apps/mobile/src/app/delivery.tsx"), /Alert\.alert\(/, "delete asks first");
+  assert.match(read("apps/mobile/src/app/delivery/zones.tsx"), /openWeb\("\/home\/logistics/, "booking a courier stays on the web");
+  assert.match(read("apps/mobile/src/app/delivery/zones.tsx"), /Alert\.alert\(/, "delete asks first");
 });

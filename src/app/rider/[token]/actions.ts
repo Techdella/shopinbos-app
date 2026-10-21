@@ -2,6 +2,7 @@
 
 import { db } from "@/lib/db/client";
 import { transitionJob } from "@/lib/logistics/jobs";
+import { pickupCodeCheck, WRONG_PICKUP_CODE } from "@/lib/logistics/job-rules";
 import { riderFromToken, type RiderSession } from "@/lib/logistics/rider-session";
 import { checkRateLimitShared, rateLimitKey } from "@/lib/rate-limit";
 import { getT } from "@/lib/i18n/server";
@@ -35,16 +36,31 @@ export async function setRiderOnline(token: string, online: boolean): Promise<Ri
   return { ok: true };
 }
 
-/** "Accept run": the rider has the parcels for a pickup, so its confirmed jobs move to picked up. */
-export async function startRun(token: string, jobIds: string[]): Promise<RiderActionResult> {
+/**
+ * "Accept run": the rider has the parcels for a pickup, so its confirmed jobs move to picked up. The phone app
+ * sends `codes` (job id → the 4-digit pickup code the shop gave the rider): then every job that has a pickup code
+ * must match, with guesses capped per job like delivery codes. Jobs without a pickup code (accepted before codes
+ * existed) don't block the pickup. Callers that don't know about pickup codes yet (the web Riders app, older app
+ * builds) leave `codes` out.
+ */
+export async function startRun(token: string, jobIds: string[], codes?: Record<string, string> | null): Promise<RiderActionResult> {
   const session = await rider(token);
   if (!session.ok) return session;
   const ids = Array.isArray(jobIds) ? jobIds.filter((id) => typeof id === "string").slice(0, 50) : [];
   const jobs = await db.deliveryBooking.findMany({
     where: { id: { in: ids }, riderId: session.rider.id, logisticsPartnerId: session.rider.partnerId, status: "confirmed" },
-    select: { id: true },
+    select: { id: true, pickupCode: true },
   });
   if (jobs.length === 0) return { ok: false, error: (await getT("rider"))("error.nothingLeft") };
+  if (codes && typeof codes === "object") {
+    for (const job of jobs) {
+      if (!job.pickupCode) continue;
+      if (!(await checkRateLimitShared(rateLimitKey("rider:pickup-code", job.id), { maxRequests: 6, windowMs: 15 * 60_000, failClosed: true })).allowed) {
+        return { ok: false, error: (await getT("rider"))("error.tooManyCodes") };
+      }
+      if (pickupCodeCheck(job, codes[job.id]) === "wrong") return { ok: false, error: WRONG_PICKUP_CODE };
+    }
+  }
   for (const job of jobs) {
     const result = await transitionJob({ bookingId: job.id, partnerId: session.rider.partnerId, to: "picked_up", actor: "rider", riderId: session.rider.id });
     if (!result.ok) return inRiderWords(result);

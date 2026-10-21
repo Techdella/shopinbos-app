@@ -3,7 +3,8 @@ import { Pressable, TextInput, View } from "react-native";
 import { router } from "expo-router";
 import Svg, { Path } from "react-native-svg";
 import { ONBOARDING_LANGUAGES, REX_GREETING, SELL_EXAMPLES, START_PATHS, type StartPath } from "@shared/onboarding";
-import { Chip, Mascot, T } from "@/components/ui";
+import { List, Row, Seg } from "@/components/design";
+import { Mascot, T } from "@/components/ui";
 import { OnboardingFrame } from "@/components/OnboardingFrame";
 import { OnboardingWelcome, onboardingWelcomeSeen } from "@/components/OnboardingWelcome";
 import { useOnboarding } from "@/components/OnboardingContext";
@@ -97,12 +98,12 @@ export default function Chat() {
     >
       <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 12 }}>
         <Mascot name="rex" mood="wave" size={56} />
-        <View style={{ flex: 1, backgroundColor: colors.surface, borderRadius: 20, borderTopLeftRadius: 6, paddingHorizontal: 16, paddingVertical: 14 }}>
-          <T weight="bold" style={{ fontSize: 16, lineHeight: 22 }}>{REX_GREETING[lang](name)}</T>
+        <View style={{ flex: 1, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 20, borderTopLeftRadius: 6, paddingHorizontal: 16, paddingVertical: 14 }}>
+          <T style={{ fontFamily: fonts.display, fontSize: 20, lineHeight: 25, letterSpacing: -0.3 }} accessibilityRole="header">{REX_GREETING[lang](name)}</T>
         </View>
       </View>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 16 }}>
-        {ONBOARDING_LANGUAGES.map((item) => <Chip key={item} label={item} on={lang === item} onPress={() => setLang(item)} />)}
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 16 }}>
+        {ONBOARDING_LANGUAGES.map((item) => <Seg key={item} label={item} on={lang === item} onPress={() => setLang(item)} />)}
       </View>
       <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20, marginTop: 8 }}>{tSettings("language.onboarding")}</T>
       <View style={{ gap: 12, marginTop: 18 }}>
@@ -128,19 +129,21 @@ export default function Chat() {
         </Pressable>
       )}
       {answered && (
-        <View style={{ gap: 12, marginTop: 18 }}>
+        <List style={{ marginTop: 18 }}>
           {START_PATHS.map((path, index) => (
-            <Pressable key={path.key} accessibilityRole="button" onPress={() => void choose(path.key)} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 16, backgroundColor: colors.surface, borderRadius: radii.card, padding: 16, borderWidth: 2, borderColor: pressed ? colors.ink : "transparent" })}>
-              <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: path.tint, alignItems: "center", justifyContent: "center" }}>
-                <T style={{ fontSize: 16 }}>{index + 1}</T>
-              </View>
-              <View>
-                <T weight="extrabold" style={{ fontSize: 15 }}>{t.dynamic(`path.${path.key}.label`, path.label)}</T>
-                <T style={{ color: colors.inkSoft, fontSize: 14 }}>{t.dynamic(`path.${path.key}.hint`, path.hint)}</T>
-              </View>
-            </Pressable>
+            <Row
+              key={path.key}
+              lead={
+                <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: path.tint, alignItems: "center", justifyContent: "center" }}>
+                  <T weight="extrabold" style={{ fontSize: 16 }}>{index + 1}</T>
+                </View>
+              }
+              title={t.dynamic(`path.${path.key}.label`, path.label)}
+              sub={t.dynamic(`path.${path.key}.hint`, path.hint)}
+              onPress={() => void choose(path.key)}
+            />
           ))}
-        </View>
+        </List>
       )}
     </OnboardingFrame>
   );

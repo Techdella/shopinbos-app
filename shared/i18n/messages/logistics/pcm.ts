@@ -510,7 +510,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "market.rates.newOrdersOnly": "New rates na for new orders only. Orders wey don already enter go keep the price wey dem get.",
   "market.rates.yourRates": "Your rates",
   "market.rates.setUp": "Set your rates",
-  "market.rates.lastSaved": "Last save {date}.",
+  "market.rates.lastSaved": "You last save am {date}.",
   "market.rates.setUpSub": "Add one row for each route wey you dey carry. Start with the one wey dey busy pass.",
   "market.rates.saveNew": "Save new rates",
   "market.rates.publish": "Publish rate card",
@@ -525,7 +525,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "market.rates.anArea": "One area for inside state",
   "market.rates.aRegion": "One region",
   "market.rates.everywhere": "Everywhere",
-  "market.rates.closestWins": "The one wey near pass na im go win: area beat im state, state beat im region, and region beat Nationwide. So you fit set one Nationwide price and cheaper prices for the places wey you sabi well.",
+  "market.rates.closestWins": "The one wey match the place pass na im dey win: area dey beat im state, state dey beat im region, and region dey beat Nationwide. So you fit set one Nationwide price and cheaper prices for the places wey you sabi well.",
   "market.rates.sizesAndDays": "Sizes and days",
   "market.rates.small": "Small",
   "market.rates.smallUpTo": "reach 2kg.",
@@ -663,7 +663,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "market.an.whereYouDeliver": "Where you dey deliver",
   "market.an.customersStates": "Customers states",
   "market.an.whyDeclined": "Why you no gree",
-  "market.an.noDeclines": "You no reject any job for this period.",
+  "market.an.noDeclines": "No job wey you no gree take for this period.",
   "market.an.issuesSub": "Late, no deliver or e spoil, as customers tell the shop",
   "market.job.toPoint": "To pickup point: {name}",
   "market.job.toAPoint": "To one pickup point",
@@ -687,7 +687,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "market.cash.confirmed": "The shop don confirm say the {amount} cash reach dem.",
   "market.cash.marked": "You don mark say you pay the shop {amount}. We dey wait make dem confirm.",
   "market.cash.payShop": "Pay the shop the {amount} wey the rider collect, then:",
-  "market.cash.mark": "Mark say cash don reach shop",
+  "market.cash.mark": "Mark say you don pay the shop the cash",
 };
 
 export default pcm;

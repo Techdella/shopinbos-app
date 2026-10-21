@@ -1,88 +1,90 @@
 import { View } from "react-native";
-import { naira } from "@shared/onboarding";
-import { HelpButton } from "@/components/Help";
-import { LanguageRow } from "@/components/LanguagePicker";
-import { EmptyState, ErrorState, LinkRow, LoadingBlock } from "@/components/kit";
-import { confirmSignOut, Thumb } from "@/components/partner";
-import { TabScreen } from "@/components/TabScreen";
-import { Card, LinkButton, PillButton, T } from "@/components/ui";
 import { router } from "expo-router";
-import { capitalise } from "@/lib/friendly";
+import { naira } from "@shared/onboarding";
+import { DarkCard, Eyebrow, List, Row, Small, Sub, Tile } from "@/components/design";
+import { ErrorState, LoadingBlock } from "@/components/kit";
+import { LanguageRow } from "@/components/LanguagePicker";
+import { orderAmount, orderItems } from "@/components/SupplierOrderRow";
+import { TabScreen } from "@/components/TabScreen";
+import { T } from "@/components/ui";
 import { useT } from "@/lib/i18n";
-import { dayWord } from "@/lib/partner-pure";
 import { fetchSupplierOrders, fetchSupplierOverview, type SupplierOrder } from "@/lib/supplier";
-import { supplierOrderStage } from "@/lib/supplier-pure";
+import { orderKindLabel, supplierOrderStage } from "@/lib/supplier-pure";
 import { useLoad } from "@/lib/useLoad";
-import { openWeb } from "@/lib/web";
+import { fetchWallet, nairaFromKobo } from "@/lib/wallet";
 import { colors } from "@/theme";
-import { DeleteAccountButton } from "@/components/DeleteAccountButton";
 
-// Supplier Money (build spec 8A): what's coming to the bank, where it goes, recent orders, and the rows that used to
-// be on More (verification, quotes, profile, team, settings). The bank form itself is on the web for now.
-
-function orderTitle(order: SupplierOrder) {
-  return order.kind === "dropship" ? order.items.map((item) => (item.quantity > 1 ? `${item.name} ×${item.quantity}` : item.name)).join(", ") : `${order.product.name} ×${order.quantity.toLocaleString("en-NG")}`;
-}
+// Supplier Money ("Simple app, end to end" supplier prototype): the dark "Coming to your bank" card (paid by shops,
+// waiting for delivery to be confirmed) with the bank it goes to, a line on how the money moves, and "Recent":
+// what Paystack paid into the bank (wallet entries) or, before any, the finished orders. The Shopinbos Wallet
+// (bank, payouts, money owed between businesses) opens from here; business settings moved to Account (gear on Home).
 
 export default function SupplierMoney() {
   const t = useT("m_supplier", "m_partner", "common");
   const loaded = useLoad(async () => {
-    const [overview, done] = await Promise.all([fetchSupplierOverview(), fetchSupplierOrders("done").catch(() => null)]);
-    return { overview, recent: done ? [...done.dropship, ...done.wholesale].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 8) : [] };
+    const [overview, wallet, done] = await Promise.all([fetchSupplierOverview(), fetchWallet().catch(() => null), fetchSupplierOrders("done").catch(() => null)]);
+    const orders = done ? ([...done.dropship, ...done.wholesale] as SupplierOrder[]).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 8) : [];
+    return { overview, entries: wallet?.view.entries.slice(0, 8) ?? [], orders };
   });
   const data = loaded.data;
+  const bank = data?.overview.bank;
 
   return (
-    <TabScreen title={t("money.title")} action={<HelpButton />} refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
+    <TabScreen title={t("money.title")} refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
       {loaded.loading && !data ? <LoadingBlock label={t("money.loading")} /> : null}
       {loaded.error && !data ? <ErrorState message={loaded.error} onRetry={() => void loaded.reload()} /> : null}
       {data ? (
-        <View style={{ gap: 14 }}>
-          <Card style={{ gap: 8 }}>
-            <T style={{ color: colors.inkSoft, fontSize: 15 }}>{t("earned")}</T>
-            <T weight="extrabold" style={{ fontSize: 34, letterSpacing: -0.8 }}>{naira(data.overview.earned)}</T>
-            <T style={{ fontSize: 15, lineHeight: 21, color: colors.inkSoft }}>
-              {data.overview.bank
-                ? t(data.overview.bank.ready ? "money.payoutsTo" : "money.payoutsToChecking", { bank: data.overview.bank.bankName, account: data.overview.bank.account })
-                : t("money.addBankFirst")}
-            </T>
-            <T style={{ fontSize: 15, lineHeight: 21 }}>{t("escrow")}</T>
-            <PillButton title={t("money.openWallet")} tone="white" style={{ marginTop: 6 }} onPress={() => router.push("/wallet")} />
-          </Card>
+        <>
+          <DarkCard
+            eyebrow={t("home.coming")}
+            amount={naira(data.overview.owed ?? 0)}
+            line={bank ? t(bank.ready ? "money.bankLine" : "money.bankChecking", { bank: bank.bankName, account: bank.account }) : t("money.noBank")}
+            onPress={() => router.push(bank ? "/supplier/wallet" : { pathname: "/supplier/setup", params: { edit: "bank" } })}
+          />
+          <Small style={{ marginTop: -6 }}>{t("money.howItMoves")}</Small>
 
-          <T weight="extrabold" style={{ fontSize: 17 }} accessibilityRole="header">{t("money.recent")}</T>
-          {data.recent.length ? (
-            <Card style={{ paddingVertical: 4 }}>
-              {data.recent.map((order, index) => (
-                <View key={order.id} style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10, borderTopWidth: index ? 1 : 0, borderTopColor: colors.line }}>
-                  <Thumb uri={order.kind === "dropship" ? order.items[0]?.image : order.product.image} size={40} />
-                  <View style={{ flex: 1 }}>
-                    <T weight="bold" style={{ fontSize: 15 }} numberOfLines={1}>{orderTitle(order)}</T>
-                    <T style={{ color: colors.inkSoft, fontSize: 14.5 }} numberOfLines={1}>{order.shop} · {supplierOrderStage(order.status, t).toLowerCase()} · {capitalise(dayWord(order.createdAt, undefined, t))}</T>
-                  </View>
-                  <T weight="extrabold" style={{ fontSize: 15 }}>{naira(order.kind === "dropship" ? order.yourTotal : order.total)}</T>
-                </View>
-              ))}
-            </Card>
-          ) : (
-            <EmptyState icon="coin" title={t("money.none")}>{t("money.noneBody")}</EmptyState>
-          )}
+          <View style={{ gap: 10 }}>
+            <Eyebrow>{t("money.recent")}</Eyebrow>
+            {data.entries.length ? (
+              <List>
+                {data.entries.map((entry) => (
+                  <Row
+                    key={entry.id}
+                    lead={<Tile icon="coin" tone="ok" />}
+                    title={entry.description}
+                    sub={`${new Date(entry.createdAt).toLocaleDateString("en-NG", { day: "numeric", month: "short" })}${bank ? ` · ${t("money.paidTo", { bank: bank.bankName })}` : ""}`}
+                    right={<T weight="extrabold" style={{ fontSize: 15, color: entry.status === "refunded" ? colors.inkSoft : colors.success }}>+{nairaFromKobo(entry.amountKobo)}</T>}
+                  />
+                ))}
+              </List>
+            ) : data.orders.length ? (
+              <List>
+                {data.orders.map((order) => (
+                  <Row
+                    key={`${order.kind}-${order.id}`}
+                    lead={<Tile icon="coin" tone={order.status === "delivered" ? "ok" : "gray"} />}
+                    title={order.shop}
+                    sub={`${orderKindLabel(order.kind, t)} · ${orderItems(order)} · ${supplierOrderStage(order.status, t)}`}
+                    right={<T weight="extrabold" style={{ fontSize: 15, color: order.status === "delivered" ? colors.success : colors.inkSoft }}>{order.status === "delivered" ? "+" : ""}{naira(orderAmount(order))}</T>}
+                  />
+                ))}
+              </List>
+            ) : (
+              <View style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 18, gap: 4 }}>
+                <T weight="bold" style={{ fontSize: 16 }}>{t("money.none")}</T>
+                <Sub>{t("money.noneBody")}</Sub>
+              </View>
+            )}
+          </View>
 
-          <T weight="extrabold" style={{ fontSize: 17 }} accessibilityRole="header">{t("money.business")}</T>
-          <Card style={{ paddingVertical: 2 }}>
-            <LinkRow first icon="shield" label={t("money.verification")} hint={t("money.verificationHint")} onPress={() => router.push("/supplier/verification")} />
-            <LinkRow icon="chat" label={t("messagesWithShops")} onPress={() => router.push("/supplier/messages")} />
-            <LinkRow icon="tag" label={t("money.quotes")} hint={t("money.quotesHint")} onPress={() => router.push("/supplier/quotes")} />
-            <LinkRow icon="coin" label={t("money.tiers")} hint={t("opensInBrowser")} onPress={() => void openWeb("/supplier/wholesale")} />
-            <LinkRow icon="store" label={t("money.profile")} hint={t("money.profileHint")} onPress={() => void openWeb("/supplier/profile")} />
-            <LinkRow icon="users" label={t("money.team")} hint={t("money.teamHint")} onPress={() => void openWeb("/supplier/team")} />
-            <LinkRow icon="settings" label={t("settings")} hint={t("money.settingsHint")} onPress={() => void openWeb("/supplier/settings")} />
-            <LanguageRow />
-            <LinkRow icon="help" label={t("help")} hint={t("money.helpHint")} onPress={() => router.push("/help")} />
-          </Card>
-          <LinkButton title={t("logOut")} color={colors.danger} onPress={() => confirmSignOut()} />
-          <DeleteAccountButton />
-        </View>
+          <List>
+            <Row lead={<Tile icon="wallet" tone="gray" />} title={t("money.openWallet")} sub={t("money.walletHint")} onPress={() => router.push("/supplier/wallet")} />
+            <Row lead={<Tile icon="settings" tone="gray" />} title={t("money.account")} sub={t("money.accountHint")} onPress={() => router.push("/supplier/account")} />
+          </List>
+          <View style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 16, paddingVertical: 2 }}>
+            <LanguageRow first />
+          </View>
+        </>
       ) : null}
     </TabScreen>
   );

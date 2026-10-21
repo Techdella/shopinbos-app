@@ -1,101 +1,59 @@
 import { useState } from "react";
-import { Alert, Linking, Pressable, View } from "react-native";
+import { Linking, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { Image } from "expo-image";
-import * as ImagePicker from "expo-image-picker";
+import { DECLINE_REASONS } from "@shared/delivery-market";
 import { naira } from "@shared/onboarding";
+import { Choice, Heading, List, Row, Small, Sub, Tile, Timeline } from "@/components/design";
 import { AppIcon } from "@/components/icons";
 import { riderOptions } from "@/components/JobCard";
-import { ChipRow, ErrorState, LoadingBlock, SectionTitle } from "@/components/kit";
-import { ChoiceSheet, KeyValue, TonePill } from "@/components/partner";
+import { ErrorState, LoadingBlock } from "@/components/kit";
+import { NoteCard } from "@/components/PartnerKit";
 import { Screen } from "@/components/Screen";
-import { Card, Chip, Field, Label, Notice, PillButton, T } from "@/components/ui";
+import { Sheet } from "@/components/Sheet";
+import { Card, Notice, PillButton, T } from "@/components/ui";
 import { useT } from "@/lib/i18n";
-import { fetchJob, moveJob, uploadJobProof, type Job, type JobAction } from "@/lib/logistics";
-import { canFail, failReasonOptions, jobNextSteps, jobStage, timeAgo } from "@/lib/partner-pure";
+import { fetchJob, fetchMarket, moveJob, type JobAction } from "@/lib/logistics";
+import { STATUS_WORD, isPointJob, jobFooter, jobTimeline, nextMove } from "@/lib/logistics-pure";
+import { shortPlace, timeAgo } from "@/lib/partner-pure";
 import { useLoad } from "@/lib/useLoad";
 import { openWeb } from "@/lib/web";
-import { colors, radii } from "@/theme";
+import { colors } from "@/theme";
 
-// One delivery job for the dispatcher: where from and to, the buyer, the rider, and the pipeline
-// accepted → picked up → on the way → delivered (proof photo, who received it, the buyer's code, cash collected)
-// or failed with a reason. Moves go through POST /api/mobile/logistics/jobs/[id] (the web console's job rules).
+// One delivery job ("Delivery partner app" prototype `job`): where from and to, what it is and what you get, the
+// pay-on-delivery, failed-attempt or returning card, the rider and a vertical timeline, and the buttons for where
+// it is: accept and pick a rider or decline (with why), move it along, confirm delivery (proof screen), report a
+// failed attempt (with what happened), try again or return it, and hand it back. Moves go through
+// POST /api/mobile/logistics/jobs/[id], with the web console's rules.
 
-// Labels in m_partner "job.pipeline.<status>".
-const PIPELINE = ["confirmed", "picked_up", "in_transit", "delivered"] as const;
-
-function Pipeline({ status }: { status: string }) {
-  const t = useT("m_partner");
-  const reached = PIPELINE.findIndex((step) => step === status);
-  return (
-    <View style={{ flexDirection: "row", gap: 6 }} accessibilityLabel={t("job.progress", { stage: jobStage(status, t).label })}>
-      {PIPELINE.map((step, index) => {
-        const done = reached >= index;
-        return (
-          <View key={step} style={{ flex: 1, gap: 6 }}>
-            <View style={{ height: 6, borderRadius: 3, backgroundColor: done ? (status === "delivered" ? colors.success : colors.ink) : colors.track }} />
-            <T weight={done ? "bold" : "regular"} style={{ fontSize: 13, color: done ? colors.ink : colors.inkSoft }}>{t(`job.pipeline.${step}`)}</T>
-          </View>
-        );
-      })}
-    </View>
-  );
-}
+/** What happened on a failed attempt (prototype `failWhy`); the English goes to the shop, the label is translated. */
+const FAIL_WHY = ["Customer not answering", "Customer not at the address", "Address can’t be found", "Customer refused it"];
 
 export default function JobScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const t = useT("m_partner", "common");
   const job = useLoad(() => fetchJob(String(id)), String(id));
+  const market = useLoad(fetchMarket);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [sheet, setSheet] = useState<null | "rider" | "accept" | "fail">(null);
-  const [delivering, setDelivering] = useState(false);
-  const [code, setCode] = useState("");
-  const [recipient, setRecipient] = useState("");
-  const [cash, setCash] = useState("");
-  const [method, setMethod] = useState<"cash" | "transfer">("cash");
+  const [sheet, setSheet] = useState<null | "assign" | "reassign" | "decline" | "fail">(null);
+  const [pick, setPick] = useState<string | null>(null);
   const data = job.data;
 
-  async function run(key: string, body: JobAction) {
+  async function run(key: string, body: JobAction, after?: () => void) {
     setBusy(key);
     setError(null);
+    setSheet(null);
     try {
       const result = await moveJob(String(id), body);
       if (result.job && data) job.setData({ ...data, job: result.job });
-      setDelivering(false);
       void job.reload();
+      after?.();
     } catch (moveError) {
       setError(moveError instanceof Error ? moveError.message : t("error.retry"));
     } finally {
       setBusy(null);
     }
-  }
-
-  async function takeProof(current: Job) {
-    const permission = await ImagePicker.requestCameraPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert(t("job.cameraOff"), t("job.cameraOffBody"));
-      return;
-    }
-    const result = await ImagePicker.launchCameraAsync({ mediaTypes: ["images"], quality: 0.6 });
-    if (result.canceled || !data) return;
-    const asset = result.assets[0];
-    setBusy("proof");
-    setError(null);
-    try {
-      const { proofUrl } = await uploadJobProof(current.id, { uri: asset.uri, mimeType: asset.mimeType, fileName: asset.fileName });
-      job.setData({ ...data, job: { ...current, proofUrl } });
-    } catch (uploadError) {
-      setError(uploadError instanceof Error ? uploadError.message : t("job.photoFailed"));
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  function deliver(current: Job) {
-    const collected = current.collect > 0 ? Number(cash.replace(/[,₦\s]/g, "")) : null;
-    if (current.collect > 0 && (collected === null || !Number.isFinite(collected) || collected < 0)) return setError(t("job.typePaid"));
-    void run("delivered", { action: "status", to: "delivered", code: code.trim() || null, recipientName: recipient.trim() || null, codCollected: collected, codMethod: current.collect > 0 ? method : null });
   }
 
   if (!data) {
@@ -108,171 +66,154 @@ export default function JobScreen() {
   }
 
   const current = data.job;
-  const stage = jobStage(current.status, t);
-  const steps = jobNextSteps(current.status, t);
-  const open = ["confirmed", "picked_up", "in_transit"].includes(current.status);
+  const point = isPointJob(current.status, current.to, market.data?.pickupPoints ?? []);
+  const footerKind = jobFooter(current.status);
+  const move = nextMove(current.status, point);
+  const steps = jobTimeline(current.status, point);
+  const status = t.dynamic(`pst.${current.status}`, STATUS_WORD[current.status] ?? current.status);
+  const fees = market.data?.rateCard;
+  const options = riderOptions(data.riders, current.pickupGeo, undefined, t);
+  const chosen = pick ?? options[0]?.value ?? null;
+  const off = Boolean(busy);
+  const open = ["confirmed", "picked_up", "in_transit", "out_for_delivery", "at_pickup_point", "failed"].includes(current.status);
+
+  const check = <AppIcon name="check" size={20} color="#FFFFFF" />;
+  const button = (key: string, label: string, onPress: () => void, icon = check) => (
+    <PillButton tone="forest" busy={busy === key} disabled={off} onPress={onPress}>
+      {icon}
+      <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 17 }}>{label}</T>
+    </PillButton>
+  );
+  const ghost = (label: string, onPress: () => void) => <PillButton title={label} tone="white" disabled={off} onPress={onPress} />;
 
   const footer =
-    current.status === "pending" ? (
-      <View style={{ flexDirection: "row", gap: 8 }}>
-        <PillButton
-          title={t("decline")}
-          tone="white"
-          size="md"
-          style={{ flex: 0.7 }}
-          busy={busy === "decline"}
-          disabled={Boolean(busy)}
-          onPress={() => Alert.alert(t("decline.title"), t("decline.body"), [{ text: t("keepIt"), style: "cancel" }, { text: t("decline"), style: "destructive", onPress: () => void run("decline", { action: "decline" }) }])}
-        />
-        <PillButton title={t("acceptAssign")} size="md" style={{ flex: 1.3 }} busy={busy === "accept"} disabled={Boolean(busy)} onPress={() => setSheet("accept")} />
-      </View>
-    ) : delivering ? (
-      <View style={{ flexDirection: "row", gap: 8 }}>
-        <PillButton title={t("back")} tone="white" size="md" style={{ flex: 0.6 }} disabled={Boolean(busy)} onPress={() => setDelivering(false)} />
-        <PillButton title={t("job.confirmDelivered")} tone="forest" size="md" style={{ flex: 1.4 }} busy={busy === "delivered"} disabled={Boolean(busy)} onPress={() => deliver(current)} />
-      </View>
-    ) : steps.length ? (
-      <View style={{ gap: 8 }}>
-        <View style={{ flexDirection: "row", gap: 8 }}>
-          {steps.map((step) => (
-            <PillButton
-              key={step.to}
-              title={step.label}
-              size="md"
-              tone={step.to === "delivered" ? "forest" : "ink"}
-              style={{ flex: 1 }}
-              busy={busy === step.to}
-              disabled={Boolean(busy)}
-              onPress={() => (step.to === "delivered" ? setDelivering(true) : void run(step.to, { action: "status", to: step.to }))}
-            />
-          ))}
-        </View>
-        {canFail(current.status) ? <PillButton title={t("job.couldntDeliver")} tone="white" size="sm" disabled={Boolean(busy)} onPress={() => setSheet("fail")} /> : null}
-      </View>
+    footerKind === "offer" ? (
+      <>
+        {button("accept", t("job.acceptPick"), () => setSheet("assign"))}
+        {ghost(t("decline"), () => setSheet("decline"))}
+      </>
+    ) : footerKind === "moving" && move ? (
+      <>
+        {button(move.to, t.dynamic(move.key), () => void run(move.to, { action: "status", to: move.to }))}
+        {ghost(t("job.reportFailed"), () => setSheet("fail"))}
+      </>
+    ) : footerKind === "last" ? (
+      <>
+        {button("deliver", t("job.confirmDelivery"), () => router.push({ pathname: "/logistics/proof/[id]", params: { id: current.id } }))}
+        {ghost(t("job.reportFailed"), () => setSheet("fail"))}
+      </>
+    ) : footerKind === "failed" ? (
+      <>
+        {button("retry", t("job.tryAgain"), () => void run("retry", { action: "status", to: "out_for_delivery" }), <AppIcon name="route" size={20} color="#FFFFFF" />)}
+        {ghost(t("job.returnToSender"), () => void run("returning", { action: "status", to: "returning" }))}
+      </>
+    ) : footerKind === "returning" ? (
+      button("returned", t("job.handedBack"), () => void run("returned", { action: "status", to: "returned" }))
     ) : null;
 
+  const drop = current.buyer ? `${current.buyer.name} · ${current.buyer.address}` : current.to;
+
   return (
-    <Screen title={t("job.titleRef", { ref: current.ref })} sub={t("job.sub", { shop: current.shop, ago: timeAgo(current.createdAt, undefined, t) })} refreshing={job.refreshing} onRefresh={() => void job.refresh()} footer={footer}>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
-        <TonePill tone={stage.tone} label={stage.label} />
-        <T weight="extrabold" style={{ marginLeft: "auto", fontSize: 20 }}>{naira(current.fee)}</T>
+    <Screen title={current.ref} refreshing={job.refreshing} onRefresh={() => void job.refresh()} footer={footer}>
+      <View style={{ gap: 4 }}>
+        <Heading>{`${shortPlace(current.from)} → ${shortPlace(current.to)}`}</Heading>
+        <Sub>{`${current.shop} · ${status}`}</Sub>
       </View>
-      {current.status !== "pending" && current.status !== "cancelled" && current.status !== "failed" ? <Pipeline status={current.status} /> : null}
       {error ? <Notice>{error}</Notice> : null}
-      {current.status === "failed" && current.failedReason ? <Notice>{t("job.failed", { reason: current.failedReason })}</Notice> : null}
 
-      <Card style={{ gap: 14 }}>
-        <View style={{ flexDirection: "row", gap: 12 }}>
-          <AppIcon name="store" size={20} color={colors.accentInk} />
-          <View style={{ flex: 1 }}>
-            <T weight="bold" style={{ color: colors.inkSoft, fontSize: 14 }}>{t("job.pickup")}</T>
-            <T weight="bold">{current.shop}</T>
-            <T selectable>{current.from}</T>
-            {current.pickupWindow ? <T weight="extrabold" style={{ color: colors.accentInk, fontSize: 15 }}>{current.pickupWindow}</T> : null}
-          </View>
-        </View>
-        <View style={{ flexDirection: "row", gap: 12 }}>
-          <AppIcon name="pin" size={20} color={colors.forest} />
-          <View style={{ flex: 1 }}>
-            <T weight="bold" style={{ color: colors.inkSoft, fontSize: 14 }}>{t("job.dropoff")}</T>
-            {current.buyer ? <T weight="bold">{current.buyer.name}</T> : null}
-            <T selectable>{current.buyer?.address ?? current.to}</T>
-          </View>
-        </View>
-        {current.buyer?.phone ? (
-          <View style={{ flexDirection: "row", gap: 8 }}>
-            <PillButton tone="white" size="sm" onPress={() => void Linking.openURL(`tel:${current.buyer!.phone}`)}>
-              <AppIcon name="phone" size={16} />
-              <T weight="bold" style={{ fontSize: 15 }}>{t("job.callCustomer")}</T>
-            </PillButton>
-            <PillButton tone="white" size="sm" onPress={() => void Linking.openURL(`https://wa.me/${current.buyer!.phone!.replace(/\D/g, "")}`)}>
-              <AppIcon name="chat" size={16} />
-              <T weight="bold" style={{ fontSize: 15 }}>WhatsApp</T>
-            </PillButton>
-          </View>
-        ) : null}
-      </Card>
+      <List>
+        <Row lead={<Tile icon="box" tone="mint" />} title={t("job.pickFrom")} sub={current.pickupWindow ? `${current.from} · ${current.pickupWindow}` : current.from} />
+        <Row lead={<Tile icon="pin" tone="peach" />} title={point ? t("job.dropAtPoint") : t("job.deliverTo")} sub={drop} />
+      </List>
 
-      <Card style={{ paddingVertical: 4 }}>
-        <KeyValue first label={t("job.parcel")} value={current.item} />
-        {current.collect > 0 ? <KeyValue label={t("job.cod")} value={naira(current.collect)} /> : null}
-        <KeyValue label={t("job.fee")} value={t("job.feeValue", { fee: naira(current.deliveryFee), keep: naira(current.fee) })} />
-        {current.trackingCode ? <KeyValue label={t("job.tracking")} value={current.trackingCode} /> : null}
-        {current.codCollected !== null ? <KeyValue label={t("job.collected")} value={`${naira(current.codCollected)} ${current.codMethod === "cash" ? t("cash") : current.codMethod === "transfer" ? t("transfer") : (current.codMethod ?? "")}`.trim()} /> : null}
-        {current.notes ? <KeyValue label={t("job.notes")} value={current.notes} /> : null}
-      </Card>
+      <List>
+        <Row lead={<Tile icon="truck" tone="gray" />} title={current.item} sub={current.pickupWindow ?? t("job.sent", { ago: timeAgo(current.createdAt, undefined, t) })} />
+        <Row lead={<Tile icon="wallet" tone="ok" />} title={t("job.youGet", { fee: naira(current.fee) })} sub={t("job.paidOnConfirm")} />
+      </List>
 
-      {current.status !== "pending" && current.status !== "cancelled" ? (
-        <>
-          <SectionTitle>{t("job.rider")}</SectionTitle>
-          <Pressable accessibilityRole="button" disabled={!open && current.status !== "failed"} onPress={() => setSheet("rider")} style={{ backgroundColor: colors.surface, borderRadius: radii.card, padding: 16, flexDirection: "row", alignItems: "center", gap: 12 }}>
-            <AppIcon name="truck" size={20} />
-            <T weight="bold" style={{ flex: 1 }}>{current.rider?.name ?? t("job.noRider")}</T>
-            {open || current.status === "failed" ? <T weight="bold" style={{ color: colors.accentInk }}>{current.rider ? t("job.change") : t("job.assign")}</T> : null}
-          </Pressable>
-        </>
+      {current.collect > 0 ? <NoteCard title={t("job.podTitle", { cash: naira(current.collect) })}>{t("job.podBody", { shop: current.shop })}</NoteCard> : null}
+      {current.status === "failed" ? (
+        <NoteCard title={t("job.failedTitle", { reason: current.failedReason ?? t("job.failedNoReason") })}>
+          {fees && fees.failedAttemptFee > 0 ? t("job.failedBody", { fee: naira(fees.failedAttemptFee) }) : t("job.failedBodyNoFee")}
+        </NoteCard>
+      ) : null}
+      {current.status === "returning" ? (
+        <NoteCard title={t("job.returningTitle", { shop: current.shop })}>{fees && fees.returnFee > 0 ? t("job.returningBody", { fee: naira(fees.returnFee) }) : t("job.returningBodyNoFee")}</NoteCard>
       ) : null}
 
-      {delivering ? (
+      {steps ? (
         <>
-          <SectionTitle>{t("job.proof")}</SectionTitle>
-          <Card style={{ gap: 14 }}>
-            {current.proofUrl ? <Image source={{ uri: current.proofUrl }} style={{ width: "100%", height: 180, borderRadius: 14 }} contentFit="cover" accessibilityLabel={t("job.proofPhoto")} /> : null}
-            <PillButton tone="white" size="md" busy={busy === "proof"} disabled={Boolean(busy)} onPress={() => void takeProof(current)}>
-              <AppIcon name="camera" size={18} />
-              <T weight="bold">{current.proofUrl ? t("job.retake") : t("job.takePhoto")}</T>
-            </PillButton>
-            <View>
-              <Label>{t("job.receivedBy")}</Label>
-              <Field value={recipient} onChangeText={setRecipient} placeholder={current.buyer?.name ?? t("job.personName")} autoCapitalize="words" accessibilityLabel={t("job.receivedBy")} />
-            </View>
-            <View>
-              <Label>{t("job.code")}</Label>
-              <Field value={code} onChangeText={(text) => setCode(text.replace(/\D/g, "").slice(0, 4))} keyboardType="number-pad" placeholder="0000" maxLength={4} accessibilityLabel={t("job.code")} style={{ letterSpacing: 6, fontSize: 20 }} />
-              <T style={{ color: colors.inkSoft, fontSize: 14, marginTop: 6 }}>{t("job.codeHint")}</T>
-            </View>
-            {current.collect > 0 ? (
-              <View style={{ gap: 8 }}>
-                <Label>{t("job.codCollected")}</Label>
-                <Field value={cash} onChangeText={setCash} keyboardType="decimal-pad" placeholder={String(current.collect)} accessibilityLabel={t("job.codCollected")} />
-                <ChipRow>
-                  <Chip label={t("cash")} on={method === "cash"} onPress={() => setMethod("cash")} />
-                  <Chip label={t("transfer")} on={method === "transfer"} onPress={() => setMethod("transfer")} />
-                </ChipRow>
-              </View>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <Small style={{ flex: 1 }}>{current.rider ? t("job.riderIs", { name: current.rider.name }) : t("job.noRider")}</Small>
+            {open ? (
+              <T weight="bold" style={{ fontSize: 14, textDecorationLine: "underline" }} accessibilityRole="button" onPress={() => setSheet("reassign")}>
+                {current.rider ? t("job.change") : t("job.assign")}
+              </T>
             ) : null}
+          </View>
+          <Card style={{ padding: 20, borderRadius: 24, borderWidth: 1, borderColor: colors.line }}>
+            <Timeline steps={steps.map((step) => ({ label: t.dynamic(step.key), state: step.state }))} />
           </Card>
         </>
-      ) : current.proofUrl ? (
-        <>
-          <SectionTitle>{t("job.proof")}</SectionTitle>
-          <Image source={{ uri: current.proofUrl }} style={{ width: "100%", height: 200, borderRadius: radii.card }} contentFit="cover" accessibilityLabel={t("job.proofPhoto")} />
-        </>
       ) : null}
+
+      {current.buyer?.phone ? (
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          <PillButton tone="white" size="sm" onPress={() => void Linking.openURL(`tel:${current.buyer!.phone}`)}>
+            <AppIcon name="phone" size={16} />
+            <T weight="bold" style={{ fontSize: 15 }}>{t("job.callCustomer")}</T>
+          </PillButton>
+          <PillButton tone="white" size="sm" onPress={() => void Linking.openURL(`https://wa.me/${current.buyer!.phone!.replace(/\D/g, "")}`)}>
+            <AppIcon name="chat" size={16} />
+            <T weight="bold" style={{ fontSize: 15 }}>WhatsApp</T>
+          </PillButton>
+        </View>
+      ) : null}
+
+      {current.proofUrl ? <Image source={{ uri: current.proofUrl }} style={{ width: "100%", height: 200, borderRadius: 24 }} contentFit="cover" accessibilityLabel={t("job.proofPhoto")} /> : null}
 
       <PillButton title={t("job.messageShop", { shop: current.shop })} tone="white" size="md" onPress={() => router.push({ pathname: "/logistics/chat/[id]", params: { id: current.sellerUserId, name: current.shop } })} />
 
-      <ChoiceSheet
-        visible={sheet === "rider" || sheet === "accept"}
-        title={sheet === "accept" ? t("assignRider") : t("job.reassign")}
-        options={[...riderOptions(data.riders, data.job.pickupGeo, undefined, t), { value: "", label: sheet === "accept" ? t("acceptLater") : t("job.noRiderOption") }]}
-        onPick={(value) => {
-          const mode = sheet;
-          setSheet(null);
-          void (mode === "accept" ? run("accept", { action: "accept", riderId: value || null }) : run("rider", { action: "assign", riderId: value || null }));
-        }}
-        onClose={() => setSheet(null)}
-      />
-      <ChoiceSheet
-        visible={sheet === "fail"}
-        title={t("job.why")}
-        options={failReasonOptions(t)}
-        onPick={(reason) => {
-          setSheet(null);
-          void run("failed", { action: "status", to: "failed", failedReason: reason });
-        }}
-        onClose={() => setSheet(null)}
-      />
+      <Sheet visible={sheet === "assign" || sheet === "reassign"} onClose={() => setSheet(null)} title={t("assign.title")}>
+        <Sub style={{ marginTop: -6 }}>{t("assign.sub")}</Sub>
+        {options.length ? null : (
+          <Card style={{ padding: 20, borderRadius: 24, borderWidth: 1, borderColor: colors.line }}>
+            <Sub>{t("assign.none")}</Sub>
+          </Card>
+        )}
+        <View style={{ gap: 10, maxHeight: 360 }}>
+          {options.slice(0, 6).map((option) => (
+            <Choice key={option.value} title={option.label} sub={option.hint} on={chosen === option.value} onPress={() => setPick(option.value)} />
+          ))}
+        </View>
+        <PillButton
+          tone="forest"
+          busy={busy === "accept" || busy === "assign"}
+          disabled={off}
+          onPress={() => (sheet === "assign" ? void run("accept", { action: "accept", riderId: chosen }) : void run("assign", { action: "assign", riderId: chosen }))}
+        >
+          <AppIcon name="send" size={20} color="#FFFFFF" />
+          <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 17 }}>{sheet === "assign" ? t("assign.accept") : t("assign.send")}</T>
+        </PillButton>
+      </Sheet>
+
+      <Sheet visible={sheet === "decline"} onClose={() => setSheet(null)} title={t("declineWhy.title")}>
+        <Sub style={{ marginTop: -6 }}>{t("declineWhy.sub")}</Sub>
+        <List>
+          {DECLINE_REASONS.map((reason, index) => (
+            <Row key={reason} title={t.dynamic(`declineWhy.${index}`, reason)} onPress={() => void run("decline", { action: "decline", reason }, () => router.back())} />
+          ))}
+        </List>
+      </Sheet>
+
+      <Sheet visible={sheet === "fail"} onClose={() => setSheet(null)} title={t("failWhy.title")}>
+        <Sub style={{ marginTop: -6 }}>{t("failWhy.sub")}</Sub>
+        <List>
+          {FAIL_WHY.map((reason, index) => (
+            <Row key={reason} title={t.dynamic(`failWhy.${index}`, reason)} onPress={() => void run("failed", { action: "status", to: "failed", failedReason: reason })} />
+          ))}
+        </List>
+      </Sheet>
     </Screen>
   );
 }

@@ -237,6 +237,41 @@ export async function notifyOrderCustomerPartlySent(orderId: string) {
   }
 }
 
+/** The SMS with the code for a parcel the supplier delivers itself (the shop's name; the supplier stays unseen). */
+export const SELF_DELIVERY_SMS = "{{store}}: your order {{order_number}} is on its way. When it arrives, give this code to the person delivering it: {{delivery_code}}. {{order_url}}";
+
+/**
+ * The customer's delivery code by SMS, once per parcel, when a supplier sets off to deliver its own parcel
+ * (src/lib/supplier-orders/service.server.ts). Sent whatever the shop's order message settings: without it the
+ * parcel can't be marked delivered. Never after STOP. The code is also on the customer's order page. Never throws.
+ */
+export async function textSelfDeliveryCode(orderId: string, code: string) {
+  try {
+    const order = await db.retailOrder.findUnique({ where: { id: orderId }, select: { id: true, storeId: true, orderNumber: true, buyerName: true, buyerPhone: true } });
+    const phone = normalizePhone(order?.buyerPhone);
+    if (!order || !phone) return [];
+    const store = await db.store.findUnique({ where: { id: order.storeId }, select: MARKETING_STORE_SELECT });
+    if (!store) return [];
+    const recipient = { event: "order_self_delivery" as CustomerEvent, refId: `${order.id}:${code}`, phone, name: order.buyerName, values: {}, smsVars: {} } satisfies Recipient;
+    const id = await claim(store.id, recipient, "sms");
+    if (!id) return [];
+    const allowed = mayText({ channel: "sms", phone, purpose: "transactional", consent: true, optOuts: await loadOptOuts(store.id) });
+    if (!allowed.ok) {
+      await finish(id, { ok: false, error: allowed.reason, skipped: true });
+      return [{ channel: "sms" as const, ok: false, error: allowed.reason }];
+    }
+    const settings = await getMessagingSettings(order.storeId);
+    const body = fillVariables(SELF_DELIVERY_SMS, { store: store.name, order_number: order.orderNumber, delivery_code: code, order_url: storeUrl(store, `/order/${order.id}`) } as unknown as FlowVariables, "text").replace(/\s{2,}/g, " ").trim();
+    const send = await textSender(store, { senderId: settings.smsSenderId });
+    const outcome = await send.sms(phone, body).catch((error): SendOutcome => ({ ok: false, error: String(error) }));
+    await finish(id, outcome);
+    return [{ channel: "sms" as const, ok: outcome.ok }];
+  } catch (error) {
+    console.error(`[customer messages] self-delivery code for order ${orderId} failed`, error);
+    return [];
+  }
+}
+
 /**
  * Abandoned carts with a phone, left 1 to 24 hours ago and not paid for: one WhatsApp/SMS reminder each, for
  * stores that turned it on. A channel the store's own abandoned-cart automation already texts on is skipped,

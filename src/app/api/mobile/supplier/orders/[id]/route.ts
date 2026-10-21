@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 // One supplier order in the mobile app (?kind=dropship | wholesale).
 // GET → the order with its label / packing slip details. PATCH { kind, action, trackingCode?, reason? } moves it:
 //   accept · decline (optional reason) · packed (wholesale only) · handed_over (to the rider; optional tracking
-//   code) · delivered. Dropship and wholesale moves go through the same code as the web portal
+//   code) · delivered (with `code`, the customer's 4 digits, when the supplier delivers it itself). Dropship and wholesale moves go through the same code as the web portal
 //   (src/lib/supplier-orders), so the shop is told and the shop's own order follows a shipped dropship order.
 
 const Body = z.object({
@@ -22,6 +22,8 @@ const Body = z.object({
   action: z.enum(["accept", "decline", "packed", "handed_over", "delivered"]),
   trackingCode: z.string().trim().max(80).optional(),
   reason: z.string().trim().max(500).optional(),
+  /** The customer's 4-digit code, to deliver a parcel the supplier delivers itself. */
+  code: z.string().trim().max(8).optional(),
 });
 
 const APP_DECLINE_REASON = "Declined from the Shopinbos app";
@@ -70,7 +72,7 @@ export const PATCH = withSupplier(async (req: NextRequest, { user, params }) => 
   if (!move) return apiError("BAD_REQUEST", "That can't be done to this order.");
   const result = kind === "wholesale"
     ? await moveWholesaleOrder({ supplierId: supplier.id, orderId: id, action: move, trackingCode, reason })
-    : await moveSupplierOrder({ supplierId: supplier.id, orderId: id, action: move, trackingCode, reason });
+    : await moveSupplierOrder({ supplierId: supplier.id, orderId: id, action: move, trackingCode, reason, deliveryCode: parsed.data.code });
   if (!result.ok) {
     if (result.code === "CONFLICT") return apiError("CONFLICT", result.message.startsWith("Time ran out") ? result.message : "This order has already moved on. Pull down to refresh.", 409);
     return apiError(result.code, result.message);
