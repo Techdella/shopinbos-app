@@ -31,6 +31,7 @@ Defined in `scripts/qstash-schedules.mjs` (cron times are UTC):
 | shopinbos-sales-channels                | /api/cron/sales-channels             | `23 */2 * * *`    |
 | shopinbos-domain-renewals               | /api/cron/domain-renewals            | `17 7 * * *`      |
 | shopinbos-business-registrations        | /api/cron/business-registrations     | `*/10 * * * *`    |
+| shopinbos-money-owed                    | /api/cron/money-owed                 | `7 * * * *`       |
 | shopinbos-social-posts                  | /api/cron/social-posts               | `*/5 * * * *`     |
 | shopinbos-weekly-summary                | /api/cron/weekly-summary             | `0 6 * * 1`       |
 | shopinbos-weekly-summary-continue       | /api/cron/weekly-summary             | `20,40 6-9 * * 1` |
@@ -42,6 +43,9 @@ These stay where they are:
 
 That comes to about 2,900 calls a day, which is above QStash's free daily allowance. Put the account on
 pay-as-you-go (a few cents a day at this volume).
+
+Admin › Developers › Launch settings lists every job the app needs and whether pg_cron runs it
+(`src/lib/launch-check/pure.ts`, `SCHEDULED_JOBS`). Keep that list, `JOBS` in the script and this table in step.
 
 ## Switching over
 
@@ -57,7 +61,8 @@ pay-as-you-go (a few cents a day at this volume).
      'send-scheduled-campaigns', 'run-marketing', 'send-unread-message-emails', 'expire-unpaid-orders',
      'verification-reminders', 'whatsapp-catalog-sync', 'weekly-summary', 'weekly-summary-continue',
      'product-news', 'supplier-acceptance', 'partner-payins', 'push-receipts',
-     'lifecycle-emails', 'seasonal-campaigns', 'gmail-sync', 'lead-growth', 'sales-channels', 'sales-channels-sync', 'domain-renewals'
+     'lifecycle-emails', 'seasonal-campaigns', 'gmail-sync', 'lead-growth', 'sales-channels', 'sales-channels-sync', 'domain-renewals',
+     'delivery-jobs', 'social-posts', 'business-registrations', 'money-owed'
    );
    ```
 

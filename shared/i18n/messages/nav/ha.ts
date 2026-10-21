@@ -174,6 +174,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "admin.pricing-plans": "Tsare-tsaren biyan kuɗi",
   "admin.team": "Ƙungiya",
   "admin.developers": "Masu haɓakawa",
+  "admin.launches": "Ƙaddamarwa",
   "group.sourcing": "Samo kaya",
   "group.people": "Mutane",
   "group.store": "Shago",

@@ -1,18 +1,20 @@
 import "server-only";
 
 import { africastalking } from "./africastalking";
+import { brevo } from "./brevo";
+import { bulksmsnigeria } from "./bulksmsnigeria";
 import { isSmsProvider, platformProviderOrder, SMS_PROVIDER_LABELS, termiiBaseUrl, type SendOutcome, type SmsProviderKey } from "./pure";
 import { sendchamp } from "./sendchamp";
 import { termii } from "./termii";
 import type { SmsCredentials, SmsProvider } from "./types";
 
-// SMS for the whole app. Two ways in:
+// SMS for the whole app (Termii, Africa's Talking, Sendchamp, Brevo, BulkSMS Nigeria; never Twilio). Two ways in:
 //   - the platform's own account(s) from env, for OTP, notifications, marketing and review requests, tried in
 //     SMS_PROVIDER order with every other configured provider as a fallback when one errors;
 //   - a store's own account connected in Inbox › Channels (credentials decrypted by the inbox), so customers'
 //     replies land in that store's inbox.
 
-export const SMS_PROVIDER_MODULES: Record<SmsProviderKey, SmsProvider> = { termii, africastalking, sendchamp };
+export const SMS_PROVIDER_MODULES: Record<SmsProviderKey, SmsProvider> = { termii, africastalking, sendchamp, brevo, bulksmsnigeria };
 
 export function smsProvider(key: unknown): SmsProvider | null {
   return isSmsProvider(key) ? SMS_PROVIDER_MODULES[key] : null;
@@ -27,6 +29,10 @@ export function platformCredentials(key: SmsProviderKey, env: Record<string, str
       return { provider: key, apiKey: env.AFRICASTALKING_API_KEY ?? "", username: env.AFRICASTALKING_USERNAME ?? "", senderId: env.AFRICASTALKING_SENDER_ID || undefined };
     case "sendchamp":
       return { provider: key, apiKey: env.SENDCHAMP_API_KEY ?? "", senderId: env.SENDCHAMP_SENDER_NAME || undefined, route: env.SENDCHAMP_ROUTE || "dnd" };
+    case "brevo":
+      return { provider: key, apiKey: env.BREVO_API_KEY ?? "", senderId: env.BREVO_SMS_SENDER || undefined };
+    case "bulksmsnigeria":
+      return { provider: key, apiKey: env.BULKSMSNIGERIA_API_TOKEN ?? "", senderId: env.BULKSMSNIGERIA_SENDER_ID || undefined, route: env.BULKSMSNIGERIA_GATEWAY || undefined };
   }
 }
 

@@ -62,3 +62,23 @@ there because they're only removed once everything has succeeded.
 4. Check it end to end. Build a signed request with `signRequest()` from `src/lib/meta/signed-request.ts` and your
    app secret, then post it as `signed_request=…` to the data-deletion URL. You should get back a URL and a code,
    and the status page should show "Completed".
+
+## App Review: test calls for each permission
+
+Meta only lets you request advanced access for a permission after it has logged at least one successful API call
+with it in the last 30 days (logged within ~2 days). `scripts/meta-review-test-calls.mjs` makes one call per
+permission the shopinbos app (1287420443273303) asks for:
+
+```bash
+# Graph API Explorer → Meta App: shopinbos → User Token → tick every permission → Generate
+META_TEST_TOKEN=… node scripts/meta-review-test-calls.mjs            # read-only
+META_TEST_TOKEN=… META_WA_TEST_TO=2348… node scripts/meta-review-test-calls.mjs --write
+```
+
+`--write` also creates an unpublished Page post, comments on it and deletes it (pages_manage_posts,
+pages_manage_engagement) and sends WhatsApp's `hello_world` template to a test number. The account needs a Page
+with a linked Instagram professional account, an ad account, a catalog and a WhatsApp Business Account, and one
+Messenger conversation on the Page (Business Asset User Profile Access). Each permission also needs its screencast.
+
+In the app's Basic settings, set the Data Deletion callback to `https://app.shopinbos.com/api/webhooks/meta/data-deletion`
+(not the privacy page) and verify the contact email.

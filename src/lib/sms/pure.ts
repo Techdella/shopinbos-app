@@ -1,4 +1,4 @@
-// SMS and voice providers used in Nigeria (Termii, Africa's Talking, Sendchamp): the pure parts. Which platform
+// SMS and voice providers used in Nigeria (Termii, Africa's Talking, Sendchamp, Brevo, BulkSMS Nigeria): the pure parts. Which platform
 // provider to try first, the webhook checks, the parsers that turn each provider's callbacks into one shape, the
 // send-response readers and Africa's Talking voice XML. No server imports (only node:crypto), so they are
 // unit-tested in tests/sms-providers.test.mjs.
@@ -13,16 +13,23 @@
 //                    an optional IP allow list. Voice: outbound calls, call-handling XML, recordings.
 //   Sendchamp        send (routes "dnd" | "non_dnd" | "international"), delivery reports to a dashboard webhook.
 //                    One-way only: there is no inbound SMS. No documented signature: secret token in the URL.
+//   Brevo            transactional SMS (POST /v3/transactionalSMS/send, one recipient per call, api-key header,
+//                    sender ≤ 11 letters or ≤ 15 digits). Delivery events go to the webUrl sent with each message.
+//                    One-way, no signature: secret token in the URL. Platform account only.
+//   BulkSMS Nigeria  send (POST /api/v2/sms, Bearer token, comma list or array of numbers, registered sender ID,
+//                    optional gateway). No documented delivery webhook. One-way. Platform account only.
 
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-export type SmsProviderKey = "termii" | "africastalking" | "sendchamp";
-export const SMS_PROVIDERS: SmsProviderKey[] = ["termii", "africastalking", "sendchamp"];
+export type SmsProviderKey = "termii" | "africastalking" | "sendchamp" | "brevo" | "bulksmsnigeria";
+export const SMS_PROVIDERS: SmsProviderKey[] = ["termii", "africastalking", "sendchamp", "brevo", "bulksmsnigeria"];
 
 export const SMS_PROVIDER_LABELS: Record<SmsProviderKey, string> = {
   termii: "Termii",
   africastalking: "Africa's Talking",
   sendchamp: "Sendchamp",
+  brevo: "Brevo",
+  bulksmsnigeria: "BulkSMS Nigeria",
 };
 
 /** Providers that can deliver messages customers send back to the store. */
@@ -111,6 +118,8 @@ type Env = Record<string, string | undefined>;
 export function providerConfigured(key: SmsProviderKey, env: Env): boolean {
   if (key === "termii") return Boolean(env.TERMII_API_KEY);
   if (key === "africastalking") return Boolean(env.AFRICASTALKING_API_KEY && env.AFRICASTALKING_USERNAME);
+  if (key === "brevo") return Boolean(env.BREVO_API_KEY && env.BREVO_SMS_SENDER);
+  if (key === "bulksmsnigeria") return Boolean(env.BULKSMSNIGERIA_API_TOKEN && env.BULKSMSNIGERIA_SENDER_ID);
   return Boolean(env.SENDCHAMP_API_KEY);
 }
 
@@ -262,11 +271,27 @@ export function parseSendchampStatus(payload: unknown): SmsStatus | null {
   return { externalId, status, error: status === "failed" ? `Sendchamp: ${str(p.reason) || str(p.message) || raw}` : null };
 }
 
+/**
+ * Brevo SMS event on the message's webUrl. Field names vary between the webhook and the events API, so read both:
+ * { messageId | message_id, msg_status | event | status: "sent" | "delivered" | "hardBounce" | "softBounce" |
+ * "rejected" | "blocked" | …, reason? }.
+ */
+export function parseBrevoStatus(payload: unknown): SmsStatus | null {
+  const p = asRecord(payload);
+  const externalId = str(p.messageId) || str(p.message_id) || str(p.id);
+  const raw = str(p.msg_status) || str(p.event) || str(p.status);
+  if (!externalId || !raw) return null;
+  // "accepted" is Brevo taking the message, not the phone getting it.
+  const status = /^accepted$/i.test(raw) ? "sent" : statusFrom(raw);
+  if (!status) return null;
+  return { externalId, status, error: status === "failed" ? `Brevo: ${str(p.reason) || str(p.description) || raw}` : null };
+}
+
 /** Maps every provider's status words to ours. Unknown words are ignored rather than guessed. */
 export function statusFrom(raw: string): SmsStatus["status"] | null {
   const s = raw.trim().toLowerCase();
   if (!s) return null;
-  if (/undeliver|fail|reject|dnd|expired|absent|blacklist|invalid|insufficient|error/.test(s)) return "failed";
+  if (/undeliver|fail|reject|dnd|expired|absent|blacklist|invalid|insufficient|error|bounce|unsubscri|blocked/.test(s)) return "failed";
   if (/deliver|^success$/.test(s)) return "delivered";
   if (/sent|submitted|buffered|queued|accepted|pending|processing/.test(s)) return "sent";
   return null;
@@ -299,6 +324,27 @@ export function readSendchampSend(httpOk: boolean, json: Record<string, unknown>
     return { ok: true, externalId: str(data.reference) || str(data.id) || str(data.uid) || str(data.business_uid) || null };
   }
   return { ok: false, error: (str(json.message) || "Sendchamp didn't accept the message.").slice(0, 300) };
+}
+
+/** Brevo /v3/transactionalSMS/send: 201 { reference, messageId, smsCount, usedCredits, remainingCredits }; errors { code, message }. */
+export function readBrevoSend(httpOk: boolean, json: Record<string, unknown>): SendOutcome {
+  const id = str(json.messageId) || str(json.reference);
+  if (httpOk && id) return { ok: true, externalId: str(json.messageId) || null };
+  const reason = str(json.message) || str(json.code);
+  return { ok: false, error: (reason ? `Brevo: ${reason}` : "Brevo didn't accept the message.").slice(0, 300) };
+}
+
+/**
+ * BulkSMS Nigeria /api/v2/sms: { status: "success", message, data: { id | message_id, cost, … } };
+ * errors { status: "error", code: "BSNG-…", message }.
+ */
+export function readBulkSmsNigeriaSend(httpOk: boolean, json: Record<string, unknown>): SendOutcome {
+  const data = asRecord(json.data);
+  const status = (str(json.status) || str(data.status)).toLowerCase();
+  if (httpOk && status === "success") return { ok: true, externalId: str(data.id) || str(data.message_id) || null };
+  const reason = str(json.message) || str(asRecord(json.error).message) || str(data.message);
+  const code = str(json.code);
+  return { ok: false, error: (reason ? `BulkSMS Nigeria: ${reason}${code ? ` (${code})` : ""}` : "BulkSMS Nigeria didn't accept the message.").slice(0, 300) };
 }
 
 /** Africa's Talking /call: { entries: [{ phoneNumber, status: "Queued", sessionId }], errorMessage: "None" }. */
