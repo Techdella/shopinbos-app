@@ -154,6 +154,22 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "block.noCollections": "Make collection first for Products, then Collections.",
   "list.pages": "Payment link pages",
   "list.noneHere": "No payment link dey for this status.",
+  "block.shop": "Shop now button",
+  "block.arrivals": "New tins wey land",
+  "block.track": "Track my order",
+  "block.shopHint": "Big button wey carry people go your shop home page.",
+  "block.arrivalsHint": "Your 4 newest products for grid. E dey update by itself.",
+  "block.trackHint": "Customers go type their order number and email or phone to see their order.",
+  "dialog.delivery": "Delivery: address + fee",
+  "dialog.deliveryHint": "Save the customer address and the delivery fee. Dem go see only one Pay button, nothing to fill.",
+  "dialog.deliveryStreet": "Customer street address",
+  "dialog.deliveryCity": "Area or city",
+  "dialog.deliveryState": "State",
+  "dialog.deliveryPickState": "Choose the state",
+  "dialog.deliveryLandmark": "Landmark (optional)",
+  "dialog.deliveryFee": "Delivery fee (₦)",
+  "dialog.deliveryFeeHint": "Leave am empty or put 0 for free delivery. E go join wetin customer go pay.",
+  "dialog.deliveryIncomplete": "Add the street, area and state for delivery, and the fee as number. Or off the delivery.",
 };
 
 export default pcm;

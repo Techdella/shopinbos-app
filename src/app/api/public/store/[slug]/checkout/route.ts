@@ -31,7 +31,7 @@ import { ensureSupplierOrdersSafely } from "@/lib/supplier-orders/service.server
 import { notifyNewOrder, notifyStockAfterSale } from "@/lib/notifications/events.server";
 import { linkCheckout, settlePaymentLinkForOrder } from "@/lib/payment-links/service.server";
 import { confirmWhatsAppOrder } from "@/lib/whatsapp-store/server";
-import { isLinkCode, linkOrderChannel } from "@/lib/payment-links/pure";
+import { isLinkCode, linkCheckoutDelivery, linkOrderChannel } from "@/lib/payment-links/pure";
 import { splitPlanForOrder, storeTakesCards, storeTakesKorapay } from "@/lib/wallet/wallet.server";
 import { startKorapayCheckout } from "@/lib/commerce/korapay-orders.server";
 import { paystackSplitParams } from "@/lib/wallet/rules";
@@ -129,7 +129,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     return withCors(req, apiError("BAD_REQUEST", parsed.error.issues[0]?.message ?? "Invalid body"), CHECKOUT_CORS);
   }
 
-  const { buyerName, buyerEmail: rawEmail, deliveryAddress, items: bagItems, notes, giftMessage, deliveryOptionId, paymentMethod: requestedMethod, discountCode, cartToken, campaignToken: rawCampaignToken, channel: linkChannel, affiliateCode, adCode } = parsed.data;
+  const { buyerName, buyerEmail: rawEmail, deliveryAddress: askedAddress, items: bagItems, notes, giftMessage, deliveryOptionId: askedOptionId, paymentMethod: requestedMethod, discountCode, cartToken, campaignToken: rawCampaignToken, channel: linkChannel, affiliateCode, adCode } = parsed.data;
   const buyerPhone = parsed.data.buyerPhone?.trim() || undefined;
   const settings = readCheckoutSettings(store.checkoutConfig);
 
@@ -141,6 +141,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     if (!found.ok) return withCors(req, apiError("BAD_REQUEST", found.message), CHECKOUT_CORS);
     link = found;
   }
+  // A link with saved delivery (address + agreed fee or option) is delivered exactly there, at that price.
+  const linkDelivery = linkCheckoutDelivery(link?.delivery, { address: askedAddress, deliveryOptionId: askedOptionId });
+  const deliveryAddress = linkDelivery.address;
+  const deliveryOptionId = linkDelivery.deliveryOptionId ?? undefined;
   const items = link ? link.lines : bagItems;
   if (!items.length) return withCors(req, apiError("BAD_REQUEST", "Your bag is empty."), CHECKOUT_CORS);
   const buyerEmail = rawEmail;
@@ -167,6 +171,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     settings,
     loyalty: parsed.data.redeemPoints && !link ? { points: parsed.data.redeemPoints, phone: buyerPhone } : null,
     agreedItemsTotal: link?.agreedItemsTotal ?? null,
+    agreedDeliveryFee: linkDelivery.agreedDeliveryFee,
   });
   if (!priced.ok) return withCors(req, apiError("BAD_REQUEST", priced.message), CHECKOUT_CORS);
 

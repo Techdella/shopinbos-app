@@ -10,7 +10,7 @@ import { ProductPickSheet } from "@/components/ProductPickSheet";
 import { Screen } from "@/components/Screen";
 import { Card, Chip, Field, Label, LinkButton, Notice, PillButton, T, Toggle } from "@/components/ui";
 import { createPaymentLink, fetchPaymentLinks, fetchPublishedProducts, type CreatedLink } from "@/lib/paylinks";
-import { addLine, createProblem, createdTitle, EXPIRY_CHOICES, linesTotal, MAX_LINK_ITEMS, parseNaira, setQuantity, type DraftForm, type DraftLine } from "@/lib/paylinks-pure";
+import { addLine, createProblem, createdTitle, EMPTY_DELIVERY, EXPIRY_CHOICES, linesTotal, MAX_LINK_ITEMS, parseFee, parseNaira, setQuantity, type DraftDelivery, type DraftForm, type DraftLine } from "@/lib/paylinks-pure";
 import { useLoad } from "@/lib/useLoad";
 import { useT } from "@/lib/i18n";
 import { colors, radii } from "@/theme";
@@ -19,7 +19,7 @@ import { colors, radii } from "@/theme";
 // long it works, and (more options) an agreed price, a note and the customer's name and WhatsApp number. Then the
 // link with Copy, Share and Send on WhatsApp. Options (size, colour…) are left for the customer to choose.
 
-const EMPTY_FORM: DraftForm = { amount: "", note: "", buyerName: "", buyerPhone: "", oneTime: true, expiry: "7d" };
+const EMPTY_FORM: DraftForm = { amount: "", note: "", buyerName: "", buyerPhone: "", oneTime: true, expiry: "7d", deliveryOn: false, delivery: EMPTY_DELIVERY };
 
 export default function NewPaymentLink() {
   const t = useT("m_paylinks", "m_ui");
@@ -37,8 +37,11 @@ export default function NewPaymentLink() {
     setForm((current) => ({ ...current, ...change }));
     setProblem(null);
   };
+  const setDelivery = (change: Partial<DraftDelivery>) => update({ delivery: { ...(form.delivery ?? EMPTY_DELIVERY), ...change } });
+  const delivery = form.delivery ?? EMPTY_DELIVERY;
   const agreed = parseNaira(form.amount);
-  const total = agreed ?? linesTotal(lines);
+  // The saved delivery fee is part of what the customer pays.
+  const total = (agreed ?? linesTotal(lines)) + (form.deliveryOn ? parseFee(delivery.fee) ?? 0 : 0);
   const notReady = readiness.data ? !readiness.data.readiness.ready : false;
 
   async function make() {
@@ -160,6 +163,41 @@ export default function NewPaymentLink() {
             {EXPIRY_CHOICES.map((choice) => <Chip key={choice} label={t(`expiry.${choice}`)} on={form.expiry === choice} onPress={() => update({ expiry: choice })} />)}
           </ChipRow>
         </View>
+      </Card>
+
+      <Card style={{ gap: 14 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <View style={{ flex: 1 }}>
+            <T weight="bold" style={{ fontSize: 16 }}>{t("create.delivery")}</T>
+            <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20, marginTop: 2 }}>{t("create.deliveryHint")}</T>
+          </View>
+          <Toggle on={Boolean(form.deliveryOn)} onChange={(deliveryOn) => update({ deliveryOn })} label={t("create.delivery")} />
+        </View>
+        {form.deliveryOn ? (
+          <>
+            <View>
+              <Label>{t("create.deliveryStreet")}</Label>
+              <Field value={delivery.street} onChangeText={(street) => setDelivery({ street })} maxLength={200} autoComplete="off" />
+            </View>
+            <View>
+              <Label>{t("create.deliveryCity")}</Label>
+              <Field value={delivery.city} onChangeText={(city) => setDelivery({ city })} maxLength={120} autoComplete="off" />
+            </View>
+            <View>
+              <Label>{t("create.deliveryState")}</Label>
+              <Field value={delivery.state} onChangeText={(state) => setDelivery({ state })} maxLength={80} autoComplete="off" placeholder="Lagos" />
+            </View>
+            <View>
+              <Label>{t("create.deliveryLandmark")}</Label>
+              <Field value={delivery.landmark} onChangeText={(landmark) => setDelivery({ landmark })} maxLength={160} autoComplete="off" />
+            </View>
+            <View>
+              <Label>{t("create.deliveryFee")}</Label>
+              <Field value={delivery.fee} onChangeText={(fee) => setDelivery({ fee: fee.replace(/[^\d.,]/g, "") })} keyboardType="decimal-pad" placeholder="0" />
+              <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20, marginTop: 6 }}>{t("create.deliveryFeeHint")}</T>
+            </View>
+          </>
+        ) : null}
       </Card>
 
       <LinkButton title={more ? t("create.showLess") : t("create.showMore")} onPress={() => setMore((open) => !open)} />

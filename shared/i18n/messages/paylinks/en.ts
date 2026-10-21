@@ -155,6 +155,22 @@ const en = {
   "block.noCollections": "Make a collection first in Products, then Collections.",
   "list.pages": "Payment link pages",
   "list.noneHere": "No payment links with this status.",
+  "block.shop": "Shop now button",
+  "block.arrivals": "New arrivals",
+  "block.track": "Track my order",
+  "block.shopHint": "A big button to your shop's home page.",
+  "block.arrivalsHint": "Your 4 newest products in a grid. It updates by itself.",
+  "block.trackHint": "Customers type their order number and email or phone to see their order.",
+  "dialog.delivery": "Delivery: address + fee",
+  "dialog.deliveryHint": "Save the customer's address and the delivery fee. They see one Pay button, nothing to fill in.",
+  "dialog.deliveryStreet": "Customer's street address",
+  "dialog.deliveryCity": "Area or city",
+  "dialog.deliveryState": "State",
+  "dialog.deliveryPickState": "Choose the state",
+  "dialog.deliveryLandmark": "Landmark (optional)",
+  "dialog.deliveryFee": "Delivery fee (₦)",
+  "dialog.deliveryFeeHint": "Leave empty or 0 for free delivery. It's added to what the customer pays.",
+  "dialog.deliveryIncomplete": "Add the street, area and state for delivery, and the fee as a number. Or turn delivery off.",
 } satisfies Record<string, string>;
 
 export default en;

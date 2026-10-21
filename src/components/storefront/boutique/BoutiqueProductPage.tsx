@@ -13,7 +13,7 @@ import { useWishlist } from "@/hooks/useWishlist";
 import { getPublicStorefrontPath } from "@/lib/domains/storefront";
 import { storefrontPageHref } from "@shared/storefront-pages";
 import type { BoutiqueThemeId, StoreEditorSnapshot, TemplateSectionNode } from "@/lib/store-templates";
-import { freeDeliveryEverywhereOver, type StorefrontShopperInfo } from "@/lib/storefront/shopper-info";
+import { freeDeliveryEverywhereOver, type StoreSellerCard, type StorefrontShopperInfo } from "@/lib/storefront/shopper-info";
 import { relatedProducts, type ShopperProduct } from "../shopper/catalog";
 import { ShopperBottomNav, type ShopperSheet } from "../shopper/ShopperBottomNav";
 import { resolveMenu, type MenuContext } from "../StoreMenu";
@@ -38,6 +38,8 @@ interface Props {
   catalog: ShopperProduct[];
   shopper: StorefrontShopperInfo;
   storeBasePath: string;
+  /** The seller card (name, where they are and deliver, WhatsApp). */
+  seller?: StoreSellerCard | null;
 }
 
 const LABELS: Record<string, string> = { home: "Home", products: "Shop", about: "About", contact: "Contact", faq: "FAQ" };
@@ -51,7 +53,7 @@ function text(value: unknown) {
 }
 
 /** The live product page for the 2026 theme stores. */
-export function BoutiqueProductPage({ themeId, snapshot, store, product, reviews, avgRating, reviewCount, catalog, shopper, storeBasePath }: Props) {
+export function BoutiqueProductPage({ themeId, snapshot, store, product, reviews, avgRating, reviewCount, catalog, shopper, storeBasePath, seller = null }: Props) {
   const router = useRouter();
   const cart = useCart(store.slug);
   const wishlist = useWishlist(store.slug);
@@ -155,6 +157,7 @@ export function BoutiqueProductPage({ themeId, snapshot, store, product, reviews
           product={product}
           look={look}
           shopper={shopper}
+          seller={seller}
           storeName={store.name}
           reviewSlug={store.slug}
           currency={store.currency}

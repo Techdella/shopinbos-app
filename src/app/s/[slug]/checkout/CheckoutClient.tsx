@@ -727,6 +727,8 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
           }}
           currency={store.currency}
           preview={preview}
+          area={[details.city.trim(), details.state.trim()].filter(Boolean).join(", ") || null}
+          storePayOnDelivery={checkoutPaymentOptions(commerce.payments, { city: details.city, state: details.state, total: totals.total }).some((option) => option.key === "pay_on_delivery")}
         />
         <PhoneCheck theme={theme} check={phoneCheck} />
       </>) : null}

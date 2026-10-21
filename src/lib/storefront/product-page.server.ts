@@ -12,7 +12,7 @@ import {
   type ThemeTokenSet,
 } from "@/lib/store-templates";
 import { loadShopperInfo } from "./shopper-info.server";
-import type { StorefrontShopperInfo } from "./shopper-info";
+import { sellerCardLine, sellerReach, type StoreSellerCard, type StorefrontShopperInfo } from "./shopper-info";
 import { PREVIEW_PRODUCT_STATUSES, storeUnavailableReason } from "./store-visibility";
 import { relatedProducts } from "@/components/storefront/shopper/catalog";
 import { forShoppers } from "@shared/product-stock";
@@ -172,12 +172,24 @@ export const loadProductPage = cache(async (slug: string, productId: string, pre
   const ratingCounts = [0, 0, 0, 0, 0];
   for (const review of reviews) ratingCounts[review.rating - 1]++;
 
-  const [catalog, shopper] = await Promise.all([
+  const [catalog, shopper, deliverySettings] = await Promise.all([
     db.storeProduct
       .findMany({ where: { storeId: store.id, status: { in: [...statuses] } }, select: catalogSelect, orderBy: { createdAt: "desc" }, take: 200 })
       .catch(() => []),
     loadShopperInfo(store.id, store.brandSettings),
+    // Where the seller delivers and whether checkout uses delivery partners (only these fields leave the server).
+    db.deliverySettings
+      .findFirst({ where: { user: { store: { id: store.id } } }, select: { checkoutMode: true, sellArea: true, sellStates: true, originState: true, originArea: true } })
+      .catch(() => null),
   ]);
+  const info = shopper as StorefrontShopperInfo;
+  const place = [deliverySettings?.originArea, deliverySettings?.originState].map((part) => part?.trim()).filter(Boolean).join(", ") || store.city?.trim() || null;
+  const seller: StoreSellerCard = {
+    name: store.name,
+    line: sellerCardLine({ place, reach: sellerReach(deliverySettings) }),
+    whatsappNumber: info.whatsappNumber,
+    partnerDelivery: deliverySettings?.checkoutMode === "partners",
+  };
 
   const templateId = resolveStoreTemplateId(store.brandSettings);
   const { status: _status, ...withoutStatus } = store;
@@ -205,7 +217,8 @@ export const loadProductPage = cache(async (slug: string, productId: string, pre
     catalog: shopperCatalog,
     // "Customers also like": the seller's picks (up to 8), else the closest products in the store.
     related: relatedProducts(publicProduct, shopperCatalog),
-    shopper: shopper as StorefrontShopperInfo,
+    shopper: info,
+    seller,
     themeId: isBoutiqueTheme(templateId) ? templateId : null,
   };
 });

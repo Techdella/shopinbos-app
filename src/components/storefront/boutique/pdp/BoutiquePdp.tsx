@@ -56,6 +56,12 @@ function Chip({ selected, disabled, onClick, children, look, label }: { selected
   );
 }
 
+/** "Ada's Hair Lounge" → "AH": the seller card's badge. */
+function initials(name: string) {
+  const words = name.replace(/['’]s\b/gi, "").replace(/['’.,&()-]/g, " ").trim().split(/\s+/).filter(Boolean);
+  return ((words[0]?.[0] ?? "") + (words.length > 1 ? words[1]![0] : words[0]?.[1] ?? "")).toUpperCase() || "•";
+}
+
 function readRecent(slug: string): string[] {
   try {
     const raw = window.localStorage.getItem(recentlyViewedKey(slug));
@@ -165,6 +171,9 @@ export function BoutiquePdp(props: Props) {
     ? whatsappLink(shopper.whatsappNumber, `Hi ${props.storeName}, I'm asking about ${product.name}${selected ? ` (${selected.name})` : ""}${props.shareUrl ? `: ${props.shareUrl}` : ""}`)
     : null;
   const addLabel = soldOut ? "Sold out" : settings.labels.addToBag;
+  // The seller card (live product pages): who sells it, from where, where they deliver, and a WhatsApp chat.
+  const seller = props.seller ?? null;
+  const sellerChat = seller?.whatsappNumber ? whatsappLink(seller.whatsappNumber, `Hi ${seller.name}, I'm asking about ${product.name}${props.shareUrl ? `: ${props.shareUrl}` : ""}`) : null;
 
   const blocks: Record<PdpBuyBlock, () => React.ReactNode> = {
     price: () => (
@@ -307,6 +316,20 @@ export function BoutiquePdp(props: Props) {
       ) : null,
     delivery: () => (
       <div className="grid gap-2 p-4 text-left text-[13.5px]" style={{ background: look.raised, borderRadius: Math.min(look.cardRadius, 12) }}>
+        {seller ? (
+          <div className="flex items-center gap-3 border-b pb-3" style={{ borderColor: t.border }}>
+            <span aria-hidden className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-[14px] font-bold" style={{ background: t.ink, color: t.paperBg }}>{initials(seller.name)}</span>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-[14.5px] font-semibold">{seller.name}</div>
+              {seller.line ? <div className="text-[13px]" style={{ color: t.muted }}>{seller.line}</div> : null}
+            </div>
+            {sellerChat ? (
+              <a href={interactive ? sellerChat : undefined} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 shrink-0 items-center gap-1.5 border px-3.5 text-[13.5px] font-semibold" style={{ borderColor: t.border, borderRadius: Math.min(look.buttonRadius, 999), color: t.ink }} aria-label={`Chat with ${seller.name} on WhatsApp`}>
+                <Icon name="whatsapp" size={16} /> Chat on WhatsApp
+              </a>
+            ) : null}
+          </div>
+        ) : null}
         <div className="flex items-start gap-2.5">
           <Icon name="truck" size={18} className="mt-0.5 shrink-0" />
           <div className="min-w-0">
@@ -318,6 +341,7 @@ export function BoutiquePdp(props: Props) {
             ) : (
               <p className="mt-1" style={{ color: t.muted }}>Delivery fee is worked out at checkout from your address.</p>
             )}
+            {seller?.partnerDelivery ? <p className="mt-1" style={{ color: t.muted }}>Choose doorstep or pickup point at checkout.</p> : null}
           </div>
         </div>
         {shopper.payOnDelivery ? (

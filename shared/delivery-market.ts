@@ -467,6 +467,11 @@ export interface MarketOption {
   /** What the customer sees under the name: the partner (or the shop's label), an address, the hours. */
   detail: string | null;
   point?: { name: string; address: string; hours: string | null; phone: string | null };
+  /**
+   * Pickup points only: how far the point is from the customer's area, in km, when both could be placed on the map
+   * (added by the checkout quote API; never stored).
+   */
+  distanceKm?: number | null;
   /** Pay on delivery: allowed for this option (partner options: both the shop and the partner opted in). */
   pod: boolean;
   parts: OptionPart[];
