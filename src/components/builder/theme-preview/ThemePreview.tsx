@@ -7,7 +7,7 @@ import { Icon } from "@/components/ui/Icon";
 import { BoutiqueStorefront } from "@/components/storefront/boutique/BoutiqueStorefront";
 import { BOUTIQUE_FONT_CLASS } from "@/components/storefront/boutique/fonts";
 import { BOUTIQUE_THEME_TOKENS, isBoutiqueTheme } from "@/lib/store-templates/boutique-themes";
-import { themeLibraryEntry } from "@/lib/store-templates/theme-library";
+import { themeLibraryEntry, type ThemeTier } from "@/lib/store-templates/theme-library";
 import { previewData, type PreviewOwnStore } from "./preview-store";
 import { useT } from "@/components/i18n/I18nProvider";
 
@@ -140,6 +140,13 @@ export interface ThemePreviewDialogProps {
 /** Where sellers pick a plan (Settings > Billing). */
 export const UPGRADE_HREF = "/home/settings?tab=Billing";
 
+/** Tier chips (cards and the preview header): free (basic) themes quiet, paid ones stand out. */
+export const TIER_BADGE: Record<ThemeTier, string> = {
+  basic: "bg-white/95 text-app-ink ring-1 ring-app-line",
+  premium: "bg-[#F2A93B] text-[#0E2A38]",
+  platinum: "bg-[#6B4F8A] text-white",
+};
+
 /** Larger live preview: desktop or phone, home or product page, sample or own products. */
 export function ThemePreviewDialog({ themeId, onClose, own, useOwn, onUseOwnChange, isCurrent, busy, onUse, lockedPlan, buyPrice, buying, onBuy }: ThemePreviewDialogProps) {
   const t = useT("builder");
@@ -212,7 +219,13 @@ export function ThemePreviewDialog({ themeId, onClose, own, useOwn, onUseOwnChan
       <div ref={dialog} role="dialog" aria-modal="true" aria-labelledby={titleId} onKeyDown={onKeyDown} className={cx("flex min-h-0 w-full max-w-[1500px] flex-col overflow-hidden bg-white font-app text-app-ink sm:rounded-[22px]", BOUTIQUE_FONT_CLASS)}>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-3 border-b border-app-line px-4 py-3 sm:px-5">
           <div className="min-w-0 flex-1">
-            <h2 id={titleId} className="m-0 truncate text-[20px] font-extrabold leading-tight">{theme.name}</h2>
+            <div className="flex min-w-0 items-center gap-2">
+              <h2 id={titleId} className="m-0 truncate text-[20px] font-extrabold leading-tight">{theme.name}</h2>
+              <span className={cx("inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold", TIER_BADGE[theme.tier])}>
+                {lockedPlan ? <Icon name="lock" size={11} /> : null}
+                {t(`tl.tier.${theme.tier}`)}
+              </span>
+            </div>
             <p className="m-0 truncate text-[13px] text-app-ink-soft">{t.dynamic(`theme.${theme.id}.meaning`, theme.meaning)} · {t.dynamic(`theme.cat.${theme.categoryLabel}`, theme.categoryLabel)}</p>
           </div>
           <DeviceToggle value={device} onChange={(value) => { setDevice(value); body.current?.scrollTo({ top: 0 }); }} />
