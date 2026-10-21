@@ -3,7 +3,10 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["*.localhost"],
   typescript: {
-    ignoreBuildErrors: false,
+    // On Vercel, skip the type check inside `next build`: it runs tsc in a second process while webpack still holds
+    // its memory, and the pair ran the 8 GB build machine out of memory (SIGKILL at "Running TypeScript"). CI runs
+    // `npm run typecheck` on every PR and push to main, and local/CI builds still check types here.
+    ignoreBuildErrors: !!process.env.VERCEL,
   },
   experimental: {
     // Lower peak memory while compiling (Vercel's build machines have 8 GB).
