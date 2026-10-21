@@ -14,7 +14,8 @@ export type ThemeLibraryId =
   | "irawo" | "asa" | "mmiri" | "uzo" | "rawa" | "fitila" | "oso" | "shakara"
   | "aga" | "itura" | "gele" | "imani" | "itanna"
   | "littafi" | "itan" | "awo" | "kyau" | "keke"
-  | "ahia" | "ado" | "wuta" | "ike" | "ewu";
+  | "ahia" | "ado" | "wuta" | "ike" | "ewu"
+  | "erin" | "apere" | "bata" | "ogba" | "eso";
 
 /**
  * Which plan a theme needs: basic themes come with every store (the free Starter plan), premium ones with Growth
@@ -369,6 +370,31 @@ export const THEME_LIBRARY: readonly ThemeLibraryEntry[] = [
     industries: ["family fashion", "womenswear", "menswear", "kids clothing", "bags and shoes"], blurb: "Lavender, a category menu beside the banner and category cards with counts. For fashion stores", isNew: true, tier: "premium",
     preview: { bg: "#EDF1FF", ink: "#1C1C1C", line: "#DDE3F7", accent: "#D19C97", nameFont: "grotesk", nameWeight: 700, dark: false },
   }),
+  entry({
+    id: "erin", name: "Ẹ̀rín", meaning: "Yoruba for laughter", categories: ["fashion"], categoryLabel: "Fashion",
+    industries: ["fashion", "casual wear", "hoodies", "shirts", "dresses"], blurb: "Red and navy, a split banner and navy service cards. For friendly fashion stores", isNew: true, tier: "basic",
+    preview: { bg: "#E9E6E6", ink: "#002C3E", line: "#DAD6D6", accent: "#F7444E", nameFont: "serif", nameWeight: 700, dark: false },
+  }),
+  entry({
+    id: "apere", name: "Apẹ̀rẹ̀", meaning: "Yoruba for basket", categories: ["groceries", "food"], categoryLabel: "Groceries",
+    industries: ["groceries", "supermarket", "juice", "bakery", "snacks"], blurb: "A banner trio, quick add and a search header. For grocery stores", isNew: true, tier: "premium",
+    preview: { bg: "#E6F3FB", ink: "#222222", line: "#D3E7F3", accent: "#F2A900", nameFont: "grotesk", nameWeight: 800, dark: false },
+  }),
+  entry({
+    id: "bata", name: "Bàtà", meaning: "Yoruba for shoes", categories: ["fashion"], categoryLabel: "Shoes",
+    industries: ["shoes", "heels", "loafers", "sneakers", "boots"], blurb: "Calm and serif, two big collection photos and a bordered grid. For shoe stores", isNew: true, tier: "basic",
+    preview: { bg: "#F2F2F2", ink: "#222222", line: "#E4E4E4", accent: "#5FAE9F", nameFont: "serif", nameWeight: 600, dark: false },
+  }),
+  entry({
+    id: "ogba", name: "Ọgbà", meaning: "Yoruba for garden", categories: ["groceries", "agro"], categoryLabel: "Fresh produce",
+    industries: ["fresh produce", "vegetables", "fruit", "farm shop", "greengrocer"], blurb: "Olive and black, a photo slider and captioned category photos. For produce shops", isNew: true, tier: "premium",
+    preview: { bg: "#1E1E1E", ink: "#FFFFFF", line: "#333333", accent: "#B0B435", nameFont: "grotesk", nameWeight: 800, dark: true },
+  }),
+  entry({
+    id: "eso", name: "Èso", meaning: "Yoruba for fruit", categories: ["groceries", "agro", "food"], categoryLabel: "Fresh produce",
+    industries: ["fruit", "vegetables", "organic food", "juice", "farm produce"], blurb: "Green and orange, a search banner and an orange story band. For fruit and veg stores", isNew: true, tier: "platinum",
+    preview: { bg: "#F4F8EC", ink: "#3B4D4F", line: "#E3EDD3", accent: "#81C408", nameFont: "grotesk", nameWeight: 800, dark: false },
+  }),
 ];
 
 export const THEME_LIBRARY_IDS: readonly ThemeLibraryId[] = THEME_LIBRARY.map((item) => item.id);
@@ -501,6 +527,11 @@ const THEME_RULES: Array<{ themeId: ThemeLibraryId; industry: string; words: str
   { themeId: "itanna", industry: "sneakers", words: ["sneaker store", "sneakerhead", "kicks", "trainers"] },
   { themeId: "gele", industry: "fashion and accessories", words: ["gele", "headtie", "head tie", "headwrap", "head wrap", "turban"] },
   { themeId: "itura", industry: "home and lifestyle", words: ["comfort", "lounge", "lifestyle store", "home goods", "ottoman", "pouf"] },
+  { themeId: "apere", industry: "groceries", words: ["cold-pressed", "cold pressed", "juice and bakery", "bakery and groceries"] },
+  { themeId: "ogba", industry: "fresh produce", words: ["greengrocer", "green grocer", "salad", "herbs and spices shop"] },
+  { themeId: "eso", industry: "fruit and vegetables", words: ["veggie box", "veg box", "juicing", "fruit salad"] },
+  { themeId: "bata", industry: "shoes", words: ["cobbler", "shoemaker", "shoe maker"] },
+  { themeId: "erin", industry: "fashion", words: ["hoodie", "hoodies", "sweatshirt", "pullover", "joggers"] },
   { themeId: "wuta", industry: "electronics", words: ["appliance", "home appliance", "fridge", "freezer", "air conditioner", "generator", "inverter", "television", "blender"] },
   { themeId: "ike", industry: "electronics", words: ["computer village", "computer store", "pc parts", "gaming pc", "monitor", "printer", "computer accessories"] },
   { themeId: "ahia", industry: "general store", words: ["variety store", "general merchandise", "a bit of everything", "multi-category", "online mall"] },

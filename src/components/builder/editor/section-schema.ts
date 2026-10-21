@@ -389,6 +389,11 @@ export const HERO_LAYOUT_BY_THEME: Record<string, string> = {
   wuta: "wuta-deal",
   ike: "ike-deal",
   ewu: "ewu-menu",
+  erin: "erin-split",
+  apere: "apere-trio",
+  bata: "bata-full",
+  ogba: "ogba-slides",
+  eso: "eso-search",
 };
 
 const HERO_LAYOUTS: ChoiceOption[] = [
@@ -419,7 +424,7 @@ const STOCK_IMAGE_TOGGLE: SchemaField = {
 };
 
 /** Hero layouts that use more than one picture (the rest use the first). */
-const HERO_PICTURE_COUNT: Record<string, number> = { "asoebi-collage": 3, "iwe-shelf": 4, "zuma-collage": 2, "ihe-gallery": 3, "sarauniya-duo": 2, "uzo-sticky": 3, "rawa-fan": 3, "oso-bento": 3, "itura-cutout": 3, "imani-split": 2, "littafi-gradient": 3, "itan-cover": 3, "ike-deal": 2, "ewu-menu": 3 };
+const HERO_PICTURE_COUNT: Record<string, number> = { "asoebi-collage": 3, "iwe-shelf": 4, "zuma-collage": 2, "ihe-gallery": 3, "sarauniya-duo": 2, "uzo-sticky": 3, "rawa-fan": 3, "oso-bento": 3, "itura-cutout": 3, "imani-split": 2, "littafi-gradient": 3, "itan-cover": 3, "ike-deal": 2, "ewu-menu": 3, "apere-trio": 3, "ogba-slides": 3, "eso-search": 3 };
 /** Layouts that don't show the eyebrow. */
 const HERO_NO_EYEBROW = ["breeze-banner"];
 
@@ -560,6 +565,7 @@ function boutiqueSchema(kind: string, themeId: string): SectionSchema {
           // Same setting; the compact grid starts at 12, the other layouts at 8 (what the renderer shows unset).
           { id: "limit", type: "number", label: "How many products", target: setting("limit"), min: 2, max: 16, fallback: 8, when: layoutNot(["grid", "dense"], layoutFallback), help: "Only as many as your store has are shown." },
           { id: "listColumns", type: "segmented", label: "Lists", target: setting("listColumns"), fallback: "3", when: layoutIs(["lists"], layoutFallback), options: [{ value: "3", label: "Three" }, { value: "4", label: "Four (adds Featured)" }] },
+          { id: "round", type: "toggle", label: "Round photos", target: setting("round"), fallback: false, when: layoutIs(["mini"], layoutFallback) },
           { id: "limit-dense", type: "number", label: "How many products", target: setting("limit"), min: 2, max: 24, fallback: 12, when: layoutIs(["dense"], layoutFallback), help: "Only as many as your store has are shown." },
         ] },
         { title: "Product cards", fields: [
@@ -573,7 +579,7 @@ function boutiqueSchema(kind: string, themeId: string): SectionSchema {
     case "category-list":
       return plain([{ fields: [
         text("title", "Heading"),
-        { id: "layout", type: "select", label: "Layout", target: setting("layout"), fallback: themeId === "plug" ? "chips" : "boutique-tiles", options: [{ value: "boutique-tiles", label: "Tiles" }, { value: "boutique-circles", label: "Circles" }, { value: "chips", label: "Chips" }, { value: "boutique-stack", label: "Banners" }, { value: "boutique-mosaic", label: "Mosaic" }, { value: "boutique-cards", label: "Tinted cards" }, { value: "boutique-words", label: "Big words" }, { value: "boutique-labels", label: "Labels" }, { value: "boutique-bordered", label: "Bordered cards" }, { value: "boutique-diagonal", label: "Diagonal tiles" }, { value: "boutique-counts", label: "Cards with product counts" }, { value: "boutique-promo", label: "Promo panels" }] },
+        { id: "layout", type: "select", label: "Layout", target: setting("layout"), fallback: themeId === "plug" ? "chips" : "boutique-tiles", options: [{ value: "boutique-tiles", label: "Tiles" }, { value: "boutique-circles", label: "Circles" }, { value: "chips", label: "Chips" }, { value: "boutique-stack", label: "Banners" }, { value: "boutique-mosaic", label: "Mosaic" }, { value: "boutique-cards", label: "Tinted cards" }, { value: "boutique-words", label: "Big words" }, { value: "boutique-labels", label: "Labels" }, { value: "boutique-bordered", label: "Bordered cards" }, { value: "boutique-diagonal", label: "Diagonal tiles" }, { value: "boutique-counts", label: "Cards with product counts" }, { value: "boutique-promo", label: "Promo panels" }, { value: "boutique-duo", label: "Two big photos" }, { value: "boutique-captioned", label: "Photos with a caption bar" }] },
         { id: "note", type: "note", label: "Tiles come from your collections, or your product categories when you have no collections." },
       ] }]);
     case "testimonials":
@@ -597,6 +603,7 @@ function boutiqueSchema(kind: string, themeId: string): SectionSchema {
             { value: "framed", label: "Framed", hint: "Picture in an offset frame, words beside it." },
             { value: "quote", label: "Quote", hint: "The text as a large quotation; the heading is who said it." },
             { value: "promo", label: "Promo panel", hint: "Picture on a grey panel, a big centred heading and button beside it." },
+            { value: "band", label: "Colour band", hint: "A full-width colour band, words on the left and the picture with a round badge on the right." },
           ] },
           { id: "imagePosition", type: "segmented", label: "Picture side", target: setting("imagePosition"), fallback: "left", options: IMAGE_SIDE, help: "On phones the picture is always on top.", when: layoutIs(["boutique", "editorial", "overlap", "framed", "promo"], storyFallback) },
           { id: "media", type: "media", label: "Image", max: 1, help: "No image yet? The theme's stock photo is used.", when: layoutNot(["centered", "quote"], storyFallback) },
@@ -619,7 +626,10 @@ function boutiqueSchema(kind: string, themeId: string): SectionSchema {
         ] },
       ], [{ id: "question", label: "Question" }]);
     case "newsletter":
-      return plain([{ fields: [text("title", "Heading"), area("body", "Text"), text("placeholder", "Field hint"), text("buttonLabel", "Button label")] }]);
+      return plain([{ fields: [
+        { id: "layout", type: "segmented", label: "Layout", target: setting("layout"), fallback: "centered", options: [{ value: "centered", label: "Centred band" }, { value: "split", label: "Box, form beside" }] },
+        text("title", "Heading"), area("body", "Text"), text("placeholder", "Field hint"), text("buttonLabel", "Button label"),
+      ] }]);
     case "contact-form":
       return plain([{ fields: [
         { id: "layout", type: "segmented", label: "Layout", target: setting("layout"), fallback: "centered", options: [{ value: "centered", label: "Simple" }, { value: "split", label: "Side by side" }, { value: "card", label: "Card" }] },

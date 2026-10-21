@@ -211,6 +211,11 @@ export const PDP_THEME_DEFAULTS: Record<string, ThemeDefault> = {
   wuta: { layout: "classic", gallery: "thumbs-bottom", details: "tabs" },
   ike: { layout: "classic", gallery: "thumbs-bottom", details: "tabs" },
   ewu: { layout: "classic", gallery: "thumbs-left", details: "tabs" },
+  erin: { layout: "classic", gallery: "thumbs-bottom", details: "tabs" },
+  apere: { layout: "classic", gallery: "thumbs-bottom", details: "tabs" },
+  bata: { layout: "classic", gallery: "thumbs-left", details: "accordion" },
+  ogba: { layout: "classic", gallery: "thumbs-bottom", details: "tabs" },
+  eso: { layout: "classic", gallery: "thumbs-bottom", details: "tabs" },
 };
 
 const FALLBACK_THEME: ThemeDefault = { layout: "classic", gallery: "thumbs-bottom", details: "accordion" };

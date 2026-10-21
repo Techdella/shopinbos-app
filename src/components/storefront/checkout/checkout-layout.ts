@@ -120,6 +120,11 @@ export const CHECKOUT_THEME_DEFAULTS: Record<string, ThemeDefault> = {
   wuta: { layout: "two-column", summaryPosition: "right", header: "nav" },
   ike: { layout: "steps", summaryPosition: "right", header: "nav" },
   ewu: { layout: "two-column", summaryPosition: "right", header: "nav" },
+  erin: { layout: "two-column", summaryPosition: "right", header: "nav" },
+  apere: { layout: "two-column", summaryPosition: "right", header: "nav" },
+  bata: { layout: "minimal", summaryPosition: "right", header: "logo" },
+  ogba: { layout: "two-column", summaryPosition: "right", header: "nav" },
+  eso: { layout: "steps", summaryPosition: "right", header: "nav" },
 };
 
 const FALLBACK_THEME: ThemeDefault = { layout: "two-column", summaryPosition: "right", header: "logo" };
