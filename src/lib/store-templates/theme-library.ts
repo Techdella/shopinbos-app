@@ -11,7 +11,8 @@ export type ThemeLibraryId =
   | "ewa" | "suku" | "asoebi" | "agbada" | "ileke" | "ounje" | "chinchin" | "oja" | "omo" | "iwe" | "owambe" | "danfo" | "turare" | "oko"
   | "aaro" | "highlife" | "oba" | "gbedu"
   | "omalicha" | "zuma" | "oku" | "ihe" | "kasuwa" | "nkata" | "uwa" | "sarauniya" | "zinariya"
-  | "irawo" | "asa" | "mmiri" | "uzo" | "rawa" | "fitila" | "oso" | "shakara";
+  | "irawo" | "asa" | "mmiri" | "uzo" | "rawa" | "fitila" | "oso" | "shakara"
+  | "aga" | "itura" | "gele" | "imani" | "itanna";
 
 /**
  * Which plan a theme needs: basic themes come with every store (the free Starter plan), premium ones with Growth
@@ -291,6 +292,31 @@ export const THEME_LIBRARY: readonly ThemeLibraryEntry[] = [
     industries: ["streetwear", "drops", "sneakers", "caps", "urban fashion"], blurb: "A street poster with numbered drops. For streetwear labels", isNew: true, tier: "platinum",
     preview: { bg: "#0A0A0A", ink: "#F1F1EC", line: "#2A2A2A", accent: "#FF4F00", nameFont: "grotesk", nameWeight: 800, dark: true },
   }),
+  entry({
+    id: "aga", name: "Àga", meaning: "Yoruba for chair", categories: ["home"], categoryLabel: "Furniture",
+    industries: ["furniture", "chairs", "tables", "home decor", "interiors"], blurb: "A sidebar menu and a masonry wall of products. For furniture", isNew: true, tier: "platinum",
+    preview: { bg: "#F5F7FA", ink: "#131212", line: "#EBEBEB", accent: "#FBB710", nameFont: "grotesk", nameWeight: 600, dark: false },
+  }),
+  entry({
+    id: "itura", name: "Ìtura", meaning: "Yoruba for comfort and relief", categories: ["home", "any"], categoryLabel: "Home and lifestyle",
+    industries: ["furniture", "sofas", "lifestyle", "home goods", "comfort"], blurb: "Pale aqua, a cut-out product banner and tinted cards. For home and lifestyle", isNew: true, tier: "basic",
+    preview: { bg: "#ECFDFF", ink: "#222222", line: "#D8F3F6", accent: "#FF3368", nameFont: "grotesk", nameWeight: 700, dark: false },
+  }),
+  entry({
+    id: "gele", name: "Gèlè", meaning: "Yoruba for the headtie", categories: ["fashion", "beauty"], categoryLabel: "Fashion",
+    industries: ["fashion", "womenswear", "accessories", "cosmetics", "kidswear"], blurb: "A mosaic banner, category tabs and three product lists. For fashion stores", isNew: true, tier: "premium",
+    preview: { bg: "#FDE8E2", ink: "#111111", line: "#F2D2C8", accent: "#CA1515", nameFont: "serif", nameWeight: 500, nameItalic: true, dark: false },
+  }),
+  entry({
+    id: "imani", name: "Imani", meaning: "Hausa for faith", categories: ["fashion", "any"], categoryLabel: "Department store",
+    industries: ["department store", "fashion", "menswear", "womenswear", "multi-category"], blurb: "A category bar, a his-and-hers banner and big-word categories. For department stores", isNew: true, tier: "premium",
+    preview: { bg: "#3B2E5A", ink: "#FFFFFF", line: "#54467A", accent: "#4FC1E9", nameFont: "grotesk", nameWeight: 800, dark: true },
+  }),
+  entry({
+    id: "itanna", name: "Ìtànná", meaning: "Yoruba for flower, a bloom", categories: ["fashion", "any"], categoryLabel: "Sneakers and minimal",
+    industries: ["sneakers", "shoes", "minimal", "product grid", "small catalogue"], blurb: "A centred headline, then product cards with quick add. Simple and fast", isNew: true, tier: "basic",
+    preview: { bg: "#FFFBEB", ink: "#262626", line: "#F5E6C4", accent: "#F59E0B", nameFont: "grotesk", nameWeight: 700, dark: false },
+  }),
 ];
 
 export const THEME_LIBRARY_IDS: readonly ThemeLibraryId[] = THEME_LIBRARY.map((item) => item.id);
@@ -418,6 +444,11 @@ const THEME_RULES: Array<{ themeId: ThemeLibraryId; industry: string; words: str
   { themeId: "shakara", industry: "streetwear drops", words: ["drop", "drops", "limited drop", "hype", "street", "urban wear", "cap", "snapback"] },
   { themeId: "uzo", industry: "travel and outdoor", words: ["travel", "luggage", "outdoor", "camping", "hiking", "adventure", "suitcase"] },
   { themeId: "oso", industry: "fashion label", words: ["fashion label", "ready to wear", "ready-to-wear", "rtw", "label", "collection drop"] },
+  { themeId: "aga", industry: "furniture", words: ["chair", "chairs", "table", "dining table", "sofa", "couch", "wardrobe", "bed frame", "furniture maker", "carpentry"] },
+  { themeId: "imani", industry: "department store", words: ["department store", "everything for men and women", "men and women", "family fashion", "mall"] },
+  { themeId: "itanna", industry: "sneakers", words: ["sneaker store", "sneakerhead", "kicks", "trainers"] },
+  { themeId: "gele", industry: "fashion and accessories", words: ["gele", "headtie", "head tie", "headwrap", "head wrap", "turban"] },
+  { themeId: "itura", industry: "home and lifestyle", words: ["comfort", "lounge", "lifestyle store", "home goods", "ottoman", "pouf"] },
   { themeId: "omalicha", industry: "wellness", words: ["self-care", "self care", "bath", "body care", "essential oil", "aromatherapy"] },
   { themeId: "breeze", industry: "fashion", words: ["fashion", "clothing", "clothes", "cloth", "wear", "dress", "gown", "top", "shirt", "t-shirt", "trouser", "jean", "apparel", "boutique", "bag", "handbag", "outfit", "skirt", "jumpsuit", "thrift", "okrika", "ankara", "abaya", "hijab", "kimono", "two-piece", "co-ord"] },
 ];

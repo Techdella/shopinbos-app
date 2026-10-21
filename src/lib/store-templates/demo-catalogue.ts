@@ -582,6 +582,66 @@ export const DEMO_CATALOGUES: Record<ThemeLibraryId, DemoCatalogue> = {
       p("Crossbody sling bag", 15000, "Bags", "bag", "Water-resistant, reflective strap.", "#0A0A0A"),
     ],
   },
+  aga: {
+    storeName: "Àga Furniture", city: "Lagos", industry: "furniture", description: "Chairs, tables and storage made in our Lagos workshop.",
+    heroArt: ["chair", "lamp", "vase"], mains: ["#FBB710", "#131212", "#D6CFC4"],
+    products: [
+      p("White modern chair", 48000, "Chairs", "chair", "Moulded seat on solid wood legs.", "#F5F5F5"),
+      p("Minimal plant pot", 9500, "Decor", "vase", "Matte ceramic, drainage hole and saucer.", "#E7E5E4"),
+      p("Rocking chair", 95000, "Chairs", "chair", "Bent wood frame with a woven seat.", "#C8A15A"),
+      p("Night stand", 62000, "Storage", "chair", "One drawer, solid iroko.", "#8C5E30"),
+      p("Round side table", 38000, "Tables", "chair", "Powder-coated steel, 45cm.", "#131212"),
+      p("Pendant lamp", 34000, "Lighting", "lamp", "Spun metal shade, warm white.", "#FBB710"),
+    ],
+  },
+  itura: {
+    storeName: "Ìtura Living", city: "Ìbàdàn", industry: "home and lifestyle", description: "Sofas, chairs and soft things for a home that feels good.",
+    heroArt: ["chair", "cushion", "lamp"], mains: ["#FF3368", "#4FB3C8", "#F2B705"],
+    products: [
+      p("Wood and cloth sofa", 285000, "Sofas", "chair", "Three seats, solid wood frame, washable covers.", "#2563EB"),
+      p("Foam lounge chair", 78000, "Chairs", "chair", "Moulded shell on hairpin legs.", "#FF7A00"),
+      p("Rattan egg chair", 120000, "Chairs", "chair", "Hand-woven rattan with a deep cushion.", "#C8A15A"),
+      p("Velvet pouf", 32000, "Ottomans", "cushion", "Buttoned velvet, solid base.", "#4FB3C8"),
+      p("Mustard loveseat", 165000, "Sofas", "chair", "Two seats, tapered legs.", "#F2B705"),
+      p("Throw blanket", 18500, "Textiles", "cushion", "Soft cotton knit, 130 × 170 cm.", "#E7E5E4", 22000),
+    ],
+  },
+  gele: {
+    storeName: "Gèlè & Co.", city: "Lagos", industry: "fashion", description: "Headties, dresses and accessories for every occasion.",
+    heroArt: ["gele", "dress", "bag"], mains: ["#CA1515", "#111111", "#F4C2C2"],
+    products: [
+      p("Aso-oke gèlè, ready to wear", 18000, "Headties", "gele", "Pre-tied and adjustable, in rich aso-oke.", "#7C2D12"),
+      p("Silk wrap dress", 42000, "Dresses", "dress", "Flowing silk-feel wrap with a tie waist.", "#CA1515", 48000),
+      p("Beaded clutch", 16500, "Accessories", "bag", "Hand-beaded with a chain strap.", "#F2B705"),
+      p("Coral bead necklace", 22000, "Accessories", "necklace", "Layered coral beads.", "#E86A4F"),
+      p("Kids' ankara dress", 14000, "Kids", "dress", "Twirly ankara for little ones.", "#16A34A"),
+      p("Lip and cheek tint", 6500, "Cosmetics", "lipstick", "Sheer colour for lips and cheeks.", "#BE185D"),
+    ],
+  },
+  imani: {
+    storeName: "Imani Store", city: "Kaduna", industry: "department store", description: "Menswear, womenswear and accessories in one store.",
+    heroArt: ["shirt", "dress", "bag"], mains: ["#3B2E5A", "#4FC1E9", "#E86A9A"],
+    products: [
+      p("Striped round-neck tee", 9500, "Men", "shirt", "Cotton jersey, regular fit.", "#1E3A8A", 12000),
+      p("Women's slim jeans", 18500, "Women", "trousers", "Stretch denim, high rise.", "#1D4ED8"),
+      p("Running shoes", 32000, "Men", "sneaker", "Light mesh with a cushioned sole.", "#F97316"),
+      p("Men's chinos", 16500, "Men", "trousers", "Cotton twill, slim fit.", "#2563EB"),
+      p("Printed blouse", 14500, "Women", "shirt", "Floral print, relaxed fit.", "#F5F5F5"),
+      p("Leather backpack", 28000, "Accessories", "bag", "Padded straps, laptop sleeve.", "#78350F"),
+    ],
+  },
+  itanna: {
+    storeName: "Ìtànná Kicks", city: "Abuja", industry: "sneakers", description: "Premium sneakers: comfort, design and performance in every pair.",
+    heroArt: ["sneaker", "sneaker", "cap"], mains: ["#F59E0B", "#262626", "#F5F5F5"],
+    products: [
+      p("Cloud runner", 68000, "Running", "sneaker", "Breathable knit with a bouncy sole.", "#F5F5F5"),
+      p("Court classic low", 54000, "Lifestyle", "sneaker", "Leather upper, clean white.", "#FFFFFF"),
+      p("Trail grip mid", 82000, "Outdoor", "sneaker", "Water-resistant with a lug sole.", "#78350F"),
+      p("Retro high-top", 72000, "Lifestyle", "sneaker", "Suede panels, padded collar.", "#DC2626", 79000),
+      p("Everyday slip-on", 38000, "Lifestyle", "sneaker", "Canvas, no laces, all day comfort.", "#262626"),
+      p("Sneaker care kit", 9500, "Care", "bottle", "Cleaner, brush and protector spray.", "#F59E0B"),
+    ],
+  },
 };
 
 /** The fields of a storefront product the theme renderer reads (structurally a ShopperProduct). */

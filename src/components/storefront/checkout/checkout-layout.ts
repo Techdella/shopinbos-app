@@ -105,6 +105,11 @@ export const CHECKOUT_THEME_DEFAULTS: Record<string, ThemeDefault> = {
   fitila: { layout: "two-column", summaryPosition: "left", header: "nav" },
   oso: { layout: "minimal", summaryPosition: "right", header: "logo" },
   shakara: { layout: "steps", summaryPosition: "right", header: "logo" },
+  aga: { layout: "two-column", summaryPosition: "right", header: "logo" },
+  itura: { layout: "two-column", summaryPosition: "right", header: "nav" },
+  gele: { layout: "two-column", summaryPosition: "right", header: "nav" },
+  imani: { layout: "steps", summaryPosition: "right", header: "nav" },
+  itanna: { layout: "minimal", summaryPosition: "right", header: "logo" },
 };
 
 const FALLBACK_THEME: ThemeDefault = { layout: "two-column", summaryPosition: "right", header: "logo" };

@@ -196,6 +196,11 @@ export const PDP_THEME_DEFAULTS: Record<string, ThemeDefault> = {
   fitila: { layout: "gallery-stack", gallery: "thumbs-left", details: "accordion" },
   oso: { layout: "gallery-stack", gallery: "thumbs-left", details: "accordion" },
   shakara: { layout: "editorial", gallery: "thumbs-bottom", details: "tabs" },
+  aga: { layout: "classic", gallery: "thumbs-bottom", details: "accordion" },
+  itura: { layout: "classic", gallery: "thumbs-left", details: "tabs" },
+  gele: { layout: "classic", gallery: "thumbs-left", details: "tabs" },
+  imani: { layout: "classic", gallery: "thumbs-bottom", details: "tabs" },
+  itanna: { layout: "classic", gallery: "thumbs-bottom", details: "accordion" },
 };
 
 const FALLBACK_THEME: ThemeDefault = { layout: "classic", gallery: "thumbs-bottom", details: "accordion" };

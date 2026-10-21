@@ -374,6 +374,11 @@ export const HERO_LAYOUT_BY_THEME: Record<string, string> = {
   fitila: "fitila-room",
   oso: "oso-bento",
   shakara: "shakara-poster",
+  aga: "aga-masonry",
+  itura: "itura-cutout",
+  gele: "gele-mosaic",
+  imani: "imani-split",
+  itanna: "itanna-centered",
 };
 
 const HERO_LAYOUTS: ChoiceOption[] = [
@@ -404,7 +409,7 @@ const STOCK_IMAGE_TOGGLE: SchemaField = {
 };
 
 /** Hero layouts that use more than one picture (the rest use the first). */
-const HERO_PICTURE_COUNT: Record<string, number> = { "asoebi-collage": 3, "iwe-shelf": 4, "zuma-collage": 2, "ihe-gallery": 3, "sarauniya-duo": 2, "uzo-sticky": 3, "rawa-fan": 3, "oso-bento": 3 };
+const HERO_PICTURE_COUNT: Record<string, number> = { "asoebi-collage": 3, "iwe-shelf": 4, "zuma-collage": 2, "ihe-gallery": 3, "sarauniya-duo": 2, "uzo-sticky": 3, "rawa-fan": 3, "oso-bento": 3, "itura-cutout": 3, "imani-split": 2 };
 /** Layouts that don't show the eyebrow. */
 const HERO_NO_EYEBROW = ["breeze-banner"];
 
@@ -444,7 +449,8 @@ function boutiqueSchema(kind: string, themeId: string): SectionSchema {
           sharedNote("header"),
           text("logoText", "Shop name", { help: "Leave empty to use your store name." }),
           text("cartLabel", "Bag label", { placeholder: "My bag" }),
-          { id: "layout", type: "segmented", label: "Logo position", target: setting("layout"), fallback: themeId === "plain" ? "centered" : "split", options: [{ value: "split", label: "Left" }, { value: "centered", label: "Centre" }, { value: "bold", label: "Bold" }] },
+          { id: "layout", type: "segmented", label: "Logo position", target: setting("layout"), fallback: themeId === "plain" ? "centered" : "split", options: [{ value: "split", label: "Left" }, { value: "centered", label: "Centre" }, { value: "bold", label: "Bold" }, { value: "sidebar", label: "Sidebar" }], help: "Sidebar puts the logo and menu in a column on the left on computers." },
+          { id: "categoryBar", type: "toggle", label: "Category bar under the header", target: setting("categoryBar"), fallback: false, help: "A dark strip with your product categories." },
         ] },
         ...MENU_FIELDS(["home", "products", "about", "contact"], "classic"),
         { fields: [STORE_LOGO] },
@@ -456,6 +462,13 @@ function boutiqueSchema(kind: string, themeId: string): SectionSchema {
         { fields: [FOOTER_SHOW_LOGO, STORE_LOGO] },
         { fields: [SHOPINBOS_BADGE] },
       ]);
+    case "page-header":
+      return plain([{ fields: [
+        text("title", "Title", { help: "Leave empty to use the page's name." }),
+        area("body", "Text", { help: "Optional, one short line." }),
+        { id: "layout", type: "segmented", label: "Style", target: setting("layout"), fallback: "tinted", options: [{ value: "tinted", label: "Tinted" }, { value: "photo", label: "Photo" }, { value: "simple", label: "Simple" }] },
+        { id: "media", type: "media", label: "Image", max: 1, help: "No image yet? A product photo is used (the theme's stock photo for the Photo style).", when: layoutNot(["simple"], "tinted") },
+      ] }]);
     case "hero-split": {
       const single = Object.keys(HERO_PICTURE_COUNT);
       const singleLayouts = [...SLIDER_LAYOUTS, ...single];
@@ -495,6 +508,8 @@ function boutiqueSchema(kind: string, themeId: string): SectionSchema {
             { value: "menu", label: "Menu list" },
             { value: "spotlight", label: "Spotlight (one big, four small)" },
             { value: "lookbook", label: "Lookbook (big alternating rows)" },
+            { value: "category-tabs", label: "Category tabs (a tab per category)" },
+            { value: "lists", label: "Three lists (new, best sellers, on sale)" },
             { value: "grid", label: "Full shop grid" },
           ] },
           text("title", "Heading"),
@@ -543,7 +558,7 @@ function boutiqueSchema(kind: string, themeId: string): SectionSchema {
     case "category-list":
       return plain([{ fields: [
         text("title", "Heading"),
-        { id: "layout", type: "select", label: "Layout", target: setting("layout"), fallback: themeId === "plug" ? "chips" : "boutique-tiles", options: [{ value: "boutique-tiles", label: "Tiles" }, { value: "boutique-circles", label: "Circles" }, { value: "chips", label: "Chips" }, { value: "boutique-stack", label: "Banners" }, { value: "boutique-mosaic", label: "Mosaic" }] },
+        { id: "layout", type: "select", label: "Layout", target: setting("layout"), fallback: themeId === "plug" ? "chips" : "boutique-tiles", options: [{ value: "boutique-tiles", label: "Tiles" }, { value: "boutique-circles", label: "Circles" }, { value: "chips", label: "Chips" }, { value: "boutique-stack", label: "Banners" }, { value: "boutique-mosaic", label: "Mosaic" }, { value: "boutique-cards", label: "Tinted cards" }, { value: "boutique-words", label: "Big words" }] },
         { id: "note", type: "note", label: "Tiles come from your collections, or your product categories when you have no collections." },
       ] }]);
     case "testimonials":

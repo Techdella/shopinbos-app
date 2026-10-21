@@ -1066,6 +1066,122 @@ function themeLook(id: BoutiqueThemeId, tokens: ThemeTokenSet): LookOverrides {
         pdp: "wide",
         defaultHero: "shakara-poster",
       };
+    case "aga":
+      return {
+        ...base,
+        logoFont: GROTESK,
+        logoStyle: { fontWeight: 700, letterSpacing: "-0.03em" },
+        headingFont: GROTESK,
+        headingStyle: { fontWeight: 500, letterSpacing: "-0.02em" },
+        buttonRadius: 0,
+        cardRadius: 0,
+        primaryButton: { background: tokens.ctaBg, color: tokens.ctaText, border: `1.5px solid ${tokens.ctaBg}`, textTransform: "uppercase", letterSpacing: "0.08em", fontSize: 13 },
+        secondaryButton: { background: tokens.ink, color: "#FFFFFF", border: `1.5px solid ${tokens.ink}`, textTransform: "uppercase", letterSpacing: "0.08em", fontSize: 13 },
+        solidButton: { background: tokens.ctaBg, color: tokens.ctaText, border: `1.5px solid ${tokens.ctaBg}`, textTransform: "uppercase", letterSpacing: "0.08em", fontSize: 13 },
+        softButton: { background: tokens.cardBg, color: tokens.ink, border: `1.5px solid ${tokens.cardBg}` },
+        announcement: { background: tokens.ink, color: "#FFFFFF", fontSize: 12, letterSpacing: "0.06em" },
+        navStyle: { fontSize: 13, letterSpacing: "0.08em", textTransform: "uppercase" },
+        placeholder: "#F0F2F5",
+        headerBg: "#F5F7FA",
+        footerBg: tokens.cardBg,
+        newsletterBg: tokens.cardBg,
+        storyBg: tokens.cardBg,
+        countBg: tokens.accent,
+        tileRatio: "1 / 1",
+        defaultHero: "aga-masonry",
+      };
+    case "itura":
+      return {
+        ...base,
+        logoFont: GROTESK,
+        logoStyle: { fontWeight: 800, letterSpacing: "-0.03em" },
+        headingFont: GROTESK,
+        headingStyle: { fontWeight: 700, letterSpacing: "-0.025em" },
+        buttonRadius: 999,
+        cardRadius: 16,
+        secondaryButton: { background: "#FFFFFF", color: tokens.ink, border: `1.5px solid ${tokens.border}` },
+        softButton: { background: tokens.heroBg, color: tokens.ink, border: `1.5px solid ${tokens.heroBg}` },
+        announcement: { background: tokens.heroBg, color: tokens.ink, fontSize: 12.5, fontWeight: 600 },
+        placeholder: "#F3F8F9",
+        headerBg: "rgba(255,255,255,.97)",
+        footerBg: "#FFFFFF",
+        newsletterBg: tokens.heroBg,
+        storyBg: tokens.heroBg,
+        raised: tokens.heroBg,
+        countBg: tokens.accent,
+        tileRatio: "1 / 1",
+        defaultHero: "itura-cutout",
+      };
+    case "gele":
+      return {
+        ...base,
+        logoFont: SERIF,
+        logoStyle: { fontWeight: 600, fontStyle: "italic", letterSpacing: "-0.02em" },
+        headingFont: SERIF,
+        headingStyle: { fontWeight: 500, letterSpacing: "-0.01em" },
+        buttonRadius: 999,
+        cardRadius: 0,
+        secondaryButton: { background: "transparent", color: tokens.ink, border: `1.5px solid ${tokens.ink}` },
+        softButton: { background: tokens.cardBg, color: tokens.ink, border: `1.5px solid ${tokens.cardBg}` },
+        announcement: { background: tokens.ink, color: "#FFFFFF", fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase" },
+        navStyle: { fontSize: 13, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" },
+        placeholder: "#F2F2F2",
+        headerBg: "rgba(255,255,255,.98)",
+        footerBg: "#FFFFFF",
+        newsletterBg: tokens.cardBg,
+        storyBg: tokens.heroBg,
+        countBg: tokens.accent,
+        heartActive: tokens.accent,
+        tileRatio: "3 / 4",
+        pdp: "left",
+        defaultHero: "gele-mosaic",
+      };
+    case "imani":
+      return {
+        ...base,
+        logoFont: GROTESK,
+        logoStyle: { fontWeight: 800, letterSpacing: "-0.03em" },
+        headingFont: GROTESK,
+        headingStyle: { fontWeight: 700, letterSpacing: "-0.01em", textTransform: "uppercase" },
+        buttonRadius: 2,
+        cardRadius: 0,
+        secondaryButton: { background: "transparent", color: tokens.ink, border: `2px solid ${tokens.ink}`, textTransform: "uppercase", fontSize: 12.5, fontWeight: 700 },
+        softButton: { background: tokens.cardBg, color: tokens.ink, border: `1.5px solid ${tokens.cardBg}` },
+        announcement: { background: tokens.heroBg, color: "#FFFFFF", fontSize: 12, letterSpacing: "0.02em" },
+        navStyle: { fontSize: 12.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" },
+        placeholder: "#F0F0F0",
+        headerBg: "rgba(255,255,255,.98)",
+        footerBg: tokens.cardBg,
+        newsletterBg: tokens.cardBg,
+        storyBg: tokens.cardBg,
+        raised: tokens.cardBg,
+        countBg: tokens.accent,
+        tileRatio: "4 / 5",
+        defaultHero: "imani-split",
+      };
+    case "itanna":
+      return {
+        ...base,
+        logoFont: GROTESK,
+        logoStyle: { fontWeight: 700, letterSpacing: "-0.03em" },
+        headingFont: GROTESK,
+        headingStyle: { fontWeight: 600, letterSpacing: "-0.035em" },
+        buttonRadius: 14,
+        cardRadius: 20,
+        secondaryButton: { background: "#FFFFFF", color: tokens.ink, border: `1px solid ${tokens.border}` },
+        softButton: { background: tokens.heroBg, color: tokens.ink, border: `1px solid ${tokens.heroBg}` },
+        announcement: { background: tokens.heroBg, color: tokens.ink, fontSize: 12.5, fontWeight: 600 },
+        placeholder: "#F4F4F5",
+        headerBg: "rgba(255,255,255,.96)",
+        footerBg: tokens.cardBg,
+        newsletterBg: tokens.heroBg,
+        storyBg: tokens.heroBg,
+        countBg: tokens.accent,
+        onAccent: tokens.ink,
+        tileBorder: `1px solid ${tokens.border}`,
+        tileRatio: "1 / 1",
+        defaultHero: "itanna-centered",
+      };
     default:
       return base;
   }
@@ -1253,6 +1369,16 @@ export const BOUTIQUE_CSS = `
 }
 @container bq (min-width: 1100px){
   .bq-shop-grid[data-cols="5"]{grid-template-columns:repeat(5,minmax(0,1fr))}
+}
+/* Sidebar header (Àga): a sticky column on the left on wide screens; phones keep the top bar. */
+.bq-sidebar{display:none}
+.bq-shell,.bq-shell-side,.bq-shell-main{display:contents}
+@container bq (min-width: 1000px){
+  .bq-shell{display:grid !important;grid-template-columns:260px minmax(0,1fr);align-items:stretch}
+  .bq-shell-side{display:block !important;border-right:1px solid var(--bq-border)}
+  .bq-shell-main{display:block !important;min-width:0}
+  .bq-sidebar{display:block;position:sticky;top:0;height:100vh}
+  .bq-sidebar-top{display:none !important}
 }
 /* Ticker ribbons (Highlife, Gbẹ̀du): two copies of the words slide left forever; still when motion is reduced. */
 .bq-ticker{overflow:hidden;white-space:nowrap}

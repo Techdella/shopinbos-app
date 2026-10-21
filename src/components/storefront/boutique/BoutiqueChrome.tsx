@@ -95,6 +95,8 @@ export function BoutiqueHeader({
   cartLabel,
   centred,
   bold = false,
+  sidebar = false,
+  categoryBar,
 }: {
   store: ChromeStore;
   logoText: string;
@@ -119,6 +121,13 @@ export function BoutiqueHeader({
   centred: boolean;
   /** "Bold" header: an inverted bar (ink background) with a heavy uppercase shop name. */
   bold?: boolean;
+  /**
+   * "Sidebar" header: on wide screens the logo, menu and shop links run down a column on the left (the page puts
+   * it in the .bq-shell grid); phones keep the usual top bar.
+   */
+  sidebar?: boolean;
+  /** Links shown in a dark strip under the header (the store's categories), or none. */
+  categoryBar?: ShownMenuItem[] | null;
 }) {
   const t = look.tokens;
   const menuColors: MenuColors = { ink: bold ? t.paperBg : t.ink, muted: t.muted, accent: t.accent, accentText: look.onAccent, panel: look.dark ? look.raised : "#fff", panelInk: t.ink, border: t.border };
@@ -169,8 +178,68 @@ export function BoutiqueHeader({
     </div>
   );
 
+  const strip = categoryBar?.length ? (
+    <nav aria-label="Shop by category" className="border-t" style={{ background: t.ink, color: t.paperBg, borderColor: t.ink }}>
+      <ul className="bq-wrap m-0 flex list-none gap-6 overflow-x-auto py-2.5" style={{ scrollbarWidth: "none" }}>
+        {categoryBar.map((item) => (
+          <li key={item.id} className="shrink-0">
+            {item.href ? (
+              <a href={item.href} className="text-[12.5px] font-semibold uppercase" style={{ letterSpacing: "0.08em", opacity: 0.85 }}>{item.label}</a>
+            ) : (
+              <button type="button" onClick={item.onSelect} className="cursor-pointer border-0 bg-transparent p-0 text-[12.5px] font-semibold uppercase" style={{ color: "inherit", letterSpacing: "0.08em", opacity: 0.85 }}>{item.label}</button>
+            )}
+          </li>
+        ))}
+      </ul>
+    </nav>
+  ) : null;
+
+  const sideLink = (key: string, label: string, onSelect: (() => void) | undefined, icon: "bag" | "heart" | "search", count?: number) =>
+    onSelect ? (
+      <button key={key} type="button" onClick={onSelect} className="flex w-full cursor-pointer items-center gap-3 border-0 bg-transparent px-0 py-2 text-left text-[13px] font-semibold uppercase" style={{ color: t.ink, letterSpacing: "0.06em" }}>
+        <Icon name={icon} size={16} aria-hidden /> {label}{count !== undefined ? <span style={{ color: t.muted }}>({count})</span> : null}
+      </button>
+    ) : null;
+
+  const side = sidebar ? (
+    <aside className="bq-sidebar" style={{ background: look.headerBg, borderColor: t.border, color: t.ink }} aria-label="Store menu">
+      <div className="flex h-full flex-col gap-10 overflow-y-auto px-8 py-10">
+        <Logo store={store} logoText={logoText} look={look} onHome={onHome} />
+        <nav aria-label="Main">
+          <ul className="m-0 grid list-none gap-1 p-0">
+            {menu.map((item) => {
+              const style: React.CSSProperties = { ...look.navStyle, color: item.current ? t.accent : t.ink, fontWeight: item.current ? 700 : 500 };
+              const label = (
+                <span className="flex items-center gap-3">
+                  <span aria-hidden className="inline-block h-[2px] transition-all" style={{ width: item.current ? 22 : 0, background: t.accent }} />
+                  {item.label}
+                </span>
+              );
+              return (
+                <li key={item.id}>
+                  {item.href ? (
+                    <a href={item.href} target={item.newTab ? "_blank" : undefined} rel={item.newTab ? "noopener noreferrer" : undefined} aria-current={item.current ? "page" : undefined} className="block py-2 uppercase" style={{ ...style, letterSpacing: "0.08em", fontSize: 13 }}>{label}</a>
+                  ) : (
+                    <button type="button" onClick={item.onSelect} aria-current={item.current ? "page" : undefined} className="block w-full cursor-pointer border-0 bg-transparent px-0 py-2 text-left uppercase" style={{ ...style, letterSpacing: "0.08em", fontSize: 13 }}>{label}</button>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+        <div className="grid gap-0.5">
+          {sideLink("bag", cartLabel, onBag, "bag", cartCount)}
+          {sideLink("wishlist", "Wishlist", onWishlist, "heart", wishlistCount)}
+          {sideLink("search", "Search", onSearch, "search")}
+        </div>
+      </div>
+    </aside>
+  ) : null;
+
   return (
-    <header className="sticky top-0 z-30 border-b" style={bold ? { background: t.ink, borderColor: t.ink, color: t.paperBg } : { background: look.headerBg, borderColor: t.border, backdropFilter: "blur(10px)", color: t.ink }}>
+    <>
+    {side}
+    <header className={`sticky top-0 z-30 border-b${sidebar ? " bq-sidebar-top" : ""}`} style={bold ? { background: t.ink, borderColor: t.ink, color: t.paperBg } : { background: look.headerBg, borderColor: t.border, backdropFilter: "blur(10px)", color: t.ink }}>
       {centred ? (
         <div className="bq-wrap grid min-h-[68px] py-1.5 grid-cols-[1fr_auto_1fr] items-center gap-3">
           <div className="flex min-w-0 items-center">{burger}{nav}</div>
@@ -187,7 +256,9 @@ export function BoutiqueHeader({
           {tools}
         </div>
       )}
+      {strip}
     </header>
+    </>
   );
 }
 

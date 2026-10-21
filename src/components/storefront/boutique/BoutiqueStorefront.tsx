@@ -216,6 +216,10 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
   const [inline, setInline] = useState<(InlineEdit & { sectionId: string; container: HTMLElement }) | null>(null);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [faqQuery, setFaqQuery] = useState<Record<string, string>>({});
+  // Category tabs on "category-tabs" product sections (Gèlè): the picked category slug per section ("" is all).
+  const [railTab, setRailTab] = useState<Record<string, string>>({});
+  // Ìtura's banner: which picture the arrows have moved to.
+  const [heroIndex, setHeroIndex] = useState(0);
   const [form, setForm] = useState<{ newsletter: string; name: string; email: string; phone: string; message: string }>({ newsletter: "", name: "", email: "", phone: "", message: "" });
   const [formStatus, setFormStatus] = useState<Record<string, "idle" | "sending" | "sent" | "error">>({});
   const railRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -1229,6 +1233,162 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       );
     }
 
+    // ─── Àga, Ìtura, Gèlè, Imani, Ìtànná (from the seller's inspiration templates, batch 1) ─────────────
+    if (layout === "aga-masonry") {
+      // A masonry wall of the store's products, each with its price and name over the photo.
+      const wall = products.slice(0, 9);
+      const heights = ["aspect-[4/5]", "aspect-[1/1]", "aspect-[3/4]", "aspect-[1/1]", "aspect-[4/5]", "aspect-[3/4]", "aspect-[4/5]", "aspect-[1/1]", "aspect-[3/4]"];
+      return (
+        <section aria-labelledby={headingId}>
+          <div className="bq-wrap flex flex-wrap items-end justify-between gap-4 pb-6 pt-8">
+            <div>
+              {eyebrow ? <p className="m-0 flex items-center gap-2 text-[12px] font-semibold uppercase" style={{ letterSpacing: "0.12em", color: t.muted }}><span aria-hidden className="inline-block h-[3px] w-6" style={{ background: t.accent }} />{eyebrow}</p> : null}
+              <h1 id={headingId} className="bq-h mt-2 text-[30px] @3xl:text-[40px]" style={look.headingStyle}>{title}</h1>
+            </div>
+            {ctaButton()}
+          </div>
+          {wall.length ? (
+            <div className="columns-2 gap-0 @3xl:columns-3">
+              {wall.map((product, i) => productLink(product, "group relative block w-full break-inside-avoid", (
+                <>
+                  <span className={`bq-media block ${heights[i % heights.length]}`} style={{ background: look.placeholder }}>
+                    {product.images[0] ? <img src={product.images[0]} alt="" width={700} height={875} loading={i < 3 ? "eager" : "lazy"} decoding="async" className="transition duration-500 group-hover:scale-[1.03]" /> : null}
+                  </span>
+                  <span className="absolute left-5 top-5 flex flex-col gap-1" style={{ color: t.ink }}>
+                    <span aria-hidden className="block h-[3px] w-10 transition-all group-hover:w-16" style={{ background: t.accent }} />
+                    <span className="text-[13px]" style={{ color: t.muted }}>From {formatStoreMoney(product.retailPrice, product.currency)}</span>
+                    <span className="text-[18px] font-semibold @3xl:text-[22px]" style={{ fontFamily: look.headingFont }}>{product.name}</span>
+                  </span>
+                </>
+              )))}
+            </div>
+          ) : (
+            <div className="bq-media aspect-[16/7]" style={{ background: look.placeholder }}>{img}</div>
+          )}
+        </section>
+      );
+    }
+
+    if (layout === "itura-cutout") {
+      const frames = pool.slice(0, 3);
+      const at = frames.length ? heroIndex % frames.length : 0;
+      return (
+        <section aria-labelledby={headingId} style={{ background: t.heroBg, color: t.heroText }}>
+          <div className="bq-wrap grid items-center gap-8 py-10 @3xl:grid-cols-[1fr_1.2fr] @3xl:py-16">
+            <div className="flex flex-col items-start gap-4">
+              {eyebrow ? <p className="m-0 text-[13px] font-semibold" style={{ color: t.accent }}>{eyebrow}</p> : null}
+              <h1 id={headingId} className="bq-h max-w-[12ch]" style={{ ...look.headingStyle, fontSize: "clamp(38px, 5.4cqi, 70px)", lineHeight: 1.02 }}>{title}</h1>
+              {body ? <p className="max-w-[420px] text-[15.5px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
+              {ctaButton()}
+            </div>
+            <div className="relative">
+              <div className="bq-media aspect-[4/3]" style={{ background: "transparent", borderRadius: look.cardRadius + 8 }}>{picture(frames[at], true)}</div>
+              {frames.length > 1 ? (
+                <div className="mt-4 flex items-center justify-end gap-3 text-[13px] font-semibold">
+                  <button type="button" className="cursor-pointer border-0 bg-transparent p-0" style={{ color: t.ink }} onClick={() => setHeroIndex((value) => (value + frames.length - 1) % frames.length)} aria-label="Previous picture">Previous</button>
+                  <span aria-hidden style={{ color: t.muted }}>|</span>
+                  <button type="button" className="cursor-pointer border-0 bg-transparent p-0" style={{ color: t.ink }} onClick={() => setHeroIndex((value) => (value + 1) % frames.length)} aria-label="Next picture">Next</button>
+                  <span className="ml-2" style={{ color: t.muted }} aria-live="polite">{at + 1} / {frames.length}</span>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    if (layout === "gele-mosaic") {
+      // One big banner beside four category tiles with how many items each has.
+      const tints = ["#DCEFE9", "#E6E1F7", "#FBE3EC", "#DCEAF8"];
+      const tiles = categories.slice(0, 4).map((category, i) => {
+        const inCategory = products.filter((product) => product.category?.slug === category.slug);
+        return { key: category.slug, name: category.name, count: inCategory.length, src: inCategory[0]?.images[0] ?? pool[i + 1], tint: tints[i]!, open: () => shopCategory(category.slug) };
+      });
+      return (
+        <section aria-labelledby={headingId} className="grid @3xl:grid-cols-2">
+          <div className="relative min-h-[420px] overflow-hidden @3xl:min-h-[560px]" style={{ background: t.heroBg }}>
+            <div className="bq-media inset-0" style={{ position: "absolute", background: "transparent" }}>{img}</div>
+            <div className="absolute inset-0" style={{ background: image ? "linear-gradient(90deg, rgba(253,232,226,.92), rgba(253,232,226,.35) 55%, rgba(253,232,226,0))" : "transparent" }} />
+            <div className="relative flex h-full min-h-[420px] max-w-[420px] flex-col justify-center gap-4 p-8 @3xl:min-h-[560px] @3xl:p-12" style={{ color: t.heroText }}>
+              {eyebrow ? <p className="m-0 text-[13px] uppercase" style={{ letterSpacing: "0.14em", color: t.accent }}>{eyebrow}</p> : null}
+              <h1 id={headingId} className="bq-h" style={{ ...look.headingStyle, fontSize: "clamp(40px, 5cqi, 64px)", lineHeight: 1.04 }}>{title}</h1>
+              {body ? <p className="m-0 text-[15px]" style={{ color: t.muted }}>{body}</p> : null}
+              <button type="button" onClick={() => go(action)} className="w-max cursor-pointer border-0 border-b-2 bg-transparent px-0 pb-1 text-[13px] font-bold uppercase" style={{ color: t.ink, borderColor: t.accent, letterSpacing: "0.08em" }}>{cta}</button>
+            </div>
+          </div>
+          {tiles.length ? (
+            <div className="grid grid-cols-2">
+              {tiles.map((tile) => (
+                <button key={tile.key} type="button" onClick={tile.open} className="group relative min-h-[200px] cursor-pointer overflow-hidden border-0 p-0 text-left @3xl:min-h-[280px]" style={{ background: tile.tint }}>
+                  <span className="bq-media inset-y-0 right-0 w-[60%]" style={{ position: "absolute", background: "transparent" }}>{picture(tile.src)}</span>
+                  <span className="relative flex h-full flex-col justify-center gap-1 p-6" style={{ color: "#111" }}>
+                    <span className="bq-h text-[22px] @3xl:text-[26px]" style={{ ...look.headingStyle, color: "#111" }}>{tile.name}</span>
+                    <span className="text-[13px]" style={{ color: "#555" }}>{tile.count} {tile.count === 1 ? "item" : "items"}</span>
+                    <span className="mt-2 w-max border-b-2 pb-0.5 text-[12px] font-bold uppercase" style={{ borderColor: t.accent, letterSpacing: "0.08em" }}>Shop now</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </section>
+      );
+    }
+
+    if (layout === "imani-split") {
+      // Two halves, each with its own picture and link: the banner's words on the left, the first category on the right.
+      const second = categories[0];
+      const right = second ? products.find((product) => product.category?.slug === second.slug)?.images[0] ?? pool[1] : pool[1];
+      return (
+        <section aria-labelledby={headingId} className="grid @3xl:grid-cols-2" style={{ background: t.heroBg, color: t.heroText }}>
+          {[0, 1].map((half) => (
+            <div key={half} className="relative min-h-[300px] overflow-hidden @3xl:min-h-[440px]">
+              <div className="bq-media inset-0" style={{ position: "absolute", background: t.heroBg }}>{picture(half ? right : pool[0], true)}</div>
+              <div className="absolute inset-0" style={{ background: `linear-gradient(${half ? "270deg" : "90deg"}, ${t.heroBg}E6, ${t.heroBg}33 70%)` }} />
+              <div className={`relative flex h-full min-h-[300px] flex-col justify-center gap-3 p-8 @3xl:min-h-[440px] @3xl:p-12 ${half ? "items-end text-right" : "items-start"}`}>
+                {half ? (
+                  <>
+                    <p className="bq-h m-0 text-[32px] @3xl:text-[44px]" style={{ ...look.headingStyle, color: t.heroText }}>{second?.name ?? store.name}</p>
+                    <button type="button" onClick={() => (second ? shopCategory(second.slug) : go("products"))} className="bq-btn" style={{ background: "#E86A9A", color: "#fff", border: "1.5px solid #E86A9A" }}>Shop now</button>
+                  </>
+                ) : (
+                  <>
+                    {eyebrow ? <p className="m-0 text-[12px] uppercase" style={{ letterSpacing: "0.16em", color: t.accent }}>{eyebrow}</p> : null}
+                    <h1 id={headingId} className="bq-h max-w-[12ch] text-[32px] @3xl:text-[44px]" style={{ ...look.headingStyle, color: t.heroText }}>{title}</h1>
+                    {body ? <p className="m-0 max-w-[360px] text-[15px] opacity-85">{body}</p> : null}
+                    {ctaButton()}
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
+        </section>
+      );
+    }
+
+    if (layout === "itanna-centered") {
+      // Words only, centred, on a soft glow; the products right below carry the page.
+      const chips = categories.slice(0, 5);
+      return (
+        <section aria-labelledby={headingId} className="relative overflow-hidden">
+          <div aria-hidden className="absolute left-1/2 top-[-120px] h-[360px] w-[720px] -translate-x-1/2 rounded-full" style={{ background: `radial-gradient(closest-side, ${t.accent}33, transparent)` }} />
+          <div className="bq-wrap relative flex flex-col items-center gap-4 py-14 text-center @3xl:py-20">
+            {eyebrow ? <p className="m-0 rounded-full px-3 py-1 text-[12.5px] font-semibold" style={{ background: t.heroBg, color: t.accent }}>{eyebrow}</p> : null}
+            <h1 id={headingId} className="bq-h max-w-[16ch]" style={{ ...look.headingStyle, fontSize: "clamp(38px, 5.6cqi, 64px)", lineHeight: 1.05 }}>{title}</h1>
+            {body ? <p className="m-0 max-w-[560px] text-[16.5px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
+            {chips.length ? (
+              <div className="mt-2 flex flex-wrap justify-center gap-2">
+                {chips.map((category) => (
+                  <button key={category.slug} type="button" onClick={() => shopCategory(category.slug)} className="cursor-pointer rounded-full border px-4 py-2 text-[13.5px] font-medium" style={{ borderColor: t.border, background: "#FFFFFF", color: t.ink }}>{category.name}</button>
+                ))}
+              </div>
+            ) : (
+              ctaButton()
+            )}
+          </div>
+        </section>
+      );
+    }
+
     if (layout === "adire-banner") {
       return (
         <section aria-labelledby={headingId}>
@@ -1412,6 +1572,68 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     );
   }
 
+  /**
+   * The title banner at the top of an inner page (Ìtura, Imani, Gèlè): the page's name with a "Home / page" trail,
+   * on a tinted band with a product photo, across a photo, or plain with a rule under it.
+   */
+  function pageHeader(section: TemplateSectionNode) {
+    const copy = copyOf(section);
+    const layout = text(section.settings?.layout) || "tinted";
+    const pageTitle = snapshot.pages.find((entry) => entry.pageType === current)?.title ?? "";
+    const title = text(copy.title) || pageTitle || store.name;
+    const body = text(copy.body);
+    const headingId = `${uid}-${section.id}`;
+    const uploaded = itemImages(section)[0];
+    const crumbs = (color: string) => (
+      <nav aria-label="Breadcrumb" className="text-[13px]" style={{ color }}>
+        <button type="button" onClick={() => go("home")} className="cursor-pointer border-0 bg-transparent p-0 underline-offset-4 hover:underline" style={{ color: "inherit" }}>Home</button>
+        <span aria-hidden className="px-2">/</span>
+        <span aria-current="page">{title}</span>
+      </nav>
+    );
+    if (layout === "photo") {
+      const photo = uploaded ?? (section.settings?.stockImage === false ? undefined : stockImages?.hero) ?? products[0]?.images[0];
+      return (
+        <section aria-labelledby={headingId} className="bq-media" style={{ background: t.heroBg }}>
+          <div className="aspect-[16/7] @3xl:aspect-[16/3]" />
+          {photo ? <img src={photo} alt="" width={1600} height={300} loading="eager" decoding="async" /> : null}
+          <div className="absolute inset-0" style={{ background: photo ? "linear-gradient(90deg, rgba(0,0,0,.62), rgba(0,0,0,.1))" : "transparent" }} />
+          <div className="bq-wrap absolute inset-x-0 bottom-0 flex flex-col gap-2 pb-6 text-white @3xl:pb-8">
+            <h1 id={headingId} className="bq-h text-[30px] @3xl:text-[40px]" style={{ ...look.headingStyle, color: "#fff" }}>{title}</h1>
+            {body ? <p className="m-0 max-w-[560px] text-[15px] opacity-90">{body}</p> : null}
+            {crumbs("rgba(255,255,255,.85)")}
+          </div>
+        </section>
+      );
+    }
+    if (layout === "simple") {
+      return (
+        <section aria-labelledby={headingId} className="bq-wrap border-b pb-6 pt-8" style={{ borderColor: t.border }}>
+          {crumbs(t.muted)}
+          <h1 id={headingId} className="bq-h mt-3 text-[30px] @3xl:text-[38px]" style={look.headingStyle}>{title}</h1>
+          {body ? <p className="m-0 mt-2 max-w-[600px] text-[15px]" style={{ color: t.muted }}>{body}</p> : null}
+        </section>
+      );
+    }
+    const picture = uploaded ?? products[0]?.images[0];
+    return (
+      <section aria-labelledby={headingId} style={{ background: look.raised }}>
+        <div className="bq-wrap grid items-center gap-6 py-8 @3xl:min-h-[220px] @3xl:grid-cols-[1fr_auto] @3xl:py-6">
+          <div className="flex flex-col gap-3">
+            <h1 id={headingId} className="bq-h text-[32px] @3xl:text-[42px]" style={look.headingStyle}>{title}</h1>
+            {body ? <p className="m-0 max-w-[560px] text-[15px]" style={{ color: t.muted }}>{body}</p> : null}
+            {crumbs(t.muted)}
+          </div>
+          {picture ? (
+            <div className="bq-media hidden h-[200px] w-[260px] @3xl:block" style={{ borderRadius: look.cardRadius, background: "transparent" }}>
+              <img src={picture} alt="" width={520} height={400} loading="eager" decoding="async" />
+            </div>
+          ) : null}
+        </div>
+      </section>
+    );
+  }
+
   function categoryTiles(section: TemplateSectionNode) {
     const copy = copyOf(section);
     const tiles = shopper.collections.length
@@ -1424,6 +1646,52 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       : categories.map((category) => ({ key: category.slug, name: category.name, image: category.imageUrl, onSelect: () => shopCategory(category.slug) }));
     if (!tiles.length) return editorHint("Category tiles appear once your products have categories or you create collections.");
     const headingId = `${uid}-${section.id}`;
+    if (section.settings?.layout === "boutique-cards") {
+      // Soft tinted cards, the name top-left and a product photo on the right (Ìtura).
+      const tints = [look.raised, `${t.accent}14`, t.cardBg, `${t.accent}0D`];
+      return (
+        <section aria-labelledby={headingId} className="bq-wrap pt-10">
+          <h2 id={headingId} className="bq-h mb-6 text-center text-[26px] @3xl:text-[30px]" style={look.headingStyle}>{text(copy.title) || "Featured categories"}</h2>
+          <div className="grid gap-4 @3xl:grid-cols-[1.4fr_1fr]">
+            {tiles.slice(0, 4).map((tile, i) => (
+              <button key={tile.key} type="button" onClick={tile.onSelect} className={`group relative grid min-h-[200px] cursor-pointer grid-cols-[1fr_1fr] items-center overflow-hidden border-0 p-6 text-left @3xl:min-h-[260px] ${i === 1 || i === 2 ? "@3xl:order-none" : ""}`} style={{ background: tints[i % tints.length], color: t.ink, borderRadius: look.cardRadius }}>
+                <span className="relative z-[1] flex flex-col gap-1.5">
+                  <span className="text-[12px] uppercase" style={{ color: t.muted, letterSpacing: "0.14em" }}>Collection</span>
+                  <span className="bq-h text-[22px] @3xl:text-[26px]" style={look.headingStyle}>{tile.name}</span>
+                  <span className="mt-2 text-[13px] font-semibold underline underline-offset-4">Shop now</span>
+                </span>
+                <span className="bq-media block h-full min-h-[160px]" style={{ background: "transparent", borderRadius: look.cardRadius }}>
+                  {tile.image ? <img src={tile.image} alt="" width={480} height={480} loading="lazy" className="transition duration-500 group-hover:scale-[1.05]" /> : null}
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
+      );
+    }
+    if (section.settings?.layout === "boutique-words") {
+      // Big words over pale photos with an outlined button (Imani): MEN, WOMEN, ACCESSORIES.
+      return (
+        <section aria-labelledby={headingId} className="bq-wrap pt-10">
+          <h2 id={headingId} className="sr-only">{text(copy.title) || "Shop by category"}</h2>
+          <div className="grid gap-4 @3xl:grid-cols-3">
+            {tiles.slice(0, 3).map((tile) => (
+              <button key={tile.key} type="button" onClick={tile.onSelect} className="group relative block min-h-[240px] cursor-pointer overflow-hidden border-0 p-0 text-left @3xl:min-h-[300px]" style={{ background: look.raised, borderRadius: look.cardRadius }}>
+                <span className="bq-media inset-0 block" style={{ position: "absolute", background: "transparent" }}>
+                  {tile.image ? <img src={tile.image} alt="" width={700} height={600} loading="lazy" className="opacity-90 transition duration-500 group-hover:scale-[1.04]" /> : null}
+                </span>
+                <span className="absolute inset-0" style={{ background: "linear-gradient(90deg, rgba(255,255,255,.92), rgba(255,255,255,.55) 55%, rgba(255,255,255,0))" }} />
+                <span className="relative flex h-full min-h-[240px] flex-col justify-center gap-2 p-6 @3xl:min-h-[300px]" style={{ color: "#111" }}>
+                  <span className="bq-h text-[34px] uppercase @3xl:text-[44px]" style={{ ...look.headingStyle, color: "#111", lineHeight: 0.95 }}>{tile.name}</span>
+                  <span className="text-[13px]" style={{ color: "#555", fontFamily: look.headingFont }}>Collection</span>
+                  <span className="mt-3 inline-flex w-max border-2 px-4 py-1.5 text-[12px] font-bold uppercase" style={{ borderColor: "#111", letterSpacing: "0.08em" }}>Shop now</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
+      );
+    }
     if (section.settings?.layout === "boutique-stack") {
       // Full-width banners, one per category, with the name large: for a short list of big departments.
       return (
@@ -1542,6 +1810,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     }
     if (railLayout === "menu") return menuList(section, list, headingId);
     if (railLayout === "spotlight" || railLayout === "lookbook") return featureLayout(section, railLayout, list, headingId);
+    if (railLayout === "category-tabs") return categoryTabs(section, headingId);
+    if (railLayout === "lists") return productLists(section, headingId);
     const scroll = (direction: number) => {
       const rail = railRefs.current[section.id];
       if (rail) rail.scrollBy({ left: direction * rail.clientWidth * 0.9, behavior: "smooth" });
@@ -1651,6 +1921,79 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
               <ProductTile key={product.id} product={product} look={look} href={productHref(product.id)} onOpen={live ? undefined : () => openProduct(product.id)} wished={wished.includes(product.id)} onToggleWishlist={toggleWish} eager={i < 2} {...card} />
             ))}
           </div>
+        </div>
+      </section>
+    );
+  }
+
+  /** New products with a tab per category above the grid (Gèlè); "All" shows every one. */
+  function categoryTabs(section: TemplateSectionNode, headingId: string) {
+    const copy = copyOf(section);
+    const card = cardOptions(section);
+    const picked = railTab[section.id] ?? "";
+    const tabs = categories.slice(0, 6);
+    const pool = sectionProducts(section);
+    const shown = (picked ? pool.filter((product) => product.category?.slug === picked) : pool).slice(0, readProductLimit(section.settings, 8));
+    const tab = (slug: string, label: string) => (
+      <button key={slug || "all"} type="button" role="tab" aria-selected={picked === slug} onClick={() => setRailTab((prev) => ({ ...prev, [section.id]: slug }))} className="shrink-0 cursor-pointer border-0 border-b-2 bg-transparent px-0 pb-1 text-[14px]" style={{ color: picked === slug ? t.ink : t.muted, borderColor: picked === slug ? t.accent : "transparent", fontWeight: picked === slug ? 700 : 500 }}>
+        {label}
+      </button>
+    );
+    return (
+      <section aria-labelledby={headingId} className="bq-wrap py-10">
+        <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+          <h2 id={headingId} className="bq-h text-[24px] @3xl:text-[28px]" style={look.headingStyle}>{text(copy.title) || "New products"}</h2>
+          <div role="tablist" aria-label="Filter by category" className="flex gap-5 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+            {tab("", "All")}
+            {tabs.map((category) => tab(category.slug, category.name))}
+          </div>
+        </div>
+        <div className="bq-tiles" data-limit="">
+          {shown.map((product, i) => (
+            <ProductTile key={product.id} product={product} look={look} href={productHref(product.id)} onOpen={live ? undefined : () => openProduct(product.id)} wished={wished.includes(product.id)} onToggleWishlist={toggleWish} eager={i < 2} {...card} />
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  /** Three short lists side by side: newest, best sellers and on sale (Gèlè), each a photo, name and price. */
+  function productLists(section: TemplateSectionNode, headingId: string) {
+    const copy = copyOf(section);
+    const pool = sectionProducts(section);
+    const onSale = pool.filter((product) => product.compareAtPrice && product.compareAtPrice > product.retailPrice);
+    const columns = [
+      { key: "new", title: text(copy.newTitle) || "Hot right now", list: pool.slice(0, 3) },
+      { key: "best", title: text(copy.bestTitle) || "Best sellers", list: bestSellers(pool).slice(0, 3) },
+      { key: "sale", title: text(copy.saleTitle) || "On sale", list: (onSale.length ? onSale : pool.slice(3)).slice(0, 3) },
+    ].filter((column) => column.list.length);
+    const row = (product: ShopperProduct) => {
+      const href = productHref(product.id);
+      const inner = (
+        <>
+          <span className="bq-media block h-[72px] w-[72px] shrink-0" style={{ borderRadius: Math.min(look.cardRadius, 12) }}>{product.images[0] ? <img src={product.images[0]} alt="" width={144} height={144} loading="lazy" /> : null}</span>
+          <span className="min-w-0">
+            <span className="block truncate text-[14.5px] font-medium">{product.name}</span>
+            <span className="mt-1 block text-[14px] font-bold">{formatStoreMoney(product.retailPrice, product.currency)}{product.compareAtPrice && product.compareAtPrice > product.retailPrice ? <s className="ml-2 font-normal" style={{ color: t.muted }}>{formatStoreMoney(product.compareAtPrice, product.currency)}</s> : null}</span>
+          </span>
+        </>
+      );
+      return href ? (
+        <Link key={product.id} href={href} prefetch={false} className="flex items-center gap-3">{inner}</Link>
+      ) : (
+        <button key={product.id} type="button" onClick={live ? undefined : () => openProduct(product.id)} className="flex cursor-pointer items-center gap-3 border-0 bg-transparent p-0 text-left" style={{ color: t.ink }}>{inner}</button>
+      );
+    };
+    return (
+      <section aria-labelledby={headingId} className="bq-wrap py-10">
+        <h2 id={headingId} className="sr-only">{text(copy.title) || "Shop the lists"}</h2>
+        <div className="grid gap-8 @3xl:grid-cols-3">
+          {columns.map((column) => (
+            <div key={column.key}>
+              <h3 className="bq-h mb-4 inline-block border-b-2 pb-1 text-[15px] font-bold uppercase" style={{ borderColor: t.accent, letterSpacing: "0.06em", fontFamily: look.headingFont }}>{column.title}</h3>
+              <div className="grid gap-4">{column.list.map(row)}</div>
+            </div>
+          ))}
         </div>
       </section>
     );
@@ -2274,6 +2617,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     switch (section.kind) {
       case "hero-split":
         return hero(section);
+      case "page-header":
+        return pageHeader(section);
       case "category-grid":
       case "category-list":
         return categoryTiles(section);
@@ -2378,14 +2723,19 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
   const logoText = text(headerCopy.logoText) && text(headerCopy.logoText) !== "Store" ? text(headerCopy.logoText) : store.name;
   const showNav = (live || props.device === "mobile") && !checkoutPreview;
   const editorStyle: React.CSSProperties = live ? {} : { minHeight: "100%" };
+  // "Sidebar" header (Àga): on wide screens the header is a column on the left and the rest of the page sits beside it.
+  const sidebarHeader = headerLayout === "sidebar";
+  const announcementNode = announcementSection ? wrap(announcementSection, announcementText ? <AnnouncementBar text={announcementText} look={look} /> : live || props.demo ? null : (
+    <div className="px-4 py-2 text-center text-[12px]" style={{ ...look.announcement, opacity: 0.55 }}>{say("Announcement shows your free-delivery and pay-on-delivery settings (none set yet)")}</div>
+  )) : null;
 
   return (
     <div className={`bq ${BOUTIQUE_FONT_CLASS}`} data-pdp={pdpLayout(look, snapshot)} data-floating-nav={showNav && live ? "" : undefined} style={{ ...lookVars(look), ...editorStyle }} onClick={live ? undefined : () => props.onSelectSection?.(null)}>
       <style>{BOUTIQUE_CSS}</style>
       <a href="#bq-main" className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-full focus:bg-white focus:px-4 focus:py-2 focus:text-black">Skip to products</a>
-      {announcementSection ? wrap(announcementSection, announcementText ? <AnnouncementBar text={announcementText} look={look} /> : live || props.demo ? null : (
-        <div className="px-4 py-2 text-center text-[12px]" style={{ ...look.announcement, opacity: 0.55 }}>{say("Announcement shows your free-delivery and pay-on-delivery settings (none set yet)")}</div>
-      )) : null}
+      <div className={sidebarHeader ? "bq-shell" : "contents"}>
+      {sidebarHeader ? null : announcementNode}
+      <div className={sidebarHeader ? "bq-shell-side" : "contents"}>
       {headerSection ? wrap(headerSection, (
         <BoutiqueHeader
           store={store}
@@ -2404,10 +2754,15 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           cartCount={props.cartCount}
           wishlistCount={wished.length}
           cartLabel={text(headerCopy.cartLabel) && text(headerCopy.cartLabel) !== "Cart" ? text(headerCopy.cartLabel) : "My bag"}
-          centred={headerLayout === "centered" || (headerLayout !== "split" && headerLayout !== "bold" && look.centredHeader)}
+          centred={headerLayout === "centered" || (headerLayout !== "split" && headerLayout !== "bold" && headerLayout !== "sidebar" && look.centredHeader)}
           bold={headerLayout === "bold"}
+          sidebar={sidebarHeader}
+          categoryBar={headerSection.settings?.categoryBar === true ? categories.slice(0, 10).map((category) => ({ id: category.slug, label: category.name, onSelect: () => shopCategory(category.slug), children: [] })) : null}
         />
       )) : null}
+      </div>
+      <div className={sidebarHeader ? "bq-shell-main" : "contents"}>
+      {sidebarHeader ? announcementNode : null}
       <main id="bq-main" className={showNav ? "bq-page" : undefined} tabIndex={-1}>
         {groupHiddenRows(content).map((entry) => ("hidden" in entry ? <HiddenLayoutRowDrops key={`hidden:${entry.hidden[0]!.id}`} sections={entry.hidden} text={say} /> : wrap(entry.section, render(entry.section))))}
         {/* Builder: room for the "Add your first section" button on an empty page. */}
@@ -2416,6 +2771,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       {footerSection ? wrap(footerSection, (
         <BoutiqueFooter store={store} look={look} shopper={shopper} links={footerLinks} showLogo={footerSection.settings?.showLogo !== false} summary={text(copyOf(footerSection).summary)} onTrackOrder={live ? () => setSheet("account") : undefined} legalLinks={policyLinks} editor={!live && !props.demo} say={say} />
       )) : null}
+      </div>
+      </div>
       {showNav ? (
         <ShopperBottomNav
           storeSlug={store.slug}

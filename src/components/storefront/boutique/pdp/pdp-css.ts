@@ -44,6 +44,8 @@ export const PDP_CSS = `
   .bq-pdp2-dots{display:none !important}
   .bq-pdp2[data-gallery="slider"] .bq-pdp2-dots{display:flex !important}
   .bq-pdp2[data-gallery="thumbs-left"] .bq-pdp2-gal{grid-template-columns:76px minmax(0,1fr);align-items:start}
+  /* One photo: no thumbnail column, so the photo takes the full width instead of the 76px thumbnail track. */
+  .bq-pdp2[data-gallery="thumbs-left"] .bq-pdp2-gal:not(:has(.bq-pdp2-thumbs)){grid-template-columns:minmax(0,1fr)}
   .bq-pdp2[data-gallery="thumbs-left"] .bq-pdp2-thumbs{order:-1;flex-direction:column;max-height:640px;overflow-y:auto}
   .bq-pdp2[data-gallery="thumbs-left"] .bq-pdp2-thumb{flex:0 0 auto;width:76px;height:92px}
   .bq-pdp2[data-gallery="thumbs-bottom"] .bq-pdp2-thumb{flex:0 0 76px;height:76px}
