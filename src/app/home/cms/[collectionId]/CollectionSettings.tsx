@@ -2,18 +2,31 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Notice, PillButton, Segmented, Toggle, cx } from "@/components/app-ui";
+import { Notice, PillButton, Toggle, cx } from "@/components/app-ui";
 import { SeoTab } from "@/components/seo/SeoTab";
 import { slugError } from "@/lib/cms/fields";
 import { normalizeSeo, type SeoFields } from "@/lib/seo/fields";
 import { useT } from "@/components/i18n/I18nProvider";
+import type { ItemLayout, ListLayout } from "@/lib/cms/layouts";
+import type { TFunction } from "@shared/i18n";
+import type { KeysOf } from "@shared/i18n/catalog";
+import { LayoutPicker } from "../LayoutPicker";
 
 // Name, web address, layout, order, visibility and the list page's SEO; deleting the collection.
 
 const input = "min-h-[44px] w-full rounded-[14px] border border-app-line bg-white px-3.5 text-[14.5px] outline-none focus:border-app-ink";
 
+export function itemLayoutOptions(t: TFunction<KeysOf<["cms"]>>) {
+  return [
+    { value: "classic" as const, label: t("lay.classic"), help: t("lay.classicHelp") },
+    { value: "wide" as const, label: t("lay.wide"), help: t("lay.wideHelp") },
+    { value: "sidebar" as const, label: t("lay.sidebar"), help: t("lay.sidebarHelp") },
+    { value: "minimal" as const, label: t("lay.minimal"), help: t("lay.minimalHelp") },
+  ];
+}
+
 export function CollectionSettings(props: {
-  collection: { id: string; name: string; slug: string; description: string; itemLabel: string; isPublished: boolean; seo: unknown; layout: "grid" | "list"; sort: "newest" | "oldest" | "title" | "manual" };
+  collection: { id: string; name: string; slug: string; description: string; itemLabel: string; isPublished: boolean; seo: unknown; layout: ListLayout; itemLayout: ItemLayout; sort: "newest" | "oldest" | "title" | "manual" };
   storeOrigin: string;
   storeName: string;
 }) {
@@ -25,6 +38,7 @@ export function CollectionSettings(props: {
   const [description, setDescription] = useState(c.description);
   const [itemLabel, setItemLabel] = useState(c.itemLabel);
   const [layout, setLayout] = useState(c.layout);
+  const [itemLayout, setItemLayout] = useState(c.itemLayout);
   const [sort, setSort] = useState(c.sort);
   const [isPublished, setPublished] = useState(c.isPublished);
   const [seo, setSeo] = useState<SeoFields>(normalizeSeo(c.seo));
@@ -39,7 +53,7 @@ export function CollectionSettings(props: {
     const res = await fetch(`/api/app/cms/collections/${c.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, slug, description, itemLabel, layout, sort, isPublished, seo }),
+      body: JSON.stringify({ name, slug, description, itemLabel, layout, itemLayout, sort, isPublished, seo }),
     });
     const json = await res.json().catch(() => null);
     setBusy(false);
@@ -70,9 +84,28 @@ export function CollectionSettings(props: {
           <label htmlFor="cs-desc" className="mb-1.5 block text-[13.5px] font-bold">{t("cs.intro")}</label>
           <textarea id="cs-desc" rows={2} className={cx(input, "py-2.5")} value={description} maxLength={500} onChange={(e) => setDescription(e.target.value)} />
         </div>
-        <div>
-          <span className="mb-1.5 block text-[13.5px] font-bold">{t("cs.layout")}</span>
-          <Segmented options={[{ value: "grid", label: t("cs.cards") }, { value: "list", label: t("cs.list") }]} value={layout} onChange={setLayout} />
+        <div className="lg:col-span-2">
+          <LayoutPicker
+            legend={t("cs.layout")}
+            help={t("cs.layoutHelp")}
+            value={layout}
+            onChange={setLayout}
+            options={[
+              { value: "grid", label: t("cs.cards"), help: t("cs.cardsHelp") },
+              { value: "list", label: t("cs.list"), help: t("cs.listHelp") },
+              { value: "magazine", label: t("cs.magazine"), help: t("cs.magazineHelp") },
+              { value: "compact", label: t("cs.compact"), help: t("cs.compactHelp") },
+            ]}
+          />
+        </div>
+        <div className="lg:col-span-2">
+          <LayoutPicker
+            legend={t("cs.itemLayout", { label: itemLabel || c.itemLabel })}
+            help={t("cs.itemLayoutHelp")}
+            value={itemLayout}
+            onChange={setItemLayout}
+            options={itemLayoutOptions(t)}
+          />
         </div>
         <div>
           <label htmlFor="cs-sort" className="mb-1.5 block text-[13.5px] font-bold">{t("cs.order")}</label>

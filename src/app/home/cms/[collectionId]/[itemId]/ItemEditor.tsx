@@ -12,6 +12,9 @@ import { mainRichField, slugError, slugify, type CmsField, type RichValue } from
 import { docImages, firstParagraphText, plainText, summarize } from "@/lib/cms/richtext";
 import { normalizeSeo, type SeoFields } from "@/lib/seo/fields";
 import { FieldInput } from "./FieldInput";
+import { LayoutPicker } from "../../LayoutPicker";
+import { itemLayoutOptions } from "../CollectionSettings";
+import { ITEM_LAYOUT_KEY, isItemLayout, type ItemLayout } from "@/lib/cms/layouts";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import { formatDate } from "@shared/i18n";
 
@@ -43,7 +46,7 @@ function toLocalInput(iso: string | null) {
 }
 
 export function ItemEditor(props: {
-  collection: { id: string; name: string; slug: string; itemLabel: string; template: string; isPublished: boolean };
+  collection: { id: string; name: string; slug: string; itemLabel: string; template: string; isPublished: boolean; itemLayout: ItemLayout };
   fields: CmsField[];
   item: EditorItem;
   storeOrigin: string;
@@ -115,6 +118,7 @@ export function ItemEditor(props: {
       featuredImage: item.featuredImage,
       excerpt: item.excerpt,
       data: item.data,
+      layout: isItemLayout(item.data[ITEM_LAYOUT_KEY]) ? item.data[ITEM_LAYOUT_KEY] : "default",
       seo,
       sortOrder: item.sortOrder,
     };
@@ -275,6 +279,16 @@ export function ItemEditor(props: {
             <label htmlFor="item-excerpt" className="mb-1.5 block text-[13.5px] font-bold">{t("ed.summary")} <span className="block text-[12.5px] font-normal text-app-ink-soft">{t("ed.summaryHelp")}</span></label>
             <textarea id="item-excerpt" rows={3} className={cx(input, "resize-y py-2.5")} value={item.excerpt} maxLength={500} onChange={(e) => set({ excerpt: e.target.value })} />
           </div>
+          <LayoutPicker
+            legend={t("ed.layout")}
+            help={t("ed.layoutHelp")}
+            value={isItemLayout(item.data[ITEM_LAYOUT_KEY]) ? (item.data[ITEM_LAYOUT_KEY] as ItemLayout | "default") : "default"}
+            onChange={(next) => setValue(ITEM_LAYOUT_KEY, next === "default" ? undefined : next)}
+            options={[
+              { value: "default" as const, label: t("ed.layoutDefault"), help: itemLayoutOptions(t).find((option) => option.value === props.collection.itemLayout)?.label },
+              ...itemLayoutOptions(t),
+            ]}
+          />
           <div>
             <label htmlFor="item-order" className="mb-1.5 block text-[13.5px] font-bold">{t("ed.position")} <span className="block text-[12.5px] font-normal text-app-ink-soft">{t("ed.positionHelp")}</span></label>
             <input id="item-order" type="number" min={0} className={cx(input, "sm:max-w-[160px]")} value={item.sortOrder} onChange={(e) => set({ sortOrder: Math.max(0, Number(e.target.value) || 0) })} />
