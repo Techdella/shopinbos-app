@@ -36,5 +36,6 @@ export const POST = withSeller(async (req: NextRequest, { user, params }) => {
   if (!result.ok && !result.message) return apiError("NOT_FOUND", result.error, 404);
   // A failed send is still saved (marked failed) so the seller sees why; report it as an error too.
   if (!result.ok) return apiError("SEND_FAILED", result.error, 502);
+  void import("@/lib/rewards/rewards.server").then((rewards) => rewards.rewardChatReply(user.id, String(params.id), result.message.createdAt)).catch(() => undefined);
   return ok({ id: result.message.id, status: result.message.status });
 });

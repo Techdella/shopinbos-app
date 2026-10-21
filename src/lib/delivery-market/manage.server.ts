@@ -118,6 +118,7 @@ export async function connectPartner(owner: { id: string; role: string }, partne
     update: { status: "active", endedAt: null, endedBy: null },
     create: { ownerUserId: owner.id, ownerRole: owner.role, logisticsPartnerId: partner.id },
   });
+  void import("@/lib/rewards/rewards.server").then((rewards) => rewards.recordRewardEvent({ userId: owner.id, kind: "partner_connected", ref: partner.id })).catch(() => undefined);
   const who = owner.role === "supplier"
     ? (await db.supplier.findUnique({ where: { userId: owner.id }, select: { displayName: true } }))?.displayName
     : (await db.store.findUnique({ where: { userId: owner.id }, select: { name: true } }))?.name;

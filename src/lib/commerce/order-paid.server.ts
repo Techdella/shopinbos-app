@@ -20,6 +20,7 @@ export async function afterRetailOrderPaid(orderId: string, newlyPaid: boolean, 
     await creditCampaignConversion(orderId).catch(() => null);
     await notifyOrderCustomer(orderId, "payment_received").catch(() => null); // WhatsApp/SMS to the buyer, if switched on
     await notifyOrderPaid(orderId).catch(() => null); // the seller's bell and phone
+    void import("@/lib/rewards/rewards.server").then((rewards) => rewards.rewardOrderPaid(orderId)).catch(() => undefined);
   }
   // Dropship items go to their suppliers. Idempotent, so a replayed event (or one that failed half way) is safe.
   await ensureSupplierOrdersSafely(orderId);
