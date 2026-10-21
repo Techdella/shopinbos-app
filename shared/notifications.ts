@@ -410,6 +410,9 @@ const SIMPLE_SCREENS: Array<[RegExp, string]> = [
 export function appRouteFor(link: string | null | undefined): AppRoute | null {
   if (!link) return null;
   let path = String(link).trim();
+  // "app:/posts/<id>": a screen only the phone app has (the posts calendar's "Time to post" reminder).
+  const appPost = /^app:\/posts\/([\w-]+)$/.exec(path);
+  if (appPost) return { pathname: "/posts/[id]", params: { id: appPost[1] } };
   const absolute = /^https?:\/\/[^/]+(\/.*)?$/.exec(path);
   if (absolute) path = absolute[1] ?? "/";
   if (!path.startsWith("/")) return null;
