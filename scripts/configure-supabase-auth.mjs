@@ -9,8 +9,8 @@
 // Full run (no flag) configures:
 //   1. Custom SMTP (Resend) for reliable auth email delivery (needs RESEND_API_KEY)
 //   2. SITE_URL plus the redirect allow-list (web callback and the mobile app's shopinbos:// scheme). APP_URL is
-//      required: there is deliberately no default, because the old one (app.shopinbos.com) doesn't serve the app.
-//      Production today is https://app.shopinbos.com.
+//      required (no default, so a preview URL never becomes SITE_URL by accident); production is
+//      https://app.shopinbos.com. Entries already in the live allow-list are kept.
 //   3. Email provider enabled
 //   4. Optional: Google sign-in   (GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET)
 //      Sign in with Apple for the iPhone app (client ID com.shopinbos.app; APPLE_CLIENT_IDS to change it, comma-separated)
@@ -22,6 +22,8 @@
 //      scripts/build-supabase-email-templates.mjs.
 //
 // --templates-only  updates just step 6 (needs only SUPABASE_ACCESS_TOKEN; SMTP, URLs and providers untouched).
+// --sms-hook        updates just step 5, the Send SMS hook (needs SUPABASE_ACCESS_TOKEN, APP_URL and
+//                   SUPABASE_SEND_SMS_HOOK_SECRET; SMTP, URLs, providers and templates untouched).
 // --dry-run         prints what would change and calls nothing (no token needed).
 //
 // Get a token at https://supabase.com/dashboard/account/tokens
@@ -33,6 +35,7 @@ import { fileURLToPath } from "node:url";
 const ARGS = new Set(process.argv.slice(2));
 const DRY_RUN = ARGS.has("--dry-run");
 const TEMPLATES_ONLY = ARGS.has("--templates-only");
+const SMS_HOOK_ONLY = ARGS.has("--sms-hook");
 const TEMPLATE_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "docs", "email", "supabase");
 // Management API field names (https://supabase.com/docs/guides/auth/auth-email-templates).
 const TEMPLATE_KEYS = ["confirmation", "magic_link", "recovery", "invite", "email_change", "reauthentication"];
@@ -76,13 +79,35 @@ async function main() {
   };
 
   const templates = templateConfig();
-  let authConfigBody = { ...templates };
+  let authConfigBody = SMS_HOOK_ONLY ? {} : { ...templates };
 
   console.log(`\n🔧 Configuring Supabase Auth${DRY_RUN ? " (dry run: nothing will be changed)" : ""}...`);
   console.log(`   Project: ${PROJECT_REF}`);
-  console.log(`   Mode:    ${TEMPLATES_ONLY ? "email templates and subjects only" : "SMTP, URLs, providers and email templates"}`);
+  console.log(`   Mode:    ${SMS_HOOK_ONLY ? "Send SMS hook only" : TEMPLATES_ONLY ? "email templates and subjects only" : "SMTP, URLs, providers and email templates"}`);
 
-  if (!TEMPLATES_ONLY) {
+  if (SMS_HOOK_ONLY) {
+    const appUrl = process.env.APP_URL?.trim().replace(/\/+$/, "");
+    const secret = process.env.SUPABASE_SEND_SMS_HOOK_SECRET?.trim();
+    if (!appUrl || !/^https:\/\//.test(appUrl)) {
+      console.error("❌ APP_URL not set (https://app.shopinbos.com in production): the hook calls {APP_URL}/api/webhooks/supabase-sms.");
+      process.exit(1);
+    }
+    if (!secret || !/^v1,whsec_[A-Za-z0-9+/=]{32,}$/.test(secret)) {
+      console.error("❌ SUPABASE_SEND_SMS_HOOK_SECRET must look like v1,whsec_<base64 of 32+ random bytes>, and be in Vercel first.");
+      console.error("   Make one: node -e 'console.log(\"v1,whsec_\" + require(\"crypto\").randomBytes(32).toString(\"base64\"))'");
+      process.exit(1);
+    }
+    authConfigBody = {
+      external_phone_enabled: true,
+      sms_otp_length: 6,
+      hook_send_sms_enabled: true,
+      hook_send_sms_uri: `${appUrl}/api/webhooks/supabase-sms`,
+      hook_send_sms_secrets: secret,
+    };
+    console.log(`   Hook:    ${appUrl}/api/webhooks/supabase-sms`);
+  }
+
+  if (!TEMPLATES_ONLY && !SMS_HOOK_ONLY) {
     const rawAppUrl = process.env.APP_URL?.trim();
     if (!rawAppUrl || !/^https?:\/\//.test(rawAppUrl)) {
       console.error("❌ APP_URL not set. It becomes Supabase's SITE_URL (where auth links land), so there is no default.");
@@ -165,8 +190,11 @@ async function main() {
     if (res?.ok) current = await res.json();
     else console.warn(`⚠️  Couldn't read the current auth config (${res?.status ?? "network error"}); showing every field.`);
   }
-  if (current?.site_url) {
-    console.log(`   Current SITE_URL: ${current.site_url}${/app\.shopinbos\.com/.test(current.site_url) ? "   ⚠️  app.shopinbos.com doesn't serve the app; template logos load from SITE_URL" : ""}`);
+  if (current?.site_url) console.log(`   Current SITE_URL: ${current.site_url}`);
+  // Keep redirect URLs someone added in the dashboard (e.g. https://*.shopinbos.com/ for store domains).
+  if (current?.uri_allow_list && typeof authConfigBody.uri_allow_list === "string") {
+    const merged = [...new Set([...authConfigBody.uri_allow_list.split(","), ...String(current.uri_allow_list).split(",")].map((u) => u.trim()).filter(Boolean))];
+    authConfigBody.uri_allow_list = merged.join(",");
   }
   const SECRET_FIELDS = new Set(["smtp_pass", "external_google_secret", "external_apple_secret", "hook_send_sms_secrets"]);
   const changes = Object.entries(authConfigBody).filter(([key, value]) => !current || SECRET_FIELDS.has(key) || current[key] !== value);
@@ -187,7 +215,7 @@ async function main() {
     return;
   }
 
-  console.log(`\n▪ Updating auth config (${TEMPLATES_ONLY ? "email templates" : "SMTP, SITE_URL, email provider, email templates"})...`);
+  console.log(`\n▪ Updating auth config (${SMS_HOOK_ONLY ? "Send SMS hook" : TEMPLATES_ONLY ? "email templates" : "SMTP, SITE_URL, email provider, email templates"})...`);
   const authRes = await fetch(`${MGMT_API}/v1/projects/${PROJECT_REF}/config/auth`, {
     method: "PATCH",
     headers,
@@ -202,6 +230,11 @@ async function main() {
 
   const cfg = await authRes.json();
   console.log("✅ Auth config updated successfully");
+  if (SMS_HOOK_ONLY) {
+    console.log(`   Send SMS hook: ${cfg.hook_send_sms_enabled ? "on" : "off"} → ${cfg.hook_send_sms_uri}`);
+    console.log("\n✅ Done. Sign in with a phone number to check a code arrives.\n");
+    return;
+  }
   for (const key of TEMPLATE_KEYS) {
     const ok = cfg[`mailer_templates_${key}_content`] === templates[`mailer_templates_${key}_content`];
     console.log(`   ${key.padEnd(18)} subject: ${JSON.stringify(cfg[`mailer_subjects_${key}`])}  template: ${ok ? "updated" : "⚠️  not returned as sent"}`);

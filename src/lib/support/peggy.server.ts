@@ -2,6 +2,7 @@ import "server-only";
 
 import { after } from "next/server";
 import { db } from "@/lib/db/client";
+import { registrationLaunched } from "@/lib/business-registration/launch.server";
 import { aiConfigured } from "@/lib/ai/client";
 import { aiText, firstJsonObject } from "@/lib/ai/text";
 import { getPlanCatalog } from "@/lib/plans/catalog.server";
@@ -44,6 +45,7 @@ async function liveFacts() {
   ]);
   const names = categories.length ? await db.category.findMany({ where: { id: { in: categories.map((c) => c.categoryId) } }, select: { id: true, name: true } }).catch(() => []) : [];
   const dropship = await db.supplierProduct.count({ where: { status: "published", dropshipAvailable: true } }).catch(() => 0);
+  const registrationOpen = await registrationLaunched().catch(() => false);
   const lines: string[] = ["LIVE NUMBERS (from the app today; quote these exactly):"];
   if (book) {
     lines.push("- Publishing a store is free on every plan, the free Starter plan included. There is no launch fee.");
@@ -55,7 +57,9 @@ async function liveFacts() {
     lines.push(`- Every new account gets a ${book["credits.welcome"]} AI credit signup bonus. Plans include monthly credits that refill each month. Credit packs (last 12 months): ${book["credits.small.credits"]} for ${naira(book["credits.small.naira"])}, ${book["credits.medium.credits"]} for ${naira(book["credits.medium.naira"])}, ${book["credits.large.credits"]} for ${naira(book["credits.large.naira"])}, ${book["credits.business.credits"]} for ${naira(book["credits.business.naira"])}. Failed AI jobs are refunded.`);
     lines.push(`- Boosts: featured supplier ${naira(book["boosts.supplier_week"])}/week, featured delivery partner ${naira(book["boosts.logistics_state_week"])}/week per state, boosted product ${naira(book["boosts.product_week"])}/week. Add-ons: ${naira(book["addons.sms_pack"])} per 500 SMS, ${naira(book["addons.whatsapp_pack"])} per 500 WhatsApp messages, ${naira(book["addons.staff_seat"])}/month per extra staff seat.`);
     lines.push(`- Ad campaigns run by the Shopinbos team: setup ${naira(book["ads.setup.meta"])} for Facebook & Instagram, ${naira(book["ads.setup.tiktok"])} for TikTok; ad spend is paid to Meta/TikTok, from ${naira(book["ads.min_daily_budget"])} a day.`);
-    lines.push(`- Business name registration with CAC through Shopinbos: ${naira(book["business.bn_registration"])}.`);
+    lines.push(registrationOpen
+      ? `- Business name registration with CAC through Shopinbos: ${naira(book["business.bn_registration"])}.`
+      : "- Registering a business name with CAC through Shopinbos is coming soon (not open yet; we'll email everyone when it opens). Businesses already registered can still verify with their CAC number.");
     lines.push(`- Custom domains bought through Shopinbos: the registrar's price converted at about ${naira(book["domains.usd_rate"])}/USD plus ${naira(book["domains.markup"])}, rounded up to the next ₦500.`);
   }
   if (catalog) {

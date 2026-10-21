@@ -14,7 +14,7 @@ export interface SmsCredentials {
   phoneNumber?: string;
   /** Termii secret key, used to check X-Termii-Signature. */
   secretKey?: string;
-  /** Route: Termii "dnd" | "generic", Sendchamp "dnd" | "non_dnd" | "international". */
+  /** Route: Termii "dnd" | "generic", Sendchamp "dnd" | "non_dnd" | "international", BulkSMS Nigeria gateway. */
   route?: string;
   /** Termii accounts each have a base URL shown in the dashboard. */
   baseUrl?: string;

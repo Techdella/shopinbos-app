@@ -150,3 +150,26 @@ test("Twilio is gone from the app: no routes, no adapter, no copy", () => {
     assert.doesNotMatch(readFileSync(new URL(file, import.meta.url), "utf8"), /twilio/i, file);
   }
 });
+
+test("Brevo and BulkSMS Nigeria: platform keys, send responses and Brevo delivery events", () => {
+  assert.deepEqual(sms.platformProviderOrder({ SMS_PROVIDER: "brevo,bulksmsnigeria", BREVO_API_KEY: "b", BREVO_SMS_SENDER: "Shopinbos", BULKSMSNIGERIA_API_TOKEN: "n", BULKSMSNIGERIA_SENDER_ID: "Shopinbos" }), ["brevo", "bulksmsnigeria"]);
+  assert.deepEqual(sms.platformProviderOrder({ SMS_PROVIDER: "brevo", BREVO_API_KEY: "b", TERMII_API_KEY: "t" }), ["termii"], "Brevo needs a sender too");
+  assert.deepEqual(sms.platformProviderOrder({ SMS_PROVIDER: "BulkSMS Nigeria", BULKSMSNIGERIA_API_TOKEN: "n", BULKSMSNIGERIA_SENDER_ID: "S", SENDCHAMP_API_KEY: "s" }), ["bulksmsnigeria", "sendchamp"], "label spelling works");
+  assert.equal(sms.SMS_PROVIDER_LABELS.brevo, "Brevo");
+  assert.equal(sms.TWO_WAY_PROVIDERS.includes("brevo"), false, "Brevo is send-only");
+
+  assert.deepEqual(sms.readBrevoSend(true, { reference: "ab1", messageId: 1511882900176220, smsCount: 1, usedCredits: 0.7, remainingCredits: 82 }), { ok: true, externalId: "1511882900176220" });
+  assert.deepEqual(sms.readBrevoSend(false, { code: "unauthorized", message: "Key not found" }), { ok: false, error: "Brevo: Key not found" });
+  assert.equal(sms.readBrevoSend(false, {}).ok, false);
+
+  assert.deepEqual(sms.readBulkSmsNigeriaSend(true, { status: "success", message: "SMS sent successfully", data: { id: "MSG123", cost: 2.5 } }), { ok: true, externalId: "MSG123" });
+  assert.deepEqual(sms.readBulkSmsNigeriaSend(true, { data: { status: "success", message_id: "m-9" } }), { ok: true, externalId: "m-9" }, "the older v2 shape");
+  assert.deepEqual(sms.readBulkSmsNigeriaSend(false, { status: "error", code: "BSNG-3000", message: "Insufficient wallet balance." }), { ok: false, error: "BulkSMS Nigeria: Insufficient wallet balance. (BSNG-3000)" });
+  assert.equal(sms.readBulkSmsNigeriaSend(true, { status: "error", message: "Sender ID not registered" }).ok, false, "a 200 with an error status is a failure");
+
+  assert.deepEqual(sms.parseBrevoStatus({ messageId: 42, msg_status: "delivered", to: "2348012345678" }), { externalId: "42", status: "delivered", error: null });
+  assert.deepEqual(sms.parseBrevoStatus({ messageId: "43", event: "hardBounce", reason: "Invalid number" }), { externalId: "43", status: "failed", error: "Brevo: Invalid number" });
+  assert.equal(sms.parseBrevoStatus({ messageId: "44", msg_status: "accepted" }).status, "sent");
+  assert.equal(sms.parseBrevoStatus({ messageId: "45", event: "softBounce" }).status, "failed");
+  assert.equal(sms.parseBrevoStatus({ msg_status: "delivered" }), null, "no id, no update");
+});

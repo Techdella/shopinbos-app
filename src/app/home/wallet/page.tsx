@@ -7,6 +7,7 @@ import { loadWalletView } from "@/lib/wallet/wallet.server";
 import { cashOwedToSeller } from "@/lib/logistics/seller-payins.server";
 import { CashToReceive } from "@/components/wallet/CashToReceive";
 import { getT } from "@/lib/i18n/server";
+import { registrationEnabled } from "@/lib/business-registration/service.server";
 import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
@@ -18,10 +19,11 @@ export default async function SellerWalletPage() {
   const user = await requireRole(["seller"], "/login");
   const tipT = await getT("tips");
   const t = await getT("wallet");
-  const [store, view, cash] = await Promise.all([
+  const [store, view, cash, registrationOpen] = await Promise.all([
     db.store.findUnique({ where: { userId: user.id }, select: { name: true, slug: true, logoUrl: true } }),
     loadWalletView({ id: user.id, role: "seller" }),
     cashOwedToSeller(user.id),
+    registrationEnabled().catch(() => false),
   ]);
   return (
     <SellerPage user={user} store={storeSummary(store)} title={t("page.title")} sub={t("page.subSeller")}>
@@ -33,9 +35,11 @@ export default async function SellerWalletPage() {
       ) : null}
       <div className="mb-5"><CashToReceive rows={cash} /></div>
       <WalletPanel view={view} role="seller" ownerName={user.name} orderHref={(orderId) => `/home/orders/${orderId}`} />
-      <p className="m-0 mt-5 rounded-[18px] border border-app-line bg-white px-4 py-3 text-[14px] leading-[1.5]">
-        Not registered with CAC yet? <a href="/home/register-business" className="font-bold underline underline-offset-4">Register your business name</a> without leaving Shopinbos.
-      </p>
+      {registrationOpen ? (
+        <p className="m-0 mt-5 rounded-[18px] border border-app-line bg-white px-4 py-3 text-[14px] leading-[1.5]">
+          Not registered with CAC yet? <a href="/home/register-business" className="font-bold underline underline-offset-4">Register your business name</a> without leaving Shopinbos.
+        </p>
+      ) : null}
     </SellerPage>
   );
 }

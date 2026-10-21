@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 // Supabase Auth "Send SMS" hook: Supabase makes the sign-in code and calls this instead of an SMS provider of its
-// own, and we send it with the platform's Termii / Africa's Talking / Sendchamp account (SMS_PROVIDER order, with
+// own, and we send it with the platform's Termii / Africa's Talking / Sendchamp / Brevo / BulkSMS Nigeria account (SMS_PROVIDER order, with
 // failover). Requests are signed the Standard Webhooks way (webhook-id, webhook-timestamp, webhook-signature)
 // with SUPABASE_SEND_SMS_HOOK_SECRET ("v1,whsec_…" from Auth → Hooks). scripts/configure-supabase-auth.mjs
 // switches the hook on. Supabase always asks for SMS; the channel the person chose is noted by /api/auth/otp, and

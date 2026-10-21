@@ -2,7 +2,7 @@
 // rules, CAC's answers read, and the wiring that keeps filing behind a verified payment.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 const br = await import("../shared/business-registration.ts");
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
@@ -141,4 +141,21 @@ test("registration is never priced below what CAC charges, and CAC's webhook onl
   const hook = read("src/app/api/webhooks/cac-vas/route.ts");
   assert.match(hook, /await refreshRegistration\(row\)/, "the status always comes from CAC's API, never the payload");
   assert.doesNotMatch(hook, /status: "approved"/);
+});
+
+test("CAC registration stays hidden until an admin switches it on in Admin › Launches", () => {
+  const service = read("src/lib/business-registration/service.server.ts");
+  assert.match(service, /export async function registrationEnabled\(\)[\s\S]*?registrationLaunched\(\)/, "enabled needs the launch switch");
+  assert.match(service, /checkBusinessName[\s\S]*?if \(!\(await registrationEnabled\(\)\)\)/, "name checks are off too");
+  for (const page of ["home", "supplier", "logistics"]) {
+    assert.match(read(`src/app/${page}/register-business/page.tsx`), /hideRegistrationPageWhenOff\(data,/, `${page} page hides itself`);
+  }
+  assert.match(read("src/app/home/wallet/page.tsx"), /registrationOpen \?/, "wallet link only when open");
+  assert.match(read("src/components/verification/CacInstantCheck.tsx"), /registrationOpen \?/, "verification link only when open");
+  const launch = read("src/lib/business-registration/launch.server.ts");
+  assert.match(launch, /!before\.announcementId && input\.announce !== false/, "the announcement goes out once");
+  assert.match(launch, /audience: \[\.\.\.ALL_NEWS_AUDIENCES\]/, "to sellers, suppliers and delivery partners");
+  assert.match(launch, /ctaUrl: `\$\{appUrl\}\/register-business`/);
+  assert.ok(existsSync(new URL("../src/app/register-business/page.tsx", import.meta.url)), "the email's link resolves by role");
+  assert.match(read("src/app/api/admin/launches/route.ts"), /withAdmin/);
 });

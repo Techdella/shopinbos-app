@@ -7,7 +7,8 @@
 -- Additive only, safe to run more than once. Run BEFORE deploying the code that uses it. RLS is on with no policies:
 -- only the app's server connection (which bypasses RLS) reads or writes it.
 --
--- Schedule: add the "partner-webhooks" job (every 5 minutes) with `node scripts/qstash-schedules.mjs` after deploying.
+-- Schedule: the last statement adds the "partner-webhooks" pg_cron job (every 5 minutes, reusing the "cron_secret"
+-- Vault secret); scripts/qstash-schedules.mjs has the same job for QStash. Run it after deploying the route.
 
 CREATE TABLE IF NOT EXISTS "PartnerWebhookDelivery" (
   "id" TEXT NOT NULL,
@@ -34,3 +35,16 @@ EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
 ALTER TABLE "PartnerWebhookDelivery" ENABLE ROW LEVEL SECURITY;
+
+select cron.schedule(
+  'partner-webhooks',
+  '*/5 * * * *',
+  $$
+  select net.http_get(
+    url := 'https://app.shopinbos.com/api/cron/partner-webhooks',
+    headers := jsonb_build_object('Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'cron_secret')),
+    timeout_milliseconds := 300000
+  );
+  $$
+)
+where not exists (select 1 from cron.job where jobname = 'partner-webhooks');

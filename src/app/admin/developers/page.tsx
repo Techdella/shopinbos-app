@@ -2,10 +2,12 @@ import Link from "next/link";
 import { AppPage, Card, CardHead, ListCard, ListRow, Pill } from "@/components/app-kit";
 import { adminFrame, formatDate } from "@/components/admin/AdminKit";
 import { AiCheckCard } from "@/components/admin/AiCheckCard";
+import { LaunchSettings } from "@/components/admin/LaunchSettings";
 import { CacChecksStatus, IdChecksStatus, KorapayChecksStatus } from "@/components/admin/IdCheckStatus";
 import { requireAdminSection } from "@/lib/admin-team/service.server";
 import { providerOrder } from "@/lib/ai/client";
 import { db } from "@/lib/db/client";
+import { launchCheck } from "@/lib/launch-check/server";
 import { korapayIdentityHealth, korapayIdentityReady, type KorapayIdentityHealth } from "@/lib/korapay";
 import { cacProviders } from "@/lib/kyb/verify-cac.server";
 import { youverifyHealth, type YouverifyHealth } from "@/lib/youverify";
@@ -14,6 +16,7 @@ import { ApiKeysPanel, WebhooksPanel } from "./PartnerConnection";
 export const dynamic = "force-dynamic";
 
 // Admin › Developers: the technical side, kept off the everyday pages. Owners, admins and the Developer role only.
+//  • Launch settings: which production keys this deployment has, and whether every scheduled job runs.
 //  • Delivery partners' own dispatch software: API keys and webhooks (partners ask through "Connect your system").
 //  • The services behind ID/CAC checks and AI, and the public API the marketing website reads.
 
@@ -24,7 +27,7 @@ export default async function AdminDevelopersPage(props: { searchParams?: Promis
   const partnerId = (await props.searchParams)?.partner ?? "";
   const korapay = korapayIdentityReady();
 
-  const [partners, selected, idChecks] = await Promise.all([
+  const [partners, selected, idChecks, launch] = await Promise.all([
     db.logisticsPartner.findMany({
       orderBy: { displayName: "asc" },
       take: 300,
@@ -60,12 +63,19 @@ export default async function AdminDevelopersPage(props: { searchParams?: Promis
         })
       : Promise.resolve(null),
     korapay ? korapayIdentityHealth() : youverifyHealth(),
+    launchCheck(),
   ]);
   const connected = partners.filter((p) => p._count.apiKeys > 0 || p._count.webhooks > 0);
   const inviteCount = (process.env.SHOPINBOS_ADMIN_INVITE_EMAILS ?? "").split(",").map((email) => email.trim()).filter(Boolean).length;
 
   return (
     <AppPage frame={adminFrame(user, "Search")} title="Developers" sub="Software connections, API docs and the services behind checks and AI. Not needed for day-to-day work.">
+      <section id="launch" aria-labelledby="launch-title" className="mb-8 scroll-mt-6">
+        <h2 id="launch-title" className="m-0 text-[20px] font-extrabold">Launch settings</h2>
+        <p className="mb-3 mt-1 max-w-[760px] text-[14.5px] text-app-ink-soft">Is this deployment ready for production: the keys it needs, and every scheduled job running.</p>
+        <LaunchSettings {...launch} />
+      </section>
+
       <section id="partners" aria-labelledby="partners-title" className="mb-8 scroll-mt-6">
         <h2 id="partners-title" className="m-0 text-[20px] font-extrabold">Delivery partners&apos; software</h2>
         <p className="mb-3 mt-1 max-w-[760px] text-[14.5px] text-app-ink-soft">

@@ -4,7 +4,7 @@ import { requireRole } from "@/lib/server-auth";
 import { getT } from "@/lib/i18n/server";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { RegisterBusiness } from "@/components/business-registration/RegisterBusiness";
-import { registrationPageData } from "@/lib/business-registration/page-data.server";
+import { hideRegistrationPageWhenOff, registrationPageData } from "@/lib/business-registration/page-data.server";
 import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +18,7 @@ export default async function SellerRegisterBusinessPage({ searchParams }: { sea
     registrationPageData({ ...user, role: "seller" }),
     searchParams,
   ]);
+  hideRegistrationPageWhenOff(data, "seller");
   return (
     <SellerPage user={user} store={storeSummary(store)} title="Register your business" sub="Get your business name registered with CAC without leaving Shopinbos.">
       <PageTip className="mb-5">{tipT("registerBusiness")}</PageTip>
