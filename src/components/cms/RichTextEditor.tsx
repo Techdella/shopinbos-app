@@ -18,9 +18,10 @@ import { markdownToDoc } from "@/lib/cms/markdown";
 import { youtubeEmbedUrl, type RichDoc } from "@/lib/cms/richtext";
 import { useT } from "@/components/i18n/I18nProvider";
 
-// Block editor for CMS rich text fields (WordPress/Notion feel): headings, marks, links, lists, quotes, code,
-// alignment, images (uploaded to the store's media), YouTube, tables, info boxes, dividers, buttons and
-// product cards. It hands back Tiptap JSON; the server keeps only known nodes and builds the HTML itself.
+// Rich text editor for CMS fields, laid out like the WordPress classic editor: a wrapping toolbar, Visual and
+// HTML tabs, a word count and a full-screen mode. Headings, marks, links, lists, quotes, code, alignment, images
+// (uploaded to the store's media), YouTube, tables, info boxes, dividers, buttons and product cards. It hands
+// back Tiptap JSON; the server keeps only known nodes and builds the HTML itself.
 
 const Callout = Node.create({
   name: "callout",
@@ -128,6 +129,9 @@ export function RichTextEditor({ value, onChange, label, placeholder: placeholde
   const changeRef = useRef(onChange);
   changeRef.current = onChange;
   const emitted = useRef<RichDoc | null>(null);
+  const [mode, setMode] = useState<"visual" | "html">("visual");
+  const [html, setHtml] = useState("");
+  const [fullscreen, setFullscreen] = useState(false);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -153,7 +157,10 @@ export function RichTextEditor({ value, onChange, label, placeholder: placeholde
 
   const state = useEditorState({
     editor,
-    selector: ({ editor: e }: { editor: Editor | null }) => {
+    // The snapshot's editor stays null until the first transaction, and nothing transacts until the editor is
+    // on screen, so fall back to the editor from useEditor (otherwise the field sits on "Loading editor").
+    selector: ({ editor: snapshot }: { editor: Editor | null }) => {
+      const e = snapshot ?? editor;
       if (!e) return null;
       return {
         block: e.isActive("heading", { level: 1 }) ? "h1" : e.isActive("heading", { level: 2 }) ? "h2" : e.isActive("heading", { level: 3 }) ? "h3" : e.isActive("heading", { level: 4 }) ? "h4" : "p",
@@ -177,9 +184,22 @@ export function RichTextEditor({ value, onChange, label, placeholder: placeholde
         button: e.isActive("button"),
         canUndo: e.can().undo(),
         canRedo: e.can().redo(),
+        words: e.state.doc.textContent.trim() ? e.state.doc.textContent.trim().split(/\s+/).length : 0,
       };
     },
   });
+
+  useEffect(() => {
+    if (!fullscreen) return;
+    const onKey = (event: KeyboardEvent) => event.key === "Escape" && setFullscreen(false);
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = overflow;
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [fullscreen]);
 
   // Replace the document when a different item is loaded (not on every keystroke).
   const loaded = useRef(value);
@@ -200,6 +220,14 @@ export function RichTextEditor({ value, onChange, label, placeholder: placeholde
   }
 
   const chain = () => editor.chain().focus();
+
+  function switchMode(next: "visual" | "html") {
+    if (next === mode || !editor) return;
+    if (next === "html") setHtml(prettyHtml(editor.getHTML()));
+    // Back to Visual: the HTML is parsed into the editor, which drops anything it doesn't support.
+    else editor.commands.setContent(html.trim() || "<p></p>", { emitUpdate: true });
+    setMode(next);
+  }
 
   async function onFile(file: File | undefined) {
     if (!file) return;
@@ -259,10 +287,27 @@ export function RichTextEditor({ value, onChange, label, placeholder: placeholde
   }
 
   return (
-    <div className="overflow-hidden rounded-[18px] border border-app-line bg-white focus-within:border-app-ink">
+    <div className={cx("flex flex-col overflow-hidden border border-app-line bg-white focus-within:border-app-ink", fullscreen ? "fixed inset-0 z-[70] rounded-none" : "rounded-[18px]")}>
       <style>{CMS_PROSE_CSS + EDITOR_CSS}</style>
       <p id={labelId} className="sr-only">{label}</p>
-      <div role="toolbar" aria-label={t("rte.formatting", { label })} className="sticky top-0 z-10 flex items-center gap-0.5 overflow-x-auto border-b border-app-line bg-white px-2 py-1.5">
+      <div className="flex items-end justify-between gap-2 border-b border-app-line bg-app-canvas px-2 pt-1.5">
+        <div role="tablist" aria-label={t("rte.mode")} className="flex gap-1">
+          {(["visual", "html"] as const).map((entry) => (
+            <button
+              key={entry}
+              type="button"
+              role="tab"
+              aria-selected={mode === entry}
+              onClick={() => switchMode(entry)}
+              className={cx("-mb-px min-h-[36px] rounded-t-[10px] border px-3.5 text-[13px] font-bold", mode === entry ? "border-app-line border-b-white bg-white text-app-ink" : "border-transparent text-app-ink-soft hover:text-app-ink")}
+            >
+              {entry === "visual" ? t("rte.visual") : t("rte.html")}
+            </button>
+          ))}
+        </div>
+        <ToolButton label={fullscreen ? t("rte.exitFullscreen") : t("rte.fullscreen")} active={fullscreen} onClick={() => setFullscreen((on) => !on)}><FullscreenGlyph on={fullscreen} /></ToolButton>
+      </div>
+      <div role="toolbar" aria-label={t("rte.formatting", { label })} hidden={mode !== "visual"} className="sticky top-0 z-10 flex flex-wrap items-center gap-0.5 border-b border-app-line bg-white px-2 py-1.5">
         <label className="sr-only" htmlFor={`${labelId}-block`}>{t("rte.textStyle")}</label>
         <select
           id={`${labelId}-block`}
@@ -317,7 +362,7 @@ export function RichTextEditor({ value, onChange, label, placeholder: placeholde
         <ToolButton label={t("rte.redo")} icon="refresh" disabled={!state.canRedo} onClick={() => chain().redo().run()} />
       </div>
 
-      {(state.table || state.callout || state.image || state.button) && (
+      {mode === "visual" && (state.table || state.callout || state.image || state.button) && (
         <div className="flex flex-wrap items-center gap-1 border-b border-app-line bg-app-canvas px-2 py-1.5 text-[13px]">
           {state.table && (
             <>
@@ -359,7 +404,25 @@ export function RichTextEditor({ value, onChange, label, placeholder: placeholde
       )}
 
       {error && <p className="m-0 bg-app-danger-tint px-4 py-2 text-[13.5px] text-app-danger" role="alert">{error}</p>}
-      <EditorContent editor={editor} className="px-4 py-4 sm:px-6 sm:py-5" />
+      <EditorContent editor={editor} hidden={mode !== "visual"} className={cx("px-4 py-4 sm:px-6 sm:py-5", fullscreen && "flex-1 overflow-y-auto")} />
+      {mode === "html" && (
+        <>
+          <label htmlFor={`${labelId}-html`} className="sr-only">{t("rte.htmlLabel", { label })}</label>
+          <textarea
+            id={`${labelId}-html`}
+            spellCheck={false}
+            value={html}
+            onChange={(event) => setHtml(event.target.value)}
+            onBlur={() => editor.commands.setContent(html.trim() || "<p></p>", { emitUpdate: true })}
+            className={cx("block w-full resize-y border-0 bg-white px-4 py-4 font-mono text-[13.5px] leading-6 text-app-ink outline-none sm:px-6", fullscreen ? "flex-1" : "min-h-[320px]")}
+          />
+          <p className="m-0 border-t border-app-line px-4 py-1.5 text-[12px] text-app-ink-soft">{t("rte.htmlHelp")}</p>
+        </>
+      )}
+      <div className="flex items-center justify-between gap-3 border-t border-app-line bg-app-canvas px-4 py-1.5 text-[12px] text-app-ink-soft">
+        <span aria-live="polite">{t("rte.words", { count: state.words })}</span>
+        <span>{mode === "visual" ? t("rte.visual") : t("rte.html")}</span>
+      </div>
 
       {dialog?.kind === "link" && (
         <Modal title={t("rte.link")} onClose={() => setDialog(null)} footer={<><PillButton tone="white" size="sm" onClick={() => { chain().extendMarkRange("link").unsetLink().run(); setDialog(null); }}>{t("rte.removeLink")}</PillButton><PillButton tone="ink" size="sm" onClick={applyDialog}>{t("rte.saveLink")}</PillButton></>}>
@@ -418,6 +481,20 @@ export function RichTextEditor({ value, onChange, label, placeholder: placeholde
   );
 }
 
+function FullscreenGlyph({ on }: { on: boolean }) {
+  const d = on ? ["M9 3v6H3", "M15 3v6h6", "M9 21v-6H3", "M15 21v-6h6"] : ["M3 9V3h6", "M21 9V3h-6", "M3 15v6h6", "M21 15v6h-6"];
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      {d.map((path) => <path key={path} d={path} />)}
+    </svg>
+  );
+}
+
+/** Puts block tags on their own lines so the HTML tab reads like WordPress's Text tab. */
+function prettyHtml(source: string) {
+  return source.replace(/<\/(p|h[1-6]|ul|ol|li|blockquote|pre|table|thead|tbody|tr|aside|figure|div)>/g, "</$1>\n").replace(/<(ul|ol|table|thead|tbody|tr|blockquote|aside)(\s[^>]*)?>/g, "<$1$2>\n").replace(/<hr[^>]*>/g, "$&\n").replace(/\n{2,}/g, "\n").trim();
+}
+
 function AlignGlyph({ align }: { align: "left" | "center" | "right" }) {
   const lines = align === "left" ? ["M3 6h18", "M3 10h12", "M3 14h18", "M3 18h10"] : align === "center" ? ["M3 6h18", "M6 10h12", "M3 14h18", "M7 18h10"] : ["M3 6h18", "M9 10h12", "M3 14h18", "M11 18h10"];
   return (
@@ -428,7 +505,7 @@ function AlignGlyph({ align }: { align: "left" | "center" | "right" }) {
 }
 
 const EDITOR_CSS = `
-.cms-editor-surface{min-height:280px;outline:none}
+.cms-editor-surface{min-height:320px;outline:none}
 .cms-editor-surface p.is-editor-empty:first-child::before{content:attr(data-placeholder);color:#9A97A8;float:left;height:0;pointer-events:none}
 .cms-editor-surface .selectedCell{background:rgba(232,89,12,.08)}
 .cms-editor-surface .ProseMirror-selectednode{outline:2px solid #E8590C;outline-offset:2px;border-radius:12px}

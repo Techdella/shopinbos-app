@@ -6,6 +6,7 @@ import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { PillLink } from "@/components/app-kit";
 import { buildStorefrontOrigin } from "@/lib/domains/storefront";
 import { readFields } from "@/lib/cms/fields";
+import { collectionSettings } from "@/lib/cms/server";
 import { ItemEditor, type EditorItem } from "./ItemEditor";
 import { formatDate } from "@shared/i18n";
 import { getLocale, getT } from "@/lib/i18n/server";
@@ -54,7 +55,7 @@ export default async function CmsItemPage({ params }: { params: Promise<{ collec
       actions={<PillLink href={`/home/cms/${collection.id}`} icon="arrowLeft">{t("item.all", { label: collection.itemLabel.toLowerCase() })}</PillLink>}
     >
       <ItemEditor
-        collection={{ id: collection.id, name: collection.name, slug: collection.slug, itemLabel: collection.itemLabel, template: collection.template, isPublished: collection.isPublished }}
+        collection={{ id: collection.id, name: collection.name, slug: collection.slug, itemLabel: collection.itemLabel, template: collection.template, isPublished: collection.isPublished, itemLayout: collectionSettings(collection.settings).itemLayout }}
         fields={readFields(collection.fields)}
         item={JSON.parse(JSON.stringify(item))}
         storeOrigin={buildStorefrontOrigin({ slug: store.slug, customDomain: store.customDomain ?? null })}
