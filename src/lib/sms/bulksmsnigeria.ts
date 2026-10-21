@@ -4,8 +4,9 @@ import { call } from "./http";
 import { e164, readBulkSmsNigeriaSend, type SendOutcome } from "./pure";
 import type { SmsCredentials, SmsProvider, SmsSendInput, VerifyOutcome } from "./types";
 
-// BulkSMS Nigeria (https://www.bulksmsnigeria.com/api). POST https://www.bulksmsnigeria.com/api/v2/sms with a
-// Bearer API token and { from, to: "2348…,2348…", body, gateway? }. The sender ID must be registered and approved
+// BulkSMS Nigeria (https://www.bulksmsnigeria.com/api). POST https://www.bulksmsnigeria.com/api/v2/sms with the
+// account's Legacy API token (API Settings; v1/v2 endpoints) sent as a
+// Bearer token, and { from, to: "2348…,2348…", body, gateway? }. The sender ID must be registered and approved
 // in the dashboard (Sender IDs). gateway (BULKSMSNIGERIA_GATEWAY) is optional and left to the account's default
 // when unset. One-way, and no documented delivery webhook, so messages stay "sent".
 
@@ -30,7 +31,7 @@ async function send(credentials: SmsCredentials, input: SmsSendInput): Promise<S
 }
 
 async function verify(credentials: SmsCredentials): Promise<VerifyOutcome> {
-  const res = await call(`${BASE}/wallet/balance`, { headers: headers(credentials) });
+  const res = await call(`${BASE}/v2/balance`, { headers: headers(credentials) });
   if ("error" in res) return { ok: false, error: "Couldn't reach BulkSMS Nigeria to check the API token." };
   if (res.status === 401 || res.status === 403) return { ok: false, error: "BulkSMS Nigeria rejected the API token. Create one in your dashboard › API tokens." };
   return { ok: true, detail: credentials.senderId || "BulkSMS Nigeria" };
