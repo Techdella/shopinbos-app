@@ -1195,7 +1195,7 @@ test("Rex's fallback pick follows what the store sells, for every industry", () 
     ["Matching family outfits", "ewu"],
     ["Smart casual clothing for men", "ado"],
     ["Hoodies and sweatshirts", "erin"],
-    ["Cold-pressed smoothies", "apere"],
+    ["Cold-pressed bottles", "apere"],
     ["Cobbler and shoemaker", "bata"],
     ["Greengrocer", "ogba"],
     ["Veggie box delivery", "eso"],

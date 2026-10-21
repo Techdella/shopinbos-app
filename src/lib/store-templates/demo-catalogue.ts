@@ -799,7 +799,7 @@ export const DEMO_CATALOGUES: Record<ThemeLibraryId, DemoCatalogue> = {
       p("Red patent stilettos", 39500, "Women", "heel", "High shine, 11cm heel.", "#DC2626"),
       p("Leather loafers", 41000, "Men", "sneaker", "Penny strap, soft lining.", "#92400E"),
       p("Strappy blue sandals", 27500, "Women", "sandal", "Ankle strap, 10cm heel.", "#1E3A8A"),
-      p("Green suede sneakers", 33000, "Men", "sneaker", "Low top, white sole.", "#047857"),
+      p("Brown suede sneakers", 33000, "Men", "sneaker", "Low top, contrast laces.", "#92400E"),
     ],
   },
   ogba: {
