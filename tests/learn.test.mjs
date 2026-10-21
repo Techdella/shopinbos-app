@@ -204,15 +204,15 @@ test("new scene arts read their words from the intro, so nothing English is bake
 test("preferences: introsSeen is validated, capped and only ever adds", () => {
   assert.equal(PreferencesPatchSchema.safeParse({ introsSeen: ["segments", "ads"] }).success, true);
   assert.equal(PreferencesPatchSchema.safeParse({ introsSeen: ["<script>"] }).success, false);
-  assert.equal(PreferencesPatchSchema.safeParse({ introsSeen: Array.from({ length: 61 }, (_, i) => `k${i}`) }).success, false);
+  assert.equal(PreferencesPatchSchema.safeParse({ introsSeen: Array.from({ length: 101 }, (_, i) => `k${i}`) }).success, false);
   assert.equal(PreferencesPatchSchema.safeParse({ tour: "done", hiddenNav: ["ads"] }).success, true);
 
   assert.deepEqual(prefs.parsePreferences(null), { hiddenNav: [], tour: null }, "no introsSeen until there is one");
   assert.deepEqual(prefs.parsePreferences({ introsSeen: ["ads", "BAD KEY", 3, "segments", "ads"] }).introsSeen, ["segments", "ads"]);
-  const many = Array.from({ length: 80 }, (_, i) => `intro-${i}`);
+  const many = Array.from({ length: 130 }, (_, i) => `intro-${i}`);
   const parsed = prefs.parsePreferences({ introsSeen: many }).introsSeen;
   assert.equal(parsed.length, prefs.MAX_INTROS_SEEN);
-  assert.equal(parsed.at(-1), "intro-79", "newest kept");
+  assert.equal(parsed.at(-1), "intro-129", "newest kept");
 
   const allowed = new Set(["ads"]);
   const one = prefs.mergePreferences(prefs.parsePreferences({}), { introsSeen: ["segments"] }, allowed);
