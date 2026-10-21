@@ -504,7 +504,7 @@ const STORY_COPY: Partial<Record<BoutiqueThemeId, { eyebrow: string; title: stri
   aluko: { eyebrow: "fashion", title: "The lookbook" },
   aja: { eyebrow: "For happy pets", title: "Everything your pet needs" },
   dara: { eyebrow: "About us", title: "A better way to shop for clothes" },
-  ife: { eyebrow: "Testimonials", title: "" },
+  ife: { eyebrow: "Our promise", title: "" },
 };
 
 /** Story pictures on the right (the rest keep the picture left). */
@@ -1140,11 +1140,10 @@ function homeSections(theme: BoutiqueThemeId): TemplateSectionNode[] {
       return [
         hero("aja"),
         categories("aja", "Shop by pet"),
-        bestSellers("tiles", "Pet clothing", "Shop now", "featured-products", { quickAdd: true }),
-        bestSellers("category-tabs", "Pet foodies", "Shop now", "foodies"),
+        bestSellers("tiles", "Popular picks", "Shop now", "featured-products", { quickAdd: true }),
         story("aja"),
+        bestSellers("category-tabs", "Shop by category", "Shop now", "by-category"),
         reviews("What pet parents say"),
-        bestSellers("tiles", "Best selling products", "Shop now", "best-selling", { quickAdd: true }),
         newsletter({ title: "Join the pack", body: "Pet care tips and offers, once a month." }),
       ];
     case "dara":
