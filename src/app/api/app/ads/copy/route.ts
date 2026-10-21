@@ -19,7 +19,7 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
   if (!store) return apiError("NOT_FOUND", "Set up your store first.", 404);
   const parsed = Schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return apiError("BAD_REQUEST", "Pick the products first.");
-  const limited = await meterAi(user.id, "text", Math.min(5, parsed.data.productIds.length));
+  const limited = await meterAi(user.id, "text", Math.min(5, parsed.data.productIds.length), "caption");
   if (limited) return limited;
   return ok(await writeAdCopy(store, parsed.data.productIds, parsed.data.objective));
 });

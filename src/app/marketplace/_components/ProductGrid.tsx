@@ -98,6 +98,7 @@ export function ProductGrid({ products, addedIds, chips, notified, emptyText }: 
                   ) : (
                     <span className="absolute inset-0 grid place-items-center text-app-ink-faint"><Icon name="image" size={32} /></span>
                   )}
+                  {product.featured ? <span className="absolute left-2 top-2 rounded-full bg-app-ink px-2.5 py-1 text-[11.5px] font-bold text-white">{t("featured")}</span> : null}
                 </Link>
                 <div className="flex flex-1 flex-col p-3 sm:p-3.5">
                   <h3 className="m-0 text-[14.5px] font-extrabold leading-tight sm:text-[15.5px]">

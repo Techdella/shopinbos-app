@@ -1,4 +1,5 @@
 import "server-only";
+import { returnPlatformMessage, spendPlatformMessage } from "@/lib/plans/messages.server";
 
 import { getChannel } from "@/lib/inbox/service";
 import { sendSmsReply } from "@/lib/inbox/channels/sms";
@@ -88,7 +89,11 @@ export async function textSender(store: StoreRef, options: { senderId?: string |
         return result.ok ? { ok: true, externalId: result.externalId } : { ok: false, error: result.error };
       }
       if (!platformSms()) return { ok: false, error: "SMS isn't set up" };
+      // Shopinbos's own SMS: the plan's monthly messages, then SMS packs (src/lib/plans/messages.server.ts).
+      const spend = await spendPlatformMessage(store.id, "sms");
+      if (!spend.ok) return { ok: false, error: spend.error };
       const result = await sendPlatformSms({ to: [to], body, senderId });
+      if (!result.ok) await returnPlatformMessage(store.id, "sms", spend);
       return result.ok ? { ok: true, externalId: result.externalId } : { ok: false, error: result.error || "The SMS provider rejected it" };
     },
     /** Free-form WhatsApp: only delivered within 24 hours of the customer's last message. */
@@ -98,7 +103,10 @@ export async function textSender(store: StoreRef, options: { senderId?: string |
         return result.ok ? { ok: true, externalId: result.externalId } : { ok: false, error: result.error };
       }
       if (!platformWhatsApp()) return { ok: false, error: "WhatsApp isn't set up" };
+      const spend = await spendPlatformMessage(store.id, "whatsapp");
+      if (!spend.ok) return { ok: false, error: spend.error };
       const result = await sendWhatsAppMessage({ to: [to], message: body });
+      if (!result.success) await returnPlatformMessage(store.id, "whatsapp", spend);
       return result.success ? { ok: true, externalId: null } : { ok: false, error: result.message || "The WhatsApp provider rejected it" };
     },
     /** An approved template from the store's own WhatsApp Business Account. */

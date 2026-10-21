@@ -168,7 +168,7 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
     setStart(path);
     await saveMemory(
       { businessDescription: description, languages: [lang], buildPath: "rex" },
-      // New stores default to "active"; keep them as drafts until the launch payment publishes them.
+      // New stores default to "active"; keep them as drafts until the seller publishes them.
       status.store.live ? { onboardingState: "BUILDING_REX" } : { onboardingState: "BUILDING_REX", status: "draft" },
     ).catch(() => null);
     go("brand");

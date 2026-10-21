@@ -861,6 +861,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "ch.helpTitle": "Jikọọ {title}",
   "ch.helpDesc": "Anyị ga-ejikọ {title} n'inbox gị maka gị ma zitere gị ozi mgbe ọ na-arụ ọrụ.",
   "ch.askUs": "Rịọ anyị ka anyị jikọọ ya",
+  "bot.monthlyCap": "Azịza AI kachasị n'ọnwa",
+  "bot.monthlyCapHelp": "Azịza ọ bụla Peggy ji AI dee na-eji kredit AI gị (live chat na WhatsApp ọnụ). Mgbe o ruru ọnụọgụ a, ma ọ bụ kredit gị agwụ, ozi ịnọghị gị na azịza ngwa ngwa ga-aza kama. 0 pụtara enweghị oke.",
 };
 
 export default ig;

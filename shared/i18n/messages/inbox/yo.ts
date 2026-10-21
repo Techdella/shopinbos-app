@@ -861,6 +861,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "ch.helpTitle": "So {title} pọ̀",
   "ch.helpDesc": "A máa so {title} mọ́ inbox rẹ fún ọ, a ó sì kọ̀wé sí ọ nígbà tó bá ń ṣiṣẹ́.",
   "ch.askUs": "Ní kí a so ó pọ̀",
+  "bot.monthlyCap": "Ìdáhùn AI tó pọ̀ jù lóṣù",
+  "bot.monthlyCapHelp": "Ìdáhùn kọ̀ọ̀kan tí Peggy kọ pẹ̀lú AI ń lo kirẹ́dítì AI rẹ (live chat àti WhatsApp papọ̀). Tí ó bá dé iye yìí, tàbí tí kirẹ́dítì rẹ bá tán, ìfiránṣẹ́ àìsí rẹ àti ìdáhùn kíákíá ni yóò dáhùn dípò. 0 túmọ̀ sí kò sí òpin.",
 };
 
 export default yo;

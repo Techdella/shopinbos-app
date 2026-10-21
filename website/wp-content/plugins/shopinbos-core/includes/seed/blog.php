@@ -81,7 +81,7 @@ function sib_seed_blog_posts(): array {
 		. $p( 'It is a good way to start, but you should know exactly what you keep. Here are real numbers on one product: a ₦28,000 tote bag.' )
 		. $h( '1. Where the ₦28,000 goes' )
 		. $p( 'Say the supplier’s price to you is ₦17,500. You choose your own selling price, here ₦28,000. The buyer pays for delivery separately.' )
-		. $b( 'stats', [ 'title' => 'One ₦28,000 tote bag, paid by card (Starter plan)', 'items' => "₦17,500 | Supplier price\n₦520 | Paystack fee (1.5% + ₦100)\n₦560 | Shopinbos commission (2% on Starter)\n₦9,420 | What you keep", 'foot' => 'Example numbers. Paystack fees are capped at ₦2,000 per payment. Growth and Pro plans pay no commission, so you would keep ₦9,980.' ] )
+		. $b( 'stats', [ 'title' => 'One ₦28,000 dropship tote bag, paid by card', 'items' => "₦17,500 | Supplier price\n₦520 | Paystack fee (1.5% + ₦100)\n₦0 | Shopinbos fee (none on dropship: the supplier's commission covers it)\n₦9,980 | What you keep", 'foot' => 'Example numbers. Paystack fees are capped at ₦2,000 per payment. On your own products the Shopinbos fee is 3% on the Free plan, 2% on Starter, 1% on Growth and 0.5% on Pro.' ] )
 		. $p( 'The supplier is paid their price after delivery. Your share is held for 48 hours after delivery in case of a return, then joins your balance for Friday’s payout.' )
 		. $h( '2. What you risk' )
 		. $p( 'You don’t risk money on stock. You risk your name. If the supplier is slow or the item is not what the photo showed, the customer blames you.' )

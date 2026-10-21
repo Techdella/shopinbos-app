@@ -7,7 +7,7 @@ import { savePrices } from "@/lib/pricing/price-book.server";
 import { cancelPromotion, createPromotion, PromotionError, updatePromotion } from "@/lib/pricing/promotions.server";
 import { cleanPriceValue, PRICE_KEYS, PRICE_SETTINGS } from "@shared/platform-pricing";
 import { fromLagosInput, PROMO_AUDIENCES, type PromoInput } from "@shared/price-promotions";
-import { PlanSaveError, savePlanTier } from "@/lib/plans/catalog.server";
+import { PlanSaveError, applyNewPrices, savePlanTier } from "@/lib/plans/catalog.server";
 import { PLAN_TIER_KEYS, type PlanTier } from "@shared/plan-catalog";
 
 /** Admin › Pricing: saves one section's prices (fields are named by price key) with an optional note. */
@@ -102,4 +102,23 @@ export async function savePlan(formData: FormData) {
   }
   revalidatePath("/admin/pricing/plans");
   redirect(`/admin/pricing/plans?${new URLSearchParams({ saved: message }).toString()}#${tier}`);
+}
+
+/**
+ * Admin › Pricing › Plans: puts every subscriber on today's prices at Paystack (they pay the new amount from their
+ * next renewal) and puts a plan on sale for each tier that has none. The page lists every change first.
+ */
+export async function applyPlanPrices(formData: FormData) {
+  const user = await requireAdminSection("money");
+  if (formData.get("confirm") !== "yes") redirect(`/admin/pricing/plans?${new URLSearchParams({ error: "Tick the box to confirm the changes first." }).toString()}`);
+  let message: string;
+  try {
+    const done = await applyNewPrices({ userId: user.id, note: String(formData.get("note") ?? "") });
+    message = done.length ? `Done: ${done.join("; ")}.` : "Everything was already on today's prices.";
+  } catch (error) {
+    message = "";
+    redirect(`/admin/pricing/plans?${new URLSearchParams({ error: `Paystack said: ${error instanceof Error ? error.message : "it couldn't update the plans"}. Changes made before this stay; run it again to finish.` }).toString()}`);
+  }
+  revalidatePath("/admin/pricing/plans");
+  redirect(`/admin/pricing/plans?${new URLSearchParams({ saved: message }).toString()}`);
 }

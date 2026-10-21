@@ -1,5 +1,5 @@
 // Pages the phone app opens on the web (through /auth/handoff) are marked "opened from the app" for as long as the
-// borrowed session lasts. App store rules don't allow selling digital things (the store launch fee, plans, AI credits)
+// borrowed session lasts. App store rules don't allow selling digital things (plans, AI credits, domains)
 // inside an app except through Apple/Google in-app purchase, so purchase screens hide themselves in those sessions.
 // The website itself is unchanged.
 

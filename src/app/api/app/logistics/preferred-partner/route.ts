@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { deliveryPartnerProblem } from "@/lib/plans/gates.server";
 import { z } from "zod";
 import { withSeller } from "@/lib/auth/middleware";
 import { db } from "@/lib/db/client";
@@ -26,6 +27,8 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
     select: { id: true, displayName: true, slug: true },
   });
   if (!partner) return apiError("NOT_FOUND", "Logistics partner not found", 404);
+  const planProblem = await deliveryPartnerProblem(user.id, partner.id, true);
+  if (planProblem) return apiError("PLAN_LIMIT", planProblem, 402);
 
   const store = await db.store.findUnique({
     where: { userId: user.id },

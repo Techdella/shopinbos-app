@@ -278,8 +278,14 @@ export async function proxy(request: NextRequest) {
     return response;
   }
 
+  // Joining a store team (src/lib/staff/staff.server.ts) needs no store of your own.
+  if (matchesRoute(pathname, ["/team"])) return response;
+
+  // A staff member works in the owner's store, so the owner's onboarding state counts.
+  const membership = await db.storeStaff.findFirst({ where: { memberUserId: appUser.id, status: "active" }, select: { ownerId: true } }).catch(() => null);
+  const storeOwnerId = membership?.ownerId ?? appUser.id;
   const store = await db.store.findUnique({
-    where: { userId: appUser.id },
+    where: { userId: storeOwnerId },
     select: { onboardingState: true, firstDashboardVisitComplete: true },
   }).catch(() => null);
 
@@ -296,13 +302,13 @@ export async function proxy(request: NextRequest) {
 
   if (store.onboardingState === "SKIPPED" || store.onboardingState === "INCOMPLETE" || store.onboardingState === "LIVE") {
     await db.store.update({
-      where: { userId: appUser.id },
+      where: { userId: storeOwnerId },
       data: { firstDashboardVisitComplete: true },
     }).catch(() => null);
     return response;
   }
 
-  const destination = await getOnboardingDestination(appUser.id);
+  const destination = await getOnboardingDestination(storeOwnerId);
   if (destination !== "/home") {
     return redirectTo(destination);
   }

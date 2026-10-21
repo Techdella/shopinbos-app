@@ -246,7 +246,7 @@ async function draftProductContent(ctx: PeggyToolContext, input: PeggyToolInput<
     imageUrl: product.images[0] ?? null,
   }));
   const calls = contentCallCount(items, input.usePhotos);
-  if (await meterAi(ctx.userId, "text", calls)) throw new ToolError("The seller has used today's AI writing allowance. Tell them it resets within 24 hours, or write a short version yourself.");
+  if (await meterAi(ctx.userId, "text", calls)) throw new ToolError("The seller is out of AI credits (or hit today's safety cap). Tell them to top up, or write a short version yourself.");
   const categories = input.fields.includes("category") ? await categoryNamesFor(ctx.store.id) : [];
   const result = await suggestProductContent(items, { storeName: ctx.store.name, fields: input.fields, categories, instruction: input.instruction, usePhotos: input.usePhotos });
 

@@ -3,6 +3,8 @@
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { getPriceBook } from "@/lib/pricing/price-book.server";
+import { logisticsJobFee } from "@shared/platform-pricing";
+import { planOfUser } from "@/lib/plan-limits";
 
 export async function getBillingData(logisticsPartnerId: string) {
   // Exported from a "use server" file, so it is callable from the browser: only the partner itself (or an admin).
@@ -25,9 +27,11 @@ export async function getBillingData(logisticsPartnerId: string) {
     }),
   ]);
 
-  // Set by Shopinbos in Admin › Pricing; partners only see it.
-  const rate = book["delivery.fee_rate"];
-  const bearer = book["delivery.fee_bearer"];
+  // Set by Shopinbos in Admin › Pricing, by the partner's plan; partners only see it. It comes out of their share.
+  const owner = await db.logisticsPartner.findUnique({ where: { id: logisticsPartnerId }, select: { userId: true } });
+  const fee = logisticsJobFee(book, owner ? await planOfUser(owner.userId) : "logistics_free");
+  const rate = fee.effectiveRate;
+  const bearer = "logistics_partner";
 
   const delivered = bookings.filter((b) => b.status === "delivered");
   const totalGross = delivered.reduce((s, b) => s + b.deliveryFee, 0);

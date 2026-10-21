@@ -27,7 +27,7 @@ export function campaignRoute(handler: (ctx: CampaignRouteContext) => Promise<Ne
       const t = (key: string, vars?: Record<string, string | number>) => translate.dynamic(key, key, vars);
       return await handler({ req, user, store, params: (params ?? {}) as Record<string, string>, t });
     } catch (error) {
-      if (error instanceof CampaignError) return apiError(error.status === 404 ? "NOT_FOUND" : error.status === 503 ? "NOT_CONFIGURED" : "BAD_REQUEST", error.message, error.status);
+      if (error instanceof CampaignError) return apiError(error.status === 404 ? "NOT_FOUND" : error.status === 402 ? "PLAN_LIMIT" : error.status === 503 ? "NOT_CONFIGURED" : "BAD_REQUEST", error.message, error.status);
       console.error("[campaigns api]", error);
       return apiError("INTERNAL_ERROR", "Something went wrong on our side. Try again.", 500);
     }

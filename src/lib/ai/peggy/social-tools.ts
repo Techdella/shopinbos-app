@@ -95,7 +95,7 @@ async function socialWritePost(ctx: PeggyToolContext, input: PeggyToolInput<"soc
   if (!store || !matches.length) throw new ToolError(`No published product matches "${input.productName}". Use list_products to find it (drafts can't be shared).`);
   if (matches.length > 1) throw new ToolError(`"${input.productName}" matches ${matches.length} products: ${matches.slice(0, 6).map((p) => `${p.name} (id ${p.id})`).join("; ")}. Ask which one.`);
   const product = matches[0];
-  if (await meterAi(ctx.userId, "text")) throw new ToolError("The seller has used today's AI writing allowance. It resets within 24 hours.");
+  if (await meterAi(ctx.userId, "text")) throw new ToolError("The seller is out of AI credits (or hit today's safety cap). Tell them to top up on the AI credits page.");
 
   const spec = SHARE_CHANNELS.find((item) => item.key === input.channel)!;
   const link = taggedProductLink(productLink(store, product.id), input.channel);

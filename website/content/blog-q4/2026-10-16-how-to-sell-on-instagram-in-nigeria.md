@@ -211,4 +211,4 @@ How often should I post to sell on Instagram? | Aim for a steady rhythm you can 
 
 Now you know how to sell on Instagram in Nigeria: a clear profile, content that shows real use, visible prices, fast DM replies, safe payment and good delivery. Pick one step to fix today, maybe your bio or your price highlight, and build from there.
 
-If you want a link in your bio that takes orders and payments for you, you can build a free store on Shopinbos in about five minutes with Rex, our AI store builder, and start with up to 50 products on the [free Starter plan](/pricing/).
+If you want a link in your bio that takes orders and payments for you, you can build a free store on Shopinbos in about five minutes with Rex, our AI store builder, and start with up to 20 products on the [free plan](/pricing/).

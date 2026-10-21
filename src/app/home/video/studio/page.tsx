@@ -51,7 +51,7 @@ export default async function VideoStudioPage({ searchParams }: { searchParams: 
         purpose={isVideoPurpose(purpose) ? purpose : "social"}
         brand={reelBrand(brand?.colours ?? null, store?.logoUrl ?? brand?.logoUrl ?? null)}
         elevenLabs={elevenLabsReady()}
-        costs={costs}
+        costs={{ image: costs.photo ?? costs.image, video: costs.video }}
         products={products.map((item) => ({
           id: item.id,
           name: item.name,

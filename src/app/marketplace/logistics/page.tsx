@@ -1,4 +1,7 @@
 import Image from "next/image";
+import { logisticsLimits, planKeyFor } from "@shared/plans";
+import { featuredPartnerUserIds } from "@/lib/plans/extras.server";
+import { PARTNER_PLAN_FIRST } from "@/lib/plans/placement";
 import Link from "next/link";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { AssistantNote, EmptyState, FilterChips, Pill, PillLink } from "@/components/app-kit";
@@ -73,16 +76,19 @@ export default async function MarketplaceLogisticsPage({ searchParams }: PagePro
 
   const rawPartners = await safeQuery(() => db.logisticsPartner.findMany({
     where,
-    orderBy: [{ reliabilityScore: "desc" }, { createdAt: "desc" }],
+    orderBy: [PARTNER_PLAN_FIRST, { reliabilityScore: "desc" }, { createdAt: "desc" }],
     take: 50,
     select: {
       id: true, slug: true, displayName: true, description: true,
       logoUrl: true, vehicleTypes: true, deliveryTypes: true,
       coverageZones: true, basePrice: true, estimatedSpeed: true,
       city: true, country: true, reliabilityScore: true,
-      userId: true,
+      userId: true, user: { select: { aiCredits: true } },
     },
   }), []);
+  // Featured: bought for the state being searched (or any state when none is), and Logistics Pro's badge.
+  const featured = new Set(await featuredPartnerUserIds(params?.zone ?? null));
+  const badge = (partner: typeof rawPartners[number]) => featured.has(partner.userId) || logisticsLimits(planKeyFor("logistics_partner", partner.user?.aiCredits)).featuredIncluded;
   const partners = [...rawPartners].sort((a, b) => {
     const localScore = (partner: typeof rawPartners[number]) => {
       const cityMatch = storeCity && (norm(partner.city) === storeCity || partner.coverageZones.some((zone) => norm(zone).includes(storeCity)));
@@ -91,7 +97,7 @@ export default async function MarketplaceLogisticsPage({ searchParams }: PagePro
       if (selectedNear === "country") return countryMatch ? 1 : 0;
       return (cityMatch ? 2 : 0) + (countryMatch ? 1 : 0);
     };
-    return localScore(b) - localScore(a) || b.reliabilityScore - a.reliabilityScore;
+    return (featured.has(b.userId) ? 1 : 0) - (featured.has(a.userId) ? 1 : 0) || localScore(b) - localScore(a) || b.reliabilityScore - a.reliabilityScore;
   });
   const nearbyCount = partners.filter((partner) =>
     (storeCity && (norm(partner.city) === storeCity || partner.coverageZones.some((zone) => norm(zone).includes(storeCity)))) ||
@@ -162,7 +168,7 @@ export default async function MarketplaceLogisticsPage({ searchParams }: PagePro
                       )}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <h2 className="m-0 truncate text-[16px] font-extrabold">{p.displayName}</h2>
+                      <h2 className="m-0 flex min-w-0 items-center gap-2 text-[16px] font-extrabold"><span className="truncate">{p.displayName}</span>{badge(p) ? <Pill tone="ink">{t("featured")}</Pill> : null}</h2>
                       <div className="truncate text-[13px] text-app-ink-soft">{p.city ?? ""}{p.city && p.country ? ", " : ""}{p.country ?? ""}</div>
                     </div>
                     <div className="shrink-0 text-right">

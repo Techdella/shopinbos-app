@@ -23,7 +23,7 @@ import {
   type VoiceGender,
   type VoiceSource,
 } from "@shared/video-style";
-import { CREDIT_COST, type CreditCosts } from "@shared/ai-credits";
+import { CREDIT_COST } from "@shared/ai-credits";
 import { PURPOSE_DEFAULTS, type VideoConfig, type VideoPurpose } from "@shared/video-projects";
 import { loadReelImage, previewMusic, reelSupported, renderReel, type ReelResult } from "@/lib/video/render-reel";
 import { uploadFile } from "@/lib/supabase/storage";
@@ -101,7 +101,7 @@ export function VideoStudio({
   /** What a new video is for: an ad, a product or social media. */
   purpose?: VideoPurpose;
   /** Credits a picture and a video cost (Admin › Pricing). */
-  costs?: Pick<CreditCosts, "image" | "video">;
+  costs?: { image: number; video: number };
 }) {
   const t = useT("video");
   const router = useRouter();

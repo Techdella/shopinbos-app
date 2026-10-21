@@ -26,6 +26,7 @@ import {
   type RateCardInput,
 } from "@shared/delivery-market";
 import { LIVE_PARTNER_WHERE, deliverySettingsFor, originOf } from "./market.server";
+import { acceptPrivateRatesProblem, connectionLimitProblem, payOnDeliveryProblem, pickupPointLimitProblem, proposePrivateRatesProblem, sellAreaProblem } from "@/lib/plans/market.server";
 
 // Managing the logistics marketplace: a business's delivery settings ("Where I sell"), its delivery partners
 // (connect, choose what customers see, pay on delivery, end), partners' rate cards (public and private), pickup
@@ -66,6 +67,9 @@ export async function saveDeliverySettings(userId: string, input: SettingsInput)
   const sellStates = [...new Set(states)];
   if (sellArea === "one_state" && sellStates.length !== 1) return { ok: false, error: "Pick the one state you sell in." };
   if (sellArea === "selected" && sellStates.length === 0) return { ok: false, error: "Pick at least one state you sell in." };
+  // The plan's selling states (shared/plans.ts sellingStates).
+  const areaProblem = await sellAreaProblem(userId, { sellArea, states: sellArea === "nationwide" ? Infinity : sellStates.length }, { sellArea: current.sellArea, states: current.sellArea === "nationwide" ? Infinity : current.sellStates.length });
+  if (areaProblem) return { ok: false, error: areaProblem };
   const originState = input.originState === undefined ? current.originState : input.originState ? canonicalState(String(input.originState)) : null;
   if (input.originState && !originState) return { ok: false, error: "Pick the state your parcels leave from." };
   const checkoutMode = input.checkoutMode === undefined ? current.checkoutMode : input.checkoutMode === "partners" ? "partners" : "zones";
@@ -112,6 +116,8 @@ export async function connectPartner(owner: { id: string; role: string }, partne
   if (owner.role !== "seller" && owner.role !== "supplier") return { ok: false, error: "Only sellers and suppliers connect delivery partners." };
   const partner = await db.logisticsPartner.findFirst({ where: { id: partnerId, ...LIVE_PARTNER_WHERE }, select: { id: true, userId: true, displayName: true } });
   if (!partner) return { ok: false, error: "This delivery partner isn't available right now." };
+  const limitProblem = await connectionLimitProblem(owner.id, partner.id);
+  if (limitProblem) return { ok: false, error: limitProblem };
   // Connecting is instant on the partner's public rates (decision 1); the partner can end it.
   const connection = await db.deliveryConnection.upsert({
     where: { ownerUserId_logisticsPartnerId: { ownerUserId: owner.id, logisticsPartnerId: partner.id } },
@@ -155,6 +161,10 @@ export async function updateConnection(ownerId: string, connectionId: string, in
   if (input.label !== undefined) data.label = text(input.label, 40);
   if (input.ownerPod !== undefined) {
     const on = input.ownerPod === true || input.ownerPod === "on" || input.ownerPod === "true";
+    if (on && !connection.ownerPod) {
+      const podProblem = await payOnDeliveryProblem(ownerId);
+      if (podProblem) return { ok: false, error: podProblem };
+    }
     if (on && !connection.podAcceptedAt && !(input.acceptPodDisclaimer === true || input.acceptPodDisclaimer === "on" || input.acceptPodDisclaimer === "true")) {
       return { ok: false, error: "Read and accept the pay-on-delivery note to switch it on." };
     }
@@ -219,6 +229,9 @@ export async function savePublicRateCard(partnerId: string, input: RateCardInput
 export async function proposePrivateRateCard(partnerId: string, ownerUserId: string, input: RateCardInput): Promise<Result> {
   const connection = await db.deliveryConnection.findFirst({ where: { logisticsPartnerId: partnerId, ownerUserId, status: "active" }, select: { id: true } });
   if (!connection) return { ok: false, error: "You can send private rates to businesses that have added you as a delivery partner." };
+  const partnerUser = await db.logisticsPartner.findUnique({ where: { id: partnerId }, select: { userId: true } });
+  const planProblem = partnerUser ? await proposePrivateRatesProblem(partnerUser.userId) : null;
+  if (planProblem) return { ok: false, error: planProblem };
   const checked = validateRateCard(input);
   if (!checked.ok) return checked;
   const partner = await db.logisticsPartner.findUnique({ where: { id: partnerId }, select: { displayName: true } });
@@ -242,6 +255,10 @@ export async function proposePrivateRateCard(partnerId: string, ownerUserId: str
 export async function respondToPrivateRateCard(ownerUserId: string, cardId: string, accept: boolean): Promise<Result> {
   const card = await db.logisticsRateCard.findFirst({ where: { id: cardId, ownerUserId, status: "proposed" }, select: { id: true, logisticsPartnerId: true, logisticsPartner: { select: { userId: true } } } });
   if (!card) return { ok: false, error: "These rates are no longer waiting for you." };
+  if (accept) {
+    const planProblem = await acceptPrivateRatesProblem(ownerUserId);
+    if (planProblem) return { ok: false, error: planProblem };
+  }
   const now = new Date();
   await db.$transaction([
     ...(accept ? [db.logisticsRateCard.updateMany({ where: { logisticsPartnerId: card.logisticsPartnerId, ownerUserId, status: "accepted" }, data: { status: "retired" } })] : []),
@@ -358,6 +375,8 @@ export async function savePickupPoint(partnerId: string, pointId: string | null,
     if (moved.count !== 1) return { ok: false, error: "We couldn't find that pickup point." };
   } else {
     if ((await db.logisticsPickupPoint.count({ where: { logisticsPartnerId: partnerId, active: true } })) >= 200) return { ok: false, error: "You can have up to 200 pickup points." };
+    const planProblem = await pickupPointLimitProblem(partnerId);
+    if (planProblem) return { ok: false, error: planProblem };
     await db.logisticsPickupPoint.create({ data: { logisticsPartnerId: partnerId, ...data } });
   }
   await refreshPartnerListing(partnerId);

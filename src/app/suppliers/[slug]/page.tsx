@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { getCurrentAppUser } from "@/lib/server-auth";
+import { isFollowing } from "@/lib/suppliers/follow.server";
+import { FollowSupplierButton } from "@/components/suppliers/FollowSupplierButton";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db/client";
 import { BrandLogo } from "@/components/brand/BrandLogo";
@@ -71,6 +74,8 @@ export default async function PublicSupplierProfilePage({ params }: PageProps) {
 
   if (!supplier) notFound();
   const t = await getT("marketplace");
+  const viewer = await getCurrentAppUser();
+  const following = viewer?.role === "seller" ? await isFollowing(supplier.id, viewer.id) : false;
   const locale = await getLocale();
 
   const isVerified = supplier.verificationStatus === "verified";
@@ -130,6 +135,7 @@ export default async function PublicSupplierProfilePage({ params }: PageProps) {
               <div className="flex w-full flex-wrap gap-2 sm:w-auto">
                 <PillLink href={quoteHref} tone="accent" icon="send" className="flex-1 sm:flex-none">{t("pub.quote")}</PillLink>
                 <PillLink href={messagesHref("seller", { with: supplier.id })} icon="chat" className="flex-1 sm:flex-none">{t("pub.message")}</PillLink>
+                {viewer?.role === "seller" ? <FollowSupplierButton supplierId={supplier.id} following={following} /> : null}
               </div>
             )}
           </div>

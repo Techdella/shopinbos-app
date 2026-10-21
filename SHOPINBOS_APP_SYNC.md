@@ -102,7 +102,7 @@ Status: built against the 2026 app prototypes; web verified locally (route smoke
 - [x] Design tokens (Plus Jakarta Sans, ink #16141F, accent #FF6A2B, pastel wash), phone helpers and onboarding copy in `shared/`, used by web and `apps/mobile`.
 - [x] Sign-in for every portal: phone code over WhatsApp or SMS, email code, email + password, Google, forgot / reset password.
 - [x] Phone-only accounts: `User.email` is optional (`docs/migrations/2026-10-11-phone-accounts.sql`).
-- [x] Seller onboarding: Rex chat (5 languages) → brand → products from photos (`/api/ai/product-drafts`) → payments and delivery zones → launch fee → live (share, QR) → checklist.
+- [x] Seller onboarding: Rex chat (5 languages) → brand → products from photos (`/api/ai/product-drafts`) → payments and delivery zones → publish (free) → live (share, QR) → checklist.
 - [x] Expo app (`apps/mobile`, SDK 57, expo-router): the same auth and onboarding screens against the same API with Bearer tokens; `/api/app/payout-bank` for bank linking.
 - [x] Fixed: the proxy redirected `/api/*` calls from sellers mid-onboarding to the onboarding page.
 - [x] Applied `docs/migrations/2026-10-11-phone-accounts.sql` to the live database (2026-10-11).

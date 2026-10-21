@@ -876,6 +876,8 @@ const en = {
   "ch.helpTitle": "Connect {title}",
   "ch.helpDesc": "We'll connect {title} to your inbox for you and message you when it's working.",
   "ch.askUs": "Ask us to connect it",
+  "bot.monthlyCap": "Most AI replies a month",
+  "bot.monthlyCapHelp": "Each reply Peggy writes with AI uses your AI credits (live chat and WhatsApp together). When she reaches this number, or your credits run out, your away message and quick replies answer instead. 0 means no limit.",
 } satisfies Record<string, string>;
 
 export default en;

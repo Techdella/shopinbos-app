@@ -117,7 +117,7 @@ You do not need a costly website to start. You need a place where buyers can see
 
 ### Add a simple online store
 
-A store link makes you look established and saves you from sending the same photos and account numbers all day. A [free online store](/features/storefront/) at yourname.shopinbos.com lets buyers browse, pick options and pay by card, bank transfer or USSD. Rex, the Shopinbos AI store builder, can build it from a chat in about five minutes, and the free Starter plan covers up to 50 products.
+A store link makes you look established and saves you from sending the same photos and account numbers all day. A [free online store](/features/storefront/) at yourname.shopinbos.com lets buyers browse, pick options and pay by card, bank transfer or USSD. Rex, the Shopinbos AI store builder, can build it from a chat in about five minutes, and the free plan covers up to 20 products.
 
 ## Step 5: get your first 10 customers for free
 
@@ -170,7 +170,7 @@ Once sales come in, the temptation is to spend. Instead, set simple rules:
 4. Add one new product or category at a time.
 5. Only try paid ads on products that already sell well without them.
 
-As you grow, you can move from dropshipping to buying wholesale on your best sellers to improve your margin. You can also upgrade your store when you need more products or your own domain. Paid plans start from ₦7,500 a month, VAT included, and you can see the details on the [pricing page](/pricing/).
+As you grow, you can move from dropshipping to buying wholesale on your best sellers to improve your margin. You can also upgrade your store when you need more products or your own domain. Paid plans start from ₦6,000 a month, and you can see the details on the [pricing page](/pricing/).
 
 ## Mistakes that eat small capital
 

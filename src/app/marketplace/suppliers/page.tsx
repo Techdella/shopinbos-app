@@ -1,4 +1,6 @@
 import Image from "next/image";
+import { featuredSupplierUserIds } from "@/lib/plans/extras.server";
+import { SUPPLIER_PLAN_FIRST } from "@/lib/plans/placement";
 import Link from "next/link";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { AssistantNote, EmptyState, FilterChips, Pill, PillLink } from "@/components/app-kit";
@@ -65,7 +67,7 @@ export default async function MarketplaceSuppliersPage({ searchParams }: PagePro
 
   const rawSuppliers = await safeQuery(() => db.supplier.findMany({
     where,
-    orderBy: [{ trustScore: "desc" }, { createdAt: "desc" }],
+    orderBy: [SUPPLIER_PLAN_FIRST, { trustScore: "desc" }, { createdAt: "desc" }],
     take: 300,
     select: {
       id: true, slug: true, displayName: true, description: true,
@@ -80,14 +82,16 @@ export default async function MarketplaceSuppliersPage({ searchParams }: PagePro
   const hasPlace = sellerHasPlace(place);
   const distances = new Map(rawSuppliers.map((supplier) => [supplier.id, nearness(place, supplier)]));
   const near = hasPlace ? rawSuppliers.filter((supplier) => distances.get(supplier.id)?.near) : [];
-  const trust = await supplierTrust(near.map((supplier) => supplier.id));
+  const [trust, featuredIds] = await Promise.all([supplierTrust(near.map((supplier) => supplier.id)), featuredSupplierUserIds()]);
+  const featured = new Set(featuredIds);
+  const isFeatured = (supplier: typeof rawSuppliers[number]) => (featured.has(supplier.userId) ? 1 : 0);
   const suppliers = [...near].sort((a, b) => {
     const localScore = (supplier: typeof rawSuppliers[number]) => {
       if (selectedNear === "city") return storeCity && norm(supplier.city) === storeCity ? 2 : 0;
       if (selectedNear === "country") return storeCountry && norm(supplier.country) === storeCountry ? 1 : 0;
       return (storeCity && norm(supplier.city) === storeCity ? 2 : 0) + (storeCountry && norm(supplier.country) === storeCountry ? 1 : 0);
     };
-    return localScore(b) - localScore(a) || (trust.get(a.id)?.risk.score ?? 100) - (trust.get(b.id)?.risk.score ?? 100);
+    return isFeatured(b) - isFeatured(a) || localScore(b) - localScore(a) || (trust.get(a.id)?.risk.score ?? 100) - (trust.get(b.id)?.risk.score ?? 100);
   });
   const nearbyCount = suppliers.filter((supplier) =>
     (storeCity && norm(supplier.city) === storeCity) ||
@@ -175,6 +179,7 @@ export default async function MarketplaceSuppliersPage({ searchParams }: PagePro
                         </div>
                       </div>
                       <div className="grid shrink-0 justify-items-end gap-1 text-right">
+                        {featured.has(s.userId) ? <Pill tone="ink">{t("featured")}</Pill> : null}
                         {s.verificationStatus === "verified" ? <Pill tone="success">{t("trust.verified")}</Pill> : <Pill tone="danger">{s.verificationStatus === "pending" ? t("trust.pending") : t("trust.unverified")}</Pill>}
                         {trust.get(s.id) ? <Pill tone={RISK_TONE[trust.get(s.id)!.risk.level]}>{t.dynamic(`trust.risk.${trust.get(s.id)!.risk.level}`, "", { score: trust.get(s.id)!.risk.score })}</Pill> : null}
                         {typeof distances.get(s.id)?.km === "number" ? <span className="text-[12px] font-bold text-app-ink-soft">{t("trust.km", { km: String(Math.max(1, Math.round(distances.get(s.id)!.km!))) })}</span> : null}

@@ -2,15 +2,23 @@ import { requireRole } from "@/lib/server-auth";
 import { billingEmail } from "@/lib/auth/billing-email";
 import { getSellerWorkspace } from "@/lib/workspace";
 import { IdentityImageUploader } from "@/components/profile/IdentityImageUploader";
-import { updateSellerProfile, saveStoreSettings, saveBusinessAddress, closeStore, inviteTeamMember } from "@/app/actions/workspace";
+import { updateSellerProfile, saveStoreSettings, saveBusinessAddress, closeStore } from "@/app/actions/workspace";
+import { TeamPanel } from "./TeamPanel";
+import { MessagePacksCard } from "@/components/plans/MessagePacksCard";
+import { StaffNote } from "./StaffNote";
+import { listStaff, staffSeats } from "@/lib/staff/staff.server";
+import { getPriceBook } from "@/lib/pricing/price-book.server";
+import { addonPrices } from "@shared/platform-pricing";
+import { OWNER_ONLY_TABS } from "@/lib/staff/acting.server";
 import { hasPostalAddress, readBusinessAddress } from "@/lib/email/shell";
 import { userLinks } from "@/lib/email/compliance.server";
 import { PageToast } from "@/components/PageToast";
 import { LanguageSettingsCard } from "@/components/i18n/LanguagePicker";
 import { SecuritySettings } from "@/components/auth/SecuritySettings";
 import { planOffers } from "@/lib/plans/catalog.server";
-import { SellerBillingSection } from "@/components/payments/SellerBillingSection";
-import { StoreLaunchBalanceCard } from "@/components/billing/StoreLaunchBalanceCard";
+import { PlanPicker } from "@/components/payments/PlanPicker";
+import { planOf } from "@/lib/plan-limits";
+import { sellerLimits } from "@shared/plans";
 import { PeggyPreferencesForm } from "@/components/settings/PeggyPreferencesForm";
 import { RexPreferencesForm } from "@/components/settings/RexPreferencesForm";
 import { parseRexPreferences } from "@shared/rex-preferences";
@@ -71,9 +79,6 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
   const credits = await creditBalance(user.id);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const brandSettings = (store?.brandSettings ?? {}) as Record<string, any>;
-  const launchBilling = brandSettings.launchBilling && typeof brandSettings.launchBilling === "object"
-    ? brandSettings.launchBilling as { balanceDue?: number; dueAt?: string | null }
-    : null;
   const peggyPrefs = brandSettings.peggyPreferences ?? {};
   const savedCommStyle = peggyPrefs.communicationStyle ?? "Friendly";
   const savedDailyBrief = peggyPrefs.dailyBrief ?? "Morning only";
@@ -81,8 +86,6 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
 
   const storeName = store?.name ?? "Your Store";
   const storeLogoUrl = store?.logoUrl;
-  const initials = user.name.split(" ").map((p) => p[0]).join("").toUpperCase().slice(0, 2);
-  const pendingInvites = (brandSettings.pendingInvites ?? []) as string[];
   const businessAddress = readBusinessAddress(store?.brandSettings);
   const businessAddressReady = hasPostalAddress(businessAddress);
   const emailPreferencesUrl = userLinks(user.id)?.preferences ?? null;
@@ -91,7 +94,8 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
     <SellerPage user={user} store={storeSummary(store)} title={t("title")} sub={t("sub")}>
       <PageToast />
       <div className="grid gap-5">
-        <FilterChips items={TABS.map((tab) => ({ label: t(`tab.${tab}`), href: `/home/settings?tab=${encodeURIComponent(tab)}`, active: tab === activeTab }))} />
+        {user.staff ? <StaffNote ownerName={user.name} storeName={storeName} /> : null}
+        <FilterChips items={TABS.filter((tab) => !user.staff || !OWNER_ONLY_TABS.includes(tab)).map((tab) => ({ label: t(`tab.${tab}`), href: `/home/settings?tab=${encodeURIComponent(tab)}`, active: tab === activeTab }))} />
 
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
           <div className="grid min-w-0 content-start gap-5">
@@ -241,43 +245,13 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
               </div>
             )}
 
-            {activeTab === "Team" && (
-              <>
-                <Card className="overflow-hidden">
-                  <CardHead title={t("team.title")} sub={t("team.sub")} className="px-5 pb-3 pt-5" />
-                  <ul className="m-0 list-none divide-y divide-app-line border-t border-app-line p-0">
-                    <li className="flex items-center gap-3 px-5 py-3.5">
-                      {user.avatarUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={user.avatarUrl} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
-                      ) : (
-                        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-app-ink text-[14px] font-extrabold text-white">{initials}</span>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-[14.5px] font-extrabold">{user.name}</div>
-                        <div className="truncate text-[13px] text-app-ink-soft">{user.email} · {t("team.owner")}</div>
-                      </div>
-                      <Pill tone="ink">{t("team.you")}</Pill>
-                    </li>
-                    {pendingInvites.map((email) => (
-                      <li key={email} className="flex items-center gap-3 px-5 py-3.5">
-                        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-app-canvas"><Icon name="mail" size={17} /></span>
-                        <div className="min-w-0 flex-1 truncate text-[14.5px] font-bold">{email}</div>
-                        <Pill tone="warning">{t("team.invited")}</Pill>
-                      </li>
-                    ))}
-                  </ul>
-                </Card>
-                <form action={inviteTeamMember}>
-                  <Card className="p-5">
-                    <label htmlFor="invite-email" className="mb-3 block text-[17px] font-extrabold">{t("team.invite")}</label>
-                    <div className="flex flex-wrap gap-3">
-                      <input id="invite-email" name="email" type="email" className={`${FIELD_INPUT} flex-1 basis-[220px]`} placeholder="colleague@email.com" required />
-                      <button type="submit" className={SUBMIT_INK}><Icon name="plus" size={16} /> {t("team.send")}</button>
-                    </div>
-                  </Card>
-                </form>
-              </>
+            {activeTab === "Team" && !user.staff && (
+              <TeamPanel
+                owner={{ name: user.name, email: user.email, avatarUrl: user.avatarUrl }}
+                staff={(await listStaff(user.id)).map((member) => ({ id: member.id, name: member.name, email: member.email, status: member.status }))}
+                seats={await staffSeats(user.id)}
+                seatPrice={`₦${addonPrices(await getPriceBook()).staffSeat.toLocaleString("en-NG")}`}
+              />
             )}
 
             {activeTab === "Billing" && inApp && (
@@ -285,7 +259,6 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
             )}
             {activeTab === "Billing" && !inApp && (
               <>
-                <StoreLaunchBalanceCard balanceDue={Number(launchBilling?.balanceDue ?? 0)} dueAt={launchBilling?.dueAt} />
                 <Card className="p-5">
                   <CardHead
                     title={tPay("cr.title")}
@@ -293,13 +266,16 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
                     action={<PillLink href="/home/credits" size="sm" tone="ink" icon="sparkle">{tPay("cr.buy")}</PillLink>}
                   />
                 </Card>
-                <SellerBillingSection
+                <MessagePacksCard userId={user.id} />
+                <PlanPicker
+                  role="seller"
+                  current={planOf({ role: "seller", aiCredits })}
+                  offers={await planOffers()}
                   userEmail={billingEmail(user)}
                   userName={user.name}
-                  aiCredits={aiCredits}
                   creditBalance={credits}
-                  productCount={productCount}
-                  offers={await planOffers()}
+                  creditsHref="/home/credits"
+                  usage={[{ label: tPay("bill.products"), used: productCount, limit: sellerLimits(planOf({ role: "seller", aiCredits })).products }]}
                 />
                 {store && <SupplierSwitchCard settings={switchSettings(await db.store.findUnique({ where: { id: store.id }, select: { autoSwitchSupplier: true, switchCostRule: true, switchMaxIncreasePct: true, switchMinMarginPct: true } }))} />}
               </>

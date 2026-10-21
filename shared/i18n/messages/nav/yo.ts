@@ -240,6 +240,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "credits.badge.medium": "Èyí tí wọ́n fẹ́ jù",
   "credits.badge.large": "Iye tó dára jù",
   media: "Àwọn àwòrán",
+  "supplier.products-import": "Gbé CSV sókè",
+  "supplier.followers": "Àwọn olùtẹ̀lé",
 };
 
 export default yo;

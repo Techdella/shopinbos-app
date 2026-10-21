@@ -18,6 +18,8 @@ import { ISSUE_KINDS, ISSUE_WORDS, type IssueKind, type TimelineStep } from "@sh
 import type { OrderDeliveryView } from "./order-props";
 
 interface Props {
+  /** Starter and up: no "Delivery tracking by Shopinbos" line. */
+  brandedTracking?: boolean;
   order: {
     id: string;
     orderNumber: string;
@@ -71,7 +73,7 @@ interface Props {
 
 const PAID = ["paid", "processing", "packed", "shipped", "delivered"];
 
-export function OrderConfirmation({ order, store, storeBasePath, transfer = null, deliveryCode = null, rewards = null, delivery = null }: Props) {
+export function OrderConfirmation({ order, store, storeBasePath, transfer = null, deliveryCode = null, rewards = null, delivery = null, brandedTracking = true }: Props) {
   const cart = useCart(store.slug);
   const theme = useMemo(() => resolveShopperTheme(store.brandSettings), [store.brandSettings]);
   const clearCart = cart.clear;
@@ -156,6 +158,11 @@ export function OrderConfirmation({ order, store, storeBasePath, transfer = null
               <p className="mt-3 rounded-[14px] px-4 py-3 text-[14px]" style={{ background: theme.paper }}>
                 Tracking code <strong className="tabular-nums">{order.trackingCode}</strong>
                 {order.logisticsDetails?.type === "pickup" ? <><br /><span style={{ color: theme.muted }}>You chose to pick up. Contact the store to arrange collection.</span></> : null}
+              </p>
+            ) : null}
+            {!brandedTracking && (order.trackingCode || isOpen) ? (
+              <p className="mt-3 text-[12px]" style={{ color: theme.muted }}>
+                Delivery tracking by <a href="https://shopinbos.com" target="_blank" rel="noopener" style={{ color: "inherit" }}>Shopinbos</a>
               </p>
             ) : null}
           </Panel>

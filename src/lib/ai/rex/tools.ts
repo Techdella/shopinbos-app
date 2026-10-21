@@ -1,9 +1,11 @@
 import "server-only";
+import { themeProblem } from "@/lib/plans/gates.server";
+import type { CreditAction } from "@shared/ai-credits";
 
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { aiText, firstJsonObject } from "@/lib/ai/text";
-import { meterAi, type AiKind } from "@/lib/ai/usage";
+import { meterAiCharged, refundAi, type AiKind } from "@/lib/ai/usage";
 import { EDIT_PROMPTS, editImage, generateImage, ImageUnavailableError, isOwnImageUrl, loadReferences } from "@/lib/ai/images";
 import { BrandBookError, draftBrandBook, saveBrandBook } from "@/lib/ai/brand-book.server";
 import { bookToThemeTokens } from "@shared/brand-book";
@@ -69,16 +71,19 @@ export interface RexToolOutput {
 
 /** A problem the model should hear about (and can usually fix or explain), sent back as an error result. */
 export class RexToolError extends Error {}
-/** The allowance and credits are used up; the chat shows a "Buy credits" button with Rex's reply. */
+/** The credits are used up; the chat shows a "Buy credits" button with Rex's reply. */
 export class RexCreditsError extends RexToolError {}
 
 const money = (amount: number) => naira(Number(amount) || 0);
 
-async function meter(ctx: RexToolContext, kind: AiKind, units = 1) {
-  const limited = await meterAi(ctx.userId, kind, units);
-  if (!limited) return;
-  const body = (await limited.json().catch(() => null)) as { error?: { code?: string; message?: string } } | null;
-  throw new (body?.error?.code === "AI_CREDITS_NEEDED" ? RexCreditsError : RexToolError)(`${body?.error?.message ?? "The AI allowance for today is used up."} Tell the seller plainly; nothing was made.`);
+/** Takes the credits for a tool's work; returns a function that gives them back if the work then fails. */
+async function meter(ctx: RexToolContext, kind: AiKind, units = 1, action?: CreditAction) {
+  const metered = await meterAiCharged(ctx.userId, kind, units, action);
+  if (metered.blocked) {
+    const body = (await metered.blocked.json().catch(() => null)) as { error?: { code?: string; message?: string } } | null;
+    throw new (body?.error?.code === "AI_CREDITS_NEEDED" ? RexCreditsError : RexToolError)(`${body?.error?.message ?? "The seller is out of AI credits."} Tell the seller plainly; nothing was made.`);
+  }
+  return () => refundAi(ctx.userId, kind, units, metered.credits);
 }
 
 async function logActivity(ctx: RexToolContext, event: { type: string; title: string; description?: string; tool: RexToolName; link?: string; data?: Record<string, unknown> }) {
@@ -182,11 +187,12 @@ async function photoEdit(
   const source = pickSourcePhoto(input, product?.images ?? [], ctx.attachments);
   if (!source.ok) throw new RexToolError(source.error);
   if (!isOwnImageUrl(source.url)) throw new RexToolError("That photo isn't stored in the shop, so it can't be edited. Ask the seller to attach it with the photo button.");
-  await meter(ctx, "image");
+  const giveBack = await meter(ctx, "image");
   let url: string;
   try {
     url = await editImage({ sourceUrl: source.url, prompt, transparent, path: `enhanced/${ctx.userId}/${Date.now()}` });
   } catch (error) {
+    await giveBack();
     imageFailure(error);
   }
   return {
@@ -222,13 +228,14 @@ async function generateProductImage(ctx: RexToolContext, input: RexToolInput<"ge
   } else if (product?.images[0]) {
     references = [product.images[0]];
   }
-  await meter(ctx, "image");
+  const giveBack = await meter(ctx, "image");
   const prompt = product ? `${input.prompt}\nThe product: ${product.name}.${product.description ? ` ${product.description.slice(0, 300)}` : ""}` : input.prompt;
   const mode = input.brand ?? "colours";
   let result: Awaited<ReturnType<typeof makeBrandImage>>;
   try {
     result = await makeBrandImage({ brand, prompt, size: imageSizeFor(input.shape), logo: mode === "logo", colours: mode !== "none", referenceUrls: references, path: `generated/${ctx.userId}/${Date.now()}` });
   } catch (error) {
+    await giveBack();
     imageFailure(error);
   }
   const logoNote =
@@ -292,8 +299,9 @@ async function makeProductVideo(ctx: RexToolContext, input: RexToolInput<"make_p
     const sources = photos.slice(0, 4).filter((url) => isOwnImageUrl(url));
     const made: string[] = [];
     for (const [n, source] of sources.entries()) {
+      let giveBack: () => Promise<void>;
       try {
-        await meter(ctx, "image");
+        giveBack = await meter(ctx, "image");
       } catch (error) {
         if (!made.length) throw error;
         shotNote = ` Stopped after ${made.length} shot(s): ${error instanceof Error ? error.message : "allowance used up"}`;
@@ -302,6 +310,7 @@ async function makeProductVideo(ctx: RexToolContext, input: RexToolInput<"make_p
       try {
         made.push(await makeReelShot({ userId: ctx.userId, source, look, product: product.name, brand, n }));
       } catch (error) {
+        await giveBack();
         if (error instanceof ImageUnavailableError) throw new RexToolError(`${error.message} The reel can still use the photos as they are (shots: original).`);
         console.error("[rex] reel shot failed", error);
         made.push(source);
@@ -369,6 +378,8 @@ async function switchThemeTool(ctx: RexToolContext, input: RexToolInput<"switch_
   const store = await studioStore(ctx);
   if (!getTemplateManifest(input.themeId)) throw new RexToolError(`The ${input.themeId} theme isn't available.`);
   if (studioDraft(store).draft.templateId === input.themeId) return { content: `The draft already uses the ${themeNameFor(input.themeId)} theme; nothing changed.` };
+  const planProblem = await themeProblem(ctx.userId, input.themeId);
+  if (planProblem) throw new RexToolError(`${planProblem} Tell the seller and offer one of the basic themes.`);
   const plan = parseRexStudioPlan({ reply: "", theme: input.themeId });
   if (!plan) throw new RexToolError("Couldn't switch the theme.");
   const result = await applyStudioPlan(store, plan, `Switched to ${themeNameFor(input.themeId)}`);
@@ -539,11 +550,12 @@ async function makeBrandIcon(ctx: RexToolContext, input: RexToolInput<"make_bran
   if (!store?.logoUrl || !isOwnImageUrl(store.logoUrl)) throw new RexToolError("The store has no logo yet. Offer generate_logo or uploading one in Brand kit first.");
   const references = await loadReferences([store.logoUrl]);
   if (!references.length) throw new RexToolError("The logo file can't be read (it needs to be a PNG, JPG or WebP). Ask the seller to upload a PNG logo in Brand kit.");
-  await meter(ctx, "image");
+  const giveBack = await meter(ctx, "image");
   let url: string;
   try {
     url = await generateImage({ prompt: ICON_PROMPTS[input.kind], size: "1024x1024", references, path: `logos/${ctx.userId}/${input.kind}-${Date.now()}` });
   } catch (error) {
+    await giveBack();
     imageFailure(error);
   }
   const what = input.kind === "icon" ? "logo icon" : "favicon";
@@ -649,7 +661,7 @@ async function makeCreative(ctx: RexToolContext, input: RexToolInput<"make_creat
   }
   const brand = await loadBrandContext(ctx.storeId);
   const references = [...products.map((product) => product.images[0]).filter((url): url is string => Boolean(url)), ...ctx.attachments.filter(isOwnImageUrl)].slice(0, 4);
-  await meter(ctx, "image");
+  const giveBack = await meter(ctx, "image");
   const place = CREATIVE_PLACEMENT_INFO[input.placement];
   const prompt = creativePrompt({ placement: input.placement, concept: input.concept, headline: input.headline, subline: input.subline, cta: input.cta, products: products.map((product) => product.name), extra: input.extra, brandName: ctx.storeName });
   const mode = input.brand ?? "colours";
@@ -657,6 +669,7 @@ async function makeCreative(ctx: RexToolContext, input: RexToolInput<"make_creat
   try {
     result = await makeBrandImage({ brand, prompt, size: imageSizeFor(place.shape), logo: mode === "logo", colours: mode !== "none", referenceUrls: references, path: `generated/${ctx.userId}/${Date.now()}` });
   } catch (error) {
+    await giveBack();
     imageFailure(error);
   }
   const title = `${CREATIVE_CONCEPT_INFO[input.concept].name} · ${place.name}`;

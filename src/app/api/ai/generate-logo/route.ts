@@ -4,7 +4,7 @@ import { withSeller } from "@/lib/auth/middleware";
 import { db } from "@/lib/db/client";
 import { aiConfigured, getOpenAIClient } from "@/lib/ai/client";
 import { generateImage, isOwnImageUrl, loadReferences } from "@/lib/ai/images";
-import { aiAllowanceToday, meterAi } from "@/lib/ai/usage";
+import { aiAllowanceToday, meterAiCharged, refundAi } from "@/lib/ai/usage";
 import { drawLogoOptions, drawLogoVariations, LOGO_STYLES } from "@/lib/ai/rex/logo";
 
 export const runtime = "nodejs";
@@ -26,8 +26,8 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
   }
   const likeUrl = typeof body.likeUrl === "string" && isOwnImageUrl(body.likeUrl) ? body.likeUrl : null;
 
-  const limited = await meterAi(user.id, "image", LOGO_STYLES.length);
-  if (limited) return limited;
+  const metered = await meterAiCharged(user.id, "image", LOGO_STYLES.length);
+  if (metered.blocked) return metered.blocked;
 
   // Context the seller added: notes, and up to 3 inspiration pictures (photos or video stills) in our storage.
   const inspirationUrls = Array.isArray(body.referenceUrls) ? body.referenceUrls.filter((url): url is string => typeof url === "string" && isOwnImageUrl(url) && url !== likeUrl).slice(0, 3) : [];
@@ -37,6 +37,10 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
   const references = [...likeRef, ...inspiration];
   const draw = (prompt: string, path: string) => generateImage({ prompt, size: "1024x1024", path, references });
   const { logos, failures } = likeRef.length ? await drawLogoVariations(input, draw) : await drawLogoOptions(input, draw);
+
+  // Logos that failed to draw are given back (credits and the day's cap).
+  const failed = Math.max(0, LOGO_STYLES.length - logos.length);
+  if (failed) await refundAi(user.id, "image", failed, Math.round((metered.credits / LOGO_STYLES.length) * failed));
 
   if (logos.length === 0) {
     return NextResponse.json({ error: { code: "generation_failed", message: `Logo generation failed. (${failures.join("; ")})` } }, { status: 500 });

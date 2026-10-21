@@ -2,7 +2,6 @@ import "server-only";
 
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db/client";
-import { isProPlan as hasProPlan } from "@/lib/plan-limits";
 import type { AuthUser } from "@/lib/auth/types";
 
 export async function getSupplierForUser(user: AuthUser) {
@@ -32,10 +31,6 @@ export function isOnboardingComplete(entity: { onboardingState: unknown; verific
   const s = state as { completed?: boolean; docsLaterAt?: unknown };
   // "Add documents later" opens the portal while the account stays unverified (nothing public until approved).
   return s.completed === true || typeof s.docsLaterAt === "string";
-}
-
-export function isProPlan(user: { aiCredits?: number | null }) {
-  return hasProPlan(user);
 }
 
 export function ensureSupplierAccess(supplier: { verificationStatus: string; onboardingState: unknown }) {

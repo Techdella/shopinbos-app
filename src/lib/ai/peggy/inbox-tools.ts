@@ -67,7 +67,7 @@ async function listUnread(ctx: PeggyToolContext, input: PeggyToolInput<"inbox_li
 
 async function draftReply(ctx: PeggyToolContext, input: PeggyToolInput<"inbox_draft_reply">): Promise<ToolOutput> {
   const conversation = await findConversation(ctx, input.conversation);
-  if (await meterAi(ctx.userId, "text")) throw new ToolError("The seller has used today's AI writing allowance. Tell them it resets within 24 hours or with a plan upgrade.");
+  if (await meterAi(ctx.userId, "text")) throw new ToolError("The seller is out of AI credits (or hit today's safety cap). Tell them to top up on the AI credits page, or that their plan's credits refill at the start of next month.");
   const text = await draftReplyWithPeggy(ctx.store.id, conversation.id, { instruction: input.instruction });
   if (!text) throw new ToolError("The writing service didn't answer. Write the reply yourself in your message instead.");
   return {

@@ -1,3 +1,5 @@
+import { completeExtraPurchase } from "@/lib/plans/extras.server";
+import { EXTRA_REFERENCE_PREFIX } from "@shared/plan-extras";
 import { completeCreditPurchase, grantPlanCredits } from "@/lib/ai/credits.server";
 import { CREDIT_REFERENCE_PREFIX } from "@shared/ai-credits";
 import { AD_SETUP_REFERENCE_PREFIX } from "@shared/ad-campaigns";
@@ -181,6 +183,12 @@ export async function POST(req: NextRequest) {
       if (ref.startsWith(PRINT_ORDER_REFERENCE_PREFIX)) {
         await completePrintOrderPayment(ref).catch((error) => {
           console.error("Print order payment completion failed:", error);
+        });
+        return NextResponse.json({ received: true });
+      }
+      if (ref.startsWith(EXTRA_REFERENCE_PREFIX)) {
+        await completeExtraPurchase(ref).catch((error) => {
+          console.error("Plan add-on purchase completion failed:", error);
         });
         return NextResponse.json({ received: true });
       }

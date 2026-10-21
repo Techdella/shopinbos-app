@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { customDomainProblem } from "@/lib/plans/gates.server";
 import { z } from "zod";
 import { withSeller } from "@/lib/auth/middleware";
 import { DomainError, claimDomain, getDomainSettings, removeDomain } from "@/lib/domains/ownership.server";
@@ -33,6 +34,9 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
   if (!parsed.success) {
     return NextResponse.json({ error: { code: "missing_domain", message: parsed.error.issues[0]?.message ?? "Domain is required." } }, { status: 400 });
   }
+  // Your own domain comes with Starter and up (shared/plans.ts).
+  const planProblem = await customDomainProblem(user.id);
+  if (planProblem) return NextResponse.json({ error: { code: "PLAN_LIMIT", message: planProblem } }, { status: 402 });
   try {
     return NextResponse.json({ data: await claimDomain(user.id, parsed.data.domain, parsed.data.serveAs) });
   } catch (error) {

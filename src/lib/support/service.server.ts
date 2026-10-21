@@ -1,4 +1,5 @@
 import "server-only";
+import { PLAN_NAMES, planKeyFor } from "@shared/plans";
 
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
@@ -668,14 +669,14 @@ export async function getTicketForAgent(number: number, agentId: string) {
 
 export type AgentTicket = NonNullable<Awaited<ReturnType<typeof getTicketForAgent>>>;
 
-const PLAN_LABEL: Record<string, string> = { seller_growth: "Growth", seller_pro: "Pro", supplier_max: "Supplier Max" };
+// The plan comes from the user's plan marker (shared/plans.ts); the last plan receipt only says since when.
 
 /** Who the customer is: role, business, plan, recent orders and last sign-in, for the desk's side panel. */
 export async function userContext(userId: string) {
   const user = await db.user.findUnique({
     where: { id: userId },
     select: {
-      id: true, supabaseId: true, name: true, email: true, phone: true, role: true, city: true, country: true, createdAt: true, verificationStatus: true,
+      id: true, supabaseId: true, name: true, email: true, phone: true, role: true, aiCredits: true, city: true, country: true, createdAt: true, verificationStatus: true,
       store: { select: { id: true, name: true, slug: true, status: true, customDomain: true } },
       supplier: { select: { id: true, displayName: true, verificationStatus: true } },
       logisticsPartner: { select: { id: true, displayName: true, verificationStatus: true } },
@@ -711,7 +712,7 @@ export async function userContext(userId: string) {
         : user.logisticsPartner
           ? { kind: "Delivery partner", name: user.logisticsPartner.displayName, detail: String(user.logisticsPartner.verificationStatus), status: String(user.logisticsPartner.verificationStatus), href: `/admin/logistics-partners/${user.logisticsPartner.id}` }
           : null,
-    plan: receipt ? { label: PLAN_LABEL[receipt.purpose] ?? receipt.purpose, since: receipt.createdAt } : { label: "Free", since: null },
+    plan: { label: PLAN_NAMES[planKeyFor(user.role, user.aiCredits)], since: receipt?.createdAt ?? null },
     orders,
     lastSignInAt: lastSignIn,
   };

@@ -8,13 +8,12 @@ import { cx } from "@/components/app-ui/cx";
 import { Icon } from "@/components/ui/Icon";
 import { withChannelRef } from "@shared/channels";
 import { PAYMENT_METHODS, type PaymentMethodKey } from "@shared/onboarding";
-import { formatMoney, formatNumber } from "@shared/i18n";
+import { formatNumber } from "@shared/i18n";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import { DELIVERY_CITY_PRESETS, ELSEWHERE_AREA, START_SEEN_COOKIE, type SetupStep, type SetupStepKey } from "@/lib/setup/checklist";
 import type { SetupOverview } from "@/lib/setup/server";
 import { chooseSetupStep, saveDeliveryPicks, savePaymentChoices } from "./actions";
 import { StartHelpers } from "./StartHelpers";
-import { useAppSession } from "@/components/billing/useAppSession";
 
 interface Props {
   firstName: string;
@@ -30,11 +29,6 @@ type StartT = ReturnType<typeof useT<["home", "common"]>>;
 /** Setup step copy comes from lib/setup/checklist in English; fixed sentences have a translation keyed by their text. */
 function stepText(t: StartT, text: string) {
   return t.dynamic(`step.${text}`, text);
-}
-
-function useNaira() {
-  const locale = useLocale();
-  return (amount: number) => formatMoney(Math.round(amount), locale);
 }
 
 export function StartHere({ firstName, overview, launchResult, launchError, openStep }: Props) {
@@ -283,7 +277,7 @@ function StepPanel({
 }) {
   if (step.key === "payments") return <PaymentsPanel initial={overview.payments} payoutBank={overview.facts.payoutBank} onDone={onDone} />;
   if (step.key === "delivery") return <DeliveryPanel zones={overview.zones} onDone={onDone} />;
-  if (step.key === "live") return <LivePanel live={overview.facts.live} launch={overview.launch} onDone={onDone} onError={onError} />;
+  if (step.key === "live") return <LivePanel live={overview.facts.live} onDone={onDone} onError={onError} />;
   if (step.key === "share") return <SharePanel name={overview.store.name} url={overview.store.url} onShared={onShared} />;
   return null;
 }
@@ -435,72 +429,49 @@ function DeliveryPanel({ zones, onDone }: { zones: SetupOverview["zones"]; onDon
 
 function LivePanel({
   live,
-  launch,
   onDone,
   onError,
 }: {
   live: boolean;
-  launch: SetupOverview["launch"];
   onDone: (message: string) => void;
   onError: (message: string | null) => void;
 }) {
   const t = useT("home", "common");
-  const naira = useNaira();
-  const [busy, setBusy] = useState<"full" | "installment" | null>(null);
+  const [busy, setBusy] = useState(false);
   const [blocker, setBlocker] = useState<string | null>(null);
-  const inApp = useAppSession();
-  const tPay = useT("payments");
 
   if (live) {
     return <p className="m-0 text-[14px] leading-[1.5]">{t("start.live.isLive")}</p>;
   }
-  // Opened from the phone app: no price or payment (app store rules; see src/lib/app-session.ts).
-  if (inApp) return <p className="m-0 text-[14px] leading-[1.5]">{tPay("app.launchBody")}</p>;
 
-  async function pay(option: "full" | "installment") {
-    setBusy(option);
+  // Going live is free on every plan: publishing opens the shop straight away.
+  async function publish() {
+    setBusy(true);
     setBlocker(null);
     onError(null);
     try {
-      const response = await fetch("/api/billing/store-launch/initialize", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ option, returnTo: "/home/start" }),
-      });
-      const body = (await response.json().catch(() => null)) as { data?: { authorizationUrl?: string }; error?: { message?: string; blockers?: string[] } } | null;
-      if (response.status === 409) {
-        onDone(t("start.live.already"));
+      const response = await fetch("/api/store/editor/publish", { method: "POST" });
+      const body = (await response.json().catch(() => null)) as { error?: { message?: string; blockers?: string[] } } | null;
+      if (!response.ok) {
+        setBlocker(body?.error?.blockers?.[0] ?? body?.error?.message ?? t("start.live.cantPublish"));
+        setBusy(false);
         return;
       }
-      if (!response.ok || !body?.data?.authorizationUrl) {
-        setBlocker(body?.error?.blockers?.[0] ?? body?.error?.message ?? t("start.live.cantOpen"));
-        setBusy(null);
-        return;
-      }
-      window.location.assign(body.data.authorizationUrl);
+      onDone(t("start.live.published"));
     } catch {
       setBlocker(t("start.live.cantReach"));
-      setBusy(null);
+      setBusy(false);
     }
   }
 
   return (
     <div>
-      <p className="m-0 text-[14px] leading-[1.5]">
-        {t("start.live.costs", { total: naira(launch.totalNgn) })}
-        {launch.depositNgn < launch.totalNgn ? t("start.live.orDeposit", { deposit: naira(launch.depositNgn) }) : ""}{t("start.live.howPay")}
-      </p>
+      <p className="m-0 text-[14px] leading-[1.5]">{t("start.live.free")}</p>
       <div className="mt-3 flex flex-wrap gap-2">
-        <PillButton size="md" tone="accent" busy={busy === "full"} disabled={busy !== null} onClick={() => void pay("full")}>{t("start.live.pay", { amount: naira(launch.totalNgn) })}</PillButton>
-        {launch.depositNgn < launch.totalNgn && (
-          <PillButton size="md" tone="white" busy={busy === "installment"} disabled={busy !== null} onClick={() => void pay("installment")}>
-            {t("start.live.payNow", { amount: naira(launch.depositNgn) })}
-          </PillButton>
-        )}
+        <PillButton size="md" tone="accent" busy={busy} disabled={busy} onClick={() => void publish()}>{t("start.live.publish")}</PillButton>
         <Link href="/seller/store/builder" className="inline-flex min-h-[44px] items-center rounded-full px-4 text-[14px] font-bold text-app-ink-soft no-underline hover:text-app-ink">{t("start.live.checkDesign")}</Link>
       </div>
       {blocker && <div className="mt-3"><Notice>{blocker}</Notice></div>}
-      <p className="mb-0 mt-3 text-[12.5px] text-app-ink-faint">{t("start.live.paystackNote")}</p>
     </div>
   );
 }

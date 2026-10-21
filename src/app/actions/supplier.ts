@@ -5,11 +5,14 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db/client";
 import { invalidatePublicMarketplaceCache } from "@/lib/api/cache";
 import { requireRole } from "@/lib/server-auth";
-import { isOnboardingComplete, isProPlan } from "@/lib/role-queries";
-import { SUPPLIER_FREE_PRODUCT_LIMIT } from "@/lib/plan-limits";
+import { isOnboardingComplete } from "@/lib/role-queries";
+import { supplierPlanLimits } from "@/lib/plan-limits";
+import { atLimit } from "@shared/plans";
 import { OrderStatusUpdateSchema, QuoteResponseSchema, SupplierProductCreateSchema } from "@/lib/schemas";
 import { slugify } from "@/lib/workspace";
 import { z } from "zod";
+import Papa from "papaparse";
+import { parseSupplierImport } from "@shared/supplier-import";
 import { moveSupplierOrder } from "@/lib/supplier-orders/service.server";
 import { moveWholesaleOrder } from "@/lib/supplier-orders/wholesale.server";
 import { setSupplierPayout } from "@/lib/supplier-orders/money.server";
@@ -120,7 +123,7 @@ export async function createSupplierProduct(formData: FormData) {
     db.user.findUnique({ where: { id: user.id }, select: { aiCredits: true } }),
     db.supplierProduct.count({ where: { supplierId: supplier.id } }),
   ]);
-  if (!isProPlan(dbUser ?? {}) && productCount >= SUPPLIER_FREE_PRODUCT_LIMIT) {
+  if (atLimit(productCount, supplierPlanLimits(dbUser ?? {}).listings)) {
     redirect("/supplier/profile?tab=Billing%20%26%20Plan&limit=products");
   }
 
@@ -427,8 +430,7 @@ export async function addSupplierTeamMember(formData: FormData) {
     db.supplierTeamMember.count({ where: { supplierId: supplier.id, status: "active" } }),
   ]);
 
-  const { SUPPLIER_FREE_TEAM_MEMBER_LIMIT } = await import("@/lib/plan-limits");
-  if (!isProPlan(dbUser ?? {}) && teamMemberCount >= SUPPLIER_FREE_TEAM_MEMBER_LIMIT) {
+  if (atLimit(teamMemberCount, supplierPlanLimits(dbUser ?? {}).teamMembers)) {
     redirect("/supplier/profile?tab=Billing%20%26%20Plan&limit=team");
   }
 
@@ -525,4 +527,48 @@ export async function answerDropshipAgreementAction(agreementId: string, accept:
   const result = await answerAgreement(user, String(agreementId).slice(0, 40), accept === true, typeof note === "string" ? note.slice(0, 600) : undefined);
   revalidatePath("/supplier/agreements");
   return result;
+}
+
+export interface SupplierImportResult {
+  ok: boolean;
+  created: number;
+  errors: Array<{ row: number; message: string }>;
+  message?: string;
+}
+
+/** CSV bulk upload (Supplier Plus and up): every good row becomes a draft product, within the plan's listings. */
+export async function importSupplierProductsCsv(csvText: string): Promise<SupplierImportResult> {
+  const { user, supplier } = await getSupplierActor();
+  assertOnboardedSupplier(supplier);
+  const [dbUser, productCount, categories] = await Promise.all([
+    db.user.findUnique({ where: { id: user.id }, select: { aiCredits: true } }),
+    db.supplierProduct.count({ where: { supplierId: supplier.id } }),
+    db.category.findMany({ select: { id: true, name: true, slug: true } }),
+  ]);
+  const limits = supplierPlanLimits(dbUser ?? {});
+  if (!limits.bulkUpload) return { ok: false, created: 0, errors: [], message: "CSV bulk upload comes with the Supplier Plus plan." };
+  if (typeof csvText !== "string" || csvText.length > 2_000_000) return { ok: false, created: 0, errors: [], message: "Upload a CSV file under 2 MB." };
+  const parsedCsv = Papa.parse<Record<string, string>>(csvText.replace(/^﻿/, ""), { header: true, skipEmptyLines: true });
+  const { products, errors } = parseSupplierImport(parsedCsv.data, categories);
+  const room = limits.listings === null ? products.length : Math.max(0, limits.listings - productCount);
+  let created = 0;
+  for (const [index, { row, product }] of products.entries()) {
+    if (index >= room) {
+      errors.push({ row, message: `Your plan includes ${limits.listings} listings. Upgrade to add more.` });
+      continue;
+    }
+    const valid = SupplierProductCreateSchema.safeParse({ ...product, status: "draft" });
+    if (!valid.success) {
+      errors.push({ row, message: valid.error.issues[0]?.message ?? "Check this row." });
+      continue;
+    }
+    await db.supplierProduct.create({ data: { ...valid.data, supplierId: supplier.id, slug: await getUniqueSupplierProductSlug(valid.data.name, supplier.id) } });
+    created += 1;
+  }
+  if (created) {
+    invalidatePublicMarketplaceCache({ supplierSlug: supplier.slug });
+    revalidatePath("/supplier/products");
+    revalidatePath("/supplier/dashboard");
+  }
+  return { ok: true, created, errors: errors.sort((a, b) => a.row - b.row).slice(0, 100) };
 }

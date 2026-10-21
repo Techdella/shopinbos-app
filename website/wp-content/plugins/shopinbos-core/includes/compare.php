@@ -82,7 +82,7 @@ function sib_render_compare( array $a ): string {
 	$faq = sib_faq_items( (string) $a['faq'] );
 	$qs  = array_map( fn( $f ) => mb_strtolower( $f[0] ), $faq );
 	if ( ! preg_grep( '/cheaper/', $qs ) ) {
-		$faq[] = [ sprintf( 'Is Shopinbos cheaper than %s?', $them ), 'Shopinbos is free to start, and paid plans are in naira with VAT included. See the Pricing page for today’s prices, and compare what you would pay for payments, delivery and add-ons on each.' ];
+		$faq[] = [ sprintf( 'Is Shopinbos cheaper than %s?', $them ), 'Shopinbos is free to start, and paid plans are in naira. See the Pricing page for today’s prices, and compare what you would pay for payments, delivery and add-ons on each.' ];
 	}
 	if ( ! preg_grep( '/move|switch/', $qs ) ) {
 		$faq[] = [ sprintf( 'Can I move my store from %s?', $them ), 'Yes. Export your products as a spreadsheet, upload it to Shopinbos and Rex maps the fields. You can keep your domain.' ];

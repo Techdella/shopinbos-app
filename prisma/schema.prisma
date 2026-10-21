@@ -2635,13 +2635,109 @@ model AiUsage {
 // card saved from a credit purchase is charged for autoPackId again when the balance can't cover a request.
 model AiCreditAccount {
   userId        String   @id
+  // Bought, bonus and refunded credits (the sum of the live AiCreditLot rows; each lot lasts 12 months).
   balance       Int      @default(0)
+  // The plan's monthly credits: refilled (not added to) at the start of each month, never carried over.
+  planCredits   Int      @default(0)
+  planPeriod    String? // "2026-10": the month planCredits were last filled for
+  planKey       String? // the plan they were filled for (an upgrade mid-month tops them up)
   autoTopUp     Boolean  @default(false)
   autoPackId    String?
   // Reusable Paystack card from a credit purchase the seller allowed to save (shape: domains/billing-pure).
   authorization Json?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+// Bought, bonus and refunded AI credits, each lasting 12 months. Spending takes the soonest to expire first; the
+// account's balance is the sum of the remaining credits of lots that haven't expired.
+model AiCreditLot {
+  id        String   @id @default(cuid())
+  userId    String
+  credits   Int // remaining
+  source    String // purchase | welcome | refund | legacy | grant
+  reference String? // the purchase reference, for purchases
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId, expiresAt])
+}
+
+// ─── Plan add-ons, boosts and team (October 2026 pricing, shared/plans.ts) ──────────────────────────────────────
+// docs/migrations/2026-11-16-plan-extras.sql
+
+// Add-ons and boosts bought through Paystack, credited once by reference (src/lib/plans/extras.server.ts). Staff
+// seats and boosts run from startsAt to endsAt; message packs add to MessageBalance. `included` rows are a plan's
+// own featured weeks (no payment).
+model PlanExtraPurchase {
+  reference  String    @id
+  userId     String
+  kind       String // staff_seat | sms_pack | whatsapp_pack | supplier_boost | logistics_boost | product_boost
+  quantity   Int       @default(1) // seats or packs; weeks for boosts
+  targetId   String? // product_boost: SupplierProduct.id; logistics_boost: the state
+  amountKobo Int
+  status     String    @default("pending") // pending | paid | failed
+  included   Boolean   @default(false)
+  startsAt   DateTime?
+  endsAt     DateTime?
+  error      String?
+  createdAt  DateTime  @default(now())
+  paidAt     DateTime?
+
+  @@index([userId, kind, status])
+  @@index([kind, status, endsAt])
+}
+
+// Messages Shopinbos sends for a seller through its own SMS/WhatsApp providers (src/lib/plans/messages.server.ts):
+// the plan's monthly messages used this month (`period` YYYY-MM, SMS and WhatsApp together), then pack messages.
+model MessageBalance {
+  userId    String   @id
+  sms       Int      @default(0)
+  whatsapp  Int      @default(0)
+  period    String?
+  used      Int      @default(0)
+  updatedAt DateTime @updatedAt
+}
+
+// People a seller lets into their store (Settings › Team). They sign in with their own account and work in the
+// owner's store; money settings, billing and the team stay with the owner (src/lib/staff/staff.server.ts).
+model StoreStaff {
+  id           String    @id @default(cuid())
+  storeId      String
+  ownerId      String
+  email        String
+  name         String
+  memberUserId String?
+  status       String    @default("invited") // invited | active | removed
+  token        String    @unique
+  invitedAt    DateTime  @default(now())
+  acceptedAt   DateTime?
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([storeId, email])
+  @@index([memberUserId, status])
+  @@index([ownerId])
+}
+
+// Sellers following a supplier; suppliers on Pro can send them updates (SupplierBroadcast).
+model SupplierFollow {
+  supplierId String
+  userId     String
+  createdAt  DateTime @default(now())
+
+  @@id([supplierId, userId])
+  @@index([userId])
+}
+
+model SupplierBroadcast {
+  id         String   @id @default(cuid())
+  supplierId String
+  title      String
+  body       String
+  recipients Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  @@index([supplierId, createdAt])
 }
 
 // One row per credit pack checkout or automatic top-up; a reference is credited once (status pending → paid).

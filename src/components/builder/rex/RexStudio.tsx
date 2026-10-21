@@ -1,18 +1,21 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DeviceToggle, Mascot, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { useT } from "@/components/i18n/I18nProvider";
-import { StoreLaunchBillingModal, type StoreLaunchPricing } from "@/components/billing/StoreLaunchBillingModal";
 import type { StoreEditorSnapshot } from "@/lib/store-templates";
 import { themeLibraryEntry } from "@/lib/store-templates/theme-library";
+import { hasInspiration } from "@/lib/ai/rex/inspiration";
 import { computeStoreHealth, draftHealthFacts, rexSuggestionChips, type StorePageKey, type StorePageStatus } from "@/lib/store-health";
 import type { RexVersionSummary } from "@/lib/ai/rex/studio-versions";
 import { cardNote } from "@/lib/ai/rex/cards";
 import { isPreviewRequest } from "@/lib/ai/rex/starters";
-import { askRex, buildWholeStore, publishDraft, restoreVersion } from "./api";
+import { askRex, buildWholeStore, makeBuildPhotos, publishDraft, restoreVersion, writeEveryPage } from "./api";
+import { RexBuildSetup, type BuildSetup } from "./RexBuildSetup";
+import { RexBuildProgress, type BuildStep, type BuildStepState } from "./RexBuildProgress";
 import { RexChat } from "./RexChat";
 import { guessRexJob, type RexJob } from "@shared/rex-progress";
 import { ChatHistoryMenu, useChatAutosave } from "@/components/ai/ChatHistory";
@@ -25,8 +28,13 @@ import type { ChatMessage, RexStudioProps } from "./types";
 // the store preview opens beside the chat (full screen on phones) when they ask for it or Rex changes the
 // store. The preview keeps the page tabs, desktop/mobile, versions with undo, and Publish.
 
-const BUILD_REQUEST = /^(please\s+)?(build|create|generate|make)\s+(me\s+)?(my|a|the)?\s*(whole|full|complete|entire|new)?\s*(online\s+)?(store|shop)\b/i;
+// "Build my store", "make me a new shop for me", "build my whole store like kemi.ng": a build. "Make my store
+// colours green" is an edit, so the words after "store" must be the end, or "for me", "again", "like"…
+const BUILD_REQUEST = /^(please\s+)?(build|create|generate|make|design)\s+(me\s+)?(my|a|the)?\s*(whole|full|complete|entire|new)?\s*(online\s+)?(store|shop)(?=\s*[.!?]?\s*$|\s+(?:for me|now|please|again|from scratch|like|inspired|based on|similar|using|with)\b)/i;
 const MAX_HISTORY = 20;
+const INSPIRED = /\b(like|inspired|inspiration|similar to|same as|look like)\b/i;
+/** Web addresses typed in a message ("https://kemi.ng", "www.zara.com/ng", "kemi.store"). */
+const LINK_IN_TEXT = /\b(?:https?:\/\/|www\.)\S+|\b[a-z0-9-]+\.(?:com|ng|co|store|shop|africa|io|net|org)(?:\/\S*)?/gi;
 
 let seq = 0;
 const nextId = () => `m${Date.now().toString(36)}${(seq++).toString(36)}`;
@@ -77,9 +85,12 @@ export function RexStudio(props: RexStudioProps) {
   const [publishing, setPublishing] = useState(false);
   const [live, setLive] = useState(props.live);
   const [unpublished, setUnpublished] = useState(props.hasUnpublishedChanges);
-  const [pricing, setPricing] = useState<StoreLaunchPricing | null>(null);
   const [toast, setToast] = useState<{ text: string; href?: string } | null>(null);
   const [isPhone, setIsPhone] = useState(false);
+  /** The "Build my store" setup (null: closed); `screenshots` are photos sent with a typed build request. */
+  const [setup, setSetup] = useState<{ screenshots: string[]; links: string[]; note: string } | null>(null);
+  const [buildSteps, setBuildSteps] = useState<BuildStep[] | null>(null);
+  const router = useRouter();
   const toolsRef = useRef<HTMLDivElement>(null);
   const closePreviewRef = useRef<HTMLButtonElement>(null);
 
@@ -126,11 +137,11 @@ export function RexStudio(props: RexStudioProps) {
     if (!previewOpen) return;
     closePreviewRef.current?.focus({ preventScroll: true });
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !panelOpen && !pricing) setPreviewOpen(false);
+      if (event.key === "Escape" && !panelOpen && !setup) setPreviewOpen(false);
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [previewOpen, panelOpen, pricing]);
+  }, [previewOpen, panelOpen, setup]);
 
   const facts = useMemo(() => ({ ...props.healthFacts, draft: draftHealthFacts(draft) }), [props.healthFacts, draft]);
   const health = useMemo(() => computeStoreHealth(facts), [facts]);
@@ -194,46 +205,24 @@ export function RexStudio(props: RexStudioProps) {
   async function send(text: string, imageUrls: string[] = [], videoStills: string[] = []) {
     const request = text.trim();
     if (!request || busy) return;
+    // "Build my store" opens the build setup (business, inspiration, how much Rex does) instead of starting blind.
+    // A phrased build ("can you build my shop like kemi.ng?") counts only with a link or an "inspired by"; "make my
+    // store green" stays an edit.
+    const phrasedBuild = guessRexJob(request, imageUrls.length > 0) === "build" && (LINK_IN_TEXT.test(request) || INSPIRED.test(request));
+    LINK_IN_TEXT.lastIndex = 0;
+    if (BUILD_REQUEST.test(request) || phrasedBuild) {
+      // Links and words the seller typed with it ("like zara.com, but warmer") carry into the setup.
+      const links = (request.match(LINK_IN_TEXT) ?? []).slice(0, 3);
+      const rest = request.replace(BUILD_REQUEST, " ").replace(/\s+/g, " ").trim();
+      setSetup({ screenshots: imageUrls.filter((url) => !videoStills.includes(url)), links, note: rest.length > 3 ? request : "" });
+      return;
+    }
     const past = history();
     setMessages((prev) => [...prev, { id: nextId(), role: "seller", text: request, ...(imageUrls.length ? { images: imageUrls } : {}) }]);
 
     if (!imageUrls.length && isPreviewRequest(request)) {
       showPreview("home");
       rexSays({ text: draftSaved ? t("rex.st.hereDraft") : t("rex.st.hereStart") });
-      return;
-    }
-
-    if (BUILD_REQUEST.test(request)) {
-      setBusyJob("build");
-      setBusy("build");
-      try {
-        const result = await buildWholeStore({
-          request,
-          history: past,
-          brief: props.buildContext.brief,
-          brandContext: { category: props.buildContext.category, businessDescription: props.buildContext.businessDescription },
-          templateContext: props.buildContext.template,
-        });
-        takeDraft(result.draft, result.versions);
-        setTab("home");
-        setPreviewOpen(true);
-        rexSays({
-          text: [t("rex.st.built"), ...result.notes].join("\n\n"),
-          changes: [
-            t("rex.st.designed", { count: result.pages.length }),
-            result.products.length ? t("rex.st.samples", { count: result.products.length }) : t("rex.st.keptProducts"),
-            result.images.hero ? t("rex.st.banner") : "",
-            result.images.product ? t("rex.st.productPhoto") : "",
-          ].filter(Boolean),
-          version: result.version ?? null,
-          undoTo: result.undoTo ?? null,
-        });
-      } catch (error) {
-        rexSays({ text: error instanceof Error ? error.message : t("rex.st.buildFailed"), tone: "error" });
-      } finally {
-        setBusy(null);
-        creditsChanged();
-      }
       return;
     }
 
@@ -256,6 +245,125 @@ export function RexStudio(props: RexStudioProps) {
       rexSays({ text: error instanceof Error ? error.message : t("rex.st.answerFailed"), tone: "error", ...(isCreditsError((error as { code?: string }).code) ? { buyCredits: true } : {}) });
     } finally {
       setBusy(null);
+      creditsChanged();
+    }
+  }
+
+  /** The full build: design, then every page, then photos, each step ticked off as its request comes back. */
+  async function runBuild({ brief, inspiration, mode, plan }: BuildSetup) {
+    setSetup(null);
+    if (busy) return;
+    const past = history();
+    const inspired = hasInspiration(inspiration);
+    const themeName = inspiration.themeId ? themeLibraryEntry(inspiration.themeId)?.name ?? inspiration.themeId : null;
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: nextId(),
+        role: "seller",
+        text: [
+          mode === "full" ? t("rex.bs.askFull") : t("rex.bs.askQuick"),
+          inspiration.links.length ? t("rex.bs.askLinks", { links: inspiration.links.map((link) => link.host).join(", ") }) : "",
+          themeName ? t("rex.bs.themeChosen", { name: themeName }) : "",
+          inspiration.note ? `“${inspiration.note}”` : "",
+        ].filter(Boolean).join("\n"),
+        ...(inspiration.screenshots.length ? { images: inspiration.screenshots } : {}),
+      },
+    ]);
+
+    const steps: BuildStep[] = [
+      { key: "design", label: inspired ? t("rex.bp.designInspo") : t("rex.bp.design"), state: "active" },
+      ...(mode === "full"
+        ? [{ key: "pages", label: t("rex.bp.pages"), state: (plan.pages ? "pending" : "skipped") as BuildStepState, note: plan.pages ? undefined : t("rex.bp.noAllowance") }]
+        : []),
+      ...(plan.photos > 0 ? [{ key: "photos", label: t("rex.bp.photos", { count: plan.photos }), state: "pending" as BuildStepState }] : []),
+      { key: "check", label: t("rex.bp.check"), state: "pending" },
+    ];
+    const mark = (key: string, state: BuildStepState, note?: string) =>
+      setBuildSteps((current) => current?.map((step) => (step.key === key ? { ...step, state, ...(note !== undefined ? { note } : {}) } : step)) ?? null);
+    setBuildSteps(steps);
+    setBusyJob("build");
+    setBusy("build");
+
+    const changes: string[] = [];
+    const notes: string[] = [];
+    let undoTo: string | null = null;
+    let version: { id: string; n: number } | null = null;
+    try {
+      // 1. The design: look, words for the homepage, sample products (photos come in step 3).
+      let built;
+      try {
+        built = await buildWholeStore({
+          request: mode === "full" ? "Build my whole store" : "Build my store",
+          history: past,
+          brief,
+          brandContext: { category: props.buildContext.category, businessDescription: brief || props.buildContext.businessDescription },
+          templateContext: inspiration.themeId ? { templateId: inspiration.themeId, templateName: themeName ?? inspiration.themeId } : props.buildContext.template,
+          inspiration: inspired ? inspiration : null,
+          generateImages: false,
+        });
+      } catch (error) {
+        mark("design", "failed");
+        rexSays({ text: error instanceof Error ? error.message : t("rex.st.buildFailed"), tone: "error", ...(isCreditsError((error as { code?: string }).code) ? { buyCredits: true } : {}) });
+        return;
+      }
+      takeDraft(built.draft, built.versions);
+      undoTo = built.undoTo ?? null;
+      version = built.version ?? null;
+      notes.push(...built.notes);
+      if (built.themeId) changes.push(t("rex.bs.onTheme", { name: themeLibraryEntry(built.themeId)?.name ?? built.themeId }));
+      changes.push(t("rex.st.designed", { count: built.pages.length }));
+      changes.push(built.products.length ? t("rex.st.samples", { count: built.products.length }) : t("rex.st.keptProducts"));
+      setTab("home");
+      if (!isPhone) setPreviewOpen(true);
+      mark("design", "done");
+      if (steps.some((step) => step.key === "pages")) mark("pages", plan.pages ? "active" : "skipped");
+      else if (plan.photos > 0) mark("photos", "active");
+
+      // 2. Every page's words and search titles.
+      if (mode === "full" && plan.pages) {
+        try {
+          const written = await writeEveryPage(inspired ? inspiration : null);
+          if (written.draft) takeDraft(written.draft, written.versions);
+          if (written.version) version = written.version;
+          changes.push(t("rex.bs.pagesWritten"));
+          mark("pages", "done");
+        } catch (error) {
+          mark("pages", "failed", error instanceof Error ? error.message : undefined);
+          notes.push(t("rex.bs.pagesLater"));
+        }
+        creditsChanged();
+      }
+
+      // 3. Photos: banner, story and sample products, as many as the plan covers (quick: banner and one product).
+      if (plan.photos > 0) {
+        mark("photos", "active");
+        try {
+          const photos = await makeBuildPhotos(plan.photos, mode);
+          if (photos.edit?.draft) takeDraft(photos.edit.draft, photos.edit.versions);
+          if (photos.edit?.version) version = photos.edit.version;
+          if (photos.made) changes.push(t("rex.bs.photosMade", { count: photos.made }));
+          notes.push(...photos.notes);
+          mark("photos", photos.made ? "done" : "failed", t("rex.bp.photosNote", { made: photos.made, total: plan.photos }));
+        } catch (error) {
+          mark("photos", "failed", error instanceof Error ? error.message : undefined);
+        }
+      }
+
+      // 4. Pull in the new sample products for the preview.
+      mark("check", "active");
+      router.refresh();
+      mark("check", "done");
+      rexSays({
+        text: [mode === "full" ? t("rex.bs.doneFull") : t("rex.bs.doneQuick"), ...notes].join("\n\n"),
+        changes,
+        version,
+        undoTo,
+        ...(mode === "quick" ? { offer: "Build my store" } : {}),
+      });
+    } finally {
+      setBusy(null);
+      setBuildSteps(null);
       creditsChanged();
     }
   }
@@ -304,8 +412,6 @@ export function RexStudio(props: RexStudioProps) {
         setLive(true);
         setUnpublished(false);
         setToast({ text: t("rex.st.published", { host: props.storeHost }), href: props.storeUrl });
-      } else if ("billing" in result) {
-        setPricing(result.billing);
       } else {
         setToast({ text: result.message });
         if (result.blockers.some((blocker) => /title and meta description/i.test(blocker))) {
@@ -467,6 +573,7 @@ export function RexStudio(props: RexStudioProps) {
             busy={busy !== null}
             busyLabel={busyLabel}
             busyJob={busy ? busyJob : null}
+            progress={buildSteps ? <RexBuildProgress steps={buildSteps} /> : null}
             chips={chips}
             wide={!previewOpen}
             initialText={props.initialPrompt}
@@ -547,6 +654,19 @@ export function RexStudio(props: RexStudioProps) {
         </div>
       ) : null}
 
+      {setup ? (
+        <RexBuildSetup
+          initialBrief={props.buildContext.brief ?? props.buildContext.businessDescription ?? ""}
+          initialScreenshots={setup.screenshots}
+          initialLinks={setup.links}
+          initialNote={setup.note}
+          currentThemeId={draftSaved ? draft.templateId : null}
+          rebuilding={draftSaved}
+          onStart={(choice) => void runBuild(choice)}
+          onClose={() => setSetup(null)}
+        />
+      ) : null}
+
       {toast ? (
         <div role="status" className="fixed bottom-5 left-1/2 z-[60] flex max-w-[calc(100%-32px)] -translate-x-1/2 items-center gap-3 rounded-full bg-app-ink px-5 py-3 text-[13.5px] font-bold text-white shadow-[0_18px_50px_rgba(22,20,31,0.24)]">
           {toast.href ? <Icon name="checkCircle" size={16} className="shrink-0 text-[#6FE3C8]" /> : null}
@@ -557,7 +677,6 @@ export function RexStudio(props: RexStudioProps) {
         </div>
       ) : null}
 
-      <StoreLaunchBillingModal open={Boolean(pricing)} pricing={pricing} onClose={() => setPricing(null)} />
     </div>
   );
 }

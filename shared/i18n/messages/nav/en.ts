@@ -241,6 +241,8 @@ const en = {
   "credits.pack.large": "Power pack",
   "credits.badge.medium": "Most popular",
   "credits.badge.large": "Best value",
+  "supplier.products-import": "Upload CSV",
+  "supplier.followers": "Followers",
 } satisfies Record<string, string>;
 
 export default en;

@@ -257,3 +257,19 @@ export async function createPaystackPlan(input: { name: string; amountKobo: numb
   if (!response.ok || !json?.status || !code || !/^PLN_[A-Za-z0-9]+$/.test(code)) throw new Error(json?.message ?? "Paystack could not create the plan.");
   return code;
 }
+
+/**
+ * Changes a plan's amount at Paystack. With update_existing_subscriptions, everyone already on the plan pays the new
+ * amount from their next renewal.
+ */
+export async function updatePaystackPlanAmount(code: string, amountKobo: number) {
+  const response = await fetch(`${PAYSTACK_BASE}/plan/${encodeURIComponent(code)}`, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${secretKey()}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ amount: amountKobo, update_existing_subscriptions: true }),
+    cache: "no-store",
+    signal: AbortSignal.timeout(20_000),
+  });
+  const json = (await response.json().catch(() => null)) as { status?: boolean; message?: string } | null;
+  if (!response.ok || !json?.status) throw new Error(json?.message ?? `Paystack could not update plan ${code}.`);
+}

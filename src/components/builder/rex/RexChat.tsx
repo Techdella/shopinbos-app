@@ -2,7 +2,7 @@
 
 import { mediaFile, useMediaLibrary } from "@/components/media/useMediaLibrary";
 import { BuyCreditsButton } from "@/components/credits/CreditsBadge";
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
 import { Mascot, Spinner, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { useT } from "@/components/i18n/I18nProvider";
@@ -30,6 +30,7 @@ export function RexChat({
   busy,
   busyLabel,
   busyJob,
+  progress,
   chips,
   wide,
   disabledReason,
@@ -45,6 +46,8 @@ export function RexChat({
   busyLabel: string;
   /** What Rex is busy with, for the step-by-step progress (null: a plain "working" note). */
   busyJob?: RexJob | null;
+  /** Real step-by-step progress (the full store build); shown instead of the paced one. */
+  progress?: ReactNode;
   chips: string[];
   /** True when the chat has the whole width (no preview beside it). */
   wide: boolean;
@@ -295,9 +298,9 @@ export function RexChat({
           {busy ? (
             <div className="flex items-start gap-2.5">
               <RexAvatar mood="thinking" />
-              {busyJob ? (
+              {progress || busyJob ? (
                 <div className="w-full max-w-[420px] rounded-[18px] rounded-tl-[6px] border border-app-line bg-white px-4 py-3.5">
-                  <RexProgress job={busyJob} compact />
+                  {progress ?? (busyJob ? <RexProgress job={busyJob} compact /> : null)}
                 </div>
               ) : (
                 <div className="flex items-center gap-2 rounded-[18px] rounded-tl-[6px] bg-app-peach px-4 py-3 text-[14px]">

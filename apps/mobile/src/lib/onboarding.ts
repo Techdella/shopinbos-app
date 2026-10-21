@@ -19,7 +19,6 @@ export interface OnboardingStatus {
   ownerName: string;
   finished: boolean;
   memory: OnboardingMemory | null;
-  launch: { status: string; totalNgn: number; depositNgn: number };
   productCount: number;
   checklist: Array<{ key: string; label: string; hint: string; href: string; done: boolean; manual: boolean }>;
 }
@@ -89,8 +88,8 @@ export const tickChecklist = (key: string, done: boolean) => api<OnboardingStatu
 export const finishOnboarding = (live: boolean) =>
   api("/api/app/store", { method: "PATCH", json: { firstDashboardVisitComplete: true, onboardingState: live ? "LIVE" : "INCOMPLETE" } });
 
-/** The phone can't take the launch fee (app store rules): the server emails the seller the next steps instead. */
-export const emailLaunchSteps = () => api<{ emailed: boolean; email: string | null }>("/api/mobile/onboarding/launch-email", { method: "POST" });
+/** Puts the shop live. Publishing is free, so the phone can do it too. */
+export const publishStore = () => api("/api/store/editor/publish", { method: "POST" });
 
 // ── Rex store build (mirrors the web onboarding) ─────────────────────────────
 
