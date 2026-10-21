@@ -74,6 +74,10 @@ test("payment paths create supplier orders, and a replayed webhook stays safe", 
   assert.match(read("src/app/actions/payments.ts"), /ensureSupplierOrdersSafely\(orderId\)/);
   assert.match(read("src/lib/orders/update-status.ts"), /ensureSupplierOrdersSafely\(order\.id\)/);
   assert.match(read("src/app/api/public/store/[slug]/checkout/route.ts"), /paymentMethod === "pay_on_delivery"\) await ensureSupplierOrdersSafely/);
+  // A sale the seller records (WhatsApp, Instagram) that needs delivering goes to its suppliers too.
+  assert.match(read("src/lib/orders/record-sale.ts"), /if \(input\.delivery === "deliver"\) await ensureSupplierOrdersSafely\(order\.id\)/);
+  // The supplier's WhatsApp/SMS is awaited, never fire-and-forget.
+  for (const path of ["src/lib/supplier-orders/service.server.ts", "src/lib/supplier-orders/switch.server.ts", "src/lib/supplier-orders/wholesale.server.ts"]) assert.doesNotMatch(read(path), /void messageSupplierPhone/, path);
 });
 
 // ─── Moving orders ────────────────────────────────────────────────────────────
