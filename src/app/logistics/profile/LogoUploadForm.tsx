@@ -6,7 +6,7 @@ import { Icon } from "@/components/ui/Icon";
 import { Spinner } from "@/components/app-ui";
 import { broadcastIdentity, useIdentity } from "@/components/shell/useShellCounts";
 import { identityImageProblem, initialsOf } from "@shared/identity-images";
-import { shrinkImage } from "@/components/profile/IdentityImageUploader";
+import { shrinkImage } from "@/lib/media/shrink-image";
 import { useT } from "@/components/i18n/I18nProvider";
 
 // The company logo badge on the profile header. Saves through /api/app/me/images like every other photo and

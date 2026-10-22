@@ -1,6 +1,7 @@
 "use client";
 
-import { mediaFileProblem, mediaKindOfType, type MediaAssetView, type MediaKind } from "@shared/media";
+import { UPLOAD_MAX_BYTES, mediaFileProblem, mediaKindOfType, type MediaAssetView, type MediaKind } from "@shared/media";
+import { readyToSend } from "@/lib/media/shrink-image";
 
 // Browser side of the media library (/api/app/media). Used by MediaPicker, MediaLibraryDialog and the Media page.
 
@@ -39,9 +40,14 @@ async function measure(file: File): Promise<{ width: number; height: number } | 
 }
 
 /** Uploads a file into the person's media library and returns it. Throws an Error with a plain-words message. */
-export async function uploadToMyMedia(file: File, allow: "image" | "any" = "image"): Promise<MediaAssetView> {
-  const problem = mediaFileProblem(file, allow);
+export async function uploadToMyMedia(picked: File, allow: "image" | "any" = "image"): Promise<MediaAssetView> {
+  const problem = mediaFileProblem(picked, allow);
   if (problem) throw new Error(problem);
+  // Phone photos are shrunk before sending: the server can't take a request over about 4.5 MB.
+  const file = await readyToSend(picked);
+  if (file.size > UPLOAD_MAX_BYTES) {
+    throw new Error(mediaKindOfType(file.type) === "video" ? "That video is over 4 MB. Trim it or paste a link to it instead." : "That picture is over 4 MB even after shrinking. Choose a smaller one.");
+  }
   const form = new FormData();
   form.append("file", file);
   if (allow === "image") form.append("only", "image");

@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Spinner, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
-import { shrinkImage } from "@/components/profile/IdentityImageUploader";
+import { shrinkImage } from "@/lib/media/shrink-image";
 import { broadcastIdentity, type ShellIdentity } from "@/components/shell/useShellCounts";
 import { identityImageProblem } from "@shared/identity-images";
 import { useT } from "@/components/i18n/I18nProvider";

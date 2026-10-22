@@ -97,7 +97,11 @@ export function docTypesForRole(role: "supplier" | "logistics_partner"): DocConf
 
 // ─── Files ────────────────────────────────────────────────────────────────────
 
-export const MAX_DOC_BYTES = 10 * 1024 * 1024;
+/**
+ * What one document can be once it's sent. Uploads can't be over about 4.5 MB on the server (Vercel's request
+ * limit); photos are shrunk in the browser before they're checked against this, so only big PDFs hit it.
+ */
+export const MAX_DOC_BYTES = 4 * 1024 * 1024;
 export const DOC_MIME_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp"] as const;
 const DOC_EXTENSIONS: Record<string, (typeof DOC_MIME_TYPES)[number]> = {
   pdf: "application/pdf",
@@ -107,7 +111,7 @@ const DOC_EXTENSIONS: Record<string, (typeof DOC_MIME_TYPES)[number]> = {
   webp: "image/webp",
 };
 /** What people are told they can upload. Keep in step with DOC_MIME_TYPES and MAX_DOC_BYTES. */
-export const DOC_FORMATS_LABEL = "PDF, JPG, PNG or WebP, up to 10 MB";
+export const DOC_FORMATS_LABEL = "PDF, JPG, PNG or WebP, up to 4 MB";
 /** Value for `<input type="file" accept>`. */
 export const DOC_FILE_ACCEPT = ".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp";
 
@@ -123,7 +127,7 @@ export function docMimeType(file: { name: string; type?: string | null }): strin
 export function validateDocFile(file: { name: string; type?: string | null; size: number }): string | null {
   if (!docMimeType(file)) return `${file.name} isn't a PDF, JPG, PNG or WebP file.`;
   if (file.size <= 0) return `${file.name} is empty.`;
-  if (file.size > MAX_DOC_BYTES) return `${file.name} is ${formatBytes(file.size)}. The limit is 10 MB.`;
+  if (file.size > MAX_DOC_BYTES) return `${file.name} is ${formatBytes(file.size)}. The limit is 4 MB.`;
   return null;
 }
 

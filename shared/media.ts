@@ -6,6 +6,12 @@
 export const MEDIA_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml"] as const;
 export const MEDIA_VIDEO_TYPES = ["video/mp4", "video/webm", "video/ogg"] as const;
 export const MEDIA_MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+/**
+ * The most an upload through our API routes can carry: Vercel refuses request bodies over about 4.5 MB before the
+ * route runs. Pictures are shrunk in the browser first (src/lib/media/shrink-image.ts); anything still bigger is
+ * stopped with a clear message instead of failing on the server.
+ */
+export const UPLOAD_MAX_BYTES = 4 * 1024 * 1024;
 export const MEDIA_MAX_VIDEO_BYTES = 80 * 1024 * 1024;
 export const MEDIA_PAGE_SIZE = 40;
 export const MEDIA_MAX_PAGE_SIZE = 60;

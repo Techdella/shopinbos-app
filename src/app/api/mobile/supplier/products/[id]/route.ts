@@ -5,6 +5,7 @@ import { db } from "@/lib/db/client";
 import { apiError, ok } from "@/lib/api/response";
 import { invalidatePublicMarketplaceCache } from "@/lib/api/cache";
 import { supplierForUser } from "../../_shared";
+import { editNeedsReview } from "@shared/supplier-product-review";
 
 export const dynamic = "force-dynamic";
 
@@ -31,9 +32,7 @@ export const PATCH = withSupplier(async (req: NextRequest, { user, params }) => 
   if (!parsed.success) return apiError("BAD_REQUEST", parsed.error.issues[0]?.message ?? "Check the numbers and try again.");
   const input = parsed.data;
 
-  const priceChanged =
-    (input.wholesalePrice !== undefined && input.wholesalePrice !== product.wholesalePrice) ||
-    (input.suggestedRetailPrice !== undefined && input.suggestedRetailPrice !== product.suggestedRetailPrice);
+  const priceChanged = editNeedsReview(product, { wholesalePrice: input.wholesalePrice, suggestedRetailPrice: input.suggestedRetailPrice });
   let status = product.status;
   if (input.publish === true && ["draft", "unpublished", "rejected"].includes(product.status)) {
     if (supplier.verificationStatus !== "verified") return apiError("VERIFICATION_REQUIRED", "Products go live after your business is verified.", 403);

@@ -6,6 +6,7 @@ import { ok, apiError, noContent } from "@/lib/api/response";
 import { SupplierProductUpdateSchema } from "@/lib/schemas";
 import type { AuthUser } from "@/lib/auth/types";
 import { notifyProductForReview } from "@/lib/notifications/events.server";
+import { editNeedsReview } from "@shared/supplier-product-review";
 
 async function getOwnedProduct(productId: string, userId: string) {
   const supplier = await db.supplier.findUnique({ where: { userId } });
@@ -45,25 +46,8 @@ export const PATCH = withSupplier(async (
     }
   }
 
-  const publicFieldKeys: Array<keyof typeof parsed.data> = [
-    "name",
-    "description",
-    "categoryId",
-    "images",
-    "wholesalePrice",
-    "wholesalePriceTo",
-    "suggestedRetailPrice",
-    "currency",
-    "moq",
-    "stockQuantity",
-    "pricingTiers",
-    "dropshipAvailable",
-    "bulkOrderAvailable",
-    "sampleAvailable",
-    "deliveryRegions",
-    "processingTime",
-  ];
-  const hasPublicFieldChanges = publicFieldKeys.some((key) => key in parsed.data);
+  // Only changes to what shops see (words, photos, category, prices) send a live product back for review.
+  const hasPublicFieldChanges = editNeedsReview(product, parsed.data);
 
   const updated = await db.supplierProduct.update({
     where: { id: params.id },
