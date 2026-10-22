@@ -856,6 +856,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "wa.moreSettings": "Saitunan Peggy",
   "wa.moreSettingsHint": "Kayayyaki, oda, lokacin amsawa, salo da gaisuwa",
   "cat.oneSub": "Kwastomomi za su ga kayayyakinka a cikin hirar WhatsApp ɗinka kuma su saka su a kwando.",
+  "cat.settingUp": "Muna saita catalog ɗin WhatsApp ɗinka kuma muna aika kayayyakinka. Zai ɗauki kusan minti ɗaya.",
   "cat.oneClick": "Haɗa WhatsApp ka nuna kayayyakina",
   "cat.oneClickSub": "Tagar Facebook za ta buɗe. Shiga ka zaɓi lambarka; za mu saita catalog mu aika kayayyakinka.",
   "ch.helpTitle": "Haɗa {title}",

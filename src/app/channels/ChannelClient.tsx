@@ -1,7 +1,7 @@
 "use client";
 
 import { confirmDialog } from "@/components/ui/dialogs";
-import { useState, useTransition, type ReactNode } from "react";
+import { useEffect, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
 import { buttonClass, inputClass } from "@/components/growth/kit";
@@ -80,6 +80,19 @@ export function ConnectCard({
   const connectHref = `/api/app/sales-channels/${platform}/connect${next ? `?next=${encodeURIComponent(next)}` : ""}`;
   const working = pending || busy;
 
+  // While it's syncing (the WhatsApp catalog setting itself up after connecting), check again every 5 seconds for
+  // up to 3 minutes so the card turns Connected without a reload.
+  const syncing = state.kind === "syncing";
+  useEffect(() => {
+    if (!syncing) return;
+    const started = Date.now();
+    const timer = window.setInterval(() => {
+      if (Date.now() - started > 3 * 60 * 1000) window.clearInterval(timer);
+      else router.refresh();
+    }, 5000);
+    return () => window.clearInterval(timer);
+  }, [syncing, router]);
+
   function retry() {
     setError(null);
     startTransition(async () => {
@@ -106,7 +119,9 @@ export function ConnectCard({
         const info = await runEmbeddedSignup(signup);
         const res = await fetch("/api/app/inbox/whatsapp", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "embedded_signup", ...info }) });
         if (!res.ok) throw new Error("signup");
-        result = await connectWhatsAppAction();
+        // The number is saved; the catalog and the WhatsApp store set themselves up on the server (the card shows
+        // Syncing… meanwhile), so no second setup from here.
+        return;
       }
       // Number connected but no catalog permission: the card itself says so, so no red line.
       if (!result.ok && !("permission" in result && result.permission)) setError(t("card.waFailed"));

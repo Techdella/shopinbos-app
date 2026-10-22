@@ -239,12 +239,15 @@ const ACCOUNT_URL: Record<OAuthPlatform, string> = {
   tiktok: "https://business.tiktok.com/",
 };
 
+/** How long after WhatsApp connects its card says "Syncing…" while the catalog is set up in the background. */
+const SETUP_WINDOW_MS = 3 * 60 * 1000;
+
 export async function channelCards(storeId: string): Promise<{ cards: ChannelCardView[]; interest: ComingSoonPlatform[]; saved: boolean }> {
   const [rows, interestRows, catalog, inbox, counts] = await Promise.all([
     db.socialChannelConnection.findMany({ where: { storeId }, select: { channel: true, status: true, tokenEnc: true, productCount: true, lastSyncStatus: true } }).catch(() => null),
     db.salesChannelInterest.findMany({ where: { storeId }, select: { platform: true } }).catch(() => []),
     ensureCatalogRow(storeId).catch(() => null),
-    db.inboxChannel.findMany({ where: { storeId, channel: { in: ["whatsapp", "messenger", "instagram"] } }, select: { channel: true, status: true, displayName: true } }).catch(() => []),
+    db.inboxChannel.findMany({ where: { storeId, channel: { in: ["whatsapp", "messenger", "instagram"] } }, select: { channel: true, status: true, displayName: true, connectedAt: true } }).catch(() => []),
     itemCounts(storeId).catch(() => null),
   ]);
   const byPlatform = new Map((rows ?? []).map((row) => [row.channel, row]));
@@ -265,6 +268,7 @@ export async function channelCards(storeId: string): Promise<{ cards: ChannelCar
         ? { catalogId: catalog.catalogId, lastSyncAt: catalog.lastSyncAt, lastSyncStatus: catalog.lastSyncStatus, syncing: Boolean(catalog.syncStartedAt && catalog.syncStartedAt.getTime() > Date.now() - LOCK_MS), permissionMissing: catalog.permissionState === "missing" }
         : null,
       synced: counts?.synced ?? 0,
+      settingUp: Boolean(waChannel?.status === "connected" && waChannel.connectedAt && Date.now() - waChannel.connectedAt.getTime() < SETUP_WINDOW_MS),
     }),
   };
   const oauth = OAUTH_PLATFORMS.map((platform): ChannelCardView => ({

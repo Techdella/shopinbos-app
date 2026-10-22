@@ -64,6 +64,10 @@ test("cards: Connect when configured, Coming soon when not, never a broken flow"
   const noPermission = { catalogId: null, lastSyncAt: null, lastSyncStatus: null, syncing: false, permissionMissing: true };
   assert.deepEqual(wa({ catalog: noPermission }), { kind: "needs_account" }, "number connected, catalog permissions missing: say so, not Connect");
   assert.deepEqual(wa({ catalog: noPermission, whatsappConnected: false }), { kind: "connect" });
+  const fresh = { catalogId: null, lastSyncAt: null, lastSyncStatus: null, syncing: false };
+  assert.deepEqual(wa({ catalog: fresh, settingUp: true }), { kind: "syncing" }, "just connected: the catalog is setting itself up");
+  assert.deepEqual(wa({ catalog: fresh, settingUp: false }), { kind: "connect" }, "setup didn't finish: Connect tries again");
+  assert.deepEqual(wa({ catalog: noPermission, settingUp: true }), { kind: "needs_account" }, "a missing permission is said at once");
 });
 
 test("the page lists live platforms in the order Nigerian sellers use them, then coming soon", () => {
@@ -278,4 +282,14 @@ test("Connect Google: one client and one set of scopes for shopping, reviews, se
   assert.match(connect, /setStoreIntegration\(store\.id, "gaSiteVerification", code\)/);
   assert.match(connect, /setStoreIntegration\(store\.id, "googleAnalyticsId", measurementId, \{ onlyIfEmpty: true \}\)/);
   assert.doesNotMatch(connect, /console\.[a-z]+\([^)]*token/i, "tokens never reach a log line");
+});
+
+test("connecting WhatsApp sets up the catalog and the WhatsApp store in the same click", () => {
+  const connect = read("src/lib/inbox/connect.ts");
+  assert.match(connect, /setUpOrderMessagesLater\(storeId\);\n  setUpWhatsAppSellingLater\(storeId\);/, "every way of connecting the number ends in saveWhatsApp");
+  const setup = read("src/lib/whatsapp-store/setup.server.ts");
+  assert.match(setup, /await connectWhatsAppCatalog\(storeId\)/);
+  assert.match(setup, /ordering === "link"\)/, "only the default ordering switches to the in-chat cart");
+  assert.doesNotMatch(setup, /mode:/, "whether Peggy answers stays the seller's choice");
+  assert.doesNotMatch(read("src/app/channels/ChannelClient.tsx"), /res\.ok\) throw new Error\("signup"\);\n\s+result = await connectWhatsAppAction/, "no second, racing setup from the browser");
 });
