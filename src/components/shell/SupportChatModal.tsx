@@ -1,5 +1,6 @@
 "use client";
 
+import { PeggyCall } from "@/components/peggy/PeggyCall";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/ui";
@@ -25,7 +26,7 @@ interface SupportChatModalProps {
   onClose: () => void;
 }
 
-type View = "home" | "peggy" | "person" | "thread";
+type View = "home" | "peggy" | "person" | "email" | "thread";
 type PeggyLine = { role: "agent" | "user"; text: string };
 
 // Peggy's opening line is filled in from the "help" catalog when the panel renders (see greetingLine).
@@ -169,7 +170,7 @@ export function SupportChatModal({ open, onClose }: SupportChatModalProps) {
     ) : null;
   }
 
-  const title = view === "thread" && active ? active.subject : view === "peggy" ? t("askPeggy") : view === "person" ? t("talkToPerson") : t("needHelp");
+  const title = view === "thread" && active ? active.subject : view === "peggy" ? t("askPeggy") : view === "person" ? t("talkToPerson") : view === "email" ? t("emailUs") : t("needHelp");
   const subtitle =
     view === "thread" && active
       ? `${formatTicketNumber(active.number)} · ${t(`status.${active.status}` as const)}`
@@ -221,7 +222,17 @@ export function SupportChatModal({ open, onClose }: SupportChatModalProps) {
             error={loadError}
             onPeggy={() => setView("peggy")}
             onPerson={() => setView("person")}
+            onEmail={() => setView(ready ? "email" : "person")}
             onOpen={(number) => void openTicket(number)}
+          />
+        )}
+        {view === "email" && (
+          <EmailUs
+            t={t}
+            onCreated={(ticket) => {
+              setActive(ticket);
+              setView("thread");
+            }}
           />
         )}
         {view === "peggy" && (
@@ -266,6 +277,7 @@ function Home({
   error,
   onPeggy,
   onPerson,
+  onEmail,
   onOpen,
 }: {
   t: HelpT;
@@ -276,9 +288,12 @@ function Home({
   error: string | null;
   onPeggy: () => void;
   onPerson: () => void;
+  onEmail: () => void;
   onOpen: (number: number) => void;
 }) {
   const locale = useLocale();
+  // Free voice help with Peggy (ElevenLabs): businesses only (the call knows their setup).
+  const canCall = role === "seller" || role === "supplier" || role === "logistics_partner";
   return (
     <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5">
       {role === "admin" && (
@@ -307,6 +322,22 @@ function Home({
           <span className="min-w-0 flex-1">
             <span className="block text-[14.5px] font-extrabold">{t("talkToPerson")}</span>
             <span className="block text-[12.5px] text-white/75">{ready ? t("repliesWithinHour") : t("whatsappOrEmail")}</span>
+          </span>
+          <Icon name="chevron" size={14} />
+        </button>
+        {canCall && (
+          <div className="rounded-[18px] border border-app-line bg-white p-3">
+            <PeggyCall size="md" />
+            <p className="m-0 mt-2 text-center text-[12.5px] text-app-ink-soft">{t("callPeggyHint")}</p>
+          </div>
+        )}
+        <button type="button" onClick={onEmail} className="flex items-center gap-3 rounded-[18px] border border-app-line bg-white px-4 py-3.5 text-left transition hover:border-app-line-strong">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-app-canvas">
+            <Icon name="mail" size={18} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[14.5px] font-extrabold">{t("emailUs")}</span>
+            <span className="block text-[12.5px] text-app-ink-soft">{t("emailUsHint")}</span>
           </span>
           <Icon name="chevron" size={14} />
         </button>
@@ -352,7 +383,7 @@ function Home({
 
       <p className="m-0 mt-6 text-center text-[12.5px] text-app-ink-soft">
         {t("orEmail")}{" "}
-        <a href={`mailto:${SUPPORT_EMAIL}`} className="font-semibold text-app-ink">{SUPPORT_EMAIL}</a>
+        <button type="button" onClick={onEmail} className="font-semibold text-app-ink underline-offset-2 hover:underline">{SUPPORT_EMAIL}</button>
         {SUPPORT_WHATSAPP ? (
           <>
             {" "}·{" "}
@@ -452,6 +483,93 @@ function Peggy({ t, lines, setLines, onAiOff, onPerson }: { t: HelpT; lines: Peg
         </div>
       </div>
     </>
+  );
+}
+
+/** "Email us" without leaving the app: a message to support@ that opens a conversation (replies come here and by email). */
+function EmailUs({ t, onCreated }: { t: HelpT; onCreated: (ticket: ChatTicket) => void }) {
+  const [subject, setSubject] = useState("");
+  const [message, setMessage] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const addFiles = (picked: FileList | null) => {
+    setError(null);
+    const next = [...files];
+    for (const file of Array.from(picked ?? [])) {
+      const problem = attachmentProblemKey(file);
+      if (problem) return setError(t(problem));
+      if (next.length >= MAX_ATTACHMENTS) return setError(t("attachUpTo", { count: MAX_ATTACHMENTS }));
+      next.push(file);
+    }
+    setFiles(next);
+  };
+
+  const submit = async () => {
+    if (busy) return;
+    if (!subject.trim()) return setError(t("emailNeedsSubject"));
+    if (!message.trim()) return setError(t("tellUs"));
+    setBusy(true);
+    setError(null);
+    try {
+      const form = new FormData();
+      form.set("topic", "other");
+      form.set("subject", subject.trim().slice(0, 160));
+      form.set("message", message.trim());
+      form.set("path", window.location.pathname);
+      for (const file of files) form.append("files", file);
+      onCreated(await supportFetch<ChatTicket>("/api/support/tickets", { method: "POST", body: form }));
+    } catch (problem) {
+      setError(supportErrorText(problem, t));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const field = "w-full rounded-[14px] border border-app-line bg-white px-3.5 text-[15px] outline-none placeholder:text-app-ink-faint focus:border-app-ink";
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="min-h-0 flex-1 space-y-3.5 overflow-y-auto px-4 py-5">
+        <div className="flex items-center gap-2 rounded-[14px] bg-app-canvas px-3.5 py-2.5 text-[14px]">
+          <span className="font-bold text-app-ink-soft">{t("emailTo")}</span>
+          <span className="font-semibold">{SUPPORT_EMAIL}</span>
+        </div>
+        <div>
+          <label htmlFor="support-email-subject" className="mb-1.5 block text-[13.5px] font-bold">{t("emailSubject")}</label>
+          <input id="support-email-subject" value={subject} maxLength={160} onChange={(e) => setSubject(e.target.value)} placeholder={t("emailSubjectPlaceholder")} className={cx(field, "min-h-[46px]")} />
+        </div>
+        <div>
+          <label htmlFor="support-email-message" className="mb-1.5 block text-[13.5px] font-bold">{t("yourMessage")}</label>
+          <textarea id="support-email-message" value={message} onChange={(e) => setMessage(e.target.value)} rows={8} maxLength={5000} placeholder={t("messagePlaceholder")} className={cx(field, "resize-y py-3 leading-[1.5]")} />
+          <VoiceInputButton value={message} onChange={setMessage} maxLength={5000} context="an email to the support team" className="mt-2" />
+        </div>
+        <div>
+          <label className="inline-flex min-h-[38px] cursor-pointer items-center gap-2 rounded-full border border-dashed border-app-line-strong px-3.5 text-[13px] font-bold hover:bg-app-canvas focus-within:ring-2 focus-within:ring-app-ink/30">
+            <Icon name="paperclip" size={14} /> {t("addScreenshots")}
+            <input type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif,application/pdf" className="sr-only" onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
+          </label>
+          {files.length > 0 && (
+            <ul className="m-0 mt-2 grid list-none gap-1 p-0 text-[12.5px] text-app-ink-soft">
+              {files.map((file, index) => (
+                <li key={`${file.name}-${index}`} className="flex items-center gap-2">
+                  <span className="min-w-0 truncate">{file.name}</span>
+                  <button type="button" onClick={() => setFiles(files.filter((_, i) => i !== index))} className="font-bold text-app-ink underline">{t("remove")}</button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <p className="m-0 text-[12.5px] text-app-ink-soft">{t("emailIntro")}</p>
+        {error && <Notice>{error}</Notice>}
+      </div>
+      <div className="border-t border-app-line px-4 py-3">
+        <button type="button" onClick={() => void submit()} disabled={busy} className="flex min-h-[46px] w-full items-center justify-center gap-2 rounded-full bg-app-accent text-[15px] font-bold text-white hover:brightness-95 disabled:opacity-55">
+          {busy ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-r-transparent" /> : <Icon name="send" size={15} />}
+          {t("emailSend")}
+        </button>
+      </div>
+    </div>
   );
 }
 
