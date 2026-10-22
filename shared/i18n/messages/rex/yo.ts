@@ -20,6 +20,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "images.title": "Àwọn àwòrán",
   "images.sub": "Bèrè lọ́wọ́ Rex fún fọ́tò ọjà, banner àti àwòrán brand.",
   "images.backSocial": "Padà sí post rẹ",
+  "img.useInPost": "Lò ó nínú post yìí",
   "logo.failed": "A kò lè ṣe àwọn logo náà",
   "logo.saveFailed": "A kò lè fi logo yẹn pamọ́ sí ṣọ́ọ̀bù rẹ. Tún gbìyànjú.",
   "logo.brand": "Brand rẹ",

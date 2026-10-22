@@ -20,6 +20,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "images.title": "Images",
   "images.sub": "Ask Rex for product photos, banners and brand pictures.",
   "images.backSocial": "Go back to your post",
+  "img.useInPost": "Use am for this post",
   "logo.failed": "We no fit make the logos",
   "logo.saveFailed": "We no fit save that logo for your store. Try again.",
   "logo.brand": "Your brand",

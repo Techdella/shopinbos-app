@@ -190,6 +190,9 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "designs.emptyAction": "Mee foto",
   "designs.note": "Rex nwekwara ike idezi foto ngwaahịa gị, gbanwee background na ịmepụta logo gị.",
   "designs.studio": "Mepee Rex Studio",
+  "rexModal.image": "Jiri Rex mee foto",
+  "rexModal.reel": "Mee reel",
+  "rexModal.closeReel": "Mechie ebe a na-eme reel? Reel ị na-ejibeghị ma ọ bụ chekwaa ga-efu.",
   // Accounts
   "accounts.title": "Akaụntụ",
   "accounts.sub": "Jikọọ otu ugboro. Facebook na Instagram na-apost n'onwe ha; ndị fọdụrụ bụ otu mpị.",

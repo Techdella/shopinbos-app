@@ -190,6 +190,9 @@ const en = {
   "designs.emptyAction": "Make a picture",
   "designs.note": "Rex can also edit your product photos, change backgrounds and design your logo.",
   "designs.studio": "Open Rex Studio",
+  "rexModal.image": "Make a picture with Rex",
+  "rexModal.reel": "Make a reel",
+  "rexModal.closeReel": "Close the reel maker? A reel you haven't used or saved yet will be lost.",
   // Accounts
   "accounts.title": "Accounts",
   "accounts.sub": "Connect once. Facebook and Instagram post by themselves; the rest are one tap.",
