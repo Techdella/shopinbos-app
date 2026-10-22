@@ -20,6 +20,7 @@ import {
   checkoutPaymentSettings,
   normalizeCheckoutMethod,
   paymentChoiceText,
+  partnerPayOnDeliveryBlock,
   payOnDeliveryBlock,
   paystackSecretReady,
   readTransferAccount,
@@ -217,14 +218,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   // Korapay too, only when every naira can be split to the businesses' own Korapay split accounts.
   const paymentSettings = checkoutPaymentSettings(store.brandSettings, shippingZones, cardsReady, await storeTakesKorapay(store.id));
   const paymentContext = { city: deliveryAddress.city, state: deliveryAddress.state, total };
-  // Pay on delivery with a delivery partner is agreed per partner (both the shop and the partner opt in, spec §8).
+  // Pay on delivery with a delivery partner is agreed per partner (both the shop and the partner opt in, spec §8),
+  // and still needs the seller's own pay on delivery switch and cap (partnerPayOnDeliveryBlock, as the checkout page).
   if (paymentMethod === "pay_on_delivery" && selfParcels.length) {
     return withCors(req, apiError("BAD_REQUEST", "Pay on delivery isn't available with this delivery option. Choose another way to pay."), CHECKOUT_CORS);
   }
   const partnerPod = paymentMethod === "pay_on_delivery" && partnerParcels.length > 0;
-  if (partnerPod && !deliveryPlan?.pod) {
-    return withCors(req, apiError("BAD_REQUEST", "Pay on delivery isn't available with this delivery option. Choose another way to pay."), CHECKOUT_CORS);
-  }
+  const partnerPodBlock = partnerPod ? partnerPayOnDeliveryBlock(paymentSettings, paymentContext, deliveryPlan?.pod === true) : null;
+  if (partnerPodBlock) return withCors(req, apiError("BAD_REQUEST", partnerPodBlock), CHECKOUT_CORS);
   if (!partnerPod && !checkoutPaymentOptions(paymentSettings, paymentContext).some((option) => option.key === paymentMethod)) {
     const reason = paymentMethod === "pay_on_delivery" && paymentSettings.methods?.cod ? payOnDeliveryBlock(paymentSettings, paymentContext) : null;
     return withCors(req, apiError("BAD_REQUEST", reason ?? "This store doesn't take that payment method. Choose another way to pay."), CHECKOUT_CORS);

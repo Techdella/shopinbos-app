@@ -7,10 +7,10 @@ import { PillLink } from "@/components/app-kit";
 import { getT } from "@/lib/i18n/server";
 import { isAppSession } from "@/lib/app-session.server";
 import { creditOverview, liveCreditPrices } from "@/lib/ai/credits.server";
-import { aiAllowanceToday } from "@/lib/ai/usage";
 import { db } from "@/lib/db/client";
 import { CreditsClient } from "./CreditsClient";
 import { PromoBanner } from "@/components/pricing/PromoBanner";
+import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
 
@@ -24,14 +24,15 @@ export default async function CreditsPage({ searchParams }: { searchParams: Prom
   const current = await getCurrentAppUser();
   if (current?.role === "supplier") redirect("/supplier/credits");
   const user = await requireRole(["seller"], "/login");
+  const tipT = await getT("tips");
   const [t, workspace, overview, plan, query] = await Promise.all([
     getT("payments"),
     getSellerWorkspace(user.id),
-    creditOverview(user.id).catch(() => ({ balance: 0, autoTopUp: false, autoPackId: null, card: null, purchases: [] })),
+    creditOverview(user.id).catch(() => ({ balance: 0, planCredits: 0, bought: 0, nextExpiry: null, autoTopUp: false, autoPackId: null, card: null, purchases: [] })),
     db.user.findUnique({ where: { id: user.id }, select: { aiCredits: true } }),
     searchParams,
   ]);
-  const [allowance, prices] = await Promise.all([aiAllowanceToday(user.id, plan?.aiCredits), liveCreditPrices()]);
+  const prices = await liveCreditPrices();
 
   const inApp = await isAppSession();
 
@@ -47,12 +48,12 @@ export default async function CreditsPage({ searchParams }: { searchParams: Prom
         <p className="m-0 text-[14px] leading-[1.5]">{t("app.billingOff")}</p>
       ) : (
         <>
+          <PageTip className="mb-5">{tipT("credits")}</PageTip>
           <PromoBanner role="seller" className="mb-5" />
           <CreditsClient
             initial={overview}
             packs={prices.packs}
             costs={prices.costs}
-            allowance={allowance}
             result={query.credits === "paid" || query.credits === "failed" || query.credits === "pending" ? query.credits : null}
             resultError={query.error?.slice(0, 300) ?? null}
           />

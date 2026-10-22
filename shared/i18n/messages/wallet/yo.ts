@@ -39,7 +39,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "setup.who.supplier": "àwọn ilé ìtajà tó ń ta ọjà rẹ",
   "setup.who.logistics_partner": "àwọn ilé ìtajà tí o ń ṣe delivery fún",
   "setup.never": "Shopinbos kì í di owó rẹ mú. Tí {who} bá sanwó pẹ̀lú káàdì tàbí Korapay, owó náà á pín ní checkout, ìpín tìrẹ á sì wọ bánkì yìí tààrà, nígbà púpọ̀ ní ọjọ́ iṣẹ́ tó tẹ̀lé e. Owó Paystack á yọ kúrò nínú ìpín rẹ (ní Korapay, customer ló ń san án). Shopinbos kò gba nǹkan kan.",
-  "setup.neverFee": "Shopinbos kì í di owó rẹ mú. Tí {who} bá sanwó pẹ̀lú káàdì tàbí Korapay, owó náà á pín ní checkout, ìpín tìrẹ á sì wọ bánkì yìí tààrà, nígbà púpọ̀ ní ọjọ́ iṣẹ́ tó tẹ̀lé e. Owó Paystack á yọ kúrò nínú ìpín rẹ (ní Korapay, customer ló ń san án), bẹ́ẹ̀ náà ni owó Shopinbos ti {fee} lórí títà kọ̀ọ̀kan (kì í ṣe lórí delivery).",
+  "setup.neverFee": "Shopinbos kò mú owó rẹ dání rí. Nígbà tí {who} bá sanwó pẹ̀lú káàdì tàbí Korapay, a máa pín owó náà níbi ìsanwó, ìpín rẹ sì máa wọ inú báǹkì yìí tààrà, nígbà gbogbo ní ọjọ́ iṣẹ́ tó tẹ̀lé e. Owó Paystack máa yọ kúrò nínú ìpín rẹ (pẹ̀lú Korapay, oníbàárà ló ń san án), bẹ́ẹ̀ ni owó Shopinbos ti {fee} lórí títà kọ̀ọ̀kan fún plan rẹ (kì í ṣe lórí ìfijiṣẹ́, kì í sì í ṣe lórí ọjà dropship: commission olùpèsè ló bo ìyẹn).",
   "fee.limits": "{rate}% (ó kéré tán {min}, ó pọ̀ jù {max})",
   "fee.min": "{rate}% (ó kéré tán {min})",
   "fee.max": "{rate}% (ó pọ̀ jù {max})",
@@ -156,6 +156,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "claim.chooseOrder": "Yan order tí èyí jẹ mọ́.",
   "claim.none": "Kò sí order àìpẹ́ láti ọ̀dọ̀ supplier tàbí delivery partner tí o lè béèrè lé lórí. O lè béèrè láàrin ọjọ́ {days} lẹ́yìn delivery.",
   "claim.sent": "A ti fi ìbéèrè náà ránṣẹ́.",
+  "setup.neverCommission": "Shopinbos kò mú owó rẹ dání rí. Nígbà tí {who} bá sanwó pẹ̀lú káàdì tàbí Korapay fún ọjà rẹ, ìpín rẹ máa wọ inú báǹkì yìí tààrà, nígbà gbogbo ní ọjọ́ iṣẹ́ tó tẹ̀lé e. Commission Shopinbos ti {pct}% iye osunwọ̀n máa yọ kúrò lórí ọ̀rọ̀ọ̀kan ọjà-ńlá fún plan rẹ, pẹ̀lú ìpín rẹ nínú owó Paystack.",
 };
 
 export default yo;

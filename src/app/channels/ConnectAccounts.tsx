@@ -5,10 +5,10 @@ import { PLATFORM_NAME, type LivePlatform } from "@/lib/sales-channels/pure";
 import { ConnectCard } from "./ChannelClient";
 
 // The one-screen "Connect your accounts": the same cards on /channels, Inbox → Channels and Start here. Connect
-// once and it shows everywhere (inbox, WhatsApp catalog, Facebook & Instagram shop, Post & share).
+// once and it shows everywhere (inbox, WhatsApp catalog, Facebook & Instagram shop, Social posts).
 // `only`: which cards to show (the inbox shows WhatsApp and Facebook & Instagram); `next`: where a sign-in returns.
 
-export async function ConnectAccounts({ storeId, only, next, columns = "sm:grid-cols-2 xl:grid-cols-3" }: { storeId: string; only?: LivePlatform[]; next?: "/home/connections" | "/home/inbox/channels" | "/home/start"; columns?: string }) {
+export async function ConnectAccounts({ storeId, only, next, columns = "sm:grid-cols-2 xl:grid-cols-3" }: { storeId: string; only?: LivePlatform[]; next?: "/home/connections" | "/home/inbox/channels" | "/home/start" | "/home/marketing/social/accounts"; columns?: string }) {
   const t = await getT("social", "common");
   // Falls back to no cards rather than taking the page down; logged so the cause shows in the server logs.
   const cards = await channelCards(storeId)

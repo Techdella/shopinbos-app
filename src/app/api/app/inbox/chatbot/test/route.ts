@@ -22,7 +22,7 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
   if (!store) return apiError("NOT_FOUND", "Store not found", 404);
   const parsed = BodySchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return apiError("BAD_REQUEST", parsed.error.issues[0]?.message ?? "Write a message first");
-  const limited = await meterAi(user.id, "text");
+  const limited = await meterAi(user.id, "text", 1, "chat_reply");
   if (limited) return limited;
   const saved = await loadAutomation(store.id);
   const answer = await chatbotAnswer(store.id, normaliseChatbot({ ...parsed.data.chatbot, enabled: true }), normaliseAutoReply(saved.autoReply), parsed.data.messages);

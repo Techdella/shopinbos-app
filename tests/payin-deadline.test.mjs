@@ -231,7 +231,8 @@ test("plain words: the amber card and the partner message", () => {
 
 test("cron route, pay-in hooks, partner pickers and migration are wired up", () => {
   const cron = read("src/app/api/cron/partner-payins/route.ts");
-  assert.match(cron, /cronAuthorization\(req\.headers\.get\("authorization"\), secret\) !== "ok"/);
+  assert.match(cron, /const denied = await cronDenied\(req\);\n  if \(denied\) return denied;/, "the cron secret or a signed QStash call");
+  assert.match(read("scripts/qstash-schedules.mjs"), /\{ id: "partner-payins", path: "\/api\/cron\/partner-payins", cron: "\*\/15 \* \* \* \*" \}/);
   assert.match(cron, /runPartnerPayInSweep/);
 
   assert.match(read("src/lib/logistics/remittances.ts"), /if \(result\.ok\) await refreshPayInStandingSafely\(input\.partnerId\)/);
@@ -254,7 +255,7 @@ test("cron route, pay-in hooks, partner pickers and migration are wired up", () 
   assert.match(sql, /CREATE TABLE IF NOT EXISTS "PartnerPayInEvent"/);
   assert.match(sql, /ALTER TABLE "PartnerPayInEvent" ENABLE ROW LEVEL SECURITY/);
   assert.match(sql, /-- select cron\.schedule\(\n--   'partner-payins',\n--   '\*\/15 \* \* \* \*'/);
-  assert.match(sql, /https:\/\/shopinbos-app\.vercel\.app\/api\/cron\/partner-payins/);
+  assert.match(sql, /https:\/\/app\.shopinbos\.com\/api\/cron\/partner-payins/);
   assert.match(sql, /name = 'cron_secret'/);
   assert.doesNotMatch(sql, /^\s*(DROP|DELETE|TRUNCATE)\b/im);
 });

@@ -10,7 +10,7 @@ import { Icon } from "@/components/ui/Icon";
 import { formatStoreMoney } from "@/lib/storefront/shopper-info";
 import type { ShopperTheme } from "@/components/storefront/shopper/theme";
 import type { MarketOption } from "@shared/delivery-market";
-import { checkoutPaymentOptions, type CheckoutPaymentContext, type CheckoutPaymentOption, type CheckoutPaymentSettings } from "@shared/checkout-payments";
+import { checkoutPaymentOptions, partnerPayOnDeliveryBlock, payOnDeliveryOption, type CheckoutPaymentContext, type CheckoutPaymentOption, type CheckoutPaymentSettings } from "@shared/checkout-payments";
 
 /** The quote API's `delivery` (src/app/api/public/store/[slug]/checkout/quote). */
 export interface QuotedDelivery {
@@ -47,18 +47,17 @@ export const isPartnerOption = (option: Pick<MarketOption, "kind">) => option.ki
 export const hasPartnerParcels = (option: Pick<MarketOption, "parts"> | null | undefined) =>
   Array.isArray(option?.parts) && option.parts.some((part) => !!part.partnerId && !!part.connectionId);
 
-const POD_OPTION = checkoutPaymentOptions({ methods: { cod: true }, paystackReady: false, korapayReady: false, transferReady: false, codLimit: null, zones: [] })[0]!;
-
 /**
  * The ways to pay with delivery partners, as the checkout API accepts them: with a partner option, pay on delivery
- * only when that option allows it (the shop and the partner both opted in); with pickup from the seller or the
- * seller's fallback delivery, the store's own pay-on-delivery rules. No option yet: no pay on delivery.
+ * only when the seller has it switched on, the order is within the seller's cap and that option allows it (the shop
+ * and the partner both opted in): partnerPayOnDeliveryBlock. With pickup from the seller or the seller's fallback
+ * delivery, the store's own pay-on-delivery rules. No option yet: no pay on delivery.
  */
 export function partnerPaymentOptions(settings: CheckoutPaymentSettings, context: CheckoutPaymentContext, option: Pick<MarketOption, "kind" | "pod"> | null): CheckoutPaymentOption[] {
   const store = checkoutPaymentOptions(settings, context);
   if (option && !isPartnerOption(option)) return store;
   const rest = store.filter((entry) => entry.key !== "pay_on_delivery");
-  return option?.pod ? [...rest, POD_OPTION] : rest;
+  return option && !partnerPayOnDeliveryBlock(settings, context, option.pod === true) ? [...rest, payOnDeliveryOption()] : rest;
 }
 
 /** Why the shopper can't go on with delivery yet (partners mode), or null. */
@@ -86,6 +85,7 @@ export function PartnerDeliveryChoices({
   onSelect,
   currency,
   preview = false,
+  payOnDelivery = true,
   name = "deliveryOption",
   id = "co-deliveryOption",
   area = null,
@@ -107,6 +107,8 @@ export function PartnerDeliveryChoices({
   currency: string;
   /** Owner preview: nothing is quoted, so say where the options will come from. */
   preview?: boolean;
+  /** The seller has pay on delivery switched on; when off, no option says pay on delivery is available. */
+  payOnDelivery?: boolean;
   name?: string;
   id?: string;
 }) {
@@ -132,14 +134,16 @@ export function PartnerDeliveryChoices({
   const selected = selectedOptionId && delivery.options.some((option) => option.id === selectedOptionId) ? selectedOptionId : delivery.options[0]!.id;
   const main = delivery.options.filter((option) => option.kind !== "pickup_point");
   const points = sortPointsByDistance(delivery.options.filter((option) => option.kind === "pickup_point"));
-  const card = (option: MarketOption) => <OptionCard key={option.id} theme={theme} option={option} name={name} checked={selected === option.id} onSelect={() => onSelect(option.id)} currency={currency} />;
-  const podOffered = payOnDeliveryOffered(delivery.options, storePayOnDelivery);
+  // A partner option offers pay on delivery only when the seller has pay on delivery switched on too.
+  const withPod = <T extends Pick<MarketOption, "pod">>(option: T): T => ({ ...option, pod: payOnDelivery && option.pod });
+  const card = (option: MarketOption) => <OptionCard key={option.id} theme={theme} option={option} pod={payOnDelivery && option.pod} name={name} checked={selected === option.id} onSelect={() => onSelect(option.id)} currency={currency} />;
+  const podOffered = payOnDeliveryOffered(delivery.options.map(withPod), storePayOnDelivery);
   return (
     <div className="grid gap-2.5" id={id} tabIndex={-1}>
       {area ? <p className="m-0 text-[14px] font-semibold">To {area}</p> : null}
       {delivery.reason ? <p className="m-0 text-[13.5px]" style={{ color: theme.muted }}>{delivery.reason}</p> : null}
       {main.map(card)}
-      {points.length ? <PickupPointCard theme={theme} points={points} name={name} selectedOptionId={selected} onSelect={onSelect} currency={currency} /> : null}
+      {points.length ? <PickupPointCard theme={theme} points={points.map(withPod)} name={name} selectedOptionId={selected} onSelect={onSelect} currency={currency} /> : null}
       {podOffered ? null : <p className="m-0 text-[13px]" style={{ color: theme.muted }}>Pay on delivery isn&apos;t offered for this order.</p>}
     </div>
   );
@@ -274,7 +278,7 @@ function PointSheet({ theme, points, selectedOptionId, currency, onPick, onClose
   );
 }
 
-function OptionCard({ theme, option, name, checked, onSelect, currency }: { theme: ShopperTheme; option: MarketOption; name: string; checked: boolean; onSelect: () => void; currency: string }) {
+function OptionCard({ theme, option, pod, name, checked, onSelect, currency }: { theme: ShopperTheme; option: MarketOption; pod: boolean; name: string; checked: boolean; onSelect: () => void; currency: string }) {
   const point = option.kind === "pickup_point" ? option.point : undefined;
   const title = point ? point.name : option.name;
   // Pickup points: the address (and the partner, when the seller shows it); the opening hours on their own line.
@@ -287,7 +291,7 @@ function OptionCard({ theme, option, name, checked, onSelect, currency }: { them
         {lines.map((line, index) => (
           <span key={index} className="block text-[13px] leading-5" style={{ color: theme.muted }}>{line}</span>
         ))}
-        {option.pod ? (
+        {pod ? (
           <span className="mt-1.5 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[12px] font-semibold" style={{ background: theme.paper, color: theme.ink }}>
             <Icon name="check" size={11} /> Pay on delivery available
           </span>

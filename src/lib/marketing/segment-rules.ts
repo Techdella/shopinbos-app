@@ -175,6 +175,25 @@ export function matchesSegment(contact: MarketingContact, rules: SegmentRules, n
     : rules.conditions.every((condition) => matchesCondition(contact, condition, now));
 }
 
+/**
+ * How many contacts each segment holds, from one list of contacts (one loadContacts call for every segment).
+ * Returns id → count.
+ */
+export function countSegments(contacts: MarketingContact[], segments: Array<{ id: string; rules: SegmentRules }>, now = new Date()) {
+  const counts: Record<string, number> = {};
+  for (const segment of segments) {
+    let count = 0;
+    for (const contact of contacts) if (matchesSegment(contact, segment.rules, now)) count += 1;
+    counts[segment.id] = count;
+  }
+  return counts;
+}
+
+/** The segments whose cached count differs from a fresh one, with the new count (to write back). */
+export function staleSegmentCounts(segments: Array<{ id: string; count: number }>, counts: Record<string, number>) {
+  return segments.filter((s) => s.id in counts && counts[s.id] !== s.count).map((s) => ({ id: s.id, count: counts[s.id] }));
+}
+
 /** "Total spent is at least ₦50,000" — for lists, previews and Peggy. */
 export function describeCondition(condition: SegmentCondition, money: (n: number) => string = (n) => `₦${n.toLocaleString("en-NG")}`) {
   const field = SEGMENT_FIELDS[condition.field];

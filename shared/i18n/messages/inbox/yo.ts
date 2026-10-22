@@ -276,7 +276,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "ch.manageForms": "Ṣàkóso fọ́ọ̀mù",
   "ch.tiktok": "Ìfiránṣẹ́ TikTok",
   "ch.notAvailable": "Ó ń bọ̀ láìpẹ́",
-  "ch.tiktokBody": "TikTok kò tíì ṣí sílẹ̀ fún àwọn olùtajà Nàìjíríà. Fún báyìí, fèsì nínú app TikTok kí o sì fi WhatsApp tàbí link ṣọ́ọ̀bù rẹ sínú bio rẹ. O ṣì lè post sí TikTok láti Sell everywhere → Post & share.",
+  "ch.tiktokBody": "TikTok kò tíì ṣí sílẹ̀ fún àwọn olùtajà Nàìjíríà. Fún báyìí, fèsì nínú app TikTok kí o sì fi WhatsApp tàbí link ṣọ́ọ̀bù rẹ sínú bio rẹ. O ṣì lè post sí TikTok láti Marketing → Social posts.",
   "ch.connectYours": "So àwọn channel rẹ pọ̀",
   "ch.connectedCount": "{count} ti so pọ̀",
   "ch.toConnect": "Channels láti so pọ̀",
@@ -780,7 +780,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "email.card.blurb": "Fi email ránṣẹ́ sí àwọn oníbàárà láti àdírẹ́sì tìrẹ tàbí Gmail, kí o sì rí èsì wọn níbí.",
   "email.card.manage": "Ṣàkóso email",
   "email.card.connect": "So email pọ̀",
-  "ch.connectOnce": "So pọ̀ lẹ́ẹ̀kan, á sì ṣiṣẹ́ níbi gbogbo nínú Shopinbos: inbox rẹ, Peggy, àwọn ọjà rẹ àti Post & share.",
+  "ch.connectOnce": "So pọ̀ lẹ́ẹ̀kan, á sì ṣiṣẹ́ níbi gbogbo nínú Shopinbos: inbox rẹ, Peggy, àwọn ọjà rẹ àti Social posts.",
   "ch.more": "Àwọn ọ̀nà míì tí oníbàárà lè gbà kàn sí ọ",
   "ch.moreHint": "{count, plural, =0 {SMS, ìpè fóònù àti Telegram. Tẹ ọ̀kan, a ó sì ṣètò rẹ̀ fún ọ.} one {# ti so pọ̀} other {# ti so pọ̀}}",
   "cat.connectOnce": "Títẹ̀ kan: wọlé pẹ̀lú Facebook kí o sì yan nọ́mbà WhatsApp rẹ.",
@@ -856,11 +856,14 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "wa.moreSettings": "Ètò Peggy",
   "wa.moreSettingsHint": "Ọjà, àṣẹ, ìgbà tó ń dáhùn, ohùn àti ìkíni",
   "cat.oneSub": "Àwọn oníbàárà á rí ọjà rẹ nínú ìjíròrò WhatsApp rẹ, wọ́n sì lè fi wọ́n sínú kẹ̀kẹ́.",
+  "cat.settingUp": "À ń ṣètò catalog WhatsApp rẹ, a sì ń fi àwọn ọjà rẹ ránṣẹ́. Ó máa gba bí ìṣẹ́jú kan.",
   "cat.oneClick": "So WhatsApp pọ̀ kí o sì fi ọjà mi hàn",
   "cat.oneClickSub": "Fèrèsé Facebook kan máa ṣí. Wọlé kí o yan nọ́mbà rẹ; a máa ṣètò catalog, a sì máa fi ọjà rẹ ránṣẹ́.",
   "ch.helpTitle": "So {title} pọ̀",
   "ch.helpDesc": "A máa so {title} mọ́ inbox rẹ fún ọ, a ó sì kọ̀wé sí ọ nígbà tó bá ń ṣiṣẹ́.",
   "ch.askUs": "Ní kí a so ó pọ̀",
+  "bot.monthlyCap": "Ìdáhùn AI tó pọ̀ jù lóṣù",
+  "bot.monthlyCapHelp": "Ìdáhùn kọ̀ọ̀kan tí Peggy kọ pẹ̀lú AI ń lo kirẹ́dítì AI rẹ (live chat àti WhatsApp papọ̀). Tí ó bá dé iye yìí, tàbí tí kirẹ́dítì rẹ bá tán, ìfiránṣẹ́ àìsí rẹ àti ìdáhùn kíákíá ni yóò dáhùn dípò. 0 túmọ̀ sí kò sí òpin.",
 };
 
 export default yo;

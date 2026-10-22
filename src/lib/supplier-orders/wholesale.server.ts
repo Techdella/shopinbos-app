@@ -104,7 +104,7 @@ export async function placeWholesaleOrder(input: PlaceWholesaleInput): Promise<S
     dedupeKey: `supplier_order.new:wholesale:${order.id}`,
   }).catch(() => null);
 
-  void messageSupplierPhone(product.supplierId, `Shopinbos: a shop wants ${input.quantity.toLocaleString("en-NG")} × ${plainText(product.name, 60)} (${money(totalPrice, product.currency)}). Accept it within ${deadline.words} in the app.`);
+  await messageSupplierPhone(product.supplierId, `Shopinbos: a shop wants ${input.quantity.toLocaleString("en-NG")} × ${plainText(product.name, 60)} (${money(totalPrice, product.currency)}). Accept it within ${deadline.words} in the app.`);
 
   return { ok: true, data: order };
 }

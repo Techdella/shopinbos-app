@@ -71,7 +71,7 @@ export async function WalletPanel({ view, role, ownerName, orderHref }: { view: 
         </section>
       ) : null}
       <p className="m-0 border-t border-app-line pt-4 text-[12.5px] leading-[1.5] text-app-ink-soft">
-        {view.fee ? t("setup.neverFee", { who, fee: feeText(view.fee, t) }) : t("setup.never", { who })}
+        {view.fee ? t("setup.neverFee", { who, fee: feeText(view.fee, t) }) : view.commissionPct ? t("setup.neverCommission", { who, pct: view.commissionPct }) : t("setup.never", { who })}
       </p>
     </Card>
   );

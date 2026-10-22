@@ -179,6 +179,11 @@ test("the builder preview uses the store's own products, or a marked sample bag"
   assert.ok(sample.lines.length > 0 && sample.lines.every((line) => /sample/i.test(line.name)));
   assert.deepEqual(co.previewPaymentMethods({ paymentLabels: ["Card", "USSD"], payOnDelivery: true }), { card: true, transfer: false, cod: true });
   assert.equal(co.previewPaymentMethods({ paymentLabels: [], payOnDelivery: false }), null);
+  // With the store's settings loaded, the preview shows the seller's own choices, Korapay included.
+  const brandSettings = { paymentConfig: { methods: { card: false, korapay: true, transfer: true, cod: false, wa: true } } };
+  assert.deepEqual(co.previewPaymentMethods({ paymentLabels: ["Card", "Transfer"], payOnDelivery: false }, brandSettings), brandSettings.paymentConfig.methods);
+  assert.deepEqual(co.previewPaymentMethods({ paymentLabels: ["Card"], payOnDelivery: false }, {}), { card: true, transfer: false, cod: false }, "nothing saved: the labels");
+  assert.match(read("src/components/storefront/checkout/CheckoutPreview.tsx"), /previewPaymentMethods\(info, store\.brandSettings\)/);
 });
 
 test("builder fields for the checkout section match what the layout draws", () => {

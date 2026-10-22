@@ -22,6 +22,7 @@ import {
   type TemplateId,
 } from "@/lib/cms/fields";
 import { summarize } from "@/lib/cms/richtext";
+import { ITEM_LAYOUTS, ITEM_LAYOUT_KEY, LIST_LAYOUTS, isItemLayout, isListLayout } from "@/lib/cms/layouts";
 import { cleanSeo } from "@/lib/seo/fields";
 
 // CMS collections on the server: the seller's collections and items (always scoped to their own store),
@@ -43,9 +44,12 @@ export async function sellerStore(userId: string) {
 export function collectionSettings(raw: unknown) {
   const r = rec(raw);
   return {
-    layout: r.layout === "list" ? ("list" as const) : ("grid" as const),
+    layout: isListLayout(r.layout) ? r.layout : ("grid" as const),
+    itemLayout: isItemLayout(r.itemLayout) ? r.itemLayout : ("classic" as const),
     sort: (["newest", "oldest", "title", "manual"] as const).includes(r.sort as "newest") ? (r.sort as "newest" | "oldest" | "title" | "manual") : ("newest" as const),
     legacyImported: Array.isArray(r.legacyImported) ? r.legacyImported.map(String) : [],
+    /** The seller went through (or skipped) the set-up shown after the first item. */
+    setupDone: r.setupDone === true,
   };
 }
 
@@ -119,7 +123,9 @@ export const CollectionUpdateSchema = z.object({
   description: z.string().trim().max(500).optional(),
   itemLabel: z.string().trim().min(1).max(40).optional(),
   fields: z.array(z.unknown()).max(40).optional(),
-  layout: z.enum(["grid", "list"]).optional(),
+  layout: z.enum(LIST_LAYOUTS).optional(),
+  itemLayout: z.enum(ITEM_LAYOUTS).optional(),
+  setupDone: z.boolean().optional(),
   sort: z.enum(["newest", "oldest", "title", "manual"]).optional(),
   isPublished: z.boolean().optional(),
   seo: z.record(z.string(), z.unknown()).optional(),
@@ -188,8 +194,14 @@ export async function updateCollection(storeId: string, id: string, input: z.inp
     if (!result.ok) throw new CmsError(result.error);
     data.fields = json(result.fields);
   }
-  if (parsed.layout !== undefined || parsed.sort !== undefined) {
-    data.settings = json({ ...rec(collection.settings), ...(parsed.layout ? { layout: parsed.layout } : {}), ...(parsed.sort ? { sort: parsed.sort } : {}) });
+  if (parsed.layout !== undefined || parsed.itemLayout !== undefined || parsed.sort !== undefined || parsed.setupDone !== undefined) {
+    data.settings = json({
+      ...rec(collection.settings),
+      ...(parsed.layout ? { layout: parsed.layout } : {}),
+      ...(parsed.itemLayout ? { itemLayout: parsed.itemLayout } : {}),
+      ...(parsed.sort ? { sort: parsed.sort } : {}),
+      ...(parsed.setupDone !== undefined ? { setupDone: parsed.setupDone } : {}),
+    });
   }
   return db.cmsCollection.update({ where: { id }, data });
 }
@@ -223,6 +235,8 @@ export const ItemSaveSchema = z.object({
   data: z.record(z.string(), z.unknown()).default({}),
   seo: z.record(z.string(), z.unknown()).optional(),
   sortOrder: z.number().int().min(0).max(100000).optional(),
+  // This item's page layout; "default" follows the collection, leaving it out keeps what the item had.
+  layout: z.enum([...ITEM_LAYOUTS, "default"]).optional(),
 });
 
 export type ItemSaveInput = z.input<typeof ItemSaveSchema>;
@@ -274,13 +288,18 @@ export async function saveItem(
     author: body.author ?? existing?.author ?? "",
     featuredImage,
     excerpt,
-    data: json(values.data),
+    data: json(withItemLayout(values.data, body.layout, existing?.data)),
     seo: json(cleanSeo(body.seo ?? existing?.seo ?? {})),
     ...(body.sortOrder !== undefined ? { sortOrder: body.sortOrder } : {}),
   };
   if (existing) return db.cmsItem.update({ where: { id: existing.id }, data });
   const count = await db.cmsItem.count({ where: { collectionId } });
   return db.cmsItem.create({ data: { ...data, storeId, collectionId, createdBy: options.createdBy ?? "seller", sortOrder: body.sortOrder ?? count } });
+}
+
+function withItemLayout(values: Record<string, unknown>, layout: string | undefined, previous: unknown) {
+  const chosen = layout === undefined ? rec(previous)[ITEM_LAYOUT_KEY] : layout;
+  return isItemLayout(chosen) ? { ...values, [ITEM_LAYOUT_KEY]: chosen } : values;
 }
 
 export async function getItem(storeId: string, id: string) {
@@ -331,7 +350,7 @@ export async function loadStorefrontItem(storeSlug: string, collectionSlug: stri
   const siblings = await db.cmsItem.findMany({
     where: { collectionId: collection.id, id: { not: item.id }, ...liveItemWhere() },
     orderBy: itemOrderBy(settings.sort),
-    take: 3,
+    take: 6,
     select: { id: true, title: true, slug: true, excerpt: true, featuredImage: true, publishedAt: true, createdAt: true },
   });
   return { store, collection, item, fields, settings, siblings };

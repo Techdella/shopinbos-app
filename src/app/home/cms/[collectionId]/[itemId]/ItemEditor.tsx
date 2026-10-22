@@ -3,15 +3,19 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
-import { Notice, PillButton, Segmented, Spinner, cx } from "@/components/app-ui";
+import { Notice, PillButton, Segmented, cx } from "@/components/app-ui";
 import { Pill } from "@/components/app-kit";
 import { SeoTab } from "@/components/seo/SeoTab";
-import { uploadCmsFile } from "@/components/cms/pickers";
 import { MediaLibraryDialog } from "@/components/media/MediaLibraryDialog";
 import { mainRichField, slugError, slugify, type CmsField, type RichValue } from "@/lib/cms/fields";
 import { docImages, firstParagraphText, plainText, summarize } from "@/lib/cms/richtext";
 import { normalizeSeo, type SeoFields } from "@/lib/seo/fields";
 import { FieldInput } from "./FieldInput";
+import { LayoutPicker } from "../../LayoutPicker";
+import { itemLayoutOptions } from "../CollectionSettings";
+import { ITEM_LAYOUT_KEY, isItemLayout, type ItemLayout, type ListLayout } from "@/lib/cms/layouts";
+import { Modal } from "@/components/cms/pickers";
+import { CollectionSetup, type MenuState } from "../../CollectionSetup";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import { formatDate } from "@shared/i18n";
 
@@ -43,7 +47,11 @@ function toLocalInput(iso: string | null) {
 }
 
 export function ItemEditor(props: {
-  collection: { id: string; name: string; slug: string; itemLabel: string; template: string; isPublished: boolean };
+  collection: { id: string; name: string; slug: string; itemLabel: string; template: string; isPublished: boolean; itemLayout: ItemLayout; layout: ListLayout; description: string; setupDone: boolean };
+  /** Where the collection shows in the store's menus. */
+  menu: MenuState;
+  /** Open the collection set-up (after the first item was saved). */
+  setup?: boolean;
   fields: CmsField[];
   item: EditorItem;
   storeOrigin: string;
@@ -63,8 +71,12 @@ export function ItemEditor(props: {
   const [busy, setBusy] = useState<"" | "draft" | "publish">("");
   const [notice, setNotice] = useState<{ tone: "error" | "success" | "info"; text: string } | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [uploading, setUploading] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false);
+  const [setupOpen, setSetupOpen] = useState(Boolean(props.setup));
+  const [rexOpen, setRexOpen] = useState(false);
+  const [rexBrief, setRexBrief] = useState("");
+  const [rexBusy, setRexBusy] = useState(false);
+  const [rexError, setRexError] = useState("");
   const tm = useT("media");
   const saved = useRef(JSON.stringify({ item: props.item, seo: normalizeSeo(props.item.seo) }));
   const dirty = JSON.stringify({ item, seo }) !== saved.current;
@@ -87,7 +99,7 @@ export function ItemEditor(props: {
   const slug = slugTouched ? item.slug : item.slug || slugify(item.title);
   const slugProblem = slug ? slugError(slug) : null;
   const live = item.status === "published" || (item.status === "scheduled" && item.publishAt && new Date(item.publishAt) <= new Date());
-  const viewHref = `/s/${props.storeSlug}/${props.collection.slug}/${slug}`;
+  const viewHref = `${props.storeOrigin}/${props.collection.slug}/${slug}`;
 
   const set = (patch: Partial<EditorItem>) => setItem((current) => ({ ...current, ...patch }));
   const setValue = (key: string, value: unknown) => setItem((current) => ({ ...current, data: { ...current.data, [key]: value } }));
@@ -115,6 +127,7 @@ export function ItemEditor(props: {
       featuredImage: item.featuredImage,
       excerpt: item.excerpt,
       data: item.data,
+      layout: isItemLayout(item.data[ITEM_LAYOUT_KEY]) ? item.data[ITEM_LAYOUT_KEY] : "default",
       seo,
       sortOrder: item.sortOrder,
     };
@@ -143,7 +156,9 @@ export function ItemEditor(props: {
         tone: "success",
         text: nextStatus === "published" ? t("ed.published") : nextStatus === "scheduled" ? t("ed.scheduledFor", { date: formatDate(item.publishAt!, locale, { dateStyle: "medium", timeStyle: "short" }) }) : t("ed.savedDraft"),
       });
-      if (!item.id) router.replace(`/home/cms/${props.collection.id}/${json.data.id}`);
+      // The first item in a collection that isn't set up or in a menu yet: offer the set-up (style, menu).
+      const offerSetup = !props.collection.setupDone && !props.menu.header && !props.menu.footer;
+      if (!item.id) router.replace(`/home/cms/${props.collection.id}/${json.data.id}${offerSetup ? "?setup=1" : ""}`);
       else router.refresh();
     } catch {
       setNotice({ tone: "error", text: t("ed.network") });
@@ -152,16 +167,27 @@ export function ItemEditor(props: {
     }
   }
 
-  async function uploadFeatured(file: File | undefined) {
-    if (!file) return;
-    setUploading(true);
+  async function writeWithRex() {
+    setRexBusy(true);
+    setRexError("");
     try {
-      const uploaded = await uploadCmsFile(file);
-      set({ featuredImage: uploaded.url });
+      const res = await fetch(`/api/app/cms/collections/${props.collection.id}/write`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ brief: rexBrief, ...(item.title.trim() ? { title: item.title.trim() } : {}) }),
+      });
+      const json = (await res.json().catch(() => null)) as { data?: { title: string; excerpt: string; data: Record<string, unknown>; seo: Partial<SeoFields> }; error?: { message?: string } } | null;
+      if (!res.ok || !json?.data) throw new Error(json?.error?.message ?? t("rex.failed"));
+      const written = json.data;
+      setItem((current) => ({ ...current, title: current.title.trim() || written.title, excerpt: written.excerpt || current.excerpt, data: { ...current.data, ...written.data } }));
+      setSeo((current) => ({ ...current, ...Object.fromEntries(Object.entries(written.seo).filter(([, value]) => Boolean(value))) }));
+      setRexOpen(false);
+      setTab("content");
+      setNotice({ tone: "info", text: t("rex.draftIn") });
     } catch (e) {
-      setNotice({ tone: "error", text: e instanceof Error ? e.message : t("ed.uploadError") });
+      setRexError(e instanceof Error ? e.message : t("rex.failed"));
     } finally {
-      setUploading(false);
+      setRexBusy(false);
     }
   }
 
@@ -193,6 +219,9 @@ export function ItemEditor(props: {
           ))}
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <button type="button" onClick={() => { setRexBrief(rexBrief || item.title); setRexOpen(true); }} className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-app-line bg-white px-4 text-[14px] font-bold text-app-ink hover:border-app-line-strong">
+            <Icon name="sparkle" size={15} /> {t("rex.writeWith")}
+          </button>
           <Pill tone={live ? "success" : item.status === "scheduled" ? "info" : "muted"} dot>{live ? t("status.live") : item.status === "scheduled" ? t("status.scheduled") : t("status.draft")}</Pill>
           {item.id && live && props.collection.isPublished && (
             <a href={viewHref} target="_blank" rel="noreferrer" className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-app-line bg-white px-4 text-[14px] font-bold text-app-ink no-underline hover:border-app-line-strong"><Icon name="eye" size={15} /> {t("view")}</a>
@@ -223,7 +252,7 @@ export function ItemEditor(props: {
           </div>
           {props.fields.length === 0 && <p className="m-0 text-[14px] text-app-ink-soft">{t("ed.noFields")}</p>}
           {props.fields.map((field) => (
-            <FieldInput key={field.id} field={field} value={item.data[field.key]} onChange={(value) => setValue(field.key, value)} error={errors[field.key]} collections={props.collections} />
+            <FieldInput key={field.id} field={field} value={item.data[field.key]} onChange={(value) => setValue(field.key, value)} error={errors[field.key]} collections={props.collections} rex={{ title: item.title, collection: props.collection.name }} />
           ))}
         </section>
       </div>
@@ -275,6 +304,16 @@ export function ItemEditor(props: {
             <label htmlFor="item-excerpt" className="mb-1.5 block text-[13.5px] font-bold">{t("ed.summary")} <span className="block text-[12.5px] font-normal text-app-ink-soft">{t("ed.summaryHelp")}</span></label>
             <textarea id="item-excerpt" rows={3} className={cx(input, "resize-y py-2.5")} value={item.excerpt} maxLength={500} onChange={(e) => set({ excerpt: e.target.value })} />
           </div>
+          <LayoutPicker
+            legend={t("ed.layout")}
+            help={t("ed.layoutHelp")}
+            value={isItemLayout(item.data[ITEM_LAYOUT_KEY]) ? (item.data[ITEM_LAYOUT_KEY] as ItemLayout | "default") : "default"}
+            onChange={(next) => setValue(ITEM_LAYOUT_KEY, next === "default" ? undefined : next)}
+            options={[
+              { value: "default" as const, label: t("ed.layoutDefault"), help: itemLayoutOptions(t).find((option) => option.value === props.collection.itemLayout)?.label },
+              ...itemLayoutOptions(t),
+            ]}
+          />
           <div>
             <label htmlFor="item-order" className="mb-1.5 block text-[13.5px] font-bold">{t("ed.position")} <span className="block text-[12.5px] font-normal text-app-ink-soft">{t("ed.positionHelp")}</span></label>
             <input id="item-order" type="number" min={0} className={cx(input, "sm:max-w-[160px]")} value={item.sortOrder} onChange={(e) => set({ sortOrder: Math.max(0, Number(e.target.value) || 0) })} />
@@ -284,19 +323,17 @@ export function ItemEditor(props: {
         <section className="grid content-start gap-3 rounded-[22px] border border-app-line bg-white p-4 sm:p-6">
           <h2 className="m-0 text-[16px] font-extrabold">{t("ed.featured")}</h2>
           <p className="m-0 text-[13px] text-app-ink-soft">{t("ed.featuredHelp", { label })}</p>
-          {item.featuredImage ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={item.featuredImage} alt="" className="aspect-[16/9] w-full rounded-[16px] border border-app-line object-cover" />
-          ) : (
-            <div className="grid aspect-[16/9] w-full place-items-center rounded-[16px] border border-dashed border-app-line-strong bg-app-canvas text-[13.5px] text-app-ink-soft">{t("ed.noPicture")}</div>
-          )}
+          <button type="button" onClick={() => setLibraryOpen(true)} aria-label={item.featuredImage ? t("ed.replace") : tm("field.choose")} className="block w-full overflow-hidden rounded-[16px] p-0">
+            {item.featuredImage ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={item.featuredImage} alt="" className="aspect-[16/9] w-full rounded-[16px] border border-app-line object-cover" />
+            ) : (
+              <span className="grid aspect-[16/9] w-full place-items-center rounded-[16px] border border-dashed border-app-line-strong bg-app-canvas text-[13.5px] text-app-ink-soft">{t("ed.noPicture")}</span>
+            )}
+          </button>
           <div className="flex flex-wrap gap-2">
-            <label className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full border border-app-line bg-white px-4 text-[13.5px] font-bold hover:border-app-line-strong focus-within:border-app-ink">
-              {uploading ? <Spinner className="h-4 w-4" /> : <Icon name="upload" size={15} />} {item.featuredImage ? t("ed.replace") : t("ed.upload")}
-              <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="sr-only" onChange={(e) => void uploadFeatured(e.target.files?.[0])} />
-            </label>
             <button type="button" onClick={() => setLibraryOpen(true)} className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-app-line bg-white px-4 text-[13.5px] font-bold hover:border-app-line-strong">
-              <Icon name="grid" size={15} /> {tm("field.choose")}
+              <Icon name={item.featuredImage ? "refresh" : "grid"} size={15} /> {item.featuredImage ? t("ed.replace") : tm("field.choose")}
             </button>
             {item.featuredImage && <button type="button" onClick={() => set({ featuredImage: null })} className="inline-flex min-h-[44px] items-center gap-2 rounded-full px-4 text-[13.5px] font-bold text-app-danger hover:bg-app-danger-tint"><Icon name="trash" size={15} /> {t("ed.remove")}</button>}
           </div>
@@ -307,6 +344,30 @@ export function ItemEditor(props: {
           ) : null}
         </section>
       </div>
+      {rexOpen && (
+        <Modal
+          title={t("rex.writeWith")}
+          wide
+          onClose={() => !rexBusy && setRexOpen(false)}
+          footer={<PillButton tone="ink" size="sm" busy={rexBusy} disabled={rexBrief.trim().length < 3} onClick={() => void writeWithRex()}>{t("rex.writeDraft")}</PillButton>}
+        >
+          <label htmlFor="rex-brief" className="mb-1.5 block text-[13.5px] font-bold">{t("rex.briefLabel", { label })} <span className="block text-[12.5px] font-normal text-app-ink-soft">{t("rex.briefHelp")}</span></label>
+          <textarea id="rex-brief" rows={5} maxLength={1500} className={cx(input, "resize-y py-2.5")} value={rexBrief} placeholder={t("rex.briefPh")} onChange={(e) => setRexBrief(e.target.value)} />
+          {mainDoc && plainText(mainDoc).trim() && <p className="m-0 mt-2 text-[12.5px] text-app-ink-soft">{t("rex.replaces")}</p>}
+          {rexError && <p className="m-0 mt-2 text-[13px] text-app-danger" role="alert">{rexError}</p>}
+        </Modal>
+      )}
+      {setupOpen && (
+        <CollectionSetup
+          collection={{ id: props.collection.id, name: props.collection.name, description: props.collection.description, itemLabel: props.collection.itemLabel, layout: props.collection.layout, itemLayout: props.collection.itemLayout, isPublished: props.collection.isPublished }}
+          menu={props.menu}
+          onClose={() => {
+            setSetupOpen(false);
+            router.replace(`/home/cms/${props.collection.id}/${item.id}`);
+            router.refresh();
+          }}
+        />
+      )}
     </div>
   );
 }

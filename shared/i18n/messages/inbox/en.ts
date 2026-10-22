@@ -288,7 +288,7 @@ const en = {
   "ch.manageForms": "Manage forms",
   "ch.tiktok": "TikTok messages",
   "ch.notAvailable": "Coming soon",
-  "ch.tiktokBody": "TikTok isn't open to Nigerian sellers yet. For now, reply in the TikTok app and put your WhatsApp or shop link in your bio. You can still post to TikTok from Sell everywhere → Post & share.",
+  "ch.tiktokBody": "TikTok isn't open to Nigerian sellers yet. For now, reply in the TikTok app and put your WhatsApp or shop link in your bio. You can still post to TikTok from Marketing → Social posts.",
   "ch.connectYours": "Connect your channels",
   "ch.connectedCount": "{count} connected",
   "ch.toConnect": "Channels to connect",
@@ -855,7 +855,7 @@ const en = {
   "email.card.blurb": "Email customers from your own address or Gmail, and see their replies here.",
   "email.card.manage": "Manage email",
   "email.card.connect": "Connect email",
-  "ch.connectOnce": "Connect once and it works everywhere in Shopinbos: your inbox, Peggy, your products and Post & share.",
+  "ch.connectOnce": "Connect once and it works everywhere in Shopinbos: your inbox, Peggy, your products and Social posts.",
   "ch.more": "More ways customers can reach you",
   "ch.moreHint": "{count, plural, =0 {SMS, phone calls and Telegram. Tap one and we'll set it up for you.} one {# connected} other {# connected}}",
   "cat.connectOnce": "One tap: log in with Facebook and pick your WhatsApp number.",
@@ -871,11 +871,14 @@ const en = {
   "wa.moreSettings": "Peggy's settings",
   "wa.moreSettingsHint": "Products, orders, when she answers, tone and greeting",
   "cat.oneSub": "Customers see your products in your WhatsApp chat and can add them to a cart.",
+  "cat.settingUp": "Setting up your WhatsApp catalog and sending your products. This takes about a minute.",
   "cat.oneClick": "Connect WhatsApp and show my products",
   "cat.oneClickSub": "A Facebook window opens. Log in and pick your number; we set up the catalog and send your products.",
   "ch.helpTitle": "Connect {title}",
   "ch.helpDesc": "We'll connect {title} to your inbox for you and message you when it's working.",
   "ch.askUs": "Ask us to connect it",
+  "bot.monthlyCap": "Most AI replies a month",
+  "bot.monthlyCapHelp": "Each reply Peggy writes with AI uses your AI credits (live chat and WhatsApp together). When she reaches this number, or your credits run out, your away message and quick replies answer instead. 0 means no limit.",
 } satisfies Record<string, string>;
 
 export default en;

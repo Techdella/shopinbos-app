@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-// Social selling lives at /channels (catalog feeds, tagged links, the post composer and per-channel results).
+// Posting lives at Marketing > Social posts (calendar, queue, one-tap posts); marketplaces at /channels.
 export default function SocialHubRedirect() {
-  redirect("/channels");
+  redirect("/home/marketing/social");
 }

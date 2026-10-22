@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { productLimitProblem } from "@/lib/plans/gates.server";
 import { withSeller } from "@/lib/auth/middleware";
 import { db } from "@/lib/db/client";
 import { ok, apiError } from "@/lib/api/response";
@@ -34,6 +35,8 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
   const gate = await listingCheck(user.id, supplierProduct.supplierId);
   if (!gate.ok) return apiError(gate.code, gate.message, 409);
 
+  const planLimit = await productLimitProblem(user.id, store.id, 1, true);
+  if (planLimit) return apiError("PLAN_LIMIT", planLimit, 402);
   const costPrice = supplierProduct.wholesalePrice;
   const margin = Math.round(((retailPrice - costPrice) / retailPrice) * 100);
 

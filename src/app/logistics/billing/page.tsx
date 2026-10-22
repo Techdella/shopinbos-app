@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { BoostsCard } from "@/components/plans/BoostsCard";
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { ensureLogisticsAccess, getLogisticsPartnerForUser } from "@/lib/role-queries";
@@ -7,26 +8,29 @@ import { Card, CardHead, EmptyState, ListCard, ListRow, StatGrid, StatTile } fro
 import { KeyValue, PartnerPage, StatusPill, lagosDate, naira } from "@/components/logistics/kit";
 import { getT } from "@/lib/i18n/server";
 import { PromoBanner } from "@/components/pricing/PromoBanner";
+import { logisticsJobFee } from "@shared/platform-pricing";
+import { planOf } from "@/lib/plan-limits";
+import { planOffers } from "@/lib/plans/catalog.server";
+import { creditBalance } from "@/lib/ai/credits.server";
+import { billingEmail } from "@/lib/auth/billing-email";
+import { PlanPicker } from "@/components/payments/PlanPicker";
+import { coverageStateCount } from "@/lib/plan-limits";
+import { logisticsLimits } from "@shared/plans";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getT("logistics"))("fees.title") };
 }
 
-const BEARERS: Record<string, string> = {
-  seller: "The seller (added to their delivery cost)",
-  supplier: "The supplier on the order",
-  logistics_partner: "You (taken from your payout)",
-};
-
 export default async function LogisticsBillingPage() {
   const user = await requireRole(["logistics_partner"], "/logistics/login");
   const partner = await getLogisticsPartnerForUser(user);
   ensureLogisticsAccess(partner);
   const t = await getT("logistics", "common");
-  const bearerShort = (value: string) => (BEARERS[value] ? t.dynamic(`fees.bearerShort.${value}`, value.replace(/_/g, " ")) : value.replace(/_/g, " "));
 
-  const [book, bookings] = await Promise.all([
+  const dbUser = await db.user.findUnique({ where: { id: user.id }, select: { aiCredits: true } });
+  const plan = planOf({ role: "logistics_partner", aiCredits: dbUser?.aiCredits });
+  const [book, bookings, offers, credits, teamCount] = await Promise.all([
     getPriceBook(),
     db.deliveryBooking.findMany({
       where: { logisticsPartnerId: partner.id },
@@ -38,12 +42,17 @@ export default async function LogisticsBillingPage() {
         seller: { select: { name: true } },
       },
     }),
+    planOffers(),
+    creditBalance(user.id),
+    db.logisticsTeamMember.count({ where: { logisticsPartnerId: partner.id, status: "active" } }),
   ]);
 
-  // Shopinbos sets the rate and who pays it (Admin › Pricing); partners see it here but can't change it.
-  const rate = book["delivery.fee_rate"];
-  const bearer = book["delivery.fee_bearer"];
-  const feeOf = (booking: (typeof bookings)[number]) => booking.platformFee || Math.round((booking.deliveryFee * rate) / 100);
+  // The job fee follows the partner's plan (Admin › Pricing sets the rates and whether it's charged yet). It comes
+  // out of the partner's share of the delivery fee. Jobs record what was actually taken.
+  const fee = logisticsJobFee(book, plan);
+  const rate = fee.rate;
+  const feeOf = (booking: (typeof bookings)[number]) => booking.platformFee;
+  const limits = logisticsLimits(plan);
   const delivered = bookings.filter((booking) => booking.status === "delivered");
   const totalGross = delivered.reduce((sum, booking) => sum + booking.deliveryFee, 0);
   const totalFees = delivered.reduce((sum, booking) => sum + feeOf(booking), 0);
@@ -53,7 +62,7 @@ export default async function LogisticsBillingPage() {
     <PartnerPage
       frame={{ user, partner }}
       title={t("fees.title")}
-      sub={t("fees.sub", { rate, who: t.dynamic(`fees.bearerWho.${bearer}`, (BEARERS[bearer] ?? bearer).split(" (")[0].toLowerCase()) })}
+      sub={fee.charged ? t("fees.subOn", { rate }) : t("fees.subOff", { rate })}
     >
       <PromoBanner role="logistics_partner" className="mb-5" />
       <StatGrid className="mb-5 md:grid-cols-3">
@@ -76,7 +85,7 @@ export default async function LogisticsBillingPage() {
                     <div className="min-w-0 flex-1 basis-[160px]">
                       <div className="truncate text-[15px] font-extrabold">{booking.seller.name}</div>
                       <div className="truncate text-[15px] text-app-ink-soft">
-                        {lagosDate(booking.createdAt, undefined, new Date(), t)} · {t("fees.paidByWho", { who: bearerShort(booking.feeBearer || bearer) })}
+                        {lagosDate(booking.createdAt, undefined, new Date(), t)}
                       </div>
                     </div>
                     <StatusPill status={booking.status} />
@@ -93,13 +102,32 @@ export default async function LogisticsBillingPage() {
           <Card className="p-5">
             <CardHead title={t("fees.summary")} />
             <div className="mt-2 divide-y divide-app-line">
-              <KeyValue label={t("fees.rate")}>{rate}%</KeyValue>
-              <KeyValue label={t("jobs.paidBy")}>{bearerShort(bearer)}</KeyValue>
+              <KeyValue label={t("fees.rate")}>{fee.charged ? `${rate}%` : t("fees.offNow", { rate })}</KeyValue>
               <KeyValue label={t("earnings.deliveredJobs")}>{delivered.length}</KeyValue>
               <KeyValue label={t("fees.soFar")}>{naira(totalFees)}</KeyValue>
             </div>
           </Card>
         </div>
+      </div>
+
+      <div className="mt-6">
+        <PlanPicker
+          role="logistics_partner"
+          current={plan}
+          offers={offers}
+          userEmail={billingEmail(user)}
+          userName={user.name}
+          creditBalance={credits}
+          creditsHref="/logistics/credits"
+          usage={[
+            { label: t("fees.usageStates"), used: coverageStateCount(partner.coverageZones, partner.coverageMap as never), limit: limits.coverageStates },
+            { label: t("fees.usageTeam"), used: teamCount, limit: limits.teamMembers },
+          ]}
+        />
+      </div>
+
+      <div className="mt-6">
+        <BoostsCard userId={user.id} role="logistics_partner" />
       </div>
     </PartnerPage>
   );

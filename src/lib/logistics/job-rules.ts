@@ -95,6 +95,50 @@ export function riderWeekStart(now = new Date()) {
   return new Date(monday - LAGOS_OFFSET_MS);
 }
 
+// ─── Rider pay ───────────────────────────────────────────────────────────────
+
+export const RIDER_PAY_TYPES = ["per_drop", "share"] as const;
+export type RiderPayType = (typeof RIDER_PAY_TYPES)[number];
+export type RiderPayRule = { payType: string | null; payRate: number | null };
+
+/** The partner's fee for a job after the Shopinbos fee (what kit.tsx bookingNet shows as "delivery fees"). */
+export function jobNetFee(job: { deliveryFee: number; platformFee: number; netAmount: number }) {
+  return job.netAmount || job.deliveryFee - (job.platformFee || 0);
+}
+
+/** Cleans what a partner typed for a rider's pay. Null clears it; an error when it can't be right. */
+export function parseRiderPay(type: unknown, rate: unknown): { ok: true; rule: RiderPayRule } | { ok: false; error: string } {
+  const payType = typeof type === "string" ? type.trim() : "";
+  if (!payType || payType === "none") return { ok: true, rule: { payType: null, payRate: null } };
+  if (!(RIDER_PAY_TYPES as readonly string[]).includes(payType)) return { ok: false, error: "Pick how you pay this rider." };
+  const payRate = typeof rate === "number" ? rate : Number(String(rate ?? "").replace(/[₦,\s%]/g, ""));
+  if (!Number.isFinite(payRate) || payRate <= 0) return { ok: false, error: "Type how much you pay this rider." };
+  if (payType === "share" && payRate > 100) return { ok: false, error: "A share of the fee can't be more than 100%." };
+  if (payType === "per_drop" && payRate > 1_000_000) return { ok: false, error: "That's more than a delivery pays. Check the amount." };
+  return { ok: true, rule: { payType, payRate: Math.round(payRate * 100) / 100 } };
+}
+
+/** What a rider earns for one delivered job under their pay rule, in whole naira. Null when no pay is set. */
+export function riderPayFor(rule: RiderPayRule | null | undefined, job: { deliveryFee: number; platformFee: number; netAmount: number }): number | null {
+  if (!rule?.payType || !rule.payRate || rule.payRate <= 0) return null;
+  if (rule.payType === "per_drop") return Math.round(rule.payRate);
+  if (rule.payType === "share") return Math.max(0, Math.round((jobNetFee(job) * Math.min(rule.payRate, 100)) / 100));
+  return null;
+}
+
+/** A delivered job's earnings: what was saved at delivery, else what the rider's pay gives now. Null: no pay set. */
+export function riderEarning(rule: RiderPayRule | null | undefined, job: { deliveryFee: number; platformFee: number; netAmount: number; riderPay?: number | null }) {
+  return job.riderPay ?? riderPayFor(rule, job);
+}
+
+/**
+ * The money figure the Riders app shows for a job: the rider's earnings once the partner has set their pay, else
+ * the delivery fee as before.
+ */
+export function riderAmount(rule: RiderPayRule | null | undefined, job: { deliveryFee: number; platformFee: number; netAmount: number; riderPay?: number | null }) {
+  return rule?.payType ? riderEarning(rule, job) ?? 0 : jobNetFee(job);
+}
+
 export type TransitionCheck = { ok: true } | { ok: false; error: string };
 
 /**

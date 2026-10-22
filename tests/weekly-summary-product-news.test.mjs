@@ -147,7 +147,8 @@ test("no duplicates: one row per user and week, claimed before sending; one per 
   assert.match(sql, /CREATE UNIQUE INDEX IF NOT EXISTS "ProductNewsRecipient_broadcastId_userId_key"/);
   for (const table of ["WeeklySummaryLog", "ProductNewsBroadcast", "ProductNewsRecipient"]) assert.match(sql, new RegExp(`ALTER TABLE "${table}" ENABLE ROW LEVEL SECURITY`));
   assert.match(sql, /-- select cron\.schedule\(\n--   'weekly-summary',\n--   '0 6 \* \* 1'/);
-  assert.match(sql, /https:\/\/shopinbos-app\.vercel\.app\/api\/cron\/weekly-summary/);
+  assert.match(sql, /https:\/\/app\.shopinbos\.com\/api\/cron\/weekly-summary/);
+  assert.match(read("scripts/qstash-schedules.mjs"), /\{ id: "weekly-summary", path: "\/api\/cron\/weekly-summary", cron: "0 6 \* \* 1" \}/);
   assert.match(sql, /name = 'cron_secret'/);
 
   const server = read("src/lib/email/weekly-summary.server.ts");
@@ -160,8 +161,8 @@ test("no duplicates: one row per user and week, claimed before sending; one per 
   assert.match(newsServer, /sendEmailBatch\(/);
   for (const route of ["src/app/api/cron/weekly-summary/route.ts", "src/app/api/cron/product-news/route.ts"]) {
     const src = read(route);
-    assert.match(src, /cronAuthorization\(req\.headers\.get\("authorization"\), secret\)/);
-    assert.match(src, /process\.env\.CRON_SECRET/);
+    assert.match(src, /import \{ cronDenied \} from "@\/lib\/auth\/cron-request";/);
+    assert.match(src, /const denied = await cronDenied\(req\);\n  if \(denied\) return denied;/, "the cron secret or a signed QStash call");
   }
   for (const route of ["route.ts", "[id]/route.ts", "[id]/send/route.ts", "[id]/retry/route.ts", "test/route.ts", "audience/route.ts"]) {
     const src = read(`src/app/api/admin/product-news/${route}`);

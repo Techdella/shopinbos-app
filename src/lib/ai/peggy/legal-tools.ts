@@ -28,7 +28,7 @@ async function draftPage(ctx: PeggyToolContext, input: PeggyToolInput<"legal_dra
     };
   }
 
-  if (await meterAi(ctx.userId, "text")) throw new ToolError("The seller has used today's AI writing allowance. Tell them it resets within 24 hours or with a plan upgrade.");
+  if (await meterAi(ctx.userId, "text")) throw new ToolError("The seller is out of AI credits (or hit today's safety cap). Tell them to top up on the AI credits page, or that their plan's credits refill at the start of next month.");
   const owner = await db.user.findUnique({ where: { id: ctx.userId }, select: { email: true, phone: true } });
   try {
     const legalCtx = await legalContext(store, { email: owner?.email ?? null, phone: owner?.phone ?? ctx.userPhone });

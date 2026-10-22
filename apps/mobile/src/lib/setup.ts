@@ -3,7 +3,7 @@ import { api } from "./api";
 // The "Start here" checklist: GET / PATCH /api/app/setup (src/lib/setup on the web side works it out from the
 // real state of the shop, so "done" here always matches the web page /home/start).
 
-export type SetupStepKey = "store" | "look" | "products" | "payments" | "delivery" | "payout" | "live" | "socials" | "share" | "domain" | "audience";
+export type SetupStepKey = "store" | "look" | "products" | "payments" | "delivery" | "partners" | "payout" | "live" | "socials" | "share" | "domain" | "audience";
 
 export interface SetupStep {
   key: SetupStepKey;

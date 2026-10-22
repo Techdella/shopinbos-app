@@ -6,6 +6,8 @@
 
 import { formatStoreMoney, freeDeliveryEverywhereOver, freeDeliveryPromise, whatsappLink, type StorefrontShopperInfo } from "../../../lib/storefront/shopper-info.ts";
 import { stepErrors, type CartLine, type CheckoutDetails, type CheckoutRules, type CheckoutStep, type FieldErrors } from "../../../../shared/cart-checkout.ts";
+import { readSavedPaymentMethods } from "../../../../shared/checkout-payments.ts";
+import type { PaymentMethodKey } from "../../../../shared/onboarding.ts";
 
 export type CheckoutLayout = "two-column" | "stacked" | "steps" | "minimal";
 export type CheckoutSummaryBlock = "items" | "discount" | "delivery" | "trust" | "secure" | "returns" | "whatsapp";
@@ -84,6 +86,63 @@ export const CHECKOUT_THEME_DEFAULTS: Record<string, ThemeDefault> = {
   danfo: { layout: "steps", summaryPosition: "right", header: "logo" },
   turare: { layout: "minimal", summaryPosition: "right", header: "logo" },
   oko: { layout: "stacked", summaryPosition: "right", header: "nav" },
+  aaro: { layout: "two-column", summaryPosition: "right", header: "logo" },
+  highlife: { layout: "steps", summaryPosition: "right", header: "nav" },
+  oba: { layout: "minimal", summaryPosition: "right", header: "logo" },
+  gbedu: { layout: "steps", summaryPosition: "right", header: "logo" },
+  omalicha: { layout: "two-column", summaryPosition: "right", header: "nav" },
+  zuma: { layout: "stacked", summaryPosition: "right", header: "nav" },
+  oku: { layout: "steps", summaryPosition: "right", header: "nav" },
+  ihe: { layout: "minimal", summaryPosition: "right", header: "logo" },
+  kasuwa: { layout: "steps", summaryPosition: "right", header: "nav" },
+  nkata: { layout: "two-column", summaryPosition: "left", header: "logo" },
+  uwa: { layout: "two-column", summaryPosition: "left", header: "nav" },
+  sarauniya: { layout: "minimal", summaryPosition: "right", header: "logo" },
+  zinariya: { layout: "minimal", summaryPosition: "right", header: "logo" },
+  irawo: { layout: "minimal", summaryPosition: "right", header: "logo" },
+  asa: { layout: "stacked", summaryPosition: "right", header: "nav" },
+  mmiri: { layout: "stacked", summaryPosition: "right", header: "nav" },
+  uzo: { layout: "two-column", summaryPosition: "left", header: "logo" },
+  rawa: { layout: "steps", summaryPosition: "right", header: "nav" },
+  fitila: { layout: "two-column", summaryPosition: "left", header: "nav" },
+  oso: { layout: "minimal", summaryPosition: "right", header: "logo" },
+  shakara: { layout: "steps", summaryPosition: "right", header: "logo" },
+  aga: { layout: "two-column", summaryPosition: "right", header: "logo" },
+  itura: { layout: "two-column", summaryPosition: "right", header: "nav" },
+  gele: { layout: "two-column", summaryPosition: "right", header: "nav" },
+  imani: { layout: "steps", summaryPosition: "right", header: "nav" },
+  itanna: { layout: "minimal", summaryPosition: "right", header: "logo" },
+  littafi: { layout: "two-column", summaryPosition: "right", header: "nav" },
+  itan: { layout: "minimal", summaryPosition: "right", header: "logo" },
+  awo: { layout: "two-column", summaryPosition: "right", header: "nav" },
+  kyau: { layout: "two-column", summaryPosition: "right", header: "nav" },
+  keke: { layout: "steps", summaryPosition: "right", header: "logo" },
+  ahia: { layout: "two-column", summaryPosition: "right", header: "nav" },
+  ado: { layout: "two-column", summaryPosition: "right", header: "nav" },
+  wuta: { layout: "two-column", summaryPosition: "right", header: "nav" },
+  ike: { layout: "steps", summaryPosition: "right", header: "nav" },
+  ewu: { layout: "two-column", summaryPosition: "right", header: "nav" },
+  erin: { layout: "two-column", summaryPosition: "right", header: "nav" },
+  apere: { layout: "two-column", summaryPosition: "right", header: "nav" },
+  bata: { layout: "minimal", summaryPosition: "right", header: "logo" },
+  ogba: { layout: "two-column", summaryPosition: "right", header: "nav" },
+  eso: { layout: "steps", summaryPosition: "right", header: "nav" },
+  osan: { layout: "two-column", summaryPosition: "right", header: "nav" },
+  ijokoo: { layout: "two-column", summaryPosition: "right", header: "nav" },
+  ite: { layout: "steps", summaryPosition: "right", header: "logo" },
+  kujera: { layout: "minimal", summaryPosition: "right", header: "logo" },
+  tufafi: { layout: "two-column", summaryPosition: "right", header: "nav" },
+  rewa: { layout: "two-column", summaryPosition: "right", header: "nav" },
+  igbese: { layout: "steps", summaryPosition: "right", header: "nav" },
+  ola: { layout: "minimal", summaryPosition: "right", header: "logo" },
+  okunrin: { layout: "two-column", summaryPosition: "right", header: "nav" },
+  salubata: { layout: "two-column", summaryPosition: "right", header: "nav" },
+  efo: { layout: "two-column", summaryPosition: "right", header: "nav" },
+  aluko: { layout: "two-column", summaryPosition: "right", header: "nav" },
+  aja: { layout: "steps", summaryPosition: "right", header: "nav" },
+  dara: { layout: "two-column", summaryPosition: "right", header: "nav" },
+  ife: { layout: "minimal", summaryPosition: "right", header: "logo" },
+  irorun: { layout: "two-column", summaryPosition: "right", header: "nav" },
 };
 
 const FALLBACK_THEME: ThemeDefault = { layout: "two-column", summaryPosition: "right", header: "logo" };
@@ -430,8 +489,13 @@ export function previewBag(products: ReadonlyArray<{ id: string; name: string; i
   };
 }
 
-/** Payment methods the preview shows, from the buyer-facing labels the store's settings give (Card, Transfer…). */
-export function previewPaymentMethods(shopper: Pick<StorefrontShopperInfo, "paymentLabels" | "payOnDelivery">): { card: boolean; transfer: boolean; cod: boolean } | null {
+/**
+ * Payment methods the preview shows: the seller's saved choices (Korapay included) when the store's brandSettings are
+ * loaded, else what the buyer-facing labels the store's settings give (Card, Transfer…) can tell.
+ */
+export function previewPaymentMethods(shopper: Pick<StorefrontShopperInfo, "paymentLabels" | "payOnDelivery">, brandSettings?: unknown): Partial<Record<PaymentMethodKey, boolean>> | null {
+  const saved = readSavedPaymentMethods(brandSettings);
+  if (saved) return saved;
   const card = shopper.paymentLabels.includes("Card");
   const transfer = shopper.paymentLabels.includes("Transfer");
   const cod = shopper.payOnDelivery;

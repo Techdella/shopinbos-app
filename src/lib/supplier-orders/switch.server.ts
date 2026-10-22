@@ -250,7 +250,7 @@ export async function notifyNewSupplier(supplierOrderId: string, acceptWords: st
   const units = orderLines(row.items).reduce((sum, line) => sum + line.quantity, 0);
   const address = row.shippingAddress && typeof row.shippingAddress === "object" ? (row.shippingAddress as Record<string, unknown>) : {};
   const place = plainText([address.city, address.state].filter((part) => typeof part === "string" && part).join(", "), 60);
-  void messageSupplierPhone(row.supplierId, `Shopinbos: new order ${ref} from ${shop}. You get ${money(row.costTotal, row.currency)}. Accept it within ${acceptWords} in the app.`);
+  await messageSupplierPhone(row.supplierId, `Shopinbos: new order ${ref} from ${shop}. You get ${money(row.costTotal, row.currency)}. Accept it within ${acceptWords} in the app.`);
   await createNotification({
     userId: row.supplier.userId,
     type: "dropshipping",

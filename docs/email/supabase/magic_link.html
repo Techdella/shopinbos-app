@@ -20,6 +20,8 @@ a[x-apple-data-detectors]{color:inherit!important;text-decoration:none!important
 @media only screen and (max-width:620px){
 .sib-wrap{padding:16px 10px!important}
 .sib-pad{padding:26px 20px!important}
+.sib-pad-x{padding-left:20px!important;padding-right:20px!important}
+.sib-head{padding-left:21px!important}
 .sib-col{max-width:100%!important}
 .sib-h1{font-size:23px!important}
 .sib-btn{display:block!important;text-align:center!important}
@@ -41,6 +43,9 @@ a[x-apple-data-detectors]{color:inherit!important;text-decoration:none!important
  .sib-eyebrow{color:#73D8C8!important}
  .sib-btn{background:#73D8C8!important;color:#0E2A38!important;border-color:#73D8C8!important}
  .sib-code{background:#0E2A38!important;color:#73D8C8!important;border-color:#25455A!important}
+ .sib-code-digits{color:#73D8C8!important}
+ .sib-aside{background:#0E2A38!important;border-color:#25455A!important}
+ .sib-card-accent{border-top-color:#73D8C8!important}
 }
 [data-ogsb] .sib-page{background:#0A1C25!important}
 [data-ogsc] .sib-foot,[data-ogsc] .sib-foot p,[data-ogsc] .sib-foot td{color:#A9B8BB!important}
@@ -58,6 +63,9 @@ a[x-apple-data-detectors]{color:inherit!important;text-decoration:none!important
 [data-ogsc] .sib-eyebrow{color:#73D8C8!important}
 [data-ogsc] .sib-btn{background:#73D8C8!important;color:#0E2A38!important;border-color:#73D8C8!important}
 [data-ogsb] .sib-code{background:#0E2A38!important;color:#73D8C8!important;border-color:#25455A!important}
+[data-ogsc] .sib-code-digits{color:#73D8C8!important}
+[data-ogsc] .sib-aside{background:#0E2A38!important;border-color:#25455A!important}
+[data-ogsc] .sib-card-accent{border-top-color:#73D8C8!important}
 
 </style>
 </head>
@@ -66,9 +74,19 @@ a[x-apple-data-detectors]{color:inherit!important;text-decoration:none!important
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="sib-page" bgcolor="#FAF7F1" style="background:#FAF7F1"><tr><td align="center" class="sib-wrap" style="padding:28px 12px">
 <!--[if mso]><table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;margin:0 auto">
-<tr><td style="padding:4px 6px 20px" align="left"><div class="sib-logo-light"><a href="{{ .SiteURL }}" style="text-decoration:none;border:0"><img src="{{ .SiteURL }}/brand/email/shopinbos-logo-navy@2x.png" width="210" height="20" alt="Shopinbos" style="display:block;width:210px;height:20px;max-width:100%;border:0;outline:none;text-decoration:none" /></a></div><!--[if !mso]><!--><div class="sib-logo-dark" style="display:none;max-height:0;overflow:hidden;mso-hide:all"><a href="{{ .SiteURL }}" style="text-decoration:none;border:0"><img src="{{ .SiteURL }}/brand/email/shopinbos-logo-white@2x.png" width="210" height="20" alt="Shopinbos" style="display:block;width:210px;height:20px;max-width:100%;border:0;outline:none;text-decoration:none" /></a></div><!--<![endif]--></td></tr>
-<tr><td class="sib-card sib-pad" bgcolor="#FFFFFF" style="background:#FFFFFF;border-radius:18px;border:1px solid #E7E1D5;padding:34px 32px;font-family:'Space Grotesk','Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#0E2A38">
-<p class="sib-eyebrow" style="margin:0 0 10px;font-family:'JetBrains Mono',ui-monospace,Menlo,Consolas,'Courier New',monospace;font-size:11px;letter-spacing:0.16em;text-transform:uppercase;color:#2E7E78">Sign in</p><h1 class="sib-ink sib-h1" style="margin:0 0 14px;font-family:'Space Grotesk','Segoe UI',Helvetica,Arial,sans-serif;font-size:26px;line-height:1.2;font-weight:600;letter-spacing:-0.5px;color:#0E2A38">Your sign-in code</h1><p class="sib-ink" style="margin:0 0 14px;color:#0E2A38">Enter this code in Shopinbos to sign in:</p><p class="sib-code" style="margin:6px 0 18px;padding:16px 18px;border-radius:14px;background:#F4F1EA;border:1px solid #E7E1D5;font-family:'JetBrains Mono',ui-monospace,Menlo,Consolas,'Courier New',monospace;font-size:30px;font-weight:700;letter-spacing:8px;text-align:center;color:#0E2A38">{{ .Token }}</p><p class="sib-muted" style="margin:0 0 12px;font-size:13px;color:#6E6E68">Or sign in with one tap:</p><table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 18px"><tr><td style="border-radius:999px" bgcolor="#0E2A38"><a href="{{ .ConfirmationURL }}" class="sib-btn" style="display:inline-block;padding:13px 26px;border-radius:999px;background:#0E2A38;border:1px solid #0E2A38;color:#F4F1EA;font-family:'Space Grotesk','Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;font-weight:600;line-height:1.2;text-decoration:none">Sign in to Shopinbos</a></td></tr></table><p class="sib-muted" style="margin:0 0 12px;font-size:13px;color:#6E6E68">Button not working? Copy this link into your browser:</p><p class="sib-muted" style="margin:0 0 14px;font-size:12px;line-height:1.5;word-break:break-all;color:#6E6E68"><a class="sib-link" href="{{ .ConfirmationURL }}" style="color:#2E7E78">{{ .ConfirmationURL }}</a></p><p class="sib-muted" style="margin:0 0 12px;font-size:13px;color:#6E6E68">The code expires soon and works once. If you didn&#39;t try to sign in, you can ignore this email: nobody can get in without the code.</p>
+<tr><td class="sib-head" style="padding:4px 6px 20px 33px" align="left"><div class="sib-logo-light"><a href="{{ .SiteURL }}" style="text-decoration:none;border:0"><img src="{{ .SiteURL }}/brand/email/shopinbos-logo-navy@2x.png" width="210" height="20" alt="Shopinbos" style="display:block;width:210px;height:20px;max-width:100%;border:0;outline:none;text-decoration:none" /></a></div><!--[if !mso]><!--><div class="sib-logo-dark" style="display:none;max-height:0;overflow:hidden;mso-hide:all"><a href="{{ .SiteURL }}" style="text-decoration:none;border:0"><img src="{{ .SiteURL }}/brand/email/shopinbos-logo-white@2x.png" width="210" height="20" alt="Shopinbos" style="display:block;width:210px;height:20px;max-width:100%;border:0;outline:none;text-decoration:none" /></a></div><!--<![endif]--></td></tr>
+<tr><td>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="sib-card sib-card-accent" bgcolor="#FFFFFF" style="border-collapse:separate;border-spacing:0;background:#FFFFFF;border-radius:18px;border:1px solid #E7E1D5;border-top:4px solid #73D8C8">
+<tr><td class="sib-pad" style="border-radius:14px 14px 0 0;padding:34px 32px 30px;font-family:'Space Grotesk','Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#0E2A38">
+<p class="sib-eyebrow" style="margin:0 0 10px;font-family:'JetBrains Mono',ui-monospace,Menlo,Consolas,'Courier New',monospace;font-size:11px;letter-spacing:0.16em;text-transform:uppercase;color:#2E7E78">Sign in</p><h1 class="sib-ink sib-h1" style="margin:0 0 14px;font-family:'Space Grotesk','Segoe UI',Helvetica,Arial,sans-serif;font-size:28px;line-height:1.2;font-weight:600;letter-spacing:-0.5px;color:#0E2A38">Your sign-in code</h1><p class="sib-ink" style="margin:0 0 14px;color:#0E2A38">Enter this code in Shopinbos to sign in.</p><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:6px 0 20px;border-collapse:separate;border-spacing:0"><tr><td class="sib-code" align="center" bgcolor="#EDF8F5" style="padding:16px 16px 18px;border-radius:14px;background:#EDF8F5;border:1px solid #CBEBE3;text-align:center">
+<p class="sib-eyebrow" style="margin:0 0 6px;font-family:'JetBrains Mono',ui-monospace,Menlo,Consolas,'Courier New',monospace;font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:#2E7E78">Your sign-in code</p>
+<p class="sib-code-digits" style="margin:0;padding-left:10px;font-family:'JetBrains Mono',ui-monospace,Menlo,Consolas,'Courier New',monospace;font-size:34px;line-height:1.15;font-weight:700;letter-spacing:10px;color:#0E2A38">{{ .Token }}</p>
+</td></tr></table><p class="sib-muted" style="margin:0 0 12px;font-size:13px;color:#6E6E68">Or sign in with one tap:</p><table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 18px"><tr><td style="border-radius:999px" bgcolor="#0E2A38"><a href="{{ .ConfirmationURL }}" class="sib-btn" style="display:inline-block;padding:13px 26px;border-radius:999px;background:#0E2A38;border:1px solid #0E2A38;color:#F4F1EA;font-family:'Space Grotesk','Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;font-weight:600;line-height:1.2;text-decoration:none">Sign in to Shopinbos</a></td></tr></table>
+</td></tr>
+<tr><td class="sib-aside sib-pad-x" bgcolor="#FAF7F1" style="background:#FAF7F1;border-top:1px solid #E7E1D5;border-radius:0 0 17px 17px;padding:20px 32px 8px;font-family:'Space Grotesk','Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;line-height:1.55;color:#0E2A38">
+<p class="sib-muted" style="margin:0 0 4px;font-size:12px;color:#6E6E68">Button not working? Paste this link into your browser:</p><p style="margin:0 0 12px;font-family:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;font-size:11px;line-height:1.5;word-break:break-all"><a class="sib-link" href="{{ .ConfirmationURL }}" style="color:#2E7E78;text-decoration:none">{{ .ConfirmationURL }}</a></p><p class="sib-muted" style="margin:0 0 12px;font-size:13px;color:#6E6E68">The code expires soon and works once. If you didn&#39;t try to sign in, you can ignore this email: nobody can get in without the code.</p>
+</td></tr>
+</table>
 </td></tr>
 <tr><td><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="sib-foot"><tr><td align="center" class="sib-foot" style="padding:22px 18px 8px;font-family:'Space Grotesk','Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;line-height:1.6;color:#6E6E68;text-align:center">
 <p style="margin:0 0 10px">You&#39;re receiving this because someone asked to sign in to the Shopinbos account for {{ .Email }}.</p>

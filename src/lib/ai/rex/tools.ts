@@ -1,9 +1,11 @@
 import "server-only";
+import { themeProblem } from "@/lib/plans/gates.server";
+import type { CreditAction } from "@shared/ai-credits";
 
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { aiText, firstJsonObject } from "@/lib/ai/text";
-import { meterAi, type AiKind } from "@/lib/ai/usage";
+import { meterAiCharged, refundAi, type AiKind } from "@/lib/ai/usage";
 import { EDIT_PROMPTS, editImage, generateImage, ImageUnavailableError, isOwnImageUrl, loadReferences } from "@/lib/ai/images";
 import { BrandBookError, draftBrandBook, saveBrandBook } from "@/lib/ai/brand-book.server";
 import { bookToThemeTokens } from "@shared/brand-book";
@@ -23,8 +25,10 @@ import { makeBrandImage } from "@/lib/ai/brand-image.server";
 import { getOpenAIClient } from "@/lib/ai/client";
 import { matchProducts } from "@/lib/ai/peggy/pure";
 import { computeStoreHealth } from "@/lib/store-health";
-import { getTemplateManifest } from "@/lib/store-templates";
-import { THEME_LIBRARY } from "@/lib/store-templates/theme-library";
+import { getTemplateManifest, isBoutiqueTheme } from "@/lib/store-templates";
+import { THEME_LIBRARY, tierIncludes } from "@/lib/store-templates/theme-library";
+import { TIER_PLAN_LABEL } from "@/lib/theme-access";
+import { loadSellerThemeAccess } from "@/lib/theme-access.server";
 import { naira } from "@shared/onboarding";
 import { MAX_PHOTOS, fallbackScript, normaliseScript, type VideoLanguage } from "@shared/video";
 import { drawLogoOptions, LOGO_STYLES } from "@/lib/ai/rex/logo";
@@ -69,16 +73,19 @@ export interface RexToolOutput {
 
 /** A problem the model should hear about (and can usually fix or explain), sent back as an error result. */
 export class RexToolError extends Error {}
-/** The allowance and credits are used up; the chat shows a "Buy credits" button with Rex's reply. */
+/** The credits are used up; the chat shows a "Buy credits" button with Rex's reply. */
 export class RexCreditsError extends RexToolError {}
 
 const money = (amount: number) => naira(Number(amount) || 0);
 
-async function meter(ctx: RexToolContext, kind: AiKind, units = 1) {
-  const limited = await meterAi(ctx.userId, kind, units);
-  if (!limited) return;
-  const body = (await limited.json().catch(() => null)) as { error?: { code?: string; message?: string } } | null;
-  throw new (body?.error?.code === "AI_CREDITS_NEEDED" ? RexCreditsError : RexToolError)(`${body?.error?.message ?? "The AI allowance for today is used up."} Tell the seller plainly; nothing was made.`);
+/** Takes the credits for a tool's work; returns a function that gives them back if the work then fails. */
+async function meter(ctx: RexToolContext, kind: AiKind, units = 1, action?: CreditAction) {
+  const metered = await meterAiCharged(ctx.userId, kind, units, action);
+  if (metered.blocked) {
+    const body = (await metered.blocked.json().catch(() => null)) as { error?: { code?: string; message?: string } } | null;
+    throw new (body?.error?.code === "AI_CREDITS_NEEDED" ? RexCreditsError : RexToolError)(`${body?.error?.message ?? "The seller is out of AI credits."} Tell the seller plainly; nothing was made.`);
+  }
+  return () => refundAi(ctx.userId, kind, units, metered.credits);
 }
 
 async function logActivity(ctx: RexToolContext, event: { type: string; title: string; description?: string; tool: RexToolName; link?: string; data?: Record<string, unknown> }) {
@@ -151,7 +158,11 @@ async function listProducts(ctx: RexToolContext, input: RexToolInput<"list_produ
 async function listThemes(ctx: RexToolContext): Promise<RexToolOutput> {
   const store = await loadStudioStore(ctx.userId);
   const current = store ? studioDraft(store).draft.templateId : "";
-  const themes = THEME_LIBRARY.filter((theme) => getTemplateManifest(theme.id)).map((theme) => ({
+  // Cards only for themes the seller can switch to; the rest are named so Rex can mention the upgrade.
+  const { tier, owned } = await loadSellerThemeAccess(ctx.userId);
+  const available = THEME_LIBRARY.filter((theme) => getTemplateManifest(theme.id));
+  const locked = available.filter((theme) => theme.id !== current && !tierIncludes(tier, theme.tier) && !owned.includes(theme.id));
+  const themes = available.filter((theme) => !locked.includes(theme)).map((theme) => ({
     id: theme.id,
     name: theme.name,
     blurb: theme.blurb,
@@ -159,7 +170,10 @@ async function listThemes(ctx: RexToolContext): Promise<RexToolOutput> {
     dark: theme.preview.dark,
   }));
   return {
-    content: `Showing ${themes.length} themes as cards (current: ${themeNameFor(current)}). The seller can tap one to try it; it changes the draft only.`,
+    content: [
+      `Showing ${themes.length} themes as cards (current: ${themeNameFor(current)}). The seller can tap one to try it; it changes the draft only.`,
+      locked.length ? `Not shown, because the seller's plan doesn't include them and they haven't bought them: ${locked.map((theme) => `${theme.name} (${theme.tier}, comes with ${TIER_PLAN_LABEL[theme.tier]})`).join(", ")}. Mention them only if the seller asks about more themes: they can preview any of them and buy one on its own in the theme gallery (Builder > Themes) without changing plan.` : "",
+    ].filter(Boolean).join(" "),
     card: { type: "themes", current, themes },
   };
 }
@@ -182,11 +196,12 @@ async function photoEdit(
   const source = pickSourcePhoto(input, product?.images ?? [], ctx.attachments);
   if (!source.ok) throw new RexToolError(source.error);
   if (!isOwnImageUrl(source.url)) throw new RexToolError("That photo isn't stored in the shop, so it can't be edited. Ask the seller to attach it with the photo button.");
-  await meter(ctx, "image");
+  const giveBack = await meter(ctx, "image");
   let url: string;
   try {
     url = await editImage({ sourceUrl: source.url, prompt, transparent, path: `enhanced/${ctx.userId}/${Date.now()}` });
   } catch (error) {
+    await giveBack();
     imageFailure(error);
   }
   return {
@@ -222,13 +237,14 @@ async function generateProductImage(ctx: RexToolContext, input: RexToolInput<"ge
   } else if (product?.images[0]) {
     references = [product.images[0]];
   }
-  await meter(ctx, "image");
+  const giveBack = await meter(ctx, "image");
   const prompt = product ? `${input.prompt}\nThe product: ${product.name}.${product.description ? ` ${product.description.slice(0, 300)}` : ""}` : input.prompt;
   const mode = input.brand ?? "colours";
   let result: Awaited<ReturnType<typeof makeBrandImage>>;
   try {
     result = await makeBrandImage({ brand, prompt, size: imageSizeFor(input.shape), logo: mode === "logo", colours: mode !== "none", referenceUrls: references, path: `generated/${ctx.userId}/${Date.now()}` });
   } catch (error) {
+    await giveBack();
     imageFailure(error);
   }
   const logoNote =
@@ -292,8 +308,9 @@ async function makeProductVideo(ctx: RexToolContext, input: RexToolInput<"make_p
     const sources = photos.slice(0, 4).filter((url) => isOwnImageUrl(url));
     const made: string[] = [];
     for (const [n, source] of sources.entries()) {
+      let giveBack: () => Promise<void>;
       try {
-        await meter(ctx, "image");
+        giveBack = await meter(ctx, "image");
       } catch (error) {
         if (!made.length) throw error;
         shotNote = ` Stopped after ${made.length} shot(s): ${error instanceof Error ? error.message : "allowance used up"}`;
@@ -302,6 +319,7 @@ async function makeProductVideo(ctx: RexToolContext, input: RexToolInput<"make_p
       try {
         made.push(await makeReelShot({ userId: ctx.userId, source, look, product: product.name, brand, n }));
       } catch (error) {
+        await giveBack();
         if (error instanceof ImageUnavailableError) throw new RexToolError(`${error.message} The reel can still use the photos as they are (shots: original).`);
         console.error("[rex] reel shot failed", error);
         made.push(source);
@@ -313,9 +331,10 @@ async function makeProductVideo(ctx: RexToolContext, input: RexToolInput<"make_p
   const price = money(product.retailPrice);
   await meter(ctx, "text");
   const fallback = fallbackScript(product.name, price, language, photos.length);
-  // Same brief as the video studio's script writer (/api/ai/video-script).
+  // Same brief as the video studio's script writer (/api/ai/video-script). Video scripts are written by Claude.
   const raw = await aiText({
     fast: true,
+    prefer: "anthropic",
     prompt: [
       `Write a ${photos.length}-shot vertical product reel for a small Nigerian online shop.`,
       `Product: ${product.name}, ${price}.${product.description ? ` Details: ${product.description.slice(0, 600)}` : ""}`,
@@ -368,10 +387,56 @@ async function rebuildSection(ctx: RexToolContext, input: RexToolInput<"rebuild_
 async function switchThemeTool(ctx: RexToolContext, input: RexToolInput<"switch_theme">): Promise<RexToolOutput> {
   const store = await studioStore(ctx);
   if (!getTemplateManifest(input.themeId)) throw new RexToolError(`The ${input.themeId} theme isn't available.`);
-  if (studioDraft(store).draft.templateId === input.themeId) return { content: `The draft already uses the ${themeNameFor(input.themeId)} theme; nothing changed.` };
+  const currentId = studioDraft(store).draft.templateId;
+  if (currentId === input.themeId) return { content: `The draft already uses the ${themeNameFor(input.themeId)} theme; nothing changed.` };
+  const planProblem = await themeProblem(ctx.userId, input.themeId, currentId);
+  if (planProblem) throw new RexToolError(`${planProblem} Nothing changed. Tell the seller they can preview it and buy it on its own in the theme gallery (Builder > Themes), or upgrade in Settings > Billing.`);
   const plan = parseRexStudioPlan({ reply: "", theme: input.themeId });
   if (!plan) throw new RexToolError("Couldn't switch the theme.");
   const result = await applyStudioPlan(store, plan, `Switched to ${themeNameFor(input.themeId)}`);
+  return storeOutput(ctx, result, "home");
+}
+
+const STYLE_WORDS: Record<string, Record<string, string>> = {
+  fontPair: { theme: "the theme's own fonts", classic: "serif headings with sans text", modern: "modern grotesk headings", clean: "clean sans fonts", bold: "bold grotesk fonts" },
+  buttonShape: { theme: "the theme's own buttons", square: "square buttons", rounded: "rounded buttons", pill: "pill buttons" },
+  pageWidth: { narrow: "narrow pages", standard: "standard-width pages", wide: "wide pages" },
+  productRatio: { theme: "the theme's own photo shape", portrait: "portrait product photos", square: "square product photos", landscape: "landscape product photos" },
+  headingStyle: { serif: "serif headings", grotesk: "modern headings" },
+  radius: { sharp: "sharp corners", rounded: "rounded corners", soft: "soft corners" },
+};
+
+/** "Switched to bold grotesk fonts and pill buttons": the change line the seller sees. */
+function styleSummary(picked: Record<string, unknown>, layout: string | null) {
+  const words = Object.entries(picked).map(([key, value]) => STYLE_WORDS[key]?.[String(value)]).filter(Boolean) as string[];
+  if (layout) words.push(`the ${layout.replace(/-/g, " ")} layout`);
+  const list = words.length > 1 ? `${words.slice(0, -1).join(", ")} and ${words[words.length - 1]}` : words[0] ?? "a new style";
+  return `Switched to ${list}`.slice(0, 90);
+}
+
+async function setThemeStyle(ctx: RexToolContext, input: RexToolInput<"set_theme_style">): Promise<RexToolOutput> {
+  const store = await studioStore(ctx);
+  const draft = studioDraft(store).draft;
+  const boutique = isBoutiqueTheme(draft.templateId);
+  const tokens = boutique
+    ? { fontPair: input.fontPair, buttonShape: input.buttonShape, pageWidth: input.pageWidth, productRatio: input.productRatio }
+    : { headingStyle: input.headingStyle, radius: input.corners };
+  const asked = Object.values(input).some((value) => value !== null);
+  const picked = Object.fromEntries(Object.entries(tokens).filter(([, value]) => value !== null));
+  const layout = boutique ? null : input.layout;
+  if (!Object.keys(picked).length && !layout) {
+    if (!asked) return { content: "Nothing to change: no style was given." };
+    return {
+      content: boutique
+        ? `${themeNameFor(draft.templateId)} is a 2026 theme: it takes fontPair, buttonShape, pageWidth and productRatio, not heading style, corners or a store layout. Nothing changed.`
+        : `${themeNameFor(draft.templateId)} is a classic theme: it takes headingStyle, corners and layout, not font pairing, button shape, page width or photo shape. Nothing changed.`,
+    };
+  }
+  // The token change and the layout change each get their own line (the plan adds the layout's).
+  const plan = parseRexStudioPlan({ reply: "The seller can fine-tune these in the builder's Theme settings.", tokens: picked, tokensSummary: styleSummary(picked, null), layout });
+  if (!plan) throw new RexToolError("Couldn't change the style.");
+  const result = await applyStudioPlan(store, plan, styleSummary(picked, layout));
+  if (!result.changes.length) return { content: "The draft already has those choices; nothing changed." };
   return storeOutput(ctx, result, "home");
 }
 
@@ -539,11 +604,12 @@ async function makeBrandIcon(ctx: RexToolContext, input: RexToolInput<"make_bran
   if (!store?.logoUrl || !isOwnImageUrl(store.logoUrl)) throw new RexToolError("The store has no logo yet. Offer generate_logo or uploading one in Brand kit first.");
   const references = await loadReferences([store.logoUrl]);
   if (!references.length) throw new RexToolError("The logo file can't be read (it needs to be a PNG, JPG or WebP). Ask the seller to upload a PNG logo in Brand kit.");
-  await meter(ctx, "image");
+  const giveBack = await meter(ctx, "image");
   let url: string;
   try {
     url = await generateImage({ prompt: ICON_PROMPTS[input.kind], size: "1024x1024", references, path: `logos/${ctx.userId}/${input.kind}-${Date.now()}` });
   } catch (error) {
+    await giveBack();
     imageFailure(error);
   }
   const what = input.kind === "icon" ? "logo icon" : "favicon";
@@ -649,7 +715,7 @@ async function makeCreative(ctx: RexToolContext, input: RexToolInput<"make_creat
   }
   const brand = await loadBrandContext(ctx.storeId);
   const references = [...products.map((product) => product.images[0]).filter((url): url is string => Boolean(url)), ...ctx.attachments.filter(isOwnImageUrl)].slice(0, 4);
-  await meter(ctx, "image");
+  const giveBack = await meter(ctx, "image");
   const place = CREATIVE_PLACEMENT_INFO[input.placement];
   const prompt = creativePrompt({ placement: input.placement, concept: input.concept, headline: input.headline, subline: input.subline, cta: input.cta, products: products.map((product) => product.name), extra: input.extra, brandName: ctx.storeName });
   const mode = input.brand ?? "colours";
@@ -657,6 +723,7 @@ async function makeCreative(ctx: RexToolContext, input: RexToolInput<"make_creat
   try {
     result = await makeBrandImage({ brand, prompt, size: imageSizeFor(place.shape), logo: mode === "logo", colours: mode !== "none", referenceUrls: references, path: `generated/${ctx.userId}/${Date.now()}` });
   } catch (error) {
+    await giveBack();
     imageFailure(error);
   }
   const title = `${CREATIVE_CONCEPT_INFO[input.concept].name} · ${place.name}`;
@@ -682,6 +749,7 @@ export const REX_TOOL_RUNNERS: { [N in RexToolName]: Runner<N> } = {
   edit_store_section: editStoreSection,
   rebuild_section: rebuildSection,
   switch_theme: switchThemeTool,
+  set_theme_style: setThemeStyle,
   write_product_copy: writeProductCopy,
   create_segment: createSegment,
   create_campaign: createCampaign,

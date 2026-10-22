@@ -269,7 +269,7 @@ test("supplier portal has payout recipients, public profiles, and message prefer
   assert.match(suppliersPage, /export async function generateMetadata/);
   assert.match(suppliersPage, /supplier\.verificationStatus === "verified"/);
   assert.match(suppliersPage, /robots: supplier\.verificationStatus === "verified" \? undefined : \{ index: false/);
-  assert.match(suppliersPage, /Request quote/);
+  assert.match(suppliersPage, /Ask for a price/);
   assert.match(marketplaceSuppliers, /href=\{`\/suppliers\/\$\{s\.slug\}`\}/);
   assert.match(marketplaceSuppliers, /<ChatButton contactId=\{s\.id\}/);
 });
@@ -431,7 +431,7 @@ test("inner portal pages use the mockup-style operational shell", () => {
 
   assert.match(logistics, /Book riders/);
   assert.match(logistics, /Delivery partners/);
-  assert.match(logistics, /Quote requests/);
+  assert.match(logistics, /Prices you asked for/);
   assert.match(logistics, /QuoteRequestForm/);
 });
 
@@ -500,27 +500,26 @@ test("supplier and logistics starter limits are enforced and shown in billing UI
   const logisticsProfile = read("src/app/logistics/profile/page.tsx");
   const logisticsCouriers = withWords("src/app/logistics/couriers/page.tsx", "logistics");
 
-  assert.match(planLimits, /SUPPLIER_FREE_PRODUCT_LIMIT = 50/);
-  assert.match(planLimits, /LOGISTICS_FREE_ROUTE_LIMIT = 4/);
-  assert.match(planLimits, /LOGISTICS_FREE_TEAM_MEMBER_LIMIT = 3/);
+  assert.match(planLimits, /from "@shared\/plans"/, "limits come from the one plan table");
   assert.match(schema, /model LogisticsTeamMember/);
   assert.match(schema, /@@unique\(\[logisticsPartnerId, email\]\)/);
-  assert.match(supplierActions, /productCount >= SUPPLIER_FREE_PRODUCT_LIMIT/);
+  assert.match(supplierActions, /atLimit\(productCount, supplierPlanLimits\(dbUser \?\? \{\}\)\.listings\)/);
   assert.match(supplierActions, /Billing%20%26%20Plan&limit=products/);
+  assert.match(supplierActions, /atLimit\(teamMemberCount, supplierPlanLimits\(dbUser \?\? \{\}\)\.teamMembers\)/);
   assert.match(supplierProductsRoute, /VERIFICATION_REQUIRED/);
-  assert.match(supplierProductsRoute, /productCount >= SUPPLIER_FREE_PRODUCT_LIMIT/);
+  assert.match(supplierProductsRoute, /atLimit\(productCount, listings\)/);
   assert.match(supplierProductsRoute, /PLAN_LIMIT/);
-  assert.match(logisticsActions, /zoneCount > LOGISTICS_FREE_ROUTE_LIMIT/);
-  assert.match(logisticsActions, /teamMemberCount >= LOGISTICS_FREE_TEAM_MEMBER_LIMIT/);
+  assert.match(logisticsActions, /stateCount > limit/);
+  assert.match(logisticsActions, /coverageStateCount\(/);
+  assert.match(logisticsActions, /atLimit\(teamMemberCount, logisticsPlanLimits\(dbUser \?\? \{\}\)\.teamMembers\)/);
   assert.match(logisticsActions, /export async function addLogisticsTeamMember/);
   assert.match(logisticsActions, /export async function updateLogisticsTeamMemberStatus/);
   assert.match(logisticsActions, /Billing%20%26%20Plan&limit=routes/);
   assert.match(logisticsActions, /Billing%20%26%20Plan&limit=team/);
-  assert.match(logisticsRoute, /coverageZones\.length > LOGISTICS_FREE_ROUTE_LIMIT/);
-  assert.match(logisticsProfileRoute, /coverageZones\.length > LOGISTICS_FREE_ROUTE_LIMIT/);
+  assert.match(logisticsRoute, /coverageStateCount\(parsed\.data\.coverageZones, parsed\.data\.coverageMap\) > coverageLimit/);
+  assert.match(logisticsProfileRoute, /coverageStateCount\(parsed\.data\.coverageZones\) > limit/);
   assert.match(logisticsCouriers, /addLogisticsTeamMember/);
-  assert.match(logisticsCouriers, /t\("riders\.starterLimit", \{ limit: LOGISTICS_FREE_TEAM_MEMBER_LIMIT \}\)/);
-  assert.match(logisticsCouriers, /"riders\.starterLimit": "Starter logistics includes \{limit\} active team members/);
+  assert.match(logisticsCouriers, /t\("riders\.starterLimit", \{ limit: teamLimit \?\? 0 \}\)/);
   assert.match(logisticsCouriers, /updateLogisticsTeamMemberStatus/);
   assert.match(supplierNew, /Free product limit reached/);
 });
@@ -822,7 +821,9 @@ test("launch QA regressions stay fixed", () => {
   assert.match(validateRoute, /redemptionError/);
   assert.match(schemas, /DiscountTypeSchema = z\.enum\(\["percentage", "fixed_amount", "free_shipping"\]\)/);
   assert.match(productsRoute, /\n\s+retailPrice,\n/);
-  assert.match(nextConfig, /ignoreBuildErrors: false/);
+  // Type errors fail every build: next build skips its own check (memory), so the build script runs tsc first.
+  assert.match(nextConfig, /ignoreBuildErrors: true/);
+  assert.match(read("package.json"), /"build": "npm run typecheck && next build/);
 });
 
 test("seller insights are computed from real orders, not sample data", () => {

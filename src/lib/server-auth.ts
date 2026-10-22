@@ -9,6 +9,7 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { portalDashboardPath } from "@/lib/portal-routes";
 import { recordActivity } from "@/lib/platform-analytics/activity.server";
 import type { AuthUser, Role } from "@/lib/auth/types";
+import { OWNER_ONLY_PAGES, OWNER_ONLY_TABS, actingUser, isOwnerOnlyPath } from "@/lib/staff/acting.server";
 
 /** Set by src/proxy.ts on every page request so server code can send people back after sign-in. */
 export const REQUEST_PATH_HEADER = "x-shopinbos-path";
@@ -47,7 +48,17 @@ export async function getCurrentAppUser(options?: { redirectTo?: string; expecte
     user = null;
   }
 
-  if (user) recordActivity(user);
+  if (user) {
+    recordActivity(user);
+    // A seller's staff member works in the owner's store (Settings › Team); some places stay owner-only.
+    user = await actingUser(user, (id) => db.user.findUnique({ where: { id }, select: USER_SELECT }));
+    if (user.staff) {
+      const requested = (await headers()).get(REQUEST_PATH_HEADER) ?? "";
+      const [pathname] = requested.split(/(?=\?)/);
+      const tab = new URLSearchParams(requested.split("?")[1] ?? "").get("tab");
+      if (isOwnerOnlyPath(pathname ?? "", OWNER_ONLY_PAGES) || (pathname === "/home/settings" && tab && OWNER_ONLY_TABS.includes(tab))) redirect("/home?ownerOnly=1");
+    }
+  }
   if (!user && options?.redirectTo) redirect(await withNextPath(options.redirectTo));
   return user;
 }

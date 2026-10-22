@@ -25,7 +25,9 @@ function walletOwner(user: Awaited<ReturnType<typeof getCurrentAppUser>>) {
 const BankSchema = z.object({ bankName: z.string().max(80), accountNumber: z.string().max(20) });
 
 export async function linkWalletBankAction(input: z.infer<typeof BankSchema>): Promise<WalletResult> {
-  const owner = walletOwner(await getCurrentAppUser());
+  const signedIn = await getCurrentAppUser();
+  if (signedIn?.staff) return { ok: false, error: "Only the store owner can change the bank account." };
+  const owner = walletOwner(signedIn);
   if (!owner) return { ok: false, error: "Sign in to your business account first." };
   const parsed = BankSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Choose your bank and enter your account number." };

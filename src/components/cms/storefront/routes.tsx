@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { CmsCollectionView, CmsItemView } from "@/components/cms/storefront/CmsPages";
 import { cmsCanonical, itemReferences, storefrontCollection, storefrontItem } from "@/lib/cms/storefront";
+import { itemLayoutOf } from "@/lib/cms/layouts";
 import { loadStoreChrome } from "@/lib/storefront/product-page.server";
 
 // Shared bodies of the storefront CMS routes: /s/[slug]/<collection>[/<item>], the custom-domain
@@ -29,7 +30,7 @@ export async function CollectionRoute({ storeSlug, collectionSlug, basePath, cus
 export async function ItemRoute({ storeSlug, collectionSlug, itemSlug, basePath, customDomain }: { storeSlug: string; collectionSlug: string; itemSlug: string; basePath: string; customDomain?: string | null }) {
   const found = await storefrontItem(storeSlug, collectionSlug, itemSlug);
   if (!found) notFound();
-  const { store, collection, item, fields, siblings } = found;
+  const { store, collection, item, fields, siblings, settings } = found;
   const [refs, chrome] = await Promise.all([itemReferences(store.id, fields, (item.data ?? {}) as Record<string, unknown>, basePath), loadStoreChrome(storeSlug)]);
   return (
     <CmsItemView
@@ -38,6 +39,7 @@ export async function ItemRoute({ storeSlug, collectionSlug, itemSlug, basePath,
       item={item}
       fields={fields}
       siblings={siblings}
+      layout={itemLayoutOf(item.data, settings.itemLayout)}
       basePath={basePath}
       canonical={cmsCanonical(store.slug, `/${collection.slug}/${item.slug}`, customDomain ?? store.customDomain)}
       refs={refs}

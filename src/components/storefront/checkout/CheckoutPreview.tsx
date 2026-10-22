@@ -65,8 +65,9 @@ export function CheckoutPreview({ theme, settings, store, nav, device = "desktop
   const choice: DeliveryChoice = hasZones
     ? { covered: true, options: [] }
     : { covered: true, options: [{ id: "flat", name: "Delivery", price: Math.max(0, info.flatRate ?? 0), estimatedDays: null, pickup: false }] };
-  const paymentOptions = checkoutPaymentOptions({ methods: previewPaymentMethods(info), paystackReady: true, korapayReady: true, transferReady: true, codLimit: null, zones: [] });
-  const method = paymentOptions[0]!.key;
+  const paymentOptions = checkoutPaymentOptions({ methods: previewPaymentMethods(info, store.brandSettings), paystackReady: true, korapayReady: true, transferReady: true, codLimit: null, zones: [] });
+  // A store whose only choice is "Finish on WhatsApp" has no checkout payment to show; the first option stands in.
+  const method = paymentOptions[0]?.key ?? "paystack";
   // Checkout settings (discount codes, notes, trust badges) aren't loaded in the builder: shown as on, the default.
   const checkout = DEFAULT_CHECKOUT_SETTINGS;
   const steps = stepsFor(settings.layout);

@@ -1,6 +1,8 @@
 import "server-only";
 import { db } from "@/lib/db/client";
 import { createNotification } from "@/lib/notifications/create";
+import { SIGN_NAME_ERROR, endDeliveryContracts, signDeliveryAsBusiness } from "@/lib/contracts/contracts.server";
+import { cleanSignedName } from "@shared/contracts";
 import { invalidatePublicMarketplaceCache } from "@/lib/api/cache";
 import {
   ISSUE_KINDS,
@@ -26,6 +28,7 @@ import {
   type RateCardInput,
 } from "@shared/delivery-market";
 import { LIVE_PARTNER_WHERE, deliverySettingsFor, originOf } from "./market.server";
+import { acceptPrivateRatesProblem, connectionLimitProblem, payOnDeliveryProblem, pickupPointLimitProblem, proposePrivateRatesProblem, sellAreaProblem } from "@/lib/plans/market.server";
 
 // Managing the logistics marketplace: a business's delivery settings ("Where I sell"), its delivery partners
 // (connect, choose what customers see, pay on delivery, end), partners' rate cards (public and private), pickup
@@ -66,6 +69,9 @@ export async function saveDeliverySettings(userId: string, input: SettingsInput)
   const sellStates = [...new Set(states)];
   if (sellArea === "one_state" && sellStates.length !== 1) return { ok: false, error: "Pick the one state you sell in." };
   if (sellArea === "selected" && sellStates.length === 0) return { ok: false, error: "Pick at least one state you sell in." };
+  // The plan's selling states (shared/plans.ts sellingStates).
+  const areaProblem = await sellAreaProblem(userId, { sellArea, states: sellArea === "nationwide" ? Infinity : sellStates.length }, { sellArea: current.sellArea, states: current.sellArea === "nationwide" ? Infinity : current.sellStates.length });
+  if (areaProblem) return { ok: false, error: areaProblem };
   const originState = input.originState === undefined ? current.originState : input.originState ? canonicalState(String(input.originState)) : null;
   if (input.originState && !originState) return { ok: false, error: "Pick the state your parcels leave from." };
   const checkoutMode = input.checkoutMode === undefined ? current.checkoutMode : input.checkoutMode === "partners" ? "partners" : "zones";
@@ -108,16 +114,32 @@ export async function saveDeliverySettings(userId: string, input: SettingsInput)
 
 // ─── Connections ("My delivery partners") ────────────────────────────────────
 
-export async function connectPartner(owner: { id: string; role: string }, partnerId: string): Promise<Result<{ connectionId: string }>> {
+/**
+ * Connecting signs the Delivery service agreement for the business (shared/contracts.ts): `typedName` when the
+ * screen asks for one, else the account name (connecting from a list or during setup). The partner signs their
+ * copy under Contracts; jobs can start on the public rates meanwhile.
+ */
+export async function connectPartner(owner: { id: string; role: string; name?: string | null }, partnerId: string, typedName?: string): Promise<Result<{ connectionId: string }>> {
   if (owner.role !== "seller" && owner.role !== "supplier") return { ok: false, error: "Only sellers and suppliers connect delivery partners." };
+  if (typedName !== undefined && !cleanSignedName(typedName)) return { ok: false, error: SIGN_NAME_ERROR };
   const partner = await db.logisticsPartner.findFirst({ where: { id: partnerId, ...LIVE_PARTNER_WHERE }, select: { id: true, userId: true, displayName: true } });
   if (!partner) return { ok: false, error: "This delivery partner isn't available right now." };
+  const limitProblem = await connectionLimitProblem(owner.id, partner.id);
+  if (limitProblem) return { ok: false, error: limitProblem };
   // Connecting is instant on the partner's public rates (decision 1); the partner can end it.
   const connection = await db.deliveryConnection.upsert({
     where: { ownerUserId_logisticsPartnerId: { ownerUserId: owner.id, logisticsPartnerId: partner.id } },
     update: { status: "active", endedAt: null, endedBy: null },
     create: { ownerUserId: owner.id, ownerRole: owner.role, logisticsPartnerId: partner.id },
   });
+  const signed = await db.contract.count({ where: { deliveryConnectionId: connection.id, status: { in: ["awaiting", "signed"] } } });
+  if (!signed) {
+    const contract = await signDeliveryAsBusiness({ connectionId: connection.id, owner, partnerId: partner.id, signer: { userId: owner.id, typedName, accountName: owner.name } }).catch((error) => {
+      console.error("[delivery contract] could not sign", error);
+      return null;
+    });
+    if (contract && !contract.ok) return { ok: false, error: contract.error };
+  }
   void import("@/lib/rewards/rewards.server").then((rewards) => rewards.recordRewardEvent({ userId: owner.id, kind: "partner_connected", ref: partner.id })).catch(() => undefined);
   const who = owner.role === "supplier"
     ? (await db.supplier.findUnique({ where: { userId: owner.id }, select: { displayName: true } }))?.displayName
@@ -156,6 +178,10 @@ export async function updateConnection(ownerId: string, connectionId: string, in
   if (input.label !== undefined) data.label = text(input.label, 40);
   if (input.ownerPod !== undefined) {
     const on = input.ownerPod === true || input.ownerPod === "on" || input.ownerPod === "true";
+    if (on && !connection.ownerPod) {
+      const podProblem = await payOnDeliveryProblem(ownerId);
+      if (podProblem) return { ok: false, error: podProblem };
+    }
     if (on && !connection.podAcceptedAt && !(input.acceptPodDisclaimer === true || input.acceptPodDisclaimer === "on" || input.acceptPodDisclaimer === "true")) {
       return { ok: false, error: "Read and accept the pay-on-delivery note to switch it on." };
     }
@@ -170,6 +196,7 @@ export async function updateConnection(ownerId: string, connectionId: string, in
 export async function endConnection(actor: { userId: string; side: "owner" | "partner"; partnerId?: string }, connectionId: string): Promise<Result> {
   const where = actor.side === "owner" ? { id: connectionId, ownerUserId: actor.userId } : { id: connectionId, logisticsPartnerId: actor.partnerId ?? "" };
   const moved = await db.deliveryConnection.updateMany({ where: { ...where, status: "active" }, data: { status: "ended", endedAt: new Date(), endedBy: actor.side } });
+  if (moved.count === 1) await endDeliveryContracts(connectionId, actor.side === "owner" ? "a" : "b").catch(() => null);
   return moved.count === 1 ? { ok: true } : { ok: false, error: "That connection has already ended." };
 }
 
@@ -220,6 +247,9 @@ export async function savePublicRateCard(partnerId: string, input: RateCardInput
 export async function proposePrivateRateCard(partnerId: string, ownerUserId: string, input: RateCardInput): Promise<Result> {
   const connection = await db.deliveryConnection.findFirst({ where: { logisticsPartnerId: partnerId, ownerUserId, status: "active" }, select: { id: true } });
   if (!connection) return { ok: false, error: "You can send private rates to businesses that have added you as a delivery partner." };
+  const partnerUser = await db.logisticsPartner.findUnique({ where: { id: partnerId }, select: { userId: true } });
+  const planProblem = partnerUser ? await proposePrivateRatesProblem(partnerUser.userId) : null;
+  if (planProblem) return { ok: false, error: planProblem };
   const checked = validateRateCard(input);
   if (!checked.ok) return checked;
   const partner = await db.logisticsPartner.findUnique({ where: { id: partnerId }, select: { displayName: true } });
@@ -243,6 +273,10 @@ export async function proposePrivateRateCard(partnerId: string, ownerUserId: str
 export async function respondToPrivateRateCard(ownerUserId: string, cardId: string, accept: boolean): Promise<Result> {
   const card = await db.logisticsRateCard.findFirst({ where: { id: cardId, ownerUserId, status: "proposed" }, select: { id: true, logisticsPartnerId: true, logisticsPartner: { select: { userId: true } } } });
   if (!card) return { ok: false, error: "These rates are no longer waiting for you." };
+  if (accept) {
+    const planProblem = await acceptPrivateRatesProblem(ownerUserId);
+    if (planProblem) return { ok: false, error: planProblem };
+  }
   const now = new Date();
   await db.$transaction([
     ...(accept ? [db.logisticsRateCard.updateMany({ where: { logisticsPartnerId: card.logisticsPartnerId, ownerUserId, status: "accepted" }, data: { status: "retired" } })] : []),
@@ -359,6 +393,8 @@ export async function savePickupPoint(partnerId: string, pointId: string | null,
     if (moved.count !== 1) return { ok: false, error: "We couldn't find that pickup point." };
   } else {
     if ((await db.logisticsPickupPoint.count({ where: { logisticsPartnerId: partnerId, active: true } })) >= 200) return { ok: false, error: "You can have up to 200 pickup points." };
+    const planProblem = await pickupPointLimitProblem(partnerId);
+    if (planProblem) return { ok: false, error: planProblem };
     await db.logisticsPickupPoint.create({ data: { logisticsPartnerId: partnerId, ...data } });
   }
   await refreshPartnerListing(partnerId);

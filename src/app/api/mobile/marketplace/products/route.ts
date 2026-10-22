@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { PRODUCT_PLAN_FIRST } from "@/lib/plans/placement";
 import { withSeller } from "@/lib/auth/middleware";
 import { apiError, ok } from "@/lib/api/response";
 import { db } from "@/lib/db/client";
@@ -17,7 +18,7 @@ export const GET = withSeller(async (req: NextRequest, { user }) => {
   const rows = await db.supplierProduct.findMany({
     where: { ...productWhere(store.country || "Nigeria"), ...(q ? { OR: [{ name: { contains: q, mode: "insensitive" } }, { description: { contains: q, mode: "insensitive" } }] } : {}) },
     select: productSelect,
-    orderBy: [{ trendScore: "desc" }, { createdAt: "desc" }],
+    orderBy: [PRODUCT_PLAN_FIRST, { trendScore: "desc" }, { createdAt: "desc" }],
     take: 300,
   });
   const nearby = await nearbyForSeller(user.id, rows, new Map(rows.map((row) => [row.supplier.id, row.supplier.address])));

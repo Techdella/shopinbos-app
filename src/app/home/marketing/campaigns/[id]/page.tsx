@@ -65,7 +65,7 @@ export default async function CampaignPage({ params, searchParams }: { params: P
   const campaign = isNew ? null : await db.broadcastCampaign.findFirst({ where: { id, storeId: store.id } });
   if (!isNew && !campaign) notFound();
 
-  const [segments, templates, channels] = await Promise.all([listSegments(store.id), listTemplates(store.id), channelStatus(store.id)]);
+  const [segments, templates, channels] = await Promise.all([listSegments(store.id, { refreshCounts: true }), listTemplates(store.id), channelStatus(store.id)]);
   const sent = campaign && (campaign.status === "sent" || campaign.status === "sending");
 
   if (campaign && sent) {

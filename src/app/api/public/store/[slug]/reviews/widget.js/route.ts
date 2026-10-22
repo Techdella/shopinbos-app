@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db/client";
-import { buildWidgetScript, publicName, publicReviews, sourceLabel, summarizeReviews } from "@/lib/reviews/pure";
+import { buildWidgetScript, publicName, publicReviews, publicSourceLabel, safeReviewerPhoto, summarizeReviews } from "@/lib/reviews/pure";
 import { loadReviews, reviewUrls } from "@/lib/reviews/server";
 
 export const dynamic = "force-dynamic";
@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 // average, count and up to ?limit= (default 6, max 12) published reviews, featured ones first.
 export async function GET(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const store = await db.store.findUnique({ where: { slug }, select: { id: true, name: true, slug: true, status: true } });
+  const store = await db.store.findUnique({ where: { slug }, select: { id: true, name: true, slug: true, status: true, logoUrl: true } });
   if (!store || store.status !== "active") {
     return new NextResponse("/* store not found */", { status: 404, headers: { "Content-Type": "application/javascript; charset=utf-8" } });
   }
@@ -18,13 +18,14 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
   const summary = summarizeReviews(items);
   const script = buildWidgetScript({
     storeName: store.name,
+    storeLogo: safeReviewerPhoto(store.logoUrl),
     wallUrl: reviewUrls(store.slug).wall,
     average: summary.average,
     count: summary.count,
     reviews: items
       .filter((item) => (item.body || item.title).trim())
       .slice(0, limit)
-      .map((item) => ({ name: publicName(item.authorName), rating: item.rating, text: (item.body || item.title).slice(0, 400), source: sourceLabel(item.source), date: item.createdAt })),
+      .map((item) => ({ name: publicName(item.authorName), rating: item.rating, text: (item.body || item.title).slice(0, 400), source: publicSourceLabel(item.source, store.name), date: item.createdAt, photo: safeReviewerPhoto(item.authorPhotoUrl) })),
   });
   return new NextResponse(script, {
     headers: {

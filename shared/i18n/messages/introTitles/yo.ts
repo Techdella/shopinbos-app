@@ -22,7 +22,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "templates.title": "Templates àti themes",
   "delivery.title": "Àwọn alábàáṣiṣẹ́ delivery",
   "delivery-settings.title": "Delivery settings",
-  "supplier-products.title": "Ọjà rẹ àti white label",
+  "supplier-products.title": "Ọjà rẹ àti dropship",
   "supplier-orders.title": "Orders àti fulfilment",
   "supplier-quotes.title": "Quote requests",
   "supplier-payouts.title": "Owó tí o pa àti payouts",
@@ -51,7 +51,9 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "store-settings.title": "Settings",
   "supplier-home.title": "Dashboard Today rẹ",
   "supplier-delivery.title": "Delivery fún dropship orders",
+  "contracts.title": "Àwọn contract",
   "supplier-agreements.title": "Dropship agreements",
+  "supplier-followers.title": "Àwọn tó ń tẹ̀lé ọ",
   "supplier-wholesale.title": "Wholesale orders",
   "supplier-buyers.title": "Buyers",
   "partner-home.title": "Dashboard Today rẹ",
@@ -69,6 +71,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "media.title": "Àwọn àwòrán",
   "seasonal-campaigns.title": "Campaigns ìgbà ọdún",
   "wallet.title": "Shopinbos Wallet",
+  "credits.title": "AI credits",
+  "business-registration.title": "Fi iṣẹ́ rẹ sílẹ̀",
 };
 
 export default yo;

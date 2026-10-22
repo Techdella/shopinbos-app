@@ -2,6 +2,7 @@ import "server-only";
 
 import { after } from "next/server";
 import { db } from "@/lib/db/client";
+import { registrationLaunched } from "@/lib/business-registration/launch.server";
 import { aiConfigured } from "@/lib/ai/client";
 import { aiText, firstJsonObject } from "@/lib/ai/text";
 import { getPlanCatalog } from "@/lib/plans/catalog.server";
@@ -44,17 +45,21 @@ async function liveFacts() {
   ]);
   const names = categories.length ? await db.category.findMany({ where: { id: { in: categories.map((c) => c.categoryId) } }, select: { id: true, name: true } }).catch(() => []) : [];
   const dropship = await db.supplierProduct.count({ where: { status: "published", dropshipAvailable: true } }).catch(() => 0);
+  const registrationOpen = await registrationLaunched().catch(() => false);
   const lines: string[] = ["LIVE NUMBERS (from the app today; quote these exactly):"];
   if (book) {
-    lines.push(`- Store launch fee (one time, to publish a store): ${naira(book["launch.price"])}. A seller can pay a ${naira(book["launch.deposit"])} deposit now and the rest by the end of the month.`);
-    lines.push(
-      book["store_fee.rate"] > 0
-        ? `- Fee on store sales paid by card or online bank transfer: ${book["store_fee.rate"]}% of the order (not on delivery)${book["store_fee.min"] ? `, at least ${naira(book["store_fee.min"])}` : ""}${book["store_fee.max"] ? `, at most ${naira(book["store_fee.max"])}` : ""}.`
-        : "- Fee on store sales: none at the moment.",
-    );
-    lines.push(`- New accounts start with ${book["credits.welcome"]} free AI credits. Credit packs: ${book["credits.small.credits"]} for ${naira(book["credits.small.naira"])}, ${book["credits.medium.credits"]} for ${naira(book["credits.medium.naira"])}, ${book["credits.large.credits"]} for ${naira(book["credits.large.naira"])}.`);
+    lines.push("- Publishing a store is free on every plan, the free Starter plan included. There is no launch fee.");
+    lines.push(`- Fee on store sales paid by card or online bank transfer, by the seller's plan: Free ${book["store_fee.free"]}%, Starter ${book["store_fee.starter"]}%, Growth ${book["store_fee.growth"]}%, Pro ${book["store_fee.pro"]}% of the order (not on delivery, not on dropship items)${book["store_fee.min"] ? `, at least ${naira(book["store_fee.min"])}` : ""}${book["store_fee.max"] ? `, at most ${naira(book["store_fee.max"])}` : ""}. Paystack's own fee (1.5% + ₦100, ₦100 waived under ₦2,500, capped at ₦2,000) is paid by the seller.`);
+    lines.push(`- Suppliers join and get verified free. Commission on marketplace orders: Free ${book["supplier_fee.free"]}%, Supplier Plus ${book["supplier_fee.plus"]}%, Supplier Pro ${book["supplier_fee.pro"]}% of the wholesale value.`);
+    lines.push(book["delivery.enabled"] === "on"
+      ? `- Delivery partners join and get verified free. Job fee on in-app delivery fees: Free ${book["delivery.free"]}%, Logistics Plus ${book["delivery.plus"]}%, Logistics Pro ${book["delivery.pro"]}%.`
+      : `- Delivery partners join and get verified free. There is no job fee on deliveries at the moment (it will be ${book["delivery.free"]}% / ${book["delivery.plus"]}% / ${book["delivery.pro"]}% by plan when it starts).`);
+    lines.push(`- Every new account gets a ${book["credits.welcome"]} AI credit signup bonus. Plans include monthly credits that refill each month. Credit packs (last 12 months): ${book["credits.small.credits"]} for ${naira(book["credits.small.naira"])}, ${book["credits.medium.credits"]} for ${naira(book["credits.medium.naira"])}, ${book["credits.large.credits"]} for ${naira(book["credits.large.naira"])}, ${book["credits.business.credits"]} for ${naira(book["credits.business.naira"])}. Failed AI jobs are refunded.`);
+    lines.push(`- Boosts: featured supplier ${naira(book["boosts.supplier_week"])}/week, featured delivery partner ${naira(book["boosts.logistics_state_week"])}/week per state, boosted product ${naira(book["boosts.product_week"])}/week. Add-ons: ${naira(book["addons.sms_pack"])} per 500 SMS, ${naira(book["addons.whatsapp_pack"])} per 500 WhatsApp messages, ${naira(book["addons.staff_seat"])}/month per extra staff seat.`);
     lines.push(`- Ad campaigns run by the Shopinbos team: setup ${naira(book["ads.setup.meta"])} for Facebook & Instagram, ${naira(book["ads.setup.tiktok"])} for TikTok; ad spend is paid to Meta/TikTok, from ${naira(book["ads.min_daily_budget"])} a day.`);
-    lines.push(`- Business name registration with CAC through Shopinbos: ${naira(book["business.bn_registration"])}.`);
+    lines.push(registrationOpen
+      ? `- Business name registration with CAC through Shopinbos: ${naira(book["business.bn_registration"])}.`
+      : "- Registering a business name with CAC through Shopinbos is coming soon (not open yet; we'll email everyone when it opens). Businesses already registered can still verify with their CAC number.");
     lines.push(`- Custom domains bought through Shopinbos: the registrar's price converted at about ${naira(book["domains.usd_rate"])}/USD plus ${naira(book["domains.markup"])}, rounded up to the next ₦500.`);
   }
   if (catalog) {

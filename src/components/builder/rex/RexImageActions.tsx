@@ -76,7 +76,7 @@ export function RexImageActions({ url, name, withProductPicker = true, className
             {busy === "products" ? <Spinner className="h-4 w-4" /> : <Icon name="box" size={15} />} {t("rex.cd.toProduct")}
           </button>
         ) : null}
-        <Link href={`/channels?tab=post&image=${encoded}`} className={secondary}>
+        <Link href={`/home/marketing/social/new?image=${encoded}`} className={secondary}>
           <Icon name="send" size={15} /> {t("rex.cd.post")}
         </Link>
         <Link href={`/home/ads?image=${encoded}`} className={secondary}>

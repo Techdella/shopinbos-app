@@ -4,8 +4,9 @@ import { Notice } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { buttonClass, fieldClass, labelClass, shortDate, supplierFrame } from "@/components/supplier/supplier-kit";
 import { db } from "@/lib/db/client";
-import { SUPPLIER_FREE_TEAM_MEMBER_LIMIT } from "@/lib/plan-limits";
-import { ensureSupplierAccess, getSupplierForUser, isProPlan } from "@/lib/role-queries";
+import { planName, supplierPlanLimits } from "@/lib/plan-limits";
+import { atLimit } from "@shared/plans";
+import { ensureSupplierAccess, getSupplierForUser } from "@/lib/role-queries";
 import { requireRole } from "@/lib/server-auth";
 import { getT } from "@/lib/i18n/server";
 
@@ -37,8 +38,10 @@ export default async function SupplierTeamPage({ searchParams }: PageProps) {
     db.user.findUnique({ where: { id: user.id }, select: { aiCredits: true } }),
   ]);
   const activeTeamMembers = teamMembers.filter((member) => member.status === "active");
-  const proPlan = isProPlan(dbUser ?? {});
-  const atFreeTeamLimit = !proPlan && activeTeamMembers.length >= SUPPLIER_FREE_TEAM_MEMBER_LIMIT;
+  const teamLimit = supplierPlanLimits(dbUser ?? {}).teamMembers;
+  const proPlan = teamLimit === null;
+  const currentPlan = planName({ ...dbUser, role: "supplier" });
+  const atFreeTeamLimit = atLimit(activeTeamMembers.length, teamLimit);
   const roleLabel = (role: string) => {
     const found = ROLES.find((r) => r.value === role);
     return found ? t.dynamic(`team.role.${found.value}`, found.label) : role;
@@ -49,7 +52,7 @@ export default async function SupplierTeamPage({ searchParams }: PageProps) {
       frame={supplierFrame(user, supplier)}
       title={t("team.title")}
       sub={t("team.sub")}
-      actions={<PillLink href="/supplier/profile?tab=Billing%20%26%20Plan">{proPlan ? t("team.maxPlan") : t("team.freePlan")}</PillLink>}
+      actions={<PillLink href="/supplier/profile?tab=Billing%20%26%20Plan">{currentPlan}</PillLink>}
     >
       {(params.error || params.saved) && (
         <div className="mb-4"><Notice tone={params.error ? "error" : "success"}>{params.error ?? t("team.updated")}</Notice></div>
@@ -60,8 +63,8 @@ export default async function SupplierTeamPage({ searchParams }: PageProps) {
         <StatTile
           tone="card"
           label={t("team.planLimit")}
-          value={proPlan ? t("team.unlimited") : t("team.xOfY", { count: Math.min(activeTeamMembers.length, SUPPLIER_FREE_TEAM_MEMBER_LIMIT), limit: SUPPLIER_FREE_TEAM_MEMBER_LIMIT })}
-          hint={proPlan ? "Supplier Max" : t("team.freePlanSmall")}
+          value={proPlan ? t("team.unlimited") : t("team.xOfY", { count: Math.min(activeTeamMembers.length, teamLimit ?? 0), limit: teamLimit ?? 0 })}
+          hint={currentPlan}
         />
         <StatTile tone="card" label={t("team.rolesInUse")} value={new Set(teamMembers.map((m) => m.role)).size} />
         <StatTile tone="card" label={t("team.inactive")} value={teamMembers.filter((m) => m.status === "inactive").length} />
@@ -95,7 +98,7 @@ export default async function SupplierTeamPage({ searchParams }: PageProps) {
         {atFreeTeamLimit && (
           <div className="mt-4">
             <AssistantNote who="rex" action={<PillLink href="/supplier/profile?tab=Billing%20%26%20Plan" tone="ink" size="sm">{t("products.seePlans")}</PillLink>}>
-              {t("team.limitNote", { limit: SUPPLIER_FREE_TEAM_MEMBER_LIMIT })}
+              {t("team.limitNote", { limit: teamLimit ?? 0 })}
             </AssistantNote>
           </div>
         )}

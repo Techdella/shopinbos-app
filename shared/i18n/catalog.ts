@@ -52,11 +52,14 @@ import m_money from "./messages/m_money/index.ts";
 import wallet from "./messages/wallet/index.ts";
 import m_ads from "./messages/m_ads/index.ts";
 import verification from "./messages/verification/index.ts";
+import contracts from "./messages/contracts/index.ts";
+import briefs from "./messages/briefs/index.ts";
 import marketing from "./messages/marketing/index.ts";
 import emailBuilder from "./messages/emailBuilder/index.ts";
 import automations from "./messages/automations/index.ts";
 import inbox from "./messages/inbox/index.ts";
 import social from "./messages/social/index.ts";
+import socialPosts from "./messages/socialPosts/index.ts";
 import ads from "./messages/ads/index.ts";
 import packaging from "./messages/packaging/index.ts";
 import video from "./messages/video/index.ts";
@@ -87,6 +90,7 @@ import home from "./messages/home/index.ts";
 import onboarding from "./messages/onboarding/index.ts";
 import media from "./messages/media/index.ts";
 import productTypes from "./messages/productTypes/index.ts";
+import tips from "./messages/tips/index.ts";
 
 export const CATALOGS = {
   common,
@@ -139,11 +143,14 @@ export const CATALOGS = {
   wallet,
   m_ads,
   verification,
+  contracts,
+  briefs,
   marketing,
   emailBuilder,
   automations,
   inbox,
   social,
+  socialPosts,
   ads,
   packaging,
   video,
@@ -174,6 +181,7 @@ export const CATALOGS = {
   onboarding,
   media,
   productTypes,
+  tips,
 } satisfies Record<string, Catalog>;
 
 export type Namespace = keyof typeof CATALOGS;

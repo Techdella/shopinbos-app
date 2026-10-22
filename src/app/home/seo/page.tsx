@@ -11,6 +11,7 @@ import { getT } from "@/lib/i18n/server";
 import { buildStorefrontUrl } from "@/lib/domains/storefront";
 import { SeoImageField } from "@/components/seo/SeoImageField";
 import { storeHiddenFromSearch } from "@/lib/seo/indexing";
+import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,7 @@ type SeoPageProps = { searchParams?: Promise<{ saved?: string; tab?: string }> }
 export default async function SeoSettingsPage({ searchParams }: SeoPageProps) {
   const params = await searchParams;
   const user = await requireRole(["seller"], "/login");
+  const tipT = await getT("tips");
   const t = await getT("store");
   const workspace = await getSellerWorkspace(user.id);
   if (!workspace?.store) redirect("/onboarding?role=seller");
@@ -50,6 +52,7 @@ export default async function SeoSettingsPage({ searchParams }: SeoPageProps) {
     >
       <PageToast />
       <div className="grid gap-5">
+        <PageTip>{tipT("seo")}</PageTip>
         {params?.saved && <Notice tone="success">{t("seo.saved")}</Notice>}
 
         <FilterChips

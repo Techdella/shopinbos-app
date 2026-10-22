@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { deliveryPartnerProblem } from "@/lib/plans/gates.server";
 import { withSeller } from "@/lib/auth/middleware";
 import { db } from "@/lib/db/client";
 import { ok, okList, apiError, parsePagination } from "@/lib/api/response";
@@ -47,6 +48,8 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
   if (partner.user.debtPausedAt && !(await db.deliveryBooking.count({ where: { sellerId: user.id, logisticsPartnerId: partner.id } }))) {
     return apiError("NOT_AVAILABLE", "This delivery partner isn't taking new shops right now. Choose another one.", 409);
   }
+  const planProblem = await deliveryPartnerProblem(user.id, partner.id);
+  if (planProblem) return apiError("PLAN_LIMIT", planProblem, 402);
 
   const quote = await db.deliveryQuoteRequest.create({
     data: {

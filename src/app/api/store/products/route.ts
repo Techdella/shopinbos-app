@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { productLimitProblem } from "@/lib/plans/gates.server";
 import { withSeller } from "@/lib/auth/middleware";
 import { db } from "@/lib/db/client";
 import { ok, okList, apiError, parsePagination } from "@/lib/api/response";
@@ -106,6 +107,8 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
   }
 
   const { costPrice, retailPrice, productType, productDetails, relatedProductIds, variants, variantOptions, ...rest } = parsed.data;
+  const planLimit = await productLimitProblem(user.id, store.id);
+  if (planLimit) return apiError("PLAN_LIMIT", planLimit, 402);
   // Type, details, versions (checked and normalized) and related products.
   const fields = await productFieldsData(store.id, { productType, productDetails, relatedProductIds, variants, variantOptions }, { inventoryType: rest.inventoryType });
   if (!fields.ok) return apiError("BAD_REQUEST", fields.error);

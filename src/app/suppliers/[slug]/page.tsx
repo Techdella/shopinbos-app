@@ -1,8 +1,12 @@
 import Link from "next/link";
+import { getCurrentAppUser } from "@/lib/server-auth";
+import { isFollowing } from "@/lib/suppliers/follow.server";
+import { FollowSupplierButton } from "@/components/suppliers/FollowSupplierButton";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db/client";
 import { BrandLogo } from "@/components/brand/BrandLogo";
-import { Card, CardHead, EmptyState, Pill, PillLink, StatTile } from "@/components/app-kit";
+import { AssistantNote, Card, CardHead, EmptyState, Pill, PillLink, StatTile } from "@/components/app-kit";
+import { TipsGate } from "@/app/marketplace/_components/TipsGate";
 import { Icon } from "@/components/ui/Icon";
 import { KeyValue } from "@/components/logistics/kit";
 import { messagesHref } from "@/lib/conversations/pure";
@@ -71,6 +75,8 @@ export default async function PublicSupplierProfilePage({ params }: PageProps) {
 
   if (!supplier) notFound();
   const t = await getT("marketplace");
+  const viewer = await getCurrentAppUser();
+  const following = viewer?.role === "seller" ? await isFollowing(supplier.id, viewer.id) : false;
   const locale = await getLocale();
 
   const isVerified = supplier.verificationStatus === "verified";
@@ -93,6 +99,8 @@ export default async function PublicSupplierProfilePage({ params }: PageProps) {
         <Link href="/marketplace/suppliers" className="mb-5 inline-flex min-h-[40px] items-center gap-1.5 text-[14px] font-bold text-app-ink no-underline hover:underline">
           <Icon name="arrowLeft" size={15} /> {t("sup.title")}
         </Link>
+
+        <p className="m-0 mb-4 max-w-[760px] text-[14.5px] leading-[1.55] text-app-ink-soft">{t("pub.lead")}</p>
 
         {!isVerified && (
           <div className="mb-5 flex items-start gap-2.5 rounded-[18px] border border-app-line bg-white px-4 py-3 text-[14px] text-app-ink-soft">
@@ -130,13 +138,22 @@ export default async function PublicSupplierProfilePage({ params }: PageProps) {
               <div className="flex w-full flex-wrap gap-2 sm:w-auto">
                 <PillLink href={quoteHref} tone="accent" icon="send" className="flex-1 sm:flex-none">{t("pub.quote")}</PillLink>
                 <PillLink href={messagesHref("seller", { with: supplier.id })} icon="chat" className="flex-1 sm:flex-none">{t("pub.message")}</PillLink>
+                {viewer?.role === "seller" ? <FollowSupplierButton supplierId={supplier.id} following={following} /> : null}
               </div>
             )}
           </div>
         </Card>
 
+        {isVerified && (
+          <div className="mb-5">
+            <TipsGate>
+              <AssistantNote who="peggy">{t("pub.tip")}</AssistantNote>
+            </TipsGate>
+          </div>
+        )}
+
         <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-4">
-          <StatTile tone="card" label={t("pub.trustScore")} value={supplier.trustScore ? `${supplier.trustScore}/100` : t("pub.new")} />
+          <StatTile tone="card" label={t("pub.trustScore")} value={supplier.trustScore ? `${supplier.trustScore}/100` : t("pub.new")} hint={supplier.trustScore ? t("pub.trustHint") : undefined} />
           <StatTile tone="card" label={t("pub.rating")} value={supplier.ratingCount ? `${supplier.rating.toFixed(1)} ★` : t("pub.new")} hint={supplier.ratingCount ? t("pub.reviews", { count: supplier.ratingCount }) : undefined} />
           <StatTile tone="card" label={t("pub.productsLabel")} value={supplier._count.products} />
           <StatTile tone="card" label={t("pub.replies")} value={supplier.responseTimeLabel?.replace(/^replies\s+/i, "") || t("pub.sameDay")} />

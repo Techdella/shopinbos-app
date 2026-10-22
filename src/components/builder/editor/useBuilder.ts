@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { StoreLaunchPricing } from "@/components/billing/StoreLaunchBillingModal";
 import type { SurfaceStore } from "@/components/storefront/TemplateStorefrontSurface";
 import { createBlankEditorSnapshot, isBoutiqueTheme, type StoreEditorPatchOp, type StoreEditorSnapshot } from "@/lib/store-templates";
 import { migrateSnapshot } from "@/lib/store-templates/section-content";
@@ -169,7 +168,6 @@ export function useBuilder() {
   const [published, setPublished] = useState<StoreEditorSnapshot | null>(null);
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
-  const [launchPricing, setLaunchPricing] = useState<StoreLaunchPricing | null>(null);
   const [toast, setToast] = useState<Toast | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -375,13 +373,8 @@ export function useBuilder() {
       const response = await fetch("/api/store/editor/publish", { method: "POST" });
       const json = await response.json().catch(() => null) as {
         data?: { published?: StoreEditorSnapshot | null; draft?: StoreEditorSnapshot | null };
-        billing?: StoreLaunchPricing;
         error?: { message?: string; blockers?: string[] };
       } | null;
-      if (response.status === 402 && json?.billing) {
-        setLaunchPricing(json.billing);
-        return;
-      }
       if (!response.ok) throw new Error(json?.error?.blockers?.[0] ?? json?.error?.message ?? tx("Your store couldn't be published."));
       // The server publishes its own copy of the draft (blank page SEO filled in, one shared header): that copy,
       // upgraded like a fresh load, becomes both the published snapshot and, unless the seller kept editing while
@@ -393,7 +386,7 @@ export function useBuilder() {
         setHistory((current) => replacePresent(current, serverDraft));
         setSavedKey(snapshotKey(serverDraft));
       }
-      // Publishing also opens the store (after the launch payment check above).
+      // Publishing also opens the store.
       setStore((current) => ({ ...current, status: "active" }));
       const host = storefrontHost(store.storefrontUrl);
       showToast(host ? wordsRef.current.t("edk.publishedTo", { host }) : tx("Published"), "ok", store.storefrontUrl ? { href: store.storefrontUrl, label: tx("View store") } : undefined);
@@ -525,8 +518,6 @@ export function useBuilder() {
     startBlank,
     applyOps,
     resetDraft,
-    launchPricing,
-    clearLaunchPricing: () => setLaunchPricing(null),
     toast,
     showToast,
     dismissToast,

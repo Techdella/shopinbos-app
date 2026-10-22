@@ -12,6 +12,7 @@ import { MyPartners } from "@/components/delivery-market/MyPartners";
 import { FindPartners } from "@/components/delivery-market/FindPartners";
 import { originLabel, readFindFilters, type FindSearch } from "@/components/delivery-market/find-filters";
 import { getT } from "@/lib/i18n/server";
+import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -28,6 +29,7 @@ export default async function SupplierDeliveryPage({ searchParams }: { searchPar
   const supplier = await getSupplierForUser(user);
   const filters = readFindFilters(params);
   const t = await getT("delivery");
+  const tipT = await getT("tips");
   const [settings, connections, cards, found] = await Promise.all([
     deliverySettingsFor(user.id),
     connectionsForOwner(user.id),
@@ -42,6 +44,7 @@ export default async function SupplierDeliveryPage({ searchParams }: { searchPar
       sub={t("supplier.sub")}
       actions={<PillLink href="/supplier/delivery/analytics" icon="chart">{t("an.title")}</PillLink>}
     >
+      <PageTip who="peggy" className="mb-5">{tipT("supplier.delivery")}</PageTip>
       <FlashNotice saved={params.saved} error={params.error} />
       <div className="grid gap-8">
         <form action={saveDeliverySettingsAction}>

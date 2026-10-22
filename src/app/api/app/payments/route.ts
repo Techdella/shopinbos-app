@@ -20,6 +20,7 @@ const ERRORS: Record<PaymentsSettingsError, { code: string; message: string; sta
   noStore: { code: "NOT_FOUND", message: "Store not found.", status: 404 },
   chooseTime: { code: "CHOOSE_TIME", message: "Choose one of the listed times.", status: 400 },
   badges: { code: "BAD_BADGES", message: "Choose from the listed payment logos.", status: 400 },
+  codNeedsPlan: { code: "PLAN_LIMIT", message: "Pay on delivery comes with the Growth plan and up.", status: 402 },
 };
 
 async function overview(userId: string) {

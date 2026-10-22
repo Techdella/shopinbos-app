@@ -6,8 +6,9 @@ import { isRiderOut } from "@/lib/logistics/job-rules";
 import { bookingNet, lagosStartOfToday } from "@/components/logistics/kit";
 import { getPublicEnv } from "@/lib/env";
 import { newRiderToken } from "@/lib/logistics/rider-token";
-import { LOGISTICS_FREE_TEAM_MEMBER_LIMIT } from "@/lib/plan-limits";
-import { isOnboardingComplete, isProPlan } from "@/lib/role-queries";
+import { isOnboardingComplete } from "@/lib/role-queries";
+import { logisticsPlanLimits, logisticsTeamLimitMessage } from "@/lib/plan-limits";
+import { atLimit } from "@shared/plans";
 import { toE164 } from "@shared/phone";
 import { riderWhereWords } from "@shared/delivery-geo";
 import { partnerForUser } from "../_shared";
@@ -88,8 +89,9 @@ export const POST = withLogistics(async (req: NextRequest, { user }) => {
     db.logisticsTeamMember.count({ where: { logisticsPartnerId: partner.id, status: "active" } }),
     db.logisticsTeamMember.findUnique({ where: { logisticsPartnerId_email: { logisticsPartnerId: partner.id, email } }, select: { status: true } }),
   ]);
-  if (existing?.status !== "active" && !isProPlan(dbUser ?? {}) && activeCount >= LOGISTICS_FREE_TEAM_MEMBER_LIMIT) {
-    return apiError("PLAN_LIMIT", `Starter logistics includes ${LOGISTICS_FREE_TEAM_MEMBER_LIMIT} active team members. Deactivate someone or move to Pro to add more.`, 403);
+  const teamLimit = logisticsPlanLimits(dbUser ?? {}).teamMembers;
+  if (existing?.status !== "active" && atLimit(activeCount, teamLimit)) {
+    return apiError("PLAN_LIMIT", `${logisticsTeamLimitMessage(teamLimit)} Or deactivate someone.`, 403);
   }
 
   const { token, hash } = newRiderToken();

@@ -2,7 +2,7 @@
 
 import { grantPlanCredits } from "@/lib/ai/credits.server";
 import { getPlanCatalog } from "@/lib/plans/catalog.server";
-import { PLAN_TIERS, planVersion, type PlanTier } from "@shared/plan-catalog";
+import { PLAN_TIERS, isPlanTier, planVersion, type PlanTier } from "@shared/plan-catalog";
 import { db } from "@/lib/db/client";
 import { billingEmail } from "@/lib/auth/billing-email";
 import { revalidatePath } from "next/cache";
@@ -197,6 +197,7 @@ export async function linkBankAccount(
   try {
     const user = await getCurrentAppUser();
     if (!user) return { success: false, error: "Not authenticated" };
+    if (user.staff) return { success: false, error: "Only the store owner can change the bank account." };
     if (role !== "seller" && role !== "supplier" && role !== "logistics_partner") return { success: false, error: "Invalid role for bank account linking" };
     if (user.role !== role) return { success: false, error: "Sign in to this account first." };
     const wallet = await linkWalletBank({ id: user.id, role }, { bankName, accountNumber });
@@ -259,18 +260,18 @@ async function applyPlanUpgrade(reference: string, upgrade: UpgradeKey, paths: s
   }
 }
 
-export async function upgradeUserToSupplierMax(reference: string): Promise<{ success: boolean; error?: string }> {
-  return applyPlanUpgrade(reference, "supplier_max", ["/supplier/profile", "/supplier/dashboard"]);
-}
+const PLAN_PATHS: Record<string, string[]> = {
+  seller: ["/home/settings", "/home", "/home/billing"],
+  supplier: ["/supplier/profile", "/supplier/dashboard"],
+  logistics_partner: ["/logistics/billing", "/logistics/dashboard", "/logistics/profile"],
+};
 
-export async function upgradeUserToPro(reference: string): Promise<{ success: boolean; error?: string }> {
-  return upgradeUserToSupplierMax(reference);
-}
-
-export async function upgradeSellerToGrowth(reference: string): Promise<{ success: boolean; error?: string }> {
-  return applyPlanUpgrade(reference, "seller_growth", ["/home/settings", "/home"]);
-}
-
-export async function upgradeSellerToMax(reference: string): Promise<{ success: boolean; error?: string }> {
-  return applyPlanUpgrade(reference, "seller_pro", ["/home/settings", "/home"]);
+/** Any plan tier (shared/plan-catalog.ts) for the signed-in user's own role, after a Paystack subscription checkout. */
+export async function subscribeToPlan(reference: string, tier: string): Promise<{ success: boolean; error?: string }> {
+  if (typeof reference !== "string" || !reference || !isPlanTier(tier)) return { success: false, error: "Choose a plan." };
+  const user = await getCurrentAppUser();
+  if (!user) return { success: false, error: "Not authenticated" };
+  if (user.staff) return { success: false, error: "Only the store owner can change the plan." };
+  if (PLAN_TIERS[tier].role !== user.role) return { success: false, error: "That plan is for a different kind of account." };
+  return applyPlanUpgrade(reference, tier, PLAN_PATHS[user.role] ?? []);
 }

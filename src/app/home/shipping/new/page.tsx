@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { requireRole } from "@/lib/server-auth";
 import { db } from "@/lib/db/client";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
-import { EmptyState, PillLink } from "@/components/app-kit";
+import { AssistantNote, EmptyState, PillLink } from "@/components/app-kit";
+import { DeliveryTip } from "@/components/delivery-market/DeliveryTip";
 import { ShippingZoneForm } from "../ShippingZoneForm";
 import { getT } from "@/lib/i18n/server";
 
@@ -26,7 +27,12 @@ export default async function NewShippingZonePage() {
       actions={<PillLink href="/home/shipping">{t("allZones")}</PillLink>}
     >
       {store ? (
-        <ShippingZoneForm currency={store.currency ?? "NGN"} />
+        <div className="grid gap-4">
+          <DeliveryTip>
+            <AssistantNote who="peggy">{t("tip.form")}</AssistantNote>
+          </DeliveryTip>
+          <ShippingZoneForm currency={store.currency ?? "NGN"} />
+        </div>
       ) : (
         <EmptyState icon="shop" title={t("new.noStore")} action={<PillLink href="/onboarding" tone="ink">{t("new.setUp")}</PillLink>}>
           {t("new.noStoreSub")}

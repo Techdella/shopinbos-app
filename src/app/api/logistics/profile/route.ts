@@ -4,7 +4,7 @@ import { db } from "@/lib/db/client";
 import { invalidatePublicMarketplaceCache } from "@/lib/api/cache";
 import { ok, apiError } from "@/lib/api/response";
 import { LogisticsPartnerUpdateSchema } from "@/lib/schemas";
-import { LOGISTICS_FREE_ROUTE_LIMIT, isProPlan, logisticsRouteLimitMessage } from "@/lib/plan-limits";
+import { coverageStateCount, logisticsCoverageLimitMessage, logisticsPlanLimits } from "@/lib/plan-limits";
 import type { AuthUser } from "@/lib/auth/types";
 
 export const GET = withLogistics(async (_req: NextRequest, { user }: { user: AuthUser }) => {
@@ -26,10 +26,11 @@ export const PATCH = withLogistics(async (req: NextRequest, { user }: { user: Au
     return apiError("BAD_REQUEST", parsed.error.issues[0]?.message ?? "Invalid input");
   }
 
-  if (parsed.data.coverageZones && parsed.data.coverageZones.length > LOGISTICS_FREE_ROUTE_LIMIT) {
+  if (parsed.data.coverageZones) {
     const dbUser = await db.user.findUnique({ where: { id: user.id }, select: { aiCredits: true } });
-    if (!isProPlan(dbUser ?? {})) {
-      return apiError("PLAN_LIMIT", logisticsRouteLimitMessage(), 402);
+    const limit = logisticsPlanLimits(dbUser ?? {}).coverageStates;
+    if (limit !== null && coverageStateCount(parsed.data.coverageZones) > limit) {
+      return apiError("PLAN_LIMIT", logisticsCoverageLimitMessage(limit), 402);
     }
   }
 

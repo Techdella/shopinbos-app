@@ -3,7 +3,7 @@ import { withSeller } from "@/lib/auth/middleware";
 import { apiError, ok } from "@/lib/api/response";
 import { db } from "@/lib/db/client";
 import { generateImage, ImageUnavailableError, isOwnImageUrl, loadReferences } from "@/lib/ai/images";
-import { meterAi } from "@/lib/ai/usage";
+import { meterAiCharged, refundAi } from "@/lib/ai/usage";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -24,12 +24,15 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
   const references = await loadReferences([source]);
   if (!references.length) return apiError("BAD_REQUEST", "Rex can't read that logo file. Upload it as a PNG, JPG or WebP.");
 
-  const limited = await meterAi(user.id, "image");
-  if (limited) return limited;
+  const metered = await meterAiCharged(user.id, "image");
+  if (metered.blocked) return metered.blocked;
+  // A failed picture is given back (the credits and the day's cap).
+  const giveBack = () => refundAi(user.id, "image", 1, metered.credits);
   try {
     const url = await generateImage({ prompt: PROMPTS[kind], size: "1024x1024", references, path: `logos/${user.id}/${kind}-${Date.now()}` });
     return ok({ url, kind });
   } catch (error) {
+    await giveBack();
     if (error instanceof ImageUnavailableError) return apiError("UNAVAILABLE", error.message, 503);
     console.error("[brand-icon] failed", error);
     return apiError("UNAVAILABLE", "Rex couldn't make that just now. Nothing changed; try again.", 503);

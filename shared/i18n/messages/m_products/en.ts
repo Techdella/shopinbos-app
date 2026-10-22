@@ -46,7 +46,7 @@ const en = {
   "dropship.message": "Message",
   "dropship.changeFailed": "That didn't change. Check your connection and try again.",
   "dropship.title": "Dropship",
-  "dropship.sub": "You don't buy these. When a customer pays, the supplier sends it with your shop's name on it.",
+  "dropship.sub": "You don't buy these. When a customer pays, the supplier sends it straight to them.",
   "dropship.emptyTitle": "No dropship products yet",
   "dropship.findToSell": "Find products to sell",
   "dropship.emptyBody": "Pick products from suppliers and put them in your shop. You pay nothing until a customer pays you. Your money is safe here until delivery.",

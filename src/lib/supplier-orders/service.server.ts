@@ -131,8 +131,10 @@ export async function ensureSupplierOrders(retailOrderId: string): Promise<{ cre
         const units = row.items.reduce((sum, item) => sum + item.quantity, 0);
         const within = deadlines.get(row.supplierId)?.words ?? "4 hours";
         const ref = supplierOrderRef(row.id);
-        void messageSupplierPhone(row.supplierId, `Shopinbos: new order ${ref} from ${shop}. You get ${money(row.costTotal, order.currency)}. Accept it within ${within} in the app.`);
-        return createNotification({
+        // Awaited with the bell/email/push so a serverless function can't end before the WhatsApp or SMS goes out
+        // (it never throws).
+        const phone = messageSupplierPhone(row.supplierId, `Shopinbos: new order ${ref} from ${shop}. You get ${money(row.costTotal, order.currency)}. Accept it within ${within} in the app.`);
+        const notice = createNotification({
           userId: supplier.userId,
           type: "dropshipping",
           priority: "warning",
@@ -147,6 +149,7 @@ export async function ensureSupplierOrders(retailOrderId: string): Promise<{ cre
           dedupeKey: `supplier_order.new:${row.id}`,
           phoneHandled: true,
         });
+        return Promise.all([phone, notice]);
       }),
     );
   }

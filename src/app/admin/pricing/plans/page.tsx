@@ -1,20 +1,21 @@
 import type { Metadata } from "next";
 import { AppPage, Card, CardHead, EmptyState, ListCard, ListRow, Pill, PillLink } from "@/components/app-kit";
 import { Field, adminFrame, buttonClass, fieldClass, formatDate } from "@/components/admin/AdminKit";
-import { savePlan } from "@/app/actions/pricing";
+import { applyPlanPrices, savePlan } from "@/app/actions/pricing";
 import { requireRole } from "@/lib/server-auth";
-import { getPlanCatalog, planHistory, subscribersByCode } from "@/lib/plans/catalog.server";
+import { getPlanCatalog, pendingPriceChanges, planHistory, subscribersByCode } from "@/lib/plans/catalog.server";
 import { PLAN_TIERS, PLAN_TIER_KEYS, annualSaving, type PlanBilling, type PlanTier } from "@shared/plan-catalog";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Subscription plans" };
 
-// Plan prices and monthly AI credits (shared/plan-catalog.ts). Paystack charges each subscriber the amount of the
-// plan they joined, so a new price is a new Paystack plan: new subscribers pay it, people already subscribed keep
-// their price until they cancel. Monthly credits apply to everyone's next payment.
+// Plan prices and monthly AI credits (shared/plan-catalog.ts; what each plan includes is shared/plans.ts). Paystack
+// charges each subscriber the amount of the plan they joined, so a new price is a new Paystack plan: new subscribers
+// pay it, people already subscribed keep their price until they cancel, unless "Apply the new prices" moves them.
 
 const naira = (amount: number | null) => (amount === null ? "—" : `₦${amount.toLocaleString("en-NG")}`);
 const BILLING_LABEL: Record<PlanBilling, string> = { monthly: "Monthly", annual: "Yearly" };
+const ROLE_LABEL = { seller: "Sellers", supplier: "Suppliers", logistics_partner: "Delivery partners" } as const;
 
 function historyLine(key: string, value: unknown) {
   if (value === null || value === undefined) return "—";
@@ -31,7 +32,8 @@ function historyTitle(key: string) {
 
 export default async function AdminPlansPage({ searchParams }: { searchParams: Promise<{ saved?: string; error?: string }> }) {
   const user = await requireRole(["admin"], "/admin/login");
-  const [query, catalog, history, subscribers] = await Promise.all([searchParams, getPlanCatalog(), planHistory(), subscribersByCode()]);
+  const [query, catalog, history, subscribers, pending] = await Promise.all([searchParams, getPlanCatalog(), planHistory(), subscribersByCode(), pendingPriceChanges()]);
+  const changes = pending.moves.length + pending.missing.length;
 
   return (
     <AppPage
@@ -46,6 +48,33 @@ export default async function AdminPlansPage({ searchParams }: { searchParams: P
         <div role="status" className="mb-5 rounded-[22px] border border-app-line bg-white p-4 text-[14px]">{query.saved}</div>
       ) : null}
 
+      {changes > 0 ? (
+        <Card className="mb-5 border-2 border-app-ink p-5">
+          <CardHead title="Apply the new prices" sub="Today's prices aren't on Paystack yet. This moves existing subscribers onto them (they pay the new amount from their next renewal) and puts a plan on sale for every tier that has none." />
+          <ul className="mb-0 mt-3 grid gap-1 pl-4 text-[14px]">
+            {pending.moves.map((move) => (
+              <li key={move.code}>
+                <strong>{PLAN_TIERS[move.tier].label}</strong> {BILLING_LABEL[move.billing].toLowerCase()} <code className="font-mono text-[12px]">{move.code}</code>: {naira(move.fromNgn)} → {naira(move.toNgn)} · {move.subscribers} subscribed {move.fromNgn !== null && move.toNgn > move.fromNgn ? "(a price rise for them)" : ""}
+              </li>
+            ))}
+            {pending.missing.map((gap) => (
+              <li key={`${gap.tier}-${gap.billing}`}>
+                <strong>{PLAN_TIERS[gap.tier].label}</strong> {BILLING_LABEL[gap.billing].toLowerCase()}: {gap.reuse ? `sell ${gap.reuse} again at ${naira(gap.amountNgn)}` : `new Paystack plan at ${naira(gap.amountNgn)}`}
+              </li>
+            ))}
+          </ul>
+          <form action={applyPlanPrices} className="mt-4 flex flex-wrap items-end gap-3">
+            <label className="flex min-h-[44px] items-center gap-2 text-[14px] font-bold">
+              <input type="checkbox" name="confirm" value="yes" className="h-5 w-5" /> I've told subscribers about any price rise
+            </label>
+            <Field label="Note (optional)" htmlFor="apply-note" className="min-w-[220px] flex-1">
+              <input id="apply-note" name="note" maxLength={500} placeholder="October 2026 prices" className={fieldClass} />
+            </Field>
+            <button type="submit" className={buttonClass("ink")}>Apply at Paystack</button>
+          </form>
+        </Card>
+      ) : null}
+
       <div className="grid gap-5">
         {PLAN_TIER_KEYS.map((tier) => {
           const info = PLAN_TIERS[tier];
@@ -57,7 +86,7 @@ export default async function AdminPlansPage({ searchParams }: { searchParams: P
               <Card className="p-5">
                 <CardHead
                   title={info.label}
-                  sub={`${info.role === "seller" ? "Sellers" : "Suppliers"} · ${[info.hideBadge ? "can hide “Built with Shopinbos”" : null, info.freeDomainAnnual ? "yearly plan includes a free domain" : null].filter(Boolean).join(" · ") || "no extra perks"}`}
+                  sub={`${ROLE_LABEL[info.role]} · ${[info.hideBadge ? "can hide “Built with Shopinbos”" : null, info.freeDomainAnnual ? "yearly plan includes a free domain" : null].filter(Boolean).join(" · ") || "no extra perks"}`}
                 />
                 <div className="mt-3 grid gap-2 text-[14px]">
                   {info.billings.map((billing) => {
@@ -72,7 +101,7 @@ export default async function AdminPlansPage({ searchParams }: { searchParams: P
                     );
                   })}
                   <div className="text-app-ink-soft">
-                    {offer.creditsPerMonth} AI credits a month{info.billings.includes("annual") ? ` (${offer.creditsPerMonth * 12} up front on the yearly plan)` : ""}
+                    {offer.creditsPerMonth} AI credits a month, refilled each month
                     {saving ? ` · Yearly works out at ${naira(saving.perMonth)}/month, ${saving.months} months free` : ""}
                   </div>
                 </div>
@@ -88,7 +117,7 @@ export default async function AdminPlansPage({ searchParams }: { searchParams: P
                         <input id={`${tier}-annual`} name="annualNgn" type="number" min={100} step={1} placeholder={String(offer.annual?.amountNgn ?? "")} className={fieldClass} />
                       </Field>
                     )}
-                    <Field label="AI credits a month" htmlFor={`${tier}-credits`} hint="Applies to everyone's next payment.">
+                    <Field label="AI credits a month" htmlFor={`${tier}-credits`} hint="From each subscriber's next monthly refill.">
                       <input id={`${tier}-credits`} name="creditsPerMonth" type="number" min={0} step={1} defaultValue={offer.creditsPerMonth} required className={fieldClass} />
                     </Field>
                   </div>

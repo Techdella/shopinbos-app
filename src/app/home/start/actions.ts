@@ -7,6 +7,8 @@ import { deliveryAreasFromPicks, isSetupStepKey, type SetupChoicePatch } from "@
 import { replaceSetupDeliveryAreas, saveSetupChoice, setPaymentMethods, SetupError } from "@/lib/setup/server";
 import type { PaymentMethodKey } from "@shared/onboarding";
 import { getT } from "@/lib/i18n/server";
+import { connectPartner, saveDeliverySettings } from "@/lib/delivery-market/manage.server";
+import { deliveryPartnerProblem } from "@/lib/plans/gates.server";
 
 // Start here's inline steps. Each one writes the same data the full settings screens do, so the checklist ticks
 // itself from real state.
@@ -69,4 +71,38 @@ export async function saveDeliveryPicks(picks: Array<{ city: string; fee: number
     if (fee !== null && (!Number.isFinite(fee) || fee < 0 || fee > 1_000_000)) throw new SetupError("Delivery fees must be between ₦0 and ₦1,000,000.");
     await replaceSetupDeliveryAreas(store.id, deliveryAreasFromPicks(list, fee));
   });
+}
+
+/**
+ * "Use this company": connects a delivery company the same way /home/logistics/partners does (connectPartner,
+ * which checks the plan's connection limit), after the plan's delivery-partner gate. With `atCheckout`,
+ * checkout then offers the shop's delivery companies (the logistics settings' checkoutMode "partners").
+ */
+export async function connectDeliveryCompany(partnerId: string, atCheckout: boolean): Promise<Result> {
+  const user = await requireRole(["seller"], "/login");
+  return run(async () => {
+    const id = String(partnerId ?? "").trim().slice(0, 40);
+    if (!id) throw new SetupError("Pick a delivery company.");
+    const planProblem = await deliveryPartnerProblem(user.id, id);
+    if (planProblem) throw new SetupError(planProblem);
+    const connected = await connectPartner({ id: user.id, role: user.role, name: user.name }, id);
+    if (!connected.ok) throw new SetupError(connected.error);
+    if (atCheckout) await setCheckoutMode(user.id, true);
+    revalidatePath("/home/logistics");
+    revalidatePath("/home/logistics/partners");
+  });
+}
+
+/** "Let customers pick this company at checkout": the same setting as the logistics settings page. */
+export async function setCheckoutPartners(on: boolean): Promise<Result> {
+  const user = await requireRole(["seller"], "/login");
+  return run(async () => {
+    await setCheckoutMode(user.id, Boolean(on));
+    revalidatePath("/home/logistics");
+  });
+}
+
+async function setCheckoutMode(userId: string, partners: boolean) {
+  const saved = await saveDeliverySettings(userId, { checkoutMode: partners ? "partners" : "zones" });
+  if (!saved.ok) throw new SetupError(saved.error);
 }

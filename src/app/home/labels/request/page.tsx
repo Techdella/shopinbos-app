@@ -7,6 +7,7 @@ import { getT } from "@/lib/i18n/server";
 import { isMissingTable } from "@/lib/rate-limit-core";
 import { guessProductType } from "@shared/packaging";
 import { RequestForm, type PastRequest } from "./RequestForm";
+import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -18,6 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
 // team, later our branding partners. ?design=<id> attaches a saved design to start from.
 export default async function PackagingRequestPage({ searchParams }: { searchParams: Promise<{ design?: string }> }) {
   const user = await requireRole(["seller"], "/login");
+  const tipT = await getT("tips");
   const t = await getT("packaging");
   const { design: designId } = await searchParams;
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true } });
@@ -38,6 +40,7 @@ export default async function PackagingRequestPage({ searchParams }: { searchPar
 
   return (
     <SellerPage user={user} store={storeSummary(store)} title={t("req.title")} sub={t("req.sub")} actions={<PillLink href="/home/labels/packaging" icon="package">{t("req.designMyself")}</PillLink>}>
+      <PageTip className="mb-5">{tipT("labels.request")}</PageTip>
       <RequestForm
         migrationNeeded={migrationNeeded}
         design={design}

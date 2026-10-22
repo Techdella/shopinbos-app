@@ -1,17 +1,17 @@
-// Sell everywhere (/channels): the platform cards (connect, status, coming soon), and the Post & share tab
+// Sell everywhere (/channels): the marketplace and platform cards (connect, status, coming soon), and the old post tab
 // (tagged links, the post composer and per-channel results).
 // English is the source of truth; every key must exist in pcm.ts, yo.ts, ha.ts and ig.ts.
 const en = {
   // Sell everywhere (/channels)
   "title": "Sell everywhere",
-  "sub": "Connect your accounts and your products show there. Prices and stock update by themselves.",
+  "sub": "Sell on the marketplaces Nigerian shoppers use, from your one Shopinbos shop. Jumia, Konga, Jiji, Amazon and more are coming soon.",
   "analytics": "Analytics",
   "noStore.title": "Set up your shop first",
   "noStore.action": "Start setup",
   "noStore.body": "To show your products on other apps, you need a shop and at least one product.",
   "cantSave": "Your products still show where they're connected, but changes here can't be saved right now. Tap Help and we'll sort it out.",
   "tab.connect": "Connect",
-  "tab.post": "Post & share",
+  "tab.post": "Social posts",
   "p.whatsapp": "Customers' messages come to your inbox, and they see your products right inside WhatsApp.",
   "p.meta": "One tap for both. Messages from your Page and Instagram come to your inbox, and your products show in your Facebook and Instagram shop.",
   "p.tiktok": "Your products in TikTok ads and product links.",
@@ -91,14 +91,29 @@ const en = {
   "acc.instagram": "Instagram: {name}",
   "acc.noInstagram": "Instagram isn't added yet. In the Instagram app, switch to a business account and link it to your Facebook Page, then tap",
   "card.confirmMeta": "Disconnect {name}? New messages and product updates stop there. Your past chats stay.",
+  "card.confirmWhatsapp": "Disconnect {name}? New WhatsApp messages stop coming to your inbox and your products stop updating there. Your past chats stay.",
   "card.needs.metaProducts": "Messages are on. To show your products on Facebook and Instagram too, create a free business account, then tap below.",
-  "connectedOk": "{name} is connected. It now works across Shopinbos: your inbox, your products and Post & share.",
+  "card.needs.waProducts": "Messages are on. To show your products inside WhatsApp too, Facebook still has to allow Shopinbos to manage your catalog. We'll turn it on as soon as it does; tap below to try again.",
+  "connectedOk": "{name} is connected. It now works across Shopinbos: your inbox, your products and Social posts.",
   "soon.postTiktok": "Post to TikTok",
   "post.yours": "Your accounts:",
   "post.notYet": "{name}: not connected",
   "post.connect": "Connect",
   "pc.sendTo": "Send to {channel}",
   "pc.sendCopied": "Caption copied. Pick {channel}, then paste it with your photo.",
+  // Sell everywhere: marketplaces
+  "mk.title": "Marketplaces",
+  "mk.sub": "Your products, prices and stock on each marketplace, and every order back in Shopinbos. Tap “Tell me when it's ready” and we'll tell you the day it opens.",
+  "mk.jumia": "Africa's biggest online mall, in Nigeria and across Africa.",
+  "mk.konga": "Nigerian online mall with its own payments and delivery.",
+  "mk.jiji": "Nigeria's biggest classifieds. Buyers call or chat with you.",
+  "mk.amazon": "Sell to buyers in the US, UK and beyond.",
+  "mk.ebay": "Sell to buyers around the world, new or used.",
+  "mk.etsy": "Buyers worldwide looking for handmade, fashion and craft.",
+  "live.title": "Already showing your products",
+  "live.sub": "Google free listings work today: connect once and your products show in Google Search and Shopping.",
+  "moved": "Posting to Instagram, Facebook, WhatsApp and TikTok now has its own page, with a calendar, a queue and one-tap posts.",
+  "moved.link": "Open Social posts",
 } satisfies Record<string, string>;
 
 export default en;

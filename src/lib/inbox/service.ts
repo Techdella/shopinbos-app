@@ -1,4 +1,5 @@
 import "server-only";
+import { chargeChatbotReply, chatbotMayAnswer } from "./chatbot-budget.server";
 
 import { after } from "next/server";
 import type { Prisma } from "@prisma/client";
@@ -410,7 +411,8 @@ async function maybeAutoReply(conversationId: string) {
       db.inboxMessage.count({ where: { conversationId, direction: "outbound", kind: "text", createdAt: { gte: new Date(Date.now() - 10 * 60_000) } } }),
       db.inboxMessage.count({ where: { conversationId, direction: "outbound", kind: "auto_reply", createdAt: { gte: new Date(Date.now() - 60 * 60_000) } } }),
     ]);
-    botActive = !sellerReplied && botReplies < BOT_REPLIES_PER_HOUR;
+    // Each AI reply costs the owner's credits, within the monthly cap they set (src/lib/inbox/chatbot-budget.server.ts).
+    botActive = !sellerReplied && botReplies < BOT_REPLIES_PER_HOUR && (!hasAiProvider() || (await chatbotMayAnswer(conversation.storeId, bot)));
   }
 
   const recentKeywords = rules.keywordsEnabled
@@ -441,6 +443,7 @@ async function maybeAutoReply(conversationId: string) {
     const history = await db.inboxMessage.findMany({ where: { conversationId, direction: { in: ["inbound", "outbound"] }, status: { not: "failed" } }, orderBy: { createdAt: "desc" }, take: 12, select: { direction: true, body: true } });
     const answer = await chatbotAnswer(conversation.storeId, bot, rules, history.reverse().map((m) => ({ from: m.direction === "inbound" ? "shopper" : "shop", body: m.body })), { channel: "livechat", conversationId: conversation.id });
     await sendReply({ ...base, body: answer.reply, authorName: `${bot.name} (chatbot)`, meta: { bot: true, source: answer.source } });
+    if (answer.source === "ai") await chargeChatbotReply(conversation.storeId);
     if (answer.handoff) await handOff(conversation.storeId, conversation.id, conversation.tags, lastInbound?.body ?? "");
     return;
   }
@@ -492,6 +495,7 @@ async function maybeWhatsAppBot(
     storeBotRepliesLastHour: storeBotReplies,
   });
   if (!gate.answer) return false;
+  if (!(await chatbotMayAnswer(conversation.storeId, bot))) return false;
   const connected = await getChannel(conversation.storeId, "whatsapp");
   if (!connected) return false;
 
@@ -515,6 +519,7 @@ async function maybeWhatsAppBot(
   // A list or button message can fail on its own (e.g. a product photo Meta can't fetch): try once as plain text.
   if (!sent.ok && reply.interactive && sent.error !== TOKEN_ERROR && sent.error !== WINDOW_CLOSED_ERROR) sent = await sendReply({ ...base, body: reply.body, meta: { ...meta, fallback: true } });
   if (!sent.ok) await markChannelError(connected.row.id, `Peggy couldn't reply on WhatsApp: ${sent.error}`);
+  else if (reply.source === "ai") await chargeChatbotReply(conversation.storeId);
 
   if (reply.orderRequest) {
     await addNote({ storeId: conversation.storeId, conversationId: conversation.id, authorName: bot.name, body: `Order request on WhatsApp: ${reply.orderRequest.name} (${reply.orderRequest.price}). Confirm the quantity, delivery and payment with the customer.`, meta: { orderRequest: reply.orderRequest } });

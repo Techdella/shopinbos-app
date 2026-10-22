@@ -80,6 +80,28 @@ const OpSchema = z.object({
   summary: shortText(90).optional().catch(undefined),
 });
 
+/** Theme choices the 2026 (boutique) themes read (src/components/storefront/boutique/look.ts applyLookChoices). */
+export const REX_FONT_PAIRS = ["theme", "classic", "modern", "clean", "bold"] as const;
+export const REX_BUTTON_SHAPES = ["theme", "square", "rounded", "pill"] as const;
+export const REX_PAGE_WIDTHS = ["narrow", "standard", "wide"] as const;
+export const REX_PRODUCT_RATIOS = ["theme", "portrait", "square", "landscape"] as const;
+const BOUTIQUE_ONLY_TOKENS = ["fontPair", "buttonShape", "pageWidth", "productRatio"] as const;
+/** Store-wide layouts for the classic templates (snapshot.layoutFamily); the 2026 themes have their own. */
+export const REX_LAYOUTS = [
+  "minimal-showcase", "editorial-boutique", "fashion-runway", "food-market", "home-living", "electronics-grid", "book-lifestyle", "pet-lifestyle", "marketplace-grid",
+] as const;
+const LAYOUT_NAMES: Record<(typeof REX_LAYOUTS)[number], string> = {
+  "minimal-showcase": "Minimal showcase",
+  "editorial-boutique": "Editorial boutique",
+  "fashion-runway": "Fashion runway",
+  "food-market": "Food market",
+  "home-living": "Home and living",
+  "electronics-grid": "Electronics grid",
+  "book-lifestyle": "Books and lifestyle",
+  "pet-lifestyle": "Pets",
+  "marketplace-grid": "Marketplace grid",
+};
+
 const TokensSchema = z
   .object({
     heroBg: z.string().regex(HEX),
@@ -94,6 +116,10 @@ const TokensSchema = z
     border: z.string().regex(HEX),
     headingStyle: z.enum(["serif", "grotesk"]),
     radius: z.enum(["soft", "rounded", "sharp"]),
+    fontPair: z.enum(REX_FONT_PAIRS),
+    buttonShape: z.enum(REX_BUTTON_SHAPES),
+    pageWidth: z.enum(REX_PAGE_WIDTHS),
+    productRatio: z.enum(REX_PRODUCT_RATIOS),
   })
   .partial();
 
@@ -116,6 +142,8 @@ export const RexStudioPlanSchema = z.object({
       return Object.keys(out).length ? out : null;
     }),
   tokensSummary: shortText(90).optional().catch(undefined),
+  /** Classic templates: the store-wide layout. Ignored on the 2026 themes. */
+  layout: z.enum(REX_LAYOUTS).nullable().optional().catch(null),
   pages: z
     .array(
       z.object({
@@ -156,6 +184,8 @@ export interface ApplyContext {
   allowedKinds: (themeId: string) => string[];
   /** Approved reviews for themes that read reviews from section items (never invented). */
   reviewItems: Array<{ quote: string; person: string }>;
+  /** A 2026 (boutique) theme: reads fontPair, buttonShape, pageWidth and productRatio, and has no store layout to pick. */
+  isBoutique?: (themeId: string) => boolean;
   now?: string;
 }
 
@@ -303,10 +333,19 @@ export function applyRexStudioPlan(draft: StoreEditorSnapshot, plan: RexStudioPl
     }
   }
 
+  const boutique = context.isBoutique?.(snapshot.templateId) ?? false;
   if (plan.tokens) {
+    const tokens = { ...plan.tokens };
+    // Classic templates don't read the 2026 themes' choices: leave them out rather than report a change nobody sees.
+    if (!boutique) for (const key of BOUTIQUE_ONLY_TOKENS) delete tokens[key];
     const before = JSON.stringify(snapshot.themeTokens);
-    snapshot.themeTokens = { ...snapshot.themeTokens, ...plan.tokens };
+    snapshot.themeTokens = { ...snapshot.themeTokens, ...tokens };
     if (JSON.stringify(snapshot.themeTokens) !== before) changes.push(plan.tokensSummary || "Updated your colours and fonts");
+  }
+
+  if (plan.layout && !boutique && plan.layout !== snapshot.layoutFamily) {
+    snapshot.layoutFamily = plan.layout;
+    changes.push(`Changed the store layout to ${LAYOUT_NAMES[plan.layout]}`);
   }
 
   for (const entry of plan.pages) {
@@ -394,10 +433,15 @@ export function applyRexStudioPlan(draft: StoreEditorSnapshot, plan: RexStudioPl
 }
 
 /** The draft as Rex reads it: pages, then each section's id, kind and words (long text trimmed). */
-export function summariseDraftForRex(draft: StoreEditorSnapshot) {
+export function summariseDraftForRex(draft: StoreEditorSnapshot, boutique = false) {
+  const tokens = draft.themeTokens;
   return {
     theme: draft.templateId,
-    headingStyle: draft.themeTokens.headingStyle,
+    headingStyle: tokens.headingStyle,
+    // The look choices this theme reads, as the builder's Theme settings show them.
+    style: boutique
+      ? { fontPair: tokens.fontPair ?? "theme", buttonShape: tokens.buttonShape ?? "theme", pageWidth: tokens.pageWidth ?? "standard", productRatio: tokens.productRatio ?? "theme" }
+      : { corners: tokens.radius, layout: draft.layoutFamily },
     colours: { heroBg: draft.themeTokens.heroBg, accent: draft.themeTokens.accent, paperBg: draft.themeTokens.paperBg, ink: draft.themeTokens.ink },
     pages: draft.pages.map((page) => ({
       page: page.pageType,

@@ -551,6 +551,7 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
                   }}
                   currency={store.currency}
                   preview={preview}
+                  payOnDelivery={commerce.payments.methods?.cod === true}
                   name="delivery"
                   id="pay-delivery"
                   area={[details.city.trim(), details.state.trim()].filter(Boolean).join(", ") || null}

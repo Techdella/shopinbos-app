@@ -1,4 +1,5 @@
 import { updateSupplierProfile } from "@/app/actions/supplier";
+import { BoostsCard } from "@/components/plans/BoostsCard";
 import { creditBalance } from "@/lib/ai/credits.server";
 import { billingEmail } from "@/lib/auth/billing-email";
 import { redirect } from "next/navigation";
@@ -8,12 +9,13 @@ import { AppPage, AssistantNote, Card, CardHead, FilterChips, Pill, PillLink, Sp
 import { Notice } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { planOffers } from "@/lib/plans/catalog.server";
-import { PlanUpgradeSection } from "@/components/payments/PlanUpgradeSection";
+import { PlanPicker } from "@/components/payments/PlanPicker";
+import { supplierLimits } from "@shared/plans";
 import { SupplierCoverUpload, SupplierPhotoUpload } from "@/components/supplier/SupplierProfileUploads";
 import { IdentityImageUploader } from "@/components/profile/IdentityImageUploader";
 import { verificationLabel, buttonClass, fieldClass, hintClass, labelClass, supplierFrame, textareaClass } from "@/components/supplier/supplier-kit";
 import { db } from "@/lib/db/client";
-import { isProPlan } from "@/lib/role-queries";
+import { planOf } from "@/lib/plan-limits";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { getT } from "@/lib/i18n/server";
 
@@ -44,7 +46,7 @@ export default async function SupplierProfilePage({ searchParams }: PageProps) {
     select: { aiCredits: true },
   });
   const aiCredits = dbUser?.aiCredits ?? 5;
-  const isPro = isProPlan({ aiCredits });
+  const isPro = planOf({ role: "supplier", aiCredits }) !== "supplier_free";
 
   const { supplier } = workspace;
   const t = await getT("supplier", "common");
@@ -88,14 +90,19 @@ export default async function SupplierProfilePage({ searchParams }: PageProps) {
         )}
 
         {billing ? (
-          <PlanUpgradeSection
+          <div className="grid gap-5">
+          <PlanPicker
+            role="supplier"
+            current={planOf({ role: "supplier", aiCredits })}
+            offers={await planOffers()}
             userEmail={billingEmail(user)}
             userName={user.name}
-            aiCredits={aiCredits}
             creditBalance={await creditBalance(user.id)}
-            productCount={workspace.metrics.productCount}
-            offer={(await planOffers()).supplierMax}
+            creditsHref="/supplier/credits"
+            usage={[{ label: t("profile.usageListings"), used: workspace.metrics.productCount, limit: supplierLimits(planOf({ role: "supplier", aiCredits })).listings }]}
           />
+          <BoostsCard userId={user.id} role="supplier" />
+          </div>
         ) : (
           <SplitLayout
             main={

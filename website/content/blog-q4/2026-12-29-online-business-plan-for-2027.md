@@ -149,7 +149,7 @@ Month 3: improve | Drop what is not working, double down on what is, and draft y
 
 The right tools make your plan easier to keep. Think about where you lose hours each week and what could help.
 
-- **An online store.** One link with prices, photos and payment cuts down on back-and-forth. A [store on Shopinbos](/features/storefront/) is free on the Starter plan for up to 50 products, at yourname.shopinbos.com.
+- **An online store.** One link with prices, photos and payment cuts down on back-and-forth. A [store on Shopinbos](/features/storefront/) is free on the Free plan for up to 20 products, at yourname.shopinbos.com.
 - **Payments that confirm themselves.** Card, bank transfer and USSD through Paystack mean fewer "please confirm my transfer" messages. See [payments](/features/payments/) for how it works.
 - **Help with replies and posts.** If replying takes hours, an assistant like Peggy can answer common questions in English or Pidgin and draft posts for you.
 - **Stock without upfront cost.** If one goal is to try new products, dropshipping from [checked suppliers](/marketplace/) lets you test without buying bulk.

@@ -81,6 +81,18 @@ export function WhatsAppCatalogClient({ initial, storeName, signup }: { initial:
       if ((!view.whatsapp.connected || reconnect) && signup) {
         const info = await runEmbeddedSignup(signup);
         await inboxApi("/api/app/inbox/whatsapp", { method: "POST", body: JSON.stringify({ action: "embedded_signup", code: info.code, phoneNumberId: info.phoneNumberId, wabaId: info.wabaId }) });
+        // Connecting sets the catalog up on the server (src/lib/whatsapp-store/setup.server.ts); wait for it here
+        // rather than starting a second setup that could make two catalogs.
+        setMessage({ tone: "info", text: t("cat.settingUp") });
+        for (let tries = 0; tries < 30; tries++) {
+          await new Promise((resolve) => window.setTimeout(resolve, 3000));
+          const next = await inboxApi<CatalogView>(API).catch(() => null);
+          if (!next) continue;
+          setView(next);
+          if (next.catalog.id || next.permissions.state === "missing") break;
+        }
+        setMessage(null);
+        return;
       }
       await act("create_catalog", { name: `${storeName} WhatsApp`, ...(businessId.trim() ? { businessId: businessId.trim() } : {}) });
     });

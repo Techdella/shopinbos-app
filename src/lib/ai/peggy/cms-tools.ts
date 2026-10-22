@@ -18,7 +18,7 @@ async function listItems(ctx: PeggyToolContext, input: PeggyToolInput<"cms_list_
 }
 
 async function draftCmsItem(ctx: PeggyToolContext, input: PeggyToolInput<"cms_draft_item">): Promise<ToolOutput> {
-  if (await meterAi(ctx.userId, "text")) throw new ToolError("The seller has used today's AI writing allowance. Tell them it resets within 24 hours or with a plan upgrade.");
+  if (await meterAi(ctx.userId, "text")) throw new ToolError("The seller is out of AI credits (or hit today's safety cap). Tell them to top up on the AI credits page, or that their plan's credits refill at the start of next month.");
   try {
     const { collection, item } = await draftItem(ctx.store.id, ctx.store.name, input, "peggy");
     const href = `/home/cms/${collection.id}/${item.id}`;

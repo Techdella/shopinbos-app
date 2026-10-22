@@ -7,7 +7,6 @@ import { supplierFrame } from "@/components/supplier/supplier-kit";
 import { getT } from "@/lib/i18n/server";
 import { isAppSession } from "@/lib/app-session.server";
 import { creditOverview, liveCreditPrices } from "@/lib/ai/credits.server";
-import { aiAllowanceToday } from "@/lib/ai/usage";
 import { db } from "@/lib/db/client";
 import { CreditsClient } from "@/app/home/credits/CreditsClient";
 import { PromoBanner } from "@/components/pricing/PromoBanner";
@@ -27,11 +26,11 @@ export default async function SupplierCreditsPage({ searchParams }: { searchPara
   if (!workspace) redirect("/supplier/onboarding");
   const [t, overview, plan, query] = await Promise.all([
     getT("payments"),
-    creditOverview(user.id).catch(() => ({ balance: 0, autoTopUp: false, autoPackId: null, card: null, purchases: [] })),
+    creditOverview(user.id).catch(() => ({ balance: 0, planCredits: 0, bought: 0, nextExpiry: null, autoTopUp: false, autoPackId: null, card: null, purchases: [] })),
     db.user.findUnique({ where: { id: user.id }, select: { aiCredits: true } }),
     searchParams,
   ]);
-  const [allowance, prices] = await Promise.all([aiAllowanceToday(user.id, plan?.aiCredits), liveCreditPrices()]);
+  const prices = await liveCreditPrices();
 
   const inApp = await isAppSession();
 
@@ -51,9 +50,9 @@ export default async function SupplierCreditsPage({ searchParams }: { searchPara
             initial={overview}
             packs={prices.packs}
             costs={prices.costs}
-            allowance={allowance}
             result={query.credits === "paid" || query.credits === "failed" || query.credits === "pending" ? query.credits : null}
             resultError={query.error?.slice(0, 300) ?? null}
+            role="supplier"
             returnTo="/supplier/credits"
           />
         </>

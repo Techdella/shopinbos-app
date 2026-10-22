@@ -17,7 +17,7 @@ const TOOLS: Record<string, { title: "webOnly.look.title" | "webOnly.bio.title" 
   look: {
     title: "webOnly.look.title",
     body: "webOnly.look.body",
-    path: "/home/editor",
+    path: "/seller/store/builder",
     ask: "/rex",
     askLabel: "webOnly.askRex",
   },

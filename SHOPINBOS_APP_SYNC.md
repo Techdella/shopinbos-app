@@ -102,7 +102,7 @@ Status: built against the 2026 app prototypes; web verified locally (route smoke
 - [x] Design tokens (Plus Jakarta Sans, ink #16141F, accent #FF6A2B, pastel wash), phone helpers and onboarding copy in `shared/`, used by web and `apps/mobile`.
 - [x] Sign-in for every portal: phone code over WhatsApp or SMS, email code, email + password, Google, forgot / reset password.
 - [x] Phone-only accounts: `User.email` is optional (`docs/migrations/2026-10-11-phone-accounts.sql`).
-- [x] Seller onboarding: Rex chat (5 languages) → brand → products from photos (`/api/ai/product-drafts`) → payments and delivery zones → launch fee → live (share, QR) → checklist.
+- [x] Seller onboarding: Rex chat (5 languages) → brand → products from photos (`/api/ai/product-drafts`) → payments and delivery zones → publish (free) → live (share, QR) → checklist.
 - [x] Expo app (`apps/mobile`, SDK 57, expo-router): the same auth and onboarding screens against the same API with Bearer tokens; `/api/app/payout-bank` for bank linking.
 - [x] Fixed: the proxy redirected `/api/*` calls from sellers mid-onboarding to the onboarding page.
 - [x] Applied `docs/migrations/2026-10-11-phone-accounts.sql` to the live database (2026-10-11).
@@ -163,8 +163,8 @@ Status: built and verified locally (production build, route smoke 252/252, chang
 - [x] Storefront themes Breeze, Noir (payday countdown), Plain; phone bottom bar (search, wishlist, bag, track an order); new product page.
 - [x] Private store settings (payout bank, billing, invites, Peggy settings) are stripped from public responses (`shared/public-brand-settings.ts`); product pages only show published products of active stores.
 - [x] Applied to the live database (2026-10-11): `2026-10-12-riders-and-partner-api.sql`.
-- [ ] Webhook retries beyond the request (a queue) and the `cod.reminder` sender.
-- [ ] Rider pay (the Riders app shows delivery fees, not rider earnings).
+- [x] Webhook retries beyond the request: every event is queued (`PartnerWebhookDelivery`) and `/api/cron/partner-webhooks` (QStash, every 5 min) retries at 5 min, 30 min, 2 h, 6 h and 24 h, then gives up; Admin › Developers shows waiting/given-up events. `cod.reminder` goes out with the pay-in reminder and when overdue. Run `docs/migrations/2026-11-18-partner-webhook-queue.sql` and `node scripts/qstash-schedules.mjs`.
+- [x] Rider pay: partners set each rider's pay (per delivery or a share of the fee) on `/logistics/couriers`; the Riders app (web and phone) shows earnings once set, and each delivered job keeps its pay (`DeliveryBooking.riderPay`). Run `docs/migrations/2026-11-18-rider-pay.sql`.
 
 ### Phase 13 - Start Here, Marketing Suite, Unified Inbox, Reviews, Checkout, Analytics, CMS, Rex Chat-First, 22 Templates
 
@@ -182,6 +182,17 @@ Status: built and verified locally (tsc clean, 124 unit tests, production build,
 - [x] Applied to the live database (2026-10-12): analytics-social, commerce, inbox, reviews, marketing (tables + enum), cms.
 - [ ] After merge: schedule the `run-marketing` pg_cron job (last statement of docs/migrations/2026-10-12-marketing.sql).
 - [ ] Set provider env vars per channel (see .env.local.example) and INBOX_ENCRYPTION_KEY / INTEGRATIONS_ENCRYPTION_KEY.
+
+### Gap fixes (2026-10-21)
+
+- [x] Applied to the live database (2026-10-21): `2026-11-18-rider-pay.sql`, `2026-11-18-partner-webhook-queue.sql`.
+- [ ] After deploy: `node scripts/qstash-schedules.mjs` (adds the partner-webhooks job).
+- [x] Checkout: pay on delivery with a delivery partner also needs the seller's own pay-on-delivery switch and cap; onboarding no longer wipes Korapay; the builder preview shows the seller's real methods.
+- [x] Segments: the legacy `/api/store/segments` API goes through the same rules as the app; the customer list filters by segment (`/home/customers?segment=<id>`, "See people" on each segment); segment counts refresh when segments are listed.
+- [x] Store editor: the unreachable old editor (Design/Layout tabs said "coming soon") is removed; `/home/editor` links go to the builder, whose theme panel edits colours, type and buttons.
+- [x] Builder Theme settings for the 2026 themes: font pairing (Typography), button shape (Buttons), and a store-wide Layout view (page width and product photo shape; classic templates pick the store layout). Saved as optional theme tokens, so stores that pick nothing look as before.
+- [x] Rex sets the same choices: `set_theme_style` tool in the chat, and `fontPair`/`buttonShape`/`pageWidth`/`productRatio` tokens plus a `layout` field in its edit plans (choices the current theme doesn't read are skipped).
+- [ ] Not tested yet: Rex and Peggy with live AI keys, Safari and Firefox, and a native speaker's check of the Yorùbá and Hausa text (including the new rider-pay and segment strings).
 
 ## Current Todos
 

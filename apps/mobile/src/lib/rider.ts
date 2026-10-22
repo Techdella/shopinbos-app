@@ -125,6 +125,8 @@ export interface RiderWeekDelivery {
 export interface RiderOverview {
   rider: { id?: string; name: string; partnerName: string; partnerPhone: string | null; online: boolean; plate?: string | null; language?: string | null };
   earnedToday: number;
+  /** The partner set this rider's pay, so the amounts are earnings rather than delivery fees (older servers leave it out). */
+  paySet?: boolean;
   dropsDone: number;
   cashInHand: number;
   /** This week (Monday 00:00 Lagos onwards): total earned, deliveries and the list. */

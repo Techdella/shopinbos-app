@@ -8,6 +8,7 @@ import { buildStoreFeed, feedUrl } from "@/lib/social/server";
 import { createCatalog, disconnectCatalog, ensureCatalogRow, itemCounts, listCatalogs, selectCatalog, syncCatalog } from "@/lib/whatsapp-catalog/server";
 import { ChannelError, GRAPH_VERSION, PROVIDERS, type ProviderContext, type StoreRef } from "./providers";
 import { connectMetaInbox, disconnectMetaInbox, pickMetaPixel } from "./meta-inbox.server";
+import { disconnectChannel } from "@/lib/inbox/connect";
 import { connectGoogleEverything, disconnectGoogleEverything } from "@/lib/google/connect.server";
 import {
   authorizeUrl,
@@ -156,7 +157,11 @@ export async function syncPlatform(storeId: string, platform: OAuthPlatform): Pr
 
 export async function disconnectPlatform(storeId: string, platform: LivePlatform) {
   if (platform === "whatsapp") {
+    // The card shows the number, so Disconnect turns off the number too (its chats stay), not only the catalog,
+    // and forgets the permission check so a fresh sign-in starts clean.
     await disconnectCatalog(storeId);
+    await disconnectChannel(storeId, "whatsapp");
+    await db.whatsAppCatalog.updateMany({ where: { storeId }, data: { permissionState: "unknown", missingPermissions: [], permissionsCheckedAt: null } });
     return;
   }
   if (platform === "meta") await disconnectMetaInbox(storeId);
@@ -177,7 +182,8 @@ export async function disconnectPlatform(storeId: string, platform: LivePlatform
 
 // ─── WhatsApp ───────────────────────────────────────────────────────────────
 
-export type WhatsAppConnectResult = { ok: true } | { ok: false; needsSignup: true } | { ok: false; error: string };
+/** permission: the number is connected but Meta didn't grant the catalog permissions (the card explains it). */
+export type WhatsAppConnectResult = { ok: true } | { ok: false; needsSignup: true } | { ok: false; error: string; permission?: boolean };
 
 /**
  * One tap: on the store's connected WhatsApp number, use the catalog they already have (or ours from before), or
@@ -190,11 +196,16 @@ export async function connectWhatsAppCatalog(storeId: string): Promise<WhatsAppC
   if (!store) return { ok: false, error: "No store" };
   const row = await ensureCatalogRow(storeId);
   if (!row.catalogId) {
+    // A failure because Meta didn't grant the catalog permissions is flagged, so the card explains it.
+    const failed = async (error: string) => {
+      const latest = await ensureCatalogRow(storeId).catch(() => null);
+      return { ok: false as const, error, ...(latest?.permissionState === "missing" ? { permission: true } : {}) };
+    };
     const listed = await listCatalogs(storeId);
-    if ("error" in listed) return { ok: false, error: listed.error };
+    if ("error" in listed) return failed(listed.error);
     const pick = listed.catalogs.find((item) => item.name === store.name) ?? listed.catalogs[0];
     const chosen = pick ? await selectCatalog(storeId, pick.id, pick.name) : await createCatalog(storeId, store.name);
-    if (!chosen.ok) return { ok: false, error: chosen.error };
+    if (!chosen.ok) return failed(chosen.error);
   }
   const summary = await syncCatalog(storeId, { manual: true });
   if (summary.status === "error") return { ok: false, error: summary.message ?? "Sync failed" };
@@ -228,12 +239,15 @@ const ACCOUNT_URL: Record<OAuthPlatform, string> = {
   tiktok: "https://business.tiktok.com/",
 };
 
+/** How long after WhatsApp connects its card says "Syncing…" while the catalog is set up in the background. */
+const SETUP_WINDOW_MS = 3 * 60 * 1000;
+
 export async function channelCards(storeId: string): Promise<{ cards: ChannelCardView[]; interest: ComingSoonPlatform[]; saved: boolean }> {
   const [rows, interestRows, catalog, inbox, counts] = await Promise.all([
     db.socialChannelConnection.findMany({ where: { storeId }, select: { channel: true, status: true, tokenEnc: true, productCount: true, lastSyncStatus: true } }).catch(() => null),
     db.salesChannelInterest.findMany({ where: { storeId }, select: { platform: true } }).catch(() => []),
     ensureCatalogRow(storeId).catch(() => null),
-    db.inboxChannel.findMany({ where: { storeId, channel: { in: ["whatsapp", "messenger", "instagram"] } }, select: { channel: true, status: true, displayName: true } }).catch(() => []),
+    db.inboxChannel.findMany({ where: { storeId, channel: { in: ["whatsapp", "messenger", "instagram"] } }, select: { channel: true, status: true, displayName: true, connectedAt: true } }).catch(() => []),
     itemCounts(storeId).catch(() => null),
   ]);
   const byPlatform = new Map((rows ?? []).map((row) => [row.channel, row]));
@@ -251,9 +265,10 @@ export async function channelCards(storeId: string): Promise<{ cards: ChannelCar
       signupConfigured: platformConfigured("whatsapp"),
       whatsappConnected: waChannel?.status === "connected",
       catalog: catalog
-        ? { catalogId: catalog.catalogId, lastSyncAt: catalog.lastSyncAt, lastSyncStatus: catalog.lastSyncStatus, syncing: Boolean(catalog.syncStartedAt && catalog.syncStartedAt.getTime() > Date.now() - LOCK_MS) }
+        ? { catalogId: catalog.catalogId, lastSyncAt: catalog.lastSyncAt, lastSyncStatus: catalog.lastSyncStatus, syncing: Boolean(catalog.syncStartedAt && catalog.syncStartedAt.getTime() > Date.now() - LOCK_MS), permissionMissing: catalog.permissionState === "missing" }
         : null,
       synced: counts?.synced ?? 0,
+      settingUp: Boolean(waChannel?.status === "connected" && waChannel.connectedAt && Date.now() - waChannel.connectedAt.getTime() < SETUP_WINDOW_MS),
     }),
   };
   const oauth = OAUTH_PLATFORMS.map((platform): ChannelCardView => ({

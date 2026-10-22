@@ -22,6 +22,7 @@ import {
 } from "@/lib/onboarding-memory";
 import type { PreviewProduct } from "./ProductsSetup";
 import { useT } from "@/components/i18n/I18nProvider";
+import { ChatText } from "@/components/chat/ChatText";
 
 type BuilderT = ReturnType<typeof useT<["builder"]>>;
 
@@ -68,6 +69,8 @@ interface UploadedFile {
 
 interface ChipBuilderProps {
   userName: string;
+  /** The seller's profile photo, shown on their messages (else their initial). */
+  userAvatarUrl?: string | null;
   selectedTemplate?: {
     templateId: string;
     templateName: string;
@@ -232,7 +235,7 @@ function previewVariantFromLayout(layoutFamily?: string | null): PreviewVariant 
   return "classic";
 }
 
-export function ChipBuilder({ userName, existingStore, selectedTemplate, onboardingMemory, initialPhase }: ChipBuilderProps) {
+export function ChipBuilder({ userName, userAvatarUrl = null, existingStore, selectedTemplate, onboardingMemory, initialPhase }: ChipBuilderProps) {
   const router = useRouter();
   const t = useT("builder");
   const firstName = userName.split(" ")[0];
@@ -273,8 +276,11 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
 
   const currentPhaseIdx = PHASE_STEPS.indexOf(phase);
 
+  // Scroll the message list only: scrollIntoView also scrolls every container above it (and the page), which
+  // pushed the header off screen and left a blank band under the builder on each streamed word.
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const list = messagesEndRef.current?.parentElement;
+    list?.scrollTo({ top: list.scrollHeight, behavior: "smooth" });
   }, [messages]);
 
   useEffect(() => {
@@ -700,7 +706,7 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
       </header>
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        <div className={cx("grid min-h-0 flex-1 gap-5 overflow-hidden p-4 sm:p-5", showSidePreview && "lg:grid-cols-[minmax(0,1fr)_minmax(360px,44%)]")}>
+        <div className={cx("grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)] gap-5 overflow-hidden p-4 sm:p-5", showSidePreview && "lg:grid-cols-[minmax(0,1fr)_minmax(360px,44%)]")}>
           <div className="flex min-h-0 flex-col overflow-hidden">
 
             {phase === "chat" && (
@@ -803,12 +809,13 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
 
                         <div
                           className={cx(
-                            "whitespace-pre-line rounded-[20px] px-4 py-3 text-[14.5px] leading-[1.5]",
+                            "rounded-[20px] px-4 py-3 text-[14.5px] leading-[1.5]",
+                            msg.role === "user" && "whitespace-pre-line",
                             msg.role === "user" ? "rounded-br-[6px] bg-app-ink text-white" : "rounded-bl-[6px] bg-white text-app-ink",
                           )}
                         >
                           <span className="sr-only">{msg.role === "user" ? `${t("chip.you")} ` : `${t("chip.rex")} `}</span>
-                          {msg.content || (msg.isStreaming ? (
+                          {msg.content ? (msg.role === "user" ? msg.content : <ChatText text={msg.content} />) : (msg.isStreaming ? (
                             <span className="inline-flex gap-1 text-app-ink-soft" aria-label={t("chip.writing")}>
                               {[0, 150, 300].map((d) => (
                                 <span key={d} className="animate-bounce" style={{ animationDelay: `${d}ms` }}>·</span>
@@ -835,11 +842,14 @@ export function ChipBuilder({ userName, existingStore, selectedTemplate, onboard
                         )}
                       </div>
 
-                      {msg.role === "user" && (
+                      {msg.role === "user" && (userAvatarUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={userAvatarUrl} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
+                      ) : (
                         <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-app-peach text-[13px] font-extrabold text-app-accent-ink" aria-hidden>
                           {firstName[0]?.toUpperCase()}
                         </span>
-                      )}
+                      ))}
                     </div>
                   ))}
                   <div ref={messagesEndRef} />

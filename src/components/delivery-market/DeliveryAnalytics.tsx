@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Card, CardHead, FilterChips, Pill } from "@/components/app-kit";
 import { Sparkline } from "@/components/ui/Sparkline";
+import { Term } from "@/components/learn/Term";
 import { naira } from "@/components/delivery-market/bits";
 import { declineReasonText, issueLabel, rangeLabel, serviceLabel, sizeLabel, type DeliveryWords } from "@/components/delivery-market/words";
 import { getT } from "@/lib/i18n/server";
@@ -214,7 +215,7 @@ export async function PartnerComparison({ rows }: { rows: readonly PartnerCompar
                 <th scope="col" className="px-5 py-2.5 font-semibold">{t("an.colPartner")}</th>
                 <th scope="col" className="px-3 py-2.5 text-right font-semibold">{t("an.colJobs")}</th>
                 <th scope="col" className="px-3 py-2.5 text-right font-semibold">{t("an.colDelivered")}</th>
-                <th scope="col" className="px-3 py-2.5 text-right font-semibold">{t("onTime")}</th>
+                <th scope="col" className="px-3 py-2.5 text-right font-semibold"><Term k="on-time-rate">{t("onTime")}</Term></th>
                 <th scope="col" className="px-3 py-2.5 text-right font-semibold">{t("an.colFailed")}</th>
                 <th scope="col" className="px-3 py-2.5 text-right font-semibold">{t("an.colDeclined")}</th>
                 <th scope="col" className="px-5 py-2.5 text-right font-semibold">{t("an.colAverageFee")}</th>

@@ -27,6 +27,7 @@ import {
   naira,
 } from "@/components/logistics/kit";
 import { getT } from "@/lib/i18n/server";
+import { PageTip } from "@/components/learn/PageTip";
 
 // Cash on delivery: what riders collect at the door, what the partner still has to pass on to each seller (by 6pm),
 // and the payments made. The cash belongs to the seller, so it's paid to each seller directly, never to Shopinbos:
@@ -60,6 +61,7 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
   ensureLogisticsAccess(partner);
   const { saved, error } = await searchParams;
   const t = await getT("logistics", "common");
+  const tipT = await getT("tips");
   const now = new Date();
 
   const startOfToday = lagosStartOfToday();
@@ -137,6 +139,7 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
       title={t("cash.title")}
       sub={t("cash.sub")}
     >
+      <PageTip who="peggy" className="mb-5">{tipT("logistics.cash")}</PageTip>
       <ActionNotice saved={saved} error={error} savedText={t("cash.saved")} />
 
       <StatGrid className="mb-5">

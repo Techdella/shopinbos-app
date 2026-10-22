@@ -39,7 +39,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "setup.who.supplier": "shops wey dey sell your products",
   "setup.who.logistics_partner": "the shops wey you dey deliver for",
   "setup.never": "Shopinbos no dey ever hold your money. When {who} pay by card or Korapay, the payment dey split for checkout and your share dey settle straight to this bank, usually the next working day. Paystack fee dey comot from your share (for Korapay, na customer dey pay am). Shopinbos no dey collect anything.",
-  "setup.neverFee": "Shopinbos no dey ever hold your money. When {who} pay by card or Korapay, the payment dey split for checkout and your share dey settle straight to this bank, usually the next working day. Paystack fee dey comot from your share (for Korapay, na customer dey pay am), and Shopinbos fee of {fee} for every sale (no be for delivery) dey comot too.",
+  "setup.neverFee": "Shopinbos no dey hold your money. When {who} pay with card or Korapay, the payment go split for checkout and your share go land straight for dis bank, usually the next working day. Paystack fee go comot from your share (with Korapay na the customer dey pay am), and Shopinbos fee of {fee} for every sale for your plan too (no be for delivery, and no be for dropship items: the supplier commission dey cover those ones).",
   "fee.limits": "{rate}% (at least {min}, at most {max})",
   "fee.min": "{rate}% (at least {min})",
   "fee.max": "{rate}% (at most {max})",
@@ -156,6 +156,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "claim.chooseOrder": "Choose the order wey this one concern.",
   "claim.none": "No recent order from supplier or delivery partner wey you fit claim on. You fit claim inside {days} days after delivery.",
   "claim.sent": "Claim don go.",
+  "setup.neverCommission": "Shopinbos no dey hold your money. When {who} pay with card or Korapay for your products, your share go land straight for dis bank, usually the next working day. Shopinbos commission of {pct}% of the wholesale value go comot from every marketplace order for your plan, plus your share of Paystack fee.",
 };
 
 export default pcm;

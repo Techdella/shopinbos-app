@@ -257,8 +257,11 @@ test("wiring: deadlines on new orders, a protected cron, conditional expiry, sto
   assert.match(read("src/lib/supplier-orders/wholesale.server.ts"), /acceptBy: deadline\.acceptBy/);
 
   const cron = read("src/app/api/cron/supplier-acceptance/route.ts");
-  assert.match(cron, /cronAuthorization\(req\.headers\.get\("authorization"\), secret\)/);
-  assert.match(cron, /CRON_SECRET is not set/);
+  assert.match(cron, /const denied = await cronDenied\(req\);\n  if \(denied\) return denied;/, "the cron secret or a signed QStash call");
+  // Fails closed: with neither CRON_SECRET nor the QStash keys set, every call is refused.
+  const cronAuth = read("src/lib/auth/cron-request.ts");
+  assert.match(cronAuth, /if \(!secret && !qstash\) \{[\s\S]*?status: 503/);
+  assert.match(cronAuth, /cronAuthorization\(req\.headers\.get\("authorization"\), secret\) !== "ok"/);
 
   const acceptance = read("src/lib/supplier-orders/acceptance.server.ts");
   assert.match(acceptance, /supplierOrder\.updateMany\(\{ where: expiryGuard\(row\.id, now\)/);
@@ -282,8 +285,9 @@ test("wiring: deadlines on new orders, a protected cron, conditional expiry, sto
   assert.match(migration, /ALTER TABLE "SupplierPickup" ENABLE ROW LEVEL SECURITY/);
   assert.match(migration, /ADD COLUMN IF NOT EXISTS "acceptBy"/);
   assert.match(migration, /-- select cron\.schedule\(\n--   'supplier-acceptance',\n--   '\*\/5 \* \* \* \*'/);
-  assert.match(migration, /https:\/\/shopinbos-app\.vercel\.app\/api\/cron\/supplier-acceptance/);
+  assert.match(migration, /https:\/\/app\.shopinbos\.com\/api\/cron\/supplier-acceptance/);
   assert.match(migration, /name = 'cron_secret'/);
+  assert.match(read("scripts/qstash-schedules.mjs"), /\{ id: "supplier-acceptance", path: "\/api\/cron\/supplier-acceptance", cron: "\*\/5 \* \* \* \*" \}/);
 });
 
 test("screens: countdown on new orders (web and mobile), the pickup question with big choices, words suppliers understand", () => {

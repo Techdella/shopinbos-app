@@ -492,6 +492,7 @@ export const INSERT_CATALOG: InsertItem[] = [
   { kind: "header", label: "Header", group: "Header", hint: "Logo, menu and bag.", renderers: BOTH },
   { kind: "hero-split", label: "Image banner", group: "Banners", hint: "Big photo with a headline and button.", renderers: BOTH },
   { kind: "payday-countdown", label: "Countdown timer", group: "Banners", hint: "Counts down to your payday sale.", renderers: ["boutique"] },
+  { kind: "page-header", label: "Page title banner", group: "Banners", hint: "The page's name and a Home / page trail at the top of a page.", renderers: ["boutique"] },
   { kind: "promo-banner", label: "Promo banner", group: "Banners", hint: "An offer with a button.", renderers: ["classic"] },
   { kind: "trust-strip", label: "Trust bar", group: "Banners", hint: "Delivery, payment and support promises.", renderers: ["classic"] },
   { kind: "featured-products", label: "Featured collection", group: "Products", hint: "Best sellers or products you pick.", renderers: BOTH },
@@ -561,6 +562,8 @@ export function newBoutiqueSection(kind: string, id: string): TemplateSectionNod
       return make("Footer", { summary: "" }, { settings: { layout: "boutique", showPayments: true } });
     case "hero-split":
       return make("Image banner", { eyebrow: "", title: "New season", body: "", primaryCta: "Shop now" }, { items: [], settings: { primaryButtonAction: "products" } });
+    case "page-header":
+      return make("Page title banner", { title: "", body: "" }, { items: [], settings: { layout: "tinted" } });
     case "payday-countdown":
       return make("Countdown timer", { eyebrow: "Payday edit", title: "", discountLabel: "", body: "", primaryCta: "Shop the edit" }, { settings: { paydayRule: "day-of-month", paydayDay: 25, weekendToFriday: true, saleEnds: "sunday", saleDays: 3 } });
     case "featured-products":

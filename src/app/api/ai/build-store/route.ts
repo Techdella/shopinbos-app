@@ -7,6 +7,8 @@ import { buildStore, BuildStoreError } from "@/lib/ai/rex/build-store";
 import { db } from "@/lib/db/client";
 import { pushRexVersion, recordDraftBeforeChange, summariseRexVersions } from "@/lib/ai/rex/studio-versions";
 import { saveStudioDraft, studioDraft, studioStoreSelect, versionsOf } from "@/lib/ai/rex/studio.server";
+import { InspirationSchema } from "@/lib/ai/rex/inspiration";
+import { switchDraftTheme } from "@/lib/ai/rex/full-build.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -31,6 +33,8 @@ const BodySchema = z.object({
   generateImages: z.boolean().optional(),
   /** Rex Studio: record the build as a version of the draft, labelled with the seller's request. */
   versionLabel: z.string().max(200).optional(),
+  /** Rex Studio's build setup: stores, screenshots, a theme and a note to build from. */
+  inspiration: InspirationSchema.nullable().optional(),
 });
 
 export const POST = withSeller(async (req: NextRequest, { user }) => {
@@ -64,6 +68,8 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
       sampleProducts: body.sampleProducts,
       generateImages: body.generateImages,
       source: "rex-build-store",
+      inspiration: body.inspiration ?? null,
+      switchTheme: (themeId) => switchDraftTheme(user.id, themeId),
     });
     if (!body.versionLabel) return NextResponse.json({ data: result });
 

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { themeProblem } from "@/lib/plans/gates.server";
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { withSeller } from "@/lib/auth/middleware";
@@ -136,7 +137,9 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
       logoUrl: true,
       currency: true,
       brandSettings: true,
+      // The seller's own and dropshipped products alike; archived ones never fill a section.
       storeProducts: {
+        where: { status: { not: "archived" } },
         orderBy: { createdAt: "desc" },
         take: 8,
         select: {
@@ -159,6 +162,13 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
   const previousDraft = resolveDraftSnapshot(currentSettings, null);
   const published = resolvePublishedSnapshot(currentSettings, null);
   const previousManifest = previousDraft ? getTemplateManifest(previousDraft.templateId) : null;
+
+  // Premium and platinum themes need a plan that includes them or a one-off purchase; re-applying the theme the
+  // store already has is always fine.
+  const themeRefusal = await themeProblem(user.id, manifest.id, previousDraft?.templateId ?? published?.templateId);
+  if (themeRefusal) {
+    return NextResponse.json({ error: { code: "UPGRADE_REQUIRED", message: themeRefusal } }, { status: 403 });
+  }
 
   // Switching keeps the seller's own copy, images, picked products, hidden sections and extra pages. Products,
   // prices and orders live in their own tables and never change here.

@@ -20,6 +20,9 @@ export type RiderSession = {
   language: string | null;
   lastLat: number | null;
   lastLng: number | null;
+  /** What the partner pays this rider (job-rules.ts riderPayFor); both null until the partner sets it. */
+  payType: string | null;
+  payRate: number | null;
 };
 
 export type RiderLookup = { ok: true; rider: RiderSession } | { ok: false; reason: "invalid" | "limited" };
@@ -38,7 +41,7 @@ export async function riderFromToken(token: string): Promise<RiderLookup> {
   const member = await db.logisticsTeamMember.findUnique({
     where: { riderTokenHash: hashRiderToken(token) },
     select: {
-      id: true, name: true, role: true, status: true, online: true, lastSeenAt: true, logisticsPartnerId: true, plate: true, language: true, lastLat: true, lastLng: true,
+      id: true, name: true, role: true, status: true, online: true, lastSeenAt: true, logisticsPartnerId: true, plate: true, language: true, lastLat: true, lastLng: true, payType: true, payRate: true,
       logisticsPartner: { select: { displayName: true, whatsappNumber: true, status: true } },
     },
   });
@@ -58,6 +61,8 @@ export async function riderFromToken(token: string): Promise<RiderLookup> {
       partnerPhone: member.logisticsPartner.whatsappNumber,
       plate: member.plate,
       language: member.language,
+      payType: member.payType,
+      payRate: member.payRate,
       lastLat: member.lastLat,
       lastLng: member.lastLng,
     },

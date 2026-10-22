@@ -22,6 +22,21 @@ export async function getSuggestions(pathname?: string) {
   const rexSuggestions: string[] = [];
   const peggySuggestions: string[] = [];
 
+  // Suppliers and delivery partners: Rex leads with what their own numbers say (shared/partner-brief.ts).
+  if (user.role === "supplier" || user.role === "logistics_partner") {
+    const { briefForUser, briefTitles } = await import("@/lib/dashboard/partner-brief.server");
+    const brief = await briefForUser(user).catch(() => null);
+    if (brief && (brief.peggy.length || brief.rex.length)) {
+      const todo = briefTitles(brief, "peggy");
+      const ideas = briefTitles(brief, "rex");
+      const greeting = todo.length
+        ? `Hi ${name}, I'm Rex. First things first: ${todo[0].charAt(0).toLowerCase()}${todo[0].slice(1)}. Ask me about that, or about growing your business.`
+        : `Hi ${name}, I'm Rex. Nothing needs you right now, so let's grow: ${ideas[0].charAt(0).toLowerCase()}${ideas[0].slice(1)}.`;
+      const chips = [...todo.slice(0, 2), ...ideas.slice(0, 2)].map((title) => `Help me with this: ${title}`);
+      return { name, greeting, rexSuggestions: chips.slice(0, 4), peggySuggestions: [] };
+    }
+  }
+
   // Supplier role
   if (user.role === "supplier") {
     const greeting = `Hi ${name}, I'm Rex. I can help you set up your supplier profile, upload your product catalog, configure dropshipping or wholesale pricing, and get you ready for your first seller connections.`;
@@ -157,6 +172,9 @@ export async function askRex(
     if (!message?.trim()) return { error: "Type a message for Rex first." };
     const user = await requireRole(["seller", "supplier", "logistics_partner"], "/login");
     const sellerSnapshot = user.role === "seller" ? await buildSellerSnapshot(user.id) : null;
+    // Suppliers and delivery partners: what needs doing and Rex's growth ideas, from their own numbers.
+    const { briefForUser, briefLines } = await import("@/lib/dashboard/partner-brief.server");
+    const brief = user.role === "seller" ? null : await briefForUser(user).catch(() => null);
     const savedAnswers = await getSavedRexAnswers(user.id);
     const system = buildRexCommerceSystemPrompt({
       user,
@@ -164,7 +182,9 @@ export async function askRex(
       snapshot:
         user.role === "seller"
           ? sellerSnapshot
-          : { role: user.role, note: "Role-specific onboarding is active. No seller store snapshot is available for this role." },
+          : brief
+            ? { role: user.role, note: "No seller store for this role. Use this account's to-do list and growth ideas; point to the screen for each.", needsDoing: briefLines(brief, "peggy"), growthIdeas: briefLines(brief, "rex") }
+            : { role: user.role, note: "Role-specific onboarding is active. No seller store snapshot is available for this role." },
       pageContext,
     });
 
