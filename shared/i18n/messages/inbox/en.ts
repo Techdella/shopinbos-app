@@ -705,6 +705,8 @@ const en = {
   "cat.nothingToFix": "Nothing to fix",
   "cat.needPermission": "We need your permission on Facebook to do this. Ask us to help and we'll sort it out with you.",
   "cat.setUpNow": "Set it up now",
+  "cat.permsMissing": "WhatsApp is connected and your messages work. To show your products inside WhatsApp too, Facebook has to let Shopinbos manage your catalog, and it didn't this time. Tap Connect again and allow everything Facebook asks for; your catalog then sets itself up.",
+  "cat.connectAgain": "Connect again",
   "cat.usesNumber": "Uses the WhatsApp number you connected. Takes about a minute.",
   "cat.usesNumberNamed": "Uses the WhatsApp number you connected ({name}). Takes about a minute.",
   "cat.sendNow": "Send my products now",

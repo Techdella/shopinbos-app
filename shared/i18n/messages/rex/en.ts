@@ -21,6 +21,7 @@ const en = {
   "images.title": "Images",
   "images.sub": "Ask Rex for product photos, banners and brand pictures.",
   "images.backSocial": "Back to your post",
+  "img.useInPost": "Use in this post",
   "logo.failed": "Failed to generate logos",
   "logo.saveFailed": "Couldn't save that logo to your store. Try again.",
   "logo.brand": "Your brand",

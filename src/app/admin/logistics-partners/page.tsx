@@ -18,9 +18,6 @@ import {
 } from "@/components/admin/AdminKit";
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
-import { UnmatchedPayIns } from "./PayInsPanels";
-import { LatePayIns } from "./LatePayInsPanels";
-import { latePayInRows } from "@/lib/logistics/payin-standing.server";
 import { SERVICE_LABELS, type PartnerService } from "@shared/delivery-market";
 
 const verificationStatuses: readonly string[] = VERIFICATION_STATUSES;
@@ -44,7 +41,7 @@ export default async function AdminLogisticsPartnersPage(props: { searchParams?:
     ];
   }
 
-  const [partners, byStatus, total, submitted, suspended, unmatchedPayIns, partnerChoices, latePayIns] = await Promise.all([
+  const [partners, byStatus, total, submitted, suspended] = await Promise.all([
     db.logisticsPartner.findMany({
       where,
       orderBy: [{ verificationStatus: "asc" }, { updatedAt: "desc" }],
@@ -75,16 +72,6 @@ export default async function AdminLogisticsPartnersPage(props: { searchParams?:
     db.logisticsPartner.count(),
     db.logisticsPartner.count({ where: { onboardingState: { path: ["completed"], equals: true } } }),
     db.logisticsPartner.count({ where: { status: "suspended" } }),
-    // Transfers into pay-in accounts we couldn't match to a partner (lib/logistics/payins.server.ts).
-    db.partnerPayIn.findMany({
-      where: { status: "unmatched" },
-      orderBy: { paidAt: "asc" },
-      take: 50,
-      select: { id: true, amount: true, currency: true, accountNumber: true, senderName: true, senderBank: true, reference: true, paidAt: true },
-    }),
-    db.logisticsPartner.findMany({ orderBy: { displayName: "asc" }, take: 500, select: { id: true, displayName: true } }),
-    // Partners late paying in customers' cash (lib/logistics/payin-deadline.ts).
-    latePayInRows(),
   ]);
   // Customers' open delivery problems per partner (logistics marketplace), and the total for the link.
   const openIssues = await db.deliveryIssue.groupBy({ by: ["logisticsPartnerId"], where: { status: "open", logisticsPartnerId: { in: partners.map((row) => row.id) } }, _count: { _all: true } });
@@ -123,9 +110,8 @@ export default async function AdminLogisticsPartnersPage(props: { searchParams?:
         </p>
       )}
 
-      <LatePayIns rows={latePayIns} now={new Date()} returnTo={backTo} />
 
-      <UnmatchedPayIns payIns={unmatchedPayIns} partners={partnerChoices} returnTo={backTo} />
+
 
       <CountRow
         items={[

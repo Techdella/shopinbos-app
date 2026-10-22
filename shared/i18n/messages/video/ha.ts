@@ -161,6 +161,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "savedVideoShort": "An ajiye",
   "savedVideo": "An ajiye bidiyon. Za ka same shi a An ajiye da media ɗinka.",
   "useInAd": "Yi amfani a talla",
+  "useInPost": "Yi amfani da shi a wannan post",
   "markPosted": "Na wallafa shi",
   "markedPosted": "An nuna an wallafa. Yana cikin An wallafa.",
   "savedVersion": "Bidiyonka da aka ajiye",

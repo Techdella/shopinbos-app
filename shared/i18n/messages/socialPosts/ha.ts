@@ -166,6 +166,13 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "res.pending": "Ana post…",
   "res.view": "Duba a {channel}",
   "res.reconnect": "Sake haɗawa",
+  "prog.live": "Ana sabuntawa kai tsaye",
+  "prog.sending": "Ana aikawa zuwa {channel}",
+  "prog.sent": "An aika zuwa {channel}",
+  "prog.processing": "{channel} yana shirya bidiyonka",
+  "prog.liveOn": "Ya fito a {channel}",
+  "prog.timer": "{time} zuwa yanzu",
+  "prog.typical": "yawanci bai wuce minti 2 ba",
   // One-tap buttons
   "share.button": "Yi post a {channel}",
   "share.mark": "Na yi post ɗinsa",
@@ -190,6 +197,9 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "designs.emptyAction": "Yi hoto",
   "designs.note": "Rex zai iya gyara hotunan kayayyakinka, canza bango da zana logo ɗinka.",
   "designs.studio": "Buɗe Rex Studio",
+  "rexModal.image": "Yi hoto da Rex",
+  "rexModal.reel": "Yi reel",
+  "rexModal.closeReel": "Rufe wurin yin reel? Reel da ba ka yi amfani da shi ko ka ajiye ba zai ɓace.",
   // Accounts
   "accounts.title": "Asusu",
   "accounts.sub": "Haɗa sau ɗaya. Facebook da Instagram suna post da kansu; sauran taɓawa ɗaya ce.",

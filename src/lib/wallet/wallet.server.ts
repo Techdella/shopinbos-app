@@ -4,7 +4,6 @@ import { db } from "@/lib/db/client";
 import { getPriceBook } from "@/lib/pricing/price-book.server";
 import { storeFeeConfig, supplierCommissionPct } from "@shared/platform-pricing";
 import { planKeyFor } from "@shared/plans";
-import { korapayCheckoutReady } from "@/lib/korapay";
 import { createPaystackSubaccount, listPaystackSettlements, updatePaystackSubaccount } from "@/lib/paystack";
 import { resolveBankAccount, settlementBanks, syncPayoutBank, type ResolvedAccount } from "@/lib/payout-bank";
 import { companyNamesMatch } from "@/lib/kyb/cac";
@@ -191,28 +190,6 @@ export async function approveWalletBank(walletId: string): Promise<WalletResult>
   return openSubaccount(wallet, "approved");
 }
 
-/**
- * Records the business's Korapay Split Payments recipient (KPY-SPA-…), which the team adds in the Korapay dashboard
- * for the wallet's own bank account. Empty clears it (Korapay checkout stops splitting to this business).
- */
-export async function setWalletKorapaySplitAccount(walletId: string, reference: string): Promise<WalletResult> {
-  const value = reference.trim();
-  if (value && !/^KPY-[A-Z]+-[A-Za-z0-9]+$/.test(value)) return { ok: false, error: "Paste the split account reference from the Korapay dashboard (it starts with KPY-)." };
-  const wallet = await db.wallet.findUnique({ where: { id: walletId }, select: { id: true, userId: true, role: true, subaccountStatus: true } });
-  if (!wallet) return { ok: false, error: "Wallet not found." };
-  if (value) {
-    const blocked = await walletCheckBlock(wallet);
-    if (blocked) return { ok: false, error: blocked };
-    if (wallet.subaccountStatus !== "active") return { ok: false, error: "Finish this wallet's bank check first, so Korapay pays the same checked account." };
-  }
-  try {
-    await db.wallet.update({ where: { id: wallet.id }, data: { korapaySplitAccount: value || null } });
-  } catch {
-    return { ok: false, error: "That split account is already on another wallet." };
-  }
-  return { ok: true };
-}
-
 /** Pauses (or resumes) a wallet: Paystack stops settling to its subaccount and checkout stops splitting to it. */
 export async function setWalletFrozen(walletId: string, frozen: boolean, reason?: string): Promise<WalletResult> {
   const wallet = await db.wallet.findUnique({ where: { id: walletId } });
@@ -241,12 +218,14 @@ export async function storeTakesCards(storeId: string) {
   return (await db.wallet.count({ where: { userId: store.userId, ...activeWhere } })) > 0;
 }
 
-/** The seller can take Korapay payments: Split Payments is on and their wallet has a Korapay split account. */
+/**
+ * The seller can take Korapay payments. Off: Korapay can only split a payment to a business someone added by hand in
+ * the Korapay dashboard, so every store sale (which always splits to the seller, and to suppliers and delivery
+ * partners) goes through Paystack, which sets everyone up automatically. Korapay stays for Shopinbos's own charges.
+ */
 export async function storeTakesKorapay(storeId: string) {
-  if (!korapayCheckoutReady()) return false;
-  const store = await db.store.findUnique({ where: { id: storeId }, select: { userId: true } });
-  if (!store) return false;
-  return (await db.wallet.count({ where: { userId: store.userId, ...korapayWhere } })) > 0;
+  void storeId;
+  return false;
 }
 
 /**
@@ -454,7 +433,7 @@ export async function loadWalletView(user: { id: string; role: WalletRole }): Pr
     // Nobody has an ID step now ("not_required"; an older phone app shows its "not switched on" note there).
     kyc: { status: "not_required", idType: null, idLast4: null, name: null, verifiedAt: null, checksReady: false },
     bank: wallet.bankName && wallet.accountName ? { bankName: wallet.bankName, accountName: wallet.accountName, accountEnding: maskAccountNumber(wallet.accountNumber) } : null,
-    settlement: { status: wallet.subaccountStatus, error: wallet.subaccountError, frozen: wallet.status === "frozen", frozenReason: wallet.frozenReason, korapay: Boolean(wallet.korapaySplitAccount) && korapayCheckoutReady() },
+    settlement: { status: wallet.subaccountStatus, error: wallet.subaccountError, frozen: wallet.status === "frozen", frozenReason: wallet.frozenReason, korapay: false },
     totals: { paidKobo: paid._sum.amountKobo ?? 0, last30Kobo: last30._sum.amountKobo ?? 0, refundedKobo: refunded._sum.amountKobo ?? 0 },
     entries: entries.map((entry) => ({ id: entry.id, kind: entry.kind, description: entry.description, amountKobo: entry.amountKobo, status: entry.status, createdAt: entry.createdAt.toISOString(), orderId: entry.orderId })),
     settlements: settlements.map((row) => ({ id: row.id, status: row.status, amountKobo: row.totalAmount, date: row.settlementDate })),

@@ -93,7 +93,7 @@ const en = {
   "card.confirmMeta": "Disconnect {name}? New messages and product updates stop there. Your past chats stay.",
   "card.confirmWhatsapp": "Disconnect {name}? New WhatsApp messages stop coming to your inbox and your products stop updating there. Your past chats stay.",
   "card.needs.metaProducts": "Messages are on. To show your products on Facebook and Instagram too, create a free business account, then tap below.",
-  "card.needs.waProducts": "Messages are on. To show your products inside WhatsApp too, Facebook still has to allow Shopinbos to manage your catalog. We'll turn it on as soon as it does; tap below to try again.",
+  "card.needs.waProducts": "Messages are on. To show your products inside WhatsApp too, Facebook has to let Shopinbos manage your catalog. Disconnect, connect again and allow everything Facebook asks for.",
   "connectedOk": "{name} is connected. It now works across Shopinbos: your inbox, your products and Social posts.",
   "soon.postTiktok": "Post to TikTok",
   "post.yours": "Your accounts:",

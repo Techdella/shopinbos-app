@@ -161,6 +161,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "savedVideoShort": "Ti fi pamọ́",
   "savedVideo": "A ti fi fídíò pamọ́. Wá a nínú Tí a fi pamọ́, àti nínú media rẹ.",
   "useInAd": "Lò ó nínú ìpolówó",
+  "useInPost": "Lò ó nínú post yìí",
   "markPosted": "Mo ti fi sí orí ayélujára",
   "markedPosted": "A ti sàmì sí i. Ó wà nínú Tí a tẹ̀jáde.",
   "savedVersion": "Fídíò rẹ tí a fi pamọ́",

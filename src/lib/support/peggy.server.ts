@@ -9,6 +9,7 @@ import { getPlanCatalog } from "@/lib/plans/catalog.server";
 import { getPriceBook } from "@/lib/pricing/price-book.server";
 import { PLAN_TIERS, PLAN_TIER_KEYS } from "@shared/plan-catalog";
 import { PEGGY_FACTS } from "./peggy-knowledge";
+import { setupStatus, setupText } from "@/lib/onboarding/setup-status.server";
 import { PEGGY_AUTO_CHANNELS, peggyChannel, peggyFormat, peggyMayAutoReply, type PeggyAutoChannel, type PeggySettings } from "./peggy-pure";
 
 // Peggy in the admin inbox: she drafts replies for the team (Draft with Peggy), and, when an owner switches it on,
@@ -116,6 +117,11 @@ async function whoTheyAre(thread: Thread) {
   const user = userId ? await db.user.findUnique({ where: { id: userId }, select: { role: true, createdAt: true, store: { select: { name: true, status: true } } } }).catch(() => null) : null;
   if (user) lines.push(`Has a Shopinbos ${user.role.replace("_", " ")} account since ${user.createdAt.toISOString().slice(0, 10)}${user.store ? ` (store "${user.store.name}", ${user.store.status})` : ""}.`);
   else if (!lead) lines.push("No Shopinbos account found for them.");
+  // Their business and where they are in setup, so answers are about them ("your CAC is still needed").
+  const setup = userId ? await setupStatus(userId).catch(() => null) : null;
+  if (setup) lines.push(`Their setup (links are in the app at https://app.shopinbos.com):\n${setupText(setup)}`);
+  const business = userId ? await businessFacts(userId).catch(() => null) : null;
+  if (business) lines.push(business);
   return lines.join("\n");
 }
 
@@ -189,4 +195,31 @@ async function peggyAutoReply(ticketId: string) {
   }
   await agentReply({ id: "peggy", role: "admin", name: "Peggy", email: null }, ticketId, { message: draft.reply, internal: false, files: [], asPeggy: true });
   if (draft.note) await addInternalNote(ticketId, `Peggy: ${draft.note}`);
+}
+
+/** What their business is doing lately (orders, products, deliveries), for answers about their own account. */
+async function businessFacts(userId: string) {
+  const user = await db.user.findUnique({ where: { id: userId }, select: { role: true, supplier: { select: { id: true } }, logisticsPartner: { select: { id: true } }, store: { select: { id: true } } } });
+  if (!user) return null;
+  const since = new Date(Date.now() - 30 * 86_400_000);
+  if (user.supplier) {
+    const [products, orders, open] = await Promise.all([
+      db.supplierProduct.count({ where: { supplierId: user.supplier.id, status: "published" } }),
+      db.supplierOrder.count({ where: { supplierId: user.supplier.id, createdAt: { gte: since } } }),
+      db.supplierOrder.count({ where: { supplierId: user.supplier.id, status: { in: ["pending", "accepted"] } } }),
+    ]);
+    return `Business: ${products} published products, ${orders} orders from sellers in the last 30 days, ${open} open now.`;
+  }
+  if (user.logisticsPartner) {
+    const [jobs, open] = await Promise.all([
+      db.deliveryBooking.count({ where: { logisticsPartnerId: user.logisticsPartner.id, createdAt: { gte: since } } }),
+      db.deliveryBooking.count({ where: { logisticsPartnerId: user.logisticsPartner.id, status: { in: ["pending", "confirmed", "picked_up", "in_transit", "out_for_delivery"] } } }),
+    ]);
+    return `Business: ${jobs} delivery jobs in the last 30 days, ${open} in progress now.`;
+  }
+  if (user.store) {
+    const orders = await db.retailOrder.count({ where: { storeId: user.store.id, createdAt: { gte: since } } });
+    return `Business: ${orders} store orders in the last 30 days.`;
+  }
+  return null;
 }

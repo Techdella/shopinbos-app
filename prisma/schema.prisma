@@ -4175,15 +4175,49 @@ model Wallet {
   // (Korapay has no API for it). Set: Korapay checkout can split to this business too.
   korapaySplitAccount String? @unique
   frozenReason    String?
+  // Prepaid balance (src/lib/wallet/balance.server.ts): money the business topped up (card, or a transfer to their
+  // own top-up account), spent on Shopinbos services (AI credits…) or withdrawn to their bank. Sales never land
+  // here: they still settle straight to the bank. In kobo; only ever changed together with a WalletTransaction.
+  balanceKobo        Int       @default(0)
+  // Their own top-up account number (Paystack Dedicated Virtual Account), when DVA is switched on.
+  topUpCustomerCode  String?   @unique
+  topUpAccountNumber String?
+  topUpAccountName   String?
+  topUpBankName      String?
+  topUpStatus        String    @default("none") // none | pending | ready | failed | unavailable
+  topUpError         String?
+  // Paystack transfer recipient for withdrawals (made from the checked bank above).
+  transferRecipient  String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  entries WalletEntry[]
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entries      WalletEntry[]
+  transactions WalletTransaction[]
 
   @@index([status])
   @@index([subaccountStatus])
   @@index([kycIdHash])
+}
+
+/// One movement of a wallet's prepaid balance. Idempotent on `reference` (Paystack references for top-ups and
+/// withdrawals, our own for spends), so retries and webhook replays never count twice.
+model WalletTransaction {
+  id          String   @id @default(cuid())
+  walletId    String
+  kind        String // topup | spend | withdrawal | refund
+  /// + money in, - money out (kobo).
+  amountKobo  Int
+  status      String   @default("done") // done | pending (withdrawals on their way) | failed (reversed)
+  reference   String   @unique
+  description String
+  error       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([walletId, createdAt(sort: Desc)])
 }
 
 model WalletEntry {

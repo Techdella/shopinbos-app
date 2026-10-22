@@ -78,7 +78,7 @@ export default async function NewSocialPostPage({ searchParams }: { searchParams
   return (
     <SellerPage user={user} store={storeSummary(store)} title={t("new.title")} sub={t("new.sub")} actions={<PillLink href="/home/marketing/social" icon="arrowLeft">{t("back")}</PillLink>}>
       <PageTip className="mb-5">{tipT("social.new")}</PageTip>
-      <Composer post={post} products={data.products} media={data.media} accounts={data.accounts} queueNext={data.queueNext} storeName={store.name} />
+      <Composer post={post} products={data.products} media={data.media} accounts={data.accounts} queueNext={data.queueNext} storeName={store.name} rex={data.rex} />
     </SellerPage>
   );
 }

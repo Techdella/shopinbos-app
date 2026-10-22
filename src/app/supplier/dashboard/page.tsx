@@ -1,4 +1,5 @@
 import { PartnerBrief } from "@/components/assistant/PartnerBrief";
+import { SetupWithPeggySlot } from "@/components/peggy/SetupWithPeggySlot";
 import { supplierBriefFor } from "@/lib/dashboard/partner-brief.server";
 import Link from "next/link";
 import type { Metadata } from "next";
@@ -258,6 +259,9 @@ export default async function SupplierDashboardPage({ searchParams }: { searchPa
             <StatTile label={t("dashboard.tileLive")} value={publishedProducts.toLocaleString("en-NG")} hint={t("dashboard.ofCatalogue", { total: totalProducts })} />
           </div>
         </Card>
+
+        {/* Getting set up, with Peggy (chat and a free voice call) until every step is done. */}
+        <SetupWithPeggySlot userId={user.id} />
 
         {/* Peggy's brief (what needs doing now) and Rex's ideas (ways to grow): shared/partner-brief.ts */}
         <PartnerBrief

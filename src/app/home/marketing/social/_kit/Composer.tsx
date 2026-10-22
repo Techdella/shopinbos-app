@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
 import { buttonClass, inputClass, selectClass, textareaClass } from "@/components/growth/kit";
@@ -27,8 +28,11 @@ import {
   type PostProblem,
 } from "@/lib/social-posts/pure";
 import { ChannelBadge } from "./ChannelBadge";
-import { REX_REEL_HREF, rexImageHref } from "./links";
-import type { ComposerPost, ComposerProduct, PickMedia } from "./types";
+import type { RexMakeKind } from "./RexMakeModal";
+import type { ComposerPost, ComposerProduct, MadeDesign, PickMedia, RexMakerData } from "./types";
+
+// Rex's makers are big; they load only when the seller opens one.
+const RexMakeModal = dynamic(() => import("./RexMakeModal").then((mod) => mod.RexMakeModal), { ssr: false });
 
 type When = "now" | "queue" | "schedule";
 type PickerTab = "rex" | "reels" | "library" | "products";
@@ -51,6 +55,7 @@ export function Composer({
   accounts,
   queueNext,
   storeName,
+  rex,
 }: {
   post: ComposerPost;
   products: ComposerProduct[];
@@ -58,6 +63,8 @@ export function Composer({
   accounts: { facebook: string | null; instagram: string | null };
   queueNext: string;
   storeName: string;
+  /** What Rex's picture and reel makers need to open in a pop-up here. */
+  rex: RexMakerData;
 }) {
   const t = useT("socialPosts", "common");
   const locale = useLocale();
@@ -108,6 +115,25 @@ export function Composer({
 
   function toggle(channel: PostChannel) {
     setChannels((list) => (list.includes(channel) ? list.filter((item) => item !== channel) : POST_CHANNELS.map((item) => item.key).filter((key) => key === channel || list.includes(key))));
+  }
+
+  // Rex's picture or reel maker, open in a pop-up; what it makes joins the lists and goes straight into the post.
+  const [making, setMaking] = useState<RexMakeKind | null>(null);
+  const [made, setMade] = useState<PickMedia[]>([]);
+  const closeMaker = useCallback(() => setMaking(null), []);
+  const lists = useMemo(
+    () => ({ ...media, rex: [...made.filter((item) => item.source === "rex"), ...media.rex], reels: [...made.filter((item) => item.source === "reel"), ...media.reels] }),
+    [media, made],
+  );
+
+  function takeMade(design: MadeDesign) {
+    const item: PickMedia =
+      design.kind === "image"
+        ? { id: `made-${Date.now()}`, url: design.url, kind: "image", source: "rex", label: null, width: design.width, height: design.height, poster: null, createdAt: new Date().toISOString() }
+        : { id: design.id ?? `made-${Date.now()}`, url: design.url, kind: "video", source: "reel", label: null, width: 1080, height: 1920, poster: null, createdAt: new Date().toISOString() };
+    setMade((list) => [item, ...list]);
+    pick(item);
+    setMaking(null);
   }
 
   function pick(item: PickMedia) {
@@ -259,14 +285,14 @@ export function Composer({
               <p className="mb-0 mt-1 text-[13px] text-app-ink-soft">{t("c.mediaSub")}</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Link href={rexImageHref(format)} className={buttonClass("accent", "sm")}>
+              <button type="button" onClick={() => setMaking("image")} className={buttonClass("accent", "sm")}>
                 <Icon name="sparkle" size={15} />
                 {t("c.makeImage", { ratio: POST_FORMATS[format].ratio })}
-              </Link>
-              <Link href={REX_REEL_HREF} className={buttonClass("white", "sm")}>
+              </button>
+              <button type="button" onClick={() => setMaking("reel")} className={buttonClass("white", "sm")}>
                 <Icon name="play" size={15} />
                 {t("c.makeReel")}
-              </Link>
+              </button>
             </div>
           </div>
 
@@ -303,13 +329,13 @@ export function Composer({
                 {tabs.map((tab) => (
                   <button key={tab.key} type="button" role="tab" aria-selected={picker === tab.key} onClick={() => setPicker(tab.key)} className={cx("inline-flex min-h-[36px] items-center gap-1.5 rounded-full border px-3.5 text-[13px] font-bold", picker === tab.key ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white")}>
                     {tab.label}
-                    <span className="opacity-60">{media[tab.key].length}</span>
+                    <span className="opacity-60">{lists[tab.key].length}</span>
                   </button>
                 ))}
               </div>
-              {media[picker].length ? (
+              {lists[picker].length ? (
                 <ul className="m-0 mt-3 grid max-h-[360px] list-none grid-cols-3 gap-2 overflow-y-auto p-0 sm:grid-cols-4 lg:grid-cols-5">
-                  {media[picker].map((item) => (
+                  {lists[picker].map((item) => (
                     <li key={`${item.source}-${item.id}`}>
                       <button type="button" onClick={() => pick(item)} aria-pressed={mediaUrl === item.url} className={cx("relative block w-full overflow-hidden rounded-[12px] border-2", mediaUrl === item.url ? "border-app-ink" : "border-transparent")} title={item.label ?? undefined}>
                         {item.kind === "video" ? (
@@ -331,9 +357,9 @@ export function Composer({
               ) : (
                 <div className="mt-3 rounded-[16px] bg-app-canvas p-4 text-[13.5px] text-app-ink-soft">
                   {picker === "reels" ? (
-                    <>{t("pick.noReels")} <Link href={REX_REEL_HREF} className="font-bold text-app-ink underline">{t("c.makeReel")}</Link></>
+                    <>{t("pick.noReels")} <button type="button" onClick={() => setMaking("reel")} className="cursor-pointer border-0 bg-transparent p-0 font-bold text-app-ink underline">{t("c.makeReel")}</button></>
                   ) : picker === "rex" ? (
-                    <>{t("pick.noRex")} <Link href={rexImageHref(format)} className="font-bold text-app-ink underline">{t("c.makeImage", { ratio: POST_FORMATS[format].ratio })}</Link></>
+                    <>{t("pick.noRex")} <button type="button" onClick={() => setMaking("image")} className="cursor-pointer border-0 bg-transparent p-0 font-bold text-app-ink underline">{t("c.makeImage", { ratio: POST_FORMATS[format].ratio })}</button></>
                   ) : picker === "library" ? (
                     <>{t("pick.noLibrary")} <Link href="/home/media" className="font-bold text-app-ink underline">{t("pick.openLibrary")}</Link></>
                   ) : (
@@ -374,7 +400,7 @@ export function Composer({
                   {shape && formatForShape(shape.width, shape.height) !== format && (
                     <p className="m-0 text-[12.5px] text-app-ink-soft">
                       {fit === "cover" ? t("c.willCrop") : t("c.willFit")}{" "}
-                      <Link href={rexImageHref(format)} className="font-bold text-app-ink underline">{t("c.remake", { ratio: POST_FORMATS[format].ratio })}</Link>
+                      <button type="button" onClick={() => setMaking("image")} className="cursor-pointer border-0 bg-transparent p-0 font-bold text-app-ink underline">{t("c.remake", { ratio: POST_FORMATS[format].ratio })}</button>
                     </p>
                   )}
                 </>
@@ -512,6 +538,7 @@ export function Composer({
           </ul>
         )}
       </aside>
+      {making && <RexMakeModal kind={making} format={format} data={rex} onUse={takeMade} onClose={closeMaker} />}
     </div>
   );
 }

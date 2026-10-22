@@ -90,7 +90,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "card.confirmMeta": "Disconnect {name}? New messages and product updates go stop for there. Your old chats go still dey.",
   "card.confirmWhatsapp": "Disconnect {name}? New WhatsApp messages go stop to dey enter your inbox and your products go stop to update there. Your old chats go still dey.",
   "card.needs.metaProducts": "Messages don dey work. To show your products for Facebook and Instagram too, create free business account, then tap below.",
-  "card.needs.waProducts": "Messages don dey work. To show your products inside WhatsApp too, Facebook still need allow Shopinbos to manage your catalog. We go on am once e allow; tap below to try again.",
+  "card.needs.waProducts": "Messages don dey work. To show your products inside WhatsApp too, Facebook must allow Shopinbos to manage your catalog. Disconnect, connect again and allow everything Facebook ask for.",
   "connectedOk": "{name} don connect. E don dey work for everywhere for Shopinbos: your inbox, your products and Social posts.",
   "soon.postTiktok": "Post for TikTok",
   "post.yours": "Your accounts:",

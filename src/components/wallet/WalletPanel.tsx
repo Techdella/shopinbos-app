@@ -55,9 +55,6 @@ export async function WalletPanel({ view, role, ownerName, orderHref }: { view: 
         {view.settlement.status === "review" ? <Notice tone="info">{t("setup.review")}</Notice> : null}
         {view.settlement.status === "failed" && view.settlement.error ? <Notice tone="error">{t("setup.failed", { reason: view.settlement.error })}</Notice> : null}
         {!view.settlement.frozen ? <BankForm banks={banks} current={view.bank} /> : null}
-        {view.settlement.status === "active" ? (
-          <p className="m-0 text-[13px] text-app-ink-soft">{t("setup.gateways", { korapay: view.settlement.korapay ? t("setup.korapayOn") : t("setup.korapaySoon") })}</p>
-        ) : null}
       </section>
       {view.check.kind === "business" ? (
         <section className="grid gap-3 border-t border-app-line pt-4">

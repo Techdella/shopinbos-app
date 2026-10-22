@@ -6,9 +6,6 @@ import { AdminDocumentViewer } from "@/components/verification/AdminDocumentView
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { parseVerificationDocs } from "@/lib/verification-utils";
-import { PartnerPayInsPanel } from "../PayInsPanels";
-import { PartnerLatePayInPanel } from "../LatePayInsPanels";
-import { ridersHolding } from "@/lib/logistics/payin-standing.server";
 import { connectionsForPartner, rateCardsForPartner, statsForPartners } from "@/lib/delivery-market/manage.server";
 import { adminIssueRows } from "../../delivery-issues/issues.server";
 import { IssueList } from "../../delivery-issues/IssueList";
@@ -62,32 +59,6 @@ export default async function AdminLogisticsDetailPage(props: { params: Promise<
 
   const docs = parseVerificationDocs(partner.verificationDocuments);
 
-  const [payInAccount, payIns, remittances, lateEvents, riders] = await Promise.all([
-    db.partnerPayInAccount.findUnique({
-      where: { logisticsPartnerId: partner.id },
-      select: { status: true, accountNumber: true, accountName: true, bankName: true, customerCode: true, lastError: true, updatedAt: true },
-    }),
-    db.partnerPayIn.findMany({
-      where: { logisticsPartnerId: partner.id },
-      orderBy: { paidAt: "desc" },
-      take: 15,
-      select: { id: true, amount: true, reference: true, senderName: true, paidAt: true, matchedBy: true },
-    }),
-    // Pay-ins the partner told us about (form or their software), not transfers to their account.
-    db.codRemittance.findMany({
-      where: { logisticsPartnerId: partner.id, method: { not: "account" } },
-      orderBy: { createdAt: "desc" },
-      take: 10,
-      select: { id: true, amount: true, method: true, createdAt: true, outcome: true, _count: { select: { bookings: true } } },
-    }),
-    db.partnerPayInEvent.findMany({
-      where: { logisticsPartnerId: partner.id, kind: { not: "recheck" } },
-      orderBy: { createdAt: "desc" },
-      take: 40,
-      select: { id: true, kind: true, amount: true, deadline: true, note: true, createdAt: true },
-    }),
-    ridersHolding(partner.id),
-  ]);
 
   // Logistics marketplace: rate cards, pickup points, connected businesses, in-app stats and customers' problems.
   const [rateCards, pickupPoints, connections, privateCards, stats, openIssues] = await Promise.all([
@@ -177,15 +148,13 @@ export default async function AdminLogisticsDetailPage(props: { params: Promise<
         )}
       </section>
 
-      <PartnerPayInsPanel
-        partnerId={partner.id}
-        account={payInAccount}
-        credit={partner.payInCredit}
-        payIns={payIns}
-        remittances={remittances.map(({ _count, ...row }) => ({ ...row, jobs: _count.bookings }))}
-      />
-
-      <PartnerLatePayInPanel partner={partner} riders={riders} events={lateEvents} now={new Date()} />
+      {/* Cash from pay-on-delivery jobs is paid straight to sellers by the partner, and late partners are paused
+          and resumed automatically (src/lib/logistics/payin-standing.server.ts): nothing for the team to manage. */}
+      {partner.codPaused && (
+        <p className="mt-6 rounded-[18px] border border-app-line bg-white px-4 py-3.5 text-[14px] text-app-ink-soft">
+          Paused from pay-on-delivery jobs for cash paid late. It switches back on by itself once they pay the sellers.
+        </p>
+      )}
 
     </AppPage>
   );

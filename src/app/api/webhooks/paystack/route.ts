@@ -1,4 +1,6 @@
 import { completeExtraPurchase } from "@/lib/plans/extras.server";
+import { confirmCardTopUp, handleWalletAccountAssign, handleWalletAccountCharge, handleWalletTransfer } from "@/lib/wallet/balance.server";
+import { WALLET_REFERENCE } from "@/lib/wallet/balance-rules";
 import { EXTRA_REFERENCE_PREFIX } from "@shared/plan-extras";
 import { completeCreditPurchase, grantPlanCredits } from "@/lib/ai/credits.server";
 import { CREDIT_REFERENCE_PREFIX } from "@shared/ai-credits";
@@ -79,13 +81,33 @@ export async function POST(req: NextRequest) {
   // reference, so a 500 here (the database was unreachable) is safe for Paystack to retry.
   if ((eventType === "charge.success" && isDedicatedCharge(event.data)) || eventType?.startsWith("dedicatedaccount.assign.")) {
     try {
-      if (eventType === "charge.success") await handleDedicatedAccountCharge(event.data);
-      else await handleDedicatedAccountAssign(eventType, event.data);
+      // A business's wallet top-up account first (src/lib/wallet/balance.server.ts), else a partner's old pay-in account.
+      if (eventType === "charge.success") {
+        if (!(await handleWalletAccountCharge(event.data))) await handleDedicatedAccountCharge(event.data);
+      } else if (!(await handleWalletAccountAssign(eventType, event.data))) await handleDedicatedAccountAssign(eventType, event.data);
     } catch (error) {
       console.error(`[paystack webhook] pay-in account event ${eventType} failed`, error);
       return new NextResponse("Retry later", { status: 500 });
     }
     return new NextResponse("OK", { status: 200 });
+  }
+
+  // ── Prepaid wallet: card top-ups and withdrawals to the bank (src/lib/wallet/balance.server.ts) ──
+  // Both idempotent on the reference, so a 500 is safe for Paystack to retry.
+  if (eventType === "charge.success" && typeof event.data?.reference === "string" && event.data.reference.startsWith(WALLET_REFERENCE.topUp)) {
+    const result = await confirmCardTopUp(event.data.reference).catch((error) => {
+      console.error(`[paystack webhook] wallet top-up ${event.data.reference} failed`, error);
+      return "retry" as const;
+    });
+    return result === "retry" ? new NextResponse("Retry later", { status: 500 }) : new NextResponse("OK", { status: 200 });
+  }
+  if (eventType === "transfer.success" || eventType === "transfer.failed" || eventType === "transfer.reversed") {
+    try {
+      if (await handleWalletTransfer(eventType, event.data)) return new NextResponse("OK", { status: 200 });
+    } catch (error) {
+      console.error(`[paystack webhook] wallet withdrawal ${eventType} failed`, error);
+      return new NextResponse("Retry later", { status: 500 });
+    }
   }
 
   // ── Subscription created (first payment via plan) ────────────────────────

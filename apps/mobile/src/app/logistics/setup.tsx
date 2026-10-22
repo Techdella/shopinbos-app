@@ -6,6 +6,7 @@ import * as ImagePicker from "expo-image-picker";
 import { LOGISTICS_DOC_TYPES } from "@shared/verification-docs";
 import { Eyebrow, List, Row, Seg, Small, Sub, Tile, Title } from "@/components/design";
 import { AppIcon } from "@/components/icons";
+import { CallPeggyButton } from "@/components/CallPeggyButton";
 import { LoadingBlock } from "@/components/kit";
 import { ChipWrap, LabeledInput, StepHeader } from "@/components/PartnerKit";
 import { CoverageEditor, RateCardEditor, ServicesEditor } from "@/components/PartnerSetup";
@@ -179,6 +180,7 @@ function Wizard({ market, wallet, docsDone: initialDocs }: { market: MarketData;
           <>
             <PillButton tone="forest" title={t("setup.start")} onPress={() => go("biz")} />
             <Small style={{ textAlign: "center" }}>{t("setup.free")}</Small>
+            <CallPeggyButton style={{ marginTop: 6 }} />
           </>
         }
       >

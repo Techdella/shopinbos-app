@@ -37,3 +37,19 @@ export interface ComposerPost {
   time: string | null;
   status: string;
 }
+
+/** What Rex's picture and reel makers need inside the Social posts pop-up (rex-data.server.ts). */
+export interface RexMakerData {
+  storeName: string;
+  image: { brand: import("@/app/studio/images/ImageGenClient").ImageBrand | null; ideas: string[] };
+  reel: {
+    storeHost: string;
+    brand: import("@shared/video-style").ReelBrand;
+    elevenLabs: boolean;
+    costs: { image: number; video: number };
+    products: import("@/app/home/video/VideoStudio").StudioProduct[];
+  };
+}
+
+/** A design made in the pop-up, ready for the post. */
+export type MadeDesign = { kind: "image"; url: string; width: number; height: number } | { kind: "video"; url: string; id: string | null };

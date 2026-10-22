@@ -34,7 +34,7 @@ import { useT } from "@/components/i18n/I18nProvider";
 import { ReelPreview } from "./ReelPreview";
 import { VoiceRecorder } from "./VoiceRecorder";
 
-interface StudioProduct {
+export interface StudioProduct {
   id: string;
   name: string;
   price: number;
@@ -89,6 +89,7 @@ export function VideoStudio({
   project = null,
   purpose: startPurpose = "social",
   costs = CREDIT_COST,
+  onUse,
 }: {
   products: StudioProduct[];
   storeName: string;
@@ -102,6 +103,8 @@ export function VideoStudio({
   purpose?: VideoPurpose;
   /** Credits a picture and a video cost (Admin › Pricing). */
   costs?: { image: number; video: number };
+  /** Opened from Social posts: "Use in this post" saves the reel and hands it back instead of leaving the page. */
+  onUse?: (video: { url: string; id: string | null }) => void;
 }) {
   const t = useT("video");
   const router = useRouter();
@@ -503,6 +506,22 @@ export function VideoStudio({
     }
   }
 
+  async function useInPost() {
+    if (!onUse) return;
+    setStep("saving");
+    setNotice(null);
+    try {
+      const url = await saveVideo();
+      if (!url) throw new Error(t("err.save"));
+      const id = await ensureProject().catch(() => null);
+      onUse({ url, id });
+    } catch (saveError) {
+      setNotice({ tone: "error", text: saveError instanceof Error ? saveError.message : t("err.save") });
+    } finally {
+      setStep("idle");
+    }
+  }
+
   async function markPosted() {
     setStep("saving");
     setNotice(null);
@@ -804,6 +823,11 @@ export function VideoStudio({
               <a href={result.url} download={`${(name || "reel").replace(/[^\w-]+/g, "-").toLowerCase()}.${result.extension}`} className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-app-line bg-white text-[15px] font-extrabold text-app-ink no-underline">
                 {t("download", { ext: result.extension.toUpperCase() })}
               </a>
+              {onUse ? (
+                <PillButton type="button" busy={step === "saving"} disabled={busy} onClick={() => void useInPost()}>
+                  {t("useInPost")}
+                </PillButton>
+              ) : null}
               <PillButton type="button" tone="white" busy={step === "saving-media"} disabled={busy || savedMedia === result.url} onClick={() => void saveToMedia()}>
                 {savedMedia === result.url ? t("savedVideoShort") : t("saveVideo")}
               </PillButton>

@@ -41,6 +41,7 @@ const PUBLIC_PAGES = [
   /^\/store\/\[storeSlug\]/, // legacy storefront routes
   /^\/suppliers\/\[slug\]$/, // public supplier profile
   /^\/logistics\/partners\//, // public logistics partner profile
+  /^\/call-peggy$/, // voice call opened from the mobile app: signed in by its own 15-minute token
   /^\/email\/unsubscribe\//,
   /^\/email\/preferences\//, // email preference center: the signed token is the credential
   /^\/email\/preferences\//, // email preference center, the signed token is the credential

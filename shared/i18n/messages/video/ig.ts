@@ -161,6 +161,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "savedVideoShort": "Echekwara",
   "savedVideo": "Echekwala vidiyo. Chọta ya na Echekwara na media gị.",
   "useInAd": "Jiri ya na mgbasa ozi",
+  "useInPost": "Jiri ya mee post a",
   "markPosted": "E bipụtala m ya",
   "markedPosted": "Akara na e bipụtala ya. Ọ dị na Ebipụtara.",
   "savedVersion": "Vidiyo gị echekwara",

@@ -148,15 +148,16 @@ async function postToFacebook(account: NonNullable<PostAccounts["facebook"]>, po
   return { status: "posted", at: now.toISOString(), ...(id ? { id, url: `https://www.facebook.com/${id}` } : {}) };
 }
 
-async function publishInstagram(account: NonNullable<PostAccounts["instagram"]>, container: string, now: Date): Promise<ChannelResult> {
+/** `since`: when Instagram started processing (kept across checks, for the progress timer on the post page). */
+async function publishInstagram(account: NonNullable<PostAccounts["instagram"]>, container: string, now: Date, since = now.toISOString()): Promise<ChannelResult> {
   const status = await graph(encodeURIComponent(container), account.token, { query: { fields: "status_code" } });
   const code = status.ok ? status.json.status_code : null;
-  if (code === "IN_PROGRESS") return { status: "waiting", container, at: now.toISOString() };
+  if (code === "IN_PROGRESS") return { status: "waiting", container, at: now.toISOString(), since };
   if (code === "ERROR" || code === "EXPIRED") return { status: "failed", at: now.toISOString(), error: "Instagram couldn't use this picture or video. Try a different one." };
   const published = await graph(`${encodeURIComponent(account.accountId)}/media_publish`, account.token, { body: { creation_id: container } });
   if (!published.ok) {
     // 9007: the media isn't ready yet; try again on the next run.
-    if (published.error.code === 9007) return { status: "waiting", container, at: now.toISOString() };
+    if (published.error.code === 9007) return { status: "waiting", container, at: now.toISOString(), since };
     return failure(published.error, now);
   }
   const id = typeof published.json.id === "string" ? published.json.id : undefined;
@@ -169,7 +170,7 @@ async function publishInstagram(account: NonNullable<PostAccounts["instagram"]>,
 }
 
 async function postToInstagram(account: NonNullable<PostAccounts["instagram"]>, post: PostRow, media: { url: string; kind: MediaKind } | null, previous: ChannelResult | undefined, now: Date): Promise<ChannelResult> {
-  if (previous?.status === "waiting") return publishInstagram(account, previous.container, now);
+  if (previous?.status === "waiting") return publishInstagram(account, previous.container, now, previous.since ?? previous.at);
   if (!media) return { status: "failed", at: now.toISOString(), error: "Instagram needs a picture or video." };
   const kind = instagramKind(isPostFormat(post.format) ? post.format : "square", media.kind);
   const body: Record<string, unknown> =
@@ -182,8 +183,9 @@ async function postToInstagram(account: NonNullable<PostAccounts["instagram"]>, 
   if (!created.ok) return failure(created.error, now);
   const container = typeof created.json.id === "string" ? created.json.id : null;
   if (!container) return { status: "failed", at: now.toISOString(), error: "Instagram didn't accept the post. Try again." };
-  // Pictures are ready at once; a reel takes a minute or two, so the next run publishes it.
-  if (kind === "reel") return { status: "waiting", container, at: now.toISOString() };
+  // Pictures are ready at once; a reel takes a minute or so. The open post page checks every few seconds
+  // (checkPost); the cron publishes it otherwise.
+  if (kind === "reel") return { status: "waiting", container, at: now.toISOString(), since: now.toISOString() };
   return publishInstagram(account, container, now);
 }
 
@@ -293,4 +295,15 @@ export async function publishDue(now = new Date()) {
   const stuck = await db.socialPost.findMany({ where: { status: "publishing", updatedAt: { lte: new Date(now.getTime() - 2 * 60 * 1000) } }, take: 25, select: { id: true } });
   for (const { id } of stuck) await publishPost(id, now).catch(() => undefined);
   return { due: due.length, posted, retried: stuck.length };
+}
+
+/**
+ * The open post page asks every few seconds while a post is going out (POST /api/app/social-posts/[id] "check"):
+ * publishes an Instagram reel the moment Instagram has it ready, instead of waiting for the next cron run. Skips a
+ * post another check touched in the last 2 seconds, so several open tabs don't double up.
+ */
+export async function checkPost(postId: string, now = new Date()) {
+  const touched = await db.socialPost.updateMany({ where: { id: postId, status: "publishing", updatedAt: { lte: new Date(now.getTime() - 2000) } }, data: { updatedAt: now } });
+  if (touched.count === 1) return publishPost(postId, now);
+  return db.socialPost.findUnique({ where: { id: postId } });
 }

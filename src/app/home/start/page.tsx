@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { SetupWithPeggySlot } from "@/components/peggy/SetupWithPeggySlot";
 import type { Metadata } from "next";
 import { AppFrame } from "@/components/shell/AppFrame";
 import { requireRole } from "@/lib/server-auth";
@@ -72,6 +73,10 @@ export default async function StartHerePage({ searchParams }: { searchParams: Pr
       userEmail={user.email}
     >
       <PromoBanner role="seller" className="px-4 pt-6 sm:px-6 xl:px-8 2xl:px-10" />
+      <div className="px-4 pt-6 sm:px-6 xl:px-8 2xl:px-10">
+        {/* Peggy helps with setup: chat and a free voice call (the checklist itself is Start here, below). */}
+        <SetupWithPeggySlot userId={user.id} checklist={false} />
+      </div>
       <StartHere
         firstName={firstName}
         overview={JSON.parse(JSON.stringify(overview))}
