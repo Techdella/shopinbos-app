@@ -1,3 +1,5 @@
+import { PartnerBrief } from "@/components/assistant/PartnerBrief";
+import { supplierBriefFor } from "@/lib/dashboard/partner-brief.server";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { db } from "@/lib/db/client";
@@ -12,7 +14,6 @@ import { ORDER_STATUS, PRODUCT_STATUS, QUOTE_STATUS, money, statusOf, supplierFr
 import { DROPSHIP_TO_SHIP, WHOLESALE_TO_SHIP } from "@/lib/supplier-orders/pure";
 import { listDropshipOrders } from "@/lib/supplier-orders/views.server";
 import { supplierEarnings, supplierOrdersToShip } from "@/lib/supplier-orders/money.server";
-import { Mascot } from "@/components/brand/Mascot";
 import { getT } from "@/lib/i18n/server";
 import { intlLocale } from "@shared/i18n";
 import { PromoBanner } from "@/components/pricing/PromoBanner";
@@ -127,6 +128,7 @@ export default async function SupplierDashboardPage({ searchParams }: { searchPa
     topProducts,
     recommendedLogistics,
     activeSellers,
+    brief,
   ] = await Promise.all([
     db.supplierProduct.count({ where: { supplierId: supplier.id } }),
     db.supplierProduct.count({ where: { supplierId: supplier.id, status: "published" } }),
@@ -184,6 +186,7 @@ export default async function SupplierDashboardPage({ searchParams }: { searchPa
     }),
     getRecommendedLogistics(supplier),
     getActiveSellersByCategory(supplier),
+    supplierBriefFor(supplier, now),
   ]);
 
   const toShipCount = toShip.total;
@@ -256,34 +259,13 @@ export default async function SupplierDashboardPage({ searchParams }: { searchPa
           </div>
         </Card>
 
-        {/* Rex's brief */}
-        <section className="rounded-[22px] bg-app-peach p-5">
-          <div className="mb-4 flex items-center gap-3">
-            <Mascot who="rex" className="h-12 w-12" />
-            <div>
-              <h2 className="m-0 text-[17px] font-extrabold">{t("dashboard.rexBrief")}</h2>
-              <div className="text-[13px] text-app-ink-soft">
-                {verified ? t("dashboard.isVerified", { name: supplier.displayName }) : t("dashboard.verificationIs", { status: verificationLabel(supplier.verificationStatus, t) })} · {t("dashboard.trustScore", { score: supplier.trustScore })}
-              </div>
-            </div>
-          </div>
-          <div className="grid gap-2">
-            {toShipCount > 0 && (
-              <BriefLink href="/supplier/orders" icon="truck" title={t("dashboard.briefToShip", { count: toShipCount })} hint={t("dashboard.briefToShipHint")} action={t("dashboard.briefShip")} />
-            )}
-            {pendingQuotes > 0 && (
-              <BriefLink href="/supplier/quote-requests" icon="chat" title={t("dashboard.briefQuotes", { count: pendingQuotes })} hint={t("dashboard.briefQuotesHint")} action={t("dashboard.reply")} />
-            )}
-            {totalProducts === 0 && (
-              <BriefLink href="/supplier/products/new" icon="box" title={t("dashboard.briefFirst")} hint={t("dashboard.briefFirstHint")} action={t("add")} />
-            )}
-            {verified && toShipCount === 0 && pendingQuotes === 0 && totalProducts > 0 && (
-              <div className="rounded-[16px] bg-white px-4 py-3 text-[13.5px] text-app-ink-soft">
-                {t("dashboard.nothingNeeded")}
-              </div>
-            )}
-          </div>
-        </section>
+        {/* Peggy's brief (what needs doing now) and Rex's ideas (ways to grow): shared/partner-brief.ts */}
+        <PartnerBrief
+          role="supplier"
+          peggy={brief.peggy}
+          rex={brief.rex}
+          subtitle={`${verified ? t("dashboard.isVerified", { name: supplier.displayName }) : t("dashboard.verificationIs", { status: verificationLabel(supplier.verificationStatus, t) })} · ${t("dashboard.trustScore", { score: supplier.trustScore })}`}
+        />
 
         {/* Orders to ship */}
         <section className="min-w-0">
@@ -430,18 +412,5 @@ export default async function SupplierDashboardPage({ searchParams }: { searchPa
         </div>
       </div>
     </AppFrame>
-  );
-}
-
-function BriefLink({ href, icon, title, hint, action }: { href: string; icon: "shield" | "truck" | "chat" | "box"; title: string; hint: string; action: string }) {
-  return (
-    <Link href={href} className="flex min-h-[56px] items-center gap-3 rounded-[16px] bg-white px-4 py-2.5 text-app-ink no-underline hover:shadow-sm">
-      <Icon name={icon} size={18} />
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-[14px] font-extrabold">{title}</span>
-        <span className="block truncate text-[12.5px] text-app-ink-soft">{hint}</span>
-      </span>
-      <span className="rounded-full bg-app-ink px-3.5 py-2 text-[13px] font-extrabold text-white">{action}</span>
-    </Link>
   );
 }

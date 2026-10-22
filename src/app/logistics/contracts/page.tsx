@@ -5,6 +5,7 @@ import { PartnerPage } from "@/components/logistics/kit";
 import { ContractList } from "@/components/contracts/ContractViews";
 import { contractsFor } from "@/lib/contracts/contracts.server";
 import { getT } from "@/lib/i18n/server";
+import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -18,8 +19,10 @@ export default async function LogisticsContractsPage() {
   const partner = await getLogisticsPartnerForUser(user);
   ensureLogisticsAccess(partner);
   const [rows, t] = await Promise.all([contractsFor(user.id), getT("contracts")]);
+  const tipT = await getT("tips");
   return (
     <PartnerPage frame={{ user, partner }} title={t("title")} sub={t("sub")}>
+      <PageTip who="peggy" className="mb-5">{tipT("logistics.contracts")}</PageTip>
       <ContractList rows={rows} base="/logistics/contracts" />
     </PartnerPage>
   );

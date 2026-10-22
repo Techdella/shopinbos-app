@@ -8,6 +8,7 @@ import { agreementsForSupplier } from "@/lib/marketplace/agreements.server";
 import { AGREEMENT_POINTS } from "@shared/supplier-trust";
 import { getT } from "@/lib/i18n/server";
 import { AgreementAnswer } from "./AgreementAnswer";
+import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Dropship agreements" };
@@ -20,9 +21,11 @@ export default async function SupplierAgreementsPage() {
   const supplier = await getSupplierForUser(user);
   ensureSupplierAccess(supplier);
   const t = await getT("supplier", "marketplace", "contracts");
+  const tipT = await getT("tips");
   const rows = await agreementsForSupplier(supplier!.id);
   return (
     <AppPage frame={supplierFrame(user, supplier)} title={t("agr.title")} sub={t("agr.sub")}>
+      <PageTip who="peggy" className="mb-5">{tipT("supplier.agreements")}</PageTip>
       <div className="grid gap-4">
         <Card className="grid gap-2 p-5">
           <h2 className="m-0 text-[15px] font-extrabold">{t("agr.whatYouAgree")}</h2>

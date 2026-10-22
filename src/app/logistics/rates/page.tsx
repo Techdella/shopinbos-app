@@ -10,6 +10,7 @@ import { ActionNotice, KeyValue, PartnerPage, lagosDate, naira } from "@/compone
 import { NG_REGIONS, canonicalState, cardTimeframe, startingPrice } from "@shared/delivery-market";
 import { timeframeText } from "@/components/delivery-market/words";
 import { getT } from "@/lib/i18n/server";
+import { PageTip } from "@/components/learn/PageTip";
 
 // The partner's public rate card (logistics marketplace): the prices shops are charged at checkout, by route,
 // service and parcel size. Saving publishes a new card; orders already placed keep the price they got.
@@ -30,6 +31,7 @@ export default async function LogisticsRatesPage({ searchParams }: { searchParam
   const timeframe = cardTimeframe(rows);
   const defaultFrom = partner.pickupAreas[0] ?? canonicalState(partner.city) ?? "";
   const t = await getT("logistics", "delivery", "common");
+  const tipT = await getT("tips");
 
   return (
     <PartnerPage
@@ -43,6 +45,7 @@ export default async function LogisticsRatesPage({ searchParams }: { searchParam
         </>
       }
     >
+      <PageTip who="rex" className="mb-5">{tipT("logistics.rates")}</PageTip>
       <ActionNotice saved={saved} error={error} savedText={t("market.rates.saved")} />
       <div className="mb-4">
         <Notice tone="info">{t("market.rates.newOrdersOnly")}</Notice>

@@ -18,6 +18,7 @@ import { messagesHref } from "@/lib/conversations/pure";
 import { readRateRows, startingPrice } from "@shared/delivery-market";
 import { podDisclaimerPartner } from "@/components/delivery-market/words";
 import { getT } from "@/lib/i18n/server";
+import { PageTip } from "@/components/learn/PageTip";
 
 // Businesses (shops and suppliers) that added this partner as a delivery partner: since when, what their customers
 // can pick, pay on delivery per business, private rates (sent, accepted, withdrawn) and ending the connection.
@@ -42,6 +43,7 @@ export default async function LogisticsConnectionsPage({ searchParams }: { searc
   const cardById = new Map(cards.map((card) => [card.id, { ...card, rows: readRateRows(card.rows) }]));
   const verified = partner.verificationStatus === "verified";
   const t = await getT("logistics", "delivery", "common");
+  const tipT = await getT("tips");
 
   return (
     <PartnerPage
@@ -50,6 +52,7 @@ export default async function LogisticsConnectionsPage({ searchParams }: { searc
       sub={t("market.conn.sub")}
       actions={<PillLink href="/logistics/rates" icon="coin">{t("market.conn.publicCard")}</PillLink>}
     >
+      <PageTip who="rex" className="mb-5">{tipT("logistics.connections")}</PageTip>
       <ActionNotice saved={saved} error={error} savedText={saved === "rates" ? t("market.conn.ratesSent") : t("kit.saved")} />
       {!verified && (
         <div className="mb-4">

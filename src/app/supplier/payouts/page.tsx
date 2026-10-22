@@ -9,6 +9,7 @@ import { DROPSHIP_TO_SHIP, SUPPLIER_EARNED_STATUSES, WHOLESALE_TO_SHIP, supplier
 import { orderLines } from "@/lib/supplier-orders/views.server";
 import { supplierEarnings } from "@/lib/supplier-orders/money.server";
 import { getT } from "@/lib/i18n/server";
+import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +44,7 @@ export default async function SupplierPayoutsPage({ searchParams }: { searchPara
   const supplier = await getSupplierForUser(user);
   ensureSupplierAccess(supplier);
   const t = await getT("supplier", "common");
+  const tipT = await getT("tips");
 
   const payoutAccount = await db.supplierPayoutAccount.findUnique({
     where: { supplierId: supplier.id },
@@ -132,6 +134,7 @@ export default async function SupplierPayoutsPage({ searchParams }: { searchPara
       title={t("payouts.title")}
       sub={verifiedBank ? "Shops' card payments for your products go straight to your bank through your Shopinbos Wallet." : t("payouts.subSetup", { count: totals.earnedCount, amount: money(totals.earned) })}
     >
+      <PageTip who="peggy" className="mb-5">{tipT("supplier.payouts")}</PageTip>
       {notice.error ? <div role="alert" className="mb-4 rounded-[16px] bg-app-danger-tint px-4 py-3 text-[14px] font-bold text-app-danger">{notice.error}</div> : null}
       <StatGrid className="mb-5">
         <StatTile tone="card" label={t("payouts.earned")} value={money(totals.earned)} hint={t("payouts.earnedHint", { count: totals.earnedCount })} />

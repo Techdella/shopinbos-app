@@ -89,6 +89,7 @@ export const SCHEDULED_JOBS: ScheduledJob[] = [
   { path: "/api/cron/partner-payins", label: "Delivery partner pay-ins", pgCron: ["partner-payins"], qstash: "partner-payins" },
   { path: "/api/cron/delivery-jobs", label: "Delivery jobs", pgCron: ["delivery-jobs"], qstash: "delivery-jobs" },
   { path: "/api/cron/verification-reminders", label: "Verification reminders", pgCron: ["verification-reminders"], qstash: "verification-reminders" },
+  { path: "/api/cron/morning-brief", label: "Peggy's morning brief (suppliers and delivery partners)", pgCron: ["morning-brief"], qstash: "morning-brief" },
   { path: "/api/cron/lifecycle", label: "Lifecycle emails", pgCron: ["lifecycle-emails"], qstash: "lifecycle-emails" },
   { path: "/api/cron/seasonal-campaigns", label: "Seasonal campaigns", pgCron: ["seasonal-campaigns"], qstash: "seasonal-campaigns" },
   { path: "/api/cron/gmail-sync", label: "Gmail sync", pgCron: ["gmail-sync"], qstash: "gmail-sync" },
