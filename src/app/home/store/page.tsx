@@ -14,6 +14,7 @@ import { StorePreviewCard } from "./StorePreviewCard";
 import { ShareStoreButton } from "./ShareStoreButton";
 import { REBRAND_PROMPT, contentSectionCount, hasPage, headingFont, readStoreLook } from "./look";
 import { getT } from "@/lib/i18n/server";
+import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,7 @@ export async function generateMetadata() {
 
 export default async function YourStorePage() {
   const user = await requireRole(["seller"], "/login");
+  const tipT = await getT("tips");
   const t = await getT("store", "common");
   const store = await db.store.findUnique({
     where: { userId: user.id },
@@ -126,6 +128,7 @@ export default async function YourStorePage() {
         </>
       }
     >
+      <PageTip className="mb-5">{tipT("store")}</PageTip>
       <div className={BOUTIQUE_FONT_CLASS}>
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(340px,430px)]">
         <div className="grid min-w-0 content-start gap-4">

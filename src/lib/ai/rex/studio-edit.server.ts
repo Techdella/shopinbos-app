@@ -18,8 +18,10 @@ import {
   versionsOf,
   type StudioStore,
 } from "@/lib/ai/rex/studio.server";
-import type { StoreEditorSnapshot } from "@/lib/store-templates";
+import { isBoutiqueTheme, type StoreEditorSnapshot } from "@/lib/store-templates";
 import { formatStoreMoney } from "@/lib/storefront/shopper-info";
+import { checkThemeSwitch } from "@/lib/theme-access";
+import { loadSellerThemeAccess } from "@/lib/theme-access.server";
 
 // One edit to the store's DRAFT, shared by the Rex Studio chat route (/api/ai/build-store/studio) and Rex's
 // edit_store_section / rebuild_section / switch_theme tools. The store designer replies with a JSON plan
@@ -64,9 +66,10 @@ async function designerPrompt(store: StudioStore, draft: StoreEditorSnapshot, im
       languages: Array.isArray(memory.languages) ? memory.languages.filter((entry): entry is string => typeof entry === "string") : undefined,
     },
     theme: { id: draft.templateId, name: themeNameFor(draft.templateId, draft.templateName) },
-    themes: studioThemes(draft.templateId),
+    themes: studioThemes(draft.templateId, await loadSellerThemeAccess(store.userId)),
     allowedKinds: allowedKindsFor(draft.templateId),
-    draft: summariseDraftForRex(draft),
+    boutique: isBoutiqueTheme(draft.templateId),
+    draft: summariseDraftForRex(draft, isBoutiqueTheme(draft.templateId)),
     products: products.map((product) => ({ name: product.name, price: formatStoreMoney(product.retailPrice, product.currency), hasPhoto: product.images.some(Boolean) })),
     facts: [
       `${facts.products} published products`,
@@ -85,6 +88,12 @@ async function designerPrompt(store: StudioStore, draft: StoreEditorSnapshot, im
 /** Applies a plan to the store's draft and records the version. Returns null changes when nothing changed. */
 export async function applyStudioPlan(store: StudioStore, plan: RexStudioPlan, label: string): Promise<StudioEditResult> {
   const { draft } = studioDraft(store);
+  // Rex only switches to themes the seller's plan includes; the rest of the plan still applies.
+  if (plan.theme) {
+    const themeAccess = await loadSellerThemeAccess(store.userId);
+    const access = checkThemeSwitch(plan.theme, themeAccess.tier, draft.templateId, themeAccess.owned);
+    if (!access.ok) plan = { ...plan, theme: undefined, reply: [plan.reply, access.message].filter(Boolean).join(" ") };
+  }
   const applied = applyRexStudioPlan(draft, plan, await studioApplyContext(store));
   if (!applied.changes.length) {
     return { reply: plan.reply || "I didn't change anything this time.", changes: [], draft: null, version: null, undoTo: null };
@@ -128,7 +137,7 @@ export async function runStudioEdit(
   }
   while (turns.length && turns[0].role === "assistant") turns.shift();
 
-  const reply = await aiText({ system, messages: turns, maxTokens: 12000 });
+  const reply = await aiText({ system, messages: turns, maxTokens: 24000, timeoutMs: 110_000, prefer: "anthropic" });
   if (!reply) return null;
 
   const plan = parseRexStudioPlan(firstJsonObject(reply.text));

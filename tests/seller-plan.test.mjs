@@ -115,7 +115,9 @@ test("wiring: the webhook records the plan, free rows never touch Paystack, the 
   assert.match(sql, /ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "planPaidUntil" TIMESTAMP\(3\)/);
   assert.match(sql, /ALTER TABLE "DomainPurchase" ADD COLUMN IF NOT EXISTS "coveredByPlan" BOOLEAN NOT NULL DEFAULT false/);
 
-  assert.match(read("src/components/payments/SellerBillingSection.tsx"), /billing === "annual" && offer\?\.annual && [\s\S]*t\("plan\.freeDomain"\)/);
+  // The plan cards (src/components/payments/PlanPicker.tsx, which replaced SellerBillingSection) promise the free
+  // domain only on a yearly plan that is on sale and whose tier includes it.
+  assert.match(read("src/components/payments/PlanPicker.tsx"), /billing === "annual" && offer\?\.annual && PLAN_TIERS\[tier\]\.freeDomainAnnual[\s\S]*t\("plan\.freeDomain"\)/);
   assert.match(read("src/components/builder/DomainSetup.tsx"), /href=\{PLANS_HREF\}/);
   assert.match(read("src/app/admin/domains/page.tsx"), /Free \(annual plan\)/);
 });

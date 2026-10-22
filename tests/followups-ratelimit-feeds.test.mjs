@@ -189,7 +189,8 @@ test("feeds: the old channel feeds need the store's feed key; wrong or missing a
   const page = read("src/app/channels/page.tsx");
   assert.doesNotMatch(page, /feedUrl\(|catalogFeedUrl\(/);
   assert.match(read("src/lib/sales-channels/server.ts"), /feedUrl: \(file\) => feedUrl\(store\.slug, file, key\)/);
-  assert.match(read("src/app/home/inbox/whatsapp-catalog/WhatsAppCatalogClient.tsx"), /FEED_KEY_NOTICE/);
+  // The WhatsApp catalog page no longer shows a feed link either: Connect syncs through the Graph API.
+  assert.doesNotMatch(read("src/app/home/inbox/whatsapp-catalog/WhatsAppCatalogClient.tsx"), /view\.feed|feedUrl|catalogFeedUrl\(|feedToken/, "the private feed link is never shown on the page");
   assert.doesNotMatch(read("src/lib/ai/peggy/social-tools.ts"), /feedUrl\(/, "Peggy doesn't paste private feed links into the chat");
 });
 

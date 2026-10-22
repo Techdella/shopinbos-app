@@ -5,6 +5,7 @@ import { AppPage, EmptyState, FilterChips, ListCard, Pill, SearchForm, StatGrid,
 import { MessageBuyerButton } from "@/components/supplier/MessageBuyerButton";
 import { money, shortDate, supplierFrame } from "@/components/supplier/supplier-kit";
 import { getT } from "@/lib/i18n/server";
+import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +35,7 @@ export default async function SupplierBuyersPage({ searchParams }: PageProps) {
   const supplier = await getSupplierForUser(user);
   ensureSupplierAccess(supplier);
   const t = await getT("supplier", "common");
+  const tipT = await getT("tips");
 
   const orders = await db.wholesaleOrder.findMany({
     where: { supplierId: supplier.id },
@@ -98,6 +100,7 @@ export default async function SupplierBuyersPage({ searchParams }: PageProps) {
         ) : undefined
       }
     >
+      <PageTip who="rex" className="mb-5">{tipT("supplier.buyers")}</PageTip>
       <StatGrid className="mb-5">
         <StatTile tone="card" label={t("buyers.title")} value={buyers.length} hint={t("buyers.newIn30", { count: newThisMonth })} />
         <StatTile tone="card" label={t("buyers.vips")} value={buyers.filter((b) => b.total > 1_000_000).length} />

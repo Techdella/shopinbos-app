@@ -7,7 +7,6 @@ import { Icon, type IconName } from "@/components/ui/Icon";
 import { buildStorefrontOrigin } from "@/lib/domains/storefront";
 import type { StoreConfig } from "@/lib/ai/store-types";
 import type { PreviewVariant } from "./StorePreview";
-import { StoreLaunchBillingModal, type StoreLaunchPricing } from "@/components/billing/StoreLaunchBillingModal";
 import { useT } from "@/components/i18n/I18nProvider";
 import { BankLinkingModal } from "@/components/payments/BankLinkingModal";
 import { myWalletBankAction } from "@/app/actions/wallet";
@@ -45,7 +44,6 @@ export function LaunchSetup({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [blockers, setBlockers] = useState<string[]>([]);
   const [settingsSaved, setSettingsSaved] = useState(false);
-  const [launchPricing, setLaunchPricing] = useState<StoreLaunchPricing | null>(null);
   const [liveSlug, setLiveSlug] = useState<string | null>(null);
 
   const storeOrigin = buildStorefrontOrigin({ slug: liveSlug ?? storeSlug, customDomain });
@@ -95,7 +93,7 @@ export function LaunchSetup({
       if (!response.ok) throw new Error(t("ls.err.settings"));
       setSettingsSaved(true);
 
-      // 2. Publish the draft. The first launch needs the launch fee; the billing modal handles that.
+      // 2. Publish the draft.
       await publish();
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : t("ls.err.launch"));
@@ -108,12 +106,7 @@ export function LaunchSetup({
     const response = await fetch("/api/store/editor/publish", { method: "POST" });
     const json = (await response.json().catch(() => null)) as {
       error?: { message?: string; blockers?: string[] };
-      billing?: StoreLaunchPricing;
     } | null;
-    if (response.status === 402 && json?.billing) {
-      setLaunchPricing(json.billing);
-      return;
-    }
     if (!response.ok) {
       setBlockers(json?.error?.blockers ?? []);
       throw new Error(json?.error?.message ?? t("ls.err.publish"));
@@ -247,7 +240,6 @@ export function LaunchSetup({
         )}
       </fieldset>
 
-      <StoreLaunchBillingModal open={Boolean(launchPricing)} pricing={launchPricing} onClose={() => setLaunchPricing(null)} />
 
       {saveError && (
         <Notice>
@@ -260,7 +252,7 @@ export function LaunchSetup({
         </Notice>
       )}
 
-      {settingsSaved && !saved && launchPricing === null && !saveError && !isSaving && (
+      {settingsSaved && !saved && !saveError && !isSaving && (
         <Notice tone="info">{t("ls.savedNotice")}</Notice>
       )}
 

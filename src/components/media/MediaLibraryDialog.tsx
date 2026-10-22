@@ -30,6 +30,8 @@ export interface MediaLibraryDialogProps {
   multiple?: boolean;
   /** "image" (default) shows pictures only; "any" also shows videos. */
   accept?: "image" | "any";
+  /** With accept "any": the filter it opens on (videos for a video slot). */
+  initialKind?: MediaKind;
   title?: string;
 }
 
@@ -40,13 +42,13 @@ export function MediaLibraryDialog(props: MediaLibraryDialogProps) {
   return createPortal(<LibrarySheet {...props} />, document.body);
 }
 
-function LibrarySheet({ onClose, onSelect, multiple = false, accept = "image", title }: MediaLibraryDialogProps) {
+function LibrarySheet({ onClose, onSelect, multiple = false, accept = "image", initialKind, title }: MediaLibraryDialogProps) {
   const t = useT("media");
   const titleId = useId();
   const searchId = useId();
   const panel = useRef<HTMLDivElement>(null);
   const [q, setQ] = useState("");
-  const [kind, setKind] = useState<MediaKind | null>(accept === "image" ? "image" : null);
+  const [kind, setKind] = useState<MediaKind | null>(accept === "image" ? "image" : (initialKind ?? null));
   const [items, setItems] = useState<MediaAssetView[]>([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);

@@ -2,9 +2,10 @@
 
 import type { StoreEditorSnapshot } from "@/lib/store-templates";
 import type { RexVersionSummary } from "@/lib/ai/rex/studio-versions";
-import type { StoreLaunchPricing } from "@/components/billing/StoreLaunchBillingModal";
 import type { StudioChange } from "./types";
 import type { RexCard } from "@/lib/ai/rex/cards";
+import type { Inspiration, InspirationLink } from "@/lib/ai/rex/inspiration";
+import type { BuildPlan } from "@/lib/ai/rex/build-plan";
 
 // Browser calls for Rex Studio. They rely on the Supabase session cookie.
 
@@ -30,6 +31,9 @@ export async function buildWholeStore(input: {
   brief?: string;
   brandContext: Record<string, unknown>;
   templateContext?: { templateId: string; templateName: string } | null;
+  inspiration?: Inspiration | null;
+  /** False for the full build (its photo step makes the pictures) and the quick build. */
+  generateImages?: boolean;
 }) {
   const response = await fetch(
     "/api/ai/build-store",
@@ -39,6 +43,8 @@ export async function buildWholeStore(input: {
       brandContext: input.brandContext,
       templateContext: input.templateContext ?? undefined,
       versionLabel: input.request,
+      inspiration: input.inspiration ?? undefined,
+      generateImages: input.generateImages,
     }),
   );
   if (!response.ok) throw new Error(await readError(response, "Rex couldn't build the store. Nothing was published; try again."));
@@ -52,9 +58,46 @@ export async function buildWholeStore(input: {
       version?: { id: string; n: number };
       undoTo?: string | null;
       versions?: RexVersionSummary[];
+      themeId?: string | null;
     };
   };
   return data;
+}
+
+export interface BuildPlans {
+  full: BuildPlan;
+  quick: BuildPlan;
+  balance: number;
+  costs: { build: number; text: number; image: number };
+  imagesOn: boolean;
+}
+
+/** What a full and a quick build would do with today's allowance and the seller's credits. */
+export async function getBuildPlans(): Promise<BuildPlans> {
+  const response = await fetch("/api/ai/build-store/plan", { cache: "no-store" });
+  if (!response.ok) throw new Error(await readError(response, "Couldn't check your AI credits."));
+  return ((await response.json()) as { data: BuildPlans }).data;
+}
+
+/** Reads a store page the seller likes (Rex's inspiration). */
+export async function readInspiration(url: string): Promise<InspirationLink> {
+  const response = await fetch("/api/ai/build-store/inspiration", json({ url }));
+  if (!response.ok) throw new Error(await readError(response, "Rex couldn't read that page. Add a screenshot of it instead."));
+  return ((await response.json()) as { data: InspirationLink }).data;
+}
+
+/** Full build, step two: every page's words and search titles. */
+export async function writeEveryPage(inspiration: Inspiration | null): Promise<StudioChange> {
+  const response = await fetch("/api/ai/build-store/pages", json({ inspiration }));
+  if (!response.ok) throw new Error(await readError(response, "Rex couldn't write the pages. Your store design is saved."));
+  return ((await response.json()) as { data: StudioChange }).data;
+}
+
+/** Last build step: banner, story and sample-product photos (quick: the banner and the first product). */
+export async function makeBuildPhotos(maxPhotos: number, mode: "full" | "quick" = "full") {
+  const response = await fetch("/api/ai/build-store/photos", json({ maxPhotos, mode }));
+  if (!response.ok) throw new Error(await readError(response, "Rex couldn't make the photos. Your store is saved."));
+  return ((await response.json()) as { data: { made: number; skipped: number; changes: string[]; notes: string[]; edit: StudioChange | null } }).data;
 }
 
 export async function restoreVersion(id: string) {
@@ -65,14 +108,12 @@ export async function restoreVersion(id: string) {
 
 export type PublishResult =
   | { ok: true }
-  | { ok: false; billing: StoreLaunchPricing }
   | { ok: false; message: string; blockers: string[] };
 
 /** Same publish path as the advanced builder. */
 export async function publishDraft(): Promise<PublishResult> {
   const response = await fetch("/api/store/editor/publish", { method: "POST" });
-  const body = (await response.json().catch(() => null)) as { billing?: StoreLaunchPricing; error?: { message?: string; blockers?: string[] } } | null;
-  if (response.status === 402 && body?.billing) return { ok: false, billing: body.billing };
+  const body = (await response.json().catch(() => null)) as { error?: { message?: string; blockers?: string[] } } | null;
   if (!response.ok) return { ok: false, message: body?.error?.message ?? "Couldn't publish. Try again.", blockers: body?.error?.blockers ?? [] };
   return { ok: true };
 }

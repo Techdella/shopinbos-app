@@ -68,7 +68,7 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
   }
 
   // One AI request per photo read; over the limit, nothing is uploaded.
-  const limited = await meterAi(user.id, "text", files.length);
+  const limited = await meterAi(user.id, "text", files.length, "product_copy");
   if (limited) return limited;
 
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { brandSettings: true, city: true } });

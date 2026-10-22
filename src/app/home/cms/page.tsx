@@ -9,6 +9,7 @@ import { FIELD_TYPE_INFO, readFields } from "@/lib/cms/fields";
 import { NewCollectionButton, TemplateGallery } from "./NewCollection";
 import { REX_SETUP_PROMPT, TEMPLATE_ICON, studioHref } from "./shared";
 import { getT } from "@/lib/i18n/server";
+import { buildStorefrontUrl } from "@/lib/domains/storefront";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +34,7 @@ export default async function CmsPage() {
       sub={t("sub")}
       actions={
         <>
+          {store && <PillLink href="/home/cms/plan" icon="calendar">{t("plan.title")}</PillLink>}
           <PillLink href={studioHref(REX_SETUP_PROMPT)} icon="sparkle">{t("askRexSetup")}</PillLink>
           {store && <NewCollectionButton takenSlugs={taken} />}
         </>
@@ -65,7 +67,7 @@ export default async function CmsPage() {
                         <PillLink href={`/home/cms/${collection.id}`} size="sm" icon="list">{t("items")}</PillLink>
                         <PillLink href={`/home/cms/${collection.id}?tab=fields`} size="sm" icon="layers">{t("fields")}</PillLink>
                         {collection.liveCount > 0 && collection.isPublished && (
-                          <a href={`/s/${store.slug}/${collection.slug}`} target="_blank" rel="noreferrer" className="inline-flex min-h-[34px] items-center gap-1.5 rounded-full border border-app-line bg-white px-3.5 text-[13px] font-extrabold text-app-ink no-underline hover:border-app-line-strong">
+                          <a href={buildStorefrontUrl({ slug: store.slug, customDomain: store.customDomain ?? null }, `/${collection.slug}`)} target="_blank" rel="noreferrer" className="inline-flex min-h-[34px] items-center gap-1.5 rounded-full border border-app-line bg-white px-3.5 text-[13px] font-extrabold text-app-ink no-underline hover:border-app-line-strong">
                             <Icon name="eye" size={14} /> {t("view")}<span className="sr-only"> {t("viewInStore", { name: collection.name })}</span>
                           </a>
                         )}

@@ -15,3 +15,5 @@ export function cmsFailure(error: unknown) {
 }
 
 export const noStore = () => NextResponse.json({ error: { code: "NO_STORE", message: "Create your store first" } }, { status: 404 });
+
+export const aiOff = () => NextResponse.json({ error: { code: "AI_OFF", message: "Rex's writing isn't switched on yet. Try again later." } }, { status: 503 });

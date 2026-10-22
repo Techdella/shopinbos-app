@@ -50,7 +50,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "detail.item": "Kaya",
   "detail.parcels": "Kunshe-kunshe",
   "detail.sentBySupplier": "Supplier ne ya tura",
-  "detail.dropshipSub": "Kayayyakin dropship suna tafiya kai tsaye daga supplier zuwa kwastomanka, da sunan shagonka.",
+  "detail.dropshipSub": "Kayayyakin dropship suna tafiya kai tsaye daga supplier zuwa kwastomanka, a matsayin order daga shagonka.",
   "detail.waitingFor": "Ana jiran {name} ya karɓa. Gwamma ka zaɓa da kanka?",
   "detail.undo": "Soke",
   "detail.accepted": "{name} ya karɓa.",

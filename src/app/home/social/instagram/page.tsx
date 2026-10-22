@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
 export default function SocialChannelRedirect() {
-  redirect("/channels#meta");
+  redirect("/home/marketing/social/accounts#meta");
 }

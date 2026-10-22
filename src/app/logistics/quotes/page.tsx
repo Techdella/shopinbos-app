@@ -23,6 +23,7 @@ import {
 } from "@/components/logistics/kit";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { getT } from "@/lib/i18n/server";
+import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -44,6 +45,7 @@ export default async function LogisticsQuotesPage({ searchParams }: { searchPara
   const { status, saved, error } = await searchParams;
   const filter = FILTERS.find((item) => item.key === status) ?? FILTERS[0];
   const t = await getT("logistics", "common");
+  const tipT = await getT("tips");
 
   const [quotes, counts] = await Promise.all([
     db.deliveryQuoteRequest.findMany({
@@ -70,6 +72,7 @@ export default async function LogisticsQuotesPage({ searchParams }: { searchPara
       sub={t("quotes.sub")}
       toolbar={<FilterChips items={FILTERS.map((item) => ({ label: t.dynamic(`quotes.filter.${item.key}`, item.label), href: item.key === "pending" ? "/logistics/quotes" : `/logistics/quotes?status=${item.key}`, count: countOf(item.statuses), active: item.key === filter.key }))} />}
     >
+      <PageTip who="rex" className="mb-5">{tipT("logistics.quotes")}</PageTip>
       <ActionNotice saved={saved} error={error} savedText={t("quotes.saved")} />
 
       {quotes.length === 0 && (

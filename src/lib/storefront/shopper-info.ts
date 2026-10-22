@@ -164,7 +164,8 @@ export function readPaymentChoices(brandSettings: unknown) {
   const on = (key: string) => methods[key] === true;
   const limit = config.codLimit;
   const codLimit = limit === null ? null : typeof limit === "number" && Number.isFinite(limit) ? (limit > 0 ? limit : null) : 50_000;
-  const labels = [on("card") ? "Card" : null, on("transfer") ? "Transfer" : null, on("card") ? "USSD" : null, on("cod") ? "Pay on delivery" : null].filter(
+  // Korapay is a card (and bank) checkout too, so it reads as "Card"; USSD only comes with Paystack.
+  const labels = [on("card") || on("korapay") ? "Card" : null, on("transfer") ? "Transfer" : null, on("card") ? "USSD" : null, on("cod") ? "Pay on delivery" : null].filter(
     (entry): entry is string => Boolean(entry),
   );
   return { payOnDelivery: on("cod"), payOnDeliveryLimit: on("cod") ? codLimit : null, labels };

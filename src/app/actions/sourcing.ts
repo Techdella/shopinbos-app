@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { chinaImportProblem, productLimitProblem } from "@/lib/plans/gates.server";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/lib/db/client";
@@ -78,6 +79,8 @@ export async function addSupplierProductToStore(input: { supplierProductId: stri
   } else if (product.supplier.verificationStatus !== "verified") {
     return { ok: false, error: "Buy stock only from verified suppliers. This one isn't verified yet." };
   }
+  const planLimit = await productLimitProblem(user.id, store.id, 1, dropship);
+  if (planLimit) return { ok: false, error: planLimit, code: "PLAN_LIMIT" };
   const retailPrice = clampSellingPrice(parsed.data.retailPrice ?? product.suggestedRetailPrice, product.wholesalePrice);
   const storeProduct = await db.storeProduct.create({
     data: {
@@ -117,6 +120,8 @@ const AgreementSchema = z.object({
   stockCheck: z.string().max(20),
   agreed: z.boolean(),
   note: z.string().max(600).optional(),
+  /** The full name the seller typed to sign the Dropship agreement. */
+  signedName: z.string().max(80),
 });
 
 /** Before listing a supplier's products: the seller called them, checked the stock and accepts the Dropship agreement. */
@@ -265,6 +270,8 @@ export async function requestChinaImport(formData: FormData) {
 
   const user = await getCurrentAppUser({ redirectTo: "/login" });
   if (!user || user.role !== "seller") redirect("/login");
+  const importLimit = await chinaImportProblem(user.id);
+  if (importLimit) back(importLimit);
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, brandSettings: true } });
   if (!store) redirect("/builder?firstRun=1");
 

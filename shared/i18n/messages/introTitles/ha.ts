@@ -22,7 +22,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "templates.title": "Templates da themes",
   "delivery.title": "Abokan delivery",
   "delivery-settings.title": "Delivery settings",
-  "supplier-products.title": "Kayanka da white label",
+  "supplier-products.title": "Kayanka da dropship",
   "supplier-orders.title": "Orders da fulfilment",
   "supplier-quotes.title": "Quote requests",
   "supplier-payouts.title": "Kuɗin da ka samu da payouts",
@@ -51,7 +51,9 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "store-settings.title": "Settings",
   "supplier-home.title": "Dashboard ɗinka na Today",
   "supplier-delivery.title": "Delivery na dropship orders",
+  "contracts.title": "Kwangiloli",
   "supplier-agreements.title": "Yarjejeniyoyin dropship",
+  "supplier-followers.title": "Mabiya",
   "supplier-wholesale.title": "Wholesale orders",
   "supplier-buyers.title": "Buyers",
   "partner-home.title": "Dashboard ɗinka na Today",
@@ -69,6 +71,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "media.title": "Hotuna",
   "seasonal-campaigns.title": "Campaigns na lokacin biki",
   "wallet.title": "Shopinbos Wallet",
+  "credits.title": "AI credits",
+  "business-registration.title": "Yi wa kasuwancinka rajista",
 };
 
 export default ha;

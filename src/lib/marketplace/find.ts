@@ -59,6 +59,8 @@ export interface FindProduct {
   /** What similar items sell for, when there's something to compare with. */
   similar: [number, number] | null;
   trendScore: number;
+  /** Boosted by the supplier this week (src/lib/plans/extras.server.ts): shown first, with a label. */
+  featured?: boolean;
 }
 
 // ─── Money ────────────────────────────────────────────────────────────────────

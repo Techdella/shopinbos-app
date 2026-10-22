@@ -8,6 +8,8 @@ import { sellerFrame } from "@/components/seller-core";
 import { findSample, isSampleId, parseSourcing, similarRange, toFindProduct, type FindProduct } from "@/lib/marketplace/find";
 import { ProductDetail, type MyWholesaleOrder } from "../../_components/ProductDetail";
 import { getT } from "@/lib/i18n/server";
+import { AssistantNote } from "@/components/app-kit";
+import { TipsGate } from "../../_components/TipsGate";
 import { VISIBLE_SUPPLIER, agreementWith, nearness, sellerHasPlace, sellerPlace, supplierContact, supplierTrust } from "@/lib/marketplace/agreements.server";
 import { listingStep } from "@shared/supplier-trust";
 import type { ListingInfo } from "../../_components/BeforeYouList";
@@ -66,7 +68,7 @@ export default async function MarketplaceProductPage({ params }: { params: Promi
       const info = trust.get(row.supplier.id);
       const step = !sellerHasPlace(place) ? "noPlace" : !distance.near ? "far" : listingStep(agreement);
       const contact = step === "agree" || step === "declined" ? await supplierContact(row.supplier.id) : { phone: null, address: null };
-      listing = { step, phone: contact.phone, address: contact.address, supplierNote: agreement?.supplierNote ?? null };
+      listing = { step, phone: contact.phone, address: contact.address, supplierNote: agreement?.supplierNote ?? null, shopName: store.name, shopCity: store.city };
       product = {
         ...product,
         // Wholesale (paid to the supplier directly) only from verified suppliers.
@@ -76,6 +78,7 @@ export default async function MarketplaceProductPage({ params }: { params: Promi
     }
   }
   if (!product) notFound();
+  const t = await getT("marketplace");
 
   return (
     <AppFrame {...sellerFrame(user, store)}>
@@ -88,6 +91,7 @@ export default async function MarketplaceProductPage({ params }: { params: Promi
           defaultAddress={[store.city, store.country].filter(Boolean).join(", ")}
           wholesaleOrders={wholesaleOrders}
           listing={product.dropship ? listing : undefined}
+          tip={<TipsGate><AssistantNote who="peggy">{t("pd.tip")}</AssistantNote></TipsGate>}
         />
       </div>
     </AppFrame>

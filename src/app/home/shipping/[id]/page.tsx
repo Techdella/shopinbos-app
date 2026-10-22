@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { requireRole } from "@/lib/server-auth";
 import { db } from "@/lib/db/client";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
-import { PillLink } from "@/components/app-kit";
+import { AssistantNote, PillLink } from "@/components/app-kit";
+import { DeliveryTip } from "@/components/delivery-market/DeliveryTip";
 import { ShippingZoneForm } from "../ShippingZoneForm";
 import { getT } from "@/lib/i18n/server";
 
@@ -34,10 +35,15 @@ export default async function EditShippingZonePage({ params }: { params: Promise
       sub={zone.name}
       actions={<PillLink href="/home/shipping">{t("allZones")}</PillLink>}
     >
-      <ShippingZoneForm
-        currency={store.currency ?? "NGN"}
-        zone={{ id: zone.id, name: zone.name, regions: zone.regions, rates, sortOrder: zone.sortOrder, active: zone.active }}
-      />
+      <div className="grid gap-4">
+        <DeliveryTip>
+          <AssistantNote who="peggy">{t("tip.form")}</AssistantNote>
+        </DeliveryTip>
+        <ShippingZoneForm
+          currency={store.currency ?? "NGN"}
+          zone={{ id: zone.id, name: zone.name, regions: zone.regions, rates, sortOrder: zone.sortOrder, active: zone.active }}
+        />
+      </div>
     </SellerPage>
   );
 }

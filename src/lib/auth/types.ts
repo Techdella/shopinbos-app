@@ -12,6 +12,11 @@ export interface AuthUser {
   phone?: string | null;
   city?: string | null;
   country?: string | null;
+  /**
+   * Set when a seller's staff member is signed in (src/lib/staff/staff.server.ts): the rest of this object is the
+   * store owner, so their store and credits are used; owner-only places check this and turn staff away.
+   */
+  staff?: { id: string; userId: string; name: string; email: string | null };
 }
 
 export interface JWTClaims {

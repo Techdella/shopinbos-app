@@ -8,11 +8,31 @@ import type { StoreEditorSnapshot, TemplatePageSeed, TemplateSectionNode } from 
 
 export type ThemeLibraryId =
   | "breeze" | "noir" | "plain" | "adire" | "pantry" | "ile" | "plug" | "stride"
-  | "ewa" | "suku" | "asoebi" | "agbada" | "ileke" | "ounje" | "chinchin" | "oja" | "omo" | "iwe" | "owambe" | "danfo" | "turare" | "oko";
+  | "ewa" | "suku" | "asoebi" | "agbada" | "ileke" | "ounje" | "chinchin" | "oja" | "omo" | "iwe" | "owambe" | "danfo" | "turare" | "oko"
+  | "aaro" | "highlife" | "oba" | "gbedu"
+  | "omalicha" | "zuma" | "oku" | "ihe" | "kasuwa" | "nkata" | "uwa" | "sarauniya" | "zinariya"
+  | "irawo" | "asa" | "mmiri" | "uzo" | "rawa" | "fitila" | "oso" | "shakara"
+  | "aga" | "itura" | "gele" | "imani" | "itanna"
+  | "littafi" | "itan" | "awo" | "kyau" | "keke"
+  | "ahia" | "ado" | "wuta" | "ike" | "ewu"
+  | "erin" | "apere" | "bata" | "ogba" | "eso"
+  | "osan" | "ijokoo" | "ite" | "kujera" | "tufafi"
+  | "rewa" | "igbese" | "ola" | "okunrin" | "salubata"
+  | "efo" | "aluko" | "aja" | "dara" | "ife"
+  | "irorun";
+
+/**
+ * Which plan a theme needs: basic themes come with every store (the Free plan), premium ones with Starter and up,
+ * platinum ones with Growth and Seller Pro. A store keeps the theme it already has when its plan changes; the
+ * tier only decides which themes it can switch to (src/lib/theme-access.ts).
+ */
+export type ThemeTier = "basic" | "premium" | "platinum";
+
+export const THEME_TIERS: readonly ThemeTier[] = ["basic", "premium", "platinum"];
 
 /** Category chips in the gallery (plus "any" for themes that suit every shop). */
 export type ThemeLibraryCategory =
-  | "fashion" | "beauty" | "food" | "home" | "gadgets" | "kids" | "books" | "events" | "auto" | "groceries" | "jewellery" | "agro" | "any";
+  | "fashion" | "beauty" | "food" | "home" | "gadgets" | "kids" | "books" | "events" | "auto" | "groceries" | "jewellery" | "agro" | "pets" | "any";
 
 export interface ThemeLibraryPreview {
   /** Card background, text and hairline colours (Rex's theme cards use these as swatches). */
@@ -44,6 +64,7 @@ export interface ThemeLibraryEntry {
   industries: string[];
   blurb: string;
   isNew: boolean;
+  tier: ThemeTier;
   preview: ThemeLibraryPreview;
 }
 
@@ -65,117 +86,405 @@ function entry(input: EntryInput): ThemeLibraryEntry {
 export const THEME_LIBRARY: readonly ThemeLibraryEntry[] = [
   entry({
     id: "breeze", name: "Afẹ́fẹ́", meaning: "Yoruba for breeze", categories: ["fashion"], categoryLabel: "Fashion",
-    industries: ["fashion", "clothing", "boutique", "bags"], blurb: "Airy and clean, big product pages. For fashion", isNew: false,
+    industries: ["fashion", "clothing", "boutique", "bags"], blurb: "Airy and clean, big product pages. For fashion", isNew: false, tier: "basic",
     preview: { bg: "#E8F6F7", ink: "#1A1D21", line: "#C9DFE1", accent: "#1FC6D6", nameFont: "grotesk", nameWeight: 400, dark: false },
   }),
   entry({
     id: "noir", name: "Dúdú", meaning: "Yoruba for black", categories: ["fashion", "jewellery"], categoryLabel: "Luxury",
-    industries: ["luxury", "designer", "watches", "premium fashion"], blurb: "Dark and premium, with payday countdowns. For luxury", isNew: false,
+    industries: ["luxury", "designer", "watches", "premium fashion"], blurb: "Dark and premium, with payday countdowns. For luxury", isNew: false, tier: "platinum",
     preview: { bg: "#141414", ink: "#F5F2EA", line: "#3A3936", accent: "#C8A96A", nameFont: "serif", nameWeight: 600, dark: true },
   }),
   entry({
     id: "plain", name: "Jẹ́jẹ́", meaning: "Yoruba for gentle, easy-going", categories: ["any"], categoryLabel: "Any shop",
-    industries: ["any", "general", "minimal"], blurb: "Simple and fast. Works for anything", isNew: false,
+    industries: ["any", "general", "minimal"], blurb: "Simple and fast. Works for anything", isNew: false, tier: "basic",
     preview: { bg: "#F2F2F2", ink: "#111111", line: "#DADADA", accent: "#111111", nameFont: "grotesk", nameWeight: 400, dark: false },
   }),
   entry({
     id: "adire", name: "Adire", meaning: "Yoruba indigo tie-dye cloth", categories: ["fashion"], categoryLabel: "Fashion",
-    industries: ["fashion", "adire", "ankara", "editorial"], blurb: "Editorial, photo-led. For fashion", isNew: false,
+    industries: ["fashion", "adire", "ankara", "editorial"], blurb: "Editorial, photo-led. For fashion", isNew: false, tier: "premium",
     preview: { bg: "#F3ECE5", ink: "#2B1D14", line: "#DDCFC1", accent: "#B8612F", nameFont: "serif", nameWeight: 400, dark: false },
   }),
   entry({
     id: "pantry", name: "Mama Put", meaning: "Naija for the neighbourhood food seller", categories: ["food"], categoryLabel: "Food and drinks",
-    industries: ["food", "drinks", "zobo", "spices", "sauces", "small chops"], blurb: "Warm and bold. For food and drinks", isNew: false,
+    industries: ["food", "drinks", "zobo", "spices", "sauces", "small chops"], blurb: "Warm and bold. For food and drinks", isNew: false, tier: "basic",
     preview: { bg: "#FFF2D8", ink: "#3A1E0B", line: "#EBD7AE", accent: "#E2541B", nameFont: "sans", nameWeight: 800, dark: false },
   }),
   entry({
     id: "ile", name: "Ilé", meaning: "Yoruba for home", categories: ["home"], categoryLabel: "Home and living",
-    industries: ["home", "decor", "furniture", "homeware"], blurb: "Calm and roomy. For home and decor", isNew: false,
+    industries: ["home", "decor", "furniture", "homeware"], blurb: "Calm and roomy. For home and decor", isNew: false, tier: "basic",
     preview: { bg: "#E6EDE8", ink: "#1F2A24", line: "#CBD6CE", accent: "#5E7464", nameFont: "serif", nameWeight: 700, dark: false },
   }),
   entry({
     id: "plug", name: "Plug", meaning: "Naija slang for the person who can get it for you", categories: ["gadgets"], categoryLabel: "Gadgets",
-    industries: ["gadgets", "phones", "electronics", "accessories"], blurb: "Dark and sharp. For gadgets", isNew: false,
+    industries: ["gadgets", "phones", "electronics", "accessories"], blurb: "Dark and sharp. For gadgets", isNew: false, tier: "basic",
     preview: { bg: "#17181D", ink: "#F2F4F7", line: "#33363F", accent: "#5B8CFF", nameFont: "grotesk", nameWeight: 500, dark: true },
   }),
   entry({
     id: "stride", name: "Waka", meaning: "Pidgin for walk", categories: ["fashion"], categoryLabel: "Shoes",
-    industries: ["shoes", "sneakers", "footwear", "sportswear"], blurb: "Loud and sporty. For shoes", isNew: false,
+    industries: ["shoes", "sneakers", "footwear", "sportswear"], blurb: "Loud and sporty. For shoes", isNew: false, tier: "premium",
     preview: { bg: "#FDE6DA", ink: "#141414", line: "#F0C9B5", accent: "#FF4D1F", nameFont: "sans", nameWeight: 800, dark: false },
   }),
   entry({
     id: "ewa", name: "Ẹwà", meaning: "Yoruba for beauty", categories: ["beauty"], categoryLabel: "Beauty and skincare",
-    industries: ["beauty", "skincare", "cosmetics", "makeup", "body care"], blurb: "Soft and glowing, ingredient-led. For beauty and skincare", isNew: true,
+    industries: ["beauty", "skincare", "cosmetics", "makeup", "body care"], blurb: "Soft and glowing, ingredient-led. For beauty and skincare", isNew: true, tier: "premium",
     preview: { bg: "#F9E7E1", ink: "#3B1F1A", line: "#F0D9D1", accent: "#C2566B", nameFont: "serif", nameWeight: 500, nameItalic: true, dark: false },
   }),
   entry({
     id: "suku", name: "Ṣùkú", meaning: "Yoruba crown braid style", categories: ["beauty"], categoryLabel: "Hair and wigs",
-    industries: ["hair", "wigs", "braids", "hair extensions", "hair care"], blurb: "Bold and glam, made for units and lengths. For hair and wigs", isNew: true,
+    industries: ["hair", "wigs", "braids", "hair extensions", "hair care"], blurb: "Bold and glam, made for units and lengths. For hair and wigs", isNew: true, tier: "premium",
     preview: { bg: "#F6E7F0", ink: "#2A1630", line: "#EFDCE7", accent: "#E0679E", nameFont: "grotesk", nameWeight: 700, dark: false },
   }),
   entry({
     id: "asoebi", name: "Aṣọ Ẹbí", meaning: "Yoruba for family cloth, the owambe uniform", categories: ["fashion"], categoryLabel: "Fabrics and lace",
-    industries: ["fabrics", "lace", "ankara", "aso oke", "george", "gele"], blurb: "Rich and regal, fabric up close. For lace, ankara and aso-ebi", isNew: true,
+    industries: ["fabrics", "lace", "ankara", "aso oke", "george", "gele"], blurb: "Rich and regal, fabric up close. For lace, ankara and aso-ebi", isNew: true, tier: "premium",
     preview: { bg: "#F5EBDD", ink: "#2B1530", line: "#EADCC8", accent: "#D4A13A", nameFont: "serif", nameWeight: 600, dark: false },
   }),
   entry({
     id: "agbada", name: "Agbada", meaning: "The flowing Yoruba robe for big occasions", categories: ["fashion"], categoryLabel: "Menswear",
-    industries: ["menswear", "tailoring", "native wear", "kaftan", "senator"], blurb: "Sharp and tailored. For menswear and tailors", isNew: true,
+    industries: ["menswear", "tailoring", "native wear", "kaftan", "senator"], blurb: "Sharp and tailored. For menswear and tailors", isNew: true, tier: "platinum",
     preview: { bg: "#ECE8DF", ink: "#1A1F1C", line: "#DDD8CC", accent: "#B08D57", nameFont: "serif", nameWeight: 600, dark: false },
   }),
   entry({
     id: "ileke", name: "Ìlẹ̀kẹ̀", meaning: "Yoruba for beads", categories: ["jewellery"], categoryLabel: "Jewellery and beads",
-    industries: ["jewellery", "beads", "accessories", "waist beads", "coral"], blurb: "Delicate and close-up. For jewellery and beads", isNew: true,
+    industries: ["jewellery", "beads", "accessories", "waist beads", "coral"], blurb: "Delicate and close-up. For jewellery and beads", isNew: true, tier: "premium",
     preview: { bg: "#F6EBDD", ink: "#2E1B12", line: "#EADBC8", accent: "#C8462C", nameFont: "serif", nameWeight: 400, nameItalic: true, dark: false },
   }),
   entry({
     id: "ounje", name: "Oúnjẹ", meaning: "Yoruba for food", categories: ["food"], categoryLabel: "Restaurant",
-    industries: ["restaurant", "food delivery", "kitchen", "catering", "buka"], blurb: "A menu, not a catalogue: order on WhatsApp up front. For restaurants", isNew: true,
+    industries: ["restaurant", "food delivery", "kitchen", "catering", "buka"], blurb: "A menu, not a catalogue: order on WhatsApp up front. For restaurants", isNew: true, tier: "premium",
     preview: { bg: "#FEF3C7", ink: "#1C1917", line: "#F1E3B8", accent: "#F59E0B", nameFont: "grotesk", nameWeight: 700, dark: false },
   }),
   entry({
     id: "chinchin", name: "Chin Chin", meaning: "Naija's favourite crunchy snack", categories: ["food"], categoryLabel: "Bakery and snacks",
-    industries: ["bakery", "cakes", "pastries", "snacks", "desserts"], blurb: "Sweet and playful. For cakes, pastries and snacks", isNew: true,
+    industries: ["bakery", "cakes", "pastries", "snacks", "desserts"], blurb: "Sweet and playful. For cakes, pastries and snacks", isNew: true, tier: "premium",
     preview: { bg: "#FBE7D9", ink: "#4A2511", line: "#F2DCCB", accent: "#D9467A", nameFont: "serif", nameWeight: 700, dark: false },
   }),
   entry({
     id: "oja", name: "Ọjà", meaning: "Yoruba for market", categories: ["groceries"], categoryLabel: "Groceries",
-    industries: ["groceries", "supermarket", "foodstuff", "provisions", "household"], blurb: "Dense and quick, aisles first. For groceries and general stores", isNew: true,
+    industries: ["groceries", "supermarket", "foodstuff", "provisions", "household"], blurb: "Dense and quick, aisles first. For groceries and general stores", isNew: true, tier: "basic",
     preview: { bg: "#F1F6F2", ink: "#14231A", line: "#E1E9E3", accent: "#0F7A3D", nameFont: "grotesk", nameWeight: 700, dark: false },
   }),
   entry({
     id: "omo", name: "Ọmọ", meaning: "Yoruba for child", categories: ["kids"], categoryLabel: "Kids and baby",
-    industries: ["kids", "baby", "toys", "children's clothing", "maternity"], blurb: "Bright and friendly. For kids and baby", isNew: true,
+    industries: ["kids", "baby", "toys", "children's clothing", "maternity"], blurb: "Bright and friendly. For kids and baby", isNew: true, tier: "basic",
     preview: { bg: "#FFF3C4", ink: "#1F2A44", line: "#F2E2A0", accent: "#3D7BF7", nameFont: "grotesk", nameWeight: 700, dark: false },
   }),
   entry({
     id: "iwe", name: "Ìwé", meaning: "Yoruba for book", categories: ["books"], categoryLabel: "Books and stationery",
-    industries: ["books", "bookshop", "stationery", "school supplies"], blurb: "Quiet and literary, covers on a shelf. For books and stationery", isNew: true,
+    industries: ["books", "bookshop", "stationery", "school supplies"], blurb: "Quiet and literary, covers on a shelf. For books and stationery", isNew: true, tier: "basic",
     preview: { bg: "#F1E9DA", ink: "#1E2235", line: "#E4DCCB", accent: "#B4432F", nameFont: "serif", nameWeight: 500, dark: false },
   }),
   entry({
     id: "owambe", name: "Owambe", meaning: "Naija for a big, joyful party", categories: ["events"], categoryLabel: "Events and rentals",
-    industries: ["events", "party supplies", "rentals", "decor hire", "souvenirs"], blurb: "Festive and gold. For party supplies, rentals and events", isNew: true,
+    industries: ["events", "party supplies", "rentals", "decor hire", "souvenirs"], blurb: "Festive and gold. For party supplies, rentals and events", isNew: true, tier: "premium",
     preview: { bg: "#2D0B3A", ink: "#FFF4D6", line: "#4A2459", accent: "#F2B705", nameFont: "serif", nameWeight: 600, nameItalic: true, dark: true },
   }),
   entry({
     id: "danfo", name: "Danfo", meaning: "Lagos' yellow bus", categories: ["auto"], categoryLabel: "Auto parts",
-    industries: ["auto parts", "car accessories", "spare parts", "tyres", "lubricants"], blurb: "Yellow, black and search-first. For auto parts", isNew: true,
+    industries: ["auto parts", "car accessories", "spare parts", "tyres", "lubricants"], blurb: "Yellow, black and search-first. For auto parts", isNew: true, tier: "premium",
     preview: { bg: "#FFC400", ink: "#111111", line: "#E0AC00", accent: "#111111", nameFont: "grotesk", nameWeight: 700, dark: false },
   }),
   entry({
     id: "turare", name: "Turare", meaning: "Hausa for perfume", categories: ["beauty"], categoryLabel: "Perfume",
-    industries: ["perfume", "fragrance", "oud", "body mist", "perfume oils"], blurb: "Moody and elegant, bottles on a glow. For perfume and fragrance", isNew: true,
+    industries: ["perfume", "fragrance", "oud", "body mist", "perfume oils"], blurb: "Moody and elegant, bottles on a glow. For perfume and fragrance", isNew: true, tier: "platinum",
     preview: { bg: "#1B1420", ink: "#F7EFE3", line: "#3A2E40", accent: "#C9A46A", nameFont: "serif", nameWeight: 500, dark: true },
   }),
   entry({
     id: "oko", name: "Oko", meaning: "Yoruba for farm", categories: ["agro"], categoryLabel: "Farm produce",
-    industries: ["farm produce", "agro", "poultry", "fresh produce", "livestock"], blurb: "Earthy and fresh. For farm produce and agro sellers", isNew: true,
+    industries: ["farm produce", "agro", "poultry", "fresh produce", "livestock"], blurb: "Earthy and fresh. For farm produce and agro sellers", isNew: true, tier: "premium",
     preview: { bg: "#EEF0DD", ink: "#1F2B1A", line: "#E0E2CB", accent: "#2F5D2A", nameFont: "grotesk", nameWeight: 700, dark: false },
+  }),
+  entry({
+    id: "aaro", name: "Àárọ̀", meaning: "Yoruba for morning", categories: ["any", "fashion"], categoryLabel: "Any shop",
+    industries: ["any", "general", "minimal", "clothing"], blurb: "Clean and photo-first, your products up front. Works for anything", isNew: true, tier: "basic",
+    preview: { bg: "#F3F3F3", ink: "#121212", line: "#DEDEDE", accent: "#121212", nameFont: "sans", nameWeight: 500, dark: false },
+  }),
+  entry({
+    id: "highlife", name: "Highlife", meaning: "The West African dance music of the 60s and 70s", categories: ["fashion", "beauty", "home"], categoryLabel: "Lifestyle brands",
+    industries: ["lifestyle", "streetwear", "accessories", "gifts", "brand"], blurb: "Retro and colourful, with a moving ticker and sticker badges. For lifestyle brands", isNew: true, tier: "premium",
+    preview: { bg: "#F6EFE3", ink: "#1E1B4B", line: "#E4D8C2", accent: "#E4572E", nameFont: "grotesk", nameWeight: 700, dark: false },
+  }),
+  entry({
+    id: "oba", name: "Ọba", meaning: "Yoruba for king", categories: ["fashion", "jewellery", "beauty"], categoryLabel: "Luxury",
+    industries: ["luxury", "designer", "premium fashion", "fine jewellery", "couture"], blurb: "Quiet luxury: full-screen photos, fine serif type. For premium brands", isNew: true, tier: "platinum",
+    preview: { bg: "#F1EDE6", ink: "#1C1C1C", line: "#E2DCD1", accent: "#9C7C4F", nameFont: "serif", nameWeight: 400, dark: false },
+  }),
+  entry({
+    id: "gbedu", name: "Gbẹ̀du", meaning: "Yoruba royal drum; Naija for a hard-hitting beat", categories: ["gadgets", "fashion"], categoryLabel: "Bold brands",
+    industries: ["audio", "tech", "streetwear", "sneakers", "gaming", "music"], blurb: "Dark and loud: giant headlines, glowing gradients. For bold tech and streetwear", isNew: true, tier: "platinum",
+    preview: { bg: "#0B0B0F", ink: "#F5F5F7", line: "#26262E", accent: "#8B5CF6", nameFont: "grotesk", nameWeight: 800, dark: true },
+  }),
+  entry({
+    id: "omalicha", name: "Ọmalịcha", meaning: "Igbo for beautiful", categories: ["beauty"], categoryLabel: "Beauty and wellness",
+    industries: ["beauty", "skincare", "wellness", "body care", "self-care"], blurb: "Soft and pastel, headline in a floating card. For beauty and wellness", isNew: true, tier: "basic",
+    preview: { bg: "#F7ECF4", ink: "#3A2341", line: "#EEDDEA", accent: "#B3477D", nameFont: "grotesk", nameWeight: 600, dark: false },
+  }),
+  entry({
+    id: "zuma", name: "Zuma", meaning: "Hausa for honey", categories: ["home", "any"], categoryLabel: "Handmade",
+    industries: ["handmade", "crafts", "artisan", "pottery", "candles", "leather goods"], blurb: "Warm and handmade, with a maker's letter. For crafts and artisans", isNew: true, tier: "basic",
+    preview: { bg: "#F2E8D8", ink: "#3B2A1A", line: "#E6D8C3", accent: "#B8792C", nameFont: "serif", nameWeight: 600, dark: false },
+  }),
+  entry({
+    id: "oku", name: "Ọkụ", meaning: "Igbo for fire", categories: ["fashion"], categoryLabel: "Sport and activewear",
+    industries: ["sportswear", "activewear", "fitness", "gym", "football", "running"], blurb: "Fast and slanted, black and lime. For sport and activewear", isNew: true, tier: "basic",
+    preview: { bg: "#0F0F0F", ink: "#FFFFFF", line: "#2A2A2A", accent: "#D4FF3A", nameFont: "grotesk", nameWeight: 800, nameItalic: true, dark: true },
+  }),
+  entry({
+    id: "ihe", name: "Ìhè", meaning: "Igbo for light", categories: ["home", "any"], categoryLabel: "Art and prints",
+    industries: ["art", "prints", "paintings", "photography", "gallery", "objects"], blurb: "A quiet gallery wall with lots of space. For art, prints and objects", isNew: true, tier: "basic",
+    preview: { bg: "#F5F3EF", ink: "#1A1A1A", line: "#E7E4DE", accent: "#C2410C", nameFont: "serif", nameWeight: 400, dark: false },
+  }),
+  entry({
+    id: "kasuwa", name: "Kasuwa", meaning: "Hausa for market", categories: ["groceries", "gadgets", "any"], categoryLabel: "Big catalogues",
+    industries: ["general store", "supermarket", "electronics", "wholesale", "big catalogue", "department store"], blurb: "Promo mosaic, departments and a full filters column. For big catalogues", isNew: true, tier: "premium",
+    preview: { bg: "#E8EEF8", ink: "#0F1B33", line: "#DDE3EE", accent: "#0B3B8C", nameFont: "grotesk", nameWeight: 800, dark: false },
+  }),
+  entry({
+    id: "nkata", name: "Nkata", meaning: "Igbo for basket, and for a good conversation", categories: ["fashion", "home"], categoryLabel: "Classic",
+    industries: ["fashion", "homeware", "accessories", "classic", "family store"], blurb: "Classic and balanced, with a framed banner. Works for most shops", isNew: true, tier: "premium",
+    preview: { bg: "#F4F1EC", ink: "#22292F", line: "#E3DFD8", accent: "#A3684A", nameFont: "serif", nameWeight: 500, dark: false },
+  }),
+  entry({
+    id: "uwa", name: "Ụwa", meaning: "Igbo for world", categories: ["fashion", "books"], categoryLabel: "Magazine",
+    industries: ["lifestyle", "fashion", "editorial", "concept store", "journal"], blurb: "A magazine cover and an 'in this issue' list. For editorial brands", isNew: true, tier: "premium",
+    preview: { bg: "#F0EBE1", ink: "#111111", line: "#E2DCD0", accent: "#D7263D", nameFont: "serif", nameWeight: 700, nameItalic: true, dark: false },
+  }),
+  entry({
+    id: "sarauniya", name: "Sarauniya", meaning: "Hausa for queen", categories: ["fashion"], categoryLabel: "Womenswear",
+    industries: ["womenswear", "fashion house", "designer", "occasion wear", "bridal"], blurb: "Two photos side by side, headline across the seam. For fashion houses", isNew: true, tier: "platinum",
+    preview: { bg: "#EDE7DF", ink: "#1A1A1A", line: "#E0D9CF", accent: "#C9A27E", nameFont: "serif", nameWeight: 500, dark: false },
+  }),
+  entry({
+    id: "zinariya", name: "Zinariya", meaning: "Hausa for gold", categories: ["jewellery"], categoryLabel: "Fine jewellery",
+    industries: ["fine jewellery", "gold", "diamonds", "bridal jewellery", "watches"], blurb: "Gold on deep emerald, an arched frame. For fine jewellery", isNew: true, tier: "platinum",
+    preview: { bg: "#0F2E26", ink: "#F5ECD7", line: "#2A4A40", accent: "#C9A24A", nameFont: "serif", nameWeight: 500, dark: true },
+  }),
+  entry({
+    id: "irawo", name: "Ìràwọ̀", meaning: "Yoruba for star", categories: ["any", "beauty"], categoryLabel: "One-product brands",
+    industries: ["single product", "brand", "hero product", "gadget brand", "beauty brand"], blurb: "Your star product, big, with its real name and price. For one-product brands", isNew: true, tier: "basic",
+    preview: { bg: "#FFE8D6", ink: "#2B1B17", line: "#F3DDCB", accent: "#FF5A36", nameFont: "grotesk", nameWeight: 800, dark: false },
+  }),
+  entry({
+    id: "asa", name: "Àṣà", meaning: "Yoruba for culture and tradition", categories: ["food", "home"], categoryLabel: "Heritage food and craft",
+    industries: ["spices", "traditional food", "heritage", "condiments", "local crafts"], blurb: "A heritage stamp and range banners. For traditional food and craft", isNew: true, tier: "basic",
+    preview: { bg: "#EFE3CF", ink: "#2E2A1F", line: "#E3D5BD", accent: "#9E3B22", nameFont: "serif", nameWeight: 700, dark: false },
+  }),
+  entry({
+    id: "mmiri", name: "Mmiri", meaning: "Igbo for water", categories: ["food"], categoryLabel: "Drinks",
+    industries: ["drinks", "juice", "water", "beverages", "smoothies", "zobo"], blurb: "Blue waves and a sunny bottle. For drinks and juice brands", isNew: true, tier: "basic",
+    preview: { bg: "#DCEBFF", ink: "#0B2545", line: "#CFE0F5", accent: "#0B6BCB", nameFont: "grotesk", nameWeight: 800, dark: false },
+  }),
+  entry({
+    id: "uzo", name: "Ụzọ", meaning: "Igbo for road or path", categories: ["fashion", "home"], categoryLabel: "Editorial",
+    industries: ["travel gear", "outdoor", "fashion", "bags", "editorial"], blurb: "Words pinned while pictures scroll, and a lookbook. For brands with a story", isNew: true, tier: "premium",
+    preview: { bg: "#ECEAE3", ink: "#1C1B18", line: "#DEDBD2", accent: "#3D5A40", nameFont: "grotesk", nameWeight: 600, dark: false },
+  }),
+  entry({
+    id: "rawa", name: "Rawa", meaning: "Hausa for dance", categories: ["fashion", "events"], categoryLabel: "Party and playful",
+    industries: ["party wear", "accessories", "costume", "colourful fashion", "nightlife"], blurb: "Hot pink, fanned photo cards and a ticker. For playful brands", isNew: true, tier: "premium",
+    preview: { bg: "#FF3D7F", ink: "#FFFFFF", line: "#FF7AA8", accent: "#FFE14D", nameFont: "grotesk", nameWeight: 800, dark: false },
+  }),
+  entry({
+    id: "fitila", name: "Fitila", meaning: "Hausa for lamp", categories: ["home"], categoryLabel: "Home and lighting",
+    industries: ["lighting", "lamps", "furniture", "interiors", "home decor"], blurb: "A room photo with glowing product pins. For home and lighting", isNew: true, tier: "premium",
+    preview: { bg: "#2A2420", ink: "#F5EFE6", line: "#43392F", accent: "#E8A33D", nameFont: "serif", nameWeight: 500, dark: true },
+  }),
+  entry({
+    id: "oso", name: "Ọ̀ṣọ́", meaning: "Yoruba for adornment", categories: ["fashion", "jewellery"], categoryLabel: "Fashion editorial",
+    industries: ["fashion", "accessories", "designer", "ready to wear", "editorial"], blurb: "A bento grid of looks and a lookbook. For fashion labels", isNew: true, tier: "platinum",
+    preview: { bg: "#F2EDE6", ink: "#141414", line: "#E6E0D8", accent: "#B23A48", nameFont: "serif", nameWeight: 500, dark: false },
+  }),
+  entry({
+    id: "shakara", name: "Shakara", meaning: "Naija for swagger and showing off", categories: ["fashion"], categoryLabel: "Streetwear",
+    industries: ["streetwear", "drops", "sneakers", "caps", "urban fashion"], blurb: "A street poster with numbered drops. For streetwear labels", isNew: true, tier: "platinum",
+    preview: { bg: "#0A0A0A", ink: "#F1F1EC", line: "#2A2A2A", accent: "#FF4F00", nameFont: "grotesk", nameWeight: 800, dark: true },
+  }),
+  entry({
+    id: "aga", name: "Àga", meaning: "Yoruba for chair", categories: ["home"], categoryLabel: "Furniture",
+    industries: ["furniture", "chairs", "tables", "home decor", "interiors"], blurb: "A sidebar menu and a masonry wall of products. For furniture", isNew: true, tier: "platinum",
+    preview: { bg: "#F5F7FA", ink: "#131212", line: "#EBEBEB", accent: "#FBB710", nameFont: "grotesk", nameWeight: 600, dark: false },
+  }),
+  entry({
+    id: "itura", name: "Ìtura", meaning: "Yoruba for comfort and relief", categories: ["home", "any"], categoryLabel: "Home and lifestyle",
+    industries: ["furniture", "sofas", "lifestyle", "home goods", "comfort"], blurb: "Pale aqua, a cut-out product banner and tinted cards. For home and lifestyle", isNew: true, tier: "basic",
+    preview: { bg: "#ECFDFF", ink: "#222222", line: "#D8F3F6", accent: "#FF3368", nameFont: "grotesk", nameWeight: 700, dark: false },
+  }),
+  entry({
+    id: "gele", name: "Gèlè", meaning: "Yoruba for the headtie", categories: ["fashion", "beauty"], categoryLabel: "Fashion",
+    industries: ["fashion", "womenswear", "accessories", "cosmetics", "kidswear"], blurb: "A mosaic banner, category tabs and three product lists. For fashion stores", isNew: true, tier: "premium",
+    preview: { bg: "#FDE8E2", ink: "#111111", line: "#F2D2C8", accent: "#CA1515", nameFont: "serif", nameWeight: 500, nameItalic: true, dark: false },
+  }),
+  entry({
+    id: "imani", name: "Imani", meaning: "Hausa for faith", categories: ["fashion", "any"], categoryLabel: "Department store",
+    industries: ["department store", "fashion", "menswear", "womenswear", "multi-category"], blurb: "A category bar, a his-and-hers banner and big-word categories. For department stores", isNew: true, tier: "premium",
+    preview: { bg: "#3B2E5A", ink: "#FFFFFF", line: "#54467A", accent: "#4FC1E9", nameFont: "grotesk", nameWeight: 800, dark: true },
+  }),
+  entry({
+    id: "itanna", name: "Ìtànná", meaning: "Yoruba for flower, a bloom", categories: ["fashion", "any"], categoryLabel: "Sneakers and minimal",
+    industries: ["sneakers", "shoes", "minimal", "product grid", "small catalogue"], blurb: "A centred headline, then product cards with quick add. Simple and fast", isNew: true, tier: "basic",
+    preview: { bg: "#FFFBEB", ink: "#262626", line: "#F5E6C4", accent: "#F59E0B", nameFont: "grotesk", nameWeight: 700, dark: false },
+  }),
+  entry({
+    id: "littafi", name: "Littafi", meaning: "Hausa for book", categories: ["books"], categoryLabel: "Books and stationery",
+    industries: ["books", "bookshop", "novels", "children's books", "stationery"], blurb: "Pastel banners, best sellers and four product lists. For bookshops", isNew: true, tier: "basic",
+    preview: { bg: "#FCE7EF", ink: "#1F1F1F", line: "#F3D3DF", accent: "#F86D72", nameFont: "grotesk", nameWeight: 800, dark: false },
+  }),
+  entry({
+    id: "itan", name: "Ìtàn", meaning: "Yoruba for story and history", categories: ["books"], categoryLabel: "Literary",
+    industries: ["books", "literary fiction", "rare books", "publisher", "poetry"], blurb: "Warm beige and serif, a book of the month and a quote of the day. For literary bookshops", isNew: true, tier: "platinum",
+    preview: { bg: "#EFEEE8", ink: "#2F2F2F", line: "#E0DDD3", accent: "#9C7A54", nameFont: "serif", nameWeight: 500, dark: false },
+  }),
+  entry({
+    id: "awo", name: "Àwọ̀", meaning: "Yoruba for colour", categories: ["fashion"], categoryLabel: "Fashion",
+    industries: ["fashion", "clothing", "accessories", "menswear", "womenswear"], blurb: "Clean and red, labelled category photos and a deal countdown. For fashion stores", isNew: true, tier: "basic",
+    preview: { bg: "#F4F4F4", ink: "#1E1E27", line: "#E6E6E6", accent: "#FE4C50", nameFont: "grotesk", nameWeight: 800, dark: false },
+  }),
+  entry({
+    id: "kyau", name: "Kyau", meaning: "Hausa for beauty and goodness", categories: ["fashion"], categoryLabel: "Fashion",
+    industries: ["fashion", "clothing", "watches", "bags", "shoes"], blurb: "Soft periwinkle, bordered category cards and framed stories. For fashion stores", isNew: true, tier: "premium",
+    preview: { bg: "#E9ECF2", ink: "#222222", line: "#D9DDE8", accent: "#717FE0", nameFont: "grotesk", nameWeight: 700, dark: false },
+  }),
+  entry({
+    id: "keke", name: "Keke", meaning: "Hausa for bicycle", categories: ["auto", "gadgets"], categoryLabel: "Bikes and sport",
+    industries: ["bicycles", "bikes", "scooters", "cycling", "sport equipment"], blurb: "A slanted banner and products on angled panels. For bikes and sport gear", isNew: true, tier: "premium",
+    preview: { bg: "#2B5061", ink: "#FFFFFF", line: "#3E6676", accent: "#F7BE74", nameFont: "grotesk", nameWeight: 800, dark: true },
+  }),
+  entry({
+    id: "ahia", name: "Ahịa", meaning: "Igbo for market", categories: ["any", "gadgets"], categoryLabel: "Marketplace",
+    industries: ["general store", "variety store", "fashion and gadgets", "accessories", "multi-category"], blurb: "A search-first header, a yellow banner and a row per category. For shops that sell a bit of everything", isNew: true, tier: "basic",
+    preview: { bg: "#F9C21B", ink: "#1F1F1F", line: "#E8B30F", accent: "#262626", nameFont: "grotesk", nameWeight: 800, dark: false },
+  }),
+  entry({
+    id: "ado", name: "Àdó", meaning: "Hausa for adornment", categories: ["fashion"], categoryLabel: "Fashion",
+    industries: ["menswear", "fashion", "sneakers", "watches", "bags"], blurb: "Green and sharp, a promo panel and one new product shown large. For fashion stores", isNew: true, tier: "premium",
+    preview: { bg: "#2A4F9E", ink: "#FFFFFF", line: "#3B62B3", accent: "#71CD14", nameFont: "grotesk", nameWeight: 800, dark: true },
+  }),
+  entry({
+    id: "wuta", name: "Wuta", meaning: "Hausa for fire and power", categories: ["gadgets"], categoryLabel: "Electronics",
+    industries: ["electronics", "gadgets", "phones", "appliances", "cameras"], blurb: "Orange, a search header and a product card beside the banner. For gadget stores", isNew: true, tier: "basic",
+    preview: { bg: "#F4F4F4", ink: "#222222", line: "#E6E6E6", accent: "#F28B00", nameFont: "grotesk", nameWeight: 800, dark: false },
+  }),
+  entry({
+    id: "ike", name: "Ike", meaning: "Igbo for strength and power", categories: ["gadgets"], categoryLabel: "Electronics",
+    industries: ["electronics", "laptops", "phones", "cameras", "accessories"], blurb: "Navy and red, diagonal collection tiles and top-selling lists. For electronics stores", isNew: true, tier: "platinum",
+    preview: { bg: "#15161D", ink: "#FFFFFF", line: "#2B2D42", accent: "#D10024", nameFont: "grotesk", nameWeight: 800, dark: true },
+  }),
+  entry({
+    id: "ewu", name: "Ẹ̀wù", meaning: "Yoruba for garment", categories: ["fashion", "kids"], categoryLabel: "Family fashion",
+    industries: ["family fashion", "womenswear", "menswear", "kids clothing", "bags and shoes"], blurb: "Lavender, a category menu beside the banner and category cards with counts. For fashion stores", isNew: true, tier: "premium",
+    preview: { bg: "#EDF1FF", ink: "#1C1C1C", line: "#DDE3F7", accent: "#D19C97", nameFont: "grotesk", nameWeight: 700, dark: false },
+  }),
+  entry({
+    id: "erin", name: "Ẹ̀rín", meaning: "Yoruba for laughter", categories: ["fashion"], categoryLabel: "Fashion",
+    industries: ["fashion", "casual wear", "hoodies", "shirts", "dresses"], blurb: "Red and navy, a split banner and navy service cards. For friendly fashion stores", isNew: true, tier: "basic",
+    preview: { bg: "#E9E6E6", ink: "#002C3E", line: "#DAD6D6", accent: "#F7444E", nameFont: "serif", nameWeight: 700, dark: false },
+  }),
+  entry({
+    id: "apere", name: "Apẹ̀rẹ̀", meaning: "Yoruba for basket", categories: ["groceries", "food"], categoryLabel: "Groceries",
+    industries: ["groceries", "supermarket", "juice", "bakery", "snacks"], blurb: "A banner trio, quick add and a search header. For grocery stores", isNew: true, tier: "premium",
+    preview: { bg: "#E6F3FB", ink: "#222222", line: "#D3E7F3", accent: "#F2A900", nameFont: "grotesk", nameWeight: 800, dark: false },
+  }),
+  entry({
+    id: "bata", name: "Bàtà", meaning: "Yoruba for shoes", categories: ["fashion"], categoryLabel: "Shoes",
+    industries: ["shoes", "heels", "loafers", "sneakers", "boots"], blurb: "Calm and serif, two big collection photos and a bordered grid. For shoe stores", isNew: true, tier: "basic",
+    preview: { bg: "#F2F2F2", ink: "#222222", line: "#E4E4E4", accent: "#5FAE9F", nameFont: "serif", nameWeight: 600, dark: false },
+  }),
+  entry({
+    id: "ogba", name: "Ọgbà", meaning: "Yoruba for garden", categories: ["groceries", "agro"], categoryLabel: "Fresh produce",
+    industries: ["fresh produce", "vegetables", "fruit", "farm shop", "greengrocer"], blurb: "Olive and black, a photo slider and captioned category photos. For produce shops", isNew: true, tier: "premium",
+    preview: { bg: "#1E1E1E", ink: "#FFFFFF", line: "#333333", accent: "#B0B435", nameFont: "grotesk", nameWeight: 800, dark: true },
+  }),
+  entry({
+    id: "eso", name: "Èso", meaning: "Yoruba for fruit", categories: ["groceries", "agro", "food"], categoryLabel: "Fresh produce",
+    industries: ["fruit", "vegetables", "organic food", "juice", "farm produce"], blurb: "Green and orange, a search banner and an orange story band. For fruit and veg stores", isNew: true, tier: "platinum",
+    preview: { bg: "#F4F8EC", ink: "#3B4D4F", line: "#E3EDD3", accent: "#81C408", nameFont: "grotesk", nameWeight: 800, dark: false },
+  }),
+  entry({
+    id: "osan", name: "Ọsàn", meaning: "Yoruba for orange", categories: ["groceries", "food"], categoryLabel: "Fresh produce",
+    industries: ["fruit", "juice", "fruit baskets", "fresh produce", "smoothies"], blurb: "Dark slate and orange, a photo banner and quick-add product cards. For fruit shops", isNew: true, tier: "basic",
+    preview: { bg: "#051922", ink: "#FFFFFF", line: "#1B3340", accent: "#F28123", nameFont: "grotesk", nameWeight: 800, dark: true },
+  }),
+  entry({
+    id: "ijokoo", name: "Ìjókòó", meaning: "Yoruba for seat", categories: ["home"], categoryLabel: "Furniture",
+    industries: ["furniture", "chairs", "sofas", "lighting", "home decor"], blurb: "A pale showroom banner, a category trio and a dark side panel. For furniture stores", isNew: true, tier: "premium",
+    preview: { bg: "#F6F7FB", ink: "#2B2B2B", line: "#E6E8F0", accent: "#E6A23C", nameFont: "grotesk", nameWeight: 700, dark: false },
+  }),
+  entry({
+    id: "ite", name: "Ìtẹ́", meaning: "Yoruba for nest", categories: ["home"], categoryLabel: "Interiors",
+    industries: ["furniture", "interior design", "sofas", "home decor", "furniture makers"], blurb: "Deep green and yellow, a photo collage and service tiles. For interior studios", isNew: true, tier: "platinum",
+    preview: { bg: "#3B5D50", ink: "#FFFFFF", line: "#4E7163", accent: "#F9BF29", nameFont: "grotesk", nameWeight: 700, dark: true },
+  }),
+  entry({
+    id: "kujera", name: "Kujera", meaning: "Hausa for chair", categories: ["home"], categoryLabel: "Furniture",
+    industries: ["furniture", "office chairs", "sofas", "lamps", "clocks"], blurb: "Black and copper, a product slider banner and warm grey cards. For furniture stores", isNew: true, tier: "basic",
+    preview: { bg: "#F3F1EE", ink: "#111111", line: "#E3E0DB", accent: "#B86A22", nameFont: "grotesk", nameWeight: 700, dark: false },
+  }),
+  entry({
+    id: "tufafi", name: "Tufafi", meaning: "Hausa for clothes", categories: ["fashion", "kids"], categoryLabel: "Family fashion",
+    industries: ["family fashion", "menswear", "womenswear", "kids clothing", "accessories"], blurb: "Monochrome, a photo mosaic and the latest for each category. For fashion stores", isNew: true, tier: "premium",
+    preview: { bg: "#2A2A2A", ink: "#FFFFFF", line: "#3A3A3A", accent: "#FFFFFF", nameFont: "grotesk", nameWeight: 800, dark: true },
+  }),
+  entry({
+    id: "rewa", name: "Rẹ̀wà", meaning: "Yoruba for to be beautiful", categories: ["fashion"], categoryLabel: "Fashion",
+    industries: ["fashion", "womenswear", "bags", "dresses", "accessories"], blurb: "Charcoal and hot pink, a promise strip and two big half-width collections. For fashion stores", isNew: true, tier: "premium",
+    preview: { bg: "#2B2B2B", ink: "#FFFFFF", line: "#3B3B3B", accent: "#E8074A", nameFont: "grotesk", nameWeight: 800, dark: true },
+  }),
+  entry({
+    id: "igbese", name: "Ìgbésẹ̀", meaning: "Yoruba for step", categories: ["fashion"], categoryLabel: "Shoes",
+    industries: ["sneakers", "shoes", "sportswear", "trainers", "streetwear"], blurb: "Orange stripes, a photo mosaic and a deal countdown. For sneaker stores", isNew: true, tier: "basic",
+    preview: { bg: "#FFFFFF", ink: "#222222", line: "#F1F1F5", accent: "#FF7A00", nameFont: "grotesk", nameWeight: 800, dark: false },
+  }),
+  entry({
+    id: "ola", name: "Ọlá", meaning: "Yoruba for honour and wealth", categories: ["fashion", "jewellery"], categoryLabel: "Fashion",
+    industries: ["fashion", "accessories", "watches", "jewellery", "bags"], blurb: "Soft grey and refined, For her and For him photos and new arrivals on photos. For fashion houses", isNew: true, tier: "platinum",
+    preview: { bg: "#F4F4F4", ink: "#222222", line: "#E4E4E4", accent: "#C9741C", nameFont: "grotesk", nameWeight: 700, dark: false },
+  }),
+  entry({
+    id: "okunrin", name: "Ọkùnrin", meaning: "Yoruba for man", categories: ["fashion"], categoryLabel: "Menswear",
+    industries: ["menswear", "fashion", "shoes", "bags", "accessories"], blurb: "Cream and calm, a model in a circle and staggered collections. For menswear stores", isNew: true, tier: "premium",
+    preview: { bg: "#F3F2EE", ink: "#111111", line: "#E6E4DE", accent: "#E53637", nameFont: "grotesk", nameWeight: 800, dark: false },
+  }),
+  entry({
+    id: "salubata", name: "Sálúbàtà", meaning: "Yoruba for sandals and slippers", categories: ["fashion"], categoryLabel: "Shoes",
+    industries: ["shoes", "sandals", "slippers", "boots", "heels"], blurb: "Khaki and black, colour-block collections and a deal of the month. For shoe shops", isNew: true, tier: "basic",
+    preview: { bg: "#DBCC8F", ink: "#111111", line: "#CDBD7C", accent: "#111111", nameFont: "grotesk", nameWeight: 600, dark: false },
+  }),
+  entry({
+    id: "efo", name: "Ẹ̀fọ́", meaning: "Yoruba for vegetables", categories: ["groceries", "agro", "food"], categoryLabel: "Fresh produce",
+    industries: ["vegetables", "fruit", "juice", "dried foods", "organic food"], blurb: "Leaf green, a centre-column category grid and a deal of the day. For vegetable sellers", isNew: true, tier: "basic",
+    preview: { bg: "#1E2A12", ink: "#FFFFFF", line: "#33461F", accent: "#82AE46", nameFont: "grotesk", nameWeight: 700, dark: true },
+  }),
+  entry({
+    id: "aluko", name: "Àlùkò", meaning: "Yoruba for the violet plantain-eater bird", categories: ["fashion"], categoryLabel: "Fashion",
+    industries: ["fashion", "jewellery", "footwear", "womenswear", "lookbook"], blurb: "Slate blue, a lookbook block and a giant word over the story photo. For fashion stores", isNew: true, tier: "premium",
+    preview: { bg: "#EEF4F8", ink: "#1D1D1D", line: "#DCE6EE", accent: "#6F8BA4", nameFont: "grotesk", nameWeight: 800, dark: false },
+  }),
+  entry({
+    id: "aja", name: "Ajá", meaning: "Yoruba for dog", categories: ["pets"], categoryLabel: "Pets",
+    industries: ["pet shop", "pet food", "pet clothing", "pet accessories", "vets"], blurb: "Warm cream, a pet in a circle and pet chips. For pet shops", isNew: true, tier: "premium",
+    preview: { bg: "#F9F3EC", ink: "#41403E", line: "#EDE4D9", accent: "#C88A3E", nameFont: "grotesk", nameWeight: 600, dark: false },
+  }),
+  entry({
+    id: "dara", name: "Dára", meaning: "Yoruba for good and beautiful", categories: ["fashion"], categoryLabel: "Fashion",
+    industries: ["fashion", "womenswear", "menswear", "dresses", "jackets"], blurb: "Bright and orange, a split banner and overlapping collections. For fashion stores", isNew: true, tier: "basic",
+    preview: { bg: "#FFFFFF", ink: "#111111", line: "#F1F1F1", accent: "#F96D00", nameFont: "grotesk", nameWeight: 800, dark: false },
+  }),
+  entry({
+    id: "ife", name: "Ìfẹ́", meaning: "Yoruba for love", categories: ["fashion"], categoryLabel: "Boutique",
+    industries: ["boutique", "womenswear", "swimwear", "accessories", "shoes"], blurb: "Serif and taupe, photo cards with a Shop now bar and a photo newsletter. For boutiques", isNew: true, tier: "platinum",
+    preview: { bg: "#2A2522", ink: "#FFFFFF", line: "#3D3632", accent: "#C5A898", nameFont: "serif", nameWeight: 500, dark: true },
+  }),
+  entry({
+    id: "irorun", name: "Ìrọ̀rùn", meaning: "Yoruba for ease and comfort", categories: ["fashion"], categoryLabel: "Casual wear",
+    industries: ["casual wear", "t-shirts", "hoodies", "sneakers", "streetwear"], blurb: "Clean and bold, huge black headlines and collections with big names. For casual wear", isNew: true, tier: "basic",
+    preview: { bg: "#ECECEC", ink: "#111111", line: "#DEDEDE", accent: "#4F8DAA", nameFont: "grotesk", nameWeight: 800, dark: false },
   }),
 ];
 
 export const THEME_LIBRARY_IDS: readonly ThemeLibraryId[] = THEME_LIBRARY.map((item) => item.id);
+
+/** The themes on the Free plan (shared/plans.ts "basic"): one for each main kind of shop. Paid plans have them all. */
+export const BASIC_THEME_IDS: readonly string[] = ["plain", "breeze", "pantry", "ile", "plug", "ewa"];
 
 export function isLibraryTheme(id: string | null | undefined): id is ThemeLibraryId {
   return typeof id === "string" && (THEME_LIBRARY_IDS as readonly string[]).includes(id);
@@ -183,6 +492,21 @@ export function isLibraryTheme(id: string | null | undefined): id is ThemeLibrar
 
 export function themeLibraryEntry(id: string | null | undefined) {
   return THEME_LIBRARY.find((item) => item.id === id) ?? null;
+}
+
+/** A theme's tier; themes outside the library (older templates) count as basic. */
+export function themeTier(id: string | null | undefined): ThemeTier {
+  return themeLibraryEntry(id)?.tier ?? "basic";
+}
+
+/** Whether a store on `allowed` may switch to a theme of tier `tier` (basic < premium < platinum). */
+export function tierIncludes(allowed: ThemeTier, tier: ThemeTier) {
+  return THEME_TIERS.indexOf(tier) <= THEME_TIERS.indexOf(allowed);
+}
+
+export function filterThemesByTier(tier: string, themes: readonly ThemeLibraryEntry[] = THEME_LIBRARY) {
+  if (!tier || tier === "all") return [...themes];
+  return themes.filter((theme) => theme.tier === tier);
 }
 
 /** "Afẹ́fẹ́ · Yoruba for breeze" */
@@ -226,6 +550,7 @@ export const THEME_CATEGORY_CHIPS: ReadonlyArray<{ id: ThemeChipId; label: strin
   { id: "groceries", label: "Groceries" },
   { id: "jewellery", label: "Jewellery" },
   { id: "agro", label: "Agro" },
+  { id: "pets", label: "Pets" },
 ];
 
 /** "All" plus only the chips that have at least one theme. */
@@ -246,6 +571,9 @@ export function filterThemes(category: string, themes: readonly ThemeLibraryEntr
  * Matched on whole words with an optional plural, after folding accents.
  */
 const THEME_RULES: Array<{ themeId: ThemeLibraryId; industry: string; words: string[] }> = [
+  { themeId: "oba", industry: "luxury fashion", words: ["couture", "haute couture", "atelier", "maison", "fine jewellery", "fine jewelry", "quiet luxury", "made to order luxury"] },
+  { themeId: "gbedu", industry: "audio and streetwear", words: ["audio", "sound system", "dj", "studio monitor", "streetwear", "street wear", "hypebeast", "gaming", "gamer", "esports"] },
+  { themeId: "highlife", industry: "lifestyle brand", words: ["lifestyle", "lifestyle brand", "merch", "merchandise", "vintage", "retro", "graphic tee", "bucket hat", "vinyl", "record"] },
   { themeId: "suku", industry: "hair and wigs", words: ["hair", "wig", "lace wig", "braid", "weave", "bundle", "frontal", "closure", "hair extension", "bonnet", "attachment", "crochet"] },
   { themeId: "turare", industry: "perfume", words: ["perfume", "fragrance", "oud", "cologne", "body mist", "scent", "attar", "turare", "humra", "turaren wuta", "perfume oil"] },
   { themeId: "ewa", industry: "beauty and skincare", words: ["beauty", "skincare", "skin care", "skin", "cosmetic", "makeup", "make-up", "make up", "lipstick", "lip gloss", "serum", "body butter", "shea butter", "black soap", "lotion", "face cream", "toner", "sunscreen", "nail", "lash", "spa", "glow", "wellness", "health", "supplement", "herbal"] },
@@ -266,6 +594,57 @@ const THEME_RULES: Array<{ themeId: ThemeLibraryId; industry: string; words: str
   { themeId: "pantry", industry: "food and drinks", words: ["food", "drink", "juice", "zobo", "kunu", "tigernut", "smoothie", "spice", "seasoning", "sauce", "pepper sauce", "honey", "tea", "coffee", "wine", "palm wine", "yoghurt", "yogurt", "small chops", "chops", "condiment"] },
   { themeId: "ile", industry: "home and living", words: ["home", "decor", "furniture", "living", "candle", "bedding", "interior", "homeware", "rug", "cushion", "vase", "lamp", "kitchenware", "cookware", "curtain", "throw pillow", "duvet", "bedsheet", "diffuser", "wall art"] },
   { themeId: "plug", industry: "gadgets", words: ["gadget", "phone", "iphone", "android", "electronic", "electronics", "tech", "laptop", "charger", "earbud", "earpod", "airpod", "headphone", "speaker", "power bank", "smartwatch", "console", "playstation", "camera", "tablet", "ipad", "phone accessories", "solar"] },
+  // Newer themes: after the industry rules, so on a tie the older, more specific theme still wins.
+  { themeId: "zinariya", industry: "fine jewellery", words: ["gold jewellery", "gold jewelry", "diamond", "diamonds", "engagement ring", "wedding band", "18k", "karat", "carat", "goldsmith"] },
+  { themeId: "oku", industry: "sport and activewear", words: ["sportswear", "activewear", "gym", "gym wear", "fitness", "jersey", "football", "running", "athleisure", "workout", "training"] },
+  { themeId: "ihe", industry: "art and prints", words: ["art", "artwork", "painting", "art print", "poster", "photography", "gallery", "sculpture", "illustration"] },
+  { themeId: "zuma", industry: "handmade crafts", words: ["handmade", "hand made", "craft", "crafts", "artisan", "pottery", "ceramic", "woven", "weaving", "basket", "leatherwork", "macrame"] },
+  { themeId: "sarauniya", industry: "womenswear", words: ["womenswear", "women's wear", "womens wear", "women's clothing", "occasion wear", "bridal", "bridal wear", "evening wear"] },
+  { themeId: "kasuwa", industry: "big catalogue", words: ["department store", "wholesale", "wholesaler", "distributor", "big catalogue", "everything store", "one-stop shop", "one stop shop"] },
+  { themeId: "uwa", industry: "editorial lifestyle", words: ["concept store", "magazine", "zine", "curated"] },
+  { themeId: "mmiri", industry: "drinks", words: ["juice", "bottled water", "table water", "drinks brand", "beverage brand", "smoothie", "fruit juice", "sachet water"] },
+  { themeId: "fitila", industry: "home and lighting", words: ["lighting", "lamp", "lamps", "chandelier", "light fitting", "pendant light", "bulb"] },
+  { themeId: "asa", industry: "heritage food and craft", words: ["traditional", "heritage", "local spices", "native", "indigenous", "ogiri", "iru", "dawadawa", "uziza", "ehuru"] },
+  { themeId: "irawo", industry: "one-product brand", words: ["single product", "one product", "our product", "flagship product"] },
+  { themeId: "rawa", industry: "party wear", words: ["party wear", "clubwear", "club wear", "costume", "festival", "nightlife", "glitter"] },
+  { themeId: "shakara", industry: "streetwear drops", words: ["drop", "drops", "limited drop", "hype", "street", "urban wear", "cap", "snapback"] },
+  { themeId: "uzo", industry: "travel and outdoor", words: ["travel", "luggage", "outdoor", "camping", "hiking", "adventure", "suitcase"] },
+  { themeId: "oso", industry: "fashion label", words: ["fashion label", "ready to wear", "ready-to-wear", "rtw", "label", "collection drop"] },
+  { themeId: "aga", industry: "furniture", words: ["chair", "chairs", "table", "dining table", "sofa", "couch", "wardrobe", "bed frame", "furniture maker", "carpentry"] },
+  { themeId: "imani", industry: "department store", words: ["department store", "everything for men and women", "men and women", "family fashion", "mall"] },
+  { themeId: "itanna", industry: "sneakers", words: ["sneaker store", "sneakerhead", "kicks", "trainers"] },
+  { themeId: "gele", industry: "fashion and accessories", words: ["gele", "headtie", "head tie", "headwrap", "head wrap", "turban"] },
+  { themeId: "itura", industry: "home and lifestyle", words: ["comfort", "lounge", "lifestyle store", "home goods", "ottoman", "pouf"] },
+  { themeId: "irorun", industry: "casual wear", words: ["basics", "plain tees", "loungewear"] },
+  { themeId: "aja", industry: "pets", words: ["pets", "pet shop", "pet store", "pet food", "pet supplies", "dog food", "cat food", "dog treats", "puppy", "kitten", "aquarium", "bird seed"] },
+  { themeId: "efo", industry: "vegetables", words: ["vegetable seller", "veggies", "leafy greens", "ugwu seller"] },
+  { themeId: "aluko", industry: "fashion", words: ["lookbook", "fashion lookbook"] },
+  { themeId: "ife", industry: "boutique", words: ["swimwear", "swimsuit", "bikini", "resort boutique"] },
+  { themeId: "dara", industry: "fashion", words: ["modern woman", "modern man", "everyday fashion"] },
+  { themeId: "igbese", industry: "sneakers", words: ["sneaker plug", "sneaker reseller", "runners club", "basketball gear", "hoops"] },
+  { themeId: "salubata", industry: "shoes", words: ["mules", "flip flops", "clogs", "palm slippers"] },
+  { themeId: "okunrin", industry: "menswear", words: ["men's fashion store", "male fashion", "men's outfits"] },
+  { themeId: "ola", industry: "fashion", words: ["for her and for him", "his and hers", "fashion house"] },
+  { themeId: "rewa", industry: "fashion", words: ["fashion trends", "trendy outfits", "designer bags"] },
+  { themeId: "osan", industry: "fruit", words: ["fruit basket", "fruit baskets", "fruit vendor", "fruit stand"] },
+  { themeId: "ijokoo", industry: "furniture", words: ["showroom", "furniture showroom", "armchair", "dining table"] },
+  { themeId: "ite", industry: "interiors", words: ["interior designer", "styling studio", "property staging", "staging"] },
+  { themeId: "kujera", industry: "furniture", words: ["workspace", "work from home", "study desk"] },
+  { themeId: "tufafi", industry: "family fashion", words: ["men women and kids", "for the whole family", "family clothing"] },
+  { themeId: "apere", industry: "groceries", words: ["cold-pressed", "cold pressed", "juice and bakery", "bakery and groceries"] },
+  { themeId: "ogba", industry: "fresh produce", words: ["greengrocer", "green grocer", "salad", "herbs and spices shop"] },
+  { themeId: "eso", industry: "fruit and vegetables", words: ["veggie box", "veg box", "juicing", "fruit salad"] },
+  { themeId: "bata", industry: "shoes", words: ["cobbler", "shoemaker", "shoe maker"] },
+  { themeId: "erin", industry: "fashion", words: ["hoodie", "hoodies", "sweatshirt", "pullover", "joggers"] },
+  { themeId: "wuta", industry: "electronics", words: ["appliance", "home appliance", "fridge", "freezer", "air conditioner", "generator", "inverter", "television", "blender"] },
+  { themeId: "ike", industry: "electronics", words: ["computer village", "computer store", "pc parts", "gaming pc", "monitor", "printer", "computer accessories"] },
+  { themeId: "ahia", industry: "general store", words: ["variety store", "general merchandise", "a bit of everything", "multi-category", "online mall"] },
+  { themeId: "ewu", industry: "family fashion", words: ["family wear", "family outfits", "matching outfits", "mummy and me", "daddy and me"] },
+  { themeId: "ado", industry: "fashion", words: ["urban wear", "smart casual", "streetwear", "street wear", "casual wear"] },
+  { themeId: "keke", industry: "bicycles", words: ["bicycle", "bike", "bikes", "cycling", "cyclist", "scooter", "e-bike", "bmx", "keke napep"] },
+  { themeId: "itan", industry: "literary books", words: ["literary", "literature", "poetry", "rare book", "first edition", "publisher", "publishing"] },
+  { themeId: "littafi", industry: "bookshop", words: ["children's books", "kids books", "storybook", "picture book", "comics bookshop"] },
+  { themeId: "omalicha", industry: "wellness", words: ["self-care", "self care", "bath", "body care", "essential oil", "aromatherapy"] },
   { themeId: "breeze", industry: "fashion", words: ["fashion", "clothing", "clothes", "cloth", "wear", "dress", "gown", "top", "shirt", "t-shirt", "trouser", "jean", "apparel", "boutique", "bag", "handbag", "outfit", "skirt", "jumpsuit", "thrift", "okrika", "ankara", "abaya", "hijab", "kimono", "two-piece", "co-ord"] },
 ];
 

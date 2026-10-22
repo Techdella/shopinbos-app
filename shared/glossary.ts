@@ -37,6 +37,7 @@ export const GLOSSARY: GlossaryEntry[] = [
   { key: "roas", term: "ROAS", short: "Return on ad spend: how much you sold for every ₦1 the advert cost.", example: "You spent ₦10,000 and sold ₦40,000: a ROAS of 4.", aliases: ["return on ad spend"], introKey: "ads" },
   { key: "reviews", term: "Reviews", short: "Stars and comments from buyers that help new customers trust you.", example: "“Delivered in Ikeja same day. Fabric is lovely!” ★★★★★", aliases: ["review", "ratings", "testimonials", "reviews and ratings"], introKey: "reviews" },
   { key: "video-studio", term: "Video studio", short: "Rex turns your product photos into short videos for TikTok, Reels and Status.", example: "Three photos of your sneakers become a 15-second TikTok with music.", aliases: ["video", "videos"], introKey: "video-studio" },
+  { key: "social-posts", term: "Social posts", short: "Posts for Facebook, Instagram, TikTok and WhatsApp, planned on a calendar so each goes out on time.", example: "Plan Monday’s new-arrivals post on Friday and it goes up on Instagram at 7pm by itself.", aliases: ["social post", "social media posts", "social calendar", "content calendar", "scheduled posts"] },
 
   // ── Selling channels and inbox ──
   { key: "channels", term: "Sell everywhere", short: "Connect WhatsApp, Instagram, TikTok and Facebook so orders from all of them land in one place.", example: "A buyer on Instagram and one on WhatsApp both show up in Orders.", aliases: ["channels", "channel", "sales channels", "social selling"], introKey: "channels" },
@@ -74,7 +75,7 @@ export const GLOSSARY: GlossaryEntry[] = [
   { key: "dropship", term: "Dropship", short: "Sell a supplier’s product without buying stock first; they send it to your customer.", example: "You sell a ₦15,000 bag, the supplier in Kano ships it, you keep the difference.", aliases: ["dropshipping", "drop ship", "sell without stock"], introKey: "dropship" },
   { key: "wholesale", term: "Wholesale", short: "Buying many pieces at once from a supplier at a lower price per piece.", example: "200 phone cases at ₦900 each instead of ₦2,000 one by one.", aliases: ["bulk", "bulk orders", "wholesale orders", "bulk buying"], introKey: "wholesale" },
   { key: "quote-requests", term: "Quote requests", short: "Asking a supplier for their best price on a quantity before you buy.", example: "“What’s your price for 100 cartons of noodles, delivered to Onitsha?”", aliases: ["quote request", "quote", "quotes", "price requests", "price request", "rfq"], introKey: "wholesale" },
-  { key: "white-label", term: "White label", short: "A supplier’s product sold under your own brand name and packaging.", example: "Plain body butter from a Lagos factory, sold as “Glow by Amaka”.", aliases: ["white-label", "private label", "own brand"], introKey: "supplier-products" },
+  { key: "white-label", term: "White label", short: "A supplier’s product sold under your own brand name and packaging.", example: "Plain body butter from a Lagos factory, sold as “Glow by Amaka”.", aliases: ["white-label", "private label", "own brand"] },
 
   // ── Store ──
   { key: "store-settings", term: "Store settings", short: "Your shop’s name, contact details, address and opening hours, and your own login.", example: "Change your opening hours to 9am–7pm and they update on your shop and receipts.", aliases: ["shop settings"], introKey: "store-settings" },
@@ -99,15 +100,17 @@ export const GLOSSARY: GlossaryEntry[] = [
 
   // ── Money ──
   { key: "payments", term: "Payments", short: "Money customers pay you, by card, bank transfer, USSD or cash on delivery.", example: "₦18,000 by transfer from Chidi, ₦9,500 cash on delivery from Halima.", aliases: ["payment"], introKey: "payouts" },
-  { key: "payouts", term: "Payouts", short: "Money Shopinbos sends from your sales into your bank account.", example: "Monday’s ₦64,000 in sales lands in your GTBank on Tuesday.", aliases: ["payout", "money sent to your bank", "earnings", "withdrawals"], introKey: "payouts" },
+  { key: "payouts", term: "Payouts", short: "Money from your sales, settled straight into your bank account.", example: "Monday’s ₦64,000 in sales lands in your GTBank on Tuesday.", aliases: ["payout", "money sent to your bank", "earnings", "withdrawals"], introKey: "payouts" },
   { key: "wallet", term: "Shopinbos Wallet", short: "Where card payments for you are settled: straight to your own bank, never held by Shopinbos.", example: "A customer pays ₦30,000: your ₦30,000 (less Paystack’s fee) lands in your GTBank the next working day.", aliases: ["wallet", "business wallet"], introKey: "wallet" },
   { key: "settlement", term: "Settlement", short: "The moment your money is cleared and moved to your bank.", example: "Card payments settle the next working day.", aliases: ["settlements", "settled"], introKey: "payouts" },
-  { key: "escrow", term: "Escrow", short: "Money held safely in the middle until the order is delivered, then released.", example: "The buyer pays ₦30,000; it’s released to you once they get the parcel.", aliases: ["held money", "on hold"], introKey: "payouts" },
+  { key: "escrow", term: "Escrow", short: "Money held in the middle until delivery. Shopinbos doesn’t do this: each share goes straight to its owner’s bank.", example: "A customer pays ₦30,000: your share and the supplier’s settle to your own banks, usually the next working day.", aliases: ["held money", "on hold"], introKey: "payouts" },
   { key: "invoices", term: "Invoices", short: "A bill with your logo that tells a customer what they owe and how to pay.", example: "Invoice #014 for 20 cartons, due Friday.", aliases: ["invoice", "invoicing"], introKey: "invoices" },
   { key: "taxes", term: "Taxes", short: "VAT and other taxes added to prices or set aside from sales.", example: "7.5% VAT shown at checkout for buyers who need a receipt.", aliases: ["tax", "vat", "taxes and vat"], introKey: "taxes" },
   { key: "cod", term: "COD", short: "Cash on delivery: the buyer pays the rider when the parcel arrives.", example: "The rider collects ₦12,000 cash at the door in Surulere.", aliases: ["cash on delivery", "pay on delivery", "cash collected", "pay on arrival"], introKey: "partner-cash" },
   { key: "pay-ins", term: "Pay-ins", short: "Cash your riders collected that your company sends back to Shopinbos for the seller.", example: "Riders collected ₦85,000 today; pay it in by tomorrow 6pm.", aliases: ["pay-in", "pay in", "remittance"], introKey: "partner-cash" },
   { key: "fees", term: "Fees", short: "What Shopinbos charges per order or job, shown before you agree.", example: "₦150 per delivery job, taken from the payout.", aliases: ["fee", "billing", "commission fee"] },
+  { key: "credits", term: "AI credits", short: "What AI actions use up in Shopinbos: your plan gives you some each month, and you can buy more.", example: "Rex makes three new pictures of your handbag; a few credits come off your monthly ones.", aliases: ["credits", "ai credit", "auto top-up"], introKey: "credits" },
+  { key: "business-registration", term: "Business registration", short: "Getting your business name registered with CAC, so it's official and you get a BN number.", example: "Register “Ada's Fabrics” with CAC from Shopinbos and download the certificate here.", aliases: ["register your business", "business name registration", "cac registration", "bn number"], introKey: "business-registration" },
 
   // ── Delivery ──
   { key: "fulfilment", term: "Fulfilment", short: "Everything after an order: packing, sending and getting it to the customer.", example: "Pack the shoes, print the label, hand to the rider: order fulfilled.", aliases: ["fulfillment", "fulfil", "fulfill", "fulfilled"], introKey: "supplier-orders" },
@@ -118,7 +121,8 @@ export const GLOSSARY: GlossaryEntry[] = [
   { key: "pickup-points", term: "Pickup points", short: "Places where customers collect their parcels instead of a doorstep delivery.", example: "Ada collects her order at the Yaba hub after work and pays ₦1,200 instead of ₦2,500.", aliases: ["pickup point", "pick-up point", "pick-up points", "collection point"], introKey: "partner-pickup-points" },
   { key: "private-rates", term: "Private rates", short: "Special delivery prices a partner gives one business, used once that business accepts them.", example: "SwiftBike gives Ada Fabrics ₦2,000 instead of ₦2,500 for every Lagos delivery.", aliases: ["private rate"], introKey: "partner-connections" },
   { key: "connected-businesses", term: "Connected businesses", short: "Shops and suppliers that added you as their delivery partner. Their orders come to you as jobs.", example: "Ada Fabrics connects you, and her Lekki orders arrive as jobs for your riders.", aliases: [], introKey: "partner-connections" },
-  { key: "dropship-agreement", term: "Dropship agreement", short: "The rules a supplier and a shop both accept before the shop lists the supplier’s products.", example: "Shea Naturals agrees to ship in 3 days under the shop’s name and refund in 3 days if not sent.", aliases: ["dropship agreements"], introKey: "supplier-agreements" },
+  { key: "dropship-agreement", term: "Dropship agreement", short: "The rules a supplier and a shop both accept before the shop lists the supplier’s products.", example: "Shea Naturals agrees to ship in 3 days, never sell to the shop’s customers directly, and refund in 3 days if not sent.", aliases: ["dropship agreements"], introKey: "supplier-agreements" },
+  { key: "contracts", term: "Contracts", short: "Agreements you and another business signed in the app. Each of you keeps a copy.", example: "Your Dropship agreement with Shea Naturals, signed by you both, with its fingerprint and history.", aliases: ["contract", "signed agreements", "documents"], introKey: "contracts" },
   { key: "logistics", term: "Logistics", short: "Delivery companies and riders who move parcels from you to your customers.", example: "A Lagos bike company picks up in Ikeja and delivers in Lekki the same day.", aliases: ["delivery", "delivery partners", "delivery companies", "shipping", "dispatch"], introKey: "delivery" },
   { key: "shipping-rates", term: "Shipping rates", short: "What you charge buyers for delivery, by area or by weight.", example: "₦2,000 within Lagos Mainland, ₦3,500 to the Island, ₦5,000 outside Lagos.", aliases: ["shipping rate", "delivery fees", "delivery fee"], introKey: "shipping-rates" },
   { key: "jobs", term: "Jobs", short: "Delivery requests from shops that your company can accept and complete.", example: "Pick up 3 parcels in Yaba, drop off in Surulere, Ikeja and Ajah.", aliases: ["job", "bookings", "delivery jobs"], introKey: "partner-jobs" },
@@ -131,6 +135,7 @@ export const GLOSSARY: GlossaryEntry[] = [
   { key: "on-time-rate", term: "On-time rate", short: "The share of orders or deliveries you finished by the time you promised.", example: "48 of 50 deliveries on time this week: a 96% on-time rate.", aliases: ["on time rate", "on-time", "performance and reviews"], introKey: "partner-performance" },
   { key: "api-key", term: "API key", short: "A secret code that lets another app work with your Shopinbos account.", example: "Paste it into your dispatch software, and keep it secret like a password.", aliases: ["api keys", "secret key"], introKey: "partner-connect" },
   { key: "buyers", term: "Buyers", short: "The shops that sell or buy your products.", example: "14 shops sell your sandals; 3 buy in bulk every month.", aliases: ["buyer", "shops selling your products"], introKey: "supplier-buyers" },
+  { key: "followers", term: "Followers", short: "Shops that follow you to hear first about your new stock, price drops and restocks.", example: "62 shops follow you, so your “200 new Ankara prints” update reaches all 62.", aliases: ["follower", "follows"], introKey: "supplier-buyers" },
   { key: "verification", term: "Verification", short: "Checking your ID or company papers so shops and buyers can trust you.", example: "Upload your CAC certificate and get a “Verified” badge.", aliases: ["verify", "kyc", "kyb", "cac", "verified"], introKey: "verification" },
 ];
 
@@ -178,6 +183,7 @@ const SHARED_NAV: Record<string, string> = {
   inbox: "inbox", "inbox-messages": "inbox", "inbox-partners": "inbox", "inbox-forms": "forms", "inbox-chat": "live-chat",
   "inbox-auto-replies": "auto-replies", "inbox-chatbot": "chatbot", "inbox-whatsapp-store": "whatsapp-store", "inbox-whatsapp-catalog": "whatsapp-catalog", "inbox-notifications": "notifications",
   reviews: "reviews", verification: "verification", cms: "content", analytics: "analytics", payouts: "payouts", wallet: "wallet",
+  contracts: "contracts",
 };
 
 export const NAV_TERMS: Record<GlossaryRole, Record<string, string>> = {
@@ -191,6 +197,7 @@ export const NAV_TERMS: Record<GlossaryRole, Record<string, string>> = {
     "your-store": "store-builder", editor: "store-builder", pages: "pages", navigation: "menus", blog: "content", checkout: "checkout", cart: "abandoned-carts", seo: "seo", legal: "legal-pages",
     "rex-studio": "studio", "studio-home": "studio", "studio-images": "studio", "studio-logo": "brand-kit", "brand-kit": "brand-kit", media: "media", templates: "themes", domain: "domain",
     marketing: "campaigns", "marketing-overview": "campaigns", campaigns: "campaigns", "seasonal-campaigns": "seasonal-campaigns", automations: "automations", "email-templates": "templates", "mkt-forms": "forms", "mkt-rewards": "rewards", "marketing-analytics": "analytics",
+    "social-posts": "social-posts", "social-calendar": "social-posts", "social-new": "social-posts", "social-designs": "studio", "social-accounts": "social-posts",
     ads: "ads", video: "video-studio", discounts: "discounts", affiliates: "affiliates", "sell-everywhere": "channels",
     money: "payments", payments: "payments", invoices: "invoices", taxes: "taxes",
     delivery: "logistics", "delivery-partners": "logistics", "delivery-my-partners": "logistics", "delivery-exceptions": "delivery-exceptions", "delivery-analytics": "analytics", "delivery-settings": "delivery-zones", shipping: "shipping-rates", labels: "labels",
@@ -199,7 +206,7 @@ export const NAV_TERMS: Record<GlossaryRole, Record<string, string>> = {
   supplier: {
     ...SHARED_NAV,
     orders: "fulfilment", "dropship-orders": "dropship", "wholesale-orders": "wholesale", "quote-requests": "quote-requests",
-    products: "white-label", buyers: "buyers", "buyers-all": "buyers", delivery: "logistics", agreements: "dropship-agreement",
+    products: "dropship", "products-import": "imports", buyers: "buyers", "buyers-all": "buyers", followers: "followers", delivery: "logistics", agreements: "dropship-agreement",
   },
   logistics_partner: {
     ...SHARED_NAV,
@@ -214,6 +221,7 @@ export const PLAIN_NAV = new Set([
   "start", "home", "dashboard", "products-all", "products-new",
   "settings", "settings-store", "settings-main", "profile", "company", "notification-prefs", "customise", "team",
   "labels-designs", "labels-packaging", "labels-studio", "labels-request", "labels-orders", "packaging-requests", "print-orders",
+  "social-posts", "social-calendar", "social-new", "social-designs", "social-accounts", "followers",
 ]);
 
 /** The glossary entry for a sidebar item, or null for plain words and unknown ids. */

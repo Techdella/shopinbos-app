@@ -6,6 +6,7 @@ import { Card, CardHead, EmptyState, Pill, PillLink, SplitLayout, type Tone } fr
 import { ShareBar, formatDate } from "@/components/growth/kit";
 import { RecalculateButton } from "./RecalculateButton";
 import { getLocale, getT } from "@/lib/i18n/server";
+import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -41,6 +42,7 @@ function record(value: unknown): Record<string, unknown> {
 
 export default async function StoreHealthPage() {
   const user = await requireRole(["seller"], "/login");
+  const tipT = await getT("tips");
   const t = await getT("home", "common");
   const locale = await getLocale();
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true } });
@@ -62,6 +64,7 @@ export default async function StoreHealthPage() {
       sub={t("health.sub")}
       actions={snapshot ? <RecalculateButton /> : undefined}
     >
+      <PageTip className="mb-5">{tipT("health")}</PageTip>
       {!snapshot ? (
         <EmptyState icon="pulse" title={t("health.noScore")} action={<RecalculateButton label={t("health.workOut")} tone="ink" />}>
           {t("health.emptySub")}

@@ -22,7 +22,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "templates.title": "Templates na themes",
   "delivery.title": "Ndị mmekọ delivery",
   "delivery-settings.title": "Delivery settings",
-  "supplier-products.title": "Ngwaahịa gị na white label",
+  "supplier-products.title": "Ngwaahịa gị na dropship",
   "supplier-orders.title": "Orders na fulfilment",
   "supplier-quotes.title": "Quote requests",
   "supplier-payouts.title": "Ego i nwetara na payouts",
@@ -51,7 +51,9 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "store-settings.title": "Settings",
   "supplier-home.title": "Dashboard Today gị",
   "supplier-delivery.title": "Delivery maka dropship orders",
+  "contracts.title": "Contracts",
   "supplier-agreements.title": "Dropship agreements",
+  "supplier-followers.title": "Ndị na-eso gị",
   "supplier-wholesale.title": "Wholesale orders",
   "supplier-buyers.title": "Buyers",
   "partner-home.title": "Dashboard Today gị",
@@ -69,6 +71,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "media.title": "Mgbasa",
   "seasonal-campaigns.title": "Campaigns oge ememe",
   "wallet.title": "Shopinbos Wallet",
+  "credits.title": "AI credits",
+  "business-registration.title": "Debanye azụmahịa gị",
 };
 
 export default ig;

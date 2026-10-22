@@ -3,8 +3,10 @@ import "server-only";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { PAID_ORDER_STATUSES } from "@/lib/insights";
+import { contactsInSegment, segmentRules } from "@/lib/marketing/contacts";
 import {
   CUSTOMERS_PAGE_SIZE,
+  customersInSegment,
   pageCount,
   searchPattern,
   vipRule,
@@ -14,7 +16,9 @@ import {
 
 // The customers list, worked out in Postgres: orders are grouped into customers (by email, else phone digits,
 // else name; the same key as customerKey in ./pure.ts) and counted, summed and sorted there, so a shop with
-// thousands of orders never loads them all. Only one page of customers comes back.
+// thousands of orders never loads them all. Only one page of customers comes back. A segment filter (?segment=)
+// is the exception: its rules run in memory over the marketing contacts, and the matching customer keys are
+// passed back into the query.
 
 /** The SQL twin of customerKey(): lowercase email, else the phone's digits, else "name:" + the name. */
 const KEY = Prisma.sql`COALESCE(NULLIF(lower(btrim("buyerEmail")), ''), NULLIF(regexp_replace(coalesce("buyerPhone", ''), '[^0-9]', '', 'g'), ''), 'name:' || lower(btrim("buyerName")))`;
@@ -94,7 +98,28 @@ export interface CustomerRow {
   lastAt: Date;
 }
 
-function filterSql(query: CustomerListQuery, vip: VipRule) {
+/**
+ * Keys of the store's customers who match a saved segment's rules (by email or phone), or [] when the segment
+ * isn't this store's. Members come from contactsInSegment; customers' emails and phones from their orders.
+ */
+export async function segmentCustomerKeys(storeId: string, segmentId: string): Promise<string[]> {
+  const rules = await segmentRules(storeId, segmentId);
+  if (!rules) return [];
+  const [members, customers] = await Promise.all([
+    contactsInSegment(storeId, rules),
+    db.$queryRaw<Array<{ key: string; emails: Array<string | null>; phones: Array<string | null> }>>`
+      SELECT ${KEY} AS key, array_agg(DISTINCT "buyerEmail") AS emails, array_agg(DISTINCT "buyerPhone") AS phones
+      FROM "RetailOrder" WHERE "storeId" = ${storeId} GROUP BY 1`,
+  ]);
+  return customersInSegment(customers, members);
+}
+
+function filterSql(query: CustomerListQuery, vip: VipRule, segmentKeys: string[] | null) {
+  const segment = segmentKeys ? Prisma.sql`AND key = ANY(${segmentKeys}::text[])` : Prisma.empty;
+  return Prisma.sql`${showSql(query, vip)} ${segment}`;
+}
+
+function showSql(query: CustomerListQuery, vip: VipRule) {
   switch (query.show) {
     case "new":
       return Prisma.sql`AND orders = 1`;
@@ -122,27 +147,31 @@ function orderSql(query: CustomerListQuery) {
 
 type RawRow = { key: string; orders: number; spent: number; first_at: Date; last_at: Date; name: string; email: string | null; phone: string | null; total: number };
 
-async function listPage(storeId: string, query: CustomerListQuery, vip: VipRule, page: number, size: number) {
+async function listPage(storeId: string, query: CustomerListQuery, vip: VipRule, segmentKeys: string[] | null, page: number, size: number) {
   return db.$queryRaw<RawRow[]>`
     WITH c AS (${grouped(storeId, query.q)})
     SELECT key, orders, spent, first_at, last_at, name, email, phone, (count(*) OVER ())::int AS total
     FROM c
-    WHERE hit ${filterSql(query, vip)}
+    WHERE hit ${filterSql(query, vip, segmentKeys)}
     ORDER BY ${orderSql(query)}
     LIMIT ${size} OFFSET ${(page - 1) * size}`;
 }
 
-/** One page of customers for the search, filter and sort in the URL. A page past the end shows the last page. */
+/**
+ * One page of customers for the search, filter, segment and sort in the URL. A page past the end shows the last
+ * page. A segment that isn't this store's matches nobody.
+ */
 export async function listCustomers(storeId: string, query: CustomerListQuery, vip: VipRule, size = CUSTOMERS_PAGE_SIZE) {
+  const segmentKeys = query.segment ? await segmentCustomerKeys(storeId, query.segment) : null;
   let page = query.page;
-  let rows = await listPage(storeId, query, vip, page, size);
+  let rows = await listPage(storeId, query, vip, segmentKeys, page, size);
   if (!rows.length && page > 1) {
     const counted = await db.$queryRaw<Array<{ total: number }>>`
       WITH c AS (${grouped(storeId, query.q)})
-      SELECT count(*)::int AS total FROM c WHERE hit ${filterSql(query, vip)}`;
+      SELECT count(*)::int AS total FROM c WHERE hit ${filterSql(query, vip, segmentKeys)}`;
     const total = Number(counted[0]?.total ?? 0);
     page = pageCount(total, size);
-    rows = total ? await listPage(storeId, query, vip, page, size) : [];
+    rows = total ? await listPage(storeId, query, vip, segmentKeys, page, size) : [];
   }
   const total = Number(rows[0]?.total ?? 0);
   const customers: CustomerRow[] = rows.map((r) => ({

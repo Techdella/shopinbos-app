@@ -22,7 +22,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "templates.title": "Templates and themes",
   "delivery.title": "Delivery partners",
   "delivery-settings.title": "Delivery settings",
-  "supplier-products.title": "Your products and white label",
+  "supplier-products.title": "Your products and dropship",
   "supplier-orders.title": "Orders and fulfilment",
   "supplier-quotes.title": "Quote requests",
   "supplier-payouts.title": "Earnings and payouts",
@@ -51,7 +51,9 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "store-settings.title": "Settings",
   "supplier-home.title": "Your Today dashboard",
   "supplier-delivery.title": "Delivery for dropship orders",
+  "contracts.title": "Contracts",
   "supplier-agreements.title": "Dropship agreements",
+  "supplier-followers.title": "Followers",
   "supplier-wholesale.title": "Wholesale orders",
   "supplier-buyers.title": "Buyers",
   "partner-home.title": "Your Today dashboard",
@@ -69,6 +71,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "media.title": "Media",
   "seasonal-campaigns.title": "Seasonal campaigns",
   "wallet.title": "Shopinbos Wallet",
+  "credits.title": "AI credits",
+  "business-registration.title": "Register your business",
 };
 
 export default pcm;

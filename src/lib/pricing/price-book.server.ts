@@ -116,10 +116,6 @@ export async function savePrices(input: Record<string, unknown>, by: { userId: s
     if (value === null) return { ok: false, error: `${PRICE_SETTINGS[key].label}: that value isn't allowed${rangeText(key)}.` };
     if (value !== current[key]) changes.push({ key, before: current[key], after: value });
   }
-  // The deposit can't be more than the launch fee after this save.
-  const price = (changes.find((change) => change.key === "launch.price")?.after ?? current["launch.price"]) as number;
-  const deposit = (changes.find((change) => change.key === "launch.deposit")?.after ?? current["launch.deposit"]) as number;
-  if (deposit > price) return { ok: false, error: "The deposit can't be more than the launch fee." };
   if (!changes.length) return { ok: true, changes };
 
   const note = by.note?.trim().slice(0, 500) || null;

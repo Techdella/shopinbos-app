@@ -11,6 +11,7 @@ import { formatMoney, formatNumber } from "@shared/i18n";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { pageWindow } from "@/lib/pagination";
 import { Pagination } from "@/components/seller/Pagination";
+import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +38,7 @@ export default async function OrdersPage({
 }) {
   const { filter: rawFilter, q: rawQuery, page: rawPage } = await searchParams;
   const user = await requireRole(["seller"], "/login");
+  const tipT = await getT("tips");
   const t = await getT("orders", "common");
   const locale = await getLocale();
   const naira = (amount: number) => formatMoney(Math.round(amount), locale);
@@ -112,6 +114,7 @@ export default async function OrdersPage({
         </>
       }
     >
+      <PageTip className="mb-5">{tipT("orders")}</PageTip>
       {totalOrders === 0 ? (
         <EmptyState
           icon="bag"

@@ -50,7 +50,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "detail.item": "Ohun",
   "detail.parcels": "Àwọn ẹrù",
   "detail.sentBySupplier": "Supplier ló fi ránṣẹ́",
-  "detail.dropshipSub": "Àwọn ọjà dropship máa ń lọ tààrà láti ọ̀dọ̀ supplier sí oníbàárà rẹ, ní orúkọ ṣọ́ọ̀bù rẹ.",
+  "detail.dropshipSub": "Àwọn ọjà dropship máa ń lọ tààrà láti ọ̀dọ̀ supplier sí oníbàárà rẹ, gẹ́gẹ́ bí order láti ṣọ́ọ̀bù rẹ.",
   "detail.waitingFor": "À ń dúró de {name} láti gbà á. Ṣé o fẹ́ yan fúnra rẹ?",
   "detail.undo": "Dá a padà",
   "detail.accepted": "{name} ti gbà á.",

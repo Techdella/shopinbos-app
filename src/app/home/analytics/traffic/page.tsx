@@ -16,6 +16,7 @@ import { getLocale, getT } from "@/lib/i18n/server";
 import { formatNumber, type TFunction } from "@shared/i18n";
 import type { MessageKey } from "@shared/i18n/catalog";
 import { TrafficChart } from "./TrafficChart";
+import { PageTip } from "@/components/learn/PageTip";
 
 // Store traffic (Analytics › Store traffic): visits, pages, sources, devices, places, shop searches and the product
 // funnel from the store's own first-party counters (src/lib/analytics/traffic.ts), plus Google Search numbers when
@@ -72,6 +73,7 @@ function duration(seconds: number | null, t: TrafficT) {
 
 export default async function TrafficPage({ searchParams }: { searchParams: Search }) {
   const user = await requireRole(["seller"], "/login");
+  const tipT = await getT("tips");
   const t: TrafficT = await getT("traffic", "analytics", "common");
   const locale = await getLocale();
   const n = (value: number) => formatNumber(value, locale);
@@ -143,6 +145,7 @@ export default async function TrafficPage({ searchParams }: { searchParams: Sear
       }
     >
       <div className="grid gap-5">
+        <PageTip>{tipT("traffic")}</PageTip>
         <div className="flex flex-wrap items-center gap-3">
           <FilterChips
             items={[

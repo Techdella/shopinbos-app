@@ -219,6 +219,8 @@ model User {
   debtsOwed              BusinessDebt[]          @relation("DebtDebtor")
   debtsOwedTo            BusinessDebt[]          @relation("DebtCreditor")
   supplierAgreements     SupplierAgreement[]     @relation("SellerAgreements")
+  contractsAsPartyA      Contract[]              @relation("ContractPartyA")
+  contractsAsPartyB      Contract[]              @relation("ContractPartyB")
   /// Paused from new business through Shopinbos for money owed and long overdue (src/lib/money-owed): a supplier is
   /// hidden from sellers looking for products, a delivery partner from sellers looking for delivery, and a seller
   /// can't list new supplier products or place wholesale orders. What they already have keeps working, so their
@@ -1209,6 +1211,11 @@ model LogisticsTeamMember {
   /// picked (en | pcm | yo | ha | ig). Both optional.
   plate              String?
   language           String?
+  /// Rider pay the partner set (src/lib/logistics/job-rules.ts riderPayFor): "per_drop" pays payRate naira for each
+  /// delivered job, "share" pays payRate percent of the partner's fee after the Shopinbos fee. Null: not set, so the
+  /// Riders app shows delivery fees instead of earnings.
+  payType            String?
+  payRate            Float?
   invitedAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
 
@@ -1303,6 +1310,9 @@ model DeliveryBooking {
   notes              String?
   /// Rider (a LogisticsTeamMember) the partner assigned the job to.
   riderId            String?
+  /// What the rider earned for this job, saved when it's delivered from the rider's pay at that moment, so later
+  /// pay changes never touch it. Null for jobs delivered without a rider or before the rider's pay was set.
+  riderPay           Float?
   pickedUpAt         DateTime?
   failedReason       String?
   /// 4-digit code the buyer gives the rider as proof of delivery.
@@ -2639,13 +2649,109 @@ model AiUsage {
 // card saved from a credit purchase is charged for autoPackId again when the balance can't cover a request.
 model AiCreditAccount {
   userId        String   @id
+  // Bought, bonus and refunded credits (the sum of the live AiCreditLot rows; each lot lasts 12 months).
   balance       Int      @default(0)
+  // The plan's monthly credits: refilled (not added to) at the start of each month, never carried over.
+  planCredits   Int      @default(0)
+  planPeriod    String? // "2026-10": the month planCredits were last filled for
+  planKey       String? // the plan they were filled for (an upgrade mid-month tops them up)
   autoTopUp     Boolean  @default(false)
   autoPackId    String?
   // Reusable Paystack card from a credit purchase the seller allowed to save (shape: domains/billing-pure).
   authorization Json?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+// Bought, bonus and refunded AI credits, each lasting 12 months. Spending takes the soonest to expire first; the
+// account's balance is the sum of the remaining credits of lots that haven't expired.
+model AiCreditLot {
+  id        String   @id @default(cuid())
+  userId    String
+  credits   Int // remaining
+  source    String // purchase | welcome | refund | legacy | grant
+  reference String? // the purchase reference, for purchases
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId, expiresAt])
+}
+
+// ─── Plan add-ons, boosts and team (October 2026 pricing, shared/plans.ts) ──────────────────────────────────────
+// docs/migrations/2026-11-16-plan-extras.sql
+
+// Add-ons and boosts bought through Paystack, credited once by reference (src/lib/plans/extras.server.ts). Staff
+// seats and boosts run from startsAt to endsAt; message packs add to MessageBalance. `included` rows are a plan's
+// own featured weeks (no payment).
+model PlanExtraPurchase {
+  reference  String    @id
+  userId     String
+  kind       String // staff_seat | sms_pack | whatsapp_pack | supplier_boost | logistics_boost | product_boost
+  quantity   Int       @default(1) // seats or packs; weeks for boosts
+  targetId   String? // product_boost: SupplierProduct.id; logistics_boost: the state
+  amountKobo Int
+  status     String    @default("pending") // pending | paid | failed
+  included   Boolean   @default(false)
+  startsAt   DateTime?
+  endsAt     DateTime?
+  error      String?
+  createdAt  DateTime  @default(now())
+  paidAt     DateTime?
+
+  @@index([userId, kind, status])
+  @@index([kind, status, endsAt])
+}
+
+// Messages Shopinbos sends for a seller through its own SMS/WhatsApp providers (src/lib/plans/messages.server.ts):
+// the plan's monthly messages used this month (`period` YYYY-MM, SMS and WhatsApp together), then pack messages.
+model MessageBalance {
+  userId    String   @id
+  sms       Int      @default(0)
+  whatsapp  Int      @default(0)
+  period    String?
+  used      Int      @default(0)
+  updatedAt DateTime @updatedAt
+}
+
+// People a seller lets into their store (Settings › Team). They sign in with their own account and work in the
+// owner's store; money settings, billing and the team stay with the owner (src/lib/staff/staff.server.ts).
+model StoreStaff {
+  id           String    @id @default(cuid())
+  storeId      String
+  ownerId      String
+  email        String
+  name         String
+  memberUserId String?
+  status       String    @default("invited") // invited | active | removed
+  token        String    @unique
+  invitedAt    DateTime  @default(now())
+  acceptedAt   DateTime?
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([storeId, email])
+  @@index([memberUserId, status])
+  @@index([ownerId])
+}
+
+// Sellers following a supplier; suppliers on Pro can send them updates (SupplierBroadcast).
+model SupplierFollow {
+  supplierId String
+  userId     String
+  createdAt  DateTime @default(now())
+
+  @@id([supplierId, userId])
+  @@index([userId])
+}
+
+model SupplierBroadcast {
+  id         String   @id @default(cuid())
+  supplierId String
+  title      String
+  body       String
+  recipients Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  @@index([supplierId, createdAt])
 }
 
 // One row per credit pack checkout or automatic top-up; a reference is credited once (status pending → paid).
@@ -2663,6 +2769,22 @@ model AiCreditPurchase {
   paidAt     DateTime?
 
   @@index([userId, createdAt])
+}
+
+// A single premium or platinum theme bought outright instead of upgrading the plan (src/lib/themes/purchase.server.ts).
+// A reference is paid once (status pending → paid); a paid row lets the seller use that theme on any plan.
+model ThemePurchase {
+  reference  String    @id
+  userId     String
+  themeId    String
+  tier       String // premium | platinum
+  amountKobo Int
+  status     String    @default("pending") // pending | paid | failed
+  error      String?
+  createdAt  DateTime  @default(now())
+  paidAt     DateTime?
+
+  @@index([userId, status])
 }
 
 // Saved Rex Studio and Peggy conversations, so a seller can pick one up again (src/lib/ai/chats.server.ts).
@@ -2871,9 +2993,36 @@ model PartnerWebhook {
   lastDeliveredAt    DateTime?
   createdAt          DateTime  @default(now())
 
-  logisticsPartner LogisticsPartner @relation(fields: [logisticsPartnerId], references: [id], onDelete: Cascade)
+  logisticsPartner LogisticsPartner         @relation(fields: [logisticsPartnerId], references: [id], onDelete: Cascade)
+  deliveries       PartnerWebhookDelivery[]
 
   @@index([logisticsPartnerId])
+}
+
+/// Retry queue for partner webhooks (src/lib/logistics/webhooks.ts). One row per event per webhook, saved before the
+/// first attempt. A delivery still failing after its in-request retries waits for /api/cron/partner-webhooks, which
+/// tries again with a growing gap (WEBHOOK_QUEUE_DELAYS_MS) and gives up after the last one. The body (and so the
+/// event id) never changes between attempts; only the signature's timestamp does.
+model PartnerWebhookDelivery {
+  id            String    @id @default(cuid())
+  webhookId     String
+  event         String
+  body          String
+  /// Delivery rounds done: the in-request round (first try plus quick retries) counts as 1, each queue retry as 1 more.
+  attempts      Int       @default(0)
+  lastStatus    Int?
+  /// When the queue should try next. Null once delivered or given up.
+  nextAttemptAt DateTime?
+  deliveredAt   DateTime?
+  /// Given up: still failing after the last queue retry, or the webhook was switched off.
+  failedAt      DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  webhook PartnerWebhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@index([nextAttemptAt])
+  @@index([webhookId, createdAt])
 }
 
 // ---- inbox (agent E) ----
@@ -4091,6 +4240,97 @@ model SupplierAgreement {
   @@index([supplierId, status])
 }
 
+// ─── Contracts ────────────────────────────────────────────────────────────────
+// Signed documents between two businesses (shared/contracts.ts, src/lib/contracts/contracts.server.ts): the
+// Dropship agreement (shop and supplier, one per SupplierAgreement request) and the Delivery service agreement
+// (shop or supplier and a delivery partner, one per DeliveryConnection). Party A is the side that starts it (the
+// shop or business), party B the supplier or delivery partner. The document is frozen at the first signature and
+// hashed. Each side sees its copy under Contracts; the admin team can only open one while a dispute is open, and
+// every opening is a ContractEvent both sides are told about. Parties are kept as text too, so the record
+// survives an account being closed.
+
+model Contract {
+  id                   String    @id @default(cuid())
+  /// dropship | delivery
+  kind                 String
+  version              String
+  title                String
+  /// The ContractDocument both sides read and signed (frozen).
+  body                 Json
+  /// SHA-256 of the canonical JSON of body.
+  bodyHash             String
+  /// awaiting | signed | declined | ended
+  status               String    @default("awaiting")
+  supplierAgreementId  String?
+  deliveryConnectionId String?
+
+  partyAUserId         String?
+  /// seller | supplier
+  partyARole           String
+  partyAName           String
+  partyASignedName     String
+  partyASignedAt       DateTime
+  /// The signer's own account (a team member signing for the business), and where they signed from.
+  partyASignerId       String?
+  partyAIp             String?
+  partyAUserAgent      String?
+
+  partyBUserId         String?
+  /// supplier | logistics_partner
+  partyBRole           String
+  partyBName           String
+  partyBSignedName     String?
+  partyBSignedAt       DateTime?
+  partyBSignerId       String?
+  partyBIp             String?
+  partyBUserAgent      String?
+
+  declinedAt           DateTime?
+  declineNote          String?
+  endedAt              DateTime?
+  /// none | open | closed
+  disputeStatus        String    @default("none")
+  disputeOpenedAt      DateTime?
+  /// a | b: which side raised it.
+  disputeOpenedBy      String?
+  disputeReason        String?
+  disputeClosedAt      DateTime?
+  disputeClosedNote    String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  partyA User?           @relation("ContractPartyA", fields: [partyAUserId], references: [id], onDelete: SetNull)
+  partyB User?           @relation("ContractPartyB", fields: [partyBUserId], references: [id], onDelete: SetNull)
+  events ContractEvent[]
+
+  @@index([partyAUserId, createdAt])
+  @@index([partyBUserId, createdAt])
+  @@index([supplierAgreementId])
+  @@index([deliveryConnectionId])
+  @@index([disputeStatus, updatedAt])
+}
+
+/// What happened to a contract: signed, declined, ended, dispute opened or closed, and each time the admin team
+/// opened it (with the reason). Both sides see this history on their copy.
+model ContractEvent {
+  id          String   @id @default(cuid())
+  contractId  String
+  /// signed | declined | ended | dispute_opened | dispute_closed | admin_opened
+  action      String
+  /// a | b | admin | system
+  actorSide   String
+  actorUserId String?
+  actorName   String?
+  note        String?
+  ip          String?
+  createdAt   DateTime @default(now())
+
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@index([contractId, createdAt])
+  @@index([actorUserId, action, createdAt])
+}
+
 // ─── Money owed between businesses ────────────────────────────────────────────
 // Money one business owes another (or Shopinbos) when something goes wrong in a flow Shopinbos facilitates: a
 // dropship order paid at checkout but never sent, goods that came back wrong or damaged, a parcel lost in transit,
@@ -4431,4 +4671,42 @@ model ScheduledPost {
   // The live database already has an unrelated, empty "ScheduledPost" table from an older design; this one lives
   // in "PlannedPost" so the two never collide.
   @@map("PlannedPost")
+}
+
+// ─── Social posts (Marketing > Social posts) ────────────────────────────────
+// A post the seller plans on the calendar: one picture or video (a Rex design, a reel, a library or product photo),
+// prepared at the size the channels want (renderedUrl), one caption, the channels it goes to and when. Facebook
+// and Instagram post by themselves through the Page connected on the Social posts page; WhatsApp, TikTok and X
+// can't be posted to for the seller, so at the time the post is "ready" and they post it in one tap.
+// /api/cron/social-posts posts the due ones (src/lib/social-posts). docs/migrations/2026-11-16-social-posts.sql.
+model SocialPost {
+  id          String    @id @default(cuid())
+  storeId     String
+  userId      String
+  caption     String    @default("")
+  /// The picked picture or video as chosen; renderedUrl is the copy at the post's size (JPEG for pictures).
+  mediaUrl    String?
+  mediaKind   String? // image | video
+  renderedUrl String?
+  /// Where the media came from, for the "Rex designs" filters: rex | reel | library | product | upload
+  mediaSource String?
+  /// square | portrait | story | landscape (src/lib/social-posts/pure.ts POST_FORMATS)
+  format      String    @default("square")
+  /// cover (crop to fill) | fit (whole picture on a blurred backdrop)
+  fit         String    @default("cover")
+  /// facebook | instagram | whatsapp | tiktok | x
+  channels    String[]  @default([])
+  productId   String?
+  link        String?
+  /// draft | scheduled | publishing | posted | partial | failed
+  status      String    @default("draft")
+  scheduledAt DateTime?
+  postedAt    DateTime?
+  /// { [channel]: { status: posted | ready | shared | failed | waiting, id?, url?, error?, container?, at? } }
+  results     Json      @default("{}")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([storeId, scheduledAt])
+  @@index([status, scheduledAt])
 }

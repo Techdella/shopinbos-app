@@ -10,6 +10,7 @@ import { ActionNotice, PartnerPage, SubmitButton, inputClass, labelClass } from 
 import { NG_STATES, canonicalState } from "@shared/delivery-market";
 import { LgaAreaInput } from "@/components/delivery-market/LgaAreaInput";
 import { getT } from "@/lib/i18n/server";
+import { PageTip } from "@/components/learn/PageTip";
 
 // The partner's pickup points (logistics marketplace): places customers collect parcels from. Shops that offer
 // pickup points show the ones in the customer's state at checkout.
@@ -101,6 +102,7 @@ export default async function LogisticsPickupPointsPage({ searchParams }: { sear
   const defaultState = canonicalState(partner.city) ?? "";
   const offersPoints = partner.services.includes("pickup_point");
   const t = await getT("logistics", "delivery", "common");
+  const tipT = await getT("tips");
 
   return (
     <PartnerPage
@@ -109,6 +111,7 @@ export default async function LogisticsPickupPointsPage({ searchParams }: { sear
       sub={t("market.points.sub")}
       actions={<PillLink href="/logistics/rates" icon="coin">{t("market.rates.title")}</PillLink>}
     >
+      <PageTip who="rex" className="mb-5">{tipT("logistics.pickupPoints")}</PageTip>
       <ActionNotice saved={saved} error={error} savedText={t("market.points.saved")} />
       {!offersPoints && (
         <div className="mb-4">

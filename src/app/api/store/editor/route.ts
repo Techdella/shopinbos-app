@@ -20,6 +20,8 @@ import {
   updateDraftFromSnapshot,
   type StoreBrandSettingsLike,
 } from "@/lib/store-templates";
+import { checkThemeSwitch } from "@/lib/theme-access";
+import { loadSellerThemeAccess } from "@/lib/theme-access.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -162,6 +164,14 @@ export const PATCH = withSeller(async (req: NextRequest, { user }) => {
   let draft = resolveDraftSnapshot(brandSettings, fallbackDraft);
 
   if (body.snapshot && typeof body.snapshot === "object" && !Array.isArray(body.snapshot)) {
+    // A saved snapshot can't move the store onto a theme its plan doesn't include (switching goes through
+    // /api/store/templates/apply, which checks the same rule).
+    const nextThemeId = (body.snapshot as { templateId?: unknown }).templateId;
+    if (typeof nextThemeId === "string" && nextThemeId !== draft?.templateId) {
+      const themeAccess = await loadSellerThemeAccess(user.id);
+      const access = checkThemeSwitch(nextThemeId, themeAccess.tier, draft?.templateId, themeAccess.owned);
+      if (!access.ok) return NextResponse.json({ error: { code: "UPGRADE_REQUIRED", message: access.message } }, { status: 403 });
+    }
     nextSettings = updateDraftFromSnapshot(brandSettings, body.snapshot as never);
     draft = body.snapshot as never;
   } else if (Array.isArray(body.ops)) {

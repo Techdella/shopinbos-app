@@ -45,7 +45,7 @@ async function setupStatus(ctx: PeggyToolContext): Promise<ToolOutput> {
       paymentMethods: Object.fromEntries(Object.entries(overview.payments).map(([key, on]) => [METHOD_LABEL[key as PaymentMethodKey] ?? key, on ? "on" : "off"])),
       deliveryAreas: overview.zones.map((zone) => ({ name: zone.name, fee: naira(zone.fee), covers: zone.regions.length ? zone.regions.join(", ") : "everywhere else" })),
       storeLink: overview.store.url,
-      note: "You can change payment methods (setup_payment_methods) and delivery areas (setup_delivery_area). Payout bank, going live (a launch fee paid on Paystack), domain and products are done by the seller on /home/start or the linked screens.",
+      note: "You can change payment methods (setup_payment_methods) and delivery areas (setup_delivery_area). Payout bank, going live (free: the seller presses Publish), domain and products are done by the seller on /home/start or the linked screens.",
     }),
   };
 }

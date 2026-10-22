@@ -12,6 +12,7 @@ import { readBrandAssets } from "@shared/brand-assets";
 import { naira } from "@shared/onboarding";
 import { isPrintKind, isQrTarget } from "@shared/print-labels";
 import { PrintStudio } from "./PrintStudio";
+import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -24,6 +25,7 @@ export async function generateMetadata(): Promise<Metadata> {
 // ?kind=&products=id,id&headline=&note=&qr=&copies=
 export default async function PrintStudioPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const user = await requireRole(["seller"], "/login");
+  const tipT = await getT("tips");
   const t = await getT("orders");
   const query = await searchParams;
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, customDomain: true, logoUrl: true, brandSettings: true, status: true } });
@@ -49,6 +51,7 @@ export default async function PrintStudioPage({ searchParams }: { searchParams: 
       sub={t("ps.sub")}
       actions={<PillLink href="/home/labels" icon="truck">{t("ps.shipping")}</PillLink>}
     >
+      <PageTip className="mb-5">{tipT("labels.studio")}</PageTip>
       <PrintStudio
         store={
           store

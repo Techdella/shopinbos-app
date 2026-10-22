@@ -74,6 +74,10 @@ test("payment paths create supplier orders, and a replayed webhook stays safe", 
   assert.match(read("src/app/actions/payments.ts"), /ensureSupplierOrdersSafely\(orderId\)/);
   assert.match(read("src/lib/orders/update-status.ts"), /ensureSupplierOrdersSafely\(order\.id\)/);
   assert.match(read("src/app/api/public/store/[slug]/checkout/route.ts"), /paymentMethod === "pay_on_delivery"\) await ensureSupplierOrdersSafely/);
+  // A sale the seller records (WhatsApp, Instagram) that needs delivering goes to its suppliers too.
+  assert.match(read("src/lib/orders/record-sale.ts"), /if \(input\.delivery === "deliver"\) await ensureSupplierOrdersSafely\(order\.id\)/);
+  // The supplier's WhatsApp/SMS is awaited, never fire-and-forget.
+  for (const path of ["src/lib/supplier-orders/service.server.ts", "src/lib/supplier-orders/switch.server.ts", "src/lib/supplier-orders/wholesale.server.ts"]) assert.doesNotMatch(read(path), /void messageSupplierPhone/, path);
 });
 
 // ─── Moving orders ────────────────────────────────────────────────────────────
@@ -144,7 +148,7 @@ test("wholesale never fakes a payment", () => {
   const detail = read("src/app/marketplace/_components/ProductDetail.tsx");
   assert.match(detail, /\/api\/app\/wholesale\/request/);
   assert.match(detail, /t\("pd\.noPay"\)/);
-  assert.match(read("shared/i18n/messages/marketplace/en.ts"), /"pd\.noPay": "You don't pay on Shopinbos\."/);
+  assert.match(read("shared/i18n/messages/marketplace/en.ts"), /"pd\.noPay": "You don't pay yet\."/);
   const service = read("src/lib/supplier-orders/wholesale.server.ts");
   assert.match(service, /tierPrice\(parsePricingTiers\(product\.pricingTiers\), input\.quantity, product\.wholesalePrice\)/);
   assert.match(service, /input\.quantity < moq/);
@@ -240,11 +244,12 @@ test("expiry is race-safe and protected like the other cron jobs", () => {
   assert.match(expiry, /releaseStock\(tx, holds\)/);
   assert.match(expiry, /paymentIssue: issue/, "a late payment with no stock is flagged for a refund");
   const route = read("src/app/api/cron/expire-orders/route.ts");
-  assert.match(route, /cronAuthorization\(req\.headers\.get\("authorization"\), secret\) !== "ok"/);
+  assert.match(route, /const denied = await cronDenied\(req\);\n  if \(denied\) return denied;/, "the cron secret or a signed QStash call");
   const cron = read("docs/migrations/2026-10-14-expire-orders-cron.sql");
   assert.match(cron, /-- select cron\.schedule\(/, "kept as a comment");
   assert.match(cron, /\*\/5 \* \* \* \*/);
-  assert.match(cron, /https:\/\/shopinbos-app\.vercel\.app\/api\/cron\/expire-orders/);
+  assert.match(cron, /https:\/\/app\.shopinbos\.com\/api\/cron\/expire-orders/);
+  assert.match(read("scripts/qstash-schedules.mjs"), /\{ id: "expire-orders", path: "\/api\/cron\/expire-orders", cron: "\*\/5 \* \* \* \*" \}/);
   assert.match(cron, /name = 'cron_secret'/);
   // Marking an order paid is conditional on it still being unpaid, everywhere.
   assert.match(read("src/lib/orders/update-status.ts"), /status: \{ in: \["pending", "awaiting_payment"\] \} \}, data: updateData/);

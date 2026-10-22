@@ -8,6 +8,7 @@ import { readCheckoutSettings } from "@shared/cart-checkout";
 import { storeTakesCards, storeTakesKorapay } from "@/lib/wallet/wallet.server";
 import { CheckoutSettings } from "./CheckoutSettings";
 import { getT } from "@/lib/i18n/server";
+import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,7 @@ export async function generateMetadata() {
 
 export default async function CheckoutPage() {
   const user = await requireRole(["seller"], "/login");
+  const tipT = await getT("tips");
   const t = await getT("payments", "orders");
   const store = await db.store.findUnique({
     where: { userId: user.id },
@@ -54,6 +56,7 @@ export default async function CheckoutPage() {
       sub={t("co.sub")}
       actions={store ? <PillLink href={buildDirectStorefrontPath(store.slug, "/checkout")} icon="eye">{t("co.see")}</PillLink> : undefined}
     >
+      <PageTip className="mb-5">{tipT("checkout")}</PageTip>
       <CheckoutSettings
         initial={readCheckoutSettings(store?.checkoutConfig ?? null)}
         products={products.map((product) => ({

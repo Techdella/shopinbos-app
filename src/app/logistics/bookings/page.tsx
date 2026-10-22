@@ -34,6 +34,7 @@ import {
   type LogisticsT,
 } from "@/components/logistics/kit";
 import { getT } from "@/lib/i18n/server";
+import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
 const PAGE_SIZE = 50;
@@ -66,6 +67,7 @@ export default async function LogisticsBookingsPage({ searchParams }: { searchPa
   const q = rawQ?.trim() || undefined;
   const filter = FILTERS.find((item) => item.key === status) ?? FILTERS[0];
   const t = await getT("logistics", "common");
+  const tipT = await getT("tips");
 
   const base: Prisma.DeliveryBookingWhereInput = { logisticsPartnerId: partner.id };
   const search: Prisma.DeliveryBookingWhereInput = q
@@ -130,6 +132,7 @@ export default async function LogisticsBookingsPage({ searchParams }: { searchPa
         </>
       }
     >
+      <PageTip who="peggy" className="mb-5">{tipT("logistics.bookings")}</PageTip>
       <ActionNotice saved={saved} error={error} savedText={t("jobs.updated")} />
 
       {bookings.length === 0 ? (

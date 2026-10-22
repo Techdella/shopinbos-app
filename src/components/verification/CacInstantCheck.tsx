@@ -22,6 +22,7 @@ export function CacInstantCheck({ apiPath, defaultName = "", cacDoc, onVerified 
   const ids = useId();
   const t = useT("verification");
   const [enabled, setEnabled] = useState<boolean | null>(null);
+  const [registrationOpen, setRegistrationOpen] = useState(false);
   const [name, setName] = useState(defaultName);
   const [number, setNumber] = useState("");
   const [type, setType] = useState<CacCompanyType | "">("");
@@ -32,7 +33,11 @@ export function CacInstantCheck({ apiPath, defaultName = "", cacDoc, onVerified 
     let alive = true;
     fetch(apiPath)
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => alive && setEnabled(Boolean(d?.data?.enabled)))
+      .then((d) => {
+        if (!alive) return;
+        setEnabled(Boolean(d?.data?.enabled));
+        setRegistrationOpen(Boolean(d?.data?.registrationOpen));
+      })
       .catch(() => alive && setEnabled(false));
     return () => { alive = false; };
   }, [apiPath]);
@@ -133,9 +138,11 @@ export function CacInstantCheck({ apiPath, defaultName = "", cacDoc, onVerified 
         {t("cac.check")}
       </PillButton>
       {missing && (name || number) ? <p className="mb-0 mt-2 text-[13px] text-app-ink-soft" aria-live="polite">{missing}</p> : null}
-      <p className="mb-0 mt-3 text-[13px] text-app-ink-soft">
-        <a href={apiPath.startsWith("/api/supplier") ? "/supplier/register-business" : "/logistics/register-business"} className="font-bold text-app-ink underline underline-offset-4">{t("cac.register")}</a>
-      </p>
+      {registrationOpen ? (
+        <p className="mb-0 mt-3 text-[13px] text-app-ink-soft">
+          <a href={apiPath.startsWith("/api/supplier") ? "/supplier/register-business" : "/logistics/register-business"} className="font-bold text-app-ink underline underline-offset-4">{t("cac.register")}</a>
+        </p>
+      ) : null}
     </section>
   );
 }

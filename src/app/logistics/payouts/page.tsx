@@ -6,6 +6,7 @@ import { EmptyState, ListCard, ListRow, StatGrid, StatTile } from "@/components/
 import { WalletStatusCard, walletReady } from "@/components/wallet/WalletStatusCard";
 import { ACTIVE_STATUSES, PartnerPage, Route, bookingNet, jobId, lagosDate, lagosStartOfToday, naira } from "@/components/logistics/kit";
 import { getT } from "@/lib/i18n/server";
+import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -17,6 +18,7 @@ export default async function LogisticsPayoutsPage() {
   const partner = await getLogisticsPartnerForUser(user);
   ensureLogisticsAccess(partner);
   const t = await getT("logistics", "common");
+  const tipT = await getT("tips");
 
   const startOfToday = lagosStartOfToday();
   const thirtyDaysAgo = new Date(startOfToday.getTime() - 29 * 24 * 60 * 60 * 1000);
@@ -54,6 +56,7 @@ export default async function LogisticsPayoutsPage() {
       title={t("earnings.title")}
       sub={(await walletReady(user.id)) ? "Delivery payments go straight to your bank through your Shopinbos Wallet." : t("earnings.addBank")}
     >
+      <PageTip who="peggy" className="mb-5">{tipT("logistics.payouts")}</PageTip>
       <StatGrid className="mb-5">
         <StatTile tone="card" label={t("today.earnedToday")} value={naira(sumNet(today))} hint={t("earnings.delivered", { count: today.length })} />
         <StatTile tone="card" label={t("earnings.last30")} value={naira(sumNet(lastThirty))} hint={t("earnings.delivered", { count: lastThirty.length })} />

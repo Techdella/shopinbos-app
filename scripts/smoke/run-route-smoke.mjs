@@ -185,12 +185,15 @@ const apiChecks = [
   ["/api/logistics/bookings", "logistics_partner"],
   supplier && [`/api/admin/suppliers/${supplier.id}/documents`, "admin"],
   logistics && [`/api/admin/logistics-partners/${logistics.id}/documents`, "admin"],
+  ["/api/admin/launches", "admin", true],
+  ["/api/business-registration", "seller", true],
 ].filter(Boolean);
 for (const [url, role, requireOk] of apiChecks) await check(url, role, results, requireOk);
 
 // Write flows for the seller growth tools: record a sale, creators, ads, the ad link and the video script.
-async function call(method, url, role, body, expect) {
-  const headers = { "content-type": "application/json", ...(role ? { authorization: `Bearer ${TOKENS[role]}` } : {}) };
+async function call(method, url, role, body, expect, { session = false } = {}) {
+  // session: also send the browser's session cookie, for routes that read the signed-in user from it.
+  const headers = { "content-type": "application/json", ...(role ? { authorization: `Bearer ${TOKENS[role]}` } : {}), ...(role && session ? { cookie: authCookie(TOKENS[role]) } : {}) };
   try {
     const res = await fetch(`${BASE_URL}${url}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body), redirect: "manual" });
     const json = res.headers.get("content-type")?.includes("json") ? await res.json().catch(() => null) : null;
@@ -202,6 +205,13 @@ async function call(method, url, role, body, expect) {
     return { status: 0 };
   }
 }
+
+// Admin › Launches: CAC registration stays off until switched on, and only admins can switch it.
+const registration = await call("GET", "/api/business-registration", "seller", undefined, [200], { session: true });
+if (registration.data?.enabled !== false) results.push({ url: "GET /api/business-registration", role: "seller", status: registration.status, ok: false, note: "CAC registration should be off until launched" });
+await call("POST", "/api/admin/launches", "seller", { feature: "business_registration", live: true }, [401, 403]);
+await call("POST", "/api/admin/launches", "admin", { feature: "business_registration", live: true }, [400]); // no CAC VAS key here
+await call("POST", "/api/business-registration/name-check", "seller", { proposedName: "Ada Fabrics Ventures", lineOfBusiness: "" }, [503], { session: true });
 
 const sale = await call("POST", "/api/app/orders", "seller", {
   buyerName: "Smoke Buyer", buyerPhone: "08031234567", items: [{ name: "Hand-made tote", price: 12000, quantity: 2 }],

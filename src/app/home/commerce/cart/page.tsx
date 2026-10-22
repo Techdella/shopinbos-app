@@ -10,6 +10,7 @@ import { formatMoney, formatNumber, formatRelative, type Locale } from "@shared/
 import { getLocale, getT } from "@/lib/i18n/server";
 import { pageWindow } from "@/lib/pagination";
 import { Pagination } from "@/components/seller/Pagination";
+import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +36,7 @@ function ago(date: Date, locale: Locale) {
 export default async function CommerceCartPage({ searchParams }: { searchParams?: Promise<{ page?: string }> }) {
   const { page: rawPage } = (await searchParams) ?? {};
   const user = await requireRole(["seller"], "/login");
+  const tipT = await getT("tips");
   const t = await getT("store");
   const locale = await getLocale();
   const naira = nairaFor(locale);
@@ -75,6 +77,7 @@ export default async function CommerceCartPage({ searchParams }: { searchParams?
       sub={t("cart.sub")}
       actions={store ? <PillLink href={buildDirectStorefrontPath(store.slug, "/cart")} icon="eye">{t("cart.seeBag")}</PillLink> : undefined}
     >
+      <PageTip className="mb-5">{tipT("cart")}</PageTip>
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
         <div className="grid min-w-0 content-start gap-5">
           <CartSettings initial={settings} />

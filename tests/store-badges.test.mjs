@@ -11,6 +11,8 @@ const rules = await import("../src/lib/store-badges.ts");
 const badges = await import("../shared/payment-badges.ts");
 const settings = await import("../src/lib/seller-settings-rules.ts");
 const { tFor, LOCALES } = await import("../shared/i18n/catalog.ts");
+const catalog = await import("../shared/plan-catalog.ts");
+const { planFeatureLines } = await import("../shared/plans.ts");
 
 const DAY = 86_400_000;
 const NOW = new Date("2026-10-14T09:00:00Z");
@@ -35,22 +37,41 @@ test("paid time: any plan with time left, cancelled ones until they run out", ()
 });
 
 test("badge: on for every store by default; only a seller on the Pro plan with paid time can turn it off", () => {
-  const paid = { planCode: "PLN_2gph11w3yd0250y", planStatus: "active", planPaidUntil: inDays(30) };
-  const proAnnual = { planCode: "PLN_9gma70ofldhbj4r", planStatus: "active", planPaidUntil: inDays(300) };
-  const growth = { planCode: "PLN_8ou289e71czicvm", planStatus: "active", planPaidUntil: inDays(30) };
-  const growthAnnual = { planCode: "PLN_q1k3ssxpx7rxxuz", planStatus: "active", planPaidUntil: inDays(300) };
-  assert.equal(rules.canHideShopinbosBadge(proAnnual, NOW), true, "Pro annual");
-  assert.equal(rules.canHideShopinbosBadge(growth, NOW), false, "Growth can't");
-  assert.equal(rules.canHideShopinbosBadge(growthAnnual, NOW), false, "Growth annual can't");
-  assert.equal(rules.showsShopinbosBadge(growth, NOW, { hideShopinbosBadge: true }), true, "Growth keeps the badge even if turned off");
-  assert.equal(rules.canHideShopinbosBadge({ planStatus: "active", planPaidUntil: inDays(30) }, NOW), false, "no plan code");
-  const free = { planStatus: null, planPaidUntil: null };
-  assert.equal(rules.showsShopinbosBadge(paid, NOW, {}), true, "paid, default on");
-  assert.equal(rules.showsShopinbosBadge(paid, NOW, { hideShopinbosBadge: true }), false, "paid, turned off");
-  assert.equal(rules.showsShopinbosBadge(free, NOW, { hideShopinbosBadge: true }), true, "free can't turn it off");
-  assert.equal(rules.showsShopinbosBadge({ planCode: "PLN_2gph11w3yd0250y", planStatus: "active", planPaidUntil: inDays(-1) }, NOW, { hideShopinbosBadge: true }), true, "comes back when the plan ends");
-  assert.equal(rules.canHideShopinbosBadge(paid, NOW), true);
-  assert.equal(rules.canHideShopinbosBadge(free, NOW), false);
+  // Since the October 2026 pricing the built-in Paystack codes are Starter and Growth (the old Growth and Seller Pro);
+  // Pro codes are created from Admin › Pricing › Plans and registered when the server loads the catalog.
+  catalog.registerPlanVersions([
+    ...catalog.BUILTIN_PLAN_VERSIONS,
+    { code: "PLN_testpromonthly", tier: "seller_pro", billing: "monthly", amountNgn: 40000, current: true },
+    { code: "PLN_testproannual", tier: "seller_pro", billing: "annual", amountNgn: 400000, current: true },
+  ]);
+  try {
+    const paid = { planCode: "PLN_testpromonthly", planStatus: "active", planPaidUntil: inDays(30) };
+    const proAnnual = { planCode: "PLN_testproannual", planStatus: "active", planPaidUntil: inDays(300) };
+    const growth = { planCode: "PLN_2gph11w3yd0250y", planStatus: "active", planPaidUntil: inDays(30) };
+    const growthAnnual = { planCode: "PLN_9gma70ofldhbj4r", planStatus: "active", planPaidUntil: inDays(300) };
+    const starter = { planCode: "PLN_8ou289e71czicvm", planStatus: "active", planPaidUntil: inDays(30) };
+    const starterAnnual = { planCode: "PLN_q1k3ssxpx7rxxuz", planStatus: "active", planPaidUntil: inDays(300) };
+    assert.equal(rules.canHideShopinbosBadge(proAnnual, NOW), true, "Pro annual");
+    assert.equal(rules.canHideShopinbosBadge(growth, NOW), false, "Growth can't (the old Seller Pro monthly code)");
+    assert.equal(rules.canHideShopinbosBadge(growthAnnual, NOW), false, "Growth annual can't (the old Seller Pro annual code)");
+    assert.equal(rules.canHideShopinbosBadge(starter, NOW), false, "Starter can't");
+    assert.equal(rules.canHideShopinbosBadge(starterAnnual, NOW), false, "Starter annual can't");
+    assert.equal(rules.showsShopinbosBadge(growth, NOW, { hideShopinbosBadge: true }), true, "Growth keeps the badge even if turned off");
+    assert.equal(rules.canHideShopinbosBadge({ planStatus: "active", planPaidUntil: inDays(30) }, NOW), false, "no plan code");
+    const free = { planStatus: null, planPaidUntil: null };
+    assert.equal(rules.showsShopinbosBadge(paid, NOW, {}), true, "paid, default on");
+    assert.equal(rules.showsShopinbosBadge(paid, NOW, { hideShopinbosBadge: true }), false, "paid, turned off");
+    assert.equal(rules.showsShopinbosBadge(free, NOW, { hideShopinbosBadge: true }), true, "free can't turn it off");
+    assert.equal(rules.showsShopinbosBadge({ planCode: "PLN_testpromonthly", planStatus: "active", planPaidUntil: inDays(-1) }, NOW, { hideShopinbosBadge: true }), true, "comes back when the plan ends");
+    assert.equal(rules.canHideShopinbosBadge(paid, NOW), true);
+    assert.equal(rules.canHideShopinbosBadge(free, NOW), false);
+  } finally {
+    catalog.registerPlanVersions([]);
+  }
+  // Without the admin-created Pro codes loaded, no built-in code can hide it.
+  for (const version of catalog.BUILTIN_PLAN_VERSIONS) {
+    assert.equal(rules.canHideShopinbosBadge({ planCode: version.code, planStatus: "active", planPaidUntil: inDays(30) }, NOW), false, version.code);
+  }
 });
 
 test("badge link: app sign-up tagged with the store, new tab, noopener", () => {
@@ -130,14 +151,19 @@ test("badges render in every storefront footer and the checkout, not in the buil
 });
 
 test("words: every new key in all five languages", () => {
-  const keys = { payments: ["badges.title", "badges.sub", "badges.preview", "badges.none", "badges.reset", "badges.saved", "badge.transfer", "badge.cod", "err.badges", "plan.noBadge"], m_settings: ["money.badgesTitle", "money.badgesHint", "money.badgesNone", "money.badgesReset", "money.badBadges", "money.badge.transfer", "money.badge.cod"] };
+  const keys = { payments: ["badges.title", "badges.sub", "badges.preview", "badges.none", "badges.reset", "badges.saved", "badge.transfer", "badge.cod", "err.badges", "plans.f.seller.noBadge"], m_settings: ["money.badgesTitle", "money.badgesHint", "money.badgesNone", "money.badgesReset", "money.badBadges", "money.badge.transfer", "money.badge.cod"] };
   for (const locale of LOCALES) {
     for (const [ns, list] of Object.entries(keys)) {
       const t = tFor(locale, ns);
       for (const key of list) assert.notEqual(t(key), key, `${locale} ${ns}.${key}`);
     }
   }
-  assert.match(read("src/components/payments/SellerBillingSection.tsx"), /t\("plan\.noBadge"\)/);
+  // The plan cards (src/components/payments/PlanPicker.tsx) list each plan's features from shared/plans.ts: only Pro
+  // lists hiding the badge.
+  assert.match(read("src/components/payments/PlanPicker.tsx"), /planFeatureLines\(key\)\.map[\s\S]*t\.dynamic\(`plans\.f\.\$\{role\}\.\$\{line\.id\}`/);
+  const hidesBadge = (key) => planFeatureLines(key).some((line) => line.id === "noBadge" && line.included);
+  assert.equal(hidesBadge("seller_pro"), true, "Pro lists it");
+  for (const key of ["seller_free", "seller_starter", "seller_growth"]) assert.equal(hidesBadge(key), false, key);
 });
 
 test("payment logos: only the ways the store really takes payment can be shown or tapped", () => {

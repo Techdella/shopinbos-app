@@ -1,5 +1,6 @@
 "use client";
 
+import { withMenuColors, type MenuColorSet } from "@/lib/storefront/menu";
 import type React from "react";
 import { Icon } from "@/components/ui/Icon";
 import type { StorefrontShopperInfo } from "@/lib/storefront/shopper-info";
@@ -60,14 +61,19 @@ export function headerBackground(look: BoutiqueLook, bold: boolean) {
   return bold ? look.tokens.ink : look.headerBg;
 }
 
-function Logo({ store, logoText, look, onHome, centred, bold }: { store: ChromeStore; logoText: string; look: BoutiqueLook; onHome: () => void; centred?: boolean; bold?: boolean }) {
+/** "Search bar" headers (layout "market" or "market-dark"): which one the header section asks for, or null. */
+export function marketHeaderOf(layout: unknown): "light" | "dark" | null {
+  return layout === "market" ? "light" : layout === "market-dark" ? "dark" : null;
+}
+
+function Logo({ store, logoText, look, onHome, centred, bold, onInk }: { store: ChromeStore; logoText: string; look: BoutiqueLook; onHome: () => void; centred?: boolean; bold?: boolean; onInk?: boolean }) {
   return (
     <button type="button" onClick={onHome} className={`flex min-w-0 items-center gap-2.5 border-0 bg-transparent p-0 ${centred ? "justify-center" : ""}`} style={{ color: "inherit", cursor: "pointer" }} aria-label={`${store.name} home`}>
       <StoreBrandMark
         store={store}
-        background={headerBackground(look, Boolean(bold))}
+        background={headerBackground(look, Boolean(bold || onInk))}
         under={look.tokens.paperBg}
-        dark={bold || look.dark}
+        dark={bold || onInk || look.dark}
         name={logoText}
         nameClassName={bold ? "text-[24px] leading-none @3xl:text-[28px]" : "text-[22px] leading-none @3xl:text-[24px]"}
         nameStyle={{ fontFamily: look.logoFont, ...look.logoStyle, ...(bold ? { fontWeight: 800, textTransform: "uppercase", letterSpacing: "-0.02em", fontStyle: "normal" } : null) }}
@@ -82,6 +88,7 @@ export function BoutiqueHeader({
   look,
   menu,
   menuStyle = "classic",
+  menuColors: ownMenuColors = null,
   mobileMenu = "drawer",
   mobileItems,
   mobileExtra,
@@ -95,6 +102,9 @@ export function BoutiqueHeader({
   cartLabel,
   centred,
   bold = false,
+  sidebar = false,
+  market = null,
+  categoryBar,
 }: {
   store: ChromeStore;
   logoText: string;
@@ -102,6 +112,8 @@ export function BoutiqueHeader({
   /** The main menu, resolved (StoreMenu resolveMenu). */
   menu: ShownMenuItem[];
   menuStyle?: MenuStyle;
+  /** The menu's own colours (header settings `menuColors`), over the theme's. */
+  menuColors?: MenuColorSet | null;
   mobileMenu?: MobileMenuStyle;
   /** The phone menu's own items, resolved; absent: the phone shows the main menu. */
   mobileItems?: ShownMenuItem[];
@@ -119,9 +131,21 @@ export function BoutiqueHeader({
   centred: boolean;
   /** "Bold" header: an inverted bar (ink background) with a heavy uppercase shop name. */
   bold?: boolean;
+  /**
+   * "Sidebar" header: on wide screens the logo, menu and shop links run down a column on the left (the page puts
+   * it in the .bq-shell grid); phones keep the usual top bar.
+   */
+  sidebar?: boolean;
+  /**
+   * "Search bar" header (Ahịa, Wuta, Ike, Ẹ̀wù): the logo, a wide search box and the shop links on one row, the menu
+   * on a row below; "dark" puts the top row on the ink colour.
+   */
+  market?: "light" | "dark" | null;
+  /** Links shown in a dark strip under the header (the store's categories), or none. */
+  categoryBar?: ShownMenuItem[] | null;
 }) {
   const t = look.tokens;
-  const menuColors: MenuColors = { ink: bold ? t.paperBg : t.ink, muted: t.muted, accent: t.accent, accentText: look.onAccent, panel: look.dark ? look.raised : "#fff", panelInk: t.ink, border: t.border };
+  const menuColors: MenuColors = withMenuColors({ ink: bold ? t.paperBg : t.ink, muted: t.muted, accent: t.accent, accentText: look.onAccent, panel: look.dark ? look.raised : "#fff", panelInk: t.ink, border: t.border }, ownMenuColors);
   const nav = <StoreMenuBar items={menu} style={menuStyle} colors={menuColors} className="bq-nav-desktop" font={look.navStyle} />;
   const burger = (
     <StoreMenuButton
@@ -138,10 +162,12 @@ export function BoutiqueHeader({
     />
   );
 
+  // The top row of a dark search-bar header is drawn like the bold bar.
+  const inverted = bold || market === "dark";
   const tools = (
     <div className="flex items-center justify-end gap-1">
       {onSearch ? (
-        <button type="button" className="bq-icon-btn" onClick={onSearch} aria-label="Search products" aria-haspopup="dialog">
+        <button type="button" className={market ? "bq-icon-btn bq-only-narrow" : "bq-icon-btn"} onClick={onSearch} aria-label="Search products" aria-haspopup="dialog">
           <Icon name="search" size={19} />
         </button>
       ) : null}
@@ -156,7 +182,7 @@ export function BoutiqueHeader({
           type="button"
           onClick={onBag}
           className="ml-1 inline-flex h-10 items-center gap-2 rounded-full border px-3.5 text-[13.5px] font-semibold"
-          style={bold ? { borderColor: t.paperBg, color: t.ink, background: t.paperBg, cursor: "pointer" } : { borderColor: t.border, color: t.ink, background: look.dark ? "transparent" : "#fff", cursor: "pointer" }}
+          style={inverted ? { borderColor: t.paperBg, color: t.ink, background: t.paperBg, cursor: "pointer" } : { borderColor: t.border, color: t.ink, background: look.dark ? "transparent" : "#fff", cursor: "pointer" }}
           aria-label={`${cartLabel}, ${cartCount} ${cartCount === 1 ? "item" : "items"}`}
         >
           <span className="bq-only-wide" aria-hidden>{cartLabel}</span>
@@ -169,8 +195,98 @@ export function BoutiqueHeader({
     </div>
   );
 
+  const strip = categoryBar?.length ? (
+    <nav aria-label="Shop by category" className="border-t" style={{ background: t.ink, color: t.paperBg, borderColor: t.ink }}>
+      <ul className="bq-wrap m-0 flex list-none gap-6 overflow-x-auto py-2.5" style={{ scrollbarWidth: "none" }}>
+        {categoryBar.map((item) => (
+          <li key={item.id} className="shrink-0">
+            {item.href ? (
+              <a href={item.href} className="text-[12.5px] font-semibold uppercase" style={{ letterSpacing: "0.08em", opacity: 0.85 }}>{item.label}</a>
+            ) : (
+              <button type="button" onClick={item.onSelect} className="cursor-pointer border-0 bg-transparent p-0 text-[12.5px] font-semibold uppercase" style={{ color: "inherit", letterSpacing: "0.08em", opacity: 0.85 }}>{item.label}</button>
+            )}
+          </li>
+        ))}
+      </ul>
+    </nav>
+  ) : null;
+
+  const sideLink = (key: string, label: string, onSelect: (() => void) | undefined, icon: "bag" | "heart" | "search", count?: number) =>
+    onSelect ? (
+      <button key={key} type="button" onClick={onSelect} className="flex w-full cursor-pointer items-center gap-3 border-0 bg-transparent px-0 py-2 text-left text-[13px] font-semibold uppercase" style={{ color: t.ink, letterSpacing: "0.06em" }}>
+        <Icon name={icon} size={16} aria-hidden /> {label}{count !== undefined ? <span style={{ color: t.muted }}>({count})</span> : null}
+      </button>
+    ) : null;
+
+  const side = sidebar ? (
+    <aside className="bq-sidebar" style={{ background: look.headerBg, borderColor: t.border, color: t.ink }} aria-label="Store menu">
+      <div className="flex h-full flex-col gap-10 overflow-y-auto px-8 py-10">
+        <Logo store={store} logoText={logoText} look={look} onHome={onHome} />
+        <nav aria-label="Main">
+          <ul className="m-0 grid list-none gap-1 p-0">
+            {menu.map((item) => {
+              const style: React.CSSProperties = { ...look.navStyle, color: item.current ? t.accent : t.ink, fontWeight: item.current ? 700 : 500 };
+              const label = (
+                <span className="flex items-center gap-3">
+                  <span aria-hidden className="inline-block h-[2px] transition-all" style={{ width: item.current ? 22 : 0, background: t.accent }} />
+                  {item.label}
+                </span>
+              );
+              return (
+                <li key={item.id}>
+                  {item.href ? (
+                    <a href={item.href} target={item.newTab ? "_blank" : undefined} rel={item.newTab ? "noopener noreferrer" : undefined} aria-current={item.current ? "page" : undefined} className="block py-2 uppercase" style={{ ...style, letterSpacing: "0.08em", fontSize: 13 }}>{label}</a>
+                  ) : (
+                    <button type="button" onClick={item.onSelect} aria-current={item.current ? "page" : undefined} className="block w-full cursor-pointer border-0 bg-transparent px-0 py-2 text-left uppercase" style={{ ...style, letterSpacing: "0.08em", fontSize: 13 }}>{label}</button>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+        <div className="grid gap-0.5">
+          {sideLink("bag", cartLabel, onBag, "bag", cartCount)}
+          {sideLink("wishlist", "Wishlist", onWishlist, "heart", wishlistCount)}
+          {sideLink("search", "Search", onSearch, "search")}
+        </div>
+      </div>
+    </aside>
+  ) : null;
+
+  if (market) {
+    return (
+      <header className="sticky top-0 z-30 border-b" style={{ background: look.headerBg, borderColor: t.border, color: t.ink }}>
+        <div style={market === "dark" ? { background: t.ink, color: t.paperBg } : undefined}>
+          <div className="bq-wrap flex min-h-[72px] items-center justify-between gap-4 py-2">
+            <div className="flex min-w-0 shrink-0 items-center gap-1">
+              {burger}
+              <Logo store={store} logoText={logoText} look={look} onHome={onHome} onInk={market === "dark"} />
+            </div>
+            {onSearch ? (
+              <div className="bq-only-wide min-w-0 max-w-[640px] flex-1">
+                <button type="button" onClick={onSearch} aria-haspopup="dialog" className="flex h-11 w-full cursor-pointer items-stretch overflow-hidden border p-0 text-left" style={{ borderColor: market === "dark" ? "transparent" : t.border, background: "#FFFFFF", color: "#5A5A5A", borderRadius: Math.min(look.buttonRadius, 22) }}>
+                  <span className="flex shrink-0 items-center gap-1.5 border-r px-4 text-[13px] font-semibold" style={{ borderColor: "#E5E5E5", color: "#222" }}>All categories <Icon name="chevDown" size={13} aria-hidden /></span>
+                  <span className="flex min-w-0 flex-1 items-center truncate px-4 text-[14px]">Search for products</span>
+                  <span className="grid w-14 shrink-0 place-items-center" style={{ background: t.accent, color: look.onAccent }} aria-hidden><Icon name="search" size={18} /></span>
+                  <span className="sr-only">Search products</span>
+                </button>
+              </div>
+            ) : null}
+            {tools}
+          </div>
+        </div>
+        <div className="bq-only-wide border-t" style={{ borderColor: market === "dark" ? "transparent" : t.border }}>
+          <div className="bq-wrap flex min-h-[48px] items-center">{nav}</div>
+        </div>
+        {strip}
+      </header>
+    );
+  }
+
   return (
-    <header className="sticky top-0 z-30 border-b" style={bold ? { background: t.ink, borderColor: t.ink, color: t.paperBg } : { background: look.headerBg, borderColor: t.border, backdropFilter: "blur(10px)", color: t.ink }}>
+    <>
+    {side}
+    <header className={`sticky top-0 z-30 border-b${sidebar ? " bq-sidebar-top" : ""}`} style={bold ? { background: t.ink, borderColor: t.ink, color: t.paperBg } : { background: look.headerBg, borderColor: t.border, backdropFilter: "blur(10px)", color: t.ink }}>
       {centred ? (
         <div className="bq-wrap grid min-h-[68px] py-1.5 grid-cols-[1fr_auto_1fr] items-center gap-3">
           <div className="flex min-w-0 items-center">{burger}{nav}</div>
@@ -187,7 +303,9 @@ export function BoutiqueHeader({
           {tools}
         </div>
       )}
+      {strip}
     </header>
+    </>
   );
 }
 

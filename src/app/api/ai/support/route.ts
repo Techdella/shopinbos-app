@@ -4,6 +4,8 @@ import { withAuth } from "@/lib/auth/middleware";
 import { aiConfigured } from "@/lib/ai/client";
 import { aiText } from "@/lib/ai/text";
 import { meterAi } from "@/lib/ai/usage";
+import { PEGGY_FACTS } from "@/lib/support/peggy-knowledge";
+import { briefForUser, briefLines } from "@/lib/dashboard/partner-brief.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,9 +27,10 @@ What Shopinbos is: an AI commerce platform for African businesses. Sellers build
 
 Where things are (seller app):
 - Home dashboard: /home. Orders: /home/orders. Products: /products. Store pages: /home/pages. Blog/CMS: /home/cms. Brand kit: /home/brand-kit. Settings (store, payments, payouts, shipping): /home/settings.
-- Your store hub: /home/store. Build or redesign the store by chatting with Rex: Rex Studio at /studio. Advanced builder (sections, pages, themes): /seller/store/builder. Templates: /builder/templates. Publishing happens from Rex Studio or the advanced builder with "Publish"; the first launch has a one-time launch fee.
+- Your store hub: /home/store. Build or redesign the store by chatting with Rex: Rex Studio at /studio. "Build my whole store" there asks about the business, takes inspiration (links to stores the seller likes, screenshots, or a ready-made template) and builds every page with photos, using the free allowance first and then AI credits. Advanced builder (sections, pages, themes): /seller/store/builder. Templates: /builder/templates. Publishing happens from Rex Studio or the advanced builder with "Publish"; it is free, there is no launch fee.
 - Supplier marketplace (find products to sell, request quotes): /marketplace and /marketplace/suppliers. Logistics marketplace (find and book couriers): /marketplace/logistics; a seller's bookings are under /home/logistics. Payouts: /home/payouts. Shipping zones: /home/shipping. Customers: /home/customers. Marketing: /home/marketing.
-- Suppliers use /supplier (dashboard, products, orders, quote requests). Logistics partners use /logistics (dashboard, bookings, quotes, couriers).
+- Suppliers use /supplier: dashboard /supplier/dashboard, orders /supplier/orders (accept within the time shown, then send), products /supplier/products, quote requests /supplier/quote-requests, Dropship agreements /supplier/agreements, contracts /supplier/contracts, delivery /supplier/delivery, wallet /supplier/wallet, earnings /supplier/payouts, verification /supplier/verification, company profile and return policy /supplier/profile.
+- Delivery partners use /logistics: dashboard /logistics/dashboard, jobs /logistics/bookings, quote requests /logistics/quotes, riders /logistics/couriers, cash on delivery /logistics/cash, coverage /logistics/coverage, rate card /logistics/rates, pickup points /logistics/pickup-points, businesses that use them /logistics/connections, contracts /logistics/contracts, wallet /logistics/wallet, verification /logistics/verification.
 
 Rules:
 - If you are not sure a screen or feature exists, say so and suggest contacting the team rather than guessing.
@@ -54,7 +57,13 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     return NextResponse.json({ error: { code: "BAD_REQUEST", message: "Type a question first." } }, { status: 400 });
   }
 
-  const system = `${SUPPORT_SYSTEM}\n\nThe person is a ${user.role.replace("_", " ")}${user.name ? ` named ${user.name.split(" ")[0]}` : ""}${parsed.data.path ? ` and is on ${parsed.data.path}` : ""}.`;
+  // Suppliers and delivery partners: what needs doing on their account right now (shared/partner-brief.ts), so
+  // Peggy can point them at it, plus the facts about how Shopinbos works for every kind of account.
+  const brief = await briefForUser(user).catch(() => null);
+  const todo = brief
+    ? `\n\nWhat needs doing on their account right now (from their own numbers; bring up urgent items first when relevant, and link the screen):\n${[...briefLines(brief, "peggy"), ...briefLines(brief, "rex").map((line) => `[idea] ${line}`)].map((line) => `- ${line}`).join("\n") || "- Nothing waiting."}`
+    : "";
+  const system = `${SUPPORT_SYSTEM}\n\n${PEGGY_FACTS}\n\nThe person is a ${user.role.replace("_", " ")}${user.name ? ` named ${user.name.split(" ")[0]}` : ""}${parsed.data.path ? ` and is on ${parsed.data.path}` : ""}.${todo}`;
   const result = await aiText({ system, messages, fast: true, maxTokens: 3000 });
   if (!result) {
     return NextResponse.json(

@@ -1,7 +1,7 @@
 "use client";
 
 import { confirmDialog } from "@/components/ui/dialogs";
-import { useState, useTransition, type ReactNode } from "react";
+import { useEffect, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
 import { buttonClass, inputClass } from "@/components/growth/kit";
@@ -80,6 +80,19 @@ export function ConnectCard({
   const connectHref = `/api/app/sales-channels/${platform}/connect${next ? `?next=${encodeURIComponent(next)}` : ""}`;
   const working = pending || busy;
 
+  // While it's syncing (the WhatsApp catalog setting itself up after connecting), check again every 5 seconds for
+  // up to 3 minutes so the card turns Connected without a reload.
+  const syncing = state.kind === "syncing";
+  useEffect(() => {
+    if (!syncing) return;
+    const started = Date.now();
+    const timer = window.setInterval(() => {
+      if (Date.now() - started > 3 * 60 * 1000) window.clearInterval(timer);
+      else router.refresh();
+    }, 5000);
+    return () => window.clearInterval(timer);
+  }, [syncing, router]);
+
   function retry() {
     setError(null);
     startTransition(async () => {
@@ -89,7 +102,7 @@ export function ConnectCard({
   }
 
   async function disconnect() {
-    if (!(await confirmDialog(t(platform === "meta" ? "card.confirmMeta" : "card.confirm", { name })))) return;
+    if (!(await confirmDialog(t(platform === "meta" ? "card.confirmMeta" : platform === "whatsapp" ? "card.confirmWhatsapp" : "card.confirm", { name })))) return;
     startTransition(async () => {
       await disconnectAction(platform);
       router.refresh();
@@ -106,9 +119,12 @@ export function ConnectCard({
         const info = await runEmbeddedSignup(signup);
         const res = await fetch("/api/app/inbox/whatsapp", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "embedded_signup", ...info }) });
         if (!res.ok) throw new Error("signup");
-        result = await connectWhatsAppAction();
+        // The number is saved; the catalog and the WhatsApp store set themselves up on the server (the card shows
+        // Syncing… meanwhile), so no second setup from here.
+        return;
       }
-      if (!result.ok) setError(t("card.waFailed"));
+      // Number connected but no catalog permission: the card itself says so, so no red line.
+      if (!result.ok && !("permission" in result && result.permission)) setError(t("card.waFailed"));
     } catch (caught) {
       // Closing Facebook's window isn't a problem worth a red line.
       if (!(caught instanceof EmbeddedSignupError && caught.code === "closed")) setError(t("card.waFailed"));
@@ -132,7 +148,9 @@ export function ConnectCard({
   );
 
   // The accounts this card brought in, by name. Facebook & Instagram says plainly when Instagram didn't come along.
-  const linked = state.kind !== "connect" && state.kind !== "soon";
+  // Also shown on "Connect" when the inbox already has them (connected another way), so the card doesn't look empty.
+  const inboxHas = platform === "whatsapp" ? Boolean(accounts?.whatsapp) : platform === "meta" ? Boolean(accounts?.facebook) : false;
+  const linked = state.kind !== "soon" && (state.kind !== "connect" || inboxHas);
   const accountLines: ReactNode[] = [];
   if (linked && platform === "whatsapp" && accounts?.whatsapp) accountLines.push(<AccountLine key="wa" text={t("acc.whatsapp", { name: accounts.whatsapp })} />);
   if (linked && platform === "meta" && accounts) {
@@ -152,7 +170,15 @@ export function ConnectCard({
       body = <button type="button" disabled className={buttonClass("white", "md", "w-full")}>{t("card.soon")}</button>;
       break;
     case "connect":
-      body = connectButton(t("card.connect"));
+      // Accounts the inbox already has (listed above) can be disconnected from here too.
+      body = inboxHas ? (
+        <div className="grid gap-2">
+          {connectButton(t("card.connect"))}
+          {disconnectButton}
+        </div>
+      ) : (
+        connectButton(t("card.connect"))
+      );
       break;
     case "syncing":
       body = (
@@ -201,11 +227,11 @@ export function ConnectCard({
     case "needs_account": {
       const which = platform === "whatsapp" ? "meta" : platform;
       // Facebook & Instagram messages can be on already; only the products need the free business account.
-      const messagesOn = platform === "meta" && Boolean(accounts?.facebook);
+      const messagesOn = (platform === "meta" && Boolean(accounts?.facebook)) || (platform === "whatsapp" && Boolean(accounts?.whatsapp));
       body = (
         <div className="grid gap-2.5">
           {messagesOn && <span className="text-[14px] font-bold text-app-success" role="status">{t("card.connected")}</span>}
-          <p className="m-0 text-[14px]">{messagesOn ? t("card.needs.metaProducts") : t(`card.needs.${which}`)}</p>
+          <p className="m-0 text-[14px]">{messagesOn ? t(platform === "whatsapp" ? "card.needs.waProducts" : "card.needs.metaProducts") : t(`card.needs.${which}`)}</p>
           {accountUrl && (
             <a href={accountUrl} target="_blank" rel="noopener noreferrer" className={buttonClass("white", "sm")}>
               {t(`card.create.${which}`)}
@@ -248,7 +274,7 @@ function AccountLine({ text }: { text: string }) {
 }
 
 /** A platform we can't connect yet: greyed, "Coming soon", and "Tell me when it's ready" (saved per store). */
-export function SoonCard({ platform, name, noted }: { platform: ComingSoonPlatform; name: string; noted: boolean }) {
+export function SoonCard({ platform, name, noted, line }: { platform: ComingSoonPlatform; name: string; noted: boolean; line?: string }) {
   const t = useT("social");
   const [done, setDone] = useState(noted);
   const [pending, startTransition] = useTransition();
@@ -261,8 +287,9 @@ export function SoonCard({ platform, name, noted }: { platform: ComingSoonPlatfo
           <span className="mt-0.5 inline-flex whitespace-nowrap rounded-full bg-app-canvas px-2 py-0.5 text-[11px] font-bold text-app-ink-soft">{t("card.soon")}</span>
         </div>
       </div>
+      {line && <p className="m-0 text-[13px] leading-[1.45] text-app-ink-soft">{line}</p>}
       {platform === "tiktok" && (
-        <a href="/channels?tab=post&to=tiktok" className={buttonClass("ink", "sm", "mt-auto w-full px-2.5 text-[12.5px] leading-tight")}>{t("soon.postTiktok")}</a>
+        <a href="/home/marketing/social/new?to=tiktok" className={buttonClass("ink", "sm", "mt-auto w-full px-2.5 text-[12.5px] leading-tight")}>{t("soon.postTiktok")}</a>
       )}
       {done ? (
         <p className="m-0 mt-auto flex min-h-[40px] items-center gap-1.5 text-[13px] font-bold text-app-success" role="status">

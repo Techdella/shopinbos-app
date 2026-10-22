@@ -12,6 +12,7 @@ import { ImportForm } from "../_components/ImportForm";
 import { ReviewTabs, reviewSourceLabel, reviewsContext } from "../_components/shared";
 import { getLocale, getT } from "@/lib/i18n/server";
 import type { MessageKey } from "@shared/i18n/catalog";
+import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,7 @@ const GOOGLE_NOTICE: Record<string, { tone: "success" | "danger" | "warning"; te
 export default async function ReviewSourcesPage({ searchParams }: { searchParams?: Promise<{ google?: string; reason?: string }> }) {
   const sp = (await searchParams) ?? {};
   const { user, store } = await reviewsContext();
+  const tipT = await getT("tips");
   const t = await getT("reviews");
   const locale = await getLocale();
   const [connection, products, counts] = await Promise.all([
@@ -56,6 +58,7 @@ export default async function ReviewSourcesPage({ searchParams }: { searchParams
       actions={<PillLink href="/home/reviews" icon="arrowLeft">{t("tabs.all")}</PillLink>}
     >
       <ReviewTabs active="/home/reviews/sources" />
+      <PageTip className="mb-5">{tipT("reviews.sources")}</PageTip>
       {notice ? (
         <div role="status" className={`mb-5 rounded-[18px] px-4 py-3 text-[14px] ${notice.tone === "success" ? "bg-app-success-tint text-app-success" : notice.tone === "danger" ? "bg-app-danger-tint text-app-danger" : "bg-[#FDF0D5] text-[#8A5A00]"}`}>
           {t(notice.text)}{sp.reason ? ` ${sp.reason}` : ""}

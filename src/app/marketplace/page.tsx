@@ -1,4 +1,7 @@
 import { VISIBLE_SUPPLIER, nearbyForSeller } from "@/lib/marketplace/agreements.server";
+import { featuredFirst } from "@/lib/plans/placement";
+import { boostedProductIds } from "@/lib/plans/extras.server";
+import { PRODUCT_PLAN_FIRST } from "@/lib/plans/placement";
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/server-auth";
 import { safeQuery } from "@/lib/workspace";
@@ -62,7 +65,7 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
         supplier: { select: { id: true, userId: true, slug: true, displayName: true, city: true, address: true, rating: true, ratingCount: true, verificationStatus: true } },
         category: { select: { name: true } },
       },
-      orderBy: [{ trendScore: "desc" }, { createdAt: "desc" }],
+      orderBy: [PRODUCT_PLAN_FIRST, { trendScore: "desc" }, { createdAt: "desc" }],
       take: 300,
     }), []),
     safeQuery(() => db.storeProduct.findMany({ where: { storeId: store.id, supplierProductId: { not: null } }, select: { supplierProductId: true } }), []),
@@ -77,7 +80,9 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
   const legacyCategory = params.category ? categories.find((name) => name.toLowerCase() === params.category?.toLowerCase()) : undefined;
   const cat = categories.find((name) => name.toLowerCase() === (params.cat ?? "").toLowerCase()) ?? legacyCategory ?? "";
   const bySupplier = params.supplier && !sampleMode ? catalogue.filter((product) => product.supplier.slug === params.supplier) : catalogue;
-  const products = filterFindProducts(bySupplier, { q, category: cat });
+  // Boosted products this week come first (src/lib/plans/extras.server.ts).
+  const boosted = new Set(sampleMode ? [] : await boostedProductIds());
+  const products = featuredFirst(filterFindProducts(bySupplier, { q, category: cat }).map((product) => (boosted.has(product.id) ? { ...product, featured: true } : product)));
   const supplierName = params.supplier ? bySupplier[0]?.supplier.name : undefined;
 
   const insight = peggyInsight({

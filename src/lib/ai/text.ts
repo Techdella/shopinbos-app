@@ -29,6 +29,10 @@ export interface AiTextOptions {
   maxTokens?: number;
   /** Public image URLs shown to the model with the last user turn (a product photo). */
   images?: string[];
+  /** The provider to try first, whatever AI_PRIMARY_PROVIDER says (store building runs on Claude). */
+  prefer?: "anthropic" | "openai";
+  /** How long one attempt may take. Defaults: 30 seconds fast, a minute otherwise; a whole store build needs more. */
+  timeoutMs?: number;
 }
 
 export interface AiTextResult {
@@ -37,7 +41,7 @@ export interface AiTextResult {
 }
 
 // One writing call never holds a request for long: fast jobs get 30 seconds, others a minute, one retry.
-const requestOptions = (options: AiTextOptions) => ({ timeout: options.fast ? 30_000 : 60_000, maxRetries: 1 });
+const requestOptions = (options: AiTextOptions) => ({ timeout: options.timeoutMs ?? (options.fast ? 30_000 : 60_000), maxRetries: 1 });
 
 function turns(options: AiTextOptions): ChatTurn[] {
   if (options.messages?.length) return options.messages.filter((turn) => turn.content.trim());
@@ -57,14 +61,17 @@ function withImages(list: ChatTurn[], images: string[] | undefined, image: (url:
 async function viaAnthropic(options: AiTextOptions): Promise<string | null> {
   const anthropic = getAnthropicClient();
   if (!anthropic) return null;
-  const response = await anthropic.messages.create({
+  // Streamed and collected: long replies (a whole store) need a large max_tokens, which the SDK only allows streamed.
+  const response = await anthropic.messages.stream({
     model: options.fast ? CLAUDE_FAST_MODEL : PEGGY_CLAUDE_MODEL,
     max_tokens: options.maxTokens ?? 16000,
     ...(options.system ? { system: options.system } : {}),
     output_config: { effort: options.fast ? "low" : "medium" },
     messages: withImages(turns(options), options.images, (url) => ({ type: "image", source: { type: "url", url } }), (text) => ({ type: "text", text })) as Anthropic.MessageParam[],
-  }, requestOptions(options));
+  }, requestOptions(options)).finalMessage();
   if (response.stop_reason === "refusal") return null;
+  // A reply cut off at the limit is half a store or half a JSON object: try the other provider instead.
+  if (response.stop_reason === "max_tokens") throw new Error(`Claude ran out of room (max_tokens ${options.maxTokens ?? 16000})`);
   const text = response.content.map((block) => (block.type === "text" ? block.text : "")).join("").trim();
   return text || null;
 }
@@ -76,14 +83,16 @@ async function viaOpenAI(options: AiTextOptions): Promise<string | null> {
     model: PEGGY_OPENAI_MODEL,
     ...(options.system ? { instructions: options.system } : {}),
     input: withImages(turns(options), options.images, (url) => ({ type: "input_image", image_url: url, detail: "auto" }), (text) => ({ type: "input_text", text })) as OpenAI.Responses.ResponseInput,
-    max_output_tokens: options.maxTokens ?? 4000,
+    // OpenAI's chat models stop at about 16k output tokens.
+    max_output_tokens: Math.min(options.maxTokens ?? 4000, 16000),
   }, requestOptions(options));
+  if (response.status === "incomplete") throw new Error(`OpenAI stopped early (${response.incomplete_details?.reason ?? "incomplete"})`);
   return response.output_text?.trim() || null;
 }
 
 /** Text from the first provider that answers; null when none is configured or all fail. */
 export async function aiText(options: AiTextOptions): Promise<AiTextResult | null> {
-  for (const provider of providerOrder()) {
+  for (const provider of providerOrder(options.prefer)) {
     try {
       const text = provider === "anthropic" ? await viaAnthropic(options) : await viaOpenAI(options);
       if (text) return { text, provider };

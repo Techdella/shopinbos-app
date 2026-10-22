@@ -1,8 +1,10 @@
 import { NextRequest } from "next/server";
+import { payOnDeliveryAllowed, payOnDeliveryPlanName, sellingStatesProblem } from "@/lib/plans/gates.server";
 import { z } from "zod";
 import { withSeller } from "@/lib/auth/middleware";
 import { apiError, ok } from "@/lib/api/response";
 import { db } from "@/lib/db/client";
+import { mergePaymentMethods } from "@shared/onboarding";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +12,8 @@ export const dynamic = "force-dynamic";
 const ONBOARDING_SOURCE = "onboarding";
 
 const Body = z.object({
-  methods: z.object({ transfer: z.boolean(), card: z.boolean(), cod: z.boolean(), wa: z.boolean() }),
+  // Korapay is optional: the step may not show it, and a choice it doesn't send keeps what the seller saved.
+  methods: z.object({ transfer: z.boolean(), card: z.boolean(), korapay: z.boolean().optional(), cod: z.boolean(), wa: z.boolean() }),
   zones: z
     .array(
       z.object({
@@ -22,6 +25,9 @@ const Body = z.object({
     )
     .max(12),
 });
+
+// Pay on delivery a seller already had stays on after a downgrade.
+const savedCod = (paymentConfig: Record<string, unknown>) => (paymentConfig.methods as { cod?: unknown } | undefined)?.cod === true;
 
 // Saves the "Getting paid and delivering" onboarding step: payment preferences and flat delivery fees.
 // Zones created here are tagged so re-running the step replaces them instead of piling up duplicates.
@@ -41,12 +47,21 @@ export const PUT = withSeller(async (req: NextRequest, { user }) => {
   const previousOnboardingZones = existing
     .filter((zone) => Array.isArray(zone.rates) && zone.rates.some((rate) => (rate as { source?: string } | null)?.source === ONBOARDING_SOURCE))
     .map((zone) => zone.id);
+  const planProblem = await sellingStatesProblem(user.id, store.id, zones, previousOnboardingZones);
+  if (planProblem) return apiError("PLAN_LIMIT", planProblem, 402);
+  // Onboarding ticks pay on delivery by default; on plans without it, it's left off unless it's the only choice.
+  if (methods.cod && !savedCod(paymentConfig) && !(await payOnDeliveryAllowed(user.id))) {
+    if (!methods.transfer && !methods.card && !methods.wa) return apiError("PLAN_LIMIT", `Pay on delivery comes with the ${payOnDeliveryPlanName()} plan. Pick another way for customers to pay.`, 402);
+    methods.cod = false;
+  }
+  // Merged with the saved choices so a key this step doesn't send (Korapay, from the Money page) isn't wiped.
+  const saved = mergePaymentMethods(paymentConfig.methods, methods);
   const ordered = [...zones].sort((a, b) => (a.regions.length === 0 ? 1 : 0) - (b.regions.length === 0 ? 1 : 0) || a.priority - b.priority);
 
   await db.$transaction([
     db.store.update({
       where: { id: store.id },
-      data: { brandSettings: { ...settings, paymentConfig: { ...paymentConfig, methods } } },
+      data: { brandSettings: { ...settings, paymentConfig: { ...paymentConfig, methods: saved } } },
     }),
     db.shippingZone.deleteMany({ where: { id: { in: previousOnboardingZones } } }),
     ...ordered.map((zone, index) =>
@@ -64,5 +79,5 @@ export const PUT = withSeller(async (req: NextRequest, { user }) => {
     ),
   ]);
 
-  return ok({ methods, zones });
+  return ok({ methods: saved, zones });
 });

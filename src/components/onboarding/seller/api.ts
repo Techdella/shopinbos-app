@@ -10,7 +10,6 @@ export interface OnboardingStatus {
   ownerName: string;
   finished: boolean;
   memory: StoreOnboardingMemory | null;
-  launch: { status: string; totalNgn: number; depositNgn: number };
   productCount: number;
   checklist: Array<{ key: string; label: string; hint: string; href: string; done: boolean; manual: boolean }>;
 }
@@ -108,16 +107,6 @@ export function tickChecklist(key: string, done: boolean) {
 
 export function finishOnboarding(live: boolean) {
   return call("/api/app/store", json("PATCH", { firstDashboardVisitComplete: true, onboardingState: live ? "LIVE" : "INCOMPLETE" }), "Couldn't finish setup.");
-}
-
-export async function startLaunchPayment(option: "full" | "installment") {
-  const response = await fetch("/api/billing/store-launch/initialize", json("POST", { option, returnTo: "/onboarding/rex?step=live" }));
-  const body = (await response.json().catch(() => null)) as { data?: { authorizationUrl?: string }; error?: { code?: string; message?: string; blockers?: string[] } } | null;
-  if (response.status === 409) return { alreadyLive: true as const };
-  if (!response.ok || !body?.data?.authorizationUrl) {
-    throw new Error(body?.error?.blockers?.[0] ?? body?.error?.message ?? "Couldn't open Paystack.");
-  }
-  return { authorizationUrl: body.data.authorizationUrl };
 }
 
 // ── Rex store build ──────────────────────────────────────────────────────────

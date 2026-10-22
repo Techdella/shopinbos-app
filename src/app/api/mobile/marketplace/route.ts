@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { productLimitProblem } from "@/lib/plans/gates.server";
 import { z } from "zod";
 import { withSeller } from "@/lib/auth/middleware";
 import { apiError, ok } from "@/lib/api/response";
@@ -62,6 +63,8 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
 
   const retailPrice = clampSellingPrice(parsed.data.retailPrice ?? product.suggestedRetailPrice, product.wholesalePrice);
   const dropship = product.dropshipAvailable;
+  const planLimit = await productLimitProblem(user.id, store.id, 1, dropship);
+  if (planLimit) return apiError("PLAN_LIMIT", planLimit, 402);
   const storeProduct = await db.storeProduct.create({
     data: {
       storeId: store.id,

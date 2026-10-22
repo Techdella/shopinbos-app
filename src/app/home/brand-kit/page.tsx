@@ -14,6 +14,7 @@ import { Icon, type IconName } from "@/components/ui/Icon";
 import { BRAND_COLOURS, LINKED_TOKENS, headingFont, readStoreLook, toHex6 } from "../store/look";
 import { ColourSwatches, DownloadLogoButton, UploadLogoButton, VoiceNote } from "./BrandKitControls";
 import { getT } from "@/lib/i18n/server";
+import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +36,7 @@ const USED_ON: Array<{ icon: IconName; key: "store" | "labels" | "video" | "ads"
 
 export default async function BrandKitPage() {
   const user = await requireRole(["seller"], "/login");
+  const tipT = await getT("tips");
   const t = await getT("store", "common");
   const workspace = await getSellerWorkspace(user.id);
   const store = workspace?.store ?? null;
@@ -83,6 +85,7 @@ export default async function BrandKitPage() {
         </>
       }
     >
+      <PageTip className="mb-5">{tipT("brandKit")}</PageTip>
       <div className={BOUTIQUE_FONT_CLASS}>
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(340px,430px)]">
         <div className="grid min-w-0 content-start gap-5">

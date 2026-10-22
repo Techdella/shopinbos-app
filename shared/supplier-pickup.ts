@@ -330,14 +330,28 @@ function usable(partner: PartnerChoice | undefined | null): partner is PartnerCh
 }
 
 /**
- * Who collects a supplier's parcel: the shop's chosen delivery company, else the platform's default one
- * (SHOPINBOS_DEFAULT_DELIVERY_PARTNER_ID), else the most reliable company covering the area. Only active
- * ("taking new jobs") verified companies that cover the pickup area. Null: nobody covers it, the admin team finds one.
+ * Who collects a supplier's parcel: the shop's chosen delivery company, else one the supplier works with (their
+ * preferred one first, then the most reliable of the others; Supplier › Delivery partners), else the platform's
+ * default one (SHOPINBOS_DEFAULT_DELIVERY_PARTNER_ID), else the most reliable company covering the area. Only
+ * active ("taking new jobs") verified companies that cover the pickup area. Null: nobody covers it, the admin team
+ * finds one.
  */
-export function choosePickupPartner(input: { preferredId?: string | null; defaultId?: string | null; partners: PartnerChoice[]; area: { city?: string | null; state?: string | null } }): { id: string; why: "shop" | "default" | "best" } | null {
+export function choosePickupPartner(input: {
+  preferredId?: string | null;
+  /** The supplier's connected partners, their preferred one first. */
+  supplierPartnerIds?: readonly string[];
+  defaultId?: string | null;
+  partners: PartnerChoice[];
+  area: { city?: string | null; state?: string | null };
+}): { id: string; why: "shop" | "supplier" | "default" | "best" } | null {
   const byId = new Map(input.partners.map((partner) => [partner.id, partner]));
   const fits = (partner: PartnerChoice | undefined) => usable(partner) && partnerCovers(partner, input.area);
+  const rank = (a: PartnerChoice, b: PartnerChoice) => (b.reliabilityScore ?? 0) - (a.reliabilityScore ?? 0) || (b.rating ?? 0) - (a.rating ?? 0) || a.id.localeCompare(b.id);
   if (input.preferredId && fits(byId.get(input.preferredId))) return { id: input.preferredId, why: "shop" };
+  const [supplierFirst, ...supplierOthers] = input.supplierPartnerIds ?? [];
+  if (supplierFirst && fits(byId.get(supplierFirst))) return { id: supplierFirst, why: "supplier" };
+  const connected = supplierOthers.map((id) => byId.get(id)).filter((partner): partner is PartnerChoice => fits(partner)).sort(rank)[0];
+  if (connected) return { id: connected.id, why: "supplier" };
   if (input.defaultId && fits(byId.get(input.defaultId))) return { id: input.defaultId, why: "default" };
   const best = input.partners
     .filter(fits)
@@ -351,7 +365,7 @@ export interface PickupJobInput {
   kind: SupplierOrderKind;
   /** "DS-1A2B3C": what the supplier and rider call the parcel. */
   ref: string;
-  /** The label: the shop's name, never the supplier's. */
+  /** The delivery label's sender: the shop whose order it is, so the customer knows which shop it's from. */
   shopName: string;
   pickupAddress: string;
   dropoff: { name: string; phone?: string | null; lines: string[] };

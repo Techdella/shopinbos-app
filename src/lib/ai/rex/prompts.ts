@@ -1,6 +1,8 @@
 import "server-only";
 import { CHIP_SYSTEM_PROMPT, DEFAULT_STORE_CONFIG, type StoreConfig } from "@/lib/ai/client";
 import { getTemplateManifest, summarizeTemplateForAi } from "@/lib/store-templates";
+import { THEME_LIBRARY, themeLibraryEntry } from "@/lib/store-templates/theme-library";
+import { inspirationPrompt, type Inspiration } from "@/lib/ai/rex/inspiration";
 
 // System prompts shared by the streaming store builder (/api/ai/store-builder) and the one-shot
 // "build my store" path (/api/ai/build-store).
@@ -28,7 +30,7 @@ export interface TemplateContext {
   aiHints?: string[];
 }
 
-export const STORE_BUILDER_OUTPUT_CONTRACT = `Return a short conversational reply first, then end with exactly these two machine-readable blocks:
+export const STORE_BUILDER_OUTPUT_CONTRACT = `Return a short conversational reply first (under 120 words: what you built and the one or two things to tell you next; don't list every section, the preview shows them), then end with exactly these two machine-readable blocks:
 
 <store_config>
 {
@@ -49,7 +51,7 @@ export const STORE_BUILDER_OUTPUT_CONTRACT = `Return a short conversational repl
   "fontStyle": "fraunces",
   "navLinks": ["Products", "About", "FAQ", "Contact"],
   "products": [
-    {"name": "Product name", "subtitle": "Short descriptor", "price": "NGN 2500", "color": "#2E7E78"}
+    {"name": "Product name", "subtitle": "Short descriptor", "price": "₦2,500", "color": "#2E7E78"}
   ],
   "changed": ["name", "palette", "hero", "products"]
 }
@@ -112,7 +114,15 @@ export function storeBuilderSystemPrompt(args: {
   docNames?: string[];
 }) {
   const docs = args.docNames?.length ? `\n\nDocuments the seller attached (names only; you cannot read their contents): ${args.docNames.join(", ")}` : "";
-  return `${CHIP_SYSTEM_PROMPT}${brandLines(args.brandContext)}${templateLines(args.templateContext)}${currentStoreLines(args.currentStore)}${docs}\n\n${BUILD_RULES}\n\n${STORE_BUILDER_OUTPUT_CONTRACT}`;
+  // CHIP_SYSTEM_PROMPT carries its own (older) output example; the contract below is the one to follow, so the
+  // model doesn't get two different formats.
+  const base = CHIP_SYSTEM_PROMPT.replace(/Your response MUST end with exactly this format[\s\S]*?<\/chips>\s*/, "");
+  return `${base}${brandLines(args.brandContext)}${templateLines(args.templateContext)}${currentStoreLines(args.currentStore)}${docs}\n\n${BUILD_RULES}\n\n${STORE_BUILDER_OUTPUT_CONTRACT}`;
+}
+
+/** The library themes Rex may move a store onto when building from the seller's inspiration. */
+function themeChoiceLines() {
+  return `\n\nThemes you can build on (pick the one whose layout and mood best match the inspiration and the business, and return its id as "themeId"):\n${THEME_LIBRARY.map((theme) => `- "${theme.id}" ${theme.name}: ${theme.blurb} (${theme.industries.slice(0, 4).join(", ")})`).join("\n")}`;
 }
 
 /** System prompt for the one-shot build: JSON only. */
@@ -120,8 +130,12 @@ export function buildStoreJsonSystemPrompt(args: {
   brandContext?: BrandContext | null;
   templateContext?: TemplateContext | null;
   currentStore?: StoreConfig | null;
+  inspiration?: Inspiration | null;
+  /** Let Rex pick the library theme ("themeId") that suits the inspiration. */
+  chooseTheme?: boolean;
 }) {
-  return `You are Rex, the AI store builder for Shopinbos, building a complete online store for an African business from the seller's brief and conversation.${brandLines(args.brandContext)}${templateLines(args.templateContext)}${currentStoreLines(args.currentStore)}
+  const themeName = args.inspiration?.themeId ? themeLibraryEntry(args.inspiration.themeId)?.name ?? null : null;
+  return `You are Rex, the AI store builder for Shopinbos, building a complete online store for an African business from the seller's brief and conversation.${brandLines(args.brandContext)}${templateLines(args.templateContext)}${currentStoreLines(args.currentStore)}${inspirationPrompt(args.inspiration, themeName)}${args.chooseTheme ? themeChoiceLines() : ""}
 
 ${BUILD_RULES}
 
@@ -132,7 +146,9 @@ Reply with ONE JSON object only (no prose, no Markdown), with exactly these keys
  "products": [{"name": string, "subtitle": string, "price": "₦12,500", "color": "#RRGGBB"}],
  "changed": string[],
  "heroImagePrompt": "one sentence describing a photo (no words or logos in it) that suits the hero banner",
- "productImagePrompt": "one sentence describing a clean studio photo of the first product"}
+ "productImagePrompt": "one sentence describing a clean studio photo of the first product",
+ "storyImagePrompt": "one sentence describing a warm, real-feeling photo for the store's story section (people, place or craft, no words or logos)"${args.chooseTheme ? `,
+ "themeId": "one theme id from the list above"` : ""}}
 
 Use the seller's real business, products and location. Prices use the local currency symbol (₦ for Nigeria, GH₵ for Ghana, KSh for Kenya). heroBg/heroText and ctaBg/ctaText must contrast strongly; paperBg is a soft off-white.`;
 }
@@ -146,6 +162,8 @@ export interface RexStudioPromptInput {
   theme: { id: string; name: string };
   themes: Array<{ id: string; name: string; description: string }>;
   allowedKinds: string[];
+  /** The current theme is a 2026 (boutique) theme, so it reads fontPair, buttonShape, pageWidth and productRatio. */
+  boutique?: boolean;
   /** The draft as Rex should see it: pages, sections and their words. */
   draft: unknown;
   products: Array<{ name: string; price: string; hasPhoto: boolean }>;
@@ -188,10 +206,13 @@ Section kinds this theme can show: ${input.allowedKinds.join(", ")}.
 Reply with ONE JSON object only, no Markdown:
 {"reply": "1-3 short sentences in plain words explaining what you changed and why",
  "theme": null or a theme id to switch to,
- "tokens": null or {"heroBg","heroText","accent","ctaBg","ctaText","paperBg","cardBg","ink","muted","border": "#RRGGBB", "headingStyle": "serif"|"grotesk", "radius": "soft"|"rounded"|"sharp"} (only the ones you change),
+ "tokens": null or {"heroBg","heroText","accent","ctaBg","ctaText","paperBg","cardBg","ink","muted","border": "#RRGGBB", "headingStyle": "serif"|"grotesk", "radius": "soft"|"rounded"|"sharp", "fontPair": "theme"|"classic"|"modern"|"clean"|"bold", "buttonShape": "theme"|"square"|"rounded"|"pill", "pageWidth": "narrow"|"standard"|"wide", "productRatio": "theme"|"portrait"|"square"|"landscape"} (only the ones you change),
  "tokensSummary": "short past-tense line, e.g. Gold accents and serif headings",
+ "layout": null or a store layout for classic themes: "minimal-showcase"|"editorial-boutique"|"fashion-runway"|"food-market"|"home-living"|"electronics-grid"|"book-lifestyle"|"pet-lifestyle"|"marketplace-grid",
  "pages": [{"page": "about", "title": "About us", "metaTitle": "...", "metaDescription": "..."}] (to add a page or fix its search title/description),
  "ops": [{"action": "update"|"add"|"remove"|"hide"|"show", "page": "home", "kind": "hero-split", "sectionId": "optional id from the draft", "copy": {...}, "items": [...], "imageUrl": "https://...", "position": "top"|"bottom", "summary": "short past-tense line for the seller, e.g. Wrote the homepage in Pidgin"}]}
+
+Look choices: the draft's "style" shows what this theme reads. ${input.boutique ? `This is a 2026 theme: change fonts with "fontPair" (classic = serif headings and sans text, modern = grotesk headings, clean = all sans, bold = all grotesk, theme = the theme's own), button corners with "buttonShape", how wide pages run with "pageWidth" and product photo shape with "productRatio". "headingStyle", "radius" and "layout" don't apply here.` : `This is a classic theme: change heading fonts with "headingStyle", corners with "radius" and the whole store's layout with "layout". "fontPair", "buttonShape", "pageWidth" and "productRatio" don't apply here.`}
 
 Rules: change only what the seller asked; keep everything else. Write in the seller's language and voice (Nigerian Pidgin when asked). Keep headlines short. When you add a section always give it a title and body. Contrast must stay readable. If the request is a question or you can't do it here (products, prices, delivery fees, payments, domains), answer in "reply", leave ops empty, and say where in Shopinbos they can do it. Do not use emojis.`;
 }

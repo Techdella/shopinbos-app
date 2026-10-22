@@ -11,6 +11,7 @@ import { isMissingTable } from "@/lib/rate-limit-core";
 import { PRINT_ORDER_STATUS_LABEL, type PrintOrderStatus } from "@shared/print-orders";
 import { pageWindow } from "@/lib/pagination";
 import { Pagination } from "@/components/seller/Pagination";
+import { PageTip } from "@/components/learn/PageTip";
 
 const PAGE_SIZE = 30;
 
@@ -32,6 +33,7 @@ const STATUS_TONE: Record<string, string> = {
 // The seller's print orders: what they ordered, what it cost, where it is. ?paid= comes back from Paystack.
 export default async function PrintOrdersPage({ searchParams }: { searchParams: Promise<{ paid?: string; page?: string }> }) {
   const user = await requireRole(["seller"], "/login");
+  const tipT = await getT("tips");
   const t = await getT("packaging");
   const { paid, page } = await searchParams;
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true } });
@@ -50,6 +52,7 @@ export default async function PrintOrdersPage({ searchParams }: { searchParams: 
   return (
     <SellerPage user={user} store={storeSummary(store)} title={t("orders.title")} sub={t("orders.sub")} actions={<PillLink href="/home/labels/packaging" icon="package">{t("hub.packaging")}</PillLink>}>
       <div className="grid gap-4">
+        <PageTip>{tipT("labels.orders")}</PageTip>
         {paid === "paid" ? <Notice tone="success">{t("orders.paid")}</Notice> : paid === "pending" ? <Notice tone="info">{t("orders.pending")}</Notice> : paid === "failed" ? <Notice tone="error">{t("orders.failed")}</Notice> : null}
         {migrationNeeded ? <Notice tone="info">{t("hub.migration")}</Notice> : null}
         {orders.length ? (

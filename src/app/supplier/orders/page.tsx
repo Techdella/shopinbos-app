@@ -13,10 +13,11 @@ import { messagesHref } from "@/lib/conversations/pure";
 import { SELLER_CANCEL_PREFIX, wholesaleActions, type SupplierAction } from "@/lib/supplier-orders/pure";
 import { listDropshipOrders, pickupSummaries, type DropshipView } from "@/lib/supplier-orders/views.server";
 import { AcceptCountdown } from "@/components/supplier/AcceptCountdown";
+import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
 
-// The supplier's orders: dropship orders (shops' store orders they ship in the shop's name, SupplierOrder) and
+// The supplier's orders: dropship orders (shops' store orders they send straight to the shop's customer, SupplierOrder) and
 // wholesale orders (shops buying stock, WholesaleOrder). Accept, ship with a tracking code, mark delivered or
 // decline with a reason (src/app/actions/supplier.ts → src/lib/supplier-orders).
 // Orders are grouped New, To pack and Sent; each new order shows "You get ₦X" and one big Accept.
@@ -235,6 +236,7 @@ export default async function SupplierOrdersPage({ searchParams }: PageProps) {
   const supplier = await getSupplierForUser(user);
   ensureSupplierAccess(supplier);
   const t = await getT("supplier", "common");
+  const tipT = await getT("tips");
 
   const statusKey = params.status ? LEGACY_FILTER[params.status] ?? params.status : undefined;
   const filter = FILTERS.find((item) => item.key === statusKey);
@@ -360,6 +362,7 @@ export default async function SupplierOrdersPage({ searchParams }: PageProps) {
         </>
       }
     >
+      <PageTip who="rex" className="mb-5">{tipT(kind === "wholesale" ? "supplier.wholesale" : "supplier.orders")}</PageTip>
       {(params.error || params.saved) && (
         <div className="mb-4">
           <Notice tone={params.error ? "error" : "success"}>{params.error ?? t("orders.updated")}</Notice>

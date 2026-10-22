@@ -18,6 +18,7 @@ import { formatDate } from "@shared/i18n";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { pageWindow } from "@/lib/pagination";
 import { Pagination } from "@/components/seller/Pagination";
+import { adminView } from "@/lib/cms/layouts";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +42,7 @@ export default async function CollectionPage({ params, searchParams }: { params:
 
   const tab = sp.tab === "fields" || sp.tab === "settings" ? sp.tab : "items";
   const settings = collectionSettings(collection.settings);
-  const view = sp.view === "grid" || sp.view === "list" ? sp.view : settings.layout;
+  const view = sp.view === "grid" || sp.view === "list" ? sp.view : adminView(settings.layout);
   const q = (sp.q ?? "").trim().slice(0, 100);
   const status = sp.status === "draft" || sp.status === "published" || sp.status === "scheduled" ? sp.status : null;
   const base = `/home/cms/${collection.id}`;
@@ -87,8 +88,9 @@ export default async function CollectionPage({ params, searchParams }: { params:
       actions={
         <>
           <PillLink href="/home/cms" icon="arrowLeft">{t("col.allContent")}</PillLink>
+          <PillLink href="/home/cms/plan" icon="calendar">{t("plan.title")}</PillLink>
           {collection.isPublished && (
-            <a href={`/s/${store.slug}/${collection.slug}`} target="_blank" rel="noreferrer" className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-app-line bg-white px-5 text-[14px] font-extrabold text-app-ink no-underline hover:border-app-line-strong">
+            <a href={`${origin}/${collection.slug}`} target="_blank" rel="noreferrer" className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-app-line bg-white px-5 text-[14px] font-extrabold text-app-ink no-underline hover:border-app-line-strong">
               <Icon name="eye" size={16} /> {t("view")}
             </a>
           )}
@@ -108,7 +110,7 @@ export default async function CollectionPage({ params, searchParams }: { params:
 
       {tab === "settings" && (
         <CollectionSettings
-          collection={{ id: collection.id, name: collection.name, slug: collection.slug, description: collection.description, itemLabel: collection.itemLabel, isPublished: collection.isPublished, seo: collection.seo, layout: settings.layout, sort: settings.sort }}
+          collection={{ id: collection.id, name: collection.name, slug: collection.slug, description: collection.description, itemLabel: collection.itemLabel, isPublished: collection.isPublished, seo: collection.seo, layout: settings.layout, itemLayout: settings.itemLayout, sort: settings.sort }}
           storeOrigin={origin}
           storeName={store.name}
         />

@@ -52,6 +52,34 @@ test("checkout never offers a way to pay that can't work, nor one the seller swi
   assert.deepEqual(pay.checkoutPaymentOptions({ ...settings, methods: null, paystackReady: true }).map((option) => option.key), ["paystack"]);
 });
 
+test("pay on delivery with a delivery partner needs the seller's own switch and cap, as well as the partner's", () => {
+  const settings = { methods: { card: true, cod: true }, paystackReady: true, korapayReady: false, transferReady: false, codLimit: 50_000, zones: [{ name: "Lagos", regions: ["Lagos"], pickupOnly: false }] };
+  const within = { city: "Kano", state: "Kano", total: 30_000 };
+  // The store's zones don't price partner deliveries, so an address outside them still gets pay on delivery.
+  assert.equal(pay.partnerPayOnDeliveryBlock(settings, within, true), null);
+  assert.match(pay.partnerPayOnDeliveryBlock(settings, within, false), /isn't available with this delivery option/, "the partner and shop must both opt in");
+  assert.match(pay.partnerPayOnDeliveryBlock({ ...settings, methods: { card: true, cod: false } }, within, true), /isn't available/, "the seller switched it off");
+  assert.match(pay.partnerPayOnDeliveryBlock({ ...settings, methods: null }, within, true), /isn't available/, "never chosen means off");
+  assert.match(pay.partnerPayOnDeliveryBlock(settings, { ...within, total: 80_000 }, true), /up to ₦50,000/, "the seller's cap still applies");
+  assert.equal(pay.partnerPayOnDeliveryBlock({ ...settings, codLimit: null }, { ...within, total: 80_000 }, true), null);
+  assert.deepEqual(pay.payOnDeliveryOption(), pay.checkoutPaymentOptions({ ...settings, methods: { cod: true }, zones: [] })[0]);
+  // The checkout page (partnerPaymentOptions) and the checkout API both decide with it.
+  assert.match(read("src/components/storefront/checkout/PartnerDelivery.tsx"), /partnerPayOnDeliveryBlock\(settings, context, option\.pod === true\)/);
+  assert.doesNotMatch(read("src/components/storefront/checkout/PartnerDelivery.tsx"), /methods: \{ cod: true \}/);
+  assert.match(read("src/app/api/public/store/[slug]/checkout/route.ts"), /partnerPayOnDeliveryBlock\(paymentSettings, paymentContext, deliveryPlan\?\.pod === true\)/);
+});
+
+test("the onboarding payments step keeps the choices it doesn't send, such as Korapay", () => {
+  const sent = { transfer: true, card: false, cod: true, wa: false };
+  assert.deepEqual(onboarding.mergePaymentMethods({ korapay: true, card: true, junk: true }, sent), { transfer: true, card: false, korapay: true, cod: true, wa: false });
+  assert.deepEqual(onboarding.mergePaymentMethods(undefined, sent), sent);
+  assert.equal(onboarding.mergePaymentMethods({ korapay: true }, { ...sent, korapay: false }).korapay, false, "a sent choice wins");
+  const route = read("src/app/api/app/onboarding/payments/route.ts");
+  assert.match(route, /korapay: z\.boolean\(\)\.optional\(\)/);
+  assert.match(route, /mergePaymentMethods\(paymentConfig\.methods, methods\)/);
+  assert.match(route, /methods: saved \}/);
+});
+
 test("every add-your-bank form looks the account up and saves the bank's own name for it", () => {
   const modal = read("src/components/payments/BankLinkingModal.tsx");
   assert.match(modal, /checkWalletAccountAction/);

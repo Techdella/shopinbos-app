@@ -27,8 +27,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run typecheck
       - run: npm test
+      # Runs the typecheck first, then next build.
       - run: npm run build
 
   mobile:

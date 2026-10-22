@@ -146,6 +146,22 @@ export function payOnDeliveryBlock(settings: CheckoutPaymentSettings, context: C
   return null;
 }
 
+/**
+ * Whether pay on delivery can go with a delivery partner's option, with the reason when it can't. The seller must
+ * have pay on delivery switched on and the option must allow it (the shop and the partner both opted in, spec §8);
+ * the seller's pay-on-delivery cap still applies. The store's own zones don't price partner deliveries, so they
+ * aren't checked here. Shared by the checkout page (partnerPaymentOptions) and the checkout API.
+ */
+export function partnerPayOnDeliveryBlock(settings: CheckoutPaymentSettings, context: CheckoutPaymentContext, optionPod: boolean): string | null {
+  if (!settings.methods?.cod || !optionPod) return "Pay on delivery isn't available with this delivery option. Choose another way to pay.";
+  return payOnDeliveryBlock({ ...settings, zones: [] }, { total: context.total });
+}
+
+/** The pay on delivery option as checkout lists it. */
+export function payOnDeliveryOption(): CheckoutPaymentOption {
+  return { key: "pay_on_delivery", ...OPTION_COPY.pay_on_delivery };
+}
+
 const OPTION_COPY: Record<CheckoutPaymentMethod, Omit<CheckoutPaymentOption, "key">> = {
   paystack: { label: "Card, bank or USSD", hint: "Pay securely with Paystack" },
   korapay: { label: "Card or bank", hint: "Card, transfer or your bank app" },

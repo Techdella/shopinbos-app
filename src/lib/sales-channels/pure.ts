@@ -21,6 +21,9 @@ export type OAuthPlatform = (typeof OAUTH_PLATFORMS)[number];
 export const COMING_SOON_PLATFORMS = ["tiktok", "pinterest", "snapchat", "amazon", "jumia", "konga", "jiji", "ebay", "etsy", "shopify"] as const;
 export type ComingSoonPlatform = (typeof COMING_SOON_PLATFORMS)[number];
 
+/** The marketplaces Nigerian sellers sell on, shown on Sell everywhere (all coming soon for now). */
+export const MARKETPLACE_PLATFORMS = ["jumia", "konga", "jiji", "amazon", "ebay", "etsy"] as const satisfies readonly ComingSoonPlatform[];
+
 export const PLATFORM_NAME: Record<LivePlatform | ComingSoonPlatform, string> = {
   whatsapp: "WhatsApp",
   meta: "Facebook & Instagram",
@@ -151,6 +154,9 @@ export const META_LOGIN_SCOPES = [
   "pages_manage_metadata",
   "instagram_basic",
   "instagram_manage_messages",
+  // Social posts (Marketing > Social posts) post to the Page and Instagram for the seller.
+  "pages_manage_posts",
+  "instagram_content_publish",
 ] as const;
 
 export function redirectUri(origin: string, platform: OAuthPlatform) {
@@ -160,8 +166,11 @@ export function redirectUri(origin: string, platform: OAuthPlatform) {
 export function authorizeUrl(platform: OAuthPlatform, options: { origin: string; state: string; env?: Env; graphVersion?: string }): string {
   const env = options.env ?? process.env;
   const redirect_uri = redirectUri(options.origin, platform);
-  if (platform === "meta" && !set(env.META_CATALOG_CONFIG_ID)) {
-    // Classic Facebook Login: no configuration to get wrong; asks for every permission by name.
+  // A Business app on Facebook Login for Business fails the classic scope dialog ("Sorry, something went wrong"),
+  // so without a catalog configuration the inbox's (META_INBOX_CONFIG_ID, which Business apps already have) is used.
+  const metaConfig = set(env.META_CATALOG_CONFIG_ID) ? env.META_CATALOG_CONFIG_ID! : set(env.META_INBOX_CONFIG_ID) ? env.META_INBOX_CONFIG_ID! : null;
+  if (platform === "meta" && !metaConfig) {
+    // Classic Facebook Login (a Consumer app with no configuration): asks for every permission by name.
     const params = new URLSearchParams({ client_id: env.META_APP_ID ?? "", redirect_uri, state: options.state, response_type: "code", scope: META_LOGIN_SCOPES.join(",") });
     return `https://www.facebook.com/${options.graphVersion ?? "v21.0"}/dialog/oauth?${params}`;
   }
@@ -169,12 +178,13 @@ export function authorizeUrl(platform: OAuthPlatform, options: { origin: string;
     // Facebook Login for Business: the configuration (META_CATALOG_CONFIG_ID) holds the permissions and the token
     // type. One sign-in covers the catalog (catalog_management, business_management) and the seller's Page and
     // Instagram messages (pages_show_list, pages_messaging, pages_manage_metadata, instagram_basic,
-    // instagram_manage_messages), so "Connect Facebook & Instagram" turns on both. See .env.local.example.
+    // instagram_manage_messages), and posting for Social posts (pages_manage_posts, instagram_content_publish),
+    // so "Connect Facebook & Instagram" turns on all of it. See .env.local.example.
     const params = new URLSearchParams({
       client_id: env.META_APP_ID ?? "",
       redirect_uri,
       state: options.state,
-      config_id: env.META_CATALOG_CONFIG_ID ?? "",
+      config_id: (metaConfig ?? "").trim(),
       response_type: "code",
       override_default_response_type: "true",
     });
@@ -305,11 +315,18 @@ export interface WhatsAppCatalogLike {
   lastSyncAt: Date | null;
   lastSyncStatus: string | null;
   syncing: boolean;
+  /** The number's token lacks catalog_management / business_management (WhatsAppCatalog.permissionState "missing"). */
+  permissionMissing?: boolean;
 }
 
 /** The WhatsApp card, from the WhatsApp catalog (src/lib/whatsapp-catalog) and whether WhatsApp is connected. */
-export function whatsappCardState(options: { signupConfigured: boolean; whatsappConnected: boolean; catalog: WhatsAppCatalogLike | null; synced: number }): CardState {
+export function whatsappCardState(options: { signupConfigured: boolean; whatsappConnected: boolean; catalog: WhatsAppCatalogLike | null; synced: number; settingUp?: boolean }): CardState {
   const { catalog } = options;
+  // Just connected: the catalog is being set up in the background (src/lib/whatsapp-store/setup.server.ts).
+  if (!catalog?.catalogId && options.whatsappConnected && options.settingUp && !catalog?.permissionMissing) return { kind: "syncing" };
+  // The number is connected (messages work) but Meta didn't grant the catalog permissions: say what's left
+  // rather than "Connect" again.
+  if (!catalog?.catalogId && options.whatsappConnected && catalog?.permissionMissing) return { kind: "needs_account" };
   if (!catalog?.catalogId) return options.signupConfigured || options.whatsappConnected ? { kind: "connect" } : { kind: "soon" };
   if (!options.whatsappConnected) return { kind: "reauth" };
   if (catalog.syncing || !catalog.lastSyncAt) return { kind: "syncing" };
@@ -351,7 +368,7 @@ export function appReturnUrl(value: string | null | undefined): string | null {
 // "Connect" can start from /channels, Inbox → Channels or Start here; the callback sends the seller back to the
 // page they started on (?next=, kept in an httpOnly cookie). Only these pages are accepted.
 
-export const RETURN_PATHS = ["/channels", "/home/connections", "/home/inbox/channels", "/home/start", "/home/reviews/sources", "/home/analytics/traffic"] as const;
+export const RETURN_PATHS = ["/channels", "/home/marketing/social/accounts", "/home/connections", "/home/inbox/channels", "/home/start", "/home/reviews/sources", "/home/analytics/traffic"] as const;
 
 export const returnCookieName = (platform: OAuthPlatform) => `sib_sc_next_${platform}`;
 

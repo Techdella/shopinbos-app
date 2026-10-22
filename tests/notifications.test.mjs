@@ -237,8 +237,9 @@ test("wiring: one notify() path, every role's key events, cron and push plumbing
   assert.match(read("src/lib/logistics/payin-standing.server.ts"), /payin\.reminder/);
 
   const cron = read("src/app/api/cron/push-receipts/route.ts");
-  assert.match(cron, /cronAuthorization/);
+  assert.match(cron, /const denied = await cronDenied\(req\);\n  if \(denied\) return denied;/, "the cron secret or a signed QStash call");
   assert.match(cron, /runPushMaintenance/);
+  assert.match(read("scripts/qstash-schedules.mjs"), /\{ id: "push-receipts", path: "\/api\/cron\/push-receipts", cron: "\*\/5 \* \* \* \*" \}/);
   const devices = read("src/app/api/notifications/devices/route.ts");
   assert.match(devices, /checkRateLimitShared/);
   assert.match(devices, /isAllowedWebPushEndpoint/);

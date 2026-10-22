@@ -201,6 +201,15 @@ http
       res.end(JSON.stringify(user ?? { code: 401, msg: "invalid token" }));
       return;
     }
+    // auth.admin.getUserById: lets the app confirm an invited admin's email (src/lib/auth/app-user.ts), so the
+    // smoke admin really is an admin rather than a seller.
+    const byId = req.method === "GET" && req.url?.match(/^\/auth\/v1\/admin\/users\/([^/?]+)/);
+    if (byId) {
+      const token = Object.keys({ ...SMOKE_USERS, ...otpUsers }).find((t) => (SMOKE_USERS[t] ?? otpUsers[t]).id === decodeURIComponent(byId[1]));
+      const user = token ? supabaseUser(token) : null;
+      res.statusCode = user ? 200 : 404;
+      return res.end(JSON.stringify(user ?? { msg: "User not found" }));
+    }
     if (req.method === "GET" && req.url === "/auth/v1/__otp") return res.end(JSON.stringify(sentCodes));
     if (req.method === "POST" && req.url?.startsWith("/auth/v1/otp")) {
       const body = (await readBody(req)) ?? {};

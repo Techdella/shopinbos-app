@@ -1,9 +1,9 @@
 import "server-only";
+import { payOnDeliveryAllowed, payOnDeliveryPlanName, sellingStatesProblem } from "@/lib/plans/gates.server";
 
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { buildStorefrontUrl } from "@/lib/domains/storefront";
-import { storeLaunchPrices } from "@/lib/store-launch-billing";
 import { mergePreferences, parsePreferences } from "@shared/preferences";
 import { DEFAULT_PAYMENT_METHODS, type PaymentMethodKey } from "@shared/onboarding";
 import { toggleableItems } from "@/lib/nav";
@@ -60,6 +60,8 @@ export async function getSetupOverview(userId: string) {
     db.inboxChannel.count({ where: { storeId: store.id, channel: { in: ["whatsapp", "messenger", "instagram"] }, status: "connected" } }),
   ]);
 
+  // Delivery companies the seller connected (logistics marketplace). Tolerates a database without the table yet.
+  const deliveryPartners = await db.deliveryConnection.count({ where: { ownerUserId: userId, status: "active" } }).catch(() => 0);
   const wallet = await db.wallet.findUnique({ where: { userId }, select: { subaccountStatus: true } }).catch(() => null);
   const settings = record(store.brandSettings);
   const editor = record(settings.editor);
@@ -75,6 +77,7 @@ export async function getSetupOverview(userId: string) {
     productsWithPhotos,
     paymentMethodsOn: methods ? Object.values(methods).filter(Boolean).length : 0,
     activeDeliveryZones: zones.length,
+    deliveryPartners,
     // The Shopinbos Wallet bank (card payments split straight to it); an old payout bank still counts.
     payoutBank: Boolean(bank.paystackRecipientCode || bank.accountNumberMask) || ["active", "review"].includes(wallet?.subaccountStatus ?? ""),
     live,
@@ -103,7 +106,6 @@ export async function getSetupOverview(userId: string) {
       regions: zone.regions,
       fee: Number(record(Array.isArray(zone.rates) ? zone.rates[0] : null).price ?? 0) || 0,
     })),
-    launch: await storeLaunchPrices(),
   };
 }
 
@@ -149,11 +151,23 @@ export async function setPaymentMethods(storeId: string, changes: Partial<Record
   const current = { ...DEFAULT_PAYMENT_METHODS, ...(savedMethods(settings) ?? {}) };
   const next = Object.fromEntries(PAYMENT_KEYS.map((key) => [key, typeof changes[key] === "boolean" ? changes[key] : current[key]])) as Record<PaymentMethodKey, boolean>;
   if (!Object.values(next).some(Boolean)) throw new SetupError("Keep at least one way for customers to pay.");
+  if (next.cod && savedMethods(settings)?.cod !== true) {
+    const owner = await db.store.findUnique({ where: { id: storeId }, select: { userId: true } });
+    if (owner && !(await payOnDeliveryAllowed(owner.userId))) throw new SetupError(`Pay on delivery comes with the ${payOnDeliveryPlanName()} plan.`);
+  }
   await db.store.update({
     where: { id: storeId },
     data: { brandSettings: { ...settings, paymentConfig: { ...paymentConfig, methods: next } } as Prisma.InputJsonValue },
   });
   return next;
+}
+
+/** The plan's selling states (src/lib/plans/gates.server.ts), as a SetupError the caller already shows. */
+async function checkSellingStates(storeId: string, areas: DeliveryAreaInput[], replacing: string[]) {
+  const store = await db.store.findUnique({ where: { id: storeId }, select: { userId: true } });
+  if (!store) throw new SetupError("Store not found.");
+  const problem = await sellingStatesProblem(store.userId, storeId, areas, replacing);
+  if (problem) throw new SetupError(problem);
 }
 
 export interface DeliveryAreaInput {
@@ -180,6 +194,7 @@ export async function upsertDeliveryArea(storeId: string, input: DeliveryAreaInp
   const area = cleanArea(input);
   const existing = await db.shippingZone.findMany({ where: { storeId }, orderBy: { sortOrder: "asc" }, select: { id: true, name: true, regions: true, active: true } });
   const match = existing.find((zone) => zone.name.trim().toLowerCase() === area.name.toLowerCase());
+  await checkSellingStates(storeId, [area], match ? [match.id] : []);
   const rates = [{ name: "Standard delivery", minValue: 0, minWeight: 0, price: area.fee, source: SETUP_ZONE_SOURCE }];
 
   const saved = match
@@ -198,6 +213,7 @@ export async function replaceSetupDeliveryAreas(storeId: string, inputs: Deliver
   const ours = existing
     .filter((zone) => Array.isArray(zone.rates) && zone.rates.some((rate) => ["onboarding", SETUP_ZONE_SOURCE].includes(String(record(rate).source))))
     .map((zone) => zone.id);
+  await checkSellingStates(storeId, areas, ours);
   await db.$transaction([
     db.shippingZone.deleteMany({ where: { id: { in: ours } } }),
     ...areas.map((area, index) =>

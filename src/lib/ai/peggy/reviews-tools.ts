@@ -23,7 +23,7 @@ async function reviewsSummary(ctx: PeggyToolContext, input: PeggyToolInput<"revi
   const { items, product } = await reviewsFor(ctx, input.product);
   const about = product ? { product: product.name, productLink: `/products/${product.id}` } : {};
   if (input.themes && items.length && aiConfigured()) {
-    if (await meterAi(ctx.userId, "text")) throw new ToolError("The seller has used today's AI writing allowance. Give the numbers without themes.");
+    if (await meterAi(ctx.userId, "text")) throw new ToolError("The seller is out of AI credits. Give the numbers without themes.");
     const { summary, themes } = await summarizeReviewThemes(items, ctx.store.name);
     return { content: JSON.stringify({ ...about, ...summary, bySource: labelled(summary.bySource), themes: themes ?? "Couldn't summarise themes just now.", link: "/home/reviews" }) };
   }
@@ -41,7 +41,7 @@ async function draftReplies(ctx: PeggyToolContext, input: PeggyToolInput<"review
   if (input.lowRatingsFirst) open = [...open].sort((a, b) => (a.rating ?? 6) - (b.rating ?? 6));
   open = open.slice(0, input.limit ?? 3);
   if (!open.length) return { content: "Every review already has a reply." };
-  if (await meterAi(ctx.userId, "text")) throw new ToolError("The seller has used today's AI writing allowance.");
+  if (await meterAi(ctx.userId, "text")) throw new ToolError("The seller is out of AI credits.");
   const products = await productNames(ctx.store.id);
   const drafts = [];
   for (const item of open) {

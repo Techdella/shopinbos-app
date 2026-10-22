@@ -2,9 +2,8 @@ import "server-only";
 import { db } from "@/lib/db/client";
 import { createNotification } from "@/lib/notifications/create";
 import { checkRateLimitShared, rateLimitKey } from "@/lib/rate-limit";
-import { bookingNet } from "@/components/logistics/kit";
 import { areaFromText } from "@shared/delivery-geo";
-import { riderCanSkip, riderWeekStart } from "./job-rules";
+import { riderAmount, riderCanSkip, riderWeekStart } from "./job-rules";
 import type { RiderSession } from "./rider-session";
 
 // The phone Riders app's own steps (src/app/api/mobile/logistics/rider): skip a job the partner gave the rider, ask
@@ -105,13 +104,16 @@ export async function saveRiderLanguage(rider: RiderSession, language: RiderLang
   await db.logisticsTeamMember.update({ where: { id: rider.id }, data: { language } });
 }
 
-/** This week's deliveries (Monday 00:00 Lagos onwards), newest first, with the same per-job amount as "earned today". */
+/**
+ * This week's deliveries (Monday 00:00 Lagos onwards), newest first, with the same per-job amount as "earned today":
+ * the rider's earnings once the partner has set their pay, else the delivery fee.
+ */
 export async function riderWeek(rider: RiderSession, now = new Date()) {
   const jobs = await db.deliveryBooking.findMany({
     where: { riderId: rider.id, logisticsPartnerId: rider.partnerId, status: "delivered", deliveredAt: { gte: riderWeekStart(now) } },
     orderBy: { deliveredAt: "desc" },
     take: 200,
-    select: { id: true, deliveredAt: true, pickupLocation: true, destination: true, deliveryFee: true, platformFee: true, netAmount: true, seller: { select: { name: true, store: { select: { name: true } } } } },
+    select: { id: true, deliveredAt: true, pickupLocation: true, destination: true, deliveryFee: true, platformFee: true, netAmount: true, riderPay: true, seller: { select: { name: true, store: { select: { name: true } } } } },
   });
   const deliveries = jobs.map((job) => ({
     id: job.id,
@@ -119,7 +121,7 @@ export async function riderWeek(rider: RiderSession, now = new Date()) {
     from: areaFromText(job.pickupLocation)?.name ?? job.seller.store?.name ?? job.seller.name,
     to: areaFromText(job.destination)?.name ?? job.destination,
     deliveredAt: (job.deliveredAt ?? now).toISOString(),
-    amount: bookingNet(job),
+    amount: riderAmount(rider, job),
   }));
   return { total: deliveries.reduce((sum, job) => sum + job.amount, 0), count: deliveries.length, deliveries };
 }

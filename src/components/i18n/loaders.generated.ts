@@ -45,6 +45,13 @@ export const MESSAGE_LOADERS: Record<string, Record<string, Loader>> = {
     ha: () => import("@shared/i18n/messages/automations/ha.ts") as Promise<{ default: Record<string, string> }>,
     ig: () => import("@shared/i18n/messages/automations/ig.ts") as Promise<{ default: Record<string, string> }>,
   },
+  briefs: {
+    en: () => import("@shared/i18n/messages/briefs/en.ts") as Promise<{ default: Record<string, string> }>,
+    pcm: () => import("@shared/i18n/messages/briefs/pcm.ts") as Promise<{ default: Record<string, string> }>,
+    yo: () => import("@shared/i18n/messages/briefs/yo.ts") as Promise<{ default: Record<string, string> }>,
+    ha: () => import("@shared/i18n/messages/briefs/ha.ts") as Promise<{ default: Record<string, string> }>,
+    ig: () => import("@shared/i18n/messages/briefs/ig.ts") as Promise<{ default: Record<string, string> }>,
+  },
   builder: {
     en: () => import("@shared/i18n/messages/builder/en.ts") as Promise<{ default: Record<string, string> }>,
     pcm: () => import("@shared/i18n/messages/builder/pcm.ts") as Promise<{ default: Record<string, string> }>,
@@ -72,6 +79,13 @@ export const MESSAGE_LOADERS: Record<string, Record<string, Loader>> = {
     yo: () => import("@shared/i18n/messages/common/yo.ts") as Promise<{ default: Record<string, string> }>,
     ha: () => import("@shared/i18n/messages/common/ha.ts") as Promise<{ default: Record<string, string> }>,
     ig: () => import("@shared/i18n/messages/common/ig.ts") as Promise<{ default: Record<string, string> }>,
+  },
+  contracts: {
+    en: () => import("@shared/i18n/messages/contracts/en.ts") as Promise<{ default: Record<string, string> }>,
+    pcm: () => import("@shared/i18n/messages/contracts/pcm.ts") as Promise<{ default: Record<string, string> }>,
+    yo: () => import("@shared/i18n/messages/contracts/yo.ts") as Promise<{ default: Record<string, string> }>,
+    ha: () => import("@shared/i18n/messages/contracts/ha.ts") as Promise<{ default: Record<string, string> }>,
+    ig: () => import("@shared/i18n/messages/contracts/ig.ts") as Promise<{ default: Record<string, string> }>,
   },
   customers: {
     en: () => import("@shared/i18n/messages/customers/en.ts") as Promise<{ default: Record<string, string> }>,
@@ -325,6 +339,13 @@ export const MESSAGE_LOADERS: Record<string, Record<string, Loader>> = {
     ha: () => import("@shared/i18n/messages/social/ha.ts") as Promise<{ default: Record<string, string> }>,
     ig: () => import("@shared/i18n/messages/social/ig.ts") as Promise<{ default: Record<string, string> }>,
   },
+  socialPosts: {
+    en: () => import("@shared/i18n/messages/socialPosts/en.ts") as Promise<{ default: Record<string, string> }>,
+    pcm: () => import("@shared/i18n/messages/socialPosts/pcm.ts") as Promise<{ default: Record<string, string> }>,
+    yo: () => import("@shared/i18n/messages/socialPosts/yo.ts") as Promise<{ default: Record<string, string> }>,
+    ha: () => import("@shared/i18n/messages/socialPosts/ha.ts") as Promise<{ default: Record<string, string> }>,
+    ig: () => import("@shared/i18n/messages/socialPosts/ig.ts") as Promise<{ default: Record<string, string> }>,
+  },
   store: {
     en: () => import("@shared/i18n/messages/store/en.ts") as Promise<{ default: Record<string, string> }>,
     pcm: () => import("@shared/i18n/messages/store/pcm.ts") as Promise<{ default: Record<string, string> }>,
@@ -345,6 +366,13 @@ export const MESSAGE_LOADERS: Record<string, Record<string, Loader>> = {
     yo: () => import("@shared/i18n/messages/support/yo.ts") as Promise<{ default: Record<string, string> }>,
     ha: () => import("@shared/i18n/messages/support/ha.ts") as Promise<{ default: Record<string, string> }>,
     ig: () => import("@shared/i18n/messages/support/ig.ts") as Promise<{ default: Record<string, string> }>,
+  },
+  tips: {
+    en: () => import("@shared/i18n/messages/tips/en.ts") as Promise<{ default: Record<string, string> }>,
+    pcm: () => import("@shared/i18n/messages/tips/pcm.ts") as Promise<{ default: Record<string, string> }>,
+    yo: () => import("@shared/i18n/messages/tips/yo.ts") as Promise<{ default: Record<string, string> }>,
+    ha: () => import("@shared/i18n/messages/tips/ha.ts") as Promise<{ default: Record<string, string> }>,
+    ig: () => import("@shared/i18n/messages/tips/ig.ts") as Promise<{ default: Record<string, string> }>,
   },
   tour: {
     en: () => import("@shared/i18n/messages/tour/en.ts") as Promise<{ default: Record<string, string> }>,

@@ -11,6 +11,7 @@ import { PACK_FORMATS, PACK_STYLES, PRODUCT_TYPES } from "../../../../shared/pac
 import { CREATIVE_CONCEPTS, CREATIVE_PLACEMENTS } from "../../../../shared/creatives.ts";
 import { LOGO_SIZES, LOGO_STYLES } from "../../../../shared/store-logo.ts";
 import { MUSIC_MOODS, REEL_TEMPLATE_IDS, VOICE_GENDERS } from "../../../../shared/video-style.ts";
+import { REX_BUTTON_SHAPES, REX_FONT_PAIRS, REX_LAYOUTS, REX_PAGE_WIDTHS, REX_PRODUCT_RATIOS } from "./studio-plan.ts";
 
 export { providerSchema };
 
@@ -81,7 +82,7 @@ function needsPhoto(value: { product: string | null; imageUrl: string | null }, 
 
 export const REX_SECTION_PAGES = ["home", "products", "product", "categories", "about", "contact", "faq", "blog"] as const;
 // Keep in step with BOUTIQUE_THEME_IDS (src/lib/store-templates/boutique-themes.ts); a test checks they match.
-export const REX_THEME_IDS = ["breeze", "noir", "plain", "adire", "pantry", "ile", "plug", "stride", "ewa", "suku", "asoebi", "agbada", "ileke", "ounje", "chinchin", "oja", "omo", "iwe", "owambe", "danfo", "turare", "oko"] as const;
+export const REX_THEME_IDS = ["breeze", "noir", "plain", "adire", "pantry", "ile", "plug", "stride", "ewa", "suku", "asoebi", "agbada", "ileke", "ounje", "chinchin", "oja", "omo", "iwe", "owambe", "danfo", "turare", "oko", "aaro", "highlife", "oba", "gbedu", "omalicha", "zuma", "oku", "ihe", "kasuwa", "nkata", "uwa", "sarauniya", "zinariya", "irawo", "asa", "mmiri", "uzo", "rawa", "fitila", "oso", "shakara", "aga", "itura", "gele", "imani", "itanna", "littafi", "itan", "awo", "kyau", "keke", "ahia", "ado", "wuta", "ike", "ewu", "erin", "apere", "bata", "ogba", "eso", "osan", "ijokoo", "ite", "kujera", "tufafi", "rewa", "igbese", "ola", "okunrin", "salubata", "efo", "aluko", "aja", "dara", "ife", "irorun"] as const;
 export const REX_VIDEO_LANGUAGES = ["english", "pidgin", "yoruba", "hausa"] as const;
 export const REX_AUTOMATION_KINDS = ["welcome", "abandoned_checkout", "post_purchase", "review_request", "win_back", "birthday", "order_shipped", "order_delivered"] as const;
 export const REX_CAMPAIGN_AUDIENCES = ["all", "subscribers", "repeat_buyers", "top_spenders", "segment"] as const;
@@ -214,6 +215,22 @@ export const REX_TOOL_SPECS = {
     kind: "store",
     description: "Switch the DRAFT to another theme, keeping the seller's words, pages and products. Saved as a new draft version with undo.",
     schema: z.object({ themeId: z.enum(REX_THEME_IDS) }).strict(),
+  },
+  set_theme_style: {
+    kind: "store",
+    description:
+      "Change the DRAFT's look store-wide, the same choices as the builder's Theme settings. 2026 themes: fontPair (classic = serif headings and sans text, modern = grotesk headings and sans text, clean = all sans, bold = all grotesk, theme = the theme's own), buttonShape, pageWidth, productRatio (product photo shape). Classic themes: headingStyle, corners and layout (the whole store's layout). Choices the current theme doesn't read are skipped. Saved as a new draft version with undo. Colours go through edit_store_section.",
+    schema: z
+      .object({
+        fontPair: z.enum(REX_FONT_PAIRS).nullable().describe("2026 themes: headings and body fonts; null to keep"),
+        buttonShape: z.enum(REX_BUTTON_SHAPES).nullable().describe("2026 themes: button corners; null to keep"),
+        pageWidth: z.enum(REX_PAGE_WIDTHS).nullable().describe("2026 themes: how wide pages run; null to keep"),
+        productRatio: z.enum(REX_PRODUCT_RATIOS).nullable().describe("2026 themes: product photo shape; null to keep"),
+        headingStyle: z.enum(["serif", "grotesk"]).nullable().describe("Classic themes: heading font; null to keep"),
+        corners: z.enum(["sharp", "rounded", "soft"]).nullable().describe("Classic themes: corners of buttons, cards and images; null to keep"),
+        layout: z.enum(REX_LAYOUTS).nullable().describe("Classic themes: the whole store's layout; null to keep"),
+      })
+      .strict(),
   },
   write_product_copy: {
     kind: "write",

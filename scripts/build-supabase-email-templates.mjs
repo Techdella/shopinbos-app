@@ -35,7 +35,9 @@ const legal = {
   address: process.env.SHOPINBOS_POSTAL_ADDRESS?.trim() || SHOPINBOS_LEGAL_DEFAULTS.address,
 };
 
-const linkFallback = html.small("Button not working? Copy this link into your browser:") + `<p class="sib-muted" style="margin:0 0 14px;font-size:12px;line-height:1.5;word-break:break-all;color:#6E6E68"><a class="sib-link" href="${CONFIRM}" style="color:#2E7E78">${CONFIRM}</a></p>`;
+// The aside panel at the bottom of the card: the raw link for when the button doesn't work, then the expiry and
+// "wasn't you?" note.
+const linkFallback = `<p class="sib-muted" style="margin:0 0 4px;font-size:12px;color:#6E6E68">Button not working? Paste this link into your browser:</p><p style="margin:0 0 12px;font-family:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;font-size:11px;line-height:1.5;word-break:break-all"><a class="sib-link" href="${CONFIRM}" style="color:#2E7E78;text-decoration:none">${CONFIRM}</a></p>`;
 
 const TEMPLATES = [
   {
@@ -44,9 +46,9 @@ const TEMPLATES = [
     eyebrow: "Welcome to Shopinbos",
     heading: "Confirm your email",
     preheader: "Your code to finish creating your Shopinbos account.",
-    body: `${html.p("Enter this code in Shopinbos to finish creating your account:")}${html.code("TOKEN_PLACEHOLDER")}${html.small("Or confirm with one tap:")}`,
+    body: `${html.p("Welcome aboard! Enter this code in Shopinbos to finish creating your account.")}${html.code("TOKEN_PLACEHOLDER")}${html.small("Or confirm with one tap:")}`,
     cta: { label: "Confirm my email", url: CONFIRM },
-    after: `${linkFallback}${html.small("The code and link expire soon and work once. If you didn't sign up for Shopinbos, ignore this email.")}`,
+    aside: `${linkFallback}${html.small("The code and link expire soon and work once. If you didn't sign up for Shopinbos, ignore this email.")}`,
     reason: "someone used EMAIL_PLACEHOLDER to create a Shopinbos account",
   },
   {
@@ -55,9 +57,9 @@ const TEMPLATES = [
     eyebrow: "Sign in",
     heading: "Your sign-in code",
     preheader: "Use this code to sign in to Shopinbos.",
-    body: `${html.p("Enter this code in Shopinbos to sign in:")}${html.code("TOKEN_PLACEHOLDER")}${html.small("Or sign in with one tap:")}`,
+    body: `${html.p("Enter this code in Shopinbos to sign in.")}${html.code("TOKEN_PLACEHOLDER", "Your sign-in code")}${html.small("Or sign in with one tap:")}`,
     cta: { label: "Sign in to Shopinbos", url: CONFIRM },
-    after: `${linkFallback}${html.small("The code expires soon and works once. If you didn't try to sign in, you can ignore this email: nobody can get in without the code.")}`,
+    aside: `${linkFallback}${html.small("The code expires soon and works once. If you didn't try to sign in, you can ignore this email: nobody can get in without the code.")}`,
     reason: "someone asked to sign in to the Shopinbos account for EMAIL_PLACEHOLDER",
   },
   {
@@ -68,7 +70,7 @@ const TEMPLATES = [
     preheader: "Choose a new password for your Shopinbos account.",
     body: html.p("We got a request to reset the password for EMAIL_PLACEHOLDER. Choose a new one with the button below."),
     cta: { label: "Choose a new password", url: CONFIRM },
-    after: `${linkFallback}${html.small("This link expires in an hour and works once. If you didn't ask for it, ignore this email: your password stays the same.")}`,
+    aside: `${linkFallback}${html.small("This link expires in an hour and works once. If you didn't ask for it, ignore this email: your password stays the same.")}`,
     reason: "someone asked to reset the password for EMAIL_PLACEHOLDER on Shopinbos",
   },
   {
@@ -79,7 +81,7 @@ const TEMPLATES = [
     preheader: "Accept your invitation and set up your Shopinbos account.",
     body: html.p("You've been invited to join Shopinbos, the commerce operating system for African businesses. Accept to set up your account."),
     cta: { label: "Accept the invitation", url: CONFIRM },
-    after: `${linkFallback}${html.small("If you weren't expecting this, you can ignore it.")}`,
+    aside: `${linkFallback}${html.small("If you weren't expecting this, you can ignore it.")}`,
     reason: "someone invited EMAIL_PLACEHOLDER to Shopinbos",
   },
   {
@@ -90,7 +92,7 @@ const TEMPLATES = [
     preheader: "Confirm the change to your Shopinbos sign-in email.",
     body: html.raw("Confirm that you want to change your Shopinbos sign-in email from <strong>EMAIL_PLACEHOLDER</strong> to <strong>NEW_EMAIL_PLACEHOLDER</strong>."),
     cta: { label: "Confirm the change", url: CONFIRM },
-    after: `${linkFallback}${html.small("If you didn't ask for this, don't click anything, and reset your password from the sign-in page.")}`,
+    aside: `${linkFallback}${html.small("If you didn't ask for this, don't click anything, and reset your password from the sign-in page.")}`,
     reason: "someone asked to change the email on a Shopinbos account",
   },
   {
@@ -99,9 +101,9 @@ const TEMPLATES = [
     eyebrow: "Account security",
     heading: "Confirm it's you",
     preheader: "Your code to confirm a sensitive change on Shopinbos.",
-    body: `${html.p("Enter this code to confirm the change you're making to your Shopinbos account:")}${html.code("TOKEN_PLACEHOLDER")}`,
+    body: `${html.p("Enter this code to confirm the change you're making to your Shopinbos account.")}${html.code("TOKEN_PLACEHOLDER", "Confirmation code")}`,
     cta: null,
-    after: html.small("If you didn't start this, change your password now. Never share this code: Shopinbos staff will never ask for it."),
+    aside: html.small("If you didn't start this, change your password now. Never share this code: Shopinbos staff will never ask for it."),
     reason: "a change was started on the Shopinbos account for EMAIL_PLACEHOLDER",
   },
 ];
@@ -110,7 +112,6 @@ const out = join(root, "docs/email/supabase");
 mkdirSync(out, { recursive: true });
 const manifest = {};
 for (const t of TEMPLATES) {
-  // Build with a CTA placeholder, then move the after-CTA text below the button.
   const doc = platformEmail({
     appUrl: SITE,
     kind: "transactional",
@@ -118,14 +119,14 @@ for (const t of TEMPLATES) {
     preheader: t.preheader,
     eyebrow: t.eyebrow,
     heading: t.heading,
-    bodyHtml: t.body + (t.cta ? "" : t.after),
+    bodyHtml: t.body,
     cta: t.cta,
+    aside: t.aside,
     reason: t.reason,
     legal,
     serviceNote: "This is a service message about your Shopinbos account. You get these even if you unsubscribe from updates.",
   });
-  const withAfter = t.cta ? doc.replace(/(<\/a><\/td><\/tr><\/table>)(\n<\/td><\/tr>)/, `$1${t.after}$2`) : doc;
-  const content = swap(withAfter);
+  const content = swap(doc);
   writeFileSync(join(out, `${t.key}.html`), content);
   manifest[t.key] = { subject: t.subject, file: `${t.key}.html` };
   console.log(`wrote docs/email/supabase/${t.key}.html (${content.length} bytes)`);

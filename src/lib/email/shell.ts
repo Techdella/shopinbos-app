@@ -188,7 +188,10 @@ ${scope} .sib-soft{background:${d.soft}!important;border-color:${d.line}!importa
 ${scope} .sib-link{color:${d.link}!important}
 ${scope} .sib-eyebrow{color:${EMAIL_COLORS.mint}!important}
 ${scope} .sib-btn{background:${EMAIL_COLORS.mint}!important;color:${EMAIL_COLORS.navy}!important;border-color:${EMAIL_COLORS.mint}!important}
-${scope} .sib-code{background:${d.soft}!important;color:${EMAIL_COLORS.mint}!important;border-color:${d.line}!important}`
+${scope} .sib-code{background:${d.soft}!important;color:${EMAIL_COLORS.mint}!important;border-color:${d.line}!important}
+${scope} .sib-code-digits{color:${EMAIL_COLORS.mint}!important}
+${scope} .sib-aside{background:${d.soft}!important;border-color:${d.line}!important}
+${scope} .sib-card-accent{border-top-color:${EMAIL_COLORS.mint}!important}`
     : "";
   return `${scope} .sib-page{background:${d.page}!important}
 ${scope} .sib-foot,${scope} .sib-foot p,${scope} .sib-foot td{color:${d.muted}!important}
@@ -223,6 +226,8 @@ a[x-apple-data-detectors]{color:inherit!important;text-decoration:none!important
 @media only screen and (max-width:620px){
 .sib-wrap{padding:16px 10px!important}
 .sib-pad{padding:26px 20px!important}
+.sib-pad-x{padding-left:20px!important;padding-right:20px!important}
+.sib-head{padding-left:21px!important}
 .sib-col{max-width:100%!important}
 .sib-h1{font-size:23px!important}
 .sib-btn{display:block!important;text-align:center!important}
@@ -262,6 +267,10 @@ export interface DocumentInput {
   scheme?: "light dark" | "dark";
   extraCss?: string;
   cardBorder?: boolean;
+  /** A mint top edge on the card (Shopinbos's own emails). */
+  accentBar?: boolean;
+  /** Secondary content (help links, security notes) in a tinted panel at the bottom of the card. */
+  aside?: string | null;
 }
 
 export function emailDocument(input: DocumentInput) {
@@ -271,10 +280,20 @@ export function emailDocument(input: DocumentInput) {
   const font = input.font ?? FONT;
   const radius = input.radius ?? 18;
   const border = input.cardBorder === false ? "" : `;border:1px solid ${EMAIL_COLORS.line}`;
+  // The card is its own table with separate borders: a collapsed table squares off a bordered cell's corners.
+  // Inner cells round their outer corners 1px less than the card so their backgrounds stay inside the border.
+  const inner = Math.max(radius - 1, 0);
+  const topRadius = input.accentBar ? Math.max(radius - 4, 0) : inner;
+  const top = `border-radius:${topRadius}px ${topRadius}px 0 0;`;
+  const bottom = input.aside ? "" : `border-radius:0 0 ${inner}px ${inner}px;`;
   const card = input.cardIsRows
     ? input.card
-    : `<tr><td class="sib-card sib-pad" bgcolor="${cardBg}" style="background:${cardBg};border-radius:${radius}px${border};padding:34px 32px;font-family:${font};font-size:15px;line-height:1.6;color:${ink}">
+    : `<tr><td>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="sib-card${input.accentBar ? " sib-card-accent" : ""}" bgcolor="${cardBg}" style="border-collapse:separate;border-spacing:0;background:${cardBg};border-radius:${radius}px${border}${input.accentBar ? `;border-top:4px solid ${EMAIL_COLORS.mint}` : ""}">
+<tr><td class="sib-pad" style="${top}${bottom}padding:34px 32px 30px;font-family:${font};font-size:15px;line-height:1.6;color:${ink}">
 ${input.card}
+</td></tr>
+${input.aside ? `<tr><td class="sib-aside sib-pad-x" bgcolor="${EMAIL_COLORS.paper}" style="background:${EMAIL_COLORS.paper};border-top:1px solid ${EMAIL_COLORS.line};border-radius:0 0 ${inner}px ${inner}px;padding:20px 32px 8px;font-family:${font};font-size:13px;line-height:1.55;color:${ink}">\n${input.aside}\n</td></tr>\n` : ""}</table>
 </td></tr>`;
   return `<!doctype html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
@@ -284,7 +303,7 @@ ${preheaderHtml(input.preheader)}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="sib-page" bgcolor="${page}" style="background:${page}"><tr><td align="center" class="sib-wrap" style="padding:28px 12px">
 <!--[if mso]><table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;margin:0 auto">
-<tr><td style="padding:4px 6px 20px${input.headerAlign === "center" ? ";text-align:center" : ""}" align="${input.headerAlign ?? "left"}">${input.header}</td></tr>
+<tr><td${input.cardIsRows ? "" : ' class="sib-head"'} style="padding:4px 6px 20px${input.cardIsRows ? "" : " 33px"}${input.headerAlign === "center" ? ";text-align:center" : ""}" align="${input.headerAlign ?? "left"}">${input.header}</td></tr>
 ${card}
 <tr><td>${input.footer}</td></tr>
 </table>
@@ -298,7 +317,7 @@ ${card}
 
 export const html = {
   eyebrow: (text: string) => `<p class="sib-eyebrow" style="margin:0 0 10px;font-family:${MONO};font-size:11px;letter-spacing:0.16em;text-transform:uppercase;color:${EMAIL_COLORS.teal}">${escapeHtml(text)}</p>`,
-  h1: (text: string) => `<h1 class="sib-ink sib-h1" style="margin:0 0 14px;font-family:${FONT};font-size:26px;line-height:1.2;font-weight:600;letter-spacing:-0.5px;color:${EMAIL_COLORS.navy}">${escapeHtml(text)}</h1>`,
+  h1: (text: string) => `<h1 class="sib-ink sib-h1" style="margin:0 0 14px;font-family:${FONT};font-size:28px;line-height:1.2;font-weight:600;letter-spacing:-0.5px;color:${EMAIL_COLORS.navy}">${escapeHtml(text)}</h1>`,
   p: (text: string) => `<p class="sib-ink" style="margin:0 0 14px;color:${EMAIL_COLORS.navy}">${escapeHtml(text)}</p>`,
   /** A paragraph from trusted, already-escaped HTML. */
   raw: (inner: string) => `<p class="sib-ink" style="margin:0 0 14px;color:${EMAIL_COLORS.navy}">${inner}</p>`,
@@ -319,7 +338,12 @@ export const html = {
     return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 18px"><tr><td style="border-radius:999px" bgcolor="${bg}"><a href="${safeHref(url)}" class="${cls}" style="display:inline-block;padding:13px 26px;border-radius:999px;background:${bg};border:1px solid ${bg};color:${fg};font-family:${FONT};font-size:15px;font-weight:600;line-height:1.2;text-decoration:none">${escapeHtml(label)}</a></td></tr></table>`;
   },
   quote: (inner: string) => `<div class="sib-soft" style="margin:0 0 16px;padding:14px 16px;border-radius:14px;background:${EMAIL_COLORS.soft};border:1px solid ${EMAIL_COLORS.line}">${inner}</div>`,
-  code: (code: string) => `<p class="sib-code" style="margin:6px 0 18px;padding:16px 18px;border-radius:14px;background:${EMAIL_COLORS.soft};border:1px solid ${EMAIL_COLORS.line};font-family:${MONO};font-size:30px;font-weight:700;letter-spacing:8px;text-align:center;color:${EMAIL_COLORS.navy}">${escapeHtml(code)}</p>`,
+  /** A one-time code in a tinted box with a small label. The left padding balances the trailing letter-spacing. */
+  code: (code: string, label = "Your code") =>
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:6px 0 20px;border-collapse:separate;border-spacing:0"><tr><td class="sib-code" align="center" bgcolor="#EDF8F5" style="padding:16px 16px 18px;border-radius:14px;background:#EDF8F5;border:1px solid #CBEBE3;text-align:center">
+<p class="sib-eyebrow" style="margin:0 0 6px;font-family:${MONO};font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:${EMAIL_COLORS.teal}">${escapeHtml(label)}</p>
+<p class="sib-code-digits" style="margin:0;padding-left:10px;font-family:${MONO};font-size:34px;line-height:1.15;font-weight:700;letter-spacing:10px;color:${EMAIL_COLORS.navy}">${escapeHtml(code)}</p>
+</td></tr></table>`,
   divider: () => `<div class="sib-line" style="height:0;border-top:1px solid ${EMAIL_COLORS.line};margin:20px 0"></div>`,
   list: (items: string[]) => (items.length ? `<ul class="sib-ink" style="margin:0 0 16px;padding-left:20px;color:${EMAIL_COLORS.navy}">${items.map((item) => `<li style="margin:0 0 4px">${escapeHtml(item)}</li>`).join("")}</ul>` : ""),
   /** Label/value rows (order lines, totals). `strong` rows are bold with a rule above. */
@@ -349,6 +373,8 @@ export interface PlatformEmailInput {
   /** Inner HTML built with the `html` helpers (escaped). */
   bodyHtml: string;
   cta?: { label: string; url: string } | null;
+  /** Secondary content under the main message (link fallback, expiry, security notes), in a tinted panel. */
+  aside?: string | null;
   /** "you have a Shopinbos seller account" → "You're receiving this because you have a Shopinbos seller account." */
   reason: string;
   legal: PlatformLegal;
@@ -377,7 +403,7 @@ export function platformEmail(input: PlatformEmailInput) {
     contactLabel: "Contact support",
     privacyUrl: input.privacyUrl ?? SHOPINBOS_PRIVACY_URL,
   });
-  return emailDocument({ title: input.title ?? input.heading, preheader: input.preheader, header: shopinbosHeader(appUrl), card: body, footer, adaptCard: true, extraCss: input.extraCss });
+  return emailDocument({ title: input.title ?? input.heading, preheader: input.preheader, header: shopinbosHeader(appUrl), card: body, aside: input.aside, accentBar: true, footer, adaptCard: true, extraCss: input.extraCss });
 }
 
 export function reasonSentence(reason: string) {

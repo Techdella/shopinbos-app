@@ -11,6 +11,8 @@ import { messagesHref } from "@/lib/conversations/pure";
 import { PauseButton } from "./DropshipActions";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { formatMoney } from "@shared/i18n";
+import { AssistantNote } from "@/components/app-kit";
+import { TipsGate } from "@/app/marketplace/_components/TipsGate";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -83,6 +85,9 @@ export default async function SellerDropshipPage({ searchParams }: { searchParam
       }
     >
       <div className="grid min-w-0 gap-4">
+        <TipsGate>
+          <AssistantNote who="peggy">{t("ds.tip")}</AssistantNote>
+        </TipsGate>
         <div className="grid items-start gap-3 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
           <ul className="m-0 grid list-none grid-cols-2 gap-3 p-0 md:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
             {stats.map((stat) => (
@@ -113,7 +118,9 @@ export default async function SellerDropshipPage({ searchParams }: { searchParam
                 <li key={promise.key} className="flex min-w-0 flex-col items-start gap-1.5 px-1 py-1 sm:flex-row sm:items-center sm:gap-2.5">
                   <Icon name={promise.icon} size={17} className="shrink-0" />
                   <span className="min-w-0">
-                    <span className="block text-[12.5px] font-extrabold leading-tight sm:text-[13px]">{t(`ds.promise.${promise.key}`)}</span>
+                    <span className="block text-[12.5px] font-extrabold leading-tight sm:text-[13px]">
+                      {t(`ds.promise.${promise.key}`)}
+                    </span>
                     <span className="block text-[12px] leading-tight text-app-ink-soft">{t(`ds.promise.${promise.key}Sub`)}</span>
                   </span>
                 </li>

@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/server-auth";
 import { z } from "zod";
-import { parseReviewKey, validRating, isReviewSource, isReviewStatus, type RequestChannel } from "@/lib/reviews/pure";
+import { IMPORT_SOURCES, parseReviewKey, validRating, isReviewStatus, type RequestChannel } from "@/lib/reviews/pure";
 import { moderateReview } from "@/lib/reviews/server";
 import { requestReviews, type RequestOutcome } from "@/lib/reviews/requests";
 import { chooseGoogleLocation, disconnectGoogle, GoogleReviewsError, syncGoogleReviews } from "@/lib/reviews/google";
@@ -149,7 +149,7 @@ export async function deleteReviewByKey(formData: FormData) {
 }
 
 const ImportSchema = z.object({
-  source: z.string().refine((value) => isReviewSource(value) && value !== "store", "Choose where the review came from"),
+  source: z.string().refine((value) => (IMPORT_SOURCES as string[]).includes(value), "Choose where the review came from"),
   importMethod: z.enum(["manual", "screenshot"]),
   authorName: z.string().trim().min(1, "Add the customer's name").max(120),
   rating: z.string().optional(),

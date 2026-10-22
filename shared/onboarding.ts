@@ -110,6 +110,20 @@ export const PAYMENT_METHODS: { key: PaymentMethodKey; label: string; hint: stri
 // Korapay starts off: sellers switch it on (it only shows at checkout once their wallet has a Korapay split account).
 export const DEFAULT_PAYMENT_METHODS: Record<PaymentMethodKey, boolean> = { transfer: true, card: true, korapay: false, cod: true, wa: true };
 
+/**
+ * The methods to save when a step sends some of them: the seller's saved choices (paymentConfig.methods) with the
+ * sent ones on top, so a key the step doesn't send (Korapay, switched on from the Money page) is kept, not wiped.
+ */
+export function mergePaymentMethods(saved: unknown, sent: Partial<Record<PaymentMethodKey, boolean | undefined>>): Partial<Record<PaymentMethodKey, boolean>> {
+  const previous = saved && typeof saved === "object" && !Array.isArray(saved) ? (saved as Record<string, unknown>) : {};
+  const merged: Partial<Record<PaymentMethodKey, boolean>> = {};
+  for (const key of Object.keys(DEFAULT_PAYMENT_METHODS) as PaymentMethodKey[]) {
+    const value = typeof sent[key] === "boolean" ? sent[key] : previous[key];
+    if (typeof value === "boolean") merged[key] = value;
+  }
+  return merged;
+}
+
 export interface DeliveryZone {
   name: string;
   /** Flat delivery fee in naira. */
@@ -133,13 +147,15 @@ export const DEFAULT_DELIVERY_ZONES: DeliveryZone[] = [
   { name: "Abuja and other states", fee: 3500, regions: [], priority: 2 },
 ];
 
-export type ChecklistKey = "live" | "product" | "brand" | "bank" | "wa" | "ig" | "labels";
+export type ChecklistKey = "live" | "product" | "brand" | "bank" | "delivery" | "wa" | "ig" | "labels";
 
 export const CHECKLIST: { key: ChecklistKey; label: string; hint: string; href: string }[] = [
   { key: "live", label: "Go live", hint: "Your shop link works", href: "/home/editor" },
   { key: "product", label: "Add your first products", hint: "One is enough to start", href: "/products" },
   { key: "brand", label: "Pick your brand and look", hint: "Name, colours and template", href: "/home/brand-kit" },
   { key: "bank", label: "Add your payout bank", hint: "Card payments go straight to your bank", href: "/home/wallet" },
+  // Optional on Start here too ("Choose a delivery company"): connects a logistics marketplace partner.
+  { key: "delivery", label: "Choose a delivery company", hint: "They pick up parcels and take them to your customers", href: "/home/start?step=partners" },
   { key: "wa", label: "Connect WhatsApp for Peggy", hint: "Peggy drafts replies for you", href: "/home/social/whatsapp" },
   { key: "ig", label: "Connect Instagram and TikTok", hint: "Sync your catalogue and posts", href: "/home/social" },
   { key: "labels", label: "Print your first price tags", hint: "Two taps from your products", href: "/products" },
