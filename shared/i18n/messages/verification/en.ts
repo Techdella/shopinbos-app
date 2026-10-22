@@ -76,7 +76,7 @@ const en = {
   "docStatus.rejected": "Rejected",
   "docFile.wrongType": "{name} isn't a PDF, JPG, PNG or WebP file.",
   "docFile.empty": "{name} is empty.",
-  "docFile.tooBig": "{name} is {size}. The limit is 10 MB.",
+  "docFile.tooBig": "{name} is {size}. The limit is 4 MB.",
   // VerificationDocUploader
   "uploader.uploadFailed": "Upload failed. Please try again.",
   "uploader.removeFailed": "Couldn't remove that file. Please try again.",
@@ -93,7 +93,7 @@ const en = {
   "uploader.removeAria": "Remove {label}",
   "uploader.uploadingAria": "Uploading {label}",
   "uploader.formats": "We accept {formats}.",
-  "uploader.formatsList": "PDF, JPG, PNG or WebP, up to 10 MB",
+  "uploader.formatsList": "PDF, JPG, PNG or WebP, up to 4 MB",
   // CacInstantCheck
   "cac.verified": "Verified with CAC",
   "cac.noUploadNeeded": "{name} · {prefix} {number}. No certificate upload needed.",
@@ -138,7 +138,7 @@ const en = {
   "page.checkProfile": "Check your profile",
   "page.documents": "Documents",
   "page.approvedDocs": "Your approved documents.",
-  "page.docsHint": "PDF, JPG, PNG or WebP, up to 10 MB. Clear and readable.",
+  "page.docsHint": "PDF, JPG, PNG or WebP, up to 4 MB. Clear and readable.",
   "page.sendForReview": "Send for review",
   "page.yourProgress": "Your progress",
   "page.xOfY": "{done} of {total}",

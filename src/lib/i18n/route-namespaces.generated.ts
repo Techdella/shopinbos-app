@@ -87,7 +87,7 @@ export const ROUTE_NAMESPACES: ReadonlyArray<readonly [string, readonly string[]
   ["/home/apps", ["common","nav","ui"]],
   ["/home/automations", ["auth","automations","common","emailBuilder","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
   ["/home/automations/[id]", ["auth","automations","common","emailBuilder","glossary","help","introTitles","learn","marketing","media","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
-  ["/home/brand-kit", ["account","auth","common","glossary","help","introTitles","learn","media","nav","notifications","rex","settings","shell","store","support","tour","ui","verification"]],
+  ["/home/brand-kit", ["auth","common","glossary","help","introTitles","learn","media","nav","notifications","rex","settings","shell","store","support","tour","ui","verification"]],
   ["/home/brand-kit/book", ["common","nav","store","ui"]],
   ["/home/brand-kit/sheet", ["common","nav","ui"]],
   ["/home/campaigns", ["auth","campaigns","common","emailBuilder","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],

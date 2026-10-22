@@ -7,34 +7,11 @@ import { Icon } from "@/components/ui/Icon";
 import { broadcastIdentity, useIdentity, type ShellIdentity } from "@/components/shell/useShellCounts";
 import { identityImageProblem, initialsOf, type IdentityImageKind } from "@shared/identity-images";
 import { useT } from "@/components/i18n/I18nProvider";
+import { shrinkImage } from "@/lib/media/shrink-image";
 
 // Upload, change or remove the person's photo or their store/business logo. Saving broadcasts the new picture
 // so the top bar, the menu and any other uploader on screen update at once, then refreshes the page's server
 // data so everything else (cards, lists) catches up without a reload.
-
-/** Phone photos are often 5–12 MB. Shrink to at most `max` px on the long side as WebP before sending. */
-export async function shrinkImage(file: File, max: number): Promise<File> {
-  if (typeof createImageBitmap !== "function") return file;
-  try {
-    const bitmap = await createImageBitmap(file);
-    const scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height));
-    if (scale === 1 && file.size < 600 * 1024) {
-      bitmap.close();
-      return file;
-    }
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.round(bitmap.width * scale);
-    canvas.height = Math.round(bitmap.height * scale);
-    canvas.getContext("2d")?.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-    bitmap.close();
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/webp", 0.9));
-    // Some browsers can't encode WebP and hand back PNG; either is fine as long as it got smaller.
-    if (!blob || blob.size >= file.size) return file;
-    return new File([blob], `${file.name.replace(/\.[^.]+$/, "")}.${blob.type === "image/webp" ? "webp" : "png"}`, { type: blob.type });
-  } catch {
-    return file;
-  }
-}
 
 async function send(kind: IdentityImageKind, file: File | null, messages: { tooLarge: string; failed: string }): Promise<ShellIdentity> {
   let response: Response;

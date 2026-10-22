@@ -53,6 +53,6 @@ export function docFileProblem(t: Translate, file: { name: string; size: number 
   if (!english) return null;
   if (english.endsWith("isn't a PDF, JPG, PNG or WebP file.")) return t.dynamic("docFile.wrongType", english, { name: file.name });
   if (english.endsWith("is empty.")) return t.dynamic("docFile.empty", english, { name: file.name });
-  if (english.endsWith("The limit is 10 MB.")) return t.dynamic("docFile.tooBig", english, { name: file.name, size: english.slice(file.name.length + 4, english.indexOf(". The limit")) });
+  if (english.endsWith("The limit is 4 MB.")) return t.dynamic("docFile.tooBig", english, { name: file.name, size: english.slice(file.name.length + 4, english.indexOf(". The limit")) });
   return english;
 }

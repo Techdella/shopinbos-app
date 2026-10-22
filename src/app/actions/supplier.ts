@@ -17,6 +17,7 @@ import { moveSupplierOrder } from "@/lib/supplier-orders/service.server";
 import { moveWholesaleOrder } from "@/lib/supplier-orders/wholesale.server";
 import { setSupplierPayout } from "@/lib/supplier-orders/money.server";
 import { notifyProductForReview, notifySupplierQuoteAnswered } from "@/lib/notifications/events.server";
+import { editNeedsReview, statusAfterEdit } from "@shared/supplier-product-review";
 
 async function getSupplierActor() {
   const user = await requireRole(["supplier"], "/supplier/login");
@@ -168,19 +169,21 @@ export async function updateSupplierProduct(formData: FormData) {
   if (!product) redirect("/supplier/products");
 
   const wantsReview = formData.get("intent") === "submit";
-  const requestedStatus = !verified ? "draft" : wantsReview ? "pending_review" : product.status === "published" ? "pending_review" : "draft";
-  const parsed = SupplierProductCreateSchema.safeParse(readProductPayload(formData, requestedStatus));
+  const parsed = SupplierProductCreateSchema.safeParse(readProductPayload(formData, "draft"));
 
   if (!parsed.success) {
     redirect(`/supplier/products/${product.id}/edit?error=${encodeURIComponent(parsed.error.issues[0]?.message ?? "Check the product details.")}`);
   }
+  // A live product stays on sale when only stock, MOQ, availability or delivery details change; new photos, words
+  // or prices go back to the team first (shared/supplier-product-review.ts).
+  const nextStatus = statusAfterEdit({ current: product.status, verified, submit: wantsReview, needsReview: editNeedsReview(product, parsed.data) });
 
   const category = await db.category.findUnique({ where: { id: parsed.data.categoryId } });
   if (!category) redirect(`/supplier/products/${product.id}/edit?error=Choose%20a%20valid%20category.`);
 
   const updated = await db.supplierProduct.update({
     where: { id: product.id },
-    data: parsed.data,
+    data: { ...parsed.data, status: nextStatus },
   });
 
   invalidatePublicMarketplaceCache({ productSlug: updated.slug, supplierSlug: supplier.slug, categorySlug: category.slug ?? product.category.slug });

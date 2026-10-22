@@ -123,7 +123,7 @@ const en = {
   "productForm.readyTitle": "Ready for review?",
   "productForm.done": "(done)",
   "productForm.todo": "(to do)",
-  "productForm.reviewNote": "Changes to a live product go back through review, so sellers never see unreviewed updates.",
+  "productForm.reviewNote": "Stock, MOQ, availability and delivery changes go live at once. New photos, words or prices on a live product are reviewed first, so shops never see unchecked updates.",
   // Dashboard (/supplier/dashboard)
   "dashboard.metaTitle": "Dashboard",
   "dashboard.morning": "Good morning",
@@ -224,7 +224,7 @@ const en = {
   "newProduct.limitTitle": "Free product limit reached",
   "newProduct.limitBody": "The free plan includes up to 50 products ({count} in your catalogue). Upgrade to Supplier Max (₦25,000/month) to add more.",
   "newProduct.draftsNote": "You can save drafts now. Products go live once your business is verified.",
-  "editProduct.sub": "{category} · keep trade terms, photos, stock and fulfilment current. Changes to a live product go back through review.",
+  "editProduct.sub": "{category} · keep trade terms, photos, stock and fulfilment current. Stock changes go live at once; new photos, words or prices are reviewed first.",
   "editProduct.newProduct": "New product",
   // Quote requests (/supplier/quote-requests)
   "quotes.tip1": "Answer with a firm unit price and the exact quantity it covers.",

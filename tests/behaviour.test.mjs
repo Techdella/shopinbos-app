@@ -428,13 +428,13 @@ test("verification documents: one shared type list, real files only, old onboard
   assert.deepEqual(docs.LOGISTICS_DOC_TYPES.filter((c) => c.required).map((c) => c.type), ["cac", "insurance"]);
   assert.equal(docs.docTypesForRole("logistics_partner"), docs.LOGISTICS_DOC_TYPES);
 
-  // File checks: PDF/JPG/PNG/WebP up to 10 MB; the extension is only trusted when no type was sent.
+  // File checks: PDF/JPG/PNG/WebP up to 4 MB (photos are shrunk in the browser first); the extension is only trusted when no type was sent.
   assert.equal(docs.validateDocFile({ name: "cac.pdf", type: "application/pdf", size: 2048 }), null);
   assert.equal(docs.validateDocFile({ name: "nin.JPG", type: "", size: 2048 }), null);
   assert.equal(docs.docMimeType({ name: "nin.jpeg", type: "" }), "image/jpeg");
   assert.match(docs.validateDocFile({ name: "notes.docx", type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", size: 10 }), /isn't a PDF, JPG, PNG or WebP/);
   assert.match(docs.validateDocFile({ name: "fake.pdf", type: "text/html", size: 10 }), /isn't a PDF/, "a declared type wins over the extension");
-  assert.match(docs.validateDocFile({ name: "big.png", type: "image/png", size: docs.MAX_DOC_BYTES + 1 }), /limit is 10 MB/);
+  assert.match(docs.validateDocFile({ name: "big.png", type: "image/png", size: docs.MAX_DOC_BYTES + 1 }), /limit is 4 MB/);
   assert.match(docs.validateDocFile({ name: "empty.png", type: "image/png", size: 0 }), /empty/);
   assert.equal(docs.validateDocFile({ name: "max.webp", type: "image/webp", size: docs.MAX_DOC_BYTES }), null);
 

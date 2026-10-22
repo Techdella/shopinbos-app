@@ -114,7 +114,7 @@ test("CAC check routes are role-gated, the provider key stays server-side, and t
   assert.match(server, /CAC_DAILY_ATTEMPTS/, "daily limit is enforced");
   const client = readFileSync("src/components/verification/CacInstantCheck.tsx", "utf8");
   assert.doesNotMatch(client, /DOJAH/, "no provider secrets in the browser component");
-  assert.equal(docs.DOC_FORMATS_LABEL, "PDF, JPG, PNG or WebP, up to 10 MB");
+  assert.equal(docs.DOC_FORMATS_LABEL, "PDF, JPG, PNG or WebP, up to 4 MB");
   assert.deepEqual([...docs.DOC_MIME_TYPES], ["application/pdf", "image/jpeg", "image/png", "image/webp"]);
 });
 

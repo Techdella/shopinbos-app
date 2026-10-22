@@ -19,6 +19,7 @@ import {
 } from "@shared/verification-docs";
 import { docFileUrl } from "./upload-client";
 import { docFileProblem, docHint, docLabel, docStatusWords } from "./doc-words";
+import { readyToSend } from "@/lib/media/shrink-image";
 import { useT } from "@/components/i18n/I18nProvider";
 
 interface VerificationDocUploaderProps {
@@ -59,7 +60,9 @@ export function VerificationDocUploader({ docs, docConfigs, onUpload, onDelete, 
     setRows((current) => ({ ...current, [type]: next }));
   }
 
-  async function handleFile(type: DocType, file: File) {
+  async function handleFile(type: DocType, picked: File) {
+    // Photos are made smaller first (uploads can't be over about 4.5 MB on the server); PDFs are sent as they are.
+    const file = await readyToSend(picked);
     const invalid = docFileProblem(t, file, validateDocFile(file));
     if (invalid) {
       setRow(type, { error: invalid });
