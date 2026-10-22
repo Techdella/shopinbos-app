@@ -118,6 +118,7 @@ test("credits and business registration have 60-second intros", async () => {
   const { introForPath } = await import("../shared/feature-intros.ts");
   assert.equal(introForPath("/home/credits", "seller")?.key, "credits");
   assert.equal(introForPath("/supplier/credits", "supplier")?.key, "credits");
+  assert.equal(introForPath("/logistics/credits", "logistics_partner")?.key, "credits");
   assert.equal(introForPath("/home/register-business", "seller")?.key, "business-registration");
   assert.equal(introForPath("/logistics/register-business", "logistics_partner")?.key, "business-registration");
 });

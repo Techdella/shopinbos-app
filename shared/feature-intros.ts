@@ -816,8 +816,8 @@ export const FEATURE_INTROS: FeatureIntro[] = [
     key: "credits",
     term: "credits",
     title: "AI credits",
-    roles: ["seller", "supplier"],
-    paths: ["/home/credits", "/supplier/credits"],
+    roles: ["seller", "supplier", "logistics_partner"],
+    paths: ["/home/credits", "/supplier/credits", "/logistics/credits"],
     scenes: [
       { art: "video-reel", caption: "Rex and Peggy can make things for you.", sub: "New product pictures, short videos, captions and store changes, all done by AI.", durationMs: S },
       { art: "receipt", caption: "Each AI action uses credits.", sub: "Bigger jobs, like a video, use more credits than a short caption.", durationMs: S, label: "AI credits" },
