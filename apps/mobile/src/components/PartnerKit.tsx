@@ -3,9 +3,9 @@ import { Pressable, ScrollView, TextInput, View, type StyleProp, type TextInputP
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Sub, Title } from "@/components/design";
 import { AppIcon, type AppIconName } from "@/components/icons";
-import { T } from "@/components/ui";
+import { Mascot, T } from "@/components/ui";
 import { useT } from "@/lib/i18n";
-import type { RiderRow } from "@/lib/logistics";
+import type { Job, MarketConnectionRow, RiderRow } from "@/lib/logistics";
 import { initialsOf } from "@/lib/logistics-pure";
 import { timeAgo } from "@/lib/partner-pure";
 import { colors, fonts } from "@/theme";
@@ -147,4 +147,49 @@ export function useRiderWhere() {
         : rider.lastSeenAt
           ? t("riders.offlineSeen", { ago: timeAgo(rider.lastSeenAt, undefined, t) })
           : t("riders.isOffline");
+}
+
+/** The partner tint (prototype `.tb.teal`): the pill behind the active tab icon on Android. */
+export const PARTNER_TINT = "#D6F0E9";
+
+/** Seller or supplier, for "Glow by Amaka (Seller)": the connection's role when there is one; otherwise a job with a
+ * pickup window is a supplier's (supplier pickups carry one), else a seller's. */
+export function shopRoleOf(job: Pick<Job, "sellerUserId" | "pickupWindow">, connections: readonly Pick<MarketConnectionRow, "ownerUserId" | "ownerRole">[] = []): "seller" | "supplier" {
+  const role = connections.find((row) => row.ownerUserId === job.sellerUserId)?.ownerRole;
+  if (role === "supplier" || role === "seller") return role;
+  return job.pickupWindow ? "supplier" : "seller";
+}
+
+/** A round 44px header button holding Peggy's head (prototype `.iconb .head.peg`). */
+export function PeggyButton({ label, onPress }: { label: string; onPress: () => void }) {
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} hitSlop={6} style={({ pressed }) => ({ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.peach, alignItems: "center", justifyContent: "center", overflow: "hidden", opacity: pressed ? 0.8 : 1 })}>
+      <Mascot who="peggy" size={36} label="" />
+    </Pressable>
+  );
+}
+
+/** One job on Jobs (prototype `jobList` card): shop and role over the fee, a big "Yaba → Lekki" route between a teal
+ * and an orange dot, and one grey line (time, size, pay on delivery). */
+export function RouteCard({ shop, who, fee, from, to, sub, label, onPress }: { shop: string; who: string; fee: string; from: string; to: string; sub: string; label: string; onPress: () => void }) {
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={({ pressed }) => ({ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 18, gap: 10, opacity: pressed ? 0.9 : 1 })}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+        <T weight="bold" numberOfLines={1} style={{ flex: 1, fontSize: 15 }}>
+          {shop}
+          <T weight="semibold" style={{ fontSize: 13, color: colors.inkSoft }}>{`  ${who}`}</T>
+        </T>
+        <T weight="extrabold" style={{ fontSize: 16 }}>{fee}</T>
+      </View>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: colors.forest }} />
+        <T numberOfLines={1} style={{ fontFamily: fonts.display, fontSize: 21, maxWidth: "40%" }}>{from}</T>
+        {/* iOS only dashes a border drawn on every side: a 2px-tall dashed box reads as one dashed line. */}
+        <View style={{ flex: 1, minWidth: 12, height: 2, borderWidth: 1, borderStyle: "dashed", borderRadius: 1, borderColor: colors.lineStrong }} />
+        <T numberOfLines={1} style={{ fontFamily: fonts.display, fontSize: 21, maxWidth: "40%" }}>{to}</T>
+        <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: colors.accent }} />
+      </View>
+      {sub ? <T style={{ fontSize: 14, lineHeight: 19, color: colors.inkSoft }} numberOfLines={2}>{sub}</T> : null}
+    </Pressable>
+  );
 }

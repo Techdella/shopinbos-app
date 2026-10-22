@@ -200,6 +200,39 @@ export function storeRating(products: Array<{ avgRating?: number | null; reviewC
   return count > 0 ? { average: Math.round((sum / count) * 10) / 10, count } : null;
 }
 
+/** The seller card on the product page: who sells it, from where, where they deliver, and their WhatsApp. */
+export interface StoreSellerCard {
+  name: string;
+  /** "Lekki, Lagos · delivers nationwide"; null when the shop has said neither where it is nor where it delivers. */
+  line: string | null;
+  /** Digits for wa.me, or null. */
+  whatsappNumber: string | null;
+  /** Checkout offers the delivery partners' doorstep and pickup point options. */
+  partnerDelivery: boolean;
+}
+
+/**
+ * Where a shop delivers, from its delivery settings (sellArea / sellStates): "delivers nationwide", "delivers
+ * within Lagos", "delivers within Lagos, Ogun and Oyo", or "delivers within Lagos, Ogun, Oyo and 2 more states".
+ * Null when it isn't known.
+ */
+export function sellerReach(settings: { sellArea?: string | null; sellStates?: readonly string[] | null; originState?: string | null } | null | undefined): string | null {
+  if (!settings) return null;
+  if (settings.sellArea === "nationwide") return "delivers nationwide";
+  const states = [...new Set((settings.sellStates ?? []).map((state) => state.trim()).filter(Boolean))];
+  if (!states.length && settings.sellArea === "one_state" && settings.originState?.trim()) states.push(settings.originState.trim());
+  if (!states.length) return null;
+  if (states.length === 1) return `delivers within ${states[0]}`;
+  if (states.length <= 3) return `delivers within ${states.slice(0, -1).join(", ")} and ${states.at(-1)}`;
+  return `delivers within ${states.slice(0, 3).join(", ")} and ${states.length - 3} more ${states.length - 3 === 1 ? "state" : "states"}`;
+}
+
+/** The seller card's line: "{city} · delivers nationwide/within {states}" (either part may be missing). */
+export function sellerCardLine(input: { place?: string | null; reach?: string | null }) {
+  const parts = [input.place?.trim(), input.reach?.trim()].filter(Boolean);
+  return parts.length ? parts.join(" · ") : null;
+}
+
 /** One line of delivery estimate for the product page ("Lagos ₦2,000 · 1-2 days"). */
 export function deliveryLines(info: Pick<StorefrontShopperInfo, "delivery" | "flatRate">, currency = "NGN") {
   if (info.delivery.length === 0) {

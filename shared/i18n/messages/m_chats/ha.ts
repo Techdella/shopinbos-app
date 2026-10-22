@@ -139,6 +139,13 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "list.newCount": "{count} sababbi",
   "list.allAnswered": "An amsa duka",
   "list.allHere": "WhatsApp, Instagram, Facebook da shagonka, duk suna nan.",
+  "filter.all": "Duka",
+  "filter.whatsapp": "WhatsApp",
+  "filter.instagram": "Instagram",
+  "filter.facebook": "Facebook",
+  "thread.peggyWrote": "Peggy ta rubuta amsa",
+  "thread.peggySend": "Aika",
+  "thread.peggyEdit": "Gyara",
 };
 
 export default ha;

@@ -142,6 +142,12 @@ test("deep links: a tap opens the order, chat, job, quote or payout screen", () 
   assert.equal(n.appRouteFor("/home/orders/new"), null);
   assert.equal(n.appRouteFor("javascript:alert(1)"), null);
   assert.equal(n.appRouteFor(null), null);
+  // The phone app's own screens: the "Time to post" reminder opens the post.
+  assert.deepEqual(n.appRouteFor("app:/posts/post_1"), { pathname: "/posts/[id]", params: { id: "post_1" } });
+  assert.deepEqual(n.appRouteFor("app:/posts"), { pathname: "/posts" });
+  assert.deepEqual(n.appRouteFor("app:/rewards"), { pathname: "/rewards" });
+  assert.equal(n.appRouteFor("app:/admin"), null);
+  assert.equal(n.appRouteFor("app://example.com/posts/1"), null);
   assert.equal(n.routeHref({ pathname: "/order/[id]", params: { id: "a b" } }), "/order/a%20b");
   assert.equal(n.routeHref({ pathname: "/supplier/order/[id]", params: { id: "x", kind: "wholesale" } }), "/supplier/order/x?kind=wholesale");
   assert.equal(n.androidChannelFor("stock"), "orders");

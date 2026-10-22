@@ -142,6 +142,23 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "link.add": "Add link",
   "problem.label": "Give the link name.",
   "problem.url": "Type full web address, like https://yourshop.com.",
+  "create.delivery": "Delivery: address + fee",
+  "create.deliveryHint": "Optional. Save the customer address and the fee, dem go just tap Pay.",
+  "create.deliveryStreet": "Customer street address",
+  "create.deliveryCity": "Area or city",
+  "create.deliveryState": "State",
+  "create.deliveryLandmark": "Landmark (optional)",
+  "create.deliveryFee": "Delivery fee (₦)",
+  "create.deliveryFeeHint": "Leave am empty or put 0 for free delivery.",
+  "problem.deliveryAddress": "Add the customer street, area and state, or off the delivery.",
+  "problem.deliveryFee": "Type the delivery fee as number, like 2500.",
+  "block.shop": "Shop now button",
+  "block.shopSub": "E dey open your shop",
+  "block.arrivals": "New things wey land",
+  "block.arrivalsSub": "Your 4 newest products",
+  "block.track": "Track my order",
+  "block.trackSub": "Customers fit find their order",
+  "block.other": "Block",
 };
 
 export default pcm;

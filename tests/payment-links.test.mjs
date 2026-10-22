@@ -257,10 +257,11 @@ test("bio editor checks: half-filled blocks are found field by field before anyt
 
 test("a live store's /links works before the seller saves: a starter page, 404 only when turned off", () => {
   const starter = bio.defaultBioBlocks({ productIds: ["p1", "p2", "p3", "p4", "p5", "p6", "p7"], whatsapp: "2348031112222" });
-  assert.equal(starter.filter((b) => b.type === "product").length, 6);
-  assert.equal(starter[0].featured, true);
+  // Shop now, New arrivals, the top 3 products (the first a big card), WhatsApp, then Track my order.
+  assert.deepEqual(starter.map((b) => b.type), ["shop", "arrivals", "product", "product", "product", "whatsapp", "track"]);
+  assert.equal(starter.find((b) => b.type === "product").featured, true);
   assert.ok(starter.every((b) => b.type !== "product" || b.action === "page"), "no Buy now without a payment link");
-  assert.deepEqual(starter.at(-1), { id: "auto-whatsapp", type: "whatsapp", phone: "+2348031112222", label: "Chat with us on WhatsApp" });
+  assert.deepEqual(starter.find((b) => b.type === "whatsapp"), { id: "auto-whatsapp", type: "whatsapp", phone: "+2348031112222", label: "Chat with us on WhatsApp" });
   assert.equal(bio.defaultBioBlocks({ productIds: [], whatsapp: "" }).length, 0);
   assert.equal(bio.BioPageSchema.safeParse({ blocks: starter }).success, true, "the starter page saves as is");
   const service = read("src/lib/bio/service.server.ts");

@@ -8,8 +8,12 @@ import { cx } from "@/components/app-ui/cx";
 import { Icon } from "@/components/ui/Icon";
 import { useT } from "@/components/i18n/I18nProvider";
 import { naira } from "@shared/onboarding";
-import { EXPIRY_CHOICES, whatsappShareUrl, type ExpiryChoice } from "@/lib/payment-links/pure";
+import { EXPIRY_CHOICES, deliveryFromForm as deliveryBody, whatsappShareUrl, type ExpiryChoice } from "@/lib/payment-links/pure";
+import { regionsFor } from "@/components/storefront/shopper/checkout-storage";
 import { QrCode } from "./QrCode";
+
+/** The states the pay page's address form offers (the same names, so a saved state matches). */
+const NG_REGIONS = regionsFor("Nigeria");
 
 // Make a payment link for one or more of the seller's products: pick the option (or let the customer choose), how
 // many, one-time or reusable, how long it works, and optionally an agreed price and the customer's details. Then
@@ -62,6 +66,9 @@ export function PaymentLinkDialog({
   const [note, setNote] = useState("");
   const [buyerName, setBuyerName] = useState("");
   const [buyerPhone, setBuyerPhone] = useState("");
+  // Optional saved delivery: the customer's address and the fee, so the customer only taps Pay.
+  const [withDelivery, setWithDelivery] = useState(false);
+  const [delivery, setDelivery] = useState({ street: "", city: "", state: "", landmark: "", fee: "" });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<Created | null>(null);
@@ -82,6 +89,8 @@ export function PaymentLinkDialog({
   async function create() {
     setError(null);
     if (!lines.length) return setError(t("dialog.pickFirst"));
+    const savedDelivery = withDelivery ? deliveryBody(delivery) : null;
+    if (withDelivery && !savedDelivery) return setError(t("dialog.deliveryIncomplete"));
     setBusy(true);
     try {
       const response = await fetch("/api/app/payment-links", {
@@ -95,6 +104,7 @@ export function PaymentLinkDialog({
           note: note.trim() || null,
           buyerName: buyerName.trim() || null,
           buyerPhone: buyerPhone.trim() || null,
+          delivery: savedDelivery,
         }),
       });
       const json = await response.json().catch(() => null);
@@ -278,11 +288,43 @@ export function PaymentLinkDialog({
             </div>
           </div>
         ) : null}
+        <div className="grid gap-3 rounded-[16px] border border-app-line p-3">
+          <Toggle on={withDelivery} onChange={setWithDelivery} label={t("dialog.delivery")} />
+          <p className="m-0 text-[13px] text-app-ink-soft">{t("dialog.deliveryHint")}</p>
+          {withDelivery ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <FieldLabel htmlFor="pl-street">{t("dialog.deliveryStreet")}</FieldLabel>
+                <TextInput id="pl-street" value={delivery.street} maxLength={200} autoComplete="off" onChange={(event) => setDelivery((prev) => ({ ...prev, street: event.target.value }))} />
+              </div>
+              <div>
+                <FieldLabel htmlFor="pl-city">{t("dialog.deliveryCity")}</FieldLabel>
+                <TextInput id="pl-city" value={delivery.city} maxLength={120} autoComplete="off" onChange={(event) => setDelivery((prev) => ({ ...prev, city: event.target.value }))} />
+              </div>
+              <div>
+                <FieldLabel htmlFor="pl-state">{t("dialog.deliveryState")}</FieldLabel>
+                <select id="pl-state" value={delivery.state} onChange={(event) => setDelivery((prev) => ({ ...prev, state: event.target.value }))} className="h-12 w-full rounded-[14px] border border-app-line bg-white px-3 text-[15px]">
+                  <option value="">{t("dialog.deliveryPickState")}</option>
+                  {NG_REGIONS.map((region) => <option key={region} value={region}>{region}</option>)}
+                </select>
+              </div>
+              <div>
+                <FieldLabel htmlFor="pl-landmark">{t("dialog.deliveryLandmark")}</FieldLabel>
+                <TextInput id="pl-landmark" value={delivery.landmark} maxLength={160} autoComplete="off" onChange={(event) => setDelivery((prev) => ({ ...prev, landmark: event.target.value }))} />
+              </div>
+              <div>
+                <FieldLabel htmlFor="pl-fee">{t("dialog.deliveryFee")}</FieldLabel>
+                <TextInput id="pl-fee" inputMode="decimal" value={delivery.fee} placeholder="0" onChange={(event) => setDelivery((prev) => ({ ...prev, fee: event.target.value.replace(/[^\d.,]/g, "") }))} />
+                <p className="mb-0 mt-1 text-[13px] text-app-ink-soft">{t("dialog.deliveryFeeHint")}</p>
+              </div>
+            </div>
+          ) : null}
+        </div>
       </div>
 
       {error ? <div className="mt-4"><Notice>{error}</Notice></div> : null}
       <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-        <span className="text-[15px] font-extrabold">{amount.trim() ? naira(Number(amount.replace(/[^\d.]/g, "")) || 0) : estimate ? naira(estimate) : ""}</span>
+        <span className="text-[15px] font-extrabold">{amount.trim() || estimate ? naira((amount.trim() ? Number(amount.replace(/[^\d.]/g, "")) || 0 : estimate) + (withDelivery ? deliveryBody(delivery)?.fee ?? 0 : 0)) : ""}</span>
         <PillButton size="md" tone="ink" busy={busy} onClick={create} disabled={!lines.length}>
           <Icon name="link" size={16} />
           {t("dialog.create")}

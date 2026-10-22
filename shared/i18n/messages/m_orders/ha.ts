@@ -148,6 +148,21 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "tl.paid": "An biya",
   "tl.sent": "An aika",
   "tl.delivered": "An kai",
+  "track.title": "Bibiya",
+  "track.from": "Daga",
+  "track.to": "Zuwa",
+  "track.fromTo": "Daga {from} zuwa {to}",
+  "track.yourShop": "Shagonka",
+  "track.pickup": "Za a karɓa daga gare ka",
+  "track.eta": "{days} (kimanin abokin aiki)",
+  "track.call": "Kira {name}",
+  "track.share": "Raba bibiya da {name}",
+  "track.shareMessage": "Sannu {name}, odarka na kan hanya. Bi shi a nan: {url}",
+  "track.problem": "Bayar da rahoton matsala",
+  "track.messagePartner": "Aika saƙo zuwa {name}",
+  "track.messagePartnerSub": "Ya makara, ya lalace ko ya ɓace: gaya wa abokin isar da kayanka",
+  "track.getHelp": "Sami taimako daga Shopinbos",
+  "track.getHelpSub": "Mutum ko Peggy za su taimaka maka ka warware shi",
 };
 
 export default ha;

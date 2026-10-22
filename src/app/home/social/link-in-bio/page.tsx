@@ -23,7 +23,7 @@ export default async function LinkInBioPage() {
   if (!store) redirect("/builder?firstRun=1");
   const [page, products, collections, whatsapp] = await Promise.all([
     loadSellerBio(store),
-    db.storeProduct.findMany({ where: { storeId: store.id, status: "published" }, orderBy: [{ soldStock: "desc" }, { createdAt: "desc" }], take: 500, select: { id: true, name: true, images: true, retailPrice: true } }),
+    db.storeProduct.findMany({ where: { storeId: store.id, status: "published" }, orderBy: [{ soldStock: "desc" }, { createdAt: "desc" }], take: 500, select: { id: true, name: true, images: true, retailPrice: true, createdAt: true } }),
     db.collection.findMany({ where: { storeId: store.id }, orderBy: { sortOrder: "asc" }, take: 200, select: { id: true, name: true } }),
     sellerWhatsapp(store.id, user.phone ?? null),
   ]);
@@ -35,7 +35,7 @@ export default async function LinkInBioPage() {
         slug={store.slug}
         currency={store.currency}
         initial={page}
-        products={products.map((product) => ({ id: product.id, name: product.name, image: product.images[0] ?? null, price: Number(product.retailPrice) || 0 }))}
+        products={products.map((product) => ({ id: product.id, name: product.name, image: product.images[0] ?? null, price: Number(product.retailPrice) || 0, createdAt: product.createdAt.toISOString() }))}
         collections={collections}
         whatsapp={whatsapp ? `+${whatsapp}` : ""}
         storeColours={{ background: theme.paper, text: theme.ink, button: theme.cta, buttonText: theme.ctaText }}

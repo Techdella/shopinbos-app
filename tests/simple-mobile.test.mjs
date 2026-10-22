@@ -41,6 +41,9 @@ test("the + sheet: Add a product, Record a sale, Send a pay link", () => {
   for (const [key, title] of [["addProduct", "Add a product"], ["recordSale", "Record a sale"], ["payLink", "Send a pay link"]]) assert.ok(words.includes(`"create.${key}": "${title}"`), title);
   for (const index of [0, 1, 2]) assert.match(sheet, new RegExp(`title=\\{t\\(CREATE_ACTIONS\\[${index}\\]\\)\\}`));
   for (const path of ["/add-products", "/record-sale", "/payment-links/new"]) assert.match(sheet, new RegExp(`go\\("${path}"\\)`));
+  // "Familiar app": Make a post or reel with Rex comes first.
+  assert.ok(sheet.indexOf('go("/create")') < sheet.indexOf('go("/add-products")'), "Make a post first");
+  assert.ok(words.includes('"create.post": "Make a post or reel"'));
 });
 
 test("My shop groups everything else by goal: Sell; Money and delivery; Look; You", () => {
@@ -66,8 +69,11 @@ test("Home shows at most three 'Do these next' items", () => {
   assert.deepEqual(home.doNextItems(null, null), []);
   const screen = read("app/(tabs)/home.tsx");
   assert.match(screen, /doNextItems\(/);
-  // Day-one Home: no week chart, quick-action grid, checklist or best-seller carousel.
+  // Home: no week chart, big quick-action grid or best-seller carousel; "Needs you" shows three at most. The
+  // "Familiar app" four round shortcuts and the four-step "Get your shop ready" list replace the old ones.
   assert.doesNotMatch(screen, /const ACTIONS|Selling fast|This week ·|Finish setting up|imports on the way/i);
+  assert.match(screen, /todos\.slice\(0, NEEDS_MAX\)/);
+  assert.match(screen, /const NEEDS_MAX = 3;/);
   assert.ok(home.peggyLine({ chatsToday: 2, ordersToday: 1 }).startsWith("Peggy"));
 });
 
@@ -89,6 +95,38 @@ test("supplier app: tabs Home, Orders, Products, Chats, Money; orders New, In pr
   assert.match(code, /<Keypad /);
   assert.match(code, /deliverWithCode\(/);
   assert.match(read("lib/supplier.ts"), /action: "delivered", code/);
+});
+
+test("supplier app, familiar design: Home pieces, product grid, city on orders, track, chat filters, money straight to bank", () => {
+  const home = read("app/supplier/(tabs)/home.tsx");
+  for (const piece of ["<LevelPill", "<StatusRow", "<Checklist", "<QuickActions", "<StoryViewer", '"/ask-peggy"', "privateCards"]) assert.ok(home.includes(piece), piece);
+  for (const tone of ['tone: "peach"', 'tone: "butter"', 'tone: "lilac"', 'tone: "sky"']) assert.ok(home.includes(tone), tone);
+  assert.match(read("app/supplier/(tabs)/products.tsx"), /products\.addSub/);
+  assert.match(read("components/SupplierOrderRow.tsx"), /orderCity\(order\)/);
+  assert.equal(supplier.orderCity({ kind: "dropship", label: { address: ["4 Bode St", "Ikeja, Lagos"] } }), "Ikeja");
+  assert.equal(supplier.orderCity({ kind: "dropship", label: { address: ["Wuse, FCT", "Nigeria"] } }), "Wuse");
+  assert.equal(supplier.orderCity({ kind: "wholesale", address: "12 Allen Ave, Ikeja, Lagos, Nigeria" }), "Ikeja");
+  assert.equal(supplier.orderCity({ kind: "wholesale", address: "Aba" }), "Aba");
+  assert.equal(supplier.orderCity({ kind: "wholesale", address: "" }), "");
+  const now = Date.parse("2026-10-21T12:00:00Z");
+  assert.deepEqual(supplier.weekSummary([{ amountKobo: 500000, status: "paid", createdAt: "2026-10-20T10:00:00Z" }, { amountKobo: 100000, status: "refunded", createdAt: "2026-10-20T10:00:00Z" }, { amountKobo: 900000, status: "paid", createdAt: "2026-10-01T10:00:00Z" }], [], now), { amount: 5000, count: 1 });
+  assert.deepEqual(supplier.weekSummary([], [{ status: "delivered", createdAt: "2026-10-19T10:00:00Z", amount: 12000 }, { status: "cancelled", createdAt: "2026-10-19T10:00:00Z", amount: 9000 }], now), { amount: 12000, count: 1 });
+  assert.equal(supplier.chatMatches({ role: "seller", unread: 0 }, "shops"), true);
+  assert.equal(supplier.chatMatches({ role: "logistics_partner", unread: 0 }, "shops"), false);
+  assert.equal(supplier.chatMatches({ role: "logistics_partner", unread: 2 }, "unread"), true);
+  assert.deepEqual(supplier.supplierQuickReplies("seller").length, 3);
+  // Track: hidden unless the tracking route answers; the shop's own (unguessable) link goes through the share sheet.
+  assert.match(read("app/supplier/order/[id].tsx"), /fetchSupplierTrack\(/);
+  const track = read("app/supplier/order/track.tsx");
+  assert.match(track, /Share\.share\(/);
+  assert.match(track, /shareUrl/);
+  // Money goes straight to the bank: no withdraw, PIN or "held" money.
+  const money = read("app/supplier/(tabs)/money.tsx");
+  assert.doesNotMatch(money, /withdraw\(|\/withdraw|Withdraw to bank|Available to withdraw|pin\.|held by/i);
+  assert.doesNotMatch(readFileSync(new URL("../shared/i18n/messages/m_supplier/en.ts", import.meta.url), "utf8"), /"money\.[^"]*": "[^"]*(withdraw|held by)/i);
+  assert.match(money, /weekSummary\(/);
+  const account = read("app/supplier/account.tsx");
+  for (const piece of ["emailTopUp", "fetchCredits", '"/posts"', '"/rewards"']) assert.ok(account.includes(piece), piece);
 });
 
 test("every screen frame has Help, and Help offers a person and Peggy", () => {

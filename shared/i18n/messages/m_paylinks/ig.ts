@@ -142,6 +142,23 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "link.add": "Tinye link",
   "problem.label": "Nye link ahụ aha.",
   "problem.url": "Dee adreesị weebụ zuru ezu, dịka https://yourshop.com.",
+  "create.delivery": "Nnyefe: adreesị + ego",
+  "create.deliveryHint": "Nhọrọ. Chekwaa adreesị onye ahịa na ego ahụ, ha ga-apị naanị Kwụọ ụgwọ.",
+  "create.deliveryStreet": "Adreesị okporo ụzọ onye ahịa",
+  "create.deliveryCity": "Mpaghara ma ọ bụ obodo",
+  "create.deliveryState": "Steeti",
+  "create.deliveryLandmark": "Ihe ama (nhọrọ)",
+  "create.deliveryFee": "Ego nnyefe (₦)",
+  "create.deliveryFeeHint": "Hapụ ya efu ma ọ bụ 0 maka nnyefe n'efu.",
+  "problem.deliveryAddress": "Tinye okporo ụzọ, mpaghara na steeti onye ahịa, ma ọ bụ gbanyụọ nnyefe.",
+  "problem.deliveryFee": "Dee ego nnyefe dịka nọmba, dịka 2500.",
+  "block.shop": "Bọtịnụ Zụta ugbu a",
+  "block.shopSub": "Ọ na-emepe ụlọ ahịa gị",
+  "block.arrivals": "Ngwaahịa ọhụrụ",
+  "block.arrivalsSub": "Ngwaahịa ọhụrụ gị anọ",
+  "block.track": "Soro ọda m",
+  "block.trackSub": "Ndị ahịa ga-achọta ọda ha",
+  "block.other": "Akụkụ",
 };
 
 export default ig;

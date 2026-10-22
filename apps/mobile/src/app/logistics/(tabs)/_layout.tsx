@@ -1,12 +1,14 @@
 import { Tabs } from "expo-router";
 import type { AppIconName } from "@/components/icons";
+import { PARTNER_TINT } from "@/components/PartnerKit";
 import { AppTabBar, type TabItem } from "@/components/TabBar";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 
 // Delivery partner tabs ("Delivery partner app" prototype): Jobs, Chats, Money, Business. Business is the old "more"
 // route (it was the menu), so old links still land. Today ("home") opens Jobs, or set-up while the company isn't set
-// up; Riders lives under Business, and its old tab route opens that list.
+// up; Riders lives under Business, and its old tab route opens that list. On Android the active icon sits on the
+// prototype's teal pill (`.tb.teal.and .tab.on .ic`, #D6F0E9).
 
 const ITEMS: { name: string; icon: AppIconName; label: string; nav?: string }[] = [
   { name: "jobs", icon: "route", label: "Jobs", nav: "tab.logistics.jobs" },
@@ -22,7 +24,7 @@ function PartnerTabs(props: TabBarProps) {
   const nav = useT("nav");
   const t = useT("m_partner");
   const items: TabItem[] = ITEMS.map((item) => ({ name: item.name, icon: item.icon, label: item.nav ? nav.dynamic(item.nav, item.label) : t.dynamic(`tab.${item.name}`, item.label) }));
-  return <AppTabBar {...props} items={items} tint={colors.mintTint} activeFor={(route) => (route === "home" ? "jobs" : route === "riders" ? "more" : route)} />;
+  return <AppTabBar {...props} items={items} tint={PARTNER_TINT} activeFor={(route) => (route === "home" ? "jobs" : route === "riders" ? "more" : route)} />;
 }
 
 export default function LogisticsTabs() {

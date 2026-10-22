@@ -13,12 +13,14 @@ import {
   customerLinkQuantity,
   expiryFor,
   linkCheckoutLines,
+  linkDeliveryColumns,
   linkPayBlock,
   linkStatus,
   linkTitle,
   MAX_LINK_ITEMS,
   newLinkCode,
   PAY_BLOCK_MESSAGE,
+  readLinkDelivery,
   readLinkItems,
   type BuyerChoice,
   type CreatePaymentLinkInput,
@@ -116,6 +118,7 @@ export async function createPaymentLink(store: LinkStore, input: CreatePaymentLi
       buyerName: input.buyerName ?? null,
       buyerPhone: input.buyerPhone ?? null,
       buyerEmail: input.buyerEmail ?? null,
+      ...linkDeliveryColumns(input.delivery),
       oneTime: input.oneTime,
       // A one-time link sells what it says unless the seller allows more; reusable ones let buyers choose.
       maxQuantity: input.maxQuantity ?? (single ? (input.oneTime ? snapshot.items[0].quantity : 10) : 1),
@@ -239,7 +242,8 @@ export async function linkCheckout(storeId: string, code: string, choice: BuyerC
   if (block) return { ok: false as const, message: PAY_BLOCK_MESSAGE[block] };
   const lines = linkCheckoutLines({ items: readLinkItems(link.items), maxQuantity: link.maxQuantity, customAmount: link.customAmount }, choice);
   if (!lines.ok) return lines;
-  return { ok: true as const, link, lines: lines.lines, agreedItemsTotal: link.customAmount };
+  // Saved delivery (address + agreed fee or option): checkout uses it as is (linkCheckoutDelivery).
+  return { ok: true as const, link, lines: lines.lines, agreedItemsTotal: link.customAmount, delivery: readLinkDelivery(link) };
 }
 
 const PAID = new Set<string>(PAID_RETAIL_STATUSES);

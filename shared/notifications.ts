@@ -403,6 +403,19 @@ const SIMPLE_SCREENS: Array<[RegExp, string]> = [
   [/^\/rider$/, "/rider"],
 ];
 
+/** Screens only the phone app has, for app:/… links. Anything else is ignored (null). */
+const APP_OWN_SCREENS = ["/posts", "/rewards", "/create", "/ask-peggy", "/status/new", "/notifications"];
+
+function appOwnRoute(rest: string): AppRoute | null {
+  const [beforeQuery] = rest.split(/[?#]/);
+  const pathname = beforeQuery.replace(/\/+$/, "") || "/";
+  let match: RegExpExecArray | null;
+  if ((match = /^\/posts\/([\w-]+)$/.exec(pathname))) return { pathname: "/posts/[id]", params: { id: match[1] } };
+  if ((match = /^\/create\/([\w-]+)$/.exec(pathname))) return { pathname: "/create/[id]", params: { id: match[1] } };
+  if (APP_OWN_SCREENS.includes(pathname)) return { pathname };
+  return null;
+}
+
 /**
  * The app screen for a notification's web link (orders, chats, jobs, quotes, payouts…), or null when the app has
  * no screen for it (the app then opens that page of the website, signed in).
@@ -410,6 +423,8 @@ const SIMPLE_SCREENS: Array<[RegExp, string]> = [
 export function appRouteFor(link: string | null | undefined): AppRoute | null {
   if (!link) return null;
   let path = String(link).trim();
+  // The phone app's own screens: app:/posts/<id> (the "Time to post" reminder), app:/rewards and so on.
+  if (path.startsWith("app:")) return appOwnRoute(path.slice(4));
   const absolute = /^https?:\/\/[^/]+(\/.*)?$/.exec(path);
   if (absolute) path = absolute[1] ?? "/";
   if (!path.startsWith("/")) return null;

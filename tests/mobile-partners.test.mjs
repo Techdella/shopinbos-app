@@ -49,6 +49,17 @@ test("wrong-role screens can't be visited", () => {
     [null, "/auth/callback", true],
     [null, "/rider", true],
     [null, "/rider/link", true],
+    // The shared "Familiar app" screens (Rewards, Ask Peggy, Create with Rex, the posts calendar, a new status)
+    // are for every business role, not for admins or anyone signed out.
+    ...["/rewards", "/ask-peggy", "/create", "/create/job_1", "/posts", "/posts/post_1", "/status/new"].flatMap((path) => [
+      ["seller", path, true],
+      ["supplier", path, true],
+      ["logistics_partner", path, true],
+      ["admin", path, false],
+      [null, path, false],
+    ]),
+    ["supplier", "/postsx", false],
+    ["supplier", "/peggy", false],
   ];
   for (const [role, path, allowed] of cases) assert.equal(pure.canVisit(role, path), allowed, `${role} → ${path}`);
   assert.equal(pure.areaOf("/supplier"), "supplier");

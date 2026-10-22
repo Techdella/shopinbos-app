@@ -229,6 +229,10 @@ model User {
   deliverySettings       DeliverySettings?
   deliveryConnections    DeliveryConnection[]
   privateRateCards       LogisticsRateCard[]
+  // Status (24-hour stories): the user's posts, and the posts they viewed and liked.
+  statusPosts            StatusPost[]
+  statusViews            StatusView[]
+  statusLikes            StatusLike[]
 }
 
 // ─── Store ────────────────────────────────────────────────────────────────────
@@ -4059,6 +4063,15 @@ model PaymentLink {
   buyerName      String?
   buyerPhone     String?
   buyerEmail     String?
+  /// Saved delivery (optional, src/lib/payment-links/pure.ts LinkDeliverySchema): the customer's address, and either
+  /// a delivery fee the seller agreed (0 = free) or one of the store's delivery options. With both, the pay page is
+  /// one tap and checkout uses exactly this address and delivery.
+  deliveryStreet   String?
+  deliveryCity     String?
+  deliveryState    String?
+  deliveryLandmark String?
+  deliveryFee      Float?
+  deliveryOptionId String?
   /// One-time links close once paid; reusable ones (link in bio) keep selling.
   oneTime        Boolean   @default(true)
   /// How many the buyer may choose on a single-product link.
@@ -4488,6 +4501,176 @@ model SubscriptionPlanVersion {
   retiredAt   DateTime?
 
   @@index([tier, billing, current])
+}
+
+// ─── Rewards (sellers, suppliers, delivery partners) ──────────────────────────
+// Levels, weekly challenges and badges in the phone app (src/lib/rewards: rules.ts holds the per-role catalogs).
+// Every reward comes from one RewardEvent, unique on (userId, kind, ref), so a replayed webhook or a double tap
+// never pays twice. Points only swap for free AI credits (100 → 20); they are never turned into cash.
+// Migration: docs/migrations/2026-11-18-rewards.sql.
+
+model RewardAccount {
+  userId        String   @id
+  /// Lifetime XP: sets the level. Never goes down.
+  xp            Int      @default(0)
+  /// Points to spend (swap for AI credits). Never cash.
+  points        Int      @default(0)
+  /// Days in a row with at least one reward, counted on Lagos calendar days.
+  streak        Int      @default(0)
+  /// "YYYY-MM-DD" (Africa/Lagos) of the last day that counted toward the streak.
+  lastActiveDay String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model RewardEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  /// order_paid | order_accepted | order_accepted_fast | shop_supplied | product_added | quote_sent | status_posted |
+  /// delivery_done | delivery_on_time | job_accepted_fast | chat_replied_fast | partner_connected
+  kind      String
+  /// What it was for (order, product, job, post… id), so the same thing is counted once.
+  ref       String
+  xp        Int      @default(0)
+  points    Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, kind, ref])
+  @@index([userId, kind, createdAt])
+}
+
+model ChallengeClaim {
+  id        String   @id @default(cuid())
+  userId    String
+  key       String
+  /// Monday 00:00 Africa/Lagos of the week the challenge was done in.
+  weekStart DateTime
+  points    Int
+  createdAt DateTime @default(now())
+
+  @@unique([userId, key, weekStart])
+}
+
+model UserBadge {
+  id       String   @id @default(cuid())
+  userId   String
+  key      String
+  earnedAt DateTime @default(now())
+
+  @@unique([userId, key])
+}
+
+// ─── Status (24-hour stories) ─────────────────────────────────────────────────
+// Short posts sellers, suppliers and delivery partners share with each other in the phone app's Status row
+// (/api/mobile/status, rules in shared/status.ts). A post lives 24 hours: reads never return it after expiresAt,
+// and /api/cron/status-purge deletes it (with its views, likes and photo) later.
+// Migration: docs/migrations/2026-11-18-status-posts.sql.
+
+model StatusPost {
+  id        String   @id @default(cuid())
+  authorId  String
+  /// The author's role when they posted: seller | supplier | logistics_partner (who sees it: shared/status.ts).
+  role      Role
+  headline  String
+  caption   String?
+  /// A photo uploaded through /api/mobile/status/upload (public bucket, status/<authorId>/).
+  imageUrl  String?
+  /// peach | mint | blue | warn | ink
+  tone      String   @default("peach")
+  /// The product the post is about, by the author's role: a supplier's own SupplierProduct (what "Add to my shop"
+  /// lists through the dropship agreement), or a seller's own StoreProduct. Not a foreign key, since it points at
+  /// one of two tables; it is checked against the author when posting and read back by role.
+  productId String?
+  /// add_product | chat | connect | see_rates | offer_delivery | view_shop (allowed per role: shared/status.ts)
+  ctaKind   String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  author User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  views  StatusView[]
+  likes  StatusLike[]
+
+  @@index([authorId, expiresAt])
+  @@index([expiresAt])
+}
+
+/// Who has seen a post (once per viewer).
+model StatusView {
+  id        String   @id @default(cuid())
+  postId    String
+  viewerId  String
+  createdAt DateTime @default(now())
+
+  post   StatusPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  viewer User       @relation(fields: [viewerId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, viewerId])
+  @@index([viewerId])
+}
+
+/// A like on a post (once per user).
+model StatusLike {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  post StatusPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([userId])
+}
+
+
+// ─── Create with Rex and posts ────────────────────────────────────────────────
+// The phone app's "Make a post" (Create with Rex) and posts calendar, for sellers, suppliers and delivery partners
+// (src/app/api/mobile/create, src/app/api/mobile/posts, shared/create-with-rex.ts). Nothing is ever posted for
+// anyone: "Share now" opens the phone's share sheet, and a scheduled post gets one "Time to post" reminder
+// (src/app/api/cron/post-reminders). No relation fields on User on purpose (like AiUsage), so this section stands
+// alone. Migration: docs/migrations/2026-11-18-create-posts.sql.
+
+/// One "Make a post" request: 3 templated designs (stored in the public media bucket), each with a caption.
+model CreateJob {
+  id        String   @id @default(cuid())
+  userId    String
+  /// making | done | failed
+  status    String   @default("making")
+  /// status | reel | post | flyer
+  format    String
+  ideaId    String?
+  prompt    String?
+  productId String?
+  /// [{ id, imageUrl, caption }]
+  designs   Json     @default("[]")
+  error     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, createdAt])
+}
+
+/// A post in the calendar. status: draft | scheduled | posted. remindedAt: the "Time to post" reminder went (once).
+model ScheduledPost {
+  id          String    @id @default(cuid())
+  userId      String
+  designId    String?
+  imageUrl    String?
+  caption     String
+  /// whatsapp | instagram | facebook | tiktok
+  platforms   String[]
+  status      String    @default("draft")
+  scheduledAt DateTime?
+  postedAt    DateTime?
+  remindedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId, scheduledAt])
+  @@index([status, scheduledAt])
+  // The live database already has an unrelated, empty "ScheduledPost" table from an older design; this one lives
+  // in "PlannedPost" so the two never collide.
+  @@map("PlannedPost")
 }
 
 // ─── Social posts (Marketing > Social posts) ────────────────────────────────

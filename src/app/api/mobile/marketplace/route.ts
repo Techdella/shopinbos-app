@@ -86,6 +86,7 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
       status: "draft",
     },
   });
+  void import("@/lib/rewards/rewards.server").then((rewards) => rewards.recordRewardEvent({ userId: user.id, kind: "product_added", ref: storeProduct.id })).catch(() => undefined);
   if (dropship) {
     await db.dropshipRelationship.create({
       data: { sellerId: user.id, storeId: store.id, supplierId: product.supplierId, supplierProductId: product.id, storeProductId: storeProduct.id },

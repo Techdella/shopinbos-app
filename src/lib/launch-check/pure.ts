@@ -89,6 +89,8 @@ export const SCHEDULED_JOBS: ScheduledJob[] = [
   { path: "/api/cron/partner-payins", label: "Delivery partner pay-ins", pgCron: ["partner-payins"], qstash: "partner-payins" },
   { path: "/api/cron/delivery-jobs", label: "Delivery jobs", pgCron: ["delivery-jobs"], qstash: "delivery-jobs" },
   { path: "/api/cron/partner-webhooks", label: "Partner webhook retries", pgCron: ["partner-webhooks"], qstash: "partner-webhooks" },
+  { path: "/api/cron/post-reminders", label: "\"Time to post\" reminders", pgCron: ["post-reminders"], qstash: "post-reminders" },
+  { path: "/api/cron/status-purge", label: "Clear expired status posts", pgCron: ["status-purge"], qstash: "status-purge" },
   { path: "/api/cron/verification-reminders", label: "Verification reminders", pgCron: ["verification-reminders"], qstash: "verification-reminders" },
   { path: "/api/cron/morning-brief", label: "Peggy's morning brief (suppliers and delivery partners)", pgCron: ["morning-brief"], qstash: "morning-brief" },
   { path: "/api/cron/lifecycle", label: "Lifecycle emails", pgCron: ["lifecycle-emails"], qstash: "lifecycle-emails" },

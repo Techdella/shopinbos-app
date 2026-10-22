@@ -34,6 +34,7 @@ Defined in `scripts/qstash-schedules.mjs` (cron times are UTC):
 | shopinbos-business-registrations        | /api/cron/business-registrations     | `*/10 * * * *`    |
 | shopinbos-money-owed                    | /api/cron/money-owed                 | `7 * * * *`       |
 | shopinbos-social-posts                  | /api/cron/social-posts               | `*/5 * * * *`     |
+| shopinbos-post-reminders                | /api/cron/post-reminders             | `*/5 * * * *`     |
 | shopinbos-weekly-summary                | /api/cron/weekly-summary             | `0 6 * * 1`       |
 | shopinbos-weekly-summary-continue       | /api/cron/weekly-summary             | `20,40 6-9 * * 1` |
 

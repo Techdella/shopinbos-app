@@ -99,7 +99,18 @@ export function publicPriceFor(row: { from: string; to: string; service: string;
 
 /** "Picks up in Lagos, Ogun · delivers nationwide" in parts the screen translates. */
 export function coverageParts(partner: { pickupAreas: readonly string[]; deliveryAreas: readonly string[] }) {
-  const list = (areas: readonly string[]) => areas.map((area) => routeWords({ from: area, to: "" }).replace(/ → $/, "")).join(", ");
+  // Areas grouped under their state: "Lagos (Yaba, Surulere, Ikeja), Ogun", not "Yaba, Lagos, Surulere, Lagos…".
+  const list = (areas: readonly string[]) => {
+    const states = new Map<string, string[]>();
+    for (const token of areas) {
+      const [state, area] = token.split(":").map((part) => part.trim());
+      const name = stateName(state);
+      const known = states.get(name) ?? [];
+      if (area) known.push(area);
+      states.set(name, known);
+    }
+    return [...states].map(([state, inState]) => (inState.length ? `${state} (${inState.join(", ")})` : state)).join(", ");
+  };
   return { from: list(partner.pickupAreas), to: list(partner.deliveryAreas) };
 }
 

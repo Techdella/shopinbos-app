@@ -142,6 +142,23 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "link.add": "Fi link kún un",
   "problem.label": "Fún link náà ní orúkọ.",
   "problem.url": "Kọ àdírẹ́sì wẹ́ẹ̀bù kíkún, bíi https://yourshop.com.",
+  "create.delivery": "Ìfijíṣẹ́: àdírẹ́sì + owó",
+  "create.deliveryHint": "Kò pọn dandan. Fi àdírẹ́sì oníbàárà àti owó pamọ́, wọ́n á kàn tẹ Sanwó.",
+  "create.deliveryStreet": "Àdírẹ́sì òpópónà oníbàárà",
+  "create.deliveryCity": "Agbègbè tàbí ìlú",
+  "create.deliveryState": "Ìpínlẹ̀",
+  "create.deliveryLandmark": "Àmì ibi (kò pọn dandan)",
+  "create.deliveryFee": "Owó ìfijíṣẹ́ (₦)",
+  "create.deliveryFeeHint": "Fi sílẹ̀ ní òfo tàbí 0 fún ìfijíṣẹ́ ọ̀fẹ́.",
+  "problem.deliveryAddress": "Fi òpópónà, agbègbè àti ìpínlẹ̀ oníbàárà kún, tàbí pa ìfijíṣẹ́.",
+  "problem.deliveryFee": "Tẹ owó ìfijíṣẹ́ ní nọ́mbà, bíi 2500.",
+  "block.shop": "Bọ́tìnì Ra nísinsìnyí",
+  "block.shopSub": "Ó ń ṣí ṣọ́ọ̀bù rẹ",
+  "block.arrivals": "Àwọn ọjà tuntun",
+  "block.arrivalsSub": "Ọjà tuntun rẹ mẹ́rin",
+  "block.track": "Tọpinpin ọjà mi",
+  "block.trackSub": "Àwọn oníbàárà máa rí ọjà wọn",
+  "block.other": "Apá kan",
 };
 
 export default yo;

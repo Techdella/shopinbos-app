@@ -172,6 +172,15 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "w.payMeHere": "Bẹ́ẹ̀ni, sanwó fún mi níbí",
   "w.noSuchAccount": "Nọ́ńbà àkáǹtì yẹn kò sí ní báńkì yìí.",
   "method.korapay": "Káàdì tàbí báńkì (lórí ayélujára)",
+  "w.money": "Owó",
+  "w.coming": "Ń bọ̀ sí bánkì rẹ",
+  "w.comingDay": "Owó tó kàn sí bánkì rẹ: {day}",
+  "w.comingSoon": "Ó wà lójú ọ̀nà sí bánkì rẹ",
+  "w.comingNone": "Kò sí ohunkóhun lójú ọ̀nà báyìí. Ìsanwó káàdì ń lọ tààrà sí bánkì rẹ.",
+  "w.thisWeek": "Ọ̀sẹ̀ yìí",
+  "w.weekLine": "{amount} · títà {count}",
+  "w.last30Line": "Ọjọ́ 30 sẹ́yìn: {amount}",
+  "w.recent": "Àìpẹ́",
 };
 
 export default yo;

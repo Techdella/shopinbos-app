@@ -1,108 +1,134 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { router } from "expo-router";
+import { Image } from "expo-image";
 import { naira } from "@shared/onboarding";
-import { List, Sub } from "@/components/design";
-import { ErrorState, LoadingBlock } from "@/components/kit";
-import { Pic, PlusMinus } from "@/components/SupplierKit";
-import { TabScreen } from "@/components/TabScreen";
-import { Field, Notice, PillButton, T } from "@/components/ui";
+import { Sub, Title } from "@/components/design";
+import { HelpButton } from "@/components/Help";
 import { AppIcon } from "@/components/icons";
+import { ErrorState, LoadingBlock } from "@/components/kit";
+import { TabScreen } from "@/components/TabScreen";
+import { Field, T } from "@/components/ui";
 import { useT } from "@/lib/i18n";
 import { productStage } from "@/lib/partner-pure";
-import { fetchSupplierProducts, quickEditProduct, type SupplierProduct } from "@/lib/supplier";
+import { fetchSupplierProducts, type SupplierProduct } from "@/lib/supplier";
 import { LOW_STOCK } from "@/lib/supplier-pure";
 import { useLoad } from "@/lib/useLoad";
 import { colors } from "@/theme";
 
-// Supplier Products ("Simple app, end to end" supplier prototype): each product with its price to shops and how
-// many are left, and − / + to change the stock right there (saved a moment after the last tap, through PATCH
-// /api/mobile/supplier/products/[id]; stock changes don't send a live product back for review). Tap a product for
-// its page; "Add a product" starts with a photo.
+// Supplier Products ("Familiar app" supplier prototype `products`): a two-column grid of product cards (the photo,
+// the name, the price to shops and how many are left), the first card being "Add a product · Take a photo to
+// start". The search button in the header shows a search box. Tap a product for its page, where − / + changes the
+// stock (saved through PATCH /api/mobile/supplier/products/[id]).
 
-const SAVE_AFTER_MS = 700;
+type Cell = { kind: "add" } | { kind: "product"; product: SupplierProduct };
 
-/** Past this many products a search box shows above the list. */
-const SEARCH_FROM = 8;
+function pairs<T>(items: T[]): T[][] {
+  const rows: T[][] = [];
+  for (let index = 0; index < items.length; index += 2) rows.push(items.slice(index, index + 2));
+  return rows;
+}
 
 export default function SupplierProducts() {
-  const t = useT("m_supplier", "m_partner");
+  const t = useT("m_supplier", "m_partner", "common");
   const products = useLoad(fetchSupplierProducts);
-  const [error, setError] = useState<string | null>(null);
+  const [searching, setSearching] = useState(false);
   const [q, setQ] = useState("");
-  const stockLine = (stock: number) => (stock <= LOW_STOCK ? t("products.runningLow", { count: stock }) : t("products.inStock", { count: stock }));
-  const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
-
-  useEffect(() => {
-    const pending = timers.current;
-    return () => pending.forEach((timer) => clearTimeout(timer));
-  }, []);
-
-  function setStock(product: SupplierProduct, next: number) {
-    products.setData((current) => current?.map((item) => (item.id === product.id ? { ...item, stockQuantity: next } : item)) ?? current);
-    const old = timers.current.get(product.id);
-    if (old) clearTimeout(old);
-    timers.current.set(
-      product.id,
-      setTimeout(() => {
-        timers.current.delete(product.id);
-        quickEditProduct(product.id, { stockQuantity: next })
-          .then(() => setError(null))
-          .catch((saveError) => {
-            setError(saveError instanceof Error ? saveError.message : t("product.saveFailed"));
-            void products.reload();
-          });
-      }, SAVE_AFTER_MS),
-    );
-  }
+  const stockLine = (stock: number) => (stock <= 0 ? t("products.soldOut") : stock <= LOW_STOCK ? t("products.runningLow", { count: stock }) : t("products.inStock", { count: stock }));
 
   const all = products.data ?? [];
   const query = q.trim().toLowerCase();
   const list = query ? all.filter((product) => product.name.toLowerCase().includes(query)) : all;
+  const cells: Cell[] = [...(query ? [] : [{ kind: "add" } as Cell]), ...list.map((product): Cell => ({ kind: "product", product }))];
+
+  const header = (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 46 }}>
+      <Title style={{ flex: 1 }}>{t("products.tab")}</Title>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t("products.search")}
+        accessibilityState={{ expanded: searching }}
+        onPress={() => {
+          if (searching) setQ("");
+          setSearching(!searching);
+        }}
+        hitSlop={6}
+        style={({ pressed }) => ({ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surface, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.8 : 1 })}
+      >
+        <AppIcon name={searching ? "x" : "search"} size={21} />
+      </Pressable>
+      <HelpButton />
+    </View>
+  );
 
   return (
-    <TabScreen title={t("products.tab")} refreshing={products.refreshing} onRefresh={() => void products.refresh()}>
+    <TabScreen header={header} refreshing={products.refreshing} onRefresh={() => void products.refresh()}>
+      {searching ? <Field value={q} onChangeText={setQ} placeholder={t("products.find")} returnKeyType="search" autoFocus accessibilityLabel={t("products.search")} style={{ height: 48 }} /> : null}
       {products.loading && !products.data ? <LoadingBlock label={t("products.loading")} /> : null}
       {products.error && !products.data ? <ErrorState message={products.error} onRetry={() => void products.reload()} /> : null}
-      {error ? <Notice>{error}</Notice> : null}
 
-      {all.length > SEARCH_FROM ? <Field value={q} onChangeText={setQ} placeholder={t("products.find")} returnKeyType="search" accessibilityLabel={t("products.search")} style={{ height: 48 }} /> : null}
+      {products.data && query && !list.length ? <Sub>{t("products.noneHere")}</Sub> : null}
 
-      {products.data && !all.length ? (
-        <View style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 18, gap: 6 }}>
-          <T weight="extrabold" style={{ fontSize: 17 }}>{t("products.none")}</T>
-          <Sub>{t("products.noneBody")}</Sub>
+      {products.data ? (
+        <View style={{ gap: 12 }}>
+          {pairs(cells).map((row, index) => (
+            <View key={index} style={{ flexDirection: "row", gap: 12 }}>
+              {row.map((cell) => (cell.kind === "add" ? <AddCard key="add" /> : <ProductCard key={cell.product.id} product={cell.product} stock={stockLine(cell.product.stockQuantity)} />))}
+              {row.length === 1 ? <View style={{ flex: 1 }} /> : null}
+            </View>
+          ))}
         </View>
       ) : null}
 
-      {list.length ? (
-        <List>
-          {list.map((product) => {
-            const live = product.status === "published";
-            const line = [t("products.toShops", { price: naira(product.wholesalePrice) }), stockLine(product.stockQuantity), live ? null : productStage(product.status, t).label].filter(Boolean).join(" · ");
-            return (
-              <View key={product.id} style={{ flexDirection: "row", alignItems: "center", gap: 14, minHeight: 68, paddingHorizontal: 16, paddingVertical: 12 }}>
-                <Pic uri={product.images[0]} />
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`${product.name}. ${line}`}
-                  onPress={() => router.push({ pathname: "/supplier/product/[id]", params: { id: product.id } })}
-                  style={({ pressed }) => ({ flex: 1, minWidth: 0, gap: 3, opacity: pressed ? 0.7 : 1 })}
-                >
-                  <T weight="bold" style={{ fontSize: 16, lineHeight: 21 }} numberOfLines={2}>{product.name}</T>
-                  <T style={{ fontSize: 14, lineHeight: 19, color: product.stockQuantity <= LOW_STOCK ? colors.warnInk : colors.inkSoft }} numberOfLines={2}>{line}</T>
-                </Pressable>
-                <PlusMinus value={product.stockQuantity} onChange={(next) => setStock(product, next)} lessLabel={t("product.oneLessOf", { name: product.name })} moreLabel={t("product.oneMoreOf", { name: product.name })} />
-              </View>
-            );
-          })}
-        </List>
-      ) : null}
-
-      <PillButton tone="accent" onPress={() => router.push("/supplier/product/new")} accessibilityLabel={t("products.add")}>
-        <AppIcon name="plus" size={20} color={colors.ink} strokeWidth={2.4} />
-        <T weight="extrabold" style={{ fontSize: 17, color: colors.ink }}>{t("products.add")}</T>
-      </PillButton>
+      {products.data && !all.length ? <Sub style={{ textAlign: "center" }}>{t("products.noneBody")}</Sub> : null}
     </TabScreen>
+  );
+}
+
+function AddCard() {
+  const t = useT("m_supplier");
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${t("products.add")}. ${t("products.addSub")}`}
+      onPress={() => router.push("/supplier/product/new")}
+      style={({ pressed }) => ({ flex: 1, minHeight: 236, borderRadius: 22, borderWidth: 2, borderStyle: "dashed", borderColor: colors.lineStrong, backgroundColor: colors.surface, alignItems: "center", justifyContent: "center", gap: 10, padding: 14, opacity: pressed ? 0.8 : 1 })}
+    >
+      <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: colors.peach, alignItems: "center", justifyContent: "center" }}>
+        <AppIcon name="camera" size={26} color={colors.accentInk} />
+      </View>
+      <T weight="extrabold" style={{ fontSize: 16, textAlign: "center" }}>{t("products.add")}</T>
+      <T style={{ fontSize: 13.5, lineHeight: 18, color: colors.inkSoft, textAlign: "center" }}>{t("products.addSub")}</T>
+    </Pressable>
+  );
+}
+
+function ProductCard({ product, stock }: { product: SupplierProduct; stock: string }) {
+  const t = useT("m_supplier", "m_partner");
+  const live = product.status === "published";
+  const stage = live ? null : productStage(product.status, t).label;
+  const price = naira(product.wholesalePrice);
+  const low = product.stockQuantity <= LOW_STOCK;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={[product.name, t("products.toShops", { price }), stock, stage].filter(Boolean).join(". ")}
+      onPress={() => router.push({ pathname: "/supplier/product/[id]", params: { id: product.id } })}
+      style={({ pressed }) => ({ flex: 1, borderRadius: 22, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, overflow: "hidden", opacity: pressed ? 0.85 : 1 })}
+    >
+      {product.images[0] ? (
+        <Image source={{ uri: product.images[0] }} style={{ width: "100%", aspectRatio: 1, backgroundColor: colors.grayTint }} contentFit="cover" accessibilityIgnoresInvertColors />
+      ) : (
+        <View style={{ width: "100%", aspectRatio: 1, backgroundColor: colors.grayTint, alignItems: "center", justifyContent: "center" }}>
+          <AppIcon name="box" size={34} color={colors.inkSoft} />
+        </View>
+      )}
+      <View style={{ padding: 12, gap: 3 }}>
+        <T weight="bold" style={{ fontSize: 15, lineHeight: 19 }} numberOfLines={2}>{product.name}</T>
+        <T weight="extrabold" style={{ fontSize: 15 }}>{price}</T>
+        <T style={{ fontSize: 13, lineHeight: 17, color: low ? colors.warnInk : colors.inkSoft }} numberOfLines={1}>{stock}</T>
+        {stage ? <T style={{ fontSize: 12.5, color: colors.inkSoft }} numberOfLines={1}>{stage}</T> : null}
+      </View>
+    </Pressable>
   );
 }

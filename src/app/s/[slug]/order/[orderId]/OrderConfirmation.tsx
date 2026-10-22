@@ -14,7 +14,7 @@ import { resolveShopperTheme, type ShopperTheme } from "@/components/storefront/
 import { TransferInstructions, payByText, type TransferDetails } from "./TransferInstructions";
 import { OrderRewardsPanel, type OrderRewards } from "@/components/storefront/gamification/Rewards";
 import { shopperGameColors } from "@/components/storefront/gamification/client";
-import { ISSUE_KINDS, ISSUE_WORDS, type IssueKind, type TimelineStep } from "@shared/delivery-market";
+import { ISSUE_KINDS, type IssueKind, type TimelineStep } from "@shared/delivery-market";
 import type { OrderDeliveryView } from "./order-props";
 
 interface Props {
@@ -94,7 +94,14 @@ export function OrderConfirmation({ order, store, storeBasePath, transfer = null
   useStorePurchase(store.slug, (isPaid || (method === "pay_on_delivery" && isOpen)) && order.status !== "cancelled" ? order : null);
 
   const partly = customerProgress(order);
-  const headline = order.status === "cancelled" ? "Order cancelled" : isPaid ? `Thank you, ${firstName}` : method === "paystack" ? "Waiting for payment" : `Thank you, ${firstName}`;
+  const address = order.deliveryAddress;
+  const option = address?.deliveryOption;
+  // "On the way · Doorstep delivery to Wuse 2, Abuja": once it has left (never where the rider is).
+  const onTheWay = order.status !== "cancelled" && order.status !== "delivered" && (order.status === "shipped" || Boolean(delivery?.timeline.some((step) => step.done && (step.key === "picked_up" || step.key === "in_transit"))) && delivery?.timeline.at(-1)?.done !== true);
+  const area = [address?.city, address?.state].map((part) => part?.trim()).filter(Boolean).join(", ");
+  const how = delivery?.kind === "self_pickup" ? null : delivery?.kind === "pickup_point" ? "Pickup point" : option?.name || delivery?.optionName || "Delivery";
+  const wayLine = !onTheWay || !how ? null : delivery?.kind === "pickup_point" && delivery.point ? `${how} · ${delivery.point.name}` : area ? `${how} to ${area}` : how;
+  const headline = order.status === "cancelled" ? "Order cancelled" : onTheWay ? "On the way" : isPaid ? `Thank you, ${firstName}` : method === "paystack" ? "Waiting for payment" : `Thank you, ${firstName}`;
   const subline = order.status === "cancelled"
     ? "This order was cancelled. Contact the store if you think this is a mistake."
     : partly
@@ -109,8 +116,6 @@ export function OrderConfirmation({ order, store, storeBasePath, transfer = null
           ? `Your order is placed. You pay ${amount} when it arrives.`
           : "We haven't received your payment yet. If you paid, this page updates once Paystack confirms it.";
 
-  const address = order.deliveryAddress;
-  const option = address?.deliveryOption;
   const pointsOff = rewards?.loyalty?.usedValue ?? 0;
   const productDiscount = Math.max(0, Number(order.discountAmount ?? 0) - pointsOff);
 
@@ -120,9 +125,10 @@ export function OrderConfirmation({ order, store, storeBasePath, transfer = null
         <div className="grid min-w-0 gap-5">
           <div>
             <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[13px] font-semibold" style={isPaid ? { background: "#E7F5EC", color: "#14532D" } : { background: "#FFF4E0", color: "#7A4A00" }}>
-              <Icon name={isPaid ? "checkCircle" : "clock"} size={14} /> {isPaid ? "Payment confirmed" : order.status === "cancelled" ? "Cancelled" : "Order received"}
+              <Icon name={onTheWay ? "truck" : isPaid ? "checkCircle" : "clock"} size={14} /> {onTheWay ? "On the way" : isPaid ? "Payment confirmed" : order.status === "cancelled" ? "Cancelled" : "Order received"}
             </span>
             <h1 className="mt-3 text-[30px] font-semibold leading-tight sm:text-[36px]" style={{ fontFamily: theme.heading }}>{headline}</h1>
+            {wayLine ? <p className="mt-1 text-[16px] font-medium">{wayLine}</p> : null}
             <p className="mt-2 max-w-[60ch] text-[15.5px] leading-7" style={{ color: theme.muted }} suppressHydrationWarning>{subline}</p>
             <p className="mt-2 text-[14px]">Order number <strong className="tabular-nums">{order.orderNumber}</strong></p>
           </div>
@@ -168,7 +174,7 @@ export function OrderConfirmation({ order, store, storeBasePath, transfer = null
           </Panel>
 
           {order.status !== "cancelled" && (isPaid || method === "pay_on_delivery") ? (
-            <ReportProblem theme={theme} storeSlug={store.slug} orderId={order.id} buyerName={order.buyerName} />
+            <ReportProblem theme={theme} storeSlug={store.slug} storeName={store.name} orderId={order.id} buyerName={order.buyerName} />
           ) : null}
 
           {isPaid && order.items.some((item) => item.productId) ? (
@@ -294,7 +300,7 @@ function NextSteps({ theme, method, isPaid, isOpen, amount, orderId, currency, t
       <Panel key="code" theme={theme} className="p-5" aria-labelledby="delivery-code-heading">
         <h2 id="delivery-code-heading" className="text-[18px] font-semibold">Your delivery code</h2>
         <p className="mt-1 text-[14.5px]" style={{ color: theme.muted }}>
-          {codeAt === "point" ? "Give this code at the pickup point when you collect your order." : "Give this code to the rider only when you have your order."}
+          {codeAt === "point" ? "Give it at the pickup point only when you have your order." : "Give it to the rider only when you have your order."}
         </p>
         <p className="mt-2 font-mono text-[28px] font-bold tracking-[0.2em]">{deliveryCode}</p>
       </Panel>,
@@ -464,8 +470,16 @@ function StepList({ theme, steps }: { theme: ShopperTheme; steps: TimelineStep[]
   );
 }
 
+/** The customer's words for each problem (ISSUE_KINDS: late, not arrived, damaged, wrong item). */
+const CUSTOMER_ISSUE_WORDS: Record<IssueKind, string> = {
+  late: "It's late",
+  not_delivered: "It hasn't arrived",
+  damaged: "It arrived damaged",
+  wrong_item: "Wrong item",
+};
+
 /** "Report a problem" (spec §6.4): tells the seller (and the delivery partner, for delivery problems). */
-function ReportProblem({ theme, storeSlug, orderId, buyerName }: { theme: ShopperTheme; storeSlug: string; orderId: string; buyerName: string }) {
+function ReportProblem({ theme, storeSlug, storeName, orderId, buyerName }: { theme: ShopperTheme; storeSlug: string; storeName: string; orderId: string; buyerName: string }) {
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<IssueKind | "">("");
   const [message, setMessage] = useState("");
@@ -498,28 +512,31 @@ function ReportProblem({ theme, storeSlug, orderId, buyerName }: { theme: Shoppe
   if (sent) {
     return (
       <Panel theme={theme} className="p-5" aria-live="polite">
-        <h2 className="text-[18px] font-semibold" style={{ fontFamily: theme.heading }}>Thanks, we&apos;ve told the store</h2>
-        <p className="mt-1 text-[14.5px] leading-6" style={{ color: theme.muted }}>The store will be in touch to sort it out.</p>
+        <h2 className="text-[18px] font-semibold" style={{ fontFamily: theme.heading }}>Problem reported: {kind ? CUSTOMER_ISSUE_WORDS[kind] : ""}</h2>
+        <p className="mt-1 text-[14.5px] leading-6" style={{ color: theme.muted }}>{storeName} will get back to you.</p>
       </Panel>
     );
   }
   if (!open) {
     return (
-      <button type="button" onClick={() => setOpen(true)} className="justify-self-start py-1 text-[14.5px] font-semibold underline underline-offset-4">
-        Report a problem with this order
+      <button type="button" onClick={() => setOpen(true)} aria-expanded={false} className="justify-self-start py-1 text-[14.5px] font-semibold underline underline-offset-4">
+        Report a problem
       </button>
     );
   }
   return (
     <Panel theme={theme} className="p-5" aria-labelledby="report-heading">
       <form onSubmit={submit} className="grid gap-4" noValidate>
-        <h2 id="report-heading" className="text-[18px] font-semibold" style={{ fontFamily: theme.heading }}>Report a problem</h2>
+        <div>
+          <h2 id="report-heading" className="text-[18px] font-semibold" style={{ fontFamily: theme.heading }}>What&apos;s wrong?</h2>
+          <p className="mt-1 text-[14px]" style={{ color: theme.muted }}>We&apos;ll tell the shop and the delivery partner.</p>
+        </div>
         <fieldset className="m-0 grid gap-2 border-0 p-0">
-          <legend className="mb-1 p-0 text-[14px] font-medium">What went wrong?</legend>
+          <legend className="sr-only">What went wrong?</legend>
           {ISSUE_KINDS.map((entry) => (
             <label key={entry} className="flex min-h-11 cursor-pointer items-center gap-3 rounded-[14px] border px-4 text-[15px]" style={{ borderColor: kind === entry ? theme.ink : theme.border }}>
               <input type="radio" name="issue-kind" checked={kind === entry} onChange={() => { setKind(entry); setError(""); }} className="h-5 w-5 shrink-0" style={{ accentColor: theme.ink }} />
-              {ISSUE_WORDS[entry]}
+              {CUSTOMER_ISSUE_WORDS[entry]}
             </label>
           ))}
         </fieldset>

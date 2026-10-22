@@ -36,6 +36,7 @@ export const POST = withSupplier(async (
       expiresAt: parsed.data.expiresAt,
     },
   });
+  void import("@/lib/rewards/rewards.server").then((rewards) => rewards.recordRewardEvent({ userId: user.id, kind: "quote_sent", ref: updated.id })).catch(() => undefined);
   await notifySupplierQuoteAnswered(updated.id);
 
   return ok(updated);

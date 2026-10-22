@@ -148,6 +148,21 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "tl.paid": "Akwụọla",
   "tl.sent": "Ezigala",
   "tl.delivered": "Eruola",
+  "track.title": "Soro ya",
+  "track.from": "Site na",
+  "track.to": "Gaa",
+  "track.fromTo": "Site na {from} gaa {to}",
+  "track.yourShop": "Ụlọ ahịa gị",
+  "track.pickup": "A ga-anara ya n'aka gị",
+  "track.eta": "{days} (atụmatụ onye mmekọ)",
+  "track.call": "Kpọọ {name}",
+  "track.share": "Kesaa nsochi ya na {name}",
+  "track.shareMessage": "Ndewo {name}, ihe i nyere iwu na-abịa. Soro ya ebe a: {url}",
+  "track.problem": "Kọọ nsogbu",
+  "track.messagePartner": "Zigara {name} ozi",
+  "track.messagePartnerSub": "O gbuola oge, mebiri emebi ma ọ bụ furu efu: gwa onye mmekọ mbuga gị",
+  "track.getHelp": "Nweta enyemaka site na Shopinbos",
+  "track.getHelpSub": "Mmadụ ma ọ bụ Peggy ga-enyere gị aka idozi ya",
 };
 
 export default ig;

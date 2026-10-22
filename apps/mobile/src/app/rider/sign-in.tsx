@@ -146,7 +146,7 @@ export default function RiderSignIn() {
               placeholder={DEFAULT_DIAL_COUNTRY.example}
               value={phone}
               onChangeText={setPhone}
-              style={{ flex: 1, height: 58, borderWidth: 1.5, fontSize: 20, fontFamily: fonts.bold }}
+              style={{ flex: 1, minWidth: 0, height: 58, borderWidth: 1.5, fontSize: 20, fontFamily: fonts.bold }}
             />
           </View>
           {error ? <Notice>{error}</Notice> : null}

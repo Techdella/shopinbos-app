@@ -153,6 +153,9 @@ const en = {
   "welcome.progress": "Getting your shop ready",
   "welcome.start": "Start now",
   "frame.step": "{current} of {total}",
+  "live.statusFirst": "Share it on your WhatsApp Status first. That’s where your customers are.",
+  "live.shareWhatsApp": "Share on WhatsApp",
+  "live.opening": "Opening your shop…",
 } satisfies Record<string, string>;
 
 export default en;

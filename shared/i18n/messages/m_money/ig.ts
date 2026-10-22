@@ -172,6 +172,15 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "w.payMeHere": "Ee, kwụọ m ebe a",
   "w.noSuchAccount": "Nọmba akaụntụ ahụ adịghị n'ụlọ akụ a.",
   "method.korapay": "Kaadị ma ọ bụ bank (online)",
+  "w.money": "Ego",
+  "w.coming": "Na-abịa n'ụlọ akụ gị",
+  "w.comingDay": "Ego ọzọ na-abịa n'ụlọ akụ gị: {day}",
+  "w.comingSoon": "Ọ nọ n'ụzọ na-abịa n'ụlọ akụ gị",
+  "w.comingNone": "Ọ dịghị ihe nọ n'ụzọ ugbu a. Ịkwụ ụgwọ kaadị na-aga ozugbo n'ụlọ akụ gị.",
+  "w.thisWeek": "Izu a",
+  "w.weekLine": "{amount} · ire ahịa {count}",
+  "w.last30Line": "Ụbọchị 30 gara aga: {amount}",
+  "w.recent": "Nke ọhụrụ",
 };
 
 export default ig;

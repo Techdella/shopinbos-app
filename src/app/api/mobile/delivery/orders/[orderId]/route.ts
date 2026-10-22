@@ -23,7 +23,7 @@ export const GET = withSeller(async (_req: NextRequest, { user, params }) => {
   const jobs = await db.deliveryBooking.findMany({
     where: { orderId: order.id, sellerId: user.id, status: { not: "cancelled" } },
     orderBy: { createdAt: "asc" },
-    include: { logisticsPartner: { select: { id: true, slug: true, displayName: true, userId: true } }, rider: { select: { name: true } } },
+    include: { logisticsPartner: { select: { id: true, slug: true, displayName: true, userId: true, contactPhone: true, whatsappNumber: true } }, rider: { select: { name: true } } },
   });
   const now = new Date();
   // The code the shop gives the rider at pickup, while the job waits for them (made now for older jobs).
@@ -39,7 +39,8 @@ export const GET = withSeller(async (_req: NextRequest, { user, params }) => {
       fee: job?.deliveryFee ?? part.price,
       minDays: part.minDays,
       maxDays: part.maxDays,
-      partner: job ? { id: job.logisticsPartner.id, slug: job.logisticsPartner.slug, name: job.logisticsPartner.displayName, userId: job.logisticsPartner.userId } : null,
+      // The partner's business phone, for "Call partner" (never the rider's number or location).
+      partner: job ? { id: job.logisticsPartner.id, slug: job.logisticsPartner.slug, name: job.logisticsPartner.displayName, userId: job.logisticsPartner.userId, phone: job.logisticsPartner.contactPhone || job.logisticsPartner.whatsappNumber || null } : null,
       job: job
         ? {
             id: job.id,

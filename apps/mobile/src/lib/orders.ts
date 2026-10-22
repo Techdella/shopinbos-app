@@ -34,6 +34,8 @@ export interface OrderDetail {
   row: OrderRow;
   /** Parcels and anything to decide (src/lib/supplier-orders/parts.server.ts); null when no supplier sends any of it. */
   parts?: OrderParts | null;
+  /** The customer's order page on the storefront (unguessable id), for "Share tracking". Older servers leave it out. */
+  trackingUrl?: string | null;
 }
 
 /** One parcel: a supplier's, or the seller's own ("You"). */

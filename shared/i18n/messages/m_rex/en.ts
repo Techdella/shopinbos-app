@@ -39,6 +39,18 @@ const en = {
   "card.health": "Store health {score}/100",
   "card.fix": "Fix it",
   "card.openPreview": "Open the preview",
+  "askRex": "Ask Rex",
+  "line": "I build and change your shop",
+  "hello2": "Hi, I’m Rex. I build and change your shop. What do you need?",
+  "suggest.1": "Make my shop look more premium",
+  "suggest.2": "Add a ₦2,000 delivery fee for Lagos",
+  "suggest.3": "Make a 20% off banner for the weekend",
+  "more": "More things Rex can do",
+  "credits.count": "{count, plural, one {# credit} other {# credits}}",
+  "credits.topUp": "Top up",
+  "credits.topUpLabel": "Top up credits: we email you how",
+  "credits.emailed": "We’ve emailed you how to top up on the website.",
+  "credits.emailFailed": "We couldn't send the email just now. Try again in a moment.",
 } satisfies Record<string, string>;
 
 export default en;

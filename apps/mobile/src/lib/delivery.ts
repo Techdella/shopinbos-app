@@ -195,7 +195,8 @@ export interface Parcel {
   fee: number;
   minDays: number;
   maxDays: number;
-  partner: { id: string; slug: string; name: string; userId: string } | null;
+  /** `phone`: the partner's business phone (newer servers), for "Call partner". */
+  partner: { id: string; slug: string; name: string; userId: string; phone?: string | null } | null;
   job: DeliveryJob | null;
   exception: string | null;
   canReassign: boolean;

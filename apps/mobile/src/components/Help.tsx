@@ -119,7 +119,8 @@ export function HelpSheet({ visible, onClose }: { visible: boolean; onClose: () 
 }
 
 /** The Help pill for screen headers: an icon with the word, as the prototype has it. */
-export function HelpButton({ style, testID = "help-button" }: { style?: StyleProp<ViewStyle>; testID?: string }) {
+/** Help in the top corner. `compact` is the round icon-only button, for headers that are already full (Home). */
+export function HelpButton({ style, testID = "help-button", compact = false }: { style?: StyleProp<ViewStyle>; testID?: string; compact?: boolean }) {
   const [open, setOpen] = useState(false);
   const t = useT("common");
   return (
@@ -130,10 +131,10 @@ export function HelpButton({ style, testID = "help-button" }: { style?: StylePro
         accessibilityLabel={t("help")}
         onPress={() => setOpen(true)}
         hitSlop={4}
-        style={({ pressed }) => [{ minHeight: 44, paddingHorizontal: 14, borderRadius: 22, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, flexDirection: "row", alignItems: "center", gap: 6, opacity: pressed ? 0.8 : 1 }, style]}
+        style={({ pressed }) => [{ minHeight: 44, minWidth: 44, paddingHorizontal: compact ? 0 : 14, borderRadius: 22, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, opacity: pressed ? 0.8 : 1 }, style]}
       >
-        <AppIcon name="help" size={18} />
-        <T weight="bold" style={{ fontSize: 15 }}>{t("help")}</T>
+        <AppIcon name="help" size={compact ? 20 : 18} />
+        {compact ? null : <T weight="bold" style={{ fontSize: 15 }}>{t("help")}</T>}
       </Pressable>
       <HelpSheet visible={open} onClose={() => setOpen(false)} />
     </>

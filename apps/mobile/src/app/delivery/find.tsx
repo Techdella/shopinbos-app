@@ -47,12 +47,12 @@ export default function FindPartners() {
                   title={partner.name}
                   sub={
                     <View style={{ gap: 2 }}>
+                      {/* "Connected" under the name rather than beside it, so the details keep the row's width. */}
+                      {partner.connectionId ? <Pill label={t("connected")} tone="ok" style={{ marginVertical: 2 }} /> : null}
                       <T style={{ fontSize: 14, lineHeight: 19, color: colors.inkSoft }}>{parts.join(" · ")}</T>
                       <T style={{ fontSize: 14, lineHeight: 19, color: colors.inkSoft }}>{partner.services.map((key) => t.dynamic(`service.${key}`, key)).join(" · ")}</T>
                     </View>
                   }
-                  right={partner.connectionId ? <Pill label={t("connected")} tone="ok" /> : undefined}
-                  chevron={!partner.connectionId}
                   accessibilityLabel={`${partner.name}. ${parts.join(", ")}${partner.connectionId ? `. ${t("connected")}` : ""}`}
                   onPress={() => router.push({ pathname: "/delivery/partner/[slug]", params: { slug: partner.slug } })}
                 />

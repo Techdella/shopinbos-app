@@ -252,6 +252,7 @@ export async function moveSupplierOrder(input: MoveInput): Promise<ServiceResult
     const current = await db.supplierOrder.findUnique({ where: { id: order.id }, select: { status: true } });
     return { ok: false, code: "CONFLICT", message: current?.status === "expired" ? TIME_RAN_OUT : "This order has already moved on. Refresh to see where it is." };
   }
+  if (data.acceptedAt) void import("@/lib/rewards/rewards.server").then((rewards) => rewards.rewardSupplierOrderAccepted(order.id)).catch(() => undefined);
 
   await syncRetailOrder(order.retailOrderId, next === "shipped" ? trackingCode ?? order.trackingCode : null).catch((error) => {
     console.error(`[supplier orders] could not move store order ${order.retailOrderId}`, error);

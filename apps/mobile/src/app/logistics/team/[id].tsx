@@ -39,7 +39,7 @@ export default function RiderPage() {
         <Initial name={rider.name} size={84} />
         <Heading style={{ textAlign: "center" }}>{rider.name}</Heading>
         <Pill label={t.dynamic(state.key)} tone={state.tone} style={{ alignSelf: "center" }} />
-        <Sub style={{ textAlign: "center" }}>{where(rider)}</Sub>
+        <Sub style={{ textAlign: "center" }}>{[rider.plate, where(rider)].filter(Boolean).join(" · ")}</Sub>
       </View>
       <List>
         {rider.phone ? <Row lead={<Tile icon="phone" />} title={t("riders.call")} sub={rider.phone} onPress={() => void Linking.openURL(`tel:${rider.phone}`)} /> : null}

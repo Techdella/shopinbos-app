@@ -148,6 +148,9 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "method.korapay.label": "Kwụọ site na bank",
   "method.korapay.hint": "Ebe ịkwụ ụgwọ nke abụọ echekwara: kaadị, nnyefe ego ma ọ bụ app bank",
   "frame.step": "{current} n'ime {total}",
+  "live.statusFirst": "Buru ụzọ kesaa ya na WhatsApp Status gị. Ebe ahụ ka ndị ahịa gị nọ.",
+  "live.shareWhatsApp": "Kesaa na WhatsApp",
+  "live.opening": "A na-emepe ụlọ ahịa gị…",
 };
 
 export default ig;

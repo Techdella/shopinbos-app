@@ -10,6 +10,7 @@ import { Sheet } from "@/components/Sheet";
 import { NoteCard, Pic } from "@/components/SupplierKit";
 import { orderAmount, orderImage, orderItems } from "@/components/SupplierOrderRow";
 import { Chip, Field, LinkButton, Notice, PillButton, T } from "@/components/ui";
+import { fetchSupplierTrack } from "@/lib/familiar";
 import { useT } from "@/lib/i18n";
 import {
   bookPickup,
@@ -90,6 +91,8 @@ export default function SupplierOrderScreen() {
   const [address, setAddress] = useState<string | null>(null);
   const [changing, setChanging] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  // "Track" shows once the tracking route answers for this order (an older server answers 404: no Track).
+  const [trackable, setTrackable] = useState(false);
   const data = order.data;
 
   async function run(current: SupplierOrder, action: OrderAction) {
@@ -193,6 +196,21 @@ export default function SupplierOrderScreen() {
     };
   }, [readyForRider, data?.id, data?.kind]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // A dropship order with a delivery partner on it (not one the supplier delivers): can it be tracked?
+  const withPartner = Boolean(data && data.kind === "dropship" && !data.selfDelivery && (data.pickup || pickup?.pickup));
+  useEffect(() => {
+    if (!withPartner || !data) return;
+    let live = true;
+    fetchSupplierTrack(data.id, "dropship")
+      .then((view) => {
+        if (live) setTrackable(Boolean(view));
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [withPartner, data?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
   if (!data) {
     return (
       <Screen title={t("order.title")} refreshing={order.refreshing} onRefresh={() => void order.refresh()}>
@@ -274,6 +292,7 @@ export default function SupplierOrderScreen() {
 
       <View style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
         <Pill label={orderKindLabel(data.kind, t)} tone={dropship ? "org" : "teal"} />
+        {data.kind === "wholesale" && data.paidAt ? <Pill label={t("order.paidInApp")} tone="ok" icon="check" /> : null}
         <Small style={{ flex: 1 }}>{dropship ? t("order.kindNoteDropship") : t("order.kindNoteWholesale")}</Small>
       </View>
 
@@ -292,6 +311,14 @@ export default function SupplierOrderScreen() {
         ) : (
           <Row lead={<Tile icon="truck" tone="mint" />} title={partner ?? t("order.deliveryPartner")} sub={pickup?.pickup?.text ?? data.pickup?.text ?? t("order.bookedOnce")} />
         )}
+        {trackable ? (
+          <Row
+            lead={<Tile icon="route" tone="sky" />}
+            title={t("track.button")}
+            sub={t("track.buttonSub")}
+            onPress={() => router.push({ pathname: "/supplier/order/track", params: { id: data.id, kind: data.kind, shop: data.shop, ref: data.ref } })}
+          />
+        ) : null}
       </List>
 
       {stage === "label" && dropship ? (

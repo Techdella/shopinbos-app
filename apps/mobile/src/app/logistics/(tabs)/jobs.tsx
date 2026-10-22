@@ -1,26 +1,34 @@
 import { useState } from "react";
-import { ScrollView, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { naira } from "@shared/onboarding";
-import { Banner, List, Row, Seg, Small, Sub, Tile } from "@/components/design";
+import { Banner, Seg, Small, Sub } from "@/components/design";
+import { Checklist, type ChecklistItem } from "@/components/familiar/Checklist";
+import { LevelPill } from "@/components/familiar/LevelPill";
+import { StatusRow } from "@/components/familiar/StatusRow";
+import { StoryViewer } from "@/components/familiar/StoryViewer";
 import { ErrorState, LoadingBlock } from "@/components/kit";
+import { NotificationBellButton } from "@/components/NotificationBellButton";
 import { PayInOverdueCard } from "@/components/PayInOverdueCard";
-import { CardButton, Initial } from "@/components/PartnerKit";
+import { CardButton, PeggyButton, RouteCard, shopRoleOf } from "@/components/PartnerKit";
 import { PushPromptCard } from "@/components/PushPromptCard";
 import { TabScreen } from "@/components/TabScreen";
 import { Card, Notice, T, Toggle } from "@/components/ui";
+import { fetchRewards, fetchStatusFeed, levelProgress, type StatusAuthor, type StatusPost } from "@/lib/familiar";
 import { useT } from "@/lib/i18n";
-import { fetchJobs, fetchLogisticsOverview, fetchMarket, setTakingJobs, type Job, type JobView } from "@/lib/logistics";
+import { fetchEarnings, fetchJobs, fetchLogisticsOverview, fetchMarket, setTakingJobs, type Job, type JobView } from "@/lib/logistics";
 import { STATUS_WORD } from "@/lib/logistics-pure";
-import { shortPlace, verificationStage } from "@/lib/partner-pure";
+import { dayWord, shortPlace, timeAgo, verificationStage } from "@/lib/partner-pure";
 import { useLoad } from "@/lib/useLoad";
 import { openWeb } from "@/lib/web";
-import { colors } from "@/theme";
+import { colors, fonts } from "@/theme";
 
-// Jobs ("Delivery partner app" prototype `jobs`): the company and the taking-jobs switch, set-up and verification
-// prompts, the businesses connected with you, then New / Active / Problems / Done with counts and one row per job
-// ("Yaba → Lekki · ₦2,500" over "Glow by Amaka · Pay on delivery · New"). The segment lives in ?view= so other
-// screens can open one.
+// Jobs ("Familiar app" prototype F-Delivery `jobs`): the level ring (Rewards), "Good morning" over the company, Peggy
+// and the bell; the Status row of sellers and suppliers; the "Get set up" checklist for the first days; a dark card
+// with the taking-jobs switch, New jobs, On the way and what you earned this week (opens Money); the set-up,
+// verification, pay-in, push and connections cards; then New / Active / Problems / Done with one route card per job
+// ("Glow by Amaka  Seller · ₦2,500", "Yaba → Lekki", "Pick up by 3pm · Small bag · Pay on delivery"). The segment
+// lives in ?view= so other screens can open one. Status, Rewards and earnings are extras: if they fail, they hide.
 
 const SEGMENTS: { view: JobView; key: string }[] = [
   { view: "new", key: "seg.new" },
@@ -33,8 +41,16 @@ function asView(value: unknown): JobView {
   return value === "active" || value === "issues" || value === "done" ? value : "new";
 }
 
-function jobLine(job: Job) {
-  return `${shortPlace(job.from)} → ${shortPlace(job.to)} · ${naira(job.fee)}`;
+const greetKey = (hour: number) => (hour < 12 ? "fam.greet.morning" : hour < 17 ? "fam.greet.afternoon" : "fam.greet.evening");
+
+/** A big number over a small line, on the dark card. */
+function SumStat({ value, label }: { value: string; label: string }) {
+  return (
+    <View style={{ gap: 2 }} accessible accessibilityLabel={`${value} ${label}`}>
+      <T style={{ fontFamily: fonts.display, fontSize: 30, color: "#FFFFFF" }}>{value}</T>
+      <T weight="semibold" style={{ fontSize: 13, color: "#BFE6DD" }}>{label}</T>
+    </View>
+  );
 }
 
 export default function LogisticsJobs() {
@@ -44,14 +60,22 @@ export default function LogisticsJobs() {
   const overview = useLoad(fetchLogisticsOverview);
   const jobs = useLoad(() => fetchJobs(view), view);
   const market = useLoad(fetchMarket);
+  const earnings = useLoad(fetchEarnings);
+  const status = useLoad(fetchStatusFeed);
+  const rewards = useLoad(fetchRewards);
   const data = overview.data;
   const [override, setOverride] = useState<boolean | null>(null);
   const [switching, setSwitching] = useState(false);
   const [switchError, setSwitchError] = useState<string | null>(null);
+  const [story, setStory] = useState<{ own: boolean; start: number } | null>(null);
+  const [hideChecklist, setHideChecklist] = useState(false);
   const taking = override ?? data?.partner.taking ?? false;
   const ready = data ? data.partner.verificationStatus === "verified" && data.partner.onboarded : false;
   const verification = data ? verificationStage(data.partner.verificationStatus, t) : null;
-  const connected = market.data?.connections.length ?? 0;
+  const connections = market.data?.connections ?? [];
+  const company = data?.partner.name ?? "";
+  const logo = data?.partner.logoUrl ?? null;
+  const feed = status.data;
 
   async function toggle() {
     const next = !taking;
@@ -72,25 +96,52 @@ export default function LogisticsJobs() {
     void overview.refresh();
     void jobs.refresh();
     void market.reload();
+    void earnings.reload();
+    void status.reload();
+    void rewards.reload();
   }
 
-  const status = (job: Job) => t.dynamic(`pst.${job.status}`, STATUS_WORD[job.status] ?? job.status.replace(/_/g, " "));
+  // A story's button: "Chat with them" and "Offer to deliver" open the chat with that business; "See their shop"
+  // opens a seller's storefront (anything else, or a shop without a page, opens the chat too).
+  function openCta(post: StatusPost, author: StatusAuthor) {
+    const slug = post.cta?.target?.slug;
+    if (post.cta?.kind === "view_shop" && author.role === "seller" && slug) {
+      void openWeb(`/s/${encodeURIComponent(slug)}`);
+      return;
+    }
+    router.push({ pathname: "/logistics/chat/[id]", params: { id: post.cta?.target?.userId ?? author.userId, name: author.name, role: author.role } });
+  }
+
+  // "Get set up" (prototype `ckList`), read from what the company already has.
+  const checklist: ChecklistItem[] =
+    data && market.data && data.partner.onboarded && !hideChecklist
+      ? [
+          { key: "docs", label: t("fam.ck.docs"), done: ["verified", "pending"].includes(data.partner.verificationStatus), onPress: () => router.push("/logistics/verification") },
+          { key: "rates", label: t("fam.ck.rates"), done: (market.data.rateCard?.rows.length ?? 0) > 0, onPress: () => router.push("/logistics/rates") },
+          { key: "points", label: t("fam.ck.points"), done: market.data.pickupPoints.length > 0, onPress: () => router.push("/logistics/points") },
+          { key: "riders", label: t("fam.ck.riders"), done: data.riders.total > 0, onPress: () => router.push("/logistics/team") },
+        ]
+      : [];
+  const checklistShown = checklist.some((item) => !item.done);
+
+  const newCount = jobs.data?.counts.new ?? data?.counts.new ?? 0;
+  const activeCount = jobs.data?.counts.active ?? data?.counts.active ?? 0;
+  const week = earnings.data ? naira(earnings.data.week.amount) : null;
+
+  const statusWord = (job: Job) => t.dynamic(`pst.${job.status}`, STATUS_WORD[job.status] ?? job.status.replace(/_/g, " "));
+  const when = (job: Job) => job.pickupWindow || (view === "done" && job.deliveredAt ? dayWord(job.deliveredAt, undefined, t) : timeAgo(job.createdAt, undefined, t));
   const sub = (job: Job) =>
-    [job.shop, job.collect > 0 ? t("jobs.pod") : null, status(job), view === "active" && job.rider ? job.rider.name.split(" ")[0] : null].filter(Boolean).join(" · ");
+    [when(job), job.item, job.collect > 0 ? t("jobs.pod") : null, view !== "new" ? statusWord(job) : null, view === "active" && job.rider ? job.rider.name.split(" ")[0] : null].filter(Boolean).join(" · ");
 
   const header = (
-    <View style={{ gap: 8 }}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 46 }}>
-        <Initial name={data?.partner.name ?? "Shopinbos"} />
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <T weight="semibold" numberOfLines={1} style={{ fontSize: 13, color: colors.inkSoft }}>{data?.partner.name ?? " "}</T>
-          <T weight="extrabold" style={{ fontSize: 17 }} accessibilityRole="header">{t("jobs.title")}</T>
-        </View>
-        <View style={{ opacity: ready && !switching ? 1 : 0.45 }} pointerEvents={ready && !switching ? "auto" : "none"}>
-          <Toggle on={Boolean(taking)} onChange={() => void toggle()} label={t("jobs.takingLabel")} />
-        </View>
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 50 }}>
+      <LevelPill level={rewards.data?.level ?? null} progress={levelProgress(rewards.data)} uri={logo} name={company || "Shopinbos"} onPress={() => router.push("/rewards" as never)} />
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <T weight="semibold" style={{ fontSize: 13, color: colors.inkSoft }}>{t.dynamic(greetKey(new Date().getHours()))}</T>
+        <T weight="extrabold" numberOfLines={1} style={{ fontSize: 17 }} accessibilityRole="header">{company || " "}</T>
       </View>
-      {data ? <Small>{taking ? t("jobs.taking") : t("jobs.paused")}</Small> : null}
+      <PeggyButton label={t("fam.askPeggy")} onPress={() => router.push("/ask-peggy" as never)} />
+      <NotificationBellButton />
     </View>
   );
 
@@ -99,17 +150,60 @@ export default function LogisticsJobs() {
       {switchError ? <Notice>{switchError}</Notice> : null}
       {overview.error && !data ? <ErrorState message={overview.error} onRetry={() => void overview.reload()} web={{ label: t("openOnWeb"), onPress: () => void openWeb("/logistics/dashboard") }} /> : null}
 
+      {feed ? (
+        <View style={{ gap: 8 }}>
+          <StatusRow
+            authors={feed.feed}
+            myName={company || "Shopinbos"}
+            myPicture={logo}
+            hasMine={feed.mine.posts.length > 0}
+            onNew={() => router.push("/status/new" as never)}
+            onOpenMine={() => setStory({ own: true, start: 0 })}
+            onOpen={(index) => setStory({ own: false, start: index })}
+          />
+          {feed.mine.viewsLast > 0 ? <Small>{t("fam.statusSeen", { count: feed.mine.viewsLast })}</Small> : null}
+        </View>
+      ) : null}
+
+      {checklistShown ? <Checklist title={t("fam.ck.title")} items={checklist} onDismiss={() => setHideChecklist(true)} /> : null}
+
       {data && !data.partner.onboarded ? (
         <CardButton icon="truck" tint={colors.mintTint} iconBg="#FFFFFF" title={t("today.finish")} sub={t("today.finishHint")} onPress={() => router.push("/logistics/setup")} />
-      ) : data && verification && data.partner.verificationStatus !== "verified" ? (
+      ) : data && verification && data.partner.verificationStatus !== "verified" && !(checklistShown && data.partner.verificationStatus === "unverified") ? (
         <CardButton icon="shield" tint={colors.warnTint} iconBg="#FFFFFF" iconFg={colors.warnInk} title={verification.label} sub={verification.hint} onPress={() => router.push("/logistics/verification")} />
+      ) : null}
+
+      {data ? (
+        <View style={{ backgroundColor: colors.forest, borderRadius: 26, padding: 20, gap: 16 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 44 }}>
+            <T weight="bold" style={{ flex: 1, fontSize: 14, color: "#BFE6DD" }}>{taking ? t("jobs.taking") : t("jobs.paused")}</T>
+            <View style={{ opacity: ready && !switching ? 1 : 0.45 }} pointerEvents={ready && !switching ? "auto" : "none"}>
+              <Toggle on={Boolean(taking)} onChange={() => void toggle()} label={t("jobs.takingLabel")} />
+            </View>
+          </View>
+          <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 18 }}>
+            <SumStat value={String(newCount)} label={t("fam.sum.new")} />
+            <SumStat value={String(activeCount)} label={t("fam.sum.onTheWay")} />
+            {week ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t("fam.sum.weekLabel", { amount: week })}
+                onPress={() => router.navigate("/logistics/earnings")}
+                style={({ pressed }) => ({ flex: 1, alignItems: "flex-end", minHeight: 44, justifyContent: "flex-end", opacity: pressed ? 0.8 : 1 })}
+              >
+                <T numberOfLines={1} adjustsFontSizeToFit style={{ fontFamily: fonts.display, fontSize: 24, color: "#FFFFFF" }}>{week}</T>
+                <T weight="semibold" style={{ fontSize: 13, color: "#BFE6DD" }}>{t("fam.sum.week")}</T>
+              </Pressable>
+            ) : null}
+          </View>
+        </View>
       ) : null}
 
       <PushPromptCard who="logistics" when={Boolean(data)} />
       {data?.overdue ? <PayInOverdueCard overdue={data.overdue} onChecked={() => void overview.reload()} /> : null}
 
-      {connected > 0 ? (
-        <CardButton icon="link" tint={colors.mintTint} iconBg="#FFFFFF" title={t("conn.banner", { count: connected })} sub={t("conn.bannerSub")} onPress={() => router.push("/logistics/connections")} />
+      {connections.length > 0 ? (
+        <CardButton icon="link" tint={colors.mintTint} iconBg="#FFFFFF" title={t("conn.banner", { count: connections.length })} sub={t("conn.bannerSub")} onPress={() => router.push("/logistics/connections")} />
       ) : null}
 
       {data && data.counts.quotes > 0 ? (
@@ -131,18 +225,38 @@ export default function LogisticsJobs() {
           <Sub>{t("jobs.nothingHere")}</Sub>
         </Card>
       ) : null}
-      {!jobs.loading && jobs.data?.jobs.length ? (
-        <List>
-          {jobs.data.jobs.map((job) => (
-            <Row
-              key={job.id}
-              lead={<Tile icon="route" tone="mint" />}
-              title={jobLine(job)}
-              sub={sub(job)}
-              onPress={() => router.push({ pathname: "/logistics/job/[id]", params: { id: job.id } })}
-            />
-          ))}
-        </List>
+      {!jobs.loading
+        ? jobs.data?.jobs.map((job) => {
+            const who = t.dynamic(`fam.who.${shopRoleOf(job, connections)}`);
+            const from = shortPlace(job.from);
+            const to = shortPlace(job.to);
+            const fee = naira(job.fee);
+            const line = sub(job);
+            return (
+              <RouteCard
+                key={job.id}
+                shop={job.shop}
+                who={who}
+                fee={fee}
+                from={from}
+                to={to}
+                sub={line}
+                label={t("fam.card.label", { shop: job.shop, who, from, to, fee, sub: line })}
+                onPress={() => router.push({ pathname: "/logistics/job/[id]", params: { id: job.id } })}
+              />
+            );
+          })
+        : null}
+
+      {feed ? (
+        <StoryViewer
+          authors={story?.own ? [{ userId: "me", name: company || "Shopinbos", role: "logistics_partner", logoUrl: logo, seen: true, posts: feed.mine.posts }] : feed.feed}
+          start={story?.start ?? 0}
+          visible={Boolean(story)}
+          own={story?.own}
+          onClose={() => setStory(null)}
+          onCta={openCta}
+        />
       ) : null}
     </TabScreen>
   );

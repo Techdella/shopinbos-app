@@ -177,6 +177,15 @@ const en = {
   "w.lookingUp": "Looking up the account…",
   "w.payMeHere": "Yes, pay me here",
   "w.noSuchAccount": "That account number doesn't exist at this bank.",
+  "w.money": "Money",
+  "w.coming": "Coming to your bank",
+  "w.comingDay": "Next payment to your bank: {day}",
+  "w.comingSoon": "On its way to your bank",
+  "w.comingNone": "Nothing on the way right now. Card payments go straight to your bank.",
+  "w.thisWeek": "This week",
+  "w.weekLine": "{amount} · {count, plural, one {# sale} other {# sales}}",
+  "w.last30Line": "Last 30 days: {amount}",
+  "w.recent": "Recent",
 } satisfies Record<string, string>;
 
 export default en;

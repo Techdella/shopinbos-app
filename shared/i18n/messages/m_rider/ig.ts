@@ -161,6 +161,19 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "noPhone": "Enweghị nọmba ekwentị maka nke a.",
   "signIn.openLink": "Mepee link m",
   "signIn.linkHint": "Jiri nọmba ụlọ ọrụ gị ji tinye gị. Ha zitere gị link? Ị nwere ike imepe ya kama.",
+  "map.me": "Map na-egosi ebe ị nọ",
+  "map.route": "Map nke ebe ị ga-ewere na ebe ị ga-ebuga. Pịa ya ka imepe ya na map.",
+  "pickup.order": "Jụọ maka order {order}. Ha ga-elele koodu gị.",
+  "pickup.orderNoCode": "Jụọ maka order {order}. Lelee ngwugwu ahụ tupu ị pụọ.",
+  "earn.byDay": "Nnyefe kwa ụbọchị",
+  "earn.todayCount": "Taa: {count}",
+  "wk.0": "Mọn",
+  "wk.1": "Tuz",
+  "wk.2": "Wen",
+  "wk.3": "Tọs",
+  "wk.4": "Fri",
+  "wk.5": "Sat",
+  "wk.6": "Ụka",
 };
 
 export default ig;

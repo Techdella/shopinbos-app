@@ -154,6 +154,22 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "block.noCollections": "Yi collection tukuna a Products, sannan Collections.",
   "list.pages": "Shafukan payment links",
   "list.noneHere": "Babu payment link mai wannan matsayi.",
+  "block.shop": "Maɓallin Saya yanzu",
+  "block.arrivals": "Sabbin kaya",
+  "block.track": "Bibiyar odar ta",
+  "block.shopHint": "Babban maɓalli zuwa shafin farko na shagonka.",
+  "block.arrivalsHint": "Sabbin kayanka 4 a cikin grid. Yana sabuntawa da kansa.",
+  "block.trackHint": "Abokan ciniki suna rubuta lambar odarsu da imel ko waya don ganin odarsu.",
+  "dialog.delivery": "Isarwa: adireshi + kuɗi",
+  "dialog.deliveryHint": "Ajiye adireshin abokin ciniki da kuɗin isarwa. Za su ga maɓallin Biya ɗaya kawai, ba abin cikawa.",
+  "dialog.deliveryStreet": "Adireshin titin abokin ciniki",
+  "dialog.deliveryCity": "Unguwa ko gari",
+  "dialog.deliveryState": "Jiha",
+  "dialog.deliveryPickState": "Zaɓi jiha",
+  "dialog.deliveryLandmark": "Alama (na zaɓi)",
+  "dialog.deliveryFee": "Kuɗin isarwa (₦)",
+  "dialog.deliveryFeeHint": "Bar shi babu komai ko 0 don isarwa kyauta. Ana ƙara shi a kan abin da abokin ciniki zai biya.",
+  "dialog.deliveryIncomplete": "Ƙara titi, unguwa da jiha don isarwa, da kuɗin a matsayin lamba. Ko kashe isarwa.",
 };
 
 export default ha;

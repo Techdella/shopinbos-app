@@ -21,7 +21,7 @@ import { colors } from "@/theme";
 
 type Draft = Pick<BioPage, "published" | "title" | "bio" | "avatarUrl" | "theme" | "blocks">;
 
-const BLOCK_ICON = { product: "bag", link: "link", collection: "grid", socials: "users", whatsapp: "chat", signup: "mail", text: "doc" } as const;
+const BLOCK_ICON = { product: "bag", link: "link", collection: "grid", socials: "users", whatsapp: "chat", signup: "mail", text: "doc", shop: "store", arrivals: "grid", track: "truck" } as const;
 
 export default function LinkInBio() {
   const t = useT("m_paylinks", "m_ui");
@@ -91,6 +91,15 @@ export default function LinkInBio() {
         return { title: block.title || t("block.signup"), sub: t("block.signup") };
       case "text":
         return { title: block.text, sub: t("block.text") };
+      case "shop":
+        return { title: block.label || t("block.shop"), sub: t("block.shopSub") };
+      case "arrivals":
+        return { title: block.label || t("block.arrivals"), sub: t("block.arrivalsSub") };
+      case "track":
+        return { title: block.label || t("block.track"), sub: t("block.trackSub") };
+      default:
+        // A block type a newer server added: still listed (and can be moved or removed), never a crash.
+        return { title: t("block.other") };
     }
   }
 
@@ -156,7 +165,7 @@ export default function LinkInBio() {
           <Card key={block.id} style={{ gap: 8 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
               <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: colors.canvas, alignItems: "center", justifyContent: "center" }}>
-                <AppIcon name={BLOCK_ICON[block.type]} size={18} />
+                <AppIcon name={BLOCK_ICON[block.type] ?? "doc"} size={18} />
               </View>
               <View style={{ flex: 1 }}>
                 <T weight="bold" style={{ fontSize: 15.5 }} numberOfLines={2}>{words.title}</T>

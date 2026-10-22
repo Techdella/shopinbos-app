@@ -145,6 +145,23 @@ const en = {
   "link.add": "Add link",
   "problem.label": "Give the link a name.",
   "problem.url": "Type a full web address, like https://yourshop.com.",
+  "create.delivery": "Delivery: address + fee",
+  "create.deliveryHint": "Optional. Save the customer's address and the fee, and they just tap Pay.",
+  "create.deliveryStreet": "Customer's street address",
+  "create.deliveryCity": "Area or city",
+  "create.deliveryState": "State",
+  "create.deliveryLandmark": "Landmark (optional)",
+  "create.deliveryFee": "Delivery fee (₦)",
+  "create.deliveryFeeHint": "Leave empty or 0 for free delivery.",
+  "problem.deliveryAddress": "Add the customer's street, area and state, or turn delivery off.",
+  "problem.deliveryFee": "Type the delivery fee as a number, like 2500.",
+  "block.shop": "Shop now button",
+  "block.shopSub": "Opens your shop",
+  "block.arrivals": "New arrivals",
+  "block.arrivalsSub": "Your 4 newest products",
+  "block.track": "Track my order",
+  "block.trackSub": "Customers find their order",
+  "block.other": "Block",
 } satisfies Record<string, string>;
 
 export default en;

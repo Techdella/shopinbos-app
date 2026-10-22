@@ -145,6 +145,7 @@ export async function createSupplierProduct(formData: FormData) {
       slug: await getUniqueSupplierProductSlug(parsed.data.name, supplier.id),
     },
   });
+  void import("@/lib/rewards/rewards.server").then((rewards) => rewards.recordRewardEvent({ userId: user.id, kind: "product_added", ref: product.id })).catch(() => undefined);
 
   invalidatePublicMarketplaceCache({ productSlug: product.slug, supplierSlug: supplier.slug, categorySlug: category.slug });
   if (product.status === "pending_review") await notifyProductForReview(product.id, product.name, supplier.displayName);
@@ -246,6 +247,7 @@ export async function respondToSupplierQuote(formData: FormData) {
       expiresAt: parsed.data.expiresAt,
     },
   });
+  void import("@/lib/rewards/rewards.server").then((rewards) => rewards.recordRewardEvent({ userId: supplier.userId, kind: "quote_sent", ref: quote.id })).catch(() => undefined);
   await notifySupplierQuoteAnswered(quote.id);
 
   revalidatePath("/supplier/quote-requests");

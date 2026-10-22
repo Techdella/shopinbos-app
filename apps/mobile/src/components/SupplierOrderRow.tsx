@@ -6,13 +6,13 @@ import { Row } from "@/components/design";
 import { Pic } from "@/components/SupplierKit";
 import { T } from "@/components/ui";
 import type { DropshipOrder, WholesaleOrder } from "@/lib/supplier";
-import { orderKindLabel, orderRowStatus } from "@/lib/supplier-pure";
+import { orderCity, orderKindLabel, orderRowStatus } from "@/lib/supplier-pure";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 
-// One supplier order as a row in the Orders list ("Simple app, end to end" supplier prototype): the picture,
-// "{shop} · {what you get}" and "{Dropship|Wholesale} · {item} · {status}". A new order also counts down the time
-// left to accept it.
+// One supplier order as a row in the Orders list ("Familiar app" supplier prototype `orders`): the picture, the
+// shop over "{Dropship|Wholesale} · {item} · {status}", and on the right what you get with the town it goes to.
+// A new order also counts down the time left to accept it.
 
 type AnyOrder = DropshipOrder | WholesaleOrder;
 
@@ -33,10 +33,13 @@ export const orderAmount = (order: AnyOrder) => (order.kind === "dropship" ? ord
 export function OrderRow({ order, below }: { order: AnyOrder; below?: ReactNode }) {
   const t = useT("m_supplier", "m_partner");
   const line = `${orderKindLabel(order.kind, t)} · ${orderItems(order)} · ${orderRowStatus(order, t)}`;
+  const amount = naira(orderAmount(order));
+  const city = orderCity(order);
   return (
     <Row
+      accessibilityLabel={[order.shop, amount, city, line].filter(Boolean).join(". ")}
       lead={<Pic uri={orderImage(order)} />}
-      title={`${order.shop} · ${naira(orderAmount(order))}`}
+      title={order.shop}
       sub={
         below ? (
           <View style={{ gap: 6 }}>
@@ -47,6 +50,13 @@ export function OrderRow({ order, below }: { order: AnyOrder; below?: ReactNode 
           line
         )
       }
+      right={
+        <View style={{ alignItems: "flex-end", gap: 2, maxWidth: 110 }}>
+          <T weight="extrabold" style={{ fontSize: 15 }} numberOfLines={1}>{amount}</T>
+          {city ? <T style={{ fontSize: 13, color: colors.inkSoft }} numberOfLines={1}>{city}</T> : null}
+        </View>
+      }
+      chevron={false}
       onPress={() => openOrder(order)}
     />
   );

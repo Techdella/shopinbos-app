@@ -161,6 +161,19 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "noPhone": "Kò sí nọ́ńbà fóònù fún èyí.",
   "signIn.openLink": "Ṣí link mi",
   "signIn.linkHint": "Lo nọ́ńbà tí ilé-iṣẹ́ rẹ fi kún ọ. Ṣé wọ́n fi link ránṣẹ́ sí ọ? O lè ṣí i dípò.",
+  "map.me": "Máàpù tó fi ibi tí o wà hàn",
+  "map.route": "Máàpù ibi gbígbà àti ibi ìfijíṣẹ́. Tẹ̀ ẹ́ láti ṣí i nínú máàpù.",
+  "pickup.order": "Béèrè fún ọjà {order}. Wọn yóò ṣàyẹ̀wò kóòdù rẹ.",
+  "pickup.orderNoCode": "Béèrè fún ọjà {order}. Ṣàyẹ̀wò ẹrù náà kí o tó lọ.",
+  "earn.byDay": "Ìfijíṣẹ́ ní ọjọ́ kọ̀ọ̀kan",
+  "earn.todayCount": "Òní: {count}",
+  "wk.0": "Ajé",
+  "wk.1": "Ìṣẹ́",
+  "wk.2": "Rú",
+  "wk.3": "Bọ̀",
+  "wk.4": "Ẹtì",
+  "wk.5": "Àbá",
+  "wk.6": "Àìk",
 };
 
 export default yo;

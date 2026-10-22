@@ -3,11 +3,14 @@ import { Pressable, View } from "react-native";
 import { router } from "expo-router";
 import { naira } from "@shared/onboarding";
 import { AppIcon } from "@/components/icons";
+import { DarkCard, List, Row as ListRow, Small, Tile } from "@/components/design";
 import { Badge, ErrorState, LoadingBlock, SectionTitle } from "@/components/kit";
 import { Screen } from "@/components/Screen";
 import { Card, Chip, Field, Label, Notice, PillButton, Segmented, T, Toggle } from "@/components/ui";
 import { useLoad } from "@/lib/useLoad";
 import { useT } from "@/lib/i18n";
+import { upcomingPayout } from "@/lib/delivery-pure";
+import { capitalise, friendlyDay } from "@/lib/friendly";
 import { checkWalletAccount, confirmCashReceived, fetchWallet, linkWalletBank, nairaFromKobo, type WalletData } from "@/lib/wallet";
 import { colors, radii } from "@/theme";
 import { MoneyOwedCard } from "@/components/MoneyOwedCard";
@@ -17,6 +20,9 @@ import { MoneyOwedCard } from "@/components/MoneyOwedCard";
 // Paystack paid in and settled. Shopinbos never holds the money: each card payment is split at checkout and every
 // share settles straight to the business's own bank. Sellers also see cash on delivery a partner still owes them,
 // and everyone sees money owed between businesses (components/MoneyOwedCard.tsx).
+// Restyled to the "Familiar app" prototype `on.money`: a dark "Coming to your bank" card with the next Paystack
+// settlement (never a balance to take out: the money is never held), "This week", the bank with Change, and the
+// recent payments, then the set-up steps and everything else as before.
 
 type TFn = ReturnType<typeof useT<["m_money", "m_ui"]>>;
 
@@ -34,7 +40,7 @@ export default function Wallet() {
   const data = loaded.data;
 
   return (
-    <Screen title={t("w.title")} sub={t("w.sub")} refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
+    <Screen title={t("w.money")} refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
       {loaded.loading && !data ? <LoadingBlock /> : null}
       {loaded.error && !data ? <ErrorState message={loaded.error} onRetry={() => void loaded.reload()} /> : null}
       {data ? <WalletBody data={data} t={t} reload={() => void loaded.reload()} /> : null}
@@ -47,22 +53,44 @@ function WalletBody({ data, t, reload }: { data: WalletData; t: TFn; reload: () 
   // Sellers have no check; a supplier's or delivery partner's is its CAC or BN registration.
   const check = view.check ?? { kind: "none" as const };
   const active = view.settlement.status === "active" && !view.settlement.frozen;
+  // "Change" on the bank row opens the bank form in the set-up card.
+  const [changingBank, setChangingBank] = useState(false);
+
+  // The next Paystack settlement not paid out yet (its day), and this week's payments.
+  const coming = upcomingPayout(view.settlements);
+  const now = new Date();
+  const comingDay = coming?.date && new Date(coming.date).getTime() > now.getTime() ? capitalise(friendlyDay(coming.date, now, t)) : null;
+  const weekAgo = now.getTime() - 7 * 24 * 60 * 60 * 1000;
+  const week = view.entries.filter((entry) => entry.amountKobo > 0 && entry.status !== "refunded" && new Date(entry.createdAt).getTime() >= weekAgo);
+  const weekKobo = week.reduce((sum, entry) => sum + entry.amountKobo, 0);
 
   return (
     <View style={{ gap: 14 }}>
+      <DarkCard
+        eyebrow={t("w.coming")}
+        amount={naira(coming?.amount ?? 0)}
+        line={coming ? (comingDay ? t("w.comingDay", { day: comingDay }) : t("w.comingSoon")) : t("w.comingNone")}
+      />
+
       {active ? (
-        <View style={{ flexDirection: "row", gap: 10 }}>
-          <Card style={{ flex: 1, gap: 4, padding: 14 }}>
-            <T style={{ color: colors.inkSoft, fontSize: 14 }}>{t("w.last30")}</T>
-            <T weight="extrabold" style={{ fontSize: 20 }}>{nairaFromKobo(view.totals.last30Kobo)}</T>
-          </Card>
-          <Card style={{ flex: 1, gap: 4, padding: 14 }}>
-            <T style={{ color: colors.inkSoft, fontSize: 14 }}>{t("w.allTime")}</T>
-            <T weight="extrabold" style={{ fontSize: 20 }}>{nairaFromKobo(view.totals.paidKobo)}</T>
-          </Card>
-        </View>
+        <Card style={{ gap: 4, padding: 16 }}>
+          <T style={{ color: colors.inkSoft, fontSize: 14 }}>{t("w.thisWeek")}</T>
+          <T weight="extrabold" style={{ fontSize: 22 }}>{t("w.weekLine", { amount: nairaFromKobo(weekKobo), count: week.length })}</T>
+          <T style={{ color: colors.inkSoft, fontSize: 13.5 }}>{t("w.last30Line", { amount: nairaFromKobo(view.totals.last30Kobo) })}</T>
+        </Card>
       ) : role === "seller" ? (
         <Notice tone="info">{t("w.sellerNotReady")}</Notice>
+      ) : null}
+
+      {view.bank ? (
+        <List>
+          <ListRow
+            lead={<Tile icon="wallet" tone="ok" />}
+            title={`${view.bank.bankName} ${view.bank.accountEnding}`}
+            sub={view.bank.accountName}
+            right={!view.settlement.frozen ? <PillButton testID="change-bank" title={t("w.change")} tone="white" size="sm" onPress={() => setChangingBank(true)} /> : undefined}
+          />
+        </List>
       ) : null}
 
       {data.cashToReceive.length ? <CashToReceiveCard rows={data.cashToReceive} t={t} onDone={reload} /> : null}
@@ -80,7 +108,18 @@ function WalletBody({ data, t, reload }: { data: WalletData; t: TFn; reload: () 
           {view.bank ? <T style={{ fontSize: 15 }}>{`${view.bank.accountName} · ${view.bank.bankName} ${view.bank.accountEnding}`}</T> : null}
           {view.settlement.status === "review" ? <Notice tone="info">{t("w.review")}</Notice> : null}
           {view.settlement.status === "failed" && view.settlement.error ? <Notice>{t("w.failed", { reason: view.settlement.error })}</Notice> : null}
-          {!view.settlement.frozen ? <BankForm banks={data.banks} hasBank={Boolean(view.bank)} t={t} onDone={reload} /> : null}
+          {!view.settlement.frozen ? (
+            <BankForm
+              key={changingBank ? "change" : "view"}
+              banks={data.banks}
+              hasBank={Boolean(view.bank) && !changingBank}
+              t={t}
+              onDone={() => {
+                setChangingBank(false);
+                reload();
+              }}
+            />
+          ) : null}
         </View>
 
         {check.kind === "business" ? (
@@ -119,7 +158,7 @@ function WalletBody({ data, t, reload }: { data: WalletData; t: TFn; reload: () 
         </Card>
       ) : null}
 
-      <SectionTitle>{t("w.payments")}</SectionTitle>
+      <SectionTitle>{t("w.recent")}</SectionTitle>
       <Card style={{ paddingVertical: 4 }}>
         {view.entries.length ? (
           view.entries.map((entry) => (
@@ -146,6 +185,8 @@ function WalletBody({ data, t, reload }: { data: WalletData; t: TFn; reload: () 
           </Card>
         </>
       ) : null}
+
+      <Small>{t("w.sub")}</Small>
     </View>
   );
 }

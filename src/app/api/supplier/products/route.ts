@@ -90,6 +90,7 @@ export const POST = withSupplier(async (req: NextRequest, { user }: { user: Auth
       status: parsed.data.status === "pending_review" ? "pending_review" : "draft",
     },
   });
+  void import("@/lib/rewards/rewards.server").then((rewards) => rewards.recordRewardEvent({ userId: user.id, kind: "product_added", ref: product.id })).catch(() => undefined);
 
   invalidatePublicMarketplaceCache({ productSlug: product.slug, supplierSlug: supplier.slug, categorySlug: category.slug });
   if (product.status === "pending_review") await notifyProductForReview(product.id, product.name, supplier.displayName);

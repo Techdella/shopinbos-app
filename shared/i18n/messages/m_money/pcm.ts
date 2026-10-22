@@ -172,6 +172,15 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "w.payMeHere": "Yes, pay me here",
   "w.noSuchAccount": "That account number no dey for this bank.",
   "method.korapay": "Card or bank (online)",
+  "w.money": "Money",
+  "w.coming": "Dey come your bank",
+  "w.comingDay": "Next money wey go enter your bank: {day}",
+  "w.comingSoon": "E dey road to your bank",
+  "w.comingNone": "Nothing dey road now. Card payment dey go straight to your bank.",
+  "w.thisWeek": "This week",
+  "w.weekLine": "{amount} · {count} sales",
+  "w.last30Line": "Last 30 days: {amount}",
+  "w.recent": "Recent",
 };
 
 export default pcm;

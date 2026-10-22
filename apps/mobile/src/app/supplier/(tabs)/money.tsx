@@ -1,33 +1,47 @@
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 import { router } from "expo-router";
 import { naira } from "@shared/onboarding";
-import { DarkCard, Eyebrow, List, Row, Small, Sub, Tile } from "@/components/design";
+import { BigNumber, Eyebrow, List, Row, Small, Sub, Tile } from "@/components/design";
 import { ErrorState, LoadingBlock } from "@/components/kit";
 import { LanguageRow } from "@/components/LanguagePicker";
 import { orderAmount, orderItems } from "@/components/SupplierOrderRow";
 import { TabScreen } from "@/components/TabScreen";
 import { T } from "@/components/ui";
+import { upcomingPayout } from "@/lib/delivery-pure";
+import { friendlyDay } from "@/lib/friendly";
 import { useT } from "@/lib/i18n";
 import { fetchSupplierOrders, fetchSupplierOverview, type SupplierOrder } from "@/lib/supplier";
-import { orderKindLabel, supplierOrderStage } from "@/lib/supplier-pure";
+import { orderKindLabel, supplierOrderStage, weekSummary } from "@/lib/supplier-pure";
 import { useLoad } from "@/lib/useLoad";
 import { fetchWallet, nairaFromKobo } from "@/lib/wallet";
 import { colors } from "@/theme";
 
-// Supplier Money ("Simple app, end to end" supplier prototype): the dark "Coming to your bank" card (paid by shops,
-// waiting for delivery to be confirmed) with the bank it goes to, a line on how the money moves, and "Recent":
-// what Paystack paid into the bank (wallet entries) or, before any, the finished orders. The Shopinbos Wallet
-// (bank, payouts, money owed between businesses) opens from here; business settings moved to Account (gear on Home).
+// Supplier Money ("Familiar app" supplier prototype `money`, without withdrawing): Paystack splits each payment and
+// sends the supplier's share straight to their bank, so there's no balance to withdraw. The dark "Coming to your
+// bank" card (paid by shops, waiting for delivery to be confirmed) with the day the next payment lands, the mint
+// "This week" total, the bank it goes to with Change, and "Recent": what Paystack paid in (wallet entries) or,
+// before any, the finished orders. The Shopinbos Wallet and Account stay one tap away, and the app language.
 
 export default function SupplierMoney() {
-  const t = useT("m_supplier", "m_partner", "common");
+  const t = useT("m_supplier", "m_partner", "m_ui", "common");
   const loaded = useLoad(async () => {
     const [overview, wallet, done] = await Promise.all([fetchSupplierOverview(), fetchWallet().catch(() => null), fetchSupplierOrders("done").catch(() => null)]);
-    const orders = done ? ([...done.dropship, ...done.wholesale] as SupplierOrder[]).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 8) : [];
-    return { overview, entries: wallet?.view.entries.slice(0, 8) ?? [], orders };
+    const finished = done ? ([...done.dropship, ...done.wholesale] as SupplierOrder[]).sort((a, b) => b.createdAt.localeCompare(a.createdAt)) : [];
+    const allEntries = wallet?.view.entries ?? [];
+    return {
+      overview,
+      wallet,
+      entries: allEntries.slice(0, 8),
+      orders: finished.slice(0, 8),
+      week: weekSummary(allEntries, finished.map((order) => ({ status: order.status, createdAt: order.createdAt, amount: orderAmount(order) }))),
+      next: upcomingPayout(wallet?.view.settlements),
+    };
   });
   const data = loaded.data;
   const bank = data?.overview.bank;
+  const owner = data?.wallet?.view.bank?.accountName;
+  const day = data?.next?.date ? friendlyDay(data.next.date, new Date(), t) : null;
+  const editBank = () => router.push({ pathname: "/supplier/setup", params: { edit: "bank" } });
 
   return (
     <TabScreen title={t("money.title")} refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
@@ -35,12 +49,31 @@ export default function SupplierMoney() {
       {loaded.error && !data ? <ErrorState message={loaded.error} onRetry={() => void loaded.reload()} /> : null}
       {data ? (
         <>
-          <DarkCard
-            eyebrow={t("home.coming")}
-            amount={naira(data.overview.owed ?? 0)}
-            line={bank ? t(bank.ready ? "money.bankLine" : "money.bankChecking", { bank: bank.bankName, account: bank.account }) : t("money.noBank")}
-            onPress={() => router.push(bank ? "/supplier/wallet" : { pathname: "/supplier/setup", params: { edit: "bank" } })}
-          />
+          <View accessible accessibilityLabel={`${t("home.coming")} ${naira(data.overview.owed ?? 0)}. ${day ? t("money.arrives", { day }) : t("home.afterConfirm")}`} style={{ backgroundColor: colors.ink, borderRadius: 24, padding: 20, gap: 8 }}>
+            <T weight="bold" style={{ color: "rgba(255,255,255,0.72)", fontSize: 14 }}>{t("home.coming")}</T>
+            <BigNumber color="#FFFFFF">{naira(data.overview.owed ?? 0)}</BigNumber>
+            <T weight="bold" style={{ color: "#73D8C8", fontSize: 14, lineHeight: 20 }}>{day ? t("money.arrives", { day }) : t("home.afterConfirm")}</T>
+          </View>
+
+          <View accessible accessibilityLabel={`${t("money.thisWeek")} ${naira(data.week.amount)}, ${t("money.weekOrders", { count: data.week.count })}`} style={{ backgroundColor: colors.mintTint, borderRadius: 24, padding: 18, gap: 4 }}>
+            <T weight="semibold" style={{ fontSize: 13.5, color: colors.forest }}>{t("money.thisWeek")}</T>
+            <T weight="extrabold" style={{ fontSize: 24 }}>{naira(data.week.amount)}</T>
+            <T style={{ fontSize: 13.5, color: colors.forest }}>{t("money.weekOrders", { count: data.week.count })}</T>
+          </View>
+
+          <List>
+            <Row
+              lead={<Tile icon="wallet" tone="gray" />}
+              title={bank ? `${bank.bankName} ${bank.account}` : t("money.noBank")}
+              sub={bank ? owner || t(bank.ready ? "money.bankReady" : "money.bankChecking2") : t("home.addBankSub")}
+              right={
+                <Pressable accessibilityRole="button" accessibilityLabel={bank ? t("money.changeBank") : t("home.addBank")} onPress={editBank} hitSlop={8} style={({ pressed }) => ({ minHeight: 44, minWidth: 44, paddingHorizontal: 6, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.7 : 1 })}>
+                  <T weight="bold" style={{ fontSize: 15, color: colors.forest }}>{bank ? t("money.change") : t("money.add")}</T>
+                </Pressable>
+              }
+              onPress={bank ? () => router.push("/supplier/wallet") : editBank}
+            />
+          </List>
           <Small style={{ marginTop: -6 }}>{t("money.howItMoves")}</Small>
 
           <View style={{ gap: 10 }}>
@@ -52,7 +85,7 @@ export default function SupplierMoney() {
                     key={entry.id}
                     lead={<Tile icon="coin" tone="ok" />}
                     title={entry.description}
-                    sub={`${new Date(entry.createdAt).toLocaleDateString("en-NG", { day: "numeric", month: "short" })}${bank ? ` · ${t("money.paidTo", { bank: bank.bankName })}` : ""}`}
+                    sub={`${friendlyDay(entry.createdAt, new Date(), t)}${bank ? ` · ${t("money.paidTo", { bank: bank.bankName })}` : ""}`}
                     right={<T weight="extrabold" style={{ fontSize: 15, color: entry.status === "refunded" ? colors.inkSoft : colors.success }}>+{nairaFromKobo(entry.amountKobo)}</T>}
                   />
                 ))}

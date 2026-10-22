@@ -81,7 +81,15 @@ export interface PricingInput {
    * from the browser. The lines are re-priced to add up to it and no automatic discount is added on top.
    */
   agreedItemsTotal?: number | null;
+  /**
+   * A delivery fee the seller agreed on a payment link (0 = free), loaded on the server, never from the browser.
+   * It replaces the store's zones and delivery partners: the seller delivers it to the link's saved address.
+   */
+  agreedDeliveryFee?: number | null;
 }
+
+/** The one delivery option of a payment link with an agreed fee. */
+export const LINK_DELIVERY_OPTION_ID = "link_delivery";
 
 /** Stock left per version id (null when that version isn't counted). */
 function resolveStock(raw: unknown) {
@@ -200,15 +208,21 @@ export async function priceOrder(input: PricingInput): Promise<PricedOrder | { o
     select: { name: true, regions: true, rates: true },
   });
   const flatRate = Number(record(record(input.store.brandSettings).shippingConfig).flatRate ?? 0) || 0;
-  // Delivery partners at checkout (the seller switched it on): their options replace the store's own zones.
-  const market = input.store.userId
+  const agreedFee = typeof input.agreedDeliveryFee === "number" && Number.isFinite(input.agreedDeliveryFee) && input.agreedDeliveryFee >= 0 ? Math.round(input.agreedDeliveryFee * 100) / 100 : null;
+  // Delivery partners at checkout (the seller switched it on): their options replace the store's own zones. A fee
+  // the seller agreed on a payment link replaces both.
+  const market = input.store.userId && agreedFee === null
     ? await marketChoiceForStore({ id: input.store.id, userId: input.store.userId, city: input.store.city ?? null }, items.map((item) => ({ productId: item.productId, quantity: item.quantity })), input.address)
     : null;
   let choice: DeliveryChoice;
   let option: DeliveryOption | null;
   let fee: number;
   let marketPick: { option: MarketOption | null; reason: string | null; shipmentCount: number } | null = null;
-  if (market) {
+  if (agreedFee !== null) {
+    option = { id: LINK_DELIVERY_OPTION_ID, name: "Doorstep delivery", price: agreedFee, estimatedDays: null, pickup: false };
+    choice = { covered: true, options: [option] };
+    fee = agreedFee;
+  } else if (market) {
     const picked = chooseMarketOption(market.choice, input.deliveryOptionId);
     choice = { covered: market.choice.covered, options: market.choice.options };
     option = picked.option;

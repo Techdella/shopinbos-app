@@ -8,11 +8,13 @@ import { Banner, Eyebrow, Heading, Keypad, List, Row, Seg, Small, Sub, Tile, Tit
 import { AppIcon } from "@/components/icons";
 import { ErrorState, LoadingBlock } from "@/components/kit";
 import { ChoiceSheet } from "@/components/partner";
-import { BigTile, Center, DoneCheck, mapUrl, MapBox, TextLink } from "@/components/RiderKit";
+import { BigTile, Center, DoneCheck, mapUrl, TextLink } from "@/components/RiderKit";
+import { RiderMap } from "@/components/RiderMap";
 import { Screen } from "@/components/Screen";
 import { Field, Notice, PillButton, T } from "@/components/ui";
 import { ApiError } from "@/lib/api";
 import { fetchRider, riderAction, uploadRiderProof, type RiderDrop, type RiderRun } from "@/lib/rider";
+import { useOwnPosition } from "@/lib/rider-location";
 import { firstName, isCarrying, pickupJobIds, routeLine } from "@/lib/rider-pure";
 import { RIDER_HELP_EN, RIDER_HELP_KEYS, RIDER_REASONS_EN, useRiderStrings } from "@/lib/rider-strings";
 import { useLoad } from "@/lib/useLoad";
@@ -51,6 +53,7 @@ export default function RiderJob() {
   // The job as last seen: once delivered it leaves the list, but "Delivered" still needs its amounts.
   const [held, setHeld] = useState<{ run: RiderRun; drop: RiderDrop } | null>(null);
 
+  const here = useOwnPosition();
   const data = rider.data;
   const company = data?.rider.partnerName ?? "";
   const found = findDrop(data?.runs ?? [], jobId);
@@ -252,6 +255,9 @@ export default function RiderJob() {
   }
 
   const route = routeLine(run, drop);
+  // The map: pickup and drop-off pins when the server could place them, and the rider's own spot from this phone.
+  const pickupPin = run.pickupLat != null && run.pickupLng != null ? { lat: run.pickupLat, lng: run.pickupLng } : null;
+  const dropPin = drop.dropLat != null && drop.dropLng != null ? { lat: drop.dropLat, lng: drop.dropLng } : null;
   const helpLink = <TextLink title={say("somethingWrong")} onPress={() => { setHelpFrom(step); setHelpSent(false); go("help"); }} />;
   const sentBanner = helpSent ? <Banner title={say("help.sent", { company })} tone="mint" icon="check" /> : null;
   const errorNotice = error ? <Notice>{error}</Notice> : null;
@@ -287,7 +293,7 @@ export default function RiderJob() {
           )
         }
       >
-        <MapBox address={run.pickupAddress} label={say("openMaps")} />
+        <RiderMap me={here} pickup={pickupPin} drop={dropPin} address={run.pickupAddress} label={say("map.route")} />
         {sentBanner}
         <View style={{ gap: 6 }}>
           <Eyebrow>{say("step1")}</Eyebrow>
@@ -298,7 +304,11 @@ export default function RiderJob() {
           {run.pickupPhone ? <Row lead={<Tile icon="phone" />} title={t.call} onPress={() => void Linking.openURL(`tel:${run.pickupPhone}`)} chevron={false} /> : null}
           <Row lead={<Tile icon="pin" />} title={say("openMaps")} onPress={() => void Linking.openURL(mapUrl(run.pickupAddress))} chevron={false} />
         </List>
-        <Small>{drop.hasPickupCode ? say("pickup.ask") : say("pickup.noCode")}</Small>
+        <Small>
+          {drop.orderNumber
+            ? say(drop.hasPickupCode ? "pickup.order" : "pickup.orderNoCode", { order: drop.orderNumber })
+            : drop.hasPickupCode ? say("pickup.ask") : say("pickup.noCode")}
+        </Small>
         {run.drops.length > 1 ? <Small>{t.parcels({ count: run.drops.length })}</Small> : null}
         {errorNotice}
         {helpLink}
@@ -332,7 +342,7 @@ export default function RiderJob() {
   if (step === "dropoff") {
     return (
       <Screen title={route} onBack={back} footer={<PillButton tone="forest" title={say("there")} onPress={() => { setDcode(""); setDstate("idle"); go("dcode"); }} />}>
-        <MapBox address={drop.address} label={say("openMaps")} />
+        <RiderMap me={here} pickup={pickupPin} drop={dropPin} address={drop.address} label={say("map.route")} />
         {sentBanner}
         <View style={{ gap: 6 }}>
           <Eyebrow>{say("step2")}</Eyebrow>

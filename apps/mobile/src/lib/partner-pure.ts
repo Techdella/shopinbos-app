@@ -18,6 +18,11 @@ const PUBLIC = ["/", "/welcome", "/login", "/signup", "/verify", "/forgot", "/we
 const SHARED = ["/help", "/ask-us", "/notifications"];
 /** Screens sellers and suppliers share: the Delivery hub (both connect delivery partners, same API). */
 const OWNER_SHARED = ["/delivery"];
+/** The "Familiar app" screens every business role shares: Rewards, Ask Peggy, Create with Rex, the posts calendar and
+ * posting a status. Signed-in sellers, suppliers and delivery partners only (not admins, not signed out). */
+const BUSINESS_SHARED = ["/rewards", "/ask-peggy", "/create", "/posts", "/status"];
+
+const under = (path: string, list: readonly string[]) => list.some((shared) => path === shared || path.startsWith(`${shared}/`));
 
 /** Which part of the app a path belongs to. Everything outside the partner areas is the seller app. */
 export function areaOf(pathname: string): Area {
@@ -40,7 +45,8 @@ export function canVisit(role: AppRole | null | undefined, pathname: string): bo
   const area = areaOf(pathname);
   if (area === "public" || area === "rider") return true;
   const path = (pathname.split(/[?#]/)[0] || "/").replace(/\/+$/, "") || "/";
-  if (role === "supplier" && OWNER_SHARED.some((shared) => path === shared || path.startsWith(`${shared}/`))) return true;
+  if (role === "supplier" && under(path, OWNER_SHARED)) return true;
+  if ((role === "seller" || role === "supplier" || role === "logistics_partner") && under(path, BUSINESS_SHARED)) return true;
   if (area === "admin") return role === "admin";
   return Boolean(role) && AREA_ROLE[area] === role;
 }

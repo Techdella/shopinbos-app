@@ -40,6 +40,18 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "card.health": "Lafiyar store {score}/100",
   "card.fix": "Gyara shi",
   "card.openPreview": "Buɗe dubawa",
+  "askRex": "Tambayi Rex",
+  "line": "Ina gina shagonka kuma ina canza shi",
+  "hello2": "Sannu, ni ne Rex. Ina gina shagonka kuma ina canza shi. Me kake buƙata?",
+  "suggest.1": "Sa shagona ya yi kama da na alfarma",
+  "suggest.2": "Ƙara kuɗin isar da kaya ₦2,000 don Legas",
+  "suggest.3": "Yi tutar rangwamen 20% don ƙarshen mako",
+  "more": "Sauran abubuwan da Rex zai iya yi",
+  "credits.count": "Kiredit {count}",
+  "credits.topUp": "Ƙara",
+  "credits.topUpLabel": "Ƙara kiredit: za mu aiko maka da imel kan yadda ake yi",
+  "credits.emailed": "Mun aiko maka da imel kan yadda za ka ƙara a shafin yanar gizo.",
+  "credits.emailFailed": "Ba mu iya aika imel ɗin yanzu ba. Sake gwadawa nan ba da jimawa ba.",
 };
 
 export default ha;

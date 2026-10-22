@@ -148,6 +148,9 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "method.korapay.label": "Pay with bank",
   "method.korapay.hint": "Second secure checkout: card, transfer or bank app",
   "frame.step": "{current} of {total}",
+  "live.statusFirst": "Share am for your WhatsApp Status first. Na there your customers dey.",
+  "live.shareWhatsApp": "Share for WhatsApp",
+  "live.opening": "We dey open your shop…",
 };
 
 export default pcm;

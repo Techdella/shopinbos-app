@@ -11,7 +11,7 @@ import { storefrontPageHref } from "@shared/storefront-pages";
 import { useStoreVisitBeacon } from "@/hooks/useStoreVisitor";
 import { useStoreProductView } from "@/lib/analytics/storefront-events";
 import { useCampaignAttribution } from "@/hooks/useCampaignAttribution";
-import type { StorefrontShopperInfo } from "@/lib/storefront/shopper-info";
+import type { StoreSellerCard, StorefrontShopperInfo } from "@/lib/storefront/shopper-info";
 import { CartDrawer } from "../../CartDrawer";
 import { ShopperBottomNav } from "@/components/storefront/shopper/ShopperBottomNav";
 import { StoreFootnote } from "@/components/storefront/shopper/StoreFooterBadges";
@@ -44,6 +44,8 @@ interface ProductDetailClientProps {
   /** "Customers also like" (the seller's picks, else similar products). */
   related?: ShopperProduct[];
   shopper: StorefrontShopperInfo;
+  /** The seller card (name, where they are and deliver, WhatsApp). */
+  seller?: StoreSellerCard | null;
   /** Product page settings from the store's published snapshot (classicPdpSettingsForSnapshot). */
   settings: PdpSettings;
   /** The classic theme's colours, fonts and shape (classicLook). */
@@ -54,7 +56,7 @@ interface ProductDetailClientProps {
 
 /** The live product page for classic (pre-2026) template stores: the shared product page in the classic theme's look. */
 export function ProductDetailClient({
-  store, product, reviews, avgRating, reviewCount, storeBasePath, catalog = [], related = [], shopper, settings, look, buyNowOnly = false,
+  store, product, reviews, avgRating, reviewCount, storeBasePath, catalog = [], related = [], shopper, seller = null, settings, look, buyNowOnly = false,
 }: ProductDetailClientProps) {
   const [cartOpen, setCartOpen] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | undefined>(undefined);
@@ -106,6 +108,7 @@ export function ProductDetailClient({
         look={look}
         settings={buyNowOnly ? { ...settings, labels: { ...settings.labels, addToBag: settings.labels.buyNow } } : settings}
         shopper={shopper}
+        seller={seller}
         storeName={store.name}
         reviewSlug={store.slug}
         currency={store.currency}

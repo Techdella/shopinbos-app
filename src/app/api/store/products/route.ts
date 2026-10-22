@@ -136,6 +136,7 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
       visibility: rest.visibility ?? "hidden",
     },
   });
+  void import("@/lib/rewards/rewards.server").then((rewards) => rewards.recordRewardEvent({ userId: user.id, kind: "product_added", ref: product.id })).catch(() => undefined);
 
   await markCatalogDirty(store.id);
   return ok(product, 201);

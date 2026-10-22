@@ -40,6 +40,18 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "card.health": "Ìlera store {score}/100",
   "card.fix": "Ṣàtúnṣe rẹ̀",
   "card.openPreview": "Ṣí àyẹ̀wò",
+  "askRex": "Bi Rex",
+  "line": "Mo ń kọ́ ṣọ́ọ̀bù rẹ, mo sì ń yí i padà",
+  "hello2": "Báwo, èmi ni Rex. Mo ń kọ́ ṣọ́ọ̀bù rẹ, mo sì ń yí i padà. Kí lo nílò?",
+  "suggest.1": "Jẹ́ kí ṣọ́ọ̀bù mi rí bí olówó iyebíye",
+  "suggest.2": "Fi owó ìfiránṣẹ́ ₦2,000 kún un fún Èkó",
+  "suggest.3": "Ṣe àsíá ẹ̀dinwó 20% fún òpin ọ̀sẹ̀",
+  "more": "Àwọn nǹkan míì tí Rex lè ṣe",
+  "credits.count": "Kírẹ́dítì {count}",
+  "credits.topUp": "Fi kún un",
+  "credits.topUpLabel": "Fi kírẹ́dítì kún un: a máa fi ímeèlì ránṣẹ́ sí ọ bí o ṣe máa ṣe é",
+  "credits.emailed": "A ti fi ímeèlì ránṣẹ́ sí ọ nípa bí o ṣe máa fi kún un lórí wẹ́ẹ̀bù.",
+  "credits.emailFailed": "A kò lè fi ímeèlì ránṣẹ́ báyìí. Gbìyànjú lẹ́ẹ̀kan síi láìpẹ́.",
 };
 
 export default yo;

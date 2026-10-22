@@ -115,6 +115,8 @@ export interface RiderRow {
   out: boolean;
   lastSeenAt: string | null;
   hasAppLink: boolean;
+  /** The bike's number plate, when the partner added one. */
+  plate?: string | null;
   openJobs: number;
   deliveredToday: number;
   earnedToday: number;

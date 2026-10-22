@@ -143,7 +143,7 @@ export function PhoneField({ country, onCountryPress, value, onChangeText }: { c
       <Pressable accessibilityRole="button" accessibilityLabel={t("phone.countryCode", { dial: country.dial })} onPress={onCountryPress} style={[styles.field, { minWidth: 70, paddingHorizontal: 12, alignItems: "center", justifyContent: "center", flex: 0 }]}>
         <T weight="bold" style={{ fontSize: 15 }}>{country.dial}</T>
       </Pressable>
-      <Field style={{ flex: 1 }} keyboardType="phone-pad" textContentType="telephoneNumber" autoComplete="tel" placeholder={country.example} value={value} onChangeText={onChangeText} />
+      <Field style={{ flex: 1, minWidth: 0 }} keyboardType="phone-pad" textContentType="telephoneNumber" autoComplete="tel" placeholder={country.example} value={value} onChangeText={onChangeText} />
     </View>
   );
 }

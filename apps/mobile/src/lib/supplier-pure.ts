@@ -184,3 +184,63 @@ export function bestWholesale(product: { wholesalePrice: number; moq: number; pr
 
 /** Five or fewer left is "running low". */
 export const LOW_STOCK = 5;
+
+// ─── "Familiar app" supplier screens ─────────────────────────────────────────
+
+const COUNTRY = /^(ng|nigeria)$/i;
+
+/** The town an order goes to, for the right of an Orders row: the city on a dropship label ("Ikeja, Lagos" → "Ikeja"),
+ * or the town in a wholesale delivery address ("12 Allen Ave, Ikeja, Lagos" → "Ikeja"). Empty when there's none. */
+export function orderCity(order: { kind: "dropship"; label: { address: readonly string[] } } | { kind: "wholesale"; address: string | null | undefined }) {
+  if (order.kind === "dropship") {
+    const lines = order.label.address.map((line) => line.trim()).filter((line) => line && !COUNTRY.test(line));
+    const cityLine = lines.find((line) => line.includes(",")) ?? (lines.length === 1 ? lines[0] : (lines[1] ?? ""));
+    return (cityLine.split(",")[0] ?? "").trim();
+  }
+  const parts = String(order.address ?? "")
+    .split(",")
+    .map((part) => part.trim())
+    .filter((part) => part && !COUNTRY.test(part));
+  if (!parts.length) return "";
+  return parts.length >= 3 ? parts[parts.length - 2] : parts[parts.length - 1];
+}
+
+const WEEK_MS = 7 * 86_400_000;
+
+/** "This week ₦X · N orders" on Money: what Paystack paid in over the last 7 days (wallet entries, kobo), or before
+ * any, the orders delivered in the last 7 days. Refunded entries and cancelled orders don't count. */
+export function weekSummary(
+  entries: readonly { amountKobo: number; status: string; createdAt: string }[],
+  orders: readonly { status: string; createdAt: string; amount: number }[],
+  now = Date.now(),
+): { amount: number; count: number } {
+  const recent = (iso: string) => {
+    const time = Date.parse(iso);
+    return Number.isFinite(time) && now - time >= 0 && now - time < WEEK_MS;
+  };
+  if (entries.length) {
+    const paid = entries.filter((entry) => entry.status !== "refunded" && entry.amountKobo > 0 && recent(entry.createdAt));
+    return { amount: paid.reduce((sum, entry) => sum + entry.amountKobo, 0) / 100, count: paid.length };
+  }
+  const done = orders.filter((order) => order.status === "delivered" && recent(order.createdAt));
+  return { amount: done.reduce((sum, order) => sum + (Number(order.amount) || 0), 0), count: done.length };
+}
+
+export type ChatFilter = "all" | "unread" | "shops" | "delivery";
+export const CHAT_FILTERS: readonly ChatFilter[] = ["all", "unread", "shops", "delivery"];
+
+/** Chats filters (All / Unread / Shops / Delivery), by the other side's role. */
+export function chatMatches(contact: { role: string; unread: number }, filter: ChatFilter) {
+  if (filter === "unread") return contact.unread > 0;
+  if (filter === "shops") return contact.role === "seller";
+  if (filter === "delivery") return contact.role === "logistics_partner";
+  return true;
+}
+
+/** Quick replies a supplier can send before their first message (m_supplier "chat.quick.*"): to a shop, or to a
+ * delivery company. */
+export function supplierQuickReplies(role: string | null | undefined): string[] {
+  if (role === "logistics_partner") return ["chat.quick.thanks", "chat.quick.callArrive"];
+  if (role === "seller") return ["chat.quick.haveIt", "chat.quick.notNow", "chat.quick.check"];
+  return [];
+}

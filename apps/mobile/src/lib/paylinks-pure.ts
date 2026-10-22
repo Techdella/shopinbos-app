@@ -81,6 +81,17 @@ export function parseNaira(text: string): number | null {
   return Number.isFinite(value) && value > 0 ? Math.round(value * 100) / 100 : null;
 }
 
+/** Optional saved delivery on a new link: the customer's address and the fee ("" or 0 is free delivery). */
+export interface DraftDelivery {
+  street: string;
+  city: string;
+  state: string;
+  landmark: string;
+  fee: string;
+}
+
+export const EMPTY_DELIVERY: DraftDelivery = { street: "", city: "", state: "", landmark: "", fee: "" };
+
 export interface DraftForm {
   amount: string;
   note: string;
@@ -88,14 +99,43 @@ export interface DraftForm {
   buyerPhone: string;
   oneTime: boolean;
   expiry: ExpiryChoice;
+  /** "Delivery: address + fee" is on (then `delivery` is sent). */
+  deliveryOn?: boolean;
+  delivery?: DraftDelivery;
 }
 
-export type CreateProblem = "pickProduct" | "amount";
+export type CreateProblem = "pickProduct" | "amount" | "deliveryAddress" | "deliveryFee";
+
+/** The fee typed for delivery: "" is free (0), "2,500" is 2500; null when it isn't a number. */
+export function parseFee(text: string): number | null {
+  const clean = text.replace(/[,₦\s]/g, "");
+  if (!clean) return 0;
+  const value = Number(clean);
+  return Number.isFinite(value) && value >= 0 ? Math.round(value * 100) / 100 : null;
+}
+
+/**
+ * The `delivery` part of the create body (the web's LinkDeliverySchema), or null until the street, area and state
+ * are filled in and the fee is a number. Same rules as the web's deliveryFromForm.
+ */
+export function deliveryBody(delivery: DraftDelivery) {
+  const street = delivery.street.trim().slice(0, 200);
+  const city = delivery.city.trim().slice(0, 120);
+  const state = delivery.state.trim().slice(0, 80);
+  const fee = parseFee(delivery.fee);
+  if (!street || !city || !state || fee === null) return null;
+  return { street, city, state, landmark: delivery.landmark.trim().slice(0, 160) || null, fee, optionId: null };
+}
 
 /** What's missing before a link can be made (null when it's ready). */
-export function createProblem(lines: DraftLine[], form: Pick<DraftForm, "amount">): CreateProblem | null {
+export function createProblem(lines: DraftLine[], form: Pick<DraftForm, "amount" | "deliveryOn" | "delivery">): CreateProblem | null {
   if (!lines.length) return "pickProduct";
   if (form.amount.trim() && parseNaira(form.amount) === null) return "amount";
+  if (form.deliveryOn) {
+    const delivery = form.delivery ?? EMPTY_DELIVERY;
+    if (!delivery.street.trim() || !delivery.city.trim() || !delivery.state.trim()) return "deliveryAddress";
+    if (parseFee(delivery.fee) === null) return "deliveryFee";
+  }
   return null;
 }
 
@@ -109,6 +149,8 @@ export function createBody(lines: DraftLine[], form: DraftForm) {
     note: form.note.trim().slice(0, 500) || null,
     buyerName: form.buyerName.trim().slice(0, 120) || null,
     buyerPhone: form.buyerPhone.trim().slice(0, 40) || null,
+    // Saved delivery only when it's on and complete (createProblem says what's missing otherwise).
+    ...(form.deliveryOn && form.delivery && deliveryBody(form.delivery) ? { delivery: deliveryBody(form.delivery) } : {}),
   };
 }
 
@@ -141,7 +183,11 @@ export type BioBlock =
   | { id: string; type: "socials"; links: Record<string, string | undefined> }
   | { id: string; type: "whatsapp"; phone: string; label?: string; message?: string }
   | { id: string; type: "signup"; title?: string; buttonLabel?: string }
-  | { id: string; type: "text"; text: string };
+  | { id: string; type: "text"; text: string }
+  // Added on the web (src/lib/bio/pure.ts): "Shop now", the newest products grid and "Track my order".
+  | { id: string; type: "shop"; label?: string }
+  | { id: string; type: "arrivals"; label?: string }
+  | { id: string; type: "track"; label?: string };
 
 /** GET /api/app/bio (SellerBioPage on the server). */
 export interface BioPage {

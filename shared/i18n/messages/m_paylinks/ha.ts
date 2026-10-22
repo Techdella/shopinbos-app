@@ -142,6 +142,23 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "link.add": "Ƙara link",
   "problem.label": "Ba link ɗin suna.",
   "problem.url": "Rubuta cikakken adireshin yanar gizo, misali https://yourshop.com.",
+  "create.delivery": "Isarwa: adireshi + kuɗi",
+  "create.deliveryHint": "Na zaɓi. Ajiye adireshin abokin ciniki da kuɗin, sai su danna Biya kawai.",
+  "create.deliveryStreet": "Adireshin titin abokin ciniki",
+  "create.deliveryCity": "Unguwa ko gari",
+  "create.deliveryState": "Jiha",
+  "create.deliveryLandmark": "Alama (na zaɓi)",
+  "create.deliveryFee": "Kuɗin isarwa (₦)",
+  "create.deliveryFeeHint": "Bar shi babu komai ko 0 don isarwa kyauta.",
+  "problem.deliveryAddress": "Ƙara titin abokin ciniki, unguwa da jiha, ko kashe isarwa.",
+  "problem.deliveryFee": "Rubuta kuɗin isarwa a matsayin lamba, kamar 2500.",
+  "block.shop": "Maɓallin Saya yanzu",
+  "block.shopSub": "Yana buɗe shagonka",
+  "block.arrivals": "Sabbin kaya",
+  "block.arrivalsSub": "Sabbin kayanka 4",
+  "block.track": "Bibiyar odata",
+  "block.trackSub": "Abokan ciniki za su sami odarsu",
+  "block.other": "Sashe",
 };
 
 export default ha;

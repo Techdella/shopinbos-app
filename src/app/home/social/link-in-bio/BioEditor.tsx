@@ -15,9 +15,12 @@ import {
   MAX_BIO_BLOCKS,
   SOCIAL_KEYS,
   SOCIAL_LABEL,
+  BIO_BLOCK_DEFAULT_LABEL,
+  bioBlockLabel,
   bioBlockProblems,
   bioColours,
   newBlockId,
+  newestProducts,
   socialUrl,
   starterBlocks,
   whatsappChatUrl,
@@ -37,10 +40,14 @@ interface PickProduct {
   name: string;
   image: string | null;
   price: number;
+  /** When it was added (ISO), for the "New arrivals" preview. */
+  createdAt: string;
 }
 
-const BLOCK_ICON: Record<BioBlockType, IconName> = { product: "bag", collection: "grid", link: "link", socials: "instagram", whatsapp: "whatsapp", signup: "mail", text: "edit" };
-const ADDABLE: BioBlockType[] = ["product", "whatsapp", "socials", "link", "collection", "signup", "text"];
+const BLOCK_ICON: Record<BioBlockType, IconName> = { product: "bag", collection: "grid", link: "link", socials: "instagram", whatsapp: "whatsapp", signup: "mail", text: "edit", shop: "shop", arrivals: "sparkle", track: "truck" };
+const ADDABLE: BioBlockType[] = ["shop", "arrivals", "product", "whatsapp", "track", "socials", "link", "collection", "signup", "text"];
+/** Blocks that need products in the shop before they can be added. */
+const NEEDS_PRODUCTS = new Set<BioBlockType>(["product", "shop", "arrivals"]);
 
 /** The id suffix of each field's input in BlockFields (blk-<block id>-<suffix>), to focus the first one to fix. */
 const FIELD_INPUT: Partial<Record<BioProblemField, string>> = { label: "l", url: "u", phone: "ph", text: "x", productId: "p", collectionId: "c" };
@@ -75,6 +82,10 @@ function blankBlock(type: BioBlockType, products: PickProduct[], collections: Ar
       return { id, type, title: "", buttonLabel: "" };
     case "text":
       return { id, type, text: "" };
+    case "shop":
+    case "arrivals":
+    case "track":
+      return { id, type };
   }
 }
 
@@ -178,7 +189,7 @@ export function BioEditor({
     touch();
   }
   function fill() {
-    setBlocks(starterBlocks({ productIds: products.slice(0, 5).map((product) => product.id), whatsapp, buyNow: true }));
+    setBlocks(starterBlocks({ productIds: products.slice(0, 5).map((product) => product.id), whatsapp, buyNow: true, shopButtons: true }));
     touch();
   }
 
@@ -253,6 +264,12 @@ export function BioEditor({
       }
       if (block.type === "whatsapp") return [{ id: block.id, type: "whatsapp", label: block.label || "Chat on WhatsApp", href: whatsappChatUrl(block.phone) }];
       if (block.type === "signup") return [{ id: block.id, type: "signup", title: block.title || "Get our news and offers", buttonLabel: block.buttonLabel || "Sign up" }];
+      if (block.type === "shop") return [{ id: block.id, type: "shop", label: bioBlockLabel(block), href: "#" }];
+      if (block.type === "arrivals") {
+        const newest = newestProducts(products).map((product) => ({ id: product.id, name: product.name, price: product.price, image: product.image, href: "#" }));
+        return newest.length ? [{ id: block.id, type: "arrivals", label: bioBlockLabel(block), products: newest }] : [];
+      }
+      if (block.type === "track") return [{ id: block.id, type: "track", label: bioBlockLabel(block), orderHref: "#" }];
       return block.text ? [{ id: block.id, type: "text", text: block.text }] : [];
     }),
   };
@@ -368,7 +385,7 @@ export function BioEditor({
             <p className="mb-2 mt-0 text-[13px] font-bold text-app-ink-soft">{t("bio.addBlock")}</p>
             <div className="flex flex-wrap gap-2">
               {ADDABLE.map((type) => (
-                <button key={type} type="button" onClick={() => add(type)} disabled={blocks.length >= MAX_BIO_BLOCKS || (type === "product" && !products.length) || (type === "collection" && !collections.length)} title={type === "product" && !products.length ? t("block.noProducts") : type === "collection" && !collections.length ? t("block.noCollections") : undefined} className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-app-line bg-white px-3.5 text-[13.5px] font-bold disabled:opacity-40">
+                <button key={type} type="button" onClick={() => add(type)} disabled={blocks.length >= MAX_BIO_BLOCKS || (NEEDS_PRODUCTS.has(type) && !products.length) || (type === "collection" && !collections.length)} title={NEEDS_PRODUCTS.has(type) && !products.length ? t("block.noProducts") : type === "collection" && !collections.length ? t("block.noCollections") : undefined} className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-app-line bg-white px-3.5 text-[13.5px] font-bold disabled:opacity-40">
                   <Icon name={BLOCK_ICON[type]} size={14} />
                   {t(`block.${type}`)}
                 </button>
@@ -523,6 +540,18 @@ function BlockFields({ block, products, collections, problems, onChange }: { blo
         <div>
           <FieldLabel htmlFor={`${id}-b`}>{t("block.signupButton")}</FieldLabel>
           <TextInput id={`${id}-b`} value={block.buttonLabel ?? ""} maxLength={40} onChange={(event) => onChange({ ...block, buttonLabel: event.target.value })} />
+        </div>
+      </div>
+    );
+  }
+  if (block.type === "shop" || block.type === "arrivals" || block.type === "track") {
+    return (
+      <div className="mt-3 grid gap-2">
+        <p className="m-0 text-[13px] text-app-ink-soft">{t(`block.${block.type}Hint`)}</p>
+        <div>
+          <FieldLabel htmlFor={`${id}-l`}>{t("block.label")}</FieldLabel>
+          <TextInput id={`${id}-l`} value={block.label ?? ""} maxLength={40} placeholder={BIO_BLOCK_DEFAULT_LABEL[block.type]} onChange={(event) => onChange({ ...block, label: event.target.value })} {...invalid("label", `${id}-l`)} />
+          {problem("label", `${id}-l`)}
         </div>
       </div>
     );
