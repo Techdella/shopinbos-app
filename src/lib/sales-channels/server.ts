@@ -8,6 +8,7 @@ import { buildStoreFeed, feedUrl } from "@/lib/social/server";
 import { createCatalog, disconnectCatalog, ensureCatalogRow, itemCounts, listCatalogs, selectCatalog, syncCatalog } from "@/lib/whatsapp-catalog/server";
 import { ChannelError, GRAPH_VERSION, PROVIDERS, type ProviderContext, type StoreRef } from "./providers";
 import { connectMetaInbox, disconnectMetaInbox, pickMetaPixel } from "./meta-inbox.server";
+import { disconnectChannel } from "@/lib/inbox/connect";
 import { connectGoogleEverything, disconnectGoogleEverything } from "@/lib/google/connect.server";
 import {
   authorizeUrl,
@@ -156,7 +157,11 @@ export async function syncPlatform(storeId: string, platform: OAuthPlatform): Pr
 
 export async function disconnectPlatform(storeId: string, platform: LivePlatform) {
   if (platform === "whatsapp") {
+    // The card shows the number, so Disconnect turns off the number too (its chats stay), not only the catalog,
+    // and forgets the permission check so a fresh sign-in starts clean.
     await disconnectCatalog(storeId);
+    await disconnectChannel(storeId, "whatsapp");
+    await db.whatsAppCatalog.updateMany({ where: { storeId }, data: { permissionState: "unknown", missingPermissions: [], permissionsCheckedAt: null } });
     return;
   }
   if (platform === "meta") await disconnectMetaInbox(storeId);

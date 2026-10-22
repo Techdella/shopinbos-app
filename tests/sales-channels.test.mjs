@@ -240,13 +240,15 @@ test("TikTok is coming soon in Nigeria: its card hides unless a store linked it 
   assert.match(server, /!PAUSED_PLATFORMS\.includes\(card\.platform\) \|\| Boolean\(byPlatform\.get\(card\.platform\)\?\.tokenEnc\)/);
 });
 
-test("one Facebook sign-in also connects the Page and Instagram inboxes, and Disconnect turns off only those", () => {
+test("one Facebook sign-in also connects the Page and Instagram inboxes, and Disconnect turns off what the card shows", () => {
   const server = read("src/lib/sales-channels/server.ts");
   assert.match(server, /if \(platform === "meta"\) \{\n\s+const store = await loadStore\(storeId\);\n\s+if \(store\) await connectMetaInbox\(store, exchanged\.tokens\.token\);/);
   assert.match(server, /if \(platform === "meta"\) await disconnectMetaInbox\(storeId\);/);
   const inbox = read("src/lib/sales-channels/meta-inbox.server.ts");
   assert.match(inbox, /connectChannel\(store, channel, \{ pageAccessToken: page\.token \}\)/);
-  assert.match(inbox, /via === VIA_FACEBOOK_LOGIN\) await disconnectChannel/);
+  assert.match(inbox, /for \(const row of rows\) await disconnectChannel\(storeId, row\.channel as "messenger" \| "instagram"\);/);
+  // WhatsApp: the number goes too, not only the catalog.
+  assert.match(server, /await disconnectCatalog\(storeId\);\n\s+await disconnectChannel\(storeId, "whatsapp"\);/);
   assert.doesNotMatch(inbox, /console\.[a-z]+\([^)]*token/i, "tokens never reach a log line");
 });
 

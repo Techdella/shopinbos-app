@@ -89,7 +89,7 @@ export function ConnectCard({
   }
 
   async function disconnect() {
-    if (!(await confirmDialog(t(platform === "meta" ? "card.confirmMeta" : "card.confirm", { name })))) return;
+    if (!(await confirmDialog(t(platform === "meta" ? "card.confirmMeta" : platform === "whatsapp" ? "card.confirmWhatsapp" : "card.confirm", { name })))) return;
     startTransition(async () => {
       await disconnectAction(platform);
       router.refresh();
@@ -155,7 +155,15 @@ export function ConnectCard({
       body = <button type="button" disabled className={buttonClass("white", "md", "w-full")}>{t("card.soon")}</button>;
       break;
     case "connect":
-      body = connectButton(t("card.connect"));
+      // Accounts the inbox already has (listed above) can be disconnected from here too.
+      body = inboxHas ? (
+        <div className="grid gap-2">
+          {connectButton(t("card.connect"))}
+          {disconnectButton}
+        </div>
+      ) : (
+        connectButton(t("card.connect"))
+      );
       break;
     case "syncing":
       body = (
