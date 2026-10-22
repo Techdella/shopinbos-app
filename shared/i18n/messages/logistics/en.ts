@@ -50,7 +50,7 @@ const en = {
   "payin.matchAuto": "We match your payment automatically. It shows here within a few minutes.",
   "payin.errorConnection": "That didn't go through. Check your connection and try again.",
   "payin.payInto": "Pay into your account",
-  "payin.usualWay": "Pay in the usual way, then tell us how much you paid on the Cash page.",
+  "payin.usualWay": "Pay each seller straight to their bank, or hand them the cash and they'll confirm it.",
   "payin.checkAgain": "I've paid. Check again",
   // RiderLinkButton
   "riderLink.confirmNew": "Make a new link for {name}? Their old link stops working.",
@@ -231,6 +231,8 @@ const en = {
   "cash.method.settled": "Settled with the Shopinbos team",
   "cash.method.api": "From your software",
   "cash.method.transfer": "Transfer",
+  "cash.method.seller": "Paid to the seller",
+  "cash.method.sellerConfirmed": "Seller confirmed",
   // Riders (/logistics/couriers)
   "riders.title": "Riders",
   "riders.sub": "The riders and dispatch staff who carry your jobs. Riders use the Shopinbos Riders app.",

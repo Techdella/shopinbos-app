@@ -116,7 +116,7 @@ const en = {
 
   // Late pay-in card (components/PayInOverdueCard.tsx)
   "overdue.payInto": "Pay into your account",
-  "overdue.manual": "Pay in the usual way, then tell us how much you paid on the web Cash page.",
+  "overdue.manual": "Pay each seller straight to their bank, or hand them the cash and they'll confirm it.",
   "overdue.check": "I've paid. Check again",
 
   // Messages (components/PartnerMessages.tsx)
@@ -239,6 +239,8 @@ const en = {
   "money.method.account": "To your pay-in account",
   "money.method.settled": "Settled with the Shopinbos team",
   "money.method.api": "From your software",
+  "money.method.seller": "Paid to the seller",
+  "money.method.sellerConfirmed": "Seller confirmed",
   "money.delivered": "Delivered",
   "money.noDeliveries": "No deliveries in the last 30 days yet. Money from delivered jobs shows up here.",
 

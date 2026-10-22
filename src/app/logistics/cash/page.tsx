@@ -257,7 +257,7 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-[15px] font-extrabold">{naira(row.amount)}</div>
                         <div className="truncate text-[15px] text-app-ink-soft">
-                          {lagosDate(row.createdAt, undefined, now, t)}, {lagosTime(row.createdAt, t)} · {row.method === "seller" ? "Paid to the seller" : row.method === "seller_confirmed" ? "Seller confirmed" : row.method === "account" ? t("cash.method.account") : row.method === "settled" ? t("cash.method.settled") : row.method === "cash" ? t("cash.cash") : row.method === "api" ? t("cash.method.api") : t("cash.method.transfer")}
+                          {lagosDate(row.createdAt, undefined, now, t)}, {lagosTime(row.createdAt, t)} · {row.method === "seller" ? t("cash.method.seller") : row.method === "seller_confirmed" ? t("cash.method.sellerConfirmed") : row.method === "account" ? t("cash.method.account") : row.method === "settled" ? t("cash.method.settled") : row.method === "cash" ? t("cash.cash") : row.method === "api" ? t("cash.method.api") : t("cash.method.transfer")}
                           {row.reference && row.method !== "account" ? ` · ${row.reference}` : ""}
                         </div>
                         <div className="truncate text-[14px] font-bold text-app-forest">

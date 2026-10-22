@@ -119,7 +119,7 @@ export default function LogisticsEarnings() {
                 {data.remittances.map((row) => (
                   <Row
                     key={row.id}
-                    title={`${row.method === "account" ? t("money.method.account") : row.method === "settled" ? t("money.method.settled") : row.method === "cash" ? t("cash") : row.method === "api" ? t("money.method.api") : t("transfer")} · ${dayWord(row.createdAt, undefined, t)}`}
+                    title={`${row.method === "seller" ? t("money.method.seller") : row.method === "seller_confirmed" ? t("money.method.sellerConfirmed") : row.method === "account" ? t("money.method.account") : row.method === "settled" ? t("money.method.settled") : row.method === "cash" ? t("cash") : row.method === "api" ? t("money.method.api") : t("transfer")} · ${dayWord(row.createdAt, undefined, t)}`}
                     sub={row.status ?? undefined}
                     right={<T weight="bold">{naira(row.amount)}</T>}
                   />

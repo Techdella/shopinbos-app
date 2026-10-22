@@ -136,6 +136,43 @@ export async function savePartnerBusinessDetails(formData: FormData) {
   go("/logistics/profile", result.ok ? undefined : result.error);
 }
 
+// ─── Set-up (src/components/onboarding/LogisticsOnboarding.tsx) ──────────────
+// The set-up steps stay on screen, so these return the problem instead of redirecting.
+
+export type SetupResult = { ok: true } | { ok: false; error: string };
+
+export async function saveSetupBusiness(input: { companyName: string; cacNumber: string; contactName: string; contactPhone: string; contactEmail: string; address: string }): Promise<SetupResult> {
+  const { partner } = await partnerActor();
+  const result = await savePartnerBusiness(partner.id, input);
+  revalidatePath("/logistics/profile");
+  return result.ok ? { ok: true } : { ok: false, error: result.error };
+}
+
+/** The last step, once set-up is marked done: where it works, what it offers and its public rate card. */
+export async function saveSetupMarket(input: {
+  services: string[];
+  pickupAreas: string[];
+  deliveryAreas: string[];
+  rows: unknown;
+  failedAttemptFee: number;
+  returnFee: number;
+  notes: string;
+}): Promise<SetupResult> {
+  const { partner } = await partnerActor();
+  if (!isOnboardingComplete(partner)) return { ok: false, error: "Finish setting up your company first." };
+  const coverage = await savePartnerCoverage(partner.id, {
+    services: input.services,
+    pickupAreas: input.pickupAreas,
+    deliveryAreas: input.deliveryAreas,
+    offersPayOnDelivery: partner.offersPayOnDelivery,
+  });
+  if (!coverage.ok) return { ok: false, error: coverage.error };
+  const rates = await savePublicRateCard(partner.id, { rows: input.rows, failedAttemptFee: input.failedAttemptFee, returnFee: input.returnFee, notes: input.notes });
+  if (!rates.ok) return { ok: false, error: rates.error };
+  for (const path of ["/logistics/coverage", "/logistics/rates", "/logistics/profile", "/logistics/dashboard"]) revalidatePath(path);
+  return { ok: true };
+}
+
 // ─── Pickup points ───────────────────────────────────────────────────────────
 
 export async function savePartnerPickupPoint(formData: FormData) {

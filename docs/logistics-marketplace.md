@@ -74,7 +74,7 @@ POD is off by default. It is allowed per connection only when the seller opts in
 - The partner can mark "cash paid to shop" and the seller confirms. This is a record only.
 - Confirming marks the order paid.
 
-**Get legal review of all "Shopinbos is just the software" wording before launch.**
+**Get legal review of all "Shopinbos is just the software" wording before launch.** The pack for counsel is `docs/legal-review-logistics.md`.
 
 ## Verified phone at checkout
 

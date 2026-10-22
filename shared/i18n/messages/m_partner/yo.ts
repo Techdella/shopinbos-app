@@ -110,7 +110,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "menu.connectHint": "Ṣé o ti ń lo delivery software? A máa so ó pọ̀ fún ọ",
 
   "overdue.payInto": "San sínú àkáǹtì rẹ",
-  "overdue.manual": "San án wọlé bí o ṣe máa ń ṣe, lẹ́yìn náà sọ iye tí o san fún wa lórí ojú-ìwé Cash lórí wẹ́ẹ̀bù.",
+  "overdue.manual": "San fún olùtajà kọ̀ọ̀kan tààrà sí báńkì wọn, tàbí fi owó náà lé wọn lọ́wọ́, wọn yóò sì jẹ́rìí rẹ̀.",
   "overdue.check": "Mo ti san án. Tún wò ó",
 
   "chat.title": "Àwọn ìfiránṣẹ́",
@@ -228,6 +228,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "money.method.account": "Sí àkáǹtì pay-in rẹ",
   "money.method.settled": "A yanjú rẹ̀ pẹ̀lú ẹgbẹ́ Shopinbos",
   "money.method.api": "Láti inú software rẹ",
+  "money.method.seller": "A san án fún olùtajà",
+  "money.method.sellerConfirmed": "Olùtajà ti jẹ́rìí",
   "money.delivered": "Èyí tó ti dé",
   "money.noDeliveries": "Kò sí delivery láàárín ọjọ́ 30 sẹ́yìn. Owó láti inú iṣẹ́ tó ti dé máa hàn níbí.",
 
