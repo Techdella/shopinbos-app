@@ -8,7 +8,8 @@ import { EmptyState, ErrorState, LoadingBlock } from "@/components/kit";
 import { Screen } from "@/components/Screen";
 import { PillButton, T } from "@/components/ui";
 import { fetchPosts, type ScheduledPost } from "@/lib/familiar";
-import { postDay, postPill, sameDay, startOfDay, weekDays, weekRange } from "@/lib/familiar-pure";
+import { AUTO_PLATFORMS, postDay, postPill, sameDay, startOfDay, weekDays, weekRange } from "@/lib/familiar-pure";
+import { openPath } from "@/lib/web";
 import { PLATFORM_KEY } from "@/components/familiar/ScheduleSheet";
 import { formatDate } from "@shared/i18n";
 import { useRole } from "@/lib/role";
@@ -17,10 +18,12 @@ import { useLocale, useT } from "@/lib/i18n";
 import { colors, radii } from "@/theme";
 
 // The posts calendar ("Familiar app" prototype `calendar`): this week as a strip of days with dots, the picked
-// day's posts (Posted, Scheduled, Draft), the accounts (sellers can connect theirs on the Channels screen) and
-// "Make a new post". GET /api/mobile/posts?from&to. We never post for anyone; scheduled posts get a reminder.
+// day's posts (Posted, Scheduled, Draft, Your turn, Didn't go out), the accounts and "Make a new post".
+// GET /api/mobile/posts?from&to. A seller's calendar is their Social posts on the website: Facebook and Instagram
+// post by themselves when the Page is connected there (Social posts → Accounts), WhatsApp and TikTok get a
+// reminder (connected on the Channels screen). Suppliers and delivery partners: reminders only.
 
-const DOT = { posted: colors.success, scheduled: colors.accent, draft: colors.inkFaint } as const;
+const DOT = { posted: colors.success, scheduled: colors.accent, draft: colors.inkFaint, attention: colors.warnInk, yourTurn: colors.accentInk } as const;
 
 function dayParam(value: unknown): Date | null {
   if (typeof value !== "string") return null;
@@ -41,6 +44,8 @@ export default function Posts() {
   const missing = !week.loading && !week.error && !data;
 
   const posts = data?.posts ?? [];
+  // The server marks a seller's accounts with `auto`: their calendar is Social posts.
+  const sellerCalendar = Boolean(data?.accounts?.some((account) => account.auto !== undefined));
   const onDay = (date: Date) => posts.filter((post) => {
     const at = postDay(post);
     return at ? sameDay(at, date) : false;
@@ -87,7 +92,17 @@ export default function Posts() {
             {days.map((date) => {
               const on = sameDay(date, day);
               const list = onDay(date);
-              const status = list.some((post) => post.status === "scheduled") ? "scheduled" : list.some((post) => post.status === "posted") ? "posted" : list.length ? "draft" : null;
+              const status = list.some((post) => post.status === "attention")
+                ? "attention"
+                : list.some((post) => post.yourTurn)
+                  ? "yourTurn"
+                  : list.some((post) => post.status === "scheduled")
+                    ? "scheduled"
+                    : list.some((post) => post.status === "posted")
+                      ? "posted"
+                      : list.length
+                        ? "draft"
+                        : null;
               return (
                 <Pressable
                   key={date.toISOString()}
@@ -117,7 +132,7 @@ export default function Posts() {
             {shown.length ? (
               <List>
                 {shown.map((post) => {
-                  const pill = postPill(post.status);
+                  const pill = postPill(post.status, post.yourTurn);
                   return (
                     <Row
                       key={post.id}
@@ -138,25 +153,36 @@ export default function Posts() {
             <View style={{ gap: 10 }}>
               <Eyebrow>{t("posts.accounts")}</Eyebrow>
               <List>
-                {data.accounts.map((account) => (
-                  <Row
-                    key={account.key}
-                    title={account.label}
-                    sub={account.linked ? t("posts.linked") : t("posts.notLinked")}
-                    right={
-                      account.linked ? (
-                        <Pill label={t("posts.connected")} tone="ok" icon="check" />
-                      ) : role === "seller" ? (
-                        <PillButton title={t("posts.connect")} tone="white" size="sm" accessibilityLabel={t("posts.connectLabel", { name: account.label })} onPress={() => router.push("/channels")} style={{ borderRadius: radii.pill }} />
-                      ) : null
-                    }
-                  />
-                ))}
+                {data.accounts.map((account) => {
+                  // A seller's Facebook and Instagram connect on Social posts (website); the rest on Channels.
+                  const social = account.auto !== undefined && (AUTO_PLATFORMS as readonly string[]).includes(account.key);
+                  return (
+                    <Row
+                      key={account.key}
+                      title={account.label}
+                      sub={account.auto ? t("posts.auto") : social ? t("posts.autoNotLinked") : account.linked ? t("posts.linked") : t("posts.notLinked")}
+                      right={
+                        account.linked ? (
+                          <Pill label={account.auto ? t("posts.autoPill") : t("posts.connected")} tone="ok" icon="check" />
+                        ) : role === "seller" ? (
+                          <PillButton
+                            title={t("posts.connect")}
+                            tone="white"
+                            size="sm"
+                            accessibilityLabel={t("posts.connectLabel", { name: account.label })}
+                            onPress={() => (social ? void openPath("/home/marketing/social/accounts") : router.push("/channels"))}
+                            style={{ borderRadius: radii.pill }}
+                          />
+                        ) : null
+                      }
+                    />
+                  );
+                })}
               </List>
             </View>
           ) : null}
 
-          <Small>{t("posts.statusNote")}</Small>
+          <Small>{sellerCalendar ? t("posts.statusNoteSeller") : t("posts.statusNote")}</Small>
         </>
       ) : null}
     </Screen>

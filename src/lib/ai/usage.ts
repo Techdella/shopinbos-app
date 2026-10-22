@@ -6,9 +6,6 @@ import { addCredits, creditBalance, liveCreditPrices, spendCredits } from "@/lib
 import { creditCost, creditsUrlFor, outOfCreditsMessage, type CreditAction } from "@shared/ai-credits";
 import { aiSafetyTier, planKeyForMarker } from "@shared/plans";
 
-/** Where a seller buys AI credits. */
-export const CREDITS_URL = "/home/credits";
-
 // Every AI request costs credits: the plan's monthly credits first, then bought credits (shared/ai-credits.ts,
 // src/lib/ai/credits.server.ts). On top, a daily safety cap per kind stops a loop, a bot or a runaway script from
 // burning through credits or the AI bill; it never gives anything free. aiCredits on User is the plan marker

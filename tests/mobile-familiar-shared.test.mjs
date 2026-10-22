@@ -50,8 +50,39 @@ test("post pills and the day a post sits on", () => {
   assert.deepEqual(pure.postPill("posted"), { key: "posted", tone: "ok" });
   assert.deepEqual(pure.postPill("scheduled"), { key: "scheduled", tone: "teal" });
   assert.deepEqual(pure.postPill("anything"), { key: "draft", tone: "gray" });
+  assert.deepEqual(pure.postPill("attention"), { key: "attention", tone: "warn" });
+  assert.deepEqual(pure.postPill("posted", true), { key: "yourTurn", tone: "org" });
+  assert.deepEqual(pure.postPill("draft", true), { key: "draft", tone: "gray" });
   assert.equal(pure.postDay({ scheduledAt: null, postedAt: null }), null);
   assert.equal(pure.postDay({ scheduledAt: "2026-10-22T07:00:00.000Z", postedAt: null }).toISOString(), "2026-10-22T07:00:00.000Z");
+  for (const key of ["attention", "yourTurn"]) assert.match(en, new RegExp(`"posts\\.status\\.${key}"`));
+});
+
+test("scheduling copy is honest per app: auto for a seller's connected Facebook and Instagram, reminders for the rest", () => {
+  const seller = [
+    { key: "whatsapp", linked: true, auto: false },
+    { key: "instagram", linked: false, auto: false },
+    { key: "facebook", linked: true, auto: true },
+    { key: "tiktok", linked: false, auto: false },
+  ];
+  assert.deepEqual(pure.scheduleSplit(["whatsapp", "facebook", "tiktok"], seller), { auto: ["facebook"], remind: ["whatsapp", "tiktok"] });
+  assert.deepEqual(pure.scheduleSplit(["whatsapp"], seller), { auto: [], remind: ["whatsapp"] });
+  assert.deepEqual(pure.scheduleSplit(["facebook"], null), { auto: [], remind: ["facebook"] }, "before the accounts load: reminders");
+  assert.equal(pure.needsConnecting("instagram", seller), true, "a seller's Instagram needs the Page connected first");
+  assert.equal(pure.needsConnecting("facebook", seller), false);
+  assert.equal(pure.needsConnecting("whatsapp", seller), false);
+  // Suppliers and partners: no `auto`, every app is a reminder and can be picked.
+  const supplier = [{ key: "instagram", linked: false }, { key: "facebook", linked: true }];
+  assert.equal(pure.needsConnecting("instagram", supplier), false);
+  assert.deepEqual(pure.scheduleSplit(["instagram", "facebook"], supplier), { auto: [], remind: ["instagram", "facebook"] });
+
+  const and = (a, b) => `${a} and ${b}`;
+  assert.equal(pure.joinNames([], and), "");
+  assert.equal(pure.joinNames(["WhatsApp"], and), "WhatsApp");
+  assert.equal(pure.joinNames(["WhatsApp", "TikTok"], and), "WhatsApp and TikTok");
+  assert.equal(pure.joinNames(["Facebook", "Instagram", "X"], and), "Facebook, Instagram and X");
+  for (const key of ["sched.autoOnly", "sched.autoAndRemind", "sched.connectFirst", "posts.statusNoteSeller", "and"]) assert.match(en, new RegExp(`"${key.replace(".", "\\.")}"`));
+  assert.match(read("apps/mobile/src/components/familiar/ScheduleSheet.tsx"), /fetchPostAccounts\(\)/);
 });
 
 test("notification filters follow the prototype per role and map to the bell's categories", () => {

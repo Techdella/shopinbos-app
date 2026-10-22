@@ -15,6 +15,7 @@ import { SignOutButton } from "./SignOutButton";
 import { TOGGLE_NAV_EVENT, useIdentity, useShellCounts } from "./useShellCounts";
 import { initialsOf } from "@shared/identity-images";
 import { navLabel } from "@shared/i18n/nav";
+import { creditsUrlFor } from "@shared/ai-credits";
 import { useT } from "@/components/i18n/I18nProvider";
 import { LanguagePicker } from "@/components/i18n/LanguagePicker";
 
@@ -114,7 +115,7 @@ export function GlobalTopBar({
         <button type="button" aria-label={t("shell.search")} onClick={() => setSearchOpen(true)} className="grid h-10 w-10 place-items-center rounded-full border border-app-line md:hidden">
           <Icon name="search" size={17} />
         </button>
-        {(role === "seller" || role === "supplier") && <CreditsBadge manageHref={role === "supplier" ? "/supplier/credits" : "/home/credits"} />}
+        {(role === "seller" || role === "supplier" || role === "logistics_partner") && <CreditsBadge manageHref={creditsUrlFor(role)} />}
         {role === "seller" && (
           <Link href="/peggy" data-tour="ask-peggy" className="hidden h-[42px] items-center gap-2 rounded-full border border-app-line bg-white pl-1.5 pr-4 text-[14px] font-extrabold text-app-ink no-underline hover:border-app-line-strong sm:flex">
             <Mascot name="peggy" className="h-8 w-8" alt="" /> {t("shell.askPeggy")}

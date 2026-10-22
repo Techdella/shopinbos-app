@@ -212,6 +212,30 @@ export function readyToShare(channels: readonly PostChannel[], results: PostResu
   return channels.filter((channel) => results[channel]?.status === "ready");
 }
 
+/**
+ * The seller says they posted it themselves ("Mark as posted" in the phone app, or Share from Create with Rex).
+ * `channel`: that one (any channel that hasn't posted and isn't still processing); null: every WhatsApp, TikTok and
+ * X channel still waiting for their tap or not reached yet. Facebook and Instagram are left to post by themselves
+ * unless named. Returns the new results and the channels it changed (none: nothing to mark).
+ */
+export function markShared(channels: readonly PostChannel[], results: PostResults, channel: PostChannel | null, now: Date): { results: PostResults; changed: PostChannel[] } {
+  const next: PostResults = { ...results };
+  const open = (key: PostChannel) => !next[key] || next[key]!.status === "ready" || next[key]!.status === "failed";
+  const targets = channel ? (channels.includes(channel) && open(channel) ? [channel] : []) : channels.filter((key) => !channelSpec(key).auto && open(key));
+  for (const key of targets) next[key] = { status: "shared", at: now.toISOString() };
+  return { results: next, changed: targets };
+}
+
+/**
+ * The status after marking: a draft or scheduled post keeps its status until every channel has a result (Facebook
+ * and Instagram still go out at the time); one that has gone out takes the status from its results.
+ */
+export function statusAfterShare(current: string, channels: readonly PostChannel[], results: PostResults): PostStatus {
+  const waiting = current === "draft" || current === "scheduled";
+  if (waiting && channels.some((key) => !results[key])) return current as PostStatus;
+  return statusFromResults(channels, results);
+}
+
 // ─── Lagos time and the calendar ────────────────────────────────────────────
 
 /** West Africa Time: UTC+1 all year, no daylight saving. */

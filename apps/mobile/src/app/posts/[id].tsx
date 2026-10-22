@@ -4,23 +4,26 @@ import { useLocalSearchParams } from "expo-router";
 import { Image } from "expo-image";
 import * as Clipboard from "expo-clipboard";
 import { ShareSheet } from "@/components/familiar/ShareSheet";
-import { PLATFORM_KEY } from "@/components/familiar/ScheduleSheet";
-import { Banner, Pill, Small } from "@/components/design";
+import { PLATFORM_KEY, useScheduleNote } from "@/components/familiar/ScheduleSheet";
+import { Banner, List, Pill, Row, Small } from "@/components/design";
 import { AppIcon } from "@/components/icons";
 import { EmptyState, ErrorState, LoadingBlock } from "@/components/kit";
 import { Screen } from "@/components/Screen";
 import { Card, LinkButton, Notice, PillButton, T } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
-import { fetchPosts, optional, updatePost, type ScheduledPost } from "@/lib/familiar";
+import { fetchPosts, optional, updatePost, type PostChannelResult, type ScheduledPost } from "@/lib/familiar";
 import { postDay, postPill } from "@/lib/familiar-pure";
+import { openPath } from "@/lib/web";
 import { formatDate } from "@shared/i18n";
 import { useLoad } from "@/lib/useLoad";
 import { useLocale, useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 
-// One post from the calendar. The "Time to post" reminder (push and notification link app:/posts/<id>) lands here:
-// Share opens the same sheet as Create (the phone's share sheet, WhatsApp, Instagram, TikTok, Facebook, Save), and
-// "Mark as posted" ticks it off (PATCH status posted). We never post for anyone.
+// One post from the calendar. The reminder lands here: "Time to post" for suppliers and delivery partners
+// (app:/posts/<id>), and a seller's "Your post is ready for WhatsApp" (its web link /home/marketing/social/<id> opens
+// this screen in the app). Share opens the same sheet as Create (the phone's share sheet, WhatsApp, Instagram,
+// TikTok, Facebook, Save), and "Mark as posted" ticks it off (PATCH status posted). A seller's post also shows each
+// app: Facebook and Instagram post by themselves when the Page is connected, the rest are theirs to post.
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -40,6 +43,7 @@ async function loadPost(id: string): Promise<ScheduledPost | null> {
 export default function PostDetail() {
   const t = useT("m_familiar");
   const locale = useLocale();
+  const note = useScheduleNote();
   const { id, scheduled } = useLocalSearchParams<{ id: string; scheduled?: string }>();
   const [sheet, setSheet] = useState(false);
   const [marking, setMarking] = useState(false);
@@ -81,7 +85,24 @@ export default function PostDetail() {
 
   const at = post ? postDay(post) : null;
   const when = post && at ? formatDate(at, locale, { weekday: "long", day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: undefined }) : null;
-  const pill = post ? postPill(post.status) : null;
+  const pill = post ? postPill(post.status, post.yourTurn) : null;
+  const channels = post?.channels ?? null;
+  const nameOf = (key: string) => (key in PLATFORM_KEY ? t(PLATFORM_KEY[key as keyof typeof PLATFORM_KEY]) : key);
+  const channelLine = (item: PostChannelResult) =>
+    item.state === "pending"
+      ? item.auto
+        ? t("posts.ch.auto")
+        : t("posts.ch.remind")
+      : item.state === "failed"
+        ? t("posts.ch.failed", { error: item.error ?? "" })
+        : t(`posts.ch.${item.state}`);
+  // A seller's post: "Mark as posted" is for the apps they post themselves (Facebook and Instagram post by themselves).
+  const canMark = post
+    ? channels
+      ? channels.some((item) => !item.auto && (item.state === "pending" || item.state === "ready" || item.state === "failed"))
+      : post.status !== "posted"
+    : false;
+  const scheduledNote = post ? note(post.platforms as never, channels?.map((item) => ({ key: item.key, auto: item.auto }))) : "";
 
   return (
     <Screen
@@ -95,7 +116,7 @@ export default function PostDetail() {
               <AppIcon name="share" size={20} color={colors.ink} />
               <T weight="extrabold" style={{ fontSize: 17 }}>{t("posts.share")}</T>
             </PillButton>
-            {post.status !== "posted" ? <PillButton title={t("posts.markPosted")} tone="white" size="md" busy={marking} onPress={() => void markPosted()} /> : null}
+            {canMark ? <PillButton title={t("posts.markPosted")} tone="white" size="md" busy={marking} onPress={() => void markPosted()} /> : null}
           </>
         ) : null
       }
@@ -107,7 +128,10 @@ export default function PostDetail() {
 
       {post ? (
         <>
-          {scheduled === "1" && post.status === "scheduled" ? <Banner tone="mint" icon="check" title={t("posts.added")}>{t("sched.remind")}</Banner> : null}
+          {scheduled === "1" && post.status === "scheduled" ? <Banner tone="mint" icon="check" title={t("posts.added")}>{scheduledNote}</Banner> : null}
+          {post.status === "attention" ? (
+            <Banner tone="warn" title={t("posts.attention")}>{t("posts.attentionText")}</Banner>
+          ) : null}
           {post.imageUrl ? (
             <Image source={{ uri: post.imageUrl }} style={{ width: "100%", aspectRatio: 1, borderRadius: 24, backgroundColor: colors.grayTint }} contentFit="cover" accessibilityLabel={t("posts.picture")} />
           ) : null}
@@ -115,9 +139,16 @@ export default function PostDetail() {
             {pill ? <Pill label={t(`posts.status.${pill.key}`)} tone={pill.tone} /> : null}
             {when ? <Small>{post.status === "posted" ? t("posts.postedAt", { when }) : t("posts.scheduledAt", { when })}</Small> : null}
           </View>
-          {post.platforms.length ? (
-            <Small>{t("posts.for", { apps: post.platforms.map((key) => (key in PLATFORM_KEY ? t(PLATFORM_KEY[key as keyof typeof PLATFORM_KEY]) : key)).join(", ") })}</Small>
+          {channels?.length ? (
+            <List>
+              {channels.map((item) => (
+                <Row key={item.key} title={nameOf(item.key)} sub={channelLine(item)} right={item.state === "posted" || item.state === "shared" ? <Pill label={t("posts.status.posted")} tone="ok" icon="check" /> : item.state === "ready" ? <Pill label={t("posts.status.yourTurn")} tone="org" /> : item.state === "failed" ? <Pill label={t("posts.status.attention")} tone="warn" /> : null} />
+              ))}
+            </List>
+          ) : post.platforms.length ? (
+            <Small>{t("posts.for", { apps: post.platforms.map(nameOf).join(", ") })}</Small>
           ) : null}
+          {channels?.some((item) => item.state === "failed") ? <LinkButton title={t("posts.openWeb")} onPress={() => void openPath(`/home/marketing/social/${encodeURIComponent(post.id)}`)} style={{ alignItems: "flex-start" }} /> : null}
           {post.caption ? (
             <Card style={{ gap: 8, borderRadius: 24 }}>
               <T style={{ fontSize: 15.5, lineHeight: 23 }} selectable>{post.caption}</T>
@@ -125,7 +156,7 @@ export default function PostDetail() {
             </Card>
           ) : null}
           {problem ? <Notice>{problem}</Notice> : null}
-          <Small>{t("posts.statusNote")}</Small>
+          <Small>{post.kind === "social" ? t("posts.statusNoteSeller") : t("posts.statusNote")}</Small>
         </>
       ) : null}
 

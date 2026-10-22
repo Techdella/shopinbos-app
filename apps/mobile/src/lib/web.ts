@@ -43,6 +43,8 @@ const APP_SCREENS: Record<string, string> = {
   "/home/customers": "/customers",
   "/home/marketing": "/marketing",
   "/home/marketing/campaigns": "/marketing",
+  // A seller's Social posts calendar is the app's posts calendar.
+  "/home/marketing/social": "/posts",
   "/home/discounts": "/marketing",
   "/home/marketing/templates": "/marketing/templates",
   "/studio": "/rex",

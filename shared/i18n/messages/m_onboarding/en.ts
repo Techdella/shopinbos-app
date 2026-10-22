@@ -91,7 +91,7 @@ const en = {
   "method.wa.hint": "Customers can chat to pay",
   "pay.payouts": "Payouts",
   "pay.bankAdded": "✓ Payout bank added",
-  "pay.bankLater": "You can add your bank later. Until then, your money is safe here with Shopinbos.",
+  "pay.bankLater": "You can add your bank later. Once it's added, card payments go straight to it. Shopinbos never holds your money.",
   "pay.addBank": "Add bank now",
   "pay.later": "Later",
   "pay.noProblem": "No problem. It's on your checklist.",

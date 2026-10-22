@@ -240,6 +240,9 @@ export async function publishPost(postId: string, now = new Date()) {
   const ready = readyToShare(channels, results).filter((channel) => !wasReady.includes(channel));
   if (ready.length) {
     const names = ready.map((channel) => channelSpec(channel).label).join(", ");
+    // The seller's reminder on the web bell and their phone (push): the link opens this page on the web, and the
+    // post with Share in the phone app (shared/notifications.ts appRouteFor → /posts/<id>). They picked the time,
+    // so quiet hours don't hold it.
     await notify({
       userId: post.userId,
       category: "marketing",
@@ -250,6 +253,8 @@ export async function publishPost(postId: string, now = new Date()) {
       actionUrl: `/home/marketing/social/${post.id}`,
       imageUrl: post.renderedUrl ?? (post.mediaKind === "image" ? post.mediaUrl : null),
       dedupeKey: `social-post-ready:${post.id}:${ready.join(",")}`,
+      urgent: true,
+      metadata: { postId: post.id, channels: ready },
     }).catch((error) => console.error("[social-posts] notify failed", error instanceof Error ? error.message : error));
   }
   const failed = channels.filter((channel) => results[channel]?.status === "failed" && readResults(post.results)[channel]?.status !== "failed");

@@ -4684,7 +4684,8 @@ model CreateJob {
   @@index([userId, createdAt])
 }
 
-/// A post in the calendar. status: draft | scheduled | posted. remindedAt: the "Time to post" reminder went (once).
+/// A post in the phone calendar of a supplier or delivery partner (a seller's phone posts are SocialPost rows).
+/// status: draft | scheduled | posted. remindedAt: the "Time to post" reminder went (once).
 model ScheduledPost {
   id          String    @id @default(cuid())
   userId      String
