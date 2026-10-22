@@ -10,8 +10,9 @@ const exists = (path) => existsSync(new URL(`../${path}`, import.meta.url));
 test("one rule for every wallet: sellers none, suppliers and delivery partners CAC or BN", () => {
   const wallet = read("src/lib/wallet/wallet.server.ts");
   assert.match(wallet, /return role === "seller" \? "none" : "business";/);
-  // The team's approval and the Korapay split account both go through the same check, never a bare ID check.
-  assert.equal((wallet.match(/await walletCheckBlock\(wallet\)/g) ?? []).length, 2);
+  // The team's approval goes through the same check, never a bare ID check (Korapay split accounts are gone:
+  // splits are Paystack-only and automatic).
+  assert.equal((wallet.match(/await walletCheckBlock\(wallet\)/g) ?? []).length, 1);
   assert.doesNotMatch(wallet, /kycStatus !== "verified" \|\| !wallet\.bankCode/);
   assert.doesNotMatch(wallet, /verifyWalletIdentity|verifyYouverifyIdentity|verifyKorapayIdentity/, "no ID check is left to start");
   // A registration counts once the CAC document is approved (registry or team) or the business is verified.

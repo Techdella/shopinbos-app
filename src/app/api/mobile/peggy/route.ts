@@ -1,4 +1,6 @@
 import { NextRequest } from "next/server";
+import { setupStatus, setupText } from "@/lib/onboarding/setup-status.server";
+import { checkRateLimitShared, rateLimitKey } from "@/lib/rate-limit";
 import { withAuth } from "@/lib/auth/middleware";
 import { apiError, ok } from "@/lib/api/response";
 import { db } from "@/lib/db/client";
@@ -51,8 +53,17 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
   const parsed = parsePeggyBody(await req.json().catch(() => null));
   if (!parsed.ok) return apiError("BAD_REQUEST", parsed.error);
 
-  const limited = await meterAi(user.id, "text");
-  if (limited) return limited;
+  // Setup help is free: while they're still getting set up, Peggy doesn't use AI credits (a daily cap instead).
+  const setup = await setupStatus(user.id).catch(() => null);
+  const settingUp = Boolean(setup?.next);
+  if (settingUp) {
+    if (!(await checkRateLimitShared(rateLimitKey("setup-peggy", user.id), { maxRequests: 80, windowMs: 86_400_000 })).allowed) {
+      return apiError("RATE_LIMITED", "That's a lot of messages today. Peggy is back tomorrow, or message us on WhatsApp.", 429);
+    }
+  } else {
+    const limited = await meterAi(user.id, "text");
+    if (limited) return limited;
+  }
 
   const role = peggyRoleOf(user.role);
   if (role === "seller") {
@@ -62,7 +73,8 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
   }
 
   const { snapshot } = role === "supplier" ? await buildSupplierSnapshot(user.id) : await buildPartnerSnapshot(user.id);
-  const result = await aiText({ system: rolePeggySystem(role, snapshot), messages: parsed.turns, maxTokens: 4000 }).catch((error) => {
+  const system = `${rolePeggySystem(role, snapshot)}${settingUp && setup ? `\n\nThey're still setting up. Help them finish, one step at a time, and say which screen to open:\n${setupText(setup)}` : ""}`;
+  const result = await aiText({ system, messages: parsed.turns, maxTokens: 4000 }).catch((error) => {
     console.error("[mobile/peggy] reply failed", error);
     return null;
   });

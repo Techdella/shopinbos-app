@@ -272,6 +272,7 @@ export async function createPublicRequest(input: {
     files: input.files,
     meta: { matchedUserId: matched?.id ?? null, matchedRole: matched?.role ?? null, ip: input.ip, userAgent: input.userAgent?.slice(0, 300) ?? null },
   });
+  queuePeggyAutoReply(ticket.id);
   if (input.email && isEmailConfigured()) {
     void sendEmail({
       to: [input.email],

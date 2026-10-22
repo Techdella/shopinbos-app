@@ -7,7 +7,7 @@ import { currentAdminCan } from "@/lib/admin-team/service.server";
 import { db } from "@/lib/db/client";
 import { checkRateLimitShared, rateLimitKey } from "@/lib/rate-limit";
 import { isWalletRole } from "@/lib/wallet/rules";
-import { approveWalletBank, checkWalletAccount, linkWalletBank, setWalletFrozen, setWalletKorapaySplitAccount, walletBankNames, type WalletResult } from "@/lib/wallet/wallet.server";
+import { approveWalletBank, checkWalletAccount, linkWalletBank, setWalletFrozen, walletBankNames, type WalletResult } from "@/lib/wallet/wallet.server";
 
 // Shopinbos Wallet actions for sellers, suppliers and delivery partners (their own wallet), and the team's
 // review/pause actions. Money never moves here: these set up where Paystack settles each business's share.
@@ -70,13 +70,6 @@ export async function approveWalletBankAction(walletId: string): Promise<WalletR
 export async function setWalletFrozenAction(walletId: string, frozen: boolean, reason?: string): Promise<WalletResult> {
   if (!(await currentAdminCan("money"))) return { ok: false, error: "Only the Shopinbos team can do this." };
   const result = await setWalletFrozen(walletId, frozen, reason);
-  refresh();
-  return result;
-}
-
-export async function setWalletKorapaySplitAccountAction(walletId: string, reference: string): Promise<WalletResult> {
-  if (!(await currentAdminCan("money"))) return { ok: false, error: "Only the Shopinbos team can do this." };
-  const result = await setWalletKorapaySplitAccount(walletId, reference.slice(0, 60));
   refresh();
   return result;
 }

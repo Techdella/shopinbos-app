@@ -1,0 +1,275 @@
+import "server-only";
+
+import { randomUUID } from "node:crypto";
+import type { Prisma } from "@prisma/client";
+import { db } from "@/lib/db/client";
+import { paystackSecretReady } from "@shared/checkout-payments";
+import { initializePaystackTransaction, verifyPaystackTransaction } from "@/lib/paystack";
+import { createPaystackTransferRecipient } from "@/lib/payout-bank";
+import { readDedicatedAccount } from "@/lib/logistics/payin-rules";
+import { dvaBank, dvaUnavailableMessage } from "@/lib/logistics/paystack-dva";
+import { BALANCE_LIMITS, WALLET_REFERENCE, validAmountNaira } from "./balance-rules";
+
+// The prepaid wallet balance. Businesses top it up (card, or a bank transfer to their own top-up account number),
+// spend it on Shopinbos services (AI credits), and withdraw what's left to their checked bank (Paystack transfer).
+// Sales are never added here: they still settle straight to the bank through Paystack splits.
+//
+// Every change to balanceKobo happens in one database transaction with a WalletTransaction whose reference is
+// unique, so a retried webhook or a double click can't count twice, and a CHECK constraint keeps it >= 0.
+//
+// Paystack setup: Transfers must be enabled and the "OTP for transfers" setting switched off (Settings →
+// Preferences) for withdrawals to go out by API; top-up accounts need Dedicated Virtual Accounts
+// (WALLET_TOPUP_ACCOUNTS=true, bank from PAYSTACK_DVA_BANK). Webhooks: charge.success, transfer.success,
+// transfer.failed, transfer.reversed → /api/webhooks/paystack.
+
+export class WalletBalanceError extends Error {}
+
+const PAYSTACK_BASE = (process.env.VERCEL_ENV !== "production" && process.env.PAYSTACK_API_BASE_URL) || "https://api.paystack.co";
+const secret = () => process.env.PAYSTACK_SECRET_KEY ?? "";
+
+export function walletPaymentsReady() {
+  return paystackSecretReady(secret());
+}
+
+/** Their own top-up account numbers (Paystack Dedicated Virtual Accounts) are on. */
+export function topUpAccountsReady() {
+  return walletPaymentsReady() && process.env.WALLET_TOPUP_ACCOUNTS?.trim().toLowerCase() === "true";
+}
+
+async function paystack(path: string, body: Record<string, unknown>) {
+  try {
+    const response = await fetch(`${PAYSTACK_BASE}${path}`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${secret()}`, "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      cache: "no-store",
+      signal: AbortSignal.timeout(20_000),
+    });
+    const json = (await response.json().catch(() => null)) as { status?: boolean; message?: string; data?: unknown } | null;
+    if (!response.ok || !json?.status) return { ok: false as const, message: (json?.message ?? `HTTP ${response.status}`).slice(0, 300), status: response.status };
+    return { ok: true as const, data: json.data };
+  } catch (error) {
+    return { ok: false as const, message: error instanceof Error ? error.message.slice(0, 300) : "network error", status: 0 };
+  }
+}
+
+/** The business's wallet, made when it doesn't exist yet. */
+export async function ensureWallet(userId: string) {
+  const existing = await db.wallet.findUnique({ where: { userId } });
+  if (existing) return existing;
+  const user = await db.user.findUnique({ where: { id: userId }, select: { role: true } });
+  if (!user || user.role === "admin") throw new WalletBalanceError("Only businesses have a wallet.");
+  return db.wallet.upsert({ where: { userId }, create: { userId, role: user.role }, update: {} });
+}
+
+type Tx = Prisma.TransactionClient;
+
+/** Adds money once per reference. Returns false when that reference was already counted. */
+export async function creditWallet(walletId: string, input: { amountKobo: number; reference: string; kind: "topup" | "refund"; description: string }, client?: Tx): Promise<boolean> {
+  if (!Number.isInteger(input.amountKobo) || input.amountKobo <= 0) return false;
+  const run = async (tx: Tx) => {
+    const created = await tx.walletTransaction.createMany({ data: [{ walletId, kind: input.kind, amountKobo: input.amountKobo, reference: input.reference, description: input.description }], skipDuplicates: true });
+    if (!created.count) return false;
+    await tx.wallet.update({ where: { id: walletId }, data: { balanceKobo: { increment: input.amountKobo } } });
+    return true;
+  };
+  return client ? run(client) : db.$transaction(run);
+}
+
+/** Takes money out if the balance covers it. Throws WalletBalanceError when it doesn't. */
+export async function debitWallet(walletId: string, input: { amountKobo: number; reference: string; kind: "spend" | "withdrawal"; description: string; status?: "done" | "pending" }, client: Tx) {
+  const moved = await client.wallet.updateMany({ where: { id: walletId, status: "active", balanceKobo: { gte: input.amountKobo } }, data: { balanceKobo: { decrement: input.amountKobo } } });
+  if (!moved.count) throw new WalletBalanceError("Your wallet balance isn't enough for that. Top up first.");
+  await client.walletTransaction.create({ data: { walletId, kind: input.kind, amountKobo: -input.amountKobo, reference: input.reference, description: input.description, status: input.status ?? "done" } });
+}
+
+/** Pays for something on Shopinbos from the balance, inside the caller's transaction (e.g. AI credits). */
+export async function spendFromWallet(userId: string, input: { amountKobo: number; reference: string; description: string }, tx: Tx) {
+  const wallet = await tx.wallet.findUnique({ where: { userId }, select: { id: true } });
+  if (!wallet) throw new WalletBalanceError("Top up your wallet first.");
+  await debitWallet(wallet.id, { ...input, kind: "spend" }, tx);
+}
+
+// ─── Top-ups ──────────────────────────────────────────────────────────────────
+
+/** Starts a card (or bank) top-up on Paystack's checkout; returns the page to send them to. */
+export async function startCardTopUp(input: { userId: string; email: string | null; naira: number; origin: string; returnTo: string }) {
+  if (!walletPaymentsReady()) throw new WalletBalanceError("Top-ups aren't switched on yet.");
+  const problem = validAmountNaira(input.naira, BALANCE_LIMITS.topUpMin, BALANCE_LIMITS.topUpMax);
+  if (problem) throw new WalletBalanceError(problem);
+  const wallet = await ensureWallet(input.userId);
+  const reference = `${WALLET_REFERENCE.topUp}${randomUUID()}`;
+  const callback = new URL("/api/app/wallet/topup/callback", input.origin);
+  callback.searchParams.set("returnTo", input.returnTo);
+  const session = await initializePaystackTransaction({
+    email: input.email || `wallet-${input.userId}@shopinbos.com`,
+    amountKobo: Math.round(input.naira * 100),
+    reference,
+    callbackUrl: callback.toString(),
+    metadata: { purpose: "wallet_topup", wallet_id: wallet.id, user_id: input.userId },
+  });
+  return { authorizationUrl: session.authorization_url, reference };
+}
+
+/** Counts a card top-up once Paystack confirms it (from the callback and the webhook; safe to run twice). */
+export async function confirmCardTopUp(reference: string): Promise<"done" | "failed" | "pending"> {
+  if (!reference.startsWith(WALLET_REFERENCE.topUp)) return "failed";
+  const verified = await verifyPaystackTransaction(reference);
+  if (verified.status !== "success") return verified.status === "failed" || verified.status === "abandoned" ? "failed" : "pending";
+  const metadata = (verified.metadata ?? {}) as Record<string, unknown>;
+  const walletId = typeof metadata.wallet_id === "string" ? metadata.wallet_id : null;
+  if (verified.currency !== "NGN" || metadata.purpose !== "wallet_topup" || !walletId) return "failed";
+  const wallet = await db.wallet.findUnique({ where: { id: walletId }, select: { id: true } });
+  if (!wallet) return "failed";
+  await creditWallet(wallet.id, { amountKobo: Number(verified.amount), reference, kind: "topup", description: "Top-up by card" });
+  return "done";
+}
+
+/**
+ * Their own top-up account (a bank account number only they pay into). Made once the business is set up to get
+ * paid (checked bank). Safe on every wallet page load: returns at once when it exists, backs off after failures.
+ */
+export async function ensureTopUpAccount(userId: string) {
+  if (!topUpAccountsReady()) return null;
+  const wallet = await ensureWallet(userId);
+  if (wallet.topUpStatus === "ready") return wallet;
+  const age = Date.now() - wallet.updatedAt.getTime();
+  if ((wallet.topUpStatus === "unavailable" && age < 86_400_000) || ((wallet.topUpStatus === "failed" || wallet.topUpStatus === "pending") && age < 600_000)) return wallet;
+  const user = await db.user.findUnique({ where: { id: userId }, select: { name: true, email: true, phone: true } });
+  if (!user?.email) return wallet;
+  const [first, ...rest] = (user.name || "Shopinbos Business").trim().split(/\s+/);
+  let customerCode = wallet.topUpCustomerCode;
+  if (!customerCode) {
+    const customer = await paystack("/customer", { email: user.email, first_name: first, last_name: rest.join(" ") || first, phone: user.phone ?? undefined, metadata: JSON.stringify({ shopinbos: "wallet", walletId: wallet.id }) });
+    if (!customer.ok) return markTopUpProblem(wallet.id, customer.message);
+    customerCode = (customer.data as { customer_code?: string } | undefined)?.customer_code ?? null;
+    if (!customerCode) return markTopUpProblem(wallet.id, "Paystack returned no customer code.");
+    await db.wallet.update({ where: { id: wallet.id }, data: { topUpCustomerCode: customerCode, topUpStatus: "pending" } });
+  }
+  const created = await paystack("/dedicated_account", { customer: customerCode, preferred_bank: dvaBank() });
+  if (!created.ok) return markTopUpProblem(wallet.id, created.message);
+  const account = readDedicatedAccount(created.data);
+  return db.wallet.update({
+    where: { id: wallet.id },
+    data: { topUpAccountNumber: account.accountNumber, topUpAccountName: account.accountName, topUpBankName: account.bankName, topUpStatus: account.accountNumber ? "ready" : "pending", topUpError: null },
+  });
+}
+
+async function markTopUpProblem(walletId: string, message: string) {
+  console.warn(`[wallet top-up account] ${walletId}: ${message}`);
+  return db.wallet.update({ where: { id: walletId }, data: { topUpStatus: dvaUnavailableMessage(message) ? "unavailable" : "failed", topUpError: message } });
+}
+
+/**
+ * A transfer into someone's top-up account (charge.success, channel dedicated_nuban). True when it belonged to a
+ * wallet (counted now or before); false when it's for something else (e.g. a delivery partner's old pay-in account).
+ */
+export async function handleWalletAccountCharge(data: unknown): Promise<boolean> {
+  const d = (data && typeof data === "object" ? data : {}) as Record<string, unknown>;
+  const customer = (d.customer && typeof d.customer === "object" ? d.customer : {}) as Record<string, unknown>;
+  const code = typeof customer.customer_code === "string" ? customer.customer_code : null;
+  const reference = typeof d.reference === "string" ? d.reference : null;
+  const kobo = Number(d.amount);
+  if (!code || !reference) return false;
+  const wallet = await db.wallet.findUnique({ where: { topUpCustomerCode: code }, select: { id: true } });
+  if (!wallet) return false;
+  if (d.status === "success" && Number.isInteger(kobo) && kobo > 0) {
+    await creditWallet(wallet.id, { amountKobo: kobo, reference: `${WALLET_REFERENCE.transferIn}${reference}`, kind: "topup", description: "Top-up by bank transfer" });
+  }
+  return true;
+}
+
+/** dedicatedaccount.assign.success / .failed for a wallet's top-up account. True when it was one. */
+export async function handleWalletAccountAssign(eventType: string, data: unknown): Promise<boolean> {
+  const d = (data && typeof data === "object" ? data : {}) as Record<string, unknown>;
+  const customer = (d.customer && typeof d.customer === "object" ? d.customer : {}) as Record<string, unknown>;
+  const code = typeof customer.customer_code === "string" ? customer.customer_code : null;
+  if (!code) return false;
+  const wallet = await db.wallet.findUnique({ where: { topUpCustomerCode: code }, select: { id: true } });
+  if (!wallet) return false;
+  if (eventType.endsWith(".success")) {
+    const account = readDedicatedAccount(d.dedicated_account ?? d);
+    await db.wallet.update({ where: { id: wallet.id }, data: { topUpAccountNumber: account.accountNumber, topUpAccountName: account.accountName, topUpBankName: account.bankName, topUpStatus: account.accountNumber ? "ready" : "pending", topUpError: null } });
+  } else {
+    await db.wallet.update({ where: { id: wallet.id }, data: { topUpStatus: "failed", topUpError: "Paystack couldn't assign the account." } });
+  }
+  return true;
+}
+
+// ─── Withdrawals ──────────────────────────────────────────────────────────────
+
+/** Sends part of the balance to their checked bank. The money leaves the balance now; a failed transfer puts it back. */
+export async function withdrawToBank(userId: string, naira: number) {
+  if (!walletPaymentsReady()) throw new WalletBalanceError("Withdrawals aren't switched on yet.");
+  const problem = validAmountNaira(naira, BALANCE_LIMITS.withdrawMin, BALANCE_LIMITS.withdrawMax);
+  if (problem) throw new WalletBalanceError(problem);
+  const wallet = await ensureWallet(userId);
+  if (wallet.status !== "active") throw new WalletBalanceError("Your wallet is paused. Message us to sort it out.");
+  if (!wallet.accountNumber || !wallet.bankCode || !wallet.accountName || wallet.subaccountStatus !== "active") {
+    throw new WalletBalanceError("Add and check your bank account first, so we know where to send it.");
+  }
+  let recipient = wallet.transferRecipient;
+  if (!recipient) {
+    const made = await createPaystackTransferRecipient({ bankName: wallet.bankName ?? "", bankCode: wallet.bankCode, accountNumber: wallet.accountNumber, accountName: wallet.accountName });
+    if (!made.recipientCode) throw new WalletBalanceError("We couldn't set up your bank for withdrawals just now. Try again in a few minutes.");
+    recipient = made.recipientCode;
+    await db.wallet.update({ where: { id: wallet.id }, data: { transferRecipient: recipient } });
+  }
+  const amountKobo = Math.round(naira * 100);
+  const reference = `${WALLET_REFERENCE.withdrawal}${randomUUID().replace(/-/g, "")}`;
+  const description = `Withdrawal to ${wallet.bankName ?? "your bank"} ••${wallet.accountNumber.slice(-4)}`;
+  await db.$transaction((tx) => debitWallet(wallet.id, { amountKobo, reference, kind: "withdrawal", description, status: "pending" }, tx));
+  const sent = await paystack("/transfer", { source: "balance", amount: amountKobo, recipient, reference, reason: "Shopinbos wallet withdrawal", currency: "NGN" });
+  if (!sent.ok) {
+    await refundWithdrawal(reference, sent.message);
+    throw new WalletBalanceError("The withdrawal didn't go through, so your balance is back. Try again later or message us.");
+  }
+  const status = String((sent.data as { status?: string } | undefined)?.status ?? "pending");
+  if (status === "success") await finishWithdrawal(reference);
+  return { reference, status: status === "success" ? "done" : "pending" };
+}
+
+async function finishWithdrawal(reference: string) {
+  await db.walletTransaction.updateMany({ where: { reference, status: "pending" }, data: { status: "done", error: null } });
+}
+
+/** A withdrawal that failed or was reversed: the money goes back on the balance, once. */
+async function refundWithdrawal(reference: string, reason: string) {
+  await db.$transaction(async (tx) => {
+    const row = await tx.walletTransaction.findUnique({ where: { reference } });
+    if (!row || row.status !== "pending") return;
+    await tx.walletTransaction.update({ where: { reference }, data: { status: "failed", error: reason.slice(0, 300) } });
+    await creditWallet(row.walletId, { amountKobo: -row.amountKobo, reference: `${reference}-back`, kind: "refund", description: "Withdrawal didn't go through: money back" }, tx);
+  });
+}
+
+/** transfer.success / transfer.failed / transfer.reversed for a wallet withdrawal. True when it was one. */
+export async function handleWalletTransfer(eventType: string, data: unknown): Promise<boolean> {
+  const d = (data && typeof data === "object" ? data : {}) as Record<string, unknown>;
+  const reference = typeof d.reference === "string" ? d.reference : "";
+  if (!reference.startsWith(WALLET_REFERENCE.withdrawal)) return false;
+  if (eventType === "transfer.success") await finishWithdrawal(reference);
+  else await refundWithdrawal(reference, typeof d.reason === "string" && d.reason ? d.reason : eventType === "transfer.reversed" ? "The bank reversed it." : "The transfer failed.");
+  return true;
+}
+
+// ─── For the wallet page ──────────────────────────────────────────────────────
+
+export async function walletBalanceView(userId: string) {
+  const wallet = await db.wallet.findUnique({
+    where: { userId },
+    select: { id: true, balanceKobo: true, status: true, accountNumber: true, bankName: true, subaccountStatus: true, topUpStatus: true, topUpAccountNumber: true, topUpAccountName: true, topUpBankName: true },
+  });
+  const transactions = wallet ? await db.walletTransaction.findMany({ where: { walletId: wallet.id }, orderBy: { createdAt: "desc" }, take: 30 }) : [];
+  return {
+    ready: walletPaymentsReady(),
+    balanceNaira: (wallet?.balanceKobo ?? 0) / 100,
+    canWithdraw: Boolean(wallet && wallet.status === "active" && wallet.accountNumber && wallet.subaccountStatus === "active"),
+    bank: wallet?.accountNumber ? `${wallet.bankName ?? "Bank"} ••${wallet.accountNumber.slice(-4)}` : null,
+    topUpAccount: wallet?.topUpStatus === "ready" && wallet.topUpAccountNumber ? { number: wallet.topUpAccountNumber, name: wallet.topUpAccountName ?? "", bank: wallet.topUpBankName ?? "" } : null,
+    limits: BALANCE_LIMITS,
+    transactions: transactions.map((t) => ({ id: t.id, kind: t.kind, naira: t.amountKobo / 100, status: t.status, description: t.description, error: t.error, at: t.createdAt.toISOString() })),
+  };
+}
+
+export type WalletBalanceView = Awaited<ReturnType<typeof walletBalanceView>>;

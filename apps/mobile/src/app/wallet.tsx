@@ -14,6 +14,7 @@ import { capitalise, friendlyDay } from "@/lib/friendly";
 import { checkWalletAccount, confirmCashReceived, fetchWallet, linkWalletBank, nairaFromKobo, type WalletData } from "@/lib/wallet";
 import { colors, radii } from "@/theme";
 import { MoneyOwedCard } from "@/components/MoneyOwedCard";
+import { WalletBalanceCard } from "@/components/WalletBalanceCard";
 
 // Shopinbos Wallet (web /home/wallet, /supplier/wallet, /logistics/wallet), the same screen for sellers, suppliers
 // and delivery partners: two steps to set up (verify a BVN or NIN, then the bank Paystack settles to), then what
@@ -43,6 +44,7 @@ export default function Wallet() {
     <Screen title={t("w.money")} refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
       {loaded.loading && !data ? <LoadingBlock /> : null}
       {loaded.error && !data ? <ErrorState message={loaded.error} onRetry={() => void loaded.reload()} /> : null}
+      <WalletBalanceCard />
       {data ? <WalletBody data={data} t={t} reload={() => void loaded.reload()} /> : null}
     </Screen>
   );

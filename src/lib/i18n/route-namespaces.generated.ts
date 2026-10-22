@@ -71,6 +71,7 @@ export const ROUTE_NAMESPACES: ReadonlyArray<readonly [string, readonly string[]
   ["/builder/editor", ["auth","builder","campaigns","common","glossary","help","introTitles","learn","media","nav","notifications","rex","seo","settings","shell","support","tour","ui","verification"]],
   ["/builder/rex", ["common","nav","ui"]],
   ["/builder/templates", ["auth","builder","campaigns","common","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
+  ["/call-peggy", ["common","nav","ui"]],
   ["/channels", ["auth","common","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","social","support","tour","ui","verification"]],
   ["/chip", ["common","nav","ui"]],
   ["/delete-account", ["common","nav","ui"]],
