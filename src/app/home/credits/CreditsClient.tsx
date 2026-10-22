@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Mascot, Notice, PillButton, cx } from "@/components/app-ui";
 import { Card, CardHead } from "@/components/app-kit";
 import { Icon } from "@/components/ui/Icon";
@@ -60,6 +60,29 @@ export function CreditsClient({
     try {
       const data = (await send("POST", "/api/app/credits/checkout", { packId: pack.id, autoTopUp: autoOnBuy, returnTo })) as { authorizationUrl: string };
       window.location.assign(data.authorizationUrl);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("cr.failed"));
+      setBuying(null);
+    }
+  }
+
+  // The prepaid wallet balance: packs it covers can be paid from it (no card).
+  const [walletNaira, setWalletNaira] = useState<number | null>(null);
+  useEffect(() => {
+    void fetch("/api/app/wallet", { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((json: { data?: { balanceNaira?: number } } | null) => setWalletNaira(json?.data?.balanceNaira ?? null))
+      .catch(() => null);
+  }, []);
+
+  async function buyFromWallet(pack: CreditPack) {
+    setBuying(pack.id);
+    setError(null);
+    try {
+      await send("POST", "/api/app/credits/wallet", { packId: pack.id });
+      const url = new URL(returnTo ?? window.location.pathname, window.location.origin);
+      url.searchParams.set("credits", "paid");
+      window.location.assign(url.toString());
     } catch (err) {
       setError(err instanceof Error ? err.message : t("cr.failed"));
       setBuying(null);
@@ -145,6 +168,11 @@ export function CreditsClient({
                 <PillButton size="sm" tone={pack.badge ? "ink" : "white"} className="mt-4 w-full" busy={buying === pack.id} disabled={buying !== null} onClick={() => void buy(pack)}>
                   {t("cr.buyPack", { price: naira(pack.naira) })}
                 </PillButton>
+                {walletNaira !== null && walletNaira >= pack.naira && (
+                  <button type="button" disabled={buying !== null} onClick={() => void buyFromWallet(pack)} className="mt-2 w-full text-[12.5px] font-bold text-app-ink underline disabled:opacity-50">
+                    Pay from wallet ({naira(walletNaira)})
+                  </button>
+                )}
               </li>
             ))}
           </ul>

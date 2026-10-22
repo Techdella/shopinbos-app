@@ -331,3 +331,23 @@ export async function spendCredits(userId: string, cost: number): Promise<number
   }
   return left;
 }
+
+/** Buys a credit pack with the prepaid wallet balance (src/lib/wallet/balance.server.ts): no card needed. */
+export async function buyCreditsFromWallet(userId: string, packId: string) {
+  const pack = creditPack(packId, (await liveCreditPrices()).packs);
+  if (!pack) throw new CreditError("Choose one of the credit packs.");
+  const { spendFromWallet, WalletBalanceError } = await import("@/lib/wallet/balance.server");
+  const reference = `${CREDIT_REFERENCE_PREFIX}wallet-${crypto.randomUUID()}`;
+  await ensureCreditAccount(userId);
+  try {
+    await db.$transaction(async (tx) => {
+      await spendFromWallet(userId, { amountKobo: packKobo(pack), reference: `wspend_${reference}`, description: `${pack.credits} AI credits` }, tx);
+      await tx.aiCreditPurchase.create({ data: { reference, userId, packId: pack.id, credits: pack.credits, amountKobo: packKobo(pack), status: "paid", paidAt: new Date() } });
+      await addCredits(userId, pack.credits, "purchase", reference, tx);
+    });
+  } catch (error) {
+    if (error instanceof WalletBalanceError) throw new CreditError(error.message);
+    throw error;
+  }
+  return { credits: pack.credits };
+}

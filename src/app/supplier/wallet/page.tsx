@@ -4,6 +4,7 @@ import { ensureSupplierAccess, getSupplierForUser } from "@/lib/role-queries";
 import { AppPage } from "@/components/app-kit";
 import { supplierFrame } from "@/components/supplier/supplier-kit";
 import { WalletPanel } from "@/components/wallet/WalletPanel";
+import { WalletBalanceCard } from "@/components/wallet/WalletBalanceCard";
 import { loadWalletView } from "@/lib/wallet/wallet.server";
 import { getT } from "@/lib/i18n/server";
 
@@ -12,7 +13,8 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getT("wallet"))("page.title") };
 }
 
-export default async function SupplierWalletPage() {
+export default async function SupplierWalletPage(props: { searchParams?: Promise<{ topup?: string }> }) {
+  const topup = (await props.searchParams)?.topup ?? null;
   const user = await requireRole(["supplier"], "/supplier/login");
   const supplier = await getSupplierForUser(user);
   ensureSupplierAccess(supplier);
@@ -20,6 +22,7 @@ export default async function SupplierWalletPage() {
   const t = await getT("wallet");
   return (
     <AppPage frame={supplierFrame(user, supplier)} title={t("page.title")} sub={t("page.subSupplier")}>
+      <WalletBalanceCard returnTo="/supplier/wallet" notice={topup} />
       <WalletPanel view={view} role="supplier" ownerName={user.name} />
     </AppPage>
   );

@@ -1,4 +1,5 @@
 import { Pressable, View } from "react-native";
+import { CallPeggyButton } from "@/components/CallPeggyButton";
 import { router } from "expo-router";
 import { EmptyState, ErrorState, LoadingBlock } from "@/components/kit";
 import { Screen } from "@/components/Screen";
@@ -30,8 +31,9 @@ export default function Help() {
 
   return (
     <Screen title={t("sheet.title")} refreshing={tickets.refreshing} onRefresh={() => void tickets.refresh()}>
+      <CallPeggyButton style={{ marginBottom: 6 }} />
       <ChoiceRow testID="help-person" icon="chat" tint={colors.successTint} iconColor={colors.success} title={SUPPORT_WHATSAPP ? t("sheet.personWhatsApp") : t("sheet.person")} sub={SUPPORT_WHATSAPP ? t("sheet.personWhatsAppSub") : t("sheet.personAppSub")} onPress={() => void person()} />
-      {!role || role === "seller" ? <ChoiceRow icon="sparkle" tint={colors.mintTint} iconColor={colors.forest} title={t("sheet.askPeggy")} sub={t("sheet.askPeggySub")} onPress={() => router.push("/peggy")} /> : null}
+      <ChoiceRow icon="sparkle" tint={colors.mintTint} iconColor={colors.forest} title={t("sheet.askPeggy")} sub={t("sheet.askPeggySub")} onPress={() => router.push(!role || role === "seller" ? "/peggy" : "/ask-peggy")} />
       <ChoiceRow icon="settings" tint={colors.peach} iconColor={colors.accentInk} title={t("sheet.askUs")} sub={t("help.askUsSub")} onPress={() => router.push("/ask-us")} />
 
       <T weight="extrabold" style={{ fontSize: 17, marginTop: 10 }} accessibilityRole="header">{t("help.yourChats")}</T>

@@ -3,6 +3,7 @@ import { View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { Choice, Eyebrow, Seg, Small, Sub, Title } from "@/components/design";
 import { AppIcon } from "@/components/icons";
+import { CallPeggyButton } from "@/components/CallPeggyButton";
 import { ErrorState, LoadingBlock } from "@/components/kit";
 import { DoneView, FieldLabel, FlowFrame, NoteCard } from "@/components/SupplierKit";
 import { Field, LinkButton, Notice, PillButton, T } from "@/components/ui";
@@ -174,6 +175,7 @@ export default function SupplierSetup() {
           <>
             <PillButton title={t("setup.start")} tone="accent" onPress={() => setStep("biz")} />
             <Small style={{ textAlign: "center" }}>{t("setup.free")}</Small>
+            <CallPeggyButton style={{ marginTop: 6 }} />
           </>
         }
       >

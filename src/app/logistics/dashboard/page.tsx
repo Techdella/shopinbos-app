@@ -40,6 +40,7 @@ import {
 } from "@/components/logistics/kit";
 import { getT } from "@/lib/i18n/server";
 import { PartnerBrief } from "@/components/assistant/PartnerBrief";
+import { SetupWithPeggySlot } from "@/components/peggy/SetupWithPeggySlot";
 import { partnerBriefFor } from "@/lib/dashboard/partner-brief.server";
 import { PromoBanner } from "@/components/pricing/PromoBanner";
 
@@ -139,6 +140,9 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
       <div className="mb-5">
         <VerificationChecklist docs={partner.verificationDocuments} configs={LOGISTICS_DOC_TYPES} verificationStatus={partner.verificationStatus} href="/logistics/verification" />
       </div>
+
+      {/* Getting set up, with Peggy (chat and a free voice call) until every step is done. */}
+      <SetupWithPeggySlot userId={user.id} />
 
       <StatGrid className="mb-5">
         <StatTile tone="card" label={t("today.newRequests")} value={newCount} />

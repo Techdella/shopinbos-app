@@ -146,3 +146,26 @@ export const cancelDebt = (debtId: string) => owedAction<{ ok: true; message?: s
 export const raiseClaim = (input: { target: ClaimableOrder["target"]; targetId: string; reason: string; amount: string; details: string }) => owedAction<{ ok: true; message?: string }>({ action: "claim", ...input });
 
 export const nairaFromKobo = (kobo: number) => `₦${(kobo / 100).toLocaleString("en-NG", { maximumFractionDigits: 2 })}`;
+
+// ─── Prepaid wallet balance (GET /api/app/wallet; src/lib/wallet/balance.server.ts on the server) ───
+
+export interface WalletBalance {
+  ready: boolean;
+  balanceNaira: number;
+  canWithdraw: boolean;
+  bank: string | null;
+  topUpAccount: { number: string; name: string; bank: string } | null;
+  limits: { topUpMin: number; topUpMax: number; withdrawMin: number; withdrawMax: number };
+  transactions: Array<{ id: string; kind: string; naira: number; status: string; description: string; error: string | null; at: string }>;
+}
+
+export const fetchWalletBalance = () => api<WalletBalance>("/api/app/wallet");
+
+/** Top up by card or bank on Paystack's page (in the browser); the balance updates when it's confirmed. */
+export async function topUpWallet(naira: number) {
+  const started = await api<{ authorizationUrl: string }>("/api/app/wallet/topup", { method: "POST", json: { naira, returnTo: "/home/wallet" } });
+  await WebBrowser.openBrowserAsync(started.authorizationUrl);
+}
+
+/** Send part of the balance to the checked bank. */
+export const withdrawFromWallet = (naira: number) => api<{ reference: string; status: "done" | "pending" }>("/api/app/wallet/withdraw", { method: "POST", json: { naira } });
