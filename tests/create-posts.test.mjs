@@ -149,8 +149,8 @@ test("wiring: routes for every role, metered, a protected once-only cron, schedu
   assert.ok(exists("docs/migrations/2026-11-18-create-posts.sql"));
   const sql = read("docs/migrations/2026-11-18-create-posts.sql");
   assert.match(sql, /CREATE TABLE IF NOT EXISTS "CreateJob"/);
-  assert.match(sql, /CREATE TABLE IF NOT EXISTS "ScheduledPost"/);
-  assert.doesNotMatch(sql, /DROP |ALTER TABLE "(?!CreateJob|ScheduledPost)/);
+  assert.match(sql, /CREATE TABLE IF NOT EXISTS "PlannedPost"/);
+  assert.doesNotMatch(sql, /DROP |ALTER TABLE "(?!CreateJob|PlannedPost)/);
   const schema = read("prisma/schema.prisma");
   assert.match(schema, /\/\/ ─── Create with Rex and posts ─+\n/);
   assert.match(schema, /model CreateJob \{/);

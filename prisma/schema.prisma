@@ -4428,4 +4428,7 @@ model ScheduledPost {
 
   @@index([userId, scheduledAt])
   @@index([status, scheduledAt])
+  // The live database already has an unrelated, empty "ScheduledPost" table from an older design; this one lives
+  // in "PlannedPost" so the two never collide.
+  @@map("PlannedPost")
 }
