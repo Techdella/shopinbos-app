@@ -3,10 +3,13 @@ import "server-only";
 import type { ScheduledPost } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { notify } from "@/lib/notifications/notify.server";
-import { dueReminders, postAccounts, postLink, reminderText, REMINDER_MAX_LATE_MS, type PostStatus } from "@shared/create-with-rex";
+import { connectedFor } from "@/lib/social-posts/save.server";
+import { dueReminders, postAccounts, postLink, postsCalendarFor, reminderText, REMINDER_MAX_LATE_MS, type PostStatus } from "@shared/create-with-rex";
 
-// The posts calendar (src/app/api/mobile/posts/**) and its reminders (src/app/api/cron/post-reminders). Nothing is
-// posted for anyone: at the time, the person gets "Time to post: …" (push + bell), which opens the post with Share.
+// The posts calendar of suppliers and delivery partners (src/app/api/mobile/posts/**) and its reminders
+// (src/app/api/cron/post-reminders). Nothing is posted for them: at the time, they get "Time to post: …" (push +
+// bell), which opens the post with Share. A seller's calendar is their Social posts (src/lib/social-posts/phone.server.ts),
+// whose "ready" notification is their reminder.
 
 export function postView(row: Pick<ScheduledPost, "id" | "imageUrl" | "caption" | "platforms" | "status" | "scheduledAt" | "postedAt">) {
   return {
@@ -20,14 +23,22 @@ export function postView(row: Pick<ScheduledPost, "id" | "imageUrl" | "caption" 
   };
 }
 
-/** WhatsApp, Instagram, Facebook and TikTok, linked where a seller's store has a connected sales channel. */
+/**
+ * WhatsApp, Instagram, Facebook and TikTok. For a seller, Facebook and Instagram are linked (and post by themselves)
+ * when the Page is connected on Social posts; WhatsApp and TikTok when the store has that sales channel connected.
+ */
 export async function accountsFor(user: { id: string; role: string }) {
-  if (user.role !== "seller") return postAccounts([]);
+  if (postsCalendarFor(user.role) !== "social") return postAccounts([]);
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true } }).catch(() => null);
-  const connections = store
-    ? await db.socialChannelConnection.findMany({ where: { storeId: store.id }, select: { channel: true, status: true, tokenEnc: true } }).catch(() => [])
-    : [];
-  return postAccounts(connections.map((row) => ({ channel: row.channel, status: row.status, tokenEnc: Boolean(row.tokenEnc) })));
+  if (!store) return postAccounts([], { facebook: false, instagram: false });
+  const [connections, social] = await Promise.all([
+    db.socialChannelConnection.findMany({ where: { storeId: store.id }, select: { channel: true, status: true, tokenEnc: true } }).catch(() => []),
+    connectedFor(store.id).catch(() => ({ facebook: false, instagram: false })),
+  ]);
+  return postAccounts(
+    connections.map((row) => ({ channel: row.channel, status: row.status, tokenEnc: Boolean(row.tokenEnc) })),
+    { facebook: social.facebook === true, instagram: social.instagram === true },
+  );
 }
 
 /** Sends every due reminder once (claimed by setting remindedAt first, so two runs never send it twice). */

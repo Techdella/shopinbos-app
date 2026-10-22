@@ -126,6 +126,101 @@ test("posts: platforms, status after a change and the accounts row", () => {
   assert.ok(none.every((a) => a.linked === false));
   const linked = rex.postAccounts([{ channel: "meta", status: "connected" }, { channel: "tiktok", status: "error" }, { channel: "whatsapp", status: null, tokenEnc: true }]);
   assert.deepEqual(Object.fromEntries(linked.map((a) => [a.key, a.linked])), { whatsapp: true, instagram: true, facebook: true, tiktok: false });
+  assert.ok(linked.every((a) => !("auto" in a)), "suppliers and partners: nothing posts by itself");
+
+  // A seller: Facebook and Instagram are the Social posts connection, and then post by themselves.
+  const seller = rex.postAccounts([{ channel: "meta", status: "connected" }, { channel: "whatsapp", status: "connected" }], { facebook: true, instagram: false });
+  assert.deepEqual(Object.fromEntries(seller.map((a) => [a.key, [a.linked, a.auto]])), { whatsapp: [true, false], instagram: [false, false], facebook: [true, true], tiktok: [false, false] });
+});
+
+test("routing: sellers use the web's Social posts calendar, suppliers and partners keep reminders", () => {
+  assert.equal(rex.postsCalendarFor("seller"), "social");
+  assert.equal(rex.postsCalendarFor("supplier"), "planned");
+  assert.equal(rex.postsCalendarFor("logistics_partner"), "planned");
+  assert.equal(rex.postsCalendarFor(null), "planned");
+
+  // Every handler (GET and POST; GET, PATCH and DELETE) sends a seller to Social posts first.
+  for (const [path, handlers] of [["src/app/api/mobile/posts/route.ts", ["GET", "POST"]], ["src/app/api/mobile/posts/[id]/route.ts", ["GET", "PATCH", "DELETE"]]]) {
+    const source = read(path);
+    for (const handler of handlers) {
+      const body = source.slice(source.indexOf(`export const ${handler} = withAuth(`)).split(/\nexport const /)[0];
+      const seller = body.indexOf('postsCalendarFor(user.role) === "social"');
+      assert.ok(seller > 0, `${path} ${handler}`);
+      const planned = body.search(/db\.scheduledPost|ownPost\(/);
+      assert.ok(planned > seller, `${path} ${handler}: reminders-only after the seller branch`);
+    }
+  }
+  const list = read("src/app/api/mobile/posts/route.ts");
+  assert.match(list, /createFromPhone\(/);
+  assert.match(list, /listPhonePosts\(/);
+  const one = read("src/app/api/mobile/posts/[id]/route.ts");
+  assert.match(one, /markPostedFromPhone\(/);
+  assert.match(one, /editFromPhone\(/);
+  assert.match(one, /db\.socialPost\.findFirst\(\{ where: \{ id, storeId: store\.id \} \}\)/, "own store only");
+
+  // The phone saves through the web's own checks (no second set of rules).
+  const phone = read("src/lib/social-posts/phone.server.ts");
+  assert.match(phone, /savePost\(\{ userId: input\.userId, store: input\.store, id: null, body \}\)/);
+  assert.match(phone, /savePost\(\{ userId: input\.userId, store: input\.store, id: post\.id, body \}\)/);
+  assert.match(phone, /PostBody\.safeParse/);
+  assert.match(phone, /mediaSource = "rex"/);
+  assert.doesNotMatch(phone, /scheduledPost/);
+
+  // accounts.linked: Facebook and Instagram from the Social posts connection.
+  assert.match(read("src/lib/create/posts.server.ts"), /connectedFor\(store\.id\)/);
+});
+
+test("phone view: statuses, channels in the app's order and each channel's result", async () => {
+  const phone = await import("../src/lib/social-posts/phone.ts");
+  assert.deepEqual(["draft", "scheduled", "publishing", "posted", "partial", "failed", "odd"].map(phone.phoneStatus), ["draft", "scheduled", "scheduled", "posted", "posted", "attention", "draft"]);
+  assert.deepEqual(phone.phoneChannels(["x", "facebook", "whatsapp", "nope", "instagram", "tiktok"]), ["whatsapp", "instagram", "facebook", "tiktok", "x"]);
+  assert.deepEqual(phone.channelsFromPlatforms(["WhatsApp", "x", "snapchat", "facebook"]), ["facebook", "whatsapp", "x"]);
+  assert.equal(phone.whenFor("2026-11-20T08:00:00Z"), "schedule");
+  assert.equal(phone.whenFor(null), "draft");
+
+  // Rex designs go out at their own size.
+  assert.equal(phone.formatForDesign(rex.CREATE_FORMATS.status, []), "story");
+  assert.equal(phone.formatForDesign(rex.CREATE_FORMATS.reel, ["instagram"]), "story");
+  assert.equal(phone.formatForDesign(rex.CREATE_FORMATS.post, []), "square");
+  assert.equal(phone.formatForDesign(rex.CREATE_FORMATS.flyer, []), "portrait");
+  assert.equal(phone.formatForDesign(null, ["tiktok"]), "story");
+
+  const at = new Date("2026-11-20T08:00:00Z");
+  const view = phone.phonePostView(
+    {
+      id: "sp1", caption: "New stock", mediaUrl: "https://x.supabase.co/storage/v1/a.png", mediaKind: "image", renderedUrl: "https://x.supabase.co/storage/v1/a.jpg", mediaSource: "rex",
+      format: "story", channels: ["instagram", "facebook", "whatsapp", "tiktok"], status: "partial", scheduledAt: at, postedAt: at,
+      results: { instagram: { status: "posted", url: "https://instagram.com/p/1", at: at.toISOString() }, facebook: { status: "failed", error: "Token expired", at: at.toISOString() }, whatsapp: { status: "ready", at: at.toISOString() }, tiktok: { status: "shared", at: at.toISOString() } },
+    },
+    { facebook: true, instagram: true },
+  );
+  assert.equal(view.status, "posted");
+  assert.equal(view.kind, "social");
+  assert.equal(view.imageUrl, "https://x.supabase.co/storage/v1/a.jpg", "the picture at the post's size");
+  assert.deepEqual(view.platforms, ["whatsapp", "instagram", "facebook", "tiktok"]);
+  assert.deepEqual(view.channels, [
+    { key: "whatsapp", auto: false, state: "ready" },
+    { key: "instagram", auto: true, state: "posted", url: "https://instagram.com/p/1" },
+    { key: "facebook", auto: true, state: "failed", error: "Token expired" },
+    { key: "tiktok", auto: false, state: "shared" },
+  ]);
+  assert.equal(view.yourTurn, true);
+
+  const scheduled = phone.phonePostView({ id: "sp2", caption: "", mediaUrl: "https://x/v.mp4", mediaKind: "video", renderedUrl: null, mediaSource: "reel", format: "story", channels: ["facebook", "instagram"], status: "scheduled", scheduledAt: at, postedAt: null, results: {} }, { facebook: true, instagram: false });
+  assert.equal(scheduled.imageUrl, null, "a video shows its placeholder");
+  assert.deepEqual(scheduled.channels.map((item) => [item.key, item.auto, item.state]), [["instagram", false, "pending"], ["facebook", true, "pending"]]);
+  assert.equal(scheduled.yourTurn, false);
+});
+
+test("a seller's ready reminder opens the post on the phone and Social posts on the web", () => {
+  assert.deepEqual(notifications.appRouteFor("/home/marketing/social/sp1"), { pathname: "/posts/[id]", params: { id: "sp1" } });
+  assert.deepEqual(notifications.appRouteFor("https://app.shopinbos.com/home/marketing/social/sp1"), { pathname: "/posts/[id]", params: { id: "sp1" } });
+  assert.deepEqual(notifications.appRouteFor("/home/marketing/social"), { pathname: "/posts" });
+  assert.deepEqual(notifications.appRouteFor("/home/marketing/social/new"), { pathname: "/marketing" });
+  assert.deepEqual(notifications.appRouteFor("/home/marketing/social/accounts"), { pathname: "/marketing" });
+  const server = read("src/lib/social-posts/server.ts");
+  assert.match(server, /link: `\/home\/marketing\/social\/\$\{post\.id\}`/);
+  assert.match(server, /dedupeKey: `social-post-ready:\$\{post\.id\}:\$\{ready\.join\(","\)\}`,\n\s+urgent: true,/, "once per channel set, not held by quiet hours");
 });
 
 test("wiring: routes for every role, metered, a protected once-only cron, schedule and migration", () => {

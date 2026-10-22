@@ -64,6 +64,38 @@ test("the post's status follows its channels' results", () => {
   assert.deepEqual(sp.readResults(null), {});
 });
 
+test("posted by hand (the phone's Mark as posted): manual channels, or the one named", () => {
+  const now = new Date("2026-10-21T09:00:00.000Z");
+  const at = "2026-10-21T08:00:00.000Z";
+  const shared = { status: "shared", at: now.toISOString() };
+
+  // Scheduled for Facebook and WhatsApp: WhatsApp is ticked off early, Facebook still posts by itself at the time.
+  let marked = sp.markShared(["facebook", "whatsapp"], {}, null, now);
+  assert.deepEqual(marked.changed, ["whatsapp"]);
+  assert.deepEqual(marked.results, { whatsapp: shared });
+  assert.equal(sp.statusAfterShare("scheduled", ["facebook", "whatsapp"], marked.results), "scheduled");
+
+  // At the time: WhatsApp and X were ready, Facebook posted.
+  marked = sp.markShared(["facebook", "whatsapp", "x"], { facebook: { status: "posted", at }, whatsapp: { status: "ready", at }, x: { status: "ready", at } }, null, now);
+  assert.deepEqual(marked.changed, ["whatsapp", "x"]);
+  assert.equal(sp.statusAfterShare("posted", ["facebook", "whatsapp", "x"], marked.results), "posted");
+
+  // Share from Create with Rex on Instagram (named): a draft becomes posted.
+  marked = sp.markShared(["instagram"], {}, "instagram", now);
+  assert.deepEqual(marked.changed, ["instagram"]);
+  assert.equal(sp.statusAfterShare("draft", ["instagram"], marked.results), "posted");
+
+  // Nothing to mark: posted already, still processing, or not one of the post's channels.
+  assert.deepEqual(sp.markShared(["facebook"], { facebook: { status: "posted", at } }, "facebook", now).changed, []);
+  assert.deepEqual(sp.markShared(["instagram"], { instagram: { status: "waiting", container: "1", at } }, "instagram", now).changed, []);
+  assert.deepEqual(sp.markShared(["facebook"], {}, "whatsapp", now).changed, []);
+  assert.deepEqual(sp.markShared(["facebook", "instagram"], {}, null, now).changed, [], "Facebook and Instagram post by themselves");
+
+  // A failed channel the seller then posted themselves: no longer failed.
+  marked = sp.markShared(["facebook", "whatsapp"], { facebook: { status: "failed", error: "x", at }, whatsapp: { status: "ready", at } }, "facebook", now);
+  assert.equal(sp.statusAfterShare("partial", ["facebook", "whatsapp"], marked.results), "posted");
+});
+
 test("Lagos time: UTC+1 all year, and impossible days are refused", () => {
   const moment = sp.fromLagos("2026-10-21", "09:30");
   assert.equal(moment.toISOString(), "2026-10-21T08:30:00.000Z");

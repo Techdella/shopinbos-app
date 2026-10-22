@@ -453,6 +453,9 @@ export function appRouteFor(link: string | null | undefined): AppRoute | null {
   const job = queryParam(query, "job");
   if (/^\/logistics\/(bookings|jobs)$/.test(pathname) && job) return { pathname: "/logistics/job/[id]", params: { id: job } };
   if ((match = /^\/rider\/drop\/([\w-]+)$/.exec(pathname))) return { pathname: "/rider/drop/[id]", params: { id: match[1] } };
+  // A seller's Social posts are the phone's posts calendar: "Your post is ready for WhatsApp" opens it with Share.
+  if ((match = /^\/home\/marketing\/social\/([\w-]+)$/.exec(pathname)) && !["new", "designs", "accounts"].includes(match[1])) return { pathname: "/posts/[id]", params: { id: match[1] } };
+  if (pathname === "/home/marketing/social") return { pathname: "/posts" };
   for (const [pattern, screen] of SIMPLE_SCREENS) if (pattern.test(pathname)) return { pathname: screen };
   return null;
 }
