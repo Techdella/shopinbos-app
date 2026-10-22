@@ -343,10 +343,11 @@ test("onboarding memory is durable and shared with Rex builder", () => {
   // Logistics setup has its own page component; progress is durable on the partner row via the onboarding API.
   assert.match(logisticsOnboarding, /<LogisticsOnboarding/);
   assert.match(logisticsOnboarding, /requireRole\(\["logistics_partner"\]/);
-  assert.match(logisticsOnboardingComponent, /fetch\("\/api\/logistics\/onboarding"\)/);
-  assert.match(logisticsOnboardingComponent, /method: "PATCH"/);
-  assert.match(logisticsOnboardingComponent, /coverageMap: \{ zones/);
-  assert.match(logisticsOnboardingComponent, /completed,/);
+  assert.match(logisticsOnboarding, /rateCardsForPartner\(partner\.id\)/);
+  assert.match(logisticsOnboardingComponent, /fetch\("\/api\/logistics\/onboarding", \{\s*method: "PATCH"/);
+  assert.match(logisticsOnboardingComponent, /coverageZones: legacyZonesFor\(pickup\)/);
+  assert.match(logisticsOnboardingComponent, /completed: true/);
+  assert.match(logisticsOnboardingComponent, /await saveSetupMarket\(/);
 
   assert.match(builderPage, /onboardingMemory=\{workspace\.settings\.onboardingMemory \?\? null\}/);
   assert.match(builderPage, /params\?\.mode === "rex" \? "products" : undefined/);

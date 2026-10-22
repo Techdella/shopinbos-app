@@ -110,7 +110,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "menu.connectHint": "Kana amfani da delivery software? Za mu haɗa maka shi",
 
   "overdue.payInto": "Biya cikin asusunka",
-  "overdue.manual": "Biya yadda ka saba, sannan ka gaya mana nawa ka biya a shafin Cash na yanar gizo.",
+  "overdue.manual": "Biya kowane mai sayarwa kai tsaye zuwa bankinsa, ko ka ba shi kuɗin a hannu, shi kuma zai tabbatar.",
   "overdue.check": "Na biya. Sake dubawa",
 
   "chat.title": "Saƙonni",
@@ -228,6 +228,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "money.method.account": "Zuwa asusun pay-in ɗinka",
   "money.method.settled": "An daidaita tare da ƙungiyar Shopinbos",
   "money.method.api": "Daga software ɗinka",
+  "money.method.seller": "An biya mai sayarwa",
+  "money.method.sellerConfirmed": "Mai sayarwa ya tabbatar",
   "money.delivered": "An kai",
   "money.noDeliveries": "Babu delivery cikin kwanaki 30 da suka wuce. Kuɗin ayyukan da aka kai zai bayyana a nan.",
 
@@ -388,7 +390,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "moneyCard.noteBank": "Abokan ciniki suna biyan kuɗin isarwa a checkout. Yana zuwa {bank} ta hannun mai ba mu sabis na biyan kuɗi. Shopinbos ba ya riƙe shi.",
   "money.paidToBank": "Abin da aka biya bankinka",
   "cashScreen.title": "Kuɗin biya bayan isarwa",
-  "cashScreen.sub": "Biya bayan isarwa tsakaninka ne da kowane mai sayarwa. Shopinbos ba ya karɓa, riƙe ko ba da tabbacin wannan kuɗin. Yi alama a nan rikodi ne kawai da ku biyu za ku gani.",
+  "cashScreen.sub": "Biya bayan isarwa tsakaninka ne da kowane mai sayarwa. Shopinbos ba ya karɓa, riƙe ko ba da tabbacin wannan kuɗin. Yin alama a nan rikodi ne kawai da ku biyu za ku iya gani.",
   "cashScreen.nothing": "Babu kuɗin da za a daidaita yanzu",
   "cashScreen.oneSeller": "{amount} da za a daidaita da {name}",
   "cashScreen.manySellers": "{amount} da za a daidaita da masu sayarwa {count}",

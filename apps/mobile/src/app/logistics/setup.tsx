@@ -24,6 +24,7 @@ import {
   type MarketData,
 } from "@/lib/logistics";
 import { deliverModeOf, deliveryAreasFor, draftFromRow, nairaInput, pickupAreasFor, priceText, rowsToSave, starterRates, statesIn, type DeliverMode, type DraftRate } from "@/lib/logistics-pure";
+import { legacyZonesFor } from "@shared/partner-setup";
 import { checkWalletAccount, fetchWallet, linkWalletBank, type WalletData } from "@/lib/wallet";
 import { colors } from "@/theme";
 
@@ -146,11 +147,11 @@ function Wizard({ market, wallet, docsDone: initialDocs }: { market: MarketData;
     setError(null);
     try {
       // Set-up done (the web set-up's call; it needs a zone, a vehicle and a delivery type, so earlier answers are
-      // kept and the first pickup states stand in for zones).
+      // kept and the first pickup states stand in for zones, see legacyZonesFor).
       const before = await fetchOnboarding().catch(() => null);
       await finishOnboarding({
         displayName: company.trim().length >= 2 ? company.trim() : undefined,
-        coverageZones: (pickup.length ? pickup : ["Lagos"]).slice(0, 4),
+        coverageZones: legacyZonesFor(pickup),
         vehicleTypes: before?.vehicleTypes.length ? before.vehicleTypes : ["bike"],
         deliveryTypes: before?.deliveryTypes.length ? before.deliveryTypes : services.includes("same_day") ? ["same_day", "next_day"] : ["next_day"],
         basePrice: Math.min(...priced.map((row) => row.price)),

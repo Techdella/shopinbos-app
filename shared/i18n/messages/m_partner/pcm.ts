@@ -110,7 +110,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "menu.connectHint": "You don dey use delivery software? We go connect am for you",
 
   "overdue.payInto": "Pay inside your account",
-  "overdue.manual": "Pay in the way wey you dey use before, then tell us how much you pay for the web Cash page.",
+  "overdue.manual": "Pay each seller straight to their bank, or hand the cash give dem and dem go confirm am.",
   "overdue.check": "I don pay. Check again",
 
   "chat.title": "Messages",
@@ -228,6 +228,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "money.method.account": "Inside your pay-in account",
   "money.method.settled": "Settled with Shopinbos team",
   "money.method.api": "From your software",
+  "money.method.seller": "Paid to the seller",
+  "money.method.sellerConfirmed": "Seller don confirm",
   "money.delivered": "E don reach",
   "money.noDeliveries": "No delivery for the last 30 days. Money from jobs wey don reach go show here.",
 

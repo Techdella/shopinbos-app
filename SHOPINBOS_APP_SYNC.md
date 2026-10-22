@@ -108,7 +108,7 @@ Status: built against the 2026 app prototypes; web verified locally (route smoke
 - [x] Applied `docs/migrations/2026-10-11-phone-accounts.sql` to the live database (2026-10-11).
 - [ ] Supabase: Send SMS hook for phone codes (SUPABASE_SEND_SMS_HOOK_SECRET + SMS_PROVIDER keys), Google OAuth client, `{{ .Token }}` in the Magic Link and Confirm signup templates, redirect URLs (`node scripts/configure-supabase-auth.mjs`).
 - [ ] Optional `NEXT_PUBLIC_SUPPORT_WHATSAPP` for the "Stuck? Message us" card.
-- [ ] Next design phase: seller app dashboard (web and mobile), supplier / logistics onboarding restyle, then remove the legacy seller branch of `OnboardingFlow.tsx`.
+- [ ] Next design phase: seller app dashboard (web and mobile), supplier onboarding restyle. (Logistics set-up rebuilt 2026-10-22, see below; `OnboardingFlow.tsx` is already gone.)
 - [ ] Checkout does not read the payment-method preferences (`brandSettings.paymentConfig.methods`) yet.
 
 ### Phase 9 - Seller Home Dashboard and App Shell (web + Expo)
@@ -186,13 +186,25 @@ Status: built and verified locally (tsc clean, 124 unit tests, production build,
 ### Gap fixes (2026-10-21)
 
 - [x] Applied to the live database (2026-10-21): `2026-11-18-rider-pay.sql`, `2026-11-18-partner-webhook-queue.sql`.
-- [ ] After deploy: `node scripts/qstash-schedules.mjs` (adds the partner-webhooks job).
+- [x] Partner-webhooks, delivery-jobs and partner-payins run in Supabase pg_cron (checked 2026-10-22: every run answered 200). `scripts/qstash-schedules.mjs` is only needed to move off pg_cron (docs/qstash.md).
 - [x] Checkout: pay on delivery with a delivery partner also needs the seller's own pay-on-delivery switch and cap; onboarding no longer wipes Korapay; the builder preview shows the seller's real methods.
 - [x] Segments: the legacy `/api/store/segments` API goes through the same rules as the app; the customer list filters by segment (`/home/customers?segment=<id>`, "See people" on each segment); segment counts refresh when segments are listed.
 - [x] Store editor: the unreachable old editor (Design/Layout tabs said "coming soon") is removed; `/home/editor` links go to the builder, whose theme panel edits colours, type and buttons.
 - [x] Builder Theme settings for the 2026 themes: font pairing (Typography), button shape (Buttons), and a store-wide Layout view (page width and product photo shape; classic templates pick the store layout). Saved as optional theme tokens, so stores that pick nothing look as before.
 - [x] Rex sets the same choices: `set_theme_style` tool in the chat, and `fontPair`/`buttonShape`/`pageWidth`/`productRatio` tokens plus a `layout` field in its edit plans (choices the current theme doesn't read are skipped).
-- [ ] Not tested yet: Rex and Peggy with live AI keys, Safari and Firefox, and a native speaker's check of the Yorùbá and Hausa text (including the new rider-pay and segment strings).
+- [ ] Not tested yet: Rex and Peggy with live AI keys, Safari and Firefox, and a native speaker's check of the Yorùbá and Hausa text (the rider-pay, segment and delivery strings are listed in `docs/i18n-review-logistics.md`).
+
+### Logistics launch checks (2026-10-22)
+
+- [x] Live database has every table, column, index and status from `docs/migrations/2026-11-14-*` through `2026-11-19-*` (read-only check, 103 of 103).
+- [x] Scheduled `morning-brief` in pg_cron (`docs/migrations/2026-11-20-morning-brief-cron.sql`, 06:31 UTC).
+- [x] Web delivery partner set-up rebuilt to the phone app's steps and the marketplace model: company, documents, pickup and delivery areas, services, starter rate card, payout bank, send for review (`src/components/onboarding/LogisticsOnboarding.tsx`, helpers in `shared/partner-setup.ts`). Before, it saved only the old zones, vehicles and one base price, so web sign-ups weren't ready for checkout.
+- [x] Fixed: the app's set-up sent up to 4 pickup states as legacy zones, which the free plan's 3-state limit refused (`legacyZonesFor`).
+- [x] Late-cash card no longer says "pay in the usual way, then tell us"; cash goes to each seller. "Paid to the seller" / "Seller confirmed" translated (web) and no longer shown as "Transfer" (app).
+- [ ] Legal review: `docs/legal-review-logistics.md` (questions for counsel; terms promise fee deductions the checkout split doesn't make).
+- [ ] Native-speaker review: `docs/i18n-review-logistics.md`.
+- [ ] Safari and Firefox walkthrough (a static scan of the partner, rider and seller delivery pages found nothing known to break).
+- [ ] Phone app release: EAS environment variables, APNs/FCM keys, preview then production builds (`apps/mobile/README.md`, project already initialised).
 
 ## Current Todos
 

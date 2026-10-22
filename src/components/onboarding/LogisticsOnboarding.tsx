@@ -1,57 +1,77 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useId, useState, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FieldLabel, Mascot, Notice, PillButton, ProgressBars, TextInput, Wordmark, cx } from "@/components/app-ui";
 import { CacInstantCheck } from "@/components/verification/CacInstantCheck";
-import type { VerificationDoc } from "@shared/verification-docs";
+import { VerificationDocUploader } from "@/components/verification/VerificationDocUploader";
+import { deleteVerificationFile, uploadVerificationFile } from "@/components/verification/upload-client";
 import { Icon } from "@/components/ui/Icon";
 import intentRouting from "@/lib/intent-routing";
-import { useLocale, useT } from "@/components/i18n/I18nProvider";
-import { formatMoney } from "@shared/i18n";
-import { deliveryScopeOptions, westAfricaCountries, type DeliveryScope } from "@/lib/data/west-africa";
+import { useT } from "@/components/i18n/I18nProvider";
+import { LOGISTICS_DOC_TYPES, type DocType, type VerificationDoc } from "@shared/verification-docs";
+import { NATIONWIDE, NG_REGIONS, NG_STATES, RATE_SERVICES, SIZE_BANDS, type RateRow } from "@shared/delivery-market";
+import {
+  SERVICE_KEYS,
+  SIZE_KEYS,
+  STATE_CHIPS,
+  deliverModeOf,
+  deliveryAreasFor,
+  draftFromRow,
+  legacyZonesFor,
+  nairaInput,
+  newDraftRate,
+  pickupAreasFor,
+  priceText,
+  rowsToSave,
+  starterRates,
+  stateLabel,
+  statesIn,
+  type DeliverMode,
+  type DraftRate,
+} from "@shared/partner-setup";
+import { saveSetupBusiness, saveSetupMarket } from "@/app/actions/delivery-market-partner";
+import { checkWalletAccountAction, linkWalletBankAction } from "@/app/actions/wallet";
 
-// Delivery partner setup in the 2026 app look (same shell as SupplierOnboarding). Everything stays in this
-// component's state across steps; the server only gets a save once the profile is complete enough for its schema
-// (at least one active zone, vehicle and delivery type), so Continue never fails on a half-filled profile.
+// Delivery partner set-up on the web, the same steps as the phone app's (apps/mobile/src/app/logistics/setup.tsx,
+// "Delivery partner app" prototype): welcome, company, documents, where you cover, what you offer, the rate card,
+// where we pay you, then "Send for review". The company is saved on its step; the rest waits in this page until the
+// last step, which marks set-up done (PATCH /api/logistics/onboarding), saves areas, services and prices
+// (saveSetupMarket), links the bank and sends the documents to be checked.
 
-interface CoverageZone {
-  name: string;
-  country: string;
-  region: string;
-  scope: DeliveryScope;
-  service: string;
-  basePrice: number;
-  active: boolean;
-  demandSignal?: string;
-  polygon?: Array<[number, number]>;
+type Step = "welcome" | "biz" | "docs" | "cover" | "services" | "rates" | "payout" | "done";
+const NUMBERED: Step[] = ["biz", "docs", "cover", "services", "rates", "payout"];
+const UPLOAD_ENDPOINT = "/api/logistics/verification/upload";
+const SERVICES = ["doorstep", "pickup_point", "same_day", "interstate"] as const;
+
+interface PartnerSetupData {
+  companyName: string;
+  cacNumber: string;
+  contactName: string;
+  contactPhone: string;
+  contactEmail: string;
+  address: string;
+  services: string[];
+  pickupAreas: string[];
+  deliveryAreas: string[];
+  vehicleTypes: string[];
+  deliveryTypes: string[];
+  documents: VerificationDoc[];
 }
 
-interface InitialUser {
-  name: string | null;
-  city: string | null;
-  country: string | null;
-}
-
-const STEPS = ["Company", "Coverage", "Fleet", "Pricing", "Verify", "Review"];
-const VERIFY_STEP = 5;
-const VEHICLES = ["bike", "van", "truck"];
-const DELIVERY_TYPES = ["same_day", "express", "next_day", "bulk"];
-const SPEEDS = ["Same-day in active zones", "45-90 minutes in active zones", "Next-day within city", "2-3 business days"];
-
-const selectClass = "h-[54px] w-full rounded-[16px] border border-app-line bg-white px-4 text-[16px] text-app-ink outline-none transition focus:border-app-ink disabled:opacity-55";
-const textareaClass = "w-full rounded-[16px] border border-app-line bg-white px-4 py-3 text-[16px] text-app-ink outline-none transition placeholder:text-app-ink-faint focus:border-app-ink";
 const cardClass = "grid gap-5 rounded-[22px] border border-app-line bg-white p-5 sm:p-6";
+const selectClass = "h-[54px] w-full rounded-[16px] border border-app-line bg-white px-4 text-[16px] text-app-ink outline-none transition focus:border-app-ink";
+const rowLabel = "mb-1 block text-[13px] font-bold text-app-ink-soft lg:sr-only";
+const cell = "h-11 w-full min-w-0 rounded-[12px] border border-app-line bg-white px-3 text-[15px] text-app-ink outline-none transition placeholder:text-app-ink-faint focus:border-app-ink disabled:opacity-55";
 
-function Chip({ on, onClick, children, title }: { on: boolean; onClick: () => void; children: ReactNode; title?: string }) {
+function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; children: ReactNode }) {
   return (
     <button
       type="button"
       aria-pressed={on}
-      title={title}
       onClick={onClick}
       className={cx(
-        "inline-flex min-h-[40px] items-center rounded-full border px-4 text-[14px] font-bold capitalize transition",
+        "inline-flex min-h-[40px] items-center rounded-full border px-4 text-[14px] font-bold transition",
         on ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white text-app-ink hover:border-app-line-strong",
       )}
     >
@@ -60,385 +80,479 @@ function Chip({ on, onClick, children, title }: { on: boolean; onClick: () => vo
   );
 }
 
-const scopeLabel = (scope: DeliveryScope) => deliveryScopeOptions.find((option) => option.value === scope)?.label ?? scope;
+/** A big tappable choice with a title and a line under it (radio or checkbox). */
+function Choice({ multi, on, onClick, title, sub }: { multi?: boolean; on: boolean; onClick: () => void; title: string; sub: string }) {
+  return (
+    <button
+      type="button"
+      role={multi ? "checkbox" : "radio"}
+      aria-checked={on}
+      onClick={onClick}
+      className={cx(
+        "flex w-full items-center gap-4 rounded-[18px] border bg-white p-4 text-left transition",
+        on ? "border-app-ink shadow-[inset_0_0_0_1px_var(--color-app-ink)]" : "border-app-line hover:border-app-line-strong",
+      )}
+    >
+      <span className={cx("grid h-6 w-6 shrink-0 place-items-center border-2", multi ? "rounded-[7px]" : "rounded-full", on ? "border-app-ink bg-app-ink text-white" : "border-app-line-strong")}>
+        {on && <Icon name="check" size={12} />}
+      </span>
+      <span className="min-w-0">
+        <span className="block text-[16px] font-extrabold">{title}</span>
+        <span className="block text-[14px] text-app-ink-soft">{sub}</span>
+      </span>
+    </button>
+  );
+}
 
-export function LogisticsOnboarding({ initialUser }: { initialUser?: InitialUser | null }) {
+function Heading({ title, sub }: { title: string; sub?: string }) {
+  return (
+    <>
+      <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.8px] sm:text-[34px]">{title}</h1>
+      {sub && <p className="mb-0 mt-2 max-w-[640px] text-[15px] leading-[1.5] text-app-ink-soft">{sub}</p>}
+    </>
+  );
+}
+
+const toggle = (list: string[], value: string) => (list.includes(value) ? list.filter((item) => item !== value) : [...list, value]);
+
+export function LogisticsOnboarding({
+  partner,
+  rateCard,
+  bank: linkedBank,
+  banks,
+}: {
+  partner: PartnerSetupData;
+  rateCard: { rows: RateRow[]; failedAttemptFee: number; returnFee: number; notes: string } | null;
+  bank: { bankName: string; accountName: string } | null;
+  banks: string[];
+}) {
   const t = useT("onboarding", "common");
-  const locale = useLocale();
-  const naira = (value: number) => formatMoney(Math.round(value), locale);
-  const scopeText = (scope: DeliveryScope) => t.dynamic(`scope.${scope}.label`, scopeLabel(scope));
-  const vehicleText = (vehicle: string) => t.dynamic(`vehicle.${vehicle}`, vehicle);
-  const typeText = (type: string) => t.dynamic(`dtype.${type}`, type.replace("_", " "));
+  const tl = useT("logistics");
   const router = useRouter();
   const searchParams = useSearchParams();
   const { extractIntentParams, getContinuationPath } = intentRouting;
+  const id = useId();
 
-  const [step, setStep] = useState(1);
-  const [cacDoc, setCacDoc] = useState<VerificationDoc | undefined>(undefined);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [step, setStep] = useState<Step>("welcome");
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [companyName, setCompanyName] = useState(initialUser?.name ?? "");
-  const [description, setDescription] = useState("");
-  const [city, setCity] = useState(initialUser?.city ?? "Lagos");
-  const [country, setCountry] = useState(initialUser?.country ?? "Nigeria");
-  const [zones, setZones] = useState<CoverageZone[]>([]);
-  const [vehicleTypes, setVehicleTypes] = useState<string[]>([]);
-  const [deliveryTypes, setDeliveryTypes] = useState<string[]>([]);
-  const [basePrice, setBasePrice] = useState(900);
-  const [estimatedSpeed, setEstimatedSpeed] = useState("");
-  const [newZoneCountry, setNewZoneCountry] = useState("Nigeria");
-  const [newZoneRegion, setNewZoneRegion] = useState("");
-  const [newZoneScope, setNewZoneScope] = useState<DeliveryScope>("intrastate");
-  const [newZonePrice, setNewZonePrice] = useState(900);
+  // Company
+  const [company, setCompany] = useState(partner.companyName);
+  const [cac, setCac] = useState(partner.cacNumber);
+  const [contact, setContact] = useState(partner.contactName);
+  const [phone, setPhone] = useState(partner.contactPhone);
+  const [email, setEmail] = useState(partner.contactEmail);
+  const [address, setAddress] = useState(partner.address);
+  // Documents
+  const [documents, setDocuments] = useState<VerificationDoc[]>(partner.documents);
+  // Coverage and services
+  const [pickup, setPickup] = useState<string[]>(statesIn(partner.pickupAreas));
+  const [mode, setMode] = useState<DeliverMode>(deliverModeOf(partner.pickupAreas, partner.deliveryAreas));
+  const [deliver, setDeliver] = useState<string[]>(statesIn(partner.deliveryAreas));
+  const [services, setServices] = useState<string[]>(partner.services.length ? partner.services : ["doorstep"]);
+  // Rate card
+  const [rows, setRows] = useState<DraftRate[]>(rateCard?.rows.length ? rateCard.rows.map(draftFromRow) : []);
+  const [fail, setFail] = useState(priceText(rateCard?.failedAttemptFee ?? null));
+  const [ret, setRet] = useState(priceText(rateCard?.returnFee ?? null));
+  const [notes, setNotes] = useState(rateCard?.notes ?? "");
+  // Payout
+  const [bank, setBank] = useState(linkedBank?.bankName ?? "");
+  const [acct, setAcct] = useState("");
+  const [acctName, setAcctName] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/logistics/onboarding")
-      .then((res) => (res.ok ? res.json() : null))
-      .then((json) => {
-        const data = json?.data ?? json;
-        if (!data) return;
-        setCompanyName(data.displayName || data.companyName || "");
-        setDescription(data.description || "");
-        setCity(data.city || "Lagos");
-        setCountry(data.country || "Nigeria");
-        const mapZones = data.coverageMap?.zones;
-        if (Array.isArray(mapZones) && mapZones.length > 0) {
-          setZones(mapZones);
-        } else if (Array.isArray(data.coverageZones)) {
-          // Older profiles only kept zone names; the name doubles as the region so the zone still validates.
-          const price = data.basePrice || 900;
-          setZones(data.coverageZones.map((name: string) => ({ name, country: data.country || "Nigeria", region: name, scope: "intrastate" as DeliveryScope, service: "Same-day", basePrice: price, active: true })));
-        }
-        if (Array.isArray(data.vehicleTypes) && data.vehicleTypes.length > 0) setVehicleTypes(data.vehicleTypes);
-        if (Array.isArray(data.deliveryTypes) && data.deliveryTypes.length > 0) setDeliveryTypes(data.deliveryTypes);
-        if (data.basePrice) setBasePrice(data.basePrice);
-        if (data.estimatedSpeed) setEstimatedSpeed(data.estimatedSpeed);
-      })
-      .catch(() => null)
-      .finally(() => setLoading(false));
-  }, []);
-
-  const activeZones = zones.filter((zone) => zone.active);
-  const savable = activeZones.length > 0 && vehicleTypes.length > 0 && deliveryTypes.length > 0;
-
-  async function persist(completed: boolean) {
-    const lowest = activeZones.reduce((min, zone) => Math.min(min, zone.basePrice), basePrice);
-    const response = await fetch("/api/logistics/onboarding", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        displayName: companyName.trim().length >= 2 ? companyName.trim() : undefined,
-        country: country.trim().length >= 2 ? country.trim() : undefined,
-        city: city.trim().length >= 2 ? city.trim() : undefined,
-        description,
-        coverageZones: activeZones.map((zone) => zone.name),
-        coverageMap: { zones, depot: `${city || "Lagos"} depot`, updatedBy: "onboarding" },
-        vehicleTypes,
-        deliveryTypes,
-        pricingModel: "fixed",
-        basePrice: completed ? lowest : basePrice,
-        estimatedSpeed: estimatedSpeed || (deliveryTypes.includes("express") ? SPEEDS[1] : SPEEDS[0]),
-        completed,
-      }),
-    }).catch(() => null);
-    if (!response?.ok) {
-      const body = await response?.json().catch(() => null);
-      throw new Error(body?.error?.message ?? t("saveFailed"));
+    if (!bank || acct.length !== 10) {
+      setAcctName(null);
+      return;
     }
-  }
+    let live = true;
+    checkWalletAccountAction({ bankName: bank, accountNumber: acct })
+      .then((result) => live && setAcctName(result.status === "resolved" ? result.accountName : null))
+      .catch(() => live && setAcctName(null));
+    return () => {
+      live = false;
+    };
+  }, [bank, acct]);
 
-  async function goTo(next: number) {
+  const number = NUMBERED.indexOf(step) + 1;
+
+  function go(next: Step) {
     setError("");
-    // Save along the way once the profile is complete enough; before that, answers wait in this page.
-    if (savable && next > step) {
-      setSaving(true);
-      try {
-        await persist(false);
-      } catch (cause) {
-        setError(cause instanceof Error ? cause.message : String(cause));
-        return;
-      } finally {
-        setSaving(false);
-      }
-    }
     setStep(next);
     window.scrollTo({ top: 0 });
   }
 
-  async function submit() {
+  function back() {
+    const index = NUMBERED.indexOf(step);
+    go(index > 0 ? NUMBERED[index - 1]! : "welcome");
+  }
+
+  async function saveCompany() {
+    setBusy(true);
     setError("");
-    if (!savable) {
-      setError(t("lp.needAll"));
-      return;
-    }
-    setSaving(true);
     try {
-      await persist(true);
-      const destination = getContinuationPath({ role: "logistics_partner", ...extractIntentParams(searchParams) });
-      router.push(destination || "/logistics/dashboard");
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
-      setSaving(false);
+      const result = await saveSetupBusiness({ companyName: company.trim(), cacNumber: cac.trim(), contactName: contact.trim(), contactPhone: phone.trim(), contactEmail: email.trim(), address: address.trim() });
+      if (result.ok) go("docs");
+      else setError(result.error);
+    } catch {
+      setError(t("ps.error.retry"));
+    } finally {
+      setBusy(false);
     }
   }
 
-  function addZone() {
-    if (!newZoneCountry || !newZoneRegion || newZonePrice <= 0) return;
-    if (zones.some((zone) => zone.region === newZoneRegion && zone.country === newZoneCountry && zone.scope === newZoneScope)) return;
-    setZones((current) => [...current, {
-      name: `${newZoneRegion} (${scopeLabel(newZoneScope)})`,
-      country: newZoneCountry,
-      region: newZoneRegion,
-      scope: newZoneScope,
-      service: "Same-day",
-      basePrice: newZonePrice,
-      active: true,
-    }]);
-    setNewZoneRegion("");
+  async function upload(type: DocType, file: File, onProgress?: (percent: number) => void) {
+    setError("");
+    const doc = await uploadVerificationFile(UPLOAD_ENDPOINT, type, file, onProgress);
+    setDocuments((current) => [...current.filter((d) => d.type !== type), doc]);
   }
 
-  function toggle(value: string, list: string[], setList: (next: string[]) => void) {
-    setList(list.includes(value) ? list.filter((item) => item !== value) : [...list, value]);
+  async function remove(docId: string) {
+    setError("");
+    await deleteVerificationFile(UPLOAD_ENDPOINT, docId);
+    setDocuments((current) => current.filter((d) => d.id !== docId));
   }
 
-  const canContinue = [
-    companyName.trim().length >= 2,
-    activeZones.length > 0,
-    vehicleTypes.length > 0 && deliveryTypes.length > 0,
-    basePrice > 0,
-    true,
-    true,
-  ][step - 1];
+  function toRates() {
+    if (!services.length) return setError(t("ps.svc.needOne"));
+    if (!rows.length) setRows(starterRates(pickup, mode, deliver, services));
+    go("rates");
+  }
 
-  const regions = westAfricaCountries.find((entry) => entry.name === newZoneCountry)?.regions ?? [];
+  async function sendForReview() {
+    const priced = rowsToSave(rows);
+    if (!priced.length) return setError(t("ps.rates.needOne"));
+    setBusy(true);
+    setError("");
+    try {
+      // Set-up done first: areas and prices can only be saved after it.
+      const onboarding = await fetch("/api/logistics/onboarding", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          displayName: company.trim().length >= 2 ? company.trim() : undefined,
+          coverageZones: legacyZonesFor(pickup),
+          vehicleTypes: partner.vehicleTypes.length ? partner.vehicleTypes : ["bike"],
+          deliveryTypes: partner.deliveryTypes.length ? partner.deliveryTypes : services.includes("same_day") ? ["same_day", "next_day"] : ["next_day"],
+          pricingModel: "fixed",
+          basePrice: Math.min(...priced.map((row) => row.price)),
+          completed: true,
+        }),
+      });
+      if (!onboarding.ok) {
+        const body = await onboarding.json().catch(() => null);
+        throw new Error(body?.error?.message ?? t("ps.error.retry"));
+      }
+      const market = await saveSetupMarket({
+        services,
+        pickupAreas: pickupAreasFor(pickup, partner.pickupAreas),
+        deliveryAreas: deliveryAreasFor(mode, pickup, deliver, partner.deliveryAreas),
+        rows: priced,
+        failedAttemptFee: nairaInput(fail) ?? 0,
+        returnFee: nairaInput(ret) ?? 0,
+        notes,
+      });
+      if (!market.ok) throw new Error(market.error);
+      if (bank && acct.length === 10) {
+        const linked = await linkWalletBankAction({ bankName: bank, accountNumber: acct });
+        if (!linked.ok) throw new Error(linked.error);
+      }
+      // Sent to be checked once the required documents are in; otherwise they finish from Verification.
+      await fetch("/api/logistics/verification/submit", { method: "POST" }).catch(() => null);
+      go("done");
+    } catch (cause) {
+      setError(cause instanceof Error && cause.message ? cause.message : t("ps.error.retry"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function next() {
+    if (step === "biz") return void saveCompany();
+    if (step === "docs") return go("cover");
+    if (step === "cover") {
+      if (!pickup.length) return setError(t("ps.cover.needPickup"));
+      if (mode === "some" && !deliver.length) return setError(t("ps.cover.needDeliver"));
+      return go("services");
+    }
+    if (step === "services") return toRates();
+    if (step === "rates") return rowsToSave(rows).length ? go("payout") : setError(t("ps.rates.needOne"));
+    if (step === "payout") return void sendForReview();
+  }
+
+  const updateRow = (rowId: string, patch: Partial<DraftRate>) => {
+    setError("");
+    setRows((list) => list.map((row) => (row.id === rowId ? { ...row, ...patch } : row)));
+  };
+  const finish = () => router.push(getContinuationPath({ role: "logistics_partner", ...extractIntentParams(searchParams) }) || "/logistics/dashboard");
+
+  if (step === "welcome" || step === "done") {
+    const welcome = step === "welcome";
+    return (
+      <div className="grid min-h-dvh w-full place-items-center bg-app-canvas px-4 py-10 font-app text-app-ink">
+        <div className="grid w-full max-w-[520px] justify-items-center gap-4 text-center">
+          <Wordmark />
+          <span className={cx("mt-6 grid h-24 w-24 place-items-center", welcome ? "rounded-[32px] bg-app-mint" : "rounded-full bg-app-success-tint text-app-success")}>
+            <Icon name={welcome ? "truck" : "clock"} size={44} />
+          </span>
+          {welcome && <span className="text-[13px] font-extrabold uppercase tracking-[0.12em] text-app-ink-soft">{t("ps.setup.eyebrow")}</span>}
+          <h1 className="m-0 text-[32px] font-extrabold leading-[1.1] tracking-[-0.8px]">{welcome ? t("ps.setup.title") : t("ps.setup.checking")}</h1>
+          <p className="m-0 text-[16px] leading-[1.55] text-app-ink-soft">{welcome ? t("ps.setup.sub") : t("ps.setup.checkingSub")}</p>
+          {welcome ? (
+            <>
+              <PillButton tone="forest" size="lg" className="mt-4 w-full" onClick={() => go("biz")}>
+                {t("ps.setup.start")} <Icon name="arrow" size={16} />
+              </PillButton>
+              <span className="text-[14px] text-app-ink-soft">{t("ps.setup.free")}</span>
+            </>
+          ) : (
+            <PillButton tone="forest" size="lg" className="mt-4 w-full" onClick={finish}>
+              {t("ps.setup.toDashboard")} <Icon name="arrow" size={16} />
+            </PillButton>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-dvh w-full bg-app-canvas font-app text-app-ink">
       <header className="sticky top-0 z-20 flex flex-wrap items-center gap-4 bg-app-canvas/90 px-4 py-3 backdrop-blur sm:px-6 xl:px-8">
         <Wordmark />
-        <div className="order-3 w-full sm:order-none sm:w-auto sm:flex-1"><ProgressBars total={STEPS.length} current={step - 1} /></div>
-        <span className="ml-auto text-[13px] font-bold text-app-ink-soft sm:ml-0">{t("stepOf", { step, total: STEPS.length })}</span>
+        <div className="order-3 w-full sm:order-none sm:w-auto sm:flex-1"><ProgressBars total={NUMBERED.length} current={number - 1} /></div>
+        <span className="ml-auto text-[13px] font-bold text-app-ink-soft sm:ml-0">{t("ps.setup.step", { step: number, total: NUMBERED.length })}</span>
       </header>
 
       <main className="w-full px-4 pb-10 pt-4 sm:px-6 xl:px-8">
-        <div className="grid gap-3">
-          {error && <Notice tone="error">{error}</Notice>}
-        </div>
-
-        <div className="mt-4 grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
           <section className="min-w-0">
-            {loading ? (
-              <p className="m-0 py-16 text-center text-[15px] text-app-ink-soft">{t("lp.loading")}</p>
-            ) : (
+            {step === "biz" && (
               <>
-                {step === 1 && (
-                  <>
-                    <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.8px] sm:text-[34px]">{t("lp.companyTitle")}</h1>
-                    <p className="mb-0 mt-2 max-w-[640px] text-[15px] leading-[1.5] text-app-ink-soft">{t("lp.companySub")}</p>
-                    <div className={cx(cardClass, "mt-6")}>
-                      <div>
-                        <FieldLabel htmlFor="lp-name">{t("lp.companyName")}</FieldLabel>
-                        <TextInput id="lp-name" value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder={t("lp.companyNamePlaceholder")} />
-                      </div>
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <div>
-                          <FieldLabel htmlFor="lp-city">{t("city")}</FieldLabel>
-                          <TextInput id="lp-city" value={city} onChange={(e) => setCity(e.target.value)} placeholder={t("lp.cityPlaceholder")} />
-                        </div>
-                        <div>
-                          <FieldLabel htmlFor="lp-country">{t("country")}</FieldLabel>
-                          <select id="lp-country" className={selectClass} value={country} onChange={(e) => setCountry(e.target.value)}>
-                            {westAfricaCountries.map((entry) => <option key={entry.code} value={entry.name}>{entry.name}</option>)}
-                          </select>
-                        </div>
-                      </div>
-                      <div>
-                        <FieldLabel htmlFor="lp-about">{t("lp.about")}</FieldLabel>
-                        <textarea id="lp-about" className={textareaClass} rows={4} value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t("lp.aboutPlaceholder")} />
-                      </div>
+                <Heading title={t("ps.setup.bizTitle")} />
+                <div className={cx(cardClass, "mt-6 sm:grid-cols-2")}>
+                  {([
+                    ["company", t("ps.setup.company"), company, setCompany, { autoComplete: "organization" }],
+                    ["cac", t("ps.setup.cac"), cac, setCac, { placeholder: "RC123456", autoCapitalize: "characters" }],
+                    ["contact", t("ps.setup.contact"), contact, setContact, { autoComplete: "name" }],
+                    ["phone", t("ps.setup.phone"), phone, setPhone, { type: "tel", autoComplete: "tel" }],
+                    ["email", t("ps.setup.email"), email, setEmail, { type: "email", autoComplete: "email" }],
+                    ["office", t("ps.setup.office"), address, setAddress, { autoComplete: "street-address" }],
+                  ] as const).map(([key, label, value, set, extra]) => (
+                    <div key={key} className="min-w-0">
+                      <FieldLabel htmlFor={`${id}-${key}`}>{label}</FieldLabel>
+                      <TextInput id={`${id}-${key}`} value={value} onChange={(event) => set(event.target.value)} {...extra} />
                     </div>
-                  </>
-                )}
+                  ))}
+                </div>
+              </>
+            )}
 
-                {step === 2 && (
-                  <>
-                    <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.8px] sm:text-[34px]">{t("lp.zonesTitle")}</h1>
-                    <p className="mb-0 mt-2 max-w-[640px] text-[15px] leading-[1.5] text-app-ink-soft">{t("lp.zonesSub")}</p>
-                    <div className={cx(cardClass, "mt-6")}>
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <div>
-                          <FieldLabel htmlFor="lp-zone-country">{t("country")}</FieldLabel>
-                          <select id="lp-zone-country" className={selectClass} value={newZoneCountry} onChange={(e) => { setNewZoneCountry(e.target.value); setNewZoneRegion(""); }}>
-                            {westAfricaCountries.map((entry) => <option key={entry.code} value={entry.name}>{entry.name}</option>)}
-                          </select>
-                        </div>
-                        <div>
-                          <FieldLabel htmlFor="lp-zone-region">{t("lp.region")}</FieldLabel>
-                          <select id="lp-zone-region" className={selectClass} value={newZoneRegion} onChange={(e) => setNewZoneRegion(e.target.value)} disabled={!newZoneCountry}>
-                            <option value="">{t("chooseOne")}</option>
-                            {regions.map((region) => <option key={region} value={region}>{region}</option>)}
-                          </select>
-                        </div>
-                      </div>
-                      <fieldset className="m-0 border-0 p-0">
-                        <legend className="mb-2 text-[14px] font-bold">{t("lp.scope")}</legend>
-                        <div className="flex flex-wrap gap-2">
-                          {deliveryScopeOptions.map((option) => (
-                            <Chip key={option.value} on={newZoneScope === option.value} onClick={() => setNewZoneScope(option.value)} title={t.dynamic(`scope.${option.value}.description`, option.description)}>{scopeText(option.value)}</Chip>
-                          ))}
-                        </div>
-                        <p className="mb-0 mt-2 text-[13px] text-app-ink-soft">{t.dynamic(`scope.${newZoneScope}.description`, deliveryScopeOptions.find((option) => option.value === newZoneScope)?.description ?? "")}</p>
-                      </fieldset>
-                      <div className="flex flex-wrap items-end gap-3">
-                        <div className="min-w-[180px] flex-1">
-                          <FieldLabel htmlFor="lp-zone-price">{t("lp.startPrice")}</FieldLabel>
-                          <TextInput id="lp-zone-price" type="number" inputMode="numeric" min={0} step={100} value={newZonePrice} onChange={(e) => setNewZonePrice(Number(e.target.value))} />
-                        </div>
-                        <PillButton tone="ink" size="md" onClick={addZone} disabled={!newZoneRegion || newZonePrice <= 0}>
-                          <Icon name="plus" size={15} /> {t("lp.addZone")}
-                        </PillButton>
-                      </div>
+            {step === "docs" && (
+              <>
+                <Heading title={t("ps.docs.title")} sub={t("ps.docs.sub")} />
+                <div className="mt-6 grid gap-4">
+                  <CacInstantCheck
+                    apiPath="/api/logistics/verification/cac"
+                    defaultName={company}
+                    cacDoc={documents.find((doc) => doc.type === "cac")}
+                    onVerified={(doc) => setDocuments((current) => [...current.filter((d) => d.type !== "cac"), doc])}
+                  />
+                  <VerificationDocUploader role="logistics_partner" docs={documents} docConfigs={LOGISTICS_DOC_TYPES} onUpload={upload} onDelete={remove} />
+                </div>
+              </>
+            )}
+
+            {step === "cover" && (
+              <>
+                <Heading title={t("ps.setup.coverTitle")} sub={t("ps.setup.coverNote")} />
+                <div className={cx(cardClass, "mt-6")}>
+                  <fieldset className="m-0 min-w-0 border-0 p-0">
+                    <legend className="mb-3 text-[17px] font-extrabold">{t("ps.cover.pickQ")}</legend>
+                    <div className="flex flex-wrap gap-2">
+                      {STATE_CHIPS.map((state) => <Chip key={state} on={pickup.includes(state)} onClick={() => setPickup((list) => toggle(list, state))}>{stateLabel(state)}</Chip>)}
                     </div>
-
-                    {zones.length > 0 && (
-                      <div className="mt-4 rounded-[22px] border border-app-line bg-white px-5 py-2">
-                        {zones.map((zone) => (
-                          <div key={zone.name} className="flex items-center gap-3 border-t border-app-line py-3 first:border-t-0">
-                            <button
-                              type="button"
-                              role="checkbox"
-                              aria-checked={zone.active}
-                              aria-label={zone.active ? t("lp.pauseZone", { region: zone.region }) : t("lp.turnOnZone", { region: zone.region })}
-                              onClick={() => setZones((current) => current.map((entry) => (entry.name === zone.name ? { ...entry, active: !entry.active } : entry)))}
-                              className={cx("grid h-6 w-6 shrink-0 place-items-center rounded-full border-2", zone.active ? "border-app-ink bg-app-ink text-white" : "border-app-line-strong bg-white")}
-                            >
-                              {zone.active && <Icon name="check" size={12} />}
-                            </button>
-                            <div className="min-w-0 flex-1">
-                              <div className="truncate text-[15px] font-bold">{zone.region}</div>
-                              <div className="text-[13px] text-app-ink-soft">{t("lp.zoneLine", { country: zone.country, scope: scopeText(zone.scope), price: naira(zone.basePrice) })}</div>
-                            </div>
-                            <button type="button" aria-label={t("lp.removeZone", { region: zone.region })} onClick={() => setZones((current) => current.filter((entry) => entry.name !== zone.name))} className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-app-ink-soft hover:bg-app-canvas hover:text-app-danger">
-                              <Icon name="x" size={15} />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    <p className="mb-0 mt-3 text-[13px] text-app-ink-soft">{t("lp.zonesOn", { active: activeZones.length, total: zones.length })}</p>
-                  </>
-                )}
-
-                {step === 3 && (
-                  <>
-                    <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.8px] sm:text-[34px]">{t("lp.fleetTitle")}</h1>
-                    <p className="mb-0 mt-2 max-w-[640px] text-[15px] leading-[1.5] text-app-ink-soft">{t("lp.fleetSub")}</p>
-                    <div className={cx(cardClass, "mt-6")}>
-                      <fieldset className="m-0 border-0 p-0">
-                        <legend className="mb-2 text-[14px] font-bold">{t("lp.vehicles")}</legend>
-                        <div className="flex flex-wrap gap-2">
-                          {VEHICLES.map((vehicle) => <Chip key={vehicle} on={vehicleTypes.includes(vehicle)} onClick={() => toggle(vehicle, vehicleTypes, setVehicleTypes)}>{vehicleText(vehicle)}</Chip>)}
-                        </div>
-                      </fieldset>
-                      <fieldset className="m-0 border-0 p-0">
-                        <legend className="mb-2 text-[14px] font-bold">{t("lp.deliveryTypes")}</legend>
-                        <div className="flex flex-wrap gap-2">
-                          {DELIVERY_TYPES.map((type) => <Chip key={type} on={deliveryTypes.includes(type)} onClick={() => toggle(type, deliveryTypes, setDeliveryTypes)}>{typeText(type)}</Chip>)}
-                        </div>
-                      </fieldset>
-                    </div>
-                  </>
-                )}
-
-                {step === 4 && (
-                  <>
-                    <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.8px] sm:text-[34px]">{t("lp.pricingTitle")}</h1>
-                    <p className="mb-0 mt-2 max-w-[640px] text-[15px] leading-[1.5] text-app-ink-soft">{t("lp.pricingSub")}</p>
-                    <div className={cx(cardClass, "mt-6")}>
-                      <div>
-                        <FieldLabel htmlFor="lp-base">{t("lp.basePrice")}</FieldLabel>
-                        <TextInput id="lp-base" type="number" inputMode="numeric" min={0} step={100} value={basePrice} onChange={(e) => setBasePrice(Number(e.target.value))} />
-                      </div>
-                      <div>
-                        <FieldLabel htmlFor="lp-speed">{t("lp.speed")}</FieldLabel>
-                        <TextInput id="lp-speed" value={estimatedSpeed} onChange={(e) => setEstimatedSpeed(e.target.value)} placeholder={t("lp.speedPlaceholder")} />
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {SPEEDS.map((speed) => <Chip key={speed} on={estimatedSpeed === speed} onClick={() => setEstimatedSpeed(speed)}>{speed}</Chip>)}
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                {step === VERIFY_STEP && (
-                  <>
-                    <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.8px] sm:text-[34px]">Verify your business</h1>
-                    <p className="mb-0 mt-2 max-w-[640px] text-[15px] leading-[1.5] text-app-ink-soft">
-                      Shops only see verified delivery partners, and jobs only come once you&apos;re verified. Check your CAC or business name (BN) registration. You can skip for now and finish later from Verification.
-                    </p>
-                    <div className="mt-6 grid gap-4">
-                      <CacInstantCheck apiPath="/api/logistics/verification/cac" defaultName={companyName} cacDoc={cacDoc} onVerified={setCacDoc} />
-                    </div>
-                    <button type="button" onClick={() => void goTo(step + 1)} className="mt-4 text-[14px] font-bold text-app-ink-soft underline-offset-4 hover:text-app-ink hover:underline" disabled={saving}>
-                      Skip for now. I&apos;ll verify before taking jobs.
-                    </button>
-                  </>
-                )}
-
-                {step === 6 && (
-                  <>
-                    <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.8px] sm:text-[34px]">{t("lp.reviewTitle")}</h1>
-                    <p className="mb-0 mt-2 max-w-[640px] text-[15px] leading-[1.5] text-app-ink-soft">{t("lp.reviewSub")}</p>
-                    <div className="mt-6 divide-y divide-app-line rounded-[22px] border border-app-line bg-white px-5">
-                      {[
-                        [t("lp.r.company"), companyName || t("notSet")],
-                        [t("lp.r.location"), [city, country].filter(Boolean).join(", ")],
-                        [t("lp.r.zones"), activeZones.length ? activeZones.map((zone) => `${zone.region} (${naira(zone.basePrice)})`).join(", ") : t("noneYet")],
-                        [t("lp.vehicles"), vehicleTypes.map(vehicleText).join(", ") || t("noneYet")],
-                        [t("lp.deliveryTypes"), deliveryTypes.map(typeText).join(", ") || t("noneYet")],
-                        [t("lp.r.basePrice"), naira(basePrice)],
-                        [t("lp.r.speed"), estimatedSpeed || t("notSet")],
-                      ].map(([label, value]) => (
-                        <div key={label} className="flex items-baseline justify-between gap-4 py-3 text-[14.5px]">
-                          <span className="shrink-0 text-app-ink-soft">{label}</span>
-                          <span className="min-w-0 text-right font-bold">{value}</span>
-                        </div>
+                  </fieldset>
+                  <fieldset className="m-0 min-w-0 border-0 p-0">
+                    <legend className="mb-3 text-[17px] font-extrabold">{t("ps.cover.deliverQ")}</legend>
+                    <div role="radiogroup" className="grid gap-2 sm:grid-cols-3">
+                      {(["same", "all", "some"] as const).map((choice) => (
+                        <Choice key={choice} on={mode === choice} onClick={() => setMode(choice)} title={t.dynamic(`ps.cover.${choice}`)} sub={t.dynamic(`ps.cover.${choice}Sub`)} />
                       ))}
                     </div>
-                    {description && <p className="mb-0 mt-4 rounded-[18px] bg-white px-5 py-4 text-[14.5px] leading-[1.55] text-app-ink-soft">{description}</p>}
-                  </>
-                )}
+                    {mode === "some" && (
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {STATE_CHIPS.map((state) => <Chip key={state} on={deliver.includes(state)} onClick={() => setDeliver((list) => toggle(list, state))}>{stateLabel(state)}</Chip>)}
+                      </div>
+                    )}
+                  </fieldset>
+                </div>
+              </>
+            )}
 
-                <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-                  {step > 1 ? (
-                    <PillButton tone="ghost" size="md" onClick={() => void goTo(step - 1)} disabled={saving}>
-                      <Icon name="arrowLeft" size={15} /> {t("back")}
+            {step === "services" && (
+              <>
+                <Heading title={t("ps.setup.svcTitle")} sub={t("ps.setup.svcSub")} />
+                <div className="mt-6 grid gap-2 sm:grid-cols-2">
+                  {SERVICES.map((service) => (
+                    <Choice key={service} multi on={services.includes(service)} onClick={() => setServices((list) => toggle(list, service))} title={t.dynamic(`ps.svcLong.${service}`)} sub={t.dynamic(`ps.svcSub.${service}`)} />
+                  ))}
+                </div>
+              </>
+            )}
+
+            {step === "rates" && (
+              <>
+                <Heading title={t("ps.rates.title")} sub={`${t("ps.rates.sub")} ${t("ps.rates.subStarter")}`} />
+                <datalist id={`${id}-places`}>
+                  <option value={NATIONWIDE} />
+                  {Object.keys(NG_REGIONS).map((region) => <option key={region} value={region} />)}
+                  {NG_STATES.map((state) => <option key={state} value={state} />)}
+                </datalist>
+                <div className={cx(cardClass, "mt-6")}>
+                  <div aria-hidden className="hidden gap-2 text-[13px] font-bold text-app-ink-soft lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,0.5fr)_minmax(0,0.5fr)_44px] lg:grid">
+                    <span>{t("ps.rates.from")}</span>
+                    <span>{t("ps.rates.to")}</span>
+                    <span>{tl("market.editor.service")}</span>
+                    <span>{tl("market.editor.size")}</span>
+                    <span>{t("ps.rates.price")}</span>
+                    <span>{t("ps.rates.minDays")}</span>
+                    <span>{t("ps.rates.maxDays")}</span>
+                  </div>
+                  <ol className="m-0 grid list-none gap-3 p-0 lg:gap-2">
+                    {rows.map((row, index) => {
+                      const sameDay = row.service === "same_day";
+                      const rid = `${id}-${row.id}`;
+                      return (
+                        <li key={row.id} className="grid grid-cols-2 gap-2 rounded-[16px] border border-app-line p-3 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,0.5fr)_minmax(0,0.5fr)_44px] lg:items-center lg:rounded-none lg:border-0 lg:p-0">
+                          <div className="min-w-0">
+                            <label htmlFor={`${rid}-from`} className={rowLabel}>{t("ps.rates.from")}</label>
+                            <input id={`${rid}-from`} list={`${id}-places`} value={row.from} onChange={(event) => updateRow(row.id, { from: event.target.value })} className={cell} />
+                          </div>
+                          <div className="min-w-0">
+                            <label htmlFor={`${rid}-to`} className={rowLabel}>{t("ps.rates.to")}</label>
+                            <input id={`${rid}-to`} list={`${id}-places`} value={row.to} onChange={(event) => updateRow(row.id, { to: event.target.value })} className={cell} />
+                          </div>
+                          <div className="min-w-0">
+                            <label htmlFor={`${rid}-service`} className={rowLabel}>{tl("market.editor.service")}</label>
+                            <select id={`${rid}-service`} value={row.service} onChange={(event) => updateRow(row.id, { service: event.target.value as DraftRate["service"], ...(event.target.value === "same_day" ? { minDays: 0, maxDays: 0 } : row.maxDays === 0 ? { minDays: 1, maxDays: 2 } : {}) })} className={cell}>
+                              {RATE_SERVICES.map((service) => <option key={service} value={service}>{t.dynamic(`ps.${SERVICE_KEYS[service]}`, service)}</option>)}
+                            </select>
+                          </div>
+                          <div className="min-w-0">
+                            <label htmlFor={`${rid}-size`} className={rowLabel}>{tl("market.editor.size")}</label>
+                            <select id={`${rid}-size`} value={row.sizeBand} onChange={(event) => updateRow(row.id, { sizeBand: event.target.value as DraftRate["sizeBand"] })} className={cell}>
+                              {SIZE_BANDS.map((band) => <option key={band} value={band}>{t.dynamic(`ps.${SIZE_KEYS[band]}`, band)}</option>)}
+                            </select>
+                          </div>
+                          <div className="col-span-2 min-w-0 lg:col-span-1">
+                            <label htmlFor={`${rid}-price`} className={rowLabel}>{t("ps.rates.price")}</label>
+                            <input id={`${rid}-price`} value={row.price} onChange={(event) => updateRow(row.id, { price: event.target.value })} inputMode="numeric" placeholder="2,500" aria-label={t("ps.rates.priceFor", { route: `${stateLabel(row.from)} → ${stateLabel(row.to)}` })} className={cell} />
+                          </div>
+                          <div className="min-w-0">
+                            <label htmlFor={`${rid}-min`} className={rowLabel}>{t("ps.rates.minDays")}</label>
+                            <input id={`${rid}-min`} value={String(row.minDays)} disabled={sameDay} onChange={(event) => updateRow(row.id, { minDays: Number(event.target.value.replace(/\D/g, "") || 0) })} inputMode="numeric" className={cell} />
+                          </div>
+                          <div className="min-w-0">
+                            <label htmlFor={`${rid}-max`} className={rowLabel}>{t("ps.rates.maxDays")}</label>
+                            <input id={`${rid}-max`} value={String(row.maxDays)} disabled={sameDay} onChange={(event) => updateRow(row.id, { maxDays: Number(event.target.value.replace(/\D/g, "") || 0) })} inputMode="numeric" className={cell} />
+                          </div>
+                          <div className="col-span-2 flex justify-end lg:col-span-1">
+                            <button
+                              type="button"
+                              onClick={() => setRows((list) => list.filter((item) => item.id !== row.id))}
+                              aria-label={`${t("ps.rates.remove")} (${index + 1})`}
+                              className="grid h-11 w-11 place-items-center rounded-full text-app-ink-soft transition hover:bg-app-canvas hover:text-app-danger"
+                            >
+                              <Icon name="x" size={16} />
+                            </button>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ol>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <PillButton tone="white" size="sm" onClick={() => setRows((list) => [...list, newDraftRate(list.at(-1)?.from || pickup[0] || "Lagos", list.at(-1)?.to || pickup[0] || "Lagos")])}>
+                      {t("ps.rates.add")}
                     </PillButton>
-                  ) : <span />}
-                  {step < STEPS.length ? (
-                    <PillButton tone="ink" size="md" onClick={() => void goTo(step + 1)} busy={saving} disabled={!canContinue}>
-                      {t("continue")} <Icon name="arrow" size={15} />
-                    </PillButton>
-                  ) : (
-                    <PillButton tone="accent" size="md" onClick={() => void submit()} busy={saving}>
-                      {t("lp.submit")} <Icon name="arrow" size={15} />
-                    </PillButton>
+                    <span className="text-[14px] text-app-ink-soft">{t("ps.rates.placeHint")}</span>
+                  </div>
+                  <div className="grid gap-4 border-t border-app-line pt-4 sm:grid-cols-2">
+                    <div className="min-w-0">
+                      <FieldLabel htmlFor={`${id}-fail`}>{t("ps.rates.reattempt")}</FieldLabel>
+                      <TextInput id={`${id}-fail`} value={fail} onChange={(event) => setFail(event.target.value)} inputMode="numeric" placeholder="0" />
+                    </div>
+                    <div className="min-w-0">
+                      <FieldLabel htmlFor={`${id}-return`}>{t("ps.rates.return")}</FieldLabel>
+                      <TextInput id={`${id}-return`} value={ret} onChange={(event) => setRet(event.target.value)} inputMode="numeric" placeholder="0" />
+                    </div>
+                    <div className="min-w-0 sm:col-span-2">
+                      <FieldLabel htmlFor={`${id}-notes`}>{t("ps.rates.notes")}</FieldLabel>
+                      <textarea id={`${id}-notes`} value={notes} onChange={(event) => setNotes(event.target.value)} rows={3} maxLength={500} className="w-full min-w-0 rounded-[16px] border border-app-line bg-white px-4 py-3 text-[16px] text-app-ink outline-none transition focus:border-app-ink" />
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {step === "payout" && (
+              <>
+                <Heading title={t("ps.setup.payTitle")} sub={t("ps.setup.paySub")} />
+                <div className={cx(cardClass, "mt-6")}>
+                  {linkedBank && (
+                    <div className="flex items-center gap-3 rounded-[16px] bg-app-success-tint p-4">
+                      <Icon name="check" size={18} />
+                      <span className="min-w-0 text-[15px] font-bold">{linkedBank.bankName} · {linkedBank.accountName}</span>
+                    </div>
+                  )}
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="min-w-0">
+                      <FieldLabel htmlFor={`${id}-bank`}>{t("ps.setup.bank")}</FieldLabel>
+                      <select id={`${id}-bank`} value={bank} onChange={(event) => setBank(event.target.value)} className={selectClass}>
+                        <option value="" />
+                        {banks.map((name) => <option key={name} value={name}>{name}</option>)}
+                      </select>
+                    </div>
+                    <div className="min-w-0">
+                      <FieldLabel htmlFor={`${id}-acct`}>{t("ps.setup.acct")}</FieldLabel>
+                      <TextInput id={`${id}-acct`} value={acct} onChange={(event) => setAcct(event.target.value.replace(/\D/g, "").slice(0, 10))} inputMode="numeric" placeholder={t("ps.setup.acctPlaceholder")} />
+                    </div>
+                  </div>
+                  {acctName && (
+                    <div className="flex items-center gap-4 rounded-[20px] bg-app-success-tint p-5">
+                      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[14px] bg-white text-app-success"><Icon name="check" size={22} /></span>
+                      <span className="min-w-0">
+                        <span className="block text-[16px] font-bold">{acctName}</span>
+                        <span className="block text-[14px] text-app-ink-soft">{t("ps.setup.isThisYou")}</span>
+                      </span>
+                    </div>
                   )}
                 </div>
               </>
             )}
+
+            {error && <div className="mt-4"><Notice tone="error">{error}</Notice></div>}
+
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+              <PillButton tone="ghost" size="md" onClick={back} disabled={busy}>
+                <Icon name="arrowLeft" size={15} /> {t("back")}
+              </PillButton>
+              {step === "payout" ? (
+                <PillButton tone="forest" size="md" onClick={next} busy={busy}>
+                  {t("ps.setup.sendReview")} <Icon name="arrow" size={15} />
+                </PillButton>
+              ) : (
+                <PillButton tone="ink" size="md" onClick={next} busy={busy}>
+                  {t("next")} <Icon name="arrow" size={15} />
+                </PillButton>
+              )}
+            </div>
           </section>
 
-          <aside className="grid content-start gap-4 xl:mt-[92px]">
+          <aside className="grid content-start gap-4 xl:mt-[52px]">
             <div className="rounded-[22px] border border-app-line bg-white p-5">
               <h2 className="m-0 text-[17px] font-extrabold">{t("whatNext")}</h2>
               <ol className="m-0 mt-3 grid list-none gap-3 p-0 text-[14px] leading-[1.5]">
-                {[
-                  t("lp.next1"),
-                  t("lp.next2"),
-                  t("lp.next3"),
-                ].map((line, index) => (
+                {[t("lp.next1"), t("lp.next2"), t("lp.next3")].map((line, index) => (
                   <li key={line} className="flex gap-3">
                     <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-app-ink text-[12px] font-extrabold text-white">{index + 1}</span>
                     <span>{line}</span>

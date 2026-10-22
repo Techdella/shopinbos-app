@@ -110,7 +110,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "menu.connectHint": "Ị na-eji delivery software? Anyị ga-ejikọọ ya maka gị",
 
   "overdue.payInto": "Kwụnye n'akaụntụ gị",
-  "overdue.manual": "Kwụọ ya otú i si eme mbụ, wee gwa anyị ego ole i kwụrụ na peeji Cash nke web.",
+  "overdue.manual": "Kwụọ onye na-ere ọ bụla ozugbo n'ụlọ akụ ha, ma ọ bụ nye ha ego ahụ n'aka, ha ga-akwado ya.",
   "overdue.check": "Akwụọla m. Lelee ọzọ",
 
   "chat.title": "Ozi",
@@ -228,6 +228,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "money.method.account": "N'akaụntụ pay-in gị",
   "money.method.settled": "Edozila ya na ndị otu Shopinbos",
   "money.method.api": "Site na software gị",
+  "money.method.seller": "Akwụrụ onye na-ere",
+  "money.method.sellerConfirmed": "Onye na-ere akwadola",
   "money.delivered": "Erutela",
   "money.noDeliveries": "Enweghị delivery n'ime ụbọchị 30 gara aga. Ego sitere n'ọrụ erutela ga-apụta ebe a.",
 
