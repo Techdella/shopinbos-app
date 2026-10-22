@@ -630,6 +630,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "cat.nothingToFix": "Nothing to fix",
   "cat.needPermission": "We need your permission for Facebook to do this. Ask us for help and we go sort am with you.",
   "cat.setUpNow": "Set am up now",
+  "cat.permsMissing": "WhatsApp don connect and your messages dey work. To show your products inside WhatsApp too, Facebook must allow Shopinbos to manage your catalog, and e no allow this time. Tap Connect again and allow everything Facebook ask for; your catalog go set itself up.",
+  "cat.connectAgain": "Connect again",
   "cat.usesNumber": "E go use the WhatsApp number wey you connect. E go take like one minute.",
   "cat.usesNumberNamed": "E go use the WhatsApp number wey you connect ({name}). E go take like one minute.",
   "cat.sendNow": "Send my products now",

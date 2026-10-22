@@ -101,7 +101,10 @@ export function WhatsAppCatalogClient({ initial, storeName, signup }: { initial:
   const missing = permissions.state === "missing";
   const showing = Boolean(catalog.id && catalog.linkedToWhatsApp && catalog.cartEnabled && catalog.catalogVisible) && catalog.lastSyncStatus !== "error";
   const syncFailed = Boolean(catalog.id) && catalog.lastSyncStatus === "error";
-  const canSetUp = !catalog.id && view.storeLive && (view.whatsapp.connected || Boolean(signup));
+  // The number is connected (messages work) but Facebook didn't grant the catalog permissions: say so plainly. A token
+  // never gains permissions later, so the way on is signing in again (which also sets the catalog up by itself).
+  const waitingOnMeta = !catalog.id && view.whatsapp.connected && missing;
+  const canSetUp = !catalog.id && !waitingOnMeta && view.storeLive && (view.whatsapp.connected || Boolean(signup));
   const when = (iso: string | null) => (iso ? formatStamp(iso, locale) : t("wa.never"));
 
   return (
@@ -145,7 +148,17 @@ export function WhatsAppCatalogClient({ initial, storeName, signup }: { initial:
             </p>
           </div>
         )}
-        {!catalog.id && !canSetUp && view.storeLive && (
+        {waitingOnMeta && view.storeLive && (
+          <div className="grid gap-3">
+            <Notice tone="info">{t("cat.permsMissing")}</Notice>
+            <div>
+              <PillButton size="md" tone="white" busy={busy === "setup"} disabled={Boolean(busy)} onClick={() => void setUp(Boolean(signup))}>
+                <Icon name="whatsapp" size={14} /> {t("cat.connectAgain")}
+              </PillButton>
+            </div>
+          </div>
+        )}
+        {!catalog.id && !canSetUp && !waitingOnMeta && view.storeLive && (
           <Notice tone="info">
             {t("cat.connectFirst")} <Link href="/home/inbox/channels" className="font-bold underline">{t("ar.channels")}</Link>.
           </Notice>

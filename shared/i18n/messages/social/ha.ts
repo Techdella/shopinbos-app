@@ -90,7 +90,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "card.confirmMeta": "Cire {name}? Sababbin saƙonni da sabunta kayayyaki za su tsaya a can. Tsofaffin hirarrakinka za su kasance.",
   "card.confirmWhatsapp": "Cire {name}? Sabbin saƙonnin WhatsApp za su daina zuwa inbox ɗinka kuma kayayyakinka za su daina sabuntawa a can. Tsofaffin chat ɗinka za su kasance.",
   "card.needs.metaProducts": "Saƙonni sun fara aiki. Don nuna kayayyakinka a Facebook da Instagram ma, ƙirƙiri business account kyauta, sannan ka taɓa ƙasa.",
-  "card.needs.waProducts": "Saƙonni suna aiki. Don nuna kayayyakinka a cikin WhatsApp ma, Facebook har yanzu yana buƙatar ya ba Shopinbos izinin sarrafa catalog ɗinka. Za mu kunna shi da zarar ya bayar; danna ƙasa don sake gwadawa.",
+  "card.needs.waProducts": "Saƙonni suna aiki. Don nuna kayayyakinka a cikin WhatsApp ma, dole Facebook ya ba Shopinbos izinin sarrafa catalog ɗinka. Cire haɗin, sake haɗawa ka amince da duk abin da Facebook ya nema.",
   "connectedOk": "An haɗa {name}. Yanzu yana aiki a duk Shopinbos: inbox ɗinka, kayayyakinka da Social posts.",
   "soon.postTiktok": "Saka a TikTok",
   "post.yours": "Accounts ɗinka:",
