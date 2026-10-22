@@ -51,3 +51,13 @@ test("uploads fit under the server's 4.5 MB request limit, with pictures shrunk 
   assert.match(read("src/components/media/media-client.ts"), /const file = await readyToSend\(picked\);/);
   assert.match(read("src/components/verification/doc-words.ts"), /The limit is 4 MB\./);
 });
+
+test("delivery partners top up on their own credits page: the email from the phone app and the top bar", async () => {
+  const credits = await import("../shared/ai-credits.ts");
+  assert.equal(credits.creditsUrlFor("logistics_partner"), "/logistics/credits");
+  assert.equal(credits.creditsUrlFor("supplier"), "/supplier/credits");
+  assert.equal(credits.creditsUrlFor("seller"), "/home/credits");
+  assert.match(read("src/app/api/mobile/credits/topup-email/route.ts"), /creditsUrlFor\(user\.role\)/);
+  assert.match(read("src/components/shell/GlobalTopBar.tsx"), /role === "logistics_partner"\) && <CreditsBadge manageHref=\{creditsUrlFor\(role\)\} \/>/);
+  assert.match(read("src/app/logistics/credits/page.tsx"), /returnTo="\/logistics\/credits"/);
+});
