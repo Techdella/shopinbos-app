@@ -856,6 +856,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "wa.moreSettings": "Ntọala Peggy",
   "wa.moreSettingsHint": "Ngwaahịa, ọda, mgbe ọ na-aza, ụda olu na ekele",
   "cat.oneSub": "Ndị ahịa ga-ahụ ngwaahịa gị na mkparịta ụka WhatsApp gị ma tinye ha n'ụgbọ.",
+  "cat.settingUp": "Anyị na-edozi catalog WhatsApp gị ma na-eziga ngwaahịa gị. Ọ ga-ewe ihe dị ka otu nkeji.",
   "cat.oneClick": "Jikọọ WhatsApp ma gosi ngwaahịa m",
   "cat.oneClickSub": "Windo Facebook ga-emepe. Banye ma họrọ nọmba gị; anyị ga-ahazi catalog ma ziga ngwaahịa gị.",
   "ch.helpTitle": "Jikọọ {title}",

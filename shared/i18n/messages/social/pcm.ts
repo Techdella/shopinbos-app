@@ -88,6 +88,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "acc.instagram": "Instagram: {name}",
   "acc.noInstagram": "Instagram never join yet. For Instagram app, change am to business account and link am to your Facebook Page, then tap",
   "card.confirmMeta": "Disconnect {name}? New messages and product updates go stop for there. Your old chats go still dey.",
+  "card.confirmWhatsapp": "Disconnect {name}? New WhatsApp messages go stop to dey enter your inbox and your products go stop to update there. Your old chats go still dey.",
   "card.needs.metaProducts": "Messages don dey work. To show your products for Facebook and Instagram too, create free business account, then tap below.",
   "card.needs.waProducts": "Messages don dey work. To show your products inside WhatsApp too, Facebook still need allow Shopinbos to manage your catalog. We go on am once e allow; tap below to try again.",
   "connectedOk": "{name} don connect. E don dey work for everywhere for Shopinbos: your inbox, your products and Social posts.",

@@ -856,6 +856,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "wa.moreSettings": "Ètò Peggy",
   "wa.moreSettingsHint": "Ọjà, àṣẹ, ìgbà tó ń dáhùn, ohùn àti ìkíni",
   "cat.oneSub": "Àwọn oníbàárà á rí ọjà rẹ nínú ìjíròrò WhatsApp rẹ, wọ́n sì lè fi wọ́n sínú kẹ̀kẹ́.",
+  "cat.settingUp": "À ń ṣètò catalog WhatsApp rẹ, a sì ń fi àwọn ọjà rẹ ránṣẹ́. Ó máa gba bí ìṣẹ́jú kan.",
   "cat.oneClick": "So WhatsApp pọ̀ kí o sì fi ọjà mi hàn",
   "cat.oneClickSub": "Fèrèsé Facebook kan máa ṣí. Wọlé kí o yan nọ́mbà rẹ; a máa ṣètò catalog, a sì máa fi ọjà rẹ ránṣẹ́.",
   "ch.helpTitle": "So {title} pọ̀",
