@@ -1,7 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db/client";
 import { updateOrderStatus } from "@/lib/orders/update-status";
-import { checkTransition, makeDeliveryCode, makePickupCode, type JobActor } from "./job-rules";
+import { checkTransition, makeDeliveryCode, makePickupCode, riderPayFor, type JobActor } from "./job-rules";
 import { emitPartnerEvent } from "./webhooks";
 import { notifyJobMoved, notifyRiderAssigned } from "@/lib/notifications/events.server";
 
@@ -62,6 +62,12 @@ export async function transitionJob(input: {
   if (input.to === "failed") data.failedAttempts = { increment: 1 };
   if (input.to === "delivered") {
     data.deliveredAt = now;
+    // The rider's earnings for this job, fixed now so a later pay change doesn't rewrite it.
+    if (job.riderId && job.riderPay === null) {
+      const rider = await db.logisticsTeamMember.findUnique({ where: { id: job.riderId }, select: { payType: true, payRate: true } });
+      const pay = riderPayFor(rider, job);
+      if (pay !== null) data.riderPay = pay;
+    }
     if (job.codAmount && job.codAmount > 0) {
       data.codCollected = input.codCollected;
       data.codMethod = input.codMethod;

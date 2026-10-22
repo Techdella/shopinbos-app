@@ -11,6 +11,7 @@ import {
   createSnapshotFromTemplate,
   getTemplateManifest,
   isBoutiqueTheme,
+  type LayoutFamily,
   type StoreEditorSnapshot,
   type TemplatePageSeed,
   type TemplatePageType,
@@ -463,6 +464,10 @@ export function Builder({
     commit((current) => ({ ...current, themeTokens: { ...current.themeTokens, [key]: value } }), `theme:${key}`);
   }, [commit]);
 
+  const setLayoutFamily = useCallback((value: LayoutFamily) => {
+    commit((current) => ({ ...current, layoutFamily: value }), "theme:layoutFamily");
+  }, [commit]);
+
   const setHeaderCopyEverywhere = useCallback((key: string, value: string) => {
     commit((current) => ({
       ...current,
@@ -821,7 +826,7 @@ export function Builder({
         onTab={setInsertTab}
       />
     ) : panel === "theme" ? (
-      <ThemeSettingsPanel draft={draft} renderer={renderer} shopper={b.store.shopper} view={themeView} onView={setThemeView} onTheme={setTheme} onHeaderCopy={setHeaderCopyEverywhere} onClose={() => setPanel("sections")} />
+      <ThemeSettingsPanel draft={draft} renderer={renderer} shopper={b.store.shopper} view={themeView} onView={setThemeView} onTheme={setTheme} onLayoutFamily={setLayoutFamily} onHeaderCopy={setHeaderCopyEverywhere} onClose={() => setPanel("sections")} />
     ) : panel === "apps" ? (
       <AppsPanel renderer={renderer} homeSections={homeSections} onToggle={toggleApp} onClose={() => setPanel("sections")} />
     ) : panel === "rex" ? (

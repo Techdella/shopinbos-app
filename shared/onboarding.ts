@@ -110,6 +110,20 @@ export const PAYMENT_METHODS: { key: PaymentMethodKey; label: string; hint: stri
 // Korapay starts off: sellers switch it on (it only shows at checkout once their wallet has a Korapay split account).
 export const DEFAULT_PAYMENT_METHODS: Record<PaymentMethodKey, boolean> = { transfer: true, card: true, korapay: false, cod: true, wa: true };
 
+/**
+ * The methods to save when a step sends some of them: the seller's saved choices (paymentConfig.methods) with the
+ * sent ones on top, so a key the step doesn't send (Korapay, switched on from the Money page) is kept, not wiped.
+ */
+export function mergePaymentMethods(saved: unknown, sent: Partial<Record<PaymentMethodKey, boolean | undefined>>): Partial<Record<PaymentMethodKey, boolean>> {
+  const previous = saved && typeof saved === "object" && !Array.isArray(saved) ? (saved as Record<string, unknown>) : {};
+  const merged: Partial<Record<PaymentMethodKey, boolean>> = {};
+  for (const key of Object.keys(DEFAULT_PAYMENT_METHODS) as PaymentMethodKey[]) {
+    const value = typeof sent[key] === "boolean" ? sent[key] : previous[key];
+    if (typeof value === "boolean") merged[key] = value;
+  }
+  return merged;
+}
+
 export interface DeliveryZone {
   name: string;
   /** Flat delivery fee in naira. */

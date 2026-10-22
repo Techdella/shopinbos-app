@@ -40,6 +40,31 @@ test("list links leave defaults out and keep the rest", () => {
   assert.deepEqual(c.parseCustomerListQuery(new URLSearchParams(c.customerListHref(query).split("?")[1])), query);
 });
 
+test("a saved segment filters the list: ?segment= round-trips, customers match by email or phone", () => {
+  const query = c.parseCustomerListQuery(new URLSearchParams("segment=cm123abc&show=vip"));
+  assert.equal(query.segment, "cm123abc");
+  assert.equal(c.customerListHref(query), "/home/customers?show=vip&segment=cm123abc");
+  assert.deepEqual(c.parseCustomerListQuery(new URLSearchParams(c.customerListHref(query).split("?")[1])), query);
+  assert.equal("segment" in c.parseCustomerListQuery({}), false, "no segment, no key");
+  assert.equal("segment" in c.parseCustomerListQuery({ segment: "../../x y" }), false, "junk ids are dropped");
+  assert.equal(c.customerListHref({ segment: null }), "/home/customers");
+
+  const customers = [
+    { key: "ada@x.com", emails: ["Ada@X.com "], phones: [null] },
+    { key: "08030000000", emails: [null], phones: ["0803 000 0000"] },
+    { key: "bola@x.com", emails: ["bola@x.com"], phones: ["+234 803 000 0000"] },
+    { key: "chi@x.com", emails: ["chi@x.com"], phones: ["0705 111 2222"] },
+    { key: "name:dayo", emails: [null], phones: [null] },
+  ];
+  assert.deepEqual(
+    c.customersInSegment(customers, [{ email: "ada@x.com", phone: null }, { email: null, phone: "+2348030000000" }]),
+    ["ada@x.com", "08030000000", "bola@x.com"],
+    "emails compare lower-cased; 0803… and +234 803… are the same phone",
+  );
+  assert.deepEqual(c.customersInSegment(customers, []), []);
+  assert.deepEqual(c.customersInSegment(customers, [{ email: "nobody@x.com", phone: null }]), []);
+});
+
 test("pages of 50, with page numbers around the current one", () => {
   assert.equal(c.CUSTOMERS_PAGE_SIZE, 50);
   assert.equal(c.pageCount(0), 1);

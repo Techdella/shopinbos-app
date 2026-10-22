@@ -20,7 +20,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Visual Section Previews (Current)
 - Created `SectionPreview.tsx` — `SectionPreviewCard` renders an SVG-based layout preview for each section kind (hero-split, featured-products, testimonials, newsletter, etc.) with color-coded blocks and item indicators. `SectionPreviewPopover` wraps any element and shows the preview card on hover.
-- Wired into `EditorClient.tsx` section library — each section entry shows a preview popover on hover
+- Wired into the builder's section pickers (the old `EditorClient.tsx` was removed; `/home/editor` redirects to `/seller/store/builder`)
 - Wired into `StoreEditor.tsx` elements sidebar and section picker modal — element items with `TEMPLATE_KIND_BY_ELEMENT` mappings show preview popovers
 
 ## Previous Completed Work

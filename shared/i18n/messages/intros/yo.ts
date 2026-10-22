@@ -609,7 +609,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "supplier-buyers.2.caption": "Wo bí ṣọ́ọ̀bù kọ̀ọ̀kan ṣe ń ṣe.",
   "supplier-buyers.2.sub": "Glow by Amaka ta ìgò 86 lóṣù yìí. Abuja Beauty ta 12.",
   "supplier-buyers.3.caption": "Bá wọn sọ̀rọ̀ tààrà.",
-  "supplier-buyers.3.sub": "Sọ fún àwọn ṣọ́ọ̀bù rẹ tó dára jù nípa òórùn tuntun ṣáájú ẹnikẹ́ni.",
+  "supplier-buyers.3.sub": "Àwọn olùtẹ̀lé ló kọ́kọ́ ń gbọ́: sọ fún wọn nípa òórùn tuntun ṣáájú ẹnikẹ́ni.",
   "supplier-buyers.4.caption": "Dropship tàbí wholesale.",
   "supplier-buyers.4.sub": "Àwọn kan ń tà láì ní stock, àwọn kan ń rà ní bulk. Méjèèjì ń hàn níbí.",
   "supplier-buyers.5.caption": "Ran àwọn buyers rẹ tó dára jù lọ́wọ́ láti dàgbà.",

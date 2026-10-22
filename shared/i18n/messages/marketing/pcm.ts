@@ -367,6 +367,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "seg.peopleCount": "{count} people",
   "seg.noRules": "No rules yet. Edit am to add some.",
   "seg.messageThem": "Message dem",
+  "seg.seePeople": "See the people",
   "seg.emptyTitle": "No segments yet",
   "seg.emptyAction": "Start with people wey dey buy again",
   "seg.emptyBody": "Segment na group wey you save, like “spend pass ₦50,000” or “buy the Ankara dress”. Use am for campaigns, automations and discounts.",

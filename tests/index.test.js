@@ -821,7 +821,9 @@ test("launch QA regressions stay fixed", () => {
   assert.match(validateRoute, /redemptionError/);
   assert.match(schemas, /DiscountTypeSchema = z\.enum\(\["percentage", "fixed_amount", "free_shipping"\]\)/);
   assert.match(productsRoute, /\n\s+retailPrice,\n/);
-  assert.match(nextConfig, /ignoreBuildErrors: false/);
+  // Type errors fail every build: next build skips its own check (memory), so the build script runs tsc first.
+  assert.match(nextConfig, /ignoreBuildErrors: true/);
+  assert.match(read("package.json"), /"build": "npm run typecheck && next build/);
 });
 
 test("seller insights are computed from real orders, not sample data", () => {

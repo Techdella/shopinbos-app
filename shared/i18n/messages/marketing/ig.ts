@@ -367,6 +367,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "seg.peopleCount": "Mmadụ {count}",
   "seg.noRules": "Enweghị iwu ugbu a. Dezie ya ka i tinye ụfọdụ.",
   "seg.messageThem": "Zitere ha ozi",
+  "seg.seePeople": "Hụ ndị ahụ",
   "seg.emptyTitle": "Enweghị segments ugbu a",
   "seg.emptyAction": "Malite na ndị na-azụghachi",
   "seg.emptyBody": "Segment bụ otu echekwara, dịka “mefuru karịa ₦50,000” ma ọ bụ “zụtara uwe Ankara”. Jiri ya maka campaigns, automations na discounts.",

@@ -5,6 +5,7 @@ import { ok, apiError, noContent } from "@/lib/api/response";
 import { parseBody } from "@/lib/api/validate";
 import { CustomerSegmentUpdateSchema } from "@/lib/schemas";
 import type { AuthUser } from "@/lib/auth/types";
+import { MarketingError, deleteSegment, updateSegment } from "@/lib/marketing/segments";
 
 export const GET = withSeller(async (
   req: NextRequest,
@@ -36,12 +37,12 @@ export const PATCH = withSeller(async (
   const parsed = await parseBody(CustomerSegmentUpdateSchema, req);
   if ("error" in parsed) return parsed.error;
 
-  const updated = await db.customerSegment.update({
-    where: { id: params.id },
-    data: parsed.data,
-  });
-
-  return ok(updated);
+  try {
+    return ok(await updateSegment(store.id, params.id, parsed.data));
+  } catch (error) {
+    if (error instanceof MarketingError) return apiError("BAD_REQUEST", error.message, 400);
+    throw error;
+  }
 });
 
 export const DELETE = withSeller(async (
@@ -56,7 +57,13 @@ export const DELETE = withSeller(async (
   });
   if (!existing) return apiError("NOT_FOUND", "Segment not found", 404);
 
-  await db.customerSegment.delete({ where: { id: params.id } });
+  try {
+    // Refuses while a scheduled or sending campaign uses the segment.
+    await deleteSegment(store.id, params.id);
+  } catch (error) {
+    if (error instanceof MarketingError) return apiError("CONFLICT", error.message, 409);
+    throw error;
+  }
 
   return noContent();
 });

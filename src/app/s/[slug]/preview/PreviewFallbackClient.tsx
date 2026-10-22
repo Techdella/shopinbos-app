@@ -68,7 +68,7 @@ export function PreviewFallbackClient({ storeBasePath, slug }: PreviewFallbackCl
         </svg>
         <div style={{ fontSize: 16, fontWeight: 600, color: "#1C2333" }}>Preview unavailable</div>
         <p style={{ maxWidth: 400, lineHeight: 1.6 }}>{error || "Could not load store data. Make sure you are logged in and have created a store."}</p>
-        <a href="/home/editor" style={{
+        <a href="/seller/store/builder" style={{
           padding: "10px 20px", borderRadius: 8, background: "#0E9E85", color: "#fff",
           textDecoration: "none", fontWeight: 600, fontSize: 14,
         }}>Open store editor</a>

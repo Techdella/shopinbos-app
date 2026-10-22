@@ -162,6 +162,8 @@ export interface RexStudioPromptInput {
   theme: { id: string; name: string };
   themes: Array<{ id: string; name: string; description: string }>;
   allowedKinds: string[];
+  /** The current theme is a 2026 (boutique) theme, so it reads fontPair, buttonShape, pageWidth and productRatio. */
+  boutique?: boolean;
   /** The draft as Rex should see it: pages, sections and their words. */
   draft: unknown;
   products: Array<{ name: string; price: string; hasPhoto: boolean }>;
@@ -204,10 +206,13 @@ Section kinds this theme can show: ${input.allowedKinds.join(", ")}.
 Reply with ONE JSON object only, no Markdown:
 {"reply": "1-3 short sentences in plain words explaining what you changed and why",
  "theme": null or a theme id to switch to,
- "tokens": null or {"heroBg","heroText","accent","ctaBg","ctaText","paperBg","cardBg","ink","muted","border": "#RRGGBB", "headingStyle": "serif"|"grotesk", "radius": "soft"|"rounded"|"sharp"} (only the ones you change),
+ "tokens": null or {"heroBg","heroText","accent","ctaBg","ctaText","paperBg","cardBg","ink","muted","border": "#RRGGBB", "headingStyle": "serif"|"grotesk", "radius": "soft"|"rounded"|"sharp", "fontPair": "theme"|"classic"|"modern"|"clean"|"bold", "buttonShape": "theme"|"square"|"rounded"|"pill", "pageWidth": "narrow"|"standard"|"wide", "productRatio": "theme"|"portrait"|"square"|"landscape"} (only the ones you change),
  "tokensSummary": "short past-tense line, e.g. Gold accents and serif headings",
+ "layout": null or a store layout for classic themes: "minimal-showcase"|"editorial-boutique"|"fashion-runway"|"food-market"|"home-living"|"electronics-grid"|"book-lifestyle"|"pet-lifestyle"|"marketplace-grid",
  "pages": [{"page": "about", "title": "About us", "metaTitle": "...", "metaDescription": "..."}] (to add a page or fix its search title/description),
  "ops": [{"action": "update"|"add"|"remove"|"hide"|"show", "page": "home", "kind": "hero-split", "sectionId": "optional id from the draft", "copy": {...}, "items": [...], "imageUrl": "https://...", "position": "top"|"bottom", "summary": "short past-tense line for the seller, e.g. Wrote the homepage in Pidgin"}]}
+
+Look choices: the draft's "style" shows what this theme reads. ${input.boutique ? `This is a 2026 theme: change fonts with "fontPair" (classic = serif headings and sans text, modern = grotesk headings, clean = all sans, bold = all grotesk, theme = the theme's own), button corners with "buttonShape", how wide pages run with "pageWidth" and product photo shape with "productRatio". "headingStyle", "radius" and "layout" don't apply here.` : `This is a classic theme: change heading fonts with "headingStyle", corners with "radius" and the whole store's layout with "layout". "fontPair", "buttonShape", "pageWidth" and "productRatio" don't apply here.`}
 
 Rules: change only what the seller asked; keep everything else. Write in the seller's language and voice (Nigerian Pidgin when asked). Keep headlines short. When you add a section always give it a title and body. Contrast must stay readable. If the request is a question or you can't do it here (products, prices, delivery fees, payments, domains), answer in "reply", leave ops empty, and say where in Shopinbos they can do it. Do not use emojis.`;
 }
