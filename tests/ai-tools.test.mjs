@@ -243,7 +243,15 @@ let aiLimited = false;
 
 globalThis.__aiMocks = {
   "@/lib/db/client": { db },
-  "@/lib/ai/usage": { meterAi: async () => (aiLimited ? { json: async () => ({ error: { message: "You've used today's 60 AI requests." } }) } : null) },
+  // Allows by default; aiLimited makes every meter say no, the way the real one does (a 429 response, no credits taken).
+  "@/lib/ai/usage": (() => {
+    const blocked = () => ({ json: async () => ({ error: { message: "You've used today's 60 AI requests." } }) });
+    return {
+      meterAi: record("meterAi", () => (aiLimited ? blocked() : null)),
+      meterAiCharged: record("meterAiCharged", (userId, kind, units = 1) => (aiLimited ? { blocked: blocked(), credits: 0 } : { blocked: null, credits: units })),
+      refundAi: record("refundAi", undefined),
+    };
+  })(),
   "@/lib/ai/text": {
     aiText: async () => (aiReply ? { text: aiReply, provider: "anthropic" } : null),
     firstJsonObject: (raw) => { try { return JSON.parse(raw); } catch { return null; } },
@@ -407,8 +415,18 @@ globalThis.__aiMocks = {
   },
   "@/lib/ai/rex/logo": { LOGO_STYLES: ["minimal", "bold", "illustrative"], drawLogoOptions: record("drawLogoOptions", { logos: [{ url: "https://proj.supabase.co/l.webp", label: "Minimal", palette: {} }], failures: [] }) },
   "@/lib/store-health": { computeStoreHealth: () => ({ score: 62, missing: [{ label: "Add an About page", rexPrompt: "Write my About page", href: null }] }) },
-  "@/lib/store-templates": { getTemplateManifest: (id) => (id === "missing" ? null : { id }) },
-  "@/lib/store-templates/theme-library": { THEME_LIBRARY: [{ id: "noir", name: "Noir", blurb: "Dark", preview: { bg: "#000", ink: "#fff", accent: "#c90", dark: true } }] },
+  "@/lib/store-templates": { getTemplateManifest: (id) => (id === "missing" ? null : { id }), isBoutiqueTheme: (id) => ["breeze", "noir", "zuma"].includes(id) },
+  "@/lib/store-templates/theme-library": {
+    THEME_LIBRARY: [{ id: "noir", name: "Noir", tier: "premium", blurb: "Dark", preview: { bg: "#000", ink: "#fff", accent: "#c90", dark: true } }],
+    tierIncludes: (allowed, tier) => ["basic", "premium", "platinum"].indexOf(tier) <= ["basic", "premium", "platinum"].indexOf(allowed),
+  },
+  "@/lib/theme-access": { TIER_PLAN_LABEL: { basic: "Free", premium: "Starter", platinum: "Growth" } },
+  // The seller's plan includes premium themes (Noir, the one the tests switch to).
+  // Plan gate for theme switches: Noir is in the seller's plan, "zuma" (platinum) is not.
+  "@/lib/plans/gates.server": {
+    themeProblem: record("themeProblem", (userId, themeId) => (userId === USER_A && themeId === "noir" ? null : "Zuma comes with the Growth plan.")),
+  },
+  "@/lib/theme-access.server": { loadSellerThemeAccess: record("loadSellerThemeAccess", () => ({ tier: "premium", owned: [] })) },
   "@/lib/ai/rex/studio-edit.server": {
     loadStudioStore: record("loadStudioStore", (userId) => (userId === USER_A ? { id: "store-A", name: "Ada Fabrics", brandSettings: {} } : null)),
     runStudioEdit: record("runStudioEdit", { changes: ["Rewrote the banner"], draft: { templateId: "breeze" }, version: { id: "v2", n: 2 }, undoTo: "v1", reply: "Done", versions: [] }),
@@ -545,6 +563,7 @@ const REX_VALID = {
   edit_store_section: { instruction: "Rewrite the banner in Pidgin", page: "home" },
   rebuild_section: { page: "about", section: "our story", direction: null },
   switch_theme: { themeId: "noir" },
+  set_theme_style: { fontPair: "bold", buttonShape: "pill", pageWidth: null, productRatio: null, headingStyle: null, corners: null, layout: null },
   write_product_copy: { product: "Ankara tote", brief: null },
   create_segment: { name: "Repeat buyers", description: null, minOrders: 2, minSpent: null, tag: null },
   create_campaign: { name: "Payday", subject: "Payday treats", message: "Hello! Our payday sale starts today with new totes.", audience: "all", segment: null, type: null },
@@ -715,9 +734,14 @@ test("Peggy's drafting tools save drafts in the seller's shop and stop at the AI
   await assert.rejects(runPeggy("improve_email_copy", { template: "Bola's secret", instruction: "Shorter" }), /No saved template/);
 
   aiLimited = true;
-  await assert.rejects(runPeggy("draft_blog_post", PEGGY_VALID.draft_blog_post), /allowance/);
-  await assert.rejects(runPeggy("write_copy", PEGGY_VALID.write_copy), /allowance/);
-  aiLimited = false;
+  try {
+    const posts = called("saveMarkdownPost").length;
+    await assert.rejects(runPeggy("draft_blog_post", PEGGY_VALID.draft_blog_post), /out of AI credits/);
+    await assert.rejects(runPeggy("write_copy", PEGGY_VALID.write_copy), /out of AI credits/);
+    assert.equal(called("saveMarkdownPost").length, posts, "nothing is saved once the allowance is used up");
+  } finally {
+    aiLimited = false;
+  }
   assertOnlyStoreA(d);
 });
 
@@ -968,8 +992,11 @@ test("Rex picture tools edit only the store's own photos and never save by thems
   assert.equal(d.store.rows[0].logoUrl, undefined, "the logo is only set when the seller taps it");
 
   aiLimited = true;
-  await assert.rejects(runRex("generate_product_image", REX_VALID.generate_product_image), /AI requests.*nothing was made/);
-  aiLimited = false;
+  try {
+    await assert.rejects(runRex("generate_product_image", REX_VALID.generate_product_image), /AI requests.*nothing was made/);
+  } finally {
+    aiLimited = false;
+  }
 });
 
 test("Rex video, copy and store tools make drafts and cards, scoped to the seller", async () => {
@@ -1003,6 +1030,14 @@ test("Rex video, copy and store tools make drafts and cards, scoped to the selle
   assert.match(section.content, /DRAFT.*shoppers see nothing until they press Publish/);
   assert.equal((await runRex("rebuild_section", REX_VALID.rebuild_section)).card.type, "store");
   assert.equal((await runRex("switch_theme", REX_VALID.switch_theme)).card.version.n, 3);
+  assert.deepEqual(called("themeProblem")[0].args.slice(0, 2), [USER_A, "noir"], "the plan gate checks the signed-in seller");
+  const applied = called("applyStudioPlan").length;
+  await assert.rejects(runRex("switch_theme", { themeId: "zuma" }), /Growth plan.*Nothing changed/, "a theme outside the plan is refused");
+  assert.equal(called("applyStudioPlan").length, applied, "a refused theme changes nothing");
+  assert.equal((await runRex("set_theme_style", REX_VALID.set_theme_style)).card.type, "store");
+  const styled = called("applyStudioPlan").at(-1).args;
+  assert.equal(styled[0].id, "store-A", "the style changes the seller's own draft");
+  assert.deepEqual(styled[1].tokens, { fontPair: "bold", buttonShape: "pill" }, "only the styles asked for change");
   await assert.rejects(runRex("edit_store_section", REX_VALID.edit_store_section, { ...rexCtx(), userId: "user-B-without-studio" }), /couldn't be loaded/);
 });
 
@@ -1041,9 +1076,13 @@ test("Rex's instructions treat tool results and photos as data", () => {
 });
 
 test("AI routes that spend money are metered", () => {
-  for (const route of ["voiceover", "video-script", "product-drafts", "rex", "generate-image", "enhance-image", "generate-logo", "transcribe", "marketing-copy", "copy", "store-editor"]) {
+  // Rex's store-editor preview is free to look at but still capped per day; applying it is what costs credits.
+  assert.match(readFileSync(new URL("../src/app/api/ai/store-editor/route.ts", import.meta.url), "utf8"), /const (\w+) = await meterAiPreview\(user\.id[^\n]*\n\s*if \(\1\) return \1;/, "store-editor previews are capped");
+  assert.match(readFileSync(new URL("../src/app/api/ai/store-editor/apply/route.ts", import.meta.url), "utf8"), /const \{ blocked, credits \} = await meterAiCharged\(user\.id[^\n]*\n\s*if \(blocked\) return blocked;/, "applying Rex's store edit is charged");
+  for (const route of ["voiceover", "video-script", "product-drafts", "rex", "generate-image", "enhance-image", "generate-logo", "transcribe", "marketing-copy", "copy"]) {
     const source = readFileSync(new URL(`../src/app/api/ai/${route}/route.ts`, import.meta.url), "utf8");
-    assert.match(source, /meterAi\(user\.id/, `${route} is metered`);
+    // Either meterAi (returns the 429) or meterAiCharged (returns { blocked, credits }); both must stop the request.
+    assert.match(source, /const (\w+) = await meterAi\(user\.id[^\n]*\n\s*if \(\1\) return \1;|const (\w+) = await meterAiCharged\(user\.id[^\n]*\n\s*if \(\2\.blocked\) return \2\.blocked;/, `${route} is metered`);
   }
   assert.match(readFileSync(new URL("../src/app/api/app/peggy/route.ts", import.meta.url), "utf8"), /meterAi\(user\.id, "text"\)/);
 });
@@ -1161,8 +1200,11 @@ test("get_product and draft_product_content read only the seller's products; dra
   const next = await runPeggy("edit_products", { target: null, changes: null, perProduct, confirmCode: null });
   assert.match(next.content, /Description: Hand-stitched\. → About Ankara tote\./, "what Peggy wrote goes through the same preview");
   aiLimited = true;
-  await assert.rejects(runPeggy("draft_product_content", PEGGY_VALID.draft_product_content), /allowance/);
-  aiLimited = false;
+  try {
+    await assert.rejects(runPeggy("draft_product_content", PEGGY_VALID.draft_product_content), /out of AI credits/);
+  } finally {
+    aiLimited = false;
+  }
 });
 
 test("reviews_list, reviews_reply and reviews_moderate act on the seller's own reviews, with a code", async () => {

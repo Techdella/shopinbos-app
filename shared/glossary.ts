@@ -37,6 +37,7 @@ export const GLOSSARY: GlossaryEntry[] = [
   { key: "roas", term: "ROAS", short: "Return on ad spend: how much you sold for every ₦1 the advert cost.", example: "You spent ₦10,000 and sold ₦40,000: a ROAS of 4.", aliases: ["return on ad spend"], introKey: "ads" },
   { key: "reviews", term: "Reviews", short: "Stars and comments from buyers that help new customers trust you.", example: "“Delivered in Ikeja same day. Fabric is lovely!” ★★★★★", aliases: ["review", "ratings", "testimonials", "reviews and ratings"], introKey: "reviews" },
   { key: "video-studio", term: "Video studio", short: "Rex turns your product photos into short videos for TikTok, Reels and Status.", example: "Three photos of your sneakers become a 15-second TikTok with music.", aliases: ["video", "videos"], introKey: "video-studio" },
+  { key: "social-posts", term: "Social posts", short: "Posts for Facebook, Instagram, TikTok and WhatsApp, planned on a calendar so each goes out on time.", example: "Plan Monday’s new-arrivals post on Friday and it goes up on Instagram at 7pm by itself.", aliases: ["social post", "social media posts", "social calendar", "content calendar", "scheduled posts"] },
 
   // ── Selling channels and inbox ──
   { key: "channels", term: "Sell everywhere", short: "Connect WhatsApp, Instagram, TikTok and Facebook so orders from all of them land in one place.", example: "A buyer on Instagram and one on WhatsApp both show up in Orders.", aliases: ["channels", "channel", "sales channels", "social selling"], introKey: "channels" },
@@ -134,6 +135,7 @@ export const GLOSSARY: GlossaryEntry[] = [
   { key: "on-time-rate", term: "On-time rate", short: "The share of orders or deliveries you finished by the time you promised.", example: "48 of 50 deliveries on time this week: a 96% on-time rate.", aliases: ["on time rate", "on-time", "performance and reviews"], introKey: "partner-performance" },
   { key: "api-key", term: "API key", short: "A secret code that lets another app work with your Shopinbos account.", example: "Paste it into your dispatch software, and keep it secret like a password.", aliases: ["api keys", "secret key"], introKey: "partner-connect" },
   { key: "buyers", term: "Buyers", short: "The shops that sell or buy your products.", example: "14 shops sell your sandals; 3 buy in bulk every month.", aliases: ["buyer", "shops selling your products"], introKey: "supplier-buyers" },
+  { key: "followers", term: "Followers", short: "Shops that follow you to hear first about your new stock, price drops and restocks.", example: "62 shops follow you, so your “200 new Ankara prints” update reaches all 62.", aliases: ["follower", "follows"], introKey: "supplier-buyers" },
   { key: "verification", term: "Verification", short: "Checking your ID or company papers so shops and buyers can trust you.", example: "Upload your CAC certificate and get a “Verified” badge.", aliases: ["verify", "kyc", "kyb", "cac", "verified"], introKey: "verification" },
 ];
 
@@ -195,6 +197,7 @@ export const NAV_TERMS: Record<GlossaryRole, Record<string, string>> = {
     "your-store": "store-builder", editor: "store-builder", pages: "pages", navigation: "menus", blog: "content", checkout: "checkout", cart: "abandoned-carts", seo: "seo", legal: "legal-pages",
     "rex-studio": "studio", "studio-home": "studio", "studio-images": "studio", "studio-logo": "brand-kit", "brand-kit": "brand-kit", media: "media", templates: "themes", domain: "domain",
     marketing: "campaigns", "marketing-overview": "campaigns", campaigns: "campaigns", "seasonal-campaigns": "seasonal-campaigns", automations: "automations", "email-templates": "templates", "mkt-forms": "forms", "mkt-rewards": "rewards", "marketing-analytics": "analytics",
+    "social-posts": "social-posts", "social-calendar": "social-posts", "social-new": "social-posts", "social-designs": "studio", "social-accounts": "social-posts",
     ads: "ads", video: "video-studio", discounts: "discounts", affiliates: "affiliates", "sell-everywhere": "channels",
     money: "payments", payments: "payments", invoices: "invoices", taxes: "taxes",
     delivery: "logistics", "delivery-partners": "logistics", "delivery-my-partners": "logistics", "delivery-exceptions": "delivery-exceptions", "delivery-analytics": "analytics", "delivery-settings": "delivery-zones", shipping: "shipping-rates", labels: "labels",
@@ -203,8 +206,7 @@ export const NAV_TERMS: Record<GlossaryRole, Record<string, string>> = {
   supplier: {
     ...SHARED_NAV,
     orders: "fulfilment", "dropship-orders": "dropship", "wholesale-orders": "wholesale", "quote-requests": "quote-requests",
-    products: "dropship", buyers: "buyers", "buyers-all": "buyers", delivery: "logistics", agreements: "dropship-agreement",
-    "products-import": "imports",
+    products: "dropship", "products-import": "imports", buyers: "buyers", "buyers-all": "buyers", followers: "followers", delivery: "logistics", agreements: "dropship-agreement",
   },
   logistics_partner: {
     ...SHARED_NAV,

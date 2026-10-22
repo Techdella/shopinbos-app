@@ -177,7 +177,8 @@ export async function disconnectPlatform(storeId: string, platform: LivePlatform
 
 // ─── WhatsApp ───────────────────────────────────────────────────────────────
 
-export type WhatsAppConnectResult = { ok: true } | { ok: false; needsSignup: true } | { ok: false; error: string };
+/** permission: the number is connected but Meta didn't grant the catalog permissions (the card explains it). */
+export type WhatsAppConnectResult = { ok: true } | { ok: false; needsSignup: true } | { ok: false; error: string; permission?: boolean };
 
 /**
  * One tap: on the store's connected WhatsApp number, use the catalog they already have (or ours from before), or
@@ -190,11 +191,16 @@ export async function connectWhatsAppCatalog(storeId: string): Promise<WhatsAppC
   if (!store) return { ok: false, error: "No store" };
   const row = await ensureCatalogRow(storeId);
   if (!row.catalogId) {
+    // A failure because Meta didn't grant the catalog permissions is flagged, so the card explains it.
+    const failed = async (error: string) => {
+      const latest = await ensureCatalogRow(storeId).catch(() => null);
+      return { ok: false as const, error, ...(latest?.permissionState === "missing" ? { permission: true } : {}) };
+    };
     const listed = await listCatalogs(storeId);
-    if ("error" in listed) return { ok: false, error: listed.error };
+    if ("error" in listed) return failed(listed.error);
     const pick = listed.catalogs.find((item) => item.name === store.name) ?? listed.catalogs[0];
     const chosen = pick ? await selectCatalog(storeId, pick.id, pick.name) : await createCatalog(storeId, store.name);
-    if (!chosen.ok) return { ok: false, error: chosen.error };
+    if (!chosen.ok) return failed(chosen.error);
   }
   const summary = await syncCatalog(storeId, { manual: true });
   if (summary.status === "error") return { ok: false, error: summary.message ?? "Sync failed" };
@@ -251,7 +257,7 @@ export async function channelCards(storeId: string): Promise<{ cards: ChannelCar
       signupConfigured: platformConfigured("whatsapp"),
       whatsappConnected: waChannel?.status === "connected",
       catalog: catalog
-        ? { catalogId: catalog.catalogId, lastSyncAt: catalog.lastSyncAt, lastSyncStatus: catalog.lastSyncStatus, syncing: Boolean(catalog.syncStartedAt && catalog.syncStartedAt.getTime() > Date.now() - LOCK_MS) }
+        ? { catalogId: catalog.catalogId, lastSyncAt: catalog.lastSyncAt, lastSyncStatus: catalog.lastSyncStatus, syncing: Boolean(catalog.syncStartedAt && catalog.syncStartedAt.getTime() > Date.now() - LOCK_MS), permissionMissing: catalog.permissionState === "missing" }
         : null,
       synced: counts?.synced ?? 0,
     }),

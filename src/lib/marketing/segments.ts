@@ -2,11 +2,13 @@ import "server-only";
 
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
-import { contactsInSegment, reachability } from "./contacts";
-import { describeRules, normalizeRules, type SegmentRules } from "./segment-rules";
+import { contactsInSegment, loadContacts, reachability } from "./contacts";
+import { countSegments, describeRules, normalizeRules, staleSegmentCounts, type SegmentRules } from "./segment-rules";
 
 // Saved segments: rules over subscribers, buyers and orders. Counts are recomputed from live data whenever
-// a segment is saved or previewed, and cached on CustomerSegment.subscriberCount for lists.
+// a segment is saved or previewed, and cached on CustomerSegment.subscriberCount for lists. Lists that show
+// counts to the seller (segments page, campaign editor) ask listSegments to refresh them: contacts are loaded
+// once and every segment is evaluated in memory, and only changed counts are written back.
 
 export class MarketingError extends Error {}
 
@@ -64,10 +66,26 @@ export async function deleteSegment(storeId: string, id: string) {
   await db.customerSegment.delete({ where: { id } });
 }
 
-export async function listSegments(storeId: string) {
+export async function listSegments(storeId: string, options: { refreshCounts?: boolean } = {}) {
   const rows = await db.customerSegment.findMany({ where: { storeId }, orderBy: { updatedAt: "desc" }, take: 200 });
-  return rows.map((row) => {
+  const segments = rows.map((row) => {
     const rules = normalizeRules(row.rules);
     return { id: row.id, name: row.name, description: row.description, rules, summary: describeRules(rules), count: row.subscriberCount, updatedAt: row.updatedAt };
   });
+  if (options.refreshCounts && segments.length) {
+    try {
+      const counts = countSegments(await loadContacts(storeId), segments);
+      const stale = staleSegmentCounts(segments, counts);
+      if (stale.length) {
+        const byId = new Map(segments.map((s) => [s.id, s]));
+        // updatedAt is passed through so a recount doesn't reorder the list or look like an edit.
+        await db.$transaction(stale.map(({ id, count }) => db.customerSegment.update({ where: { id }, data: { subscriberCount: count, updatedAt: byId.get(id)!.updatedAt } })));
+      }
+      for (const segment of segments) segment.count = counts[segment.id] ?? segment.count;
+    } catch (error) {
+      // Cached counts are still useful; a failed recount shouldn't break the page.
+      console.error("[segments] count refresh failed", error);
+    }
+  }
+  return segments;
 }

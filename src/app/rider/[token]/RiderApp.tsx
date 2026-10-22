@@ -28,6 +28,7 @@ export interface RiderRun {
   pickupAddress: string;
   /** Supplier pickups: "Pick up 12–4pm today". */
   pickupWindow?: string | null;
+  /** The rider's earnings for the run's drops once their pay is set (paySet), else the delivery fees. */
   fees: number;
   drops: RiderDrop[];
 }
@@ -43,6 +44,7 @@ export function RiderApp({
   token,
   rider,
   earnedToday,
+  paySet,
   dropsDone,
   cashInHand,
   runs,
@@ -50,6 +52,8 @@ export function RiderApp({
   token: string;
   rider: { name: string; partnerName: string; online: boolean };
   earnedToday: number;
+  /** The partner set this rider's pay, so the amounts are the rider's earnings rather than delivery fees. */
+  paySet: boolean;
   dropsDone: number;
   cashInHand: number;
   runs: RiderRun[];
@@ -111,7 +115,7 @@ export function RiderApp({
 
       <section aria-label={t("app.today")} className="mt-3 grid grid-cols-[1fr_auto] gap-3 rounded-[22px] bg-app-ink p-4 text-white sm:p-5">
         <div className="min-w-0">
-          <p className="m-0 text-[13.5px] text-white/70">{t("app.feesToday")}</p>
+          <p className="m-0 text-[13.5px] text-white/70">{t(paySet ? "app.earnedToday" : "app.feesToday")}</p>
           <p className="m-0 mt-1 text-[32px] font-extrabold leading-none tracking-[-0.02em]">{naira(earnedToday)}</p>
           <p className="m-0 mt-2 text-[13.5px] text-white/70">{t("app.dropsDone", { count: dropsDone })}</p>
         </div>
@@ -138,7 +142,7 @@ export function RiderApp({
         </div>
       ) : (
         <div className="mt-3 grid gap-4">
-          {runs.map((run) => <RunCard key={run.key} token={token} run={run} onError={setError} />)}
+          {runs.map((run) => <RunCard key={run.key} token={token} run={run} paySet={paySet} onError={setError} />)}
         </div>
       )}
 
@@ -151,7 +155,7 @@ export function RiderApp({
   );
 }
 
-function RunCard({ token, run, onError }: { token: string; run: RiderRun; onError: (error: string | null) => void }) {
+function RunCard({ token, run, paySet, onError }: { token: string; run: RiderRun; paySet: boolean; onError: (error: string | null) => void }) {
   const router = useRouter();
   const t = useT("rider");
   const [pending, startTransition] = useTransition();
@@ -185,7 +189,7 @@ function RunCard({ token, run, onError }: { token: string; run: RiderRun; onErro
           </span>
         )}
       </div>
-      <p className="m-0 mt-3 text-[22px] font-extrabold tracking-[-0.01em]">{t("run.fees", { amount: naira(run.fees) })}</p>
+      <p className="m-0 mt-3 text-[22px] font-extrabold tracking-[-0.01em]">{t(paySet ? "run.youEarn" : "run.fees", { amount: naira(run.fees) })}</p>
 
       {toPickUp.length > 0 && (
         <div className="mt-3">

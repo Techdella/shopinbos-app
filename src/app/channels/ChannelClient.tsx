@@ -108,7 +108,8 @@ export function ConnectCard({
         if (!res.ok) throw new Error("signup");
         result = await connectWhatsAppAction();
       }
-      if (!result.ok) setError(t("card.waFailed"));
+      // Number connected but no catalog permission: the card itself says so, so no red line.
+      if (!result.ok && !("permission" in result && result.permission)) setError(t("card.waFailed"));
     } catch (caught) {
       // Closing Facebook's window isn't a problem worth a red line.
       if (!(caught instanceof EmbeddedSignupError && caught.code === "closed")) setError(t("card.waFailed"));
@@ -132,7 +133,9 @@ export function ConnectCard({
   );
 
   // The accounts this card brought in, by name. Facebook & Instagram says plainly when Instagram didn't come along.
-  const linked = state.kind !== "connect" && state.kind !== "soon";
+  // Also shown on "Connect" when the inbox already has them (connected another way), so the card doesn't look empty.
+  const inboxHas = platform === "whatsapp" ? Boolean(accounts?.whatsapp) : platform === "meta" ? Boolean(accounts?.facebook) : false;
+  const linked = state.kind !== "soon" && (state.kind !== "connect" || inboxHas);
   const accountLines: ReactNode[] = [];
   if (linked && platform === "whatsapp" && accounts?.whatsapp) accountLines.push(<AccountLine key="wa" text={t("acc.whatsapp", { name: accounts.whatsapp })} />);
   if (linked && platform === "meta" && accounts) {
@@ -201,11 +204,11 @@ export function ConnectCard({
     case "needs_account": {
       const which = platform === "whatsapp" ? "meta" : platform;
       // Facebook & Instagram messages can be on already; only the products need the free business account.
-      const messagesOn = platform === "meta" && Boolean(accounts?.facebook);
+      const messagesOn = (platform === "meta" && Boolean(accounts?.facebook)) || (platform === "whatsapp" && Boolean(accounts?.whatsapp));
       body = (
         <div className="grid gap-2.5">
           {messagesOn && <span className="text-[14px] font-bold text-app-success" role="status">{t("card.connected")}</span>}
-          <p className="m-0 text-[14px]">{messagesOn ? t("card.needs.metaProducts") : t(`card.needs.${which}`)}</p>
+          <p className="m-0 text-[14px]">{messagesOn ? t(platform === "whatsapp" ? "card.needs.waProducts" : "card.needs.metaProducts") : t(`card.needs.${which}`)}</p>
           {accountUrl && (
             <a href={accountUrl} target="_blank" rel="noopener noreferrer" className={buttonClass("white", "sm")}>
               {t(`card.create.${which}`)}

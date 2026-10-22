@@ -1,13 +1,13 @@
 "use client";
 
 import { useId, type ReactNode } from "react";
-import type { StoreEditorSnapshot, ThemeTokenSet } from "@/lib/store-templates";
+import type { LayoutFamily, StoreEditorSnapshot, ThemeTokenSet } from "@/lib/store-templates";
 import type { StorefrontShopperInfo } from "@/lib/storefront/shopper-info";
 import { sectionCopy, type RendererKind } from "./editor-logic";
 import { FieldShell, inputClass, NavRow, PanelHeading, PillGroup } from "./ui";
 import { useEditorT } from "./i18n";
 
-export type ThemeView = "colours" | "typography" | "buttons" | "cart" | "social" | "checkout";
+export type ThemeView = "colours" | "typography" | "layout" | "buttons" | "cart" | "social" | "checkout";
 
 const COLOUR_TOKENS: Array<[keyof ThemeTokenSet, string]> = [
   ["paperBg", "Page background"],
@@ -22,9 +22,23 @@ const COLOUR_TOKENS: Array<[keyof ThemeTokenSet, string]> = [
   ["border", "Lines"],
 ];
 
+/** Classic templates: the store-wide layout (snapshot.layoutFamily), which sets the shape of every page. */
+const LAYOUT_FAMILIES: Array<{ value: LayoutFamily; label: string }> = [
+  { value: "minimal-showcase", label: "Minimal showcase" },
+  { value: "editorial-boutique", label: "Editorial boutique" },
+  { value: "fashion-runway", label: "Fashion runway" },
+  { value: "food-market", label: "Food market" },
+  { value: "home-living", label: "Home and living" },
+  { value: "electronics-grid", label: "Electronics grid" },
+  { value: "book-lifestyle", label: "Books and lifestyle" },
+  { value: "pet-lifestyle", label: "Pets" },
+  { value: "marketplace-grid", label: "Marketplace grid" },
+];
+
 const VIEWS: Array<{ id: ThemeView; label: string }> = [
   { id: "colours", label: "Colours" },
   { id: "typography", label: "Typography" },
+  { id: "layout", label: "Layout" },
   { id: "buttons", label: "Buttons" },
   { id: "cart", label: "Cart" },
   { id: "social", label: "Social media" },
@@ -38,6 +52,8 @@ export interface ThemeSettingsPanelProps {
   view: ThemeView | null;
   onView: (view: ThemeView | null) => void;
   onTheme: (key: keyof ThemeTokenSet, value: string) => void;
+  /** Classic templates: switches the store-wide layout. */
+  onLayoutFamily: (value: LayoutFamily) => void;
   /** Sets a header copy value on every page, so the label is the same wherever shoppers are. */
   onHeaderCopy: (key: string, value: string) => void;
   onClose: () => void;
@@ -63,6 +79,7 @@ export function ThemeSettingsPanel(props: ThemeSettingsPanelProps) {
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
         {view === "colours" ? <Colours {...props} /> : null}
         {view === "typography" ? <Typography {...props} /> : null}
+        {view === "layout" ? <Layout {...props} /> : null}
         {view === "buttons" ? <Buttons {...props} /> : null}
         {view === "cart" ? <Cart {...props} /> : null}
         {view === "social" ? <Social {...props} /> : null}
@@ -105,12 +122,25 @@ function Colours(props: ThemeSettingsPanelProps) {
 }
 
 function Typography(props: ThemeSettingsPanelProps) {
-  const { t, tx } = useEditorT();
+  const { t } = useEditorT();
   if (props.renderer === "boutique") {
     return (
       <>
-        <Note>{t("edk.typePairing", { name: props.draft.templateName })}</Note>
-        <a href="/home/brand-kit" className="inline-flex min-h-10 items-center text-[13.5px] font-semibold text-app-ink underline">{tx("Open Brand kit")}</a>
+        <FieldShell label="Font pairing" help="Headings and body text, on every page.">
+          <PillGroup
+            label="Font pairing"
+            value={props.draft.themeTokens.fontPair ?? "theme"}
+            onChange={(value) => props.onTheme("fontPair", value)}
+            options={[
+              { value: "theme", label: "Theme's own" },
+              { value: "classic", label: "Serif and sans" },
+              { value: "modern", label: "Modern" },
+              { value: "clean", label: "Clean sans" },
+              { value: "bold", label: "Bold grotesk" },
+            ]}
+          />
+        </FieldShell>
+        <Note>{t("edk.typePairingPick", { name: props.draft.templateName })}</Note>
       </>
     );
   }
@@ -126,12 +156,56 @@ function Typography(props: ThemeSettingsPanelProps) {
   );
 }
 
+function Layout(props: ThemeSettingsPanelProps) {
+  const { tx } = useEditorT();
+  const id = useId();
+  if (props.renderer === "boutique") {
+    return (
+      <>
+        <Note>These apply to every page. Each section can still pick its own layout in its settings.</Note>
+        <FieldShell label="Page width">
+          <PillGroup
+            label="Page width"
+            value={props.draft.themeTokens.pageWidth ?? "standard"}
+            onChange={(value) => props.onTheme("pageWidth", value)}
+            options={[{ value: "narrow", label: "Narrow" }, { value: "standard", label: "Standard" }, { value: "wide", label: "Wide" }]}
+          />
+        </FieldShell>
+        <FieldShell label="Product photos" help="The shape of product photos in grids and on product pages.">
+          <PillGroup
+            label="Product photos"
+            value={props.draft.themeTokens.productRatio ?? "theme"}
+            onChange={(value) => props.onTheme("productRatio", value)}
+            options={[{ value: "theme", label: "Theme's own" }, { value: "portrait", label: "Portrait" }, { value: "square", label: "Square" }, { value: "landscape", label: "Landscape" }]}
+          />
+        </FieldShell>
+      </>
+    );
+  }
+  return (
+    <>
+      <FieldShell id={id} label="Store layout" help="Sets the shape of every page: banners, product cards and grids. Your sections and words stay.">
+        <select id={id} className={inputClass} value={props.draft.layoutFamily} onChange={(event) => props.onLayoutFamily(event.target.value as LayoutFamily)}>
+          {LAYOUT_FAMILIES.map((entry) => <option key={entry.value} value={entry.value}>{tx(entry.label)}</option>)}
+        </select>
+      </FieldShell>
+      <Note>Each section can still pick its own layout in its settings.</Note>
+    </>
+  );
+}
+
 function Buttons(props: ThemeSettingsPanelProps) {
-  const { t } = useEditorT();
   return (
     <>
       {props.renderer === "boutique" ? (
-        <Note>{t("edk.buttonShape", { name: props.draft.templateName })}</Note>
+        <FieldShell label="Button shape">
+          <PillGroup
+            label="Button shape"
+            value={props.draft.themeTokens.buttonShape ?? "theme"}
+            onChange={(value) => props.onTheme("buttonShape", value)}
+            options={[{ value: "theme", label: "Theme's own" }, { value: "square", label: "Square" }, { value: "rounded", label: "Rounded" }, { value: "pill", label: "Pill" }]}
+          />
+        </FieldShell>
       ) : (
         <FieldShell label="Corners" help="Also rounds cards and images.">
           <PillGroup

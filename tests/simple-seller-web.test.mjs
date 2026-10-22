@@ -140,7 +140,8 @@ test("supplier orders are grouped New, To pack and Sent, with 'You get ₦X' and
   assert.match(orders, /buttonClass\.ink\} min-h-\[52px\][^>]*><Icon name="check" size=\{16\} \/> \{t\("orders\.accept"\)\}</);
   assert.match(words, /"orders\.accept": "Accept"/);
   assert.match(orders, /t\("orders\.packWithLabel", \{ shop: order\.shop \}\)/);
-  assert.match(words, /"orders\.packWithLabel": "Pack it with \{shop\}'s label/);
+  // Dropship, not private label: the product goes in its own packaging, with the shop's delivery label.
+  assert.match(words, /"orders\.packWithLabel": "Pack it in its own packaging and stick on \{shop\}'s delivery label/);
 });
 
 test("seller and supplier nav entries use the standard commerce names; routes are unchanged", () => {
@@ -167,9 +168,9 @@ test("seller and supplier nav entries use the standard commerce names; routes ar
   assert.doesNotMatch(nav, /label: "(?:Web address|Sell without stock|Money sent to your bank|Groups of customers|Messages to customers|How your shop is doing|Price requests|How many you have|Payment page|Show up on Google|How your shop looks|Email designs|Bulk orders|Orders shops sold for you)"/);
 });
 
-test("every seller and supplier page header has a labelled Help button that opens the one help panel", () => {
+test("every seller, supplier and delivery-partner page header has a labelled Help button that opens the one help panel", () => {
   assert.match(read("src/components/seller/SellerPage.tsx"), /<HelpButton \/>/);
-  assert.match(read("src/components/app-kit/index.tsx"), /frame\.role === "seller" \|\| frame\.role === "supplier" \? <>\{actions\}<HelpButton \/><\/>/);
+  assert.match(read("src/components/app-kit/index.tsx"), /frame\.role && frame\.role !== "admin" \? <>\{actions\}<HelpButton \/><\/>/);
   const help = read("src/components/simple/HelpButton.tsx");
   // The label is "Help" in English, shown in the person's language (shared/i18n "common" catalog).
   assert.match(help, /<Icon name="chat" size=\{16\} \/> \{t\("help"\)\}/);

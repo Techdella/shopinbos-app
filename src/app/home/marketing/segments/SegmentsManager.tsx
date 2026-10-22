@@ -260,6 +260,7 @@ export function SegmentsManager({ segments, products, tags }: { segments: Segmen
               {segment.description ? <p className="m-0 text-[13px] text-app-ink-soft">{segment.description}</p> : null}
               <div className="mt-auto flex flex-wrap gap-2 pt-1">
                 <a href={`/home/marketing/campaigns/new?segment=${segment.id}`} className={buttonClass("ink", "sm")}>{t("seg.messageThem")}</a>
+                <a href={`/home/customers?segment=${encodeURIComponent(segment.id)}`} className={buttonClass("white", "sm")}>{t("seg.seePeople")}</a>
                 <button type="button" onClick={() => setEditor({ editing: segment, start: null })} className={buttonClass("white", "sm")}>{t("edit")}</button>
                 <button type="button" onClick={() => void remove(segment)} className={buttonClass("danger", "sm")}>{t("delete")}</button>
               </div>

@@ -2,7 +2,8 @@ import "server-only";
 import crypto from "node:crypto";
 import { db } from "@/lib/db/client";
 import { sendEmail } from "@/lib/notifications/resend";
-import { escapeHtml } from "@/lib/email/shell";
+import { buildPlatformEmail } from "@/lib/email/compliance.server";
+import { html } from "@/lib/email/shell";
 import { extraStaffSeats } from "@/lib/plans/extras.server";
 import { planKeyFor, sellerLimits } from "@shared/plans";
 import type { AuthUser } from "@/lib/auth/types";
@@ -52,10 +53,25 @@ export async function inviteStaff(owner: AuthUser, input: { name: string; email:
     ? await db.storeStaff.update({ where: { id: existing.id }, data: { name, status: "invited", token, memberUserId: null, invitedAt: new Date(), acceptedAt: null } })
     : await db.storeStaff.create({ data: { storeId: store.id, ownerId: owner.id, email, name, token } });
   const link = `${APP_URL}/team/join?token=${encodeURIComponent(token)}`;
+  // A service message to someone who may not have an account yet: the shell's footer (who sent it, why, contact),
+  // no unsubscribe since it's a one-off invite they act on.
+  const { html: body } = buildPlatformEmail({
+    kind: "transactional",
+    eyebrow: "Shopinbos team invite",
+    heading: `Hi ${name}, join ${store.name} on Shopinbos`,
+    preheader: `${owner.name} added you to the team for ${store.name}.`,
+    bodyHtml: [
+      html.text(`${owner.name} added you to the team for ${store.name} on Shopinbos.`),
+      html.text(`Sign in or create an account with this email address (${email}) to join.`),
+    ].join(""),
+    cta: { label: "Join the team", url: link },
+    reason: `${owner.name} added this email address to their store's team`,
+    serviceNote: "If you weren't expecting this, you can ignore it: nobody joins the team without opening this link.",
+  });
   const sent = await sendEmail({
     to: [email],
     subject: `${owner.name} added you to ${store.name} on Shopinbos`,
-    html: `<p>Hi ${escapeHtml(name)},</p><p>${escapeHtml(owner.name)} added you to the team for <strong>${escapeHtml(store.name)}</strong> on Shopinbos.</p><p><a href="${escapeHtml(link)}">Join the team</a></p><p>Sign in or create an account with this email address (${escapeHtml(email)}) to join.</p>`,
+    html: body,
     text: `${owner.name} added you to the team for ${store.name} on Shopinbos. Join: ${link}`,
   }).catch(() => ({ success: false }));
   return { staff: row, link, emailed: sent.success };

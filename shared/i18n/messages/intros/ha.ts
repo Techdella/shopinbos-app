@@ -620,7 +620,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "supplier-buyers.2.caption": "Duba yadda kowane shago ke tafiya.",
   "supplier-buyers.2.sub": "Glow by Amaka ta sayar da kwalabe 86 a wannan wata. Abuja Beauty ta sayar da 12.",
   "supplier-buyers.3.caption": "Yi magana da su kai tsaye.",
-  "supplier-buyers.3.sub": "Faɗa wa mafi kyawun shagunanka game da sabon ƙamshi kafin kowa.",
+  "supplier-buyers.3.sub": "Mabiya ne ke fara ji: faɗa musu game da sabon ƙamshi kafin kowa.",
   "supplier-buyers.4.caption": "Dropship ko wholesale.",
   "supplier-buyers.4.sub": "Wasu suna sayarwa ba tare da stock ba, wasu suna saya da yawa. Duka suna bayyana a nan.",
   "supplier-buyers.5.caption": "Taimaka wa mafi kyawun buyers ɗinka su haɓaka.",

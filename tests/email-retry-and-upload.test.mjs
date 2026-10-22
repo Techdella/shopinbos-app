@@ -226,13 +226,13 @@ test("weekly: someone who turns summaries off after a refusal is skipped, not re
   assert.equal(store.rows.get("u02").status, "skipped");
 });
 
-test("weekly: the server uses the shared run (permissive batches) and the cron route stays behind CRON_SECRET", () => {
+test("weekly: the server uses the shared run (permissive batches) and the cron route stays behind the cron secret or a signed QStash call", () => {
   const server = read("src/lib/email/weekly-summary.server.ts");
   assert.match(server, /runWeeklyBatches\(/);
   assert.match(server, /sendEmailBatch\(emails, \{ permissive: true \}\)/);
   assert.match(server, /status: "failed", attempts: \{ lt: maxAttempts \} \}, data: \{ status: "claimed", attempts: \{ increment: 1 \}/, "failed → claimed is a conditional update");
   assert.match(server, /claimed\(weekStart, userIds\), data: \{ status: "unknown"/);
-  assert.match(read("src/app/api/cron/weekly-summary/route.ts"), /cronAuthorization/);
+  assert.match(read("src/app/api/cron/weekly-summary/route.ts"), /const denied = await cronDenied\(req\);\n  if \(denied\) return denied;/, "the cron secret or a signed QStash call");
   assert.match(read("src/lib/notifications/resend.ts"), /batchValidation: "permissive"/);
 });
 

@@ -30,6 +30,7 @@ export const JOBS = [
   { id: "whatsapp-catalog", path: "/api/cron/whatsapp-catalog", cron: "*/15 * * * *" },
   { id: "partner-payins", path: "/api/cron/partner-payins", cron: "*/15 * * * *" },
   { id: "delivery-jobs", path: "/api/cron/delivery-jobs", cron: "*/15 * * * *" },
+  { id: "partner-webhooks", path: "/api/cron/partner-webhooks", cron: "*/5 * * * *" },
   { id: "verification-reminders", path: "/api/cron/verification-reminders", cron: "17 * * * *" },
   { id: "morning-brief", path: "/api/cron/morning-brief", cron: "31 6 * * *" },
   { id: "lifecycle-emails", path: "/api/cron/lifecycle", cron: "23 * * * *" },

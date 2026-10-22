@@ -1207,6 +1207,11 @@ model LogisticsTeamMember {
   /// picked (en | pcm | yo | ha | ig). Both optional.
   plate              String?
   language           String?
+  /// Rider pay the partner set (src/lib/logistics/job-rules.ts riderPayFor): "per_drop" pays payRate naira for each
+  /// delivered job, "share" pays payRate percent of the partner's fee after the Shopinbos fee. Null: not set, so the
+  /// Riders app shows delivery fees instead of earnings.
+  payType            String?
+  payRate            Float?
   invitedAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
 
@@ -1301,6 +1306,9 @@ model DeliveryBooking {
   notes              String?
   /// Rider (a LogisticsTeamMember) the partner assigned the job to.
   riderId            String?
+  /// What the rider earned for this job, saved when it's delivered from the rider's pay at that moment, so later
+  /// pay changes never touch it. Null for jobs delivered without a rider or before the rider's pay was set.
+  riderPay           Float?
   pickedUpAt         DateTime?
   failedReason       String?
   /// 4-digit code the buyer gives the rider as proof of delivery.
@@ -2981,9 +2989,36 @@ model PartnerWebhook {
   lastDeliveredAt    DateTime?
   createdAt          DateTime  @default(now())
 
-  logisticsPartner LogisticsPartner @relation(fields: [logisticsPartnerId], references: [id], onDelete: Cascade)
+  logisticsPartner LogisticsPartner         @relation(fields: [logisticsPartnerId], references: [id], onDelete: Cascade)
+  deliveries       PartnerWebhookDelivery[]
 
   @@index([logisticsPartnerId])
+}
+
+/// Retry queue for partner webhooks (src/lib/logistics/webhooks.ts). One row per event per webhook, saved before the
+/// first attempt. A delivery still failing after its in-request retries waits for /api/cron/partner-webhooks, which
+/// tries again with a growing gap (WEBHOOK_QUEUE_DELAYS_MS) and gives up after the last one. The body (and so the
+/// event id) never changes between attempts; only the signature's timestamp does.
+model PartnerWebhookDelivery {
+  id            String    @id @default(cuid())
+  webhookId     String
+  event         String
+  body          String
+  /// Delivery rounds done: the in-request round (first try plus quick retries) counts as 1, each queue retry as 1 more.
+  attempts      Int       @default(0)
+  lastStatus    Int?
+  /// When the queue should try next. Null once delivered or given up.
+  nextAttemptAt DateTime?
+  deliveredAt   DateTime?
+  /// Given up: still failing after the last queue retry, or the webhook was switched off.
+  failedAt      DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  webhook PartnerWebhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@index([nextAttemptAt])
+  @@index([webhookId, createdAt])
 }
 
 // ---- inbox (agent E) ----

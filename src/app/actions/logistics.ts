@@ -14,7 +14,7 @@ import { replyToQuote } from "@/lib/logistics/quotes";
 import { getPublicEnv } from "@/lib/env";
 import { assignRider, transitionJob } from "@/lib/logistics/jobs";
 import { newRiderToken } from "@/lib/logistics/rider-token";
-import { JOB_STATUSES, canWorkExistingJobs } from "@/lib/logistics/job-rules";
+import { JOB_STATUSES, canWorkExistingJobs, parseRiderPay } from "@/lib/logistics/job-rules";
 import { toE164 } from "@shared/phone";
 import {
   BookingStatusUpdateSchema,
@@ -429,6 +429,24 @@ export async function updateLogisticsTeamMemberStatus(formData: FormData) {
 
   revalidatePath("/logistics/couriers");
   revalidatePath("/logistics/profile");
+  redirect("/logistics/couriers?saved=1");
+}
+
+/** A rider's pay (per delivery or a share of the fee): what the Riders app shows as their earnings from now on. */
+export async function setRiderPay(formData: FormData) {
+  const { partner } = await getLogisticsActor();
+  assertVerifiedLogistics(partner);
+
+  const parsed = parseRiderPay(formData.get("payType"), formData.get("payRate"));
+  if (!parsed.ok) redirect(`/logistics/couriers?error=${encodeURIComponent(parsed.error)}`);
+  const rider = await db.logisticsTeamMember.findFirst({
+    where: { id: String(formData.get("teamMemberId") || ""), logisticsPartnerId: partner.id, role: "rider" },
+    select: { id: true },
+  });
+  if (!rider) redirect(`/logistics/couriers?error=${encodeURIComponent("We couldn't find that rider. Refresh the page.")}`);
+
+  await db.logisticsTeamMember.update({ where: { id: rider.id }, data: parsed.rule });
+  revalidatePath("/logistics/couriers");
   redirect("/logistics/couriers?saved=1");
 }
 

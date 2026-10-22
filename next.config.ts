@@ -3,7 +3,10 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["*.localhost"],
   typescript: {
-    ignoreBuildErrors: false,
+    // Types are checked by `npm run typecheck`, which `npm run build` runs before next build: type errors still fail
+    // every build. Next's own check ran in the same build as webpack and pushed Vercel's 8 GB machine out of memory
+    // (SIGKILL at "Running TypeScript"); tsc on its own peaks around 1.3 GB.
+    ignoreBuildErrors: true,
   },
   experimental: {
     // Lower peak memory while compiling (Vercel's build machines have 8 GB).

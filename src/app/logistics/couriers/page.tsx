@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { addLogisticsTeamMember, revokeRiderLink, updateLogisticsTeamMemberStatus } from "@/app/actions/logistics";
+import { addLogisticsTeamMember, revokeRiderLink, setRiderPay, updateLogisticsTeamMemberStatus } from "@/app/actions/logistics";
 import { Card, CardHead, EmptyState, FilterChips, ListCard, Pill, PillLink, StatGrid, StatTile } from "@/components/app-kit";
 import { Notice } from "@/components/app-ui";
 import { db } from "@/lib/db/client";
@@ -12,7 +12,7 @@ import { getT } from "@/lib/i18n/server";
 import { RiderLinkButton } from "@/components/logistics/RiderLinkButton";
 import { riderPresence } from "@/components/logistics/dispatch";
 import { riderWhereWords } from "@shared/delivery-geo";
-import { isRiderOut } from "@/lib/logistics/job-rules";
+import { isRiderOut, riderEarning } from "@/lib/logistics/job-rules";
 import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
@@ -62,16 +62,20 @@ export default async function LogisticsCouriersPage({ searchParams }: { searchPa
           { codMethod: "cash", remittanceId: null, codCollected: { gt: 0 } },
         ],
       },
-      select: { riderId: true, status: true, deliveredAt: true, deliveryFee: true, platformFee: true, netAmount: true, codCollected: true, codMethod: true, remittanceId: true },
+      select: { riderId: true, status: true, deliveredAt: true, deliveryFee: true, platformFee: true, netAmount: true, riderPay: true, codCollected: true, codMethod: true, remittanceId: true },
     }),
   ]);
-  const workByRider = new Map<string, { open: number; delivered: number; fees: number; cash: number }>();
+  const payByRider = new Map(teamMembers.map((member) => [member.id, { payType: member.payType, payRate: member.payRate }]));
+  const workByRider = new Map<string, RiderWorkToday>();
   for (const job of riderJobs) {
-    const work = workByRider.get(job.riderId!) ?? { open: 0, delivered: 0, fees: 0, cash: 0 };
+    const work = workByRider.get(job.riderId!) ?? { open: 0, delivered: 0, fees: 0, pay: null, cash: 0 };
     if (["confirmed", "picked_up", "in_transit", "out_for_delivery"].includes(job.status)) work.open += 1;
     if (job.status === "delivered" && job.deliveredAt && job.deliveredAt >= startOfToday) {
       work.delivered += 1;
       work.fees += bookingNet(job);
+      // What the rider earned today, once their pay is set (or saved on the job when it was delivered).
+      const earned = riderEarning(payByRider.get(job.riderId!), job);
+      if (earned !== null) work.pay = (work.pay ?? 0) + earned;
     }
     if (job.codMethod === "cash" && !job.remittanceId) work.cash += job.codCollected ?? 0;
     workByRider.set(job.riderId!, work);
@@ -149,6 +153,7 @@ export default async function LogisticsCouriersPage({ searchParams }: { searchPa
                   </form>
                   </div>
                   {member.role === "rider" && member.status === "active" && <RiderWork work={workByRider.get(member.id)} t={t} />}
+                  {member.role === "rider" && member.status === "active" && <RiderPayForm member={member} t={t} />}
                   {member.role === "rider" && member.status === "active" && (
                     <div className="mt-2 flex w-full min-w-0 flex-wrap items-start gap-2 sm:pl-[60px]">
                       <div className="min-w-0 flex-1">
@@ -205,12 +210,47 @@ export default async function LogisticsCouriersPage({ searchParams }: { searchPa
   );
 }
 
-function RiderWork({ work, t }: { work?: { open: number; delivered: number; fees: number; cash: number }; t: LogisticsT }) {
+type RiderWorkToday = { open: number; delivered: number; fees: number; pay: number | null; cash: number };
+
+function RiderWork({ work, t }: { work?: RiderWorkToday; t: LogisticsT }) {
   const items = [
     t("riders.openJobs", { count: work?.open ?? 0 }),
     t("riders.deliveredToday", { count: work?.delivered ?? 0 }),
     t("riders.feesToday", { amount: naira(work?.fees ?? 0) }),
+    ...(work?.pay ? [t("riders.payToday", { amount: naira(work.pay) })] : []),
     ...(work?.cash ? [t("riders.cashInHand", { amount: naira(work.cash) })] : []),
   ];
   return <p className="m-0 mt-2 text-[15px] text-app-ink-soft sm:pl-[60px]">{items.join(" · ")}</p>;
+}
+
+/** What the partner pays a rider: the Riders app shows the rider these earnings instead of delivery fees. */
+function RiderPayForm({ member, t }: { member: { id: string; name: string; payType: string | null; payRate: number | null }; t: LogisticsT }) {
+  const current =
+    member.payType === "per_drop" && member.payRate
+      ? t("riders.payPerDrop", { amount: naira(member.payRate) })
+      : member.payType === "share" && member.payRate
+      ? t("riders.payShare", { percent: member.payRate })
+      : t("riders.payNotSet");
+  return (
+    <details className="mt-2 sm:pl-[60px]">
+      <summary className="cursor-pointer text-[15px] font-bold">{t("riders.payLabel", { pay: current })}</summary>
+      <form action={setRiderPay} className="mt-2 flex flex-wrap items-end gap-2">
+        <input type="hidden" name="teamMemberId" value={member.id} />
+        <div className="min-w-[180px] flex-1">
+          <label htmlFor={`pay-type-${member.id}`} className={labelClass}>{t("riders.payHow")}</label>
+          <select id={`pay-type-${member.id}`} name="payType" defaultValue={member.payType ?? "none"} className={inputClass}>
+            <option value="none">{t("riders.payOptionNone")}</option>
+            <option value="per_drop">{t("riders.payOptionPerDrop")}</option>
+            <option value="share">{t("riders.payOptionShare")}</option>
+          </select>
+        </div>
+        <div className="w-[140px]">
+          <label htmlFor={`pay-rate-${member.id}`} className={labelClass}>{t("riders.payAmount")}</label>
+          <input id={`pay-rate-${member.id}`} name="payRate" type="number" inputMode="decimal" min="0" step="any" defaultValue={member.payRate ?? ""} className={inputClass} />
+        </div>
+        <SubmitButton tone="white" size="sm" aria-label={t("riders.paySaveAria", { name: member.name })}>{t("riders.paySave")}</SubmitButton>
+      </form>
+      <p className="m-0 mt-2 text-[14px] text-app-ink-soft">{t("riders.payHint")}</p>
+    </details>
+  );
 }

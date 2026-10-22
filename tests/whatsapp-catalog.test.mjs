@@ -212,7 +212,8 @@ test("counts and wiring: statuses counted; routes, cron and migration in place",
   assert.match(feed, /feedTokenMatches/);
   assert.match(feed, /storeIsLive/);
   const cron = readFileSync(new URL("../src/app/api/cron/whatsapp-catalog/route.ts", import.meta.url), "utf8");
-  assert.match(cron, /cronAuthorization/);
+  assert.match(cron, /const denied = await cronDenied\(req\);\n  if \(denied\) return denied;/, "the cron secret or a signed QStash call");
+  assert.match(readFileSync(new URL("../scripts/qstash-schedules.mjs", import.meta.url), "utf8"), /\{ id: "whatsapp-catalog", path: "\/api\/cron\/whatsapp-catalog", cron: "\*\/15 \* \* \* \*" \}/);
   const graph = readFileSync(new URL("../src/lib/whatsapp-catalog/graph.ts", import.meta.url), "utf8");
   assert.match(graph, /Authorization: `Bearer \$\{token\}`/, "token sent as a header");
   assert.doesNotMatch(graph, /console\./, "graph client never logs");

@@ -19,7 +19,7 @@ export default async function SegmentsPage() {
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true } });
   const [segments, products, tagRows] = store
     ? await Promise.all([
-        listSegments(store.id),
+        listSegments(store.id, { refreshCounts: true }),
         db.storeProduct.findMany({ where: { storeId: store.id, status: { not: "archived" } }, orderBy: { name: "asc" }, take: 500, select: { id: true, name: true } }),
         db.subscriber.findMany({ where: { storeId: store.id, NOT: { tags: { isEmpty: true } } }, select: { tags: true }, take: 5000 }),
       ])

@@ -61,6 +61,9 @@ test("cards: Connect when configured, Coming soon when not, never a broken flow"
   assert.deepEqual(wa({ whatsappConnected: false }), { kind: "reauth" });
   assert.deepEqual(wa({ catalog: { catalogId: "c1", lastSyncAt: null, lastSyncStatus: null, syncing: false } }), { kind: "syncing" });
   assert.deepEqual(wa({ catalog: { catalogId: "c1", lastSyncAt: new Date(), lastSyncStatus: "error", syncing: false } }), { kind: "error" });
+  const noPermission = { catalogId: null, lastSyncAt: null, lastSyncStatus: null, syncing: false, permissionMissing: true };
+  assert.deepEqual(wa({ catalog: noPermission }), { kind: "needs_account" }, "number connected, catalog permissions missing: say so, not Connect");
+  assert.deepEqual(wa({ catalog: noPermission, whatsappConnected: false }), { kind: "connect" });
 });
 
 test("the page lists live platforms in the order Nigerian sellers use them, then coming soon", () => {
@@ -131,7 +134,10 @@ test("sign-in URLs carry the state and the registered redirect URI", () => {
   assert.equal(meta.searchParams.get("response_type"), "code");
   assert.equal(meta.searchParams.get("redirect_uri"), "https://app.shopinbos.com/api/app/sales-channels/meta/callback");
   assert.equal(meta.searchParams.get("scope"), null, "a configuration carries its own permissions");
-  const classic = new URL(sc.authorizeUrl("meta", { origin, state: "st", env: { ...FULL, META_CATALOG_CONFIG_ID: "" } }));
+  const inboxConfig = new URL(sc.authorizeUrl("meta", { origin, state: "st", env: { ...FULL, META_CATALOG_CONFIG_ID: "", META_INBOX_CONFIG_ID: "inbox-config" } }));
+  assert.equal(inboxConfig.searchParams.get("config_id"), "inbox-config", "no catalog configuration: the inbox's, never the scope dialog a Business app rejects");
+  assert.equal(inboxConfig.searchParams.get("scope"), null);
+  const classic = new URL(sc.authorizeUrl("meta", { origin, state: "st", env: { ...FULL, META_CATALOG_CONFIG_ID: "", META_INBOX_CONFIG_ID: "" } }));
   assert.equal(classic.searchParams.get("config_id"), null);
   assert.equal(classic.searchParams.get("scope"), sc.META_LOGIN_SCOPES.join(","));
   assert.equal(classic.searchParams.get("response_type"), "code");

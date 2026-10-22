@@ -65,7 +65,7 @@ export default async function PagesPage({ searchParams }: PagesPageProps) {
       store={storeSummary(store)}
       title={t("pages.title")}
       sub={t(showDrafts ? "pages.subAll" : "pages.subPublished", { count: websitePages.length })}
-      actions={<PillLink href="/home/editor" tone="accent" icon="plus">{t("pages.add")}</PillLink>}
+      actions={<PillLink href="/seller/store/builder" tone="accent" icon="plus">{t("pages.add")}</PillLink>}
     >
       <div className="grid gap-5">
         <FilterChips
@@ -118,7 +118,7 @@ export default async function PagesPage({ searchParams }: PagesPageProps) {
             })}
           </ListCard>
         ) : (
-          <EmptyState icon="document" title={showDrafts ? t("pages.noPages") : t("pages.noPublished")} action={<PillLink href="/home/editor" tone="ink" icon="plus">{t("pages.create")}</PillLink>}>
+          <EmptyState icon="document" title={showDrafts ? t("pages.noPages") : t("pages.noPublished")} action={<PillLink href="/seller/store/builder" tone="ink" icon="plus">{t("pages.create")}</PillLink>}>
             {showDrafts ? t("pages.createFirst") : t("pages.publishedHere")}
           </EmptyState>
         )}
