@@ -176,6 +176,7 @@ const en = {
   "admin.pricing-plans": "Subscription plans",
   "admin.team": "Team",
   "admin.developers": "Developers",
+  "admin.launches": "Launches",
   "group.sourcing": "Sourcing",
   "group.people": "People",
   "group.store": "Store",

@@ -727,6 +727,7 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
           }}
           currency={store.currency}
           preview={preview}
+          payOnDelivery={commerce.payments.methods?.cod === true}
         />
         <PhoneCheck theme={theme} check={phoneCheck} />
       </>) : null}

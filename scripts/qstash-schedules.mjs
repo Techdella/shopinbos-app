@@ -30,6 +30,7 @@ export const JOBS = [
   { id: "whatsapp-catalog", path: "/api/cron/whatsapp-catalog", cron: "*/15 * * * *" },
   { id: "partner-payins", path: "/api/cron/partner-payins", cron: "*/15 * * * *" },
   { id: "delivery-jobs", path: "/api/cron/delivery-jobs", cron: "*/15 * * * *" },
+  { id: "partner-webhooks", path: "/api/cron/partner-webhooks", cron: "*/5 * * * *" },
   { id: "verification-reminders", path: "/api/cron/verification-reminders", cron: "17 * * * *" },
   { id: "lifecycle-emails", path: "/api/cron/lifecycle", cron: "23 * * * *" },
   { id: "seasonal-campaigns", path: "/api/cron/seasonal-campaigns", cron: "*/5 * * * *" },
@@ -38,6 +39,7 @@ export const JOBS = [
   { id: "sales-channels", path: "/api/cron/sales-channels", cron: "23 */2 * * *" },
   { id: "domain-renewals", path: "/api/cron/domain-renewals", cron: "17 7 * * *" },
   { id: "business-registrations", path: "/api/cron/business-registrations", cron: "*/10 * * * *" },
+  { id: "money-owed", path: "/api/cron/money-owed", cron: "7 * * * *" },
   { id: "social-posts", path: "/api/cron/social-posts", cron: "*/5 * * * *" },
   // Monday 06:00 UTC, then every 20 minutes until 09:40 to carry on with a large send.
   { id: "weekly-summary", path: "/api/cron/weekly-summary", cron: "0 6 * * 1" },

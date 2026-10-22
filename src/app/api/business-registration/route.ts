@@ -16,7 +16,7 @@ export const maxDuration = 60;
 export async function GET() {
   const owner = await registrationOwner();
   if (!owner) return unauthorized();
-  return NextResponse.json({ data: { enabled: registrationEnabled(), priceNgn: await registrationPrice(), registrations: await listRegistrations(owner.id) } });
+  return NextResponse.json({ data: { enabled: await registrationEnabled(), priceNgn: await registrationPrice(), registrations: await listRegistrations(owner.id) } });
 }
 
 export async function POST(req: NextRequest) {

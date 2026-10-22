@@ -10,7 +10,7 @@ import { addWebhookAction, createApiKeyAction, removeWebhookAction, revokeApiKey
 // "Connect your system" request form). Secrets are shown once, right after they're made.
 
 export interface KeyRow { id: string; name: string; prefix: string; created: string; lastUsed: string | null; revoked: boolean }
-export interface HookRow { id: string; url: string; events: string[]; active: boolean; lastStatus: number | null; lastDelivered: string | null }
+export interface HookRow { id: string; url: string; events: string[]; active: boolean; lastStatus: number | null; lastDelivered: string | null; retrying: number; givenUp: number }
 
 const EVENTS = [
   { id: "job.offered", label: "job.offered", hint: "A seller books you" },
@@ -259,6 +259,12 @@ export function WebhooksPanel({ partnerId, hooks }: { partnerId: string; hooks: 
                 <div className="text-[13px] text-app-ink-soft">
                   {hook.events.length ? hook.events.join(", ") : "All events"} · {hook.lastDelivered ? `Last delivered ${hook.lastDelivered}` : "Nothing delivered yet"}
                 </div>
+                {(hook.retrying > 0 || hook.givenUp > 0) && (
+                  <div className="text-[13px] font-semibold">
+                    {hook.retrying > 0 && <span>{hook.retrying === 1 ? "1 event" : `${hook.retrying} events`} waiting to be tried again (up to 24 hours). </span>}
+                    {hook.givenUp > 0 && <span className="text-app-danger">{hook.givenUp === 1 ? "1 event" : `${hook.givenUp} events`} not delivered in the last 7 days, after every retry.</span>}
+                  </div>
+                )}
                 <div className="flex flex-wrap items-center gap-2">
                   <PillButton size="sm" tone="white" className="min-h-[40px]" busy={busyId === `test:${hook.id}`} onClick={() => test(hook.id)}>Send test event</PillButton>
                   <PillButton size="sm" tone="ghost" className="min-h-[40px]" busy={busyId === `remove:${hook.id}`} onClick={() => remove(hook.id)} aria-label={`Remove webhook ${hook.url}`}>

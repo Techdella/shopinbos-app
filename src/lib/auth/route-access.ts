@@ -41,6 +41,8 @@ export const PROTECTED_AREAS: { prefix: string; roles: PortalRole[] }[] = [
   { prefix: "/supplier", roles: ["supplier"] },
   { prefix: "/logistics", roles: ["logistics_partner"] },
   { prefix: "/admin", roles: ["admin"] },
+  // The CAC email link: sends each business to its own portal's register-business page.
+  { prefix: "/register-business", roles: ["seller", "supplier", "logistics_partner"] },
 ];
 
 export const PROTECTED_PREFIXES = PROTECTED_AREAS.map((area) => area.prefix);

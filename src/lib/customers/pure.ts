@@ -1,10 +1,11 @@
-// The customers list and the customer drawer, the pure parts: reading ?page=&q=&show=&sort=&customer= from the
-// URL, page numbers, who counts as a VIP, the key that groups orders into one customer, which way the seller may
+// The customers list and the customer drawer, the pure parts: reading ?page=&q=&show=&sort=&segment=&customer=
+// from the URL, which customers are in a saved segment, page numbers, who counts as a VIP, the key that groups orders into one customer, which way the seller may
 // message a customer on WhatsApp (24-hour window or an approved template), and filling a template's {{n}} for
 // one customer. No server imports; unit-tested in tests/customers.test.mjs.
 
 import { withinServiceWindow, windowClosesAt } from "../inbox/whatsapp-bot.ts";
 import { pageCount as sharedPageCount, pageNumbers as sharedPageNumbers } from "../pagination.ts";
+import { normalizeEmail, normalizePhone } from "../marketing/segment-rules.ts";
 import { fillTemplateVariables, renderTemplateText, variableCount, type TemplateContent, type VariableValues } from "../marketing/text-channels.ts";
 
 // ─── The list query ──────────────────────────────────────────────────────────
@@ -20,6 +21,8 @@ export interface CustomerListQuery {
   q: string;
   show: CustomerFilter;
   sort: CustomerSort;
+  /** A saved segment (CustomerSegment id): only customers who match its rules. Left out when not filtering. */
+  segment?: string | null;
   /** The customer whose drawer is open (their key, usually the email). */
   customer: string | null;
 }
@@ -37,11 +40,13 @@ export function parseCustomerListQuery(params: Params): CustomerListQuery {
   const show = param(params, "show") as CustomerFilter;
   const sort = param(params, "sort") as CustomerSort;
   const customer = param(params, "customer").trim().slice(0, 320);
+  const segment = param(params, "segment").trim();
   return {
     page: Number.isFinite(page) && page >= 1 ? Math.min(page, 100_000) : 1,
     q: param(params, "q").replace(/\s+/g, " ").trim().slice(0, 100),
     show: CUSTOMER_FILTERS.includes(show) ? show : "all",
     sort: CUSTOMER_SORTS.includes(sort) ? sort : "recent",
+    ...(/^[\w-]{1,64}$/.test(segment) ? { segment } : {}),
     customer: customer || null,
   };
 }
@@ -52,10 +57,34 @@ export function customerListHref(query: Partial<CustomerListQuery>, base = "/hom
   if (query.q) params.set("q", query.q);
   if (query.show && query.show !== "all") params.set("show", query.show);
   if (query.sort && query.sort !== "recent") params.set("sort", query.sort);
+  if (query.segment) params.set("segment", query.segment);
   if (query.page && query.page > 1) params.set("page", String(query.page));
   if (query.customer) params.set("customer", query.customer);
   const text = params.toString();
   return text ? `${base}?${text}` : base;
+}
+
+/**
+ * The keys of the customers who are in a segment. `customers` are the store's order-grouped customers with every
+ * email and phone they used; `members` are the segment's contacts (src/lib/marketing/contacts.ts). A customer is in
+ * when any of their emails or phone numbers is a member's, compared normalised, as the flow `in_segment` step does.
+ */
+export function customersInSegment(
+  customers: Array<{ key: string; emails: Array<string | null>; phones: Array<string | null> }>,
+  members: Array<{ email: string | null; phone: string | null }>,
+): string[] {
+  const emails = new Set<string>();
+  const phones = new Set<string>();
+  for (const m of members) {
+    const email = normalizeEmail(m.email);
+    const phone = normalizePhone(m.phone);
+    if (email) emails.add(email);
+    if (phone) phones.add(phone);
+  }
+  if (!emails.size && !phones.size) return [];
+  return customers
+    .filter((c) => c.emails.some((e) => emails.has(normalizeEmail(e) ?? "")) || c.phones.some((p) => phones.has(normalizePhone(p) ?? "")))
+    .map((c) => c.key);
 }
 
 export function pageCount(total: number, size = CUSTOMERS_PAGE_SIZE) {

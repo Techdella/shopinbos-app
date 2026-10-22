@@ -62,7 +62,9 @@ test("'add documents later' opens the portal but never trading or review", () =>
   const productPatch = readFileSync("src/app/api/supplier/products/[id]/route.ts", "utf8");
   assert.match(productPatch, /VERIFICATION_REQUIRED/);
   const cron = readFileSync("src/app/api/cron/verification-reminders/route.ts", "utf8");
-  assert.match(cron, /cronAuthorization/);
+  // cronDenied (src/lib/auth/cron-request.ts): QStash signature or Bearer CRON_SECRET via constant-time cronAuthorization.
+  assert.match(cron, /export async function GET\(req: NextRequest\) \{\s*const denied = await cronDenied\(req\);\s*if \(denied\) return denied;/);
+  assert.match(readFileSync("src/lib/auth/cron-request.ts", "utf8"), /cronAuthorization\(req\.headers\.get\("authorization"\), secret\) !== "ok"/);
   // Copy lives in the onboarding catalog; the component shows it through t().
   const ui = readFileSync("src/components/onboarding/SupplierOnboarding.tsx", "utf8") + readFileSync("shared/i18n/messages/onboarding/en.ts", "utf8");
   assert.match(ui, /Continue without documents/);

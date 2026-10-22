@@ -489,12 +489,12 @@ function PagesPanel({ pages }: { pages: PageRow[] }) {
           <span style={{ fontSize: 12.5, color: T.muted }}>{p.updated}</span>
           <span style={{ fontSize: 12.5, color: T.muted }}>{p.views ?? "-"}</span>
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-            <Link href={`/home/editor?page=${p.id}`} aria-label={`Edit ${p.title}`}><Icon name="edit" size={16} color={T.textSec} /></Link>
+            <Link href={`/seller/store/builder?page=${p.id}`} aria-label={`Edit ${p.title}`}><Icon name="edit" size={16} color={T.textSec} /></Link>
             <Icon name="moreHorizontal" size={16} color={T.muted} />
           </div>
         </div>
       ))}
-      <div style={{ padding: "14px 20px", borderTop: `1px solid ${T.border}` }}><Button href="/home/editor" variant="soft" icon="plus">Add new page</Button></div>
+      <div style={{ padding: "14px 20px", borderTop: `1px solid ${T.border}` }}><Button href="/seller/store/builder" variant="soft" icon="plus">Add new page</Button></div>
     </Card>
   );
 }

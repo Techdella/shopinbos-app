@@ -367,6 +367,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "seg.peopleCount": "Mutane {count}",
   "seg.noRules": "Babu dokoki tukuna. Gyara shi don ƙara wasu.",
   "seg.messageThem": "Aika musu saƙo",
+  "seg.seePeople": "Duba mutanen",
   "seg.emptyTitle": "Babu segments tukuna",
   "seg.emptyAction": "Fara da masu sake saye",
   "seg.emptyBody": "Segment rukuni ne da aka ajiye, kamar “ya kashe fiye da ₦50,000” ko “ya sayi rigar Ankara”. Yi amfani da shi don campaigns, automations da discounts.",

@@ -84,6 +84,18 @@ export function isAllowedWebhookUrl(value: string) {
 /** Backoff between webhook retries inside one request lifetime. */
 export const WEBHOOK_RETRY_DELAYS_MS = [2_000, 10_000, 30_000];
 
+/** Gaps between the retry queue's later rounds (/api/cron/partner-webhooks): 5 min, 30 min, 2 h, 6 h, 24 h. */
+export const WEBHOOK_QUEUE_DELAYS_MS = [5 * 60_000, 30 * 60_000, 2 * 3_600_000, 6 * 3_600_000, 24 * 3_600_000];
+
+/**
+ * When a failed delivery should be tried again, after `rounds` delivery rounds (the in-request round is the first).
+ * Null means give up: every queue retry has been used.
+ */
+export function nextWebhookAttempt(rounds: number, now = new Date()): Date | null {
+  const delay = WEBHOOK_QUEUE_DELAYS_MS[rounds - 1];
+  return delay === undefined ? null : new Date(now.getTime() + delay);
+}
+
 // ─── Job shape partners see ──────────────────────────────────────────────────
 
 const BUYER_VISIBLE = new Set(["confirmed", "picked_up", "in_transit", "out_for_delivery", "at_pickup_point", "delivered", "failed"]);
