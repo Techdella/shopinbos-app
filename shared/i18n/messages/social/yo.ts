@@ -90,7 +90,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "card.confirmMeta": "Ṣé kí o yọ {name} kúrò? Ìfiránṣẹ́ tuntun àti ìmúdójúìwọ̀n ọjà á dúró níbẹ̀. Àwọn chat àtijọ́ rẹ á wà síbẹ̀.",
   "card.confirmWhatsapp": "Yọ {name} kúrò? Àwọn message WhatsApp tuntun kò ní wá sínú inbox rẹ mọ́, àwọn ọjà rẹ kò sì ní ṣe àtúnṣe níbẹ̀ mọ́. Àwọn chat àtijọ́ rẹ yóò wà.",
   "card.needs.metaProducts": "Ìfiránṣẹ́ ti ń ṣiṣẹ́. Láti fi àwọn ọjà rẹ hàn lórí Facebook àti Instagram pẹ̀lú, ṣẹ̀dá business account ọ̀fẹ́, lẹ́yìn náà tẹ ìsàlẹ̀.",
-  "card.needs.waProducts": "Àwọn message ti ń ṣiṣẹ́. Láti fi àwọn ọjà rẹ hàn nínú WhatsApp náà, Facebook ṣì ní láti gba Shopinbos láàyè láti ṣàkóso catalog rẹ. A ó tàn án ní kété tí wọ́n bá gbà; tẹ ìsàlẹ̀ láti tún gbìyànjú.",
+  "card.needs.waProducts": "Àwọn message ti ń ṣiṣẹ́. Láti fi àwọn ọjà rẹ hàn nínú WhatsApp náà, Facebook gbọ́dọ̀ gba Shopinbos láàyè láti ṣàkóso catalog rẹ. Yọ ọ́ kúrò, tún so pọ̀, kí o sì gba gbogbo ohun tí Facebook béèrè.",
   "connectedOk": "{name} ti so pọ̀. Ó ti ń ṣiṣẹ́ jákèjádò Shopinbos báyìí: inbox rẹ, àwọn ọjà rẹ àti Social posts.",
   "soon.postTiktok": "Fi ránṣẹ́ sí TikTok",
   "post.yours": "Àwọn account rẹ:",

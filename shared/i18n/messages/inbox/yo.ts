@@ -630,6 +630,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "cat.nothingToFix": "Kò sí nǹkan láti tún ṣe",
   "cat.needPermission": "A nílò àṣẹ rẹ lórí Facebook láti ṣe èyí. Ní kí a ràn ọ́ lọ́wọ́, a ó sì yanjú rẹ̀ pẹ̀lú rẹ.",
   "cat.setUpNow": "Ṣètò rẹ̀ báyìí",
+  "cat.permsMissing": "WhatsApp ti so pọ̀, àwọn message rẹ sì ń ṣiṣẹ́. Láti fi àwọn ọjà rẹ hàn nínú WhatsApp náà, Facebook gbọ́dọ̀ gba Shopinbos láàyè láti ṣàkóso catalog rẹ, kò sì gbà lọ́tẹ̀ yìí. Tẹ Tún so pọ̀ kí o sì gba gbogbo ohun tí Facebook béèrè; catalog rẹ á ṣètò ara rẹ̀.",
+  "cat.connectAgain": "Tún so pọ̀",
   "cat.usesNumber": "Ó ń lo nọ́ńbà WhatsApp tí o so pọ̀. Ó máa gba nǹkan bí ìṣẹ́jú kan.",
   "cat.usesNumberNamed": "Ó ń lo nọ́ńbà WhatsApp tí o so pọ̀ ({name}). Ó máa gba nǹkan bí ìṣẹ́jú kan.",
   "cat.sendNow": "Fi ọjà mi ránṣẹ́ báyìí",

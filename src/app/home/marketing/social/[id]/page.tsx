@@ -7,7 +7,8 @@ import { intlLocale } from "@shared/i18n";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { Card, CardHead, Pill, PillLink } from "@/components/app-kit";
 import { Icon } from "@/components/ui/Icon";
-import { POST_FORMATS, channelSpec, cleanChannels, formatSize, isPostFormat, lagosDayKey, lagosTime, readResults, type PostStatus } from "@/lib/social-posts/pure";
+import { POST_FORMATS, channelSpec, cleanChannels, formatSize, instagramKind, isPostFormat, lagosDayKey, lagosTime, readResults, type PostStatus } from "@/lib/social-posts/pure";
+import { ChannelSteps, PostWatcher } from "../_kit/LiveProgress";
 import { ChannelBadge } from "../_kit/ChannelBadge";
 import { Composer } from "../_kit/Composer";
 import { composerData } from "../_kit/composer-data.server";
@@ -88,16 +89,37 @@ export default async function SocialPostPage({ params }: { params: Promise<{ id:
       <PageTip className="mb-5">{tipT("social.post")}</PageTip>
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
         <Card className="p-5">
-          <CardHead title={t("post.where")} action={<Pill tone={STATUS_TONE[status]}>{t(`status.${status}`)}</Pill>} />
+          <CardHead
+            title={t("post.where")}
+            action={
+              <span className="flex flex-wrap items-center gap-2">
+                <PostWatcher postId={post.id} active={status === "publishing"} fingerprint={JSON.stringify([post.status, post.results])} />
+                <Pill tone={STATUS_TONE[status]}>{t(`status.${status}`)}</Pill>
+              </span>
+            }
+          />
           <ul className="m-0 mt-4 grid list-none gap-3 p-0">
             {channels.map((channel) => {
               const result = results[channel];
               const label = channelSpec(channel).label;
+              // Facebook and Instagram go out by themselves: their steps, live (an Instagram video is a reel).
+              const auto = channelSpec(channel).auto && result?.status !== "failed";
+              const reel = channel === "instagram" && instagramKind(format, post.mediaKind === "video" ? "video" : post.mediaUrl ? "image" : null) === "reel";
               return (
                 <li key={channel} className="flex min-w-0 flex-wrap items-center gap-3 rounded-[16px] border border-app-line p-3">
                   <ChannelBadge channel={channel} size={32} />
                   <div className="min-w-0 flex-1">
                     <div className="text-[14.5px] font-extrabold">{label}</div>
+                    {auto ? (
+                      <div className="mt-1.5">
+                        <ChannelSteps
+                          channel={label}
+                          reel={reel}
+                          state={result?.status === "posted" ? "posted" : result?.status === "waiting" ? "waiting" : "pending"}
+                          since={result?.status === "waiting" ? (result.since ?? result.at) : null}
+                        />
+                      </div>
+                    ) : (
                     <div className="text-[13px] text-app-ink-soft">
                       {result?.status === "posted" && t("res.posted")}
                       {result?.status === "waiting" && t("res.waiting")}
@@ -106,6 +128,7 @@ export default async function SocialPostPage({ params }: { params: Promise<{ id:
                       {result?.status === "shared" && t("res.shared")}
                       {!result && t("res.pending")}
                     </div>
+                    )}
                   </div>
                   {result?.status === "posted" && result.url && (
                     <a href={result.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full border border-app-line bg-white px-4 text-[13px] font-bold text-app-ink no-underline">

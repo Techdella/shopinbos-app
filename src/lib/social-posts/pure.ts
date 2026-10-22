@@ -165,7 +165,7 @@ export type ChannelResult =
   | { status: "posted"; id?: string; url?: string; at: string }
   | { status: "ready"; at: string }
   | { status: "shared"; at: string }
-  | { status: "waiting"; container: string; at: string }
+  | { status: "waiting"; container: string; at: string; since?: string }
   | { status: "failed"; error: string; reconnect?: boolean; at: string };
 
 export type PostResults = Partial<Record<PostChannel, ChannelResult>>;
@@ -186,7 +186,7 @@ export function readResults(value: unknown): PostResults {
         out[key] = { status: item.status, at };
         break;
       case "waiting":
-        if (typeof item.container === "string") out[key] = { status: "waiting", container: item.container, at };
+        if (typeof item.container === "string") out[key] = { status: "waiting", container: item.container, at, ...(typeof item.since === "string" ? { since: item.since } : {}) };
         break;
       case "failed":
         out[key] = { status: "failed", at, error: typeof item.error === "string" ? item.error : "Something went wrong", ...(item.reconnect === true ? { reconnect: true } : {}) };
