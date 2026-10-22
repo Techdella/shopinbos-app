@@ -630,6 +630,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "cat.nothingToFix": "Babu abin gyarawa",
   "cat.needPermission": "Muna buƙatar izininka a Facebook don yin wannan. Nemi taimakonmu mu gyara tare da kai.",
   "cat.setUpNow": "Saita shi yanzu",
+  "cat.permsMissing": "An haɗa WhatsApp kuma saƙonninka suna aiki. Don nuna kayayyakinka a cikin WhatsApp ma, dole Facebook ya ba Shopinbos izinin sarrafa catalog ɗinka, kuma bai bayar ba wannan karon. Danna Sake haɗawa ka amince da duk abin da Facebook ya nema; catalog ɗinka zai saita kansa.",
+  "cat.connectAgain": "Sake haɗawa",
   "cat.usesNumber": "Yana amfani da lambar WhatsApp da ka haɗa. Yana ɗaukar kusan minti ɗaya.",
   "cat.usesNumberNamed": "Yana amfani da lambar WhatsApp da ka haɗa ({name}). Yana ɗaukar kusan minti ɗaya.",
   "cat.sendNow": "Aika kayayyakina yanzu",

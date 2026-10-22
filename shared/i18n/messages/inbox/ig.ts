@@ -630,6 +630,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "cat.nothingToFix": "Ọ dịghị ihe ịdozi",
   "cat.needPermission": "Anyị chọrọ ikike gị na Facebook iji mee nke a. Rịọ anyị enyemaka, anyị ga-edozi ya gị na anyị.",
   "cat.setUpNow": "Hazie ya ugbu a",
+  "cat.permsMissing": "Ejikọọla WhatsApp, ozi gị na-arụkwa ọrụ. Iji gosi ngwaahịa gị n'ime WhatsApp kwa, Facebook ga-ekwe ka Shopinbos jikwaa catalog gị, o kweghị oge a. Pịa Jikọọ ọzọ ma kwe ihe niile Facebook rịọrọ; catalog gị ga-edozi onwe ya.",
+  "cat.connectAgain": "Jikọọ ọzọ",
   "cat.usesNumber": "Ọ na-eji nọmba WhatsApp i jikọrọ. Ọ na-ewe ihe dị ka otu nkeji.",
   "cat.usesNumberNamed": "Ọ na-eji nọmba WhatsApp i jikọrọ ({name}). Ọ na-ewe ihe dị ka otu nkeji.",
   "cat.sendNow": "Ziga ngwaahịa m ugbu a",
