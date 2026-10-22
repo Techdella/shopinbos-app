@@ -711,6 +711,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "edk.picker": "Olùyàn {label}",
   "edk.previewSize": "Ìwọ̀n ìwòṣáájú: {device}",
   "edk.previewing": "Ò ń wo {name} ṣáájú.",
+  "ed.Rex is here to help.": "Rex wà níbí láti ràn ọ́ lọ́wọ́.",
+  "ed.Ask him to change any section, design your menu with pictures and colours, or make something new. You see it on the page first and only pay credits to apply it.": "Ní kí ó yí apá èyíkéyìí padà, ṣe mẹ́nù rẹ pẹ̀lú àwòrán àti àwọ̀, tàbí ṣe nǹkan tuntun. Wà á kọ́kọ́ rí i lórí ojú-ìwé, ìgbà tí o bá lò ó nìkan ni o máa san credits.",
   "ed.Menu colours": "Àwọn àwọ̀ mẹ́nù",
   "ed.Menu words": "Ọ̀rọ̀ mẹ́nù",
   "ed.Leave empty to use your theme's colours.": "Fi sílẹ̀ ní òfo láti lo àwọn àwọ̀ theme rẹ.",

@@ -711,6 +711,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "edk.picker": "Onye nhọrọ {label}",
   "edk.previewSize": "Nha nlele: {device}",
   "edk.previewing": "Ị na-elele {name}.",
+  "ed.Rex is here to help.": "Rex nọ ebe a inye aka.",
+  "ed.Ask him to change any section, design your menu with pictures and colours, or make something new. You see it on the page first and only pay credits to apply it.": "Rịọ ya ka ọ gbanwee akụkụ ọ bụla, hazie menu gị nwere foto na agba, ma ọ bụ mee ihe ọhụrụ. Ị ga-ebu ụzọ hụ ya na peeji, naanị mgbe ị tinyere ya ka ị ga-akwụ credits.",
   "ed.Menu colours": "Agba menu",
   "ed.Menu words": "Okwu menu",
   "ed.Leave empty to use your theme's colours.": "Hapụ ya efu ka ọ were agba theme gị.",

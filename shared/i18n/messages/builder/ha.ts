@@ -711,6 +711,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "edk.picker": "Mai zaɓar {label}",
   "edk.previewSize": "Girman dubawa: {device}",
   "edk.previewing": "Ana duba {name}.",
+  "ed.Rex is here to help.": "Rex yana nan don taimaka.",
+  "ed.Ask him to change any section, design your menu with pictures and colours, or make something new. You see it on the page first and only pay credits to apply it.": "Ka tambaye shi ya canza kowane sashe, ya tsara menu ɗinka da hotuna da launuka, ko ya yi wani sabon abu. Za ka fara gani a shafin, sai lokacin da ka yi amfani da shi za ka biya credits.",
   "ed.Menu colours": "Launukan menu",
   "ed.Menu words": "Kalmomin menu",
   "ed.Leave empty to use your theme's colours.": "Bar shi babu komai don amfani da launukan theme ɗinka.",
