@@ -1,7 +1,13 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs";
+
+// Sentry source maps: only when SENTRY_AUTH_TOKEN is set (Vercel production), so builds without it are unchanged.
+// Browser maps are built, uploaded once after compile, then deleted so they are never served from the site.
+const uploadSourceMaps = !!process.env.SENTRY_AUTH_TOKEN;
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["*.localhost"],
+  productionBrowserSourceMaps: uploadSourceMaps,
   typescript: {
     // Types are checked by `npm run typecheck`, which `npm run build` runs before next build: type errors still fail
     // every build. Next's own check ran in the same build as webpack and pushed Vercel's 8 GB machine out of memory
@@ -100,4 +106,21 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT ?? "shopinbos",
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  silent: !process.env.CI,
+  telemetry: false,
+  // Upload from .next after the build instead of through Sentry's webpack plugin and loaders: the build is close
+  // to the 8 GB limit, and Sentry is already set up by instrumentation(-client).ts.
+  useRunAfterProductionCompileHook: true,
+  webpack: { disableSentryConfig: true },
+  // Shared chunks (React, Next) sit at the top of static/chunks; without this, framework stack frames stay minified.
+  widenClientFileUpload: true,
+  sourcemaps: {
+    disable: !uploadSourceMaps,
+    assets: [".next/static/chunks/**"],
+    deleteSourcemapsAfterUpload: true,
+  },
+});
