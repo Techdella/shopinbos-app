@@ -52,10 +52,12 @@ test("public form needs a name, an email or phone, a topic and a real message", 
   assert.deepEqual(s.splitContact("+233 24 123 4567"), { email: null, phone: "+233241234567" });
 });
 
-test("files: screenshots and PDFs up to 10 MB, stored only under the ticket's folder", () => {
+test("files: screenshots and PDFs up to 4 MB each and together, stored only under the ticket's folder", () => {
   assert.equal(s.attachmentProblem({ type: "image/png", size: 2000 }), null);
   assert.match(s.attachmentProblem({ type: "application/zip", size: 2000 }), /screenshot/);
-  assert.match(s.attachmentProblem({ type: "image/png", size: 11 * 1024 * 1024 }), /10 MB/);
+  assert.match(s.attachmentProblem({ type: "image/png", size: 5 * 1024 * 1024 }), /4 MB/);
+  assert.equal(s.filesTogetherProblem([{ size: 2 * 1024 * 1024 }, { size: 1024 * 1024 }]), null);
+  assert.match(s.filesTogetherProblem([{ size: 3 * 1024 * 1024 }, { size: 2 * 1024 * 1024 }]), /Together, files can be up to 4 MB/);
   assert.equal(s.attachmentPathBelongs("support/t1/123-abc.png", "t1"), true);
   assert.equal(s.attachmentPathBelongs("support/t2/123-abc.png", "t1"), false);
   assert.equal(s.attachmentPathBelongs("support/t1/../t2/x.png", "t1"), false);

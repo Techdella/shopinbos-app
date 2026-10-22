@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { UPLOAD_MAX_BYTES } from "../../../shared/media.ts";
 
 // Live support (signed-out "Stuck?" form, in-app chat, admin support desk): rules and helpers with no
 // database or React, shared by the API, the widgets, the admin desk and tests (Node strips the types natively).
@@ -107,7 +108,11 @@ export function stripQuotedReply(text: string) {
 // ─── Text, files and spam ─────────────────────────────────────────────────────
 
 export const MESSAGE_MAX = 5000;
-export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
+/**
+ * Per file, after screenshots are shrunk in the browser. The files of one message go up in one request, which can't
+ * be over about 4.5 MB (shared/media.ts), so they must fit in UPLOAD_MAX_BYTES together too (filesTogetherProblem).
+ */
+export const MAX_ATTACHMENT_BYTES = UPLOAD_MAX_BYTES;
 export const MAX_ATTACHMENTS = 3;
 export const ATTACHMENT_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif", "application/pdf"] as const;
 
@@ -139,8 +144,13 @@ export function escapeHtml(value: string) {
 export function attachmentProblem(file: { type: string; size: number }) {
   if (!(ATTACHMENT_TYPES as readonly string[]).includes(file.type)) return "Attach a screenshot (JPG, PNG, WebP, GIF) or a PDF.";
   if (file.size <= 0) return "That file is empty.";
-  if (file.size > MAX_ATTACHMENT_BYTES) return "Files can be up to 10 MB.";
+  if (file.size > MAX_ATTACHMENT_BYTES) return "Files can be up to 4 MB.";
   return null;
+}
+
+/** The files of one message, together: they're sent in one request. */
+export function filesTogetherProblem(files: Array<{ size: number }>) {
+  return files.reduce((sum, file) => sum + file.size, 0) > UPLOAD_MAX_BYTES ? "Together, files can be up to 4 MB. Send big ones in separate messages." : null;
 }
 
 export function safeFileName(name: string) {
