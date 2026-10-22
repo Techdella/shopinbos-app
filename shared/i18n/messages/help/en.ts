@@ -22,6 +22,15 @@ const en = {
   noConversations: "No conversations yet. When you talk to the team, they'll show up here.",
   newReply: ", new reply",
   orEmail: "or email",
+  callPeggyHint: "Talk it through with Peggy, Shopinbos's AI support. Free.",
+  emailUs: "Email us",
+  emailUsHint: "Write to the team without leaving the app",
+  emailTo: "To",
+  emailSubject: "Subject",
+  emailSubjectPlaceholder: "What's it about?",
+  emailIntro: "We'll reply here and by email, usually within an hour.",
+  emailSend: "Send email",
+  emailNeedsSubject: "Add a subject.",
 
   // Ask Peggy
   greeting: "Hi! Ask me how to do anything in Shopinbos: building your store, products, orders, payments or delivery. For account problems, tap \"Talk to a person\".",
