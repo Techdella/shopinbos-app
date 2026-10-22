@@ -1,19 +1,34 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ScrollView, View } from "react-native";
 import { Sheet } from "@/components/Sheet";
 import { List, Row, Seg } from "@/components/design";
 import { Notice, PillButton, T, Toggle } from "@/components/ui";
-import { canSchedule, firstSlot, sameDay, scheduleAt, scheduleDays, SCHEDULE_HOURS } from "@/lib/familiar-pure";
-import type { PostPlatform } from "@/lib/familiar";
+import { canSchedule, firstSlot, joinNames, needsConnecting, sameDay, scheduleAt, scheduleDays, scheduleSplit, SCHEDULE_HOURS } from "@/lib/familiar-pure";
+import { fetchPostAccounts, type PostAccount, type PostPlatform } from "@/lib/familiar";
+import { openPath } from "@/lib/web";
 import { formatDate } from "@shared/i18n";
 import { useLocale, useT } from "@/lib/i18n";
-import { colors } from "@/theme";
+import { colors, radii } from "@/theme";
 
 // "When should it go out?" ("Familiar app" prototype sheet `stSched`): day chips, time chips and the apps it's for.
-// We don't post for anyone (decision 3): at that time the phone gets a reminder that opens the post with Share.
+// A seller's post goes on their Social posts calendar: Facebook and Instagram post by themselves when their Page is
+// connected there (else "Connect" opens Social posts → Accounts on the website); WhatsApp and TikTok get a reminder.
+// Suppliers and delivery partners: every app gets a reminder that opens the post with Share.
 
 export const PLATFORMS: PostPlatform[] = ["whatsapp", "instagram", "facebook", "tiktok"];
-export const PLATFORM_KEY = { whatsapp: "plat.whatsapp", instagram: "plat.instagram", facebook: "plat.facebook", tiktok: "plat.tiktok" } as const;
+export const PLATFORM_KEY = { whatsapp: "plat.whatsapp", instagram: "plat.instagram", facebook: "plat.facebook", tiktok: "plat.tiktok", x: "plat.x" } as const;
+
+/** "We'll post it on Facebook for you, and remind you for WhatsApp" for the picked apps, honest per app. */
+export function useScheduleNote() {
+  const t = useT("m_familiar");
+  const names = (keys: readonly PostPlatform[]) => joinNames(keys.map((key) => t(PLATFORM_KEY[key])), (a, b) => t("and", { a, b }));
+  return (platforms: readonly PostPlatform[], accounts: ReadonlyArray<{ key: string; auto?: boolean }> | null | undefined) => {
+    const split = scheduleSplit(platforms, accounts);
+    if (split.auto.length && split.remind.length) return t("sched.autoAndRemind", { auto: names(split.auto), remind: names(split.remind) });
+    if (split.auto.length) return t("sched.autoOnly", { auto: names(split.auto) });
+    return t("sched.remind");
+  };
+}
 
 export function ScheduleSheet({
   visible,
@@ -29,13 +44,30 @@ export function ScheduleSheet({
 }) {
   const t = useT("m_familiar");
   const locale = useLocale();
+  const note = useScheduleNote();
   const [now] = useState(() => new Date());
   const first = firstSlot(now);
   const [day, setDay] = useState<Date>(first.day);
   const [hour, setHour] = useState<number>(first.hour);
   const [platforms, setPlatforms] = useState<PostPlatform[]>(initialPlatforms);
+  const [accounts, setAccounts] = useState<PostAccount[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    fetchPostAccounts()
+      .then((list) => {
+        if (!alive || !list) return;
+        setAccounts(list);
+        // A seller's Facebook or Instagram without the Page connected can't go out: leave it unpicked.
+        setPlatforms((current) => current.filter((platform) => !needsConnecting(platform, list)));
+      })
+      .catch(() => null);
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const days = scheduleDays(now);
   const dayLabel = (date: Date, index: number) => (index === 0 ? t("sched.today") : index === 1 ? t("sched.tomorrow") : formatDate(date, locale, { weekday: "short", day: "numeric", timeZone: undefined }));
@@ -57,7 +89,7 @@ export function ScheduleSheet({
     setBusy(true);
     setError(null);
     try {
-      await onSave({ scheduledAt: scheduleAt(day, hour), platforms });
+      await onSave({ scheduledAt: scheduleAt(day, hour), platforms: PLATFORMS.filter((platform) => platforms.includes(platform)) });
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : t("sched.failed"));
     } finally {
@@ -75,11 +107,23 @@ export function ScheduleSheet({
       </View>
       <List>
         {PLATFORMS.map((platform) => {
+          const name = t(PLATFORM_KEY[platform]);
+          if (needsConnecting(platform, accounts)) {
+            return (
+              <Row
+                key={platform}
+                title={name}
+                sub={t("sched.connectFirst")}
+                right={<PillButton title={t("posts.connect")} tone="white" size="sm" accessibilityLabel={t("posts.connectLabel", { name })} onPress={() => void openPath("/home/marketing/social/accounts")} style={{ borderRadius: radii.pill }} />}
+              />
+            );
+          }
           const on = platforms.includes(platform);
-          return <Row key={platform} title={t(PLATFORM_KEY[platform])} right={<Toggle on={on} onChange={(next) => toggle(platform, next)} label={t(PLATFORM_KEY[platform])} />} />;
+          const auto = accounts?.find((account) => account.key === platform)?.auto;
+          return <Row key={platform} title={name} sub={auto ? t("posts.auto") : undefined} right={<Toggle on={on} onChange={(next) => toggle(platform, next)} label={name} />} />;
         })}
       </List>
-      <T style={{ fontSize: 14, lineHeight: 20, color: colors.inkSoft }}>{t("sched.remind")}</T>
+      <T style={{ fontSize: 14, lineHeight: 20, color: colors.inkSoft }}>{note(platforms, accounts)}</T>
       {error ? <Notice>{error}</Notice> : null}
       <PillButton title={t("sched.save")} busy={busy} disabled={!platforms.length || !okTime} onPress={() => void save()} />
     </Sheet>

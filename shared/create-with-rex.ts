@@ -4,7 +4,8 @@
 // tests/create-posts.test.mjs. The routes are src/app/api/mobile/create/** and src/app/api/mobile/posts/**; the
 // renderer is src/lib/create/render.server.tsx.
 //
-// Nothing here posts for anyone: "Share now" opens the phone's share sheet and "Schedule" saves a reminder.
+// "Share now" opens the phone's share sheet. "Schedule" saves a reminder for suppliers and delivery partners; a
+// seller's posts are the web's Social posts (postsCalendarFor), where Facebook and Instagram post by themselves.
 
 export type CreateRole = "seller" | "supplier" | "logistics_partner";
 
@@ -298,10 +299,21 @@ export function cleanPlatforms(value: unknown): PostPlatform[] {
 }
 
 /**
- * The accounts row of the calendar. `linked` is true only where Shopinbos has a real connection (a seller's
- * connected Meta, TikTok or WhatsApp sales channel); it only changes the label, since nothing is posted for anyone.
+ * Which calendar a role's phone posts live in. Sellers: the web's Social posts (SocialPost, by store), where Facebook
+ * and Instagram post by themselves and WhatsApp, TikTok and X get a "ready" reminder. Suppliers and delivery partners
+ * have no web calendar: their posts stay reminders only (ScheduledPost, table "PlannedPost").
  */
-export function postAccounts(connections: ReadonlyArray<{ channel: string; status?: string | null; tokenEnc?: string | null | boolean }> = []) {
+export function postsCalendarFor(role: string | null | undefined): "social" | "planned" {
+  return role === "seller" ? "social" : "planned";
+}
+
+/**
+ * The accounts row of the calendar. `linked` is true only where Shopinbos has a real connection. For a seller
+ * (`social` given), Facebook and Instagram are the Page and account connected on Social posts, and then they post by
+ * themselves (`auto`); WhatsApp and TikTok are their connected sales channels, posted by hand after a reminder.
+ * Suppliers and delivery partners: nothing is posted for them (no `auto`).
+ */
+export function postAccounts(connections: ReadonlyArray<{ channel: string; status?: string | null; tokenEnc?: string | null | boolean }> = [], social?: { facebook: boolean; instagram: boolean } | null) {
   const live = new Set(
     connections
       .filter((row) => row.status === "connected" || (row.status == null && Boolean(row.tokenEnc)))
@@ -309,11 +321,13 @@ export function postAccounts(connections: ReadonlyArray<{ channel: string; statu
   );
   const linked: Record<PostPlatform, boolean> = {
     whatsapp: live.has("whatsapp"),
-    instagram: live.has("meta"),
-    facebook: live.has("meta"),
+    instagram: social ? social.instagram : live.has("meta"),
+    facebook: social ? social.facebook : live.has("meta"),
     tiktok: live.has("tiktok"),
   };
-  return POST_PLATFORMS.map((platform) => ({ key: platform.key, label: platform.label, linked: linked[platform.key] }));
+  // `auto` only on a seller's row: the app reads its presence as "this is the Social posts calendar".
+  const auto = (key: PostPlatform) => (key === "facebook" || key === "instagram") && linked[key];
+  return POST_PLATFORMS.map((platform) => ({ key: platform.key, label: platform.label, linked: linked[platform.key], ...(social ? { auto: auto(platform.key) } : {}) }));
 }
 
 /** Status after a change: a time makes it scheduled, no time a draft; "posted" stays posted. */

@@ -5,14 +5,21 @@ import { apiError, ok } from "@/lib/api/response";
 import { db } from "@/lib/db/client";
 import { jobView } from "@/lib/create/jobs.server";
 import { accountsFor, postView } from "@/lib/create/posts.server";
-import { POST_PLATFORM_KEYS, cleanPlatforms, parseDesignId, postStatusFor } from "@shared/create-with-rex";
+import { PostInputError } from "@/lib/social-posts/save.server";
+import { createFromPhone, listPhonePosts, phoneView, sellerStore } from "@/lib/social-posts/phone.server";
+import { cleanPlatforms, parseDesignId, postStatusFor, postsCalendarFor } from "@shared/create-with-rex";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 120;
 
-// The posts calendar in the phone app, for every role. Nothing is posted for anyone: "Share now" opens the phone's
-// share sheet, and a scheduled post gets one "Time to post" reminder at its time (src/app/api/cron/post-reminders).
-//   GET ?from=ISO&to=ISO → { posts, accounts } (posts scheduled in the range, plus drafts with no time)
+// The posts calendar in the phone app, for every role (postsCalendarFor picks which one):
+// - Sellers: their Social posts (SocialPost, the same calendar as Marketing > Social posts on the web, saved through
+//   the web's checks). Facebook and Instagram post by themselves when the Page is connected; WhatsApp, TikTok and X
+//   become "ready" at the time with a push that opens the post with Share.
+// - Suppliers and delivery partners: reminders only (ScheduledPost). "Share now" opens the phone's share sheet, and a
+//   scheduled post gets one "Time to post" reminder at its time (src/app/api/cron/post-reminders).
+//   GET ?from=ISO&to=ISO (&only=accounts) → { posts, accounts } (posts scheduled in the range, plus drafts with no time)
 //   POST { designId?, imageUrl?, caption, platforms, scheduledAt? } → { post }
 
 const DAY = 86_400_000;
@@ -29,12 +36,20 @@ export const GET = withAuth(async (req: NextRequest, { user }) => {
   const from = readDate(req.nextUrl.searchParams.get("from"), new Date(now - 7 * DAY));
   const to = readDate(req.nextUrl.searchParams.get("to"), new Date(now + 31 * DAY));
   if (to.getTime() < from.getTime() || to.getTime() - from.getTime() > 400 * DAY) return apiError("BAD_REQUEST", "Pick a range of up to a year.");
+  const accountsOnly = req.nextUrl.searchParams.get("only") === "accounts";
+  if (postsCalendarFor(user.role) === "social") {
+    const store = await sellerStore(user.id);
+    const [posts, accounts] = await Promise.all([store && !accountsOnly ? listPhonePosts(store, from, to, MAX_POSTS) : Promise.resolve([]), accountsFor(user)]);
+    return ok({ posts, accounts });
+  }
   const [rows, accounts] = await Promise.all([
-    db.scheduledPost.findMany({
-      where: { userId: user.id, OR: [{ scheduledAt: { gte: from, lte: to } }, { scheduledAt: null, status: "draft" }] },
-      orderBy: [{ scheduledAt: "asc" }, { createdAt: "desc" }],
-      take: MAX_POSTS,
-    }),
+    accountsOnly
+      ? Promise.resolve([])
+      : db.scheduledPost.findMany({
+          where: { userId: user.id, OR: [{ scheduledAt: { gte: from, lte: to } }, { scheduledAt: null, status: "draft" }] },
+          orderBy: [{ scheduledAt: "asc" }, { createdAt: "desc" }],
+          take: MAX_POSTS,
+        }),
     accountsFor(user),
   ]);
   return ok({ posts: rows.map(postView), accounts });
@@ -44,7 +59,8 @@ const Body = z.object({
   designId: z.string().trim().max(80).optional(),
   imageUrl: z.string().trim().url().max(2000).regex(/^https:\/\//, "Use an https picture link").optional(),
   caption: z.string().trim().max(2200).optional(),
-  platforms: z.array(z.enum(POST_PLATFORM_KEYS)).max(POST_PLATFORM_KEYS.length).default([]),
+  // whatsapp | instagram | facebook | tiktok (and x for a seller); unknown ones are dropped.
+  platforms: z.array(z.string().trim().max(20)).max(10).default([]),
   scheduledAt: z.string().datetime({ offset: true }).nullable().optional(),
 });
 
@@ -52,6 +68,18 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return apiError("BAD_REQUEST", parsed.error.issues[0]?.message ?? "Add a caption and pick where to post.");
   const input = parsed.data;
+
+  if (postsCalendarFor(user.role) === "social") {
+    const store = await sellerStore(user.id);
+    if (!store) return apiError("NOT_FOUND", "Set up your shop first", 404);
+    try {
+      const post = await createFromPhone({ userId: user.id, store, designId: input.designId, imageUrl: input.imageUrl ?? null, caption: input.caption, platforms: input.platforms, scheduledAt: input.scheduledAt ?? null });
+      return ok({ post: await phoneView(post) }, 201);
+    } catch (error) {
+      if (error instanceof PostInputError) return apiError("BAD_REQUEST", error.message);
+      throw error;
+    }
+  }
 
   // A design from one of the person's own Create with Rex jobs brings its picture and caption.
   let imageUrl = input.imageUrl ?? null;

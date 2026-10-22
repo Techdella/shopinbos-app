@@ -76,13 +76,47 @@ export function firstSlot(now: Date): { day: Date; hour: number } {
   return { day: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1), hour: SCHEDULE_HOURS[0] };
 }
 
-export type PostPill = { key: "posted" | "scheduled" | "draft"; tone: "ok" | "teal" | "gray" };
+export type PostPill = { key: "posted" | "scheduled" | "draft" | "attention" | "yourTurn"; tone: "ok" | "teal" | "gray" | "warn" | "org" };
 
-/** Posted (green), Scheduled (mint) or Draft (grey). */
-export function postPill(status: string): PostPill {
+/**
+ * Posted (green), Scheduled (mint) or Draft (grey); a seller's post that didn't go out needs attention (amber), and
+ * one waiting for their tap on WhatsApp, TikTok or X is "Your turn" (orange).
+ */
+export function postPill(status: string, yourTurn = false): PostPill {
+  if (status === "attention") return { key: "attention", tone: "warn" };
+  if (yourTurn && (status === "posted" || status === "scheduled")) return { key: "yourTurn", tone: "org" };
   if (status === "posted") return { key: "posted", tone: "ok" };
   if (status === "scheduled") return { key: "scheduled", tone: "teal" };
   return { key: "draft", tone: "gray" };
+}
+
+/** Facebook and Instagram can post by themselves (when a seller connects their Page on Social posts). */
+export const AUTO_PLATFORMS = ["facebook", "instagram"] as const;
+
+/**
+ * What happens at the time for the picked apps: `auto` post by themselves (a seller's connected Facebook and
+ * Instagram), `remind` get a reminder (everything else, and every app for suppliers and delivery partners).
+ */
+export function scheduleSplit<P extends string>(platforms: readonly P[], accounts: ReadonlyArray<{ key: string; auto?: boolean }> | null | undefined): { auto: P[]; remind: P[] } {
+  const auto = new Set((accounts ?? []).filter((account) => account.auto).map((account) => account.key));
+  return { auto: platforms.filter((key) => auto.has(key)), remind: platforms.filter((key) => !auto.has(key)) };
+}
+
+/**
+ * Whether an app can be picked when scheduling: a seller's Facebook and Instagram only post through the Page
+ * connected on Social posts, so they need it connected first (`accounts` from the server say whether it's a
+ * seller's: only theirs carry `auto`).
+ */
+export function needsConnecting(platform: string, accounts: ReadonlyArray<{ key: string; auto?: boolean; linked: boolean }> | null | undefined): boolean {
+  if (!(AUTO_PLATFORMS as readonly string[]).includes(platform)) return false;
+  const account = accounts?.find((item) => item.key === platform);
+  return Boolean(account && account.auto !== undefined && !account.auto);
+}
+
+/** "WhatsApp", "WhatsApp and TikTok", "WhatsApp, TikTok and X" with the language's "and". */
+export function joinNames(names: readonly string[], and: (a: string, b: string) => string): string {
+  if (names.length <= 1) return names[0] ?? "";
+  return and(names.slice(0, -1).join(", "), names[names.length - 1]);
 }
 
 /**

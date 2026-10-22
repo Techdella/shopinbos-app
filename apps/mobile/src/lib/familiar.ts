@@ -125,24 +125,52 @@ export const fetchCreateJob = (id: string) => api<{ job: CreateJob }>(`/api/mobi
 
 // ─── Posts calendar ──────────────────────────────────────────────────────────
 
-export type PostPlatform = "whatsapp" | "instagram" | "facebook" | "tiktok";
+// A seller's calendar is their Social posts on the web (Facebook and Instagram post by themselves when the Page is
+// connected; WhatsApp, TikTok and X get a reminder); suppliers and delivery partners get reminders only. Seller
+// posts carry `kind: "social"` and each channel's result.
+
+export type PostPlatform = "whatsapp" | "instagram" | "facebook" | "tiktok" | "x";
+/** One channel of a seller's post. auto: posts by itself; state: pending (not its time), waiting (Instagram
+ * processing), ready (your turn to post), shared (you did), posted (we did), failed. */
+export interface PostChannelResult {
+  key: PostPlatform;
+  auto: boolean;
+  state: "pending" | "waiting" | "ready" | "shared" | "posted" | "failed";
+  url?: string;
+  error?: string;
+}
 export interface ScheduledPost {
   id: string;
-  imageUrl: string;
+  imageUrl: string | null;
   caption: string;
   platforms: string[];
-  status: "draft" | "scheduled" | "posted";
+  /** attention: it didn't go out (a seller's post that failed everywhere). */
+  status: "draft" | "scheduled" | "posted" | "attention";
   scheduledAt: string | null;
   postedAt: string | null;
+  kind?: "social";
+  channels?: PostChannelResult[];
+  /** WhatsApp, TikTok or X is waiting for you to post it. */
+  yourTurn?: boolean;
+}
+export interface PostAccount {
+  key: PostPlatform;
+  label: string;
+  linked: boolean;
+  /** Posts by itself (a seller's Facebook or Instagram connected on Social posts). */
+  auto?: boolean;
 }
 export interface PostsWeek {
   posts: ScheduledPost[];
-  accounts: Array<{ key: PostPlatform; label: string; linked: boolean }>;
+  accounts: PostAccount[];
 }
 
 export const fetchPosts = (from: Date, to: Date) => optional(api<PostsWeek>(`/api/mobile/posts?from=${encodeURIComponent(from.toISOString())}&to=${encodeURIComponent(to.toISOString())}`));
+/** Just the accounts (for the Schedule sheet). */
+export const fetchPostAccounts = () => optional(api<PostsWeek>("/api/mobile/posts?only=accounts")).then((week) => week?.accounts ?? null);
 export const savePost = (input: { designId?: string; imageUrl?: string; caption: string; platforms: string[]; scheduledAt?: string | null }) => api<{ post: ScheduledPost }>("/api/mobile/posts", { method: "POST", json: input });
-export const updatePost = (id: string, patch: Partial<Pick<ScheduledPost, "status" | "scheduledAt" | "caption" | "platforms">>) => api<{ post: ScheduledPost }>(`/api/mobile/posts/${encodeURIComponent(id)}`, { method: "PATCH", json: patch });
+export const updatePost = (id: string, patch: Partial<Pick<ScheduledPost, "scheduledAt" | "caption" | "platforms">> & { status?: "posted"; channel?: PostPlatform }) =>
+  api<{ post: ScheduledPost }>(`/api/mobile/posts/${encodeURIComponent(id)}`, { method: "PATCH", json: patch });
 export const deletePost = (id: string) => api<{ ok: true }>(`/api/mobile/posts/${encodeURIComponent(id)}`, { method: "DELETE" });
 
 // ─── Supplier tracking ───────────────────────────────────────────────────────

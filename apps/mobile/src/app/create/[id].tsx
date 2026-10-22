@@ -18,7 +18,9 @@ import { colors, radii } from "@/theme";
 
 // Create with Rex, step 2 ("Familiar app" prototype `making` then `result`): "Rex is making 3 designs" while
 // GET /api/mobile/create/[id] says "making" (polled), then the three designs to pick from, the caption to edit,
-// "Make 3 more", Share now (the phone's share sheet) and Schedule (a reminder at that time, never auto-posting).
+// "Make 3 more", Share now (the phone's share sheet) and Schedule. A seller's post goes on their Social posts
+// calendar (the website's), so Facebook and Instagram post by themselves when the Page is connected and WhatsApp
+// and TikTok get a reminder; suppliers and delivery partners get a reminder for every app.
 
 const PLATFORM_OF: Record<ShareTarget, PostPlatform | null> = { whatsapp_status: "whatsapp", whatsapp_chat: "whatsapp", tiktok: "tiktok", instagram: "instagram", facebook: "facebook", save: null };
 
@@ -104,7 +106,7 @@ export default function CreateResult() {
     try {
       const { post } = await savePost({ designId: design.id, imageUrl: design.imageUrl, caption: text, platforms: [platform] });
       setSavedPostId(post.id);
-      await updatePost(post.id, { status: "posted" }).catch(() => null);
+      await updatePost(post.id, { status: "posted", channel: platform }).catch(() => null);
     } catch {
       // fine: it was shared
     }
