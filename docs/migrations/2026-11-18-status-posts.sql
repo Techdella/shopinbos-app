@@ -72,3 +72,18 @@ END $$;
 ALTER TABLE "StatusPost" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "StatusView" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "StatusLike" ENABLE ROW LEVEL SECURITY;
+
+-- pg_cron (production schedules run here, reusing the "cron_secret" Vault secret); scripts/qstash-schedules.mjs has
+-- the same job. Run after deploying the route. Skipped when it already exists.
+select cron.schedule(
+  'status-purge',
+  '41 * * * *',
+  $$
+  select net.http_get(
+    url := 'https://app.shopinbos.com/api/cron/status-purge',
+    headers := jsonb_build_object('Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'cron_secret')),
+    timeout_milliseconds := 120000
+  );
+  $$
+)
+where not exists (select 1 from cron.job where jobname = 'status-purge');

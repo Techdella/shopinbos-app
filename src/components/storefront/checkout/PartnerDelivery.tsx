@@ -134,14 +134,16 @@ export function PartnerDeliveryChoices({
   const selected = selectedOptionId && delivery.options.some((option) => option.id === selectedOptionId) ? selectedOptionId : delivery.options[0]!.id;
   const main = delivery.options.filter((option) => option.kind !== "pickup_point");
   const points = sortPointsByDistance(delivery.options.filter((option) => option.kind === "pickup_point"));
+  // A partner option offers pay on delivery only when the seller has pay on delivery switched on too.
+  const withPod = <T extends Pick<MarketOption, "pod">>(option: T): T => ({ ...option, pod: payOnDelivery && option.pod });
   const card = (option: MarketOption) => <OptionCard key={option.id} theme={theme} option={option} pod={payOnDelivery && option.pod} name={name} checked={selected === option.id} onSelect={() => onSelect(option.id)} currency={currency} />;
-  const podOffered = payOnDeliveryOffered(delivery.options, storePayOnDelivery);
+  const podOffered = payOnDeliveryOffered(delivery.options.map(withPod), storePayOnDelivery);
   return (
     <div className="grid gap-2.5" id={id} tabIndex={-1}>
       {area ? <p className="m-0 text-[14px] font-semibold">To {area}</p> : null}
       {delivery.reason ? <p className="m-0 text-[13.5px]" style={{ color: theme.muted }}>{delivery.reason}</p> : null}
       {main.map(card)}
-      {points.length ? <PickupPointCard theme={theme} points={points} name={name} selectedOptionId={selected} onSelect={onSelect} currency={currency} /> : null}
+      {points.length ? <PickupPointCard theme={theme} points={points.map(withPod)} name={name} selectedOptionId={selected} onSelect={onSelect} currency={currency} /> : null}
       {podOffered ? null : <p className="m-0 text-[13px]" style={{ color: theme.muted }}>Pay on delivery isn&apos;t offered for this order.</p>}
     </div>
   );

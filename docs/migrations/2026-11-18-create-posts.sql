@@ -46,3 +46,18 @@ CREATE INDEX IF NOT EXISTS "PlannedPost_status_scheduledAt_idx" ON "PlannedPost"
 -- Server-only: no policies, so the anon and authenticated roles can't read them through the Supabase API.
 ALTER TABLE "CreateJob" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "PlannedPost" ENABLE ROW LEVEL SECURITY;
+
+-- pg_cron (production schedules run here, reusing the "cron_secret" Vault secret); scripts/qstash-schedules.mjs has
+-- the same job. Run after deploying the route. Skipped when it already exists.
+select cron.schedule(
+  'post-reminders',
+  '*/5 * * * *',
+  $$
+  select net.http_get(
+    url := 'https://app.shopinbos.com/api/cron/post-reminders',
+    headers := jsonb_build_object('Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'cron_secret')),
+    timeout_milliseconds := 120000
+  );
+  $$
+)
+where not exists (select 1 from cron.job where jobname = 'post-reminders');
