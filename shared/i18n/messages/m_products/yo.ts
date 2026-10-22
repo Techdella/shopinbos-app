@@ -48,7 +48,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "dropship.sub": "O kò ra àwọn wọ̀nyí. Nígbà tí oníbàárà bá sanwó, supplier yóò fi ránṣẹ́ tààrà sí wọn.",
   "dropship.emptyTitle": "Kò sí ọjà dropship síbẹ̀",
   "dropship.findToSell": "Wá ọjà láti tà",
-  "dropship.emptyBody": "Yan ọjà láti ọ̀dọ̀ àwọn supplier kí o fi sínú ṣọ́ọ̀bù rẹ. O kò ní san nǹkan kan títí oníbàárà yóò fi sanwó fún ọ. Owó rẹ wà láàbò níbí títí di ìgbà delivery.",
+  "dropship.emptyBody": "Yan ọjà láti ọ̀dọ̀ àwọn supplier kí o fi sínú ṣọ́ọ̀bù rẹ. O kò ní san nǹkan kan títí oníbàárà yóò fi sanwó fún ọ, ìpín rẹ yóò sì lọ tààrà sí bánkì rẹ.",
   "dropship.attention": "{count} ti kéré tàbí ti tán lọ́dọ̀ supplier. Dá wọn dúró kí àwọn oníbàárà má ṣe order ohun tí a kò lè fi ránṣẹ́.",
   "dropship.nothing": "Kò sí nǹkan níbí báyìí. Tẹ \"Gbogbo\" láti rí gbogbo rẹ̀.",
   "dropship.findMore": "Wá ọjà púpọ̀ sí i",

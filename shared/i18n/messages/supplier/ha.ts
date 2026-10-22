@@ -326,7 +326,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "order.step1": "Karɓi odar",
   "order.step2Wholesale": "Ƙunshe shi ka shirya shi.",
   "order.step3": "Rider zai zo ya ɗauka a lokacin da ka zaɓa. Ba kai ne za ka biya kuɗin isarwa ba.",
-  "order.shopPaysFirst": "Shagon ne ke fara biya. Kuɗinka yana zuwa bankinka kai tsaye bayan isarwa.",
+  "order.shopPaysFirst": "Shagon ne ke fara biya, da kati. Kasonka yana zuwa bankinka kai tsaye bayan isarwa. Shopinbos ba ya riƙe kuɗin.",
   "order.acceptOrder": "Karɓi oda",
   "order.whyNot": "Me ya sa? Shagon zai ga wannan.",
   "order.sayNo": "Ka ce a'a ga wannan oda",

@@ -61,7 +61,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "product.outOfStock": "Stock agwụla",
   "product.inShop": "Ọ nọ n'ụlọ ahịa gị",
   "product.message": "Ozi",
-  "product.dropshipIntro": "Ị naghị azụ ihe ọ bụla ugbu a. Mgbe onye ahịa kwụrụ gị, {name} ga-ezigara ha ya, uru dị n'etiti ya bụ nke gị. Ego gị dị nchebe ruo mgbe delivery gachara.",
+  "product.dropshipIntro": "Ị naghị azụ ihe ọ bụla ugbu a. Mgbe onye ahịa kwụrụ gị, {name} ga-ezigara ha ya, uru dị n'etiti ya bụ nke gị. Òkè gị na-abata ozugbo n'akaụntụ ụlọ akụ gị.",
   "product.sellingPrice": "Ọnụahịa ị na-ere",
   "product.customerPays": "Onye ahịa na-akwụ",
   "product.supplierGets": "Supplier na-enweta",

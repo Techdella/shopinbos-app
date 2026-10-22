@@ -61,7 +61,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "product.outOfStock": "Ya ƙare",
   "product.inShop": "Yana cikin shagonka",
   "product.message": "Saƙo",
-  "product.dropshipIntro": "Ba ka sayen komai yanzu. Idan abokin ciniki ya biya ka, {name} zai aika masa, kai kuma ka riƙe ragowar ribar. Kuɗinka yana cikin aminci har zuwa isarwa.",
+  "product.dropshipIntro": "Ba ka sayen komai yanzu. Idan abokin ciniki ya biya ka, {name} zai aika masa, kai kuma ka riƙe ragowar ribar. Kasonka yana zuwa bankinka kai tsaye.",
   "product.sellingPrice": "Farashin sayarwarka",
   "product.customerPays": "Abokin ciniki zai biya",
   "product.supplierGets": "Mai kawo kaya zai samu",

@@ -85,7 +85,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "method.wa.hint": "Àwọn oníbàárà lè bá ọ chat láti sanwó",
   "pay.payouts": "Payouts",
   "pay.bankAdded": "✓ A ti fi bánkì payout kún un",
-  "pay.bankLater": "O lè fi bánkì rẹ kún un nígbà míì. Títí di ìgbà náà, owó rẹ wà láàbò níbí pẹ̀lú Shopinbos.",
+  "pay.bankLater": "O lè fi bánkì rẹ kún un nígbà míì. Tí o bá ti fi kún un, owó káàdì yóò máa lọ tààrà sí i. Shopinbos kì í di owó rẹ mú.",
   "pay.addBank": "Fi bánkì kún un báyìí",
   "pay.later": "Nígbà míì",
   "pay.noProblem": "Kò sí wàhálà. Ó wà nínú checklist rẹ.",

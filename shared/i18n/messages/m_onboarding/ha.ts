@@ -85,7 +85,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "method.wa.hint": "Abokan ciniki za su iya yin chat don biya",
   "pay.payouts": "Bankin karɓar kuɗi",
   "pay.bankAdded": "✓ An ƙara bankin karɓar kuɗi",
-  "pay.bankLater": "Kana iya ƙara bankinka daga baya. Da zarar ka ƙara shi, kuɗin abokan ciniki za su riƙa zuwa bankinka kai tsaye.",
+  "pay.bankLater": "Kana iya ƙara bankinka daga baya. Da zarar ka ƙara shi, biyan kati zai riƙa zuwa bankinka kai tsaye. Shopinbos ba ya riƙe kuɗinka.",
   "pay.addBank": "Ƙara banki yanzu",
   "pay.later": "Daga baya",
   "pay.noProblem": "Babu matsala. Yana cikin checklist ɗinka.",

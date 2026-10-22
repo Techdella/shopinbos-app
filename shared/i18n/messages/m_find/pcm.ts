@@ -61,7 +61,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "product.outOfStock": "E don finish",
   "product.inShop": "E dey your shop",
   "product.message": "Message",
-  "product.dropshipIntro": "You no go buy anything now. When customer pay you, {name} go send am to dem and you go keep the difference. Your money dey safe until delivery.",
+  "product.dropshipIntro": "You no go buy anything now. When customer pay you, {name} go send am to dem and you go keep the difference. Your share go enter your bank straight.",
   "product.sellingPrice": "Your selling price",
   "product.customerPays": "Customer go pay",
   "product.supplierGets": "Supplier go collect",

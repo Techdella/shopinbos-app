@@ -326,7 +326,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "order.step1": "Gba order náà",
   "order.step2Wholesale": "Dì í kí o sì jẹ́ kí ó ṣetán.",
   "order.step3": "Rider máa wá gbé e ní àkókò tí o yàn. O kò ní san owó delivery.",
-  "order.shopPaysFirst": "Ṣọ́ọ̀bù ló kọ́kọ́ ń sanwó. A máa pa owó náà mọ́, a ó sì fi ránṣẹ́ sí ọ lẹ́yìn delivery.",
+  "order.shopPaysFirst": "Ṣọ́ọ̀bù ló kọ́kọ́ ń sanwó, pẹ̀lú káàdì. Ìpín rẹ yóò lọ tààrà sí bánkì rẹ lẹ́yìn delivery. Shopinbos kì í di owó náà mú.",
   "order.acceptOrder": "Gba order",
   "order.whyNot": "Kí ló dé? Ṣọ́ọ̀bù náà máa rí èyí.",
   "order.sayNo": "Kọ order yìí",

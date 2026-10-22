@@ -48,7 +48,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "dropship.sub": "Ba kai ne ka saye waɗannan ba. Idan abokin ciniki ya biya, mai kawo kaya zai aika masa kai tsaye.",
   "dropship.emptyTitle": "Babu kayan dropship tukuna",
   "dropship.findToSell": "Nemo kayan sayarwa",
-  "dropship.emptyBody": "Zaɓi kaya daga masu kawo kaya ka saka a shagonka. Ba ka biyan komai har sai abokin ciniki ya biya ka. Kuɗinka yana cikin aminci har zuwa isarwa.",
+  "dropship.emptyBody": "Zaɓi kaya daga masu kawo kaya ka saka a shagonka. Ba ka biyan komai har sai abokin ciniki ya biya ka, kuma kasonka yana zuwa bankinka kai tsaye.",
   "dropship.attention": "{count} sun yi kaɗan ko sun ƙare a wurin mai kawo kaya. Dakatar da su don kada abokan ciniki su yi odar abin da ba za a iya aikawa ba.",
   "dropship.nothing": "Babu komai a nan yanzu. Taɓa \"Duka\" don ganin komai.",
   "dropship.findMore": "Nemo ƙarin kaya",

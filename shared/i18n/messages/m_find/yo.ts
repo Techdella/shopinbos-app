@@ -61,7 +61,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "product.outOfStock": "Ó ti tán",
   "product.inShop": "Ó wà nínú ṣọ́ọ̀bù rẹ",
   "product.message": "Fi ọ̀rọ̀ ránṣẹ́",
-  "product.dropshipIntro": "O kò ra nǹkan kan báyìí. Nígbà tí oníbàárà bá sanwó fún ọ, {name} yóò fi ránṣẹ́ sí wọn, ìwọ yóò sì gba ìyàtọ̀ owó náà. Owó rẹ wà láàbò níbí títí di ìgbà delivery.",
+  "product.dropshipIntro": "O kò ra nǹkan kan báyìí. Nígbà tí oníbàárà bá sanwó fún ọ, {name} yóò fi ránṣẹ́ sí wọn, ìwọ yóò sì gba ìyàtọ̀ owó náà. Ìpín rẹ yóò lọ tààrà sí bánkì rẹ.",
   "product.sellingPrice": "Owó tí o fi ń tà",
   "product.customerPays": "Oníbàárà ń san",
   "product.supplierGets": "Ohun tí supplier ń gbà",

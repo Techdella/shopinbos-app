@@ -48,7 +48,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "dropship.sub": "You no go buy these ones. When customer pay, the supplier go send am straight to dem.",
   "dropship.emptyTitle": "No dropship products yet",
   "dropship.findToSell": "Find products to sell",
-  "dropship.emptyBody": "Pick products from suppliers and put dem for your shop. You no go pay anything until customer pay you. Your money dey safe until delivery.",
+  "dropship.emptyBody": "Pick products from suppliers and put dem for your shop. You no go pay anything until customer pay you, and your share go enter your bank straight.",
   "dropship.attention": "{count} dey low or don finish for supplier side. Pause dem so customers no go order wetin dem no fit send.",
   "dropship.nothing": "Nothing dey here now. Tap \"All\" make you see everything.",
   "dropship.findMore": "Find more products",

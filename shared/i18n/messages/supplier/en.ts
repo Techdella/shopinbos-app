@@ -337,7 +337,7 @@ const en = {
   "order.step1": "Accept the order",
   "order.step2Wholesale": "Pack it and get it ready.",
   "order.step3": "A rider comes to collect it at a time you pick. You don't pay for delivery.",
-  "order.shopPaysFirst": "The shop pays first. We keep the money safe and send it to you after delivery.",
+  "order.shopPaysFirst": "The shop pays first, by card. Your share goes straight to your bank after delivery. Shopinbos never holds the money.",
   "order.acceptOrder": "Accept order",
   "order.whyNot": "Why not? The shop sees this.",
   "order.sayNo": "Say no to this order",

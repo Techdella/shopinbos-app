@@ -48,7 +48,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "dropship.sub": "Ị naghị azụ ndị a. Mgbe onye ahịa kwụrụ ụgwọ, supplier ga-ezigara ya ozugbo.",
   "dropship.emptyTitle": "Ọ dịbeghị ngwaahịa dropship",
   "dropship.findToSell": "Chọọ ngwaahịa ị ga-ere",
-  "dropship.emptyBody": "Họrọ ngwaahịa n'aka ndị supplier ma tinye ha n'ụlọ ahịa gị. Ị naghị akwụ ihe ọ bụla ruo mgbe onye ahịa kwụrụ gị. Ego gị dị nchebe ruo mgbe delivery gachara.",
+  "dropship.emptyBody": "Họrọ ngwaahịa n'aka ndị supplier ma tinye ha n'ụlọ ahịa gị. Ị naghị akwụ ihe ọ bụla ruo mgbe onye ahịa kwụrụ gị, òkè gị na-abatakwa ozugbo n'akaụntụ ụlọ akụ gị.",
   "dropship.attention": "{count} nwere stock dị ala ma ọ bụ gwụrụ n'aka supplier. Kwụsịtụ ha ka ndị ahịa ghara ịtụ order ihe a na-agaghị enwe ike iziga.",
   "dropship.nothing": "Ọ dịghị ihe ebe a ugbu a. Pịa \"Niile\" ka ị hụ ihe niile.",
   "dropship.findMore": "Chọọ ngwaahịa ọzọ",

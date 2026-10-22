@@ -85,7 +85,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "method.wa.hint": "Customers fit chat to pay",
   "pay.payouts": "Payouts",
   "pay.bankAdded": "✓ Payout bank don add",
-  "pay.bankLater": "You fit add your bank later. Until then, your money dey safe.",
+  "pay.bankLater": "You fit add your bank later. Once you add am, card payments go enter am straight. Shopinbos no dey hold your money.",
   "pay.addBank": "Add bank now",
   "pay.later": "Later",
   "pay.noProblem": "No wahala. E dey your checklist.",

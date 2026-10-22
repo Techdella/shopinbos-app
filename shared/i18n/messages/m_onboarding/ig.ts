@@ -85,7 +85,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "method.wa.hint": "Ndị ahịa nwere ike ikwu na chat ma kwụọ ụgwọ",
   "pay.payouts": "Payouts",
   "pay.bankAdded": "✓ Etinyela ụlọ akụ payout",
-  "pay.bankLater": "Ị nwere ike itinye ụlọ akụ gị ma emechaa. Ozugbo i tinyere ya, ego kaadị ga-abata ozugbo n'akaụntụ ụlọ akụ gị.",
+  "pay.bankLater": "Ị nwere ike itinye ụlọ akụ gị ma emechaa. Ozugbo i tinyere ya, ego kaadị ga-abata ozugbo n'akaụntụ ụlọ akụ gị. Shopinbos anaghị ejide ego gị.",
   "pay.addBank": "Tinye ụlọ akụ ugbu a",
   "pay.later": "Ma emechaa",
   "pay.noProblem": "Ọ dịghị nsogbu. Ọ dị na checklist gị.",

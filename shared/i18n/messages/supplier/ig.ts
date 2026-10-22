@@ -326,7 +326,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "order.step1": "Nabata order ahụ",
   "order.step2Wholesale": "Kwakọọ ya ma mee ka ọ dị njikere.",
   "order.step3": "Rider ga-abịa were ya n'oge ị họọrọ. Ị gaghị akwụ ụgwọ delivery.",
-  "order.shopPaysFirst": "Ụlọ ahịa na-ebu ụzọ kwụọ ụgwọ. Ego gị na-abata ozugbo n'akaụntụ ụlọ akụ gị mgbe delivery gachara.",
+  "order.shopPaysFirst": "Ụlọ ahịa na-ebu ụzọ kwụọ ụgwọ, site na kaadị. Òkè gị na-abata ozugbo n'akaụntụ ụlọ akụ gị mgbe delivery gachara. Shopinbos anaghị ejide ego ahụ.",
   "order.acceptOrder": "Nabata order",
   "order.whyNot": "Gịnị kpatara ya? Ụlọ ahịa ahụ ga-ahụ nke a.",
   "order.sayNo": "Sị mba na order a",
