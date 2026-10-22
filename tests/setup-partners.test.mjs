@@ -38,7 +38,7 @@ test("the fact comes from active delivery connections, and Start here connects t
 
   const actions = read("src/app/home/start/actions.ts");
   assert.match(actions, /deliveryPartnerProblem\(user\.id, id\)/, "the plan's delivery-partner limit");
-  assert.match(actions, /connectPartner\(\{ id: user\.id, role: user\.role \}, id\)/, "the same connect as the partners page");
+  assert.match(actions, /connectPartner\(\{ id: user\.id, role: user\.role, name: user\.name \}, id\)/, "the same connect as the partners page");
   assert.match(actions, /saveDeliverySettings\(userId, \{ checkoutMode: partners \? "partners" : "zones" \}\)/, "the logistics settings save path");
 
   const page = read("src/app/home/start/StartHere.tsx");

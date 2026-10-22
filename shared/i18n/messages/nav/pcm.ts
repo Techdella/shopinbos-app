@@ -102,6 +102,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   profile: "Your profile",
   "notification-prefs": "Notification settings",
   "connections": "Connections",
+  "contracts": "Contracts",
   customise: "Arrange your menu",
   "supplier.dashboard": "Today",
   "supplier.quote-requests": "Quote requests",

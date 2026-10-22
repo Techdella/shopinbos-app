@@ -365,7 +365,7 @@ export interface PickupJobInput {
   kind: SupplierOrderKind;
   /** "DS-1A2B3C": what the supplier and rider call the parcel. */
   ref: string;
-  /** The label: the shop's name, never the supplier's. */
+  /** The delivery label's sender: the shop whose order it is, so the customer knows which shop it's from. */
   shopName: string;
   pickupAddress: string;
   dropoff: { name: string; phone?: string | null; lines: string[] };

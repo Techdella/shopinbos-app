@@ -120,6 +120,8 @@ const AgreementSchema = z.object({
   stockCheck: z.string().max(20),
   agreed: z.boolean(),
   note: z.string().max(600).optional(),
+  /** The full name the seller typed to sign the Dropship agreement. */
+  signedName: z.string().max(80),
 });
 
 /** Before listing a supplier's products: the seller called them, checked the stock and accepts the Dropship agreement. */

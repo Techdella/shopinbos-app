@@ -871,6 +871,7 @@ const en = {
   "wa.moreSettings": "Peggy's settings",
   "wa.moreSettingsHint": "Products, orders, when she answers, tone and greeting",
   "cat.oneSub": "Customers see your products in your WhatsApp chat and can add them to a cart.",
+  "cat.settingUp": "Setting up your WhatsApp catalog and sending your products. This takes about a minute.",
   "cat.oneClick": "Connect WhatsApp and show my products",
   "cat.oneClickSub": "A Facebook window opens. Log in and pick your number; we set up the catalog and send your products.",
   "ch.helpTitle": "Connect {title}",

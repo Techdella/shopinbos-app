@@ -320,8 +320,10 @@ export interface WhatsAppCatalogLike {
 }
 
 /** The WhatsApp card, from the WhatsApp catalog (src/lib/whatsapp-catalog) and whether WhatsApp is connected. */
-export function whatsappCardState(options: { signupConfigured: boolean; whatsappConnected: boolean; catalog: WhatsAppCatalogLike | null; synced: number }): CardState {
+export function whatsappCardState(options: { signupConfigured: boolean; whatsappConnected: boolean; catalog: WhatsAppCatalogLike | null; synced: number; settingUp?: boolean }): CardState {
   const { catalog } = options;
+  // Just connected: the catalog is being set up in the background (src/lib/whatsapp-store/setup.server.ts).
+  if (!catalog?.catalogId && options.whatsappConnected && options.settingUp && !catalog?.permissionMissing) return { kind: "syncing" };
   // The number is connected (messages work) but Meta didn't grant the catalog permissions: say what's left
   // rather than "Connect" again.
   if (!catalog?.catalogId && options.whatsappConnected && catalog?.permissionMissing) return { kind: "needs_account" };

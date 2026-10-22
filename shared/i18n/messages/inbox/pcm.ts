@@ -856,6 +856,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "wa.moreSettings": "Peggy settings",
   "wa.moreSettingsHint": "Products, orders, when she go answer, tone and greeting",
   "cat.oneSub": "Customers go see your products inside your WhatsApp chat and fit add dem to cart.",
+  "cat.settingUp": "We dey set up your WhatsApp catalog and dey send your products. E go take like one minute.",
   "cat.oneClick": "Connect WhatsApp and show my products",
   "cat.oneClickSub": "Facebook window go open. Log in and pick your number; we go set up the catalog and send your products.",
   "ch.helpTitle": "Connect {title}",

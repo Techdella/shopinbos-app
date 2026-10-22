@@ -45,7 +45,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "dropship.message": "Message",
   "dropship.changeFailed": "E no change. Check your network, then try again.",
   "dropship.title": "Dropship",
-  "dropship.sub": "You no go buy these ones. When customer pay, the supplier go send am with your shop name on top.",
+  "dropship.sub": "You no go buy these ones. When customer pay, the supplier go send am straight to dem.",
   "dropship.emptyTitle": "No dropship products yet",
   "dropship.findToSell": "Find products to sell",
   "dropship.emptyBody": "Pick products from suppliers put for your shop. You no go pay anything until customer pay you. Your money dey safe here until delivery.",

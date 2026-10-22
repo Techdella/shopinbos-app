@@ -13,6 +13,7 @@ import { ActionNotice, PartnerPage, SubmitButton, inputClass, labelClass, naira,
 import { coverageDepot, coverageZoneRows } from "@/components/logistics/coverage";
 import { AreaTokenAdder } from "@/components/logistics/AreaTokenAdder";
 import { getT } from "@/lib/i18n/server";
+import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -26,6 +27,7 @@ export default async function LogisticsCoveragePage({ searchParams }: { searchPa
   ensureLogisticsAccess(partner);
   const { saved, error, unknown } = await searchParams;
   const t = await getT("logistics", "delivery", "common");
+  const tipT = await getT("tips");
 
   const zones = coverageZoneRows(partner);
   const depot = coverageDepot(partner) ?? partner.city ?? "";
@@ -37,6 +39,7 @@ export default async function LogisticsCoveragePage({ searchParams }: { searchPa
       sub={t("coverage.sub")}
       actions={<PillLink href="/logistics/pricing" icon="coin">{t("coverage.pricingModel")}</PillLink>}
     >
+      <PageTip who="rex" className="mb-5">{tipT("logistics.coverage")}</PageTip>
       <ActionNotice saved={saved} error={error} savedText={saved === "market" ? t("market.cov.saved") : t("coverage.saved")} />
       {unknown && (
         <div className="mb-4">

@@ -9,6 +9,8 @@ import { sendWhatsAppTest, testWhatsAppConnection, whatsappHealth } from "@/lib/
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+// Connecting also sets up the WhatsApp catalog after the response (src/lib/whatsapp-store/setup.server.ts).
+export const maxDuration = 300;
 
 // Peggy on WhatsApp: health for the setup page, finishing Embedded Signup, "Test connection" and a test message
 // to the seller's own number. Peggy's WhatsApp settings themselves save with the chatbot (/api/app/inbox/automation).

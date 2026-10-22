@@ -8,8 +8,8 @@ import { setStoreIntegration } from "@/lib/storefront/integrations.server";
 
 // One "Connect Facebook & Instagram" for everything Meta: after the sign-in on /channels, the seller's Facebook
 // Page and the Instagram account linked to it are connected to the inbox too, with the Page's own token (never
-// pasted, never shown). Rows connected this way are marked via "facebook_login", so Disconnect on the card only
-// turns off what the card turned on (a channel connected by other means stays).
+// pasted, never shown). Rows connected this way are marked via "facebook_login"; Disconnect on the card turns off the
+// Page and Instagram messages however they were connected, since the card shows them.
 
 export const VIA_FACEBOOK_LOGIN = "facebook_login";
 
@@ -76,12 +76,13 @@ export async function connectMetaInbox(store: { id: string; slug: string }, user
   return result;
 }
 
-/** Disconnect on the Facebook & Instagram card: the messages it turned on stop too. */
+/**
+ * Disconnect on the Facebook & Instagram card: the Page's and Instagram's messages stop too. The card lists those
+ * accounts however they were connected (here or in Inbox → Channels), so Disconnect turns off all of them.
+ */
 export async function disconnectMetaInbox(storeId: string) {
-  const rows = await db.inboxChannel.findMany({ where: { storeId, channel: { in: ["messenger", "instagram"] }, status: "connected" }, select: { channel: true, settings: true } });
-  for (const row of rows) {
-    if ((row.settings as { via?: unknown } | null)?.via === VIA_FACEBOOK_LOGIN) await disconnectChannel(storeId, row.channel as "messenger" | "instagram");
-  }
+  const rows = await db.inboxChannel.findMany({ where: { storeId, channel: { in: ["messenger", "instagram"] }, status: "connected" }, select: { channel: true } });
+  for (const row of rows) await disconnectChannel(storeId, row.channel as "messenger" | "instagram");
 }
 
 /**

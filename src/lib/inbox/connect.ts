@@ -233,7 +233,26 @@ async function saveWhatsApp(storeId: string, credentials: Record<string, string>
   if (subscribed && !subscribed.ok) await db.inboxChannel.update({ where: { id: row.id }, data: { lastError: subscribed.error } });
   await recordMetaUser(storeId, "inbox_whatsapp", credentials.accessToken);
   if (credentials.wabaId) setUpOrderMessagesLater(storeId);
+  setUpWhatsAppSellingLater(storeId);
   return { ok: true, view: await viewOf(storeId, "whatsapp") };
+}
+
+/**
+ * Selling on WhatsApp in the same click: the catalog (found or made, linked to the number with the cart on, every
+ * product sent) and the WhatsApp store's in-chat cart (src/lib/whatsapp-store/setup.server.ts), after the response.
+ * Without Meta's catalog permissions the cards and the WhatsApp catalog page say what's missing.
+ */
+function setUpWhatsAppSellingLater(storeId: string) {
+  const task = async () => {
+    const { setUpWhatsAppSelling } = await import("@/lib/whatsapp-store/setup.server");
+    const result = await setUpWhatsAppSelling(storeId);
+    if (!result.ok) console.warn(`[whatsapp] catalog setup for store ${storeId}: ${result.error}`);
+  };
+  try {
+    after(() => task().catch((error) => console.error("[whatsapp] catalog setup failed", error)));
+  } catch {
+    void task().catch((error) => console.error("[whatsapp] catalog setup failed", error));
+  }
 }
 
 /**

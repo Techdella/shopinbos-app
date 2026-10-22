@@ -219,6 +219,8 @@ model User {
   debtsOwed              BusinessDebt[]          @relation("DebtDebtor")
   debtsOwedTo            BusinessDebt[]          @relation("DebtCreditor")
   supplierAgreements     SupplierAgreement[]     @relation("SellerAgreements")
+  contractsAsPartyA      Contract[]              @relation("ContractPartyA")
+  contractsAsPartyB      Contract[]              @relation("ContractPartyB")
   /// Paused from new business through Shopinbos for money owed and long overdue (src/lib/money-owed): a supplier is
   /// hidden from sellers looking for products, a delivery partner from sellers looking for delivery, and a seller
   /// can't list new supplier products or place wholesale orders. What they already have keeps working, so their
@@ -4223,6 +4225,97 @@ model SupplierAgreement {
 
   @@unique([sellerId, supplierId])
   @@index([supplierId, status])
+}
+
+// ─── Contracts ────────────────────────────────────────────────────────────────
+// Signed documents between two businesses (shared/contracts.ts, src/lib/contracts/contracts.server.ts): the
+// Dropship agreement (shop and supplier, one per SupplierAgreement request) and the Delivery service agreement
+// (shop or supplier and a delivery partner, one per DeliveryConnection). Party A is the side that starts it (the
+// shop or business), party B the supplier or delivery partner. The document is frozen at the first signature and
+// hashed. Each side sees its copy under Contracts; the admin team can only open one while a dispute is open, and
+// every opening is a ContractEvent both sides are told about. Parties are kept as text too, so the record
+// survives an account being closed.
+
+model Contract {
+  id                   String    @id @default(cuid())
+  /// dropship | delivery
+  kind                 String
+  version              String
+  title                String
+  /// The ContractDocument both sides read and signed (frozen).
+  body                 Json
+  /// SHA-256 of the canonical JSON of body.
+  bodyHash             String
+  /// awaiting | signed | declined | ended
+  status               String    @default("awaiting")
+  supplierAgreementId  String?
+  deliveryConnectionId String?
+
+  partyAUserId         String?
+  /// seller | supplier
+  partyARole           String
+  partyAName           String
+  partyASignedName     String
+  partyASignedAt       DateTime
+  /// The signer's own account (a team member signing for the business), and where they signed from.
+  partyASignerId       String?
+  partyAIp             String?
+  partyAUserAgent      String?
+
+  partyBUserId         String?
+  /// supplier | logistics_partner
+  partyBRole           String
+  partyBName           String
+  partyBSignedName     String?
+  partyBSignedAt       DateTime?
+  partyBSignerId       String?
+  partyBIp             String?
+  partyBUserAgent      String?
+
+  declinedAt           DateTime?
+  declineNote          String?
+  endedAt              DateTime?
+  /// none | open | closed
+  disputeStatus        String    @default("none")
+  disputeOpenedAt      DateTime?
+  /// a | b: which side raised it.
+  disputeOpenedBy      String?
+  disputeReason        String?
+  disputeClosedAt      DateTime?
+  disputeClosedNote    String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  partyA User?           @relation("ContractPartyA", fields: [partyAUserId], references: [id], onDelete: SetNull)
+  partyB User?           @relation("ContractPartyB", fields: [partyBUserId], references: [id], onDelete: SetNull)
+  events ContractEvent[]
+
+  @@index([partyAUserId, createdAt])
+  @@index([partyBUserId, createdAt])
+  @@index([supplierAgreementId])
+  @@index([deliveryConnectionId])
+  @@index([disputeStatus, updatedAt])
+}
+
+/// What happened to a contract: signed, declined, ended, dispute opened or closed, and each time the admin team
+/// opened it (with the reason). Both sides see this history on their copy.
+model ContractEvent {
+  id          String   @id @default(cuid())
+  contractId  String
+  /// signed | declined | ended | dispute_opened | dispute_closed | admin_opened
+  action      String
+  /// a | b | admin | system
+  actorSide   String
+  actorUserId String?
+  actorName   String?
+  note        String?
+  ip          String?
+  createdAt   DateTime @default(now())
+
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@index([contractId, createdAt])
+  @@index([actorUserId, action, createdAt])
 }
 
 // ─── Money owed between businesses ────────────────────────────────────────────

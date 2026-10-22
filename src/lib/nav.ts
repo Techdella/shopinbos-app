@@ -235,6 +235,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
             { id: "profile", label: "Your profile", href: "/home/profile" },
             { id: "notification-prefs", label: "Notification settings", href: "/home/notifications/preferences" },
             { id: "connections", label: "Connections", href: "/home/connections" },
+            { id: "contracts", label: "Contracts", href: "/home/contracts" },
             { id: "customise", label: "Customise your menu", href: "/home/features" },
           ],
         },
@@ -275,6 +276,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
           children: [
             { id: "buyers-all", label: "Shops selling your products", href: "/supplier/buyers" },
             { id: "agreements", label: "Dropship agreements", href: "/supplier/agreements" },
+            { id: "contracts", label: "Contracts", href: "/supplier/contracts" },
             { id: "followers", label: "Followers", href: "/supplier/followers" },
             { id: "reviews", label: "Reviews", href: "/supplier/reviews" },
           ],
@@ -360,6 +362,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
           children: [
             { id: "company", label: "Company profile", href: "/logistics/profile" },
             { id: "verification", label: "Verification", href: "/logistics/verification" },
+            { id: "contracts", label: "Contracts", href: "/logistics/contracts" },
             { id: "customise", label: "Customise your menu", href: "/logistics/features" },
           ],
         },
@@ -417,6 +420,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
         },
         { id: "wallets", label: "Wallets", icon: "coin", href: "/admin/wallets" },
         { id: "money-owed", label: "Money owed", icon: "coin", href: "/admin/money-owed" },
+        { id: "contracts", label: "Contracts", icon: "document", href: "/admin/contracts" },
         {
           id: "pricing", label: "Pricing", icon: "percent", href: "/admin/pricing",
           children: [

@@ -712,6 +712,8 @@ const en = {
   "edk.picker": "{label} picker",
   "edk.previewSize": "Preview size: {device}",
   "edk.previewing": "Previewing {name}.",
+  "ed.Rex is here to help.": "Rex is here to help.",
+  "ed.Ask him to change any section, design your menu with pictures and colours, or make something new. You see it on the page first and only pay credits to apply it.": "Ask him to change any section, design your menu with pictures and colours, or make something new. You see it on the page first and only pay credits to apply it.",
   "ed.Menu colours": "Menu colours",
   "ed.Menu words": "Menu words",
   "ed.Leave empty to use your theme's colours.": "Leave empty to use your theme's colours.",

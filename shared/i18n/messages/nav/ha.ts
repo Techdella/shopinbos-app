@@ -102,6 +102,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   profile: "Bayananka",
   "notification-prefs": "Saitunan sanarwa",
   "connections": "Haɗe-haɗe",
+  "contracts": "Kwangiloli",
   customise: "Tsara menu ɗinka",
   "supplier.dashboard": "Yau",
   "supplier.quote-requests": "Quote requests",

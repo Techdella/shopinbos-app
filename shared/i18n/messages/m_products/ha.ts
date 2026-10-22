@@ -45,7 +45,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "dropship.message": "Saƙo",
   "dropship.changeFailed": "Bai canza ba. Duba network ɗinka, sannan ka sake gwadawa.",
   "dropship.title": "Dropship",
-  "dropship.sub": "Ba ka saya waɗannan ba. Idan abokin ciniki ya biya, supplier zai aika da sunan shagonka a kai.",
+  "dropship.sub": "Ba ka saya waɗannan ba. Idan abokin ciniki ya biya, supplier zai aika masa kai tsaye.",
   "dropship.emptyTitle": "Babu kayan dropship tukuna",
   "dropship.findToSell": "Nemo kayan sayarwa",
   "dropship.emptyBody": "Zaɓi kaya daga suppliers ka saka a shagonka. Ba ka biyan komai har sai abokin ciniki ya biya ka. Kuɗinka yana nan lafiya har zuwa isarwa.",

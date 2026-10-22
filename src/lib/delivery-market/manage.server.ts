@@ -1,6 +1,8 @@
 import "server-only";
 import { db } from "@/lib/db/client";
 import { createNotification } from "@/lib/notifications/create";
+import { SIGN_NAME_ERROR, endDeliveryContracts, signDeliveryAsBusiness } from "@/lib/contracts/contracts.server";
+import { cleanSignedName } from "@shared/contracts";
 import { invalidatePublicMarketplaceCache } from "@/lib/api/cache";
 import {
   ISSUE_KINDS,
@@ -112,8 +114,14 @@ export async function saveDeliverySettings(userId: string, input: SettingsInput)
 
 // ─── Connections ("My delivery partners") ────────────────────────────────────
 
-export async function connectPartner(owner: { id: string; role: string }, partnerId: string): Promise<Result<{ connectionId: string }>> {
+/**
+ * Connecting signs the Delivery service agreement for the business (shared/contracts.ts): `typedName` when the
+ * screen asks for one, else the account name (connecting from a list or during setup). The partner signs their
+ * copy under Contracts; jobs can start on the public rates meanwhile.
+ */
+export async function connectPartner(owner: { id: string; role: string; name?: string | null }, partnerId: string, typedName?: string): Promise<Result<{ connectionId: string }>> {
   if (owner.role !== "seller" && owner.role !== "supplier") return { ok: false, error: "Only sellers and suppliers connect delivery partners." };
+  if (typedName !== undefined && !cleanSignedName(typedName)) return { ok: false, error: SIGN_NAME_ERROR };
   const partner = await db.logisticsPartner.findFirst({ where: { id: partnerId, ...LIVE_PARTNER_WHERE }, select: { id: true, userId: true, displayName: true } });
   if (!partner) return { ok: false, error: "This delivery partner isn't available right now." };
   const limitProblem = await connectionLimitProblem(owner.id, partner.id);
@@ -124,6 +132,14 @@ export async function connectPartner(owner: { id: string; role: string }, partne
     update: { status: "active", endedAt: null, endedBy: null },
     create: { ownerUserId: owner.id, ownerRole: owner.role, logisticsPartnerId: partner.id },
   });
+  const signed = await db.contract.count({ where: { deliveryConnectionId: connection.id, status: { in: ["awaiting", "signed"] } } });
+  if (!signed) {
+    const contract = await signDeliveryAsBusiness({ connectionId: connection.id, owner, partnerId: partner.id, signer: { userId: owner.id, typedName, accountName: owner.name } }).catch((error) => {
+      console.error("[delivery contract] could not sign", error);
+      return null;
+    });
+    if (contract && !contract.ok) return { ok: false, error: contract.error };
+  }
   const who = owner.role === "supplier"
     ? (await db.supplier.findUnique({ where: { userId: owner.id }, select: { displayName: true } }))?.displayName
     : (await db.store.findUnique({ where: { userId: owner.id }, select: { name: true } }))?.name;
@@ -179,6 +195,7 @@ export async function updateConnection(ownerId: string, connectionId: string, in
 export async function endConnection(actor: { userId: string; side: "owner" | "partner"; partnerId?: string }, connectionId: string): Promise<Result> {
   const where = actor.side === "owner" ? { id: connectionId, ownerUserId: actor.userId } : { id: connectionId, logisticsPartnerId: actor.partnerId ?? "" };
   const moved = await db.deliveryConnection.updateMany({ where: { ...where, status: "active" }, data: { status: "ended", endedAt: new Date(), endedBy: actor.side } });
+  if (moved.count === 1) await endDeliveryContracts(connectionId, actor.side === "owner" ? "a" : "b").catch(() => null);
   return moved.count === 1 ? { ok: true } : { ok: false, error: "That connection has already ended." };
 }
 

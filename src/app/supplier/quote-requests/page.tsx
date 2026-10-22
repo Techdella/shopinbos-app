@@ -11,6 +11,7 @@ import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { getT } from "@/lib/i18n/server";
 import { pageWindow } from "@/lib/pagination";
 import { Pagination } from "@/components/seller/Pagination";
+import { PageTip } from "@/components/learn/PageTip";
 
 const PAGE_SIZE = 20;
 
@@ -36,6 +37,7 @@ export default async function SupplierQuoteRequestsPage({ searchParams }: PagePr
   const supplier = await getSupplierForUser(user);
   ensureSupplierAccess(supplier);
   const t = await getT("supplier", "common");
+  const tipT = await getT("tips");
 
   // Counts and the quoted value cover every request; the list shows one page of the chosen kind.
   const filter = FILTERS.find((item) => item.key === params?.show);
@@ -94,6 +96,7 @@ export default async function SupplierQuoteRequestsPage({ searchParams }: PagePr
         />
       }
     >
+      <PageTip who="rex" className="mb-5">{tipT("supplier.quoteRequests")}</PageTip>
       <SplitLayout
         sideWidth="360px"
         main={

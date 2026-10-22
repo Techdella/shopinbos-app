@@ -85,8 +85,9 @@ export async function saveDeliverySettingsAction(formData: FormData) {
 
 export async function connectPartnerAction(formData: FormData) {
   const { user, home } = await business();
-  const result = await connectPartner({ id: user.id, role: user.role }, str(formData.get("partnerId"), 40));
-  done(formData, home, result.ok ? { ok: true } : result, "Partner added. Their public rates now price your deliveries with them.");
+  const typed = str(formData.get("signedName"), 80);
+  const result = await connectPartner({ id: user.id, role: user.role, name: user.name }, str(formData.get("partnerId"), 40), typed || undefined);
+  done(formData, home, result.ok ? { ok: true } : result, "Partner added and the Delivery service agreement signed. Their public rates now price your deliveries with them; your copy is under Contracts.");
 }
 
 export async function updateConnectionAction(formData: FormData) {

@@ -7,6 +7,8 @@ import { CardExtras, RateTable, Rating, VerifiedPill, areasSummary } from "./bit
 import { serviceLabel } from "./words";
 import { getT } from "@/lib/i18n/server";
 import { Term } from "@/components/learn/Term";
+import { ContractDocumentView } from "@/components/contracts/ContractDocumentView";
+import { deliveryDocument } from "@shared/contracts";
 
 // A delivery partner's page for sellers and suppliers (spec §5.3): rates, coverage, pickup points, reviews and
 // in-app stats, with Chat and Connect / Remove.
@@ -15,6 +17,7 @@ type Detail = NonNullable<Awaited<ReturnType<typeof partnerDetail>>>;
 
 export async function PartnerDetail({ detail, role, back }: { detail: Detail; role: "seller" | "supplier"; back: string }) {
   const t = await getT("delivery");
+  const tc = await getT("contracts");
   const NOT_ENOUGH = t("detail.notEnough");
   const { partner, card, privateCard, stats, connection } = detail;
   const date = (value: Date) => value.toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" });
@@ -29,9 +32,10 @@ export async function PartnerDetail({ detail, role, back }: { detail: Detail; ro
           <button type="submit" className={pillButton.danger}>{t("removePartner")}</button>
         </form>
       ) : (
-        <form action={connectPartnerAction}>
+        <form action={connectPartnerAction} className="flex flex-wrap items-center gap-2">
           <input type="hidden" name="partnerId" value={partner.id} />
           <input type="hidden" name="back" value={back} />
+          <input name="signedName" required minLength={3} maxLength={80} autoComplete="name" placeholder={tc("sign.ph")} aria-label={tc("sign.label")} className="min-h-[40px] rounded-full border border-app-line bg-white px-4 font-accent text-[15px] italic" />
           <button type="submit" className={pillButton.ink}>{t("connect")}</button>
         </form>
       )}
@@ -54,6 +58,16 @@ export async function PartnerDetail({ detail, role, back }: { detail: Detail; ro
         </div>
         {actions}
       </Card>
+
+      {!connection && (
+        <details className="group rounded-[18px] border border-app-line bg-white p-4">
+          <summary className="cursor-pointer list-none text-[14px] font-extrabold [&::-webkit-details-marker]:hidden">{tc("sign.readSigned")} <span aria-hidden className="inline-block transition group-open:rotate-90">›</span></summary>
+          <p className="m-0 mt-2 text-[13px] text-app-ink-soft">{tc("sign.help")}</p>
+          <div className="mt-3 max-h-[480px] overflow-y-auto">
+            <ContractDocumentView compact doc={deliveryDocument({ business: { name: "Your business", role }, partner: { name: partner.displayName, companyName: partner.companyName, cacNumber: partner.cacNumber }, date: new Date() })} />
+          </div>
+        </details>
+      )}
 
       <StatGrid>
         <StatTile tone="card" label={t("detail.deliveriesOnShopinbos")} value={stats.completed.toLocaleString("en-NG")} />
