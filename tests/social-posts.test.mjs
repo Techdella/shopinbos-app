@@ -124,3 +124,16 @@ test("Social posts is under Marketing; Sell everywhere is the marketplaces, comi
   assert.match(page, /redirect\(`\/home\/marketing\/social\/new/, "old Post & share links go to the composer");
   assert.match(read("src/components/builder/rex/RexImageActions.tsx"), /\/home\/marketing\/social\/new\?image=/);
 });
+
+test("an Instagram reel goes up as soon as Instagram has it ready while the post page is open", () => {
+  const at = "2026-10-22T16:00:40.000Z";
+  // The processing start is kept across checks, for the page's timer.
+  assert.deepEqual(sp.readResults({ instagram: { status: "waiting", container: "c1", at, since: "2026-10-22T16:00:33.000Z" } }), { instagram: { status: "waiting", container: "c1", at, since: "2026-10-22T16:00:33.000Z" } });
+  const server = read("src/lib/social-posts/server.ts");
+  assert.match(server, /export async function checkPost\(postId: string/);
+  assert.match(server, /status: "publishing", updatedAt: \{ lte: new Date\(now\.getTime\(\) - 2000\) \}/, "several open tabs don't double up");
+  assert.match(read("src/app/api/app/social-posts/[id]/route.ts"), /action === "check"[\s\S]*checkPost\(found\.post\.id\)/);
+  const live = read("src/app/home/marketing/social/_kit/LiveProgress.tsx");
+  assert.match(live, /const CHECK_MS = 3000;/);
+  assert.match(live, /JSON\.stringify\(\{ action: "check" \}\)/);
+});

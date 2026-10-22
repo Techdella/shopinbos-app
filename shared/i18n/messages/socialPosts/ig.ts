@@ -166,6 +166,13 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "res.pending": "Ọ na-apost…",
   "res.view": "Lee ya na {channel}",
   "res.reconnect": "Jikọọ ọzọ",
+  "prog.live": "Na-emelite ugbu a",
+  "prog.sending": "Na-eziga na {channel}",
+  "prog.sent": "Eziteela na {channel}",
+  "prog.processing": "{channel} na-edozi vidiyo gị",
+  "prog.liveOn": "Ọ pụtala na {channel}",
+  "prog.timer": "{time} ruo ugbu a",
+  "prog.typical": "ọ naghị agafe nkeji 2",
   // One-tap buttons
   "share.button": "Post na {channel}",
   "share.mark": "Apostala m ya",

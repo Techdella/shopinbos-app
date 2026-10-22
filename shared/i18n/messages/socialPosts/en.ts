@@ -166,6 +166,13 @@ const en = {
   "res.pending": "Posting…",
   "res.view": "View on {channel}",
   "res.reconnect": "Connect again",
+  "prog.live": "Updating live",
+  "prog.sending": "Sending to {channel}",
+  "prog.sent": "Sent to {channel}",
+  "prog.processing": "{channel} is processing your video",
+  "prog.liveOn": "Live on {channel}",
+  "prog.timer": "{time} so far",
+  "prog.typical": "usually under 2 minutes",
   // One-tap buttons
   "share.button": "Post on {channel}",
   "share.mark": "I've posted it",
