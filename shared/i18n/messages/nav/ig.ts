@@ -102,6 +102,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   profile: "Profaịlụ gị",
   "notification-prefs": "Ntọala notifications",
   "connections": "Njikọ",
+  "contracts": "Contracts",
   customise: "Hazie menu gị",
   "supplier.dashboard": "Taa",
   "supplier.quote-requests": "Quote requests",

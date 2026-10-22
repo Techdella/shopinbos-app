@@ -39,6 +39,8 @@ import {
   type LogisticsT,
 } from "@/components/logistics/kit";
 import { getT } from "@/lib/i18n/server";
+import { PartnerBrief } from "@/components/assistant/PartnerBrief";
+import { partnerBriefFor } from "@/lib/dashboard/partner-brief.server";
 import { PromoBanner } from "@/components/pricing/PromoBanner";
 
 // Partner "Today", following the 2026 "Shopinbos Partners · web dispatch console" and mobile mockups.
@@ -97,7 +99,7 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
     }),
   ]);
   // Closest rider first in "Accept and assign": riders' open jobs and the new jobs' pickup coordinates.
-  const [riders, pickupGeo, overdue] = await Promise.all([withOpenJobs(partner.id, ridersBase), ensurePickupCoords(newBookings, partner.country), payInOverdueView(partner.id, now)]);
+  const [riders, pickupGeo, overdue, brief] = await Promise.all([withOpenJobs(partner.id, ridersBase), ensurePickupCoords(newBookings, partner.country), payInOverdueView(partner.id, now), partnerBriefFor(partner, now)]);
 
   const pointIds = [...new Set(newBookings.map((job) => job.pickupPointId).filter((id): id is string => Boolean(id)))];
   const pointNames = new Map(
@@ -147,6 +149,8 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
 
       <div className="grid gap-5 xl:[grid-template-columns:minmax(0,1fr)_minmax(360px,440px)]">
         <div className="grid min-w-0 content-start gap-5">
+          {/* Peggy's brief (what needs doing now) and Rex's ideas (ways to grow): shared/partner-brief.ts */}
+          <PartnerBrief role="partner" peggy={brief.peggy} rex={brief.rex} />
           <Card className="flex flex-wrap items-center gap-4 p-5">
             <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-app-canvas"><Icon name="truck" size={22} /></span>
             <div className="min-w-0 flex-1">

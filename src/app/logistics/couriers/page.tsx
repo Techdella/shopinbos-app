@@ -13,6 +13,7 @@ import { RiderLinkButton } from "@/components/logistics/RiderLinkButton";
 import { riderPresence } from "@/components/logistics/dispatch";
 import { riderWhereWords } from "@shared/delivery-geo";
 import { isRiderOut, riderEarning } from "@/lib/logistics/job-rules";
+import { PageTip } from "@/components/learn/PageTip";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -36,6 +37,7 @@ export default async function LogisticsCouriersPage({ searchParams }: { searchPa
   ensureLogisticsAccess(partner);
   const { role, saved, error } = await searchParams;
   const t = await getT("logistics", "common");
+  const tipT = await getT("tips");
   const roleLabel = (value: string) => {
     const found = ROLES.find((item) => item.value === value);
     return found ? t.dynamic(`riders.role.${found.value}`, found.label) : value;
@@ -94,6 +96,7 @@ export default async function LogisticsCouriersPage({ searchParams }: { searchPa
       sub={t("riders.sub")}
       actions={<PillLink href="#add-rider" icon="plus">{t("today.addRider")}</PillLink>}
     >
+      <PageTip who="peggy" className="mb-5">{tipT("logistics.couriers")}</PageTip>
       <ActionNotice saved={saved} error={error} savedText={t("riders.updated")} />
 
       <StatGrid className="mb-5">

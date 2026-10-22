@@ -12,7 +12,6 @@ import { PauseButton } from "./DropshipActions";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { formatMoney } from "@shared/i18n";
 import { AssistantNote } from "@/components/app-kit";
-import { Term } from "@/components/learn/Term";
 import { TipsGate } from "@/app/marketplace/_components/TipsGate";
 
 export const dynamic = "force-dynamic";
@@ -120,7 +119,7 @@ export default async function SellerDropshipPage({ searchParams }: { searchParam
                   <Icon name={promise.icon} size={17} className="shrink-0" />
                   <span className="min-w-0">
                     <span className="block text-[12.5px] font-extrabold leading-tight sm:text-[13px]">
-                      {promise.key === "label" ? <Term k="white-label">{t("ds.promise.label")}</Term> : t(`ds.promise.${promise.key}`)}
+                      {t(`ds.promise.${promise.key}`)}
                     </span>
                     <span className="block text-[12px] leading-tight text-app-ink-soft">{t(`ds.promise.${promise.key}Sub`)}</span>
                   </span>

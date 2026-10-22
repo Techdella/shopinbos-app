@@ -104,6 +104,7 @@ const en = {
   profile: "Your profile",
   "notification-prefs": "Notification settings",
   "connections": "Connections",
+  "contracts": "Contracts",
   customise: "Customise your menu",
   "supplier.dashboard": "Today",
   "supplier.quote-requests": "Quote requests",

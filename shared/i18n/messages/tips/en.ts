@@ -1,5 +1,6 @@
-// Short Peggy tips at the top of seller pages (src/components/learn/PageTip.tsx), for first-time sellers.
-// One key per page, named after its route under /home. Hidden when the person switches tips off.
+// Short Peggy and Rex tips at the top of pages (src/components/learn/PageTip.tsx), for first-time users. Seller
+// pages: one key per page, named after its route under /home; supplier.* and logistics.* for those
+// portals. Hidden when the person switches tips off.
 const en = {
   "social.post": "Not gone out yet? Change anything and save. Already posted? See how it went on each app here, and tap Use again to post it once more.",
   "social.accounts": "Connect Facebook once and your Page and Instagram post by themselves. WhatsApp Status, TikTok and X need no sign-in: you post them with one tap.",
@@ -46,6 +47,25 @@ const en = {
   "activity": "Use the filters to see only orders, payments or stock changes. Check here when something looks wrong, like stock you didn't change.",
   "credits": "Every AI action, like a new picture or video, uses credits. Your plan's monthly credits go first. Turn on auto top-up so you never get stuck halfway.",
   "registerBusiness": "Check your business name first, it's free. Then fill in your details, pay once, and we file it with CAC for you. Your certificate shows here when it's approved.",
+  "supplier.orders": "Accept each new order within the time shown, or it counts as missed. Pack it in its own packaging, stick on the shop's delivery label and have it ready for the rider.",
+  "supplier.products": "Products with clear photos, a real stock count and a fair price get picked by more shops. Mark items sold out the moment they run out.",
+  "supplier.quoteRequests": "Reply to quote requests the same day. A clear price per unit, the minimum order and how fast you can send it wins most orders.",
+  "supplier.payouts": "Card payments for your orders go straight to your bank. Here you see what you earned, and you can mark orders a shop paid you for directly.",
+  "supplier.delivery": "Connect a delivery partner near you, or say you deliver yourself. Riders then collect your dropship orders and take them to the shop's customer.",
+  "supplier.agreements": "Only sign for shops that really called you and saw your stock. Once you both sign, they can list your products and your copy goes under Contracts.",
+  "supplier.wholesale": "Bulk orders give you 24 hours to accept. Confirm the quantity and delivery date with the shop in chat before you accept.",
+  "supplier.buyers": "These shops sell your products. Message the ones that sell most when new stock lands, and send them a better price for bigger orders.",
+  "supplier.contracts": "Every agreement you signed with a shop or delivery partner is here. Only you and them can read it, unless one of you raises a dispute.",
+  "logistics.bookings": "Accept a job and assign a rider in one step. If you can't take it, decline with a reason so the shop can book someone else quickly.",
+  "logistics.quotes": "Price quote requests fast: the first fair price usually wins. Include how many days it takes so the shop can tell its customer.",
+  "logistics.couriers": "Add each rider with their own phone number. They get the Riders app, see their jobs and confirm deliveries with the customer's code.",
+  "logistics.cash": "Pay in the cash your riders collect by 6pm the same day. Late pay-ins pause pay on delivery until they're paid.",
+  "logistics.coverage": "List every area you really deliver to. Shops there see you first, so add nearby towns once your riders can reach them.",
+  "logistics.rates": "Clear rates by area and parcel size let shops price your deliveries at checkout. Keep them close to what you charge in person.",
+  "logistics.pickupPoints": "A pickup point lets customers collect their parcel for less, and lets you drop many parcels in one trip. Add your busiest spots first.",
+  "logistics.payouts": "Here you see what you earned per job after fees. Card-paid delivery fees go straight to your bank once your Wallet is set up.",
+  "logistics.connections": "These businesses use you for delivery. Send your best customers private rates so they keep booking you over others.",
+  "logistics.contracts": "Sign the Delivery service agreement for each business that connects you. Only you and them can read it, unless one of you raises a dispute.",
 } satisfies Record<string, string>;
 
 export default en;

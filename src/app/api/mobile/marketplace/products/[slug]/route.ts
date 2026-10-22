@@ -19,12 +19,13 @@ export const GET = withSeller(async (_req: NextRequest, { user, params }) => {
   const distance = nearness(place, row.supplier);
   const step = !sellerHasPlace(place) ? "noPlace" : !distance.near ? "far" : listingStep(agreement);
   const contact = step === "agree" || step === "declined" ? await supplierContact(row.supplier.id) : { phone: null, address: null };
+  const store = await db.store.findUnique({ where: { userId: user.id }, select: { name: true, city: true } });
   const { address: _address, ...supplier } = row.supplier;
   return ok({
     ...row,
     // Wholesale (paid to the supplier directly) only from verified suppliers.
     bulkOrderAvailable: row.bulkOrderAvailable && row.supplier.verificationStatus === "verified",
     supplier: { ...supplier, km: distance.km, area: distance.area, risk: trust.get(row.supplier.id)?.risk ?? null, agreed: agreement?.status === "active" },
-    listing: { step, phone: contact.phone, address: contact.address, supplierNote: agreement?.supplierNote ?? null },
+    listing: { step, phone: contact.phone, address: contact.address, supplierNote: agreement?.supplierNote ?? null, shopName: store?.name ?? null, shopCity: store?.city ?? null },
   });
 });

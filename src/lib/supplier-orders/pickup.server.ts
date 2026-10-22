@@ -448,7 +448,7 @@ export async function onDeliveryRiderAssigned(bookingId: string, riderId: string
       type: "logistics",
       priority: "info",
       title: `${name} is coming for ${ref}`,
-      description: `${name} will ${when}. Have the parcel ready with the shop's label on it.`,
+      description: `${name} will ${when}. Have the parcel ready with the shop's delivery label on it.`,
       link: kind === "dropship" ? `/supplier/orders/${pickup.orderId}` : `/supplier/orders/${pickup.orderId}?kind=wholesale`,
       event: "pickup.update",
       phoneHandled: true,

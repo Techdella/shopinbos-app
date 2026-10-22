@@ -68,7 +68,7 @@ export default async function MarketplaceProductPage({ params }: { params: Promi
       const info = trust.get(row.supplier.id);
       const step = !sellerHasPlace(place) ? "noPlace" : !distance.near ? "far" : listingStep(agreement);
       const contact = step === "agree" || step === "declined" ? await supplierContact(row.supplier.id) : { phone: null, address: null };
-      listing = { step, phone: contact.phone, address: contact.address, supplierNote: agreement?.supplierNote ?? null };
+      listing = { step, phone: contact.phone, address: contact.address, supplierNote: agreement?.supplierNote ?? null, shopName: store.name, shopCity: store.city };
       product = {
         ...product,
         // Wholesale (paid to the supplier directly) only from verified suppliers.

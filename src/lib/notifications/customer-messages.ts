@@ -241,7 +241,7 @@ export async function notifyOrderCustomerPartlySent(orderId: string) {
   }
 }
 
-/** The SMS with the code for a parcel the supplier delivers itself (the shop's name; the supplier stays unseen). */
+/** The SMS with the code for a parcel the supplier delivers itself (sent in the shop's name, since the customer ordered from the shop). */
 export const SELF_DELIVERY_SMS = "{{store}}: your order {{order_number}} is on its way. When it arrives, give this code to the person delivering it: {{delivery_code}}. {{order_url}}";
 
 /**

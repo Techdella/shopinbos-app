@@ -51,6 +51,8 @@ import m_money from "./messages/m_money/index.ts";
 import wallet from "./messages/wallet/index.ts";
 import m_ads from "./messages/m_ads/index.ts";
 import verification from "./messages/verification/index.ts";
+import contracts from "./messages/contracts/index.ts";
+import briefs from "./messages/briefs/index.ts";
 import marketing from "./messages/marketing/index.ts";
 import emailBuilder from "./messages/emailBuilder/index.ts";
 import automations from "./messages/automations/index.ts";
@@ -139,6 +141,8 @@ export const CATALOGS = {
   wallet,
   m_ads,
   verification,
+  contracts,
+  briefs,
   marketing,
   emailBuilder,
   automations,

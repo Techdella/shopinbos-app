@@ -7,6 +7,7 @@ import { AppPage, AssistantNote, EmptyState, FilterChips, ListCard, ListRow, Pil
 import { cx } from "@/components/app-ui/cx";
 import { PRODUCT_STATUS, money, statusOf, supplierFrame } from "@/components/supplier/supplier-kit";
 import { getT } from "@/lib/i18n/server";
+import { PageTip } from "@/components/learn/PageTip";
 
 const LOW_STOCK = 5;
 
@@ -36,6 +37,7 @@ export default async function SupplierProductsPage({ searchParams }: PageProps) 
   const supplier = await getSupplierForUser(user);
   ensureSupplierAccess(supplier);
   const t = await getT("supplier", "common");
+  const tipT = await getT("tips");
 
   const show = params.show && FILTERS[params.show] ? params.show : undefined;
   const q = params.q?.trim() || undefined;
@@ -99,6 +101,7 @@ export default async function SupplierProductsPage({ searchParams }: PageProps) 
         </>
       }
     >
+      <PageTip who="rex" className="mb-5">{tipT("supplier.products")}</PageTip>
       {listingLimit !== null && total >= listingLimit && (
         <div className="mb-4">
           <AssistantNote who="rex" action={<PillLink href="/supplier/profile?tab=Billing%20%26%20Plan" tone="ink" size="sm">{t("products.seePlans")}</PillLink>}>

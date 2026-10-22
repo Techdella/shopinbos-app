@@ -102,6 +102,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   profile: "Profaili rẹ",
   "notification-prefs": "Ètò notifications",
   "connections": "Àwọn ìsopọ̀",
+  "contracts": "Àwọn contract",
   customise: "Ṣètò menu rẹ",
   "supplier.dashboard": "Òní",
   "supplier.quote-requests": "Quote requests",

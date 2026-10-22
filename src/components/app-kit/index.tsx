@@ -60,7 +60,7 @@ export function AppPage({
           title={typeof title === "string" ? <TitleTerm title={title} /> : title}
           sub={sub}
           learn={!frame.role || frame.role === "admin" ? undefined : <LearnPill role={frame.role} variant="inline" className="mt-3.5" />}
-          actions={frame.role === "seller" || frame.role === "supplier" ? <>{actions}<HelpButton /></> : actions}
+          actions={frame.role && frame.role !== "admin" ? <>{actions}<HelpButton /></> : actions}
         />
         {toolbar && <div className="mb-4 flex flex-wrap items-center justify-between gap-3">{toolbar}</div>}
         {children}

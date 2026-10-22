@@ -74,8 +74,43 @@ test("each tipped seller page renders PageTip with its own tip", () => {
   }
 });
 
+// Supplier and delivery-partner pages: Peggy for how-to, Rex for growth (tips namespace supplier.* / logistics.*).
+const PORTAL_TIPPED = {
+  "supplier/orders": ["supplier.orders", "supplier.wholesale"],
+  "supplier/products": ["supplier.products"],
+  "supplier/quote-requests": ["supplier.quoteRequests"],
+  "supplier/payouts": ["supplier.payouts"],
+  "supplier/delivery": ["supplier.delivery"],
+  "supplier/agreements": ["supplier.agreements"],
+  "supplier/buyers": ["supplier.buyers"],
+  "supplier/contracts": ["supplier.contracts"],
+  "logistics/bookings": ["logistics.bookings"],
+  "logistics/quotes": ["logistics.quotes"],
+  "logistics/couriers": ["logistics.couriers"],
+  "logistics/cash": ["logistics.cash"],
+  "logistics/coverage": ["logistics.coverage"],
+  "logistics/rates": ["logistics.rates"],
+  "logistics/pickup-points": ["logistics.pickupPoints"],
+  "logistics/payouts": ["logistics.payouts"],
+  "logistics/connections": ["logistics.connections"],
+  "logistics/contracts": ["logistics.contracts"],
+};
+
+test("supplier and delivery-partner pages show Peggy and Rex tips too", () => {
+  for (const [route, keys] of Object.entries(PORTAL_TIPPED)) {
+    const src = read(`src/app/${route}/page.tsx`);
+    assert.match(src, /import \{ PageTip \} from "@\/components\/learn\/PageTip";/, `${route} imports PageTip`);
+    assert.match(src, /const tipT = await getT\("tips"\);/, `${route} loads the tips namespace`);
+    assert.match(src, /<PageTip who="(peggy|rex)"/, `${route} says who gives the tip`);
+    for (const key of keys) {
+      assert.ok(src.includes(`"${key}"`), `${route} shows ${key}`);
+      assert.ok(typeof tips[key] === "string" && tips[key].length > 20 && tips[key].length <= 200, `${key} is a short tip`);
+    }
+  }
+});
+
 test("every tip is used by a page", () => {
-  const used = new Set(Object.values(TIPPED));
+  const used = new Set([...Object.values(TIPPED), ...Object.values(PORTAL_TIPPED).flat()]);
   for (const key of Object.keys(tips)) assert.ok(used.has(key), `tips.${key} is shown somewhere`);
 });
 

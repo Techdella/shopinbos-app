@@ -48,7 +48,7 @@ const en = {
   "detail.item": "Item",
   "detail.parcels": "Parcels",
   "detail.sentBySupplier": "Sent by the supplier",
-  "detail.dropshipSub": "Dropship products go straight from the supplier to your customer, in your shop's name.",
+  "detail.dropshipSub": "Dropship products go straight from the supplier to your customer, as an order from your shop.",
   "detail.waitingFor": "Waiting for {name} to accept. Rather choose yourself?",
   "detail.undo": "Undo",
   "detail.accepted": "{name} accepted it.",

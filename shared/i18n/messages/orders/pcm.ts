@@ -50,7 +50,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "detail.item": "Item",
   "detail.parcels": "Parcels",
   "detail.sentBySupplier": "Supplier go send am",
-  "detail.dropshipSub": "Dropship products dey go straight from the supplier to your customer, with your shop name.",
+  "detail.dropshipSub": "Dropship products dey go straight from the supplier to your customer, as order from your shop.",
   "detail.waitingFor": "We dey wait make {name} accept. You wan choose by yourself?",
   "detail.undo": "Undo",
   "detail.accepted": "{name} don accept am.",
