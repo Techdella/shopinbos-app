@@ -711,6 +711,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "edk.picker": "{label} picker",
   "edk.previewSize": "Preview size: {device}",
   "edk.previewing": "You dey preview {name}.",
+  "ed.Rex is here to help.": "Rex dey here to help.",
+  "ed.Ask him to change any section, design your menu with pictures and colours, or make something new. You see it on the page first and only pay credits to apply it.": "Ask am make e change any section, design your menu with pictures and colours, or make something new. You go see am for the page first, na only when you apply am you go pay credits.",
   "ed.Menu colours": "Menu colours",
   "ed.Menu words": "Menu words",
   "ed.Leave empty to use your theme's colours.": "Leave am empty make e use your theme colours.",
