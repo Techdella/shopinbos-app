@@ -166,6 +166,13 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "res.pending": "Ana post…",
   "res.view": "Duba a {channel}",
   "res.reconnect": "Sake haɗawa",
+  "prog.live": "Ana sabuntawa kai tsaye",
+  "prog.sending": "Ana aikawa zuwa {channel}",
+  "prog.sent": "An aika zuwa {channel}",
+  "prog.processing": "{channel} yana shirya bidiyonka",
+  "prog.liveOn": "Ya fito a {channel}",
+  "prog.timer": "{time} zuwa yanzu",
+  "prog.typical": "yawanci bai wuce minti 2 ba",
   // One-tap buttons
   "share.button": "Yi post a {channel}",
   "share.mark": "Na yi post ɗinsa",

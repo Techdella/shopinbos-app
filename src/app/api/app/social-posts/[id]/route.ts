@@ -5,7 +5,7 @@ import { db } from "@/lib/db/client";
 import { withSeller } from "@/lib/auth/middleware";
 import { apiError, noContent, ok } from "@/lib/api/response";
 import { PostBody, PostInputError, postView, savePost } from "@/lib/social-posts/save.server";
-import { publishPost, retryFailed } from "@/lib/social-posts/server";
+import { checkPost, publishPost, retryFailed } from "@/lib/social-posts/server";
 import { POST_CHANNEL_KEYS, cleanChannels, readResults, statusFromResults } from "@/lib/social-posts/pure";
 
 export const runtime = "nodejs";
@@ -51,6 +51,7 @@ export const DELETE = withSeller(async (_req, { user, params }) => {
 
 const Action = z.discriminatedUnion("action", [
   z.object({ action: z.literal("now") }),
+  z.object({ action: z.literal("check") }),
   z.object({ action: z.literal("retry") }),
   z.object({ action: z.literal("shared"), channel: z.enum(POST_CHANNEL_KEYS) }),
 ]);
@@ -60,6 +61,11 @@ export const POST = withSeller(async (req: NextRequest, { user, params }) => {
   if (!found) return apiError("NOT_FOUND", "Post not found", 404);
   const parsed = Action.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return apiError("BAD_REQUEST", "Unknown action");
+  if (parsed.data.action === "check") {
+    // The open post page, every few seconds while it's going out: publishes an Instagram reel as soon as it's ready.
+    const post = found.post.status === "publishing" ? await checkPost(found.post.id) : found.post;
+    return ok(postView(post ?? found.post));
+  }
   if (parsed.data.action === "now") {
     // "Post now" on a queued post: it was checked when it was scheduled.
     const claimed = await db.socialPost.updateMany({ where: { id: found.post.id, status: "scheduled" }, data: { status: "publishing", scheduledAt: new Date() } });
