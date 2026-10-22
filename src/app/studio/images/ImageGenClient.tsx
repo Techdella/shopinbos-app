@@ -46,7 +46,20 @@ interface Reference {
 
 // Rex Studio "Make image": the seller's brand kit (logo, colours) goes into every picture unless they turn it
 // off, photos or a video they add are references, and the ideas come from their own products.
-export function ImageGenClient({ storeName: _storeName, brand, ideas, initialSize }: { storeName: string; brand: ImageBrand | null; ideas: string[]; initialSize?: "1024x1024" | "1792x1024" | "1024x1792" }) {
+export function ImageGenClient({
+  storeName: _storeName,
+  brand,
+  ideas,
+  initialSize,
+  onUse,
+}: {
+  storeName: string;
+  brand: ImageBrand | null;
+  ideas: string[];
+  initialSize?: "1024x1024" | "1792x1024" | "1024x1792";
+  /** Opened from Social posts: "Use in this post" hands the picture back instead of leaving the page. */
+  onUse?: (image: { url: string; width: number; height: number }) => void;
+}) {
   const t = useT("rex");
   const media = useMediaLibrary();
   const [prompt, setPrompt] = useState("");
@@ -413,7 +426,20 @@ export function ImageGenClient({ storeName: _storeName, brand, ideas, initialSiz
                 <Pill>{image.size}</Pill>
               </div>
             </div>
-            <RexImageActions url={image.url} name={prompt.slice(0, 80)} className="mt-3 px-1" />
+            {onUse ? (
+              <PillButton
+                tone="ink"
+                size="md"
+                className="mt-3 w-full"
+                onClick={() => {
+                  const [width, height] = image.size.split("x").map(Number);
+                  onUse({ url: image.url, width: width || 1024, height: height || 1024 });
+                }}
+              >
+                <Icon name="check" size={16} /> {t("img.useInPost")}
+              </PillButton>
+            ) : null}
+            <RexImageActions url={image.url} name={prompt.slice(0, 80)} withProductPicker={!onUse} className="mt-3 px-1" />
           </section>
         )}
 

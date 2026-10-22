@@ -20,6 +20,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "images.title": "Hotuna",
   "images.sub": "Nemi Rex ya yi hotunan kaya, banners da hotunan brand.",
   "images.backSocial": "Koma ga post ɗinka",
+  "img.useInPost": "Yi amfani da shi a wannan post",
   "logo.failed": "Ba a iya yin logos ba",
   "logo.saveFailed": "Ba a iya ajiye wannan logo a shagonka ba. Sake gwadawa.",
   "logo.brand": "Brand ɗinka",

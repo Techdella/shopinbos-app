@@ -161,6 +161,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "savedVideoShort": "Saved",
   "savedVideo": "Video don save. You go see am for Saved and your media.",
   "useInAd": "Use am for ad",
+  "useInPost": "Use am for this post",
   "markPosted": "I don post am",
   "markedPosted": "E don mark as posted. E dey Published.",
   "savedVersion": "Your saved video",

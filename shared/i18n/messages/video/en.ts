@@ -161,6 +161,7 @@ const en = {
   "savedVideoShort": "Saved",
   "savedVideo": "Video saved. Find it under Saved, and in your media.",
   "useInAd": "Use in an ad",
+  "useInPost": "Use in this post",
   "markPosted": "I've posted it",
   "markedPosted": "Marked as posted. It's under Published.",
   "savedVersion": "Your saved video",

@@ -60,7 +60,7 @@ export default async function SocialPostPage({ params }: { params: Promise<{ id:
     return (
       <SellerPage user={user} store={storeSummary(store)} title={post.status === "draft" ? t("post.draft") : t("post.edit")} actions={back}>
         <PageTip className="mb-5">{tipT("social.post")}</PageTip>
-        <Composer post={editing} products={data.products} media={data.media} accounts={data.accounts} queueNext={data.queueNext} storeName={store.name} />
+        <Composer post={editing} products={data.products} media={data.media} accounts={data.accounts} queueNext={data.queueNext} storeName={store.name} rex={data.rex} />
       </SellerPage>
     );
   }
