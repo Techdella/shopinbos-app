@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { Mascot, Notice, cx } from "@/components/app-ui";
 import { MAX_ATTACHMENTS, formatTicketNumber } from "@/lib/support/pure";
-import { attachmentProblemKey, formatBytes, localTimeLabel, supportErrorText, supportFetch, type ChatMessage, type ChatTicket, type SupportT } from "./client";
+import { prepareAttachments, formatBytes, localTimeLabel, supportErrorText, supportFetch, type ChatMessage, type ChatTicket, type SupportT } from "./client";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 
@@ -51,16 +51,12 @@ export function SupportThread({ initial, onChange }: { initial: ChatTicket; onCh
     };
   }, [initial.number, onChange]);
 
-  const addFiles = (picked: FileList | null) => {
+  const addFiles = async (picked: FileList | null) => {
     setError(null);
-    const next = [...files];
-    for (const file of Array.from(picked ?? [])) {
-      const problem = attachmentProblemKey(file);
-      if (problem) return setError(t(problem));
-      if (next.length >= MAX_ATTACHMENTS) return setError(t("attachUpTo", { count: MAX_ATTACHMENTS }));
-      next.push(file);
-    }
-    setFiles(next);
+    // Photos are shrunk first; one message's files must fit the server's 4 MB request limit together.
+    const result = await prepareAttachments(files, Array.from(picked ?? []), MAX_ATTACHMENTS);
+    if ("problem" in result) return setError(result.problem === "attachUpTo" ? t("attachUpTo", { count: MAX_ATTACHMENTS }) : t(result.problem));
+    setFiles(result.files);
   };
 
   const send = async () => {

@@ -12,11 +12,13 @@ import {
   STATUS_LABEL,
   TOPICS,
   attachmentProblem,
+  filesTogetherProblem,
   fillMacro,
   type SupportStatus,
 } from "@/lib/support/pure";
 import { whatsappWindowHoursLeft, whatsappWindowOpen } from "@/lib/support/whatsapp-pure";
 import { deskSelect, relativeTime } from "./ui";
+import { readyToSend } from "@/lib/media/shrink-image";
 
 // One ticket in the support desk: the full thread (with internal notes and the customer's Peggy chat),
 // the reply/note composer with saved replies and files, and the ticket's properties. Refreshes every 15s.
@@ -246,15 +248,19 @@ function Composer({ ticket, macros, me, now }: { ticket: DeskTicket; macros: Des
     if (macro.status && mode === "reply") setAfter(macro.status as SupportStatus);
   };
 
-  const addFiles = (picked: FileList | null) => {
+  const addFiles = async (picked: FileList | null) => {
     setError(null);
     const next = [...files];
-    for (const file of Array.from(picked ?? [])) {
+    for (const original of Array.from(picked ?? [])) {
+      // Screenshots are shrunk first; a reply's files go up in one request, so they must fit 4 MB together.
+      const file = await readyToSend(original);
       const problem = attachmentProblem(file);
       if (problem) return setError(problem);
       if (next.length >= MAX_ATTACHMENTS) return setError(`Attach up to ${MAX_ATTACHMENTS} files.`);
       next.push(file);
     }
+    const together = filesTogetherProblem(next);
+    if (together) return setError(together);
     setFiles(next);
   };
 

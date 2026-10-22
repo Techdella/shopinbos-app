@@ -28,6 +28,7 @@ import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import { formatDate, formatNumber } from "@shared/i18n";
 import type { MessageKey } from "@shared/i18n/catalog";
+import { readyToSend } from "@/lib/media/shrink-image";
 
 // One partner chat: bubbles by day, "Seen" receipts, optimistic sending with retry, Enter to send
 // (Shift+Enter for a new line), photos/PDFs, linked product/order/booking cards and quick replies.
@@ -265,7 +266,9 @@ export function Thread({
     const room = MAX_ATTACHMENTS - staged.filter((file) => file.status !== "failed").length;
     const files = [...list].slice(0, Math.max(0, room));
     if (list.length > files.length) setComposerError(t("pt.maxFiles", { max: MAX_ATTACHMENTS }));
-    for (const file of files) {
+    for (const original of files) {
+      // Photos are shrunk first: uploads can't be over about 4.5 MB on the server.
+      const file = await readyToSend(original);
       const key = `${file.name}-${file.size}-${Math.random().toString(36).slice(2, 6)}`;
       const problem = attachmentProblem(file);
       const previewUrl = file.type.startsWith("image/") && !problem ? URL.createObjectURL(file) : undefined;

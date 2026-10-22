@@ -42,10 +42,10 @@ test("send schema: needs text, a file or a card; validates files and cards", () 
   assert.equal(m.sendMessageSchema.parse({ attachments: [{ ...file, name: "../../evil<x>.pdf" }] }).attachments[0].name, "..-..-evil-x-.pdf");
 });
 
-test("files: only photos and PDFs up to 10 MB, and only from this conversation's folder", () => {
+test("files: only photos and PDFs up to 4 MB (shrunk first), and only from this conversation's folder", () => {
   assert.equal(m.attachmentProblem({ type: "image/png", size: 1000 }), null);
   assert.match(m.attachmentProblem({ type: "application/zip", size: 1000 }), /photo/);
-  assert.match(m.attachmentProblem({ type: "application/pdf", size: 11 * 1024 * 1024 }), /10 MB/);
+  assert.match(m.attachmentProblem({ type: "application/pdf", size: 5 * 1024 * 1024 }), /4 MB/);
   assert.match(m.attachmentProblem({ type: "image/png", size: 0 }), /empty/);
   assert.equal(m.attachmentPathBelongs("messages/c1/1.png", "c1"), true);
   assert.equal(m.attachmentPathBelongs("messages/c2/1.png", "c1"), false);

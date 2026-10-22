@@ -1,6 +1,7 @@
 "use client";
 
-import { attachmentProblem, type SupportStatus } from "@/lib/support/pure";
+import { attachmentProblem, filesTogetherProblem, type SupportStatus } from "@/lib/support/pure";
+import { readyToSend } from "@/lib/media/shrink-image";
 import { formatDate, type Locale, type TFunction } from "@shared/i18n";
 import type { KeysOf } from "@shared/i18n/catalog";
 
@@ -93,6 +94,23 @@ export function localTimeLabel(iso: string, locale: Locale, t: SupportT, now = D
   if (minutes < 60) return t("time.minutesAgo", { count: minutes });
   if (minutes < 24 * 60) return formatDate(date, locale, { hour: "2-digit", minute: "2-digit" });
   return formatDate(date, locale, { day: "numeric", month: "short" });
+}
+
+/**
+ * Screenshots and photos made small enough to send (PDFs and GIFs as they are), then checked one by one and
+ * together: a message's files go up in one request. Returns the files to keep, or the catalog key of the problem.
+ */
+export async function prepareAttachments(current: File[], picked: File[], max: number): Promise<{ files: File[] } | { problem: "file.type" | "file.empty" | "file.tooBig" | "file.tooBigTogether" | "attachUpTo" }> {
+  const next = [...current];
+  for (const original of picked) {
+    const file = await readyToSend(original);
+    const problem = attachmentProblemKey(file);
+    if (problem) return { problem };
+    if (next.length >= max) return { problem: "attachUpTo" };
+    next.push(file);
+  }
+  if (filesTogetherProblem(next)) return { problem: "file.tooBigTogether" };
+  return { files: next };
 }
 
 /** attachmentProblem (lib/support/pure, English) as a catalog key. */

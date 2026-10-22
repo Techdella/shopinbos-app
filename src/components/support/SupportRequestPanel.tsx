@@ -4,7 +4,7 @@ import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { FieldLabel, Mascot, Notice, PillButton, TextInput, cx } from "@/components/app-ui";
 import { SUPPORT_EMAIL, TOPICS, type SupportTopic } from "@/lib/support/pure";
-import { attachmentProblemKey } from "./client";
+import { prepareAttachments } from "./client";
 import { useT } from "@/components/i18n/I18nProvider";
 
 // The signed-out "Stuck?" panel on login, signup and password reset: opens a support ticket with the team
@@ -62,15 +62,16 @@ export function SupportRequestPanel({ open, onClose, defaultTopic = "login" }: {
 
   if (!open) return null;
 
-  const pickFile = (picked: File | null) => {
+  const pickFile = async (picked: File | null) => {
     setError(null);
     if (!picked) return setFile(null);
-    const problem = attachmentProblemKey(picked);
-    if (problem) {
-      setError(t(problem));
+    // Photos are shrunk first: uploads can't be over about 4.5 MB on the server.
+    const result = await prepareAttachments([], [picked], 1);
+    if ("problem" in result) {
+      setError(result.problem === "attachUpTo" ? t("file.tooBig") : t(result.problem));
       return;
     }
-    setFile(picked);
+    setFile(result.files[0] ?? null);
   };
 
   const submit = async (event: FormEvent) => {

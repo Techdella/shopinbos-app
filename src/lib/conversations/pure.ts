@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { OFF_PLATFORM_WARNING, offPlatformSignals } from "../../../shared/delivery-market.ts";
+import { UPLOAD_MAX_BYTES } from "../../../shared/media.ts";
 
 // Partner messages (seller ↔ supplier ↔ delivery partner): rules and helpers with no database or React,
 // shared by the API, the Messages drawer, the full pages and tests (Node strips the types natively).
@@ -84,7 +85,8 @@ export function orderedPair(a: string, b: string): [string, string] {
 
 export const MESSAGE_MAX = 4000;
 export const MAX_ATTACHMENTS = 4;
-export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
+/** Per file, after photos are shrunk in the browser: uploads over about 4.5 MB never reach the route (shared/media.ts). */
+export const MAX_ATTACHMENT_BYTES = UPLOAD_MAX_BYTES;
 export const ATTACHMENT_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif", "application/pdf"] as const;
 /** Sends per person per minute, and per conversation per 10 seconds (stops paste-and-hold floods). */
 export const SEND_LIMIT = { maxRequests: 20, windowMs: 60_000 };
@@ -120,7 +122,7 @@ export function escapeHtml(value: string) {
 export function attachmentProblem(file: { type: string; size: number }) {
   if (!(ATTACHMENT_TYPES as readonly string[]).includes(file.type)) return "Attach a photo (JPG, PNG, WebP, GIF) or a PDF.";
   if (file.size <= 0) return "That file is empty.";
-  if (file.size > MAX_ATTACHMENT_BYTES) return "Files can be up to 10 MB.";
+  if (file.size > MAX_ATTACHMENT_BYTES) return "Files can be up to 4 MB.";
   return null;
 }
 

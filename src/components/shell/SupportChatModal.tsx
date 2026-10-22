@@ -6,7 +6,7 @@ import { Icon } from "@/components/ui";
 import { Mascot, Notice, cx } from "@/components/app-ui";
 import { SupportThread } from "@/components/support/SupportThread";
 import { HelpVideosSection } from "@/components/help/HelpVideos";
-import { attachmentProblemKey, customerStatusLabel, localTimeLabel, supportErrorText, supportFetch, type ChatTicket, type ChatTicketSummary, type SupportT } from "@/components/support/client";
+import { prepareAttachments, customerStatusLabel, localTimeLabel, supportErrorText, supportFetch, type ChatTicket, type ChatTicketSummary, type SupportT } from "@/components/support/client";
 import { MAX_ATTACHMENTS, SUPPORT_EMAIL, TOPICS, formatTicketNumber, parseTicketNumber, type SupportTopic } from "@/lib/support/pure";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
@@ -463,16 +463,12 @@ function NewTicket({ t, peggy, onCreated }: { t: HelpT; peggy: PeggyLine[]; onCr
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const addFiles = (picked: FileList | null) => {
+  const addFiles = async (picked: FileList | null) => {
     setError(null);
-    const next = [...files];
-    for (const file of Array.from(picked ?? [])) {
-      const problem = attachmentProblemKey(file);
-      if (problem) return setError(t(problem));
-      if (next.length >= MAX_ATTACHMENTS) return setError(t("attachUpTo", { count: MAX_ATTACHMENTS }));
-      next.push(file);
-    }
-    setFiles(next);
+    // Photos are shrunk first; one message's files must fit the server's 4 MB request limit together.
+    const result = await prepareAttachments(files, Array.from(picked ?? []), MAX_ATTACHMENTS);
+    if ("problem" in result) return setError(result.problem === "attachUpTo" ? t("attachUpTo", { count: MAX_ATTACHMENTS }) : t(result.problem));
+    setFiles(result.files);
   };
 
   const submit = async () => {
