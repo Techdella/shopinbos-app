@@ -9,7 +9,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   whatsapp: "WhatsApp",
   "contact.phone": "Waya",
   "contact.email": "Email",
-  "contact.none": "Wannan kwastoma bai bar lambar waya ko email ba.",
+  "contact.none": "Wannan abokin ciniki bai bar lambar waya ko email ba.",
   "chat.openChats": "Buɗe a Hira",
   "chat.none": "Babu saƙo tukuna. Abin da ka aika a nan zai bayyana a Hira ma.",
   "chat.sentHere": "An aika. Za ka gan shi a Hira ma.",
