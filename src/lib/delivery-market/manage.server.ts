@@ -12,6 +12,7 @@ import {
   SELL_AREAS,
   canonicalState,
   cardTimeframe,
+  areaStateCount,
   cleanAreas,
   cleanServices,
   coverScore,
@@ -19,6 +20,7 @@ import {
   partnerMatchesShop,
   partnerStats,
   placeOf,
+  leadsMatching,
   rankScore,
   readRateRows,
   startingPrice,
@@ -28,7 +30,9 @@ import {
   type RateCardInput,
 } from "@shared/delivery-market";
 import { LIVE_PARTNER_WHERE, deliverySettingsFor, originOf } from "./market.server";
-import { acceptPrivateRatesProblem, connectionLimitProblem, payOnDeliveryProblem, pickupPointLimitProblem, proposePrivateRatesProblem, sellAreaProblem } from "@/lib/plans/market.server";
+import { featuredPartnerIds } from "@/lib/plans/extras.server";
+import { logisticsLimits, planKeyFor } from "@shared/plans";
+import { acceptPrivateRatesProblem, connectionLimitProblem, coverageAreasProblem, payOnDeliveryProblem, pickupPointLimitProblem, proposePrivateRatesProblem, sellAreaProblem } from "@/lib/plans/market.server";
 
 // Managing the logistics marketplace: a business's delivery settings ("Where I sell"), its delivery partners
 // (connect, choose what customers see, pay on delivery, end), partners' rate cards (public and private), pickup
@@ -333,6 +337,11 @@ export async function savePartnerCoverage(partnerId: string, input: CoverageInpu
   const delivery = cleanAreas(input.deliveryAreas);
   if (!pickup.areas.length) return { ok: false, error: "Add at least one place you pick up from (a state, region or Nationwide)." };
   if (!delivery.areas.length) return { ok: false, error: "Add at least one place you deliver to (a state, region or Nationwide)." };
+  const before = await db.logisticsPartner.findUnique({ where: { id: partnerId }, select: { userId: true, pickupAreas: true, deliveryAreas: true } });
+  if (before) {
+    const planProblem = await coverageAreasProblem(before.userId, areaStateCount([...pickup.areas, ...delivery.areas]), areaStateCount([...before.pickupAreas, ...before.deliveryAreas]));
+    if (planProblem) return { ok: false, error: planProblem };
+  }
   const partner = await db.logisticsPartner.update({
     where: { id: partnerId },
     data: {
@@ -439,7 +448,16 @@ export interface FindFilters {
   q?: string | null;
 }
 
-/** "Find partners" (spec §5.2): partners serving where the business sells from where it ships, best first. */
+/** A partner's matching placement for their plan (Logistics Free standard · Plus boosted · Pro top), and featured now. */
+function placementOf(partner: { id: string; user: { aiCredits: number | null } | null }, featured: ReadonlySet<string>) {
+  const limits = logisticsLimits(planKeyFor("logistics_partner", partner.user?.aiCredits));
+  return { placement: limits.placement, featured: featured.has(partner.id) || limits.featuredIncluded };
+}
+
+/**
+ * "Find partners" (spec §5.2): partners serving where the business sells from where it ships, best first. Featured
+ * partners and Logistics Pro lead, Logistics Plus is boosted (shared/plans.ts placement).
+ */
 export async function findPartners(owner: { id: string; role: string }, filters: FindFilters = {}) {
   const [settings, profile, connected] = await Promise.all([
     deliverySettingsFor(owner.id),
@@ -459,11 +477,13 @@ export async function findPartners(owner: { id: string; role: string }, filters:
       id: true, slug: true, displayName: true, logoUrl: true, rating: true, ratingCount: true, verificationStatus: true, services: true, pickupAreas: true, deliveryAreas: true, offersPayOnDelivery: true,
       rateCards: { where: { ownerUserId: null, status: "active" }, take: 1, orderBy: { createdAt: "desc" }, select: { rows: true } },
       _count: { select: { pickupPoints: { where: { active: true } } } },
+      user: { select: { aiCredits: true } },
     },
     take: 300,
   });
-  const stats = await statsForPartners(partners.map((partner) => partner.id));
   const state = filters.state ? canonicalState(filters.state) : null;
+  const [stats, featured] = await Promise.all([statsForPartners(partners.map((partner) => partner.id)), featuredPartnerIds(state).catch(() => [] as string[])]);
+  const featuredIds = new Set(featured);
   const rows = partners
     .map((partner) => {
       const rows = readRateRows(partner.rateCards[0]?.rows);
@@ -479,14 +499,15 @@ export async function findPartners(owner: { id: string; role: string }, filters:
         pickupPointCount: partner._count.pickupPoints,
         connectionId: connected.find((entry) => entry.logisticsPartnerId === partner.id)?.id ?? null,
         matchesShop: partnerMatchesShop(partner, { origin: origin.state ? origin : null, sellArea: state ? "selected" : settings.sellArea, sellStates: state ? [state] : settings.sellStates }),
-        score: rankScore({ stats: stat, rating: partner.rating, ratingCount: partner.ratingCount, match, verified: partner.verificationStatus === "verified" }),
+        ...placementOf(partner, featuredIds),
+        score: rankScore({ stats: stat, rating: partner.rating, ratingCount: partner.ratingCount, match, verified: partner.verificationStatus === "verified", placement: placementOf(partner, featuredIds).placement }),
       };
     })
     .filter((row) => row.matchesShop && row.startingPrice !== null)
     .filter((row) => !filters.maxPrice || (row.startingPrice ?? Infinity) <= filters.maxPrice)
     .filter((row) => !filters.pickupPoints || row.pickupPointCount > 0)
-    .sort((a, b) => b.score - a.score);
-  return { origin, settings, rows };
+    .sort((a, b) => Number(leadsMatching(b)) - Number(leadsMatching(a)) || b.score - a.score);
+  return { origin, settings, rows: rows.map(({ partner: { user: _user, ...partner }, ...row }) => ({ ...row, partner })) };
 }
 
 /** Everything a seller or supplier sees on a partner's page (spec §5.3). */

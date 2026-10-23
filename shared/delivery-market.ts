@@ -157,6 +157,22 @@ export function cleanAreas(input: unknown): { areas: string[]; unknown: string[]
 }
 
 /**
+ * The states a partner's areas cover, for the plan's state limit (shared/plans.ts coverageStates): a state or an area
+ * in it counts its state, a region counts each of its states. Null means nationwide (no limit can hold it).
+ */
+export function areaStateCount(areas: readonly string[]): number | null {
+  const states = new Set<string>();
+  for (const area of areas) {
+    const token = parseArea(area);
+    if (!token) continue;
+    if (token.kind === "nationwide") return null;
+    if (token.kind === "region") for (const state of NG_REGIONS[token.region] ?? []) states.add(state);
+    else states.add(token.state);
+  }
+  return states.size;
+}
+
+/**
  * How well an area token matches a place: 4 the exact area, 3 the state, 2 the region, 1 nationwide, -1 no match.
  * An area token matches when its text is inside the place's area, or when both resolve to the same LGA
  * ("Lagos: Eti-Osa" covers "Lekki Phase 1"; "Lagos: Lekki" covers "Victoria Island"). A place with no known state
@@ -877,12 +893,19 @@ export function partnerStats(jobs: readonly StatsJob[]): PartnerStats {
  * Order for "Find partners": verified partners first, then a score that rewards in-app volume, on-time delivery
  * and rating, and how closely they cover the shop's selling areas (the ranking boost of spec §7.3).
  */
-export function rankScore(input: { stats: PartnerStats; rating: number; ratingCount: number; match: number; verified: boolean }) {
+export function rankScore(input: { stats: PartnerStats; rating: number; ratingCount: number; match: number; verified: boolean; placement?: "standard" | "boosted" | "top" }) {
   const volume = Math.min(1, Math.log10(1 + input.stats.completed) / 3); // 1,000 jobs = full marks
   const onTime = input.stats.onTimeRate === null ? 0.5 : input.stats.onTimeRate / 100;
   const failed = input.stats.failedRate === null ? 0 : input.stats.failedRate / 100;
   const rating = input.ratingCount > 0 ? input.rating / 5 : 0.5;
-  return (input.verified ? 100 : 0) + input.match * 10 + volume * 25 + onTime * 25 + rating * 15 - failed * 20;
+  // The partner's plan (shared/plans.ts placement): Logistics Plus is boosted; Pro goes to the top (see leadsMatching).
+  const boost = input.placement === "boosted" ? 15 : input.placement === "top" ? 30 : 0;
+  return (input.verified ? 100 : 0) + input.match * 10 + volume * 25 + onTime * 25 + rating * 15 - failed * 20 + boost;
+}
+
+/** Partners shown before everyone else in matching: featured right now (a paid boost or Pro's own spot), or on Pro. */
+export function leadsMatching(input: { featured: boolean; placement?: "standard" | "boosted" | "top" }) {
+  return input.featured || input.placement === "top";
 }
 
 // ─── Chat guardrails (spec §7.3) ─────────────────────────────────────────────

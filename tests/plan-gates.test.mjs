@@ -111,3 +111,33 @@ test("seller texts to customers are counted against the plan's messages and pack
   assert.match(drawer, /input\.channel === "sms"[\s\S]{0,900}sender\.sms\(phone, body\)/);
   assert.match(read("src/lib/inbox/service.ts"), /textSender\(store\)\)\.sms\(to, body\)/);
 });
+
+test("logistics: coverage areas count states against the plan; regions expand; nationwide is unlimited", async () => {
+  const market = await import("../shared/delivery-market.ts");
+  assert.equal(market.areaStateCount(["Lagos", "Lagos: Ikeja", "Oyo"]), 2);
+  assert.equal(market.areaStateCount(["Nationwide"]), null);
+  assert.ok(market.areaStateCount(["South-West"]) >= 6);
+  const manage = read("src/lib/delivery-market/manage.server.ts");
+  assert.match(manage, /export async function savePartnerCoverage[\s\S]{0,900}coverageAreasProblem\(/);
+  // Setup Peggy adds pickup points and coverage within the plan too.
+  const peggy = read("src/lib/onboarding/setup-peggy.server.ts");
+  assert.match(peggy, /pickupPointLimitProblem\(partner\.id\)/);
+  assert.match(peggy, /coverageStateCount\(\[\.\.\.partner\.coverageZones, \.\.\.add\]\) > limit/);
+});
+
+test("logistics: Plus is boosted and Pro or featured partners lead in Find partners", async () => {
+  const market = await import("../shared/delivery-market.ts");
+  const base = { stats: { completed: 10, onTimeRate: 90, failedRate: 2 }, rating: 4, ratingCount: 3, match: 2, verified: true };
+  const free = market.rankScore({ ...base, placement: "standard" });
+  assert.ok(market.rankScore({ ...base, placement: "boosted" }) > free);
+  assert.ok(market.rankScore({ ...base, placement: "top" }) > market.rankScore({ ...base, placement: "boosted" }));
+  assert.equal(market.leadsMatching({ featured: false, placement: "top" }), true);
+  assert.equal(market.leadsMatching({ featured: true, placement: "standard" }), true);
+  assert.equal(market.leadsMatching({ featured: false, placement: "boosted" }), false);
+  assert.match(read("src/lib/delivery-market/manage.server.ts"), /\.sort\(\(a, b\) => Number\(leadsMatching\(b\)\) - Number\(leadsMatching\(a\)\) \|\| b\.score - a\.score\)/);
+});
+
+test("switching a team member back on counts against the plan's team size (suppliers and delivery partners)", () => {
+  assert.match(read("src/app/actions/supplier.ts"), /export async function updateSupplierTeamMemberStatus[\s\S]{0,1400}status === "active" && teamMember\.status !== "active"[\s\S]{0,400}atLimit\(/);
+  assert.match(read("src/app/actions/logistics.ts"), /status === "active" && teamMember\.status !== "active"\) await assertLogisticsPlanAllowsTeamMember/);
+});

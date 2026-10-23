@@ -406,7 +406,7 @@ export async function addLogisticsTeamMember(formData: FormData) {
 }
 
 export async function updateLogisticsTeamMemberStatus(formData: FormData) {
-  const { partner } = await getLogisticsActor();
+  const { user, partner } = await getLogisticsActor();
   assertVerifiedLogistics(partner);
 
   const teamMemberId = String(formData.get("teamMemberId") || "");
@@ -417,10 +417,12 @@ export async function updateLogisticsTeamMemberStatus(formData: FormData) {
 
   const teamMember = await db.logisticsTeamMember.findFirst({
     where: { id: teamMemberId, logisticsPartnerId: partner.id },
-    select: { id: true },
+    select: { id: true, status: true },
   });
 
   if (!teamMember) redirect(`/logistics/couriers?error=${encodeURIComponent("We couldn't find that person. Refresh the page.")}`);
+  // Switching someone back on counts against the plan's team size, like adding them.
+  if (status === "active" && teamMember.status !== "active") await assertLogisticsPlanAllowsTeamMember(user.id, partner.id);
 
   await db.logisticsTeamMember.update({
     where: { id: teamMember.id },

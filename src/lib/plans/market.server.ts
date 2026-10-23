@@ -81,6 +81,26 @@ export async function acceptPrivateRatesProblem(ownerUserId: string): Promise<st
   return null;
 }
 
+/**
+ * The states a partner's pickup and delivery areas cover (Logistics Free 3 · Plus 15 · Pro nationwide). `next` and
+ * `current` are state counts, null for nationwide. A change that doesn't cover more states than before is always
+ * fine, so a partner who downgraded can still edit their areas.
+ */
+export async function coverageAreasProblem(partnerUserId: string, next: number | null, current: number | null): Promise<string | null> {
+  const { key } = await userPlan(partnerUserId);
+  const limit = logisticsLimits(key).coverageStates;
+  if (limit === null) return null;
+  const more = (a: number | null, b: number | null) => (a === null ? b !== null : b !== null && a > b);
+  if (next !== null && next <= limit) return null;
+  if (!more(next, current)) return null;
+  const plan = cheapestPlanWhere("logistics_partner", (plan) => {
+    const allowed = logisticsLimits(plan).coverageStates;
+    return allowed === null || (next !== null && allowed >= next);
+  });
+  const what = next === null ? "Covering every state" : `Covering ${plural(next, "state")}`;
+  return `${what} comes with ${plan ? PLAN_NAMES[plan] : "a higher plan"}. Your plan covers up to ${plural(limit, "state")}.`;
+}
+
 /** Adding a pickup point (Logistics Free 3 · Plus 20 · Pro unlimited). */
 export async function pickupPointLimitProblem(partnerId: string): Promise<string | null> {
   const partner = await db.logisticsPartner.findUnique({ where: { id: partnerId }, select: { userId: true } });

@@ -4,6 +4,8 @@ import { db } from "@/lib/db/client";
 import { aiConfigured } from "@/lib/ai/client";
 import { aiText, firstJsonObject, type ChatTurn } from "@/lib/ai/text";
 import { PEGGY_FACTS } from "@/lib/support/peggy-knowledge";
+import { coverageStateCount, logisticsPlanLimits } from "@/lib/plan-limits";
+import { pickupPointLimitProblem } from "@/lib/plans/market.server";
 import { setupStatus, setupText, type SetupStatus } from "./setup-status.server";
 import { actionLabel, actionsFor, cleanActions, type SetupAction } from "./setup-peggy-pure";
 
@@ -56,11 +58,15 @@ async function apply(userId: string, status: SetupStatus, actions: SetupAction[]
         const partner = await db.logisticsPartner.findUnique({ where: { userId }, select: { id: true, coverageZones: true } });
         if (!partner) continue;
         if (action.type === "add_pickup_point") {
+          // The plan's pickup points and states (shared/plans.ts), as on the forms.
+          if (await pickupPointLimitProblem(partner.id)) continue;
           await db.logisticsPickupPoint.create({ data: { logisticsPartnerId: partner.id, name: action.name, address: action.address, state: action.state, area: action.area ?? null, hours: action.hours ?? null, phone: action.phone ?? null } });
         } else if (action.type === "add_coverage") {
           const known = new Set(partner.coverageZones.map((z) => z.toLowerCase()));
           const add = action.areas.filter((a) => !known.has(a.toLowerCase()));
           if (!add.length) continue;
+          const limit = logisticsPlanLimits(await db.user.findUnique({ where: { id: userId }, select: { aiCredits: true } }) ?? {}).coverageStates;
+          if (limit !== null && coverageStateCount([...partner.coverageZones, ...add]) > limit) continue;
           await db.logisticsPartner.update({ where: { id: partner.id }, data: { coverageZones: { push: add } } });
         } else if (action.type === "set_base_price") await db.logisticsPartner.update({ where: { id: partner.id }, data: { basePrice: action.naira } });
         else if (action.type === "set_description") await db.logisticsPartner.update({ where: { id: partner.id }, data: { description: action.text } });

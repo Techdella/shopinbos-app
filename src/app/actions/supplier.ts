@@ -477,7 +477,7 @@ export async function addSupplierTeamMember(formData: FormData) {
 }
 
 export async function updateSupplierTeamMemberStatus(formData: FormData) {
-  const { supplier } = await getSupplierActor();
+  const { user, supplier } = await getSupplierActor();
   assertVerifiedSupplier(supplier);
 
   const teamMemberId = String(formData.get("teamMemberId") || "");
@@ -488,10 +488,19 @@ export async function updateSupplierTeamMemberStatus(formData: FormData) {
 
   const teamMember = await db.supplierTeamMember.findFirst({
     where: { id: teamMemberId, supplierId: supplier.id },
-    select: { id: true },
+    select: { id: true, status: true },
   });
 
   if (!teamMember) redirect("/supplier/team?error=Team%20member%20not%20found.");
+
+  // Switching someone back on counts against the plan's team size, like adding them.
+  if (status === "active" && teamMember.status !== "active") {
+    const [dbUser, activeCount] = await Promise.all([
+      db.user.findUnique({ where: { id: user.id }, select: { aiCredits: true } }),
+      db.supplierTeamMember.count({ where: { supplierId: supplier.id, status: "active" } }),
+    ]);
+    if (atLimit(activeCount, supplierPlanLimits(dbUser ?? {}).teamMembers)) redirect("/supplier/profile?tab=Billing%20%26%20Plan&limit=team");
+  }
 
   await db.supplierTeamMember.update({
     where: { id: teamMember.id },
@@ -511,7 +520,7 @@ export async function removeSupplierTeamMember(formData: FormData) {
 
   const teamMember = await db.supplierTeamMember.findFirst({
     where: { id: teamMemberId, supplierId: supplier.id },
-    select: { id: true },
+    select: { id: true, status: true },
   });
 
   if (!teamMember) redirect("/supplier/team?error=Team%20member%20not%20found.");
