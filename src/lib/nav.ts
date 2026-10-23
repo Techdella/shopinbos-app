@@ -174,6 +174,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
         { id: "video", label: "Video studio", icon: "play", href: "/home/video", tag: "AI" },
         { id: "discounts", label: "Discounts", icon: "percent", href: "/home/discounts" },
         { id: "affiliates", label: "Affiliates", icon: "link", href: "/home/affiliates" },
+        { id: "refer", label: "Refer & earn", icon: "send", href: "/home/refer" },
         { id: "sell-everywhere", label: "Sell everywhere", icon: "globe", href: "/channels" },
         { id: "link-in-bio", label: "Link in bio", icon: "instagram", href: "/home/social/link-in-bio" },
       ],
@@ -284,6 +285,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
         { id: "payouts", label: "Earnings", icon: "bank", href: "/supplier/payouts", core: true },
         { id: "wallet", label: "Wallet", icon: "coin", href: "/supplier/wallet" },
         { id: "analytics", label: "Performance", icon: "chart", href: "/supplier/analytics" },
+        { id: "refer", label: "Refer & earn", icon: "send", href: "/supplier/refer" },
       ],
     },
     {
@@ -350,6 +352,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
             { id: "reviews", label: "Reviews", href: "/logistics/reviews" },
           ],
         },
+        { id: "refer", label: "Refer & earn", icon: "send", href: "/logistics/refer" },
       ],
     },
     {
@@ -390,6 +393,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
             { id: "leads-all", label: "All leads", href: "/admin/leads" },
             { id: "lead-campaigns", label: "Campaigns & automations", href: "/admin/lead-campaigns" },
             { id: "lead-whatsapp", label: "WhatsApp", href: "/admin/lead-campaigns/whatsapp" },
+            { id: "referrals", label: "Referrals", href: "/admin/referrals" },
           ],
         },
         { id: "product-news", label: "Product news", icon: "megaphone", href: "/admin/product-news", core: true },

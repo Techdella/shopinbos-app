@@ -26,6 +26,7 @@ Defined in `scripts/qstash-schedules.mjs` (cron times are UTC):
 | shopinbos-partner-webhooks              | /api/cron/partner-webhooks           | `*/5 * * * *`     |
 | shopinbos-verification-reminders        | /api/cron/verification-reminders     | `17 * * * *`      |
 | shopinbos-lifecycle-emails              | /api/cron/lifecycle                  | `23 * * * *`      |
+| shopinbos-referrals                     | /api/cron/referrals                  | `41 * * * *`      |
 | shopinbos-seasonal-campaigns            | /api/cron/seasonal-campaigns         | `*/5 * * * *`     |
 | shopinbos-gmail-sync                    | /api/cron/gmail-sync                 | `*/5 * * * *`     |
 | shopinbos-lead-growth                   | /api/cron/lead-growth                | `*/10 * * * *`    |

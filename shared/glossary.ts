@@ -31,6 +31,7 @@ export const GLOSSARY: GlossaryEntry[] = [
   { key: "rewards", term: "Rewards", short: "Points, games and gifts that bring customers back to buy again.", example: "Spin-the-wheel on your shop gives a free delivery to every 10th visitor.", aliases: ["loyalty", "rewards and games", "points"] },
   { key: "discounts", term: "Discounts", short: "Price cuts or codes customers enter at checkout.", example: "Code SALLAH20 takes 20% off everything this weekend.", aliases: ["discount", "coupon", "coupons", "discounts and coupons"], introKey: "discounts" },
   { key: "affiliates", term: "Affiliates", short: "People who share your shop link and earn a commission on each sale it brings.", example: "A campus influencer earns 10% on every wig sold through her link.", aliases: ["affiliate", "referral", "referrals", "commission"], introKey: "affiliates" },
+  { key: "refer-and-earn", term: "Refer & earn", short: "Invite other businesses with your own link and get free plan months or AI credits when they start selling.", example: "You invite the fabric wholesaler you buy from; once she lists 5 products you get 3 months free.", aliases: ["refer and earn", "invite link", "invite code", "your invite"], introKey: "refer-and-earn" },
   { key: "ads", term: "Ads", short: "Paid posts on Facebook, Instagram or TikTok that show your products to new people.", example: "₦5,000 for 3 days shows your perfume to 8,000 people in Lagos.", aliases: ["ad", "advert", "adverts", "advertising"], introKey: "ads" },
   { key: "budget", term: "Budget", short: "The most you agree to spend on an advert, per day or in total.", example: "₦2,000 a day for 5 days, so ₦10,000 at most.", aliases: ["ad budget", "daily budget", "spend"], introKey: "ads" },
   { key: "ctr", term: "CTR", short: "Click-through rate: out of everyone who saw your ad, the share who tapped it.", example: "1,000 people saw it and 30 tapped: a 3% CTR.", aliases: ["click-through rate", "click through rate"], introKey: "ads" },
@@ -180,6 +181,7 @@ export function findTerm(text: string | null | undefined, { exact = false }: { e
 export type GlossaryRole = "seller" | "supplier" | "logistics_partner";
 
 const SHARED_NAV: Record<string, string> = {
+  refer: "refer-and-earn",
   inbox: "inbox", "inbox-messages": "inbox", "inbox-partners": "inbox", "inbox-forms": "forms", "inbox-chat": "live-chat",
   "inbox-auto-replies": "auto-replies", "inbox-chatbot": "chatbot", "inbox-whatsapp-store": "whatsapp-store", "inbox-whatsapp-catalog": "whatsapp-catalog", "inbox-notifications": "notifications",
   reviews: "reviews", verification: "verification", cms: "content", analytics: "analytics", payouts: "payouts", wallet: "wallet",

@@ -25,6 +25,8 @@ const en = {
   "discounts.example": "Code SALLAH20 takes 20% off everything this weekend.",
   "affiliates.short": "People who share your shop link and earn a commission on each sale it brings.",
   "affiliates.example": "A campus influencer earns 10% on every wig sold through her link.",
+  "refer-and-earn.short": "Invite other businesses with your own link and get free plan months or AI credits when they start selling.",
+  "refer-and-earn.example": "You invite the fabric wholesaler you buy from; once she lists 5 products you get 3 months free.",
   "ads.short": "Paid posts on Facebook, Instagram or TikTok that show your products to new people.",
   "ads.example": "₦5,000 for 3 days shows your perfume to 8,000 people in Lagos.",
   "budget.short": "The most you agree to spend on an advert, per day or in total.",

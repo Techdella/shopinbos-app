@@ -8,6 +8,7 @@ import { getAuthRouteClient, recoveryCookieOptions, recoveryMarker, RECOVERY_COO
 import { decodeAccessToken } from "@/lib/auth/session-claims";
 import { safeNextPath } from "@/lib/auth/route-access";
 import { deviceCookie, recordSignIn } from "@/lib/auth/events";
+import { claimReferralFromCookie } from "@/lib/referrals/service.server";
 
 const RESET_PATH = "/reset-password";
 
@@ -53,6 +54,8 @@ export async function GET(request: NextRequest) {
     role: isReset ? metadataRole ?? role : role,
   });
   await alignRoleMetadata(data.user.id, data.user.user_metadata?.role, appUser.role);
+  // Joined with an invite (Refer & earn, the sib_ref cookie from /r/CODE).
+  if (!isReset) await claimReferralFromCookie(appUser.id);
 
   let landing = destination;
   if (!isReset && appUser.role !== role) {

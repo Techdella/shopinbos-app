@@ -206,6 +206,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "credits.example": "Rex ṣe àwòrán tuntun mẹ́ta ti handbag rẹ; credits díẹ̀ yọ kúrò nínú tòṣooṣù rẹ.",
   "business-registration.short": "Fífi orúkọ iṣẹ́ rẹ sílẹ̀ ní CAC, kí ó di ti òfin kí o sì gba BN number.",
   "business-registration.example": "Fi “Ada's Fabrics” sílẹ̀ ní CAC láti Shopinbos kí o sì download certificate níbí.",
+  "refer-and-earn.short": "Pe àwọn oníṣòwò mìíràn pẹ̀lú link tìrẹ, kí o gba oṣù ọ̀fẹ́ tàbí AI credits nígbà tí wọ́n bá bẹ̀rẹ̀ sí í tà.",
+  "refer-and-earn.example": "O pe olùtajà aṣọ tí o ń rà lọ́dọ̀ rẹ̀; nígbà tí ó bá fi ọjà 5 sí i, o gba oṣù mẹ́ta ọ̀fẹ́.",
 };
 
 export default yo;

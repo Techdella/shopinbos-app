@@ -185,6 +185,21 @@ export async function useIncludedFeaturedWeek(userId: string) {
   });
 }
 
+/**
+ * Free featured weeks in the marketplace (a referral welcome gift), after any week already running. Given once per
+ * `reference`. Not counted against the plan's own included weeks.
+ */
+export async function giftFeaturedWeeks(userId: string, weeks: number, reference: string) {
+  if (weeks <= 0) return null;
+  const id = `${EXTRA_REFERENCE_PREFIX}gift-${reference}`;
+  const existing = await db.planExtraPurchase.findUnique({ where: { reference: id } });
+  if (existing) return existing;
+  const window = extraWindow("supplier_boost", weeks, await latestEnd(userId, "supplier_boost", null), new Date());
+  return db.planExtraPurchase.create({
+    data: { reference: id, userId, kind: "supplier_boost", quantity: weeks, amountKobo: 0, included: false, status: "paid", paidAt: new Date(), ...window },
+  });
+}
+
 /** Supplier.id of the suppliers featured right now (for lists that don't carry the user id). */
 export async function featuredSupplierIds() {
   const userIds = await featuredSupplierUserIds();

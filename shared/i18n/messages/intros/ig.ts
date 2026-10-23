@@ -821,6 +821,18 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "business-registration.4.sub": "Ọ bụrụ na CAC jụọ ajụjụ, ị na-aza ya ebe a. Ọ na-ewekarị ụbọchị ọrụ ole na ole.",
   "business-registration.5.caption": "Download certificate gị.",
   "business-registration.5.sub": "Ozugbo CAC kwadoro ya, BN number na certificate gị na-eche gị na ibe a.",
+  "refer-and-earn.title": "Kpọọ ma nweta",
+  "refer-and-earn.cta": "Kekọrịta link m",
+  "refer-and-earn.1.caption": "Ị nwere link ọkpụkpọ nke gị.",
+  "refer-and-earn.1.sub": "Kekọrịta ya na WhatsApp nye ndị na-ebubata ngwaahịa, ụlọ ahịa na ndị na-ebu ngwongwo ị maara.",
+  "refer-and-earn.2.caption": "Ha na-abata na onyinye nnabata.",
+  "refer-and-earn.2.sub": "Onye na-ebubata ngwaahịa ị kpọrọ na-enweta otu ọnwa Supplier Plus n'efu na otu izu e gosiri ya.",
+  "refer-and-earn.3.caption": "Ọ na-agụ mgbe ha malitere n'ezie.",
+  "refer-and-earn.3.sub": "Onye na-ebubata na-agụ ozugbo a kwadoro ya nwere ngwaahịa 5; ụlọ ahịa mgbe iwu mbụ akwụrụ ụgwọ.",
+  "refer-and-earn.4.caption": "Mgbe ahụ ị na-enweta ụgwọ ọrụ gị.",
+  "refer-and-earn.4.sub": "Ọnwa n'efu na atụmatụ gị ma ọ bụ AI credits, ị ga-ahọrọ. Credits 500 ruru ihe dị ka vidiyo Rex 50.",
+  "refer-and-earn.5.caption": "Kpọọ karịa, meghee karịa.",
+  "refer-and-earn.5.sub": "Ndị ọchụnta ego 5 na-enye gị ọnwa ọzọ; 10 na-eme gị Onye Nnọchite Shopinbos.",
 };
 
 export default ig;

@@ -821,6 +821,18 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "business-registration.4.sub": "If CAC ask question, you go answer am right here. E dey usually take few working days.",
   "business-registration.5.caption": "Download your certificate.",
   "business-registration.5.sub": "Once CAC approve, your BN number and certificate go dey wait for you for this page.",
+  "refer-and-earn.title": "Refer & earn",
+  "refer-and-earn.cta": "Share my link",
+  "refer-and-earn.1.caption": "You get your own invite link.",
+  "refer-and-earn.1.sub": "Share am for WhatsApp with suppliers, shops and riders wey you know.",
+  "refer-and-earn.2.caption": "Dem join with welcome gift.",
+  "refer-and-earn.2.sub": "Supplier wey you invite go get one free month of Supplier Plus and one featured week.",
+  "refer-and-earn.3.caption": "E go count when dem really start.",
+  "refer-and-earn.3.sub": "Supplier go count once dem verify am with 5 products; shop after the first paid order.",
+  "refer-and-earn.4.caption": "Then you go collect your reward.",
+  "refer-and-earn.4.sub": "Free months for your plan or AI credits, na you go choose. 500 credits na like 50 Rex videos.",
+  "refer-and-earn.5.caption": "Invite more, unlock more.",
+  "refer-and-earn.5.sub": "5 businesses go give you extra month; 10 go make you Shopinbos Ambassador.",
 };
 
 export default pcm;

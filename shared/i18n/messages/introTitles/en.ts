@@ -14,6 +14,7 @@ const en = {
   "abandoned-carts.title": "Checkout and abandoned carts",
   "ads.title": "Ads: budget, CTR and ROAS",
   "affiliates.title": "Affiliates",
+  "refer-and-earn.title": "Refer & earn",
   "whatsapp-store.title": "Your WhatsApp store",
   "payment-links.title": "Payment links",
   "channels.title": "WhatsApp and selling everywhere",
