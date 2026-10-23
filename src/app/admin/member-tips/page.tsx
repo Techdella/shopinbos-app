@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AppPage, Pill } from "@/components/app-kit";
+import { PendingButton } from "@/components/admin/PendingButton";
 import { adminFrame, buttonClass } from "@/components/admin/AdminKit";
 import { requireAdminSection } from "@/lib/admin-team/service.server";
 import { tipAudience, tipSettings, tipStats } from "@/lib/member-messaging/tips.server";
@@ -13,6 +14,8 @@ import { ANNIVERSARY_CREDITS, LOYALTY_TIERS } from "@shared/loyalty";
 import { setJourneys, setLoyalty, setTipChannel, sendTestTip, submitTipTemplates } from "./actions";
 
 export const dynamic = "force-dynamic";
+// Submitting templates uploads each banner to Meta: give the action time to finish.
+export const maxDuration = 300;
 export const metadata: Metadata = { title: "Member tips" };
 
 // Admin › Leads › Member tips: the weekly tips from Rex & Peggy to sellers, suppliers and delivery partners. Switch
@@ -56,7 +59,7 @@ export default async function AdminMemberTipsPage(props: { searchParams?: Promis
               <form action={setTipChannel}>
                 <input type="hidden" name="channel" value={channel.key} />
                 <input type="hidden" name="on" value={on ? "0" : "1"} />
-                <button type="submit" className={buttonClass(on ? "white" : "ink", "sm")}>{on ? "Switch off" : "Switch on"}</button>
+                <PendingButton pending={on ? "Switching off…" : "Switching on…"} className={buttonClass(on ? "white" : "ink", "sm")}>{on ? "Switch off" : "Switch on"}</PendingButton>
               </form>
             </div>
           );
@@ -77,7 +80,7 @@ export default async function AdminMemberTipsPage(props: { searchParams?: Promis
             <Pill tone={journeys ? "success" : "muted"} dot>{journeys ? "On" : "Off"}</Pill>
             <form action={setJourneys}>
               <input type="hidden" name="on" value={journeys ? "0" : "1"} />
-              <button type="submit" className={buttonClass(journeys ? "white" : "ink", "sm")}>{journeys ? "Switch off" : "Switch on"}</button>
+              <PendingButton pending={journeys ? "Switching off…" : "Switching on…"} className={buttonClass(journeys ? "white" : "ink", "sm")}>{journeys ? "Switch off" : "Switch on"}</PendingButton>
             </form>
           </span>
         </div>
@@ -103,7 +106,7 @@ export default async function AdminMemberTipsPage(props: { searchParams?: Promis
             <Pill tone={loyalty ? "success" : "muted"} dot>{loyalty ? "On" : "Off"}</Pill>
             <form action={setLoyalty}>
               <input type="hidden" name="on" value={loyalty ? "0" : "1"} />
-              <button type="submit" className={buttonClass(loyalty ? "white" : "ink", "sm")}>{loyalty ? "Switch off" : "Switch on"}</button>
+              <PendingButton pending={loyalty ? "Switching off…" : "Switching on…"} className={buttonClass(loyalty ? "white" : "ink", "sm")}>{loyalty ? "Switch off" : "Switch on"}</PendingButton>
             </form>
           </span>
         </div>
@@ -143,7 +146,7 @@ export default async function AdminMemberTipsPage(props: { searchParams?: Promis
             <h2 id="tip-templates" className="m-0 text-[18px] font-extrabold">WhatsApp templates</h2>
             <p className="m-0 mt-1 text-[13.5px] text-app-ink-soft">The weekly tips (one per role: the tip is filled in each week) and the setup-help and welcome-back journeys. They only need approving once.</p>
           </div>
-          <form action={submitTipTemplates}><button type="submit" className={buttonClass("ink", "sm")}>Submit the missing ones</button></form>
+          <form action={submitTipTemplates}><PendingButton pending="Submitting to Meta… (up to a minute)" className={buttonClass("ink", "sm")}>Submit the missing ones</PendingButton></form>
         </div>
         {templates && !templates.ok && <p className="mb-0 mt-3 text-[13px] text-app-danger">{templates.error}</p>}
         <ul className="m-0 mt-4 grid list-none gap-3 p-0 md:grid-cols-3">
@@ -185,7 +188,7 @@ export default async function AdminMemberTipsPage(props: { searchParams?: Promis
                 </div>
                 <form action={sendTestTip}>
                   <input type="hidden" name="tip" value={tip.id} />
-                  <button type="submit" className={buttonClass("white", "sm")}>Email me a test</button>
+                  <PendingButton pending="Sending…" className={buttonClass("white", "sm")}>Email me a test</PendingButton>
                 </form>
               </div>
               <details className="mt-3">
