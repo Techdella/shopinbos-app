@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AppPage, EmptyState, FilterChips, Pill, type Tone } from "@/components/app-kit";
+import { PendingButton } from "@/components/admin/PendingButton";
 import { CountRow, adminFrame, buttonClass, formatDate, withParams } from "@/components/admin/AdminKit";
 import { requireAdminSection } from "@/lib/admin-team/service.server";
 import { adminReferrals } from "@/lib/referrals/service.server";
@@ -10,6 +11,8 @@ import { announcementState } from "@/lib/member-messaging/announce.server";
 import { decideReferral, submitReferralTemplates, toggleReferralAnnouncement } from "./actions";
 
 export const dynamic = "force-dynamic";
+// Submitting templates uploads each banner to Meta: give the action time to finish.
+export const maxDuration = 300;
 export const metadata: Metadata = { title: "Referrals" };
 
 // Admin › Referrals: every invite (who invited whom, how far they are, what each side got), counting one by hand or
@@ -62,7 +65,7 @@ export default async function AdminReferralsPage(props: { searchParams?: Promise
         <form action={toggleReferralAnnouncement}>
           <input type="hidden" name="start" value={announce.active ? "0" : "1"} />
           <input type="hidden" name="back" value={back} />
-          <button type="submit" className={buttonClass(announce.active ? "white" : "ink", "sm")}>{announce.active ? "Pause" : announce.startedAt ? "Resume" : "Start sending"}</button>
+          <PendingButton pending="Saving…" className={buttonClass(announce.active ? "white" : "ink", "sm")}>{announce.active ? "Pause" : announce.startedAt ? "Resume" : "Start sending"}</PendingButton>
         </form>
       </section>
 
@@ -100,13 +103,13 @@ export default async function AdminReferralsPage(props: { searchParams?: Promise
                       <input type="hidden" name="id" value={row.id} />
                       <input type="hidden" name="decision" value="reward" />
                       <input type="hidden" name="back" value={back} />
-                      <button type="submit" className={buttonClass("ink", "sm")} title={`Normally counts when: ${REFERRAL_OFFERS[role].rule.toLowerCase()}`}>Count it now</button>
+                      <PendingButton pending="Counting…" className={buttonClass("ink", "sm")}>Count it now</PendingButton>
                     </form>
                     <form action={decideReferral}>
                       <input type="hidden" name="id" value={row.id} />
                       <input type="hidden" name="decision" value="reject" />
                       <input type="hidden" name="back" value={back} />
-                      <button type="submit" className={buttonClass("danger", "sm")}>Turn down</button>
+                      <PendingButton pending="Saving…" className={buttonClass("danger", "sm")}>Turn down</PendingButton>
                     </form>
                   </span>
                 )}
@@ -124,7 +127,7 @@ export default async function AdminReferralsPage(props: { searchParams?: Promise
           </div>
           <form action={submitReferralTemplates}>
             <input type="hidden" name="back" value={back} />
-            <button type="submit" className={buttonClass("ink", "sm")}>Submit the missing ones</button>
+            <PendingButton pending="Submitting to Meta… (up to a minute)" className={buttonClass("ink", "sm")}>Submit the missing ones</PendingButton>
           </form>
         </div>
         {templates && !templates.ok && <p className="mb-0 mt-3 text-[13px] text-app-danger">{templates.error}</p>}

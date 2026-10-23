@@ -10,6 +10,8 @@ import { metaPhoneInfo, metaTemplates, metaWhatsAppConfig, type MetaTemplateStat
 import { requireRole } from "@/lib/server-auth";
 import { inboxWhatsAppStatus } from "@/lib/support/whatsapp.server";
 import { GrowthNotReady, lagosTime } from "../_shared";
+import { PendingButton } from "@/components/admin/PendingButton";
+import { MEMBER_TEMPLATES } from "@/lib/member-messaging/whatsapp-templates";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -50,7 +52,11 @@ export default async function LeadWhatsAppPage(props: { searchParams?: Promise<S
   const approved = (name: string) => WHATSAPP_TEMPLATES.some((t) => t.name === name && statusOf(t.name, t.language)?.status === "APPROVED");
   const waAutomations = automations.filter((a) => a.steps.some((step) => step.channel === "whatsapp"));
   const missingSequences = WHATSAPP_AUTOMATIONS.some((a) => !automations.some((have) => have.name === a.name));
-  const missingTemplates = WHATSAPP_TEMPLATES.filter((t) => !statusOf(t.name, t.language)).length;
+  // "Submit all" also sends the members' templates (referrals, weekly tips, journeys), so count those too: once the
+  // launch templates were all approved, the button vanished and the member ones had nowhere to be submitted from.
+  const missingLaunch = WHATSAPP_TEMPLATES.filter((t) => !statusOf(t.name, t.language)).length;
+  const missingMembers = MEMBER_TEMPLATES.filter((t) => !statusOf(t.name, t.language)).length;
+  const missingTemplates = missingLaunch + missingMembers;
   const reachTotal = Object.values(overview.reachableByRole).reduce((a, b) => a + b, 0);
 
   return (
@@ -151,7 +157,9 @@ export default async function LeadWhatsAppPage(props: { searchParams?: Promise<S
           action={
             config?.wabaId && missingTemplates > 0 ? (
               <form action={submitWhatsAppTemplates}>
-                <button type="submit" className={buttonClass("ink", "sm")}>Submit {missingTemplates} to Meta</button>
+                <PendingButton pending="Submitting to Meta… (up to a minute)" className={buttonClass("ink", "sm")}>
+                  Submit {missingTemplates} to Meta{missingMembers ? ` (${missingMembers} for members)` : ""}
+                </PendingButton>
               </form>
             ) : undefined
           }
