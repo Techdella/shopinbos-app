@@ -16,7 +16,8 @@ export type IconName =
   | "document" | "mail" | "target" | "code" | "cards" | "message" | "grid" | "book"
   | "logout" | "arrowLeft"
   | "copy" | "paperclip" | "moreHorizontal" | "chevRight" | "checkCircle" | "trash"
-  | "file" | "shield" | "archive" | "percent" | "menu";
+  | "file" | "shield" | "archive" | "percent" | "menu"
+  | "volume" | "mute" | "music";
 
 interface IconProps extends SVGProps<SVGSVGElement> {
   name: IconName;
@@ -123,6 +124,9 @@ const paths: Record<IconName, React.ReactNode> = {
   shield:     <><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/></>,
   percent:    <><path d="M19 5L5 19"/><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/></>,
   archive:    <><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 001 1h12a1 1 0 001-1V8"/><path d="M10 12h4"/></>,
+  volume:     <><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 010 6M18.5 6.5a7.5 7.5 0 010 11"/></>,
+  mute:       <><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M17 9l5 6M22 9l-5 6"/></>,
+  music:      <><path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/></>,
 };
 
 export function Icon({ name, size = 18, color = "currentColor", strokeWidth = 1.6, ...props }: IconProps) {

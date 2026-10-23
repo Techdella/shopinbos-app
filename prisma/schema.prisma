@@ -2843,6 +2843,47 @@ model HelpVideo {
   @@index([published, topic])
 }
 
+// Weekly updates: status-style posts from the Shopinbos team (selling tips, news) that sellers, suppliers and
+// delivery partners tap through from the ring in the top bar (shared/weekly-updates.ts). Made at /admin/updates.
+// Migration: docs/migrations/2026-11-26-weekly-updates.sql.
+model WeeklyUpdate {
+  id              String    @id @default(cuid())
+  kind            String    @default("text") // text | motion | image | video
+  title           String
+  body            String? // the words on the card (text, motion) or the caption (image, video)
+  theme           String    @default("navy") // card colour (UPDATE_THEMES)
+  motion          String? // rise | slide | pop (motion updates)
+  mediaUrl        String? // our media bucket (platform/updates/…), or a YouTube/Vimeo link for videos
+  posterUrl       String?
+  durationSeconds Int?
+  ctaLabel        String?
+  ctaUrl          String?
+  roles           String[]  @default([]) // seller | supplier | logistics_partner
+  published       Boolean   @default(false)
+  publishAt       DateTime?
+  expiresAt       DateTime?
+  createdById     String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  views WeeklyUpdateView[]
+
+  @@index([published, publishAt])
+}
+
+// Who has seen which update (one row each), for the ring in the top bar and the view counts in admin.
+model WeeklyUpdateView {
+  id       String   @id @default(cuid())
+  updateId String
+  userId   String
+  viewedAt DateTime @default(now())
+
+  update WeeklyUpdate @relation(fields: [updateId], references: [id], onDelete: Cascade)
+
+  @@unique([updateId, userId])
+  @@index([userId])
+}
+
 // ─── Delivery partners: cash-on-delivery pay-ins, API keys and webhooks ──────
 
 model CodRemittance {

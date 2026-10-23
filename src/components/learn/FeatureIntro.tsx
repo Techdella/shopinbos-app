@@ -8,15 +8,18 @@ import { glossaryTerm } from "@shared/glossary";
 import { introDurationMs, type FeatureIntro as Intro } from "@shared/feature-intros";
 import { helpLanguage, type VideoSource } from "@shared/help-videos";
 import { translateIntro, translateTerm } from "@shared/i18n/learn";
-import { useT } from "@/components/i18n/I18nProvider";
+import { useLocale, useT } from "@/components/i18n/I18nProvider";
+import { VOICE_GRACE_MS, isNarrationLocale } from "@shared/intro-narration";
 import { C, INTRO_CSS, SceneArtwork } from "./scenes";
 import { TipsOffNote } from "./Term";
+import { useIntroSound } from "./useIntroSound";
 
 // The 60-second feature intro: a navy panel that plays five short motion-graphics scenes (scenes.tsx), each with
 // one caption and a spoken-style line, then a recap of the word it taught and the page's main action. Segmented
 // progress, play/pause, back/next, replay, skip; Escape closes. With reduced motion the scenes are still frames
 // and you step through them. When a one-minute help video is published for the same topic, "Watch the video"
-// plays it in the same panel. Full-screen sheet on phones.
+// plays it in the same panel. Full-screen sheet on phones. A narrator reads each scene in the person's language over
+// soft music (useIntroSound.ts); each scene waits for the narrator to finish its line, and both can be switched off.
 
 export type IntroCloseReason = "done" | "skip" | "close" | "cta";
 
@@ -81,6 +84,26 @@ export function FeatureIntro({ intro: source, role, onClose }: { intro: Intro; r
   const term = glossaryEntry ? translateTerm(glossaryEntry, tGlossary) : null;
   const still = reduced;
   const playing = !paused && !finished && !still && tab === "intro";
+  const locale = useLocale();
+  const sound = useIntroSound({ introKey: intro.key, scenes, locale: isNarrationLocale(locale) ? locale : "en", totalMs: introDurationMs(intro) });
+  const { playScene, finish: finishSound, stopVoice, pause: pauseSound, resume: resumeSound } = sound;
+
+  // The narrator follows the scenes: each new scene (or a replay) reads its line; the recap and the video stop it.
+  useEffect(() => {
+    if (tab !== "intro") {
+      stopVoice();
+      pauseSound();
+      return;
+    }
+    if (finished) finishSound();
+    else void playScene(index);
+  }, [tab, finished, index, run, playScene, finishSound, stopVoice, pauseSound]);
+
+  useEffect(() => {
+    if (tab !== "intro") return;
+    if (paused) pauseSound();
+    else resumeSound();
+  }, [paused, tab, pauseSound, resumeSound]);
 
   // The clock: advances the current scene, then the next, then the recap.
   useEffect(() => {
@@ -95,8 +118,10 @@ export function FeatureIntro({ intro: source, role, onClose }: { intro: Intro; r
     return () => cancelAnimationFrame(frame);
   }, [playing, index]);
 
+  // A scene moves on once its time is up and the narrator has finished (or after a grace period, whatever happens).
+  const waitingForVoice = sound.voiceBusy && elapsed < scene.durationMs + VOICE_GRACE_MS;
   useEffect(() => {
-    if (elapsed < scene.durationMs) return;
+    if (elapsed < scene.durationMs || waitingForVoice) return;
     if (index < scenes.length - 1) {
       setIndex(index + 1);
       setElapsed(0);
@@ -104,7 +129,7 @@ export function FeatureIntro({ intro: source, role, onClose }: { intro: Intro; r
       setFinished(true);
       setElapsed(scene.durationMs);
     }
-  }, [elapsed, index, scene.durationMs, scenes.length]);
+  }, [elapsed, index, scene.durationMs, scenes.length, waitingForVoice]);
 
   const go = useCallback(
     (next: number) => {
@@ -181,6 +206,10 @@ export function FeatureIntro({ intro: source, role, onClose }: { intro: Intro; r
         aria-modal="true"
         aria-labelledby="feature-intro-title"
         onKeyDown={trapFocus}
+        // Any tap in the intro counts as the tap browsers need before they play sound.
+        onPointerDown={() => {
+          if (sound.needsTap) void sound.unlock();
+        }}
         className="relative flex h-[100dvh] w-full max-w-full flex-col overflow-hidden text-[#F4F1EA] shadow-[0_40px_120px_-30px_rgba(0,0,0,0.6)] sm:h-auto sm:max-h-[94dvh] sm:max-w-[800px] sm:rounded-[28px]"
         style={{ backgroundColor: C.navy }}
       >
@@ -213,6 +242,34 @@ export function FeatureIntro({ intro: source, role, onClose }: { intro: Intro; r
               {t("eyebrow", { seconds })}
             </span>
             <span className="flex-1" />
+            {sound.needsTap && (sound.prefs.voice || sound.prefs.music) && tab === "intro" && !finished && (
+              <button type="button" onClick={() => void sound.unlock()} data-intro-sound="tap" className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full px-3 text-[13px] font-bold motion-safe:animate-pulse" style={{ backgroundColor: C.mint, color: C.navy }}>
+                <Icon name="volume" size={15} /> {t("tapForSound")}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => sound.setVoice(!sound.prefs.voice)}
+              aria-pressed={sound.prefs.voice}
+              aria-label={sound.prefs.voice ? t("voiceOff") : t("voiceOn")}
+              title={sound.prefs.voice ? t("voiceOff") : t("voiceOn")}
+              data-intro-sound="voice"
+              className="grid h-9 w-9 place-items-center rounded-full bg-[rgba(244,241,234,0.1)] hover:bg-[rgba(244,241,234,0.18)]"
+            >
+              <Icon name={sound.prefs.voice ? "volume" : "mute"} size={16} />
+            </button>
+            <button
+              type="button"
+              onClick={() => sound.setMusic(!sound.prefs.music)}
+              aria-pressed={sound.prefs.music}
+              aria-label={sound.prefs.music ? t("musicOff") : t("musicOn")}
+              title={sound.prefs.music ? t("musicOff") : t("musicOn")}
+              data-intro-sound="music"
+              className={`grid h-9 w-9 place-items-center rounded-full bg-[rgba(244,241,234,0.1)] hover:bg-[rgba(244,241,234,0.18)] ${sound.prefs.music ? "" : "opacity-50 line-through"}`}
+              style={sound.prefs.music ? { color: C.mint } : undefined}
+            >
+              <Icon name="music" size={16} />
+            </button>
             {!finished && (
               <button type="button" onClick={() => onClose("skip")} className="min-h-[36px] rounded-full px-3 text-[13px] font-bold text-[rgba(244,241,234,0.72)] hover:text-[#F4F1EA]">
                 {t("skip")}
