@@ -1,0 +1,78 @@
+{
+ "id": "seller-01-start-shop",
+ "role": "seller",
+ "topic": "start_shop",
+ "title": "Set up your shop in a minute",
+ "series": "Sellers",
+ "episode": 1,
+ "intro": "Welcome to Shopinbos. In one minute, you'll set up your online shop with Rex, your AI shop builder.",
+ "steps": [
+  {
+   "shot": "shots/seller-01-start-shop/01.png",
+   "caption": "Tap Start now",
+   "vo": "When you open Shopinbos for the first time, Rex says hello. Tap Start now.",
+   "highlight": {
+    "x": 22,
+    "y": 650,
+    "w": 71,
+    "h": 19
+   }
+  },
+  {
+   "shot": "shots/seller-01-start-shop/02.png",
+   "caption": "Tell Rex what you sell",
+   "vo": "Pick your language, then tell Rex what you sell, in your own words. Then choose where you're starting from. For example, I have products.",
+   "highlight": {
+    "x": 95,
+    "y": 583,
+    "w": 229,
+    "h": 21
+   }
+  },
+  {
+   "shot": "shots/seller-01-start-shop/03.png",
+   "caption": "Pick your brand",
+   "vo": "Rex makes a brand for you: a shop name, colours and a look. Change anything you like, then tap Looks good.",
+   "highlight": {
+    "x": 148,
+    "y": 801,
+    "w": 98,
+    "h": 22
+   }
+  },
+  {
+   "shot": "shots/seller-01-start-shop/04.png",
+   "caption": "Add your first products",
+   "vo": "Add your first products. Snap photos and Rex writes the names, prices and descriptions. One product is enough to go live.",
+   "highlight": {
+    "x": 38,
+    "y": 177,
+    "w": 135,
+    "h": 18
+   }
+  },
+  {
+   "shot": "shots/seller-01-start-shop/05.png",
+   "caption": "Choose how you get paid",
+   "vo": "Choose how customers can pay you, like bank transfer, card, or pay on delivery. Then tap Put my shop live.",
+   "highlight": {
+    "x": 130,
+    "y": 801,
+    "w": 134,
+    "h": 22
+   }
+  },
+  {
+   "shot": "shots/seller-01-start-shop/06.png",
+   "caption": "Share your shop",
+   "vo": "Your shop is open! Tap Share on WhatsApp to put it on your status, where your customers are.",
+   "highlight": {
+    "x": 114,
+    "y": 759,
+    "w": 164,
+    "h": 22
+   }
+  }
+ ],
+ "outro": "That's it. Your shop is live, and you can change anything later from My shop."
+}

@@ -1,0 +1,56 @@
+{
+  "id": "logistics-03-get-paid",
+  "role": "logistics_partner",
+  "topic": "get_paid",
+  "title": "How you get paid",
+  "series": "Delivery partners",
+  "episode": 3,
+  "intro": "Here's how your delivery money reaches you, and what to do with cash on delivery.",
+  "steps": [
+    {
+      "shot": "shots/logistics-03-get-paid/01.png",
+      "caption": "Your money, in Money",
+      "vo": "Open the Money tab. You see what you earned this week, today, and in the last thirty days. You're paid once delivery is confirmed.",
+      "highlight": {
+        "x": 20,
+        "y": 78,
+        "w": 353,
+        "h": 136
+      }
+    },
+    {
+      "shot": "shots/logistics-03-get-paid/02.png",
+      "caption": "Straight to your bank",
+      "vo": "Customers pay the delivery fee at checkout. It goes straight to your bank through our payment provider. Shopinbos never holds it. Tap Change to use a different bank.",
+      "highlight": {
+        "x": 20,
+        "y": 352,
+        "w": 353,
+        "h": 72
+      }
+    },
+    {
+      "shot": "shots/logistics-03-get-paid/03.png",
+      "caption": "Pass on cash by 6pm",
+      "vo": "Cash your riders collect on delivery belongs to the sellers. Pass it on by the time shown. Tap Copy, and send it to this account. We match your payment automatically.",
+      "highlight": {
+        "x": 24,
+        "y": 205,
+        "w": 345,
+        "h": 150
+      }
+    },
+    {
+      "shot": "shots/logistics-03-get-paid/04.png",
+      "caption": "Or pay each seller",
+      "vo": "You can also open Pay-on-delivery cash and pay each seller straight to their bank. If you handed it over another way, tap I've sent it, and they'll confirm.",
+      "highlight": {
+        "x": 36,
+        "y": 356,
+        "w": 320,
+        "h": 46
+      }
+    }
+  ],
+  "outro": "Pay in on time, and you'll keep getting cash on delivery jobs."
+}

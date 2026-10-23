@@ -1,0 +1,78 @@
+{
+  "id": "logistics-01-jobs",
+  "role": "logistics_partner",
+  "topic": "partner_jobs",
+  "title": "Take delivery jobs",
+  "series": "Delivery partners",
+  "episode": 1,
+  "intro": "Here's how to take delivery jobs from sellers on Shopinbos.",
+  "steps": [
+    {
+      "shot": "shots/logistics-01-jobs/01.png",
+      "caption": "New jobs land in Jobs",
+      "vo": "When a seller books you, the job shows up in Jobs, under New.",
+      "highlight": {
+        "x": 20,
+        "y": 326,
+        "w": 353,
+        "h": 118
+      }
+    },
+    {
+      "shot": "shots/logistics-01-jobs/02.png",
+      "caption": "Check what you get",
+      "vo": "Tap a job to see where to pick up, where to deliver, and what you get. If it's pay on delivery, it shows how much cash to collect.",
+      "highlight": {
+        "x": 20,
+        "y": 380,
+        "w": 353,
+        "h": 70
+      }
+    },
+    {
+      "shot": "shots/logistics-01-jobs/03.png",
+      "caption": "Accept and pick a rider",
+      "vo": "Tap Accept and pick a rider. The closest free riders come first. Choose one, then tap Accept and send them.",
+      "highlight": {
+        "x": 20,
+        "y": 765,
+        "w": 353,
+        "h": 52
+      }
+    },
+    {
+      "shot": "shots/logistics-01-jobs/04.png",
+      "caption": "Follow it in Active",
+      "vo": "Accepted jobs move to Active, so you can see every delivery that's on the way.",
+      "highlight": {
+        "x": 100,
+        "y": 256,
+        "w": 82,
+        "h": 44
+      }
+    },
+    {
+      "shot": "shots/logistics-01-jobs/05.png",
+      "caption": "Move it along",
+      "vo": "Open a job and tap the green button at each step, like Mark as in transit. If something goes wrong, tap Report a failed attempt.",
+      "highlight": {
+        "x": 20,
+        "y": 720,
+        "w": 353,
+        "h": 52
+      }
+    },
+    {
+      "shot": "shots/logistics-01-jobs/06.png",
+      "caption": "Finish with the code",
+      "vo": "At the door, enter the customer's delivery code. They got four digits by SMS and WhatsApp. No code? Use a photo instead.",
+      "highlight": {
+        "x": 62,
+        "y": 132,
+        "w": 270,
+        "h": 76
+      }
+    }
+  ],
+  "outro": "Keep Taking jobs switched on, and new jobs will keep coming in."
+}

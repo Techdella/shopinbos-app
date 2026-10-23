@@ -1,0 +1,56 @@
+{
+ "id": "seller-06-get-paid",
+ "role": "seller",
+ "topic": "get_paid",
+ "title": "How you get paid",
+ "series": "Sellers",
+ "episode": 6,
+ "intro": "Here's how money gets from your customers to you.",
+ "steps": [
+  {
+   "shot": "shots/seller-06-get-paid/01.png",
+   "caption": "See your money",
+   "vo": "Open Payments and payouts to see all the money that came in, and what's still waiting.",
+   "highlight": {
+    "x": 36,
+    "y": 146,
+    "w": 321,
+    "h": 19
+   }
+  },
+  {
+   "shot": "shots/seller-06-get-paid/02.png",
+   "caption": "Your payout bank",
+   "vo": "Card payments go straight to your payout bank. Tap Change bank to use another account.",
+   "highlight": {
+    "x": 145,
+    "y": 640,
+    "w": 102,
+    "h": 21
+   }
+  },
+  {
+   "shot": "shots/seller-06-get-paid/03.png",
+   "caption": "Coming to your bank",
+   "vo": "In Money, see what's coming to your bank, and when. Shopinbos never holds your money.",
+   "highlight": {
+    "x": 40,
+    "y": 315,
+    "w": 313,
+    "h": 18
+   }
+  },
+  {
+   "shot": "shots/seller-06-get-paid/04.png",
+   "caption": "Every paid order",
+   "vo": "Payouts shows every paid order, and where the money for each one went.",
+   "highlight": {
+    "x": 36,
+    "y": 146,
+    "w": 321,
+    "h": 19
+   }
+  }
+ ],
+ "outro": "Customers pay by card or bank transfer through Paystack, straight to your bank."
+}

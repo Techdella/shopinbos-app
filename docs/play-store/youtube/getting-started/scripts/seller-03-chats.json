@@ -1,0 +1,67 @@
+{
+ "id": "seller-03-chats",
+ "role": "seller",
+ "topic": "whatsapp",
+ "title": "Sell on WhatsApp",
+ "series": "Sellers",
+ "episode": 3,
+ "intro": "All your customer chats, from WhatsApp, Instagram, Facebook and your shop, come into one place: Chats.",
+ "steps": [
+  {
+   "shot": "shots/seller-03-chats/01.png",
+   "caption": "Open a chat",
+   "vo": "Open Chats and tap a customer to read the conversation.",
+   "highlight": {
+    "x": 95,
+    "y": 394,
+    "w": 183,
+    "h": 19
+   }
+  },
+  {
+   "shot": "shots/seller-03-chats/02.png",
+   "caption": "Peggy answers for you",
+   "vo": "Peggy, your AI assistant, can answer customers for you. She uses your own products, prices and delivery fees.",
+   "highlight": {
+    "x": 82,
+    "y": 183,
+    "w": 280,
+    "h": 84
+   }
+  },
+  {
+   "shot": "shots/seller-03-chats/03.png",
+   "caption": "Reply, note, later or done",
+   "vo": "Type a reply, or add a private note that only your team sees. Tap Later to come back to it, or Done when it's finished.",
+   "highlight": {
+    "x": 116,
+    "y": 731,
+    "w": 88,
+    "h": 19
+   }
+  },
+  {
+   "shot": "shots/seller-03-chats/04.png",
+   "caption": "Ask Peggy",
+   "vo": "Tap Ask Peggy to get help with your shop.",
+   "highlight": {
+    "x": 86,
+    "y": 150,
+    "w": 241,
+    "h": 21
+   }
+  },
+  {
+   "shot": "shots/seller-03-chats/05.png",
+   "caption": "Ask her anything",
+   "vo": "Ask her things like, which orders do I need to send? She checks your orders, stock and sales for you.",
+   "highlight": {
+    "x": 33,
+    "y": 264,
+    "w": 232,
+    "h": 19
+   }
+  }
+ ],
+ "outro": "Answer fast, and you'll sell more."
+}

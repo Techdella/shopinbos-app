@@ -1,0 +1,45 @@
+{
+ "id": "seller-07-sell-without-stock",
+ "role": "seller",
+ "topic": "sell_without_stock",
+ "title": "Sell without stock",
+ "series": "Sellers",
+ "episode": 7,
+ "intro": "No stock? No problem. You can sell products from suppliers and keep the profit.",
+ "steps": [
+  {
+   "shot": "shots/seller-07-sell-without-stock/01.png",
+   "caption": "Find products",
+   "vo": "Open Find products. Each product shows what it costs, the price you sell at, and what you keep.",
+   "highlight": {
+    "x": 48,
+    "y": 573,
+    "w": 118,
+    "h": 18
+   }
+  },
+  {
+   "shot": "shots/seller-07-sell-without-stock/02.png",
+   "caption": "Check the supplier",
+   "vo": "Tap a product to see the supplier, their rating, and their checks. Choose Dropship or Wholesale.",
+   "highlight": {
+    "x": 92,
+    "y": 497,
+    "w": 142,
+    "h": 19
+   }
+  },
+  {
+   "shot": "shots/seller-07-sell-without-stock/03.png",
+   "caption": "Put it in your shop",
+   "vo": "Tap Put it in my shop. When a customer buys, the supplier sends it, and you keep the difference.",
+   "highlight": {
+    "x": 80,
+    "y": 801,
+    "w": 234,
+    "h": 22
+   }
+  }
+ ],
+ "outro": "Start with a few products your customers already love."
+}

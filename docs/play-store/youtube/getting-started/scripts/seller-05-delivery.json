@@ -1,0 +1,67 @@
+{
+ "id": "seller-05-delivery",
+ "role": "seller",
+ "topic": "delivery",
+ "title": "Get orders delivered",
+ "series": "Sellers",
+ "episode": 5,
+ "intro": "Let's set up delivery, so your orders reach your customers.",
+ "steps": [
+  {
+   "shot": "shots/seller-05-delivery/01.png",
+   "caption": "Where you sell and ship from",
+   "vo": "Open Delivery. First, check where you sell, and where you ship from.",
+   "highlight": {
+    "x": 95,
+    "y": 76,
+    "w": 229,
+    "h": 21
+   }
+  },
+  {
+   "shot": "shots/seller-05-delivery/02.png",
+   "caption": "Find delivery partners",
+   "vo": "Tap Find delivery partners to see delivery companies that cover your area.",
+   "highlight": {
+    "x": 120,
+    "y": 449,
+    "w": 181,
+    "h": 22
+   }
+  },
+  {
+   "shot": "shots/seller-05-delivery/03.png",
+   "caption": "Compare partners",
+   "vo": "Compare their ratings, prices and how fast they deliver. Every partner is checked by Shopinbos.",
+   "highlight": {
+    "x": 95,
+    "y": 207,
+    "w": 229,
+    "h": 21
+   }
+  },
+  {
+   "shot": "shots/seller-05-delivery/04.png",
+   "caption": "Add a partner",
+   "vo": "Open a partner to see their rate card, then tap Add partner.",
+   "highlight": {
+    "x": 160,
+    "y": 735,
+    "w": 101,
+    "h": 22
+   }
+  },
+  {
+   "shot": "shots/seller-05-delivery/05.png",
+   "caption": "Or let customers pick up",
+   "vo": "You can also let customers pick up from you, for free.",
+   "highlight": {
+    "x": 37,
+    "y": 547,
+    "w": 253,
+    "h": 21
+   }
+  }
+ ],
+ "outro": "Now your customers see delivery prices at checkout."
+}

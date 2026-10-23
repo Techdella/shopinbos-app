@@ -1,0 +1,67 @@
+{
+ "id": "seller-02-add-product",
+ "role": "seller",
+ "topic": "add_product",
+ "title": "Add a product",
+ "series": "Sellers",
+ "episode": 2,
+ "intro": "Let's add products to your shop. Rex does the writing for you.",
+ "steps": [
+  {
+   "shot": "shots/seller-02-add-product/01.png",
+   "caption": "Tap Add a product",
+   "vo": "Go to Products and tap Add a product.",
+   "highlight": {
+    "x": 151,
+    "y": 801,
+    "w": 119,
+    "h": 22
+   }
+  },
+  {
+   "shot": "shots/seller-02-add-product/02.png",
+   "caption": "Take or choose photos",
+   "vo": "Take a photo, or tap Choose photos to pick up to six from your gallery.",
+   "highlight": {
+    "x": 223,
+    "y": 188,
+    "w": 114,
+    "h": 42
+   }
+  },
+  {
+   "shot": "shots/seller-02-add-product/03.png",
+   "caption": "Rex names and prices them",
+   "vo": "Rex names and prices each product from your photos. If Rex isn't sure, it says Check the price. Tap Edit to change anything.",
+   "highlight": {
+    "x": 104,
+    "y": 399,
+    "w": 180,
+    "h": 19
+   }
+  },
+  {
+   "shot": "shots/seller-02-add-product/04.png",
+   "caption": "Put them in your shop",
+   "vo": "When everything looks right, tap Put 3 products in my shop.",
+   "highlight": {
+    "x": 90,
+    "y": 803,
+    "w": 213,
+    "h": 22
+   }
+  },
+  {
+   "shot": "shots/seller-02-add-product/05.png",
+   "caption": "Change stock anytime",
+   "vo": "Your products are now in your shop. Use the plus and minus buttons to change how many you have in stock.",
+   "highlight": {
+    "x": 103,
+    "y": 301,
+    "w": 221,
+    "h": 21
+   }
+  }
+ ],
+ "outro": "Clear photos sell better, so take them in good light."
+}

@@ -1,0 +1,89 @@
+{
+  "id": "logistics-02-riders",
+  "role": "logistics_partner",
+  "topic": "rider_flow",
+  "title": "Pick up and drop off as a rider",
+  "series": "Delivery partners",
+  "episode": 2,
+  "intro": "Let's add a rider, then follow one delivery from pick up to drop off.",
+  "steps": [
+    {
+      "shot": "shots/logistics-02-riders/01.png",
+      "caption": "Your riders",
+      "vo": "Your riders are under Business, in Riders. You can see who's free and who's busy.",
+      "highlight": {
+        "x": 20,
+        "y": 60,
+        "w": 353,
+        "h": 70
+      }
+    },
+    {
+      "shot": "shots/logistics-02-riders/02.png",
+      "caption": "Add a rider",
+      "vo": "Tap Add a rider. Type their name, phone number and plate number, then tap Send invite. They get a link to the rider app on WhatsApp.",
+      "highlight": {
+        "x": 20,
+        "y": 786,
+        "w": 353,
+        "h": 52
+      }
+    },
+    {
+      "shot": "shots/logistics-02-riders/03.png",
+      "caption": "Go online, see the job",
+      "vo": "The rider opens the app from that link. When they're online, new jobs show up on Today. They tap See job.",
+      "highlight": {
+        "x": 40,
+        "y": 432,
+        "w": 90,
+        "h": 46
+      }
+    },
+    {
+      "shot": "shots/logistics-02-riders/04.png",
+      "caption": "Step 1: pick up",
+      "vo": "Step one is pick up. At the shop, they ask for the order number, then tap I'm there, enter code.",
+      "highlight": {
+        "x": 20,
+        "y": 786,
+        "w": 353,
+        "h": 52
+      }
+    },
+    {
+      "shot": "shots/logistics-02-riders/05.png",
+      "caption": "Step 2: drop off",
+      "vo": "Step two is drop off. For pay on delivery, they collect the cash before they hand over the parcel.",
+      "highlight": {
+        "x": 20,
+        "y": 612,
+        "w": 353,
+        "h": 100
+      }
+    },
+    {
+      "shot": "shots/logistics-02-riders/06.png",
+      "caption": "Enter the customer's code",
+      "vo": "At the door, they enter the customer's four-digit code to finish. They can add a proof of delivery photo too.",
+      "highlight": {
+        "x": 62,
+        "y": 158,
+        "w": 270,
+        "h": 76
+      }
+    },
+    {
+      "shot": "shots/logistics-02-riders/07.png",
+      "caption": "See what they earned",
+      "vo": "In Earnings, riders see what they made this week.",
+      "highlight": {
+        "x": 20,
+        "y": 78,
+        "w": 353,
+        "h": 136
+      }
+    }
+  ],
+  "outro": "Now your riders know exactly where to go, every time."
+}
