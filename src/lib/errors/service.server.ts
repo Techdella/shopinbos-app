@@ -17,6 +17,7 @@ export const clientErrorSchema = z.object({
   source: z.enum(["shown", "unhandled", "boundary"]).default("shown"),
   shown: z.string().max(500).nullish(),
   digest: z.string().max(120).nullish(),
+  trail: z.string().max(3000).nullish(),
   path: z.string().max(500).default("/"),
 });
 
@@ -48,6 +49,7 @@ export async function recordClientError(input: ClientErrorInput, who: { userId: 
     shown: input.shown ?? null,
     stack: input.stack ?? null,
     digest: input.digest ?? null,
+    trail: input.trail ?? null,
     path: input.path,
     userAgent: who.userAgent?.slice(0, 500) ?? null,
     browser: browserLabel(who.userAgent),

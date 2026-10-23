@@ -25,3 +25,5 @@ CREATE INDEX IF NOT EXISTS "ClientError_userId_lastSeenAt_idx" ON "ClientError"(
 CREATE INDEX IF NOT EXISTS "ClientError_fingerprint_idx" ON "ClientError"("fingerprint");
 -- Only the server (service role / Prisma) reads and writes it.
 ALTER TABLE "ClientError" ENABLE ROW LEVEL SECURITY;
+-- What they did just before the error (pages opened, buttons tapped).
+ALTER TABLE "ClientError" ADD COLUMN IF NOT EXISTS "trail" TEXT;

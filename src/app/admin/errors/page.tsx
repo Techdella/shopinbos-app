@@ -135,6 +135,13 @@ export default async function AdminErrorsPage(props: { searchParams?: Promise<{ 
                   ))}
                 </ul>
 
+                {group.first.trail && (
+                  <details className="mt-3" open>
+                    <summary className="cursor-pointer text-[13px] font-bold text-app-ink-soft">What they did just before</summary>
+                    <pre className="mt-2 max-h-[220px] overflow-auto whitespace-pre-wrap break-words rounded-[12px] bg-app-canvas p-3 font-mono text-[12px] text-app-ink">{group.first.trail}</pre>
+                  </details>
+                )}
+
                 {(group.first.stack || group.first.digest) && (
                   <details className="mt-3">
                     <summary className="cursor-pointer text-[13px] font-bold text-app-ink-soft">Technical details</summary>
