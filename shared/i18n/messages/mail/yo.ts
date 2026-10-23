@@ -231,6 +231,13 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "ref.announce.statSeller": "lọ́fẹ̀ẹ́ fún seller kọ̀ọ̀kan",
   "ref.announce.statPartner": "lọ́fẹ̀ẹ́ fún rider kọ̀ọ̀kan",
   "ref.announce.monthsShort": "oṣù {count}",
+  "story.eyebrow": "Láti ọ̀dọ̀ ọmọ ẹgbẹ́ gidi",
+  "story.share": "Ṣé Shopinbos ti ran iṣẹ́ rẹ lọ́wọ́? Sọ ìtàn rẹ",
+  "video.member": "{name} fi Rex ṣe é",
+  "video.yours": "Fídíò Rex rẹ tó kẹ́yìn",
+  "video.sample": "A fi Rex ṣe é",
+  "video.watch": "Wò ó",
+  "video.yoursHint": "Tún un gbé sí Status rẹ lónìí, tàbí ṣe tuntun ní ìṣẹ́jú díẹ̀.",
 };
 
 export default yo;

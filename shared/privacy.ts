@@ -58,6 +58,7 @@ export function asShopActionReason(value: unknown) {
 }
 
 export function accessReasonLabel(key: string) {
+  if (key === "story") return "They shared their story with consent";
   return REVEAL_REASONS.find((reason) => reason.key === key)?.label ?? SHOP_ACTION_REASONS.find((reason) => reason.key === key)?.label ?? key;
 }
 
@@ -65,6 +66,8 @@ export const ACCESS_ACTION_LABELS: Record<string, string> = {
   reveal_contact: "Viewed contact details",
   suspend_store: "Paused the shop",
   restore_store: "Restored the shop",
+  approve_story: "Approved their story for the tips",
+  reject_story: "Decided not to use their story",
 };
 
 /** Does this logged reveal still show the contact details to this admin, for this person, now? */

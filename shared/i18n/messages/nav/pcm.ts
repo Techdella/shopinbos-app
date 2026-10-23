@@ -180,6 +180,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "admin.errors": "App errors",
   "admin.referrals": "Referrals",
   "admin.member-tips": "Member tips",
+  "admin.member-stories": "Member stories",
   "admin.launches": "Launches",
   "group.sourcing": "Where to buy goods",
   "group.people": "People",

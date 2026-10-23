@@ -180,6 +180,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "admin.errors": "Njehie app",
   "admin.referrals": "Ndị a kpọrọ",
   "admin.member-tips": "Ndụmọdụ ndị otu",
+  "admin.member-stories": "Akụkọ ndị otu",
   "admin.launches": "Mmalite",
   "group.sourcing": "Ịchọta ngwaahịa",
   "group.people": "Ndị mmadụ",

@@ -230,6 +230,13 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "ref.announce.statSeller": "n'efu maka seller ọ bụla",
   "ref.announce.statPartner": "n'efu maka rider ọ bụla",
   "ref.announce.monthsShort": "ọnwa {count}",
+  "story.eyebrow": "Site n'aka onye otu n'ezie",
+  "story.share": "Shopinbos enyeela azụmahịa gị aka? Kọọ akụkọ gị",
+  "video.member": "{name} ji Rex mee ya",
+  "video.yours": "Vidiyo Rex gị nke ikpeazụ",
+  "video.sample": "E ji Rex mee ya",
+  "video.watch": "Lee ya",
+  "video.yoursHint": "Tinye ya ọzọ na Status gị taa, ma ọ bụ mee nke ọhụrụ n'ime nkeji ole na ole.",
 };
 
 export default ig;
