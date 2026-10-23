@@ -3,6 +3,10 @@ import "server-only";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { appBase, sendPlatformEmail } from "@/lib/email/compliance.server";
+import { personaSender } from "@/lib/email/looks";
+import { formatFromAddress } from "@/lib/notifications/resend";
+import { supportInbox } from "@/lib/support/email.server";
+import { proverbOfWeek } from "@shared/proverbs";
 import { metaTemplates, metaWhatsAppConfig, sendMetaTemplate } from "@/lib/lead-growth/whatsapp-meta.server";
 import { MEMBER_TEMPLATES, memberTemplateImageUrl } from "./whatsapp-templates";
 import { TIPS, type Tip, type TipRole } from "./tips-library";
@@ -118,6 +122,36 @@ async function topCategories(limit = 5) {
 
 // ─── Sending ──────────────────────────────────────────────────────────────────
 
+/**
+ * What every member email from Rex or Peggy carries: their name on the From line, replies to the support inbox (they
+ * become admin inbox conversations Peggy can answer) and the proverb of the week.
+ */
+export function memberEmailExtras(persona: "rex" | "peggy", now: Date) {
+  return { persona, from: formatFromAddress(personaSender(persona)), replyTo: supportInbox(), proverb: proverbOfWeek(now) };
+}
+
+/** Their own numbers for the top of the email: this month's orders (sellers, suppliers) or deliveries (partners). */
+export async function personalLine(userId: string, role: TipRole) {
+  const now = new Date();
+  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1) - 60 * 60_000);
+  if (role === "seller") {
+    const store = await db.store.findUnique({ where: { userId }, select: { id: true } });
+    if (!store) return null;
+    const orders = await db.retailOrder.count({ where: { storeId: store.id, status: { in: ["paid", "processing", "packed", "shipped", "delivered"] }, createdAt: { gte: monthStart } } });
+    return orders >= 10 ? `Your shop this month: ${orders} orders. Keep it going 🔥` : `Your shop this month: ${orders} order${orders === 1 ? "" : "s"}. ${10 - orders} more to reach 10 🎯`;
+  }
+  if (role === "supplier") {
+    const supplier = await db.supplier.findUnique({ where: { userId }, select: { id: true } });
+    if (!supplier) return null;
+    const orders = await db.supplierOrder.count({ where: { supplierId: supplier.id, acceptedAt: { gte: monthStart } } });
+    return `Orders you've accepted this month: ${orders}.${orders ? " Well done 👏🏾" : " Shops are browsing: fresh photos and fast replies help."}`;
+  }
+  const partner = await db.logisticsPartner.findUnique({ where: { userId }, select: { id: true } });
+  if (!partner) return null;
+  const done = await db.deliveryBooking.count({ where: { logisticsPartnerId: partner.id, status: "delivered", createdAt: { gte: monthStart } } });
+  return `Deliveries this month: ${done}.${done ? " Well done 👏🏾" : " Keep your coverage and prices current so jobs find you."}`;
+}
+
 type Candidate = { id: string; name: string | null; email: string | null; phone: string | null; role: string };
 
 /** People due this week's tip on this channel who haven't been claimed yet. */
@@ -200,7 +234,15 @@ async function runChannel(channel: TipChannel, now: Date, deadline: number): Pro
             categories: role === "supplier" ? categories : undefined,
             marketplaceUrl: `${appBase()}/marketplace`,
           });
-          const sent = await sendPlatformEmail({ to: person.email!, user: { id: person.id, role }, kind: "marketing", topic: "tips", ...email });
+          const sent = await sendPlatformEmail({
+            to: person.email!,
+            user: { id: person.id, role },
+            kind: "marketing",
+            topic: "tips",
+            ...email,
+            ...memberEmailExtras(email.persona, now),
+            personal: await personalLine(person.id, role).catch(() => null),
+          });
           const off = !sent.success && /turned off/i.test(sent.message ?? "");
           await finish(row.id, { ok: sent.success, skipped: off, error: sent.success ? null : sent.message, providerId: sent.success ? sent.id ?? null : null });
           if (sent.success) result.sent++;
@@ -250,7 +292,8 @@ export async function sendTipTest(tipId: string, admin: { id: string; email: str
   if (!admin.email) return { ok: false as const, error: "Your account has no email address." };
   const [products, categories] = await Promise.all([tip.role === "seller" ? topProducts() : Promise.resolve([]), tip.role === "supplier" ? topCategories() : Promise.resolve([])]);
   const email = renderTipEmail(tip, { firstName: firstNameOf(admin.name), ctaUrl: tipLink(tip, null), products, categories, marketplaceUrl: `${appBase()}/marketplace` });
-  const sent = await sendPlatformEmail({ to: admin.email, user: { id: admin.id, role: tip.role }, kind: "notification", ...email, subject: `[Test] ${email.subject}` });
+  const personal = tip.role === "seller" ? "Your shop this month: 4 orders. 6 more to reach 10 🎯 (sample numbers)" : null;
+  const sent = await sendPlatformEmail({ to: admin.email, user: { id: admin.id, role: tip.role }, kind: "notification", ...email, ...memberEmailExtras(email.persona, new Date()), personal, subject: `[Test] ${email.subject}` });
   return sent.success ? { ok: true as const } : { ok: false as const, error: sent.message ?? "Couldn't send" };
 }
 

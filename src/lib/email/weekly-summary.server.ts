@@ -10,6 +10,7 @@ import { SUPPLIER_EARNED_STATUSES } from "@/lib/supplier-orders/pure";
 import { appBase, buildPlatformEmail } from "./compliance.server";
 import { referralSummaryHtml } from "@/lib/member-messaging/journeys";
 import { rewardText } from "@shared/referrals";
+import { proverbOfWeek } from "@shared/proverbs";
 import { platformEventKey } from "./preferences";
 import {
   hasActivity,
@@ -250,6 +251,7 @@ function prismaStore(week: WeekWindow, appUrl: string): WeeklyStore<BatchEmail> 
         preheader: rendered.preheader,
         cta: rendered.cta,
         extraCss: rendered.extraCss,
+        proverb: proverbOfWeek(new Date()),
       });
       return { kind, email: { to: user.email, subject: rendered.subject, html: built.html, headers: built.headers } };
     },

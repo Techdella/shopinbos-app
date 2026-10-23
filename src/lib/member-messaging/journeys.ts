@@ -103,7 +103,7 @@ export interface JourneyVars {
 export function journeyMessage(key: JourneyKey, stage: string, role: JourneyRole, vars: JourneyVars): JourneyMessage {
   const paths = PATHS[role];
   const what = WHAT[role];
-  const hi = `Hi ${vars.firstName},`;
+  const hi = `Hello ${vars.firstName} 👋🏾,`;
   if (key === "setup_help") {
     const step = vars.nextStep;
     const progress = vars.total ? `You've done ${vars.done ?? 0} of ${vars.total} steps.` : "";
@@ -114,7 +114,7 @@ export function journeyMessage(key: JourneyKey, stage: string, role: JourneyRole
       heading: stage === "d3" ? "You're nearly ready" : "Let's get you over the line",
       paragraphs: [
         hi,
-        `${progress} ${step ? `The next one is ${step.label.toLowerCase()}: ${step.hint}` : ""}`.trim(),
+        `${progress} ${step ? `Next step: ${step.label}. ${step.hint}` : ""}`.trim(),
         "If anything's unclear, chat with me on your dashboard or tap Call Peggy for a free voice call. I'll walk you through it step by step, and I can save things like pickup points and prices for you.",
       ],
       cta: { label: step ? "Do the next step" : "Open my dashboard", path: step?.href ?? paths.setup },
@@ -227,4 +227,32 @@ export function referralSummaryHtml(input: { appUrl: string; joined: number; rew
 <p style="margin:0 0 10px;color:#0E2A38;font-size:14px;line-height:1.5">${status}</p>
 <a href="${escape(`${base}/refer`)}" style="color:#0E2A38;font-weight:700;font-size:14px">Invite a business</a>
 </div>`;
+}
+
+export interface JourneyLook {
+  look: "chat" | "celebrate";
+  persona: "rex" | "peggy";
+  bubbles?: string[];
+  reply?: string | null;
+  sticker?: string | null;
+  stats?: Array<{ value: string; label: string }>;
+}
+
+/**
+ * How each journey looks (src/lib/email/looks.ts): nudges read like a WhatsApp chat with Peggy or Rex, wins and gifts
+ * are a celebration. Chat bubbles are the message's paragraphs, the first one a warm hello.
+ */
+export function journeyLook(key: JourneyKey, stage: string, message: JourneyMessage, firstName: string): JourneyLook {
+  const bubbles = [`Hello ${escape(firstName)} 👋🏾`, ...message.paragraphs.slice(1).filter(Boolean).map(escape)];
+  if (key === "first_win") return { look: "celebrate", persona: "rex", sticker: "OYA, CONGRATS! 🎉" };
+  if (key === "winback" && stage === "d14") {
+    const gift = /(\d+) free AI credits/.exec(message.heading)?.[1];
+    return gift
+      ? { look: "celebrate", persona: "rex", sticker: "WELCOME BACK 🎁", stats: [{ value: gift, label: "free AI credits" }, { value: `~${Math.floor(Number(gift) / 10)}`, label: "Rex videos" }, { value: `~${gift}`, label: "product descriptions" }] }
+      : { look: "chat", persona: "rex", bubbles };
+  }
+  if (key === "setup_help") return { look: "chat", persona: "peggy", bubbles, reply: "Okay Peggy, I'm on it 🙏🏾" };
+  if (key === "winback" && stage === "d7") return { look: "chat", persona: "peggy", bubbles, reply: "I dey come back now 😄" };
+  if (key === "winback") return { look: "chat", persona: "peggy", bubbles };
+  return { look: "chat", persona: "rex", bubbles };
 }
