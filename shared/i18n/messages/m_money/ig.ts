@@ -181,6 +181,21 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "w.weekLine": "{amount} · {count, plural, other {ahịa #}}",
   "w.last30Line": "Ụbọchị 30 gara aga: {amount}",
   "w.recent": "Ndị ọhụrụ",
+  "bal.title": "Ego dị na Wallet",
+  "bal.sub": "Ọ na-akwụ ụgwọ AI credits na ọrụ Shopinbos ndị ọzọ. Ego ahịa ị rere ka na-aga ozugbo n'akaụntụ ụlọ akụ gị.",
+  "bal.topUp": "Tinye ego",
+  "bal.topUpSent": "Anyị ezitela gị email otú ị ga-esi tinye ego na weebụsaịtị Shopinbos. Ego ọhụrụ gị ga-egosi ebe a ozugbo e kwadoro ya.",
+  "bal.withdraw": "Wepụ ego",
+  "bal.amountTo": "Ego ole a ga-eziga na {bank}",
+  "bal.amountToYours": "Ego ole a ga-eziga n'akaụntụ ụlọ akụ gị",
+  "bal.amount": "Ego ole",
+  "bal.orMore": "{amount} ma ọ bụ karịa",
+  "bal.sent": "E zigala ya n'akaụntụ ụlọ akụ gị.",
+  "bal.onItsWay": "Ọ na-aga n'akaụntụ ụlọ akụ gị. Ọ na-erukarị n'ime nkeji ole na ole.",
+  "bal.needBank": "Iji wepụ ego, buru ụzọ tinye akaụntụ ụlọ akụ gị ma nyochaa ya.",
+  "bal.pending": "ọ na-abịa",
+  "bal.didntGo": "ọ gaghị",
+  "bal.failed": "Ọ rụghị ọrụ. Nwaa ọzọ.",
 };
 
 export default ig;

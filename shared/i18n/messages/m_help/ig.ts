@@ -77,6 +77,11 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "chat.send": "Zigara ndị otu",
   "chat.placeholder": "Dị ka: onye ahịa m kwụrụ ụgwọ mana order na-ekwu na ọ kwụbeghị",
   "chat.hours": "Anyị na-azakarị n'ime awa ole na ole, site 8am ruo 8pm. Ị ga-enweta ozi mgbe anyị zara.",
+  "call.title": "Kpọọ Peggy · n'efu",
+  "call.label": "Kpọọ Peggy, n'efu",
+  "call.note": "Peggy bụ enyemaka AI nke Shopinbos. Ọ ga-eduzi gị n'otu n'otu.",
+  "call.soon": "Oku Peggy na-abịa n'oge na-adịghị anya. Kparịta ụka na ya kama, ma ọ bụ zitere anyị ozi na WhatsApp.",
+  "call.failed": "Anyị enweghị ike ịkpọtụrụ Peggy ugbu a. Nwaa ọzọ.",
 };
 
 export default ig;

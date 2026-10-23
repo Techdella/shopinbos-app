@@ -77,6 +77,11 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "chat.send": "Fi ránṣẹ́ sí ẹgbẹ́ náà",
   "chat.placeholder": "Fún àpẹẹrẹ: oníbàárà mi ti sanwó ṣùgbọ́n order sọ pé kò tíì sanwó",
   "chat.hours": "A máa ń dáhùn láàrin wákàtí díẹ̀, láti 8am sí 8pm. O máa gba ọ̀rọ̀ nígbà tí a bá dáhùn.",
+  "call.title": "Pe Peggy · lọ́fẹ̀ẹ́",
+  "call.label": "Pe Peggy, lọ́fẹ̀ẹ́",
+  "call.note": "Peggy ni AI ìrànlọ́wọ́ Shopinbos. Yóò tọ́ ọ sọ́nà ní ìgbésẹ̀ kọ̀ọ̀kan.",
+  "call.soon": "Ìpè pẹ̀lú Peggy ń bọ̀ láìpẹ́. Bá a sọ̀rọ̀ nínú chat dípò, tàbí kọ̀wé sí wa lórí WhatsApp.",
+  "call.failed": "A kò rí Peggy báyìí. Gbìyànjú lẹ́ẹ̀kan sí i.",
 };
 
 export default yo;

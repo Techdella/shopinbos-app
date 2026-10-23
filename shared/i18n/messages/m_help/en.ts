@@ -79,6 +79,11 @@ const en = {
   "chat.send": "Send to the team",
   "chat.placeholder": "For example: my customer paid but the order says not paid",
   "chat.hours": "We usually answer within a few hours, 8am to 8pm. You'll get a message when we reply.",
+  "call.title": "Call Peggy · free",
+  "call.label": "Call Peggy, free",
+  "call.note": "Peggy is Shopinbos's AI support. She'll talk you through each step.",
+  "call.soon": "Calls with Peggy are coming soon. Chat with her instead, or message us on WhatsApp.",
+  "call.failed": "Couldn't reach Peggy just now. Try again.",
 } satisfies Record<string, string>;
 
 export default en;
