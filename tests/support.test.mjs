@@ -67,6 +67,9 @@ test("SLA: login and payments start high; due times and states follow priority",
   assert.equal(s.defaultPriority("login"), "high");
   assert.equal(s.defaultPriority("payments"), "high");
   assert.equal(s.defaultPriority("store"), "normal");
+  assert.equal(s.raisePriority("normal"), "high");
+  assert.equal(s.raisePriority("high"), "urgent");
+  assert.equal(s.raisePriority("urgent"), "urgent");
   const created = new Date("2026-10-12T09:00:00Z");
   assert.equal(s.firstResponseDue(created, "normal").toISOString(), "2026-10-12T10:00:00.000Z");
   assert.equal(s.firstResponseDue(created, "urgent").toISOString(), "2026-10-12T09:15:00.000Z");

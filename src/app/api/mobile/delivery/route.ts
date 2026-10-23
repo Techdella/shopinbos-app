@@ -4,6 +4,7 @@ import { db } from "@/lib/db/client";
 import { connectionsForOwner, privateCardsForOwner, statsForPartners } from "@/lib/delivery-market/manage.server";
 import { deliverySettingsFor } from "@/lib/delivery-market/market.server";
 import { exceptionsFor } from "@/lib/delivery-market/jobs.server";
+import { exceptionsInboxProblem } from "@/lib/plans/gates.server";
 import { withOwner } from "./_shared";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +22,9 @@ export const GET = withOwner(async (_req: NextRequest, { user }) => {
       : db.store.findUnique({ where: { userId: user.id }, select: { city: true } }),
   ]);
   const stats = await statsForPartners(connections.map((connection) => connection.logisticsPartnerId));
-  const exceptions = user.role === "seller" ? await exceptionsFor(user.id).catch(() => []) : [];
+  // The exceptions inbox comes with the plan (shared/plans.ts exceptionsInbox): exceptionsLocked says which plan.
+  const exceptionsLocked = user.role === "seller" ? await exceptionsInboxProblem(user.id).catch(() => null) : null;
+  const exceptions = user.role === "seller" && !exceptionsLocked ? await exceptionsFor(user.id).catch(() => []) : [];
   return ok({
     role: user.role,
     settings,
@@ -57,6 +60,7 @@ export const GET = withOwner(async (_req: NextRequest, { user }) => {
       createdAt: card.createdAt,
       partner: card.logisticsPartner,
     })),
+    exceptionsLocked,
     exceptions: exceptions.map(({ job, kind, order }) => ({
       kind,
       job: { id: job.id, status: job.status, service: job.service, declineReason: job.declineReason, failedReason: job.failedReason, deliveryFee: job.deliveryFee, partner: job.logisticsPartner },

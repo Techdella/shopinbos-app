@@ -4,6 +4,7 @@ import { db } from "@/lib/db/client";
 import { announceDeliveryJob, saveDeliveryJob, type DeliveryJobInput } from "@/lib/logistics/booking.server";
 import { emitPartnerEvent } from "@/lib/logistics/webhooks";
 import { createNotification } from "@/lib/notifications/create";
+import { exceptionsInboxProblem } from "@/lib/plans/gates.server";
 import { updateOrderStatus } from "@/lib/orders/update-status";
 import {
   ACCEPT_WITHIN_HOURS,
@@ -191,6 +192,7 @@ export async function markJobReady(sellerId: string, bookingId: string): Promise
 
 /** Connected partners that can carry this job's parcel instead, with their price (for the reassign picker). */
 export async function reassignOptions(sellerId: string, bookingId: string) {
+  if (await exceptionsInboxProblem(sellerId)) return [];
   const job = await ownedJob(sellerId, bookingId);
   if (!job || !job.orderId) return [];
   const order = await db.retailOrder.findUnique({ where: { id: job.orderId }, select: { deliveryAddress: true, store: { select: { city: true } } } });
@@ -216,6 +218,9 @@ export async function reassignOptions(sellerId: string, bookingId: string) {
  * The new partner's fee is the shop's to pay (in the app, by card), at the new partner's own price.
  */
 export async function reassignJob(sellerId: string, bookingId: string, connectionId: string): Promise<JobResult> {
+  // Sending a job to another partner comes with the exceptions inbox (shared/plans.ts exceptionsInbox).
+  const planProblem = await exceptionsInboxProblem(sellerId);
+  if (planProblem) return { ok: false, error: planProblem };
   const job = await ownedJob(sellerId, bookingId);
   if (!job || !job.orderId) return { ok: false, error: "We couldn't find that delivery." };
   if (!canReassign(jobException(job))) return { ok: false, error: "You can send a job to another partner when it's declined, not accepted in time, or not picked up in time." };
@@ -304,16 +309,21 @@ export async function sweepUnacceptedJobs(now = new Date()) {
     select: { id: true, sellerId: true, orderId: true, logisticsPartner: { select: { displayName: true } } },
     take: 200,
   });
+  // Shops without the exceptions inbox (shared/plans.ts) are pointed at the order instead.
+  const inbox = new Map<string, boolean>();
   for (const job of late) {
+    if (!inbox.has(job.sellerId)) inbox.set(job.sellerId, !(await exceptionsInboxProblem(job.sellerId).catch(() => null)));
+    const hasInbox = inbox.get(job.sellerId) || !job.orderId;
+    const href = hasInbox ? "/home/logistics/exceptions" : `/home/orders/${job.orderId}`;
     await createNotification({
       userId: job.sellerId,
       type: "logistics",
       priority: "warning",
       title: `${job.logisticsPartner.displayName} hasn't accepted a delivery`,
-      description: "Send it to another of your delivery partners from your delivery exceptions.",
-      link: "/home/logistics/exceptions",
-      actionLabel: "See exceptions",
-      actionUrl: "/home/logistics/exceptions",
+      description: hasInbox ? "Send it to another of your delivery partners from your delivery exceptions." : "Message the partner from the order, or wait a little longer.",
+      link: href,
+      actionLabel: hasInbox ? "See exceptions" : "View order",
+      actionUrl: href,
       event: "delivery.update",
       dedupeKey: `delivery.not_accepted:${job.id}`,
       metadata: { bookingId: job.id },

@@ -13,6 +13,7 @@ import { messagesHref } from "@/lib/conversations/pure";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { formatDate, formatMoney } from "@shared/i18n";
 import { exceptionsFor } from "@/lib/delivery-market/jobs.server";
+import { exceptionsInboxPlanName, exceptionsInboxProblem } from "@/lib/plans/gates.server";
 import { deliverySettingsFor } from "@/lib/delivery-market/market.server";
 import { DeliveryTip } from "@/components/delivery-market/DeliveryTip";
 
@@ -74,9 +75,10 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
     db.deliveryBooking.findMany({ where: { sellerId: user.id }, include: { logisticsPartner: { select: { displayName: true } } }, orderBy: { createdAt: "desc" }, take: 8 }),
   ]);
 
+  const exceptionsLocked = Boolean(await exceptionsInboxProblem(user.id));
   const [payable, exceptions, deliverySettings, connectedCount] = await Promise.all([
     payableDeliveryFees(recentBookings.map((b) => b.id)),
-    exceptionsFor(user.id),
+    exceptionsLocked ? [] : exceptionsFor(user.id),
     deliverySettingsFor(user.id),
     db.deliveryConnection.count({ where: { ownerUserId: user.id, status: "active" } }),
   ]);
@@ -116,7 +118,7 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
           </Link>
           <Link href="/home/logistics/exceptions" className="grid gap-0.5 rounded-[18px] border border-app-line bg-white px-4 py-3.5 text-app-ink no-underline hover:border-app-line-strong">
             <span className="flex items-center gap-2 text-[14.5px] font-extrabold">{d("an.exceptions")} {exceptions.length > 0 && <Pill tone="danger">{exceptions.length}</Pill>}</span>
-            <span className="text-[13px] text-app-ink-soft">{exceptions.length === 0 ? d("exceptions.emptyTitle") : d("hub.needYou")}</span>
+            <span className="text-[13px] text-app-ink-soft">{exceptionsLocked ? d("hub.exceptionsLocked", { plan: exceptionsInboxPlanName() }) : exceptions.length === 0 ? d("exceptions.emptyTitle") : d("hub.needYou")}</span>
           </Link>
           <Link href="/home/logistics/analytics" className="grid gap-0.5 rounded-[18px] border border-app-line bg-white px-4 py-3.5 text-app-ink no-underline hover:border-app-line-strong">
             <span className="text-[14.5px] font-extrabold">{d("an.title")}</span>

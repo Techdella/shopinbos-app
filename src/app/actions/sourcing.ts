@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { chinaImportProblem, productLimitProblem } from "@/lib/plans/gates.server";
+import { chinaImportPriority, chinaImportProblem, productLimitProblem } from "@/lib/plans/gates.server";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/lib/db/client";
@@ -272,6 +272,7 @@ export async function requestChinaImport(formData: FormData) {
   if (!user || user.role !== "seller") redirect("/login");
   const importLimit = await chinaImportProblem(user.id);
   if (importLimit) back(importLimit);
+  const priority = await chinaImportPriority(user.id);
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, brandSettings: true } });
   if (!store) redirect("/builder?firstRun=1");
 
@@ -301,6 +302,7 @@ export async function requestChinaImport(formData: FormData) {
     total: null,
     note: null,
     qcPhotos: [],
+    ...(priority ? { priority: true } : {}),
     createdAt: now,
     updatedAt: now,
   };
@@ -313,8 +315,8 @@ export async function requestChinaImport(formData: FormData) {
       createNotification({
         userId: admin.id,
         type: "marketplace",
-        priority: "warning",
-        title: `China import request ${ref}`,
+        priority: priority ? "critical" : "warning",
+        title: `${priority ? "Priority " : ""}China import request ${ref}`,
         description: `${store.name} wants ${quantity ? `${quantity} × ` : ""}${request.title} by ${shipping}.${request.link ? ` ${request.link}` : ""}`,
         link: request.link ?? undefined,
         metadata: { storeId: store.id, importId: request.id, photoUrl },

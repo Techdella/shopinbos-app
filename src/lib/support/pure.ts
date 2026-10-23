@@ -279,6 +279,11 @@ export function defaultPriority(topic: SupportTopic): SupportPriority {
   return topic === "login" || topic === "payments" ? "high" : "normal";
 }
 
+/** One step up (urgent stays urgent): plans with priority support (shared/plans.ts prioritySupport). */
+export function raisePriority(priority: SupportPriority): SupportPriority {
+  return PRIORITIES[Math.min(PRIORITIES.indexOf(priority) + 1, PRIORITIES.length - 1)];
+}
+
 export type SlaState = { state: "met" | "ok" | "soon" | "overdue" | "none"; minutes: number };
 
 /** Where a ticket stands against its first-response target. "soon" is the last quarter (at least 10 minutes). */

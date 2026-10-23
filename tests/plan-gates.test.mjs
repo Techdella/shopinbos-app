@@ -47,6 +47,10 @@ test("wiring: every place a seller adds something checks the plan", () => {
     deliveryPartnerProblem: ["src/app/api/app/logistics/bookings/route.ts", "src/app/api/app/logistics/quotes/route.ts", "src/app/api/app/logistics/preferred-partner/route.ts"],
     seasonalCampaignProblem: ["src/lib/store-campaigns/server.ts"],
     chinaImportProblem: ["src/app/actions/sourcing.ts"],
+    chinaImportPriority: ["src/app/actions/sourcing.ts"],
+    dropshipLimitProblem: ["src/app/api/store/products/[id]/route.ts"],
+    exceptionsInboxProblem: ["src/lib/delivery-market/jobs.server.ts", "src/app/home/logistics/exceptions/page.tsx", "src/app/home/logistics/page.tsx", "src/app/api/mobile/delivery/route.ts"],
+    prioritySupportFor: ["src/lib/support/service.server.ts"],
   };
   for (const [fn, paths] of Object.entries(checks)) for (const path of paths) assert.match(read(path), new RegExp(`\\b${fn}\\(`), `${path} → ${fn}`);
   // Things the seller already had keep working after a downgrade.
@@ -68,4 +72,31 @@ test("analytics: Free sees headline numbers, Plus the charts, Pro downloads", ()
     assert.match(read(path), /analytics !== "export"\) return apiError\("PLAN_LIMIT"/, path);
   }
   for (const path of ["src/app/supplier/analytics/page.tsx", "src/app/logistics/analytics/page.tsx"]) assert.match(read(path), /analytics === "basic" \? null/, path);
+});
+
+test("the October 2026 seller plan table", () => {
+  const row = (key) => plans.sellerLimits(key);
+  assert.deepEqual(["seller_free", "seller_starter", "seller_growth", "seller_pro"].map((key) => row(key).transactionFeePct), [3, 2, 1, 0.5]);
+  assert.deepEqual(["seller_free", "seller_starter", "seller_growth", "seller_pro"].map((key) => row(key).staff), [1, 2, 5, 15]);
+  assert.deepEqual(["seller_free", "seller_starter", "seller_growth", "seller_pro"].map((key) => row(key).logisticsPartners), [1, 3, 10, null]);
+  assert.deepEqual(["seller_free", "seller_starter", "seller_growth", "seller_pro"].map((key) => row(key).dropshipProducts), [5, 50, null, null]);
+  assert.deepEqual(["seller_free", "seller_starter", "seller_growth", "seller_pro"].map((key) => row(key).exceptionsInbox), [false, false, true, true]);
+  assert.deepEqual(["seller_free", "seller_starter", "seller_growth", "seller_pro"].map((key) => row(key).privateRateCards), [false, true, true, true]);
+  assert.deepEqual(["seller_free", "seller_starter", "seller_growth", "seller_pro"].map((key) => row(key).messagesIncluded), [0, 0, 200, 1000]);
+  assert.deepEqual(["seller_free", "seller_starter", "seller_growth", "seller_pro"].map((key) => row(key).prioritySupport), [false, false, false, true]);
+  assert.equal(row("seller_pro").chinaImport, "priority");
+});
+
+test("product limits: creating checks on POST (not on listing), dropship counts, unarchiving counts", () => {
+  const app = read("src/app/api/app/store-products/route.ts");
+  assert.doesNotMatch(app.slice(0, app.indexOf("export const POST")), /productLimitProblem\(/);
+  assert.match(app.slice(app.indexOf("export const POST")), /productLimitProblem\(user\.id, store\.id, 1, rest\.fulfillmentType === "dropship"\)/);
+  assert.match(read("src/app/api/store/products/route.ts"), /productLimitProblem\(user\.id, store\.id, 1, rest\.fulfillmentType === "dropship"\)/);
+  assert.match(read("src/app/api/store/products/[id]/route.ts"), /product\.status === "archived"[\s\S]{0,120}productLimitProblem\(/);
+});
+
+test("reassigning a delivery is refused without the exceptions inbox", () => {
+  const jobs = read("src/lib/delivery-market/jobs.server.ts");
+  assert.match(jobs, /export async function reassignJob[\s\S]{0,250}exceptionsInboxProblem\(sellerId\)/);
+  assert.match(jobs, /export async function reassignOptions[\s\S]{0,120}exceptionsInboxProblem\(sellerId\)/);
 });

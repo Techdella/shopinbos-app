@@ -15,8 +15,6 @@ export const GET = withSeller(async (req: NextRequest, { user }: { user: AuthUse
 
   const store = await db.store.findUnique({ where: { userId: user.id } });
   if (!store) return apiError("NOT_FOUND", "Store not found. Complete onboarding first.", 404);
-  const planLimit = await productLimitProblem(user.id, store.id);
-  if (planLimit) return apiError("PLAN_LIMIT", planLimit, 402);
 
   const [total, products] = await Promise.all([
     db.storeProduct.count({ where: { storeId: store.id } }),
@@ -51,6 +49,8 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
   if (!store) return apiError("NOT_FOUND", "Store not found. Complete onboarding first.", 404);
 
   const { retailPrice, costPrice, variants, productType, productDetails, relatedProductIds, variantOptions, ...rest } = parsed.data;
+  const planLimit = await productLimitProblem(user.id, store.id, 1, rest.fulfillmentType === "dropship");
+  if (planLimit) return apiError("PLAN_LIMIT", planLimit, 402);
   const fields = await productFieldsData(store.id, { productType, productDetails, relatedProductIds, variants: variants.length ? variants : undefined, variantOptions }, { inventoryType: rest.inventoryType });
   if (!fields.ok) return apiError("BAD_REQUEST", fields.error);
   const margin = costPrice && retailPrice > costPrice

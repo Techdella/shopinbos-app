@@ -13,7 +13,8 @@ import { checkThemeSwitch } from "@/lib/theme-access";
 import { loadSellerThemeAccess } from "@/lib/theme-access.server";
 
 // What a seller's plan lets them do (shared/plans.ts), checked where they do it: adding products, dropship, custom
-// domains, themes, the states they sell in, delivery partners, pay on delivery, seasonal campaigns and imports.
+// domains, themes, the states they sell in, delivery partners, pay on delivery, seasonal campaigns, the delivery
+// exceptions inbox, priority support and imports.
 // Each check returns null when allowed, or the words to show (with the plan that unlocks it). Things the seller
 // already has keep working after a downgrade; only adding more is stopped.
 
@@ -38,19 +39,22 @@ const more = (limit: number | null, count: number) => (limit === null ? Infinity
 /** Adding `adding` products (all of them dropship when `dropship`). */
 export async function productLimitProblem(userId: string, storeId: string, adding = 1, dropship = false): Promise<string | null> {
   const { limits } = await sellerPlan(userId);
-  const [products, dropshipped] = await Promise.all([
-    limits.products === null ? 0 : db.storeProduct.count({ where: { storeId, status: { not: "archived" } } }),
-    dropship && limits.dropshipProducts !== null ? db.storeProduct.count({ where: { storeId, fulfillmentType: "dropship", status: { not: "archived" } } }) : 0,
-  ]);
+  const products = limits.products === null ? 0 : await db.storeProduct.count({ where: { storeId, status: { not: "archived" } } });
   if (limits.products !== null && products + adding > limits.products) {
     const plan = upgradeTo((next) => more(next.products, products + adding - 1));
     return `Your plan includes up to ${limits.products} products and you have ${products}.${plan ? ` Upgrade to ${plan} to add more.` : ""}`;
   }
-  if (dropship && limits.dropshipProducts !== null && dropshipped + adding > limits.dropshipProducts) {
-    const plan = upgradeTo((next) => more(next.dropshipProducts, dropshipped + adding - 1));
-    return `Your plan includes up to ${limits.dropshipProducts} dropship products and you have ${dropshipped}.${plan ? ` Upgrade to ${plan} to dropship more.` : ""}`;
-  }
-  return null;
+  return dropship ? dropshipLimitProblem(userId, storeId, adding) : null;
+}
+
+/** Making `adding` more of the store's products dropship (new ones, or existing ones switched to dropship). */
+export async function dropshipLimitProblem(userId: string, storeId: string, adding = 1): Promise<string | null> {
+  const { limits } = await sellerPlan(userId);
+  if (limits.dropshipProducts === null) return null;
+  const dropshipped = await db.storeProduct.count({ where: { storeId, fulfillmentType: "dropship", status: { not: "archived" } } });
+  if (dropshipped + adding <= limits.dropshipProducts) return null;
+  const plan = upgradeTo((next) => more(next.dropshipProducts, dropshipped + adding - 1));
+  return `Your plan includes up to ${limits.dropshipProducts} dropship products and you have ${dropshipped}.${plan ? ` Upgrade to ${plan} to dropship more.` : ""}`;
 }
 
 /** How many more products the seller can add (null: no limit), e.g. to cap Rex's sample products. */
@@ -149,6 +153,27 @@ export async function seasonalCampaignProblem(userId: string): Promise<string | 
 /** Order tracking pages and messages carry only the store's name (no Shopinbos mark, no partner's own page). */
 export async function brandedTrackingFor(userId: string) {
   return (await sellerPlan(userId)).limits.brandedTracking;
+}
+
+/** The delivery exceptions inbox and sending a job to another partner (Growth and up). */
+export async function exceptionsInboxProblem(userId: string): Promise<string | null> {
+  const { limits } = await sellerPlan(userId);
+  if (limits.exceptionsInbox) return null;
+  return `The delivery exceptions inbox and sending a delivery to another partner come with the ${exceptionsInboxPlanName()} plan.`;
+}
+
+export function exceptionsInboxPlanName() {
+  return upgradeTo((next) => next.exceptionsInbox) ?? "Growth";
+}
+
+/** Support tickets from sellers on a plan with priority support start one step higher (src/lib/support). */
+export async function prioritySupportFor(userId: string) {
+  return (await sellerPlan(userId)).limits.prioritySupport;
+}
+
+/** China import requests from sellers on a plan with priority imports go to the front of the sourcing team's queue. */
+export async function chinaImportPriority(userId: string) {
+  return (await sellerPlan(userId)).limits.chinaImport === "priority";
 }
 
 export async function chinaImportProblem(userId: string): Promise<string | null> {

@@ -7,6 +7,7 @@ import type { AuthUser } from "@/lib/auth/types";
 import { markCatalogDirty } from "@/lib/whatsapp-catalog/dirty";
 import { productFieldsData } from "@/lib/products/save-fields.server";
 import { stockTrackingFor } from "@shared/product-stock";
+import { dropshipLimitProblem, productLimitProblem } from "@/lib/plans/gates.server";
 
 async function getOwnedProduct(productId: string, userId: string) {
   const store = await db.store.findUnique({ where: { userId } });
@@ -44,6 +45,17 @@ export const PATCH = withSeller(async (
   const { costPrice, retailPrice, productType, productDetails, relatedProductIds, variants, variantOptions, variantUpdates, ...rest } = Object.fromEntries(
     Object.entries(parsed.data).filter(([key]) => sent.has(key)),
   ) as typeof parsed.data;
+
+  // Bringing an archived product back counts as adding one, and switching one to dropship counts against the
+  // plan's dropship products (shared/plans.ts).
+  const dropshipAfter = (rest.fulfillmentType ?? product.fulfillmentType) === "dropship";
+  const planLimit =
+    product.status === "archived" && rest.status !== undefined && rest.status !== "archived"
+      ? await productLimitProblem(user.id, product.storeId, 1, dropshipAfter)
+      : product.status !== "archived" && dropshipAfter && product.fulfillmentType !== "dropship"
+        ? await dropshipLimitProblem(user.id, product.storeId)
+        : null;
+  if (planLimit) return apiError("PLAN_LIMIT", planLimit, 402);
 
   // Type, details, versions (checked and normalized; the phone sends price/stock updates) and related products.
   const fields = await productFieldsData(

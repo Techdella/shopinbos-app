@@ -483,6 +483,8 @@ export interface ImportRequest {
   /** "Lands in Lagos about 16 Oct" — written by the sourcing team. */
   note: string | null;
   qcPhotos: string[];
+  /** Sent on a plan with priority imports (shared/plans.ts chinaImport "priority"): the sourcing team takes it first. */
+  priority?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -538,6 +540,7 @@ export function parseImports(value: unknown): ImportRequest[] {
       total: Number(item.total) > 0 ? Number(item.total) : null,
       note: text(item.note, 200),
       qcPhotos: Array.isArray(item.qcPhotos) ? item.qcPhotos.filter((url): url is string => typeof url === "string").slice(0, 12) : [],
+      ...(item.priority === true ? { priority: true } : {}),
       createdAt: typeof item.createdAt === "string" ? item.createdAt : "",
       updatedAt: typeof item.updatedAt === "string" ? item.updatedAt : "",
     }));

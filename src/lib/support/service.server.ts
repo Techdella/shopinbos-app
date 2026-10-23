@@ -11,6 +11,7 @@ import { sendSms } from "@/lib/notifications/service";
 import { getSupabaseServiceClient } from "@/lib/supabase/server";
 import { uploadPrivateFile } from "@/lib/supabase/storage.server";
 import { startOfLagosDay } from "@/lib/dashboard/compute";
+import { prioritySupportFor } from "@/lib/plans/gates.server";
 import {
   MAX_ATTACHMENTS,
   PORTALS,
@@ -20,6 +21,7 @@ import {
   attachmentProblem,
   csat,
   defaultPriority,
+  raisePriority,
   fillMacro,
   firstResponseDue,
   formatTicketNumber,
@@ -180,7 +182,9 @@ interface NewTicket {
 
 async function openTicket(input: NewTicket) {
   const now = new Date();
-  const priority = defaultPriority(input.topic);
+  // Sellers on a plan with priority support start a step higher, so they're answered sooner.
+  const prioritySupport = input.userId ? await prioritySupportFor(input.userId).catch(() => false) : false;
+  const priority = prioritySupport ? raisePriority(defaultPriority(input.topic)) : defaultPriority(input.topic);
   const body = sanitizeText(input.message);
   const ticket = await db.supportTicket.create({
     data: {

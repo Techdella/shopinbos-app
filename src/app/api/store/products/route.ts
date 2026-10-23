@@ -107,7 +107,7 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
   }
 
   const { costPrice, retailPrice, productType, productDetails, relatedProductIds, variants, variantOptions, ...rest } = parsed.data;
-  const planLimit = await productLimitProblem(user.id, store.id);
+  const planLimit = await productLimitProblem(user.id, store.id, 1, rest.fulfillmentType === "dropship");
   if (planLimit) return apiError("PLAN_LIMIT", planLimit, 402);
   // Type, details, versions (checked and normalized) and related products.
   const fields = await productFieldsData(store.id, { productType, productDetails, relatedProductIds, variants, variantOptions }, { inventoryType: rest.inventoryType });

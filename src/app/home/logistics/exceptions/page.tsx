@@ -12,6 +12,7 @@ import { FlashNotice, naira } from "@/components/delivery-market/bits";
 import { declineReasonText, exceptionLabel, jobStatusLabel, timeframeLabel } from "@/components/delivery-market/words";
 import { DeliveryTip } from "@/components/delivery-market/DeliveryTip";
 import { getT } from "@/lib/i18n/server";
+import { exceptionsInboxPlanName, exceptionsInboxProblem } from "@/lib/plans/gates.server";
 import { intlLocale } from "@shared/i18n";
 
 export const dynamic = "force-dynamic";
@@ -43,7 +44,9 @@ export default async function DeliveryExceptionsPage({ searchParams }: { searchP
   const user = await requireRole(["seller"], "/login");
   const workspace = await getSellerWorkspace(user.id);
   if (!workspace) return null;
-  const items = await exceptionsFor(user.id);
+  // The inbox and "send to another partner" come with the plan (shared/plans.ts exceptionsInbox).
+  const locked = Boolean(await exceptionsInboxProblem(user.id));
+  const items = locked ? [] : await exceptionsFor(user.id);
   const options = new Map(
     await Promise.all(items.filter((item) => canReassign(item.kind)).map(async (item) => [item.job.id, await reassignOptions(user.id, item.job.id)] as const)),
   );
@@ -61,7 +64,11 @@ export default async function DeliveryExceptionsPage({ searchParams }: { searchP
       <DeliveryTip>
         <div className="mb-5"><AssistantNote who="peggy">{t("exceptions.tip")}</AssistantNote></div>
       </DeliveryTip>
-      {items.length === 0 ? (
+      {locked ? (
+        <EmptyState icon="truck" title={t("exceptions.lockedTitle")} action={<PillLink href="/home/settings?tab=Billing" tone="accent">{t("exceptions.seePlans")}</PillLink>}>
+          {t("exceptions.lockedBody", { plan: exceptionsInboxPlanName() })}
+        </EmptyState>
+      ) : items.length === 0 ? (
         <EmptyState icon="checkCircle" title={t("exceptions.emptyTitle")}>{t("exceptions.emptyBody")}</EmptyState>
       ) : (
         <div className="grid gap-4">
