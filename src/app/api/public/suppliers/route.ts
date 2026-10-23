@@ -58,6 +58,7 @@ export async function GET(req: NextRequest) {
 
   const where = {
     status: "active" as const,
+    marketplaceVisible: true,
     verificationStatus: "verified" as const,
     ...(country ? { country } : {}),
     ...(city ? { city: { contains: city, mode: "insensitive" as const } } : {}),

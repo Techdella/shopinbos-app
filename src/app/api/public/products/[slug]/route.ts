@@ -21,6 +21,7 @@ export async function GET(
         status: "published",
         supplier: {
           status: "active",
+          marketplaceVisible: true,
           verificationStatus: "verified",
         },
       },

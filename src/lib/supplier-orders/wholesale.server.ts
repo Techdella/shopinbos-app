@@ -40,7 +40,7 @@ export async function placeWholesaleOrder(input: PlaceWholesaleInput): Promise<S
       ...(input.supplierId ? { supplierId: input.supplierId } : {}),
       status: "published",
       bulkOrderAvailable: true,
-      supplier: { status: "active", verificationStatus: "verified", user: { debtPausedAt: null } },
+      supplier: { status: "active", marketplaceVisible: true, verificationStatus: "verified", user: { debtPausedAt: null } },
     },
     include: { supplier: { select: { id: true, userId: true, displayName: true, acceptHoursDropship: true, acceptHoursWholesale: true } } },
   });

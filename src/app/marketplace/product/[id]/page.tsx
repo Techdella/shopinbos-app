@@ -22,8 +22,9 @@ export async function generateMetadata(): Promise<Metadata> {
 
 const supplierSelect = { id: true, userId: true, slug: true, displayName: true, city: true, rating: true, ratingCount: true, verificationStatus: true, returnPolicy: true, address: true } as const;
 
-export default async function MarketplaceProductPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function MarketplaceProductPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams?: Promise<{ buy?: string }> }) {
   const { id: rawId } = await params;
+  const buy = (await searchParams)?.buy;
   const id = decodeURIComponent(rawId);
   const user = await requireRole(["seller"], "/login");
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true, brandSettings: true, city: true, country: true } });
@@ -90,6 +91,7 @@ export default async function MarketplaceProductPage({ params }: { params: Promi
           notified={sourcing.notifyNewSuppliers}
           defaultAddress={[store.city, store.country].filter(Boolean).join(", ")}
           wholesaleOrders={wholesaleOrders}
+          startWholesale={buy === "wholesale"}
           listing={product.dropship ? listing : undefined}
           tip={<TipsGate><AssistantNote who="peggy">{t("pd.tip")}</AssistantNote></TipsGate>}
         />

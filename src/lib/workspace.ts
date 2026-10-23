@@ -328,6 +328,7 @@ export async function getSellerWorkspace(userId: string) {
           db.supplier.findMany({
             where: {
               status: "active",
+              marketplaceVisible: true,
               verificationStatus: "verified",
             },
             orderBy: [SUPPLIER_PLAN_FIRST, { trustScore: "desc" }, { rating: "desc" }],

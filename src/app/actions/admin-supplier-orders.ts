@@ -27,6 +27,21 @@ export async function setSupplierAcceptHours(formData: FormData) {
   redirect(`${back}?saved=1`);
 }
 
+/** Admin › Suppliers: show or hide a supplier in the marketplace. Their account, products and orders stay as they are. */
+export async function setSupplierMarketplaceVisible(formData: FormData) {
+  await requireAdminSection("partners");
+  const supplierId = String(formData.get("supplierId") ?? "");
+  const visible = String(formData.get("visible") ?? "") === "1";
+  const asked = String(formData.get("redirectTo") ?? "");
+  const back = asked.startsWith("/admin/suppliers") ? asked : `/admin/suppliers/${encodeURIComponent(supplierId)}`;
+  if (!supplierId) redirect(back);
+  await db.supplier.update({ where: { id: supplierId }, data: { marketplaceVisible: visible } });
+  revalidatePath("/admin/suppliers");
+  revalidatePath(`/admin/suppliers/${supplierId}`);
+  revalidatePath("/marketplace", "layout");
+  redirect(back);
+}
+
 export async function bookSupplierPickup(formData: FormData) {
   await requireAdminSection("partners");
   const pickupId = String(formData.get("pickupId") ?? "");
