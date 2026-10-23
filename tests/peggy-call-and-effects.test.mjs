@@ -23,7 +23,7 @@ test("effects never return scrollIntoView's result (newer Chrome returns a Promi
 
 test("a call that fails to start stops 'Calling Peggy…' and says why, with a time limit as a backstop", () => {
   const call = read("src/components/peggy/PeggyCall.tsx");
-  assert.match(call, /onError: \(message: unknown\) => \{\s*stopWaiting\(\);/);
+  assert.match(call, /onError: \(message: unknown\) => \{\s*finish\(false\);/);
   assert.match(call, /window\.setTimeout\(\(\) => \{\s*conversation\.endSession\(\);/);
   assert.match(call, /track\.stop\(\)/);
 });
@@ -40,4 +40,16 @@ test("Peggy shows her image, not a letter", () => {
     assert.doesNotMatch(source, /aria-hidden>P<\//, path);
     assert.match(source, /<Mascot name="peggy"/, path);
   }
+});
+
+test("calling Peggy rings (Nigeria's ringing tone, made in the tap) until she picks up, then chimes", () => {
+  const call = read("src/components/peggy/PeggyCall.tsx");
+  const sounds = read("src/components/peggy/call-sounds.ts");
+  // The player is made before the first await, inside the tap, so the browser lets it play.
+  assert.match(call, /setConnecting\(true\);\s*\/\/[^\n]*\n\s*sounds\.current \?\?= createCallSounds\(\);\s*try \{/);
+  assert.match(call, /sounds\.current\.ring\(\);/);
+  assert.match(call, /onConnect: \(\) => \{[^}]*sounds\.current\?\.connected\(\);/);
+  assert.match(call, /sounds\.current\?\.close\(\);/);
+  assert.match(sounds, /RING_FREQUENCIES = \[400, 450\]/);
+  assert.match(sounds, /linearRampToValueAtTime\(0, now \+ 0\.25\)/);
 });
