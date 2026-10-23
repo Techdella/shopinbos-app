@@ -96,7 +96,7 @@ const en = {
   "img.loadingTitle": "Rex is making your image…",
   "img.loadingBody": "This usually takes a few seconds.",
   "img.download": "Download",
-  // Rex assistant drawer (components/rex/AssistantRexDrawer.tsx); suggestions and greetings from the server stay as sent
+  // Former Rex assistant drawer (now Rex Studio, /studio); suggestions and greetings from the server stay as sent
   "drawer.chip.build": "Build my store",
   "drawer.chip.landing": "Create a landing page",
   "drawer.chip.descriptions": "Draft product descriptions",

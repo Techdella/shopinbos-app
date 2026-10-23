@@ -21,7 +21,7 @@ export async function generateMetadata(): Promise<Metadata> {
 function suggestionsFor(snapshot: SellerSnapshot, t: TFunction<MessageKey<"peggy">>) {
   const list: string[] = [];
   const best = snapshot.products.bestSellers[0]?.name ?? snapshot.products.recent[0]?.name;
-  if (snapshot.orders.toSend > 0) list.push(t("suggest.toSend"));
+  if (snapshot.orders.toSend > 0) list.push(t("suggest.rider"));
   if (snapshot.orders.awaitingPayment > 0) list.push(t("suggest.unpaid"));
   if (snapshot.products.lowStock > 0) list.push(t("suggest.restock"));
   list.push(t("suggest.week"));
@@ -65,6 +65,7 @@ export default async function PeggyPage({ searchParams }: { searchParams: Promis
           unpaid: snapshot.orders.awaitingPayment,
           lowStock: snapshot.products.lowStock,
           unread: snapshot.messages.unread,
+          drafts: snapshot.products.drafts,
         }}
       />
     </AppFrame>

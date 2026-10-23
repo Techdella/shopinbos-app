@@ -36,6 +36,7 @@ async function readJson<T>(response: Response): Promise<T> {
  */
 export function useChatAutosave(assistant: AiChatAssistant, messages: unknown[], ready: boolean, hasSellerTurn: boolean) {
   const [chatId, setChatId] = useState<string | null>(null);
+  const [savedCount, setSavedCount] = useState(0);
   const idRef = useRef<string | null>(null);
   idRef.current = chatId;
   const savedLength = useRef(0);
@@ -52,6 +53,7 @@ export function useChatAutosave(assistant: AiChatAssistant, messages: unknown[],
         const saved = await readJson<{ id: string }>(response);
         savedLength.current = messages.length;
         if (saved.id !== idRef.current) setChatId(saved.id);
+        setSavedCount((count) => count + 1);
       } catch {
         // History is a convenience; the chat itself keeps working.
       }
@@ -64,7 +66,177 @@ export function useChatAutosave(assistant: AiChatAssistant, messages: unknown[],
     savedLength.current = length;
     setChatId(id);
   }
-  return { chatId, adopt };
+  /** Bumps after every save, so a chat list can refresh (new titles, new order). */
+  return { chatId, adopt, savedCount };
+}
+
+/** The saved chats for one assistant: loaded while `active`, reloaded when `refreshKey` changes. */
+export function useSavedChats({
+  assistant,
+  active,
+  refreshKey,
+  currentId,
+  onOpen,
+  onNew,
+}: {
+  assistant: AiChatAssistant;
+  active: boolean;
+  refreshKey?: unknown;
+  currentId: string | null;
+  onOpen: (chat: { id: string; messages: unknown[] }) => void;
+  onNew: () => void;
+}) {
+  const t = useT("common");
+  const [chats, setChats] = useState<ChatSummary[] | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!active) return;
+    let cancelled = false;
+    setError(null);
+    fetch(`/api/app/ai-chats?assistant=${assistant}`)
+      .then((response) => readJson<ChatSummary[]>(response))
+      .then((list) => !cancelled && setChats(list))
+      .catch((err) => !cancelled && setError(err instanceof Error ? err.message : t("chats.failed")));
+    return () => {
+      cancelled = true;
+    };
+  }, [active, assistant, refreshKey, t]);
+
+  /** Returns true once the chat is open. */
+  async function openChat(id: string) {
+    setBusy(id);
+    try {
+      const chat = await readJson<{ id: string; messages: unknown }>(await fetch(`/api/app/ai-chats/${encodeURIComponent(id)}`));
+      onOpen({ id: chat.id, messages: Array.isArray(chat.messages) ? chat.messages : [] });
+      return true;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("chats.failed"));
+      return false;
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function remove(id: string) {
+    setBusy(`x${id}`);
+    try {
+      await readJson(await fetch(`/api/app/ai-chats/${encodeURIComponent(id)}`, { method: "DELETE" }));
+      setChats((list) => list?.filter((chat) => chat.id !== id) ?? null);
+      if (id === currentId) onNew();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("chats.failed"));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return { chats, busy, error, openChat, remove };
+}
+
+export function useChatWhen() {
+  const locale = useLocale();
+  return (iso: string) => new Date(iso).toLocaleString(locale === "en" ? "en-NG" : undefined, { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+}
+
+/** The logos and pictures Rex has made: pick one to download, use with Rex or take to the brand kit. */
+export function CreationsPanel({ onUseCreation, onUsed, gridClassName = "max-h-[300px] grid-cols-3" }: { onUseCreation?: (url: string) => void; onUsed?: () => void; gridClassName?: string }) {
+  const t = useT("common");
+  const when = useChatWhen();
+  const [filter, setFilter] = useState<CreationFilter>("all");
+  const [made, setMade] = useState<Creation[] | null>(null);
+  const [picked, setPicked] = useState<Creation | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setMade(null);
+    setPicked(null);
+    setError(null);
+    fetch(`/api/app/ai-creations?limit=36${filter === "all" ? "" : `&kind=${filter}`}`)
+      .then((response) => readJson<Creation[]>(response))
+      .then((list) => !cancelled && setMade(list))
+      .catch((err) => !cancelled && setError(err instanceof Error ? err.message : t("chats.failed")));
+    return () => {
+      cancelled = true;
+    };
+  }, [filter, t]);
+
+  return (
+    <div className="px-1.5 pb-1.5">
+      <div className="mb-2 flex flex-wrap gap-1.5">
+        {(["all", "logo", "image"] as const).map((key) => (
+          <button
+            key={key}
+            type="button"
+            aria-pressed={filter === key}
+            onClick={() => setFilter(key)}
+            className={cx("min-h-[30px] rounded-full border px-3 text-[12.5px] font-bold", filter === key ? "border-app-ink bg-app-ink text-white" : "border-app-line hover:border-app-line-strong")}
+          >
+            {t(`chats.made.${key}`)}
+          </button>
+        ))}
+      </div>
+      {picked ? (
+        <div className="mb-2 rounded-[14px] border border-app-line p-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={picked.url} alt={t(`chats.kind.${picked.kind}`)} className="max-h-[220px] w-full rounded-[10px] bg-app-canvas object-contain" />
+          <p className="m-0 mt-1.5 text-[12px] text-app-ink-soft">{t(`chats.kind.${picked.kind}`)} · {when(picked.createdAt)}</p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {onUseCreation && picked.kind !== "video" ? (
+              <button
+                type="button"
+                onClick={() => {
+                  onUseCreation(picked.url);
+                  onUsed?.();
+                }}
+                className="inline-flex min-h-[34px] items-center gap-1.5 rounded-full bg-app-ink px-3 text-[12.5px] font-bold text-white"
+              >
+                <Icon name="sparkle" size={13} /> {t("chats.useWithRex")}
+              </button>
+            ) : null}
+            <a href={picked.url} download target="_blank" rel="noopener noreferrer" className="inline-flex min-h-[34px] items-center gap-1.5 rounded-full border border-app-line px-3 text-[12.5px] font-bold text-app-ink no-underline">
+              <Icon name="download" size={13} /> {t("chats.download")}
+            </a>
+            {picked.kind === "logo" ? (
+              <a href="/home/brand-kit" className="inline-flex min-h-[34px] items-center gap-1.5 rounded-full border border-app-line px-3 text-[12.5px] font-bold text-app-ink no-underline">
+                <Icon name="tag" size={13} /> {t("chats.brandKit")}
+              </a>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+      {made === null && !error ? (
+        <p className="m-0 flex items-center gap-2 px-1.5 py-3 text-[13px] text-app-ink-soft"><Spinner className="h-4 w-4" /> {t("chats.loading")}</p>
+      ) : made?.length === 0 ? (
+        <p className="m-0 px-1.5 py-3 text-[13px] text-app-ink-soft">{t("chats.madeEmpty")}</p>
+      ) : (
+        <ul className={cx("m-0 grid list-none gap-1.5 overflow-y-auto p-0", gridClassName)}>
+          {made?.map((item) => (
+            <li key={item.id}>
+              <button
+                type="button"
+                onClick={() => setPicked(item)}
+                aria-label={`${t(`chats.kind.${item.kind}`)}, ${when(item.createdAt)}`}
+                className={cx("relative block aspect-square w-full overflow-hidden rounded-[10px] border-2 bg-app-canvas", picked?.id === item.id ? "border-app-ink" : "border-transparent")}
+              >
+                {item.kind === "video" ? (
+                  <video src={item.url} muted playsInline preload="metadata" className="h-full w-full object-cover" />
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={item.url} alt="" loading="lazy" className={cx("h-full w-full", item.kind === "logo" ? "bg-white object-contain p-1" : "object-cover")} />
+                )}
+                <span className="absolute bottom-1 left-1 rounded-full bg-white/90 px-1.5 py-0.5 text-[10px] font-bold">{t(`chats.kind.${item.kind}`)}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <a href="/home/media" className="mt-2 block px-1.5 text-[12.5px] font-bold text-app-ink underline underline-offset-2">{t("chats.allMedia")}</a>
+      {error ? <p className="m-0 px-1.5 py-2 text-[13px] text-app-danger">{error}</p> : null}
+    </div>
+  );
 }
 
 /**
@@ -92,78 +264,28 @@ export function ChatHistoryMenu({
   onUseCreation?: (url: string) => void;
 }) {
   const t = useT("common");
-  const locale = useLocale();
+  const when = useChatWhen();
   const [open, setOpen] = useState(false);
-  const [chats, setChats] = useState<ChatSummary[] | null>(null);
-  const [busy, setBusy] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<"chats" | "creations">("chats");
-  const [filter, setFilter] = useState<CreationFilter>("all");
-  const [made, setMade] = useState<Creation[] | null>(null);
-  const [picked, setPicked] = useState<Creation | null>(null);
   const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open || tab !== "creations") return;
-    let cancelled = false;
-    setMade(null);
-    setPicked(null);
-    fetch(`/api/app/ai-creations?limit=36${filter === "all" ? "" : `&kind=${filter}`}`)
-      .then((response) => readJson<Creation[]>(response))
-      .then((list) => !cancelled && setMade(list))
-      .catch((err) => !cancelled && setError(err instanceof Error ? err.message : t("chats.failed")));
-    return () => {
-      cancelled = true;
-    };
-  }, [open, tab, filter, t]);
+  const saved = useSavedChats({ assistant, active: open, currentId, onOpen, onNew });
+  const { chats, busy, error, remove } = saved;
+  const openChat = async (id: string) => {
+    if (await saved.openChat(id)) setOpen(false);
+  };
 
   useEffect(() => {
     if (!open) return;
-    let cancelled = false;
-    setError(null);
-    fetch(`/api/app/ai-chats?assistant=${assistant}`)
-      .then((response) => readJson<ChatSummary[]>(response))
-      .then((list) => !cancelled && setChats(list))
-      .catch((err) => !cancelled && setError(err instanceof Error ? err.message : t("chats.failed")));
     const close = (event: MouseEvent | KeyboardEvent) => {
       if (event instanceof KeyboardEvent ? event.key === "Escape" : !ref.current?.contains(event.target as Node)) setOpen(false);
     };
     document.addEventListener("mousedown", close);
     document.addEventListener("keydown", close);
     return () => {
-      cancelled = true;
       document.removeEventListener("mousedown", close);
       document.removeEventListener("keydown", close);
     };
-  }, [open, assistant, t]);
-
-  async function openChat(id: string) {
-    setBusy(id);
-    try {
-      const chat = await readJson<{ id: string; messages: unknown }>(await fetch(`/api/app/ai-chats/${encodeURIComponent(id)}`));
-      onOpen({ id: chat.id, messages: Array.isArray(chat.messages) ? chat.messages : [] });
-      setOpen(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("chats.failed"));
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function remove(id: string) {
-    setBusy(`x${id}`);
-    try {
-      await readJson(await fetch(`/api/app/ai-chats/${encodeURIComponent(id)}`, { method: "DELETE" }));
-      setChats((list) => list?.filter((chat) => chat.id !== id) ?? null);
-      if (id === currentId) onNew();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("chats.failed"));
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  const when = (iso: string) => new Date(iso).toLocaleString(locale === "en" ? "en-NG" : undefined, { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+  }, [open]);
 
   return (
     <div ref={ref} className={cx("relative", className)}>
@@ -208,79 +330,7 @@ export function ChatHistoryMenu({
               ))}
             </div>
           ) : null}
-          {creations && tab === "creations" ? (
-            <div className="px-1.5 pb-1.5">
-              <div className="mb-2 flex flex-wrap gap-1.5">
-                {(["all", "logo", "image"] as const).map((key) => (
-                  <button
-                    key={key}
-                    type="button"
-                    aria-pressed={filter === key}
-                    onClick={() => setFilter(key)}
-                    className={cx("min-h-[30px] rounded-full border px-3 text-[12.5px] font-bold", filter === key ? "border-app-ink bg-app-ink text-white" : "border-app-line hover:border-app-line-strong")}
-                  >
-                    {t(`chats.made.${key}`)}
-                  </button>
-                ))}
-              </div>
-              {picked ? (
-                <div className="mb-2 rounded-[14px] border border-app-line p-2">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={picked.url} alt={t(`chats.kind.${picked.kind}`)} className="max-h-[220px] w-full rounded-[10px] bg-app-canvas object-contain" />
-                  <p className="m-0 mt-1.5 text-[12px] text-app-ink-soft">{t(`chats.kind.${picked.kind}`)} · {when(picked.createdAt)}</p>
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {onUseCreation && picked.kind !== "video" ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onUseCreation(picked.url);
-                          setOpen(false);
-                        }}
-                        className="inline-flex min-h-[34px] items-center gap-1.5 rounded-full bg-app-ink px-3 text-[12.5px] font-bold text-white"
-                      >
-                        <Icon name="sparkle" size={13} /> {t("chats.useWithRex")}
-                      </button>
-                    ) : null}
-                    <a href={picked.url} download target="_blank" rel="noopener noreferrer" className="inline-flex min-h-[34px] items-center gap-1.5 rounded-full border border-app-line px-3 text-[12.5px] font-bold text-app-ink no-underline">
-                      <Icon name="download" size={13} /> {t("chats.download")}
-                    </a>
-                    {picked.kind === "logo" ? (
-                      <a href="/home/brand-kit" className="inline-flex min-h-[34px] items-center gap-1.5 rounded-full border border-app-line px-3 text-[12.5px] font-bold text-app-ink no-underline">
-                        <Icon name="tag" size={13} /> {t("chats.brandKit")}
-                      </a>
-                    ) : null}
-                  </div>
-                </div>
-              ) : null}
-              {made === null && !error ? (
-                <p className="m-0 flex items-center gap-2 px-1.5 py-3 text-[13px] text-app-ink-soft"><Spinner className="h-4 w-4" /> {t("chats.loading")}</p>
-              ) : made?.length === 0 ? (
-                <p className="m-0 px-1.5 py-3 text-[13px] text-app-ink-soft">{t("chats.madeEmpty")}</p>
-              ) : (
-                <ul className="m-0 grid max-h-[300px] list-none grid-cols-3 gap-1.5 overflow-y-auto p-0">
-                  {made?.map((item) => (
-                    <li key={item.id}>
-                      <button
-                        type="button"
-                        onClick={() => setPicked(item)}
-                        aria-label={`${t(`chats.kind.${item.kind}`)}, ${when(item.createdAt)}`}
-                        className={cx("relative block aspect-square w-full overflow-hidden rounded-[10px] border-2 bg-app-canvas", picked?.id === item.id ? "border-app-ink" : "border-transparent")}
-                      >
-                        {item.kind === "video" ? (
-                          <video src={item.url} muted playsInline preload="metadata" className="h-full w-full object-cover" />
-                        ) : (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={item.url} alt="" loading="lazy" className={cx("h-full w-full", item.kind === "logo" ? "bg-white object-contain p-1" : "object-cover")} />
-                        )}
-                        <span className="absolute bottom-1 left-1 rounded-full bg-white/90 px-1.5 py-0.5 text-[10px] font-bold">{t(`chats.kind.${item.kind}`)}</span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <a href="/home/media" className="mt-2 block px-1.5 text-[12.5px] font-bold text-app-ink underline underline-offset-2">{t("chats.allMedia")}</a>
-            </div>
-          ) : null}
+          {creations && tab === "creations" ? <CreationsPanel onUseCreation={onUseCreation} onUsed={() => setOpen(false)} /> : null}
           {error ? <p className="m-0 px-3 py-2 text-[13px] text-app-danger">{error}</p> : null}
           {creations && tab === "creations" ? null : chats === null && !error ? (
             <p className="m-0 flex items-center gap-2 px-3 py-3 text-[13px] text-app-ink-soft"><Spinner className="h-4 w-4" /> {t("chats.loading")}</p>

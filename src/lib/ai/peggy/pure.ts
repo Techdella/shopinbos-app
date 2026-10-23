@@ -19,6 +19,7 @@ import { PRODUCTS_TOOL_SPECS } from "./products-specs.ts";
 import { ADS_TOOL_SPECS } from "./ads-specs.ts";
 import { CATALOG_TOOL_SPECS } from "./catalog-specs.ts";
 import { PAYLINKS_TOOL_SPECS } from "./paylinks-specs.ts";
+import { DELIVERY_TOOL_SPECS } from "./delivery-specs.ts";
 
 const DAY = 86_400_000;
 const PAID = new Set<string>(PAID_ORDER_STATUSES);
@@ -203,6 +204,7 @@ export const PEGGY_TOOL_SPECS = {
   ...ADS_TOOL_SPECS,
   ...CATALOG_TOOL_SPECS,
   ...PAYLINKS_TOOL_SPECS,
+  ...DELIVERY_TOOL_SPECS,
 } as const;
 
 export type PeggyToolName = keyof typeof PEGGY_TOOL_SPECS;
@@ -452,4 +454,25 @@ export function parseEndDate(value: string | null | undefined): Date | null {
   }
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;
+}
+
+const NEXT_LINE = /^\s*(?:[*_]{1,2})?next(?:[*_]{1,2})?\s*:(?:[*_]{1,2})?\s*(.+)$/i;
+
+/**
+ * Peggy ends a reply with "Next: Yes, find a rider | My budget is ₦3,000 | Not now": the replies the seller is
+ * likely to send next. They come off the text and show as buttons to tap.
+ */
+export function splitNextSteps(text: string): { text: string; suggestions: string[] } {
+  const lines = text.trimEnd().split("\n");
+  const last = lines.length ? NEXT_LINE.exec(lines[lines.length - 1]) : null;
+  if (!last) return { text, suggestions: [] };
+  const suggestions = [
+    ...new Set(
+      last[1]
+        .split("|")
+        .map((part) => part.replace(/[*_`]/g, "").trim().replace(/^["'“]|["'”]$/g, "").trim())
+        .filter((part) => part.length > 0 && part.length <= 70),
+    ),
+  ].slice(0, 3);
+  return { text: lines.slice(0, -1).join("\n").trimEnd(), suggestions };
 }

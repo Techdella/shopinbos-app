@@ -15,6 +15,7 @@ import {
   providerSchema,
   PEGGY_TOOL_NAMES,
   PEGGY_TOOL_SPECS,
+  splitNextSteps,
   type PeggyToolName,
   type PeggyTurn,
 } from "./pure";
@@ -33,6 +34,8 @@ const MIN_CALL_MS = 8_000;
 export interface PeggyReply {
   text: string;
   actions: PeggyAction[];
+  /** Replies the seller is likely to send next, shown as buttons (from Peggy's "Next:" line). */
+  suggestions: string[];
   provider?: "anthropic" | "openai";
 }
 
@@ -188,6 +191,12 @@ async function viaOpenAI(client: OpenAI, context: string, turns: PeggyTurn[], st
 
 /** Peggy's answer to a conversation (oldest turn first, ending with the seller's message). */
 export async function runPeggy(user: { id: string; phone?: string | null }, turns: PeggyTurn[]): Promise<PeggyReply | { error: string }> {
+  const reply = await answer(user, turns);
+  if ("error" in reply) return reply;
+  return { ...reply, ...splitNextSteps(reply.text) };
+}
+
+async function answer(user: { id: string; phone?: string | null }, turns: PeggyTurn[]): Promise<Omit<PeggyReply, "suggestions"> | { error: string }> {
   const anthropic = getAnthropicClient();
   const openai = getOpenAIClient();
   if (!anthropic && !openai) return { error: "Peggy isn't connected yet. Add ANTHROPIC_API_KEY or OPENAI_API_KEY." };

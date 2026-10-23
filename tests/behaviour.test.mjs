@@ -3336,6 +3336,80 @@ test("Style book colours become readable store colours; brand marks fall back to
   assert.equal(a.readBrandAssets({ logoUrl: logo, brandSettings: { logoIcon: "javascript:x" } }).icon, null);
 });
 
+test("Rex's style book is tidied before it's checked, and a really incomplete one is still refused", async () => {
+  const bb = await import("../shared/brand-book.ts");
+  assert.equal(bb.normaliseHex("#abc"), "#AABBCC");
+  assert.equal(bb.normaliseHex("0e2a38"), "#0E2A38");
+  assert.equal(bb.normaliseHex("#0E2A38FF"), "#0E2A38", "alpha dropped");
+  assert.equal(bb.normaliseHex("rgb(14, 42, 56)"), "#0E2A38");
+  const many = (n, text) => Array.from({ length: n }, (_, i) => `${text} ${i + 1}`);
+  const raw = {
+    paletteName: "Lagos Sunset Market Palette For Every Season Of The Year",
+    tagline: "Good things, well made",
+    mission: "We sell handmade bags.",
+    colors: { primary: "#e2541b", secondary: "0E2A38", accent: "#fa3", background: "#FAF7F1", surface: "#FFFFFF", text: "rgb(22,20,31)" },
+    colourNotes: many(7, "Use the primary for buttons"),
+    typography: { headings: "Fraunces", body: "Inter", style: "Sans-Serif", note: "Headings big." },
+    voice: { summary: "Warm and direct.", traits: many(6, "warm"), wordsWeUse: ["handmade", "a phrase that is far too long to be a word we use often"], wordsWeAvoid: ["cheap"], sampleCaption: "New bags in." },
+    logoRules: "- Keep clear space\n- Never stretch it",
+    photoStyle: ["Natural light"],
+    dos: ["Smile"],
+    donts: ["Shout"],
+  };
+  const tidied = bb.tidyBrandBook(raw);
+  const parsed = bb.BrandBookSchema.safeParse(tidied);
+  assert.ok(parsed.success, JSON.stringify(parsed.error?.issues));
+  assert.equal(parsed.data.colours.accent, "#FFAA33");
+  assert.equal(parsed.data.typography.style, "grotesk", "sans-serif is grotesk");
+  assert.equal(parsed.data.colourNotes.length, 4);
+  assert.deepEqual(parsed.data.logoRules, ["Keep clear space", "Never stretch it"]);
+  assert.ok(parsed.data.paletteName.length <= 40);
+  assert.equal(bb.tidyBrandBook({ ...raw, typography: { ...raw.typography, style: "Serif" } }).typography.style, "serif");
+  const missing = bb.tidyBrandBook({ ...raw, voice: undefined, dos: [] });
+  assert.equal(bb.BrandBookSchema.safeParse(missing).success, false);
+  assert.ok(bb.brandBookProblems(missing).some((path) => path.startsWith("voice")));
+});
+
+test("Peggy's Next: line becomes quick-reply buttons and leaves her text", async () => {
+  const { splitNextSteps } = await import("../src/lib/ai/peggy/pure.ts");
+  const reply = splitNextSteps("You have **2 orders** to send.\n\nNext: Yes, find a delivery company | My budget is ₦3,000 | Not now");
+  assert.equal(reply.text, "You have **2 orders** to send.");
+  assert.deepEqual(reply.suggestions, ["Yes, find a delivery company", "My budget is ₦3,000", "Not now"]);
+  assert.deepEqual(splitNextSteps("**Next:** \"Show me\" | Show me | A | B").suggestions, ["Show me", "A", "B"], "bold, quotes and repeats are cleaned, three at most");
+  const plain = splitNextSteps("Next week looks busy.\nPlan ahead.");
+  assert.equal(plain.text, "Next week looks busy.\nPlan ahead.", "only a last Next: line counts");
+  assert.deepEqual(plain.suggestions, []);
+});
+
+test("Peggy keeps delivery matches within the seller's budget, or shows the cheapest when none fit", async () => {
+  const { pickDeliveryMatches } = await import("../src/lib/ai/peggy/delivery-specs.ts");
+  const rows = [
+    { name: "Fast Lagos", price: 4500, priced: true, score: 90 },
+    { name: "Kwik", price: 2500, priced: true, score: 80 },
+    { name: "Gig", price: 3000, priced: false, score: 95 },
+    { name: "Slow", price: 9000, priced: true, score: 10 },
+  ];
+  assert.deepEqual(pickDeliveryMatches(rows, null, 3).matches.map((row) => row.name), ["Gig", "Fast Lagos", "Kwik"], "best first");
+  const budget = pickDeliveryMatches(rows, 3000, 3);
+  assert.equal(budget.withinBudget, true);
+  assert.deepEqual(budget.matches.map((row) => row.name), ["Gig", "Kwik"]);
+  const tight = pickDeliveryMatches(rows, 1000, 2);
+  assert.equal(tight.withinBudget, false);
+  assert.deepEqual(tight.matches.map((row) => row.name), ["Kwik", "Gig"], "cheapest when nothing fits");
+});
+
+test("Saved chats group by day like a chat app's sidebar", async () => {
+  const h = await import("../shared/ai-chats.ts");
+  const now = new Date(2026, 9, 21, 15, 0);
+  const at = (days, hours = 0) => new Date(2026, 9, 21 - days, 12 + hours).toISOString();
+  assert.equal(h.aiChatGroup(at(0), now), "today");
+  assert.equal(h.aiChatGroup(at(1), now), "yesterday");
+  assert.equal(h.aiChatGroup(at(5), now), "week");
+  assert.equal(h.aiChatGroup(at(20), now), "month");
+  assert.equal(h.aiChatGroup(at(90), now), "older");
+  assert.deepEqual([...h.AI_CHAT_GROUPS], ["today", "yesterday", "week", "month", "older"]);
+});
+
 test("Rex's creations are labelled by what he made", async () => {
   const m = await import("../shared/media.ts");
   assert.equal(m.aiCreationKind("logos/user_123456/logo-1.webp"), "logo");
