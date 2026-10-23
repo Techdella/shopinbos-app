@@ -128,6 +128,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "order2.declinedTitle": "{name} enweghị ike ibuga nke a",
   "order2.declinedBody": "Ihe kpatara ya: {reason}. Ziga ya nye partner ọzọ ị jikọrọ na ya.",
   "order2.reassignBody": "Ziga ya nye partner ọzọ ị jikọrọ na ya.",
+  "order2.seePlans": "Lee plan ndị ahụ",
   "order2.comingTitle": "{name} na-abịa iwere ya",
   "order2.handover": "Nyefee ya naanị ma ọ bụrụ na rider enye gị koodu a:",
   "order2.handoverNoCode": "Nyefee ya mgbe rider ha bịarutere.",

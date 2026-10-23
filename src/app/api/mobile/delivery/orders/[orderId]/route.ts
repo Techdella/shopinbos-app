@@ -3,6 +3,7 @@ import { withSeller } from "@/lib/auth/middleware";
 import { apiError, ok } from "@/lib/api/response";
 import { db } from "@/lib/db/client";
 import { ensurePickupCode } from "@/lib/logistics/jobs";
+import { exceptionsInboxProblem } from "@/lib/plans/gates.server";
 import { canReassign, deliveryTimeline, jobException, partnerShipments, readDeliveryPlan } from "@shared/delivery-market";
 
 export const dynamic = "force-dynamic";
@@ -11,13 +12,15 @@ export const dynamic = "force-dynamic";
 // card). The plan chosen at checkout (partner doorstep or pickup point, pick up from the shop, or the shop's own
 // delivery), and for each parcel a partner carries: the partner, service, fee, status, timeline, the customer's
 // delivery code, whether it's ready for pickup, why it needs the shop (declined, not accepted, late pickup, failed),
-// whether it can go to another partner, and the pay-on-delivery cash record.
+// whether it can go to another partner, and the pay-on-delivery cash record. reassignLocked: sending to another
+// partner comes with a higher plan (shared/plans.ts exceptionsInbox), in words to show, else null.
 export const GET = withSeller(async (_req: NextRequest, { user, params }) => {
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true } });
   const order = store ? await db.retailOrder.findFirst({ where: { id: String(params.orderId), storeId: store.id }, select: { id: true, createdAt: true, deliveredAt: true, logisticsDetails: true, paymentMethod: true } }) : null;
   if (!order) return apiError("NOT_FOUND", "We couldn't find that order.", 404);
   const plan = readDeliveryPlan(order.logisticsDetails);
-  if (!plan) return ok({ plan: null, parcels: [] });
+  if (!plan) return ok({ plan: null, parcels: [], reassignLocked: null });
+  const reassignLocked = await exceptionsInboxProblem(user.id).catch(() => null);
 
   const parts = partnerShipments(plan);
   const jobs = await db.deliveryBooking.findMany({
@@ -57,7 +60,7 @@ export const GET = withSeller(async (_req: NextRequest, { user, params }) => {
           }
         : null,
       exception,
-      canReassign: !!job && canReassign(exception),
+      canReassign: !!job && !reassignLocked && canReassign(exception),
       timeline: deliveryTimeline(order, job, plan.kind),
     };
   });
@@ -66,5 +69,6 @@ export const GET = withSeller(async (_req: NextRequest, { user, params }) => {
     // Pick up from the shop, or the shop's own flat-fee delivery: no partner job, just the order's own steps.
     timeline: parts.length ? null : deliveryTimeline(order, null, plan.kind),
     parcels,
+    reassignLocked,
   });
 });

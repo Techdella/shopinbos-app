@@ -3,6 +3,7 @@ import { Alert, Linking, Share, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { naira } from "@shared/onboarding";
 import { CHANNEL_LABEL, type OrderChannel } from "@shared/channels";
+import { canReassign, type ExceptionKind } from "@shared/delivery-market";
 import { PAYMENT_METHOD_LABEL } from "@shared/sales";
 import { Banner, List, Pill, Row, Small, Tile, Timeline, type PillTone, type TimelineStep } from "@/components/design";
 import { AppIcon } from "@/components/icons";
@@ -181,6 +182,15 @@ export default function OrderScreen() {
   // The logistics marketplace: parcels a connected partner carries, or the customer picks up from the shop.
   const plan = delivery?.plan ?? null;
   const parcels = (delivery?.parcels ?? []).filter((parcel) => parcel.partner);
+  // Sending a parcel to another partner comes with a higher plan: say so where the button would be.
+  const reassignLocked = delivery?.reassignLocked ?? null;
+  const lockNote = (exception: string | null) =>
+    reassignLocked && canReassign(exception as ExceptionKind | null) ? (
+      <View style={{ gap: 6 }}>
+        <T style={{ fontSize: 14, lineHeight: 20, color: colors.ink }}>{reassignLocked}</T>
+        <LinkButton title={t("order2.seePlans")} onPress={() => void openWeb("/home/settings?tab=Billing")} />
+      </View>
+    ) : null;
   const partnerPlan = parcels.length > 0;
   const selfPickup = plan?.kind === "self_pickup";
   const toSend = ["paid", "processing", "packed"].includes(order.status) && sellerSends && !partnerPlan && !selfPickup;
@@ -274,14 +284,15 @@ export default function OrderScreen() {
         if (parcel.exception === "declined") {
           return (
             <Banner key={`x-${parcel.shipmentKey}`} tone="warn" title={t("order2.declinedTitle", { name })}>
-              {t("order2.declinedBody", { reason: parcel.job?.declineReason || t("decline.none") })}
+              <T style={{ fontSize: 14, lineHeight: 20, color: colors.ink }}>{t("order2.declinedBody", { reason: parcel.job?.declineReason || t("decline.none") })}</T>
+              {lockNote(parcel.exception)}
             </Banner>
           );
         }
         if (parcel.exception) {
           return (
             <Banner key={`x-${parcel.shipmentKey}`} tone="warn" title={t.dynamic(`exception.${parcel.exception}`, parcel.exception)}>
-              {parcel.canReassign ? t("order2.reassignBody") : parcel.job?.failedReason || t.dynamic(`exception.${parcel.exception}`, parcel.exception)}
+              {lockNote(parcel.exception) ?? (parcel.canReassign ? t("order2.reassignBody") : parcel.job?.failedReason || t.dynamic(`exception.${parcel.exception}`, parcel.exception))}
             </Banner>
           );
         }

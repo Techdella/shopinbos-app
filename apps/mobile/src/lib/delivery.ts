@@ -80,6 +80,8 @@ export interface DeliveryHub {
   connections: Connection[];
   privateCards: PrivateCard[];
   exceptions: DeliveryException[];
+  /** The exceptions inbox comes with a higher plan: the words to show (exceptions is then empty), else null. */
+  exceptionsLocked?: string | null;
 }
 
 export const fetchDeliveryHub = () => api<DeliveryHub>("/api/mobile/delivery");
@@ -207,6 +209,8 @@ export interface OrderDelivery {
   plan: { kind: string; pod: boolean } | null;
   timeline?: TimelineStepData[] | null;
   parcels: Parcel[];
+  /** Sending a parcel to another partner comes with a higher plan: the words to show, else null. */
+  reassignLocked?: string | null;
 }
 
 export const fetchOrderDelivery = (orderId: string) => api<OrderDelivery>(`/api/mobile/delivery/orders/${encodeURIComponent(orderId)}`);

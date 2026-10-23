@@ -129,6 +129,7 @@ const en = {
   "order2.declinedTitle": "{name} can’t take this one",
   "order2.declinedBody": "Reason: {reason}. Send it to another partner you’re connected to.",
   "order2.reassignBody": "Send it to another partner you’re connected to.",
+  "order2.seePlans": "See plans",
   "order2.comingTitle": "{name} is coming to pick up",
   "order2.handover": "Only hand it over if the rider gives you this code:",
   "order2.handoverNoCode": "Hand it over when their rider arrives.",

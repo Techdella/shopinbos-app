@@ -128,6 +128,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "order2.declinedTitle": "{name} no fit carry this one",
   "order2.declinedBody": "Reason: {reason}. Send am to another partner wey you don connect with.",
   "order2.reassignBody": "Send am to another partner wey you don connect with.",
+  "order2.seePlans": "See plans",
   "order2.comingTitle": "{name} dey come carry am",
   "order2.handover": "Only hand am over if the rider give you this code:",
   "order2.handoverNoCode": "Hand am over when their rider reach.",

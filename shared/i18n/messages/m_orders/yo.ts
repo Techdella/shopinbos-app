@@ -128,6 +128,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "order2.declinedTitle": "{name} kò lè gbé èyí",
   "order2.declinedBody": "Ìdí: {reason}. Fi ránṣẹ́ sí partner mìíràn tí o so mọ́.",
   "order2.reassignBody": "Fi ránṣẹ́ sí partner mìíràn tí o so mọ́.",
+  "order2.seePlans": "Wo àwọn plan",
   "order2.comingTitle": "{name} ń bọ̀ wá gbé e",
   "order2.handover": "Fi lé e lọ́wọ́ nìkan tí rider bá fún ọ ní kóòdù yìí:",
   "order2.handoverNoCode": "Fi lé e lọ́wọ́ nígbà tí rider wọn bá dé.",

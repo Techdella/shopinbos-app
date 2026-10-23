@@ -128,6 +128,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "order2.declinedTitle": "{name} ba zai iya ɗaukar wannan ba",
   "order2.declinedBody": "Dalili: {reason}. Aika wa wani abokin isar da kaya da kake haɗe da shi.",
   "order2.reassignBody": "Aika wa wani abokin isar da kaya da kake haɗe da shi.",
+  "order2.seePlans": "Duba tsare-tsare",
   "order2.comingTitle": "{name} na zuwa ɗaukar kaya",
   "order2.handover": "Ka miƙa shi kawai idan rider ya ba ka wannan code:",
   "order2.handoverNoCode": "Ka miƙa shi idan rider ɗinsu ya iso.",
