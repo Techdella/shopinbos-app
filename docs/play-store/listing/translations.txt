@@ -1,0 +1,234 @@
+Shopinbos store listing translations
+Source language: English (en-US). Each block below is one language, with the app name, short description and full description.
+
+==================================================
+Language: French (France) – fr-FR
+==================================================
+
+App name:
+Shopinbos
+
+Short description:
+Créez votre boutique en ligne avec l'IA, vendez, encaissez et livrez facilement
+
+Full description:
+Commencez simplement, vendez plus intelligemment.
+
+Shopinbos aide les entreprises africaines à vendre en ligne, depuis une seule application sur votre téléphone.
+
+Discutez avec Rex, notre créateur de boutique IA, et votre boutique en ligne est prête en quelques minutes. Prenez en photo ce que vous vendez et Rex rédige pour vous les noms, les descriptions et les prix des produits. Rien n'est en ligne tant que vous n'appuyez pas sur Publier.
+
+L'application est disponible en anglais, pidgin, yoruba, haoussa et igbo, et vous pouvez appuyer sur le micro pour parler au lieu de taper.
+
+CRÉEZ VOTRE BOUTIQUE
+• Discutez avec Rex pour définir votre marque : nom, couleurs et style
+• Ajoutez des produits à partir de photos, depuis l'appareil photo ou la galerie
+• Partagez le lien et l'affiche QR de votre boutique sur WhatsApp, Instagram et Facebook
+
+VENDEZ ET RÉPONDEZ À VOS CLIENTS
+• Une seule boîte de réception pour toutes vos discussions clients, avec réponses, notes, rappel et classement
+• Peggy, votre assistante IA, répond à vos clients à partir de vos produits, prix et conditions
+• Enregistrez les ventes faites en personne, pour avoir toutes vos ventes au même endroit
+• Recueillez des avis et partagez votre lien d'avis
+
+ENCAISSEZ
+• Vos clients paient par carte ou virement bancaire, via Paystack
+• Envoyez des liens de paiement et des factures
+• L'argent arrive directement sur votre compte bancaire. Shopinbos ne détient jamais votre argent
+• Suivez vos paiements dans votre portefeuille Shopinbos
+
+LIVREZ VOS COMMANDES
+• Trouvez des sociétés de livraison près de chez vous et comparez leurs tarifs
+• Réservez des livreurs et suivez chaque livraison
+• Marquez les commandes comme payées, envoyées et livrées, et appelez ou écrivez à l'acheteur sur WhatsApp
+
+TROUVEZ DES PRODUITS À VENDRE
+• Découvrez des produits de fournisseurs au Nigeria et à l'étranger
+• Voyez le coût, votre prix de vente et ce que vous gardez
+• Faites du dropshipping ou achetez en gros, et demandez des devis aux fournisseurs
+
+DÉVELOPPEZ VOTRE ACTIVITÉ
+• Codes de réduction, campagnes e-mail et conseils marketing
+• Les tâches quotidiennes de Peggy vous montrent quoi faire ensuite
+• Apprenez au fil de l'eau avec de courts conseils et vidéos
+
+POUR LES FOURNISSEURS ET LES PARTENAIRES DE LIVRAISON
+Les fournisseurs peuvent publier des produits, répondre aux demandes de devis et traiter les commandes des vendeurs. Les sociétés de livraison et les livreurs peuvent recevoir des missions, partager leur position en direct pendant une livraison et être payés.
+
+Shopinbos est fait pour les petites entreprises, les commerçants des marchés, les vendeurs en ligne et les marques en croissance qui veulent vendre plus, sans stress.
+
+Besoin d'aide ? Écrivez-nous depuis l'application ou à support@shopinbos.com.
+
+==================================================
+Language: Portuguese (Portugal) – pt-PT
+==================================================
+
+App name:
+Shopinbos
+
+Short description:
+Crie a sua loja online com IA, venda, receba pagamentos e entregue encomendas
+
+Full description:
+Comece fácil, venda melhor.
+
+O Shopinbos ajuda empresas africanas a vender online, a partir de uma só aplicação no seu telemóvel.
+
+Converse com o Rex, o nosso criador de lojas com IA, e a sua loja online fica pronta em poucos minutos. Tire fotografias ao que vende e o Rex escreve por si os nomes, as descrições e os preços dos produtos. Nada fica visível até carregar em Publicar.
+
+A aplicação está disponível em inglês, pidgin, iorubá, hauçá e igbo, e pode tocar no microfone para falar em vez de escrever.
+
+CRIE A SUA LOJA
+• Converse com o Rex para definir a sua marca: nome, cores e estilo
+• Adicione produtos a partir de fotografias, da câmara ou da galeria
+• Partilhe o link e o cartaz QR da sua loja no WhatsApp, Instagram e Facebook
+
+VENDA E RESPONDA AOS CLIENTES
+• Uma só caixa de entrada para todas as conversas com clientes, com respostas, notas, adiar e concluir
+• A Peggy, a sua assistente com IA, responde aos clientes com base nos seus produtos, preços e políticas
+• Registe as vendas feitas pessoalmente, para ter todas as vendas num só lugar
+• Recolha avaliações e partilhe o seu link de avaliações
+
+RECEBA PAGAMENTOS
+• Os clientes pagam com cartão ou transferência bancária, processados pela Paystack
+• Envie links de pagamento e faturas
+• O dinheiro vai diretamente para a sua conta bancária. O Shopinbos nunca guarda o seu dinheiro
+• Veja o que recebeu na sua Carteira Shopinbos
+
+ENTREGUE ENCOMENDAS
+• Encontre empresas de entregas perto de si e compare preços
+• Reserve estafetas e acompanhe cada entrega
+• Marque encomendas como pagas, enviadas e entregues, e ligue ou envie WhatsApp ao comprador
+
+ENCONTRE PRODUTOS PARA VENDER
+• Descubra produtos de fornecedores na Nigéria e no estrangeiro
+• Veja o custo, o seu preço de venda e quanto ganha
+• Faça dropshipping ou compre por grosso, e peça orçamentos aos fornecedores
+
+CRESÇA
+• Códigos de desconto, campanhas de e-mail e dicas de marketing
+• As tarefas diárias da Peggy mostram o que fazer a seguir
+• Aprenda pelo caminho com dicas e vídeos curtos
+
+PARA FORNECEDORES E PARCEIROS DE ENTREGAS
+Os fornecedores podem publicar produtos, responder a pedidos de orçamento e tratar encomendas de vendedores. As empresas de entregas e os estafetas podem receber trabalhos, partilhar a localização em tempo real durante uma entrega e ser pagos.
+
+O Shopinbos é para pequenas empresas, comerciantes de mercado, vendedores online e marcas em crescimento que querem vender mais sem stress.
+
+Precisa de ajuda? Envie-nos uma mensagem na aplicação ou um e-mail para support@shopinbos.com.
+
+==================================================
+Language: Swahili – sw
+==================================================
+
+App name:
+Shopinbos
+
+Short description:
+Jenga duka lako la mtandaoni kwa AI, uza, pokea malipo na fikisha oda
+
+Full description:
+Anza kwa urahisi, uza kwa ustadi.
+
+Shopinbos inasaidia biashara za Kiafrika kuuza mtandaoni, kupitia programu moja kwenye simu yako.
+
+Ongea na Rex, mjenzi wetu wa maduka kwa AI, na duka lako la mtandaoni litakuwa tayari ndani ya dakika chache. Piga picha za bidhaa unazouza na Rex atakuandikia majina, maelezo na bei za bidhaa. Hakuna kinachoonekana hadi ubonyeze Chapisha.
+
+Programu inapatikana kwa Kiingereza, Pidgin, Kiyoruba, Kihausa na Kiigbo, na unaweza kubonyeza maikrofoni kuongea badala ya kuandika.
+
+JENGA DUKA LAKO
+• Ongea na Rex kuchagua chapa yako: jina, rangi na mwonekano
+• Ongeza bidhaa kutoka kwa picha, moja kwa moja kutoka kamera au albamu
+• Shiriki kiungo cha duka lako na bango la QR kwenye WhatsApp, Instagram na Facebook
+
+UZA NA UJIBU WATEJA
+• Kikasha kimoja kwa mazungumzo yote ya wateja, na majibu, maelezo, kuahirisha na kumaliza
+• Peggy, msaidizi wako wa AI, anajibu wateja kwa kutumia bidhaa, bei na sera zako
+• Rekodi mauzo unayofanya ana kwa ana, ili mauzo yako yote yawe sehemu moja
+• Kusanya maoni ya wateja na shiriki kiungo chako cha maoni
+
+POKEA MALIPO
+• Wateja hulipa kwa kadi au uhamisho wa benki, kupitia Paystack
+• Tuma viungo vya malipo na ankara
+• Pesa zinaingia moja kwa moja kwenye akaunti yako ya benki. Shopinbos haishikilii pesa zako kamwe
+• Angalia malipo uliyopokea kwenye Pochi yako ya Shopinbos
+
+FIKISHA ODA
+• Tafuta kampuni za usafirishaji karibu nawe na ulinganishe bei zao
+• Weka nafasi ya wasafirishaji na ufuatilie kila usafirishaji
+• Weka alama oda kuwa zimelipwa, zimetumwa na zimefika, na mpigie mnunuzi au mtumie WhatsApp
+
+TAFUTA BIDHAA ZA KUUZA
+• Gundua bidhaa kutoka kwa wasambazaji nchini Nigeria na nje ya nchi
+• Ona gharama, bei yako ya kuuza na faida unayobaki nayo
+• Fanya dropshipping au nunua kwa jumla, na uombe nukuu za bei kutoka kwa wasambazaji
+
+KUA
+• Misimbo ya punguzo, kampeni za barua pepe na vidokezo vya masoko
+• Kazi za kila siku za Peggy zinakuonyesha cha kufanya baadaye
+• Jifunze unapoendelea kwa vidokezo na video fupi
+
+KWA WASAMBAZAJI NA WASHIRIKA WA USAFIRISHAJI
+Wasambazaji wanaweza kuweka bidhaa, kujibu maombi ya nukuu na kushughulikia oda kutoka kwa wauzaji. Kampuni za usafirishaji na wasafirishaji wanaweza kupata kazi, kushiriki mahali walipo wakati wa usafirishaji na kulipwa.
+
+Shopinbos ni kwa biashara ndogo, wafanyabiashara wa sokoni, wauzaji wa mtandaoni na chapa zinazokua wanaotaka kuuza zaidi bila usumbufu.
+
+Unahitaji msaada? Tutumie ujumbe kupitia programu, au barua pepe kwa support@shopinbos.com.
+
+==================================================
+Language: Arabic – ar
+==================================================
+
+App name:
+Shopinbos
+
+Short description:
+أنشئ متجرك الإلكتروني بالذكاء الاصطناعي، وبِع واستلم المدفوعات ووصّل الطلبات
+
+Full description:
+ابدأ بسهولة، وبِع بذكاء.
+
+يساعد Shopinbos الشركات الأفريقية على البيع عبر الإنترنت، من تطبيق واحد على هاتفك.
+
+تحدّث مع Rex، منشئ المتاجر بالذكاء الاصطناعي، ويصبح متجرك الإلكتروني جاهزًا خلال دقائق. التقط صورًا لما تبيعه وسيكتب Rex لك أسماء المنتجات وأوصافها وأسعارها. لن يظهر أي شيء للمتسوقين حتى تضغط على "نشر".
+
+التطبيق متوفر بالإنجليزية والبيدجن واليوروبا والهوسا والإيغبو، ويمكنك الضغط على الميكروفون للتحدث بدلًا من الكتابة.
+
+أنشئ متجرك
+• تحدّث مع Rex لتحديد علامتك التجارية: الاسم والألوان والمظهر
+• أضف المنتجات من الصور، مباشرة من الكاميرا أو المعرض
+• شارك رابط متجرك وملصق رمز QR على واتساب وإنستغرام وفيسبوك
+
+بِع وردّ على العملاء
+• صندوق وارد واحد لكل محادثات العملاء، مع الردود والملاحظات والتأجيل والإنهاء
+• Peggy، مساعدتك بالذكاء الاصطناعي، ترد على العملاء بناءً على منتجاتك وأسعارك وسياساتك
+• سجّل المبيعات التي تتم وجهًا لوجه، لتكون كل مبيعاتك في مكان واحد
+• اجمع التقييمات وشارك رابط التقييمات الخاص بك
+
+استلم المدفوعات
+• يدفع العملاء بالبطاقة أو التحويل البنكي، عبر Paystack
+• أرسل روابط الدفع والفواتير
+• تصل الأموال مباشرة إلى حسابك البنكي. لا يحتفظ Shopinbos بأموالك أبدًا
+• تابع ما استلمته في محفظة Shopinbos
+
+وصّل الطلبات
+• ابحث عن شركات توصيل قريبة منك وقارن أسعارها
+• احجز مندوبي التوصيل وتابع كل عملية توصيل
+• حدّد الطلبات كمدفوعة ومرسلة وتم توصيلها، واتصل بالمشتري أو راسله على واتساب
+
+ابحث عن منتجات للبيع
+• اكتشف منتجات من موردين في نيجيريا وخارجها
+• اطّلع على التكلفة وسعر البيع وما تحتفظ به من ربح
+• بِع بنظام الدروبشيبينغ أو اشترِ بالجملة، واطلب عروض أسعار من الموردين
+
+نمِّ عملك
+• رموز الخصم وحملات البريد الإلكتروني ونصائح التسويق
+• مهام Peggy اليومية توضّح لك ما يجب فعله بعد ذلك
+• تعلّم أثناء العمل من خلال نصائح ومقاطع فيديو قصيرة
+
+للموردين وشركاء التوصيل
+يمكن للموردين عرض المنتجات والرد على طلبات عروض الأسعار وتنفيذ طلبات البائعين. ويمكن لشركات التوصيل والمندوبين استلام المهام ومشاركة موقعهم المباشر أثناء التوصيل والحصول على أجرهم.
+
+Shopinbos مصمم للشركات الصغيرة وتجار الأسواق والبائعين عبر الإنترنت والعلامات التجارية النامية الذين يريدون بيع المزيد دون عناء.
+
+هل تحتاج إلى مساعدة؟ راسلنا من داخل التطبيق، أو عبر البريد الإلكتروني support@shopinbos.com.
