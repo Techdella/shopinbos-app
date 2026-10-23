@@ -6,6 +6,7 @@ import { db } from "@/lib/db/client";
 import { readBusinessAddress } from "@/lib/email/shell";
 import { mergeBrandSettings } from "@/lib/workspace";
 import { cleanBusinessAddress, type BusinessAddressKey, type ProfilePatch } from "@/lib/seller-settings-rules";
+import { PhoneTakenError, phoneOwner } from "@/lib/auth/phone-owner.server";
 
 // A seller's shop basics, shared by the /home/settings server actions (web) and /api/app/settings/profile (phone app).
 
@@ -88,6 +89,8 @@ export async function saveSellerProfile(userId: string, patch: ProfilePatch) {
     if (!(await saveSellerBusinessAddress(userId, fields))) return false;
   }
   if (me && (me.name !== undefined || me.phone !== undefined)) {
+    // One account per phone number (src/lib/auth/phone-owner.server.ts).
+    if (me.phone && (await phoneOwner(me.phone, userId))) throw new PhoneTakenError();
     await db.user.update({ where: { id: userId }, data: { ...(me.name !== undefined ? { name: me.name } : {}), ...(me.phone !== undefined ? { phone: me.phone } : {}) } });
   }
   return true;

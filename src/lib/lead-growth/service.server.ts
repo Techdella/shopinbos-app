@@ -25,6 +25,7 @@ import {
 } from "./pure";
 import { leadEmail, sendToLead, type SendOutcome } from "./send.server";
 import { metaWhatsAppConfig } from "./whatsapp-meta.server";
+import { SPACING, nextSendingTime } from "@/lib/member-messaging/spacing";
 
 // Lead growth: one-off campaigns and step-by-step automations that turn website leads into Shopinbos accounts.
 // Runs from Admin › Lead campaigns ("Send now") and /api/cron/lead-growth (scheduled campaigns, automation steps,
@@ -364,6 +365,14 @@ export async function runDueSteps(deadline: number) {
         if (stop || !step) {
           await db.leadEnrollment.updateMany({ where: { id: enrollment.id, step: enrollment.step }, data: stop ? { status: "stopped", stopReason: stop } : { status: "done" } });
           finished += 1;
+          continue;
+        }
+        // Spacing: at most one message a day per lead (an email and its WhatsApp used to land an hour apart). Too
+        // soon after the last one: this step waits until the next allowed moment in sending hours.
+        const lastSent = await db.leadMessage.findFirst({ where: { leadId: lead.id, status: "sent" }, orderBy: { sentAt: "desc" }, select: { sentAt: true } });
+        const earliest = lastSent?.sentAt ? nextSendingTime(new Date(lastSent.sentAt.getTime() + SPACING.anyGapHours * 3_600_000)) : nextSendingTime(new Date());
+        if (earliest.getTime() > Date.now()) {
+          await db.leadEnrollment.updateMany({ where: { id: enrollment.id, step: enrollment.step, status: "active" }, data: { nextAt: earliest } });
           continue;
         }
         // Advance first (only the run that moves it from this step sends it), then claim the message row.

@@ -7,6 +7,7 @@ import { personaSender } from "@/lib/email/looks";
 import { formatFromAddress } from "@/lib/notifications/resend";
 import { supportInbox } from "@/lib/support/email.server";
 import { proverbOfWeek } from "@shared/proverbs";
+import { canContactMember } from "./spacing.server";
 import { metaTemplates, metaWhatsAppConfig, sendMetaTemplate } from "@/lib/lead-growth/whatsapp-meta.server";
 import { MEMBER_TEMPLATES, memberTemplateImageUrl } from "./whatsapp-templates";
 import { TIPS, type Tip, type TipRole } from "./tips-library";
@@ -155,7 +156,7 @@ export async function personalLine(userId: string, role: TipRole) {
 type Candidate = { id: string; name: string | null; email: string | null; phone: string | null; role: string };
 
 /** People due this week's tip on this channel who haven't been claimed yet. */
-async function candidates(channel: TipChannel, period: string, take: number): Promise<Candidate[]> {
+async function candidates(channel: TipChannel, period: string, take: number, waiting: string[] = []): Promise<Candidate[]> {
   const kind = KIND[channel];
   const joinedBefore = new Date(Date.now() - NEW_ACCOUNT_DAYS * DAY);
   const contact = channel === "email" ? Prisma.sql`u."email" IS NOT NULL AND u."email" <> ''` : Prisma.sql`u."phone" IS NOT NULL AND length(u."phone") >= 10`;
@@ -167,6 +168,7 @@ async function candidates(channel: TipChannel, period: string, take: number): Pr
       AND u."createdAt" < ${joinedBefore}
       AND ${contact}
       AND NOT EXISTS (SELECT 1 FROM "MemberMessage" m WHERE m."userId" = u."id" AND m."kind" = ${kind} AND m."period" = ${period})
+      AND NOT (u."id" = ANY(${waiting}::text[]))
     ORDER BY u."createdAt" ASC
     LIMIT ${take}`;
 }
@@ -202,10 +204,10 @@ async function approvedTipTemplates() {
   return { config, approved: new Set(list.templates.filter((t) => t.status === "APPROVED").map((t) => t.name)) };
 }
 
-export type TipRunResult = { channel: TipChannel; due: boolean; enabled: boolean; sent: number; failed: number; skipped: number; note?: string };
+export type TipRunResult = { channel: TipChannel; due: boolean; enabled: boolean; sent: number; failed: number; skipped: number; waiting: number; note?: string };
 
 async function runChannel(channel: TipChannel, now: Date, deadline: number): Promise<TipRunResult> {
-  const result: TipRunResult = { channel, due: tipDue(channel, now), enabled: false, sent: 0, failed: 0, skipped: 0 };
+  const result: TipRunResult = { channel, due: tipDue(channel, now), enabled: false, sent: 0, failed: 0, skipped: 0, waiting: 0 };
   result.enabled = (await tipSettings())[channel];
   if (!result.due || !result.enabled) return result;
   const period = tipWeek(now);
@@ -215,11 +217,18 @@ async function runChannel(channel: TipChannel, now: Date, deadline: number): Pro
   const products = channel === "email" ? await topProducts() : [];
   const categories = channel === "email" ? await topCategories() : [];
 
+  // People who heard from us too recently (spacing.ts) wait: a later run this week sends their tip.
+  const waiting: string[] = [];
   while (Date.now() < deadline) {
-    const batch = await candidates(channel, period, 100);
+    const batch = await candidates(channel, period, 100, waiting);
     if (!batch.length) break;
     for (const person of batch) {
       if (Date.now() >= deadline) break;
+      if (!(await canContactMember(person.id, channel, now)).ok) {
+        waiting.push(person.id);
+        result.waiting++;
+        continue;
+      }
       const role = person.role as TipRole;
       const tip = nextTip(TIPS, role, await historyFor(person.id));
       if (!tip) continue;

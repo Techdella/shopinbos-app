@@ -70,3 +70,12 @@ export function isValidEmail(value: string) {
 
 export const OTP_LENGTH = 6;
 export const OTP_RESEND_SECONDS = 45;
+
+/**
+ * The key two phone numbers are compared by: the last 10 digits ("+234 803 123 4567", "08031234567" and
+ * "2348031234567" are the same number). Null when there aren't 10 digits. One account per number uses it.
+ */
+export function phoneKey(phone: string | null | undefined): string | null {
+  const digits = (phone ?? "").replace(/\D/g, "");
+  return digits.length >= 10 ? digits.slice(-10) : null;
+}

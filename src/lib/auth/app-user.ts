@@ -6,6 +6,7 @@ import { db } from "@/lib/db/client";
 import { slugify } from "@/lib/workspace";
 import { getSupabaseServiceClient } from "@/lib/supabase/server";
 import { decideAccountRole, metadataNeedsAlign } from "@/lib/auth/role-rules";
+import { phoneOwner } from "@/lib/auth/phone-owner.server";
 
 type AppUserInput = {
   supabaseId: string;
@@ -95,7 +96,13 @@ export async function ensureAppUserForSupabaseUser(input: AppUserInput) {
   // on the supplier page stays a seller and keeps their shop; only an approved admin invite can become admin.
   const role = decideAccountRole({ existingRole: existingUser?.role, requestedRole, canUseAdminRole });
 
-  const phone = input.phone?.trim() || undefined;
+  // One account per phone number: a number another account already has isn't linked to this one (the sign-up
+  // screens refuse it first; this covers the paths that don't ask, like a number saved in the login's metadata).
+  let phone = input.phone?.trim() || undefined;
+  if (phone) {
+    const owner = await phoneOwner(phone, existingUser?.id ?? null).catch(() => null);
+    if (owner && owner.supabaseId !== input.supabaseId) phone = undefined;
+  }
 
   const user = await db.user.upsert({
     where: { supabaseId: input.supabaseId },
