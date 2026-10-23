@@ -149,6 +149,13 @@ export const nairaFromKobo = (kobo: number) => `₦${(kobo / 100).toLocaleString
 
 // ─── Prepaid wallet balance (GET /api/app/wallet; src/lib/wallet/balance.server.ts on the server) ───
 
+/**
+ * The prepaid balance (Top up, Withdraw) shows in the app only when EXPO_PUBLIC_PREPAID_BALANCE=true. Google Play
+ * counts a stored balance as a digital wallet, a financial feature only organization developer accounts may ship,
+ * so store builds leave it off until the app moves to one. The balance stays on the web app (/home/wallet).
+ */
+export const PREPAID_BALANCE_IN_APP = process.env.EXPO_PUBLIC_PREPAID_BALANCE === "true";
+
 export interface WalletBalance {
   ready: boolean;
   balanceNaira: number;
