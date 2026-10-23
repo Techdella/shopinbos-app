@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { cx } from "@/components/app-ui/cx";
+import { Mascot, cx } from "@/components/app-ui";
 import { PEGGY_AUTO_CHANNELS, PEGGY_CHANNEL_LABEL, PEGGY_DAILY_LIMIT, type PeggyAutoChannel } from "@/lib/support/peggy-pure";
 
 // Admin › Inbox: which new messages Peggy answers by herself. Off by default; the team can always draft with her.
@@ -29,7 +29,7 @@ export function PeggyAutoReply({ initial, aiReady }: { initial: PeggyAutoChannel
 
   return (
     <section aria-label="Peggy" className="mb-5 flex flex-wrap items-center gap-x-4 gap-y-3 rounded-[22px] border border-app-line bg-[#EEF7F5] p-4 sm:p-5">
-      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-app-forest text-[15px] font-extrabold text-white" aria-hidden>P</span>
+      <Mascot name="peggy" className="h-10 w-10 shrink-0" alt="" />
       <div className="min-w-0 flex-1 basis-[260px]">
         <div className="text-[15px] font-extrabold">Peggy answers for the team</div>
         <p className="m-0 text-[13px] leading-[1.45] text-app-ink-soft">

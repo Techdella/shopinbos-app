@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
-import { cx } from "@/components/app-ui/cx";
+import { Mascot, cx } from "@/components/app-ui";
 import {
   MAX_ATTACHMENTS,
   PRIORITIES,
@@ -340,7 +340,7 @@ function Composer({ ticket, macros, me, now }: { ticket: DeskTicket; macros: Des
       <div className="p-4 sm:p-5">
         {mode === "reply" && (
           <div className="mb-3 flex flex-wrap items-center gap-2 rounded-[16px] bg-[#EEF7F5] p-2.5">
-            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-app-forest text-[13px] font-extrabold text-white" aria-hidden>P</span>
+            <Mascot name="peggy" className="h-8 w-8 shrink-0" alt="" />
             <label className="sr-only" htmlFor="peggy-ask">What should Peggy say? (optional)</label>
             <input
               id="peggy-ask"

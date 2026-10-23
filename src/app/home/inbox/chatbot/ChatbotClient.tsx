@@ -55,7 +55,9 @@ export function ChatbotClient({ initial, hoursOn, ready, aiAvailable, widgetOn, 
   const [testError, setTestError] = useState<string | null>(null);
   const end = useRef<HTMLDivElement>(null);
 
-  useEffect(() => end.current?.scrollIntoView({ block: "nearest" }), [turns.length, asking]);
+  useEffect(() => {
+    end.current?.scrollIntoView({ block: "nearest" });
+  }, [turns.length, asking]);
 
   async function save() {
     setSaving(true);

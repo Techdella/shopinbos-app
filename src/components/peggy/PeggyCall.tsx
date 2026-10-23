@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ConversationProvider, useConversation } from "@elevenlabs/react";
-import { cx } from "@/components/app-ui/cx";
+import { Mascot, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 
 // "Call Peggy": a free voice call with Peggy (ElevenLabs) for setup help. Signed in on the web it asks
@@ -20,19 +20,32 @@ export function PeggyCall(props: { token?: string; size?: "lg" | "md"; className
 
 function Call({ token, size = "lg", className }: { token?: string; size?: "lg" | "md"; className?: string }) {
   const [error, setError] = useState<string | null>(null);
+  // True from the tap until ElevenLabs connects or fails (the SDK's own status only starts once we have a link).
   const [connecting, setConnecting] = useState(false);
+  const timer = useRef<number | undefined>(undefined);
+  const stopWaiting = () => {
+    window.clearTimeout(timer.current);
+    setConnecting(false);
+  };
   const conversation = useConversation({
-    onError: (message: unknown) => setError(typeof message === "string" ? message : "The call dropped. Try again."),
-    onDisconnect: () => setConnecting(false),
-    onConnect: () => setConnecting(false),
+    // A call that fails to start only reports onError (no onDisconnect), so stop waiting here too.
+    onError: (message: unknown) => {
+      stopWaiting();
+      setError(typeof message === "string" && message ? `The call didn't go through (${message}). Try again, or chat with Peggy instead.` : "The call dropped. Try again.");
+    },
+    onDisconnect: stopWaiting,
+    onConnect: stopWaiting,
   });
   const live = conversation.status === "connected";
+  useEffect(() => () => window.clearTimeout(timer.current), []);
 
   const start = async () => {
     setError(null);
     setConnecting(true);
     try {
-      await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Ask for the microphone up front (the SDK opens its own stream), then let this one go.
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach((track) => track.stop());
     } catch {
       setConnecting(false);
       setError("Allow the microphone so Peggy can hear you, then tap Call again.");
@@ -45,7 +58,14 @@ function Call({ token, size = "lg", className }: { token?: string; size?: "lg" |
       setError(json?.error?.message ?? "Couldn't reach Peggy just now. Try again.");
       return;
     }
-    conversation.startSession({ signedUrl: json.data.signedUrl, dynamicVariables: json.data.dynamicVariables });
+    // Never leave "Calling Peggy…" up forever: give up after 25 seconds without a connection.
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => {
+      conversation.endSession();
+      setConnecting(false);
+      setError("Peggy didn't pick up. Check your connection and try again, or chat with her instead.");
+    }, 25_000);
+    conversation.startSession({ signedUrl: json.data.signedUrl, connectionType: "websocket", dynamicVariables: json.data.dynamicVariables });
   };
 
   if (live || connecting) {
@@ -53,7 +73,7 @@ function Call({ token, size = "lg", className }: { token?: string; size?: "lg" |
       <div className={cx("flex flex-wrap items-center gap-4 rounded-[22px] bg-app-forest p-4 text-white", className)} role="status" aria-live="polite">
         <span className="relative grid h-14 w-14 shrink-0 place-items-center">
           <span className={cx("absolute inset-0 rounded-full bg-white/25", conversation.isSpeaking && "animate-ping")} aria-hidden />
-          <span className="relative grid h-12 w-12 place-items-center rounded-full bg-white text-[18px] font-extrabold text-app-forest" aria-hidden>P</span>
+          <span className="relative block h-12 w-12 overflow-hidden rounded-full bg-white p-1"><Mascot name="peggy" className="h-full w-full" alt="" /></span>
         </span>
         <div className="min-w-0 flex-1">
           <div className="text-[16px] font-extrabold">{connecting && !live ? "Calling Peggy…" : conversation.isSpeaking ? "Peggy is speaking" : "Peggy is listening"}</div>
@@ -64,7 +84,7 @@ function Call({ token, size = "lg", className }: { token?: string; size?: "lg" |
             {conversation.isMuted ? "Unmute" : "Mute"}
           </button>
         )}
-        <button type="button" onClick={() => { conversation.endSession(); setConnecting(false); }} className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-[#E86A4F] px-5 text-[14px] font-extrabold">
+        <button type="button" onClick={() => { conversation.endSession(); stopWaiting(); }} className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-[#E86A4F] px-5 text-[14px] font-extrabold">
           <Icon name="x" size={15} /> End call
         </button>
       </div>

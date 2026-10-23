@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Mascot } from "@/components/app-ui";
 import { PeggyCall } from "@/components/peggy/PeggyCall";
 
 export const metadata: Metadata = { title: "Call Peggy · Shopinbos", robots: { index: false } };
@@ -10,7 +11,7 @@ export default async function CallPeggyPage(props: { searchParams?: Promise<{ t?
   return (
     <main className="grid min-h-[100dvh] place-items-center bg-[#0E2A38] px-4 py-10 font-app text-white">
       <div className="w-full max-w-[420px] text-center">
-        <div className="mx-auto grid h-24 w-24 place-items-center rounded-full bg-[#73D8C8] text-[40px] font-extrabold text-[#0E2A38]" aria-hidden>P</div>
+        <span className="mx-auto block h-24 w-24 overflow-hidden rounded-full bg-[#73D8C8] p-2"><Mascot name="peggy" mood="wave" className="h-full w-full" alt="" /></span>
         <h1 className="mb-1 mt-5 text-[28px] font-extrabold tracking-[-0.02em]">Call Peggy</h1>
         <p className="m-0 text-[15px] leading-[1.5] text-white/80">Peggy is Shopinbos&apos;s AI customer support. She&apos;ll talk you through getting set up, step by step. The call is free.</p>
         {token ? (
