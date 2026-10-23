@@ -15,11 +15,12 @@ const body = z.string().trim().min(1, "Write a message first").max(4000);
 const BodySchema = z.discriminatedUnion("channel", [
   z.object({ key, channel: z.literal("email"), subject: z.string().trim().max(200).optional().nullable(), body }).strict(),
   z.object({ key, channel: z.literal("whatsapp"), body }).strict(),
+  z.object({ key, channel: z.literal("sms"), body: z.string().trim().min(1, "Write a message first").max(918) }).strict(),
   z.object({ key, channel: z.literal("whatsapp_template"), templateId: z.string().trim().min(1).max(64), params: z.array(z.string().max(1000)).max(20).optional().nullable() }).strict(),
 ]);
 
-// POST /api/app/customers/message — one message to one customer from the customer drawer, by email or WhatsApp
-// (free text inside the 24-hour window, else an approved template). It is recorded in the customer's inbox
+// POST /api/app/customers/message — one message to one customer from the customer drawer, by email, WhatsApp
+// (free text inside the 24-hour window, else an approved template) or SMS (up to 6 text parts, 918 characters). It is recorded in the customer's inbox
 // conversation (created if there is none), so replies arrive in the same thread.
 export const POST = withSeller(async (req: NextRequest, { user }) => {
   const store = await sellerStore(user.id);
@@ -39,6 +40,8 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
         ? { channel: "email", subject: input.subject ?? null, body: input.body }
         : input.channel === "whatsapp"
           ? { channel: "whatsapp", body: input.body }
+          : input.channel === "sms"
+            ? { channel: "sms", body: input.body }
           : { channel: "whatsapp", templateId: input.templateId, params: input.params ?? null },
       user.name ?? "You",
     );

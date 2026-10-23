@@ -34,9 +34,9 @@ test("nothing technical for sellers: no technical-details folds, no pasted keys 
     "src/app/channels/page.tsx",
   ]) assert.doesNotMatch(read(file), /SetupHelpRequest|askUs|askTeam/, file);
 
-  // SMS and web phone calls are switched off for now, behind one switch each.
+  // SMS is on (Shopinbos's own SMS, counted against plan messages and packs); web phone calls are off. One switch each.
   const features = read("src/lib/features.ts");
-  assert.match(features, /export const SMS_ENABLED = false;/);
+  assert.match(features, /export const SMS_ENABLED = true;/);
   assert.match(features, /export const WEB_CALLS_ENABLED = false;/);
   assert.match(read("src/app/home/inbox/channels/ChannelsClient.tsx"), /\.\.\.\(SMS_ENABLED \? \(\["sms"\] as const\) : \[\]\), \.\.\.\(WEB_CALLS_ENABLED \? \(\["voice"\] as const\) : \[\]\)/);
   assert.match(read("src/app/home/messages/InboxThread.tsx"), /\{WEB_CALLS_ENABLED && \(\n\s+<button type="button" onClick=\{\(\) => setShowCall/);

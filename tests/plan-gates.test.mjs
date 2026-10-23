@@ -100,3 +100,14 @@ test("reassigning a delivery is refused without the exceptions inbox", () => {
   assert.match(jobs, /export async function reassignJob[\s\S]{0,250}exceptionsInboxProblem\(sellerId\)/);
   assert.match(jobs, /export async function reassignOptions[\s\S]{0,120}exceptionsInboxProblem\(sellerId\)/);
 });
+
+test("seller texts to customers are counted against the plan's messages and packs", () => {
+  // Every SMS a store sends to its customers goes through textSender (own account, else plan messages then packs).
+  assert.match(read("src/lib/marketing/channels.ts"), /spendPlatformMessage\(store\.id, "sms"\)[\s\S]{0,120}sendPlatformSms/);
+  const reviews = read("src/lib/reviews/requests.ts");
+  assert.doesNotMatch(reviews, /sendSms\(|sendWhatsAppMessage\(/);
+  assert.match(reviews, /\(await texts\(\)\)\.sms\(/);
+  const drawer = read("src/lib/customers/drawer.server.ts");
+  assert.match(drawer, /input\.channel === "sms"[\s\S]{0,900}sender\.sms\(phone, body\)/);
+  assert.match(read("src/lib/inbox/service.ts"), /textSender\(store\)\)\.sms\(to, body\)/);
+});

@@ -14,10 +14,11 @@ import { formatDate, formatMoney } from "@shared/i18n";
 import { renderTemplateText } from "@/lib/marketing/text-channels";
 import type { CustomerProfile } from "@/lib/customers/drawer.server";
 import { friendlyError } from "@/lib/errors/report-client";
+import { SMS_ENABLED } from "@/lib/features";
 
 // The customer drawer on /home/customers: a right-side panel (a full-screen sheet on phones) opened by
 // ?customer=<key>, so it can be linked and the back button closes it (&compose=email opens on the email composer).
-// Contact, shopping history, a one-to-one message box (email from the seller's connected address, or WhatsApp
+// Contact, shopping history, a one-to-one message box (email from the seller's connected address, SMS, or WhatsApp
 // inside the 24-hour window / with an approved template) that writes into the customer's Inbox conversation, their
 // orders, reviews and marketing tags and note. Email never opens the device mail app; it is written and sent in here.
 
@@ -173,7 +174,10 @@ function DrawerBody({ profile, reload }: { profile: CustomerProfile; reload: () 
   const money = (amount: number, currency = profile.currency) => formatMoney(Math.round(amount), locale, { currency: currency || "NGN" });
   const date = (iso: string) => formatDate(iso, locale);
   const s = profile.stats;
-  const [channel, setChannel] = useState<Channel>(params.get("compose") === "whatsapp" && profile.whatsapp.phone ? "whatsapp" : profile.email ? "email" : profile.whatsapp.phone ? "whatsapp" : "email");
+  const compose = params.get("compose");
+  const [channel, setChannel] = useState<Channel>(
+    (compose === "whatsapp" || (compose === "sms" && SMS_ENABLED)) && profile.whatsapp.phone ? (compose as Channel) : profile.email ? "email" : profile.whatsapp.phone ? "whatsapp" : "email",
+  );
   const composer = useRef<HTMLDivElement>(null);
 
   // The email address opens the in-app email composer (not the device's mail app): same drawer, same thread.
@@ -289,7 +293,15 @@ function DrawerBody({ profile, reload }: { profile: CustomerProfile; reload: () 
 
 // ─── Messaging ───────────────────────────────────────────────────────────────
 
-type Channel = "email" | "whatsapp";
+type Channel = "email" | "whatsapp" | "sms";
+
+/** Characters in one text: 160 plain (GSM), 70 with emoji or other special characters; longer texts go in parts. */
+function smsParts(text: string) {
+  const unicode = /[^\u0000-\u007f]/.test(text);
+  const single = unicode ? 70 : 160;
+  const part = unicode ? 67 : 153;
+  return text.length <= single ? 1 : Math.ceil(text.length / part);
+}
 
 function SetupNote({ children, href, action }: { children: ReactNode; href?: string; action?: string }) {
   return (
@@ -330,6 +342,7 @@ function MessageBox({ profile, reload, channel, setChannel }: { profile: Custome
   const detailLabel = useDetailLabel();
   const wa = profile.whatsapp;
   const mail = profile.emailChannel;
+  const sms = profile.sms;
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [useTemplate, setUseTemplate] = useState(wa.composer.mode === "template");
@@ -338,8 +351,8 @@ function MessageBox({ profile, reload, channel, setChannel }: { profile: Custome
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
 
-  const thread = channel === "email" ? mail.messages : wa.messages;
-  const conversationId = channel === "email" ? mail.conversationId : wa.conversationId;
+  const thread = channel === "email" ? mail.messages : channel === "sms" ? sms.messages : wa.messages;
+  const conversationId = channel === "email" ? mail.conversationId : channel === "sms" ? sms.conversationId : wa.conversationId;
   const template = wa.templates.find((tpl) => tpl.id === templateId) ?? wa.templates[0] ?? null;
   const values = template ? params[template.id] ?? template.variables.map((v) => v.value) : [];
   const filledPreview = template ? renderTemplateText(template.content, template.variables.map((v, i) => values[i]?.trim() || v.value)) : "";
@@ -347,7 +360,7 @@ function MessageBox({ profile, reload, channel, setChannel }: { profile: Custome
 
   const errorText = (error: ApiError) => {
     if (error.code === "SEND_FAILED") return t("chat.err.sendFailed", { reason: error.message });
-    if (error.code && ["NO_EMAIL", "NO_PHONE", "NOT_APPROVED", "OPTED_OUT", "NO_PICTURE", "RATE_LIMITED", "EMAIL_NOT_CONNECTED"].includes(error.code)) return t.dynamic(`chat.err.${error.code}`, error.message);
+    if (error.code && ["NO_EMAIL", "NO_PHONE", "NOT_APPROVED", "OPTED_OUT", "SMS_OPTED_OUT", "NO_PICTURE", "RATE_LIMITED", "EMAIL_NOT_CONNECTED"].includes(error.code)) return t.dynamic(`chat.err.${error.code}`, error.message);
     return error.message || t("chat.err.generic");
   };
 
@@ -358,6 +371,8 @@ function MessageBox({ profile, reload, channel, setChannel }: { profile: Custome
       const payload =
         channel === "email"
           ? { key: profile.key, channel: "email", subject: subject.trim() || null, body }
+          : channel === "sms"
+            ? { key: profile.key, channel: "sms", body }
           : templateMode && template
             ? { key: profile.key, channel: "whatsapp_template", templateId: template.id, params: values }
             : { key: profile.key, channel: "whatsapp", body };
@@ -391,6 +406,7 @@ function MessageBox({ profile, reload, channel, setChannel }: { profile: Custome
         options={[
           { value: "email", label: t("chat.email") },
           { value: "whatsapp", label: t("chat.whatsapp") },
+          ...(SMS_ENABLED ? [{ value: "sms" as const, label: t("chat.sms") }] : []),
         ]}
       />
 
@@ -430,6 +446,28 @@ function MessageBox({ profile, reload, channel, setChannel }: { profile: Custome
                 {t("chat.ownAddressNudge")} <Link href={mail.setupHref} className="font-bold text-app-accent-ink">{t("chat.ownAddressLink")}</Link>
               </p>
             )}
+            <PillButton size="sm" tone="ink" busy={busy} disabled={!body.trim()} onClick={() => void send()} className="justify-self-end">
+              <Icon name="send" size={14} /> {t("chat.send")}
+            </PillButton>
+          </div>
+        )
+      ) : channel === "sms" ? (
+        !sms.phone ? (
+          <SetupNote>{t("chat.sms.noPhone")}</SetupNote>
+        ) : !sms.ready ? (
+          <SetupNote>{t("chat.sms.notReady")}</SetupNote>
+        ) : !sms.own && sms.left === 0 ? (
+          <SetupNote href={sms.billingHref} action={t("chat.sms.buy")}>{t("chat.sms.noneLeft")}</SetupNote>
+        ) : (
+          <div className="grid gap-2">
+            <textarea value={body} onChange={(e) => setBody(e.target.value)} maxLength={918} rows={4} placeholder={t("chat.placeholder")} aria-label={t("chat.placeholder")} className={cx(fieldClass, "resize-y")} />
+            {body && <p className="m-0 text-[12px] text-app-ink-soft">{t("chat.sms.length", { count: body.length, parts: smsParts(body) })}</p>}
+            <p className="m-0 text-[12.5px] text-app-ink-soft">
+              {sms.own || sms.left === null ? t("chat.sms.own", { phone: sms.phone }) : t("chat.sms.shopinbos", { phone: sms.phone, left: sms.left })}
+              {!sms.own && sms.left !== null && (
+                <> <Link href={sms.billingHref} className="font-bold text-app-accent-ink">{t("chat.sms.buy")}</Link></>
+              )}
+            </p>
             <PillButton size="sm" tone="ink" busy={busy} disabled={!body.trim()} onClick={() => void send()} className="justify-self-end">
               <Icon name="send" size={14} /> {t("chat.send")}
             </PillButton>

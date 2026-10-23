@@ -9,6 +9,8 @@ import { normaliseEmail, normalisePhone } from "@/lib/inbox/pure";
 import { getChannel, sendRecorded, sendReply } from "@/lib/inbox/service";
 import { MARKETING_STORE_SELECT, storeUrl } from "@/lib/marketing/brand";
 import { textSender, WHATSAPP_CONNECT_HREF } from "@/lib/marketing/channels";
+import { messageAllowance } from "@/lib/plans/messages.server";
+import { platformSmsReady } from "@/lib/sms";
 import { cleanTags } from "@/lib/marketing/subscribers";
 import { templateMessage } from "@/lib/marketing/text-channels";
 import { approvedTemplates, defaultHeaderImage, resolveTemplate } from "@/lib/marketing/whatsapp-templates.server";
@@ -17,13 +19,15 @@ import { NOTE_MAX, addressPlace, customerTemplateValues, fillCustomerTemplate, r
 
 // The customer drawer on /home/customers: everything about one customer, and messaging them one to one. Messages
 // go through the inbox (sendReply / sendRecorded), into the same InboxConversation the inbox shows: the email
-// thread is keyed by their email address and the WhatsApp thread by their phone number, exactly as inbound
-// messages are, so replies land in the same conversation. Every function checks the customer belongs to the store.
+// thread is keyed by their email address and the WhatsApp and SMS threads by their phone number, exactly as inbound
+// messages are, so replies land in the same conversation. SMS goes from the store's own SMS account when connected,
+// else from Shopinbos's (the plan's monthly messages, then SMS packs: src/lib/plans/messages.server.ts). Every function checks the customer belongs to the store.
 
 const PAID = new Set<string>(PAID_ORDER_STATUSES);
 const THREAD_MESSAGES = 30;
 export const TEMPLATES_HREF = "/home/marketing/templates";
 export const EMAIL_SETUP_HREF = "/home/inbox/email";
+export const BILLING_HREF = "/home/settings?tab=Billing";
 
 type Store = { id: string; name: string; slug: string; customDomain: string | null; currency: string };
 
@@ -47,13 +51,24 @@ function templateValues(store: Store, contact: CustomerContact) {
   return customerTemplateValues({ name: contact.name, storeName: store.name, storeLink: storeUrl(store), lastOrder: lastOrderValues(store, contact) });
 }
 
-/** The inbox threads for this customer: email by address, WhatsApp by phone number (as inbound messages are keyed). */
+/** The inbox threads for this customer: email by address, WhatsApp and SMS by phone number (as inbound messages are keyed). */
 async function findThreads(storeId: string, email: string | null, phone: string | null) {
-  const [emailThread, whatsappThread] = await Promise.all([
+  const byPhone = (channel: "whatsapp" | "sms") => (phone ? db.inboxConversation.findUnique({ where: { storeId_channel_externalThreadId: { storeId, channel, externalThreadId: phone } } }) : null);
+  const [emailThread, whatsappThread, smsThread] = await Promise.all([
     email ? db.inboxConversation.findUnique({ where: { storeId_channel_externalThreadId: { storeId, channel: "email", externalThreadId: email } } }) : null,
-    phone ? db.inboxConversation.findUnique({ where: { storeId_channel_externalThreadId: { storeId, channel: "whatsapp", externalThreadId: phone } } }) : null,
+    byPhone("whatsapp"),
+    byPhone("sms"),
   ]);
-  return { emailThread, whatsappThread };
+  return { emailThread, whatsappThread, smsThread };
+}
+
+/** How the store texts: its own SMS account, else Shopinbos's (with what's left of the plan's messages and packs). */
+async function smsSetup(storeId: string) {
+  const [own, store] = await Promise.all([getChannel(storeId, "sms").catch(() => null), db.store.findUnique({ where: { id: storeId }, select: { userId: true } })]);
+  if (own) return { ready: true, own: true, left: null as number | null };
+  if (!platformSmsReady()) return { ready: false, own: false, left: null as number | null };
+  const allowance = store ? await messageAllowance(store.userId).catch(() => null) : null;
+  return { ready: true, own: false, left: allowance?.smsLeft ?? null };
 }
 
 async function recentMessages(conversationId: string | undefined) {
@@ -85,7 +100,7 @@ export async function customerProfile(store: Store, key: string) {
   const spent = paid.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
   const place = contact.orders.map((o) => addressPlace(o.deliveryAddress)).find(Boolean) ?? null;
 
-  const [reviews, subscriber, threads, otherThreads, setup, emailChannel] = await Promise.all([
+  const [reviews, subscriber, threads, otherThreads, setup, emailChannel, sms] = await Promise.all([
     email
       ? db.productReview.findMany({
           where: { storeId: store.id, buyerEmail: { equals: email, mode: "insensitive" } },
@@ -100,7 +115,7 @@ export async function customerProfile(store: Store, key: string) {
       ? db.inboxConversation.findMany({
           where: {
             storeId: store.id,
-            channel: { notIn: ["email", "whatsapp"] },
+            channel: { notIn: ["email", "whatsapp", "sms"] },
             OR: [...(email ? [{ contactEmail: { equals: email, mode: "insensitive" as const } }] : []), ...(phone ? [{ contactPhone: phone }] : [])],
           },
           orderBy: { lastMessageAt: "desc" },
@@ -110,13 +125,14 @@ export async function customerProfile(store: Store, key: string) {
       : [],
     whatsappSetup(store.id),
     resolveEmailSender(store.id, store.name),
+    smsSetup(store.id),
   ]);
   const emailRecommendation = emailChannel.kind === "none" ? await storeRecommendation(store).catch(() => null) : null;
 
   const templates = setup.hasAccount && phone ? await approvedTemplates(store.id).catch(() => []) : [];
   const values = templateValues(store, contact);
   const composer = whatsAppComposer({ phone, connected: setup.connected, hasAccount: setup.hasAccount, approvedTemplates: templates.length, lastInboundAt: threads.whatsappThread?.lastInboundAt ?? null });
-  const [emailMessages, whatsappMessages] = await Promise.all([recentMessages(threads.emailThread?.id), recentMessages(threads.whatsappThread?.id)]);
+  const [emailMessages, whatsappMessages, smsMessages] = await Promise.all([recentMessages(threads.emailThread?.id), recentMessages(threads.whatsappThread?.id), recentMessages(threads.smsThread?.id)]);
 
   return {
     key,
@@ -174,6 +190,18 @@ export async function customerProfile(store: Store, key: string) {
         };
       }),
     },
+    sms: {
+      phone,
+      /** Texts can go out: the store's own SMS account, or Shopinbos's. */
+      ready: sms.ready,
+      /** The store's own account (not counted against the plan or packs). */
+      own: sms.own,
+      /** Shopinbos's SMS: the plan's messages left this month plus SMS packs (null: not counted). */
+      left: sms.left,
+      conversationId: threads.smsThread?.id ?? null,
+      messages: smsMessages,
+      billingHref: BILLING_HREF,
+    },
     otherConversations: otherThreads.map((c) => ({ id: c.id, channel: c.channel, preview: c.lastMessagePreview ?? "", at: c.lastMessageAt.toISOString() })),
   };
 }
@@ -188,7 +216,7 @@ export class CustomerMessageError extends Error {
 }
 
 /** Finds the customer's thread on this channel, or starts one (the same unique key inbound messages use). */
-async function openThread(storeId: string, channel: "email" | "whatsapp", threadId: string, contact: { name: string; email: string | null; phone: string | null }, subject?: string | null) {
+async function openThread(storeId: string, channel: "email" | "whatsapp" | "sms", threadId: string, contact: { name: string; email: string | null; phone: string | null }, subject?: string | null) {
   return db.inboxConversation.upsert({
     where: { storeId_channel_externalThreadId: { storeId, channel, externalThreadId: threadId } },
     update: {},
@@ -209,9 +237,10 @@ async function openThread(storeId: string, channel: "email" | "whatsapp", thread
 export type CustomerMessageInput =
   | { channel: "email"; subject?: string | null; body: string }
   | { channel: "whatsapp"; body: string }
-  | { channel: "whatsapp"; templateId: string; params?: string[] | null };
+  | { channel: "whatsapp"; templateId: string; params?: string[] | null }
+  | { channel: "sms"; body: string };
 
-/** Sends one message to a customer of the store by email or WhatsApp and records it in their inbox conversation. */
+/** Sends one message to a customer of the store by email, WhatsApp or SMS and records it in their inbox conversation. */
 export async function messageCustomer(storeId: string, key: string, input: CustomerMessageInput, authorName: string) {
   const store = await db.store.findUnique({ where: { id: storeId }, select: MARKETING_STORE_SELECT });
   if (!store) throw new CustomerMessageError("NOT_FOUND", "Store not found", 404);
@@ -231,6 +260,17 @@ export async function messageCustomer(storeId: string, key: string, input: Custo
     // A new thread goes out with the seller's subject as is; later messages are replies ("Re: …") to keep it one thread.
     if (!earlier && conversation.subject !== subject) await db.inboxConversation.update({ where: { id: conversation.id }, data: { subject } });
     const sent = await sendReply({ storeId, conversationId: conversation.id, body: input.body, authorName, firstEmail: earlier === 0 });
+    return { conversationId: conversation.id, ...sent };
+  }
+
+  if (input.channel === "sms") {
+    if (!phone) throw new CustomerMessageError("NO_PHONE", "This customer has no phone number for SMS.");
+    const optOut = await db.marketingOptOut.findUnique({ where: { storeId_phone_channel: { storeId, phone, channel: "sms" } }, select: { scope: true } });
+    if (optOut?.scope === "all") throw new CustomerMessageError("SMS_OPTED_OUT", "This customer asked not to get text messages from your shop, so it wasn't sent.");
+    const sender = await textSender(store);
+    const conversation = await openThread(storeId, "sms", phone, who);
+    // textSender.sms uses the store's own SMS account, else Shopinbos's: the plan's messages first, then SMS packs.
+    const sent = await sendRecorded({ storeId, conversationId: conversation.id, body: input.body, authorName }, async ({ body }) => ({ ...(await sender.sms(phone, body)), via: "sms" }));
     return { conversationId: conversation.id, ...sent };
   }
 

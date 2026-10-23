@@ -12,6 +12,7 @@ import { sendInboxEmail } from "./channels/email";
 import { sendMetaMessage } from "./channels/meta";
 import { sendTelegram } from "./channels/telegram";
 import { sendSmsReply } from "./channels/sms";
+import { platformSmsReady } from "@/lib/sms";
 import type { SendResult } from "./channels/types";
 import { markWhatsAppRead, sendWhatsApp, TOKEN_ERROR } from "./channels/whatsapp";
 import { CHANNELS, isSellerOnline, previewText, storeThreadWhere, type InboundAttachment, type InboxChannelKey, type WhatsAppCartOrder } from "./pure";
@@ -210,6 +211,13 @@ export interface ReplyInput {
 async function deliver(store: StoreRef, conversation: { id: string; channel: string; externalThreadId: string; contactEmail: string | null; contactPhone: string | null; subject: string | null; visitorSeenAt: Date | null; lastInboundAt: Date | null }, body: string, sellerEmail: string | null, interactive?: WhatsAppInteractive | null, firstEmail = false): Promise<SendResult & { via?: string }> {
   const channel = conversation.channel as InboxChannelKey;
   const base = { body, store: { id: store.id, name: store.name, slug: store.slug } };
+  // A text: the store's own SMS account when connected, else Shopinbos's (the plan's messages, then SMS packs).
+  const textBack = async (to: string): Promise<SendResult & { via?: string }> => {
+    const sms = await getChannel(store.id, "sms");
+    if (sms) return { ...(await sendSmsReply({ ...base, to, credentials: sms.credentials })), via: "sms" };
+    const { textSender } = await import("@/lib/marketing/channels");
+    return { ...(await (await textSender(store)).sms(to, body)), via: "sms" };
+  };
 
   if (channel === "livechat") {
     // The widget polls for replies. If the shopper has left the page, also email the reply when we can.
@@ -226,17 +234,13 @@ async function deliver(store: StoreRef, conversation: { id: string; channel: str
       const subject = conversation.subject ?? (channel === "form" ? `Your message to ${store.name}` : null);
       return { ...(await sendInboxEmail({ ...base, to: conversation.contactEmail, subject, credentials: {}, replyTo: sellerEmail, exactSubject: firstEmail, conversationId: conversation.id })), via: "email" };
     }
-    if (channel === "form" && conversation.contactPhone) {
-      const sms = await getChannel(store.id, "sms");
-      if (sms) return { ...(await sendSmsReply({ ...base, to: conversation.contactPhone, credentials: sms.credentials })), via: "sms" };
-    }
+    if (channel === "form" && conversation.contactPhone && (platformSmsReady() || (await getChannel(store.id, "sms")))) return textBack(conversation.contactPhone);
     return { ok: false, error: "This person didn't leave an email address, so there's no way to reply here." };
   }
 
   if (channel === "voice") {
-    const sms = await getChannel(store.id, "sms");
-    if (!sms || !conversation.contactPhone) return { ok: false, error: "Connect SMS to text callers back, or call them back." };
-    return { ...(await sendSmsReply({ ...base, to: conversation.contactPhone, credentials: sms.credentials })), via: "sms" };
+    if (!conversation.contactPhone || !(platformSmsReady() || (await getChannel(store.id, "sms")))) return { ok: false, error: "Connect SMS to text callers back, or call them back." };
+    return textBack(conversation.contactPhone);
   }
 
   // WhatsApp only takes free-form messages within 24h of the customer's last message; say so instead of trying.
@@ -245,6 +249,7 @@ async function deliver(store: StoreRef, conversation: { id: string; channel: str
   if (channel === "tiktok") return { ok: false, error: "TikTok doesn't let apps reply to messages yet. Reply in the TikTok app." };
 
   const connected = await getChannel(store.id, channel);
+  if (!connected && channel === "sms") return textBack(conversation.externalThreadId);
   if (!connected) return { ok: false, error: `${CHANNELS[channel].label} isn't connected. Connect it in Inbox → Channels.` };
   const input = { ...base, to: conversation.externalThreadId, credentials: connected.credentials };
   switch (channel) {

@@ -2,10 +2,11 @@
 // Pure (no imports): safe in server and client code.
 
 /**
- * SMS (campaigns, automations, order updates, review requests, the inbox SMS channel). Off for now: sellers never
- * see an SMS option. Campaigns and automations already made with SMS still show what they are.
+ * SMS (campaigns, automations, order updates, review requests, texting a customer, the inbox SMS channel). Texts go
+ * from the store's own connected SMS account, else Shopinbos's (SMS_PROVIDER, Brevo first), counted against the
+ * plan's monthly messages and then SMS packs (src/lib/plans/messages.server.ts).
  */
-export const SMS_ENABLED = false;
+export const SMS_ENABLED = true;
 
 /**
  * Phone calls on the web (the Africa's Talking voice channel, "Call" from a conversation, call forwarding). Off:

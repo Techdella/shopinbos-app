@@ -8,6 +8,8 @@ import { listInbox, teamOptions } from "@/lib/inbox/queries";
 import { touchSellerSeen } from "@/lib/inbox/service";
 import { requireRole } from "@/lib/server-auth";
 import { getSellerWorkspace, safeQuery } from "@/lib/workspace";
+import { SMS_ENABLED } from "@/lib/features";
+import { platformSmsReady } from "@/lib/sms";
 import { UnifiedInbox } from "./UnifiedInbox";
 import { getT } from "@/lib/i18n/server";
 
@@ -51,6 +53,9 @@ export default async function SellerMessagesPage({ searchParams }: { searchParam
   ]);
 
   const connected = channels.map((c) => c.channel);
+  // Texts can always go from Shopinbos's own SMS account (the plan's messages, then SMS packs), so SMS threads,
+  // callers and form leads with a phone number can be answered without connecting an SMS account.
+  const canText = SMS_ENABLED && (connected.includes("sms") || platformSmsReady()) ? [...new Set([...connected, "sms"])] : connected;
   const unread = items.filter((item) => item.unread > 0 && item.status !== "closed").length;
   const contacts = [
     ...suppliers.filter((s) => s.userId && s.userId !== user.id).map((s) => ({ userId: s.userId, name: s.businessName, role: t("role.supplier") })),
@@ -77,7 +82,7 @@ export default async function SellerMessagesPage({ searchParams }: { searchParam
         me={{ id: user.id, email: user.email ?? "", name: user.name ?? t("you"), phone: user.phone ?? null }}
         team={team}
         canned={canned}
-        connected={connected}
+        connected={canText}
         aiAvailable={hasAiProvider()}
         autoReplyOn={Boolean(settings?.autoReplyEnabled)}
         partnerContacts={contacts}

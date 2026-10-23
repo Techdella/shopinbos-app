@@ -3,7 +3,7 @@ import { db } from "@/lib/db/client";
 import { appBase, storeSender, SENDER_STORE_SELECT } from "@/lib/email/compliance.server";
 import { reviewRequestEmail } from "@/lib/email/store-emails";
 import { formatFromAddress, isEmailConfigured, sendEmail } from "@/lib/notifications/resend";
-import { sendSms, sendWhatsAppMessage } from "@/lib/notifications/service";
+import { textSender, type TextSender } from "@/lib/marketing/channels";
 import { toE164 } from "@shared/phone";
 import { getChannel } from "@/lib/inbox/service";
 import { sendSmsReply } from "@/lib/inbox/channels/sms";
@@ -14,8 +14,9 @@ import { reviewLinkSecret } from "./secrets";
 import { getReviewSettings, reviewUrls } from "./server";
 
 // Asking buyers for reviews. Each request gets a signed link to /s/[slug]/review/<token> where the buyer
-// reviews every item in the order. Email goes through Resend; SMS through the platform's SMS account
-// (SMS_PROVIDER: Termii / Africa's Talking / Sendchamp, with failover) and WhatsApp through SendChamp. "link" sends nothing: the seller gets a wa.me link to send the
+// reviews every item in the order. Email goes through Resend; SMS and WhatsApp through the store's own connected
+// account, else Shopinbos's (SMS_PROVIDER with failover; WhatsApp through SendChamp), counted against the plan's
+// monthly messages and then packs. "link" sends nothing: the seller gets a wa.me link to send the
 // message from their own WhatsApp. Used by the Reviews screen, Peggy, the reviews cron and marketing
 // automations (agent A's post-purchase flow can call requestReviews with trigger "automation").
 // When the store connected its own WhatsApp Cloud API number or SMS account in the inbox (agent E), requests
@@ -113,6 +114,8 @@ export async function requestReviews(input: { storeId: string; orderIds: string[
   const ready = await storeChannelReadiness(store.id);
   const own = await storeChannels(store.id);
   const ref = { id: store.id, name: store.name, slug: store.slug };
+  let sender: TextSender | null = null;
+  const texts = async () => (sender ??= await textSender(ref));
   const orderIds = [...new Set(input.orderIds)].slice(0, 200);
   const [orders, earlier] = await Promise.all([
     db.retailOrder.findMany({
@@ -180,18 +183,19 @@ export async function requestReviews(input: { storeId: string; orderIds: string[
           ok = sent.ok;
           error = sent.ok ? "" : sent.error;
         } else {
-          const sent = await sendSms({ to: [phone!], message: message.sms });
-          ok = sent.success;
-          error = sent.message;
+          // Shopinbos's SMS: counted against the plan's monthly messages, then SMS packs.
+          const sent = await (await texts()).sms(phone!, message.sms);
+          ok = sent.ok;
+          error = sent.ok ? "" : sent.error;
         }
       } else if (own.whatsapp) {
         const sent = await sendWhatsApp({ to: phone!, body: message.text, store: ref, credentials: own.whatsapp.credentials });
         ok = sent.ok;
         error = sent.ok ? "" : sent.error;
       } else {
-        const sent = await sendWhatsAppMessage({ to: [phone!], message: message.text });
-        ok = sent.success;
-        error = sent.message;
+        const sent = await (await texts()).whatsappText(phone!, message.text);
+        ok = sent.ok;
+        error = sent.ok ? "" : sent.error;
       }
     } catch (caught) {
       error = caught instanceof Error ? caught.message : "Send failed";
