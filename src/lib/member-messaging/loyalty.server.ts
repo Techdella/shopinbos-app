@@ -6,6 +6,7 @@ import { notify } from "@/lib/notifications/notify.server";
 import { levelFor, asRewardRole } from "@/lib/rewards/rules";
 import { ANNIVERSARY_CREDITS, anniversaryDue, tierForLevel } from "@shared/loyalty";
 import { monthPeriod } from "./journeys";
+import { mailT, memberLocale } from "./i18n";
 
 // Loyalty perks (shared/loyalty.ts), run from the hourly journeys job when switched on (Admin › Leads › Member tips,
 // PlatformSetting "member.loyalty"): each month's tier credits, a message when someone moves up a tier, and the
@@ -46,8 +47,9 @@ export async function runLoyalty(now = new Date(), deadline = Date.now() + 120_0
 
   // Everyone at Silver or above (XP high enough for level 3 in their role catalog), checked by level.
   const accounts = await db.rewardAccount.findMany({ where: { xp: { gte: 200 } }, select: { userId: true, xp: true }, take: 5000 });
-  const users = await db.user.findMany({ where: { id: { in: accounts.map((a) => a.userId) }, verificationStatus: { not: "suspended" } }, select: { id: true, role: true } });
+  const users = await db.user.findMany({ where: { id: { in: accounts.map((a) => a.userId) }, verificationStatus: { not: "suspended" } }, select: { id: true, role: true, preferences: true } });
   const roleOf = new Map(users.map((u) => [u.id, asRewardRole(u.role)]));
+  const tOf = new Map(users.map((u) => [u.id, mailT(memberLocale(u.preferences))]));
   for (const account of accounts) {
     if (Date.now() > deadline) break;
     const role = roleOf.get(account.userId);
@@ -55,6 +57,8 @@ export async function runLoyalty(now = new Date(), deadline = Date.now() + 120_0
     const level = levelFor(role, account.xp).level;
     const tier = tierForLevel(level);
     if (tier.key === "bronze") continue;
+    const t = tOf.get(account.userId) ?? mailT();
+    const tierName = t(`tier.${tier.key}`);
 
     // Moved up a tier: tell them once per tier.
     const up = await claim(account.userId, "tier_up", tier.key, tier.name, "bell");
@@ -64,8 +68,9 @@ export async function runLoyalty(now = new Date(), deadline = Date.now() + 120_0
         event: "member.tier_up",
         category: "account",
         priority: "success",
-        title: `You're ${tier.name} on Shopinbos! 🎉`,
-        description: `Thanks for growing with us. As ${tier.name} you get ${tier.monthlyCredits} free AI credits every month${tier.key !== "silver" ? " and early access to new features" : ""}.`,
+        title: t("loyalty.up.title", { tier: tierName }),
+        description: t(tier.key !== "silver" ? "loyalty.up.descEarly" : "loyalty.up.desc", { tier: tierName, count: tier.monthlyCredits }),
+        locale: t.locale,
         link: "/refer",
         dedupeKey: `tier-up-${account.userId}-${tier.key}`,
         email: true,
@@ -84,8 +89,8 @@ export async function runLoyalty(now = new Date(), deadline = Date.now() + 120_0
           event: "member.loyalty_credits",
           category: "account",
           priority: "success",
-          title: `${tier.monthlyCredits} ${tier.name} AI credits added`,
-          description: "Your monthly thank-you for being one of our most active businesses. Use them on Rex videos, photos and more.",
+          title: t("loyalty.monthly.title", { count: tier.monthlyCredits, tier: tierName }),
+          description: t("loyalty.monthly.desc"),
           dedupeKey: `loyalty-${account.userId}-${month}`,
           inAppOnly: true,
         }).catch(() => undefined);
@@ -98,8 +103,8 @@ export async function runLoyalty(now = new Date(), deadline = Date.now() + 120_0
   // Anniversaries: accounts that turned 1, 2, … years old this week.
   const day = (d: Date) => `${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
   const window = Array.from({ length: 7 }, (_, i) => day(new Date(now.getTime() - i * 86_400_000)));
-  const candidates = await db.$queryRaw<Array<{ id: string; createdAt: Date }>>`
-    SELECT u."id", u."createdAt" FROM "User" u
+  const candidates = await db.$queryRaw<Array<{ id: string; createdAt: Date; preferences: unknown }>>`
+    SELECT u."id", u."createdAt", u."preferences" FROM "User" u
     WHERE u."role"::text IN ('seller', 'supplier', 'logistics_partner')
       AND u."verificationStatus"::text <> 'suspended'
       AND u."createdAt" < ${new Date(now.getTime() - 360 * 86_400_000)}
@@ -112,13 +117,15 @@ export async function runLoyalty(now = new Date(), deadline = Date.now() + 120_0
     const row = await claim(person.id, "anniversary", String(now.getUTCFullYear()), `${years}y`);
     if (!row) continue;
     await addCredits(person.id, ANNIVERSARY_CREDITS, "grant", `anniversary-${person.id}-${now.getUTCFullYear()}`);
+    const t = mailT(memberLocale(person.preferences));
     await notify({
       userId: person.id,
       event: "member.anniversary",
       category: "account",
       priority: "success",
-      title: `Happy ${years === 1 ? "first" : `${years}-year`} Shopinbos anniversary! 🎂`,
-      description: `Thank you for building your business with us. We've added ${ANNIVERSARY_CREDITS} AI credits to say thanks.`,
+      title: t("loyalty.anniversary.title", { years }),
+      description: t("loyalty.anniversary.desc", { count: ANNIVERSARY_CREDITS }),
+      locale: t.locale,
       dedupeKey: `anniversary-${person.id}-${now.getUTCFullYear()}`,
       email: true,
     }).catch(() => undefined);

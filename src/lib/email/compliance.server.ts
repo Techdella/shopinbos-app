@@ -22,6 +22,8 @@ import {
 import { emailLinks, type EmailLinks } from "./tokens";
 import { platformEmailAllowed } from "./preferences.server";
 import type { PlatformTopic } from "./preferences";
+import type { Locale } from "@shared/i18n";
+import { mailT } from "@shared/i18n/mail";
 
 // Server glue for the email shell: who Shopinbos is (legal footer), what a store's footer says (business name,
 // address, contact and privacy links), signed preference links, and sendPlatformEmail for Shopinbos's own notices.
@@ -103,6 +105,12 @@ export function roleReason(role: string | null | undefined) {
   return ROLE_REASON[role ?? ""] ?? "you have a Shopinbos account";
 }
 
+/** The same, in the reader's language. */
+export function roleReasonIn(role: string | null | undefined, locale: Locale) {
+  const t = mailT(locale);
+  return role === "seller" || role === "supplier" || role === "logistics_partner" ? t(`reason.${role}`) : t("reason.other");
+}
+
 /** In-app notification settings for each portal (linked from notification emails). */
 export function notificationSettingsUrl(role: string | null | undefined) {
   const path = role === "seller" || !role ? "/home/settings?tab=Notifications" : "/home/notifications/preferences";
@@ -137,6 +145,8 @@ export interface PlatformSendInput {
   stats?: Array<{ value: string; label: string }>;
   personal?: string | null;
   proverb?: string | null;
+  /** The reader's app language: the frame (footer, Rex & Peggy, greeting) and the "why you got this" line. */
+  locale?: Locale;
 }
 
 /** Builds the (A) email in the shell and sends it, honouring email preferences for lifecycle mail. */
@@ -151,7 +161,7 @@ export function buildPlatformEmail(input: Omit<PlatformSendInput, "to" | "subjec
     preheader: input.preheader,
     eyebrow: input.eyebrow,
     cta: input.cta,
-    reason: input.reason ?? roleReason(input.user?.role),
+    reason: input.reason ?? (input.locale && input.locale !== "en" ? roleReasonIn(input.user?.role, input.locale) : roleReason(input.user?.role)),
     legal: platformLegal(),
     unsubscribeUrl: links?.unsubscribe,
     preferencesUrl: unsubscribing ? links?.preferences : input.kind === "notification" ? notificationSettingsUrl(input.user?.role) : null,
@@ -165,6 +175,7 @@ export function buildPlatformEmail(input: Omit<PlatformSendInput, "to" | "subjec
     stats: input.stats,
     personal: input.personal,
     proverb: input.proverb,
+    locale: input.locale,
   });
   return { html, headers: unsubscribing && links ? unsubscribeHeaders(links) : undefined };
 }

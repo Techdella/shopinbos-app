@@ -3,6 +3,8 @@ import type { NotificationType, Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { appBase, sendPlatformEmail } from "@/lib/email/compliance.server";
 import { html } from "@/lib/email/shell";
+import type { Locale } from "@shared/i18n";
+import { mailT } from "@shared/i18n/mail";
 import {
   BURST_WINDOW_MS,
   DEFAULT_QUIET_HOURS,
@@ -60,6 +62,8 @@ export interface NotifyInput {
   phoneHandled?: boolean;
   /** Skip every channel except the bell (e.g. the person is looking at the screen already). */
   inAppOnly?: boolean;
+  /** The language the title and description are written in: the email's frame and button follow it. */
+  locale?: Locale;
 }
 
 export interface NotifyResult {
@@ -207,10 +211,11 @@ async function deliver(input: NotifyInput & { priority: NotifyPriority; type: No
         kind: emailKind,
         subject: input.title,
         heading: input.title,
-        eyebrow: (input.type as string).replace(/_/g, " "),
+        eyebrow: input.locale && input.locale !== "en" ? null : (input.type as string).replace(/_/g, " "),
         preheader: input.description.slice(0, 140),
         bodyHtml: html.text(input.description),
-        cta: target ? { label: input.actionLabel || "View details", url: absoluteUrl(target) } : null,
+        cta: target ? { label: input.actionLabel || mailT(input.locale)("notify.viewDetails"), url: absoluteUrl(target) } : null,
+        locale: input.locale,
       })
         .then((result) => record({ notificationId, userId: input.userId, channel: "email", provider: "resend", status: result.success ? "ok" : "error", category, title: input.title, error: result.success ? null : result.message ?? null }))
         .catch(() => null),

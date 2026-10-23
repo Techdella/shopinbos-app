@@ -6,6 +6,8 @@
 // Each can carry the reader's own numbers, the proverb of the week and a signature from Rex or Peggy.
 
 import { seasonFor } from "../../../shared/seasons.ts";
+import type { Locale } from "../../../shared/i18n/index.ts";
+import { mailT, type MailT } from "../../../shared/i18n/mail.ts";
 
 // The shell (shell.ts) imports this file, so the few shared constants are repeated here rather than imported back.
 const FONT = "'Space Grotesk','Segoe UI',Helvetica,Arial,sans-serif";
@@ -57,6 +59,8 @@ export interface LookInput {
   proverb?: string | null;
   cta?: { label: string; url: string } | null;
   now?: Date;
+  /** The reader's app language (shared/i18n/messages/mail): Rex & Peggy's lines, the proverb title, the greeting. */
+  locale?: Locale;
   /** Show the season's greeting ("Merry Christmas! 🎄"). Off for security and billing notices; the pattern still changes. */
   festive?: boolean;
 }
@@ -69,12 +73,19 @@ function button(cta: { label: string; url: string } | null | undefined, bg: stri
   return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:22px 0 4px"><tr><td class="sib-btn-cell" bgcolor="${bg}" style="border-radius:999px;background:${bg}"><a class="sib-look-btn" href="${escapeHtml(cta.url)}" style="display:inline-block;padding:15px 26px;font-family:${FONT};font-size:15px;font-weight:700;line-height:1;color:${fg};text-decoration:none;border-radius:999px">${escapeHtml(cta.label)}<span aria-hidden="true"> &rarr;</span></a></td></tr></table>`;
 }
 
-function signature(appUrl: string, persona: EmailPersona) {
-  if (persona === "team") return "";
+/** Rex and Peggy's names and one-liners in the reader's language. */
+function personaIn(persona: EmailPersona, t: MailT) {
   const p = PERSONAS[persona];
+  if (persona === "team") return { ...p, name: t("persona.team.name") };
+  return { ...p, line: t(persona === "rex" ? "persona.rex.line" : "persona.peggy.line") };
+}
+
+function signature(appUrl: string, persona: EmailPersona, t: MailT) {
+  if (persona === "team") return "";
+  const p = personaIn(persona, t);
   return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0 0"><tr>
 <td style="padding-right:14px" valign="middle"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td width="56" height="56" align="center" valign="middle" bgcolor="${p.avatarBg}" style="width:56px;height:56px;border-radius:28px;background:${p.avatarBg};overflow:hidden"><img src="${img(appUrl, p.image!)}" alt="" width="46" height="46" style="display:block;width:46px;height:46px;object-fit:contain"></td></tr></table></td>
-<td valign="middle" style="font-family:${FONT}"><div class="sib-ink" style="font-size:16px;font-weight:700;line-height:1.3;color:${NAVY}">${escapeHtml(p.name)}, from Shopinbos</div><div class="sib-muted" style="font-size:13.5px;line-height:1.4;color:${SOFT}">${escapeHtml(p.line)}</div></td>
+<td valign="middle" style="font-family:${FONT}"><div class="sib-ink" style="font-size:16px;font-weight:700;line-height:1.3;color:${NAVY}">${escapeHtml(t("persona.signature", { name: p.name }))}</div><div class="sib-muted" style="font-size:13.5px;line-height:1.4;color:${SOFT}">${escapeHtml(p.line)}</div></td>
 </tr></table>`;
 }
 
@@ -83,9 +94,9 @@ function personalNote(text: string | null | undefined) {
   return `<div class="sib-soft" style="margin:0 0 18px;padding:12px 14px;border-radius:14px;background:${CREAM};font-family:${FONT};font-size:14px;line-height:1.5;color:${INK}">📊 ${escapeHtml(text)}</div>`;
 }
 
-function proverbBox(text: string | null | undefined) {
+function proverbBox(text: string | null | undefined, t: MailT) {
   if (!text) return "";
-  return `<div style="margin:22px 0 0;padding:16px 18px;border-radius:16px;background:${NAVY}"><div style="font-family:${MONO};font-size:10.5px;letter-spacing:0.16em;text-transform:uppercase;color:${AMBER};margin-bottom:8px">Proverb of the week</div><div style="font-family:${ITALIC};font-style:italic;font-size:18px;line-height:1.45;color:#FFFFFF">&ldquo;${escapeHtml(text)}&rdquo;</div></div>`;
+  return `<div style="margin:22px 0 0;padding:16px 18px;border-radius:16px;background:${NAVY}"><div style="font-family:${MONO};font-size:10.5px;letter-spacing:0.16em;text-transform:uppercase;color:${AMBER};margin-bottom:8px">${escapeHtml(t("proverb.title"))}</div><div style="font-family:${ITALIC};font-style:italic;font-size:18px;line-height:1.45;color:#FFFFFF">&ldquo;${escapeHtml(text)}&rdquo;</div></div>`;
 }
 
 /** The card rows (each `<tr>…</tr>`) and the page colour for a look. */
@@ -97,9 +108,11 @@ export function lookFooterCss(look: EmailLook) {
 export function lookRows(input: LookInput): { rows: string; page: string } {
   const now = input.now ?? new Date();
   const season = seasonFor(now);
-  const persona = PERSONAS[input.persona];
+  const t = mailT(input.locale);
+  const persona = personaIn(input.persona, t);
+  const seasonGreeting = season.greeting ? t(`season.${season.key}` as Parameters<MailT>[0]) : null;
   const app = input.appUrl;
-  const greeting = season.greeting && input.festive !== false ? `<div style="font-family:${FONT};font-size:13px;font-weight:700;color:#FFFFFF;margin:0 0 6px">${escapeHtml(season.greeting)}</div>` : "";
+  const greeting = seasonGreeting && input.festive !== false ? `<div style="font-family:${FONT};font-size:13px;font-weight:700;color:#FFFFFF;margin:0 0 6px">${escapeHtml(seasonGreeting)}</div>` : "";
 
   if (input.look === "chat") {
     const bubbles = (input.bubbles?.length ? input.bubbles : [input.bodyHtml])
@@ -112,9 +125,9 @@ export function lookRows(input: LookInput): { rows: string; page: string } {
       ? `<td width="46" valign="middle"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td width="44" height="44" align="center" bgcolor="${persona.avatarBg}" style="width:44px;height:44px;border-radius:22px;background:${persona.avatarBg}"><img src="${img(app, persona.image)}" alt="" width="38" height="38" style="display:block;width:38px;height:38px;object-fit:contain"></td></tr></table></td>`
       : "";
     const rows = `<tr><td><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;border-radius:22px;overflow:hidden;background:#EFE7DC">
-<tr><td bgcolor="${NAVY}" style="background:${NAVY};padding:14px 20px;border-radius:22px 22px 0 0"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>${avatar}<td valign="middle" style="padding-left:${persona.image ? 12 : 0}px;font-family:${FONT}"><div style="font-size:16px;font-weight:700;color:#FFFFFF">${escapeHtml(persona.name)} from Shopinbos</div><div style="font-size:12.5px;color:#A9BCC6">${escapeHtml(persona.line)}</div></td></tr></table></td></tr>
+<tr><td bgcolor="${NAVY}" style="background:${NAVY};padding:14px 20px;border-radius:22px 22px 0 0"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>${avatar}<td valign="middle" style="padding-left:${persona.image ? 12 : 0}px;font-family:${FONT}"><div style="font-size:16px;font-weight:700;color:#FFFFFF">${escapeHtml(t("persona.from", { name: persona.name }))}</div><div style="font-size:12.5px;color:#A9BCC6">${escapeHtml(persona.line)}</div></td></tr></table></td></tr>
 <tr><td style="padding:18px 18px 6px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-<tr><td align="center" style="padding:0 0 10px"><span style="display:inline-block;background:#FCEFD9;color:#7A5A20;border-radius:8px;padding:4px 10px;font-family:${FONT};font-size:11.5px;font-weight:700">${escapeHtml((input.festive !== false && season.greeting) || input.heading)}</span></td></tr>
+<tr><td align="center" style="padding:0 0 10px"><span style="display:inline-block;background:#FCEFD9;color:#7A5A20;border-radius:8px;padding:4px 10px;font-family:${FONT};font-size:11.5px;font-weight:700">${escapeHtml((input.festive !== false && seasonGreeting) || input.heading)}</span></td></tr>
 ${input.personal ? `<tr><td style="padding:0 0 6px">${personalNote(input.personal)}</td></tr>` : ""}
 ${bubbles}${reply}
 </table></td></tr>
@@ -137,7 +150,7 @@ ${bubbles}${reply}
 <img src="${img(app, "/brand/email/shopinbos-logo-white@2x.png")}" alt="Shopinbos" width="150" style="display:block;width:150px;height:auto">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:14px"><tr><td valign="bottom" style="padding-bottom:26px">${greeting}${sticker}
 <div style="margin-top:12px;font-family:${DISPLAY_FONT};font-size:44px;line-height:1;text-transform:uppercase;color:#FFFFFF">${escapeHtml(input.heading)}</div></td>${mascot}</tr></table></td></tr>
-<tr><td class="sib-pad" style="padding:26px 30px 30px;font-family:${FONT};font-size:15.5px;line-height:1.6;color:${INK}">${personalNote(input.personal)}${input.bodyHtml}${stats}${proverbBox(input.proverb)}${signature(app, input.persona)}${button(input.cta, NAVY, AMBER)}</td></tr>
+<tr><td class="sib-pad" style="padding:26px 30px 30px;font-family:${FONT};font-size:15.5px;line-height:1.6;color:${INK}">${personalNote(input.personal)}${input.bodyHtml}${stats}${proverbBox(input.proverb, t)}${signature(app, input.persona, t)}${button(input.cta, NAVY, AMBER)}</td></tr>
 </table></td></tr>`;
     return { rows, page: AMBER };
   }
@@ -151,7 +164,7 @@ ${bubbles}${reply}
 <div style="height:22px;line-height:22px">&nbsp;</div>${greeting}${eyebrow}
 <h1 class="sib-h1" style="margin:10px 0 0;font-family:${FONT};font-size:27px;line-height:1.18;font-weight:700;letter-spacing:-0.4px;color:#FFFFFF">${escapeHtml(input.heading)}</h1></td>${mascot}</tr></table></td></tr>
 <tr><td style="line-height:0;font-size:0"><img src="${img(app, `/brand/email/strips/${season.strip}.png`)}" alt="" width="600" style="display:block;width:100%;height:14px"></td></tr>
-<tr><td class="sib-pad" style="padding:28px 30px 30px;font-family:${FONT};font-size:15.5px;line-height:1.6;color:${INK}">${personalNote(input.personal)}${input.bodyHtml}${proverbBox(input.proverb)}${signature(app, input.persona)}${button(input.cta, NAVY, "#FFFFFF")}</td></tr>
+<tr><td class="sib-pad" style="padding:28px 30px 30px;font-family:${FONT};font-size:15.5px;line-height:1.6;color:${INK}">${personalNote(input.personal)}${input.bodyHtml}${proverbBox(input.proverb, t)}${signature(app, input.persona, t)}${button(input.cta, NAVY, "#FFFFFF")}</td></tr>
 </table></td></tr>`;
   return { rows, page: CREAM };
 }

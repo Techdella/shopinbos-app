@@ -17,8 +17,13 @@ export const PROVERBS = [
   "A good name is better than riches.",
 ] as const;
 
-/** This week's proverb (the same all week, for everyone). */
-export function proverbOfWeek(now: Date) {
+/** Which proverb this week is (the same all week, for everyone); "proverb.<n>" in the mail catalog translates it. */
+export function proverbIndex(now: Date) {
   const week = Math.floor((now.getTime() + 60 * 60_000 + 3 * 86_400_000) / (7 * 86_400_000));
-  return PROVERBS[week % PROVERBS.length];
+  return week % PROVERBS.length;
+}
+
+/** This week's proverb in English. */
+export function proverbOfWeek(now: Date) {
+  return PROVERBS[proverbIndex(now)];
 }
