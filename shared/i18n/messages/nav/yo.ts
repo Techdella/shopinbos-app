@@ -178,6 +178,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "admin.developers": "Àwọn olùgbéejáde",
   "admin.errors": "Àwọn àṣìṣe app",
   "admin.referrals": "Àwọn ìpè",
+  "admin.member-tips": "Ìmọ̀ràn fún ọmọ ẹgbẹ́",
   "admin.launches": "Àwọn ìfilọ́lẹ̀",
   "group.sourcing": "Ibi tí a ti ń rí ọjà",
   "group.people": "Ènìyàn",

@@ -4826,3 +4826,26 @@ model PlanGrant {
   @@index([userId, endsAt])
   @@index([endsAt])
 }
+
+// ---- member messages (docs/migrations/2026-11-24-member-messages.sql) ----
+/// What Shopinbos sent its own sellers, suppliers and delivery partners on a schedule: the weekly Rex & Peggy tips
+/// (email and WhatsApp) and later member campaigns. One row per person, kind and period (`period` is the Lagos week
+/// for weekly sends, so a retry or a second run never sends twice). `ref` is what was sent (the tip id).
+model MemberMessage {
+  id         String    @id @default(cuid())
+  userId     String
+  kind       String // tip_email | tip_whatsapp
+  period     String
+  ref        String
+  channel    String // email | whatsapp
+  status     String    @default("claimed") // claimed | sent | failed | skipped
+  error      String?
+  providerId String?
+  sentAt     DateTime?
+  clickedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@unique([userId, kind, period])
+  @@index([kind, period, status])
+  @@index([userId, kind, createdAt(sort: Desc)])
+}

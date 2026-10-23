@@ -36,7 +36,7 @@ export type MetaSendResult = { ok: true; id: string | null } | { ok: false; erro
 /** E.164 without the plus, as the Cloud API wants it. */
 const toWaId = (phone: string) => phone.replace(/\D/g, "");
 
-export async function sendMetaTemplate(config: MetaWhatsAppConfig, input: { to: string; template: string; language: string; params: string[]; headerImage?: string | null }): Promise<MetaSendResult> {
+export async function sendMetaTemplate(config: MetaWhatsAppConfig, input: { to: string; template: string; language: string; params: string[]; headerImage?: string | null; buttonUrlSuffix?: string | null }): Promise<MetaSendResult> {
   const result = await graph(`${config.phoneNumberId}/messages`, config.token, {
     body: {
       messaging_product: "whatsapp",
@@ -48,6 +48,8 @@ export async function sendMetaTemplate(config: MetaWhatsAppConfig, input: { to: 
         components: [
           ...(input.headerImage ? [{ type: "header", parameters: [{ type: "image", image: { link: input.headerImage } }] }] : []),
           ...(input.params.length ? [{ type: "body", parameters: input.params.map((text) => ({ type: "text", text })) }] : []),
+          // A URL button whose link ends in {{1}} (each message opens its own page).
+          ...(input.buttonUrlSuffix ? [{ type: "button", sub_type: "url", index: "0", parameters: [{ type: "text", text: input.buttonUrlSuffix }] }] : []),
         ],
       },
     },

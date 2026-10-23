@@ -7,7 +7,7 @@
 
 const APP = "https://app.shopinbos.com";
 
-export type MemberTemplateGroup = "referral";
+export type MemberTemplateGroup = "referral" | "tips";
 
 export type MemberTemplate = {
   name: string;
@@ -22,7 +22,8 @@ export type MemberTemplate = {
   body: string;
   variables: string[];
   examples: string[];
-  button: { text: string; url: string };
+  /** A URL ending in {{1}} is filled per message (buttonExample is Meta's sample for it). */
+  button: { text: string; url: string; example?: string };
 };
 
 export const MEMBER_TEMPLATES: MemberTemplate[] = [
@@ -98,6 +99,26 @@ export const MEMBER_TEMPLATES: MemberTemplate[] = [
     examples: ["Kemi", "Ada Fashion", "1 month of Supplier Plus free + 1 featured week in the marketplace"],
     button: { text: "Finish setting up", url: `${APP}/` },
   },
+  ...(["seller", "supplier", "partner"] as const).map((who): MemberTemplate => ({
+    name: `shopinbos_tip_${who}`,
+    group: "tips",
+    purpose: `Weekly tip for ${who === "partner" ? "delivery partners" : `${who}s`} (Wednesdays)`,
+    category: "MARKETING",
+    language: "en",
+    image: `tips-${who}`,
+    body: "Hi {{1}}, here's this week's tip from {{2}} 💡\n\n{{3}}\n\nTap below to try it in Shopinbos. Reply STOP if you'd rather not get weekly tips.",
+    variables: ["first name", "Rex or Peggy", "the tip"],
+    examples: [
+      "Ada",
+      "Rex",
+      who === "seller"
+        ? "the first 2 seconds of a video decide if people keep watching, so open with your product in someone's hand, not your logo."
+        : who === "supplier"
+          ? "shops order more from suppliers who accept orders within 2 hours, so turn on order alerts and accept before lunch."
+          : "accepting jobs within 30 minutes moves you up the list shops see, so keep notifications on during your working hours.",
+    ],
+    button: { text: "Show me how", url: `${APP}/tip/{{1}}`, example: `${APP}/tip/${who}-tip` },
+  })),
 ];
 
 export function memberTemplate(name: string | null | undefined) {
@@ -127,7 +148,7 @@ export function memberTemplatePayload(template: MemberTemplate, headerHandle: st
     components: [
       { type: "HEADER", format: "IMAGE", example: { header_handle: [headerHandle] } },
       { type: "BODY", text: template.body, example: { body_text: [template.examples] } },
-      { type: "BUTTONS", buttons: [{ type: "URL", text: template.button.text, url: template.button.url }] },
+      { type: "BUTTONS", buttons: [{ type: "URL", text: template.button.text, url: template.button.url, ...(template.button.example ? { example: [template.button.example] } : {}) }] },
     ],
   };
 }

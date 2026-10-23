@@ -201,7 +201,7 @@ test("preference topics: defaults on, unsubscribed blocks all, triggers map to t
   assert.equal(prefs.topicForTrigger("low_stock"), "product_updates");
   assert.equal(prefs.topicForTrigger("win_back"), "promotions");
   assert.equal(prefs.topicForTrigger("order_shipped"), null, "order emails are service messages");
-  assert.deepEqual(prefs.PLATFORM_TOPICS.map((t) => t.key), ["product_news", "lifecycle", "weekly_summary"]);
+  assert.deepEqual(prefs.PLATFORM_TOPICS.map((t) => t.key), ["product_news", "tips", "lifecycle", "weekly_summary"]);
 });
 
 test("business address: read from brand settings, required for marketing", () => {
