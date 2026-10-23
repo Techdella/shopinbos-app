@@ -20,6 +20,8 @@ import { CampaignsWidget } from "@/components/campaigns/CampaignsWidget";
 import { sellerCountdowns } from "@/lib/store-campaigns/server";
 import { sortForWidget } from "@/lib/store-campaigns/status";
 import { PromoBanner } from "@/components/pricing/PromoBanner";
+import { PeggyCall } from "@/components/peggy/PeggyCall";
+import { peggyVoiceReady } from "@/lib/ai/peggy-voice.server";
 
 // Seller home, following the 2026 "Seller app · web" mockup.
 
@@ -224,6 +226,8 @@ export default async function HomePage() {
               </div>
             )}
           </div>
+          {/* A free voice call with Peggy (ElevenLabs), the same as on the supplier and delivery dashboards. */}
+          {peggyVoiceReady() && <PeggyCall size="md" className="mt-4" />}
         </section>
 
         <SalesChart daily={dashboard.daily} week={dashboard.sales.week} change={dashboard.sales.weekChange} t={t} naira={naira} />

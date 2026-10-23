@@ -7,6 +7,7 @@ import { Checklist, type ChecklistItem } from "@/components/familiar/Checklist";
 import { LevelPill } from "@/components/familiar/LevelPill";
 import { QuickActions } from "@/components/familiar/QuickActions";
 import { StatusRow } from "@/components/familiar/StatusRow";
+import { TeamUpdatesRing } from "@/components/updates/TeamUpdatesRing";
 import { StoryViewer } from "@/components/familiar/StoryViewer";
 import { AppIcon } from "@/components/icons";
 import { ErrorState, LoadingBlock, Picture } from "@/components/kit";
@@ -203,6 +204,7 @@ export default function SupplierHome() {
                 onNew={() => router.push("/status/new" as never)}
                 onOpenMine={() => setStory({ own: true, start: 0 })}
                 onOpen={(index) => setStory({ own: false, start: index })}
+                leading={<TeamUpdatesRing />}
               />
               {feed.mine.posts.length ? <Small>{t("home.statusViews", { count: feed.mine.viewsLast })}</Small> : null}
             </View>

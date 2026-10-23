@@ -15,6 +15,7 @@ import { Checklist, type ChecklistItem } from "@/components/familiar/Checklist";
 import { LevelPill } from "@/components/familiar/LevelPill";
 import { QuickActions, type QuickAction } from "@/components/familiar/QuickActions";
 import { StatusRow } from "@/components/familiar/StatusRow";
+import { TeamUpdatesRing } from "@/components/updates/TeamUpdatesRing";
 import { StoryViewer } from "@/components/familiar/StoryViewer";
 import { Tour, type TourStep } from "@/components/familiar/Tour";
 import { stepWords } from "@/lib/setup-words";
@@ -294,6 +295,7 @@ export default function Home() {
             onNew={() => router.push("/status/new" as never)}
             onOpenMine={() => setStory({ authors: [{ userId: uid ?? "me", name: shopName || myName, role: "seller", logoUrl: myPicture, seen: true, posts: status.mine.posts }], start: 0, own: true })}
             onOpen={(index) => setStory({ authors: status.feed, start: index, own: false })}
+            leading={<TeamUpdatesRing />}
           />
         ) : null}
 

@@ -144,6 +144,11 @@ async function storedFileProblem(url: string, kind: "video" | "poster"): Promise
   const ext = url.split("?")[0]!.split(".").pop()?.toLowerCase() ?? "";
   const type = TYPE_BY_EXT[ext];
   if (!type || (kind === "video") !== type.startsWith("video/")) return kind === "video" ? "Upload an MP4 or WebM video." : "Use a JPG, PNG or WebP picture for the poster.";
+  return storedBytesProblem(url, type);
+}
+
+/** Reads the first bytes of a stored public file and checks they really are `type`; refuses missing files too. */
+export async function storedBytesProblem(url: string, type: string): Promise<string | null> {
   try {
     const response = await fetch(url, { headers: { Range: `bytes=0-${SNIFF_BYTES - 1}` }, cache: "no-store", signal: AbortSignal.timeout(10_000) });
     if (!response.ok || !response.body) return "We couldn't find that upload. Upload it again.";

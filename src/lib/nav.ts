@@ -400,6 +400,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
         },
         { id: "product-news", label: "Product news", icon: "megaphone", href: "/admin/product-news", core: true },
         { id: "help-videos", label: "Help videos", icon: "play", href: "/admin/help-videos", core: true },
+        { id: "updates", label: "Weekly updates", icon: "megaphone", href: "/admin/updates", core: true },
         { id: "ad-requests", label: "Ad requests", icon: "megaphone", href: "/admin/ad-requests", core: true },
         { id: "packaging-requests", label: "Packaging requests", icon: "package", href: "/admin/packaging-requests", core: true },
         { id: "print-orders", label: "Print orders", icon: "truck", href: "/admin/print-orders", core: true },
