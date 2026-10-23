@@ -3,7 +3,7 @@ import type en from "./en.ts";
 
 const yo: Partial<Record<keyof typeof en, string>> = {
   // ── Email frame (src/lib/email/shell.ts, looks.ts) ──
-  "foot.unsubscribe": "Dá a dúró (Unsubscribe)",
+  "foot.unsubscribe": "Yọ orúkọ mi kúrò",
   "foot.preferences": "Yí ohun tí o fẹ́ gbà padà",
   "foot.notifications": "Ṣètò àwọn email notification",
   "foot.contact": "Kàn sí support",

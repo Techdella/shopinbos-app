@@ -102,13 +102,13 @@ test("the email frame speaks the reader's language; English is unchanged", () =>
   const english = platformEmail(base);
   assert.match(english, />Unsubscribe</);
   assert.match(english, /Proverb of the week/);
-  assert.match(english, /You're receiving this because you have a Shopinbos seller account\./);
+  assert.match(english, /You(&#39;|')re receiving this because you have a Shopinbos seller account\./);
   for (const locale of OTHERS) {
     const t = i18n.mailT(locale);
     const html = platformEmail({ ...base, locale, reason: t("reason.seller") });
     assert.ok(html.includes(`>${t("foot.unsubscribe")}<`), `${locale}: unsubscribe`);
     assert.ok(!html.includes("Proverb of the week"), `${locale}: proverb title`);
-    assert.ok(!html.includes("You're receiving this because"), `${locale}: reason line`);
+    assert.ok(!/You(&#39;|')re receiving this because/.test(html), `${locale}: reason line`);
   }
 });
 
