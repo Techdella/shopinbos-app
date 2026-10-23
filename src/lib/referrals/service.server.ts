@@ -52,13 +52,34 @@ function firstName(name: string | null | undefined) {
 }
 
 /** Business name to show: the shop, supplier or partner name, else the person's name. */
-async function businessNames(userIds: string[]) {
-  if (!userIds.length) return new Map<string, string>();
+/** Each person's business name and logo (store, supplier or delivery logo, else their profile photo). */
+async function businessProfiles(userIds: string[]) {
+  if (!userIds.length) return new Map<string, { name: string; avatarUrl: string | null }>();
   const users = await db.user.findMany({
     where: { id: { in: userIds } },
-    select: { id: true, name: true, store: { select: { name: true } }, supplier: { select: { businessName: true } }, logisticsPartner: { select: { displayName: true } } },
+    select: {
+      id: true,
+      name: true,
+      avatarUrl: true,
+      store: { select: { name: true, logoUrl: true } },
+      supplier: { select: { businessName: true, logoUrl: true } },
+      logisticsPartner: { select: { displayName: true, logoUrl: true } },
+    },
   });
-  return new Map(users.map((user) => [user.id, user.store?.name || user.supplier?.businessName || user.logisticsPartner?.displayName || user.name || "A business"]));
+  return new Map(
+    users.map((user) => [
+      user.id,
+      {
+        name: user.store?.name || user.supplier?.businessName || user.logisticsPartner?.displayName || user.name || "A business",
+        avatarUrl: user.store?.logoUrl || user.supplier?.logoUrl || user.logisticsPartner?.logoUrl || user.avatarUrl || null,
+      },
+    ]),
+  );
+}
+
+async function businessNames(userIds: string[]) {
+  const profiles = await businessProfiles(userIds);
+  return new Map([...profiles].map(([id, profile]) => [id, profile.name]));
 }
 
 // ─── Codes ────────────────────────────────────────────────────────────────────
@@ -437,7 +458,7 @@ export async function referralOverview(userId: string) {
   ]);
   const rewardRole = asRewardRole(user?.role);
   const loyalty = rewardRole ? loyaltyView(levelFor(rewardRole, rewards?.xp ?? 0).level, user?.createdAt ?? new Date()) : null;
-  const names = await businessNames(rows.map((row) => row.refereeId));
+  const profiles = await businessProfiles([userId, ...rows.map((row) => row.refereeId)]);
   const list = await Promise.all(
     rows.map(async (row) => {
       const role = asReferralRole(row.refereeRole) ?? "seller";
@@ -445,7 +466,8 @@ export async function referralOverview(userId: string) {
       const reward = (row.referrerReward ?? null) as { months?: number; credits?: number } | null;
       return {
         id: row.id,
-        name: names.get(row.refereeId) ?? "A business",
+        name: profiles.get(row.refereeId)?.name ?? "A business",
+        avatarUrl: profiles.get(row.refereeId)?.avatarUrl ?? null,
         role,
         status: row.status,
         statusLabel: STATUS_LABEL[row.status] ?? row.status,
@@ -466,6 +488,8 @@ export async function referralOverview(userId: string) {
   );
   return {
     code: code.code,
+    // How the invite page shows you to the people you invite.
+    business: profiles.get(userId) ?? { name: "A business", avatarUrl: null },
     rewardChoice: asRewardChoice(code.rewardChoice),
     paying: user ? isPaying(user) : false,
     role: asReferralRole(user?.role) ?? "seller",
