@@ -60,7 +60,9 @@ export function PartnerThread({
     };
   }, [conversationId]);
 
-  useEffect(() => endRef.current?.scrollIntoView({ block: "nearest" }), [messages.length]);
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ block: "nearest" });
+  }, [messages.length]);
 
   async function send() {
     if (!text.trim()) return;
