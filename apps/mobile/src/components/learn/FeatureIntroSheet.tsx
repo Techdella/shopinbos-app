@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AccessibilityInfo, Animated, Easing, Modal, Platform, Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Defs, Path, Pattern, Rect } from "react-native-svg";
@@ -9,19 +9,22 @@ import { HelpVideoPlayer } from "@/components/HelpVideoPlayer";
 import { api } from "@/lib/api";
 import { helpVideoLanguage, type HelpVideoItem } from "@/lib/help-videos";
 import { translateIntro, translateTerm } from "@shared/i18n/learn";
-import { useT } from "@/lib/i18n";
+import { useLocale, useT } from "@/lib/i18n";
+import { VOICE_GRACE_MS, isNarrationLocale } from "@shared/intro-narration";
 import { fonts } from "@/theme";
 import { ANIM_MS, LC, MONO, SceneBoard } from "./scenes";
+import { useIntroSound } from "./useIntroSound";
 
 // The 60-second feature intro on the phone: a full-screen navy sheet that plays five short animated scenes from
 // shared/feature-intros.ts (same scripts as the web), then a recap of the word it taught. Segmented progress,
 // play/pause, back/next, replay, skip. With Reduce Motion on, scenes are still frames and you tap Next.
-// "Watch the video" appears when a one-minute help video is published for the same topic.
+// "Watch the video" appears when a one-minute help video is published for the same topic. A narrator reads each
+// scene over soft music (useIntroSound.ts); a scene waits for the narrator, and both can be switched off.
 
 const SERIF = Platform.select({ ios: "Georgia", android: "serif", default: "Georgia, serif" });
 const TICK_MS = 100;
 
-function Glyph({ name, color = LC.cream, size = 18 }: { name: "play" | "pause" | "next" | "prev" | "replay" | "x"; color?: string; size?: number }) {
+function Glyph({ name, color = LC.cream, size = 18 }: { name: "play" | "pause" | "next" | "prev" | "replay" | "x" | "volume" | "mute" | "music"; color?: string; size?: number }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
       {name === "play" && <Path d="M7 4.5 L19 12 L7 19.5 Z" fill={color} />}
@@ -30,6 +33,10 @@ function Glyph({ name, color = LC.cream, size = 18 }: { name: "play" | "pause" |
       {name === "prev" && <Path d="M15 5 L8 12 L15 19" />}
       {name === "replay" && <><Path d="M4 12 a8 8 0 1 0 2.4 -5.7" /><Path d="M4 4 V9 H9" /></>}
       {name === "x" && <Path d="M6 6 L18 18 M18 6 L6 18" />}
+      {(name === "volume" || name === "mute") && <Path d="M4 9v6h4l5 4V5L8 9z" />}
+      {name === "volume" && <Path d="M16 9a4 4 0 010 6M18.5 6.5a7.5 7.5 0 010 11" />}
+      {name === "mute" && <Path d="M17 9l5 6M22 9l-5 6" />}
+      {name === "music" && <><Path d="M9 18V5l11-2v13" /><Circle cx={6.5} cy={18} r={2.5} /><Circle cx={17.5} cy={16} r={2.5} /></>}
     </Svg>
   );
 }
@@ -105,6 +112,26 @@ export function FeatureIntroSheet({ intro: source, role, path, onClose }: { intr
   const term = glossaryEntry ? translateTerm(glossaryEntry, tGlossary) : null;
   const playing = !paused && !finished && !still && tab === "intro";
   const boardWidth = Math.min(screenWidth - 32, 560);
+  const locale = useLocale();
+  const sound = useIntroSound({ introKey: intro.key, sceneCount: scenes.length, locale: isNarrationLocale(locale) ? locale : "en" });
+  const { playScene, finish: finishSound, stopVoice, pause: pauseSound, resume: resumeSound } = sound;
+  const voiceBusy = useRef(false);
+  voiceBusy.current = sound.voiceBusy;
+
+  // The narrator follows the scenes: each new scene (or a replay) reads its line; the recap and the video stop it.
+  useEffect(() => {
+    if (tab !== "intro") {
+      stopVoice();
+      pauseSound();
+    } else if (finished) finishSound();
+    else void playScene(index);
+  }, [tab, finished, index, run, playScene, finishSound, stopVoice, pauseSound]);
+
+  useEffect(() => {
+    if (tab !== "intro") return;
+    if (paused) pauseSound();
+    else resumeSound();
+  }, [paused, tab, pauseSound, resumeSound]);
 
   // Build each scene from the start; with Reduce Motion show it finished.
   useEffect(() => {
@@ -139,7 +166,9 @@ export function FeatureIntroSheet({ intro: source, role, path, onClose }: { intr
       () =>
         setClock((current) => {
           const next = current.elapsed + TICK_MS;
-          if (next < scenes[current.index]!.durationMs) return { ...current, elapsed: next };
+          const length = scenes[current.index]!.durationMs;
+          // Time's up but the narrator is still reading: wait for them (up to a grace period).
+          if (next < length || (voiceBusy.current && next < length + VOICE_GRACE_MS)) return { ...current, elapsed: next };
           return current.index < scenes.length - 1 ? { index: current.index + 1, elapsed: 0, finished: false } : { ...current, finished: true };
         }),
       TICK_MS,
@@ -183,6 +212,12 @@ export function FeatureIntroSheet({ intro: source, role, path, onClose }: { intr
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", marginTop: 12, gap: 8 }}>
             <Text style={{ fontFamily: MONO, fontSize: 11, letterSpacing: 1.8, color: LC.mint, flex: 1 }}>{tl("eyebrow", { seconds }).toUpperCase()}</Text>
+            <Pressable testID="feature-intro-voice" accessibilityRole="switch" accessibilityState={{ checked: sound.prefs.voice }} accessibilityLabel={sound.prefs.voice ? tl("voiceOff") : tl("voiceOn")} onPress={() => sound.setVoice(!sound.prefs.voice)} hitSlop={6} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(244,241,234,0.1)", alignItems: "center", justifyContent: "center" }}>
+              <Glyph name={sound.prefs.voice ? "volume" : "mute"} size={17} />
+            </Pressable>
+            <Pressable testID="feature-intro-music" accessibilityRole="switch" accessibilityState={{ checked: sound.prefs.music }} accessibilityLabel={sound.prefs.music ? tl("musicOff") : tl("musicOn")} onPress={() => sound.setMusic(!sound.prefs.music)} hitSlop={6} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(244,241,234,0.1)", alignItems: "center", justifyContent: "center", opacity: sound.prefs.music ? 1 : 0.45 }}>
+              <Glyph name="music" size={17} color={sound.prefs.music ? LC.mint : LC.cream} />
+            </Pressable>
             {!finished && (
               <Pressable accessibilityRole="button" onPress={() => onClose("skip")} hitSlop={8} style={{ minHeight: 40, paddingHorizontal: 12, justifyContent: "center" }}>
                 <Text style={{ fontFamily: fonts.bold, fontSize: 15, color: "rgba(244,241,234,0.75)" }}>{tl("skip")}</Text>

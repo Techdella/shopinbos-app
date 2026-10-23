@@ -156,6 +156,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "updates.close": "Mechie",
   "updates.previous": "Ozi gara aga",
   "updates.next": "Ozi ọzọ",
+  "updates.watch": "Lelee vidiyo ahụ",
   "admin.support-queue": "Mkparịta ụka niile",
   "admin.ad-requests": "Arịrịọ mgbasa ozi",
   "admin.packaging-requests": "Arịrịọ packaging",

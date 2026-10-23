@@ -6,6 +6,7 @@ import { Banner, Seg, Small, Sub } from "@/components/design";
 import { Checklist, type ChecklistItem } from "@/components/familiar/Checklist";
 import { LevelPill } from "@/components/familiar/LevelPill";
 import { StatusRow } from "@/components/familiar/StatusRow";
+import { TeamUpdatesRing } from "@/components/updates/TeamUpdatesRing";
 import { StoryViewer } from "@/components/familiar/StoryViewer";
 import { ErrorState, LoadingBlock } from "@/components/kit";
 import { NotificationBellButton } from "@/components/NotificationBellButton";
@@ -160,6 +161,7 @@ export default function LogisticsJobs() {
             onNew={() => router.push("/status/new" as never)}
             onOpenMine={() => setStory({ own: true, start: 0 })}
             onOpen={(index) => setStory({ own: false, start: index })}
+            leading={<TeamUpdatesRing />}
           />
           {feed.mine.viewsLast > 0 ? <Small>{t("fam.statusSeen", { count: feed.mine.viewsLast })}</Small> : null}
         </View>

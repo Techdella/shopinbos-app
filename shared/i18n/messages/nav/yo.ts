@@ -156,6 +156,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "updates.close": "Padé",
   "updates.previous": "Ìròyìn tó ṣáájú",
   "updates.next": "Ìròyìn tó kàn",
+  "updates.watch": "Wo fídíò náà",
   "admin.support-queue": "Gbogbo ìjíròrò",
   "admin.ad-requests": "Àwọn ìbéèrè ìpolówó",
   "admin.packaging-requests": "Àwọn ìbéèrè packaging",

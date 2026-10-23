@@ -158,6 +158,7 @@ const en = {
   "updates.close": "Close",
   "updates.previous": "Previous update",
   "updates.next": "Next update",
+  "updates.watch": "Watch the video",
   "admin.support-queue": "All conversations",
   "admin.ad-requests": "Ad requests",
   "admin.packaging-requests": "Packaging requests",

@@ -156,6 +156,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "updates.close": "Close",
   "updates.previous": "Update wey pass",
   "updates.next": "Next update",
+  "updates.watch": "Watch the video",
   "admin.support-queue": "All conversations",
   "admin.ad-requests": "Ad requests",
   "admin.packaging-requests": "Packaging requests",

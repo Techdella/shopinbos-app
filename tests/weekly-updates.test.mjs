@@ -104,3 +104,28 @@ test("intro sound: only intro scenes can be spoken, and the player waits for the
   assert.match(player, /data-intro-sound="voice"/);
   assert.match(player, /data-intro-sound="music"/);
 });
+
+test("mobile: the Shopinbos ring leads the Status row on every home, and plays the same feed", () => {
+  for (const file of ["apps/mobile/src/app/(tabs)/home.tsx", "apps/mobile/src/app/supplier/(tabs)/home.tsx", "apps/mobile/src/app/logistics/(tabs)/jobs.tsx"]) {
+    assert.match(read(file), /leading=\{<TeamUpdatesRing \/>\}/, file);
+  }
+  assert.match(read("apps/mobile/src/components/familiar/StatusRow.tsx"), /\{leading\}/);
+  const lib = read("apps/mobile/src/lib/updates.ts");
+  assert.match(lib, /"\/api\/updates"/);
+  assert.match(lib, /\/api\/updates\/\$\{encodeURIComponent\(id\)\}\/view/);
+  const viewer = read("apps/mobile/src/components/updates/TeamUpdatesViewer.tsx");
+  assert.match(viewer, /slideDurationMs\(update\)/);
+  assert.match(viewer, /openPath\(url\)/, "in-app links open the app's own screen when there is one");
+});
+
+test("mobile: the intro sheet has the narrator and the same music as the web", () => {
+  assert.ok(existsSync(new URL("../apps/mobile/assets/sounds/intro-music.m4a", import.meta.url)));
+  const hook = read("apps/mobile/src/components/learn/useIntroSound.ts");
+  assert.match(hook, /\/api\/learn\/narration\?/);
+  assert.match(hook, /music\.current\.loop = true/);
+  const sheet = read("apps/mobile/src/components/learn/FeatureIntroSheet.tsx");
+  assert.match(sheet, /useIntroSound\(/);
+  assert.match(sheet, /voiceBusy\.current && next < length \+ VOICE_GRACE_MS/);
+  assert.match(sheet, /testID="feature-intro-voice"/);
+  assert.match(sheet, /testID="feature-intro-music"/);
+});

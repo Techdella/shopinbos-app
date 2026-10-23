@@ -156,6 +156,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "updates.close": "Rufe",
   "updates.previous": "Labarin da ya gabata",
   "updates.next": "Labari na gaba",
+  "updates.watch": "Kalli bidiyon",
   "admin.support-queue": "Duk tattaunawa",
   "admin.ad-requests": "Buƙatun talla",
   "admin.packaging-requests": "Buƙatun packaging",
