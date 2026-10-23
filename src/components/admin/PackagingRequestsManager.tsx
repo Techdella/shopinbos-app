@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Notice, PillButton, cx } from "@/components/app-ui";
 import { PACKAGING_REQUEST_STATUSES, PACKAGING_REQUEST_STATUS_LABEL, PACKAGING_SERVICE_LABEL, type PackagingRequestStatus, type PackagingService } from "@shared/packaging-requests";
 import { PACK_FORMAT_INFO, PRODUCT_TYPE_INFO, type PackFormat, type ProductType } from "@shared/packaging";
+import { friendlyError } from "@/lib/errors/report-client";
 
 export interface PackagingRequestRow {
   id: string;
@@ -49,7 +50,7 @@ export function PackagingRequestsManager({ initial, migrationNeeded }: { initial
       if (!response.ok || !json?.data) throw new Error(json?.error?.message ?? "Couldn't save.");
       setRows((current) => current.map((row) => (row.id === id ? { ...row, status: json.data!.status ?? row.status, adminNotes: json.data!.adminNotes ?? null } : row)));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't save.");
+      setError(err instanceof Error ? friendlyError(err) : "Couldn't save.");
     } finally {
       setBusy(null);
     }

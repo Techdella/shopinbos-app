@@ -28,6 +28,7 @@ import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import { formatDate, formatNumber } from "@shared/i18n";
 import type { MessageKey } from "@shared/i18n/catalog";
+import { friendlyError } from "@/lib/errors/report-client";
 
 // One partner chat: bubbles by day, "Seen" receipts, optimistic sending with retry, Enter to send
 // (Shift+Enter for a new line), photos/PDFs, linked product/order/booking cards and quick replies.
@@ -113,7 +114,7 @@ export function Thread({
           onActivityRef.current?.();
         }
       })
-      .catch((error: Error) => alive && setLoadError(error.message))
+      .catch((error: Error) => alive && setLoadError(friendlyError(error)))
       .finally(() => alive && setLoading(false));
     return () => {
       alive = false;
@@ -222,7 +223,7 @@ export function Thread({
       announceMessagesChanged();
       onActivityRef.current?.();
     } catch (error) {
-      setMessages((current) => current.map((message) => (message.id === localId ? { ...message, status: "failed", error: (error as Error).message } : message)));
+      setMessages((current) => current.map((message) => (message.id === localId ? { ...message, status: "failed", error: friendlyError(error) } : message)));
     }
   }
 
@@ -287,7 +288,7 @@ export function Thread({
     try {
       setOptions((await messagesApi<ContextSnapshot[]>(`/api/conversations/${id}/context`)).data);
     } catch (error) {
-      setOptionsError((error as Error).message);
+      setOptionsError(friendlyError(error));
     }
   }
 

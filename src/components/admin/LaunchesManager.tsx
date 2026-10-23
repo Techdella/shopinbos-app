@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Card, CardHead, Pill } from "@/components/app-kit";
 import { Notice, PillButton } from "@/components/app-ui";
 import { confirmDialog } from "@/components/ui/dialogs";
+import { friendlyError } from "@/lib/errors/report-client";
 
 // Admin › Launches (/api/admin/launches). Registering a business name with CAC through Shopinbos is hidden from
 // sellers, suppliers and delivery partners until it's switched on here. The first switch-on emails everyone
@@ -45,7 +46,7 @@ export function LaunchesManager() {
         text: live ? (json.data.announced ? "CAC registration is live. The announcement email is sending (follow it in Product news)." : "CAC registration is live.") : "CAC registration is switched off.",
       });
     } catch (error) {
-      setMessage({ tone: "error", text: error instanceof Error ? error.message : "Couldn't save that." });
+      setMessage({ tone: "error", text: error instanceof Error ? friendlyError(error) : "Couldn't save that." });
     } finally {
       setBusy(false);
     }

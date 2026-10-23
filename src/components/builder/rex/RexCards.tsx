@@ -10,6 +10,7 @@ import { useT } from "@/components/i18n/I18nProvider";
 import { REX_REEL_HANDOFF_KEY, type RexCard } from "@/lib/ai/rex/cards";
 import { rexCardAction, type RexCardAction } from "./api";
 import { RexImageActions } from "./RexImageActions";
+import { friendlyError } from "@/lib/errors/report-client";
 
 // The cards under Rex's replies: what his tools made, with the buttons that confirm it (save a picture to a
 // product, use a logo, apply a description, turn on an automation, undo a store change).
@@ -38,7 +39,7 @@ function useConfirm() {
       const result = await rexCardAction(payload);
       setState({ busy: null, done: result.message, error: null, href: result.href });
     } catch (error) {
-      setState({ busy: null, done: null, error: error instanceof Error ? error.message : t("rex.cd.notSaved") });
+      setState({ busy: null, done: null, error: error instanceof Error ? friendlyError(error) : t("rex.cd.notSaved") });
     }
   }
   return { ...state, run };

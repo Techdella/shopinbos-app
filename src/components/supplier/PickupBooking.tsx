@@ -4,6 +4,7 @@ import { confirmDialog } from "@/components/ui/dialogs";
 import { useState } from "react";
 import type { PickupSlot } from "@shared/supplier-pickup";
 import { useT } from "@/components/i18n/I18nProvider";
+import { friendlyError } from "@/lib/errors/report-client";
 
 // After "I've packed it": "When can a rider pick it up?" with big choices (the soonest is already picked), the
 // pickup address (the supplier's saved one), then "Book the rider". Once booked: "Rider booked: pick up today
@@ -66,7 +67,7 @@ export function PickupBooking({ initial, shop }: { initial: PickupView; shop: st
       setEditing(false);
       if (json.data.slots.length && !json.data.slots.some((slot) => slot.key === choice) && choice !== "custom") setChoice(json.data.preselected);
     } catch (callError) {
-      setError(callError instanceof Error ? callError.message : t("pickup.errorRetry"));
+      setError(callError instanceof Error ? friendlyError(callError) : t("pickup.errorRetry"));
     } finally {
       setBusy(null);
     }

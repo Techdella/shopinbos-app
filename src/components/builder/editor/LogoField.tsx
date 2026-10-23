@@ -9,6 +9,7 @@ import { logoTreatmentStyle } from "@shared/logo-variants";
 import type { BrandAssets } from "@shared/brand-assets";
 import { BRAND_ASSETS_EVENT } from "./useBuilder";
 import { useEditorT } from "./i18n";
+import { friendlyError } from "@/lib/errors/report-client";
 
 const btn = "inline-flex min-h-9 items-center gap-1.5 rounded-full border border-app-line bg-white px-3 text-[12.5px] font-bold text-app-ink hover:border-app-line-strong disabled:opacity-50";
 
@@ -48,7 +49,7 @@ export function LogoField({ label, help }: { label: string; help?: string }) {
     try {
       await work();
     } catch (err) {
-      setError(err instanceof Error ? err.message : tx("The logo couldn't be saved. Try again."));
+      setError(err instanceof Error ? friendlyError(err) : tx("The logo couldn't be saved. Try again."));
     } finally {
       setBusy(false);
       if (file.current) file.current.value = "";

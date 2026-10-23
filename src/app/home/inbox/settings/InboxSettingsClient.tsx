@@ -8,6 +8,7 @@ import { Notice, PillButton } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { inboxApi } from "@/components/messaging/inbox-ui";
 import { useT } from "@/components/i18n/I18nProvider";
+import { friendlyError } from "@/lib/errors/report-client";
 
 interface Settings {
   autoReplyEnabled: boolean;
@@ -37,7 +38,7 @@ export function InboxSettingsClient({ initial, canned, aiAvailable, voiceConnect
       setSettings(saved);
       setResult({ tone: "success", text: t("set.saved") });
     } catch (error) {
-      setResult({ tone: "error", text: (error as Error).message });
+      setResult({ tone: "error", text: friendlyError(error) });
     } finally {
       setSaving(false);
     }
@@ -51,7 +52,7 @@ export function InboxSettingsClient({ initial, canned, aiAvailable, voiceConnect
       setReplies((current) => [...current, reply].sort((a, b) => a.title.localeCompare(b.title)));
       setDraft({ title: "", body: "" });
     } catch (error) {
-      setReplyError((error as Error).message);
+      setReplyError(friendlyError(error));
     } finally {
       setAdding(false);
     }
@@ -62,7 +63,7 @@ export function InboxSettingsClient({ initial, canned, aiAvailable, voiceConnect
       await inboxApi(`/api/app/inbox/canned/${id}`, { method: "DELETE" });
       setReplies((current) => current.filter((r) => r.id !== id));
     } catch (error) {
-      setReplyError((error as Error).message);
+      setReplyError(friendlyError(error));
     }
   }
 

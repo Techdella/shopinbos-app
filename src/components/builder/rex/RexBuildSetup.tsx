@@ -9,6 +9,7 @@ import { THEME_LIBRARY, themeLibraryEntry } from "@/lib/store-templates/theme-li
 import { MAX_INSPIRATION_IMAGES, MAX_INSPIRATION_LINKS, type Inspiration, type InspirationLink } from "@/lib/ai/rex/inspiration";
 import type { BuildMode, BuildPlan } from "@/lib/ai/rex/build-plan";
 import { getBuildPlans, readInspiration, uploadStudioPhoto, type BuildPlans } from "./api";
+import { friendlyError } from "@/lib/errors/report-client";
 
 // "Build my store": three short steps before Rex starts. 1) the business in a sentence, 2) inspiration (stores the
 // seller likes, screenshots, a ready-made theme, a note), 3) how much Rex does, priced against today's free
@@ -75,7 +76,7 @@ export function RexBuildSetup({ initialBrief, initialScreenshots = [], initialLi
         setPlans(next);
         if (!next.full.canBuild && next.quick.canBuild) setMode("quick");
       })
-      .catch((cause) => live && setPlansError(cause instanceof Error ? cause.message : t("rex.bs.planFailed")));
+      .catch((cause) => live && setPlansError(cause instanceof Error ? friendlyError(cause) : t("rex.bs.planFailed")));
     return () => {
       live = false;
     };
@@ -96,7 +97,7 @@ export function RexBuildSetup({ initialBrief, initialScreenshots = [], initialLi
       setLinks((current) => (current.some((entry) => entry.url === link.url) || current.length >= MAX_INSPIRATION_LINKS ? current : [...current, link]));
       if (raw === linkText) setLinkText("");
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : t("rex.bs.linkFailed"));
+      setError(cause instanceof Error ? friendlyError(cause) : t("rex.bs.linkFailed"));
       if (raw !== linkText) setLinkText(raw);
     } finally {
       setReading(false);
@@ -119,7 +120,7 @@ export function RexBuildSetup({ initialBrief, initialScreenshots = [], initialLi
       for (const file of list) urls.push(await uploadStudioPhoto(file));
       setScreenshots((current) => [...current, ...urls].slice(0, MAX_INSPIRATION_IMAGES));
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : t("rex.bs.uploadFailed"));
+      setError(cause instanceof Error ? friendlyError(cause) : t("rex.bs.uploadFailed"));
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";

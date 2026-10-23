@@ -20,6 +20,7 @@ import {
 import { localeFromName } from "@shared/i18n";
 import { useLocale, useSetLocale, useT } from "@/components/i18n/I18nProvider";
 import { askRex, buildStore, finishOnboarding, saveMemory, saveStoreName, transcribe, type OnboardingStatus } from "./api";
+import { friendlyError } from "@/lib/errors/report-client";
 
 // Seller onboarding, cut to the two steps that need the seller: tell Rex what you sell, then pick a name and
 // look so Rex can build the shop. Everything else (products, payments, delivery, payout bank, going live,
@@ -153,7 +154,7 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
           const text = await transcribe(new Blob(chunks, { type: "audio/webm" }));
           if (text) await send(text);
         } catch (micError) {
-          setError(micError instanceof Error ? micError.message : t("seller.cantHear"));
+          setError(micError instanceof Error ? friendlyError(micError) : t("seller.cantHear"));
         }
       };
       recorderRef.current = recorder;
@@ -198,7 +199,7 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
       setBuildNote(t("seller.ready"));
       await finish();
     } catch (brandError) {
-      setError(brandError instanceof Error ? brandError.message : t("seller.cantSaveName"));
+      setError(brandError instanceof Error ? friendlyError(brandError) : t("seller.cantSaveName"));
       setBusy(false);
     }
   }

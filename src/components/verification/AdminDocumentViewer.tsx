@@ -8,6 +8,7 @@ import { Notice, PillButton, cx } from "@/components/app-ui";
 import type { VerificationDoc } from "@/lib/verification-utils";
 import { DOC_TYPE_LABELS, docDisplayState, docHasEvidence, docHasFile, docStatusLabel, formatBytes, type DocDisplayState } from "@shared/verification-docs";
 import { docFileUrl } from "./upload-client";
+import { friendlyError } from "@/lib/errors/report-client";
 
 interface AdminDocumentViewerProps {
   role: "supplier" | "logistics_partner";
@@ -65,7 +66,7 @@ export function AdminDocumentViewer({ role, entityId, docs, verificationStatus, 
 
       router.refresh();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Could not update the document.");
+      setError(err instanceof Error ? friendlyError(err) : "Could not update the document.");
     } finally {
       setModerating(null);
     }

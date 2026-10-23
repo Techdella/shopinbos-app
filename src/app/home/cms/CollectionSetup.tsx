@@ -8,6 +8,7 @@ import { useT } from "@/components/i18n/I18nProvider";
 import type { ItemLayout, ListLayout } from "@/lib/cms/layouts";
 import { LayoutPicker } from "./LayoutPicker";
 import { itemLayoutOptions, listLayoutOptions } from "./[collectionId]/CollectionSettings";
+import { friendlyError } from "@/lib/errors/report-client";
 
 // Shown after the first item in a collection is saved (the first blog post): name and intro, the list and page
 // style, and putting it in the header or footer menu, so shoppers can find it. "Not now" also counts as done.
@@ -57,7 +58,7 @@ export function CollectionSetup(props: {
       }
       setDone(menu);
     } catch (e) {
-      setError(e instanceof Error ? e.message : t("cs.saveError"));
+      setError(e instanceof Error ? friendlyError(e) : t("cs.saveError"));
     } finally {
       setBusy(false);
     }

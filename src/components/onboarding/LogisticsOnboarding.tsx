@@ -10,6 +10,7 @@ import intentRouting from "@/lib/intent-routing";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import { formatMoney } from "@shared/i18n";
 import { deliveryScopeOptions, westAfricaCountries, type DeliveryScope } from "@/lib/data/west-africa";
+import { friendlyError } from "@/lib/errors/report-client";
 
 // Delivery partner setup in the 2026 app look (same shell as SupplierOnboarding). Everything stays in this
 // component's state across steps; the server only gets a save once the profile is complete enough for its schema
@@ -156,7 +157,7 @@ export function LogisticsOnboarding({ initialUser }: { initialUser?: InitialUser
       try {
         await persist(false);
       } catch (cause) {
-        setError(cause instanceof Error ? cause.message : String(cause));
+        setError(cause instanceof Error ? friendlyError(cause) : String(cause));
         return;
       } finally {
         setSaving(false);
@@ -178,7 +179,7 @@ export function LogisticsOnboarding({ initialUser }: { initialUser?: InitialUser
       const destination = getContinuationPath({ role: "logistics_partner", ...extractIntentParams(searchParams) });
       router.push(destination || "/logistics/dashboard");
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(cause instanceof Error ? friendlyError(cause) : String(cause));
       setSaving(false);
     }
   }

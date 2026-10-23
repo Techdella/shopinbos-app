@@ -18,6 +18,7 @@ import {
   type TrustScoreBreakdownItem,
   supplierDocTypes,
 } from "@/lib/verification-utils";
+import { friendlyError } from "@/lib/errors/report-client";
 
 interface SupplierData {
   id: string;
@@ -75,7 +76,7 @@ export default function SupplierVerificationPage() {
         setTrustData(payload.trustBreakdown);
       }
     } catch (err: any) {
-      setError(err.message || t("page.supplierLoadFailed"));
+      setError(friendlyError(err, t("page.supplierLoadFailed")));
     }
   }, [t]);
 

@@ -32,6 +32,7 @@ import {
   type PackStyle,
   type ProductType,
 } from "@shared/packaging";
+import { friendlyError } from "@/lib/errors/report-client";
 
 export interface StudioProduct {
   id: string;
@@ -255,7 +256,7 @@ export function PackagingStudio({
       setStatus({ tone: "success", text: t("saved") });
       return savedId;
     } catch (error) {
-      setStatus({ tone: "error", text: error instanceof Error ? error.message : t("err.save") });
+      setStatus({ tone: "error", text: error instanceof Error ? friendlyError(error) : t("err.save") });
       return null;
     } finally {
       setBusy(null);

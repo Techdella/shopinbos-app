@@ -18,6 +18,7 @@ import type { MediaAssetView } from "@shared/media";
 import { markdownToDoc } from "@/lib/cms/markdown";
 import { youtubeEmbedUrl, type RichDoc } from "@/lib/cms/richtext";
 import { useT } from "@/components/i18n/I18nProvider";
+import { friendlyError } from "@/lib/errors/report-client";
 
 // Rich text editor for CMS fields, laid out like the WordPress classic editor: a wrapping toolbar, Visual and
 // HTML tabs, a word count and a full-screen mode. Headings, marks, links, lists, quotes, code, alignment, images
@@ -310,7 +311,7 @@ export function RichTextEditor({
       else editor.chain().focus().insertContentAt(to, content).run();
       setDialog(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : t("rex.failed"));
+      setError(e instanceof Error ? friendlyError(e) : t("rex.failed"));
       setDialog((current) => (current?.kind === "rex" ? { ...current, busy: false } : current));
     }
   }

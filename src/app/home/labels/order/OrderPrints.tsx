@@ -8,6 +8,7 @@ import { PackRender } from "@/components/packaging/PackRender";
 import { downloadPrintPdf } from "@/components/packaging/export";
 import { PACK_FORMAT_INFO, type PackDesign } from "@shared/packaging";
 import { DELIVERY_ZONES, PRINT_FINISHES, PRINT_MATERIALS, QUANTITY_TIERS, minQuantity, quotePrint, type DeliveryZone, type PrintFinish } from "@shared/print-orders";
+import { friendlyError } from "@/lib/errors/report-client";
 
 const inputClass = "h-11 w-full rounded-[12px] border border-app-line bg-white px-3 text-[14px] outline-none focus:border-app-ink";
 const naira = (n: number) => `₦${n.toLocaleString("en-NG")}`;
@@ -62,7 +63,7 @@ export function OrderPrints({ design: saved, contact }: { design: { id: string; 
       if (!response.ok || !json?.data?.authorizationUrl) throw new Error(json?.error?.message ?? t("order.failed"));
       window.location.href = json.data.authorizationUrl;
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("order.failed"));
+      setError(err instanceof Error ? friendlyError(err) : t("order.failed"));
       setBusy(null);
     }
   }

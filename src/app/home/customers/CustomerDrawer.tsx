@@ -13,6 +13,7 @@ import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import { formatDate, formatMoney } from "@shared/i18n";
 import { renderTemplateText } from "@/lib/marketing/text-channels";
 import type { CustomerProfile } from "@/lib/customers/drawer.server";
+import { friendlyError } from "@/lib/errors/report-client";
 
 // The customer drawer on /home/customers: a right-side panel (a full-screen sheet on phones) opened by
 // ?customer=<key>, so it can be linked and the back button closes it (&compose=email opens on the email composer).
@@ -531,7 +532,7 @@ function MarketingBox({ profile }: { profile: CustomerProfile }) {
       setSavedNote(data.note);
       if (patch.note !== undefined) setMessage({ ok: true, text: t("drawer.saved") });
     } catch (error) {
-      setMessage({ ok: false, text: (error as Error).message || t("chat.err.generic") });
+      setMessage({ ok: false, text: friendlyError(error) || t("chat.err.generic") });
     } finally {
       setBusy(false);
     }

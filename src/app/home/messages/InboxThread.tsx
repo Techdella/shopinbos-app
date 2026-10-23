@@ -14,6 +14,7 @@ import { CHANNELS, type InboxChannelKey } from "@/lib/inbox/meta";
 import type { InboxThread as ThreadData, InboxThreadMessage } from "@/lib/inbox/queries";
 import { naira } from "@shared/onboarding";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
+import { friendlyError } from "@/lib/errors/report-client";
 
 // One customer conversation: the messages, a reply box that sends on the conversation's own channel (or saves
 // a private note), Peggy's suggested reply, saved replies, calls, and the customer sidebar.
@@ -231,7 +232,7 @@ function CallPanel({ conversationId, phone, voiceOn, defaultPhone, onDone, onClo
       setMessage({ tone: "ok", text: mode === "click" ? t("call.ringing") : t("call.saved") });
       onDone();
     } catch (error) {
-      setMessage({ tone: "error", text: (error as Error).message });
+      setMessage({ tone: "error", text: friendlyError(error) });
     } finally {
       setBusy(false);
     }
@@ -302,7 +303,7 @@ export function InboxThread({ conversationId, me, team, canned, connected, aiAva
       setData(next);
       setLoadError(null);
     } catch (error) {
-      setLoadError((error as Error).message);
+      setLoadError(friendlyError(error));
     }
   }, [conversationId]);
 
@@ -333,7 +334,7 @@ export function InboxThread({ conversationId, me, team, canned, connected, aiAva
       if (done) setNotice({ tone: "ok", text: done });
       await load();
     } catch (error) {
-      setNotice({ tone: "error", text: (error as Error).message });
+      setNotice({ tone: "error", text: friendlyError(error) });
     }
   }
 
@@ -346,7 +347,7 @@ export function InboxThread({ conversationId, me, team, canned, connected, aiAva
       if (mode === "reply") onChanged({ preview: text.trim().slice(0, 140), at: new Date().toISOString() });
       setText("");
     } catch (error) {
-      setNotice({ tone: "error", text: (error as Error).message });
+      setNotice({ tone: "error", text: friendlyError(error) });
     } finally {
       setSending(false);
       await load();
@@ -362,7 +363,7 @@ export function InboxThread({ conversationId, me, team, canned, connected, aiAva
       setText(result.text);
       setNotice({ tone: "ok", text: t("thread.peggyWrote") });
     } catch (error) {
-      setNotice({ tone: "error", text: (error as Error).message });
+      setNotice({ tone: "error", text: friendlyError(error) });
     } finally {
       setSuggesting(false);
     }

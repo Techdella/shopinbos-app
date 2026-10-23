@@ -1,4 +1,11 @@
 import * as Sentry from "@sentry/nextjs";
+import { listenForUnhandledErrors } from "@/lib/errors/report-client";
+import { ensureUsableStorage } from "@/lib/safe-storage";
+
+// First, before anything reads it: browsers that deny site storage throw on window.sessionStorage/localStorage.
+// Swap in memory storage so the app (and Sentry's replay) keep working, and send uncaught errors to Admin › App errors.
+ensureUsableStorage();
+listenForUnhandledErrors();
 
 // Browser errors. Next loads this file on the client by itself; the DSN has to be NEXT_PUBLIC_ to reach the browser.
 Sentry.init({

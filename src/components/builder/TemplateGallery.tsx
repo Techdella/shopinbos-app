@@ -6,6 +6,7 @@ import { Icon } from "@/components/ui/Icon";
 import { createSnapshotFromTemplate, getTemplateManifest } from "@/lib/store-templates/catalog";
 import type { StoreEditorSnapshot, TemplateCategory, TemplateGalleryItem } from "@/lib/store-templates/types";
 import { TemplateStorefrontSurface, type SurfaceStore } from "@/components/storefront/TemplateStorefrontSurface";
+import { friendlyError } from "@/lib/errors/report-client";
 
 const CATEGORY_OPTIONS: Array<{ id: TemplateCategory | "all"; label: string }> = [
   { id: "all", label: "All" },
@@ -442,7 +443,7 @@ export function TemplateGallery({
       }
       startTransition(() => router.push(destination));
     } catch (error) {
-      setApplyError(error instanceof Error ? error.message : "That theme didn't switch. Check your connection and try again.");
+      setApplyError(error instanceof Error ? friendlyError(error) : "That theme didn't switch. Check your connection and try again.");
     } finally {
       setApplyingId(null);
     }

@@ -4,6 +4,7 @@ import { useId, useState } from "react";
 import { useStoreVisitor, rememberStoreVisitor } from "@/hooks/useStoreVisitor";
 import { SignupForm, SignupSuccess, type SignupColors, type SignupResult } from "@/components/storefront/marketing/SignupForm";
 import type { FormDesign, FormField } from "@/lib/marketing/forms";
+import { friendlyError } from "@/lib/errors/report-client";
 
 // Forms inside CMS pages: one of the store's own forms (Marketing → Forms), or a simple contact form that
 // posts to the store's form submissions (and so reaches the seller's inbox).
@@ -50,7 +51,7 @@ export function CmsContactForm({ storeSlug, heading, context }: { storeSlug: str
       rememberStoreVisitor(storeSlug, { email, name });
       setState("sent");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "It didn't send. Try again.");
+      setError(e instanceof Error ? friendlyError(e) : "It didn't send. Try again.");
       setState("error");
     }
   }

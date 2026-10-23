@@ -11,6 +11,7 @@ import { uploadStudioPhoto } from "@/components/builder/rex/api";
 import { BuyCreditsButton, creditsChanged, isCreditsError } from "@/components/credits/CreditsBadge";
 import type { BrandAssetKind, BrandAssets } from "@shared/brand-assets";
 import { logoTreatmentStyle } from "@shared/logo-variants";
+import { friendlyError } from "@/lib/errors/report-client";
 
 const btn = "inline-flex min-h-[36px] items-center gap-1.5 rounded-full border border-app-line bg-white px-3.5 text-[13px] font-bold text-app-ink no-underline hover:border-app-line-strong disabled:opacity-50";
 
@@ -48,7 +49,7 @@ export function BrandAssetsPanel({ initial, storeName, accent, fileBase }: { ini
       setProposal(null);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("ba.failed"));
+      setError(err instanceof Error ? friendlyError(err) : t("ba.failed"));
     } finally {
       setBusy(null);
     }
@@ -63,7 +64,7 @@ export function BrandAssetsPanel({ initial, storeName, accent, fileBase }: { ini
       const url = await uploadStudioPhoto(file);
       await save(kind, url);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("ba.failed"));
+      setError(err instanceof Error ? friendlyError(err) : t("ba.failed"));
       setBusy(null);
     } finally {
       const input = files.current[kind];
@@ -80,7 +81,7 @@ export function BrandAssetsPanel({ initial, storeName, accent, fileBase }: { ini
       if (!response.ok) throw await readError(response, t("ba.failed"));
       setProposal({ kind, url: ((await response.json()) as { data: { url: string } }).data.url });
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("ba.failed"));
+      setError(err instanceof Error ? friendlyError(err) : t("ba.failed"));
       setNeedCredits(needsCredits(err));
     } finally {
       setBusy(null);

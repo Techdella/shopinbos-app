@@ -8,6 +8,7 @@ import { broadcastIdentity, useIdentity } from "@/components/shell/useShellCount
 import { identityImageProblem, initialsOf } from "@shared/identity-images";
 import { shrinkImage } from "@/lib/media/shrink-image";
 import { useT } from "@/components/i18n/I18nProvider";
+import { friendlyError } from "@/lib/errors/report-client";
 
 // The company logo badge on the profile header. Saves through /api/app/me/images like every other photo and
 // logo uploader, so the new logo shows across the app straight away.
@@ -41,7 +42,7 @@ export function LogoUploadForm({ currentLogo, displayName }: { currentLogo: stri
       broadcastIdentity({ logoUrl: json.data.logoUrl });
       router.refresh();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : t("upload.failed"));
+      setError(caught instanceof Error ? friendlyError(caught) : t("upload.failed"));
     } finally {
       setUploading(false);
     }

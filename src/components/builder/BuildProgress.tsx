@@ -6,6 +6,7 @@ import { Icon } from "@/components/ui/Icon";
 import type { StoreConfig } from "@/lib/ai/store-types";
 import { useT } from "@/components/i18n/I18nProvider";
 import { RexQuip } from "./rex/RexProgress";
+import { friendlyError } from "@/lib/errors/report-client";
 
 export interface BuildSummary {
   /** What the build-store step created (sample products, images) and anything it skipped. */
@@ -109,7 +110,7 @@ export function BuildProgress({ selectedPages, selectedPageDetails, storeConfig,
           result.designSaved = true;
           setStep("design", "done", made.length ? t("bp.added", { items: made.join(", ") }) : undefined);
         } catch (error) {
-          setStep("design", "failed", error instanceof Error ? error.message : t("bp.err.designShort"));
+          setStep("design", "failed", error instanceof Error ? friendlyError(error) : t("bp.err.designShort"));
         }
       }
 
@@ -136,7 +137,7 @@ export function BuildProgress({ selectedPages, selectedPageDetails, storeConfig,
           setStep(page.type, "done", json.aiOff ? t("bp.starter") : undefined);
         } catch (error) {
           result.failedPages.push(page.label ?? page.type);
-          setStep(page.type, "failed", error instanceof Error ? error.message : t("bp.err.page"));
+          setStep(page.type, "failed", error instanceof Error ? friendlyError(error) : t("bp.err.page"));
         }
       }
 

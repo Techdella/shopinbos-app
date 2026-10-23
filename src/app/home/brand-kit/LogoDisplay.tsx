@@ -6,6 +6,7 @@ import { Icon } from "@/components/ui/Icon";
 import { useT } from "@/components/i18n/I18nProvider";
 import { StoreBrandMark } from "@/components/storefront/StoreBrandMark";
 import { LOGO_SIZES, LOGO_STYLES, type LogoDisplay } from "@shared/store-logo";
+import { friendlyError } from "@/lib/errors/report-client";
 
 /**
  * Brand kit > "On your store": how the store header shows the brand (full logo, logo icon or name, with or
@@ -29,7 +30,7 @@ export function LogoDisplayPanel({ initial, logoUrl, brandSettings, storeName }:
       setSaved(display);
       setNote({ ok: true, text: t("ld.saved") });
     } catch (error) {
-      setNote({ ok: false, text: error instanceof Error ? error.message : t("ld.failed") });
+      setNote({ ok: false, text: error instanceof Error ? friendlyError(error) : t("ld.failed") });
     } finally {
       setBusy(false);
     }

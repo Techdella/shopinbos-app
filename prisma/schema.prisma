@@ -4745,3 +4745,33 @@ model SocialPost {
   @@index([storeId, scheduledAt])
   @@index([status, scheduledAt])
 }
+
+// ---- app errors (docs/migrations/2026-11-22-client-errors.sql) ----
+/// Errors people hit in the browser (Admin › App errors). One row per problem per account (or per anonymous
+/// visitor): count and lastSeenAt go up when it happens again. Reported by src/lib/errors/report-client.ts.
+/// No foreign key: rows outlive deleted accounts, and visitors who aren't signed in have no user.
+model ClientError {
+  id          String    @id
+  fingerprint String
+  userId      String?
+  role        String?
+  kind        String
+  source      String
+  name        String
+  message     String
+  shown       String?
+  stack       String?
+  digest      String?
+  path        String
+  pagePattern String
+  userAgent   String?
+  browser     String
+  count       Int       @default(1)
+  firstSeenAt DateTime  @default(now())
+  lastSeenAt  DateTime  @default(now())
+  resolvedAt  DateTime?
+
+  @@index([resolvedAt, lastSeenAt(sort: Desc)])
+  @@index([userId, lastSeenAt(sort: Desc)])
+  @@index([fingerprint])
+}

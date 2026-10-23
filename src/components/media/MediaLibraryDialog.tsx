@@ -7,6 +7,7 @@ import { PillButton, Spinner, cx } from "@/components/app-ui";
 import { useT } from "@/components/i18n/I18nProvider";
 import { mediaLabel, type MediaKind } from "@shared/media";
 import { acceptFor, chooseFile, chooseFiles, listMyMedia, removeFromMyMedia, uploadToMyMedia, type MediaAssetView } from "./media-client";
+import { friendlyError } from "@/lib/errors/report-client";
 
 // "My media": a grid of the person's pictures (newest first) with search and an upload button. A bottom sheet on
 // phones, a centred dialog from sm up. Picks one (tap, then "Use this picture") or several (`multiple`).
@@ -137,7 +138,7 @@ function LibrarySheet({ onClose, onSelect, multiple = false, accept = "image", i
       setItems((current) => [...uploaded, ...current.filter((entry) => !uploaded.some((asset) => asset.url === entry.url))]);
       setPicked((current) => [...current, ...uploaded.filter((asset) => !current.some((entry) => entry.url === asset.url))]);
     } catch (error) {
-      setMessage({ tone: "error", text: error instanceof Error ? error.message : t("field.uploadFailed") });
+      setMessage({ tone: "error", text: error instanceof Error ? friendlyError(error) : t("field.uploadFailed") });
     } finally {
       setUploading(false);
     }

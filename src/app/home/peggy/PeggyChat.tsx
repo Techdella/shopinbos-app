@@ -13,6 +13,7 @@ import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import { formatNumber } from "@shared/i18n";
 import type { MessageKey } from "@shared/i18n/catalog";
 import { ChatText } from "@/components/chat/ChatText";
+import { friendlyError } from "@/lib/errors/report-client";
 
 interface PeggyAction {
   tool: string;
@@ -127,7 +128,7 @@ export function PeggyChat({ greeting, initialAsk, suggestions, stats }: { greeti
       // Her changes show up on the other pages straight away.
       if (data.actions?.length) router.refresh();
     } catch (error) {
-      setTurns((current) => [...current, { role: "assistant", failed: true, content: error instanceof Error ? error.message : t("err.short"), buyCredits: isCreditsError((error as { code?: string }).code) }]);
+      setTurns((current) => [...current, { role: "assistant", failed: true, content: error instanceof Error ? friendlyError(error) : t("err.short"), buyCredits: isCreditsError((error as { code?: string }).code) }]);
     } finally {
       setBusy(false);
       creditsChanged();

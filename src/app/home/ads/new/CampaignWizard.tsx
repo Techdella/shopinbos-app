@@ -23,6 +23,7 @@ import {
   type AdObjective,
 } from "@shared/ad-campaigns";
 import { MetaConnectCard, type MetaStatus } from "../MetaConnectCard";
+import { friendlyError } from "@/lib/errors/report-client";
 
 export interface WizardProduct {
   id: string;
@@ -153,7 +154,7 @@ export function CampaignWizard({
         }),
       );
     } catch (err) {
-      setError({ text: err instanceof Error ? err.message : t("c.err.copy"), credits: isCreditsError((err as { code?: string }).code) });
+      setError({ text: err instanceof Error ? friendlyError(err) : t("c.err.copy"), credits: isCreditsError((err as { code?: string }).code) });
     } finally {
       setBusy(null);
     }
@@ -223,7 +224,7 @@ export function CampaignWizard({
       router.push(`/home/ads?campaign=${id}&done=${launch ? "launched" : "draft"}`);
       router.refresh();
     } catch (err) {
-      setError({ text: err instanceof Error ? err.message : t("c.err.save") });
+      setError({ text: err instanceof Error ? friendlyError(err) : t("c.err.save") });
       setBusy(null);
     }
   }

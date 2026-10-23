@@ -9,6 +9,7 @@ import { PageHead } from "@/components/ui";
 import { askPeggy } from "@/app/actions/ai";
 import { Mascot } from "@/components/brand/Mascot";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
+import { friendlyError } from "@/lib/errors/report-client";
 
 interface Category {
   id: string;
@@ -80,7 +81,7 @@ export function NewProductForm({ categories, peggyData }: { categories: Category
       }
       setImages((prev) => [...prev, ...uploaded]);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "That picture didn't upload. Check your connection and try again.");
+      setError(e instanceof Error ? friendlyError(e) : "That picture didn't upload. Check your connection and try again.");
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -104,7 +105,7 @@ export function NewProductForm({ categories, peggyData }: { categories: Category
       setImages((prev) => [...prev, data.image.url]);
       setImagePrompt("");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Peggy couldn't make that picture. Try again in a minute.");
+      setError(e instanceof Error ? friendlyError(e) : "Peggy couldn't make that picture. Try again in a minute.");
     } finally {
       setGeneratingImage(false);
     }
@@ -127,7 +128,7 @@ export function NewProductForm({ categories, peggyData }: { categories: Category
       const data = await res.json();
       setImages((prev) => [...prev, data.image.url]);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Peggy couldn't improve that picture. Try again in a minute.");
+      setError(e instanceof Error ? friendlyError(e) : "Peggy couldn't improve that picture. Try again in a minute.");
     } finally {
       setEnhancingIndex(null);
     }
@@ -169,7 +170,7 @@ export function NewProductForm({ categories, peggyData }: { categories: Category
           : variant
       )));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "That picture didn't upload. Check your connection and try again.");
+      setError(e instanceof Error ? friendlyError(e) : "That picture didn't upload. Check your connection and try again.");
     } finally {
       setUploading(false);
     }
@@ -217,7 +218,7 @@ export function NewProductForm({ categories, peggyData }: { categories: Category
       setSelectedCategoryId(category.id);
       setNewCategoryName("");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Category could not be created");
+      setError(e instanceof Error ? friendlyError(e) : "Category could not be created");
     }
   }, [newCategoryName]);
 

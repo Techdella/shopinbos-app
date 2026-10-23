@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { FieldLabel, Mascot, Notice, PillButton, TextInput, cx } from "@/components/app-ui";
 import { useT } from "@/components/i18n/I18nProvider";
+import { friendlyError } from "@/lib/errors/report-client";
 
 const PAGE_TYPES = [
   { id: "home", icon: "home" },
@@ -51,7 +52,7 @@ export function NewPageForm({ existing }: { existing: Array<{ id: string; slug: 
       if (!res.ok || !created) throw new Error(json?.error?.message ?? t("pages.createError"));
       router.push(`/home/pages/${created.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("pages.createError"));
+      setError(err instanceof Error ? friendlyError(err) : t("pages.createError"));
       setBusy(false);
     }
   }

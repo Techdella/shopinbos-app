@@ -18,6 +18,7 @@ import { Modal } from "@/components/cms/pickers";
 import { CollectionSetup, type MenuState } from "../../CollectionSetup";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import { formatDate } from "@shared/i18n";
+import { friendlyError } from "@/lib/errors/report-client";
 
 // The item editor: Content | SEO | Settings tabs, like WordPress. Saves through /api/app/cms; the server
 // validates every field and rebuilds rich text HTML.
@@ -185,7 +186,7 @@ export function ItemEditor(props: {
       setTab("content");
       setNotice({ tone: "info", text: t("rex.draftIn") });
     } catch (e) {
-      setRexError(e instanceof Error ? e.message : t("rex.failed"));
+      setRexError(e instanceof Error ? friendlyError(e) : t("rex.failed"));
     } finally {
       setRexBusy(false);
     }

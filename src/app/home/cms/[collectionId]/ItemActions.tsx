@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
 import { Spinner } from "@/components/app-ui";
 import { useT } from "@/components/i18n/I18nProvider";
+import { friendlyError } from "@/lib/errors/report-client";
 
 // Quick publish/unpublish and delete on an item row. Publishing goes through the same checks as the editor
 // (required fields), so a half-written draft shows what's missing instead of going live.
@@ -32,7 +33,7 @@ export function ItemActions({ id, title, status, editHref }: { id: string; title
       if (!res.ok) throw new Error(json?.error?.message ?? t("ia.updateError"));
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : t("ia.updateError"));
+      setError(e instanceof Error ? friendlyError(e) : t("ia.updateError"));
     } finally {
       setBusy("");
     }

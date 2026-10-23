@@ -8,6 +8,7 @@ import { broadcastIdentity, useIdentity, type ShellIdentity } from "@/components
 import { identityImageProblem, initialsOf, type IdentityImageKind } from "@shared/identity-images";
 import { useT } from "@/components/i18n/I18nProvider";
 import { shrinkImage } from "@/lib/media/shrink-image";
+import { friendlyError } from "@/lib/errors/report-client";
 
 // Upload, change or remove the person's photo or their store/business logo. Saving broadcasts the new picture
 // so the top bar, the menu and any other uploader on screen update at once, then refreshes the page's server
@@ -70,7 +71,7 @@ export function IdentityImageUploader({
       setMessage({ tone: "ok", text: file ? (round ? t("img.photoUpdated") : t("img.updated", { title })) : round ? t("img.photoRemoved") : t("img.removed", { title }) });
       router.refresh();
     } catch (error) {
-      setMessage({ tone: "error", text: error instanceof Error ? error.message : t("img.failed") });
+      setMessage({ tone: "error", text: error instanceof Error ? friendlyError(error) : t("img.failed") });
     } finally {
       setBusy(null);
       setPreview((url) => {

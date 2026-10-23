@@ -67,6 +67,7 @@ import { InsertPanel } from "./InsertPanel";
 import { Inspector, type SectionAction } from "./Inspector";
 import { PagePicker } from "./PagePicker";
 import { RexPanel, type RexTopic } from "./RexPanel";
+import { friendlyError } from "@/lib/errors/report-client";
 
 /** The preview id for a change Rex shows before the seller applies it. */
 const REX_PREVIEW = "rex";
@@ -459,7 +460,7 @@ export function Builder({
       if (!response.ok || !json?.data?.publicUrl) throw new Error(json?.error?.message ?? tx("That upload didn't work. Try a smaller image."));
       return json.data.publicUrl;
     } catch (error) {
-      b.showToast(error instanceof Error ? error.message : tx("That upload didn't work."), "error");
+      b.showToast(error instanceof Error ? friendlyError(error) : tx("That upload didn't work."), "error");
       return null;
     }
   }, [b, tx]);

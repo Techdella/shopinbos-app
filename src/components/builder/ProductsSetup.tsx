@@ -7,6 +7,7 @@ import { Mascot, Notice, PillButton, Segmented, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { uploadFile } from "@/lib/supabase/storage";
 import { useT } from "@/components/i18n/I18nProvider";
+import { friendlyError } from "@/lib/errors/report-client";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -313,7 +314,7 @@ export function ProductsSetup({ category, onNext, onBack, onProductsChange }: Pr
       if (field === "shortDesc" || field === "fullDesc") update(productId, { [field]: text });
       else if (specKey) updateSpec(productId, specKey, text);
     } catch (error) {
-      setPeggyError(error instanceof Error ? error.message : t("ps.peggyError"));
+      setPeggyError(error instanceof Error ? friendlyError(error) : t("ps.peggyError"));
     } finally {
       setPeggyLoading(null);
     }

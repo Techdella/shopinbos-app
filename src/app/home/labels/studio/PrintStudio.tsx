@@ -7,6 +7,7 @@ import { Icon, type IconName } from "@/components/ui/Icon";
 import { useT } from "@/components/i18n/I18nProvider";
 import { barcodeSvg } from "@shared/barcodes";
 import { PRINT_KINDS, PRINT_SPECS, QR_TARGETS, buildPrintItems, labelsPerSheet, pageCss, type PaperMode, type PrintItem, type PrintKind, type PrintProduct, type QrTarget } from "@shared/print-labels";
+import { friendlyError } from "@/lib/errors/report-client";
 
 interface StudioStore {
   name: string;
@@ -119,7 +120,7 @@ export function PrintStudio({
       if (!response.ok) throw new Error(t("ps.saveFailed"));
       setStatus({ ok: true, text: t("ps.savedSetup") });
     } catch (error) {
-      setStatus({ ok: false, text: error instanceof Error ? error.message : t("ps.saveFailed") });
+      setStatus({ ok: false, text: error instanceof Error ? friendlyError(error) : t("ps.saveFailed") });
     } finally {
       setBusy(null);
     }
@@ -137,7 +138,7 @@ export function PrintStudio({
       link.download = fileName;
       link.click();
     } catch (error) {
-      setStatus({ ok: false, text: error instanceof Error ? error.message : t("ps.err.png") });
+      setStatus({ ok: false, text: error instanceof Error ? friendlyError(error) : t("ps.err.png") });
     } finally {
       setBusy(null);
     }
@@ -164,7 +165,7 @@ export function PrintStudio({
       setStatus({ ok: true, text: t("ps.sent") });
       setSendOpen(false);
     } catch (error) {
-      setStatus({ ok: false, text: error instanceof Error ? error.message : t("ps.err.send") });
+      setStatus({ ok: false, text: error instanceof Error ? friendlyError(error) : t("ps.err.send") });
     } finally {
       setBusy(null);
     }

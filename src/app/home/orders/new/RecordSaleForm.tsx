@@ -9,6 +9,7 @@ import { SALE_DELIVERY, SALE_PAYMENTS, saleTotals, type SaleDelivery, type SaleP
 import { formatMoney } from "@shared/i18n";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
+import { friendlyError } from "@/lib/errors/report-client";
 
 interface CatalogProduct {
   id: string;
@@ -106,7 +107,7 @@ export function RecordSaleForm({ products }: { products: CatalogProduct[] }) {
       router.push(`/home/orders/${body.data.id}`);
       router.refresh();
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : t("sale.saveFailed"));
+      setError(saveError instanceof Error ? friendlyError(saveError) : t("sale.saveFailed"));
       setBusy(false);
     }
   }

@@ -9,6 +9,7 @@ import { inboxApi } from "@/components/messaging/inbox-ui";
 import { QrCode } from "@/components/payment-links/QrCode";
 import { useT } from "@/components/i18n/I18nProvider";
 import type { WhatsAppStoreView } from "@/lib/whatsapp-store/server";
+import { friendlyError } from "@/lib/errors/report-client";
 
 // The WhatsApp store: one switch, the link to share (with a QR code), what still needs doing before customers can
 // buy, the order confirmations switch, and the orders that came in from WhatsApp. The orders themselves are
@@ -62,7 +63,7 @@ export function WhatsAppStoreClient({ initial, storeName }: { initial: WhatsAppS
       setView(next);
       if (patch.on !== undefined) setMessage({ tone: "success", text: next.on ? (next.mode === "test" ? t("ws.onTest") : t("ws.onLive")) : t("ws.offSaved") });
     } catch (error) {
-      setMessage({ tone: "error", text: (error as Error).message });
+      setMessage({ tone: "error", text: friendlyError(error) });
     } finally {
       setSaving(false);
     }

@@ -23,6 +23,7 @@ import {
 import type { PreviewProduct } from "./ProductsSetup";
 import { useT } from "@/components/i18n/I18nProvider";
 import { ChatText } from "@/components/chat/ChatText";
+import { friendlyError } from "@/lib/errors/report-client";
 
 type BuilderT = ReturnType<typeof useT<["builder"]>>;
 
@@ -512,7 +513,7 @@ export function ChipBuilder({ userName, userAvatarUrl = null, existingStore, sel
       } catch (error) {
         setStreaming({
           role: "assistant",
-          content: error instanceof Error ? error.message : t("chip.wrong"),
+          content: error instanceof Error ? friendlyError(error) : t("chip.wrong"),
           isStreaming: false,
           chips: [t("chip.tryAgain")],
         });

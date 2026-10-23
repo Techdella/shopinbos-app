@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { FieldLabel, Notice, PillButton, TextInput } from "@/components/app-ui";
 import { useT } from "@/components/i18n/I18nProvider";
+import { friendlyError } from "@/lib/errors/report-client";
 
 interface PartnerOption {
   id: string;
@@ -53,7 +54,7 @@ export function QuoteRequestForm({ partners, defaultPartnerId, defaultPickup }: 
       setFragile(false);
       router.refresh();
     } catch (err) {
-      setResult({ tone: "error", text: err instanceof Error ? err.message : t("qf.sendFailed") });
+      setResult({ tone: "error", text: err instanceof Error ? friendlyError(err) : t("qf.sendFailed") });
     } finally {
       setBusy(false);
     }

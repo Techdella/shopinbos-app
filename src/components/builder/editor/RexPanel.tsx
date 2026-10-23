@@ -11,6 +11,7 @@ import { PanelHeading } from "./ui";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { useEditorT } from "./i18n";
 import { ChatText } from "@/components/chat/ChatText";
+import { friendlyError } from "@/lib/errors/report-client";
 
 interface Message {
   role: "rex" | "you";
@@ -173,7 +174,7 @@ export function RexPanel(props: RexPanelProps) {
       props.onApplied();
       setMessages((current) => [...current, { role: "rex", text: tx("Applied. It's in your draft now: publish when you're ready for shoppers to see it.") }]);
     } catch (error) {
-      setMessages((current) => [...current, { role: "rex", text: error instanceof Error ? error.message : tx("Rex's change couldn't be applied.") }]);
+      setMessages((current) => [...current, { role: "rex", text: error instanceof Error ? friendlyError(error) : tx("Rex's change couldn't be applied.") }]);
     } finally {
       setApplying(false);
     }

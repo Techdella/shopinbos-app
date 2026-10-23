@@ -20,6 +20,7 @@ import {
 import { CHANNELS } from "@/lib/inbox/meta";
 import { useT } from "@/components/i18n/I18nProvider";
 import { useChannelLabel } from "@/components/messaging/inbox-ui";
+import { friendlyError } from "@/lib/errors/report-client";
 
 // Auto-replies: the master switch and away message (InboxSettings), plus business hours, per-channel switches,
 // keyword quick replies and the instant "got it" (InboxAutomation). "Try a message" runs the same decision the
@@ -74,7 +75,7 @@ export function AutoRepliesClient({ initial, ready, aiAvailable }: { initial: { 
       }
       setResult({ tone: "success", text: t("ar.saved") });
     } catch (error) {
-      setResult({ tone: "error", text: (error as Error).message });
+      setResult({ tone: "error", text: friendlyError(error) });
     } finally {
       setSaving(false);
     }

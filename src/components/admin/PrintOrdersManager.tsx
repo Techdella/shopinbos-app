@@ -6,6 +6,7 @@ import { PackRender } from "@/components/packaging/PackRender";
 import { downloadPrintPdf } from "@/components/packaging/export";
 import { PACK_FORMAT_INFO, type PackDesign, type PackFormat } from "@shared/packaging";
 import { DELIVERY_ZONES, PRINT_ORDER_STATUSES, PRINT_ORDER_STATUS_LABEL, type PrintOrderStatus } from "@shared/print-orders";
+import { friendlyError } from "@/lib/errors/report-client";
 
 export interface PrintOrderRow {
   id: string;
@@ -61,7 +62,7 @@ export function PrintOrdersManager({ initial, migrationNeeded }: { initial: Prin
       if (!response.ok || !json?.data) throw new Error(json?.error?.message ?? "Couldn't save.");
       setRows((current) => current.map((row) => (row.id === id ? { ...row, status: json.data!.status ?? row.status, tracking: json.data!.tracking ?? null, adminNotes: json.data!.adminNotes ?? null } : row)));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't save.");
+      setError(err instanceof Error ? friendlyError(err) : "Couldn't save.");
     } finally {
       setBusy(null);
     }
@@ -77,7 +78,7 @@ export function PrintOrdersManager({ initial, migrationNeeded }: { initial: Prin
       if (!exportRef.current) throw new Error("Couldn't draw the design.");
       await downloadPrintPdf(exportRef.current, row.design, `${row.title} x${row.quantity}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't make the PDF.");
+      setError(err instanceof Error ? friendlyError(err) : "Couldn't make the PDF.");
     } finally {
       setBusy(null);
       setExporting(null);

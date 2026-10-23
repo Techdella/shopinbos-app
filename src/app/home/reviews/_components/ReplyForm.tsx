@@ -7,6 +7,7 @@ import { field } from "@/components/seller-core";
 import { Icon } from "@/components/ui/Icon";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { useT } from "@/components/i18n/I18nProvider";
+import { friendlyError } from "@/lib/errors/report-client";
 
 export function ReplyForm({ reviewKey, initial, authorName, google }: { reviewKey: string; initial: string; authorName: string; google: "synced" | "local" | null }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(saveReviewReply, null);
@@ -24,7 +25,7 @@ export function ReplyForm({ reviewKey, initial, authorName, google }: { reviewKe
       if (!res.ok || !json?.data?.reply) throw new Error(json?.error?.message ?? t("reply.failed"));
       setText(json.data.reply);
     } catch (error) {
-      setDraftError(error instanceof Error ? error.message : t("reply.failed"));
+      setDraftError(error instanceof Error ? friendlyError(error) : t("reply.failed"));
     } finally {
       setDrafting(false);
     }

@@ -5,6 +5,7 @@ import { Spinner, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import type { AiChatAssistant } from "@shared/ai-chats";
+import { friendlyError } from "@/lib/errors/report-client";
 
 // Saved Rex and Peggy chats (/api/app/ai-chats): the conversation saves itself after each answer, and the History
 // menu reopens an old one or starts a new one.
@@ -111,7 +112,7 @@ export function ChatHistoryMenu({
     fetch(`/api/app/ai-creations?limit=36${filter === "all" ? "" : `&kind=${filter}`}`)
       .then((response) => readJson<Creation[]>(response))
       .then((list) => !cancelled && setMade(list))
-      .catch((err) => !cancelled && setError(err instanceof Error ? err.message : t("chats.failed")));
+      .catch((err) => !cancelled && setError(err instanceof Error ? friendlyError(err) : t("chats.failed")));
     return () => {
       cancelled = true;
     };
@@ -124,7 +125,7 @@ export function ChatHistoryMenu({
     fetch(`/api/app/ai-chats?assistant=${assistant}`)
       .then((response) => readJson<ChatSummary[]>(response))
       .then((list) => !cancelled && setChats(list))
-      .catch((err) => !cancelled && setError(err instanceof Error ? err.message : t("chats.failed")));
+      .catch((err) => !cancelled && setError(err instanceof Error ? friendlyError(err) : t("chats.failed")));
     const close = (event: MouseEvent | KeyboardEvent) => {
       if (event instanceof KeyboardEvent ? event.key === "Escape" : !ref.current?.contains(event.target as Node)) setOpen(false);
     };
@@ -144,7 +145,7 @@ export function ChatHistoryMenu({
       onOpen({ id: chat.id, messages: Array.isArray(chat.messages) ? chat.messages : [] });
       setOpen(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("chats.failed"));
+      setError(err instanceof Error ? friendlyError(err) : t("chats.failed"));
     } finally {
       setBusy(null);
     }
@@ -157,7 +158,7 @@ export function ChatHistoryMenu({
       setChats((list) => list?.filter((chat) => chat.id !== id) ?? null);
       if (id === currentId) onNew();
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("chats.failed"));
+      setError(err instanceof Error ? friendlyError(err) : t("chats.failed"));
     } finally {
       setBusy(null);
     }

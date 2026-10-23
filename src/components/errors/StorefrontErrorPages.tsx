@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { reportClientError } from "@/lib/errors/report-client";
 import { useRouter } from "next/navigation";
 import { BOUTIQUE_FONT_CLASS } from "@/components/storefront/boutique/fonts";
 import { resolveShopperTheme } from "@/components/storefront/shopper/theme";
@@ -54,7 +55,10 @@ export function StorefrontError({ error, retry }: { error: Error & { digest?: st
   // After a new deploy the shop quietly reloads once (no platform name on a shopper's page).
   const { reloading, stale } = useDeployRecovery(error);
   useEffect(() => {
-    if (!reloading) console.error(error);
+    if (!reloading) {
+      console.error(error);
+      reportClientError(error, { source: "boundary", digest: error.digest });
+    }
   }, [error, reloading]);
   if (reloading) {
     const palette = shopperPalette(theme);

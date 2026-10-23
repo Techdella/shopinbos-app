@@ -32,6 +32,7 @@ import { isProductTypeKey, readProductDetails, type ProductTypeKey } from "@shar
 import { normalizeVariants, readVariantOptions, serializeVariants, totalVariantStock, type ProductVariant, type VariantOption } from "@shared/product-variants";
 import { SIZE_BANDS, SIZE_BAND_LABELS, isSizeBand } from "@shared/delivery-market";
 import { applySuggestion, type AssistantFormState, type SuggestionInput } from "@shared/product-assistant";
+import { friendlyError } from "@/lib/errors/report-client";
 
 interface Category {
   id: string;
@@ -334,7 +335,7 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
       }
       setImages((prev) => [...prev, ...uploaded]);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Upload failed");
+      setError(e instanceof Error ? friendlyError(e) : "Upload failed");
     }
   }, []);
 

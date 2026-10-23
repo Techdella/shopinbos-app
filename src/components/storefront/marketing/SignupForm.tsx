@@ -4,6 +4,7 @@ import { useId, useState } from "react";
 import type { FormDesign, FormField } from "@/lib/marketing/forms";
 import { rememberWonCode } from "@/components/storefront/gamification/client";
 import { formatStoreMoney } from "@/lib/storefront/shopper-info";
+import { friendlyError } from "@/lib/errors/report-client";
 
 // The sign-up form shoppers fill in: used inside storefront pop-ups and on the hosted /join page.
 // Email consent is a separate, unticked box (consent must be given, not assumed).
@@ -110,7 +111,7 @@ export function SignupForm({
       const download = json?.data?.download && typeof json.data.download.url === "string" && /^https:\/\//.test(json.data.download.url) ? (json.data.download as SignupResult["download"]) : null;
       onDone({ code, message: json?.data?.message ?? design.successMessage, alreadySubscribed: Boolean(json?.data?.alreadySubscribed), reward, rewardSpent: Boolean(json?.data?.rewardSpent), download });
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Something went wrong. Try again.");
+      setError(submitError instanceof Error ? friendlyError(submitError) : "Something went wrong. Try again.");
     } finally {
       setBusy(false);
     }

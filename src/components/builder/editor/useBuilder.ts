@@ -21,6 +21,7 @@ import {
   undoHistory,
   type History,
 } from "./editor-logic";
+import { friendlyError } from "@/lib/errors/report-client";
 
 export interface BuilderProduct {
   id: string;
@@ -234,7 +235,7 @@ export function useBuilder() {
       }
       setPublished(upgradeSnapshot((json.data.published as StoreEditorSnapshot | null | undefined) ?? null));
     } catch (error) {
-      setLoadError(error instanceof Error ? error.message : tx("Your store couldn't be loaded."));
+      setLoadError(error instanceof Error ? friendlyError(error) : tx("Your store couldn't be loaded."));
     } finally {
       setLoading(false);
     }
@@ -293,7 +294,7 @@ export function useBuilder() {
       failedKey.current = snapshotKey(snapshot);
       // fetch() throws a TypeError when there's no connection: say so plainly (the edits are kept on this device).
       const offline = error instanceof TypeError;
-      showToast(offline ? tx("No connection. Your edits are kept on this device and will save when you're back online.") : error instanceof Error ? error.message : tx("Your changes couldn't be saved."), "error");
+      showToast(offline ? tx("No connection. Your edits are kept on this device and will save when you're back online.") : error instanceof Error ? friendlyError(error) : tx("Your changes couldn't be saved."), "error");
       return false;
     } finally {
       setSaving(false);
@@ -391,7 +392,7 @@ export function useBuilder() {
       const host = storefrontHost(store.storefrontUrl);
       showToast(host ? wordsRef.current.t("edk.publishedTo", { host }) : tx("Published"), "ok", store.storefrontUrl ? { href: store.storefrontUrl, label: tx("View store") } : undefined);
     } catch (error) {
-      showToast(error instanceof Error ? error.message : tx("Your store couldn't be published."), "error");
+      showToast(error instanceof Error ? friendlyError(error) : tx("Your store couldn't be published."), "error");
     } finally {
       setPublishing(false);
     }

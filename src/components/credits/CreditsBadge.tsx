@@ -8,6 +8,7 @@ import { Icon } from "@/components/ui/Icon";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import { formatNumber } from "@shared/i18n";
 import type { CreditPack } from "@shared/ai-credits";
+import { friendlyError } from "@/lib/errors/report-client";
 
 // The AI credits button in the top bar and Rex Studio: the balance at a glance, today's free allowance, and a
 // pack bought right here (Paystack brings the seller back to the same page). Anything that spends credits fires
@@ -153,7 +154,7 @@ export function CreditsBadge({
     } catch (error) {
       setNote({
         ok: false,
-        text: error instanceof Error ? error.message : t("credits.failed"),
+        text: error instanceof Error ? friendlyError(error) : t("credits.failed"),
       });
       setBuying(null);
     }

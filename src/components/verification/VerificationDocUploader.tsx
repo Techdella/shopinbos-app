@@ -21,6 +21,7 @@ import { docFileUrl } from "./upload-client";
 import { docFileProblem, docHint, docLabel, docStatusWords } from "./doc-words";
 import { readyToSend } from "@/lib/media/shrink-image";
 import { useT } from "@/components/i18n/I18nProvider";
+import { friendlyError } from "@/lib/errors/report-client";
 
 interface VerificationDocUploaderProps {
   role: "supplier" | "logistics_partner";
@@ -73,7 +74,7 @@ export function VerificationDocUploader({ docs, docConfigs, onUpload, onDelete, 
       await onUpload(type, file, (progress) => setRow(type, { busy: "upload", progress }));
       setRow(type, {});
     } catch (err) {
-      setRow(type, { error: err instanceof Error ? err.message : t("uploader.uploadFailed") });
+      setRow(type, { error: err instanceof Error ? friendlyError(err) : t("uploader.uploadFailed") });
     }
   }
 
@@ -83,7 +84,7 @@ export function VerificationDocUploader({ docs, docConfigs, onUpload, onDelete, 
       await onDelete(docId);
       setRow(type, {});
     } catch (err) {
-      setRow(type, { error: err instanceof Error ? err.message : t("uploader.removeFailed") });
+      setRow(type, { error: err instanceof Error ? friendlyError(err) : t("uploader.removeFailed") });
     }
   }
 

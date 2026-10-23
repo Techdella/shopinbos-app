@@ -23,6 +23,7 @@ import { CreditsBadge, creditsChanged, isCreditsError } from "@/components/credi
 import { RexPreview } from "./RexPreview";
 import { RexSidePanel } from "./RexSidePanel";
 import type { ChatMessage, RexStudioProps } from "./types";
+import { friendlyError } from "@/lib/errors/report-client";
 
 // Rex Studio, chat first: the seller talks to Rex (pictures, logos, videos, store edits, copy, marketing) and
 // the store preview opens beside the chat (full screen on phones) when they ask for it or Rex changes the
@@ -242,7 +243,7 @@ export function RexStudio(props: RexStudioProps) {
       const storeCard = [...result.cards].reverse().find((card) => card.type === "store" || card.type === "preview");
       if (result.draft || storeCard) showPreview(storeCard && "page" in storeCard ? storeCard.page : null);
     } catch (error) {
-      rexSays({ text: error instanceof Error ? error.message : t("rex.st.answerFailed"), tone: "error", ...(isCreditsError((error as { code?: string }).code) ? { buyCredits: true } : {}) });
+      rexSays({ text: error instanceof Error ? friendlyError(error) : t("rex.st.answerFailed"), tone: "error", ...(isCreditsError((error as { code?: string }).code) ? { buyCredits: true } : {}) });
     } finally {
       setBusy(null);
       creditsChanged();
@@ -304,7 +305,7 @@ export function RexStudio(props: RexStudioProps) {
         });
       } catch (error) {
         mark("design", "failed");
-        rexSays({ text: error instanceof Error ? error.message : t("rex.st.buildFailed"), tone: "error", ...(isCreditsError((error as { code?: string }).code) ? { buyCredits: true } : {}) });
+        rexSays({ text: error instanceof Error ? friendlyError(error) : t("rex.st.buildFailed"), tone: "error", ...(isCreditsError((error as { code?: string }).code) ? { buyCredits: true } : {}) });
         return;
       }
       takeDraft(built.draft, built.versions);
@@ -329,7 +330,7 @@ export function RexStudio(props: RexStudioProps) {
           changes.push(t("rex.bs.pagesWritten"));
           mark("pages", "done");
         } catch (error) {
-          mark("pages", "failed", error instanceof Error ? error.message : undefined);
+          mark("pages", "failed", error instanceof Error ? friendlyError(error) : undefined);
           notes.push(t("rex.bs.pagesLater"));
         }
         creditsChanged();
@@ -346,7 +347,7 @@ export function RexStudio(props: RexStudioProps) {
           notes.push(...photos.notes);
           mark("photos", photos.made ? "done" : "failed", t("rex.bp.photosNote", { made: photos.made, total: plan.photos }));
         } catch (error) {
-          mark("photos", "failed", error instanceof Error ? error.message : undefined);
+          mark("photos", "failed", error instanceof Error ? friendlyError(error) : undefined);
         }
       }
 
@@ -380,7 +381,7 @@ export function RexStudio(props: RexStudioProps) {
       rexSays({ text: t("rex.st.undone", { n: result.restored.n }) });
       return true;
     } catch (error) {
-      rexSays({ text: error instanceof Error ? error.message : t("rex.st.undoFailed"), tone: "error" });
+      rexSays({ text: error instanceof Error ? friendlyError(error) : t("rex.st.undoFailed"), tone: "error" });
       return false;
     } finally {
       setUndoingId(null);
@@ -397,7 +398,7 @@ export function RexStudio(props: RexStudioProps) {
       setUnpublished(true);
       setToast({ text: t("rex.st.restored", { n: result.restored.n }) });
     } catch (error) {
-      setToast({ text: error instanceof Error ? error.message : t("rex.st.restoreFailed") });
+      setToast({ text: error instanceof Error ? friendlyError(error) : t("rex.st.restoreFailed") });
     } finally {
       setRestoringId(null);
     }
