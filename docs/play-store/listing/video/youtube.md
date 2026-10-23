@@ -6,9 +6,11 @@ Thumbnail: youtube-thumbnail-1280x720.jpg
 For the Play Store listing video: upload as Public or Unlisted, ads off, not age-restricted (Play's rules), then paste the watch URL.
 
 Title:
-Shopinbos: build your online shop with AI, sell, get paid and deliver
+Shopinbos: start easy, sell smarter. Build your online shop with AI
 
 Description:
+Start easy, sell smarter.
+
 Shopinbos helps African businesses sell online from one app.
 Chat with Rex and your online shop is ready in minutes. Snap product photos and Rex writes the names, descriptions and prices. Answer every customer chat (WhatsApp, Instagram, Facebook and your shop) in one inbox, with Peggy replying for you. Customers pay by card or bank transfer through Paystack, straight to your bank. Find delivery riders near you, and find products to sell from trusted suppliers.
 
