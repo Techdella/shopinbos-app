@@ -117,12 +117,16 @@ test("Riders app map: a region that shows every pin, and only the rider's own ph
   assert.match(route, /dropLat: job\.id === mapJob\?\.id/);
   const payload = route.slice(route.indexOf("return ok({"), route.indexOf("const Body"));
   assert.doesNotMatch(payload, /lastLat|lastLng/);
-  // Android without a Google Maps key falls back to the plain panel instead of crashing.
+  // The map is MapLibre with OpenStreetMap tiles on both platforms: no Google Maps key; Expo Go (no MapLibre
+  // inside) and a job with no points fall back to the plain panel; the OpenStreetMap credit is on the map.
   const config = read("apps/mobile/app.config.js");
-  assert.match(config, /process\.env\.GOOGLE_MAPS_ANDROID_API_KEY/);
-  assert.match(config, /mapsAvailable: Boolean\(androidMapsKey\)/);
+  assert.match(config, /"@maplibre\/maplibre-react-native"/);
+  assert.doesNotMatch(config, /GOOGLE_MAPS_ANDROID_API_KEY|react-native-maps/);
   const map = read("apps/mobile/src/components/RiderMap.native.tsx");
-  assert.match(map, /if \(!mapsAvailable \|\| !region\) return <MapBox/);
+  assert.match(map, /if \(!MapLibre \|\| !region\) return <MapBox/);
+  assert.match(map, /ExecutionEnvironment\.StoreClient/);
+  assert.match(map, /© OpenStreetMap/);
+  assert.doesNotMatch(map, /react-native-maps/);
 });
 
 test("rider routes: pickup codes are made on accept, checked at pickup, and shown to the business handing over", () => {
