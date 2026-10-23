@@ -28,6 +28,7 @@ export function StatusRow({
   onOpenMine,
   onOpen,
   showMine = true,
+  leading,
 }: {
   authors: StatusAuthor[];
   myName: string;
@@ -39,6 +40,8 @@ export function StatusRow({
   onOpen: (index: number) => void;
   /** Leave out "Your status" (a row that only shows other businesses, like Discover's suppliers). */
   showMine?: boolean;
+  /** Rings shown right after "Your status" (the Shopinbos team's weekly updates, TeamUpdatesRing). */
+  leading?: React.ReactNode;
 }) {
   const t = useT("m_familiar");
   return (
@@ -56,6 +59,7 @@ export function StatusRow({
         <T weight="semibold" numberOfLines={1} style={{ fontSize: 12, color: colors.inkSoft }}>{t("status.yours")}</T>
       </Pressable>
       ) : null}
+      {leading}
       {authors.map((author, index) => (
         <Pressable key={author.userId} accessibilityRole="button" accessibilityLabel={t("status.openOf", { name: author.name })} onPress={() => onOpen(index)} style={{ width: 68, alignItems: "center", gap: 6 }}>
           <Ring seen={author.seen}>

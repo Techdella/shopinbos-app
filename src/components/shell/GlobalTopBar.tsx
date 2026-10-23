@@ -8,6 +8,7 @@ import { Icon } from "@/components/ui/Icon";
 import { Mascot } from "@/components/app-ui";
 import { navLinks, type Role } from "@/lib/nav";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { UpdatesRing } from "@/components/updates/UpdatesViewer";
 import { SearchModal } from "./SearchModal";
 import { ConversationsModal } from "./ConversationsModal";
 import { useUnreadMessages } from "@/components/conversations/client";
@@ -121,6 +122,8 @@ export function GlobalTopBar({
             <Mascot name="peggy" className="h-8 w-8" alt="" /> {t("shell.askPeggy")}
           </Link>
         )}
+        {/* Weekly updates from the Shopinbos team: shows only when there are some for this role. */}
+        {role !== "admin" && <UpdatesRing role={role} />}
         {role !== "admin" && (
           <button type="button" aria-label={messagesUnread ? t("shell.messagesUnread", { count: messagesUnread }) : t("shell.messages")} onClick={openChat} className="relative grid h-[42px] w-[42px] place-items-center rounded-full border border-app-line hover:border-app-line-strong">
             <Icon name="chat" size={17} />
