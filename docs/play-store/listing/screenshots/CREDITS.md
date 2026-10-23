@@ -1,6 +1,6 @@
 # Play Store screenshots
 
-1080×1920 phone screenshots. The phone screens are the real Shopinbos app (apps/mobile web build) with demo shop data.
+Phone: screenshots/ (1080×1920). Tablet (7" and 10"): tablet/ (1920×1080). Desktop: desktop/ (1920×1080). The screens are the real Shopinbos app (apps/mobile web build) with demo shop data.
 
 Photos from Unsplash (Unsplash License), from the "Shopinbos coming soon" collection and searches:
 
