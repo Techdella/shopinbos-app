@@ -4849,3 +4849,21 @@ model MemberMessage {
   @@index([kind, period, status])
   @@index([userId, kind, createdAt(sort: Desc)])
 }
+
+// ---- admin data access log (docs/migrations/2026-11-26-admin-data-access.sql) ----
+/// Every time someone on the admin team looks at a person's contact details or changes their account (Nigeria Data
+/// Protection Act 2023: accountability). Shown on that person's admin page; never edited or deleted from the app.
+model AdminDataAccess {
+  id            String   @id @default(cuid())
+  adminId       String
+  subjectUserId String
+  /// reveal_contact | suspend_store | restore_store
+  action        String
+  /// support | verification | payments | safety | legal (shared/privacy.ts)
+  reason        String
+  note          String?
+  createdAt     DateTime @default(now())
+
+  @@index([subjectUserId, createdAt(sort: Desc)])
+  @@index([adminId, createdAt(sort: Desc)])
+}

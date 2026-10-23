@@ -151,6 +151,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "admin.packaging-requests": "Buƙatun packaging",
   "admin.print-orders": "Odar ɗin bugawa",
   "admin.support-macros": "Amsoshin da aka ajiye",
+  "admin.sellers": "Masu sayarwa",
   "admin.suppliers": "Suppliers",
   "admin.logistics-partners": "Logistics",
   "admin.wallets": "Walat-walat",
