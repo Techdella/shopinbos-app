@@ -11,6 +11,8 @@
 //   and for marketing and lifecycle mail both "Unsubscribe" and "Update preferences".
 
 import { lookFooterCss, lookRows, type EmailLook, type EmailPersona } from "./looks.ts";
+import type { Locale } from "../../../shared/i18n/index.ts";
+import { mailT } from "../../../shared/i18n/mail.ts";
 
 export type EmailKind =
   /** Receipts, password and security, order status: no opt-out, a "service message" line instead. */
@@ -134,6 +136,9 @@ export interface FooterInput {
   contactUrl?: string | null;
   contactLabel?: string;
   privacyUrl?: string | null;
+  /** Link labels in the reader's language (English when left out). */
+  unsubscribeLabel?: string;
+  privacyLabel?: string;
   /** Transactional mail: "This is a service message about your order." */
   serviceNote?: string | null;
   /** The small "Sent with Shopinbos" mark (B emails), with the app URL its logo comes from. */
@@ -154,12 +159,12 @@ export function footerHtml(input: FooterInput) {
   const rows: string[] = [];
   rows.push(`<p style="margin:0 0 10px">${escapeHtml(input.reason)}</p>`);
   if (needsUnsubscribe(input.kind)) {
-    rows.push(`<p style="margin:0 0 10px">${a(input.unsubscribeUrl, "Unsubscribe", " sib-unsubscribe")}${sep}${a(input.preferencesUrl, input.preferencesLabel ?? "Update preferences", " sib-preferences")}</p>`);
+    rows.push(`<p style="margin:0 0 10px">${a(input.unsubscribeUrl, input.unsubscribeLabel ?? "Unsubscribe", " sib-unsubscribe")}${sep}${a(input.preferencesUrl, input.preferencesLabel ?? "Update preferences", " sib-preferences")}</p>`);
   } else if (input.kind === "notification" && input.preferencesUrl) {
     rows.push(`<p style="margin:0 0 10px">${a(input.preferencesUrl, input.preferencesLabel ?? "Manage email notifications", " sib-preferences")}</p>`);
   }
   if (input.kind === "transactional" && input.serviceNote) rows.push(`<p style="margin:0 0 10px">${escapeHtml(input.serviceNote)}</p>`);
-  const links = [input.contactUrl ? a(input.contactUrl, input.contactLabel ?? "Contact us") : "", input.privacyUrl ? a(input.privacyUrl, "Privacy policy") : ""].filter(Boolean);
+  const links = [input.contactUrl ? a(input.contactUrl, input.contactLabel ?? "Contact us") : "", input.privacyUrl ? a(input.privacyUrl, input.privacyLabel ?? "Privacy policy") : ""].filter(Boolean);
   if (links.length) rows.push(`<p style="margin:0 0 10px">${links.join(sep)}</p>`);
   const address = String(input.address ?? "").replace(/\s*\n\s*/g, ", ").trim();
   rows.push(
@@ -403,21 +408,27 @@ export interface PlatformEmailInput {
   proverb?: string | null;
   /** When it's sent (picks the season's pattern and greeting); now by default. */
   now?: Date;
+  /** The reader's app language for the frame (footer, Rex & Peggy, proverb title, greeting); English by default. */
+  locale?: Locale;
 }
 
 export function platformEmail(input: PlatformEmailInput) {
   const appUrl = cleanAppUrl(input.appUrl);
+  const t = mailT(input.locale);
+  const english = !input.locale || input.locale === "en";
   const footer = footerHtml({
     kind: input.kind,
     senderName: input.legal.name,
     address: input.legal.address,
-    reason: reasonSentence(input.reason),
+    reason: english ? reasonSentence(input.reason) : t("foot.reason", { reason: input.reason.trim().replace(/[.!]+$/, "") }),
     unsubscribeUrl: input.unsubscribeUrl,
     preferencesUrl: input.preferencesUrl,
-    preferencesLabel: input.kind === "notification" ? "Manage email notifications" : "Update preferences",
-    serviceNote: input.serviceNote ?? (input.kind === "transactional" ? "This is a service message about your Shopinbos account. You get these even if you unsubscribe from updates." : null),
+    preferencesLabel: input.kind === "notification" ? t("foot.notifications") : t("foot.preferences"),
+    unsubscribeLabel: t("foot.unsubscribe"),
+    privacyLabel: t("foot.privacy"),
+    serviceNote: input.serviceNote ?? (input.kind === "transactional" ? t("foot.service") : null),
     contactUrl: input.contactUrl ?? `mailto:${SHOPINBOS_SUPPORT_EMAIL}`,
-    contactLabel: "Contact support",
+    contactLabel: t("foot.contact"),
     privacyUrl: input.privacyUrl ?? SHOPINBOS_PRIVACY_URL,
   });
   const aside = input.aside ? `<div class="sib-soft" style="margin:22px 0 0;padding:16px 18px;border-radius:14px;background:${EMAIL_COLORS.paper};border:1px solid ${EMAIL_COLORS.line};font-size:13.5px;line-height:1.55">${input.aside}</div>` : "";
@@ -437,9 +448,18 @@ export function platformEmail(input: PlatformEmailInput) {
     cta: input.cta,
     now: input.now,
     festive: input.kind !== "transactional",
+    locale: input.locale,
   });
-  const tagline = `<p class="sib-tagline" style="margin:0 0 18px;text-align:center;font-family:${ACCENT_FONT};font-style:italic;font-size:13.5px;color:${EMAIL_COLORS.coral}">Built in Lagos for businesses across Africa 🇳🇬</p>`;
-  return emailDocument({ title: input.title ?? input.heading, preheader: input.preheader, header: "", card: look.rows, cardIsRows: true, page: look.page, footer: `${footer}${tagline}`, adaptCard: true, extraCss: `${lookFooterCss(input.look ?? "classic")}${input.extraCss ?? ""}` });
+  const tagline = `<p class="sib-tagline" style="margin:0 0 18px;text-align:center;font-family:${ACCENT_FONT};font-style:italic;font-size:13.5px;color:${EMAIL_COLORS.coral}">${escapeHtml(t("foot.tagline"))}</p>`;
+  return emailDocument({ title: input.title ?? input.heading, preheader: input.preheader, header: "", card: look.rows, cardIsRows: true, page: look.page, footer: `${footer}${tagline}`, adaptCard: true, extraCss: `${lookFooterCss(input.look ?? "classic")}${toneMarkCss(input.locale)}${input.extraCss ?? ""}` });
+}
+
+/**
+ * Yorùbá and Igbo stack tone marks on dotted letters (ọ́, ị̀): the brand fonts don't place them well, so those emails
+ * use system fonts that do.
+ */
+export function toneMarkCss(locale: Locale | undefined) {
+  return locale === "yo" || locale === "ig" ? "body,table,td,div,p,a,span,h1,h2,li,strong{font-family:'Segoe UI',Roboto,'Noto Sans',Helvetica,Arial,sans-serif!important}" : "";
 }
 
 export function reasonSentence(reason: string) {

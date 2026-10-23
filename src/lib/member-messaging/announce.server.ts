@@ -4,8 +4,11 @@ import { db } from "@/lib/db/client";
 import { appBase, sendPlatformEmail } from "@/lib/email/compliance.server";
 import { metaTemplates, metaWhatsAppConfig, sendMetaTemplate } from "@/lib/lead-growth/whatsapp-meta.server";
 import { referralCodeFor } from "@/lib/referrals/service.server";
-import { REFERRAL_OFFERS, welcomeText, type ReferralRole } from "@shared/referrals";
-import { MEMBER_TEMPLATES, memberTemplateImageUrl } from "./whatsapp-templates";
+import { REFERRAL_OFFERS, type ReferralRole } from "@shared/referrals";
+import type { Locale } from "@shared/i18n";
+import { nounIn, referrerRewardIn, welcomeTextIn } from "@/lib/referrals/words";
+import { memberTemplateFor, memberTemplateImageUrl } from "./whatsapp-templates";
+import { mailT, memberLocale } from "./i18n";
 import { WHATSAPP_TIPS_EVENT, memberEmailExtras } from "./tips.server";
 import { firstNameOf } from "./tips-email";
 import { sendingHours } from "./journeys";
@@ -47,27 +50,29 @@ export async function stopReferralAnnouncement() {
 
 const escape = (value: string) => value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-function emailFor(role: ReferralRole, firstName: string, link: string) {
+function emailFor(role: ReferralRole, firstName: string, link: string, locale: Locale) {
+  const t = mailT(locale);
   const rows = (Object.values(REFERRAL_OFFERS) as Array<(typeof REFERRAL_OFFERS)[ReferralRole]>)
-    .map((offer) => `<li style="margin:0 0 10px"><strong>Refer ${offer.noun}:</strong> you get ${offer.referrerMonths} month${offer.referrerMonths === 1 ? "" : "s"} free or ${offer.referrerCredits} AI credits. They get ${escape(welcomeText(offer.role))}.</li>`)
+    .map((offer) => `<li style="margin:0 0 10px">${escape(t("ref.announce.row", { noun: nounIn(locale, offer.role), reward: referrerRewardIn(locale, offer.role), gift: welcomeTextIn(locale, offer.role) }))}</li>`)
     .join("");
-  const best = REFERRAL_OFFERS[PITCH[role].invite];
+  const best = PITCH[role].invite;
+  const [before, after] = t("ref.announce.link", { link: "\u0000" }).split("\u0000");
   return {
-    subject: `New: invite ${best.noun}, get ${best.referrerMonths} month${best.referrerMonths === 1 ? "" : "s"} free`,
-    preheader: "Or AI credits for Rex videos. They get a welcome gift too.",
-    eyebrow: "Refer & earn",
-    heading: "Invite a business. Get months free.",
-    bodyHtml: `<p style="margin:0 0 14px">Hello ${escape(firstName)} 👋🏾,</p>
-<p style="margin:0 0 14px">You know suppliers, shops and riders who should be on Shopinbos. Now every one you bring in earns you free months on your plan or AI credits, your choice.</p>
+    subject: t("ref.announce.subject", { noun: nounIn(locale, best), reward: t("ref.months", { count: REFERRAL_OFFERS[best].referrerMonths }) }),
+    preheader: t("ref.announce.preheader"),
+    eyebrow: t("ref.announce.eyebrow"),
+    heading: t("ref.announce.heading"),
+    bodyHtml: `<p style="margin:0 0 14px">${escape(t("hello", { name: firstName }))}</p>
+<p style="margin:0 0 14px">${escape(t("ref.announce.intro"))}</p>
 <ul style="margin:0 0 14px;padding-left:20px;line-height:1.5">${rows}</ul>
-<p style="margin:0 0 14px">Your link: <a href="${escape(link)}" style="color:#0E2A38;font-weight:700">${escape(link)}</a>. Share it on WhatsApp, it takes ten seconds. A reward counts when they're properly set up, and you can see their progress on your Refer &amp; earn page.</p>`,
-    cta: { label: "Get my link", url: `${appBase()}/refer` },
+<p style="margin:0 0 14px">${escape(before ?? "")}<a href="${escape(link)}" style="color:#0E2A38;font-weight:700">${escape(link)}</a>${escape(after ?? "")}</p>`,
+    cta: { label: t("ref.announce.cta"), url: `${appBase()}/refer` },
     look: "celebrate" as const,
-    sticker: "NEW: REFER & EARN 🎁",
+    sticker: t("ref.announce.sticker"),
     stats: [
-      { value: `${REFERRAL_OFFERS.supplier.referrerMonths} mo`, label: "free per supplier" },
-      { value: `${REFERRAL_OFFERS.seller.referrerMonths} mo`, label: "free per seller" },
-      { value: `${REFERRAL_OFFERS.logistics_partner.referrerMonths} mo`, label: "free per rider" },
+      { value: t("ref.announce.monthsShort", { count: REFERRAL_OFFERS.supplier.referrerMonths }), label: t("ref.announce.statSupplier") },
+      { value: t("ref.announce.monthsShort", { count: REFERRAL_OFFERS.seller.referrerMonths }), label: t("ref.announce.statSeller") },
+      { value: t("ref.announce.monthsShort", { count: REFERRAL_OFFERS.logistics_partner.referrerMonths }), label: t("ref.announce.statPartner") },
     ],
   };
 }
@@ -84,8 +89,8 @@ export async function runReferralAnnouncement(now = new Date(), deadline = Date.
   // email); people who heard from us too recently wait for a later hourly run.
   const waiting: string[] = [];
   while (Date.now() < deadline) {
-    const people = await db.$queryRaw<Array<{ id: string; name: string | null; email: string | null; phone: string | null; role: string }>>`
-      SELECT u."id", u."name", u."email", u."phone", u."role"::text AS role
+    const people = await db.$queryRaw<Array<{ id: string; name: string | null; email: string | null; phone: string | null; role: string; preferences: unknown }>>`
+      SELECT u."id", u."name", u."email", u."phone", u."role"::text AS role, u."preferences"
       FROM "User" u
       WHERE u."role"::text IN ('seller', 'supplier', 'logistics_partner')
         AND u."verificationStatus"::text <> 'suspended'
@@ -101,7 +106,9 @@ export async function runReferralAnnouncement(now = new Date(), deadline = Date.
     for (const person of people) {
       if (Date.now() >= deadline) break;
       const role = person.role as ReferralRole;
-      const template = MEMBER_TEMPLATES.find((t) => t.name === PITCH[role].template);
+      const locale = memberLocale(person.preferences);
+      const picked = memberTemplateFor(PITCH[role].template, locale, approved);
+      const template = picked?.template;
       const off = await db.notificationPreference.findUnique({ where: { userId_eventKey_category: { userId: person.id, eventKey: WHATSAPP_TIPS_EVENT, category: "system" } } }).catch(() => null);
       const waReady = Boolean(config && template && approved.has(template.name) && person.phone && !(off && !off.whatsapp));
       const channel = waReady && (await canContactMember(person.id, "whatsapp", now)).ok ? "whatsapp" : person.email && (await canContactMember(person.id, "email", now)).ok ? "email" : null;
@@ -120,14 +127,13 @@ export async function runReferralAnnouncement(now = new Date(), deadline = Date.
       let error: string | null = null;
       try {
         if (channel === "whatsapp") {
-          const offer = REFERRAL_OFFERS[PITCH[role].invite];
-          const wa = await sendMetaTemplate(config!, { to: person.phone!, template: template!.name, language: template!.language, params: [firstName, `${offer.referrerMonths} month${offer.referrerMonths === 1 ? "" : "s"} free or ${offer.referrerCredits} AI credits`], headerImage: memberTemplateImageUrl(template!) });
+          const wa = await sendMetaTemplate(config!, { to: person.phone!, template: template!.name, language: template!.language, params: [firstName, referrerRewardIn(picked!.locale, PITCH[role].invite)], headerImage: memberTemplateImageUrl(template!) });
           status = wa.ok ? "sent" : "failed";
           if (!wa.ok) error = wa.error;
         } else {
           const code = await referralCodeFor(person.id);
           const link = `${appBase()}/r/${code.code}?for=${PITCH[role].invite}`;
-          const result = await sendPlatformEmail({ to: person.email!, user: { id: person.id, role }, kind: "marketing", topic: "product_news", ...emailFor(role, firstName, link), ...memberEmailExtras("peggy", now) });
+          const result = await sendPlatformEmail({ to: person.email!, user: { id: person.id, role }, kind: "marketing", topic: "product_news", ...emailFor(role, firstName, link, locale), ...memberEmailExtras("peggy", now, locale) });
           status = result.success ? "sent" : /turned off/i.test(result.message ?? "") ? "skipped" : "failed";
           if (!result.success) error = result.message ?? null;
         }

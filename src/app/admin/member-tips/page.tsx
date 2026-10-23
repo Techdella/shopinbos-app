@@ -11,6 +11,7 @@ import { FROM_NAME, TIP_HOUR, tipWeek, whatsappTipText } from "@/lib/member-mess
 import { journeyStats, journeysOn } from "@/lib/member-messaging/journeys.server";
 import { loyaltyOn } from "@/lib/member-messaging/loyalty.server";
 import { ANNIVERSARY_CREDITS, LOYALTY_TIERS } from "@shared/loyalty";
+import { LANGUAGES } from "@shared/i18n";
 import { setJourneys, setLoyalty, setTipChannel, sendTestTip, submitTipTemplates } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -186,8 +187,11 @@ export default async function AdminMemberTipsPage(props: { searchParams?: Promis
                   <h3 className="m-0 mt-1 text-[16px] font-extrabold">{tip.subject}</h3>
                   <p className="m-0 mt-1 text-[13.5px] text-app-ink-soft">{tip.preheader}</p>
                 </div>
-                <form action={sendTestTip}>
+                <form action={sendTestTip} className="flex flex-wrap items-center gap-2">
                   <input type="hidden" name="tip" value={tip.id} />
+                  <select name="locale" aria-label="Language" defaultValue="en" className="min-h-[36px] rounded-full border border-app-line bg-white px-3 text-[13px]">
+                    {LANGUAGES.map((language) => <option key={language.code} value={language.code}>{language.nativeName}</option>)}
+                  </select>
                   <PendingButton pending="Sending…" className={buttonClass("white", "sm")}>Email me a test</PendingButton>
                 </form>
               </div>

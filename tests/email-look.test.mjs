@@ -60,7 +60,7 @@ test("looks: classic has the navy header and season strip, no mint bar; chat and
 
 test("looks: member emails reply to the support inbox and come from Rex or Peggy", () => {
   const tips = fs.readFileSync("src/lib/member-messaging/tips.server.ts", "utf8");
-  assert.match(tips, /from: formatFromAddress\(personaSender\(persona\)\), replyTo: supportInbox\(\), proverb: proverbOfWeek\(now\)/);
-  assert.match(fs.readFileSync("src/lib/member-messaging/journeys.server.ts", "utf8"), /\.\.\.memberEmailExtras\(lookFor\.persona, now\)/);
-  assert.match(fs.readFileSync("src/lib/member-messaging/announce.server.ts", "utf8"), /memberEmailExtras\("peggy", now\)/);
+  assert.match(tips, /from: formatFromAddress\(personaSender\(persona\)\), replyTo: supportInbox\(\), proverb: mailT\(locale\)\(`proverb\.\$\{proverbIndex\(now\)\}` as MailKey\), locale/);
+  assert.match(fs.readFileSync("src/lib/member-messaging/journeys.server.ts", "utf8"), /\.\.\.memberEmailExtras\(lookFor\.persona, now, locale\)/);
+  assert.match(fs.readFileSync("src/lib/member-messaging/announce.server.ts", "utf8"), /memberEmailExtras\("peggy", now, locale\)/);
 });

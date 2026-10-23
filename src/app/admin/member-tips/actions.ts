@@ -7,6 +7,7 @@ import { saveTipSettings, sendTipTest, tipSettings } from "@/lib/member-messagin
 import { submitMemberTemplates } from "@/lib/member-messaging/templates.server";
 import { setJourneysOn } from "@/lib/member-messaging/journeys.server";
 import { setLoyaltyOn } from "@/lib/member-messaging/loyalty.server";
+import { isLocale } from "@shared/i18n";
 
 const PATH = "/admin/member-tips";
 
@@ -28,7 +29,8 @@ export async function setTipChannel(formData: FormData) {
 /** Email one tip to yourself to check it. */
 export async function sendTestTip(formData: FormData) {
   const admin = await requireAdminSection("leads");
-  const result = await sendTipTest(String(formData.get("tip") ?? ""), { id: admin.id, email: admin.email, name: admin.name });
+  const locale = formData.get("locale");
+  const result = await sendTipTest(String(formData.get("tip") ?? ""), { id: admin.id, email: admin.email, name: admin.name }, isLocale(locale) ? locale : "en");
   back(result.ok ? { saved: `Test sent to ${admin.email}.` } : { error: result.error });
 }
 
