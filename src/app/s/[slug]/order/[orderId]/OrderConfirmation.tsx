@@ -339,12 +339,12 @@ function ReviewForm({ item, storeSlug, orderId, buyerName, buyerEmail }: {
   buyerName: string;
   buyerEmail: string;
 }) {
-  if (!item.productId) return null;
   const [rating, setRating] = useState(0);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
+  if (!item.productId) return null;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
