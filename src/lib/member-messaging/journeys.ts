@@ -8,7 +8,11 @@
 //    days). A new quiet spell after they come back starts again.
 //  • first_win: their first paid order (seller), first accepted order (supplier) or first delivery (partner).
 //  • credits_low: under 20 AI credits left while they're using them, once a month.
+// Wording in each person's app language (shared/i18n/messages/mail, "j.*").
 // Marketing ones keep to sending hours (Mon–Sat 08:00–20:00 Lagos) and at most 3 marketing emails a week per person.
+
+import type { Locale } from "../../../shared/i18n/index.ts";
+import { mailT, type MailKey } from "../../../shared/i18n/mail.ts";
 
 export type JourneyRole = "seller" | "supplier" | "logistics_partner";
 export type JourneyKey = "setup_help" | "winback" | "first_win" | "credits_low";
@@ -70,12 +74,6 @@ const PATHS: Record<JourneyRole, { home: string; credits: string; setup: string;
   logistics_partner: { home: "/logistics/dashboard", credits: "/logistics/credits", setup: "/logistics/dashboard", jobs: "/logistics/bookings" },
 };
 
-const WHAT: Record<JourneyRole, { business: string; win: string; next: string }> = {
-  seller: { business: "your shop", win: "your first paid order", next: "Ask this buyer for a review and a photo, then share it on your Status: happy customers sell for you." },
-  supplier: { business: "your supplier account", win: "your first order from a shop", next: "Ship it fast and pack it well: shops reorder from suppliers they can count on, and fast acceptance moves you up the marketplace." },
-  logistics_partner: { business: "your delivery business", win: "your first delivery", next: "Ask the shop for a review: 5-star partners show up first when shops book deliveries." },
-};
-
 export interface JourneyMessage {
   subject: string;
   preheader: string;
@@ -90,8 +88,8 @@ export interface JourneyMessage {
 
 export interface JourneyVars {
   firstName: string;
-  /** setup_help: the next step and how many are done. */
-  nextStep?: { label: string; hint: string; href: string } | null;
+  /** setup_help: the next step (its id picks the translated wording) and how many are done. */
+  nextStep?: { id?: string; label: string; hint: string; href: string } | null;
   done?: number;
   total?: number;
   /** winback day 14: credits just given. */
@@ -100,109 +98,94 @@ export interface JourneyVars {
   creditsLeft?: number;
 }
 
-export function journeyMessage(key: JourneyKey, stage: string, role: JourneyRole, vars: JourneyVars): JourneyMessage {
+/** A setup step in words ("adding your pickup address") and its hint, in the reader's language. */
+export function setupStepText(role: JourneyRole, step: { id?: string; label: string; hint: string }, locale: Locale = "en") {
+  const t = mailT(locale);
+  const key = `step.${role}.${step.id}`;
+  const hintKey = `step.hint.${role}.${step.id}`;
+  const known = Boolean(step.id) && t.has(key);
+  return { label: known ? t(key as MailKey) : step.label.toLowerCase(), hint: known && t.has(hintKey) ? t(hintKey as MailKey) : step.hint };
+}
+
+export function journeyMessage(key: JourneyKey, stage: string, role: JourneyRole, vars: JourneyVars, locale: Locale = "en"): JourneyMessage {
+  const t = mailT(locale);
   const paths = PATHS[role];
-  const what = WHAT[role];
-  const hi = `Hi ${vars.firstName},`;
+  const hi = t("hello", { name: vars.firstName });
   if (key === "setup_help") {
-    const step = vars.nextStep;
-    const progress = vars.total ? `You've done ${vars.done ?? 0} of ${vars.total} steps.` : "";
+    const step = vars.nextStep ? { ...setupStepText(role, vars.nextStep, locale), href: vars.nextStep.href } : null;
+    const progress = vars.total ? t("j.setup.progress", { done: vars.done ?? 0, total: vars.total }) : "";
     return {
-      subject: stage === "d3" ? "Let's finish setting you up (Peggy can help)" : "Still setting up? Call Peggy, it's free",
-      preheader: step ? `Next: ${step.label}. ${progress}` : progress,
-      eyebrow: "From Peggy",
-      heading: stage === "d3" ? "You're nearly ready" : "Let's get you over the line",
-      paragraphs: [
-        hi,
-        `${progress} ${step ? `The next one is ${step.label.toLowerCase()}: ${step.hint}` : ""}`.trim(),
-        "If anything's unclear, chat with me on your dashboard or tap Call Peggy for a free voice call. I'll walk you through it step by step, and I can save things like pickup points and prices for you.",
-      ],
-      cta: { label: step ? "Do the next step" : "Open my dashboard", path: step?.href ?? paths.setup },
-      title: "Peggy can help you finish setting up",
-      description: step ? `Next: ${step.label}. Chat or call Peggy on your dashboard.` : "Chat or call Peggy on your dashboard.",
+      subject: t(stage === "d3" ? "j.setup.subject.d3" : "j.setup.subject.d10"),
+      preheader: step ? `${t("j.setup.preheaderNext", { step: step.label })} ${progress}`.trim() : progress,
+      eyebrow: t("j.fromPeggy"),
+      heading: t(stage === "d3" ? "j.setup.heading.d3" : "j.setup.heading.d10"),
+      paragraphs: [hi, `${progress} ${step ? t("j.setup.next", { step: step.label, hint: step.hint }) : ""}`.trim(), t("j.setup.help")],
+      cta: { label: t(step ? "j.setup.ctaNext" : "j.setup.ctaDashboard"), path: step?.href ?? paths.setup },
+      title: t("j.setup.title"),
+      description: step ? t("j.setup.descNext", { step: step.label }) : t("j.setup.desc"),
     };
   }
   if (key === "winback") {
     if (stage === "d7") {
       return {
-        subject: `${what.business.charAt(0).toUpperCase()}${what.business.slice(1)} misses you`,
-        preheader: "Here's what's been happening on Shopinbos this week.",
-        eyebrow: "From Rex & Peggy",
-        heading: "It's been a week",
-        paragraphs: [
-          hi,
-          role === "seller"
-            ? "Shoppers are browsing right now. A new product, a Rex video on your Status or a quick discount is often all it takes to get orders moving again."
-            : role === "supplier"
-              ? "Shops are adding new products from the marketplace every day. Fresh stock, clear prices and quick replies to quote requests keep you in front of them."
-              : "Shops are booking deliveries every day. Keep your coverage and prices up to date so the jobs near you come to you.",
-          "Pop in for two minutes and see what's new.",
-        ],
-        cta: { label: "Open Shopinbos", path: paths.home },
-        title: "We've missed you",
-        description: "Pop in and see what's new on Shopinbos.",
+        subject: t(`j.d7.subject.${role}`),
+        preheader: t("j.d7.preheader"),
+        eyebrow: t("j.fromBoth"),
+        heading: t("j.d7.heading"),
+        paragraphs: [hi, t(`j.d7.body.${role}`), t("j.d7.popIn")],
+        cta: { label: t("j.openShopinbos"), path: paths.home },
+        title: t("j.d7.title"),
+        description: t("j.d7.desc"),
       };
     }
     if (stage === "d14") {
       const gift = vars.giftCredits ?? 0;
       return {
-        subject: gift ? `A gift to welcome you back: ${gift} AI credits` : "Come back and pick up where you left off",
-        preheader: gift ? "They're already in your account. Make a Rex video or new product photos." : "Everything's where you left it.",
-        eyebrow: "From Rex",
-        heading: gift ? `${gift} free AI credits are waiting` : "Everything's where you left it",
-        paragraphs: [
-          hi,
-          gift
-            ? `We've added ${gift} AI credits to your account, no strings attached. That's enough for a few Rex videos, new product photos or fresh descriptions.`
-            : "Your account is just as you left it.",
-          role === "seller" ? "Try one Rex video of your best seller and post it on your Status today." : "Use them on fresh product photos or descriptions, or ask Peggy what to do next.",
-        ],
-        cta: { label: gift ? "Use my credits" : "Open Shopinbos", path: gift ? paths.credits : paths.home },
-        title: gift ? `${gift} free AI credits added` : "Pick up where you left off",
-        description: gift ? "A welcome-back gift. Use them on Rex videos, photos and more." : "Your account is just as you left it.",
+        subject: gift ? t("j.d14.subjectGift", { count: gift }) : t("j.d14.subject"),
+        preheader: t(gift ? "j.d14.preheaderGift" : "j.d14.preheader"),
+        eyebrow: t("j.fromRex"),
+        heading: gift ? t("j.d14.headingGift", { count: gift }) : t("j.d14.heading"),
+        paragraphs: [hi, gift ? t("j.d14.bodyGift", { count: gift }) : t("j.d14.body"), t(role === "seller" ? "j.d14.tip.seller" : "j.d14.tip.other")],
+        cta: { label: t(gift ? "j.d14.ctaGift" : "j.openShopinbos"), path: gift ? paths.credits : paths.home },
+        title: gift ? t("j.d14.titleGift", { count: gift }) : t("j.d14.title"),
+        description: t(gift ? "j.d14.descGift" : "j.d14.body"),
       };
     }
     return {
-      subject: "Can we help? A free call with Peggy",
-      preheader: "If something got in the way, tell us. We'd love to help.",
-      eyebrow: "From Peggy",
-      heading: "We'd love to have you back",
-      paragraphs: [
-        hi,
-        `It's been a month since we saw you. If something about ${what.business} got in the way, a missing feature, a question or just time, tell me and I'll help or pass it to the team.`,
-        "You can chat with me or tap Call Peggy on your dashboard for a free call.",
-      ],
-      cta: { label: "Talk to Peggy", path: paths.home },
-      title: "Can we help?",
-      description: "Chat or call Peggy for free if something got in the way.",
+      subject: t("j.d30.subject"),
+      preheader: t("j.d30.preheader"),
+      eyebrow: t("j.fromPeggy"),
+      heading: t("j.d30.heading"),
+      paragraphs: [hi, t("j.d30.body", { business: t(`j.business.${role}`) }), t("j.d30.call")],
+      cta: { label: t("j.d30.cta"), path: paths.home },
+      title: t("j.d30.title"),
+      description: t("j.d30.desc"),
     };
   }
   if (key === "first_win") {
+    const win = t(`j.win.${role}`);
+    const next = t(`j.next.${role}`);
     return {
-      subject: `Congratulations on ${what.win}! 🎉`,
-      preheader: "The first one is the hardest. Here's how to get the next ten.",
-      eyebrow: "From Rex & Peggy",
-      heading: `You did it: ${what.win}`,
-      paragraphs: [hi, "The first one is always the hardest, and you've done it. Well done.", what.next],
-      cta: { label: "See it", path: paths.jobs },
-      title: `Congratulations on ${what.win}! 🎉`,
-      description: what.next,
+      subject: t("j.win.subject", { win }),
+      preheader: t("j.win.preheader"),
+      eyebrow: t("j.fromBoth"),
+      heading: t("j.win.heading", { win }),
+      paragraphs: [hi, t("j.win.body"), next],
+      cta: { label: t("j.win.cta"), path: paths.jobs },
+      title: t("j.win.subject", { win }),
+      description: next,
     };
   }
   const left = vars.creditsLeft ?? 0;
   return {
-    subject: `You have ${left} AI credit${left === 1 ? "" : "s"} left`,
-    preheader: "Top up so Rex can keep making videos, photos and descriptions for you.",
-    eyebrow: "From Rex",
-    heading: "Running low on AI credits",
-    paragraphs: [
-      hi,
-      `You have ${left} AI credit${left === 1 ? "" : "s"} left. A Rex video is about 10, a new product photo about 10, and descriptions and captions about 1 each.`,
-      "Top up with a credit pack, or use your wallet balance. A paid plan also refills credits every month. Inviting businesses with Refer & earn gets you free credits too.",
-    ],
-    cta: { label: "Top up credits", path: paths.credits },
-    title: `${left} AI credits left`,
-    description: "Top up so Rex can keep creating for you.",
+    subject: t("j.low.subject", { count: left }),
+    preheader: t("j.low.preheader"),
+    eyebrow: t("j.fromRex"),
+    heading: t("j.low.heading"),
+    paragraphs: [hi, t("j.low.body", { count: left }), t("j.low.topup")],
+    cta: { label: t("j.low.cta"), path: paths.credits },
+    title: t("j.low.title", { count: left }),
+    description: t("j.low.desc"),
   };
 }
 
@@ -227,4 +210,33 @@ export function referralSummaryHtml(input: { appUrl: string; joined: number; rew
 <p style="margin:0 0 10px;color:#0E2A38;font-size:14px;line-height:1.5">${status}</p>
 <a href="${escape(`${base}/refer`)}" style="color:#0E2A38;font-weight:700;font-size:14px">Invite a business</a>
 </div>`;
+}
+
+export interface JourneyLook {
+  look: "chat" | "celebrate";
+  persona: "rex" | "peggy";
+  bubbles?: string[];
+  reply?: string | null;
+  sticker?: string | null;
+  stats?: Array<{ value: string; label: string }>;
+}
+
+/**
+ * How each journey looks (src/lib/email/looks.ts): nudges read like a WhatsApp chat with Peggy or Rex, wins and gifts
+ * are a celebration. Chat bubbles are the message's paragraphs, the first one a warm hello.
+ */
+export function journeyLook(key: JourneyKey, stage: string, message: JourneyMessage, firstName: string, vars: Pick<JourneyVars, "giftCredits"> = {}, locale: Locale = "en"): JourneyLook {
+  const t = mailT(locale);
+  const bubbles = [escape(t("helloBubble", { name: firstName })), ...message.paragraphs.slice(1).filter(Boolean).map(escape)];
+  if (key === "first_win") return { look: "celebrate", persona: "rex", sticker: t("j.win.sticker") };
+  if (key === "winback" && stage === "d14") {
+    const gift = vars.giftCredits ?? 0;
+    return gift
+      ? { look: "celebrate", persona: "rex", sticker: t("j.d14.sticker"), stats: [{ value: String(gift), label: t("j.d14.statCredits") }, { value: `~${Math.floor(gift / 10)}`, label: t("j.d14.statVideos") }, { value: `~${gift}`, label: t("j.d14.statDescriptions") }] }
+      : { look: "chat", persona: "rex", bubbles };
+  }
+  if (key === "setup_help") return { look: "chat", persona: "peggy", bubbles, reply: t("j.setup.reply") };
+  if (key === "winback" && stage === "d7") return { look: "chat", persona: "peggy", bubbles, reply: t("j.d7.reply") };
+  if (key === "winback") return { look: "chat", persona: "peggy", bubbles };
+  return { look: "chat", persona: "rex", bubbles };
 }

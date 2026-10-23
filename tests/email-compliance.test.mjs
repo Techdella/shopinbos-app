@@ -41,10 +41,10 @@ function assertShell(html, label) {
 }
 
 function assertPlatformLogo(html, label) {
-  assert.match(html, new RegExp(`<img src="${APP}/brand/email/shopinbos-logo-navy@2x\\.png" width="210" height="20" alt="Shopinbos"`), `${label}: light logo with size and alt`);
-  assert.match(html, new RegExp(`<img src="${APP}/brand/email/shopinbos-logo-white@2x\\.png" width="210" height="20" alt="Shopinbos"`), `${label}: dark logo`);
-  assert.match(html, /class="sib-logo-dark" style="display:none/, `${label}: dark logo hidden by default (light fallback)`);
-  assert.match(html, /\.sib-logo-light\{display:none!important\}/, `${label}: light logo hidden in dark mode`);
+  // Shopinbos's own emails: the white logo in the navy header (./looks.ts), the same in light and dark mode.
+  assert.match(html, new RegExp(`<img src="${APP}/brand/email/shopinbos-logo-white@2x\\.png" alt="Shopinbos" width="150"`), `${label}: white logo in the navy header`);
+  assert.match(html, /bgcolor="#0E2A38"/, `${label}: navy header`);
+  assert.doesNotMatch(html, /border-top:4px solid #73D8C8/, `${label}: no mint top bar`);
 }
 
 function assertMarketingFooter(html, label) {

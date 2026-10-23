@@ -395,6 +395,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
             { id: "lead-whatsapp", label: "WhatsApp", href: "/admin/lead-campaigns/whatsapp" },
             { id: "referrals", label: "Referrals", href: "/admin/referrals" },
             { id: "member-tips", label: "Member tips", href: "/admin/member-tips" },
+            { id: "member-stories", label: "Member stories", href: "/admin/member-stories" },
           ],
         },
         { id: "product-news", label: "Product news", icon: "megaphone", href: "/admin/product-news", core: true },
@@ -409,6 +410,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
       group: "platform",
       label: "Platform",
       items: [
+        { id: "sellers", label: "Sellers", icon: "store", href: "/admin/sellers", core: true },
         {
           id: "suppliers", label: "Suppliers", icon: "users", href: "/admin/suppliers", core: true,
           children: [

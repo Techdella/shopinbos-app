@@ -52,11 +52,12 @@ test("tips: the email is escaped, signed by Rex or Peggy, and sellers see what's
   const tip = { ...TIPS[0], intro: "Use <b>bold</b> & more", from: "rex" };
   const email = e.renderTipEmail(tip, { firstName: "Ada", ctaUrl: "https://app.shopinbos.com/tip/x?m=1", products: [{ name: "Ankara tote", price: 12500, image: null, url: "https://app.shopinbos.com/marketplace/product/p1", note: "added by 4 shops" }], marketplaceUrl: "https://app.shopinbos.com/marketplace" });
   assert.match(email.bodyHtml, /Use &lt;b&gt;bold&lt;\/b&gt; &amp; more/);
-  assert.match(email.bodyHtml, /<strong>Rex<\/strong>, from Shopinbos/);
-  assert.match(email.bodyHtml, /Top products to sell this week/);
+  assert.equal(email.persona, "rex", "Rex signs it (the shell adds his signature and picture)");
+  assert.match(email.bodyHtml, /Hello Ada 👋🏾,/);
+  assert.match(email.bodyHtml, /What's selling this week 🔥/);
   assert.match(email.bodyHtml, /₦12,500/);
   assert.equal(email.cta.url, "https://app.shopinbos.com/tip/x?m=1");
-  assert.equal(email.eyebrow, "Tip from Rex");
+  assert.equal(email.eyebrow, "Tip of the week · from Rex");
   assert.equal(e.whatsappTipText({ ...TIPS[0], whatsapp: "keep it  short." }), "Keep it short.");
   assert.equal(e.firstNameOf("ada@x.com"), "there");
 });

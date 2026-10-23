@@ -7,6 +7,7 @@ import { authError, authJson, rateLimited } from "@/lib/auth/responses";
 import { db } from "@/lib/db/client";
 import { chooseCodeChannel, whatsappCodesAvailable } from "@/lib/auth/otp-channel";
 import { channelUsedFor, rememberWantedChannel } from "@/lib/auth/otp-delivery.server";
+import { PHONE_TAKEN, phoneOwner, signsInWithPhone } from "@/lib/auth/phone-owner.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -85,6 +86,12 @@ export async function POST(request: NextRequest) {
       if (wait) return rateLimited(wait, "codes requested");
 
       const create = body.create === true;
+      // One account per phone number: signing up with a number another account already has (say, an email account
+      // that saved it in its profile) is refused. A number that is that account's own phone login just signs in.
+      if (create && usePhone) {
+        const owner = await phoneOwner(phone);
+        if (owner && !(await signsInWithPhone(owner.supabaseId, phone))) return fail(PHONE_TAKEN, 409, "PHONE_TAKEN");
+      }
       const role = body.profile?.role && SIGNUP_ROLES.has(body.profile.role) ? body.profile.role : "seller";
       const data = create
         ? {

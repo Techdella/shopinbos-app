@@ -52,6 +52,9 @@ export interface Tip {
   whatsapp: string;
 }
 
+/** A tip's words in another language (src/lib/member-messaging/i18n/<lang>.ts): same number of points, same button. */
+export type TipText = Pick<Tip, "subject" | "preheader" | "title" | "intro" | "points" | "whatsapp"> & { example?: string; cta: string };
+
 /* ------------------------------------------------------------------ */
 /* Sellers (16)                                                        */
 /* ------------------------------------------------------------------ */

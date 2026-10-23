@@ -4890,3 +4890,60 @@ model MemberMessage {
   @@index([kind, period, status])
   @@index([userId, kind, createdAt(sort: Desc)])
 }
+
+// ---- admin data access log (docs/migrations/2026-11-26-admin-data-access.sql) ----
+/// Every time someone on the admin team looks at a person's contact details or changes their account (Nigeria Data
+/// Protection Act 2023: accountability). Shown on that person's admin page; never edited or deleted from the app.
+model AdminDataAccess {
+  id            String   @id @default(cuid())
+  adminId       String
+  subjectUserId String
+  /// reveal_contact | suspend_store | restore_store
+  action        String
+  /// support | verification | payments | safety | legal (shared/privacy.ts)
+  reason        String
+  note          String?
+  createdAt     DateTime @default(now())
+
+  @@index([subjectUserId, createdAt(sort: Desc)])
+  @@index([adminId, createdAt(sort: Desc)])
+}
+
+// ---- member stories (docs/migrations/2026-11-27-member-stories.sql) ----
+/// A member's own story for the weekly tips ("From a real member"), shared with their explicit consent (NDPA 2023):
+/// the exact consent wording and time are kept, the team approves it before it's used, and withdrawing stops it at
+/// once. One per member; sending a new version puts it back for review. Never their contact details.
+model MemberStory {
+  id             String    @id @default(cuid())
+  userId         String    @unique
+  /// seller | supplier | logistics_partner: whose tips it appears in
+  role           String
+  /// How they want to be named ("Kemi, Kemi's Fabrics")
+  displayName    String
+  city           String?
+  /// What changed for them, short ("40 orders in my first month")
+  result         String?
+  /// Their words
+  story          String
+  /// A Rex video of theirs they chose to show (sellers)
+  videoProjectId String?
+  videoUrl       String?
+  posterUrl      String?
+  /// The app language it was written in
+  language       String    @default("en")
+  /// submitted | approved | rejected | withdrawn
+  status         String    @default("submitted")
+  consentVersion String
+  consentText    String
+  consentAt      DateTime
+  reviewedBy     String?
+  reviewedAt     DateTime?
+  reviewNote     String?
+  withdrawnAt    DateTime?
+  timesShown     Int       @default(0)
+  lastShownAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([status, role])
+}

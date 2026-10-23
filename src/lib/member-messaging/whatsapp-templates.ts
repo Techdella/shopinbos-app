@@ -5,6 +5,9 @@
 // Meta's rules this follows: names are lower case with _; every variable has a sample; no variable at the very start
 // or end of the text, and never two side by side. Header images are 1200×628 banners in public/brand/members/.
 
+import { LANGUAGES, type Locale } from "../../../shared/i18n/index.ts";
+import { localizedTemplateName, metaLanguage, templateText } from "./i18n/index.ts";
+
 const APP = "https://app.shopinbos.com";
 
 export type MemberTemplateGroup = "referral" | "tips" | "journeys";
@@ -16,6 +19,8 @@ export type MemberTemplate = {
   purpose: string;
   category: "MARKETING" | "UTILITY";
   language: string;
+  /** The app language it's written in: English, or a translation (src/lib/member-messaging/i18n/<lang>.ts). */
+  locale?: Locale;
   /** Banner in public/brand/members/ (without .jpg). */
   image: string;
   /** Body with {{1}}, {{2}}…; `variables` names them and `examples` gives Meta a sample for each. */
@@ -26,7 +31,17 @@ export type MemberTemplate = {
   button: { text: string; url: string; example?: string };
 };
 
-export const MEMBER_TEMPLATES: MemberTemplate[] = [
+/** A template's words in another language (src/lib/member-messaging/i18n/<lang>.ts). */
+export type TemplateText = {
+  /** Same {{1}}, {{2}}… as the English body, none at the very start or end, never two side by side. */
+  body: string;
+  /** Button text, at most 25 characters. */
+  button: string;
+  /** Meta's sample for each variable, in this language. */
+  examples: string[];
+};
+
+const ENGLISH_TEMPLATES: MemberTemplate[] = [
   {
     name: "shopinbos_refer_supplier",
     group: "referral",
@@ -144,6 +159,39 @@ export const MEMBER_TEMPLATES: MemberTemplate[] = [
     button: { text: "Show me how", url: `${APP}/tip/{{1}}`, example: `${APP}/tip/${who}-tip` },
   })),
 ];
+
+/** Each template in Pidgin, Yorùbá, Hausa and Igbo too ("<name>_<lang>"), wherever a translation exists. */
+const TRANSLATED_TEMPLATES: MemberTemplate[] = LANGUAGES.filter((language) => language.code !== "en").flatMap((language) =>
+  ENGLISH_TEMPLATES.flatMap((template): MemberTemplate[] => {
+    const text = templateText(template.name, language.code);
+    if (!text) return [];
+    return [
+      {
+        ...template,
+        name: localizedTemplateName(template.name, language.code),
+        purpose: `${template.purpose} (${language.name})`,
+        language: metaLanguage(language.code),
+        locale: language.code,
+        body: text.body,
+        examples: text.examples,
+        button: { ...template.button, text: text.button },
+      },
+    ];
+  }),
+);
+
+export const MEMBER_TEMPLATES: MemberTemplate[] = [...ENGLISH_TEMPLATES.map((template) => ({ ...template, locale: "en" as const })), ...TRANSLATED_TEMPLATES];
+
+/**
+ * The template to send someone: in their language when that version is approved, else the English one. Returns the
+ * language it's in, so the variables can be filled in the same language.
+ */
+export function memberTemplateFor(name: string, locale: Locale, approved: ReadonlySet<string>): { template: MemberTemplate; locale: Locale } | null {
+  const translated = memberTemplate(localizedTemplateName(name, locale));
+  if (locale !== "en" && translated && approved.has(translated.name)) return { template: translated, locale };
+  const english = memberTemplate(name);
+  return english ? { template: english, locale: "en" } : null;
+}
 
 export function memberTemplate(name: string | null | undefined) {
   return MEMBER_TEMPLATES.find((template) => template.name === name) ?? null;

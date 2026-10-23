@@ -34,6 +34,8 @@ import {
   type RewardChoice,
 } from "@shared/referrals";
 import { sendReferralWhatsApp } from "./whatsapp.server";
+import { rewardTextIn, ruleIn, welcomeTextIn } from "./words";
+import { mailT, memberLocale } from "@/lib/member-messaging/i18n";
 
 // Refer & earn (shared/referrals.ts has the offers and rules). The flow:
 //  1. /r/CODE sets the sib_ref cookie and shows the invite page.
@@ -50,13 +52,34 @@ function firstName(name: string | null | undefined) {
 }
 
 /** Business name to show: the shop, supplier or partner name, else the person's name. */
-async function businessNames(userIds: string[]) {
-  if (!userIds.length) return new Map<string, string>();
+/** Each person's business name and logo (store, supplier or delivery logo, else their profile photo). */
+async function businessProfiles(userIds: string[]) {
+  if (!userIds.length) return new Map<string, { name: string; avatarUrl: string | null }>();
   const users = await db.user.findMany({
     where: { id: { in: userIds } },
-    select: { id: true, name: true, store: { select: { name: true } }, supplier: { select: { businessName: true } }, logisticsPartner: { select: { displayName: true } } },
+    select: {
+      id: true,
+      name: true,
+      avatarUrl: true,
+      store: { select: { name: true, logoUrl: true } },
+      supplier: { select: { businessName: true, logoUrl: true } },
+      logisticsPartner: { select: { displayName: true, logoUrl: true } },
+    },
   });
-  return new Map(users.map((user) => [user.id, user.store?.name || user.supplier?.businessName || user.logisticsPartner?.displayName || user.name || "A business"]));
+  return new Map(
+    users.map((user) => [
+      user.id,
+      {
+        name: user.store?.name || user.supplier?.businessName || user.logisticsPartner?.displayName || user.name || "A business",
+        avatarUrl: user.store?.logoUrl || user.supplier?.logoUrl || user.logisticsPartner?.logoUrl || user.avatarUrl || null,
+      },
+    ]),
+  );
+}
+
+async function businessNames(userIds: string[]) {
+  const profiles = await businessProfiles(userIds);
+  return new Map([...profiles].map(([id, profile]) => [id, profile.name]));
 }
 
 // ─── Codes ────────────────────────────────────────────────────────────────────
@@ -89,9 +112,29 @@ export async function inviterFor(rawCode: string) {
   if (!code) return null;
   const row = await db.referralCode.findUnique({ where: { code } });
   if (!row) return null;
-  const user = await db.user.findUnique({ where: { id: row.userId }, select: { id: true, role: true, verificationStatus: true } });
+  const user = await db.user.findUnique({
+    where: { id: row.userId },
+    select: {
+      role: true,
+      verificationStatus: true,
+      name: true,
+      avatarUrl: true,
+      store: { select: { name: true, logoUrl: true } },
+      supplier: { select: { businessName: true, logoUrl: true } },
+      logisticsPartner: { select: { displayName: true, logoUrl: true } },
+    },
+  });
   if (!user || user.role === "admin" || user.verificationStatus === "suspended") return null;
-  return { code, name: (await businessNames([user.id])).get(user.id) ?? "A business", role: asReferralRole(user.role) };
+  const business = user.store?.name || user.supplier?.businessName || user.logisticsPartner?.displayName || "";
+  const ownerName = user.name?.trim() || null;
+  return {
+    code,
+    name: business || ownerName || "A business",
+    // The person behind the business, shown next to it (left out when it's the same as the business name).
+    ownerName: ownerName && business && ownerName.toLowerCase() !== business.toLowerCase() ? ownerName : null,
+    avatarUrl: user.store?.logoUrl || user.supplier?.logoUrl || user.logisticsPartner?.logoUrl || user.avatarUrl || null,
+    role: asReferralRole(user.role),
+  };
 }
 
 // ─── Free plan time ───────────────────────────────────────────────────────────
@@ -186,7 +229,7 @@ export async function attributeReferral(userId: string, rawCode: string, now = n
   if (!code) return { ok: false, final: true, reason: "Not a code" };
   const [row, referee, existing] = await Promise.all([
     db.referralCode.findUnique({ where: { code } }),
-    db.user.findUnique({ where: { id: userId }, select: { id: true, role: true, name: true, email: true, phone: true, createdAt: true } }),
+    db.user.findUnique({ where: { id: userId }, select: { id: true, role: true, name: true, email: true, phone: true, createdAt: true, preferences: true } }),
     db.referral.findUnique({ where: { refereeId: userId } }),
   ]);
   if (existing) return { ok: false, final: true, reason: "Already linked" };
@@ -194,7 +237,7 @@ export async function attributeReferral(userId: string, rawCode: string, now = n
   const role = asReferralRole(referee.role);
   if (!role) return { ok: false, final: true, reason: "Only businesses can be invited" };
   if (now.getTime() - referee.createdAt.getTime() > REFERRAL_LIMITS.attributeWithinDays * DAY) return { ok: false, final: true, reason: "Account is older than the invite" };
-  const referrer = await db.user.findUnique({ where: { id: row.userId }, select: { id: true, role: true, name: true, email: true, phone: true } });
+  const referrer = await db.user.findUnique({ where: { id: row.userId }, select: { id: true, role: true, name: true, email: true, phone: true, preferences: true } });
   if (!referrer) return { ok: false, final: true, reason: "Inviter is gone" };
   const same = selfReferralReasons(referrer, referee);
 
@@ -214,15 +257,21 @@ export async function attributeReferral(userId: string, rawCode: string, now = n
     return null;
   });
   const names = await businessNames([referrer.id, referee.id]);
-  const offer = REFERRAL_OFFERS[role];
+  const refereeLocale = memberLocale(referee.preferences);
+  const referrerLocale = memberLocale(referrer.preferences);
+  const tReferee = mailT(refereeLocale);
+  const tReferrer = mailT(referrerLocale);
+  const inviterName = names.get(referrer.id) ?? tReferee("ref.aFriend");
+  const friendName = names.get(referee.id) ?? tReferrer("ref.aBusiness");
 
   await notify({
     userId: referee.id,
     event: "referral.welcome",
     category: "account",
     priority: "success",
-    title: `Welcome gift from ${names.get(referrer.id)}`,
-    description: `${names.get(referrer.id)} invited you, so you've got ${welcomeText(role)}.`,
+    title: tReferee("ref.welcome.title", { name: inviterName }),
+    description: tReferee("ref.welcome.desc", { name: inviterName, gift: welcomeTextIn(refereeLocale, role) }),
+    locale: refereeLocale,
     link: "/refer",
     dedupeKey: `referral-welcome-${referral.id}`,
     email: true,
@@ -232,15 +281,16 @@ export async function attributeReferral(userId: string, rawCode: string, now = n
     event: "referral.joined",
     category: "account",
     priority: "success",
-    title: `${names.get(referee.id)} joined with your invite`,
-    description: `Your reward comes when this counts: ${offer.rule.toLowerCase()}.`,
+    title: tReferrer("ref.joined.title", { name: friendName }),
+    description: tReferrer("ref.joined.desc", { rule: ruleIn(referrerLocale, role) }),
+    locale: referrerLocale,
     link: "/refer",
     dedupeKey: `referral-joined-${referral.id}`,
     email: true,
     phoneHandled: true,
   }).catch(() => undefined);
-  await sendReferralWhatsApp("joined", referrer.phone, [firstName(referrer.name), names.get(referee.id) ?? "A business", offer.rule.toLowerCase()]);
-  if (welcome) await sendReferralWhatsApp("welcome", referee.phone, [firstName(referee.name), names.get(referrer.id) ?? "A friend", welcomeText(role)]);
+  await sendReferralWhatsApp("joined", referrer.phone, referrerLocale, (locale) => [firstName(referrer.name), names.get(referee.id) ?? mailT(locale)("ref.aBusiness"), ruleIn(locale, role)]);
+  if (welcome) await sendReferralWhatsApp("welcome", referee.phone, refereeLocale, (locale) => [firstName(referee.name), names.get(referrer.id) ?? mailT(locale)("ref.aFriend"), welcomeTextIn(locale, role)]);
   return { ok: true, referralId: referral.id };
 }
 
@@ -300,7 +350,7 @@ async function rewardReferral(referralId: string, now = new Date()) {
   if (!claimed.count) return false;
   const referral = await db.referral.findUniqueOrThrow({ where: { id: referralId } });
   const role = asReferralRole(referral.refereeRole)!;
-  const referrer = await db.user.findUnique({ where: { id: referral.referrerId }, select: { id: true, name: true, phone: true, role: true, planStatus: true, planPaidUntil: true, subscriptionCode: true } });
+  const referrer = await db.user.findUnique({ where: { id: referral.referrerId }, select: { id: true, name: true, phone: true, role: true, planStatus: true, planPaidUntil: true, subscriptionCode: true, preferences: true } });
   const referrerRole = asReferralRole(referrer?.role);
   if (!referrer || !referrerRole) {
     await db.referral.update({ where: { id: referralId }, data: { status: "rejected", reason: "The inviter's account can't get rewards" } });
@@ -319,20 +369,23 @@ async function rewardReferral(referralId: string, now = new Date()) {
   await db.referral.update({ where: { id: referralId }, data: { status: "rewarded", rewardedAt: now, referrerReward: { ...given, paying } as Prisma.InputJsonValue } });
 
   const names = await businessNames([referral.refereeId]);
-  const friend = names.get(referral.refereeId) ?? "Your invite";
+  const locale = memberLocale(referrer.preferences);
+  const t = mailT(locale);
+  const friend = names.get(referral.refereeId) ?? t("ref.aBusiness");
   await notify({
     userId: referrer.id,
     event: "referral.rewarded",
     category: "account",
     priority: "success",
-    title: `Your reward: ${rewardText(given)}`,
-    description: `${friend} now counts on Shopinbos, so you've got ${rewardText(given)}. Thank you for inviting them!`,
+    title: t("ref.reward.title", { reward: rewardTextIn(locale, given) }),
+    description: t("ref.reward.desc", { name: friend, reward: rewardTextIn(locale, given) }),
+    locale,
     link: "/refer",
     dedupeKey: `referral-reward-${referralId}`,
     email: true,
     phoneHandled: true,
   }).catch(() => undefined);
-  await sendReferralWhatsApp("reward", referrer.phone, [firstName(referrer.name), friend, rewardText(given)]);
+  await sendReferralWhatsApp("reward", referrer.phone, locale, (inLocale) => [firstName(referrer.name), names.get(referral.refereeId) ?? mailT(inLocale)("ref.aBusiness"), rewardTextIn(inLocale, given)]);
 
   // Milestones count rewarded referrals; each is given once (its own reference).
   const total = await db.referral.count({ where: { referrerId: referrer.id, status: "rewarded" } });
@@ -344,8 +397,9 @@ async function rewardReferral(referralId: string, now = new Date()) {
       event: "referral.milestone",
       category: "account",
       priority: "success",
-      title: `${milestone.count} businesses joined with your invite!`,
-      description: `Here's a thank-you: ${rewardText(bonus)}.`,
+      title: t("ref.milestone.title", { count: milestone.count }),
+      description: t("ref.milestone.desc", { reward: rewardTextIn(locale, bonus) }),
+      locale,
       link: "/refer",
       dedupeKey: `referral-milestone-${referrer.id}-${milestone.count}`,
       email: true,
@@ -404,7 +458,7 @@ export async function referralOverview(userId: string) {
   ]);
   const rewardRole = asRewardRole(user?.role);
   const loyalty = rewardRole ? loyaltyView(levelFor(rewardRole, rewards?.xp ?? 0).level, user?.createdAt ?? new Date()) : null;
-  const names = await businessNames(rows.map((row) => row.refereeId));
+  const profiles = await businessProfiles([userId, ...rows.map((row) => row.refereeId)]);
   const list = await Promise.all(
     rows.map(async (row) => {
       const role = asReferralRole(row.refereeRole) ?? "seller";
@@ -412,7 +466,8 @@ export async function referralOverview(userId: string) {
       const reward = (row.referrerReward ?? null) as { months?: number; credits?: number } | null;
       return {
         id: row.id,
-        name: names.get(row.refereeId) ?? "A business",
+        name: profiles.get(row.refereeId)?.name ?? "A business",
+        avatarUrl: profiles.get(row.refereeId)?.avatarUrl ?? null,
         role,
         status: row.status,
         statusLabel: STATUS_LABEL[row.status] ?? row.status,
@@ -433,6 +488,8 @@ export async function referralOverview(userId: string) {
   );
   return {
     code: code.code,
+    // How the invite page shows you to the people you invite.
+    business: profiles.get(userId) ?? { name: "A business", avatarUrl: null },
     rewardChoice: asRewardChoice(code.rewardChoice),
     paying: user ? isPaying(user) : false,
     role: asReferralRole(user?.role) ?? "seller",

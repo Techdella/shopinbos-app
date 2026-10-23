@@ -91,6 +91,7 @@ import onboarding from "./messages/onboarding/index.ts";
 import media from "./messages/media/index.ts";
 import productTypes from "./messages/productTypes/index.ts";
 import tips from "./messages/tips/index.ts";
+import mail from "./messages/mail/index.ts";
 
 export const CATALOGS = {
   common,
@@ -182,6 +183,7 @@ export const CATALOGS = {
   media,
   productTypes,
   tips,
+  mail,
 } satisfies Record<string, Catalog>;
 
 export type Namespace = keyof typeof CATALOGS;

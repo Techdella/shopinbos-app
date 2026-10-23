@@ -3,6 +3,7 @@ import { withSeller } from "@/lib/auth/middleware";
 import { apiError, ok } from "@/lib/api/response";
 import { saveSellerProfile, sellerProfile } from "@/lib/seller-settings.server";
 import { ProfilePatchSchema } from "@/lib/seller-settings-rules";
+import { PhoneTakenError } from "@/lib/auth/phone-owner.server";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,11 @@ export const GET = withSeller(async (_req, { user }) => ok(await sellerProfile(u
 export const PATCH = withSeller(async (req: NextRequest, { user }) => {
   const parsed = ProfilePatchSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return apiError("BAD_REQUEST", parsed.error.issues[0]?.message ?? "Check your details.");
-  if (!(await saveSellerProfile(user.id, parsed.data))) return apiError("NOT_FOUND", "Store not found.", 404);
+  try {
+    if (!(await saveSellerProfile(user.id, parsed.data))) return apiError("NOT_FOUND", "Store not found.", 404);
+  } catch (error) {
+    if (error instanceof PhoneTakenError) return apiError("PHONE_TAKEN", error.message, 409);
+    throw error;
+  }
   return ok(await sellerProfile(user.id));
 });

@@ -7,19 +7,23 @@ import { metaTemplates, metaWhatsAppConfig, sendMetaTemplate } from "@/lib/lead-
 import { notify } from "@/lib/notifications/notify.server";
 import { setupStatus } from "@/lib/onboarding/setup-status.server";
 import { PAID_ORDER_STATUSES } from "@/lib/insights";
-import { MEMBER_TEMPLATES, memberTemplateImageUrl } from "./whatsapp-templates";
-import { WHATSAPP_TIPS_EVENT } from "./tips.server";
+import { memberTemplateFor, memberTemplateImageUrl } from "./whatsapp-templates";
+import { mailT, memberLocale } from "./i18n";
+import type { Locale } from "@shared/i18n";
+import { WHATSAPP_TIPS_EVENT, memberEmailExtras } from "./tips.server";
 import { firstNameOf } from "./tips-email";
+import { canContactMember } from "./spacing.server";
 import {
   LOW_CREDITS,
   WINBACK_GIFT_CREDITS,
   WINBACK_GIFT_EVERY_DAYS,
   journeyBodyHtml,
+  journeyLook,
   journeyMessage,
   monthPeriod,
-  overEmailCap,
   sendingHours,
   setupStage,
+  setupStepText,
   winbackPeriod,
   winbackStage,
   type JourneyKey,
@@ -45,7 +49,9 @@ export async function setJourneysOn(on: boolean, userId: string) {
   await db.platformSetting.upsert({ where: { key: SETTING }, create: { key: SETTING, value }, update: { value } });
 }
 
-type Person = { id: string; name: string | null; email: string | null; phone: string | null; role: string };
+type Person = { id: string; name: string | null; email: string | null; phone: string | null; role: string; preferences: unknown };
+/** A step's WhatsApp template and its variables, filled in the language of the template that's sent. */
+type JourneyWhatsApp = { template: string; params: (locale: Locale) => string[] };
 
 async function claim(userId: string, kind: JourneyKey, period: string, ref: string, channel = "email") {
   try {
@@ -54,10 +60,6 @@ async function claim(userId: string, kind: JourneyKey, period: string, ref: stri
     if ((error as { code?: string }).code === "P2002") return null;
     throw error;
   }
-}
-
-async function emailsLastWeek(userId: string, now: Date) {
-  return db.memberMessage.count({ where: { userId, channel: "email", status: "sent", sentAt: { gte: new Date(now.getTime() - 7 * DAY) } } });
 }
 
 async function whatsappOff(userId: string) {
@@ -76,12 +78,26 @@ async function approvedTemplates() {
 }
 
 /** Sends one journey step: bell, email (and WhatsApp for the two that have a template). */
-async function deliver(person: Person, key: JourneyKey, stage: string, period: string, vars: JourneyVars, now: Date, whatsapp?: { template: string; params: string[] }) {
+async function deliver(person: Person, key: JourneyKey, stage: string, period: string, vars: JourneyVars, now: Date, whatsapp?: JourneyWhatsApp) {
   const role = person.role as JourneyRole;
-  const row = await claim(person.id, key, period, stage);
-  if (!row) return "claimed";
-  const message = journeyMessage(key, stage, role, vars);
+  const locale = memberLocale(person.preferences);
   const marketing = MARKETING.includes(key);
+  // Marketing steps go by one channel only, and only when spacing allows (spacing.ts): WhatsApp when there's an
+  // approved template and they haven't had one in 4 days, else email. Too soon for both: wait (not claimed, so a
+  // later hourly run sends it while the step is still due).
+  let channel: "email" | "whatsapp" | null = person.email ? "email" : null;
+  if (marketing) {
+    const approved = await approvedTemplates();
+    const picked = whatsapp ? memberTemplateFor(whatsapp.template, locale, approved) : null;
+    const canWhatsApp = Boolean(picked && person.phone && approved.has(picked.template.name) && !(await whatsappOff(person.id)));
+    if (canWhatsApp && (await canContactMember(person.id, "whatsapp", now)).ok) channel = "whatsapp";
+    else if (person.email && (await canContactMember(person.id, "email", now)).ok) channel = "email";
+    else return "waiting";
+  }
+  const row = await claim(person.id, key, period, stage, channel ?? "bell");
+  if (!row) return "claimed";
+  const message = journeyMessage(key, stage, role, vars, locale);
+  const lookFor = journeyLook(key, stage, message, vars.firstName, vars, locale);
   try {
     await notify({
       userId: person.id,
@@ -95,9 +111,19 @@ async function deliver(person: Person, key: JourneyKey, stage: string, period: s
       inAppOnly: true,
     }).catch(() => undefined);
 
-    let emailed = false;
+    let sentOk = false;
     let error: string | null = null;
-    if (person.email && !(marketing && overEmailCap(await emailsLastWeek(person.id, now)))) {
+    if (channel === "whatsapp" && whatsapp) {
+      // Their language's template when it's approved, else English, with the variables in the same language.
+      const picked = memberTemplateFor(whatsapp.template, locale, await approvedTemplates());
+      const config = metaWhatsAppConfig();
+      if (picked && config) {
+        const template = picked.template;
+        const sent = await sendMetaTemplate(config, { to: person.phone!, template: template.name, language: template.language, params: whatsapp.params(picked.locale), headerImage: memberTemplateImageUrl(template) });
+        sentOk = sent.ok;
+        if (!sent.ok) error = sent.error;
+      }
+    } else if (channel === "email" && person.email) {
       const sent = await sendPlatformEmail({
         to: person.email,
         user: { id: person.id, role },
@@ -109,28 +135,21 @@ async function deliver(person: Person, key: JourneyKey, stage: string, period: s
         heading: message.heading,
         bodyHtml: journeyBodyHtml(message),
         cta: { label: message.cta.label, url: `${appBase()}${message.cta.path}` },
+        ...lookFor,
+        ...memberEmailExtras(lookFor.persona, now, locale),
       });
-      emailed = sent.success;
+      sentOk = sent.success;
       if (!sent.success) error = sent.message ?? "email failed";
     }
-
-    if (whatsapp && person.phone && (await approvedTemplates()).has(whatsapp.template) && !(await whatsappOff(person.id))) {
-      const template = MEMBER_TEMPLATES.find((t) => t.name === whatsapp.template);
-      const config = metaWhatsAppConfig();
-      if (template && config) {
-        const sent = await sendMetaTemplate(config, { to: person.phone, template: template.name, language: template.language, params: whatsapp.params, headerImage: memberTemplateImageUrl(template) });
-        if (!sent.ok) console.warn(`[journeys] WhatsApp ${template.name} not sent: ${sent.error}`);
-      }
-    }
-    await db.memberMessage.update({ where: { id: row.id }, data: { status: emailed ? "sent" : error ? "failed" : "skipped", error, sentAt: emailed ? new Date() : null } });
-    return emailed ? "sent" : "skipped";
+    await db.memberMessage.update({ where: { id: row.id }, data: { status: sentOk ? "sent" : error ? "failed" : "skipped", error, sentAt: sentOk ? new Date() : null } });
+    return sentOk ? "sent" : "skipped";
   } catch (caught) {
     await db.memberMessage.update({ where: { id: row.id }, data: { status: "failed", error: caught instanceof Error ? caught.message.slice(0, 500) : "failed" } }).catch(() => undefined);
     return "failed";
   }
 }
 
-const PERSON = { id: true, name: true, email: true, phone: true, role: true } as const;
+const PERSON = { id: true, name: true, email: true, phone: true, role: true, preferences: true } as const;
 
 async function notYet(userIds: string[], kind: JourneyKey, periods: (id: string) => string) {
   if (!userIds.length) return new Set<string>();
@@ -160,7 +179,9 @@ async function runSetupHelp(now: Date, deadline: number) {
       continue;
     }
     const vars = { firstName: firstNameOf(person.name), nextStep: status.next, done: status.done, total: status.steps.length };
-    const result = await deliver(person, "setup_help", stage, stage, vars, now, stage === "d3" ? { template: "shopinbos_setup_help", params: [vars.firstName, status.next.label.toLowerCase()] } : undefined);
+    const next = status.next;
+    const whatsapp = stage === "d3" ? { template: "shopinbos_setup_help", params: (locale: Locale) => [vars.firstName, setupStepText(person.role as JourneyRole, next, locale).label] } : undefined;
+    const result = await deliver(person, "setup_help", stage, stage, vars, now, whatsapp);
     if (result === "sent") count++;
   }
   return count;
@@ -191,9 +212,14 @@ async function runWinback(now: Date, deadline: number) {
     if (!stage) continue;
     const period = winbackPeriod(last.toISOString().slice(0, 10), stage);
     let giftCredits = 0;
+    // Too soon to contact them on either channel (spacing.ts): try again next hour, before any gift is given.
+    if (!(await canContactMember(person.id, "email", now)).ok && !(await canContactMember(person.id, "whatsapp", now)).ok) continue;
     if (stage === "d14") {
+      const giftThisSpell = await db.memberMessage.count({ where: { userId: person.id, kind: "winback", period: `${period}:gift` } });
       const recentGift = await db.memberMessage.count({ where: { userId: person.id, kind: "winback", ref: "d14-gift", createdAt: { gte: new Date(now.getTime() - WINBACK_GIFT_EVERY_DAYS * DAY) } } });
-      if (!recentGift) {
+      // Given on an earlier try whose message then had to wait: still tell them about it.
+      if (giftThisSpell) giftCredits = WINBACK_GIFT_CREDITS;
+      else if (!recentGift) {
         // The gift's own row first (unique per quiet spell): only the run that writes it adds the credits.
         const gift = await db.memberMessage.create({ data: { userId: person.id, kind: "winback", period: `${period}:gift`, ref: "d14-gift", channel: "credits", status: "sent", sentAt: now } }).catch(() => null);
         if (gift) {
@@ -204,7 +230,7 @@ async function runWinback(now: Date, deadline: number) {
     }
     const firstName = firstNameOf(person.name);
     const whatsapp = stage === "d14"
-      ? { template: "shopinbos_welcome_back", params: [firstName, giftCredits ? `We've added ${giftCredits} free AI credits to your account for Rex videos and product photos.` : "Your account is just as you left it."] }
+      ? { template: "shopinbos_welcome_back", params: (locale: Locale) => [firstName, giftCredits ? mailT(locale)("j.d14.bodyGift", { count: giftCredits }) : mailT(locale)("j.d14.body")] }
       : undefined;
     const result = await deliver(person, "winback", stage, period, { firstName, giftCredits }, now, whatsapp);
     if (result === "sent") count++;

@@ -3,8 +3,16 @@ import "server-only";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { appBase, sendPlatformEmail } from "@/lib/email/compliance.server";
+import { personaSender } from "@/lib/email/looks";
+import { formatFromAddress } from "@/lib/notifications/resend";
+import { supportInbox } from "@/lib/support/email.server";
+import { proverbIndex } from "@shared/proverbs";
+import type { Locale } from "@shared/i18n";
+import { localizedTip, mailT, memberLocale, type MailKey } from "./i18n";
+import { canContactMember } from "./spacing.server";
+import { approvedStories, markStoryShown, pickStory, videoPreviewFor, videoSample } from "./stories.server";
 import { metaTemplates, metaWhatsAppConfig, sendMetaTemplate } from "@/lib/lead-growth/whatsapp-meta.server";
-import { MEMBER_TEMPLATES, memberTemplateImageUrl } from "./whatsapp-templates";
+import { memberTemplateFor, memberTemplateImageUrl } from "./whatsapp-templates";
 import { TIPS, type Tip, type TipRole } from "./tips-library";
 import { FROM_NAME, firstNameOf, nextTip, renderTipEmail, tipDue, tipWeek, whatsappTipText, type TipChannel, type TipProduct } from "./tips-email";
 
@@ -96,7 +104,7 @@ async function topProducts(limit = 4): Promise<TipProduct[]> {
       price: product.suggestedRetailPrice,
       image: product.images[0] ?? null,
       url: `${appBase()}/marketplace/product/${product.id}`,
-      note: shops > 1 ? `added by ${shops} shops` : null,
+      shops,
     };
   });
 }
@@ -118,21 +126,53 @@ async function topCategories(limit = 5) {
 
 // ─── Sending ──────────────────────────────────────────────────────────────────
 
-type Candidate = { id: string; name: string | null; email: string | null; phone: string | null; role: string };
+/**
+ * What every member email from Rex or Peggy carries: their name on the From line, replies to the support inbox (they
+ * become admin inbox conversations Peggy can answer) and the proverb of the week.
+ */
+export function memberEmailExtras(persona: "rex" | "peggy", now: Date, locale: Locale = "en") {
+  return { persona, from: formatFromAddress(personaSender(persona)), replyTo: supportInbox(), proverb: mailT(locale)(`proverb.${proverbIndex(now)}` as MailKey), locale };
+}
+
+/** Their own numbers for the top of the email: this month's orders (sellers, suppliers) or deliveries (partners). */
+export async function personalLine(userId: string, role: TipRole, locale: Locale = "en") {
+  const t = mailT(locale);
+  const now = new Date();
+  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1) - 60 * 60_000);
+  if (role === "seller") {
+    const store = await db.store.findUnique({ where: { userId }, select: { id: true } });
+    if (!store) return null;
+    const orders = await db.retailOrder.count({ where: { storeId: store.id, status: { in: ["paid", "processing", "packed", "shipped", "delivered"] }, createdAt: { gte: monthStart } } });
+    return orders >= 10 ? t("personal.seller.many", { count: orders }) : t("personal.seller.few", { count: orders, left: 10 - orders });
+  }
+  if (role === "supplier") {
+    const supplier = await db.supplier.findUnique({ where: { userId }, select: { id: true } });
+    if (!supplier) return null;
+    const orders = await db.supplierOrder.count({ where: { supplierId: supplier.id, acceptedAt: { gte: monthStart } } });
+    return orders ? t("personal.supplier.some", { count: orders }) : t("personal.supplier.none");
+  }
+  const partner = await db.logisticsPartner.findUnique({ where: { userId }, select: { id: true } });
+  if (!partner) return null;
+  const done = await db.deliveryBooking.count({ where: { logisticsPartnerId: partner.id, status: "delivered", createdAt: { gte: monthStart } } });
+  return done ? t("personal.partner.some", { count: done }) : t("personal.partner.none");
+}
+
+type Candidate = { id: string; name: string | null; email: string | null; phone: string | null; role: string; preferences: unknown };
 
 /** People due this week's tip on this channel who haven't been claimed yet. */
-async function candidates(channel: TipChannel, period: string, take: number): Promise<Candidate[]> {
+async function candidates(channel: TipChannel, period: string, take: number, waiting: string[] = []): Promise<Candidate[]> {
   const kind = KIND[channel];
   const joinedBefore = new Date(Date.now() - NEW_ACCOUNT_DAYS * DAY);
   const contact = channel === "email" ? Prisma.sql`u."email" IS NOT NULL AND u."email" <> ''` : Prisma.sql`u."phone" IS NOT NULL AND length(u."phone") >= 10`;
   return db.$queryRaw<Candidate[]>`
-    SELECT u."id", u."name", u."email", u."phone", u."role"::text AS role
+    SELECT u."id", u."name", u."email", u."phone", u."role"::text AS role, u."preferences"
     FROM "User" u
     WHERE u."role"::text IN ('seller', 'supplier', 'logistics_partner')
       AND u."verificationStatus"::text <> 'suspended'
       AND u."createdAt" < ${joinedBefore}
       AND ${contact}
       AND NOT EXISTS (SELECT 1 FROM "MemberMessage" m WHERE m."userId" = u."id" AND m."kind" = ${kind} AND m."period" = ${period})
+      AND NOT (u."id" = ANY(${waiting}::text[]))
     ORDER BY u."createdAt" ASC
     LIMIT ${take}`;
 }
@@ -168,10 +208,10 @@ async function approvedTipTemplates() {
   return { config, approved: new Set(list.templates.filter((t) => t.status === "APPROVED").map((t) => t.name)) };
 }
 
-export type TipRunResult = { channel: TipChannel; due: boolean; enabled: boolean; sent: number; failed: number; skipped: number; note?: string };
+export type TipRunResult = { channel: TipChannel; due: boolean; enabled: boolean; sent: number; failed: number; skipped: number; waiting: number; note?: string };
 
 async function runChannel(channel: TipChannel, now: Date, deadline: number): Promise<TipRunResult> {
-  const result: TipRunResult = { channel, due: tipDue(channel, now), enabled: false, sent: 0, failed: 0, skipped: 0 };
+  const result: TipRunResult = { channel, due: tipDue(channel, now), enabled: false, sent: 0, failed: 0, skipped: 0, waiting: 0 };
   result.enabled = (await tipSettings())[channel];
   if (!result.due || !result.enabled) return result;
   const period = tipWeek(now);
@@ -180,36 +220,65 @@ async function runChannel(channel: TipChannel, now: Date, deadline: number): Pro
   if (wa && (!wa.config || !wa.approved.size)) return { ...result, note: "WhatsApp tip templates aren't approved yet" };
   const products = channel === "email" ? await topProducts() : [];
   const categories = channel === "email" ? await topCategories() : [];
+  // Member stories (approved, shared with consent) and the sample Rex video, once per run.
+  const stories = channel === "email" ? await approvedStories() : [];
+  const sample = channel === "email" ? await videoSample() : null;
 
+  // People who heard from us too recently (spacing.ts) wait: a later run this week sends their tip.
+  const waiting: string[] = [];
   while (Date.now() < deadline) {
-    const batch = await candidates(channel, period, 100);
+    const batch = await candidates(channel, period, 100, waiting);
     if (!batch.length) break;
     for (const person of batch) {
       if (Date.now() >= deadline) break;
+      if (!(await canContactMember(person.id, channel, now)).ok) {
+        waiting.push(person.id);
+        result.waiting++;
+        continue;
+      }
       const role = person.role as TipRole;
+      const locale = memberLocale(person.preferences);
       const tip = nextTip(TIPS, role, await historyFor(person.id));
       if (!tip) continue;
       const row = await claim(person.id, channel, period, tip);
       if (!row) continue;
       try {
         if (channel === "email") {
+          const story = pickStory(stories, role, person.id, now);
+          const video = tip.topic === "rex-videos" ? await videoPreviewFor(person.id, role, stories, sample, now) : null;
           const email = renderTipEmail(tip, {
+            story,
+            video,
+            storyUrl: `${appBase()}/story`,
             firstName: firstNameOf(person.name),
             ctaUrl: tipLink(tip, row.id),
             products: role === "seller" ? products : undefined,
             categories: role === "supplier" ? categories : undefined,
             marketplaceUrl: `${appBase()}/marketplace`,
+            locale,
           });
-          const sent = await sendPlatformEmail({ to: person.email!, user: { id: person.id, role }, kind: "marketing", topic: "tips", ...email });
+          const sent = await sendPlatformEmail({
+            to: person.email!,
+            user: { id: person.id, role },
+            kind: "marketing",
+            topic: "tips",
+            ...email,
+            ...memberEmailExtras(email.persona, now, locale),
+            personal: await personalLine(person.id, role, locale).catch(() => null),
+          });
           const off = !sent.success && /turned off/i.test(sent.message ?? "");
           await finish(row.id, { ok: sent.success, skipped: off, error: sent.success ? null : sent.message, providerId: sent.success ? sent.id ?? null : null });
-          if (sent.success) result.sent++;
-          else if (off) result.skipped++;
+          if (sent.success) {
+            result.sent++;
+            if (story) await markStoryShown(story.id);
+          } else if (off) result.skipped++;
           else result.failed++;
         } else {
-          const template = MEMBER_TEMPLATES.find((t) => t.name === WA_TEMPLATE[role]);
+          // Their language's template when it's approved, else the English one (and the tip in that same language).
+          const picked = memberTemplateFor(WA_TEMPLATE[role], locale, wa!.approved);
+          const template = picked?.template;
           if (!template || !wa!.approved.has(template.name) || (await whatsappTipsOff(person.id))) {
-            await finish(row.id, { ok: false, skipped: true, error: !template || !wa!.approved.has(WA_TEMPLATE[role]) ? "Template not approved" : "Turned off (STOP)" });
+            await finish(row.id, { ok: false, skipped: true, error: !template || !wa!.approved.has(template.name) ? "Template not approved" : "Turned off (STOP)" });
             result.skipped++;
             continue;
           }
@@ -217,7 +286,7 @@ async function runChannel(channel: TipChannel, now: Date, deadline: number): Pro
             to: person.phone!,
             template: template.name,
             language: template.language,
-            params: [firstNameOf(person.name), FROM_NAME[tip.from], whatsappTipText(tip)],
+            params: [firstNameOf(person.name), FROM_NAME[tip.from], whatsappTipText(localizedTip(tip, picked!.locale))],
             headerImage: memberTemplateImageUrl(template),
             buttonUrlSuffix: `${tip.id}?m=${row.id}`,
           });
@@ -244,13 +313,16 @@ export async function runTipsJob(now = new Date(), deadline = Date.now() + 240_0
 // ─── Admin ────────────────────────────────────────────────────────────────────
 
 /** Sends one tip email to an admin to check it (not logged, ignores the switches). */
-export async function sendTipTest(tipId: string, admin: { id: string; email: string | null; name: string | null }) {
+export async function sendTipTest(tipId: string, admin: { id: string; email: string | null; name: string | null }, locale: Locale = "en") {
   const tip = TIPS.find((item) => item.id === tipId);
   if (!tip) return { ok: false as const, error: "Unknown tip" };
   if (!admin.email) return { ok: false as const, error: "Your account has no email address." };
-  const [products, categories] = await Promise.all([tip.role === "seller" ? topProducts() : Promise.resolve([]), tip.role === "supplier" ? topCategories() : Promise.resolve([])]);
-  const email = renderTipEmail(tip, { firstName: firstNameOf(admin.name), ctaUrl: tipLink(tip, null), products, categories, marketplaceUrl: `${appBase()}/marketplace` });
-  const sent = await sendPlatformEmail({ to: admin.email, user: { id: admin.id, role: tip.role }, kind: "notification", ...email, subject: `[Test] ${email.subject}` });
+  const [products, categories, stories, sample] = await Promise.all([tip.role === "seller" ? topProducts() : Promise.resolve([]), tip.role === "supplier" ? topCategories() : Promise.resolve([]), approvedStories(), videoSample()]);
+  const now = new Date();
+  const video = tip.topic === "rex-videos" ? await videoPreviewFor(admin.id, tip.role, stories, sample, now) : null;
+  const email = renderTipEmail(tip, { firstName: firstNameOf(admin.name), ctaUrl: tipLink(tip, null), products, categories, marketplaceUrl: `${appBase()}/marketplace`, locale, story: pickStory(stories, tip.role, admin.id, now), video, storyUrl: `${appBase()}/story` });
+  const personal = tip.role === "seller" ? `${mailT(locale)("personal.seller.few", { count: 4, left: 6 })} (sample numbers)` : null;
+  const sent = await sendPlatformEmail({ to: admin.email, user: { id: admin.id, role: tip.role }, kind: "notification", ...email, ...memberEmailExtras(email.persona, new Date(), locale), personal, subject: `[Test] ${email.subject}` });
   return sent.success ? { ok: true as const } : { ok: false as const, error: sent.message ?? "Couldn't send" };
 }
 
