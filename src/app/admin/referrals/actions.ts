@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { requireAdminSection } from "@/lib/admin-team/service.server";
 import { adminDecideReferral } from "@/lib/referrals/service.server";
 import { submitMemberTemplates } from "@/lib/member-messaging/templates.server";
+import { startReferralAnnouncement, stopReferralAnnouncement } from "@/lib/member-messaging/announce.server";
 
 const back = (formData: FormData) => {
   const to = String(formData.get("back") ?? "/admin/referrals");
@@ -29,4 +30,13 @@ export async function submitReferralTemplates(formData: FormData) {
   const url = new URL(back(formData), "https://x");
   url.searchParams.set(result.failures.length ? "error" : "submitted", result.failures.length ? result.failures.join(" · ").slice(0, 500) : String(result.submitted));
   redirect(`${url.pathname}${url.search}`);
+}
+
+/** Tell every seller, supplier and delivery partner about Refer & earn (sent in batches, each person once), or pause it. */
+export async function toggleReferralAnnouncement(formData: FormData) {
+  const admin = await requireAdminSection("leads");
+  if (formData.get("start") === "1") await startReferralAnnouncement(admin.id);
+  else await stopReferralAnnouncement();
+  revalidatePath("/admin/referrals");
+  redirect(back(formData));
 }

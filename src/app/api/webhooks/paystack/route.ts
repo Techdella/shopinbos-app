@@ -28,7 +28,7 @@ import { DEBT_PAYMENT_PREFIX, confirmDebtPayment } from "@/lib/money-owed/money-
 import { PAID_RETAIL_STATUSES } from "@/lib/supplier-orders/pure";
 import { isDedicatedCharge } from "@/lib/logistics/payin-rules";
 import { handleDedicatedAccountAssign, handleDedicatedAccountCharge } from "@/lib/logistics/payins.server";
-import { recordInvoicePaid, recordSubscriptionCreated, recordSubscriptionStatus } from "@/lib/seller-plan.server";
+import { notifyRenewalFailed, recordInvoicePaid, recordSubscriptionCreated, recordSubscriptionStatus } from "@/lib/seller-plan.server";
 import { getPlanCatalog } from "@/lib/plans/catalog.server";
 import { FREE_PLAN_MARKER, planMarker } from "@shared/plan-catalog";
 
@@ -129,7 +129,7 @@ export async function POST(req: NextRequest) {
 
   // ── Invoice paid (monthly renewal) ───────────────────────────────────────
   if (eventType === "invoice.payment_failed") {
-    // future: send payment failure email to subscriber
+    await notifyRenewalFailed(event.data ?? {}).catch((error) => console.error("[paystack webhook] renewal failed notice", error));
   }
 
   if (eventType === "invoice.update" && event.data?.paid === true) {

@@ -7,7 +7,8 @@ import { memberTemplateStatuses } from "@/lib/member-messaging/templates.server"
 import { MEMBER_TEMPLATES, memberTemplatePreview } from "@/lib/member-messaging/whatsapp-templates";
 import { TIPS, type TipRole } from "@/lib/member-messaging/tips-library";
 import { FROM_NAME, TIP_HOUR, tipWeek, whatsappTipText } from "@/lib/member-messaging/tips-email";
-import { setTipChannel, sendTestTip, submitTipTemplates } from "./actions";
+import { journeyStats, journeysOn } from "@/lib/member-messaging/journeys.server";
+import { setJourneys, setTipChannel, sendTestTip, submitTipTemplates } from "./actions";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Member tips" };
@@ -22,8 +23,8 @@ export default async function AdminMemberTipsPage(props: { searchParams?: Promis
   const user = await requireAdminSection("leads");
   const params = (await props.searchParams) ?? {};
   const role = (ROLES as string[]).includes(params.role ?? "") ? (params.role as TipRole) : "seller";
-  const [settings, audience, stats, templates] = await Promise.all([tipSettings(), tipAudience(), tipStats(), memberTemplateStatuses().catch(() => null)]);
-  const tipTemplates = MEMBER_TEMPLATES.filter((template) => template.group === "tips");
+  const [settings, audience, stats, templates, journeys, journeyCounts] = await Promise.all([tipSettings(), tipAudience(), tipStats(), memberTemplateStatuses().catch(() => null), journeysOn(), journeyStats()]);
+  const tipTemplates = MEMBER_TEMPLATES.filter((template) => template.group === "tips" || template.group === "journeys");
   const thisWeek = tipWeek(new Date());
 
   const channels = [
@@ -32,7 +33,7 @@ export default async function AdminMemberTipsPage(props: { searchParams?: Promis
   ];
 
   return (
-    <AppPage frame={adminFrame(user, "Search")} title="Member tips" sub="A weekly tip from Rex & Peggy for sellers, suppliers and delivery partners: sell more online, dropshipping, Rex videos, ads and what's selling now.">
+    <AppPage frame={adminFrame(user, "Search")} title="Member tips & journeys" sub="A weekly tip from Rex & Peggy for sellers, suppliers and delivery partners, and the messages that help them finish setting up, celebrate first wins and come back when they go quiet.">
       {(params.saved || params.error) && (
         <p role="status" className={`mb-4 rounded-[14px] px-4 py-3 text-[14.5px] font-bold ${params.error ? "bg-app-danger-tint text-app-danger" : "bg-app-success-tint text-app-success"}`}>{params.error ?? params.saved}</p>
       )}
@@ -58,6 +59,34 @@ export default async function AdminMemberTipsPage(props: { searchParams?: Promis
             </div>
           );
         })}
+      </section>
+
+      <section aria-labelledby="journeys" className="mb-6 rounded-[20px] border border-app-line bg-white p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <h2 id="journeys" className="m-0 text-[18px] font-extrabold">Journeys</h2>
+            <p className="m-0 mt-1 max-w-[760px] text-[13.5px] leading-[1.5] text-app-ink-soft">
+              Hourly, by email and the bell (WhatsApp where a template is approved): <strong>setup help</strong> for suppliers and delivery partners on day 3 and 10;
+              <strong> win-back</strong> after 7, 14 (with 50 free AI credits, once in 180 days) and 30 quiet days; <strong>first win</strong> congratulations;
+              and <strong>low AI credits</strong> once a month. Marketing ones only Mon–Sat 08:00–20:00, at most 3 marketing emails a week per person.
+            </p>
+          </div>
+          <span className="flex items-center gap-3">
+            <Pill tone={journeys ? "success" : "muted"} dot>{journeys ? "On" : "Off"}</Pill>
+            <form action={setJourneys}>
+              <input type="hidden" name="on" value={journeys ? "0" : "1"} />
+              <button type="submit" className={buttonClass(journeys ? "white" : "ink", "sm")}>{journeys ? "Switch off" : "Switch on"}</button>
+            </form>
+          </span>
+        </div>
+        <ul className="m-0 mt-4 grid list-none gap-2 p-0 sm:grid-cols-5">
+          {journeyCounts.map((row) => (
+            <li key={row.kind} className="rounded-[14px] bg-app-canvas px-3 py-2.5 text-[13px]">
+              <span className="block font-bold">{({ setup_help: "Setup help", winback: "Win-back", first_win: "First wins", credits_low: "Low credits", announce_referral: "Refer & earn news" } as Record<string, string>)[row.kind]}</span>
+              <span className="text-app-ink-soft">{row.sent} sent · {row.failed} failed · {row.skipped} skipped (30 days)</span>
+            </li>
+          ))}
+        </ul>
       </section>
 
       <section aria-labelledby="tip-stats" className="mb-6 rounded-[20px] border border-app-line bg-white p-5">
@@ -92,7 +121,7 @@ export default async function AdminMemberTipsPage(props: { searchParams?: Promis
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 id="tip-templates" className="m-0 text-[18px] font-extrabold">WhatsApp templates</h2>
-            <p className="m-0 mt-1 text-[13.5px] text-app-ink-soft">One per role; the tip itself is filled in each week, so they only need approving once.</p>
+            <p className="m-0 mt-1 text-[13.5px] text-app-ink-soft">The weekly tips (one per role: the tip is filled in each week) and the setup-help and welcome-back journeys. They only need approving once.</p>
           </div>
           <form action={submitTipTemplates}><button type="submit" className={buttonClass("ink", "sm")}>Submit the missing ones</button></form>
         </div>

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { requireAdminSection } from "@/lib/admin-team/service.server";
 import { saveTipSettings, sendTipTest, tipSettings } from "@/lib/member-messaging/tips.server";
 import { submitMemberTemplates } from "@/lib/member-messaging/templates.server";
+import { setJourneysOn } from "@/lib/member-messaging/journeys.server";
 
 const PATH = "/admin/member-tips";
 
@@ -36,4 +37,13 @@ export async function submitTipTemplates() {
   const result = await submitMemberTemplates();
   revalidatePath(PATH);
   back(result.failures.length ? { error: result.failures.join(" · ").slice(0, 500) } : { saved: `${result.submitted} template${result.submitted === 1 ? "" : "s"} sent to Meta for approval.` });
+}
+
+/** Switch the retention journeys (setup help, win-back, first wins, low credits) on or off. */
+export async function setJourneys(formData: FormData) {
+  const admin = await requireAdminSection("leads");
+  const on = formData.get("on") === "1";
+  await setJourneysOn(on, admin.id);
+  revalidatePath(PATH);
+  back({ saved: `Journeys ${on ? "switched on" : "switched off"}.` });
 }
