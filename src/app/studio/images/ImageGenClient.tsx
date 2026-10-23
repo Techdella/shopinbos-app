@@ -15,6 +15,7 @@ import { uploadStudioPhoto } from "@/components/builder/rex/api";
 import { isVideoFile, videoFrames } from "@/components/builder/rex/video-frames";
 import { wantsLogo } from "@shared/brand-context";
 import { CREATIVE_CONCEPTS, CREATIVE_CONCEPT_INFO, CREATIVE_CONCEPT_PHOTO, CREATIVE_PLACEMENTS, CREATIVE_PLACEMENT_INFO, type CreativeConcept, type CreativePlacement } from "@shared/creatives";
+import { friendlyError } from "@/lib/errors/report-client";
 
 const SIZES = [
   { id: "1024x1024", label: "img.square" },
@@ -161,7 +162,7 @@ export function ImageGenClient({
         }
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("img.uploadFailed"));
+      setError(err instanceof Error ? friendlyError(err) : t("img.uploadFailed"));
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";

@@ -17,6 +17,7 @@ import {
   logisticsDocTypes,
 } from "@/lib/verification-utils";
 import { useT } from "@/components/i18n/I18nProvider";
+import { friendlyError } from "@/lib/errors/report-client";
 
 interface PartnerData {
   id: string;
@@ -73,7 +74,7 @@ export default function LogisticsVerificationPage() {
       setDocuments(payload.partner.verificationDocuments ?? []);
       if (payload.trustBreakdown) setTrustData(payload.trustBreakdown);
     } catch (err: any) {
-      setError(err.message || t("page.partnerLoadRefresh"));
+      setError(friendlyError(err, t("page.partnerLoadRefresh")));
     }
   }, [t]);
 

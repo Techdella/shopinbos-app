@@ -18,6 +18,7 @@ import {
   videoSource,
   type HelpVideoRole,
 } from "@shared/help-videos";
+import { friendlyError } from "@/lib/errors/report-client";
 
 // /admin/help-videos: every topic's video per language. Upload a file (the browser sends it straight to Storage
 // with a one-time signed URL; the server then checks the bytes) or paste a YouTube/Vimeo link, set the poster,
@@ -155,7 +156,7 @@ export function HelpVideosManager({ initial, storageBase, migrationNeeded }: { i
       setDraft(toDraft(clean));
       setSaved(clean.published ? "Saved. It's live in Help now." : "Saved as a draft. Help won't show it until you publish.");
     } catch (problem) {
-      setError(problem instanceof Error ? problem.message : "That didn't save. Try again.");
+      setError(problem instanceof Error ? friendlyError(problem) : "That didn't save. Try again.");
     } finally {
       setSaving(false);
     }
@@ -170,7 +171,7 @@ export function HelpVideosManager({ initial, storageBase, migrationNeeded }: { i
       setRows((current) => current.filter((row) => row.id !== draft.id));
       setDraft(null);
     } catch (problem) {
-      setError(problem instanceof Error ? problem.message : "That didn't delete. Try again.");
+      setError(problem instanceof Error ? friendlyError(problem) : "That didn't delete. Try again.");
     } finally {
       setSaving(false);
     }
@@ -283,7 +284,7 @@ function Editor({
         setDraft({ ...draft, posterUrl: target.publicUrl });
       }
     } catch (problem) {
-      setError(problem instanceof Error ? problem.message : "The upload didn't finish. Try again.");
+      setError(problem instanceof Error ? friendlyError(problem) : "The upload didn't finish. Try again.");
     } finally {
       setProgress(null);
       setPosterBusy(false);

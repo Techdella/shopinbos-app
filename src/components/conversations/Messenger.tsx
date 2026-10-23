@@ -10,6 +10,7 @@ import { EmptyPartners, PartnerAvatar, RoleBadge, formatListTime } from "./parts
 import { Thread } from "./Thread";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import type { MessageKey } from "@shared/i18n/catalog";
+import { friendlyError } from "@/lib/errors/report-client";
 
 // The partner messenger used by the Messages drawer and the full pages in all three portals:
 // conversation list (search, tabs, unread counts) and the open chat.
@@ -76,7 +77,7 @@ export function Messenger({
         if (fresh && fresh.id === current.id) setActive((value) => (value ? { ...value, with: fresh.with } : value));
       }
     } catch (error) {
-      setListError((error as Error).message);
+      setListError(friendlyError(error));
     } finally {
       setLoading(false);
     }
@@ -132,7 +133,7 @@ export function Messenger({
         select(summary, initial.context ?? null);
         void loadList();
       })
-      .catch((error: Error) => alive && setOpenError(error.message))
+      .catch((error: Error) => alive && setOpenError(friendlyError(error)))
       .finally(() => alive && setOpening(false));
     return () => {
       alive = false;

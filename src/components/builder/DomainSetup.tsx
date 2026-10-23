@@ -8,6 +8,7 @@ import { buildStorefrontOrigin } from "@/lib/domains/storefront";
 import { useT } from "@/components/i18n/I18nProvider";
 import { naira } from "@shared/onboarding";
 import { DomainPurchaseBanner } from "@/components/domains/BoughtDomain";
+import { friendlyError } from "@/lib/errors/report-client";
 
 /** Where sellers pick a yearly Growth or Pro plan (SellerBillingSection). */
 const PLANS_HREF = "/home/settings?tab=Billing";
@@ -199,7 +200,7 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
         setSearchError(t("setup.err.noIdeas"));
       }
     } catch (error) {
-      setSearchError(error instanceof Error ? error.message : t("setup.err.search"));
+      setSearchError(error instanceof Error ? friendlyError(error) : t("setup.err.search"));
     } finally {
       setIsSearching(false);
     }
@@ -236,7 +237,7 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
       });
       setExtraContactValues(nextExtraValues);
     } catch (error) {
-      setPurchaseError(error instanceof Error ? error.message : t("setup.err.next"));
+      setPurchaseError(error instanceof Error ? friendlyError(error) : t("setup.err.next"));
     } finally {
       setIsLoadingContactSchema(false);
     }
@@ -360,7 +361,7 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
 
       window.location.assign(payload.data.authorizationUrl);
     } catch (error) {
-      setPurchaseError(error instanceof Error ? error.message : t("setup.err.pay"));
+      setPurchaseError(error instanceof Error ? friendlyError(error) : t("setup.err.pay"));
       setIsPurchasing(false);
     }
   }

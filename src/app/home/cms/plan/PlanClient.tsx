@@ -7,6 +7,7 @@ import { Icon } from "@/components/ui/Icon";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import { formatDate } from "@shared/i18n";
 import { PLAN_CHANNELS, type PlanChannel, type PlanIdea } from "@/lib/cms/content-plan";
+import { friendlyError } from "@/lib/errors/report-client";
 
 // The planner: pick what to plan (collections and social channels), how long and how often, and Rex fills a
 // dated list of ideas. Each idea turns into a draft: Rex writes a collection item, or the caption goes to the
@@ -69,7 +70,7 @@ export function PlanClient({ storeId, collections }: { storeId: string; collecti
       if (!res.ok || !json?.data) throw new Error(json?.error?.message ?? t("rex.failed"));
       save({ ...json.data, drafted: {} });
     } catch (e) {
-      setError(e instanceof Error ? e.message : t("rex.failed"));
+      setError(e instanceof Error ? friendlyError(e) : t("rex.failed"));
     } finally {
       setBusy(false);
     }
@@ -97,7 +98,7 @@ export function PlanClient({ storeId, collections }: { storeId: string; collecti
         mark({ href: `/home/marketing/social/${json.data.id}` });
       }
     } catch (e) {
-      mark({ error: e instanceof Error ? e.message : t("rex.failed") });
+      mark({ error: e instanceof Error ? friendlyError(e) : t("rex.failed") });
     }
   }
 

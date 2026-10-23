@@ -10,6 +10,7 @@ import { cleanKeywords, type ChatbotSettings } from "@/lib/inbox/assistant";
 import { Mascot } from "@/components/brand/Mascot";
 import { useT } from "@/components/i18n/I18nProvider";
 import type { MessageKey } from "@shared/i18n/catalog";
+import { friendlyError } from "@/lib/errors/report-client";
 
 // The storefront chatbot: switch it on, how Peggy introduces herself, what she may use to answer, when she hands
 // over to the seller, and a test chat that uses the settings on screen (saved or not).
@@ -64,7 +65,7 @@ export function ChatbotClient({ initial, hoursOn, ready, aiAvailable, widgetOn, 
       setBot(saved.chatbot);
       setResult({ tone: "success", text: saved.chatbot.enabled ? t("bot.savedOn") : t("bot.savedOff") });
     } catch (error) {
-      setResult({ tone: "error", text: (error as Error).message });
+      setResult({ tone: "error", text: friendlyError(error) });
     } finally {
       setSaving(false);
     }
@@ -84,7 +85,7 @@ export function ChatbotClient({ initial, hoursOn, ready, aiAvailable, widgetOn, 
       });
       setTurns([...next, { from: "shop", body: answer.reply, note: answer.handoff ? t("bot.note.handoff") : answer.source === "keyword" ? t("bot.note.keyword") : answer.source === "fallback" ? t("bot.note.fallback") : undefined }]);
     } catch (error) {
-      setTestError((error as Error).message);
+      setTestError(friendlyError(error));
     } finally {
       setAsking(false);
     }

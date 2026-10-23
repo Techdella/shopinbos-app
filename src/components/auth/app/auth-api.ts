@@ -2,6 +2,7 @@
 
 import type { AuthRole } from "@/lib/brand";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { friendlyError } from "@/lib/errors/report-client";
 
 export type SignupRole = Exclude<AuthRole, "admin">;
 
@@ -122,9 +123,7 @@ function requireSupabase() {
   return supabase;
 }
 
+/** Words for sign-in and sign-up screens: plain messages as they are, technical ones made friendly (and reported). */
 export function friendlyNetworkError(error: unknown) {
-  const message = error instanceof Error ? error.message : String(error);
-  return /failed to fetch|network|connect/i.test(message)
-    ? "We couldn't reach Shopinbos. Check your connection and try again."
-    : message || "Something went wrong. Please try again.";
+  return friendlyError(error);
 }

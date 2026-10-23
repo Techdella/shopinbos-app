@@ -8,6 +8,7 @@ import { useT } from "@/components/i18n/I18nProvider";
 import { useMediaLibrary } from "@/components/media/useMediaLibrary";
 import { PACK_FORMAT_INFO, PACK_FORMATS, PRODUCT_TYPE_INFO, PRODUCT_TYPES, type ProductType } from "@shared/packaging";
 import { PACKAGING_SERVICES, PACKAGING_REQUEST_STATUS_LABEL, type PackagingRequestStatus, type PackagingService } from "@shared/packaging-requests";
+import { friendlyError } from "@/lib/errors/report-client";
 
 export interface PastRequest {
   id: string;
@@ -102,7 +103,7 @@ export function RequestForm({
       setSent(true);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("req.failed"));
+      setError(err instanceof Error ? friendlyError(err) : t("req.failed"));
     } finally {
       setBusy(false);
     }

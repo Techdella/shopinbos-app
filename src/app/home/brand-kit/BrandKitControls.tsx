@@ -10,6 +10,7 @@ import { shrinkImage } from "@/lib/media/shrink-image";
 import { broadcastIdentity, type ShellIdentity } from "@/components/shell/useShellCounts";
 import { identityImageProblem } from "@shared/identity-images";
 import { useT } from "@/components/i18n/I18nProvider";
+import { friendlyError } from "@/lib/errors/report-client";
 
 // Interactive parts of the brand kit: logo upload (same endpoint as Settings → logo), downloading the logo,
 // editable colours (saved into the builder draft's theme, like the builder's own colour pickers) and the
@@ -40,7 +41,7 @@ export function UploadLogoButton({ hasLogo }: { hasLogo: boolean }) {
       setMessage({ tone: "ok", text: t("bk.logoUpdated") });
       router.refresh();
     } catch (error) {
-      setMessage({ tone: "error", text: error instanceof Error ? error.message : t("bk.didntSave") });
+      setMessage({ tone: "error", text: error instanceof Error ? friendlyError(error) : t("bk.didntSave") });
     } finally {
       setBusy(false);
     }
@@ -70,7 +71,7 @@ export function UploadLogoButton({ hasLogo }: { hasLogo: boolean }) {
       setMessage({ tone: "ok", text: t("bk.logoUpdated") });
       router.refresh();
     } catch (error) {
-      setMessage({ tone: "error", text: error instanceof Error ? error.message : t("bk.didntSave") });
+      setMessage({ tone: "error", text: error instanceof Error ? friendlyError(error) : t("bk.didntSave") });
     } finally {
       setBusy(false);
     }

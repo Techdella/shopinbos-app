@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { FieldLabel, Notice, PillButton, TextInput, Toggle } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { useT } from "@/components/i18n/I18nProvider";
+import { friendlyError } from "@/lib/errors/report-client";
 
 export interface ShippingZoneFormValue {
   id: string;
@@ -123,7 +124,7 @@ export function ShippingZoneForm({ zone, currency }: { zone?: ShippingZoneFormVa
       router.push("/home/shipping");
       router.refresh();
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : t("form.saveFailed"));
+      setError(saveError instanceof Error ? friendlyError(saveError) : t("form.saveFailed"));
       setBusy(false);
     }
   }
@@ -141,7 +142,7 @@ export function ShippingZoneForm({ zone, currency }: { zone?: ShippingZoneFormVa
       router.push("/home/shipping");
       router.refresh();
     } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : t("form.deleteFailed"));
+      setError(deleteError instanceof Error ? friendlyError(deleteError) : t("form.deleteFailed"));
       setDeleting(false);
       setConfirmDelete(false);
     }

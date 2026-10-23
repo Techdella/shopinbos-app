@@ -12,6 +12,7 @@ import { AssistantNote, Pill } from "@/components/app-kit";
 import { useT } from "@/components/i18n/I18nProvider";
 import { RexProgress } from "@/components/builder/rex/RexProgress";
 import { RexImageActions } from "@/components/builder/rex/RexImageActions";
+import { friendlyError } from "@/lib/errors/report-client";
 
 interface LogoResult {
   style: string;
@@ -129,7 +130,7 @@ export function LogoStudioClient({ storeName, about = "", currentLogo = null }: 
         }
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("img.uploadFailed"));
+      setError(err instanceof Error ? friendlyError(err) : t("img.uploadFailed"));
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";

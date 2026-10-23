@@ -6,6 +6,7 @@ import { Icon } from "@/components/ui/Icon";
 import { NEWS_IMAGE_ACCEPT, newsImageProblem } from "@/lib/email/news-image";
 import { isAllowedNewsImage, type NewsImageHosts } from "@/lib/email/product-news";
 import { MediaLibraryDialog } from "@/components/media/MediaLibraryDialog";
+import { friendlyError } from "@/lib/errors/report-client";
 
 // The image field on /admin/product-news: drop an image (or pick one), watch it upload, see it, remove it. The
 // server stores it in our public media bucket and the URL goes in the field; pasting a link still works.
@@ -78,7 +79,7 @@ export function NewsImageUpload({ value, onChange, hosts, disabled }: { value: s
       onChange(stored.url);
       setInfo(`${kb(stored.bytes)}${stored.width ? ` · ${stored.width}×${stored.height}px` : ""}${stored.resized ? " · scaled down for email" : ""}`);
     } catch (e) {
-      if (!(e instanceof DOMException && e.name === "AbortError")) setError(e instanceof Error ? e.message : "The upload didn't work. Try again.");
+      if (!(e instanceof DOMException && e.name === "AbortError")) setError(e instanceof Error ? friendlyError(e) : "The upload didn't work. Try again.");
     } finally {
       setProgress(null);
       setFileName(null);

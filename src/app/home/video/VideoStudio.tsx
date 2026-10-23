@@ -33,6 +33,7 @@ import { BuyCreditsButton, creditsChanged, isCreditsError } from "@/components/c
 import { useT } from "@/components/i18n/I18nProvider";
 import { ReelPreview } from "./ReelPreview";
 import { VoiceRecorder } from "./VoiceRecorder";
+import { friendlyError } from "@/lib/errors/report-client";
 
 export interface StudioProduct {
   id: string;
@@ -330,7 +331,7 @@ export function VideoStudio({
       else if (failed) setNotice({ tone: made.length ? "info" : "error", text: made.length ? t("shotsSome", { made: made.length, total: body.data.shots.length }) : failed.error ?? t("err.shots") });
       else setNotice({ tone: "success", text: t("shotsDone", { count: made.length }) });
     } catch (error) {
-      setNotice({ tone: "error", text: error instanceof Error ? error.message : t("err.shots"), credits: error instanceof StudioError && isCreditsError(error.code) });
+      setNotice({ tone: "error", text: error instanceof Error ? friendlyError(error) : t("err.shots"), credits: error instanceof StudioError && isCreditsError(error.code) });
     } finally {
       setStep("idle");
       creditsChanged();
@@ -378,7 +379,7 @@ export function VideoStudio({
       setPlaying("voice");
       await element.play();
     } catch (error) {
-      setNotice({ tone: "error", text: error instanceof Error ? error.message : t("noVoice"), credits: error instanceof StudioError && isCreditsError(error.code) });
+      setNotice({ tone: "error", text: error instanceof Error ? friendlyError(error) : t("noVoice"), credits: error instanceof StudioError && isCreditsError(error.code) });
     } finally {
       setStep("idle");
       creditsChanged();
@@ -427,7 +428,7 @@ export function VideoStudio({
     } catch (renderError) {
       setNotice({
         tone: "error",
-        text: renderError instanceof Error ? renderError.message : t("err.make"),
+        text: renderError instanceof Error ? friendlyError(renderError) : t("err.make"),
         credits: renderError instanceof StudioError && isCreditsError(renderError.code),
       });
     } finally {
@@ -468,7 +469,7 @@ export function VideoStudio({
       await saveVideo();
       setNotice({ tone: "success", text: t("savedVideo") });
     } catch (saveError) {
-      setNotice({ tone: "error", text: saveError instanceof Error ? saveError.message : t("err.save") });
+      setNotice({ tone: "error", text: saveError instanceof Error ? friendlyError(saveError) : t("err.save") });
     } finally {
       setStep("idle");
     }
@@ -486,7 +487,7 @@ export function VideoStudio({
       await patchProject({ published: { kind: "product", id: product.id } });
       setNotice({ tone: "success", text: t("added", { name: product.name }) });
     } catch (saveError) {
-      setNotice({ tone: "error", text: saveError instanceof Error ? saveError.message : t("err.save") });
+      setNotice({ tone: "error", text: saveError instanceof Error ? friendlyError(saveError) : t("err.save") });
     } finally {
       setStep("idle");
     }
@@ -501,7 +502,7 @@ export function VideoStudio({
       if (!url || !id) throw new Error(t("err.save"));
       router.push(`/home/ads/new?video=${id}`);
     } catch (saveError) {
-      setNotice({ tone: "error", text: saveError instanceof Error ? saveError.message : t("err.save") });
+      setNotice({ tone: "error", text: saveError instanceof Error ? friendlyError(saveError) : t("err.save") });
       setStep("idle");
     }
   }
@@ -516,7 +517,7 @@ export function VideoStudio({
       const id = await ensureProject().catch(() => null);
       onUse({ url, id });
     } catch (saveError) {
-      setNotice({ tone: "error", text: saveError instanceof Error ? saveError.message : t("err.save") });
+      setNotice({ tone: "error", text: saveError instanceof Error ? friendlyError(saveError) : t("err.save") });
     } finally {
       setStep("idle");
     }
@@ -530,7 +531,7 @@ export function VideoStudio({
       await patchProject({ published: { kind: "social" } });
       setNotice({ tone: "success", text: t("markedPosted") });
     } catch (saveError) {
-      setNotice({ tone: "error", text: saveError instanceof Error ? saveError.message : t("err.save") });
+      setNotice({ tone: "error", text: saveError instanceof Error ? friendlyError(saveError) : t("err.save") });
     } finally {
       setStep("idle");
     }

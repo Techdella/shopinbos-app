@@ -175,6 +175,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "admin.pricing-plans": "Atụmatụ ndenye aha",
   "admin.team": "Otu",
   "admin.developers": "Ndị mmepe",
+  "admin.errors": "Njehie app",
   "admin.launches": "Mmalite",
   "group.sourcing": "Ịchọta ngwaahịa",
   "group.people": "Ndị mmadụ",

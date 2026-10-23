@@ -9,6 +9,7 @@ import { naira } from "@shared/onboarding";
 import { AD_BUDGETS, AD_DESTINATIONS, AD_PLATFORMS, STOP_RULE_DAYS, type AdAdvice, type AdDestination, type AdPlatform } from "@shared/ads";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { useT } from "@/components/i18n/I18nProvider";
+import { friendlyError } from "@/lib/errors/report-client";
 
 interface Product {
   id: string;
@@ -74,7 +75,7 @@ function NewAd({ products, hasWhatsapp, onCreated, image, initialProductId }: { 
       await send("/api/app/ads", "POST", { productId, platform, destination, dailyBudget: free ? 500 : budget, days, ...(image && useImage ? { imageUrl: image } : {}) });
       onCreated();
     } catch (createError) {
-      setError(createError instanceof Error ? createError.message : t("err.write"));
+      setError(createError instanceof Error ? friendlyError(createError) : t("err.write"));
     } finally {
       setBusy(false);
     }
@@ -176,7 +177,7 @@ function AdCard({ ad, onChange }: { ad: Ad; onChange: () => void }) {
       await send(`/api/app/ads/${ad.id}`, "PATCH", body);
       onChange();
     } catch (patchError) {
-      setError(patchError instanceof Error ? patchError.message : t("err.update"));
+      setError(patchError instanceof Error ? friendlyError(patchError) : t("err.update"));
     } finally {
       setBusy(null);
     }

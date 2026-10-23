@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRexDrawer } from "./RexDrawerContext";
 import { Icon } from "@/components/ui/Icon";
 import { ChipAvatar } from "@/components/brand/ChipAvatar";
+import { storageGet, storageRemove, storageSet } from "@/lib/safe-storage";
 
 interface SetupBannerProps {
   percent: number;
@@ -40,7 +41,7 @@ export function SetupBanner({
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    setDismissed(sessionStorage.getItem("shopinbos:rex-setup-dismissed") === "true");
+    setDismissed(storageGet("sessionStorage", "shopinbos:rex-setup-dismissed") === "true");
   }, []);
 
   if (dismissed) {
@@ -48,7 +49,7 @@ export function SetupBanner({
       <button
         type="button"
         onClick={() => {
-          sessionStorage.removeItem("shopinbos:rex-setup-dismissed");
+          storageRemove("sessionStorage", "shopinbos:rex-setup-dismissed");
           setDismissed(false);
           openDrawer("Help me finish setting up my store.");
         }}
@@ -145,7 +146,7 @@ export function SetupBanner({
       <button
         type="button"
         onClick={() => {
-          sessionStorage.setItem("shopinbos:rex-setup-dismissed", "true");
+          storageSet("sessionStorage", "shopinbos:rex-setup-dismissed", "true");
           setDismissed(true);
         }}
         style={{

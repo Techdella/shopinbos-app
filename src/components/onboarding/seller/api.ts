@@ -2,6 +2,7 @@
 
 import type { BrandLook, BrandPalette, DeliveryZone, PaymentMethodKey } from "@shared/onboarding";
 import type { StoreOnboardingMemory } from "@/lib/onboarding-memory";
+import { friendlyError } from "@/lib/errors/report-client";
 
 // Browser calls for the redesigned seller onboarding. They rely on the Supabase session cookie.
 
@@ -186,6 +187,6 @@ export async function buildStore(input: BuildInput, onProgress?: (text: string) 
     return { usedRex: Boolean(built) };
   } catch (error) {
     await hydrateEditor(seed);
-    return { usedRex: false, error: error instanceof Error ? error.message : String(error) };
+    return { usedRex: false, error: error instanceof Error ? friendlyError(error) : String(error) };
   }
 }

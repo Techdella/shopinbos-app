@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { channelFromRef, type LinkChannel } from "@shared/channels";
 import { AFFILIATE_WINDOW_DAYS, cleanAffiliateCode } from "@shared/affiliates";
+import { storageSet } from "@/lib/safe-storage";
 
 // Email campaign links arrive with ?sib_c=<recipient token>. Remember it per store so a purchase
 // later in the visit (or within the attribution window) is credited to that email.
@@ -28,7 +29,7 @@ function codeKey(kind: LinkCode, storeSlug: string) {
 function rememberLinkCodes(storeSlug: string, params: URLSearchParams) {
   for (const kind of Object.keys(LINK_CODES) as LinkCode[]) {
     const code = cleanAffiliateCode(params.get(kind));
-    if (code) localStorage.setItem(codeKey(kind, storeSlug), JSON.stringify({ code, at: Date.now() }));
+    if (code) storageSet("localStorage", codeKey(kind, storeSlug), JSON.stringify({ code, at: Date.now() }));
   }
 }
 

@@ -447,6 +447,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
         { id: "team", label: "Team", icon: "users", href: "/admin/team", core: true },
         { id: "launches", label: "Launches", icon: "megaphone", href: "/admin/launches", core: true },
         { id: "developers", label: "Developers", icon: "code", href: "/admin/developers", core: true },
+        { id: "errors", label: "App errors", icon: "warn", href: "/admin/errors", core: true },
         { id: "settings", label: "Settings", icon: "settings", href: "/admin/settings", core: true },
       ],
     },

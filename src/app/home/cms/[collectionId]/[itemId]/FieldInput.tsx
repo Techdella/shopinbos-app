@@ -9,6 +9,7 @@ import { MediaLibraryDialog } from "@/components/media/MediaLibraryDialog";
 import type { CalloutValue, CmsField, FileValue, FormValue, LinkValue, MediaValue, PriceValue, StatValue, TableValue } from "@/lib/cms/fields";
 import type { RichDoc } from "@/lib/cms/richtext";
 import { useT } from "@/components/i18n/I18nProvider";
+import { friendlyError } from "@/lib/errors/report-client";
 
 // One input per CMS field type, used by the item editor.
 
@@ -39,7 +40,7 @@ function useUpload(accept: string, onDone: (files: Array<{ url: string; name: st
           for (const file of files.slice(0, 20)) uploaded.push(await uploadCmsFile(file));
           onDone(uploaded);
         } catch (e) {
-          setError(e instanceof Error ? e.message : t("ed.uploadError"));
+          setError(e instanceof Error ? friendlyError(e) : t("ed.uploadError"));
         } finally {
           setBusy(false);
           if (ref.current) ref.current.value = "";

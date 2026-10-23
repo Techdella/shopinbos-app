@@ -7,6 +7,7 @@ import { Icon, type IconName } from "@/components/ui/Icon";
 import { Field, checkClass, inputClass, selectClass, textareaClass } from "@/components/growth/kit";
 import { useT } from "@/components/i18n/I18nProvider";
 import type { MessageKey } from "@shared/i18n/catalog";
+import { friendlyError } from "@/lib/errors/report-client";
 
 type ChatMode = "contact_form" | "whatsapp" | "messaging" | "multiple";
 
@@ -127,7 +128,7 @@ export function ChatSettings({ initial }: { initial: ChatSettingsValue }) {
       if (!res.ok) throw new Error(json?.error?.message ?? t("chat.saveFailed"));
       setResult({ tone: "success", text: t("chat.saved") });
     } catch (saveError) {
-      setResult({ tone: "error", text: saveError instanceof Error ? saveError.message : t("chat.saveFailed") });
+      setResult({ tone: "error", text: saveError instanceof Error ? friendlyError(saveError) : t("chat.saveFailed") });
     } finally {
       setSaving(false);
     }

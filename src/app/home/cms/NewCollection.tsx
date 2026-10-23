@@ -8,6 +8,7 @@ import { Modal } from "@/components/cms/pickers";
 import { COLLECTION_TEMPLATES, FIELD_TYPE_INFO, getTemplate, slugError, slugify, type TemplateId } from "@/lib/cms/fields";
 import { TEMPLATE_ICON } from "./shared";
 import { useT } from "@/components/i18n/I18nProvider";
+import { friendlyError } from "@/lib/errors/report-client";
 
 // Template gallery and the "New collection" dialog on /home/cms.
 
@@ -35,7 +36,7 @@ function CreateDialog({ template, takenSlugs, onClose }: { template: TemplateId;
       if (!res.ok || !json?.data) throw new Error(json?.error?.message ?? t("new.createError"));
       router.push(`/home/cms/${json.data.id}`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : t("new.createError"));
+      setError(e instanceof Error ? friendlyError(e) : t("new.createError"));
       setBusy(false);
     }
   }

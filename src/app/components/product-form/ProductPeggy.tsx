@@ -8,6 +8,7 @@ import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { useT } from "@/components/i18n/I18nProvider";
 import type { AssistantFormState, SuggestionInput } from "@shared/product-assistant";
 import { ChatText } from "@/components/chat/ChatText";
+import { friendlyError } from "@/lib/errors/report-client";
 
 // Peggy docked on the add / edit product page. She opens by herself once per browser session per page kind (new or
 // edit) with a short greeting, and can be closed to a small "Ask Peggy" button. The seller tells her sizes, colours
@@ -149,7 +150,7 @@ export const ProductPeggy = forwardRef<ProductPeggyHandle, Props>(function Produ
       const data = json.data;
       setTurns((current) => [...current, { role: "assistant", content: data.message, suggestion: data.suggestion, changes: data.changes }]);
     } catch (error) {
-      setTurns((current) => [...current, { role: "assistant", content: error instanceof Error ? error.message : t("peggy.failed"), failed: true }]);
+      setTurns((current) => [...current, { role: "assistant", content: error instanceof Error ? friendlyError(error) : t("peggy.failed"), failed: true }]);
     } finally {
       setBusy(false);
       inputRef.current?.focus();

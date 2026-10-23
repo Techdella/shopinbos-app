@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Mascot, PillButton, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { useT } from "@/components/i18n/I18nProvider";
+import { friendlyError } from "@/lib/errors/report-client";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -154,7 +155,7 @@ export function PagesSetup({ storeName, category, designStyle, onBuild, onBack }
       if (!res.ok || !json?.data?.text) throw new Error(json?.error?.message ?? t("pgs.peggyError"));
       setPageContent(type, json.data.text);
     } catch (error) {
-      setPeggyError({ type, message: error instanceof Error ? error.message : t("pgs.peggyError") });
+      setPeggyError({ type, message: error instanceof Error ? friendlyError(error) : t("pgs.peggyError") });
     } finally {
       setPeggyLoading(null);
     }

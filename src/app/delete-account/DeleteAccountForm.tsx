@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { friendlyError } from "@/lib/errors/report-client";
 
 // Sends a "Delete my account" request to the support desk (POST /api/support/requests, the same signed-out form
 // as "Stuck?" on login: rate-limited, with a honeypot and a fill-time check).
@@ -34,7 +35,7 @@ export function DeleteAccountForm() {
       if (!response.ok) throw new Error(body?.error?.message ?? "We couldn't send that. Try again in a minute.");
       setSent(body?.data?.ticket ?? "");
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "We couldn't send that. Try again in a minute.");
+      setError(cause instanceof Error ? friendlyError(cause) : "We couldn't send that. Try again in a minute.");
     } finally {
       setBusy(false);
     }

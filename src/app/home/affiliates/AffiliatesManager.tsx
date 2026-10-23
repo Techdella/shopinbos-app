@@ -8,6 +8,7 @@ import { cx } from "@/components/app-ui/cx";
 import { naira } from "@shared/onboarding";
 import { DEFAULT_COMMISSION_RATE } from "@shared/affiliates";
 import { useT } from "@/components/i18n/I18nProvider";
+import { friendlyError } from "@/lib/errors/report-client";
 
 interface Affiliate {
   id: string;
@@ -51,7 +52,7 @@ function AddCreator({ onAdded }: { onAdded: () => void }) {
       setPhone("");
       onAdded();
     } catch (addError) {
-      setError(addError instanceof Error ? addError.message : t("err.add"));
+      setError(addError instanceof Error ? friendlyError(addError) : t("err.add"));
     } finally {
       setBusy(false);
     }
@@ -93,7 +94,7 @@ function CreatorCard({ affiliate, storeName, payday, onChange }: { affiliate: Af
       await send(`/api/app/affiliates/${affiliate.id}`, method, body);
       onChange();
     } catch (actError) {
-      setError(actError instanceof Error ? actError.message : t("err.update"));
+      setError(actError instanceof Error ? friendlyError(actError) : t("err.update"));
     } finally {
       setBusy(null);
     }

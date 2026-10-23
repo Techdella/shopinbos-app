@@ -7,6 +7,7 @@ import { Icon } from "@/components/ui/Icon";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import { formatNumber } from "@shared/i18n";
 import { COSTS_BY_ROLE, nairaPerCredit, type CreditPack } from "@shared/ai-credits";
+import { friendlyError } from "@/lib/errors/report-client";
 
 interface Overview {
   balance: number;
@@ -61,7 +62,7 @@ export function CreditsClient({
       const data = (await send("POST", "/api/app/credits/checkout", { packId: pack.id, autoTopUp: autoOnBuy, returnTo })) as { authorizationUrl: string };
       window.location.assign(data.authorizationUrl);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("cr.failed"));
+      setError(err instanceof Error ? friendlyError(err) : t("cr.failed"));
       setBuying(null);
     }
   }
@@ -84,7 +85,7 @@ export function CreditsClient({
       url.searchParams.set("credits", "paid");
       window.location.assign(url.toString());
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("cr.failed"));
+      setError(err instanceof Error ? friendlyError(err) : t("cr.failed"));
       setBuying(null);
     }
   }
@@ -95,7 +96,7 @@ export function CreditsClient({
     try {
       setOverview((await send("PATCH", "/api/app/credits", next)) as Overview);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("cr.failed"));
+      setError(err instanceof Error ? friendlyError(err) : t("cr.failed"));
     } finally {
       setSaving(false);
     }
@@ -106,7 +107,7 @@ export function CreditsClient({
     try {
       setOverview((await send("DELETE", "/api/app/credits")) as Overview);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("cr.failed"));
+      setError(err instanceof Error ? friendlyError(err) : t("cr.failed"));
     } finally {
       setSaving(false);
     }

@@ -14,6 +14,7 @@ import type { WhatsAppHealth } from "@/lib/inbox/whatsapp-bot.server";
 import { useT } from "@/components/i18n/I18nProvider";
 import { EmbeddedSignupError, runEmbeddedSignup } from "@/components/meta/embedded-signup";
 import { ConnectGuide } from "../channels/ConnectGuide";
+import { friendlyError } from "@/lib/errors/report-client";
 
 // "Peggy on WhatsApp", kept to one action at a time: not connected → one "Connect with Facebook" button (Embedded
 // Signup) and a "Show me how" tour; connected → one switch for Peggy, her settings folded away, and a test message.
@@ -84,7 +85,7 @@ export function WhatsAppPeggyClient({
       setConnectMessage({ tone: "success", text: t("wa.connectedEmbedded") });
     } catch (error) {
       const code = error instanceof EmbeddedSignupError ? error.code : null;
-      setConnectMessage({ tone: code === "closed" ? "info" : "error", text: code === "closed" ? t("wa.signupClosed") : code === "no_number" ? t("wa.noNumber") : plainMetaError((error as Error).message) });
+      setConnectMessage({ tone: code === "closed" ? "info" : "error", text: code === "closed" ? t("wa.signupClosed") : code === "no_number" ? t("wa.noNumber") : plainMetaError(friendlyError(error)) });
     } finally {
       setConnecting(false);
     }
@@ -98,7 +99,7 @@ export function WhatsAppPeggyClient({
       setBot(saved.chatbot);
       setSaveMessage({ tone: "success", text: saved.chatbot.whatsapp.mode === "live" ? t("wa.live") : t("wa.offSaved") });
     } catch (error) {
-      setSaveMessage({ tone: "error", text: (error as Error).message });
+      setSaveMessage({ tone: "error", text: friendlyError(error) });
     } finally {
       setSaving(false);
     }
@@ -111,7 +112,7 @@ export function WhatsAppPeggyClient({
       await inboxApi("/api/app/inbox/whatsapp", { method: "POST", body: JSON.stringify({ action: "send_test", to: testTo }) });
       setTestMessage({ tone: "success", text: t("wa.testSent") });
     } catch (error) {
-      setTestMessage({ tone: "error", text: (error as Error).message });
+      setTestMessage({ tone: "error", text: friendlyError(error) });
     } finally {
       setTesting(false);
     }

@@ -6,6 +6,7 @@ import { importReview, type ActionState } from "@/app/actions/reviews";
 import { Notice, PillButton, Segmented, Spinner } from "@/components/app-ui";
 import { field } from "@/components/seller-core";
 import { useT } from "@/components/i18n/I18nProvider";
+import { friendlyError } from "@/lib/errors/report-client";
 
 type Draft = { authorName: string; rating: number | null; body: string; reviewedAt: string | null; source: string | null };
 
@@ -55,7 +56,7 @@ export function ImportForm({ sources, products, defaultSource = "whatsapp", aiRe
         setReadNote({ tone: "info", text: json.data.reason ?? t("imp.typeBelow") });
       }
     } catch (error) {
-      setReadNote({ tone: "error", text: error instanceof Error ? error.message : t("imp.uploadFailed") });
+      setReadNote({ tone: "error", text: error instanceof Error ? friendlyError(error) : t("imp.uploadFailed") });
     } finally {
       setReading(false);
     }

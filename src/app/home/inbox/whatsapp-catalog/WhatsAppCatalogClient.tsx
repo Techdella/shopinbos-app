@@ -13,6 +13,7 @@ import type { CatalogView, SyncSummary } from "@/lib/whatsapp-catalog/server";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import type { TFunction } from "@shared/i18n";
 import type { MessageKey } from "@shared/i18n/catalog";
+import { friendlyError } from "@/lib/errors/report-client";
 
 type InboxT = TFunction<MessageKey<"inbox"> | MessageKey<"common">>;
 
@@ -66,7 +67,7 @@ export function WhatsAppCatalogClient({ initial, storeName, signup }: { initial:
       await work();
     } catch (error) {
       const code = error instanceof EmbeddedSignupError ? error.code : null;
-      const text = code === "closed" ? t("wa.signupClosed") : code === "no_number" ? t("wa.noNumber") : error instanceof Error ? error.message : t("cat.failed");
+      const text = code === "closed" ? t("wa.signupClosed") : code === "no_number" ? t("wa.noNumber") : error instanceof Error ? friendlyError(error) : t("cat.failed");
       if (/Business ID/i.test(text)) setAskBusiness(true);
       setMessage({ tone: code === "closed" ? "info" : "error", text: plainError(text) });
       inboxApi<CatalogView>(API).then(setView).catch(() => null);

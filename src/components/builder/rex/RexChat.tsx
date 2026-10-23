@@ -15,6 +15,7 @@ import { RexCardView, type RexCardHandlers } from "./RexCards";
 import type { ChatMessage } from "./types";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { ChatText } from "@/components/chat/ChatText";
+import { friendlyError } from "@/lib/errors/report-client";
 
 const MAX_PHOTOS = 6;
 
@@ -179,7 +180,7 @@ export function RexChat({
       if (!text.trim()) setText(video ? t("rex.ch.videoPrompt") : t("rex.ch.photoPrompt"));
       inputRef.current?.focus();
     } catch (error) {
-      setNote(error instanceof Error ? error.message : t("rex.ch.uploadFailed"));
+      setNote(error instanceof Error ? friendlyError(error) : t("rex.ch.uploadFailed"));
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";

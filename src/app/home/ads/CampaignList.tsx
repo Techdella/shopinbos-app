@@ -8,6 +8,7 @@ import { Notice, PillButton, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import { naira } from "@shared/onboarding";
+import { friendlyError } from "@/lib/errors/report-client";
 
 export interface CampaignRow {
   id: string;
@@ -63,7 +64,7 @@ export function CampaignList({ campaigns, requests }: { campaigns: CampaignRow[]
       if (!response.ok) throw new Error(json?.error?.message ?? t("c.err.save"));
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("c.err.save"));
+      setError(err instanceof Error ? friendlyError(err) : t("c.err.save"));
     } finally {
       setBusy(null);
     }

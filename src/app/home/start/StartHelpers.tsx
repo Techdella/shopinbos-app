@@ -7,6 +7,7 @@ import { Mascot, PillButton } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import type { SetupStep } from "@/lib/setup/checklist";
 import { useT } from "@/components/i18n/I18nProvider";
+import { friendlyError } from "@/lib/errors/report-client";
 
 // The two helpers beside the checklist. Peggy runs setup through her tools (POST /api/app/peggy: payment
 // methods, delivery areas, setup status, copy); Rex does the store and design side in Rex Studio.
@@ -69,7 +70,7 @@ function PeggyHelper({ steps, onChanged }: { steps: SetupStep[]; onChanged: () =
       setTurns((current) => [...current, { role: "assistant", content: body.data!.text, actions: body.data!.actions }]);
       if (body.data.actions.length) onChanged();
     } catch (error) {
-      setTurns((current) => [...current, { role: "assistant", content: error instanceof Error ? error.message : t("peggy.cantAnswer"), failed: true }]);
+      setTurns((current) => [...current, { role: "assistant", content: error instanceof Error ? friendlyError(error) : t("peggy.cantAnswer"), failed: true }]);
     } finally {
       setBusy(false);
     }

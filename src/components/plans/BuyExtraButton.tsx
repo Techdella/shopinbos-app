@@ -5,6 +5,7 @@ import { useT } from "@/components/i18n/I18nProvider";
 import { cx } from "@/components/app-ui/cx";
 import { useAppSession } from "@/components/billing/useAppSession";
 import type { ExtraKind } from "@shared/plan-extras";
+import { friendlyError } from "@/lib/errors/report-client";
 
 // Pays for an add-on or boost through Paystack (src/app/api/app/extras/checkout) and comes back to this page.
 // Hidden on pages the phone app opened (app store rules).
@@ -43,7 +44,7 @@ export function BuyExtraButton({
       if (!response.ok || !json?.data?.authorizationUrl) throw new Error(json?.error?.message ?? t("ex.failed"));
       window.location.href = json.data.authorizationUrl;
     } catch (failure) {
-      setError(failure instanceof Error ? failure.message : t("ex.failed"));
+      setError(failure instanceof Error ? friendlyError(failure) : t("ex.failed"));
       setBusy(false);
     }
   }

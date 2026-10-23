@@ -123,6 +123,8 @@ export const PUBLIC_LIMITS = {
   abandonedCart: { maxRequests: 60, windowMs: 60_000 },
   wishlist: { maxRequests: 60, windowMs: 60_000 },
   visit: { maxRequests: 60, windowMs: 60_000 },
+  // Browsers reporting errors to Admin › App errors (each distinct error once per page load).
+  errorReport: { maxRequests: 30, windowMs: 10 * 60_000 },
 } as const satisfies Record<string, RateLimitConfig>;
 
 export type PublicAction = keyof typeof PUBLIC_LIMITS;

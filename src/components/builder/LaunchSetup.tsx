@@ -10,6 +10,7 @@ import type { PreviewVariant } from "./StorePreview";
 import { useT } from "@/components/i18n/I18nProvider";
 import { BankLinkingModal } from "@/components/payments/BankLinkingModal";
 import { myWalletBankAction } from "@/app/actions/wallet";
+import { friendlyError } from "@/lib/errors/report-client";
 
 interface LaunchSetupProps {
   storeName: string;
@@ -96,7 +97,7 @@ export function LaunchSetup({
       // 2. Publish the draft.
       await publish();
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : t("ls.err.launch"));
+      setSaveError(error instanceof Error ? friendlyError(error) : t("ls.err.launch"));
     } finally {
       setIsSaving(false);
     }
@@ -124,7 +125,7 @@ export function LaunchSetup({
     try {
       await publish();
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : t("ls.err.publish"));
+      setSaveError(error instanceof Error ? friendlyError(error) : t("ls.err.publish"));
     } finally {
       setIsSaving(false);
     }

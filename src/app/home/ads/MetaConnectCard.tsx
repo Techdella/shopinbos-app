@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Notice, PillButton, Spinner, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { useT } from "@/components/i18n/I18nProvider";
+import { friendlyError } from "@/lib/errors/report-client";
 
 export interface MetaStatus {
   configured: boolean;
@@ -43,7 +44,7 @@ export function MetaConnectCard({ status, compact = false }: { status: MetaStatu
         setAccountId(json.data.choices.accounts[0]?.id ?? "");
         setPageId(json.data.choices.pages[0]?.id ?? "");
       })
-      .catch((err) => setError(err instanceof Error ? err.message : t("m.loadFailed")));
+      .catch((err) => setError(err instanceof Error ? friendlyError(err) : t("m.loadFailed")));
   }, [picking, choices, t]);
 
   async function save() {
@@ -56,7 +57,7 @@ export function MetaConnectCard({ status, compact = false }: { status: MetaStatu
       setPicking(false);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("m.saveFailed"));
+      setError(err instanceof Error ? friendlyError(err) : t("m.saveFailed"));
     } finally {
       setBusy(false);
     }

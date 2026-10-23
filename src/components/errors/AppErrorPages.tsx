@@ -7,6 +7,7 @@ import { APP_PALETTE, ErrorScene, type SceneAction, type SceneLabels } from "./E
 import { useT } from "@/components/i18n/I18nProvider";
 import { createT, isLocale, LOCALE_COOKIE, type Catalog, type Locale } from "@shared/i18n";
 // Only these two catalogs: importing shared/i18n/catalog here would put every namespace in the error pages' bundle.
+import { reportClientError } from "@/lib/errors/report-client";
 import errorsCatalog from "@shared/i18n/messages/errors/index";
 import commonCatalog from "@shared/i18n/messages/common/index";
 import { PeggySearchingScene, RexAndPeggyScene, RexFixingScene } from "./MascotScenes";
@@ -124,7 +125,9 @@ export function ErrorSceneFor({ error, retry, portal, embedded, global = false }
   const { reloading, stale } = useDeployRecovery(error);
   useEffect(() => {
     console.error(error);
-  }, [error]);
+    // A new deploy reloads the page by itself; that isn't worth a report.
+    if (!reloading) reportClientError(error, { source: "boundary", digest: error.digest });
+  }, [error, reloading]);
   const sceneAccent = config?.accent ?? "#73D8C8";
   const homeHref = config?.home ?? "/";
 

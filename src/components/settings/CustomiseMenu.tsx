@@ -8,6 +8,7 @@ import { tipsOn } from "@shared/preferences";
 import { NAV_BY_ROLE, type Role } from "@/lib/nav";
 import { useT } from "@/components/i18n/I18nProvider";
 import { navGroupLabel, navLabel } from "@shared/i18n/nav";
+import { friendlyError } from "@/lib/errors/report-client";
 
 // "Customise your menu": switch off the parts of the app you don't use. Switched-off items leave the
 // sidebar (and search); the pages and their data stay, so switching back on restores everything.
@@ -26,7 +27,7 @@ export function CustomiseMenu({ role }: { role: Role }) {
     try {
       await save({ hiddenNav: next });
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : t("menu.saveFailed"));
+      setError(saveError instanceof Error ? friendlyError(saveError) : t("menu.saveFailed"));
     }
   }
 
@@ -35,7 +36,7 @@ export function CustomiseMenu({ role }: { role: Role }) {
     try {
       await save({ tips: on });
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : t("menu.saveFailed"));
+      setError(saveError instanceof Error ? friendlyError(saveError) : t("menu.saveFailed"));
     }
   }
 

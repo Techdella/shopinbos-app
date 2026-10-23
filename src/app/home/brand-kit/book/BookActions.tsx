@@ -7,6 +7,7 @@ import { Icon } from "@/components/ui/Icon";
 import { useT } from "@/components/i18n/I18nProvider";
 import { BuyCreditsButton, creditsChanged, isCreditsError } from "@/components/credits/CreditsBadge";
 import { bookToThemeTokens, type BrandBook } from "@shared/brand-book";
+import { friendlyError } from "@/lib/errors/report-client";
 
 async function readError(response: Response, fallback: string) {
   const json = (await response.json().catch(() => null)) as { error?: { code?: string; message?: string } } | null;
@@ -32,7 +33,7 @@ export function BookActions({ hasBook, colours, headingStyle }: { hasBook: boole
       setDirection("");
       router.refresh();
     } catch (error) {
-      setNote({ ok: false, text: error instanceof Error ? error.message : t("book.failed"), credits: needsCredits(error) });
+      setNote({ ok: false, text: error instanceof Error ? friendlyError(error) : t("book.failed"), credits: needsCredits(error) });
     } finally {
       setBusy(null);
       creditsChanged();
@@ -52,7 +53,7 @@ export function BookActions({ hasBook, colours, headingStyle }: { hasBook: boole
       if (!response.ok) throw await readError(response, t("book.failed"));
       setNote({ ok: true, text: t("book.applied") });
     } catch (error) {
-      setNote({ ok: false, text: error instanceof Error ? error.message : t("book.failed") });
+      setNote({ ok: false, text: error instanceof Error ? friendlyError(error) : t("book.failed") });
     } finally {
       setBusy(null);
     }

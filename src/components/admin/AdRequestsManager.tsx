@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Notice, PillButton, cx } from "@/components/app-ui";
 import { AD_REQUEST_STATUSES, AD_REQUEST_STATUS_LABEL, type AdRequestStatus } from "@shared/ad-campaigns";
+import { friendlyError } from "@/lib/errors/report-client";
 
 export interface AdRequestRow {
   id: string;
@@ -51,7 +52,7 @@ export function AdRequestsManager({ initial, migrationNeeded }: { initial: AdReq
       if (!response.ok || !json?.data) throw new Error(json?.error?.message ?? "Couldn't save.");
       setRows((current) => current.map((row) => (row.id === id ? { ...row, ...json.data!, store: row.store } : row)));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't save.");
+      setError(err instanceof Error ? friendlyError(err) : "Couldn't save.");
     } finally {
       setBusy(null);
     }

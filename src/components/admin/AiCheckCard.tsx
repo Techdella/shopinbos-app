@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Card, CardHead, Pill } from "@/components/app-kit";
 import { Notice, PillButton } from "@/components/app-ui";
+import { friendlyError } from "@/lib/errors/report-client";
 
 // Admin → Settings: are the Claude and OpenAI keys in, and do Rex and Peggy really work on each? "Check AI" makes
 // one small real call per job (see src/lib/ai/check.server.ts).
@@ -27,7 +28,7 @@ export function AiCheckCard({ claude, openai, first }: { claude: boolean; openai
       if (!res.ok) throw new Error(json?.error?.message ?? "The check couldn't run.");
       setRows(json.data.rows);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "The check couldn't run.");
+      setError(err instanceof Error ? friendlyError(err) : "The check couldn't run.");
     } finally {
       setBusy(false);
     }

@@ -27,7 +27,7 @@ export const ADMIN_ROLE_HELP: Record<AdminRole, string> = {
   growth: "Inbox, leads, campaigns, WhatsApp, analytics, product news, help videos and requests.",
   operations: "Inbox, suppliers, logistics, catalog, marketplace, orders and requests.",
   finance: "Wallets, money owed, pricing and analytics.",
-  developer: "The Developers page: delivery partners' software connections, API docs and service setup.",
+  developer: "The Developers and App errors pages: delivery partners' software connections, API docs, service setup and errors people hit.",
 };
 
 export type AdminSection = "today" | "inbox" | "leads" | "analytics" | "content" | "requests" | "partners" | "money" | "settings" | "team" | "developers";
@@ -77,6 +77,7 @@ const SEGMENT_SECTION: Record<string, AdminSection> = {
   settings: "settings",
   team: "team",
   developers: "developers",
+  errors: "developers",
 };
 
 // Nav item id (src/lib/nav.ts) → section, for the sidebar.
@@ -99,6 +100,7 @@ const NAV_SECTION: Record<string, AdminSection> = {
   settings: "settings",
   team: "team",
   developers: "developers",
+  errors: "developers",
 };
 
 /** The stored value as a role: unknown or empty means owner (admins from before roles existed). */

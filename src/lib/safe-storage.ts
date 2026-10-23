@@ -42,3 +42,32 @@ export function ensureUsableStorage(target: Window | undefined = typeof window =
   }
   return replaced;
 }
+
+type StorageName = "sessionStorage" | "localStorage";
+
+/** Read a stored value; null when storage is blocked or the key is missing. */
+export function storageGet(name: StorageName, key: string): string | null {
+  try {
+    return window[name].getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+/** Store a value; false when storage is blocked or full (the app carries on without it). */
+export function storageSet(name: StorageName, key: string, value: string) {
+  try {
+    window[name].setItem(key, value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function storageRemove(name: StorageName, key: string) {
+  try {
+    window[name].removeItem(key);
+  } catch {
+    // Nothing stored, nothing to remove.
+  }
+}

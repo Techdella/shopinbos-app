@@ -6,6 +6,7 @@ import { Spinner, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { useT } from "@/components/i18n/I18nProvider";
 import { rexCardAction, rexProductChoices } from "./api";
+import { friendlyError } from "@/lib/errors/report-client";
 
 const pill = "inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-full px-4 text-[13.5px] font-bold no-underline disabled:opacity-50";
 const secondary = cx(pill, "border border-app-line bg-white text-app-ink hover:border-app-line-strong");
@@ -31,7 +32,7 @@ export function RexImageActions({ url, name, withProductPicker = true, className
       setSaved(true);
       setMessage({ ok: true, text: result.message });
     } catch (error) {
-      setMessage({ ok: false, text: error instanceof Error ? error.message : t("rex.cd.notSaved") });
+      setMessage({ ok: false, text: error instanceof Error ? friendlyError(error) : t("rex.cd.notSaved") });
     } finally {
       setBusy(null);
     }
@@ -45,7 +46,7 @@ export function RexImageActions({ url, name, withProductPicker = true, className
       setProducts(list);
       setProductId(list[0]?.id ?? "");
     } catch (error) {
-      setMessage({ ok: false, text: error instanceof Error ? error.message : t("rex.cd.notSaved") });
+      setMessage({ ok: false, text: error instanceof Error ? friendlyError(error) : t("rex.cd.notSaved") });
     } finally {
       setBusy(null);
     }
@@ -59,7 +60,7 @@ export function RexImageActions({ url, name, withProductPicker = true, className
       setMessage({ ok: true, text: result.message, href: result.href });
       setProducts(null);
     } catch (error) {
-      setMessage({ ok: false, text: error instanceof Error ? error.message : t("rex.cd.notSaved") });
+      setMessage({ ok: false, text: error instanceof Error ? friendlyError(error) : t("rex.cd.notSaved") });
     } finally {
       setBusy(null);
     }

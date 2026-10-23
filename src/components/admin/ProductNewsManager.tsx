@@ -9,6 +9,7 @@ import { textareaClass } from "@/components/growth/kit";
 import { PRODUCT_NEWS_AUDIENCES, audienceLabel, isAllowedNewsImage, productNewsDocument, type NewsAudience, type NewsImageHosts } from "@/lib/email/product-news";
 import type { PlatformLegal } from "@/lib/email/shell";
 import { NewsImageUpload } from "./NewsImageUpload";
+import { friendlyError } from "@/lib/errors/report-client";
 
 // /admin/product-news: write the email (live preview in the real shell), pick who gets it (with a count that
 // already leaves out people who turned product news off), send yourself a test, then send now or schedule it.
@@ -207,7 +208,7 @@ export function ProductNewsManager({ initial, appUrl, legal, hosts, adminEmail }
     try {
       await task();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong. Try again.");
+      setError(e instanceof Error ? friendlyError(e) : "Something went wrong. Try again.");
     } finally {
       setBusy(null);
     }

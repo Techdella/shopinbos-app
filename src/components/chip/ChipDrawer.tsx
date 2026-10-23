@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ChipAvatar } from "@/components/brand/ChipAvatar";
 import { useRexDrawer } from "@/components/rex/RexDrawerContext";
 import { useT } from "@/components/i18n/I18nProvider";
+import { storageGet, storageSet } from "@/lib/safe-storage";
 
 interface ChipDrawerProps {
   tone?: string;
@@ -21,13 +22,13 @@ export function ChipDrawer({
   const [dismissed, setDismissed] = useState(true);
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = storageGet("localStorage", STORAGE_KEY);
     if (stored !== "true") setDismissed(false);
   }, []);
 
   function handleDismiss() {
     setDismissed(true);
-    localStorage.setItem(STORAGE_KEY, "true");
+    storageSet("localStorage", STORAGE_KEY, "true");
   }
 
   if (dismissed || !message?.trim()) return null;
