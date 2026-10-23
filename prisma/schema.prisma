@@ -596,6 +596,9 @@ model Supplier {
   whatsappNumber     String?
   website            String?
   status             String             @default("active")
+  /// Admin switch: false keeps the supplier out of the marketplace (Suppliers, Find products, Wholesale) without
+  /// touching their account, products or orders already placed (docs/migrations/2026-11-23-supplier-marketplace-visible.sql).
+  marketplaceVisible Boolean            @default(true)
   /// Hours this supplier has to accept a new order (admin override; null = SUPPLIER_ACCEPT_HOURS_* or 4 h / 24 h).
   acceptHoursDropship  Int?
   acceptHoursWholesale Int?

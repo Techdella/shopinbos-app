@@ -153,8 +153,16 @@ export function StoreMenuBar({ items, style, colors, className, font, label = "M
   const [open, setOpen] = useState<string | null>(null);
   // Opened by pointing at it: the click that usually follows shouldn't close it again.
   const hovered = useRef<string | null>(null);
+  // Pointing away closes after a short wait, so shoppers can move from the item down to its panel (and across the
+  // gap under the header) without it vanishing; pointing back in, or at the panel, keeps it open.
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const ref = useRef<HTMLElement>(null);
   const baseId = useId();
+  const cancelClose = () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    closeTimer.current = null;
+  };
+  useEffect(() => cancelClose, []);
   useEffect(() => {
     if (!open) return;
     const onDoc = (event: MouseEvent) => {
@@ -171,7 +179,10 @@ export function StoreMenuBar({ items, style, colors, className, font, label = "M
     };
   }, [open]);
   const mega = style === "mega";
-  const close = () => setOpen(null);
+  const close = () => {
+    cancelClose();
+    setOpen(null);
+  };
   return (
     <nav
       ref={ref}
@@ -197,14 +208,19 @@ export function StoreMenuBar({ items, style, colors, className, font, label = "M
             className={mega ? "" : "relative"}
             onMouseEnter={(event) => {
               if (window.matchMedia?.("(hover: hover)").matches && event.buttons === 0) {
-                hovered.current = item.id;
+                cancelClose();
+                if (open !== item.id) hovered.current = item.id;
                 setOpen(item.id);
               }
             }}
             onMouseLeave={() => {
               if (window.matchMedia?.("(hover: hover)").matches) {
                 hovered.current = null;
-                setOpen((value) => (value === item.id ? null : value));
+                cancelClose();
+                closeTimer.current = setTimeout(() => {
+                  closeTimer.current = null;
+                  setOpen((value) => (value === item.id ? null : value));
+                }, mega ? 450 : 300);
               }
             }}
           >
@@ -217,7 +233,7 @@ export function StoreMenuBar({ items, style, colors, className, font, label = "M
             </button>
             {isOpen ? (
               mega ? (
-                <div id={panelId} className="absolute inset-x-0 top-full z-40 border-b border-t shadow-[0_24px_48px_rgba(0,0,0,.12)]" style={{ background: colors.panel, color: colors.panelInk, borderColor: colors.border }}>
+                <div id={panelId} onMouseEnter={cancelClose} className="absolute inset-x-0 top-full z-40 border-b border-t shadow-[0_24px_48px_rgba(0,0,0,.12)]" style={{ background: colors.panel, color: colors.panelInk, borderColor: colors.border }}>
                   <div className="mx-auto grid max-w-[1240px] gap-6 px-8 py-7" style={{ gridTemplateColumns: "minmax(180px,240px) 1fr" }}>
                     <div>
                       <p className="m-0 text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: colors.muted }}>{item.label}</p>
@@ -244,7 +260,7 @@ export function StoreMenuBar({ items, style, colors, className, font, label = "M
                   </div>
                 </div>
               ) : (
-                <ul id={panelId} className="absolute left-1/2 top-full z-40 m-0 mt-1 min-w-[220px] -translate-x-1/2 list-none rounded-[12px] border p-1.5 shadow-xl" style={{ background: colors.panel, color: colors.panelInk, borderColor: colors.border, textTransform: "none", letterSpacing: "normal" }}>
+                <ul id={panelId} onMouseEnter={cancelClose} className="absolute left-1/2 top-full z-40 m-0 mt-1 min-w-[220px] -translate-x-1/2 list-none rounded-[12px] border p-1.5 shadow-xl before:absolute before:inset-x-0 before:-top-2 before:h-2 before:content-['']" style={{ background: colors.panel, color: colors.panelInk, borderColor: colors.border, textTransform: "none", letterSpacing: "normal" }}>
                   {item.href || item.onSelect ? (
                     <li>
                       <MenuLink item={{ ...item, current: false }} onDone={close} className="block rounded-[8px] px-3 py-2 text-[14px] font-semibold hover:bg-black/5">

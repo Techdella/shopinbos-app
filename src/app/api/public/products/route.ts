@@ -69,6 +69,7 @@ export async function GET(req: NextRequest) {
     status: "published" as const,
     supplier: {
       status: "active" as const,
+      marketplaceVisible: true,
       verificationStatus: "verified" as const,
       ...(country ? { country } : {}),
     },

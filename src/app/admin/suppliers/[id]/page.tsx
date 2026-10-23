@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { updateSupplierVerification } from "@/app/actions/admin";
-import { setSupplierAcceptHours } from "@/app/actions/admin-supplier-orders";
+import { setSupplierAcceptHours, setSupplierMarketplaceVisible } from "@/app/actions/admin-supplier-orders";
 import { AppPage, Pill, PillLink, StatTile, Thumb } from "@/components/app-kit";
 import { DecisionButtons, VerificationPill, adminFrame, formatDate } from "@/components/admin/AdminKit";
 import { AdminDocumentViewer } from "@/components/verification/AdminDocumentViewer";
@@ -26,6 +26,7 @@ export default async function AdminSupplierDetailPage(props: { params: Promise<{
       logoUrl: true,
       verificationStatus: true,
       status: true,
+      marketplaceVisible: true,
       trustScore: true,
       acceptHoursDropship: true,
       acceptHoursWholesale: true,
@@ -75,6 +76,27 @@ export default async function AdminSupplierDetailPage(props: { params: Promise<{
         <StatTile tone="card" label="Products" value={supplier._count.products} />
         <StatTile tone="card" label="Documents" value={docs.length} />
         <StatTile tone="card" label="Joined" value={<span className="text-[20px]">{formatDate(supplier.createdAt)}</span>} />
+      </section>
+
+      <section aria-labelledby="marketplace-visible" className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-[18px] border border-app-line bg-white p-5">
+        <div className="min-w-0">
+          <h2 id="marketplace-visible" className="m-0 flex flex-wrap items-center gap-2 text-[17px] font-extrabold">
+            Show in marketplace
+            <Pill tone={supplier.marketplaceVisible ? "success" : "muted"} dot>{supplier.marketplaceVisible ? "Shown" : "Hidden"}</Pill>
+          </h2>
+          <p className="m-0 mt-1 text-[14px] text-app-ink-soft">
+            {supplier.marketplaceVisible
+              ? "Sellers can find this supplier and their products in Suppliers, Find products and Wholesale."
+              : "Sellers can't find this supplier or their products. Products already in shops and orders already placed keep working."}
+          </p>
+        </div>
+        <form action={setSupplierMarketplaceVisible}>
+          <input type="hidden" name="supplierId" value={supplier.id} />
+          <input type="hidden" name="visible" value={supplier.marketplaceVisible ? "0" : "1"} />
+          <button type="submit" className={`inline-flex min-h-[40px] items-center rounded-full px-4 text-[13.5px] font-extrabold ${supplier.marketplaceVisible ? "border border-app-line bg-white text-app-ink hover:border-app-line-strong" : "bg-app-ink text-white"}`}>
+            {supplier.marketplaceVisible ? "Hide from marketplace" : "Show in marketplace"}
+          </button>
+        </form>
       </section>
 
       <section aria-labelledby="accept-hours" className="mb-5 rounded-[18px] border border-app-line bg-white p-5">

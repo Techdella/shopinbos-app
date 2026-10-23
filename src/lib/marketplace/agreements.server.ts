@@ -14,9 +14,10 @@ import { AGREEMENT_VERSION, isStockCheck, nearness, sellerHasPlace, supplierRisk
 //     product (web, phone, the older API routes) goes through listingCheck.
 // Wholesale stays with verified suppliers only (src/lib/supplier-orders/wholesale.server.ts).
 
-/** Suppliers sellers can find: active, not rejected or suspended, and not paused for money long overdue. */
+/** Suppliers sellers can find: active, shown by admin, not rejected or suspended, and not paused for money long overdue. */
 export const VISIBLE_SUPPLIER = {
   status: "active",
+  marketplaceVisible: true,
   verificationStatus: { notIn: ["rejected", "suspended"] },
   user: { debtPausedAt: null },
 } satisfies Prisma.SupplierWhereInput;

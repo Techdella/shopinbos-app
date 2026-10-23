@@ -60,7 +60,7 @@ export default async function MarketplaceSuppliersPage({ searchParams }: PagePro
   if (params?.category) where.categories = { has: params.category };
 
   const allVerified = await safeQuery(() => db.supplier.findMany({
-    where: { status: "active", verificationStatus: "verified" },
+    where: { status: "active", marketplaceVisible: true, verificationStatus: "verified" },
     select: { categories: true, country: true },
   }), []);
   const allCategories = [...new Set(allVerified.flatMap((s) => s.categories))].sort();
@@ -165,53 +165,67 @@ export default async function MarketplaceSuppliersPage({ searchParams }: PagePro
               {filtered ? t("sup.tryDifferent") : t("sup.showOnce")}
             </EmptyState>
           ) : (
-            <ul className="m-0 grid list-none gap-4 p-0 md:grid-cols-2 2xl:grid-cols-3 min-[1900px]:grid-cols-4">
-              {suppliers.map((s) => (
-                <li key={s.id} className="flex min-w-0 flex-col overflow-hidden rounded-[22px] border border-app-line bg-white">
-                  <div
-                    className="relative h-24 bg-app-canvas bg-cover bg-center"
-                    style={s.bannerUrl ? { backgroundImage: `url(${s.bannerUrl})` } : undefined}
-                  >
-                    <div className="absolute -bottom-6 left-4 h-14 w-14 overflow-hidden rounded-[14px] border-[3px] border-white bg-white">
-                      {s.logoUrl ? (
-                        <Image src={s.logoUrl} alt="" width={56} height={56} className="h-full w-full object-cover" unoptimized />
-                      ) : (
-                        <span className="grid h-full w-full place-items-center bg-app-canvas text-[18px] font-extrabold">{s.displayName.charAt(0).toUpperCase()}</span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex flex-1 flex-col px-4 pb-4 pt-9">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <Link href={`/suppliers/${s.slug}`} className="block truncate text-[16px] font-extrabold text-app-ink no-underline hover:underline">{s.displayName}</Link>
-                        <div className="truncate text-[13px] text-app-ink-soft">
-                          {s.city ?? ""}{s.city && s.country ? ", " : ""}{s.country ?? ""}
-                          {s.businessType ? ` · ${s.businessType.replace(/_/g, " ")}` : ""}
+            <ul className="m-0 grid list-none gap-4 p-0 sm:grid-cols-2 xl:grid-cols-3 min-[1900px]:grid-cols-4">
+              {suppliers.map((s) => {
+                const risk = trust.get(s.id)?.risk;
+                const km = distances.get(s.id)?.km;
+                const location = [s.city, s.country].filter(Boolean).join(", ");
+                const logo = (
+                  <span className="block h-14 w-14 shrink-0 overflow-hidden rounded-[14px] border border-app-line bg-white">
+                    {s.logoUrl ? (
+                      <Image src={s.logoUrl} alt="" width={56} height={56} className="h-full w-full object-cover" unoptimized />
+                    ) : (
+                      <span className="grid h-full w-full place-items-center bg-app-canvas text-[18px] font-extrabold text-app-ink">{s.displayName.charAt(0).toUpperCase()}</span>
+                    )}
+                  </span>
+                );
+                return (
+                  <li key={s.id} className="flex min-w-0 flex-col overflow-hidden rounded-[22px] border border-app-line bg-white">
+                    {/* The banner only when the supplier has one: an empty grey band looked broken. */}
+                    {s.bannerUrl ? (
+                      <div className="relative h-28 bg-app-canvas bg-cover bg-center" style={{ backgroundImage: `url(${s.bannerUrl})` }}>
+                        <div className="absolute -bottom-7 left-4 rounded-[16px] bg-white p-[3px]">{logo}</div>
+                      </div>
+                    ) : null}
+                    <div className={`flex flex-1 flex-col gap-3 px-4 pb-4 ${s.bannerUrl ? "pt-10" : "pt-4"}`}>
+                      <div className="flex min-w-0 items-start gap-3">
+                        {s.bannerUrl ? null : logo}
+                        <div className="min-w-0 flex-1">
+                          <Link href={`/suppliers/${s.slug}`} className="block truncate text-[16.5px] font-extrabold leading-tight text-app-ink no-underline hover:underline">{s.displayName}</Link>
+                          <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[13px] text-app-ink-soft">
+                            {location ? <span className="inline-flex items-center gap-1"><Icon name="pin" size={13} className="shrink-0" />{location}</span> : null}
+                            {s.businessType ? <span>· {s.businessType.replace(/_/g, " ")}</span> : null}
+                            {typeof km === "number" ? <span>· {t("trust.km", { km: String(Math.max(1, Math.round(km))) })}</span> : null}
+                          </div>
                         </div>
                       </div>
-                      <div className="grid shrink-0 justify-items-end gap-1 text-right">
+                      <div className="flex flex-wrap gap-1.5">
                         {featured.has(s.userId) ? <Pill tone="ink">{t("featured")}</Pill> : null}
-                        {s.verificationStatus === "verified" ? <Pill tone="success">{t("trust.verified")}</Pill> : <Pill tone="danger">{s.verificationStatus === "pending" ? t("trust.pending") : t("trust.unverified")}</Pill>}
-                        {trust.get(s.id) ? <Pill tone={RISK_TONE[trust.get(s.id)!.risk.level]}>{t.dynamic(`trust.risk.${trust.get(s.id)!.risk.level}`, "", { score: trust.get(s.id)!.risk.score })}</Pill> : null}
-                        {typeof distances.get(s.id)?.km === "number" ? <span className="text-[12px] font-bold text-app-ink-soft">{t("trust.km", { km: String(Math.max(1, Math.round(distances.get(s.id)!.km!))) })}</span> : null}
+                        {s.verificationStatus === "verified" ? <Pill tone="success" dot>{t("trust.verified")}</Pill> : <Pill tone="danger" dot>{s.verificationStatus === "pending" ? t("trust.pending") : t("trust.unverified")}</Pill>}
+                        {risk ? <Pill tone={RISK_TONE[risk.level]}>{t.dynamic(`trust.risk.${risk.level}`, "", { score: risk.score })}</Pill> : null}
+                      </div>
+                      {s.description ? (
+                        <p className="m-0 line-clamp-2 text-[13.5px] leading-[1.5] text-app-ink-soft">{s.description}</p>
+                      ) : null}
+                      {s.categories.length > 0 ? (
+                        <div className="flex flex-wrap gap-1.5">
+                          {s.categories.slice(0, 3).map((cat) => <Pill key={cat}>{cat}</Pill>)}
+                          {s.categories.length > 3 ? <Pill>+{s.categories.length - 3}</Pill> : null}
+                        </div>
+                      ) : null}
+                      <div className="mt-auto grid gap-2 pt-1">
+                        <PillLink href={`/marketplace?supplier=${s.slug}`} size="sm" tone="ink" className="min-h-[42px] w-full whitespace-nowrap">
+                          {t("sup.theirProducts")}{s._count.products > 0 ? ` · ${s._count.products}` : ""}
+                        </PillLink>
+                        <div className="grid grid-cols-2 gap-2">
+                          <PillLink href={`/suppliers/${s.slug}`} size="sm" className="min-h-[40px] w-full whitespace-nowrap">{t("sup.profile")}</PillLink>
+                          <ChatButton contactId={s.id} />
+                        </div>
                       </div>
                     </div>
-                    {s.description && (
-                      <p className="mb-0 mt-2.5 line-clamp-3 text-[13.5px] leading-[1.5] text-app-ink-soft">{s.description}</p>
-                    )}
-                    {s.categories.length > 0 && (
-                      <div className="mt-3 flex flex-wrap gap-1.5">
-                        {s.categories.slice(0, 4).map((cat) => <Pill key={cat}>{cat}</Pill>)}
-                      </div>
-                    )}
-                    <div className="mt-auto grid grid-cols-2 gap-2 pt-4 sm:grid-cols-3">
-                      <PillLink href={`/suppliers/${s.slug}`} size="sm" className="min-h-[40px]">{t("sup.profile")}</PillLink>
-                      <ChatButton contactId={s.id} />
-                      <PillLink href={`/marketplace?supplier=${s.slug}`} size="sm" tone="ink" className="col-span-2 min-h-[40px] sm:col-span-1">{t("sup.theirProducts")}</PillLink>
-                    </div>
-                  </div>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { updateSupplierVerification, bulkUpdateSupplierVerification } from "@/app/actions/admin";
+import { setSupplierMarketplaceVisible } from "@/app/actions/admin-supplier-orders";
 import { AppPage, EmptyState, FilterChips, ListCard, PillLink, Pill, SearchForm, Thumb } from "@/components/app-kit";
 import {
   CountRow,
@@ -39,7 +40,7 @@ export default async function AdminSuppliersPage(props: { searchParams?: Promise
     ];
   }
 
-  const [suppliers, byStatus, total, submitted, suspended] = await Promise.all([
+  const [suppliers, byStatus, total, submitted, suspended, hidden] = await Promise.all([
     db.supplier.findMany({
       where,
       orderBy: [{ verificationStatus: "asc" }, { updatedAt: "desc" }],
@@ -54,6 +55,7 @@ export default async function AdminSuppliersPage(props: { searchParams?: Promise
         logoUrl: true,
         verificationStatus: true,
         status: true,
+        marketplaceVisible: true,
         trustScore: true,
         onboardingState: true,
         updatedAt: true,
@@ -64,6 +66,7 @@ export default async function AdminSuppliersPage(props: { searchParams?: Promise
     db.supplier.count(),
     db.supplier.count({ where: { onboardingState: { path: ["completed"], equals: true } } }),
     db.supplier.count({ where: { status: "suspended" } }),
+    db.supplier.count({ where: { marketplaceVisible: false } }),
   ]);
 
   const countFor = (status: string) => byStatus.find((row) => row.verificationStatus === status)?._count._all ?? 0;
@@ -99,6 +102,7 @@ export default async function AdminSuppliersPage(props: { searchParams?: Promise
           { label: "Verified", value: countFor("verified") },
           { label: "Onboarding sent", value: submitted },
           { label: "Suspended", value: suspended },
+          { label: "Hidden from marketplace", value: hidden },
         ]}
       />
 
@@ -141,6 +145,7 @@ export default async function AdminSuppliersPage(props: { searchParams?: Promise
                   <div className="flex flex-wrap items-center gap-1.5">
                     <VerificationPill status={row.verificationStatus} />
                     {row.status !== "active" && <Pill tone="danger">{row.status === "suspended" ? "Account suspended" : row.status}</Pill>}
+                    {!row.marketplaceVisible && <Pill tone="muted">Hidden from marketplace</Pill>}
                     <OnboardingPill status={onboardingSubmitted(row.onboardingState) ? "submitted" : "draft"} />
                   </div>
                   <div className="w-full text-[13px] text-app-ink-soft sm:w-auto lg:w-[150px] lg:shrink-0 lg:text-right">
@@ -149,6 +154,14 @@ export default async function AdminSuppliersPage(props: { searchParams?: Promise
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <PillLink href={`/admin/suppliers/${row.id}`} size="sm" icon="file">Documents</PillLink>
+                    <form action={setSupplierMarketplaceVisible}>
+                      <input type="hidden" name="supplierId" value={row.id} />
+                      <input type="hidden" name="visible" value={row.marketplaceVisible ? "0" : "1"} />
+                      <input type="hidden" name="redirectTo" value={backTo} />
+                      <button type="submit" className={buttonClass(row.marketplaceVisible ? "white" : "ink", "sm")}>
+                        {row.marketplaceVisible ? "Hide from marketplace" : "Show in marketplace"}
+                      </button>
+                    </form>
                     {row.verificationStatus !== "verified" && (
                       <DecisionButtons
                         action={updateSupplierVerification}

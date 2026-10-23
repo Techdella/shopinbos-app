@@ -31,13 +31,13 @@ export interface MyWholesaleOrder {
 }
 
 /** Product page in Find products: price it, see the money on each sale, add it, or buy wholesale. */
-export function ProductDetail({ product, added: addedAtStart, saved: savedAtStart, notified, defaultAddress = "", wholesaleOrders = [], listing, tip }: { product: FindProduct; added: boolean; saved: boolean; notified: boolean; defaultAddress?: string; wholesaleOrders?: MyWholesaleOrder[]; listing?: ListingInfo; /** Peggy's tip under the title (rendered by the page, hidden when tips are off). */ tip?: ReactNode }) {
+export function ProductDetail({ product, added: addedAtStart, saved: savedAtStart, notified, defaultAddress = "", wholesaleOrders = [], listing, tip, startWholesale = false }: { product: FindProduct; added: boolean; saved: boolean; notified: boolean; defaultAddress?: string; wholesaleOrders?: MyWholesaleOrder[]; /** Opened from Wholesale orders ("Buy wholesale"): start on the bulk order, not dropship. */ startWholesale?: boolean; listing?: ListingInfo; /** Peggy's tip under the title (rendered by the page, hidden when tips are off). */ tip?: ReactNode }) {
   const router = useRouter();
   const t = useT("marketplace");
   const locale = useLocale();
   const money = (amount: number) => (locale === "en" ? naira(amount) : formatMoney(Math.round(amount), locale));
   const num = (value: number) => (locale === "en" ? value.toLocaleString("en-NG") : formatNumber(value, locale));
-  const [mode, setMode] = useState<"dropship" | "wholesale">(product.dropship ? "dropship" : "wholesale");
+  const [mode, setMode] = useState<"dropship" | "wholesale">(product.dropship && !(startWholesale && product.wholesale) ? "dropship" : "wholesale");
   const [price, setPrice] = useState(() => clampSellingPrice(product.price, product.cost));
   const [quantity, setQuantity] = useState(product.moq);
   const [image, setImage] = useState(0);
