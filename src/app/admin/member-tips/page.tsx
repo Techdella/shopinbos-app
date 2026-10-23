@@ -8,7 +8,9 @@ import { MEMBER_TEMPLATES, memberTemplatePreview } from "@/lib/member-messaging/
 import { TIPS, type TipRole } from "@/lib/member-messaging/tips-library";
 import { FROM_NAME, TIP_HOUR, tipWeek, whatsappTipText } from "@/lib/member-messaging/tips-email";
 import { journeyStats, journeysOn } from "@/lib/member-messaging/journeys.server";
-import { setJourneys, setTipChannel, sendTestTip, submitTipTemplates } from "./actions";
+import { loyaltyOn } from "@/lib/member-messaging/loyalty.server";
+import { ANNIVERSARY_CREDITS, LOYALTY_TIERS } from "@shared/loyalty";
+import { setJourneys, setLoyalty, setTipChannel, sendTestTip, submitTipTemplates } from "./actions";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Member tips" };
@@ -23,7 +25,7 @@ export default async function AdminMemberTipsPage(props: { searchParams?: Promis
   const user = await requireAdminSection("leads");
   const params = (await props.searchParams) ?? {};
   const role = (ROLES as string[]).includes(params.role ?? "") ? (params.role as TipRole) : "seller";
-  const [settings, audience, stats, templates, journeys, journeyCounts] = await Promise.all([tipSettings(), tipAudience(), tipStats(), memberTemplateStatuses().catch(() => null), journeysOn(), journeyStats()]);
+  const [settings, audience, stats, templates, journeys, journeyCounts, loyalty] = await Promise.all([tipSettings(), tipAudience(), tipStats(), memberTemplateStatuses().catch(() => null), journeysOn(), journeyStats(), loyaltyOn()]);
   const tipTemplates = MEMBER_TEMPLATES.filter((template) => template.group === "tips" || template.group === "journeys");
   const thisWeek = tipWeek(new Date());
 
@@ -87,6 +89,24 @@ export default async function AdminMemberTipsPage(props: { searchParams?: Promis
             </li>
           ))}
         </ul>
+      </section>
+
+      <section aria-labelledby="loyalty" className="mb-6 rounded-[20px] border border-app-line bg-white p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <h2 id="loyalty" className="m-0 text-[18px] font-extrabold">Loyalty perks</h2>
+            <p className="m-0 mt-1 max-w-[760px] text-[13.5px] leading-[1.5] text-app-ink-soft">
+              Tiers from the rewards levels: {LOYALTY_TIERS.map((tier) => `${tier.name} (level ${tier.levels.join("–")}${tier.monthlyCredits ? `, ${tier.monthlyCredits} credits a month` : ""})`).join(" · ")}. When on, the monthly credits are added, people hear when they move up a tier, and each account anniversary brings {ANNIVERSARY_CREDITS} credits. Everyone who joined before 1 December 2026 shows as a founding member.
+            </p>
+          </div>
+          <span className="flex items-center gap-3">
+            <Pill tone={loyalty ? "success" : "muted"} dot>{loyalty ? "On" : "Off"}</Pill>
+            <form action={setLoyalty}>
+              <input type="hidden" name="on" value={loyalty ? "0" : "1"} />
+              <button type="submit" className={buttonClass(loyalty ? "white" : "ink", "sm")}>{loyalty ? "Switch off" : "Switch on"}</button>
+            </form>
+          </span>
+        </div>
       </section>
 
       <section aria-labelledby="tip-stats" className="mb-6 rounded-[20px] border border-app-line bg-white p-5">

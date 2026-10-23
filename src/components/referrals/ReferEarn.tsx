@@ -131,6 +131,23 @@ export function ReferEarn({ overview, focus }: { overview: ReferralOverview; foc
         </section>
 
         <aside className="grid content-start gap-5">
+          {overview.loyalty && (
+            <section aria-labelledby="refer-level" className="rounded-[20px] border border-app-line bg-white p-5">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="h-3.5 w-3.5 rounded-full" style={{ background: overview.loyalty.color }} aria-hidden />
+                <h2 id="refer-level" className="m-0 text-[17px] font-extrabold">{overview.loyalty.tierName} member</h2>
+                {overview.loyalty.founding && <span className="rounded-full bg-app-success-tint px-2.5 py-0.5 text-[12px] font-extrabold text-app-success">Founding member</span>}
+              </div>
+              <ul className="m-0 mt-2 grid list-none gap-1 p-0 text-[13.5px]">
+                {overview.loyalty.perks.map((perk) => <li key={perk}>• {perk}</li>)}
+              </ul>
+              <p className="mb-0 mt-2 text-[12.5px] text-app-ink-soft">
+                {overview.loyalty.next
+                  ? `Reach level ${overview.loyalty.next.atLevel} for ${overview.loyalty.next.tierName}: ${overview.loyalty.next.monthlyCredits} free AI credits every month. Levels grow as you sell, deliver and reply fast.`
+                  : "You're at our top tier. Thank you!"}
+              </p>
+            </section>
+          )}
           <section aria-labelledby="refer-choice" className="rounded-[20px] border border-app-line bg-white p-5">
             <h2 id="refer-choice" className="m-0 text-[17px] font-extrabold">Your reward</h2>
             {overview.paying ? (

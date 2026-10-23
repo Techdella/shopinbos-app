@@ -6,6 +6,7 @@ import { requireAdminSection } from "@/lib/admin-team/service.server";
 import { saveTipSettings, sendTipTest, tipSettings } from "@/lib/member-messaging/tips.server";
 import { submitMemberTemplates } from "@/lib/member-messaging/templates.server";
 import { setJourneysOn } from "@/lib/member-messaging/journeys.server";
+import { setLoyaltyOn } from "@/lib/member-messaging/loyalty.server";
 
 const PATH = "/admin/member-tips";
 
@@ -46,4 +47,13 @@ export async function setJourneys(formData: FormData) {
   await setJourneysOn(on, admin.id);
   revalidatePath(PATH);
   back({ saved: `Journeys ${on ? "switched on" : "switched off"}.` });
+}
+
+/** Switch the loyalty perks (monthly tier credits, tier-up messages, anniversary gifts) on or off. */
+export async function setLoyalty(formData: FormData) {
+  const admin = await requireAdminSection("leads");
+  const on = formData.get("on") === "1";
+  await setLoyaltyOn(on, admin.id);
+  revalidatePath(PATH);
+  back({ saved: `Loyalty perks ${on ? "switched on" : "switched off"}.` });
 }
