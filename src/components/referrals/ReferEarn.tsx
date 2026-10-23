@@ -258,6 +258,11 @@ export function ReferEarn({ overview, focus }: { overview: ReferralOverview; foc
             )}
           </section>
 
+          <a href="/story" className="block rounded-[18px] border border-app-line bg-white p-4 no-underline hover:border-app-line-strong">
+            <span className="flex items-center gap-2 text-[14px] font-bold text-app-ink"><Icon name="chat" size={15} /> Share your story</span>
+            <span className="mt-1 block text-[12.5px] leading-[1.5] text-app-ink-soft">Tell other businesses what changed for you. It appears in Rex &amp; Peggy&apos;s tips, only with your say-so.</span>
+          </a>
+
           <p className="m-0 text-[12px] leading-[1.5] text-app-ink-faint">
             Rewards are free plan time or AI credits, never cash. Up to 10 rewards a year; free months stack up to 12 months ahead; credits last 12 months. Invites from the same person, phone or email don&apos;t count.
           </p>

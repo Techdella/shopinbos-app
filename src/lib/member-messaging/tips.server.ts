@@ -10,6 +10,7 @@ import { proverbIndex } from "@shared/proverbs";
 import type { Locale } from "@shared/i18n";
 import { localizedTip, mailT, memberLocale, type MailKey } from "./i18n";
 import { canContactMember } from "./spacing.server";
+import { approvedStories, markStoryShown, pickStory, videoPreviewFor, videoSample } from "./stories.server";
 import { metaTemplates, metaWhatsAppConfig, sendMetaTemplate } from "@/lib/lead-growth/whatsapp-meta.server";
 import { memberTemplateFor, memberTemplateImageUrl } from "./whatsapp-templates";
 import { TIPS, type Tip, type TipRole } from "./tips-library";
@@ -219,6 +220,9 @@ async function runChannel(channel: TipChannel, now: Date, deadline: number): Pro
   if (wa && (!wa.config || !wa.approved.size)) return { ...result, note: "WhatsApp tip templates aren't approved yet" };
   const products = channel === "email" ? await topProducts() : [];
   const categories = channel === "email" ? await topCategories() : [];
+  // Member stories (approved, shared with consent) and the sample Rex video, once per run.
+  const stories = channel === "email" ? await approvedStories() : [];
+  const sample = channel === "email" ? await videoSample() : null;
 
   // People who heard from us too recently (spacing.ts) wait: a later run this week sends their tip.
   const waiting: string[] = [];
@@ -240,7 +244,12 @@ async function runChannel(channel: TipChannel, now: Date, deadline: number): Pro
       if (!row) continue;
       try {
         if (channel === "email") {
+          const story = pickStory(stories, role, person.id, now);
+          const video = tip.topic === "rex-videos" ? await videoPreviewFor(person.id, role, stories, sample, now) : null;
           const email = renderTipEmail(tip, {
+            story,
+            video,
+            storyUrl: `${appBase()}/story`,
             firstName: firstNameOf(person.name),
             ctaUrl: tipLink(tip, row.id),
             products: role === "seller" ? products : undefined,
@@ -259,8 +268,10 @@ async function runChannel(channel: TipChannel, now: Date, deadline: number): Pro
           });
           const off = !sent.success && /turned off/i.test(sent.message ?? "");
           await finish(row.id, { ok: sent.success, skipped: off, error: sent.success ? null : sent.message, providerId: sent.success ? sent.id ?? null : null });
-          if (sent.success) result.sent++;
-          else if (off) result.skipped++;
+          if (sent.success) {
+            result.sent++;
+            if (story) await markStoryShown(story.id);
+          } else if (off) result.skipped++;
           else result.failed++;
         } else {
           // Their language's template when it's approved, else the English one (and the tip in that same language).
@@ -306,8 +317,10 @@ export async function sendTipTest(tipId: string, admin: { id: string; email: str
   const tip = TIPS.find((item) => item.id === tipId);
   if (!tip) return { ok: false as const, error: "Unknown tip" };
   if (!admin.email) return { ok: false as const, error: "Your account has no email address." };
-  const [products, categories] = await Promise.all([tip.role === "seller" ? topProducts() : Promise.resolve([]), tip.role === "supplier" ? topCategories() : Promise.resolve([])]);
-  const email = renderTipEmail(tip, { firstName: firstNameOf(admin.name), ctaUrl: tipLink(tip, null), products, categories, marketplaceUrl: `${appBase()}/marketplace`, locale });
+  const [products, categories, stories, sample] = await Promise.all([tip.role === "seller" ? topProducts() : Promise.resolve([]), tip.role === "supplier" ? topCategories() : Promise.resolve([]), approvedStories(), videoSample()]);
+  const now = new Date();
+  const video = tip.topic === "rex-videos" ? await videoPreviewFor(admin.id, tip.role, stories, sample, now) : null;
+  const email = renderTipEmail(tip, { firstName: firstNameOf(admin.name), ctaUrl: tipLink(tip, null), products, categories, marketplaceUrl: `${appBase()}/marketplace`, locale, story: pickStory(stories, tip.role, admin.id, now), video, storyUrl: `${appBase()}/story` });
   const personal = tip.role === "seller" ? `${mailT(locale)("personal.seller.few", { count: 4, left: 6 })} (sample numbers)` : null;
   const sent = await sendPlatformEmail({ to: admin.email, user: { id: admin.id, role: tip.role }, kind: "notification", ...email, ...memberEmailExtras(email.persona, new Date(), locale), personal, subject: `[Test] ${email.subject}` });
   return sent.success ? { ok: true as const } : { ok: false as const, error: sent.message ?? "Couldn't send" };

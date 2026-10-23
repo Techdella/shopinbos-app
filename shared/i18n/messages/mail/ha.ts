@@ -231,6 +231,13 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "ref.announce.statSeller": "kyauta kan kowane seller",
   "ref.announce.statPartner": "kyauta kan kowane rider",
   "ref.announce.monthsShort": "wata {count}",
+  "story.eyebrow": "Daga wani memba na gaske",
+  "story.share": "Shopinbos ya taimaki kasuwancinka? Ba da labarinka",
+  "video.member": "{name} ya yi shi da Rex",
+  "video.yours": "Bidiyon Rex ɗinka na ƙarshe",
+  "video.sample": "An yi shi da Rex",
+  "video.watch": "Kalla",
+  "video.yoursHint": "Sake saka shi a Status ɗinka yau, ko ka yi sabo cikin ƴan mintuna.",
 };
 
 export default ha;

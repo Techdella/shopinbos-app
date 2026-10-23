@@ -231,6 +231,15 @@ const en = {
   "ref.announce.statSeller": "free per seller",
   "ref.announce.statPartner": "free per rider",
   "ref.announce.monthsShort": "{count} mo",
+
+  // ── Member stories and the Rex video in video tips (stories.server.ts) ──
+  "story.eyebrow": "From a real member",
+  "story.share": "Has Shopinbos helped your business? Share your story",
+  "video.member": "Made with Rex by {name}",
+  "video.yours": "Your latest Rex video",
+  "video.sample": "Made with Rex",
+  "video.watch": "Watch it",
+  "video.yoursHint": "Post it on your Status again today, or make a new one in minutes.",
 };
 
 export default en;

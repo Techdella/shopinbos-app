@@ -81,6 +81,12 @@ export interface TipEmailInput {
   marketplaceUrl?: string;
   /** The reader's app language (English by default): the tip and everything around it. */
   locale?: Locale;
+  /** "From a real member": an approved story another member shared with consent (shown in their own words). */
+  story?: { displayName: string; city: string | null; result: string | null; story: string } | null;
+  /** Video tips: a Rex video to watch (a member's shared one, the reader's own, or the team's sample). */
+  video?: { kind: "member" | "yours" | "sample"; videoUrl: string; posterUrl: string; name?: string | null; caption?: string | null } | null;
+  /** "Share your story" (/story). */
+  storyUrl?: string;
 }
 
 const naira = (value: number) => `₦${Math.round(value).toLocaleString("en-NG")}`;
@@ -127,11 +133,19 @@ ${input.marketplaceUrl ? `<p style="margin:12px 0 0;font-size:14.5px"><a href="$
 <p style="margin:0 0 8px;font-size:14.5px;color:#5B6770">${escape(t("tip.addingSub"))}</p>
 <ul style="margin:0;padding-left:20px;font-size:15px;line-height:1.5">${items}</ul>`;
   }
+  const video = tip.topic === "rex-videos" && input.video ? videoCard(input.video, t) : "";
+  const story = input.story
+    ? `<div style="margin:24px 0 6px;padding:18px 18px 16px;border-radius:18px;background:#EEF7F5;border:1px solid #D3ECE7"><div style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10.5px;letter-spacing:0.14em;text-transform:uppercase;color:#1F5F5A;margin-bottom:8px">${escape(t("story.eyebrow"))}</div>${input.story.result ? `<div style="font-size:17px;font-weight:700;line-height:1.35;color:#0E2A38;margin-bottom:6px">${escape(input.story.result)}</div>` : ""}<div style="font-size:15px;line-height:1.6;color:#1C2B33">&ldquo;${escape(input.story.story)}&rdquo;</div><div style="margin-top:8px;font-size:13.5px;font-weight:700;color:#1F5F5A">${escape(input.story.displayName)}${input.story.city ? `, ${escape(input.story.city)}` : ""}</div></div>`
+    : "";
+  const share = input.storyUrl ? `<p style="margin:18px 0 0;font-size:14px"><a href="${escape(input.storyUrl)}" style="color:#1F5F5A;font-weight:700">${escape(t("story.share"))} &rarr;</a></p>` : "";
   const bodyHtml = `<p style="margin:0 0 14px">${escape(t("hello", { name: input.firstName }))}</p>
 <p style="margin:0 0 14px">${escape(t("tip.howsBusiness"))} ${escape(tip.intro)}</p>
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:6px 0 4px">${points}</table>
 ${example}
-${extra}`;
+${video}
+${extra}
+${story}
+${share}`;
   return {
     subject: tip.subject,
     preheader: tip.preheader,
@@ -141,6 +155,19 @@ ${extra}`;
     cta: { label: tip.cta.label, url: input.ctaUrl },
     persona: tip.from,
   };
+}
+
+/** The Rex video in a video tip: its cover picture (tap to watch) and who made it. */
+function videoCard(video: NonNullable<TipEmailInput["video"]>, t: ReturnType<typeof mailT>) {
+  const title = video.kind === "member" && video.name ? t("video.member", { name: video.name }) : video.kind === "yours" ? t("video.yours") : t("video.sample");
+  const sub = video.kind === "yours" ? t("video.yoursHint") : video.caption ?? "";
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:22px auto 8px"><tr><td align="center">
+<a href="${escape(video.videoUrl)}" style="display:block;text-decoration:none;color:#0E2A38">
+<img src="${escape(video.posterUrl)}" alt="${escape(title)}" width="240" style="display:block;width:240px;max-width:100%;height:auto;border-radius:18px;border:1px solid #ECE6DA">
+<span style="display:inline-block;margin-top:12px;padding:10px 18px;border-radius:999px;background:#0E2A38;color:#FFFFFF;font-size:14px;font-weight:700">&#9654; ${escape(t("video.watch"))}</span>
+<span style="display:block;margin-top:10px;font-size:14.5px;font-weight:700">${escape(title)}</span>
+${sub ? `<span style="display:block;margin-top:4px;font-size:13.5px;color:#5B6770">${escape(sub)}</span>` : ""}
+</a></td></tr></table>`;
 }
 
 /** A reply that means "stop sending me tips" ("STOP", "stop tips", "unsubscribe"). */

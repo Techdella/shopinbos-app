@@ -182,6 +182,7 @@ const en = {
   "admin.errors": "App errors",
   "admin.referrals": "Referrals",
   "admin.member-tips": "Member tips",
+  "admin.member-stories": "Member stories",
   "admin.launches": "Launches",
   "group.sourcing": "Sourcing",
   "group.people": "People",

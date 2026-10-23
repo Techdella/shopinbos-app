@@ -231,6 +231,13 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "ref.announce.statSeller": "free for each seller",
   "ref.announce.statPartner": "free for each rider",
   "ref.announce.monthsShort": "{count} mo",
+  "story.eyebrow": "From one real member",
+  "story.share": "Shopinbos don help your business? Share your story",
+  "video.member": "Na Rex {name} take make am",
+  "video.yours": "Your latest Rex video",
+  "video.sample": "Na Rex make am",
+  "video.watch": "Watch am",
+  "video.yoursHint": "Post am for your Status again today, or make new one sharp sharp.",
 };
 
 export default pcm;
