@@ -6,6 +6,9 @@ import { DEFAULT_FRIENDLY, errorDetails, errorKind, friendlyText } from "./frien
 
 type Source = "shown" | "unhandled" | "boundary";
 
+/** Fired when an error is shown to someone ({ technical }), so Peggy can offer help (src/components/peggy/PeggyNudge.tsx). */
+export const SHOWN_ERROR_EVENT = "shopinbos:error-shown";
+
 const sent = new Set<string>();
 const MAX_PER_PAGE = 20;
 
@@ -93,6 +96,11 @@ export function reportClientError(error: unknown, options: { source?: Source; sh
 export function friendlyError(error: unknown, fallback: string = DEFAULT_FRIENDLY): string {
   const { text, kind } = friendlyText(error, fallback);
   if (kind) reportClientError(error, { source: "shown", shown: text });
+  try {
+    window.dispatchEvent(new CustomEvent(SHOWN_ERROR_EVENT, { detail: { technical: Boolean(kind) } }));
+  } catch {
+    // Server render, or an old browser: Peggy just won't offer help for this one.
+  }
   return text;
 }
 

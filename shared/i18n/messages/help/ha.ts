@@ -54,6 +54,23 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   closeVideo: "Rufe bidiyo",
   "duration.min": "minti {count}",
   "duration.sec": "daƙiƙa {count}",
+  // Peggy's "can I help?" nudge when someone looks stuck (src/components/peggy/PeggyNudge.tsx).
+  "nudge.label": "Peggy za ta iya taimaka",
+  "nudge.error.title": "Bai yi aiki ba. Kana son taimako?",
+  "nudge.error.body": "Ni ce Peggy. Faɗa mini abin da kake ƙoƙarin yi, zan taimaka maka ka gyara shi.",
+  "nudge.error.opener": "Na ga wani abu bai yi aiki ba yanzu. Me kake ƙoƙarin yi? Zan nuna maka yadda ake yi, ko in kira wani daga team ya taimaka.",
+  "nudge.rage.title": "Akwai abin da baya amsawa?",
+  "nudge.rage.body": "Kamar baya yin abin da kake tsammani. Zan iya taimaka maka.",
+  "nudge.rage.opener": "Kamar wani abu baya amsawa idan ka danna shi. Wane button ko shafi ne? Zan taimaka maka.",
+  "nudge.scroll.title": "Kana neman wani abu?",
+  "nudge.scroll.body": "Faɗa mini abin da kake buƙata, zan kai ka can kai tsaye.",
+  "nudge.scroll.opener": "Kana neman wani abu? Faɗa mini abin da kake buƙata, kamar order, product ko setting, zan faɗa maka ainihin inda yake.",
+  "nudge.wander.title": "Ba ka ga inda wani abu yake ba?",
+  "nudge.wander.body": "Faɗa mini abin da kake son yi, zan nuna maka shafin da ya dace.",
+  "nudge.wander.opener": "Ba ka ga inda wani abu yake ba? Faɗa mini abin da kake son yi, zan nuna maka shafin da ya dace.",
+  "nudge.yes": "Eh, taimaka mini",
+  "nudge.no": "Ina lafiya",
+  "nudge.never": "Kar ka sake tambaya",
 };
 
 export default ha;

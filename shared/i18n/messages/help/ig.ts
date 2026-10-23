@@ -54,6 +54,23 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   closeVideo: "Mechie vidiyo",
   "duration.min": "nkeji {count}",
   "duration.sec": "sekọnd {count}",
+  // Peggy's "can I help?" nudge when someone looks stuck (src/components/peggy/PeggyNudge.tsx).
+  "nudge.label": "Peggy nwere ike inyere gị aka",
+  "nudge.error.title": "Ọ rụghị ọrụ. Ị chọrọ enyemaka?",
+  "nudge.error.body": "Abụ m Peggy. Gwa m ihe ị na-achọ ime, m ga-enyere gị aka idozi ya.",
+  "nudge.error.opener": "Ahụrụ m na ihe adịghị mma ugbu a. Gịnị ka ị na-achọ ime? M ga-egosi gị otu esi eme ya, ma ọ bụ kpọọ onye na team ka o nyere gị aka.",
+  "nudge.rage.title": "Ọ dị ihe na-anaghị aza?",
+  "nudge.rage.body": "Ọ dị ka ọ naghị eme ihe ị tụrụ anya ya. Enwere m ike inyere gị aka.",
+  "nudge.rage.opener": "Ọ dị ka ihe na-anaghị aza mgbe ị pịara ya. Kedu button ma ọ bụ peeji ọ bụ? M ga-enyere gị aka.",
+  "nudge.scroll.title": "Ị na-achọ ihe?",
+  "nudge.scroll.body": "Gwa m ihe ị chọrọ, m ga-akpọga gị ebe ahụ ozugbo.",
+  "nudge.scroll.opener": "Ị na-achọ ihe? Gwa m ihe ị chọrọ, dị ka order, product ma ọ bụ setting, m ga-agwa gị ebe ọ dị kpọmkwem.",
+  "nudge.wander.title": "Ị hụghị ebe ihe dị?",
+  "nudge.wander.body": "Gwa m ihe ị chọrọ ime, m ga-egosi gị peeji kwesịrị ekwesị.",
+  "nudge.wander.opener": "Ị hụghị ebe ihe dị? Gwa m ihe ị chọrọ ime, m ga-egosi gị peeji kwesịrị ekwesị.",
+  "nudge.yes": "Ee, nyere m aka",
+  "nudge.no": "Adị m mma",
+  "nudge.never": "Ajụkwala m ọzọ",
 };
 
 export default ig;

@@ -58,6 +58,23 @@ const en = {
   closeVideo: "Close video",
   "duration.min": "{count} min",
   "duration.sec": "{count} sec",
+  // Peggy's "can I help?" nudge when someone looks stuck (src/components/peggy/PeggyNudge.tsx).
+  "nudge.label": "Peggy can help",
+  "nudge.error.title": "That didn't work. Want a hand?",
+  "nudge.error.body": "I'm Peggy. Tell me what you were trying to do and I'll help you sort it out.",
+  "nudge.error.opener": "I saw something went wrong just now. What were you trying to do? I'll walk you through it, or get someone from the team to help.",
+  "nudge.rage.title": "Is something not responding?",
+  "nudge.rage.body": "Looks like that isn't doing what you expect. I can help you get past it.",
+  "nudge.rage.opener": "Looks like something isn't responding when you tap it. Which button or page is it? I'll help you get past it.",
+  "nudge.scroll.title": "Looking for something?",
+  "nudge.scroll.body": "Tell me what you need and I'll take you straight there.",
+  "nudge.scroll.opener": "Looking for something? Tell me what you need, like an order, a product or a setting, and I'll tell you exactly where it is.",
+  "nudge.wander.title": "Can't find where something is?",
+  "nudge.wander.body": "Tell me what you want to do and I'll point you to the right page.",
+  "nudge.wander.opener": "Can't find where something is? Tell me what you want to do and I'll point you to the right page.",
+  "nudge.yes": "Yes, help me",
+  "nudge.no": "I'm fine",
+  "nudge.never": "Don't offer again",
 } satisfies Record<string, string>;
 
 export default en;

@@ -24,6 +24,8 @@ const SUPPORT_WHATSAPP = supportWhatsApp();
 interface SupportChatModalProps {
   open: boolean;
   onClose: () => void;
+  /** Open straight into a chat with Peggy, starting with this line from her (Peggy's "can I help?" nudge). */
+  peggyOpener?: string | null;
 }
 
 type View = "home" | "peggy" | "person" | "email" | "thread";
@@ -34,7 +36,7 @@ const GREETING: PeggyLine = { role: "agent", text: "" };
 type HelpT = TFunction<KeysOf<["help", "support", "common"]>>;
 const UNREAD_POLL_MS = 60_000;
 
-export function SupportChatModal({ open, onClose }: SupportChatModalProps) {
+export function SupportChatModal({ open, onClose, peggyOpener = null }: SupportChatModalProps) {
   // The panel can also open itself: from the unread badge or a ?support= link in an email.
   const [selfOpen, setSelfOpen] = useState(false);
   const isOpen = open || selfOpen;
@@ -143,6 +145,14 @@ export function SupportChatModal({ open, onClose }: SupportChatModalProps) {
     document.addEventListener("keydown", handleKey);
     return () => document.removeEventListener("keydown", handleKey);
   }, [isOpen, close]);
+
+  // From Peggy's nudge: straight into her chat, starting from what went wrong. Not sent to the AI as a message
+  // (the first line never is), so it reads like her greeting.
+  useEffect(() => {
+    if (!isOpen || !peggyOpener || aiOff) return;
+    setPeggy([{ role: "agent", text: peggyOpener }]);
+    setView("peggy");
+  }, [isOpen, peggyOpener, aiOff]);
 
   const onThreadChange = useCallback((ticket: ChatTicket) => setActive(ticket), []);
 

@@ -54,6 +54,23 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   closeVideo: "Pa fídíò dé",
   "duration.min": "ìṣẹ́jú {count}",
   "duration.sec": "ìṣẹ́jú-àáyá {count}",
+  // Peggy's "can I help?" nudge when someone looks stuck (src/components/peggy/PeggyNudge.tsx).
+  "nudge.label": "Peggy lè ràn ọ́ lọ́wọ́",
+  "nudge.error.title": "Kò ṣiṣẹ́. Ṣé kí n ràn ọ́ lọ́wọ́?",
+  "nudge.error.body": "Èmi ni Peggy. Sọ ohun tí o fẹ́ ṣe fún mi, màá ràn ọ́ lọ́wọ́ láti yanjú ẹ̀.",
+  "nudge.error.opener": "Mo rí i pé nǹkan kan kò ṣiṣẹ́ báyìí. Kí lo fẹ́ ṣe? Màá fi bí o ṣe máa ṣe é hàn ọ́, tàbí kí n pe ẹnìkan nínú team láti ràn ọ́ lọ́wọ́.",
+  "nudge.rage.title": "Ṣé nǹkan kan kò dáhùn?",
+  "nudge.rage.body": "Ó dà bí ẹni pé kò ṣe ohun tí o retí. Mo lè ràn ọ́ lọ́wọ́.",
+  "nudge.rage.opener": "Ó dà bí ẹni pé nǹkan kan kò dáhùn tí o bá tẹ̀ ẹ́. Bọ́tìnnì tàbí ojú-ìwé wo ni? Màá ràn ọ́ lọ́wọ́.",
+  "nudge.scroll.title": "Ṣé ò ń wá nǹkan kan?",
+  "nudge.scroll.body": "Sọ ohun tí o nílò fún mi, màá mú ọ lọ síbẹ̀ tààrà.",
+  "nudge.scroll.opener": "Ṣé ò ń wá nǹkan kan? Sọ ohun tí o nílò fún mi, bí order, product tàbí setting, màá sọ ibi tí ó wà gan-an fún ọ.",
+  "nudge.wander.title": "Ṣé o kò rí ibi tí nǹkan kan wà?",
+  "nudge.wander.body": "Sọ ohun tí o fẹ́ ṣe fún mi, màá fi ojú-ìwé tó tọ́ hàn ọ́.",
+  "nudge.wander.opener": "Ṣé o kò rí ibi tí nǹkan kan wà? Sọ ohun tí o fẹ́ ṣe fún mi, màá fi ojú-ìwé tó tọ́ hàn ọ́.",
+  "nudge.yes": "Bẹ́ẹ̀ni, ràn mí lọ́wọ́",
+  "nudge.no": "Mo wà dáadáa",
+  "nudge.never": "Má bi mí mọ́",
 };
 
 export default yo;

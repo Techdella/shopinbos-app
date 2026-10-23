@@ -7,6 +7,8 @@ import { useT } from "@/components/i18n/I18nProvider";
 // mounts (Sidebar → SupportChatModal: Peggy, a person, a setup request, or a one-minute video for this screen),
 // so there is only ever one panel.
 export const OPEN_HELP_EVENT = "shopinbos:open-help";
+/** Optional CustomEvent detail: `peggy` opens the panel in a chat with Peggy, starting with that line from her. */
+export type OpenHelpDetail = { peggy?: string };
 
 export function HelpButton({ className = "" }: { className?: string }) {
   const t = useT("common");

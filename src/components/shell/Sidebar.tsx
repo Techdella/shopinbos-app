@@ -11,7 +11,8 @@ import { SupportChatModal } from "./SupportChatModal";
 import { useUnreadMessages } from "@/components/conversations/client";
 import { FIT_MAX_HEIGHT, FitBox, useFitInViewport } from "./useFitInViewport";
 import { TOGGLE_NAV_EVENT, usePreferences, useShellCounts, useIdentity, useTipsOn } from "./useShellCounts";
-import { OPEN_HELP_EVENT } from "@/components/simple/HelpButton";
+import { OPEN_HELP_EVENT, type OpenHelpDetail } from "@/components/simple/HelpButton";
+import { PeggyNudge } from "@/components/peggy/PeggyNudge";
 import { TermCard } from "@/components/learn/Term";
 import { navTerm, type GlossaryEntry } from "@shared/glossary";
 import { navGroupLabel, navLabel } from "@shared/i18n/nav";
@@ -60,6 +61,7 @@ export function Sidebar({ role = "seller", storeName, storeSlug, storeInitial, s
   const counts = useShellCounts();
   const messagesUnread = useUnreadMessages();
   const [helpOpen, setHelpOpen] = useState(false);
+  const [peggyOpener, setPeggyOpener] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
   const [flyout, setFlyout] = useState<{ id: string; top: number } | null>(null);
@@ -79,7 +81,10 @@ export function Sidebar({ role = "seller", storeName, storeSlug, storeInitial, s
 
   // Page-level "Help" buttons (src/components/simple/HelpButton.tsx) open this same panel.
   useEffect(() => {
-    const open = () => setHelpOpen(true);
+    const open = (event: Event) => {
+      setPeggyOpener((event as CustomEvent<OpenHelpDetail | undefined>).detail?.peggy ?? null);
+      setHelpOpen(true);
+    };
     window.addEventListener(OPEN_HELP_EVENT, open);
     return () => window.removeEventListener(OPEN_HELP_EVENT, open);
   }, []);
@@ -446,7 +451,9 @@ export function Sidebar({ role = "seller", storeName, storeSlug, storeInitial, s
           <button type="button" aria-label={t("shell.closeMenu")} className="flex-1 bg-black/35" onClick={() => setMobileOpen(false)} />
         </div>
       )}
-      <SupportChatModal open={helpOpen} onClose={() => setHelpOpen(false)} />
+      <SupportChatModal open={helpOpen} peggyOpener={peggyOpener} onClose={() => { setHelpOpen(false); setPeggyOpener(null); }} />
+      {/* Peggy offers help when someone looks stuck (errors, taps that do nothing, endless scrolling). */}
+      {(role === "seller" || role === "supplier" || role === "logistics_partner") && <PeggyNudge helpOpen={helpOpen} />}
     </>
   );
 }

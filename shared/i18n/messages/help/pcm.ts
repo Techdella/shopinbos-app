@@ -54,6 +54,23 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   closeVideo: "Close video",
   "duration.min": "{count} min",
   "duration.sec": "{count} sec",
+  // Peggy's "can I help?" nudge when someone looks stuck (src/components/peggy/PeggyNudge.tsx).
+  "nudge.label": "Peggy fit help",
+  "nudge.error.title": "E no work. You want make I help?",
+  "nudge.error.body": "Na me be Peggy. Tell me wetin you dey try do, I go help you sort am.",
+  "nudge.error.opener": "I see say something no work just now. Wetin you dey try do? I go show you how, or call person for the team make dem help.",
+  "nudge.rage.title": "Something no dey respond?",
+  "nudge.rage.body": "E be like say e no dey do wetin you expect. I fit help you pass am.",
+  "nudge.rage.opener": "E be like say something no dey respond when you tap am. Which button or page na? I go help you pass am.",
+  "nudge.scroll.title": "You dey find something?",
+  "nudge.scroll.body": "Tell me wetin you need, I go carry you go there straight.",
+  "nudge.scroll.opener": "You dey find something? Tell me wetin you need, like order, product or setting, I go tell you exactly where e dey.",
+  "nudge.wander.title": "You no fit find where something dey?",
+  "nudge.wander.body": "Tell me wetin you wan do, I go show you the correct page.",
+  "nudge.wander.opener": "You no fit find where something dey? Tell me wetin you wan do, I go show you the correct page.",
+  "nudge.yes": "Yes, help me",
+  "nudge.no": "I dey okay",
+  "nudge.never": "No ask me again",
 };
 
 export default pcm;
