@@ -109,6 +109,7 @@ test("the email frame speaks the reader's language; English is unchanged", () =>
     assert.ok(html.includes(`>${t("foot.unsubscribe")}<`), `${locale}: unsubscribe`);
     assert.ok(!html.includes("Proverb of the week"), `${locale}: proverb title`);
     assert.ok(!/You(&#39;|')re receiving this because/.test(html), `${locale}: reason line`);
+    assert.equal(/font-family:'Segoe UI',Roboto/.test(html), locale === "yo" || locale === "ig", `${locale}: system fonts for tone marks`);
   }
 });
 

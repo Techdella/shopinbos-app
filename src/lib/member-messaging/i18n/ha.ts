@@ -622,7 +622,7 @@ export const tips: Record<string, TipText> = {
     ],
     example: "Wani kamfanin dispatch a Ikeja ya gayyaci boutiques biyar da yake yi wa aiki ta waya, yanzu suna book ta app.",
     cta: "Gayyaci kasuwanci",
-    whatsapp: "ayyukanka mafi kyau suna zuwa daga shagunan da ke book ɗinka akai-akai, don haka ba na yau da kullum lokacin pickup ƙayyadadde, ka raba link ɗinka na gayyata daga shafin Refer and earn da shagunan da kake yi wa aiki a wajen app. Idan kasuwanci suka shiga, za ka iya samun watanni kyauta ko AI credits.",
+    whatsapp: "ayyukanka mafi kyau suna zuwa daga shagunan da ke book ɗinka akai-akai, don haka ba na yau da kullum lokacin pickup ƙayyadadde, ka raba link ɗinka na gayyata daga shafin Refer and earn da shagunan da kake yi wa aiki a wajen app. Idan sun shiga, za ka iya samun watanni kyauta ko AI credits.",
   },
 };
 

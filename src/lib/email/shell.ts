@@ -451,7 +451,15 @@ export function platformEmail(input: PlatformEmailInput) {
     locale: input.locale,
   });
   const tagline = `<p class="sib-tagline" style="margin:0 0 18px;text-align:center;font-family:${ACCENT_FONT};font-style:italic;font-size:13.5px;color:${EMAIL_COLORS.coral}">${escapeHtml(t("foot.tagline"))}</p>`;
-  return emailDocument({ title: input.title ?? input.heading, preheader: input.preheader, header: "", card: look.rows, cardIsRows: true, page: look.page, footer: `${footer}${tagline}`, adaptCard: true, extraCss: `${lookFooterCss(input.look ?? "classic")}${input.extraCss ?? ""}` });
+  return emailDocument({ title: input.title ?? input.heading, preheader: input.preheader, header: "", card: look.rows, cardIsRows: true, page: look.page, footer: `${footer}${tagline}`, adaptCard: true, extraCss: `${lookFooterCss(input.look ?? "classic")}${toneMarkCss(input.locale)}${input.extraCss ?? ""}` });
+}
+
+/**
+ * Yorùbá and Igbo stack tone marks on dotted letters (ọ́, ị̀): the brand fonts don't place them well, so those emails
+ * use system fonts that do.
+ */
+export function toneMarkCss(locale: Locale | undefined) {
+  return locale === "yo" || locale === "ig" ? "body,table,td,div,p,a,span,h1,h2,li,strong{font-family:'Segoe UI',Roboto,'Noto Sans',Helvetica,Arial,sans-serif!important}" : "";
 }
 
 export function reasonSentence(reason: string) {
