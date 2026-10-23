@@ -299,6 +299,21 @@ export const FEATURE_INTROS: FeatureIntro[] = [
     ],
   },
   {
+    key: "refer-and-earn",
+    term: "refer-and-earn",
+    title: "Refer & earn",
+    roles: ["seller", "supplier", "logistics_partner"],
+    paths: ["/home/refer", "/supplier/refer", "/logistics/refer"],
+    cta: { label: "Share my link", href: "/refer" },
+    scenes: [
+      { art: "link-share", caption: "You get your own invite link.", sub: "Share it on WhatsApp with suppliers, shops and riders you know.", durationMs: S, label: "app.shopinbos.com/r/ADA7KQ" },
+      { art: "chat-bubbles", caption: "They join with a welcome gift.", sub: "A supplier you invite gets a free month of Supplier Plus and a featured week.", durationMs: S, label: "Join with my link!" },
+      { art: "chart-grow", caption: "It counts when they really start.", sub: "A supplier counts once verified with 5 products; a shop after its first paid order.", durationMs: S },
+      { art: "money-flow", caption: "Then you get your reward.", sub: "Free months on your plan or AI credits, your choice. 500 credits is about 50 Rex videos.", durationMs: S, value: "3 months" },
+      { art: "badge-verify", caption: "Invite more, unlock more.", sub: "5 businesses earn you an extra month; 10 make you a Shopinbos Ambassador.", durationMs: S, chips: ["3", "5", "10"] },
+    ],
+  },
+  {
     key: "whatsapp-store",
     term: "whatsapp-store",
     title: "Your WhatsApp store",

@@ -206,6 +206,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "credits.example": "Rex make three new pictures of your handbag; small credits comot from your monthly ones.",
   "business-registration.short": "To register your business name with CAC, make e official and you get BN number.",
   "business-registration.example": "Register “Ada's Fabrics” with CAC from Shopinbos and download the certificate here.",
+  "refer-and-earn.short": "Invite other businesses with your own link, collect free plan months or AI credits when dem start to sell.",
+  "refer-and-earn.example": "You invite the fabric wholesaler wey you dey buy from; once she list 5 products, you get 3 months free.",
 };
 
 export default pcm;

@@ -8,6 +8,7 @@ import { z } from "zod";
 import { LeadAudience, LeadMessageContent, LeadStep } from "@/lib/lead-growth/pure";
 import { WHATSAPP_TEMPLATES, whatsappTemplate } from "@/lib/lead-growth/whatsapp-content";
 import { metaTemplates, metaWhatsAppConfig, submitMetaTemplate } from "@/lib/lead-growth/whatsapp-meta.server";
+import { submitMemberTemplates } from "@/lib/member-messaging/templates.server";
 import { addCustomTemplate, connectInboxWebhook, deleteCustomTemplate, findTeamTemplate, submitTeamTemplate, submitTeamTemplates } from "@/lib/support/whatsapp.server";
 import { templateFromDraft } from "@/lib/support/whatsapp-pure";
 import {
@@ -212,12 +213,14 @@ export async function submitWhatsAppTemplates(formData: FormData) {
     const result = await submitMetaTemplate(config, template);
     if (!result.ok) failures.push(`${template.name}: ${result.error}`);
   }
-  // "Submit all" also sends the inbox's own templates (follow-up, reconnect).
-  const team = name ? { submitted: 0, failures: [] as string[] } : await submitTeamTemplates();
-  failures.push(...team.failures);
+  // "Submit all" also sends the inbox's own templates (follow-up, reconnect) and the members' ones (referrals).
+  const none = { submitted: 0, failures: [] as string[] };
+  const team = name ? none : await submitTeamTemplates();
+  const members = name ? none : await submitMemberTemplates();
+  failures.push(...team.failures, ...members.failures);
   revalidatePath(WA_PATH);
   if (failures.length) waBack({ error: failures.join(" · ").slice(0, 600) });
-  waBack({ submitted: String(wanted.length + team.submitted) });
+  waBack({ submitted: String(wanted.length + team.submitted + members.submitted) });
 }
 
 /** Admin: subscribe the WhatsApp Business Account to the app, so messages to the number reach the inbox. */

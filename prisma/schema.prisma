@@ -4780,3 +4780,49 @@ model ClientError {
   @@index([userId, lastSeenAt(sort: Desc)])
   @@index([fingerprint])
 }
+
+// ---- refer & earn (docs/migrations/2026-11-23-referrals.sql, shared/referrals.ts) ----
+/// Each business's own invite code (app.shopinbos.com/r/CODE) and the reward they'd like: free months or AI credits.
+model ReferralCode {
+  code         String   @id
+  userId       String   @unique
+  rewardChoice String   @default("months") // months | credits
+  createdAt    DateTime @default(now())
+}
+
+/// One invited business: who invited them, how far they are, and what each side got. One row per new account.
+model Referral {
+  id             String    @id @default(cuid())
+  code           String
+  referrerId     String
+  refereeId      String    @unique
+  refereeRole    String
+  /// signed_up → qualified → rewarded, or rejected (same person, over the yearly limit, suspended).
+  status         String    @default("signed_up")
+  reason         String?
+  welcomeReward  Json?
+  referrerReward Json?
+  qualifiedAt    DateTime?
+  rewardedAt     DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([referrerId, status])
+  @@index([status, createdAt])
+}
+
+/// Free time on a paid plan that isn't paid through Paystack (referral rewards, welcome gifts, admin gifts). While one
+/// runs and there's no paid subscription, the account is on `tier`; the referrals job puts it back when it ends.
+model PlanGrant {
+  id        String   @id @default(cuid())
+  userId    String
+  tier      String
+  startsAt  DateTime
+  endsAt    DateTime
+  source    String // referral | referral_welcome | milestone | admin
+  reference String   @unique
+  createdAt DateTime @default(now())
+
+  @@index([userId, endsAt])
+  @@index([endsAt])
+}

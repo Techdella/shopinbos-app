@@ -206,6 +206,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "credits.example": "Rex mere foto ọhụrụ atọ nke handbag gị; credits ole na ole si na nke ọnwa gị pụọ.",
   "business-registration.short": "Ịdebanye aha azụmahịa gị na CAC, ka ọ bụrụ nke iwu ma nweta BN number.",
   "business-registration.example": "Debanye “Ada's Fabrics” na CAC site na Shopinbos ma download certificate ebe a.",
+  "refer-and-earn.short": "Kpọọ ndị ọchụnta ego ndị ọzọ site na link gị, nweta ọnwa n'efu ma ọ bụ AI credits mgbe ha malitere ire ahịa.",
+  "refer-and-earn.example": "Ị kpọrọ onye na-ere akwa n'ọtụtụ ị na-azụ n'aka ya; ozugbo o tinyere ngwaahịa 5, ị nweta ọnwa 3 n'efu.",
 };
 
 export default ig;

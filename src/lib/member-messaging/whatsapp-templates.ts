@@ -1,0 +1,133 @@
+// WhatsApp templates for people who already have a Shopinbos account (sellers, suppliers, delivery partners):
+// referrals now; the weekly tips and other member campaigns join this list. The waitlist's templates are in
+// src/lib/lead-growth/whatsapp-content.ts. Pure, unit-tested in tests/referrals.test.mjs.
+//
+// Meta's rules this follows: names are lower case with _; every variable has a sample; no variable at the very start
+// or end of the text, and never two side by side. Header images are 1200×628 banners in public/brand/members/.
+
+const APP = "https://app.shopinbos.com";
+
+export type MemberTemplateGroup = "referral";
+
+export type MemberTemplate = {
+  name: string;
+  group: MemberTemplateGroup;
+  /** What it's for, shown in the admin list. */
+  purpose: string;
+  category: "MARKETING" | "UTILITY";
+  language: string;
+  /** Banner in public/brand/members/ (without .jpg). */
+  image: string;
+  /** Body with {{1}}, {{2}}…; `variables` names them and `examples` gives Meta a sample for each. */
+  body: string;
+  variables: string[];
+  examples: string[];
+  button: { text: string; url: string };
+};
+
+export const MEMBER_TEMPLATES: MemberTemplate[] = [
+  {
+    name: "shopinbos_refer_supplier",
+    group: "referral",
+    purpose: "Invite campaign: refer a supplier",
+    category: "MARKETING",
+    language: "en",
+    image: "refer-supplier",
+    body: "Hi {{1}}, know a supplier who should be selling to more shops? 🤝\n\nInvite them to Shopinbos with your link. When they're verified and list 5 products, you get {{2}}. They get a free month of Supplier Plus and a featured week in the marketplace.\n\nTap below to get your link and share it on WhatsApp.",
+    variables: ["first name", "your reward"],
+    examples: ["Ada", "3 months free or 500 AI credits"],
+    button: { text: "Invite a supplier", url: `${APP}/refer?for=supplier` },
+  },
+  {
+    name: "shopinbos_refer_seller",
+    group: "referral",
+    purpose: "Invite campaign: refer a seller",
+    category: "MARKETING",
+    language: "en",
+    image: "refer-seller",
+    body: "Hi {{1}}, know someone who sells on Instagram or WhatsApp? 🛍️\n\nInvite them to Shopinbos with your link. When their shop is live and gets its first paid order, you get {{2}}. They get a free month of Starter and 100 AI credits to build their store with Rex.\n\nTap below to get your link.",
+    variables: ["first name", "your reward"],
+    examples: ["Ada", "1 month free or 200 AI credits"],
+    button: { text: "Invite a seller", url: `${APP}/refer?for=seller` },
+  },
+  {
+    name: "shopinbos_refer_partner",
+    group: "referral",
+    purpose: "Invite campaign: refer a delivery partner",
+    category: "MARKETING",
+    language: "en",
+    image: "refer-partner",
+    body: "Hi {{1}}, know a dispatch rider or delivery company that wants more jobs? 🚚\n\nInvite them to Shopinbos with your link. When they're verified and complete their first delivery, you get {{2}}. They get a free month of Logistics Plus.\n\nTap below to get your link.",
+    variables: ["first name", "your reward"],
+    examples: ["Ada", "2 months free or 300 AI credits"],
+    button: { text: "Invite a partner", url: `${APP}/refer?for=logistics_partner` },
+  },
+  {
+    name: "shopinbos_referral_joined",
+    group: "referral",
+    purpose: "Someone joined with your invite",
+    category: "UTILITY",
+    language: "en",
+    image: "referral-reward",
+    body: "Good news, {{1}}! {{2}} just joined Shopinbos with your invite. 🎉\n\nYour reward comes when {{3}}. We'll message you here the moment it does.",
+    variables: ["first name", "their business", "when it counts"],
+    examples: ["Ada", "Kemi's Fabrics", "they're verified and have 5 approved products"],
+    button: { text: "See my invites", url: `${APP}/refer` },
+  },
+  {
+    name: "shopinbos_referral_reward",
+    group: "referral",
+    purpose: "Your invite counted: reward given",
+    category: "UTILITY",
+    language: "en",
+    image: "referral-reward",
+    body: "Your reward is here, {{1}}! 🎁 {{2}} now counts on Shopinbos, so you've got {{3}}.\n\nThank you for growing the Shopinbos family. Every business that joins with your link earns you more.",
+    variables: ["first name", "their business", "the reward"],
+    examples: ["Ada", "Kemi's Fabrics", "3 months free"],
+    button: { text: "Use my reward", url: `${APP}/refer` },
+  },
+  {
+    name: "shopinbos_referral_welcome",
+    group: "referral",
+    purpose: "Welcome gift for someone who joined with an invite",
+    category: "UTILITY",
+    language: "en",
+    image: "referral-reward",
+    body: "Welcome to Shopinbos, {{1}}! {{2}} invited you, so you've got {{3}}. 🎉\n\nTap below to finish setting up. Peggy is here if you need a hand.",
+    variables: ["first name", "who invited them", "the welcome gift"],
+    examples: ["Kemi", "Ada Fashion", "1 month of Supplier Plus free + 1 featured week in the marketplace"],
+    button: { text: "Finish setting up", url: `${APP}/` },
+  },
+];
+
+export function memberTemplate(name: string | null | undefined) {
+  return MEMBER_TEMPLATES.find((template) => template.name === name) ?? null;
+}
+
+export function memberTemplateImageUrl(template: MemberTemplate) {
+  return `${APP}/brand/members/${template.image}.jpg`;
+}
+
+/** The body as the admin list shows it: {{first name}} for {{1}} and so on. */
+export function memberTemplatePreview(template: MemberTemplate) {
+  return template.body.replace(/\{\{(\d+)\}\}/g, (_, n: string) => `{{${template.variables[Number(n) - 1] ?? n}}}`);
+}
+
+/** How many {{n}} the body uses (each must have a sample). */
+export function templateVariableCount(body: string) {
+  return new Set([...body.matchAll(/\{\{(\d+)\}\}/g)].map((match) => match[1])).size;
+}
+
+/** The template in Meta's format for POST /{WABA_ID}/message_templates. */
+export function memberTemplatePayload(template: MemberTemplate, headerHandle: string) {
+  return {
+    name: template.name,
+    language: template.language,
+    category: template.category,
+    components: [
+      { type: "HEADER", format: "IMAGE", example: { header_handle: [headerHandle] } },
+      { type: "BODY", text: template.body, example: { body_text: [template.examples] } },
+      { type: "BUTTONS", buttons: [{ type: "URL", text: template.button.text, url: template.button.url }] },
+    ],
+  };
+}

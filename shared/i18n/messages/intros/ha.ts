@@ -821,6 +821,18 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "business-registration.4.sub": "Idan CAC ta yi tambaya, kana amsawa a nan. Yawanci yana ɗaukar ƴan kwanakin aiki.",
   "business-registration.5.caption": "Download certificate ɗinka.",
   "business-registration.5.sub": "Da zarar CAC ta amince, BN number da certificate ɗinka suna jiranka a wannan shafi.",
+  "refer-and-earn.title": "Gayyata ka samu lada",
+  "refer-and-earn.cta": "Raba link ɗina",
+  "refer-and-earn.1.caption": "Kana da link ɗin gayyata naka.",
+  "refer-and-earn.1.sub": "Raba shi a WhatsApp ga masu kawo kaya, shaguna da masu kai kaya da ka sani.",
+  "refer-and-earn.2.caption": "Suna shiga da kyautar maraba.",
+  "refer-and-earn.2.sub": "Mai kawo kayan da ka gayyata yana samun wata ɗaya kyauta na Supplier Plus da mako ɗaya a gaba.",
+  "refer-and-earn.3.caption": "Yana ƙirgawa idan sun fara da gaske.",
+  "refer-and-earn.3.sub": "Mai kawo kaya yana ƙirgawa idan an tabbatar da shi da kayayyaki 5; shago bayan oda ta farko da aka biya.",
+  "refer-and-earn.4.caption": "Sai ka samu ladanka.",
+  "refer-and-earn.4.sub": "Watannin kyauta a tsarinka ko AI credits, kai za ka zaɓa. Credits 500 kamar bidiyon Rex 50 ne.",
+  "refer-and-earn.5.caption": "Ƙara gayyata, ƙara samu.",
+  "refer-and-earn.5.sub": "'Yan kasuwa 5 suna ba ka ƙarin wata ɗaya; 10 suna maishe ka Jakadan Shopinbos.",
 };
 
 export default ha;

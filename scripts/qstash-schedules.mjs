@@ -34,6 +34,7 @@ export const JOBS = [
   { id: "verification-reminders", path: "/api/cron/verification-reminders", cron: "17 * * * *" },
   { id: "morning-brief", path: "/api/cron/morning-brief", cron: "31 6 * * *" },
   { id: "lifecycle-emails", path: "/api/cron/lifecycle", cron: "23 * * * *" },
+  { id: "referrals", path: "/api/cron/referrals", cron: "41 * * * *" },
   { id: "seasonal-campaigns", path: "/api/cron/seasonal-campaigns", cron: "*/5 * * * *" },
   { id: "gmail-sync", path: "/api/cron/gmail-sync", cron: "*/5 * * * *" },
   { id: "lead-growth", path: "/api/cron/lead-growth", cron: "*/10 * * * *" },

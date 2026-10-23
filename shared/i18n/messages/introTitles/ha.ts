@@ -73,6 +73,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "wallet.title": "Shopinbos Wallet",
   "credits.title": "AI credits",
   "business-registration.title": "Yi wa kasuwancinka rajista",
+  "refer-and-earn.title": "Gayyata ka samu lada",
 };
 
 export default ha;

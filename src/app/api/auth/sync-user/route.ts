@@ -3,6 +3,7 @@ import { db } from "@/lib/db/client";
 import { verifyJWT } from "@/lib/auth/middleware";
 import { alignRoleMetadata, ensureAppUserForSupabaseUser } from "@/lib/auth/app-user";
 import { requestedSignupRole } from "@/lib/auth/role-rules";
+import { attributeReferral, claimReferralFromCookie } from "@/lib/referrals/service.server";
 
 function adminInviteEmails() {
   return (process.env.SHOPINBOS_ADMIN_INVITE_EMAILS ?? "")
@@ -40,6 +41,8 @@ export async function POST(request: NextRequest) {
     businessName?: string;
     phone?: string;
     source?: "signup";
+    /** An invite code typed in, or carried by the phone app (the web uses the sib_ref cookie). */
+    ref?: string;
   };
 
   // The role saved on the login when it was made, else (Google sign-ups carry none) the one picked on the sign-up
@@ -90,6 +93,10 @@ export async function POST(request: NextRequest) {
 
   // Fill in (or put back) the role on the login itself, so the phone app and API fallbacks read the same role.
   await alignRoleMetadata(claims.sub, claims.user_metadata?.rawRole, user.role);
+
+  // Joined with an invite (Refer & earn): link it once, give the welcome gift and tell whoever invited them.
+  if (typeof body.ref === "string" && body.ref) await attributeReferral(user.id, body.ref).catch(() => null);
+  await claimReferralFromCookie(user.id);
 
   return NextResponse.json({ data: { id: user.id, role: user.role } });
 }

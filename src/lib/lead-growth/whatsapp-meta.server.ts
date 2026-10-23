@@ -101,7 +101,7 @@ export async function metaTemplates(config: MetaWhatsAppConfig): Promise<{ ok: t
  * Meta wants a sample of a template's header image, uploaded through the app's Resumable Upload API: start a session
  * on /{app-id}/uploads, send the bytes, get back a handle for example.header_handle.
  */
-async function uploadHeaderSample(config: MetaWhatsAppConfig, imageUrl: string): Promise<{ ok: true; handle: string } | { ok: false; error: string }> {
+export async function uploadHeaderSample(config: MetaWhatsAppConfig, imageUrl: string): Promise<{ ok: true; handle: string } | { ok: false; error: string }> {
   if (!config.appId) return { ok: false, error: "Set META_APP_ID (or WHATSAPP_LEADS_APP_ID) so template images can be uploaded to Meta." };
   const image = await fetch(imageUrl, { cache: "no-store", signal: AbortSignal.timeout(20_000) }).catch(() => null);
   if (!image?.ok) return { ok: false, error: `Couldn't load the template image (${imageUrl}).` };
@@ -123,6 +123,16 @@ async function uploadHeaderSample(config: MetaWhatsAppConfig, imageUrl: string):
   const json = ((await sent?.json().catch(() => null)) ?? {}) as { h?: string; error?: { message?: string } };
   if (!sent?.ok || !json.h) return { ok: false, error: `Meta upload: ${json.error?.message ?? "no handle returned"}` };
   return { ok: true, handle: json.h };
+}
+
+/** Submits any template payload whose header is the image at `imageUrl` (uploaded to Meta as the sample). */
+export async function submitTemplateWithImage(config: MetaWhatsAppConfig, imageUrl: string, payload: (headerHandle: string) => Record<string, unknown>): Promise<{ ok: true; status: string } | { ok: false; error: string }> {
+  if (!config.wabaId) return { ok: false, error: "Set WHATSAPP_LEADS_WABA_ID to submit templates." };
+  const sample = await uploadHeaderSample(config, imageUrl);
+  if (!sample.ok) return sample;
+  const result = await graph(`${config.wabaId}/message_templates`, config.token, { body: payload(sample.handle), timeoutMs: 20_000 });
+  if (!result.ok) return { ok: false, error: result.error.message };
+  return { ok: true, status: String(result.json.status ?? "PENDING") };
 }
 
 export async function submitMetaTemplate(config: MetaWhatsAppConfig, template: WhatsAppTemplate): Promise<{ ok: true; status: string } | { ok: false; error: string }> {

@@ -206,6 +206,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "credits.example": "Rex ya yi sababbin hotuna uku na jakarka; an cire ƴan credits daga na wata-wata.",
   "business-registration.short": "Yi wa sunan kasuwancinka rajista a CAC, don ya zama na hukuma ka sami BN number.",
   "business-registration.example": "Yi wa “Ada's Fabrics” rajista a CAC daga Shopinbos ka download certificate a nan.",
+  "refer-and-earn.short": "Gayyato wasu 'yan kasuwa da link ɗinka, ka samu watannin kyauta ko AI credits idan sun fara sayarwa.",
+  "refer-and-earn.example": "Ka gayyaci dillalin yadin da kake saya daga gare shi; idan ya saka kayayyaki 5, ka samu watanni 3 kyauta.",
 };
 
 export default ha;

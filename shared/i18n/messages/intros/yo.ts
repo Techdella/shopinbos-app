@@ -821,6 +821,18 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "business-registration.4.sub": "Tí CAC bá béèrè ìbéèrè, o máa dáhùn níbí. Ó máa ń gba ọjọ́ iṣẹ́ díẹ̀.",
   "business-registration.5.caption": "Download certificate rẹ.",
   "business-registration.5.sub": "Tí CAC bá fọwọ́ sí i, BN number àti certificate rẹ á dúró dè ọ́ lójú-ìwé yìí.",
+  "refer-and-earn.title": "Pe kí o jèrè",
+  "refer-and-earn.cta": "Pín link mi",
+  "refer-and-earn.1.caption": "O ní link ìpè tìrẹ.",
+  "refer-and-earn.1.sub": "Pín in lórí WhatsApp fún àwọn olùpèsè, ṣọ́ọ̀bù àti rider tí o mọ̀.",
+  "refer-and-earn.2.caption": "Wọ́n darapọ̀ pẹ̀lú ẹ̀bùn ìkíni.",
+  "refer-and-earn.2.sub": "Olùpèsè tí o pè gba oṣù kan ọ̀fẹ́ ti Supplier Plus àti ọ̀sẹ̀ kan tí a fi hàn.",
+  "refer-and-earn.3.caption": "Ó máa kà nígbà tí wọ́n bá bẹ̀rẹ̀ ní tòótọ́.",
+  "refer-and-earn.3.sub": "Olùpèsè ka nígbà tí a bá ti fìdí rẹ̀ múlẹ̀ pẹ̀lú ọjà 5; ṣọ́ọ̀bù lẹ́yìn ọjà àkọ́kọ́ tí wọ́n sanwó fún.",
+  "refer-and-earn.4.caption": "Lẹ́yìn náà o gba ẹ̀bùn rẹ.",
+  "refer-and-earn.4.sub": "Oṣù ọ̀fẹ́ lórí plan rẹ tàbí AI credits, ìwọ ló yàn. Credits 500 tó fídíò Rex 50.",
+  "refer-and-earn.5.caption": "Pe púpọ̀ sí i, ṣí púpọ̀ sí i.",
+  "refer-and-earn.5.sub": "Oníṣòwò 5 fún ọ ní oṣù kan síwájú sí i; 10 sọ ọ́ di Shopinbos Ambassador.",
 };
 
 export default yo;
