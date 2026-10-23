@@ -180,6 +180,7 @@ const en = {
   "admin.developers": "Developers",
   "admin.errors": "App errors",
   "admin.referrals": "Referrals",
+  "admin.member-tips": "Member tips",
   "admin.launches": "Launches",
   "group.sourcing": "Sourcing",
   "group.people": "People",

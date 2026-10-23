@@ -394,6 +394,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
             { id: "lead-campaigns", label: "Campaigns & automations", href: "/admin/lead-campaigns" },
             { id: "lead-whatsapp", label: "WhatsApp", href: "/admin/lead-campaigns/whatsapp" },
             { id: "referrals", label: "Referrals", href: "/admin/referrals" },
+            { id: "member-tips", label: "Member tips", href: "/admin/member-tips" },
           ],
         },
         { id: "product-news", label: "Product news", icon: "megaphone", href: "/admin/product-news", core: true },
