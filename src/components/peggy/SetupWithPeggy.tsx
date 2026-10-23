@@ -23,7 +23,9 @@ export function SetupWithPeggy({ initial, question, voice, checklist = true }: {
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const endRef = useRef<HTMLDivElement>(null);
-  useEffect(() => endRef.current?.scrollIntoView({ block: "nearest" }), [lines.length]);
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ block: "nearest" });
+  }, [lines.length]);
 
   const total = status.steps.length;
   const percent = Math.round((status.done / Math.max(1, total)) * 100);
