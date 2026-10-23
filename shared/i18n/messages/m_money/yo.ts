@@ -181,6 +181,21 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "w.weekLine": "{amount} · {count, plural, other {títà #}}",
   "w.last30Line": "Ọjọ́ 30 sẹ́yìn: {amount}",
   "w.recent": "Èyí tó ṣẹ̀ṣẹ̀ wáyé",
+  "bal.title": "Owó inú Wallet",
+  "bal.sub": "Ó ń sanwó fún AI credits àti àwọn iṣẹ́ Shopinbos míì. Owó ọjà tí o tà ṣì ń lọ tààrà sí bánkì rẹ.",
+  "bal.topUp": "Fi owó kún un",
+  "bal.topUpSent": "A ti fi ìmeèlì ránṣẹ́ sí ọ bí o ṣe lè fi owó kún un lórí wẹ́ẹ̀bù Shopinbos. Owó tuntun rẹ yóò hàn níbí tí wọ́n bá ti jẹ́rìísí rẹ̀.",
+  "bal.withdraw": "Gba owó jáde",
+  "bal.amountTo": "Iye owó tí o fẹ́ fi ránṣẹ́ sí {bank}",
+  "bal.amountToYours": "Iye owó tí o fẹ́ fi ránṣẹ́ sí bánkì rẹ",
+  "bal.amount": "Iye owó",
+  "bal.orMore": "{amount} tàbí jù bẹ́ẹ̀ lọ",
+  "bal.sent": "A ti fi ránṣẹ́ sí bánkì rẹ.",
+  "bal.onItsWay": "Ó ń lọ sí bánkì rẹ. Ó máa ń dé láàárín ìṣẹ́jú díẹ̀.",
+  "bal.needBank": "Láti gba owó jáde, kọ́kọ́ fi àkáǹtì bánkì rẹ kún un kí o sì jẹ́rìísí rẹ̀.",
+  "bal.pending": "ó ń bọ̀",
+  "bal.didntGo": "kò lọ",
+  "bal.failed": "Kò ṣiṣẹ́. Gbìyànjú lẹ́ẹ̀kan sí i.",
 };
 
 export default yo;

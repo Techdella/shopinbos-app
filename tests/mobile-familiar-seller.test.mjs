@@ -27,7 +27,10 @@ test("Money says what's coming to the bank: no balance, Withdraw or PIN", () => 
   assert.doesNotMatch(wallet, /withdraw|wPin|Withdraw/);
   const words = read("shared/i18n/messages/m_money/en.ts");
   assert.ok(words.includes('"w.coming": "Coming to your bank"'));
-  assert.doesNotMatch(words, /held by|withdraw/i);
+  // The sales money ("w.*") is never held or withdrawn; only the separate prepaid wallet card ("bal.*",
+  // components/WalletBalanceCard.tsx) has a balance to withdraw.
+  const salesWords = words.split("\n").filter((line) => !line.trim().startsWith('"bal.')).join("\n");
+  assert.doesNotMatch(salesWords, /held by|withdraw/i);
 });
 
 test("Share tracking sends the storefront order page (an unguessable id), never a map or the rider's place", () => {

@@ -186,6 +186,21 @@ const en = {
   "w.weekLine": "{amount} · {count, plural, one {# sale} other {# sales}}",
   "w.last30Line": "Last 30 days: {amount}",
   "w.recent": "Recent",
+  "bal.title": "Wallet balance",
+  "bal.sub": "Pays for AI credits and other Shopinbos services. Sales still go straight to your bank.",
+  "bal.topUp": "Top up",
+  "bal.topUpSent": "We've emailed you how to top up on the Shopinbos website. Your new balance shows here once it's confirmed.",
+  "bal.withdraw": "Withdraw",
+  "bal.amountTo": "Amount to send to {bank}",
+  "bal.amountToYours": "Amount to send to your bank",
+  "bal.amount": "Amount",
+  "bal.orMore": "{amount} or more",
+  "bal.sent": "Sent to your bank.",
+  "bal.onItsWay": "On its way to your bank. It usually arrives within minutes.",
+  "bal.needBank": "To withdraw, add and check your bank account first.",
+  "bal.pending": "on its way",
+  "bal.didntGo": "didn't go through",
+  "bal.failed": "That didn't work. Try again.",
 } satisfies Record<string, string>;
 
 export default en;

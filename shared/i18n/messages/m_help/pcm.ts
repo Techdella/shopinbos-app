@@ -77,6 +77,11 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "chat.send": "Send am to the team",
   "chat.placeholder": "Like: my customer don pay but the order still talk say e never pay",
   "chat.hours": "We dey usually answer inside few hours, 8am to 8pm. You go get message when we reply.",
+  "call.title": "Call Peggy · free",
+  "call.label": "Call Peggy, free",
+  "call.note": "Peggy na Shopinbos AI support. She go talk you through each step.",
+  "call.soon": "Calls with Peggy dey come soon. Chat with am for now, or message us for WhatsApp.",
+  "call.failed": "We no fit reach Peggy now. Try again.",
 };
 
 export default pcm;
