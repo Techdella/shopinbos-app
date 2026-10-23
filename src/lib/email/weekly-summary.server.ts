@@ -8,6 +8,8 @@ import { runWeeklyBatches, type WeeklyCandidate, type WeeklyStore, type WeeklySu
 import { supplierEarnings } from "@/lib/supplier-orders/money.server";
 import { SUPPLIER_EARNED_STATUSES } from "@/lib/supplier-orders/pure";
 import { appBase, buildPlatformEmail } from "./compliance.server";
+import { referralSummaryHtml } from "@/lib/member-messaging/journeys";
+import { rewardText } from "@shared/referrals";
 import { platformEventKey } from "./preferences";
 import {
   hasActivity,
@@ -237,6 +239,7 @@ function prismaStore(week: WeekWindow, appUrl: string): WeeklyStore<BatchEmail> 
       const kind = summary ? summaryKind({ active: hasActivity(summary), lastQuietWeekStart, weekStart: week.weekStart }) : "none";
       if (!summary || kind === "none") return null;
       const rendered = renderWeeklySummary(summary, { appUrl, week, kind });
+      rendered.bodyHtml += await referralBox(user.id, appUrl);
       const built = buildPlatformEmail({
         user: { id: user.id, role: user.role },
         kind: "lifecycle",
@@ -278,4 +281,27 @@ export async function runWeeklySummaries(options: { now?: Date; maxPerRun?: numb
     maxPerRun: Math.max(1, Math.min(5000, options.maxPerRun ?? (Number(process.env.WEEKLY_SUMMARY_MAX_PER_RUN) || 300))),
     deadline: options.deadline ?? Date.now() + 240_000,
   });
+}
+
+/** The Refer & earn box under the weekly summary: their invites so far, or the offer. Never fails the email. */
+async function referralBox(userId: string, appUrl: string) {
+  try {
+    const rows = await db.referral.findMany({ where: { referrerId: userId }, select: { status: true, referrerReward: true } });
+    const earned = rows.reduce(
+      (sum, row) => {
+        const reward = (row.referrerReward ?? {}) as { months?: number; credits?: number };
+        return { months: sum.months + (reward.months ?? 0), credits: sum.credits + (reward.credits ?? 0) };
+      },
+      { months: 0, credits: 0 },
+    );
+    return referralSummaryHtml({
+      appUrl,
+      joined: rows.length,
+      rewarded: rows.filter((row) => row.status === "rewarded").length,
+      waiting: rows.filter((row) => row.status === "signed_up").length,
+      earned: earned.months || earned.credits ? rewardText(earned) : null,
+    });
+  } catch {
+    return "";
+  }
 }

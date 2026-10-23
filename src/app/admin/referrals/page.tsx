@@ -6,7 +6,8 @@ import { adminReferrals } from "@/lib/referrals/service.server";
 import { memberTemplateStatuses } from "@/lib/member-messaging/templates.server";
 import { MEMBER_TEMPLATES, memberTemplatePreview } from "@/lib/member-messaging/whatsapp-templates";
 import { REFERRAL_OFFERS, asReferralRole, rewardText, welcomeText } from "@shared/referrals";
-import { decideReferral, submitReferralTemplates } from "./actions";
+import { announcementState } from "@/lib/member-messaging/announce.server";
+import { decideReferral, submitReferralTemplates, toggleReferralAnnouncement } from "./actions";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Referrals" };
@@ -24,7 +25,7 @@ export default async function AdminReferralsPage(props: { searchParams?: Promise
   const user = await requireAdminSection("leads");
   const params = (await props.searchParams) ?? {};
   const status = (FILTERS as readonly string[]).includes(params.status ?? "") ? (params.status as Filter) : "signed_up";
-  const [{ rows, counts }, templates] = await Promise.all([adminReferrals(status), memberTemplateStatuses().catch(() => null)]);
+  const [{ rows, counts }, templates, announce] = await Promise.all([adminReferrals(status), memberTemplateStatuses().catch(() => null), announcementState()]);
   const back = withParams("/admin/referrals", { status });
   const total = Object.values(counts).reduce((sum, n) => sum + n, 0);
 
@@ -49,6 +50,21 @@ export default async function AdminReferralsPage(props: { searchParams?: Promise
           { label: "Didn't count", value: counts.rejected ?? 0 },
         ]}
       />
+
+      <section aria-labelledby="ref-announce" className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-[20px] border border-app-line bg-white p-5">
+        <div className="min-w-0 flex-1">
+          <h2 id="ref-announce" className="m-0 text-[17px] font-extrabold">Tell everyone about Refer &amp; earn</h2>
+          <p className="m-0 mt-1 text-[13.5px] leading-[1.5] text-app-ink-soft">
+            One email to every seller, supplier and delivery partner with their own link (and the WhatsApp invite once it&apos;s approved). Sent in batches each hour, Mon–Sat 08:00–20:00, each person once.
+            {announce.startedAt ? ` Started ${new Date(announce.startedAt).toLocaleDateString("en-NG", { day: "numeric", month: "short" })}: ${announce.sent} sent${announce.active ? ", still going" : announce.finishedAt ? ", finished" : ""}.` : ""}
+          </p>
+        </div>
+        <form action={toggleReferralAnnouncement}>
+          <input type="hidden" name="start" value={announce.active ? "0" : "1"} />
+          <input type="hidden" name="back" value={back} />
+          <button type="submit" className={buttonClass(announce.active ? "white" : "ink", "sm")}>{announce.active ? "Pause" : announce.startedAt ? "Resume" : "Start sending"}</button>
+        </form>
+      </section>
 
       <section className="mb-6 grid gap-3 md:grid-cols-3" aria-label="The offers">
         {Object.values(REFERRAL_OFFERS).map((offer) => (

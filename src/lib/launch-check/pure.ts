@@ -96,6 +96,7 @@ export const SCHEDULED_JOBS: ScheduledJob[] = [
   { path: "/api/cron/lifecycle", label: "Lifecycle emails", pgCron: ["lifecycle-emails"], qstash: "lifecycle-emails" },
   { path: "/api/cron/referrals", label: "Refer & earn rewards", pgCron: ["referrals"], qstash: "referrals" },
   { path: "/api/cron/member-tips", label: "Weekly tips from Rex & Peggy", pgCron: ["member-tips"], qstash: "member-tips" },
+  { path: "/api/cron/member-journeys", label: "Member journeys and announcements", pgCron: ["member-journeys"], qstash: "member-journeys" },
   { path: "/api/cron/seasonal-campaigns", label: "Seasonal campaigns", pgCron: ["seasonal-campaigns"], qstash: "seasonal-campaigns" },
   { path: "/api/cron/gmail-sync", label: "Gmail sync", pgCron: ["gmail-sync"], qstash: "gmail-sync" },
   { path: "/api/cron/lead-growth", label: "Lead campaigns", pgCron: ["lead-growth"], qstash: "lead-growth" },

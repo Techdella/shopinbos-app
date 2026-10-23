@@ -7,7 +7,7 @@
 
 const APP = "https://app.shopinbos.com";
 
-export type MemberTemplateGroup = "referral" | "tips";
+export type MemberTemplateGroup = "referral" | "tips" | "journeys";
 
 export type MemberTemplate = {
   name: string;
@@ -98,6 +98,30 @@ export const MEMBER_TEMPLATES: MemberTemplate[] = [
     variables: ["first name", "who invited them", "the welcome gift"],
     examples: ["Kemi", "Ada Fashion", "1 month of Supplier Plus free + 1 featured week in the marketplace"],
     button: { text: "Finish setting up", url: `${APP}/` },
+  },
+  {
+    name: "shopinbos_setup_help",
+    group: "journeys",
+    purpose: "Setup not finished (suppliers and delivery partners, day 3)",
+    category: "UTILITY",
+    language: "en",
+    image: "setup-help",
+    body: "Hi {{1}}, it's Peggy from Shopinbos. You're nearly ready to get orders: the next step is {{2}}.\n\nTap below to open your dashboard. You can chat with me there or call me for free, and I'll walk you through it.",
+    variables: ["first name", "the next step"],
+    examples: ["Kemi", "adding your pickup point"],
+    button: { text: "Finish setting up", url: `${APP}/login` },
+  },
+  {
+    name: "shopinbos_welcome_back",
+    group: "journeys",
+    purpose: "Win-back after 14 quiet days (with the credits gift)",
+    category: "MARKETING",
+    language: "en",
+    image: "welcome-back",
+    body: "Hi {{1}}, we've missed you on Shopinbos! 👋 {{2}}\n\nTap below to pick up where you left off. Reply STOP if you'd rather not get these messages.",
+    variables: ["first name", "what's waiting for them"],
+    examples: ["Ada", "We've added 50 free AI credits to your account for Rex videos and product photos."],
+    button: { text: "Open Shopinbos", url: `${APP}/login` },
   },
   ...(["seller", "supplier", "partner"] as const).map((who): MemberTemplate => ({
     name: `shopinbos_tip_${who}`,

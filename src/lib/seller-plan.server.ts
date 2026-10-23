@@ -1,5 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db/client";
+import { notify } from "@/lib/notifications/notify.server";
 import { getPlanCatalog } from "@/lib/plans/catalog.server";
 import { extendPaidUntil, paystackDate, planInterval, sameSubscription, type PlanStatus } from "@/lib/seller-plan";
 
@@ -61,5 +62,30 @@ export async function recordSubscriptionStatus(data: Data, status: Exclude<PlanS
   const subscriptionCode = typeof data?.subscription_code === "string" ? data.subscription_code : null;
   if (!sameSubscription(user.subscriptionCode, subscriptionCode)) return false;
   await db.user.update({ where: { id: user.id }, data: { planStatus: status } });
+  return true;
+}
+
+const BILLING_PAGE: Record<string, string> = { seller: "/home/settings?tab=Billing", supplier: "/supplier/profile", logistics_partner: "/logistics/billing" };
+
+/** Paystack couldn't charge a plan renewal: tell them (bell, push, email) before the plan lapses. Once per invoice. */
+export async function notifyRenewalFailed(data: Data) {
+  const user = await userByEmail(data?.customer?.email);
+  if (!user) return false;
+  const account = await db.user.findUnique({ where: { id: user.id }, select: { role: true } });
+  const invoice = (data?.invoice_code as string | undefined) ?? (data?.subscription?.subscription_code as string | undefined) ?? new Date().toISOString().slice(0, 10);
+  const page = BILLING_PAGE[account?.role ?? "seller"] ?? BILLING_PAGE.seller;
+  await notify({
+    userId: user.id,
+    category: "money",
+    priority: "warning",
+    title: "We couldn't renew your plan",
+    description: "Your card was declined for this month's plan payment. Update your card or pay another way so you keep your plan's features and monthly AI credits.",
+    link: page,
+    actionLabel: "Update payment",
+    actionUrl: page,
+    dedupeKey: `plan-renewal-failed-${invoice}`,
+    email: "transactional",
+    urgent: true,
+  });
   return true;
 }
