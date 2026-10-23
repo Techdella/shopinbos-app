@@ -48,15 +48,23 @@ export default async function InvitePage(props: { params: Promise<{ code: string
 
         <div className="mx-auto mt-12 max-w-[640px] text-center sm:mt-16">
           {inviter && (
-            <span className="inline-flex items-center gap-2 rounded-full border border-[#0E2A38]/[0.08] bg-white py-1 pl-1 pr-3 text-[13px] font-semibold">
-              <span aria-hidden className="grid h-6 w-6 place-items-center rounded-full bg-[#0E2A38] text-[11px] font-bold text-[#73D8C8]">
-                {inviter.name.trim().charAt(0).toUpperCase()}
+            <span className="inline-flex items-center gap-2.5 rounded-full border border-[#0E2A38]/[0.08] bg-white py-1 pl-1 pr-4 text-left">
+              {inviter.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={inviter.avatarUrl} alt="" className="h-9 w-9 shrink-0 rounded-full border border-[#0E2A38]/[0.08] bg-white object-cover" />
+              ) : (
+                <span aria-hidden className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#0E2A38] text-[13px] font-bold text-[#73D8C8]">
+                  {inviter.name.trim().charAt(0).toUpperCase()}
+                </span>
+              )}
+              <span className="leading-[1.2]">
+                <span className="block text-[13.5px] font-semibold">{inviter.name}</span>
+                {inviter.ownerName && <span className="block text-[12px] text-[#0E2A38]/55">{inviter.ownerName}</span>}
               </span>
-              Invite from {inviter.name}
             </span>
           )}
           <h1 className="mb-0 mt-4 text-balance text-[30px] font-bold leading-[1.1] tracking-[-0.03em] sm:text-[42px]">
-            {inviter ? <>{inviter.name} invited you to Shopinbos</> : <>Join Shopinbos</>}
+            {inviter ? <>{inviter.ownerName ? `${inviter.ownerName.split(/\s+/)[0]} from ${inviter.name}` : inviter.name} invited you to Shopinbos</> : <>Join Shopinbos</>}
           </h1>
           <p className="mx-auto mb-0 mt-3 max-w-[520px] text-pretty text-[15.5px] leading-[1.6] text-[#0E2A38]/65">
             Where African businesses sell online, find suppliers and get deliveries done.

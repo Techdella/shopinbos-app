@@ -89,9 +89,29 @@ export async function inviterFor(rawCode: string) {
   if (!code) return null;
   const row = await db.referralCode.findUnique({ where: { code } });
   if (!row) return null;
-  const user = await db.user.findUnique({ where: { id: row.userId }, select: { id: true, role: true, verificationStatus: true } });
+  const user = await db.user.findUnique({
+    where: { id: row.userId },
+    select: {
+      role: true,
+      verificationStatus: true,
+      name: true,
+      avatarUrl: true,
+      store: { select: { name: true, logoUrl: true } },
+      supplier: { select: { businessName: true, logoUrl: true } },
+      logisticsPartner: { select: { displayName: true, logoUrl: true } },
+    },
+  });
   if (!user || user.role === "admin" || user.verificationStatus === "suspended") return null;
-  return { code, name: (await businessNames([user.id])).get(user.id) ?? "A business", role: asReferralRole(user.role) };
+  const business = user.store?.name || user.supplier?.businessName || user.logisticsPartner?.displayName || "";
+  const ownerName = user.name?.trim() || null;
+  return {
+    code,
+    name: business || ownerName || "A business",
+    // The person behind the business, shown next to it (left out when it's the same as the business name).
+    ownerName: ownerName && business && ownerName.toLowerCase() !== business.toLowerCase() ? ownerName : null,
+    avatarUrl: user.store?.logoUrl || user.supplier?.logoUrl || user.logisticsPartner?.logoUrl || user.avatarUrl || null,
+    role: asReferralRole(user.role),
+  };
 }
 
 // ─── Free plan time ───────────────────────────────────────────────────────────
