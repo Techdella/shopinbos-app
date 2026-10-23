@@ -4765,6 +4765,8 @@ model ClientError {
   shown       String?
   stack       String?
   digest      String?
+  /// What they did just before (pages opened, buttons tapped), newest last.
+  trail       String?
   path        String
   pagePattern String
   userAgent   String?
