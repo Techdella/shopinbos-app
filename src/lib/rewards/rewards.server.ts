@@ -4,6 +4,7 @@ import crypto from "node:crypto";
 import { db } from "@/lib/db/client";
 import { ensureCreditAccount } from "@/lib/ai/credits.server";
 import { CREDIT_REFERENCE_PREFIX } from "@shared/ai-credits";
+import { loyaltyView, type LoyaltyView } from "@shared/loyalty";
 import {
   FAST_CHAT_REPLY_MS,
   FAST_JOB_ACCEPT_MS,
@@ -53,6 +54,8 @@ export interface RewardsView {
   resetsAt: string;
   badges: Array<{ key: string; title: string; earned: boolean; earnedAt: string | null }>;
   swap: { points: 100; credits: 20; canSwap: boolean };
+  /** Loyalty tier (shared/loyalty.ts): Bronze to Platinum from the level, monthly credits, perks, founding member. */
+  loyalty: LoyaltyView;
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -138,11 +141,12 @@ export async function rewardsFor(userId: string, now = new Date()): Promise<Rewa
   if (!role) throw new RewardsError("FORBIDDEN", "Rewards are for sellers, suppliers and delivery partners.", 403);
   const catalog = catalogFor(role);
   const start = weekStart(now);
-  const [account, lifetime, thisWeek, claims] = await Promise.all([
+  const [account, lifetime, thisWeek, claims, joined] = await Promise.all([
     db.rewardAccount.findUnique({ where: { userId } }),
     eventCounts(userId),
     eventCounts(userId, start),
     db.challengeClaim.findMany({ where: { userId, weekStart: start }, select: { key: true } }),
+    db.user.findUnique({ where: { id: userId }, select: { createdAt: true } }),
   ]);
   const badges = await syncBadges(userId, role, { counts: lifetime, streak: account?.streak ?? 0 });
   const earned = new Map(badges.map((badge) => [badge.key, badge.earnedAt]));
@@ -150,8 +154,9 @@ export async function rewardsFor(userId: string, now = new Date()): Promise<Rewa
   const xp = account?.xp ?? 0;
   const points = account?.points ?? 0;
 
+  const level = levelFor(role, xp);
   return {
-    ...levelFor(role, xp),
+    ...level,
     xp,
     points,
     streak: currentStreak(account, lagosDay(now)),
@@ -162,6 +167,7 @@ export async function rewardsFor(userId: string, now = new Date()): Promise<Rewa
       return { key: def.key, title: def.title, earned: Boolean(at), earnedAt: at ? at.toISOString() : null };
     }),
     swap: { points: SWAP.points, credits: SWAP.credits, canSwap: canSwap(points) },
+    loyalty: loyaltyView(level.level, joined?.createdAt ?? now),
   };
 }
 

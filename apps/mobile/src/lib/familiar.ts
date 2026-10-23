@@ -80,6 +80,8 @@ export interface Rewards {
   resetsAt: string;
   badges: Array<{ key: string; title: string; earned: boolean; earnedAt: string | null }>;
   swap: { points: number; credits: number; canSwap: boolean };
+  /** Loyalty tier (shared/loyalty.ts); missing from older servers. */
+  loyalty?: { tier: string; tierName: string; color: string; monthlyCredits: number; perks: string[]; next: { tierName: string; atLevel: number; monthlyCredits: number } | null; founding: boolean };
 }
 
 export const fetchRewards = () => optional(api<Rewards>("/api/mobile/rewards"));

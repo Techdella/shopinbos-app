@@ -9,6 +9,8 @@ import { notify } from "@/lib/notifications/notify.server";
 import { FREE_PLAN_MARKER, PLAN_TIERS, type PlanTier } from "@shared/plan-catalog";
 import { planKeyFor } from "@shared/plans";
 import { PAID_ORDER_STATUSES } from "@/lib/insights";
+import { asRewardRole, levelFor } from "@/lib/rewards/rules";
+import { loyaltyView } from "@shared/loyalty";
 import {
   GRANT_TIER,
   REFERRAL_COOKIE,
@@ -393,12 +395,15 @@ const STATUS_LABEL: Record<string, string> = { signed_up: "Joined", qualified: "
 
 /** Everything the Refer & earn page shows. */
 export async function referralOverview(userId: string) {
-  const [code, user, rows, free] = await Promise.all([
+  const [code, user, rows, free, rewards] = await Promise.all([
     referralCodeFor(userId),
-    db.user.findUnique({ where: { id: userId }, select: { role: true, planStatus: true, planPaidUntil: true, subscriptionCode: true } }),
+    db.user.findUnique({ where: { id: userId }, select: { role: true, planStatus: true, planPaidUntil: true, subscriptionCode: true, createdAt: true } }),
     db.referral.findMany({ where: { referrerId: userId }, orderBy: { createdAt: "desc" }, take: 100 }),
     freePlanUntil(userId),
+    db.rewardAccount.findUnique({ where: { userId }, select: { xp: true } }),
   ]);
+  const rewardRole = asRewardRole(user?.role);
+  const loyalty = rewardRole ? loyaltyView(levelFor(rewardRole, rewards?.xp ?? 0).level, user?.createdAt ?? new Date()) : null;
   const names = await businessNames(rows.map((row) => row.refereeId));
   const list = await Promise.all(
     rows.map(async (row) => {
@@ -435,6 +440,7 @@ export async function referralOverview(userId: string) {
     counts: { joined: rows.length, rewarded: rewarded.length, waiting: rows.filter((row) => row.status === "signed_up").length },
     earned,
     freeUntil: free?.endsAt.toISOString() ?? null,
+    loyalty,
   };
 }
 

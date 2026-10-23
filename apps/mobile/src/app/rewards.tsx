@@ -97,6 +97,20 @@ export default function Rewards() {
             </View>
           </View>
 
+          {data.loyalty ? (
+            <View style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 18, gap: 8 }} accessible accessibilityLabel={t("rw.tier", { tier: data.loyalty.tierName })}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: data.loyalty.color }} />
+                <Title size={20}>{t("rw.tier", { tier: data.loyalty.tierName })}</Title>
+                {data.loyalty.founding ? <Pill label={t("rw.founding")} tone="ok" icon="star" /> : null}
+              </View>
+              {data.loyalty.perks.map((perkText) => (
+                <Small key={perkText} style={{ color: colors.ink }}>• {perkText}</Small>
+              ))}
+              <Small>{data.loyalty.next ? t("rw.tierNext", { level: data.loyalty.next.atLevel, tier: data.loyalty.next.tierName, credits: data.loyalty.next.monthlyCredits }) : t("rw.tierTop")}</Small>
+            </View>
+          ) : null}
+
           <View style={{ flexDirection: "row", gap: 12 }}>
             <View style={{ flex: 1, backgroundColor: TILE.peach.bg, borderRadius: 24, padding: 18, gap: 2 }} accessible accessibilityLabel={t("rw.streakLabel", { count: data.streak })}>
               <BigNumber size={38}>{data.streak}</BigNumber>
