@@ -51,7 +51,7 @@ async function liveFacts() {
   if (book) {
     lines.push("- Publishing a store is free on every plan, the free Starter plan included. There is no launch fee.");
     lines.push(`- Fee on store sales paid by card or online bank transfer, by the seller's plan: Free ${book["store_fee.free"]}%, Starter ${book["store_fee.starter"]}%, Growth ${book["store_fee.growth"]}%, Pro ${book["store_fee.pro"]}% of the order (not on delivery, not on dropship items)${book["store_fee.min"] ? `, at least ${naira(book["store_fee.min"])}` : ""}${book["store_fee.max"] ? `, at most ${naira(book["store_fee.max"])}` : ""}. Paystack's own fee (1.5% + ₦100, ₦100 waived under ₦2,500, capped at ₦2,000) is paid by the seller.`);
-    lines.push(`- Suppliers join and get verified free. Commission on marketplace orders: Free ${book["supplier_fee.free"]}%, Supplier Plus ${book["supplier_fee.plus"]}%, Supplier Pro ${book["supplier_fee.pro"]}% of the wholesale value.`);
+    lines.push(`- Suppliers join and get verified free. Commission on marketplace orders: Free ${book["supplier_fee.free"]}%, Supplier Plus ${book["supplier_fee.plus"]}%, Supplier Pro ${book["supplier_fee.pro"]}% of the wholesale value, on dropship orders and on wholesale orders paid by card in Shopinbos.`);
     lines.push(book["delivery.enabled"] === "on"
       ? `- Delivery partners join and get verified free. Job fee on in-app delivery fees: Free ${book["delivery.free"]}%, Logistics Plus ${book["delivery.plus"]}%, Logistics Pro ${book["delivery.pro"]}%.`
       : `- Delivery partners join and get verified free. There is no job fee on deliveries at the moment (it will be ${book["delivery.free"]}% / ${book["delivery.plus"]}% / ${book["delivery.pro"]}% by plan when it starts).`);

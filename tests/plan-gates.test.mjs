@@ -141,3 +141,12 @@ test("switching a team member back on counts against the plan's team size (suppl
   assert.match(read("src/app/actions/supplier.ts"), /export async function updateSupplierTeamMemberStatus[\s\S]{0,1400}status === "active" && teamMember\.status !== "active"[\s\S]{0,400}atLimit\(/);
   assert.match(read("src/app/actions/logistics.ts"), /status === "active" && teamMember\.status !== "active"\) await assertLogisticsPlanAllowsTeamMember/);
 });
+
+test("wholesale orders paid by card take the supplier's plan commission from the supplier's share", () => {
+  const pay = read("src/lib/supplier-orders/wholesale-payments.server.ts");
+  assert.match(pay, /supplierCommissionPct\(book, planKeyFor\("supplier", supplierUser\?\.aiCredits\)\)/);
+  assert.match(pay, /buildSplitPlan\(\{[^}]*platformKobo: supplierCommissionKobo\(amountKobo, commissionPct\)/);
+  assert.match(pay, /metadata: \{[^}]*commissionKobo/);
+  // The supplier's wallet statement records what they actually got.
+  assert.match(pay, /const netKobo = paidKobo - deductedKobo - commissionKobo;[\s\S]*amountKobo: netKobo/);
+});

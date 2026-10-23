@@ -5,12 +5,16 @@ import { appBase } from "@/lib/email/compliance.server";
 import { initializePaystackTransaction, verifyPaystackTransaction } from "@/lib/paystack";
 import { paystackSecretReady } from "@shared/checkout-payments";
 import { createNotification } from "@/lib/notifications/create";
-import { buildSplitPlan, paystackSplitParams } from "@/lib/wallet/rules";
+import { buildSplitPlan, paystackSplitParams, supplierCommissionKobo } from "@/lib/wallet/rules";
+import { getPriceBook } from "@/lib/pricing/price-book.server";
+import { supplierCommissionPct } from "@shared/platform-pricing";
+import { planKeyFor } from "@shared/plans";
 import { applyDeductions, debtsToDeduct, holdPlannedDeductions, readDeductions } from "@/lib/money-owed/money-owed.server";
 
-// A seller pays for a wholesale order by card in Shopinbos, once the supplier has accepted it. Paystack splits it
-// all to the supplier's Shopinbos Wallet subaccount (src/lib/wallet), so it settles straight to the supplier's bank;
-// Shopinbos takes nothing and never holds it (as for delivery fees, src/lib/logistics/delivery-fee-payments.server.ts).
+// A seller pays for a wholesale order by card in Shopinbos, once the supplier has accepted it. Paystack splits it to
+// the supplier's Shopinbos Wallet subaccount (src/lib/wallet), so it settles straight to the supplier's bank, less
+// Shopinbos's commission for the supplier's plan (shared/plans.ts commissionPct, Admin › Pricing), as on dropship
+// orders. Shopinbos never holds the supplier's money.
 // Only Paystack's verified reply marks the order paid (the return page, the app and the webhook all call confirm;
 // the order is updated once). Overdue money the supplier owes is split to whoever it's owed to first.
 
@@ -53,9 +57,16 @@ export async function startWholesalePayment(seller: { id: string; email: string 
   if (!wallet?.subaccountCode) return { ok: false, error: `${order.supplier.displayName} can't take card payments yet, so pay them directly.` };
   const reference = `${WHOLESALE_PAY_PREFIX}${randomBytes(9).toString("hex")}`;
   const amountKobo = Math.round(order.totalPrice * 100);
-  const debts = await debtsToDeduct(new Map([[order.supplier.userId, "seller"]]), "paystack");
-  const plan = buildSplitPlan({ totalKobo: amountKobo, sellerSubaccount: wallet.subaccountCode, suppliers: [], debts });
+  const [debts, book, supplierUser] = await Promise.all([
+    debtsToDeduct(new Map([[order.supplier.userId, "seller"]]), "paystack"),
+    getPriceBook(),
+    db.user.findUnique({ where: { id: order.supplier.userId }, select: { aiCredits: true } }),
+  ]);
+  const commissionPct = supplierCommissionPct(book, planKeyFor("supplier", supplierUser?.aiCredits));
+  const plan = buildSplitPlan({ totalKobo: amountKobo, sellerSubaccount: wallet.subaccountCode, suppliers: [], debts, platformKobo: supplierCommissionKobo(amountKobo, commissionPct) });
   const deductions = plan.deductions ?? [];
+  // What Shopinbos keeps: the commission (buildSplitPlan never leaves the supplier less than Paystack will settle).
+  const commissionKobo = Math.max(0, amountKobo - plan.sellerKobo - deductions.reduce((sum, d) => sum + d.kobo, 0));
   await holdPlannedDeductions(`wholesale:${order.id}`, deductions, null);
   try {
     const started = await initializePaystackTransaction({
@@ -64,7 +75,7 @@ export async function startWholesalePayment(seller: { id: string; email: string 
       reference,
       // The web page confirms the reference Paystack adds; the phone app confirms when its browser closes.
       callbackUrl: `${appBase()}/marketplace/wholesale`,
-      metadata: { kind: "wholesale", orderId: order.id, sellerId: seller.id, supplierId: order.supplierId, ...(deductions.length ? { deductions } : {}) },
+      metadata: { kind: "wholesale", orderId: order.id, sellerId: seller.id, supplierId: order.supplierId, commissionKobo, commissionPct, ...(deductions.length ? { deductions } : {}) },
       split: paystackSplitParams(plan),
     });
     if (!started.access_code) return { ok: false, error: "Paystack couldn't start this payment. Try again." };
@@ -131,11 +142,13 @@ export async function confirmWholesalePayment(reference: string, expectedSellerI
   const what = `${order.quantity} × ${order.supplierProduct.name}`;
   const deductions = readDeductions(meta.deductions);
   const deductedKobo = deductions.reduce((sum, row) => sum + row.kobo, 0);
+  const commissionKobo = Math.max(0, Math.round(Number(meta.commissionKobo) || 0));
+  const netKobo = paidKobo - deductedKobo - commissionKobo;
   if (deductions.length) await applyDeductions({ key: `wholesale:${order.id}`, deductions, label: `the wholesale order for ${what}`, paystackReference: reference, retailOrderId: null });
   const wallet = await db.wallet.findUnique({ where: { userId: order.supplier.userId }, select: { id: true } });
   if (wallet) {
     await db.walletEntry
-      .createMany({ data: [{ walletId: wallet.id, reference: `wholesale:${order.id}`, kind: "supplier_order", amountKobo: paidKobo - deductedKobo, description: `Wholesale · ${what}`, supplierId: order.supplierId, paystackReference: reference }], skipDuplicates: true })
+      .createMany({ data: [{ walletId: wallet.id, reference: `wholesale:${order.id}`, kind: "supplier_order", amountKobo: netKobo, description: `Wholesale · ${what}${commissionKobo ? ` (less ₦${(commissionKobo / 100).toLocaleString("en-NG")} Shopinbos commission)` : ""}`, supplierId: order.supplierId, paystackReference: reference }], skipDuplicates: true })
       .catch((error) => console.error(`[wholesale payments] could not record order ${order.id} on the supplier's wallet`, error));
   }
   await createNotification({
@@ -143,7 +156,7 @@ export async function confirmWholesalePayment(reference: string, expectedSellerI
     type: "order",
     priority: "info",
     title: "Wholesale order paid",
-    description: `${what} was paid by card: ₦${((paidKobo - deductedKobo) / 100).toLocaleString("en-NG")}${deductedKobo ? " after what you owe" : ""}. It goes straight to your bank.`,
+    description: `${what} was paid by card: ₦${(netKobo / 100).toLocaleString("en-NG")}${commissionKobo ? " after Shopinbos's commission" : ""}${deductedKobo ? `${commissionKobo ? " and" : " after"} what you owe` : ""}. It goes straight to your bank.`,
     link: "/supplier/orders",
     event: "payin.received",
   }).catch(() => null);
