@@ -28,6 +28,17 @@ const TONE: Record<string, string> = {
   rejected: "bg-app-canvas text-app-ink-soft",
 };
 
+function BusinessAvatar({ name, url, size, className }: { name: string; url: string | null; size: number; className?: string }) {
+  const style = { width: size, height: size };
+  // eslint-disable-next-line @next/next/no-img-element
+  if (url) return <img src={url} alt="" style={style} className={cx("shrink-0 rounded-full border border-black/[0.06] bg-white object-cover", className)} />;
+  return (
+    <span aria-hidden style={{ ...style, fontSize: Math.round(size * 0.38) }} className={cx("grid shrink-0 place-items-center rounded-full bg-[#0E2A38] font-bold text-[#73D8C8]", className)}>
+      {name.trim().charAt(0).toUpperCase() || "?"}
+    </span>
+  );
+}
+
 export function ReferEarn({ overview, focus }: { overview: ReferralOverview; focus: ReferralRole | null }) {
   const [choice, setChoice] = useState<RewardChoice>(overview.rewardChoice);
   const [copied, setCopied] = useState<string | null>(null);
@@ -74,6 +85,13 @@ export function ReferEarn({ overview, focus }: { overview: ReferralOverview; foc
             </p>
           </div>
           <div>
+            <div className="mb-4 flex items-center gap-3">
+              <BusinessAvatar name={overview.business.name} url={overview.business.avatarUrl} size={44} className="border-white/15" />
+              <span className="min-w-0 leading-[1.25]">
+                <span className="block truncate text-[15px] font-semibold">{overview.business.name}</span>
+                <span className="block text-[12.5px] text-white/55">This is how your invites show you</span>
+              </span>
+            </div>
             <p className="mb-2 mt-0 font-mono text-[10.5px] uppercase tracking-[0.16em] text-white/50">Your invite link</p>
             <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] p-1.5 pl-4">
               <span className="min-w-0 flex-1 truncate font-mono text-[13px] text-white/90">{link().replace(/^https:\/\//, "")}</span>
@@ -145,6 +163,7 @@ export function ReferEarn({ overview, focus }: { overview: ReferralOverview; foc
             <ul className="m-0 grid list-none gap-2 p-0">
               {overview.referrals.map((referral) => (
                 <li key={referral.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-[14px] border border-app-line px-3 py-2.5">
+                  <BusinessAvatar name={referral.name} url={referral.avatarUrl} size={36} />
                   <span className="min-w-0 flex-1">
                     <span className="block text-[14px] font-semibold">{referral.name}</span>
                     <span className="block text-[12.5px] text-app-ink-soft">
