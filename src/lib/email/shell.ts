@@ -10,6 +10,8 @@
 // - the compliance footer: who sent it and their postal address, why the reader got it, contact and privacy links,
 //   and for marketing and lifecycle mail both "Unsubscribe" and "Update preferences".
 
+import { lookFooterCss, lookRows, type EmailLook, type EmailPersona } from "./looks.ts";
+
 export type EmailKind =
   /** Receipts, password and security, order status: no opt-out, a "service message" line instead. */
   | "transactional"
@@ -215,7 +217,7 @@ export function emailHead(input: { title: string; scheme?: "light dark" | "dark"
 <meta name="color-scheme" content="${scheme}" />
 <meta name="supported-color-schemes" content="${scheme}" />
 <title>${escapeHtml(input.title)}</title>
-${input.fonts === false ? "" : '<!--[if !mso]><!--><link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet" /><!--<![endif]-->'}
+${input.fonts === false ? "" : '<!--[if !mso]><!--><link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;family=Anton&amp;family=Fraunces:ital@1&amp;display=swap" rel="stylesheet" /><!--<![endif]-->'}
 <!--[if mso]><style>table,td,div,p,a,span{font-family:Arial,Helvetica,sans-serif!important}</style><![endif]-->
 <style>
 :root{color-scheme:${scheme};supported-color-schemes:${scheme}}
@@ -303,7 +305,7 @@ ${preheaderHtml(input.preheader)}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="sib-page" bgcolor="${page}" style="background:${page}"><tr><td align="center" class="sib-wrap" style="padding:28px 12px">
 <!--[if mso]><table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;margin:0 auto">
-<tr><td${input.cardIsRows ? "" : ' class="sib-head"'} style="padding:4px 6px 20px${input.cardIsRows ? "" : " 33px"}${input.headerAlign === "center" ? ";text-align:center" : ""}" align="${input.headerAlign ?? "left"}">${input.header}</td></tr>
+${input.header ? `<tr><td${input.cardIsRows ? "" : ' class="sib-head"'} style="padding:4px 6px 20px${input.cardIsRows ? "" : " 33px"}${input.headerAlign === "center" ? ";text-align:center" : ""}" align="${input.headerAlign ?? "left"}">${input.header}</td></tr>` : ""}
 ${card}
 <tr><td>${input.footer}</td></tr>
 </table>
@@ -385,11 +387,26 @@ export interface PlatformEmailInput {
   privacyUrl?: string | null;
   /** Extra CSS for the head (e.g. dark-mode colours for classes the body uses). */
   extraCss?: string;
+  /** The look (./looks.ts): classic (default), chat for nudges, celebrate for wins and gifts. */
+  look?: EmailLook;
+  /** Who it's from: Rex or Peggy sign it and appear in the header; team (default) shows the logo only. */
+  persona?: EmailPersona;
+  /** chat: the messages (escaped HTML) and an optional reply from the reader. */
+  bubbles?: string[];
+  reply?: string | null;
+  /** celebrate: the sticker and the big number tiles. */
+  sticker?: string | null;
+  stats?: Array<{ value: string; label: string }>;
+  /** The reader's own numbers ("Your shop this month: 4 orders, 126 visits."). */
+  personal?: string | null;
+  /** The proverb of the week (shared/proverbs.ts). */
+  proverb?: string | null;
+  /** When it's sent (picks the season's pattern and greeting); now by default. */
+  now?: Date;
 }
 
 export function platformEmail(input: PlatformEmailInput) {
   const appUrl = cleanAppUrl(input.appUrl);
-  const body = `${input.eyebrow ? html.eyebrow(input.eyebrow) : ""}${html.h1(input.heading)}${input.bodyHtml}${input.cta ? html.button(input.cta.label, input.cta.url) : ""}`;
   const footer = footerHtml({
     kind: input.kind,
     senderName: input.legal.name,
@@ -403,7 +420,26 @@ export function platformEmail(input: PlatformEmailInput) {
     contactLabel: "Contact support",
     privacyUrl: input.privacyUrl ?? SHOPINBOS_PRIVACY_URL,
   });
-  return emailDocument({ title: input.title ?? input.heading, preheader: input.preheader, header: shopinbosHeader(appUrl), card: body, aside: input.aside, accentBar: true, footer, adaptCard: true, extraCss: input.extraCss });
+  const aside = input.aside ? `<div class="sib-soft" style="margin:22px 0 0;padding:16px 18px;border-radius:14px;background:${EMAIL_COLORS.paper};border:1px solid ${EMAIL_COLORS.line};font-size:13.5px;line-height:1.55">${input.aside}</div>` : "";
+  const look = lookRows({
+    appUrl,
+    look: input.look ?? "classic",
+    persona: input.persona ?? "team",
+    eyebrow: input.eyebrow,
+    heading: input.heading,
+    bodyHtml: `${input.bodyHtml}${aside}`,
+    bubbles: input.bubbles,
+    reply: input.reply,
+    sticker: input.sticker,
+    stats: input.stats,
+    personal: input.personal,
+    proverb: input.proverb,
+    cta: input.cta,
+    now: input.now,
+    festive: input.kind !== "transactional",
+  });
+  const tagline = `<p class="sib-tagline" style="margin:0 0 18px;text-align:center;font-family:${ACCENT_FONT};font-style:italic;font-size:13.5px;color:${EMAIL_COLORS.coral}">Built in Lagos for businesses across Africa 🇳🇬</p>`;
+  return emailDocument({ title: input.title ?? input.heading, preheader: input.preheader, header: "", card: look.rows, cardIsRows: true, page: look.page, footer: `${footer}${tagline}`, adaptCard: true, extraCss: `${lookFooterCss(input.look ?? "classic")}${input.extraCss ?? ""}` });
 }
 
 export function reasonSentence(reason: string) {

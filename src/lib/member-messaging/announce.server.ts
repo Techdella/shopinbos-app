@@ -6,7 +6,7 @@ import { metaTemplates, metaWhatsAppConfig, sendMetaTemplate } from "@/lib/lead-
 import { referralCodeFor } from "@/lib/referrals/service.server";
 import { REFERRAL_OFFERS, welcomeText, type ReferralRole } from "@shared/referrals";
 import { MEMBER_TEMPLATES, memberTemplateImageUrl } from "./whatsapp-templates";
-import { WHATSAPP_TIPS_EVENT } from "./tips.server";
+import { WHATSAPP_TIPS_EVENT, memberEmailExtras } from "./tips.server";
 import { firstNameOf } from "./tips-email";
 import { overEmailCap, sendingHours } from "./journeys";
 
@@ -55,12 +55,19 @@ function emailFor(role: ReferralRole, firstName: string, link: string) {
     subject: `New: invite ${best.noun}, get ${best.referrerMonths} month${best.referrerMonths === 1 ? "" : "s"} free`,
     preheader: "Or AI credits for Rex videos. They get a welcome gift too.",
     eyebrow: "Refer & earn",
-    heading: "Invite businesses you know, get rewarded",
-    bodyHtml: `<p style="margin:0 0 14px">Hi ${escape(firstName)},</p>
+    heading: "Invite a business. Get months free.",
+    bodyHtml: `<p style="margin:0 0 14px">Hello ${escape(firstName)} 👋🏾,</p>
 <p style="margin:0 0 14px">You know suppliers, shops and riders who should be on Shopinbos. Now every one you bring in earns you free months on your plan or AI credits, your choice.</p>
 <ul style="margin:0 0 14px;padding-left:20px;line-height:1.5">${rows}</ul>
 <p style="margin:0 0 14px">Your link: <a href="${escape(link)}" style="color:#0E2A38;font-weight:700">${escape(link)}</a>. Share it on WhatsApp, it takes ten seconds. A reward counts when they're properly set up, and you can see their progress on your Refer &amp; earn page.</p>`,
     cta: { label: "Get my link", url: `${appBase()}/refer` },
+    look: "celebrate" as const,
+    sticker: "NEW: REFER & EARN 🎁",
+    stats: [
+      { value: `${REFERRAL_OFFERS.supplier.referrerMonths} mo`, label: "free per supplier" },
+      { value: `${REFERRAL_OFFERS.seller.referrerMonths} mo`, label: "free per seller" },
+      { value: `${REFERRAL_OFFERS.logistics_partner.referrerMonths} mo`, label: "free per rider" },
+    ],
   };
 }
 
@@ -102,7 +109,7 @@ export async function runReferralAnnouncement(now = new Date(), deadline = Date.
         const link = `${appBase()}/r/${code.code}?for=${PITCH[role].invite}`;
         const weekly = await db.memberMessage.count({ where: { userId: person.id, channel: "email", status: "sent", sentAt: { gte: new Date(now.getTime() - 7 * DAY) } } });
         if (person.email && !overEmailCap(weekly)) {
-          const result = await sendPlatformEmail({ to: person.email, user: { id: person.id, role }, kind: "marketing", topic: "product_news", ...emailFor(role, firstName, link) });
+          const result = await sendPlatformEmail({ to: person.email, user: { id: person.id, role }, kind: "marketing", topic: "product_news", ...emailFor(role, firstName, link), ...memberEmailExtras("peggy", now) });
           status = result.success ? "sent" : /turned off/i.test(result.message ?? "") ? "skipped" : "failed";
           if (!result.success) error = result.message ?? null;
         }

@@ -82,48 +82,55 @@ const naira = (value: number) => `₦${Math.round(value).toLocaleString("en-NG")
 /** The email's parts for the platform email shell (sendPlatformEmail). */
 export function renderTipEmail(tip: Tip, input: TipEmailInput) {
   const from = FROM_NAME[tip.from];
-  const points = tip.points.map((point) => `<li style="margin:0 0 10px">${escape(point)}</li>`).join("");
+  // Steps in amber circles, the example as a "real talk" note, then what's selling (the look's signature, proverb
+  // and button come from the email shell, src/lib/email/looks.ts).
+  const points = tip.points
+    .map(
+      (point, i) => `<tr><td valign="top" width="44" style="padding:0 12px 14px 0"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td width="30" height="30" align="center" valign="middle" bgcolor="#F2A93B" style="width:30px;height:30px;border-radius:15px;background:#F2A93B;color:#0E2A38;font-size:14px;font-weight:700">${i + 1}</td></tr></table></td><td valign="top" style="padding:4px 0 14px;font-size:15.5px;line-height:1.55">${escape(point)}</td></tr>`,
+    )
+    .join("");
+  const where = tip.example?.match(/\bin ([A-Z][a-zA-Z]+(?: [A-Z][a-zA-Z]+)?)/)?.[1];
   const example = tip.example
-    ? `<p style="margin:16px 0;padding:12px 14px;border-radius:12px;background:#F4F1EA;font-size:14px;line-height:1.5"><strong>Example:</strong> ${escape(tip.example)}</p>`
+    ? `<div style="margin:8px 0 6px;padding:14px 16px;border-radius:4px 18px 18px 18px;background:#FCEFD9"><div style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10.5px;letter-spacing:0.14em;text-transform:uppercase;color:#9A5B0A;margin-bottom:8px">${escape(where ? `Real talk from ${where}` : "Real talk")}</div><div style="font-size:15px;line-height:1.55;color:#1C2B33">${escape(tip.example)}</div></div>`
     : "";
   let extra = "";
   if (input.products?.length) {
-    const cells = input.products
-      .slice(0, 4)
-      .map(
-        (product) => `<td width="50%" valign="top" style="padding:6px">
-  <a href="${escape(product.url)}" style="display:block;text-decoration:none;color:#0E2A38;border:1px solid #E7E2D8;border-radius:14px;overflow:hidden">
-    ${product.image ? `<img src="${escape(product.image)}" alt="" width="260" style="display:block;width:100%;height:160px;object-fit:cover">` : ""}
-    <span style="display:block;padding:10px 12px;font-size:14px;font-weight:700;line-height:1.35">${escape(product.name)}</span>
-    <span style="display:block;padding:0 12px 12px;font-size:13px;color:#2E7E78">Sell for about ${naira(product.price)}${product.note ? ` · ${escape(product.note)}` : ""}</span>
+    const cells = input.products.slice(0, 4).map(
+      (product) => `<td width="50%" valign="top" style="padding:6px">
+  <a href="${escape(product.url)}" style="display:block;text-decoration:none;color:#0E2A38;border:1px solid #ECE6DA;border-radius:16px;overflow:hidden">
+    ${product.image ? `<img src="${escape(product.image)}" alt="" width="260" style="display:block;width:100%;height:150px;object-fit:cover">` : ""}
+    <span style="display:block;padding:12px 14px 0;font-size:14.5px;font-weight:700;line-height:1.35">${escape(product.name)}</span>
+    <span style="display:block;padding:6px 14px 0;font-size:17px;font-weight:700;color:#1C2B33">${naira(product.price)} <span style="font-size:12.5px;font-weight:400;color:#5B6770">suggested price</span></span>
+    ${product.note ? `<span style="display:inline-block;margin:9px 14px 0;padding:5px 10px;border-radius:999px;background:#FDF0E9;color:#B4442C;font-size:12px;font-weight:700">🔥 ${escape(product.note)}</span>` : ""}
+    <span style="display:block;height:14px;line-height:14px">&nbsp;</span>
   </a>
 </td>`,
-      );
+    );
     const rows: string[] = [];
     for (let i = 0; i < cells.length; i += 2) rows.push(`<tr>${cells[i]}${cells[i + 1] ?? '<td width="50%"></td>'}</tr>`);
-    extra = `<h2 style="margin:28px 0 6px;font-size:18px">Top products to sell this week</h2>
-<p style="margin:0 0 8px;font-size:14px;color:#55544F">What other shops are adding from the marketplace right now. Add any of them to your shop and sell without holding stock.</p>
+    extra = `<h2 style="margin:30px 0 6px;font-size:19px;color:#0E2A38">What's selling this week 🔥</h2>
+<p style="margin:0 0 8px;font-size:14.5px;color:#5B6770">What other shops are adding from the marketplace right now. Add any of them and sell without holding stock.</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse">${rows.join("")}</table>
-${input.marketplaceUrl ? `<p style="margin:10px 0 0;font-size:14px"><a href="${escape(input.marketplaceUrl)}" style="color:#0E2A38;font-weight:700">See more in the marketplace</a></p>` : ""}`;
+${input.marketplaceUrl ? `<p style="margin:12px 0 0;font-size:14.5px"><a href="${escape(input.marketplaceUrl)}" style="color:#0E2A38;font-weight:700">See more in the marketplace &rarr;</a></p>` : ""}`;
   } else if (input.categories?.length) {
-    const items = input.categories.slice(0, 5).map((category) => `<li style="margin:0 0 6px">${escape(category.name)} <span style="color:#55544F">(${category.count} added by shops)</span></li>`).join("");
-    extra = `<h2 style="margin:28px 0 6px;font-size:18px">What shops are adding this week</h2>
-<p style="margin:0 0 8px;font-size:14px;color:#55544F">The categories sellers added most from the marketplace in the last two weeks. Got stock in these? List it.</p>
+    const items = input.categories.slice(0, 5).map((category) => `<li style="margin:0 0 6px">${escape(category.name)} <span style="color:#5B6770">(${category.count} added by shops)</span></li>`).join("");
+    extra = `<h2 style="margin:30px 0 6px;font-size:19px;color:#0E2A38">What shops are adding this week 🔥</h2>
+<p style="margin:0 0 8px;font-size:14.5px;color:#5B6770">The categories sellers added most from the marketplace in the last two weeks. Got stock in these? List it.</p>
 <ul style="margin:0;padding-left:20px;font-size:15px;line-height:1.5">${items}</ul>`;
   }
-  const bodyHtml = `<p style="margin:0 0 14px">Hi ${escape(input.firstName)},</p>
-<p style="margin:0 0 14px">${escape(tip.intro)}</p>
-<ol style="margin:0 0 6px;padding-left:22px;font-size:15px;line-height:1.55">${points}</ol>
+  const bodyHtml = `<p style="margin:0 0 14px">Hello ${escape(input.firstName)} 👋🏾,</p>
+<p style="margin:0 0 14px">How's business this week? ${escape(tip.intro)}</p>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:6px 0 4px">${points}</table>
 ${example}
-<p style="margin:16px 0 0">${tip.from === "rex" ? "Happy building," : "Talk soon,"}<br><strong>${from}</strong>, from Shopinbos</p>
 ${extra}`;
   return {
     subject: tip.subject,
     preheader: tip.preheader,
-    eyebrow: `Tip from ${from}`,
+    eyebrow: `Tip of the week · from ${from}`,
     heading: tip.title,
     bodyHtml,
     cta: { label: tip.cta.label, url: input.ctaUrl },
+    persona: tip.from,
   };
 }
 

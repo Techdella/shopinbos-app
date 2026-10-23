@@ -110,7 +110,7 @@ test("weekly summary emails: stat tiles, ▲/▼, ₦, top 3, a rules-based tip,
   assert.match(html, /href="https:\/\/app\.example\/home"[^>]*>Open your dashboard</);
   assert.match(html, /class="sib-foot-link sib-unsubscribe"/);
   assert.match(html, /prefers-color-scheme:dark\)\{\.sib-up/, "dark-mode colours for the change lines");
-  assert.match(html, /shopinbos-logo-navy@2x\.png/);
+  assert.match(html, /shopinbos-logo-white@2x\.png/);
 
   // Tips come from the data, no AI.
   assert.equal(weekly.sellerTip(seller({ orders: { current: 0, previous: 0 }, visits: { current: 40, previous: 0 } })).who, "Peggy");

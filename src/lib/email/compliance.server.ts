@@ -15,6 +15,7 @@ import {
   readBusinessAddress,
   unsubscribeMailto,
   type EmailKind,
+  type PlatformEmailInput,
   type PlatformLegal,
   type StoreSender,
 } from "./shell";
@@ -127,6 +128,15 @@ export interface PlatformSendInput {
   serviceNote?: string | null;
   /** Extra head CSS (dark-mode colours for classes the body uses). */
   extraCss?: string;
+  /** The look and who it's from (src/lib/email/looks.ts), and the extras the looks can show. */
+  look?: PlatformEmailInput["look"];
+  persona?: PlatformEmailInput["persona"];
+  bubbles?: string[];
+  reply?: string | null;
+  sticker?: string | null;
+  stats?: Array<{ value: string; label: string }>;
+  personal?: string | null;
+  proverb?: string | null;
 }
 
 /** Builds the (A) email in the shell and sends it, honouring email preferences for lifecycle mail. */
@@ -147,6 +157,14 @@ export function buildPlatformEmail(input: Omit<PlatformSendInput, "to" | "subjec
     preferencesUrl: unsubscribing ? links?.preferences : input.kind === "notification" ? notificationSettingsUrl(input.user?.role) : null,
     serviceNote: input.serviceNote,
     extraCss: input.extraCss,
+    look: input.look,
+    persona: input.persona,
+    bubbles: input.bubbles,
+    reply: input.reply,
+    sticker: input.sticker,
+    stats: input.stats,
+    personal: input.personal,
+    proverb: input.proverb,
   });
   return { html, headers: unsubscribing && links ? unsubscribeHeaders(links) : undefined };
 }

@@ -8,13 +8,14 @@ import { notify } from "@/lib/notifications/notify.server";
 import { setupStatus } from "@/lib/onboarding/setup-status.server";
 import { PAID_ORDER_STATUSES } from "@/lib/insights";
 import { MEMBER_TEMPLATES, memberTemplateImageUrl } from "./whatsapp-templates";
-import { WHATSAPP_TIPS_EVENT } from "./tips.server";
+import { WHATSAPP_TIPS_EVENT, memberEmailExtras } from "./tips.server";
 import { firstNameOf } from "./tips-email";
 import {
   LOW_CREDITS,
   WINBACK_GIFT_CREDITS,
   WINBACK_GIFT_EVERY_DAYS,
   journeyBodyHtml,
+  journeyLook,
   journeyMessage,
   monthPeriod,
   overEmailCap,
@@ -81,6 +82,7 @@ async function deliver(person: Person, key: JourneyKey, stage: string, period: s
   const row = await claim(person.id, key, period, stage);
   if (!row) return "claimed";
   const message = journeyMessage(key, stage, role, vars);
+  const lookFor = journeyLook(key, stage, message, vars.firstName);
   const marketing = MARKETING.includes(key);
   try {
     await notify({
@@ -109,6 +111,8 @@ async function deliver(person: Person, key: JourneyKey, stage: string, period: s
         heading: message.heading,
         bodyHtml: journeyBodyHtml(message),
         cta: { label: message.cta.label, url: `${appBase()}${message.cta.path}` },
+        ...lookFor,
+        ...memberEmailExtras(lookFor.persona, now),
       });
       emailed = sent.success;
       if (!sent.success) error = sent.message ?? "email failed";
