@@ -1,11 +1,14 @@
 import * as Sentry from "@sentry/nextjs";
-import { listenForUnhandledErrors } from "@/lib/errors/report-client";
+import { listenForUnhandledErrors, reportClientError } from "@/lib/errors/report-client";
+import { guardEffects } from "@/lib/errors/effect-guard";
 import { ensureUsableStorage } from "@/lib/safe-storage";
 
 // First, before anything reads it: browsers that deny site storage throw on window.sessionStorage/localStorage.
 // Swap in memory storage so the app (and Sentry's replay) keep working, and send uncaught errors to Admin › App errors.
 ensureUsableStorage();
 listenForUnhandledErrors();
+// An effect that returns null (a library's) crashed whole pages on navigation ("i is not a function"): drop it and report.
+guardEffects((error) => reportClientError(error, { source: "unhandled" }));
 
 // Browser errors. Next loads this file on the client by itself; the DSN has to be NEXT_PUBLIC_ to reach the browser.
 Sentry.init({
