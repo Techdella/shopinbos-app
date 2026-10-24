@@ -1,6 +1,7 @@
 import { setupStatus } from "@/lib/onboarding/setup-status.server";
 import { stepQuestion } from "@/lib/onboarding/setup-peggy-pure";
 import { peggyVoiceReady } from "@/lib/ai/peggy-voice.server";
+import { Mascot } from "@/components/brand/Mascot";
 import { PeggyCall } from "./PeggyCall";
 import { SetupWithPeggy } from "./SetupWithPeggy";
 
@@ -16,7 +17,7 @@ export async function SetupWithPeggySlot({ userId, checklist = true }: { userId:
 export function PeggyCallCard({ className = "mb-6" }: { className?: string }) {
   return (
     <section aria-label="Call Peggy" className={`flex flex-wrap items-center gap-4 rounded-[24px] border border-app-line bg-white p-5 ${className}`}>
-      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-app-forest text-[16px] font-extrabold text-white" aria-hidden>P</span>
+      <span className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-full bg-app-mint" aria-hidden><Mascot who="peggy" size={40} decorative /></span>
       <div className="min-w-0 flex-1">
         <h2 className="m-0 text-[17px] font-extrabold">Need a hand? Talk to Peggy</h2>
         <p className="m-0 text-[13px] text-app-ink-soft">Shopinbos&apos;s AI support, on a free voice call.</p>

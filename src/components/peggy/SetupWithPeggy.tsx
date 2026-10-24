@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { cx } from "@/components/app-ui/cx";
 import { Icon } from "@/components/ui/Icon";
+import { Mascot } from "@/components/brand/Mascot";
 import { PeggyCall } from "./PeggyCall";
 
 // Getting set up, with Peggy: the checklist (each step links to its page), a chat where Peggy asks for one thing
@@ -52,7 +53,7 @@ export function SetupWithPeggy({ initial, question, voice, checklist = true }: {
       <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
         <div className="border-b border-app-line p-5 lg:border-b-0 lg:border-r">
           <div className="flex items-center gap-3">
-            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-app-forest text-[16px] font-extrabold text-white" aria-hidden>P</span>
+            <span className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-full bg-app-mint" aria-hidden><Mascot who="peggy" size={40} decorative /></span>
             <div className="min-w-0">
               <h2 id="setup-peggy" className="m-0 text-[18px] font-extrabold tracking-[-0.01em]">{checklist ? <>Let&apos;s get {status.business} ready</> : "Stuck? Ask Peggy"}</h2>
               <p className="m-0 text-[13px] text-app-ink-soft">{status.done} of {total} done · Peggy can help, free</p>

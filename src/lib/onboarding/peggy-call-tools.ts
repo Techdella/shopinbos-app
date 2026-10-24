@@ -72,6 +72,18 @@ export const VOICE_TOOLS: readonly VoiceTool[] = [
     properties: { text: { type: "string", description: "The summary, in English" } },
   },
   {
+    name: "get_dashboard",
+    description: "Get a fresh snapshot of their dashboard (setup, products, orders, money, delivery and more). Use it after you or they save something, or when they ask how things stand. Trust what it says.",
+    required: [],
+    properties: { reason: { type: "string", description: "Why you're checking, e.g. after saving their delivery areas" } },
+  },
+  {
+    name: "open_screen",
+    description: "Open a screen in their app while you talk, so they can see it (e.g. delivery, add_product, wallet). Only screens from your list. Opening never presses a button. Then say what you opened and what to tap.",
+    required: ["screen"],
+    properties: { screen: { type: "string", description: "The screen's id from your list, e.g. delivery" } },
+  },
+  {
     name: "lookup_areas",
     description: "Get the well-known neighbourhoods of a Nigerian city, so you can ask which ones they cover.",
     required: ["city"],
@@ -80,6 +92,24 @@ export const VOICE_TOOLS: readonly VoiceTool[] = [
 ];
 
 export const VOICE_TOOL_NAMES = VOICE_TOOLS.map((tool) => tool.name);
+
+/** Tools that only read or move around (no saving): allowed for every role. open_screen runs on the device. */
+export const READ_TOOLS = ["lookup_areas", "get_dashboard", "open_screen"];
+
+/**
+ * ElevenLabs system tools (prompt.built_in_tools): end_call lets Peggy hang up when they say goodbye or the job is done.
+ * The description tells the agent when to use it.
+ */
+export function elevenLabsBuiltInTools() {
+  return {
+    end_call: {
+      type: "system",
+      name: "end_call",
+      description: "End the call when they say goodbye, ask to hang up, or everything is done and they need nothing else. Save the call summary and say a short goodbye first.",
+      params: { system_tool_type: "end_call" },
+    },
+  };
+}
 
 /** The ElevenLabs agent config for the tools (client tools: the app runs them and answers Peggy). */
 export function elevenLabsTools() {
@@ -112,9 +142,9 @@ export function toolActions(tool: string, params: unknown, role: SetupRole): Set
   return cleanActions([raw], role);
 }
 
-/** Whether a role can use a tool at all (lookup_areas is for everyone). */
+/** Whether a role can use a tool at all (the read tools are for everyone). */
 export function toolAllowed(tool: string, role: SetupRole) {
-  if (tool === "lookup_areas") return true;
+  if (READ_TOOLS.includes(tool)) return true;
   const type = TOOL_ACTION[tool];
   return Boolean(type && actionsFor(role).includes(type));
 }
@@ -133,6 +163,8 @@ export function toolReply(tool: string, params: unknown, role: SetupRole, saved:
     return found.map((city) => `${city.city} (${city.state}): ${city.areas.join(", ")}.`).join(" ");
   }
   if (!VOICE_TOOL_NAMES.includes(tool)) return "That isn't something I can do on this call.";
+  if (tool === "open_screen") return "Not opened: screens open on their phone or browser, not here. Tell them where to tap.";
+  if (tool === "get_dashboard") return "I couldn't read their dashboard just now. Use what you already know.";
   if (!toolAllowed(tool, role)) return `That can't be saved for ${ROLE_WORDS[role]}. Tell them where to set it in the app instead.`;
   if (saved.length) {
     const unknown = tool === "add_coverage" ? coverageTokens(p).unknown : [];

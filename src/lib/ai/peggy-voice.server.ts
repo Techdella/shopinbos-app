@@ -5,7 +5,9 @@ import { db } from "@/lib/db/client";
 import { setupStatus, setupText } from "@/lib/onboarding/setup-status.server";
 import { PEGGY_FACTS } from "@/lib/support/peggy-knowledge";
 import { actionsFor } from "@/lib/onboarding/setup-peggy-pure";
-import { elevenLabsTools } from "@/lib/onboarding/peggy-call-tools";
+import { elevenLabsBuiltInTools, elevenLabsTools } from "@/lib/onboarding/peggy-call-tools";
+import { peggyDashboard } from "./peggy-dashboard.server";
+import { screenList } from "@shared/peggy-screens";
 import { canonicalState } from "@shared/delivery-market";
 import { areasText, citiesText } from "@shared/ng-places";
 import { PEGGY_LANGUAGE_QUESTION, peggyVoicePrompt } from "./peggy-voice-prompt";
@@ -43,11 +45,16 @@ function voiceId() {
   return process.env.ELEVENLABS_PEGGY_VOICE_ID?.trim() || process.env.ELEVENLABS_VOICE_FEMALE?.trim() || "21m00Tcm4TlvDq8ikWAM";
 }
 
-function agentConfig() {
+/**
+ * The agent: her prompt, voice, client tools and ElevenLabs' end_call system tool (prompt.built_in_tools), so she can
+ * hang up when they say goodbye. `withSystemTools: false` is the same agent without it, only used to create her when
+ * ElevenLabs rejects the full config; the saved version then differs, so the full config is tried again next call.
+ */
+function agentConfig({ withSystemTools = true } = {}) {
   return {
     name: "Peggy (Shopinbos setup help)",
     conversation_config: {
-      agent: { first_message: FIRST_MESSAGE, language: "en", prompt: { prompt: PROMPT, tools: elevenLabsTools() } },
+      agent: { first_message: FIRST_MESSAGE, language: "en", prompt: { prompt: PROMPT, tools: elevenLabsTools(), ...(withSystemTools ? { built_in_tools: elevenLabsBuiltInTools() } : {}) } },
       tts: { voice_id: voiceId() },
       conversation: { max_duration_seconds: MAX_CALL_SECONDS },
     },
@@ -82,15 +89,26 @@ async function agentId() {
   if (id) {
     if (saved.version !== version) {
       // Only remembered once ElevenLabs took it, so a failed update (prompt, voice or tools) is tried again next call.
-      const synced = await eleven(`/convai/agents/${encodeURIComponent(id)}`, { method: "PATCH", body: config }).then(() => true, (error) => (console.error("[peggy-voice] agent update failed", error), false));
+      const path = `/convai/agents/${encodeURIComponent(id)}`;
+      const synced = await eleven(path, { method: "PATCH", body: config }).then(() => true, (error) => (console.error("[peggy-voice] agent update failed", error), false));
       if (synced) await db.platformSetting.upsert({ where: { key: SETTING }, create: { key: SETTING, value: { agentId: id, version } }, update: { value: { agentId: id, version } } });
+      // Rejected (perhaps the system tools): her new prompt and tools still go out without them; the version isn't
+      // saved, so the full config is tried again on the next call.
+      else await eleven(path, { method: "PATCH", body: agentConfig({ withSystemTools: false }) }).catch((error) => console.error("[peggy-voice] agent update without system tools failed", error));
     }
     return id;
   }
-  const created = await eleven("/convai/agents/create", { method: "POST", body: config });
+  // If ElevenLabs rejects the full config, make her without the system tools (calls still work); "partial" is never
+  // the current version, so the next call PATCHes the full config again.
+  let saveAs = version;
+  const created = await eleven("/convai/agents/create", { method: "POST", body: config }).catch(async (error) => {
+    console.error("[peggy-voice] agent create failed, trying without system tools", error);
+    saveAs = "partial";
+    return eleven("/convai/agents/create", { method: "POST", body: agentConfig({ withSystemTools: false }) });
+  });
   const newId = typeof created.agent_id === "string" ? created.agent_id : null;
   if (!newId) throw new PeggyVoiceError("ElevenLabs didn't return an agent.");
-  await db.platformSetting.upsert({ where: { key: SETTING }, create: { key: SETTING, value: { agentId: newId, version } }, update: { value: { agentId: newId, version } } });
+  await db.platformSetting.upsert({ where: { key: SETTING }, create: { key: SETTING, value: { agentId: newId, version: saveAs } }, update: { value: { agentId: newId, version: saveAs } } });
   return newId;
 }
 
@@ -120,7 +138,7 @@ async function homeStates(userId: string) {
 async function callVariables(userId: string) {
   const status = await setupStatus(userId);
   if (!status) throw new PeggyVoiceError("Finish signing up first, then call Peggy.");
-  const states = await homeStates(userId);
+  const [states, dashboard] = await Promise.all([homeStates(userId), peggyDashboard(userId, status)]);
   const near = areasText(states.length ? states : ["Lagos"]);
   return {
     first_name: status.firstName,
@@ -129,6 +147,8 @@ async function callVariables(userId: string) {
     setup: setupText(status),
     can_save: actionsFor(status.role).map((type) => SAVE_WORDS[type]).filter(Boolean).join(", ") || "nothing",
     home_areas: near || "none listed",
+    dashboard: dashboard || "Not available right now: go by their setup above.",
+    screens: screenList(status.role),
     user_ref: userId,
   };
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Modal, Pressable, ScrollView, View } from "react-native";
+import { AccessibilityInfo, Animated, Easing, Modal, Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppIcon } from "@/components/icons";
 import { Sheet } from "@/components/Sheet";
@@ -11,7 +11,8 @@ import { colors, fonts } from "@/theme";
 
 // What a "Call Peggy" call looks like (the call itself is components/peggy/PeggyCallEngine.tsx): the full-screen
 // sheet with Minimize, the small "Peggy is on the call" bar across the app while minimized, a toast for each thing
-// she saves, and "Here's what Peggy saved" after the call. Words in m_help ("call.*").
+// she saves (or each screen she opens), and "Here's what Peggy saved" after the call. Peggy is always her avatar
+// (PeggyAvatar, the Mascot with a soft pulse ring while she speaks), never a letter mark. Words in m_help ("call.*").
 
 export interface LiveCall {
   phase: CallPhase;
@@ -31,6 +32,43 @@ function useClock(startedAt: number | null) {
     return () => clearInterval(timer);
   }, [startedAt]);
   return startedAt ? callClock((now - startedAt) / 1000) : "";
+}
+
+/**
+ * Peggy's avatar on a white disc, with a ring that pulses gently while she speaks (still when reduce motion is on).
+ */
+export function PeggyAvatar({ size, speaking = false, ring = "rgba(115,216,200,0.45)" }: { size: number; speaking?: boolean; ring?: string }) {
+  const [pulse] = useState(() => new Animated.Value(0));
+  const [still, setStill] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    AccessibilityInfo.isReduceMotionEnabled()
+      .then((reduce) => alive && setStill(reduce))
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, []);
+  useEffect(() => {
+    if (!speaking || still) {
+      pulse.stopAnimation();
+      pulse.setValue(0);
+      return;
+    }
+    const loop = Animated.loop(Animated.timing(pulse, { toValue: 1, duration: 1200, easing: Easing.out(Easing.quad), useNativeDriver: true }));
+    loop.start();
+    return () => loop.stop();
+  }, [pulse, speaking, still]);
+  const scale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.28] });
+  const opacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.7, 0] });
+  return (
+    <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }} testID="peggy-avatar">
+      {speaking && !still ? <Animated.View pointerEvents="none" style={{ position: "absolute", width: size, height: size, borderRadius: size / 2, backgroundColor: ring, opacity, transform: [{ scale }] }} /> : null}
+      <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+        <Mascot who="peggy" mood={speaking ? "wave" : "idle"} size={Math.round(size * 0.85)} label="" />
+      </View>
+    </View>
+  );
 }
 
 /** "Peggy added coverage: Abeokuta – Lafenwa, Kuto" */
@@ -101,10 +139,8 @@ export function CallSheet({ call, onMinimize, onMute, onEnd }: { call: LiveCall;
 
         <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 16, gap: 22 }}>
           <View style={{ alignItems: "center", gap: 12 }} accessibilityLiveRegion="polite">
-            <View style={{ width: 132, height: 132, borderRadius: 66, alignItems: "center", justifyContent: "center", backgroundColor: call.speaking ? "rgba(115,216,200,0.28)" : "rgba(255,255,255,0.08)" }}>
-              <View style={{ width: 108, height: 108, borderRadius: 54, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-                <Mascot who="peggy" mood={call.speaking ? "wave" : "idle"} size={92} label="" />
-              </View>
+            <View style={{ width: 132, height: 132, borderRadius: 66, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.08)" }}>
+              <PeggyAvatar size={108} speaking={call.speaking} />
             </View>
             <T style={{ color: "#FFFFFF", fontFamily: fonts.display, fontSize: 26, textAlign: "center" }} accessibilityRole="header">{words}</T>
             <T style={{ color: "rgba(255,255,255,0.75)", fontSize: 14, textAlign: "center" }}>{t("call.free")}</T>
@@ -155,9 +191,7 @@ export function CallBar({ call, onOpen, onMute, onEnd }: { call: LiveCall; onOpe
     <View pointerEvents="box-none" style={{ position: "absolute", left: 12, right: 12, bottom: insets.bottom + 78, zIndex: 50, elevation: 12 }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: colors.forest, borderRadius: 26, paddingLeft: 8, paddingRight: 8, paddingVertical: 8, shadowColor: "#000", shadowOpacity: 0.22, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } }}>
         <Pressable accessibilityRole="button" accessibilityLabel={t("call.open")} onPress={onOpen} style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 10, minHeight: 44 }}>
-          <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-            <Mascot who="peggy" mood={call.speaking ? "wave" : "idle"} size={34} label="" />
-          </View>
+          <PeggyAvatar size={40} speaking={call.speaking} />
           <View style={{ flex: 1, minWidth: 0 }}>
             <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 15 }} numberOfLines={1}>{call.phase === "live" ? t("call.onCall") : t("call.calling")}</T>
             {last ? <T style={{ color: "rgba(255,255,255,0.8)", fontSize: 13 }} numberOfLines={1}>{line(last)}</T> : null}
@@ -176,27 +210,30 @@ export function CallBar({ call, onOpen, onMute, onEnd }: { call: LiveCall; onOpe
   );
 }
 
-/** A short "Peggy saved …" line at the top of the screen while the call is minimized. */
-export function SavedToast({ item }: { item: SavedEntry | null }) {
+/** A short line at the top of the screen while the call is minimized: "Peggy saved …" or "Peggy opened Delivery". */
+export function SavedToast({ text }: { text: string | null }) {
   const insets = useSafeAreaInsets();
-  const line = useSavedLine();
-  if (!item) return null;
+  if (!text) return null;
   return (
     <View pointerEvents="none" style={{ position: "absolute", top: insets.top + 8, left: 16, right: 16, zIndex: 60, elevation: 14 }} accessibilityLiveRegion="polite">
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: colors.ink, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 12 }}>
-        <AppIcon name="check" size={16} color={colors.mintTint} strokeWidth={3} />
-        <T weight="semibold" style={{ flex: 1, color: "#FFFFFF", fontSize: 14, lineHeight: 19 }} numberOfLines={2}>{line(item)}</T>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: colors.ink, borderRadius: 18, paddingHorizontal: 12, paddingVertical: 10 }}>
+        <PeggyAvatar size={30} />
+        <T weight="semibold" style={{ flex: 1, color: "#FFFFFF", fontSize: 14, lineHeight: 19 }} numberOfLines={2}>{text}</T>
       </View>
     </View>
   );
 }
 
 /** After the call: everything Peggy saved, with Edit links, then the next step that's still missing. */
-export function CallSummary({ saved, status, editPathOf, nextLabel, onEdit, onContinue, onClose }: { saved: SavedEntry[]; status: SetupView | null; editPathOf: (item: SavedEntry) => string | null; nextLabel: string | null; onEdit: (path: string) => void; onContinue: () => void; onClose: () => void }) {
+export function CallSummary({ saved, status, endedByPeggy = false, editPathOf, nextLabel, onEdit, onContinue, onClose }: { saved: SavedEntry[]; status: SetupView | null; endedByPeggy?: boolean; editPathOf: (item: SavedEntry) => string | null; nextLabel: string | null; onEdit: (path: string) => void; onContinue: () => void; onClose: () => void }) {
   const t = useT("m_help");
   const line = useSavedLine();
   return (
     <Sheet visible onClose={onClose} title={t("call.summaryTitle")} testID="peggy-call-summary">
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+        <PeggyAvatar size={40} />
+        <T weight="semibold" style={{ flex: 1, fontSize: 15, color: colors.inkSoft }} numberOfLines={2}>{endedByPeggy ? t("call.peggyEnded") : t("call.free")}</T>
+      </View>
       <ScrollView style={{ maxHeight: 360 }} contentContainerStyle={{ gap: 4 }}>
         {saved.length ? (
           saved.map((item) => {

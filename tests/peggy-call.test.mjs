@@ -18,7 +18,7 @@ const LANGS = ["en", "pcm", "yo", "ha", "ig"];
 // ─── Tools and the action endpoint ───────────────────────────────────────────
 
 test("tools: client tools for every saving action, plus notes, the summary and area lookups", () => {
-  assert.deepEqual([...tools.VOICE_TOOL_NAMES].sort(), ["add_coverage", "add_pickup_point", "lookup_areas", "save_call_summary", "save_note", "save_pickup_address", "set_description", "set_starting_price"]);
+  assert.deepEqual([...tools.VOICE_TOOL_NAMES].sort(), ["add_coverage", "add_pickup_point", "get_dashboard", "lookup_areas", "open_screen", "save_call_summary", "save_note", "save_pickup_address", "set_description", "set_starting_price"]);
   for (const tool of tools.elevenLabsTools()) {
     assert.equal(tool.type, "client", tool.name);
     assert.equal(tool.expects_response, true, tool.name);
@@ -81,7 +81,7 @@ test("starting a call: a WebRTC token, the same daily limit and maximum length",
   assert.match(server, /const MAX_CALL_SECONDS = 900;/);
   assert.match(server, /max_duration_seconds: MAX_CALL_SECONDS/);
   assert.match(server, /\/convai\/conversation\/token\?agent_id=/);
-  assert.match(server, /prompt: \{ prompt: PROMPT, tools: elevenLabsTools\(\) \}/);
+  assert.match(server, /prompt: \{ prompt: PROMPT, tools: elevenLabsTools\(\), \.\.\.\(withSystemTools \? \{ built_in_tools: elevenLabsBuiltInTools\(\) \} : \{\}\) \}/);
   assert.match(server, /FIRST_MESSAGE = `.*\$\{PEGGY_LANGUAGE_QUESTION\}`/);
 });
 
@@ -226,4 +226,173 @@ test("post-call webhook: HMAC-checked, recent only, and the summary goes with th
   const route = read("src/app/api/webhooks/elevenlabs/route.ts");
   assert.match(route, /verifyElevenLabsSignature\(raw, req\.headers\.get\("elevenlabs-signature"\), process\.env\.ELEVENLABS_WEBHOOK_SECRET\)/);
   assert.match(route, /kind: "summary"/);
+});
+
+// ─── Round 2: Peggy ends calls, knows the dashboard, opens screens, and is shown as her avatar ───────────────
+
+const rules = await import("../src/lib/onboarding/setup-rules.ts");
+const snapshot = await import("../src/lib/ai/peggy-dashboard.ts");
+const screens = await import("../shared/peggy-screens.ts");
+
+test("end_call: ElevenLabs' system tool in the agent config, and a rejected sync is retried safely", () => {
+  const builtIn = tools.elevenLabsBuiltInTools();
+  assert.deepEqual(Object.keys(builtIn), ["end_call"]);
+  assert.equal(builtIn.end_call.type, "system");
+  assert.equal(builtIn.end_call.name, "end_call");
+  assert.deepEqual(builtIn.end_call.params, { system_tool_type: "end_call" });
+  assert.match(builtIn.end_call.description, /goodbye/);
+  const server = read("src/lib/ai/peggy-voice.server.ts");
+  assert.match(server, /built_in_tools: elevenLabsBuiltInTools\(\)/);
+  // Version saved only once ElevenLabs takes the full config; otherwise the agent still gets the rest, and it's retried.
+  assert.match(server, /if \(synced\) await db\.platformSetting\.upsert/);
+  assert.match(server, /agentConfig\(\{ withSystemTools: false \}\)/);
+  assert.match(server, /saveAs = "partial"/);
+  // Peggy is told when to hang up.
+  const text = prompt.peggyVoicePrompt({ facts: "F", cities: "C" });
+  assert.match(text, /end the call with end_call/);
+  // The phone shows the summary when Peggy hangs up; the web says she ended the call.
+  const engine = read("apps/mobile/src/components/peggy/PeggyCallEngine.tsx");
+  assert.match(engine, /details\?\.reason === "agent"/);
+  assert.match(engine, /patchCall\(\{ phase: "summary", minimized: false, endedBy \}\)/);
+  assert.match(read("apps/mobile/src/components/peggy/PeggyCallViews.tsx"), /t\("call\.peggyEnded"\)/);
+  assert.match(read("src/components/peggy/PeggyCall.tsx"), /setEndedByPeggy\(details\?\.reason === "agent"\)/);
+});
+
+test("published store: what publishing writes counts as live (no launch payment needed)", () => {
+  // src/lib/store-publishing.ts publishStoreDraft: status "active", onboardingState "LIVE", editor.published = the draft.
+  const published = { status: "active", onboardingState: "LIVE", brandSettings: { editor: { draft: { pages: [] }, published: { pages: [] } } }, paidLaunches: 0 };
+  assert.equal(rules.storeIsLive(published), true);
+  assert.equal(rules.storeIsLive({ ...published, onboardingState: "INCOMPLETE" }), true, "editor.published on an active store");
+  assert.equal(rules.storeIsLive({ status: "active", onboardingState: "NEW", brandSettings: { editor: { draft: {} } }, paidLaunches: 0 }), false, "a new store with the default status isn't live");
+  assert.equal(rules.storeIsLive({ status: "active", onboardingState: null, brandSettings: {}, paidLaunches: 1 }), true, "an old paid launch");
+  assert.equal(rules.storeIsLive({ status: "suspended", onboardingState: "BUILDING_REX", brandSettings: { editor: { published: {} } } }), false);
+  const status = read("src/lib/onboarding/setup-status.server.ts");
+  assert.match(status, /done: live, href: "\/studio"/);
+  assert.match(status, /storeIsLive\(\{ onboardingState: st\.onboardingState, status: st\.status, brandSettings: st\.brandSettings/);
+  assert.match(read("src/lib/store-publishing.ts"), /status: "active", onboardingState: "LIVE"/);
+});
+
+test("setup steps: done anywhere (web or phone) is never reported missing", () => {
+  assert.equal(rules.bankIsSet({ walletAccountNumber: "0123456789" }), true);
+  assert.equal(rules.bankIsSet({ walletSubaccountStatus: "review" }), true);
+  assert.equal(rules.bankIsSet({ payoutAccount: true }), true);
+  assert.equal(rules.bankIsSet({ brandSettings: { payoutBank: { accountNumberMask: "****6789" } } }), true);
+  assert.equal(rules.bankIsSet({ walletSubaccountStatus: "none" }), false);
+  assert.equal(rules.sellerDeliverySet({ deliverySettings: false, activeZones: 2, deliveryPartners: 0 }), true);
+  assert.equal(rules.sellerDeliverySet({ deliverySettings: false, activeZones: 0, deliveryPartners: 1 }), true);
+  assert.equal(rules.sellerDeliverySet({ deliverySettings: false, activeZones: 0, deliveryPartners: 0 }), false);
+  assert.equal(rules.documentsDone(2, "verified"), true);
+  assert.equal(rules.documentsDone(1, "pending"), false);
+  // The phone's supplier set-up saves the pickup address as "Where I ship from".
+  assert.equal(rules.supplierPickupSet({ address: null, pickupAddress: null, originAddress: "4 Kuto Road, Abeokuta" }), true);
+  assert.equal(rules.supplierProfileSet({ businessName: "Ade Fabrics", city: null, categories: ["fashion"] }), true);
+  // The phone's partner set-up writes deliveryAreas and a public rate card, not coverageZones or basePrice.
+  assert.equal(rules.partnerCoverageSet({ coverageZones: [], deliveryAreas: ["Lagos: Ikeja"] }), true);
+  assert.equal(rules.partnerRatesSet({ basePrice: 0, rateCards: 1 }), true);
+  assert.equal(rules.partnerRatesSet({ basePrice: 0, rateCards: 0 }), false);
+  assert.equal(rules.partnerProfileSet({ companyName: "Swift Riders", city: null, address: "2 Allen Ave, Ikeja" }), true);
+  const status = read("src/lib/onboarding/setup-status.server.ts");
+  for (const rule of ["supplierPickupSet", "supplierProfileSet", "partnerCoverageSet", "partnerRatesSet", "partnerProfileSet", "sellerDeliverySet", "bankIsSet", "documentsDone"]) assert.match(status, new RegExp(rule), rule);
+});
+
+test("dashboard snapshots: short English lines per role, sent at the start and by get_dashboard", () => {
+  const seller = snapshot.sellerSnapshot({ shop: "Glow by Amaka", url: "https://glow.shopinbos.com", live: true, plan: "Starter", products: 12, lowStock: 2, outOfStock: 1, ordersToday: 3, ordersWeek: 9, unpaid: 1, toSend: 2, bankSet: true, deliverySet: true, credits: 140, unreadChats: 4, reviewsMonth: 5 });
+  assert.match(seller, /Published: yes, it's live/);
+  assert.match(seller, /Products: 12 \(2 running low, 1 sold out\)/);
+  assert.match(seller, /3 today, 9 this week; 1 not paid yet, 2 to send out/);
+  assert.match(seller, /Payout bank set: yes\. Delivery set up: yes\. AI credits: 140/);
+  assert.match(seller, /Unread chats: 4\. Reviews in the last 30 days: 5/);
+  assert.match(snapshot.sellerSnapshot({ shop: "X", url: null, live: false, plan: "Free", products: 0, lowStock: 0, outOfStock: 0, ordersToday: 0, ordersWeek: 0, unpaid: 0, toSend: 0, bankSet: false, deliverySet: false, credits: 0, unreadChats: 0, reviewsMonth: 0 }), /Published: no, not yet/);
+  const supplier = snapshot.supplierSnapshot({ business: "Ade Fabrics", verification: "pending", products: 8, published: 6, lowStock: 1, toAccept: 2, toSend: 3, quotes: 1, bankSet: true, pickupSet: true, deliveryPartners: 0, selfDelivery: true });
+  assert.match(supplier, /Verification: waiting for the team's review/);
+  assert.match(supplier, /2 waiting to be accepted, 3 to send\. Quotes waiting: 1/);
+  assert.match(supplier, /Delivery: delivers itself/);
+  const partner = snapshot.partnerSnapshot({ company: "Swift Riders", verification: "verified", cacNumber: true, coverage: ["Lagos: Ikeja", "Lagos: Yaba"], pickupPoints: 2, ratesSet: true, startingPrice: 2500, riders: 3, newJobs: 1, activeJobs: 4, unassigned: 1, cashOwed: 45000, bankSet: false });
+  assert.match(partner, /CAC number given: yes/);
+  assert.match(partner, /Delivers to: Lagos: Ikeja, Lagos: Yaba\. Pickup points: 2\. Rates set: yes, from ₦2,500/);
+  assert.match(partner, /Riders: 3\. Jobs: 1 new waiting, 4 active, 1 with no rider yet/);
+  assert.match(partner, /cash owed to sellers: ₦45,000\. Bank for payments set: no/);
+  for (const text of [seller, supplier, partner]) assert.ok(text.length < 600, "short");
+  // Built server-side from the dashboards' helpers, and given to Peggy with the rule to trust it.
+  const server = read("src/lib/ai/peggy-dashboard.server.ts");
+  for (const helper of ["computeDashboard", "supplierFacts", "partnerFacts", "getSellerOnboardingStatus", "creditBalance", "sellerPlan"]) assert.match(server, new RegExp(helper), helper);
+  assert.match(read("src/lib/ai/peggy-voice.server.ts"), /dashboard: dashboard \|\|/);
+  const text = prompt.peggyVoicePrompt({ facts: "F", cities: "C" });
+  assert.match(text, /\{\{dashboard\}\}/);
+  assert.match(text, /Never say something is missing or not done when they say it's done/);
+  assert.match(text, /call get_dashboard/);
+  assert.match(read("src/app/api/mobile/peggy-call/action/route.ts"), /if \(tool === "get_dashboard"\)[\s\S]*peggyDashboard\(userId, status\)/);
+});
+
+test("open_screen: only allow-listed screens per role; unknown ones are refused", () => {
+  for (const role of ["seller", "supplier", "logistics_partner"]) {
+    const list = screens.PEGGY_SCREENS[role];
+    assert.ok(list.length >= 10, role);
+    assert.equal(new Set(list.map((s) => s.id)).size, list.length, `${role} ids unique`);
+    for (const screen of list) {
+      assert.match(screen.app, /^\/[a-z]/, `${role} ${screen.id}`);
+      assert.doesNotMatch(screen.app + (screen.web ?? ""), /admin|checkout|credits|billing|topup|top-up/i, `${role} ${screen.id} never a money or admin page`);
+    }
+  }
+  assert.equal(screens.findScreen("seller", "delivery").app, "/delivery");
+  assert.equal(screens.findScreen("seller", "Add a product").app, "/add-products");
+  assert.equal(screens.findScreen("supplier", "pickup").app, "/supplier/setup?edit=pickup");
+  assert.equal(screens.findScreen("logistics_partner", "riders").app, "/logistics/team");
+  assert.equal(screens.findScreen("logistics_partner", "pickup points").app, "/logistics/points");
+  assert.equal(screens.findScreen("seller", "admin"), null);
+  assert.equal(screens.findScreen("seller", "/admin/users"), null);
+  assert.equal(screens.findScreen("seller", "riders"), null, "another role's screen");
+  assert.equal(screens.findScreen("supplier", 42), null);
+  // Phone: the route to push, or a refusal (nothing opens).
+  const opened = pure.openScreenOnPhone("logistics_partner", { screen: "coverage" });
+  assert.equal(opened.route, "/logistics/coverage");
+  assert.match(opened.reply, /^Opened Where you deliver\. .*Don't press anything/);
+  const refused = pure.openScreenOnPhone("seller", { screen: "delete account" });
+  assert.equal(refused.route, null);
+  assert.match(refused.reply, /^Not opened/);
+  // Web: web paths, never from the signed-out call page, never for phone-only screens.
+  assert.equal(screens.openScreenOnWeb("seller", { screen: "delivery" }).path, "/home/shipping");
+  assert.equal(screens.openScreenOnWeb("seller", { screen: "delivery" }, false).path, null);
+  assert.equal(screens.openScreenOnWeb("supplier", { screen: "help" }).path, null);
+  assert.equal(screens.openScreenOnWeb(null, { screen: "delivery" }).path, null);
+  assert.equal(screens.screenRoleFromWords("delivery partner"), "logistics_partner");
+  // The phone minimizes the call, pushes the route and shows a toast; every screen name has words in all languages.
+  const engine = read("apps/mobile/src/components/peggy/PeggyCallEngine.tsx");
+  assert.match(engine, /patchCall\(\{ minimized: true \}\);\s*router\.push\(route as never\);/);
+  assert.match(engine, /t\("call\.opened"/);
+  assert.match(read("src/components/peggy/PeggyCall.tsx"), /openScreenOnWeb\(role\.current, params, !token\)/);
+  const text = prompt.peggyVoicePrompt({ facts: "F", cities: "C" });
+  assert.match(text, /\{\{screens\}\}/);
+  assert.match(text, /never press or submit anything for them, and never anything that spends money, without them saying yes/);
+  assert.match(read("src/lib/ai/peggy-voice.server.ts"), /screens: screenList\(status\.role\)/);
+  assert.equal(tools.toolAllowed("open_screen", "seller"), true);
+  assert.match(tools.toolReply("open_screen", { screen: "delivery" }, "seller", []), /^Not opened/);
+});
+
+test("words: the opened toast, every screen name and Peggy ending the call, in all five languages", async () => {
+  const help = Object.fromEntries(await Promise.all(LANGS.map(async (lang) => [lang, (await import(`../shared/i18n/messages/m_help/${lang}.ts`)).default])));
+  const ids = new Set(Object.values(screens.PEGGY_SCREENS).flat().map((s) => s.id));
+  for (const lang of LANGS) {
+    assert.match(help[lang]["call.opened"], /\{screen\}/, lang);
+    assert.ok(help[lang]["call.peggyEnded"], lang);
+    for (const id of ids) assert.ok(help[lang][`call.screen.${id}`], `${lang} ${id}`);
+  }
+});
+
+test("avatar: no P letter mark left in the call UI; Peggy's avatar pulses while she speaks", () => {
+  for (const file of ["src/components/peggy/PeggyCall.tsx", "src/components/peggy/SetupWithPeggy.tsx", "src/components/peggy/SetupWithPeggySlot.tsx", "apps/mobile/src/components/peggy/PeggyCallViews.tsx", "apps/mobile/src/components/peggy/PeggyCallEngine.tsx", "apps/mobile/src/components/CallPeggyButton.tsx"]) {
+    const source = read(file);
+    assert.doesNotMatch(source, />\s*P\s*</, file);
+    assert.doesNotMatch(source, /["']P["']/, file);
+  }
+  const views = read("apps/mobile/src/components/peggy/PeggyCallViews.tsx");
+  assert.match(views, /export function PeggyAvatar/);
+  assert.match(views, /<Mascot who="peggy"/);
+  assert.match(views, /Animated\.loop/);
+  assert.match(views, /isReduceMotionEnabled/);
+  // The sheet, the minimized bar, the toast and the summary all show her.
+  assert.equal((views.match(/<PeggyAvatar /g) ?? []).length, 4);
+  const web = read("src/components/peggy/PeggyCall.tsx");
+  assert.match(web, /<Mascot who="peggy"/);
+  assert.match(web, /speaking && "animate-ping"/);
 });

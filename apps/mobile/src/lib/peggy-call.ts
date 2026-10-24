@@ -57,9 +57,11 @@ export interface CallState {
   saved: SavedEntry[];
   status: SetupView | null;
   error: string | null;
+  /** Who ended the last call: Peggy herself (her end_call tool), the person, or a dropped line. */
+  endedBy: "agent" | "user" | "error" | null;
 }
 
-const INITIAL: CallState = { available: null, engine: false, phase: "idle", minimized: false, saved: [], status: null, error: null };
+const INITIAL: CallState = { available: null, engine: false, phase: "idle", minimized: false, saved: [], status: null, error: null, endedBy: null };
 let state: CallState = INITIAL;
 const listeners = new Set<() => void>();
 const saveListeners = new Set<(item: SavedItem) => void>();

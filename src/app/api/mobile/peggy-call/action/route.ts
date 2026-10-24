@@ -4,7 +4,8 @@ import { withAuth } from "@/lib/auth/middleware";
 import { apiError, ok } from "@/lib/api/response";
 import { checkRateLimitShared, rateLimitKey } from "@/lib/rate-limit";
 import { userFromCallToken } from "@/lib/ai/peggy-voice.server";
-import { setupStatus, type SetupStatus } from "@/lib/onboarding/setup-status.server";
+import { setupStatus, setupText, type SetupStatus } from "@/lib/onboarding/setup-status.server";
+import { peggyDashboard } from "@/lib/ai/peggy-dashboard.server";
 import { applySetupActions } from "@/lib/onboarding/setup-peggy.server";
 import { savedItem } from "@/lib/onboarding/setup-peggy-pure";
 import { VOICE_TOOL_NAMES, toolActions, toolAllowed, toolReply } from "@/lib/onboarding/peggy-call-tools";
@@ -17,6 +18,7 @@ export const dynamic = "force-dynamic";
 // person's own sign-in. The same setup actions as the text setup chat (cleanActions: only well-formed actions this
 // role may take), then the setup status again so the screen behind the call ticks itself. `result` is one short
 // English line for Peggy; `saved` is what the app shows ("Peggy added coverage: …"). Free: no AI is used here.
+// get_dashboard answers with the setup and the dashboard snapshot read fresh; open_screen runs on the device.
 // The web call page opened from an old app link has no session: it sends its 15-minute call token as `t`.
 
 const Body = z.object({
@@ -39,6 +41,11 @@ async function run(userId: string, body: z.infer<typeof Body>) {
   const status = await setupStatus(userId);
   if (!status) return apiError("BAD_REQUEST", "Finish signing up first, then call Peggy.");
   const { tool, params } = body;
+  // get_dashboard: the setup and the dashboard snapshot again, read fresh (nothing saved).
+  if (tool === "get_dashboard") {
+    const dashboard = await peggyDashboard(userId, status);
+    return ok({ result: [`Setup now:\n${setupText(status)}`, dashboard ? `Dashboard now:\n${dashboard}` : null].filter(Boolean).join("\n\n"), saved: [], status: statusView(status) });
+  }
   if (!VOICE_TOOL_NAMES.includes(tool) || tool === "lookup_areas" || !toolAllowed(tool, status.role)) {
     return ok({ result: toolReply(tool, params, status.role, []), saved: [], status: statusView(status) });
   }
