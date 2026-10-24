@@ -127,7 +127,7 @@ export function StoryViewer({
   const ink = photo ? "#FFFFFF" : tone.fg;
   // Shopinbos's video posts without a file to play here: "Watch" opens the 60-second intro (or the video's page).
   const watchable = official && !videoUrl && Boolean(post.video && (post.video.intro || post.video.watchUrl));
-  const hasCta = !own && post.cta && (official ? post.cta.kind === "open" || post.cta.kind === "share" : Boolean(onCta));
+  const hasCta = !own && post.cta && (official ? post.cta.kind === "open" || post.cta.kind === "share" || post.cta.kind === "call_peggy" : Boolean(onCta));
 
   async function toggleLike() {
     const nextLiked = !like.liked;

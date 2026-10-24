@@ -12,8 +12,8 @@ import type { StatusRole, StatusTone } from "./status.ts";
 export const SHOPINBOS_AUTHOR_ID = "shopinbos";
 export const SHOPINBOS_NAME = "Shopinbos";
 
-/** A Shopinbos post's button: open a screen of the app, or share the seller's shop link. */
-export type ShopinbosCta = { kind: "open"; path: string } | { kind: "share" };
+/** A Shopinbos post's button: open a screen of the app, share the seller's shop link, or start a free call with Peggy. */
+export type ShopinbosCta = { kind: "open"; path: string } | { kind: "share" } | { kind: "call_peggy" };
 
 export interface ShopinbosPostDef {
   /** Stable key, part of the post id (`sib-<role>-<key>`) and of its message keys. */
@@ -31,6 +31,7 @@ const ROLE_SLUG: Record<StatusRole, string> = { seller: "seller", supplier: "sup
 export const SHOPINBOS_POSTS: Record<StatusRole, readonly ShopinbosPostDef[]> = {
   seller: [
     { key: "welcome", tone: "peach", intro: "home", helpTopic: "start_shop" },
+    { key: "call", tone: "mint", cta: { kind: "call_peggy" } },
     { key: "product", tone: "mint", intro: "inventory", helpTopic: "add_product", cta: { kind: "open", path: "/add-products" } },
     { key: "share", tone: "blue", cta: { kind: "share" } },
     { key: "status", tone: "warn", cta: { kind: "open", path: "/status/new" } },
@@ -38,6 +39,7 @@ export const SHOPINBOS_POSTS: Record<StatusRole, readonly ShopinbosPostDef[]> = 
   ],
   supplier: [
     { key: "welcome", tone: "peach", intro: "supplier-home", helpTopic: "supplier_orders" },
+    { key: "call", tone: "mint", cta: { kind: "call_peggy" } },
     { key: "product", tone: "mint", intro: "supplier-products", helpTopic: "supplier_products", cta: { kind: "open", path: "/supplier/product/new" } },
     { key: "orders", tone: "blue", intro: "supplier-orders", cta: { kind: "open", path: "/supplier/orders" } },
     { key: "delivery", tone: "ink", cta: { kind: "open", path: "/delivery" } },
@@ -45,6 +47,7 @@ export const SHOPINBOS_POSTS: Record<StatusRole, readonly ShopinbosPostDef[]> = 
   ],
   logistics_partner: [
     { key: "welcome", tone: "peach", intro: "partner-home", helpTopic: "partner_jobs" },
+    { key: "call", tone: "mint", cta: { kind: "call_peggy" } },
     { key: "jobs", tone: "mint", intro: "partner-jobs", cta: { kind: "open", path: "/logistics/jobs" } },
     { key: "riders", tone: "blue", intro: "partner-riders", helpTopic: "rider_flow", cta: { kind: "open", path: "/logistics/team" } },
     { key: "rates", tone: "ink", intro: "partner-rate-card", cta: { kind: "open", path: "/logistics/rates" } },

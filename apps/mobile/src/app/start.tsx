@@ -2,7 +2,9 @@ import { useState } from "react";
 import { Pressable, Share, View } from "react-native";
 import { router } from "expo-router";
 import { AppIcon } from "@/components/icons";
+import { CallPeggyButton } from "@/components/CallPeggyButton";
 import { Badge, ErrorState, LoadingBlock } from "@/components/kit";
+import { usePeggyContinue, usePeggySaved } from "@/lib/peggy-call";
 import { Screen } from "@/components/Screen";
 import { Card, LinkButton, Notice, PillButton, T } from "@/components/ui";
 import { fetchSetup, patchSetup, type SetupOverview, type SetupPatch, type SetupStep } from "@/lib/setup";
@@ -22,6 +24,12 @@ export default function StartHere() {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const data = setup.data;
+  // On a call with Peggy: each save refreshes the checklist; after the call it stays here (the list shows what's next).
+  usePeggySaved(() => void setup.reload());
+  usePeggyContinue(() => {
+    void setup.reload();
+    return true;
+  });
 
   async function change(patch: SetupPatch, id: string) {
     setBusy(id);
@@ -65,6 +73,8 @@ export default function StartHere() {
       {setup.loading && !data ? <LoadingBlock /> : null}
       {setup.error && !data ? <ErrorState message={setup.error} onRetry={() => void setup.reload()} /> : null}
       {error ? <Notice>{error}</Notice> : null}
+      {/* Peggy on a free call: what she saves ticks off below as she goes. */}
+      <CallPeggyButton />
       {data ? (
         <>
           <Card style={{ gap: 10 }}>

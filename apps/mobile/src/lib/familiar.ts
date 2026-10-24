@@ -41,7 +41,7 @@ export interface StatusPost {
   liked: boolean;
 }
 
-export type ShopinbosCtaKind = "open" | "share";
+export type ShopinbosCtaKind = "open" | "share" | "call_peggy";
 
 export interface StatusVideo {
   intro: string | null;

@@ -312,6 +312,15 @@ const en = {
   "ref.status.qualified": "Counting…",
   "ref.status.rewarded": "Rewarded",
   "ref.status.rejected": "Didn't count",
+  "sib.seller.call.title": "Call Peggy, free",
+  "sib.seller.call.body": "Talk to Peggy and she sets up your shop with you. English or Pidgin.",
+  "sib.seller.call.cta": "Call Peggy",
+  "sib.supplier.call.title": "Call Peggy, free",
+  "sib.supplier.call.body": "Tell Peggy where you ship from and sell to. She saves it while you talk.",
+  "sib.supplier.call.cta": "Call Peggy",
+  "sib.partner.call.title": "Call Peggy, free",
+  "sib.partner.call.body": "Tell Peggy the areas you cover and your price. She fills in your setup as you talk.",
+  "sib.partner.call.cta": "Call Peggy",
 } satisfies Record<string, string>;
 
 export default en;

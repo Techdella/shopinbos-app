@@ -3,6 +3,7 @@ import { updateLogisticsVerification } from "@/app/actions/admin";
 import { AppPage, Pill, PillLink, StatTile, Thumb } from "@/components/app-kit";
 import { DecisionButtons, VerificationPill, adminFrame, formatDate, formatMoney } from "@/components/admin/AdminKit";
 import { AdminDocumentViewer } from "@/components/verification/AdminDocumentViewer";
+import { PeggyCallNotes } from "@/components/admin/PeggyCallNotes";
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { parseVerificationDocs } from "@/lib/verification-utils";
@@ -117,6 +118,8 @@ export default async function AdminLogisticsDetailPage(props: { params: Promise<
           {notice.error ?? notice.saved}
         </p>
       )}
+
+      <PeggyCallNotes userId={partner.userId} />
 
       <AdminDocumentViewer
         role="logistics_partner"

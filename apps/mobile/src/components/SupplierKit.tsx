@@ -16,7 +16,7 @@ import { colors } from "@/theme";
 const IOS = Platform.OS === "ios";
 
 /** A set-up step (`.scr.flow` with `.hdr`): a round back button and "1 of 4", a big title, the body, a pinned footer. */
-export function FlowFrame({ step, onBack, title, sub, children, footer }: { step?: string; onBack?: () => void; title?: string; sub?: string; children?: ReactNode; footer?: ReactNode }) {
+export function FlowFrame({ step, onBack, title, sub, children, footer, aside }: { step?: string; onBack?: () => void; title?: string; sub?: string; children?: ReactNode; footer?: ReactNode; aside?: ReactNode }) {
   const t = useT("common");
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }}>
@@ -32,6 +32,7 @@ export function FlowFrame({ step, onBack, title, sub, children, footer }: { step
                 </Pressable>
               ) : null}
               {step ? <Small style={{ flex: 1 }}>{step}</Small> : null}
+              {aside ? <View style={{ marginLeft: "auto" }}>{aside}</View> : null}
             </View>
           ) : null}
           {title || sub ? (

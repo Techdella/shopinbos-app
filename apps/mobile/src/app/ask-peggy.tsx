@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { Bubble, ChatScreen, Composer } from "@/components/ChatScreen";
+import { CallPeggyButton } from "@/components/CallPeggyButton";
 import { CreditsLine } from "@/components/familiar/Credits";
 import { TILE } from "@/components/design";
 import { AppIcon } from "@/components/icons";
@@ -91,6 +92,8 @@ export default function AskPeggy() {
         <T weight="extrabold" style={{ fontSize: 17 }} accessibilityRole="header">{t("peg.title")}</T>
         <T style={{ color: colors.inkSoft, fontSize: 14 }} numberOfLines={1}>{t(`peg.tagline.${who === "logistics_partner" ? "partner" : who}`)}</T>
       </View>
+      {/* A free voice call with Peggy, in the app (hidden where calls can't run). */}
+      <CallPeggyButton variant="icon" />
     </>
   );
 

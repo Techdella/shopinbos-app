@@ -20,7 +20,9 @@ test("posts: a few per role, sellers get the five the owner asked for", () => {
     assert.equal(new Set(posts.map((post) => post.key)).size, posts.length, `${role}: unique keys`);
     assert.ok(posts.some((post) => post.intro), `${role}: has a video post`);
   }
-  assert.deepEqual(sib.shopinbosPosts("seller").map((post) => post.key), ["welcome", "product", "share", "status", "find"]);
+  assert.deepEqual(sib.shopinbosPosts("seller").map((post) => post.key), ["welcome", "call", "product", "share", "status", "find"]);
+  // Every role has the "Call Peggy" post, whose button starts the in-app call.
+  for (const role of ["seller", "supplier", "logistics_partner"]) assert.deepEqual(sib.shopinbosPosts(role).find((post) => post.key === "call")?.cta, { kind: "call_peggy" }, role);
   const seller = Object.fromEntries(sib.shopinbosPosts("seller").map((post) => [post.key, post.cta]));
   assert.deepEqual(seller.product, { kind: "open", path: "/add-products" });
   assert.deepEqual(seller.share, { kind: "share" });
