@@ -38,6 +38,8 @@ const APP_SCREENS: Record<string, string> = {
   "/home/inbox/auto-replies": "/inbox/auto-replies",
   "/home/inbox/chatbot": "/inbox/chatbot",
   "/home/inbox/email": "/channels",
+  // Refer & earn is a card on Rewards.
+  "/home/refer": "/rewards",
   "/marketplace": "/find",
   "/home/reviews": "/reviews",
   "/home/customers": "/customers",

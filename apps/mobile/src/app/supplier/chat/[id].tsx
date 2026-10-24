@@ -6,5 +6,5 @@ import { supplierQuickReplies } from "@/lib/supplier-pure";
 // ("Yes, I have it" to a shop, "Please call when you arrive" to a delivery company).
 export default function SupplierChat() {
   const t = useT("m_supplier");
-  return <ConversationScreen webPath="/supplier/inbox" quickReplies={(role) => supplierQuickReplies(role).map((key) => t.dynamic(key))} />;
+  return <ConversationScreen base="/supplier" quickReplies={(role) => supplierQuickReplies(role).map((key) => t.dynamic(key))} />;
 }

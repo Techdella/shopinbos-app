@@ -6,13 +6,13 @@ import { Screen } from "@/components/Screen";
 import { Card, Field, Label, Notice, PillButton, Segmented, T, Toggle } from "@/components/ui";
 import { fetchAutoReplySettings, fetchAutomation, saveAutoReplySettings, saveAutomation, type AutoReplyRules, type AutoReplySettings, type InboxAutomation } from "@/lib/inbox";
 import { useLoad } from "@/lib/useLoad";
-import { openWeb } from "@/lib/web";
+import { HoursEditor, PairsEditor, isClock } from "@/components/seller/ReplyEditors";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 import { VoiceInput } from "@/components/VoiceInput";
 
-// Auto-replies (web /home/inbox/auto-replies), the everyday switches: away message, instant "got your message"
-// reply, opening hours and keyword replies on or off. Hours per day and the keyword list are edited on the web.
+// Auto-replies (web /home/inbox/auto-replies): away message, instant "got your message" reply, opening hours per
+// day and keyword replies, all edited here.
 
 function SwitchRow({ title, hint, on, onChange, first }: { title: string; hint: string; on: boolean; onChange: (on: boolean) => void; first?: boolean }) {
   return (
@@ -47,17 +47,29 @@ function AutoRepliesForm({ initial, refreshing, onRefresh }: { initial: { settin
   const t = useT("m_chats", "m_ui", "common");
   const [settings, setSettings] = useState<AutoReplySettings>(initial.settings);
   const [rules, setRules] = useState<AutoReplyRules>(initial.automation.autoReply);
+  const [pairs, setPairs] = useState(initial.automation.autoReply.keywords.map((k) => ({ a: k.keywords.join(", "), b: k.reply })));
   const [saving, setSaving] = useState(false);
   const [note, setNote] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const ready = initial.automation.ready;
   const aiAvailable = initial.settings.aiAvailable;
 
   async function save() {
+    if (ready && rules.hours.enabled && Object.values(rules.hours.days).some((day) => day.open && !(isClock(day.from) && isClock(day.to)))) {
+      setNote({ tone: "error", text: t("hours.badTime") });
+      return;
+    }
     setSaving(true);
     setNote(null);
     try {
+      const keywords = pairs
+        .map((pair, index) => ({ id: rules.keywords[index]?.id ?? `k${Date.now()}${index}`, keywords: pair.a.split(",").map((word) => word.trim()).filter(Boolean), reply: pair.b.trim() }))
+        .filter((rule) => rule.keywords.length && rule.reply);
       await saveAutoReplySettings({ autoReplyEnabled: settings.autoReplyEnabled, autoReplyMode: settings.autoReplyMode, awayMessage: settings.awayMessage });
-      if (ready) await saveAutomation({ autoReply: rules });
+      if (ready) {
+        const saved = await saveAutomation({ autoReply: { ...rules, keywords } });
+        setRules(saved.autoReply);
+        setPairs(saved.autoReply.keywords.map((k) => ({ a: k.keywords.join(", "), b: k.reply })));
+      }
       setNote({ tone: "success", text: t("auto.saved") });
     } catch (saveError) {
       setNote({ tone: "error", text: saveError instanceof Error ? saveError.message : t("saveFailed") });
@@ -110,16 +122,28 @@ function AutoRepliesForm({ initial, refreshing, onRefresh }: { initial: { settin
           <SwitchRow title={t("auto.hours")} hint={rules.hours.enabled ? t("auto.hoursOn") : t("auto.hoursOff")} on={rules.hours.enabled} onChange={(on) => setRules({ ...rules, hours: { ...rules.hours, enabled: on } })} />
           <SwitchRow
             title={t("auto.keywords")}
-            hint={rules.keywords.length ? t("auto.keywordsCount", { count: rules.keywords.length }) : t("auto.keywordsNone")}
+            hint={pairs.length ? t("auto.keywordsCount", { count: pairs.length }) : t("auto.keywordsAdd")}
             on={rules.keywordsEnabled}
             onChange={(on) => setRules({ ...rules, keywordsEnabled: on })}
           />
         </Card>
       ) : null}
 
+      {ready && rules.hours.enabled ? <HoursEditor days={rules.hours.days} onChange={(days) => setRules({ ...rules, hours: { ...rules.hours, days } })} /> : null}
+
+      {ready && rules.keywordsEnabled ? (
+        <PairsEditor
+          items={pairs}
+          onChange={setPairs}
+          first={{ label: t("keywords.words"), placeholder: t("keywords.wordsHint"), maxLength: 300 }}
+          second={{ label: t("keywords.reply"), placeholder: t("keywords.replyHint"), maxLength: 1000 }}
+          addLabel={t("keywords.add")}
+          max={20}
+        />
+      ) : null}
+
       <Card style={{ paddingVertical: 2 }}>
-        <LinkRow first icon="clock" label={t("auto.hoursLink")} hint={t("auto.hoursLinkHint")} onPress={() => void openWeb("/home/inbox/auto-replies")} />
-        <LinkRow icon="bot" label={t("auto.chatbot")} hint={t("auto.chatbotHint")} onPress={() => router.push("/inbox/chatbot")} />
+        <LinkRow first icon="bot" label={t("auto.chatbot")} hint={t("auto.chatbotHint")} onPress={() => router.push("/inbox/chatbot")} />
       </Card>
     </Screen>
   );
