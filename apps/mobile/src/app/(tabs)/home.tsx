@@ -12,6 +12,7 @@ import { Thumb } from "@/components/seller/bits";
 import { TabScreen } from "@/components/TabScreen";
 import { Mascot, Notice, T } from "@/components/ui";
 import { Checklist, type ChecklistItem } from "@/components/familiar/Checklist";
+import { GettingStartedCard } from "@/components/familiar/GettingStarted";
 import { LevelPill } from "@/components/familiar/LevelPill";
 import { QuickActions, type QuickAction } from "@/components/familiar/QuickActions";
 import { StatusRow } from "@/components/familiar/StatusRow";
@@ -313,6 +314,9 @@ export default function Home() {
             }}
           />
         ) : null}
+
+        {/* Shopinbos's getting-started videos and tips (an X closes it for good). */}
+        {!touring ? <GettingStartedCard /> : null}
 
         <View ref={moneyRef} collapsable={false} style={{ gap: 18 }}>
           <DarkCard eyebrow={t("sales.today")} amount={data ? naira(data.sales.today) : "…"} line={payoutLine} onPress={() => router.push("/wallet")} />

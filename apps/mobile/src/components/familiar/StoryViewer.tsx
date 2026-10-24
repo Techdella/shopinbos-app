@@ -2,18 +2,24 @@ import { useEffect, useRef, useState } from "react";
 import { Modal, Pressable, StatusBar, View } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
+import { useVideoPlayer, VideoView } from "expo-video";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Initials } from "@/components/kit";
 import { AppIcon } from "@/components/icons";
-import { PillButton, T } from "@/components/ui";
+import { LinkButton, PillButton, T } from "@/components/ui";
 import { TILE } from "@/components/design";
 import { likeStatus, markStatusSeen, type StatusAuthor, type StatusPost } from "@/lib/familiar";
 import { useT } from "@/lib/i18n";
+import { hideShopinbosStatus, markShopinbosSeen, runShopinbosCta, watchOutside } from "@/lib/shopinbos";
 import { colors, fonts } from "@/theme";
+import { ShopinbosMark } from "./ShopinbosMark";
 
 // Full-screen Status viewer ("Familiar app" prototype `storyView`): progress bars, who posted and when, tap the left
 // or right half to go back or on, the headline and caption over a dark shade, a like and the post's one action
 // ("Add to my shop", "Chat with them", "Offer to deliver"…). Each post moves on by itself after a few seconds.
+// Shopinbos's own posts (author.official): the brand logo, no like, their video plays here (expo-video) and moves on
+// when it ends, or "Watch" opens the 60-second intro; their buttons open a screen of the app or share the shop;
+// "Don't show again" hides them for good.
 
 const SHOW_MS = 6000;
 const ROLE_KEY = { seller: "role.seller", supplier: "role.supplier", logistics_partner: "role.partner" } as const;
@@ -23,9 +29,31 @@ function ago(iso: string, t: ReturnType<typeof useT<["m_familiar"]>>) {
   return minutes < 60 ? t("ago.minutes", { count: minutes }) : t("ago.hours", { count: Math.round(minutes / 60) });
 }
 
+/** A post's video, full screen behind the words; `onEnd` moves on. */
+function StoryVideo({ url, onEnd }: { url: string; onEnd: () => void }) {
+  const player = useVideoPlayer(url, (created) => {
+    created.play();
+  });
+  const end = useRef(onEnd);
+  useEffect(() => {
+    end.current = onEnd;
+  });
+  useEffect(() => {
+    const subscription = player.addListener("playToEnd", () => end.current());
+    // The web build only starts once the view is on screen; native starts from the setup above.
+    const timer = setTimeout(() => player.play(), 300);
+    return () => {
+      subscription.remove();
+      clearTimeout(timer);
+    };
+  }, [player]);
+  return <VideoView testID="story-video" player={player} nativeControls={false} contentFit="contain" style={{ position: "absolute", inset: 0 }} />;
+}
+
 export function StoryViewer({
   authors,
   start,
+  startPost = 0,
   visible,
   onClose,
   onCta,
@@ -33,9 +61,11 @@ export function StoryViewer({
 }: {
   authors: StatusAuthor[];
   start: number;
+  /** The post to open on, in the first author's posts (the Getting started card opens one of Shopinbos's). */
+  startPost?: number;
   visible: boolean;
   onClose: () => void;
-  /** The post's action was tapped; the caller routes it (the viewer closes first). */
+  /** The post's action was tapped; the caller routes it (the viewer closes first). Shopinbos's buttons route here. */
   onCta?: (post: StatusPost, author: StatusAuthor) => void;
   /** Showing your own posts: views instead of a like, no action. */
   own?: boolean;
@@ -43,7 +73,7 @@ export function StoryViewer({
   const t = useT("m_familiar");
   const insets = useSafeAreaInsets();
   const [authorIndex, setAuthorIndex] = useState(start);
-  const [postIndex, setPostIndex] = useState(0);
+  const [postIndex, setPostIndex] = useState(startPost);
   const [likes, setLikes] = useState<Record<string, { likes: number; liked: boolean }>>({});
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [opened, setOpened] = useState(visible);
@@ -51,12 +81,14 @@ export function StoryViewer({
     setOpened(visible);
     if (visible) {
       setAuthorIndex(start);
-      setPostIndex(0);
+      setPostIndex(startPost);
     }
   }
 
   const author = authors[authorIndex];
   const post = author?.posts[postIndex];
+  const official = Boolean(author?.official);
+  const videoUrl = official ? post?.video?.url ?? null : null;
 
   const next = () => {
     if (!author) return onClose();
@@ -76,8 +108,10 @@ export function StoryViewer({
 
   useEffect(() => {
     if (!visible || !post) return;
-    if (!own) void markStatusSeen(post.id);
-    timer.current = setTimeout(next, SHOW_MS);
+    if (official) markShopinbosSeen(post.id);
+    else if (!own) void markStatusSeen(post.id);
+    // A video moves on when it ends instead.
+    if (!videoUrl) timer.current = setTimeout(next, SHOW_MS);
     return () => {
       if (timer.current) clearTimeout(timer.current);
     };
@@ -88,9 +122,12 @@ export function StoryViewer({
   if (!author || !post) return null;
   const like = likes[post.id] ?? { likes: post.likes, liked: post.liked };
   const tone = TILE[post.tone] ?? TILE.ink;
-  const photo = Boolean(post.imageUrl);
-  // Words and controls: white over a photo, the tone's ink on a plain coloured post.
+  const photo = Boolean(post.imageUrl) || Boolean(videoUrl);
+  // Words and controls: white over a photo or video, the tone's ink on a plain coloured post.
   const ink = photo ? "#FFFFFF" : tone.fg;
+  // Shopinbos's video posts without a file to play here: "Watch" opens the 60-second intro (or the video's page).
+  const watchable = official && !videoUrl && Boolean(post.video && (post.video.intro || post.video.watchUrl));
+  const hasCta = !own && post.cta && (official ? post.cta.kind === "open" || post.cta.kind === "share" : Boolean(onCta));
 
   async function toggleLike() {
     const nextLiked = !like.liked;
@@ -103,11 +140,18 @@ export function StoryViewer({
     }
   }
 
+  function action() {
+    onClose();
+    if (official) runShopinbosCta(post!);
+    else onCta?.(post!, author!);
+  }
+
   return (
     <Modal visible={visible} animationType="fade" onRequestClose={onClose} statusBarTranslucent>
       <StatusBar barStyle={photo ? "light-content" : "dark-content"} />
-      <View style={{ flex: 1, backgroundColor: post.imageUrl ? "#000" : tone.bg }}>
+      <View style={{ flex: 1, backgroundColor: photo ? "#000" : tone.bg }}>
         {post.imageUrl ? <Image source={{ uri: post.imageUrl }} style={{ position: "absolute", inset: 0 }} contentFit="cover" accessibilityIgnoresInvertColors /> : null}
+        {videoUrl ? <StoryVideo key={post.id} url={videoUrl} onEnd={next} /> : null}
         {/* Soft shades keep the white words readable on a photo; a text-only post uses its own ink colour instead. */}
         {photo ? (
           <>
@@ -123,10 +167,10 @@ export function StoryViewer({
             ))}
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-            <Initials name={author.name} size={38} />
+            {official ? <ShopinbosMark size={38} /> : <Initials name={author.name} size={38} />}
             <View style={{ flex: 1, minWidth: 0 }}>
               <T weight="bold" numberOfLines={1} style={{ color: ink, fontSize: 15 }}>{author.name}</T>
-              <T numberOfLines={1} style={{ color: ink, opacity: 0.85, fontSize: 13 }}>{`${t(ROLE_KEY[author.role])} · ${ago(post.createdAt, t)}`}</T>
+              <T numberOfLines={1} style={{ color: ink, opacity: 0.85, fontSize: 13 }}>{official ? author.roleLabel ?? t("role.shopinbos") : `${t(ROLE_KEY[author.role])} · ${ago(post.createdAt, t)}`}</T>
             </View>
             <Pressable accessibilityRole="button" accessibilityLabel={t("close")} onPress={onClose} hitSlop={8} style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
               <AppIcon name="x" size={26} color={ink} />
@@ -140,7 +184,7 @@ export function StoryViewer({
           <Pressable accessibilityRole="button" accessibilityLabel={t("next")} onPress={next} style={{ flex: 2 }} />
         </View>
 
-        <View style={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 18, gap: 14 }}>
+        <View style={{ paddingHorizontal: 20, paddingBottom: insets.bottom + (official ? 4 : 18), gap: 14 }}>
           <View style={{ gap: 6 }}>
             <T style={{ fontFamily: fonts.display, fontSize: 28, lineHeight: 32, color: ink }}>{post.headline}</T>
             {post.caption ? <T style={{ fontSize: 15, lineHeight: 21, color: ink }}>{post.caption}</T> : null}
@@ -149,24 +193,41 @@ export function StoryViewer({
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
             {own ? (
               <T weight="semibold" style={{ color: ink, fontSize: 14 }}>{t("status.views", { count: post.views })}</T>
+            ) : official ? (
+              watchable ? (
+                <PillButton
+                  testID="story-watch"
+                  tone={hasCta ? "white" : "accent"}
+                  accessibilityLabel={t("sib.watch")}
+                  style={hasCta ? undefined : { flex: 1 }}
+                  onPress={() => {
+                    onClose();
+                    watchOutside(post.video);
+                  }}
+                >
+                  <AppIcon name="play" size={18} color={colors.ink} />
+                  <T weight="extrabold" style={{ fontSize: 17, color: colors.ink }}>{t("sib.watch")}</T>
+                </PillButton>
+              ) : null
             ) : (
               <Pressable accessibilityRole="button" accessibilityLabel={like.liked ? t("unlike") : t("like")} accessibilityState={{ selected: like.liked }} onPress={() => void toggleLike()} style={{ minWidth: 56, height: 52, borderRadius: 26, backgroundColor: photo ? "rgba(255,255,255,0.22)" : "rgba(22,20,31,0.1)", flexDirection: "row", gap: 6, alignItems: "center", justifyContent: "center", paddingHorizontal: 14 }}>
                 <AppIcon name="star" size={20} color={like.liked ? colors.accent : ink} />
                 <T weight="bold" style={{ color: ink }}>{String(like.likes)}</T>
               </Pressable>
             )}
-            {!own && post.cta && onCta ? (
-              <PillButton
-                tone="accent"
-                title={post.cta.label}
-                style={{ flex: 1 }}
-                onPress={() => {
-                  onClose();
-                  onCta(post, author);
-                }}
-              />
-            ) : null}
+            {hasCta && post.cta ? <PillButton tone="accent" title={post.cta.label} style={{ flex: 1 }} onPress={action} /> : null}
           </View>
+          {official ? (
+            <LinkButton
+              testID="story-dont-show"
+              title={t("sib.dontShow")}
+              color={ink}
+              onPress={() => {
+                onClose();
+                void hideShopinbosStatus();
+              }}
+            />
+          ) : null}
         </View>
       </View>
     </Modal>
