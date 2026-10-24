@@ -52,9 +52,9 @@ test("Discover: swipe cards first; Add to my shop opens the product and its Drop
   assert.match(mobile("lib/seller-home.ts"), /case "add_product":\n\s+if \(slug\) router\.push\(\{ pathname: "\/find\/\[slug\]"/);
 });
 
-test("Chats: filters by channel and Peggy's draft reply with Send and Edit", () => {
+test("Chats: All / Customers / Partners / Unread, and Peggy's draft reply with Send and Edit", () => {
   const chats = mobile("app/(tabs)/chats.tsx");
-  for (const key of ['"filter.all"', '"view.unread"', '"filter.whatsapp"', '"filter.instagram"', '"filter.facebook"']) assert.ok(chats.includes(key), key);
+  for (const key of ['"filter.all"', '"chats.customers"', '"chats.partners"', '"view.unread"']) assert.ok(chats.includes(key), key);
   const thread = mobile("app/inbox/[id].tsx");
   assert.match(thread, /suggestReply\(conversationId\)/);
   assert.match(thread, /t\("thread\.peggySend"\)/);
