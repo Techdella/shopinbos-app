@@ -20,6 +20,9 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "msg.read": "An karanta",
   "msg.delivered": "Ya isa",
   "msg.sending": "Ana aikawa…",
+  "filters.title": "Matattara",
+  "filters.done": "An gama",
+  "filters.clear": "Share matattara",
 };
 
 export default ha;

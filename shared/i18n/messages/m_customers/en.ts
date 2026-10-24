@@ -21,6 +21,9 @@ const en = {
   "msg.read": "Read",
   "msg.delivered": "Delivered",
   "msg.sending": "Sending…",
+  "filters.title": "Filters",
+  "filters.done": "Done",
+  "filters.clear": "Clear filters",
 } satisfies Record<string, string>;
 
 export default en;

@@ -98,6 +98,20 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "swipe.showList": "Gosi ya dị ka ndepụta",
   "swipe.showCards": "Gosi otu otu",
   "swipe.you": "Gị",
+  "filters.title": "Nzacha",
+  "filters.show": "Gosi {count}",
+  "filters.clear": "Hichapụ nzacha",
+  "filters.way": "Otú ị ga-esi ree ya",
+  "filters.any": "Nke ọ bụla",
+  "filters.price": "Ego ị ga-akwụ",
+  "filters.price.under5": "N'okpuru ₦5k",
+  "filters.price.5to20": "₦5k ruo ₦20k",
+  "filters.price.20to50": "₦20k ruo ₦50k",
+  "filters.price.over50": "Karịa ₦50k",
+  "filters.location": "Obodo onye na-eweta",
+  "filters.anywhere": "Ebe ọ bụla",
+  "filters.suppliers": "Ndị na-eweta",
+  "filters.verified": "Naanị ndị a kwadoro",
 };
 
 export default ig;

@@ -67,6 +67,23 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "view.inStock": "Dị n'stock",
   "view.share": "Kesaa ngwaahịa a",
   "view.editDetails": "Dezie nkọwa",
+  "filters.title": "Nzacha",
+  "filters.done": "Emechaala",
+  "filters.clear": "Hichapụ nzacha",
+  "filters.none": "Ọ dịghị ngwaahịa dabara.",
+  "filters.category": "Ụdị",
+  "filters.sort": "Usoro",
+  "filters.show.all": "Niile",
+  "filters.show.live": "Live",
+  "filters.show.draft": "Drafts",
+  "filters.show.low": "Ngwaahịa adịla ala",
+  "filters.show.dropship": "Dropship",
+  "filters.show.archived": "Edobere n'akụkụ",
+  "filters.sort.newest": "Nke kachasị ọhụrụ",
+  "filters.sort.sales": "Ndị kachasị ere",
+  "filters.sort.price_low": "Nke dị ọnụ ala buru ụzọ",
+  "filters.sort.price_high": "Nke dị oke ọnụ buru ụzọ",
+  "filters.sort.name": "Aha A ruo Z",
 };
 
 export default ig;

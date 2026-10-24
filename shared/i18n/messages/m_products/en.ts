@@ -69,6 +69,23 @@ const en = {
   "view.inStock": "In stock",
   "view.share": "Share this product",
   "view.editDetails": "Edit details",
+  "filters.title": "Filters",
+  "filters.done": "Done",
+  "filters.clear": "Clear filters",
+  "filters.none": "No products match.",
+  "filters.category": "Category",
+  "filters.sort": "Order",
+  "filters.show.all": "All",
+  "filters.show.live": "Live",
+  "filters.show.draft": "Drafts",
+  "filters.show.low": "Low stock",
+  "filters.show.dropship": "Dropship",
+  "filters.show.archived": "Archived",
+  "filters.sort.newest": "Newest",
+  "filters.sort.sales": "Best sellers",
+  "filters.sort.price_low": "Cheapest first",
+  "filters.sort.price_high": "Dearest first",
+  "filters.sort.name": "Name A to Z",
 } satisfies Record<string, string>;
 
 export default en;

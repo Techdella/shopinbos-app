@@ -67,6 +67,23 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "view.inStock": "Wetin remain",
   "view.share": "Share this product",
   "view.editDetails": "Edit details",
+  "filters.title": "Filters",
+  "filters.done": "E don do",
+  "filters.clear": "Clear filters",
+  "filters.none": "No product match.",
+  "filters.category": "Category",
+  "filters.sort": "Arrange am by",
+  "filters.show.all": "All",
+  "filters.show.live": "Live",
+  "filters.show.draft": "Drafts",
+  "filters.show.low": "Stock don low",
+  "filters.show.dropship": "Dropship",
+  "filters.show.archived": "Archived",
+  "filters.sort.newest": "Newest",
+  "filters.sort.sales": "The ones wey sell pass",
+  "filters.sort.price_low": "Cheap ones first",
+  "filters.sort.price_high": "Costly ones first",
+  "filters.sort.name": "Name A to Z",
 };
 
 export default pcm;

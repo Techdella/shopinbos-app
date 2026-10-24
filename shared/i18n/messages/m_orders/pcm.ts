@@ -163,6 +163,14 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "track.messagePartnerSub": "E late, e spoil or e loss: tell your delivery partner",
   "track.getHelp": "Get help from Shopinbos",
   "track.getHelpSub": "Person or Peggy go help you sort am out",
+  "filters.title": "Filters",
+  "filters.done": "E don do",
+  "filters.clear": "Clear filters",
+  "filters.search": "Customer, item or order number",
+  "filters.pay": "Payment",
+  "filters.pay.any": "All",
+  "filters.pay.unpaid": "Never pay",
+  "filters.pay.toSend": "Don pay, never send",
 };
 
 export default pcm;

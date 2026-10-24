@@ -20,6 +20,9 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "msg.read": "Wọ́n ti kà á",
   "msg.delivered": "Ó ti dé",
   "msg.sending": "Ó ń lọ…",
+  "filters.title": "Àwọn àlẹ̀mọ́",
+  "filters.done": "Ó ti parí",
+  "filters.clear": "Pa àwọn àlẹ̀mọ́ rẹ́",
 };
 
 export default yo;

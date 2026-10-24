@@ -20,6 +20,9 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "msg.read": "Dem don read",
   "msg.delivered": "E don reach",
   "msg.sending": "E dey go…",
+  "filters.title": "Filters",
+  "filters.done": "E don do",
+  "filters.clear": "Clear filters",
 };
 
 export default pcm;
