@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
 import { router } from "expo-router";
-import { Badge, ChipRow, EmptyState, ErrorState, Initials, LoadingBlock } from "@/components/kit";
+import { Seg } from "@/components/design";
+import { FilterBar, FilterGroup, FilterSheet } from "@/components/FilterBar";
+import { Badge, EmptyState, ErrorState, Initials, LoadingBlock } from "@/components/kit";
 import { Screen } from "@/components/Screen";
 import { Card, Chip, Field, Notice, PillButton, T } from "@/components/ui";
 import { CUSTOMER_FILTERS, CUSTOMER_SORTS, fetchCustomers, hasMore, joinPages, money, type CustomerFilter, type CustomerRow, type CustomerSort } from "@/lib/customers";
@@ -11,7 +13,8 @@ import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 
 // Customers (web /home/customers): everyone who has ordered, grouped like the web (by email, else phone, else
-// name), with search, the web's filter and sort chips, and "Show more" paging. A tap opens the customer.
+// name), with search, the web's filter chips in one sideways row (the order in the Filters sheet), and "Show more"
+// paging. A tap opens the customer.
 
 const BADGE_COLORS = {
   vip: { bg: "#FDF0D5", fg: "#8A5A00" },
@@ -40,8 +43,8 @@ function CustomerCard({ customer, currency }: { customer: CustomerRow; currency:
           {contact ? <T style={{ color: colors.inkSoft, fontSize: 14 }} numberOfLines={1}>{contact}</T> : null}
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <Badge label={t(`badge.${customer.badge}`)} bg={colorsFor.bg} fg={colorsFor.fg} />
-            <T style={{ color: colors.inkSoft, fontSize: 14 }}>{t("row.orders", { count: customer.orders })}</T>
-            <T style={{ color: colors.inkSoft, fontSize: 14 }}>· {t("lastOrder", { when: friendlyDay(customer.lastAt, new Date(), t) })}</T>
+            {/* One line of text; a no-break space keeps the "·" with the words before it, so a wrapped line never starts with it. */}
+            <T style={{ color: colors.inkSoft, fontSize: 14, flexShrink: 1 }}>{`${t("row.orders", { count: customer.orders })}\u00A0· ${t("lastOrder", { when: friendlyDay(customer.lastAt, new Date(), t) })}`}</T>
           </View>
         </View>
       </Card>
@@ -55,6 +58,7 @@ export default function Customers() {
   const [q, setQ] = useState("");
   const [show, setShow] = useState<CustomerFilter>("all");
   const [sort, setSort] = useState<CustomerSort>("recent");
+  const [sheet, setSheet] = useState(false);
   const [more, setMore] = useState(false);
   const [moreNote, setMoreNote] = useState<string | null>(null);
 
@@ -108,16 +112,16 @@ export default function Customers() {
       {stats?.customers || filtering ? (
         <>
           <Field value={typed} onChangeText={setTyped} placeholder={t("search")} returnKeyType="search" onSubmitEditing={() => setQ(typed.trim())} accessibilityLabel={t("search")} autoCapitalize="none" autoCorrect={false} style={{ height: 48 }} />
-          <ChipRow>
-            {CUSTOMER_FILTERS.map((option) => {
-              const count = stats?.counts[option];
-              return <Chip key={option} label={count ? `${t(`filter.${option}`)} ${count}` : t(`filter.${option}`)} on={show === option} onPress={() => setShow(option)} />;
-            })}
-          </ChipRow>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
-            <T weight="bold" style={{ color: colors.inkSoft }}>{t("sort.label")}</T>
-            {CUSTOMER_SORTS.map((option) => <Chip key={option} label={t(`sort.${option}`)} on={sort === option} onPress={() => setSort(option)} />)}
-          </View>
+          <FilterBar testID="customers-filters" onMore={() => setSheet(true)} moreLabel={t("filters.title")} moreCount={sort !== "recent" ? 1 : 0}>
+            {CUSTOMER_FILTERS.map((option) => (
+              <Seg key={option} label={t(`filter.${option}`)} count={stats?.counts[option] || undefined} on={show === option} onPress={() => setShow(option)} />
+            ))}
+          </FilterBar>
+          <FilterSheet visible={sheet} onClose={() => setSheet(false)} title={t("filters.title")} doneLabel={t("filters.done")} clearLabel={t("filters.clear")} onClear={() => { setShow("all"); setSort("recent"); }}>
+            <FilterGroup label={t("sort.label")}>
+              {CUSTOMER_SORTS.map((option) => <Chip key={option} label={t(`sort.${option}`)} on={sort === option} onPress={() => setSort(option)} />)}
+            </FilterGroup>
+          </FilterSheet>
         </>
       ) : null}
 

@@ -8,7 +8,6 @@ import { Screen } from "@/components/Screen";
 import { Card, Field, Label, LinkButton, Notice, PillButton, T } from "@/components/ui";
 import { canPublish, draftLegalText, fetchLegalText, saveLegalText, type LegalText } from "@/lib/legal";
 import { useLoad } from "@/lib/useLoad";
-import { openWeb } from "@/lib/web";
 import { formatDate } from "@shared/i18n";
 import { useLocale, useT } from "@/lib/i18n";
 import { colors } from "@/theme";
@@ -153,7 +152,6 @@ function Editor({ initial, onSaved }: { initial: LegalText; onSaved: (page: Lega
       ) : (
         <>
           <Notice tone="info">{t("richOnly")}</Notice>
-          <PillButton title={t("editWeb")} tone="white" size="md" onPress={() => void openWeb(`/home/legal/${encodeURIComponent(page.key)}`)} />
           <Card>
             <T selectable style={{ lineHeight: 22 }}>{page.text}</T>
           </Card>

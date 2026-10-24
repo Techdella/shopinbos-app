@@ -52,6 +52,14 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "credits.topUpLabel": "Top up credits: we go email you how",
   "credits.emailed": "We don email you how to top up for the website.",
   "credits.emailFailed": "We no fit send the email now. Try again after small time.",
+  "card.useIt": "Use am",
+  "card.useImageAsk": "Use this picture: {title}.",
+  "card.useCopyAsk": "Use this description for {name}.",
+  "card.useLogoAsk": "Use the {label} logo.",
+  "card.seeShop": "See my shop",
+  "card.publish": "Publish am",
+  "card.published": "E don publish. Customers dey see the new look now.",
+  "card.publishFailed": "We no fit publish now. Try again.",
 };
 
 export default pcm;

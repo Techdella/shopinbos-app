@@ -616,6 +616,11 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "fam.biz.rewardsSub": "Level {level} · {points, plural, one {# point} other {# points}}",
   "fam.biz.rewardsPlain": "Points, badges and this week challenges",
   "fam.job.shopWho": "{shop} ({who}) · {status}",
+  "chats.filter.all": "All",
+  "chats.filter.seller": "Shops",
+  "chats.filter.supplier": "Suppliers",
+  "chats.filter.logistics_partner": "Delivery partners",
+  "chats.filter.unread": "Never read",
 };
 
 export default pcm;

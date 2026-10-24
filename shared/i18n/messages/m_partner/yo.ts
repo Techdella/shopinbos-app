@@ -616,6 +616,11 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "fam.biz.rewardsSub": "Ìpele {level} · {points, plural, one {Pọ́ìǹtì #} other {Pọ́ìǹtì #}}",
   "fam.biz.rewardsPlain": "Pọ́ìǹtì, àmì ẹ̀yẹ àti ìpèníjà ọ̀sẹ̀ yìí",
   "fam.job.shopWho": "{shop} ({who}) · {status}",
+  "chats.filter.all": "Gbogbo",
+  "chats.filter.seller": "Àwọn ṣọ́ọ̀bù",
+  "chats.filter.supplier": "Àwọn olùpèsè",
+  "chats.filter.logistics_partner": "Àwọn alábàáṣiṣẹ́ ìfijíṣẹ́",
+  "chats.filter.unread": "Tí a kò kà",
 };
 
 export default yo;

@@ -1,162 +1,295 @@
-import { useState } from "react";
-import { Pressable, View } from "react-native";
+import { useEffect, useMemo, useState } from "react";
+import { Modal, Pressable, ScrollView, View, useWindowDimensions } from "react-native";
 import { router } from "expo-router";
 import { Image } from "expo-image";
-import { Banner, Eyebrow, Small } from "@/components/design";
+import { LinearGradient } from "expo-linear-gradient";
+import * as WebBrowser from "expo-web-browser";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Banner, Seg, Sub, Title } from "@/components/design";
+import { FilterBar, FilterGroup, FilterSheet } from "@/components/FilterBar";
 import { AppIcon } from "@/components/icons";
 import { EmptyState, ErrorState, LoadingBlock } from "@/components/kit";
-import { Screen } from "@/components/Screen";
-import { Sheet } from "@/components/Sheet";
-import { LinkButton, Mascot, Notice, PillButton, T } from "@/components/ui";
-import { fetchSetup } from "@/lib/setup";
-import { applyLook, fetchLooks, lookImage, recommendLook, type ShopLook } from "@/lib/templates";
+import { Screen, ScreenHeader } from "@/components/Screen";
+import { Chip, Field, LinkButton, Mascot, Notice, PillButton, T } from "@/components/ui";
+import { publishStore } from "@/lib/onboarding";
+import { applyLook, fetchLookLibrary, lookDemoUrl, lookFilterCount, NO_LOOK_FILTERS, recommendLook, shownLooks, type LookFilters, type LookTone, type ShopLook } from "@/lib/templates";
 import { useLoad } from "@/lib/useLoad";
 import { openWeb } from "@/lib/web";
+import { themeTierPlanName } from "@shared/plans";
 import { useT } from "@/lib/i18n";
 import { colors, fonts } from "@/theme";
 
-// Shop looks ("Familiar app" prototype `on.templates` and `tplView`), in the app instead of the web-only Themes
-// page: "Build with Rex or pick a look", Ask Rex to build it, Rex's pick for what the shop sells, then every look
-// as a card in its own colours. A look opens a sheet: what it is, "Use this look" (POST /api/store/templates/apply;
-// a live shop keeps its look until it's published), then Preview opens the shop's draft in the in-app browser.
+// Shop looks ("Familiar app" prototype `on.templates` and `tplView`): the web gallery's themes (/builder/templates)
+// as a grid of little shops in each theme's own colours and sample photos, filtered like the web (category chips,
+// plus plan, light or dark, search, "ones I can use" and "new" in the Filters sheet). A look opens full screen:
+// a big preview, "See it live" (the theme's live demo with its sample store, in the in-app browser), "Use this
+// look" (POST /api/store/templates/apply, the web's route) and "Ask Rex to change it". A look the seller's plan
+// doesn't include names that plan and sends them to the website for it; the app never sells a plan.
 
-function LookCard({ look, shopName, picked, onPress }: { look: ShopLook; shopName: string; picked: boolean; onPress: () => void }) {
-  const t = useT("m_shop");
-  const tokens = look.themeTokens;
-  const image = lookImage(look.previewImage);
+const PLANS_PATH = "/home/settings?tab=Billing";
+
+/** A little shop in the look's colours: its sample store's name, banner photo and two products. */
+function MiniShop({ look, height, big = false }: { look: ShopLook; height: number; big?: boolean }) {
+  const { bg, ink, accent } = look.preview;
+  const [first, second] = look.demo.products;
+  return (
+    <View style={{ height, borderRadius: big ? 26 : 16, overflow: "hidden", backgroundColor: bg }}>
+      <View style={{ height: big ? 40 : 26, justifyContent: "center", paddingHorizontal: big ? 14 : 8 }}>
+        <T weight="extrabold" numberOfLines={1} style={{ fontSize: big ? 12 : 9, letterSpacing: 0.4, color: ink, textTransform: "uppercase" }}>{look.demo.storeName}</T>
+      </View>
+      <View style={{ height: big ? 170 : Math.round(height * 0.39), backgroundColor: accent }}>
+        {look.demo.hero ? <Image source={{ uri: look.demo.hero }} style={{ width: "100%", height: "100%" }} contentFit="cover" transition={150} accessibilityIgnoresInvertColors /> : null}
+        {/* A dark scrim under the theme's name, so it reads on any photo. */}
+        <LinearGradient pointerEvents="none" colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.62)"]} style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: big ? 90 : 48 }} />
+        <T
+          numberOfLines={1}
+          style={{ position: "absolute", left: big ? 14 : 8, right: big ? 14 : 8, bottom: big ? 12 : 6, fontFamily: look.preview.nameFont === "serif" ? fonts.displayBold : fonts.display, fontSize: big ? 24 : 14, lineHeight: big ? 28 : 17, color: "#FFFFFF", textShadowColor: "rgba(0,0,0,0.45)", textShadowRadius: 6 }}
+        >
+          {look.name}
+        </T>
+      </View>
+      <View style={{ flex: 1, flexDirection: "row", gap: big ? 8 : 5, padding: big ? 10 : 6 }}>
+        {[first, second].map((uri, index) => (
+          <View key={index} style={{ flex: 1, borderRadius: big ? 12 : 7, overflow: "hidden", backgroundColor: look.preview.line }}>
+            {uri ? <Image source={{ uri }} style={{ width: "100%", height: "100%" }} contentFit="cover" transition={150} accessibilityIgnoresInvertColors /> : null}
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function Tag({ label, dark, icon }: { label: string; dark?: boolean; icon?: "lock" | "check" | "sparkle" }) {
+  const fg = dark ? "#FFFFFF" : colors.ink;
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3, backgroundColor: dark ? colors.ink : "rgba(255,255,255,0.94)" }}>
+      {icon ? <AppIcon name={icon} size={11} color={fg} strokeWidth={2.6} /> : null}
+      <T weight="bold" style={{ fontSize: 11, color: fg }}>{label}</T>
+    </View>
+  );
+}
+
+function LookCard({ look, width, rexPick, onPress }: { look: ShopLook; width: number; rexPick: boolean; onPress: () => void }) {
+  const t = useT("m_looks");
+  const tb = useT("builder");
+  const meaning = tb.dynamic(`theme.${look.id}.meaning`, look.meaning);
   return (
     <Pressable
+      testID={`look-${look.id}`}
       accessibilityRole="button"
-      accessibilityLabel={`${look.name}. ${look.description}`}
+      accessibilityLabel={[look.name, meaning, look.current ? t("current") : null, look.lockedPlan ? t("needsPlan", { plan: look.lockedPlan }) : null].filter(Boolean).join(". ")}
       onPress={onPress}
-      style={({ pressed }) => ({ backgroundColor: colors.surface, borderRadius: 24, borderWidth: picked ? 2.5 : 1, borderColor: picked ? colors.ink : colors.line, overflow: "hidden", opacity: pressed ? 0.9 : 1 })}
+      style={({ pressed }) => ({ width, borderRadius: 22, padding: 8, gap: 8, backgroundColor: colors.surface, borderWidth: look.current ? 2.5 : 1, borderColor: look.current ? colors.ink : colors.line, opacity: pressed ? 0.88 : 1 })}
     >
-      <View style={{ height: 120, backgroundColor: tokens?.heroBg ?? colors.lilac, alignItems: "center", justifyContent: "center", padding: 14 }}>
-        {image ? <Image source={{ uri: image }} style={{ position: "absolute", inset: 0 }} contentFit="cover" accessibilityIgnoresInvertColors /> : null}
-        {!image ? (
-          <>
-            <T numberOfLines={1} style={{ fontFamily: tokens?.headingStyle === "serif" ? fonts.displayBold : fonts.display, fontSize: 18, letterSpacing: 1.5, textTransform: "uppercase", color: tokens?.heroText ?? colors.ink }}>{shopName}</T>
-            <View style={{ marginTop: 10, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 6, backgroundColor: tokens?.ctaBg ?? colors.ink }}>
-              <T weight="bold" style={{ fontSize: 12, color: tokens?.ctaText ?? "#FFFFFF" }}>{t("looks.shopNow")}</T>
-            </View>
-          </>
-        ) : null}
-      </View>
-      <View style={{ padding: 14, gap: 4 }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-          <T weight="extrabold" style={{ flex: 1, fontSize: 16 }} numberOfLines={1}>{look.name}</T>
-          {look.category ? <Small>{look.category}</Small> : null}
+      <View>
+        <MiniShop look={look} height={200} />
+        <View style={{ position: "absolute", left: 6, top: 30, right: 6, flexDirection: "row", flexWrap: "wrap", gap: 4 }}>
+          {look.current ? <Tag label={t("current")} dark icon="check" /> : null}
+          {rexPick && !look.current ? <Tag label={t("rexPick")} dark icon="sparkle" /> : null}
+          {look.lockedPlan ? <Tag label={look.lockedPlan} icon="lock" /> : null}
+          {look.isNew && !look.current && !rexPick ? <Tag label={t("new")} /> : null}
         </View>
-        <T style={{ fontSize: 14, lineHeight: 19, color: colors.inkSoft }} numberOfLines={2}>{look.description}</T>
+      </View>
+      <View style={{ paddingHorizontal: 6, paddingBottom: 4, gap: 2 }}>
+        <T weight="extrabold" numberOfLines={1} style={{ fontSize: 14 }}>{look.name}</T>
+        <T numberOfLines={2} style={{ fontSize: 12.5, lineHeight: 16, color: colors.inkSoft, minHeight: 32 }}>{meaning}</T>
       </View>
     </Pressable>
   );
 }
 
-export default function ShopLooks() {
-  const t = useT("m_shop", "common");
-  const loaded = useLoad(async () => {
-    const [looks, setup] = await Promise.all([fetchLooks(), fetchSetup().catch(() => null)]);
-    return { looks: looks?.templates ?? null, store: setup?.store ?? null };
-  });
-  const pick = useLoad(() => recommendLook().catch(() => null));
-  const [open, setOpen] = useState<ShopLook | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [applied, setApplied] = useState<{ id: string; slug: string; draftOnly: boolean } | null>(null);
+type Applied = { id: string; slug: string; draftOnly: boolean; live: boolean };
+
+/** Full-screen preview (`tplView`): the big shop, what it is, See it live, and Use this look or the plan it needs. */
+function LookPreview({ look, rexReason, applied, onClose, onApplied }: { look: ShopLook; rexReason: string | null; applied: Applied | null; onClose: () => void; onApplied: (result: Applied) => void }) {
+  const t = useT("m_looks");
+  const tb = useT("builder");
+  const [busy, setBusy] = useState<"use" | "publish" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const done = applied?.id === look.id ? applied : null;
+  const blurb = tb.dynamic(`theme.${look.id}.blurb`, look.blurb).replace(/[.\s]+$/, "");
 
-  const looks = loaded.data?.looks ?? null;
-  const store = loaded.data?.store ?? null;
-  const shopName = store?.name ?? "";
-  const recommended = pick.data && looks ? looks.find((look) => look.id === pick.data!.themeId) ?? null : null;
-  // Rex's pick first, then the rest as the server orders them.
-  const ordered = looks ? (recommended ? [recommended, ...looks.filter((look) => look.id !== recommended.id)] : looks) : [];
-
-  async function use(look: ShopLook) {
-    setBusy(true);
+  async function use() {
+    setBusy("use");
     setError(null);
     try {
       const result = await applyLook(look.id);
-      setApplied({ id: look.id, slug: result.storeSlug, draftOnly: result.draftOnly });
+      onApplied({ id: look.id, slug: result.storeSlug, draftOnly: result.draftOnly, live: !result.draftOnly });
     } catch (applyError) {
-      setError(applyError instanceof Error ? applyError.message : t("looks.applyFailed"));
+      setError(applyError instanceof Error ? applyError.message : t("applyFailed"));
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   }
 
-  const preview = (slug: string | null | undefined) => (slug ? void openWeb(`/s/${encodeURIComponent(slug)}/preview`) : undefined);
-  const askRex = (prompt: string) => router.push({ pathname: "/rex", params: { prompt } });
+  async function putLive() {
+    if (!done) return;
+    setBusy("publish");
+    setError(null);
+    try {
+      await publishStore();
+      onApplied({ ...done, live: true });
+    } catch (publishError) {
+      setError(publishError instanceof Error ? publishError.message : t("publishFailed"));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  const askRex = () => {
+    onClose();
+    router.push({ pathname: "/rex", params: { prompt: t("rexChangePrompt", { name: look.name }) } });
+  };
+
+  let action;
+  if (done) {
+    action = (
+      <>
+        <Notice tone="success">{done.live ? t("applied") : t("appliedDraft")}</Notice>
+        {!done.live ? <PillButton testID="look-publish" tone="accent" title={t("putLive")} busy={busy === "publish"} onPress={() => void putLive()} /> : null}
+        {done.slug ? <LinkButton title={t("seeMyShop")} onPress={() => void openWeb(`/s/${encodeURIComponent(done.slug)}/preview`)} /> : null}
+      </>
+    );
+  } else if (look.current) {
+    action = <Notice tone="info">{t("isCurrent")}</Notice>;
+  } else if (look.lockedPlan) {
+    action = (
+      <>
+        <Banner tone="warn" icon="lock" title={t("needsPlan", { plan: look.lockedPlan })}>{t("needsPlanBody")}</Banner>
+        <PillButton testID="look-plans" title={t("seePlans")} onPress={() => void openWeb(PLANS_PATH)} />
+      </>
+    );
+  } else {
+    action = <PillButton testID="look-use" tone="accent" title={t("use")} busy={busy === "use"} onPress={() => void use()} />;
+  }
 
   return (
-    <Screen title={t("looks.title")} heading={t("looks.heading")} sub={t("looks.sub")} refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
-      <Pressable
-        accessibilityRole="button"
-        onPress={() => askRex(t("looks.rexPrompt"))}
-        style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.ink, borderRadius: 24, padding: 16, minHeight: 72, opacity: pressed ? 0.9 : 1 })}
-      >
-        <Mascot name="rex" size={44} label="" />
-        <T weight="extrabold" style={{ flex: 1, fontSize: 16, color: "#FFFFFF" }}>{t("looks.askRex")}</T>
-        <AppIcon name="chevron" size={18} color="#FFFFFF" />
-      </Pressable>
-
-      {store?.slug ? <LinkButton title={t("looks.previewMine")} onPress={() => preview(store.slug)} /> : null}
-
-      {recommended && pick.data ? (
-        <Banner tone="peach" icon="sparkle" title={t("looks.rexPicks", { name: recommended.name })}>
-          {pick.data.reason}
-        </Banner>
-      ) : null}
-
-      {loaded.loading && !loaded.data ? <LoadingBlock /> : null}
-      {loaded.error && !loaded.data ? <ErrorState message={loaded.error} onRetry={() => void loaded.reload()} /> : null}
-      {loaded.data && !ordered.length ? (
-        <EmptyState icon="image" title={t("looks.noneTitle")}>{t("looks.noneBody")}</EmptyState>
-      ) : null}
-
-      {ordered.length ? (
-        <View style={{ gap: 12 }}>
-          <Eyebrow>{t("looks.templates")}</Eyebrow>
-          {ordered.map((look) => (
-            <LookCard
-              key={look.id}
-              look={look}
-              shopName={shopName || look.name}
-              picked={applied?.id === look.id}
-              onPress={() => {
-                setError(null);
-                setOpen(look);
-              }}
-            />
-          ))}
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }}>
+      <ScreenHeader title={t("previewTitle")} onBack={onClose} help={false} />
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 24, gap: 16 }}>
+        <MiniShop look={look} height={430} big />
+        <View style={{ gap: 6 }}>
+          <Title size={28}>{look.name}</Title>
+          <Sub>{t("keeps", { blurb })}</Sub>
         </View>
+        {rexReason ? <Banner tone="peach" icon="sparkle" title={t("rexPick")}>{rexReason}</Banner> : null}
+        <PillButton testID="look-live" tone="white" size="md" accessibilityLabel={t("seeLive")} onPress={() => void WebBrowser.openBrowserAsync(lookDemoUrl(look))}>
+          <AppIcon name="globe" size={18} />
+          <T weight="bold" style={{ fontSize: 16 }}>{t("seeLive")}</T>
+        </PillButton>
+      </ScrollView>
+      <View style={{ paddingHorizontal: 20, paddingTop: 10, paddingBottom: 12, gap: 6 }}>
+        {error ? <Notice>{error}</Notice> : null}
+        {action}
+        <LinkButton title={t("askRexChange")} onPress={askRex} />
+      </View>
+    </SafeAreaView>
+  );
+}
+
+export default function ShopLooks() {
+  const t = useT("m_looks");
+  const tb = useT("builder");
+  const { width } = useWindowDimensions();
+  const cardWidth = Math.floor((width - 40 - 12) / 2);
+  const loaded = useLoad(fetchLookLibrary);
+  const library = loaded.data ?? null;
+  // Rex's pick for what the shop sells: asked once per visit, shown first and on its card.
+  const [pick, setPick] = useState<{ themeId: string; reason: string } | null>(null);
+  useEffect(() => {
+    let live = true;
+    recommendLook()
+      .then((answer) => {
+        if (live && answer) setPick({ themeId: answer.themeId, reason: answer.reason });
+      })
+      .catch(() => null);
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  const [category, setCategory] = useState("all");
+  const [filters, setFilters] = useState<LookFilters>(NO_LOOK_FILTERS);
+  const [sheet, setSheet] = useState(false);
+  const [open, setOpen] = useState<string | null>(null);
+  const [applied, setApplied] = useState<Applied | null>(null);
+
+  // After a switch the new look is the current one, before the list reloads.
+  const currentId = applied?.id ?? library?.currentThemeId ?? null;
+  const withCurrent = useMemo(() => (library ? { ...library, looks: library.looks.map((look) => ({ ...look, current: look.id === currentId, lockedPlan: look.id === currentId ? null : look.lockedPlan })) } : null), [library, currentId]);
+  const looks = useMemo(() => shownLooks(withCurrent, category, filters, pick?.themeId ?? null), [withCurrent, category, filters, pick]);
+  const opened = withCurrent?.looks.find((look) => look.id === open) ?? null;
+  const set = (patch: Partial<LookFilters>) => setFilters((now) => ({ ...now, ...patch }));
+  const clear = () => {
+    setFilters(NO_LOOK_FILTERS);
+    setCategory("all");
+  };
+
+  return (
+    <Screen title={t("title")} refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
+      <View style={{ backgroundColor: colors.mintTint, borderRadius: 24, padding: 16, gap: 12 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <Mascot name="rex" size={44} label="" />
+          <View style={{ flex: 1, gap: 2 }}>
+            <T weight="extrabold" style={{ fontSize: 16 }}>{t("intro")}</T>
+            <T style={{ fontSize: 14, color: colors.inkSoft }}>{t("introSub")}</T>
+          </View>
+        </View>
+        <PillButton testID="look-rex" title={t("letRex")} size="md" onPress={() => router.push({ pathname: "/rex", params: { prompt: t("rexPrompt") } })} />
+      </View>
+
+      {loaded.loading && !library ? <LoadingBlock /> : null}
+      {loaded.error && !library ? <ErrorState message={loaded.error} onRetry={() => void loaded.reload()} /> : null}
+
+      {withCurrent?.looks.length ? (
+        <>
+          <FilterBar testID="look-filters" onMore={() => setSheet(true)} moreLabel={t("filters")} moreCount={lookFilterCount(filters)}>
+            {withCurrent.chips.map((chip) => (
+              <Seg key={chip} label={tb.dynamic(`chipf.${chip}`, chip)} on={category === chip} onPress={() => setCategory(chip)} />
+            ))}
+          </FilterBar>
+          {looks.length ? (
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
+              {looks.map((look) => (
+                <LookCard key={look.id} look={look} width={cardWidth} rexPick={pick?.themeId === look.id} onPress={() => setOpen(look.id)} />
+              ))}
+            </View>
+          ) : (
+            <EmptyState icon="search" title={t("noMatch")} action={<PillButton title={t("clear")} size="sm" tone="white" onPress={clear} />} />
+          )}
+        </>
       ) : null}
 
-      <Sheet visible={!!open} onClose={() => setOpen(null)} title={open?.name ?? ""}>
-        {open ? (
-          <View style={{ gap: 12 }}>
-            <T style={{ fontSize: 15, lineHeight: 22, color: colors.inkSoft }}>{t("looks.keeps", { description: open.description.replace(/[.\s]+$/, "") })}</T>
-            {error ? <Notice>{error}</Notice> : null}
-            {applied?.id === open.id ? (
-              <>
-                <Notice tone="success">{applied.draftOnly ? t("looks.appliedDraft") : t("looks.applied")}</Notice>
-                <PillButton testID="look-preview" title={t("looks.preview")} onPress={() => preview(applied.slug)} />
-                {applied.draftOnly ? <LinkButton title={t("looks.publish")} onPress={() => void openWeb("/builder/editor")} /> : null}
-              </>
-            ) : (
-              <PillButton testID="look-use" tone="accent" title={t("looks.use")} busy={busy} onPress={() => void use(open)} />
-            )}
-            <LinkButton
-              title={t("looks.askRexChange")}
-              onPress={() => {
-                const name = open.name;
-                setOpen(null);
-                askRex(t("looks.rexChangePrompt", { name }));
-              }}
-            />
-          </View>
+      <FilterSheet visible={sheet} onClose={() => setSheet(false)} title={t("filters")} doneLabel={t("showCount", { count: looks.length })} clearLabel={t("clear")} onClear={clear}>
+        <Field value={filters.q} onChangeText={(q) => set({ q })} placeholder={t("search")} accessibilityLabel={t("search")} returnKeyType="search" autoCorrect={false} style={{ height: 48 }} />
+        <FilterGroup label={t("plan")}>
+          <Chip label={t("any")} on={filters.tier === "all"} onPress={() => set({ tier: "all" })} />
+          {(withCurrent?.tiers ?? []).map((tier) => (
+            <Chip key={tier} label={themeTierPlanName(tier)} on={filters.tier === tier} onPress={() => set({ tier: filters.tier === tier ? "all" : tier })} />
+          ))}
+        </FilterGroup>
+        <FilterGroup label={t("colours")}>
+          {(["all", "light", "dark"] as LookTone[]).map((tone) => (
+            <Chip key={tone} label={t(`tone.${tone}`)} on={filters.tone === tone} onPress={() => set({ tone })} />
+          ))}
+        </FilterGroup>
+        <FilterGroup label={t("show")}>
+          <Chip label={t("usable")} on={filters.usable} onPress={() => set({ usable: !filters.usable })} />
+          <Chip label={t("newOnes")} on={filters.isNew} onPress={() => set({ isNew: !filters.isNew })} />
+        </FilterGroup>
+      </FilterSheet>
+
+      <Modal visible={!!opened} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setOpen(null)}>
+        {opened ? (
+          <LookPreview
+            look={opened}
+            rexReason={pick?.themeId === opened.id ? pick.reason : null}
+            applied={applied}
+            onClose={() => setOpen(null)}
+            onApplied={(result) => setApplied(result)}
+          />
         ) : null}
-      </Sheet>
+      </Modal>
     </Screen>
   );
 }

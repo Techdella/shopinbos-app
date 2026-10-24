@@ -163,6 +163,14 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "track.messagePartnerSub": "Ó pẹ́, ó bàjẹ́ tàbí ó sọnù: sọ fún delivery partner rẹ",
   "track.getHelp": "Gba ìrànlọ́wọ́ láti Shopinbos",
   "track.getHelpSub": "Ènìyàn kan tàbí Peggy máa ràn ọ́ lọ́wọ́ láti yanjú rẹ̀",
+  "filters.title": "Àwọn àlẹ̀mọ́",
+  "filters.done": "Ó ti parí",
+  "filters.clear": "Pa àwọn àlẹ̀mọ́ rẹ́",
+  "filters.search": "Oníbàárà, ọjà tàbí nọ́mbà ọ̀dà",
+  "filters.pay": "Ìsanwó",
+  "filters.pay.any": "Gbogbo",
+  "filters.pay.unpaid": "Kò tíì san",
+  "filters.pay.toSend": "Ti san, láti fi ránṣẹ́",
 };
 
 export default yo;

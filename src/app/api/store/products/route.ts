@@ -24,7 +24,10 @@ export const GET = withSeller(async (req: NextRequest, { user }: { user: AuthUse
 
   const where: any = { storeId: store.id };
 
-  if (status) where.status = status;
+  // One status, several ("active,published" for live), or all but one ("!archived", the web list's "All").
+  if (status?.startsWith("!")) where.status = { not: status.slice(1) };
+  else if (status?.includes(",")) where.status = { in: status.split(",").map((value) => value.trim()).filter(Boolean) };
+  else if (status) where.status = status;
   if (visibility) where.visibility = visibility;
   if (inventoryType) where.inventoryType = inventoryType;
   if (categoryId) where.categoryId = categoryId;

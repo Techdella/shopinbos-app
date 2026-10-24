@@ -95,3 +95,76 @@ export function sortCategories(names: string[]) {
     return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib) || a.localeCompare(b);
   });
 }
+
+// ─── Filters (the list view's chip row and Filters sheet) ────────────────────
+
+/** What the seller pays the supplier per unit, in naira bands. */
+export const FIND_PRICE_BANDS = [
+  { key: "under5", min: 0, max: 5000 },
+  { key: "5to20", min: 5000, max: 20000 },
+  { key: "20to50", min: 20000, max: 50000 },
+  { key: "over50", min: 50000, max: Infinity },
+] as const;
+
+export type FindPriceBand = (typeof FIND_PRICE_BANDS)[number]["key"];
+
+export interface FindFilters {
+  q: string;
+  category: string;
+  /** "" any, "dropship" (the supplier sends each order) or "wholesale" (buy in bulk). */
+  way: "" | "dropship" | "wholesale";
+  price: "" | FindPriceBand;
+  /** A supplier's city, or "" for anywhere. */
+  city: string;
+  verified: boolean;
+}
+
+export const NO_FIND_FILTERS: FindFilters = { q: "", category: "", way: "", price: "", city: "", verified: false };
+
+interface Filterable {
+  name: string;
+  description: string;
+  category: string;
+  cost: number;
+  dropship: boolean;
+  wholesale: boolean;
+  supplier: { name: string; city: string; verificationStatus: string };
+}
+
+/** Every word must appear (plurals folded), in the name, description, category or the supplier. */
+export function findMatches(product: Filterable, q: string) {
+  const words = q.toLowerCase().split(/[\s,]+/).filter((word) => word.length > 1);
+  if (!words.length) return true;
+  const haystack = [product.name, product.description, product.category, product.supplier.name, product.supplier.city].join(" ").toLowerCase();
+  return words.every((word) => haystack.includes(word.replace(/(es|s)$/, "")));
+}
+
+export function filterFind<P extends Filterable>(products: readonly P[], filters: FindFilters): P[] {
+  const band = FIND_PRICE_BANDS.find((item) => item.key === filters.price);
+  const city = filters.city.trim().toLowerCase();
+  return products.filter(
+    (product) =>
+      (!filters.category || product.category === filters.category) &&
+      (filters.way !== "dropship" || product.dropship) &&
+      (filters.way !== "wholesale" || product.wholesale) &&
+      (!band || (product.cost >= band.min && product.cost < band.max)) &&
+      (!city || product.supplier.city.trim().toLowerCase() === city) &&
+      (!filters.verified || product.supplier.verificationStatus === "verified") &&
+      findMatches(product, filters.q),
+  );
+}
+
+/** Filters picked in the sheet (search and the category chips are counted apart). */
+export function findFilterCount(filters: FindFilters) {
+  return (filters.way ? 1 : 0) + (filters.price ? 1 : 0) + (filters.city ? 1 : 0) + (filters.verified ? 1 : 0);
+}
+
+/** Suppliers' cities for the Location filter, most products first. */
+export function findCities(products: ReadonlyArray<{ supplier: { city: string } }>, max = 8) {
+  const counts = new Map<string, number>();
+  for (const product of products) {
+    const city = product.supplier.city.trim();
+    if (city) counts.set(city, (counts.get(city) ?? 0) + 1);
+  }
+  return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, max).map(([city]) => city);
+}

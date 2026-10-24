@@ -98,6 +98,22 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "swipe.showList": "Fi hàn bí àkójọ",
   "swipe.showCards": "Fi wọ́n hàn ní ọ̀kọ̀ọ̀kan",
   "swipe.you": "Ìwọ",
+  "filters.title": "Àwọn àlẹ̀mọ́",
+  "filters.show": "Fi {count} hàn",
+  "filters.clear": "Pa àwọn àlẹ̀mọ́ rẹ́",
+  "filters.way": "Bí o ṣe máa tà á",
+  "filters.any": "Èyíkéyìí",
+  "filters.price": "Iye tí o máa san",
+  "filters.price.under5": "Kò tó ₦5k",
+  "filters.price.5to20": "₦5k sí ₦20k",
+  "filters.price.20to50": "₦20k sí ₦50k",
+  "filters.price.over50": "Ju ₦50k lọ",
+  "filters.location": "Ìlú olùpèsè",
+  "filters.anywhere": "Ibikíbi",
+  "filters.suppliers": "Àwọn olùpèsè",
+  "filters.verified": "Àwọn tí a ti ṣàyẹ̀wò nìkan",
+  "tab.all": "Gbogbo",
+  "barTitle": "Wá ọjà",
 };
 
 export default yo;

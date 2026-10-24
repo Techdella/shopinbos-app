@@ -1,4 +1,5 @@
 import { NATIONWIDE, NG_STATES, cleanAreas, parseArea } from "@shared/delivery-market";
+import { nameWords } from "@shared/identity-images";
 import type { MarketRateRow, RateService, RiderRow, SizeBand } from "./logistics";
 
 // Pure helpers for the delivery partner screens ("Delivery partner app" prototype): the words and buttons for each
@@ -76,7 +77,7 @@ export function jobTimeline(status: string, point: boolean): Array<{ key: string
 
 /** Two-letter initials for a company or person ("Swift Dispatch" → "SD"). */
 export function initialsOf(name: string) {
-  const words = name.trim().split(/\s+/).filter(Boolean);
+  const words = nameWords(name);
   if (!words.length) return "?";
   return (words.length === 1 ? words[0].slice(0, 2) : `${words[0][0]}${words[1][0]}`).toUpperCase();
 }

@@ -1,5 +1,20 @@
+import * as WebBrowser from "expo-web-browser";
+import { makeRedirectUri } from "expo-auth-session";
 import { api } from "./api";
+import { signedInUrl } from "./web";
 import type { AdObjective, AdProduct, CampaignAction, CampaignRow, MetaStatus } from "./ads-pure";
+
+/**
+ * "Connect Meta ads": Facebook's sign-in in an in-app browser (/api/app/ads/meta/connect?app=…), which comes back to
+ * shopinbos://ads?meta=<result>. The caller reloads either way ("connected", "needs_account", "cancelled"…).
+ */
+export async function connectMetaAds(): Promise<string | null> {
+  const returnUrl = makeRedirectUri({ scheme: "shopinbos", path: "ads" });
+  const url = await signedInUrl(`/api/app/ads/meta/connect?app=${encodeURIComponent(returnUrl)}`);
+  const result = await WebBrowser.openAuthSessionAsync(url, returnUrl).catch(() => null);
+  if (result?.type !== "success") return null;
+  return new URLSearchParams(result.url.split("?")[1] ?? "").get("meta");
+}
 
 // Ads (web /home/ads and /home/ads/new): GET /api/mobile/ads for everything on the screens; drafts through
 // POST /api/app/ads/campaigns, launch/pause/resume/sync/end through POST /api/app/ads/campaigns/:id, delete

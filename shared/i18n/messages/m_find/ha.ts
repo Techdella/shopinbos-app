@@ -98,6 +98,22 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "swipe.showList": "Nuna a matsayin jeri",
   "swipe.showCards": "Nuna ɗaya bayan ɗaya",
   "swipe.you": "Kai",
+  "filters.title": "Matattara",
+  "filters.show": "Nuna {count}",
+  "filters.clear": "Share matattara",
+  "filters.way": "Yadda za ka sayar da shi",
+  "filters.any": "Kowane",
+  "filters.price": "Kuɗin da za ka biya",
+  "filters.price.under5": "Ƙasa da ₦5k",
+  "filters.price.5to20": "₦5k zuwa ₦20k",
+  "filters.price.20to50": "₦20k zuwa ₦50k",
+  "filters.price.over50": "Sama da ₦50k",
+  "filters.location": "Garin mai kawowa",
+  "filters.anywhere": "Ko'ina",
+  "filters.suppliers": "Masu kawowa",
+  "filters.verified": "Waɗanda aka tabbatar kawai",
+  "tab.all": "Duka",
+  "barTitle": "Nemo kaya",
 };
 
 export default ha;

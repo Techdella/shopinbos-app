@@ -1,17 +1,18 @@
 import { useState } from "react";
 import { View } from "react-native";
-import { ErrorState, LinkRow, LoadingBlock } from "@/components/kit";
+import { ErrorState, LoadingBlock } from "@/components/kit";
+import { PairsEditor } from "@/components/seller/ReplyEditors";
 import { Screen } from "@/components/Screen";
-import { Card, Field, Label, Mascot, Notice, PillButton, Segmented, T, Toggle } from "@/components/ui";
+import { Card, Field, Label, LinkButton, Mascot, Notice, PillButton, Segmented, T, Toggle } from "@/components/ui";
 import { fetchAutomation, saveAutomation, type ChatbotSettings, type InboxAutomation } from "@/lib/inbox";
 import { useLoad } from "@/lib/useLoad";
-import { openWeb } from "@/lib/web";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 import { VoiceInput } from "@/components/VoiceInput";
 
 // Peggy chatbot (web /home/inbox/chatbot): Peggy answers shoppers in the store's chat bubble. The app covers the
-// switch, her name, greeting, tone, when she answers and what she may use; FAQs and hand-off words are on the web.
+// switch, her name, greeting, tone, when she answers, what she may use and her questions and answers. Hand-off
+// words keep what the web set.
 
 // Labels are m_chats keys.
 const SOURCES: Array<{ key: keyof ChatbotSettings["sources"]; label: "bot.source.products" | "bot.source.delivery" | "bot.source.policies" | "bot.source.faqs" }> = [
@@ -42,11 +43,15 @@ function ChatbotForm({ initial, refreshing, onRefresh }: { initial: InboxAutomat
   const [note, setNote] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const ready = initial.ready;
 
+  const setFaq = (index: number, patch: Partial<{ q: string; a: string }>) =>
+    setBot({ ...bot, faqs: bot.faqs.map((faq, at) => (at === index ? { ...faq, ...patch } : faq)) });
+
   async function save() {
     setSaving(true);
     setNote(null);
     try {
-      const saved = await saveAutomation({ chatbot: bot });
+      const faqs = bot.faqs.map((faq) => ({ q: faq.q.trim(), a: faq.a.trim() })).filter((faq) => faq.q && faq.a);
+      const saved = await saveAutomation({ chatbot: { ...bot, faqs } });
       setBot(saved.chatbot);
       setNote({ tone: "success", text: bot.enabled ? t("bot.savedOn", { name: bot.name }) : t("bot.savedOff") });
     } catch (saveError) {
@@ -115,9 +120,15 @@ function ChatbotForm({ initial, refreshing, onRefresh }: { initial: InboxAutomat
         ))}
       </Card>
 
-      <Card style={{ paddingVertical: 2 }}>
-        <LinkRow first icon="doc" label={bot.faqs.length ? t("bot.faqsCount", { count: bot.faqs.length }) : t("bot.faqs")} hint={t("bot.faqsHint")} onPress={() => void openWeb("/home/inbox/chatbot")} />
-      </Card>
+      <T weight="bold" style={{ fontSize: 16 }} accessibilityRole="header">{bot.faqs.length ? t("bot.faqsCount", { count: bot.faqs.length }) : t("bot.faqs")}</T>
+      <PairsEditor
+        items={bot.faqs.map((faq) => ({ a: faq.q, b: faq.a }))}
+        onChange={(items) => setBot({ ...bot, faqs: items.map((item) => ({ q: item.a, a: item.b })) })}
+        first={{ label: t("faq.question"), placeholder: t("faq.questionHint"), maxLength: 200 }}
+        second={{ label: t("faq.answer"), placeholder: t("faq.answerHint"), maxLength: 1000 }}
+        addLabel={t("faq.add")}
+        max={30}
+      />
     </Screen>
   );
 }

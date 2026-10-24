@@ -163,6 +163,14 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "track.messagePartnerSub": "O gbuola oge, mebiri emebi ma ọ bụ furu efu: gwa delivery partner gị",
   "track.getHelp": "Nweta enyemaka site na Shopinbos",
   "track.getHelpSub": "Mmadụ ma ọ bụ Peggy ga-enyere gị aka idozi ya",
+  "filters.title": "Nzacha",
+  "filters.done": "Emechaala",
+  "filters.clear": "Hichapụ nzacha",
+  "filters.search": "Onye ahịa, ngwaahịa ma ọ bụ nọmba ọda",
+  "filters.pay": "Ịkwụ ụgwọ",
+  "filters.pay.any": "Niile",
+  "filters.pay.unpaid": "Akwụbeghị",
+  "filters.pay.toSend": "Akwụọla, iji zipu",
 };
 
 export default ig;

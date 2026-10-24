@@ -31,6 +31,7 @@ import m_orders from "./messages/m_orders/index.ts";
 import m_products from "./messages/m_products/index.ts";
 import m_find from "./messages/m_find/index.ts";
 import m_shop from "./messages/m_shop/index.ts";
+import m_looks from "./messages/m_looks/index.ts";
 import m_marketing from "./messages/m_marketing/index.ts";
 import m_chats from "./messages/m_chats/index.ts";
 import m_onboarding from "./messages/m_onboarding/index.ts";
@@ -46,6 +47,8 @@ import m_productedit from "./messages/m_productedit/index.ts";
 import m_label from "./messages/m_label/index.ts";
 import m_settings from "./messages/m_settings/index.ts";
 import m_paylinks from "./messages/m_paylinks/index.ts";
+import m_domain from "./messages/m_domain/index.ts";
+import m_packaging from "./messages/m_packaging/index.ts";
 import m_campaigns from "./messages/m_campaigns/index.ts";
 import m_video from "./messages/m_video/index.ts";
 import m_money from "./messages/m_money/index.ts";
@@ -123,6 +126,7 @@ export const CATALOGS = {
   m_products,
   m_find,
   m_shop,
+  m_looks,
   m_marketing,
   m_chats,
   m_onboarding,
@@ -138,6 +142,8 @@ export const CATALOGS = {
   m_label,
   m_settings,
   m_paylinks,
+  m_domain,
+  m_packaging,
   m_campaigns,
   m_video,
   m_money,

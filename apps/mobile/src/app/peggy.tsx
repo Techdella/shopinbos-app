@@ -8,6 +8,7 @@ import { api } from "@/lib/api";
 import { openPath } from "@/lib/web";
 import { colors, fonts, radii } from "@/theme";
 import { HelpButton } from "@/components/Help";
+import { CallPeggyButton } from "@/components/CallPeggyButton";
 import { VoiceInput } from "@/components/VoiceInput";
 import { useT } from "@/lib/i18n";
 
@@ -80,6 +81,7 @@ export default function Peggy() {
             <T weight="extrabold" style={{ fontSize: 17 }}>Peggy</T>
             <T style={{ color: colors.inkSoft, fontSize: 14 }} numberOfLines={1}>{t("peggy.tagline")}</T>
           </View>
+          <CallPeggyButton variant="icon" />
           <HelpButton />
         </View>
         <ScrollView ref={scroll} contentContainerStyle={{ padding: 16, gap: 12 }}>

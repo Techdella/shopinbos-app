@@ -97,7 +97,8 @@ test("screens exist, are in My shop, open from the web paths, and use m_paylinks
   const webPaths = read("apps/mobile/src/lib/web.ts");
   assert.match(webPaths, /"\/home\/payment-links": "\/payment-links"/);
   assert.match(webPaths, /"\/home\/social\/link-in-bio": "\/link-in-bio"/);
-  assert.match(read("apps/mobile/src/app/web-only.tsx"), /bio: \{/);
+  // Colours, photo and other blocks aren't edited on the phone, and the page doesn't send the seller to the web.
+  assert.doesNotMatch(read("apps/mobile/src/app/link-in-bio.tsx"), /web-only|openWeb\(/);
   assert.ok(NAMESPACES.includes("m_paylinks"));
   for (const id of ["paymentLinks", "linkInBio"]) assert.ok(CATALOGS.m_shop.en[`link.${id}.label`], id);
   // The words a seller reads never say error, failed or invalid.

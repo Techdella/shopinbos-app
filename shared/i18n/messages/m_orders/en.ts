@@ -164,6 +164,14 @@ const en = {
   "track.messagePartnerSub": "Late, damaged or lost: tell your delivery partner",
   "track.getHelp": "Get help from Shopinbos",
   "track.getHelpSub": "A person or Peggy helps you sort it out",
+  "filters.title": "Filters",
+  "filters.done": "Done",
+  "filters.clear": "Clear filters",
+  "filters.search": "Customer, item or order number",
+  "filters.pay": "Payment",
+  "filters.pay.any": "All",
+  "filters.pay.unpaid": "Unpaid",
+  "filters.pay.toSend": "Paid, to send",
 } satisfies Record<string, string>;
 
 export default en;

@@ -170,7 +170,8 @@ export function greetingKey(hour: number) {
 
 /** Two letters for a business without a logo: "Aba Leatherworks" → "AL". */
 export function initialsOf(name: string) {
-  const words = name.replace(/[^\p{L}\p{N}\s]/gu, " ").split(/\s+/).filter(Boolean);
+  // The same words as shared/identity-images nameWords (this file has no imports): "Ada's Closet" is "AC".
+  const words = name.replace(/['\u2019]s(?=[\s\p{P}]|$)/giu, "").replace(/['\u2019]/gu, "").replace(/[^\p{L}\p{N}\s]/gu, " ").split(/\s+/).filter(Boolean);
   return ((words[0]?.[0] ?? "") + (words[1]?.[0] ?? "")).toUpperCase() || "?";
 }
 

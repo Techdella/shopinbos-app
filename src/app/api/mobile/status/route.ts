@@ -4,6 +4,7 @@ import { apiError, created, ok } from "@/lib/api/response";
 import { db } from "@/lib/db/client";
 import { checkRateLimitShared, rateLimitKey } from "@/lib/rate-limit";
 import { postView, statusHome } from "@/lib/status/status.server";
+import { shopinbosFeedAuthor } from "@/lib/status/shopinbos.server";
 import { rewardStatusPosted } from "@/lib/status/reward-hook.server";
 import {
   STATUS_CAPTION_MAX,
@@ -24,6 +25,7 @@ export const dynamic = "force-dynamic";
 // Status (24-hour stories) in the phone app.
 // GET  → { mine: { posts, viewsLast }, feed: StatusAuthor[] }: my live posts, and the authors I can see with live
 //        posts (relationships first, then the same state; unseen first; about 30). Expired posts are never returned.
+//        Shopinbos's own posts (official: true) come first until the person chooses "Don't show again".
 // POST { headline, caption?, imageUrl?, tone?, productId?, ctaKind? } → { post, reward }: a new post for 24 hours.
 //        Plain text only (tags and control characters removed, lengths capped). 10 a day per user. The photo must
 //        come from POST /api/mobile/status/upload. productId: a supplier's own SupplierProduct, or a seller's own
@@ -40,8 +42,14 @@ const Body = z.object({
 
 const BUCKET = process.env.NEXT_PUBLIC_STORAGE_BUCKET ?? "shopinbos-media";
 
-export const GET = withStatusUser(async (_req: NextRequest, { user }) => {
-  return ok(await statusHome({ id: user.id, role: user.role }));
+export const GET = withStatusUser(async (req: NextRequest, { user }) => {
+  // Shopinbos's own getting-started posts come first for every role until "Don't show again" (?lang= picks their
+  // language; shared/shopinbos-status.ts). Additive: that author carries official: true.
+  const [home, shopinbos] = await Promise.all([
+    statusHome({ id: user.id, role: user.role }),
+    shopinbosFeedAuthor({ id: user.id, role: user.role }, { lang: req.nextUrl.searchParams.get("lang"), acceptLanguage: req.headers.get("accept-language") }),
+  ]);
+  return ok(shopinbos ? { ...home, feed: [shopinbos, ...home.feed] } : home);
 });
 
 export const POST = withStatusUser(async (req: NextRequest, { user }) => {

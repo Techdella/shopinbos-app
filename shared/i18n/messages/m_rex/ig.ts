@@ -52,6 +52,14 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "credits.topUpLabel": "Tinye credits: anyị ga-ezitere gị email otú ị ga-esi eme ya",
   "credits.emailed": "Anyị ezitela gị email otú ị ga-esi tinye credits na website.",
   "credits.emailFailed": "Anyị enweghị ike izipu email ugbu a. Nwaa ọzọ n'oge na-adịghị anya.",
+  "card.useIt": "Jiri ya",
+  "card.useImageAsk": "Jiri foto a: {title}.",
+  "card.useCopyAsk": "Jiri nkọwa a maka {name}.",
+  "card.useLogoAsk": "Jiri akara ngosi {label}.",
+  "card.seeShop": "Hụ ụlọ ahịa m",
+  "card.publish": "Bipụta ya",
+  "card.published": "Ebipụtala ya. Ndị ahịa na-ahụ ọdịdị ọhụrụ ugbu a.",
+  "card.publishFailed": "Anyị enweghị ike ibipụta ya ugbu a. Nwaa ọzọ.",
 };
 
 export default ig;

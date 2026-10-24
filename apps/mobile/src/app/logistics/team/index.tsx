@@ -9,7 +9,6 @@ import { useT } from "@/lib/i18n";
 import { fetchRiders } from "@/lib/logistics";
 import { riderState } from "@/lib/logistics-pure";
 import { useLoad } from "@/lib/useLoad";
-import { openWeb } from "@/lib/web";
 
 // Riders ("Delivery partner app" prototype `riders`, under Business): each rider with where they are and a pill
 // (Free, Busy, Off, Invited). Tap one for their page; "Add a rider" sends a WhatsApp invite to the Riders app.
@@ -33,7 +32,7 @@ export default function Team() {
       }
     >
       {riders.loading && !riders.data ? <LoadingBlock label={t("riders.loading")} /> : null}
-      {riders.error && !riders.data ? <ErrorState message={riders.error} onRetry={() => void riders.reload()} web={{ label: t("openOnWeb"), onPress: () => void openWeb("/logistics/couriers") }} /> : null}
+      {riders.error && !riders.data ? <ErrorState message={riders.error} onRetry={() => void riders.reload()} /> : null}
       {riders.data && !list.length ? <NoteCard tone="mint" title={t("riders.none")}>{t("riders.noneBody")}</NoteCard> : null}
       {list.length ? (
         <List>

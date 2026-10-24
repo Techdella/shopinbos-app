@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { ActivityIndicator, Pressable, View, type StyleProp, type ViewStyle } from "react-native";
 import { Image } from "expo-image";
+import { initialsOf } from "@shared/identity-images";
 import { AppIcon, type AppIconName } from "@/components/icons";
 import { Card, Notice, PillButton, T } from "@/components/ui";
 import { useT } from "@/lib/i18n";
@@ -83,8 +84,8 @@ export function SectionTitle({ children, action, style }: { children: ReactNode;
 
 /** Round initials avatar for people without a photo. */
 export function Initials({ name, size = 44, bg = colors.peach, fg = colors.accentInk, radius }: { name: string; size?: number; bg?: string; fg?: string; radius?: number }) {
-  const words = name.replace(/[^\p{L}\p{N}\s]/gu, " ").split(/\s+/).filter(Boolean);
-  const letters = ((words[0]?.[0] ?? "") + (words[1]?.[0] ?? "")).toUpperCase() || "?";
+  // One rule for every avatar (shared/identity-images): "Ada's Closet" is "AC", not "AS".
+  const letters = initialsOf(name);
   return (
     <View style={{ width: size, height: size, borderRadius: radius ?? size / 2, backgroundColor: bg, alignItems: "center", justifyContent: "center" }}>
       <T weight="extrabold" style={{ color: fg, fontSize: size * 0.36 }}>{letters}</T>

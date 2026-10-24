@@ -1,8 +1,7 @@
 import { useMemo, useState } from "react";
 import { Pressable, View } from "react-native";
-import { router } from "expo-router";
 import { AppIcon } from "@/components/icons";
-import { EmptyState, ErrorState, LinkRow, LoadingBlock } from "@/components/kit";
+import { EmptyState, ErrorState, LoadingBlock } from "@/components/kit";
 import { LinkShareButtons } from "@/components/LinkShareButtons";
 import { ProductPickSheet } from "@/components/ProductPickSheet";
 import { Screen } from "@/components/Screen";
@@ -17,7 +16,7 @@ import { colors } from "@/theme";
 
 // Link in bio (web /home/social/link-in-bio): the page's link (copy, share, open), live on/off, name and short line,
 // and its blocks with tap counts. On the phone: add product and link blocks, move blocks up and down, remove them.
-// Colours, photo and the other block kinds are edited on the web (web-only?what=bio); saving keeps them as they are.
+// Colours, photo and the other block kinds aren't edited on the phone; saving keeps them as they are.
 
 type Draft = Pick<BioPage, "published" | "title" | "bio" | "avatarUrl" | "theme" | "blocks">;
 
@@ -195,10 +194,6 @@ export default function LinkInBio() {
           </PillButton>
         </View>
       )}
-
-      <Card style={{ paddingVertical: 2 }}>
-        <LinkRow first icon="image" label={t("bio.moreOnWeb")} hint={t("bio.moreOnWebHint")} onPress={() => router.push("/web-only?what=bio" as never)} />
-      </Card>
 
       <ProductPickSheet
         visible={adding === "product"}

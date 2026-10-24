@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Pressable, View, type StyleProp, type ViewStyle } from "react-native";
 import { LANGUAGES, languageOf, type Locale } from "@shared/i18n";
+import { Row, Tile } from "@/components/design";
 import { AppIcon } from "@/components/icons";
 import { LinkRow } from "@/components/kit";
 import { Sheet } from "@/components/Sheet";
@@ -59,11 +60,20 @@ export function LanguageSheet({ visible, onClose }: { visible: boolean; onClose:
   );
 }
 
-/** A menu row: "Language" with the current language on the right; opens the sheet. */
-export function LanguageRow({ first }: { first?: boolean }) {
+/** A menu row: "Language" with the current language on the right; opens the sheet. `tile` draws it like the other
+ * rows of a design-kit List (a tinted icon tile), as on My shop. */
+export function LanguageRow({ first, tile = false }: { first?: boolean; tile?: boolean }) {
   const [open, setOpen] = useState(false);
   const locale = useLocale();
   const t = useT("settings");
+  if (tile) {
+    return (
+      <>
+        <Row testID="language-row" lead={<Tile icon="globe" tone="gray" />} title={t("language.title")} sub={languageOf(locale).nativeName} onPress={() => setOpen(true)} />
+        <LanguageSheet visible={open} onClose={() => setOpen(false)} />
+      </>
+    );
+  }
   return (
     <>
       <LinkRow

@@ -629,6 +629,11 @@ const en = {
   "fam.biz.rewardsSub": "Level {level} · {points, plural, one {# point} other {# points}}",
   "fam.biz.rewardsPlain": "Points, badges and this week's challenges",
   "fam.job.shopWho": "{shop} ({who}) · {status}",
+  "chats.filter.all": "All",
+  "chats.filter.seller": "Shops",
+  "chats.filter.supplier": "Suppliers",
+  "chats.filter.logistics_partner": "Delivery partners",
+  "chats.filter.unread": "Unread",
 } satisfies Record<string, string>;
 
 export default en;

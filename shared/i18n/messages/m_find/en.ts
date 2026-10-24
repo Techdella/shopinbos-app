@@ -98,6 +98,22 @@ const en = {
   "swipe.showList": "Show as a list",
   "swipe.showCards": "Show one at a time",
   "swipe.you": "You",
+  "filters.title": "Filters",
+  "filters.show": "Show {count}",
+  "filters.clear": "Clear filters",
+  "filters.way": "How you sell it",
+  "filters.any": "Any",
+  "filters.price": "Cost to you",
+  "filters.price.under5": "Under ₦5k",
+  "filters.price.5to20": "₦5k to ₦20k",
+  "filters.price.20to50": "₦20k to ₦50k",
+  "filters.price.over50": "Over ₦50k",
+  "filters.location": "Supplier's city",
+  "filters.anywhere": "Anywhere",
+  "filters.suppliers": "Suppliers",
+  "filters.verified": "Verified only",
+  "tab.all": "All",
+  "barTitle": "Find products",
 } satisfies Record<string, string>;
 
 export default en;

@@ -52,6 +52,14 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "credits.topUpLabel": "Fi credits kún un: a máa fi email ránṣẹ́ sí ọ bí o ṣe máa ṣe é",
   "credits.emailed": "A ti fi email ránṣẹ́ sí ọ nípa bí o ṣe máa fi credits kún un lórí wẹ́ẹ̀bù.",
   "credits.emailFailed": "A kò lè fi email ránṣẹ́ báyìí. Gbìyànjú lẹ́ẹ̀kan sí i láìpẹ́.",
+  "card.useIt": "Lò ó",
+  "card.useImageAsk": "Lo àwòrán yìí: {title}.",
+  "card.useCopyAsk": "Lo àpèjúwe yìí fún {name}.",
+  "card.useLogoAsk": "Lo àmì-ìdánimọ̀ {label}.",
+  "card.seeShop": "Wo ṣọ́ọ̀bù mi",
+  "card.publish": "Tẹ̀ ẹ́ jáde",
+  "card.published": "A ti tẹ̀ ẹ́ jáde. Àwọn oníbàárà ń rí ìrísí tuntun báyìí.",
+  "card.publishFailed": "A kò lè tẹ̀ ẹ́ jáde báyìí. Gbìyànjú lẹ́ẹ̀kan sí i.",
 };
 
 export default yo;

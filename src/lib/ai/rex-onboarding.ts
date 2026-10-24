@@ -173,7 +173,8 @@ export function parseRexStructuredResult(raw: string): RexStructuredResult | nul
 
 export async function getSavedRexAnswers(userId: string): Promise<SavedRexAnswer[]> {
   const rows = await db.onboardingResponse.findMany({
-    where: { userId },
+    // Peggy's call notes share the table (source "peggy_call"); they aren't Rex's answers.
+    where: { userId, source: { not: "peggy_call" } },
     orderBy: { updatedAt: "asc" },
     select: { questionKey: true, answer: true, source: true, updatedAt: true },
   });

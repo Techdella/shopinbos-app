@@ -15,9 +15,20 @@ export function identityImageProblem(file: { type: string; size: number }): stri
   return null;
 }
 
-/** "Ada Obi" → "AO"; falls back to "?" for an empty name. */
+/** The words of a name for initials: a possessive "'s" is dropped ("Ada's Closet" → Ada, Closet), other
+ * apostrophes join the word ("O'Neil"), and any other punctuation separates words. */
+export function nameWords(name: string | null | undefined): string[] {
+  return (name ?? "")
+    .replace(/['’]s(?=[\s\p{P}]|$)/giu, "")
+    .replace(/['’]/gu, "")
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .split(/\s+/)
+    .filter(Boolean);
+}
+
+/** "Ada Obi" → "AO", "Ada's Closet" → "AC"; falls back to "?" for an empty name. */
 export function initialsOf(name: string | null | undefined, max = 2) {
-  const letters = (name ?? "").split(/\s+/).filter(Boolean).map((part) => part[0]!.toUpperCase()).join("");
+  const letters = nameWords(name).map((part) => Array.from(part)[0]!.toUpperCase()).join("");
   return letters.slice(0, max) || "?";
 }
 

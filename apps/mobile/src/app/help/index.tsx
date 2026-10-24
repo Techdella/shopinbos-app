@@ -2,6 +2,7 @@ import { Pressable, View } from "react-native";
 import { CallPeggyButton } from "@/components/CallPeggyButton";
 import { router } from "expo-router";
 import { EmptyState, ErrorState, LoadingBlock } from "@/components/kit";
+import { GettingStartedVideos } from "@/components/familiar/GettingStarted";
 import { Screen } from "@/components/Screen";
 import { ChoiceRow } from "@/components/Sheet";
 import { T } from "@/components/ui";
@@ -35,6 +36,9 @@ export default function Help() {
       <ChoiceRow testID="help-person" icon="chat" tint={colors.successTint} iconColor={colors.success} title={SUPPORT_WHATSAPP ? t("sheet.personWhatsApp") : t("sheet.person")} sub={SUPPORT_WHATSAPP ? t("sheet.personWhatsAppSub") : t("sheet.personAppSub")} onPress={() => void person()} />
       <ChoiceRow icon="sparkle" tint={colors.mintTint} iconColor={colors.forest} title={t("sheet.askPeggy")} sub={t("sheet.askPeggySub")} onPress={() => router.push(!role || role === "seller" ? "/peggy" : "/ask-peggy")} />
       <ChoiceRow icon="settings" tint={colors.peach} iconColor={colors.accentInk} title={t("sheet.askUs")} sub={t("help.askUsSub")} onPress={() => router.push("/ask-us")} />
+
+      {/* Shopinbos's getting-started videos, to watch again (also after Home's card was closed). */}
+      <GettingStartedVideos />
 
       <T weight="extrabold" style={{ fontSize: 17, marginTop: 10 }} accessibilityRole="header">{t("help.yourChats")}</T>
       {tickets.loading && !tickets.data ? <LoadingBlock /> : null}

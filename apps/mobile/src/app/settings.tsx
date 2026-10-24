@@ -6,7 +6,6 @@ import * as WebBrowser from "expo-web-browser";
 import type { IdentityImageKind } from "@shared/identity-images";
 import { LanguageRow } from "@/components/LanguagePicker";
 import { TipsRow } from "@/components/learn/TipsRow";
-import { AppIcon } from "@/components/icons";
 import { ErrorState, LinkRow, LoadingBlock, Picture, SectionTitle } from "@/components/kit";
 import { Screen } from "@/components/Screen";
 import { Card, Field, Label, LinkButton, Notice, PillButton, T } from "@/components/ui";
@@ -15,13 +14,12 @@ import { fetchProfile, saveProfile, type MeFields, type SellerProfile, type Shop
 import { changedFields } from "@/lib/settings-pure";
 import { PRIVACY_URL, TERMS_URL } from "@/lib/support";
 import { useLoad } from "@/lib/useLoad";
-import { openWeb } from "@/lib/web";
 import { useT } from "@/lib/i18n";
 import { colors, radii } from "@/theme";
 
 // Settings (web /home/settings, Store tab): the shop's logo, name, description, city, state and phone; the
 // seller's own photo, name and phone (photo and logo through the web uploader's API, lib/identity.ts); language, notifications and help. Team, billing, security, Peggy and Rex choices
-// and closing the shop stay on the web ("More settings on the web").
+// and closing the shop aren't on the phone.
 
 type ShopForm = Record<ShopFields, string>;
 type MeForm = Record<MeFields, string>;
@@ -46,7 +44,7 @@ export default function Settings() {
     return (
       <Screen title={t("set.title")} sub={t("set.sub")} refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
         {loaded.loading ? <LoadingBlock /> : null}
-        {loaded.error ? <ErrorState message={loaded.error} onRetry={() => void loaded.reload()} web={{ label: "Open on web", onPress: () => void openWeb("/home/settings") }} /> : null}
+        {loaded.error ? <ErrorState message={loaded.error} onRetry={() => void loaded.reload()} /> : null}
       </Screen>
     );
   }
@@ -221,7 +219,6 @@ function SettingsForm({ initial, identity }: { initial: SellerProfile; identity:
         <TipsRow />
         <LinkRow icon="bell" label={t("set.notifications")} hint={t("set.notificationsHint")} onPress={() => router.push("/notifications/settings")} />
         <LinkRow icon="help" label={t("set.help")} hint={t("set.helpHint")} onPress={() => router.push("/help")} />
-        <LinkRow icon="globe" label={t("set.more")} hint={t("set.moreHint")} onPress={() => void openWeb("/home/settings")} right={<AppIcon name="share" size={18} color={colors.inkSoft} />} />
       </Card>
 
       <Card style={{ paddingVertical: 2 }}>

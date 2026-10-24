@@ -50,6 +50,7 @@ const PUBLIC_PAGES = [
   /^\/meta-data-deletion$/, // Meta data-deletion status page; the 12-character confirmation code is the credential
   /^\/invite\/\[code\]$/, // Refer & earn invite page (/r/CODE lands here): who invited you and the sign-up links
   /^\/team\/join$/, // staff invite link; shows sign-in links, joins only for a signed-in user with the invite token
+  /^\/theme-demo\/\[id\]$/, // a theme's sample store for the phone app's Shop looks preview; sample data only
 ];
 
 test("every portal page needs a session and the right role (proxy table or requireRole)", () => {

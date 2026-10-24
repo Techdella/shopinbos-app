@@ -98,6 +98,22 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "swipe.showList": "Show am as list",
   "swipe.showCards": "Show one by one",
   "swipe.you": "You",
+  "filters.title": "Filters",
+  "filters.show": "Show {count}",
+  "filters.clear": "Clear filters",
+  "filters.way": "How you go sell am",
+  "filters.any": "Any one",
+  "filters.price": "Wetin you go pay",
+  "filters.price.under5": "Under ₦5k",
+  "filters.price.5to20": "₦5k reach ₦20k",
+  "filters.price.20to50": "₦20k reach ₦50k",
+  "filters.price.over50": "Pass ₦50k",
+  "filters.location": "Supplier city",
+  "filters.anywhere": "Anywhere",
+  "filters.suppliers": "Suppliers",
+  "filters.verified": "Only verified ones",
+  "tab.all": "All",
+  "barTitle": "Find products",
 };
 
 export default pcm;

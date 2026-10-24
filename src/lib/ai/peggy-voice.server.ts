@@ -4,13 +4,23 @@ import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { db } from "@/lib/db/client";
 import { setupStatus, setupText } from "@/lib/onboarding/setup-status.server";
 import { PEGGY_FACTS } from "@/lib/support/peggy-knowledge";
+import { actionsFor } from "@/lib/onboarding/setup-peggy-pure";
+import { elevenLabsBuiltInTools, elevenLabsTools } from "@/lib/onboarding/peggy-call-tools";
+import { peggyDashboard } from "./peggy-dashboard.server";
+import { screenList } from "@shared/peggy-screens";
+import { canonicalState } from "@shared/delivery-market";
+import { areasText, citiesText } from "@shared/ng-places";
+import { PEGGY_LANGUAGE_QUESTION, peggyVoicePrompt } from "./peggy-voice-prompt";
 
 // "Call Peggy": a free voice call with Peggy (ElevenLabs Conversational AI) while people set up on Shopinbos. She
 // says she's Shopinbos's AI customer support, knows where they are in setup, and talks them through the next step.
 //
 // The agent is made (and kept up to date) by the server: ELEVENLABS_PEGGY_AGENT_ID uses one made by hand; otherwise
 // it's created on the first call and its id kept in PlatformSetting "voice.peggy". Each call gets a signed URL
-// (valid 15 minutes) and the person's details as dynamic variables.
+// (the web, valid 15 minutes) or a WebRTC conversation token (the phone app's in-app call) and the person's details
+// as dynamic variables. Peggy saves while she talks through client tools (src/lib/onboarding/peggy-call-tools.ts),
+// which the phone app runs against POST /api/mobile/peggy-call/action. She speaks English or Nigerian Pidgin only,
+// and everything she saves is written in English.
 //
 // Env: ELEVENLABS_API_KEY (needs Conversational AI), ELEVENLABS_PEGGY_VOICE_ID (a Nigerian female voice from the
 // ElevenLabs Voice Library; falls back to ELEVENLABS_VOICE_FEMALE).
@@ -27,32 +37,24 @@ export function peggyVoiceReady() {
   return Boolean(process.env.ELEVENLABS_API_KEY?.trim());
 }
 
-const PROMPT = `You are Peggy, Shopinbos's AI customer support, on a voice call with {{first_name}} from {{business}} (a {{role}} on Shopinbos). You're warm, patient and Nigerian: you speak clear Nigerian English and switch to Pidgin if they do. Keep each turn short (one to three sentences), like a real phone call, and let them talk.
+const PROMPT = peggyVoicePrompt({ facts: PEGGY_FACTS, cities: citiesText() });
 
-At the start, you already said you're Peggy, Shopinbos's AI customer support. If they ask, be honest that you're an AI, and that a person on the team can help on WhatsApp at plus one, seven one one, six nine five, one three eight one.
-
-Your job: help them finish setting up, one step at a time, and answer their questions about Shopinbos. Their setup right now:
-{{setup}}
-
-How to help:
-- If a setup step isn't done, start with the first one; if everything is done, ask what they need help with today. Explain what it is and why it matters in one sentence, then tell them exactly where to tap in the app (the page in the list) and what to enter, step by step. Wait for them to do it.
-- For pickup points, coverage and prices, they can also type the details to you in the Peggy chat on the same page and you'll save them.
-- Answer questions from the facts below. Never invent a price, feature, date or promise. If you don't know, say a person on the team will follow up on WhatsApp.
-- Never ask for passwords, card numbers, BVN or one-time codes. Don't read out long links: say the page name instead.
-
-${PEGGY_FACTS}`;
-
-const FIRST_MESSAGE = "Hi {{first_name}}! I'm Peggy, Shopinbos's AI customer support. I'm here to help you get {{business}} set up. What would you like help with first?";
+const FIRST_MESSAGE = `Hi {{first_name}}! I'm Peggy, Shopinbos's AI customer support, here to help you set up {{business}}. ${PEGGY_LANGUAGE_QUESTION}`;
 
 function voiceId() {
   return process.env.ELEVENLABS_PEGGY_VOICE_ID?.trim() || process.env.ELEVENLABS_VOICE_FEMALE?.trim() || "21m00Tcm4TlvDq8ikWAM";
 }
 
-function agentConfig() {
+/**
+ * The agent: her prompt, voice, client tools and ElevenLabs' end_call system tool (prompt.built_in_tools), so she can
+ * hang up when they say goodbye. `withSystemTools: false` is the same agent without it, only used to create her when
+ * ElevenLabs rejects the full config; the saved version then differs, so the full config is tried again next call.
+ */
+function agentConfig({ withSystemTools = true } = {}) {
   return {
     name: "Peggy (Shopinbos setup help)",
     conversation_config: {
-      agent: { first_message: FIRST_MESSAGE, language: "en", prompt: { prompt: PROMPT } },
+      agent: { first_message: FIRST_MESSAGE, language: "en", prompt: { prompt: PROMPT, tools: elevenLabsTools(), ...(withSystemTools ? { built_in_tools: elevenLabsBuiltInTools() } : {}) } },
       tts: { voice_id: voiceId() },
       conversation: { max_duration_seconds: MAX_CALL_SECONDS },
     },
@@ -86,33 +88,94 @@ async function agentId() {
   const id = fixed || saved.agentId;
   if (id) {
     if (saved.version !== version) {
-      await eleven(`/convai/agents/${encodeURIComponent(id)}`, { method: "PATCH", body: config }).catch((error) => console.error("[peggy-voice] agent update failed", error));
-      await db.platformSetting.upsert({ where: { key: SETTING }, create: { key: SETTING, value: { agentId: id, version } }, update: { value: { agentId: id, version } } });
+      // Only remembered once ElevenLabs took it, so a failed update (prompt, voice or tools) is tried again next call.
+      const path = `/convai/agents/${encodeURIComponent(id)}`;
+      const synced = await eleven(path, { method: "PATCH", body: config }).then(() => true, (error) => (console.error("[peggy-voice] agent update failed", error), false));
+      if (synced) await db.platformSetting.upsert({ where: { key: SETTING }, create: { key: SETTING, value: { agentId: id, version } }, update: { value: { agentId: id, version } } });
+      // Rejected (perhaps the system tools): her new prompt and tools still go out without them; the version isn't
+      // saved, so the full config is tried again on the next call.
+      else await eleven(path, { method: "PATCH", body: agentConfig({ withSystemTools: false }) }).catch((error) => console.error("[peggy-voice] agent update without system tools failed", error));
     }
     return id;
   }
-  const created = await eleven("/convai/agents/create", { method: "POST", body: config });
+  // If ElevenLabs rejects the full config, make her without the system tools (calls still work); "partial" is never
+  // the current version, so the next call PATCHes the full config again.
+  let saveAs = version;
+  const created = await eleven("/convai/agents/create", { method: "POST", body: config }).catch(async (error) => {
+    console.error("[peggy-voice] agent create failed, trying without system tools", error);
+    saveAs = "partial";
+    return eleven("/convai/agents/create", { method: "POST", body: agentConfig({ withSystemTools: false }) });
+  });
   const newId = typeof created.agent_id === "string" ? created.agent_id : null;
   if (!newId) throw new PeggyVoiceError("ElevenLabs didn't return an agent.");
-  await db.platformSetting.upsert({ where: { key: SETTING }, create: { key: SETTING, value: { agentId: newId, version } }, update: { value: { agentId: newId, version } } });
+  await db.platformSetting.upsert({ where: { key: SETTING }, create: { key: SETTING, value: { agentId: newId, version: saveAs } }, update: { value: { agentId: newId, version: saveAs } } });
   return newId;
 }
 
 const ROLE_WORDS = { supplier: "supplier", logistics_partner: "delivery partner", seller: "seller" } as const;
 
-/** A signed URL to start a call, and who Peggy is talking to. */
-export async function startPeggyCall(userId: string) {
-  if (!peggyVoiceReady()) throw new PeggyVoiceError("Calls with Peggy aren't switched on yet. Chat with her instead, or message us on WhatsApp.");
+const SAVE_WORDS: Record<string, string> = {
+  save_pickup_address: "pickup address (save_pickup_address)",
+  add_pickup_point: "pickup points (add_pickup_point)",
+  add_coverage: "places they deliver or sell to (add_coverage)",
+  set_base_price: "starting delivery price (set_starting_price)",
+  set_description: "business description (set_description)",
+  save_note: "notes for the team (save_note, save_call_summary)",
+};
+
+/** The states the person is in, as far as we know (their city, their coverage), for Peggy's area lists. */
+async function homeStates(userId: string) {
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { city: true, supplier: { select: { city: true } }, logisticsPartner: { select: { city: true, pickupAreas: true, coverageZones: true } }, deliverySettings: { select: { originState: true, sellStates: true } } },
+  }).catch(() => null);
+  const names = [user?.city, user?.supplier?.city, user?.logisticsPartner?.city, user?.deliverySettings?.originState, ...(user?.logisticsPartner?.pickupAreas ?? []), ...(user?.logisticsPartner?.coverageZones ?? []), ...(user?.deliverySettings?.sellStates ?? [])];
+  const states = [...new Set(names.map((name) => canonicalState(String(name ?? "").split(":")[0])).filter((state): state is NonNullable<typeof state> => Boolean(state)))];
+  return states.slice(0, 4);
+}
+
+/** Who Peggy is talking to and where they are in setup (the agent's dynamic variables). */
+async function callVariables(userId: string) {
   const status = await setupStatus(userId);
   if (!status) throw new PeggyVoiceError("Finish signing up first, then call Peggy.");
+  const [states, dashboard] = await Promise.all([homeStates(userId), peggyDashboard(userId, status)]);
+  const near = areasText(states.length ? states : ["Lagos"]);
+  return {
+    first_name: status.firstName,
+    business: status.business,
+    role: ROLE_WORDS[status.role],
+    setup: setupText(status),
+    can_save: actionsFor(status.role).map((type) => SAVE_WORDS[type]).filter(Boolean).join(", ") || "nothing",
+    home_areas: near || "none listed",
+    dashboard: dashboard || "Not available right now: go by their setup above.",
+    screens: screenList(status.role),
+    user_ref: userId,
+  };
+}
+
+/** A signed URL to start a call (the web call page), and who Peggy is talking to. */
+export async function startPeggyCall(userId: string) {
+  if (!peggyVoiceReady()) throw new PeggyVoiceError("Calls with Peggy aren't switched on yet. Chat with her instead, or message us on WhatsApp.");
+  const dynamicVariables = await callVariables(userId);
   const id = await agentId();
   const signed = await eleven(`/convai/conversation/get-signed-url?agent_id=${encodeURIComponent(id)}`);
   const signedUrl = typeof signed.signed_url === "string" ? signed.signed_url : null;
   if (!signedUrl) throw new PeggyVoiceError("ElevenLabs didn't return a call link.");
-  return {
-    signedUrl,
-    dynamicVariables: { first_name: status.firstName, business: status.business, role: ROLE_WORDS[status.role], setup: setupText(status) },
-  };
+  return { signedUrl, dynamicVariables };
+}
+
+/**
+ * A WebRTC conversation token for the in-app call (ElevenLabs' React Native SDK only does WebRTC), and who Peggy is
+ * talking to. The token is good for one call, for a short while.
+ */
+export async function startPeggyAppCall(userId: string) {
+  if (!peggyVoiceReady()) throw new PeggyVoiceError("Calls with Peggy aren't switched on yet. Chat with her instead, or message us on WhatsApp.");
+  const dynamicVariables = await callVariables(userId);
+  const id = await agentId();
+  const issued = await eleven(`/convai/conversation/token?agent_id=${encodeURIComponent(id)}`);
+  const conversationToken = typeof issued.token === "string" ? issued.token : null;
+  if (!conversationToken) throw new PeggyVoiceError("ElevenLabs didn't return a call token.");
+  return { conversationToken, dynamicVariables, maxSeconds: MAX_CALL_SECONDS };
 }
 
 // ─── A link for the mobile app (the call runs in the browser, signed in by this token) ───

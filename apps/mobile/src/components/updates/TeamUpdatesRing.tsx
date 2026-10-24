@@ -1,8 +1,10 @@
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Image, Pressable, View } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { T } from "@/components/ui";
-import { fetchTeamUpdates, markTeamUpdateSeen, type TeamUpdate } from "@/lib/updates";
+import type { StatusAuthor } from "@/lib/familiar";
+import { useShopinbosHere } from "@/lib/shopinbos";
+import { fetchTeamUpdates, markTeamUpdateSeen, withTeamUpdates, type TeamUpdate } from "@/lib/updates";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 import { TeamUpdatesViewer } from "./TeamUpdatesViewer";
@@ -13,11 +15,9 @@ import { TeamUpdatesViewer } from "./TeamUpdatesViewer";
 const RING = 64;
 const MARK = require("../../../assets/brand/mark-white.png") as number;
 
-export function TeamUpdatesRing() {
-  const t = useT("nav");
+/** The team's weekly updates for this role, refreshed when the screen comes back into view. */
+export function useTeamUpdates() {
   const [updates, setUpdates] = useState<TeamUpdate[]>([]);
-  const [open, setOpen] = useState<number | null>(null);
-
   useFocusEffect(
     useCallback(() => {
       let alive = true;
@@ -27,11 +27,33 @@ export function TeamUpdatesRing() {
       };
     }, []),
   );
-
   const markSeen = useCallback((id: string) => {
     setUpdates((current) => current.map((update) => (update.id === id ? { ...update, seen: true } : update)));
     void markTeamUpdateSeen(id);
   }, []);
+  return { updates, markSeen };
+}
+
+/**
+ * One Shopinbos ring in the Status row: when Shopinbos's getting-started ring is there, the weekly updates join it
+ * (lib/updates withTeamUpdates) and `leading` is empty; otherwise the updates keep their own ring. Pass `authors`
+ * to both StatusRow and StoryViewer.
+ */
+export function useShopinbosRings(feed: StatusAuthor[] | null | undefined) {
+  const team = useTeamUpdates();
+  const here = useShopinbosHere();
+  const merged = useMemo(() => withTeamUpdates(feed ?? [], team.updates, here.hidden), [feed, team.updates, here.hidden]);
+  return { authors: merged.authors, leading: merged.merged ? null : <TeamUpdatesRingView team={team} /> };
+}
+
+export function TeamUpdatesRing() {
+  return <TeamUpdatesRingView team={useTeamUpdates()} />;
+}
+
+function TeamUpdatesRingView({ team }: { team: ReturnType<typeof useTeamUpdates> }) {
+  const t = useT("nav");
+  const { updates, markSeen } = team;
+  const [open, setOpen] = useState<number | null>(null);
 
   if (!updates.length) return null;
   const unseen = updates.filter((update) => !update.seen).length;

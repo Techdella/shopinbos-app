@@ -8,14 +8,17 @@ import { DarkCard, Eyebrow, List, Row, Tile, Title, type TileTone } from "@/comp
 import type { AppIconName } from "@/components/icons";
 import { HomeSkeleton, OfflineBanner, OpeningShop, SlowNetwork } from "@/components/Loading";
 import { HelpButton } from "@/components/Help";
+import { CallPeggyButton } from "@/components/CallPeggyButton";
+import { usePeggySaved } from "@/lib/peggy-call";
 import { Thumb } from "@/components/seller/bits";
 import { TabScreen } from "@/components/TabScreen";
 import { Mascot, Notice, T } from "@/components/ui";
 import { Checklist, type ChecklistItem } from "@/components/familiar/Checklist";
+import { GettingStartedCard } from "@/components/familiar/GettingStarted";
 import { LevelPill } from "@/components/familiar/LevelPill";
 import { QuickActions, type QuickAction } from "@/components/familiar/QuickActions";
 import { StatusRow } from "@/components/familiar/StatusRow";
-import { TeamUpdatesRing } from "@/components/updates/TeamUpdatesRing";
+import { useShopinbosRings } from "@/components/updates/TeamUpdatesRing";
 import { StoryViewer } from "@/components/familiar/StoryViewer";
 import { Tour, type TourStep } from "@/components/familiar/Tour";
 import { stepWords } from "@/lib/setup-words";
@@ -131,6 +134,11 @@ export default function Home() {
       void loadExtras();
     }, [loadExtras]),
   );
+  // Peggy saving on a call ticks the checklist here too.
+  usePeggySaved(() => void loadExtras());
+
+  // Shopinbos's getting-started posts and the team's weekly updates share one ring.
+  const rings = useShopinbosRings(status?.feed);
 
   // The Status viewer: someone else's posts, or your own.
   const [story, setStory] = useState<{ authors: StatusAuthor[]; start: number; own: boolean } | null>(null);
@@ -288,14 +296,14 @@ export default function Home() {
 
         {status ? (
           <StatusRow
-            authors={status.feed}
+            authors={rings.authors}
             myName={myName}
             myPicture={myPicture}
             hasMine={status.mine.posts.length > 0}
             onNew={() => router.push("/status/new" as never)}
             onOpenMine={() => setStory({ authors: [{ userId: uid ?? "me", name: shopName || myName, role: "seller", logoUrl: myPicture, seen: true, posts: status.mine.posts }], start: 0, own: true })}
-            onOpen={(index) => setStory({ authors: status.feed, start: index, own: false })}
-            leading={<TeamUpdatesRing />}
+            onOpen={(index) => setStory({ authors: rings.authors, start: index, own: false })}
+            leading={rings.leading}
           />
         ) : null}
 
@@ -314,6 +322,9 @@ export default function Home() {
           />
         ) : null}
 
+        {/* Shopinbos's getting-started videos and tips (an X closes it for good). */}
+        {!touring ? <GettingStartedCard /> : null}
+
         <View ref={moneyRef} collapsable={false} style={{ gap: 18 }}>
           <DarkCard eyebrow={t("sales.today")} amount={data ? naira(data.sales.today) : "…"} line={payoutLine} onPress={() => router.push("/wallet")} />
           <QuickActions actions={shortcuts} />
@@ -323,6 +334,8 @@ export default function Home() {
           <AskCard testID="home-ask-rex" who="rex" title={t("ai.rex")} sub={t("ai.rexSub")} onPress={() => router.push("/rex")} />
           <AskCard testID="home-ask-peggy" who="peggy" title={t("ai.peggy")} sub={t("ai.peggySub")} onPress={() => router.push("/peggy")} />
         </View>
+        {/* A free voice call with Peggy, in the app (hidden where calls can't run). */}
+        <CallPeggyButton note={false} />
 
         {cachedAt !== null && (
           <OfflineBanner

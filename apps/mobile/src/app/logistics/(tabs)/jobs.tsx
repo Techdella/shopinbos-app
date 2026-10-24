@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { Pressable, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { naira } from "@shared/onboarding";
 import { Banner, Seg, Small, Sub } from "@/components/design";
 import { Checklist, type ChecklistItem } from "@/components/familiar/Checklist";
+import { GettingStartedCard } from "@/components/familiar/GettingStarted";
 import { LevelPill } from "@/components/familiar/LevelPill";
 import { StatusRow } from "@/components/familiar/StatusRow";
-import { TeamUpdatesRing } from "@/components/updates/TeamUpdatesRing";
+import { useShopinbosRings } from "@/components/updates/TeamUpdatesRing";
 import { StoryViewer } from "@/components/familiar/StoryViewer";
 import { ErrorState, LoadingBlock } from "@/components/kit";
 import { NotificationBellButton } from "@/components/NotificationBellButton";
@@ -23,6 +24,7 @@ import { dayWord, shortPlace, timeAgo, verificationStage } from "@/lib/partner-p
 import { useLoad } from "@/lib/useLoad";
 import { openWeb } from "@/lib/web";
 import { colors, fonts } from "@/theme";
+import { FilterBar } from "@/components/FilterBar";
 
 // Jobs ("Familiar app" prototype F-Delivery `jobs`): the level ring (Rewards), "Good morning" over the company, Peggy
 // and the bell; the Status row of sellers and suppliers; the "Get set up" checklist for the first days; a dark card
@@ -77,6 +79,8 @@ export default function LogisticsJobs() {
   const company = data?.partner.name ?? "";
   const logo = data?.partner.logoUrl ?? null;
   const feed = status.data;
+  // Shopinbos's getting-started posts and the team's weekly updates share one ring.
+  const rings = useShopinbosRings(feed?.feed);
 
   async function toggle() {
     const next = !taking;
@@ -149,25 +153,26 @@ export default function LogisticsJobs() {
   return (
     <TabScreen header={header} refreshing={overview.refreshing || jobs.refreshing} onRefresh={refresh}>
       {switchError ? <Notice>{switchError}</Notice> : null}
-      {overview.error && !data ? <ErrorState message={overview.error} onRetry={() => void overview.reload()} web={{ label: t("openOnWeb"), onPress: () => void openWeb("/logistics/dashboard") }} /> : null}
+      {overview.error && !data ? <ErrorState message={overview.error} onRetry={() => void overview.reload()} /> : null}
 
       {feed ? (
         <View style={{ gap: 8 }}>
           <StatusRow
-            authors={feed.feed}
+            authors={rings.authors}
             myName={company || "Shopinbos"}
             myPicture={logo}
             hasMine={feed.mine.posts.length > 0}
             onNew={() => router.push("/status/new" as never)}
             onOpenMine={() => setStory({ own: true, start: 0 })}
             onOpen={(index) => setStory({ own: false, start: index })}
-            leading={<TeamUpdatesRing />}
+            leading={rings.leading}
           />
           {feed.mine.viewsLast > 0 ? <Small>{t("fam.statusSeen", { count: feed.mine.viewsLast })}</Small> : null}
         </View>
       ) : null}
 
       {checklistShown ? <Checklist title={t("fam.ck.title")} items={checklist} onDismiss={() => setHideChecklist(true)} /> : null}
+      <GettingStartedCard />
 
       {data && !data.partner.onboarded ? (
         <CardButton icon="truck" tint={colors.mintTint} iconBg="#FFFFFF" title={t("today.finish")} sub={t("today.finishHint")} onPress={() => router.push("/logistics/setup")} />
@@ -214,14 +219,14 @@ export default function LogisticsJobs() {
         </Banner>
       ) : null}
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }} style={{ flexGrow: 0 }}>
+      <FilterBar>
         {SEGMENTS.map((segment) => (
           <Seg key={segment.view} label={t.dynamic(segment.key)} count={jobs.data?.counts[segment.view]} on={view === segment.view} onPress={() => router.setParams({ view: segment.view })} />
         ))}
-      </ScrollView>
+      </FilterBar>
 
       {jobs.loading ? <LoadingBlock label={t("jobs.loading")} /> : null}
-      {jobs.error && !jobs.data ? <ErrorState message={jobs.error} onRetry={() => void jobs.reload()} web={{ label: t("openOnWeb"), onPress: () => void openWeb("/logistics/bookings") }} /> : null}
+      {jobs.error && !jobs.data ? <ErrorState message={jobs.error} onRetry={() => void jobs.reload()} /> : null}
       {!jobs.loading && jobs.data && !jobs.data.jobs.length ? (
         <Card style={{ padding: 20, borderRadius: 24, borderWidth: 1, borderColor: colors.line }}>
           <Sub>{t("jobs.nothingHere")}</Sub>
@@ -252,7 +257,7 @@ export default function LogisticsJobs() {
 
       {feed ? (
         <StoryViewer
-          authors={story?.own ? [{ userId: "me", name: company || "Shopinbos", role: "logistics_partner", logoUrl: logo, seen: true, posts: feed.mine.posts }] : feed.feed}
+          authors={story?.own ? [{ userId: "me", name: company || "Shopinbos", role: "logistics_partner", logoUrl: logo, seen: true, posts: feed.mine.posts }] : rings.authors}
           start={story?.start ?? 0}
           visible={Boolean(story)}
           own={story?.own}

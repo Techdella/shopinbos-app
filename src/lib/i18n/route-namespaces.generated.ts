@@ -364,4 +364,5 @@ export const ROUTE_NAMESPACES: ReadonlyArray<readonly [string, readonly string[]
   ["/supplier/wholesale", ["auth","common","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","supplier","support","tour","ui","verification"]],
   ["/suppliers/[slug]", ["auth","common","glossary","help","introTitles","learn","marketplace","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
   ["/team/join", ["common","nav","ui"]],
+  ["/theme-demo/[id]", ["campaigns","common","nav","ui"]],
 ];

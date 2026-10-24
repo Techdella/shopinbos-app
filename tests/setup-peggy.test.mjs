@@ -25,11 +25,13 @@ test("setup peggy: only well-formed actions this role may take are kept", () => 
   ];
   const partner = setup.cleanActions(raw, "logistics_partner");
   assert.deepEqual(partner.map((a) => a.type), ["add_pickup_point", "add_coverage", "set_base_price"]);
-  assert.deepEqual(partner[1].areas, ["Lekki", "Ikeja"]);
+  // Places become coverage tokens through the gazetteer (shared/ng-places.ts).
+  assert.deepEqual(partner[1].areas, ["Lagos: Lekki", "Lagos: Ikeja"]);
   assert.equal(partner[2].naira, 2500);
   const supplier = setup.cleanActions(raw, "supplier");
-  assert.deepEqual(supplier.map((a) => a.type), ["save_pickup_address"]);
-  assert.deepEqual(setup.cleanActions(raw, "seller"), []);
+  assert.deepEqual(supplier.map((a) => a.type), ["add_coverage", "save_pickup_address"]);
+  // Sellers can have their pickup address and where they sell saved too (on a call), never pickup points or prices.
+  assert.deepEqual(setup.cleanActions(raw, "seller").map((a) => a.type), ["add_coverage", "save_pickup_address"]);
   assert.deepEqual(setup.cleanActions([{ type: "save_pickup_address", address: "short" }], "supplier"), []);
   assert.deepEqual(setup.cleanActions("nope", "supplier"), []);
   assert.equal(setup.actionLabel({ type: "set_base_price", naira: 2500 }), "Set your starting price to ₦2,500");

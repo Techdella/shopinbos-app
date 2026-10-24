@@ -1,27 +1,27 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { offPlatformSignals } from "@shared/delivery-market";
+import { ChatListScreen, type ChatRowData } from "@/components/ChatList";
 import { Bubble, ChatScreen, Composer } from "@/components/ChatScreen";
-import { List, Pill, Row, Seg, Small, Sub, Title } from "@/components/design";
-import { HelpButton } from "@/components/Help";
+import { Small } from "@/components/design";
 import { AppIcon } from "@/components/icons";
 import { EmptyState, ErrorState, Initials, LoadingBlock } from "@/components/kit";
-import { TabScreen } from "@/components/TabScreen";
-import { Card, Field, Notice, PillButton, T } from "@/components/ui";
+import { Notice, PillButton, T } from "@/components/ui";
 import { shortTime } from "@/lib/inbox-pure";
+import { roleChatFilters, roleChatMatches, type RoleChatFilter } from "@/lib/chats-pure";
 import { fetchChatContacts, ROLE_LABEL } from "@/lib/partner-chat";
 import { fetchPartnerMessages, sendPartnerMessage } from "@/lib/partners";
 import { useT } from "@/lib/i18n";
 import { useLoad } from "@/lib/useLoad";
-import { openWeb } from "@/lib/web";
 import { colors } from "@/theme";
 
-// Chats for the supplier and delivery partner apps ("Delivery partner app" prototype `chats` and `thread`): the
-// shops and suppliers they work with, the same threads as the web portal's inbox. In a thread everyone sees "Keep it
-// on Shopinbos" when a message (or what they're typing) looks like moving the job off the app (shared
-// offPlatformSignals). Delivery partners also get quick replies before their first message and "Send them a private
-// rate" when they're talking to a seller or supplier.
+// Chats for the supplier and delivery partner apps ("Familiar app" prototype `chats` and `thread`): only the
+// conversations with the shops, suppliers and delivery partners they work with (/api/conversations), newest first,
+// with filter chips by the other side's role (a supplier: Shops / Delivery partners; a delivery partner: Shops /
+// Suppliers) and Unread, and a search. In a thread everyone sees "Keep it on Shopinbos" when a message (or what
+// they're typing) looks like moving the job off the app (shared offPlatformSignals). Delivery partners also get quick
+// replies before their first message and "Send them a private rate" when they're talking to a seller or supplier.
 
 type Base = "/supplier" | "/logistics";
 
@@ -31,80 +31,56 @@ const AVATAR: Record<string, { bg: string; fg: string }> = {
   logistics_partner: { bg: colors.mintTint, fg: colors.forest },
 };
 
-/** The chips over the list when `filters` is on ("Familiar app" F-Delivery `chatFilters`). */
-type ChatFilter = "all" | "unread" | "seller" | "supplier";
-const FILTERS: { key: ChatFilter; label: string }[] = [
-  { key: "all", label: "fam.chats.all" },
-  { key: "unread", label: "fam.chats.unread" },
-  { key: "seller", label: "fam.chats.sellers" },
-  { key: "supplier", label: "fam.chats.suppliers" },
-];
+const FILTER_WORD: Record<RoleChatFilter, "chats.filter.all" | "chats.filter.seller" | "chats.filter.supplier" | "chats.filter.logistics_partner" | "chats.filter.unread"> = {
+  all: "chats.filter.all",
+  seller: "chats.filter.seller",
+  supplier: "chats.filter.supplier",
+  logistics_partner: "chats.filter.logistics_partner",
+  unread: "chats.filter.unread",
+};
 
-export function MessagesTab({ base, webPath, filters = false }: { base: Base; webPath: string; /** All / Unread / Sellers / Suppliers chips (delivery partners). */ filters?: boolean }) {
+export function MessagesTab({ base }: { base: Base }) {
   const t = useT("m_partner");
   const contacts = useLoad(fetchChatContacts);
   const [q, setQ] = useState("");
-  const [filter, setFilter] = useState<ChatFilter>("all");
-  const partner = base === "/logistics";
-  const shown = (contact: { unread: number; role: string }) => !filters || filter === "all" || (filter === "unread" ? contact.unread > 0 : contact.role === filter);
-  const matches = (contacts.data ?? []).filter((contact) => !q.trim() || `${contact.name} ${contact.lastMessage ?? ""}`.toLowerCase().includes(q.trim().toLowerCase()));
-  const list = matches.filter(shown);
-  const unread = (contacts.data ?? []).filter((contact) => contact.unread > 0).length;
-
-  const header = (
-    <View style={{ gap: 8 }}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 46 }}>
-        <Title style={{ flex: 1 }}>{partner ? t("chats.title") : t("chat.title")}</Title>
-        {contacts.data ? <Pill tone="teal" label={unread ? t("chats.new", { count: unread }) : t("chats.allRead")} /> : null}
-        <HelpButton />
-      </View>
-      {partner ? <Sub>{t("chats.sub")}</Sub> : null}
-    </View>
+  const [filter, setFilter] = useState<RoleChatFilter>("all");
+  const all = contacts.data;
+  const unread = (all ?? []).filter((contact) => contact.unread > 0).length;
+  const rows = useMemo<ChatRowData[] | null>(
+    () =>
+      all
+        ? all
+            .filter((contact) => roleChatMatches(contact, filter, q))
+            .map((contact) => ({
+              key: contact.id,
+              name: contact.name,
+              preview: contact.lastMessage ?? "",
+              at: contact.lastMessageAt,
+              unread: contact.unread,
+              tone: AVATAR[contact.role] ?? AVATAR.logistics_partner,
+              label: t.dynamic(`chat.role.${contact.role}`, ROLE_LABEL[contact.role] ?? t("chat.role.other")),
+              onPress: () => router.push({ pathname: `${base}/chat/[id]` as never, params: { id: contact.id, name: contact.name, role: contact.role } }),
+            }))
+        : null,
+    [all, filter, q, t, base],
   );
 
   return (
-    <TabScreen header={header} refreshing={contacts.refreshing} onRefresh={() => void contacts.refresh()}>
-      {(contacts.data?.length ?? 0) > 6 ? <Field value={q} onChangeText={setQ} placeholder={t("chat.search")} returnKeyType="search" accessibilityLabel={t("chat.searchLabel")} style={{ height: 48 }} /> : null}
-      {contacts.loading && !contacts.data ? <LoadingBlock label={t("chat.loading")} /> : null}
-      {contacts.error && !contacts.data ? <ErrorState message={contacts.error} onRetry={() => void contacts.reload()} web={{ label: t("openOnWeb"), onPress: () => void openWeb(webPath) }} /> : null}
-      {filters && contacts.data?.length ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }} style={{ flexGrow: 0 }}>
-          {FILTERS.map((option) => (
-            <Seg key={option.key} label={t.dynamic(option.label)} on={filter === option.key} onPress={() => setFilter(option.key)} />
-          ))}
-        </ScrollView>
-      ) : null}
-      {contacts.data && matches.length && !list.length ? (
-        <Card style={{ padding: 20, borderRadius: 24, borderWidth: 1, borderColor: colors.line }}>
-          <Sub>{t("fam.chats.noneHere")}</Sub>
-        </Card>
-      ) : null}
-      {contacts.data && !matches.length ? (
-        <EmptyState icon="chat" title={contacts.data.length ? t("chat.noMatch") : t("chat.none")}>
-          {contacts.data.length ? t("chat.tryName") : t("chat.noneBody")}
-        </EmptyState>
-      ) : null}
-      {list.length ? (
-        <List>
-          {list.map((contact) => {
-            const tone = AVATAR[contact.role] ?? AVATAR.logistics_partner;
-            const role = t.dynamic(`chat.role.${contact.role}`, ROLE_LABEL[contact.role] ?? t("chat.role.other"));
-            return (
-              <Row
-                key={contact.id}
-                accessibilityLabel={contact.unread ? t("chat.unread", { name: contact.name, count: contact.unread }) : `${contact.name}, ${role}`}
-                lead={<Initials name={contact.name} bg={tone.bg} fg={tone.fg} />}
-                title={contact.name}
-                sub={`${contact.lastMessage || t("chat.none")}${contact.lastMessageAt ? ` · ${shortTime(contact.lastMessageAt)}` : ""}`}
-                right={contact.unread ? <View accessibilityLabel={t("chats.newDot")} style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: colors.accent }} /> : undefined}
-                chevron={false}
-                onPress={() => router.push({ pathname: `${base}/chat/[id]` as never, params: { id: contact.id, name: contact.name, role: contact.role } })}
-              />
-            );
-          })}
-        </List>
-      ) : null}
-    </TabScreen>
+    <ChatListScreen
+      title={t("chats.title")}
+      filters={roleChatFilters(base === "/supplier" ? "supplier" : "logistics_partner").map((key) => ({ key, label: t(FILTER_WORD[key]), count: key === "unread" ? unread : undefined }))}
+      filter={filter}
+      onFilter={setFilter}
+      chats={rows}
+      q={q}
+      onSearch={setQ}
+      loading={contacts.loading}
+      error={contacts.error}
+      onRetry={() => void contacts.reload()}
+      refreshing={contacts.refreshing}
+      onRefresh={() => void contacts.refresh()}
+      empty={all && !all.length ? <EmptyState icon="chat" title={t("chat.none")}>{t("chat.noneBody")}</EmptyState> : undefined}
+    />
   );
 }
 
@@ -114,7 +90,7 @@ const QUICK = ["quick.0", "quick.1", "quick.2"] as const;
 /** One conversation (?name= is shown while the messages load, ?role= is the other side's role). `quickReplies`
  * (already translated, for the other side's role) are offered before your first message; delivery partners keep
  * their own set. */
-export function ConversationScreen({ webPath, quickReplies }: { webPath: string; quickReplies?: (role: string) => string[] }) {
+export function ConversationScreen({ base, quickReplies }: { base: Base; quickReplies?: (role: string) => string[] }) {
   const { id, name, role } = useLocalSearchParams<{ id: string; name?: string; role?: string }>();
   const t = useT("m_partner");
   const tu = useT("m_ui");
@@ -123,7 +99,7 @@ export function ConversationScreen({ webPath, quickReplies }: { webPath: string;
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const title = name || t("chat.conversation");
-  const partner = webPath.startsWith("/logistics");
+  const partner = base === "/logistics";
   // A job's "Message the shop" opens this without a role: that's the seller.
   const otherRole = role || (partner ? "seller" : "");
   const canRate = partner && (otherRole === "seller" || otherRole === "supplier");
@@ -194,7 +170,7 @@ export function ConversationScreen({ webPath, quickReplies }: { webPath: string;
       }
     >
       {messages.loading && !messages.data ? <LoadingBlock /> : null}
-      {messages.error && !messages.data ? <ErrorState message={messages.error} onRetry={() => void messages.reload()} web={{ label: t("openOnWeb"), onPress: () => void openWeb(webPath) }} /> : null}
+      {messages.error && !messages.data ? <ErrorState message={messages.error} onRetry={() => void messages.reload()} /> : null}
       {messages.data && !messages.data.length ? <Small style={{ textAlign: "center" }}>{t("chat.empty")}</Small> : null}
       {list.map((message) => (
         <Bubble key={message.id} mine={message.mine} meta={shortTime(message.createdAt)}>{message.text}</Bubble>

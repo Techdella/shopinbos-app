@@ -2,7 +2,9 @@ import { useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { router } from "expo-router";
 import { List, Row, Tile } from "@/components/design";
+import { CallPeggyButton } from "@/components/CallPeggyButton";
 import { DeleteAccountButton } from "@/components/DeleteAccountButton";
+import { useCanCallPeggy } from "@/lib/peggy-call";
 import { ErrorState, LoadingBlock } from "@/components/kit";
 import { LanguageSheet } from "@/components/LanguagePicker";
 import { confirmSignOut } from "@/components/partner";
@@ -28,6 +30,7 @@ import { colors } from "@/theme";
 export default function SupplierAccount() {
   const t = useT("m_supplier", "m_partner", "common", "settings");
   const locale = useLocale();
+  const callPeggy = useCanCallPeggy();
   const [language, setLanguage] = useState(false);
   const loaded = useLoad(async () => {
     const [setup, overview] = await Promise.all([fetchSupplierSetup(), fetchSupplierOverview().catch(() => null)]);
@@ -98,6 +101,7 @@ export default function SupplierAccount() {
       </List>
 
       <List>
+        {callPeggy ? <CallPeggyButton variant="row" /> : null}
         <Row lead={<Tile icon="chat" tone="ok" />} title={t("account.chat")} sub={t("account.chatSub")} onPress={() => void chat()} />
         <Row lead={<Tile icon="help" tone="gray" />} title={t("account.howDo")} onPress={() => router.push("/help")} />
       </List>

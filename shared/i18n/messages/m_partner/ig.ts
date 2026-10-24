@@ -616,6 +616,11 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "fam.biz.rewardsSub": "Ọkwa {level} · {points, plural, other {point #}}",
   "fam.biz.rewardsPlain": "Point, baajị na ihe ịma aka nke izu a",
   "fam.job.shopWho": "{shop} ({who}) · {status}",
+  "chats.filter.all": "Niile",
+  "chats.filter.seller": "Ụlọ ahịa",
+  "chats.filter.supplier": "Ndị na-ebubata ngwa",
+  "chats.filter.logistics_partner": "Ndị mmekọ nnyefe",
+  "chats.filter.unread": "A gụbeghị",
 };
 
 export default ig;

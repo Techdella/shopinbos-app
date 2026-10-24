@@ -7,7 +7,6 @@ import { Notice, T } from "@/components/ui";
 import { shortTime } from "@/lib/inbox-pure";
 import { fetchPartnerMessages, sendPartnerMessage } from "@/lib/partners";
 import { useLoad } from "@/lib/useLoad";
-import { openWeb } from "@/lib/web";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 
@@ -55,7 +54,7 @@ export default function PartnerChat() {
       composer={<Composer value={draft} onChange={setDraft} onSend={() => void send()} busy={sending} placeholder={t("partners.messageTo", { name: title })} above={error ? <Notice>{error}</Notice> : null} />}
     >
       {messages.loading && !messages.data ? <LoadingBlock /> : null}
-      {messages.error && !messages.data ? <ErrorState message={messages.error} onRetry={() => void messages.reload()} web={{ label: "Open on web", onPress: () => void openWeb("/home/messages") }} /> : null}
+      {messages.error && !messages.data ? <ErrorState message={messages.error} onRetry={() => void messages.reload()} /> : null}
       {messages.data && !messages.data.length ? <T style={{ color: colors.inkSoft, textAlign: "center" }}>{t("partners.noMessages")}</T> : null}
       {messages.data?.map((message) => (
         <Bubble key={message.id} mine={message.mine} meta={shortTime(message.createdAt, new Date(), t)}>{message.text}</Bubble>

@@ -2,26 +2,48 @@ import { useState } from "react";
 import { Pressable, Share, View } from "react-native";
 import { router } from "expo-router";
 import { AppIcon } from "@/components/icons";
+import { CallPeggyButton } from "@/components/CallPeggyButton";
 import { Badge, ErrorState, LoadingBlock } from "@/components/kit";
+import { usePeggyContinue, usePeggySaved } from "@/lib/peggy-call";
 import { Screen } from "@/components/Screen";
 import { Card, LinkButton, Notice, PillButton, T } from "@/components/ui";
 import { fetchSetup, patchSetup, type SetupOverview, type SetupPatch, type SetupStep } from "@/lib/setup";
 import { stepWords } from "@/lib/setup-words";
 import { useLoad } from "@/lib/useLoad";
-import { openPath, openWeb } from "@/lib/web";
+import { openPath } from "@/lib/web";
+import { publishStore } from "@/lib/onboarding";
 import { useT } from "@/lib/i18n";
 import { colors, radii } from "@/theme";
 
-// Start here (web /home/start): what a new seller still has to do. Steps that need a form on the web (payments,
-// delivery areas, payout bank, going live) open /home/start there; sharing the link happens right here.
+// Start here (web /home/start): what a new seller still has to do. Every step opens its screen in the app; sharing
+// the link and going live happen right here.
+
+/** The app screen for each step that has one (the rest: share and go live here, or the step's own link). */
+export const STEP_SCREENS: Partial<Record<SetupStep["key"], string>> = {
+  store: "/settings",
+  look: "/templates",
+  payments: "/payments",
+  delivery: "/delivery/where",
+  partners: "/delivery/find",
+  payout: "/wallet",
+  socials: "/posts",
+  domain: "/domain",
+  audience: "/marketing",
+};
 
 export default function StartHere() {
-  const t = useT("m_onboarding", "common");
+  const t = useT("m_onboarding", "m_shop", "common");
   const words = (step: SetupStep) => stepWords(step, t);
   const setup = useLoad(fetchSetup);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const data = setup.data;
+  // On a call with Peggy: each save refreshes the checklist; after the call it stays here (the list shows what's next).
+  usePeggySaved(() => void setup.reload());
+  usePeggyContinue(() => {
+    void setup.reload();
+    return true;
+  });
 
   async function change(patch: SetupPatch, id: string) {
     setBusy(id);
@@ -39,20 +61,31 @@ export default function StartHere() {
 
   async function share(overview: SetupOverview) {
     const url = overview.store.url;
-    if (!url) return void openWeb("/home/start");
+    if (!url) return setError(t("noLink"));
     const result = await Share.share({ message: t("start.shareMessage", { name: overview.store.name, url }) }).catch(() => null);
     if (result && result.action !== Share.dismissedAction) await change({ type: "shared" }, "share");
   }
 
+  async function goLive() {
+    setBusy("live");
+    setError(null);
+    try {
+      await publishStore();
+      await setup.reload();
+    } catch (liveError) {
+      setError(liveError instanceof Error ? liveError.message : t("start.saveFailed"));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  // Every step opens a screen in the app (STEP_SCREENS); link steps go through openPath, which also stays in the app.
   function run(step: SetupStep, overview: SetupOverview) {
-    // Technical steps never show their workings on a phone: the team sets up the domain.
-    if (step.key === "domain") return void openPath("/home/domain");
-    if (step.key === "look") return void router.push({ pathname: "/web-only", params: { what: "look" } });
-    if (step.key === "audience") return void router.push("/marketing");
-    if (step.action.kind === "link") return void openPath(step.action.href);
+    const screen = STEP_SCREENS[step.key];
+    if (screen) return void router.push(screen as never);
     if (step.key === "share") return void share(overview);
-    // Payments, delivery, payout bank and going live have their forms on the web Start here page.
-    return void openWeb("/home/start");
+    if (step.key === "live") return void goLive();
+    if (step.action.kind === "link") return void openPath(step.action.href);
   }
 
   function ask(step: SetupStep) {
@@ -65,6 +98,8 @@ export default function StartHere() {
       {setup.loading && !data ? <LoadingBlock /> : null}
       {setup.error && !data ? <ErrorState message={setup.error} onRetry={() => void setup.reload()} /> : null}
       {error ? <Notice>{error}</Notice> : null}
+      {/* Peggy on a free call: what she saves ticks off below as she goes. */}
+      <CallPeggyButton />
       {data ? (
         <>
           <Card style={{ gap: 10 }}>

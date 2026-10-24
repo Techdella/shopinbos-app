@@ -190,6 +190,16 @@ export const PLAN_NAMES: Record<PlanKey, string> = {
   logistics_pro: "Logistics Pro",
 };
 
+/** Storefront theme tiers (src/lib/store-templates/theme-library.ts) and the seller plan that unlocks each. */
+export type ThemeTierName = "basic" | "premium" | "platinum";
+export const THEME_TIER_PLAN: Record<ThemeTierName, SellerPlanKey> = { basic: "seller_free", premium: "seller_starter", platinum: "seller_growth" };
+
+/** The plan name for a theme tier ("premium" → "Starter"): the one name the web gallery, the phone's plan filter,
+ * its lock tags and its "needs a plan" banner all use. */
+export function themeTierPlanName(tier: ThemeTierName): string {
+  return PLAN_NAMES[THEME_TIER_PLAN[tier]];
+}
+
 /** "Upgrade to Starter to add more products." */
 export function upgradeMessage(role: PlanRole, test: (key: PlanKey) => boolean, what: string) {
   const plan = cheapestPlanWhere(role, test);

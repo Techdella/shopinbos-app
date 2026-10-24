@@ -12,6 +12,8 @@ import { fetchDeliveryWhere, fetchSupplierOverview, fetchSupplierSetup, saveDeli
 import { popularBanks, SELL_AREAS, SELL_STATES, SETUP_CITIES, SUPPLY_CATEGORIES, type SellAreaKey } from "@/lib/supplier-pure";
 import { useLoad } from "@/lib/useLoad";
 import { checkWalletAccount, fetchWallet, linkWalletBank } from "@/lib/wallet";
+import { usePeggyContinue, usePeggySaved } from "@/lib/peggy-call";
+import { supplierWizardStep } from "@/lib/peggy-call-pure";
 import { colors } from "@/theme";
 
 // Setting up a supplier ("Simple app, end to end" supplier prototype: sWelcome → sBiz → sPickup → sWhere → sBank →
@@ -78,6 +80,21 @@ export default function SupplierSetup() {
     };
   }, [lookupKey, bankName, account]);
   const shownHolder = holder && holder.key === lookupKey ? holder : null;
+
+  // On a call with Peggy: what she saves (pickup address, where they sell) fills the steps here as she goes, and
+  // after the call the first step that's still missing opens.
+  usePeggySaved(() => {
+    setFilled(false);
+    void loaded.reload();
+  });
+  usePeggyContinue((status) => {
+    if (editing) return false;
+    if (status) {
+      setError(null);
+      setStep(supplierWizardStep(status.steps));
+    }
+    return true;
+  });
 
   if (!data) {
     return (
@@ -165,6 +182,7 @@ export default function SupplierSetup() {
       .finally(() => setBusy(false));
   }
 
+  const peggy = editing ? undefined : <CallPeggyButton variant="compact" />;
   const stepLabel = editing || !NUMBERED.includes(step) ? undefined : t("setup.stepOf", { step: NUMBERED.indexOf(step) + 1, total: NUMBERED.length });
   const nextButton = (onPress: () => void, accent = false) => <PillButton title={editing ? t("setup.save") : step === "bank" ? t("setup.finish") : t("next")} tone={accent || editing ? "accent" : "ink"} busy={busy} disabled={busy} onPress={onPress} />;
 
@@ -211,7 +229,7 @@ export default function SupplierSetup() {
 
   if (step === "biz") {
     return (
-      <FlowFrame step={stepLabel} onBack={back} title={t("setup.bizTitle")} footer={nextButton(saveBiz)}>
+      <FlowFrame step={stepLabel} onBack={back} aside={peggy} title={t("setup.bizTitle")} footer={nextButton(saveBiz)}>
         {error ? <Notice>{error}</Notice> : null}
         <View>
           <FieldLabel>{t("setup.bizName")}</FieldLabel>
@@ -232,7 +250,7 @@ export default function SupplierSetup() {
 
   if (step === "pickup") {
     return (
-      <FlowFrame step={stepLabel} onBack={back} title={t("setup.pickupTitle")} footer={nextButton(savePickup)}>
+      <FlowFrame step={stepLabel} onBack={back} aside={peggy} title={t("setup.pickupTitle")} footer={nextButton(savePickup)}>
         {error ? <Notice>{error}</Notice> : null}
         <View>
           <FieldLabel>{t("setup.city")}</FieldLabel>
@@ -250,7 +268,7 @@ export default function SupplierSetup() {
 
   if (step === "where") {
     return (
-      <FlowFrame step={stepLabel} onBack={back} title={t("setup.whereTitle")} sub={t("setup.whereSub", { city: city || t("setup.yourCity") })} footer={nextButton(saveWhere)}>
+      <FlowFrame step={stepLabel} onBack={back} aside={peggy} title={t("setup.whereTitle")} sub={t("setup.whereSub", { city: city || t("setup.yourCity") })} footer={nextButton(saveWhere)}>
         {error ? <Notice>{error}</Notice> : null}
         <View accessibilityRole="radiogroup" style={{ gap: 10 }}>
           {SELL_AREAS.map((key) => <Choice key={key} title={t.dynamic(`where.${key}`)} sub={t.dynamic(`where.${key}.sub`)} on={area === key} onPress={() => setArea(key)} />)}
@@ -272,6 +290,7 @@ export default function SupplierSetup() {
   return (
     <FlowFrame
       step={stepLabel}
+      aside={peggy}
       onBack={back}
       title={t("setup.bankTitle")}
       sub={t("setup.bankSub")}

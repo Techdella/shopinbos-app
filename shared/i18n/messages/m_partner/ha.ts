@@ -616,6 +616,11 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "fam.biz.rewardsSub": "Mataki {level} · {points, plural, one {Maki #} other {Maki #}}",
   "fam.biz.rewardsPlain": "Maki, lambobin yabo da ƙalubalen wannan mako",
   "fam.job.shopWho": "{shop} ({who}) · {status}",
+  "chats.filter.all": "Duka",
+  "chats.filter.seller": "Shaguna",
+  "chats.filter.supplier": "Masu kawo kaya",
+  "chats.filter.logistics_partner": "Abokan isar da kaya",
+  "chats.filter.unread": "Ba a karanta ba",
 };
 
 export default ha;

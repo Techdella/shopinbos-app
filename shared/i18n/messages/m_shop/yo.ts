@@ -121,6 +121,11 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "looks.publish": "Gbé e jáde lórí wẹ́ẹ̀bù",
   "looks.askRexChange": "Ní kí Rex yí i padà",
   "looks.applyFailed": "A kò lè yí ìrísí padà báyìí. Gbìyànjú lẹ́ẹ̀kan sí i.",
+  "legal.addPage": "Fi ojú-ìwé kan kún un",
+  "legal.pageName": "Orúkọ ojú-ìwé",
+  "legal.pageNamePlaceholder": "àpẹẹrẹ: Òfin ọjà olópòlopò",
+  "legal.nameFirst": "Kọ́kọ́ fún ojú-ìwé náà ní orúkọ.",
+  "legal.addFailed": "A kò lè fi ojú-ìwé náà kún un. Gbìyànjú lẹ́ẹ̀kan sí i.",
 };
 
 export default yo;

@@ -52,6 +52,14 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "credits.topUpLabel": "Ƙara kiredit: za mu aiko maka da email kan yadda ake yi",
   "credits.emailed": "Mun aiko maka da email kan yadda za ka ƙara a shafin yanar gizo.",
   "credits.emailFailed": "Ba mu iya aika email ɗin yanzu ba. Sake gwadawa nan ba da jimawa ba.",
+  "card.useIt": "Yi amfani da shi",
+  "card.useImageAsk": "Yi amfani da wannan hoton: {title}.",
+  "card.useCopyAsk": "Yi amfani da wannan bayanin don {name}.",
+  "card.useLogoAsk": "Yi amfani da tambarin {label}.",
+  "card.seeShop": "Duba shagona",
+  "card.publish": "Wallafa",
+  "card.published": "An wallafa. Abokan ciniki suna ganin sabon kamannin yanzu.",
+  "card.publishFailed": "Ba mu iya wallafawa yanzu ba. Sake gwadawa.",
 };
 
 export default ha;

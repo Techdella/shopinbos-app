@@ -163,6 +163,14 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "track.messagePartnerSub": "Ya makara, ya lalace ko ya ɓace: gaya wa abokin isar da kayanka",
   "track.getHelp": "Sami taimako daga Shopinbos",
   "track.getHelpSub": "Mutum ko Peggy za su taimaka maka ka warware shi",
+  "filters.title": "Matattara",
+  "filters.done": "An gama",
+  "filters.clear": "Share matattara",
+  "filters.search": "Abokin ciniki, kaya ko lambar oda",
+  "filters.pay": "Biya",
+  "filters.pay.any": "Duka",
+  "filters.pay.unpaid": "Ba a biya ba",
+  "filters.pay.toSend": "An biya, don turawa",
 };
 
 export default ha;

@@ -16,6 +16,7 @@ import {
   type StatusRole,
   type StatusTone,
 } from "@shared/status";
+import type { ShopinbosCta } from "@shared/shopinbos-status";
 
 // Status (24-hour stories) for the phone app: who's in a viewer's feed, and each post in the shape of the API
 // contract (StatusPost). Rules are in shared/status.ts; routes in src/app/api/mobile/status.
@@ -38,10 +39,18 @@ export interface StatusPostView {
    * productId the product (add_product: a SupplierProduct, for the dropship agreement).
    */
   cta: {
-    kind: StatusCtaKind;
+    /** "open" (an app path, target.path) and "share" (the seller's shop link) only on Shopinbos's own posts. */
+    kind: StatusCtaKind | ShopinbosCta["kind"];
     label: string;
-    target: { userId: string; slug: string | null; partnerId: string | null; productId: string | null };
+    target: { userId: string; slug: string | null; partnerId: string | null; productId: string | null; path?: string | null };
   } | null;
+  /**
+   * Additive, Shopinbos's own posts only (src/lib/status/shopinbos.server.ts): a video post plays `url` (an MP4 in
+   * our bucket) in the viewer, else the 60-second feature intro `intro` in the app, else opens `watchUrl`.
+   */
+  video?: { intro: string | null; url: string | null; watchUrl: string | null; posterUrl: string | null; durationSeconds: number | null } | null;
+  /** Additive, Shopinbos's own posts only: this viewer has seen it. */
+  seen?: boolean;
   createdAt: string;
   expiresAt: string;
   views: number;

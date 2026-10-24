@@ -3,6 +3,7 @@ import { View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 import { ErrorState, LoadingBlock } from "@/components/kit";
 import { BigNumber, Eyebrow, List, Pill, Row, Small, TILE, Tile, Title } from "@/components/design";
+import { ReferCard } from "@/components/familiar/ReferCard";
 import { AppIcon } from "@/components/icons";
 import { Screen } from "@/components/Screen";
 import { Mascot, Notice, PillButton, T } from "@/components/ui";
@@ -94,6 +95,8 @@ export default function Rewards() {
               {data.nextLevelName ? <Small style={{ color: colors.ink }}>{t("rw.next", { name: data.nextLevelName })}</Small> : <Small style={{ color: colors.ink }}>{t("rw.top")}</Small>}
             </View>
           </View>
+
+          <ReferCard />
 
           {data.loyalty ? (
             <View style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 18, gap: 8 }} accessible accessibilityLabel={t("rw.tier", { tier: data.loyalty.tierName })}>

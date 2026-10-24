@@ -6,12 +6,11 @@ import { naira } from "@shared/onboarding";
 import { AppIcon } from "@/components/icons";
 import { Badge, ErrorState, Initials, LoadingBlock } from "@/components/kit";
 import { Screen } from "@/components/Screen";
-import { Card, Field, Label, LinkButton, Notice, PillButton, Segmented, T } from "@/components/ui";
+import { Card, Field, Label, Notice, PillButton, Segmented, T } from "@/components/ui";
 import { clampSellingPrice, priceStep, saleBreakdown, tierPrice } from "@/lib/find-pure";
 import { addToStore, fetchFindContext, fetchFindProduct, requestQuote, type FindContext, type FindProduct, type Listing } from "@/lib/marketplace";
 import { BeforeYouList, SupplierRiskCard, SupplierTrustBadges } from "@/components/SupplierTrust";
 import { useLoad } from "@/lib/useLoad";
-import { openWeb } from "@/lib/web";
 import { useT } from "@/lib/i18n";
 import { colors, radii } from "@/theme";
 
@@ -237,8 +236,6 @@ function ProductView({ product, listing, context, refreshing, onRefresh }: { pro
           <T style={{ color: colors.inkSoft, lineHeight: 21 }}>{product.description}</T>
         </Card>
       ) : null}
-
-      <LinkButton title={t("product.browser")} color={colors.inkSoft} onPress={() => void openWeb(`/marketplace/product/${encodeURIComponent(product.id)}`)} />
     </Screen>
   );
 }

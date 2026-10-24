@@ -8,6 +8,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { RoleGuard } from "@/components/RoleGuard";
 import { LearnHost } from "@/components/learn/LearnHost";
 import { PushManager } from "@/components/PushManager";
+import { PeggyCallHost } from "@/components/peggy/PeggyCallHost";
 import { SessionProvider, useSession } from "@/lib/session";
 import { I18nProvider } from "@/lib/i18n";
 import { colors } from "@/theme";
@@ -45,6 +46,8 @@ export default function RootLayout() {
           <StatusBar style="dark" />
           <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.canvas }, animation: "slide_from_right" }} />
           <PushManager />
+          {/* "Call Peggy": the in-app call, full screen or minimized to a bar across the app. */}
+          <PeggyCallHost />
           {/* 60-second feature intros: once per person on the first visit to a feature's screen. */}
           <LearnHost />
         </I18nProvider>
