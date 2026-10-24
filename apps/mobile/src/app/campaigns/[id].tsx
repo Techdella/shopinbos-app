@@ -16,7 +16,7 @@ import { colors } from "@/theme";
 
 // One seasonal campaign (web /home/campaigns/:id): its countdown, dates and code; pause or resume, end now (after
 // asking), see it on the shop through a private preview link and share the code. Name, dates and code change on
-// /campaigns/new?id=…; the look and what shows open on the web.
+// /campaigns/new?id=…; the look and what shows aren't edited on the phone.
 
 export default function CampaignScreen() {
   const t = useT("m_campaigns", "m_ui");
@@ -116,7 +116,6 @@ export default function CampaignScreen() {
       <Card style={{ paddingVertical: 2 }}>
         <LinkRow first icon="globe" label={busy === "preview" ? t("detail.opening") : t("detail.preview")} hint={t("detail.previewHint")} onPress={() => void (busy ? null : preview())} />
         {status !== "ended" && status !== "draft" ? <LinkRow icon="clock" label={t("detail.edit")} hint={t("detail.editHint")} onPress={() => router.push({ pathname: "/campaigns/new", params: { id: campaign.id } })} /> : null}
-        <LinkRow icon="image" label={t("form.look")} hint={t("form.lookHint")} onPress={() => router.push({ pathname: "/web-only", params: { what: "campaign", id: campaign.id } })} />
       </Card>
 
       <Sheet visible={confirmEnd} onClose={() => setConfirmEnd(false)} title={t("detail.endTitle", { name: campaign.name })}>

@@ -163,11 +163,11 @@ test("sizes and colours: same shape sends variantUpdates (with on/off); a new sh
   assert.deepEqual(more.versionSave(editable, before, after, { ...allEdits, s: { price: "abc", stock: "" } }, {}), { ok: false, problem: "variantPrice", name: "S" });
 });
 
-test("the phone screen edits everything natively; only the page layout opens the website", () => {
+test("the phone screen edits everything natively and never opens the web app", () => {
   const screen = read("apps/mobile/src/app/product/[id].tsx");
   for (const call of ["morePatch(", "versionSave(", "addOption(", "removeOption(", "moveRow(", "makeMainPhoto("]) assert.ok(screen.includes(call), call);
   assert.doesNotMatch(screen, /edit\.moreOnWeb/);
-  assert.equal((screen.match(/openWeb\(/g) ?? []).length, 1, "one link: the product page layout");
+  assert.doesNotMatch(screen, /openWeb\(/, "the product page layout link is gone too");
   assert.doesNotMatch(screen, /window\.(confirm|alert|prompt)/);
   const route = read("src/app/api/app/store-products/[id]/route.ts");
   for (const field of ["longDescription", "specifications", "faqs", "shippingInfo", "returnPolicy", "supportInfo", "videoUrl", "tags", "trackStock", "variantRows"]) assert.ok(route.includes(field), field);

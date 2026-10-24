@@ -176,6 +176,10 @@ const en = {
   "faq.answerHint": "Yes, in 2 to 3 days.",
   "faq.add": "+ Add a question",
   "pairs.remove": "Remove",
+  "bot.faqQ": "Question, e.g. Do you deliver to Abuja?",
+  "bot.faqA": "Peggy's answer",
+  "bot.faqAdd": "Add a question",
+  "bot.faqRemove": "Remove",
 } satisfies Record<string, string>;
 
 export default en;

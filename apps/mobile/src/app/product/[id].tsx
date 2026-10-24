@@ -54,7 +54,6 @@ import {
 import { archiveProduct, createCategory, fetchAllCategories, fetchEditProduct, fetchStoreCategories, saveProduct, uploadProductPhoto, type EditProduct } from "@/lib/products";
 import { fetchSetup } from "@/lib/setup";
 import { shareText } from "@/lib/share";
-import { openWeb } from "@/lib/web";
 import { useT } from "@/lib/i18n";
 import { colors, radii } from "@/theme";
 
@@ -935,8 +934,6 @@ export default function EditProductScreen() {
         </View>
       </Fold>
 
-      {/* The product page's own layout is set with the store builder on the website. */}
-      <LinkButton title={t("edit.layoutOnWeb")} color={colors.inkSoft} onPress={() => void openWeb(`/products/${product.id}`)} />
 
       <Sheet visible={typePicking} onClose={() => setTypePicking(false)} title={t("ptype.title")}>
         <ScrollView style={{ maxHeight: 420 }} keyboardShouldPersistTaps="handled">

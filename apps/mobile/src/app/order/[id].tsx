@@ -15,7 +15,6 @@ import { TONE_COLORS, type Tone } from "@/lib/dashboard";
 import { fetchOrderDelivery, fetchReassignOptions, jobAction, openPartnerChat, type OrderDelivery, type Parcel, type ReassignOption } from "@/lib/delivery";
 import { daysWords, ownTimeline, timelineStates, timelineWordKey, whatsappNumber } from "@/lib/delivery-pure";
 import { cancelAndRefund, fetchOrder, undoSupplierSwitch, updateOrder, type OrderDetail, type OrderPart, type OrderParts } from "@/lib/orders";
-import { openWeb } from "@/lib/web";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 
@@ -246,7 +245,7 @@ export default function OrderScreen() {
       </PillButton>
     )
   ) : toSend ? (
-    <PillButton title={t("order.getRider")} onPress={() => void openWeb(`/home/orders/${order.id}`)} />
+    <PillButton title={t("order.getRider")} onPress={() => router.push("/delivery/find" as never)} />
   ) : order.status === "shipped" && !partnerPlan && (!ownPart || ownPart.state !== "delivered") ? (
     <PillButton title={t("order.delivered")} busy={busy === "delivered"} onPress={() => void change("delivered")} />
   ) : null;

@@ -121,6 +121,11 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "looks.publish": "Publish am for web",
   "looks.askRexChange": "Ask Rex make e change am",
   "looks.applyFailed": "We no fit change the look now. Try again.",
+  "legal.addPage": "Add page",
+  "legal.pageName": "Page name",
+  "legal.pageNamePlaceholder": "e.g. Wholesale terms",
+  "legal.nameFirst": "Give the page name first.",
+  "legal.addFailed": "We no fit add the page. Try again.",
 };
 
 export default pcm;

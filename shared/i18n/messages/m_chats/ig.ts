@@ -172,6 +172,10 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "faq.answerHint": "Ee, n'ime ụbọchị 2 ruo 3.",
   "faq.add": "+ Tinye ajụjụ",
   "pairs.remove": "Wepụ",
+  "bot.faqQ": "Ajụjụ, dịka: Ị na-ezigara Abuja?",
+  "bot.faqA": "Azịza Peggy",
+  "bot.faqAdd": "Tinye ajụjụ",
+  "bot.faqRemove": "Wepụ",
 };
 
 export default ig;

@@ -5,12 +5,11 @@ import { AppIcon } from "@/components/icons";
 import { Badge, EmptyState, ErrorState, LoadingBlock, SectionTitle } from "@/components/kit";
 import { Screen } from "@/components/Screen";
 import { useFlowSwitch } from "@/components/FlowSwitch";
-import { Card, LinkButton, Notice, PillButton, T, Toggle } from "@/components/ui";
+import { Card, Notice, PillButton, T, Toggle } from "@/components/ui";
 import { friendlyDay } from "@/lib/friendly";
 import { addAutomation, fetchAutomations } from "@/lib/marketing";
 import type { FlowRow } from "@/lib/marketing-pure";
 import { useLoad } from "@/lib/useLoad";
-import { openWeb } from "@/lib/web";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 
@@ -106,7 +105,6 @@ export default function Automations() {
               <PillButton title={used.has(preset.key) ? t("add.another") : t("auto.add")} size="sm" tone={used.has(preset.key) ? "white" : "ink"} style={{ alignSelf: "flex-start" }} busy={adding === preset.key} disabled={adding !== null} onPress={() => void add(preset.key)} />
             </Card>
           ))}
-          <LinkButton title={t("auto.newWeb")} color={colors.inkSoft} onPress={() => void openWeb("/home/automations/new")} />
         </>
       ) : null}
       {flowSwitch.sheet}

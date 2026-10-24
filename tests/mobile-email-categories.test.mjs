@@ -46,8 +46,9 @@ test("Gmail connect and own-domain email open the web's routes, which exist", ()
   assert.match(read("src/app/api/app/inbox/email/gmail/connect/route.ts"), /export const GET/);
   assert.match(read("src/app/api/app/inbox/email/route.ts"), /export const DELETE/);
   assert.equal(channels.EMAIL_SETUP_PATH, "/home/inbox/email");
-  assert.match(read("apps/mobile/src/app/web-only.tsx"), /emailDomain:/);
-  assert.match(read("apps/mobile/src/app/channels.tsx"), /what: "emailDomain"/);
+  // Email from an own domain is set up on the website; the phone no longer links to it (web-only.tsx is admin only).
+  assert.doesNotMatch(read("apps/mobile/src/app/web-only.tsx"), /emailDomain/);
+  assert.doesNotMatch(read("apps/mobile/src/app/channels.tsx"), /what: "emailDomain"/);
 });
 
 test("email replies keep the web's Re: subject", () => {

@@ -172,6 +172,10 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "faq.answerHint": "Eh, cikin kwana 2 zuwa 3.",
   "faq.add": "+ Ƙara tambaya",
   "pairs.remove": "Cire",
+  "bot.faqQ": "Tambaya, misali: Kuna kai kaya Abuja?",
+  "bot.faqA": "Amsar Peggy",
+  "bot.faqAdd": "Ƙara tambaya",
+  "bot.faqRemove": "Cire",
 };
 
 export default ha;

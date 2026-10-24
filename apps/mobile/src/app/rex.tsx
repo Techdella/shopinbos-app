@@ -5,19 +5,22 @@ import { Image } from "expo-image";
 import { AppIcon } from "@/components/icons";
 import { Bubble, ChatScreen, Composer } from "@/components/ChatScreen";
 import { ShareSheet } from "@/components/familiar/ShareSheet";
-import { Chip, Mascot, Notice, PillButton, T } from "@/components/ui";
+import { Chip, Mascot, Notice, T } from "@/components/ui";
 import { emailTopUp, fetchCredits } from "@/lib/familiar";
 import { askRex, cardNote, REX_STARTERS, type RexCard } from "@/lib/rex";
 import { startVideoFromRex } from "@/lib/video";
-import { openPath, openWeb } from "@/lib/web";
+import { publishStore } from "@/lib/onboarding";
+import { fetchSetup } from "@/lib/setup";
+import { openShop } from "@/lib/share";
+import { openPath } from "@/lib/web";
 import { useT } from "@/lib/i18n";
 import { colors, radii } from "@/theme";
 
 // Ask Rex ("Familiar app" prototype `askRex`; Rex Studio chat, web /studio), like Peggy's screen: "I build and
 // change your shop", the credits with Top up (an email, never a sale in the app), three suggestions and the rest
 // of what Rex can do. Rex changes the draft store, makes pictures, logos, descriptions and campaigns. Cards show
-// what he made; a reel opens the phone's video studio as a draft with his words; his pictures share from the phone's
-// share sheet; previewing and publishing the shop open the web.
+// what he made; a reel opens the phone's video studio as a draft with his words; his pictures share from the phone's share sheet; "Use it" and tapping a logo ask Rex
+// to apply it; a changed draft is published here and the shop opens in the phone's browser. Nothing opens the web app.
 
 interface Turn {
   from: "me" | "rex";
@@ -40,11 +43,36 @@ async function makeVideo(card: Extract<RexCard, { type: "video" }>) {
   }
 }
 
-function CardAction({ label, onPress }: { label: string; onPress: () => void }) {
+function CardAction({ label, onPress, busy }: { label: string; onPress: () => void; busy?: boolean }) {
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} style={{ alignSelf: "flex-start", borderRadius: radii.pill, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 14, paddingVertical: 8 }}>
+    <Pressable accessibilityRole="button" accessibilityState={{ busy: Boolean(busy) }} disabled={busy} onPress={onPress} style={{ alignSelf: "flex-start", borderRadius: radii.pill, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 14, paddingVertical: 8, opacity: busy ? 0.6 : 1 }}>
       <T weight="bold" style={{ fontSize: 14 }}>{label}</T>
     </Pressable>
+  );
+}
+
+/** The live shop in the phone's browser (the shop itself, not the web app). */
+async function seeShop() {
+  const overview = await fetchSetup().catch(() => null);
+  if (overview?.store.url) await openShop(overview.store.url);
+}
+
+/** Under "Changed your draft": Publish (POST /api/store/editor/publish, as onboarding does) and See my shop. */
+function StoreActions() {
+  const t = useT("m_rex", "common");
+  const [state, setState] = useState<"idle" | "busy" | "done" | "failed">("idle");
+  async function publish() {
+    setState("busy");
+    setState(await publishStore().then(() => "done" as const, () => "failed" as const));
+  }
+  return (
+    <View style={{ gap: 8 }}>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+        {state === "done" ? null : <CardAction label={t("card.publish")} busy={state === "busy"} onPress={() => void publish()} />}
+        <CardAction label={t("card.seeShop")} onPress={() => void seeShop()} />
+      </View>
+      {state === "done" ? <T style={{ fontSize: 14, color: colors.forest }}>{t("card.published")}</T> : state === "failed" ? <T style={{ fontSize: 14, color: colors.inkSoft }}>{t("card.publishFailed")}</T> : null}
+    </View>
   );
 }
 
@@ -57,6 +85,7 @@ function CardView({ card, ask, share }: { card: RexCard; ask: (text: string) => 
         <View style={frame}>
           <T weight="extrabold" style={{ fontSize: 14.5 }}>{card.title}{card.product ? ` · ${card.product.name}` : ""}</T>
           <Image source={{ uri: card.after }} style={{ width: "100%", aspectRatio: 1, borderRadius: 12, backgroundColor: colors.lilac }} contentFit="cover" accessibilityLabel={card.title} />
+          <CardAction label={t("card.useIt")} onPress={() => ask(t("card.useImageAsk", { title: card.product ? `${card.title} · ${card.product.name}` : card.title }))} />
           <CardAction label={t("posts.share")} onPress={() => share(card.after)} />
         </View>
       );
@@ -65,14 +94,14 @@ function CardView({ card, ask, share }: { card: RexCard; ask: (text: string) => 
         <View style={frame}>
           <T weight="extrabold" style={{ fontSize: 14.5 }}>{t("card.logos")}</T>
           <View style={{ flexDirection: "row", gap: 8 }}>
+            {/* Tapping a logo asks Rex to use it. */}
             {card.options.map((option) => (
-              <View key={option.url} style={{ flex: 1, gap: 4 }}>
-                <Image source={{ uri: option.url }} style={{ width: "100%", aspectRatio: 1, borderRadius: 12, backgroundColor: colors.canvas }} contentFit="contain" accessibilityLabel={option.label} />
+              <Pressable key={option.url} accessibilityRole="button" accessibilityLabel={t("card.useLogoAsk", { label: option.label })} onPress={() => ask(t("card.useLogoAsk", { label: option.label }))} style={({ pressed }) => ({ flex: 1, gap: 4, opacity: pressed ? 0.8 : 1 })}>
+                <Image source={{ uri: option.url }} style={{ width: "100%", aspectRatio: 1, borderRadius: 12, backgroundColor: colors.canvas }} contentFit="contain" />
                 <T style={{ fontSize: 13, color: colors.inkSoft }} numberOfLines={1}>{option.label}</T>
-              </View>
+              </Pressable>
             ))}
           </View>
-          <CardAction label={t("card.pickLogo")} onPress={() => void openWeb("/studio")} />
         </View>
       );
     case "store":
@@ -80,7 +109,7 @@ function CardView({ card, ask, share }: { card: RexCard; ask: (text: string) => 
         <View style={frame}>
           <T weight="extrabold" style={{ fontSize: 14.5 }}>{card.version ? t("card.changedVersion", { n: card.version.n }) : t("card.changed")}</T>
           {card.changes.map((change, index) => <T key={index} style={{ fontSize: 14, color: colors.inkSoft }}>• {change}</T>)}
-          <CardAction label={t("card.preview")} onPress={() => void openWeb("/studio")} />
+          <StoreActions />
         </View>
       );
     case "themes":
@@ -97,7 +126,7 @@ function CardView({ card, ask, share }: { card: RexCard; ask: (text: string) => 
         <View style={frame}>
           <T weight="extrabold" style={{ fontSize: 14.5 }}>{t("card.description", { name: card.product.name })}</T>
           <T style={{ fontSize: 14.5, lineHeight: 19 }}>{card.after}</T>
-          <CardAction label={t("card.use")} onPress={() => void openWeb("/studio")} />
+          <CardAction label={t("card.useIt")} onPress={() => ask(t("card.useCopyAsk", { name: card.product.name }))} />
         </View>
       );
     case "video":
@@ -132,7 +161,7 @@ function CardView({ card, ask, share }: { card: RexCard; ask: (text: string) => 
         </View>
       );
     case "preview":
-      return <CardAction label={t("card.openPreview")} onPress={() => void openWeb("/studio")} />;
+      return <CardAction label={t("card.seeShop")} onPress={() => void seeShop()} />;
     default:
       return null;
   }
@@ -236,7 +265,7 @@ export default function Rex() {
             <T style={{ color: colors.inkSoft, fontSize: 14 }} numberOfLines={1}>{t("line")}</T>
           </View>
           {/* A round icon (not a word) so "Ask Rex" and its line keep the header's width. */}
-          <Pressable accessibilityRole="button" accessibilityLabel={`${t("previewButton")}: ${t("openWeb")}`} onPress={() => void openWeb("/studio")} hitSlop={6} style={{ width: 44, height: 44, borderRadius: radii.pill, alignItems: "center", justifyContent: "center", backgroundColor: colors.surface }}>
+          <Pressable accessibilityRole="button" accessibilityLabel={t("card.seeShop")} onPress={() => void seeShop()} hitSlop={6} style={{ width: 44, height: 44, borderRadius: radii.pill, alignItems: "center", justifyContent: "center", backgroundColor: colors.surface }}>
             <AppIcon name="globe" size={20} />
           </Pressable>
         </>
@@ -275,7 +304,6 @@ export default function Rex() {
         ),
       )}
       {thinking ? <T style={{ color: colors.inkSoft }}>{t("working")}</T> : null}
-      {turns.length ? <PillButton title={t("openWeb")} tone="white" size="sm" style={{ alignSelf: "center", marginTop: 6 }} onPress={() => void openWeb("/studio")} /> : null}
       {/* Rex's pictures are shared in the app: the phone's share sheet (WhatsApp, Instagram, TikTok, Facebook, Save). */}
       <ShareSheet visible={Boolean(sharing)} onClose={() => setSharing(null)} imageUrl={sharing} caption="" />
     </ChatScreen>

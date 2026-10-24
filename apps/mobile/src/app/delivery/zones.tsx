@@ -12,13 +12,13 @@ import { createZone, deleteZone, fetchBookings, fetchZones, updateZone, type Del
 import { addAreas, areasLine, feeEditable, feeText, parseFee, zoneBody, zoneProblem, type Zone, type ZoneDraft } from "@/lib/settings-pure";
 import { useLoad } from "@/lib/useLoad";
 import { payDeliveryFee } from "@/lib/wallet";
-import { openWeb } from "@/lib/web";
+import { router } from "expo-router";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 
 // My own delivery prices (web /home/shipping and /home/logistics), opened from the Delivery hub: the shop's delivery
 // areas and fees (ShippingZone: add, edit, turn on or off, delete; checkout uses them when the hub's "At checkout,
-// use" is "My own prices") and its latest courier bookings. Booking a courier and asking for quotes stay on the web.
+// use" is "My own prices") and its latest courier bookings. Booking a courier finds a delivery partner in the app (/delivery/find).
 
 const BOOKING_TONE: Record<string, keyof typeof TONE_COLORS> = { pending: "warning", confirmed: "accent", picked_up: "accent", in_transit: "accent", delivered: "success", failed: "danger", cancelled: "muted", declined: "muted", out_for_delivery: "accent", at_pickup_point: "accent", returning: "warning", returned: "muted" };
 
@@ -55,7 +55,7 @@ export default function Delivery() {
   return (
     <Screen title={t("zones.title")} sub={t("del.sub")} refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
       {loaded.loading && !data ? <LoadingBlock /> : null}
-      {loaded.error && !data ? <ErrorState message={loaded.error} onRetry={() => void loaded.reload()} web={{ label: "Open on web", onPress: () => void openWeb("/home/shipping") }} /> : null}
+      {loaded.error && !data ? <ErrorState message={loaded.error} onRetry={() => void loaded.reload()} /> : null}
       {note ? <Notice>{note}</Notice> : null}
 
       {data ? (
@@ -100,7 +100,7 @@ export default function Delivery() {
               <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21 }}>{t("del.noBookings")}</T>
             </Card>
           )}
-          <PillButton title={t("del.book")} size="md" onPress={() => void openWeb("/home/logistics?intent=book_delivery#quote")}>
+          <PillButton title={t("del.book")} size="md" onPress={() => router.push("/delivery/find" as never)}>
             <AppIcon name="truck" size={20} color="#FFFFFF" />
             <T weight="bold" style={{ color: "#FFFFFF", fontSize: 16 }}>{t("del.book")}</T>
           </PillButton>
@@ -293,7 +293,6 @@ function ZoneEditor({ zone, onClose, onDone }: { zone: Zone | "new" | null; onCl
                     <T weight="bold" style={{ fontSize: 15 }}>{feeWords(rate, t)}</T>
                   </View>
                 ))}
-                <LinkButton title={t("del.pricesOnWeb")} onPress={() => void openWeb(`/home/shipping/${existing.id}`)} />
               </Card>
             ) : null}
 

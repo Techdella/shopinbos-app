@@ -4,10 +4,9 @@ import { useLocalSearchParams } from "expo-router";
 import { Image } from "expo-image";
 import { Badge, ErrorState, LoadingBlock } from "@/components/kit";
 import { Screen } from "@/components/Screen";
-import { Card, Field, Label, LinkButton, Notice, PillButton, T } from "@/components/ui";
+import { Card, Field, Label, Notice, PillButton, T } from "@/components/ui";
 import { draftReviewReply, fetchReview, moderateReview, rememberReview, saveReviewReply, SOURCE_LABELS, stars, type ReviewItem } from "@/lib/reviews";
 import { useLoad } from "@/lib/useLoad";
-import { openWeb } from "@/lib/web";
 import { formatDate } from "@shared/i18n";
 import { useLocale, useT } from "@/lib/i18n";
 import { colors } from "@/theme";
@@ -139,7 +138,6 @@ function ReviewView({ item, onSaved, refreshing, onRefresh }: { item: ReviewItem
         <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>{t("detail.featureNote")}</T>
       </Card>
 
-      <LinkButton title={t("detail.web")} color={colors.inkSoft} onPress={() => void openWeb(`/home/reviews/${encodeURIComponent(item.key)}`)} />
     </Screen>
   );
 }

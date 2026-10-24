@@ -47,6 +47,8 @@ import m_productedit from "./messages/m_productedit/index.ts";
 import m_label from "./messages/m_label/index.ts";
 import m_settings from "./messages/m_settings/index.ts";
 import m_paylinks from "./messages/m_paylinks/index.ts";
+import m_domain from "./messages/m_domain/index.ts";
+import m_packaging from "./messages/m_packaging/index.ts";
 import m_campaigns from "./messages/m_campaigns/index.ts";
 import m_video from "./messages/m_video/index.ts";
 import m_money from "./messages/m_money/index.ts";
@@ -140,6 +142,8 @@ export const CATALOGS = {
   m_label,
   m_settings,
   m_paylinks,
+  m_domain,
+  m_packaging,
   m_campaigns,
   m_video,
   m_money,

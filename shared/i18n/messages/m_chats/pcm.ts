@@ -172,6 +172,10 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "faq.answerHint": "Yes, for 2 to 3 days.",
   "faq.add": "+ Add question",
   "pairs.remove": "Comot am",
+  "bot.faqQ": "Question, e.g. You dey deliver reach Abuja?",
+  "bot.faqA": "Peggy answer",
+  "bot.faqAdd": "Add question",
+  "bot.faqRemove": "Comot am",
 };
 
 export default pcm;

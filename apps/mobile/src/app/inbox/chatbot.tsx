@@ -3,7 +3,7 @@ import { View } from "react-native";
 import { ErrorState, LoadingBlock } from "@/components/kit";
 import { PairsEditor } from "@/components/seller/ReplyEditors";
 import { Screen } from "@/components/Screen";
-import { Card, Field, Label, Mascot, Notice, PillButton, Segmented, T, Toggle } from "@/components/ui";
+import { Card, Field, Label, LinkButton, Mascot, Notice, PillButton, Segmented, T, Toggle } from "@/components/ui";
 import { fetchAutomation, saveAutomation, type ChatbotSettings, type InboxAutomation } from "@/lib/inbox";
 import { useLoad } from "@/lib/useLoad";
 import { useT } from "@/lib/i18n";
@@ -42,6 +42,9 @@ function ChatbotForm({ initial, refreshing, onRefresh }: { initial: InboxAutomat
   const [saving, setSaving] = useState(false);
   const [note, setNote] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const ready = initial.ready;
+
+  const setFaq = (index: number, patch: Partial<{ q: string; a: string }>) =>
+    setBot({ ...bot, faqs: bot.faqs.map((faq, at) => (at === index ? { ...faq, ...patch } : faq)) });
 
   async function save() {
     setSaving(true);

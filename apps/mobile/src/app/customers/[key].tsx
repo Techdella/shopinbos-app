@@ -28,7 +28,6 @@ import {
 } from "@/lib/customers";
 import { capitalise, friendlyDay, friendlyTime } from "@/lib/friendly";
 import { useLoad } from "@/lib/useLoad";
-import { openWeb } from "@/lib/web";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 
@@ -62,23 +61,19 @@ function Blocked({ state, profile, t }: { state: Extract<ComposerState, { kind: 
   const recommended = profile.emailChannel.recommended;
   const option = recommended?.option ?? "gmail";
   const domain = recommended?.domain ?? "";
-  const lines: Record<typeof state.reason, { text: string; action?: { label: string; onPress: () => void } }> = {
-    noEmail: { text: t("chat.noEmail") },
-    connectEmail: {
-      text: `${t("chat.connectFirst.title")}. ${option === "domain_auto" ? t("chat.connectFirst.domain_auto", { domain }) : option === "domain_dns" ? t("chat.connectFirst.domain_dns", { domain }) : t("chat.connectFirst.gmail")}`,
-      action: { label: option === "domain_auto" ? t("chat.connectFirst.oneClick", { domain }) : option === "gmail" ? t("chat.connectFirst.gmailAction") : t("chat.connectEmail"), onPress: () => void openWeb(profile.emailChannel.setupHref) },
-    },
-    emailNotReady: { text: t("chat.emailNotReady") },
-    noPhone: { text: t("chat.wa.noPhone") },
-    waNotConnected: { text: t("chat.wa.notConnected"), action: { label: t("chat.wa.connect"), onPress: () => router.push("/channels") } },
-    waNoAccount: { text: t("chat.wa.noAccount"), action: { label: t("chat.wa.settings"), onPress: () => router.push("/channels") } },
-    waNoTemplates: { text: `${t("chat.wa.noTemplates")} ${t("wa.templateHow")}`, action: { label: t("chat.wa.makeTemplate"), onPress: () => void openWeb(profile.whatsapp.templatesHref) } },
+  // Connecting email or WhatsApp and making WhatsApp templates aren't in the phone app: it says what's missing.
+  const lines: Record<typeof state.reason, string> = {
+    noEmail: t("chat.noEmail"),
+    connectEmail: `${t("chat.connectFirst.title")}. ${option === "domain_auto" ? t("chat.connectFirst.domain_auto", { domain }) : option === "domain_dns" ? t("chat.connectFirst.domain_dns", { domain }) : t("chat.connectFirst.gmail")}`,
+    emailNotReady: t("chat.emailNotReady"),
+    noPhone: t("chat.wa.noPhone"),
+    waNotConnected: t("chat.wa.notConnected"),
+    waNoAccount: t("chat.wa.noAccount"),
+    waNoTemplates: `${t("chat.wa.noTemplates")} ${t("wa.templateHow")}`,
   };
-  const line = lines[state.reason];
   return (
     <View style={{ backgroundColor: colors.canvas, borderRadius: 16, padding: 14, gap: 10 }}>
-      <T style={{ fontSize: 15, lineHeight: 22 }}>{line.text}</T>
-      {line.action ? <PillButton title={line.action.label} size="sm" style={{ alignSelf: "flex-start" }} onPress={line.action.onPress} /> : null}
+      <T style={{ fontSize: 15, lineHeight: 22 }}>{lines[state.reason]}</T>
     </View>
   );
 }

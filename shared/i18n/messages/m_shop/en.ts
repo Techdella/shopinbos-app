@@ -122,6 +122,11 @@ const en = {
   "looks.publish": "Publish it on the web",
   "looks.askRexChange": "Ask Rex to change it",
   "looks.applyFailed": "We couldn't change the look just now. Try again.",
+  "legal.addPage": "Add a page",
+  "legal.pageName": "Page name",
+  "legal.pageNamePlaceholder": "e.g. Wholesale terms",
+  "legal.nameFirst": "Give the page a name first.",
+  "legal.addFailed": "We couldn't add the page. Try again.",
 } satisfies Record<string, string>;
 
 export default en;

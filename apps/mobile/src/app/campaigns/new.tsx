@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import { ErrorState, LinkRow, LoadingBlock, SectionTitle } from "@/components/kit";
+import { ErrorState, LoadingBlock, SectionTitle } from "@/components/kit";
 import { Screen } from "@/components/Screen";
 import { Card, Field, Label, Notice, PillButton, T, Toggle } from "@/components/ui";
 import { DateButton, DateTimeSheet, useServerNow } from "@/components/campaigns";
@@ -12,8 +12,8 @@ import { colors } from "@/theme";
 
 // New seasonal campaign, like the web: pick a preset (that makes a draft with the season's look, as on the web),
 // then the name, start and end, and an optional percent-off code that only works while it runs. With ?id= it
-// changes an existing campaign's name, dates and code. The look and what shows (banners, pop-up, badges) open on
-// the web.
+// changes an existing campaign's name, dates and code. The look and what shows (banners, pop-up, badges) aren't
+// edited on the phone.
 
 export default function NewCampaign() {
   const t = useT("m_campaigns", "campaigns", "m_ui");
@@ -188,10 +188,6 @@ export default function NewCampaign() {
           ) : null}
         </Card>
       )}
-
-      <Card style={{ paddingVertical: 2 }}>
-        <LinkRow first icon="image" label={t("form.look")} hint={t("form.lookHint")} onPress={() => router.push({ pathname: "/web-only", params: { what: "campaign", id: campaign.id } })} />
-      </Card>
 
       {error ? <Notice>{error}</Notice> : null}
 
