@@ -312,6 +312,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "ref.status.qualified": "Ó ń kà á…",
   "ref.status.rewarded": "Ti gba èrè",
   "ref.status.rejected": "Kò kà á",
+  "ago.days": "ọjọ́ {count} sẹ́yìn",
 };
 
 export default yo;

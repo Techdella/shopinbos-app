@@ -312,6 +312,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "ref.status.qualified": "Ana ƙirgawa…",
   "ref.status.rewarded": "An ba da lada",
   "ref.status.rejected": "Bai ƙidaya ba",
+  "ago.days": "kwana {count} da suka wuce",
 };
 
 export default ha;

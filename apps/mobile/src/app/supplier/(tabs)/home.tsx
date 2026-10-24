@@ -8,7 +8,7 @@ import { GettingStartedCard } from "@/components/familiar/GettingStarted";
 import { LevelPill } from "@/components/familiar/LevelPill";
 import { QuickActions } from "@/components/familiar/QuickActions";
 import { StatusRow } from "@/components/familiar/StatusRow";
-import { TeamUpdatesRing } from "@/components/updates/TeamUpdatesRing";
+import { useShopinbosRings } from "@/components/updates/TeamUpdatesRing";
 import { StoryViewer } from "@/components/familiar/StoryViewer";
 import { AppIcon } from "@/components/icons";
 import { ErrorState, LoadingBlock, Picture } from "@/components/kit";
@@ -80,6 +80,8 @@ export default function SupplierHome() {
   const onboarded = overview?.supplier.onboarded ?? true;
   const feed = extras.data?.feed ?? null;
   const rewards = extras.data?.rewards ?? null;
+  // Shopinbos's getting-started posts and the team's weekly updates share one ring.
+  const rings = useShopinbosRings(feed?.feed);
 
   const [story, setStory] = useState<{ own: boolean; start: number } | null>(null);
   const [hidden, setHidden] = useState(() => readFlag(`supplier.checklist.hidden.${uid}`));
@@ -198,14 +200,14 @@ export default function SupplierHome() {
           {feed ? (
             <View style={{ gap: 6 }}>
               <StatusRow
-                authors={feed.feed}
+                authors={rings.authors}
                 myName={name}
                 myPicture={overview.supplier.logoUrl}
                 hasMine={feed.mine.posts.length > 0}
                 onNew={() => router.push("/status/new" as never)}
                 onOpenMine={() => setStory({ own: true, start: 0 })}
                 onOpen={(index) => setStory({ own: false, start: index })}
-                leading={<TeamUpdatesRing />}
+                leading={rings.leading}
               />
               {feed.mine.posts.length ? <Small>{t("home.statusViews", { count: feed.mine.viewsLast })}</Small> : null}
             </View>
@@ -256,7 +258,7 @@ export default function SupplierHome() {
 
       {feed ? (
         <StoryViewer
-          authors={story?.own ? mine : feed.feed}
+          authors={story?.own ? mine : rings.authors}
           start={story?.own ? 0 : (story?.start ?? 0)}
           visible={Boolean(story)}
           own={Boolean(story?.own)}

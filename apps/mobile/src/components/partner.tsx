@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Modal, Pressable, RefreshControl, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 import { router, type Tabs } from "expo-router";
 import { Image } from "expo-image";
+import { initialsOf } from "@shared/identity-images";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppIcon, type AppIconName } from "@/components/icons";
 import { T } from "@/components/ui";
@@ -86,7 +87,7 @@ export function PartnerScroll({ children, refreshing = false, onRefresh }: { chi
 /** Square logo (or initials) + "Shopinbos Partners" eyebrow + business name, as in the prototype header. */
 export function PartnerHeader({ eyebrow, name, logoUrl, right }: { eyebrow: string; name: string; logoUrl?: string | null; right?: ReactNode }) {
   const t = useT("m_ui");
-  const initials = name.split(/\s+/).filter(Boolean).map((part) => part[0]).join("").toUpperCase().slice(0, 2) || "S";
+  const initials = name.trim() ? initialsOf(name) : "S";
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
       {logoUrl ? (

@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { Pressable, ScrollView, View, useWindowDimensions } from "react-native";
 import { Eyebrow, List, Row, TILE, Tile } from "@/components/design";
 import { AppIcon } from "@/components/icons";
 import { T } from "@/components/ui";
 import { dismissShopinbos, fetchShopinbos, type StatusAuthor, type StatusPost } from "@/lib/familiar";
 import { useT } from "@/lib/i18n";
-import { markShopinbosSeen, seenHere, useShopinbosHere, watchOutside } from "@/lib/shopinbos";
+import { markShopinbosSeen, runShopinbosCta, seenHere, useShopinbosHere, watchOutside } from "@/lib/shopinbos";
 import { useLoad } from "@/lib/useLoad";
 import { colors } from "@/theme";
 import { StoryViewer } from "./StoryViewer";
@@ -16,7 +16,18 @@ import { StoryViewer } from "./StoryViewer";
 // A video plays in the Status viewer (a recorded one) or as the 60-second intro; a tip opens in the Status viewer
 // with its button. Hidden when the server doesn't have it (404) or there's nothing to show.
 
-const TILE_W = 128;
+/** The card's side padding, the gap between tiles, and how many tiles show across before the row scrolls (a
+ * part of the next tile shows, so it clearly scrolls). Up to three fit across exactly. */
+const PAD = 18;
+const GAP = 10;
+const ACROSS = 2.4;
+
+/** A tile's width: the whole row when up to three fit, else 2.4 across so the next one peeks in. */
+export function startTileWidth(screenWidth: number, count: number) {
+  const inner = screenWidth - 40 - PAD * 2;
+  if (count <= 3) return Math.floor((inner - GAP * (Math.max(1, count) - 1)) / Math.max(1, count));
+  return Math.floor((inner - GAP * 2) / ACROSS);
+}
 
 function useStart() {
   const state = useLoad(fetchShopinbos);
@@ -52,10 +63,12 @@ export function GettingStartedCard() {
   const { state, open, viewer } = useStart();
   useShopinbosHere();
   const [closed, setClosed] = useState(false);
+  const { width } = useWindowDimensions();
   const author = state.data?.author ?? null;
   if (closed || !author || state.data?.startOff || !author.posts.length) return viewer;
 
   const done = author.posts.filter(seenHere).length;
+  const tileWidth = startTileWidth(width, author.posts.length);
 
   function close() {
     setClosed(true);
@@ -63,15 +76,16 @@ export function GettingStartedCard() {
   }
 
   return (
-    <View testID="getting-started" style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, paddingVertical: 14, gap: 10 }}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingLeft: 16, paddingRight: 8 }}>
-        <T weight="extrabold" style={{ fontSize: 16, flexShrink: 1 }} numberOfLines={1}>{t("start.title")}</T>
-        <T weight="semibold" style={{ fontSize: 13, color: colors.inkSoft, flex: 1 }} numberOfLines={1}>{t("start.count", { done, total: author.posts.length })}</T>
-        <Pressable testID="getting-started-close" accessibilityRole="button" accessibilityLabel={t("start.hide")} onPress={close} hitSlop={8} style={{ width: 36, height: 36, alignItems: "center", justifyContent: "center" }}>
+    <View testID="getting-started" style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, paddingVertical: PAD, gap: 12 }}>
+      {/* The same header as "Get your shop ready" above it: title, "n of m done", X. */}
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingLeft: PAD, paddingRight: PAD - 6 }}>
+        <T weight="extrabold" style={{ fontSize: 16, flex: 1 }} numberOfLines={1}>{t("start.title")}</T>
+        <T weight="semibold" style={{ fontSize: 13, color: colors.inkSoft }} numberOfLines={1}>{t("start.count", { done, total: author.posts.length })}</T>
+        <Pressable testID="getting-started-close" accessibilityRole="button" accessibilityLabel={t("start.hide")} onPress={close} hitSlop={8} style={{ width: 32, height: 32, alignItems: "center", justifyContent: "center" }}>
           <AppIcon name="x" size={18} color={colors.inkSoft} />
         </Pressable>
       </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingHorizontal: 16 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} scrollEnabled={author.posts.length > 3} contentContainerStyle={{ gap: GAP, paddingHorizontal: PAD }}>
         {author.posts.map((post, index) => {
           const tone = TILE[post.tone] ?? TILE.ink;
           const watched = seenHere(post);
@@ -83,7 +97,7 @@ export function GettingStartedCard() {
               accessibilityLabel={`${video ? t("start.video") : t("start.tip")}: ${post.headline}`}
               accessibilityState={{ checked: watched }}
               onPress={() => open(author, post, index)}
-              style={({ pressed }) => ({ width: TILE_W, minHeight: 112, borderRadius: 18, backgroundColor: tone.bg, padding: 12, gap: 8, justifyContent: "space-between", opacity: pressed ? 0.85 : 1 })}
+              style={({ pressed }) => ({ width: tileWidth, minHeight: 118, borderRadius: 18, backgroundColor: tone.bg, padding: 12, gap: 8, justifyContent: "space-between", opacity: pressed ? 0.85 : 1 })}
             >
               <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
                 <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: "rgba(255,255,255,0.85)", alignItems: "center", justifyContent: "center" }}>
@@ -95,37 +109,47 @@ export function GettingStartedCard() {
                   </View>
                 ) : null}
               </View>
-              <T weight="bold" numberOfLines={3} style={{ fontSize: 13.5, lineHeight: 17, color: tone.fg }}>{post.headline}</T>
+              <T weight="bold" numberOfLines={4} style={{ fontSize: 13.5, lineHeight: 17, color: tone.fg }}>{post.headline}</T>
             </Pressable>
           );
         })}
       </ScrollView>
-      <T style={{ fontSize: 13, color: colors.inkSoft, paddingHorizontal: 16 }}>{t("start.again")}</T>
       {viewer}
     </View>
   );
 }
 
-/** Help's "Getting started videos": every getting-started video for the role, to watch again any time. */
+/** Help's "Getting started": every getting-started item for the role, to watch or do again any time. Videos play
+ * (as on Home); a tip with a button opens its screen straight away (a tip without one opens in the viewer). */
 export function GettingStartedVideos() {
   const t = useT("m_familiar");
   const { state, open, viewer } = useStart();
   useShopinbosHere();
   const author = state.data?.author ?? null;
-  const videos = author ? author.posts.map((post, index) => ({ post, index })).filter(({ post }) => post.video) : [];
-  if (!author || !videos.length) return viewer;
+  const items = author ? author.posts.map((post, index) => ({ post, index })) : [];
+  if (!author || !items.length) return viewer;
+
+  function press(post: StatusPost, index: number) {
+    if (!post.video && post.cta && runShopinbosCta(post)) {
+      markShopinbosSeen(post.id);
+      return;
+    }
+    open(author!, post, index);
+  }
+
   return (
     <View testID="help-getting-started" style={{ gap: 10, marginTop: 10 }}>
-      <Eyebrow>{t("start.helpTitle")}</Eyebrow>
+      <Eyebrow>{t("start.title")}</Eyebrow>
       <List>
-        {videos.map(({ post, index }) => (
+        {items.map(({ post, index }) => (
           <Row
             key={post.id}
-            lead={<Tile icon="play" tone={post.tone === "ink" ? "gray" : post.tone} />}
+            lead={<Tile icon={post.video ? "play" : "sparkle"} tone={post.tone === "ink" ? "gray" : post.tone} />}
             title={post.headline}
+            sub={post.video ? t("start.video") : post.cta?.label ?? t("start.tip")}
             right={seenHere(post) ? <AppIcon name="check" size={18} color={colors.success} /> : undefined}
             chevron
-            onPress={() => open(author, post, index)}
+            onPress={() => press(post, index)}
           />
         ))}
       </List>

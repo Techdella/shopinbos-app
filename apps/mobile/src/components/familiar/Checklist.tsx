@@ -15,7 +15,7 @@ export function Checklist({ title, items, onDismiss }: { title: string; items: C
   const done = items.filter((item) => item.done).length;
   if (!items.length || done === items.length) return null;
   return (
-    <View style={{ backgroundColor: "#E2F5A0", borderRadius: 24, padding: 18, gap: 8 }}>
+    <View style={{ backgroundColor: "#E2F5A0", borderRadius: 24, padding: 18, paddingRight: 12, gap: 10 }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
         <T weight="extrabold" style={{ fontSize: 16, flex: 1 }}>{title}</T>
         <T weight="semibold" style={{ fontSize: 13, color: colors.inkSoft }}>{t("check.count", { done, total: items.length })}</T>
@@ -25,7 +25,7 @@ export function Checklist({ title, items, onDismiss }: { title: string; items: C
           </Pressable>
         ) : null}
       </View>
-      <View style={{ height: 6, borderRadius: 3, backgroundColor: "rgba(22,20,31,0.12)", overflow: "hidden" }}>
+      <View style={{ height: 6, borderRadius: 3, marginRight: 6, backgroundColor: "rgba(22,20,31,0.12)", overflow: "hidden" }}>
         <View style={{ width: `${(done / items.length) * 100}%`, height: 6, backgroundColor: colors.ink }} />
       </View>
       {items.map((item) => (

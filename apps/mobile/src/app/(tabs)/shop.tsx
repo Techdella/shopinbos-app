@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { Pressable, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
-import { List, Row, Small, Tile, Title, type TileTone } from "@/components/design";
+import { List, Row, Tile, Title, type TileTone } from "@/components/design";
 import { HelpButton } from "@/components/Help";
 import { LanguageRow } from "@/components/LanguagePicker";
 import { AppIcon, type AppIconName } from "@/components/icons";
@@ -21,10 +21,12 @@ import { colors } from "@/theme";
 import { DeleteAccountButton } from "@/components/DeleteAccountButton";
 
 // My shop ("Familiar app" prototype `on.shop`): the shop's logo, name and link with Edit look and Share; four tiles
-// (Money, Delivery, Posts, Web address); the products with their stock and − / +, Find more to sell, Add a product
-// and Packaging; Settings and help. Under that, every other tool the seller had, in four groups (Sell; Money and
-// delivery; Look; You). Every path is a screen in the app ("app:"); nothing here opens the web app. Web address is
-// app/domain.tsx and Packaging is app/packaging.tsx. "Sell everywhere" (/channels) isn't in the phone app's shop.
+// (Money, Delivery, Posts, Web address); the products with their stock and − / +, Find more to sell and Add a
+// product; one card with Packaging and labels and Settings and help. Under that, every other tool the seller had, in
+// four short groups (Sell; Money and delivery; Look; You), titles only, each tool once: anything already on the
+// screen above (ON_SCREEN) isn't repeated, and Help is the button in the corner. Every path is a screen in the app
+// ("app:"); nothing here opens the web app. Web address is app/domain.tsx and Packaging is app/packaging.tsx.
+// "Sell everywhere" (/channels) isn't in the phone app's shop.
 // Words are translated at render: m_shop "group.<key>", "link.<id>.label" and "link.<id>.hint" (English here is the fallback).
 type ShopLink = { id: string; label: string; icon: AppIconName; path: string; hint?: string; tone?: TileTone };
 
@@ -83,6 +85,10 @@ export const SHOP_GROUPS: { key: string; title: string; links: ShopLink[] }[] = 
   },
 ];
 
+
+/** Tools already on the screen above the groups (tiles, products, the Packaging / Settings card, the Help button),
+ * so the groups don't list them a second time. */
+export const ON_SCREEN = new Set(["products", "find", "money", "delivery", "domain", "packaging", "settings", "help"]);
 
 function go(path: string) {
   router.push(path.replace(/^app:/, "") as never);
@@ -205,33 +211,25 @@ export default function MyShop() {
           {(products ?? []).slice(0, INLINE_PRODUCTS).map((product) => <StockRow key={product.id} product={product} onStock={setStock} />)}
           {products && products.length > INLINE_PRODUCTS ? <Row lead={<Tile icon="tag" tone="peach" />} title={t("products.seeAll", { count: products.length })} onPress={() => router.push("/products")} /> : null}
           <Row testID="shop-add-product" lead={<Tile icon="camera" tone="peach" />} title={t("products.add")} sub={t("products.addSub")} onPress={() => router.push("/add-products")} />
-          <Row lead={<Tile icon="box" tone="butter" />} title={t("link.packaging.label")} sub={t("link.packaging.hint")} onPress={() => router.push("/packaging" as never)} />
         </List>
-        {products?.length ? <Small>{t("list.stockHint")}</Small> : null}
       </View>
 
+      {/* As in the prototype: Packaging and labels, then Settings and help, in one card. */}
       <List>
-        <Row lead={<Tile icon="settings" tone="gray" />} title={t("link.settings.label")} sub={t("link.settings.hint")} onPress={() => router.push("/settings")} />
+        <Row lead={<Tile icon="box" tone="butter" />} title={t("link.packaging.label")} sub={t("link.packaging.hint")} onPress={() => router.push("/packaging" as never)} />
+        <Row lead={<Tile icon="settings" tone="gray" />} title={t("link.settings.label")} onPress={() => router.push("/settings")} />
       </List>
 
-      {/* Everything else, so nothing is lost. */}
+      {/* Everything else, so nothing is lost: titles only, each tool once. */}
       {SHOP_GROUPS.map((group) => (
         <Section key={group.key} title={t.dynamic(`group.${group.key}`, group.title)}>
           <List>
-            {group.links.map((link) => (
-              <Row
-                key={link.id}
-                lead={<Tile icon={link.icon} tone={link.tone ?? "gray"} />}
-                title={t.dynamic(`link.${link.id}.label`, link.label)}
-                sub={link.hint ? t.dynamic(`link.${link.id}.hint`, link.hint) : undefined}
-                onPress={() => go(link.path)}
-              />
-            ))}
-            {group.key === "you" ? (
-              <View style={{ paddingHorizontal: 16 }}>
-                <LanguageRow first />
-              </View>
-            ) : null}
+            {group.links
+              .filter((link) => !ON_SCREEN.has(link.id))
+              .map((link) => (
+                <Row key={link.id} lead={<Tile icon={link.icon} tone={link.tone ?? "gray"} />} title={t.dynamic(`link.${link.id}.label`, link.label)} onPress={() => go(link.path)} />
+              ))}
+            {group.key === "you" ? <LanguageRow tile /> : null}
           </List>
         </Section>
       ))}

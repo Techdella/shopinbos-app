@@ -131,3 +131,18 @@ export function roleChatMatches(contact: { name: string; role: string; unread: n
   if (query && !`${contact.name} ${contact.lastMessage ?? ""}`.toLowerCase().includes(query)) return false;
   return true;
 }
+
+/**
+ * The grey line under a chat's name: the last message, without the email's subject in front of it (an email preview
+ * often starts with the subject again). Just the subject when there's no message text.
+ */
+export function chatPreview(subject: string | null | undefined, preview: string | null | undefined): string {
+  const body = (preview ?? "").trim();
+  const title = (subject ?? "").trim();
+  if (!body) return title;
+  if (title && body.toLowerCase().startsWith(title.toLowerCase())) {
+    const rest = body.slice(title.length).replace(/^[\s·:\-–—|]+/, "").trim();
+    return rest || body;
+  }
+  return body;
+}

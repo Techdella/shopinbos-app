@@ -5,7 +5,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { AppIcon } from "@/components/icons";
 import { HelpButton } from "@/components/Help";
 import { VoiceInput } from "@/components/VoiceInput";
-import { BackButton, T } from "@/components/ui";
+import { HeaderBack } from "@/components/Screen";
+import { T } from "@/components/ui";
 import { useT } from "@/lib/i18n";
 import { colors, fonts, radii } from "@/theme";
 
@@ -43,8 +44,8 @@ export function ChatScreen({
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 10 }}>
-          <BackButton onPress={() => (router.canGoBack() ? router.back() : router.replace(backTo as never))} />
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingLeft: 12, paddingRight: 20, paddingVertical: 8 }}>
+          <HeaderBack onPress={() => (router.canGoBack() ? router.back() : router.replace(backTo as never))} />
           {header}
           {help ? <HelpButton /> : null}
         </View>

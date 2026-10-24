@@ -312,6 +312,7 @@ const en = {
   "ref.status.qualified": "Counting…",
   "ref.status.rewarded": "Rewarded",
   "ref.status.rejected": "Didn't count",
+  "ago.days": "{count} d ago",
 } satisfies Record<string, string>;
 
 export default en;

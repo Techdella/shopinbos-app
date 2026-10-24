@@ -137,7 +137,9 @@ test("phone: ring first with the logo and a long-press, video and Don't show aga
   assert.match(lib, /\/api\/mobile\/status\/shopinbos\/dismiss/);
   const card = read("apps/mobile/src/components/familiar/GettingStarted.tsx");
   assert.match(card, /dismissShopinbos\("start"\)/);
-  assert.match(card, /t\("start\.again"\)/);
+  // No "Watch again any time in Help" line on the card (round 3: less text); Help lists them all instead.
+  assert.doesNotMatch(card, /t\("start\.again"\)/);
+  assert.match(card, /t\("start\.title"\)/);
   for (const home of ["apps/mobile/src/app/(tabs)/home.tsx", "apps/mobile/src/app/supplier/(tabs)/home.tsx", "apps/mobile/src/app/logistics/(tabs)/jobs.tsx"]) {
     assert.match(read(home), /<GettingStartedCard \/>/, home);
   }

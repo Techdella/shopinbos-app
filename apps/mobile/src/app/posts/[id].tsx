@@ -48,6 +48,7 @@ export default function PostDetail() {
   const [problem, setProblem] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [missing, setMissing] = useState(false);
+  const [ratio, setRatio] = useState<number | null>(null);
   const item = useLoad(async () => {
     try {
       return await loadPost(String(id ?? ""));
@@ -138,7 +139,17 @@ export default function PostDetail() {
             <Banner tone="warn" title={t("posts.attention")}>{t("posts.attentionText")}</Banner>
           ) : null}
           {post.imageUrl ? (
-            <Image source={{ uri: post.imageUrl }} style={{ width: "100%", aspectRatio: 1, borderRadius: 24, backgroundColor: colors.grayTint }} contentFit="cover" accessibilityLabel={t("posts.picture")} />
+            // The picture at its own shape (4:5, 9:16, 1:1), read from the file once it loads, so nothing is cut off.
+            <Image
+              source={{ uri: post.imageUrl }}
+              onLoad={(event) => {
+                const { width, height } = event.source;
+                if (width > 0 && height > 0) setRatio(width / height);
+              }}
+              style={{ width: "100%", aspectRatio: ratio ?? 4 / 5, borderRadius: 24, backgroundColor: colors.grayTint }}
+              contentFit="contain"
+              accessibilityLabel={t("posts.picture")}
+            />
           ) : null}
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
             {pill ? <Pill label={t(`posts.status.${pill.key}`)} tone={pill.tone} /> : null}

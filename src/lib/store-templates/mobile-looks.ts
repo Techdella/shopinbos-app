@@ -7,9 +7,7 @@
 import { DEMO_PHOTOS, unsplashUrl } from "./demo-photos.ts";
 import { demoCatalogueFor } from "./demo-catalogue.ts";
 import { THEME_LIBRARY, THEME_TIERS, themeCategoryChips, tierIncludes, type ThemeLibraryPreview, type ThemeTier } from "./theme-library.ts";
-
-/** The plan that includes each tier (src/lib/theme-access.ts TIER_PLAN_LABEL, repeated so this file stays pure). */
-const PLAN_FOR_TIER: Record<ThemeTier, string> = { basic: "Free", premium: "Starter", platinum: "Growth" };
+import { themeTierPlanName } from "../../../shared/plans.ts";
 
 export interface MobileLook {
   id: string;
@@ -66,7 +64,7 @@ export function mobileLooks(access: { tier: ThemeTier; owned: readonly string[] 
       },
       demoPath: themeDemoPath(theme.id),
       current,
-      lockedPlan: usable ? null : PLAN_FOR_TIER[theme.tier],
+      lockedPlan: usable ? null : themeTierPlanName(theme.tier),
     };
   });
   return {

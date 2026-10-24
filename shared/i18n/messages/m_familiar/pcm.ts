@@ -312,6 +312,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "ref.status.qualified": "E dey count…",
   "ref.status.rewarded": "Reward don land",
   "ref.status.rejected": "E no count",
+  "ago.days": "{count} days ago",
 };
 
 export default pcm;

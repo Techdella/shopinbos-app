@@ -84,6 +84,13 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "filters.sort.price_low": "Mafi araha tukuna",
   "filters.sort.price_high": "Mafi tsada tukuna",
   "filters.sort.name": "Suna A zuwa Z",
+  "add.photoTitle": "Ɗauki hotonsa",
+  "add.photoSub": "Ko zaɓi har guda 6 daga wayarka.",
+  "add.tip1": "Hoto mai kyau na sayarwa",
+  "add.tip1Sub": "Hasken rana, bango mara zane, dukkan kayan.",
+  "add.tip2": "Rex zai rubuta suna, farashi da bayani",
+  "add.tip2Sub": "Kai za ka duba su kafin su shiga shagonka.",
+  "add.recent": "Waɗanda ka ƙara kwanan nan",
 };
 
 export default ha;

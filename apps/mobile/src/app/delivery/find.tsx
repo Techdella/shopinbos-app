@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ScrollView, View } from "react-native";
+import { View } from "react-native";
 import { router } from "expo-router";
 import { naira } from "@shared/onboarding";
 import { List, Pill, Row, Seg, Sub } from "@/components/design";
@@ -12,6 +12,7 @@ import { timeframeWords, whereWords } from "@/lib/delivery-pure";
 import { useLoad } from "@/lib/useLoad";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
+import { FilterBar } from "@/components/FilterBar";
 
 // Find partners (the prototype's dvFind): verified partners that pick up where the business ships from and cover
 // where it sells, best first, with a filter by service. Tap one for their page.
@@ -27,11 +28,9 @@ export default function FindPartners() {
   return (
     <Screen title={t("find.title")} refreshing={found.refreshing} onRefresh={() => void found.refresh()}>
       {data ? <Sub>{t("find.sub", { where: whereWords(data, t) })}</Sub> : null}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }} style={{ marginHorizontal: -20 }}>
-        <View style={{ width: 12 }} />
+      <FilterBar>
         {FILTERS.map((key) => <Seg key={key || "all"} label={t(`find.filter.${key || "all"}`)} on={service === key} onPress={() => setService(key)} />)}
-        <View style={{ width: 12 }} />
-      </ScrollView>
+      </FilterBar>
       {found.loading ? <LoadingBlock /> : null}
       {found.error && !data ? <ErrorState message={found.error} onRetry={() => void found.reload()} /> : null}
       {data && !found.loading ? (

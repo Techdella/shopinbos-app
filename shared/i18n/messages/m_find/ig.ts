@@ -112,6 +112,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "filters.anywhere": "Ebe ọ bụla",
   "filters.suppliers": "Ndị na-eweta",
   "filters.verified": "Naanị ndị a kwadoro",
+  "tab.all": "Niile",
+  "barTitle": "Chọọ ngwaahịa",
 };
 
 export default ig;

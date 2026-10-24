@@ -86,6 +86,13 @@ const en = {
   "filters.sort.price_low": "Cheapest first",
   "filters.sort.price_high": "Dearest first",
   "filters.sort.name": "Name A to Z",
+  "add.photoTitle": "Take a photo of it",
+  "add.photoSub": "Or pick up to 6 from your phone.",
+  "add.tip1": "Good photos sell",
+  "add.tip1Sub": "Daylight, a plain background, the whole product.",
+  "add.tip2": "Rex writes the name, price and description",
+  "add.tip2Sub": "You check them before they go in your shop.",
+  "add.recent": "Added lately",
 } satisfies Record<string, string>;
 
 export default en;

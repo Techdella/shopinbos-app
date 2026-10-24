@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { Pressable, View } from "react-native";
 import { Image } from "expo-image";
 import { Seg, Sub, Title } from "@/components/design";
 import { AppIcon, type AppIconName } from "@/components/icons";
@@ -9,6 +9,7 @@ import { Field, T } from "@/components/ui";
 import { shortTime } from "@/lib/inbox-pure";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
+import { FilterBar } from "@/components/FilterBar";
 
 // The Chats tab for every role ("Familiar app" prototype `chats`): the title with a search button (and, for sellers,
 // a settings button), one row of filter chips, and the conversations in one white card: picture or initials, name,
@@ -22,8 +23,10 @@ export interface ChatRowData {
   unread: number;
   avatarUrl?: string | null;
   tone: { bg: string; fg: string };
-  /** Read out after the name ("Supplier", "WhatsApp"). */
+  /** Where the chat comes from ("WhatsApp", "Supplier"): a small badge after the name, and read out after it. */
   label?: string;
+  /** The badge's colours (the avatar's tone when left out). */
+  badge?: { bg: string; fg: string };
   onPress: () => void;
 }
 
@@ -39,6 +42,15 @@ export function HeaderIcon({ icon, label, onPress, expanded }: { icon: AppIconNa
     >
       <AppIcon name={icon} size={21} />
     </Pressable>
+  );
+}
+
+/** The small source badge after a chat's name. */
+function SourceBadge({ label, tone }: { label: string; tone: { bg: string; fg: string } }) {
+  return (
+    <View testID="chat-source" style={{ flexShrink: 0, borderRadius: 999, paddingHorizontal: 7, paddingVertical: 2, backgroundColor: tone.bg }}>
+      <T weight="bold" numberOfLines={1} style={{ fontSize: 11, lineHeight: 15, color: tone.fg }}>{label}</T>
+    </View>
   );
 }
 
@@ -60,7 +72,10 @@ function ChatRow({ chat }: { chat: ChatRowData }) {
       )}
       <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-          <T weight={unread ? "extrabold" : "bold"} style={{ flex: 1, fontSize: 16 }} numberOfLines={1}>{chat.name}</T>
+          <View style={{ flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <T weight={unread ? "extrabold" : "bold"} style={{ flexShrink: 1, fontSize: 16 }} numberOfLines={1}>{chat.name}</T>
+            {chat.label ? <SourceBadge label={chat.label} tone={chat.badge ?? chat.tone} /> : null}
+          </View>
           {time ? <T weight={unread ? "bold" : "regular"} style={{ fontSize: 13, color: unread ? colors.accentInk : colors.inkSoft }}>{time}</T> : null}
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -133,11 +148,11 @@ export function ChatListScreen<F extends string>({
     <TabScreen header={header} refreshing={refreshing} onRefresh={onRefresh}>
       {searching ? <Field value={q} onChangeText={onSearch} placeholder={t("list.search")} returnKeyType="search" autoFocus accessibilityLabel={t("list.searchLabel")} style={{ height: 48, marginTop: -8 }} /> : null}
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20, flexGrow: 0, marginTop: -6 }} contentContainerStyle={{ gap: 8, paddingHorizontal: 20 }}>
+      <FilterBar>
         {filters.map((option) => (
           <Seg key={option.key} label={option.label} count={option.count || undefined} on={filter === option.key} onPress={() => onFilter(option.key)} />
         ))}
-      </ScrollView>
+      </FilterBar>
 
       {loading && !chats ? <LoadingBlock label={t("list.loading")} /> : null}
       {error && !chats ? <ErrorState message={error} onRetry={onRetry} /> : null}

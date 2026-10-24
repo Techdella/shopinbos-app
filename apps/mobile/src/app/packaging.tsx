@@ -4,7 +4,7 @@ import { useLocalSearchParams } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { Image } from "expo-image";
 import { naira } from "@shared/onboarding";
-import { guessProductType, PACK_STYLE_INFO, type PackDesign, type PackFormat, type PackStyle } from "@shared/packaging";
+import { PACK_STYLE_INFO, type PackDesign, type PackFormat, type PackStyle } from "@shared/packaging";
 import { Choice, Eyebrow, Heading, List, Row, Small, Tile } from "@/components/design";
 import { CreditsLine } from "@/components/familiar/Credits";
 import { ChipRow, ErrorState, LoadingBlock, Picture } from "@/components/kit";
@@ -14,7 +14,7 @@ import { ApiError } from "@/lib/api";
 import { fetchProducts, type ProductItem } from "@/lib/dashboard";
 import { fetchCredits, optional } from "@/lib/familiar";
 import { useT } from "@/lib/i18n";
-import { askTeam, DELIVERY_ZONES, fetchDesign, fetchDesigns, formatsFor, minQuantity, orderPrints, quantityChoices, quotePrint, saveDesign, startDesign, templatesFor, withWords, writeWords, type DeliveryZone } from "@/lib/packaging";
+import { askTeam, DELIVERY_ZONES, fetchDesign, fetchDesigns, formatsFor, minQuantity, orderPrints, productTypeOf, quantityChoices, quotePrint, saveDesign, shopProductType, startDesign, templatesFor, withWords, writeWords, type DeliveryZone } from "@/lib/packaging";
 import { fetchSetup } from "@/lib/setup";
 import { useLoad } from "@/lib/useLoad";
 import { colors, fonts } from "@/theme";
@@ -47,7 +47,7 @@ export function PackFront({ design, width }: { design: PackDesign; width: number
     >
       <View style={{ flexDirection: "row", alignItems: "center", gap: Math.round(width * 0.04) }}>
         {design.showLogo ? <Picture uri={design.logoUrl} name={design.content.brand || "?"} size={Math.round(width * 0.15)} shape="square" /> : null}
-        <T weight="extrabold" numberOfLines={1} style={{ flex: 1, color: c.ink, fontSize: Math.max(9, Math.round(width * 0.065)), letterSpacing: 1, textTransform: "uppercase" }}>{design.content.brand}</T>
+        <T weight="extrabold" numberOfLines={2} style={{ flex: 1, color: c.ink, fontSize: Math.max(9, Math.round(width * 0.065)), letterSpacing: 1, textTransform: "uppercase" }}>{design.content.brand}</T>
       </View>
       <View style={{ gap: Math.round(width * 0.02), paddingRight: photo ? photoSize * 0.45 : 0 }}>
         <T numberOfLines={3} style={{ fontFamily: info.display === "serif" ? fonts.displayBold : fonts.display, color: c.ink, fontSize: Math.max(12, Math.round(width * 0.12)), lineHeight: Math.max(14, Math.round(width * 0.13)) }}>{name}</T>
@@ -61,8 +61,8 @@ export function PackFront({ design, width }: { design: PackDesign; width: number
         />
       ) : null}
       <View style={{ marginHorizontal: -pad, marginBottom: -pad, paddingHorizontal: pad, paddingVertical: Math.round(width * 0.035), backgroundColor: c.accent, flexDirection: "row", justifyContent: "space-between", gap: 6 }}>
-        <T weight="extrabold" numberOfLines={1} style={{ flex: 1, color: c.ground, fontSize: Math.max(8, Math.round(width * 0.055)) }}>{badge}</T>
-        {design.content.netContent ? <T weight="bold" numberOfLines={1} style={{ color: c.ground, fontSize: Math.max(8, Math.round(width * 0.055)) }}>{design.content.netContent}</T> : null}
+        <T weight="extrabold" numberOfLines={2} style={{ flex: 1, minWidth: 0, color: c.ground, fontSize: Math.max(8, Math.round(width * 0.055)) }}>{badge}</T>
+        {design.content.netContent ? <T weight="bold" numberOfLines={2} style={{ flexShrink: 0, maxWidth: "45%", textAlign: "right", color: c.ground, fontSize: Math.max(8, Math.round(width * 0.055)) }}>{design.content.netContent}</T> : null}
       </View>
     </View>
   );
@@ -102,7 +102,9 @@ export default function Packaging() {
   const store = setup.data?.store ?? null;
   const items = (products.data ?? []).slice(0, INLINE_PRODUCTS);
   const product = items.find((item) => item.id === productId) ?? null;
-  const type = design?.productType ?? (product ? guessProductType(product.name) : "food");
+  // The sample's words and pack types follow what the shop sells; a picked product uses its own type (as the web).
+  const shopType = shopProductType(products.data ?? []);
+  const type = design?.productType ?? (product ? productTypeOf(product) : shopType);
   const formats = formatsFor(type);
   const chosenFormat = format && formats.includes(format) ? format : formats[0];
   const saved = (designs.data ?? []).filter((item) => item.kind === "packaging");
@@ -319,7 +321,7 @@ export default function Packaging() {
               <ChipRow>
                 <Chip label={t("sample")} on={!productId} onPress={() => setProductId(null)} />
                 {items.map((item) => (
-                  <Chip key={item.id} label={item.name.length > 22 ? `${item.name.slice(0, 21)}…` : item.name} on={productId === item.id} onPress={() => setProductId(item.id)} />
+                  <Chip key={item.id} label={item.name} on={productId === item.id} onPress={() => setProductId(item.id)} />
                 ))}
               </ChipRow>
             </View>
@@ -348,7 +350,7 @@ export default function Packaging() {
                     style={({ pressed }) => ({ flex: 1, backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 12, gap: 8, alignItems: "center", opacity: pressed ? 0.85 : 1 })}
                   >
                     <PackFront design={base(style)} width={tileWidth} />
-                    <T weight="bold" numberOfLines={1} style={{ fontSize: 14, alignSelf: "stretch", textAlign: "center" }}>{t.dynamic(`style.${style}`, PACK_STYLE_INFO[style].name)}</T>
+                    <T weight="bold" numberOfLines={2} style={{ fontSize: 14, alignSelf: "stretch", textAlign: "center" }}>{t.dynamic(`style.${style}`, PACK_STYLE_INFO[style].name)}</T>
                   </Pressable>
                 ))}
                 {row.length === 1 ? <View style={{ flex: 1 }} /> : null}

@@ -112,6 +112,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "filters.anywhere": "Anywhere",
   "filters.suppliers": "Suppliers",
   "filters.verified": "Only verified ones",
+  "tab.all": "All",
+  "barTitle": "Find products",
 };
 
 export default pcm;

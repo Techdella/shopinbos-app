@@ -5,6 +5,7 @@
 // editor and Rex). Only relative imports, so tests/theme-tiers.test.mjs loads it directly.
 
 import { planTierOf, type PlanTier } from "../../shared/plan-catalog.ts";
+import { themeTierPlanName } from "../../shared/plans.ts";
 import { hasPaidPlanTime } from "./store-badges.ts";
 import type { SellerPlanState } from "./seller-plan.ts";
 import { THEME_TIERS, themeLibraryEntry, themeTier, tierIncludes, type ThemeTier } from "./store-templates/theme-library.ts";
@@ -18,9 +19,9 @@ const TIER_BY_PLAN: Partial<Record<PlanTier, ThemeTier>> = {
 
 /** The plan that unlocks each tier, as the gallery names it. */
 export const TIER_PLAN_LABEL: Record<ThemeTier, string> = {
-  basic: "Free",
-  premium: "Starter",
-  platinum: "Growth",
+  basic: themeTierPlanName("basic"),
+  premium: themeTierPlanName("premium"),
+  platinum: themeTierPlanName("platinum"),
 };
 
 /** The highest theme tier the seller's plan includes: basic unless they have paid time left on Starter, Growth or Pro. */

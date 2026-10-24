@@ -8,7 +8,7 @@ import { Screen } from "@/components/Screen";
 import { Card, LinkButton, Notice, PillButton, T } from "@/components/ui";
 import { ApiError } from "@/lib/api";
 import { canDisconnect, canDisconnectEmail, emailCardState, gmailAvailable, GMAIL_CONNECT_PATH } from "@/lib/channels-pure";
-import { connectChannel, disconnectChannel, disconnectEmail, fetchChannels, fetchEmailSetup, notifyWhenReady, retryChannel, type ChannelCard, type EmailSetupLite, type LivePlatform, type SoonPlatform } from "@/lib/channels";
+import { connectChannel, disconnectChannel, disconnectEmail, fetchChannels, fetchEmailSetup, retryChannel, type ChannelCard, type EmailSetupLite, type LivePlatform } from "@/lib/channels";
 import { useLoad } from "@/lib/useLoad";
 import { openWeb } from "@/lib/web";
 import { useT } from "@/lib/i18n";
@@ -17,7 +17,7 @@ import { colors } from "@/theme";
 // Sell everywhere (web /channels): one card per platform with one button. Facebook & Instagram, TikTok and Google
 // sign in through the web's own sign-in in an in-app browser that comes back here; WhatsApp sets up its catalog
 // in one tap once the number is connected (connecting the number itself runs on the web). Platforms not set up on
-// the server, and the ones we can't connect yet, say "Coming soon". Post & share stays on the web.
+// the server. Channels that can't be connected yet are left out (no "Coming soon"); posting is the Posts calendar.
 
 const MARK: Record<LivePlatform, { letter: string; bg: string }> = {
   whatsapp: { letter: "W", bg: colors.whatsapp },
@@ -256,36 +256,6 @@ function EmailCard({ email, onNote }: { email: ReturnType<typeof useLoad<EmailSe
   );
 }
 
-function SoonRow({ item, onNoted, onNote }: { item: SoonPlatform; onNoted: () => void; onNote: (note: Note | null) => void }) {
-  const t = useT("m_channels");
-  const [busy, setBusy] = useState(false);
-  async function notify() {
-    setBusy(true);
-    onNote(null);
-    try {
-      await notifyWhenReady(item.platform);
-      onNoted();
-    } catch (error) {
-      onNote({ tone: "error", text: error instanceof Error ? error.message : t("openFailed") });
-    } finally {
-      setBusy(false);
-    }
-  }
-  return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 56, paddingVertical: 6 }}>
-      <T weight="extrabold" style={{ flex: 1, fontSize: 15, color: colors.inkSoft }}>{item.name}</T>
-      {item.noted ? (
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 44 }}>
-          <AppIcon name="check" size={16} color={colors.success} />
-          <T weight="bold" style={{ color: colors.success, fontSize: 14 }}>{t("soon.noted")}</T>
-        </View>
-      ) : (
-        <PillButton title={t("soon.notify")} size="sm" tone="white" busy={busy} onPress={() => void notify()} />
-      )}
-    </View>
-  );
-}
-
 export default function Channels() {
   const t = useT("m_channels");
   const params = useLocalSearchParams<{ connected?: string; problem?: string }>();
@@ -312,11 +282,6 @@ export default function Channels() {
     setNote(next);
   };
 
-  function markNoted(platform: string) {
-    if (!overview) return;
-    data.setData({ ...overview, soon: overview.soon.map((item) => (item.platform === platform ? { ...item, noted: true } : item)) });
-  }
-
   return (
     <Screen title={t("title")} sub={t("sub")} refreshing={data.refreshing} onRefresh={() => void Promise.all([data.refresh(), email.refresh()])}>
       {note ? <Notice tone={note.tone}>{note.text}</Notice> : showReturned && returned ? <Notice tone={returned.tone}>{returned.text}</Notice> : null}
@@ -325,7 +290,7 @@ export default function Channels() {
       {overview ? (
         <>
           {!overview.saved ? <Notice tone="info">{t("cantSave")}</Notice> : null}
-          {overview.cards.map((card) => <PlatformCard key={card.platform} card={card} onChanged={data.reload} onNote={showNote} />)}
+          {overview.cards.filter((card) => card.state.kind !== "soon").map((card) => <PlatformCard key={card.platform} card={card} onChanged={data.reload} onNote={showNote} />)}
           {overview.listed !== null ? (
             <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 6 }}>
               <T style={{ color: colors.inkSoft, fontSize: 15 }}>{t("ready", { count: overview.listed })}</T>
@@ -336,12 +301,7 @@ export default function Channels() {
           <SectionTitle>{t("email.title")}</SectionTitle>
           <EmailCard email={email} onNote={showNote} />
 
-          <ChoiceRow icon="megaphone" tint={colors.mintTint} iconColor={colors.forest} title={t("post.title")} sub={t("post.sub")} onPress={() => void openWeb("/channels?tab=post")} />
-
-          <SectionTitle>{t("soon.title")}</SectionTitle>
-          <Card style={{ paddingVertical: 6 }}>
-            {overview.soon.map((item) => <SoonRow key={item.platform} item={item} onNoted={() => markNoted(item.platform)} onNote={showNote} />)}
-          </Card>
+          <ChoiceRow icon="megaphone" tint={colors.mintTint} iconColor={colors.forest} title={t("post.title")} sub={t("post.sub")} onPress={() => router.push("/posts" as never)} />
         </>
       ) : null}
     </Screen>

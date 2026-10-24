@@ -62,7 +62,9 @@ export function routeLine(run: PureRun, drop: PureDrop) {
 }
 
 export function initials(name: string) {
-  return name.trim().split(/\s+/).filter(Boolean).map((part) => part[0]).join("").toUpperCase().slice(0, 2) || "R";
+  // The same words as shared/identity-images nameWords (this file has no imports): "Ada's" counts as "Ada".
+  const words = name.replace(/['’]s(?=[\s\p{P}]|$)/giu, "").replace(/['’]/gu, "").replace(/[^\p{L}\p{N}\s]/gu, " ").split(/\s+/).filter(Boolean);
+  return words.map((part) => part[0]).join("").toUpperCase().slice(0, 2) || "R";
 }
 
 export function firstName(name: string | null | undefined) {

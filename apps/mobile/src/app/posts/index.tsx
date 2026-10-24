@@ -162,7 +162,8 @@ export default function Posts() {
                     <Row
                       key={account.key}
                       title={account.label}
-                      sub={toConnect ? t("posts.notConnected") : account.auto ? t("posts.auto") : t("posts.remind")}
+                      /* One status line on every row (Facebook and TikTok looked bare next to a "Connected" pill). */
+                      sub={toConnect ? t("posts.notConnected") : account.auto ? t("posts.auto") : account.linked ? `${t("posts.connectedPill")} · ${t("posts.remind")}` : t("posts.remind")}
                       right={
                         toConnect ? (
                           <PillButton
@@ -174,8 +175,6 @@ export default function Posts() {
                             onPress={() => void connect()}
                             style={{ borderRadius: radii.pill }}
                           />
-                        ) : account.linked ? (
-                          <Pill label={t("posts.connectedPill")} tone="ok" icon="check" />
                         ) : null
                       }
                     />

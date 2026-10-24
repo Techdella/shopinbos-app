@@ -112,6 +112,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "filters.anywhere": "Ko'ina",
   "filters.suppliers": "Masu kawowa",
   "filters.verified": "Waɗanda aka tabbatar kawai",
+  "tab.all": "Duka",
+  "barTitle": "Nemo kaya",
 };
 
 export default ha;

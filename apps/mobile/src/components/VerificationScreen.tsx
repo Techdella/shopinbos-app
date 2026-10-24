@@ -39,7 +39,7 @@ export function VerificationScreen({ role, load }: { role: "supplier" | "logisti
       footer={data.data && data.data.status !== "verified" ? <PillButton title={t("verify.upload")} onPress={() => void openWeb(webPath)} /> : null}
     >
       {data.loading && !data.data ? <LoadingBlock /> : null}
-      {data.error && !data.data ? <ErrorState message={data.error} onRetry={() => void data.reload()} web={{ label: "Open on web", onPress: () => void openWeb(webPath) }} /> : null}
+      {data.error && !data.data ? <ErrorState message={data.error} onRetry={() => void data.reload()} /> : null}
       {data.data && stage ? (
         <>
           <Card style={{ gap: 8 }}>

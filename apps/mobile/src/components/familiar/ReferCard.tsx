@@ -102,8 +102,13 @@ export function ReferCard() {
                 key={referral.id}
                 lead={<Picture uri={referral.avatarUrl} name={referral.name} size={40} />}
                 title={referral.name}
-                sub={`${t.dynamic(`ref.role.${referral.role}`, referral.role)} · ${t("ref.joined", { date: formatDate(referral.joinedAt, locale, { day: "numeric", month: "short" }) })}`}
-                right={<Pill label={t.dynamic(`ref.status.${referral.status}`, referral.status)} tone={STATUS_TONE[referral.status] ?? "gray"} />}
+                /* The status pill sits under the line (on the right it was cut off on small phones). */
+                sub={
+                  <View style={{ gap: 6, alignItems: "flex-start" }}>
+                    <T style={{ fontSize: 14, lineHeight: 19, color: colors.inkSoft }}>{`${t.dynamic(`ref.role.${referral.role}`, referral.role)} · ${t("ref.joined", { date: formatDate(referral.joinedAt, locale, { day: "numeric", month: "short" }) })}`}</T>
+                    <Pill label={t.dynamic(`ref.status.${referral.status}`, referral.status)} tone={STATUS_TONE[referral.status] ?? "gray"} />
+                  </View>
+                }
               />
             ))}
           </List>

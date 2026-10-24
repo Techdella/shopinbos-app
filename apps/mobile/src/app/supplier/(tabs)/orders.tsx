@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ScrollView, View } from "react-native";
+import { View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { AcceptCountdown } from "@/components/AcceptCountdown";
 import { List, Row, Seg, Sub } from "@/components/design";
@@ -13,6 +13,7 @@ import { fetchQuoteRequests, fetchSupplierOrders, type QuoteRequest, type Suppli
 import { countWord, supplierOrderGroup, type SupplierOrderSegment } from "@/lib/supplier-pure";
 import { useLoad } from "@/lib/useLoad";
 import { colors } from "@/theme";
+import { FilterBar } from "@/components/FilterBar";
 
 // Supplier Orders ("Simple app, end to end" supplier prototype): New, In progress, Sent and Prices, each with its
 // count. Rows read "{shop} · {amount}" over "{Dropship|Wholesale} · {item} · {status}"; a new order also counts down
@@ -51,11 +52,9 @@ export default function SupplierOrders() {
 
   return (
     <TabScreen title={t("orders.title")} refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }} style={{ marginHorizontal: -20 }}>
-        <View style={{ flexDirection: "row", gap: 8, paddingHorizontal: 20 }}>
-          {SEGMENTS.map((segment) => <Seg key={segment.key} label={t.dynamic(segment.word)} count={data ? counts[segment.key] : undefined} on={view === segment.key} onPress={() => setView(segment.key)} />)}
-        </View>
-      </ScrollView>
+      <FilterBar>
+        {SEGMENTS.map((segment) => <Seg key={segment.key} label={t.dynamic(segment.word)} count={data ? counts[segment.key] : undefined} on={view === segment.key} onPress={() => setView(segment.key)} />)}
+      </FilterBar>
 
       {loaded.loading && !data ? <LoadingBlock label={t("orders.loading")} /> : null}
       {loaded.error && !data ? <ErrorState message={loaded.error} onRetry={() => void loaded.reload()} /> : null}

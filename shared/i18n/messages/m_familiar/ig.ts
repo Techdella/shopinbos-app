@@ -312,6 +312,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "ref.status.qualified": "Ọ na-agụ…",
   "ref.status.rewarded": "Enwetala ụgwọ",
   "ref.status.rejected": "Agụghị ya",
+  "ago.days": "ụbọchị {count} gara aga",
 };
 
 export default ig;

@@ -4,7 +4,7 @@ import { ChatListScreen, HeaderIcon, type ChatRowData } from "@/components/ChatL
 import { EmptyState } from "@/components/kit";
 import { ChoiceRow, Sheet } from "@/components/Sheet";
 import { PillButton } from "@/components/ui";
-import { asSellerChatFilter, mergeSellerChats, SELLER_CHAT_FILTERS, sellerChatMatches, type MergedChat, type SellerChatFilter } from "@/lib/chats-pure";
+import { asSellerChatFilter, chatPreview, mergeSellerChats, SELLER_CHAT_FILTERS, sellerChatMatches, type MergedChat, type SellerChatFilter } from "@/lib/chats-pure";
 import { fetchInbox } from "@/lib/inbox";
 import { channelLabel } from "@/lib/inbox-pure";
 import { fetchPartnerContacts } from "@/lib/partners";
@@ -28,6 +28,18 @@ const TONE = {
   customer: { bg: colors.peach, fg: colors.accentInk },
   supplier: { bg: colors.blueTint, fg: colors.blueInk },
   logistics_partner: { bg: colors.mintTint, fg: colors.forest },
+};
+
+/** The source badge on each row: the customer's channel, or the partner's kind. */
+const GRAY = { bg: colors.grayTint, fg: colors.grayInk };
+const CHANNEL_TONE: Record<string, { bg: string; fg: string }> = {
+  whatsapp: { bg: colors.successTint, fg: colors.success },
+  instagram: { bg: "#FCE4EC", fg: "#A0204F" },
+  messenger: { bg: colors.blueTint, fg: colors.blueInk },
+  tiktok: GRAY,
+  email: { bg: colors.warnTint, fg: colors.warnInk },
+  form: { bg: colors.warnTint, fg: colors.warnInk },
+  livechat: { bg: colors.peach, fg: colors.accentInk },
 };
 
 function open(chat: MergedChat) {
@@ -68,12 +80,13 @@ export default function Chats() {
             .map((chat) => ({
               key: chat.key,
               name: chat.name,
-              preview: chat.subject && chat.preview ? `${chat.subject} · ${chat.preview}` : chat.subject || chat.preview,
+              preview: chatPreview(chat.subject, chat.preview),
               at: chat.at,
               unread: chat.unread,
               avatarUrl: chat.avatarUrl,
               tone: chat.kind === "customer" ? TONE.customer : chat.role === "logistics_partner" ? TONE.logistics_partner : TONE.supplier,
               label: chat.kind === "partner" ? t.dynamic(`partners.kind.${chat.role}`, t("partners.partner")) : channelLabel(chat.channel, t),
+              badge: chat.kind === "partner" ? (chat.role === "logistics_partner" ? TONE.logistics_partner : TONE.supplier) : CHANNEL_TONE[chat.channel ?? ""] ?? GRAY,
               onPress: () => open(chat),
             }))
         : null,
