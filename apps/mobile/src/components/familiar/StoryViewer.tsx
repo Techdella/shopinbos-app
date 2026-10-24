@@ -4,7 +4,7 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Initials } from "@/components/kit";
+import { Picture } from "@/components/kit";
 import { AppIcon } from "@/components/icons";
 import { LinkButton, PillButton, T } from "@/components/ui";
 import { TILE } from "@/components/design";
@@ -12,6 +12,7 @@ import { likeStatus, markStatusSeen, type StatusAuthor, type StatusPost } from "
 import { useT } from "@/lib/i18n";
 import { hideShopinbosStatus, markShopinbosSeen, runShopinbosCta, watchOutside } from "@/lib/shopinbos";
 import { colors, fonts } from "@/theme";
+import { Mascot } from "@/components/Mascot";
 import { ShopinbosMark } from "./ShopinbosMark";
 
 // Full-screen Status viewer ("Familiar app" prototype `storyView`): progress bars, who posted and when, tap the left
@@ -26,7 +27,15 @@ const ROLE_KEY = { seller: "role.seller", supplier: "role.supplier", logistics_p
 
 function ago(iso: string, t: ReturnType<typeof useT<["m_familiar"]>>) {
   const minutes = Math.max(1, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
-  return minutes < 60 ? t("ago.minutes", { count: minutes }) : t("ago.hours", { count: Math.round(minutes / 60) });
+  if (minutes < 60) return t("ago.minutes", { count: minutes });
+  const hours = Math.round(minutes / 60);
+  return hours < 24 ? t("ago.hours", { count: hours }) : t("ago.days", { count: Math.round(hours / 24) });
+}
+
+/** The line under the name: the role (left out when it only repeats the name, as "Shopinbos" does) and the time. */
+export function storyByline(author: Pick<StatusAuthor, "name" | "roleLabel">, role: string | null, time: string) {
+  const label = role && role.trim().toLowerCase() !== author.name.trim().toLowerCase() ? role : null;
+  return label ? `${label} · ${time}` : time;
 }
 
 /** A post's video, full screen behind the words; `onEnd` moves on. */
@@ -167,10 +176,10 @@ export function StoryViewer({
             ))}
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-            {official ? <ShopinbosMark size={38} /> : <Initials name={author.name} size={38} />}
+            {official ? <ShopinbosMark size={38} /> : <Picture uri={author.logoUrl} name={author.name} size={38} />}
             <View style={{ flex: 1, minWidth: 0 }}>
               <T weight="bold" numberOfLines={1} style={{ color: ink, fontSize: 15 }}>{author.name}</T>
-              <T numberOfLines={1} style={{ color: ink, opacity: 0.85, fontSize: 13 }}>{official ? author.roleLabel ?? t("role.shopinbos") : `${t(ROLE_KEY[author.role])} · ${ago(post.createdAt, t)}`}</T>
+              <T numberOfLines={1} style={{ color: ink, opacity: 0.85, fontSize: 13 }}>{storyByline(author, official ? author.roleLabel ?? t("role.shopinbos") : t(ROLE_KEY[author.role]), ago(post.createdAt, t))}</T>
             </View>
             <Pressable accessibilityRole="button" accessibilityLabel={t("close")} onPress={onClose} hitSlop={8} style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
               <AppIcon name="x" size={26} color={ink} />
@@ -178,18 +187,37 @@ export function StoryViewer({
           </View>
         </View>
 
-        {/* Tap the left third to go back, the rest to go on. */}
-        <View style={{ flex: 1, flexDirection: "row" }}>
-          <Pressable accessibilityRole="button" accessibilityLabel={t("previous")} onPress={back} style={{ flex: 1 }} />
-          <Pressable accessibilityRole="button" accessibilityLabel={t("next")} onPress={next} style={{ flex: 2 }} />
+        {/* Tap the left third to go back, the rest to go on. A post without a picture is a designed card: a big
+            mark, the headline large and centred, the words under it. */}
+        <View style={{ flex: 1 }}>
+          <View style={{ flex: 1, flexDirection: "row" }}>
+            <Pressable accessibilityRole="button" accessibilityLabel={t("previous")} onPress={back} style={{ flex: 1 }} />
+            <Pressable accessibilityRole="button" accessibilityLabel={t("next")} onPress={next} style={{ flex: 2 }} />
+          </View>
+          {!photo ? (
+            <View testID="story-text-card" pointerEvents="none" style={{ position: "absolute", inset: 0, alignItems: "center", justifyContent: "center", paddingHorizontal: 28, gap: 18 }}>
+              {official ? (
+                <View style={{ width: 112, height: 112, borderRadius: 56, backgroundColor: "rgba(255,255,255,0.7)", alignItems: "center", justifyContent: "center" }}>
+                  {post.video ? <AppIcon name="play" size={44} color={tone.fg} strokeWidth={2.2} /> : <Mascot who="rex" mood="wave" size={92} decorative />}
+                </View>
+              ) : (
+                <Picture uri={author.logoUrl} name={author.name} size={96} />
+              )}
+              <T style={{ fontFamily: fonts.display, fontSize: 34, lineHeight: 38, color: ink, textAlign: "center", letterSpacing: -0.6 }}>{post.headline}</T>
+              {post.caption ? <T style={{ fontSize: 17, lineHeight: 24, color: ink, textAlign: "center", opacity: 0.9 }}>{post.caption}</T> : null}
+              {post.product ? <T weight="bold" style={{ fontSize: 16, color: ink, textAlign: "center" }}>{`${post.product.name} · ₦${Math.round(post.product.price).toLocaleString("en-NG")}`}</T> : null}
+            </View>
+          ) : null}
         </View>
 
         <View style={{ paddingHorizontal: 20, paddingBottom: insets.bottom + (official ? 4 : 18), gap: 14 }}>
-          <View style={{ gap: 6 }}>
-            <T style={{ fontFamily: fonts.display, fontSize: 28, lineHeight: 32, color: ink }}>{post.headline}</T>
-            {post.caption ? <T style={{ fontSize: 15, lineHeight: 21, color: ink }}>{post.caption}</T> : null}
-            {post.product ? <T weight="bold" style={{ fontSize: 15, color: ink }}>{`${post.product.name} · ₦${Math.round(post.product.price).toLocaleString("en-NG")}`}</T> : null}
-          </View>
+          {photo ? (
+            <View style={{ gap: 6 }}>
+              <T style={{ fontFamily: fonts.display, fontSize: 28, lineHeight: 32, color: ink }}>{post.headline}</T>
+              {post.caption ? <T style={{ fontSize: 15, lineHeight: 21, color: ink }}>{post.caption}</T> : null}
+              {post.product ? <T weight="bold" style={{ fontSize: 15, color: ink }}>{`${post.product.name} · ₦${Math.round(post.product.price).toLocaleString("en-NG")}`}</T> : null}
+            </View>
+          ) : null}
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
             {own ? (
               <T weight="semibold" style={{ color: ink, fontSize: 14 }}>{t("status.views", { count: post.views })}</T>

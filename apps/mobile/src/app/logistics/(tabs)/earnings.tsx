@@ -14,7 +14,6 @@ import { fetchEarnings } from "@/lib/logistics";
 import { dayWord, shortPlace } from "@/lib/partner-pure";
 import { useLoad } from "@/lib/useLoad";
 import { fetchSellersCash } from "@/lib/wallet";
-import { openWeb } from "@/lib/web";
 import { colors } from "@/theme";
 
 // Money ("Familiar app" prototype F-Delivery `money`): a dark card with what you earned this week (delivery fees go
@@ -60,7 +59,7 @@ export default function LogisticsEarnings() {
   return (
     <TabScreen title={t("money.title")} refreshing={earnings.refreshing} onRefresh={refresh}>
       {earnings.loading && !data ? <LoadingBlock /> : null}
-      {earnings.error && !data ? <ErrorState message={earnings.error} onRetry={() => void earnings.reload()} web={{ label: t("openOnWeb"), onPress: () => void openWeb("/logistics/cash") }} /> : null}
+      {earnings.error && !data ? <ErrorState message={earnings.error} onRetry={() => void earnings.reload()} /> : null}
       {data ? (
         <>
           {data.overdue ? <PayInOverdueCard overdue={data.overdue} onChecked={() => void earnings.reload()} /> : null}

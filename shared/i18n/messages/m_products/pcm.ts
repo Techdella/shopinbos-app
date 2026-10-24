@@ -84,6 +84,13 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "filters.sort.price_low": "Cheap ones first",
   "filters.sort.price_high": "Costly ones first",
   "filters.sort.name": "Name A to Z",
+  "add.photoTitle": "Snap am",
+  "add.photoSub": "Or pick reach 6 from your phone.",
+  "add.tip1": "Fine photo dey sell",
+  "add.tip1Sub": "Daylight, plain background, show the whole thing.",
+  "add.tip2": "Rex go write the name, price and description",
+  "add.tip2Sub": "You go check am before e enter your shop.",
+  "add.recent": "Wetin you add recently",
 };
 
 export default pcm;

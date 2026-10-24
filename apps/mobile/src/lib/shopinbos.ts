@@ -6,6 +6,8 @@ import { openFeatureIntro } from "@/components/learn/events";
 import { dismissShopinbos, markStatusSeen, type StatusPost, type StatusVideo } from "./familiar";
 import { requestPeggyCall } from "./peggy-call";
 import { shareShop } from "./share";
+import { isTeamPost, markTeamUpdateSeen, teamUpdateId } from "./updates";
+import { openPath } from "./web";
 import { supabase } from "./supabase";
 
 // Shopinbos's own getting-started posts on the phone (shared/shopinbos-status.ts): what their buttons do, playing
@@ -41,7 +43,9 @@ export function markShopinbosSeen(id: string) {
     seen = new Set([...seen, id]);
     emit();
   }
-  void markStatusSeen(id);
+  // The team's weekly updates (merged into Shopinbos's ring, lib/updates withTeamUpdates) have their own record.
+  if (isTeamPost(id)) void markTeamUpdateSeen(teamUpdateId(id));
+  else void markStatusSeen(id);
 }
 
 /** "Don't show again" (the viewer, or a long-press on the ring): gone from the Status row for good. */
@@ -71,6 +75,12 @@ export function runShopinbosCta(post: StatusPost): boolean {
   const cta = post.cta;
   if (cta?.kind === "open") {
     const path = cta.target?.path;
+    // A weekly update's link: an app screen when it's a path, else the in-app browser.
+    if (isTeamPost(post.id) && path) {
+      if (path.startsWith("/")) void openPath(path);
+      else void WebBrowser.openBrowserAsync(path);
+      return true;
+    }
     if (isShopinbosPath(path)) router.push(path as never);
     return true;
   }

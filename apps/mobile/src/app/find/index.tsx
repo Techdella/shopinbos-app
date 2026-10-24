@@ -20,6 +20,7 @@ import { useSession } from "@/lib/session";
 import { useLoad } from "@/lib/useLoad";
 import { useT } from "@/lib/i18n";
 import { colors, fonts, radii } from "@/theme";
+import { DIAL_COUNTRIES } from "@shared/phone";
 
 // Find products to sell (web /marketplace). First a full-screen swipe card per product ("Familiar app" prototype
 // `on.discover`): For you (trending) or Near you (nearest suppliers), the supplier, Costs / Sell at / You keep,
@@ -151,7 +152,9 @@ export default function FindProducts() {
   const cities = useMemo(() => findCities(products), [products]);
   const shown = useMemo(() => filterFind(products, filters), [products, filters]);
   const trending = useMemo(() => [...products].filter((product) => product.trendScore > 0).sort((a, b) => b.trendScore - a.trendScore).slice(0, 20), [products]);
-  const country = loaded.data?.context?.country ?? "Nigeria";
+  // The shop's country as words: a stored code ("NG") becomes "Nigeria"; an unknown code shows "All" instead.
+  const rawCountry = loaded.data?.context?.country ?? "Nigeria";
+  const country = /^[a-z]{2}$/i.test(rawCountry) ? DIAL_COUNTRIES.find((entry) => entry.code === rawCountry.toUpperCase())?.name ?? null : rawCountry;
 
   // The swipe cards are the default; a search from an order ("Find another supplier") opens the list.
   const { session } = useSession();
@@ -190,6 +193,7 @@ export default function FindProducts() {
     pager.current?.scrollTo({ x: 0, animated: false });
   }
 
+  // A round icon button, so "Find products" fits beside it and Help on a 360px phone.
   const toggle = (
     <Pressable
       testID="find-view-toggle"
@@ -197,10 +201,9 @@ export default function FindProducts() {
       accessibilityLabel={view === "cards" ? t("swipe.showList") : t("swipe.showCards")}
       onPress={() => setView(view === "cards" ? "list" : "cards")}
       hitSlop={6}
-      style={{ minHeight: 44, minWidth: 44, paddingHorizontal: 12, borderRadius: 22, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 }}
+      style={{ width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, alignItems: "center", justifyContent: "center", marginRight: 4 }}
     >
-      <AppIcon name={view === "cards" ? "grid" : "image"} size={18} />
-      <T weight="bold" style={{ fontSize: 14 }}>{view === "cards" ? t("swipe.list") : t("swipe.cards")}</T>
+      <AppIcon name={view === "cards" ? "grid" : "image"} size={19} />
     </Pressable>
   );
 
@@ -212,7 +215,7 @@ export default function FindProducts() {
   if (view === "cards") {
     return (
       <Screen
-        title={t("title")}
+        title={t("barTitle")}
         headerRight={toggle}
         refreshing={loaded.refreshing}
         onRefresh={() => void loaded.refresh()}
@@ -234,7 +237,7 @@ export default function FindProducts() {
         {loaded.error && !loaded.data ? <ErrorState message={loaded.error} onRetry={() => void loaded.reload()} /> : null}
         {loaded.data && !products.length ? (
           <EmptyState icon="search" title={t("empty.title")} action={<PillButton title={t("empty.askPeggy")} size="md" onPress={() => router.push({ pathname: "/peggy", params: { prompt: t("empty.prompt") } })} />}>
-            {t("empty.body", { country })}
+            {t("empty.body", { country: country ?? rawCountry })}
           </EmptyState>
         ) : null}
         {cards.length ? (
@@ -275,11 +278,11 @@ export default function FindProducts() {
   );
 
   return (
-    <Screen title={t("title")} sub={t("sub")} headerRight={toggle} refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
+    <Screen title={t("barTitle")} sub={t("sub")} headerRight={toggle} refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
       {statusRow}
       <Segmented
         options={[
-          { value: "nigeria", label: country },
+          { value: "nigeria", label: country ?? t("tab.all") },
           { value: "trending", label: t("tab.popular") },
         ]}
         value={tab}
@@ -309,7 +312,7 @@ export default function FindProducts() {
           {loaded.error && !loaded.data ? <ErrorState message={loaded.error} onRetry={() => void loaded.reload()} /> : null}
           {loaded.data && !products.length ? (
             <EmptyState icon="search" title={t("empty.title")} action={<PillButton title={t("empty.askPeggy")} size="md" onPress={() => router.push({ pathname: "/peggy", params: { prompt: t("empty.prompt") } })} />}>
-              {t("empty.body", { country })}
+              {t("empty.body", { country: country ?? rawCountry })}
             </EmptyState>
           ) : null}
           {products.length && !shown.length ? (

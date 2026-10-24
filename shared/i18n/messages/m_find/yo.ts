@@ -112,6 +112,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "filters.anywhere": "Ibikíbi",
   "filters.suppliers": "Àwọn olùpèsè",
   "filters.verified": "Àwọn tí a ti ṣàyẹ̀wò nìkan",
+  "tab.all": "Gbogbo",
+  "barTitle": "Wá ọjà",
 };
 
 export default yo;

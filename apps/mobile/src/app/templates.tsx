@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Modal, Pressable, ScrollView, View, useWindowDimensions } from "react-native";
 import { router } from "expo-router";
 import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import * as WebBrowser from "expo-web-browser";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Banner, Seg, Sub, Title } from "@/components/design";
@@ -14,6 +15,7 @@ import { publishStore } from "@/lib/onboarding";
 import { applyLook, fetchLookLibrary, lookDemoUrl, lookFilterCount, NO_LOOK_FILTERS, recommendLook, shownLooks, type LookFilters, type LookTone, type ShopLook } from "@/lib/templates";
 import { useLoad } from "@/lib/useLoad";
 import { openWeb } from "@/lib/web";
+import { themeTierPlanName } from "@shared/plans";
 import { useT } from "@/lib/i18n";
 import { colors, fonts } from "@/theme";
 
@@ -37,6 +39,8 @@ function MiniShop({ look, height, big = false }: { look: ShopLook; height: numbe
       </View>
       <View style={{ height: big ? 170 : Math.round(height * 0.39), backgroundColor: accent }}>
         {look.demo.hero ? <Image source={{ uri: look.demo.hero }} style={{ width: "100%", height: "100%" }} contentFit="cover" transition={150} accessibilityIgnoresInvertColors /> : null}
+        {/* A dark scrim under the theme's name, so it reads on any photo. */}
+        <LinearGradient pointerEvents="none" colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.62)"]} style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: big ? 90 : 48 }} />
         <T
           numberOfLines={1}
           style={{ position: "absolute", left: big ? 14 : 8, right: big ? 14 : 8, bottom: big ? 12 : 6, fontFamily: look.preview.nameFont === "serif" ? fonts.displayBold : fonts.display, fontSize: big ? 24 : 14, lineHeight: big ? 28 : 17, color: "#FFFFFF", textShadowColor: "rgba(0,0,0,0.45)", textShadowRadius: 6 }}
@@ -88,7 +92,7 @@ function LookCard({ look, width, rexPick, onPress }: { look: ShopLook; width: nu
       </View>
       <View style={{ paddingHorizontal: 6, paddingBottom: 4, gap: 2 }}>
         <T weight="extrabold" numberOfLines={1} style={{ fontSize: 14 }}>{look.name}</T>
-        <T numberOfLines={1} style={{ fontSize: 12.5, color: colors.inkSoft }}>{meaning}</T>
+        <T numberOfLines={2} style={{ fontSize: 12.5, lineHeight: 16, color: colors.inkSoft, minHeight: 32 }}>{meaning}</T>
       </View>
     </Pressable>
   );
@@ -261,7 +265,7 @@ export default function ShopLooks() {
         <FilterGroup label={t("plan")}>
           <Chip label={t("any")} on={filters.tier === "all"} onPress={() => set({ tier: "all" })} />
           {(withCurrent?.tiers ?? []).map((tier) => (
-            <Chip key={tier} label={tb.dynamic(`tl.tier.${tier}`, tier)} on={filters.tier === tier} onPress={() => set({ tier: filters.tier === tier ? "all" : tier })} />
+            <Chip key={tier} label={themeTierPlanName(tier)} on={filters.tier === tier} onPress={() => set({ tier: filters.tier === tier ? "all" : tier })} />
           ))}
         </FilterGroup>
         <FilterGroup label={t("colours")}>

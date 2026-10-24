@@ -43,8 +43,8 @@ function CustomerCard({ customer, currency }: { customer: CustomerRow; currency:
           {contact ? <T style={{ color: colors.inkSoft, fontSize: 14 }} numberOfLines={1}>{contact}</T> : null}
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <Badge label={t(`badge.${customer.badge}`)} bg={colorsFor.bg} fg={colorsFor.fg} />
-            <T style={{ color: colors.inkSoft, fontSize: 14 }}>{t("row.orders", { count: customer.orders })}</T>
-            <T style={{ color: colors.inkSoft, fontSize: 14 }}>· {t("lastOrder", { when: friendlyDay(customer.lastAt, new Date(), t) })}</T>
+            {/* One line of text; a no-break space keeps the "·" with the words before it, so a wrapped line never starts with it. */}
+            <T style={{ color: colors.inkSoft, fontSize: 14, flexShrink: 1 }}>{`${t("row.orders", { count: customer.orders })}\u00A0· ${t("lastOrder", { when: friendlyDay(customer.lastAt, new Date(), t) })}`}</T>
           </View>
         </View>
       </Card>

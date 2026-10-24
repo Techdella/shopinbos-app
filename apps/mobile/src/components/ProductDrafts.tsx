@@ -3,6 +3,7 @@ import { Pressable, View } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { Image } from "expo-image";
 import { naira } from "@shared/onboarding";
+import { AppIcon } from "@/components/icons";
 import { Card, Field, Mascot, PillButton, T } from "@/components/ui";
 import { createProducts, draftProducts, type ProductDraft } from "@/lib/onboarding";
 import { useT } from "@/lib/i18n";
@@ -109,9 +110,16 @@ export function ProductDraftsCard({ state }: { state: ReturnType<typeof useProdu
           </View>
         );
       })}
-      <View style={{ flexDirection: "row", gap: 8, marginTop: drafts.length ? 8 : 0 }}>
-        <PillButton title={t("drafts.takePhoto")} size="md" style={{ flex: 1 }} busy={reading} onPress={() => void pick("camera")} />
-        <PillButton title={t("drafts.choosePhotos")} tone="white" size="md" style={{ flex: 1 }} disabled={reading} onPress={() => void pick("library")} />
+      {/* Stacked, full width: side by side, "Choose photos" wrapped onto two lines on small phones. */}
+      <View style={{ gap: 10, marginTop: drafts.length ? 8 : 0 }}>
+        <PillButton testID="drafts-take-photo" tone="accent" size="md" accessibilityLabel={t("drafts.takePhoto")} busy={reading} onPress={() => void pick("camera")}>
+          <AppIcon name="camera" size={20} color={colors.ink} />
+          <T weight="bold" numberOfLines={1} style={{ fontSize: 16, color: colors.ink, textAlign: "center" }}>{t("drafts.takePhoto")}</T>
+        </PillButton>
+        <PillButton testID="drafts-choose-photos" tone="white" size="md" accessibilityLabel={t("drafts.choosePhotos")} disabled={reading} onPress={() => void pick("library")}>
+          <AppIcon name="image" size={20} color={colors.ink} />
+          <T weight="bold" numberOfLines={1} style={{ fontSize: 16, color: colors.ink, textAlign: "center" }}>{t("drafts.choosePhotos")}</T>
+        </PillButton>
       </View>
       {reading && <T style={{ color: colors.inkSoft, marginTop: 10, textAlign: "center" }}>{t("drafts.reading")}</T>}
     </Card>

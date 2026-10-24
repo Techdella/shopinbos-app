@@ -13,14 +13,14 @@ import { useT } from "@/lib/i18n";
 import { openShop, shareText } from "@/lib/share";
 import { useLoad } from "@/lib/useLoad";
 import { openWeb } from "@/lib/web";
-import { colors, radii } from "@/theme";
+import { colors, fonts, radii } from "@/theme";
 
 // Web address ("Familiar app" prototype, My shop › Web address): the free <slug>.mybos.store address with Copy and
 // Share; the own domain's status; and connecting a domain the seller already owns: type it, add the DNS records
 // shown here (each with Copy), then Check. Buying a new domain is a Paystack checkout, so it stays on the website
 // behind one clearly labelled button (only when buying is switched on).
 
-function CopyButton({ value, label }: { value: string; label: string }) {
+function CopyButton({ value, label, iconOnly = false }: { value: string; label: string; iconOnly?: boolean }) {
   const t = useT("m_domain");
   const [copied, setCopied] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -38,23 +38,26 @@ function CopyButton({ value, label }: { value: string; label: string }) {
         if (timer.current) clearTimeout(timer.current);
         timer.current = setTimeout(() => setCopied(false), 1600);
       }}
-      style={({ pressed }) => ({ minHeight: 40, paddingHorizontal: 12, borderRadius: radii.pill, borderWidth: 1.5, borderColor: colors.line, backgroundColor: colors.surface, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, opacity: pressed ? 0.7 : 1 })}
+      style={({ pressed }) => ({ minHeight: 44, minWidth: 44, paddingHorizontal: iconOnly ? 0 : 12, borderRadius: radii.pill, borderWidth: 1.5, borderColor: copied ? colors.success : colors.line, backgroundColor: colors.surface, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, opacity: pressed ? 0.7 : 1 })}
     >
-      <AppIcon name={copied ? "check" : "doc"} size={15} />
-      <T weight="bold" style={{ fontSize: 14 }}>{copied ? t("copied") : t("copy")}</T>
+      <AppIcon name={copied ? "check" : "copy"} size={iconOnly ? 18 : 15} color={copied ? colors.success : colors.ink} />
+      {iconOnly ? null : <T weight="bold" style={{ fontSize: 14 }}>{copied ? t("copied") : t("copy")}</T>}
     </Pressable>
   );
 }
 
 function RecordCard({ record }: { record: DnsRecord }) {
   const t = useT("m_domain");
+  // Names and values in the monospace face on a grey strip, selectable, with a copy icon beside each.
   const line = (label: string, value: string) => (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Small>{label}</Small>
-        <T weight="bold" selectable style={{ fontSize: 15 }} numberOfLines={2}>{value}</T>
+    <View style={{ gap: 6 }}>
+      <Small>{label}</Small>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <View style={{ flex: 1, minWidth: 0, backgroundColor: colors.canvas, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10 }}>
+          <T selectable style={{ fontFamily: fonts.mono, fontSize: 14, lineHeight: 20 }}>{value}</T>
+        </View>
+        <CopyButton value={value} label={label} iconOnly />
       </View>
-      <CopyButton value={value} label={label} />
     </View>
   );
   return (
@@ -172,7 +175,7 @@ export default function DomainScreen() {
             <View style={{ flex: 1 }}>
               <CopyButton value={data.free.url} label={data.free.host} />
             </View>
-            <PillButton size="sm" tone="white" style={{ flex: 1, minHeight: 40 }} accessibilityLabel={t("share")} onPress={() => void shareText(data.free.url)}>
+            <PillButton size="sm" tone="white" style={{ flex: 1, minHeight: 44 }} accessibilityLabel={t("share")} onPress={() => void shareText(data.free.url)}>
               <AppIcon name="share" size={15} />
               <T weight="bold" style={{ fontSize: 14 }}>{t("share")}</T>
             </PillButton>
@@ -193,9 +196,9 @@ export default function DomainScreen() {
           </View>
           <Pill label={t("own.connected")} tone="ok" />
           {own && !own.hostingConfigured && !check?.ok ? <Small>{t("own.finishing")}</Small> : null}
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-            {!pending && !changing ? <PillButton title={t("own.different")} size="sm" tone="white" onPress={() => setChanging(true)} /> : null}
-            <PillButton title={t("own.removeDomain")} size="sm" tone="white" busy={busy === "remove"} onPress={() => confirmRemove(live.domain)} />
+          <View style={{ gap: 8 }}>
+            {!pending && !changing ? <PillButton title={t("own.different")} size="md" tone="white" onPress={() => setChanging(true)} /> : null}
+            <PillButton title={t("own.removeDomain")} size="md" tone="white" busy={busy === "remove"} onPress={() => confirmRemove(live.domain)} />
           </View>
         </Card>
       ) : null}
@@ -220,9 +223,9 @@ export default function DomainScreen() {
           </List>
           {checkLine ? <Notice tone={checkLine === "check.ok" ? "success" : "info"}>{t(checkLine)}</Notice> : null}
           <PillButton title={t("pend.checkNow")} busy={busy === "verify"} onPress={() => void verify()} />
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-            {askTeam ? null : <PillButton title={t("pend.askUs")} size="sm" tone="white" onPress={() => setAskTeam(true)} />}
-            <PillButton title={live ? t("pend.keepCurrent") : t("own.different")} size="sm" tone="white" busy={busy === "remove"} onPress={() => void remove("pending")} />
+          <View style={{ gap: 8 }}>
+            {askTeam ? null : <PillButton title={t("pend.askUs")} size="md" tone="white" onPress={() => setAskTeam(true)} />}
+            <PillButton title={live ? t("pend.keepCurrent") : t("own.different")} size="md" tone="white" busy={busy === "remove"} onPress={() => void remove("pending")} />
           </View>
           {askTeam ? (
             <SetupHelpRequest title={t("pend.teamTitle", { domain: pending.domain })} description={t("pend.teamDesc")} feature="custom_domain" softwareQuestion={t("pend.whereBought")} softwarePlaceholder={t("pend.wherePlaceholder")} />

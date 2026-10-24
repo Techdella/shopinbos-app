@@ -84,6 +84,13 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "filters.sort.price_low": "Nke dị ọnụ ala buru ụzọ",
   "filters.sort.price_high": "Nke dị oke ọnụ buru ụzọ",
   "filters.sort.name": "Aha A ruo Z",
+  "add.photoTitle": "See foto ya",
+  "add.photoSub": "Ma ọ bụ họrọ ruo 6 site na ekwentị gị.",
+  "add.tip1": "Foto mara mma na-ere",
+  "add.tip1Sub": "Ìhè ehihie, azụ dị larịị, ngwaahịa ahụ niile.",
+  "add.tip2": "Rex na-ede aha, ọnụahịa na nkọwa",
+  "add.tip2Sub": "Ị na-elele ha tupu ha abanye n'ụlọ ahịa gị.",
+  "add.recent": "Ndị ị tinyere n'oge na-adịbeghị anya",
 };
 
 export default ig;

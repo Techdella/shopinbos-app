@@ -321,6 +321,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "sib.partner.call.title": "Kpọọ Peggy, n'efu",
   "sib.partner.call.body": "Gwa Peggy ebe ị na-eru na ọnụahịa gị. Ọ ga-edejupụta nhazi gị ka unu na-ekwu okwu.",
   "sib.partner.call.cta": "Kpọọ Peggy",
+  "ago.days": "ụbọchị {count} gara aga",
 };
 
 export default ig;

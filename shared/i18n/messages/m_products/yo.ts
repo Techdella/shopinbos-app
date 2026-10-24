@@ -84,6 +84,13 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "filters.sort.price_low": "Èyí tó dín owó jù lọ kọ́kọ́",
   "filters.sort.price_high": "Èyí tó wọ́n jù lọ kọ́kọ́",
   "filters.sort.name": "Orúkọ A sí Z",
+  "add.photoTitle": "Ya fọ́tò rẹ̀",
+  "add.photoSub": "Tàbí yan títí dé 6 láti inú fóònù rẹ.",
+  "add.tip1": "Fọ́tò tó dára ń tà",
+  "add.tip1Sub": "Ìmọ́lẹ̀ ọ̀sán, ẹ̀yìn tó mọ́, gbogbo ọjà náà.",
+  "add.tip2": "Rex yóò kọ orúkọ, owó àti àpèjúwe",
+  "add.tip2Sub": "Ìwọ yóò ṣàyẹ̀wò wọn kí wọ́n tó wọ ṣọ́ọ̀bù rẹ.",
+  "add.recent": "Èyí tí o fi kún láìpẹ́",
 };
 
 export default yo;

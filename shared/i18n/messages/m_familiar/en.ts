@@ -321,6 +321,7 @@ const en = {
   "sib.partner.call.title": "Call Peggy, free",
   "sib.partner.call.body": "Tell Peggy the areas you cover and your price. She fills in your setup as you talk.",
   "sib.partner.call.cta": "Call Peggy",
+  "ago.days": "{count} d ago",
 } satisfies Record<string, string>;
 
 export default en;

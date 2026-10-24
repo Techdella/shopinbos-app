@@ -321,6 +321,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "sib.partner.call.title": "Kira Peggy, kyauta",
   "sib.partner.call.body": "Faɗa wa Peggy wuraren da kake kai wa da farashinka. Za ta cike saitinka yayin da kuke magana.",
   "sib.partner.call.cta": "Kira Peggy",
+  "ago.days": "kwana {count} da suka wuce",
 };
 
 export default ha;

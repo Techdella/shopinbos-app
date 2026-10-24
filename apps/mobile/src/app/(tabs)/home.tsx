@@ -18,7 +18,7 @@ import { GettingStartedCard } from "@/components/familiar/GettingStarted";
 import { LevelPill } from "@/components/familiar/LevelPill";
 import { QuickActions, type QuickAction } from "@/components/familiar/QuickActions";
 import { StatusRow } from "@/components/familiar/StatusRow";
-import { TeamUpdatesRing } from "@/components/updates/TeamUpdatesRing";
+import { useShopinbosRings } from "@/components/updates/TeamUpdatesRing";
 import { StoryViewer } from "@/components/familiar/StoryViewer";
 import { Tour, type TourStep } from "@/components/familiar/Tour";
 import { stepWords } from "@/lib/setup-words";
@@ -136,6 +136,9 @@ export default function Home() {
   );
   // Peggy saving on a call ticks the checklist here too.
   usePeggySaved(() => void loadExtras());
+
+  // Shopinbos's getting-started posts and the team's weekly updates share one ring.
+  const rings = useShopinbosRings(status?.feed);
 
   // The Status viewer: someone else's posts, or your own.
   const [story, setStory] = useState<{ authors: StatusAuthor[]; start: number; own: boolean } | null>(null);
@@ -293,14 +296,14 @@ export default function Home() {
 
         {status ? (
           <StatusRow
-            authors={status.feed}
+            authors={rings.authors}
             myName={myName}
             myPicture={myPicture}
             hasMine={status.mine.posts.length > 0}
             onNew={() => router.push("/status/new" as never)}
             onOpenMine={() => setStory({ authors: [{ userId: uid ?? "me", name: shopName || myName, role: "seller", logoUrl: myPicture, seen: true, posts: status.mine.posts }], start: 0, own: true })}
-            onOpen={(index) => setStory({ authors: status.feed, start: index, own: false })}
-            leading={<TeamUpdatesRing />}
+            onOpen={(index) => setStory({ authors: rings.authors, start: index, own: false })}
+            leading={rings.leading}
           />
         ) : null}
 

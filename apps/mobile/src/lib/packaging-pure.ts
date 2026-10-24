@@ -98,3 +98,29 @@ export function startDesign(input: { shopName: string; logoUrl: string | null; w
 export function withWords(design: PackDesign, content: Partial<PackContent>): PackDesign {
   return cleanDesign({ ...design, content: { ...design.content, ...content } });
 }
+
+/** What a product is, the way the web's packaging studio guesses it (its name and category, src/app/home/labels/
+ * packaging/page.tsx). */
+export function productTypeOf(product: { name: string; category?: { name: string } | null }): ProductType {
+  return guessProductType(`${product.name} ${product.category?.name ?? ""}`);
+}
+
+/** What the shop mostly sells, from its products: the sample pack's words and pack types follow it (a fashion shop
+ * gets bags and boxes with "Handmade", a beauty shop jars and bottles, a food shop pouches and jars). Food when there's
+ * nothing to go on, as on the web. */
+export function shopProductType(products: readonly { name: string; category?: { name: string } | null }[]): ProductType {
+  const counts = new Map<ProductType, number>();
+  for (const product of products) {
+    const type = productTypeOf(product);
+    if (type !== "other") counts.set(type, (counts.get(type) ?? 0) + 1);
+  }
+  let best: ProductType = "food";
+  let most = 0;
+  for (const [type, count] of counts) {
+    if (count > most) {
+      best = type;
+      most = count;
+    }
+  }
+  return best;
+}

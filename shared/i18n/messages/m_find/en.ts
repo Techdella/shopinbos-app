@@ -112,6 +112,8 @@ const en = {
   "filters.anywhere": "Anywhere",
   "filters.suppliers": "Suppliers",
   "filters.verified": "Verified only",
+  "tab.all": "All",
+  "barTitle": "Find products",
 } satisfies Record<string, string>;
 
 export default en;

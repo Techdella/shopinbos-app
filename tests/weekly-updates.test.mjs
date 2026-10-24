@@ -106,9 +106,16 @@ test("intro sound: only intro scenes can be spoken, and the player waits for the
 });
 
 test("mobile: the Shopinbos ring leads the Status row on every home, and plays the same feed", () => {
+  // One Shopinbos ring: the team's updates join Shopinbos's getting-started ring when it's there (useShopinbosRings),
+  // else keep their own ring in `leading`.
   for (const file of ["apps/mobile/src/app/(tabs)/home.tsx", "apps/mobile/src/app/supplier/(tabs)/home.tsx", "apps/mobile/src/app/logistics/(tabs)/jobs.tsx"]) {
-    assert.match(read(file), /leading=\{<TeamUpdatesRing \/>\}/, file);
+    const source = read(file);
+    assert.match(source, /useShopinbosRings\(/, file);
+    assert.match(source, /leading=\{rings\.leading\}/, file);
+    assert.match(source, /authors=\{rings\.authors\}/, file);
   }
+  const ring = read("apps/mobile/src/components/updates/TeamUpdatesRing.tsx");
+  assert.match(ring, /leading: merged\.merged \? null : <TeamUpdatesRingView/);
   assert.match(read("apps/mobile/src/components/familiar/StatusRow.tsx"), /\{leading\}/);
   const lib = read("apps/mobile/src/lib/updates.ts");
   assert.match(lib, /"\/api\/updates"/);

@@ -321,6 +321,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "sib.partner.call.title": "Pe Peggy, ọ̀fẹ́ ni",
   "sib.partner.call.body": "Sọ fún Peggy àwọn agbègbè tí o ń dé àti iye owó rẹ. Yóò kún ètò rẹ bí ẹ ṣe ń sọ̀rọ̀.",
   "sib.partner.call.cta": "Pe Peggy",
+  "ago.days": "ọjọ́ {count} sẹ́yìn",
 };
 
 export default yo;

@@ -17,7 +17,6 @@ import { fetchJob, fetchMarket, moveJob, type JobAction } from "@/lib/logistics"
 import { STATUS_WORD, isPointJob, jobFooter, jobTimeline, nextMove } from "@/lib/logistics-pure";
 import { shortPlace, timeAgo } from "@/lib/partner-pure";
 import { useLoad } from "@/lib/useLoad";
-import { openWeb } from "@/lib/web";
 import { colors } from "@/theme";
 
 // One delivery job ("Familiar app" prototype F-Delivery `job`): from → to, the shop and whether it is a seller or a
@@ -61,7 +60,7 @@ export default function JobScreen() {
     return (
       <Screen title={t("job.title")} refreshing={job.refreshing} onRefresh={() => void job.refresh()}>
         {job.loading ? <LoadingBlock /> : null}
-        {job.error ? <ErrorState message={job.error} onRetry={() => void job.reload()} web={{ label: t("openOnWeb"), onPress: () => void openWeb("/logistics/bookings") }} /> : null}
+        {job.error ? <ErrorState message={job.error} onRetry={() => void job.reload()} /> : null}
       </Screen>
     );
   }

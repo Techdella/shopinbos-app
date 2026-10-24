@@ -321,6 +321,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "sib.partner.call.title": "Call Peggy, e free",
   "sib.partner.call.body": "Tell Peggy the areas wey you cover and your price. She go fill your setup as una dey talk.",
   "sib.partner.call.cta": "Call Peggy",
+  "ago.days": "{count} days ago",
 };
 
 export default pcm;
