@@ -1,0 +1,78 @@
+{
+  "id": "supplier-02-orders",
+  "role": "supplier",
+  "topic": "supplier_orders",
+  "title": "Handle orders from shops",
+  "series": "Suppliers",
+  "episode": 2,
+  "intro": "When a shop sells your product, the order comes to you. Here's how to handle it, from new order to pickup.",
+  "steps": [
+    {
+      "shot": "shots/supplier-02-orders/01.png",
+      "caption": "New orders on Home",
+      "vo": "New orders show on your Home screen, under Needs you. Tap them to see what shops have ordered.",
+      "highlight": {
+        "x": 14,
+        "y": 474,
+        "w": 365,
+        "h": 82
+      }
+    },
+    {
+      "shot": "shots/supplier-02-orders/02.png",
+      "caption": "Accept before the timer",
+      "vo": "On Orders, the New tab shows each order, and how long you have to accept it.",
+      "highlight": {
+        "x": 12,
+        "y": 136,
+        "w": 369,
+        "h": 130
+      }
+    },
+    {
+      "shot": "shots/supplier-02-orders/03.png",
+      "caption": "Accept the order",
+      "vo": "Open an order to see the product, the shop, and where it's going. Tap Accept order, so the shop knows you have it. If you don't have it, tap I don't have it.",
+      "highlight": {
+        "x": 20,
+        "y": 720,
+        "w": 353,
+        "h": 52
+      }
+    },
+    {
+      "shot": "shots/supplier-02-orders/04.png",
+      "caption": "Pack it for pickup",
+      "vo": "Pack it in its own packaging, with the shop's delivery label. Don't add flyers or your number. Then tap It's packed, ready for pickup. A rider collects it from you, and you don't pay for delivery.",
+      "highlight": {
+        "x": 20,
+        "y": 720,
+        "w": 353,
+        "h": 52
+      }
+    },
+    {
+      "shot": "shots/supplier-02-orders/05.png",
+      "caption": "Price requests",
+      "vo": "Shops can also ask for your price on a large order. You'll find these under Price requests.",
+      "highlight": {
+        "x": 12,
+        "y": 140,
+        "w": 369,
+        "h": 84
+      }
+    },
+    {
+      "shot": "shots/supplier-02-orders/06.png",
+      "caption": "Send your price",
+      "vo": "Type your price for each one, pick when it can be ready, and tap Send my price. If the shop says yes, the order shows up under New.",
+      "highlight": {
+        "x": 14,
+        "y": 228,
+        "w": 365,
+        "h": 84
+      }
+    }
+  ],
+  "outro": "Next up: how you get paid."
+}

@@ -11,7 +11,7 @@ import { useLoad } from "@/lib/useLoad";
 import { useT } from "@/lib/i18n";
 import { upcomingPayout } from "@/lib/delivery-pure";
 import { capitalise, friendlyDay } from "@/lib/friendly";
-import { checkWalletAccount, confirmCashReceived, fetchWallet, linkWalletBank, nairaFromKobo, type WalletData } from "@/lib/wallet";
+import { checkWalletAccount, confirmCashReceived, fetchWallet, linkWalletBank, nairaFromKobo, PREPAID_BALANCE_IN_APP, type WalletData } from "@/lib/wallet";
 import { colors, radii } from "@/theme";
 import { MoneyOwedCard } from "@/components/MoneyOwedCard";
 import { WalletBalanceCard } from "@/components/WalletBalanceCard";
@@ -44,7 +44,7 @@ export default function Wallet() {
     <Screen title={t("w.money")} refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
       {loaded.loading && !data ? <LoadingBlock /> : null}
       {loaded.error && !data ? <ErrorState message={loaded.error} onRetry={() => void loaded.reload()} /> : null}
-      <WalletBalanceCard />
+      {PREPAID_BALANCE_IN_APP ? <WalletBalanceCard /> : null}
       {data ? <WalletBody data={data} t={t} reload={() => void loaded.reload()} /> : null}
     </Screen>
   );
