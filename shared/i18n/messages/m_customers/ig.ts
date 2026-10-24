@@ -20,6 +20,9 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "msg.read": "Agụọla ya",
   "msg.delivered": "Erutela",
   "msg.sending": "Ọ na-eziga…",
+  "filters.title": "Nzacha",
+  "filters.done": "Emechaala",
+  "filters.clear": "Hichapụ nzacha",
 };
 
 export default ig;

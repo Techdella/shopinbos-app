@@ -7,17 +7,17 @@ import { Seg } from "@/components/design";
 import { StatusRow } from "@/components/familiar/StatusRow";
 import { StoryViewer } from "@/components/familiar/StoryViewer";
 import { AppIcon, type AppIconName } from "@/components/icons";
-import { Badge, ChipRow, EmptyState, ErrorState, Initials, LinkRow, LoadingBlock } from "@/components/kit";
+import { FilterBar, FilterGroup, FilterSheet } from "@/components/FilterBar";
+import { Badge, EmptyState, ErrorState, Initials, LoadingBlock } from "@/components/kit";
 import { Screen } from "@/components/Screen";
 import { Card, Chip, Field, Mascot, PillButton, Segmented, T } from "@/components/ui";
-import { saleBreakdown, sortCategories } from "@/lib/find-pure";
+import { FIND_PRICE_BANDS, NO_FIND_FILTERS, filterFind, findCities, findFilterCount, saleBreakdown, sortCategories, type FindFilters } from "@/lib/find-pure";
 import { fetchFindContext, fetchFindProducts, type FindProduct } from "@/lib/marketplace";
 import { SupplierTrustBadges } from "@/components/SupplierTrust";
 import { fetchStatusFeed } from "@/lib/familiar";
 import { openStatusCta, rememberSavedFinds, savedFinds } from "@/lib/seller-home";
 import { useSession } from "@/lib/session";
 import { useLoad } from "@/lib/useLoad";
-import { openWeb } from "@/lib/web";
 import { useT } from "@/lib/i18n";
 import { colors, fonts, radii } from "@/theme";
 
@@ -25,17 +25,12 @@ import { colors, fonts, radii } from "@/theme";
 // `on.discover`): For you (trending) or Near you (nearest suppliers), the supplier, Costs / Sell at / You keep,
 // Save, Ask, Share, Next and "Add to my shop", which opens the product and its Dropship agreement steps
 // (find/[slug]). Suppliers' statuses show as rings on top. The list view: Nigeria (local suppliers who dropship or
-// sell wholesale), China · 1688 (imports through the sourcing partner, on the web) and Trending. Cards show Cost /
-// Sell / You keep and the supplier's verification, risk score and distance. For now only suppliers near the seller show.
+// sell wholesale) and Trending, with the web's search and category chips plus a Filters sheet (dropship or
+// wholesale, what it costs, the supplier's city, verified suppliers only). Cards show Cost / Sell / You keep and the
+// supplier's verification, risk score and distance. For now only suppliers near the seller show. China · 1688
+// imports aren't open yet (the web turns requests away), so the app has no China tab.
 
-type Tab = "nigeria" | "china" | "trending";
-
-function matches(product: FindProduct, q: string) {
-  const words = q.toLowerCase().split(/[\s,]+/).filter((word) => word.length > 1);
-  if (!words.length) return true;
-  const haystack = [product.name, product.description, product.category, product.supplier.name, product.supplier.city].join(" ").toLowerCase();
-  return words.every((word) => haystack.includes(word.replace(/(es|s)$/, "")));
-}
+type Tab = "nigeria" | "trending";
 
 function ProductCard({ product, added }: { product: FindProduct; added: boolean }) {
   const t = useT("m_find");
@@ -147,12 +142,14 @@ export default function FindProducts() {
   const t = useT("m_find");
   const tm = useT("marketplace");
   const [tab, setTab] = useState<Tab>("nigeria");
-  const [q, setQ] = useState(typeof params.q === "string" ? params.q.slice(0, 60) : "");
-  const [category, setCategory] = useState("");
+  const [filters, setFilters] = useState<FindFilters>(() => ({ ...NO_FIND_FILTERS, q: typeof params.q === "string" ? params.q.slice(0, 60) : "" }));
+  const [sheet, setSheet] = useState(false);
+  const set = (patch: Partial<FindFilters>) => setFilters((now) => ({ ...now, ...patch }));
   const products = useMemo(() => loaded.data?.products ?? [], [loaded.data]);
   const added = useMemo(() => new Set(loaded.data?.context?.addedIds ?? []), [loaded.data]);
   const categories = useMemo(() => sortCategories(products.map((product) => product.category)), [products]);
-  const shown = useMemo(() => products.filter((product) => (!category || product.category === category) && matches(product, q)), [products, category, q]);
+  const cities = useMemo(() => findCities(products), [products]);
+  const shown = useMemo(() => filterFind(products, filters), [products, filters]);
   const trending = useMemo(() => [...products].filter((product) => product.trendScore > 0).sort((a, b) => b.trendScore - a.trendScore).slice(0, 20), [products]);
   const country = loaded.data?.context?.country ?? "Nigeria";
 
@@ -283,7 +280,6 @@ export default function FindProducts() {
       <Segmented
         options={[
           { value: "nigeria", label: country },
-          { value: "china", label: "China · 1688" },
           { value: "trending", label: t("tab.popular") },
         ]}
         value={tab}
@@ -292,12 +288,12 @@ export default function FindProducts() {
 
       {tab === "nigeria" ? (
         <>
-          <Field value={q} onChangeText={setQ} placeholder={t("search")} returnKeyType="search" accessibilityLabel={t("searchLabel")} style={{ height: 48 }} />
-          {categories.length > 1 ? (
-            <ChipRow>
-              <Chip label={t("all")} on={!category} onPress={() => setCategory("")} />
-              {categories.map((name) => <Chip key={name} label={t.dynamic(`category.${name}`, name)} on={category === name} onPress={() => setCategory(category === name ? "" : name)} />)}
-            </ChipRow>
+          <Field value={filters.q} onChangeText={(q) => set({ q })} placeholder={t("search")} returnKeyType="search" accessibilityLabel={t("searchLabel")} style={{ height: 48 }} />
+          {products.length ? (
+            <FilterBar testID="find-filters" onMore={() => setSheet(true)} moreLabel={t("filters.title")} moreCount={findFilterCount(filters)}>
+              {categories.length > 1 ? <Seg label={t("all")} on={!filters.category} onPress={() => set({ category: "" })} /> : null}
+              {categories.length > 1 ? categories.map((name) => <Seg key={name} label={t.dynamic(`category.${name}`, name)} on={filters.category === name} onPress={() => set({ category: filters.category === name ? "" : name })} />) : null}
+            </FilterBar>
           ) : null}
           {loaded.data ? (
             loaded.data.hasPlace ? (
@@ -305,7 +301,7 @@ export default function FindProducts() {
             ) : (
               <Card style={{ gap: 10, backgroundColor: "#FDF0D5" }}>
                 <T style={{ fontSize: 14, lineHeight: 20 }}>{tm("trust.addCity")}</T>
-                <PillButton title={tm("trust.addCityBtn")} tone="white" size="sm" onPress={() => void openWeb("/home/settings")} />
+                <PillButton title={tm("trust.addCityBtn")} tone="white" size="sm" onPress={() => router.push("/settings")} />
               </Card>
             )
           ) : null}
@@ -316,36 +312,41 @@ export default function FindProducts() {
               {t("empty.body", { country })}
             </EmptyState>
           ) : null}
-          {products.length && !shown.length ? <EmptyState icon="search" title={t("noMatch.title")}>{t("noMatch.body")}</EmptyState> : null}
+          {products.length && !shown.length ? (
+            <EmptyState icon="search" title={t("noMatch.title")} action={<PillButton title={t("filters.clear")} size="sm" tone="white" onPress={() => setFilters(NO_FIND_FILTERS)} />}>
+              {t("noMatch.body")}
+            </EmptyState>
+          ) : null}
           {grid(shown)}
-        </>
-      ) : null}
-
-      {tab === "china" ? (
-        <>
-          <Card style={{ gap: 10 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-              <View style={{ width: 46, height: 46, borderRadius: 14, backgroundColor: colors.peach, alignItems: "center", justifyContent: "center" }}>
-                <AppIcon name="truck" size={22} color={colors.accentInk} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <T weight="extrabold" style={{ fontSize: 16 }}>{t("china.title")}</T>
-                <T style={{ color: colors.inkSoft, fontSize: 13 }}>{t("china.sub")}</T>
-              </View>
-            </View>
-            {[t("china.step1"), t("china.step2"), t("china.step3")].map((line, index) => (
-              <View key={line} style={{ flexDirection: "row", gap: 10, alignItems: "flex-start" }}>
-                <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: colors.canvas, alignItems: "center", justifyContent: "center" }}>
-                  <T weight="extrabold" style={{ fontSize: 12 }}>{String(index + 1)}</T>
-                </View>
-                <T style={{ flex: 1, lineHeight: 20 }}>{line}</T>
-              </View>
-            ))}
-            <PillButton title={t("china.quote")} size="md" onPress={() => void openWeb("/marketplace?tab=china")} />
-          </Card>
-          <Card style={{ paddingVertical: 2 }}>
-            <LinkRow first icon="box" label={t("china.imports")} hint={t("china.importsHint")} onPress={() => void openWeb("/home/imports")} />
-          </Card>
+          <FilterSheet
+            visible={sheet}
+            onClose={() => setSheet(false)}
+            title={t("filters.title")}
+            doneLabel={t("filters.show", { count: shown.length })}
+            clearLabel={t("filters.clear")}
+            onClear={() => setFilters((now) => ({ ...NO_FIND_FILTERS, q: now.q, category: now.category }))}
+          >
+            <FilterGroup label={t("filters.way")}>
+              <Chip label={t("filters.any")} on={!filters.way} onPress={() => set({ way: "" })} />
+              <Chip label={t("card.dropship")} on={filters.way === "dropship"} onPress={() => set({ way: filters.way === "dropship" ? "" : "dropship" })} />
+              <Chip label={t("card.wholesale")} on={filters.way === "wholesale"} onPress={() => set({ way: filters.way === "wholesale" ? "" : "wholesale" })} />
+            </FilterGroup>
+            <FilterGroup label={t("filters.price")}>
+              <Chip label={t("filters.any")} on={!filters.price} onPress={() => set({ price: "" })} />
+              {FIND_PRICE_BANDS.map((band) => (
+                <Chip key={band.key} label={t(`filters.price.${band.key}`)} on={filters.price === band.key} onPress={() => set({ price: filters.price === band.key ? "" : band.key })} />
+              ))}
+            </FilterGroup>
+            {cities.length > 1 ? (
+              <FilterGroup label={t("filters.location")}>
+                <Chip label={t("filters.anywhere")} on={!filters.city} onPress={() => set({ city: "" })} />
+                {cities.map((city) => <Chip key={city} label={city} on={filters.city === city} onPress={() => set({ city: filters.city === city ? "" : city })} />)}
+              </FilterGroup>
+            ) : null}
+            <FilterGroup label={t("filters.suppliers")}>
+              <Chip label={t("filters.verified")} on={filters.verified} onPress={() => set({ verified: !filters.verified })} />
+            </FilterGroup>
+          </FilterSheet>
         </>
       ) : null}
 

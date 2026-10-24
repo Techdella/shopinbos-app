@@ -65,7 +65,7 @@ test("Chats: All / Customers / Partners / Unread, and Peggy's draft reply with S
 test("Shop looks are an app screen; Rex's credits top up by email, never a sale", () => {
   assert.match(mobile("app/(tabs)/shop.tsx"), /id: "themes"[^\n]+path: "app:\/templates"/);
   const looks = mobile("lib/templates.ts");
-  for (const route of ['"/api/store/templates"', '"/api/store/templates/apply"', '"/api/store/templates/recommend"']) assert.ok(looks.includes(route), route);
+  for (const route of ['"/api/mobile/looks"', '"/api/store/templates/apply"', '"/api/store/templates/recommend"']) assert.ok(looks.includes(route), route);
   const rex = mobile("app/rex.tsx");
   assert.match(rex, /emailTopUp\(\)/);
   assert.match(rex, /fetchCredits\(\)/);

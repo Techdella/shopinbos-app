@@ -4,6 +4,8 @@ import type { ProductVariant, VariantOption } from "@shared/product-variants";
 import type { MoreSource } from "./product-more-pure";
 import { api } from "./api";
 import type { CategoryLite, StoreCategory } from "./categories-pure";
+import type { ProductItem } from "./dashboard";
+import { productListPath, type ProductListQuery } from "./product-filters-pure";
 
 // One product in the seller's shop, for the product editor (app/product/[id].tsx).
 //   GET    /api/app/store-products/[id]   the product, its variants and (dropship) the supplier and cost
@@ -56,6 +58,9 @@ export interface EditProduct extends MoreSource {
 export type { StoreCategory };
 
 export const fetchStoreCategories = () => api<StoreCategory[]>("/api/store/categories");
+
+/** The Products list with the web's filters (status chips, low stock, dropship, category, sort). */
+export const fetchProductList = (query: ProductListQuery) => api<ProductItem[]>(productListPath(query));
 
 export const fetchAllCategories = () => api<CategoryLite[]>("/api/public/categories");
 

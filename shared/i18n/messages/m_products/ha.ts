@@ -67,6 +67,23 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "view.inStock": "A stock",
   "view.share": "Raba wannan kaya",
   "view.editDetails": "Gyara bayanai",
+  "filters.title": "Matattara",
+  "filters.done": "An gama",
+  "filters.clear": "Share matattara",
+  "filters.none": "Babu kayan da ya dace.",
+  "filters.category": "Rukuni",
+  "filters.sort": "Tsari",
+  "filters.show.all": "Duka",
+  "filters.show.live": "Live",
+  "filters.show.draft": "Drafts",
+  "filters.show.low": "Kaya sun yi ƙasa",
+  "filters.show.dropship": "Dropship",
+  "filters.show.archived": "An ajiye a gefe",
+  "filters.sort.newest": "Mafi sabo",
+  "filters.sort.sales": "Mafi sayarwa",
+  "filters.sort.price_low": "Mafi araha tukuna",
+  "filters.sort.price_high": "Mafi tsada tukuna",
+  "filters.sort.name": "Suna A zuwa Z",
 };
 
 export default ha;

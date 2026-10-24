@@ -1,11 +1,13 @@
 import { useCallback, useMemo, useState } from "react";
-import { ScrollView, View } from "react-native";
+import { View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { naira } from "@shared/onboarding";
 import { List, Row, Seg, Sub } from "@/components/design";
+import { FilterBar, FilterGroup, FilterSheet } from "@/components/FilterBar";
 import { EmptyState } from "@/components/kit";
 import { Thumb } from "@/components/seller/bits";
-import { Notice, PillButton } from "@/components/ui";
+import { Chip, Field, Notice, PillButton } from "@/components/ui";
+import { NO_ORDER_FILTERS, ORDER_PAYS, filterOrders, orderFilterCount, type OrderFilters } from "@/lib/order-filters-pure";
 import { TabScreen } from "@/components/TabScreen";
 import { fetchOrders, type OrderRow } from "@/lib/dashboard";
 import { fetchDeliveryHub } from "@/lib/delivery";
@@ -17,7 +19,8 @@ import { colors } from "@/theme";
 
 // Orders ("Seller app" prototype `on.orders`): three chips with counts (Needs action, On the way, Done) over one
 // card of rows: picture, "customer · total", "item · where it is". A delivery a partner declined (or didn't take
-// in time) puts its order under Needs action.
+// in time) puts its order under Needs action. The Filters sheet adds the web's "Unpaid" and "To send" and a search by
+// customer, item or order number (web /home/orders).
 
 type Listed = OrderRow & { createdAt: string; status: string };
 
@@ -28,6 +31,8 @@ export default function Orders() {
   const [problems, setProblems] = useState<Map<string, string>>(new Map());
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [filters, setFilters] = useState<OrderFilters>(NO_ORDER_FILTERS);
+  const [sheet, setSheet] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -49,18 +54,27 @@ export default function Orders() {
 
   const grouped = useMemo(() => {
     const out: Record<OrderGroup, Listed[]> = { need: [], way: [], done: [] };
-    for (const order of orders ?? []) out[orderGroup(order.status, problems.has(order.id))].push(order);
+    for (const order of filterOrders(orders ?? [], filters)) out[orderGroup(order.status, problems.has(order.id))].push(order);
     return out;
-  }, [orders, problems]);
+  }, [orders, problems, filters]);
   const shown = grouped[group];
+  const set = (patch: Partial<OrderFilters>) => setFilters((now) => ({ ...now, ...patch }));
 
   return (
     <TabScreen title={t("tab.orders")} refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 20 }} style={{ marginHorizontal: -20, flexGrow: 0 }}>
+      <FilterBar testID="orders-filters" onMore={() => setSheet(true)} moreLabel={t("filters.title")} moreCount={orderFilterCount(filters)}>
         {ORDER_GROUPS.map((key) => (
           <Seg key={key} label={t(`list.group.${key}`)} count={orders ? grouped[key].length : undefined} on={group === key} onPress={() => setGroup(key)} />
         ))}
-      </ScrollView>
+      </FilterBar>
+      <FilterSheet visible={sheet} onClose={() => setSheet(false)} title={t("filters.title")} doneLabel={t("filters.done")} clearLabel={t("filters.clear")} onClear={() => setFilters(NO_ORDER_FILTERS)}>
+        <Field value={filters.q} onChangeText={(q) => set({ q })} placeholder={t("filters.search")} accessibilityLabel={t("filters.search")} returnKeyType="search" autoCorrect={false} style={{ height: 48 }} />
+        <FilterGroup label={t("filters.pay")}>
+          {ORDER_PAYS.map((pay) => (
+            <Chip key={pay} label={t(`filters.pay.${pay}`)} on={filters.pay === pay} onPress={() => set({ pay })} />
+          ))}
+        </FilterGroup>
+      </FilterSheet>
       {error && <Notice>{error}</Notice>}
       {orders?.length ? <PushPromptCard who="seller" /> : null}
       {orders && !orders.length ? (
@@ -69,8 +83,9 @@ export default function Orders() {
         </EmptyState>
       ) : null}
       {orders?.length && !shown.length ? (
-        <View style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 20 }}>
+        <View style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 20, gap: 12 }}>
           <Sub>{t("list.nothingTitle")}</Sub>
+          {orderFilterCount(filters) ? <PillButton title={t("filters.clear")} size="sm" tone="white" onPress={() => setFilters(NO_ORDER_FILTERS)} /> : null}
         </View>
       ) : null}
       {shown.length ? (
