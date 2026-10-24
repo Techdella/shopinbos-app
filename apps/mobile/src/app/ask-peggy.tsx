@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
-import { router, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { Bubble, ChatScreen, Composer } from "@/components/ChatScreen";
 import { CreditsLine } from "@/components/familiar/Credits";
 import { TILE } from "@/components/design";
 import { AppIcon } from "@/components/icons";
-import { Mascot, PillButton, T } from "@/components/ui";
+import { ErrorState } from "@/components/kit";
+import { Mascot, T } from "@/components/ui";
 import { ApiError } from "@/lib/api";
 import { askPeggy, fetchCredits, fetchPeggyIntro, type ChatTurn } from "@/lib/familiar";
 import { familiarRole } from "@/lib/familiar-pure";
@@ -46,18 +47,17 @@ export default function AskPeggy() {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [draft, setDraft] = useState("");
   const [thinking, setThinking] = useState(false);
-  const [soon, setSoon] = useState(false);
   const { prompt } = useLocalSearchParams<{ prompt?: string }>();
   const asked = useRef(false);
 
-  // Not on this server yet: GET answered 404.
+  // No answer from GET (a 404): the normal error with Retry.
   const missing = !intro.loading && !intro.error && !intro.data;
   const shownBalance = balance ?? credits.data?.balance ?? null;
   const suggestions = intro.data?.suggestions?.length ? intro.data.suggestions.slice(0, 4) : DEFAULT_SUGGESTIONS[who].map((key) => t(key));
 
   async function ask(text = draft) {
     const message = text.trim();
-    if (!message || thinking || soon) return;
+    if (!message || thinking || missing) return;
     setDraft("");
     const next: Turn[] = [...turns, { from: "me", text: message }];
     setTurns(next);
@@ -71,8 +71,7 @@ export default function AskPeggy() {
       setTurns((current) => [...current, { from: "peggy", text: result.reply }]);
       if (typeof result.creditsLeft === "number") setBalance(result.creditsLeft);
     } catch (error) {
-      if (error instanceof ApiError && (error.status === 404 || error.status === 501)) setSoon(true);
-      setTurns((current) => [...current, { from: "peggy", failed: true, text: error instanceof ApiError && (error.status === 404 || error.status === 501) ? t("peg.soon") : error instanceof Error ? error.message : t("peg.failed") }]);
+      setTurns((current) => [...current, { from: "peggy", failed: true, text: error instanceof ApiError && (error.status === 404 || error.status === 501) ? t("peg.failed") : error instanceof Error ? error.message : t("peg.failed") }]);
     } finally {
       setThinking(false);
     }
@@ -95,15 +94,13 @@ export default function AskPeggy() {
     </>
   );
 
-  const closed = missing || soon;
-
   return (
     <ChatScreen
       header={header}
       backTo={homeFor(role)}
       scrollKey={turns.length + (thinking ? 0.5 : 0)}
       composer={
-        closed ? undefined : (
+        missing ? undefined : (
           <Composer value={draft} onChange={setDraft} onSend={() => void ask()} busy={thinking} placeholder={t("peg.placeholder")} />
         )
       }
@@ -112,12 +109,7 @@ export default function AskPeggy() {
 
       {intro.loading && !intro.data ? <T style={{ color: colors.inkSoft }}>{t("peg.loading")}</T> : null}
 
-      {missing ? (
-        <View style={{ gap: 12 }}>
-          <Bubble mine={false}>{t("peg.soon")}</Bubble>
-          {who === "seller" ? <PillButton title={t("peg.openOld")} tone="white" size="md" onPress={() => router.replace("/peggy")} /> : null}
-        </View>
-      ) : null}
+      {missing ? <ErrorState message={t("peg.failed")} onRetry={() => void intro.reload()} /> : null}
 
       {!intro.loading && !missing ? (
         <>

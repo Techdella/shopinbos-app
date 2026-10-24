@@ -26,7 +26,6 @@ export default function Create() {
   const [prompt, setPrompt] = useState(typeof params.prompt === "string" ? params.prompt : "");
   const [busy, setBusy] = useState<string | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
-  const [soon, setSoon] = useState(false);
   const ideas = useLoad(fetchIdeas);
   const credits = useLoad(fetchCredits);
 
@@ -39,8 +38,8 @@ export default function Create() {
       router.push({ pathname: "/create/[id]", params: { id: job.id } });
       void credits.reload();
     } catch (error) {
-      if (error instanceof ApiError && (error.status === 404 || error.status === 501)) setSoon(true);
-      else setProblem(error instanceof Error ? error.message : t("cr.failed"));
+      // A missing route reads as an outage: "Rex couldn't start just now. Try again."
+      setProblem(error instanceof ApiError && (error.status === 404 || error.status === 501) ? t("cr.failed") : error instanceof Error ? error.message : t("cr.failed"));
     } finally {
       setBusy(null);
     }
@@ -55,66 +54,58 @@ export default function Create() {
     <Screen
       title={t("cr.title")}
       footer={
-        soon ? null : (
-          <PillButton
-            title={t("cr.make", { format: t(FORMAT_KEY[format]) })}
-            tone="accent"
-            busy={busy === "prompt"}
-            disabled={!prompt.trim() || Boolean(busy)}
-            onPress={() => void make({ format, prompt: prompt.trim().slice(0, 600) }, "prompt")}
-          />
-        )
+        <PillButton
+          title={t("cr.make", { format: t(FORMAT_KEY[format]) })}
+          tone="accent"
+          busy={busy === "prompt"}
+          disabled={!prompt.trim() || Boolean(busy)}
+          onPress={() => void make({ format, prompt: prompt.trim().slice(0, 600) }, "prompt")}
+        />
       }
     >
       <CreditsLine balance={credits.data?.balance} who="rex" />
 
-      {soon ? (
-        <Notice tone="info">{t("cr.soon")}</Notice>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }} accessibilityRole="radiogroup" accessibilityLabel={t("cr.formatLabel")}>
+        {FORMATS.map((option) => <Seg key={option} label={t(FORMAT_KEY[option])} on={format === option} onPress={() => setFormat(option)} />)}
+      </View>
+
+      {sorted.length ? (
+        <View style={{ gap: 10 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <Eyebrow>{t("cr.ideas")}</Eyebrow>
+            <LinkButton title={t("cr.myPosts")} onPress={() => router.push("/posts")} />
+          </View>
+          <List>
+            {sorted.slice(0, 6).map((idea) => (
+              <Row
+                key={idea.id}
+                lead={<Tile icon={idea.format === "reel" ? "play" : idea.format === "flyer" ? "doc" : "image"} tone={idea.format === "status" ? "lime" : idea.format === "reel" ? "lilac" : idea.format === "flyer" ? "butter" : "sky"} />}
+                title={idea.title}
+                sub={`${t(FORMAT_KEY[idea.format] ?? FORMAT_KEY.post)} · ${idea.line}`}
+                right={<PillButton title={t("cr.makeIt")} tone="accent" size="sm" busy={busy === idea.id} accessibilityLabel={t("cr.makeItLabel", { title: idea.title })} onPress={() => void make({ format: idea.format, ideaId: idea.id }, idea.id)} />}
+              />
+            ))}
+          </List>
+        </View>
       ) : (
-        <>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }} accessibilityRole="radiogroup" accessibilityLabel={t("cr.formatLabel")}>
-            {FORMATS.map((option) => <Seg key={option} label={t(FORMAT_KEY[option])} on={format === option} onPress={() => setFormat(option)} />)}
-          </View>
-
-          {sorted.length ? (
-            <View style={{ gap: 10 }}>
-              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-                <Eyebrow>{t("cr.ideas")}</Eyebrow>
-                <LinkButton title={t("cr.myPosts")} onPress={() => router.push("/posts")} />
-              </View>
-              <List>
-                {sorted.slice(0, 6).map((idea) => (
-                  <Row
-                    key={idea.id}
-                    lead={<Tile icon={idea.format === "reel" ? "play" : idea.format === "flyer" ? "doc" : "image"} tone={idea.format === "status" ? "lime" : idea.format === "reel" ? "lilac" : idea.format === "flyer" ? "butter" : "sky"} />}
-                    title={idea.title}
-                    sub={`${t(FORMAT_KEY[idea.format] ?? FORMAT_KEY.post)} · ${idea.line}`}
-                    right={<PillButton title={t("cr.makeIt")} tone="accent" size="sm" busy={busy === idea.id} accessibilityLabel={t("cr.makeItLabel", { title: idea.title })} onPress={() => void make({ format: idea.format, ideaId: idea.id }, idea.id)} />}
-                  />
-                ))}
-              </List>
-            </View>
-          ) : (
-            <View style={{ alignItems: "flex-end" }}>
-              <LinkButton title={t("cr.myPosts")} onPress={() => router.push("/posts")} />
-            </View>
-          )}
-
-          <View style={{ gap: 8 }}>
-            <T weight="bold" style={{ fontSize: 15 }} nativeID="create-prompt">{t("cr.promptLabel")}</T>
-            <Field
-              value={prompt}
-              onChangeText={setPrompt}
-              placeholder={t("cr.promptHint")}
-              multiline
-              maxLength={600}
-              accessibilityLabel={t("cr.promptLabel")}
-              accessibilityLabelledBy="create-prompt"
-              style={{ height: 110, paddingTop: 14, textAlignVertical: "top" }}
-            />
-          </View>
-        </>
+        <View style={{ alignItems: "flex-end" }}>
+          <LinkButton title={t("cr.myPosts")} onPress={() => router.push("/posts")} />
+        </View>
       )}
+
+      <View style={{ gap: 8 }}>
+        <T weight="bold" style={{ fontSize: 15 }} nativeID="create-prompt">{t("cr.promptLabel")}</T>
+        <Field
+          value={prompt}
+          onChangeText={setPrompt}
+          placeholder={t("cr.promptHint")}
+          multiline
+          maxLength={600}
+          accessibilityLabel={t("cr.promptLabel")}
+          accessibilityLabelledBy="create-prompt"
+          style={{ height: 110, paddingTop: 14, textAlignVertical: "top" }}
+        />
+      </View>
 
       {problem ? <Notice>{problem}</Notice> : null}
 

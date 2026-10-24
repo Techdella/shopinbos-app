@@ -26,5 +26,12 @@ test("the wallet top-up email points each role at its own web wallet and is rate
 
 test("Call Peggy reads every word from the m_help catalog", () => {
   const button = read("apps/mobile/src/components/CallPeggyButton.tsx");
-  for (const key of ["call.title", "call.label", "call.note", "call.soon", "call.failed"]) assert.ok(button.includes(`t("${key}")`), key);
+  for (const key of ["call.title", "call.label", "call.note", "call.failed"]) assert.ok(button.includes(`t("${key}")`), key);
+});
+
+test("Call Peggy is hidden when calls aren't set up, never a coming-soon message", () => {
+  const button = read("apps/mobile/src/components/CallPeggyButton.tsx");
+  assert.match(button, /if \(!ready\) return null;/);
+  assert.doesNotMatch(button, /soon/i);
+  assert.doesNotMatch(read("shared/i18n/messages/m_help/en.ts"), /"call\.soon"/);
 });

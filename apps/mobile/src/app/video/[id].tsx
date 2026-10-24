@@ -9,10 +9,10 @@ import { Sheet } from "@/components/Sheet";
 import { Card, LinkButton, Notice, PillButton, T } from "@/components/ui";
 import { friendlyDay } from "@/lib/friendly";
 import { saveProduct } from "@/lib/products";
-import { shareText } from "@/lib/share";
+import { ShareSheet } from "@/components/familiar/ShareSheet";
 import { useLoad } from "@/lib/useLoad";
 import { deleteVideo, fetchVideo, patchVideo } from "@/lib/video";
-import { publishedKinds, readConfig, readPurpose, readStatus, shareMessage } from "@/lib/video-pure";
+import { publishedKinds, readConfig, readPurpose, readStatus } from "@/lib/video-pure";
 import { openWeb } from "@/lib/web";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
@@ -42,6 +42,7 @@ export default function VideoDetail() {
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ tone: "error" | "success" | "info"; text: string } | null>(null);
   const [confirm, setConfirm] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const row = video.data;
 
   // A draft has nothing to play yet: it opens in the studio.
@@ -96,7 +97,7 @@ export default function VideoDetail() {
     <Screen
       title={row.title}
       sub={[t(`hub.status.${status}`), friendlyDay(row.updatedAt, new Date(), t), row.seconds ? t("hub.seconds", { seconds: Math.round(row.seconds) }) : null].filter(Boolean).join(" · ")}
-      footer={<PillButton title={t("watch.share")} onPress={() => void shareText(shareMessage(row.title, url))} />}
+      footer={<PillButton title={t("watch.share")} onPress={() => setSharing(true)} />}
       refreshing={video.refreshing}
       onRefresh={() => void video.refresh()}
     >
@@ -153,6 +154,9 @@ export default function VideoDetail() {
       </Card>
 
       <LinkButton title={t("delete.button")} color={colors.danger} onPress={() => setConfirm(true)} />
+
+      {/* Share: the video file itself, through the phone's share sheet (WhatsApp, Instagram, TikTok, Facebook, Save). */}
+      <ShareSheet visible={sharing} onClose={() => setSharing(false)} imageUrl={url} caption={row.title.trim()} />
 
       <Sheet visible={confirm} onClose={() => setConfirm(false)} title={t("delete.title")}>
         <T style={{ fontSize: 15, lineHeight: 22, color: colors.inkSoft }}>{t("delete.body", { title: row.title })}</T>

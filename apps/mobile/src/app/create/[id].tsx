@@ -29,7 +29,6 @@ export default function CreateResult() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [job, setJob] = useState<CreateJob | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [missing, setMissing] = useState(false);
   const [slow, setSlow] = useState(false);
   const [picked, setPicked] = useState(0);
   const [caption, setCaption] = useState<string | null>(null);
@@ -58,7 +57,8 @@ export default function CreateResult() {
         }
       } catch (loadError) {
         if (!alive) return;
-        if (loadError instanceof ApiError && (loadError.status === 404 || loadError.status === 501)) setMissing(true);
+        // A missing route is an outage too: the normal error with Retry.
+        if (loadError instanceof ApiError && (loadError.status === 404 || loadError.status === 501)) setError(t("cr.loadFailed"));
         else setError(loadError instanceof Error ? loadError.message : t("cr.failed"));
       }
     };
@@ -119,13 +119,13 @@ export default function CreateResult() {
       setSheet(null);
       router.replace({ pathname: "/posts/[id]", params: { id: post.id, scheduled: "1" } });
     } catch (saveError) {
-      if (saveError instanceof ApiError && (saveError.status === 404 || saveError.status === 501)) throw new Error(t("posts.soon"));
+      if (saveError instanceof ApiError && (saveError.status === 404 || saveError.status === 501)) throw new Error(t("sched.failed"));
       throw saveError;
     }
   };
 
   // ─── Making ───
-  if (!missing && !error && (!job || job.status === "making")) {
+  if (!error && (!job || job.status === "making")) {
     return (
       <Screen title={t("cr.title")} help={false}>
         <View style={{ alignItems: "center", gap: 16, paddingTop: 40 }} accessibilityLiveRegion="polite">
@@ -156,7 +156,6 @@ export default function CreateResult() {
         ) : null
       }
     >
-      {missing ? <EmptyState icon="sparkle" title={t("soon.title")}>{t("cr.soon")}</EmptyState> : null}
       {error ? <ErrorState message={error} onRetry={checkAgain} /> : null}
 
       {job?.status === "failed" ? (

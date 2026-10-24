@@ -80,7 +80,6 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "call.title": "Kira Peggy · kyauta",
   "call.label": "Kira Peggy, kyauta",
   "call.note": "Peggy ita ce taimakon AI na Shopinbos. Za ta bi ka mataki-mataki.",
-  "call.soon": "Kiran Peggy yana zuwa nan ba da daɗewa ba. Yi hira da ita maimakon haka, ko ka aiko mana saƙo a WhatsApp.",
   "call.failed": "Ba a iya samun Peggy yanzu ba. Sake gwadawa.",
 };
 

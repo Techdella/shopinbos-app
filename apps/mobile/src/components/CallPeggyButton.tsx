@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { View, type StyleProp, type ViewStyle } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import { api, ApiError } from "@/lib/api";
@@ -10,19 +10,38 @@ import { colors } from "@/theme";
 // "Call Peggy · free": a voice call with Peggy, Shopinbos's AI customer support, for help getting set up. The
 // server gives a one-time link (GET /api/mobile/peggy-call, valid 15 minutes) and the call runs in the phone's
 // browser (the same call as the web dashboards: src/components/peggy/PeggyCall.tsx). Free: no AI credits.
+// The button only shows when calls are set up on the server (`ready`); otherwise it isn't there at all.
+
+type CallLink = { ready: boolean; url: string };
+
+const fetchCallLink = () => api<CallLink>("/api/mobile/peggy-call");
 
 export function CallPeggyButton({ style, note = true }: { style?: StyleProp<ViewStyle>; note?: boolean }) {
   const t = useT("m_help");
+  const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    fetchCallLink()
+      .then((link) => alive && setReady(link.ready))
+      .catch(() => null);
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  if (!ready) return null;
 
   const call = async () => {
     setBusy(true);
     setError(null);
     try {
-      const link = await api<{ ready: boolean; url: string }>("/api/mobile/peggy-call");
+      // A fresh link each time: the one-time link only lasts 15 minutes.
+      const link = await fetchCallLink();
       if (!link.ready) {
-        setError(t("call.soon"));
+        setReady(false);
         return;
       }
       await WebBrowser.openBrowserAsync(link.url);
