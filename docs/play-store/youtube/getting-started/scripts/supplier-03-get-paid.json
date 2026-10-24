@@ -1,0 +1,56 @@
+{
+  "id": "supplier-03-get-paid",
+  "role": "supplier",
+  "topic": "get_paid",
+  "title": "How you get paid",
+  "series": "Suppliers",
+  "episode": 3,
+  "intro": "Here's how money works for suppliers on Shopinbos.",
+  "steps": [
+    {
+      "shot": "shots/supplier-03-get-paid/01.png",
+      "caption": "Coming to your bank",
+      "vo": "Open Money. Coming to your bank is your share of orders the shops have paid for. It reaches your bank once delivery is confirmed.",
+      "highlight": {
+        "x": 20,
+        "y": 80,
+        "w": 353,
+        "h": 150
+      }
+    },
+    {
+      "shot": "shots/supplier-03-get-paid/02.png",
+      "caption": "Straight to your bank",
+      "vo": "Customers pay at checkout, and your share is sent straight to your bank. Shopinbos doesn't hold your money. Tap Change to use a different bank.",
+      "highlight": {
+        "x": 20,
+        "y": 110,
+        "w": 353,
+        "h": 86
+      }
+    },
+    {
+      "shot": "shots/supplier-03-get-paid/03.png",
+      "caption": "See every payment",
+      "vo": "Under Recent, you can see each order that was paid, and the bank it went to.",
+      "highlight": {
+        "x": 20,
+        "y": 66,
+        "w": 353,
+        "h": 92
+      }
+    },
+    {
+      "shot": "shots/supplier-03-get-paid/04.png",
+      "caption": "Ready to get paid",
+      "vo": "In your Shopinbos Wallet, check you're receiving payments: choose where we send your money, and verify your CAC or BN business registration.",
+      "highlight": {
+        "x": 20,
+        "y": 340,
+        "w": 353,
+        "h": 130
+      }
+    }
+  ],
+  "outro": "That's it. You're ready to sell with Shopinbos. Start easy, sell smarter."
+}

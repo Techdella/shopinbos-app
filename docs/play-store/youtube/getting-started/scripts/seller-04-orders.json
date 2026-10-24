@@ -1,0 +1,67 @@
+{
+ "id": "seller-04-orders",
+ "role": "seller",
+ "topic": "orders",
+ "title": "Send an order to your customer",
+ "series": "Sellers",
+ "episode": 4,
+ "intro": "Here's how to handle an order, from paid to delivered.",
+ "steps": [
+  {
+   "shot": "shots/seller-04-orders/01.png",
+   "caption": "Orders that need you",
+   "vo": "Open Orders. Needs action shows the orders you still have to pack and send.",
+   "highlight": {
+    "x": 34,
+    "y": 91,
+    "w": 96,
+    "h": 19
+   }
+  },
+  {
+   "shot": "shots/seller-04-orders/02.png",
+   "caption": "Open the order",
+   "vo": "Tap an order to see what they bought, how much they paid, and the delivery.",
+   "highlight": {
+    "x": 106,
+    "y": 65,
+    "w": 267,
+    "h": 25
+   }
+  },
+  {
+   "shot": "shots/seller-04-orders/03.png",
+   "caption": "Call or WhatsApp the buyer",
+   "vo": "Their address and phone number are here. Tap Call or WhatsApp to reach them in one tap.",
+   "highlight": {
+    "x": 95,
+    "y": 389,
+    "w": 229,
+    "h": 21
+   }
+  },
+  {
+   "shot": "shots/seller-04-orders/04.png",
+   "caption": "Track the delivery",
+   "vo": "Track shows every step: paid, being prepared, picked up and delivered.",
+   "highlight": {
+    "x": 41,
+    "y": 487,
+    "w": 217,
+    "h": 25
+   }
+  },
+  {
+   "shot": "shots/seller-04-orders/05.png",
+   "caption": "Record a sale",
+   "vo": "Sold something in person? Tap the plus button and record a sale, so all your sales are in one place.",
+   "highlight": {
+    "x": 56,
+    "y": 15,
+    "w": 233,
+    "h": 25
+   }
+  }
+ ],
+ "outro": "Keep your customers updated, and they'll come back."
+}

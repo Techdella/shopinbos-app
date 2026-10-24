@@ -35,3 +35,11 @@ test("Call Peggy is hidden when calls aren't set up, never a coming-soon message
   assert.doesNotMatch(button, /soon/i);
   assert.doesNotMatch(read("shared/i18n/messages/m_help/en.ts"), /"call\.soon"/);
 });
+
+test("the prepaid balance is off in store builds unless EXPO_PUBLIC_PREPAID_BALANCE=true (Play: digital wallets need an organization account)", () => {
+  const lib = read("apps/mobile/src/lib/wallet.ts");
+  const screen = read("apps/mobile/src/app/wallet.tsx");
+  assert.match(lib, /PREPAID_BALANCE_IN_APP = process\.env\.EXPO_PUBLIC_PREPAID_BALANCE === "true"/);
+  assert.match(screen, /\{PREPAID_BALANCE_IN_APP \? <WalletBalanceCard \/> : null\}/);
+  assert.doesNotMatch(read("apps/mobile/eas.json"), /EXPO_PUBLIC_PREPAID_BALANCE/);
+});

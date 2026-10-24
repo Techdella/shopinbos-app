@@ -1,0 +1,67 @@
+{
+  "id": "supplier-01-products",
+  "role": "supplier",
+  "topic": "supplier_products",
+  "title": "Add your products for shops to sell",
+  "series": "Suppliers",
+  "episode": 1,
+  "intro": "Welcome to Shopinbos for suppliers. In one minute, you'll add a product that shops across Nigeria can sell.",
+  "steps": [
+    {
+      "shot": "shots/supplier-01-products/01.png",
+      "caption": "Tap Add product",
+      "vo": "On your Home screen, tap Add product.",
+      "highlight": {
+        "x": 14,
+        "y": 236,
+        "w": 94,
+        "h": 90
+      }
+    },
+    {
+      "shot": "shots/supplier-01-products/02.png",
+      "caption": "Take a photo of it",
+      "vo": "Take a photo of your product, or choose one from your gallery. Use a clear photo on a plain background, because shops use it on their stores.",
+      "highlight": {
+        "x": 20,
+        "y": 720,
+        "w": 353,
+        "h": 52
+      }
+    },
+    {
+      "shot": "shots/supplier-01-products/03.png",
+      "caption": "Name, prices and stock",
+      "vo": "Give it a name. Add your price for one, for dropship orders, and your wholesale price for twenty or more. Then say how many you have.",
+      "highlight": {
+        "x": 14,
+        "y": 368,
+        "w": 365,
+        "h": 84
+      }
+    },
+    {
+      "shot": "shots/supplier-01-products/04.png",
+      "caption": "Retail price and details",
+      "vo": "Add a suggested retail price. Shops add their own margin on top of your wholesale price. Describe it, then pick what kind of product it is.",
+      "highlight": {
+        "x": 14,
+        "y": 537,
+        "w": 365,
+        "h": 84
+      }
+    },
+    {
+      "shot": "shots/supplier-01-products/05.png",
+      "caption": "Save: we check it first",
+      "vo": "Tap Save. We check it first, usually within a day. It shows on your Products page as In review, and we'll tell you when a shop adds it.",
+      "highlight": {
+        "x": 212,
+        "y": 70,
+        "w": 162,
+        "h": 285
+      }
+    }
+  ],
+  "outro": "That's it. Next, learn how to handle orders from shops."
+}
