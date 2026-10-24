@@ -26,6 +26,8 @@ import {
 } from "@/lib/logistics";
 import { deliverModeOf, deliveryAreasFor, draftFromRow, nairaInput, pickupAreasFor, priceText, rowsToSave, starterRates, statesIn, type DeliverMode, type DraftRate } from "@/lib/logistics-pure";
 import { checkWalletAccount, fetchWallet, linkWalletBank, type WalletData } from "@/lib/wallet";
+import { usePeggyContinue, usePeggySaved } from "@/lib/peggy-call";
+import { partnerWizardStep } from "@/lib/peggy-call-pure";
 import { colors } from "@/theme";
 
 // Set-up for a new delivery company ("Delivery partner app" prototype pWelcome … pReview, "N of 6"): the company
@@ -33,6 +35,8 @@ import { colors } from "@/theme";
 // where you cover and what you offer, the rate card, the bank delivery fees are paid to (Shopinbos Wallet), then
 // "Send for review": set-up is marked done (the web set-up's call), coverage and prices are saved, the bank linked
 // and the documents sent to be checked. Shown while the company isn't set up (/logistics/home sends it here).
+// "Call Peggy" is on every step: while she's on the call, the areas and starting price she saves fill the steps
+// here as she goes, and after the call it opens the first step that's still missing (documents only last).
 
 type Step = "welcome" | "biz" | "docs" | "cover" | "services" | "rates" | "payout" | "review";
 const ORDER: Step[] = ["welcome", "biz", "docs", "cover", "services", "rates", "payout", "review"];
@@ -43,7 +47,14 @@ function Frame({ step, onBack, children, footer }: { step: number; onBack?: () =
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 32, gap: 20 }}>
-          {onBack ? <StepHeader step={step} total={6} label={t("setup.step", { step, total: 6 })} onBack={onBack} backLabel={t("back")} /> : null}
+          {onBack ? (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <StepHeader step={step} total={6} label={t("setup.step", { step, total: 6 })} onBack={onBack} backLabel={t("back")} />
+              </View>
+              <CallPeggyButton variant="compact" />
+            </View>
+          ) : null}
           {children}
         </ScrollView>
         <View style={{ paddingHorizontal: 20, paddingBottom: 12, paddingTop: 10, gap: 10 }}>{footer}</View>
@@ -72,6 +83,10 @@ function Wizard({ market, wallet, docsDone: initialDocs }: { market: MarketData;
   const [mode, setMode] = useState<DeliverMode>(deliverModeOf(partner.pickupAreas, partner.deliveryAreas));
   const [deliver, setDeliver] = useState<string[]>(statesIn(partner.deliveryAreas));
   const [services, setServices] = useState<string[]>(partner.services.length ? partner.services : ["doorstep"]);
+  // The saved areas (Peggy can add to them on a call; area tokens the chips don't show are kept when saving).
+  const [savedAreas, setSavedAreas] = useState({ pickupAreas: partner.pickupAreas, deliveryAreas: partner.deliveryAreas });
+  // A starting price Peggy saved on a call, for the city rows of the rate card.
+  const [peggyPrice, setPeggyPrice] = useState<string | null>(null);
   // 5. Rate card
   const card = market.rateCard;
   const [rows, setRows] = useState<DraftRate[]>(card?.rows.length ? card.rows.map(draftFromRow) : []);
@@ -98,11 +113,35 @@ function Wizard({ market, wallet, docsDone: initialDocs }: { market: MarketData;
     };
   }, [bank, digits]);
 
+  // Peggy saving on a call: the areas and price show here straight away.
+  usePeggySaved((item) => {
+    if (item.kind === "coverage") {
+      fetchMarket()
+        .then((fresh) => {
+          setSavedAreas({ pickupAreas: fresh.partner.pickupAreas, deliveryAreas: fresh.partner.deliveryAreas });
+          setPickup(statesIn(fresh.partner.pickupAreas));
+          setDeliver(statesIn(fresh.partner.deliveryAreas));
+          setMode(deliverModeOf(fresh.partner.pickupAreas, fresh.partner.deliveryAreas));
+        })
+        .catch(() => null);
+    } else if (item.kind === "price") {
+      const price = item.detail.replace(/\D/g, "");
+      if (!price) return;
+      setPeggyPrice(price);
+      setRows((current) => current.map((row) => (!row.price && row.from === row.to ? { ...row, price } : row)));
+    }
+  });
   const go = (next: Step) => {
     setError(null);
     setStep(next);
   };
   const back = () => go(ORDER[Math.max(0, ORDER.indexOf(step) - 1)]);
+
+  // After the call: the first step that's still missing.
+  usePeggyContinue((status) => {
+    if (status) go(partnerWizardStep(status.steps));
+    return true;
+  });
 
   async function saveCompany() {
     setBusy("biz");
@@ -136,7 +175,7 @@ function Wizard({ market, wallet, docsDone: initialDocs }: { market: MarketData;
   }
 
   function toRates() {
-    if (!rows.length) setRows(starterRates(pickup, mode, deliver, services));
+    if (!rows.length) setRows(starterRates(pickup, mode, deliver, services).map((row) => (peggyPrice && row.from === row.to ? { ...row, price: peggyPrice } : row)));
     go("rates");
   }
 
@@ -156,7 +195,7 @@ function Wizard({ market, wallet, docsDone: initialDocs }: { market: MarketData;
         deliveryTypes: before?.deliveryTypes.length ? before.deliveryTypes : services.includes("same_day") ? ["same_day", "next_day"] : ["next_day"],
         basePrice: Math.min(...priced.map((row) => row.price)),
       });
-      await saveCoverage({ services, pickupAreas: pickupAreasFor(pickup, partner.pickupAreas), deliveryAreas: deliveryAreasFor(mode, pickup, deliver, partner.deliveryAreas), offersPayOnDelivery: partner.offersPayOnDelivery });
+      await saveCoverage({ services, pickupAreas: pickupAreasFor(pickup, savedAreas.pickupAreas), deliveryAreas: deliveryAreasFor(mode, pickup, deliver, savedAreas.deliveryAreas), offersPayOnDelivery: partner.offersPayOnDelivery });
       await saveRateCard({ rows: priced, failedAttemptFee: nairaInput(fail) ?? 0, returnFee: nairaInput(ret) ?? 0, notes });
       if (bank && digits.length === 10) await linkWalletBank({ bankName: bank, accountNumber: digits });
       // Sent to be checked once the required documents are in; otherwise they can upload them from Verification.

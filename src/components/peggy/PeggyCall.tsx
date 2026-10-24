@@ -6,9 +6,26 @@ import { cx } from "@/components/app-ui/cx";
 import { Icon } from "@/components/ui/Icon";
 
 // "Call Peggy": a free voice call with Peggy (ElevenLabs) for setup help. Signed in on the web it asks
-// /api/app/peggy-call; from the mobile app's link (/call-peggy?t=…) it uses the token instead.
+// /api/app/peggy-call; from the mobile app's link (/call-peggy?t=…) it uses the token instead. Peggy's tools (she
+// saves pickup details, areas, prices, descriptions and notes while she talks) run against
+// /api/mobile/peggy-call/action, the same as in the phone app.
 
 type Start = { signedUrl: string; dynamicVariables: Record<string, string> };
+
+const TOOLS = ["save_pickup_address", "add_pickup_point", "add_coverage", "set_starting_price", "set_description", "save_note", "save_call_summary", "lookup_areas"];
+
+function callTools(token: string | undefined) {
+  return Object.fromEntries(
+    TOOLS.map((tool) => [
+      tool,
+      async (params: Record<string, unknown>) => {
+        const response = await fetch("/api/mobile/peggy-call/action", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tool, params, ...(token ? { t: token } : {}) }) }).catch(() => null);
+        const json = (await response?.json().catch(() => null)) as { data?: { result?: string } } | null;
+        return json?.data?.result ?? "Not saved: something went wrong on our side. Tell them you've noted it and carry on.";
+      },
+    ]),
+  );
+}
 
 export function PeggyCall(props: { token?: string; size?: "lg" | "md"; className?: string }) {
   return (
@@ -45,7 +62,7 @@ function Call({ token, size = "lg", className }: { token?: string; size?: "lg" |
       setError(json?.error?.message ?? "Couldn't reach Peggy just now. Try again.");
       return;
     }
-    conversation.startSession({ signedUrl: json.data.signedUrl, dynamicVariables: json.data.dynamicVariables });
+    conversation.startSession({ signedUrl: json.data.signedUrl, dynamicVariables: json.data.dynamicVariables, clientTools: callTools(token) });
   };
 
   if (live || connecting) {

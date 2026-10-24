@@ -312,6 +312,15 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "ref.status.qualified": "Ọ na-agụ…",
   "ref.status.rewarded": "Enwetala ụgwọ",
   "ref.status.rejected": "Agụghị ya",
+  "sib.seller.call.title": "Kpọọ Peggy, n'efu",
+  "sib.seller.call.body": "Kwuo okwu na Peggy, ọ ga-eso gị dozie ụlọ ahịa gị. Bekee ma ọ bụ Pidgin.",
+  "sib.seller.call.cta": "Kpọọ Peggy",
+  "sib.supplier.call.title": "Kpọọ Peggy, n'efu",
+  "sib.supplier.call.body": "Gwa Peggy ebe i si ezipụ ngwa na ebe ị na-ere. Ọ ga-echekwa ya ka unu na-ekwu okwu.",
+  "sib.supplier.call.cta": "Kpọọ Peggy",
+  "sib.partner.call.title": "Kpọọ Peggy, n'efu",
+  "sib.partner.call.body": "Gwa Peggy ebe ị na-eru na ọnụahịa gị. Ọ ga-edejupụta nhazi gị ka unu na-ekwu okwu.",
+  "sib.partner.call.cta": "Kpọọ Peggy",
 };
 
 export default ig;

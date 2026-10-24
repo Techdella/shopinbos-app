@@ -312,6 +312,15 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "ref.status.qualified": "E dey count…",
   "ref.status.rewarded": "Reward don land",
   "ref.status.rejected": "E no count",
+  "sib.seller.call.title": "Call Peggy, e free",
+  "sib.seller.call.body": "Talk to Peggy, she go set your shop with you. English or Pidgin.",
+  "sib.seller.call.cta": "Call Peggy",
+  "sib.supplier.call.title": "Call Peggy, e free",
+  "sib.supplier.call.body": "Tell Peggy where you dey ship from and where you dey sell. She go save am as una dey talk.",
+  "sib.supplier.call.cta": "Call Peggy",
+  "sib.partner.call.title": "Call Peggy, e free",
+  "sib.partner.call.body": "Tell Peggy the areas wey you cover and your price. She go fill your setup as una dey talk.",
+  "sib.partner.call.cta": "Call Peggy",
 };
 
 export default pcm;

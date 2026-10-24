@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { AppPage, Pill, PillLink, StatTile, Thumb } from "@/components/app-kit";
+import { PeggyCallNotes } from "@/components/admin/PeggyCallNotes";
 import { adminFrame, buttonClass, fieldClass, formatDate, formatMoney } from "@/components/admin/AdminKit";
 import { requireAdminSection } from "@/lib/admin-team/service.server";
 import { accessLogFor, activeReveal } from "@/lib/admin/data-access.server";
@@ -101,6 +102,8 @@ export default async function AdminSellerPage(props: { params: Promise<{ id: str
           </details>
         )}
       </section>
+
+      <PeggyCallNotes userId={seller.userId} />
 
       <section id="shop-status" aria-labelledby="shop-status-title" className={card}>
         <h2 id="shop-status-title" className="m-0 flex flex-wrap items-center gap-2 text-[17px] font-extrabold">

@@ -4,6 +4,7 @@ import * as WebBrowser from "expo-web-browser";
 import { isShopinbosPath } from "@shared/shopinbos-status";
 import { openFeatureIntro } from "@/components/learn/events";
 import { dismissShopinbos, markStatusSeen, type StatusPost, type StatusVideo } from "./familiar";
+import { requestPeggyCall } from "./peggy-call";
 import { shareShop } from "./share";
 import { supabase } from "./supabase";
 
@@ -75,6 +76,11 @@ export function runShopinbosCta(post: StatusPost): boolean {
   }
   if (cta?.kind === "share") {
     void shareShop().catch(() => null);
+    return true;
+  }
+  // "Call Peggy": the free in-app call; where calls can't run (Expo Go, switched off) she answers in the chat.
+  if (cta?.kind === "call_peggy") {
+    if (!requestPeggyCall()) router.push("/ask-peggy");
     return true;
   }
   return false;

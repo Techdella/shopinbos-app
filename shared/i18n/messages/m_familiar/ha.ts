@@ -312,6 +312,15 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "ref.status.qualified": "Ana ƙirgawa…",
   "ref.status.rewarded": "An ba da lada",
   "ref.status.rejected": "Bai ƙidaya ba",
+  "sib.seller.call.title": "Kira Peggy, kyauta",
+  "sib.seller.call.body": "Yi magana da Peggy, za ta shirya shagonka tare da kai. Turanci ko Pidgin.",
+  "sib.seller.call.cta": "Kira Peggy",
+  "sib.supplier.call.title": "Kira Peggy, kyauta",
+  "sib.supplier.call.body": "Faɗa wa Peggy inda kake aika kaya da inda kake sayarwa. Za ta adana yayin da kuke magana.",
+  "sib.supplier.call.cta": "Kira Peggy",
+  "sib.partner.call.title": "Kira Peggy, kyauta",
+  "sib.partner.call.body": "Faɗa wa Peggy wuraren da kake kai wa da farashinka. Za ta cike saitinka yayin da kuke magana.",
+  "sib.partner.call.cta": "Kira Peggy",
 };
 
 export default ha;

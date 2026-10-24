@@ -312,6 +312,15 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "ref.status.qualified": "Ó ń kà á…",
   "ref.status.rewarded": "Ti gba èrè",
   "ref.status.rejected": "Kò kà á",
+  "sib.seller.call.title": "Pe Peggy, ọ̀fẹ́ ni",
+  "sib.seller.call.body": "Bá Peggy sọ̀rọ̀, yóò bá ọ ṣètò ṣọ́ọ̀bù rẹ. Gẹ̀ẹ́sì tàbí Pidgin.",
+  "sib.seller.call.cta": "Pe Peggy",
+  "sib.supplier.call.title": "Pe Peggy, ọ̀fẹ́ ni",
+  "sib.supplier.call.body": "Sọ fún Peggy ibi tí o ti ń fi ránṣẹ́ àti ibi tí o ń tà sí. Yóò fi pamọ́ bí ẹ ṣe ń sọ̀rọ̀.",
+  "sib.supplier.call.cta": "Pe Peggy",
+  "sib.partner.call.title": "Pe Peggy, ọ̀fẹ́ ni",
+  "sib.partner.call.body": "Sọ fún Peggy àwọn agbègbè tí o ń dé àti iye owó rẹ. Yóò kún ètò rẹ bí ẹ ṣe ń sọ̀rọ̀.",
+  "sib.partner.call.cta": "Pe Peggy",
 };
 
 export default yo;

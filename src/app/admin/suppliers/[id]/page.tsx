@@ -4,6 +4,7 @@ import { setSupplierAcceptHours, setSupplierMarketplaceVisible } from "@/app/act
 import { AppPage, Pill, PillLink, StatTile, Thumb } from "@/components/app-kit";
 import { DecisionButtons, VerificationPill, adminFrame, formatDate } from "@/components/admin/AdminKit";
 import { AdminDocumentViewer } from "@/components/verification/AdminDocumentViewer";
+import { PeggyCallNotes } from "@/components/admin/PeggyCallNotes";
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { parseVerificationDocs } from "@/lib/verification-utils";
@@ -115,6 +116,8 @@ export default async function AdminSupplierDetailPage(props: { params: Promise<{
           <button type="submit" className="inline-flex min-h-[40px] items-center rounded-full bg-app-ink px-4 text-[13.5px] font-extrabold text-white">Save</button>
         </form>
       </section>
+
+      <PeggyCallNotes userId={supplier.userId} />
 
       <AdminDocumentViewer
         role="supplier"

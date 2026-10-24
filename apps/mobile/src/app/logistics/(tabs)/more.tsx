@@ -5,6 +5,7 @@ import * as WebBrowser from "expo-web-browser";
 import { NATIONWIDE } from "@shared/delivery-market";
 import { List, Pill, Row, Small, Tile } from "@/components/design";
 import type { AppIconName } from "@/components/icons";
+import { CallPeggyButton } from "@/components/CallPeggyButton";
 import { LanguageRow } from "@/components/LanguagePicker";
 import { confirmSignOut } from "@/components/partner";
 import { CardButton, Initial, StatCard } from "@/components/PartnerKit";
@@ -17,6 +18,7 @@ import { useT } from "@/lib/i18n";
 import { fetchLogisticsOverview, fetchMarket, fetchRiders } from "@/lib/logistics";
 import { SERVICE_KEYS, stateLabel } from "@/lib/logistics-pure";
 import { verificationStage } from "@/lib/partner-pure";
+import { useCanCallPeggy } from "@/lib/peggy-call";
 import { useLoad } from "@/lib/useLoad";
 import { fetchWallet } from "@/lib/wallet";
 import { openWeb } from "@/lib/web";
@@ -38,6 +40,7 @@ function go(path: string) {
 
 export default function LogisticsBusiness() {
   const t = useT("m_partner", "common");
+  const callPeggy = useCanCallPeggy();
   const overview = useLoad(fetchLogisticsOverview);
   const market = useLoad(fetchMarket);
   const riders = useLoad(fetchRiders);
@@ -148,6 +151,7 @@ export default function LogisticsBusiness() {
       <List>
         <Row lead={<Tile icon="store" />} title={t("biz.profile")} onPress={() => router.push("/logistics/profile")} />
         <Row lead={<Tile icon="link" />} title={t("conn.title")} sub={market.data ? t("conn.banner", { count: market.data.connections.length }) : undefined} onPress={() => router.push("/logistics/connections")} />
+        {callPeggy ? <CallPeggyButton variant="row" /> : null}
         <Row lead={<Tile icon="help" />} title={t("biz.help")} onPress={() => router.push("/help")} />
       </List>
 
