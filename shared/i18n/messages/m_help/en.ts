@@ -82,7 +82,6 @@ const en = {
   "call.title": "Call Peggy · free",
   "call.label": "Call Peggy, free",
   "call.note": "Peggy is Shopinbos's AI support. She'll talk you through each step.",
-  "call.soon": "Calls with Peggy are coming soon. Chat with her instead, or message us on WhatsApp.",
   "call.failed": "Couldn't reach Peggy just now. Try again.",
 } satisfies Record<string, string>;
 

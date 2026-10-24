@@ -4,24 +4,21 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Image } from "expo-image";
 import { Eyebrow, List, Pill, Row, Small, Tile } from "@/components/design";
 import { AppIcon } from "@/components/icons";
-import { EmptyState, ErrorState, LoadingBlock } from "@/components/kit";
+import { ErrorState, LoadingBlock } from "@/components/kit";
 import { Screen } from "@/components/Screen";
-import { PillButton, T } from "@/components/ui";
+import { Notice, PillButton, T } from "@/components/ui";
 import { fetchPosts, type ScheduledPost } from "@/lib/familiar";
-import { AUTO_PLATFORMS, postDay, postPill, sameDay, startOfDay, weekDays, weekRange } from "@/lib/familiar-pure";
-import { openPath } from "@/lib/web";
-import { PLATFORM_KEY } from "@/components/familiar/ScheduleSheet";
+import { needsConnecting, postDay, postPill, sameDay, startOfDay, weekDays, weekRange } from "@/lib/familiar-pure";
+import { PLATFORM_KEY, useConnectPage } from "@/components/familiar/ScheduleSheet";
 import { formatDate } from "@shared/i18n";
-import { useRole } from "@/lib/role";
 import { useLoad } from "@/lib/useLoad";
 import { useLocale, useT } from "@/lib/i18n";
 import { colors, radii } from "@/theme";
 
 // The posts calendar ("Familiar app" prototype `calendar`): this week as a strip of days with dots, the picked
 // day's posts (Posted, Scheduled, Draft, Your turn, Didn't go out), the accounts and "Make a new post".
-// GET /api/mobile/posts?from&to. A seller's calendar is their Social posts on the website: Facebook and Instagram
-// post by themselves when the Page is connected there (Social posts → Accounts), WhatsApp and TikTok get a
-// reminder (connected on the Channels screen). Suppliers and delivery partners: reminders only.
+// GET /api/mobile/posts?from&to. Each account says in one line whether it posts by itself (a seller's connected
+// Facebook and Instagram) or we remind you; a seller's Facebook or Instagram that isn't connected has Connect.
 
 const DOT = { posted: colors.success, scheduled: colors.accent, draft: colors.inkFaint, attention: colors.warnInk, yourTurn: colors.accentInk } as const;
 
@@ -34,18 +31,22 @@ function dayParam(value: unknown): Date | null {
 export default function Posts() {
   const t = useT("m_familiar");
   const locale = useLocale();
-  const { role } = useRole();
   const params = useLocalSearchParams<{ day?: string }>();
   const [day, setDay] = useState<Date>(() => startOfDay(dayParam(params.day) ?? new Date()));
   const days = weekDays(day);
   const range = weekRange(day);
   const week = useLoad(() => fetchPosts(range.from, range.to), range.from.toISOString());
   const data = week.data;
+  // No calendar answer (a 404 hides it in the client): the normal error, with Retry.
   const missing = !week.loading && !week.error && !data;
+  const [connectProblem, setConnectProblem] = useState<string | null>(null);
+  const page = useConnectPage(() => void week.refresh());
+  const connect = async () => {
+    setConnectProblem(null);
+    setConnectProblem(await page.connect());
+  };
 
   const posts = data?.posts ?? [];
-  // The server marks a seller's accounts with `auto`: their calendar is Social posts.
-  const sellerCalendar = Boolean(data?.accounts?.some((account) => account.auto !== undefined));
   const onDay = (date: Date) => posts.filter((post) => {
     const at = postDay(post);
     return at ? sameDay(at, date) : false;
@@ -74,7 +75,7 @@ export default function Posts() {
         </PillButton>
       }
     >
-      {missing ? <EmptyState icon="clock" title={t("soon.title")}>{t("posts.soon")}</EmptyState> : null}
+      {missing ? <ErrorState message={t("posts.loadFailed")} onRetry={() => void week.reload()} /> : null}
 
       {!missing ? (
         <>
@@ -154,35 +155,36 @@ export default function Posts() {
               <Eyebrow>{t("posts.accounts")}</Eyebrow>
               <List>
                 {data.accounts.map((account) => {
-                  // A seller's Facebook and Instagram connect on Social posts (website); the rest on Channels.
-                  const social = account.auto !== undefined && (AUTO_PLATFORMS as readonly string[]).includes(account.key);
+                  // A seller's Facebook and Instagram post by themselves once the Page is connected; everything
+                  // else is a reminder, which needs nothing connected.
+                  const toConnect = needsConnecting(account.key, data.accounts);
                   return (
                     <Row
                       key={account.key}
                       title={account.label}
-                      sub={account.auto ? t("posts.auto") : social ? t("posts.autoNotLinked") : account.linked ? t("posts.linked") : t("posts.notLinked")}
+                      sub={toConnect ? t("posts.notConnected") : account.auto ? t("posts.auto") : t("posts.remind")}
                       right={
-                        account.linked ? (
-                          <Pill label={account.auto ? t("posts.autoPill") : t("posts.connected")} tone="ok" icon="check" />
-                        ) : role === "seller" ? (
+                        toConnect ? (
                           <PillButton
                             title={t("posts.connect")}
                             tone="white"
                             size="sm"
+                            busy={page.connecting}
                             accessibilityLabel={t("posts.connectLabel", { name: account.label })}
-                            onPress={() => (social ? void openPath("/home/marketing/social/accounts") : router.push("/channels"))}
+                            onPress={() => void connect()}
                             style={{ borderRadius: radii.pill }}
                           />
+                        ) : account.linked ? (
+                          <Pill label={t("posts.connectedPill")} tone="ok" icon="check" />
                         ) : null
                       }
                     />
                   );
                 })}
               </List>
+              {connectProblem ? <Notice>{connectProblem}</Notice> : null}
             </View>
           ) : null}
-
-          <Small>{sellerCalendar ? t("posts.statusNoteSeller") : t("posts.statusNote")}</Small>
         </>
       ) : null}
     </Screen>

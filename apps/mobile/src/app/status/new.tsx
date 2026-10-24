@@ -92,7 +92,7 @@ export default function NewStatus() {
         await sharePost({ imageUrl: picture, caption: [headline, caption].filter(Boolean).join("\n"), target: "whatsapp_status", title: t("share.title") }).catch(() => false);
       }
     } catch (error) {
-      if (error instanceof ApiError && (error.status === 404 || error.status === 501)) setProblem(t("sn.soon"));
+      if (error instanceof ApiError && (error.status === 404 || error.status === 501)) setProblem(t("sn.failed"));
       else setProblem(error instanceof Error ? error.message : t("sn.failed"));
     } finally {
       setBusy(false);

@@ -45,6 +45,8 @@ const APP_SCREENS: Record<string, string> = {
   "/home/marketing/campaigns": "/marketing",
   // A seller's Social posts calendar is the app's posts calendar.
   "/home/marketing/social": "/posts",
+  "/home/marketing/social/new": "/create",
+  "/home/marketing/social/accounts": "/posts",
   "/home/discounts": "/marketing",
   "/home/marketing/templates": "/marketing/templates",
   "/studio": "/rex",
@@ -87,6 +89,8 @@ export function openPath(path: string) {
   const template = pathname.match(/^\/home\/marketing\/templates\/([\w-]+)$/);
   if (template && template[1] !== "new") return router.push({ pathname: "/marketing/template/[id]", params: { id: template[1] } });
   if (pathname === "/home/reviews/request") return router.push("/reviews/ask" as never);
+  const post = pathname.match(/^\/home\/marketing\/social\/([\w-]+)$/);
+  if (post && !["new", "designs", "accounts"].includes(post[1])) return router.push({ pathname: "/posts/[id]", params: { id: post[1] } });
   // Video studio links carry the draft (?id=), or what a new video is for (?purpose=, ?product=).
   const video = videoScreenFor(path);
   if (video) return router.push({ pathname: video.pathname, params: video.params });

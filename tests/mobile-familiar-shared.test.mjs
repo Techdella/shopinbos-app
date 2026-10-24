@@ -1,7 +1,7 @@
 // The phone app's shared "Familiar app" screens (apps/mobile/src/app/{rewards,ask-peggy}.tsx, create/, posts/,
 // status/new.tsx): the pure helpers are loaded directly (Node strips the types); the screens are checked for the
 // product rules: AI credits are never sold in the app, we never claim to post for anyone, points are never money,
-// and every backend call has a "coming soon" path while the routes land.
+// and a backend that doesn't answer shows the normal error with Retry, never "coming soon".
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -81,8 +81,26 @@ test("scheduling copy is honest per app: auto for a seller's connected Facebook 
   assert.equal(pure.joinNames(["WhatsApp"], and), "WhatsApp");
   assert.equal(pure.joinNames(["WhatsApp", "TikTok"], and), "WhatsApp and TikTok");
   assert.equal(pure.joinNames(["Facebook", "Instagram", "X"], and), "Facebook, Instagram and X");
-  for (const key of ["sched.autoOnly", "sched.autoAndRemind", "sched.connectFirst", "posts.statusNoteSeller", "and"]) assert.match(en, new RegExp(`"${key.replace(".", "\\.")}"`));
-  assert.match(read("apps/mobile/src/components/familiar/ScheduleSheet.tsx"), /fetchPostAccounts\(\)/);
+  // One short line per app: "Posts by itself" or "We remind you"; no long notes under the list.
+  assert.match(en, /"posts\.auto": "Posts by itself"/);
+  assert.match(en, /"posts\.remind": "We remind you"/);
+  const sheet = read("apps/mobile/src/components/familiar/ScheduleSheet.tsx");
+  assert.match(sheet, /fetchPostAccounts\(\)/);
+  assert.match(sheet, /t\("posts\.auto"\) : t\("posts\.remind"\)/);
+  for (const key of ["sched.autoOnly", "sched.autoAndRemind", "sched.connectFirst", "sched.remind", "posts.statusNote", "posts.statusNoteSeller"]) assert.doesNotMatch(en, new RegExp(`"${key.replace(".", "\\.")}"`), key);
+});
+
+test("posting and connecting stay in the app: Connect runs the Facebook sign-in, nothing opens the website", () => {
+  for (const path of ["apps/mobile/src/components/familiar/ScheduleSheet.tsx", "apps/mobile/src/app/posts/index.tsx", "apps/mobile/src/app/posts/[id].tsx", "apps/mobile/src/app/create/index.tsx", "apps/mobile/src/app/create/[id].tsx"]) {
+    const source = read(path);
+    assert.doesNotMatch(source, /openWeb|openPath|social\/accounts/, path);
+  }
+  assert.match(read("apps/mobile/src/components/familiar/ScheduleSheet.tsx"), /connectChannel\("meta"\)/);
+  assert.match(read("apps/mobile/src/app/posts/index.tsx"), /useConnectPage/);
+  // Rex's pictures and saved videos share through the phone's share sheet.
+  assert.match(read("apps/mobile/src/app/rex.tsx"), /<ShareSheet /);
+  assert.doesNotMatch(read("apps/mobile/src/app/rex.tsx"), /card\.save/);
+  assert.match(read("apps/mobile/src/app/video/[id].tsx"), /<ShareSheet /);
 });
 
 test("notification filters follow the prototype per role and map to the bell's categories", () => {
@@ -122,8 +140,7 @@ test("credits are shown, never sold: Top up emails how to top up on the website"
 });
 
 test("posting is share sheet plus reminders: no copy claims we post for anyone", () => {
-  assert.match(en, /"sched\.remind": "We'll remind you to post it at that time\."/);
-  assert.match(en, /"posts\.statusNote": "WhatsApp Status can't be posted for you/);
+  assert.match(en, /"posts\.ch\.remind": "We'll remind you at the time"/);
   const words = [...en.matchAll(/^\s+"[^"]+": "(.*)",$/gm)].map((m) => m[1]);
   for (const line of words) assert.doesNotMatch(line, /we(?:'ll| will)? post (?:it )?for you|auto-?post|posts? automatically/i, line);
   const share = read("apps/mobile/src/lib/familiar-share.ts");
@@ -139,12 +156,23 @@ test("points are never money", () => {
   assert.doesNotMatch(read("apps/mobile/src/app/rewards.tsx"), /withdraw/i);
 });
 
-test("every screen has a coming-soon path for a backend that isn't there yet", () => {
+test("no screen says coming soon: a backend that doesn't answer shows the normal error with Retry", () => {
   for (const path of SCREENS) {
     const source = read(path);
-    assert.match(source, /soon/, `${path} shows "coming soon"`);
+    assert.doesNotMatch(source, /soon/i, `${path} has no "coming soon"`);
     assert.match(source, /404|optional\(|useLoad\(\(?\)? ?=?>? ?fetch\w+/, `${path} handles a missing route`);
   }
+  for (const path of ["apps/mobile/src/app/rewards.tsx", "apps/mobile/src/app/ask-peggy.tsx", "apps/mobile/src/app/create/[id].tsx", "apps/mobile/src/app/posts/index.tsx", "apps/mobile/src/app/posts/[id].tsx"]) {
+    assert.match(read(path), /<ErrorState[^>]*onRetry=/, `${path} offers Retry`);
+  }
+  for (const ns of ["m_familiar", "m_help", "m_onboarding"]) {
+    for (const lang of ["en", "pcm", "yo", "ha", "ig"]) {
+      const catalog = read(`shared/i18n/messages/${ns}/${lang}.ts`);
+      assert.doesNotMatch(catalog, /"[^"]*soon[^"]*":/i, `${ns}/${lang} has no "soon" keys`);
+    }
+  }
+  // Instagram import isn't in the app: its door is left out, not shown as coming soon.
+  assert.match(read("apps/mobile/src/app/onboarding/products.tsx"), /PRODUCT_DOORS\.filter\(\(item\) => item\.key !== "ig"\)/);
 });
 
 test("the reminder push opens the post", async () => {

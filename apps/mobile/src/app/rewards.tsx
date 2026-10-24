@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
-import { EmptyState, ErrorState, LoadingBlock } from "@/components/kit";
+import { ErrorState, LoadingBlock } from "@/components/kit";
 import { BigNumber, Eyebrow, List, Pill, Row, Small, TILE, Tile, Title } from "@/components/design";
 import { AppIcon } from "@/components/icons";
 import { Screen } from "@/components/Screen";
@@ -16,8 +16,8 @@ import { colors, fonts } from "@/theme";
 
 // Rewards for sellers, suppliers and delivery partners ("Familiar app" prototype `rewards`): the level with a ring,
 // the streak and points, this week's challenges with Claim, badges, and swapping points for Rex credits. Points
-// are never money ("Points can't be turned into cash"). GET/POST /api/mobile/rewards; hidden as "coming soon" until
-// the server has it.
+// are never money ("Points can't be turned into cash"). GET/POST /api/mobile/rewards; no answer shows the
+// normal error with Retry.
 
 function LevelRing({ level, progress }: { level: number; progress: number }) {
   const size = 96;
@@ -81,9 +81,7 @@ export default function Rewards() {
     <Screen title={t("rw.title")} refreshing={rewards.refreshing} onRefresh={() => void rewards.refresh()}>
       {rewards.loading && !data ? <LoadingBlock /> : null}
       {rewards.error && !data ? <ErrorState message={rewards.error} onRetry={() => void rewards.reload()} /> : null}
-      {!rewards.loading && !rewards.error && !data ? (
-        <EmptyState icon="star" title={t("soon.title")}>{t("rw.soon")}</EmptyState>
-      ) : null}
+      {!rewards.loading && !rewards.error && !data ? <ErrorState message={t("rw.loadFailed")} onRetry={() => void rewards.reload()} /> : null}
 
       {data ? (
         <>

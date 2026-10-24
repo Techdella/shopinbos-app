@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import type { MapPoint } from "@/lib/rider-pure";
 import { MapBox } from "@/components/RiderKit";
 
-// The Riders app map. This file is the fallback (web, where react-native-maps doesn't run): the plain map panel.
+// The Riders app map. This file is the fallback (web, where MapLibre doesn't run): the plain map panel.
 // Phones use RiderMap.native.tsx, with the same props.
 
 export interface RiderMapProps {

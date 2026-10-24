@@ -80,7 +80,6 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "call.title": "Call Peggy · free",
   "call.label": "Call Peggy, free",
   "call.note": "Peggy na Shopinbos AI support. She go talk you through each step.",
-  "call.soon": "Calls with Peggy dey come soon. Chat with am for now, or message us for WhatsApp.",
   "call.failed": "We no fit reach Peggy now. Try again.",
 };
 

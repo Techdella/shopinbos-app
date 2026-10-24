@@ -80,7 +80,6 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "call.title": "Pe Peggy · lọ́fẹ̀ẹ́",
   "call.label": "Pe Peggy, lọ́fẹ̀ẹ́",
   "call.note": "Peggy ni AI ìrànlọ́wọ́ Shopinbos. Yóò tọ́ ọ sọ́nà ní ìgbésẹ̀ kọ̀ọ̀kan.",
-  "call.soon": "Ìpè pẹ̀lú Peggy ń bọ̀ láìpẹ́. Bá a sọ̀rọ̀ nínú chat dípò, tàbí kọ̀wé sí wa lórí WhatsApp.",
   "call.failed": "A kò rí Peggy báyìí. Gbìyànjú lẹ́ẹ̀kan sí i.",
 };
 

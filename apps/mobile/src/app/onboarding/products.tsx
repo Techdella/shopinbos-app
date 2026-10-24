@@ -12,6 +12,9 @@ import { saveMemory } from "@/lib/onboarding";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 
+// Instagram import isn't in the app: that door is left out rather than shown as "coming soon".
+const DOORS = PRODUCT_DOORS.filter((item) => item.key !== "ig");
+
 export default function Products() {
   const t = useT("m_onboarding", "m_products");
   const params = useLocalSearchParams<{ door?: string }>();
@@ -36,7 +39,7 @@ export default function Products() {
     }
   }
 
-  const info = PRODUCT_DOORS.find((item) => item.key === door)!;
+  const info = DOORS.find((item) => item.key === door) ?? DOORS[0];
   const count = drafts.drafts.length;
   const label = count ? t("products.continueWith", { count }) : status?.productCount ? t("products.continue") : t("products.later");
 
@@ -53,8 +56,9 @@ export default function Products() {
       <Title>{t("products.title")}</Title>
       <Sub style={{ marginTop: 8, marginBottom: 20 }}>{t("products.sub")}</Sub>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
-        {PRODUCT_DOORS.map((item) => (
-          <Pressable key={item.key} accessibilityRole="button" accessibilityState={{ selected: door === item.key }} onPress={() => setDoor(item.key)} style={{ width: "48.4%", minHeight: 118, backgroundColor: colors.surface, borderRadius: 20, padding: 16, borderWidth: door === item.key ? 2.5 : 1.5, borderColor: door === item.key ? colors.ink : colors.line }}>
+        {DOORS.map((item) => (
+          // Two to a row; an odd last one takes the whole row instead of leaving a gap.
+          <Pressable key={item.key} accessibilityRole="button" accessibilityState={{ selected: door === item.key }} onPress={() => setDoor(item.key)} style={{ flexGrow: 1, flexBasis: "45%", minHeight: 118, backgroundColor: colors.surface, borderRadius: 20, padding: 16, borderWidth: door === item.key ? 2.5 : 1.5, borderColor: door === item.key ? colors.ink : colors.line }}>
             <T weight="extrabold" style={{ fontSize: 15, lineHeight: 18 }}>{t.dynamic(`door.${item.key}.label`, item.label)}</T>
             <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 18, marginTop: 6 }}>{t.dynamic(`door.${item.key}.hint`, item.hint)}</T>
           </Pressable>
@@ -66,16 +70,12 @@ export default function Products() {
         ) : (
           <Card style={{ padding: 20, borderRadius: 24, borderWidth: 1, borderColor: colors.line }}>
             <T style={{ color: colors.inkSoft, lineHeight: 21 }}>{t.dynamic(`door.${info.key}.note`, info.note)}</T>
-            {door === "ig" ? (
-              <T weight="bold" style={{ color: colors.inkFaint, fontSize: 14, marginTop: 12 }}>{t("products.igSoon")}</T>
-            ) : (
-              <PillButton
-                title={door === "file" ? t("products.upload") : t("products.browse")}
-                size="md"
-                style={{ marginTop: 14 }}
-                onPress={() => void Linking.openURL(`${API_URL}${door === "file" ? "/products/import" : "/marketplace"}`)}
-              />
-            )}
+            <PillButton
+              title={door === "file" ? t("products.upload") : t("products.browse")}
+              size="md"
+              style={{ marginTop: 14 }}
+              onPress={() => void Linking.openURL(`${API_URL}${door === "file" ? "/products/import" : "/marketplace"}`)}
+            />
           </Card>
         )}
       </View>

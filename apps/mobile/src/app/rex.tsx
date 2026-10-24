@@ -4,6 +4,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Image } from "expo-image";
 import { AppIcon } from "@/components/icons";
 import { Bubble, ChatScreen, Composer } from "@/components/ChatScreen";
+import { ShareSheet } from "@/components/familiar/ShareSheet";
 import { Chip, Mascot, Notice, PillButton, T } from "@/components/ui";
 import { emailTopUp, fetchCredits } from "@/lib/familiar";
 import { askRex, cardNote, REX_STARTERS, type RexCard } from "@/lib/rex";
@@ -15,8 +16,8 @@ import { colors, radii } from "@/theme";
 // Ask Rex ("Familiar app" prototype `askRex`; Rex Studio chat, web /studio), like Peggy's screen: "I build and
 // change your shop", the credits with Top up (an email, never a sale in the app), three suggestions and the rest
 // of what Rex can do. Rex changes the draft store, makes pictures, logos, descriptions and campaigns. Cards show
-// what he made; a reel opens the phone's video studio as a draft with his words; previewing, publishing and saving
-// pictures open the web.
+// what he made; a reel opens the phone's video studio as a draft with his words; his pictures share from the phone's
+// share sheet; previewing and publishing the shop open the web.
 
 interface Turn {
   from: "me" | "rex";
@@ -47,8 +48,8 @@ function CardAction({ label, onPress }: { label: string; onPress: () => void }) 
   );
 }
 
-function CardView({ card, ask }: { card: RexCard; ask: (text: string) => void }) {
-  const t = useT("m_rex", "common");
+function CardView({ card, ask, share }: { card: RexCard; ask: (text: string) => void; share: (imageUrl: string) => void }) {
+  const t = useT("m_rex", "common", "m_familiar");
   const frame = { backgroundColor: colors.surface, borderRadius: 18, borderWidth: 1, borderColor: colors.line, padding: 12, gap: 8 } as const;
   switch (card.type) {
     case "image":
@@ -56,7 +57,7 @@ function CardView({ card, ask }: { card: RexCard; ask: (text: string) => void })
         <View style={frame}>
           <T weight="extrabold" style={{ fontSize: 14.5 }}>{card.title}{card.product ? ` · ${card.product.name}` : ""}</T>
           <Image source={{ uri: card.after }} style={{ width: "100%", aspectRatio: 1, borderRadius: 12, backgroundColor: colors.lilac }} contentFit="cover" accessibilityLabel={card.title} />
-          <CardAction label={t("card.save")} onPress={() => void openWeb("/studio")} />
+          <CardAction label={t("posts.share")} onPress={() => share(card.after)} />
         </View>
       );
     case "logos":
@@ -189,6 +190,7 @@ export default function Rex() {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [draft, setDraft] = useState("");
   const [thinking, setThinking] = useState(false);
+  const [sharing, setSharing] = useState<string | null>(null);
   const { prompt } = useLocalSearchParams<{ prompt?: string }>();
   const asked = useRef(false);
 
@@ -268,12 +270,14 @@ export default function Rex() {
         ) : (
           <View key={index} style={{ gap: 8, marginRight: 24 }}>
             {turn.text ? <Bubble mine={false}><T style={{ fontSize: 15, lineHeight: 21, color: turn.failed ? colors.inkSoft : colors.ink }}>{turn.text}</T></Bubble> : null}
-            {turn.cards?.map((card, cardIndex) => <CardView key={cardIndex} card={card} ask={(text) => void ask(text)} />)}
+            {turn.cards?.map((card, cardIndex) => <CardView key={cardIndex} card={card} ask={(text) => void ask(text)} share={setSharing} />)}
           </View>
         ),
       )}
       {thinking ? <T style={{ color: colors.inkSoft }}>{t("working")}</T> : null}
       {turns.length ? <PillButton title={t("openWeb")} tone="white" size="sm" style={{ alignSelf: "center", marginTop: 6 }} onPress={() => void openWeb("/studio")} /> : null}
+      {/* Rex's pictures are shared in the app: the phone's share sheet (WhatsApp, Instagram, TikTok, Facebook, Save). */}
+      <ShareSheet visible={Boolean(sharing)} onClose={() => setSharing(null)} imageUrl={sharing} caption="" />
     </ChatScreen>
   );
 }

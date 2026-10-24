@@ -216,8 +216,9 @@ test("a seller's ready reminder opens the post on the phone and Social posts on 
   assert.deepEqual(notifications.appRouteFor("/home/marketing/social/sp1"), { pathname: "/posts/[id]", params: { id: "sp1" } });
   assert.deepEqual(notifications.appRouteFor("https://app.shopinbos.com/home/marketing/social/sp1"), { pathname: "/posts/[id]", params: { id: "sp1" } });
   assert.deepEqual(notifications.appRouteFor("/home/marketing/social"), { pathname: "/posts" });
-  assert.deepEqual(notifications.appRouteFor("/home/marketing/social/new"), { pathname: "/marketing" });
-  assert.deepEqual(notifications.appRouteFor("/home/marketing/social/accounts"), { pathname: "/marketing" });
+  // Making a post and connecting accounts happen in the app too: Create with Rex and the posts calendar.
+  assert.deepEqual(notifications.appRouteFor("/home/marketing/social/new"), { pathname: "/create" });
+  assert.deepEqual(notifications.appRouteFor("/home/marketing/social/accounts"), { pathname: "/posts" });
   const server = read("src/lib/social-posts/server.ts");
   assert.match(server, /link: `\/home\/marketing\/social\/\$\{post\.id\}`/);
   assert.match(server, /dedupeKey: `social-post-ready:\$\{post\.id\}:\$\{ready\.join\(","\)\}`,\n\s+urgent: true,/, "once per channel set, not held by quiet hours");

@@ -4,7 +4,7 @@ import { useLocalSearchParams } from "expo-router";
 import { Image } from "expo-image";
 import * as Clipboard from "expo-clipboard";
 import { ShareSheet } from "@/components/familiar/ShareSheet";
-import { PLATFORM_KEY, useScheduleNote } from "@/components/familiar/ScheduleSheet";
+import { PLATFORM_KEY } from "@/components/familiar/ScheduleSheet";
 import { Banner, List, Pill, Row, Small } from "@/components/design";
 import { AppIcon } from "@/components/icons";
 import { EmptyState, ErrorState, LoadingBlock } from "@/components/kit";
@@ -13,7 +13,6 @@ import { Card, LinkButton, Notice, PillButton, T } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
 import { fetchPosts, optional, updatePost, type PostChannelResult, type ScheduledPost } from "@/lib/familiar";
 import { postDay, postPill } from "@/lib/familiar-pure";
-import { openPath } from "@/lib/web";
 import { formatDate } from "@shared/i18n";
 import { useLoad } from "@/lib/useLoad";
 import { useLocale, useT } from "@/lib/i18n";
@@ -23,7 +22,7 @@ import { colors } from "@/theme";
 // (app:/posts/<id>), and a seller's "Your post is ready for WhatsApp" (its web link /home/marketing/social/<id> opens
 // this screen in the app). Share opens the same sheet as Create (the phone's share sheet, WhatsApp, Instagram,
 // TikTok, Facebook, Save), and "Mark as posted" ticks it off (PATCH status posted). A seller's post also shows each
-// app: Facebook and Instagram post by themselves when the Page is connected, the rest are theirs to post.
+// app in one line: posts by itself, we remind you, posted, or didn't go out (then they share it themselves).
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -43,7 +42,6 @@ async function loadPost(id: string): Promise<ScheduledPost | null> {
 export default function PostDetail() {
   const t = useT("m_familiar");
   const locale = useLocale();
-  const note = useScheduleNote();
   const { id, scheduled } = useLocalSearchParams<{ id: string; scheduled?: string }>();
   const [sheet, setSheet] = useState(false);
   const [marking, setMarking] = useState(false);
@@ -102,7 +100,6 @@ export default function PostDetail() {
       ? channels.some((item) => !item.auto && (item.state === "pending" || item.state === "ready" || item.state === "failed"))
       : post.status !== "posted"
     : false;
-  const scheduledNote = post ? note(post.platforms as never, channels?.map((item) => ({ key: item.key, auto: item.auto }))) : "";
 
   return (
     <Screen
@@ -123,12 +120,20 @@ export default function PostDetail() {
     >
       {item.loading && !post ? <LoadingBlock /> : null}
       {item.error && !post ? <ErrorState message={item.error} onRetry={() => void item.reload()} /> : null}
-      {missing ? <EmptyState icon="clock" title={t("soon.title")}>{t("posts.soon")}</EmptyState> : null}
+      {missing ? (
+        <ErrorState
+          message={t("posts.loadFailed")}
+          onRetry={() => {
+            setMissing(false);
+            void item.reload();
+          }}
+        />
+      ) : null}
       {!item.loading && !item.error && !missing && !post ? <EmptyState icon="image" title={t("posts.gone")}>{t("posts.goneText")}</EmptyState> : null}
 
       {post ? (
         <>
-          {scheduled === "1" && post.status === "scheduled" ? <Banner tone="mint" icon="check" title={t("posts.added")}>{scheduledNote}</Banner> : null}
+          {scheduled === "1" && post.status === "scheduled" ? <Banner tone="mint" icon="check" title={t("posts.added")} /> : null}
           {post.status === "attention" ? (
             <Banner tone="warn" title={t("posts.attention")}>{t("posts.attentionText")}</Banner>
           ) : null}
@@ -148,7 +153,6 @@ export default function PostDetail() {
           ) : post.platforms.length ? (
             <Small>{t("posts.for", { apps: post.platforms.map(nameOf).join(", ") })}</Small>
           ) : null}
-          {channels?.some((item) => item.state === "failed") ? <LinkButton title={t("posts.openWeb")} onPress={() => void openPath(`/home/marketing/social/${encodeURIComponent(post.id)}`)} style={{ alignItems: "flex-start" }} /> : null}
           {post.caption ? (
             <Card style={{ gap: 8, borderRadius: 24 }}>
               <T style={{ fontSize: 15.5, lineHeight: 23 }} selectable>{post.caption}</T>
@@ -156,7 +160,6 @@ export default function PostDetail() {
             </Card>
           ) : null}
           {problem ? <Notice>{problem}</Notice> : null}
-          <Small>{post.kind === "social" ? t("posts.statusNoteSeller") : t("posts.statusNote")}</Small>
         </>
       ) : null}
 

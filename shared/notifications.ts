@@ -455,7 +455,8 @@ export function appRouteFor(link: string | null | undefined): AppRoute | null {
   if ((match = /^\/rider\/drop\/([\w-]+)$/.exec(pathname))) return { pathname: "/rider/drop/[id]", params: { id: match[1] } };
   // A seller's Social posts are the phone's posts calendar: "Your post is ready for WhatsApp" opens it with Share.
   if ((match = /^\/home\/marketing\/social\/([\w-]+)$/.exec(pathname)) && !["new", "designs", "accounts"].includes(match[1])) return { pathname: "/posts/[id]", params: { id: match[1] } };
-  if (pathname === "/home/marketing/social") return { pathname: "/posts" };
+  if (pathname === "/home/marketing/social" || pathname === "/home/marketing/social/accounts") return { pathname: "/posts" };
+  if (pathname === "/home/marketing/social/new") return { pathname: "/create" };
   for (const [pattern, screen] of SIMPLE_SCREENS) if (pattern.test(pathname)) return { pathname: screen };
   return null;
 }
