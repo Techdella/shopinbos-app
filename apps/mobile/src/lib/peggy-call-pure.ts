@@ -3,6 +3,7 @@
 // documents step), the setup wizards' own steps, and whether this build can run the call at all.
 
 import type { AppRole } from "./partner-pure";
+import { findScreen, openScreenReply, type PeggyScreen } from "../../../../shared/peggy-screens.ts";
 
 export type CallRole = Exclude<AppRole, "admin">;
 export type SavedKind = "pickup_address" | "pickup_point" | "coverage" | "price" | "description" | "note" | "summary";
@@ -23,7 +24,17 @@ export interface SetupView {
 }
 
 /** The tools Peggy can call on the phone (src/lib/onboarding/peggy-call-tools.ts VOICE_TOOLS). */
-export const CALL_TOOLS = ["save_pickup_address", "add_pickup_point", "add_coverage", "set_starting_price", "set_description", "save_note", "save_call_summary", "lookup_areas"] as const;
+export const CALL_TOOLS = ["save_pickup_address", "add_pickup_point", "add_coverage", "set_starting_price", "set_description", "save_note", "save_call_summary", "get_dashboard", "open_screen", "lookup_areas"] as const;
+
+/**
+ * Peggy's open_screen on the phone (run on the device, no server call): the allow-listed screen for this role
+ * (shared/peggy-screens.ts), the route to push and her answer. Unknown screens are refused and nothing opens.
+ */
+export function openScreenOnPhone(role: CallRole, params: unknown): { screen: PeggyScreen | null; route: string | null; reply: string } {
+  const asked = params && typeof params === "object" ? (params as Record<string, unknown>).screen : null;
+  const screen = findScreen(role, asked);
+  return { screen, route: screen?.app ?? null, reply: openScreenReply(screen, Boolean(screen)) };
+}
 
 /**
  * Whether this build can run the call: ElevenLabs' React Native SDK needs native WebRTC (LiveKit), which Expo Go
