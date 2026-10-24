@@ -121,6 +121,11 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "looks.publish": "Bipụta ya na weebụ",
   "looks.askRexChange": "Gwa Rex ka ọ gbanwee ya",
   "looks.applyFailed": "Anyị enweghị ike ịgbanwe ọdịdị ugbu a. Nwaa ọzọ.",
+  "legal.addPage": "Tinye peeji",
+  "legal.pageName": "Aha peeji",
+  "legal.pageNamePlaceholder": "dịka: Usoro ire n'ọtụtụ",
+  "legal.nameFirst": "Buru ụzọ nye peeji ahụ aha.",
+  "legal.addFailed": "Anyị enweghị ike itinye peeji ahụ. Nwaa ọzọ.",
 };
 
 export default ig;

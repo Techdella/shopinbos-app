@@ -9,7 +9,7 @@ import { AppIcon, type AppIconName } from "@/components/icons";
 import { ErrorState, LoadingBlock, SectionTitle } from "@/components/kit";
 import { Screen } from "@/components/Screen";
 import { Card, Chip, Field, Label, LinkButton, Notice, PillButton, ProgressBars, T } from "@/components/ui";
-import { campaignAction, fetchAds, saveCampaignDraft, sendAdRequest, writeAdCopy } from "@/lib/ads";
+import { campaignAction, connectMetaAds, fetchAds, saveCampaignDraft, sendAdRequest, writeAdCopy } from "@/lib/ads";
 import {
   AD_COUNTRIES,
   AD_CTAS,
@@ -38,7 +38,6 @@ import {
   type WizardStep,
 } from "@/lib/ads-pure";
 import { useLoad } from "@/lib/useLoad";
-import { openWeb } from "@/lib/web";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 
@@ -195,7 +194,7 @@ export default function NewAdCampaign() {
             ) : (
               <Card style={{ gap: 8 }}>
                 <T style={{ fontSize: 15, lineHeight: 22 }}>{!meta.configured ? t("m.notReady") : meta.status === "needs_account" ? t("meta.pickFirst") : t("m.off")}</T>
-                {meta.configured && meta.status !== "needs_account" ? <PillButton title={t("m.connect")} size="sm" style={{ alignSelf: "flex-start" }} onPress={() => void openWeb("/home/ads")} /> : null}
+                {meta.configured && meta.status !== "needs_account" ? <PillButton title={t("m.connect")} size="sm" style={{ alignSelf: "flex-start" }} onPress={() => void connectMetaAds().then(() => data.reload())} /> : null}
                 {meta.status === "needs_account" ? <PillButton title={t("m.use")} size="sm" style={{ alignSelf: "flex-start" }} onPress={() => router.back()} /> : null}
               </Card>
             )
@@ -351,7 +350,6 @@ export default function NewAdCampaign() {
               </Card>
             );
           })}
-          <LinkButton title={t("mediaWeb")} color={colors.inkSoft} onPress={() => void openWeb("/home/ads/new")} />
         </>
       ) : null}
 

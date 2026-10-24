@@ -13,7 +13,6 @@ import { shareText } from "@/lib/share";
 import { useLoad } from "@/lib/useLoad";
 import { deleteVideo, fetchVideo, patchVideo } from "@/lib/video";
 import { publishedKinds, readConfig, readPurpose, readStatus, shareMessage } from "@/lib/video-pure";
-import { openWeb } from "@/lib/web";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 
@@ -146,11 +145,6 @@ export default function VideoDetail() {
         <PillButton size="md" tone="white" title={t("watch.change")} disabled={Boolean(busy)} onPress={() => router.push({ pathname: "/video/studio", params: { id: row.id } })} />
       </Card>
 
-      <Card style={{ gap: 6 }}>
-        <T weight="extrabold" style={{ fontSize: 16 }}>{t("useInAd")}</T>
-        <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>{t("watch.adHint")}</T>
-        <LinkButton title={t("watch.adOnWeb")} onPress={() => void openWeb(`/home/ads/new?video=${encodeURIComponent(row.id)}`)} style={{ alignItems: "flex-start" }} />
-      </Card>
 
       <LinkButton title={t("delete.button")} color={colors.danger} onPress={() => setConfirm(true)} />
 

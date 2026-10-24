@@ -143,7 +143,8 @@ test("screens: list, create, detail, Home card, My shop and Marketing links", ()
   assert.match(create, /createCampaign\(preset\)/);
   assert.match(create, /createCampaignCode\(/);
   assert.match(create, /updateCampaign\(campaign\.id/);
-  assert.match(create, /what: "campaign"/);
+  // The look (banners, pop-up, badges) isn't edited on the phone, and nothing sends the seller to the web for it.
+  assert.doesNotMatch(create, /web-only|openWeb\(/);
   const detail = read("apps/mobile/src/app/campaigns/[id].tsx");
   assert.match(detail, /<Sheet visible=\{confirmEnd\}/);
   assert.match(detail, /act\("end-now"\)/);
@@ -158,5 +159,5 @@ test("screens: list, create, detail, Home card, My shop and Marketing links", ()
   assert.match(read("apps/mobile/src/components/CampaignsCard.tsx"), /fetchCountdowns/);
   assert.match(read("apps/mobile/src/app/(tabs)/shop.tsx"), /id: "campaigns"[^\n]*path: "app:\/campaigns"/);
   assert.match(read("apps/mobile/src/app/marketing/index.tsx"), /router\.push\("\/campaigns"\)/);
-  assert.match(read("apps/mobile/src/app/web-only.tsx"), /campaign: \{/);
+  assert.doesNotMatch(read("apps/mobile/src/app/campaigns/[id].tsx"), /web-only|openWeb\(/);
 });

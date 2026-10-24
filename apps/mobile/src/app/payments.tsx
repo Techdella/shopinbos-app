@@ -14,7 +14,6 @@ import { friendlyTime } from "@/lib/friendly";
 import { fetchPayments, resolveAccount, savePaymentSettings, savePayoutBank, type PaymentsOverview } from "@/lib/seller-settings";
 import { accountDigits, filterBanks } from "@/lib/settings-pure";
 import { useLoad } from "@/lib/useLoad";
-import { openWeb } from "@/lib/web";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 
@@ -88,7 +87,7 @@ export default function Payments() {
     return (
       <Screen title={t("money.title")} sub={t("money.sub")} refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
         {loaded.loading ? <LoadingBlock /> : null}
-        {loaded.error ? <ErrorState message={loaded.error} onRetry={() => void loaded.reload()} web={{ label: "Open on web", onPress: () => void openWeb("/home/payments") }} /> : null}
+        {loaded.error ? <ErrorState message={loaded.error} onRetry={() => void loaded.reload()} /> : null}
       </Screen>
     );
   }

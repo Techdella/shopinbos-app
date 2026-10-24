@@ -1,17 +1,18 @@
 import { useState } from "react";
 import { View } from "react-native";
-import { ErrorState, LinkRow, LoadingBlock } from "@/components/kit";
+import { ErrorState, LoadingBlock } from "@/components/kit";
 import { Screen } from "@/components/Screen";
-import { Card, Field, Label, Mascot, Notice, PillButton, Segmented, T, Toggle } from "@/components/ui";
+import { Card, Field, Label, LinkButton, Mascot, Notice, PillButton, Segmented, T, Toggle } from "@/components/ui";
 import { fetchAutomation, saveAutomation, type ChatbotSettings, type InboxAutomation } from "@/lib/inbox";
 import { useLoad } from "@/lib/useLoad";
-import { openWeb } from "@/lib/web";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 import { VoiceInput } from "@/components/VoiceInput";
 
 // Peggy chatbot (web /home/inbox/chatbot): Peggy answers shoppers in the store's chat bubble. The app covers the
-// switch, her name, greeting, tone, when she answers and what she may use; FAQs and hand-off words are on the web.
+// switch, her name, greeting, tone, when she answers, what she may use and her questions and answers (FAQs).
+
+const MAX_FAQS = 30;
 
 // Labels are m_chats keys.
 const SOURCES: Array<{ key: keyof ChatbotSettings["sources"]; label: "bot.source.products" | "bot.source.delivery" | "bot.source.policies" | "bot.source.faqs" }> = [
@@ -42,11 +43,15 @@ function ChatbotForm({ initial, refreshing, onRefresh }: { initial: InboxAutomat
   const [note, setNote] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const ready = initial.ready;
 
+  const setFaq = (index: number, patch: Partial<{ q: string; a: string }>) =>
+    setBot({ ...bot, faqs: bot.faqs.map((faq, at) => (at === index ? { ...faq, ...patch } : faq)) });
+
   async function save() {
     setSaving(true);
     setNote(null);
     try {
-      const saved = await saveAutomation({ chatbot: bot });
+      // Half-written questions (no question or no answer) aren't sent.
+      const saved = await saveAutomation({ chatbot: { ...bot, faqs: bot.faqs.filter((faq) => faq.q.trim() && faq.a.trim()) } });
       setBot(saved.chatbot);
       setNote({ tone: "success", text: bot.enabled ? t("bot.savedOn", { name: bot.name }) : t("bot.savedOff") });
     } catch (saveError) {
@@ -115,8 +120,17 @@ function ChatbotForm({ initial, refreshing, onRefresh }: { initial: InboxAutomat
         ))}
       </Card>
 
-      <Card style={{ paddingVertical: 2 }}>
-        <LinkRow first icon="doc" label={bot.faqs.length ? t("bot.faqsCount", { count: bot.faqs.length }) : t("bot.faqs")} hint={t("bot.faqsHint")} onPress={() => void openWeb("/home/inbox/chatbot")} />
+      {/* Questions and answers Peggy can use, saved with the rest. */}
+      <Card style={{ gap: 12 }}>
+        <T weight="bold" style={{ fontSize: 14 }}>{bot.faqs.length ? t("bot.faqsCount", { count: bot.faqs.length }) : t("bot.faqs")}</T>
+        {bot.faqs.map((faq, index) => (
+          <View key={index} style={{ gap: 8, paddingTop: index ? 12 : 0, borderTopWidth: index ? 1 : 0, borderTopColor: colors.line }}>
+            <Field value={faq.q} onChangeText={(q) => setFaq(index, { q })} maxLength={200} placeholder={t("bot.faqQ")} accessibilityLabel={t("bot.faqQ")} />
+            <Field value={faq.a} onChangeText={(a) => setFaq(index, { a })} maxLength={1000} multiline placeholder={t("bot.faqA")} accessibilityLabel={t("bot.faqA")} style={{ height: 90, paddingTop: 14, textAlignVertical: "top" }} />
+            <LinkButton title={t("bot.faqRemove")} color={colors.danger} style={{ alignItems: "flex-start" }} onPress={() => setBot({ ...bot, faqs: bot.faqs.filter((_, at) => at !== index) })} />
+          </View>
+        ))}
+        {bot.faqs.length < MAX_FAQS ? <PillButton title={t("bot.faqAdd")} size="sm" tone="white" style={{ alignSelf: "flex-start" }} onPress={() => setBot({ ...bot, faqs: [...bot.faqs, { q: "", a: "" }] })} /> : null}
       </Card>
     </Screen>
   );

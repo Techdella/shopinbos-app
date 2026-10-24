@@ -198,11 +198,12 @@ test("the three screens exist (Delivery's own prices are app/delivery/zones.tsx)
     }
   }
   const settings = read("apps/mobile/src/app/settings.tsx");
-  assert.match(settings, /openWeb\("\/home\/settings"\)/, "one row for the rest of Settings");
+  assert.doesNotMatch(settings, /openWeb\(/, "no row sends the seller to the web's Settings");
   assert.match(settings, /router\.push\("\/notifications\/settings"\)/);
   assert.match(settings, /<LanguageRow/);
   assert.match(settings, /ImagePicker\.launchImageLibraryAsync/);
   assert.match(read("apps/mobile/src/lib/seller-settings.ts"), /\/api\/app\/me\/images/);
-  assert.match(read("apps/mobile/src/app/delivery/zones.tsx"), /openWeb\("\/home\/logistics/, "booking a courier stays on the web");
+  assert.match(read("apps/mobile/src/app/delivery/zones.tsx"), /router\.push\("\/delivery\/find"/, "booking a courier finds a delivery partner in the app");
+  assert.doesNotMatch(read("apps/mobile/src/app/delivery/zones.tsx"), /openWeb\(/);
   assert.match(read("apps/mobile/src/app/delivery/zones.tsx"), /Alert\.alert\(/, "delete asks first");
 });

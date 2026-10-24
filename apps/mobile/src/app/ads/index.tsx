@@ -9,17 +9,16 @@ import { EmptyState, ErrorState, LoadingBlock, SectionTitle } from "@/components
 import { Screen } from "@/components/Screen";
 import { Sheet } from "@/components/Sheet";
 import { Card, Chip, Label, LinkButton, Notice, PillButton, T } from "@/components/ui";
-import { chooseMeta, disconnectMeta, fetchAds, fetchMetaChoices, setBoostStatus, type BoostRow, type MetaChoice } from "@/lib/ads";
+import { chooseMeta, connectMetaAds, disconnectMeta, fetchAds, fetchMetaChoices, setBoostStatus, type BoostRow, type MetaChoice } from "@/lib/ads";
 import { costPerOrder, groupDigits, type CampaignRow, type MetaStatus } from "@/lib/ads-pure";
 import { friendlyDay } from "@/lib/friendly";
 import { useLoad } from "@/lib/useLoad";
-import { openWeb } from "@/lib/web";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 
 // Ads (web /home/ads): start a campaign, the Meta ads connection (pick the ad account and Page here; signing in to
-// Facebook opens the web), requests to the Shopinbos ads team, every campaign with its numbers, and the older
-// "boost it yourself" ads with their switches. Making a boost ad stays on the web.
+// Facebook runs in an in-app browser that comes back here), requests to the Shopinbos ads team, every campaign with its numbers, and the older
+// "boost it yourself" ads with their switches. Making a boost ad isn't on the phone.
 
 function CampaignCard({ campaign }: { campaign: CampaignRow }) {
   const t = useT("m_ads", "ads", "m_ui");
@@ -165,8 +164,7 @@ function MetaCard({ meta, onChanged }: { meta: MetaStatus; onChanged: () => Prom
       <T style={{ color: colors.inkSoft, fontSize: 14.5, lineHeight: 21 }}>{line}</T>
       {meta.configured && (meta.status === "off" || meta.status === "reauth") ? (
         <>
-          <PillButton title={meta.status === "reauth" ? t("m.reconnect") : t("m.connect")} size="sm" style={{ alignSelf: "flex-start" }} onPress={() => void openWeb("/home/ads")} />
-          <T style={{ color: colors.inkSoft, fontSize: 13.5, lineHeight: 19 }}>{t("meta.webHint")}</T>
+          <PillButton title={meta.status === "reauth" ? t("m.reconnect") : t("m.connect")} size="sm" style={{ alignSelf: "flex-start" }} onPress={() => void connectMetaAds().then(() => onChanged())} />
         </>
       ) : null}
       {meta.configured && (meta.status === "connected" || meta.status === "needs_account") ? (
@@ -257,7 +255,6 @@ export default function Ads() {
               {overview.boosts.map((ad) => <BoostCard key={ad.id} ad={ad} onChanged={data.reload} onNote={setNote} />)}
             </>
           ) : null}
-          <LinkButton title={t("boostWeb")} color={colors.inkSoft} onPress={() => void openWeb("/home/ads")} />
         </>
       ) : null}
     </Screen>

@@ -146,6 +146,10 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "thread.peggyWrote": "Peggy dere nzaghachi",
   "thread.peggySend": "Zipu",
   "thread.peggyEdit": "Dezie",
+  "bot.faqQ": "Ajụjụ, dịka: Ị na-ezigara Abuja?",
+  "bot.faqA": "Azịza Peggy",
+  "bot.faqAdd": "Tinye ajụjụ",
+  "bot.faqRemove": "Wepụ",
 };
 
 export default ig;

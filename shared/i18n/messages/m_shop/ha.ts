@@ -121,6 +121,11 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "looks.publish": "Wallafa shi a yanar gizo",
   "looks.askRexChange": "Ka ce Rex ya canza shi",
   "looks.applyFailed": "Ba mu iya canza kamannin yanzu ba. Sake gwadawa.",
+  "legal.addPage": "Ƙara shafi",
+  "legal.pageName": "Sunan shafi",
+  "legal.pageNamePlaceholder": "misali: Sharuɗɗan sayar da yawa",
+  "legal.nameFirst": "Fara ba shafin suna.",
+  "legal.addFailed": "Ba mu iya ƙara shafin ba. Sake gwadawa.",
 };
 
 export default ha;

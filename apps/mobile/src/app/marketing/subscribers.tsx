@@ -5,7 +5,6 @@ import { Screen } from "@/components/Screen";
 import { Card, Chip, Field, Label, LinkButton, Notice, PillButton, T, Toggle } from "@/components/ui";
 import { addSubscriber, fetchSubscribers, type NewSubscriber, type SubscriberRow, type SubscriberStatus } from "@/lib/marketing";
 import { useLoad } from "@/lib/useLoad";
-import { openWeb } from "@/lib/web";
 import { formatDate } from "@shared/i18n";
 import { useLocale, useT } from "@/lib/i18n";
 import { colors } from "@/theme";
@@ -223,7 +222,6 @@ export default function Subscribers() {
 
       <People key={`${filter}|${q}|${version}`} status={filter} q={q} onCounts={setCounts} />
 
-      <LinkButton title={t("subs.web")} color={colors.inkSoft} onPress={() => void openWeb("/home/marketing/subscribers")} />
     </Screen>
   );
 }

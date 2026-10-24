@@ -249,7 +249,6 @@ function EmailCard({ email, onNote }: { email: ReturnType<typeof useLoad<EmailSe
         )
       ) : null}
 
-      {view ? <LinkButton title={t("email.domain")} color={colors.accentInk} onPress={() => router.push({ pathname: "/web-only", params: { what: "emailDomain" } })} style={{ alignSelf: "flex-start" }} /> : null}
       {state && canDisconnectEmail(state) ? (
         <LinkButton title={busy === "disconnect" ? t("card.syncing") : t("card.disconnect")} color={colors.inkSoft} onPress={() => (working ? undefined : disconnect())} style={{ alignSelf: "flex-start" }} />
       ) : null}

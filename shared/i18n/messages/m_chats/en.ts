@@ -150,6 +150,10 @@ const en = {
   "thread.peggyWrote": "Peggy wrote a reply",
   "thread.peggySend": "Send",
   "thread.peggyEdit": "Edit",
+  "bot.faqQ": "Question, e.g. Do you deliver to Abuja?",
+  "bot.faqA": "Peggy's answer",
+  "bot.faqAdd": "Add a question",
+  "bot.faqRemove": "Remove",
 } satisfies Record<string, string>;
 
 export default en;

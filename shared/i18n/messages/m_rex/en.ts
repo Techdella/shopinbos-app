@@ -51,6 +51,14 @@ const en = {
   "credits.topUpLabel": "Top up credits: we email you how",
   "credits.emailed": "We’ve emailed you how to top up on the website.",
   "credits.emailFailed": "We couldn't send the email just now. Try again in a moment.",
+  "card.useIt": "Use it",
+  "card.useImageAsk": "Use this picture: {title}.",
+  "card.useCopyAsk": "Use this description for {name}.",
+  "card.useLogoAsk": "Use the {label} logo.",
+  "card.seeShop": "See my shop",
+  "card.publish": "Publish",
+  "card.published": "Published. Customers see the new look now.",
+  "card.publishFailed": "We couldn't publish just now. Try again.",
 } satisfies Record<string, string>;
 
 export default en;

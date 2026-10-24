@@ -146,6 +146,10 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "thread.peggyWrote": "Peggy don write reply",
   "thread.peggySend": "Send",
   "thread.peggyEdit": "Change am",
+  "bot.faqQ": "Question, e.g. You dey deliver reach Abuja?",
+  "bot.faqA": "Peggy answer",
+  "bot.faqAdd": "Add question",
+  "bot.faqRemove": "Comot am",
 };
 
 export default pcm;

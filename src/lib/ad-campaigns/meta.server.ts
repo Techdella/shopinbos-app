@@ -87,6 +87,8 @@ export function checkMetaAdsState(value: string | null, storeId: string, nonceCo
 }
 
 export const META_ADS_NONCE_COOKIE = "sib_meta_ads";
+/** The phone app's return address (shopinbos://ads) while it runs Connect in an in-app browser. */
+export const META_ADS_APP_COOKIE = "sib_meta_ads_app";
 
 // ─── Graph calls ───────────────────────────────────────────────────────────────
 

@@ -6,7 +6,6 @@ import { Screen } from "@/components/Screen";
 import { Card, Field, Label, Notice, PillButton, Segmented, T, Toggle } from "@/components/ui";
 import { fetchAutoReplySettings, fetchAutomation, saveAutoReplySettings, saveAutomation, type AutoReplyRules, type AutoReplySettings, type InboxAutomation } from "@/lib/inbox";
 import { useLoad } from "@/lib/useLoad";
-import { openWeb } from "@/lib/web";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 import { VoiceInput } from "@/components/VoiceInput";
@@ -118,8 +117,7 @@ function AutoRepliesForm({ initial, refreshing, onRefresh }: { initial: { settin
       ) : null}
 
       <Card style={{ paddingVertical: 2 }}>
-        <LinkRow first icon="clock" label={t("auto.hoursLink")} hint={t("auto.hoursLinkHint")} onPress={() => void openWeb("/home/inbox/auto-replies")} />
-        <LinkRow icon="bot" label={t("auto.chatbot")} hint={t("auto.chatbotHint")} onPress={() => router.push("/inbox/chatbot")} />
+        <LinkRow first icon="bot" label={t("auto.chatbot")} hint={t("auto.chatbotHint")} onPress={() => router.push("/inbox/chatbot")} />
       </Card>
     </Screen>
   );

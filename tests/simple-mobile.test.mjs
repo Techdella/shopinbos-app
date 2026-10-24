@@ -50,11 +50,14 @@ test("My shop groups everything else by goal: Sell; Money and delivery; Look; Yo
   const shop = read("app/(tabs)/shop.tsx");
   const titles = [...shop.matchAll(/title: "([^"]+)",\n\s+links:/g)].map((match) => match[1]);
   assert.deepEqual(titles, ["Sell", "Money and delivery", "Look", "You"]);
-  // The domain opens the web domain page, which connects in one tap (buy, or Entri for one bought elsewhere): no
-  // records and no "Ask us". Sell everywhere opens the one-tap connect page.
-  assert.match(shop, /web:\/home\/domain/, "Domain opens the self-serve domain page");
-  // Sell everywhere, payments, delivery and settings are app screens now (no browser).
-  for (const id of ["channels", "payments", "delivery", "settings"]) assert.match(shop, new RegExp(`path: "app:/${id}"`));
+  // Web address and Packaging are app screens (app/domain.tsx, app/packaging.tsx); nothing in My shop opens the web.
+  assert.match(shop, /id: "domain"[^\n]+path: "app:\/domain"/);
+  assert.match(shop, /id: "packaging"[^\n]+path: "app:\/packaging"/);
+  assert.doesNotMatch(shop, /web:\/|openWeb/);
+  // "Sell everywhere" isn't in the phone app's shop.
+  assert.doesNotMatch(shop, /id: "channels"|app:\/channels/);
+  // Payments, delivery and settings are app screens (no browser).
+  for (const id of ["payments", "delivery", "settings"]) assert.match(shop, new RegExp(`path: "app:/${id}"`));
   // Getting more customers and sharing the shop left the + sheet; they stay one tap away.
   assert.match(shop, /id: "marketing"[^\n]+path: "app:\/marketing"/);
   assert.match(shop, /shareShop\(\)/);

@@ -16,7 +16,6 @@ import { fetchProducts, type ProductItem } from "@/lib/dashboard";
 import { latestPicture, useChangedIdentity } from "@/lib/identity";
 import { fetchSetup, type SetupOverview } from "@/lib/setup";
 import { openShop, shareShop } from "@/lib/share";
-import { openWeb } from "@/lib/web";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 import { DeleteAccountButton } from "@/components/DeleteAccountButton";
@@ -24,8 +23,8 @@ import { DeleteAccountButton } from "@/components/DeleteAccountButton";
 // My shop ("Familiar app" prototype `on.shop`): the shop's logo, name and link with Edit look and Share; four tiles
 // (Money, Delivery, Posts, Web address); the products with their stock and − / +, Find more to sell, Add a product
 // and Packaging; Settings and help. Under that, every other tool the seller had, in four groups (Sell; Money and
-// delivery; Look; You), so nothing the app had before is lost. "app:" paths are screens in the app; "web:" opens
-// that page of the web app, signed in. The domain opens the self-serve domain page.
+// delivery; Look; You). Every path is a screen in the app ("app:"); nothing here opens the web app. Web address is
+// app/domain.tsx and Packaging is app/packaging.tsx. "Sell everywhere" (/channels) isn't in the phone app's shop.
 // Words are translated at render: m_shop "group.<key>", "link.<id>.label" and "link.<id>.hint" (English here is the fallback).
 type ShopLink = { id: string; label: string; icon: AppIconName; path: string; hint?: string; tone?: TileTone };
 
@@ -39,7 +38,6 @@ export const SHOP_GROUPS: { key: string; title: string; links: ShopLink[] }[] = 
       { id: "marketing", label: "Get more customers", icon: "megaphone", path: "app:/marketing", hint: "Ads and broadcasts", tone: "mint" },
       { id: "customers", label: "Customers", icon: "users", path: "app:/customers", hint: "Everyone who bought from you, and a message to each" },
       { id: "dropship", label: "Dropship", icon: "truck", path: "app:/dropship", hint: "Sell products a supplier sends for you" },
-      { id: "channels", label: "Sell everywhere", icon: "chat", path: "app:/channels", hint: "Connect WhatsApp, Facebook, TikTok and Google" },
       { id: "ads", label: "Ads", icon: "megaphone", path: "app:/ads", hint: "Facebook, Instagram and TikTok ads, and what they bring in" },
       { id: "automations", label: "Automations", icon: "sparkle", path: "app:/marketing/automations", hint: "Messages that send themselves: welcome, cart reminder, thank-you" },
       { id: "campaigns", label: "Seasonal campaigns", icon: "clock", path: "app:/campaigns", hint: "Black Friday, Christmas and more, with a countdown" },
@@ -64,8 +62,8 @@ export const SHOP_GROUPS: { key: string; title: string; links: ShopLink[] }[] = 
     title: "Look",
     links: [
       { id: "rex", label: "Look and logo", icon: "sparkle", path: "app:/rex", hint: "Rex changes it for you", tone: "peach" },
-      { id: "domain", label: "Web address", icon: "globe", path: "web:/home/domain", hint: "Use your own .com", tone: "blue" },
-      { id: "packaging", label: "Packaging and labels", icon: "box", path: "web:/home/labels/packaging", hint: "Boxes and stickers with your name", tone: "peach" },
+      { id: "domain", label: "Web address", icon: "globe", path: "app:/domain", hint: "Use your own .com", tone: "blue" },
+      { id: "packaging", label: "Packaging and labels", icon: "box", path: "app:/packaging", hint: "Boxes and stickers with your name", tone: "peach" },
       { id: "themes", label: "Shop looks", icon: "image", path: "app:/templates", hint: "Pick a look, or let Rex build one" },
       { id: "linkInBio", label: "Link in bio", icon: "share", path: "app:/link-in-bio", hint: "One page for your Instagram and TikTok bio" },
       { id: "video", label: "Video studio", icon: "play", path: "app:/video", hint: "Reels for ads, products and social media" },
@@ -87,8 +85,7 @@ export const SHOP_GROUPS: { key: string; title: string; links: ShopLink[] }[] = 
 
 
 function go(path: string) {
-  if (path.startsWith("app:")) router.push(path.slice(4) as never);
-  else void openWeb(path.replace(/^web:/, ""));
+  router.push(path.replace(/^app:/, "") as never);
 }
 
 /** How many products show inline; "See all" opens Products. */
@@ -99,7 +96,7 @@ const TILES: { id: string; icon: AppIconName; tone: TileTone; path: string; labe
   { id: "money", icon: "wallet", tone: "ok", path: "app:/wallet", label: "tile.money" },
   { id: "delivery", icon: "truck", tone: "sky", path: "app:/delivery", label: "tile.delivery" },
   { id: "posts", icon: "image", tone: "lime", path: "app:/posts", label: "tile.posts" },
-  { id: "domain", icon: "globe", tone: "lilac", path: "web:/home/domain", label: "tile.domain" },
+  { id: "domain", icon: "globe", tone: "lilac", path: "app:/domain", label: "tile.domain" },
 ];
 
 export default function MyShop() {
@@ -173,20 +170,25 @@ export default function MyShop() {
         </View>
       ) : null}
 
-      {/* Money, Delivery, Posts, Web address. */}
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
-        {TILES.map((tile) => (
-          <Pressable
-            key={tile.id}
-            testID={`shop-tile-${tile.id}`}
-            accessibilityRole="button"
-            accessibilityLabel={t(tile.label)}
-            onPress={() => go(tile.path)}
-            style={({ pressed }) => ({ width: "48.5%", minHeight: 96, backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 14, gap: 10, justifyContent: "space-between", opacity: pressed ? 0.85 : 1 })}
-          >
-            <Tile icon={tile.icon} tone={tile.tone} size={40} />
-            <T weight="extrabold" style={{ fontSize: 16 }}>{t(tile.label)}</T>
-          </Pressable>
+      {/* Money, Delivery, Posts, Web address: a 2×2 grid as rows of two equal tiles (flex: 1). A percentage width
+          plus the gap tipped over 100% on 360px phones and wrapped into one narrow column. */}
+      <View style={{ gap: 10 }}>
+        {[TILES.slice(0, 2), TILES.slice(2, 4)].map((pair) => (
+          <View key={pair[0].id} style={{ flexDirection: "row", gap: 10 }}>
+            {pair.map((tile) => (
+              <Pressable
+                key={tile.id}
+                testID={`shop-tile-${tile.id}`}
+                accessibilityRole="button"
+                accessibilityLabel={t(tile.label)}
+                onPress={() => go(tile.path)}
+                style={({ pressed }) => ({ flex: 1, minWidth: 0, minHeight: 96, backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 14, gap: 10, justifyContent: "space-between", opacity: pressed ? 0.85 : 1 })}
+              >
+                <Tile icon={tile.icon} tone={tile.tone} size={40} />
+                <T weight="extrabold" numberOfLines={2} style={{ fontSize: 16 }}>{t(tile.label)}</T>
+              </Pressable>
+            ))}
+          </View>
         ))}
       </View>
 
@@ -203,7 +205,7 @@ export default function MyShop() {
           {(products ?? []).slice(0, INLINE_PRODUCTS).map((product) => <StockRow key={product.id} product={product} onStock={setStock} />)}
           {products && products.length > INLINE_PRODUCTS ? <Row lead={<Tile icon="tag" tone="peach" />} title={t("products.seeAll", { count: products.length })} onPress={() => router.push("/products")} /> : null}
           <Row testID="shop-add-product" lead={<Tile icon="camera" tone="peach" />} title={t("products.add")} sub={t("products.addSub")} onPress={() => router.push("/add-products")} />
-          <Row lead={<Tile icon="box" tone="butter" />} title={t("link.packaging.label")} sub={t("link.packaging.hint")} onPress={() => go("web:/home/labels/packaging")} />
+          <Row lead={<Tile icon="box" tone="butter" />} title={t("link.packaging.label")} sub={t("link.packaging.hint")} onPress={() => router.push("/packaging" as never)} />
         </List>
         {products?.length ? <Small>{t("list.stockHint")}</Small> : null}
       </View>

@@ -11,7 +11,6 @@ import { friendlyDay } from "@/lib/friendly";
 import { fetchAutomations, removeAutomation, updateAutomation } from "@/lib/marketing";
 import { changeStep, editableField, flowPatch, stepGaps, waitMinutes, waitParts, type FlowStep } from "@/lib/marketing-pure";
 import { useLoad } from "@/lib/useLoad";
-import { openWeb } from "@/lib/web";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 
@@ -182,7 +181,6 @@ export default function Automation() {
         );
       })}
       <T style={{ color: colors.inkSoft, fontSize: 13.5, lineHeight: 19 }}>{t("auto.variables")}</T>
-      <LinkButton title={t("auto.stepsWeb")} color={colors.inkSoft} onPress={() => void openWeb(`/home/automations/${encodeURIComponent(flow.id)}`)} />
       <LinkButton title={t("auto.delete")} color={colors.danger} onPress={() => setAsking(true)} />
 
       <Sheet visible={preview !== null} onClose={() => setPreview(null)} title={preview?.type === "send_email" ? preview.subject || t("fe.noSubject") : t("fe.email")}>

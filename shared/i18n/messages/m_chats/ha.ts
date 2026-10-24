@@ -146,6 +146,10 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "thread.peggyWrote": "Peggy ta rubuta amsa",
   "thread.peggySend": "Aika",
   "thread.peggyEdit": "Gyara",
+  "bot.faqQ": "Tambaya, misali: Kuna kai kaya Abuja?",
+  "bot.faqA": "Amsar Peggy",
+  "bot.faqAdd": "Ƙara tambaya",
+  "bot.faqRemove": "Cire",
 };
 
 export default ha;

@@ -7,7 +7,6 @@ import { Sheet } from "@/components/Sheet";
 import { Card, Field, Label, LinkButton, Notice, PillButton, T } from "@/components/ui";
 import { copyTemplate, deleteTemplate, fetchTemplates, saveTemplate, sendTestTemplate } from "@/lib/marketing";
 import { useLoad } from "@/lib/useLoad";
-import { openWeb } from "@/lib/web";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 
@@ -112,7 +111,6 @@ export default function Template() {
       <EmailPreview html={bodyHtml} />
 
       <PillButton title={t("tpl.sendTest")} tone="white" size="md" busy={busy === "test"} disabled={busy !== null || !bodyHtml.trim()} onPress={() => void run("test")} />
-      <LinkButton title={t("tpl.designWeb")} color={colors.inkSoft} onPress={() => void openWeb(saved?.id ? `/home/marketing/templates/${encodeURIComponent(saved.id)}` : `/home/marketing/templates/new?from=${encodeURIComponent(starter?.key ?? "")}`)} />
       {saved ? <LinkButton title={t("tpl.delete")} color={colors.danger} onPress={() => setAsking(true)} /> : null}
 
       <Sheet visible={asking} onClose={() => setAsking(false)} title={t("tpl.deleteTitle")}>

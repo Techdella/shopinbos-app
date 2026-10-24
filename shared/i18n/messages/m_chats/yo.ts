@@ -146,6 +146,10 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "thread.peggyWrote": "Peggy ti kọ èsì kan",
   "thread.peggySend": "Fi ránṣẹ́",
   "thread.peggyEdit": "Ṣàtúnṣe",
+  "bot.faqQ": "Ìbéèrè, àpẹẹrẹ: Ṣé ẹ ń fi ránṣẹ́ sí Abuja?",
+  "bot.faqA": "Ìdáhùn Peggy",
+  "bot.faqAdd": "Fi ìbéèrè kan kún un",
+  "bot.faqRemove": "Yọ ọ́ kúrò",
 };
 
 export default yo;
