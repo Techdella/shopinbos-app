@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import { naira } from "@shared/onboarding";
 import { DarkCard, Eyebrow, List, Row, Small, Sub, Tile } from "@/components/design";
 import { Checklist, type ChecklistItem } from "@/components/familiar/Checklist";
+import { GettingStartedCard } from "@/components/familiar/GettingStarted";
 import { LevelPill } from "@/components/familiar/LevelPill";
 import { QuickActions } from "@/components/familiar/QuickActions";
 import { StatusRow } from "@/components/familiar/StatusRow";
@@ -211,6 +212,7 @@ export default function SupplierHome() {
           ) : null}
 
           {hidden ? null : <Checklist title={t("home.setupTitle")} items={checklist} onDismiss={hideChecklist} />}
+          <GettingStartedCard />
 
           <DarkCard eyebrow={t("home.coming")} amount={naira(overview.owed ?? 0)} line={t("home.afterConfirm")} onPress={() => router.push("/supplier/money")} />
 

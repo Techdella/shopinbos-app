@@ -1,4 +1,5 @@
 import { api, ApiError } from "./api";
+import { appLocale } from "./app-locale";
 
 // API clients for the "Familiar app" features shared by sellers, suppliers and delivery partners: Status (24-hour
 // stories), Rewards, credits, Ask Peggy for every role, Create with Rex and the posts calendar. Shapes follow the
@@ -27,12 +28,27 @@ export interface StatusPost {
   imageUrl: string | null;
   tone: StatusTone;
   product: { id: string; name: string; price: number; image: string | null } | null;
-  cta: { kind: StatusCtaKind; label: string; target?: { userId: string; slug?: string | null; partnerId?: string | null; productId?: string | null } } | null;
+  /** "open" (an app screen, target.path) and "share" (my shop link) come only on Shopinbos's own posts. */
+  cta: { kind: StatusCtaKind | ShopinbosCtaKind; label: string; target?: { userId: string; slug?: string | null; partnerId?: string | null; productId?: string | null; path?: string | null } } | null;
+  /** Shopinbos's video posts: play `url` here, else the 60-second intro `intro`, else open `watchUrl`. */
+  video?: StatusVideo | null;
+  /** Shopinbos's posts: seen (or watched) by me. */
+  seen?: boolean;
   createdAt: string;
   expiresAt: string;
   views: number;
   likes: number;
   liked: boolean;
+}
+
+export type ShopinbosCtaKind = "open" | "share";
+
+export interface StatusVideo {
+  intro: string | null;
+  url: string | null;
+  watchUrl: string | null;
+  posterUrl: string | null;
+  durationSeconds: number | null;
 }
 
 export interface StatusAuthor {
@@ -42,6 +58,10 @@ export interface StatusAuthor {
   logoUrl: string | null;
   seen: boolean;
   posts: StatusPost[];
+  /** Shopinbos's own getting-started posts (shared/shopinbos-status.ts): the brand logo, no likes. */
+  official?: boolean;
+  /** "Shopinbos" in the person's language, shown instead of the role. */
+  roleLabel?: string;
 }
 
 export interface StatusFeed {
@@ -49,7 +69,19 @@ export interface StatusFeed {
   feed: StatusAuthor[];
 }
 
-export const fetchStatusFeed = () => optional(api<StatusFeed>("/api/mobile/status"));
+export const fetchStatusFeed = () => optional(api<StatusFeed>(`/api/mobile/status?lang=${appLocale()}`));
+
+/** Shopinbos's getting-started posts for my role (also after "Don't show again", for Home and Help). */
+export interface ShopinbosState {
+  author: StatusAuthor | null;
+  statusOff: boolean;
+  startOff: boolean;
+}
+export const fetchShopinbos = () => optional(api<ShopinbosState>(`/api/mobile/status/shopinbos?lang=${appLocale()}`));
+
+/** "Don't show again" on Shopinbos's statuses ("status"), or the X on the Getting started card ("start"). For good. */
+export const dismissShopinbos = (what: "status" | "start") =>
+  api<{ statusOff: boolean; startOff: boolean }>("/api/mobile/status/shopinbos/dismiss", { method: "POST", json: { what } });
 
 export const postStatus = (input: { headline: string; caption?: string; imageUrl?: string; tone?: StatusTone; productId?: string; ctaKind?: StatusCtaKind }) =>
   api<{ post: StatusPost; reward: { points: number; streak: number } | null }>("/api/mobile/status", { method: "POST", json: input });

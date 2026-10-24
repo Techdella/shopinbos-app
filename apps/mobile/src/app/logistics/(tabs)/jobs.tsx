@@ -4,6 +4,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { naira } from "@shared/onboarding";
 import { Banner, Seg, Small, Sub } from "@/components/design";
 import { Checklist, type ChecklistItem } from "@/components/familiar/Checklist";
+import { GettingStartedCard } from "@/components/familiar/GettingStarted";
 import { LevelPill } from "@/components/familiar/LevelPill";
 import { StatusRow } from "@/components/familiar/StatusRow";
 import { TeamUpdatesRing } from "@/components/updates/TeamUpdatesRing";
@@ -168,6 +169,7 @@ export default function LogisticsJobs() {
       ) : null}
 
       {checklistShown ? <Checklist title={t("fam.ck.title")} items={checklist} onDismiss={() => setHideChecklist(true)} /> : null}
+      <GettingStartedCard />
 
       {data && !data.partner.onboarded ? (
         <CardButton icon="truck" tint={colors.mintTint} iconBg="#FFFFFF" title={t("today.finish")} sub={t("today.finishHint")} onPress={() => router.push("/logistics/setup")} />

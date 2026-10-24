@@ -1,13 +1,16 @@
-import { Pressable, ScrollView, View } from "react-native";
+import { Alert, Pressable, ScrollView, View } from "react-native";
 import { Picture } from "@/components/kit";
 import { AppIcon } from "@/components/icons";
 import { T } from "@/components/ui";
 import type { StatusAuthor } from "@/lib/familiar";
 import { useT } from "@/lib/i18n";
+import { hideShopinbosStatus, seenHere, useShopinbosHere } from "@/lib/shopinbos";
 import { colors } from "@/theme";
+import { ShopinbosMark } from "./ShopinbosMark";
 
 // The row of Status rings under the Home header ("Familiar app" prototype `.stories`): "Your status" first (a dashed
 // ring with an orange +), then the businesses with live posts, unseen ones in orange, seen ones in grey.
+// Shopinbos's own getting-started posts (author.official) show the brand logo; a long-press hides them for good.
 
 const RING = 64;
 
@@ -44,6 +47,15 @@ export function StatusRow({
   leading?: React.ReactNode;
 }) {
   const t = useT("m_familiar");
+  const here = useShopinbosHere();
+
+  function askHide() {
+    Alert.alert(t("sib.hideTitle"), t("sib.hideBody"), [
+      { text: t("sib.cancel"), style: "cancel" },
+      { text: t("sib.hide"), style: "destructive", onPress: () => void hideShopinbosStatus() },
+    ]);
+  }
+
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 14, paddingHorizontal: 20 }} style={{ marginHorizontal: -20 }}>
       {showMine ? (
@@ -59,15 +71,39 @@ export function StatusRow({
         <T weight="semibold" numberOfLines={1} style={{ fontSize: 12, color: colors.inkSoft }}>{t("status.yours")}</T>
       </Pressable>
       ) : null}
+      {/* Shopinbos's own ring first (the feed puts it first), then the team's weekly updates, then businesses. */}
+      {here.hidden
+        ? null
+        : authors.map((author, index) =>
+            author.official ? (
+              <Pressable
+                key={author.userId}
+                testID="shopinbos-ring"
+                accessibilityRole="button"
+                accessibilityLabel={t("status.openOf", { name: author.name })}
+                accessibilityHint={t("sib.hold")}
+                onPress={() => onOpen(index)}
+                onLongPress={askHide}
+                style={{ width: 68, alignItems: "center", gap: 6 }}
+              >
+                <Ring seen={author.seen || author.posts.every(seenHere)}>
+                  <ShopinbosMark size={RING - 13} />
+                </Ring>
+                <T weight="semibold" numberOfLines={1} style={{ fontSize: 12, color: colors.inkSoft, maxWidth: 68 }}>{author.name}</T>
+              </Pressable>
+            ) : null,
+          )}
       {leading}
-      {authors.map((author, index) => (
-        <Pressable key={author.userId} accessibilityRole="button" accessibilityLabel={t("status.openOf", { name: author.name })} onPress={() => onOpen(index)} style={{ width: 68, alignItems: "center", gap: 6 }}>
-          <Ring seen={author.seen}>
-            <Picture uri={author.logoUrl} name={author.name} size={RING - 13} />
-          </Ring>
-          <T weight="semibold" numberOfLines={1} style={{ fontSize: 12, color: colors.inkSoft, maxWidth: 68 }}>{author.name}</T>
-        </Pressable>
-      ))}
+      {authors.map((author, index) =>
+        author.official ? null : (
+          <Pressable key={author.userId} accessibilityRole="button" accessibilityLabel={t("status.openOf", { name: author.name })} onPress={() => onOpen(index)} style={{ width: 68, alignItems: "center", gap: 6 }}>
+            <Ring seen={author.seen}>
+              <Picture uri={author.logoUrl} name={author.name} size={RING - 13} />
+            </Ring>
+            <T weight="semibold" numberOfLines={1} style={{ fontSize: 12, color: colors.inkSoft, maxWidth: 68 }}>{author.name}</T>
+          </Pressable>
+        ),
+      )}
     </ScrollView>
   );
 }
