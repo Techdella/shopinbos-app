@@ -16,6 +16,6 @@ module.exports = ({ config }) => {
   return {
     ...config,
     android: { ...config.android, ...(googleServicesFile ? { googleServicesFile } : {}) },
-    plugins: [...(config.plugins ?? []), "@maplibre/maplibre-react-native"],
+    plugins: [...(config.plugins ?? []), "@maplibre/maplibre-react-native", "./plugins/optional-features"],
   };
 };

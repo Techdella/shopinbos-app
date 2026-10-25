@@ -396,3 +396,15 @@ test("avatar: no P letter mark left in the call UI; Peggy's avatar pulses while 
   assert.match(web, /<Mascot who="peggy"/);
   assert.match(web, /speaking && "animate-ping"/);
 });
+
+test("the call engine registers its controls once (no render loop)", async () => {
+  const { readFileSync } = await import("node:fs");
+  const engine = readFileSync(new URL("../apps/mobile/src/components/peggy/PeggyCallEngine.tsx", import.meta.url), "utf8");
+  const store = readFileSync(new URL("../apps/mobile/src/lib/peggy-call.ts", import.meta.url), "utf8");
+  // useConversation returns a new object each render: start/end must not depend on it.
+  const { default: assert } = await import("node:assert/strict");
+  assert.match(engine, /conversationRef\.current\.startSession/);
+  assert.doesNotMatch(engine, /\[clientTools, conversation/);
+  assert.doesNotMatch(engine, /\}, \[start, end\]\)/);
+  assert.match(store, /if \(state\.engine !== Boolean\(next\)\)/);
+});
