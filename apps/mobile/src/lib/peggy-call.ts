@@ -146,7 +146,8 @@ export function runContinue(status: SetupView | null) {
 /** The call host registers how to start and end a call. */
 export function setCallControls(next: typeof controls) {
   controls = next;
-  patchCall({ engine: Boolean(next) });
+  // Only tell listeners when it changes, so registering can never re-render in a loop.
+  if (state.engine !== Boolean(next)) patchCall({ engine: Boolean(next) });
 }
 
 /** Whether "Call Peggy" can be offered here: calls are on, and this build runs them. */

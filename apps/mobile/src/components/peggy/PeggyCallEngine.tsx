@@ -62,6 +62,15 @@ function Engine() {
     },
     onError: () => patchCall({ error: t("call.dropped") }),
   });
+  // useConversation hands back a new object on every render: keep the latest in a ref so start/end (and the controls
+  // registered below) stay the same functions. Depending on it directly re-registered the controls on each render,
+  // which re-rendered this component again: "Maximum update depth exceeded".
+  const conversationRef = useRef(conversation);
+  const tRef = useRef(t);
+  useEffect(() => {
+    conversationRef.current = conversation;
+    tRef.current = t;
+  });
 
   const showToast = useCallback((text: string) => {
     setToast({ key: Date.now(), text });
@@ -112,35 +121,40 @@ function Engine() {
     if (phase === "connecting" || phase === "live") return patchCall({ minimized: false });
     patchCall({ phase: "connecting", minimized: false, saved: [], error: null, endedBy: null });
     const mic = await requestRecordingPermissionsAsync().catch(() => null);
-    if (!mic?.granted) return patchCall({ phase: "idle", error: t("call.micOff") });
+    if (!mic?.granted) return patchCall({ phase: "idle", error: tRef.current("call.micOff") });
     try {
       const [session, status] = await Promise.all([startCallSession(), fetchSetupView().catch(() => null)]);
       patchCall({ status });
-      conversation.startSession({ conversationToken: session.conversationToken, connectionType: "webrtc", dynamicVariables: session.dynamicVariables, clientTools });
+      conversationRef.current.startSession({ conversationToken: session.conversationToken, connectionType: "webrtc", dynamicVariables: session.dynamicVariables, clientTools });
       // The agent ends calls at its own maximum; this is a safety net a little after it.
       if (limit.current) clearTimeout(limit.current);
-      limit.current = setTimeout(() => conversation.endSession(), ((session.maxSeconds ?? 900) + 15) * 1000);
+      limit.current = setTimeout(() => conversationRef.current.endSession(), ((session.maxSeconds ?? 900) + 15) * 1000);
       // A call that never connects gives up after 30 seconds, so the button works again.
       setTimeout(() => {
         if (callState().phase !== "connecting") return;
-        conversation.endSession();
-        patchCall({ phase: "idle", minimized: false, error: t("call.failed") });
+        conversationRef.current.endSession();
+        patchCall({ phase: "idle", minimized: false, error: tRef.current("call.failed") });
       }, 30_000);
     } catch (error) {
       // Shown under the button the call was started from.
-      patchCall({ phase: "idle", error: error instanceof ApiError && error.message ? error.message : t("call.failed") });
+      patchCall({ phase: "idle", error: error instanceof ApiError && error.message ? error.message : tRef.current("call.failed") });
     }
-  }, [clientTools, conversation, t]);
+  }, [clientTools]);
 
   const end = useCallback(() => {
     const phase = callState().phase;
-    if (phase === "connecting" || phase === "live") conversation.endSession();
-  }, [conversation]);
+    if (phase === "connecting" || phase === "live") conversationRef.current.endSession();
+  }, []);
 
+  // Registered once: start and end are stable (see conversationRef).
+  const startRef = useRef(start);
   useEffect(() => {
-    setCallControls({ start: () => void start(), end });
+    startRef.current = start;
+  });
+  useEffect(() => {
+    setCallControls({ start: () => void startRef.current(), end });
     return () => setCallControls(null);
-  }, [start, end]);
+  }, [end]);
 
   // A toast for each save while the call is minimized (open, the call lists it).
   usePeggySaved(() => {
