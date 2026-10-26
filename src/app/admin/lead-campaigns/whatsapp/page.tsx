@@ -197,7 +197,8 @@ export default async function LeadWhatsAppPage(props: { searchParams?: Promise<S
         )}
       </Card>
 
-      <Card className="mb-5 scroll-mt-24 p-5" id="outreach">
+      <div id="outreach" className="scroll-mt-24" />
+      <Card className="mb-5 p-5">
         <CardHead
           title="Partnership outreach"
           sub={`First contact with suppliers, delivery companies and well-known sellers who haven't heard of us: an introduction, a follow-up 3 days later and a last note 4 days after that. Anyone who replies (or sends STOP) gets no more follow-ups, and the chat lands in Admin › Inbox. They can also email ${OUTREACH_EMAIL}.`}
