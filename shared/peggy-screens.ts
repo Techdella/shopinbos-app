@@ -16,15 +16,38 @@ export interface PeggyScreen {
   app: string;
   /** The web app path, or null when the screen is only in the phone app. */
   web: string | null;
-  /** Other words people (or Peggy) use for it. */
+  /** Other words people (or Peggy) use for it. Each word belongs to one screen of the role (tested). */
   also?: string[];
+  /** What it's for, in a few words, when the name alone could be mistaken (Peggy's list shows it). */
+  about?: string;
 }
 
+// Seller screens that were easy to mix up (Peggy once said "Create with Rex" for "my store design" and opened the
+// social post maker): the shop's design is "Shop looks" (/templates); changing the shop by chatting with Rex is
+// "Edit my shop with Rex" (/rex); a social post, flyer or status is "Make a post" (/create); the posts calendar is
+// "Posts calendar" (/posts). Nothing is called "Create with Rex" any more.
+// TODO: if an "Edit my shop" screen lands in the phone app (a route like /shop-editor), point "edit my shop" at it
+// (a new entry here, plus its words in m_help call.screen.*); until then "edit my shop" opens Rex.
 const SELLER: PeggyScreen[] = [
   { id: "home", name: "Home", app: "/home", web: "/home", also: ["dashboard"] },
-  { id: "start", name: "Start here", app: "/start", web: "/home/start", also: ["setup", "checklist", "get set up"] },
-  { id: "shop", name: "My shop", app: "/shop", web: "/studio", also: ["store", "shop"] },
-  { id: "look", name: "Shop look", app: "/templates", web: "/studio", also: ["design", "templates", "theme"] },
+  { id: "start", name: "Start here", app: "/start", web: "/home/start", also: ["setup", "checklist", "get set up"], about: "the setup checklist" },
+  { id: "shop", name: "My shop", app: "/shop", web: "/studio", also: ["store", "shop"], about: "the shop's page, link and what's in it" },
+  {
+    id: "look",
+    name: "Shop looks",
+    app: "/templates",
+    web: "/studio",
+    also: ["shop look", "store look", "store design", "shop design", "my store design", "design", "templates", "template", "theme", "themes"],
+    about: "the store design: pick a template for how the shop looks",
+  },
+  {
+    id: "rex",
+    name: "Edit my shop with Rex",
+    app: "/rex",
+    web: "/studio",
+    also: ["rex", "ask rex", "rex store builder", "store builder", "edit my shop", "edit my store", "change my shop"],
+    about: "chat with Rex to build or change the shop",
+  },
   { id: "products", name: "Products", app: "/products", web: "/products" },
   { id: "add_product", name: "Add a product", app: "/add-products", web: "/products/new", also: ["new product", "take a photo"] },
   { id: "find", name: "Find products to sell", app: "/find", web: "/marketplace", also: ["marketplace", "suppliers", "dropship"] },
@@ -35,8 +58,15 @@ const SELLER: PeggyScreen[] = [
   { id: "delivery_partners", name: "Find a delivery company", app: "/delivery/find", web: "/home/logistics", also: ["delivery partners", "delivery company"] },
   { id: "wallet", name: "Wallet", app: "/wallet", web: "/home/wallet", also: ["money", "bank", "payout", "getting paid"] },
   { id: "payments", name: "Payment methods", app: "/payments", web: "/home/payments", also: ["payments"] },
-  { id: "posts", name: "Posts", app: "/posts", web: "/home/social", also: ["social", "calendar"] },
-  { id: "create", name: "Create with Rex", app: "/create", web: "/home/media", also: ["create", "flyer", "status"] },
+  { id: "posts", name: "Posts calendar", app: "/posts", web: "/home/social", also: ["posts", "calendar", "social calendar", "scheduled posts"], about: "posts already made and planned, day by day" },
+  {
+    id: "create",
+    name: "Make a post",
+    app: "/create",
+    web: "/home/media",
+    also: ["social post", "make a social post", "new post", "create a post", "create with rex posts", "flyer", "status", "reel"],
+    about: "Rex designs a social media post, flyer, status or reel",
+  },
   { id: "reviews", name: "Reviews", app: "/reviews", web: "/home/reviews" },
   { id: "customers", name: "Customers", app: "/customers", web: "/home/customers" },
   { id: "domain", name: "Web address", app: "/domain", web: "/home/domain", also: ["domain"] },
@@ -97,9 +127,9 @@ export function findScreen(role: ScreenRole, asked: unknown): PeggyScreen | null
   return screens.find((screen) => key(screen.id) === wanted || key(screen.name) === wanted || (screen.also ?? []).some((word) => key(word) === wanted)) ?? null;
 }
 
-/** The list Peggy gets in her prompt: "add_product (Add a product), delivery (Delivery), …". */
+/** The list Peggy gets in her prompt: "add_product (Add a product), look (Shop looks: the store design: …), …". */
 export function screenList(role: ScreenRole) {
-  return (PEGGY_SCREENS[role] ?? []).map((screen) => `${screen.id} (${screen.name})`).join(", ");
+  return (PEGGY_SCREENS[role] ?? []).map((screen) => `${screen.id} (${screen.name}${screen.about ? `: ${screen.about}` : ""})`).join(", ");
 }
 
 /**

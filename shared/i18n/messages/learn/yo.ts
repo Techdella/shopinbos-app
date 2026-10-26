@@ -69,6 +69,10 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "rexhelp.act.domainIdeas": "Gba èrò orúkọ",
   "rexhelp.act.templatesPick": "Yan theme mi",
   "rexhelp.act.storeRebrand": "Tún ìrísí mi ṣe",
+  "tipsButton": "Ìmọ̀ràn",
+  "tipsOpen": "Fi ìmọ̀ràn ojú-ìwé yìí hàn",
+  "tipsHideHint": "Tẹ̀ ẹ́ pẹ́ láti fi pamọ́ níbí",
+  "tipsHide": "Fi Ìmọ̀ràn pamọ́ lójú-ìwé yìí",
 };
 
 export default yo;

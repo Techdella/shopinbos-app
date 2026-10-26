@@ -28,6 +28,8 @@ import { latestPicture, useChangedIdentity } from "@/lib/identity";
 import { hasOpenedHome, rememberedStoreName } from "@/lib/launch";
 import { useSession } from "@/lib/session";
 import { fetchSetup, type SetupOverview, type SetupStepKey } from "@/lib/setup";
+import { useTourAllowed } from "@/lib/setup-gate";
+import { sellerSetupDone } from "@/lib/setup-gate-pure";
 import { fetchDeliveryHub, type DeliveryHub } from "@/lib/delivery";
 import { upcomingPayout } from "@/lib/delivery-pure";
 import { capitalise, friendlyDay } from "@/lib/friendly";
@@ -159,8 +161,19 @@ export default function Home() {
   const screen: "home" | "opening" | "skeleton" | "slow" =
     data && openingDone ? "home" : home.slow && !data ? "slow" : error && !data ? "home" : firstOpen ? "opening" : data ? "home" : "skeleton";
 
-  // The first-login tour: once per seller (this phone, then the account), when Home first shows with data.
+  // The first-login tour: once per seller (this phone, then the account), when Home first shows with data. It only
+  // shows once setup is complete (the Start checklist), while Home is the screen in front, and never during a Peggy
+  // call (open or minimized) or just after she opened a screen (lib/setup-gate.ts).
   const [touring, setTouring] = useState(false);
+  const tourAllowed = useTourAllowed(sellerSetupDone(setup));
+  const [focused, setFocused] = useState(true);
+  useFocusEffect(
+    useCallback(() => {
+      setFocused(true);
+      return () => setFocused(false);
+    }, []),
+  );
+  const tourShowing = touring && tourAllowed && focused;
   const tourChecked = useRef(false);
   useEffect(() => {
     if (screen !== "home" || !data || !uid || tourChecked.current) return;
@@ -311,7 +324,7 @@ export default function Home() {
         {data?.counts.ordersToday ? <PushPromptCard who="seller" /> : null}
 
         {/* Hidden while the tour runs, so its targets stay on screen (as in the prototype). */}
-        {!checklistHidden && !touring ? (
+        {!checklistHidden && !tourShowing ? (
           <Checklist
             title={t("ready.title")}
             items={checklist}
@@ -323,7 +336,7 @@ export default function Home() {
         ) : null}
 
         {/* Shopinbos's getting-started videos and tips (an X closes it for good). */}
-        {!touring ? <GettingStartedCard /> : null}
+        {!tourShowing ? <GettingStartedCard /> : null}
 
         <View ref={moneyRef} collapsable={false} style={{ gap: 18 }}>
           <DarkCard eyebrow={t("sales.today")} amount={data ? naira(data.sales.today) : "…"} line={payoutLine} onPress={() => router.push("/wallet")} />
@@ -390,7 +403,7 @@ export default function Home() {
 
       <Tour
         steps={tourSteps}
-        visible={touring}
+        visible={tourShowing}
         onDone={() => {
           setTouring(false);
           if (uid) rememberTourDone(uid);

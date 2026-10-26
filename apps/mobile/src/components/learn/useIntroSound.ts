@@ -2,6 +2,7 @@ import "expo-sqlite/localStorage/install";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from "expo-audio";
 import { api } from "@/lib/api";
+import { introAudio, useIntroAudioStop } from "@/lib/intro-audio";
 import { DEFAULT_SOUND_PREFS, MUSIC_LEVEL, MUSIC_UNDER_VOICE, parseSoundPrefs, type IntroSoundPrefs } from "@shared/intro-narration";
 
 // Sound for the 60-second intro on the phone, like the web's (src/components/learn/useIntroSound.ts): a narrator
@@ -9,6 +10,12 @@ import { DEFAULT_SOUND_PREFS, MUSIC_LEVEL, MUSIC_UNDER_VOICE, parseSoundPrefs, t
 // the voice speaks. The music is the same generated "chill" track as the web, as a short seamless loop
 // (assets/sounds/intro-music.m4a). `voiceBusy` is true while a scene's line loads or plays, so the intro waits for
 // the narrator. When the narration service is off, the captions carry on without a voice. Choices are kept on the phone.
+//
+// Stopping is strict, because the music used to carry on after the sheet closed and even after the app went to the
+// background: on Android `player.remove()` only drops the player from expo-audio's list (so its own "pause when the
+// app goes to the background" no longer reaches it) and never stops it. Every player is now paused and then
+// released (`release()`) when the sheet closes or unmounts, and the app-wide guard (lib/intro-audio.ts) stops and
+// releases them when the app leaves the foreground or a Peggy call starts. No background playback, ever.
 
 const PREFS_KEY = "shopinbos.introSound";
 const CLIP_WAIT_MS = 6_000;
@@ -22,9 +29,25 @@ function readPrefs(): IntroSoundPrefs {
   }
 }
 
+/** Pauses a player and frees it (release() stops it natively; remove() alone doesn't on Android). */
+export function releasePlayer(player: AudioPlayer | null) {
+  if (!player) return;
+  try {
+    player.pause();
+  } catch {
+    // Already released.
+  }
+  try {
+    // Every expo-audio player is a SharedObject with release(); its typings leave the method off the instance.
+    (player as unknown as { release?: () => void }).release?.();
+  } catch {
+    // Already released.
+  }
+}
+
 type Clip = { url: string } | null;
 
-export function useIntroSound({ introKey, sceneCount, locale }: { introKey: string; sceneCount: number; locale: string }) {
+export function useIntroSound({ introKey, sceneCount, locale, onInterrupt }: { introKey: string; sceneCount: number; locale: string; onInterrupt?: () => void }) {
   const [prefs, setPrefs] = useState<IntroSoundPrefs>(readPrefs);
   const [voiceBusy, setVoiceBusy] = useState(false);
   const prefsRef = useRef(prefs);
@@ -39,32 +62,77 @@ export function useIntroSound({ introKey, sceneCount, locale }: { introKey: stri
   const pausedRef = useRef(false);
   const speaking = useRef(false);
   const off = useRef(false);
+  /** The players were freed by a stop (background, a call): resume starts the scene's line again. */
+  const released = useRef(false);
+  const interrupt = useRef(onInterrupt);
+  useEffect(() => {
+    interrupt.current = onInterrupt;
+  });
 
   useEffect(() => {
-    void setAudioModeAsync({ playsInSilentMode: true }).catch(() => undefined);
+    off.current = false;
+    // Never in the background: the guard below also stops everything when the app leaves the foreground.
+    void setAudioModeAsync({ playsInSilentMode: true, shouldPlayInBackground: false }).catch(() => undefined);
+  }, []);
+
+  const clearFade = useCallback(() => {
+    if (fade.current) clearInterval(fade.current);
+    fade.current = null;
   }, []);
 
   /** Moves the music volume to `level` over ~0.5 s. */
-  const musicTo = useCallback((level: number) => {
-    const player = music.current;
-    if (!player) return;
-    if (fade.current) clearInterval(fade.current);
-    const from = player.volume;
-    let step = 0;
-    fade.current = setInterval(() => {
-      step += 1;
-      player.volume = from + ((level - from) * step) / 8;
-      if (step >= 8 && fade.current) {
-        clearInterval(fade.current);
-        fade.current = null;
+  const musicTo = useCallback(
+    (level: number) => {
+      const player = music.current;
+      if (!player) return;
+      clearFade();
+      let from = 0;
+      try {
+        from = player.volume;
+      } catch {
+        return;
       }
-    }, 60);
-  }, []);
+      let step = 0;
+      fade.current = setInterval(() => {
+        step += 1;
+        try {
+          player.volume = from + ((level - from) * step) / 8;
+        } catch {
+          step = 8;
+        }
+        if (step >= 8) clearFade();
+      }, 60);
+    },
+    [clearFade],
+  );
+
+  /** Stops the narrator and the music and frees both players (the sheet closing, the app leaving, a call). */
+  const stopAll = useCallback(() => {
+    token.current++;
+    clearFade();
+    voiceSub.current?.remove();
+    voiceSub.current = null;
+    releasePlayer(voice.current);
+    releasePlayer(music.current);
+    voice.current = null;
+    music.current = null;
+    speaking.current = false;
+    released.current = true;
+    if (!off.current) setVoiceBusy(false);
+  }, [clearFade]);
+
+  // The app-wide guard: the app going to the background or a Peggy call starting stops and frees everything, and
+  // the sheet shows as paused.
+  useIntroAudioStop(() => {
+    pausedRef.current = true;
+    stopAll();
+    interrupt.current?.();
+  });
 
   const musicLevel = useCallback(() => (prefsRef.current.music ? (speaking.current ? MUSIC_UNDER_VOICE : MUSIC_LEVEL) : 0), []);
 
   const startMusic = useCallback(() => {
-    if (!prefsRef.current.music || off.current) return;
+    if (!prefsRef.current.music || off.current || pausedRef.current || !introAudio.allowed()) return;
     if (!music.current) {
       try {
         music.current = createAudioPlayer(MUSIC);
@@ -74,7 +142,8 @@ export function useIntroSound({ introKey, sceneCount, locale }: { introKey: stri
         return;
       }
     }
-    if (!pausedRef.current && !music.current.playing) music.current.play();
+    released.current = false;
+    if (!music.current.playing) music.current.play();
     musicTo(musicLevel());
   }, [musicLevel, musicTo]);
 
@@ -95,9 +164,13 @@ export function useIntroSound({ introKey, sceneCount, locale }: { introKey: stri
     token.current++;
     voiceSub.current?.remove();
     voiceSub.current = null;
-    voice.current?.pause();
+    try {
+      voice.current?.pause();
+    } catch {
+      voice.current = null;
+    }
     speaking.current = false;
-    setVoiceBusy(false);
+    if (!off.current) setVoiceBusy(false);
     musicTo(musicLevel());
   }, [musicLevel, musicTo]);
 
@@ -107,7 +180,7 @@ export function useIntroSound({ introKey, sceneCount, locale }: { introKey: stri
       stopVoice();
       sceneRef.current = index;
       startMusic();
-      if (!prefsRef.current.voice) return;
+      if (!prefsRef.current.voice || off.current) return;
       void clipFor(Math.min(index + 1, sceneCount - 1));
       const mine = ++token.current;
       setVoiceBusy(true);
@@ -116,7 +189,7 @@ export function useIntroSound({ introKey, sceneCount, locale }: { introKey: stri
         voiceSub.current?.remove();
         voiceSub.current = null;
         speaking.current = false;
-        setVoiceBusy(false);
+        if (!off.current) setVoiceBusy(false);
         musicTo(musicLevel());
       };
       const clip = await Promise.race([clipFor(index), new Promise<Clip>((resolve) => setTimeout(() => resolve(null), CLIP_WAIT_MS))]);
@@ -125,6 +198,7 @@ export function useIntroSound({ introKey, sceneCount, locale }: { introKey: stri
       try {
         if (!voice.current) voice.current = createAudioPlayer({ uri: clip.url });
         else voice.current.replace({ uri: clip.url });
+        released.current = false;
         // Watch for the end of the line (and give up on a clip that never loads).
         const player = voice.current;
         // Only a clip seen playing can end (just after replace() the player can still report the last clip's end).
@@ -135,14 +209,18 @@ export function useIntroSound({ introKey, sceneCount, locale }: { introKey: stri
             began = Date.now();
             return;
           }
-          if (player.playing) heard = true;
-          const ended = heard && !player.playing && player.duration > 0 && player.currentTime >= player.duration - 0.3;
-          if (ended || (!heard && Date.now() - began > 10_000)) done();
+          try {
+            if (player.playing) heard = true;
+            const ended = heard && !player.playing && player.duration > 0 && player.currentTime >= player.duration - 0.3;
+            if (ended || (!heard && Date.now() - began > 10_000)) done();
+          } catch {
+            done();
+          }
         }, 200);
         voiceSub.current = { remove: () => clearInterval(watch) };
         speaking.current = true;
         musicTo(musicLevel());
-        if (!pausedRef.current) voice.current.play();
+        if (!pausedRef.current && introAudio.allowed()) voice.current.play();
       } catch {
         done();
       }
@@ -150,17 +228,37 @@ export function useIntroSound({ introKey, sceneCount, locale }: { introKey: stri
     [clipFor, musicLevel, musicTo, sceneCount, startMusic, stopVoice],
   );
 
+  /** Pause really pauses: both players stop where they are. */
   const pause = useCallback(() => {
     pausedRef.current = true;
-    voice.current?.pause();
-    music.current?.pause();
-  }, []);
+    clearFade();
+    try {
+      voice.current?.pause();
+    } catch {
+      voice.current = null;
+    }
+    try {
+      music.current?.pause();
+    } catch {
+      music.current = null;
+    }
+  }, [clearFade]);
 
   const resume = useCallback(() => {
     pausedRef.current = false;
-    if (speaking.current) voice.current?.play();
-    if (prefsRef.current.music && music.current) music.current.play();
-  }, []);
+    if (off.current || !introAudio.allowed()) return;
+    // Freed by the app leaving or a call: start the scene's line (and the music) again.
+    if (released.current) {
+      if (sceneRef.current !== null) void playScene(sceneRef.current);
+      return;
+    }
+    try {
+      if (speaking.current) voice.current?.play();
+    } catch {
+      voice.current = null;
+    }
+    if (prefsRef.current.music) startMusic();
+  }, [playScene, startMusic]);
 
   /** The recap: the narrator stops and the music fades out. */
   const finish = useCallback(() => {
@@ -168,7 +266,12 @@ export function useIntroSound({ introKey, sceneCount, locale }: { introKey: stri
     sceneRef.current = null;
     musicTo(0);
     setTimeout(() => {
-      if (sceneRef.current === null) music.current?.pause();
+      if (sceneRef.current !== null) return;
+      try {
+        music.current?.pause();
+      } catch {
+        music.current = null;
+      }
     }, 700);
   }, [musicTo, stopVoice]);
 
@@ -190,17 +293,14 @@ export function useIntroSound({ introKey, sceneCount, locale }: { introKey: stri
     [musicTo, playScene, startMusic, stopVoice],
   );
 
+  // Closing or unmounting the sheet: stop and free both players.
   useEffect(
     () => () => {
       off.current = true;
-      token.current++;
-      if (fade.current) clearInterval(fade.current);
-      voiceSub.current?.remove();
-      voice.current?.remove();
-      music.current?.remove();
+      stopAll();
     },
-    [],
+    [stopAll],
   );
 
-  return { prefs, voiceBusy, setVoice: (on: boolean) => update({ voice: on }), setMusic: (on: boolean) => update({ music: on }), playScene, stopVoice, pause, resume, finish };
+  return { prefs, voiceBusy, setVoice: (on: boolean) => update({ voice: on }), setMusic: (on: boolean) => update({ music: on }), playScene, stopVoice, pause, resume, finish, stopAll };
 }

@@ -254,6 +254,6 @@ test("tips and tooltips: on by default, switched off and back on through prefere
   assert.match(read("src/components/shell/Sidebar.tsx"), /tipsOn \? navTerm\(role, id\) : null/);
   assert.match(read("src/components/learn/FeatureIntroHost.tsx"), /!autoOn/);
   assert.match(read("src/components/settings/CustomiseMenu.tsx"), /id="tips"/);
-  assert.match(read("apps/mobile/src/components/learn/LearnHost.tsx"), /!tipsOn/);
+  assert.match(read("apps/mobile/src/components/learn/LearnHost.tsx"), /useTipsAllowed\(tipsOn\)/);
   assert.match(read("apps/mobile/src/app/settings.tsx"), /<TipsRow \/>/);
 });

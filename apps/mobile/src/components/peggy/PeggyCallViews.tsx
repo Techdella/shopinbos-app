@@ -181,20 +181,28 @@ export function CallSheet({ call, onMinimize, onMute, onEnd }: { call: LiveCall;
   );
 }
 
-/** Minimized: a small bar across the app. Tap to open the call again. */
-export function CallBar({ call, onOpen, onMute, onEnd }: { call: LiveCall; onOpen: () => void; onMute: () => void; onEnd: () => void }) {
+/** The minimized call bar's height above the bottom safe area (the screens end this far up: CallSpace). */
+export const CALL_BAR_HEIGHT = 56;
+
+/**
+ * Minimized: a slim strip along the bottom of the app, under the tab bar, in space the screens leave free for it
+ * (CallSpace in PeggyCallHost.tsx), so the screen Peggy opened shows in full. Tap to open the call again. `note` is
+ * the latest "Peggy opened Delivery" / "Peggy saved …" line, shown in the strip instead of over the screen's header.
+ */
+export function CallBar({ call, note, onOpen, onMute, onEnd }: { call: LiveCall; note?: string | null; onOpen: () => void; onMute: () => void; onEnd: () => void }) {
   const t = useT("m_help");
   const insets = useSafeAreaInsets();
   const line = useSavedLine();
   const last = call.saved[call.saved.length - 1];
+  const sub = note ?? (last ? line(last) : null);
   return (
-    <View pointerEvents="box-none" style={{ position: "absolute", left: 12, right: 12, bottom: insets.bottom + 78, zIndex: 50, elevation: 12 }}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: colors.forest, borderRadius: 26, paddingLeft: 8, paddingRight: 8, paddingVertical: 8, shadowColor: "#000", shadowOpacity: 0.22, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } }}>
+    <View testID="peggy-call-bar" style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: CALL_BAR_HEIGHT + insets.bottom, paddingBottom: insets.bottom, paddingHorizontal: 12, justifyContent: "center", backgroundColor: colors.forest, zIndex: 50, elevation: 12 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }} accessibilityLiveRegion="polite">
         <Pressable accessibilityRole="button" accessibilityLabel={t("call.open")} onPress={onOpen} style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 10, minHeight: 44 }}>
-          <PeggyAvatar size={40} speaking={call.speaking} />
+          <PeggyAvatar size={36} speaking={call.speaking} />
           <View style={{ flex: 1, minWidth: 0 }}>
-            <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 15 }} numberOfLines={1}>{call.phase === "live" ? t("call.onCall") : t("call.calling")}</T>
-            {last ? <T style={{ color: "rgba(255,255,255,0.8)", fontSize: 13 }} numberOfLines={1}>{line(last)}</T> : null}
+            <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 14 }} numberOfLines={1}>{call.phase === "live" ? t("call.onCall") : t("call.calling")}</T>
+            {sub ? <T style={{ color: "rgba(255,255,255,0.8)", fontSize: 12.5 }} numberOfLines={1}>{sub}</T> : null}
           </View>
         </Pressable>
         {call.phase === "live" ? (
@@ -210,19 +218,6 @@ export function CallBar({ call, onOpen, onMute, onEnd }: { call: LiveCall; onOpe
   );
 }
 
-/** A short line at the top of the screen while the call is minimized: "Peggy saved …" or "Peggy opened Delivery". */
-export function SavedToast({ text }: { text: string | null }) {
-  const insets = useSafeAreaInsets();
-  if (!text) return null;
-  return (
-    <View pointerEvents="none" style={{ position: "absolute", top: insets.top + 8, left: 16, right: 16, zIndex: 60, elevation: 14 }} accessibilityLiveRegion="polite">
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: colors.ink, borderRadius: 18, paddingHorizontal: 12, paddingVertical: 10 }}>
-        <PeggyAvatar size={30} />
-        <T weight="semibold" style={{ flex: 1, color: "#FFFFFF", fontSize: 14, lineHeight: 19 }} numberOfLines={2}>{text}</T>
-      </View>
-    </View>
-  );
-}
 
 /** After the call: everything Peggy saved, with Edit links, then the next step that's still missing. */
 export function CallSummary({ saved, status, endedByPeggy = false, editPathOf, nextLabel, onEdit, onContinue, onClose }: { saved: SavedEntry[]; status: SetupView | null; endedByPeggy?: boolean; editPathOf: (item: SavedEntry) => string | null; nextLabel: string | null; onEdit: (path: string) => void; onContinue: () => void; onClose: () => void }) {

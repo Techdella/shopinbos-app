@@ -4,10 +4,10 @@ import { requestRecordingPermissionsAsync } from "expo-audio";
 import { ConversationProvider, useConversation } from "@elevenlabs/react-native";
 import { ApiError } from "@/lib/api";
 import { useT } from "@/lib/i18n";
-import { callState, fetchSetupView, patchCall, recordSaved, runCallTool, runContinue, setCallControls, startCallSession, usePeggyCall, usePeggySaved} from "@/lib/peggy-call";
+import { callState, fetchSetupView, notePeggyOpened, patchCall, recordSaved, runCallTool, runContinue, setCallControls, startCallSession, usePeggyCall, usePeggySaved } from "@/lib/peggy-call";
 import { CALL_TOOLS, editPath, nextStepPath, openScreenOnPhone, stepKey, type CallRole } from "@/lib/peggy-call-pure";
 import { useRole } from "@/lib/role";
-import { CallBar, CallSheet, CallSummary, SavedToast, useSavedLine } from "./PeggyCallViews";
+import { CallBar, CallSheet, CallSummary, useSavedLine } from "./PeggyCallViews";
 
 // "Call Peggy" inside the app: ElevenLabs' React Native SDK (WebRTC through LiveKit's native modules), so this file
 // is only loaded in builds that have them (EAS builds, never Expo Go: PeggyCallHost decides). The server gives a
@@ -85,6 +85,8 @@ function Engine() {
       if (!screen || !route) return reply;
       patchCall({ minimized: true });
       router.push(route as never);
+      // Tips stay away from the screen she opened (lib/setup-gate.ts), and any open tip closes (LearnHost).
+      notePeggyOpened();
       showToast(t("call.opened", { screen: t.dynamic(`call.screen.${screen.id}`, screen.name) }));
       return reply;
     },
@@ -201,10 +203,6 @@ function Engine() {
   }
   if (state.phase === "idle") return null;
   if (!state.minimized) return <CallSheet call={call} onMinimize={() => patchCall({ minimized: true })} onMute={onMute} onEnd={end} />;
-  return (
-    <>
-      <CallBar call={call} onOpen={() => patchCall({ minimized: false })} onMute={onMute} onEnd={end} />
-      <SavedToast key={toast?.key} text={toast?.text ?? null} />
-    </>
-  );
+  // The latest "Peggy opened …" / "Peggy saved …" line shows inside the bar, never over the screen she opened.
+  return <CallBar call={call} note={toast?.text ?? null} onOpen={() => patchCall({ minimized: false })} onMute={onMute} onEnd={end} />;
 }

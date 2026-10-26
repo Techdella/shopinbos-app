@@ -1,6 +1,9 @@
-import { useEffect, type ComponentType } from "react";
+import { useEffect, type ComponentType, type ReactNode } from "react";
+import { View } from "react-native";
 import { useSession } from "@/lib/session";
-import { callsPossibleHere, checkCallsAvailable } from "@/lib/peggy-call";
+import { callBarShown, callsPossibleHere, checkCallsAvailable, usePeggyCall } from "@/lib/peggy-call";
+import { colors } from "@/theme";
+import { CALL_BAR_HEIGHT } from "./PeggyCallViews";
 
 // Mounted once in app/_layout.tsx, next to the screens: the "Call Peggy" call lives here, so it carries on (minimized
 // to a small bar) while people move around the app. The call engine needs native WebRTC, which only EAS builds have:
@@ -19,6 +22,16 @@ function loadEngine(): ComponentType | null {
 }
 
 const Engine = loadEngine();
+
+/**
+ * Wraps the screens (app/_layout.tsx): while the call is minimized they end CALL_BAR_HEIGHT above the bottom, so the
+ * call bar sits in its own strip under the tab bar and never covers a screen, its buttons or the "+". The bar's
+ * safe-area padding only overlaps each screen's own bottom inset padding, which is empty.
+ */
+export function CallSpace({ children }: { children: ReactNode }) {
+  const shown = callBarShown(usePeggyCall());
+  return <View style={{ flex: 1, backgroundColor: colors.canvas, paddingBottom: shown ? CALL_BAR_HEIGHT : 0 }}>{children}</View>;
+}
 
 export function PeggyCallHost() {
   const { session } = useSession();

@@ -8,7 +8,8 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { RoleGuard } from "@/components/RoleGuard";
 import { LearnHost } from "@/components/learn/LearnHost";
 import { PushManager } from "@/components/PushManager";
-import { PeggyCallHost } from "@/components/peggy/PeggyCallHost";
+import { CallSpace, PeggyCallHost } from "@/components/peggy/PeggyCallHost";
+import { useIntroAudioGuard } from "@/lib/intro-audio";
 import { SessionProvider, useSession } from "@/lib/session";
 import { I18nProvider } from "@/lib/i18n";
 import { colors } from "@/theme";
@@ -32,6 +33,12 @@ function SplashHandover() {
   return null;
 }
 
+/** Stops every tip's sound when the app goes to the background or a Peggy call starts (lib/intro-audio.ts). */
+function IntroAudioGuard() {
+  useIntroAudioGuard();
+  return null;
+}
+
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({ PlusJakartaSans_400Regular, PlusJakartaSans_500Medium, PlusJakartaSans_600SemiBold, PlusJakartaSans_700Bold, PlusJakartaSans_800ExtraBold, BricolageGrotesque_700Bold, BricolageGrotesque_800ExtraBold });
   if (!fontsLoaded && !fontError) return null;
@@ -43,12 +50,16 @@ export default function RootLayout() {
         <I18nProvider>
           <SplashHandover />
           <RoleGuard />
+          <IntroAudioGuard />
           <StatusBar style="dark" />
-          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.canvas }, animation: "slide_from_right" }} />
+          {/* While a call is minimized the screens end above its bar, so the bar never covers them. */}
+          <CallSpace>
+            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.canvas }, animation: "slide_from_right" }} />
+          </CallSpace>
           <PushManager />
           {/* "Call Peggy": the in-app call, full screen or minimized to a bar across the app. */}
           <PeggyCallHost />
-          {/* 60-second feature intros: once per person on the first visit to a feature's screen. */}
+          {/* 60-second feature intros: a small Tips button on screens that have one, after setup; never during a call. */}
           <LearnHost />
         </I18nProvider>
       </SessionProvider>

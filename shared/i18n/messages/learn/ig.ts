@@ -69,6 +69,10 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "rexhelp.act.domainIdeas": "Nweta echiche aha",
   "rexhelp.act.templatesPick": "Họrọ theme m",
   "rexhelp.act.storeRebrand": "Mee ka m dị ọhụrụ",
+  "tipsButton": "Ndụmọdụ",
+  "tipsOpen": "Gosi ndụmọdụ maka ihuenyo a",
+  "tipsHideHint": "Pịa ya ogologo ka ezoo ya ebe a",
+  "tipsHide": "Zoo Ndụmọdụ na ihuenyo a",
 };
 
 export default ig;

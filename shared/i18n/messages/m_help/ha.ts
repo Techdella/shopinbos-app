@@ -130,7 +130,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "call.screen.chats": "Hirarraki",
   "call.screen.connections": "Masu sayarwa da kuke kai wa kaya",
   "call.screen.coverage": "Inda kuke kai kaya",
-  "call.screen.create": "Ƙirƙira da Rex",
+  "call.screen.create": "Yi rubutu",
   "call.screen.customers": "Abokan ciniki",
   "call.screen.delivery": "Kai kaya",
   "call.screen.delivery_areas": "Inda kuke kai kaya",
@@ -149,7 +149,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "call.screen.payout": "Bankin karɓar kuɗi",
   "call.screen.pickup": "Adireshin ɗauka",
   "call.screen.pickup_points": "Wuraren ɗauka",
-  "call.screen.posts": "Rubuce-rubuce",
+  "call.screen.posts": "Kalandar rubuce-rubuce",
   "call.screen.products": "Kayayyaki",
   "call.screen.profile": "Bayanan kamfani",
   "call.screen.quotes": "Farashin da aka nema",
@@ -165,6 +165,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "call.screen.wallet": "Walat",
   "call.screen.where": "Inda kuke sayarwa",
   "call.peggyEnded": "Peggy ta kashe kiran",
+  "call.screen.rex": "Gyara shagona da Rex",
 };
 
 export default ha;

@@ -10,6 +10,8 @@ import { LinkButton, PillButton, T } from "@/components/ui";
 import { TILE } from "@/components/design";
 import { likeStatus, markStatusSeen, type StatusAuthor, type StatusPost } from "@/lib/familiar";
 import { useT } from "@/lib/i18n";
+import { useIntroAudioStop } from "@/lib/intro-audio";
+import { callOn, usePeggyCall } from "@/lib/peggy-call";
 import { hideShopinbosStatus, markShopinbosSeen, runShopinbosCta, watchOutside } from "@/lib/shopinbos";
 import { colors, fonts } from "@/theme";
 import { Mascot } from "@/components/Mascot";
@@ -41,7 +43,16 @@ export function storyByline(author: Pick<StatusAuthor, "name" | "roleLabel">, ro
 /** A post's video, full screen behind the words; `onEnd` moves on. */
 function StoryVideo({ url, onEnd }: { url: string; onEnd: () => void }) {
   const player = useVideoPlayer(url, (created) => {
+    created.staysActiveInBackground = false;
     created.play();
+  });
+  // The app going to the background or a Peggy call starting pauses it (lib/intro-audio.ts); closing frees it.
+  useIntroAudioStop(() => {
+    try {
+      player.pause();
+    } catch {
+      // Already released.
+    }
   });
   const end = useRef(onEnd);
   useEffect(() => {
@@ -93,6 +104,16 @@ export function StoryViewer({
       setPostIndex(startPost);
     }
   }
+
+  // A Peggy call starting closes the viewer, so the screens she opens show clearly (no tip over them).
+  const calling = callOn(usePeggyCall());
+  const closeRef = useRef(onClose);
+  useEffect(() => {
+    closeRef.current = onClose;
+  });
+  useEffect(() => {
+    if (visible && calling) closeRef.current();
+  }, [visible, calling]);
 
   const author = authors[authorIndex];
   const post = author?.posts[postIndex];

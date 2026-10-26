@@ -69,6 +69,10 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "rexhelp.act.domainIdeas": "Get name ideas",
   "rexhelp.act.templatesPick": "Pick my theme",
   "rexhelp.act.storeRebrand": "Refresh my look",
+  "tipsButton": "Tips",
+  "tipsOpen": "Show the tip for this screen",
+  "tipsHideHint": "Press am long make e comot for here",
+  "tipsHide": "Hide Tips for this screen",
 };
 
 export default pcm;
