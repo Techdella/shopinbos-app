@@ -282,9 +282,9 @@ async function sendWalletReadyEmail(walletId: string) {
     preheader: `Your own wallet account number: ${wallet.topUpAccountNumber}.`,
     bodyHtml: [
       html.p(first ? `Hi ${first}, your Shopinbos Wallet is set up.` : "Your Shopinbos Wallet is set up."),
-      html.p("This account number is yours alone. Transfer to it from any bank app and the money lands in your wallet balance within a minute or two:"),
+      html.p("This account number is yours alone. Share it with anyone who needs to pay you, from any bank app:"),
       html.code(wallet.topUpAccountNumber, `${wallet.topUpBankName ?? "Bank"} · ${wallet.topUpAccountName ?? ""}`),
-      html.p("Use your balance for AI credits and other Shopinbos services, and withdraw what's left to your bank whenever you like. Card payments from your customers are still split at checkout and paid straight into your bank."),
+      html.p("Once your bank is added on your wallet page, money sent to this account goes straight to your bank, usually the next working day; Shopinbos never holds it. Top up by card to pay for AI credits and other Shopinbos services."),
     ].join(""),
     cta: { label: "Open your wallet", url: `${appBase()}${walletPath(wallet.role)}` },
     reason: "Your Shopinbos Wallet account number was just set up.",
