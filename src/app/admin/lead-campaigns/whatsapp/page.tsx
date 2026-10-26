@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { AppPage, Card, CardHead, EmptyState, Pill, PillLink, StatTile, type Tone } from "@/components/app-kit";
 import { Notice } from "@/components/app-ui";
-import { adminFrame, buttonClass } from "@/components/admin/AdminKit";
-import { addWhatsAppSequences, connectWhatsAppInbox, submitInboxTemplates, submitWhatsAppTemplates, toggleLeadAutomation } from "@/app/actions/admin-lead-growth";
-import { ROLE_LABELS, type LeadRole } from "@/lib/lead-growth/pure";
+import { adminFrame, buttonClass, fieldClass } from "@/components/admin/AdminKit";
+import { importLeadsCsv } from "@/app/actions/admin-website-leads";
+import { addOutreachSequences, addWhatsAppSequences, connectWhatsAppInbox, submitInboxTemplates, submitWhatsAppTemplates, toggleLeadAutomation } from "@/app/actions/admin-lead-growth";
+import { LEAD_ROLES, ROLE_LABELS, type LeadRole } from "@/lib/lead-growth/pure";
 import { LeadGrowthNotReady, listAutomations, whatsappOverview } from "@/lib/lead-growth/service.server";
-import { WHATSAPP_AUTOMATIONS, WHATSAPP_TEMPLATES, templatePreviewText, templatesUsed } from "@/lib/lead-growth/whatsapp-content";
+import { OUTREACH_AUTOMATIONS, OUTREACH_EMAIL, OUTREACH_SOURCE, WHATSAPP_AUTOMATIONS, WHATSAPP_TEMPLATES, templatePreviewText, templatesUsed, type WhatsAppTemplate } from "@/lib/lead-growth/whatsapp-content";
 import { metaPhoneInfo, metaTemplates, metaWhatsAppConfig, type MetaTemplateStatus } from "@/lib/lead-growth/whatsapp-meta.server";
 import { requireRole } from "@/lib/server-auth";
 import { inboxWhatsAppStatus } from "@/lib/support/whatsapp.server";
@@ -18,14 +19,19 @@ export const maxDuration = 300;
 
 // /admin/lead-campaigns/whatsapp: WhatsApp for website leads, from Shopinbos's own number on Meta's Cloud API.
 // The number's status, the launch templates Meta has to approve (submit them from here), the WhatsApp launch
-// sequences per role, who WhatsApp can reach, and the latest messages.
+// sequences per role, partnership outreach to imported lists (suppliers, delivery partners, well-known sellers),
+// who WhatsApp can reach, and the latest messages.
 
 const STATUS_TONE: Record<string, Tone> = { APPROVED: "success", PENDING: "warning", IN_APPEAL: "warning", REJECTED: "danger", PAUSED: "danger", DISABLED: "danger" };
 const MSG_TONE: Record<string, Tone> = { sent: "success", failed: "danger", skipped: "muted", sending: "info" };
 
 const mask = (phone: string) => (phone.length > 6 ? `${phone.slice(0, 4)}•••${phone.slice(-3)}` : phone || "-");
 
-type Search = { error?: string; submitted?: string; connected?: string };
+type Search = { error?: string; submitted?: string; connected?: string; imported?: string; skipped?: string };
+
+const OUTREACH_NAMES = new Set(OUTREACH_AUTOMATIONS.map((a) => a.name));
+const OUTREACH_ROLE: Record<LeadRole, string> = { supplier: "Suppliers", delivery: "Delivery / logistics companies", seller: "Sellers (free store offer)" };
+type Automation = Awaited<ReturnType<typeof listAutomations>>[number];
 
 export default async function LeadWhatsAppPage(props: { searchParams?: Promise<Search> }) {
   const user = await requireRole(["admin"], "/admin/login");
@@ -50,8 +56,11 @@ export default async function LeadWhatsAppPage(props: { searchParams?: Promise<S
   const onMeta = new Map<string, MetaTemplateStatus>((metaList?.ok ? metaList.templates : []).map((t) => [`${t.name}:${t.language}`, t]));
   const statusOf = (name: string, language: string) => onMeta.get(`${name}:${language}`) ?? null;
   const approved = (name: string) => WHATSAPP_TEMPLATES.some((t) => t.name === name && statusOf(t.name, t.language)?.status === "APPROVED");
-  const waAutomations = automations.filter((a) => a.steps.some((step) => step.channel === "whatsapp"));
+  const waAutomations = automations.filter((a) => a.steps.some((step) => step.channel === "whatsapp") && !OUTREACH_NAMES.has(a.name));
+  const outreachAutomations = automations.filter((a) => OUTREACH_NAMES.has(a.name));
   const missingSequences = WHATSAPP_AUTOMATIONS.some((a) => !automations.some((have) => have.name === a.name));
+  const missingOutreach = OUTREACH_AUTOMATIONS.some((a) => !automations.some((have) => have.name === a.name));
+  const canSubmit = Boolean(config?.wabaId);
   // "Submit all" also sends the members' templates (referrals, weekly tips, journeys), so count those too: once the
   // launch templates were all approved, the button vanished and the member ones had nowhere to be submitted from.
   const missingLaunch = WHATSAPP_TEMPLATES.filter((t) => !statusOf(t.name, t.language)).length;
@@ -73,6 +82,7 @@ export default async function LeadWhatsAppPage(props: { searchParams?: Promise<S
     >
       {search.error && <div className="mb-4"><Notice>{search.error}</Notice></div>}
       {search.connected && <div className="mb-4"><Notice tone="success">Connected. Messages to the number now arrive in Admin › Inbox.</Notice></div>}
+      {search.imported && <div className="mb-4"><Notice tone="success">Added {search.imported} people to the outreach list{Number(search.skipped) ? `; ${search.skipped} rows had no usable phone number and were skipped` : ""}.</Notice></div>}
       {search.submitted && <div className="mb-4"><Notice tone="success">Sent {search.submitted} template{search.submitted === "1" ? "" : "s"} to Meta for review. Approval usually takes minutes, sometimes up to a day.</Notice></div>}
 
       <section aria-label="Reach" className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
@@ -165,38 +175,7 @@ export default async function LeadWhatsAppPage(props: { searchParams?: Promise<S
           }
         />
         {metaList && !metaList.ok && config?.wabaId && <div className="mb-3"><Notice>Couldn't read templates from Meta: {metaList.error}</Notice></div>}
-        <ul className="m-0 flex list-none flex-col divide-y divide-app-line p-0">
-          {WHATSAPP_TEMPLATES.map((template) => {
-            const status = statusOf(template.name, template.language);
-            return (
-              <li key={template.name} className="py-3">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <b className="font-mono text-[13.5px]">{template.name}</b>
-                      <Pill tone="muted">{ROLE_LABELS[template.role]}</Pill>
-                      {status ? <Pill tone={STATUS_TONE[status.status] ?? "muted"} dot>{status.status.toLowerCase().replace(/_/g, " ")}</Pill> : <Pill tone="muted">Not on Meta yet</Pill>}
-                    </div>
-                    <p className="mb-0 mt-1 text-[13px] text-app-ink-soft">{template.purpose}{status?.reason ? ` · Rejected: ${status.reason.toLowerCase().replace(/_/g, " ")}` : ""}</p>
-                    <details className="mt-1.5">
-                      <summary className="cursor-pointer text-[13px] font-bold">Preview</summary>
-                      <div className="mt-2 max-w-[420px] whitespace-pre-line rounded-[14px] bg-[#ECE5DD] p-3 text-[13.5px]">
-                        <div className="rounded-[12px] rounded-tl-[4px] bg-white px-3 py-2">{templatePreviewText(template)}</div>
-                        <div className="mt-1.5 rounded-[12px] bg-white px-3 py-2 text-center font-bold text-[#00A5F4]">{template.button.text}</div>
-                      </div>
-                    </details>
-                  </div>
-                  {config?.wabaId && (!status || status.status === "REJECTED") && (
-                    <form action={submitWhatsAppTemplates}>
-                      <input type="hidden" name="name" value={template.name} />
-                      <button type="submit" className={buttonClass("white", "sm")}>{status ? "Resubmit" : "Submit to Meta"}</button>
-                    </form>
-                  )}
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+        <TemplateList templates={WHATSAPP_TEMPLATES.filter((t) => t.use !== "outreach")} statusOf={statusOf} canSubmit={canSubmit} />
       </Card>
 
       <Card className="mb-5 p-5">
@@ -214,34 +193,52 @@ export default async function LeadWhatsAppPage(props: { searchParams?: Promise<S
         {waAutomations.length === 0 ? (
           <EmptyState icon="whatsapp" title="No WhatsApp sequences yet">Add them, get the templates approved, then switch them on.</EmptyState>
         ) : (
-          <ul className="m-0 flex list-none flex-col divide-y divide-app-line p-0">
-            {waAutomations.map((automation) => {
-              const needed = templatesUsed(automation.steps);
-              const ready = needed.filter(approved).length;
-              const blocked = !config || ready < needed.length;
-              return (
-                <li key={automation.id} className="flex flex-wrap items-center justify-between gap-3 py-3.5">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Link href={`/admin/lead-campaigns/automations/${automation.id}`} className="text-[15.5px] font-bold underline-offset-2 hover:underline">{automation.name}</Link>
-                      <Pill tone={automation.active ? "success" : "muted"} dot>{automation.active ? "On" : "Off"}</Pill>
-                      <Pill tone={ready === needed.length ? "success" : "warning"}>{ready}/{needed.length} templates approved</Pill>
-                    </div>
-                    <p className="mb-0 mt-1 text-[13px] text-app-ink-soft">
-                      {automation.steps.length} messages · {automation.enrolled} entered · {automation.sent} sent · <b className="text-app-ink">{automation.converted} signed up</b>
-                    </p>
-                  </div>
-                  <form action={toggleLeadAutomation}>
-                    <input type="hidden" name="id" value={automation.id} />
-                    <input type="hidden" name="active" value={automation.active ? "0" : "1"} />
-                    <button type="submit" className={buttonClass(automation.active ? "white" : "ink", "sm")} disabled={!automation.active && blocked} title={!automation.active && blocked ? "Connect the number and get its templates approved first" : undefined}>
-                      {automation.active ? "Turn off" : "Turn on"}
-                    </button>
-                  </form>
-                </li>
-              );
-            })}
-          </ul>
+          <SequenceList automations={waAutomations} approved={approved} connected={Boolean(config)} />
+        )}
+      </Card>
+
+      <Card className="mb-5 scroll-mt-24 p-5" id="outreach">
+        <CardHead
+          title="Partnership outreach"
+          sub={`First contact with suppliers, delivery companies and well-known sellers who haven't heard of us: an introduction, a follow-up 3 days later and a last note 4 days after that. Anyone who replies (or sends STOP) gets no more follow-ups, and the chat lands in Admin › Inbox. They can also email ${OUTREACH_EMAIL}.`}
+        />
+        <ol className="m-0 mb-4 grid gap-1 pl-5 text-[13.5px]">
+          <li>Submit the 9 outreach templates below to Meta and wait for them to be approved.</li>
+          <li>Upload each list as a CSV: one file per group, with a <span className="font-mono">phone</span> column (0803… or +234803…) and a <span className="font-mono">name</span> column if you have one.</li>
+          <li>Add the outreach sequences and turn on the ones you want. Messages go out in sending hours, at most one a day per person.</li>
+        </ol>
+        <section aria-label="Outreach lists" className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {(["supplier", "delivery", "seller"] as const).map((role) => (
+            <StatTile key={role} tone="card" label={OUTREACH_ROLE[role]} value={overview.outreachByRole[role] ?? 0} hint="On the outreach list, not signed up" />
+          ))}
+        </section>
+        <details className="mb-4 rounded-[14px] border border-app-line p-3">
+          <summary className="cursor-pointer text-[14px] font-bold">Upload a phone number list (CSV)</summary>
+          <form action={importLeadsCsv} className="mt-3 flex max-w-[520px] flex-col gap-3">
+            <input type="hidden" name="source" value={OUTREACH_SOURCE} />
+            <input type="hidden" name="back" value="whatsapp" />
+            <p className="m-0 text-[13px] text-app-ink-soft">Columns by header: phone (or whatsapp / mobile), name, email, role. Up to 5,000 rows, 2 MB. The same number twice is one person; anyone who already has a Shopinbos account is left out.</p>
+            <input name="file" type="file" accept=".csv,text/csv" required className="text-[13.5px]" aria-label="CSV file" />
+            <select name="as" defaultValue="supplier" className={fieldClass} aria-label="Who is on this list">
+              {LEAD_ROLES.map((role) => <option key={role} value={role}>{OUTREACH_ROLE[role]}</option>)}
+            </select>
+            <div><button type="submit" className={buttonClass("ink", "sm")}>Add to the outreach list</button></div>
+          </form>
+        </details>
+        <h3 className="m-0 mb-1 text-[14.5px] font-bold">Outreach templates</h3>
+        <TemplateList templates={WHATSAPP_TEMPLATES.filter((t) => t.use === "outreach")} statusOf={statusOf} canSubmit={canSubmit} />
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+          <h3 className="m-0 text-[14.5px] font-bold">Outreach sequences</h3>
+          {missingOutreach && (
+            <form action={addOutreachSequences}>
+              <button type="submit" className={buttonClass("white", "sm")}>Add outreach sequences</button>
+            </form>
+          )}
+        </div>
+        {outreachAutomations.length === 0 ? (
+          <p className="m-0 mt-2 text-[13.5px] text-app-ink-soft">Not added yet. They start switched off.</p>
+        ) : (
+          <SequenceList automations={outreachAutomations} approved={approved} connected={Boolean(config)} />
         )}
       </Card>
 
@@ -275,5 +272,75 @@ export default async function LeadWhatsAppPage(props: { searchParams?: Promise<S
         )}
       </Card>
     </AppPage>
+  );
+}
+
+function TemplateList(props: { templates: WhatsAppTemplate[]; statusOf: (name: string, language: string) => MetaTemplateStatus | null; canSubmit: boolean }) {
+  return (
+    <ul className="m-0 flex list-none flex-col divide-y divide-app-line p-0">
+      {props.templates.map((template) => {
+        const status = props.statusOf(template.name, template.language);
+        return (
+          <li key={template.name} className="py-3">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <b className="font-mono text-[13.5px]">{template.name}</b>
+                  <Pill tone="muted">{ROLE_LABELS[template.role]}</Pill>
+                  {status ? <Pill tone={STATUS_TONE[status.status] ?? "muted"} dot>{status.status.toLowerCase().replace(/_/g, " ")}</Pill> : <Pill tone="muted">Not on Meta yet</Pill>}
+                </div>
+                <p className="mb-0 mt-1 text-[13px] text-app-ink-soft">{template.purpose}{status?.reason ? ` · Rejected: ${status.reason.toLowerCase().replace(/_/g, " ")}` : ""}</p>
+                <details className="mt-1.5">
+                  <summary className="cursor-pointer text-[13px] font-bold">Preview</summary>
+                  <div className="mt-2 max-w-[420px] whitespace-pre-line rounded-[14px] bg-[#ECE5DD] p-3 text-[13.5px]">
+                    <div className="rounded-[12px] rounded-tl-[4px] bg-white px-3 py-2">{templatePreviewText(template)}</div>
+                    <div className="mt-1.5 rounded-[12px] bg-white px-3 py-2 text-center font-bold text-[#00A5F4]">{template.button.text}</div>
+                  </div>
+                </details>
+              </div>
+              {props.canSubmit && (!status || status.status === "REJECTED") && (
+                <form action={submitWhatsAppTemplates}>
+                  <input type="hidden" name="name" value={template.name} />
+                  <button type="submit" className={buttonClass("white", "sm")}>{status ? "Resubmit" : "Submit to Meta"}</button>
+                </form>
+              )}
+            </div>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function SequenceList(props: { automations: Automation[]; approved: (name: string) => boolean; connected: boolean }) {
+  return (
+    <ul className="m-0 flex list-none flex-col divide-y divide-app-line p-0">
+      {props.automations.map((automation) => {
+        const needed = templatesUsed(automation.steps);
+        const ready = needed.filter(props.approved).length;
+        const blocked = !props.connected || ready < needed.length;
+        return (
+          <li key={automation.id} className="flex flex-wrap items-center justify-between gap-3 py-3.5">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <Link href={`/admin/lead-campaigns/automations/${automation.id}`} className="text-[15.5px] font-bold underline-offset-2 hover:underline">{automation.name}</Link>
+                <Pill tone={automation.active ? "success" : "muted"} dot>{automation.active ? "On" : "Off"}</Pill>
+                <Pill tone={ready === needed.length ? "success" : "warning"}>{ready}/{needed.length} templates approved</Pill>
+              </div>
+              <p className="mb-0 mt-1 text-[13px] text-app-ink-soft">
+                {automation.steps.length} messages · {automation.enrolled} entered · {automation.sent} sent · <b className="text-app-ink">{automation.converted} signed up</b>
+              </p>
+            </div>
+            <form action={toggleLeadAutomation}>
+              <input type="hidden" name="id" value={automation.id} />
+              <input type="hidden" name="active" value={automation.active ? "0" : "1"} />
+              <button type="submit" className={buttonClass(automation.active ? "white" : "ink", "sm")} disabled={!automation.active && blocked} title={!automation.active && blocked ? "Connect the number and get its templates approved first" : undefined}>
+                {automation.active ? "Turn off" : "Turn on"}
+              </button>
+            </form>
+          </li>
+        );
+      })}
+    </ul>
   );
 }

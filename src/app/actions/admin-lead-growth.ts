@@ -14,6 +14,7 @@ import { templateFromDraft } from "@/lib/support/whatsapp-pure";
 import {
   LeadGrowthNotReady,
   addLaunchContent,
+  addOutreachContent,
   addWhatsAppContent,
   cancelCampaign,
   countAudience,
@@ -191,6 +192,14 @@ function waBack(params: Record<string, string>): never {
 export async function addWhatsAppSequences() {
   await requireAdminSection("leads");
   await addWhatsAppContent();
+  revalidatePath(WA_PATH);
+  revalidatePath(PATH);
+}
+
+/** Admin: the partnership outreach sequences (suppliers, delivery partners, sellers), switched off. */
+export async function addOutreachSequences() {
+  await requireAdminSection("leads");
+  await addOutreachContent();
   revalidatePath(WA_PATH);
   revalidatePath(PATH);
 }

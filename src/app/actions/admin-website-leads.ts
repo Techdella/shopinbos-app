@@ -10,6 +10,7 @@ import { saveWebsiteLead, updateWebsiteLead } from "@/lib/website-leads/service.
 import { matchLeadsToExistingUsers } from "@/lib/lead-growth/service.server";
 import { db } from "@/lib/db/client";
 import { conversationFromLead } from "@/lib/support/service.server";
+import { whatsappPhone } from "@/lib/support/whatsapp-pure";
 
 // Admin: mark a website lead as contacted, signed up or closed, and keep a short note.
 export async function setWebsiteLeadStatus(formData: FormData) {
@@ -77,7 +78,9 @@ export async function importLeadsCsv(formData: FormData) {
   let skipped = 0;
   for (const row of data.slice(0, 5000)) {
     const email = (row.email ?? row.emailaddress ?? "").trim();
-    const phone = (row.phone ?? row.phonenumber ?? row.whatsapp ?? row.mobile ?? "").trim();
+    const rawPhone = (row.phone ?? row.phonenumber ?? row.whatsapp ?? row.whatsappnumber ?? row.mobile ?? "").trim();
+    // 0803… and +234803… are the same person: store the international form so the list dedupes and WhatsApp reaches them.
+    const phone = rawPhone ? whatsappPhone(rawPhone) ?? rawPhone : "";
     const key = (email || phone).toLowerCase();
     const parsed = WebsiteLeadInput.safeParse({
       id: `import-${createHash("sha256").update(key).digest("hex").slice(0, 32)}`,
@@ -100,6 +103,11 @@ export async function importLeadsCsv(formData: FormData) {
   // Anyone on the list who already has an account counts as signed up, so campaigns leave them out.
   await matchLeadsToExistingUsers({ days: 1 }).catch(() => 0);
   revalidatePath("/admin/leads");
+  // The outreach card on Admin › Lead campaigns › WhatsApp imports here too, and goes back there.
+  if (formData.get("back") === "whatsapp") {
+    revalidatePath("/admin/lead-campaigns/whatsapp");
+    redirect(`/admin/lead-campaigns/whatsapp?imported=${added}&skipped=${skipped}#outreach`);
+  }
   redirect(`/admin/leads?imported=${added}&skipped=${skipped}`);
 }
 

@@ -197,6 +197,40 @@ test("whatsapp: launch templates follow Meta's rules and every sequence step use
   assert.equal(wa.templatesUsed(suppliers).length, 4);
 });
 
+test("whatsapp outreach: three steps per role, only the imported list, every template a partner template", async () => {
+  const wa = await import("../src/lib/lead-growth/whatsapp-content.ts");
+  const outreach = wa.WHATSAPP_TEMPLATES.filter((t) => t.use === "outreach");
+  assert.equal(outreach.length, 9);
+  for (const t of outreach) {
+    assert.match(t.name, /^shopinbos_partner_(supplier|delivery|seller)_/);
+    assert.ok(t.body.includes(wa.OUTREACH_EMAIL), `${t.name}: no email to write to`);
+    assert.ok(/reply/i.test(t.body), `${t.name}: doesn't invite a reply`);
+  }
+  assert.deepEqual(wa.OUTREACH_AUTOMATIONS.map((a) => a.audience.roles[0]).sort(), ["delivery", "seller", "supplier"]);
+  for (const automation of wa.OUTREACH_AUTOMATIONS) {
+    const role = automation.audience.roles[0];
+    // Cold lists have no consent tick, so the source is what keeps website leads out.
+    assert.equal(automation.audience.source, wa.OUTREACH_SOURCE);
+    assert.equal(automation.audience.consentOnly, false);
+    assert.equal(growth.LeadAudience.safeParse(automation.audience).success, true);
+    assert.deepEqual(automation.steps.map((s) => s.delayHours), [0, 72, 96]);
+    for (const step of automation.steps) {
+      assert.equal(growth.LeadStep.safeParse(step).success, true, step.waTemplate);
+      const template = wa.whatsappTemplate(step.waTemplate);
+      assert.equal(template.use, "outreach");
+      assert.equal(template.role, role);
+    }
+  }
+  // The launch sequences never send outreach templates, and outreach names don't clash with them.
+  for (const automation of wa.WHATSAPP_AUTOMATIONS) for (const step of automation.steps) assert.notEqual(wa.whatsappTemplate(step.waTemplate).use, "outreach");
+  assert.equal(new Set([...wa.WHATSAPP_AUTOMATIONS, ...wa.OUTREACH_AUTOMATIONS].map((a) => a.name)).size, 6);
+});
+
+test("lead growth: a Nigerian number written the local way reaches WhatsApp as +234", () => {
+  assert.equal(growth.leadAddress({ email: null, phone: "0803 412 7790", optedOut: [] }, "whatsapp"), "+2348034127790");
+  assert.equal(growth.leadAddress({ email: null, phone: "2348034127790", optedOut: [] }, "whatsapp"), "2348034127790");
+});
+
 test("launch content: Rex and Peggy (never Chip), every banner exists, the seller sequence keeps its 7 live steps", async () => {
   const { LAUNCH_AUTOMATIONS, WIN_CAMPAIGNS, LAUNCH_BANNERS } = await import("../src/lib/lead-growth/launch-sequences.ts");
   const wa = await import("../src/lib/lead-growth/whatsapp-content.ts");
