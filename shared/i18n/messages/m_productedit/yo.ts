@@ -182,6 +182,10 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "more.problem.seoTitle": "Àkọlé Google náà ti gùn jù. Ṣe é kí ó kúrú.",
   "more.problem.seoDescription": "Ọ̀rọ̀ Google náà ti gùn jù. Ṣe é kí ó kúrú.",
   "more.problem.versions": "Ṣàyẹ̀wò ìwọ̀n àti àwọ̀ rẹ: ohun kọ̀ọ̀kan lẹ́ẹ̀kan, àti oríṣi 100 ní ọ̀pọ̀ jù lọ.",
+  "code.label": "Kóòdù ọjà",
+  "code.hint": "Sọ ọ́ lórí live àti Status: “Comment BAG2 to order”.",
+  "code.format": "Kóòdù ọjà jẹ́ lẹ́tà àti nọ́ńbà 2 sí 8, bíi BAG2.",
+  "code.taken": "Ọjà mìíràn ti ń lo {code}. Yan kóòdù mìíràn.",
 };
 
 export default yo;

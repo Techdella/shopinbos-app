@@ -25,6 +25,10 @@ export interface EditProduct extends MoreSource {
   status: string;
   inventoryType: string;
   kind: ProductKind;
+  /** The short code customers quote ("BAG2"); older servers leave it out. */
+  shortCode?: string | null;
+  /** Its page on the storefront, for Share to WhatsApp; older servers leave it out. */
+  url?: string;
   tracksStock: boolean;
   /** Versions (sizes, colours…): price and stock are edited here and saved as variantUpdates. */
   variants: EditableVariantRow[];
@@ -81,4 +85,10 @@ export async function uploadProductPhoto(photo: { uri: string; mimeType?: string
   form.append("folder", "products");
   const data = await api<{ publicUrl: string }>("/api/upload", { method: "POST", body: form });
   return data.publicUrl;
+}
+
+/** Find product by code: the one product (not archived) with exactly this short code ("bag2" finds BAG2), or null. */
+export async function fetchProductByCode(code: string): Promise<ProductItem | null> {
+  const rows = await api<ProductItem[]>(`/api/store/products?code=${encodeURIComponent(code)}&status=!archived&limit=1`);
+  return rows[0] ?? null;
 }

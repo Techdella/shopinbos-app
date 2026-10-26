@@ -182,6 +182,10 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "more.problem.seoTitle": "Isiokwu Google ahụ dị ogologo nke ukwuu. Mee ka ọ dị mkpụmkpụ.",
   "more.problem.seoDescription": "Ederede Google ahụ dị ogologo nke ukwuu. Mee ka ọ dị mkpụmkpụ.",
   "more.problem.versions": "Lelee nha na agba gị: nke ọ bụla otu ugboro, na ụdị 100 kachasị.",
+  "code.label": "Koodu ngwaahịa",
+  "code.hint": "Kwuo ya na live na Status: “Comment BAG2 to order”.",
+  "code.format": "Koodu ngwaahịa bụ mkpụrụedemede na nọmba 2 ruo 8, dịka BAG2.",
+  "code.taken": "Ngwaahịa ọzọ na-eji {code} ugbu a. Họrọ koodu ọzọ.",
 };
 
 export default ig;

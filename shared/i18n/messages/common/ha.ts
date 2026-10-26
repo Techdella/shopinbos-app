@@ -90,6 +90,9 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "page.of": "Shafi {page} cikin {pages}",
   "page.number": "Shafi {page}",
   "page.showing": "Ana nuna {from}–{to} cikin {total}",
+  "product.code": "Kodi",
+  "product.orderHere": "Yi oda a nan",
+  "product.shareWhatsapp": "Raba a WhatsApp",
 };
 
 export default ha;

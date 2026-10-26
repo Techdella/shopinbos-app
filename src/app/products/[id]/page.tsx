@@ -9,6 +9,9 @@ import { getT } from "@/lib/i18n/server";
 import { PaymentLinkButton } from "@/components/payment-links/PaymentLinkButton";
 import { linkProductView } from "@/lib/payment-links/pure";
 import { paymentReadiness } from "@/lib/payment-links/service.server";
+import { ShareWhatsAppButton } from "@/components/products/ShareWhatsAppButton";
+import { storefrontProductUrl } from "@shared/product-codes";
+import { storeUrl } from "@/lib/marketing/brand";
 
 export const dynamic = "force-dynamic";
 
@@ -57,11 +60,13 @@ export default async function ProductEditPage({
     <AppPage
       frame={sellerFrame(user, store)}
       title={product.name}
-      sub={t("edit.sub")}
+      sub={product.shortCode ? t("code.sub", { code: product.shortCode }) : t("edit.sub")}
       actions={
         <>
           <PillLink href="/products" icon="arrowLeft">{t("allProducts")}</PillLink>
           {/* Only published products can be paid for (the pay page shows public products only). */}
+          {/* Share to WhatsApp: name, price, code and the product's page (live products only). */}
+          {product.status === "published" ? <ShareWhatsAppButton product={{ name: product.name, price: product.retailPrice, currency: product.currency, shortCode: product.shortCode, url: storefrontProductUrl(storeUrl(store), product.id) }} /> : null}
           {product.status === "published" ? <PaymentLinkButton product={linkProductView(product)} storeName={store.name} ready={readiness.ready} /> : null}
         </>
       }

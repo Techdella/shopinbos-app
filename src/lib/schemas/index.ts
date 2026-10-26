@@ -9,6 +9,7 @@ import {
   VariantRowsSchema,
 } from "../../../shared/product-variants-schema.ts";
 import { PARTNER_SERVICES, SIZE_BANDS } from "../../../shared/delivery-market.ts";
+import { SHORT_CODE_PATTERN, normalizeShortCode } from "../../../shared/product-codes.ts";
 
 // Request bodies come from JSON, so free-form objects are valid Prisma Json input.
 const jsonObject = () => z.record(z.string(), z.unknown()) as unknown as z.ZodType<Prisma.InputJsonObject>;
@@ -194,6 +195,13 @@ export const StoreSchema = StoreCreateSchema.extend({
 // Older rows ({ name, color, size, price, stock }) are still accepted. See shared/product-variants.ts.
 export const ProductVariantSchema = VariantRowSchema;
 
+/** A product short code as a seller types it: tidied to uppercase, then 2–8 letters and digits (shared/product-codes.ts). */
+export const ShortCodeSchema = z
+  .string()
+  .max(40)
+  .transform((value) => normalizeShortCode(value))
+  .pipe(z.string().regex(SHORT_CODE_PATTERN, "A product code is 2 to 8 letters and numbers, like BAG2."));
+
 export const StoreProductCreateSchema = z.object({
   supplierProductId: z.string().optional(),
   name: z.string().min(2).max(200),
@@ -214,6 +222,8 @@ export const StoreProductCreateSchema = z.object({
   supportInfo: z.string().max(5000).optional(),
   sku: z.string().max(60).optional(),
   barcode: z.string().max(60).optional(),
+  // The seller's own short code ("BAG2"); left out, one is made from the product (shared/product-codes.ts).
+  shortCode: ShortCodeSchema.optional(),
   images: z.array(z.string()).default([]),
   videoUrl: z.string().url().optional().or(z.literal("")),
   has360View: z.boolean().default(false),
@@ -457,6 +467,8 @@ export const StoreProductQuerySchema = z.object({
   categoryId: z.string().optional(),
   collectionId: z.string().optional(),
   q: z.string().max(200).optional(),
+  // One product by its exact short code ("bag2" finds BAG2): Find product by code.
+  code: z.string().max(40).optional(),
   featured: z.coerce.boolean().optional(),
   lowStock: z.coerce.boolean().optional(),
   sort: z.enum(["newest", "oldest", "price_low", "price_high", "name", "sales"]).default("newest"),

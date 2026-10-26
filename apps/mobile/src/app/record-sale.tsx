@@ -5,13 +5,16 @@ import { Image } from "expo-image";
 import { naira } from "@shared/onboarding";
 import { CHANNEL_LABEL, RECORDED_SALE_CHANNELS, type RecordedSaleChannel } from "@shared/channels";
 import { SALE_DELIVERY, SALE_PAYMENTS, saleTotals, type SaleDelivery, type SalePayment } from "@shared/sales";
+import { findByCode, normalizeShortCode, searchProducts } from "@shared/product-codes";
 import { AppIcon } from "@/components/icons";
 import { ChipRow } from "@/components/kit";
 import { Card, Chip, Field, Label, LinkButton, Notice, PillButton, T } from "@/components/ui";
 import { Screen } from "@/components/Screen";
 import { fetchProducts, type ProductItem } from "@/lib/dashboard";
+import { fetchProductByCode } from "@/lib/products";
+import { CodeBadge } from "@/components/seller/ProductCode";
 import { recordSale } from "@/lib/orders";
-import { colors } from "@/theme";
+import { colors, fonts } from "@/theme";
 import { VoiceInput } from "@/components/VoiceInput";
 import { useT } from "@/lib/i18n";
 
@@ -47,16 +50,37 @@ export default function RecordSale() {
   const [step, setStep] = useState(0);
   const [more, setMore] = useState(false);
   const [savedId, setSavedId] = useState<string | null>(null);
+  // Find product by code: the code a customer commented on a live or Status ("BAG2").
+  const [code, setCode] = useState("");
+  const [codeProblem, setCodeProblem] = useState<string | null>(null);
+  const [finding, setFinding] = useState(false);
 
   useEffect(() => {
     fetchProducts().then(setProducts).catch(() => setProducts([]));
   }, []);
 
-  const matches = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    if (!query) return products.slice(0, 4);
-    return products.filter((product) => product.name.toLowerCase().includes(query)).slice(0, 6);
-  }, [products, search]);
+  // Names and codes: typing "bag2" puts BAG2 first.
+  const matches = useMemo(() => (search.trim() ? searchProducts(products, search, 6) : products.slice(0, 4)), [products, search]);
+
+  async function findCode() {
+    const typed = normalizeShortCode(code).replace(/\s+/g, "");
+    if (!typed) return;
+    setCodeProblem(null);
+    const local = findByCode(products, typed);
+    if (local) {
+      addProduct(local);
+      setCode("");
+      return;
+    }
+    // Not among the newest products loaded here: ask the server for that exact code.
+    setFinding(true);
+    const found = await fetchProductByCode(typed).catch(() => null);
+    setFinding(false);
+    if (found) {
+      addProduct(found);
+      setCode("");
+    } else setCodeProblem(t("sale.codeNone", { code: typed }));
+  }
 
   const totals = saleTotals(lines, delivery === "deliver" ? amount(deliveryFee) : 0);
 
@@ -155,6 +179,21 @@ export default function RecordSale() {
     >
       {step === 0 ? (
         <>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <Field
+              style={{ flex: 1, fontFamily: fonts.mono, letterSpacing: 1 }}
+              accessibilityLabel={t("sale.codeFind")}
+              placeholder={t("sale.codePlaceholder")}
+              value={code}
+              onChangeText={(value) => setCode(value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8))}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              returnKeyType="search"
+              onSubmitEditing={() => void findCode()}
+            />
+            <PillButton title={t("sale.codeFind")} tone="white" size="md" busy={finding} disabled={!code.trim()} onPress={() => void findCode()} />
+          </View>
+          {codeProblem ? <Notice>{codeProblem}</Notice> : null}
           <Field accessibilityLabel={t("sale.find")} placeholder={t("sale.findPlaceholder")} value={search} onChangeText={setSearch} />
           {matches.map((product) => (
             <Pressable key={product.id} accessibilityRole="button" accessibilityLabel={t("sale.addName", { name: product.name })} onPress={() => addProduct(product)} style={{ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.surface, borderRadius: 18, padding: 12 }}>
@@ -166,6 +205,7 @@ export default function RecordSale() {
               <View style={{ flex: 1 }}>
                 <T weight="bold" style={{ fontSize: 16 }} numberOfLines={1}>{product.name}</T>
                 <T style={{ color: colors.inkSoft, fontSize: 15 }}>{naira(product.retailPrice)} · {product.currentStock > 0 ? t("sale.left", { count: product.currentStock }) : t("sale.soldOut")}</T>
+                {product.shortCode ? <CodeBadge code={product.shortCode} /> : null}
               </View>
               <T weight="extrabold" style={{ color: colors.accentInk, fontSize: 15 }}>{t("sale.add")}</T>
             </Pressable>

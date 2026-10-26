@@ -173,6 +173,9 @@ const en = {
   "filters.pay.unpaid": "Unpaid",
   "filters.pay.toSend": "Paid, to send",
   "list.wholesale": "Wholesale orders",
+  "sale.codeFind": "Find by code",
+  "sale.codePlaceholder": "Code, e.g. BAG2",
+  "sale.codeNone": "No product has the code {code}.",
 } satisfies Record<string, string>;
 
 export default en;

@@ -296,6 +296,9 @@ const en = {
   "list.pages": "Order pages",
   "inv.pages": "Invoice pages",
   "inv.allOrders": "All your orders",
+  "sale.codeFind": "Find by code",
+  "sale.codePlaceholder": "Code, e.g. BAG2",
+  "sale.codeNone": "No product has the code {code}.",
 } satisfies Record<string, string>;
 
 export default en;

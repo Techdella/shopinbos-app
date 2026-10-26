@@ -90,6 +90,9 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "page.of": "Page {page} of {pages}",
   "page.number": "Page {page}",
   "page.showing": "We dey show {from}–{to} of {total}",
+  "product.code": "Code",
+  "product.orderHere": "Order am here",
+  "product.shareWhatsapp": "Share am for WhatsApp",
 };
 
 export default pcm;

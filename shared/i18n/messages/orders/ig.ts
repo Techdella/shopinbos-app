@@ -298,6 +298,9 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "inv.pages": "Peeji invoices",
   "inv.allOrders": "Orders gị niile",
   "method.korapay": "Kaadị ma ọ bụ bank (online)",
+  "sale.codeFind": "Chọọ site na koodu",
+  "sale.codePlaceholder": "Koodu, dịka BAG2",
+  "sale.codeNone": "Ọ dịghị ngwaahịa nwere koodu {code}.",
 };
 
 export default ig;

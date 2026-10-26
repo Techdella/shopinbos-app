@@ -47,6 +47,9 @@ export interface ProductItem {
   lowStockThreshold?: number;
   status: string;
   category?: { id: string; name: string } | null;
+  /** The short code customers quote ("BAG2") and the product's storefront page (older servers leave them out). */
+  shortCode?: string | null;
+  url?: string;
 }
 
 /** The newest 50 products, or the newest 50 in one category. */

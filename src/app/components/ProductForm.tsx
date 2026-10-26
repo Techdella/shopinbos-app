@@ -33,6 +33,7 @@ import { normalizeVariants, readVariantOptions, serializeVariants, totalVariantS
 import { SIZE_BANDS, SIZE_BAND_LABELS, isSizeBand } from "@shared/delivery-market";
 import { applySuggestion, type AssistantFormState, type SuggestionInput } from "@shared/product-assistant";
 import { friendlyError } from "@/lib/errors/report-client";
+import { checkShortCode } from "@shared/product-codes";
 
 interface Category {
   id: string;
@@ -54,6 +55,7 @@ interface Product {
   supportInfo: string | null;
   sku: string | null;
   barcode: string | null;
+  shortCode?: string | null;
   images: string[];
   videoUrl: string | null;
   has360View: boolean;
@@ -151,6 +153,7 @@ function uid() {
 export function ProductForm({ product, categories, isEdit, storeOrigin = "", storeName = "Your store", storeProducts = [] }: ProductFormProps) {
   const router = useRouter();
   const t = useT("productTypes");
+  const tp = useT("products");
   const peggyRef = useRef<ProductPeggyHandle>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -204,6 +207,8 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
   const [sizeBand, setSizeBand] = useState<string>(product?.sizeBand && isSizeBand(product.sizeBand) ? product.sizeBand : "");
   const [sku, setSku] = useState(product?.sku ?? "");
   const [barcode, setBarcode] = useState(product?.barcode ?? "");
+  // The short code customers quote ("BAG2"); left empty on a new product, one is made for it.
+  const [shortCode, setShortCode] = useState(product?.shortCode ?? "");
   const [fulfillmentType, setFulfillmentType] = useState(product?.fulfillmentType ?? "merchant_fulfilled");
 
   const [specs, setSpecs] = useState<SpecItem[]>(
@@ -365,8 +370,15 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
     setError("");
+    // The code: 2–8 letters and numbers. Kept as it was when the seller didn't touch it.
+    const typedCode = shortCode.trim();
+    const codeCheck = typedCode ? checkShortCode(typedCode) : null;
+    if (codeCheck && !codeCheck.ok) {
+      setError(tp("code.invalid"));
+      return;
+    }
+    setSaving(true);
 
     const tags = tagsStr.split(",").map((t) => t.trim()).filter(Boolean);
 
@@ -383,6 +395,7 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
       supportInfo: supportInfo || undefined,
       sku: sku || undefined,
       barcode: barcode || undefined,
+      ...(codeCheck?.ok && codeCheck.code !== (product?.shortCode ?? "") ? { shortCode: codeCheck.code } : {}),
       images,
       videoUrl: videoUrl || undefined,
       retailPrice: parseFloat(retailPrice),
@@ -434,7 +447,8 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
       } else {
         const err = await res.json().catch(() => null);
         // The API answers { error: { code, message } }; older handlers sent a plain string.
-        setError(typeof err?.error === "string" ? err.error : err?.error?.message ?? "Failed to save product");
+        if (err?.error?.code === "CODE_TAKEN") setError(tp("code.taken", { code: typedCode.toUpperCase() }));
+        else setError(typeof err?.error === "string" ? err.error : err?.error?.message ?? "Failed to save product");
       }
     } catch {
       setError("Something went wrong");
@@ -772,6 +786,16 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
                         <option key={band} value={band}>{SIZE_BAND_LABELS[band]}</option>
                       ))}
                     </select>
+                  </Field>
+                  <Field label={tp("code.label")} hint={tp("code.hint")}>
+                    <input
+                      value={shortCode}
+                      onChange={(e) => setShortCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8))}
+                      className={`${field.input} font-mono uppercase tracking-[0.08em]`}
+                      placeholder={isEdit ? "BAG2" : tp("code.auto")}
+                      aria-label={tp("code.label")}
+                      maxLength={8}
+                    />
                   </Field>
                   <Field label="SKU">
                     <input value={sku} onChange={(e) => setSku(e.target.value)} className={field.input} placeholder="LTH-TOTE-001" />

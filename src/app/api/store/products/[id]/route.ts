@@ -7,6 +7,7 @@ import type { AuthUser } from "@/lib/auth/types";
 import { markCatalogDirty } from "@/lib/whatsapp-catalog/dirty";
 import { productFieldsData } from "@/lib/products/save-fields.server";
 import { stockTrackingFor } from "@shared/product-stock";
+import { isShortCodeClash } from "@shared/product-codes";
 
 async function getOwnedProduct(productId: string, userId: string) {
   const store = await db.store.findUnique({ where: { userId } });
@@ -65,17 +66,24 @@ export const PATCH = withSeller(async (
   const versionTotal = typeof fields.data.currentStock === "number" ? fields.data.currentStock : undefined;
   const trackStock = stockTrackingFor({ trackStock: rest.trackStock, currentStock: versionTotal ?? rest.currentStock }, { trackStock: product.trackStock });
 
-  const updated = await db.storeProduct.update({
-    where: { id: params.id },
-    data: {
-      ...rest,
-      ...fields.data,
-      ...(trackStock !== undefined ? { trackStock } : {}),
-      ...(costPrice !== undefined ? { costPrice } : {}),
-      ...(retailPrice !== undefined ? { retailPrice } : {}),
-      ...(margin !== undefined ? { margin } : {}),
-    },
-  });
+  let updated;
+  try {
+    updated = await db.storeProduct.update({
+      where: { id: params.id },
+      data: {
+        ...rest,
+        ...fields.data,
+        ...(trackStock !== undefined ? { trackStock } : {}),
+        ...(costPrice !== undefined ? { costPrice } : {}),
+        ...(retailPrice !== undefined ? { retailPrice } : {}),
+        ...(margin !== undefined ? { margin } : {}),
+      },
+    });
+  } catch (error) {
+    // The short code is unique in the store: say which code clashed instead of a server error.
+    if (rest.shortCode && isShortCodeClash(error)) return apiError("CODE_TAKEN", `Another product already uses the code ${rest.shortCode}. Pick a different one.`, 409);
+    throw error;
+  }
 
   await markCatalogDirty(product.storeId);
   return ok(updated);

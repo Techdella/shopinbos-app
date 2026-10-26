@@ -6,6 +6,7 @@ import { orderRow } from "@/lib/dashboard/compute";
 import { OrderStatusUpdateSchema, updateOrderStatus } from "@/lib/orders/update-status";
 import { sellerPartsView } from "@/lib/supplier-orders/parts.server";
 import { storeUrl } from "@/lib/marketing/brand";
+import { withItemCodes } from "@/lib/products/short-code.server";
 
 // `trackingUrl`: the customer's own order page on the storefront (/order/<order id>, an unguessable cuid, never the
 // order number), which the phone's "Share tracking" sends.
@@ -29,7 +30,9 @@ export const GET = withSeller(async (req, { user, params }) => {
   const parts = await sellerPartsView(order.id, store.id).catch(() => null);
 
   const row = orderRow({ ...order, total: Number(order.total) });
-  return ok({ ...order, supplierOrders, parts, row: parts?.stage ? { ...row, stage: parts.stage } : row, trackingUrl: storeUrl(store, `/order/${order.id}`) });
+  // Each line with its product's short code (BAG2), as the seller says it on lives and Status.
+  const items = await withItemCodes(store.id, Array.isArray(order.items) ? (order.items as Array<{ productId?: unknown }>) : []);
+  return ok({ ...order, items, supplierOrders, parts, row: parts?.stage ? { ...row, stage: parts.stage } : row, trackingUrl: storeUrl(store, `/order/${order.id}`) });
 });
 
 export const PATCH = withSeller(async (req, { user, params }) => {
@@ -51,5 +54,6 @@ export const PATCH = withSeller(async (req, { user, params }) => {
   const parts = await sellerPartsView(updated.id, store.id).catch(() => null);
 
   const row = orderRow({ ...updated, total: Number(updated.total) });
-  return ok({ ...updated, parts, row: parts?.stage ? { ...row, stage: parts.stage } : row, trackingUrl: storeUrl(store, `/order/${updated.id}`) });
+  const items = await withItemCodes(store.id, Array.isArray(updated.items) ? (updated.items as Array<{ productId?: unknown }>) : []);
+  return ok({ ...updated, items, parts, row: parts?.stage ? { ...row, stage: parts.stage } : row, trackingUrl: storeUrl(store, `/order/${updated.id}`) });
 });

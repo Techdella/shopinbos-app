@@ -8,6 +8,8 @@ import type { AuthUser } from "@/lib/auth/types";
 import { markCatalogDirty } from "@/lib/whatsapp-catalog/dirty";
 import { productFieldsData } from "@/lib/products/save-fields.server";
 import { stockTrackingFor } from "@shared/product-stock";
+import { isShortCodeClash } from "@shared/product-codes";
+import { withShortCode } from "@/lib/products/short-code.server";
 
 export const GET = withSeller(async (req: NextRequest, { user }: { user: AuthUser }) => {
   const sp = req.nextUrl.searchParams;
@@ -61,18 +63,31 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
   const versionTotal = typeof fields.data.currentStock === "number" ? fields.data.currentStock : undefined;
   const trackStock = stockTrackingFor({ trackStock: rest.trackStock, currentStock: versionTotal ?? rest.currentStock, variantsCounted: versionTotal !== undefined });
 
-  const product = await db.storeProduct.create({
-    data: {
-      ...rest,
-      trackStock,
-      storeId: store.id,
-      userId: user.id,
-      retailPrice,
-      costPrice,
-      margin,
-      ...(fields.data as Record<string, never>),
-    },
-  });
+  const { shortCode: typedCode, ...fieldsToSave } = rest;
+  const create = (shortCode: string | null) =>
+    db.storeProduct.create({
+      data: {
+        ...fieldsToSave,
+        shortCode,
+        trackStock,
+        storeId: store.id,
+        userId: user.id,
+        retailPrice,
+        costPrice,
+        margin,
+        ...(fields.data as Record<string, never>),
+      },
+    });
+  // The seller's own code when they typed one, else the next one for this product (BAG1, BAG2…).
+  let product;
+  try {
+    product = typedCode
+      ? await create(typedCode)
+      : await withShortCode(store.id, { name: rest.name, productType: productType ?? null, categoryId: rest.categoryId ?? null }, create);
+  } catch (error) {
+    if (typedCode && isShortCodeClash(error)) return apiError("CODE_TAKEN", `Another product already uses the code ${typedCode}. Pick a different one.`, 409);
+    throw error;
+  }
   void import("@/lib/rewards/rewards.server").then((rewards) => rewards.recordRewardEvent({ userId: user.id, kind: "product_added", ref: product.id })).catch(() => undefined);
 
   await markCatalogDirty(store.id);

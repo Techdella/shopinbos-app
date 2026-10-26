@@ -1,6 +1,7 @@
 import "server-only";
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
+import { withShortCode } from "@/lib/products/short-code.server";
 import type { AuthUser } from "@/lib/auth/types";
 import { DEFAULT_STORE_CONFIG, getOpenAIClient, type StoreConfig } from "@/lib/ai/client";
 import { aiText, firstJsonObject, type ChatTurn } from "@/lib/ai/text";
@@ -218,11 +219,12 @@ export async function createSampleProducts(args: {
   // Never past the plan's product limit (shared/plans.ts).
   const room = await productsLeft(args.userId, args.storeId);
   for (const product of real.slice(0, Math.min(6, room ?? 6))) {
-    const row = await db.storeProduct.create({
+    const row = await withShortCode(args.storeId, { name: product.name }, (shortCode) => db.storeProduct.create({
       data: {
         storeId: args.storeId,
         userId: args.userId,
         name: `${product.name} (sample)`.slice(0, 160),
+        shortCode,
         description: `${product.subtitle ? `${product.subtitle}. ` : ""}Sample product drafted by Rex: check the name, price, stock and photo before you publish it.`,
         images: isHttpsUrl(product.imageUrl) ? [product.imageUrl] : [],
         retailPrice: parsePrice(product.price) ?? 0,
@@ -231,7 +233,7 @@ export async function createSampleProducts(args: {
         tags: ["rex-sample"],
       },
       select: { id: true, name: true, retailPrice: true, currency: true, images: true },
-    });
+    }));
     created.push({ id: row.id, name: row.name, retailPrice: row.retailPrice, currency: row.currency, imageUrl: row.images[0] ?? null });
   }
   return created;

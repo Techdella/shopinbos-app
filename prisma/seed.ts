@@ -497,8 +497,8 @@ async function main() {
   });
 
   const demoProducts = [
-    { id: "seed-store-product-001", name: "Ankara Tote Bag", retailPrice: 18500, currentStock: 24 },
-    { id: "seed-store-product-002", name: "Shea Butter Glow Set", retailPrice: 9500, currentStock: 40 },
+    { id: "seed-store-product-001", name: "Ankara Tote Bag", shortCode: "BAG1", retailPrice: 18500, currentStock: 24 },
+    { id: "seed-store-product-002", name: "Shea Butter Glow Set", shortCode: "SHEA1", retailPrice: 9500, currentStock: 40 },
   ];
   for (const product of demoProducts) {
     await db.storeProduct.upsert({

@@ -180,6 +180,10 @@ const en = {
   "more.problem.seoTitle": "The Google title is too long. Make it shorter.",
   "more.problem.seoDescription": "The Google text is too long. Make it shorter.",
   "more.problem.versions": "Check your sizes and colours: each choice once, and 100 versions at most.",
+  "code.label": "Product code",
+  "code.hint": "Say it on lives and Status: “Comment BAG2 to order”.",
+  "code.format": "A product code is 2 to 8 letters and numbers, like BAG2.",
+  "code.taken": "Another product already uses {code}. Pick a different code.",
 };
 
 export default en;

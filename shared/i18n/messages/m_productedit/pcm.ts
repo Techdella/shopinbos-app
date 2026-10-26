@@ -182,6 +182,10 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "more.problem.seoTitle": "The Google title too long. Make am shorter.",
   "more.problem.seoDescription": "The Google text too long. Make am shorter.",
   "more.problem.versions": "Check your sizes and colours: each choice one time, and 100 versions at most.",
+  "code.label": "Product code",
+  "code.hint": "Talk am for live and Status: “Comment BAG2 to order”.",
+  "code.format": "Product code na 2 to 8 letters and numbers, like BAG2.",
+  "code.taken": "Another product don already use {code}. Pick another code.",
 };
 
 export default pcm;

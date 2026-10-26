@@ -10,6 +10,8 @@ import { formatMoney } from "@shared/i18n";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { friendlyError } from "@/lib/errors/report-client";
+import { findByCode, normalizeShortCode, searchProducts } from "@shared/product-codes";
+import { ProductCodeBadge } from "@/components/products/ProductCodeBadge";
 
 interface CatalogProduct {
   id: string;
@@ -17,6 +19,8 @@ interface CatalogProduct {
   price: number;
   image: string | null;
   stock: number | null;
+  /** The short code customers quote ("BAG2"). */
+  shortCode?: string | null;
 }
 
 interface Line {
@@ -52,11 +56,40 @@ export function RecordSaleForm({ products }: { products: CatalogProduct[] }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const matches = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    if (!query) return products.slice(0, 6);
-    return products.filter((product) => product.name.toLowerCase().includes(query)).slice(0, 8);
-  }, [products, search]);
+  // Names and codes: typing "bag2" puts BAG2 first.
+  const matches = useMemo(() => (search.trim() ? searchProducts(products, search, 8) : products.slice(0, 6)), [products, search]);
+  // Find product by code: the code a customer commented ("Comment BAG2 to order").
+  const [code, setCode] = useState("");
+  const [codeProblem, setCodeProblem] = useState<string | null>(null);
+  const [finding, setFinding] = useState(false);
+
+  async function findCode(event?: React.FormEvent | React.KeyboardEvent) {
+    event?.preventDefault();
+    const typed = normalizeShortCode(code).replace(/\s+/g, "");
+    if (!typed) return;
+    setCodeProblem(null);
+    const local = findByCode(products, typed);
+    if (local) {
+      addProduct(local);
+      setCode("");
+      return;
+    }
+    // Not among the products loaded here: ask the server for that exact code.
+    setFinding(true);
+    try {
+      const response = await fetch(`/api/store/products?code=${encodeURIComponent(typed)}&status=!archived&limit=1`);
+      const body = await response.json().catch(() => null);
+      const found = response.ok ? (body?.data?.[0] as { id: string; name: string; retailPrice: number; images: string[]; currentStock: number; shortCode: string | null } | undefined) : undefined;
+      if (found) {
+        addProduct({ id: found.id, name: found.name, price: found.retailPrice, image: found.images[0] ?? null, stock: null, shortCode: found.shortCode });
+        setCode("");
+      } else setCodeProblem(t("sale.codeNone", { code: typed }));
+    } catch {
+      setCodeProblem(t("sale.codeNone", { code: typed }));
+    } finally {
+      setFinding(false);
+    }
+  }
 
   const totals = saleTotals(lines, delivery === "deliver" ? amount(deliveryFee) : 0);
 
@@ -116,6 +149,20 @@ export function RecordSaleForm({ products }: { products: CatalogProduct[] }) {
     <form onSubmit={submit} className="grid gap-4">
       <section className={card}>
         <h2 className="m-0 text-[17px] font-extrabold">{t("sale.whatBought")}</h2>
+        <div className="mt-3 flex items-center gap-2">
+          <TextInput
+            aria-label={t("sale.codeFind")}
+            placeholder={t("sale.codePlaceholder")}
+            value={code}
+            onChange={(event) => setCode(event.target.value.toUpperCase())}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") void findCode(event);
+            }}
+            className="max-w-[220px] font-mono uppercase tracking-[0.08em]"
+          />
+          <PillButton type="button" tone="white" size="md" onClick={() => void findCode()} disabled={finding || !code.trim()}>{t("sale.codeFind")}</PillButton>
+        </div>
+        {codeProblem ? <p className="m-0 mt-2 text-[13px] font-semibold text-app-danger">{codeProblem}</p> : null}
         <div className="relative mt-3">
           <TextInput
             aria-label={t("sale.searchAria")}
@@ -136,7 +183,10 @@ export function RecordSaleForm({ products }: { products: CatalogProduct[] }) {
                     <span className="grid h-10 w-10 place-items-center rounded-[10px] bg-app-canvas text-[13px] font-extrabold">{product.name.charAt(0)}</span>
                   )}
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[14px] font-bold">{product.name}</span>
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span className="truncate text-[14px] font-bold">{product.name}</span>
+                      {product.shortCode ? <ProductCodeBadge code={product.shortCode} /> : null}
+                    </span>
                     <span className="block text-[12.5px] text-app-ink-soft">{naira(product.price)}{product.stock === null ? null : <> · {product.stock > 0 ? t("sale.inStock", { count: product.stock }) : t("sale.soldOut")}</>}</span>
                   </span>
                   <span className="text-[13px] font-extrabold text-app-accent-ink">{t("sale.add")}</span>

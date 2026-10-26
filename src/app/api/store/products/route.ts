@@ -8,6 +8,9 @@ import type { AuthUser } from "@/lib/auth/types";
 import { markCatalogDirty } from "@/lib/whatsapp-catalog/dirty";
 import { productFieldsData } from "@/lib/products/save-fields.server";
 import { stockTrackingFor } from "@shared/product-stock";
+import { isShortCodeClash, normalizeShortCode, storefrontProductUrl } from "@shared/product-codes";
+import { withShortCode } from "@/lib/products/short-code.server";
+import { storeUrl } from "@/lib/marketing/brand";
 
 export const GET = withSeller(async (req: NextRequest, { user }: { user: AuthUser }) => {
   const store = await db.store.findUnique({ where: { userId: user.id } });
@@ -20,7 +23,7 @@ export const GET = withSeller(async (req: NextRequest, { user }: { user: AuthUse
   }
 
   const { page, limit, skip } = parsePagination(req.nextUrl.searchParams);
-  const { status, visibility, inventoryType, categoryId, collectionId, q, featured, lowStock, sort } = parsed.data;
+  const { status, visibility, inventoryType, categoryId, collectionId, q, code, featured, lowStock, sort } = parsed.data;
 
   const where: any = { storeId: store.id };
 
@@ -32,7 +35,9 @@ export const GET = withSeller(async (req: NextRequest, { user }: { user: AuthUse
   if (inventoryType) where.inventoryType = inventoryType;
   if (categoryId) where.categoryId = categoryId;
   if (collectionId) where.collections = { some: { collectionId } };
-  if (q) where.name = { contains: q, mode: "insensitive" };
+  // A search finds names and short codes ("bag2" finds BAG2); `code` is one exact code (Find product by code).
+  if (q) where.OR = [{ name: { contains: q, mode: "insensitive" } }, { shortCode: normalizeShortCode(q).replace(/\s+/g, "") }];
+  if (code) where.shortCode = normalizeShortCode(code).replace(/\s+/g, "");
   if (featured !== undefined) where.featured = featured;
   if (lowStock) {
     where.currentStock = { not: undefined };
@@ -59,6 +64,7 @@ export const GET = withSeller(async (req: NextRequest, { user }: { user: AuthUse
         name: true,
         description: true,
         sku: true,
+        shortCode: true,
         images: true,
         retailPrice: true,
         costPrice: true,
@@ -86,9 +92,11 @@ export const GET = withSeller(async (req: NextRequest, { user }: { user: AuthUse
     }),
   ]);
 
+  // `url`: the product's page on the storefront (Share to WhatsApp on the phone's product list).
   const enriched = products.map((p) => ({
     ...p,
     available: p.currentStock - p.reservedStock,
+    url: storefrontProductUrl(storeUrl(store), p.id),
   }));
 
   if (lowStock) {
@@ -125,20 +133,33 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
   const versionTotal = typeof fields.data.currentStock === "number" ? fields.data.currentStock : undefined;
   const trackStock = stockTrackingFor({ trackStock: rest.trackStock, currentStock: versionTotal ?? rest.currentStock, variantsCounted: versionTotal !== undefined });
 
-  const product = await db.storeProduct.create({
-    data: {
-      ...rest,
-      ...(fields.data as Record<string, never>),
-      trackStock,
-      storeId: store.id,
-      userId: user.id,
-      retailPrice,
-      costPrice: costPrice ?? null,
-      margin,
-      status: rest.status ?? "draft",
-      visibility: rest.visibility ?? "hidden",
-    },
-  });
+  const { shortCode: typedCode, ...fieldsToSave } = rest;
+  const create = (shortCode: string | null) =>
+    db.storeProduct.create({
+      data: {
+        ...fieldsToSave,
+        ...(fields.data as Record<string, never>),
+        shortCode,
+        trackStock,
+        storeId: store.id,
+        userId: user.id,
+        retailPrice,
+        costPrice: costPrice ?? null,
+        margin,
+        status: rest.status ?? "draft",
+        visibility: rest.visibility ?? "hidden",
+      },
+    });
+  // The seller's own code when they typed one (a clash is theirs to fix), else the next one for this product.
+  let product;
+  try {
+    product = typedCode
+      ? await create(typedCode)
+      : await withShortCode(store.id, { name: rest.name, productType: productType ?? null, categoryId: rest.categoryId ?? null }, create);
+  } catch (error) {
+    if (typedCode && isShortCodeClash(error)) return apiError("CODE_TAKEN", `Another product already uses the code ${typedCode}. Pick a different one.`, 409);
+    throw error;
+  }
   void import("@/lib/rewards/rewards.server").then((rewards) => rewards.recordRewardEvent({ userId: user.id, kind: "product_added", ref: product.id })).catch(() => undefined);
 
   await markCatalogDirty(store.id);

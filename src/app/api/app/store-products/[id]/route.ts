@@ -7,6 +7,8 @@ import { saleBreakdown } from "@/lib/marketplace/find";
 import { editableVariantRows, productKind, tracksStock } from "@shared/product-edit";
 import { productTypeKey, readProductDetails } from "@shared/product-types";
 import { normalizeVariants, readVariantOptions } from "@shared/product-variants";
+import { storefrontProductUrl } from "@shared/product-codes";
+import { storeUrl } from "@/lib/marketing/brand";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +22,7 @@ export const dynamic = "force-dynamic";
 // pausing a dropship product goes to POST /api/mobile/dropship. Auth: Bearer (or the web session), role seller.
 
 export const GET = withSeller(async (_req: NextRequest, { user, params }: { user: AuthUser; params: { id: string } }) => {
-  const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true } });
+  const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, slug: true, customDomain: true } });
   if (!store) return apiError("NOT_FOUND", "That product couldn't be found.", 404);
 
   const product = await db.storeProduct.findFirst({
@@ -48,6 +50,7 @@ export const GET = withSeller(async (_req: NextRequest, { user, params }: { user
       returnPolicy: true,
       supportInfo: true,
       sku: true,
+      shortCode: true,
       barcode: true,
       videoUrl: true,
       tags: true,
@@ -82,6 +85,8 @@ export const GET = withSeller(async (_req: NextRequest, { user, params }: { user
     ...rest,
     variantOptions: readVariantOptions(variantOptions, variantRows),
     variantRows,
+    // Its page on the storefront, for Share to WhatsApp (the message also names its short code).
+    url: storefrontProductUrl(storeUrl(store), product.id),
     kind: productKind(product),
     tracksStock: tracksStock(product.inventoryType),
     variants: editableVariantRows(variants),
