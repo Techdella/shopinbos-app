@@ -425,18 +425,100 @@ export async function withdrawToBank(userId: string, naira: number) {
     recipient = made.recipientCode;
     await db.wallet.update({ where: { id: wallet.id }, data: { transferRecipient: recipient } });
   }
+  if (!recipient) throw new WalletBalanceError("We couldn't set up your bank for withdrawals just now. Try again in a few minutes.");
+  const to = recipient;
   const amountKobo = Math.round(naira * 100);
   const reference = `${WALLET_REFERENCE.withdrawal}${randomUUID().replace(/-/g, "")}`;
   const description = `Withdrawal to ${wallet.bankName ?? "your bank"} ••${wallet.accountNumber.slice(-4)}`;
   await db.$transaction((tx) => debitWallet(wallet.id, { amountKobo, reference, kind: "withdrawal", description, status: "pending" }, tx));
+  // Withdrawals are paid from Shopinbos's Paystack balance. When it can't cover this one yet (money in settles to the
+  // bank), the withdrawal waits in line instead of failing: the money stays off their balance, the team is told, and
+  // sendQueuedWithdrawals sends it as soon as the balance allows.
+  const available = await paystackBalanceKobo();
+  if (available !== null && available < amountKobo) {
+    await queueWithdrawal(reference, "Waiting for the payout balance");
+    return { reference, status: "queued" as const };
+  }
+  return { reference, status: await sendWithdrawal(reference, to, amountKobo, true) };
+}
+
+/** Shopinbos's NGN balance on Paystack, in kobo (what withdrawals are paid from), or null when Paystack didn't say. */
+async function paystackBalanceKobo(): Promise<number | null> {
+  try {
+    const response = await fetch(`${PAYSTACK_BASE}/balance`, { headers: { Authorization: `Bearer ${secret()}` }, cache: "no-store", signal: AbortSignal.timeout(15_000) });
+    const json = (await response.json().catch(() => null)) as { status?: boolean; data?: Array<{ currency?: string; balance?: number }> } | null;
+    if (!response.ok || !json?.status || !Array.isArray(json.data)) return null;
+    const ngn = json.data.find((row) => row.currency === "NGN");
+    return typeof ngn?.balance === "number" ? ngn.balance : null;
+  } catch {
+    return null;
+  }
+}
+
+const NOT_ENOUGH = /balance is not enough|insufficient/i;
+
+/**
+ * Asks Paystack to send a withdrawal. "done"/"pending" when it went (the transfer webhook finishes it); "queued" when
+ * the payout balance is short (it waits); a refusal for any other reason puts the money back on their balance.
+ */
+async function sendWithdrawal(reference: string, recipient: string, amountKobo: number, onScreen: boolean): Promise<"done" | "pending" | "queued"> {
+  await db.walletTransaction.updateMany({ where: { reference, status: "queued" }, data: { status: "pending", error: null } });
   const sent = await paystack("/transfer", { source: "balance", amount: amountKobo, recipient, reference, reason: "Shopinbos wallet withdrawal", currency: "NGN" });
   if (!sent.ok) {
-    await refundWithdrawal(reference, sent.message, false);
-    throw new WalletBalanceError("The withdrawal didn't go through, so your balance is back. Try again later or message us.");
+    if (NOT_ENOUGH.test(sent.message)) {
+      await queueWithdrawal(reference, "Waiting for the payout balance");
+      return "queued";
+    }
+    await refundWithdrawal(reference, sent.message, !onScreen);
+    if (onScreen) throw new WalletBalanceError("The withdrawal didn't go through, so your balance is back. Try again later or message us.");
+    return "pending";
   }
   const status = String((sent.data as { status?: string } | undefined)?.status ?? "pending");
   if (status === "success") await finishWithdrawal(reference);
-  return { reference, status: status === "success" ? "done" : "pending" };
+  return status === "success" ? "done" : "pending";
+}
+
+/** Holds a withdrawal until the payout balance covers it, and tells the team once a day while any wait. */
+async function queueWithdrawal(reference: string, note: string) {
+  await db.walletTransaction.updateMany({ where: { reference, status: "pending" }, data: { status: "queued", error: note } });
+  const waiting = await db.walletTransaction.aggregate({ where: { kind: "withdrawal", status: "queued" }, _sum: { amountKobo: true }, _count: { _all: true } });
+  const { notifyAdmins } = await import("@/lib/notifications/notify.server");
+  await notifyAdmins({
+    event: "wallet.withdrawal",
+    priority: "warning",
+    title: "Wallet withdrawals are waiting for the Paystack balance",
+    description: `${waiting._count._all} withdrawal(s) worth ${formatNaira(-(waiting._sum.amountKobo ?? 0))} are queued because the Paystack balance can't cover them. Fund the Paystack balance (or keep settlements in it); they go out automatically within the hour.`,
+    link: "/admin/wallets",
+    dedupeKey: `withdrawals-queued:${new Date().toISOString().slice(0, 10)}`,
+    email: "transactional",
+  }).catch((error) => console.error("[wallet] queued-withdrawal alert", error));
+}
+
+/** Sends queued withdrawals, oldest first, while the Paystack balance covers them (hourly, with the lifecycle job). */
+export async function sendQueuedWithdrawals(limit = 20) {
+  if (!walletPaymentsReady()) return { sent: 0, waiting: 0 };
+  const queued = await db.walletTransaction.findMany({
+    where: { kind: "withdrawal", status: "queued" },
+    orderBy: { createdAt: "asc" },
+    take: limit,
+    select: { reference: true, amountKobo: true, wallet: { select: { transferRecipient: true } } },
+  });
+  let available = queued.length ? await paystackBalanceKobo() : null;
+  let sent = 0;
+  for (const row of queued) {
+    const amountKobo = -row.amountKobo;
+    if (available === null || available < amountKobo) break;
+    if (!row.wallet.transferRecipient) {
+      await db.walletTransaction.updateMany({ where: { reference: row.reference, status: "queued" }, data: { status: "pending" } });
+      await refundWithdrawal(row.reference, "No bank set up for withdrawals.");
+      continue;
+    }
+    const outcome = await sendWithdrawal(row.reference, row.wallet.transferRecipient, amountKobo, false).catch(() => "queued" as const);
+    if (outcome === "queued") break;
+    available -= amountKobo;
+    sent += 1;
+  }
+  return { sent, waiting: queued.length - sent };
 }
 
 async function finishWithdrawal(reference: string) {

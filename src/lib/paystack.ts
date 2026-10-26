@@ -216,7 +216,7 @@ export async function updatePaystackSubaccount(code: string, change: { bankCode?
  * /customer/:code). Test and live mode are separate: a code made with test keys is "not found" on live. Null when
  * Paystack didn't say (network, outage), so callers leave things as they are.
  */
-export async function paystackRecordExists(kind: "plan" | "subaccount" | "customer", code: string): Promise<boolean | null> {
+export async function paystackRecordExists(kind: "plan" | "subaccount" | "customer" | "transferrecipient", code: string): Promise<boolean | null> {
   try {
     const response = await fetch(`${PAYSTACK_BASE}/${kind}/${encodeURIComponent(code)}`, {
       headers: { Authorization: `Bearer ${secretKey()}` },
