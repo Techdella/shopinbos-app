@@ -159,7 +159,7 @@ export async function ensurePayInAccount(partnerId: string) {
       first_name: name.first,
       last_name: name.last,
       phone: partner.whatsappNumber ?? partner.user.phone ?? undefined,
-      metadata: JSON.stringify({ shopinbos: "logistics_partner", logisticsPartnerId: partner.id, company: partner.companyName }),
+      metadata: { shopinbos: "logistics_partner", logisticsPartnerId: partner.id, company: partner.companyName },
     });
     if (!customer.ok) return markProblem(partnerId, customer.message);
     const data = customer.data as { customer_code?: string; id?: number | string } | undefined;
