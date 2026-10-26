@@ -10,6 +10,7 @@ import { BOUTIQUE_THEME_TOKENS, isBoutiqueTheme } from "@/lib/store-templates/bo
 import { themeLibraryEntry, type ThemeTier } from "@/lib/store-templates/theme-library";
 import { previewData, type PreviewOwnStore } from "./preview-store";
 import { useT } from "@/components/i18n/I18nProvider";
+import { ALL_THEMES_FREE } from "@shared/plans";
 
 // Real theme previews: the storefront renderer itself, at desktop width, scaled down onto the card (thumbnails)
 // or into a dialog (live preview). Thumbnails mount only when near the viewport and are inert.
@@ -221,10 +222,12 @@ export function ThemePreviewDialog({ themeId, onClose, own, useOwn, onUseOwnChan
           <div className="min-w-0 flex-1">
             <div className="flex min-w-0 items-center gap-2">
               <h2 id={titleId} className="m-0 truncate text-[20px] font-extrabold leading-tight">{theme.name}</h2>
-              <span className={cx("inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold", TIER_BADGE[theme.tier])}>
-                {lockedPlan ? <Icon name="lock" size={11} /> : null}
-                {t(`tl.tier.${theme.tier}`)}
-              </span>
+              {ALL_THEMES_FREE ? null : (
+                <span className={cx("inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold", TIER_BADGE[theme.tier])}>
+                  {lockedPlan ? <Icon name="lock" size={11} /> : null}
+                  {t(`tl.tier.${theme.tier}`)}
+                </span>
+              )}
             </div>
             <p className="m-0 truncate text-[13px] text-app-ink-soft">{t.dynamic(`theme.${theme.id}.meaning`, theme.meaning)} · {t.dynamic(`theme.cat.${theme.categoryLabel}`, theme.categoryLabel)}</p>
           </div>

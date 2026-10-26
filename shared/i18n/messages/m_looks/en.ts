@@ -38,6 +38,7 @@ const en = {
   "seeMyShop": "See my shop",
   "isCurrent": "This is your shop's look now.",
   "askRexChange": "Ask Rex to change it",
+  "appliedNew": "Saved. Put your shop live so shoppers can see it.",
 } satisfies Record<string, string>;
 
 export default en;

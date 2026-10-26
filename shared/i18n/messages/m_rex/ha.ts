@@ -60,6 +60,14 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "card.publish": "Wallafa",
   "card.published": "An wallafa. Abokan ciniki suna ganin sabon kamannin yanzu.",
   "card.publishFailed": "Ba mu iya wallafawa yanzu ba. Sake gwadawa.",
+  "photos.add": "Ƙara hotuna",
+  "photos.attached": "Hoton da aka haɗa",
+  "photos.remove": "Cire hoto",
+  "photos.placeholder": "Me Rex zai yi da su?",
+  "photos.useThese": "Yi amfani da waɗannan hotuna a shagona.",
+  "photos.uploadFailed": "Wannan hoton bai loda ba. Gwada wani.",
+  "photos.allowCamera": "Ba da izinin kyamara a saitunan wayarka don ɗaukar hoto.",
+  "photos.allowGallery": "Ba da izinin hotuna a saitunan wayarka don zaɓar su.",
 };
 
 export default ha;

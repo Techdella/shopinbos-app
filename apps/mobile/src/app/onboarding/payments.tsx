@@ -1,20 +1,35 @@
 import { useEffect, useState } from "react";
 import { Modal, Pressable, ScrollView, TextInput, View } from "react-native";
-import { router } from "expo-router";
-import { DEFAULT_DELIVERY_ZONES, DEFAULT_PAYMENT_METHODS, PAYMENT_METHODS, type DeliveryZone, type PaymentMethodKey } from "@shared/onboarding";
+import { router, useLocalSearchParams } from "expo-router";
+import { canonicalState } from "@shared/delivery-market";
+import { allowedSellChoice, DEFAULT_PAYMENT_METHODS, PAYMENT_METHODS, zonesForSellChoice, type DeliveryZone, type OnboardingSellArea, type PaymentMethodKey } from "@shared/onboarding";
 import { Title } from "@/components/design";
 import { Card, Field, Label, Notice, PillButton, T, Toggle } from "@/components/ui";
 import { OnboardingFrame } from "@/components/OnboardingFrame";
 import { useOnboarding } from "@/components/OnboardingContext";
-import { fetchPayoutBank, linkPayoutBank, publishStore, savePayments } from "@/lib/onboarding";
+import { ApiError } from "@/lib/api";
+import { fetchDeliveryHub } from "@/lib/delivery";
+import { fetchPayoutBank, linkPayoutBank, savePayments } from "@/lib/onboarding";
+import { publishShop } from "@/lib/publish";
 import { useT } from "@/lib/i18n";
 import { colors, fonts } from "@/theme";
+
+// "Getting paid and delivering": how customers pay, the payout bank (optional) and the delivery fees for where the
+// shop sells (the "Where do you sell?" step, else the saved delivery settings). The button always moves on once a
+// way to pay is on: fees beyond the plan's states are left as they were (the server says so, one calm line here),
+// and if the shop can't go live just now the next screen says why, with its own Publish button.
+
+const SELL_AREAS: OnboardingSellArea[] = ["one_state", "selected", "nationwide"];
 
 export default function Payments() {
   const t = useT("m_onboarding");
   const { status, refresh, waitForBuild, startBuild } = useOnboarding();
+  const params = useLocalSearchParams<{ area?: string; states?: string; home?: string }>();
   const [methods, setMethods] = useState<Record<PaymentMethodKey, boolean>>(DEFAULT_PAYMENT_METHODS);
-  const [zones, setZones] = useState<DeliveryZone[]>(DEFAULT_DELIVERY_ZONES);
+  const [zones, setZones] = useState<DeliveryZone[]>(() => {
+    const area = SELL_AREAS.find((entry) => entry === params.area);
+    return area ? zonesForSellChoice({ area, states: (params.states ?? "").split(",").filter(Boolean) }, params.home || null) : [];
+  });
   const [banks, setBanks] = useState<string[]>([]);
   const [bankLinked, setBankLinked] = useState(false);
   const [bankOpen, setBankOpen] = useState(false);
@@ -24,6 +39,24 @@ export default function Payments() {
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Opened without the "Where do you sell?" answer (resumed later): the fees follow the saved delivery settings.
+  useEffect(() => {
+    if (zones.length) return;
+    let alive = true;
+    void fetchDeliveryHub()
+      .catch(() => null)
+      .then((hub) => {
+        if (!alive) return;
+        const home = canonicalState(hub?.settings.originState ?? null) ?? canonicalState(hub?.city ?? null);
+        const saved = { area: SELL_AREAS.find((entry) => entry === hub?.settings.sellArea) ?? "one_state", states: hub?.settings.sellStates ?? [] };
+        setZones(zonesForSellChoice(allowedSellChoice(saved, hub ? hub.sellLimit?.states ?? null : 1, home), home));
+      });
+    return () => {
+      alive = false;
+    };
+    // Once, on open.
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     void fetchPayoutBank()
@@ -48,26 +81,41 @@ export default function Payments() {
     }
   }
 
+  // Shoppers see the zone names in English at checkout; here they read in the seller's language.
+  const zoneLabel = (zone: DeliveryZone) => (zone.regions.length === 0 ? t("pay.zoneElsewhere") : zone.regions.length > 1 ? t("pay.zoneOthers") : zone.name === "FCT" ? "Abuja (FCT)" : zone.name);
+
   async function goLive() {
+    // The one thing this page needs: a way for customers to pay.
+    if (!Object.values(methods).some(Boolean)) return setError(t("pay.needMethod"));
     setBusy(true);
     setError(null);
+    let zonesKept = false;
     try {
-      await savePayments(methods, zones);
+      const saved = await savePayments(methods, zones);
+      zonesKept = Boolean(saved?.zonesNote);
+    } catch (saveError) {
+      // A choice on this page the server can't take (pay on delivery alone on a plan without it): say why and stay.
+      if (saveError instanceof ApiError && saveError.status >= 400 && saveError.status < 500 && saveError.status !== 401) {
+        setError(saveError.message);
+        setBusy(false);
+        return;
+      }
+      // Anything else (a bad connection) is set again later in Payments and Delivery: never a wall here.
+    }
+    let publishError = "";
+    try {
       setNote(t("pay.finishing"));
       await (status?.memory?.storeName ? waitForBuild() : startBuild(status?.store.name ?? "My Shop"));
       // Going live is free on every plan, so the shop is published right here.
-      if (!status?.store.live) {
-        await publishStore();
-        await refresh();
-      }
-      setNote(null);
-      router.replace("/onboarding/live");
+      if (!status?.store.live) await publishShop();
     } catch (liveError) {
-      setError(liveError instanceof Error ? liveError.message : t("pay.saveFailed"));
-    } finally {
-      setBusy(false);
-      setNote(null);
+      // The next screen shows the reason, with its own Publish button.
+      publishError = liveError instanceof Error ? liveError.message : " ";
     }
+    await refresh().catch(() => null);
+    setBusy(false);
+    setNote(null);
+    router.replace({ pathname: "/onboarding/live", params: { ...(publishError ? { publishError } : {}), ...(zonesKept ? { zonesKept: "1" } : {}) } });
   }
 
   return (
@@ -112,11 +160,11 @@ export default function Payments() {
       <Card style={{ paddingVertical: 4, paddingHorizontal: 16, borderRadius: 24, borderWidth: 1, borderColor: colors.line }}>
         {zones.map((zone, index) => (
           <View key={zone.name} style={{ flexDirection: "row", alignItems: "center", paddingVertical: 15, borderTopWidth: index ? 1 : 0, borderTopColor: colors.line }}>
-            <T style={{ flex: 1, fontSize: 15 }}>{zone.name}</T>
+            <T style={{ flex: 1, fontSize: 15 }}>{zoneLabel(zone)}</T>
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               <T weight="extrabold" style={{ fontSize: 15 }}>₦</T>
               <TextInput
-                accessibilityLabel={t("pay.feeFor", { zone: zone.name })}
+                accessibilityLabel={t("pay.feeFor", { zone: zoneLabel(zone) })}
                 keyboardType="number-pad"
                 value={zone.fee.toLocaleString("en-NG")}
                 onChangeText={(value) => setZones((current) => current.map((row, i) => (i === index ? { ...row, fee: Number(value.replace(/\D/g, "")) || 0 } : row)))}

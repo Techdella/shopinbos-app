@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, View } from "react-native";
+import { Alert, Modal, Pressable, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { naira } from "@shared/onboarding";
 import { AppIcon } from "@/components/icons";
@@ -15,6 +15,7 @@ import { payDeliveryFee } from "@/lib/wallet";
 import { router } from "expo-router";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
+import { KeyboardShift } from "@/components/KeyboardShift";
 
 // My own delivery prices (web /home/shipping and /home/logistics), opened from the Delivery hub: the shop's delivery
 // areas and fees (ShippingZone: add, edit, turn on or off, delete; checkout uses them when the hub's "At checkout,
@@ -229,7 +230,7 @@ function ZoneEditor({ zone, onClose, onDone }: { zone: Zone | "new" | null; onCl
   return (
     <Modal visible={zone !== null} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => !busy && onClose()}>
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+        <KeyboardShift>
           <View style={{ paddingHorizontal: 18, paddingVertical: 12, flexDirection: "row", alignItems: "center", gap: 12 }}>
             <T weight="extrabold" style={{ flex: 1, fontSize: 22, lineHeight: 28 }} accessibilityRole="header">{existing ? t("del.editTitle") : t("del.newTitle")}</T>
             <Pressable accessibilityRole="button" onPress={() => !busy && onClose()} hitSlop={8} style={{ minHeight: 44, paddingHorizontal: 14, borderRadius: 22, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, flexDirection: "row", alignItems: "center", gap: 6 }}>
@@ -308,7 +309,7 @@ function ZoneEditor({ zone, onClose, onDone }: { zone: Zone | "new" | null; onCl
             <PillButton title={existing ? t("save") : t("del.create")} busy={busy} onPress={() => void save()} />
             {existing ? <PillButton title={t("del.delete")} tone="white" size="md" disabled={busy} onPress={confirmDelete} /> : null}
           </ScrollView>
-        </KeyboardAvoidingView>
+        </KeyboardShift>
       </SafeAreaView>
     </Modal>
   );

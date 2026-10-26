@@ -30,8 +30,8 @@ export default function Products() {
       const count = drafts.drafts.length;
       if (!(await drafts.save())) return;
       if (status && count) setStatus({ ...status, productCount: status.productCount + count });
-      await saveMemory({ screen: "payments" }).catch(() => null);
-      router.push("/onboarding/payments");
+      await saveMemory({ screen: "where" }).catch(() => null);
+      router.push("/onboarding/where");
     } catch (productError) {
       drafts.setError(productError instanceof Error ? productError.message : t("add.saveFailed"));
     } finally {

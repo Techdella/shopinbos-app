@@ -57,4 +57,9 @@ export function cardNote(card: RexCard): string {
   }
 }
 
-export const askRex = (messages: Array<{ role: "user" | "assistant"; content: string }>) => api<RexReply>("/api/ai/rex", { method: "POST", json: { messages } });
+/** Photos per message, as the server allows (src/lib/ai/rex/agent-pure.ts REX_MAX_PHOTOS). */
+export const REX_MAX_PHOTOS = 6;
+
+/** `imageUrls`: photos attached to the newest message, uploaded first (lib/photos.ts uploadPhoto), as Rex Studio sends them. */
+export const askRex = (messages: Array<{ role: "user" | "assistant"; content: string }>, imageUrls: string[] = []) =>
+  api<RexReply>("/api/ai/rex", { method: "POST", json: imageUrls.length ? { messages, imageUrls: imageUrls.slice(0, REX_MAX_PHOTOS) } : { messages } });

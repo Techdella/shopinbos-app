@@ -40,6 +40,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "seeMyShop": "Lee ụlọ ahịa m",
   "isCurrent": "Nke a bụ ọdịdị ụlọ ahịa gị ugbu a.",
   "askRexChange": "Gwa Rex ka ọ gbanwee ya",
+  "appliedNew": "Echekwala ya. Mee ka ụlọ ahịa gị dị ndụ ka ndị ahịa hụ ya.",
 };
 
 export default ig;

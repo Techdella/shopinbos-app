@@ -242,7 +242,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "shareP.nothing": "Nothing to share yet",
   "shareP.nothingBody": "Published reviews go show here once customers write dem.",
   "shareP.widget": "Reviews widget",
-  "shareP.widgetSub": "Paste this for any website (Wix, WordPress, Shopify, your blog) where you want the reviews to show.",
+  "shareP.widgetSub": "Paste this for any website or blog where you want the reviews to show.",
   "shareP.embed": "Embed code",
   "shareP.widgetNote": "E dey show your average and reach 6 reviews (add ?limit=12 to the link for more). E dey update by itself when you publish or hide reviews.",
   "shareP.preview": "Preview",

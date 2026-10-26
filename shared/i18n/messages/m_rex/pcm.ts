@@ -60,6 +60,14 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "card.publish": "Publish am",
   "card.published": "E don publish. Customers dey see the new look now.",
   "card.publishFailed": "We no fit publish now. Try again.",
+  "photos.add": "Add photos",
+  "photos.attached": "Photo wey you attach",
+  "photos.remove": "Remove photo",
+  "photos.placeholder": "Wetin Rex go do with them?",
+  "photos.useThese": "Use these photos for my shop.",
+  "photos.uploadFailed": "That photo no upload. Try another one.",
+  "photos.allowCamera": "Allow camera for your phone settings to snap photo.",
+  "photos.allowGallery": "Allow photos for your phone settings to pick them.",
 };
 
 export default pcm;
