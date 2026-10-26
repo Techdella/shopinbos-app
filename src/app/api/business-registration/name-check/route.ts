@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
   const name = typeof body?.proposedName === "string" ? body.proposedName : "";
   const line = typeof body?.lineOfBusiness === "string" ? body.lineOfBusiness : "";
   try {
-    return NextResponse.json({ data: await checkBusinessName(name, line) });
+    return NextResponse.json({ data: await checkBusinessName(name, line, owner.id) });
   } catch (error) {
     return registrationErrorResponse(error);
   }

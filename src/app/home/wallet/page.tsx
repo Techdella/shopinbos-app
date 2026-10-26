@@ -25,7 +25,7 @@ export default async function SellerWalletPage(props: { searchParams?: Promise<{
     db.store.findUnique({ where: { userId: user.id }, select: { name: true, slug: true, logoUrl: true } }),
     loadWalletView({ id: user.id, role: "seller" }),
     cashOwedToSeller(user.id),
-    registrationEnabled().catch(() => false),
+    registrationEnabled(user.id).catch(() => false),
   ]);
   return (
     <SellerPage user={user} store={storeSummary(store)} title={t("page.title")} sub={t("page.subSeller")}>
