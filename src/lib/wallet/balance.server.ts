@@ -1,6 +1,7 @@
 import "server-only";
 
 import { randomUUID } from "node:crypto";
+import { after } from "next/server";
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { paystackSecretReady } from "@shared/checkout-payments";
@@ -140,7 +141,7 @@ export async function ensureTopUpAccount(userId: string) {
   const [first, ...rest] = (user.name || "Shopinbos Business").trim().split(/\s+/);
   let customerCode = wallet.topUpCustomerCode;
   if (!customerCode) {
-    const customer = await paystack("/customer", { email: user.email || `wallet-${userId}@shopinbos.com`, first_name: first, last_name: rest.join(" ") || first, phone: user.phone ?? undefined, metadata: JSON.stringify({ shopinbos: "wallet", walletId: wallet.id }) });
+    const customer = await paystack("/customer", { email: user.email || `wallet-${userId}@shopinbos.com`, first_name: first, last_name: rest.join(" ") || first, phone: user.phone ?? undefined, metadata: { shopinbos: "wallet", walletId: wallet.id } });
     if (!customer.ok) return markTopUpProblem(wallet.id, customer.message);
     customerCode = (customer.data as { customer_code?: string } | undefined)?.customer_code ?? null;
     if (!customerCode) return markTopUpProblem(wallet.id, "Paystack returned no customer code.");
@@ -167,6 +168,25 @@ export async function provisionWallet(userId: string) {
     await ensureTopUpAccount(userId);
   } catch (error) {
     console.error(`[wallet] could not set up the wallet of ${userId}`, error);
+  }
+}
+
+const lastProvisioned = new Map<string, number>();
+
+/**
+ * provisionWallet for someone already signed in (portal pages call it on every load), at most every 10 minutes per
+ * person on this server, in the background. Covers people whose session started before wallets came in.
+ */
+export function provisionWalletSoon(userId: string) {
+  const now = Date.now();
+  if (now - (lastProvisioned.get(userId) ?? 0) < 600_000) return;
+  if (lastProvisioned.size > 5_000) lastProvisioned.clear();
+  lastProvisioned.set(userId, now);
+  try {
+    after(() => provisionWallet(userId));
+  } catch {
+    // Outside a request (after() isn't available): the next page load or sign-in does it.
+    lastProvisioned.delete(userId);
   }
 }
 
