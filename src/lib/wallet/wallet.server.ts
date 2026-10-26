@@ -78,6 +78,8 @@ async function openSubaccount(wallet: WalletRow, nameCheck: "auto" | "approved" 
     // One bank everywhere: once the account is live (in the owner's or business's name, or approved by the team), it
     // also becomes the role's payout bank (a seller's bank-transfer account, a supplier's or partner's payouts),
     // whichever screen it was chosen on. Never before: an account under review isn't paid out to or shown to buyers.
+    // Their wallet account number settles straight to this bank from now on (src/lib/wallet/balance.server.ts).
+    await (await import("@/lib/wallet/balance.server")).splitTopUpAccountFor(wallet.userId).catch((error) => console.error("[wallet] account split", error));
     const payout = await syncPayoutBank({ id: wallet.userId, role: wallet.role }, wallet.bankName ?? "", wallet.accountNumber!, wallet.accountName ?? "");
     if (!payout.success) {
       console.error(`[wallet] couldn't save the payout bank for wallet ${wallet.id}: ${payout.error}`);

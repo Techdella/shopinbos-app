@@ -163,7 +163,7 @@ export async function ensureTopUpAccount(userId: string) {
   if (wallet.topUpStatus === "ready") {
     // A number not in the business's name gets a new one once the business is verified. The old customer stays
     // known, so a transfer to the old number still lands in this wallet.
-    if (identity?.kind !== "business" || wallet.topUpNameKind === "business" || !wallet.topUpCustomerCode) return wallet;
+    if (identity?.kind !== "business" || wallet.topUpNameKind === "business" || !wallet.topUpCustomerCode) return splitTopUpAccount(wallet);
     wallet = await db.wallet.update({
       where: { id: wallet.id },
       data: { topUpOldCustomerCodes: { push: wallet.topUpCustomerCode }, topUpCustomerCode: null, topUpAccountNumber: null, topUpAccountName: null, topUpBankName: null, topUpNameKind: null, topUpStatus: "none", topUpError: null },
@@ -197,10 +197,39 @@ export async function ensureTopUpAccount(userId: string) {
     await db.wallet.update({ where: { id: wallet.id }, data: { topUpCustomerCode: customerCode, topUpStatus: "pending" } });
   }
   await db.wallet.update({ where: { id: wallet.id }, data: { topUpNameKind: identity.kind === "account" ? null : identity.kind } });
-  const created = await paystack("/dedicated_account", { customer: customerCode, preferred_bank: dvaBank() });
+  // Split to their own subaccount from the start when their bank is set up: transfers in settle straight to it.
+  const splitTo = wallet.subaccountStatus === "active" && wallet.subaccountCode ? wallet.subaccountCode : null;
+  const created = await paystack("/dedicated_account", { customer: customerCode, preferred_bank: dvaBank(), ...(splitTo ? { subaccount: splitTo } : {}) });
   if (!created.ok) return markTopUpProblem(wallet.id, created.message);
+  if (splitTo) await db.wallet.update({ where: { id: wallet.id }, data: { topUpSplitTo: splitTo } });
   await saveTopUpAccount(wallet.id, readDedicatedAccount(created.data));
   return db.wallet.findUniqueOrThrow({ where: { id: wallet.id } });
+}
+
+/**
+ * Splits a wallet's account number to the business's own Paystack subaccount (POST /dedicated_account/split), so
+ * money transferred into it settles straight to their bank on Paystack's schedule: Shopinbos never holds it and
+ * there's nothing to withdraw. Done once their bank is set up (or changed); safe to call on every visit.
+ */
+async function splitTopUpAccount<W extends { id: string; topUpAccountNumber: string | null; topUpCustomerCode: string | null; topUpSplitTo: string | null; topUpError: string | null; subaccountCode: string | null; subaccountStatus: string; updatedAt: Date }>(wallet: W): Promise<W> {
+  const target = wallet.subaccountStatus === "active" ? wallet.subaccountCode : null;
+  if (!target || wallet.topUpSplitTo === target || !wallet.topUpAccountNumber) return wallet;
+  // Paystack refused lately: try again in an hour, not on every visit.
+  if (wallet.topUpError?.startsWith("split:") && Date.now() - wallet.updatedAt.getTime() < 3_600_000) return wallet;
+  const split = await paystack("/dedicated_account/split", { customer: wallet.topUpCustomerCode, account_number: wallet.topUpAccountNumber, subaccount: target, preferred_bank: dvaBank() });
+  if (!split.ok) {
+    console.warn(`[wallet] couldn't split account ${wallet.id} to its subaccount: ${split.message}`);
+    await db.wallet.update({ where: { id: wallet.id }, data: { topUpError: `split: ${split.message}`.slice(0, 300) } });
+    return wallet;
+  }
+  await db.wallet.update({ where: { id: wallet.id }, data: { topUpSplitTo: target, topUpError: null } });
+  return { ...wallet, topUpSplitTo: target, topUpError: null };
+}
+
+/** After a business's bank is set up or changed (src/lib/wallet/wallet.server.ts): point its account number at it. */
+export async function splitTopUpAccountFor(userId: string) {
+  const wallet = await db.wallet.findUnique({ where: { userId } });
+  if (wallet && wallet.topUpStatus === "ready" && topUpAccountsReady()) await splitTopUpAccount(wallet);
 }
 
 /**
@@ -279,7 +308,13 @@ export async function provisionPendingWallets(limit = 40) {
     select: { id: true },
   });
   for (const user of users) await provisionWallet(user.id);
-  return { checked: users.length };
+  // Account numbers made before their bank was set up: split them to it now.
+  const unsplit = await db.wallet.findMany({ where: { topUpStatus: "ready", subaccountStatus: "active", subaccountCode: { not: null } }, take: 100 });
+  let split = 0;
+  for (const wallet of unsplit.filter((row) => row.topUpSplitTo !== row.subaccountCode).slice(0, limit)) {
+    if ((await splitTopUpAccount(wallet)).topUpSplitTo === wallet.subaccountCode) split += 1;
+  }
+  return { checked: users.length, split };
 }
 
 /**
@@ -332,8 +367,26 @@ export async function handleWalletAccountCharge(data: unknown): Promise<boolean>
   const kobo = Number(d.amount);
   if (!code || !reference) return false;
   // An older number (replaced when the business was verified) still pays into the same wallet.
-  const wallet = await db.wallet.findFirst({ where: { OR: [{ topUpCustomerCode: code }, { topUpOldCustomerCodes: { has: code } }] }, select: { id: true } });
+  const wallet = await db.wallet.findFirst({ where: { OR: [{ topUpCustomerCode: code }, { topUpOldCustomerCodes: { has: code } }] }, select: { id: true, topUpSplitTo: true, bankName: true, accountNumber: true } });
   if (!wallet) return false;
+  // Split to their subaccount (Paystack names it on the charge; else the wallet says so): the money settles straight to
+  // their bank, so it goes on their statement, not on the prepaid balance.
+  const sub = (d.subaccount && typeof d.subaccount === "object" ? d.subaccount : {}) as Record<string, unknown>;
+  const toBank = typeof sub.subaccount_code === "string" && sub.subaccount_code ? true : Boolean(wallet.topUpSplitTo);
+  if (d.status === "success" && Number.isInteger(kobo) && kobo > 0 && toBank) {
+    const auth = (d.authorization && typeof d.authorization === "object" ? d.authorization : {}) as Record<string, unknown>;
+    const text = (value: unknown) => (typeof value === "string" && value.trim() ? value.trim().replace(/\s+/g, " ").slice(0, 80) : null);
+    const from = [text(auth.sender_name), text(auth.sender_bank) && `${text(auth.sender_bank)}${text(auth.sender_bank_account_number) ? ` ••${text(auth.sender_bank_account_number)!.slice(-4)}` : ""}`].filter(Boolean).join(" · ");
+    const created = await db.walletEntry.createMany({
+      data: [{ walletId: wallet.id, reference: `transferin:${reference}`, kind: "transfer_in", amountKobo: kobo, description: from ? `Transfer from ${from}` : "Transfer to your wallet account", paystackReference: reference }],
+      skipDuplicates: true,
+    });
+    if (created.count) {
+      const bank = wallet.accountNumber ? `${wallet.bankName ?? "your bank"} ••${wallet.accountNumber.slice(-4)}` : "your bank";
+      await notifyTransferToBank(wallet.id, kobo, { from, narration: text(auth.narration), reference, bank }).catch((error) => console.error("[wallet] transfer-in notification", error));
+    }
+    return true;
+  }
   if (d.status === "success" && Number.isInteger(kobo) && kobo > 0) {
     // Who sent it: Paystack passes the sender's name, bank and account on a transfer to a dedicated account.
     const auth = (d.authorization && typeof d.authorization === "object" ? d.authorization : {}) as Record<string, unknown>;
@@ -367,6 +420,25 @@ async function notifyMoneyIn(walletId: string, kobo: number, input: { via: "tran
     link: walletPath(wallet.role),
     actionLabel: "Open wallet",
     metadata: { amountKobo: kobo, via: input.via, from: input.from ?? null, reference: input.reference },
+    dedupeKey: `wallet-in:${input.reference}`,
+    email: "transactional",
+  });
+}
+
+/** "₦2,000 received, on its way to your bank": a transfer to their account number that settles straight to their bank. */
+async function notifyTransferToBank(walletId: string, kobo: number, input: { from: string; narration: string | null; reference: string; bank: string }) {
+  const wallet = await db.wallet.findUnique({ where: { id: walletId }, select: { userId: true, role: true } });
+  if (!wallet) return;
+  const { notify } = await import("@/lib/notifications/notify.server");
+  await notify({
+    userId: wallet.userId,
+    event: "wallet.received",
+    priority: "success",
+    title: `${formatNaira(kobo)} received in your wallet account`,
+    description: [input.from ? `From ${input.from}.` : null, input.narration ? `Note: "${input.narration}".` : null, `It goes straight to ${input.bank}, usually the next working day (less Paystack's fee).`].filter(Boolean).join(" "),
+    link: walletPath(wallet.role),
+    actionLabel: "Open wallet",
+    metadata: { amountKobo: kobo, via: "transfer", toBank: true, from: input.from || null, reference: input.reference },
     dedupeKey: `wallet-in:${input.reference}`,
     email: "transactional",
   });
@@ -556,7 +628,7 @@ export async function handleWalletTransfer(eventType: string, data: unknown): Pr
 export async function walletBalanceView(userId: string) {
   const wallet = await db.wallet.findUnique({
     where: { userId },
-    select: { id: true, role: true, balanceKobo: true, status: true, accountNumber: true, bankName: true, subaccountStatus: true, topUpStatus: true, topUpAccountNumber: true, topUpAccountName: true, topUpBankName: true, topUpNameKind: true },
+    select: { id: true, role: true, balanceKobo: true, status: true, accountNumber: true, bankName: true, subaccountStatus: true, topUpStatus: true, topUpAccountNumber: true, topUpAccountName: true, topUpBankName: true, topUpNameKind: true, topUpSplitTo: true, subaccountCode: true },
   });
   const [open, transactions, identity, registrationOpen] = await Promise.all([
     walletOpenFor(userId),
@@ -577,6 +649,8 @@ export async function walletBalanceView(userId: string) {
     topUpAccountStatus: open || wallet?.topUpStatus === "ready" ? topUpAccountStatus(wallet?.topUpStatus, Boolean(wallet?.topUpAccountNumber)) : ("off" as const),
     /** Whose name the number is in: "business" (CAC-verified), "person" (NIN-verified) or null (the account's name). */
     accountNameKind: (wallet?.topUpNameKind as "business" | "person" | null | undefined) ?? null,
+    /** Transfers to the account number settle straight to this bank (split to their subaccount); null: to the balance. */
+    topUpGoesTo: wallet?.topUpSplitTo && wallet.topUpSplitTo === wallet.subaccountCode && wallet.accountNumber ? `${wallet.bankName ?? "your bank"} ••${wallet.accountNumber.slice(-4)}` : null,
     /** The business name is verified with CAC (a number in a person's name is then being replaced). */
     businessVerified: identity?.kind === "business",
     /** Which checks can be done here: the business with CAC, the owner's NIN. */

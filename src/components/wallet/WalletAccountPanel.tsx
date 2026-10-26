@@ -15,6 +15,8 @@ export type WalletAccountView = {
   topUpAccount: { number: string; name: string; bank: string } | null;
   topUpAccountStatus?: "ready" | "setting_up" | "needs_phone" | "needs_identity" | "off";
   accountNameKind?: "business" | "person" | null;
+  /** Transfers to the number settle straight to this bank. Older servers don't send it. */
+  topUpGoesTo?: string | null;
   businessVerified?: boolean;
   checks?: { business: boolean; nin: boolean };
   registration?: { href: string } | null;
@@ -59,7 +61,7 @@ export function WalletAccountPanel<V extends WalletAccountView>({ view, onUpdate
     <div className={account ? "mt-4 grid gap-3" : box}>
       {account ? (
         <>
-          <WalletAccountCard account={account} aside={infoButton(true)} />
+          <WalletAccountCard account={account} aside={infoButton(true)} goesTo={view.topUpGoesTo} />
           {explainNote}
           {view.accountNameKind !== "business" && !view.businessVerified ? (
             <div className="rounded-[14px] border border-app-line bg-app-canvas p-3 text-[13px] leading-[1.5]">
