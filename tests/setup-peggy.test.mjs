@@ -56,3 +56,8 @@ test("wallet account numbers get the phone in the +234 form Paystack takes, or n
   assert.equal(wallet.paystackPhone("12345"), null);
   assert.equal(wallet.paystackPhone(null), null);
 });
+
+test("wallet account numbers: a business name reads back whole, a person's NIN name stays as it is", () => {
+  assert.deepEqual(wallet.paystackNames({ kind: "business", name: "ADA FABRICS VENTURES" }), { first_name: "ADA", last_name: "FABRICS VENTURES" });
+  assert.deepEqual(wallet.paystackNames({ kind: "person", firstName: "Tiwalade", lastName: "Okedara" }), { first_name: "Tiwalade", last_name: "Okedara" });
+});

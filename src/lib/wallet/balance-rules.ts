@@ -23,3 +23,16 @@ export function paystackPhone(raw: string | null | undefined) {
   if (/^[789]\d{9}$/.test(digits)) return `+234${digits}`;
   return null;
 }
+
+/** Whose name a wallet account number is in (src/lib/wallet/identity.server.ts). */
+export type AccountIdentity =
+  | { kind: "business"; name: string }
+  | { kind: "person"; firstName: string; lastName: string }
+  | { kind: "account"; firstName: string; lastName: string };
+
+/** Paystack wants a first and last name: a business name is split so the two read back as the whole name. */
+export function paystackNames(identity: AccountIdentity) {
+  if (identity.kind !== "business") return { first_name: identity.firstName, last_name: identity.lastName };
+  const [first, ...rest] = identity.name.split(" ");
+  return { first_name: first, last_name: rest.join(" ") || first };
+}
