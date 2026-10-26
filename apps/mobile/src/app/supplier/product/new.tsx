@@ -14,6 +14,7 @@ import { VoiceInput } from "@/components/VoiceInput";
 import { ApiError } from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { parseAmount, parseCount } from "@/lib/partner-pure";
+import { savedAs } from "@/lib/supplier-pure";
 import { createSupplierProduct, fetchCategories, uploadSupplierPhoto } from "@/lib/supplier";
 import { useLoad } from "@/lib/useLoad";
 import { colors, radii } from "@/theme";
@@ -53,7 +54,8 @@ export default function NewSupplierProduct() {
   const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [more, setMore] = useState(false);
-  const [saved, setSaved] = useState<null | "draft" | "pending_review">(null);
+  // "unverified": asked to show it to shops, but the business isn't verified yet, so the server kept it as a draft.
+  const [saved, setSaved] = useState<null | "draft" | "pending_review" | "unverified">(null);
 
   const category = categories.data?.find((item) => item.id === categoryId);
 
@@ -98,7 +100,7 @@ export default function NewSupplierProduct() {
       }
       setProgress(t("saving"));
       const bulkValue = parseAmount(bulkPrice);
-      await createSupplierProduct({
+      const created = await createSupplierProduct({
         name: name.trim(),
         description: description.trim(),
         categoryId: categoryId!,
@@ -114,7 +116,7 @@ export default function NewSupplierProduct() {
         ...(bulkValue ? { pricingTiers: [{ minQty: BULK_FROM, price: bulkValue }] } : {}),
         status,
       });
-      setSaved(status);
+      setSaved(savedAs(status, created?.status));
     } catch (saveError) {
       const message = saveError instanceof Error ? saveError.message : t("product.saveFailed");
       setError(saveError instanceof ApiError && (saveError.code === "VERIFICATION_REQUIRED" || saveError.code === "ONBOARDING_REQUIRED") ? t("new.verifyFirst") : message);
@@ -122,6 +124,21 @@ export default function NewSupplierProduct() {
       setBusy(null);
       setProgress(null);
     }
+  }
+
+  if (saved === "unverified") {
+    return (
+      <DoneView
+        title={t("new.savedUnverified")}
+        sub={t("new.savedUnverifiedSub")}
+        footer={
+          <>
+            <PillButton title={t("new.getVerified")} tone="accent" onPress={() => router.replace("/supplier/verification")} />
+            <PillButton title={t("done")} tone="white" onPress={() => router.replace("/supplier/products")} />
+          </>
+        }
+      />
+    );
   }
 
   if (saved) {

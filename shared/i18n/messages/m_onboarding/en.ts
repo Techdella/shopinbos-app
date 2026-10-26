@@ -61,7 +61,7 @@ const en = {
   "door.snap.hint": "Rex writes names, prices and descriptions",
   "door.snap.note": "Add a few photos. Rex names each product, suggests a price and writes the description. You check them before anything goes live.",
   "door.file.label": "Spreadsheet or another platform",
-  "door.file.hint": "CSV, Shopify, Bumpa, Catlog",
+  "door.file.hint": "CSV or Excel",
   "door.file.note": "Upload a CSV or Excel file. Rex matches the columns and flags anything missing, like prices or photos.",
   "door.sup.label": "Pick from suppliers",
   "door.sup.hint": "Dropship, no stock needed",

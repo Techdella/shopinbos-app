@@ -151,7 +151,8 @@ test("seller screens no longer open the web app", () => {
   ];
   for (const file of files) assert.doesNotMatch(app(file), /openWeb\(|web-only/, file);
   // Ads: Meta's sign-in runs in an in-app browser and comes back to the app (shopinbos://ads).
-  assert.match(app("app/ads/index.tsx"), /connectMetaAds\(\)/);
+  // The Meta connection card (connect, pick the account and Page) moved to components/MetaAdsCard.tsx (Ads and the ad wizard).
+  assert.match(app("components/MetaAdsCard.tsx"), /connectMetaAds\(\)/);
   assert.match(app("lib/ads.ts"), /openAuthSessionAsync\(url, returnUrl\)/);
   assert.match(read("src/app/api/app/ads/meta/connect/route.ts"), /appReturnUrl\(req\.nextUrl\.searchParams\.get\("app"\)\)/);
   assert.match(read("src/app/api/app/ads/meta/callback/route.ts"), /appReturnUrl\(req\.cookies\.get\(META_ADS_APP_COOKIE\)\?\.value\)/);

@@ -56,6 +56,7 @@ const APP_SCREENS: Record<string, string> = {
   "/home/inbox/auto-replies": "/inbox/auto-replies",
   "/home/inbox/chatbot": "/inbox/chatbot",
   "/marketplace": "/find",
+  "/marketplace/wholesale": "/wholesale",
   "/home/reviews": "/reviews",
   "/home/reviews/request": "/reviews/ask",
   "/home/customers": "/customers",

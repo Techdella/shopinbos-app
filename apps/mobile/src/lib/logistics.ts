@@ -1,4 +1,5 @@
 import type { VerificationDoc } from "@shared/verification-docs";
+import type { TakingBlock } from "@shared/taking-jobs";
 import { api, apiBody } from "./api";
 
 // The delivery partner (dispatch) side of the app: /api/mobile/logistics/** on the web backend, made for the app
@@ -64,7 +65,8 @@ export interface PayInOverdue {
 }
 
 export interface LogisticsOverview {
-  partner: { name: string; city: string; areas: string; logoUrl: string | null; verificationStatus: string; onboarded: boolean; taking: boolean };
+  /** takingBlock: why "Taking new jobs" can't go on yet (shared/taking-jobs.ts); missing from older servers. */
+  partner: { name: string; city: string; areas: string; logoUrl: string | null; verificationStatus: string; onboarded: boolean; taking: boolean; takingBlock?: TakingBlock | null };
   firstName: string;
   deliveredToday: number;
   earnedToday: number;

@@ -59,7 +59,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "door.snap.hint": "Rex na-ede aha, ọnụahịa na nkọwa",
   "door.snap.note": "Tinye foto ole na ole. Rex ga-akpọ ngwaahịa ọ bụla aha, tụọ aro ọnụahịa ma dee nkọwa. Ị ga-elele ha tupu ihe ọ bụla apụta.",
   "door.file.label": "Spreadsheet ma ọ bụ app ọzọ",
-  "door.file.hint": "CSV, Shopify, Bumpa, Catlog",
+  "door.file.hint": "CSV ma ọ bụ Excel",
   "door.file.note": "Bulite faịlụ CSV ma ọ bụ Excel. Rex ga-ejikọ kọlụm ma gosi ihe ọ bụla na-efu, dị ka ọnụahịa ma ọ bụ foto.",
   "door.sup.label": "Họrọ n'aka ndị supplier",
   "door.sup.hint": "Dropship, ọ dịghị mkpa idebe stock",

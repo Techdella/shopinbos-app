@@ -176,6 +176,16 @@ const en = {
   "wk.4": "Fri",
   "wk.5": "Sat",
   "wk.6": "Sun",
+  "noCode.link": "No code? Use a photo",
+  "noCode.title": "No code from the customer",
+  "noCode.sub": "Take a photo of the parcel with the person who took it, and type their name.",
+  "noCode.photo": "Take the photo",
+  "noCode.photoAgain": "Photo added · take again",
+  "noCode.who": "Who received it?",
+  "noCode.next": "Next",
+  "noCode.useCode": "Use the code instead",
+  "startJob": "Start this job",
+  "offer.assigned": "{company} gave you this job. Skip it if you can't do it.",
 } satisfies Record<string, string>;
 
 export default en;

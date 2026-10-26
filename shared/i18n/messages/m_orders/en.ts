@@ -172,6 +172,7 @@ const en = {
   "filters.pay.any": "All",
   "filters.pay.unpaid": "Unpaid",
   "filters.pay.toSend": "Paid, to send",
+  "list.wholesale": "Wholesale orders",
 } satisfies Record<string, string>;
 
 export default en;

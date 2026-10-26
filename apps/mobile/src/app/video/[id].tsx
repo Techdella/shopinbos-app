@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
-import * as WebBrowser from "expo-web-browser";
+import { saveFileToPhone } from "@/lib/familiar-share";
 import { Badge, ErrorState, LoadingBlock } from "@/components/kit";
 import { Screen } from "@/components/Screen";
 import { Sheet } from "@/components/Sheet";
@@ -110,7 +110,21 @@ export default function VideoDetail() {
 
       <Card style={{ gap: 10 }}>
         <T weight="extrabold" style={{ fontSize: 16 }}>{t("watch.useIt")}</T>
-        <PillButton size="md" tone="white" title={t("watch.save")} onPress={() => void WebBrowser.openBrowserAsync(url)} />
+        <PillButton
+          size="md"
+          tone="white"
+          title={t("watch.save")}
+          busy={busy === "save"}
+          disabled={Boolean(busy)}
+          onPress={() => {
+            // The video file goes to the share sheet, where "Save video" keeps it on the phone.
+            setBusy("save");
+            setNotice(null);
+            void saveFileToPhone(url, t("watch.save"))
+              .then((ok) => (ok ? null : setNotice({ tone: "error", text: t("watch.saveFailed") })))
+              .finally(() => setBusy(null));
+          }}
+        />
         <T style={{ color: colors.inkSoft, fontSize: 13.5, lineHeight: 19 }}>{t("watch.saveHint")}</T>
         {row.productId ? (
           <PillButton

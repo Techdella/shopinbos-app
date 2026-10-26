@@ -59,7 +59,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "door.snap.hint": "Rex go write names, prices and descriptions",
   "door.snap.note": "Add some photos. Rex go name each product, suggest price and write the description. You go check dem before anything go live.",
   "door.file.label": "Spreadsheet or another platform",
-  "door.file.hint": "CSV, Shopify, Bumpa, Catlog",
+  "door.file.hint": "CSV or Excel",
   "door.file.note": "Upload CSV or Excel file. Rex go match the columns and show anything wey dey miss, like prices or photos.",
   "door.sup.label": "Pick from suppliers",
   "door.sup.hint": "Dropship, you no need stock",

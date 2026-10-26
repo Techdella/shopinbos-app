@@ -174,6 +174,16 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "wk.4": "Fraị",
   "wk.5": "Sat",
   "wk.6": "Ụka",
+  "noCode.link": "Enweghị koodu? Jiri foto",
+  "noCode.title": "Onye ahịa enweghị koodu",
+  "noCode.sub": "See foto ngwongwo ahụ na onye nabatara ya, ma dee aha ha.",
+  "noCode.photo": "See foto ahụ",
+  "noCode.photoAgain": "Etinyela foto · see ọzọ",
+  "noCode.who": "Onye natara ya?",
+  "noCode.next": "Na-esote",
+  "noCode.useCode": "Jiri koodu kama",
+  "startJob": "Malite ọrụ a",
+  "offer.assigned": "{company} nyere gị ọrụ a. Wụfee ya ma ọ bụrụ na ị nweghị ike ime ya.",
 };
 
 export default ig;

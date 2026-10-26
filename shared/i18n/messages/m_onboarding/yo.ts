@@ -59,7 +59,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "door.snap.hint": "Rex yóò kọ orúkọ, owó àti àpèjúwe",
   "door.snap.note": "Fi fọ́tò díẹ̀ kún un. Rex yóò sọ ọjà kọ̀ọ̀kan ní orúkọ, dábàá owó, yóò sì kọ àpèjúwe. Ìwọ yóò ṣàyẹ̀wò wọn kí ohunkóhun tó jáde.",
   "door.file.label": "Spreadsheet tàbí pèpéle míì",
-  "door.file.hint": "CSV, Shopify, Bumpa, Catlog",
+  "door.file.hint": "CSV tàbí Excel",
   "door.file.note": "Gbé fáìlì CSV tàbí Excel sókè. Rex yóò so àwọn column pọ̀, yóò sì fi ohun tó kù hàn, bí owó tàbí fọ́tò.",
   "door.sup.label": "Yan láti ọ̀dọ̀ supplier",
   "door.sup.hint": "Dropship, o kò nílò stock",

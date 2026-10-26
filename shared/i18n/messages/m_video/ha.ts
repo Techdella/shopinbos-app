@@ -46,12 +46,13 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "watch.on": "A {place}",
   "watch.useIt": "Yi amfani da bidiyonka",
   "watch.save": "Ajiye a wayata",
-  "watch.saveHint": "Bidiyon zai buɗe. Danna ka riƙe shi, ko danna maɓallin download, don ajiye shi a wayarka.",
+  "watch.saveHint": "Menu na rabawa na wayarka zai buɗe. Zaɓi \"Save video\" don ajiye shi.",
   "watch.onProduct": "Yana shafin kaya",
   "watch.posted": "An wallafa",
   "watch.change": "Canja shi",
   "watch.adHint": "Yi amfani da wannan bidiyon a matsayin talla a Facebook da Instagram.",
   "watch.adOnWeb": "Yi tallan a yanar gizo",
+  "watch.saveFailed": "Ba a iya saka bidiyon a wayarka ba. Duba haɗinka ka sake gwadawa.",
 };
 
 export default ha;

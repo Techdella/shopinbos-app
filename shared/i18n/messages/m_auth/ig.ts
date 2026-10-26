@@ -159,6 +159,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "code.newSent": "Ezigala koodu ọhụrụ",
   "code.resend": "Ziga koodu ọhụrụ",
   "code.continue": "Gaa n'ihu",
+  "form.signupLink": "Ị bụ onye ọhụrụ? Mepee akaụntụ",
+  "form.riderLink": "Ị na-anya maka ụlọ ọrụ nnyefe? Nbanye rider",
 };
 
 export default ig;

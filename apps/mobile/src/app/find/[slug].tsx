@@ -177,6 +177,8 @@ function ProductView({ product, listing, context, refreshing, onRefresh }: { pro
       ) : null}
 
       {note ? <Notice tone={note.tone}>{note.text}</Notice> : null}
+      {/* After "Request a quote": the price requests and wholesale orders (with Pay) are on Wholesale. */}
+      {note?.tone === "success" && mode !== "dropship" ? <PillButton title={t("wholesale.see")} tone="white" size="sm" style={{ alignSelf: "flex-start" }} onPress={() => router.push("/wholesale")} /> : null}
 
       <SupplierRiskCard supplier={product.supplier} />
       {mustAgree ? <BeforeYouList product={product} listing={listing} onSent={onRefresh} /> : null}

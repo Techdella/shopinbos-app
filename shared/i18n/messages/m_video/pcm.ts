@@ -46,12 +46,13 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "watch.on": "For {place}",
   "watch.useIt": "Use your video",
   "watch.save": "Save am for my phone",
-  "watch.saveHint": "The video go open. Press am and hold, or tap the download button, to keep am for your phone.",
+  "watch.saveHint": "Your phone share menu go open. Pick \"Save video\" to keep am.",
   "watch.onProduct": "For the product page",
   "watch.posted": "You don post am",
   "watch.change": "Change am",
   "watch.adHint": "Run this video as ad for Facebook and Instagram.",
   "watch.adOnWeb": "Make the ad for web",
+  "watch.saveFailed": "We no fit put the video for your phone. Check your network and try again.",
 };
 
 export default pcm;

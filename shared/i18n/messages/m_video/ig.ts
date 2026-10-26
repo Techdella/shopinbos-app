@@ -46,12 +46,13 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "watch.on": "Na {place}",
   "watch.useIt": "Jiri vidiyo gị",
   "watch.save": "Chekwaa ya na ekwentị m",
-  "watch.saveHint": "Vidiyo ahụ ga-emepe. Pịa ma jide ya, ma ọ bụ pịa bọtịnụ download, iji debe ya na ekwentị gị.",
+  "watch.saveHint": "Menu nkesa ekwentị gị ga-emepe. Họrọ \"Save video\" iji chekwaa ya.",
   "watch.onProduct": "Ọ dị na peeji ngwaahịa",
   "watch.posted": "I tinyela ya",
   "watch.change": "Gbanwee ya",
   "watch.adHint": "Jiri vidiyo a mee mgbasa ozi na Facebook na Instagram.",
   "watch.adOnWeb": "Mee mgbasa ozi ahụ na weebụ",
+  "watch.saveFailed": "Enweghị ike itinye vidiyo ahụ na ekwentị gị. Lelee njikọ gị ma nwaa ọzọ.",
 };
 
 export default ig;

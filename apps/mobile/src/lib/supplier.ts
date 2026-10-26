@@ -1,5 +1,6 @@
 import type { VerificationDoc } from "@shared/verification-docs";
 import type { PickupSlot } from "@shared/supplier-pickup";
+import type { ContractDocument } from "@shared/contracts";
 import { api, apiBody } from "./api";
 
 // The supplier side of the app. Reads and writes go to the same backend as the web supplier portal:
@@ -201,6 +202,29 @@ export interface SupplierMe {
 }
 
 export const fetchSupplierMe = () => api<SupplierMe>("/api/supplier/me");
+
+/** A shop that wants to dropship this supplier's products (GET /api/mobile/supplier/agreements). */
+export interface DropshipAgreement {
+  id: string;
+  status: "requested" | "active" | "declined" | string;
+  shopName: string;
+  shopCity: string | null;
+  phone: string | null;
+  stockCheck: string;
+  sellerNote: string | null;
+  supplierNote: string | null;
+  createdAt: string;
+  products: number;
+  contractId: string | null;
+  /** The written Dropship agreement the shop signed, to read before signing. */
+  document: ContractDocument | null;
+}
+
+export const fetchAgreements = () => api<{ agreements: DropshipAgreement[] }>("/api/mobile/supplier/agreements").then((body) => body.agreements);
+
+/** Sign (accept) with the typed name, or decline saying why. Answers the server's own message. */
+export const answerAgreement = (id: string, answer: { accept: true; signedName: string } | { accept: false; note: string }) =>
+  api<{ message: string }>(`/api/mobile/supplier/agreements/${encodeURIComponent(id)}`, { method: "POST", json: answer });
 
 export const fetchSupplierProduct = (id: string) => api<SupplierProduct & { description: string }>(`/api/supplier/products/${encodeURIComponent(id)}`);
 

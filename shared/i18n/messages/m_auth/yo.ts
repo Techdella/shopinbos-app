@@ -159,6 +159,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "code.newSent": "A ti fi kóòdù tuntun ránṣẹ́",
   "code.resend": "Fi kóòdù tuntun ránṣẹ́",
   "code.continue": "Tẹ̀síwájú",
+  "form.signupLink": "Ṣé tuntun ni ọ́? Ṣí àkáǹtì",
+  "form.riderLink": "Ṣé o ń gùn fún ilé-iṣẹ́ ìfijíṣẹ́? Ìwọlé àwọn rider",
 };
 
 export default yo;

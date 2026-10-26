@@ -59,7 +59,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "door.snap.hint": "Rex zai rubuta sunaye, farashi da bayani",
   "door.snap.note": "Ƙara ƴan hotuna. Rex zai sa wa kowane kaya suna, ya ba da shawarar farashi, ya rubuta bayani. Kai ka duba su kafin wani abu ya fita.",
   "door.file.label": "Spreadsheet ko wani dandali",
-  "door.file.hint": "CSV, Shopify, Bumpa, Catlog",
+  "door.file.hint": "CSV ko Excel",
   "door.file.note": "Ɗora fayil na CSV ko Excel. Rex zai daidaita ginshiƙai ya nuna duk abin da ya ɓace, kamar farashi ko hotuna.",
   "door.sup.label": "Zaɓi daga masu kawo kaya",
   "door.sup.hint": "Dropship, ba sai ka ajiye kaya ba",

@@ -117,6 +117,7 @@ const en = {
   "verify.sentNote": "Sent. We'll tell you when your documents are checked.",
   "verify.uploadFailed": "That didn't go through. Try again.",
   "verify.photosOff": "Allow photos in your phone settings to add a document.",
+  "verify.missing": "Add {docs} before sending for review.",
 } satisfies Record<string, string>;
 
 export default en;

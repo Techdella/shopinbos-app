@@ -60,7 +60,7 @@ function Step({ n, title, children }: { n: number; title: string; children: Reac
   );
 }
 
-function Check({ on, onChange, label }: { on: boolean; onChange: (on: boolean) => void; label: string }) {
+export function Check({ on, onChange, label }: { on: boolean; onChange: (on: boolean) => void; label: string }) {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
       <T weight="bold" style={{ flex: 1, fontSize: 14, lineHeight: 20 }}>{label}</T>
@@ -70,7 +70,7 @@ function Check({ on, onChange, label }: { on: boolean; onChange: (on: boolean) =
 }
 
 /** The full Dropship agreement (shared/contracts.ts), in English like the web. */
-function AgreementText({ doc }: { doc: ReturnType<typeof dropshipDocument> }) {
+export function AgreementText({ doc }: { doc: ReturnType<typeof dropshipDocument> }) {
   return (
     <View style={{ gap: 10, backgroundColor: colors.surface, borderRadius: radii.card, padding: 12 }}>
       <T weight="extrabold" style={{ fontSize: 16 }}>{doc.title}</T>

@@ -24,8 +24,10 @@ import { colors } from "@/theme";
 //   Step 1 Pick up: Call, Open in maps, "I'm there, enter code" → the shop's 4-digit pickup code on the keypad →
 //   "Got the parcel" (the server checks the code and moves the job to picked up; older jobs without a code: "I have
 //   the parcel"). Step 2 Drop off → the customer's code on the keypad (checked first) → pay on delivery: "I've got
-//   the money", then "Parcel handed over" → Delivered. "Something wrong?" tells the company without failing the
-//   job; "I can't deliver it at all" is still there for the real failures.
+//   the money", then "Parcel handed over" → Delivered. No code from the customer: "No code? Use a photo" takes a
+//   proof-of-delivery photo and who received it, which the server accepts instead of the code (riderProofInstead in
+//   src/lib/logistics/job-rules.ts). "Something wrong?" (on every step, the code step too) tells the company without
+//   failing the job; "I can't deliver it at all" is still there for the real failures.
 
 type Step = "pickup" | "pcode" | "dropoff" | "dcode" | "cash" | "done" | "help";
 type CodeState = "idle" | "checking" | "ok" | "bad";
@@ -48,6 +50,9 @@ export default function RiderJob() {
   const [otherAmount, setOtherAmount] = useState<string | null>(null);
   const [got, setGot] = useState(false);
   const [photoDone, setPhotoDone] = useState(false);
+  // No code from the customer: a proof photo plus who received it instead.
+  const [noCode, setNoCode] = useState(false);
+  const [recipient, setRecipient] = useState("");
   const [failing, setFailing] = useState(false);
   const [last, setLast] = useState<{ earned: number; cash: number } | null>(null);
   // The job as last seen: once delivered it leaves the list, but "Delivered" still needs its amounts.
@@ -169,7 +174,11 @@ export default function RiderJob() {
     setBusy("deliver");
     setError(null);
     try {
-      await riderAction({ action: "delivered", jobId: drop.id, code: dcode, codCollected: collected, codMethod: drop.collect > 0 ? pay : null });
+      await riderAction(
+        noCode
+          ? { action: "delivered", jobId: drop.id, code: "", recipientName: recipient.trim(), codCollected: collected, codMethod: drop.collect > 0 ? pay : null }
+          : { action: "delivered", jobId: drop.id, code: dcode, codCollected: collected, codMethod: drop.collect > 0 ? pay : null },
+      );
       const next = await fetchRider().catch(() => null);
       if (next) rider.setData(next);
       const earned = Math.max(0, (next?.earnedToday ?? earnedBefore) - earnedBefore) || drop.fee || 0;
@@ -178,7 +187,7 @@ export default function RiderJob() {
     } catch (deliverError) {
       setError(deliverError instanceof Error ? deliverError.message : t.tryAgain);
       // A code that stopped matching (the shop changed something): type it again.
-      if (deliverError instanceof ApiError && /code/i.test(deliverError.message)) {
+      if (!noCode && deliverError instanceof ApiError && /code/i.test(deliverError.message)) {
         setDcode("");
         setDstate("idle");
         setGot(false);
@@ -366,6 +375,46 @@ export default function RiderJob() {
     );
   }
 
+  if (step === "dcode" && noCode) {
+    // No code: the photo first, then who took the parcel; then the cash step or "Parcel handed over".
+    const ready = photoDone && recipient.trim().length >= 2;
+    return (
+      <Screen
+        title={say("dcode.title")}
+        onBack={back}
+        footer={ready ? (
+          drop.collect > 0 ? (
+            <PillButton tone="forest" onPress={() => { setGot(false); go("cash"); }}>
+              <AppIcon name="check" size={20} color="#FFFFFF" />
+              <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 17 }}>{say("noCode.next")}</T>
+            </PillButton>
+          ) : (
+            <PillButton tone="forest" busy={busy === "deliver"} onPress={() => void deliver()}>
+              <AppIcon name="check" size={20} color="#FFFFFF" />
+              <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 17 }}>{say("cash.handed")}</T>
+            </PillButton>
+          )
+        ) : undefined}
+      >
+        <View style={{ gap: 8 }}>
+          <Heading style={{ textAlign: "center" }}>{say("noCode.title")}</Heading>
+          <Sub style={{ textAlign: "center" }}>{say("noCode.sub")}</Sub>
+        </View>
+        <PillButton tone={photoDone ? "white" : "forest"} busy={busy === "photo"} disabled={Boolean(busy)} onPress={() => void addPhoto()}>
+          <AppIcon name={photoDone ? "check" : "camera"} size={20} color={photoDone ? colors.ink : "#FFFFFF"} />
+          <T weight="extrabold" style={{ color: photoDone ? colors.ink : "#FFFFFF", fontSize: 17 }}>{photoDone ? say("noCode.photoAgain") : say("noCode.photo")}</T>
+        </PillButton>
+        <View style={{ gap: 6 }}>
+          <T weight="bold" style={{ fontSize: 14, color: colors.inkSoft }}>{say("noCode.who")}</T>
+          <Field value={recipient} onChangeText={setRecipient} placeholder={drop.buyerName ?? ""} autoCapitalize="words" maxLength={80} accessibilityLabel={say("noCode.who")} style={{ height: 56, fontSize: 18 }} />
+        </View>
+        {errorNotice}
+        <TextLink title={say("noCode.useCode")} color={colors.inkSoft} onPress={() => { setNoCode(false); setError(null); }} />
+        {helpLink}
+      </Screen>
+    );
+  }
+
   if (step === "dcode") {
     const ok = dstate === "ok";
     return (
@@ -393,7 +442,9 @@ export default function RiderJob() {
         <Keypad value={dcode} length={4} onChange={typeDrop} />
         <CodeLine state={dstate} bad={say("codeBad")} ok={say("codeOk")} />
         {errorNotice}
-        <TextLink title={photoDone ? t.photoDone : t.photo} color={colors.inkSoft} onPress={() => { if (!photoDone && busy !== "photo") void addPhoto(); }} />
+        {ok ? <TextLink title={photoDone ? t.photoDone : t.photo} color={colors.inkSoft} onPress={() => { if (!photoDone && busy !== "photo") void addPhoto(); }} /> : null}
+        {!ok ? <TextLink title={say("noCode.link")} onPress={() => { setNoCode(true); setError(null); }} /> : null}
+        {helpLink}
       </Screen>
     );
   }

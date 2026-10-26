@@ -39,6 +39,25 @@ export async function downloadToCache(url: string): Promise<{ uri: string; mimeT
   }
 }
 
+/**
+ * "Save to my phone" for a video or picture: the file is downloaded to the phone and handed to the share sheet,
+ * where "Save video" / "Save to Files" / "Save to device" keep it (expo-media-library isn't in this app). False when
+ * it couldn't be done (offline, no sharing in this build), so the screen can say so.
+ */
+export async function saveFileToPhone(url: string, title: string): Promise<boolean> {
+  const local = await downloadToCache(url);
+  if (!local) return false;
+  try {
+    const sharing = await import("expo-sharing");
+    if (!(await sharing.isAvailableAsync())) return false;
+    const video = local.mimeType.startsWith("video/");
+    await sharing.shareAsync(local.uri, { mimeType: local.mimeType, dialogTitle: title, UTI: video ? "public.mpeg-4" : local.mimeType === "image/png" ? "public.png" : "public.jpeg" });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** The phone's share sheet with the picture file; the plain text share sheet when that can't be done. */
 async function shareSheet(imageUrl: string | null, caption: string, title: string): Promise<boolean> {
   if (imageUrl) {

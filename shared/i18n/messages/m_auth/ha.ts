@@ -159,6 +159,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "code.newSent": "An tura sabon code",
   "code.resend": "Tura sabon code",
   "code.continue": "Ci gaba",
+  "form.signupLink": "Sabo ne? Buɗe asusu",
+  "form.riderLink": "Kana tuƙi don kamfanin isarwa? Shigar mahaya",
 };
 
 export default ha;

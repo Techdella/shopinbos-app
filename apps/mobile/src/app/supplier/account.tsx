@@ -9,7 +9,8 @@ import { ErrorState, LoadingBlock } from "@/components/kit";
 import { LanguageSheet } from "@/components/LanguagePicker";
 import { confirmSignOut } from "@/components/partner";
 import { Screen } from "@/components/Screen";
-import { LinkButton } from "@/components/ui";
+import { Card, LinkButton } from "@/components/ui";
+import { TipsRow } from "@/components/learn/TipsRow";
 import { emailTopUp, fetchCredits } from "@/lib/familiar";
 import { useLocale, useT } from "@/lib/i18n";
 import { languageOf } from "@shared/i18n";
@@ -94,12 +95,18 @@ export default function SupplierAccount() {
 
       <List>
         <Row lead={<Tile icon="shield" tone="gray" />} title={t("money.verification")} sub={verification.label} onPress={() => router.push("/supplier/verification")} />
+        <Row lead={<Tile icon="users" tone="gray" />} title={t("account.agreements")} sub={t("account.agreementsSub")} onPress={() => router.push("/supplier/agreements")} />
         <Row lead={<Tile icon="tag" tone="gray" />} title={t("account.priceRequests")} sub={t("money.quotesHint")} onPress={() => router.push("/supplier/quotes")} />
         <Row lead={<Tile icon="coin" tone="gray" />} title={t("money.tiers")} sub={t("tiers.sub")} onPress={() => router.push("/supplier/tiers")} />
         <Row lead={<Tile icon="image" tone="gray" />} title={t("money.profile")} sub={t("profile.sub")} onPress={() => router.push("/supplier/profile")} />
         <Row lead={<Tile icon="bell" tone="gray" />} title={t("account.notifications")} onPress={() => router.push("/notifications/settings")} />
         <Row lead={<Tile icon="globe" tone="gray" />} title={t("language.title")} sub={languageOf(locale).nativeName} onPress={() => setLanguage(true)} />
       </List>
+
+      {/* Tips and tooltips on or off, the same switch as the seller's Settings. */}
+      <Card style={{ paddingVertical: 2 }}>
+        <TipsRow first />
+      </Card>
 
       <List>
         {callPeggy ? <CallPeggyButton variant="row" /> : null}

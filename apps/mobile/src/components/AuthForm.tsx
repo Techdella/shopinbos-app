@@ -232,6 +232,13 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
           )}
           {error && <Notice>{error}</Notice>}
           <LinkButton title={t("other.link")} color={colors.inkSoft} onPress={() => setOthers(true)} testID="other-ways" />
+          {mode === "login" ? (
+            // New here: sign up. Riders have no business account: their own sign-in (phone + the company's code).
+            <View style={{ gap: 4, alignItems: "flex-start" }}>
+              <LinkButton title={t("form.signupLink")} onPress={() => router.replace({ pathname: "/welcome", params: { step: "role" } })} testID="login-signup" />
+              <LinkButton title={t("form.riderLink")} color={colors.inkSoft} onPress={() => router.push("/rider/sign-in")} testID="login-rider" />
+            </View>
+          ) : null}
         </ScrollView>
         <View style={{ paddingHorizontal: 20, paddingBottom: 12, paddingTop: 10, gap: 10 }}>
           {mode === "signup" && (

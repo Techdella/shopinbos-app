@@ -10,7 +10,7 @@ import { CallPeggyButton } from "@/components/CallPeggyButton";
 import { LoadingBlock } from "@/components/kit";
 import { ChipWrap, LabeledInput, StepHeader } from "@/components/PartnerKit";
 import { CoverageEditor, RateCardEditor, ServicesEditor } from "@/components/PartnerSetup";
-import { Notice, PillButton, T } from "@/components/ui";
+import { LinkButton, Notice, PillButton, T } from "@/components/ui";
 import { useT } from "@/lib/i18n";
 import {
   fetchLogisticsMe,
@@ -24,7 +24,7 @@ import {
   uploadVerificationDoc,
   type MarketData,
 } from "@/lib/logistics";
-import { deliverModeOf, deliveryAreasFor, draftFromRow, nairaInput, pickupAreasFor, priceText, rowsToSave, starterRates, statesIn, type DeliverMode, type DraftRate } from "@/lib/logistics-pure";
+import { deliverModeOf, deliveryAreasFor, requiredDocsMissing, draftFromRow, nairaInput, pickupAreasFor, priceText, rowsToSave, starterRates, statesIn, type DeliverMode, type DraftRate } from "@/lib/logistics-pure";
 import { checkWalletAccount, fetchWallet, linkWalletBank, type WalletData } from "@/lib/wallet";
 import { usePeggyContinue, usePeggySaved } from "@/lib/peggy-call";
 import { partnerWizardStep } from "@/lib/peggy-call-pure";
@@ -34,12 +34,13 @@ import { colors } from "@/theme";
 // (PUT market { section: "business" }), documents (the existing verification upload, the existing document types),
 // where you cover and what you offer, the rate card, the bank delivery fees are paid to (Shopinbos Wallet), then
 // "Send for review": set-up is marked done (the web set-up's call), coverage and prices are saved, the bank linked
-// and the documents sent to be checked. Shown while the company isn't set up (/logistics/home sends it here).
+// and the documents sent to be checked. The Documents step needs the documents the server needs (CAC and insurance)
+// or an explicit "Add them later"; the last screen says what really happened: sent, refused (the server's reason),
+// or not sent yet, with a way to Verification. Shown while the company isn't set up (/logistics/home sends it here).
 // "Call Peggy" is on every step: while she's on the call, the areas and starting price she saves fill the steps
 // here as she goes, and after the call it opens the first step that's still missing (documents only last).
 
-type Step = "welcome" | "biz" | "docs" | "cover" | "services" | "rates" | "payout" | "review";
-const ORDER: Step[] = ["welcome", "biz", "docs", "cover", "services", "rates", "payout", "review"];
+type Step = "welcome" | "biz" | "docs" | "cover" | "services" | "rates" | "payout" | "review";const ORDER: Step[] = ["welcome", "biz", "docs", "cover", "services", "rates", "payout", "review"];
 
 function Frame({ step, onBack, children, footer }: { step: number; onBack?: () => void; children: ReactNode; footer: ReactNode }) {
   const t = useT("m_partner", "common");
@@ -78,6 +79,10 @@ function Wizard({ market, wallet, docsDone: initialDocs }: { market: MarketData;
   const [address, setAddress] = useState(partner.address ?? "");
   // 2. Documents
   const [docsDone, setDocsDone] = useState<string[]>(initialDocs);
+  const [docsLater, setDocsLater] = useState(false);
+  // What "Send for review" really did: sent, refused (with the server's reason) or not sent (documents later).
+  const [review, setReview] = useState<{ sent: boolean; reason: string | null }>({ sent: false, reason: null });
+  const missingDocs = requiredDocsMissing(docsDone);
   // 3–4. Coverage and services
   const [pickup, setPickup] = useState<string[]>(statesIn(partner.pickupAreas));
   const [mode, setMode] = useState<DeliverMode>(deliverModeOf(partner.pickupAreas, partner.deliveryAreas));
@@ -198,8 +203,12 @@ function Wizard({ market, wallet, docsDone: initialDocs }: { market: MarketData;
       await saveCoverage({ services, pickupAreas: pickupAreasFor(pickup, savedAreas.pickupAreas), deliveryAreas: deliveryAreasFor(mode, pickup, deliver, savedAreas.deliveryAreas), offersPayOnDelivery: partner.offersPayOnDelivery });
       await saveRateCard({ rows: priced, failedAttemptFee: nairaInput(fail) ?? 0, returnFee: nairaInput(ret) ?? 0, notes });
       if (bank && digits.length === 10) await linkWalletBank({ bankName: bank, accountNumber: digits });
-      // Sent to be checked once the required documents are in; otherwise they can upload them from Verification.
-      await submitVerification().catch(() => null);
+      // Sent to be checked only with the required documents in; the server's answer is shown as it is.
+      if (requiredDocsMissing(docsDone).length) setReview({ sent: false, reason: null });
+      else {
+        const refused = await submitVerification().then(() => null, (submitError: unknown) => (submitError instanceof Error && submitError.message ? submitError.message : t("error.retry")));
+        setReview({ sent: !refused, reason: refused });
+      }
       go("review");
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : t("error.retry"));
@@ -252,7 +261,20 @@ function Wizard({ market, wallet, docsDone: initialDocs }: { market: MarketData;
 
   if (step === "docs") {
     return (
-      <Frame step={2} onBack={back} footer={next(() => go("cover"))}>
+      <Frame
+        step={2}
+        onBack={back}
+        footer={
+          <>
+            {next(() => {
+              if (missingDocs.length) return setError(t("docs.needRequired", { docs: missingDocs.map((doc) => t.dynamic(`docs.${doc.type}`, doc.label)).join(", ") }));
+              setDocsLater(false);
+              go("cover");
+            })}
+            {missingDocs.length ? <LinkButton title={t("docs.later")} color={colors.inkSoft} onPress={() => { setDocsLater(true); go("cover"); }} /> : null}
+          </>
+        }
+      >
         <View style={{ gap: 8 }}>
           <Title>{t("docs.title")}</Title>
           <Sub>{t("docs.sub")}</Sub>
@@ -316,7 +338,7 @@ function Wizard({ market, wallet, docsDone: initialDocs }: { market: MarketData;
   if (step === "payout") {
     const linked = wallet?.view.bank;
     return (
-      <Frame step={6} onBack={back} footer={<PillButton tone="forest" title={t("setup.sendReview")} busy={busy === "review"} disabled={Boolean(busy)} onPress={() => void sendForReview()} />}>
+      <Frame step={6} onBack={back} footer={<PillButton tone="forest" title={docsLater && missingDocs.length ? t("setup.finishNoDocs") : t("setup.sendReview")} busy={busy === "review"} disabled={Boolean(busy)} onPress={() => void sendForReview()} />}>
         <View style={{ gap: 8 }}>
           <Title>{t("setup.payTitle")}</Title>
           <Sub>{t("setup.paySub")}</Sub>
@@ -346,6 +368,30 @@ function Wizard({ market, wallet, docsDone: initialDocs }: { market: MarketData;
           </View>
         ) : null}
         {note}
+      </Frame>
+    );
+  }
+
+  // The last screen says what really happened. Only a sent review is "We're checking your documents".
+  if (!review.sent) {
+    return (
+      <Frame
+        step={6}
+        footer={
+          <>
+            <PillButton tone="forest" title={t("setup.addDocs")} onPress={() => router.replace("/logistics/verification")} />
+            <PillButton tone="white" title={t("setup.toDashboard")} onPress={() => router.replace("/logistics/jobs")} />
+          </>
+        }
+      >
+        <View style={{ alignItems: "center", gap: 14, paddingTop: 60 }}>
+          <View style={{ width: 96, height: 96, borderRadius: 48, backgroundColor: colors.warnTint, alignItems: "center", justifyContent: "center" }}>
+            <AppIcon name="doc" size={44} color={colors.warnInk} strokeWidth={2.2} />
+          </View>
+          <Title style={{ textAlign: "center" }}>{t("setup.notSentTitle")}</Title>
+          <Sub style={{ textAlign: "center" }}>{t("setup.notSentSub")}</Sub>
+        </View>
+        {review.reason ? <Notice>{review.reason}</Notice> : null}
       </Frame>
     );
   }

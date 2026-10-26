@@ -114,6 +114,16 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "filters.verified": "Àwọn tí a ti ṣàyẹ̀wò nìkan",
   "tab.all": "Gbogbo",
   "barTitle": "Wá ọjà",
+  "wholesale.row": "Order ọ̀pọ̀",
+  "wholesale.rowSub": "Àwọn ìbéèrè owó rẹ àti ọjà tí o rà",
+  "wholesale.see": "Wo àwọn ìbéèrè owó mi",
+  "wholesale.requests": "Ìbéèrè owó",
+  "wholesale.each": "{price} ọ̀kọ̀ọ̀kan",
+  "wholesale.q.pending": "Ń dúró de olùpèsè",
+  "wholesale.q.responded": "Owó ti dé",
+  "wholesale.q.accepted": "A ti gbà á",
+  "wholesale.q.rejected": "Wọ́n kọ̀ ọ́",
+  "wholesale.q.expired": "Ó ti parí",
 };
 
 export default yo;

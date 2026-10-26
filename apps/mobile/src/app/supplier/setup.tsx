@@ -7,8 +7,9 @@ import { CallPeggyButton } from "@/components/CallPeggyButton";
 import { ErrorState, LoadingBlock } from "@/components/kit";
 import { DoneView, FieldLabel, FlowFrame, NoteCard } from "@/components/SupplierKit";
 import { Field, LinkButton, Notice, PillButton, T } from "@/components/ui";
+import { useVerificationDocs, VerificationDocList } from "@/components/VerificationScreen";
 import { useT } from "@/lib/i18n";
-import { fetchDeliveryWhere, fetchSupplierOverview, fetchSupplierSetup, saveDeliveryWhere, saveSupplierProfile, saveSupplierSetup } from "@/lib/supplier";
+import { fetchDeliveryWhere, fetchSupplierMe, fetchSupplierOverview, fetchSupplierSetup, saveDeliveryWhere, saveSupplierProfile, saveSupplierSetup } from "@/lib/supplier";
 import { popularBanks, SELL_AREAS, SELL_STATES, SETUP_CITIES, SUPPLY_CATEGORIES, type SellAreaKey } from "@/lib/supplier-pure";
 import { useLoad } from "@/lib/useLoad";
 import { checkWalletAccount, fetchWallet, linkWalletBank } from "@/lib/wallet";
@@ -17,15 +18,17 @@ import { supplierWizardStep } from "@/lib/peggy-call-pure";
 import { colors } from "@/theme";
 
 // Setting up a supplier ("Simple app, end to end" supplier prototype: sWelcome → sBiz → sPickup → sWhere → sBank →
-// sReady). The business name and what it supplies, and the city and address parcels leave from, go to PATCH
+// sDocs → sReady). The business name and what it supplies, and the city and address parcels leave from, go to PATCH
 // /api/supplier/onboarding (PATCH /api/supplier/profile once set up, so a check in progress isn't reset); where it
 // sells and ships from to the delivery settings (PUT /api/mobile/delivery/settings); the bank to the Shopinbos
-// Wallet (check the account name, then link it). After "Where do you sell?" the app opens for the business (its
-// documents can follow: Account → Verification). Account opens one step on its own with ?edit=biz|pickup|where|bank.
+// Wallet (check the account name, then link it); the documents are photos sent for review in the app (the
+// Verification screen's own pieces), and "Send for review" shows the server's real answer. After "Where do you sell?"
+// the app opens for the business; documents can also follow later (Account → Verification), and until the business
+// is verified products are saved for later, not shown to shops. Account opens one step with ?edit=biz|pickup|where|bank|docs.
 
-type Step = "welcome" | "biz" | "pickup" | "where" | "bank" | "ready";
-const NUMBERED: Step[] = ["biz", "pickup", "where", "bank"];
-const EDITABLE: Step[] = ["biz", "pickup", "where", "bank"];
+type Step = "welcome" | "biz" | "pickup" | "where" | "bank" | "docs" | "ready";
+const NUMBERED: Step[] = ["biz", "pickup", "where", "bank", "docs"];
+const EDITABLE: Step[] = ["biz", "pickup", "where", "bank", "docs"];
 
 export default function SupplierSetup() {
   const { edit } = useLocalSearchParams<{ edit?: string }>();
@@ -36,6 +39,12 @@ export default function SupplierSetup() {
     return { setup, onboarded: overview?.supplier.onboarded ?? false, where, wallet };
   });
   const data = loaded.data;
+  // Documents step: the same upload and "Send for review" as Account → Verification.
+  const docs = useVerificationDocs("supplier", async () => {
+    const me = await fetchSupplierMe();
+    return { status: me.supplier.verificationStatus, docs: me.supplier.verificationDocuments, trustScore: me.supplier.trustScore };
+  });
+  const [docsSent, setDocsSent] = useState(false);
 
   const [step, setStep] = useState<Step>(editing ?? "welcome");
   const [filled, setFilled] = useState(false);
@@ -171,20 +180,20 @@ export default function SupplierSetup() {
   }
 
   function saveBank() {
-    if (walletBank && !newBank) return go("ready");
+    if (walletBank && !newBank) return go("docs");
     if (!bankName) return setBankError(t("setup.needBank"));
     if (account.length !== 10) return setBankError(t("setup.needAccount"));
     setBusy(true);
     setBankError(null);
     linkWalletBank({ bankName, accountNumber: account })
-      .then(() => go("ready"))
+      .then(() => go("docs"))
       .catch((failure) => setBankError(failure instanceof Error ? failure.message : t("product.saveFailed")))
       .finally(() => setBusy(false));
   }
 
   const peggy = editing ? undefined : <CallPeggyButton variant="compact" />;
   const stepLabel = editing || !NUMBERED.includes(step) ? undefined : t("setup.stepOf", { step: NUMBERED.indexOf(step) + 1, total: NUMBERED.length });
-  const nextButton = (onPress: () => void, accent = false) => <PillButton title={editing ? t("setup.save") : step === "bank" ? t("setup.finish") : t("next")} tone={accent || editing ? "accent" : "ink"} busy={busy} disabled={busy} onPress={onPress} />;
+  const nextButton = (onPress: () => void, accent = false) => <PillButton title={editing ? t("setup.save") : t("next")} tone={accent || editing ? "accent" : "ink"} busy={busy} disabled={busy} onPress={onPress} />;
 
   if (step === "welcome") {
     return (
@@ -210,10 +219,11 @@ export default function SupplierSetup() {
   }
 
   if (step === "ready") {
+    const verified = docs.data.data?.status === "verified";
     return (
       <DoneView
         title={t("setup.readyTitle")}
-        sub={t("setup.readySub")}
+        sub={verified ? t("setup.readySubVerified") : docsSent || docs.sent ? t("setup.readySubChecking") : t("setup.readySub")}
         footer={
           <>
             <PillButton tone="accent" onPress={() => router.replace("/supplier/product/new")} accessibilityLabel={t("setup.addFirst")}>
@@ -285,6 +295,41 @@ export default function SupplierSetup() {
     );
   }
 
+  if (step === "docs") {
+    const verified = docs.data.data?.status === "verified";
+    const sendDocs = async () => {
+      if (await docs.send()) {
+        setDocsSent(true);
+        go("ready");
+      }
+    };
+    return (
+      <FlowFrame
+        step={stepLabel}
+        aside={peggy}
+        onBack={back}
+        title={t("setup.docsTitle")}
+        sub={t("setup.docsSub")}
+        footer={
+          verified || docs.sent ? (
+            <PillButton title={editing ? t("done") : t("next")} tone="accent" onPress={() => go("ready")} />
+          ) : (
+            <>
+              <PillButton title={t("setup.docsSend")} tone="accent" busy={docs.busy === "send"} disabled={Boolean(docs.busy)} onPress={() => void sendDocs()} />
+              <LinkButton title={t("setup.later")} color={colors.inkSoft} onPress={() => go("ready")} />
+            </>
+          )
+        }
+      >
+        {docs.note ? <Notice tone={docs.note.tone}>{docs.note.text}</Notice> : null}
+        {docs.sent ? <NoteCard tone="ok" title={t("setup.docsInTitle")}>{t("setup.docsInSub")}</NoteCard> : null}
+        {docs.data.loading && !docs.data.data ? <LoadingBlock /> : null}
+        {docs.data.error && !docs.data.data ? <ErrorState message={docs.data.error} onRetry={() => void docs.data.reload()} /> : null}
+        {docs.data.data ? <VerificationDocList role="supplier" v={docs} /> : null}
+      </FlowFrame>
+    );
+  }
+
   // Bank
   const pickingBank = !walletBank || newBank;
   return (
@@ -297,7 +342,7 @@ export default function SupplierSetup() {
       footer={
         <>
           {nextButton(saveBank, true)}
-          {editing ? null : <LinkButton title={t("setup.later")} color={colors.inkSoft} onPress={() => setStep("ready")} />}
+          {editing ? null : <LinkButton title={t("setup.later")} color={colors.inkSoft} onPress={() => go("docs")} />}
         </>
       }
     >
