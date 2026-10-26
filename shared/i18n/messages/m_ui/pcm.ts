@@ -105,6 +105,15 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "stepper.more": "Add one {label}",
   "chat.keepTitle": "Keep am for Shopinbos",
   "chat.keepBody": "Jobs wey dem pay outside the app no dey tracked, you no fit report dem and dem no dey count for ratings. Agree price here and send am as private rate.",
+  "web.badge": "E go open website ↗",
+  "web.askTitle": "Make we open the website?",
+  "web.askBody": "This page dey for Shopinbos website. E go open for your browser.",
+  "verify.addPhoto": "Add photo",
+  "verify.replace": "Change photo",
+  "verify.send": "Send am make dem check",
+  "verify.sentNote": "E don go. We go tell you when we check your documents.",
+  "verify.uploadFailed": "E no go. Try again.",
+  "verify.photosOff": "Allow photos for your phone settings make you fit add document.",
 };
 
 export default pcm;

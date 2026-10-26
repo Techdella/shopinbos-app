@@ -1,5 +1,7 @@
+import { Alert } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import { router } from "expo-router";
+import { tNow } from "./app-locale";
 import { API_URL } from "./api";
 import { supabase } from "./supabase";
 import { appRouteFor } from "@shared/notifications";
@@ -19,8 +21,10 @@ async function freshAccessToken() {
 }
 
 /**
- * Opens a page of the website, signed in as the app's user. Only for what has to stay there (buying AI credits or a
- * plan or a domain, wallet top-ups, Paystack pages, legal "view on site", admin); everything else has a screen here.
+ * Opens a page of the website, signed in as the app's user. Only for advanced or paid tools (buying AI credits or a
+ * plan or a domain, wallet top-ups, the full store builder, the video studio's final render), Google's Gmail sign-in
+ * and admin; everything else has a screen here. The button or row that calls it shows "Opens website ↗"
+ * (components/WebBadge.tsx; tests/mobile-web-exits.test.mjs checks every call).
  */
 export async function openWeb(path: string) {
   return WebBrowser.openBrowserAsync(await signedInUrl(path));
@@ -146,12 +150,20 @@ export function appScreenFor(path: string): { pathname: string; params?: Record<
   return screen ? { pathname: screen } : null;
 }
 
-/** Opens a web-app path, but in the app when the app has that screen (orders, chats, find products, reviews…). */
+/**
+ * Opens a web-app path in the app when the app has that screen (orders, chats, find products, reviews…). A link
+ * from the server to a page the app doesn't have asks first ("Opens website ↗"), so it's never a surprise.
+ */
 export function openPath(path: string) {
   // Video studio links carry the draft (?id=), or what a new video is for (?purpose=, ?product=).
   const video = videoScreenFor(path);
   if (video) return router.push({ pathname: video.pathname, params: video.params });
   const own = appScreenFor(path) ?? appRouteFor(path);
   if (own) return router.push((own.params ? { pathname: own.pathname, params: own.params } : own.pathname) as never);
-  return openWeb(path);
+  const t = tNow("m_ui", "common");
+  Alert.alert(t("web.askTitle"), t("web.askBody"), [
+    { text: t("cancel"), style: "cancel" },
+    // WebBadge text on the button itself.
+    { text: t("web.badge"), onPress: () => void openWeb(path) },
+  ]);
 }

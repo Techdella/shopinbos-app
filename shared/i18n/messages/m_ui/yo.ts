@@ -105,6 +105,15 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "stepper.more": "Fi {label} kún ní ọ̀kan",
   "chat.keepTitle": "Jẹ́ kó wà lórí Shopinbos",
   "chat.keepBody": "A kò lè tọpa iṣẹ́ tí wọ́n sanwó rẹ̀ lóde app, a kò lè gbọ́ ẹjọ́ rẹ̀, kò sì ní kà kún rating. Ẹ fohùn ṣọ̀kan lórí iye owó níbí kí o sì fi ránṣẹ́ bí private rate.",
+  "web.badge": "Yóò ṣí wẹ́ẹ̀bù ↗",
+  "web.askTitle": "Ṣé kí a ṣí wẹ́ẹ̀bù?",
+  "web.askBody": "Ojú-ìwé yìí wà lórí wẹ́ẹ̀bù Shopinbos. Yóò ṣí nínú browser rẹ.",
+  "verify.addPhoto": "Fi fọ́tò kún un",
+  "verify.replace": "Yí fọ́tò padà",
+  "verify.send": "Fi ránṣẹ́ fún àyẹ̀wò",
+  "verify.sentNote": "A ti fi ránṣẹ́. A ó sọ fún ọ nígbà tí a bá ti yẹ̀ ìwé rẹ wò.",
+  "verify.uploadFailed": "Kò lọ. Gbìyànjú lẹ́ẹ̀kan sí i.",
+  "verify.photosOff": "Gba fọ́tò láàyè nínú ètò fóònù rẹ láti fi ìwé kún un.",
 };
 
 export default yo;

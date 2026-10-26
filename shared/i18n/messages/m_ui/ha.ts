@@ -105,6 +105,15 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "stepper.more": "Ƙara {label} ɗaya",
   "chat.keepTitle": "Ka bar shi a Shopinbos",
   "chat.keepBody": "Ayyukan da aka biya a wajen app ba a bin diddiginsu, ba za a iya kai ƙararsu ba kuma ba sa ƙirguwa a rating. Ku amince da farashi a nan ka tura shi a matsayin farashi na musamman.",
+  "web.badge": "Zai buɗe shafin yanar gizo ↗",
+  "web.askTitle": "A buɗe shafin yanar gizo?",
+  "web.askBody": "Wannan shafin yana kan shafin Shopinbos. Zai buɗe a cikin burauzarka.",
+  "verify.addPhoto": "Ƙara hoto",
+  "verify.replace": "Canja hoto",
+  "verify.send": "Aika don dubawa",
+  "verify.sentNote": "An aika. Za mu sanar da kai idan an duba takardunka.",
+  "verify.uploadFailed": "Bai tafi ba. Sake gwadawa.",
+  "verify.photosOff": "Ba da izinin hotuna a saitunan wayarka don ƙara takarda.",
 };
 
 export default ha;

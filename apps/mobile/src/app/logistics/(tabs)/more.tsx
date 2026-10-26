@@ -21,21 +21,20 @@ import { verificationStage } from "@/lib/partner-pure";
 import { useCanCallPeggy } from "@/lib/peggy-call";
 import { useLoad } from "@/lib/useLoad";
 import { fetchWallet } from "@/lib/wallet";
-import { openWeb } from "@/lib/web";
 import { colors } from "@/theme";
 
 // Business ("Delivery partner app" prototype `business`): the company with its Verified pill, rating / on time /
 // failed from in-app deliveries, then Coverage, Services, Pickup points, Rate card, Riders and Payout account, the
 // posts and Status, Rex and Peggy credits (shown; "Top up" emails how to do it on the website, never a sale in the
 // app) and Rewards, the profile as sellers see it and Help. Credits hide when their API isn't there. Below: everything the old menu had (businesses you work with, notifications,
-// verification, quotes and the company profile on the web, connecting delivery software), language, sign out and
+// verification, price requests, connecting delivery software), language, sign out and
 // delete my account.
 
+// "app:" is a screen here, "url:" a public page (terms, privacy), "mailto:" the mail app. Nothing opens the web app.
 function go(path: string) {
   if (path.startsWith("app:")) router.push(path.slice(4) as never);
   else if (path.startsWith("url:")) void WebBrowser.openBrowserAsync(path.slice(4));
   else if (path.startsWith("mailto:")) void Linking.openURL(path);
-  else void openWeb(path);
 }
 
 export default function LogisticsBusiness() {
@@ -89,8 +88,7 @@ export default function LogisticsBusiness() {
   const more: { key: string; icon: AppIconName; path: string }[] = [
     { key: "notifications", icon: "bell", path: "app:/notifications" },
     { key: "verification", icon: "shield", path: "app:/logistics/verification" },
-    { key: "quotes", icon: "tag", path: "/logistics/quotes" },
-    { key: "profile", icon: "store", path: "/logistics/profile" },
+    { key: "quotes", icon: "tag", path: "app:/logistics/quotes" },
     { key: "connect", icon: "send", path: "app:/logistics/connect" },
   ];
 

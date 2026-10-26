@@ -105,6 +105,15 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "stepper.more": "Tinyekwuo otu {label}",
   "chat.keepTitle": "Debe ya na Shopinbos",
   "chat.keepBody": "A naghị esochi ọrụ a kwụrụ ụgwọ ya n'èzí app, a pụghị ịkọ maka ya, ọ dịghịkwa agụ na rating. Kwekọrịta ọnụahịa ebe a ma ziga ya dị ka ọnụahịa nzuzo.",
+  "web.badge": "Ọ ga-emepe weebụsaịtị ↗",
+  "web.askTitle": "Ka anyị mepee weebụsaịtị?",
+  "web.askBody": "Ibe a dị na weebụsaịtị Shopinbos. Ọ ga-emepe na browser gị.",
+  "verify.addPhoto": "Tinye foto",
+  "verify.replace": "Gbanwee foto",
+  "verify.send": "Ziga ka e lelee ya",
+  "verify.sentNote": "E zigala ya. Anyị ga-agwa gị mgbe anyị lechara akwụkwọ gị.",
+  "verify.uploadFailed": "Ọ gaghị. Nwaa ọzọ.",
+  "verify.photosOff": "Kwe ka foto rụọ ọrụ na ntọala ekwentị gị ka ị tinye akwụkwọ.",
 };
 
 export default ig;

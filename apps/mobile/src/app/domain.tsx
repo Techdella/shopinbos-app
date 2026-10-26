@@ -6,6 +6,7 @@ import { AppIcon } from "@/components/icons";
 import { ErrorState, LoadingBlock } from "@/components/kit";
 import { Screen } from "@/components/Screen";
 import { SetupHelpRequest } from "@/components/SetupHelpRequest";
+import { WebBadge } from "@/components/WebBadge";
 import { Card, Field, Label, Notice, PillButton, T } from "@/components/ui";
 import { ApiError } from "@/lib/api";
 import { checkKey, claimDomain, claimErrorKey, fetchDomain, recordsToAdd, removeDomain, verifyDomain, type DnsRecord, type DomainState, type ServeAs, type VerifyCheck } from "@/lib/domain";
@@ -264,7 +265,7 @@ export default function DomainScreen() {
 
       {data?.canBuy && !pending ? (
         <List>
-          <Row lead={<Tile icon="bag" tone="blue" />} title={t("buy.title")} sub={t("buy.sub")} right={<AppIcon name="share" size={18} color={colors.inkSoft} />} onPress={() => void openWeb("/home/domain")} accessibilityLabel={t("buy.title")} />
+          <Row lead={<Tile icon="bag" tone="blue" />} title={t("buy.title")} sub={t("buy.sub")} right={<WebBadge />} onPress={() => void openWeb("/home/domain")} accessibilityLabel={t("buy.title")} />
         </List>
       ) : null}
     </Screen>
