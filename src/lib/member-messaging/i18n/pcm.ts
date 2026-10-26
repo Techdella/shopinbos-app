@@ -629,6 +629,16 @@ export const tips: Record<string, TipText> = {
 const TIP_BODY = "Hi {{1}}, see dis week tip from {{2}} 💡\n\n{{3}}\n\nTap below make you try am for Shopinbos. Reply STOP if you no want weekly tips again.";
 
 export const templates: Record<string, TemplateText> = {
+  shopinbos_verify_wallet: {
+    body: "Hi {{1}}, your Shopinbos Wallet for {{2}} don set and e go start to work once dem verify your business. 🔓\n\nWetin remain: {{3}}. E no go pass few minutes.\n\nYou dey stuck? Call Peggy, our AI support, free: open your dashboard and tap Call Peggy.",
+    button: "Verify my business",
+    examples: ["Ada", "Ada Logistics", "CAC certificate, ID"],
+  },
+  shopinbos_verify_reminder: {
+    body: "Hi {{1}}, dem never verify {{2}} for Shopinbos, so {{3}} no fit find you. ✅\n\nWetin remain: {{4}}.\n\nYou need help? Peggy, our AI support, go show you how on free call: open your dashboard and tap Call Peggy.",
+    button: "Verify my business",
+    examples: ["Ada", "Ada Fabrics", "sellers", "CAC certificate"],
+  },
   shopinbos_wallet_ready: {
     body: "Hi {{1}}, your Shopinbos Wallet don ready! 🎉\n\nYour own account number na {{2}} for {{3}}, for the name {{4}}. Send money enter am from any bank app and e go land your wallet balance in one or two minutes.\n\nUse your balance for AI credits and other Shopinbos services, and withdraw go your bank anytime you want.",
     button: "Open my wallet",

@@ -66,7 +66,7 @@ export function WalletAccountCard({ account, aside, footer }: { account: { numbe
   );
 }
 
-type Summary = { balanceNaira: number; account: { number: string; bank: string; name: string } | null; href: string } | null;
+type Summary = { active?: boolean; balanceNaira: number; account: { number: string; bank: string; name: string } | null; href: string } | null;
 
 const naira = (value: number) => `₦${value.toLocaleString("en-NG", { maximumFractionDigits: 2 })}`;
 
@@ -105,6 +105,7 @@ export function WalletMini({ variant }: { variant: "sidebar" | "home" }) {
         ) : (
           <Link href={summary.href} className="mt-1 block text-[11.5px] text-white/60 no-underline">Top up, spend, withdraw</Link>
         )}
+        {summary.active === false ? <Link href={summary.href} className="mt-1.5 block text-[11px] font-bold text-[#FFC48A] no-underline">Activates when you&apos;re verified</Link> : null}
       </div>
     );
   }

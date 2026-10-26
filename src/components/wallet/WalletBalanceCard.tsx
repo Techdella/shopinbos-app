@@ -60,16 +60,6 @@ export function WalletBalanceCard({ returnTo, notice }: { returnTo: string; noti
     });
 
   if (!view) return <section aria-busy="true" className="mb-5 h-[150px] animate-pulse rounded-[22px] border border-app-line bg-white" />;
-  if (view.open === false) {
-    return (
-      <section aria-labelledby="wallet-balance" className="mb-5 rounded-[22px] border border-app-line bg-white p-5">
-        <h2 id="wallet-balance" className="m-0 text-[13px] font-extrabold uppercase tracking-[0.08em] text-app-ink-soft">Wallet balance</h2>
-        <p className="mb-0 mt-2 text-[14px] leading-[1.5]">
-          Your wallet and its own account number open once your business is verified. <a href={returnTo.startsWith("/logistics") ? "/logistics/verification" : "/supplier/verification"} className="font-bold underline underline-offset-4">Finish your verification</a>
-        </p>
-      </section>
-    );
-  }
 
   return (
     <section aria-labelledby="wallet-balance" className="mb-5 rounded-[22px] border border-app-line bg-white p-5">
@@ -89,6 +79,13 @@ export function WalletBalanceCard({ returnTo, notice }: { returnTo: string; noti
         </div>
       </div>
 
+      {view.open === false ? (
+        <p className="mb-0 mt-4 rounded-[18px] border border-[#F2D3A6] bg-[#FFF7EA] px-4 py-3 text-[13.5px] leading-[1.5]">
+          <strong>Your wallet activates when your business is verified.</strong> Until then you can&apos;t top up or withdraw.{" "}
+          <a href={returnTo.startsWith("/logistics") ? "/logistics/verification" : "/supplier/verification"} className="font-bold underline underline-offset-4">Finish your verification</a>
+          {" "}· Stuck? Call Peggy from your dashboard, free.
+        </p>
+      ) : null}
       <WalletAccountPanel view={view} onUpdated={setView} />
 
       {mode && (

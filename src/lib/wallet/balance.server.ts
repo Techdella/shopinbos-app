@@ -432,9 +432,10 @@ export async function walletBalanceView(userId: string) {
     balanceNaira: (wallet?.balanceKobo ?? 0) / 100,
     canWithdraw: Boolean(wallet && wallet.status === "active" && wallet.accountNumber && wallet.subaccountStatus === "active"),
     bank: wallet?.accountNumber ? `${wallet.bankName ?? "Bank"} ••${wallet.accountNumber.slice(-4)}` : null,
-    topUpAccount: open && wallet?.topUpStatus === "ready" && wallet.topUpAccountNumber ? { number: wallet.topUpAccountNumber, name: wallet.topUpAccountName ?? "", bank: wallet.topUpBankName ?? "" } : null,
+    // A partner given a number before verification still sees it (they were told about it); it activates on verification.
+    topUpAccount: wallet?.topUpStatus === "ready" && wallet.topUpAccountNumber ? { number: wallet.topUpAccountNumber, name: wallet.topUpAccountName ?? "", bank: wallet.topUpBankName ?? "" } : null,
     /** Where their own account number stands: "ready", "setting_up" (asked Paystack, or retrying), "needs_phone", "needs_identity" or "off". */
-    topUpAccountStatus: open ? topUpAccountStatus(wallet?.topUpStatus, Boolean(wallet?.topUpAccountNumber)) : ("off" as const),
+    topUpAccountStatus: open || wallet?.topUpStatus === "ready" ? topUpAccountStatus(wallet?.topUpStatus, Boolean(wallet?.topUpAccountNumber)) : ("off" as const),
     /** Whose name the number is in: "business" (CAC-verified), "person" (NIN-verified) or null (the account's name). */
     accountNameKind: (wallet?.topUpNameKind as "business" | "person" | null | undefined) ?? null,
     /** The business name is verified with CAC (a number in a person's name is then being replaced). */
@@ -462,10 +463,15 @@ function topUpAccountStatus(status: string | undefined, hasNumber: boolean): "re
 
 /** The wallet in a line (sidebar and home): balance and account number, without setting anything up. */
 export async function walletSummary(userId: string) {
-  if (!(await walletOpenFor(userId))) return null;
-  const wallet = await db.wallet.findUnique({ where: { userId }, select: { role: true, balanceKobo: true, topUpStatus: true, topUpAccountNumber: true, topUpAccountName: true, topUpBankName: true } });
+  const [open, wallet] = await Promise.all([
+    walletOpenFor(userId),
+    db.wallet.findUnique({ where: { userId }, select: { role: true, balanceKobo: true, topUpStatus: true, topUpAccountNumber: true, topUpAccountName: true, topUpBankName: true } }),
+  ]);
   if (!wallet) return null;
+  // An unverified partner shows only a number they were already given, marked as waiting for verification.
+  if (!open && !(wallet.topUpStatus === "ready" && wallet.topUpAccountNumber)) return null;
   return {
+    active: open,
     balanceNaira: wallet.balanceKobo / 100,
     account: wallet.topUpStatus === "ready" && wallet.topUpAccountNumber ? { number: wallet.topUpAccountNumber, bank: wallet.topUpBankName ?? "", name: wallet.topUpAccountName ?? "" } : null,
     href: walletPath(wallet.role),
