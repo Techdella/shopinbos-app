@@ -170,7 +170,7 @@ export interface WalletBalance {
   bank: string | null;
   topUpAccount: { number: string; name: string; bank: string } | null;
   /** "setting_up" while Paystack assigns it. Older servers don't send it. */
-  topUpAccountStatus?: "ready" | "setting_up" | "off";
+  topUpAccountStatus?: "ready" | "setting_up" | "needs_phone" | "off";
   limits: { topUpMin: number; topUpMax: number; withdrawMin: number; withdrawMax: number };
   transactions: Array<{ id: string; kind: string; naira: number; status: string; description: string; error: string | null; at: string }>;
 }

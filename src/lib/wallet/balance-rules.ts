@@ -14,3 +14,12 @@ export function validAmountNaira(naira: number, min: number, max: number) {
   if (naira > max) return `The largest amount is ₦${max.toLocaleString("en-NG")}.`;
   return null;
 }
+
+/** A Nigerian phone number in the +234 form Paystack takes, or null. */
+export function paystackPhone(raw: string | null | undefined) {
+  const digits = (raw ?? "").replace(/\D/g, "");
+  if (/^0[789]\d{9}$/.test(digits)) return `+234${digits.slice(1)}`;
+  if (/^234[789]\d{9}$/.test(digits)) return `+${digits}`;
+  if (/^[789]\d{9}$/.test(digits)) return `+234${digits}`;
+  return null;
+}

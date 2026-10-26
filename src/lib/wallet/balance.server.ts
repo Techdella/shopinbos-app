@@ -12,7 +12,7 @@ import { dvaBank, dvaUnavailableMessage } from "@/lib/logistics/paystack-dva";
 import { appBase, sendPlatformEmail } from "@/lib/email/compliance.server";
 import { html } from "@/lib/email/shell";
 import { ensurePaystackModeSynced } from "@/lib/paystack-mode.server";
-import { BALANCE_LIMITS, WALLET_REFERENCE, validAmountNaira } from "./balance-rules";
+import { BALANCE_LIMITS, WALLET_REFERENCE, paystackPhone, validAmountNaira } from "./balance-rules";
 
 // The prepaid wallet balance. Businesses top it up (card, or a bank transfer to their own top-up account number),
 // spend it on Shopinbos services (AI credits), and withdraw what's left to their checked bank (Paystack transfer).
@@ -40,10 +40,10 @@ export function topUpAccountsReady() {
   return walletPaymentsReady() && process.env.WALLET_TOPUP_ACCOUNTS?.trim().toLowerCase() === "true";
 }
 
-async function paystack(path: string, body: Record<string, unknown>) {
+async function paystack(path: string, body: Record<string, unknown>, method: "POST" | "PUT" = "POST") {
   try {
     const response = await fetch(`${PAYSTACK_BASE}${path}`, {
-      method: "POST",
+      method,
       headers: { Authorization: `Bearer ${secret()}`, "Content-Type": "application/json" },
       body: JSON.stringify(body),
       cache: "no-store",
@@ -140,12 +140,22 @@ export async function ensureTopUpAccount(userId: string) {
   if (wallet.topUpStatus === "ready") return wallet;
   const age = Date.now() - wallet.updatedAt.getTime();
   if ((wallet.topUpStatus === "unavailable" && age < 86_400_000) || ((wallet.topUpStatus === "failed" || wallet.topUpStatus === "pending") && age < 600_000)) return wallet;
-  const user = await db.user.findUnique({ where: { id: userId }, select: { name: true, email: true, phone: true } });
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { name: true, email: true, phone: true, supplier: { select: { whatsappNumber: true } }, logisticsPartner: { select: { contactPhone: true, whatsappNumber: true } } },
+  });
   if (!user) return wallet;
+  // Paystack won't give a dedicated account to a customer without a phone number.
+  const phone = paystackPhone(user.phone ?? user.supplier?.whatsappNumber ?? user.logisticsPartner?.contactPhone ?? user.logisticsPartner?.whatsappNumber);
+  if (!phone) return db.wallet.update({ where: { id: wallet.id }, data: { topUpStatus: "needs_phone", topUpError: null } });
   const [first, ...rest] = (user.name || "Shopinbos Business").trim().split(/\s+/);
   let customerCode = wallet.topUpCustomerCode;
-  if (!customerCode) {
-    const customer = await paystack("/customer", { email: user.email || `wallet-${userId}@shopinbos.com`, first_name: first, last_name: rest.join(" ") || first, phone: user.phone ?? undefined, metadata: { shopinbos: "wallet", walletId: wallet.id } });
+  if (customerCode) {
+    // Made before Paystack had their phone (or it changed): give it the phone first.
+    const updated = await paystack(`/customer/${encodeURIComponent(customerCode)}`, { phone }, "PUT");
+    if (!updated.ok) return markTopUpProblem(wallet.id, updated.message);
+  } else {
+    const customer = await paystack("/customer", { email: user.email || `wallet-${userId}@shopinbos.com`, first_name: first, last_name: rest.join(" ") || first, phone, metadata: { shopinbos: "wallet", walletId: wallet.id } });
     if (!customer.ok) return markTopUpProblem(wallet.id, customer.message);
     customerCode = (customer.data as { customer_code?: string } | undefined)?.customer_code ?? null;
     if (!customerCode) return markTopUpProblem(wallet.id, "Paystack returned no customer code.");
@@ -213,7 +223,7 @@ async function sendWalletReadyEmail(walletId: string) {
 export async function provisionPendingWallets(limit = 40) {
   if (!topUpAccountsReady()) return { checked: 0 };
   const users = await db.user.findMany({
-    where: { role: { in: ["seller", "supplier", "logistics_partner"] }, OR: [{ wallet: null }, { wallet: { topUpStatus: { in: ["none", "pending", "failed"] } } }] },
+    where: { role: { in: ["seller", "supplier", "logistics_partner"] }, OR: [{ wallet: null }, { wallet: { topUpStatus: { in: ["none", "pending", "failed", "needs_phone"] } } }] },
     orderBy: { createdAt: "asc" },
     take: limit,
     select: { id: true },
@@ -367,16 +377,17 @@ export async function walletBalanceView(userId: string) {
     canWithdraw: Boolean(wallet && wallet.status === "active" && wallet.accountNumber && wallet.subaccountStatus === "active"),
     bank: wallet?.accountNumber ? `${wallet.bankName ?? "Bank"} ••${wallet.accountNumber.slice(-4)}` : null,
     topUpAccount: wallet?.topUpStatus === "ready" && wallet.topUpAccountNumber ? { number: wallet.topUpAccountNumber, name: wallet.topUpAccountName ?? "", bank: wallet.topUpBankName ?? "" } : null,
-    /** Where their own account number stands: "ready", "setting_up" (asked Paystack, or retrying), or "off". */
+    /** Where their own account number stands: "ready", "setting_up" (asked Paystack, or retrying), "needs_phone", or "off". */
     topUpAccountStatus: topUpAccountStatus(wallet?.topUpStatus, Boolean(wallet?.topUpAccountNumber)),
     limits: BALANCE_LIMITS,
     transactions: transactions.map((t) => ({ id: t.id, kind: t.kind, naira: t.amountKobo / 100, status: t.status, description: t.description, error: t.error, at: t.createdAt.toISOString() })),
   };
 }
 
-function topUpAccountStatus(status: string | undefined, hasNumber: boolean): "ready" | "setting_up" | "off" {
+function topUpAccountStatus(status: string | undefined, hasNumber: boolean): "ready" | "setting_up" | "needs_phone" | "off" {
   if (!topUpAccountsReady()) return "off";
   if (status === "ready" && hasNumber) return "ready";
+  if (status === "needs_phone") return "needs_phone";
   // Paystack said Dedicated Virtual Accounts aren't on for the business: nothing the person can do.
   return status === "unavailable" ? "off" : "setting_up";
 }
