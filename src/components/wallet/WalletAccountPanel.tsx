@@ -48,12 +48,21 @@ export function WalletAccountPanel<V extends WalletAccountView>({ view, onUpdate
   const explainNote = explain ? (
     <div id="wallet-account-explainer" role="note" className="rounded-[14px] border border-app-line bg-white p-3 text-[13px] leading-[1.5] text-app-ink-soft">
       This is a real bank account number, in your business&apos;s name (or yours until your business is verified).
-      <ul className="m-0 mt-1.5 list-disc pl-5">
-        <li><strong>Top up:</strong> transfer to it from any bank app, or pay by card with Top up.</li>
-        <li><strong>Spend:</strong> your balance pays for AI credits and other Shopinbos services.</li>
-        <li><strong>Withdraw:</strong> send what&apos;s left to your main bank account whenever you like.</li>
-        <li><strong>Use it like any account:</strong> share it with anyone who needs to pay you; what they send lands in your balance.</li>
-      </ul>
+      {view.topUpGoesTo ? (
+        <ul className="m-0 mt-1.5 list-disc pl-5">
+          <li><strong>Get paid:</strong> share it with customers or anyone who owes you. What they send goes straight to your bank, {view.topUpGoesTo}, usually the next working day. Shopinbos never holds it.</li>
+          <li><strong>See every payment:</strong> each transfer shows on your statement with who sent it, and we tell you the moment it arrives.</li>
+          <li><strong>Top up to spend:</strong> pay by card with Top up to add to your balance for AI credits and other Shopinbos services.</li>
+          <li><strong>Withdraw:</strong> anything left on your balance can go to your bank whenever you like.</li>
+        </ul>
+      ) : (
+        <ul className="m-0 mt-1.5 list-disc pl-5">
+          <li><strong>Top up:</strong> transfer to it from any bank app, or pay by card with Top up.</li>
+          <li><strong>Spend:</strong> your balance pays for AI credits and other Shopinbos services.</li>
+          <li><strong>Withdraw:</strong> send what&apos;s left to your main bank account whenever you like.</li>
+          <li><strong>Get paid straight to your bank:</strong> add your bank below and transfers to this account go straight to it.</li>
+        </ul>
+      )}
     </div>
   ) : null;
 
