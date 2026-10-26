@@ -166,6 +166,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "call.screen.where": "Inda kuke sayarwa",
   "call.peggyEnded": "Peggy ta kashe kiran",
   "call.screen.rex": "Gyara shagona da Rex",
+  "call.screen.shop_edit": "Gyara shagona",
 };
 
 export default ha;

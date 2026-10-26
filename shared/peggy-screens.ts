@@ -26,8 +26,7 @@ export interface PeggyScreen {
 // social post maker): the shop's design is "Shop looks" (/templates); changing the shop by chatting with Rex is
 // "Edit my shop with Rex" (/rex); a social post, flyer or status is "Make a post" (/create); the posts calendar is
 // "Posts calendar" (/posts). Nothing is called "Create with Rex" any more.
-// TODO: if an "Edit my shop" screen lands in the phone app (a route like /shop-editor), point "edit my shop" at it
-// (a new entry here, plus its words in m_help call.screen.*); until then "edit my shop" opens Rex.
+// Editing the shop by hand (name, colours, logo, banner, sections) is "Edit my shop" (/shop-edit).
 const SELLER: PeggyScreen[] = [
   { id: "home", name: "Home", app: "/home", web: "/home", also: ["dashboard"] },
   { id: "start", name: "Start here", app: "/start", web: "/home/start", also: ["setup", "checklist", "get set up"], about: "the setup checklist" },
@@ -45,8 +44,16 @@ const SELLER: PeggyScreen[] = [
     name: "Edit my shop with Rex",
     app: "/rex",
     web: "/studio",
-    also: ["rex", "ask rex", "rex store builder", "store builder", "edit my shop", "edit my store", "change my shop"],
+    also: ["rex", "ask rex", "rex store builder", "store builder"],
     about: "chat with Rex to build or change the shop",
+  },
+  {
+    id: "shop_edit",
+    name: "Edit my shop",
+    app: "/shop-edit",
+    web: "/studio",
+    also: ["edit my shop", "edit my store", "change my shop", "shop name", "logo", "banner", "colours", "colors", "sections", "publish"],
+    about: "change the shop's name, colours, logo, banner and sections by hand, preview and publish",
   },
   { id: "products", name: "Products", app: "/products", web: "/products" },
   { id: "add_product", name: "Add a product", app: "/add-products", web: "/products/new", also: ["new product", "take a photo"] },

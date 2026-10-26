@@ -166,6 +166,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "call.screen.where": "Ebe ị na-ere ahịa",
   "call.peggyEnded": "Peggy kwụsịrị oku ahụ",
   "call.screen.rex": "Dezie ụlọ ahịa m na Rex",
+  "call.screen.shop_edit": "Dezie ụlọ ahịa m",
 };
 
 export default ig;

@@ -199,7 +199,8 @@ test("Peggy's screens: every id, name and word belongs to one screen per role", 
 test("Peggy's screens: store design opens Shop looks, Rex opens /rex, a social post /create, the calendar /posts", () => {
   const seller = (asked) => screens.findScreen("seller", asked)?.app ?? null;
   for (const asked of ["store design", "my store design", "shop look", "Shop looks", "templates", "theme", "design", "look"]) assert.equal(seller(asked), "/templates", asked);
-  for (const asked of ["edit my shop", "Edit my shop with Rex", "Rex store builder", "rex", "store builder"]) assert.equal(seller(asked), "/rex", asked);
+  for (const asked of ["Edit my shop with Rex", "Rex store builder", "rex", "store builder"]) assert.equal(seller(asked), "/rex", asked);
+  for (const asked of ["edit my shop", "Edit my shop", "change my shop"]) assert.equal(seller(asked), "/shop-edit", asked);
   for (const asked of ["make a social post", "Make a post", "social post", "Create with Rex posts", "flyer", "create"]) assert.equal(seller(asked), "/create", asked);
   for (const asked of ["posts calendar", "Posts calendar", "posts", "calendar"]) assert.equal(seller(asked), "/posts", asked);
   assert.equal(seller("Create with Rex"), null, "the old, ambiguous name opens nothing");
@@ -235,7 +236,7 @@ test("Peggy sees what each screen is for and is told to name the screen she open
   assert.match(text, /changing or building the shop by chatting with Rex: rex \(Edit my shop with Rex\)/);
   assert.match(text, /making a social media post, flyer, status or reel: create \(Make a post\)/);
   assert.match(text, /posts already made or planned, the posts calendar: posts \(Posts calendar\)/);
-  assert.match(read("shared/peggy-screens.ts"), /TODO: if an "Edit my shop" screen lands in the phone app \(a route like \/shop-editor\)/);
+  assert.match(read("shared/peggy-screens.ts"), /app: "\/shop-edit"/);
   for (const lang of LANGS) {
     const help = read(`shared/i18n/messages/m_help/${lang}.ts`);
     assert.match(help, /"call\.screen\.rex": "/, lang);

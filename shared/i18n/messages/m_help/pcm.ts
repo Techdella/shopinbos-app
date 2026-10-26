@@ -166,6 +166,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "call.screen.where": "Where you dey sell",
   "call.peggyEnded": "Peggy don end the call",
   "call.screen.rex": "Change my shop with Rex",
+  "call.screen.shop_edit": "Change my shop",
 };
 
 export default pcm;

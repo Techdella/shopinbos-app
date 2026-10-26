@@ -168,6 +168,7 @@ const en = {
   "call.screen.where": "Where you sell",
   "call.peggyEnded": "Peggy ended the call",
   "call.screen.rex": "Edit my shop with Rex",
+  "call.screen.shop_edit": "Edit my shop",
 } satisfies Record<string, string>;
 
 export default en;

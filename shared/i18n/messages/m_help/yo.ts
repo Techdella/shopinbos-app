@@ -166,6 +166,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "call.screen.where": "Ibi tí o ń tà sí",
   "call.peggyEnded": "Peggy parí ìpè náà",
   "call.screen.rex": "Ṣàtúnṣe ṣọ́ọ̀bù mi pẹ̀lú Rex",
+  "call.screen.shop_edit": "Ṣàtúnṣe ṣọ́ọ̀bù mi",
 };
 
 export default yo;

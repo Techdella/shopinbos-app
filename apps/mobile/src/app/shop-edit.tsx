@@ -9,6 +9,7 @@ import { PhotoSourceSheet } from "@/components/PhotoSourceSheet";
 import { Screen } from "@/components/Screen";
 import { Section } from "@/components/seller/bits";
 import { PublishButton } from "@/components/seller/PublishShop";
+import { WebBadge } from "@/components/WebBadge";
 import { Field, Label, LinkButton, Notice, PillButton, T, Toggle } from "@/components/ui";
 import { uploadIdentityImage } from "@/lib/identity";
 import { pickPhotos, uploadPhoto, type PhotoSource } from "@/lib/photos";
@@ -298,7 +299,10 @@ function Editor({ initial }: { initial: EditorData }) {
 
       <View style={{ gap: 6 }}>
         <PublishButton title={t("editShop.publish")} />
-        <LinkButton title={t("editShop.preview")} onPress={() => void openWeb(`/s/${encodeURIComponent(data.store.slug)}/preview`)} />
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }}>
+          <LinkButton title={t("editShop.preview")} onPress={() => void openWeb(`/s/${encodeURIComponent(data.store.slug)}/preview`)} />
+          <WebBadge />
+        </View>
       </View>
 
       <PhotoSourceSheet visible={photoFor !== null} onClose={() => setPhotoFor(null)} title={photoFor === "logo" ? t("editShop.logoTitle") : t("editShop.bannerTitle")} onPick={(source) => photoFor && void addPhoto(photoFor, source)} />
