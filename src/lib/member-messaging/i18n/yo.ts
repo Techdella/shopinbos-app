@@ -627,6 +627,16 @@ export const tips: Record<string, TipText> = {
 };
 
 export const templates: Record<string, TemplateText> = {
+  shopinbos_verify_wallet: {
+    body: "Báwo ni {{1}}, a ti ṣètò Shopinbos Wallet fún {{2}}, yóò sì bẹ̀rẹ̀ iṣẹ́ ní kété tí a bá fìdí iṣẹ́ rẹ múlẹ̀. 🔓\n\nOhun tó kù: {{3}}. Kò ní ju ìṣẹ́jú díẹ̀ lọ.\n\nṢé o ní ìṣòro? Pe Peggy, AI support wa, lọ́fẹ̀ẹ́: ṣí dashboard rẹ kí o tẹ Call Peggy.",
+    button: "Fìdí iṣẹ́ mi múlẹ̀",
+    examples: ["Ada", "Ada Logistics", "CAC certificate, ID"],
+  },
+  shopinbos_verify_reminder: {
+    body: "Báwo ni {{1}}, a kò tíì fìdí {{2}} múlẹ̀ lórí Shopinbos, nítorí náà {{3}} kò lè rí ọ. ✅\n\nOhun tó kù: {{4}}.\n\nṢé o nílò ìrànlọ́wọ́? Peggy, AI support wa, yóò fi hàn ọ́ lórí ìpè ọ̀fẹ́: ṣí dashboard rẹ kí o tẹ Call Peggy.",
+    button: "Fìdí iṣẹ́ mi múlẹ̀",
+    examples: ["Ada", "Ada Fabrics", "sellers", "CAC certificate"],
+  },
   shopinbos_wallet_ready: {
     body: "Báwo ni {{1}}, Shopinbos Wallet rẹ ti ṣetán! 🎉\n\nNọ́mbà àkáǹtì tìrẹ ni {{2}} ní {{3}}, ní orúkọ {{4}}. Fi owó ránṣẹ́ sí i láti app báǹkì èyíkéyìí, owó náà á wọ wallet rẹ láàárín ìṣẹ́jú kan tàbí méjì.\n\nLo owó inú wallet rẹ fún AI credits àti àwọn iṣẹ́ Shopinbos mìíràn, kí o sì gbé e lọ sí báǹkì rẹ nígbàkígbà.",
     button: "Ṣí wallet mi",

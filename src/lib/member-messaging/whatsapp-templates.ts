@@ -10,7 +10,7 @@ import { localizedTemplateName, metaLanguage, templateText } from "./i18n/index.
 
 const APP = "https://app.shopinbos.com";
 
-export type MemberTemplateGroup = "referral" | "tips" | "journeys" | "wallet" | "orders";
+export type MemberTemplateGroup = "referral" | "tips" | "journeys" | "wallet" | "orders" | "verify";
 
 export type MemberTemplate = {
   name: string;
@@ -42,6 +42,32 @@ export type TemplateText = {
 };
 
 const ENGLISH_TEMPLATES: MemberTemplate[] = [
+  {
+    // The first "verify your account" nudge for a partner already given a wallet account number
+    // (src/lib/verification/reminders.server.ts).
+    name: "shopinbos_verify_wallet",
+    group: "verify",
+    purpose: "Verify your business: your wallet switches on when you do",
+    category: "UTILITY",
+    language: "en",
+    image: "call-peggy",
+    body: "Hi {{1}}, your Shopinbos Wallet for {{2}} is set up and switches on as soon as your business is verified. 🔓\n\nStill needed: {{3}}. It only takes a few minutes.\n\nStuck? Call Peggy, our AI support, for free: open your dashboard and tap Call Peggy.",
+    variables: ["first name", "business", "what's missing"],
+    examples: ["Ada", "Ada Logistics", "CAC certificate, ID"],
+    button: { text: "Verify my business", url: `${APP}/verify` },
+  },
+  {
+    name: "shopinbos_verify_reminder",
+    group: "verify",
+    purpose: "Verify your business (reminder), with Peggy's free call",
+    category: "UTILITY",
+    language: "en",
+    image: "call-peggy",
+    body: "Hi {{1}}, {{2}} isn't verified on Shopinbos yet, so {{3}} can't find you. ✅\n\nStill needed: {{4}}.\n\nNeed a hand? Peggy, our AI support, talks you through it on a free call: open your dashboard and tap Call Peggy.",
+    variables: ["first name", "business", "who's looking", "what's missing"],
+    examples: ["Ada", "Ada Fabrics", "sellers", "CAC certificate"],
+    button: { text: "Verify my business", url: `${APP}/verify` },
+  },
   {
     name: "shopinbos_wallet_ready",
     group: "wallet",

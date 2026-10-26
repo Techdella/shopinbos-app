@@ -630,6 +630,16 @@ const TIP_BODY =
   "Ndewo {{1}}, lee ndụmọdụ izu a site n'aka {{2}} 💡\n\n{{3}}\n\nPịa n'okpuru ka i nwalee ya na Shopinbos. Zaa STOP ma ọ bụrụ na ịchọghị ndụmọdụ kwa izu.";
 
 export const templates: Record<string, TemplateText> = {
+  shopinbos_verify_wallet: {
+    body: "Ndewo {{1}}, edoziela Shopinbos Wallet maka {{2}}, ọ ga-amalite ọrụ ozugbo a kwadoro azụmahịa gị. 🔓\n\nIhe fọdụrụ: {{3}}. Ọ ga-ewe naanị nkeji ole na ole.\n\nỊ rapaara? Kpọọ Peggy, AI support anyị, n'efu: mepee dashboard gị ma pịa Call Peggy.",
+    button: "Kwado azụmahịa m",
+    examples: ["Ada", "Ada Logistics", "CAC certificate, ID"],
+  },
+  shopinbos_verify_reminder: {
+    body: "Ndewo {{1}}, a kwadobeghị {{2}} na Shopinbos, ya mere {{3}} enweghị ike ịhụ gị. ✅\n\nIhe fọdụrụ: {{4}}.\n\nỊ chọrọ enyemaka? Peggy, AI support anyị, ga-egosi gị na oku n'efu: mepee dashboard gị ma pịa Call Peggy.",
+    button: "Kwado azụmahịa m",
+    examples: ["Ada", "Ada Fabrics", "sellers", "CAC certificate"],
+  },
   shopinbos_wallet_ready: {
     body: "Ndewo {{1}}, Shopinbos Wallet gị adịla njikere! 🎉\n\nNọmba akaụntụ nke gị bụ {{2}} na {{3}}, n'aha {{4}}. Zipu ego na ya site na ngwa ụlọ akụ ọ bụla, ego ahụ ga-abanye na wallet gị n'ime nkeji otu ma ọ bụ abụọ.\n\nJiri ego dị na wallet gị maka AI credits na ọrụ Shopinbos ndị ọzọ, ma wepụ ya gaa n'ụlọ akụ gị mgbe ọ bụla ịchọrọ.",
     button: "Mepee wallet m",
