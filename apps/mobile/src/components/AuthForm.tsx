@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, View } from "react-native";
+import { Modal, Pressable, ScrollView, View } from "react-native";
 import { router } from "expo-router";
 import * as AppleAuthentication from "expo-apple-authentication";
 import * as WebBrowser from "expo-web-browser";
@@ -18,6 +18,7 @@ import { HelpButton } from "@/components/Help";
 import { LanguageButton } from "@/components/LanguagePicker";
 import { useT } from "@/lib/i18n";
 import { PRIVACY_URL, TERMS_URL } from "@/lib/support";
+import { KeyboardShift } from "@/components/KeyboardShift";
 
 const legalLink = { color: colors.ink, textDecorationLine: "underline" } as const;
 
@@ -165,7 +166,7 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <KeyboardShift>
         <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 24, gap: 20 }} keyboardShouldPersistTaps="handled">
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
             <BackButton onPress={() => (router.canGoBack() ? router.back() : router.replace("/welcome"))} />
@@ -248,7 +249,7 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
             <T weight="extrabold" style={{ color: colors.ink, fontSize: 17 }}>{primary}</T>
           </PillButton>
         </View>
-      </KeyboardAvoidingView>
+      </KeyboardShift>
       <Sheet visible={others} onClose={() => setOthers(false)} title={t("other.link")}>
         {method === "phone" ? (
           <ChoiceRow icon="mail" title={t("form.useEmail")} sub={t("other.emailSub")} onPress={() => { setOthers(false); setError(null); setMethod("email"); }} />

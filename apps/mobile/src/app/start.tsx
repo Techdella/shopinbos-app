@@ -11,12 +11,13 @@ import { fetchSetup, patchSetup, type SetupOverview, type SetupPatch, type Setup
 import { stepWords } from "@/lib/setup-words";
 import { useLoad } from "@/lib/useLoad";
 import { openPath } from "@/lib/web";
-import { publishStore } from "@/lib/onboarding";
+import { ShopLiveSheet, usePublishShop } from "@/components/seller/PublishShop";
 import { useT } from "@/lib/i18n";
 import { colors, radii } from "@/theme";
 
 // Start here (web /home/start): what a new seller still has to do. Every step opens its screen in the app; sharing
-// the link and going live happen right here.
+// the link and going live happen right here (publishShop: "Your shop is live" with View shop and Share, or the
+// reason it couldn't, under the step's own button). "Edit my shop" is under the look step.
 
 /** The app screen for each step that has one (the rest: share and go live here, or the step's own link). */
 export const STEP_SCREENS: Partial<Record<SetupStep["key"], string>> = {
@@ -66,17 +67,10 @@ export default function StartHere() {
     if (result && result.action !== Share.dismissedAction) await change({ type: "shared" }, "share");
   }
 
+  const publishing = usePublishShop(() => void setup.reload());
   async function goLive() {
-    setBusy("live");
     setError(null);
-    try {
-      await publishStore();
-      await setup.reload();
-    } catch (liveError) {
-      setError(liveError instanceof Error ? liveError.message : t("start.saveFailed"));
-    } finally {
-      setBusy(null);
-    }
+    await publishing.publish();
   }
 
   // Every step opens a screen in the app (STEP_SCREENS); link steps go through openPath, which also stays in the app.
@@ -132,7 +126,8 @@ export default function StartHere() {
                 </View>
                 {open || (step.done && step.action.kind === "link") ? (
                   <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, paddingLeft: 40 }}>
-                    <PillButton title={words(step).label} size="sm" tone={open ? "ink" : "white"} busy={busy === step.key} onPress={() => run(step, data)} />
+                    <PillButton title={words(step).label} size="sm" tone={open ? "ink" : "white"} busy={busy === step.key || (step.key === "live" && publishing.busy)} onPress={() => run(step, data)} />
+                    {step.key === "look" ? <PillButton testID="start-edit-shop" title={t("editShop.open")} size="sm" tone="white" onPress={() => router.push("/shop-edit" as never)} /> : null}
                     {open && step.helper ? (
                       <Pressable accessibilityRole="button" onPress={() => ask(step)} style={{ minHeight: 38, borderRadius: radii.pill, paddingHorizontal: 14, justifyContent: "center", backgroundColor: colors.mintTint }}>
                         <T weight="bold" style={{ fontSize: 14, color: colors.forest }}>{t("start.ask", { name: step.helper.who === "rex" ? "Rex" : "Peggy" })}</T>
@@ -140,6 +135,7 @@ export default function StartHere() {
                     ) : null}
                   </View>
                 ) : null}
+                {step.key === "live" && publishing.error ? <View style={{ paddingLeft: 40 }}><Notice>{publishing.error}</Notice></View> : null}
                 {!step.done && step.key !== "store" ? (
                   <View style={{ paddingLeft: 40, alignItems: "flex-start" }}>
                     <LinkButton
@@ -159,6 +155,7 @@ export default function StartHere() {
           ) : null}
         </>
       ) : null}
+      <ShopLiveSheet shop={publishing.live} onClose={publishing.closeLive} />
     </Screen>
   );
 }

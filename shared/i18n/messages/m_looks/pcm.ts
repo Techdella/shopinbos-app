@@ -40,6 +40,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "seeMyShop": "See my shop",
   "isCurrent": "Na this one be your shop look now.",
   "askRexChange": "Ask Rex make e change am",
+  "appliedNew": "E don save. Put your shop live make customers fit see am.",
 };
 
 export default pcm;

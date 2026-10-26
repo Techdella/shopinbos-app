@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
+import { ScrollView, View } from "react-native";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
@@ -29,6 +29,7 @@ import { checkWalletAccount, fetchWallet, linkWalletBank, type WalletData } from
 import { usePeggyContinue, usePeggySaved } from "@/lib/peggy-call";
 import { partnerWizardStep } from "@/lib/peggy-call-pure";
 import { colors } from "@/theme";
+import { KeyboardShift } from "@/components/KeyboardShift";
 
 // Set-up for a new delivery company ("Delivery partner app" prototype pWelcome … pReview, "N of 6"): the company
 // (PUT market { section: "business" }), documents (the existing verification upload, the existing document types),
@@ -45,7 +46,7 @@ function Frame({ step, onBack, children, footer }: { step: number; onBack?: () =
   const t = useT("m_partner", "common");
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <KeyboardShift>
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 32, gap: 20 }}>
           {onBack ? (
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
@@ -58,7 +59,7 @@ function Frame({ step, onBack, children, footer }: { step: number; onBack?: () =
           {children}
         </ScrollView>
         <View style={{ paddingHorizontal: 20, paddingBottom: 12, paddingTop: 10, gap: 10 }}>{footer}</View>
-      </KeyboardAvoidingView>
+      </KeyboardShift>
     </SafeAreaView>
   );
 }

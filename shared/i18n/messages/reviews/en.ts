@@ -251,7 +251,7 @@ const en = {
   "shareP.nothing": "Nothing to share yet",
   "shareP.nothingBody": "Published reviews show up here once customers leave them.",
   "shareP.widget": "Reviews widget",
-  "shareP.widgetSub": "Paste this on any website (Wix, WordPress, Shopify, your blog) where the reviews should appear.",
+  "shareP.widgetSub": "Paste this on any website or blog where the reviews should appear.",
   "shareP.embed": "Embed code",
   "shareP.widgetNote": "Shows your average and up to 6 reviews (add ?limit=12 to the link for more). It updates on its own when you publish or hide reviews.",
   "shareP.preview": "Preview",

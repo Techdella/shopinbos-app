@@ -58,6 +58,18 @@ export async function sellAreaProblem(userId: string, next: { sellArea: string; 
   return `Your plan lets you sell in ${plural(limit, "state")}.${plan ? ` Upgrade to ${PLAN_NAMES[plan]} to sell in more.` : ""}`;
 }
 
+/**
+ * How many states a seller's plan sells in (null: all of Nigeria) and the plan that sells everywhere, for the phone's
+ * "Where do you sell?" step, which keeps an allowed choice instead of refusing. Suppliers aren't limited.
+ */
+export async function sellAreaLimit(userId: string): Promise<{ states: number | null; nationwidePlan: string | null }> {
+  const { role, key } = await userPlan(userId);
+  if (role !== "seller") return { states: null, nationwidePlan: null };
+  const states = sellerLimits(key).sellingStates;
+  const plan = states === null ? null : cheapestPlanWhere("seller", (next) => sellerLimits(next).sellingStates === null);
+  return { states, nationwidePlan: plan ? PLAN_NAMES[plan] : null };
+}
+
 /** Switching on pay on delivery for a connection (sellers: Growth and up). */
 export async function payOnDeliveryProblem(userId: string): Promise<string | null> {
   const { role, key } = await userPlan(userId);

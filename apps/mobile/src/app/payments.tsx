@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, View } from "react-native";
+import { Modal, Pressable, ScrollView, View } from "react-native";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { naira, PAYMENT_METHODS, type PaymentMethodKey } from "@shared/onboarding";
@@ -16,6 +16,7 @@ import { accountDigits, filterBanks } from "@/lib/settings-pure";
 import { useLoad } from "@/lib/useLoad";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
+import { KeyboardShift } from "@/components/KeyboardShift";
 
 // Payments and payouts (web /home/payments): money in over the last 30 days, the payout bank (add or change it,
 // with the account name looked up and confirmed before saving), which ways customers can pay, and the latest
@@ -319,7 +320,7 @@ function BankFlow({ visible, banks, current, onClose, onSaved }: { visible: bool
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={close}>
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+        <KeyboardShift>
           <View style={{ paddingHorizontal: 18, paddingVertical: 12, flexDirection: "row", alignItems: "center", gap: 12 }}>
             <T weight="extrabold" style={{ flex: 1, fontSize: 22, lineHeight: 28 }} accessibilityRole="header">{title}</T>
             <Pressable accessibilityRole="button" onPress={close} hitSlop={8} style={{ minHeight: 44, paddingHorizontal: 14, borderRadius: 22, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, flexDirection: "row", alignItems: "center", gap: 6 }}>
@@ -420,7 +421,7 @@ function BankFlow({ visible, banks, current, onClose, onSaved }: { visible: bool
               </>
             ) : null}
           </ScrollView>
-        </KeyboardAvoidingView>
+        </KeyboardShift>
       </SafeAreaView>
     </Modal>
   );

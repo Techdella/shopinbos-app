@@ -25,6 +25,7 @@ import {
   type ThemeTier,
 } from "@/lib/store-templates/theme-library";
 import { TIER_PLAN_LABEL } from "@/lib/theme-access";
+import { ALL_THEMES_FREE } from "@shared/plans";
 import { formatThemePrice } from "@shared/theme-purchase";
 import { TIER_BADGE, ThemePreviewDialog, ThemeThumbnail, UPGRADE_HREF } from "./theme-preview/ThemePreview";
 import type { PreviewOwnStore } from "./theme-preview/preview-store";
@@ -290,6 +291,8 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
         })}
       </div>
 
+      {/* Plan tiers: hidden while every theme is free for launch (shared/plans.ts ALL_THEMES_FREE). */}
+      {ALL_THEMES_FREE ? null : (
       <div className="-mt-2 mb-5 flex flex-wrap items-center gap-2" role="group" aria-label={t("tl.tierFilter")}>
         {(["all", ...THEME_TIERS] as const).map((tier) => {
           const active = tierFilter === tier;
@@ -310,6 +313,7 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
           );
         })}
       </div>
+      )}
 
       <div className="mb-5 grid gap-3 empty:hidden">
         {bought ? (
@@ -418,10 +422,12 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
                     className="absolute inset-0 z-[1] block h-full w-full cursor-pointer rounded-[22px] border-0 bg-transparent p-0 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-[-3px] focus-visible:outline-app-ink"
                   />
                   <span className="pointer-events-none absolute left-3 top-3 z-[2] flex flex-wrap gap-1.5">
-                    <span className={cx("inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold shadow-sm", TIER_BADGE[theme.tier])}>
-                      {needs ? <Icon name="lock" size={11} /> : null}
-                      {t(`tl.tier.${theme.tier}`)}
-                    </span>
+                    {ALL_THEMES_FREE ? null : (
+                      <span className={cx("inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold shadow-sm", TIER_BADGE[theme.tier])}>
+                        {needs ? <Icon name="lock" size={11} /> : null}
+                        {t(`tl.tier.${theme.tier}`)}
+                      </span>
+                    )}
                     {theme.isNew ? <span className="rounded-full bg-app-accent px-2.5 py-1 text-[11px] font-bold text-white shadow-sm">{t("tl.new")}</span> : null}
                     {isCurrent ? <span className="rounded-full bg-app-ink px-2.5 py-1 text-[11px] font-bold text-white shadow-sm">{t("tl.current")}</span> : null}
                     {isOwned ? <span className="inline-flex items-center gap-1 rounded-full bg-app-success-tint px-2.5 py-1 text-[11px] font-bold text-app-ink shadow-sm"><Icon name="check" size={11} />{t("tl.owned")}</span> : null}

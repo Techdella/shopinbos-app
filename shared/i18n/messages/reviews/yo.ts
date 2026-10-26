@@ -242,7 +242,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "shareP.nothing": "Kò sí nǹkan láti pín síbẹ̀",
   "shareP.nothingBody": "Reviews tí a ti gbé jáde á hàn níbí nígbà tí àwọn oníbàárà bá kọ wọ́n.",
   "shareP.widget": "Reviews widget",
-  "shareP.widgetSub": "Lẹ èyí sórí website èyíkéyìí (Wix, WordPress, Shopify, blog rẹ) níbi tí o fẹ́ kí reviews hàn.",
+  "shareP.widgetSub": "Lẹ èyí sórí website tàbí blog èyíkéyìí níbi tí o fẹ́ kí reviews hàn.",
   "shareP.embed": "Embed code",
   "shareP.widgetNote": "Ó ń fi ààbọ̀ rẹ àti títí dé reviews 6 hàn (fi ?limit=12 kún link fún púpọ̀ sí i). Ó máa ń ṣe àtúnṣe fúnra rẹ̀ nígbà tí o bá gbé reviews jáde tàbí fi wọ́n pamọ́.",
   "shareP.preview": "Wò ó",

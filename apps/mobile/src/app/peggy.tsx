@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from "react-native";
+import { Pressable, ScrollView, TextInput, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppIcon } from "@/components/icons";
@@ -11,6 +11,7 @@ import { HelpButton } from "@/components/Help";
 import { CallPeggyButton } from "@/components/CallPeggyButton";
 import { VoiceInput } from "@/components/VoiceInput";
 import { useT } from "@/lib/i18n";
+import { KeyboardShift, useScrollToEndOnKeyboard } from "@/components/KeyboardShift";
 
 // m_chats keys
 const SUGGESTIONS = ["peggy.suggest.1", "peggy.suggest.2", "peggy.suggest.3", "peggy.suggest.4", "peggy.suggest.5", "peggy.suggest.6"] as const;
@@ -40,6 +41,7 @@ export default function Peggy() {
   // Start here and other screens open Peggy with a question ready (?prompt=…); it's asked once.
   const { prompt } = useLocalSearchParams<{ prompt?: string }>();
   const asked = useRef(false);
+  useScrollToEndOnKeyboard(scroll);
 
   async function ask(text = draft) {
     const message = text.trim();
@@ -73,7 +75,7 @@ export default function Peggy() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <KeyboardShift>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 10 }}>
           <BackButton onPress={() => (router.canGoBack() ? router.back() : router.replace("/home"))} />
           <Mascot name="peggy" size={40} />
@@ -142,7 +144,7 @@ export default function Peggy() {
             <AppIcon name="chevron" size={22} color="#FFFFFF" strokeWidth={2.4} />
           </Pressable>
         </View>
-      </KeyboardAvoidingView>
+      </KeyboardShift>
     </SafeAreaView>
   );
 }

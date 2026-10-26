@@ -59,6 +59,14 @@ const en = {
   "card.publish": "Publish",
   "card.published": "Published. Customers see the new look now.",
   "card.publishFailed": "We couldn't publish just now. Try again.",
+  "photos.add": "Add photos",
+  "photos.attached": "Attached photo",
+  "photos.remove": "Remove photo",
+  "photos.placeholder": "What should Rex do with them?",
+  "photos.useThese": "Use these photos in my shop.",
+  "photos.uploadFailed": "That photo didn't upload. Try another one.",
+  "photos.allowCamera": "Allow the camera in your phone's settings to take a photo.",
+  "photos.allowGallery": "Allow photos in your phone's settings to choose them.",
 } satisfies Record<string, string>;
 
 export default en;

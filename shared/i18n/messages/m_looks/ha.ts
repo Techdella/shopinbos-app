@@ -40,6 +40,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "seeMyShop": "Duba shagona",
   "isCurrent": "Wannan ne kamannin shagonka yanzu.",
   "askRexChange": "Ka ce Rex ya canza shi",
+  "appliedNew": "An ajiye. Buɗe shagonka don masu siyayya su gani.",
 };
 
 export default ha;

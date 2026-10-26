@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
+import { ScrollView, View } from "react-native";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { DEFAULT_DIAL_COUNTRY, formatE164, toE164 } from "@shared/phone";
@@ -13,6 +13,7 @@ import { checkRiderSignInCode, saveRiderToken, sendRiderSignInCode, type RiderCo
 import { useT } from "@/lib/i18n";
 import { useRiderStrings } from "@/lib/rider-strings";
 import { colors, fonts } from "@/theme";
+import { KeyboardShift } from "@/components/KeyboardShift";
 
 // "I'm a rider" (E2E-Start): the rider's phone number → a 6-digit code on WhatsApp → their Riders app, through
 // POST /api/mobile/rider-sign-in (only numbers a delivery partner added as a rider). The key it returns is kept like
@@ -127,7 +128,7 @@ export default function RiderSignIn() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <KeyboardShift>
         <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 24, gap: 20 }} keyboardShouldPersistTaps="handled">
           {top}
           <View style={{ gap: 12 }}>
@@ -159,7 +160,7 @@ export default function RiderSignIn() {
             <T weight="extrabold" style={{ color: colors.ink, fontSize: 17 }}>{t("form.sendCode")}</T>
           </PillButton>
         </View>
-      </KeyboardAvoidingView>
+      </KeyboardShift>
     </SafeAreaView>
   );
 }

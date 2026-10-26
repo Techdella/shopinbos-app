@@ -11,11 +11,11 @@ import { AppIcon } from "@/components/icons";
 import { EmptyState, ErrorState, LoadingBlock } from "@/components/kit";
 import { Screen, ScreenHeader } from "@/components/Screen";
 import { Chip, Field, LinkButton, Mascot, Notice, PillButton, T } from "@/components/ui";
-import { publishStore } from "@/lib/onboarding";
+import { ShopLiveSheet, usePublishShop } from "@/components/seller/PublishShop";
 import { applyLook, fetchLookLibrary, lookDemoUrl, lookFilterCount, NO_LOOK_FILTERS, recommendLook, shownLooks, type LookFilters, type LookTone, type ShopLook } from "@/lib/templates";
 import { useLoad } from "@/lib/useLoad";
 import { openWeb } from "@/lib/web";
-import { themeTierPlanName } from "@shared/plans";
+import { ALL_THEMES_FREE, themeTierPlanName } from "@shared/plans";
 import { useT } from "@/lib/i18n";
 import { colors, fonts } from "@/theme";
 
@@ -104,7 +104,8 @@ type Applied = { id: string; slug: string; draftOnly: boolean; live: boolean };
 function LookPreview({ look, rexReason, applied, onClose, onApplied }: { look: ShopLook; rexReason: string | null; applied: Applied | null; onClose: () => void; onApplied: (result: Applied) => void }) {
   const t = useT("m_looks");
   const tb = useT("builder");
-  const [busy, setBusy] = useState<"use" | "publish" | null>(null);
+  const tm = useT("m_shop");
+  const [busy, setBusy] = useState<"use" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const done = applied?.id === look.id ? applied : null;
   const blurb = tb.dynamic(`theme.${look.id}.blurb`, look.blurb).replace(/[.\s]+$/, "");
@@ -114,7 +115,9 @@ function LookPreview({ look, rexReason, applied, onClose, onApplied }: { look: S
     setError(null);
     try {
       const result = await applyLook(look.id);
-      onApplied({ id: look.id, slug: result.storeSlug, draftOnly: result.draftOnly, live: !result.draftOnly });
+      // A switched look only changes the draft: it's live once the seller publishes ("Put it live"), whether or not
+      // the shop was live before (draftOnly only says shoppers still see the old look meanwhile).
+      onApplied({ id: look.id, slug: result.storeSlug, draftOnly: result.draftOnly, live: false });
     } catch (applyError) {
       setError(applyError instanceof Error ? applyError.message : t("applyFailed"));
     } finally {
@@ -122,36 +125,37 @@ function LookPreview({ look, rexReason, applied, onClose, onApplied }: { look: S
     }
   }
 
-  async function putLive() {
-    if (!done) return;
-    setBusy("publish");
-    setError(null);
-    try {
-      await publishStore();
-      onApplied({ ...done, live: true });
-    } catch (publishError) {
-      setError(publishError instanceof Error ? publishError.message : t("publishFailed"));
-    } finally {
-      setBusy(null);
-    }
-  }
+  const publishing = usePublishShop(() => done && onApplied({ ...done, live: true }));
 
   const askRex = () => {
     onClose();
     router.push({ pathname: "/rex", params: { prompt: t("rexChangePrompt", { name: look.name }) } });
   };
 
+  const editShop = () => {
+    onClose();
+    router.push("/shop-edit" as never);
+  };
+
   let action;
   if (done) {
     action = (
       <>
-        <Notice tone="success">{done.live ? t("applied") : t("appliedDraft")}</Notice>
-        {!done.live ? <PillButton testID="look-publish" tone="accent" title={t("putLive")} busy={busy === "publish"} onPress={() => void putLive()} /> : null}
+        <Notice tone="success">{done.live ? t("applied") : done.draftOnly ? t("appliedDraft") : t("appliedNew")}</Notice>
+        {!done.live ? <PillButton testID="look-publish" tone="accent" title={t("putLive")} busy={publishing.busy} onPress={() => void publishing.publish()} /> : null}
+        {publishing.error ? <Notice>{publishing.error}</Notice> : null}
+        <PillButton testID="look-edit" tone="white" size="md" title={tm("editShop.open")} onPress={editShop} />
         {done.slug ? <LinkButton title={t("seeMyShop")} onPress={() => void openWeb(`/s/${encodeURIComponent(done.slug)}/preview`)} /> : null}
+        <ShopLiveSheet shop={publishing.live} onClose={publishing.closeLive} />
       </>
     );
   } else if (look.current) {
-    action = <Notice tone="info">{t("isCurrent")}</Notice>;
+    action = (
+      <>
+        <Notice tone="info">{t("isCurrent")}</Notice>
+        <PillButton testID="look-edit" tone="accent" title={tm("editShop.open")} onPress={editShop} />
+      </>
+    );
   } else if (look.lockedPlan) {
     action = (
       <>
@@ -262,19 +266,22 @@ export default function ShopLooks() {
 
       <FilterSheet visible={sheet} onClose={() => setSheet(false)} title={t("filters")} doneLabel={t("showCount", { count: looks.length })} clearLabel={t("clear")} onClear={clear}>
         <Field value={filters.q} onChangeText={(q) => set({ q })} placeholder={t("search")} accessibilityLabel={t("search")} returnKeyType="search" autoCorrect={false} style={{ height: 48 }} />
-        <FilterGroup label={t("plan")}>
-          <Chip label={t("any")} on={filters.tier === "all"} onPress={() => set({ tier: "all" })} />
-          {(withCurrent?.tiers ?? []).map((tier) => (
-            <Chip key={tier} label={themeTierPlanName(tier)} on={filters.tier === tier} onPress={() => set({ tier: filters.tier === tier ? "all" : tier })} />
-          ))}
-        </FilterGroup>
+        {/* Plan filters only matter when themes have plans: not while every theme is free for launch. */}
+        {ALL_THEMES_FREE ? null : (
+          <FilterGroup label={t("plan")}>
+            <Chip label={t("any")} on={filters.tier === "all"} onPress={() => set({ tier: "all" })} />
+            {(withCurrent?.tiers ?? []).map((tier) => (
+              <Chip key={tier} label={themeTierPlanName(tier)} on={filters.tier === tier} onPress={() => set({ tier: filters.tier === tier ? "all" : tier })} />
+            ))}
+          </FilterGroup>
+        )}
         <FilterGroup label={t("colours")}>
           {(["all", "light", "dark"] as LookTone[]).map((tone) => (
             <Chip key={tone} label={t(`tone.${tone}`)} on={filters.tone === tone} onPress={() => set({ tone })} />
           ))}
         </FilterGroup>
         <FilterGroup label={t("show")}>
-          <Chip label={t("usable")} on={filters.usable} onPress={() => set({ usable: !filters.usable })} />
+          {ALL_THEMES_FREE ? null : <Chip label={t("usable")} on={filters.usable} onPress={() => set({ usable: !filters.usable })} />}
           <Chip label={t("newOnes")} on={filters.isNew} onPress={() => set({ isNew: !filters.isNew })} />
         </FilterGroup>
       </FilterSheet>

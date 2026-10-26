@@ -60,6 +60,14 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "card.publish": "Bipụta ya",
   "card.published": "Ebipụtala ya. Ndị ahịa na-ahụ ọdịdị ọhụrụ ugbu a.",
   "card.publishFailed": "Anyị enweghị ike ibipụta ya ugbu a. Nwaa ọzọ.",
+  "photos.add": "Tinye foto",
+  "photos.attached": "Foto etinyere",
+  "photos.remove": "Wepụ foto",
+  "photos.placeholder": "Gịnị ka Rex ga-eji ha mee?",
+  "photos.useThese": "Jiri foto ndị a n'ụlọ ahịa m.",
+  "photos.uploadFailed": "Foto ahụ ebugoghị. Nwaa nke ọzọ.",
+  "photos.allowCamera": "Kwe ka igwefoto rụọ ọrụ na ntọala ekwentị gị iji see foto.",
+  "photos.allowGallery": "Kwe ka foto rụọ ọrụ na ntọala ekwentị gị iji họrọ ha.",
 };
 
 export default ig;

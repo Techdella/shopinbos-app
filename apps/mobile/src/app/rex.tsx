@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Pressable, View } from "react-native";
+import { ActivityIndicator, Pressable, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { Image } from "expo-image";
 import { AppIcon } from "@/components/icons";
@@ -7,9 +7,11 @@ import { Bubble, ChatScreen, Composer } from "@/components/ChatScreen";
 import { ShareSheet } from "@/components/familiar/ShareSheet";
 import { Chip, Mascot, Notice, T } from "@/components/ui";
 import { emailTopUp, fetchCredits } from "@/lib/familiar";
-import { askRex, cardNote, REX_STARTERS, type RexCard } from "@/lib/rex";
+import { askRex, cardNote, REX_MAX_PHOTOS, REX_STARTERS, type RexCard } from "@/lib/rex";
+import { pickPhotos, uploadPhoto, type PhotoSource, type PickedPhoto } from "@/lib/photos";
+import { PhotoSourceSheet } from "@/components/PhotoSourceSheet";
 import { startVideoFromRex } from "@/lib/video";
-import { publishStore } from "@/lib/onboarding";
+import { ShopLiveSheet, usePublishShop } from "@/components/seller/PublishShop";
 import { fetchSetup } from "@/lib/setup";
 import { openShop } from "@/lib/share";
 import { openPath } from "@/lib/web";
@@ -21,6 +23,8 @@ import { colors, radii } from "@/theme";
 // of what Rex can do. Rex changes the draft store, makes pictures, logos, descriptions and campaigns. Cards show
 // what he made; a reel opens the phone's video studio as a draft with his words; his pictures share from the phone's share sheet; "Use it" and tapping a logo ask Rex
 // to apply it; a changed draft is published here and the shop opens in the phone's browser. Nothing opens the web app.
+// Photos from the camera or the gallery go with a message (uploaded first, POST /api/upload, then { imageUrls } as
+// Rex Studio sends them), so the seller can say "use this as my banner" and Rex changes the draft with it.
 
 interface Turn {
   from: "me" | "rex";
@@ -28,6 +32,8 @@ interface Turn {
   cards?: RexCard[];
   /** Errors are shown but not sent back to Rex as part of the conversation. */
   failed?: boolean;
+  /** Photos the seller attached to this message. */
+  photos?: string[];
 }
 
 const MAX_TURNS = 20;
@@ -59,19 +65,20 @@ async function seeShop() {
 
 /** Under "Changed your draft": Publish (POST /api/store/editor/publish, as onboarding does) and See my shop. */
 function StoreActions() {
-  const t = useT("m_rex", "common");
-  const [state, setState] = useState<"idle" | "busy" | "done" | "failed">("idle");
-  async function publish() {
-    setState("busy");
-    setState(await publishStore().then(() => "done" as const, () => "failed" as const));
-  }
+  const t = useT("m_rex", "common", "m_shop");
+  const [done, setDone] = useState(false);
+  const publishing = usePublishShop(() => setDone(true));
   return (
     <View style={{ gap: 8 }}>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-        {state === "done" ? null : <CardAction label={t("card.publish")} busy={state === "busy"} onPress={() => void publish()} />}
+        {done ? null : <CardAction label={t("card.publish")} busy={publishing.busy} onPress={() => void publishing.publish()} />}
+        <CardAction label={t("editShop.open")} onPress={() => router.push("/shop-edit" as never)} />
         <CardAction label={t("card.seeShop")} onPress={() => void seeShop()} />
       </View>
-      {state === "done" ? <T style={{ fontSize: 14, color: colors.forest }}>{t("card.published")}</T> : state === "failed" ? <T style={{ fontSize: 14, color: colors.inkSoft }}>{t("card.publishFailed")}</T> : null}
+      {done ? <T style={{ fontSize: 14, color: colors.forest }}>{t("card.published")}</T> : null}
+      {/* The server's own reason (e.g. the homepage has nothing on it), not a vague "try again". */}
+      {publishing.error ? <T style={{ fontSize: 14, color: colors.danger }}>{publishing.error}</T> : null}
+      <ShopLiveSheet shop={publishing.live} onClose={publishing.closeLive} />
     </View>
   );
 }
@@ -222,12 +229,39 @@ export default function Rex() {
   const [sharing, setSharing] = useState<string | null>(null);
   const { prompt } = useLocalSearchParams<{ prompt?: string }>();
   const asked = useRef(false);
+  // Photos for the next message (camera or gallery), uploaded as soon as they're picked.
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [photoSheet, setPhotoSheet] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+
+  async function addPhotos(source: PhotoSource) {
+    setPhotoError(null);
+    const room = REX_MAX_PHOTOS - photos.length;
+    if (room <= 0) return;
+    const picked = await pickPhotos(source, room).catch(() => [] as PickedPhoto[]);
+    if (picked === "denied") return setPhotoError(source === "camera" ? t("photos.allowCamera") : t("photos.allowGallery"));
+    if (!picked.length) return;
+    setUploading(true);
+    try {
+      const urls: string[] = [];
+      for (const photo of picked) urls.push(await uploadPhoto(photo, "store-banners"));
+      setPhotos((current) => [...current, ...urls].slice(0, REX_MAX_PHOTOS));
+    } catch (uploadError) {
+      setPhotoError(uploadError instanceof Error ? uploadError.message : t("photos.uploadFailed"));
+    } finally {
+      setUploading(false);
+    }
+  }
 
   async function ask(text = draft) {
-    const message = text.trim();
-    if (!message || thinking) return;
+    const attached = photos;
+    // Photos alone are a message too: Rex is asked to use them.
+    const message = text.trim() || (attached.length ? t("photos.useThese") : "");
+    if (!message || thinking || uploading) return;
     setDraft("");
-    const next: Turn[] = [...turns, { from: "me", text: message }];
+    setPhotos([]);
+    const next: Turn[] = [...turns, { from: "me", text: message, photos: attached }];
     setTurns(next);
     setThinking(true);
     try {
@@ -239,7 +273,7 @@ export default function Rex() {
           role: turn.from === "me" ? ("user" as const) : ("assistant" as const),
           content: [turn.text, ...(turn.cards ?? []).map(cardNote)].filter(Boolean).join("\n").slice(0, 4000),
         }));
-      const reply = await askRex(messages);
+      const reply = await askRex(messages, attached);
       setTurns((current) => [...current, { from: "rex", text: reply.text, cards: reply.cards ?? [] }]);
     } catch (askError) {
       setTurns((current) => [...current, { from: "rex", failed: true, text: askError instanceof Error ? askError.message : t("failed") }]);
@@ -271,8 +305,49 @@ export default function Rex() {
         </>
       }
       scrollKey={turns.length + (thinking ? 1 : 0)}
-      composer={<Composer value={draft} onChange={setDraft} onSend={() => void ask()} busy={thinking} placeholder={t("placeholder")} />}
+      composer={
+        <Composer
+          value={draft}
+          onChange={setDraft}
+          onSend={() => void ask()}
+          busy={thinking || uploading}
+          ready={photos.length > 0}
+          placeholder={photos.length ? t("photos.placeholder") : t("placeholder")}
+          attach={
+            <Pressable
+              testID="rex-attach"
+              accessibilityRole="button"
+              accessibilityLabel={t("photos.add")}
+              disabled={uploading || photos.length >= REX_MAX_PHOTOS}
+              onPress={() => setPhotoSheet(true)}
+              style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: colors.surface, alignItems: "center", justifyContent: "center", opacity: uploading || photos.length >= REX_MAX_PHOTOS ? 0.5 : 1 }}
+            >
+              {uploading ? <ActivityIndicator color={colors.ink} /> : <AppIcon name="camera" size={21} />}
+            </Pressable>
+          }
+          above={
+            photos.length || photoError ? (
+              <View style={{ gap: 6 }}>
+                {photos.length ? (
+                  <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                    {photos.map((url) => (
+                      <View key={url}>
+                        <Image source={{ uri: url }} style={{ width: 56, height: 56, borderRadius: 12, backgroundColor: colors.lilac }} contentFit="cover" accessibilityLabel={t("photos.attached")} />
+                        <Pressable accessibilityRole="button" accessibilityLabel={t("photos.remove")} hitSlop={8} onPress={() => setPhotos((current) => current.filter((entry) => entry !== url))} style={{ position: "absolute", top: -6, right: -6, width: 22, height: 22, borderRadius: 11, backgroundColor: colors.ink, alignItems: "center", justifyContent: "center" }}>
+                          <AppIcon name="x" size={12} color="#FFFFFF" strokeWidth={2.6} />
+                        </Pressable>
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
+                {photoError ? <T style={{ fontSize: 14, color: colors.danger }}>{photoError}</T> : null}
+              </View>
+            ) : null
+          }
+        />
+      }
     >
+      <PhotoSourceSheet visible={photoSheet} onClose={() => setPhotoSheet(false)} onPick={(source) => void addPhotos(source)} />
       <CreditsLine />
       {!turns.length ? (
         <>
@@ -295,7 +370,14 @@ export default function Rex() {
       ) : null}
       {turns.map((turn, index) =>
         turn.from === "me" ? (
-          <Bubble key={index} mine>{turn.text}</Bubble>
+          <View key={index} style={{ gap: 6, alignItems: "flex-end" }}>
+            {turn.photos?.length ? (
+              <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "flex-end", gap: 6, maxWidth: "86%" }}>
+                {turn.photos.map((url) => <Image key={url} source={{ uri: url }} style={{ width: 72, height: 72, borderRadius: 14, backgroundColor: colors.lilac }} contentFit="cover" accessibilityLabel={t("photos.attached")} />)}
+              </View>
+            ) : null}
+            <Bubble mine>{turn.text}</Bubble>
+          </View>
         ) : (
           <View key={index} style={{ gap: 8, marginRight: 24 }}>
             {turn.text ? <Bubble mine={false}><T style={{ fontSize: 15, lineHeight: 21, color: turn.failed ? colors.inkSoft : colors.ink }}>{turn.text}</T></Bubble> : null}

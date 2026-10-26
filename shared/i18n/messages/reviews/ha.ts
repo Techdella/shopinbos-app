@@ -242,7 +242,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "shareP.nothing": "Babu abin rabawa tukuna",
   "shareP.nothingBody": "Reviews da aka wallafa za su bayyana a nan idan abokan ciniki sun rubuta su.",
   "shareP.widget": "Reviews widget",
-  "shareP.widgetSub": "Liƙa wannan a kowane website (Wix, WordPress, Shopify, blog ɗinka) inda reviews za su bayyana.",
+  "shareP.widgetSub": "Liƙa wannan a kowane website ko blog inda reviews za su bayyana.",
   "shareP.embed": "Embed code",
   "shareP.widgetNote": "Yana nuna matsakaicinka da har zuwa reviews 6 (ƙara ?limit=12 a link don ƙari). Yana sabuntawa da kansa idan ka wallafa ko ka ɓoye reviews.",
   "shareP.preview": "Duba",

@@ -40,6 +40,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "seeMyShop": "Wo ṣọ́ọ̀bù mi",
   "isCurrent": "Èyí ni ìrísí ṣọ́ọ̀bù rẹ báyìí.",
   "askRexChange": "Ní kí Rex yí i padà",
+  "appliedNew": "A ti fi pamọ́. Fi ṣọ́ọ̀bù rẹ sórí ayélujára kí àwọn oníbàárà lè rí i.",
 };
 
 export default yo;

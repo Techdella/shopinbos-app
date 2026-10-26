@@ -159,7 +159,7 @@ test("seller screens no longer open the web app", () => {
   const start = app("app/start.tsx");
   assert.match(start, /domain: "\/domain"/);
   assert.match(start, /look: "\/templates"/);
-  assert.match(start, /publishStore\(\)/);
+  assert.match(start, /publishing\.publish\(\)/, "Go live publishes here (components/seller/PublishShop.tsx)");
   // The chatbot's questions and answers are edited here; legal pages are added here.
   assert.match(app("app/inbox/chatbot.tsx"), /<PairsEditor/);
   assert.match(app("app/legal.tsx"), /api<\{ key: string \}>\("\/api\/app\/legal", \{ method: "POST"/);
