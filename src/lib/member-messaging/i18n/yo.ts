@@ -627,6 +627,16 @@ export const tips: Record<string, TipText> = {
 };
 
 export const templates: Record<string, TemplateText> = {
+  shopinbos_wallet_ready: {
+    body: "Báwo ni {{1}}, Shopinbos Wallet rẹ ti ṣetán! 🎉\n\nNọ́mbà àkáǹtì tìrẹ ni {{2}} ní {{3}}, ní orúkọ {{4}}. Fi owó ránṣẹ́ sí i láti app báǹkì èyíkéyìí, owó náà á wọ wallet rẹ láàárín ìṣẹ́jú kan tàbí méjì.\n\nLo owó inú wallet rẹ fún AI credits àti àwọn iṣẹ́ Shopinbos mìíràn, kí o sì gbé e lọ sí báǹkì rẹ nígbàkígbà.",
+    button: "Ṣí wallet mi",
+    examples: ["Ada", "9912345678", "Wema Bank", "SHOPINBOS/ADA FABRICS"],
+  },
+  shopinbos_order_summary: {
+    body: "Báwo ni {{1}}, a dúpẹ́ fún order rẹ láti {{2}}! 🛍️\n\nOrder {{3}}: {{4}}\nÀpapọ̀: {{5}}\n\nBí o ṣe máa sanwó: {{6}} Tẹ ìsàlẹ̀ láti wo order rẹ.",
+    button: "Wo order mi",
+    examples: ["Ada", "Rexi", "SB-MVP80C9V-8D1B09", "1 × Ankara tote, 2 × Silk scarf", "₦7,100", "O lè sanwó pẹ̀lú káàdì, bank transfer tàbí USSD."],
+  },
   shopinbos_refer_supplier: {
     body: "Báwo ni {{1}}, ṣé o mọ supplier kan tó yẹ kí ó máa ta ọjà fún ṣọ́ọ̀bù púpọ̀ sí i? 🤝\n\nPè wọ́n sí Shopinbos pẹ̀lú link rẹ. Tí wọ́n bá gba verification tí wọ́n sì list ọjà 5, wàá gba {{2}}. Àwọn á gba oṣù kan ọ̀fẹ́ ti Supplier Plus àti featured week kan ní marketplace.\n\nTẹ ìsàlẹ̀ láti gba link rẹ kí o pín in lórí WhatsApp.",
     button: "Pe supplier kan",

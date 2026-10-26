@@ -205,6 +205,13 @@ export function normalizeCheckoutMethod(value: string | undefined | null): Check
   return "paystack";
 }
 
+/** How to pay, for the buyer (their order email and messages): what they can do, never what "they" are doing. */
+export function buyerPaymentText(method: CheckoutPaymentMethod) {
+  if (method === "transfer") return "Pay by bank transfer to the account shown at checkout, with your order number as the reference. The store confirms your order once the money arrives.";
+  if (method === "pay_on_delivery") return "You'll pay when it's delivered, in cash or by transfer to the rider.";
+  return "You can pay by card, bank transfer or USSD. If you didn't finish paying, open your order to pay.";
+}
+
 /** How the buyer chose to pay, for seller notifications. */
 export function paymentChoiceText(method: CheckoutPaymentMethod) {
   if (method === "transfer") return "They'll pay by bank transfer; check your account, then mark the order as paid.";

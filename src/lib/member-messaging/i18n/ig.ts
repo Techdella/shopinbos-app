@@ -630,6 +630,16 @@ const TIP_BODY =
   "Ndewo {{1}}, lee ndụmọdụ izu a site n'aka {{2}} 💡\n\n{{3}}\n\nPịa n'okpuru ka i nwalee ya na Shopinbos. Zaa STOP ma ọ bụrụ na ịchọghị ndụmọdụ kwa izu.";
 
 export const templates: Record<string, TemplateText> = {
+  shopinbos_wallet_ready: {
+    body: "Ndewo {{1}}, Shopinbos Wallet gị adịla njikere! 🎉\n\nNọmba akaụntụ nke gị bụ {{2}} na {{3}}, n'aha {{4}}. Zipu ego na ya site na ngwa ụlọ akụ ọ bụla, ego ahụ ga-abanye na wallet gị n'ime nkeji otu ma ọ bụ abụọ.\n\nJiri ego dị na wallet gị maka AI credits na ọrụ Shopinbos ndị ọzọ, ma wepụ ya gaa n'ụlọ akụ gị mgbe ọ bụla ịchọrọ.",
+    button: "Mepee wallet m",
+    examples: ["Ada", "9912345678", "Wema Bank", "SHOPINBOS/ADA FABRICS"],
+  },
+  shopinbos_order_summary: {
+    body: "Ndewo {{1}}, daalụ maka order gị site na {{2}}! 🛍️\n\nOrder {{3}}: {{4}}\nNchikota: {{5}}\n\nOtu esi akwụ ụgwọ: {{6}} Pịa n'okpuru ka ịhụ order gị.",
+    button: "Hụ order m",
+    examples: ["Ada", "Rexi", "SB-MVP80C9V-8D1B09", "1 × Ankara tote, 2 × Silk scarf", "₦7,100", "Ị nwere ike iji kaadị, bank transfer ma ọ bụ USSD kwụọ ụgwọ."],
+  },
   shopinbos_refer_supplier: {
     body: "Ndewo {{1}}, ị maara supplier kwesịrị ịna-erere ọtụtụ ụlọ ahịa? 🤝\n\nKpọọ ha bata Shopinbos site na link gị. Mgbe ha nwetara verification ma tinye ngwaahịa 5, ị ga-enweta {{2}}. Ha ga-enweta otu ọnwa Supplier Plus n'efu na featured week na marketplace.\n\nPịa n'okpuru ka i nweta link gị ma kesaa ya na WhatsApp.",
     button: "Kpọọ supplier",

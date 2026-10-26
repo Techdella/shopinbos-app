@@ -11,6 +11,7 @@ import { readDedicatedAccount } from "@/lib/logistics/payin-rules";
 import { dvaBank, dvaUnavailableMessage } from "@/lib/logistics/paystack-dva";
 import { appBase, sendPlatformEmail } from "@/lib/email/compliance.server";
 import { html } from "@/lib/email/shell";
+import { sendShopinbosTemplate } from "@/lib/member-messaging/send.server";
 import { ensurePaystackModeSynced } from "@/lib/paystack-mode.server";
 import { BALANCE_LIMITS, WALLET_REFERENCE, paystackPhone, validAmountNaira } from "./balance-rules";
 
@@ -192,11 +193,21 @@ function walletPath(role: string) {
 async function sendWalletReadyEmail(walletId: string) {
   const wallet = await db.wallet.findUnique({
     where: { id: walletId },
-    select: { role: true, topUpAccountNumber: true, topUpAccountName: true, topUpBankName: true, user: { select: { id: true, email: true, name: true, role: true } } },
+    select: {
+      role: true,
+      topUpAccountNumber: true,
+      topUpAccountName: true,
+      topUpBankName: true,
+      user: { select: { id: true, email: true, name: true, role: true, phone: true, supplier: { select: { whatsappNumber: true } }, logisticsPartner: { select: { contactPhone: true, whatsappNumber: true } } } },
+    },
   });
   const user = wallet?.user;
-  if (!wallet?.topUpAccountNumber || !user?.email || user.role === "admin") return;
+  if (!wallet?.topUpAccountNumber || !user || user.role === "admin") return;
   const first = (user.name ?? "").trim().split(/\s+/)[0];
+  // WhatsApp too (Shopinbos's number, approved template), to the number they gave us.
+  const phone = paystackPhone(user.phone ?? user.supplier?.whatsappNumber ?? user.logisticsPartner?.whatsappNumber ?? user.logisticsPartner?.contactPhone);
+  await sendShopinbosTemplate("shopinbos_wallet_ready", phone, [first || "there", wallet.topUpAccountNumber, wallet.topUpBankName ?? "your bank", wallet.topUpAccountName ?? "your business"]).catch(() => false);
+  if (!user.email) return;
   await sendPlatformEmail({
     to: user.email,
     user: { id: user.id, role: user.role },

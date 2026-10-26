@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { sendOrderSummaryWhatsApp } from "@/lib/notifications/order-summary-whatsapp.server";
 import { db } from "@/lib/db/client";
 import { withCors, handleOptions } from "@/lib/api/cors";
 import { created, apiError } from "@/lib/api/response";
@@ -19,6 +20,7 @@ import {
   checkoutPaymentOptions,
   checkoutPaymentSettings,
   normalizeCheckoutMethod,
+  buyerPaymentText,
   paymentChoiceText,
   partnerPayOnDeliveryBlock,
   payOnDeliveryBlock,
@@ -379,7 +381,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       items: orderItems.map((item) => ({ name: item.name, qty: item.quantity, price: money(item.price * item.quantity) })),
       total: money(total),
       orderUrl: buildStorefrontUrl({ slug: store.slug, customDomain: store.customDomain }, `/order/${order.id}`),
-      paymentNote: paymentChoiceText(paymentMethod),
+      paymentNote: buyerPaymentText(paymentMethod),
+      // Pay on delivery is confirmed now; anything paid online is a summary until the money arrives.
+      paid: paymentMethod === "pay_on_delivery",
     }),
     sendSellerNotification(store.user.email, {
       title: `New order ${order.orderNumber}`,
@@ -392,6 +396,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     notifyNewOrder({ sellerId: store.userId, orderId: order.id, orderNumber: order.orderNumber, description: sellerDescription, paymentMethod }),
     notifyStockAfterSale(store.id, priced.stockHolds.filter((hold) => hold.source === "store").map((hold) => hold.productId)),
     notifyOrderCustomer(order.id, "order_confirmed"), // WhatsApp/SMS order confirmation, if switched on
+    // Stores without their own WhatsApp number: the order summary from Shopinbos's number instead.
+    sendOrderSummaryWhatsApp(order.id),
     // Ordered from a WhatsApp chat by bank transfer: "we've got your order" in that chat (paid orders hear on payment).
     paymentMethod === "transfer" && link?.link.channel === "whatsapp" && link.link.conversationId ? confirmWhatsAppOrder(order.id) : null,
     triggerAutomations("order_placed", {
