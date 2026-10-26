@@ -76,7 +76,7 @@ export async function ensurePaystackModeSynced(): Promise<void> {
 
 export async function syncPaystackMode(mode: "live" | "test"): Promise<PaystackModeSync> {
   const result: PaystackModeSync = { mode, plans: 0, subaccounts: 0, topUpAccounts: 0, payInAccounts: 0, unchecked: 0, problems: [] };
-  const exists = async (kind: "plan" | "subaccount" | "customer", code: string) => {
+  const exists = async (kind: "plan" | "subaccount" | "customer" | "transferrecipient", code: string) => {
     const found = await paystackRecordExists(kind, code);
     if (found === null) result.unchecked += 1;
     return found;
@@ -123,6 +123,13 @@ export async function syncPaystackMode(mode: "live" | "test"): Promise<PaystackM
   }
   // Ones that failed on the other mode (or before a fix) get a fresh try.
   result.topUpAccounts += (await db.wallet.updateMany({ where: { topUpStatus: { in: ["failed", "unavailable"] } }, data: { topUpStatus: "none", topUpError: null } })).count;
+
+  // Withdrawal recipients made on the other mode: made again (same bank) on the next withdrawal.
+  const recipients = await db.wallet.findMany({ where: { transferRecipient: { not: null } }, select: { id: true, transferRecipient: true } });
+  for (const wallet of recipients) {
+    if ((await exists("transferrecipient", wallet.transferRecipient!)) !== false) continue;
+    await db.wallet.update({ where: { id: wallet.id }, data: { transferRecipient: null } });
+  }
 
   const payIns = await db.partnerPayInAccount.findMany({ where: { customerCode: { not: null } }, select: { id: true, customerCode: true } });
   for (const account of payIns) {

@@ -53,7 +53,7 @@ export function WalletBalanceCard({ returnTo, notice }: { returnTo: string; noti
         window.location.assign(json.data.authorizationUrl);
         return;
       }
-      setMessage({ tone: "ok", text: json?.data?.status === "done" ? "Sent to your bank." : "On its way to your bank. It usually arrives within minutes." });
+      setMessage({ tone: "ok", text: json?.data?.status === "done" ? "Sent to your bank." : json?.data?.status === "queued" ? "Withdrawal received. It's in line and goes to your bank automatically within a few hours; we'll tell you when it's sent." : "On its way to your bank. It usually arrives within minutes." });
       setMode(null);
       setAmount("");
       void load();
@@ -124,7 +124,7 @@ export function WalletBalanceCard({ returnTo, notice }: { returnTo: string; noti
                 <span className="block truncate font-bold">{t.description}</span>
                 <span className="block text-[12px] text-app-ink-soft">
                   {new Date(t.at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
-                  {t.status === "pending" ? " · on its way" : t.status === "failed" ? ` · didn't go through${t.error ? `: ${t.error}` : ""}` : ""}
+                  {t.status === "pending" ? " · on its way" : t.status === "queued" ? " · in line, sent soon" : t.status === "failed" ? ` · didn't go through${t.error ? `: ${t.error}` : ""}` : ""}
                 </span>
               </span>
               <span className={cx("shrink-0 font-extrabold", t.naira > 0 ? "text-app-success" : "text-app-ink")}>{t.naira > 0 ? "+" : "−"}{naira(Math.abs(t.naira))}</span>
