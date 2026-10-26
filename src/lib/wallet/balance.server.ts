@@ -144,7 +144,8 @@ export async function confirmCardTopUp(reference: string): Promise<"done" | "fai
   if (verified.currency !== "NGN" || metadata.purpose !== "wallet_topup" || !walletId) return "failed";
   const wallet = await db.wallet.findUnique({ where: { id: walletId }, select: { id: true } });
   if (!wallet) return "failed";
-  await creditWallet(wallet.id, { amountKobo: Number(verified.amount), reference, kind: "topup", description: "Top-up by card" });
+  const credited = await creditWallet(wallet.id, { amountKobo: Number(verified.amount), reference, kind: "topup", description: "Top-up by card" });
+  if (credited) await notifyMoneyIn(wallet.id, Number(verified.amount), { via: "card", reference }).catch((error) => console.error("[wallet] money-in notification", error));
   return "done";
 }
 
@@ -334,9 +335,59 @@ export async function handleWalletAccountCharge(data: unknown): Promise<boolean>
   const wallet = await db.wallet.findFirst({ where: { OR: [{ topUpCustomerCode: code }, { topUpOldCustomerCodes: { has: code } }] }, select: { id: true } });
   if (!wallet) return false;
   if (d.status === "success" && Number.isInteger(kobo) && kobo > 0) {
-    await creditWallet(wallet.id, { amountKobo: kobo, reference: `${WALLET_REFERENCE.transferIn}${reference}`, kind: "topup", description: "Top-up by bank transfer" });
+    // Who sent it: Paystack passes the sender's name, bank and account on a transfer to a dedicated account.
+    const auth = (d.authorization && typeof d.authorization === "object" ? d.authorization : {}) as Record<string, unknown>;
+    const text = (value: unknown) => (typeof value === "string" && value.trim() ? value.trim().replace(/\s+/g, " ").slice(0, 80) : null);
+    const sender = { name: text(auth.sender_name), bank: text(auth.sender_bank), account: text(auth.sender_bank_account_number), narration: text(auth.narration) };
+    const from = [sender.name, sender.bank && `${sender.bank}${sender.account ? ` ••${sender.account.slice(-4)}` : ""}`].filter(Boolean).join(" · ");
+    const credited = await creditWallet(wallet.id, { amountKobo: kobo, reference: `${WALLET_REFERENCE.transferIn}${reference}`, kind: "topup", description: from ? `Transfer from ${from}` : "Top-up by bank transfer" });
+    if (credited) await notifyMoneyIn(wallet.id, kobo, { via: "transfer", from, narration: sender.narration, reference }).catch((error) => console.error("[wallet] money-in notification", error));
   }
   return true;
+}
+
+const formatNaira = (kobo: number) => `₦${(kobo / 100).toLocaleString("en-NG", { maximumFractionDigits: 2 })}`;
+
+/** "₦2,000 just landed in your wallet": the bell, a push and an email, with who sent it and the new balance. */
+async function notifyMoneyIn(walletId: string, kobo: number, input: { via: "transfer" | "card"; from?: string; narration?: string | null; reference: string }) {
+  const wallet = await db.wallet.findUnique({ where: { id: walletId }, select: { userId: true, role: true, balanceKobo: true } });
+  if (!wallet) return;
+  const { notify } = await import("@/lib/notifications/notify.server");
+  const lines = [
+    input.via === "card" ? "You topped up by card." : input.from ? `From ${input.from}.` : "Someone sent money to your wallet account number.",
+    input.narration ? `Note: "${input.narration}".` : null,
+    `Your balance is now ${formatNaira(wallet.balanceKobo)}.`,
+  ].filter(Boolean);
+  await notify({
+    userId: wallet.userId,
+    event: "wallet.received",
+    priority: "success",
+    title: `${formatNaira(kobo)} ${input.via === "card" ? "added to" : "just landed in"} your wallet`,
+    description: lines.join(" "),
+    link: walletPath(wallet.role),
+    actionLabel: "Open wallet",
+    metadata: { amountKobo: kobo, via: input.via, from: input.from ?? null, reference: input.reference },
+    dedupeKey: `wallet-in:${input.reference}`,
+    email: "transactional",
+  });
+}
+
+async function notifyWithdrawal(walletId: string, reference: string, ok: boolean, reason?: string) {
+  const row = await db.walletTransaction.findUnique({ where: { reference }, select: { amountKobo: true, description: true } });
+  const wallet = await db.wallet.findUnique({ where: { id: walletId }, select: { userId: true, role: true, balanceKobo: true } });
+  if (!row || !wallet) return;
+  const { notify } = await import("@/lib/notifications/notify.server");
+  await notify({
+    userId: wallet.userId,
+    event: "wallet.withdrawal",
+    priority: ok ? "success" : "warning",
+    title: ok ? `${formatNaira(-row.amountKobo)} sent to your bank` : `Your ${formatNaira(-row.amountKobo)} withdrawal didn't go through`,
+    description: ok ? `${row.description}. It usually arrives within minutes.` : `${reason ? `${reason} ` : ""}The money is back in your wallet (balance ${formatNaira(wallet.balanceKobo)}).`,
+    link: walletPath(wallet.role),
+    actionLabel: "Open wallet",
+    dedupeKey: `wallet-out:${reference}:${ok ? "done" : "back"}`,
+    email: "transactional",
+  });
 }
 
 /** dedicatedaccount.assign.success / .failed for a wallet's top-up account. True when it was one. */
@@ -380,7 +431,7 @@ export async function withdrawToBank(userId: string, naira: number) {
   await db.$transaction((tx) => debitWallet(wallet.id, { amountKobo, reference, kind: "withdrawal", description, status: "pending" }, tx));
   const sent = await paystack("/transfer", { source: "balance", amount: amountKobo, recipient, reference, reason: "Shopinbos wallet withdrawal", currency: "NGN" });
   if (!sent.ok) {
-    await refundWithdrawal(reference, sent.message);
+    await refundWithdrawal(reference, sent.message, false);
     throw new WalletBalanceError("The withdrawal didn't go through, so your balance is back. Try again later or message us.");
   }
   const status = String((sent.data as { status?: string } | undefined)?.status ?? "pending");
@@ -389,17 +440,23 @@ export async function withdrawToBank(userId: string, naira: number) {
 }
 
 async function finishWithdrawal(reference: string) {
-  await db.walletTransaction.updateMany({ where: { reference, status: "pending" }, data: { status: "done", error: null } });
+  const done = await db.walletTransaction.updateMany({ where: { reference, status: "pending" }, data: { status: "done", error: null } });
+  if (!done.count) return;
+  const row = await db.walletTransaction.findUnique({ where: { reference }, select: { walletId: true } });
+  if (row) await notifyWithdrawal(row.walletId, reference, true).catch((error) => console.error("[wallet] withdrawal notification", error));
 }
 
 /** A withdrawal that failed or was reversed: the money goes back on the balance, once. */
-async function refundWithdrawal(reference: string, reason: string) {
-  await db.$transaction(async (tx) => {
+async function refundWithdrawal(reference: string, reason: string, tell = true) {
+  const walletId = await db.$transaction(async (tx) => {
     const row = await tx.walletTransaction.findUnique({ where: { reference } });
-    if (!row || row.status !== "pending") return;
+    if (!row || row.status !== "pending") return null;
     await tx.walletTransaction.update({ where: { reference }, data: { status: "failed", error: reason.slice(0, 300) } });
     await creditWallet(row.walletId, { amountKobo: -row.amountKobo, reference: `${reference}-back`, kind: "refund", description: "Withdrawal didn't go through: money back" }, tx);
+    return row.walletId;
   });
+  // A withdrawal Paystack refused on the spot is already explained on screen; only a later bounce needs telling.
+  if (walletId && tell) await notifyWithdrawal(walletId, reference, false).catch((error) => console.error("[wallet] withdrawal notification", error));
 }
 
 /** transfer.success / transfer.failed / transfer.reversed for a wallet withdrawal. True when it was one. */
