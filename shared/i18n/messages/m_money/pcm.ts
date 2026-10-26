@@ -196,6 +196,10 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "bal.pending": "e dey road",
   "bal.didntGo": "e no go through",
   "bal.failed": "E no work. Try again.",
+  "bal.accountTitle": "Your wallet account number. Transfer from any bank app to top up:",
+  "bal.accountSettingUp": "Dem dey create your wallet account number. E go show here in few minutes.",
+  "bal.copy": "Copy",
+  "bal.copied": "E don copy",
 };
 
 export default pcm;

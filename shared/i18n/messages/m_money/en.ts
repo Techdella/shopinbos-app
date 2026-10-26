@@ -201,6 +201,10 @@ const en = {
   "bal.pending": "on its way",
   "bal.didntGo": "didn't go through",
   "bal.failed": "That didn't work. Try again.",
+  "bal.accountTitle": "Your wallet account number. Transfer from any bank app to top up:",
+  "bal.accountSettingUp": "Your wallet account number is being created. It shows here in a few minutes.",
+  "bal.copy": "Copy",
+  "bal.copied": "Copied",
 } satisfies Record<string, string>;
 
 export default en;

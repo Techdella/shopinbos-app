@@ -196,6 +196,10 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "bal.pending": "ọ na-abịa",
   "bal.didntGo": "ọ gaghị",
   "bal.failed": "Ọ rụghị ọrụ. Nwaa ọzọ.",
+  "bal.accountTitle": "Nọmba akaụntụ wallet gị. Zipu ego site na ngwa ụlọ akụ ọ bụla iji tinye ego:",
+  "bal.accountSettingUp": "A na-emepụta nọmba akaụntụ wallet gị. Ọ ga-apụta ebe a n'ime nkeji ole na ole.",
+  "bal.copy": "Detuo",
+  "bal.copied": "E detuola",
 };
 
 export default ig;

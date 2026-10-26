@@ -196,6 +196,10 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "bal.pending": "ó ń bọ̀",
   "bal.didntGo": "kò lọ",
   "bal.failed": "Kò ṣiṣẹ́. Gbìyànjú lẹ́ẹ̀kan sí i.",
+  "bal.accountTitle": "Nọ́mbà àkáǹtì wallet rẹ. Fi owó ránṣẹ́ láti app báǹkì èyíkéyìí láti fi owó kún un:",
+  "bal.accountSettingUp": "À ń ṣẹ̀dá nọ́mbà àkáǹtì wallet rẹ. Yóò hàn níbí láàárín ìṣẹ́jú díẹ̀.",
+  "bal.copy": "Daakọ",
+  "bal.copied": "A ti daakọ",
 };
 
 export default yo;
