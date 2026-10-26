@@ -65,7 +65,7 @@ const en = {
   "start.pay.saved": "Payment methods saved",
   "start.pay.save": "Save payment methods",
   "pm.transfer.label": "Bank transfer",
-  "pm.transfer.hint": "Customers get your payout account; you mark it paid when it lands",
+  "pm.transfer.hint": "Each order gets its own account number; paid into your bank and confirmed for you",
   "pm.card.label": "Card and USSD",
   "pm.card.hint": "Debit cards and USSD, paid straight into your bank",
   "pm.korapay.label": "Pay with bank",

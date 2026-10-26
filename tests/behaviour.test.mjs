@@ -495,19 +495,21 @@ test("checkout offers the payment methods the seller chose, in a fixed order, an
   const all = { methods: { transfer: true, card: true, cod: true, wa: true }, paystackReady: true, transferReady: true, codLimit: 50000, zones };
   const keys = (settings, context) => pay.checkoutPaymentOptions(settings, context).map((option) => option.key);
 
-  assert.deepEqual(keys(all, { city: "Lekki", total: 20000 }), ["paystack", "transfer", "pay_on_delivery"]);
+  assert.deepEqual(keys(all, { city: "Lekki", total: 20000 }), ["paystack", "pay_on_delivery"]);
   // Paystack needs real keys; transfer needs the full payout account.
   assert.deepEqual(keys({ ...all, paystackReady: false, transferReady: false }, { city: "Lekki", total: 20000 }), ["pay_on_delivery"]);
   // Pay on delivery respects the cap, pickup-only zones and uncovered addresses.
-  assert.deepEqual(keys(all, { city: "Lekki", total: 60000 }), ["paystack", "transfer"]);
-  assert.deepEqual(keys(all, { city: "Ikeja", total: 1000 }), ["paystack", "transfer"]);
-  assert.deepEqual(keys(all, { city: "Kano", state: "Kano", total: 1000 }), ["paystack", "transfer"]);
+  assert.deepEqual(keys(all, { city: "Lekki", total: 60000 }), ["paystack"]);
+  assert.deepEqual(keys(all, { city: "Ikeja", total: 1000 }), ["paystack"]);
+  assert.deepEqual(keys(all, { city: "Kano", state: "Kano", total: 1000 }), ["paystack"]);
   assert.match(pay.payOnDeliveryBlock(all, { city: "Lekki", total: 60000 }), /up to ₦50,000/);
-  assert.deepEqual(keys({ ...all, codLimit: null }, { city: "Lagos", total: 900000 }), ["paystack", "transfer", "pay_on_delivery"]);
+  assert.deepEqual(keys({ ...all, codLimit: null }, { city: "Lagos", total: 900000 }), ["paystack", "pay_on_delivery"]);
   // No zones at all: pay on delivery is the seller's call everywhere.
-  assert.deepEqual(keys({ ...all, zones: [] }, { city: "Kano", total: 1000 }), ["paystack", "transfer", "pay_on_delivery"]);
-  // Seller turned methods off.
-  assert.deepEqual(keys({ ...all, methods: { transfer: true, card: false, cod: false, wa: false } }, {}), ["transfer"]);
+  assert.deepEqual(keys({ ...all, zones: [] }, { city: "Kano", total: 1000 }), ["paystack", "pay_on_delivery"]);
+  // Bank transfer goes through Paystack (split, confirmed by Paystack) when the store takes it; the seller's own
+  // account only when Paystack can't.
+  assert.deepEqual(keys({ ...all, methods: { transfer: true, card: false, cod: false, wa: false } }, {}), ["paystack"]);
+  assert.deepEqual(keys({ ...all, paystackReady: false }, { city: "Lekki", total: 20000 }), ["transfer", "pay_on_delivery"]);
   // Nothing configured: card, but only when the wallet takes it. Nothing that can work: no options, never a card
   // payment bound to fail (a store whose wallet is in review, transfer off and the order over the pay on delivery cap).
   assert.deepEqual(keys({ ...all, methods: null }, {}), ["paystack"]);

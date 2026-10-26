@@ -92,6 +92,17 @@ async function openSubaccount(wallet: WalletRow, nameCheck: "auto" | "approved" 
 }
 
 /**
+ * Makes the wallet's Paystack subaccount again, on the account the current key belongs to (e.g. it was made with
+ * test keys and Shopinbos is now live). Keeps the same bank and the same name check. Only for live wallets.
+ */
+export async function reopenWalletSubaccount(walletId: string): Promise<WalletResult> {
+  const wallet = await db.wallet.findUnique({ where: { id: walletId } });
+  if (!wallet?.bankCode || !wallet.accountNumber) return { ok: false, error: "No bank on this wallet." };
+  const nameCheck = wallet.nameCheck === "approved" ? "approved" : wallet.nameCheck === "review" ? null : "auto";
+  return openSubaccount({ ...wallet, subaccountCode: null }, nameCheck);
+}
+
+/**
  * Whose account this is: the name on the verified ID when there is one, else the owner's name on their account, or
  * the business's name (a company or "ventures" account). Every Nigerian bank account is BVN-linked, so paying the
  * named holder of an account in the owner's or business's name is paying them; anything else waits for the team.
@@ -213,6 +224,8 @@ const korapayWhere = { ...activeWhere, korapaySplitAccount: { not: null } } sati
 
 /** The seller can take card payments: their wallet settles to their own bank. */
 export async function storeTakesCards(storeId: string) {
+  // Splits go to subaccounts on the key's own mode (test or live): make them there first, once.
+  await (await import("@/lib/paystack-mode.server")).ensurePaystackModeSynced();
   const store = await db.store.findUnique({ where: { id: storeId }, select: { userId: true } });
   if (!store) return false;
   return (await db.wallet.count({ where: { userId: store.userId, ...activeWhere } })) > 0;
