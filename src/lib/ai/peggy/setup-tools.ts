@@ -42,7 +42,7 @@ async function setupStatus(ctx: PeggyToolContext): Promise<ToolOutput> {
         note: step.hint,
         whereToDoIt: step.action.kind === "link" ? step.action.href : "/home/start",
       })),
-      paymentMethods: Object.fromEntries(Object.entries(overview.payments).map(([key, on]) => [METHOD_LABEL[key as PaymentMethodKey] ?? key, on ? "on" : "off"])),
+      paymentMethods: Object.fromEntries(Object.entries(overview.payments).filter(([key]) => METHOD_LABEL[key as PaymentMethodKey]).map(([key, on]) => [METHOD_LABEL[key as PaymentMethodKey] ?? key, on ? "on" : "off"])),
       deliveryAreas: overview.zones.map((zone) => ({ name: zone.name, fee: naira(zone.fee), covers: zone.regions.length ? zone.regions.join(", ") : "everywhere else" })),
       storeLink: overview.store.url,
       note: "You can change payment methods (setup_payment_methods) and delivery areas (setup_delivery_area). Payout bank, going live (free: the seller presses Publish), domain and products are done by the seller on /home/start or the linked screens.",
@@ -59,8 +59,8 @@ async function setupPaymentMethods(ctx: PeggyToolContext, input: PeggyToolInput<
     if (error instanceof SetupError) throw new ToolError(error.message);
     throw error;
   }
-  const on = (Object.keys(next) as PaymentMethodKey[]).filter((key) => next[key]).map((key) => METHOD_LABEL[key]);
-  const changed = (Object.keys(changes) as PaymentMethodKey[]).map((key) => `${METHOD_LABEL[key]} ${changes[key] ? "on" : "off"}`);
+  const on = (Object.keys(next) as PaymentMethodKey[]).filter((key) => next[key] && METHOD_LABEL[key]).map((key) => METHOD_LABEL[key]);
+  const changed = (Object.keys(changes) as PaymentMethodKey[]).filter((key) => METHOD_LABEL[key]).map((key) => `${METHOD_LABEL[key]} ${changes[key] ? "on" : "off"}`);
   const summary = `Payment methods updated: ${changed.join(", ")}. Customers can now pay by ${on.join(", ")}.`;
   await logSetup(ctx, "setup_payment_methods", "Peggy updated payment methods", summary, "/home/payments");
   return { content: `${summary}${next.transfer ? " Bank transfer shows the seller's payout account, so they need a payout bank added." : ""}`, action: { summary, href: "/home/payments" } };

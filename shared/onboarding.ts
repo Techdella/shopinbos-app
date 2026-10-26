@@ -99,10 +99,10 @@ export const PRODUCT_DOORS: { key: ProductDoor; label: string; hint: string; not
 
 export type PaymentMethodKey = "transfer" | "card" | "korapay" | "cod" | "wa";
 
+// The switches sellers see. Korapay isn't offered for now (storeTakesKorapay is off), so it isn't listed.
 export const PAYMENT_METHODS: { key: PaymentMethodKey; label: string; hint: string }[] = [
   { key: "transfer", label: "Bank transfer", hint: "Customers get your payout account; you mark it paid when it lands" },
   { key: "card", label: "Card and USSD", hint: "Debit cards and USSD, paid straight into your bank" },
-  { key: "korapay", label: "Pay with bank", hint: "A second secure checkout: card, transfer or bank app" },
   { key: "cod", label: "Pay on delivery", hint: "Up to ₦50,000, verified phone numbers, where riders cover" },
   { key: "wa", label: "Finish on WhatsApp", hint: "Customers can chat to pay" },
 ];

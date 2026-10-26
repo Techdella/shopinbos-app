@@ -20,9 +20,6 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "setup.done": "E don do",
   "setup.review": "This account no dey your name or your business name, so our team dey check am (usually inside one day). We go tell you when payments start to dey enter am.",
   "setup.failed": "Paystack no fit set up this account: {reason}. Check the details or try another account.",
-  "setup.gateways": "Paystack: on. Korapay: {korapay}.",
-  "setup.korapayOn": "on",
-  "setup.korapaySoon": "our team dey set am up for this account",
   "setup.idStep": "2. Verify your ID",
   "setup.verified": "{name} · {id} wey end with {last4} · verified {date}",
   "setup.idWhySeller": "E go give your shop verified badge and approve account wey dey your name sharp sharp. You fit do am anytime.",
@@ -38,8 +35,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "setup.who.seller": "your customers",
   "setup.who.supplier": "shops wey dey sell your products",
   "setup.who.logistics_partner": "the shops wey you dey deliver for",
-  "setup.never": "Shopinbos no dey ever hold your money. When {who} pay by card or Korapay, the payment dey split for checkout and your share dey settle straight to this bank, usually the next working day. Paystack fee dey comot from your share (for Korapay, na customer dey pay am). Shopinbos no dey collect anything.",
-  "setup.neverFee": "Shopinbos no dey hold your money. When {who} pay with card or Korapay, the payment go split for checkout and your share go land straight for dis bank, usually the next working day. Paystack fee go comot from your share (with Korapay na the customer dey pay am), and Shopinbos fee of {fee} for every sale for your plan too (no be for delivery, and no be for dropship items: the supplier commission dey cover those ones).",
+  "setup.never": "Shopinbos no dey ever hold your money. When {who} pay by card, the payment dey split for checkout and your share dey settle straight to this bank, usually the next working day. Paystack fee dey comot from your share. Shopinbos no dey collect anything.",
+  "setup.neverFee": "Shopinbos no dey hold your money. When {who} pay with card, the payment go split for checkout and your share go land straight for dis bank, usually the next working day. Paystack fee go comot from your share, and Shopinbos fee of {fee} for every sale for your plan too (no be for delivery, and no be for dropship items: the supplier commission dey cover those ones).",
   "fee.limits": "{rate}% (at least {min}, at most {max})",
   "fee.min": "{rate}% (at least {min})",
   "fee.max": "{rate}% (at most {max})",
@@ -156,7 +153,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "claim.chooseOrder": "Choose the order wey this one concern.",
   "claim.none": "No recent order from supplier or delivery partner wey you fit claim on. You fit claim inside {days} days after delivery.",
   "claim.sent": "Claim don go.",
-  "setup.neverCommission": "Shopinbos no dey hold your money. When {who} pay with card or Korapay for your products, your share go land straight for dis bank, usually the next working day. Shopinbos commission of {pct}% of the wholesale value go comot from every marketplace order for your plan, plus your share of Paystack fee.",
+  "setup.neverCommission": "Shopinbos no dey hold your money. When {who} pay with card for your products, your share go land straight for dis bank, usually the next working day. Shopinbos commission of {pct}% of the wholesale value go comot from every marketplace order for your plan, plus your share of Paystack fee.",
 };
 
 export default pcm;

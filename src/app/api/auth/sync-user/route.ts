@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
+import { provisionWallet } from "@/lib/wallet/balance.server";
 import { db } from "@/lib/db/client";
 import { verifyJWT } from "@/lib/auth/middleware";
 import { alignRoleMetadata, ensureAppUserForSupabaseUser } from "@/lib/auth/app-user";
@@ -97,6 +98,8 @@ export async function POST(request: NextRequest) {
   // Joined with an invite (Refer & earn): link it once, give the welcome gift and tell whoever invited them.
   if (typeof body.ref === "string" && body.ref) await attributeReferral(user.id, body.ref).catch(() => null);
   await claimReferralFromCookie(user.id);
+  // Every business gets its wallet and own account number on sign-in, without holding up the sign-in.
+  after(() => provisionWallet(user.id));
 
   return NextResponse.json({ data: { id: user.id, role: user.role } });
 }

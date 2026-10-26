@@ -20,9 +20,6 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "setup.done": "O mechara",
   "setup.review": "Account a anọghị n'aha gị ma ọ bụ aha azụmahịa gị, ya mere ndị otu anyị na-enyocha ya (na-abụkarị n'ime otu ụbọchị). Anyị ga-agwa gị mgbe ego malitere ịbanye n'ime ya.",
   "setup.failed": "Paystack enweghị ike idozi account a: {reason}. Lelee nkọwa ma ọ bụ nwalee account ọzọ.",
-  "setup.gateways": "Paystack: ọ na-arụ. Korapay: {korapay}.",
-  "setup.korapayOn": "ọ na-arụ",
-  "setup.korapaySoon": "ndị otu anyị na-edozi ya maka account a",
   "setup.idStep": "2. Nyochaa ID gị",
   "setup.verified": "{name} · {id} nke na-ejedebe na {last4} · enyochara ya {date}",
   "setup.idWhySeller": "Ọ na-enye ụlọ ahịa gị akara verified ma kwado account n'aha gị ozugbo. Ị nwere ike ime ya mgbe ọ bụla.",
@@ -38,8 +35,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "setup.who.seller": "ndị customer gị",
   "setup.who.supplier": "ụlọ ahịa na-ere ngwaahịa gị",
   "setup.who.logistics_partner": "ụlọ ahịa ị na-eme delivery maka ha",
-  "setup.never": "Shopinbos anaghị ejide ego gị. Mgbe {who} jiri kaadị ma ọ bụ Korapay kwụọ ụgwọ, a na-ekewa ego ahụ na checkout, òkè gị na-abanye n'ụlọ akụ a ozugbo, na-abụkarị n'ụbọchị ọrụ na-esote. Ego Paystack na-esi n'òkè gị (na Korapay, ọ bụ customer na-akwụ ya). Shopinbos anaghị anata ihe ọ bụla.",
-  "setup.neverFee": "Shopinbos anaghị ejide ego gị. Mgbe {who} kwụrụ site na kaadị ma ọ bụ Korapay, a na-ekewa ụgwọ ahụ n'oge ịkwụ ụgwọ, òkè gị na-abanye n'ụlọ akụ a ozugbo, na-abụkarị ụbọchị ọrụ na-esote. Ụgwọ Paystack na-esi n'òkè gị (na Korapay, onye ahịa na-akwụ ya), ya na ụgwọ Shopinbos nke {fee} n'ire ere ọ bụla maka atụmatụ gị (ọ bụghị na nnyefe, ọ bụghịkwa na ngwaahịa dropship: kọmịshọn onye na-ebunye na-ekpuchi ha).",
+  "setup.never": "Shopinbos anaghị ejide ego gị. Mgbe {who} jiri kaadị kwụọ ụgwọ, a na-ekewa ego ahụ na checkout, òkè gị na-abanye n'ụlọ akụ a ozugbo, na-abụkarị n'ụbọchị ọrụ na-esote. Ego Paystack na-esi n'òkè gị. Shopinbos anaghị anata ihe ọ bụla.",
+  "setup.neverFee": "Shopinbos anaghị ejide ego gị. Mgbe {who} kwụrụ site na kaadị, a na-ekewa ụgwọ ahụ n'oge ịkwụ ụgwọ, òkè gị na-abanye n'ụlọ akụ a ozugbo, na-abụkarị ụbọchị ọrụ na-esote. Ụgwọ Paystack na-esi n'òkè gị, ya na ụgwọ Shopinbos nke {fee} n'ire ere ọ bụla maka atụmatụ gị (ọ bụghị na nnyefe, ọ bụghịkwa na ngwaahịa dropship: kọmịshọn onye na-ebunye na-ekpuchi ha).",
   "fee.limits": "{rate}% (opekata mpe {min}, kacha {max})",
   "fee.min": "{rate}% (opekata mpe {min})",
   "fee.max": "{rate}% (kacha {max})",
@@ -156,7 +153,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "claim.chooseOrder": "Họrọ order nke a metụtara.",
   "claim.none": "Enweghị order nso nso a site n'aka supplier ma ọ bụ delivery partner ị nwere ike ịrịọ maka ya. Ị nwere ike ịrịọ n'ime ụbọchị {days} mgbe delivery gasịrị.",
   "claim.sent": "E zigala arịrịọ ahụ.",
-  "setup.neverCommission": "Shopinbos anaghị ejide ego gị. Mgbe {who} kwụrụ site na kaadị ma ọ bụ Korapay maka ngwaahịa gị, òkè gị na-abanye n'ụlọ akụ a ozugbo, na-abụkarị ụbọchị ọrụ na-esote. Kọmịshọn Shopinbos nke {pct}% nke uru nnukwu ahịa na-esi n'ọda ahịa ọ bụla maka atụmatụ gị, ya na òkè gị n'ụgwọ Paystack.",
+  "setup.neverCommission": "Shopinbos anaghị ejide ego gị. Mgbe {who} kwụrụ site na kaadị maka ngwaahịa gị, òkè gị na-abanye n'ụlọ akụ a ozugbo, na-abụkarị ụbọchị ọrụ na-esote. Kọmịshọn Shopinbos nke {pct}% nke uru nnukwu ahịa na-esi n'ọda ahịa ọ bụla maka atụmatụ gị, ya na òkè gị n'ụgwọ Paystack.",
 };
 
 export default ig;
