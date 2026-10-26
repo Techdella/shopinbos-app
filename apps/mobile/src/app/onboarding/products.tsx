@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Linking, Pressable, View } from "react-native";
+import { Pressable, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { PRODUCT_DOORS, type ProductDoor } from "@shared/onboarding";
 import { Sub, Title } from "@/components/design";
@@ -7,7 +7,8 @@ import { Card, Notice, PillButton, T } from "@/components/ui";
 import { OnboardingFrame } from "@/components/OnboardingFrame";
 import { useOnboarding } from "@/components/OnboardingContext";
 import { ProductDraftsCard, useProductDrafts } from "@/components/ProductDrafts";
-import { API_URL } from "@/lib/api";
+import { openWeb } from "@/lib/web";
+import { WebButtonLabel } from "@/components/WebBadge";
 import { saveMemory } from "@/lib/onboarding";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
@@ -70,12 +71,14 @@ export default function Products() {
         ) : (
           <Card style={{ padding: 20, borderRadius: 24, borderWidth: 1, borderColor: colors.line }}>
             <T style={{ color: colors.inkSoft, lineHeight: 21 }}>{t.dynamic(`door.${info.key}.note`, info.note)}</T>
-            <PillButton
-              title={door === "file" ? t("products.upload") : t("products.browse")}
-              size="md"
-              style={{ marginTop: 14 }}
-              onPress={() => void Linking.openURL(`${API_URL}${door === "file" ? "/products/import" : "/marketplace"}`)}
-            />
+            {door === "file" ? (
+              // The spreadsheet import is a web tool (signed in through openWeb); the button says it opens the website.
+              <PillButton size="md" style={{ marginTop: 14 }} onPress={() => void openWeb("/products/import")}>
+                <WebButtonLabel title={t("products.upload")} size="md" />
+              </PillButton>
+            ) : (
+              <PillButton title={t("products.browse")} size="md" style={{ marginTop: 14 }} onPress={() => router.push("/find")} />
+            )}
           </Card>
         )}
       </View>

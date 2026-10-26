@@ -96,7 +96,15 @@ const SUPPLIER: PeggyScreen[] = [
   { id: "delivery", name: "Delivery", app: "/delivery", web: "/supplier/delivery", also: ["delivery settings"] },
   { id: "verification", name: "Verification", app: "/supplier/verification", web: "/supplier/verification", also: ["documents", "cac"] },
   { id: "messages", name: "Messages", app: "/supplier/messages", web: "/supplier/inbox", also: ["chats", "inbox"] },
-  { id: "account", name: "Account", app: "/supplier/account", web: "/supplier/settings", also: ["settings", "profile"] },
+  { id: "account", name: "Account", app: "/supplier/account", web: "/supplier/settings", also: ["settings"] },
+  { id: "profile", name: "Business profile", app: "/supplier/profile", web: "/supplier/profile", also: ["profile", "logo", "about my business"] },
+  { id: "team", name: "Team", app: "/supplier/team", web: "/supplier/team", also: ["staff", "people", "add a person"] },
+  { id: "tiers", name: "Wholesale price tiers", app: "/supplier/tiers", web: "/supplier/wholesale", also: ["price tiers", "bulk prices", "wholesale prices"] },
+  { id: "agreements", name: "Dropship agreements", app: "/supplier/agreements", web: "/supplier/agreements", also: ["agreements", "sign agreement", "contracts"] },
+  { id: "create", name: "Make a post", app: "/create", web: null, also: ["social post", "make a social post", "new post", "flyer"] },
+  { id: "posts", name: "Posts calendar", app: "/posts", web: null, also: ["posts", "calendar", "scheduled posts"] },
+  { id: "status", name: "Post a status", app: "/status/new", web: null, also: ["status", "new status"] },
+  { id: "rewards", name: "Rewards", app: "/rewards", web: null, also: ["points", "refer", "referral"] },
   { id: "help", name: "Help", app: "/help", web: null },
 ];
 
@@ -117,7 +125,12 @@ const PARTNER: PeggyScreen[] = [
   { id: "services", name: "Services", app: "/logistics/services", web: "/logistics/profile" },
   { id: "connections", name: "Sellers you deliver for", app: "/logistics/connections", web: "/logistics/connections", also: ["connections", "sellers"] },
   { id: "messages", name: "Messages", app: "/logistics/messages", web: "/logistics/inbox", also: ["chats", "inbox"] },
-  { id: "profile", name: "Company profile", app: "/logistics/profile", web: "/logistics/profile", also: ["profile", "company"] },
+  { id: "profile", name: "Company profile", app: "/logistics/profile", web: "/logistics/profile", also: ["profile", "company", "business details"] },
+  { id: "quotes", name: "Quote requests", app: "/logistics/quotes", web: "/logistics/quotes", also: ["quotes", "price requests"] },
+  { id: "create", name: "Make a post", app: "/create", web: null, also: ["social post", "make a social post", "new post", "flyer"] },
+  { id: "posts", name: "Posts calendar", app: "/posts", web: null, also: ["posts", "calendar", "scheduled posts"] },
+  { id: "status", name: "Post a status", app: "/status/new", web: null, also: ["status", "new status"] },
+  { id: "rewards", name: "Rewards", app: "/rewards", web: null, also: ["points", "refer", "referral"] },
   { id: "help", name: "Help", app: "/help", web: null },
 ];
 

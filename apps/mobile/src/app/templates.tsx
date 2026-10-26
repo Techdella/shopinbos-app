@@ -15,6 +15,7 @@ import { ShopLiveSheet, usePublishShop } from "@/components/seller/PublishShop";
 import { applyLook, fetchLookLibrary, lookDemoUrl, lookFilterCount, NO_LOOK_FILTERS, recommendLook, shownLooks, type LookFilters, type LookTone, type ShopLook } from "@/lib/templates";
 import { useLoad } from "@/lib/useLoad";
 import { openWeb } from "@/lib/web";
+import { WebBadge } from "@/components/WebBadge";
 import { ALL_THEMES_FREE, themeTierPlanName } from "@shared/plans";
 import { useT } from "@/lib/i18n";
 import { colors, fonts } from "@/theme";
@@ -145,7 +146,12 @@ function LookPreview({ look, rexReason, applied, onClose, onApplied }: { look: S
         {!done.live ? <PillButton testID="look-publish" tone="accent" title={t("putLive")} busy={publishing.busy} onPress={() => void publishing.publish()} /> : null}
         {publishing.error ? <Notice>{publishing.error}</Notice> : null}
         <PillButton testID="look-edit" tone="white" size="md" title={tm("editShop.open")} onPress={editShop} />
-        {done.slug ? <LinkButton title={t("seeMyShop")} onPress={() => void openWeb(`/s/${encodeURIComponent(done.slug)}/preview`)} /> : null}
+        {done.slug ? (
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }}>
+            <LinkButton title={t("seeMyShop")} onPress={() => void openWeb(`/s/${encodeURIComponent(done.slug)}/preview`)} />
+            <WebBadge />
+          </View>
+        ) : null}
         <ShopLiveSheet shop={publishing.live} onClose={publishing.closeLive} />
       </>
     );

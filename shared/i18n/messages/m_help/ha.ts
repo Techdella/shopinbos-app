@@ -167,6 +167,11 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "call.peggyEnded": "Peggy ta kashe kiran",
   "call.screen.rex": "Gyara shagona da Rex",
   "call.screen.shop_edit": "Gyara shagona",
+  "call.screen.team": "Ma'aikata",
+  "call.screen.tiers": "Matakan farashin jumla",
+  "call.screen.agreements": "Yarjejeniyar dropship",
+  "call.screen.status": "Saka Status",
+  "call.screen.rewards": "Lada",
 };
 
 export default ha;

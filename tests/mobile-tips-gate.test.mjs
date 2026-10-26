@@ -211,11 +211,14 @@ test("Peggy's screens: store design opens Shop looks, Rex opens /rex, a social p
   assert.match(opened.reply, /^Opened Shop looks\./);
   assert.equal(pure.openScreenOnPhone("seller", { screen: "rex" }).route, "/rex");
   assert.equal(screens.openScreenOnWeb("seller", { screen: "store design" }).path, "/studio");
-  // Suppliers and delivery partners have no shop design, Rex or posts screens: never someone else's screen.
+  // Suppliers and delivery partners have no shop design or Rex screens: never someone else's screen. They do have
+  // the shared posts screens (Make a post, Posts calendar), which open the same app routes.
   for (const role of ["supplier", "logistics_partner"]) {
-    for (const asked of ["store design", "templates", "rex", "make a social post", "posts calendar", "create"]) {
+    for (const asked of ["store design", "templates", "rex"]) {
       assert.equal(screens.findScreen(role, asked), null, `${role} ${asked}`);
     }
+    assert.equal(screens.findScreen(role, "make a social post")?.app, "/create");
+    assert.equal(screens.findScreen(role, "posts calendar")?.app, "/posts");
     assert.equal(pure.openScreenOnPhone(role, { screen: "home" }).route, role === "supplier" ? "/supplier/home" : "/logistics/home");
   }
   assert.equal(screens.findScreen("supplier", "pickup").app, "/supplier/setup?edit=pickup");

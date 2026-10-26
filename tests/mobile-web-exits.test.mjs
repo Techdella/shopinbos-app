@@ -34,7 +34,6 @@ const ALLOWED = [
   { file: "lib/web.ts", line: "onPress: () => void openWeb(path)", reason: "openPath's fallback asks first; the Alert button reads web.badge" },
   { file: "app/channels.tsx", line: "await openWeb(GMAIL_CONNECT_PATH)", reason: "Google's sign-in; the Gmail button below renders <WebButtonLabel>" },
   { file: "app/video/studio.tsx", line: "await openWeb(webStudioPath(id))", reason: "the final render; the footer button renders <WebButtonLabel>" },
-  { file: "app/templates.tsx", line: "openWeb(`/s/${encodeURIComponent(done.slug)}/preview`)", reason: "store looks and publishing are being rebuilt by another agent (left as is, listed in the report)" },
   { file: "app/templates.tsx", line: "openWeb(PLANS_PATH)", reason: "plans and billing (paid); templates.tsx is owned by the store-editing agent (listed in the report)" },
 ];
 

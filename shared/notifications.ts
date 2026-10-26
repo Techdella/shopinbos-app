@@ -404,6 +404,7 @@ const SIMPLE_SCREENS: Array<[RegExp, string]> = [
   [/^\/logistics\/connections$/, "/logistics/connections"],
   [/^\/logistics\/inbox$/, "/logistics/messages"],
   [/^\/logistics\/verification$/, "/logistics/verification"],
+  [/^\/logistics\/quotes$/, "/logistics/quotes"],
   [/^\/logistics(\/dashboard)?$/, "/logistics/home"],
   [/^\/rider$/, "/rider"],
 ];
