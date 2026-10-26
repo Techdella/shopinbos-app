@@ -6,7 +6,8 @@ import { ErrorState, LoadingBlock } from "@/components/kit";
 import { useLoad } from "@/lib/useLoad";
 import { ApiError } from "@/lib/api";
 import { useLocale, useT } from "@/lib/i18n";
-import { fetchWalletBalance, withdrawFromWallet } from "@/lib/wallet";
+import { fetchWalletBalance, WALLET_ACCOUNT_IN_APP, withdrawFromWallet } from "@/lib/wallet";
+import { WalletAccountNumber } from "@/components/WalletAccountNumber";
 import { colors } from "@/theme";
 
 // The prepaid wallet on the phone (twin of the web's src/components/wallet/WalletBalanceCard.tsx): the balance,
@@ -50,6 +51,7 @@ export function WalletBalanceCard() {
       <T style={{ color: colors.inkSoft, fontSize: 13 }}>{t("bal.title")}</T>
       <T weight="extrabold" style={{ fontSize: 34 }}>{naira(view.balanceNaira)}</T>
       <T style={{ color: colors.inkSoft, fontSize: 14 }}>{t("bal.sub")}</T>
+      {WALLET_ACCOUNT_IN_APP ? <WalletAccountNumber view={view} /> : null}
       <PillButton size="md" tone="white" title={t("bal.withdraw")} disabled={busy !== null || !view.ready || !view.canWithdraw || view.balanceNaira < view.limits.withdrawMin} onPress={() => setWithdrawing(!withdrawing)} />
       {withdrawing ? (
         <View style={{ gap: 10 }}>

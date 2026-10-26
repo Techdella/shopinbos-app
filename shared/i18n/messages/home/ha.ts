@@ -67,7 +67,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "start.pay.saved": "An ajiye hanyoyin biya",
   "start.pay.save": "Ajiye hanyoyin biya",
   "pm.transfer.label": "Bank transfer",
-  "pm.transfer.hint": "Kwastomomi za su sami asusun payout ɗinka; za ka yi alamar an biya idan kuɗin ya shigo",
+  "pm.transfer.hint": "Kowace oda tana da lambar asusunta; yana shiga bankinka kuma ana tabbatar maka",
   "pm.card.label": "Kati da USSD",
   "pm.cod.label": "Biya idan an kawo",
   "pm.cod.hint": "Har zuwa ₦50,000, lambobin waya da aka tabbatar, inda riders ke aiki",

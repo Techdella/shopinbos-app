@@ -73,7 +73,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "pay.title": "Karɓar kuɗi da isar da kaya",
   "pay.how": "Yadda abokan ciniki za su biya",
   "method.transfer.label": "Bank transfer",
-  "method.transfer.hint": "Abokan ciniki za su ga asusun bankinka; kai ka nuna an biya idan kuɗin ya shigo",
+  "method.transfer.hint": "Kowace oda tana da lambar asusunta; yana shiga bankinka kuma ana tabbatar maka",
   "method.card.label": "Kati da USSD",
   "method.cod.label": "Biya bayan isarwa",
   "method.cod.hint": "Har zuwa ₦50,000, lambobin waya da aka tabbatar, inda riders ke zuwa",

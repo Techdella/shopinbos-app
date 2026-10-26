@@ -10,7 +10,7 @@ import { getPriceBook } from "@/lib/pricing/price-book.server";
 import { PLAN_TIERS, PLAN_TIER_KEYS } from "@shared/plan-catalog";
 import { PEGGY_FACTS } from "./peggy-knowledge";
 import { setupStatus, setupText } from "@/lib/onboarding/setup-status.server";
-import { PEGGY_AUTO_CHANNELS, peggyChannel, peggyFormat, peggyMayAutoReply, type PeggyAutoChannel, type PeggySettings } from "./peggy-pure";
+import { PEGGY_AUTO_CHANNELS, leadContext, peggyChannel, peggyFormat, peggyMayAutoReply, type PeggyAutoChannel, type PeggySettings } from "./peggy-pure";
 
 // Peggy in the admin inbox: she drafts replies for the team (Draft with Peggy), and, when an owner switches it on,
 // answers new messages herself. She knows Shopinbos from a written fact sheet (peggy-knowledge.ts) plus the live
@@ -105,14 +105,42 @@ async function loadThread(ticketId: string): Promise<Thread | null> {
   });
 }
 
+const LEAD_FIELDS = { id: true, kind: true, role: true, source: true, pageUrl: true, message: true, createdAt: true, convertedAt: true } as const;
+
+/** The lead behind a conversation: the one it was opened from, else the latest with the same phone or email. */
+async function findLead(thread: Thread, leadId: string | null) {
+  if (leadId) return db.websiteLead.findUnique({ where: { id: leadId }, select: LEAD_FIELDS }).catch(() => null);
+  const phone = (thread.phone ?? "").replace(/\D/g, "").slice(-10);
+  const or = [...(phone.length === 10 ? [{ phone: { endsWith: phone } }] : []), ...(thread.email ? [{ email: thread.email.toLowerCase() }] : [])];
+  if (!or.length) return null;
+  return db.websiteLead.findFirst({ where: { OR: or }, orderBy: { createdAt: "desc" }, select: LEAD_FIELDS }).catch(() => null);
+}
+
+/** Lead campaign and sequence messages we sent them, newest first. */
+async function sentToLead(leadId: string) {
+  const rows = await db.leadMessage
+    .findMany({
+      where: { leadId, status: "sent" },
+      orderBy: { createdAt: "desc" },
+      take: 8,
+      select: { channel: true, createdAt: true, step: true, campaign: { select: { name: true } }, automation: { select: { name: true } } },
+    })
+    .catch(() => []);
+  return rows.map((m) => ({
+    channel: m.channel,
+    createdAt: m.createdAt,
+    template: null,
+    from: m.campaign?.name ?? (m.automation ? `${m.automation.name}, message ${(m.step ?? 0) + 1}` : null),
+  }));
+}
+
 async function whoTheyAre(thread: Thread) {
   const meta = (thread.meta && typeof thread.meta === "object" ? thread.meta : {}) as Record<string, unknown>;
   const lines: string[] = [`Name: ${thread.name}`];
   if (thread.email) lines.push(`Email: ${thread.email}`);
   if (thread.phone) lines.push(`Phone/WhatsApp: ${thread.phone}`);
-  const leadId = typeof meta.leadId === "string" ? meta.leadId : null;
-  const lead = leadId ? await db.websiteLead.findUnique({ where: { id: leadId }, select: { kind: true, role: true, source: true, pageUrl: true, convertedAt: true } }).catch(() => null) : null;
-  if (lead) lines.push(`Came from the website (${lead.kind} form${lead.pageUrl ? `, ${lead.pageUrl}` : ""}); signed up as a ${lead.role === "delivery" ? "delivery partner" : lead.role} lead${lead.convertedAt ? ", and already has an account" : ", no account yet"}.`);
+  const lead = await findLead(thread, typeof meta.leadId === "string" ? meta.leadId : null);
+  if (lead) lines.push(leadContext(lead, await sentToLead(lead.id)));
   const userId = typeof meta.matchedUserId === "string" ? meta.matchedUserId : null;
   const user = userId ? await db.user.findUnique({ where: { id: userId }, select: { role: true, createdAt: true, store: { select: { name: true, status: true } } } }).catch(() => null) : null;
   if (user) lines.push(`Has a Shopinbos ${user.role.replace("_", " ")} account since ${user.createdAt.toISOString().slice(0, 10)}${user.store ? ` (store "${user.store.name}", ${user.store.status})` : ""}.`);
@@ -131,6 +159,7 @@ How to answer:
 - Read the whole conversation. Answer EVERY question they asked, in the order they asked, with specifics from the facts below. If they mention their business (what they sell, where, an existing website or Instagram), make the answer about their situation.
 - Use only the facts below and the live numbers. Never invent a price, fee, feature, partner, city, timeline or guarantee. If something isn't covered, say the team will confirm it, and set needs_human.
 - Be honest about what's live now and what comes at launch (1 November 2026).
+- Follow HOW WE MET under WHO THEY ARE. Waitlist people heard from us because they signed up: if they're unsure who we are, remind them they joined the waitlist. Partnership outreach contacts never signed up: we found their business and reached out first, so never thank them for joining; introduce Shopinbos briefly, answer, and when they say they're interested give the sign-up link and say the team will call them to set up (set needs_human so the team follows up).
 - End with one clear next step and the right link (seller sign-up, supplier sign-up, delivery partner sign-up, or WhatsApp us).
 - Never ask for passwords, card numbers or one-time codes. Never promise refunds, discounts, custom deals or approvals.
 - needs_human is true when: they are upset or complaining, it's about money already paid, a refund, payouts, an account they can't get into, verification decisions, a partnership/bulk deal, legal matters, or you're not sure of the answer.

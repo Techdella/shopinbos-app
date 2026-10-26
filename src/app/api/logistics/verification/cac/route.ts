@@ -7,7 +7,7 @@ import { registrationEnabled } from "@/lib/business-registration/service.server"
 
 // Instant CAC check (see src/lib/kyb/cac.ts). GET says whether it's switched on, and whether registering a new
 // business name through Shopinbos is open (Admin › Settings › Launches) so the form can link to it.
-export const GET = withLogistics(async () => NextResponse.json({ data: { enabled: cacCheckEnabled(), registrationOpen: await registrationEnabled().catch(() => false) } }));
+export const GET = withLogistics(async (_req: NextRequest, { user }: { user: AuthUser }) => NextResponse.json({ data: { enabled: cacCheckEnabled(), registrationOpen: await registrationEnabled(user.id).catch(() => false) } }));
 
 export const POST = withLogistics(async (req: NextRequest, { user }: { user: AuthUser }) => {
   const body = await req.json().catch(() => ({}));

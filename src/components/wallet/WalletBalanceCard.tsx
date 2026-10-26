@@ -4,16 +4,18 @@ import { useCallback, useEffect, useState, useTransition } from "react";
 import { cx } from "@/components/app-ui/cx";
 import { Icon } from "@/components/ui/Icon";
 import { BALANCE_LIMITS } from "@/lib/wallet/balance-rules";
+import { WalletAccountPanel, type WalletAccountView } from "./WalletAccountPanel";
 
 // The prepaid wallet (sellers, suppliers, delivery partners): balance, top up (card, or a transfer to their own
 // account number), withdraw to their bank, and what moved. Sales don't come here: they go straight to the bank.
 
-type View = {
+type View = WalletAccountView & {
+  /** False for a supplier or delivery partner whose business isn't verified yet. Older servers don't send it. */
+  open?: boolean;
   ready: boolean;
   balanceNaira: number;
   canWithdraw: boolean;
   bank: string | null;
-  topUpAccount: { number: string; name: string; bank: string } | null;
   transactions: Array<{ id: string; kind: string; naira: number; status: string; description: string; error: string | null; at: string }>;
 };
 
@@ -26,7 +28,6 @@ export function WalletBalanceCard({ returnTo, notice }: { returnTo: string; noti
   const [amount, setAmount] = useState("");
   const [message, setMessage] = useState<{ tone: "ok" | "error"; text: string } | null>(notice === "done" ? { tone: "ok", text: "Top-up received. Your balance is updated." } : notice === "failed" ? { tone: "error", text: "That top-up didn't go through. Nothing was taken." } : notice === "pending" ? { tone: "ok", text: "Top-up is processing. It shows here as soon as the bank confirms it." } : null);
   const [pending, start] = useTransition();
-  const [copied, setCopied] = useState(false);
 
   const load = useCallback(async () => {
     const response = await fetch("/api/app/wallet", { cache: "no-store" }).catch(() => null);
@@ -52,7 +53,7 @@ export function WalletBalanceCard({ returnTo, notice }: { returnTo: string; noti
         window.location.assign(json.data.authorizationUrl);
         return;
       }
-      setMessage({ tone: "ok", text: json?.data?.status === "done" ? "Sent to your bank." : "On its way to your bank. It usually arrives within minutes." });
+      setMessage({ tone: "ok", text: json?.data?.status === "done" ? "Sent to your bank." : json?.data?.status === "queued" ? "Withdrawal received. It's in line and goes to your bank automatically within a few hours; we'll tell you when it's sent." : "On its way to your bank. It usually arrives within minutes." });
       setMode(null);
       setAmount("");
       void load();
@@ -66,7 +67,7 @@ export function WalletBalanceCard({ returnTo, notice }: { returnTo: string; noti
         <div className="min-w-0 flex-1 basis-[220px]">
           <h2 id="wallet-balance" className="m-0 text-[13px] font-extrabold uppercase tracking-[0.08em] text-app-ink-soft">Wallet balance</h2>
           <div className="mt-1 text-[34px] font-extrabold leading-none tracking-[-0.03em]">{naira(view.balanceNaira)}</div>
-          <p className="mb-0 mt-2 text-[13px] text-app-ink-soft">Top up to pay for AI credits and other Shopinbos services. Sales still go straight to your bank.</p>
+          <p className="mb-0 mt-2 text-[13px] text-app-ink-soft">Top up by transfer or card, spend it on AI credits and other Shopinbos services, or withdraw it to your main bank account. Sales still go straight to your bank.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button type="button" disabled={!view.ready} onClick={() => { setMode(mode === "topup" ? null : "topup"); setMessage(null); }} className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-app-ink px-5 text-[14px] font-extrabold text-white disabled:opacity-50">
@@ -78,6 +79,15 @@ export function WalletBalanceCard({ returnTo, notice }: { returnTo: string; noti
         </div>
       </div>
 
+      {view.open === false ? (
+        <p className="mb-0 mt-4 rounded-[18px] border border-[#F2D3A6] bg-[#FFF7EA] px-4 py-3 text-[13.5px] leading-[1.5]">
+          <strong>Your wallet activates when your business is verified.</strong> Until then you can&apos;t top up or withdraw.{" "}
+          <a href={returnTo.startsWith("/logistics") ? "/logistics/verification" : "/supplier/verification"} className="font-bold underline underline-offset-4">Finish your verification</a>
+          {" "}· Stuck? Call Peggy from your dashboard, free.
+        </p>
+      ) : null}
+      <WalletAccountPanel view={view} onUpdated={setView} />
+
       {mode && (
         <form
           className="mt-4 grid gap-3 rounded-[18px] bg-app-canvas p-4"
@@ -86,27 +96,8 @@ export function WalletBalanceCard({ returnTo, notice }: { returnTo: string; noti
             submit();
           }}
         >
-          {mode === "topup" && view.topUpAccount && (
-            <div className="rounded-[14px] border border-app-line bg-white p-3.5">
-              <div className="text-[13px] font-bold text-app-ink-soft">Transfer to your own top-up account from any bank app:</div>
-              <div className="mt-1 flex flex-wrap items-center gap-2">
-                <span className="font-mono text-[22px] font-extrabold tracking-[0.04em]">{view.topUpAccount.number}</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    void navigator.clipboard?.writeText(view.topUpAccount!.number).then(() => setCopied(true)).catch(() => null);
-                  }}
-                  className="min-h-[32px] rounded-full border border-app-line px-3 text-[12.5px] font-bold"
-                >
-                  {copied ? "Copied" : "Copy"}
-                </button>
-              </div>
-              <div className="text-[13px] text-app-ink-soft">{view.topUpAccount.bank} · {view.topUpAccount.name}</div>
-              <div className="mt-2 text-[12.5px] text-app-ink-soft">It lands in your balance within a minute or two. Or pay by card below.</div>
-            </div>
-          )}
           <label className="grid gap-1.5 text-[13.5px] font-bold">
-            {mode === "topup" ? "Amount to add (card or bank)" : `Amount to send to ${view.bank ?? "your bank"}`}
+            {mode === "topup" ? "Amount to add by card" : `Amount to send to ${view.bank ?? "your bank"}`}
             <input inputMode="numeric" className={fieldClass} value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={mode === "topup" ? `₦${BALANCE_LIMITS.topUpMin.toLocaleString("en-NG")} or more` : `₦${BALANCE_LIMITS.withdrawMin.toLocaleString("en-NG")} or more`} required />
           </label>
           <div className="flex flex-wrap gap-2">
@@ -133,7 +124,7 @@ export function WalletBalanceCard({ returnTo, notice }: { returnTo: string; noti
                 <span className="block truncate font-bold">{t.description}</span>
                 <span className="block text-[12px] text-app-ink-soft">
                   {new Date(t.at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
-                  {t.status === "pending" ? " · on its way" : t.status === "failed" ? ` · didn't go through${t.error ? `: ${t.error}` : ""}` : ""}
+                  {t.status === "pending" ? " · on its way" : t.status === "queued" ? " · in line, sent soon" : t.status === "failed" ? ` · didn't go through${t.error ? `: ${t.error}` : ""}` : ""}
                 </span>
               </span>
               <span className={cx("shrink-0 font-extrabold", t.naira > 0 ? "text-app-success" : "text-app-ink")}>{t.naira > 0 ? "+" : "−"}{naira(Math.abs(t.naira))}</span>

@@ -11,7 +11,7 @@ import { naira } from "@shared/onboarding";
 import { cacVasCall, cacVasError, cacVasReady } from "@/lib/cac-vas.server";
 import { readPrivateFile, removePrivateFile, uploadPrivateFile } from "@/lib/supabase/storage.server";
 import { approveCacDocFromRegistration } from "@/lib/kyb/verify-cac.server";
-import { registrationLaunched } from "./launch.server";
+import { registrationOpenFor } from "./launch.server";
 import {
   REGISTRATION_FILES,
   REGISTRATION_REFERENCE_PREFIX,
@@ -58,9 +58,12 @@ export class RegistrationError extends Error {
   }
 }
 
-/** Switched on by an admin (Admin › Settings › Launches) and the CAC VAS key and Paystack are both set. */
-export async function registrationEnabled() {
-  return cacVasReady() && paystackSecretReady(process.env.PAYSTACK_SECRET_KEY) && (await registrationLaunched());
+/**
+ * Switched on by an admin (Admin › Settings › Launches), or this account is one of its testers, and the CAC VAS key
+ * and Paystack are both set.
+ */
+export async function registrationEnabled(userId?: string | null) {
+  return cacVasReady() && paystackSecretReady(process.env.PAYSTACK_SECRET_KEY) && (await registrationOpenFor(userId));
 }
 
 export async function registrationPrice() {
@@ -78,8 +81,8 @@ function plainError(error: unknown) {
 const asJson = (value: unknown) => value as Prisma.InputJsonValue;
 
 /** CAC's verdict on a proposed name: available and within its naming rules. Free. */
-export async function checkBusinessName(proposedName: string, lineOfBusiness: string): Promise<NameCheck> {
-  if (!(await registrationEnabled())) throw new RegistrationError("disabled", "Business registration isn't switched on yet.", 503);
+export async function checkBusinessName(proposedName: string, lineOfBusiness: string, userId?: string | null): Promise<NameCheck> {
+  if (!(await registrationEnabled(userId))) throw new RegistrationError("disabled", "Business registration isn't switched on yet.", 503);
   const name = proposedName.trim().replace(/\s+/g, " ").slice(0, 120);
   if (name.split(" ").length < 2) throw new RegistrationError("invalid", "Use at least two words, e.g. \"Ada Fabrics Ventures\".");
   const body = { proposedName: name, lineOfBusiness: lineOfBusiness.trim() || "General Merchandise" };
@@ -144,7 +147,7 @@ export async function startBusinessRegistration(input: {
   files: Partial<Record<RegistrationFile, File | null>>;
   callbackUrl: string;
 }) {
-  if (!(await registrationEnabled())) throw new RegistrationError("disabled", "Business registration isn't switched on yet.", 503);
+  if (!(await registrationEnabled(input.user.id))) throw new RegistrationError("disabled", "Business registration isn't switched on yet.", 503);
   const form = cleanRegistrationForm(input.form);
   const problems: Record<string, string> = { ...registrationFormProblems(form), ...checkFiles(input.files) };
   // One application per name at a time: paid, with CAC, or paid for in the last hour.
@@ -161,7 +164,7 @@ export async function startBusinessRegistration(input: {
   }
   if (Object.keys(problems).length) throw new RegistrationError("invalid", "Check the highlighted fields.", 400, problems);
 
-  const nameCheck = await checkBusinessName(form.proposedName, form.lineOfBusiness);
+  const nameCheck = await checkBusinessName(form.proposedName, form.lineOfBusiness, input.user.id);
   if (!nameCheck.canProceed) {
     throw new RegistrationError("name_refused", nameCheck.advice[0] ?? "CAC won't accept this name. Try another.", 400, { proposedName: nameCheck.advice[0] ?? "Try another name" });
   }

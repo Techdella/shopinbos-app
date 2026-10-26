@@ -115,6 +115,8 @@ export function leadAddress(lead: Pick<LeadForMessage, "email" | "phone" | "opte
   if (lead.optedOut.includes(channel)) return null;
   if (channel === "email") return lead.email || null;
   const phone = (lead.phone ?? "").replace(/[^\d+]/g, "");
+  // A Nigerian number written the local way (0803…) is +234803… to WhatsApp and SMS providers.
+  if (/^0\d{10}$/.test(phone)) return `+234${phone.slice(1)}`;
   return phone.replace(/\D/g, "").length >= 8 ? phone : null;
 }
 

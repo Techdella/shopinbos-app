@@ -72,3 +72,29 @@ test("'add documents later' opens the portal but never trading or review", () =>
   assert.match(ui, /Continue without documents/);
   assert.match(ui, /CacInstantCheck/);
 });
+
+test("verify sequence: the first nudge now, then 3 and 7 days after it, never two in a day", () => {
+  const DAY = 24 * 60 * 60 * 1000;
+  const start = Date.parse("2026-10-26T10:00:00Z");
+  assert.equal(r.dueNudge([], start), 0);
+  const first = [new Date(start).toISOString()];
+  assert.equal(r.dueNudge(first, start + 2 * DAY), null);
+  assert.equal(r.dueNudge(first, start + 3 * DAY), 1);
+  const second = [...first, new Date(start + 3 * DAY).toISOString()];
+  assert.equal(r.dueNudge(second, start + 6 * DAY), null);
+  assert.equal(r.dueNudge(second, start + 7 * DAY), 2);
+  assert.equal(r.dueNudge([...second, new Date(start + 7 * DAY).toISOString()], start + 30 * DAY), null, "three at most");
+  assert.deepEqual(r.sentNudges({ verifyNudges: ["a", 1, "b"] }), ["a", "b"]);
+});
+
+test("verify sequence: the wallet switches on when they verify, and Peggy's free call is always there", () => {
+  const base = { role: "logistics_partner", firstName: "Ada", businessName: "Ada Logistics", missing: ["CAC certificate"], link: "https://app.shopinbos.com/logistics/verification", cacEnabled: false, peggyImage: "https://app.shopinbos.com/brand/email/call-peggy.png", dashboard: "https://app.shopinbos.com/logistics/dashboard" };
+  const withWallet = r.verifyNudgeEmail({ ...base, index: 0, wallet: { number: "9818722144", bank: "Wema Bank" } });
+  assert.match(withWallet.subject, /Shopinbos Wallet switches on when you verify/);
+  assert.match(withWallet.bodyHtml, /981 872 2144/);
+  assert.match(withWallet.bodyHtml, /Call Peggy, free/);
+  assert.match(withWallet.bodyHtml, /call-peggy\.png/);
+  const noWallet = r.verifyNudgeEmail({ ...base, index: 1, wallet: null });
+  assert.match(noWallet.subject, /Call Peggy/);
+  assert.doesNotMatch(noWallet.bodyHtml, /wallet account number/i);
+});

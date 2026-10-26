@@ -630,6 +630,26 @@ const TIP_BODY =
   "Sannu {{1}}, ga shawarar wannan makon daga {{2}} 💡\n\n{{3}}\n\nTaɓa ƙasa don gwada ta a Shopinbos. Amsa da STOP idan ba ka son samun shawarwarin mako-mako.";
 
 export const templates: Record<string, TemplateText> = {
+  shopinbos_verify_wallet: {
+    body: "Sannu {{1}}, an shirya Shopinbos Wallet ɗin {{2}}, kuma zai fara aiki da zarar an tabbatar da kasuwancinka. 🔓\n\nAbin da ya rage: {{3}}. Zai ɗauki 'yan mintuna kawai.\n\nKa makale? Kira Peggy, AI support ɗinmu, kyauta: buɗe dashboard ɗinka ka danna Call Peggy.",
+    button: "Tabbatar da kasuwancina",
+    examples: ["Ada", "Ada Logistics", "CAC certificate, ID"],
+  },
+  shopinbos_verify_reminder: {
+    body: "Sannu {{1}}, ba a tabbatar da {{2}} a Shopinbos ba tukuna, don haka {{3}} ba za su iya ganinka ba. ✅\n\nAbin da ya rage: {{4}}.\n\nKana buƙatar taimako? Peggy, AI support ɗinmu, za ta nuna maka a kiran kyauta: buɗe dashboard ɗinka ka danna Call Peggy.",
+    button: "Tabbatar da kasuwancina",
+    examples: ["Ada", "Ada Fabrics", "sellers", "CAC certificate"],
+  },
+  shopinbos_wallet_ready: {
+    body: "Sannu {{1}}, Shopinbos Wallet ɗinka ya shirya! 🎉\n\nLambar asusunka ta kanka ita ce {{2}} a {{3}}, da sunan {{4}}. Tura kuɗi zuwa gare ta daga kowace manhajar banki, kuɗin zai shiga walat ɗinka cikin minti ɗaya ko biyu.\n\nYi amfani da kuɗin walat ɗinka don AI credits da sauran ayyukan Shopinbos, kuma ka cire zuwa bankinka a duk lokacin da kake so.",
+    button: "Buɗe walat ɗina",
+    examples: ["Ada", "9912345678", "Wema Bank", "SHOPINBOS/ADA FABRICS"],
+  },
+  shopinbos_order_summary: {
+    body: "Sannu {{1}}, mun gode da odar ka daga {{2}}! 🛍️\n\nOda {{3}}: {{4}}\nJimilla: {{5}}\n\nYadda za a biya: {{6}} Danna ƙasa don ganin odar ka.",
+    button: "Duba odata",
+    examples: ["Ada", "Rexi", "SB-MVP80C9V-8D1B09", "1 × Ankara tote, 2 × Silk scarf", "₦7,100", "Za ka iya biya da kati, bank transfer ko USSD."],
+  },
   shopinbos_refer_supplier: {
     body: "Sannu {{1}}, ka san wani supplier da ya kamata ya riƙa sayar wa ƙarin shaguna? 🤝\n\nGayyace shi zuwa Shopinbos da link ɗinka. Idan an yi masa verification kuma ya saka kaya 5, za ka sami {{2}}. Shi kuma zai sami wata ɗaya kyauta na Supplier Plus da featured week a marketplace.\n\nTaɓa ƙasa don karɓar link ɗinka ka raba shi a WhatsApp.",
     button: "Gayyaci supplier",

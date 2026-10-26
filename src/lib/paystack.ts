@@ -211,6 +211,27 @@ export async function updatePaystackSubaccount(code: string, change: { bankCode?
   return readSubaccount(json.data);
 }
 
+/**
+ * Whether a Paystack record exists on the account the current key belongs to (GET /plan/:code, /subaccount/:code,
+ * /customer/:code). Test and live mode are separate: a code made with test keys is "not found" on live. Null when
+ * Paystack didn't say (network, outage), so callers leave things as they are.
+ */
+export async function paystackRecordExists(kind: "plan" | "subaccount" | "customer" | "transferrecipient", code: string): Promise<boolean | null> {
+  try {
+    const response = await fetch(`${PAYSTACK_BASE}/${kind}/${encodeURIComponent(code)}`, {
+      headers: { Authorization: `Bearer ${secretKey()}` },
+      cache: "no-store",
+      signal: AbortSignal.timeout(15_000),
+    });
+    const json = (await response.json().catch(() => null)) as { status?: boolean; message?: string } | null;
+    if (response.ok && json?.status) return true;
+    if (response.status === 404 || (response.status === 400 && /not found|invalid/i.test(json?.message ?? ""))) return false;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export interface PaystackSettlement {
   id: string;
   status: string;

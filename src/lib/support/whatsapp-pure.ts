@@ -62,6 +62,35 @@ export const TEAM_TEMPLATES: TeamTemplate[] = [
     params: ["first_name"],
     sample: ["Ada"],
   },
+  // After a partnership call (src/lib/lead-growth/whatsapp-content.ts has the cold outreach). The note is what was
+  // agreed on the call, e.g. "As promised, our team will call you on Thursday to set up your first 10 products."
+  {
+    name: "shopinbos_partner_supplier_after_call",
+    purpose: "After a call: supplier partner (what you agreed, plus how to register)",
+    category: "MARKETING",
+    language: "en",
+    body: "Hi {{1}}, it's {{2}} from Shopinbos. Thank you for speaking with us about becoming a supplier partner.\n\n{{3}}\n\nWhen you're ready, register at https://app.shopinbos.com/supplier/signup and add your products, or reply here and we'll set up your listing with you. You can also email hello@shopinbos.com.",
+    params: ["first_name", "agent", "note"],
+    sample: ["Ada", "Tolu", "As promised, we'll call you on Thursday at 11am to set up your first 10 products together."],
+  },
+  {
+    name: "shopinbos_partner_delivery_after_call",
+    purpose: "After a call: delivery / logistics partner (what you agreed, plus how to register)",
+    category: "MARKETING",
+    language: "en",
+    body: "Hi {{1}}, it's {{2}} from Shopinbos. Thank you for speaking with us about delivering for sellers on Shopinbos.\n\n{{3}}\n\nWhen you're ready, register at https://app.shopinbos.com/logistics/signup and set your areas and prices, or reply here and we'll set it up with you. You can also email hello@shopinbos.com.",
+    params: ["first_name", "agent", "note"],
+    sample: ["Ada", "Tolu", "As discussed, you'll start with Lagos Island and Mainland, and we'll verify your company this week."],
+  },
+  {
+    name: "shopinbos_partner_seller_after_call",
+    purpose: "After a call: seller getting a free store (what you agreed, plus how to start)",
+    category: "MARKETING",
+    language: "en",
+    body: "Hi {{1}}, it's {{2}} from Shopinbos. Thank you for speaking with us about your free online store.\n\n{{3}}\n\nWhen you're ready, start at https://app.shopinbos.com/signup and Rex will build your store with you in minutes, or reply here and our team will set it up for you. You can also email hello@shopinbos.com.",
+    params: ["first_name", "agent", "note"],
+    sample: ["Ada", "Tolu", "As promised, send us your logo and 5 product photos here and we'll have your store ready by Friday."],
+  },
 ];
 
 export function teamTemplate(name: string | null | undefined) {

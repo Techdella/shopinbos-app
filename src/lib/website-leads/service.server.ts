@@ -51,10 +51,8 @@ export function saveWebsiteLead(input: WebsiteLeadInputType) {
         return { id: same.id };
       }
     }
-    return db.websiteLead.upsert({
-      where: { externalId: input.id },
-      update: {},
-      create: {
+    return db.websiteLead.create({
+      data: {
         externalId: input.id,
         kind: input.kind,
         name: input.name,
@@ -70,6 +68,10 @@ export function saveWebsiteLead(input: WebsiteLeadInputType) {
         ...(input.createdAt ? { createdAt: new Date(input.createdAt) } : {}),
       },
       select: { id: true },
+    }).catch(async (error) => {
+      // The website sent the same lead twice at once (a retry): the other request saved it first.
+      if ((error as { code?: string }).code === "P2002") return db.websiteLead.findUniqueOrThrow({ where: { externalId: input.id }, select: { id: true } });
+      throw error;
     });
   });
 }

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { WalletMini } from "@/components/wallet/WalletAccountCard";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { AppFrame } from "@/components/shell/AppFrame";
@@ -298,6 +299,7 @@ export default async function HomePage() {
         </Card>
 
         <div className="grid content-start gap-5">
+          <WalletMini variant="home" />
           <CampaignsWidget items={countdowns} serverNow={now.toISOString()} />
 
           {/* Where orders come from */}

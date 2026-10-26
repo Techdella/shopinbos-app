@@ -1,6 +1,7 @@
 import "server-only";
 
 import { randomUUID } from "node:crypto";
+import { after } from "next/server";
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { paystackSecretReady } from "@shared/checkout-payments";
@@ -8,7 +9,13 @@ import { initializePaystackTransaction, verifyPaystackTransaction } from "@/lib/
 import { createPaystackTransferRecipient } from "@/lib/payout-bank";
 import { readDedicatedAccount } from "@/lib/logistics/payin-rules";
 import { dvaBank, dvaUnavailableMessage } from "@/lib/logistics/paystack-dva";
-import { BALANCE_LIMITS, WALLET_REFERENCE, validAmountNaira } from "./balance-rules";
+import { appBase, sendPlatformEmail } from "@/lib/email/compliance.server";
+import { html } from "@/lib/email/shell";
+import { sendShopinbosTemplate } from "@/lib/member-messaging/send.server";
+import { identityChecksReady, walletAccountIdentity } from "./identity.server";
+import { cacCheckEnabled } from "@/lib/kyb/verify-cac.server";
+import { ensurePaystackModeSynced } from "@/lib/paystack-mode.server";
+import { BALANCE_LIMITS, WALLET_REFERENCE, paystackNames, paystackPhone, validAmountNaira } from "./balance-rules";
 
 // The prepaid wallet balance. Businesses top it up (card, or a bank transfer to their own top-up account number),
 // spend it on Shopinbos services (AI credits), and withdraw what's left to their checked bank (Paystack transfer).
@@ -36,10 +43,10 @@ export function topUpAccountsReady() {
   return walletPaymentsReady() && process.env.WALLET_TOPUP_ACCOUNTS?.trim().toLowerCase() === "true";
 }
 
-async function paystack(path: string, body: Record<string, unknown>) {
+async function paystack(path: string, body: Record<string, unknown>, method: "POST" | "PUT" = "POST") {
   try {
     const response = await fetch(`${PAYSTACK_BASE}${path}`, {
-      method: "POST",
+      method,
       headers: { Authorization: `Bearer ${secret()}`, "Content-Type": "application/json" },
       body: JSON.stringify(body),
       cache: "no-store",
@@ -51,6 +58,21 @@ async function paystack(path: string, body: Record<string, unknown>) {
   } catch (error) {
     return { ok: false as const, message: error instanceof Error ? error.message.slice(0, 300) : "network error", status: 0 };
   }
+}
+
+/**
+ * Whether this account gets a prepaid wallet: sellers straight away; suppliers and delivery partners once Shopinbos
+ * has verified their business (no balance or account number for an unverified partner). Admins never.
+ */
+export async function walletOpenFor(userId: string) {
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { role: true, supplier: { select: { verificationStatus: true } }, logisticsPartner: { select: { verificationStatus: true } } },
+  });
+  if (!user || user.role === "admin") return false;
+  if (user.role === "supplier") return user.supplier?.verificationStatus === "verified";
+  if (user.role === "logistics_partner") return user.logisticsPartner?.verificationStatus === "verified";
+  return true;
 }
 
 /** The business's wallet, made when it doesn't exist yet. */
@@ -95,6 +117,7 @@ export async function spendFromWallet(userId: string, input: { amountKobo: numbe
 /** Starts a card (or bank) top-up on Paystack's checkout; returns the page to send them to. */
 export async function startCardTopUp(input: { userId: string; email: string | null; naira: number; origin: string; returnTo: string }) {
   if (!walletPaymentsReady()) throw new WalletBalanceError("Top-ups aren't switched on yet.");
+  if (!(await walletOpenFor(input.userId))) throw new WalletBalanceError("Your wallet opens once your business is verified.");
   const problem = validAmountNaira(input.naira, BALANCE_LIMITS.topUpMin, BALANCE_LIMITS.topUpMax);
   if (problem) throw new WalletBalanceError(problem);
   const wallet = await ensureWallet(input.userId);
@@ -121,38 +144,210 @@ export async function confirmCardTopUp(reference: string): Promise<"done" | "fai
   if (verified.currency !== "NGN" || metadata.purpose !== "wallet_topup" || !walletId) return "failed";
   const wallet = await db.wallet.findUnique({ where: { id: walletId }, select: { id: true } });
   if (!wallet) return "failed";
-  await creditWallet(wallet.id, { amountKobo: Number(verified.amount), reference, kind: "topup", description: "Top-up by card" });
+  const credited = await creditWallet(wallet.id, { amountKobo: Number(verified.amount), reference, kind: "topup", description: "Top-up by card" });
+  if (credited) await notifyMoneyIn(wallet.id, Number(verified.amount), { via: "card", reference }).catch((error) => console.error("[wallet] money-in notification", error));
   return "done";
 }
 
 /**
- * Their own top-up account (a bank account number only they pay into). Made once the business is set up to get
- * paid (checked bank). Safe on every wallet page load: returns at once when it exists, backs off after failures.
+ * Their own top-up account (a bank account number only they pay into). Made at sign-in (provisionWallet) and again
+ * on wallet page loads until it exists: returns at once when it does, backs off after failures.
  */
 export async function ensureTopUpAccount(userId: string) {
-  if (!topUpAccountsReady()) return null;
-  const wallet = await ensureWallet(userId);
-  if (wallet.topUpStatus === "ready") return wallet;
+  if (!topUpAccountsReady() || !(await walletOpenFor(userId))) return null;
+  await ensurePaystackModeSynced();
+  let wallet = await ensureWallet(userId);
+  // The verified business name, else the NIN-verified owner (src/lib/wallet/identity.server.ts).
+  const identity = await walletAccountIdentity(userId);
+  let replacing = false;
+  if (wallet.topUpStatus === "ready") {
+    // A number not in the business's name gets a new one once the business is verified. The old customer stays
+    // known, so a transfer to the old number still lands in this wallet.
+    if (identity?.kind !== "business" || wallet.topUpNameKind === "business" || !wallet.topUpCustomerCode) return splitTopUpAccount(wallet);
+    wallet = await db.wallet.update({
+      where: { id: wallet.id },
+      data: { topUpOldCustomerCodes: { push: wallet.topUpCustomerCode }, topUpCustomerCode: null, topUpAccountNumber: null, topUpAccountName: null, topUpBankName: null, topUpNameKind: null, topUpStatus: "none", topUpError: null },
+    });
+    replacing = true;
+  }
   const age = Date.now() - wallet.updatedAt.getTime();
-  if ((wallet.topUpStatus === "unavailable" && age < 86_400_000) || ((wallet.topUpStatus === "failed" || wallet.topUpStatus === "pending") && age < 600_000)) return wallet;
-  const user = await db.user.findUnique({ where: { id: userId }, select: { name: true, email: true, phone: true } });
-  if (!user?.email) return wallet;
-  const [first, ...rest] = (user.name || "Shopinbos Business").trim().split(/\s+/);
+  if (!replacing && ((wallet.topUpStatus === "unavailable" && age < 86_400_000) || ((wallet.topUpStatus === "failed" || wallet.topUpStatus === "pending") && age < 600_000))) return wallet;
+  if (!identity) return db.wallet.update({ where: { id: wallet.id }, data: { topUpStatus: "needs_identity", topUpError: null } });
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { name: true, email: true, phone: true, supplier: { select: { whatsappNumber: true } }, logisticsPartner: { select: { contactPhone: true, whatsappNumber: true } } },
+  });
+  if (!user) return wallet;
+  // Paystack won't give a dedicated account to a customer without a phone number.
+  const phone = paystackPhone(user.phone ?? user.supplier?.whatsappNumber ?? user.logisticsPartner?.contactPhone ?? user.logisticsPartner?.whatsappNumber);
+  if (!phone) return db.wallet.update({ where: { id: wallet.id }, data: { topUpStatus: "needs_phone", topUpError: null } });
+  const names = paystackNames(identity);
   let customerCode = wallet.topUpCustomerCode;
-  if (!customerCode) {
-    const customer = await paystack("/customer", { email: user.email, first_name: first, last_name: rest.join(" ") || first, phone: user.phone ?? undefined, metadata: JSON.stringify({ shopinbos: "wallet", walletId: wallet.id }) });
+  if (customerCode) {
+    // Made before Paystack had their phone or their verified name: bring both up to date first.
+    const updated = await paystack(`/customer/${encodeURIComponent(customerCode)}`, { phone, ...names }, "PUT");
+    if (!updated.ok) return markTopUpProblem(wallet.id, updated.message);
+  } else {
+    // Paystack keeps one customer per email: a replacement number needs its own customer, so its own address.
+    const email = wallet.topUpOldCustomerCodes.length ? `wallet-${wallet.id}-${wallet.topUpOldCustomerCodes.length + 1}@shopinbos.com` : user.email || `wallet-${userId}@shopinbos.com`;
+    const customer = await paystack("/customer", { email, ...names, phone, metadata: { shopinbos: "wallet", walletId: wallet.id } });
     if (!customer.ok) return markTopUpProblem(wallet.id, customer.message);
     customerCode = (customer.data as { customer_code?: string } | undefined)?.customer_code ?? null;
     if (!customerCode) return markTopUpProblem(wallet.id, "Paystack returned no customer code.");
     await db.wallet.update({ where: { id: wallet.id }, data: { topUpCustomerCode: customerCode, topUpStatus: "pending" } });
   }
-  const created = await paystack("/dedicated_account", { customer: customerCode, preferred_bank: dvaBank() });
+  await db.wallet.update({ where: { id: wallet.id }, data: { topUpNameKind: identity.kind === "account" ? null : identity.kind } });
+  // Split to their own subaccount from the start when their bank is set up: transfers in settle straight to it.
+  const splitTo = wallet.subaccountStatus === "active" && wallet.subaccountCode ? wallet.subaccountCode : null;
+  const created = await paystack("/dedicated_account", { customer: customerCode, preferred_bank: dvaBank(), ...(splitTo ? { subaccount: splitTo } : {}) });
   if (!created.ok) return markTopUpProblem(wallet.id, created.message);
-  const account = readDedicatedAccount(created.data);
-  return db.wallet.update({
-    where: { id: wallet.id },
-    data: { topUpAccountNumber: account.accountNumber, topUpAccountName: account.accountName, topUpBankName: account.bankName, topUpStatus: account.accountNumber ? "ready" : "pending", topUpError: null },
+  if (splitTo) await db.wallet.update({ where: { id: wallet.id }, data: { topUpSplitTo: splitTo } });
+  await saveTopUpAccount(wallet.id, readDedicatedAccount(created.data));
+  return db.wallet.findUniqueOrThrow({ where: { id: wallet.id } });
+}
+
+/**
+ * Splits a wallet's account number to the business's own Paystack subaccount (POST /dedicated_account/split), so
+ * money transferred into it settles straight to their bank on Paystack's schedule: Shopinbos never holds it and
+ * there's nothing to withdraw. Done once their bank is set up (or changed); safe to call on every visit.
+ */
+async function splitTopUpAccount<W extends { id: string; topUpAccountNumber: string | null; topUpCustomerCode: string | null; topUpSplitTo: string | null; topUpError: string | null; subaccountCode: string | null; subaccountStatus: string; updatedAt: Date }>(wallet: W): Promise<W> {
+  const target = wallet.subaccountStatus === "active" ? wallet.subaccountCode : null;
+  if (!target || wallet.topUpSplitTo === target || !wallet.topUpAccountNumber) return wallet;
+  // Paystack refused lately: try again in an hour, not on every visit.
+  if (wallet.topUpError?.startsWith("split:") && Date.now() - wallet.updatedAt.getTime() < 3_600_000) return wallet;
+  const split = await paystack("/dedicated_account/split", { customer: wallet.topUpCustomerCode, account_number: wallet.topUpAccountNumber, subaccount: target, preferred_bank: dvaBank() });
+  if (!split.ok) {
+    console.warn(`[wallet] couldn't split account ${wallet.id} to its subaccount: ${split.message}`);
+    await db.wallet.update({ where: { id: wallet.id }, data: { topUpError: `split: ${split.message}`.slice(0, 300) } });
+    return wallet;
+  }
+  await db.wallet.update({ where: { id: wallet.id }, data: { topUpSplitTo: target, topUpError: null } });
+  return { ...wallet, topUpSplitTo: target, topUpError: null };
+}
+
+/** After a business's bank is set up or changed (src/lib/wallet/wallet.server.ts): point its account number at it. */
+export async function splitTopUpAccountFor(userId: string) {
+  const wallet = await db.wallet.findUnique({ where: { userId } });
+  if (wallet && wallet.topUpStatus === "ready" && topUpAccountsReady()) await splitTopUpAccount(wallet);
+}
+
+/**
+ * Stores the account Paystack assigned. The call that turns the wallet "ready" (a conditional update, so only one
+ * wins even when the API answer and the webhook arrive together) sends the "your wallet is ready" email, once.
+ */
+async function saveTopUpAccount(walletId: string, account: ReturnType<typeof readDedicatedAccount>) {
+  const details = { topUpAccountNumber: account.accountNumber, topUpAccountName: account.accountName, topUpBankName: account.bankName, topUpError: null };
+  if (!account.accountNumber) {
+    await db.wallet.updateMany({ where: { id: walletId, topUpStatus: { not: "ready" } }, data: { ...details, topUpStatus: "pending" } });
+    return;
+  }
+  const turnedReady = await db.wallet.updateMany({ where: { id: walletId, topUpStatus: { not: "ready" } }, data: { ...details, topUpStatus: "ready" } });
+  if (!turnedReady.count) {
+    await db.wallet.update({ where: { id: walletId }, data: details });
+    return;
+  }
+  await sendWalletReadyEmail(walletId).catch((error) => console.error(`[wallet] ready email for ${walletId}`, error));
+}
+
+function walletPath(role: string) {
+  return role === "supplier" ? "/supplier/wallet" : role === "logistics_partner" ? "/logistics/wallet" : "/home/wallet";
+}
+
+async function sendWalletReadyEmail(walletId: string) {
+  const wallet = await db.wallet.findUnique({
+    where: { id: walletId },
+    select: {
+      role: true,
+      topUpAccountNumber: true,
+      topUpAccountName: true,
+      topUpBankName: true,
+      user: { select: { id: true, email: true, name: true, role: true, phone: true, supplier: { select: { whatsappNumber: true } }, logisticsPartner: { select: { contactPhone: true, whatsappNumber: true } } } },
+    },
   });
+  const user = wallet?.user;
+  if (!wallet?.topUpAccountNumber || !user || user.role === "admin") return;
+  const first = (user.name ?? "").trim().split(/\s+/)[0];
+  // WhatsApp too (Shopinbos's number, approved template), to the number they gave us.
+  const phone = paystackPhone(user.phone ?? user.supplier?.whatsappNumber ?? user.logisticsPartner?.whatsappNumber ?? user.logisticsPartner?.contactPhone);
+  await sendShopinbosTemplate("shopinbos_wallet_ready", phone, [first || "there", wallet.topUpAccountNumber, wallet.topUpBankName ?? "your bank", wallet.topUpAccountName ?? "your business"]).catch(() => false);
+  if (!user.email) return;
+  await sendPlatformEmail({
+    to: user.email,
+    user: { id: user.id, role: user.role },
+    kind: "transactional",
+    subject: "Your Shopinbos Wallet is ready",
+    eyebrow: "Wallet",
+    heading: "Your Shopinbos Wallet is ready",
+    preheader: `Your own wallet account number: ${wallet.topUpAccountNumber}.`,
+    bodyHtml: [
+      html.p(first ? `Hi ${first}, your Shopinbos Wallet is set up.` : "Your Shopinbos Wallet is set up."),
+      html.p("This account number is yours alone. Transfer to it from any bank app and the money lands in your wallet balance within a minute or two:"),
+      html.code(wallet.topUpAccountNumber, `${wallet.topUpBankName ?? "Bank"} · ${wallet.topUpAccountName ?? ""}`),
+      html.p("Use your balance for AI credits and other Shopinbos services, and withdraw what's left to your bank whenever you like. Card payments from your customers are still split at checkout and paid straight into your bank."),
+    ].join(""),
+    cta: { label: "Open your wallet", url: `${appBase()}${walletPath(wallet.role)}` },
+    reason: "Your Shopinbos Wallet account number was just set up.",
+  });
+}
+
+/**
+ * Sets up wallets for businesses that haven't been back since wallets came in (hourly, with the lifecycle job), a
+ * few at a time so Paystack isn't flooded. Each gets its "wallet is ready" email when its account number arrives.
+ */
+export async function provisionPendingWallets(limit = 40) {
+  if (!topUpAccountsReady()) return { checked: 0 };
+  const users = await db.user.findMany({
+    where: {
+      // Suppliers and delivery partners only once their business is verified (walletOpenFor).
+      OR: [{ role: "seller" }, { role: "supplier", supplier: { verificationStatus: "verified" } }, { role: "logistics_partner", logisticsPartner: { verificationStatus: "verified" } }],
+      AND: [{ OR: [{ wallet: null }, { wallet: { topUpStatus: { in: ["none", "pending", "failed", "needs_phone", "needs_identity"] } } }] }],
+    },
+    orderBy: { createdAt: "asc" },
+    take: limit,
+    select: { id: true },
+  });
+  for (const user of users) await provisionWallet(user.id);
+  // Account numbers made before their bank was set up: split them to it now.
+  const unsplit = await db.wallet.findMany({ where: { topUpStatus: "ready", subaccountStatus: "active", subaccountCode: { not: null } }, take: 100 });
+  let split = 0;
+  for (const wallet of unsplit.filter((row) => row.topUpSplitTo !== row.subaccountCode).slice(0, limit)) {
+    if ((await splitTopUpAccount(wallet)).topUpSplitTo === wallet.subaccountCode) split += 1;
+  }
+  return { checked: users.length, split };
+}
+
+/**
+ * Gives a business its wallet and, when switched on, its own account number. Run after every sign-in (in the
+ * background, never blocking it); cheap once both exist. Admins have no wallet.
+ */
+export async function provisionWallet(userId: string) {
+  try {
+    if (!(await walletOpenFor(userId))) return;
+    await ensureWallet(userId);
+    await ensureTopUpAccount(userId);
+  } catch (error) {
+    console.error(`[wallet] could not set up the wallet of ${userId}`, error);
+  }
+}
+
+const lastProvisioned = new Map<string, number>();
+
+/**
+ * provisionWallet for someone already signed in (portal pages call it on every load), at most every 10 minutes per
+ * person on this server, in the background. Covers people whose session started before wallets came in.
+ */
+export function provisionWalletSoon(userId: string) {
+  const now = Date.now();
+  if (now - (lastProvisioned.get(userId) ?? 0) < 600_000) return;
+  if (lastProvisioned.size > 5_000) lastProvisioned.clear();
+  lastProvisioned.set(userId, now);
+  try {
+    after(() => provisionWallet(userId));
+  } catch {
+    // Outside a request (after() isn't available): the next page load or sign-in does it.
+    lastProvisioned.delete(userId);
+  }
 }
 
 async function markTopUpProblem(walletId: string, message: string) {
@@ -171,12 +366,100 @@ export async function handleWalletAccountCharge(data: unknown): Promise<boolean>
   const reference = typeof d.reference === "string" ? d.reference : null;
   const kobo = Number(d.amount);
   if (!code || !reference) return false;
-  const wallet = await db.wallet.findUnique({ where: { topUpCustomerCode: code }, select: { id: true } });
+  // An older number (replaced when the business was verified) still pays into the same wallet.
+  const wallet = await db.wallet.findFirst({ where: { OR: [{ topUpCustomerCode: code }, { topUpOldCustomerCodes: { has: code } }] }, select: { id: true, topUpSplitTo: true, bankName: true, accountNumber: true } });
   if (!wallet) return false;
+  // Split to their subaccount (Paystack names it on the charge; else the wallet says so): the money settles straight to
+  // their bank, so it goes on their statement, not on the prepaid balance.
+  const sub = (d.subaccount && typeof d.subaccount === "object" ? d.subaccount : {}) as Record<string, unknown>;
+  const toBank = typeof sub.subaccount_code === "string" && sub.subaccount_code ? true : Boolean(wallet.topUpSplitTo);
+  if (d.status === "success" && Number.isInteger(kobo) && kobo > 0 && toBank) {
+    const auth = (d.authorization && typeof d.authorization === "object" ? d.authorization : {}) as Record<string, unknown>;
+    const text = (value: unknown) => (typeof value === "string" && value.trim() ? value.trim().replace(/\s+/g, " ").slice(0, 80) : null);
+    const from = [text(auth.sender_name), text(auth.sender_bank) && `${text(auth.sender_bank)}${text(auth.sender_bank_account_number) ? ` ••${text(auth.sender_bank_account_number)!.slice(-4)}` : ""}`].filter(Boolean).join(" · ");
+    const created = await db.walletEntry.createMany({
+      data: [{ walletId: wallet.id, reference: `transferin:${reference}`, kind: "transfer_in", amountKobo: kobo, description: from ? `Transfer from ${from}` : "Transfer to your wallet account", paystackReference: reference }],
+      skipDuplicates: true,
+    });
+    if (created.count) {
+      const bank = wallet.accountNumber ? `${wallet.bankName ?? "your bank"} ••${wallet.accountNumber.slice(-4)}` : "your bank";
+      await notifyTransferToBank(wallet.id, kobo, { from, narration: text(auth.narration), reference, bank }).catch((error) => console.error("[wallet] transfer-in notification", error));
+    }
+    return true;
+  }
   if (d.status === "success" && Number.isInteger(kobo) && kobo > 0) {
-    await creditWallet(wallet.id, { amountKobo: kobo, reference: `${WALLET_REFERENCE.transferIn}${reference}`, kind: "topup", description: "Top-up by bank transfer" });
+    // Who sent it: Paystack passes the sender's name, bank and account on a transfer to a dedicated account.
+    const auth = (d.authorization && typeof d.authorization === "object" ? d.authorization : {}) as Record<string, unknown>;
+    const text = (value: unknown) => (typeof value === "string" && value.trim() ? value.trim().replace(/\s+/g, " ").slice(0, 80) : null);
+    const sender = { name: text(auth.sender_name), bank: text(auth.sender_bank), account: text(auth.sender_bank_account_number), narration: text(auth.narration) };
+    const from = [sender.name, sender.bank && `${sender.bank}${sender.account ? ` ••${sender.account.slice(-4)}` : ""}`].filter(Boolean).join(" · ");
+    const credited = await creditWallet(wallet.id, { amountKobo: kobo, reference: `${WALLET_REFERENCE.transferIn}${reference}`, kind: "topup", description: from ? `Transfer from ${from}` : "Top-up by bank transfer" });
+    if (credited) await notifyMoneyIn(wallet.id, kobo, { via: "transfer", from, narration: sender.narration, reference }).catch((error) => console.error("[wallet] money-in notification", error));
   }
   return true;
+}
+
+const formatNaira = (kobo: number) => `₦${(kobo / 100).toLocaleString("en-NG", { maximumFractionDigits: 2 })}`;
+
+/** "₦2,000 just landed in your wallet": the bell, a push and an email, with who sent it and the new balance. */
+async function notifyMoneyIn(walletId: string, kobo: number, input: { via: "transfer" | "card"; from?: string; narration?: string | null; reference: string }) {
+  const wallet = await db.wallet.findUnique({ where: { id: walletId }, select: { userId: true, role: true, balanceKobo: true } });
+  if (!wallet) return;
+  const { notify } = await import("@/lib/notifications/notify.server");
+  const lines = [
+    input.via === "card" ? "You topped up by card." : input.from ? `From ${input.from}.` : "Someone sent money to your wallet account number.",
+    input.narration ? `Note: "${input.narration}".` : null,
+    `Your balance is now ${formatNaira(wallet.balanceKobo)}.`,
+  ].filter(Boolean);
+  await notify({
+    userId: wallet.userId,
+    event: "wallet.received",
+    priority: "success",
+    title: `${formatNaira(kobo)} ${input.via === "card" ? "added to" : "just landed in"} your wallet`,
+    description: lines.join(" "),
+    link: walletPath(wallet.role),
+    actionLabel: "Open wallet",
+    metadata: { amountKobo: kobo, via: input.via, from: input.from ?? null, reference: input.reference },
+    dedupeKey: `wallet-in:${input.reference}`,
+    email: "transactional",
+  });
+}
+
+/** "₦2,000 received, on its way to your bank": a transfer to their account number that settles straight to their bank. */
+async function notifyTransferToBank(walletId: string, kobo: number, input: { from: string; narration: string | null; reference: string; bank: string }) {
+  const wallet = await db.wallet.findUnique({ where: { id: walletId }, select: { userId: true, role: true } });
+  if (!wallet) return;
+  const { notify } = await import("@/lib/notifications/notify.server");
+  await notify({
+    userId: wallet.userId,
+    event: "wallet.received",
+    priority: "success",
+    title: `${formatNaira(kobo)} received in your wallet account`,
+    description: [input.from ? `From ${input.from}.` : null, input.narration ? `Note: "${input.narration}".` : null, `It goes straight to ${input.bank}, usually the next working day (less Paystack's fee).`].filter(Boolean).join(" "),
+    link: walletPath(wallet.role),
+    actionLabel: "Open wallet",
+    metadata: { amountKobo: kobo, via: "transfer", toBank: true, from: input.from || null, reference: input.reference },
+    dedupeKey: `wallet-in:${input.reference}`,
+    email: "transactional",
+  });
+}
+
+async function notifyWithdrawal(walletId: string, reference: string, ok: boolean, reason?: string) {
+  const row = await db.walletTransaction.findUnique({ where: { reference }, select: { amountKobo: true, description: true } });
+  const wallet = await db.wallet.findUnique({ where: { id: walletId }, select: { userId: true, role: true, balanceKobo: true } });
+  if (!row || !wallet) return;
+  const { notify } = await import("@/lib/notifications/notify.server");
+  await notify({
+    userId: wallet.userId,
+    event: "wallet.withdrawal",
+    priority: ok ? "success" : "warning",
+    title: ok ? `${formatNaira(-row.amountKobo)} sent to your bank` : `Your ${formatNaira(-row.amountKobo)} withdrawal didn't go through`,
+    description: ok ? `${row.description}. It usually arrives within minutes.` : `${reason ? `${reason} ` : ""}The money is back in your wallet (balance ${formatNaira(wallet.balanceKobo)}).`,
+    link: walletPath(wallet.role),
+    actionLabel: "Open wallet",
+    dedupeKey: `wallet-out:${reference}:${ok ? "done" : "back"}`,
+    email: "transactional",
+  });
 }
 
 /** dedicatedaccount.assign.success / .failed for a wallet's top-up account. True when it was one. */
@@ -188,8 +471,7 @@ export async function handleWalletAccountAssign(eventType: string, data: unknown
   const wallet = await db.wallet.findUnique({ where: { topUpCustomerCode: code }, select: { id: true } });
   if (!wallet) return false;
   if (eventType.endsWith(".success")) {
-    const account = readDedicatedAccount(d.dedicated_account ?? d);
-    await db.wallet.update({ where: { id: wallet.id }, data: { topUpAccountNumber: account.accountNumber, topUpAccountName: account.accountName, topUpBankName: account.bankName, topUpStatus: account.accountNumber ? "ready" : "pending", topUpError: null } });
+    await saveTopUpAccount(wallet.id, readDedicatedAccount(d.dedicated_account ?? d));
   } else {
     await db.wallet.update({ where: { id: wallet.id }, data: { topUpStatus: "failed", topUpError: "Paystack couldn't assign the account." } });
   }
@@ -215,32 +497,120 @@ export async function withdrawToBank(userId: string, naira: number) {
     recipient = made.recipientCode;
     await db.wallet.update({ where: { id: wallet.id }, data: { transferRecipient: recipient } });
   }
+  if (!recipient) throw new WalletBalanceError("We couldn't set up your bank for withdrawals just now. Try again in a few minutes.");
+  const to = recipient;
   const amountKobo = Math.round(naira * 100);
   const reference = `${WALLET_REFERENCE.withdrawal}${randomUUID().replace(/-/g, "")}`;
   const description = `Withdrawal to ${wallet.bankName ?? "your bank"} ••${wallet.accountNumber.slice(-4)}`;
   await db.$transaction((tx) => debitWallet(wallet.id, { amountKobo, reference, kind: "withdrawal", description, status: "pending" }, tx));
+  // Withdrawals are paid from Shopinbos's Paystack balance. When it can't cover this one yet (money in settles to the
+  // bank), the withdrawal waits in line instead of failing: the money stays off their balance, the team is told, and
+  // sendQueuedWithdrawals sends it as soon as the balance allows.
+  const available = await paystackBalanceKobo();
+  if (available !== null && available < amountKobo) {
+    await queueWithdrawal(reference, "Waiting for the payout balance");
+    return { reference, status: "queued" as const };
+  }
+  return { reference, status: await sendWithdrawal(reference, to, amountKobo, true) };
+}
+
+/** Shopinbos's NGN balance on Paystack, in kobo (what withdrawals are paid from), or null when Paystack didn't say. */
+async function paystackBalanceKobo(): Promise<number | null> {
+  try {
+    const response = await fetch(`${PAYSTACK_BASE}/balance`, { headers: { Authorization: `Bearer ${secret()}` }, cache: "no-store", signal: AbortSignal.timeout(15_000) });
+    const json = (await response.json().catch(() => null)) as { status?: boolean; data?: Array<{ currency?: string; balance?: number }> } | null;
+    if (!response.ok || !json?.status || !Array.isArray(json.data)) return null;
+    const ngn = json.data.find((row) => row.currency === "NGN");
+    return typeof ngn?.balance === "number" ? ngn.balance : null;
+  } catch {
+    return null;
+  }
+}
+
+const NOT_ENOUGH = /balance is not enough|insufficient/i;
+
+/**
+ * Asks Paystack to send a withdrawal. "done"/"pending" when it went (the transfer webhook finishes it); "queued" when
+ * the payout balance is short (it waits); a refusal for any other reason puts the money back on their balance.
+ */
+async function sendWithdrawal(reference: string, recipient: string, amountKobo: number, onScreen: boolean): Promise<"done" | "pending" | "queued"> {
+  await db.walletTransaction.updateMany({ where: { reference, status: "queued" }, data: { status: "pending", error: null } });
   const sent = await paystack("/transfer", { source: "balance", amount: amountKobo, recipient, reference, reason: "Shopinbos wallet withdrawal", currency: "NGN" });
   if (!sent.ok) {
-    await refundWithdrawal(reference, sent.message);
-    throw new WalletBalanceError("The withdrawal didn't go through, so your balance is back. Try again later or message us.");
+    if (NOT_ENOUGH.test(sent.message)) {
+      await queueWithdrawal(reference, "Waiting for the payout balance");
+      return "queued";
+    }
+    await refundWithdrawal(reference, sent.message, !onScreen);
+    if (onScreen) throw new WalletBalanceError("The withdrawal didn't go through, so your balance is back. Try again later or message us.");
+    return "pending";
   }
   const status = String((sent.data as { status?: string } | undefined)?.status ?? "pending");
   if (status === "success") await finishWithdrawal(reference);
-  return { reference, status: status === "success" ? "done" : "pending" };
+  return status === "success" ? "done" : "pending";
+}
+
+/** Holds a withdrawal until the payout balance covers it, and tells the team once a day while any wait. */
+async function queueWithdrawal(reference: string, note: string) {
+  await db.walletTransaction.updateMany({ where: { reference, status: "pending" }, data: { status: "queued", error: note } });
+  const waiting = await db.walletTransaction.aggregate({ where: { kind: "withdrawal", status: "queued" }, _sum: { amountKobo: true }, _count: { _all: true } });
+  const { notifyAdmins } = await import("@/lib/notifications/notify.server");
+  await notifyAdmins({
+    event: "wallet.withdrawal",
+    priority: "warning",
+    title: "Wallet withdrawals are waiting for the Paystack balance",
+    description: `${waiting._count._all} withdrawal(s) worth ${formatNaira(-(waiting._sum.amountKobo ?? 0))} are queued because the Paystack balance can't cover them. Fund the Paystack balance (or keep settlements in it); they go out automatically within the hour.`,
+    link: "/admin/wallets",
+    dedupeKey: `withdrawals-queued:${new Date().toISOString().slice(0, 10)}`,
+    email: "transactional",
+  }).catch((error) => console.error("[wallet] queued-withdrawal alert", error));
+}
+
+/** Sends queued withdrawals, oldest first, while the Paystack balance covers them (hourly, with the lifecycle job). */
+export async function sendQueuedWithdrawals(limit = 20) {
+  if (!walletPaymentsReady()) return { sent: 0, waiting: 0 };
+  const queued = await db.walletTransaction.findMany({
+    where: { kind: "withdrawal", status: "queued" },
+    orderBy: { createdAt: "asc" },
+    take: limit,
+    select: { reference: true, amountKobo: true, wallet: { select: { transferRecipient: true } } },
+  });
+  let available = queued.length ? await paystackBalanceKobo() : null;
+  let sent = 0;
+  for (const row of queued) {
+    const amountKobo = -row.amountKobo;
+    if (available === null || available < amountKobo) break;
+    if (!row.wallet.transferRecipient) {
+      await db.walletTransaction.updateMany({ where: { reference: row.reference, status: "queued" }, data: { status: "pending" } });
+      await refundWithdrawal(row.reference, "No bank set up for withdrawals.");
+      continue;
+    }
+    const outcome = await sendWithdrawal(row.reference, row.wallet.transferRecipient, amountKobo, false).catch(() => "queued" as const);
+    if (outcome === "queued") break;
+    available -= amountKobo;
+    sent += 1;
+  }
+  return { sent, waiting: queued.length - sent };
 }
 
 async function finishWithdrawal(reference: string) {
-  await db.walletTransaction.updateMany({ where: { reference, status: "pending" }, data: { status: "done", error: null } });
+  const done = await db.walletTransaction.updateMany({ where: { reference, status: "pending" }, data: { status: "done", error: null } });
+  if (!done.count) return;
+  const row = await db.walletTransaction.findUnique({ where: { reference }, select: { walletId: true } });
+  if (row) await notifyWithdrawal(row.walletId, reference, true).catch((error) => console.error("[wallet] withdrawal notification", error));
 }
 
 /** A withdrawal that failed or was reversed: the money goes back on the balance, once. */
-async function refundWithdrawal(reference: string, reason: string) {
-  await db.$transaction(async (tx) => {
+async function refundWithdrawal(reference: string, reason: string, tell = true) {
+  const walletId = await db.$transaction(async (tx) => {
     const row = await tx.walletTransaction.findUnique({ where: { reference } });
-    if (!row || row.status !== "pending") return;
+    if (!row || row.status !== "pending") return null;
     await tx.walletTransaction.update({ where: { reference }, data: { status: "failed", error: reason.slice(0, 300) } });
     await creditWallet(row.walletId, { amountKobo: -row.amountKobo, reference: `${reference}-back`, kind: "refund", description: "Withdrawal didn't go through: money back" }, tx);
+    return row.walletId;
   });
+  // A withdrawal Paystack refused on the spot is already explained on screen; only a later bounce needs telling.
+  if (walletId && tell) await notifyWithdrawal(walletId, reference, false).catch((error) => console.error("[wallet] withdrawal notification", error));
 }
 
 /** transfer.success / transfer.failed / transfer.reversed for a wallet withdrawal. True when it was one. */
@@ -258,18 +628,69 @@ export async function handleWalletTransfer(eventType: string, data: unknown): Pr
 export async function walletBalanceView(userId: string) {
   const wallet = await db.wallet.findUnique({
     where: { userId },
-    select: { id: true, balanceKobo: true, status: true, accountNumber: true, bankName: true, subaccountStatus: true, topUpStatus: true, topUpAccountNumber: true, topUpAccountName: true, topUpBankName: true },
+    select: { id: true, role: true, balanceKobo: true, status: true, accountNumber: true, bankName: true, subaccountStatus: true, topUpStatus: true, topUpAccountNumber: true, topUpAccountName: true, topUpBankName: true, topUpNameKind: true, topUpSplitTo: true, subaccountCode: true },
   });
-  const transactions = wallet ? await db.walletTransaction.findMany({ where: { walletId: wallet.id }, orderBy: { createdAt: "desc" }, take: 30 }) : [];
+  const [open, transactions, identity, registrationOpen] = await Promise.all([
+    walletOpenFor(userId),
+    wallet ? db.walletTransaction.findMany({ where: { walletId: wallet.id }, orderBy: { createdAt: "desc" }, take: 30 }) : Promise.resolve([]),
+    walletAccountIdentity(userId).catch(() => null),
+    (async () => (await import("@/lib/business-registration/service.server")).registrationEnabled(userId))().catch(() => false),
+  ]);
   return {
-    ready: walletPaymentsReady(),
+    /** False for a supplier or delivery partner not verified yet: no top-ups or account number until then. */
+    open,
+    ready: walletPaymentsReady() && open,
     balanceNaira: (wallet?.balanceKobo ?? 0) / 100,
     canWithdraw: Boolean(wallet && wallet.status === "active" && wallet.accountNumber && wallet.subaccountStatus === "active"),
     bank: wallet?.accountNumber ? `${wallet.bankName ?? "Bank"} ••${wallet.accountNumber.slice(-4)}` : null,
+    // A partner given a number before verification still sees it (they were told about it); it activates on verification.
     topUpAccount: wallet?.topUpStatus === "ready" && wallet.topUpAccountNumber ? { number: wallet.topUpAccountNumber, name: wallet.topUpAccountName ?? "", bank: wallet.topUpBankName ?? "" } : null,
+    /** Where their own account number stands: "ready", "setting_up" (asked Paystack, or retrying), "needs_phone", "needs_identity" or "off". */
+    topUpAccountStatus: open || wallet?.topUpStatus === "ready" ? topUpAccountStatus(wallet?.topUpStatus, Boolean(wallet?.topUpAccountNumber)) : ("off" as const),
+    /** Whose name the number is in: "business" (CAC-verified), "person" (NIN-verified) or null (the account's name). */
+    accountNameKind: (wallet?.topUpNameKind as "business" | "person" | null | undefined) ?? null,
+    /** Transfers to the account number settle straight to this bank (split to their subaccount); null: to the balance. */
+    topUpGoesTo: wallet?.topUpSplitTo && wallet.topUpSplitTo === wallet.subaccountCode && wallet.accountNumber ? `${wallet.bankName ?? "your bank"} ••${wallet.accountNumber.slice(-4)}` : null,
+    /** The business name is verified with CAC (a number in a person's name is then being replaced). */
+    businessVerified: identity?.kind === "business",
+    /** Which checks can be done here: the business with CAC, the owner's NIN. */
+    checks: { business: cacCheckEnabled(), nin: identityChecksReady() },
+    /** Registering a business name with CAC through Shopinbos, when it's open to them. */
+    registration: registrationOpen ? { href: walletRegistrationPage(wallet?.role) } : null,
     limits: BALANCE_LIMITS,
     transactions: transactions.map((t) => ({ id: t.id, kind: t.kind, naira: t.amountKobo / 100, status: t.status, description: t.description, error: t.error, at: t.createdAt.toISOString() })),
   };
 }
+
+function walletRegistrationPage(role: string | undefined) {
+  return role === "supplier" ? "/supplier/register-business" : role === "logistics_partner" ? "/logistics/register-business" : "/home/register-business";
+}
+
+function topUpAccountStatus(status: string | undefined, hasNumber: boolean): "ready" | "setting_up" | "needs_phone" | "needs_identity" | "off" {
+  if (!topUpAccountsReady()) return "off";
+  if (status === "ready" && hasNumber) return "ready";
+  if (status === "needs_phone" || status === "needs_identity") return status;
+  // Paystack said Dedicated Virtual Accounts aren't on for the business: nothing the person can do.
+  return status === "unavailable" ? "off" : "setting_up";
+}
+
+/** The wallet in a line (sidebar and home): balance and account number, without setting anything up. */
+export async function walletSummary(userId: string) {
+  const [open, wallet] = await Promise.all([
+    walletOpenFor(userId),
+    db.wallet.findUnique({ where: { userId }, select: { role: true, balanceKobo: true, topUpStatus: true, topUpAccountNumber: true, topUpAccountName: true, topUpBankName: true } }),
+  ]);
+  if (!wallet) return null;
+  // An unverified partner shows only a number they were already given, marked as waiting for verification.
+  if (!open && !(wallet.topUpStatus === "ready" && wallet.topUpAccountNumber)) return null;
+  return {
+    active: open,
+    balanceNaira: wallet.balanceKobo / 100,
+    account: wallet.topUpStatus === "ready" && wallet.topUpAccountNumber ? { number: wallet.topUpAccountNumber, bank: wallet.topUpBankName ?? "", name: wallet.topUpAccountName ?? "" } : null,
+    href: walletPath(wallet.role),
+  };
+}
+
+export type WalletSummary = NonNullable<Awaited<ReturnType<typeof walletSummary>>>;
 
 export type WalletBalanceView = Awaited<ReturnType<typeof walletBalanceView>>;

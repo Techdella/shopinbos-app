@@ -71,7 +71,8 @@ const nextConfig: NextConfig = {
               `media-src 'self' blob: https://*.supabase.co ${storageOrigin}`.trim(),
               // Embedded Signup opens its login/consent frames on www/web.facebook.com.
               // Help videos pasted as YouTube or Vimeo links play in their embeds (shared/help-videos.ts).
-              "frame-src https://js.paystack.co https://checkout.paystack.com https://standard.paystack.co https://checkout.korapay.com https://www.youtube-nocookie.com https://player.vimeo.com https://www.googletagmanager.com https://www.facebook.com https://web.facebook.com",
+              // Paystack's popup moves to other paystack.com pages for some ways to pay (OPay, bank apps), in the same frame.
+              "frame-src https://js.paystack.co https://checkout.paystack.com https://standard.paystack.co https://paystack.com https://*.paystack.com https://*.paystack.co https://checkout.korapay.com https://www.youtube-nocookie.com https://player.vimeo.com https://www.googletagmanager.com https://www.facebook.com https://web.facebook.com",
               // Admin help-video uploads go straight to Storage with a signed URL (storageOrigin covers a custom/local one).
               // Store tags send their hits to Google Analytics / Tag Manager and TikTok (Meta's go to www.facebook.com).
               // Call Peggy talks to ElevenLabs over a WebSocket (or WebRTC through their LiveKit servers).

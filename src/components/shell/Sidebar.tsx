@@ -1,5 +1,6 @@
 "use client";
 
+import { WalletMini } from "@/components/wallet/WalletAccountCard";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -344,6 +345,8 @@ export function Sidebar({ role = "seller", storeName, storeSlug, storeInitial, s
       )}
 
       <nav className="flex flex-1 flex-col gap-px">{visibleGroups.map(renderGroup)}</nav>
+
+      {role === "seller" || role === "supplier" || role === "logistics_partner" ? <WalletMini variant="sidebar" /> : null}
 
       <div className="mt-3 flex items-center gap-1 border-t border-app-line pt-3">
         <Link href={PROFILE_HREF[role]} className="flex min-w-0 flex-1 items-center gap-2.5 rounded-[10px] px-2 py-1.5 text-app-ink no-underline hover:bg-app-canvas">

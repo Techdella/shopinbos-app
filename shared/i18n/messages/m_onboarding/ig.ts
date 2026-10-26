@@ -73,7 +73,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "pay.title": "Ịnata ego na delivery",
   "pay.how": "Otú ndị ahịa nwere ike isi kwụọ ụgwọ",
   "method.transfer.label": "Bank transfer",
-  "method.transfer.hint": "Ndị ahịa na-ahụ akaụntụ payout gị; ị na-aka ya dị ka a kwụrụ mgbe ego ahụ batara",
+  "method.transfer.hint": "Ọda ọ bụla nwere nọmba akaụntụ nke ya; ọ na-abanye n'ụlọ akụ gị ma a na-akwado ya maka gị",
   "method.card.label": "Kaadị na USSD",
   "method.cod.label": "Pay on delivery",
   "method.cod.hint": "Ruo ₦50,000, nọmba ekwentị e nyochara, ebe ndị rider na-eru",

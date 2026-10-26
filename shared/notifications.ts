@@ -92,6 +92,10 @@ export const NOTIFY_EVENTS = {
   // Admin › Pricing › Promotions going live (delivery partners get it as account news).
   "pricing.promotion": { category: "marketing" },
   "payout.sent": { category: "money" },
+  // Shopinbos Wallet (src/lib/wallet/balance.server.ts): money in (a transfer to their own account number, or a card
+  // top-up), and withdrawals sent or bounced back.
+  "wallet.received": { category: "money", urgent: true },
+  "wallet.withdrawal": { category: "money" },
   "payout.failed": { category: "money" },
   // Suppliers
   "supplier_order.new": { category: "orders", urgent: true, collapse: { key: "supplier_order.new", one: "new order to accept", many: "new orders to accept" } },

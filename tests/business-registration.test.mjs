@@ -145,14 +145,16 @@ test("registration is never priced below what CAC charges, and CAC's webhook onl
 
 test("CAC registration stays hidden until an admin switches it on in Admin › Launches", () => {
   const service = read("src/lib/business-registration/service.server.ts");
-  assert.match(service, /export async function registrationEnabled\(\)[\s\S]*?registrationLaunched\(\)/, "enabled needs the launch switch");
-  assert.match(service, /checkBusinessName[\s\S]*?if \(!\(await registrationEnabled\(\)\)\)/, "name checks are off too");
+  assert.match(service, /export async function registrationEnabled\(userId\?: string \| null\)[\s\S]*?registrationOpenFor\(userId\)/, "enabled needs the launch switch (or a tester account)");
+  assert.match(service, /checkBusinessName[\s\S]*?if \(!\(await registrationEnabled\(userId\)\)\)/, "name checks are off too");
   for (const page of ["home", "supplier", "logistics"]) {
     assert.match(read(`src/app/${page}/register-business/page.tsx`), /hideRegistrationPageWhenOff\(data,/, `${page} page hides itself`);
   }
   assert.match(read("src/app/home/wallet/page.tsx"), /registrationOpen \?/, "wallet link only when open");
   assert.match(read("src/components/verification/CacInstantCheck.tsx"), /registrationOpen \?/, "verification link only when open");
   const launch = read("src/lib/business-registration/launch.server.ts");
+  assert.match(launch, /launch\.live \|\| Boolean\(userId && launch\.testers\.includes\(userId\)\)/, "testers only see it before launch");
+  assert.match(launch, /testers: before\.testers/, "switching it on or off keeps the testers");
   assert.match(launch, /!before\.announcementId && input\.announce !== false/, "the announcement goes out once");
   assert.match(launch, /audience: \[\.\.\.ALL_NEWS_AUDIENCES\]/, "to sellers, suppliers and delivery partners");
   assert.match(launch, /ctaUrl: `\$\{appUrl\}\/register-business`/);

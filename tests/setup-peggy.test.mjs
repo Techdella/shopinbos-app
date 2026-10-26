@@ -48,3 +48,16 @@ test("wallet: amounts are whole naira within the limits", () => {
   const prefixes = Object.values(wallet.WALLET_REFERENCE);
   assert.equal(new Set(prefixes).size, prefixes.length);
 });
+
+test("wallet account numbers get the phone in the +234 form Paystack takes, or none", () => {
+  assert.equal(wallet.paystackPhone("0803 123 4567"), "+2348031234567");
+  assert.equal(wallet.paystackPhone("+234 803 123 4567"), "+2348031234567");
+  assert.equal(wallet.paystackPhone("8031234567"), "+2348031234567");
+  assert.equal(wallet.paystackPhone("12345"), null);
+  assert.equal(wallet.paystackPhone(null), null);
+});
+
+test("wallet account numbers: a business name reads back whole, a person's NIN name stays as it is", () => {
+  assert.deepEqual(wallet.paystackNames({ kind: "business", name: "ADA FABRICS VENTURES" }), { first_name: "ADA", last_name: "FABRICS VENTURES" });
+  assert.deepEqual(wallet.paystackNames({ kind: "person", firstName: "Tiwalade", lastName: "Okedara" }), { first_name: "Tiwalade", last_name: "Okedara" });
+});

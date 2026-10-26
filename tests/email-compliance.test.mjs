@@ -93,8 +93,13 @@ test("platform (A) lifecycle email: unsubscribe and preferences links", () => {
 });
 
 test("store (B) order confirmation: store logo, business details, Sent with Shopinbos, service line, no unsubscribe", () => {
-  const { subject, html } = storeEmails.orderConfirmationEmail({ appUrl: APP, store: STORE, buyerName: "Bola <b>Ade</b>", orderNumber: "SIB-1", items: [{ name: "Ankara <wrap>", qty: 2, price: "₦20,000" }], total: "₦20,000", orderUrl: "https://ada.shopinbos.shop/order/1" });
+  const { subject, html } = storeEmails.orderConfirmationEmail({ appUrl: APP, store: STORE, buyerName: "Bola <b>Ade</b>", orderNumber: "SIB-1", items: [{ name: "Ankara <wrap>", qty: 2, price: "₦20,000" }], total: "₦20,000", orderUrl: "https://ada.shopinbos.shop/order/1", paid: true });
   assert.equal(subject, "Order confirmed: SIB-1");
+  // Not paid yet: the buyer gets their order summary and how to pay, never "is confirmed" or "they're paying".
+  const summary = storeEmails.orderConfirmationEmail({ appUrl: APP, store: STORE, orderNumber: "SIB-2", items: [], total: "₦7,100", paymentNote: "You can pay by card, bank transfer or USSD." });
+  assert.equal(summary.subject, "Your order summary: SIB-2");
+  assert.match(summary.html, /Here's your order summary from/);
+  assert.doesNotMatch(summary.html, /is confirmed|They're paying/);
   assertShell(html, "order");
   assert.match(html, /<img class="sib-chip" src="https:\/\/cdn\.example\/ada\.png" height="44" alt="Ada &amp; &lt;Co&gt;"/, "store logo with alt");
   assert.match(html, /Ada Fabrics Ltd/);

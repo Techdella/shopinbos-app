@@ -210,6 +210,10 @@ const en = {
   "w.steps.check": "Paystack checks the account",
   "w.steps.cards": "Take card payments",
   "owed.payOwed": "Pay {amount} owed",
+  "bal.accountTitle": "Your wallet account number. Transfer from any bank app to top up:",
+  "bal.accountSettingUp": "Your wallet account number is being created. It shows here in a few minutes.",
+  "bal.copy": "Copy",
+  "bal.copied": "Copied",
 } satisfies Record<string, string>;
 
 export default en;

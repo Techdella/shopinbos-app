@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ensurePaystackModeSynced } from "@/lib/paystack-mode.server";
 import { AppPage, Card, CardHead, EmptyState, ListCard, ListRow, Pill, PillLink } from "@/components/app-kit";
 import { Field, adminFrame, buttonClass, fieldClass, formatDate } from "@/components/admin/AdminKit";
 import { applyPlanPrices, savePlan } from "@/app/actions/pricing";
@@ -32,6 +33,7 @@ function historyTitle(key: string) {
 
 export default async function AdminPlansPage({ searchParams }: { searchParams: Promise<{ saved?: string; error?: string }> }) {
   const user = await requireRole(["admin"], "/admin/login");
+  await ensurePaystackModeSynced();
   const [query, catalog, history, subscribers, pending] = await Promise.all([searchParams, getPlanCatalog(), planHistory(), subscribersByCode(), pendingPriceChanges()]);
   const changes = pending.moves.length + pending.missing.length;
 

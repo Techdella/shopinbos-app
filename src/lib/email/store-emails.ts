@@ -15,6 +15,8 @@ export interface OrderEmailInput {
   orderUrl?: string | null;
   /** "Pay on delivery", "Paid by card"… */
   paymentNote?: string | null;
+  /** Paid already: "your order is confirmed". Not yet: the order summary, with how to pay (paymentNote). */
+  paid?: boolean;
 }
 
 const first = (name: string | null | undefined) => String(name ?? "").trim().split(/\s+/)[0] || "there";
@@ -26,8 +28,12 @@ export function orderConfirmationEmail(input: OrderEmailInput) {
     ...(input.shipping ? [{ label: "Delivery", value: input.shipping, muted: true }] : []),
     { label: "Total", value: input.total, strong: true },
   ];
+  const store = escapeHtml(input.store.name);
+  const intro = input.paid
+    ? `Your order from <strong>${store}</strong> is confirmed. Here's what you ordered.`
+    : `Here's your order summary from <strong>${store}</strong>.`;
   return {
-    subject: `Order confirmed: ${input.orderNumber}`,
+    subject: input.paid ? `Order confirmed: ${input.orderNumber}` : `Your order summary: ${input.orderNumber}`,
     html: storeEmail({
       appUrl: input.appUrl,
       store: input.store,
@@ -35,7 +41,7 @@ export function orderConfirmationEmail(input: OrderEmailInput) {
       preheader: `Thanks for your order from ${input.store.name}. Order ${input.orderNumber}, ${input.total}.`,
       eyebrow: `Order ${input.orderNumber}`,
       heading: `Thank you, ${first(input.buyerName)}!`,
-      bodyHtml: `${html.raw(`Your order from <strong>${escapeHtml(input.store.name)}</strong> is confirmed. Here's what you ordered.`)}${html.rows(rows)}${input.paymentNote ? html.small(input.paymentNote) : ""}${html.small("We'll send you an update when it's on its way.")}`,
+      bodyHtml: `${html.raw(intro)}${html.rows(rows)}${input.paymentNote ? html.small(input.paymentNote) : ""}${html.small("We'll send you an update when it's on its way.")}`,
       cta: input.orderUrl ? { label: "View your order", url: input.orderUrl } : null,
       reason: `you placed order ${input.orderNumber} with ${input.store.name}`,
     }),

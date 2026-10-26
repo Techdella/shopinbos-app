@@ -80,6 +80,8 @@ async function openSubaccount(wallet: WalletRow, nameCheck: "auto" | "approved" 
     // One bank everywhere: once the account is live (in the owner's or business's name, or approved by the team), it
     // also becomes the role's payout bank (a seller's bank-transfer account, a supplier's or partner's payouts),
     // whichever screen it was chosen on. Never before: an account under review isn't paid out to or shown to buyers.
+    // Their wallet account number settles straight to this bank from now on (src/lib/wallet/balance.server.ts).
+    await (await import("@/lib/wallet/balance.server")).splitTopUpAccountFor(wallet.userId).catch((error) => console.error("[wallet] account split", error));
     const payout = await syncPayoutBank({ id: wallet.userId, role: wallet.role }, wallet.bankName ?? "", wallet.accountNumber!, wallet.accountName ?? "");
     if (!payout.success) {
       console.error(`[wallet] couldn't save the payout bank for wallet ${wallet.id}: ${payout.error}`);
@@ -91,6 +93,17 @@ async function openSubaccount(wallet: WalletRow, nameCheck: "auto" | "approved" 
     await db.wallet.update({ where: { id: wallet.id }, data: { nameCheck, subaccountStatus: "failed", subaccountError: message.slice(0, 300) } });
     return { ok: false, error: `Paystack couldn't set up this account: ${message}` };
   }
+}
+
+/**
+ * Makes the wallet's Paystack subaccount again, on the account the current key belongs to (e.g. it was made with
+ * test keys and Shopinbos is now live). Keeps the same bank and the same name check. Only for live wallets.
+ */
+export async function reopenWalletSubaccount(walletId: string): Promise<WalletResult> {
+  const wallet = await db.wallet.findUnique({ where: { id: walletId } });
+  if (!wallet?.bankCode || !wallet.accountNumber) return { ok: false, error: "No bank on this wallet." };
+  const nameCheck = wallet.nameCheck === "approved" ? "approved" : wallet.nameCheck === "review" ? null : "auto";
+  return openSubaccount({ ...wallet, subaccountCode: null }, nameCheck);
 }
 
 /**
@@ -215,6 +228,8 @@ const korapayWhere = { ...activeWhere, korapaySplitAccount: { not: null } } sati
 
 /** The seller can take card payments: their wallet settles to their own bank. */
 export async function storeTakesCards(storeId: string) {
+  // Splits go to subaccounts on the key's own mode (test or live): make them there first, once.
+  await (await import("@/lib/paystack-mode.server")).ensurePaystackModeSynced();
   const store = await db.store.findUnique({ where: { id: storeId }, select: { userId: true } });
   if (!store) return false;
   return (await db.wallet.count({ where: { userId: store.userId, ...activeWhere } })) > 0;

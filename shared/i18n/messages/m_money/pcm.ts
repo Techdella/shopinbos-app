@@ -205,6 +205,10 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "w.steps.check": "Paystack go check the account",
   "w.steps.cards": "Collect card payment",
   "owed.payOwed": "Pay the {amount} wey you owe",
+  "bal.accountTitle": "Your wallet account number. Transfer from any bank app to top up:",
+  "bal.accountSettingUp": "Dem dey create your wallet account number. E go show here in few minutes.",
+  "bal.copy": "Copy",
+  "bal.copied": "E don copy",
 };
 
 export default pcm;

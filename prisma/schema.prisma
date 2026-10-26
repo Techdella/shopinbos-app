@@ -4232,8 +4232,20 @@ model Wallet {
   topUpAccountNumber String?
   topUpAccountName   String?
   topUpBankName      String?
-  topUpStatus        String    @default("none") // none | pending | ready | failed | unavailable
+  topUpStatus        String    @default("none") // none | pending | ready | failed | unavailable | needs_phone | needs_identity
   topUpError         String?
+  // Whose name the account number is in: business (the CAC-verified business name) or person (the NIN-verified
+  // owner). A business verified later gets a new number in its name; the codes of earlier ones stay here, so
+  // transfers to an old number still land in this wallet.
+  // The Paystack subaccount the account number is split to: transfers into it settle straight to the business's own
+  // bank (recorded as WalletEntry "transfer_in"), never through Shopinbos. Null: they land on the prepaid balance.
+  topUpSplitTo       String?
+  topUpNameKind      String?
+  topUpOldCustomerCodes String[] @default([])
+  // The business name checked against CAC for the wallet (any role), and its BN/RC number.
+  verifiedBusinessName   String?
+  verifiedBusinessNumber String?
+  verifiedBusinessAt     DateTime?
   // Paystack transfer recipient for withdrawals (made from the checked bank above).
   transferRecipient  String?
   createdAt       DateTime  @default(now())
@@ -4274,7 +4286,7 @@ model WalletEntry {
   // One per share of a payment: sale:<orderId> (the seller's), supplier:<orderId>:<supplierId>. Unique, so a
   // replayed webhook never records a share twice.
   reference       String   @unique
-  kind            String // sale | supplier_order | delivery_fee (delivery:<bookingId>)
+  kind            String // sale | supplier_order | delivery_fee (delivery:<bookingId>) | transfer_in (to their wallet account number)
   amountKobo      Int // the share Paystack settles to this business (before Paystack's fee)
   status          String   @default("paid") // paid | refunded
   description     String

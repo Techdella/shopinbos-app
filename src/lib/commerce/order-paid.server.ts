@@ -57,6 +57,7 @@ export async function afterRetailOrderPaid(orderId: string, newlyPaid: boolean, 
         total: money(Number(order.total)),
         orderUrl: buildStorefrontUrl(storeData, `/order/${order.id}`),
         paymentNote: "Payment received. Thank you!",
+        paid: true,
       }).catch(() => null);
     }
 

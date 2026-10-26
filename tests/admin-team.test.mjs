@@ -179,3 +179,20 @@ test("admin team: developers have their own page, kept off the others", () => {
   assert.equal(team.adminCanOpen("operations", "/admin/developers"), false);
   assert.equal(team.adminCanOpen("support", "/api/admin/ai-check"), false);
 });
+
+test("peggy: knows whether we met through the waitlist or partnership outreach", () => {
+  const base = { role: "supplier", pageUrl: null, createdAt: "2026-10-12T10:00:00Z", convertedAt: null };
+  const outreach = peggy.leadContext({ ...base, kind: "import", source: "outreach", message: "Company: Saso Industries" }, [
+    { channel: "whatsapp", createdAt: "2026-10-27T09:00:00Z", template: null, from: "WhatsApp outreach: supplier partners, message 1" },
+  ]);
+  assert.match(outreach, /did NOT sign up/);
+  assert.match(outreach, /Saso Industries/);
+  assert.match(outreach, /message 1/);
+  assert.doesNotMatch(outreach, /Team notes/);
+  assert.ok(peggy.isOutreachLead({ source: "partner-email" }));
+  const waitlist = peggy.leadContext({ ...base, kind: "waitlist", source: "home", message: null });
+  assert.match(waitlist, /joined the Shopinbos waitlist on 2026-10-12 as a supplier/);
+  assert.ok(!peggy.isOutreachLead({ source: "home" }));
+  const emailed = peggy.leadContext({ ...base, kind: "import", source: "partner-email", message: "Company: Zashadu\nEmailed a partnership invitation on 2026-10-27." });
+  assert.match(emailed, /Team notes: Emailed a partnership invitation/);
+});

@@ -163,7 +163,7 @@ export function payOnDeliveryOption(): CheckoutPaymentOption {
 }
 
 const OPTION_COPY: Record<CheckoutPaymentMethod, Omit<CheckoutPaymentOption, "key">> = {
-  paystack: { label: "Card, bank or USSD", hint: "Pay securely with Paystack" },
+  paystack: { label: "Card, bank transfer or USSD", hint: "Pay securely with Paystack" },
   korapay: { label: "Card or bank", hint: "Card, transfer or your bank app" },
   transfer: { label: "Bank transfer", hint: "We show you the account after you place the order" },
   pay_on_delivery: { label: "Pay on delivery", hint: "Pay the rider in cash or by transfer" },
@@ -177,9 +177,12 @@ export function checkoutPaymentOptions(settings: CheckoutPaymentSettings, contex
   const methods = settings.methods;
   const keys: CheckoutPaymentMethod[] = [];
   if (methods) {
-    if (methods.card && settings.paystackReady) keys.push("paystack");
+    // Bank transfer goes through Paystack too when the store takes it: Paystack gives the buyer an account number for
+    // this payment, splits it like a card payment and confirms the order itself. The seller's own account (manual
+    // transfer, marked paid by hand) is only offered when Paystack can't take the payment.
+    if ((methods.card || methods.transfer) && settings.paystackReady) keys.push("paystack");
     if (methods.korapay && settings.korapayReady) keys.push("korapay");
-    if (methods.transfer && settings.transferReady) keys.push("transfer");
+    if (methods.transfer && settings.transferReady && !settings.paystackReady) keys.push("transfer");
     if (methods.cod && !payOnDeliveryBlock(settings, context)) keys.push("pay_on_delivery");
   }
   // Never offer a way to pay that can't work: a store that never chose its methods gets card only when its wallet
@@ -200,6 +203,13 @@ export function noWayToPayText(settings: CheckoutPaymentSettings, context: Check
 export function normalizeCheckoutMethod(value: string | undefined | null): CheckoutPaymentMethod {
   if (value === "korapay" || value === "transfer" || value === "pay_on_delivery") return value;
   return "paystack";
+}
+
+/** How to pay, for the buyer (their order email and messages): what they can do, never what "they" are doing. */
+export function buyerPaymentText(method: CheckoutPaymentMethod) {
+  if (method === "transfer") return "Pay by bank transfer to the account shown at checkout, with your order number as the reference. The store confirms your order once the money arrives.";
+  if (method === "pay_on_delivery") return "You'll pay when it's delivered, in cash or by transfer to the rider.";
+  return "You can pay by card, bank transfer or USSD. If you didn't finish paying, open your order to pay.";
 }
 
 /** How the buyer chose to pay, for seller notifications. */

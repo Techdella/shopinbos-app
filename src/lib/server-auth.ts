@@ -7,6 +7,7 @@ import { appUserInputFromSupabaseUser, ensureAppUserForSupabaseUser } from "@/li
 import { loginRedirectPath } from "@/lib/auth/route-access";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { portalDashboardPath } from "@/lib/portal-routes";
+import { provisionWalletSoon } from "@/lib/wallet/balance.server";
 import { recordActivity } from "@/lib/platform-analytics/activity.server";
 import type { AuthUser, Role } from "@/lib/auth/types";
 import { OWNER_ONLY_PAGES, OWNER_ONLY_TABS, actingUser, isOwnerOnlyPath } from "@/lib/staff/acting.server";
@@ -85,6 +86,8 @@ export async function requireRole(roles: Role[], redirectTo: string): Promise<Au
   if (!roles.includes(user.role)) {
     redirect(portalDashboardPath(user.role));
   }
+  // Businesses get their wallet and own account number without having to sign in again.
+  if (user.role !== "admin") provisionWalletSoon(user.id);
 
   return user;
 }

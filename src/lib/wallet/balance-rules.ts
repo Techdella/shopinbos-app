@@ -14,3 +14,25 @@ export function validAmountNaira(naira: number, min: number, max: number) {
   if (naira > max) return `The largest amount is ₦${max.toLocaleString("en-NG")}.`;
   return null;
 }
+
+/** A Nigerian phone number in the +234 form Paystack takes, or null. */
+export function paystackPhone(raw: string | null | undefined) {
+  const digits = (raw ?? "").replace(/\D/g, "");
+  if (/^0[789]\d{9}$/.test(digits)) return `+234${digits.slice(1)}`;
+  if (/^234[789]\d{9}$/.test(digits)) return `+${digits}`;
+  if (/^[789]\d{9}$/.test(digits)) return `+234${digits}`;
+  return null;
+}
+
+/** Whose name a wallet account number is in (src/lib/wallet/identity.server.ts). */
+export type AccountIdentity =
+  | { kind: "business"; name: string }
+  | { kind: "person"; firstName: string; lastName: string }
+  | { kind: "account"; firstName: string; lastName: string };
+
+/** Paystack wants a first and last name: a business name is split so the two read back as the whole name. */
+export function paystackNames(identity: AccountIdentity) {
+  if (identity.kind !== "business") return { first_name: identity.firstName, last_name: identity.lastName };
+  const [first, ...rest] = identity.name.split(" ");
+  return { first_name: first, last_name: rest.join(" ") || first };
+}
