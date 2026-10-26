@@ -3,6 +3,7 @@ import { withLogistics } from "@/lib/auth/middleware";
 import { db } from "@/lib/db/client";
 import { apiError, ok } from "@/lib/api/response";
 import { isOnboardingComplete } from "@/lib/role-queries";
+import { docsSentFor, takingJobsBlock } from "@shared/taking-jobs";
 import { cashToPayIn, isRiderOut } from "@/lib/logistics/job-rules";
 import { payInConfig } from "@/lib/logistics/payin-deadline";
 import { payInOverdueView } from "@/lib/logistics/payin-standing.server";
@@ -52,6 +53,8 @@ export const GET = withLogistics(async (_req: NextRequest, { user }) => {
       verificationStatus: partner.verificationStatus,
       onboarded: isOnboardingComplete(partner),
       taking: partner.status === "active",
+      // Why "Taking new jobs" can't be switched on yet (setup | documents | checking | rejected | hold), or null.
+      takingBlock: takingJobsBlock({ status: partner.status, verificationStatus: partner.verificationStatus, onboarded: isOnboardingComplete(partner), docsSent: docsSentFor(partner.verificationDocuments) }),
     },
     firstName: user.name.split(" ")[0] ?? user.name,
     deliveredToday: deliveredToday.length,

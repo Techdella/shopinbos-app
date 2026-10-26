@@ -370,7 +370,9 @@ export async function bulkUpdateLogisticsVerification(formData: FormData) {
     db.logisticsPartner.updateMany({ where: { id: { in: ids } }, data: { verificationStatus: parsedStatus.data } }),
     parsedStatus.data === "suspended"
       ? db.logisticsPartner.updateMany({ where: { id: { in: ids } }, data: { status: "suspended" } })
-      : db.logisticsPartner.updateMany({ where: { id: { in: ids }, status: "suspended" }, data: { status: "active" } }),
+      : // Any other status than the company's own active/paused choice (suspended, or an older value such as
+        // "pending") goes back to active, so "Taking new jobs" works once they're verified.
+        db.logisticsPartner.updateMany({ where: { id: { in: ids }, status: { notIn: ["active", "paused"] } }, data: { status: "active" } }),
   ]).catch(() => null);
 
   const updated = await db.logisticsPartner.findMany({

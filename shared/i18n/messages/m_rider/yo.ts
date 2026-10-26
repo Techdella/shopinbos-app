@@ -174,6 +174,16 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "wk.4": "Ẹtì",
   "wk.5": "Àbá",
   "wk.6": "Àìkú",
+  "noCode.link": "Kò sí kóòdù? Lo fọ́tò",
+  "noCode.title": "Oníbàárà kò ní kóòdù",
+  "noCode.sub": "Ya fọ́tò ẹrù náà pẹ̀lú ẹni tó gbà á, kí o sì kọ orúkọ wọn.",
+  "noCode.photo": "Ya fọ́tò náà",
+  "noCode.photoAgain": "A ti fi fọ́tò kún un · tún ya",
+  "noCode.who": "Ta ló gbà á?",
+  "noCode.next": "Tẹ̀síwájú",
+  "noCode.useCode": "Lo kóòdù dípò",
+  "startJob": "Bẹ̀rẹ̀ iṣẹ́ yìí",
+  "offer.assigned": "{company} ló fún ọ ní iṣẹ́ yìí. Fò ó tí o kò bá lè ṣe é.",
 };
 
 export default yo;

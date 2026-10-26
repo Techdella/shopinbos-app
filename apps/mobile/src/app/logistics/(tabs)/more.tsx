@@ -7,6 +7,7 @@ import { List, Pill, Row, Small, Tile } from "@/components/design";
 import type { AppIconName } from "@/components/icons";
 import { CallPeggyButton } from "@/components/CallPeggyButton";
 import { LanguageRow } from "@/components/LanguagePicker";
+import { TipsRow } from "@/components/learn/TipsRow";
 import { confirmSignOut } from "@/components/partner";
 import { CardButton, Initial, StatCard } from "@/components/PartnerKit";
 import { useHelpSection } from "@/components/PartnerMore";
@@ -147,7 +148,7 @@ export default function LogisticsBusiness() {
       </List>
 
       <List>
-        <Row lead={<Tile icon="store" />} title={t("biz.profile")} onPress={() => router.push("/logistics/profile")} />
+        <Row lead={<Tile icon="store" />} title={t("profile.detailsTitle")} sub={t("biz.profile")} onPress={() => router.push("/logistics/profile")} />
         <Row lead={<Tile icon="link" />} title={t("conn.title")} sub={market.data ? t("conn.banner", { count: market.data.connections.length }) : undefined} onPress={() => router.push("/logistics/connections")} />
         {callPeggy ? <CallPeggyButton variant="row" /> : null}
         <Row lead={<Tile icon="help" />} title={t("biz.help")} onPress={() => router.push("/help")} />
@@ -167,6 +168,7 @@ export default function LogisticsBusiness() {
 
       <Card style={{ paddingVertical: 2, borderRadius: 24, borderWidth: 1, borderColor: colors.line }}>
         <LanguageRow first />
+        <TipsRow />
       </Card>
       <LinkButton title={t("logOut")} color={colors.danger} onPress={() => confirmSignOut()} />
       <DeleteAccountButton />

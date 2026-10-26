@@ -114,6 +114,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "verify.sentNote": "An aika. Za mu sanar da kai idan an duba takardunka.",
   "verify.uploadFailed": "Bai tafi ba. Sake gwadawa.",
   "verify.photosOff": "Ba da izinin hotuna a saitunan wayarka don ƙara takarda.",
+  "verify.missing": "Ƙara {docs} kafin ka aika don dubawa.",
 };
 
 export default ha;

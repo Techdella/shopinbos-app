@@ -98,7 +98,7 @@ const en = {
   "ai.peggySub": "Sales, replies",
   "needs.title": "Needs you",
   "tour.1.title": "Add things with +",
-  "tour.1.body": "Tap + to add a product, record a sale, or send a pay link.",
+  "tour.1.body": "Tap + to make a post, add a product, record a sale or send a pay link.",
   "tour.2.title": "Money and shortcuts",
   "tour.2.body": "Tap the black card to see your money. Below it: make a post, delivery, find stock to sell, share your shop.",
   "tour.3.title": "Ask Rex or Peggy",

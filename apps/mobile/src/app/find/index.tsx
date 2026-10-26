@@ -3,7 +3,7 @@ import { Pressable, ScrollView, Share, View, useWindowDimensions } from "react-n
 import { router, useLocalSearchParams } from "expo-router";
 import { Image } from "expo-image";
 import { naira } from "@shared/onboarding";
-import { Seg } from "@/components/design";
+import { List, Row, Seg, Tile } from "@/components/design";
 import { StatusRow } from "@/components/familiar/StatusRow";
 import { StoryViewer } from "@/components/familiar/StoryViewer";
 import { AppIcon, type AppIconName } from "@/components/icons";
@@ -288,6 +288,10 @@ export default function FindProducts() {
         value={tab}
         onChange={setTab}
       />
+      {/* Price requests and wholesale orders (pay the supplier by card) live on their own screen. */}
+      <List>
+        <Row lead={<Tile icon="box" tone="butter" />} title={t("wholesale.row")} sub={t("wholesale.rowSub")} onPress={() => router.push("/wholesale")} />
+      </List>
 
       {tab === "nigeria" ? (
         <>

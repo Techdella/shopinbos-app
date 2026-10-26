@@ -101,7 +101,8 @@ function PlatformCard({ card, onChanged, onNote }: { card: ChannelCard; onChange
   let body: React.ReactNode = null;
   switch (state.kind) {
     case "soon":
-      body = <PillButton title={t("card.soon")} size="md" tone="white" disabled />;
+      // Never shown (the list leaves these channels out): no "Coming soon" button.
+      body = null;
       break;
     case "connect":
       body = connectButton(t("card.connect"));

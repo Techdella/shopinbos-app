@@ -171,6 +171,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "filters.pay.any": "Niile",
   "filters.pay.unpaid": "Akwụbeghị",
   "filters.pay.toSend": "Akwụọla, iji zipu",
+  "list.wholesale": "Order ọtụtụ",
 };
 
 export default ig;

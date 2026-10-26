@@ -81,12 +81,14 @@ test("openPath asks before a link the app has no screen for opens the website", 
 });
 
 test("no menu sends people to the web app: \"app:\" screens, public pages and mail only", () => {
-  for (const file of ["components/PartnerMore.tsx", "components/LogisticsMenu.tsx", "app/logistics/(tabs)/more.tsx"]) {
+  for (const file of ["components/PartnerMore.tsx", "app/logistics/(tabs)/more.tsx"]) {
     const source = app(file);
     assert.doesNotMatch(source, /openWeb|path: "\/(logistics|supplier)\//, file);
   }
   assert.match(app("app/logistics/(tabs)/more.tsx"), /"app:\/logistics\/quotes"/);
-  assert.match(app("components/LogisticsMenu.tsx"), /"app:\/logistics\/coverage"/);
+  // The old orphan /logistics/menu screen is gone; Business (more.tsx) has every row.
+  assert.ok(!existsSync(join(root, "apps/mobile/src/components/LogisticsMenu.tsx")));
+  assert.ok(!existsSync(join(root, "apps/mobile/src/app/logistics/menu.tsx")));
 });
 
 test("supplier account: team, price tiers, profile and notifications open screens in the app", () => {

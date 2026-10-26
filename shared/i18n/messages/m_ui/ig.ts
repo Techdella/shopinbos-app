@@ -114,6 +114,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "verify.sentNote": "E zigala ya. Anyị ga-agwa gị mgbe anyị lechara akwụkwọ gị.",
   "verify.uploadFailed": "Ọ gaghị. Nwaa ọzọ.",
   "verify.photosOff": "Kwe ka foto rụọ ọrụ na ntọala ekwentị gị ka ị tinye akwụkwọ.",
+  "verify.missing": "Tinye {docs} tupu i zipu ka e lelee.",
 };
 
 export default ig;

@@ -58,7 +58,9 @@ test("'add documents later' opens the portal but never trading or review", () =>
   assert.match(actions, /wantsReview && verified \? "pending_review" : "draft"/, "unverified suppliers can only save drafts");
   assert.match(actions, /function assertVerifiedSupplier/, "quotes and orders still need verification");
   const productApi = readFileSync("src/app/api/supplier/products/route.ts", "utf8");
-  assert.match(productApi, /unverified && parsed\.data\.status && parsed\.data\.status !== "draft"/);
+  // A "show it to shops" save from an unverified supplier is kept as a draft (never refused, never sent for review).
+  assert.match(productApi, /status: parsed\.data\.status === "pending_review" && !unverified \? "pending_review" : "draft"/);
+  assert.doesNotMatch(productApi, /VERIFICATION_REQUIRED/);
   const productPatch = readFileSync("src/app/api/supplier/products/[id]/route.ts", "utf8");
   assert.match(productPatch, /VERIFICATION_REQUIRED/);
   const cron = readFileSync("src/app/api/cron/verification-reminders/route.ts", "utf8");

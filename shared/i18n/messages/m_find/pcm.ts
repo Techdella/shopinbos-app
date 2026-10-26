@@ -114,6 +114,16 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "filters.verified": "Only verified ones",
   "tab.all": "All",
   "barTitle": "Find products",
+  "wholesale.row": "Wholesale orders",
+  "wholesale.rowSub": "Your price requests and stock wey you buy",
+  "wholesale.see": "See my price requests",
+  "wholesale.requests": "Price requests",
+  "wholesale.each": "{price} each",
+  "wholesale.q.pending": "Dey wait for supplier",
+  "wholesale.q.responded": "Price don come",
+  "wholesale.q.accepted": "Accepted",
+  "wholesale.q.rejected": "Dem decline am",
+  "wholesale.q.expired": "E don expire",
 };
 
 export default pcm;

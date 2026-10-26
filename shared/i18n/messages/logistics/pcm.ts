@@ -72,7 +72,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "connect.helpTitle": "Connect your delivery software",
   "connect.helpDescription": "Tell us which software you dey use and how we fit reach you. We go do the rest.",
   "connect.softwareQuestion": "Which software or app you dey use?",
-  "connect.softwarePlaceholder": "e.g. Shipbubble, our own system",
+  "connect.softwarePlaceholder": "e.g. our own system, spreadsheet",
   "connect.noSoftware": "You no get delivery software?",
   "connect.noSoftwareBody": "You no need any. Your riders fit use the free Shopinbos Riders app for their phone.",
   "connect.seeRiders": "See your riders",

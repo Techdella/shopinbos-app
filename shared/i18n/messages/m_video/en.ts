@@ -48,12 +48,13 @@ const en = {
   "watch.on": "On {place}",
   "watch.useIt": "Use your video",
   "watch.save": "Save to my phone",
-  "watch.saveHint": "The video opens. Press and hold it, or tap the download button, to keep it on your phone.",
+  "watch.saveHint": "Your phone's share menu opens. Pick \"Save video\" to keep it.",
   "watch.onProduct": "On the product page",
   "watch.posted": "Posted",
   "watch.change": "Change it",
   "watch.adHint": "Run this video as an ad on Facebook and Instagram.",
   "watch.adOnWeb": "Make the ad on the web",
+  "watch.saveFailed": "Couldn't get the video onto your phone. Check your connection and try again.",
 } satisfies Record<string, string>;
 
 export default en;

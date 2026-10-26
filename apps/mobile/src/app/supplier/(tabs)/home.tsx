@@ -22,7 +22,7 @@ import { fetchRewards, fetchStatusFeed, levelProgress, type StatusAuthor, type S
 import { useT } from "@/lib/i18n";
 import { verificationStage } from "@/lib/partner-pure";
 import { useSession } from "@/lib/session";
-import { fetchSupplierOrders, fetchSupplierOverview, fetchUnreadMessages, type SupplierOrder } from "@/lib/supplier";
+import { fetchAgreements, fetchSupplierOrders, fetchSupplierOverview, fetchUnreadMessages, type SupplierOrder } from "@/lib/supplier";
 import { countWord, greetingKey, supplierOrderGroup } from "@/lib/supplier-pure";
 import { useLoad } from "@/lib/useLoad";
 import { colors } from "@/theme";
@@ -72,8 +72,9 @@ export default function SupplierHome() {
   });
   // Status and Rewards are extras: never block Home, and hide when the server doesn't have them yet.
   const extras = useLoad(async () => {
-    const [feed, rewards] = await Promise.all([fetchStatusFeed().catch(() => null), fetchRewards().catch(() => null)]);
-    return { feed, rewards };
+    const [feed, rewards, agreements] = await Promise.all([fetchStatusFeed().catch(() => null), fetchRewards().catch(() => null), fetchAgreements().catch(() => null)]);
+    // Shops waiting for the supplier to sign their Dropship agreement.
+    return { feed, rewards, waitingAgreements: agreements?.filter((row) => row.status === "requested").length ?? 0 };
   });
   const data = loaded.data;
   const overview = data?.overview;
@@ -143,6 +144,8 @@ export default function SupplierHome() {
   const todo: Todo[] = [];
   if (data && overview) {
     if (data.fresh) todo.push({ key: "new", lead: <Tile icon="box" tone="peach" />, title: t("home.newOrders", { count: data.fresh }), sub: t("home.newOrdersSub"), go: () => router.push({ pathname: "/supplier/orders", params: { view: "new" } }) });
+    const waiting = extras.data?.waitingAgreements ?? 0;
+    if (waiting) todo.push({ key: "agreements", lead: <Tile icon="users" tone="lilac" />, title: t("home.agreements", { count: waiting }), sub: t("home.agreementsSub"), go: () => router.push("/supplier/agreements") });
     if (data.unread) todo.push({ key: "chat", lead: <ChatTile />, title: t("home.newMessages", { count: data.unread }), sub: t("home.newMessagesSub"), go: () => router.push("/supplier/messages") });
     for (const quote of overview.quotes) {
       todo.push({ key: `quote-${quote.id}`, lead: <Tile icon="tag" tone="blue" />, title: t("home.priceRequest", { pieces: countWord(quote.quantity, t) }), sub: t("home.priceRequestSub", { shop: quote.seller }), go: () => router.push({ pathname: "/supplier/quote/[id]", params: { id: quote.id } }) });

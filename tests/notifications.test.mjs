@@ -135,7 +135,17 @@ test("deep links: a tap opens the order, chat, job, quote or payout screen", () 
   assert.deepEqual(n.appRouteFor("/supplier/quotes"), { pathname: "/supplier/quotes" });
   assert.deepEqual(n.appRouteFor("/supplier/payouts"), { pathname: "/supplier/money" });
   assert.deepEqual(n.appRouteFor("/logistics/bookings?job=b1"), { pathname: "/logistics/job/[id]", params: { id: "b1" } });
-  assert.deepEqual(n.appRouteFor("/logistics/cash"), { pathname: "/logistics/earnings" });
+  assert.deepEqual(n.appRouteFor("/logistics/cash"), { pathname: "/logistics/cash" }, "cash links open the cash screen");
+  assert.deepEqual(n.appRouteFor("/logistics/payouts"), { pathname: "/logistics/earnings" });
+  // Delivery fee paid, new connections and dropship agreements open the app's own screens.
+  assert.deepEqual(n.appRouteFor("/logistics/wallet"), { pathname: "/logistics/wallet" });
+  assert.deepEqual(n.appRouteFor("/logistics/connections"), { pathname: "/logistics/connections" });
+  assert.deepEqual(n.appRouteFor("/supplier/agreements"), { pathname: "/supplier/agreements" });
+  // A supplier's price for a seller's quote request opens Wholesale; other marketplace links stay on Find.
+  assert.deepEqual(n.appRouteFor("/marketplace/product/sp_1?quote=q9"), { pathname: "/wholesale" });
+  assert.deepEqual(n.appRouteFor("/marketplace/wholesale?quote=q9"), { pathname: "/wholesale" });
+  assert.deepEqual(n.appRouteFor("/marketplace/wholesale"), { pathname: "/wholesale" });
+  assert.deepEqual(n.appRouteFor("/marketplace/product/sp_1"), { pathname: "/find" });
   assert.deepEqual(n.appRouteFor("/rider/drop/d1"), { pathname: "/rider/drop/[id]", params: { id: "d1" } });
   assert.deepEqual(n.appRouteFor("/home/reviews"), { pathname: "/reviews" });
   assert.equal(n.appRouteFor("/admin/supplier-products"), null, "no app screen: opens the website");

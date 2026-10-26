@@ -114,6 +114,16 @@ const en = {
   "filters.verified": "Verified only",
   "tab.all": "All",
   "barTitle": "Find products",
+  "wholesale.row": "Wholesale orders",
+  "wholesale.rowSub": "Your price requests and stock you bought",
+  "wholesale.see": "See my price requests",
+  "wholesale.requests": "Price requests",
+  "wholesale.each": "{price} each",
+  "wholesale.q.pending": "Waiting for the supplier",
+  "wholesale.q.responded": "Price sent",
+  "wholesale.q.accepted": "Accepted",
+  "wholesale.q.rejected": "Declined",
+  "wholesale.q.expired": "Expired",
 } satisfies Record<string, string>;
 
 export default en;

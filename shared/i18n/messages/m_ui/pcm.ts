@@ -114,6 +114,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "verify.sentNote": "E don go. We go tell you when we check your documents.",
   "verify.uploadFailed": "E no go. Try again.",
   "verify.photosOff": "Allow photos for your phone settings make you fit add document.",
+  "verify.missing": "Add {docs} before you send for review.",
 };
 
 export default pcm;

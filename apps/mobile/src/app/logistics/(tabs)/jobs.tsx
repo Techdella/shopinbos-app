@@ -15,11 +15,12 @@ import { PayInOverdueCard } from "@/components/PayInOverdueCard";
 import { CardButton, PeggyButton, RouteCard, shopRoleOf } from "@/components/PartnerKit";
 import { PushPromptCard } from "@/components/PushPromptCard";
 import { TabScreen } from "@/components/TabScreen";
-import { Card, Notice, T, Toggle } from "@/components/ui";
+import { Card, T, Toggle } from "@/components/ui";
 import { fetchRewards, fetchStatusFeed, levelProgress, type StatusAuthor, type StatusPost } from "@/lib/familiar";
 import { useT } from "@/lib/i18n";
 import { fetchEarnings, fetchJobs, fetchLogisticsOverview, fetchMarket, setTakingJobs, type Job, type JobView } from "@/lib/logistics";
-import { STATUS_WORD } from "@/lib/logistics-pure";
+import { STATUS_WORD, TAKING_BLOCK_ACTION, takingBlockOf } from "@/lib/logistics-pure";
+import type { TakingBlock } from "@shared/taking-jobs";
 import { dayWord, shortPlace, timeAgo, verificationStage } from "@/lib/partner-pure";
 import { useLoad } from "@/lib/useLoad";
 import * as WebBrowser from "expo-web-browser";
@@ -47,6 +48,30 @@ function asView(value: unknown): JobView {
 
 const greetKey = (hour: number) => (hour < 12 ? "fam.greet.morning" : hour < 17 ? "fam.greet.afternoon" : "fam.greet.evening");
 
+/**
+ * Under the "Taking new jobs" switch while it can't go on: exactly why, and one tap forward (Finish set-up, Add your
+ * documents, Fix your documents, Talk to us). While the documents are being checked there's nothing to do but wait.
+ */
+function TakingBlockLine({ block, strong }: { block: TakingBlock; strong: boolean }) {
+  const t = useT("m_partner");
+  const action = TAKING_BLOCK_ACTION[block];
+  return (
+    <View accessibilityLiveRegion={strong ? "polite" : "none"} style={{ backgroundColor: strong ? "rgba(255,255,255,0.16)" : "rgba(255,255,255,0.08)", borderRadius: 16, padding: 12, gap: 8, marginTop: -4 }}>
+      <T weight={strong ? "bold" : "semibold"} style={{ fontSize: 14, lineHeight: 20, color: "#FFFFFF" }}>{t.dynamic(`taking.why.${block}`)}</T>
+      {action.path ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push(action.path as never)}
+          hitSlop={6}
+          style={({ pressed }) => ({ alignSelf: "flex-start", minHeight: 40, justifyContent: "center", paddingHorizontal: 14, borderRadius: 999, backgroundColor: "#FFFFFF", opacity: pressed ? 0.85 : 1 })}
+        >
+          <T weight="extrabold" style={{ fontSize: 14, color: colors.forest }}>{t.dynamic(action.key)}</T>
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
 /** A big number over a small line, on the dark card. */
 function SumStat({ value, label }: { value: string; label: string }) {
   return (
@@ -73,8 +98,10 @@ export default function LogisticsJobs() {
   const [switchError, setSwitchError] = useState<string | null>(null);
   const [story, setStory] = useState<{ own: boolean; start: number } | null>(null);
   const [hideChecklist, setHideChecklist] = useState(false);
-  const taking = override ?? data?.partner.taking ?? false;
-  const ready = data ? data.partner.verificationStatus === "verified" && data.partner.onboarded : false;
+  // Why the switch can't go on yet (set-up, documents, being checked, fix them, on hold), or null when it can.
+  const block = data ? takingBlockOf(data.partner) : null;
+  const [why, setWhy] = useState(false);
+  const taking = block ? false : (override ?? data?.partner.taking ?? false);
   const verification = data ? verificationStage(data.partner.verificationStatus, t) : null;
   const connections = market.data?.connections ?? [];
   const company = data?.partner.name ?? "";
@@ -83,16 +110,26 @@ export default function LogisticsJobs() {
   // Shopinbos's getting-started posts and the team's weekly updates share one ring.
   const rings = useShopinbosRings(feed?.feed);
 
+  // The switch always answers a tap: blocked, it says why (the line under it); otherwise it saves, then reads the
+  // company again so the switch shows what the server saved (and stays that way after a refresh).
   async function toggle() {
+    if (switching) return;
+    if (block) {
+      setWhy(true);
+      return;
+    }
     const next = !taking;
     setSwitching(true);
     setSwitchError(null);
     setOverride(next);
     try {
       await setTakingJobs(next);
+      await overview.reload();
+      setOverride(null);
     } catch (error) {
-      setOverride(!next);
+      setOverride(null);
       setSwitchError(error instanceof Error ? error.message : t("error.retry"));
+      void overview.reload();
     } finally {
       setSwitching(false);
     }
@@ -154,7 +191,6 @@ export default function LogisticsJobs() {
 
   return (
     <TabScreen header={header} refreshing={overview.refreshing || jobs.refreshing} onRefresh={refresh}>
-      {switchError ? <Notice>{switchError}</Notice> : null}
       {overview.error && !data ? <ErrorState message={overview.error} onRetry={() => void overview.reload()} /> : null}
 
       {feed ? (
@@ -186,10 +222,14 @@ export default function LogisticsJobs() {
         <View style={{ backgroundColor: colors.forest, borderRadius: 26, padding: 20, gap: 16 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 44 }}>
             <T weight="bold" style={{ flex: 1, fontSize: 14, color: "#BFE6DD" }}>{taking ? t("jobs.taking") : t("jobs.paused")}</T>
-            <View style={{ opacity: ready && !switching ? 1 : 0.45 }} pointerEvents={ready && !switching ? "auto" : "none"}>
+            <View style={{ opacity: block || switching ? 0.6 : 1 }}>
               <Toggle on={Boolean(taking)} onChange={() => void toggle()} label={t("jobs.takingLabel")} />
             </View>
           </View>
+          {block ? <TakingBlockLine block={block} strong={why} /> : null}
+          {switchError ? (
+            <T weight="bold" accessibilityRole="alert" style={{ fontSize: 14, color: "#FFFFFF", marginTop: -6 }}>{switchError}</T>
+          ) : null}
           <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 18 }}>
             <SumStat value={String(newCount)} label={t("fam.sum.new")} />
             <SumStat value={String(activeCount)} label={t("fam.sum.onTheWay")} />

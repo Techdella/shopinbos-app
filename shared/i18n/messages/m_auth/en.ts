@@ -162,6 +162,8 @@ const en = {
   "code.newSent": "New code sent",
   "code.resend": "Send a new code",
   "code.continue": "Continue",
+  "form.signupLink": "New here? Create an account",
+  "form.riderLink": "Riding for a delivery company? Rider sign-in",
 } satisfies Record<string, string>;
 
 export default en;

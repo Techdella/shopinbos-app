@@ -159,7 +159,8 @@ export function notifySupplierQuoteAnswered(quoteId: string) {
         quote.status === "responded" && quote.quotedPrice != null
           ? `${naira(quote.quotedPrice, quote.supplierProduct?.currency ?? "NGN")} each for ${quote.quantity.toLocaleString("en-NG")} × ${product}.`
           : `They declined your request for ${product}. Try another supplier.`,
-      link: quote.supplierProductId ? `/marketplace/product/${quote.supplierProductId}` : "/marketplace",
+      // ?quote= lets the phone app open its Wholesale screen (price requests and orders); the web shows the product.
+      link: quote.supplierProductId ? `/marketplace/product/${quote.supplierProductId}?quote=${quote.id}` : `/marketplace/wholesale?quote=${quote.id}`,
       actionLabel: quote.status === "responded" ? "See the price" : "Find another supplier",
       metadata: { supplierQuoteId: quote.id },
       dedupeKey: `quote.received:${quote.id}`,

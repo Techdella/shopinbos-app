@@ -114,6 +114,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "verify.sentNote": "A ti fi ránṣẹ́. A ó sọ fún ọ nígbà tí a bá ti yẹ̀ ìwé rẹ wò.",
   "verify.uploadFailed": "Kò lọ. Gbìyànjú lẹ́ẹ̀kan sí i.",
   "verify.photosOff": "Gba fọ́tò láàyè nínú ètò fóònù rẹ láti fi ìwé kún un.",
+  "verify.missing": "Fi {docs} kún un kí o tó fi ránṣẹ́ fún àyẹ̀wò.",
 };
 
 export default yo;

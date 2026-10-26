@@ -71,7 +71,7 @@ export async function startRun(token: string, jobIds: string[], codes?: Record<s
 
 export async function markDelivered(
   token: string,
-  input: { jobId: string; code: string; codCollected?: number | null; codMethod?: string | null },
+  input: { jobId: string; code: string; recipientName?: string | null; codCollected?: number | null; codMethod?: string | null },
 ): Promise<RiderActionResult> {
   const session = await rider(token);
   if (!session.ok) return session;
@@ -88,6 +88,8 @@ export async function markDelivered(
     actor: "rider",
     riderId: session.rider.id,
     code: String(input?.code ?? "").trim(),
+    // No code from the customer: a proof photo already on the job plus who received it (checkTransition decides).
+    recipientName: typeof input?.recipientName === "string" ? input.recipientName.slice(0, 80) : null,
     codCollected: collected !== null && Number.isFinite(collected) ? collected : null,
     codMethod: input?.codMethod === "cash" || input?.codMethod === "transfer" ? input.codMethod : null,
   }));

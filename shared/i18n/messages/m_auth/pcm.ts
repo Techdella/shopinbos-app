@@ -159,6 +159,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "code.newSent": "New code don go",
   "code.resend": "Send new code",
   "code.continue": "Continue",
+  "form.signupLink": "You new here? Create account",
+  "form.riderLink": "You dey ride for delivery company? Rider sign-in",
 };
 
 export default pcm;
