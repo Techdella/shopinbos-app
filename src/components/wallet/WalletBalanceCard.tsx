@@ -10,6 +10,8 @@ import { WalletAccountPanel, type WalletAccountView } from "./WalletAccountPanel
 // account number), withdraw to their bank, and what moved. Sales don't come here: they go straight to the bank.
 
 type View = WalletAccountView & {
+  /** False for a supplier or delivery partner whose business isn't verified yet. Older servers don't send it. */
+  open?: boolean;
   ready: boolean;
   balanceNaira: number;
   canWithdraw: boolean;
@@ -58,6 +60,16 @@ export function WalletBalanceCard({ returnTo, notice }: { returnTo: string; noti
     });
 
   if (!view) return <section aria-busy="true" className="mb-5 h-[150px] animate-pulse rounded-[22px] border border-app-line bg-white" />;
+  if (view.open === false) {
+    return (
+      <section aria-labelledby="wallet-balance" className="mb-5 rounded-[22px] border border-app-line bg-white p-5">
+        <h2 id="wallet-balance" className="m-0 text-[13px] font-extrabold uppercase tracking-[0.08em] text-app-ink-soft">Wallet balance</h2>
+        <p className="mb-0 mt-2 text-[14px] leading-[1.5]">
+          Your wallet and its own account number open once your business is verified. <a href={returnTo.startsWith("/logistics") ? "/logistics/verification" : "/supplier/verification"} className="font-bold underline underline-offset-4">Finish your verification</a>
+        </p>
+      </section>
+    );
+  }
 
   return (
     <section aria-labelledby="wallet-balance" className="mb-5 rounded-[22px] border border-app-line bg-white p-5">

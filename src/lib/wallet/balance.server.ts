@@ -60,6 +60,21 @@ async function paystack(path: string, body: Record<string, unknown>, method: "PO
   }
 }
 
+/**
+ * Whether this account gets a prepaid wallet: sellers straight away; suppliers and delivery partners once Shopinbos
+ * has verified their business (no balance or account number for an unverified partner). Admins never.
+ */
+export async function walletOpenFor(userId: string) {
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { role: true, supplier: { select: { verificationStatus: true } }, logisticsPartner: { select: { verificationStatus: true } } },
+  });
+  if (!user || user.role === "admin") return false;
+  if (user.role === "supplier") return user.supplier?.verificationStatus === "verified";
+  if (user.role === "logistics_partner") return user.logisticsPartner?.verificationStatus === "verified";
+  return true;
+}
+
 /** The business's wallet, made when it doesn't exist yet. */
 export async function ensureWallet(userId: string) {
   const existing = await db.wallet.findUnique({ where: { userId } });
@@ -102,6 +117,7 @@ export async function spendFromWallet(userId: string, input: { amountKobo: numbe
 /** Starts a card (or bank) top-up on Paystack's checkout; returns the page to send them to. */
 export async function startCardTopUp(input: { userId: string; email: string | null; naira: number; origin: string; returnTo: string }) {
   if (!walletPaymentsReady()) throw new WalletBalanceError("Top-ups aren't switched on yet.");
+  if (!(await walletOpenFor(input.userId))) throw new WalletBalanceError("Your wallet opens once your business is verified.");
   const problem = validAmountNaira(input.naira, BALANCE_LIMITS.topUpMin, BALANCE_LIMITS.topUpMax);
   if (problem) throw new WalletBalanceError(problem);
   const wallet = await ensureWallet(input.userId);
@@ -137,7 +153,7 @@ export async function confirmCardTopUp(reference: string): Promise<"done" | "fai
  * on wallet page loads until it exists: returns at once when it does, backs off after failures.
  */
 export async function ensureTopUpAccount(userId: string) {
-  if (!topUpAccountsReady()) return null;
+  if (!topUpAccountsReady() || !(await walletOpenFor(userId))) return null;
   await ensurePaystackModeSynced();
   let wallet = await ensureWallet(userId);
   // The verified business name, else the NIN-verified owner (src/lib/wallet/identity.server.ts).
@@ -252,7 +268,11 @@ async function sendWalletReadyEmail(walletId: string) {
 export async function provisionPendingWallets(limit = 40) {
   if (!topUpAccountsReady()) return { checked: 0 };
   const users = await db.user.findMany({
-    where: { role: { in: ["seller", "supplier", "logistics_partner"] }, OR: [{ wallet: null }, { wallet: { topUpStatus: { in: ["none", "pending", "failed", "needs_phone", "needs_identity"] } } }] },
+    where: {
+      // Suppliers and delivery partners only once their business is verified (walletOpenFor).
+      OR: [{ role: "seller" }, { role: "supplier", supplier: { verificationStatus: "verified" } }, { role: "logistics_partner", logisticsPartner: { verificationStatus: "verified" } }],
+      AND: [{ OR: [{ wallet: null }, { wallet: { topUpStatus: { in: ["none", "pending", "failed", "needs_phone", "needs_identity"] } } }] }],
+    },
     orderBy: { createdAt: "asc" },
     take: limit,
     select: { id: true },
@@ -267,8 +287,7 @@ export async function provisionPendingWallets(limit = 40) {
  */
 export async function provisionWallet(userId: string) {
   try {
-    const user = await db.user.findUnique({ where: { id: userId }, select: { role: true } });
-    if (!user || user.role === "admin") return;
+    if (!(await walletOpenFor(userId))) return;
     await ensureWallet(userId);
     await ensureTopUpAccount(userId);
   } catch (error) {
@@ -400,19 +419,22 @@ export async function walletBalanceView(userId: string) {
     where: { userId },
     select: { id: true, role: true, balanceKobo: true, status: true, accountNumber: true, bankName: true, subaccountStatus: true, topUpStatus: true, topUpAccountNumber: true, topUpAccountName: true, topUpBankName: true, topUpNameKind: true },
   });
-  const [transactions, identity, registrationOpen] = await Promise.all([
+  const [open, transactions, identity, registrationOpen] = await Promise.all([
+    walletOpenFor(userId),
     wallet ? db.walletTransaction.findMany({ where: { walletId: wallet.id }, orderBy: { createdAt: "desc" }, take: 30 }) : Promise.resolve([]),
     walletAccountIdentity(userId).catch(() => null),
     (async () => (await import("@/lib/business-registration/service.server")).registrationEnabled(userId))().catch(() => false),
   ]);
   return {
-    ready: walletPaymentsReady(),
+    /** False for a supplier or delivery partner not verified yet: no top-ups or account number until then. */
+    open,
+    ready: walletPaymentsReady() && open,
     balanceNaira: (wallet?.balanceKobo ?? 0) / 100,
     canWithdraw: Boolean(wallet && wallet.status === "active" && wallet.accountNumber && wallet.subaccountStatus === "active"),
     bank: wallet?.accountNumber ? `${wallet.bankName ?? "Bank"} ••${wallet.accountNumber.slice(-4)}` : null,
-    topUpAccount: wallet?.topUpStatus === "ready" && wallet.topUpAccountNumber ? { number: wallet.topUpAccountNumber, name: wallet.topUpAccountName ?? "", bank: wallet.topUpBankName ?? "" } : null,
+    topUpAccount: open && wallet?.topUpStatus === "ready" && wallet.topUpAccountNumber ? { number: wallet.topUpAccountNumber, name: wallet.topUpAccountName ?? "", bank: wallet.topUpBankName ?? "" } : null,
     /** Where their own account number stands: "ready", "setting_up" (asked Paystack, or retrying), "needs_phone", "needs_identity" or "off". */
-    topUpAccountStatus: topUpAccountStatus(wallet?.topUpStatus, Boolean(wallet?.topUpAccountNumber)),
+    topUpAccountStatus: open ? topUpAccountStatus(wallet?.topUpStatus, Boolean(wallet?.topUpAccountNumber)) : ("off" as const),
     /** Whose name the number is in: "business" (CAC-verified), "person" (NIN-verified) or null (the account's name). */
     accountNameKind: (wallet?.topUpNameKind as "business" | "person" | null | undefined) ?? null,
     /** The business name is verified with CAC (a number in a person's name is then being replaced). */
@@ -437,5 +459,19 @@ function topUpAccountStatus(status: string | undefined, hasNumber: boolean): "re
   // Paystack said Dedicated Virtual Accounts aren't on for the business: nothing the person can do.
   return status === "unavailable" ? "off" : "setting_up";
 }
+
+/** The wallet in a line (sidebar and home): balance and account number, without setting anything up. */
+export async function walletSummary(userId: string) {
+  if (!(await walletOpenFor(userId))) return null;
+  const wallet = await db.wallet.findUnique({ where: { userId }, select: { role: true, balanceKobo: true, topUpStatus: true, topUpAccountNumber: true, topUpAccountName: true, topUpBankName: true } });
+  if (!wallet) return null;
+  return {
+    balanceNaira: wallet.balanceKobo / 100,
+    account: wallet.topUpStatus === "ready" && wallet.topUpAccountNumber ? { number: wallet.topUpAccountNumber, bank: wallet.topUpBankName ?? "", name: wallet.topUpAccountName ?? "" } : null,
+    href: walletPath(wallet.role),
+  };
+}
+
+export type WalletSummary = NonNullable<Awaited<ReturnType<typeof walletSummary>>>;
 
 export type WalletBalanceView = Awaited<ReturnType<typeof walletBalanceView>>;

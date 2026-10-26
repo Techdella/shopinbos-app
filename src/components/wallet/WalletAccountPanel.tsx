@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { cx } from "@/components/app-ui/cx";
 import { Icon } from "@/components/ui/Icon";
 import { CAC_COMPANY_TYPES, CAC_COMPANY_TYPE_LABELS } from "@/lib/kyb/cac";
+import { WalletAccountCard } from "./WalletAccountCard";
 
 // The wallet's own account number on the wallet card: the number in the verified business name (CAC) or the owner's
 // NIN-verified name, what it's for (the ⓘ explainer), and the forms to verify one of those names. A business with a
@@ -23,63 +24,45 @@ const fieldClass = "min-h-[44px] w-full rounded-[14px] border border-app-line bg
 const box = "mt-4 rounded-[18px] border border-app-line bg-app-canvas p-4";
 
 export function WalletAccountPanel<V extends WalletAccountView>({ view, onUpdated }: { view: V; onUpdated: (view: V) => void }) {
-  const [copied, setCopied] = useState(false);
   const [explain, setExplain] = useState(false);
   const [form, setForm] = useState<"business" | "nin" | null>(null);
   const account = view.topUpAccount;
   const status = view.topUpAccountStatus;
   if (!account && status !== "needs_identity" && status !== "needs_phone" && status !== "setting_up") return null;
 
-  const explainer = (
-    <>
-      <button
-        type="button"
-        aria-expanded={explain}
-        aria-controls="wallet-account-explainer"
-        onClick={() => setExplain(!explain)}
-        className="inline-flex size-7 items-center justify-center rounded-full text-app-ink-soft hover:bg-white"
-        title="What is this account?"
-      >
-        <Icon name="info" size={16} />
-        <span className="sr-only">What is this account?</span>
-      </button>
-      {explain ? (
-        <div id="wallet-account-explainer" role="note" className="mt-2 rounded-[14px] bg-white p-3 text-[13px] leading-[1.5] text-app-ink-soft">
-          This is a real bank account number, in your business&apos;s name (or yours until your business is verified).
-          <ul className="m-0 mt-1.5 list-disc pl-5">
-            <li><strong>Top up:</strong> transfer to it from any bank app, or pay by card with Top up.</li>
-            <li><strong>Spend:</strong> your balance pays for AI credits and other Shopinbos services.</li>
-            <li><strong>Withdraw:</strong> send what&apos;s left to your main bank account whenever you like.</li>
-            <li><strong>Use it like any account:</strong> share it with anyone who needs to pay you; what they send lands in your balance.</li>
-          </ul>
-        </div>
-      ) : null}
-    </>
+  const infoButton = (light: boolean) => (
+    <button
+      type="button"
+      aria-expanded={explain}
+      aria-controls="wallet-account-explainer"
+      onClick={() => setExplain(!explain)}
+      className={cx("inline-flex size-7 items-center justify-center rounded-full", light ? "text-white/70 hover:bg-white/10 hover:text-white" : "text-app-ink-soft hover:bg-white")}
+      title="What is this account?"
+    >
+      <Icon name="info" size={16} />
+      <span className="sr-only">What is this account?</span>
+    </button>
   );
+  const explainNote = explain ? (
+    <div id="wallet-account-explainer" role="note" className="rounded-[14px] border border-app-line bg-white p-3 text-[13px] leading-[1.5] text-app-ink-soft">
+      This is a real bank account number, in your business&apos;s name (or yours until your business is verified).
+      <ul className="m-0 mt-1.5 list-disc pl-5">
+        <li><strong>Top up:</strong> transfer to it from any bank app, or pay by card with Top up.</li>
+        <li><strong>Spend:</strong> your balance pays for AI credits and other Shopinbos services.</li>
+        <li><strong>Withdraw:</strong> send what&apos;s left to your main bank account whenever you like.</li>
+        <li><strong>Use it like any account:</strong> share it with anyone who needs to pay you; what they send lands in your balance.</li>
+      </ul>
+    </div>
+  ) : null;
 
   return (
-    <div className={box}>
+    <div className={account ? "mt-4 grid gap-3" : box}>
       {account ? (
         <>
-          <div className="flex items-center gap-1 text-[13px] font-bold text-app-ink-soft">
-            Your wallet account number {explainer}
-          </div>
-          <div className="mt-1 flex flex-wrap items-center gap-2">
-            <span className="font-mono text-[24px] font-extrabold tracking-[0.04em]">{account.number}</span>
-            <button
-              type="button"
-              onClick={() => {
-                void navigator.clipboard?.writeText(account.number).then(() => setCopied(true)).catch(() => null);
-              }}
-              className="min-h-[32px] rounded-full border border-app-line bg-white px-3 text-[12.5px] font-bold"
-            >
-              {copied ? "Copied" : "Copy"}
-            </button>
-          </div>
-          <div className="text-[13px] text-app-ink-soft">{account.bank} · {account.name}</div>
-          <div className="mt-1 text-[12.5px] text-app-ink-soft">Transfer from any bank app to top up. It lands in your balance within a minute or two.</div>
+          <WalletAccountCard account={account} aside={infoButton(true)} />
+          {explainNote}
           {view.accountNameKind !== "business" && !view.businessVerified ? (
-            <div className="mt-3 rounded-[14px] bg-white p-3 text-[13px] leading-[1.5]">
+            <div className="rounded-[14px] border border-app-line bg-app-canvas p-3 text-[13px] leading-[1.5]">
               <strong>Show your business name on this account.</strong> Add your business&apos;s CAC details and we&apos;ll give you a number in your business&apos;s name. Your current number keeps working.
               <div className="mt-2 flex flex-wrap gap-2">
                 {view.checks?.business ? <SmallButton onClick={() => setForm(form === "business" ? null : "business")}>Add my business name</SmallButton> : null}
@@ -88,12 +71,13 @@ export function WalletAccountPanel<V extends WalletAccountView>({ view, onUpdate
             </div>
           ) : null}
           {view.businessVerified && view.accountNameKind !== "business" ? (
-            <p className="mb-0 mt-2 text-[12.5px] text-app-ink-soft">Your business is verified: your account number in its name is on its way.</p>
+            <p className="m-0 text-[12.5px] text-app-ink-soft">Your business is verified: your account number in its name is on its way.</p>
           ) : null}
         </>
       ) : status === "needs_identity" ? (
         <>
-          <div className="flex items-center gap-1 text-[14px] font-extrabold">Get your own wallet account number {explainer}</div>
+          <div className="flex items-center gap-1 text-[14px] font-extrabold">Get your own wallet account number {infoButton(false)}</div>
+          {explainNote ? <div className="mt-2">{explainNote}</div> : null}
           <p className="mb-0 mt-1 text-[13px] leading-[1.5] text-app-ink-soft">
             The account is opened in a verified name: your business&apos;s, from its CAC registration, or yours, from your NIN. Until then you can top up by card.
           </p>
