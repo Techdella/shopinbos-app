@@ -76,7 +76,7 @@ const en = {
   "pay.title": "Getting paid and delivering",
   "pay.how": "How customers can pay",
   "method.transfer.label": "Bank transfer",
-  "method.transfer.hint": "Customers get your payout account; you mark it paid when it lands",
+  "method.transfer.hint": "Each order gets its own account number; paid into your bank and confirmed for you",
   "method.card.label": "Card and USSD",
   "method.card.hint": "Debit cards and USSD, paid straight into your bank",
   "method.korapay.label": "Pay with bank",

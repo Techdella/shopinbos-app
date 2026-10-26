@@ -9,6 +9,7 @@ import { initializePaystackTransaction, verifyPaystackTransaction } from "@/lib/
 import { createPaystackTransferRecipient } from "@/lib/payout-bank";
 import { readDedicatedAccount } from "@/lib/logistics/payin-rules";
 import { dvaBank, dvaUnavailableMessage } from "@/lib/logistics/paystack-dva";
+import { ensurePaystackModeSynced } from "@/lib/paystack-mode.server";
 import { BALANCE_LIMITS, WALLET_REFERENCE, validAmountNaira } from "./balance-rules";
 
 // The prepaid wallet balance. Businesses top it up (card, or a bank transfer to their own top-up account number),
@@ -132,6 +133,7 @@ export async function confirmCardTopUp(reference: string): Promise<"done" | "fai
  */
 export async function ensureTopUpAccount(userId: string) {
   if (!topUpAccountsReady()) return null;
+  await ensurePaystackModeSynced();
   const wallet = await ensureWallet(userId);
   if (wallet.topUpStatus === "ready") return wallet;
   const age = Date.now() - wallet.updatedAt.getTime();

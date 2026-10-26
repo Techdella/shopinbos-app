@@ -67,7 +67,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "start.pay.saved": "A ti fi àwọn ọ̀nà ìsanwó pamọ́",
   "start.pay.save": "Fi àwọn ọ̀nà ìsanwó pamọ́",
   "pm.transfer.label": "Bank transfer",
-  "pm.transfer.hint": "Àwọn oníbàárà máa rí àkáǹtì payout rẹ; o máa sàmì pé wọ́n ti san nígbà tí owó bá dé",
+  "pm.transfer.hint": "Ọ̀rọ̀ọ̀kan ọjà ní nọ́mbà àkáǹtì tirẹ̀; ó máa wọ báǹkì rẹ, a sì máa jẹ́rìí sí i fún ọ",
   "pm.card.label": "Káàdì àti USSD",
   "pm.cod.label": "Sanwó nígbà tí ẹrù bá dé",
   "pm.cod.hint": "Títí dé ₦50,000, nọ́mbà fóònù tí a ti jẹ́rìísí, níbi tí àwọn rider ti ń ṣiṣẹ́",

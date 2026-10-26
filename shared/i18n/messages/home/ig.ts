@@ -67,7 +67,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "start.pay.saved": "Echekwala ụzọ ịkwụ ụgwọ",
   "start.pay.save": "Chekwaa ụzọ ịkwụ ụgwọ",
   "pm.transfer.label": "Bank transfer",
-  "pm.transfer.hint": "Ndị ahịa ga-enweta akaụntụ payout gị; ị ga-aka ya akara akwụọla mgbe ego ahụ batara",
+  "pm.transfer.hint": "Ọda ọ bụla nwere nọmba akaụntụ nke ya; ọ na-abanye n'ụlọ akụ gị ma a na-akwado ya maka gị",
   "pm.card.label": "Kaadị na USSD",
   "pm.cod.label": "Kwụọ ụgwọ mgbe ebutere",
   "pm.cod.hint": "Ruo ₦50,000, nọmba ekwentị akwadoro, ebe riders na-arụ ọrụ",

@@ -73,7 +73,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "pay.title": "How you go collect money and deliver",
   "pay.how": "How customers fit pay",
   "method.transfer.label": "Bank transfer",
-  "method.transfer.hint": "Customers go see your payout account; you go mark am paid when e land",
+  "method.transfer.hint": "Every order get im own account number; e go land your bank and we go confirm am for you",
   "method.card.label": "Card and USSD",
   "method.cod.label": "Pay on delivery",
   "method.cod.hint": "Up to ₦50,000, verified phone numbers, where riders dey cover",

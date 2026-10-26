@@ -231,6 +231,8 @@ function view(offer: TierOffer): PlanOfferView {
 
 /** What the billing pages sell today, per tier (plain JSON for client components). */
 export async function planOffers(): Promise<Record<PlanTier, PlanOfferView>> {
+  // Plan codes belong to the key's mode (test or live): make the current plans there first, once.
+  await (await import("@/lib/paystack-mode.server")).ensurePaystackModeSynced();
   const { tiers } = await getPlanCatalog();
   return Object.fromEntries(PLAN_TIER_KEYS.map((tier) => [tier, view(tiers[tier])])) as Record<PlanTier, PlanOfferView>;
 }

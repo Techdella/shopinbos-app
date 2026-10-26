@@ -163,7 +163,7 @@ export function payOnDeliveryOption(): CheckoutPaymentOption {
 }
 
 const OPTION_COPY: Record<CheckoutPaymentMethod, Omit<CheckoutPaymentOption, "key">> = {
-  paystack: { label: "Card, bank or USSD", hint: "Pay securely with Paystack" },
+  paystack: { label: "Card, bank transfer or USSD", hint: "Pay securely with Paystack" },
   korapay: { label: "Card or bank", hint: "Card, transfer or your bank app" },
   transfer: { label: "Bank transfer", hint: "We show you the account after you place the order" },
   pay_on_delivery: { label: "Pay on delivery", hint: "Pay the rider in cash or by transfer" },
@@ -177,9 +177,12 @@ export function checkoutPaymentOptions(settings: CheckoutPaymentSettings, contex
   const methods = settings.methods;
   const keys: CheckoutPaymentMethod[] = [];
   if (methods) {
-    if (methods.card && settings.paystackReady) keys.push("paystack");
+    // Bank transfer goes through Paystack too when the store takes it: Paystack gives the buyer an account number for
+    // this payment, splits it like a card payment and confirms the order itself. The seller's own account (manual
+    // transfer, marked paid by hand) is only offered when Paystack can't take the payment.
+    if ((methods.card || methods.transfer) && settings.paystackReady) keys.push("paystack");
     if (methods.korapay && settings.korapayReady) keys.push("korapay");
-    if (methods.transfer && settings.transferReady) keys.push("transfer");
+    if (methods.transfer && settings.transferReady && !settings.paystackReady) keys.push("transfer");
     if (methods.cod && !payOnDeliveryBlock(settings, context)) keys.push("pay_on_delivery");
   }
   // Never offer a way to pay that can't work: a store that never chose its methods gets card only when its wallet
