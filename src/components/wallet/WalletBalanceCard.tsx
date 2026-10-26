@@ -14,6 +14,8 @@ type View = {
   canWithdraw: boolean;
   bank: string | null;
   topUpAccount: { number: string; name: string; bank: string } | null;
+  /** Older servers don't send it. */
+  topUpAccountStatus?: "ready" | "setting_up" | "off";
   transactions: Array<{ id: string; kind: string; naira: number; status: string; description: string; error: string | null; at: string }>;
 };
 
@@ -78,6 +80,30 @@ export function WalletBalanceCard({ returnTo, notice }: { returnTo: string; noti
         </div>
       </div>
 
+      {view.topUpAccount ? (
+        <div className="mt-4 rounded-[18px] border border-app-line bg-app-canvas p-4">
+          <div className="text-[13px] font-bold text-app-ink-soft">Your wallet account number. Transfer from any bank app to top up:</div>
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            <span className="font-mono text-[24px] font-extrabold tracking-[0.04em]">{view.topUpAccount.number}</span>
+            <button
+              type="button"
+              onClick={() => {
+                void navigator.clipboard?.writeText(view.topUpAccount!.number).then(() => setCopied(true)).catch(() => null);
+              }}
+              className="min-h-[32px] rounded-full border border-app-line bg-white px-3 text-[12.5px] font-bold"
+            >
+              {copied ? "Copied" : "Copy"}
+            </button>
+          </div>
+          <div className="text-[13px] text-app-ink-soft">{view.topUpAccount.bank} · {view.topUpAccount.name}</div>
+          <div className="mt-1 text-[12.5px] text-app-ink-soft">It's yours alone and lands in your balance within a minute or two.</div>
+        </div>
+      ) : view.topUpAccountStatus === "setting_up" ? (
+        <p className="mb-0 mt-4 rounded-[18px] border border-app-line bg-app-canvas px-4 py-3 text-[13.5px] text-app-ink-soft">
+          Your wallet account number is being created. It shows here in a few minutes; until then you can top up by card.
+        </p>
+      ) : null}
+
       {mode && (
         <form
           className="mt-4 grid gap-3 rounded-[18px] bg-app-canvas p-4"
@@ -86,27 +112,8 @@ export function WalletBalanceCard({ returnTo, notice }: { returnTo: string; noti
             submit();
           }}
         >
-          {mode === "topup" && view.topUpAccount && (
-            <div className="rounded-[14px] border border-app-line bg-white p-3.5">
-              <div className="text-[13px] font-bold text-app-ink-soft">Transfer to your own top-up account from any bank app:</div>
-              <div className="mt-1 flex flex-wrap items-center gap-2">
-                <span className="font-mono text-[22px] font-extrabold tracking-[0.04em]">{view.topUpAccount.number}</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    void navigator.clipboard?.writeText(view.topUpAccount!.number).then(() => setCopied(true)).catch(() => null);
-                  }}
-                  className="min-h-[32px] rounded-full border border-app-line px-3 text-[12.5px] font-bold"
-                >
-                  {copied ? "Copied" : "Copy"}
-                </button>
-              </div>
-              <div className="text-[13px] text-app-ink-soft">{view.topUpAccount.bank} · {view.topUpAccount.name}</div>
-              <div className="mt-2 text-[12.5px] text-app-ink-soft">It lands in your balance within a minute or two. Or pay by card below.</div>
-            </div>
-          )}
           <label className="grid gap-1.5 text-[13.5px] font-bold">
-            {mode === "topup" ? "Amount to add (card or bank)" : `Amount to send to ${view.bank ?? "your bank"}`}
+            {mode === "topup" ? "Amount to add by card" : `Amount to send to ${view.bank ?? "your bank"}`}
             <input inputMode="numeric" className={fieldClass} value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={mode === "topup" ? `₦${BALANCE_LIMITS.topUpMin.toLocaleString("en-NG")} or more` : `₦${BALANCE_LIMITS.withdrawMin.toLocaleString("en-NG")} or more`} required />
           </label>
           <div className="flex flex-wrap gap-2">

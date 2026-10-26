@@ -7,11 +7,15 @@ import { readFileSync } from "node:fs";
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 
-test("the phone's wallet card never starts a payment, shows no top-up account and uses translated copy", () => {
+test("the phone's wallet card never starts a payment, shows the account number only when the build allows it, and uses translated copy", () => {
   const card = read("apps/mobile/src/components/WalletBalanceCard.tsx");
   const lib = read("apps/mobile/src/lib/wallet.ts");
   assert.doesNotMatch(lib, /wallet\/topup"/);
   assert.doesNotMatch(card, /topUpWallet|topUpAccount|openBrowserAsync|Clipboard/);
+  assert.match(card, /\{WALLET_ACCOUNT_IN_APP \? <WalletAccountNumber view=\{view\} \/> : null\}/);
+  assert.match(lib, /WALLET_ACCOUNT_IN_APP = process\.env\.EXPO_PUBLIC_WALLET_ACCOUNT_NUMBER === "true"/);
+  assert.doesNotMatch(read("apps/mobile/eas.json"), /EXPO_PUBLIC_WALLET_ACCOUNT_NUMBER/);
+  assert.doesNotMatch(read("apps/mobile/src/components/WalletAccountNumber.tsx"), /openBrowserAsync|topUpWallet|>[A-Z][a-z]+ [a-z]+[^<{]*</);
   assert.match(card, /emailWalletTopUp\(\)/);
   assert.match(card, /withdrawFromWallet\(/);
   assert.doesNotMatch(card, />[A-Z][a-z]+ [a-z]+[^<{]*</, "no hard-coded English text");

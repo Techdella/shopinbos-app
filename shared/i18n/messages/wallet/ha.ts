@@ -20,9 +20,6 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "setup.done": "An gama",
   "setup.review": "Wannan account ba a sunanka ko sunan kasuwancinka yake ba, don haka ƙungiyarmu tana duba shi (yawanci cikin kwana ɗaya). Za mu sanar da kai idan kuɗi suka fara shiga cikinsa.",
   "setup.failed": "Paystack bai iya shirya wannan account ba: {reason}. Duba bayanan ko gwada wani account.",
-  "setup.gateways": "Paystack: yana aiki. Korapay: {korapay}.",
-  "setup.korapayOn": "yana aiki",
-  "setup.korapaySoon": "ƙungiyarmu tana shirya shi don wannan account",
   "setup.idStep": "2. Tantance ID ɗinka",
   "setup.verified": "{name} · {id} mai ƙarewa da {last4} · an tantance {date}",
   "setup.idWhySeller": "Yana ba shagonka alamar verified kuma yana amince da account mai sunanka nan take. Za ka iya yi a kowane lokaci.",
@@ -38,8 +35,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "setup.who.seller": "customers ɗinka",
   "setup.who.supplier": "shagunan da ke sayar da kayanka",
   "setup.who.logistics_partner": "shagunan da kake yi wa delivery",
-  "setup.never": "Shopinbos ba ya taɓa riƙe kuɗinka. Idan {who} sun biya da kati ko Korapay, ana raba kuɗin a checkout kuma rabonka yana shiga wannan bankin kai tsaye, yawanci a ranar aiki ta gaba. Kuɗin Paystack yana fita daga rabonka (a Korapay, customer ne ke biya). Shopinbos ba ya karɓar komai.",
-  "setup.neverFee": "Shopinbos ba ya riƙe kuɗinka. Idan {who} suka biya da kati ko Korapay, ana raba kuɗin a wurin biya kuma kasonka yana zuwa wannan bankin kai tsaye, yawanci ranar aiki ta gaba. Kuɗin Paystack yana fitowa daga kasonka (da Korapay abokin ciniki ne ke biya), haka kuma kuɗin Shopinbos na {fee} a kan kowace sayarwa a tsarinka (ba a kan isarwa ba, kuma ba a kan kayan dropship ba: kwamishan mai kawo kaya ne ke rufe su).",
+  "setup.never": "Shopinbos ba ya taɓa riƙe kuɗinka. Idan {who} sun biya da kati, ana raba kuɗin a checkout kuma rabonka yana shiga wannan bankin kai tsaye, yawanci a ranar aiki ta gaba. Kuɗin Paystack yana fita daga rabonka. Shopinbos ba ya karɓar komai.",
+  "setup.neverFee": "Shopinbos ba ya riƙe kuɗinka. Idan {who} suka biya da kati, ana raba kuɗin a wurin biya kuma kasonka yana zuwa wannan bankin kai tsaye, yawanci ranar aiki ta gaba. Kuɗin Paystack yana fitowa daga kasonka, haka kuma kuɗin Shopinbos na {fee} a kan kowace sayarwa a tsarinka (ba a kan isarwa ba, kuma ba a kan kayan dropship ba: kwamishan mai kawo kaya ne ke rufe su).",
   "fee.limits": "{rate}% (aƙalla {min}, mafi yawa {max})",
   "fee.min": "{rate}% (aƙalla {min})",
   "fee.max": "{rate}% (mafi yawa {max})",
@@ -156,7 +153,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "claim.chooseOrder": "Zaɓi order da wannan ya shafa.",
   "claim.none": "Babu order na kwanan nan daga supplier ko delivery partner da za ka iya kai ƙorafi a kai. Ana iya kai ƙorafi cikin kwana {days} bayan delivery.",
   "claim.sent": "An aika ƙorafin.",
-  "setup.neverCommission": "Shopinbos ba ya riƙe kuɗinka. Idan {who} suka biya da kati ko Korapay don kayanka, kasonka yana zuwa wannan bankin kai tsaye, yawanci ranar aiki ta gaba. Kwamishan Shopinbos na {pct}% na darajar jumla yana fitowa daga kowane odar kasuwa a tsarinka, tare da kasonka na kuɗin Paystack.",
+  "setup.neverCommission": "Shopinbos ba ya riƙe kuɗinka. Idan {who} suka biya da kati don kayanka, kasonka yana zuwa wannan bankin kai tsaye, yawanci ranar aiki ta gaba. Kwamishan Shopinbos na {pct}% na darajar jumla yana fitowa daga kowane odar kasuwa a tsarinka, tare da kasonka na kuɗin Paystack.",
 };
 
 export default ha;

@@ -156,12 +156,21 @@ export const nairaFromKobo = (kobo: number) => `₦${(kobo / 100).toLocaleString
  */
 export const PREPAID_BALANCE_IN_APP = process.env.EXPO_PUBLIC_PREPAID_BALANCE === "true";
 
+/**
+ * Their own wallet account number on the wallet card, only when EXPO_PUBLIC_WALLET_ACCOUNT_NUMBER=true. Paying into it
+ * tops up a balance spent on Shopinbos services, which App Store and Play builds can't point people to pay outside
+ * the stores (Apple 3.1.1, Google Play payments), so store builds leave it off; the top-up email carries it instead.
+ */
+export const WALLET_ACCOUNT_IN_APP = process.env.EXPO_PUBLIC_WALLET_ACCOUNT_NUMBER === "true";
+
 export interface WalletBalance {
   ready: boolean;
   balanceNaira: number;
   canWithdraw: boolean;
   bank: string | null;
   topUpAccount: { number: string; name: string; bank: string } | null;
+  /** "setting_up" while Paystack assigns it. Older servers don't send it. */
+  topUpAccountStatus?: "ready" | "setting_up" | "off";
   limits: { topUpMin: number; topUpMax: number; withdrawMin: number; withdrawMax: number };
   transactions: Array<{ id: string; kind: string; naira: number; status: string; description: string; error: string | null; at: string }>;
 }

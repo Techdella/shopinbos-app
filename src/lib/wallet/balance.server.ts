@@ -126,8 +126,8 @@ export async function confirmCardTopUp(reference: string): Promise<"done" | "fai
 }
 
 /**
- * Their own top-up account (a bank account number only they pay into). Made once the business is set up to get
- * paid (checked bank). Safe on every wallet page load: returns at once when it exists, backs off after failures.
+ * Their own top-up account (a bank account number only they pay into). Made at sign-in (provisionWallet) and again
+ * on wallet page loads until it exists: returns at once when it does, backs off after failures.
  */
 export async function ensureTopUpAccount(userId: string) {
   if (!topUpAccountsReady()) return null;
@@ -136,11 +136,11 @@ export async function ensureTopUpAccount(userId: string) {
   const age = Date.now() - wallet.updatedAt.getTime();
   if ((wallet.topUpStatus === "unavailable" && age < 86_400_000) || ((wallet.topUpStatus === "failed" || wallet.topUpStatus === "pending") && age < 600_000)) return wallet;
   const user = await db.user.findUnique({ where: { id: userId }, select: { name: true, email: true, phone: true } });
-  if (!user?.email) return wallet;
+  if (!user) return wallet;
   const [first, ...rest] = (user.name || "Shopinbos Business").trim().split(/\s+/);
   let customerCode = wallet.topUpCustomerCode;
   if (!customerCode) {
-    const customer = await paystack("/customer", { email: user.email, first_name: first, last_name: rest.join(" ") || first, phone: user.phone ?? undefined, metadata: JSON.stringify({ shopinbos: "wallet", walletId: wallet.id }) });
+    const customer = await paystack("/customer", { email: user.email || `wallet-${userId}@shopinbos.com`, first_name: first, last_name: rest.join(" ") || first, phone: user.phone ?? undefined, metadata: JSON.stringify({ shopinbos: "wallet", walletId: wallet.id }) });
     if (!customer.ok) return markTopUpProblem(wallet.id, customer.message);
     customerCode = (customer.data as { customer_code?: string } | undefined)?.customer_code ?? null;
     if (!customerCode) return markTopUpProblem(wallet.id, "Paystack returned no customer code.");
@@ -153,6 +153,21 @@ export async function ensureTopUpAccount(userId: string) {
     where: { id: wallet.id },
     data: { topUpAccountNumber: account.accountNumber, topUpAccountName: account.accountName, topUpBankName: account.bankName, topUpStatus: account.accountNumber ? "ready" : "pending", topUpError: null },
   });
+}
+
+/**
+ * Gives a business its wallet and, when switched on, its own account number. Run after every sign-in (in the
+ * background, never blocking it); cheap once both exist. Admins have no wallet.
+ */
+export async function provisionWallet(userId: string) {
+  try {
+    const user = await db.user.findUnique({ where: { id: userId }, select: { role: true } });
+    if (!user || user.role === "admin") return;
+    await ensureWallet(userId);
+    await ensureTopUpAccount(userId);
+  } catch (error) {
+    console.error(`[wallet] could not set up the wallet of ${userId}`, error);
+  }
 }
 
 async function markTopUpProblem(walletId: string, message: string) {
@@ -267,9 +282,18 @@ export async function walletBalanceView(userId: string) {
     canWithdraw: Boolean(wallet && wallet.status === "active" && wallet.accountNumber && wallet.subaccountStatus === "active"),
     bank: wallet?.accountNumber ? `${wallet.bankName ?? "Bank"} ••${wallet.accountNumber.slice(-4)}` : null,
     topUpAccount: wallet?.topUpStatus === "ready" && wallet.topUpAccountNumber ? { number: wallet.topUpAccountNumber, name: wallet.topUpAccountName ?? "", bank: wallet.topUpBankName ?? "" } : null,
+    /** Where their own account number stands: "ready", "setting_up" (asked Paystack, or retrying), or "off". */
+    topUpAccountStatus: topUpAccountStatus(wallet?.topUpStatus, Boolean(wallet?.topUpAccountNumber)),
     limits: BALANCE_LIMITS,
     transactions: transactions.map((t) => ({ id: t.id, kind: t.kind, naira: t.amountKobo / 100, status: t.status, description: t.description, error: t.error, at: t.createdAt.toISOString() })),
   };
+}
+
+function topUpAccountStatus(status: string | undefined, hasNumber: boolean): "ready" | "setting_up" | "off" {
+  if (!topUpAccountsReady()) return "off";
+  if (status === "ready" && hasNumber) return "ready";
+  // Paystack said Dedicated Virtual Accounts aren't on for the business: nothing the person can do.
+  return status === "unavailable" ? "off" : "setting_up";
 }
 
 export type WalletBalanceView = Awaited<ReturnType<typeof walletBalanceView>>;

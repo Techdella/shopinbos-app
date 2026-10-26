@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
+import { provisionWallet } from "@/lib/wallet/balance.server";
 import type { AuthRole } from "@/lib/brand";
 import { roleDestination } from "@/lib/brand";
 import { portalLoginPath, portalOnboardingPath, portalSignupPath } from "@/lib/portal-routes";
@@ -56,6 +57,8 @@ export async function GET(request: NextRequest) {
   await alignRoleMetadata(data.user.id, data.user.user_metadata?.role, appUser.role);
   // Joined with an invite (Refer & earn, the sib_ref cookie from /r/CODE).
   if (!isReset) await claimReferralFromCookie(appUser.id);
+  // Every business gets its wallet and own account number on sign-in, without holding up the sign-in.
+  after(() => provisionWallet(appUser.id));
 
   let landing = destination;
   if (!isReset && appUser.role !== role) {

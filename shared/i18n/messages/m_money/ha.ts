@@ -196,6 +196,10 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "bal.pending": "yana kan hanya",
   "bal.didntGo": "bai yi nasara ba",
   "bal.failed": "Bai yi aiki ba. Sake gwadawa.",
+  "bal.accountTitle": "Lambar asusun walat ɗinka. Tura kuɗi daga kowace manhajar banki don ƙara kuɗi:",
+  "bal.accountSettingUp": "Ana ƙirƙirar lambar asusun walat ɗinka. Za ta bayyana a nan cikin ƴan mintuna.",
+  "bal.copy": "Kwafa",
+  "bal.copied": "An kwafa",
 };
 
 export default ha;

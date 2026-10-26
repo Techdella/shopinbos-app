@@ -31,8 +31,9 @@ test("a bank under review, refused or paused says why, and missing card keys nev
 });
 
 test("sellers never see the payment processor's name for the second checkout", () => {
-  const korapay = onboarding.PAYMENT_METHODS.find((method) => method.key === "korapay");
-  assert.doesNotMatch(`${korapay.label} ${korapay.hint}`, /korapay/i);
+  // Korapay isn't offered for now, so sellers don't get a switch for it at all.
+  assert.equal(onboarding.PAYMENT_METHODS.find((method) => method.key === "korapay"), undefined);
+  assert.doesNotMatch(JSON.stringify(onboarding.PAYMENT_METHODS), /korapay/i);
   assert.doesNotMatch(read("shared/i18n/messages/home/en.ts"), /"pm\.[a-z]+\.(label|hint)": "[^"]*(Korapay|Paystack)/);
   assert.doesNotMatch(pay.paymentChoiceText("korapay"), /korapay/i);
 });
