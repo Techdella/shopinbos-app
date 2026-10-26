@@ -117,6 +117,12 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "verify.missing": "Ƙara {docs} kafin ka aika don dubawa.",
   "error.notOnPlan": "Wannan ba ya cikin tsarinka.",
   "credits.refill": "Kiredit ɗin tsarinka suna cika kowane wata.",
+  "pick.states": "Zaɓi jihohi",
+  "pick.state": "Zaɓi jiha",
+  "pick.search": "Nema, misali Ogun",
+  "pick.none": "Babu jihar da ta dace.",
+  "pick.done": "An gama · an zaɓi {count}",
+  "pick.close": "Rufe",
 };
 
 export default ha;

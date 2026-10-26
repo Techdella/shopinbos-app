@@ -117,6 +117,12 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "verify.missing": "Tinye {docs} tupu i zipu ka e lelee.",
   "error.notOnPlan": "Nke ahụ adịghị n'atụmatụ gị.",
   "credits.refill": "Kredit nke atụmatụ gị na-ejupụta kwa ọnwa.",
+  "pick.states": "Họrọ steeti",
+  "pick.state": "Họrọ otu steeti",
+  "pick.search": "Chọọ, dịka Ogun",
+  "pick.none": "Ọ dịghị steeti dabara.",
+  "pick.done": "Emechaala · ahọrọla {count}",
+  "pick.close": "Mechie",
 };
 
 export default ig;

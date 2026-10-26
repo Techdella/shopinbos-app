@@ -205,7 +205,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "w.steps.check": "Paystack ya duba asusun",
   "w.steps.cards": "Karɓi biyan kati",
   "owed.payOwed": "Biya {amount} da ake bin ka",
-  "bal.accountTitle": "Lambar asusun walat ɗinka. Tura kuɗi daga kowace manhajar banki don ƙara kuɗi:",
+  "bal.accountTitle": "Lambar asusunka. Kuɗin da aka saka a ciki zai tafi bankinka:",
   "bal.accountSettingUp": "Ana ƙirƙirar lambar asusun walat ɗinka. Za ta bayyana a nan cikin ƴan mintuna.",
   "bal.copy": "Kwafa",
   "bal.copied": "An kwafa",

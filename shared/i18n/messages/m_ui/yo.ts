@@ -117,6 +117,12 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "verify.missing": "Fi {docs} kún un kí o tó fi ránṣẹ́ fún àyẹ̀wò.",
   "error.notOnPlan": "Ìyẹn kò sí nínú ètò rẹ.",
   "credits.refill": "Kirẹ́dítì ètò rẹ máa ń kún padà lóṣooṣù.",
+  "pick.states": "Yan àwọn ìpínlẹ̀",
+  "pick.state": "Yan ìpínlẹ̀ kan",
+  "pick.search": "Wá, bí àpẹẹrẹ Ogun",
+  "pick.none": "Kò sí ìpínlẹ̀ tó bá a mu.",
+  "pick.done": "Ó ti parí · {count} ni o yàn",
+  "pick.close": "Pa á dé",
 };
 
 export default yo;

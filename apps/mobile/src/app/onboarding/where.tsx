@@ -4,8 +4,7 @@ import { router } from "expo-router";
 import * as Location from "expo-location";
 import { canonicalState, NG_STATES } from "@shared/delivery-market";
 import { allowedSellChoice, sellChoiceToSave, type OnboardingSellArea, type SellChoice } from "@shared/onboarding";
-import { Choice, Seg, Small, Title } from "@/components/design";
-import { Chips } from "@/components/seller/bits";
+import { Choice, Small, Title } from "@/components/design";
 import { LoadingBlock } from "@/components/kit";
 import { LinkButton, Notice, PillButton, T } from "@/components/ui";
 import { OnboardingFrame } from "@/components/OnboardingFrame";
@@ -14,6 +13,7 @@ import { stateName } from "@/lib/delivery-pure";
 import { saveMemory } from "@/lib/onboarding";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
+import { StatePicker } from "@/components/StatePicker";
 
 // "Where do you sell?" (seller onboarding, before payments): just my state, some states, or all of Nigeria, the
 // delivery settings' "Where I sell" (PUT /api/mobile/delivery/settings, the web's SellAreaPicker model). The state
@@ -130,9 +130,14 @@ export default function WhereYouSell() {
             <Small style={{ flex: 1 }}>{choice.area === "one_state" ? t("where.pickOne") : t("where.pickMany")}</Small>
             <LinkButton title={locating ? t("where.locating") : t("where.useLocation")} onPress={() => void locateMe()} />
           </View>
-          <Chips>
-            {NG_STATES.map((state) => <Seg key={state} label={stateName(state)} on={choice.states.includes(state)} onPress={() => toggle(state)} />)}
-          </Chips>
+          <StatePicker
+            testID="where-states"
+            options={NG_STATES.map((state) => ({ value: state, label: stateName(state) }))}
+            selected={choice.states}
+            onToggle={toggle}
+            single={choice.area === "one_state"}
+            title={choice.area === "one_state" ? t("where.pickOne") : t("where.pickMany")}
+          />
         </View>
       ) : null}
       {error ? <View style={{ marginTop: 12 }}><Notice tone="info">{error}</Notice></View> : null}

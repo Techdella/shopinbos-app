@@ -16,6 +16,7 @@ import { checkWalletAccount, fetchWallet, linkWalletBank } from "@/lib/wallet";
 import { usePeggyContinue, usePeggySaved } from "@/lib/peggy-call";
 import { supplierWizardStep } from "@/lib/peggy-call-pure";
 import { colors } from "@/theme";
+import { StatePicker } from "@/components/StatePicker";
 
 // Setting up a supplier ("Simple app, end to end" supplier prototype: sWelcome → sBiz → sPickup → sWhere → sBank →
 // sDocs → sReady). The business name and what it supplies, and the city and address parcels leave from, go to PATCH
@@ -284,12 +285,12 @@ export default function SupplierSetup() {
           {SELL_AREAS.map((key) => <Choice key={key} title={t.dynamic(`where.${key}`)} sub={t.dynamic(`where.${key}.sub`)} on={area === key} onPress={() => setArea(key)} />)}
         </View>
         {area === "selected" ? (
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-            {SELL_STATES.map((state) => {
-              const on = states.includes(state.value);
-              return <Seg key={state.value} label={state.label} on={on} onPress={() => setStates(on ? states.filter((item) => item !== state.value) : [...states, state.value])} />;
-            })}
-          </View>
+          <StatePicker
+            testID="supplier-states"
+            options={SELL_STATES}
+            selected={states}
+            onToggle={(value) => setStates(states.includes(value) ? states.filter((item) => item !== value) : [...states, value])}
+          />
         ) : null}
       </FlowFrame>
     );

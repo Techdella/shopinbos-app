@@ -31,6 +31,7 @@ const code = (text) => text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`]
  * Shopinbos product. Keep it short and honest.
  */
 const ALLOWED_PHRASES = [
+  { where: "components/WalletAccountNumber.tsx", text: "view.topUpAccount", reason: "API field names for the business's own account number; only shown when EXPO_PUBLIC_WALLET_ACCOUNT_NUMBER is on (never in store builds), and money paid in settles to their own bank" },
   { where: "lib/wallet.ts", text: "topUpAccount", reason: "a field of the web's wallet API type; never shown (the card has no Top up)" },
   { where: "lib/wallet.ts", text: "topUpMin", reason: "a field of the web's wallet API type; never shown" },
   { where: "app/invoices/new.tsx", text: "billing@example.com", reason: "an email placeholder for the customer an invoice goes to" },

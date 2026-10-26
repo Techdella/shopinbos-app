@@ -205,7 +205,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "w.steps.check": "Paystack ṣàyẹ̀wò àkáǹtì náà",
   "w.steps.cards": "Gba ìsanwó káàdì",
   "owed.payOwed": "San {amount} tí o jẹ",
-  "bal.accountTitle": "Nọ́mbà àkáǹtì wallet rẹ. Fi owó ránṣẹ́ láti app báǹkì èyíkéyìí láti fi owó kún un:",
+  "bal.accountTitle": "Nọ́ńbà àkáǹtì rẹ. Owó tí wọ́n bá san sínú rẹ̀ yóò lọ sí bánkì rẹ:",
   "bal.accountSettingUp": "À ń ṣẹ̀dá nọ́mbà àkáǹtì wallet rẹ. Yóò hàn níbí láàárín ìṣẹ́jú díẹ̀.",
   "bal.copy": "Daakọ",
   "bal.copied": "A ti daakọ",

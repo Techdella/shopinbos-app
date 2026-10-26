@@ -117,6 +117,12 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "verify.missing": "Add {docs} before you send for review.",
   "error.notOnPlan": "Dat one no dey your plan.",
   "credits.refill": "Your plan credits go full again every month.",
+  "pick.states": "Choose states",
+  "pick.state": "Choose one state",
+  "pick.search": "Search, like Ogun",
+  "pick.none": "No state match am.",
+  "pick.done": "Done · {count} chosen",
+  "pick.close": "Close",
 };
 
 export default pcm;

@@ -120,6 +120,12 @@ const en = {
   "verify.missing": "Add {docs} before sending for review.",
   "error.notOnPlan": "That isn't on your plan.",
   "credits.refill": "Your plan's credits refill each month.",
+  "pick.states": "Choose states",
+  "pick.state": "Choose a state",
+  "pick.search": "Search, e.g. Ogun",
+  "pick.none": "No state matches that.",
+  "pick.done": "Done · {count} chosen",
+  "pick.close": "Close",
 } satisfies Record<string, string>;
 
 export default en;

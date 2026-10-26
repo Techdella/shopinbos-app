@@ -40,6 +40,7 @@ import {
 import { useLoad } from "@/lib/useLoad";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
+import { StatePicker } from "@/components/StatePicker";
 
 // Start a campaign (web /home/ads/new), step by step: how it runs (your own Meta ad account when it's connected,
 // or the Shopinbos ads team on Meta or TikTok for the setup fee), the products, goal and audience, budget and
@@ -80,7 +81,6 @@ export default function NewAdCampaign() {
   const [query, setQuery] = useState("");
   const [objective, setObjective] = useState<AdObjective>("traffic");
   const [audience, setAudience] = useState<AdAudience>({ countries: ["NG"], states: [], ageMin: 18, ageMax: 55, gender: "all", interests: [] });
-  const [showStates, setShowStates] = useState(false);
   const [interest, setInterest] = useState("");
   const [dailyBudget, setDailyBudget] = useState(5000);
   const [startIn, setStartIn] = useState<number>(0);
@@ -247,12 +247,13 @@ export default function NewAdCampaign() {
           </View>
           {audience.countries.includes("NG") ? (
             <>
-              <LinkButton title={audience.states.length ? t("c.statesChosen", { count: audience.states.length }) : t("c.allNigeria")} onPress={() => setShowStates(!showStates)} />
-              {showStates ? (
-                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-                  {NG_STATES.map((place) => <Chip key={place} label={place === "Federal Capital Territory" ? "Abuja (FCT)" : place} on={audience.states.includes(place)} onPress={() => setAudience((a) => ({ ...a, states: toggle(a.states, place) }))} />)}
-                </View>
-              ) : null}
+              <StatePicker
+                testID="ad-states"
+                options={NG_STATES.map((place) => ({ value: place, label: place === "Federal Capital Territory" ? "Abuja (FCT)" : place }))}
+                selected={audience.states}
+                onToggle={(place) => setAudience((a) => ({ ...a, states: toggle(a.states, place) }))}
+                placeholder={t("c.allNigeria")}
+              />
             </>
           ) : null}
           <Label>{t("c.age")}</Label>
